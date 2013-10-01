@@ -22,10 +22,13 @@ enum ic_msg_sc_slots {
 };
 
 qm_k32_t(ic, ichannel_t *);
+qm_k64_t(ic_hook_ctx, ic_hook_ctx_t *);
 
 static mem_pool_t *ic_mp_g;
 static qm_t(ic)    ic_h_g;
+static qm_t(ic_hook_ctx) ic_ctx_h_g;
 const QM(ic_cbs, ic_no_impl, false);
+struct ic_hook_flow_t ic_hook_flow_g;
 
 /*----- messages stuff -----*/
 
@@ -34,10 +37,12 @@ void ic_initialize(void)
     if (!ic_mp_g) {
         ic_mp_g = mem_fifo_pool_new(1 << 20);
         qm_init(ic, &ic_h_g, false);
+        qm_init(ic_hook_ctx, &ic_ctx_h_g, false);
     }
 }
 void ic_shutdown(void)
 {
+    qm_wipe(ic_hook_ctx, &ic_ctx_h_g);
     qm_wipe(ic, &ic_h_g);
     mem_fifo_pool_delete(&ic_mp_g);
 }
@@ -97,6 +102,54 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
     ic->pending--;
     msg->slot = slot & IC_MSG_SLOT_MASK;
     msg->cmd  = -cmd;
+}
+
+int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
+{
+    return qm_add(ic_hook_ctx, &ic_ctx_h_g, ctx->slot, ctx);
+}
+
+ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
+{
+    if (ic_hook_flow_g.ic_hook_ctx) {
+        assert(ic_hook_flow_g.ic_hook_ctx->slot != slot);
+        ic_hook_ctx_save(ic_hook_flow_g.ic_hook_ctx);
+    }
+    ic_hook_flow_g.ic_hook_ctx = mp_new_extra_field(ic_mp_g, ic_hook_ctx_t,
+                                                    data, extra);
+    ic_hook_flow_g.ic_hook_ctx->slot = slot;
+
+    return ic_hook_flow_g.ic_hook_ctx;
+}
+
+ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot)
+{
+    if (ic_hook_flow_g.ic_hook_ctx
+    &&  ic_hook_flow_g.ic_hook_ctx->slot == slot)
+    {
+        return ic_hook_flow_g.ic_hook_ctx;
+    } else {
+        int pos = qm_find(ic_hook_ctx, &ic_ctx_h_g, slot);
+
+        if (pos < 0) {
+            return NULL;
+        }
+        return ic_ctx_h_g.values[pos];
+    }
+}
+
+void ic_hook_ctx_delete(ic_hook_ctx_t **pctx)
+{
+    if (*pctx) {
+        ic_hook_ctx_t *ctx = *pctx;
+
+        if (ctx == ic_hook_flow_g.ic_hook_ctx) {
+            ic_hook_flow_g.ic_hook_ctx = NULL;
+        } else {
+            qm_del_key(ic_hook_ctx, &ic_ctx_h_g, ctx->slot);
+        }
+    }
+    mp_delete(ic_mp_g, pctx);
 }
 
 static inline bool ic_can_reply(const ichannel_t *ic, uint64_t slot) {

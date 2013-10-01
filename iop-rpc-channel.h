@@ -23,8 +23,9 @@
 qh_k64_t(ic_replies);
 #endif
 
-typedef struct ichannel_t ichannel_t;
-typedef struct ic_msg_t   ic_msg_t;
+typedef struct ichannel_t    ichannel_t;
+typedef struct ic_msg_t      ic_msg_t;
+typedef struct ic_hook_ctx_t ic_hook_ctx_t;
 
 typedef enum ic_event_t {
     IC_EVT_CONNECTED,
@@ -90,6 +91,20 @@ ic_msg_t *ic_msg_new_fd(int fd, int len);
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr);
 void ic_msg_delete(ic_msg_t **);
 qm_k32_t(ic_msg, ic_msg_t *);
+
+struct ic_hook_ctx_t {
+    uint64_t slot;
+    byte   data[];  /* data to pass through RPC workflow */
+};
+
+extern struct ic_hook_flow_t {
+    ic_hook_ctx_t  *ic_hook_ctx;
+} ic_hook_flow_g;
+
+int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
+ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra);
+ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot);
+void ic_hook_ctx_delete(ic_hook_ctx_t **pctx);
 
 enum ic_cb_entry_type {
     IC_CB_NORMAL,
