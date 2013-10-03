@@ -152,12 +152,28 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *    <tt>void (*)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc))</tt>.
  *    it can be the same implementation callback as the one used for an
  *    #ic_register call.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    it can be the same implementation callback as the one used for an
+ *    #ic_register call.
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *)</tt>
+ *    it can be the same implementation callback as the one used for an
+ *    #ic_register call.
  */
-#define ichttp_register_(tcb, _mod, _if, _rpc, _cb) \
+#define ichttp_register_pre_post_hook_(tcb, _mod, _if, _rpc, _cb, _pre_cb, _post_cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
+        void (*__pre_cb)(ichannel_t *, uint64_t, const ic__hdr__t *) =       \
+            _pre_cb;                                                         \
+        void (*__post_cb)(ichannel_t *, ic_status_t, ic_hook_ctx_t *) =      \
+            _post_cb;                                                        \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_NORMAL,                                         \
+            .pre_hook = __pre_cb,                                            \
+            .post_hook = __post_cb,                                          \
             .u = { .cb = {                                                   \
                 .rpc = IOP_RPC(_mod, _if, _rpc),                             \
                 .cb  = (void *)__cb,                                         \
@@ -166,6 +182,20 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
                                                                              \
         ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
+
+/** \brief same as #ichttp_register_pre_post_hook_ but auto-computes the
+ *    rpc name.
+ */
+#define ichttp_register_pre_post_hook(tcb, _m, _i, _r, _pre_cb, _post_cb)    \
+    ichttp_register_pre_post_hook_(tcb, _m, _i, _r,                          \
+                                   IOP_RPC_NAME(_m, _i, _r, impl),           \
+                                   _pre_cb, _post_cb)
+
+/** \brief same as #ichttp_register_pre_post_hook_ but doesn't register
+ *    pre/post hooks.
+ */
+#define ichttp_register_(tcb, _mod, _if, _rpc, _cb)                          \
+    ichttp_register_pre_post_hook_(tcb, _mod, _if, _rpc, _cb, NULL, NULL)
 
 /** \brief same as #ichttp_register_ but auto-computes the rpc name. */
 #define ichttp_register(tcb, _mod, _if, _rpc)                                \

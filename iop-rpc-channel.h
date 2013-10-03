@@ -48,6 +48,8 @@ typedef enum ic_event_t {
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
 typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
+typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t, const ic__hdr__t *);
+typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t, ic_hook_ctx_t *);
 typedef int (ic_creds_f)(ichannel_t *, const struct ucred *creds);
 typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
@@ -94,11 +96,13 @@ qm_k32_t(ic_msg, ic_msg_t *);
 
 struct ic_hook_ctx_t {
     uint64_t slot;
+    ic_post_hook_f *post_hook;
     byte   data[];  /* data to pass through RPC workflow */
 };
 
 extern struct ic_hook_flow_t {
     ic_hook_ctx_t  *ic_hook_ctx;
+    ic_post_hook_f *post_hook;
 } ic_hook_flow_g;
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
@@ -125,6 +129,9 @@ typedef struct ic_dynproxy_t {
 
 typedef struct ic_cb_entry_t {
     int cb_type;
+
+    ic_pre_hook_f  *pre_hook;
+    ic_post_hook_f *post_hook;
     union {
         struct {
             const iop_rpc_t *rpc;
@@ -447,7 +454,7 @@ void ic_flush(ichannel_t *ic);
 #define IOP_RPC_CB_REF(_m, _i, _r) \
     IOP_RPC_CB_REF_(_m##__##_i(_r##__rpc__async), _m, _i, _r)
 
-/** \brief register a local callback for an rpc.
+/** \brief register local callback and pre/post hooks for an rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
  *    implementation into.
@@ -457,13 +464,25 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  _cb
  *    the implementation callback. Its type should be:
  *    <tt>void (*)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc))</tt>
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *)</tt>
  */
-#define ic_register_(h, _mod, _if, _rpc, _cb) \
+#define ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb, _pre_cb, _post_cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
+        void (*__pre_cb)(ichannel_t *, uint64_t, const ic__hdr__t *) =       \
+            _pre_cb;                                                         \
+        void (*__post_cb)(ichannel_t *, ic_status_t, ic_hook_ctx_t *) =      \
+            _post_cb;                                                        \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_NORMAL,                                         \
+            .pre_hook = __pre_cb,                                            \
+            .post_hook = __post_cb,                                          \
             .u = { .cb = {                                                   \
                 .rpc = IOP_RPC(_mod, _if, _rpc),                             \
                 .cb  = (void *)__cb,                                         \
@@ -472,6 +491,20 @@ void ic_flush(ichannel_t *ic);
         e_assert_n(panic, qm_add(ic_cbs, h, cmd, e),                         \
                    "collision in RPC registering");                          \
     } while (0)
+
+/** \brief same as #ic_register_pre_post_hook_ but auto-computes the
+ *    rpc name.
+ */
+#define ic_register_pre_post_hook(h, _m, _i, _r, _pre_cb, _post_cb)          \
+    ic_register_pre_post_hook_(h, _m, _i, _r,                                \
+                               IOP_RPC_NAME(_m, _i, _r, impl),               \
+                               _pre_cb, _post_cb)
+
+/** \brief same as #ic_register_pre_post_hook_ but doesn't register pre/post
+ *    hooks.
+ */
+#define ic_register_(h, _mod, _if, _rpc, _cb)                                \
+    ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb, NULL, NULL)
 
 /** \brief same as #ic_register_ but auto-computes the rpc name. */
 #define ic_register(h, _m, _i, _r) \
@@ -628,6 +661,14 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
  *   the error status to use, should NOT be #IC_MSG_OK nor #IC_MSG_EXN.
  */
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
+
+/** \brief helper to get and execute the post hook of the query.
+ *
+ * \param[in]  ic      the #ichannel_t to send the query to.
+ * \param[in]  status  the received answer status parameter.
+ * \param[in]  slot    the slot of the received query.
+ */
+void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
 
 /** \brief helper to build a typed query message.
  * \param[in]  _ich   the #ichannel_t to send the query to.

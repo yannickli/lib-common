@@ -118,6 +118,7 @@ ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
     ic_hook_flow_g.ic_hook_ctx = mp_new_extra_field(ic_mp_g, ic_hook_ctx_t,
                                                     data, extra);
     ic_hook_flow_g.ic_hook_ctx->slot = slot;
+    ic_hook_flow_g.ic_hook_ctx->post_hook = ic_hook_flow_g.post_hook;
 
     return ic_hook_flow_g.ic_hook_ctx;
 }
@@ -150,6 +151,21 @@ void ic_hook_ctx_delete(ic_hook_ctx_t **pctx)
         }
     }
     mp_delete(ic_mp_g, pctx);
+}
+
+void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot)
+{
+    ic_hook_ctx_t *ctx = ic_hook_ctx_get(slot);
+
+    if (!ctx) {
+        return;
+    }
+    if (ctx->post_hook) {
+        (*ctx->post_hook)(ic, status, ctx);
+    }
+    ic_hook_ctx_delete(&ctx);
+
+    return;
 }
 
 static inline bool ic_can_reply(const ichannel_t *ic, uint64_t slot) {
@@ -771,10 +787,24 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
                                      st, &hdr, &value) >= 0)
         {
+            uint64_t query_slot = MAKE64(ic->id, slot);
+
             t_seal();
             ic->desc = e->u.cb.rpc;
             ic->cmd  = cmd;
-            (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
+
+            if (e->pre_hook) {
+                ic_hook_flow_g.post_hook = e->post_hook;
+                (*e->pre_hook)(ic, query_slot, hdr);
+                /* XXX: if we reply to the query during pre_hook then
+                 *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
+                 *      call the implementation of the RPC
+                 */
+                if (!ic_hook_flow_g.ic_hook_ctx) {
+                    return;
+                }
+            }
+            (*e->u.cb.cb)(ic, query_slot, value, hdr);
             ic->desc = NULL;
             ic->cmd  = 0;
         } else
@@ -856,6 +886,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (take_pxy_hdr) {
             flags |= IC_MSG_HAS_HDR;
         }
+        /* TODO: shachimi add pre_hook for proxy */
         ___ic_query_flags(pxy, tmp, flags);
     }
 }
@@ -1341,6 +1372,8 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
         return 0;
     }
 
+    ic_query_do_post_hook(ic, cmd, slot);
+
     msg = ic_msg_new_for_reply(&ic, slot, cmd);
     if (!msg)
         return 0;
@@ -1374,6 +1407,8 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
         __ichttp_reply_err(slot, err, err_str);
         return;
     }
+
+    ic_query_do_post_hook(ic, err, slot);
 
     msg = ic_msg_new_for_reply(&ic, slot, err);
     if (!msg)
