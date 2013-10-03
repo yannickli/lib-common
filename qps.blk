@@ -882,10 +882,11 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     snprintf(dst, sizeof(dst), "%08x.%08x.qpz", map->hdr.mapno, gen);
     snprintf(buf, sizeof(buf), "%08x.%08x.qpt", map->hdr.mapno, gen);
     fd = qps_open_temp(qps, buf);
-    out = gzdopen(dup(fd), "wb9");
+    out = gzdopen(dup(fd), "wb2");
     if (!out)
         qps_enospc("gzdopen");
 
+    gzbuffer(out, 1 << 20);
     if (gzwrite(out, &map->hdr, sizeof(qps_map_t)) != sizeof(qps_map_t))
         qps_enospc("gzwrite");
 
@@ -927,6 +928,7 @@ static void qps_map_m_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     char buf[32], dst[32];
     int  fd;
     void       *map_end = &map[QPS_MAP_PAGES];
+    qps_mhdr_t *prev    = (qps_mhdr_t *)&map[0];
     qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
     qps_mhdr_t *blk_end = container_of(map_end, qps_mhdr_t, data);
 
@@ -934,8 +936,6 @@ static void qps_map_m_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     snprintf(dst, sizeof(dst), "%08x.qps", map->hdr.mapno);
     fd = qps_open_temp(qps, buf);
     x_ftruncate(fd, QPS_MAP_SIZE);
-
-    x_pwrite(fd, map, sizeof(map->hdr), 0);
 
     while (blk <= blk_end) {
         size_t bsz       = qps_m_blk_size(blk);
@@ -945,7 +945,13 @@ static void qps_map_m_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
             bsz = 0;
         }
 
-        x_pwrite(fd, blk, QPS_MBLK_HDRSZ + bsz, (byte *)blk - (byte *)map);
+        if (next > blk_end
+        ||  (byte *)next - (byte *)blk - QPS_MBLK_HDRSZ - bsz >= 4096)
+        {
+            x_pwrite(fd, prev, (byte *)blk - (byte *)prev + QPS_MBLK_HDRSZ + bsz,
+                     (byte *)prev - (byte *)map);
+            prev = next;
+        }
 
         blk = next;
     }
@@ -972,12 +978,13 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
         return NULL;
     }
 
-    zin = gzdopen(fd, "rb9");
+    zin = gzdopen(fd, "rb");
     if (zin == NULL) {
         e_error("QPS(%p:%s): unable to gzdopen", qps, buf);
         goto zerror;
     }
 
+    gzbuffer(zin, 1 << 20);
     if (gzread(zin, &map->hdr, sizeof(qps_map_t)) != sizeof(qps_map_t))
         goto zerror;
 
