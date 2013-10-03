@@ -504,7 +504,8 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
     if (!PyArg_ParseTuple(arg, "OOz|z",
                           &data,
                           &cb_query_done,
-                          &path)) {
+                          &path,
+                          &url_args)) {
         PyErr_SetString(http_query_error,
                         "failed to parse http_query argument");
         return NULL;
