@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <zlib.h>
+#include <lib-common/datetime.h>
 #include <lib-common/unix.h>
 #include <lib-common/qlzo.h>
 #include <lib-common/el.h>
@@ -2553,7 +2554,6 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                 qv_t(u32) t, uint32_t generation)
 {
     pid_t     pid;
-    thr_syn_t syn;
 
     pid = fork();
     if (pid < 0)
@@ -2565,44 +2565,46 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
     setsid();
     setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
 
-    thr_initialize();
-    thr_syn_init(&syn);
+    e_debug("QPS: start snapshotting %d maps", qps->maps.len);
     for (int i = 0; i < qps->maps.len; i++) {
+        struct timeval start, end;
         qps_map_t *map = qps->maps.tab[i];
 
-        if (!map)
-            continue;
+        lp_gettv(&start);
+        if (!map) {
+            goto next;
+        }
 
         if (!qps_map_is_pg(map) && map->hdr.generation == generation) {
-            thr_syn_schedule_b(&syn, ^{
-                qps_map_m_snapshot(qps, map, generation);
-            });
-            continue;
+            qps_map_m_snapshot(qps, map, generation);
+            goto next;
         }
 
         if (!qps_map_is_pg(map) || qps_map_pg_is_all_free(qps, map)) {
             madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
-            continue;
+            goto next;
         }
 
-        thr_syn_schedule_b(&syn, ^{
-            if (map->hdr.generation == generation) {
-                qps_map_pg_snapshot(qps, map, generation);
-            } else {
-                /* map didn't change, hardlink the previous snapshot */
-                char dst[32], src[32];
+        if (map->hdr.generation == generation) {
+            qps_map_pg_snapshot(qps, map, generation);
+        } else {
+            /* map didn't change, hardlink the previous snapshot */
+            char dst[32], src[32];
 
-                snprintf(src, sizeof(src), "%08x.%08x.qpz",
-                         map->hdr.mapno, map->hdr.generation);
-                snprintf(dst, sizeof(dst), "%08x.%08x.qpz",
-                         map->hdr.mapno, generation);
-                x_linkat(qps->dfd, src, qps->dfd, dst, 0);
-            }
-            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
-        });
+            snprintf(src, sizeof(src), "%08x.%08x.qpz",
+                     map->hdr.mapno, map->hdr.generation);
+            snprintf(dst, sizeof(dst), "%08x.%08x.qpz",
+                     map->hdr.mapno, generation);
+            x_linkat(qps->dfd, src, qps->dfd, dst, 0);
+        }
+        madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+
+      next:
+        lp_gettv(&end);
+        e_debug("QPS: snapshotting %d/%d (%jdms)", i + 1, qps->maps.len,
+                timeval_diffmsec(&end, &start));
     }
     x_write_meta(qps, generation, t, data, dlen);
-    thr_syn_wait(&syn);
 
     x_fdatasync(qps->dfd); // commit all file creations
     x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
@@ -2650,7 +2652,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                       void (^notify)(uint32_t))
 {
     t_scope;
-
+    struct timeval start;
     uint32_t  generation = qps->generation;
     uint32_t  rec_pos;
     qv_t(u32) t;
@@ -2660,6 +2662,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
     assert (qps->snapshotting == false);
 
+    lp_gettv(&start);
     qps_gc_disable(qps);
     qps->snapshotting = true;
     qps->generation  += 2;
@@ -2744,6 +2747,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
         thr_queue_b(thr_queue_main_g, ^{
             el_t timer_copy = timer;
+            struct timeval end;
 
             el_timer_unregister(&timer_copy);
             e_named_trace(1, "qps", "snapshot commited and notified");
@@ -2781,6 +2785,9 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             }
 
             qps->snapshotting = false;
+            lp_gettv(&end);
+            e_debug("QPS: snapshot done in %jdms",
+                    timeval_diffmsec(&end, &start));
             notify(generation);
         });
     });
