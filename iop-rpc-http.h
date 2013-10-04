@@ -163,18 +163,15 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *    it can be the same implementation callback as the one used for an
  *    #ic_register call.
  */
-#define ichttp_register_pre_post_hook_(tcb, _mod, _if, _rpc, _cb, _pre_cb, _post_cb) \
+#define ichttp_register_pre_post_hook_(tcb, _mod, _if, _rpc, _cb,            \
+                                       _pre_cb, _post_cb)                    \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
-        void (*__pre_cb)(ichannel_t *, uint64_t, const ic__hdr__t *) =       \
-            _pre_cb;                                                         \
-        void (*__post_cb)(ichannel_t *, ic_status_t, ic_hook_ctx_t *) =      \
-            _post_cb;                                                        \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_NORMAL,                                         \
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
-            .pre_hook = __pre_cb,                                            \
-            .post_hook = __post_cb,                                          \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .cb = {                                                   \
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
@@ -203,6 +200,58 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
                      IOP_RPC_NAME(_mod, _if, _rpc, impl))
 
 /** \brief register a proxy for an rpc on the given http iop trigger.
+ * \see #ic_register_proxy_hdr_pre_post_hook
+ * \param[in]  tcb
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  ic
+ *   the #ichannel_t to unconditionnaly forward the incoming RPCs to.
+ * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
+ */
+#define ichttp_register_proxy_hdr_pre_post_hook(tcb, _mod, _if, _rpc, ic,    \
+                                                hdr, _pre_cb, _post_cb)      \
+    do {                                                                     \
+        ic_cb_entry_t __cb_e = {                                             \
+            .cb_type = IC_CB_PROXY_P,                                        \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
+            .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
+        };                                                                   \
+                                                                             \
+        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
+    } while (0)
+
+/** \brief register a proxy for an rpc on the given http iop trigger.
+ * \see #ic_register_proxy_hdr_pre_post_hook
+ * \param[in]  tcb
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  ic
+ *   the #ichannel_t to unconditionnaly forward the incoming RPCs to.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
+ */
+#define ichttp_register_proxy_pre_post_hook(tcb, _mod, _if, _rpc, ic,        \
+                                            _pre_cb, _post_cb)               \
+    ichttp_register_proxy_hdr_pre_post_hook(tcb, _mod, _if, _rpc, ic, NULL,  \
+                                            _pre_cb, _post_cb)
+
+/** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_hdr
  * \param[in]  tcb
  *    the #httpd_trigger__ic_t to register the callback implementation into.
@@ -213,16 +262,9 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *   the #ichannel_t to unconditionnaly forward the incoming RPCs to.
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
  */
-#define ichttp_register_proxy_hdr(tcb, _mod, _if, _rpc, ic, hdr) \
-    do {                                                                     \
-        ic_cb_entry_t __cb_e = {                                             \
-            .cb_type = IC_CB_PROXY_P,                                        \
-            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
-            .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
-        };                                                                   \
-                                                                             \
-        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
-    } while (0)
+#define ichttp_register_proxy_hdr(tcb, _mod, _if, _rpc, ic, hdr)             \
+    ichttp_register_proxy_hdr_pre_post_hook(tcb, _mod, _if, _rpc, ic, hdr,   \
+                                            NULL, NULL)
 /** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy
  * \param[in]  tcb
@@ -248,17 +290,46 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *   request is rejected with an #IC_MSG_PROXY_ERROR status, else it's
  *   proxified to the pointed #ichannel_t.
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    it can be the same implementation callback as the one used for an
+ *    #ic_register call.
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *)</tt>
+ *    it can be the same implementation callback as the one used for an
+ *    #ic_register call.
  */
-#define ichttp_register_proxy_hdr_p(tcb, _mod, _if, _rpc, ic, hdr) \
+#define ichttp_register_proxy_hdr_p_pre_post_hook(tcb, _mod, _if, _rpc, ic,  \
+                                                  hdr, _pre_cb, _post_cb)    \
     do {                                                                     \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_PROXY_PP,                                       \
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
                                                                              \
         ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
+/** \brief register a pointed proxy for an rpc on the given http iop trigger.
+ * \see #ic_register_proxy_hdr_p
+ * \param[in]  tcb
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  icp
+ *   a pointer to an #ichannel_t. When this pointer points to #NULL, the
+ *   request is rejected with an #IC_MSG_PROXY_ERROR status, else it's
+ *   proxified to the pointed #ichannel_t.
+ * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ */
+#define ichttp_register_proxy_hdr_p(tcb, _mod, _if, _rpc, ic, hdr)           \
+    ichttp_register_proxy_hdr_p_pre_post_hook(tcb, _mod, _if, _rpc, ic, hdr, \
+                                              NULL, NULL)
 /** \brief register a pointed proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_p
  * \param[in]  tcb
@@ -289,12 +360,21 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *   #ic__hdr__t.
  * \param[in]  _priv
  *   an opaque pointer passed to the callback each time it's called.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
  */
-#define ichttp_register_dynproxy(tcb, _mod, _if, _rpc, cb, priv_) \
+#define ichttp_register_dynproxy_pre_post_hook(tcb, _mod, _if, _rpc, cb,     \
+                                               priv_, _pre_cb, _post_cb)     \
     do {                                                                     \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_DYNAMIC_PROXY,                                  \
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_cb = _pre_cb,                                               \
+            .post_cb = _post_cb,                                             \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = priv_,                                             \
@@ -304,6 +384,25 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
         ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 
+/** \brief register a dynamic proxy for an rpc on the given http iop trigger.
+ * \see #ic_register_dynproxy
+ * \param[in]  tcb
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  cb
+ *   a callback that returns an #ic_dynproxy_t (a pair of an #ichannel_t and
+ *   an #ic__hdr__t). When profixying the callback is called. When it returns
+ *   a #NULL #ichannel_t the request is rejected with a #IC_MSG_PROXY_ERROR
+ *   status, else it's forwarded to this #ichannel_t using the returned
+ *   #ic__hdr__t.
+ * \param[in]  _priv
+ *   an opaque pointer passed to the callback each time it's called.
+ */
+#define ichttp_register_dynproxy(tcb, _mod, _if, _rpc, cb, priv_)            \
+    ichttp_register_dynproxy_pre_post_hook(tcb, _mod, _if, _rpc, cb, priv_,  \
+                                           NULL, NULL)
 /** when called in HTTPD status hook, get the query error context if some */
 lstr_t ichttp_err_ctx_get(void);
 /** set the error context */

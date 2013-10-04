@@ -225,6 +225,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
     if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
 
+        ic_query_do_post_hook(ic, cmd, slot);
         ic_msg_init_for_reply(ic, tmp, slot, cmd);
         if (unpacked_msg && (likely(cmd == IC_MSG_OK) || cmd == IC_MSG_EXN)) {
             const iop_struct_t *st;
@@ -279,6 +280,7 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
         const void *data = buf->data + IC_MSG_HDR_LEN;
         int dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
+        ic_query_do_post_hook(ic, cmd, slot);
         ic_msg_init_for_reply(ic, tmp, slot, cmd);
         if (ic_is_local(pxy_ic) && !get_unaligned_cpu32(buf->data)) {
             const ic_msg_t *msg_org = data;
@@ -768,7 +770,9 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
         }
     }
 
-    if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
+    if (value
+    &&  unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0))
+    {
 #ifndef NDEBUG
         if (!iop_get_err()) {
             TRACE_INVALID("encoding");
@@ -790,6 +794,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     const iop_struct_t *st;
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
+    uint64_t query_slot = MAKE64(ic->id, slot);
     int pos;
 
     pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
@@ -813,8 +818,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
                                      st, &hdr, &value) >= 0)
         {
-            uint64_t query_slot = MAKE64(ic->id, slot);
-
             t_seal();
             ic->desc = e->rpc;
             ic->cmd  = cmd;
@@ -829,7 +832,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (slot) {
             lstr_t err_str = iop_get_err_lstr();
 
-            ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID, &err_str);
+            ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
         }
         return;
       }
@@ -858,7 +861,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
 
     if (unlikely(!pxy || !ic_is_ready(pxy))) {
         if (slot)
-            ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_PROXY_ERROR);
+            ic_reply_err(ic, query_slot, IC_MSG_PROXY_ERROR);
     } else {
         ic_msg_t *tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
         bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
@@ -869,7 +872,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             tmp->async = true;
         }
         tmp->cmd = cmd;
-        *(uint64_t *)tmp->priv = MAKE64(ic->id, slot);
+        *(uint64_t *)tmp->priv = query_slot;
 
         /* XXX We do not support header replacement with proxyfication */
 
@@ -901,10 +904,31 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             }
         }
 
+        if (e->pre_hook) {
+            t_scope;
+            ic__hdr__t *hdr = NULL;
+
+            if (flags & IC_MSG_HAS_HDR) {
+                if (unpacked_msg) {
+                    hdr = (ic__hdr__t *)unpacked_msg->hdr;
+                } else
+                if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
+                                             NULL, st, &hdr, NULL) < 0)
+                {
+                    lstr_t err_str = iop_get_err_lstr();
+
+                    ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+                    return;
+                }
+            }
+            t_seal();
+            if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
+                return;
+            }
+        }
         if (take_pxy_hdr) {
             flags |= IC_MSG_HAS_HDR;
         }
-        /* TODO: shachimi add pre_hook for proxy */
         ___ic_query_flags(pxy, tmp, flags);
     }
 }

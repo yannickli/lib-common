@@ -257,6 +257,10 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         msg->cmd = cbe->cmd;
         msg->rpc = cbe->fun;
         msg->async = cbe->fun->async;
+        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
+            return;
+        }
+
         if (!msg->async) {
             msg->cb = IC_PROXY_MAGIC_CB;
             *(uint64_t *)msg->priv = slot;
