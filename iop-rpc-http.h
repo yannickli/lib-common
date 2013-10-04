@@ -172,10 +172,10 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
             _post_cb;                                                        \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_NORMAL,                                         \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = __pre_cb,                                            \
             .post_hook = __post_cb,                                          \
             .u = { .cb = {                                                   \
-                .rpc = IOP_RPC(_mod, _if, _rpc),                             \
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
         };                                                                   \
@@ -217,6 +217,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     do {                                                                     \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_PROXY_P,                                        \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
         };                                                                   \
                                                                              \
@@ -252,6 +253,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     do {                                                                     \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_PROXY_PP,                                       \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
                                                                              \
@@ -292,6 +294,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     do {                                                                     \
         ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_DYNAMIC_PROXY,                                  \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = priv_,                                             \

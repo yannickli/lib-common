@@ -95,9 +95,10 @@ void ic_msg_delete(ic_msg_t **);
 qm_k32_t(ic_msg, ic_msg_t *);
 
 struct ic_hook_ctx_t {
-    uint64_t slot;
-    ic_post_hook_f *post_hook;
-    byte   data[];  /* data to pass through RPC workflow */
+    uint64_t         slot;
+    ic_post_hook_f  *post_hook;
+    const iop_rpc_t *rpc;
+    byte             data[];  /* data to pass through RPC workflow */
 };
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
@@ -124,12 +125,12 @@ typedef struct ic_dynproxy_t {
 
 typedef struct ic_cb_entry_t {
     int cb_type;
+    const iop_rpc_t *rpc;
 
     ic_pre_hook_f  *pre_hook;
     ic_post_hook_f *post_hook;
     union {
         struct {
-            const iop_rpc_t *rpc;
             void (*cb)(ichannel_t *, uint64_t, void *, const ic__hdr__t *);
         } cb;
 
@@ -149,7 +150,6 @@ typedef struct ic_cb_entry_t {
         } dynproxy;
 
         struct {
-            const iop_rpc_t *rpc;
             void (*cb)(void *, uint64_t, void *, const ic__hdr__t *);
         } iws_cb;
     } u;
@@ -476,10 +476,10 @@ void ic_flush(ichannel_t *ic);
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_NORMAL,                                         \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = __pre_cb,                                            \
             .post_hook = __post_cb,                                          \
             .u = { .cb = {                                                   \
-                .rpc = IOP_RPC(_mod, _if, _rpc),                             \
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
         };                                                                   \
@@ -535,6 +535,7 @@ void ic_flush(ichannel_t *ic);
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_PROXY_P,                                        \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
@@ -571,6 +572,7 @@ void ic_flush(ichannel_t *ic);
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_PROXY_PP,                                       \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
@@ -612,6 +614,7 @@ void ic_flush(ichannel_t *ic);
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_DYNAMIC_PROXY,                                  \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = _priv,                                             \

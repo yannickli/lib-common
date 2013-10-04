@@ -104,8 +104,9 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
 }
 
 static struct {
-    ic_hook_ctx_t  *ic_hook_ctx;
-    ic_post_hook_f *post_hook;
+    ic_hook_ctx_t   *ic_hook_ctx;
+    ic_post_hook_f  *post_hook;
+    const iop_rpc_t *rpc;
 } ic_hook_flow_g;
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
@@ -122,6 +123,7 @@ ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
     ic_hook_flow_g.ic_hook_ctx = mp_new_extra_field(ic_mp_g, ic_hook_ctx_t,
                                                     data, extra);
     ic_hook_flow_g.ic_hook_ctx->slot = slot;
+    ic_hook_flow_g.ic_hook_ctx->rpc = ic_hook_flow_g.rpc;
     ic_hook_flow_g.ic_hook_ctx->post_hook = ic_hook_flow_g.post_hook;
 
     return ic_hook_flow_g.ic_hook_ctx;
@@ -163,6 +165,7 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
 {
     if (e->pre_hook) {
         ic_hook_flow_g.post_hook = e->post_hook;
+        ic_hook_flow_g.rpc = e->rpc;
         (*e->pre_hook)(ic, slot, hdr);
         /* XXX: if we reply to the query during pre_hook then
          *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
@@ -798,7 +801,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         return;
     }
     e = ic->impl->values + pos;
-    st = e->u.cb.rpc->args;
+    st = e->rpc->args;
 
     switch (e->cb_type) {
       case IC_CB_NORMAL:
@@ -813,7 +816,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             uint64_t query_slot = MAKE64(ic->id, slot);
 
             t_seal();
-            ic->desc = e->u.cb.rpc;
+            ic->desc = e->rpc;
             ic->cmd  = cmd;
 
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
