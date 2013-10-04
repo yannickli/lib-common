@@ -205,12 +205,8 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
       case IC_CB_WS_SHARED:
         t_seal();
 
-        if (e->pre_hook) {
-            ic_hook_flow_g.post_hook = e->post_hook;
-            (*e->pre_hook)(NULL, slot, &hdr);
-            if (!ic_hook_flow_g.ic_hook_ctx) {
-                return;
-            }
+        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
+            return;
         }
         (*e->u.cb.cb)(NULL, slot, value, &hdr);
         if (cbe->fun->async)

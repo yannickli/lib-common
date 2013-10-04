@@ -28,7 +28,6 @@ static mem_pool_t *ic_mp_g;
 static qm_t(ic)    ic_h_g;
 static qm_t(ic_hook_ctx) ic_ctx_h_g;
 const QM(ic_cbs, ic_no_impl, false);
-struct ic_hook_flow_t ic_hook_flow_g;
 
 /*----- messages stuff -----*/
 
@@ -104,6 +103,11 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
     msg->cmd  = -cmd;
 }
 
+static struct {
+    ic_hook_ctx_t  *ic_hook_ctx;
+    ic_post_hook_f *post_hook;
+} ic_hook_flow_g;
+
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
 {
     return qm_add(ic_hook_ctx, &ic_ctx_h_g, ctx->slot, ctx);
@@ -151,6 +155,25 @@ void ic_hook_ctx_delete(ic_hook_ctx_t **pctx)
         }
     }
     mp_delete(ic_mp_g, pctx);
+}
+
+int
+ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
+                     const ic__hdr__t *hdr, const ic_cb_entry_t *e)
+{
+    if (e->pre_hook) {
+        ic_hook_flow_g.post_hook = e->post_hook;
+        (*e->pre_hook)(ic, slot, hdr);
+        /* XXX: if we reply to the query during pre_hook then
+         *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
+         *      call the implementation of the RPC
+         */
+        if (!ic_hook_flow_g.ic_hook_ctx) {
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot)
@@ -793,16 +816,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic->desc = e->u.cb.rpc;
             ic->cmd  = cmd;
 
-            if (e->pre_hook) {
-                ic_hook_flow_g.post_hook = e->post_hook;
-                (*e->pre_hook)(ic, query_slot, hdr);
-                /* XXX: if we reply to the query during pre_hook then
-                 *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
-                 *      call the implementation of the RPC
-                 */
-                if (!ic_hook_flow_g.ic_hook_ctx) {
-                    return;
-                }
+            if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
+                return;
             }
             (*e->u.cb.cb)(ic, query_slot, value, hdr);
             ic->desc = NULL;

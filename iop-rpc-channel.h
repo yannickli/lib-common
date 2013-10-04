@@ -100,11 +100,6 @@ struct ic_hook_ctx_t {
     byte   data[];  /* data to pass through RPC workflow */
 };
 
-extern struct ic_hook_flow_t {
-    ic_hook_ctx_t  *ic_hook_ctx;
-    ic_post_hook_f *post_hook;
-} ic_hook_flow_g;
-
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
 ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra);
 ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot);
@@ -662,6 +657,18 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
  */
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 
+/** \brief helper to set hook_flow and execute the query pre hook.
+ *
+ * \param[in]  ic    the #ichannel_t to send the query to.
+ * \param[in]  slot  the slot of the received query.
+ * \param[in]  hdr   the #ic__hdr__t of the query.
+ * \param[in]  e     the #ic_cb_entry_t of the rpc called.
+ *
+ * return -1 if the pre_hook has replied to the query, 0 otherwise.
+ */
+int
+ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
+                     const ic__hdr__t *hdr, const ic_cb_entry_t *e);
 /** \brief helper to get and execute the post hook of the query.
  *
  * \param[in]  ic      the #ichannel_t to send the query to.
