@@ -564,6 +564,44 @@ Z_GROUP_EXPORT(qvector)
         Z_ASSERT_EQ(it, vec.len);
     } Z_TEST_END;
 
+    Z_TEST(qv_clip, "qvector: clip/shrink/skip") {
+        t_scope;
+        uint32_t table[] = { 8, 9, 1, 2, 5 };
+        qv_t(u32) vec;
+
+        t_qv_init(u32, &vec, countof(table));
+
+        for (int i = 0; i <= countof(table); i++) {
+            qv_clear(u32, &vec);
+            qv_splice(u32, &vec, 0, 0, table, countof(table));
+            qv_clip(u32, &vec, i);
+            Z_ASSERT_EQ(vec.len, i);
+            qv_for_each_pos(u32, pos, &vec) {
+                Z_ASSERT_EQ(vec.tab[pos], table[pos]);
+            }
+        }
+
+        for (int i = 0; i <= countof(table); i++) {
+            qv_clear(u32, &vec);
+            qv_splice(u32, &vec, 0, 0, table, countof(table));
+            qv_shrink(u32, &vec, i);
+            Z_ASSERT_EQ(vec.len, countof(table) - i);
+            qv_for_each_pos(u32, pos, &vec) {
+                Z_ASSERT_EQ(vec.tab[pos], table[pos]);
+            }
+        }
+
+        for (int i = 0; i <= countof(table); i++) {
+            qv_clear(u32, &vec);
+            qv_splice(u32, &vec, 0, 0, table, countof(table));
+            qv_skip(u32, &vec, i);
+            Z_ASSERT_EQ(vec.len, countof(table) - i);
+            qv_for_each_pos(u32, pos, &vec) {
+                Z_ASSERT_EQ(vec.tab[pos], table[i + pos]);
+            }
+        }
+    } Z_TEST_END;
+
     Z_TEST(qv_sort, "qvector: qv_sort") {
         Z_ASSERT(qv_sort_tst());
     } Z_TEST_END;

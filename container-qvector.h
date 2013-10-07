@@ -232,13 +232,13 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
         return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
                                          alignof(val_t), pos, len, dlen);   \
     }                                                                       \
-    static inline void pfx##_clip(pfx##_t *vec, int at) {                   \
-        assert (0 <= at && at <= vec->len);                                 \
-        __##pfx##_splice(vec, at, vec->len - at, 0);                        \
+    static inline void pfx##_clip(pfx##_t *vec, int len) {                  \
+        assert (0 <= len && len <= vec->len);                               \
+        vec->len = len;                                                     \
     }                                                                       \
-    static inline void pfx##_shrink(pfx##_t *vec, int at) {                 \
-        assert (0 <= at && at <= vec->len);                                 \
-        vec->len -= at;                                                     \
+    static inline void pfx##_shrink(pfx##_t *vec, int len) {                \
+        assert (0 <= len && len <= vec->len);                               \
+        vec->len -= len;                                                    \
     }                                                                       \
     static inline val_t *                                                   \
     pfx##_splice(pfx##_t *vec, int pos, int len, cval_t *tab, int dlen) {   \
