@@ -977,6 +977,40 @@ void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
     ic_throw_p(ic, slot, _mod, _if, _rpc,                                   \
                (&(IOP_RPC_T(_mod, _if, _rpc, exn)){ __VA_ARGS__ }))
 
+/** \brief helper to reply to a query (server-side) with a forced exception.
+ *   NB: This macro is means to be used only inside a pre_hook or
+ *   implementation with a hook_ctx define.
+ *
+ * \param[in]  ic
+ *   the #ichannel_t to send the reply to, must be #NULL if the reply isn't
+ *   done in the pre_hook/implementation callback synchronously.
+ * \param[in]  slot   the slot of the query we're answering to.
+ * \param[in]  ctx    the context of the query we're answering to.
+ * \param[in]  _exn   the type of the exception to throw
+ * \param[in]  v      a <tt>_exn *</tt> value.
+ *   the initializers of the value on the form <tt>.field = value</tt>
+ */
+#define ic_throw_exn_p(ic, slot, ctx, _exn, v)                              \
+    ({  const _exn##__t *__v = (v);                                         \
+        assert(ctx && ctx->rpc && ctx->rpc->exn == &_exn##__s);             \
+        __ic_reply(ic, slot, IC_MSG_EXN, -1,                                \
+                   ctx->rpc->exn, __v); })
+
+/** \brief helper to reply to a query (server-side) with a forced exception.
+ *   NB: This macro is means to be used only inside a pre_hook or
+ *   implementation with a hook_ctx define.
+ *
+ * \param[in]  ic
+ *   the #ichannel_t to send the reply to, must be #NULL if the reply isn't
+ *   done in the pre_hook/implementation callback synchronously.
+ * \param[in]  slot   the slot of the query we're answering to.
+ * \param[in]  _exn   the type of the exception to throw
+ * \param[in]  ...
+ *   the initializers of the value on the form <tt>.field = value</tt>
+ */
+#define ic_throw_exn(ic, slot, ctx, _exn, ...)                               \
+    ic_throw_exn_p(ic, slot, ctx, _exn, (&(_exn##__t){ __VA_ARGS__ }))
+
 /** \brief Bounce an IOP answer to reply to another slot.
  *
  * This function may be used to forward an answer to another slot when
