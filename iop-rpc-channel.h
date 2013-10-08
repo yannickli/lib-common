@@ -95,15 +95,11 @@ void ic_msg_delete(ic_msg_t **);
 qm_k32_t(ic_msg, ic_msg_t *);
 
 struct ic_hook_ctx_t {
-    uint64_t slot;
-    ic_post_hook_f *post_hook;
-    byte   data[];  /* data to pass through RPC workflow */
+    uint64_t         slot;
+    ic_post_hook_f  *post_hook;
+    const iop_rpc_t *rpc;
+    byte             data[];  /* data to pass through RPC workflow */
 };
-
-extern struct ic_hook_flow_t {
-    ic_hook_ctx_t  *ic_hook_ctx;
-    ic_post_hook_f *post_hook;
-} ic_hook_flow_g;
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
 ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra);
@@ -129,12 +125,12 @@ typedef struct ic_dynproxy_t {
 
 typedef struct ic_cb_entry_t {
     int cb_type;
+    const iop_rpc_t *rpc;
 
     ic_pre_hook_f  *pre_hook;
     ic_post_hook_f *post_hook;
     union {
         struct {
-            const iop_rpc_t *rpc;
             void (*cb)(ichannel_t *, uint64_t, void *, const ic__hdr__t *);
         } cb;
 
@@ -154,7 +150,6 @@ typedef struct ic_cb_entry_t {
         } dynproxy;
 
         struct {
-            const iop_rpc_t *rpc;
             void (*cb)(void *, uint64_t, void *, const ic__hdr__t *);
         } iws_cb;
     } u;
@@ -474,17 +469,13 @@ void ic_flush(ichannel_t *ic);
 #define ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb, _pre_cb, _post_cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
-        void (*__pre_cb)(ichannel_t *, uint64_t, const ic__hdr__t *) =       \
-            _pre_cb;                                                         \
-        void (*__post_cb)(ichannel_t *, ic_status_t, ic_hook_ctx_t *) =      \
-            _post_cb;                                                        \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_NORMAL,                                         \
-            .pre_hook = __pre_cb,                                            \
-            .post_hook = __post_cb,                                          \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .cb = {                                                   \
-                .rpc = IOP_RPC(_mod, _if, _rpc),                             \
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
         };                                                                   \
@@ -534,16 +525,49 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  ic
  *   the #ichannel_t to unconditionnaly forward the incoming RPCs to.
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
  */
-#define ic_register_proxy_hdr(h, _mod, _if, _rpc, ic, hdr) \
+#define ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,     \
+                                            _pre_cb, _post_cb)               \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_PROXY_P,                                        \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief same as #ic_register_proxy_hdr_pre_post_hook but don't set
+ * the hdr.
+ */
+#define ic_register_proxy_pre_post_hook(h, _mod, _if, _rpc, ic, _pre_cb,     \
+                                        _post_cb)                            \
+    ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, NULL,        \
+                                        _pre_cb, _post_cb)
+
+/** \brief register a proxy destination for the given rpc with forced header.
+ * \param[in]  h
+ *    the qm_t(ic_cbs) of implementation to register the rpc
+ *    implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  ic
+ *   the #ichannel_t to unconditionnaly forward the incoming RPCs to.
+ * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ */
+#define ic_register_proxy_hdr(h, _mod, _if, _rpc, ic, hdr)                   \
+    ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic,              \
+                                        hdr, NULL, NULL)
 
 /** \brief register a proxy destination for the given rpc.
  * \param[in]  h
@@ -570,16 +594,43 @@ void ic_flush(ichannel_t *ic);
  *   request is rejected with an #IC_MSG_PROXY_ERROR status, else it's
  *   proxified to the pointed #ichannel_t.
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
  */
-#define ic_register_proxy_hdr_p(h, _mod, _if, _rpc, ic, hdr) \
+#define ic_register_proxy_hdr_p_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,   \
+                                              _pre_cb, _post_cb)             \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_PROXY_PP,                                       \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief register a pointed proxy destination for the given rpc with header.
+ * \param[in]  h
+ *    the qm_t(ic_cbs) of implementation to register the rpc
+ *    implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  icp
+ *   a pointer to an #ichannel_t. When this pointer points to #NULL, the
+ *   request is rejected with an #IC_MSG_PROXY_ERROR status, else it's
+ *   proxified to the pointed #ichannel_t.
+ * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
+ */
+#define ic_register_proxy_hdr_p(h, _mod, _if, _rpc, ic, hdr)                 \
+    ic_register_proxy_hdr_p_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,       \
+                                          NULL, NULL)
 
 /** \brief register a pointed proxy destination for the given rpc.
  * \param[in]  h
@@ -611,12 +662,22 @@ void ic_flush(ichannel_t *ic);
  *   #ic__hdr__t.
  * \param[in]  _priv
  *   an opaque pointer passed to the callback each time it's called.
+ * \param[in]  _pre_cb
+ *    the pre_hook callback. Its type should be:
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ * \param[in]  _post_cb
+ *    the post_hook callback. Its type should be:
+ *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
  */
-#define ic_register_dynproxy(h, _mod, _if, _rpc, cb, _priv) \
+#define ic_register_dynproxy_pre_post_hook(h, _mod, _if, _rpc, cb, _priv,    \
+                                           _pre_cb, _post_cb)                \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
             .cb_type = IC_CB_DYNAMIC_PROXY,                                  \
+            .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
+            .pre_hook = _pre_cb,                                             \
+            .post_hook = _post_cb,                                           \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = _priv,                                             \
@@ -624,6 +685,26 @@ void ic_flush(ichannel_t *ic);
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief register a dynamic proxy destination for the given rpc.
+ * \param[in]  h
+ *    the qm_t(ic_cbs) of implementation to register the rpc
+ *    implementation into.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  cb
+ *   a callback that returns an #ic_dynproxy_t (a pair of an #ichannel_t and
+ *   an #ic__hdr__t). When profixying the callback is called. When it returns
+ *   a #NULL #ichannel_t the request is rejected with a #IC_MSG_PROXY_ERROR
+ *   status, else it's forwarded to this #ichannel_t using the returned
+ *   #ic__hdr__t.
+ * \param[in]  _priv
+ *   an opaque pointer passed to the callback each time it's called.
+ */
+#define ic_register_dynproxy(h, _mod, _if, _rpc, cb, _priv)                  \
+    ic_register_dynproxy_pre_post_hook(h, _mod, _if, _rpc, cb, _priv,        \
+                                       NULL, NULL)
 
 /*----- message handling -----*/
 
@@ -662,6 +743,18 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
  */
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 
+/** \brief helper to set ctx and execute the pre hook of the query.
+ *
+ * \param[in]  ic    the #ichannel_t to send the query to.
+ * \param[in]  slot  the slot of the received query.
+ * \param[in]  hdr   the #ic__hdr__t of the query.
+ * \param[in]  e     the #ic_cb_entry_t of the rpc called.
+ *
+ * return -1 if the pre_hook has replied to the query, 0 otherwise.
+ */
+int
+ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
+                     const ic__hdr__t *hdr, const ic_cb_entry_t *e);
 /** \brief helper to get and execute the post hook of the query.
  *
  * \param[in]  ic      the #ichannel_t to send the query to.
@@ -966,6 +1059,40 @@ void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
 #define ic_throw(ic, slot, _mod, _if, _rpc, ...) \
     ic_throw_p(ic, slot, _mod, _if, _rpc,                                   \
                (&(IOP_RPC_T(_mod, _if, _rpc, exn)){ __VA_ARGS__ }))
+
+/** \brief helper to reply to a query (server-side) with a forced exception.
+ *   NB: This macro is means to be used only inside a pre_hook or
+ *   implementation with a hook_ctx define.
+ *
+ * \param[in]  ic
+ *   the #ichannel_t to send the reply to, must be #NULL if the reply isn't
+ *   done in the pre_hook/implementation callback synchronously.
+ * \param[in]  slot   the slot of the query we're answering to.
+ * \param[in]  ctx    the context of the query we're answering to.
+ * \param[in]  _exn   the type of the exception to throw
+ * \param[in]  v      a <tt>_exn *</tt> value.
+ *   the initializers of the value on the form <tt>.field = value</tt>
+ */
+#define ic_throw_exn_p(ic, slot, ctx, _exn, v)                              \
+    ({  const _exn##__t *__v = (v);                                         \
+        assert(ctx && ctx->rpc && ctx->rpc->exn == &_exn##__s);             \
+        __ic_reply(ic, slot, IC_MSG_EXN, -1,                                \
+                   ctx->rpc->exn, __v); })
+
+/** \brief helper to reply to a query (server-side) with a forced exception.
+ *   NB: This macro is means to be used only inside a pre_hook or
+ *   implementation with a hook_ctx define.
+ *
+ * \param[in]  ic
+ *   the #ichannel_t to send the reply to, must be #NULL if the reply isn't
+ *   done in the pre_hook/implementation callback synchronously.
+ * \param[in]  slot   the slot of the query we're answering to.
+ * \param[in]  _exn   the type of the exception to throw
+ * \param[in]  ...
+ *   the initializers of the value on the form <tt>.field = value</tt>
+ */
+#define ic_throw_exn(ic, slot, ctx, _exn, ...)                               \
+    ic_throw_exn_p(ic, slot, ctx, _exn, (&(_exn##__t){ __VA_ARGS__ }))
 
 /** \brief Bounce an IOP answer to reply to another slot.
  *
