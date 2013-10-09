@@ -994,8 +994,12 @@ void ic_wipe(ichannel_t *ic)
 {
     ic->is_closing = true;
     ic_disconnect(ic);
-    if (ic->owner)
+    if (qm_len(ic_msg, &ic->queries) > 0) {
+        ic_cancel_all(ic);
+    }
+    if (ic->owner) {
         *ic->owner = NULL;
+    }
     ic_drop_id(ic);
     qm_wipe(ic_msg, &ic->queries);
 #ifdef IC_DEBUG_REPLIES
