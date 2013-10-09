@@ -72,6 +72,19 @@ ps_panic_sighandler_print_version(int fd, const core_version_t *version)
     XWRITE("\n");
 }
 
+#ifndef NDEBUG
+/** XXX The backtrace() function calls an init() function which uses malloc()
+ * and leads to deadlock in the signals handler. So we always call backtrace()
+ * once outside of the signals hander. It's an horrible hack but it works.
+ */
+__attribute__((constructor)) static void fix_backtrace_init(void)
+{
+    void *arr[256];
+
+    backtrace(arr, countof(arr));
+}
+#endif
+
 void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 {
     static const struct sigaction sa = {
