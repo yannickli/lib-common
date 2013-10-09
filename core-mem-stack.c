@@ -295,14 +295,25 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
 }
 
 #ifndef NDEBUG
-void mem_stack_protect(mem_stack_pool_t *sp)
+void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
 {
-    mem_stack_blk_t *blk = sp->stack->blk;
-    size_t remainsz = frame_end(sp->stack) - sp->stack->pos;
+    if (up_to->blk == sp->stack->blk) {
+        mem_tool_disallow_memory(sp->stack->pos, up_to->pos - sp->stack->pos);
+    } else {
+        const byte *end = up_to->pos;
+        mem_stack_blk_t *end_blk = up_to->blk;
+        mem_stack_blk_t *blk = sp->stack->blk;
+        size_t remainsz = frame_end(sp->stack) - sp->stack->pos;
 
-    mem_tool_disallow_memory(sp->stack->pos, remainsz);
-    dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
-        mem_tool_disallow_memory(blk->start, blk->size);
+        mem_tool_disallow_memory(sp->stack->pos, remainsz);
+        dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
+            if (blk == end_blk) {
+                mem_tool_disallow_memory(blk->start, end - (byte *)blk->start);
+                break;
+            } else {
+                mem_tool_disallow_memory(blk->start, blk->size);
+            }
+        }
     }
 }
 #endif

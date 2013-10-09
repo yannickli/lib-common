@@ -121,7 +121,7 @@ void              mem_stack_pool_wipe(mem_stack_pool_t *)
     __leaf;
 
 #ifndef NDEBUG
-void mem_stack_protect(mem_stack_pool_t *sp);
+void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to);
 /*
  * sealing a stack frame ensures that people wanting to allocate in that stack
  * use a mem_stack_push/mem_stack_pop or a t_scope first.
@@ -132,10 +132,10 @@ void mem_stack_protect(mem_stack_pool_t *sp);
 #  define mem_stack_seal(sp)     ((void)((sp)->stack->prev |=  1L))
 #  define mem_stack_unseal(sp)   ((void)((sp)->stack->prev &= ~1L))
 #else
-#  define mem_stack_prev(frame)  ((mem_stack_frame_t *)(frame)->prev)
-#  define mem_stack_seal(sp)     ((void)0)
-#  define mem_stack_unseal(sp)   ((void)0)
-#  define mem_stack_protect(sp)  ((void)0)
+#  define mem_stack_prev(frame)       ((mem_stack_frame_t *)(frame)->prev)
+#  define mem_stack_seal(sp)          ((void)0)
+#  define mem_stack_unseal(sp)        ((void)0)
+#  define mem_stack_protect(sp, end)  ((void)0)
 #endif
 
 static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
@@ -150,7 +150,7 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 
     sp->stack = mem_stack_prev(frame);
     assert (sp->stack);
-    mem_stack_protect(sp);
+    mem_stack_protect(sp, frame);
     if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
         sp->nbpops = 0;
         mem_stack_pool_wipe(sp);
