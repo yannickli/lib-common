@@ -106,8 +106,10 @@ typedef struct iop_help_t {
 typedef union iop_value_t {
     int64_t     i;
     int64_t     i64;
+    int32_t     i32;
     uint64_t    u;
     uint64_t    u64;
+    uint32_t    u32;
     double      d;
     lstr_t      s;
     bool        b;
