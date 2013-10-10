@@ -149,7 +149,7 @@ libcommon_SOURCES = \
 	tpl.c \
 	tpl-funcs.c \
 	\
-	unix.c \
+	unix.blk \
 	unix-fts.c \
 	unix-psinfo.c \
 	unix-linux.c \

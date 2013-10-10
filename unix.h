@@ -123,6 +123,43 @@ int tmpfd(void);
 void devnull_dup(int fd);
 
 /****************************************************************************/
+/* file listing related                                                     */
+/****************************************************************************/
+
+typedef struct linux_dirent_t {
+    long           d_ino;
+    off_t          d_off;
+    unsigned short d_reclen;
+    char           d_name[];
+} linux_dirent_t;
+
+#define D_TYPE(ld)          *((byte *)ld + ld->d_reclen - 1)
+
+#ifdef __has_blocks
+typedef int (BLOCK_CARET on_file_b)(const char *dir,
+                                    const linux_dirent_t *de);
+
+/** List all the files of a directory and apply the specified treatment
+ * on them.
+ *
+ * This function is designed to limit system calls even on directories with a
+ * very large amound of files. The performance will mostly rely on the
+ * treatment function given.
+ *
+ * @param dir Path to the directory to read.
+ * @param recur List subdirectories recursively.
+ * @param on_file The function called on each file found.
+ *
+ * @return The number of files found in the directory (and its sub-directories
+ * when recur = true).
+ * On error, the function returns -1.
+ * The function returns the result of the processing function if it fails.
+ *
+ */
+int list_dir(const char *path, bool recur, on_file_b on_file);
+#endif
+
+/****************************************************************************/
 /* file descriptor related                                                  */
 /****************************************************************************/
 

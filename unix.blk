@@ -13,6 +13,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/resource.h>
+#include <sys/syscall.h>
 #include <termios.h>
 #include <sys/wait.h>
 #include "unix.h"
@@ -374,6 +375,58 @@ int tmpfd(void)
     RETHROW(fd);
     unlink(path);
     return fd;
+}
+
+int list_dir(const char *path, bool recur, on_file_b on_file)
+{
+#define LIST_DIR_BUF_SIZE   1024 * 1024 * 5
+
+    t_scope;
+
+    int nread, total = 0;
+    byte *buf = t_new_raw(byte, LIST_DIR_BUF_SIZE);
+    int dfd = RETHROW(open(path, O_RDONLY | O_DIRECTORY));
+
+    while ((nread = syscall(SYS_getdents, dfd, buf, LIST_DIR_BUF_SIZE)) > 0) {
+        for (int i = 0; i < nread;) {
+            int tmp_res;
+            linux_dirent_t *de = (linux_dirent_t *)(buf + i);
+
+            i += de->d_reclen;
+
+            if (de->d_name[0] == '.' || de->d_ino == 0)
+                continue;
+
+            if (D_TYPE(de) == DT_DIR && recur) {
+                tmp_res = list_dir(t_fmt(NULL, "%s/%s", path, de->d_name),
+                                   true, on_file);
+                if (tmp_res < 0) {
+                    p_close(&dfd);
+                    return tmp_res;
+                }
+
+                total += tmp_res;
+            }
+
+            total++;
+
+            if (on_file) {
+                t_seal();
+                tmp_res = on_file(path, de);
+                t_unseal();
+
+                if (tmp_res < 0) {
+                    p_close(&dfd);
+                    return tmp_res;
+                }
+            }
+        }
+    }
+
+    p_close(&dfd);
+    return nread < 0 ? -1 : total;
+
+#undef LIST_DIR_BUF_SIZE
 }
 
 /****************************************************************************/
