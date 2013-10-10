@@ -159,40 +159,76 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 }
 
 extern __thread mem_stack_pool_t t_pool_g;
-#define t_pool()  (&t_pool_g.funcs)
+
+static ALWAYS_INLINE mem_pool_t *t_pool(void)
+{
+    return &t_pool_g.funcs;
+}
 
 #define t_seal()      mem_stack_seal(&t_pool_g)
 #define t_unseal()    mem_stack_unseal(&t_pool_g)
 
 #define t_fmt(fmt, ...)  mp_fmt(&t_pool_g.funcs, (fmt), ##__VA_ARGS__)
 
-#define ta_new(type_t, n, alignment) \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), (alignment), MEM_STACK))
-#define ta_new_raw(type_t, n, alignment)  \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), (alignment), MEM_STACK | MEM_RAW))
-#define ta_new_extra(type_t, extra, alignment) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), (alignment), MEM_STACK))
-#define ta_new_extra_raw(type_t, extra, alignment) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), (alignment), MEM_STACK | MEM_RAW))
-#define ta_new_extra_field(type_t, field, extra, alignment) \
-    ((type_t *)stack_malloc(extra_field_size(type_t, field, extra), \
-                            (alignment), MEM_STACK))
-#define ta_new_extra_field_raw(type_t, field, extra, alignment) \
-    ((type_t *)stack_malloc(extra_field_size(type_t, field, extra), \
-                            (alignment), MEM_STACK | MEM_RAW))
+/* Aligned pointers allocation helpers */
 
-#define t_new(type_t, n)                ta_new(type_t, n, alignof(type_t))
-#define t_new_raw(type_t, n)            ta_new_raw(type_t, n, alignof(type_t))
-#define t_new_extra(type_t, extra)      ta_new_extra(type_t, extra, alignof(type_t))
-#define t_new_extra_raw(type_t, extra)  ta_new_extra_raw(type_t, extra, alignof(type_t))
-#define t_new_extra_field(type_t, field, extra)  \
-    ta_new_extra_field(type_t, field, extra, alignof(type_t))
-#define t_new_extra_field_raw(type_t, field, extra) \
-    ta_new_extra_field_raw(type_t, field, extra, alignof(type_t))
+#define ta_new_raw(type, count, alignment)                                   \
+    mpa_new_raw(t_pool(), type, (count), (alignment))
+#define ta_new(type, count, alignment)                                       \
+    mpa_new(t_pool(), type, (count), (alignment))
+#define ta_new_extra(type, size, alignment)                                  \
+    mpa_new_extra(t_pool(), type, (size), (alignment))
+#define ta_new_extra_raw(type, size, alignment)                              \
+    mpa_new_extra_raw(t_pool(), type, (size), (alignment))
+#define ta_new_extra_field(type, field, size, alignment)                     \
+    mpa_new_extra_field(t_pool(), type, field, (size), (alignment))
+#define ta_new_extra_field_raw(type, field, size, alignment)                 \
+    mpa_new_extra_field_raw(t_pool(), type, field, (size), (alignment))
+
+#define ta_realloc(pp, count, alignment)                                     \
+    mpa_realloc(t_pool(), (pp), (count), (alignment))
+#define ta_realloc0(pp, old, now, alignment)                                 \
+    mpa_realloc0(t_pool(), (pp), (old), (now), (alignment))
+#define ta_realloc_extra(pp, extra, alignment)                               \
+    mpa_realloc0_extra(t_pool(), (pp), (extra), (alignment))
+#define ta_realloc0_extra(pp, old_extra, new_extra, alignment)               \
+    mpa_realloc0_extra(t_pool(), (pp), (old_extra), (new_extra), (alignment))
+
+#define ta_realloc_extra_field(pp, field, count, alignment)                  \
+    mpa_realloc_extra_field(t_pool(), (pp), field, (count), (alignment))
+#define ta_realloc0_extra_field(pp, field, old_count, new_count, alignment)  \
+    mpa_realloc0_extra_field(t_pool(), (pp), field, (old_count),             \
+                             (new_count), (alignment))
+
+#define ta_dup(p, count, alignment)                                          \
+    mpa_dup(t_pool(), (p), (count), (alignment))
+
+/* Pointer allocations helpers */
+
+#define t_new_raw(type, count)       ta_new_raw(type, count, alignof(type))
+#define t_new(type, count)           ta_new(type, count, alignof(type))
+#define t_new_extra(type, size)      ta_new_extra(type, size, alignof(type))
+#define t_new_extra_raw(type, size)  ta_new_extra_raw(type, size, alignof(type))
+#define t_new_extra_field(type, field, size)  \
+    ta_new_extra_field(type, field, size, alignof(type))
+#define t_new_extra_field_raw(type, field, size) \
+    ta_new_extra_field_raw(type, field, size, alignof(type))
+
+#define t_realloc(tp, count)        ta_realloc(tp, count, alignof(**(tp)))
+#define t_realloc0(tp, old, now)    ta_realloc0(tp, old, now, alignof(**(tp)))
+#define t_realloc_extra(tp, extra)  ta_realloc0_extra(tp, extra, alignof(**(tp)))
+#define t_realloc0_extra(tp, old_extra, new_extra)  \
+    ta_realloc0_extra(tp, old_extra, new_extra, alignof(**(tp)))
+
+#define t_realloc_extra_field(tp, field, count)  \
+    ta_realloc_extra_field(tp, field, count, alignof(**(tp)))
+#define t_realloc0_extra_field(tp, field, old_count, new_count)  \
+    ta_realloc0_extra_field(tp, field, old_count, new_count, alignof(**(tp)))
 
 
-#define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
-#define t_dupz(p, count)   mp_dupz(&t_pool_g.funcs, p, count)
+#define t_dup(p, count)    ta_dup((p), (count), alignof(p))
+#define t_dupz(p, count)   mp_dupz(t_pool(), (p), (count))
+#define t_strdup(p)        mp_strdup(t_pool(), (p))
 
 #ifndef __cplusplus
 /*

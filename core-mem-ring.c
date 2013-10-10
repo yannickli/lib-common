@@ -193,10 +193,15 @@ static void *rp_reserve(ring_pool_t *rp, size_t size, ring_blk_t **blkp)
 }
 
 __flatten
-static void *rp_alloc(mem_pool_t *_rp, size_t size, mem_flags_t flags)
+static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
+                      mem_flags_t flags)
 {
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
     byte *res;
+
+    if (unlikely(alignment > 16)) {
+        e_panic("mem_pool_ring does not support alignments greater than 16");
+    }
 
     res = rp_reserve(rp, size, &rp->cblk);
     if (!(flags & MEM_RAW))
@@ -205,15 +210,20 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, mem_flags_t flags)
     return rp->last = res;
 }
 
-static void rp_free(mem_pool_t *_rp, void *mem, mem_flags_t flags)
+static void rp_free(mem_pool_t *_rp, void *mem)
 {
 }
 
-static void *rp_realloc(mem_pool_t *_rp, void *mem,
-                        size_t oldsize, size_t size, mem_flags_t flags)
+static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
+                        size_t size, size_t alignment, mem_flags_t flags)
 {
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
     byte *res;
+
+    if (unlikely(alignment > 16)) {
+        e_panic("mem_pool_ring does not support alignments greater than 16");
+    }
+
 
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("ring pools do not support reallocs with unknown old size");
@@ -235,7 +245,7 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem,
         mem_tool_allow_memory(mem, size, true);
         res = mem;
     } else {
-        res = rp_alloc(_rp, size, flags | MEM_RAW);
+        res = rp_alloc(_rp, size, alignment, flags | MEM_RAW);
         if (mem != NULL) {
             memcpy(res, mem, oldsize);
             mem_tool_allow_memory(mem, oldsize, false);
@@ -251,6 +261,7 @@ static mem_pool_t const pool_funcs = {
     .malloc  = &rp_alloc,
     .realloc = &rp_realloc,
     .free    = &rp_free,
+    .mem_pool = MEM_OTHER,
 };
 
 #ifndef NDEBUG
@@ -473,7 +484,8 @@ const void *mem_ring_checkpoint(mem_pool_t *_rp)
     };
     void *res;
 
-    res = memcpy(rp_alloc(_rp, sizeof(cp), MEM_RAW), &cp, sizeof(cp));
+    res = memcpy(rp_alloc(_rp, sizeof(cp), alignof(cp), MEM_RAW),
+                 &cp, sizeof(cp));
     mem_ring_seal(_rp);
 
     return res;

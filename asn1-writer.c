@@ -1432,12 +1432,6 @@ static int asn1_unpack_rec(pstream_t *ps, const asn1_desc_t *desc,
     return 0;
 }
 
-static void *asn1_default_malloc(mem_pool_t *mp, size_t siz, mem_flags_t flags)
-{
-    return imalloc(siz, 0, MEM_LIBC);
-}
-
-
 /** \brief Unpack a given payload following an asn1 description.
  *  \param[inout] Input pstream.
  *  \param[in]    ASN.1 description of output structure.
@@ -1447,19 +1441,6 @@ static void *asn1_default_malloc(mem_pool_t *mp, size_t siz, mem_flags_t flags)
 int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
                  mem_pool_t *mem_pool, void *st, bool copy)
 {
-    if (!mem_pool) {
-        static mem_pool_t *libc_mp;
-
-        if (unlikely(!libc_mp)) {
-            libc_mp = p_new(mem_pool_t, 1);
-            *libc_mp = (mem_pool_t){
-                .malloc  = &asn1_default_malloc,
-            };
-        }
-
-        mem_pool = libc_mp;
-    }
-
     return asn1_unpack_rec(ps, desc, mem_pool, 0, st, copy, false);
 }
 /*  */

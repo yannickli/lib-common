@@ -87,7 +87,7 @@ void __bb_grow(bb_t *bb, size_t extra)
         bzero(d + bb->size, (newsz - bb->size) * 8);
         bb_init_full(bb, d, bb->len, newsz, MEM_LIBC, bb->alignment);
     } else {
-        bb->data = (irealloc)(bb->data, bb->size * 8, newsz * 8,
+        bb->data = irealloc(bb->data, bb->size * 8, newsz * 8,
                             bb->alignment, bb->mem_pool | MEM_RAW);
         bzero(bb->data + bb->size, (newsz - bb->size) * 8);
         bb->size = newsz;

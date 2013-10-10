@@ -60,7 +60,6 @@ libcommon_SOURCES = \
 	core-obj.c \
 	core-havege.c \
 	core-mem.c \
-	core-mem-debug.c \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \

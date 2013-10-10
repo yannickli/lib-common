@@ -175,12 +175,14 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
 }
 
 __flatten
-static void *sp_alloc(mem_pool_t *sp, size_t size, mem_flags_t flags)
+static void *sp_alloc(mem_pool_t *sp, size_t size, size_t alignment,
+                      mem_flags_t flags)
 {
+    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
     return sp_alloc_aligned(sp, size, bsrsz(__BIGGEST_ALIGNMENT__), flags);
 }
 
-static void sp_free(mem_pool_t *_sp, void *mem, mem_flags_t flags)
+static void sp_free(mem_pool_t *_sp, void *mem)
 {
 }
 
@@ -238,16 +240,17 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
 }
 
 static void *sp_realloc(mem_pool_t *sp, void *mem, size_t oldsize, size_t asked,
-                        mem_flags_t flags)
+                        size_t alignment, mem_flags_t flags)
 {
-    return sp_realloc_aligned(sp, mem, oldsize, asked,
-                              bsrsz(__BIGGEST_ALIGNMENT__), flags);
+    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
+    return sp_realloc_aligned(sp, mem, oldsize, asked, alignment, flags);
 }
 
 static mem_pool_t const pool_funcs = {
-    .malloc  = &sp_alloc,
-    .realloc = &sp_realloc,
-    .free    = &sp_free,
+    .malloc   = &sp_alloc,
+    .realloc  = &sp_realloc,
+    .free     = &sp_free,
+    .mem_pool = MEM_STACK,
 };
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
@@ -328,18 +331,5 @@ static void t_pool_wipe(void)
     mem_stack_pool_wipe(&t_pool_g);
 }
 thr_hooks(t_pool_init, t_pool_wipe);
-
-void *stack_malloc(size_t size, size_t alignment, mem_flags_t flags)
-{
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_alloc_aligned(t_pool(), size, alignment, flags);
-}
-
-void *stack_realloc(void *mem, size_t oldsize, size_t size, size_t alignment,
-                    mem_flags_t flags)
-{
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_realloc_aligned(t_pool(), mem, oldsize, size, alignment, flags);
-}
 
 __thread mem_stack_pool_t t_pool_g;

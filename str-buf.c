@@ -98,7 +98,7 @@ void __sb_optimize(sb_t *sb, size_t len)
         return;
     buf = p_new_raw(char, sz);
     p_copy(buf, sb->data, sb->len + 1);
-    libc_free(sb->data - sb->skip, 0);
+    mp_ifree(&mem_pool_libc, sb->data - sb->skip);
     sb_init_full(sb, buf, sb->len, sz, MEM_LIBC);
 }
 
@@ -134,7 +134,7 @@ void __sb_grow(sb_t *sb, int extra)
         memcpy(s, sb->data, sb->len + 1);
         if (sb->mem_pool != MEM_STATIC) {
             /* XXX: If we have sb->skip, then mem_pool == MEM_LIBC */
-            libc_free(sb->data - sb->skip, 0);
+            mp_ifree(&mem_pool_libc, sb->data - sb->skip);
         }
         sb_init_full(sb, s, sb->len, newsz, MEM_LIBC);
     } else {
