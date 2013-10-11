@@ -66,6 +66,7 @@ libcommon_SOURCES = \
 	core-mem-stack.c \
 	core-version.c \
 	core.iop.c \
+	core-module.c \
 	qpage.c \
 	qtlsf.c \
 	\
@@ -200,6 +201,7 @@ zchk_SOURCES = zchk.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
+	zchk-module.c \
 	$liop/tstiop.a \
 	$llibcommon.wa \
 	$ltime-lp-simple.a
