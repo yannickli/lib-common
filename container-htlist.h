@@ -100,6 +100,21 @@ static inline void htlist_add_tail(htlist_t *l, htnode_t *n) {
     l->tail  = &n->next;
 }
 
+/* Adding a node after another one. If prev is NULL, the new_node will be
+ * added to the head */
+static inline void htlist_add_after(htlist_t *l, htnode_t *prev,
+                                    htnode_t *new_node)
+{
+    if (!prev)
+        return htlist_add(l, new_node);
+
+    new_node->next = prev->next;
+    prev->next = new_node;
+
+    if (l->tail == &prev->next)
+        l->tail = &new_node->next;
+}
+
 static inline htnode_t *htlist_pop(htlist_t *l) {
     htnode_t *res = l->head;
 
@@ -162,6 +177,15 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
 #define htlist_for_each_entry_start(pos, n, hd, member) \
     __htlist_for_each(&(pos)->member, __real_##n, hd,               \
                      n = htlist_entry_of(__real_##n, n, member))
+
+#define htlist_add_entry_after(hd, prev, new_entity, member)    \
+    do {                                                        \
+        typeof(prev) _ptr = prev;                               \
+        typeof(prev) _n_ptr = new_entity;                       \
+        htnode_t *_prev_node = _ptr ? &_ptr->member : NULL;     \
+                                                                \
+        htlist_add_after(hd, _prev_node, &_n_ptr->member);      \
+    } while (0)
 
 #define htlist_deep_clear(ptr, type, member, delete)                        \
     do {                                                                    \
