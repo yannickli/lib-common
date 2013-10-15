@@ -146,9 +146,9 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
     len = vsnprintf(res, MP_FMT_LEN, fmt, ap);
     va_end(ap);
     if (likely(len < MP_FMT_LEN)) {
-        res = mp_irealloc(mp, res, MP_FMT_LEN, len + 1, 0, MEM_RAW);
+        res = mp_irealloc(mp, res, MP_FMT_LEN, len + 1, 1, MEM_RAW);
     } else {
-        res = mp_irealloc(mp, res, 0, len + 1, 0, MEM_RAW);
+        res = mp_irealloc(mp, res, 0, len + 1, 1, MEM_RAW);
         va_start(ap, fmt);
         len = vsnprintf(res, len + 1, fmt, ap);
         va_end(ap);

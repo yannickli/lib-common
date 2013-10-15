@@ -18,6 +18,13 @@
 #define __BIGGEST_ALIGNMENT__  16
 #endif
 
+#define DEFAULT_ALIGNMENT  __BIGGEST_ALIGNMENT__
+#ifndef NDEBUG
+# define MIN_ALIGNMENT  sizeof(void *)
+#else
+# define MIN_ALIGNMENT  1
+#endif
+
 static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
     return sp->alloc_sz / sp->alloc_nb;
@@ -62,6 +69,12 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 
 #define ROUND_ALIGN(val, align)  \
     (((val) + BITMASK_LT(typeof(val), align)) & BITMASK_GE(typeof(val), align))
+
+static unsigned sp_alignment(size_t alignment)
+{
+    assert (bitcountsz(alignment) <= 1);
+    return bsrsz(alignment ? MAX(MIN_ALIGNMENT, alignment) : DEFAULT_ALIGNMENT);
+}
 
 static ALWAYS_INLINE mem_stack_blk_t *
 frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
@@ -178,8 +191,7 @@ __flatten
 static void *sp_alloc(mem_pool_t *sp, size_t size, size_t alignment,
                       mem_flags_t flags)
 {
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_alloc_aligned(sp, size, bsrsz(__BIGGEST_ALIGNMENT__), flags);
+    return sp_alloc_aligned(sp, size, sp_alignment(alignment), flags);
 }
 
 static void sp_free(mem_pool_t *_sp, void *mem)
@@ -242,8 +254,8 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
 static void *sp_realloc(mem_pool_t *sp, void *mem, size_t oldsize, size_t asked,
                         size_t alignment, mem_flags_t flags)
 {
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_realloc_aligned(sp, mem, oldsize, asked, alignment, flags);
+    return sp_realloc_aligned(sp, mem, oldsize, asked,
+                              sp_alignment(alignment), flags);
 }
 
 static mem_pool_t const pool_funcs = {
