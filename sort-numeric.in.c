@@ -40,9 +40,6 @@ void dsort(type_t base[], size_t n)
 /* Multipass stable byte based radix sort */
 void dsort(type_t base[], size_t n)
 {
-    volatile uint32_t count[sizeof(type_t)][256] = { { 0, } };
-    const uint8_t *bp = (const uint8_t *)base;
-    type_t *tmp, *p1, *p2;
 
     if (n <= 1)
         return;
@@ -52,9 +49,11 @@ void dsort(type_t base[], size_t n)
         if (i == n - 1)
             return;
     }
-
     {
         t_scope;
+        volatile uint32_t count[sizeof(type_t)][256] = { { 0, } };
+        const uint8_t *bp = (const uint8_t *)base;
+        type_t *tmp, *p1, *p2;
 
         /* Achtung little endian version */
         for (size_t i = 0; i < n; i++) {
