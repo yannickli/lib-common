@@ -48,8 +48,10 @@ typedef enum ic_event_t {
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
 typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
-typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t, const ic__hdr__t *);
-typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t, ic_hook_ctx_t *);
+typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t,
+                             const ic__hdr__t *, el_data_t);
+typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t,
+                              ic_hook_ctx_t *, el_data_t);
 typedef int (ic_creds_f)(ichannel_t *, const struct ucred *creds);
 typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
@@ -98,6 +100,7 @@ struct ic_hook_ctx_t {
     uint64_t         slot;
     ic_post_hook_f  *post_hook;
     const iop_rpc_t *rpc;
+    el_data_t        post_hook_args;
     byte             data[];  /* data to pass through RPC workflow */
 };
 
@@ -129,6 +132,8 @@ typedef struct ic_cb_entry_t {
 
     ic_pre_hook_f  *pre_hook;
     ic_post_hook_f *post_hook;
+    el_data_t       pre_hook_args;
+    el_data_t       post_hook_args;
     union {
         struct {
             void (*cb)(ichannel_t *, uint64_t, void *, const ic__hdr__t *);
@@ -461,12 +466,15 @@ void ic_flush(ichannel_t *ic);
  *    <tt>void (*)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc))</tt>
  * \param[in]  _pre_cb
  *    the pre_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ * \param[in]  _pre_arg   argument we want to pass to pre_hook
+ * \param[in]  _post_arg  argument we want to pass to post_hook
  */
-#define ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb, _pre_cb, _post_cb) \
+#define ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb,                  \
+                                   _pre_cb, _post_cb, _pre_arg, _post_arg)   \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
@@ -475,6 +483,8 @@ void ic_flush(ichannel_t *ic);
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = _pre_cb,                                             \
             .post_hook = _post_cb,                                           \
+            .pre_hook_args = _pre_arg,                                       \
+            .post_hook_args = _post_arg,                                     \
             .u = { .cb = {                                                   \
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
@@ -483,19 +493,37 @@ void ic_flush(ichannel_t *ic);
                    "collision in RPC registering");                          \
     } while (0)
 
+/** \brief same as #ic_register_pre_post_hook_ but _pre and _post args
+ *    will be transform into el_data_t ptr.
+ */
+#define ic_register_pre_post_hook_p_(h, _mod, _if, _rpc, _cb,                \
+                                     _pre_cb, _post_cb, _pre_arg, _post_arg) \
+    ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb,                      \
+                               _pre_cb, _post_cb,                            \
+                               { .ptr = _pre_arg }, { .ptr = _post_arg })
+
 /** \brief same as #ic_register_pre_post_hook_ but auto-computes the
  *    rpc name.
  */
-#define ic_register_pre_post_hook(h, _m, _i, _r, _pre_cb, _post_cb)          \
+#define ic_register_pre_post_hook(h, _m, _i, _r, _pre_cb,                    \
+                                  _post_cb, _pre_arg, _post_arg)             \
     ic_register_pre_post_hook_(h, _m, _i, _r,                                \
                                IOP_RPC_NAME(_m, _i, _r, impl),               \
-                               _pre_cb, _post_cb)
+                               _pre_cb, _post_cb, _pre_arg, _post_arg)
+/** \brief same as #ic_register_pre_post_hook_p_ but auto-computes the
+ *    rpc name.
+ */
+#define ic_register_pre_post_hook_p(h, _m, _i, _r, _pre_cb,                  \
+                                    _post_cb, _pre_arg, _post_arg)           \
+    ic_register_pre_post_hook(h, _m, _i, _r, _pre_cb, _post_cb,              \
+                              { .ptr = _pre_arg }, { .ptr = _post_arg })
 
 /** \brief same as #ic_register_pre_post_hook_ but doesn't register pre/post
  *    hooks.
  */
 #define ic_register_(h, _mod, _if, _rpc, _cb)                                \
-    ic_register_pre_post_hook_(h, _mod, _if, _rpc, _cb, NULL, NULL)
+    ic_register_pre_post_hook_p_(h, _mod, _if, _rpc, _cb,                    \
+                                 NULL, NULL, NULL, NULL)
 
 /** \brief same as #ic_register_ but auto-computes the rpc name. */
 #define ic_register(h, _m, _i, _r) \
@@ -527,13 +555,16 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
  * \param[in]  _pre_cb
  *    the pre_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ * \param[in]  _pre_arg   argument we want to pass to pre_hook
+ * \param[in]  _post_arg  argument we want to pass to post_hook
  */
 #define ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,     \
-                                            _pre_cb, _post_cb)               \
+                                            _pre_cb, _post_cb,               \
+                                            _pre_arg, _post_arg)             \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
@@ -541,19 +572,42 @@ void ic_flush(ichannel_t *ic);
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = _pre_cb,                                             \
             .post_hook = _post_cb,                                           \
+            .pre_hook_args = _pre_arg,                                       \
+            .post_hook_args = _post_arg,                                     \
             .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
 
+/** \brief same as #ic_register_proxy_hdr_pre_post_hook but _pre and _post
+ *    args will be transform into el_data_t ptr.
+ */
+#define ic_register_proxy_hdr_pre_post_hook_p(h, _mod, _if, _rpc, ic, hdr,   \
+                                              _pre_cb, _post_cb,             \
+                                              _pre_arg, _post_arg)           \
+    ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,         \
+                                        _pre_cb, _post_cb,                   \
+                                        { .ptr = _pre_arg },                 \
+                                        { .ptr = _post_arg })
+
 /** \brief same as #ic_register_proxy_hdr_pre_post_hook but don't set
  * the hdr.
  */
 #define ic_register_proxy_pre_post_hook(h, _mod, _if, _rpc, ic, _pre_cb,     \
-                                        _post_cb)                            \
+                                        _post_cb, _pre_arg, _post_arg)       \
     ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, NULL,        \
-                                        _pre_cb, _post_cb)
+                                        _pre_cb, _post_cb,                   \
+                                        _pre_arg, _post_arg)
 
+/** \brief same as #ic_register_proxy_hdr_pre_post_hook but _pre and _post
+ *    args will be transform into el_data_t ptr.
+ */
+#define ic_register_proxy_pre_post_hook_p(h, _mod, _if, _rpc, ic, _pre_cb,   \
+                                          _post_cb, _pre_arg, _post_arg)     \
+    ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic, NULL,        \
+                                        _pre_cb, _post_cb,                   \
+                                        { .ptr = _pre_arg },                 \
+                                        { .ptr = _post_arg })
 /** \brief register a proxy destination for the given rpc with forced header.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
@@ -566,8 +620,8 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
  */
 #define ic_register_proxy_hdr(h, _mod, _if, _rpc, ic, hdr)                   \
-    ic_register_proxy_hdr_pre_post_hook(h, _mod, _if, _rpc, ic,              \
-                                        hdr, NULL, NULL)
+    ic_register_proxy_hdr_pre_post_hook_p(h, _mod, _if, _rpc, ic,            \
+                                          hdr, NULL, NULL, NULL, NULL)
 
 /** \brief register a proxy destination for the given rpc.
  * \param[in]  h
@@ -596,13 +650,16 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
  * \param[in]  _pre_cb
  *    the pre_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ * \param[in]  _pre_arg   argument we want to pass to pre_hook
+ * \param[in]  _post_arg  argument we want to pass to post_hook
  */
 #define ic_register_proxy_hdr_p_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,   \
-                                              _pre_cb, _post_cb)             \
+                                              _pre_cb, _post_cb,             \
+                                              _pre_arg, _post_arg)           \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
@@ -610,10 +667,23 @@ void ic_flush(ichannel_t *ic);
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = _pre_cb,                                             \
             .post_hook = _post_cb,                                           \
+            .pre_hook_args = _pre_arg,                                       \
+            .post_hook_args = _post_arg,                                     \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief same as #ic_register_proxy_hdr_p_pre_post_hook but _pre and _post
+ *    args will be transform into el_data_t ptr.
+ */
+#define ic_register_proxy_hdr_p_pre_post_hook_p(h, _mod, _if, _rpc, ic, hdr, \
+                                                _pre_cb, _post_cb,           \
+                                                _pre_arg, _post_arg)         \
+    ic_register_proxy_hdr_p_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,       \
+                                          _pre_cb, _post_cb,                 \
+                                          { .ptr = _pre_arg },               \
+                                          { .ptr = _post_arg })
 
 /** \brief register a pointed proxy destination for the given rpc with header.
  * \param[in]  h
@@ -629,8 +699,8 @@ void ic_flush(ichannel_t *ic);
  * \param[in]  hdr    the #ic__hdr__t header to force when proxifying.
  */
 #define ic_register_proxy_hdr_p(h, _mod, _if, _rpc, ic, hdr)                 \
-    ic_register_proxy_hdr_p_pre_post_hook(h, _mod, _if, _rpc, ic, hdr,       \
-                                          NULL, NULL)
+    ic_register_proxy_hdr_p_pre_post_hook_p(h, _mod, _if, _rpc, ic, hdr,     \
+                                            NULL, NULL, NULL, NULL)
 
 /** \brief register a pointed proxy destination for the given rpc.
  * \param[in]  h
@@ -664,13 +734,16 @@ void ic_flush(ichannel_t *ic);
  *   an opaque pointer passed to the callback each time it's called.
  * \param[in]  _pre_cb
  *    the pre_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *)</tt>
+ *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ic_status_t, ic_hook_ctx_t *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ * \param[in]  _pre_arg   argument we want to pass to pre_hook
+ * \param[in]  _post_arg  argument we want to pass to post_hook
  */
 #define ic_register_dynproxy_pre_post_hook(h, _mod, _if, _rpc, cb, _priv,    \
-                                           _pre_cb, _post_cb)                \
+                                           _pre_cb, _post_cb,                \
+                                           _pre_arg, _post_arg)              \
     do {                                                                     \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
         ic_cb_entry_t e = {                                                  \
@@ -678,6 +751,8 @@ void ic_flush(ichannel_t *ic);
             .rpc = IOP_RPC(_mod, _if, _rpc),                                 \
             .pre_hook = _pre_cb,                                             \
             .post_hook = _post_cb,                                           \
+            .pre_hook_args = _pre_arg,                                       \
+            .post_hook_args = _post_arg,                                     \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = _priv,                                             \
@@ -685,6 +760,17 @@ void ic_flush(ichannel_t *ic);
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief same as #ic_register_dynproxy_pre_post_hook but _pre and _post args
+ *    will be transform into el_data_t ptr.
+ */
+#define ic_register_dynproxy_pre_post_hook_p(h, _mod, _if, _rpc, cb, _priv,  \
+                                             _pre_cb, _post_cb,              \
+                                             _pre_arg, _post_arg)            \
+    ic_register_dynproxy_pre_post_hook(h, _mod, _if, _rpc, cb, _priv,        \
+                                       _pre_cb, _post_cb,                    \
+                                       { .ptr = _pre_arg },                  \
+                                       { .ptr = _post_arg })
 
 /** \brief register a dynamic proxy destination for the given rpc.
  * \param[in]  h
@@ -703,8 +789,8 @@ void ic_flush(ichannel_t *ic);
  *   an opaque pointer passed to the callback each time it's called.
  */
 #define ic_register_dynproxy(h, _mod, _if, _rpc, cb, _priv)                  \
-    ic_register_dynproxy_pre_post_hook(h, _mod, _if, _rpc, cb, _priv,        \
-                                       NULL, NULL)
+    ic_register_dynproxy_pre_post_hook_p(h, _mod, _if, _rpc, cb, _priv,      \
+                                         NULL, NULL, NULL, NULL)
 
 /*----- message handling -----*/
 

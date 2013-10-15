@@ -107,6 +107,7 @@ static struct {
     ic_hook_ctx_t   *ic_hook_ctx;
     ic_post_hook_f  *post_hook;
     const iop_rpc_t *rpc;
+    el_data_t        post_args;
 } ic_hook_flow_g;
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
@@ -125,6 +126,7 @@ ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
     ic_hook_flow_g.ic_hook_ctx->slot = slot;
     ic_hook_flow_g.ic_hook_ctx->rpc = ic_hook_flow_g.rpc;
     ic_hook_flow_g.ic_hook_ctx->post_hook = ic_hook_flow_g.post_hook;
+    ic_hook_flow_g.ic_hook_ctx->post_hook_args = ic_hook_flow_g.post_args;
 
     return ic_hook_flow_g.ic_hook_ctx;
 }
@@ -166,7 +168,8 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
     if (e->pre_hook) {
         ic_hook_flow_g.post_hook = e->post_hook;
         ic_hook_flow_g.rpc = e->rpc;
-        (*e->pre_hook)(ic, slot, hdr);
+        ic_hook_flow_g.post_args = e->post_hook_args;
+        (*e->pre_hook)(ic, slot, hdr, e->pre_hook_args);
         /* XXX: if we reply to the query during pre_hook then
          *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
          *      call the implementation of the RPC
@@ -187,7 +190,7 @@ void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot)
         return;
     }
     if (ctx->post_hook) {
-        (*ctx->post_hook)(ic, status, ctx);
+        (*ctx->post_hook)(ic, status, ctx, ctx->post_hook_args);
     }
     ic_hook_ctx_delete(&ctx);
 
