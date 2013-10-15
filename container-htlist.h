@@ -163,4 +163,19 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
     __htlist_for_each(&(pos)->member, __real_##n, hd,               \
                      n = htlist_entry_of(__real_##n, n, member))
 
+#define htlist_deep_clear(ptr, type, member, delete)                        \
+    do {                                                                    \
+        type *e, *prev = NULL;                                              \
+        htlist_t *_ptr = ptr;                                               \
+                                                                            \
+        htlist_for_each_entry(e, _ptr, member) {                            \
+            if (prev)                                                       \
+                delete(&prev);                                              \
+            prev = e;                                                       \
+        }                                                                   \
+        if (prev)                                                           \
+            delete(&prev);                                                  \
+        _ptr->tail = &_ptr->head;                                           \
+    } while (0)
+
 #endif
