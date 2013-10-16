@@ -18,7 +18,6 @@
 
 #include "arith-endianess.h"
 #include "arith-cmp.h"
-#include "arith-bithacks.h"
 #include "arith-float.h"
 #include "arith-str-stream.h"
 #include "arith-scan.h"

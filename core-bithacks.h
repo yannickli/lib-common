@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_BIHACKS_H)
-#  error "you must include arith.h instead"
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_BIHACKS_H)
+#  error "you must include core.h instead"
 #else
-#define IS_LIB_COMMON_ARITH_BIHACKS_H
+#define IS_LIB_COMMON_CORE_BIHACKS_H
 
 #if (SIZE_MAX == UINT32_MAX)
 #  define DO_SZ(f)  f##32
