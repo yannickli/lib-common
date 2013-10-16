@@ -199,7 +199,7 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
     byte *res;
 
-    if (unlikely(alignment > 16)) {
+    if (unlikely(alignment > 4)) {
         e_panic("mem_pool_ring does not support alignments greater than 16");
     }
 
@@ -220,7 +220,7 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
     byte *res;
 
-    if (unlikely(alignment > 16)) {
+    if (unlikely(alignment > 4)) {
         e_panic("mem_pool_ring does not support alignments greater than 16");
     }
 

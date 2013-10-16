@@ -35,7 +35,7 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
 {
     void *res;
 
-    if (alignment <= sizeof(void *)) {
+    if (alignment < 3) {
         if (flags & MEM_RAW) {
             res = malloc(size);
         } else {
@@ -47,7 +47,7 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
             e_panic("out of memory");
         }
     } else {
-        int ret = posix_memalign(&res, alignment, size);
+        int ret = posix_memalign(&res, 1 << alignment, size);
 
         if (unlikely(ret != 0)) {
             errno = ret;
@@ -79,9 +79,7 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
         e_panic("out of memory");
     }
 
-    if (alignment > sizeof(void *)
-    &&  ((uintptr_t)res & (alignment - 1)))
-    {
+    if (alignment > 3 && ((uintptr_t)res & ((1 << alignment) - 1))) {
         byte *cpy = libc_malloc(m, size, alignment, flags | MEM_RAW);
 
         p_copy(cpy, res, oldsize == MEM_UNKNOWN ? size : oldsize);
@@ -103,7 +101,8 @@ mem_pool_t mem_pool_libc = {
     .malloc   = &libc_malloc,
     .realloc  = &libc_realloc,
     .free     = &libc_free,
-    .mem_pool = MEM_LIBC
+    .mem_pool = MEM_LIBC,
+    .min_alignment = 1
 };
 
 /* }}} */
@@ -130,6 +129,7 @@ mem_pool_t mem_pool_static = {
     .realloc = &static_realloc,
     .free    = &static_free,
     .mem_pool = MEM_STATIC,
+    .min_alignment = 1
 };
 
 /* }}} */

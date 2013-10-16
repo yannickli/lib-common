@@ -211,7 +211,9 @@ typedef unsigned __bitwise__ mem_flags_t;
 
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
+    size_t      min_alignment;
 
+    /* DO NOT USE DIRECTLY, use mp_imalloc/mp_irealloc/mp_ifree instead */
     void *(*malloc) (struct mem_pool_t *, size_t, size_t, mem_flags_t);
     void *(*realloc)(struct mem_pool_t *, void *, size_t, size_t, size_t,
                      mem_flags_t);
@@ -227,6 +229,24 @@ __attribute__((error("you cannot allocate that much memory")))
 #endif
 extern void __imalloc_too_large(void);
 
+#ifndef __BIGGEST_ALIGNMENT__
+# define __BIGGEST_ALIGNMENT__  16
+#endif
+
+static ALWAYS_INLINE
+unsigned mem_bit_align(const mem_pool_t *mp, size_t alignment)
+{
+    assert (bitcountsz(alignment) <= 1);
+    return bsrsz(alignment ? MAX(mp->min_alignment, alignment)
+                           : __BIGGEST_ALIGNMENT__);
+}
+
+static ALWAYS_INLINE
+uintptr_t mem_align_ptr(uintptr_t ptr, unsigned bit_align)
+{
+    return (ptr + BITMASK_LT(uintptr_t, bit_align))
+         & BITMASK_GE(uintptr_t, bit_align);
+}
 
 static ALWAYS_INLINE void icheck_alloc(size_t size)
 {
@@ -265,6 +285,7 @@ static ALWAYS_INLINE void *mp_imalloc(mem_pool_t *mp, size_t size,
 {
     icheck_alloc(size);
     mp = mp ?: &mem_pool_libc;
+    alignment = mem_bit_align(mp, alignment);
     return (*mp->malloc)(mp, size, alignment, flags);
 }
 
@@ -279,6 +300,10 @@ void *mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
     if (!mem) {
         return mp_imalloc(mp, size, alignment, flags);
     }
+
+    alignment = mem_bit_align(mp, alignment);
+    assert ((uintptr_t)mem == mem_align_ptr((uintptr_t)mem, alignment)
+            && "reallocation must have the same alignment as allocation");
     return (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
 }
 
