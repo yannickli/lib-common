@@ -108,12 +108,17 @@ static uint32_t mem_page_size_left(mem_page_t *page)
     return (page->size - page->used_size);
 }
 
-static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
+static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
+                       mem_flags_t flags)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
     size_t req_size = size;
+
+    if (alignment > 3) {
+        e_panic("mem_fifo_pool does not support alignments greater than 8");
+    }
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
@@ -139,7 +144,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     return page->last = blk->area;
 }
 
-static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
+static void mfp_free(mem_pool_t *_mfp, void *mem)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
@@ -181,7 +186,8 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     }
 }
 
-static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
+                         size_t size, size_t alignment, mem_flags_t flags)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
@@ -189,16 +195,21 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     size_t alloced_size;
     size_t req_size = size;
 
+
+    if (alignment > 3) {
+        e_panic("mem_fifo_pool does not support alignments greater than 8");
+    }
+
     if (unlikely(!mfp->alive))
         e_panic("trying to reallocate from a dead pool");
 
     if (unlikely(size == 0)) {
-        mfp_free(_mfp, mem, flags);
+        mfp_free(_mfp, mem);
         return NULL;
     }
 
     if (!mem)
-        return mfp_alloc(_mfp, size, flags);
+        return mfp_alloc(_mfp, size, alignment, flags);
 
     blk  = container_of(mem, mem_block_t, area);
     mem_tool_allow_memory(blk, sizeof(*blk), true);
@@ -233,9 +244,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     } else {
         void *old = mem;
 
-        mem = mfp_alloc(_mfp, size, flags);
+        mem = mfp_alloc(_mfp, size, alignment, flags);
         memcpy(mem, old, oldsize);
-        mfp_free(_mfp, old, flags);
+        mfp_free(_mfp, old);
         return mem;
     }
 
@@ -244,9 +255,10 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
 }
 
 static mem_pool_t const mem_fifo_pool_funcs = {
-    .malloc  = &mfp_alloc,
-    .realloc = &mfp_realloc,
-    .free    = &mfp_free,
+    .malloc   = &mfp_alloc,
+    .realloc  = &mfp_realloc,
+    .free     = &mfp_free,
+    .mem_pool = MEM_OTHER,
 };
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)

@@ -27,11 +27,15 @@
 
 #include "core.h"
 
-void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
+
+/* Libc allocator {{{ */
+
+static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
+                         mem_flags_t flags)
 {
     void *res;
 
-    if (alignment <= sizeof(void *)) {
+    if (alignment < 3) {
         if (flags & MEM_RAW) {
             res = malloc(size);
         } else {
@@ -43,7 +47,7 @@ void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
             e_panic("out of memory");
         }
     } else {
-        int ret = posix_memalign(&res, alignment, size);
+        int ret = posix_memalign(&res, 1 << alignment, size);
 
         if (unlikely(ret != 0)) {
             errno = ret;
@@ -58,13 +62,13 @@ void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
     return res;
 }
 
-void *libc_realloc(void *mem, size_t oldsize, size_t size,
-                   size_t alignment, mem_flags_t flags)
+static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
+                          size_t size, size_t alignment, mem_flags_t flags)
 {
     byte *res = NULL;
 
     if (alignment > sizeof(void *) && mem == NULL) {
-        return libc_malloc(size, alignment, flags);
+        return libc_malloc(m, size, alignment, flags);
     }
 
     res = realloc(mem, size);
@@ -75,13 +79,11 @@ void *libc_realloc(void *mem, size_t oldsize, size_t size,
         e_panic("out of memory");
     }
 
-    if (alignment > sizeof(void *)
-    &&  ((uintptr_t)res & (alignment - 1)))
-    {
-        byte *cpy = libc_malloc(size, alignment, flags | MEM_RAW);
+    if (alignment > 3 && ((uintptr_t)res & ((1 << alignment) - 1))) {
+        byte *cpy = libc_malloc(m, size, alignment, flags | MEM_RAW);
 
         p_copy(cpy, res, oldsize == MEM_UNKNOWN ? size : oldsize);
-        libc_free(res, flags);
+        free(res);
         res = cpy;
     }
 
@@ -90,57 +92,47 @@ void *libc_realloc(void *mem, size_t oldsize, size_t size,
     return res;
 }
 
-void *__imalloc(size_t size, size_t alignment, mem_flags_t flags)
+static void libc_free(mem_pool_t *m, void *p)
 {
-    if (size > MEM_ALLOC_MAX)
-        e_panic("you cannot allocate that amount of memory");
-    switch (flags & MEM_POOL_MASK) {
-      case MEM_STATIC:
-      default:
-        e_panic("you cannot allocate from pool %d with imalloc",
-                flags & MEM_POOL_MASK);
-      case MEM_LIBC:
-        return libc_malloc(size, alignment, flags);
-      case MEM_STACK:
-        return stack_malloc(size, alignment, flags);
-    }
+    free(p);
 }
 
-void __ifree(void *mem, mem_flags_t flags)
+mem_pool_t mem_pool_libc = {
+    .malloc   = &libc_malloc,
+    .realloc  = &libc_realloc,
+    .free     = &libc_free,
+    .mem_pool = MEM_LIBC,
+    .min_alignment = 1
+};
+
+/* }}} */
+/* Static allocator {{{ */
+
+static void *static_malloc(mem_pool_t *m, size_t size, size_t alignement,
+                           mem_flags_t flags)
 {
-    switch (flags & MEM_POOL_MASK) {
-      case MEM_STATIC:
-      case MEM_STACK:
-        return;
-      case MEM_LIBC:
-        libc_free(mem, flags);
-        return;
-      default:
-        e_panic("pool memory cannot be deallocated with ifree");
-    }
+    e_panic("allocation not possible on the static pool");
 }
 
-void *__irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
-                 mem_flags_t flags)
+static void *static_realloc(mem_pool_t *m, void *mem, size_t oldsize,
+                            size_t size, size_t alignment, mem_flags_t flags)
 {
-    if (size == 0) {
-        ifree(mem, flags);
-        return NULL;
-    }
-    if (size > MEM_ALLOC_MAX)
-        e_panic("you cannot allocate that amount of memory");
-
-    switch (flags & MEM_POOL_MASK) {
-      case MEM_STATIC:
-        e_panic("you cannot realloc alloca-ed memory");
-      case MEM_STACK:
-        return stack_realloc(mem, oldsize, size, alignment, flags);
-      case MEM_LIBC:
-        return libc_realloc(mem, oldsize, size, alignment, flags);
-      default:
-        e_panic("pool memory cannot be reallocated with ifree");
-    }
+    e_panic("reallocation is not possible on the static pool");
 }
+
+static void static_free(mem_pool_t *m, void *p)
+{
+}
+
+mem_pool_t mem_pool_static = {
+    .malloc  = &static_malloc,
+    .realloc = &static_realloc,
+    .free    = &static_free,
+    .mem_pool = MEM_STATIC,
+    .min_alignment = 1
+};
+
+/* }}} */
 
 char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
 {
@@ -154,9 +146,9 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
     len = vsnprintf(res, MP_FMT_LEN, fmt, ap);
     va_end(ap);
     if (likely(len < MP_FMT_LEN)) {
-        res = (*mp->realloc)(mp, res, MP_FMT_LEN, len + 1, MEM_RAW);
+        res = mp_irealloc(mp, res, MP_FMT_LEN, len + 1, 1, MEM_RAW);
     } else {
-        res = (*mp->realloc)(mp, res, 0, len + 1, MEM_RAW);
+        res = mp_irealloc(mp, res, 0, len + 1, 1, MEM_RAW);
         va_start(ap, fmt);
         len = vsnprintf(res, len + 1, fmt, ap);
         va_end(ap);

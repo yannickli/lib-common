@@ -74,14 +74,14 @@ enum {
     rjerror_exp(ll, IOP_JERR_EXP_VAL, iop_type_to_error_str(_type), -1)
 #define RJERROR_SARG(_err, _str) \
     ({ const char *tmp = _str;                                              \
-       ll->err_str = mp_dup(ll->mp, tmp, strlen(tmp) + 1);                  \
+       ll->err_str = mp_strdup(ll->mp, tmp);                                \
        RJERROR(_err);                                                       \
     })
 #define RJERROR_SFIELD(_err, _s, _f) \
     ({ const iop_struct_t *_desc  = _s;                                     \
        const iop_field_t  *_fdesc = _f;                                     \
-       ll->err_str = mp_new(ll->mp, char,                                   \
-                            _desc->fullname.len + _fdesc->name.len + 2);    \
+       ll->err_str = mp_new_raw(ll->mp, char,                               \
+                                _desc->fullname.len + _fdesc->name.len + 2);\
        sprintf(ll->err_str, "%s:%s", _desc->fullname.s, _fdesc->name.s);    \
        RJERROR(_err);                                                       \
     })
@@ -242,7 +242,7 @@ rjerror_exp(iop_json_lex_t *ll, int err, const char *expected, int len)
         len = strlen(expected);
 
     buflen += pslen + len + 17 + 1;
-    dst = ll->err_str = mp_new(ll->mp, char, buflen);
+    dst = ll->err_str = mp_new_raw(ll->mp, char, buflen);
 
     pos += pstrcpy(dst, buflen, "expected ");
     pos += pstrcpy(dst + pos, buflen - pos, expected);
@@ -264,17 +264,20 @@ static void jerror_strncpy(iop_json_lex_t *ll, const char *str, int len)
 {
     if (len > JERROR_MAXLEN) {
         /* len = MAXLEN + strlen("...") + strlen("\"") + 1 */
-        ll->err_str = mp_new(ll->mp, char, JERROR_MAXLEN + 5);
+        ll->err_str = mp_new_raw(ll->mp, char, JERROR_MAXLEN + 5);
         memcpy(ll->err_str, str, JERROR_MAXLEN);
         ll->err_str[JERROR_MAXLEN] = '.';
         ll->err_str[JERROR_MAXLEN + 1] = '.';
         ll->err_str[JERROR_MAXLEN + 2] = '.';
         /* If str is a string we close it */
-        if (ll->err_str[0] == '"')
+        if (ll->err_str[0] == '"') {
             ll->err_str[JERROR_MAXLEN + 3] = '"';
+            ll->err_str[JERROR_MAXLEN + 4] = '\0';
+        } else {
+            ll->err_str[JERROR_MAXLEN + 3] = '\0';
+        }
     } else {
-        ll->err_str = mp_new(ll->mp, char, len + 1);
-        memcpy(ll->err_str, str, len);
+        ll->err_str = mp_dupz(ll->mp, str, len);
     }
 }
 
@@ -836,8 +839,7 @@ void iop_jlex_wipe(iop_json_lex_t *ll)
     sb_wipe(&ll->cur_ctx.b);
     sb_wipe(&ll->peeked_ctx.b);
     iop_cfolder_delete(&ll->cfolder);
-    if (ll->err_str)
-        mp_delete(ll->mp, &ll->err_str);
+    mp_delete(ll->mp, &ll->err_str);
 }
 
 static void iop_jlex_reset(iop_json_lex_t *ll)
@@ -967,7 +969,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
           case IOP_T_DATA:
             data = (lstr_t *)value;
             if (ll->ctx->b.len == 0) {
-                data->data = mp_new(ll->mp, char, 1);
+                data->data = mp_new_raw(ll->mp, char, 1);
                 data->len  = 0;
             } else {
                 sb_t  sb;
@@ -1109,9 +1111,9 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
         if (fdesc) {
             if (arr->len >= size) {
                 size = p_alloc_nr(size);
-                arr->data = ll->mp->realloc(ll->mp, arr->data,
-                                            arr->len * fdesc->size,
-                                            size * fdesc->size, 0);
+                arr->data = mp_irealloc(ll->mp, arr->data,
+                                        arr->len * fdesc->size,
+                                        size * fdesc->size, 0, 0);
             }
             ptr = (void *)((char *)arr->data + arr->len * fdesc->size);
             PS_CHECK(unpack_val(ll, fdesc, ptr, true));
@@ -1262,12 +1264,7 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     }
 
     /* Allocate output value */
-    if (*value) {
-        *value = ll->mp->realloc(ll->mp, *value, 0, (*real_desc)->size,
-                                 MEM_RAW);
-    } else {
-        *value = ll->mp->malloc(ll->mp, (*real_desc)->size, MEM_RAW);
-    }
+    *value = mp_irealloc(ll->mp, *value, 0, (*real_desc)->size, 0, MEM_RAW);
 
     /* Set the _vprt pointer */
     *(const iop_struct_t **)(*value) = *real_desc;
@@ -1613,11 +1610,7 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
         return iop_junpack(ll, st, out, single_value);
     }
 
-    if (*out) {
-        *out = ll->mp->realloc(ll->mp, *out, 0, st->size, MEM_RAW);
-    } else {
-        *out = ll->mp->malloc(ll->mp, st->size, MEM_RAW);
-    }
+    *out = mp_irealloc(ll->mp, *out, 0, st->size, 0, MEM_RAW);
     return iop_junpack(ll, st, *out, single_value);
 }
 

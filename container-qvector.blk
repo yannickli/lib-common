@@ -19,7 +19,7 @@ void qvector_reset(qvector_t *vec, size_t v_size)
     size_t sz = vec->size + vec->skip;
 
     if (vec->mem_pool == MEM_LIBC && sz * v_size > (128 << 10)) {
-        libc_free(vec->tab - vec->skip * v_size, 0);
+        mp_ifree(&mem_pool_libc, vec->tab - vec->skip * v_size);
         p_clear(vec, 1);
     } else {
         __qvector_init(vec, vec->tab - vec->skip * v_size,
@@ -81,12 +81,12 @@ void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
         memcpy(s, vec->tab, vec->len * v_size);
         if (vec->mem_pool != MEM_STATIC) {
             /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
-            libc_free(vec->tab - vec->skip, 0);
+            mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
         }
         __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
     } else {
-        vec->tab = (irealloc)(vec->tab, vec->len * v_size, newsz * v_size,
-                              v_align, vec->mem_pool | MEM_RAW);
+        vec->tab = irealloc(vec->tab, vec->len * v_size, newsz * v_size,
+                            v_align, vec->mem_pool | MEM_RAW);
         vec->size = newsz;
     }
 }
@@ -104,7 +104,7 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
         return;
     buf = pa_new_raw(char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
-    libc_free(vec->tab - vec->skip, 0);
+    mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
     __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 

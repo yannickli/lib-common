@@ -222,7 +222,7 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
 
         if (datasize >= bufsize) {
             int size   = p_alloc_nr(bufsize);
-            data->data = mp->realloc(mp, data->data, bufsize, size, MEM_RAW);
+            data->data = mp_irealloc(mp, data->data, bufsize, size, 0, MEM_RAW);
             bufsize    = size;
         }
 
@@ -301,12 +301,12 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
     int n = 0;
 
     do {
-        ptr = mp_new(mp, char, fdesc->size);
+        ptr = mp_new_raw(mp, char, fdesc->size);
 
         RETHROW(xunpack_value(xr, mp, fdesc, ptr, flags));
         n++;
 
-        chain    = mp_new(mp, void *, 2);
+        chain    = mp_new_raw(mp, void *, 2);
         chain[0] = prev;
         chain[1] = ptr;
         prev     = chain;
@@ -314,7 +314,7 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
 
     /* Now we can rebuild the array of value */
     data->len  = n;
-    data->data = mp->malloc(mp, fdesc->size * n, MEM_RAW);
+    data->data = mp_imalloc(mp, fdesc->size * n, 0, MEM_RAW);
     ptr        = (char *)data->data + (n - 1) * fdesc->size;
     while (n--) {
         memcpy(ptr, chain[1], fdesc->size);
@@ -538,11 +538,7 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     }
 
     /* Allocate output value */
-    if (*value) {
-        *value = mp->realloc(mp, *value, 0, real_desc->size, MEM_RAW);
-    } else {
-        *value = mp->malloc(mp, real_desc->size, MEM_RAW);
-    }
+    *value = mp_irealloc(mp, *value, 0, real_desc->size, 0, MEM_RAW);
 
     /* Set the _vprt pointer */
     *(const iop_struct_t **)(*value) = real_desc;
@@ -626,11 +622,7 @@ int iop_xunpack_ptr_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
         return __iop_xunpack_parts(xr, mp, desc, value, flags, NULL);
     }
 
-    if (*value) {
-        *value = mp->realloc(mp, *value, 0, desc->size, MEM_RAW);
-    } else {
-        *value = mp->malloc(mp, desc->size, MEM_RAW);
-    }
+    *value = mp_irealloc(mp, *value, 0, desc->size, 0, MEM_RAW);
     return __iop_xunpack_parts(xr, mp, desc, *value, flags, NULL);
 }
 
@@ -650,10 +642,6 @@ int iop_xunpack_ptr_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
         return __iop_xunpack_parts(xr, mp, desc, value, flags, parts);
     }
 
-    if (*value) {
-        *value = mp->realloc(mp, *value, 0, desc->size, MEM_RAW);
-    } else {
-        *value = mp->malloc(mp, desc->size, MEM_RAW);
-    }
+    *value = mp_irealloc(mp, *value, 0, desc->size, 0, MEM_RAW);
     return __iop_xunpack_parts(xr, mp, desc, *value, flags, parts);
 }

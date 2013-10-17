@@ -16,7 +16,6 @@
 
 #define IPRINTF_HIDE_STDIO 1
 #include "core.h"
-#include "str-mem.h"
 #include "str-ctype.h"
 #include "str-iprintf.h"
 #include "str-num.h"

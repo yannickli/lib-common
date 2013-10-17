@@ -18,6 +18,13 @@
 #define __BIGGEST_ALIGNMENT__  16
 #endif
 
+#define DEFAULT_ALIGNMENT  __BIGGEST_ALIGNMENT__
+#ifndef NDEBUG
+# define MIN_ALIGNMENT  sizeof(void *)
+#else
+# define MIN_ALIGNMENT  1
+#endif
+
 static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
     return sp->alloc_sz / sp->alloc_nb;
@@ -60,9 +67,6 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
     ifree(blk, MEM_LIBC);
 }
 
-#define ROUND_ALIGN(val, align)  \
-    (((val) + BITMASK_LT(typeof(val), align)) & BITMASK_GE(typeof(val), align))
-
 static ALWAYS_INLINE mem_stack_blk_t *
 frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
                    size_t size)
@@ -73,8 +77,8 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
         size_t needed_size = size;
         uint8_t *aligned_area;
 
-        aligned_area = (uint8_t *)ROUND_ALIGN((uintptr_t)blk->area, alignment);
-        needed_size +=  aligned_area - blk->area;
+        aligned_area = (uint8_t *)mem_align_ptr((uintptr_t)blk->area, alignment);
+        needed_size += aligned_area - blk->area;
 
         if (blk->size >= needed_size)
             return blk;
@@ -101,9 +105,9 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
 {
     uint8_t           *res;
     mem_stack_frame_t *frame = sp->stack;
-    size_t             size  = ROUND_ALIGN(asked, alignment);
+    size_t             size  = mem_align_ptr(asked, alignment);
 
-    res = (uint8_t *)ROUND_ALIGN((uintptr_t)frame->pos, alignment);
+    res = (uint8_t *)mem_align_ptr((uintptr_t)frame->pos, alignment);
 
     if (unlikely(res + size > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, alignment,
@@ -111,7 +115,7 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
 
         *blkp = blk;
         res   = blk->area;
-        res   = (uint8_t *)ROUND_ALIGN((uintptr_t)res, alignment);
+        res   = (uint8_t *)mem_align_ptr((uintptr_t)res, alignment);
         mem_tool_disallow_memory(blk->area, res - blk->area);
     } else {
         *blkp = frame->blk;
@@ -147,8 +151,8 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
 }
 
 __flatten
-static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
-                              mem_flags_t flags)
+static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
+                      mem_flags_t flags)
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
@@ -174,28 +178,19 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
     return frame->last = res;
 }
 
-__flatten
-static void *sp_alloc(mem_pool_t *sp, size_t size, mem_flags_t flags)
-{
-    return sp_alloc_aligned(sp, size, bsrsz(__BIGGEST_ALIGNMENT__), flags);
-}
-
-static void sp_free(mem_pool_t *_sp, void *mem, mem_flags_t flags)
+static void sp_free(mem_pool_t *_sp, void *mem)
 {
 }
 
-static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
-                                size_t oldsize, size_t asked,
-                                size_t alignment, mem_flags_t flags)
+static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
+                        size_t asked, size_t alignment, mem_flags_t flags)
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    size_t size  = ROUND_ALIGN(asked, alignment);
+    size_t size  = mem_align_ptr(asked, alignment);
     uint8_t *res;
 
 #ifndef NDEBUG
-    assert (((uintptr_t)mem & BITMASK_LT(uintptr_t, alignment)) == 0);
-
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
     if (mem != NULL) {
@@ -224,7 +219,7 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
         mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
         res = mem;
     } else {
-        res = sp_alloc_aligned(_sp, size, alignment, flags | MEM_RAW);
+        res = sp_alloc(_sp, size, alignment, flags | MEM_RAW);
         if (mem) {
             memcpy(res, mem, oldsize);
             mem_tool_disallow_memory(mem, oldsize);
@@ -237,17 +232,16 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
     return res;
 }
 
-static void *sp_realloc(mem_pool_t *sp, void *mem, size_t oldsize, size_t asked,
-                        mem_flags_t flags)
-{
-    return sp_realloc_aligned(sp, mem, oldsize, asked,
-                              bsrsz(__BIGGEST_ALIGNMENT__), flags);
-}
-
 static mem_pool_t const pool_funcs = {
-    .malloc  = &sp_alloc,
-    .realloc = &sp_realloc,
-    .free    = &sp_free,
+    .malloc   = &sp_alloc,
+    .realloc  = &sp_realloc,
+    .free     = &sp_free,
+    .mem_pool = MEM_STACK,
+#ifndef NDEBUG
+    .min_alignment = sizeof(void *)
+#else
+    .min_alignment = 1
+#endif
 };
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
@@ -328,18 +322,5 @@ static void t_pool_wipe(void)
     mem_stack_pool_wipe(&t_pool_g);
 }
 thr_hooks(t_pool_init, t_pool_wipe);
-
-void *stack_malloc(size_t size, size_t alignment, mem_flags_t flags)
-{
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_alloc_aligned(t_pool(), size, alignment, flags);
-}
-
-void *stack_realloc(void *mem, size_t oldsize, size_t size, size_t alignment,
-                    mem_flags_t flags)
-{
-    alignment = bsrsz(MAX(__BIGGEST_ALIGNMENT__, alignment));
-    return sp_realloc_aligned(t_pool(), mem, oldsize, size, alignment, flags);
-}
 
 __thread mem_stack_pool_t t_pool_g;

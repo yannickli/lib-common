@@ -38,7 +38,6 @@ libcommon_SOURCES = \
 	licence.c \
 	parseopt.c \
 	\
-	arith-bithacks.c \
 	arith-int.c \
 	arith-scan.c \
 	\
@@ -57,10 +56,10 @@ libcommon_SOURCES = \
 	container-rbtree.c \
 	container-ring.c \
 	\
+	core-bithacks.c \
 	core-obj.c \
 	core-havege.c \
 	core-mem.c \
-	core-mem-debug.c \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
