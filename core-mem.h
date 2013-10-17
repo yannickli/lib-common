@@ -208,6 +208,7 @@ typedef unsigned __bitwise__ mem_flags_t;
 #define MEM_FLAGS_MASK force_cast(mem_flags_t, 0xff00)
 #define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
 #define MEM_ERRORS_OK  force_cast(mem_flags_t, 1 << 9)
+#define MEM_UNALIGN_OK force_cast(mem_flags_t, 1 << 10)
 
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
@@ -302,8 +303,10 @@ void *mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
     }
 
     alignment = mem_bit_align(mp, alignment);
-    assert ((uintptr_t)mem == mem_align_ptr((uintptr_t)mem, alignment)
-            && "reallocation must have the same alignment as allocation");
+    if (!(flags & MEM_UNALIGN_OK)) {
+        assert ((uintptr_t)mem == mem_align_ptr((uintptr_t)mem, alignment)
+                && "reallocation must have the same alignment as allocation");
+    }
     return (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
 }
 

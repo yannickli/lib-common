@@ -423,7 +423,7 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
         *psz = sz;
     }
 
-    res = mp_imalloc(mp, sz, 0, MEM_RAW);
+    res = mp_imalloc(mp, sz, 8, MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
 
     if (is_class) {
@@ -461,7 +461,7 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
         *psz = sz;
     }
 
-    res = mp_irealloc(mp, res, 0, sz, 0, MEM_RAW);
+    res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
 
     if (is_class) {
@@ -2041,7 +2041,7 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
              * expected type, and not a child.
              * We have to allocate it since it's pointed. */
             PS_WANT(!desc->class_attrs->is_abstract);
-            *(void **)ptr = mp_imalloc(mp, desc->size, 0, MEM_RAW);
+            *(void **)ptr = mp_imalloc(mp, desc->size, 8, MEM_RAW);
             ptr = *(void **)ptr;
             *(const iop_struct_t **)ptr = desc;
         }
@@ -2299,7 +2299,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
           unpack_array:
             data->len  = n;
-            data->data = v = mp_imalloc(mp, n * fdesc->size, 0, MEM_RAW);
+            data->data = v = mp_imalloc(mp, n * fdesc->size, 8, MEM_RAW);
 
             while (n-- > 1) {
                 PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
@@ -2400,7 +2400,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
 
   unpack:
     PS_WANT(!real_desc->class_attrs->is_abstract);
-    *value = mp_irealloc(mp, *value, 0, real_desc->size, 0, MEM_RAW);
+    *value = mp_irealloc(mp, *value, 0, real_desc->size, 8, MEM_RAW);
 
     /* Set the _vprt pointer */
     *(const iop_struct_t **)(*value) = real_desc;
@@ -2499,7 +2499,7 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
     sb_reset(&iop_err_g);
 
     if (!iop_struct_is_class(desc)) {
-        *value = mp_irealloc(mp, *value, 0, desc->size, 0, MEM_RAW);
+        *value = mp_irealloc(mp, *value, 0, desc->size, 8, MEM_RAW);
         return iop_bunpack(mp, desc, *value, ps, copy);
     }
 

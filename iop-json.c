@@ -1113,7 +1113,7 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
                 size = p_alloc_nr(size);
                 arr->data = mp_irealloc(ll->mp, arr->data,
                                         arr->len * fdesc->size,
-                                        size * fdesc->size, 0, 0);
+                                        size * fdesc->size, 8, 0);
             }
             ptr = (void *)((char *)arr->data + arr->len * fdesc->size);
             PS_CHECK(unpack_val(ll, fdesc, ptr, true));
@@ -1264,7 +1264,7 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     }
 
     /* Allocate output value */
-    *value = mp_irealloc(ll->mp, *value, 0, (*real_desc)->size, 0, MEM_RAW);
+    *value = mp_irealloc(ll->mp, *value, 0, (*real_desc)->size, 8, MEM_RAW);
 
     /* Set the _vprt pointer */
     *(const iop_struct_t **)(*value) = *real_desc;
@@ -1610,7 +1610,7 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
         return iop_junpack(ll, st, out, single_value);
     }
 
-    *out = mp_irealloc(ll->mp, *out, 0, st->size, 0, MEM_RAW);
+    *out = mp_irealloc(ll->mp, *out, 0, st->size, 8, MEM_RAW);
     return iop_junpack(ll, st, *out, single_value);
 }
 

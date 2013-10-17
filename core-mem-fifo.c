@@ -259,6 +259,7 @@ static mem_pool_t const mem_fifo_pool_funcs = {
     .realloc  = &mfp_realloc,
     .free     = &mfp_free,
     .mem_pool = MEM_OTHER,
+    .min_alignment = 8
 };
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)
