@@ -391,6 +391,10 @@ static inline uint64_t ps_get_ull_ext(pstream_t *ps, int base)
     return res;
 }
 
+static inline double ps_getd(pstream_t *ps) {
+    return memtod(ps->b, ps_len(ps), &ps->b);
+}
+
 static inline int __ps_skipc(pstream_t *ps, int c)
 {
     assert (ps_has(ps, 1));
