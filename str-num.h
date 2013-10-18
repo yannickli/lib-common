@@ -108,4 +108,24 @@ int strtoll_ext(const char *s, int64_t *out, const char **tail, int base);
 
 int strtoull_ext(const char *s, uint64_t *out, const char **tail, int base);
 
+__attr_nonnull__((1))
+static inline double memtod(const void *s, int len, const byte **endptr)
+{
+    if (len >= 0) {
+        t_scope;
+
+        /* Ensure we have a '\0' */
+        const char *duped = (const char *)t_dupz(s, len);
+        double res = strtod(duped, (char **)endptr);
+
+        if (endptr) {
+            *(char **)endptr = (char *)s + (*(char **)endptr - duped);
+        }
+
+        return res;
+    }
+
+    return strtod((const char *)s, (char **)endptr);
+}
+
 #endif

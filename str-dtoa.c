@@ -132,7 +132,6 @@
 #include <endian.h>
 
 /* disable inline functions from library header files */
-#define strtod    gt_strtod
 #define atof      gt_atof
 #define ecvt      gt_ecvt
 #define dtoa      gt_dtoa

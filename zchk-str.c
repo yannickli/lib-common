@@ -556,6 +556,51 @@ Z_GROUP_EXPORT(str)
 #undef TT_ALL
     } Z_TEST_END;
 
+    Z_TEST(memtod, "str: memtod") {
+
+#define DOUBLE_ABS(_d)   (_d) > 0 ? (_d) : -(_d)
+
+/* Absolute maximum error is bad, but in our case it is perfectly
+ * acceptable
+ */
+#define DOUBLE_CMP(_d1, _d2)  (DOUBLE_ABS(_d1 - _d2) < 0.00001)
+
+#define TD(p, err_exp, val_exp, end_i) \
+        ({  const byte *endp;                                               \
+            int end_exp = (end_i >= 0) ? end_i : (int)strlen(p);            \
+                                                                            \
+            errno = 0;                                                      \
+            Z_ASSERT(DOUBLE_CMP(val_exp, memtod(p, strlen(p), &endp)));     \
+            Z_ASSERT_EQ(err_exp, errno);                                    \
+            Z_ASSERT_EQ(end_exp, endp - (const byte *)p);                   \
+            Z_ASSERT(DOUBLE_CMP(val_exp, memtod(p, -1, &endp)));            \
+            Z_ASSERT_EQ(err_exp, errno);                                    \
+            Z_ASSERT_EQ(end_exp, endp - (const byte *)p);                   \
+        })
+
+        TD("123", 0, 123.0, -1);
+        TD(" 123", 0, 123.0, -1);
+        TD("123.18", 0, 123.18, -1);
+        TD(" +123.90", 0, 123.90, -1);
+        TD("  -123", 0, -123.0, -1);
+        TD("123.50 ", 0, 123.50, 6);
+        TD("123z.50", 0, 123, 3);
+        TD("123+", 0, 123.0, 3);
+        TD("000000000000000000000000000000000001", 0, 1, -1);
+        TD("-000000000000000000000000000000000001", 0, -1, -1);
+        TD("", 0, 0, -1);
+        TD("          ", 0, 0, 0);
+        TD("0", 0, 0, -1);
+        TD("0x0", 0, 0, -1);
+        TD("010", 0, 10, -1);
+        TD("10e3", 0, 10000, -1);
+        TD("0.1e-3", 0, 0.0001, -1);
+
+#undef TD
+#undef DOUBLE_CMP
+#undef DOUBLE_ABS
+    } Z_TEST_END;
+
     Z_TEST(str_tables, "str: test conversion tables") {
         for (int i = 0; i < countof(__str_unicode_lower); i++) {
             /* Check idempotence */
