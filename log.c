@@ -137,9 +137,10 @@ static void logger_compute_fullname(logger_t *logger)
         lstr_t full_name;
 
         /* The name of a logger must be a non-empty printable string
-         * without any '/'
+         * without any '/' or '!'
          */
         assert (memchr(logger->name.s, '/', logger->name.len) == NULL);
+        assert (memchr(logger->name.s, '!', logger->name.len) == NULL);
         assert (logger->name.len);
         for (int i = 0; i < logger->name.len; i++) {
             assert (isprint((unsigned char)logger->name.s[i]));
