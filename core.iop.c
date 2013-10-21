@@ -292,6 +292,15 @@ static iop_field_attr_t const core__logger_configuration__force_all__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__force_all__f_help } },
     },
 };
+static const iop_help_t core__logger_configuration__is_silent__f_help = {
+    .brief = LSTR_IMMED("If true, log handler is called, but default one does nothing."),
+};
+static iop_field_attr_t const core__logger_configuration__is_silent__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__is_silent__f_help } },
+    },
+};
 static iop_field_attrs_t const core__logger_configuration__desc_fields_attrs[] = {
     {
         .flags             = 2176,
@@ -308,6 +317,11 @@ static iop_field_attrs_t const core__logger_configuration__desc_fields_attrs[] =
         .flags             = 2048,
         .attrs_len         = 1,
         .attrs             = core__logger_configuration__force_all__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__logger_configuration__is_silent__attrs,
     },
 };
 static iop_field_t const core__logger_configuration__desc_fields[] = {
@@ -341,10 +355,20 @@ static iop_field_t const core__logger_configuration__desc_fields[] = {
         .u1        = { .defval_u64 = false },
         .size      = fieldsizeof(core__logger_configuration__t, force_all),
     },
+    {
+        .name      = LSTR_IMMED("isSilent"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__logger_configuration__t, is_silent),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__logger_configuration__t, is_silent),
+    },
 };
 static int const iop__ranges__3[] = {
     0, 1,
-    3,
+    4,
 };
 static const iop_help_t core__logger_configuration__s_help = {
     .brief = LSTR_IMMED("Configuration of a specific logger."),
@@ -395,6 +419,15 @@ static iop_field_attr_t const core__log_configuration__force_all__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__force_all__f_help } },
     },
 };
+static const iop_help_t core__log_configuration__is_silent__f_help = {
+    .brief = LSTR_IMMED("If true, log handler is called, but default one does nothing."),
+};
+static iop_field_attr_t const core__log_configuration__is_silent__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__is_silent__f_help } },
+    },
+};
 static const iop_help_t core__log_configuration__specific__f_help = {
     .brief = LSTR_IMMED("Independent configuration of specific loggers."),
     .details = LSTR_IMMED("This can be used to perform a fine-grained configuration of the logging level of specific code modules."),
@@ -415,6 +448,11 @@ static iop_field_attrs_t const core__log_configuration__desc_fields_attrs[] = {
         .flags             = 2048,
         .attrs_len         = 1,
         .attrs             = core__log_configuration__force_all__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_configuration__is_silent__attrs,
     },
     {
         .flags             = 2048,
@@ -445,8 +483,18 @@ static iop_field_t const core__log_configuration__desc_fields[] = {
         .size      = fieldsizeof(core__log_configuration__t, force_all),
     },
     {
-        .name      = LSTR_IMMED("specific"),
+        .name      = LSTR_IMMED("isSilent"),
         .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log_configuration__t, is_silent),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log_configuration__t, is_silent),
+    },
+    {
+        .name      = LSTR_IMMED("specific"),
+        .tag       = 4,
         .tag_len   = 0,
         .repeat    = IOP_R_REPEATED,
         .type      = IOP_T_STRUCT,
@@ -1378,13 +1426,27 @@ static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
         .u1        = { .defval_u64 = false },
         .size      = fieldsizeof(core__log__set_root_level_args__t, force_all),
     },
+    {
+        .name      = LSTR_IMMED("isSilent"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log__set_root_level_args__t, is_silent),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log__set_root_level_args__t, is_silent),
+    },
+};
+static int const iop__ranges__8[] = {
+    0, 1,
+    3,
 };
 const iop_struct_t core__log__set_root_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
     .fields     = core__log__set_root_level_args__desc_fields,
-    .ranges     = iop__ranges__6,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
-    .ranges_len = countof(iop__ranges__6) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__set_root_level_args__t),
 };
 
@@ -1403,16 +1465,16 @@ static iop_field_t const core__log__set_root_level_res__desc_fields[] = {
         .u1        = { .en_desc = &core__log_level__e },
     },
 };
-static int const iop__ranges__8[] = {
+static int const iop__ranges__9[] = {
     0, 1,
     1,
 };
 const iop_struct_t core__log__set_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__8,
+    .ranges     = iop__ranges__9,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .size       = sizeof(core__log__set_root_level_res__t),
 };
 
@@ -1424,9 +1486,9 @@ const iop_struct_t core__log__set_root_level_res__s = {
 const iop_struct_t core__log__reset_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__8,
+    .ranges     = iop__ranges__9,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .size       = sizeof(core__log__reset_root_level_res__t),
 };
 
@@ -1463,6 +1525,16 @@ static iop_field_t const core__log__set_logger_level_args__desc_fields[] = {
         .u1        = { .defval_u64 = false },
         .size      = fieldsizeof(core__log__set_logger_level_args__t, force_all),
     },
+    {
+        .name      = LSTR_IMMED("isSilent"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log__set_logger_level_args__t, is_silent),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log__set_logger_level_args__t, is_silent),
+    },
 };
 const iop_struct_t core__log__set_logger_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setLoggerLevelArgs"),
@@ -1481,9 +1553,9 @@ const iop_struct_t core__log__set_logger_level_args__s = {
 const iop_struct_t core__log__set_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__8,
+    .ranges     = iop__ranges__9,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .size       = sizeof(core__log__set_logger_level_res__t),
 };
 
@@ -1504,9 +1576,9 @@ static iop_field_t const core__log__reset_logger_level_args__desc_fields[] = {
 const iop_struct_t core__log__reset_logger_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelArgs"),
     .fields     = core__log__reset_logger_level_args__desc_fields,
-    .ranges     = iop__ranges__8,
+    .ranges     = iop__ranges__9,
     .fields_len = countof(core__log__reset_logger_level_args__desc_fields),
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .size       = sizeof(core__log__reset_logger_level_args__t),
 };
 
@@ -1518,9 +1590,9 @@ const iop_struct_t core__log__reset_logger_level_args__s = {
 const iop_struct_t core__log__reset_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__8,
+    .ranges     = iop__ranges__9,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .size       = sizeof(core__log__reset_logger_level_res__t),
 };
 

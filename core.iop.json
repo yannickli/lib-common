@@ -104,6 +104,13 @@
 						"brief": "Force the use of logging level for child loggers.",
 						"details": "If this flag is set, the level of that logger is propagated to all child loggers that were not explicitly configured, even those that were not supposed to inherit from that level."
 					}
+				},
+				"isSilent": {
+					"type": "boolean",
+					"default": false,
+					"help": {
+						"brief": "If true, log handler is called, but default one does nothing."
+					}
 				}
 			}
 		},
@@ -129,6 +136,13 @@
 					"help": {
 						"brief": "Force the use of the root level.",
 						"details": "If this flag is set, the root level is propagated to all logger that were not explicitly configured, even those that were not supposed to inherit from the root level."
+					}
+				},
+				"isSilent": {
+					"type": "boolean",
+					"default": false,
+					"help": {
+						"brief": "If true, log handler is called, but default one does nothing."
 					}
 				},
 				"specific": {
@@ -395,6 +409,10 @@
 				"forceAll": {
 					"type": "boolean",
 					"default": false
+				},
+				"isSilent": {
+					"type": "boolean",
+					"default": false
 				}
 			}
 		},
@@ -430,6 +448,10 @@
 					"type": "core.LogLevel"
 				},
 				"forceAll": {
+					"type": "boolean",
+					"default": false
+				},
+				"isSilent": {
 					"type": "boolean",
 					"default": false
 				}

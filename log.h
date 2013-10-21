@@ -85,8 +85,10 @@ extern uint32_t log_conf_gen_g;
 enum {
     LOG_RECURSIVE = 1 << 0, /**< Force level to be set recursively. */
     LOG_FORCED    = 1 << 1, /**< Level has been recursively forced. internal */
+    LOG_SILENT    = 1 << 2, /**< Log handler is called, but default one does
+                                 nothing. */
 };
-
+#define LOG_MK_FLAGS(_recursive, _silent)  (_recursive << 0 | _silent << 2)
 
 /** Logger structure.
  *
@@ -104,6 +106,7 @@ typedef struct logger_t {
     int defined_level;
     int default_level;
     unsigned level_flags;
+    unsigned default_level_flags;
 
     spinlock_t children_lock;
 
@@ -129,6 +132,24 @@ typedef struct logger_t {
         .default_level = (LogLevel),                                         \
     }
 
+/** Initialize a silent logger with a default \p LogLevel.
+ *
+ * Silent loggers are loggers for which the default log handler does nothing.
+ * This can be used if you want the log handler to be called even if you don't
+ * want to print anything.
+ *
+ * \see LOGGER_INIT
+ */
+#define LOGGER_INIT_SILENT(Parent, Name, LogLevel)  {                        \
+        .parent = (Parent),                                                  \
+        .name   = LSTR_IMMED(Name),                                          \
+        .level  = LOG_UNDEFINED,                                             \
+        .defined_level = LOG_UNDEFINED,                                      \
+        .default_level = (LogLevel),                                         \
+        .level_flags         = LOG_SILENT,                                   \
+        .default_level_flags = LOG_SILENT,                                   \
+    }
+
 /** Initialize a logger that inherits it's parent level.
  *
  * \see LOGGER_INIT
@@ -136,9 +157,17 @@ typedef struct logger_t {
 #define LOGGER_INIT_INHERITS(Parent, Name)                                   \
     LOGGER_INIT(Parent, Name, LOG_INHERITS)
 
+/** Initialize a silent logger that inherits it's parent level.
+ *
+ * \see LOGGER_INIT_SILENT
+ */
+#define LOGGER_INIT_SILENT_INHERITS(Parent, Name)                            \
+    LOGGER_INIT_SILENT(Parent, Name, LOG_INHERITS)
+
 logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
-                      int default_level) __leaf;
-logger_t *logger_new(logger_t *parent, lstr_t name, int default_level) __leaf;
+                      int default_level, unsigned level_flags) __leaf;
+logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
+                     unsigned level_flags) __leaf;
 
 void logger_wipe(logger_t *logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
@@ -328,6 +357,9 @@ typedef struct log_ctx_t {
 
     int pid;
     const char *prog_name;
+
+    flag_t is_silent :  1;
+    flag_t padding   : 31;
 } log_ctx_t;
 
 typedef void (log_handler_f)(const log_ctx_t *ctx, const char *fmt, va_list va)

@@ -16,19 +16,20 @@
 void logger_configure(const core__log_configuration__t *conf)
 {
     logger_set_level(LSTR_EMPTY_V, conf->root_level,
-                     conf->force_all ? LOG_RECURSIVE : 0);
+                     LOG_MK_FLAGS(conf->force_all, conf->is_silent));
 
     tab_for_each_ptr(l, &conf->specific) {
         logger_set_level(l->full_name, l->level,
-                         l->force_all ? LOG_RECURSIVE : 0);
+                         LOG_MK_FLAGS(l->force_all, l->is_silent));
     }
 }
 
 void IOP_RPC_IMPL(core__core, log, set_root_level)
 {
+    unsigned flags = LOG_MK_FLAGS(arg->force_all, arg->is_silent);
+
     ic_reply(ic, slot, core__core, log, set_root_level,
-             .level = logger_set_level(LSTR_EMPTY_V, arg->level,
-                                       arg->force_all ? LOG_RECURSIVE : 0));
+             .level = logger_set_level(LSTR_EMPTY_V, arg->level, flags));
 }
 
 void IOP_RPC_IMPL(core__core, log, reset_root_level)
@@ -39,9 +40,10 @@ void IOP_RPC_IMPL(core__core, log, reset_root_level)
 
 void IOP_RPC_IMPL(core__core, log, set_logger_level)
 {
+    unsigned flags = LOG_MK_FLAGS(arg->force_all, arg->is_silent);
+
     ic_reply(ic, slot, core__core, log, set_logger_level,
-             .level = logger_set_level(arg->full_name, arg->level,
-                                       arg->force_all ? LOG_RECURSIVE : 0));
+             .level = logger_set_level(arg->full_name, arg->level, flags));
 }
 
 void IOP_RPC_IMPL(core__core, log, reset_logger_level)

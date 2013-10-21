@@ -81,12 +81,14 @@ static __thread struct {
 /* Configuration {{{ */
 
 logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
-                      int default_level)
+                      int default_level, unsigned level_flags)
 {
     p_clear(logger, 1);
     logger->level = LOG_UNDEFINED;
     logger->defined_level = LOG_UNDEFINED;
     logger->default_level = default_level;
+    logger->level_flags         = level_flags;
+    logger->default_level_flags = level_flags;
     dlist_init(&logger->siblings);
     dlist_init(&logger->children);
 
@@ -97,9 +99,11 @@ logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
     return logger;
 }
 
-logger_t *logger_new(logger_t *parent, lstr_t name, int default_level)
+logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
+                     unsigned level_flags)
 {
-    return logger_init(p_new_raw(logger_t, 1), parent, name, default_level);
+    return logger_init(p_new_raw(logger_t, 1), parent, name, default_level,
+                       level_flags);
 }
 
 void logger_wipe(logger_t *logger)
@@ -250,7 +254,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
     logger_t *logger = logger_get_by_name(name);
 
     assert (level >= LOG_UNDEFINED);
-    assert ((flags & LOG_RECURSIVE) == flags);
+    assert ((flags & (LOG_RECURSIVE | LOG_SILENT)) == flags);
     assert (!(flags & LOG_RECURSIVE) || level >= 0);
 
     if (level == LOG_LEVEL_DEFAULT) {
@@ -276,9 +280,13 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
         return LOG_UNDEFINED;
     }
 
+    if (level == LOG_UNDEFINED) {
+        logger->level_flags = logger->default_level_flags;
+    } else {
+        logger->level_flags = flags;
+    }
     SWAP(int, logger->level, level);
     logger->defined_level = logger->level;
-    logger->level_flags   = flags;
     log_conf_gen_g += 2;
     return level;
 }
@@ -312,6 +320,7 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
             .line        = line,
             .pid         = pid < 0 ? _G.pid : pid,
             .prog_name   = prog ?: program_invocation_short_name,
+            .is_silent   = !!(logger->level_flags & LOG_SILENT),
         };
 
         (*_G.handler)(&ctx, fmt, va);
@@ -427,6 +436,10 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
     sb_t *sb  = &log_thr_g.log;
     int max_len = _G.cols - 2;
 
+    if (ctx->is_silent) {
+        return;
+    }
+
     if (ctx->level >= LOG_TRACE) {
         int len;
         char escapes[BUFSIZ];
@@ -504,6 +517,10 @@ static void log_stderr_raw_handler(const log_ctx_t *ctx, const char *fmt,
     };
 
     sb_t *sb = &log_thr_g.log;
+
+    if (ctx->is_silent) {
+        return;
+    }
 
     sb_addf(sb, "%s[%d]: ", ctx->prog_name, ctx->pid);
     if (ctx->level >= LOG_TRACE && ctx->func) {
@@ -787,11 +804,11 @@ static void log_shutdown(void)
 Z_GROUP_EXPORT(log) {
     Z_TEST(log_level, "log") {
         logger_t a = LOGGER_INIT_INHERITS(NULL, "a");
-        logger_t b = LOGGER_INIT_INHERITS(&a, "b");
+        logger_t b = LOGGER_INIT_SILENT_INHERITS(&a, "b");
         logger_t c = LOGGER_INIT(&b, "c", LOG_ERR);
         logger_t d;
 
-        logger_init(&d, &c, LSTR_IMMED_V("d"), LOG_INHERITS);
+        logger_init(&d, &c, LSTR_IMMED_V("d"), LOG_INHERITS, LOG_SILENT);
 
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
@@ -869,6 +886,20 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
+
+
+        /* Checks on silent flag */
+        Z_ASSERT_EQ(a.level_flags, 0u);
+        Z_ASSERT_EQ(b.level_flags, (unsigned)LOG_SILENT);
+        Z_ASSERT_EQ(c.level_flags, 0u);
+        Z_ASSERT_EQ(d.level_flags, (unsigned)LOG_SILENT);
+
+        logger_set_level(LSTR_IMMED_V("a/b"), LOG_WARNING, 0);
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(b.level_flags, 0u);
+        logger_reset_level(LSTR_IMMED_V("a/b"));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(b.level_flags, (unsigned)LOG_SILENT);
 
         logger_wipe(&d);
         logger_wipe(&c);

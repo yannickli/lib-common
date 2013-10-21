@@ -8,6 +8,7 @@
 typedef struct core__log__set_root_level_args__t {
     core__log_level__t level;
     bool     force_all;
+    bool     is_silent;
 } core__log__set_root_level_args__t;
 extern iop_struct_t const core__log__set_root_level_args__s;
 IOP_GENERIC(core__log__set_root_level_args);
@@ -39,6 +40,7 @@ typedef struct core__log__set_logger_level_args__t {
     lstr_t   full_name;
     core__log_level__t level;
     bool     force_all;
+    bool     is_silent;
 } core__log__set_logger_level_args__t;
 extern iop_struct_t const core__log__set_logger_level_args__s;
 IOP_GENERIC(core__log__set_logger_level_args);

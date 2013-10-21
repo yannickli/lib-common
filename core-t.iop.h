@@ -45,6 +45,7 @@ typedef struct core__logger_configuration__t {
     lstr_t   full_name;
     core__log_level__t level;
     bool     force_all;
+    bool     is_silent;
 } core__logger_configuration__t;
 extern iop_struct_t const core__logger_configuration__s;
 IOP_GENERIC(core__logger_configuration);
@@ -52,6 +53,7 @@ IOP_GENERIC(core__logger_configuration);
 typedef struct core__log_configuration__t {
     core__log_level__t root_level;
     bool     force_all;
+    bool     is_silent;
     IOP_ARRAY_OF(struct core__logger_configuration__t) specific;
 } core__log_configuration__t;
 extern iop_struct_t const core__log_configuration__s;

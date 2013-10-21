@@ -52,13 +52,16 @@ struct LoggerConfiguration {
      * were not supposed to inherit from that level.
      */
     bool forceAll = false;
+
+    /** If true, log handler is called, but default one does nothing. */
+    bool isSilent = false;
 };
 
 /** Interface providing the basis for configuring the logging system.
  */
 interface Log {
     setRootLevel
-        in (LogLevel level, bool forceAll = false)
+        in (LogLevel level, bool forceAll = false, bool isSilent = false)
         out (LogLevel level);
 
     resetRootLevel
@@ -66,7 +69,8 @@ interface Log {
         out (LogLevel level);
 
     setLoggerLevel
-        in (string fullName, LogLevel level, bool forceAll = false)
+        in (string fullName, LogLevel level, bool forceAll = false,
+            bool isSilent = false)
         out (LogLevel level);
 
     resetLoggerLevel
@@ -95,6 +99,9 @@ struct LogConfiguration {
      * supposed to inherit from the root level.
      */
     bool     forceAll = false;
+
+    /** If true, log handler is called, but default one does nothing. */
+    bool     isSilent = false;
 
     /** Independent configuration of specific loggers.
      *
