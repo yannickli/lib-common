@@ -14,6 +14,15 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
+#define LIB_COMMON_VERSION  "2011.2"
+#define LIB_COMMON_MAJOR    2011
+#define LIB_COMMON_MINOR    2
+#define __LIB_COMMON_VER(Maj, Min)  (((Maj) << 16) | Min)
+
+#define LIB_COMMON_PREREQ(Maj, Min)                                          \
+    (__LIB_COMMON_VER(Maj, Min) <= __LIB_COMMON_VER(LIB_COMMON_MAJOR,        \
+                                                    LIB_COMMON_MINOR))
+
 #include <Block.h>
 #include <alloca.h>
 #include <assert.h>
