@@ -79,16 +79,28 @@ GENERIC_DELETE(module_t, module);
  *      MODULE_REGISTER(module3);
  */
 
-#define MODULE_REGISTER(name, ...)                                                   \
-    module_register(LSTR_IMMED_V(#name), &name##_initialize, &name##_shutdown,\
-                    ##__VA_ARGS__, NULL)
+#define MODULE_REGISTER(name, ...)                                           \
+    module_register(LSTR_IMMED_V(#name), &name##_initialize,                 \
+                    &name##_shutdown, ##__VA_ARGS__, NULL)
 
 /** \brief Provide an argument for module constructor
+ *  Use:
+ *      MODULE_PROVIDE(module, (void *)arg)
  *
- *   TODO
+ *  Your initialization function (alias constructor function) should
+ *  return a negative number if it needs an argument and this argument
+ *  is not provided (by default NULL)
+ *  Exe:
+ *     int module_initialize(void *arg) {
+ *         if (arg == NULL)
+ *            return F_NOT_INITIALIZE; (or assert)
+ *       ...
+ *     }
+ *
  */
 
-#define MODULE_PROVIDE(name, argument)  ; \
+#define MODULE_PROVIDE(name, argument)                                       \
+    module_provide(LSTR_IMMED_V(#name), argument)
 
 
 /** \brief Macro for requiring a module
@@ -118,7 +130,7 @@ GENERIC_DELETE(module_t, module);
  *
  */
 
-#define MODULE_REQUIRE(name)                                                        \
+#define MODULE_REQUIRE(name)                                                 \
     ({  int _res = module_require(LSTR_IMMED_V(#name), LSTR_NULL_V);         \
         int _shut;                                                           \
         if(_res < 0){                                                        \
@@ -141,7 +153,7 @@ GENERIC_DELETE(module_t, module);
  *
  */
 
-#define MODULE_RELEASE(name)                                                        \
+#define MODULE_RELEASE(name)                                                 \
     module_release(LSTR_IMMED_V(#name))
 
 
@@ -242,6 +254,7 @@ int module_shutdown(lstr_t name);
 
 int module_release(lstr_t name);
 
+void module_provide(lstr_t name, void *argument);
 
 /** true if module is loaded (AUTO_REQ || MANU_REQ) */
 bool module_is_loaded(lstr_t name);

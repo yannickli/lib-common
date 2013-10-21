@@ -17,10 +17,12 @@
 
 
 #define NEW_MOCK_MODULE(name, init_ret, shut_ret)                            \
-    static int name##_initialize(void *args){                                \
+    static int name##_initialize(void *args)                                 \
+    {                                                                        \
         return init_ret;                                                     \
     }                                                                        \
-    static int name##_shutdown(void){                                        \
+    static int name##_shutdown(void)                                         \
+    {                                                                        \
         return shut_ret;                                                     \
     }
 
@@ -50,7 +52,17 @@ NEW_MOCK_MODULE(mod4_T3, (-1), 1);
 #undef NEW_MOCK_MODULE
 
 
+static int module_arg_initialize(void * args)
+{
+    if (args == NULL)
+        return F_NOT_INITIALIZE;
+    return *((int *)args);
+}
 
+static int module_arg_shutdown(void)
+{
+    return 1;
+}
 
 
 Z_GROUP_EXPORT(module)
@@ -167,6 +179,23 @@ Z_GROUP_EXPORT(module)
        Z_ASSERT(!MODULE_IS_LOADED(mod3_T3));
        Z_ASSERT(!MODULE_IS_LOADED(mod3));
 
+     } Z_TEST_END;
+
+
+     Z_TEST(provide,  "Provide") {
+         int *a = p_new(int, 1);
+         *a = 4;
+
+         MODULE_REGISTER(module_arg);
+         Z_ASSERT_EQ(MODULE_REQUIRE(module_arg), F_NOT_INITIALIZE);
+
+         MODULE_PROVIDE(module_arg, (void *)a);
+
+         Z_ASSERT_EQ(MODULE_REQUIRE(module_arg), F_INITIALIZE);
+
+         MODULE_RELEASE(module_arg);
+
+         p_delete(&a);
      } Z_TEST_END;
 
 

@@ -115,7 +115,12 @@ int module_require(lstr_t name, lstr_t required_by)
 
 
 
+void module_provide(lstr_t name, void *argument)
+{
+    module_t *module = find_module(name);
 
+    module->constructor_argument = argument;
+}
 
 static int notify_shutdown(lstr_t name, lstr_t dependent_of)
 {
