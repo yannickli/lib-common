@@ -58,6 +58,8 @@ cfg_hex = my_httpc_cfg().__hex__()
 -  http_method: type IOPY: package core HttpMethod.
 -  maxconn: max connection number.
 -  maxrate: request per second maximum number.
+-  queue_timeout_sec: timeout for a request in the sending queue in second.
+   0 means no timeout.
 -  user: string.
 -  password: string.
 
@@ -122,7 +124,7 @@ def query_end(arg, status, err_str):
 
 core = iopy.Plugin("path-to-my-libcommon-iop-core.so")
 try:
-  http_initialize(core.core.HttpcCfg().__hex__(), build_header, build_body, parse_answer, "www.google.fr", "", 80, 1, 5, 5000, "", "")
+  http_initialize(core.core.HttpcCfg().__hex__(), build_header, build_body, parse_answer, "www.google.fr", "", 80, 1, 5, 5000, 0, "", "")
 except lms_eb.initializeError as e:
   print "http initialize error: %s" % e.args
   exit()
