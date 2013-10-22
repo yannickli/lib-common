@@ -149,7 +149,7 @@ int module_shutdown(lstr_t name)
     if (module->state == FAIL_REQ) {
         shut_self = 1;
     } else
-    if ((shut_self = (*module->destructor)()) > 0) {
+    if ((shut_self = (*module->destructor)()) >= 0) {
         module->state = REGISTERED;
         module->manu_req_count = 0;
     } else {
