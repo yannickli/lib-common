@@ -14,10 +14,12 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <zlib.h>
+#include <lib-common/core-module.h>
 #include <lib-common/datetime.h>
 #include <lib-common/unix.h>
 #include <lib-common/qlzo.h>
 #include <lib-common/el.h>
+#include <lib-common/thr.h>
 #include <dirent.h>
 #include "qps.h"
 #include "sort.h"
@@ -2566,7 +2568,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
 {
     pid_t     pid;
 
-    pid = fork();
+    pid = thr_fork();
     if (pid < 0)
         e_panic("QPS: unable to fork snapshotter in the background, %m");
     if (pid > 0)
@@ -3188,7 +3190,7 @@ Z_GROUP_EXPORT(qps)
     const char S[] = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQSRT";
     qps_handle_t handle1, handle2, handle3;
 
-    thr_initialize();
+    MODULE_REQUIRE(thr);
     qps_initialize(&ps_panic_sighandler);
 
 #define Z_CHECK_ALLOC(handle, size)  ({                                      \
@@ -3405,6 +3407,7 @@ Z_GROUP_EXPORT(qps)
         Z_CHECK_HANDLE_FILLED(handle1, 36);
         qps_close(&qps);
     } Z_TEST_END;
+    MODULE_RELEASE(thr);
 }
 Z_GROUP_END;
 

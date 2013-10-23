@@ -223,8 +223,10 @@ struct ichannel_t {
 void ic_drop_ans_cb(ichannel_t *, ic_msg_t *,
                     ic_status_t, void *, void *);
 
-void ic_initialize(void);
-void ic_shutdown(void);
+void ic_old_initialize(void);
+void ic_old_shutdown(void);
+#define ic_initialize  ic_old_initialize
+#define ic_shutdown    ic_old_shutdown
 
 /*----- ichannel handling -----*/
 

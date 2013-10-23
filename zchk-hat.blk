@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <lib-common/z.h>
+#include <lib-common/core-module.h>
 #include <lib-common/container.h>
 #include "qps-hat.h"
 
@@ -386,7 +387,7 @@ static int test_8(qps_t *qps, bool null)
 Z_GROUP_EXPORT(qps_hat) {
     qps_t *qps;
 
-    thr_initialize();
+    MODULE_REQUIRE(thr);
     qps_initialize(NULL);
 
     if (qps_exists(z_grpdir_g.s)) {
@@ -457,4 +458,5 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     qps_close(&qps);
+    MODULE_RELEASE(thr);
 } Z_GROUP_END

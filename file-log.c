@@ -18,6 +18,7 @@
 #include "file-log.h"
 #include "el.h"
 #include "unix.h"
+#include "thr.h"
 
 /* log file names should depend on rotation scheme: slower rotation
  * scheme should shorten log filename so reopening it yields the same
@@ -54,7 +55,7 @@ static void log_file_bgcompress(const char *path)
     sigaddset(&set, SIGCHLD);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
 
-    pid = fork();
+    pid = thr_fork();
     if (pid < 0) {
         pthread_sigmask(SIG_UNBLOCK, &set, NULL);
         e_error("unable to fork gzip in the background, %m");

@@ -17,6 +17,7 @@
 #include <lib-common/container.h>
 #include <lib-common/el.h>
 #include <lib-common/unix.h>
+#include <lib-common/core-module.h>
 #include "thr.h"
 
 #if !defined(__x86_64__) && !defined(__i386__)
@@ -26,6 +27,10 @@
 #ifndef SYS_eventfd
 #  error "this file assumes a glibc that knows about the eventfd syscall"
 #endif
+
+
+#undef thr_initialize
+#undef thr_shutdown
 
 static int eventfd(int initialvalue, int flags)
 {
@@ -716,7 +721,7 @@ static void *thr_job_main(void *arg)
 /* }}} */
 /* Module init / shutdown {{{ */
 
-static void thr_job_atfork(void)
+static void thr_wipe(void)
 {
     el_before_unregister(&_G.before);
     el_fd_unregister(&_G.eventel, true);
@@ -727,6 +732,7 @@ static void thr_job_atfork(void)
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
 }
+
 
 static void thr_before(el_t ev, el_data_t priv)
 {
@@ -754,7 +760,9 @@ void thr_queue_main_drain(void)
     thr_ec_signal(&_G.ec);
 }
 
-void thr_initialize(void)
+
+
+static int thr_initialize(void *arg)
 {
     sigset_t fillset;
     sigset_t old;
@@ -762,7 +770,7 @@ void thr_initialize(void)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-        pthread_atfork(NULL, NULL, thr_job_atfork);
+        pthread_atfork(NULL, NULL, thr_wipe);
 
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
@@ -809,10 +817,11 @@ void thr_initialize(void)
         }
         el_unref(_G.eventel);
     }
+
+    return F_INITIALIZE;
 }
 
-__attribute__((destructor))
-void thr_shutdown(void)
+static int thr_shutdown(void)
 {
     if (thr_parallelism_g && self_tid_g == 0) {
         shared_write(_G.stopping, true);
@@ -828,9 +837,40 @@ void thr_shutdown(void)
 
         thr_info_cleanup(NULL);
 
-        thr_job_atfork();
+        thr_wipe();
     }
+    return F_SHUTDOWN;
 }
+
+pid_t thr_fork(void)
+{
+    pid_t pid = RETHROW(fork());
+
+    if (pid > 0) {
+        return pid;
+    }
+    thr_wipe();
+    if (module_is_loaded(LSTR_IMMED_V("thr")))
+        thr_initialize(NULL);
+    return pid;
+}
+
+__attribute__((constructor)) static void thr_register(void)
+{
+    MODULE_REGISTER(thr, NULL);
+}
+
+void thr_old_initialize(void)
+{
+    MODULE_REQUIRE(thr);
+}
+
+
+void thr_old_shutdown(void)
+{
+    MODULE_RELEASE(thr);
+}
+
 
 /* }}} */
 /* thr_syn {{{ */
@@ -1318,7 +1358,7 @@ static int test_queue_sync(void)
 /* }}} */
 
 Z_GROUP_EXPORT(thrjobs) {
-    thr_initialize();
+    MODULE_REQUIRE(thr);
 
     Z_TEST(contention, "test contention behavior") {
         struct contention_job jobs[2 * thr_parallelism_g * THR_JOB_MAX];
@@ -1436,6 +1476,7 @@ Z_GROUP_EXPORT(thrjobs) {
 
         thr_syn_wipe(&z_post_notify_g.syn);
     } Z_TEST_END;
+    MODULE_RELEASE(thr);
 } Z_GROUP_END;
 
 /* }}} */

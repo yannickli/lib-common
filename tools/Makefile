@@ -18,6 +18,6 @@ str-ctype-maker_SOURCES = \
 	\
 	$llibcommon.a \
 	$ltime-lp-simple.a
-str-ctype-maker_LIBS = -lrt -lpthread
+str-ctype-maker_LIBS = -lrt -ldl -lpthread
 
 include ../Build/base.mk

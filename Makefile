@@ -181,7 +181,7 @@ common_LIBS = $(python2_LIBS)
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
-ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
+ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a time-lp-simple.a
 
 ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
@@ -220,19 +220,19 @@ ztst-httpd_SOURCES = \
 ztst-httpd_LIBS = $(libxml2_LIBS)
 endif
 
-ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
+ztst-tpl_SOURCES = ztst-tpl.c libcommon.a time-lp-simple.a
 
-ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a
+ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a time-lp-simple.a
 
 ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
-ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
+ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a time-lp-simple.a
 
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
-ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
+ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a time-lp-simple.a
 
-ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
+ztst-lzo_SOURCES = ztst-lzo.c libcommon.a time-lp-simple.a
 
-ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
+ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a time-lp-simple.a
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \

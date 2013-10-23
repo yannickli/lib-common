@@ -15,6 +15,7 @@
 #include <fnmatch.h>
 #include "unix.h"
 #include "z.h"
+#include "thr.h"
 
 enum z_state {
     Z_START,
@@ -483,7 +484,7 @@ static bool _z_group_run(void)
         return true;
     }
 
-    pid = fork();
+    pid = thr_fork();
     if (pid == 0) {
         signal(SIGTERM, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);

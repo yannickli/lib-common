@@ -13,6 +13,7 @@
 
 #include "unix.h"
 #include "iop-rpc.h"
+#include "core-module.h"
 
 /* IC_MSG_STREAM_CONTROL messages uses the "slot" to encode the command.
  */
@@ -31,20 +32,47 @@ const QM(ic_cbs, ic_no_impl, false);
 
 /*----- messages stuff -----*/
 
-void ic_initialize(void)
+
+#undef ic_initialize
+#undef ic_shutdown
+
+
+/* {{{ init/shutdown */
+
+static int ic_initialize(void *arg)
 {
     if (!ic_mp_g) {
         ic_mp_g = mem_fifo_pool_new(1 << 20);
         qm_init(ic, &ic_h_g, false);
         qm_init(ic_hook_ctx, &ic_ctx_h_g, false);
     }
+    return F_INITIALIZE;
 }
-void ic_shutdown(void)
+
+static int ic_shutdown(void)
 {
     qm_wipe(ic_hook_ctx, &ic_ctx_h_g);
     qm_wipe(ic, &ic_h_g);
     mem_fifo_pool_delete(&ic_mp_g);
+    return F_SHUTDOWN;
 }
+
+__attribute__((constructor)) static void ic_register_module(void)
+{
+    MODULE_REGISTER(ic, NULL);
+}
+
+void ic_old_initialize(void)
+{
+    MODULE_REQUIRE(ic);
+}
+void ic_old_shutdown(void)
+{
+    MODULE_RELEASE(ic);
+}
+
+/* }}}*/
+
 
 ic_msg_t *ic_msg_new_fd(int fd, int len)
 {

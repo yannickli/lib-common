@@ -19,6 +19,7 @@
 #include "unix.h"
 #include "datetime.h"
 #include "z.h"
+#include "thr.h"
 
 /** Create a subdirectory path as mkdir -p.
  *
@@ -758,7 +759,7 @@ Z_GROUP_EXPORT(Unix) {
         p_close(&fd);
         Z_ASSERT_N(res);
 
-        pid = fork();
+        pid = thr_fork();
         if (pid == 0) {
             dir_lock_t dlock2 = DIR_LOCK_INIT;
 
@@ -778,7 +779,7 @@ Z_GROUP_EXPORT(Unix) {
         /* A releases the lock */
         unlockdir(&dlock1);
 
-        pid = fork();
+        pid = thr_fork();
         if (pid == 0) {
             dir_lock_t dlock2 = DIR_LOCK_INIT;
 

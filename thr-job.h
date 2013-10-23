@@ -86,14 +86,16 @@ extern thr_queue_t *const thr_queue_main_g;
  * This is usually done automatically, but you may have to do it after a fork
  * if you need it.
  */
-void thr_initialize(void);
+void thr_old_initialize(void);
+#define thr_initialize  thr_old_initialize
 
 /** \brief forces the module shutdown.
  *
  * This is usually done automatically. Be careful this doesn't checks that all
  * jobs are done, and it shouldn't be used if you're not sure you can.
  */
-void thr_shutdown(void);
+void thr_old_shutdown(void);
+#define thr_shutdown  thr_old_shutdown
 
 /** \brief returns the id of the current thread in [0 .. thr_parallelism_g[
  */
@@ -270,6 +272,8 @@ void thr_syn_wait(thr_syn_t *syn);
 /** \brief process one job from the main queue.
  */
 void thr_queue_main_drain(void);
+
+pid_t thr_fork(void);
 
 /*- accounting -----------------------------------------------------------*/
 
