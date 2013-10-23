@@ -220,6 +220,10 @@ int module_require(lstr_t name, lstr_t required_by);
  *                    modules and they have been automatically initialize
  *                    they will shutdown
  *
+ *  If the module is not able to shutdown (destructor returns a negative
+ *  number), module state change to FAIL_SHUT but we considered as shutdown
+ *  and notify dependent modules.
+ *
  *
  *  @param name Name of the module to shutdown
  *

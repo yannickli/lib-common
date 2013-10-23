@@ -227,7 +227,9 @@ static int module_hard_shutdown(void)
         module_t *module = _G.modules.values[position];
 
         if (module->state == MANU_REQ) {
-            while (module->manu_req_count) {
+            while (module->manu_req_count
+            && (module->state & FAIL_SHUT) != FAIL_SHUT)
+            {
                 error--;
                 logger_warning(&_G.logger, "%*pM was not released",
                                LSTR_FMT_ARG(module->name));

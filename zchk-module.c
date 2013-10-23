@@ -144,10 +144,12 @@ Z_GROUP_EXPORT(module)
 
        /* Test 1 All init work and shutdown work */
        Z_ASSERT_EQ(MODULE_REQUIRE(mod1), F_INITIALIZE);
+       Z_ASSERT_EQ(MODULE_REQUIRE(mod1), F_INITIALIZE);
        Z_ASSERT_EQ(MODULE_REQUIRE(mod6), F_INITIALIZE);
        Z_ASSERT_EQ(MODULE_REQUIRE(mod3), F_INITIALIZE);
        Z_ASSERT(MODULE_IS_LOADED(mod5));
        Z_ASSERT_EQ(MODULE_RELEASE(mod3), F_RELEASED);
+       Z_ASSERT_EQ(MODULE_RELEASE(mod1),F_RELEASED);
        Z_ASSERT_EQ(MODULE_RELEASE(mod1), F_SHUTDOWN);
        Z_ASSERT(MODULE_IS_LOADED(mod2));
        MODULE_RELEASE(mod6);
@@ -197,6 +199,5 @@ Z_GROUP_EXPORT(module)
 
          p_delete(&a);
      } Z_TEST_END;
-
 
 } Z_GROUP_END;
