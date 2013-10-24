@@ -17,6 +17,7 @@
 #include "core.iop.h"
 #include "container.h"
 #include "el.h"
+#include "datetime.h"
 #include "python-common.h"
 
 /* http {{{ */
@@ -58,7 +59,7 @@ static struct {
     int                      port;
     lstr_t                   user;
     lstr_t                   password;
-    int32_t                  maxrate;
+    uint32_t                 queue_timeout;
 
     PyObject                *cb_build_headers;
     PyObject                *cb_build_body;
@@ -77,12 +78,14 @@ typedef struct python_ctx_t {
     lstr_t    url_args;
     PyObject *cb_query_done;
     dlist_t   list;
+    time_t    expiry;
 } python_ctx_t;
 
 static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
 {
     p_clear(ctx, 1);
     dlist_init(&ctx->list);
+    ctx->expiry = _G.queue_timeout > 0 ? lp_getsec() + _G.queue_timeout : 0;
     return ctx;
 }
 static python_ctx_t *python_ctx_new(void);
@@ -297,6 +300,15 @@ static void process_queries(httpc_pool_t *m, httpc_t *w)
 
         ctx = dlist_first_entry(&_G.pending, python_ctx_t, list);
 
+        if (ctx->expiry && ctx->expiry < lp_getsec()) {
+            dlist_pop(&_G.pending);
+            _G.nb_pending--;
+            python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
+                                  LSTR_IMMED_V("request timeout in queue"),
+                                  true);
+            continue;
+        }
+
         if (!w && !(w = httpc_pool_get(m))) {
             /* No connection ready */
             break;
@@ -369,29 +381,29 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     size_t                    cfg_str_len;
 
     sockunion_t su;
-    int         http_method;
     int         maxconn  = PYTHON_HTTP_MAXCONN_DEFAULT;
     int         maxrate  = PYTHON_HTTP_MAXRATE_DEFAULT;
-    int         port;
     char       *url      = NULL;
     char       *url_arg  = NULL;
     char       *user     = NULL;
     char       *password = NULL;
 
+    _G.queue_timeout = 0;
     if (args == NULL
-    ||  !PyArg_ParseTuple(args, "sOOOszii|iizz",
-                         &cfg_hex,
-                         &cb_build_headers,
-                         &cb_build_body,
-                         &cb_parse,
-                         &url,
-                         &url_arg,
-                         &port,
-                         &http_method,
-                         &maxconn,
-                         &maxrate,
-                         &user,
-                         &password))
+    ||  !PyArg_ParseTuple(args, "sOOOszii|iiIzz",
+                          &cfg_hex,
+                          &cb_build_headers,
+                          &cb_build_body,
+                          &cb_parse,
+                          &url,
+                          &url_arg,
+                          &_G.port,
+                          &_G.http_method,
+                          &maxconn,
+                          &maxrate,
+                          &_G.queue_timeout,
+                          &user,
+                          &password))
     {
         PyErr_SetString(http_initialize_error,
                         "failed to parse http initialize arguments");
@@ -436,7 +448,6 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     }
 
     _G.url = lstr_dups(url, strlen(url));
-    _G.port = port;
     _G.url_args = lstr_dups(url_arg, strlen(url_arg));
 
     if (addr_info_str(&su, _G.url.s, _G.port, AF_UNSPEC) < 0) {
@@ -458,7 +469,6 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
 
     _G.user             = LSTR_STR_V(user);
     _G.password         = LSTR_STR_V(password);
-    _G.http_method      = http_method;
 
     _G.m = httpc_pool_new();
     _G.m->su       = su;
