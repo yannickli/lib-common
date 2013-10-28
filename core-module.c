@@ -26,7 +26,8 @@ static struct _module_g {
 };
 
 
-static module_t * find_module(lstr_t name){
+static module_t *find_module(lstr_t name)
+{
     int pos;
     pos = qm_find(module, &_G.modules, &name);
     assert (pos >= 0);
@@ -48,7 +49,32 @@ set_require_type(lstr_t name, lstr_t required_by, module_t *module)
 }
 
 
+static void rec_module_on_term(lstr_t name, int signo)
+{
+    module_t *module = find_module(name);
+
+    if (module->on_term)
+        (*module->on_term)(signo);
+
+    qv_for_each_entry(lstr, dep, &module->dependent_of) {
+        rec_module_on_term(dep, signo);
+    }
+}
+
+void module_on_term(el_t ev, int signo, el_data_t arg)
+{
+    qm_for_each_pos(module, position, &_G.modules){
+        module_t *module = _G.modules.values[position];
+
+        if (module->state == MANU_REQ && module->required_by.len == 0) {
+            rec_module_on_term(module->name, signo);
+        }
+    }
+}
+
+
 int module_register(lstr_t name, int (*constructor)(void *),
+                    void (*on_term)(int signo),
                     int (*destructor)(void), ...)
 {
     module_t *new_module;
@@ -68,8 +94,8 @@ int module_register(lstr_t name, int (*constructor)(void *),
     new_module->manu_req_count = 0;
     new_module->constructor_argument = NULL;
     new_module->constructor = constructor;
+    new_module->on_term = on_term;
     new_module->destructor = destructor;
-
 
     va_start(vl, destructor);
     while ((dependence = va_arg(vl, const char *)) != NULL) {
@@ -79,7 +105,6 @@ int module_register(lstr_t name, int (*constructor)(void *),
 
     _G.modules.keys[pos] = &new_module->name;
     _G.modules.values[pos] = new_module;
-
 
     return F_REGISTER;
 }
@@ -127,15 +152,15 @@ static int notify_shutdown(lstr_t name, lstr_t dependent_of)
     module_t *module = find_module(name);
 
     qv_for_each_pos(lstr, position, &module->required_by) {
-       if (lstr_equal(&module->required_by.tab[position], &dependent_of)) {
-           qv_remove(lstr, &module->required_by, position);
-           break;
-       }
-   }
-   if (module->required_by.len == 0 && module->state != MANU_REQ)
-       return module_shutdown(module->name);
+        if (lstr_equal(&module->required_by.tab[position], &dependent_of)) {
+            qv_remove(lstr, &module->required_by, position);
+            break;
+        }
+    }
+    if (module->required_by.len == 0 && module->state != MANU_REQ)
+        return module_shutdown(module->name);
 
-   return F_NOTIFIED;
+    return F_NOTIFIED;
 }
 
 
@@ -222,7 +247,7 @@ static int module_hard_shutdown(void)
 {
     int error = 0;
 
-    // Shuting down modules that was not released
+    /* Shuting down modules that was not released */
     qm_for_each_pos(module, position, &_G.modules){
         module_t *module = _G.modules.values[position];
 
@@ -239,7 +264,7 @@ static int module_hard_shutdown(void)
     }
 
 
-    // Shuting down automatic modules that might be still open
+    /* Shuting down automatic modules that might be still open */
     qm_for_each_pos(module, position, &_G.modules){
         module_t *module = _G.modules.values[position];
 

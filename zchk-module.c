@@ -47,6 +47,37 @@ NEW_MOCK_MODULE(mod1_T3, 1, 1);
 NEW_MOCK_MODULE(mod3_T3, 1, (-4));
 NEW_MOCK_MODULE(mod4_T3, (-1), 1);
 
+NEW_MOCK_MODULE(modterm1, 1, 1);
+NEW_MOCK_MODULE(modterm2, 1, 1);
+NEW_MOCK_MODULE(modterm3, 1, 1);
+NEW_MOCK_MODULE(modterm4, 1, 1);
+NEW_MOCK_MODULE(modterm5, 1, 1);
+
+int modterm1;
+int modterm2;
+int modterm3;
+int modterm5;
+
+static void modterm1_on_term(int i)
+{
+    modterm1 += 1;
+}
+
+static void modterm2_on_term(int i)
+{
+    modterm2 += 2;
+}
+
+static void modterm3_on_term(int i)
+{
+    modterm3 += 3;
+}
+
+static void modterm5_on_term(int i)
+{
+    modterm5 += 5;
+}
+
 
 
 #undef NEW_MOCK_MODULE
@@ -75,13 +106,16 @@ Z_GROUP_EXPORT(module)
          */
 
         #define U_T_R "Unable to register"
-        Z_ASSERT_EQ(MODULE_REGISTER(mock_ic), F_REGISTER, U_T_R"mock_ic");
-        Z_ASSERT_EQ(MODULE_REGISTER(mock_platform, "mock_thr", "mock_log",
-                                    "mock_ic")
+        Z_ASSERT_EQ(MODULE_REGISTER(mock_ic, NULL), F_REGISTER,
+                    U_T_R"mock_ic");
+        Z_ASSERT_EQ(MODULE_REGISTER(mock_platform, NULL, "mock_thr",
+                                    "mock_log", "mock_ic")
                     , F_REGISTER, U_T_R"mock_platform");
-        Z_ASSERT_EQ(MODULE_REGISTER(mock_thr), F_REGISTER, U_T_R"mock_thr");
-        Z_ASSERT_EQ(MODULE_REGISTER(mock_log), F_REGISTER, U_T_R"mock_log");
-        Z_ASSERT_EQ(MODULE_REGISTER(mock_log), F_ALREADY_REGISTERED);
+        Z_ASSERT_EQ(MODULE_REGISTER(mock_thr, NULL), F_REGISTER,
+                    U_T_R"mock_thr");
+        Z_ASSERT_EQ(MODULE_REGISTER(mock_log, NULL), F_REGISTER,
+                    U_T_R"mock_log");
+        Z_ASSERT_EQ(MODULE_REGISTER(mock_log, NULL), F_ALREADY_REGISTERED);
         #undef U_T_R
 
 
@@ -133,12 +167,12 @@ Z_GROUP_EXPORT(module)
         *             |
         *            mod5
         */
-       MODULE_REGISTER(mod1, "mod2", "mod3", "mod4");
-       MODULE_REGISTER(mod2);
-       MODULE_REGISTER(mod3, "mod5");
-       MODULE_REGISTER(mod4);
-       MODULE_REGISTER(mod5);
-       MODULE_REGISTER(mod6, "mod2");
+       MODULE_REGISTER(mod1, NULL, "mod2", "mod3", "mod4");
+       MODULE_REGISTER(mod2, NULL);
+       MODULE_REGISTER(mod3, NULL, "mod5");
+       MODULE_REGISTER(mod4, NULL);
+       MODULE_REGISTER(mod5, NULL);
+       MODULE_REGISTER(mod6, NULL, "mod2");
 
 
 
@@ -157,8 +191,8 @@ Z_GROUP_EXPORT(module)
 
 
        /* Test 2 Module 3 fail init */
-       MODULE_REGISTER(mod1_T2,"mod2","mod3_T2","mod4");
-       MODULE_REGISTER(mod3_T2,"mod5");
+       MODULE_REGISTER(mod1_T2, NULL,"mod2","mod3_T2","mod4");
+       MODULE_REGISTER(mod3_T2, NULL,"mod5");
 
        Z_ASSERT_EQ(MODULE_REQUIRE(mod1_T2),F_NOT_INITIALIZE);
        Z_ASSERT(!MODULE_IS_LOADED(mod1_T2));
@@ -171,9 +205,9 @@ Z_GROUP_EXPORT(module)
        /** Test 3 Module 3 fail shutdown
         *         Module 4 fail init
         */
-       MODULE_REGISTER(mod1_T3,"mod2","mod3_T3","mod4_T3");
-       MODULE_REGISTER(mod3_T3,"mod5");
-       MODULE_REGISTER(mod4_T3);
+       MODULE_REGISTER(mod1_T3, NULL,"mod2","mod3_T3","mod4_T3");
+       MODULE_REGISTER(mod3_T3, NULL,"mod5");
+       MODULE_REGISTER(mod4_T3, NULL);
 
        Z_ASSERT_EQ(MODULE_REQUIRE(mod1_T3),F_NOT_INIT_AND_SHUT);
        Z_ASSERT(!MODULE_IS_LOADED(mod5));
@@ -188,7 +222,7 @@ Z_GROUP_EXPORT(module)
          int *a = p_new(int, 1);
          *a = 4;
 
-         MODULE_REGISTER(module_arg);
+         MODULE_REGISTER(module_arg, NULL);
          Z_ASSERT_EQ(MODULE_REQUIRE(module_arg), F_NOT_INITIALIZE);
 
          MODULE_PROVIDE(module_arg, (void *)a);
@@ -198,6 +232,46 @@ Z_GROUP_EXPORT(module)
          MODULE_RELEASE(module_arg);
 
          p_delete(&a);
+     } Z_TEST_END;
+
+     Z_TEST(onterm, "On term") {
+         t_scope;
+         el_data_t param3;
+         el_t *param1 = t_new(el_t, 2 *3);
+
+         param3.u32 = 42;
+         /**       modterm1
+          *           |
+          *        modterm2
+          *           |
+          *        modterm3
+          *           |
+          *        modterm4
+          *           |
+          *        modterm5
+          **/
+
+         MODULE_REGISTER(modterm1, modterm1_on_term, "modterm2");
+         MODULE_REGISTER(modterm2, modterm2_on_term, "modterm3");
+         MODULE_REGISTER(modterm3, modterm3_on_term, "modterm4");
+         MODULE_REGISTER(modterm4, NULL, "modterm5");
+         MODULE_REGISTER(modterm5, modterm5_on_term);
+
+         MODULE_REQUIRE(modterm1);
+
+         module_on_term(*param1, SIGINT, param3);
+         Z_ASSERT_EQ(modterm1, 1);
+         Z_ASSERT_EQ(modterm2, 2);
+         Z_ASSERT_EQ(modterm3, 3);
+         Z_ASSERT_EQ(modterm5, 5);
+
+         module_on_term(*param1, SIGINT, param3);
+         Z_ASSERT_EQ(modterm1, 2);
+         Z_ASSERT_EQ(modterm2, 4);
+         Z_ASSERT_EQ(modterm3, 6);
+         Z_ASSERT_EQ(modterm5, 10);
+
+         MODULE_RELEASE(modterm1);
      } Z_TEST_END;
 
 } Z_GROUP_END;

@@ -43,6 +43,7 @@ typedef struct module_t {
 
     int (*constructor)(void *);
     int (*destructor)(void);
+    void (*on_term)(int);
     void *constructor_argument;
 
 } module_t;
@@ -73,14 +74,21 @@ GENERIC_DELETE(module_t, module);
  *  Prototype of the module:
  *           int module1_initialize(void *); Return >= 0 if success
  *           int module1_shutdown(void);     Return >= 0 if success
+ *           int module1_on_term(int);       Return >= 0 if success
+ *
+ *  Arguments:
+ *        + name of the module
+ *        + callback to the module_on_term function (NULL if none)
+ *        + list of dependencies (between "")
+ *
  *  Use:
- *      MODULE_REGISTER(module1,"module2","module3");
- *      MODULE_REGISTER(module2);
- *      MODULE_REGISTER(module3);
+ *      MODULE_REGISTER(module1, module1_on_term, "module2", "module3");
+ *      MODULE_REGISTER(module2, NULL);
+ *      MODULE_REGISTER(module3, NULL);
  */
 
-#define MODULE_REGISTER(name, ...)                                           \
-    module_register(LSTR_IMMED_V(#name), &name##_initialize,                 \
+#define MODULE_REGISTER(name, on_term, ...)                                  \
+    module_register(LSTR_IMMED_V(#name), &name##_initialize, on_term,        \
                     &name##_shutdown, ##__VA_ARGS__, NULL)
 
 /** \brief Provide an argument for module constructor
@@ -180,6 +188,7 @@ GENERIC_DELETE(module_t, module);
 #define F_ALREADY_REGISTERED  (-1)
 
 int module_register(lstr_t name, int (*constructor)(void *),
+                    void (*on_term)(int signo),
                     int (*destructor)(void), ...);
 
 
@@ -257,6 +266,14 @@ int module_shutdown(lstr_t name);
 
 
 int module_release(lstr_t name);
+
+/** \brief On term all modules
+ *
+ *  Call the module_on_term if it exists of all modules
+ */
+
+void module_on_term(el_t ev, int signo, el_data_t arg);
+
 
 void module_provide(lstr_t name, void *argument);
 
