@@ -171,23 +171,26 @@ libcommon_SOURCES = \
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
+# time-lp-simple.a still needs to be generated because submodules are
+# linking to it, when these submodules will be updated this line should
+# be removed
+time-lp-simple_SOURCES =
+
 python_SOURCES = python-common.c
 python_CFLAGS = $(python2_CFLAGS)
 python_LIBS = $(python2_LIBS)
 
-common_SOURCES = python-module.c python.a libcommon.a time-lp-simple.a
+common_SOURCES = python-module.c python.a libcommon.a
 common_CFLAGS = $(python2_CFLAGS)
 common_LIBS = $(python2_LIBS)
 
-time-lp-simple_SOURCES = time-lp-simple.c
-
-ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a time-lp-simple.a
+ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
 core-iop-plugin_LDFLAGS = -Wl,-z,defs
 
-zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c 
+zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c
 zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \
@@ -202,8 +205,8 @@ zchk_SOURCES = zchk.c \
 	zchk-unix.c \
 	zchk-module.c \
 	$liop/tstiop.a \
-	$llibcommon.wa \
-	$ltime-lp-simple.a
+	$llibcommon.wa
+
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
 zchk_LDFLAGS = -rdynamic
 
@@ -215,8 +218,8 @@ zchk-tstiop-plugin_LDFLAGS = -Wl,-z,defs
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \
 	$liop/tstiop.a \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
+
 ztst-httpd_LIBS = $(libxml2_LIBS)
 endif
 
@@ -236,29 +239,25 @@ ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a time-lp-simple.a
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
 
 ztst-qpscheck_SOURCES = \
 	ztst-qpscheck.blk \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
 
 ztst-qpsstress_SOURCES = \
 	ztst-qpsstress.blk \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
+
 ztst-qpsstress_LIBS = -lm
 
 ztst-hattrie_SOURCES = \
 	ztst-hattrie.blk \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
 
 zgcd-bench_SOURCES = \
 	zgcd-bench.c \
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html

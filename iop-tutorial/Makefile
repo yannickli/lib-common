@@ -20,8 +20,8 @@ ex-iop_SOURCES = \
 	ex-iop.c \
 	exiop.iop \
 	\
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
+
 endif
 
 include ../Build/base.mk

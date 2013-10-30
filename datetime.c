@@ -671,3 +671,34 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
     buf[pos] = '\0';
     return buf;
 }
+
+
+/***************************************************************************/
+/* low precision time() and gettimeofday() replacements                    */
+/***************************************************************************/
+
+static struct {
+    char sec_str[24];
+    time_t sec;
+} lp_time_g;
+
+__attribute__((weak)) const char *lp_getsec_str(void)
+{
+    return lp_time_g.sec_str;
+}
+
+__attribute__((weak)) time_t lp_getsec(void)
+{
+    if (unlikely(!lp_time_g.sec))
+        return time(NULL);
+    return lp_time_g.sec;
+}
+
+__attribute__((weak)) void lp_gettv(struct timeval *tv)
+{
+    gettimeofday(tv, NULL);
+    if (lp_time_g.sec != tv->tv_sec) {
+        lp_time_g.sec = tv->tv_sec;
+        (sprintf)(lp_time_g.sec_str, "%lld", (long long)lp_time_g.sec);
+    }
+}

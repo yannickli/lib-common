@@ -16,8 +16,8 @@ mcms_PROGRAMS = str-ctype-maker
 str-ctype-maker_SOURCES = \
 	str-ctype-maker.c \
 	\
-	$llibcommon.a \
-	$ltime-lp-simple.a
+	$llibcommon.a
+
 str-ctype-maker_LIBS = -lrt -ldl -lpthread
 
 include ../Build/base.mk
