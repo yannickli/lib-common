@@ -44,6 +44,8 @@ qvector_t(spec, struct trace_spec_t);
 #define LOG_DEFAULT  LOG_DEBUG
 #endif
 
+static log_handler_f log_stderr_raw_handler;
+
 static struct {
     logger_t root_logger;
     e_handler_f   *e_handler;
@@ -71,9 +73,11 @@ static struct {
         .siblings      = DLIST_INIT(_G.root_logger.siblings)
     },
     .pending_levels = QM_INIT(level, _G.pending_levels, false),
+    .handler        = &log_stderr_raw_handler,
 };
 
 static __thread struct {
+    bool inited;
     sb_t log;
     sb_t buf;
 } log_thr_g;
@@ -503,6 +507,8 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
     sb_reset(sb);
 }
 
+static void log_initialize_thread(void);
+
 __attr_printf__(2, 0)
 static void log_stderr_raw_handler(const log_ctx_t *ctx, const char *fmt,
                                    va_list va)
@@ -518,6 +524,10 @@ static void log_stderr_raw_handler(const log_ctx_t *ctx, const char *fmt,
     };
 
     sb_t *sb = &log_thr_g.log;
+
+    if (!log_thr_g.inited) {
+        log_initialize_thread();
+    }
 
     if (ctx->is_silent) {
         return;
@@ -695,14 +705,20 @@ static void on_sigwinch(int signo)
 
 static void log_initialize_thread(void)
 {
-    sb_init(&log_thr_g.log);
-    sb_init(&log_thr_g.buf);
+    if (!log_thr_g.inited) {
+        sb_init(&log_thr_g.log);
+        sb_init(&log_thr_g.buf);
+        log_thr_g.inited = true;
+    }
 }
 
 static void log_shutdown_thread(void)
 {
-    sb_wipe(&log_thr_g.buf);
-    sb_wipe(&log_thr_g.log);
+    if (log_thr_g.inited) {
+        sb_wipe(&log_thr_g.buf);
+        sb_wipe(&log_thr_g.log);
+        log_thr_g.inited = false;
+    }
 }
 thr_hooks(log_initialize_thread, log_shutdown_thread);
 
