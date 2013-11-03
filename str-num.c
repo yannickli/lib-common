@@ -375,6 +375,9 @@ memtoxll_ext(const void *p, int len, bool is_signed, uint64_t *out,
     res = tail - s;
     *endp = (const char *)p + res;
 
+    if (res == 0) {
+        errno = EINVAL;
+    }
     if (errno)
         return -1;
 
