@@ -1110,7 +1110,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
         return NULL;
     }
     if (fstat(fd, &st) < 0 || st.st_size != QPS_MAP_SIZE) {
-        e_error("QPS(%p:%s): invalid size %#jx", qps, buf, st.st_size);
+        e_error("QPS(%p:%s): invalid size %#zx", qps, buf, st.st_size);
         goto err_close;
     }
 
@@ -1181,10 +1181,12 @@ static void qps_on_segfault(int signum, siginfo_t *si, void *uc)
         qps_map_t *map = qps_map_of(si->si_addr);
         int        pos = qps_smaps_find(&qps->smaps, si->si_addr, true);
 
+#ifdef OS_LINUX
         if (signum == SIGBUS && (pos >= 0 || map == qps->gc_map)) {
             e_error("QPS: caught SIGBUS: disk is full");
             _exit(QPS_EX_ENOSPC);
         }
+#endif
 
         if (pos >= 0) {
             if (!qps_map_is_pg(map)) {
@@ -1360,7 +1362,7 @@ int qps_map_meta(const qps_t *qps, struct qps_meta **_meta, size_t *size)
         goto err_close;
     }
     if (st.st_size < min_sz) {
-        e_error("QPS(%p:meta): invalid file size: %jd", qps, st.st_size);
+        e_error("QPS(%p:meta): invalid file size: %zd", qps, st.st_size);
         goto err_close;
     }
     meta = x_mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
@@ -3172,6 +3174,7 @@ void qps_initialize(void (*sighandler)(int, siginfo_t *, void *))
     _G.sighandler = sighandler;
     sigfillset(&act.sa_mask);
     sigaction(SIGSEGV, &act, NULL);
+    sigaction(SIGBUS, &act, NULL);
 }
 
 /** \} */
