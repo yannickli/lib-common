@@ -13,7 +13,11 @@
 
 #include "unix.h"
 
-#ifdef __sun
+#if defined(__sun) || defined(__APPLE__)
+
+void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
+{
+}
 
 int psinfo_get(pid_t pid, sb_t *output)
 {
@@ -338,9 +342,9 @@ int psinfo_get(pid_t pid, sb_t *output)
     return psinfo_read_maps(pid, output, &buf);
 }
 
+#endif
+
 pid_t psinfo_get_tracer_pid(pid_t pid)
 {
     return _psinfo_get_tracer_pid(pid);
 }
-
-#endif
