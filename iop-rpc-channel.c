@@ -1577,11 +1577,24 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
     el_fd_set_hook(ic->elh, ic_event);
     ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && !ic->is_stream) {
+        ic_creds_t creds;
+#if defined(OS_LINUX)
         struct ucred ucred;
         socklen_t len = sizeof(ucred);
 
         RETHROW(getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len));
-        RETHROW((*ic->on_creds)(ic, &ucred));
+        creds = (ic_creds_t){ .uid = ucred.uid, .gid = ucred.gid };
+#elif defined(OS_APPLE)
+        struct xucred xucred;
+        socklen_t len = sizeof(xucred);
+
+        RETHROW(getsockopt(fd, SOL_LOCAL, LOCAL_PEERCRED, &xucred, &len));
+        creds = (ic_creds_t){ .uid = xucred.cr_uid, .gid = xucred.cr_gid };
+#else
+# error "unsupported OS"
+#endif
+        RETHROW((*ic->on_creds)(ic, &creds));
+
     }
     /* force an exchange at connect time, so force NOP if queue is empty */
     if (htlist_is_empty(&ic->msg_list))

@@ -47,12 +47,17 @@ typedef enum ic_event_t {
 
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
+typedef struct ic_creds_t {
+    uid_t uid;
+    gid_t gid;
+} ic_creds_t;
+
 typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
 typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t,
                              const ic__hdr__t *, el_data_t);
 typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t,
                               ic_hook_ctx_t *, el_data_t);
-typedef int (ic_creds_f)(ichannel_t *, const struct ucred *creds);
+typedef int (ic_creds_f)(ichannel_t *, const ic_creds_t *creds);
 typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
 
