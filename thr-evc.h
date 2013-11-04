@@ -97,7 +97,14 @@ typedef struct thr_evc_t {
         uint64_t volatile key;
     };
     unsigned volatile waiters;
+#ifndef OS_LINUX
+    pthread_mutex_t mutex;
+    pthread_cond_t  cond;
+#endif
 } thr_evc_t;
+
+thr_evc_t *thr_ec_init(thr_evc_t *ec);
+void thr_ec_wipe(thr_evc_t *ec);
 
 static ALWAYS_INLINE
 uint64_t thr_ec_get(thr_evc_t *ec)

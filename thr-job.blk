@@ -20,17 +20,14 @@
 #include <lib-common/core-module.h>
 #include "thr.h"
 
+#undef thr_initialize
+#undef thr_shutdown
+
 #if !defined(__x86_64__) && !defined(__i386__)
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
 
-#ifndef SYS_eventfd
-#  error "this file assumes a glibc that knows about the eventfd syscall"
-#endif
-
-
-#undef thr_initialize
-#undef thr_shutdown
+#ifdef SYS_eventfd
 
 static int eventfd(int initialvalue, int flags)
 {
@@ -39,6 +36,15 @@ static int eventfd(int initialvalue, int flags)
     fd_set_features(fd, flags);
     return fd;
 }
+
+#else
+
+static int eventfd(int initialvalue, int flags)
+{
+    return -1;
+}
+
+#endif
 
 #define CACHE_LINE_SIZE   64
 
@@ -104,7 +110,8 @@ typedef struct thr_info_t {
 static struct {
     unsigned volatile stopping;
     thr_evc_t         ec;
-    pthread_barrier_t start_bar;
+    thr_evc_t         start_bar_main;
+    thr_evc_t         start_bar_thr;
 
     thr_info_t       *threads;
     el_t              before;
@@ -149,6 +156,7 @@ static size_t int_width(uint64_t i)
 
 void thr_acc_set_affinity(size_t offs)
 {
+#if defined(CPU_SET)
     for (size_t i = 0; i < thr_parallelism_g; i++) {
         cpu_set_t set;
 
@@ -157,6 +165,7 @@ void thr_acc_set_affinity(size_t offs)
         if (pthread_setaffinity_np(_G.threads[i].thr, sizeof(set), &set))
             e_panic("cannot set affinity");
     }
+#endif
 }
 
 void thr_acc_trace(int lvl, const char *fmt, ...)
@@ -658,11 +667,16 @@ void thr_queue_destroy(thr_queue_t *q, bool wait)
 
 static void thr_info_init(int tid)
 {
+    uint64_t key = thr_ec_get(&thr_job_g.start_bar_thr);
+
     self_tid_g = tid;
     self_g     = _G.threads + tid;
     shared_write(self_g->alive, true);
     shared_write(self_g->thr, pthread_self());
-    pthread_barrier_wait(&_G.start_bar);
+    thr_ec_signal(&thr_job_g.start_bar_main);
+    if (tid != 0) {
+        thr_ec_wait(&thr_job_g.start_bar_thr, key);
+    }
     mb();
 }
 
@@ -764,6 +778,7 @@ void thr_queue_main_drain(void)
 
 static int thr_initialize(void *arg)
 {
+    uint64_t key;
     sigset_t fillset;
     sigset_t old;
     pthread_t tid;
@@ -781,14 +796,19 @@ static int thr_initialize(void *arg)
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         sigfillset(&fillset);
         pthread_sigmask(SIG_SETMASK, &fillset, &old);
-        pthread_barrier_init(&_G.start_bar, NULL, thr_parallelism_g);
+        thr_ec_init(&thr_job_g.ec);
+        thr_ec_init(&thr_job_g.start_bar_thr);
+        thr_ec_init(&thr_job_g.start_bar_main);
         for (size_t i = 1; i < thr_parallelism_g; i++) {
             if (thr_create(&tid, &attr, thr_job_main, (void *)(uintptr_t)i)) {
                 e_fatal("unable to create new thread: %m");
             }
         }
         thr_info_init(0);
-        pthread_barrier_destroy(&_G.start_bar);
+        while ((key = thr_ec_get(&thr_job_g.start_bar_main)) != thr_parallelism_g) {
+            thr_ec_wait(&thr_job_g.start_bar_main, key);
+        }
+        thr_ec_broadcast(&thr_job_g.start_bar_thr);
         pthread_sigmask(SIG_SETMASK, &old, NULL);
         pthread_attr_destroy(&attr);
         thr_queue_init(thr_queue_main_g);
@@ -838,6 +858,9 @@ static int thr_shutdown(void)
         thr_info_cleanup(NULL);
 
         thr_wipe();
+        thr_ec_wipe(&thr_job_g.start_bar_main);
+        thr_ec_wipe(&thr_job_g.start_bar_thr);
+        thr_ec_wipe(&thr_job_g.ec);
     }
     return F_SHUTDOWN;
 }
@@ -1414,7 +1437,13 @@ Z_GROUP_EXPORT(thrjobs) {
     } Z_TEST_END;
 
     Z_TEST(queue_syn, "tests queue sync") {
-        for (int i = 0; i < (Z_HAS_MODE(FAST) ? 100 : 10000); i++) {
+        int loops = Z_HAS_MODE(FAST) ? 100 : 10000;
+
+#ifdef OS_APPLE
+        loops = 100;
+#endif
+
+        for (int i = 0; i < loops; i++) {
             Z_HELPER_RUN(test_queue_sync());
         }
     } Z_TEST_END;
@@ -1436,6 +1465,10 @@ Z_GROUP_EXPORT(thrjobs) {
         if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
             iterations /= 10;
         }
+
+#ifdef OS_APPLE
+        iterations /= 100;
+#endif
 
         for (int loops = 0; loops < iterations; loops++) {
             t_scope;
