@@ -144,21 +144,9 @@ fi
 
 # {{{ tools
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
+for tool in clang clang++ flex gperf xsltproc ruby python; do
     check_tool $tool $tool
 done
-
-if ! test -f /usr/include/sys/capability.h; then
-    warn "missing libpcap, apt-get install libpcap-dev"
-elif test -r /usr/include/pcap.h; then
-    setvar "libpcap_CFLAGS"
-    setvar "libpcap_LIBS" "-lpcap"
-    if ! test -r /usr/include/pcap/pcap.h; then
-        setenv "libpcap_OUTDATED" "1"
-    fi
-else
-    warn "missing libpcap, apt-get install libpcap-dev"
-fi
 
 # }}}
 # {{{ pkg-config packages
