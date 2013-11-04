@@ -35,13 +35,13 @@ then
 
     post_process()
     {
-        sed -e "s/ pass / \x1B[1;32mpass\x1B[0m /" \
-            -e "s/ todo-pass / \x1B[1;33mtodo-pass\x1B[0m /" \
-            -e "s/ fail / \x1B[1;31mfail\x1B[0m /" \
-            -e "s/ todo-fail / \x1B[1;35mtodo-fail\x1B[0m /" \
-            -e "s/ skip / \x1B[1;30mskip\x1B[0m /" \
-            -e "s/#.*$/\x1B[1;30m\0\x1B[0m/" \
-            -e "s/^:\(.*\)/\x1B[1;31m: \x1B[1;33m\1\x1B[0m/"
+        sed -e $'s/ pass / \x1B[1;32mpass\x1B[0m /' \
+            -e $'s/ todo-pass / \x1B[1;33mtodo-pass\x1B[0m /' \
+            -e $'s/ fail / \x1B[1;31mfail\x1B[0m /' \
+            -e $'s/ todo-fail / \x1B[1;35mtodo-fail\x1B[0m /' \
+            -e $'s/ skip / \x1B[1;30mskip\x1B[0m /' \
+            -e $'s/#\(.*\)$/\x1B[1;30m#\\1\x1B[0m/' \
+            -e $'s/^:\(.*\)/\x1B[1;31m: \x1B[1;33m\\1\x1B[0m/'
     }
 else
     say_color()
@@ -70,8 +70,13 @@ if [ -z "$pybin" ] ; then
     exit 1
 fi
 
-tmp=$(mktemp)
-tmp2=$(mktemp)
+if [ "${OS}" == "darwin" ]; then
+    tmp=$(mktemp -t tmp)
+    tmp2=$(mktemp -t tmp)
+else
+    tmp=$(mktemp)
+    tmp2=$(mktemp)
+fi
 trap "rm $tmp $tmp2" 0
 
 "$(dirname "$0")"/_list_checks.sh "$where" | (

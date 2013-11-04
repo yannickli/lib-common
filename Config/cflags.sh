@@ -237,7 +237,7 @@ EOF
         echo -Wno-format-zero-length
     fi
 
-    echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
+    echo -D_GNU_SOURCE # $(getconf LFS_CFLAGS)
 
     if test "$2" = rewrite; then
         get_internal_clang_args $("$cc" -x c${cc#clang} -'###' /dev/null 2>&1 | grep 'cc1')

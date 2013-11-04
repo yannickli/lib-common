@@ -13,6 +13,8 @@
 /zchk
 /zchk-iop-plugin.so
 /zchk-tstiop-plugin.so
+/zchk-iop-plugin.dylib
+/zchk-tstiop-plugin.dylib
 /zgcd-bench
 /ztst-asn1-wr
 /ztst-blob-iconv
@@ -32,5 +34,7 @@
 
 /common.so
 /core-iop-plugin.so
+/common.dylib
+/core-iop-plugin.dylib
 
 /.build*
