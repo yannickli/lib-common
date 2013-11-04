@@ -677,17 +677,22 @@ int fd_unset_features(int fd, int flags)
 
 ssize_t fd_get_path(int fd, char buf[], size_t buf_len)
 {
-#ifndef __linux__
-# error "fd_get_path not implemented on your platform"
-#endif
-    char proc[PATH_MAX];
     size_t path_len;
     struct stat fdst;
     struct stat pathst;
 
-    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
-    path_len = RETHROW(readlink(proc, buf, buf_len));
-
+#if defined(__linux__)
+    {
+        char proc[PATH_MAX];
+        snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
+        path_len = RETHROW(readlink(proc, buf, buf_len));
+    }
+#elif defined(__APPLE__)
+    RETHROW(fcntl(fd, F_GETPATH, buf));
+    path_len = strlen(buf);
+#else
+# error "fd_get_path not implemented on your platform"
+#endif
     if (path_len == buf_len) {
         /* Path to long to append a nul byte */
         errno = ENAMETOOLONG;

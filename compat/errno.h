@@ -20,4 +20,8 @@
 #define EUCLEAN         117
 #endif
 
+#ifdef __APPLE__
+# define program_invocation_short_name  getprogname()
+#endif
+
 #endif

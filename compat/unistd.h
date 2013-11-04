@@ -19,6 +19,10 @@
 #if defined(__MINGW) || defined(__MINGW32__)
 #  define mkdir(path, mode)  mkdir(path)
 int usleep(unsigned long usec);
+#elif defined(__APPLE__)
+
+#define fdatasync(fd)  fsync(fd)
+
 #endif
 
 #endif /* !IS_COMPAT_UNISTD_H */

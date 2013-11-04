@@ -14,7 +14,7 @@
 #ifndef IS_COMPAT_ARPA_INET_H
 #define IS_COMPAT_ARPA_INET_H
 
-#if defined(__GLIBC__) || defined(__sun)
+#if defined(__GLIBC__) || defined(__sun) || defined(__APPLE__)
 #  include_next <arpa/inet.h>
 #elif defined(__MINGW) || defined(__MINGW32__)
 #include <winsock2.h>
