@@ -17,6 +17,11 @@
 #ifdef OS_LINUX
 #include <net/if_arp.h>
 #endif
+#ifdef OS_APPLE
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+#endif
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
@@ -47,6 +52,44 @@ static void if_freenameindex(struct if_nameindex *p) {
     free(p);
 }
 #endif
+
+static int get_mac_addr(int s, const struct if_nameindex *iface,
+                        byte mac[static 6])
+{
+#if defined(OS_LINUX)
+    struct ifreq if_hwaddr;
+
+    pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, iface->if_name);
+    RETHROW(ioctl(s, SIOCGIFHWADDR, &if_hwaddr));
+    THROW_ERR_IF(if_hwaddr.ifr_hwaddr.sa_family != ARPHRD_ETHER);
+
+    p_copy(mac, if_hwaddr.ifr_hwaddr.sa_data, 6);
+    return 0;
+#elif defined(OS_APPLE)
+    struct {
+        struct if_msghdr ifm;
+        struct sockaddr_dl sdl;
+        char   extra[16];
+    } res;
+    size_t len = sizeof(res);
+    int mib[] = {
+        CTL_NET,
+        AF_ROUTE,
+        0,
+        AF_LINK,
+        NET_RT_IFLIST,
+        iface->if_index
+    };
+
+    RETHROW(sysctl(mib, countof(mib), &res, &len, NULL, 0));
+    THROW_ERR_IF(len > sizeof(res));
+    THROW_ERR_IF(res.sdl.sdl_type != IFT_ETHER);
+    p_copy(mac, LLADDR(&res.sdl), 6);
+    return 0;
+#else
+# error "unsupported operating system"
+#endif
+}
 
 bool is_my_mac_addr(const char *addr)
 {
@@ -94,18 +137,12 @@ bool is_my_mac_addr(const char *addr)
         return false;
     }
     for (cur = iflist; cur->if_index; cur++) {
-        struct ifreq if_hwaddr;
+        byte if_mac[6];
 
-        pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, cur->if_name);
-        if (ioctl(s, SIOCGIFHWADDR, &if_hwaddr) < 0) {
+        if (get_mac_addr(s, cur, if_mac) < 0) {
             continue;
         }
-
-        if (if_hwaddr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
-            continue;
-        }
-
-        if (!memcmp(if_hwaddr.ifr_hwaddr.sa_data, mac, sizeof(mac))) {
+        if (memcmp(if_mac, mac, sizeof(mac)) == 0) {
             found = true;
             break;
         }
@@ -126,7 +163,6 @@ int list_my_macs(char *dst, size_t size)
 #else
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
-    char *mac;
     int s = -1;
     int written, ret = 0;
     const char *sep = "";
@@ -142,18 +178,11 @@ int list_my_macs(char *dst, size_t size)
         return false;
     }
     for (cur = iflist; cur->if_index; cur++) {
-        struct ifreq if_hwaddr;
+        byte mac[6];
 
-        pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, cur->if_name);
-        if (ioctl(s, SIOCGIFHWADDR, &if_hwaddr) < 0) {
+        if (get_mac_addr(s, cur, mac) < 0) {
             continue;
         }
-
-        if (if_hwaddr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
-            continue;
-        }
-
-        mac = if_hwaddr.ifr_hwaddr.sa_data;
         written = snprintf(dst, size, "%s%02X:%02X:%02X:%02X:%02X:%02X",
                            sep, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         sep = ",";
@@ -583,25 +612,23 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 static int find_local_mac(char buf[static 6 * 3])
 {
     struct if_nameindex *iflist;
-    char *s = NULL;
     int fd;
+    bool found = false;
 
     Z_ASSERT(iflist = if_nameindex());
     Z_ASSERT_N(fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP));
     for (int i = 0; iflist[i].if_index; i++) {
-        struct ifreq req;
+        byte mac[6];
 
-        p_clear(&req, 1);
-        pstrcpy(req.ifr_ifrn.ifrn_name, IFNAMSIZ, iflist[i].if_name);
-        Z_ASSERT_N(ioctl(fd, SIOCGIFHWADDR, &req));
-        if (req.ifr_hwaddr.sa_family == ARPHRD_ETHER) {
-            s = req.ifr_hwaddr.sa_data;
-            snprintf(buf, 6 * 3, "%02X:%02X:%02X:%02X:%02X:%02X",
-                     s[0], s[1], s[2], s[3], s[4], s[5]);
-            break;
+        if (get_mac_addr(fd, &iflist[i], mac) < 0) {
+            continue;
         }
+        found = true;
+        snprintf(buf, 6 * 3, "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        break;
     }
-    Z_ASSERT(s, "no local interface ?!");
+    Z_ASSERT(found, "no local interface ?!");
     close(fd);
     if_freenameindex(iflist);
 
