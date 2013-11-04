@@ -752,6 +752,14 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
 const iop_struct_t *
 iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname);
 
+/** Get the descriptor of a class from its id.
+ *
+ * Manipulating class ids should be reserved to some very specific use-cases,
+ * so before using this function, be SURE that you really need it.
+ */
+const iop_struct_t *
+iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id);
+
 #ifdef __has_blocks
 typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t *);
 

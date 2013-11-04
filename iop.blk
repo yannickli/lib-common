@@ -2359,46 +2359,33 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
                         void **value, pstream_t *ps, bool copy)
 {
     const iop_struct_t *real_desc;
-    class_id_key_t key;
     iop_wire_type_t wt;
     uint32_t tag;
-    int pos;
+    uint16_t child_id = 0;
 
     PS_WANT(!ps_done(ps));
-    p_clear(&key, 1);
 
     /* Get the class id of the packed class instance */
     PS_CHECK(__get_tag_wt(ps, &tag, &wt));
     PS_WANT(tag == 0);
-    PS_CHECK(__get_class_id(ps, wt, &key.child_id));
+    PS_CHECK(__get_class_id(ps, wt, &child_id));
 
-    if (key.child_id == desc->class_attrs->class_id) {
-        real_desc = desc;
-        goto unpack;
+    if (unlikely(!(real_desc = iop_get_class_by_id(desc, child_id)))) {
+        e_trace(0, "cannot find child %d of class '%*pM'",
+                child_id, LSTR_FMT_ARG(desc->fullname));
     }
 
-    /* Get the iop_struct_t of the instanciated class from its class_id */
-    key.master = desc;
-    while (key.master->class_attrs->parent) {
-        key.master = key.master->class_attrs->parent;
+    if (real_desc != desc) {
+        /* We are trying to unpack a class of type "desc", and the packed
+         * class is of type "real_desc". Check that this is authorized. */
+        PS_WANT(iop_class_is_a(real_desc, desc));
+
+        e_named_trace(5, "iop/c/unpacker",
+                      "unpacking a class of type %*pM, real type %*pM",
+                      LSTR_FMT_ARG(desc->fullname),
+                      LSTR_FMT_ARG(real_desc->fullname));
     }
-    if ((pos = qm_find(class_id, &_G.classes_by_id, &key)) < 0) {
-        e_trace(0, "cannot find child %d of class '%*pM' (%p)",
-                key.child_id, LSTR_FMT_ARG(key.master->fullname), key.master);
-        return -1;
-    }
-    real_desc = _G.classes_by_id.values[pos];
 
-    /* We are trying to unpack a class of type "desc", and the packed
-     * class is of type "real_desc". Check that this is authorized. */
-    PS_WANT(iop_class_is_a(real_desc, desc));
-
-    e_named_trace(5, "iop/c/unpacker",
-                  "unpacking a class of type %*pM, real type %*pM",
-                  LSTR_FMT_ARG(desc->fullname),
-                  LSTR_FMT_ARG(real_desc->fullname));
-
-  unpack:
     PS_WANT(!real_desc->class_attrs->is_abstract);
     *value = mp_irealloc(mp, *value, 0, real_desc->size, 8, MEM_RAW);
 
@@ -2844,6 +2831,27 @@ iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
 
     pos = RETHROW_NP(qm_find(class_name, &_G.classes_by_name, &key));
     return _G.classes_by_name.values[pos];
+}
+
+const iop_struct_t *
+iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
+{
+    class_id_key_t key = {
+        .master   = st,
+        .child_id = class_id,
+    };
+    int pos;
+
+    if (st->class_attrs->class_id == class_id) {
+        return st;
+    }
+
+    while (key.master->class_attrs->parent) {
+        key.master = key.master->class_attrs->parent;
+    }
+
+    pos = RETHROW_NP(qm_find(class_id, &_G.classes_by_id, &key));
+    return _G.classes_by_id.values[pos];
 }
 
 void iop_for_each_registered_classes(iop_for_each_class_b cb)
