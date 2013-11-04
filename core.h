@@ -34,7 +34,6 @@
 #include <glob.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <malloc.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>

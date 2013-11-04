@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <dlfcn.h>
+#include <pthread.h>
 #include "thr.h"
 
 /*
@@ -42,7 +43,7 @@ static void thr_hooks_at_exit(void *unused)
 
 static void thr_hooks_atfork_in_child(void)
 {
-    _G.key_once = PTHREAD_ONCE_INIT;
+    _G.key_once = (pthread_once_t)PTHREAD_ONCE_INIT;
 }
 
 static void thr_hooks_key_setup(void)

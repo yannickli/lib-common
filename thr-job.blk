@@ -491,7 +491,7 @@ static thr_qnode_t *thr_qnode_create(void)
         self_g->ncache_sz--;
         return n;
     }
-    return memalign(64, sizeof(thr_qnode_t));
+    return p_new_raw(thr_qnode_t, 1);
 }
 
 static void thr_qnode_destroy(mpsc_node_t *n)

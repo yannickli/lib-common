@@ -13,7 +13,7 @@
 
 #if !defined(IS_LIB_COMMON_NET_H) || defined(IS_LIB_COMMON_NET_SCTP_H)
 #  error "you must include net.h instead"
-#else
+#elif defined(HAVE_NETINET_SCTP_H)
 #define IS_LIB_COMMON_NET_SCTP_H
 
 enum sctp_events {

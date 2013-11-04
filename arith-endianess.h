@@ -23,12 +23,10 @@
 static inline uint64_t bswap64(uint64_t x) { return bswap_64(x); }
 static inline uint32_t bswap32(uint32_t x) { return bswap_32(x); }
 static inline uint16_t bswap16(uint16_t x) { return bswap_16(x); }
-#elif defined(__GNUC__) && \
-    ((__GNUC__ << 16) + __GNUC_MINOR__) >= ((4 << 16) + 3)
+#elif __GNUC_PREREQ(4, 3) || __CLANG_PREREQ(2, 0)
 static inline uint64_t bswap64(uint64_t x) { return __builtin_bswap64(x); }
 static inline uint32_t bswap32(uint32_t x) { return __builtin_bswap32(x); }
 static inline uint16_t bswap16(uint16_t x) { return (x >> 8) | (x << 8); }
-}
 #else
 #  error please implement byte swap ops.
 #endif

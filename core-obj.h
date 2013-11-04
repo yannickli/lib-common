@@ -93,7 +93,7 @@ bool cls_inherits(const void *cls, const void *vptr)
 
 #define OBJ_VTABLE(pfx) \
     const pfx##_class_t *pfx##_class(void) {                                 \
-        __attribute__((section(".intersec.class")))                          \
+        __attr_section("intersec", "class")                                  \
         static pfx##_class_t pfx;                                            \
         static pfx##_class_t * const res = &pfx;                             \
         if (unlikely(!pfx.super)) {                                          \

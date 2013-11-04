@@ -81,6 +81,9 @@ iop_dso_t *iop_dso_open(const char *path)
     iop_dso_vt_t     *dso_vt;
     iop_dso_t        *dso;
 
+#ifndef RTLD_DEEPBIND
+# define RTLD_DEEPBIND  0
+#endif
     handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND);
     if (handle == NULL) {
         e_error("IOP DSO: unable to dlopen(%s): %s", path, dlerror());

@@ -1187,7 +1187,7 @@ void el_bl_use(void)
 
     use_big_lock_g = true;
     pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&big_lock_g, &attr);
     pthread_mutexattr_destroy(&attr);
     el_bl_lock();
@@ -1296,7 +1296,11 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
 static __attribute__((constructor)) void
 hook_sigpwr(void)
 {
+#if defined(SIGPWR)
     el_signal_register(SIGPWR, el_show_blockers, NULL);
+#else
+    el_signal_register(SIGINFO, el_show_blockers, NULL);
+#endif
 }
 #endif
 
@@ -1484,6 +1488,7 @@ Z_GROUP_EXPORT(el)
         }
     } Z_TEST_END;
 
+#ifdef HAVE_SYS_INOTIFY_H
     Z_TEST(fs_watch, "el: inotify binding") {
         t_scope;
         el_t watch;
@@ -1525,6 +1530,7 @@ Z_GROUP_EXPORT(el)
 
         el_fs_watch_unregister(&watch);
     } Z_TEST_END;
+#endif
 } Z_GROUP_END;
 
 /* }}} */

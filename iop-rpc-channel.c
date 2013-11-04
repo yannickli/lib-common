@@ -482,6 +482,10 @@ static int ic_write_stream(ichannel_t *ic, int fd)
     return 0;
 }
 
+#ifndef CMSG_ALIGN
+# define CMSG_ALIGN(l)  CMSG_LEN(l)
+#endif
+
 static void ic_prepare_cmsg(ichannel_t *ic, struct msghdr *msgh,
                             void *cbuf, int clen, int fdc, int *fdv)
 {
