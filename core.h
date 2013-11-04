@@ -49,6 +49,9 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/uio.h>
+#ifdef __APPLE__
+# include <sys/socket.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 
