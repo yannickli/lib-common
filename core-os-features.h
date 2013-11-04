@@ -23,6 +23,8 @@
 #  define OS_SOLARIS
 #elif defined(__MINGW) || defined(__MINGW32__)
 #  define OS_WINDOWS
+#elif defined(__APPLE__)
+#  define OS_APPLE
 #else
 #  error "we don't know about your OS"
 #endif
@@ -44,6 +46,14 @@
 # ifndef HAVE_SYS_INOTIFY_H
 #  define HAVE_SYS_INOTIFY_H
 # endif
+#endif
+
+#ifdef OS_APPLE
+# define SO_FILEEXT  ".dylib"
+#endif
+
+#ifndef SO_FILEEXT
+# define SO_FILEEXT  ".so"
 #endif
 
 #endif

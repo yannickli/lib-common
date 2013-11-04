@@ -395,7 +395,7 @@ Z_GROUP_EXPORT(iop)
         iop_dso_t *dso;
         const iop_struct_t *st;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-iop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-iop-plugin"SO_FILEEXT));
 
         Z_ASSERT(dso = iop_dso_open(path.s));
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h,
@@ -436,7 +436,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
         uint8_t buf1[20], buf2[20];
 
         dso = iop_dso_open(path.s);
@@ -590,7 +590,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -684,7 +684,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
         int32_t val[] = {15, 30, 45};
 
@@ -1239,7 +1239,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
@@ -1343,7 +1343,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sa, *st_sa_opt, *st_se, *st_cls2;
@@ -1395,7 +1395,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
         unsigned seed = (unsigned)time(NULL);
 
 
@@ -1502,7 +1502,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sg;
@@ -1570,7 +1570,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sg, *st_sa_opt, *st_ua, *st_sr;
@@ -1713,7 +1713,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
         const iop_struct_t *st_sl;
 
@@ -1771,7 +1771,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
         const iop_struct_t *st_s, *st_u, *st_c;
 
@@ -2144,7 +2144,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sb;
@@ -2856,7 +2856,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
         const iop_struct_t *st_sa, *st_cls2;
         qv_t(i32) szs;
         int len;
