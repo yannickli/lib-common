@@ -582,6 +582,30 @@ static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
 __SB_DEFINE_ADDS_ERR(unb64);
 
 
+/** Append the Punycode-encoded string corresponding to the input code points
+ *  in the given sb.
+ *
+ * This function computes the Punycode encoding of the input code points as
+ * specified in RFC 3492, and appends it to the given string buffer.
+ *
+ * \param[out] sb  the string buffer in which the Punycode is appended.
+ * \param[in]  code_points  array of the input code points.
+ * \param[in]  nbcode_points  number of input code points.
+ */
+int sb_add_punycode_vec(sb_t *sb, const uint32_t *code_points,
+                        int nb_code_points);
+
+/** Append the Punycode-encoded string corresponding to the input UFT8 string.
+ *
+ * This function computes the Punycode encoding of the input UTF8 string as
+ * specified in RFC 3492, and appends it to the given string buffer.
+ *
+ * \param[out] sb  the string buffer in which the Punycode is appended.
+ * \param[in]  src  input UTF8 string to encode.
+ * \param[in]  src_len  length (in bytes) of the input UTF8 string.
+ */
+int sb_add_punycode_str(sb_t *sb, const char *src, int src_len);
+
 /**************************************************************************/
 /* charset conversions (when implicit, charset is utf8)                   */
 /**************************************************************************/
