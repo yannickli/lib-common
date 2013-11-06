@@ -13,7 +13,6 @@
 
 #include "unix.h"
 #include "iop-rpc.h"
-#include "core-module.h"
 
 /* IC_MSG_STREAM_CONTROL messages uses the "slot" to encode the command.
  */

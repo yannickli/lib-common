@@ -11,10 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-module.h"
-#include "lib-common/z.h"
-
-
+#include "z.h"
+#include "el.h"
 
 #define NEW_MOCK_MODULE(name, init_ret, shut_ret)                            \
     static int name##_initialize(void *args)                                 \
@@ -235,11 +233,6 @@ Z_GROUP_EXPORT(module)
      } Z_TEST_END;
 
      Z_TEST(onterm, "On term") {
-         t_scope;
-         el_data_t param3;
-         el_t *param1 = t_new(el_t, 2 *3);
-
-         param3.u32 = 42;
          /**       modterm1
           *           |
           *        modterm2
@@ -259,13 +252,13 @@ Z_GROUP_EXPORT(module)
 
          MODULE_REQUIRE(modterm1);
 
-         module_on_term(*param1, SIGINT, param3);
+         module_on_term(SIGINT);
          Z_ASSERT_EQ(modterm1, 1);
          Z_ASSERT_EQ(modterm2, 2);
          Z_ASSERT_EQ(modterm3, 3);
          Z_ASSERT_EQ(modterm5, 5);
 
-         module_on_term(*param1, SIGINT, param3);
+         module_on_term(SIGINT);
          Z_ASSERT_EQ(modterm1, 2);
          Z_ASSERT_EQ(modterm2, 4);
          Z_ASSERT_EQ(modterm3, 6);

@@ -83,5 +83,6 @@ extern "C" {
 #include "str-buf.h"
 #include "str-stream.h"
 #include "core-str.h"
+#include "core-module.h"
 
 #endif

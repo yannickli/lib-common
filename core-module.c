@@ -11,10 +11,51 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-module.h"
+#include "log.h"
+#include "container.h"
 
+/*{{{ Type definition */
+
+typedef enum module_state_t {
+    REGISTERED = 0,
+    AUTO_REQ   = 1 << 0, /* Initialized automatically */
+    MANU_REQ   = 1 << 1, /* Initialize manually */
+    FAIL_REQ   = 1 << 2, /* Fail to initialize */
+    FAIL_SHUT  = 1 << 3, /* Fail to shutdown */
+    FAIL_REQ_AND_SHUT = FAIL_REQ | FAIL_SHUT
+} module_state_t;
+
+typedef struct module_t {
+    lstr_t name;
+    module_state_t state;
+    int manu_req_count;
+
+    /* Vector of module name */
+    qv_t(lstr) dependent_of;
+    qv_t(lstr) required_by;
+
+
+    int (*constructor)(void *);
+    int (*destructor)(void);
+    void (*on_term)(int);
+    void *constructor_argument;
+
+} module_t;
+
+
+GENERIC_NEW_INIT(module_t, module);
+static inline module_t *module_wipe(module_t *module)
+{
+    lstr_wipe(&(module->name));
+    qv_deep_wipe(lstr, &module->dependent_of, lstr_wipe);
+    qv_deep_wipe(lstr, &module->required_by, lstr_wipe);
+    return module;
+}
+GENERIC_DELETE(module_t, module);
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
+
+/*}}}*/
 
 static struct _module_g {
     logger_t logger;
@@ -61,7 +102,7 @@ static void rec_module_on_term(lstr_t name, int signo)
     }
 }
 
-void module_on_term(el_t ev, int signo, el_data_t arg)
+void module_on_term(int signo)
 {
     qm_for_each_pos(module, position, &_G.modules){
         module_t *module = _G.modules.values[position];
