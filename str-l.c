@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
 #include "unix.h"
 
 int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)

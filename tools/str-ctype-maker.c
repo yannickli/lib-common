@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/str.h>
+#include <lib-common/core.h>
 #include <lib-common/parseopt.h>
 
 int main(int argc, char **argv)

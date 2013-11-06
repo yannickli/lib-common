@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_STR_H) || defined(IS_LIB_COMMON_STR_CONV_H)
-#  error "you must include str.h instead"
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_CONV_H)
+#  error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_STR_CONV_H
 

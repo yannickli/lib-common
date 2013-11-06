@@ -15,7 +15,7 @@
 #define IS_LIB_COMMON_ZLIB_WRAPPER_H
 
 #include <zlib.h>
-#include "str.h"
+#include "core.h"
 #include "str-outbuf.h"
 
 /** Add compressed data in the string buffer.

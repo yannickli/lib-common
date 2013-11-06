@@ -14,11 +14,9 @@
 #ifndef IS_LIB_COMMON_CORE_MODULE_H
 #define IS_LIB_COMMON_CORE_MODULE_H
 
-
-#include "str.h"
-#include "container.h"
 #include "core.h"
 #include "log.h"
+#include "container.h"
 
 /*{{{ Type definition */
 

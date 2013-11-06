@@ -16,9 +16,6 @@
 #else
 #define IS_LIB_COMMON_CONTAINER_HEAP_H
 
-#include "str.h"
-#include "core.h"
-
 /* Min/Max Heap Container
  * ----------
  *

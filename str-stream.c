@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "net.h"
-#include "str.h"
 #include "container.h"
 
 int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)

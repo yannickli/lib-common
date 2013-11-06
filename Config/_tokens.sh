@@ -30,7 +30,7 @@ do_h() {
 #ifndef IS_${UPPERCASE_NAME}_TOKENS_H
 #define IS_${UPPERCASE_NAME}_TOKENS_H
 
-#include <lib-common/str.h>
+#include <lib-common/core.h>
 
 enum ${LOWERCASE_NAME}_token {
     ${UPPERCASE_NAME}_TK_unknown,
@@ -77,7 +77,7 @@ do_c() {
 %{
 `do_hdr`
 
-#include <lib-common/str.h>
+#include <lib-common/core.h>
 #include "${TARGET%.c}.h"
 
 static const struct tok *
