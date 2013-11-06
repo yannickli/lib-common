@@ -1863,8 +1863,8 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 {
                     double d = IOP_FIELD(double, ptr, j);
 
-                    if (isinf(d)) {
-                        PUTS(d < 0 ? "-Infinity" : "Infinity");
+                    if (isnan(d) || isinf(d)) {
+                        PUTS("null");
                     } else {
                         WRITE(ibuf, sprintf(ibuf, "%.17e", d));
                     }
