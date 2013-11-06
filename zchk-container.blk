@@ -169,7 +169,7 @@ Z_GROUP_EXPORT(qhash)
         qm_wipe(test, &h);
     } Z_TEST_END;
 
-    Z_TEST(__qm_put , "qhash: __qm_put") {
+    Z_TEST(qm_put , "qhash: qm_put") {
         lstr_t str;
 
 #define CHECK(type, key)  \
@@ -177,12 +177,12 @@ Z_GROUP_EXPORT(qhash)
             uint32_t pos;                                                   \
                                                                             \
             QM(type, h, true);                                              \
-            pos = __qm_put(type, &h, (key), 1, 0);                          \
+            pos = qm_put(type, &h, (key), 1, 0);                            \
             Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                         \
-            pos = __qm_put(type, &h, (key), 2, 0);                          \
+            pos = qm_put(type, &h, (key), 2, 0);                            \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 1u);              \
-            pos = __qm_put(type, &h, (key), 2, QHASH_OVERWRITE);            \
+            pos = qm_put(type, &h, (key), 2, QHASH_OVERWRITE);              \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 2u);              \
         } while (0)
@@ -375,7 +375,7 @@ Z_GROUP_EXPORT(qhugehash)
         qhm_wipe(test, &h);
     } Z_TEST_END;
 
-    Z_TEST(__qhm_put , "qhhash: __qhm_put") {
+    Z_TEST(qhm_put , "qhhash: qhm_put") {
         lstr_t str;
 
 #define CHECK(type, key)  \
@@ -384,12 +384,12 @@ Z_GROUP_EXPORT(qhugehash)
             qhm_t(type) h;                                                  \
                                                                             \
             qhm_init(type, &h, true);                                       \
-            pos = __qhm_put(type, &h, (key), 1, 0);                         \
+            pos = qhm_put(type, &h, (key), 1, 0);                           \
             Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                         \
-            pos = __qhm_put(type, &h, (key), 2, 0);                         \
+            pos = qhm_put(type, &h, (key), 2, 0);                           \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(*qhm_value_p(type, &h, pos), 1u);                   \
-            pos = __qhm_put(type, &h, (key), 2, QHASH_OVERWRITE);           \
+            pos = qhm_put(type, &h, (key), 2, QHASH_OVERWRITE);             \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(*qhm_value_p(type, &h, pos), 2u);                   \
             qhm_wipe(type, &h);                                             \

@@ -121,7 +121,7 @@ int module_register(lstr_t name, int (*constructor)(void *),
     module_t *new_module;
     va_list vl;
     const char *dependence;
-    int pos = __qm_reserve(module, &_G.modules, &name, 0);
+    int pos = qm_reserve(module, &_G.modules, &name, 0);
 
     if (pos & QHASH_COLLISION) {
         logger_warning(&_G.logger,

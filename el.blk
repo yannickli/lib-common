@@ -1030,7 +1030,7 @@ el_t el_fs_watch_register_d(const char *path, uint32_t flags,
 
     inotify_initialize();
     wd = RETHROW_NP(inotify_add_watch(_G.inotify_fd, path, flags));
-    pos = __qm_put(ev, &_G.fs_watches, wd, NULL, 0);
+    pos = qm_put(ev, &_G.fs_watches, wd, NULL, 0);
     if (pos & QHASH_COLLISION) {
         e_panic("you tried to add several watches on %s", path);
     }

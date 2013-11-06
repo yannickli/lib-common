@@ -234,23 +234,23 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 /* macro for QHH {{{ */
 
 #define __QHH_ADD(pfx, name, hpfx, key_t)                                    \
-    static inline uint64_t __##pfx##_put_h(pfx##_t *qhh, uint32_t h,         \
-                                           key_t key, uint32_t fl)           \
+    static inline uint64_t pfx##_put_h(pfx##_t *qhh, uint32_t h,             \
+                                       key_t key, uint32_t fl)               \
     {                                                                        \
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = __##hpfx##_put_h(&qhh->buckets[bid].qm, h, key, fl);          \
+        pos  = hpfx##_put_h(&qhh->buckets[bid].qm, h, key, fl);              \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
         pos |= (bid << 32);                                                  \
         return pos;                                                          \
     }                                                                        \
-    static inline uint64_t __##pfx##_put(pfx##_t *qhh, key_t key,            \
+    static inline uint64_t pfx##_put(pfx##_t *qhh, key_t key,                \
                                          uint32_t fl)                        \
     {                                                                        \
-        return __##pfx##_put_h(qhh, pfx##_hash(qhh, key), key, fl);          \
+        return pfx##_put_h(qhh, pfx##_hash(qhh, key), key, fl);              \
     }                                                                        \
                                                                              \
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key)       \
@@ -323,23 +323,23 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         return &__QHH_BUCKET(qhh, pos)->qm.values[__QHH_POS(qhh, pos)];      \
     }                                                                        \
                                                                              \
-    static inline uint64_t __##pfx##_put_h(pfx##_t *qhh, uint32_t h,         \
-                                           key_t key, val_t v, uint32_t fl)  \
+    static inline uint64_t pfx##_put_h(pfx##_t *qhh, uint32_t h,             \
+                                       key_t key, val_t v, uint32_t fl)      \
     {                                                                        \
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = __##hpfx##_put_h(&qhh->buckets[bid].qm, h, key, v, fl);       \
+        pos  = hpfx##_put_h(&qhh->buckets[bid].qm, h, key, v, fl);           \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
         pos |= (bid << 32);                                                  \
         return pos;                                                          \
     }                                                                        \
-    static inline uint64_t __##pfx##_put(pfx##_t *qhh, key_t key, val_t v,   \
-                                         uint32_t fl)                        \
+    static inline uint64_t pfx##_put(pfx##_t *qhh, key_t key, val_t v,       \
+                                     uint32_t fl)                            \
     {                                                                        \
-        return __##pfx##_put_h(qhh, pfx##_hash(qhh, key), key, v, fl);       \
+        return pfx##_put_h(qhh, pfx##_hash(qhh, key), key, v, fl);           \
     }                                                                        \
                                                                              \
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key,       \
@@ -438,8 +438,10 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhh_find_h(name, qhh, h, key)       qhh_##name##_find_h(qhh, h, key)
 #define qhh_find_safe(name, qhh, key)       qhh_##name##_find_safe(qhh, key)
 #define qhh_find_safe_h(name, qhh, h, key)  qhh_##name##_find_safe_h(qhh, h, key)
-#define __qhh_put(name, qhh, key, fl)       __qhh_##name##_put(qhh, key, fl)
-#define __qhh_put_h(name, qhh, h, key, fl)  __qhh_##name##_put_h(qhh, h, key, fl)
+#define qhh_put(name, qhh, key, fl)         qhh_##name##_put(qhh, key, fl)
+#define qhh_put_h(name, qhh, h, key, fl)    qhh_##name##_put_h(qhh, h, key, fl)
+#define __qhh_put(name, qhh, key, fl)       qhh_put(name, (qhh), (key), (fl))
+#define __qhh_put_h(name, qhh, h, key, fl)  qhh_put_h(name, (qhh), (h), (key), (fl))
 #define qhh_add(name, qhh, key)             qhh_##name##_add(qhh, key)
 #define qhh_add_h(name, qhh, h, key)        qhh_##name##_add_h(qhh, h, key)
 #define qhh_replace(name, qhh, key)         qhh_##name##_replace(qhh, key)
@@ -523,8 +525,10 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhm_find_h(name, qhm, h, key)       qhm_##name##_find_h(qhm, h, key)
 #define qhm_find_safe(name, qhm, key)       qhm_##name##_find_safe(qhm, key)
 #define qhm_find_safe_h(name, qhm, h, key)  qhm_##name##_find_safe_h(qhm, h, key)
-#define __qhm_put(name, qhm, key, v, fl)       __qhm_##name##_put(qhm, key, v, fl)
-#define __qhm_put_h(name, qhm, h, key, v, fl)  __qhm_##name##_put_h(qhm, h, key, v, fl)
+#define qhm_put(name, qhm, key, v, fl)       qhm_##name##_put(qhm, key, v, fl)
+#define qhm_put_h(name, qhm, h, key, v, fl)  qhm_##name##_put_h(qhm, h, key, v, fl)
+#define __qhm_put(name, qhm, key, v, fl)       qhm_put(name, (qhm), (key), (v), (fl))
+#define __qhm_put_h(name, qhm, h, key, v, fl)  qhm_put_h(name, (qhm), (h), (key), (v), (fl))
 #define qhm_add(name, qhm, key, v)          qhm_##name##_add(qhm, key, v)
 #define qhm_add_h(name, qhm, h, key, v)     qhm_##name##_add_h(qhm, h, key, v)
 #define qhm_replace(name, qhm, key, v)      qhm_##name##_replace(qhm, key, v)

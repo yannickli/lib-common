@@ -76,7 +76,7 @@ static void props_hash_update_key(props_hash_t *ph, uint64_t key, const char *va
 {
     if (value) {
         char *v = p_strdup(value);
-        int pos = __qm_put(proph, &ph->h, key, v, 0);
+        int pos = qm_put(proph, &ph->h, key, v, 0);
 
         if (pos & QHASH_COLLISION) {
             pos ^= QHASH_COLLISION;

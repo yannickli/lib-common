@@ -2877,7 +2877,7 @@ static void iop_register_class(const iop_struct_t *desc)
     }
 
     /* Register in classes_by_id hash table */
-    pos = __qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
+    pos = qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
     if (pos & QHASH_COLLISION) {
         pos ^= QHASH_COLLISION;
         if (_G.classes_by_id.values[pos] != desc) {

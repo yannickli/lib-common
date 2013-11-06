@@ -273,7 +273,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
         } else {
             struct level l = { .level = level, .flags = flags };
 
-            pos = __qm_put(level, &_G.pending_levels, &name, l, QHASH_OVERWRITE);
+            pos = qm_put(level, &_G.pending_levels, &name, l, QHASH_OVERWRITE);
             if (!(pos & QHASH_COLLISION)) {
                 _G.pending_levels.keys[pos] = lstr_dup(name);
             }
