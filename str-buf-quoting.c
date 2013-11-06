@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include "core.h"
+#include "container.h"
+#include "sort.h"
 
 static const char __b64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -793,3 +795,176 @@ int sb_add_unb64(sb_t *sb, const void *data, int len)
 error:
     return __sb_rewind_adds(sb, &orig);
 }
+
+/*{{{ Punycode */
+
+#define PUNYCODE_DELIMITER     '-'
+#define PUNYCODE_BASE          36
+#define PUNYCODE_TMIN          1
+#define PUNYCODE_TMAX          26
+#define PUNYCODE_SKEW          38
+#define PUNYCODE_DAMP          700
+#define PUNYCODE_INITIAL_BIAS  72
+#define PUNYCODE_INITIAL_N     0x80
+
+static int punycode_adapt_bias(int delta, int numpoints, bool firsttime)
+{
+    int k = 0;
+
+    if (firsttime) {
+        delta /= PUNYCODE_DAMP;
+    } else {
+        delta /= 2;
+    }
+    delta += delta / numpoints;
+
+    while (delta > ((PUNYCODE_BASE - PUNYCODE_TMIN) * PUNYCODE_TMAX) / 2) {
+        delta /= PUNYCODE_BASE - PUNYCODE_TMIN;
+        k += PUNYCODE_BASE;
+    }
+
+    return k + (((PUNYCODE_BASE - PUNYCODE_TMIN + 1) * delta)
+        /  (delta + PUNYCODE_SKEW));
+}
+
+static inline void punycode_output(sb_t *sb, int code_point)
+{
+    int c;
+
+    assert (code_point >= 0);
+    assert (code_point < PUNYCODE_BASE);
+
+    if (code_point < PUNYCODE_TMAX) {
+        /* 0..25 -> a..z */
+        c = 'a' + code_point;
+    } else {
+        /* 26..35 -> 0..9 */
+        c = '0' - PUNYCODE_TMAX + code_point;
+    }
+    sb_addc(sb, c);
+}
+
+static inline void
+punycode_output_variable_length_integer(sb_t *sb, int bias, uint32_t q)
+{
+    for (int k = PUNYCODE_BASE; ; k += PUNYCODE_BASE) {
+        uint32_t t;
+
+        if (k <= bias) {
+            t = PUNYCODE_TMIN;
+        } else
+            if (k >= bias + PUNYCODE_TMAX) {
+                t = PUNYCODE_TMAX;
+            } else {
+                t = k - bias;
+            }
+        if (q < t) {
+            break;
+        }
+        punycode_output(sb, t + ((q - t) % (PUNYCODE_BASE - t)));
+        q = (q - t) / (PUNYCODE_BASE - t);
+    }
+
+    punycode_output(sb, q);
+}
+
+int sb_add_punycode_vec(sb_t *sb, const uint32_t *code_points,
+                        int nb_code_points)
+{
+    /* This function implementation is a slightly enhanced version of the
+     * algorithm described in section 6.3 (Encoding procedure) of the
+     * RFC 3492.
+     * The variables m, n, delta, bias and h have the same meaning as in the
+     * RFC.
+     */
+    uint64_t *point_pos_pairs = p_alloca(uint64_t, nb_code_points);
+    int point_pos_pairs_len = 0, nb_basic_code_points = 0;
+    uint32_t n = PUNYCODE_INITIAL_N;
+    uint64_t delta = 0;
+    int bias = PUNYCODE_INITIAL_BIAS;
+    int i, h;
+
+    /* Basic code point segregation */
+    for (i = 0; i < nb_code_points; i++) {
+        if (isascii(code_points[i])) {
+            nb_basic_code_points++;
+            sb_addc(sb, code_points[i]);
+        } else {
+            point_pos_pairs[point_pos_pairs_len++]
+                = ((uint64_t)code_points[i] << 32) + i;
+        }
+    }
+    if (nb_basic_code_points > 0) {
+        sb_addc(sb, PUNYCODE_DELIMITER);
+    }
+
+    /* Sort point_pos_pairs (which is the array of the non-basic code points)
+     * in first by code point value, then by position in the input sequence */
+    dsort64(point_pos_pairs, point_pos_pairs_len);
+
+    /* Insertion unsort coding */
+    i = 0;
+    h = nb_basic_code_points;
+    while (i < point_pos_pairs_len) {
+        uint32_t m = point_pos_pairs[i] >> 32;
+        uint32_t last_pos = 0;
+
+        delta += (m - n) * (h + 1);
+        n = m;
+
+        while (i < point_pos_pairs_len && point_pos_pairs[i] >> 32 == m) {
+            uint32_t point_pos = point_pos_pairs[i] & 0xffffffff;
+
+            for (uint32_t j = last_pos; j < point_pos; j++) {
+                if (code_points[j] < n) {
+                    delta++;
+                }
+            }
+
+            THROW_ERR_IF(delta > UINT32_MAX);
+            punycode_output_variable_length_integer(sb, bias, delta);
+
+            bias = punycode_adapt_bias(delta, h + 1,
+                                       h == nb_basic_code_points);
+            last_pos = point_pos;
+            delta = 0;
+            i++;
+            h++;
+        }
+
+        for (int j = last_pos; j < nb_code_points; j++) {
+            if (code_points[j] < n) {
+                delta++;
+            }
+        }
+
+        delta++;
+        n++;
+    }
+
+    return 0;
+}
+
+int sb_add_punycode_str(sb_t *sb, const char *src, int src_len)
+{
+    uint32_t *code_points = p_alloca(uint32_t, src_len);
+    int pos = 0, code_points_len = 0;
+    bool is_ascii = true;
+
+    while (pos < src_len) {
+        int c = RETHROW(utf8_ngetc_at(src, src_len, &pos));
+
+        is_ascii = is_ascii && isascii(c);
+        code_points[code_points_len++] = c;
+    }
+
+    if (is_ascii) {
+        sb_add(sb, src, src_len);
+        sb_addc(sb, PUNYCODE_DELIMITER);
+        return 0;
+    } else {
+        return sb_add_punycode_vec(sb, code_points, code_points_len);
+    }
+}
+
+/*}}} */
