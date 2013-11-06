@@ -174,7 +174,7 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 # time-lp-simple.a still needs to be generated because submodules are
 # linking to it, when these submodules will be updated this line should
 # be removed
-time-lp-simple_SOURCES =
+time-lp-simple_SOURCES = time-lp-simple.c
 
 python_SOURCES = python-common.c
 python_CFLAGS = $(python2_CFLAGS)
