@@ -133,10 +133,10 @@ __setup_buildsys_doc: | __setup_buildsys_trampoline
 
 doc: | __setup_buildsys_doc
 
-tags: | __setup_buildsys_trampoline
+__setup_buildsys_tags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
-	cd $/ && ctags -o .tags --recurse=yes --totals=yes --links=no \
+	cd $/ && ctags $(TAGSOPTION) -o $(TAGSOUTPUT) --recurse=yes --totals=yes --links=no \
 	    --c-kinds=+p --c++-kinds=+p --fields=+iaS --extra=+q \
 	    --langmap=c:+.blk --langmap=c++:+.blkk \
 	    --langdef=iop --langmap=iop:.iop \
@@ -150,18 +150,13 @@ tags: | __setup_buildsys_trampoline
 	    --exclude="*.exe" --exclude="*.js" --exclude="*.blk.c" --exclude="*.blkk.cc" \
 	    --exclude="*.swf" --exclude="*.ini" --exclude="*fake.c" --exclude="compat.c"
 
-etags: | __setup_buildsys_trampoline
-	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
-	@$(if $(shell which etags.emacs),,$(error "etags.emacs not found"))
-	cd $/ && $(RM) TAGS                                             \
-		&&                                                      \
-		find . -name \*.hh -or -name \*.blkk                    \
-		       -or \( -name \*.cc -and -not -name \*.blkk.cc \) \
-			-print0 | xargs -0 etags.emacs -a -l c++ -      \
-		&&                                                      \
-		find . -name \*.h -or -name \*.blk                      \
-		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
-			-print0 | xargs -0 etags.emacs -a -l c -
+tags: TAGSOPTION=
+tags: TAGSOUTPUT=.tags
+tags: | __setup_buildsys_tags
+
+etags: TAGSOPTION=-e
+etags: TAGSOUTPUT=TAGS
+etags: | __setup_buildsys_tags
 
 jshint: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
