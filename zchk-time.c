@@ -128,6 +128,40 @@ Z_GROUP_EXPORT(time)
                     localtime_nextweek(time(NULL), 0));
     } Z_TEST_END;
 
+    Z_TEST(winter_time, "handle daylight saving CEST->CET 1382835600") {
+        Z_ASSERT_EQ(localtime_curminute(1382835601), 1382835600);
+        Z_ASSERT_EQ(localtime_nextminute(1382835599), 1382835600);
+
+        Z_ASSERT_EQ(localtime_curhour(1382835601), 1382835600);
+        Z_ASSERT_EQ(localtime_nexthour(1382835599), 1382835600);
+
+        Z_ASSERT_EQ(localtime_curday(1382835601), 1382824800);
+        Z_ASSERT_EQ(localtime_nextday(1382835599), 1382914800);
+
+        Z_ASSERT_EQ(localtime_curweek(1382835601, 1), 1382306400);
+        Z_ASSERT_EQ(localtime_nextweek(1382835599, 1), 1382914800);
+
+        Z_ASSERT_EQ(localtime_curmonth(1382835601), 1380578400);
+        Z_ASSERT_EQ(localtime_nextmonth(1382835599), 1383260400);
+    } Z_TEST_END;
+
+    Z_TEST(summer_time, "handle daylight saving CET->CEST 1364691600") {
+        Z_ASSERT_EQ(localtime_curminute(1364691601), 1364691600);
+        Z_ASSERT_EQ(localtime_nextminute(1364691599), 1364691600);
+
+        Z_ASSERT_EQ(localtime_curhour(1364691601), 1364691600);
+        Z_ASSERT_EQ(localtime_nexthour(1364691599), 1364691600);
+
+        Z_ASSERT_EQ(localtime_curday(1364691601), 1364684400);
+        Z_ASSERT_EQ(localtime_nextday(1364691599), 1364767200);
+
+        Z_ASSERT_EQ(localtime_curweek(1364691601, 1), 1364166000);
+        Z_ASSERT_EQ(localtime_nextweek(1364691599, 1), 1364767200);
+
+        Z_ASSERT_EQ(localtime_curmonth(1364691601), 1362092400);
+        Z_ASSERT_EQ(localtime_nextmonth(1364691599), 1364767200);
+    } Z_TEST_END;
+
     Z_TEST(strtom, "time: strtom") {
         struct tm t;
 

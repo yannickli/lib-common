@@ -304,6 +304,7 @@ time_t localtime_curday(time_t date)
     t.tm_sec = 0;
     t.tm_min = 0;
     t.tm_hour = 0;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
@@ -336,6 +337,7 @@ time_t localtime_nextday(time_t date)
     t.tm_min = 0;
     t.tm_hour = 0;
     t.tm_mday += 1;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
@@ -350,6 +352,7 @@ time_t localtime_curweek(time_t date, int first_day_of_week)
     t.tm_min   = 0;
     t.tm_hour  = 0;
     t.tm_mday -= (7 + t.tm_wday - first_day_of_week) % 7;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
@@ -365,6 +368,7 @@ time_t localtime_nextweek(time_t date, int first_day_of_week)
     t.tm_hour = 0;
     t.tm_mday -= (7 + t.tm_wday - first_day_of_week) % 7;
     t.tm_mday += 7;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
@@ -379,6 +383,7 @@ time_t localtime_curmonth(time_t date)
     t.tm_min = 0;
     t.tm_hour = 0;
     t.tm_mday = 1;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
@@ -394,6 +399,7 @@ time_t localtime_nextmonth(time_t date)
     t.tm_hour = 0;
     t.tm_mday = 1;
     t.tm_mon += 1;
+    t.tm_isdst = -1;
 
     return mktime(&t);
 }
