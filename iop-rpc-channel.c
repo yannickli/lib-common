@@ -165,12 +165,7 @@ ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot)
     {
         return ic_hook_flow_g.ic_hook_ctx;
     } else {
-        int pos = qm_find(ic_hook_ctx, &ic_ctx_h_g, slot);
-
-        if (pos < 0) {
-            return NULL;
-        }
-        return ic_ctx_h_g.values[pos];
+        return qm_get_def(ic_hook_ctx, &ic_ctx_h_g, slot, NULL);
     }
 }
 
@@ -1210,7 +1205,7 @@ static ichannel_t *ic_get_from_slot(uint64_t slot)
     if (unlikely(!(slot >> 32)))
         e_panic("slot truncated at some point: ic->id bits are missing");
 #endif
-    return ic_h_g.values[RETHROW_NP(qm_find(ic, &ic_h_g, slot >> 32))];
+    return qm_get_def(ic, &ic_h_g, slot >> 32, NULL);
 }
 
 void *__ic_get_buf(ic_msg_t *msg, int len)
@@ -1538,7 +1533,7 @@ void ic_nop(ichannel_t *ic)
 
 ichannel_t *ic_get_by_id(uint32_t id)
 {
-    return ic_h_g.values[RETHROW_NP(qm_find(ic, &ic_h_g, id))];
+    return qm_get_def(ic, &ic_h_g, id, NULL);
 }
 
 ichannel_t *ic_init(ichannel_t *ic)

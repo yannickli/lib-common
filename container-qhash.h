@@ -374,7 +374,56 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     static inline int pfx##_replace(pfx##_t *qh, key_t key, val_t v)         \
     {                                                                        \
         return pfx##_replace_h(qh, hashK(&qh->qh, key), key, v);             \
+    }                                                                        \
+    static inline val_t pfx##_get(pfx##_t *qh, key_t key)                    \
+    {                                                                        \
+        int pos = pfx##_find(qh, key);                                       \
+        assert (pos >= 0);                                                   \
+        return qh->values[pos];                                              \
+    }                                                                        \
+    static inline val_t pfx##_get_h(pfx##_t *qh, uint32_t h, key_t key)      \
+    {                                                                        \
+        int pos = pfx##_find_h(qh, h, key);                                  \
+        assert (pos >= 0);                                                   \
+        return qh->values[pos];                                              \
+    }                                                                        \
+    static inline val_t pfx##_get_safe(const pfx##_t *qh, key_t key)         \
+    {                                                                        \
+        int pos = pfx##_find_safe(qh, key);                                  \
+        assert (pos >= 0);                                                   \
+        return qh->values[pos];                                              \
+    }                                                                        \
+    static inline val_t pfx##_get_safe_h(const pfx##_t *qh, uint32_t h,      \
+                                         key_t key)                          \
+    {                                                                        \
+        int pos = pfx##_find_safe_h(qh, h, key);                             \
+        assert (pos >= 0);                                                   \
+        return qh->values[pos];                                              \
+    }                                                                        \
+    static inline val_t pfx##_get_def(pfx##_t *qh, key_t key, val_t def)     \
+    {                                                                        \
+        int pos = pfx##_find(qh, key);                                       \
+        return pos >= 0 ? qh->values[pos] : def;                             \
+    }                                                                        \
+    static inline val_t pfx##_get_def_h(pfx##_t *qh, uint32_t h,             \
+                                        key_t key, val_t def)                \
+    {                                                                        \
+        int pos = pfx##_find_h(qh, h, key);                                  \
+        return pos >= 0 ? qh->values[pos] : def;                             \
+    }                                                                        \
+    static inline val_t pfx##_get_def_safe(const pfx##_t *qh, key_t key,     \
+                                           val_t def)                        \
+    {                                                                        \
+        int pos = pfx##_find_safe(qh, key);                                  \
+        return pos >= 0 ? qh->values[pos] : def;                             \
+    }                                                                        \
+    static inline val_t pfx##_get_def_safe_h(const pfx##_t *qh, uint32_t h,  \
+                                             key_t key, val_t def)           \
+    {                                                                        \
+        int pos = pfx##_find_safe_h(qh, h, key);                             \
+        return pos >= 0 ? qh->values[pos] : def;                             \
     }
+
 
 #define __QM_IKEY(sfx, pfx, name, key_t, val_t)  \
     __QH_BASE(sfx, pfx, name, key_t, val_t, sizeof(val_t));                  \
@@ -642,6 +691,15 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_find_h(name, qh, h, key)         qm_##name##_find_h(qh, h, key)
 #define qm_find_safe(name, qh, key)         qm_##name##_find_safe(qh, key)
 #define qm_find_safe_h(name, qh, h, key)    qm_##name##_find_safe_h(qh, h, key)
+#define qm_get(name, qh, key)               qm_##name##_get(qh, key)
+#define qm_get_h(name, qh, h, key)          qm_##name##_get_h(qh, h, key)
+#define qm_get_safe(name, qh, key)          qm_##name##_get_safe(qh, key)
+#define qm_get_safe_h(name, qh, h, key)     qm_##name##_get_safe_h(qh, h, key)
+#define qm_get_def(name, qh, key, def)      qm_##name##_get_def(qh, key, def)
+#define qm_get_def_h(name, qh, h, key, def) qm_##name##_get_def_h(qh, h, key, def)
+#define qm_get_def_safe(name, qh, key, def) qm_##name##_get_def_safe(qh, key, def)
+#define qm_get_def_safe_h(name, qh, h, key, def)  \
+    qm_##name##_get_def_safe_h(qh, h, key, def)
 
 #define qm_deep_clear(name, h, k_wipe, v_wipe)                           \
     do {                                                                 \

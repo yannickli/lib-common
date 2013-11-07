@@ -67,15 +67,6 @@ static struct _module_g {
 };
 
 
-static module_t *find_module(lstr_t name)
-{
-    int pos;
-    pos = qm_find(module, &_G.modules, &name);
-    assert (pos >= 0);
-    return _G.modules.values[pos];
-}
-
-
 static void
 set_require_type(lstr_t name, lstr_t required_by, module_t *module)
 {
@@ -92,7 +83,7 @@ set_require_type(lstr_t name, lstr_t required_by, module_t *module)
 
 static void rec_module_on_term(lstr_t name, int signo)
 {
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     if (module->on_term)
         (*module->on_term)(signo);
@@ -153,7 +144,7 @@ int module_register(lstr_t name, int (*constructor)(void *),
 
 int module_require(lstr_t name, lstr_t required_by)
 {
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
         set_require_type(name, required_by, module);
@@ -183,14 +174,14 @@ int module_require(lstr_t name, lstr_t required_by)
 
 void module_provide(lstr_t name, void *argument)
 {
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     module->constructor_argument = argument;
 }
 
 static int notify_shutdown(lstr_t name, lstr_t dependent_of)
 {
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     qv_for_each_pos(lstr, position, &module->required_by) {
         if (lstr_equal(&module->required_by.tab[position], &dependent_of)) {
@@ -208,7 +199,7 @@ static int notify_shutdown(lstr_t name, lstr_t dependent_of)
 int module_shutdown(lstr_t name)
 {
     int shut_self, shut_dependent;
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     shut_self = shut_dependent = 1;
 
@@ -241,7 +232,7 @@ int module_shutdown(lstr_t name)
 
 int module_release(lstr_t name)
 {
-    module_t *module = find_module(name);
+    module_t *module = qm_get(module, &_G.modules, &name);
 
     if (module->manu_req_count == 0) {
         /* You are trying to either release:
@@ -271,7 +262,7 @@ int module_release(lstr_t name)
 
 bool module_is_loaded(lstr_t name)
 {
-    module_t * module = find_module(name);
+    module_t * module = qm_get(module, &_G.modules, &name);
 
     return module->state == AUTO_REQ || module->state == MANU_REQ;
 }

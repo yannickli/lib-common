@@ -198,9 +198,5 @@ iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name)
 
 iop_enum_t const *iop_dso_find_enum(iop_dso_t const *dso, lstr_t name)
 {
-    int pos;
-
-    pos = RETHROW_NP(qm_find_safe(iop_enum, &dso->enum_h, &name));
-
-    return dso->enum_h.values[pos];
+    return qm_get_def_safe(iop_enum, &dso->enum_h, &name, NULL);
 }
