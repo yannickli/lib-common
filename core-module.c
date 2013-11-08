@@ -288,8 +288,8 @@ static int module_hard_shutdown(void)
             && (module->state & FAIL_SHUT) != FAIL_SHUT)
             {
                 error--;
-                logger_warning(&_G.logger, "%*pM was not released",
-                               LSTR_FMT_ARG(module->name));
+                logger_trace(&_G.logger, 1, "%*pM was not released",
+                             LSTR_FMT_ARG(module->name));
                 module_release(module->name);
             }
         }
@@ -302,8 +302,8 @@ static int module_hard_shutdown(void)
 
         if (module->state == AUTO_REQ) {
             error--;
-            logger_warning(&_G.logger, "%*pM was not released",
-                           LSTR_FMT_ARG(module->name));
+            logger_trace(&_G.logger, 1, "%*pM was not released",
+                         LSTR_FMT_ARG(module->name));
             module_shutdown(module->name);
         }
     }
