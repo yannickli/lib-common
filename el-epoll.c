@@ -72,25 +72,6 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
-ev_priority_t (el_fd_set_priority)(ev_t *ev, ev_priority_t priority)
-{
-    ev_priority_t p = ev->priority;
-
-    if (EV_IS_TRACED(ev)) {
-        static lstr_t priority_str[] = {
-            [EV_PRIORITY_LOW]    = LSTR_IMMED("LOW"),
-            [EV_PRIORITY_NORMAL] = LSTR_IMMED("NORMAL"),
-            [EV_PRIORITY_HIGH]   = LSTR_IMMED("HIGH"),
-        };
-
-        e_trace(0, "ev-fd(%p): set priority to %*pM", ev,
-                LSTR_FMT_ARG(priority_str[priority]));
-    }
-    CHECK_EV_TYPE(ev, EV_FD);
-    ev->priority = priority;
-    return p;
-}
-
 el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 {
     if (*evp) {

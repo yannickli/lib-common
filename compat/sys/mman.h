@@ -14,7 +14,15 @@
 #ifndef IS_COMPAT_SYS_MMAN_H
 #define IS_COMPAT_SYS_MMAN_H
 
-#if defined(__MINGW) || defined(__MINGW32__)
+#if defined(__APPLE__)
+#  include_next <sys/mman.h>
+
+#define MAP_ANONYMOUS  MAP_ANON
+
+extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
+                    int __flags);
+
+#elif defined(__MINGW) || defined(__MINGW32__)
 #include <unistd.h>
 #  define MAP_FAILED      ((void *) -1)
 extern void *mmap(void *__addr, size_t __len, int __prot,

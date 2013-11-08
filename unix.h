@@ -126,6 +126,7 @@ void devnull_dup(int fd);
 /* file listing related                                                     */
 /****************************************************************************/
 
+#if defined(SYS_getdents)
 typedef struct linux_dirent_t {
     long           d_ino;
     off_t          d_off;
@@ -134,6 +135,12 @@ typedef struct linux_dirent_t {
 } linux_dirent_t;
 
 #define D_TYPE(ld)          *((byte *)ld + ld->d_reclen - 1)
+
+#else
+typedef struct dirent linux_dirent_t;
+
+#define D_TYPE(ld)  ((ld)->d_type)
+#endif
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET on_file_b)(const char *dir,

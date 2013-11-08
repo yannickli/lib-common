@@ -592,6 +592,33 @@ static void el_timer_process(uint64_t until)
     }
 }
 
+#ifdef __APPLE__
+#include <mach/mach_time.h>
+
+static struct {
+    mach_timebase_info_data_t info;
+    bool inited;
+} mach_conv_g;
+
+static uint64_t get_clock(bool lowres)
+{
+    uint64_t t;
+
+    if (qhp_len(timer, &_G.timers) > 1 && lowres && likely(_G.lp_clk))
+        return _G.lp_clk;
+
+    t = mach_absolute_time();
+    if (unlikely(!mach_conv_g.inited)) {
+        mach_timebase_info(&mach_conv_g.info);
+        mach_conv_g.inited = true;
+    }
+    t *= mach_conv_g.info.numer;
+    t /= mach_conv_g.info.denom;
+    return _G.lp_clk = t;
+}
+
+#else
+
 static uint64_t get_clock(bool lowres)
 {
     struct timespec ts;
@@ -610,6 +637,8 @@ static uint64_t get_clock(bool lowres)
     assert (res == 0);
     return _G.lp_clk = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
+
+#endif
 
 static bool el_timer_has_pending_events(void)
 {
@@ -766,9 +795,30 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 
 #ifdef __linux__
 #  include "el-epoll.c"
+#elif defined(__APPLE__)
+#  include "el-kqueue.c"
 #else
 #  error one has to port el to your OS
 #endif
+
+ev_priority_t (el_fd_set_priority)(ev_t *ev, ev_priority_t priority)
+{
+    ev_priority_t p = ev->priority;
+
+    if (EV_IS_TRACED(ev)) {
+        static lstr_t priority_str[] = {
+            [EV_PRIORITY_LOW]    = LSTR_IMMED("LOW"),
+            [EV_PRIORITY_NORMAL] = LSTR_IMMED("NORMAL"),
+            [EV_PRIORITY_HIGH]   = LSTR_IMMED("HIGH"),
+        };
+
+        e_trace(0, "ev-fd(%p): set priority to %*pM", ev,
+                LSTR_FMT_ARG(priority_str[priority]));
+    }
+    CHECK_EV_TYPE(ev, EV_FD);
+    ev->priority = priority;
+    return p;
+}
 
 ev_t *el_fd_register_blk(int fd, short events, el_fd_b blk, block_t wipe)
 {
@@ -1187,7 +1237,7 @@ void el_bl_use(void)
 
     use_big_lock_g = true;
     pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&big_lock_g, &attr);
     pthread_mutexattr_destroy(&attr);
     el_bl_lock();
@@ -1296,7 +1346,11 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
 static __attribute__((constructor)) void
 hook_sigpwr(void)
 {
+#if defined(SIGPWR)
     el_signal_register(SIGPWR, el_show_blockers, NULL);
+#else
+    el_signal_register(SIGINFO, el_show_blockers, NULL);
+#endif
 }
 #endif
 
@@ -1312,8 +1366,13 @@ static void el_initialize(void)
 
     if (getrlimit(RLIMIT_NOFILE, &lim) < 0)
         e_panic(E_UNIXERR("getrlimit"));
-    if (lim.rlim_cur < lim.rlim_max) {
+    if (lim.rlim_cur < lim.rlim_max && lim.rlim_max != RLIM_INFINITY) {
         lim.rlim_cur = lim.rlim_max;
+        if (setrlimit(RLIMIT_NOFILE, &lim) < 0)
+            e_error(E_UNIXERR("setrlimit"));
+    } else
+    if (lim.rlim_max == RLIM_INFINITY && lim.rlim_cur < 8192) {
+        lim.rlim_cur = 8192;
         if (setrlimit(RLIMIT_NOFILE, &lim) < 0)
             e_error(E_UNIXERR("setrlimit"));
     }
@@ -1484,6 +1543,7 @@ Z_GROUP_EXPORT(el)
         }
     } Z_TEST_END;
 
+#ifdef HAVE_SYS_INOTIFY_H
     Z_TEST(fs_watch, "el: inotify binding") {
         t_scope;
         el_t watch;
@@ -1525,6 +1585,7 @@ Z_GROUP_EXPORT(el)
 
         el_fs_watch_unregister(&watch);
     } Z_TEST_END;
+#endif
 } Z_GROUP_END;
 
 /* }}} */

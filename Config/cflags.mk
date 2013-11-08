@@ -11,19 +11,26 @@
 #                                                                        #
 ##########################################################################
 
+ifneq ($(OS),darwin)
 LDFLAGS := -Wl,--as-needed
+endif
 ifeq (,$(NOCOMPRESS))
 ifneq (,$(shell ld --help | grep compress-debug-sections))
     LDFLAGS += -Wl,--compress-debug-sections=zlib
 endif
 endif
 
+ifeq ($(OS),darwin)
+	CC_BASE  := clang
+	CXX_BASE := clang++
+else
 ifeq ($(filter %-analyzer,$(CC)),)
 	CC_BASE  := $(shell basename "$(CC)")
 	CXX_BASE := $(shell basename "$(CXX)")
 else
 	CC_BASE  := clang
 	CXX_BASE := clang++
+endif
 endif
 
 CLANG    := $(shell which "clang")

@@ -11,17 +11,4 @@
 /*                                                                        */
 /**************************************************************************/
 
-/* XXX: Do not move in the guard, this will fail unexpectedly... */
-#include_next <stdlib.h>
-
-#ifndef IS_COMPAT_STDLIB_H
-#define IS_COMPAT_STDLIB_H
-
-#ifndef __GLIBC__
-#define __is_need_posix_fallocate
-int posix_fallocate(int fd, off_t offset, off_t len);
-
-#endif
-
-#endif /* !IS_COMPAT_STDLIB_H */
-
+/* XXX Kept because some version of ar cannot work without at least one file */

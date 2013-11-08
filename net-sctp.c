@@ -12,6 +12,9 @@
 /**************************************************************************/
 
 #include "net.h"
+
+#if defined(HAVE_NETINET_SCTP_H)
+
 #include "unix.h"
 #include "container.h"
 
@@ -290,3 +293,4 @@ void sctp_dump_notif(char *buf, int len)
         break;
     }
 }
+#endif

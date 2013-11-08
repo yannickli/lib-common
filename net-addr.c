@@ -158,17 +158,33 @@ int addr_info(sockunion_t *su, sa_family_t af, pstream_t host, in_port_t port)
 {
     t_scope;
     struct addrinfo *ai = NULL;
+    struct addrinfo *cur;
     struct addrinfo hint = { .ai_family = af };
 
     RETHROW(getaddrinfo(t_dupz(host.p, ps_len(&host)), NULL, &hint, &ai));
-    if (ai->ai_addrlen > ssizeof(*su)) {
-        freeaddrinfo(ai);
-        return -1;
+    for (cur = ai; cur != NULL; cur = cur->ai_next) {
+        switch (cur->ai_family) {
+          case AF_INET:
+          case AF_INET6:
+          case AF_UNIX:
+            if (cur->ai_addrlen > ssizeof(*su)) {
+                continue;
+            }
+            break;
+
+          default:
+
+            continue;
+        }
+        break;
     }
-    memcpy(su, ai->ai_addr, ai->ai_addrlen);
+
+    if (cur) {
+        memcpy(su, cur->ai_addr, cur->ai_addrlen);
+        sockunion_setport(su, port);
+    }
     freeaddrinfo(ai);
-    sockunion_setport(su, port);
-    return 0;
+    return cur ? 0 : -1;
 }
 
 int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
@@ -187,6 +203,9 @@ int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
             return -1;
         }
     } else {
+#ifndef s6_addr32
+#define s6_addr32  __u6_addr.__u6_addr32
+#endif
         /* filter->family == AF_INET6 */
         for (int i = 3; i >= 0; i--) {
             if ((filter->u.v6.addr.s6_addr32[i]

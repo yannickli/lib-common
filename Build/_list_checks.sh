@@ -12,7 +12,11 @@
 #                                                                        #
 ##########################################################################
 
-CURDIR="$(readlink -e "$(pwd)")"
+if [ "${OS}" == "darwin" ]; then
+    CURDIR="$PWD"
+else
+    CURDIR="$(readlink -e "$(pwd)")"
+fi
 
 _err=0
 err()
@@ -55,8 +59,12 @@ dump_zf()
                 esac
 
                 has_match=t
-                f="$(readlink -e "$f")"
-                echo "${f#$CURDIR/}"
+                if [ "${OS}" != "darwin" ]; then
+                    f="$(readlink -e "$f")"
+                    echo "${f#$CURDIR/}"
+                else
+                    echo "$f"
+                fi
             done
             test -n "$has_match" || err "$zf:$lno: no match for $line"
             IFS="$ifs"

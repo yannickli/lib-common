@@ -198,6 +198,7 @@ void thr_syn__release(thr_syn_t *syn)
 static ALWAYS_INLINE thr_syn_t *thr_syn_init(thr_syn_t *syn)
 {
     p_clear(syn, 1);
+    thr_ec_init(&syn->ec);
     syn->refcnt = 1;
     return syn;
 }
@@ -208,6 +209,7 @@ static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
     thr_syn__release(syn);
     while (unlikely(syn->refcnt))
         mb();
+    thr_ec_wipe(&syn->ec);
 }
 GENERIC_DELETE(thr_syn_t, thr_syn);
 

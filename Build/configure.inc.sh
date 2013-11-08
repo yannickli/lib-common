@@ -98,7 +98,7 @@ ruby_var() {
 }
 
 check_iopc() {
-    IOPC_VER=2.9.12
+    IOPC_VER=2.9.13
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
         warn "iopc version $IOPC_VER required, update your tools"
     fi
@@ -144,31 +144,29 @@ fi
 
 # {{{ tools
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
+for tool in clang clang++ flex gperf xsltproc ruby python; do
     check_tool $tool $tool
 done
-
-if ! test -f /usr/include/sys/capability.h; then
-    warn "missing libpcap, apt-get install libpcap-dev"
-elif test -r /usr/include/pcap.h; then
-    setvar "libpcap_CFLAGS"
-    setvar "libpcap_LIBS" "-lpcap"
-    if ! test -r /usr/include/pcap/pcap.h; then
-        setenv "libpcap_OUTDATED" "1"
-    fi
-else
-    warn "missing libpcap, apt-get install libpcap-dev"
-fi
 
 # }}}
 # {{{ pkg-config packages
 
-pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
-pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
-pkg_config_setvar "openssl" "libssl-dev"     "openssl"
+case "$OS" in
+    darwin)
+        setvar "libxml2_LIBS" "-lxml2"
+        setvar "libxml2_CFLAGS" "-I/usr/include/libxml2"
+        setvar "zlib_LIBS" "-lz"
+        setvar "openssl_LIBS" "-lssl -lcrypto"
+        ;;
+    *)
+        pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
+        pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
+        pkg_config_setvar "openssl" "libssl-dev"     "openssl"
 
-pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
-pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
+        pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
+        pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
+        ;;
+esac
 
 # }}}
 # {{{ libreadline-dev
@@ -183,7 +181,9 @@ fi
 # }}}
 #{{{ ncurses
 
-if pkg-config ncurses; then
+if [ "$OS" == "darwin" ]; then
+    setvar "ncurses_LIBS" "-lncurses"
+elif pkg-config ncurses; then
     setvar "ncurses_CFLAGS" "$(pkg-config --cflags ncurses)"
     setvar "ncurses_LIBS"   "$(pkg-config --libs ncurses)"
 else

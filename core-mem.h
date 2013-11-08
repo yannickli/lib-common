@@ -23,7 +23,30 @@
 
 #ifndef __USE_GNU
 static inline void *mempcpy(void *dst, const void *src, size_t n) {
-    return memcpy(dst, src, n) + n;
+    return (void *)((byte *)memcpy(dst, src, n) + n);
+}
+
+static inline void *memrchr(const void *s, int c, size_t n)
+{
+    const uint8_t *start = s;
+    const uint8_t *end   = start + n;
+
+    while (end > start) {
+        --end;
+        if (*end == (uint8_t)c) {
+            return (void *)end;
+        }
+    }
+    return NULL;
+}
+
+static inline
+char *strchrnul(const char *s, int c)
+{
+    while ((unsigned char)*s != c && (unsigned char)*s != '\0') {
+        s++;
+    }
+    return (char *)s;
 }
 #endif
 

@@ -378,6 +378,8 @@ int tmpfd(void)
     return fd;
 }
 
+#if defined(SYS_getdents)
+
 int list_dir(const char *path, bool recur, on_file_b on_file)
 {
 #define LIST_DIR_BUF_SIZE   1024 * 1024 * 5
@@ -429,6 +431,44 @@ int list_dir(const char *path, bool recur, on_file_b on_file)
 
 #undef LIST_DIR_BUF_SIZE
 }
+
+#else
+
+int list_dir(const char *path, bool recur, on_file_b on_file)
+{
+    t_scope;
+    DIR *dir = RETHROW_PN(opendir(path));
+    struct dirent *dirent = t_new_extra(struct dirent, PATH_MAX);
+    struct dirent *de;
+    int res = 0;
+    int total = 0;
+
+    while ((res = readdir_r(dir, dirent, &de)) == 0 && de != NULL) {
+        if (de->d_type == DT_DIR && recur) {
+            res = list_dir(t_fmt(NULL, "%s/%*pM", path, de->d_namlen, de->d_name),
+                           true, on_file);
+            if (res < 0) {
+                break;
+            }
+            total += res;
+        }
+
+        total++;
+        if (on_file) {
+            t_seal();
+            res = on_file(path, de);
+            t_unseal();
+            if (res < 0) {
+                break;
+            }
+        }
+    }
+
+    closedir(dir);
+    return res < 0 ? -1 : total;
+}
+
+#endif
 
 /****************************************************************************/
 /* file descriptor related                                                  */
@@ -625,7 +665,18 @@ int fd_set_features(int fd, int flags)
 {
     if (flags & (O_NONBLOCK | O_DIRECT)) {
 #ifndef OS_WINDOWS
-        int res = fcntl(fd, F_GETFL);
+        int res;
+
+#ifdef OS_APPLE
+        if ((flags & O_DIRECT)) {
+            if (fcntl(fd, F_NOCACHE, 1)) {
+                return e_error("fcntl failed: %m");
+            }
+            flags &= ~O_DIRECT;
+        }
+#endif
+
+        res = fcntl(fd, F_GETFL);
         if (res < 0)
             return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFL, res | (flags & (O_NONBLOCK | O_DIRECT))))
@@ -652,7 +703,18 @@ int fd_unset_features(int fd, int flags)
 {
     if (flags & (O_NONBLOCK | O_DIRECT)) {
 #ifndef OS_WINDOWS
-        int res = fcntl(fd, F_GETFL);
+        int res;
+
+#ifdef OS_APPLE
+        if ((flags & O_DIRECT)) {
+            if (fcntl(fd, F_NOCACHE, 0)) {
+                return e_error("fcntl failed: %m");
+            }
+            flags &= ~O_DIRECT;
+        }
+#endif
+
+        res = fcntl(fd, F_GETFL);
         if (res < 0)
             return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFL, res & ~(flags & (O_NONBLOCK | O_DIRECT))))
@@ -677,17 +739,22 @@ int fd_unset_features(int fd, int flags)
 
 ssize_t fd_get_path(int fd, char buf[], size_t buf_len)
 {
-#ifndef __linux__
-# error "fd_get_path not implemented on your platform"
-#endif
-    char proc[PATH_MAX];
     size_t path_len;
     struct stat fdst;
     struct stat pathst;
 
-    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
-    path_len = RETHROW(readlink(proc, buf, buf_len));
-
+#if defined(__linux__)
+    {
+        char proc[PATH_MAX];
+        snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
+        path_len = RETHROW(readlink(proc, buf, buf_len));
+    }
+#elif defined(__APPLE__)
+    RETHROW(fcntl(fd, F_GETPATH, buf));
+    path_len = strlen(buf);
+#else
+# error "fd_get_path not implemented on your platform"
+#endif
     if (path_len == buf_len) {
         /* Path to long to append a nul byte */
         errno = ENAMETOOLONG;

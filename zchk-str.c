@@ -491,8 +491,8 @@ Z_GROUP_EXPORT(str)
         TT_ALL("  123  ", INT_MAX, true, 0,  123, 5, 0, 0);
         TT_ALL("+123",    INT_MAX, true, 0,  123, INT_MAX, 0, 0);
         TT_SGN("-123",    INT_MAX, true, 0, -123, INT_MAX, 0, 0);
-        TT_ALL("  +",     INT_MAX, true, 0,  0, 0, 0, 0);
-        TT_ALL("  -",     INT_MAX, true, 0,  0, 0, 0, 0);
+        TT_ALL("  +",     INT_MAX, true, 0,  -1, -1, 0, EINVAL);
+        TT_ALL("  -",     INT_MAX, true, 0,  -1, -1, 0, EINVAL);
 
         /* other bases than 10 */
         TT_ALL("0x123", INT_MAX, true,  0, 0x123, INT_MAX, 0, 0);
