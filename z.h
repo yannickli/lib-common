@@ -232,7 +232,7 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
         }                                                                 \
     })
 
-#define Z_BLKTEST_END  ({ _z_step_end: return; })
+#define Z_BLKTEST_END  { _z_step_end: return; }
 
 #define Z_SKIP(fmt, ...) \
     ({ _z_step_skip(fmt, ##__VA_ARGS__); goto _z_step_end; })
