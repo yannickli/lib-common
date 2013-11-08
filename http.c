@@ -763,7 +763,7 @@ httpd_trigger_node_new(httpd_trigger_node_t *parent, lstr_t path)
     httpd_trigger_node_t *node;
     int pos;
 
-    pos = __qm_put(http_path, &parent->childs, &path, NULL, 0);
+    pos = qm_put(http_path, &parent->childs, &path, NULL, 0);
     if (pos & QHASH_COLLISION)
         return parent->childs.values[pos & ~QHASH_COLLISION];
 

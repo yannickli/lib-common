@@ -74,6 +74,15 @@ extern "C" {
 #include "core-types.h"
 #include "core-stdlib.h"
 #include "core-obj.h"
-#include "str.h"
+
+#include "str-ctype.h"
+#include "str-iprintf.h"
+#include "str-num.h"
+#include "str-conv.h"
+#include "str-l.h"
+#include "str-buf.h"
+#include "str-stream.h"
+#include "core-str.h"
+#include "core-module.h"
 
 #endif

@@ -17,7 +17,6 @@
 #include <lib-common/container.h>
 #include <lib-common/el.h>
 #include <lib-common/unix.h>
-#include <lib-common/core-module.h>
 #include "thr.h"
 
 #if !defined(__x86_64__) && !defined(__i386__)

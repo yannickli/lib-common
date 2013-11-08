@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include <lib-common/z.h>
-#include <lib-common/core-module.h>
 #include <lib-common/container.h>
 #include "qps-hat.h"
 

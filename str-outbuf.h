@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_STR_OUTBUF_H
 #define IS_LIB_COMMON_STR_OUTBUF_H
 
-#include "str.h"
+#include "core.h"
 #include "container.h"
 
 /****************************************************************************/

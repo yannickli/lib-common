@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
+#include "core.h"
 
 /* ctype description for tokens "abcdefghijklmnopqrstuvwxyz" */
 ctype_desc_t const ctype_islower = {

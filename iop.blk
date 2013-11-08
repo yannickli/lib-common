@@ -2823,14 +2823,12 @@ iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
         .master = st,
         .child_fullname = &fullname,
     };
-    int pos;
 
     while (key.master->class_attrs->parent) {
         key.master = key.master->class_attrs->parent;
     }
 
-    pos = RETHROW_NP(qm_find(class_name, &_G.classes_by_name, &key));
-    return _G.classes_by_name.values[pos];
+    return qm_get_def(class_name, &_G.classes_by_name, &key, NULL);
 }
 
 const iop_struct_t *
@@ -2840,7 +2838,6 @@ iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
         .master   = st,
         .child_id = class_id,
     };
-    int pos;
 
     if (st->class_attrs->class_id == class_id) {
         return st;
@@ -2850,8 +2847,7 @@ iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
         key.master = key.master->class_attrs->parent;
     }
 
-    pos = RETHROW_NP(qm_find(class_id, &_G.classes_by_id, &key));
-    return _G.classes_by_id.values[pos];
+    return qm_get_def(class_id, &_G.classes_by_id, &key, NULL);
 }
 
 void iop_for_each_registered_classes(iop_for_each_class_b cb)
@@ -2877,7 +2873,7 @@ static void iop_register_class(const iop_struct_t *desc)
     }
 
     /* Register in classes_by_id hash table */
-    pos = __qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
+    pos = qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
     if (pos & QHASH_COLLISION) {
         pos ^= QHASH_COLLISION;
         if (_G.classes_by_id.values[pos] != desc) {

@@ -16,8 +16,6 @@
 #else
 #define IS_LIB_COMMON_ARITH_STR_STREAM_H
 
-#include "str.h"
-
 #define __PS_GET(ps, w, endianess)                                   \
     do {                                                             \
         endianess##w##_t res = get_unaligned_##endianess##w(ps->p);  \

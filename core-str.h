@@ -11,19 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_H
-#define IS_LIB_COMMON_STR_H
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_STR__H)
+#  error "you must include core.h instead"
+#else
+#define IS_LIB_COMMON_CORE_STR_H
 
-#define IPRINTF_HIDE_STDIO 1
-#include "core.h"
-#include "str-ctype.h"
-#include "str-iprintf.h"
-#include "str-num.h"
-#include "str-path.h"
-#include "str-conv.h"
-#include "str-l.h"
-#include "str-buf.h"
-#include "str-stream.h"
+/* Simple helpers {{{ */
 
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
@@ -94,5 +87,47 @@ size_t strrand(char dest[], size_t dest_size, lstr_t alphabet);
 /* Return the number of occurences replaced */
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
+
+/* }}} */
+/* Path helpers {{{ */
+
+/*----- simple file name splits -----*/
+
+ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
+    __leaf;
+
+__attribute__((nonnull)) const char *path_filepart(const char *filename);
+__attribute__((nonnull)) static inline char *vpath_filepart(char *path)
+{
+    return (char*)path_filepart(path);
+}
+
+__attribute__((nonnull)) const char *path_extnul(const char *filename);
+__attribute__((nonnull)) static inline char *vpath_extnul(char *path)
+{
+    return (char*)path_extnul(path);
+}
+const char *path_ext(const char *filename);
+static inline char *vpath_ext(char *path)
+{
+    return (char*)path_ext(path);
+}
+
+/*----- libgen like functions -----*/
+
+int path_dirname(char *buf, int len, const char *path) __leaf;
+int path_basename(char *buf, int len, const char *path) __leaf;
+
+/*----- path manipulations -----*/
+
+int path_join(char *buf, int len, const char *path) __leaf;
+int path_simplify2(char *path, bool keep_trailing_slash) __leaf;
+#define path_simplify(path)   path_simplify2(path, false)
+int path_canonify(char *buf, int len, const char *path) __leaf;
+char *path_expand(char *buf, int len, const char *path) __leaf;
+
+bool path_is_safe(const char *path) __leaf;
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_STR_IS_H */

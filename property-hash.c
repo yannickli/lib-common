@@ -76,7 +76,7 @@ static void props_hash_update_key(props_hash_t *ph, uint64_t key, const char *va
 {
     if (value) {
         char *v = p_strdup(value);
-        int pos = __qm_put(proph, &ph->h, key, v, 0);
+        int pos = qm_put(proph, &ph->h, key, v, 0);
 
         if (pos & QHASH_COLLISION) {
             pos ^= QHASH_COLLISION;
@@ -116,9 +116,7 @@ void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
-    int pos = qm_find_safe(proph, &ph->h, key);
-
-    return pos < 0 ? def : ph->h.values[pos];
+    return qm_get_def_safe(proph, &ph->h, key, (char *)def);
 }
 
 int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)

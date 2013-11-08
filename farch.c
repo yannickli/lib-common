@@ -52,11 +52,6 @@ void farch_delete(farch_t **fap)
     }
 }
 
-const farch_entry_t *farch_find(const farch_t *fa, const char *name)
-{
-    return fa->h.values[RETHROW_NP(qm_find_safe(fe, &fa->h, name))];
-}
-
 
 /* Get data back in data/size.
  * If we have to allocate it, use the provided sb.
@@ -81,7 +76,7 @@ int farch_get(farch_t *fa, sb_t *buf, const byte **data, int *size,
             fa->checked_dir = true;
         }
     }
-    ent = farch_find(fa, name);
+    ent = qm_get_def_safe(fe, &fa->h, name, NULL);
     if (ent) {
         *data = ent->data;
         *size = ent->size;
