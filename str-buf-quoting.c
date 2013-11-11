@@ -773,7 +773,7 @@ error:
     return __sb_rewind_adds(sb, &orig);
 }
 
-/*{{{ Punycode */
+/*{{{ Punycode (RFC 3492) */
 
 #define PUNYCODE_DELIMITER     '-'
 #define PUNYCODE_BASE          36
@@ -942,6 +942,383 @@ int sb_add_punycode_str(sb_t *sb, const char *src, int src_len)
     } else {
         return sb_add_punycode_vec(sb, code_points, code_points_len);
     }
+}
+
+/*}}} */
+/*{{{ IDNA (RFC 3490) */
+
+#define IDNA_ACE_PFX      "xn--"
+#define IDNA_ACE_PFX_LEN  (ssizeof(IDNA_ACE_PFX) - 1)
+
+/* Non-LDH ASCII code points are: 0..2C, 2E..2F, 3A..40, 5B..60, and 7B..7F.
+ */
+ctype_desc_t const ctype_is_non_ldh = {
+    {
+        0xffffffff, 0xfc00dfff, 0xf8000001, 0xf8000001,
+        0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    }
+};
+
+static int idna_label_to_ascii(sb_t *sb, const char *label, int label_size,
+                               qv_t(u32) *code_points,
+                               bool is_ascii, unsigned flags)
+{
+    int initial_len = sb->len;
+
+    THROW_ERR_IF(label_size == 0 || code_points->len == 0);
+
+    if (flags & IDNA_USE_STD3_ASCII_RULES) {
+        /* Verify the absence of leading and trailing hyphen-minus */
+        THROW_ERR_IF(code_points->tab[0] == '-');
+        THROW_ERR_IF(code_points->tab[code_points->len - 1] == '-');
+    }
+
+    if (is_ascii) {
+        /* All characters of this label are ASCII ones, just output the input
+         * string. */
+        sb_add(sb, label, label_size);
+    } else {
+        is_ascii = true;
+
+        /* Perform the last NAMEPREP operations on ASCII characters (which
+         * were not performed in idna_nameprep). */
+        qv_for_each_ptr(u32, c, code_points) {
+            if (isascii(*c)) {
+                *c = unicode_tolower(*c);
+            } else {
+                is_ascii = false;
+            }
+        }
+
+        if (unlikely(is_ascii)) {
+            /* We were called in this function with is_ascii to false, but all
+             * code points are actually ASCII ones. This can happen if
+             * NAMEPREP filtered all the non-ASCII characters. In that case,
+             * just output the code points without encoding them. */
+            qv_for_each_entry(u32, c, code_points) {
+                sb_addc(sb, c);
+            }
+        } else {
+            /* Verify that the sequence does NOT begin with the ACE prefix */
+            if (code_points->len >= IDNA_ACE_PFX_LEN) {
+                uint32_t ace_pfx[] = { 'x', 'n', '-', '-' };
+
+                THROW_ERR_IF(!memcmp(code_points->tab, ace_pfx,
+                                     IDNA_ACE_PFX_LEN * sizeof(uint32_t)));
+            }
+
+            /* Encode the sequence using the punycode encoding */
+            sb_add(sb, IDNA_ACE_PFX, IDNA_ACE_PFX_LEN);
+            RETHROW(sb_add_punycode_vec(sb, code_points->tab,
+                                        code_points->len));
+        }
+    }
+
+    /* Verify that the number of code points is in the range 1 to 63
+     * inclusive. */
+    THROW_ERR_IF(sb->len - initial_len > 63);
+
+    return 0;
+}
+
+static inline int idna_nameprep(qv_t(u32) *code_points, int c, unsigned flags)
+{
+    /* This function is an approximation of NAMEPREP (RFC 3491), which is a
+     * profile of STRINGPREP (RFC 3454) dedicated to internationalized domain
+     * names.
+     * The tables referenced here are defined in RFC 3454.
+     *
+     * NAMEPREP is made of 5 steps:
+     *  - Mapping (tables B.1 and B.2); we are doing the exaxt checks for
+     *    table B.1, but table B.2 (which is a tolower table) is approximated
+     *    with unicode_tolower.
+     *  - Normalization; not implemented here.
+     *  - Prohibited Output; only prohibited characters of section 5.8 are
+     *    checked, because they are included in the NAMEPREP prohibited
+     *    output.
+     *  - Bidirectional characters; not implemented here.
+     *  - Unassigned Code Points: exact checks are done in this function.
+     */
+
+    /* Commonly mapped to nothing (table B.1) */
+    switch (c) {
+      case 0x00ad: case 0x034f: case 0x1806: case 0x180b: case 0x180c:
+      case 0x180d: case 0x200b: case 0x200c: case 0x200d: case 0x2060:
+      case 0xfe00 ... 0xfe0f: case 0xfeff:
+        return 0;
+
+      default:
+        break;
+    }
+
+    /* Prohibited Output
+     * Tables C.1.2, C.2.2, C.3, C.4, C.5, C.6, C.7, C.8 and C.9.
+     *
+     * Bidirectional characters (prohibit characters of section 5.8).
+     */
+    switch (c) {
+      case 0x00a0: case 0x0340: case 0x0341: case 0x06dd: case 0x070f:
+      case 0x1680: case 0x180e: case 0x2028: case 0x2029: case 0x205f:
+      case 0x3000: case 0xfeff: case 0xe0001:
+      case 0x0080 ... 0x009f: case 0x2000 ... 0x200f: case 0x202a ... 0x202f:
+      case 0x2060 ... 0x2063: case 0x206a ... 0x206f: case 0x2ff0 ... 0x2ffb:
+      case 0xd800 ... 0xdfff: case 0xe000 ... 0xf8ff: case 0xfdd0 ... 0xfdef:
+      case 0xfff9 ... 0xfffd: case 0xfffe ... 0xffff:
+      case 0x1d173 ... 0x1d17a: case 0x1fffe ... 0x1ffff:
+      case 0x2fffe ... 0x2ffff: case 0x3fffe ... 0x3ffff:
+      case 0x4fffe ... 0x4ffff: case 0x5fffe ... 0x5ffff:
+      case 0x6fffe ... 0x6ffff: case 0x7fffe ... 0x7ffff:
+      case 0x8fffe ... 0x8ffff: case 0x9fffe ... 0x9ffff:
+      case 0xafffe ... 0xaffff: case 0xbfffe ... 0xbffff:
+      case 0xcfffe ... 0xcffff: case 0xdfffe ... 0xdffff:
+      case 0xe0020 ... 0xe007f: case 0xefffe ... 0xeffff:
+      case 0xf0000 ... 0xffffd: case 0xffffe ... 0xfffff:
+      case 0x100000 ... 0x10fffd: case 0x10fffe ... 0x10ffff:
+        return -1;
+
+      default:
+        break;
+    }
+
+    if (!(flags & IDNA_ALLOW_UNASSIGNED)) {
+        /* Unassigned Code Points (table A.1) */
+        switch (c) {
+          case 0x0221: case 0x038b: case 0x038d: case 0x03a2: case 0x03cf:
+          case 0x0487: case 0x04cf: case 0x0560: case 0x0588: case 0x05a2:
+          case 0x05ba: case 0x0620: case 0x06ff: case 0x070e: case 0x0904:
+          case 0x0984: case 0x09a9: case 0x09b1: case 0x09bd: case 0x09de:
+          case 0x0a29: case 0x0a31: case 0x0a34: case 0x0a37: case 0x0a3d:
+          case 0x0a5d: case 0x0a84: case 0x0a8c: case 0x0a8e: case 0x0a92:
+          case 0x0aa9: case 0x0ab1: case 0x0ab4: case 0x0ac6: case 0x0aca:
+          case 0x0b04: case 0x0b29: case 0x0b31: case 0x0b5e: case 0x0b84:
+          case 0x0b91: case 0x0b9b: case 0x0b9d: case 0x0bb6: case 0x0bc9:
+          case 0x0c04: case 0x0c0d: case 0x0c11: case 0x0c29: case 0x0c34:
+          case 0x0c45: case 0x0c49: case 0x0c84: case 0x0c8d: case 0x0c91:
+          case 0x0ca9: case 0x0cb4: case 0x0cc5: case 0x0cc9: case 0x0cdf:
+          case 0x0d04: case 0x0d0d: case 0x0d11: case 0x0d29: case 0x0d49:
+          case 0x0d84: case 0x0db2: case 0x0dbc: case 0x0dd5: case 0x0dd7:
+          case 0x0e83: case 0x0e89: case 0x0e98: case 0x0ea0: case 0x0ea4:
+          case 0x0ea6: case 0x0eac: case 0x0eba: case 0x0ec5: case 0x0ec7:
+          case 0x0f48: case 0x0f98: case 0x0fbd: case 0x1022: case 0x1028:
+          case 0x102b: case 0x1207: case 0x1247: case 0x1249: case 0x1257:
+          case 0x1259: case 0x1287: case 0x1289: case 0x12af: case 0x12b1:
+          case 0x12bf: case 0x12c1: case 0x12cf: case 0x12d7: case 0x12ef:
+          case 0x130f: case 0x1311: case 0x131f: case 0x1347: case 0x170d:
+          case 0x176d: case 0x1771: case 0x180f: case 0x1f58: case 0x1f5a:
+          case 0x1f5c: case 0x1f5e: case 0x1fb5: case 0x1fc5: case 0x1fdc:
+          case 0x1ff5: case 0x1fff: case 0x24ff: case 0x2618: case 0x2705:
+          case 0x2728: case 0x274c: case 0x274e: case 0x2757: case 0x27b0:
+          case 0x2e9a: case 0x3040: case 0x318f: case 0x32ff: case 0x33ff:
+          case 0xfb37: case 0xfb3d: case 0xfb3f: case 0xfb42: case 0xfb45:
+          case 0xfe53: case 0xfe67: case 0xfe75: case 0xff00: case 0xffe7:
+          case 0x1031f: case 0x1d455: case 0x1d49d: case 0x1d4ad:
+          case 0x1d4ba: case 0x1d4bc: case 0x1d4c1: case 0x1d4c4:
+          case 0x1d506: case 0x1d515: case 0x1d51d: case 0x1d53a:
+          case 0x1d53f: case 0x1d545: case 0x1d551: case 0xe0000:
+          case 0x0234 ... 0x024f: case 0x02ae ... 0x02af:
+          case 0x02ef ... 0x02ff: case 0x0350 ... 0x035f:
+          case 0x0370 ... 0x0373: case 0x0376 ... 0x0379:
+          case 0x037b ... 0x037d: case 0x037f ... 0x0383:
+          case 0x03f7 ... 0x03ff: case 0x04f6 ... 0x04f7:
+          case 0x04fa ... 0x04ff: case 0x0510 ... 0x0530:
+          case 0x0557 ... 0x0558: case 0x058b ... 0x0590:
+          case 0x05c5 ... 0x05cf: case 0x05eb ... 0x05ef:
+          case 0x05f5 ... 0x060b: case 0x060d ... 0x061a:
+          case 0x061c ... 0x061e: case 0x063b ... 0x063f:
+          case 0x0656 ... 0x065f: case 0x06ee ... 0x06ef:
+          case 0x072d ... 0x072f: case 0x074b ... 0x077f:
+          case 0x07b2 ... 0x0900: case 0x093a ... 0x093b:
+          case 0x094e ... 0x094f: case 0x0955 ... 0x0957:
+          case 0x0971 ... 0x0980: case 0x098d ... 0x098e:
+          case 0x0991 ... 0x0992: case 0x09b3 ... 0x09b5:
+          case 0x09ba ... 0x09bb: case 0x09c5 ... 0x09c6:
+          case 0x09c9 ... 0x09ca: case 0x09ce ... 0x09d6:
+          case 0x09d8 ... 0x09db: case 0x09e4 ... 0x09e5:
+          case 0x09fb ... 0x0a01: case 0x0a03 ... 0x0a04:
+          case 0x0a0b ... 0x0a0e: case 0x0a11 ... 0x0a12:
+          case 0x0a3a ... 0x0a3b: case 0x0a43 ... 0x0a46:
+          case 0x0a49 ... 0x0a4a: case 0x0a4e ... 0x0a58:
+          case 0x0a5f ... 0x0a65: case 0x0a75 ... 0x0a80:
+          case 0x0aba ... 0x0abb: case 0x0ace ... 0x0acf:
+          case 0x0ad1 ... 0x0adf: case 0x0ae1 ... 0x0ae5:
+          case 0x0af0 ... 0x0b00: case 0x0b0d ... 0x0b0e:
+          case 0x0b11 ... 0x0b12: case 0x0b34 ... 0x0b35:
+          case 0x0b3a ... 0x0b3b: case 0x0b44 ... 0x0b46:
+          case 0x0b49 ... 0x0b4a: case 0x0b4e ... 0x0b55:
+          case 0x0b58 ... 0x0b5b: case 0x0b62 ... 0x0b65:
+          case 0x0b71 ... 0x0b81: case 0x0b8b ... 0x0b8d:
+          case 0x0b96 ... 0x0b98: case 0x0ba0 ... 0x0ba2:
+          case 0x0ba5 ... 0x0ba7: case 0x0bab ... 0x0bad:
+          case 0x0bba ... 0x0bbd: case 0x0bc3 ... 0x0bc5:
+          case 0x0bce ... 0x0bd6: case 0x0bd8 ... 0x0be6:
+          case 0x0bf3 ... 0x0c00: case 0x0c3a ... 0x0c3d:
+          case 0x0c4e ... 0x0c54: case 0x0c57 ... 0x0c5f:
+          case 0x0c62 ... 0x0c65: case 0x0c70 ... 0x0c81:
+          case 0x0cba ... 0x0cbd: case 0x0cce ... 0x0cd4:
+          case 0x0cd7 ... 0x0cdd: case 0x0ce2 ... 0x0ce5:
+          case 0x0cf0 ... 0x0d01: case 0x0d3a ... 0x0d3d:
+          case 0x0d44 ... 0x0d45: case 0x0d4e ... 0x0d56:
+          case 0x0d58 ... 0x0d5f: case 0x0d62 ... 0x0d65:
+          case 0x0d70 ... 0x0d81: case 0x0d97 ... 0x0d99:
+          case 0x0dbe ... 0x0dbf: case 0x0dc7 ... 0x0dc9:
+          case 0x0dcb ... 0x0dce: case 0x0de0 ... 0x0df1:
+          case 0x0df5 ... 0x0e00: case 0x0e3b ... 0x0e3e:
+          case 0x0e5c ... 0x0e80: case 0x0e85 ... 0x0e86:
+          case 0x0e8b ... 0x0e8c: case 0x0e8e ... 0x0e93:
+          case 0x0ea8 ... 0x0ea9: case 0x0ebe ... 0x0ebf:
+          case 0x0ece ... 0x0ecf: case 0x0eda ... 0x0edb:
+          case 0x0ede ... 0x0eff: case 0x0f6b ... 0x0f70:
+          case 0x0f8c ... 0x0f8f: case 0x0fcd ... 0x0fce:
+          case 0x0fd0 ... 0x0fff: case 0x1033 ... 0x1035:
+          case 0x103a ... 0x103f: case 0x105a ... 0x109f:
+          case 0x10c6 ... 0x10cf: case 0x10f9 ... 0x10fa:
+          case 0x10fc ... 0x10ff: case 0x115a ... 0x115e:
+          case 0x11a3 ... 0x11a7: case 0x11fa ... 0x11ff:
+          case 0x124e ... 0x124f: case 0x125e ... 0x125f:
+          case 0x128e ... 0x128f: case 0x12b6 ... 0x12b7:
+          case 0x12c6 ... 0x12c7: case 0x1316 ... 0x1317:
+          case 0x135b ... 0x1360: case 0x137d ... 0x139f:
+          case 0x13f5 ... 0x1400: case 0x1677 ... 0x167f:
+          case 0x169d ... 0x169f: case 0x16f1 ... 0x16ff:
+          case 0x1715 ... 0x171f: case 0x1737 ... 0x173f:
+          case 0x1754 ... 0x175f: case 0x1774 ... 0x177f:
+          case 0x17dd ... 0x17df: case 0x17ea ... 0x17ff:
+          case 0x181a ... 0x181f: case 0x1878 ... 0x187f:
+          case 0x18aa ... 0x1dff: case 0x1e9c ... 0x1e9f:
+          case 0x1efa ... 0x1eff: case 0x1f16 ... 0x1f17:
+          case 0x1f1e ... 0x1f1f: case 0x1f46 ... 0x1f47:
+          case 0x1f4e ... 0x1f4f: case 0x1f7e ... 0x1f7f:
+          case 0x1fd4 ... 0x1fd5: case 0x1ff0 ... 0x1ff1:
+          case 0x2053 ... 0x2056: case 0x2058 ... 0x205e:
+          case 0x2064 ... 0x2069: case 0x2072 ... 0x2073:
+          case 0x208f ... 0x209f: case 0x20b2 ... 0x20cf:
+          case 0x20eb ... 0x20ff: case 0x213b ... 0x213c:
+          case 0x214c ... 0x2152: case 0x2184 ... 0x218f:
+          case 0x23cf ... 0x23ff: case 0x2427 ... 0x243f:
+          case 0x244b ... 0x245f: case 0x2614 ... 0x2615:
+          case 0x267e ... 0x267f: case 0x268a ... 0x2700:
+          case 0x270a ... 0x270b: case 0x2753 ... 0x2755:
+          case 0x275f ... 0x2760: case 0x2795 ... 0x2797:
+          case 0x27bf ... 0x27cf: case 0x27ec ... 0x27ef:
+          case 0x2b00 ... 0x2e7f: case 0x2ef4 ... 0x2eff:
+          case 0x2fd6 ... 0x2fef: case 0x2ffc ... 0x2fff:
+          case 0x3097 ... 0x3098: case 0x3100 ... 0x3104:
+          case 0x312d ... 0x3130: case 0x31b8 ... 0x31ef:
+          case 0x321d ... 0x321f: case 0x3244 ... 0x3250:
+          case 0x327c ... 0x327e: case 0x32cc ... 0x32cf:
+          case 0x3377 ... 0x337a: case 0x33de ... 0x33df:
+          case 0x4db6 ... 0x4dff: case 0x9fa6 ... 0x9fff:
+          case 0xa48d ... 0xa48f: case 0xa4c7 ... 0xabff:
+          case 0xd7a4 ... 0xd7ff: case 0xfa2e ... 0xfa2f:
+          case 0xfa6b ... 0xfaff: case 0xfb07 ... 0xfb12:
+          case 0xfb18 ... 0xfb1c: case 0xfbb2 ... 0xfbd2:
+          case 0xfd40 ... 0xfd4f: case 0xfd90 ... 0xfd91:
+          case 0xfdc8 ... 0xfdcf: case 0xfdfd ... 0xfdff:
+          case 0xfe10 ... 0xfe1f: case 0xfe24 ... 0xfe2f:
+          case 0xfe47 ... 0xfe48: case 0xfe6c ... 0xfe6f:
+          case 0xfefd ... 0xfefe: case 0xffbf ... 0xffc1:
+          case 0xffc8 ... 0xffc9: case 0xffd0 ... 0xffd1:
+          case 0xffd8 ... 0xffd9: case 0xffdd ... 0xffdf:
+          case 0xffef ... 0xfff8: case 0x10000 ... 0x102ff:
+          case 0x10324 ... 0x1032f: case 0x1034b ... 0x103ff:
+          case 0x10426 ... 0x10427: case 0x1044e ... 0x1cfff:
+          case 0x1d0f6 ... 0x1d0ff: case 0x1d127 ... 0x1d129:
+          case 0x1d1de ... 0x1d3ff: case 0x1d4a0 ... 0x1d4a1:
+          case 0x1d4a3 ... 0x1d4a4: case 0x1d4a7 ... 0x1d4a8:
+          case 0x1d50b ... 0x1d50c: case 0x1d547 ... 0x1d549:
+          case 0x1d6a4 ... 0x1d6a7: case 0x1d7ca ... 0x1d7cd:
+          case 0x1d800 ... 0x1fffd: case 0x2a6d7 ... 0x2f7ff:
+          case 0x2fa1e ... 0x2fffd: case 0x30000 ... 0x3fffd:
+          case 0x40000 ... 0x4fffd: case 0x50000 ... 0x5fffd:
+          case 0x60000 ... 0x6fffd: case 0x70000 ... 0x7fffd:
+          case 0x80000 ... 0x8fffd: case 0x90000 ... 0x9fffd:
+          case 0xa0000 ... 0xafffd: case 0xb0000 ... 0xbfffd:
+          case 0xc0000 ... 0xcfffd: case 0xd0000 ... 0xdfffd:
+          case 0xe0002 ... 0xe001f: case 0xe0080 ... 0xefffd:
+            return -1;
+
+          default:
+            break;
+        }
+    }
+
+    /* To lower (approximately corresponds to mapping table B.2) */
+    c = unicode_tolower(c);
+
+    qv_append(u32, code_points, c);
+    return 0;
+}
+
+int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
+                            unsigned flags)
+{
+    qv_t(u32) code_points;
+    int pos = 0, label_size = 0;
+    int nb_labels = 0;
+    const char *label_begin_s = src;
+    bool is_ascii = true;
+
+#define IDNA_RETHROW(e)  \
+    ({ typeof(e) __res = (e);                                                \
+       if (unlikely(__res < 0))                                              \
+           goto error;                                                       \
+       __res;                                                                \
+    })
+
+    qv_inita(u32, &code_points, src_len);
+
+    while (pos < src_len) {
+        int c = IDNA_RETHROW(utf8_ngetc_at(src, src_len, &pos));
+
+        /* U+002E (full stop), U+3002 (ideographic full stop), U+FF0E
+         * (fullwidth full stop) and U+FF61 (halfwidth ideographic full stop)
+         * MUST be recognized as dots. */
+        if (c != 0x002E && c != 0x3002 && c != 0XFF0E && c != 0xFF61) {
+            if (isascii(c)) {
+                if (flags & IDNA_USE_STD3_ASCII_RULES) {
+                    /* Verify the absence of non-LDH ASCII code points */
+                    if (unlikely(ctype_desc_contains(&ctype_is_non_ldh, c))) {
+                        goto error;
+                    }
+                }
+                qv_append(u32, &code_points, c);
+            } else {
+                is_ascii = false;
+                IDNA_RETHROW(idna_nameprep(&code_points, c, flags));
+            }
+
+            label_size = src + pos - label_begin_s;
+            continue;
+        }
+
+        /* This is the end of a label */
+        IDNA_RETHROW(idna_label_to_ascii(sb, label_begin_s, label_size,
+                                         &code_points, is_ascii, flags));
+
+        sb_addc(sb, '.');
+        label_begin_s = src + pos;
+        label_size    = 0;
+        is_ascii = true;
+        nb_labels++;
+        qv_clear(u32, &code_points);
+    }
+
+    /* Encode last label */
+    IDNA_RETHROW(idna_label_to_ascii(sb, label_begin_s, label_size,
+                                     &code_points, is_ascii, flags));
+
+    /* XXX: this wipe is useless for now; it could become useful if our
+     *      implementation of NAMEPREP becomes fully complient one day (it
+     *      could increase the number of code points), so keep it to be safe.
+     */
+    qv_wipe(u32, &code_points);
+
+    return ++nb_labels >= 2 ? nb_labels : -1;
+
+  error:
+    qv_wipe(u32, &code_points);
+    return -1;
+#undef IDNA_RETHROW
 }
 
 /*}}} */

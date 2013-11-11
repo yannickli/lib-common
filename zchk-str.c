@@ -501,6 +501,92 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(sb_add_idna_domain_name, "str: sb_add_idna_domain_name") {
+        SB_1k(sb);
+        SB_1k(domain);
+
+#define T_OK(_in, _out, _flags, _nb_labels) \
+        do {                                                                 \
+            int nb_labels = sb_add_idna_domain_name(&sb, _in, strlen(_in),   \
+                                                    _flags);                 \
+            Z_ASSERT_N(nb_labels);                                           \
+            Z_ASSERT_EQ(nb_labels, _nb_labels);                              \
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(_out));          \
+            sb_reset(&sb);                                                   \
+        } while (0)
+
+#define T_KO(_in, _flags) \
+        do {                                                                 \
+            Z_ASSERT_NEG(sb_add_idna_domain_name(&sb, _in, strlen(_in),      \
+                                                 _flags));                   \
+            sb_reset(&sb);                                                   \
+        } while (0)
+
+        /* Basic failure cases */
+        T_KO("intersec", 0);
+        T_KO("intersec..com", 0);
+        T_KO("intersec.com.", 0);
+        T_KO("intersec-.com", IDNA_USE_STD3_ASCII_RULES);
+        T_KO("intersec.-com", IDNA_USE_STD3_ASCII_RULES);
+        T_KO("xN--bücher.com", 0);
+        T_KO("123456789012345678901234567890123456789012345678901234567890"
+             "1234.com", 0);
+        T_KO("InSighted!.intersec.com", IDNA_USE_STD3_ASCII_RULES);
+
+        /* Basic success cases */
+        T_OK("jobs.intersec.com", "jobs.intersec.com",
+             IDNA_USE_STD3_ASCII_RULES, 3);
+        T_OK("bücher.com", "xn--bcher-kva.com", IDNA_USE_STD3_ASCII_RULES, 2);
+        T_OK("xn--bcher-kva.com", "xn--bcher-kva.com",
+             IDNA_USE_STD3_ASCII_RULES, 2);
+        T_OK("label1.label2。label3．label4｡com",
+             "label1.label2.label3.label4.com",
+             IDNA_USE_STD3_ASCII_RULES, 5);
+        T_OK("intersec-.com", "intersec-.com", 0, 2);
+        T_OK("intersec.-com", "intersec.-com", 0, 2);
+        T_OK("xn-bücher.com", "xn--xn-bcher-95a.com", 0, 2);
+        T_OK("InSighted!.intersec.com", "InSighted!.intersec.com", 0, 3);
+#undef T_OK
+#undef T_KO
+
+        /* Commonly mapped to nothing */
+        sb_reset(&domain);
+        sb_adds(&domain, "int");
+        sb_adduc(&domain, 0x00ad);
+        sb_adds(&domain, "er");
+        sb_adduc(&domain, 0xfe01);
+        sb_adds(&domain, "sec.com");
+        Z_ASSERT_N(sb_add_idna_domain_name(&sb, domain.data, domain.len, 0));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V("intersec.com"));
+        sb_reset(&domain);
+        sb_reset(&sb);
+        sb_adds(&domain, "büc");
+        sb_adduc(&domain, 0x00ad);
+        sb_adds(&domain, "he");
+        sb_adduc(&domain, 0xfe01);
+        sb_adds(&domain, "r.com");
+        Z_ASSERT_N(sb_add_idna_domain_name(&sb, domain.data, domain.len, 0));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V("xn--bcher-kva.com"));
+
+        /* Prohibited output */
+        sb_reset(&domain);
+        sb_adds(&domain, "inter");
+        sb_adduc(&domain, 0x00a0);
+        sb_adds(&domain, "sec.com");
+        Z_ASSERT_NEG(sb_add_idna_domain_name(&sb, domain.data, domain.len,
+                                             0));
+
+        /* Unassigned Code Points */
+        sb_reset(&domain);
+        sb_adds(&domain, "inter");
+        sb_adduc(&domain, 0x0221);
+        sb_adds(&domain, "sec.com");
+        Z_ASSERT_NEG(sb_add_idna_domain_name(&sb, domain.data, domain.len,
+                                             0));
+        Z_ASSERT(sb_add_idna_domain_name(&sb, domain.data, domain.len,
+                                         IDNA_ALLOW_UNASSIGNED) == 2);
+    } Z_TEST_END;
+
     Z_TEST(str_span, "str: filtering") {
         SB_1k(sb);
 
