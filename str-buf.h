@@ -606,6 +606,28 @@ int sb_add_punycode_vec(sb_t *sb, const uint32_t *code_points,
  */
 int sb_add_punycode_str(sb_t *sb, const char *src, int src_len);
 
+
+enum idna_flags_t {
+    IDNA_USE_STD3_ASCII_RULES = 1 << 0, /* UseSTD3ASCIIRules */
+    IDNA_ALLOW_UNASSIGNED     = 1 << 1, /* AllowUnassigned   */
+};
+
+/** Append the IDNA-encoded string corresponding to the input UTF8 domain
+ * name.
+ *
+ * This function computes the IDNA-encoded version of the input UTF8 domain
+ * name as specified in RFC 3490, and appends it to the given string buffer.
+ *
+ * \param[out] sb  the output string buffer.
+ * \param[in]  src  input UTF8 domain name string to encode.
+ * \param[in]  src_len  length (in bytes) of the input UTF8 string.
+ * \param[in]  flags    encoding flags (bitfield of idna_flags_t.
+ *
+ * \return  the (positive) number of encoded labels on success, -1 on failure.
+ */
+int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
+                            unsigned flags);
+
 /**************************************************************************/
 /* charset conversions (when implicit, charset is utf8)                   */
 /**************************************************************************/
