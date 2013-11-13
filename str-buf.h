@@ -614,8 +614,9 @@ int sb_add_punycode_str(sb_t *sb, const char *src, int src_len);
 
 
 enum idna_flags_t {
-    IDNA_USE_STD3_ASCII_RULES = 1 << 0, /* UseSTD3ASCIIRules */
-    IDNA_ALLOW_UNASSIGNED     = 1 << 1, /* AllowUnassigned   */
+    IDNA_USE_STD3_ASCII_RULES = 1 << 0, /* UseSTD3ASCIIRules                */
+    IDNA_ALLOW_UNASSIGNED     = 1 << 1, /* AllowUnassigned                  */
+    IDNA_ASCII_TOLOWER        = 1 << 2, /* Lower characters of ASCII labels */
 };
 
 /** Append the IDNA-encoded string corresponding to the input UTF8 domain
