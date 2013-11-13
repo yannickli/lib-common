@@ -2276,6 +2276,138 @@ Z_GROUP_EXPORT(iop)
 #undef CHECK_CHILD
     } Z_TEST_END
     /* }}} */
+    Z_TEST(inheritance_switch, "test IOP_CLASS_SWITCH helpers") { /* {{{ */
+        tstiop_inheritance__c1__t c1;
+        bool matched = false;
+
+        tstiop_inheritance__c1__init(&c1);
+        IOP_CLASS_EXACT_SWITCH(&c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__a1, &c1, a1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b2, &c1, b2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c1, &c1, ok) {
+            Z_ASSERT_P(ok);
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_EXACT_DEFAULT() {
+            Z_ASSERT(false);
+          }
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
+        IOP_CLASS_EXACT_SWITCH(&c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__a1, &c1, a1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b2, &c1, b2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_EXACT_DEFAULT() {
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
+        IOP_CLASS_SWITCH(c1, &c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__a1, &c1, a1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b2, &c1, b2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c1, &c1, ok) {
+            Z_ASSERT_P(ok);
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_DEFAULT(c1) {
+            Z_ASSERT(false);
+          }
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
+        IOP_CLASS_SWITCH(c1, &c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__a1, &c1, a1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b2, &c1, b2) {
+            Z_ASSERT(b2);
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_DEFAULT(c1) {
+            Z_ASSERT(false);
+          }
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
+        IOP_CLASS_SWITCH(c1, &c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__a1, &c1, a1) {
+            Z_ASSERT(a1);
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_DEFAULT(c1) {
+            Z_ASSERT(false);
+          }
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
+        IOP_CLASS_SWITCH(c1, &c1) {
+          IOP_CLASS_CASE(tstiop_inheritance__b1, &c1, b1) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_CASE(tstiop_inheritance__c2, &c1, c2) {
+            Z_ASSERT(false);
+          }
+          IOP_CLASS_DEFAULT(c1) {
+            Z_ASSERT(!matched);
+            matched = true;
+          }
+        }
+        Z_ASSERT(matched);
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(inheritance_fields_init, "test fields initialization") { /* {{{ */
         {
             tstiop_inheritance__b1__t b1;

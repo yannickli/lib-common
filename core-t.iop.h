@@ -70,6 +70,8 @@ typedef struct core__log_file_configuration__t {
 extern iop_struct_t const core__log_file_configuration__s;
 IOP_CLASS(core__log_file_configuration);
 
+#define core__log_file_configuration__class_id  0
+
 typedef struct core__licence__t {
     const iop_struct_t *__vptr;
     lstr_t   expires;
@@ -81,6 +83,8 @@ typedef struct core__licence__t {
 } core__licence__t;
 extern iop_struct_t const core__licence__s;
 IOP_CLASS(core__licence);
+
+#define core__licence__class_id  0
 
 typedef struct core__signed_licence__t {
     struct core__licence__t *licence;

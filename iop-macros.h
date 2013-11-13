@@ -61,14 +61,14 @@
  *  }
  * }
  *
- * XXX never use _continue_ inside an IOP_UNION_SWITCH.
- *
  * \param[in] u The union to switch on.
  */
 #define IOP_UNION_SWITCH(u) \
     switch ((u)->iop_tag)
 
 /** Case giving the value by pointer.
+ *
+ * XXX never use _continue_ inside an IOP_UNION_CASE_P.
  *
  * \param[in] pfx   The union prefix (pkg__name).
  * \param[in] u     The union given to IOP_UNION_SWITCH().
@@ -82,6 +82,8 @@
         for (typeof((u)->field) *val = &(u)->field; val; val = NULL)
 
 /** Case giving the field value by value.
+ *
+ * XXX never use _continue_ inside an IOP_UNION_CASE.
  *
  * \param[in] pfx   The union prefix (pkg__name).
  * \param[in] u     The union given to IOP_UNION_SWITCH().
@@ -560,6 +562,125 @@
  * Same as iop_obj_vcast, but returns a const pointer.
  */
 #define iop_obj_ccast(pfx, o)  ((const pfx##__t *)iop_obj_cast_debug(pfx, o))
+
+/** Get the class id of a class type */
+#define IOP_CLASS_ID(type)  type##__class_id
+
+/** Allow to make a switch on a class instance.
+ *
+ * This switch matches the exact class id of a class instance. This can be
+ * used either with the IOP_CLASS_CASE() helper that match the class and
+ * provides the casted instance, or directly using case IOP_CLASS_ID().
+ *
+ * IOP_CLASS_EXACT_SWITCH(my_class_instance) {
+ *   IOP_CLASS_CASE(a_class, my_class_instance, a_instance) {
+ *     do_something_with(a_instance);
+ *   }
+ *
+ *   IOP_CLASS_CASE(b_class, my_class_instance, b_instance) {
+ *     do_something_with(b_instance);
+ *   }
+ *
+ *   IOP_CLASS_EXACT_DEFAULT() {
+ *     do_something_with(my_class_instance);
+ *   }
+ * }
+ *
+ * This also can be written as:
+ *
+ * IOP_CLASS_EXACT_SWITCH(my_class_instance) {
+ *   case IOP_CLASS_ID(a_class):
+ *     do_something_with(my_class_instance);
+ *     break;
+ *
+ *   case IOP_CLASS_ID(b_class):
+ *     do_something_with(my_class_instance);
+ *     break;
+ *
+ *   default:
+ *     do_something_with(my_class_instance);
+ *     break;
+ * }
+ */
+#define IOP_CLASS_EXACT_SWITCH(inst) \
+    switch ((inst)->__vptr->class_attrs->class_id)
+
+/** Case matching a given IOP class and giving the casted value.
+ *
+ * XXX never use _continue_ inside an IOP_CLASS_CASE.
+ *
+ * \param[in] pfx    The class name (pkg__name)
+ * \param[in] inst   The class instance given to IOP_CLASS_SWITCH()
+ * \param[out] val   Pointer to the instance casted to the given class if the
+ *                   case matched.
+ */
+#define IOP_CLASS_CASE(pfx, inst, val) \
+        break;                                                               \
+      case IOP_CLASS_ID(pfx):                                                \
+        for (pfx##__t *val = iop_obj_vcast(pfx, (inst)); val; val = NULL)
+
+/** Case matching a given IOP class and giving the const casted value.
+ *
+ * XXX never use _continue_ inside an IOP_CLASS_CASE_CONST.
+ *
+ * \param[in] pfx    The class name (pkg__name)
+ * \param[in] inst   The class instance given to IOP_CLASS_SWITCH()
+ * \param[out] val   Pointer to the instance casted to the given class if the
+ *                   case matched. The pointer is const.
+ */
+#define IOP_CLASS_CASE_CONST(pfx, inst, val) \
+        break;                                                               \
+      case IOP_CLASS_ID(pfx):                                                \
+        for (const pfx##__t *val = iop_obj_ccast(pfx, (inst)); val; val = NULL)
+
+/** Default case.
+ */
+#define IOP_CLASS_EXACT_DEFAULT()  \
+        break;                                                               \
+      default: (void)0;
+
+
+/** Allow to make a switch on an inherited class instance.
+ *
+ * This switch matches the nearest parent class id of a class instance. It can
+ * only be used with the IOP_CLASS_CASE() macros and must contain a
+ * IOP_CLASS_DEFAULT().
+ *
+ * IOP_CLASS_SWITCH(name, my_class_instance) {
+ *   IOP_CLASS_CASE(a_class, my_class_instance, a_instance) {
+ *   }
+ *
+ *   IOP_CLASS_CASE(b_class, my_class_instance, b_instance) {
+ *   }
+ *
+ *   IOP_CLASS_DEFAULT(name) {
+ *   }
+ * }
+ *
+ * \param[in] name A uniq token to identify the switch. This is used to allow
+ *                 imbricated IOP_CLASS_SWITCH
+ * \param[in] inst The class instance to be matched.
+ */
+#define IOP_CLASS_SWITCH(name, inst)  \
+    for (const iop_struct_t *__##name##_st = (inst)->__vptr,                 \
+                            *__##name##_next_st = (inst)->__vptr;            \
+         __##name##_st == __##name##_next_st;                                \
+         __##name##_st = __##name##_st->class_attrs->parent)                 \
+        switch (__##name##_st->class_attrs->class_id)
+
+/** Case to match unsupported classes.
+ *
+ * XXX never use _continue_ inside an IOP_CLASS_DEFAULT.
+ *
+ * \param[in] name The name of the IOP_CLASS_SWITCH()
+ */
+#define IOP_CLASS_DEFAULT(name)  \
+        break;                                                               \
+      default:                                                               \
+        if (__##name##_next_st->class_attrs->parent) {                       \
+            __##name##_next_st = __##name##_next_st->class_attrs->parent;    \
+            continue;                                                        \
+        } else
 
 /* }}} */
 /* {{{ Private helpers */
