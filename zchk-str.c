@@ -821,6 +821,10 @@ Z_GROUP_EXPORT(str)
         T_KO("InSighted!.intersec.com", IDNA_USE_STD3_ASCII_RULES);
 
         /* Basic success cases */
+        T_OK("jObs.InTerseC.coM", "jObs.InTerseC.coM",
+             IDNA_USE_STD3_ASCII_RULES, 3);
+        T_OK("jObs.InTerseC.coM", "jobs.intersec.com",
+             IDNA_USE_STD3_ASCII_RULES | IDNA_ASCII_TOLOWER, 3);
         T_OK("jobs.intersec.com", "jobs.intersec.com",
              IDNA_USE_STD3_ASCII_RULES, 3);
         T_OK("bücher.com", "xn--bcher-kva.com", IDNA_USE_STD3_ASCII_RULES, 2);
