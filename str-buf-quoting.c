@@ -976,7 +976,16 @@ static int idna_label_to_ascii(sb_t *sb, const char *label, int label_size,
     if (is_ascii) {
         /* All characters of this label are ASCII ones, just output the input
          * string. */
-        sb_add(sb, label, label_size);
+        if (flags & IDNA_ASCII_TOLOWER) {
+            const char *end = label + label_size;
+
+            sb_grow(sb, label_size);
+            while (label < end) {
+                sb_addc(sb, tolower(*label++));
+            }
+        } else {
+            sb_add(sb, label, label_size);
+        }
     } else {
         is_ascii = true;
 
