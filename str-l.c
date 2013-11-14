@@ -20,6 +20,22 @@ int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
     if (unlikely(fstat(fd, &st)) < 0) {
         return -2;
     }
+
+    if (st.st_size <= 0) {
+        SB_8k(sb);
+
+        if (sb_read_fd(&sb, fd) < 0) {
+            return -3;
+        }
+
+        *dst = LSTR_EMPTY_V;
+        if (sb.len == 0) {
+            return 0;
+        }
+        lstr_transfer_sb(dst, &sb, false);
+        return 0;
+    }
+
     if (st.st_size == 0) {
         *dst = LSTR_EMPTY_V;
         return 0;
