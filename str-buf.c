@@ -339,44 +339,47 @@ int sb_fread(sb_t *sb, int size, int nmemb, FILE *f)
  * cannot be read completely, no data is kept in the sb and an error
  * is returned.
  */
-int sb_read_file(sb_t *sb, const char *filename)
+int sb_read_fd(sb_t *sb, int fd)
 {
     sb_t orig = *sb;
     struct stat st;
-    int res, fd, err;
     char *buf;
+    int res;
 
-    fd = RETHROW(open(filename, O_RDONLY));
     if (fstat(fd, &st) < 0 || st.st_size <= 0) {
         for (;;) {
             res = sb_read(sb, fd, 0);
+
             if (res < 0) {
-                __sb_rewind_adds(sb, &orig);
-                goto end;
+                return __sb_rewind_adds(sb, &orig);
             }
             if (res == 0) {
-                res = sb->len - orig.len;
-                goto end;
+                return sb->len - orig.len;
             }
         }
     }
 
     if (st.st_size > INT_MAX) {
         errno = ENOMEM;
-        res = -1;
-        goto end;
+        return -1;
     }
 
     res = st.st_size;
     buf = sb_growlen(sb, res);
     if (xread(fd, buf, res) < 0) {
-        res = __sb_rewind_adds(sb, &orig);
+        return __sb_rewind_adds(sb, &orig);
     }
 
-end:
-    err = errno;
-    close(fd);
-    errno = err;
+    return res;
+}
+
+int sb_read_file(sb_t *sb, const char *filename)
+{
+    int fd, res;
+
+    fd = RETHROW(open(filename, O_RDONLY));
+    res = sb_read_fd(sb, fd);
+    PROTECT_ERRNO(p_close(&fd));
     return res;
 }
 

@@ -485,6 +485,7 @@ struct sockaddr;
  */
 int sb_getline(sb_t *sb, FILE *f) __leaf;
 int sb_fread(sb_t *sb, int size, int nmemb, FILE *f) __leaf;
+int sb_read_fd(sb_t *sb, int fd) __leaf;
 int sb_read_file(sb_t *sb, const char *filename) __leaf;
 int sb_write_file(const sb_t *sb, const char *filename) __leaf;
 
