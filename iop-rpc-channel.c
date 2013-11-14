@@ -1281,12 +1281,14 @@ void ic_flush(ichannel_t *ic)
 
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 {
+    bool async = msg->async;
+
     /* if that crashes, one of the IC_MSG_ABORT callback reenqueues directly in
      * that ichannel_t which is forbidden, fix the code
      */
     assert (ic->cancel_guard == false);
 
-    if (!msg->async) {
+    if (!async) {
         unsigned start = ic->nextslot;
 
         do {
@@ -1328,6 +1330,9 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
         }
         ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
                               unpacked_msg);
+        if (async) {
+            ic_msg_delete(&msg);
+        }
     } else {
         ic_queue(ic, msg, flags);
     }
