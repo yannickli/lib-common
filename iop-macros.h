@@ -33,6 +33,9 @@
 /* }}} */
 /* {{{ IOP array initializers (repeated fields) */
 
+/** Type of the IOP array defined for the given IOP type */
+#define IOP_ARRAY_T(type)  type##__array_t
+
 /** Initialize a repeated field */
 #define IOP_ARRAY(_data, _len)  { { .tab = (_data) }, .len = (_len) }
 

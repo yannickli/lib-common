@@ -459,6 +459,19 @@ struct iop_pkg_t {
         int32_t len;                             \
         unsigned flags;                          \
     }
+typedef IOP_ARRAY_OF(int8_t) iop_array_i8_t;
+typedef IOP_ARRAY_OF(uint8_t) iop_array_u8_t;
+typedef IOP_ARRAY_OF(int16_t) iop_array_i16_t;
+typedef IOP_ARRAY_OF(uint16_t) iop_array_u16_t;
+typedef IOP_ARRAY_OF(int32_t) iop_array_i32_t;
+typedef IOP_ARRAY_OF(uint32_t) iop_array_u32_t;
+typedef IOP_ARRAY_OF(int64_t) iop_array_i64_t;
+typedef IOP_ARRAY_OF(uint64_t) iop_array_u64_t;
+typedef IOP_ARRAY_OF(bool) iop_array_bool_t;
+typedef iop_array_bool_t iop_array__Bool_t;
+typedef IOP_ARRAY_OF(double) iop_array_double_t;
+typedef IOP_ARRAY_OF(lstr_t) iop_array_lstr_t;
+
 typedef lstr_t iop_data_t;
 
 /* XXX Deprecated please use opt_XXX_t types */
