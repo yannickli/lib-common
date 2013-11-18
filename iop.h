@@ -710,6 +710,7 @@ const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
  *
  * Same as iop_get_cvar, but directly takes a class descriptor.
  */
+__attr_nonnull__((1))
 const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
 
 #define iop_get_cvar_desc_cst(desc, name)  \
@@ -723,6 +724,7 @@ const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
  *
  * \return  true if \p cls1 is equal to \p cls2, or has \p cls2 in its parents
  */
+__attr_nonnull__((1, 2))
 bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
 
 /** Checks if an object is of a given class or has it in its parents.
@@ -736,7 +738,7 @@ bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
  * \return  true if \p obj is an object of class \p desc, or has \p desc in
  *          its parents.
  */
-static inline bool
+__attr_nonnull__((1, 2)) static inline bool
 iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
 {
     return iop_class_is_a(*(const iop_struct_t **)obj, desc);
@@ -749,7 +751,7 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
  * The wanted class must have the same master class than the given class
  * descriptor.
  */
-const iop_struct_t *
+__attr_nonnull__((1)) const iop_struct_t *
 iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname);
 
 /** Get the descriptor of a class from its id.
