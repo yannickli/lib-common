@@ -2,40 +2,12 @@
 #ifndef IOP_HEADER_GUARD_core_TYPES_H
 #define IOP_HEADER_GUARD_core_TYPES_H
 
-#include <lib-common/iop.h>
+#include "core-tdef.iop.h"
 
-typedef enum core__log_level__t {
-    LOG_LEVEL_EMERG,
-    LOG_LEVEL_ALERT,
-    LOG_LEVEL_CRIT,
-    LOG_LEVEL_ERR,
-    LOG_LEVEL_WARNING,
-    LOG_LEVEL_NOTICE,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_DEBUG,
-} core__log_level__t;
 extern iop_enum_t const core__log_level__e;
 IOP_ENUM(core__log_level);
 
-#define LOG_LEVEL_count 8
-#define LOG_LEVEL_min   0
-#define LOG_LEVEL_max   7
-
-typedef enum core__iop_http_method__t {
-    IOP_HTTP_METHOD_OPTIONS,
-    IOP_HTTP_METHOD_GET,
-    IOP_HTTP_METHOD_HEAD,
-    IOP_HTTP_METHOD_POST,
-    IOP_HTTP_METHOD_PUT,
-    IOP_HTTP_METHOD_DELETE,
-    IOP_HTTP_METHOD_TRACE,
-    IOP_HTTP_METHOD_CONNECT,
-} core__iop_http_method__t;
 extern iop_enum_t const core__iop_http_method__e;
 IOP_ENUM(core__iop_http_method);
-
-#define IOP_HTTP_METHOD_count 8
-#define IOP_HTTP_METHOD_min   0
-#define IOP_HTTP_METHOD_max   7
 
 #endif
