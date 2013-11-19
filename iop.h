@@ -455,7 +455,7 @@ struct iop_pkg_t {
 
 #define IOP_ARRAY_OF(type_t)                     \
     struct {                                     \
-        union { type_t *tab; type_t *data; };    \
+        type_t *tab;                             \
         int32_t len;                             \
         unsigned flags;                          \
     }
