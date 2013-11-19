@@ -708,7 +708,7 @@ Z_GROUP_EXPORT(iop)
             .g = 10000,
             .h = UINT64_MAX,
             .htab = IOP_ARRAY(uval, countof(uval)),
-            .i = IOP_DATA((void *)"foo", 3),
+            .i = LSTR_IMMED("foo"),
             .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
@@ -723,9 +723,8 @@ Z_GROUP_EXPORT(iop)
             LSTR_IMMED("foo"), LSTR_IMMED("bar"), LSTR_IMMED("foobar"),
         };
 
-        iop_data_t dvals[] = {
-            IOP_DATA((void *)"Test", 4), IOP_DATA((void *)"Foo", 3),
-            IOP_DATA((void *)"BAR", 3),
+        lstr_t dvals[] = {
+            LSTR_IMMED("Test"), LSTR_IMMED("Foo"), LSTR_IMMED("BAR"),
         };
 
         tstiop__my_struct_b__t bvals[] = {
@@ -974,7 +973,7 @@ Z_GROUP_EXPORT(iop)
             .f = 2000,
             .g = 10000,
             .h = 20000,
-            .i = IOP_DATA((void *)"foo", 3),
+            .i = LSTR_IMMED("foo"),
             .j = LSTR_IMMED("baré© \" foo ."),
             .xml_field = LSTR_IMMED("<foo />"),
             .k = MY_ENUM_A_B,
@@ -998,7 +997,7 @@ Z_GROUP_EXPORT(iop)
             .f = 2000,
             .g = 10000,
             .h = 20000,
-            .i = IOP_DATA_EMPTY,
+            .i = LSTR_EMPTY,
             .j = LSTR_EMPTY,
             .xml_field = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
@@ -1092,7 +1091,7 @@ Z_GROUP_EXPORT(iop)
             .f = 60,
             .g = 10 * 24 * 3600,
             .h = 1ULL << 40,
-            .i = IOP_DATA((void *)"foo", 3),
+            .i = LSTR_IMMED("foo"),
             .j = LSTR_IMMED("bar"),
             .xml_field = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
@@ -1136,9 +1135,9 @@ Z_GROUP_EXPORT(iop)
             LSTR_IMMED("bar"),
         };
 
-        iop_data_t bvals[] = {
-            IOP_DATA((void *)"foobar", 6),
-            IOP_DATA((void *)"barfoo", 6),
+        lstr_t bvals[] = {
+            LSTR_IMMED("foobar"),
+            LSTR_IMMED("barfoo"),
         };
 
         int b2vals[] = { 86400*7, 86400, 3600, 60, 1, 1<<30, 1<<20, 1<<10 };
@@ -1306,7 +1305,7 @@ Z_GROUP_EXPORT(iop)
             .f = 2000,
             .g = 10000,
             .h = 20000,
-            .i = IOP_DATA((void *)"foo", 3),
+            .i = LSTR_IMMED("foo"),
             .j = LSTR_IMMED("baré© \" foo ."),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
@@ -1324,7 +1323,7 @@ Z_GROUP_EXPORT(iop)
             .f = 2000,
             .g = 10000,
             .h = 20000,
-            .i = IOP_DATA_EMPTY,
+            .i = LSTR_EMPTY,
             .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
@@ -3001,7 +3000,7 @@ Z_GROUP_EXPORT(iop)
             .f = 2000,
             .g = 10000,
             .h = 20000,
-            .i = IOP_DATA((void *)"foo", 3),
+            .i = LSTR_IMMED("foo"),
             .j = LSTR_IMMED("baré© \" foo ."),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),

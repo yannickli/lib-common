@@ -472,8 +472,6 @@ typedef iop_array_bool_t iop_array__Bool_t;
 typedef IOP_ARRAY_OF(double) iop_array_double_t;
 typedef IOP_ARRAY_OF(lstr_t) iop_array_lstr_t;
 
-typedef lstr_t iop_data_t;
-
 /* XXX Deprecated please use opt_XXX_t types */
 #define IOP_OPT_OF(...)  OPT_OF(__VA_ARGS__)
 typedef opt_i8_t     iop_opt_i8_t;

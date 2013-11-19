@@ -16,21 +16,6 @@
 #else
 #define IS_LIB_COMMON_IOP_MACROS_H
 
-/* {{{ iop_data_t initializers (bytes type) (DEPRECATED: use lstr_t) */
-
-/** Initialize a byte field */
-#define IOP_DATA(ddata, dlen)  LSTR_INIT_V((const char *)(ddata), dlen)
-
-/** Initialize an optional byte field to “absent” */
-#define IOP_DATA_NULL          LSTR_NULL_V
-
-/** Initialize a byte field to the empty value */
-#define IOP_DATA_EMPTY         LSTR_EMPTY_V
-
-/** Initialize a byte field from an sb_t */
-#define IOP_SBDATA(sb)         LSTR_SB_V(sb)
-
-/* }}} */
 /* {{{ IOP array initializers (repeated fields) */
 
 /** Type of the IOP array defined for the given IOP type */
