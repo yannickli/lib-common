@@ -2,98 +2,75 @@
 #ifndef IOP_HEADER_GUARD_core_TYPES_H
 #define IOP_HEADER_GUARD_core_TYPES_H
 
-#include <lib-common/iop.h>
+#include "core-tdef.iop.h"
 
-typedef enum core__log_level__t {
-    LOG_LEVEL_EMERG,
-    LOG_LEVEL_ALERT,
-    LOG_LEVEL_CRIT,
-    LOG_LEVEL_ERR,
-    LOG_LEVEL_WARNING,
-    LOG_LEVEL_NOTICE,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_TRACE,
-    LOG_LEVEL_INHERITS = -1,
-    LOG_LEVEL_DEFAULT = -2,
-} core__log_level__t;
 extern iop_enum_t const core__log_level__e;
 IOP_ENUM(core__log_level);
 
-#define LOG_LEVEL_count 11
-#define LOG_LEVEL_min   -2
-#define LOG_LEVEL_max   8
-
-typedef enum core__iop_http_method__t {
-    IOP_HTTP_METHOD_OPTIONS,
-    IOP_HTTP_METHOD_GET,
-    IOP_HTTP_METHOD_HEAD,
-    IOP_HTTP_METHOD_POST,
-    IOP_HTTP_METHOD_PUT,
-    IOP_HTTP_METHOD_DELETE,
-    IOP_HTTP_METHOD_TRACE,
-    IOP_HTTP_METHOD_CONNECT,
-} core__iop_http_method__t;
 extern iop_enum_t const core__iop_http_method__e;
 IOP_ENUM(core__iop_http_method);
 
-#define IOP_HTTP_METHOD_count 8
-#define IOP_HTTP_METHOD_min   0
-#define IOP_HTTP_METHOD_max   7
-
-typedef struct core__logger_configuration__t {
+struct core__logger_configuration__t {
     lstr_t   full_name;
     core__log_level__t level;
     bool     force_all;
     bool     is_silent;
-} core__logger_configuration__t;
+};
 extern iop_struct_t const core__logger_configuration__s;
 IOP_GENERIC(core__logger_configuration);
 
-typedef struct core__log_configuration__t {
+struct core__log_configuration__t {
     core__log_level__t root_level;
     bool     force_all;
     bool     is_silent;
-    IOP_ARRAY_OF(struct core__logger_configuration__t) specific;
-} core__log_configuration__t;
+    core__logger_configuration__array_t specific;
+};
 extern iop_struct_t const core__log_configuration__s;
 IOP_GENERIC(core__log_configuration);
 
-typedef struct core__log_file_configuration__t {
+struct core__log_file_configuration__t {
     const iop_struct_t *__vptr;
     int32_t  max_size;
     uint64_t max_time;
     int32_t  max_files;
     int64_t  total_max_size;
     bool     compress;
-} core__log_file_configuration__t;
+};
 extern iop_struct_t const core__log_file_configuration__s;
 IOP_CLASS(core__log_file_configuration);
 
 #define core__log_file_configuration__class_id  0
 
-typedef struct core__licence__t {
+struct core__licence__t {
     const iop_struct_t *__vptr;
     lstr_t   expires;
     lstr_t   registered_to;
     lstr_t   version;
     bool     production_use;
+#ifndef IOP_ARRAY_T
     IOP_ARRAY_OF(int64_t)  cpu_signatures;
+#else
+    iop_array_i64_t    cpu_signatures;
+#endif
+#ifndef IOP_ARRAY_T
     IOP_ARRAY_OF(lstr_t)   mac_addresses;
-} core__licence__t;
+#else
+    iop_array_lstr_t   mac_addresses;
+#endif
+};
 extern iop_struct_t const core__licence__s;
 IOP_CLASS(core__licence);
 
 #define core__licence__class_id  0
 
-typedef struct core__signed_licence__t {
+struct core__signed_licence__t {
     struct core__licence__t *licence;
     lstr_t   signature;
-} core__signed_licence__t;
+};
 extern iop_struct_t const core__signed_licence__s;
 IOP_GENERIC(core__signed_licence);
 
-typedef struct core__httpd_cfg__t {
+struct core__httpd_cfg__t {
     lstr_t   bind_addr;
     uint32_t outbuf_max_size;
     uint16_t pipeline_depth;
@@ -103,18 +80,18 @@ typedef struct core__httpd_cfg__t {
     uint32_t on_data_threshold;
     uint32_t header_line_max;
     uint32_t header_size_max;
-} core__httpd_cfg__t;
+};
 extern iop_struct_t const core__httpd_cfg__s;
 IOP_GENERIC(core__httpd_cfg);
 
-typedef struct core__httpc_cfg__t {
+struct core__httpc_cfg__t {
     uint16_t pipeline_depth;
     uint32_t noact_delay;
     uint32_t max_queries;
     uint32_t on_data_threshold;
     uint32_t header_line_max;
     uint32_t header_size_max;
-} core__httpc_cfg__t;
+};
 extern iop_struct_t const core__httpc_cfg__s;
 IOP_GENERIC(core__httpc_cfg);
 
