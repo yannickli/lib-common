@@ -206,8 +206,7 @@ zchk_SOURCES = zchk.c \
 	zchk-module.c \
 	$liop/tstiop.a \
 	$llibcommon.wa
-
-zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
+zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
 zchk_LDFLAGS = -rdynamic
 
 zchk-tstiop-plugin_SOURCES = \
