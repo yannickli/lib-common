@@ -197,7 +197,7 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
-zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
+zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
 zchk_LDFLAGS = -rdynamic
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
