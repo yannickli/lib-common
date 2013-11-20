@@ -203,7 +203,7 @@ zchk_SOURCES = zchk.c \
 	$liop/tstiop.a \
 	$llibcommon.wa \
 	$ltime-lp-simple.a
-zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
+zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
 zchk_LDFLAGS = -rdynamic
 
 zchk-tstiop-plugin_SOURCES = \
