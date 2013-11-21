@@ -163,8 +163,8 @@ jshint: | __setup_buildsys_trampoline
 	git ls-files -- '*.js' | xargs jshint
 
 syntastic: | __setup_buildsys_trampoline
-	echo '$(CLANGFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' > $/.syntastic_c_config
-	echo '$(CLANGXXFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' > $/.syntastic_cpp_config
+	echo '$(CLANGFLAGS)   -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
+	echo '$(CLANGXXFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_cpp_config
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
