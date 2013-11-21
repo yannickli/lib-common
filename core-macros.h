@@ -417,9 +417,11 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
              e##__res;                                                       \
          });)
 
-#define tab_for_each_pos_safe(pos, vec)                                      \
+#define tab_for_each_pos_rev(pos, vec)                                       \
     for (int pos = (vec)->len; pos-- > 0; )
 
+#define tab_for_each_pos_safe(pos, vec)                                      \
+    tab_for_each_pos_rev(pos, vec)
 
 
 /*---------------- Dangerous APIs ----------------*/

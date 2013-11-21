@@ -384,9 +384,12 @@ qvector_splice(qvector_t *vec, size_t v_size,
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
     tab_for_each_entry(e, vec)
 
-#define qv_for_each_pos_safe(n, pos, vec)                                    \
+#define qv_for_each_pos_rev(n, pos, vec)                                     \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    tab_for_each_pos_safe(pos, vec)
+    tab_for_each_pos_rev(pos, vec)
+
+#define qv_for_each_pos_safe(n, pos, vec)                                    \
+    qv_for_each_pos_rev(n, pos, vec)
 
 #ifdef __has_blocks
 /** \brief build the difference and intersection vectors by comparing elements
