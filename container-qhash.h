@@ -750,16 +750,17 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  * and can instead be written:
  * <code>
  * pos = qm_put(..., qh, key, v, 0);
- * if (!(pos & QHASH_COLLISION)) {
- *     // fixup qh->{keys,values}[pos];
+ * if (pos & QHASH_COLLISION) {
+ *     // fixup qh->{keys,values}[pos ^ QHASH_COLLISION];
  * }
  * </code>
  * or:
  * <code>
  * pos = qm_reserve(..., qh, key, 0);
- * if (!(pos & QHASH_COLLISION)) {
- *     // fixup qh->{keys,values}[pos];
+ * if (pos & QHASH_COLLISION) {
+ *     // fixup qh->keys[pos ^ QHASH_COLLISION];
  * }
+ * qh->values[pos & ~QHASH_COLLISION] = v;
  * </code>
  *
  * @param name the base name of the qmap
