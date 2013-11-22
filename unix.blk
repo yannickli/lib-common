@@ -378,7 +378,7 @@ int tmpfd(void)
     return fd;
 }
 
-#if defined(SYS_getdents)
+#if defined(__linux__)
 
 int list_dir(const char *path, bool recur, on_file_b on_file)
 {

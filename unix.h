@@ -126,7 +126,8 @@ void devnull_dup(int fd);
 /* file listing related                                                     */
 /****************************************************************************/
 
-#if defined(SYS_getdents)
+#if defined(__linux__)
+
 typedef struct linux_dirent_t {
     long           d_ino;
     off_t          d_off;
