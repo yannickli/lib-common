@@ -513,7 +513,8 @@ void qps_hptr_free(qps_t *qps, qps_hptr_t *cache)
  *
  * \param[in]  sighandler  a segfault/sigbus handler.
  */
-void qps_initialize(void (*sighandler)(int, siginfo_t *, void *));
+void qps_old_initialize(void (*sighandler)(int, siginfo_t *, void *));
+#define qps_initialize(sh)  qps_old_initialize(sh)
 
 /* leak checker {{{ */
 

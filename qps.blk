@@ -2415,6 +2415,7 @@ qps_t *qps_open(const char *path, sb_t *priv)
     STATIC_ASSERT(QPS_ALLOC_MIN >= fieldsizeof(qps_mhdr_t, padding));
 
     fd  = RETHROW_NP(open(path, O_RDONLY));
+    MODULE_REQUIRE(qps);
     qps = qps_new();
     qps->dfd = fd;
     qps->gc_idle = el_idle_register(qps_gc_on_idle, qps);
@@ -2980,6 +2981,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
 void qps_close(qps_t **qpsp)
 {
     __qps_close(qpsp, true);
+    MODULE_RELEASE(qps);
 }
 
 /* }}} */
@@ -3162,8 +3164,9 @@ void qps_get_usage(const qps_t *qps, struct qps_stats *st)
 
 /* }}} */
 
+#undef qps_initialize
 
-void qps_initialize(void (*sighandler)(int, siginfo_t *, void *))
+static int qps_initialize(void *sighandler)
 {
     struct sigaction act = {
         .sa_sigaction = qps_on_segfault,
@@ -3174,6 +3177,20 @@ void qps_initialize(void (*sighandler)(int, siginfo_t *, void *))
     sigfillset(&act.sa_mask);
     sigaction(SIGSEGV, &act, NULL);
     sigaction(SIGBUS, &act, NULL);
+    return 0;
+}
+
+static int qps_shutdown(void)
+{
+    return 0;
+}
+
+MODULE(qps, NULL, "thr")
+
+void qps_old_initialize(void (*sighandler)(int, siginfo_t *, void *))
+{
+    MODULE_PROVIDE(qps, sighandler);
+    MODULE_REQUIRE(qps);
 }
 
 /** \} */
