@@ -38,11 +38,25 @@
  *      MODULE_REGISTER(module1, module1_on_term, "module2", "module3");
  *      MODULE_REGISTER(module2, NULL);
  *      MODULE_REGISTER(module3, NULL);
+ *
+ *  You can use \ref MODULE to perform automatic registration of a module.
  */
 
 #define MODULE_REGISTER(name, on_term, ...)                                  \
     module_register(LSTR_IMMED_V(#name), &name##_initialize, on_term,        \
                     &name##_shutdown, ##__VA_ARGS__, NULL)
+
+/** Macro to perform automatical module registration.
+ *
+ * This macro declares a function that will automatically register a module at
+ * binary/library initialization. It takes the same arguments as \ref
+ * MODULE_REGISTER.
+ */
+#define MODULE(name, on_term, ...)                                           \
+    static __attribute__((constructor)) __attr_section("intersec", "module") \
+    void __##name##_module_register(void) {                                  \
+        MODULE_REGISTER(name, on_term, ##__VA_ARGS__);                       \
+    }
 
 /** \brief Provide an argument for module constructor
  *  Use:

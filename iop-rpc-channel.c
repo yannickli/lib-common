@@ -56,10 +56,7 @@ static int ic_shutdown(void)
     return F_SHUTDOWN;
 }
 
-__attribute__((constructor)) static void ic_register_module(void)
-{
-    MODULE_REGISTER(ic, NULL);
-}
+MODULE(ic, NULL)
 
 void ic_old_initialize(void)
 {

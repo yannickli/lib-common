@@ -877,10 +877,7 @@ pid_t thr_fork(void)
     return pid;
 }
 
-__attribute__((constructor)) static void thr_register(void)
-{
-    MODULE_REGISTER(thr, NULL);
-}
+MODULE(thr, NULL)
 
 void thr_old_initialize(void)
 {
