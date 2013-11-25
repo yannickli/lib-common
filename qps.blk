@@ -1556,6 +1556,7 @@ static qps_t *qps_new(void)
 {
     qps_t *qps = p_new(qps_t, 1);
 
+    MODULE_REQUIRE(qps);
     qps->dfd = -1;
     qps->lock = DIR_LOCK_INIT_V;
     qps->generation = 1;
@@ -2415,7 +2416,6 @@ qps_t *qps_open(const char *path, sb_t *priv)
     STATIC_ASSERT(QPS_ALLOC_MIN >= fieldsizeof(qps_mhdr_t, padding));
 
     fd  = RETHROW_NP(open(path, O_RDONLY));
-    MODULE_REQUIRE(qps);
     qps = qps_new();
     qps->dfd = fd;
     qps->gc_idle = el_idle_register(qps_gc_on_idle, qps);
@@ -2971,6 +2971,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
         unlockdir(&qps->lock);
         p_delete(qpsp);
         e_named_trace(1, "qps", "qps_close(%p)", qps);
+        MODULE_RELEASE(qps);
     }
 }
 
@@ -2981,7 +2982,6 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
 void qps_close(qps_t **qpsp)
 {
     __qps_close(qpsp, true);
-    MODULE_RELEASE(qps);
 }
 
 /* }}} */
