@@ -1195,7 +1195,7 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
     size = DIV_ROUND_UP(bs_len(&bstring), 8);
     bb_inita(&bb, size);
     bb_be_add_bs(&bb, &bstring);
-    data = t_dup(bb.data, size);
+    data = t_dup(bb.bytes, size);
     *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
     bb_wipe(&bb);
 
