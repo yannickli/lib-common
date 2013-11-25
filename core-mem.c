@@ -35,7 +35,7 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
 {
     void *res;
 
-    if (alignment < 3) {
+    if (alignment <= 3) {
         if (flags & MEM_RAW) {
             res = malloc(size);
         } else {
@@ -67,7 +67,7 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
 {
     byte *res = NULL;
 
-    if (alignment > sizeof(void *) && mem == NULL) {
+    if (alignment > 3 && mem == NULL) {
         return libc_malloc(m, size, alignment, flags);
     }
 
@@ -102,7 +102,7 @@ mem_pool_t mem_pool_libc = {
     .realloc  = &libc_realloc,
     .free     = &libc_free,
     .mem_pool = MEM_LIBC,
-    .min_alignment = 1
+    .min_alignment = sizeof(void *)
 };
 
 /* }}} */
