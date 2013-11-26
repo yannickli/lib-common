@@ -43,8 +43,11 @@
  */
 
 #define MODULE_REGISTER(name, on_term, ...)                                  \
-    module_register(LSTR_IMMED_V(#name), &name##_initialize, on_term,        \
-                    &name##_shutdown, ##__VA_ARGS__, NULL)
+    ({ const char *__##name##_dependencies[] = { NULL, ##__VA_ARGS__ };      \
+       module_register(LSTR_IMMED_V(#name), &name##_initialize,              \
+                       on_term, &name##_shutdown,                            \
+                       __##name##_dependencies + 1,                          \
+                       countof(__##name##_dependencies) - 1); })
 
 /** Macro to perform automatical module registration.
  *
@@ -143,7 +146,8 @@
  *  @param name Name of the module
  *  @param initialize Pointer to the function that initialize the module
  *  @param shutdown Pointer to the function that shutdown the module
- *  @param ... list of the dependent module
+ *  @param dependencies list of modules
+ *  @param nb_dependencies number of dependent modules
  *
  *
  *  @return
@@ -155,8 +159,8 @@
 #define F_ALREADY_REGISTERED  (-1)
 
 int module_register(lstr_t name, int (*constructor)(void *),
-                    void (*on_term)(int signo),
-                    int (*destructor)(void), ...);
+                    void (*on_term)(int signo), int (*destructor)(void),
+                    const char *dependencies[], int nb_dependencies);
 
 
 /** \brief Require a module (initialization)

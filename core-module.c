@@ -106,12 +106,10 @@ void module_on_term(int signo)
 
 
 int module_register(lstr_t name, int (*constructor)(void *),
-                    void (*on_term)(int signo),
-                    int (*destructor)(void), ...)
+                    void (*on_term)(int signo), int (*destructor)(void),
+                    const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
-    va_list vl;
-    const char *dependence;
     int pos = qm_reserve(module, &_G.modules, &name, 0);
 
     if (pos & QHASH_COLLISION) {
@@ -129,11 +127,9 @@ int module_register(lstr_t name, int (*constructor)(void *),
     new_module->on_term = on_term;
     new_module->destructor = destructor;
 
-    va_start(vl, destructor);
-    while ((dependence = va_arg(vl, const char *)) != NULL) {
-        qv_append(lstr, &new_module->dependent_of, LSTR_STR_V(dependence));
+    for (int i = 0; i < nb_dependencies; i++) {
+        qv_append(lstr, &new_module->dependent_of, LSTR_STR_V(dependencies[i]));
     }
-    va_end(vl);
 
     _G.modules.keys[pos] = &new_module->name;
     _G.modules.values[pos] = new_module;
