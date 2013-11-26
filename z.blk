@@ -59,6 +59,7 @@ static struct {
     int           res;
     lstr_t        arg0;
     char         *wd;
+    const char   *tmp_dir;
     struct z_grp  grp;
     qv_t(z_cbs)   cbs;
     qv_t(lstr)    only;
@@ -741,6 +742,10 @@ int z_setup(int argc, const char **argv)
             }
             continue;
         } else
+        if (z_is_opt_with_arg("--z-dir", &i, argv)) {
+            _G.tmp_dir = argv[i];
+            continue;
+        } else
         if (strequal("--z-abort", argv[i])) {
             _G.abort_on_fail = true;
             continue;
@@ -793,6 +798,16 @@ int z_setup(int argc, const char **argv)
             }
         }
     }
+
+    s = getenv("Z_DIR");
+    if (s) {
+        _G.tmp_dir = s;
+    }
+    if (_G.tmp_dir) {
+        if (mkdir_p(_G.tmp_dir, 0777) < 0) {
+            e_warning("cannot create %s: %m", _G.tmp_dir);
+        }
+    }
     return 1;
 }
 
@@ -833,22 +848,36 @@ static void z_on_term(int signum)
     _G.stopping = true;
 }
 
+static int t_our_mkdtemp_(const char *wd, const char *ns, lstr_t *out,
+                          int *dfd)
+{
+    char *s = t_fmt(NULL, "%s/z.%s.%d.XXXXXX", wd, ns, 0 + getpid());
+
+    RETHROW_PN(mkdtemp(s));
+    *out = lstr_fmt("%s/", s);
+    *dfd = open(s, O_RDONLY);
+    if (*dfd < 0) {
+        e_panic("unable to open %sdir: %m", ns);
+    }
+    return 0;
+}
+
 static void our_mkdtemp(const char *ns, lstr_t *out, int *dfd)
 {
     t_scope;
 
-    lstr_t s = t_lstr_fmt("%s/z.%s.%d.XXXXXX", _G.wd, ns, 0 + getpid());
-    if (mkdtemp(s.v) == NULL) {
-        s = t_lstr_fmt("/tmp/z.%s.%d.XXXXXX", ns, 0 + getpid());
-        if (mkdtemp(s.v) == NULL)
-            e_panic("unable to setup %sdir: %m", ns);
+    if (_G.tmp_dir) {
+        if (t_our_mkdtemp_(_G.tmp_dir, ns, out, dfd) >= 0) {
+            return;
+        }
     }
-    *out = lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
-    *dfd = open(out->s, O_RDONLY);
-
-    if (*dfd < 0) {
-        e_panic("unable to open %sdir: %m", ns);
+    if (t_our_mkdtemp_(_G.wd, ns, out, dfd) >= 0) {
+        return;
     }
+    if (t_our_mkdtemp_("/tmp", ns, out, dfd) >= 0) {
+        return;
+    }
+    e_panic("unable to setup %sdir: %m", ns);
 }
 
 int z_run(void)
