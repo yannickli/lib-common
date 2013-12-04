@@ -849,6 +849,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic->cmd  = cmd;
 
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
+                ic->desc = NULL;
+                ic->cmd  = 0;
                 return;
             }
             (*e->u.cb.cb)(ic, query_slot, value, hdr);
@@ -948,9 +950,12 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 }
             }
             t_seal();
+            ic->cmd = cmd;
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
+                ic->cmd = 0;
                 return;
             }
+            ic->cmd = 0;
         }
         if (take_pxy_hdr) {
             flags |= IC_MSG_HAS_HDR;
