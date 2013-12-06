@@ -362,6 +362,24 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_grow(n, vec, extra)              qv_##n##_grow(vec, extra)
 #define qv_growlen(n, vec, extra)           qv_##n##_growlen(vec, extra)
 
+#define qv_grow0(n, vec, extra)                                     \
+    ({                                                              \
+        int __extra = extra;                                        \
+        typeof((vec)->tab) __res = qv_grow(n, vec, __extra);        \
+                                                                    \
+        p_clear(__res, __extra);                                    \
+        __res;                                                      \
+    })
+
+#define qv_growlen0(n, vec, extra)                                  \
+    ({                                                              \
+        int __extra = extra;                                        \
+        typeof((vec)->tab) __res = qv_growlen(n, vec, __extra);     \
+                                                                    \
+        p_clear(__res, __extra);                                    \
+        __res;                                                      \
+    })
+
 /** \brief keep only the first len elements */
 #define qv_clip(n, vec, len)                qv_##n##_clip(vec, len)
 /** \brief shrink the vector length by len */
