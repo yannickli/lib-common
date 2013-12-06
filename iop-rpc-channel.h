@@ -233,6 +233,7 @@ void ic_old_initialize(void);
 void ic_old_shutdown(void);
 #define ic_initialize  ic_old_initialize
 #define ic_shutdown    ic_old_shutdown
+MODULE_DECLARE(ic);
 
 /*----- ichannel handling -----*/
 

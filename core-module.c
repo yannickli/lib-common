@@ -25,30 +25,29 @@ typedef enum module_state_t {
     FAIL_REQ_AND_SHUT = FAIL_REQ | FAIL_SHUT
 } module_state_t;
 
-typedef struct module_t {
+qvector_t(module, module_t *);
+struct module_t {
     lstr_t name;
     module_state_t state;
     int manu_req_count;
 
     /* Vector of module name */
-    qv_t(lstr) dependent_of;
-    qv_t(lstr) required_by;
+    qv_t(lstr)   dependent_of;
+    qv_t(module) required_by;
 
 
     int (*constructor)(void *);
     int (*destructor)(void);
     void (*on_term)(int);
     void *constructor_argument;
-
-} module_t;
-
+};
 
 GENERIC_NEW_INIT(module_t, module);
 static inline module_t *module_wipe(module_t *module)
 {
     lstr_wipe(&(module->name));
     qv_deep_wipe(lstr, &module->dependent_of, lstr_wipe);
-    qv_deep_wipe(lstr, &module->required_by, lstr_wipe);
+    qv_wipe(module, &module->required_by);
     return module;
 }
 GENERIC_DELETE(module_t, module);
@@ -68,28 +67,26 @@ static struct _module_g {
 
 
 static void
-set_require_type(lstr_t name, lstr_t required_by, module_t *module)
+set_require_type(module_t *module, module_t *required_by)
 {
-    if (lstr_equal2(required_by, LSTR_NULL_V)) {
+    if (!required_by) {
         module->state = MANU_REQ;
         module->manu_req_count++;
     } else {
-        qv_append(lstr, &module->required_by, lstr_dupc(required_by));
+        qv_append(module, &module->required_by, required_by);
         if (module->state != MANU_REQ)
             module->state = AUTO_REQ;
     }
 }
 
 
-static void rec_module_on_term(lstr_t name, int signo)
+static void rec_module_on_term(module_t *module, int signo)
 {
-    module_t *module = qm_get(module, &_G.modules, &name);
-
     if (module->on_term)
         (*module->on_term)(signo);
 
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
-        rec_module_on_term(dep, signo);
+        rec_module_on_term(qm_get(module, &_G.modules, &dep), signo);
     }
 }
 
@@ -99,15 +96,15 @@ void module_on_term(int signo)
         module_t *module = _G.modules.values[position];
 
         if (module->state == MANU_REQ && module->required_by.len == 0) {
-            rec_module_on_term(module->name, signo);
+            rec_module_on_term(module, signo);
         }
     }
 }
 
 
-int module_register(lstr_t name, int (*constructor)(void *),
-                    void (*on_term)(int signo), int (*destructor)(void),
-                    const char *dependencies[], int nb_dependencies)
+module_t *module_register(lstr_t name, int (*constructor)(void *),
+                          void (*on_term)(int signo), int (*destructor)(void),
+                          const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
     int pos = qm_reserve(module, &_G.modules, &name, 0);
@@ -115,7 +112,7 @@ int module_register(lstr_t name, int (*constructor)(void *),
     if (pos & QHASH_COLLISION) {
         logger_warning(&_G.logger,
                        "%*pM has already been register", LSTR_FMT_ARG(name));
-        return F_ALREADY_REGISTERED;
+        return NULL;
     }
 
     new_module = module_new();
@@ -134,68 +131,69 @@ int module_register(lstr_t name, int (*constructor)(void *),
     _G.modules.keys[pos] = &new_module->name;
     _G.modules.values[pos] = new_module;
 
-    return F_REGISTER;
+    return new_module;
 }
 
 
-int module_require(lstr_t name, lstr_t required_by)
+int module_require(module_t *module, module_t *required_by)
 {
-    module_t *module = qm_get(module, &_G.modules, &name);
-
+    int res = F_INITIALIZE;
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
-        set_require_type(name, required_by, module);
+        set_require_type(module, required_by);
         return F_INITIALIZE;
     }
 
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
-        int res = module_require(dep, name);
-
+        res = module_require(qm_get(module, &_G.modules, &dep), module);
         if (res == F_NOT_INITIALIZE)
             module->state = FAIL_REQ;
-        RETHROW(res);
+        if (unlikely(res < 0)) {
+            goto fail;
+        }
     }
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
-        set_require_type(name, required_by, module);
+        set_require_type(module, required_by);
         return F_INITIALIZE;
     }
 
-    logger_warning(&_G.logger, "Unable to initialize %*pM",
-                   LSTR_FMT_ARG(name));
+    logger_warning(&_G.logger, "unable to initialize %*pM",
+                   LSTR_FMT_ARG(module->name));
     module->state = FAIL_REQ;
-    return F_NOT_INITIALIZE;
+    res = F_NOT_INITIALIZE;
+
+  fail:
+    if (required_by == NULL && module_shutdown(module) < 0) {
+        return F_NOT_INIT_AND_SHUT;
+    }
+    return res;
 }
 
 
 
-void module_provide(lstr_t name, void *argument)
+void module_provide(module_t *module, void *argument)
 {
-    module_t *module = qm_get(module, &_G.modules, &name);
-
     module->constructor_argument = argument;
 }
 
-static int notify_shutdown(lstr_t name, lstr_t dependent_of)
+static int notify_shutdown(module_t *module, module_t *dependence)
 {
-    module_t *module = qm_get(module, &_G.modules, &name);
-
-    qv_for_each_pos(lstr, position, &module->required_by) {
-        if (lstr_equal(&module->required_by.tab[position], &dependent_of)) {
-            qv_remove(lstr, &module->required_by, position);
+    qv_for_each_pos(module, pos, &module->required_by) {
+        if (module->required_by.tab[pos] == dependence) {
+            qv_remove(module, &module->required_by, pos);
             break;
         }
     }
     if (module->required_by.len == 0 && module->state != MANU_REQ)
-        return module_shutdown(module->name);
+        return module_shutdown(module);
 
     return F_NOTIFIED;
 }
 
 
-int module_shutdown(lstr_t name)
+int module_shutdown(module_t *module)
 {
     int shut_self, shut_dependent;
-    module_t *module = qm_get(module, &_G.modules, &name);
 
     shut_self = shut_dependent = 1;
 
@@ -206,14 +204,15 @@ int module_shutdown(lstr_t name)
         module->state = REGISTERED;
         module->manu_req_count = 0;
     } else {
-        logger_warning(&_G.logger, "Unable to shutdown   %*pM",
-                       LSTR_FMT_ARG(name));
+        logger_warning(&_G.logger, "unable to shutdown   %*pM",
+                       LSTR_FMT_ARG(module->name));
         module->state = FAIL_SHUT | (module->state & FAIL_REQ);
     }
 
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
         int shut;
-        shut = notify_shutdown(dep, name);
+
+        shut = notify_shutdown(qm_get(module, &_G.modules, &dep), module);
         if (shut < 0)
             shut_dependent = shut;
     }
@@ -226,16 +225,14 @@ int module_shutdown(lstr_t name)
 
 
 
-int module_release(lstr_t name)
+int module_release(module_t *module)
 {
-    module_t *module = qm_get(module, &_G.modules, &name);
-
     if (module->manu_req_count == 0) {
         /* You are trying to either release:
          *   - manually a module that have been spawn automatically (AUTO_REQ)
          *   - a module that is not loaded (F_REGISTER)
          */
-        assert (false && "Unauthorize release");
+        assert (false && "unauthorize release");
         return F_UNAUTHORIZE_RELEASE;
     }
 
@@ -252,14 +249,12 @@ int module_release(lstr_t name)
         }
     }
 
-    return module_shutdown(name);
+    return module_shutdown(module);
 }
 
 
-bool module_is_loaded(lstr_t name)
+bool module_is_loaded(const module_t *module)
 {
-    module_t * module = qm_get(module, &_G.modules, &name);
-
     return module->state == AUTO_REQ || module->state == MANU_REQ;
 }
 
@@ -286,7 +281,7 @@ static int module_hard_shutdown(void)
                 error--;
                 logger_trace(&_G.logger, 1, "%*pM was not released",
                              LSTR_FMT_ARG(module->name));
-                module_release(module->name);
+                module_release(module);
             }
         }
     }
@@ -300,7 +295,7 @@ static int module_hard_shutdown(void)
             error--;
             logger_trace(&_G.logger, 1, "%*pM was not released",
                          LSTR_FMT_ARG(module->name));
-            module_shutdown(module->name);
+            module_shutdown(module);
         }
     }
 

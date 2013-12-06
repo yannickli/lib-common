@@ -16,6 +16,13 @@
 #else
 #define IS_LIB_COMMON_CORE_MODULE_H
 
+/*{{{ Types */
+
+/** Opaque type that defines a module.
+ */
+typedef struct module_t module_t;
+
+/*}}} */
 /*{{{ Macros */
 
 /** \brief Macro for registering a module
@@ -49,6 +56,12 @@
                        __##name##_dependencies + 1,                          \
                        countof(__##name##_dependencies) - 1); })
 
+/** Declare a module.
+ *
+ * This macro declare a module variable.
+ */
+#define MODULE_DECLARE(name)  extern module_t *name##_module
+
 /** Macro to perform automatical module registration.
  *
  * This macro declares a function that will automatically register a module at
@@ -56,9 +69,12 @@
  * MODULE_REGISTER.
  */
 #define MODULE(name, on_term, ...)                                           \
-    static __attribute__((constructor)) __attr_section("intersec", "module") \
+    __attr_section("intersec", "module")                                     \
+    module_t *name##_module;                                                 \
+                                                                             \
+    static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
-        MODULE_REGISTER(name, on_term, ##__VA_ARGS__);                       \
+        name##_module = MODULE_REGISTER(name, on_term, ##__VA_ARGS__);       \
     }
 
 /** \brief Provide an argument for module constructor
@@ -78,7 +94,7 @@
  */
 
 #define MODULE_PROVIDE(name, argument)                                       \
-    module_provide(LSTR_IMMED_V(#name), argument)
+    module_provide(name##_module, argument)
 
 
 /** \brief Macro for requiring a module
@@ -107,17 +123,7 @@
  *             - MODULE_REQUIRE will return F_NOT_INIT_AND_SHUT
  *
  */
-
-#define MODULE_REQUIRE(name)                                                 \
-    ({  int _res = module_require(LSTR_IMMED_V(#name), LSTR_NULL_V);         \
-        int _shut;                                                           \
-        if(_res < 0){                                                        \
-            _shut = module_shutdown(LSTR_IMMED_V(#name));                    \
-            if(_shut < 0)                                                    \
-                _res = F_NOT_INIT_AND_SHUT;                                  \
-        }                                                                    \
-        _res;                                                                \
-    })
+#define MODULE_REQUIRE(name)  module_require(name##_module, NULL)
 
 /** \brief Macro for releasing a module
  *  Use:
@@ -131,11 +137,10 @@
  *
  */
 
-#define MODULE_RELEASE(name)                                                 \
-    module_release(LSTR_IMMED_V(#name))
+#define MODULE_RELEASE(name)  module_release(name##_module)
 
 
-#define MODULE_IS_LOADED(name)  module_is_loaded(LSTR_IMMED_V(#name))
+#define MODULE_IS_LOADED(name)  module_is_loaded(name##_module)
 
 
 /*}}} */
@@ -150,18 +155,17 @@
  *  @param nb_dependencies number of dependent modules
  *
  *
- *  @return
- *       F_REGISTER
- *       F_ALREADY_REGISTER
+ *  @return The newly registered module in case of success.
  */
+__leaf
+module_t *module_register(lstr_t name, int (*constructor)(void *),
+                          void (*on_term)(int signo), int (*destructor)(void),
+                          const char *dependencies[], int nb_dependencies);
 
-#define F_REGISTER  1
-#define F_ALREADY_REGISTERED  (-1)
 
-int module_register(lstr_t name, int (*constructor)(void *),
-                    void (*on_term)(int signo), int (*destructor)(void),
-                    const char *dependencies[], int nb_dependencies);
-
+#define F_INITIALIZE  1
+#define F_NOT_INITIALIZE  (-1)
+#define F_NOT_INIT_AND_SHUT  (-2)
 
 /** \brief Require a module (initialization)
  *
@@ -173,24 +177,24 @@ int module_register(lstr_t name, int (*constructor)(void *),
  *  some of the dependent might be: run shutdown(name) to shutdown
  *  the required modules that have been initialize. (cf macro MODULEREQUIRE())
  *
- *  @param name Name of the module to initialize
- *  @param required_by - lstr_t    -> Name of a module that requires
- *                                     "name" to be initialized
- *                     - LSTR_NULL -> No parent modules
+ *  @param mod Name of the module to initialize
+ *  @param required_by - Module that requires \p mod to be initialized
+ *                     - NULL -> No parent modules
  *
  *
  *  @return
  *       F_INITIALIZE
  *       F_NOT_INITIALIZE
  */
-
-#define F_INITIALIZE  1
-#define F_NOT_INITIALIZE  (-1)
-#define F_NOT_INIT_AND_SHUT  (-2)
-
-int module_require(lstr_t name, lstr_t required_by);
+__attr_nonnull__((1))
+int module_require(module_t *mod, module_t *required_by);
 
 
+#define F_RELEASED  3
+#define F_SHUTDOWN  1
+#define F_NOTIFIED  2
+#define F_NOT_SHUTDOWN  (-1) /* One of the module did not shutdown */
+#define F_UNAUTHORIZE_RELEASE (-2)
 
 /** \brief Shutdown a module
  *
@@ -205,38 +209,30 @@ int module_require(lstr_t name, lstr_t required_by);
  *  and notify dependent modules.
  *
  *
- *  @param name Name of the module to shutdown
+ *  @param mod The module to shutdown
  *
  *  @return
  *       F_SHUTDOWN
  *       F_NOT_SHUTDOWN
  *       F_NOTIFIED
  */
-
-#define F_RELEASED  3
-#define F_SHUTDOWN  1
-#define F_NOTIFIED  2
-#define F_NOT_SHUTDOWN  (-1) /* One of the module did not shutdown */
-#define F_UNAUTHORIZE_RELEASE (-2)
-
-
-int module_shutdown(lstr_t name);
+__attr_nonnull__((1))
+int module_shutdown(module_t *mod);
 
 
 /** \brief Release a module
  *
  *  assert if you try to release a module that has been automatically loaded
  *
- *  @param name Name of the module to shutdown
+ *  @param mod Module to shutdown
  *
  *  @return
  *       F_SHUTDOWN
  *       F_NOT_SHUTDOWN
  *       F_RELEASED
  */
-
-
-int module_release(lstr_t name);
+__attr_nonnull__((1))
+int module_release(module_t *mod);
 
 /** \brief On term all modules
  *
@@ -245,10 +241,12 @@ int module_release(lstr_t name);
 void module_on_term(int signo);
 
 
-void module_provide(lstr_t name, void *argument);
+__attr_nonnull__((1, 2))
+void module_provide(module_t *mod, void *argument);
 
 /** true if module is loaded (AUTO_REQ || MANU_REQ) */
-bool module_is_loaded(lstr_t name);
+__attr_nonnull__((1))
+bool module_is_loaded(const module_t *mod);
 
 /*}}} */
 

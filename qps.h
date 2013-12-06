@@ -515,6 +515,7 @@ void qps_hptr_free(qps_t *qps, qps_hptr_t *cache)
  */
 void qps_old_initialize(void (*sighandler)(int, siginfo_t *, void *));
 #define qps_initialize(sh)  qps_old_initialize(sh)
+MODULE_DECLARE(qps);
 
 /* leak checker {{{ */
 

@@ -84,4 +84,6 @@ int thr_create(pthread_t *restrict thread,
                void *(*fn)(void *), void *restrict arg);
 #endif
 
+MODULE_DECLARE(thr);
+
 #endif

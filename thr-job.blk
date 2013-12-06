@@ -872,8 +872,9 @@ pid_t thr_fork(void)
         return pid;
     }
     thr_wipe();
-    if (module_is_loaded(LSTR_IMMED_V("thr")))
+    if (MODULE_IS_LOADED(thr)) {
         thr_initialize(NULL);
+    }
     return pid;
 }
 
