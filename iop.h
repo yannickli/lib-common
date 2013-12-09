@@ -670,6 +670,20 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v, size_t *sz);
 
+/** Copy an iop object into another one.
+ *
+ * The destination should be an object of same or child type of the source.
+ *
+ * \param[in] mp    The memory pool to use in case of deep copy
+ * \param[in] out   The destination IOP object address.
+ * \param[in] v     The IOP object address to copy, its class type should be
+ *                  an ancestor of the class type of out.
+ * \param[in] flags Flags controling the copy
+ *                  IOP_OBJ_DEEP_COPY: if set, data of v is duplicated
+ */
+#define IOP_OBJ_DEEP_COPY  (1 << 0)
+void iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags);
+
 /** Generate a signature of an IOP structure.
  *
  * This function generates a salted SHA256 signature of an IOP structure.
