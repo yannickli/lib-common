@@ -39,13 +39,6 @@ NEW_MOCK_MODULE(mod4, 1, 1);
 NEW_MOCK_MODULE(mod5, 1, 1);
 NEW_MOCK_MODULE(mod6, 1, 0);
 
-NEW_MOCK_MODULE(mod1_T2, 1, 0);
-NEW_MOCK_MODULE(mod3_T2, (-2), 1);
-
-NEW_MOCK_MODULE(mod1_T3, 1, 1);
-NEW_MOCK_MODULE(mod3_T3, 1, (-4));
-NEW_MOCK_MODULE(mod4_T3, (-1), 1);
-
 NEW_MOCK_MODULE(modterm1, 1, 1);
 NEW_MOCK_MODULE(modterm2, 1, 1);
 NEW_MOCK_MODULE(modterm3, 1, 1);
@@ -85,7 +78,7 @@ static void modterm5_on_term(int i)
 static int module_arg_initialize(void * args)
 {
     if (args == NULL)
-        return F_NOT_INITIALIZE;
+        return -1;
     return *((int *)args);
 }
 
@@ -121,15 +114,14 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_NULL(MODULE_REGISTER(mock_log, NULL));
         #undef U_T_R
 
-
-
-        #define U_T_I "Unable to initialize"
-        Z_ASSERT_EQ(MODULE_REQUIRE(mock_log), F_INITIALIZE, U_T_I"mock_log");
-        Z_ASSERT_EQ(MODULE_REQUIRE(mock_thr), F_INITIALIZE, U_T_I"mock_thr");
-        Z_ASSERT_EQ(MODULE_REQUIRE(mock_ic), F_INITIALIZE, U_T_I"mock_ic");
-        Z_ASSERT_EQ(MODULE_REQUIRE(mock_platform), F_INITIALIZE,
-                    U_T_I"mock_platform");
-        #undef U_T_I
+        MODULE_REQUIRE(mock_log);
+        MODULE_REQUIRE(mock_thr);
+        MODULE_REQUIRE(mock_ic);
+        MODULE_REQUIRE(mock_platform);
+        Z_ASSERT(MODULE_IS_LOADED(mock_log));
+        Z_ASSERT(MODULE_IS_LOADED(mock_thr));
+        Z_ASSERT(MODULE_IS_LOADED(mock_ic));
+        Z_ASSERT(MODULE_IS_LOADED(mock_platform));
 
         Z_ASSERT_EQ(MODULE_RELEASE(mock_platform), F_SHUTDOWN);
         Z_ASSERT(MODULE_IS_LOADED(mock_log));
@@ -180,10 +172,10 @@ Z_GROUP_EXPORT(module)
 
 
        /* Test 1 All init work and shutdown work */
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod1), F_INITIALIZE);
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod1), F_INITIALIZE);
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod6), F_INITIALIZE);
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod3), F_INITIALIZE);
+       MODULE_REQUIRE(mod1);
+       MODULE_REQUIRE(mod1);
+       MODULE_REQUIRE(mod6);
+       MODULE_REQUIRE(mod3);
        Z_ASSERT(MODULE_IS_LOADED(mod5));
        Z_ASSERT_EQ(MODULE_RELEASE(mod3), F_RELEASED);
        Z_ASSERT_EQ(MODULE_RELEASE(mod1),F_RELEASED);
@@ -191,32 +183,6 @@ Z_GROUP_EXPORT(module)
        Z_ASSERT(MODULE_IS_LOADED(mod2));
        MODULE_RELEASE(mod6);
        Z_ASSERT(!MODULE_IS_LOADED(mod2));
-
-
-       /* Test 2 Module 3 fail init */
-       Z_MODULE_REGISTER(mod1_T2, NULL,"mod2","mod3_T2","mod4");
-       Z_MODULE_REGISTER(mod3_T2, NULL,"mod5");
-
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod1_T2),F_NOT_INITIALIZE);
-       Z_ASSERT(!MODULE_IS_LOADED(mod1_T2));
-       Z_ASSERT(!MODULE_IS_LOADED(mod3_T2));
-       Z_ASSERT(!MODULE_IS_LOADED(mod5));
-       Z_ASSERT(!MODULE_IS_LOADED(mod2));
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod3_T2),F_NOT_INITIALIZE);
-
-
-       /** Test 3 Module 3 fail shutdown
-        *         Module 4 fail init
-        */
-       Z_MODULE_REGISTER(mod1_T3, NULL,"mod2","mod3_T3","mod4_T3");
-       Z_MODULE_REGISTER(mod3_T3, NULL,"mod5");
-       Z_MODULE_REGISTER(mod4_T3, NULL);
-
-       Z_ASSERT_EQ(MODULE_REQUIRE(mod1_T3),F_NOT_INIT_AND_SHUT);
-       Z_ASSERT(!MODULE_IS_LOADED(mod5));
-       Z_ASSERT(!MODULE_IS_LOADED(mod4_T3));
-       Z_ASSERT(!MODULE_IS_LOADED(mod3_T3));
-       Z_ASSERT(!MODULE_IS_LOADED(mod3));
 
      } Z_TEST_END;
 
@@ -226,12 +192,9 @@ Z_GROUP_EXPORT(module)
          *a = 4;
 
          Z_MODULE_REGISTER(module_arg, NULL);
-         Z_ASSERT_EQ(MODULE_REQUIRE(module_arg), F_NOT_INITIALIZE);
-
          MODULE_PROVIDE(module_arg, (void *)a);
-
-         Z_ASSERT_EQ(MODULE_REQUIRE(module_arg), F_INITIALIZE);
-
+         MODULE_REQUIRE(module_arg);
+         Z_ASSERT(MODULE_IS_LOADED(module_arg));
          MODULE_RELEASE(module_arg);
 
          p_delete(&a);

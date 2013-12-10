@@ -112,15 +112,7 @@ typedef struct module_t module_t;
  *             - module2, module3 will have state AUTO_REQ
  *             - MODULE_REQUIRE will return F_INITIALIZE
  *       + If module3 fail to initialize
- *              - module2 will be release
- *              - module3 will have state FAIL_REQ
- *              - module1 will have state FAIL_REQ and won't be initialized
- *              - MODULE_REQUIRE will return F_NOT_INITIALIZE
- *     + If module3 fail to initialize and module2 fail to shutdown
- *             - module2 will have state FAIL_SHUT
- *             - module3 will have state FAIL_REQ
- *             - module1 will have state FAIL_REQ_AND_SHUT
- *             - MODULE_REQUIRE will return F_NOT_INIT_AND_SHUT
+ *             - module_require will throw a logger_fatal
  *
  */
 #define MODULE_REQUIRE(name)  module_require(name##_module, NULL)
@@ -164,8 +156,6 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
 
 
 #define F_INITIALIZE  1
-#define F_NOT_INITIALIZE  (-1)
-#define F_NOT_INIT_AND_SHUT  (-2)
 
 /** \brief Require a module (initialization)
  *
@@ -173,9 +163,7 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
  *                - Initialize the module
  *
  *  If one of the required modules does not initialize, the function
- *  return F_NOT_INITIALIZE, the module will not be initilize but
- *  some of the dependent might be: run shutdown(name) to shutdown
- *  the required modules that have been initialize. (cf macro MODULEREQUIRE())
+ *  will throw a logger_fatal.
  *
  *  @param mod Name of the module to initialize
  *  @param required_by - Module that requires \p mod to be initialized
@@ -184,10 +172,9 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
  *
  *  @return
  *       F_INITIALIZE
- *       F_NOT_INITIALIZE
  */
 __attr_nonnull__((1))
-int module_require(module_t *mod, module_t *required_by);
+void module_require(module_t *mod, module_t *required_by);
 
 
 #define F_RELEASED  3

@@ -20,9 +20,7 @@ typedef enum module_state_t {
     REGISTERED = 0,
     AUTO_REQ   = 1 << 0, /* Initialized automatically */
     MANU_REQ   = 1 << 1, /* Initialize manually */
-    FAIL_REQ   = 1 << 2, /* Fail to initialize */
-    FAIL_SHUT  = 1 << 3, /* Fail to shutdown */
-    FAIL_REQ_AND_SHUT = FAIL_REQ | FAIL_SHUT
+    FAIL_SHUT  = 1 << 2, /* Fail to shutdown */
 } module_state_t;
 
 qvector_t(module, module_t *);
@@ -135,38 +133,23 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
 }
 
 
-int module_require(module_t *module, module_t *required_by)
+void module_require(module_t *module, module_t *required_by)
 {
-    int res = F_INITIALIZE;
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
         set_require_type(module, required_by);
-        return F_INITIALIZE;
+        return;
     }
 
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
-        res = module_require(qm_get(module, &_G.modules, &dep), module);
-        if (res == F_NOT_INITIALIZE)
-            module->state = FAIL_REQ;
-        if (unlikely(res < 0)) {
-            goto fail;
-        }
+        module_require(qm_get(module, &_G.modules, &dep), module);
     }
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
         set_require_type(module, required_by);
-        return F_INITIALIZE;
+        return;
     }
-
-    logger_warning(&_G.logger, "unable to initialize %*pM",
-                   LSTR_FMT_ARG(module->name));
-    module->state = FAIL_REQ;
-    res = F_NOT_INITIALIZE;
-
-  fail:
-    if (required_by == NULL && module_shutdown(module) < 0) {
-        return F_NOT_INIT_AND_SHUT;
-    }
-    return res;
+    logger_fatal(&_G.logger, "unable to initialize %*pM",
+                 LSTR_FMT_ARG(module->name));
 }
 
 
@@ -197,16 +180,13 @@ int module_shutdown(module_t *module)
 
     shut_self = shut_dependent = 1;
 
-    if (module->state == FAIL_REQ) {
-        shut_self = 1;
-    } else
     if ((shut_self = (*module->destructor)()) >= 0) {
         module->state = REGISTERED;
         module->manu_req_count = 0;
     } else {
         logger_warning(&_G.logger, "unable to shutdown   %*pM",
                        LSTR_FMT_ARG(module->name));
-        module->state = FAIL_SHUT | (module->state & FAIL_REQ);
+        module->state = FAIL_SHUT;
     }
 
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
