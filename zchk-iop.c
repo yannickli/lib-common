@@ -2617,6 +2617,7 @@ Z_GROUP_EXPORT(iop)
          */
         t_scope;
         tstiop_inheritance__c1__t *c1 = NULL;
+        tstiop_inheritance__d1__t *d1 = NULL;
         tstiop_inheritance__b2__t *b2 = NULL;
         tstiop_inheritance__a3__t *a3 = NULL;
         tstiop_inheritance__b4__t *b4 = NULL;
@@ -2651,12 +2652,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->c,  (uint32_t)3);
 
         /* Test that "_class" field can be missing */
-        CHECK_OK(c1, "tstiop_inheritance_valid3.json");
-        Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
-        Z_ASSERT_EQ(c1->a,  -12);
-        Z_ASSERT_EQ(c1->a2, -15);
-        Z_ASSERT_EQ(c1->b,  true);
-        Z_ASSERT_EQ(c1->c,  (uint32_t)153);
+        CHECK_OK(d1, "tstiop_inheritance_valid3.json");
+        Z_ASSERT(d1->__vptr == &tstiop_inheritance__d1__s);
+        Z_ASSERT_EQ(d1->a,  -12);
+        Z_ASSERT_EQ(d1->a2, -15);
+        Z_ASSERT_EQ(d1->b,  true);
+        Z_ASSERT_EQ(d1->c,  (uint32_t)153);
 
         /* Test that missing mandatory class fields are OK if this class have
          * only optional fields.

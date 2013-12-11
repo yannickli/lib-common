@@ -1221,6 +1221,13 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     const iop_struct_t *desc_it = desc;
     int nb_fields = desc->fields_len;
 
+    /* Count the number of fields contained in the classes from the
+     * wanted one to the master. */
+    while (desc_it->class_attrs->parent) {
+        desc_it = desc_it->class_attrs->parent;
+        nb_fields += desc_it->fields_len;
+    }
+
     if (*real_desc) {
         /* Real class type is already known (because "_class" field was not
          * found). */
@@ -1234,10 +1241,6 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     }
 
     /* Get the iop_struct_t of the instanciated class from its fullname */
-    while (desc_it->class_attrs->parent) {
-        desc_it = desc_it->class_attrs->parent;
-        nb_fields += desc_it->fields_len;
-    }
     *real_desc = iop_get_class_by_fullname(desc_it, LSTR_SB_V(&ll->ctx->b));
     if (!*real_desc) {
         return RJERROR_EXP_FMT("a child of `%*pM'",
@@ -1245,8 +1248,12 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     }
 
     /* We are trying to unpack a class of type "desc", and the packed
-     * class is of type "real_desc". Check that this is authorized, and count
-     * the total number of fields of "real_desc". */
+     * class is of type "real_desc". Check that this is authorized.
+     *
+     * Also count the fields contained in the classes from the instantiated
+     * one to the wanted one (excluded). The total sum is the number of fields
+     * of the instantiated type.
+     */
   check:
     if ((*real_desc)->class_attrs->is_abstract) {
         return RJERROR_EXP("a non-abstract class");
