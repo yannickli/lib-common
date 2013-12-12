@@ -97,6 +97,10 @@ At the moment, the following set of variables are used at the directory level:
 `_IOPINCPATH`::
         To add some path in the include path of the IOPC.
 
+`_IOPCLASSRANGE`::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
+
 `_NOCHECK`::
         To disable checks to the local directory goals.
 
@@ -183,6 +187,10 @@ to do anything special about it.
         This variable adds additional directories to the include path
         of the IOPC.
 
+`_IOPCLASSRANGE`::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
+
 `_NOCHECK`::
         To disable checks when building this target.
 
@@ -251,6 +259,10 @@ Example: `something.c_CFLAGS = -Wno-error`
 
 `_IOPINCPATH` on `.iop` files:
         To add directories to the include path of the IOPC.
+
+`_IOPCLASSRANGE` on `.iop` files::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
 
 For documentation sources, (`_DOCS`) you can also use:
 
