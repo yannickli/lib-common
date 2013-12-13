@@ -100,6 +100,10 @@ At the moment, the following set of variables are used at the directory level:
 `_IOPJSONPATH`::
         To specify the directory in which IOP-JSON files are generated.
 
+`_IOPCLASSRANGE`::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
+
 `_NOCHECK`::
         To disable checks to the local directory goals.
 
@@ -190,6 +194,10 @@ to do anything special about it.
         This variable specifies the directory in which IOP-JSON files are
         generated.
 
+`_IOPCLASSRANGE`::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
+
 `_NOCHECK`::
         To disable checks when building this target.
 
@@ -261,6 +269,10 @@ Example: `something.c_CFLAGS = -Wno-error`
 
 `_IOPJSONPATH` on `.iop` files::
         To specify the directory in which IOP-JSON file is generated.
+
+`_IOPCLASSRANGE` on `.iop` files::
+        To specify a class ids range that declared IOP classes must respect.
+        Format is `min-max`.
 
 For documentation sources, (`_DOCS`) you can also use:
 

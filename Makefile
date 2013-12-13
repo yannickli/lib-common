@@ -32,6 +32,7 @@ core-version.c: scripts/version.sh FORCE
 _CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS)
 _CFLAGS += $(if $(LIBCOMMON_REPOSITORY),-DLIBCOMMON_REPOSITORY)
 _LIBS    = -lz -lrt -ldl -lpthread
+_IOPCLASSRANGE = 1-499
 
 libcommon_SOURCES = \
 	farch.c \
