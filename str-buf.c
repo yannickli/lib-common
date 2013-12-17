@@ -226,6 +226,41 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
     return res;
 }
 
+static void sb_add_ps_int_fmt(sb_t *out, pstream_t ps, int thousand_sep)
+{
+    if (thousand_sep < 0) {
+        sb_add(out, ps.p, ps_len(&ps));
+        return;
+    }
+
+    while (!ps_done(&ps)) {
+        int len = ps_len(&ps) % 3 ?: 3;
+
+        sb_add(out, ps.s, len);
+        __ps_skip(&ps, len);
+        if (!ps_done(&ps)) {
+            sb_addc(out, thousand_sep);
+        }
+    }
+}
+
+void sb_add_uint_fmt(sb_t *sb, uint64_t val, int thousand_sep)
+{
+    char buf[21];
+    int len = snprintf(buf, sizeof(buf), "%ju", val);
+
+    sb_add_ps_int_fmt(sb, ps_init(buf, len), thousand_sep);
+}
+
+void sb_add_int_fmt(sb_t *sb, int64_t val, int thousand_sep)
+{
+    if (val < 0) {
+        sb_addc(sb, '-');
+        val *= -1;
+    }
+    sb_add_uint_fmt(sb, val, thousand_sep);
+}
+
 void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
                        int dec_sep, int thousand_sep)
 {
@@ -247,19 +282,7 @@ void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
 
     /* Integer part  */
     ps_get_ps_chr_and_skip(&ps, '.', &integer_part);
-    if (thousand_sep >= 0) {
-        while (!ps_done(&integer_part)) {
-            int len = ps_len(&integer_part) % 3 ?: 3;
-
-            sb_add(sb, integer_part.s, len);
-            __ps_skip(&integer_part, len);
-            if (!ps_done(&integer_part)) {
-                sb_addc(sb, thousand_sep);
-            }
-        }
-    } else {
-        sb_add(sb, integer_part.s, ps_len(&integer_part));
-    }
+    sb_add_ps_int_fmt(sb, integer_part, thousand_sep);
 
     /* Decimal part */
     if (nb_max_decimals > 0) {
