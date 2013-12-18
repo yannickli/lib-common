@@ -18,15 +18,24 @@ struct thr_hooks thr_hooks_g = {
     .exit_cbs = DLIST_INIT(thr_hooks_g.exit_cbs),
 };
 
-static void thr_main_atexit(void)
+static int thr_hooks_initialize(void *arg)
+{
+    return 0;
+}
+
+static int thr_hooks_shutdown(void)
 {
     dlist_for_each(it, &thr_hooks_g.exit_cbs) {
         (container_of(it, struct thr_ctor, link)->cb)();
     }
+    return 0;
 }
 
 __attribute__((constructor))
 static void thr_run_dtors_at_exit(void)
 {
-    atexit(thr_main_atexit);
+    static module_t *thr_hooks_module;
+
+    thr_hooks_module = MODULE_REGISTER(thr_hooks, NULL);
+    MODULE_REQUIRE(thr_hooks);
 }

@@ -878,19 +878,17 @@ pid_t thr_fork(void)
     return pid;
 }
 
-MODULE(thr, NULL)
+MODULE(thr, NULL, "thr_hooks")
 
 void thr_old_initialize(void)
 {
     MODULE_REQUIRE(thr);
 }
 
-
 void thr_old_shutdown(void)
 {
     MODULE_RELEASE(thr);
 }
-
 
 /* }}} */
 /* thr_syn {{{ */
