@@ -730,8 +730,7 @@ static void log_atfork(void)
     _G.pid = getpid();
 }
 
-__attribute__((constructor))
-static void log_initialize(void)
+static int log_initialize(void* args)
 {
     qv_init(spec, &_G.specs);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
@@ -755,7 +754,7 @@ static void log_initialize(void)
         char *p = getenv("IS_DEBUG");
 
         if (!p)
-            return;
+            return 1;
 
         /* XXX This string is "leaked" because we could need debug information
          *     written in it *ANYTIME* (including at shutdown).
@@ -808,12 +807,24 @@ static void log_initialize(void)
         }
     }
 #endif
+    return 1;
 }
 
-__attribute__((destructor))
-static void log_shutdown(void)
+static int log_shutdown(void)
 {
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
+    return 1;
+}
+
+__attribute__((constructor))
+static void log_module_register(void)
+{
+    static module_t *log_module;
+
+    log_module = module_register(LSTR_IMMED_V("log"),
+                                 &log_initialize, NULL,
+                                 &log_shutdown, NULL, 0);
+    MODULE_REQUIRE(log);
 }
 
 /* }}} */

@@ -50,7 +50,7 @@ typedef struct module_t module_t;
  */
 
 #define MODULE_REGISTER(name, on_term, ...)                                  \
-    ({ const char *__##name##_dependencies[] = { NULL, ##__VA_ARGS__ };      \
+    ({ const char *__##name##_dependencies[] = {NULL, "log", ##__VA_ARGS__ };\
        module_register(LSTR_IMMED_V(#name), &name##_initialize,              \
                        on_term, &name##_shutdown,                            \
                        __##name##_dependencies + 1,                          \

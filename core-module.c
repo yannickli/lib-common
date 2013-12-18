@@ -259,8 +259,8 @@ static int module_hard_shutdown(void)
             && (module->state & FAIL_SHUT) != FAIL_SHUT)
             {
                 error--;
-                logger_trace(&_G.logger, 1, "%*pM was not released",
-                             LSTR_FMT_ARG(module->name));
+                logger_trace(&_G.logger, 1, "%*pM was not released "
+                             "(forcing release)", LSTR_FMT_ARG(module->name));
                 module_release(module);
             }
         }
@@ -268,18 +268,11 @@ static int module_hard_shutdown(void)
 
 
     /* Shuting down automatic modules that might be still open */
-    qm_for_each_pos(module, position, &_G.modules){
+    qm_for_each_pos(module, position, &_G.modules) {
         module_t *module = _G.modules.values[position];
 
-        if (module->state == AUTO_REQ) {
-            error--;
-            logger_trace(&_G.logger, 1, "%*pM was not released",
-                         LSTR_FMT_ARG(module->name));
-            module_shutdown(module);
-        }
+        assert (module->state != AUTO_REQ && module->state != MANU_REQ);
     }
-
-
     return error;
 }
 
