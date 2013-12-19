@@ -635,6 +635,27 @@ enum iop_sort_flags {
 int iop_sort(const iop_struct_t *st, void *vec, int len,
              lstr_t field_path, int flags);
 
+typedef struct iop_sort_t {
+    lstr_t field_path;
+    int flags;
+} iop_sort_t;
+
+qvector_t(iop_sort, iop_sort_t);
+
+/** Sort a vector of IOP as iop_sort, but on multiple fields.
+ *
+ *
+ *  \param[in] st          The IOP structure definition (__s).
+ *  \param[in] vec         The array to sort \see iop_sort.
+ *  \param[in] len         Length of the array
+ *  \param[in] params      All the path to sort on, the array will be sorted
+ *                         on the first element, and in case of equality,
+ *                         on the seconde one, and so on.
+ *                         \see iop_sort for field path syntax and flags desc.
+ */
+int iop_msort(const iop_struct_t *st, void *vec, int len,
+              const qv_t(iop_sort) *params);
+
 /** Duplicate an IOP structure.
  *
  * The resulting IOP structure will fully contained in one block of memory.

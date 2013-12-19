@@ -807,7 +807,6 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
 }
 
 /* }}} */
-
 /* }}} */
 /* {{{ cmp functions */
 
@@ -848,51 +847,96 @@ static cmp_f const iop_cmp_rev_funs[] = {
 
 /*}}}*/
 
-int iop_sort(const iop_struct_t *st, void *vec, int len,
-             lstr_t field_path_s, int flags)
-{
-    t_scope;
-    bool is_class = iop_struct_is_class(st);
+typedef struct iop_sort_priv_t {
     field_path_t fp;
+    int flags;
     cmp_f cmp;
+} iop_sort_priv_t;
 
-    field_path_init(&fp);
-    t_qv_init(field_step, &fp.steps, 16);
-    if (t_iop_compile_field_path(st, field_path_s, &fp) < 0) {
-        return -1;
-    }
+qvector_t(iop_sort_p, iop_sort_priv_t);
 
-    if (fp.fdesc == NULL) {
+static
+int t_prepare_field(const iop_struct_t *st, const iop_sort_t *sort,
+                    iop_sort_priv_t *priv)
+{
+    field_path_init(&priv->fp);
+    t_qv_init(field_step, &priv->fp.steps, 16);
+    RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp));
+
+    if (priv->fp.fdesc == NULL) {
         return e_error("iop_sort: no field specified");
     }
-    if (fp.fdesc->type == IOP_T_STRUCT) {
+    if (priv->fp.fdesc->type == IOP_T_STRUCT) {
         return e_error("iop_sort: cannot sort on struct");
     }
 
-    if (flags & IOP_SORT_REVERSE) {
-        cmp = iop_cmp_rev_funs[fp.fdesc->type];
+    priv->flags = sort->flags;
+    if (priv->flags & IOP_SORT_REVERSE) {
+        priv->cmp = iop_cmp_rev_funs[priv->fp.fdesc->type];
     } else {
-        cmp = iop_cmp_funs[fp.fdesc->type];
+        priv->cmp = iop_cmp_funs[priv->fp.fdesc->type];
+    }
+    return 0;
+}
+
+static
+int compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
+{
+    d1 = iop_get_fieldp(d1, &priv->fp);
+    d2 = iop_get_fieldp(d2, &priv->fp);
+    if (d1 == d2)
+        return 0;
+    if (d1 == NULL)
+        return (priv->flags & IOP_SORT_NULL_FIRST) ? -1 : 1;
+    if (d2 == NULL)
+        return (priv->flags & IOP_SORT_NULL_FIRST) ? 1 : -1;
+    return priv->cmp(d1, d2);
+}
+
+int iop_msort(const iop_struct_t *st, void *vec, int len,
+              const qv_t(iop_sort) *params)
+{
+    t_scope;
+    bool is_class = iop_struct_is_class(st);
+    qv_t(iop_sort_p) sorts;
+
+    t_qv_init(iop_sort_p, &sorts, params->len);
+    qv_growlen(iop_sort_p, &sorts, params->len);
+    qv_for_each_pos(iop_sort, pos, params) {
+        RETHROW(t_prepare_field(st, &params->tab[pos], &sorts.tab[pos]));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
-    ^int (const void *d1, const void *d2) {
-        if (is_class) {
-            d1 = *(void **)d1;
-            d2 = *(void **)d2;
-        }
-        d1 = iop_get_fieldp(d1, &fp);
-        d2 = iop_get_fieldp(d2, &fp);
-        if (d1 == d2)
+        ^int (const void *d1, const void *d2) {
+            if (is_class) {
+                d1 = *(void **)d1;
+                d2 = *(void **)d2;
+            }
+
+            qv_for_each_ptr(iop_sort_p, sort, &sorts) {
+                int ret = compare_field(d1, d2, sort);
+
+                if (ret) {
+                    return ret;
+                }
+            }
             return 0;
-        if (d1 == NULL)
-            return (flags & IOP_SORT_NULL_FIRST) ? -1 : 1;
-        if (d2 == NULL)
-            return (flags & IOP_SORT_NULL_FIRST) ? 1 : -1;
-        return (*cmp)(d1, d2);
-    });
+        });
 
     return 0;
+}
+
+int iop_sort(const iop_struct_t *st, void *vec, int len,
+             lstr_t field_path, int flags)
+{
+    qv_t(iop_sort) params;
+    iop_sort_t param = {
+        .field_path = field_path,
+        .flags = flags,
+    };
+
+    qv_init_static(iop_sort, &params, &param, 1);
+    return iop_msort(st, vec, len, &params);
 }
 
 /* }}} */

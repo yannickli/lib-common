@@ -2136,6 +2136,84 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_msort, "test IOP structures/unions multi sorting") { /* {{{ */
+        t_scope;
+        qv_t(my_struct_a) original;
+        qv_t(my_struct_a) sorted;
+        qv_t(iop_sort) params;
+
+        t_qv_init(my_struct_a, &original, 3);
+        t_qv_init(my_struct_a, &sorted, 3);
+        t_qv_init(iop_sort, &params, 2);
+
+        qv_growlen(my_struct_a, &original, 3);
+        tstiop__my_struct_a__init(&original.tab[0]);
+        tstiop__my_struct_a__init(&original.tab[1]);
+        tstiop__my_struct_a__init(&original.tab[2]);
+
+        original.tab[0].a = 1;
+        original.tab[1].a = 2;
+        original.tab[2].a = 3;
+
+        original.tab[0].b = 1;
+        original.tab[1].b = 1;
+        original.tab[2].b = 2;
+
+        original.tab[0].d = 3;
+        original.tab[1].d = 2;
+        original.tab[2].d = 1;
+
+
+#define ADD_PARAM(_field, _flags)  do {                                      \
+        qv_append(iop_sort, &params, ((iop_sort_t){                          \
+            .field_path = LSTR_IMMED_V(_field),                              \
+            .flags = _flags,                                                 \
+        }));                                                                 \
+    } while(0)
+
+#define SORT_AND_CHECK(p1, p2, p3)  do {                                     \
+        Z_ASSERT_ZERO(tstiop__my_struct_a__msort(sorted.tab, sorted.len,     \
+                                                 &params));                  \
+        Z_ASSERT_EQ(sorted.tab[0].a, original.tab[p1].a);                    \
+        Z_ASSERT_EQ(sorted.tab[1].a, original.tab[p2].a);                    \
+        Z_ASSERT_EQ(sorted.tab[2].a, original.tab[p3].a);                    \
+        Z_ASSERT_EQ(sorted.tab[0].b, original.tab[p1].b);                    \
+        Z_ASSERT_EQ(sorted.tab[1].b, original.tab[p2].b);                    \
+        Z_ASSERT_EQ(sorted.tab[2].b, original.tab[p3].b);                    \
+        Z_ASSERT_EQ(sorted.tab[0].d, original.tab[p1].d);                    \
+        Z_ASSERT_EQ(sorted.tab[1].d, original.tab[p2].d);                    \
+        Z_ASSERT_EQ(sorted.tab[2].d, original.tab[p3].d);                    \
+    } while (0)
+
+        /* Simple sort */
+        qv_copy(my_struct_a, &sorted, &original);
+        qv_clear(iop_sort, &params);
+        ADD_PARAM("a", IOP_SORT_REVERSE);
+        SORT_AND_CHECK(2, 1, 0);
+
+        /* Double sort */
+        qv_clear(iop_sort, &params);
+        ADD_PARAM("b", 0);
+        ADD_PARAM("d", 0);
+        SORT_AND_CHECK(1, 0, 2);
+
+        /* Double sort reverse on first */
+        qv_clear(iop_sort, &params);
+        ADD_PARAM("b", IOP_SORT_REVERSE);
+        ADD_PARAM("d", 0);
+        SORT_AND_CHECK(2, 1, 0);
+
+        /* Double sort reverse on last */
+        qv_clear(iop_sort, &params);
+        ADD_PARAM("b", 0);
+        ADD_PARAM("d", IOP_SORT_REVERSE);
+        SORT_AND_CHECK(0, 1, 2);
+
+#undef ADD_PARAM
+#undef SORT_AND_CHECK
+
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_copy_inv_tab, "iop_copy(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
 

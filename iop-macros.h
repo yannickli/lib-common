@@ -370,6 +370,11 @@
     static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
                                   int flags) {                               \
         return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
+    }                                                                        \
+    static inline int pfx##__msort(pfx##__t *vec, int len,                   \
+                                   const qv_t(iop_sort) *params)             \
+    {                                                                        \
+        return iop_msort(&pfx##__s, (void *)vec, len, params);               \
     }
 
 /* {{{ Binary helpers */
@@ -505,6 +510,11 @@
     static inline int pfx##__sort(pfx##__t **vec, int len, lstr_t path,      \
                                   int flags) {                               \
         return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
+    }                                                                        \
+    static inline int pfx##__msort(pfx##__t **vec, int len,                  \
+                                   const qv_t(iop_sort) *params)             \
+    {                                                                        \
+        return iop_msort(&pfx##__s, (void *)vec, len, params);               \
     }
 
 #define IOP_CLASS(pfx) \
