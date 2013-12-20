@@ -610,4 +610,45 @@ Z_GROUP_EXPORT(str)
 
 #undef T
     } Z_TEST_END;
+
+    Z_TEST(sb_add_int_fmt, "str: sb_add_int_fmt") {
+#define T(val, thousand_sep, res) \
+    ({  SB_1k(sb);                                                           \
+                                                                             \
+        sb_add_int_fmt(&sb, val, thousand_sep);                              \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+    })
+
+        T(        0, ',', "0");
+        T(        1, ',', "1");
+        T(       -1, ',', "-1");
+        T(       12, ',', "12");
+        T(      123, ',', "123");
+        T(     1234, ',', "1,234");
+        T(INT64_MIN, ',', "-9,223,372,036,854,775,808");
+        T(INT64_MAX, ',', "9,223,372,036,854,775,807");
+        T(     1234, ' ', "1 234");
+        T(     1234,  -1, "1234");
+#undef T
+    } Z_TEST_END;
+
+    Z_TEST(sb_add_uint_fmt, "str: sb_add_uint_fmt") {
+#define T(val, thousand_sep, res) \
+    ({  SB_1k(sb);                                                           \
+                                                                             \
+        sb_add_uint_fmt(&sb, val, thousand_sep);                             \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+    })
+
+        T(         0, ',', "0");
+        T(         1, ',', "1");
+        T(        12, ',', "12");
+        T(       123, ',', "123");
+        T(      1234, ',', "1,234");
+        T(UINT64_MAX, ',', "18,446,744,073,709,551,615");
+        T(      1234, ' ', "1 234");
+        T(      1234,  -1, "1234");
+#undef T
+    } Z_TEST_END;
+
 } Z_GROUP_END;
