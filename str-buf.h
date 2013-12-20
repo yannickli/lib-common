@@ -424,6 +424,26 @@ static inline void sb_sets(sb_t *sb, const char *s)
     sb_set(sb, s, strlen(s));
 }
 
+/** Appends a pretty-formated unsigned integer to a string buffer with a
+ *  thousand separator.
+ *
+ * \param[inout] sb           Buffer to be updated.
+ * \param[in]    val          Unsigned integer 64 to be added in the buffer.
+ * \param[in]    thousand_sep Character used as thousand separator. Use -1 for
+ *                            none.
+ */
+void sb_add_uint_fmt(sb_t *sb, uint64_t val, int thousand_sep);
+
+/** Appends a pretty-formated integer to a string buffer with a thousand
+ *  separator.
+ *
+ * \param[inout] sb           Buffer to be updated.
+ * \param[in]    val          Integer 64 to be added in the buffer.
+ * \param[in]    thousand_sep Character used as thousand separator. Use -1 for
+ *                            none.
+ */
+void sb_add_int_fmt(sb_t *sb, int64_t val, int thousand_sep);
+
 /** Appends a pretty-formated number to a string buffer.
  *
  * Here are some examples with dec_sep = '.' and thousand_sep = ',':
