@@ -2386,7 +2386,8 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
     PS_CHECK(__get_class_id(ps, wt, &child_id));
 
     if (unlikely(!(real_desc = iop_get_class_by_id(desc, child_id)))) {
-        e_trace(0, "cannot find child %d of class '%*pM'",
+        e_trace(0, "cannot find child %d of class '%*pM'; missing "
+                "IOP_REGISTER_PACKAGES?",
                 child_id, LSTR_FMT_ARG(desc->fullname));
         return -1;
     }

@@ -1245,6 +1245,9 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     /* Get the iop_struct_t of the instanciated class from its fullname */
     *real_desc = iop_get_class_by_fullname(desc_it, LSTR_SB_V(&ll->ctx->b));
     if (!*real_desc) {
+        e_trace(0, "cannot find child class `%*pM' in the children of "
+                "`%*pM'; missing IOP_REGISTER_PACKAGES?",
+                SB_FMT_ARG(&ll->ctx->b), LSTR_FMT_ARG(desc->fullname));
         return RJERROR_EXP_FMT("a child of `%*pM'",
                                LSTR_FMT_ARG(desc->fullname));
     }
