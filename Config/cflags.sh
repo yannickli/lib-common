@@ -153,6 +153,11 @@ EOF
         if clang_prereq 3.1; then
             echo -Wno-return-type-c-linkage
         fi
+        if clang_prereq 3.4; then
+            if is_cpp; then
+                echo -Wno-extern-c-compat
+            fi
+        fi
     fi
 
     echo -Wchar-subscripts

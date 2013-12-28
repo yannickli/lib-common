@@ -52,26 +52,31 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
 
 #define RING_FUNCTIONS(type_t, pfx, wipe)                              \
     GENERIC_INIT(pfx##_ring, pfx##_ring);                              \
+    __unused__                                                         \
     static inline void pfx##_ring_wipe(pfx##_ring *r) {                \
         RING_MAP(r, wipe);                                             \
         p_delete(&r->tab);                                             \
     }                                                                  \
                                                                        \
+    __unused__                                                         \
     static inline int pfx##_ring_pos(pfx##_ring *r, int idx) {         \
         int pos = r->first + idx;                                      \
         return pos >= r->size ? pos - r->size : pos;                   \
     }                                                                  \
                                                                        \
+    __unused__                                                         \
     static inline void pfx##_ring_unshift(pfx##_ring *r, type_t e) {   \
         generic_ring_ensure((void *)r, ++r->len, sizeof(type_t));      \
         r->first = r->first ? r->first - 1 : r->size - 1;              \
         r->tab[r->first] = e;                                          \
     }                                                                  \
+    __unused__                                                         \
     static inline void pfx##_ring_push(pfx##_ring *r, type_t e) {      \
         generic_ring_ensure((void *)r, r->len + 1, sizeof(type_t));    \
         r->tab[pfx##_ring_pos(r, r->len++)] = e;                       \
     }                                                                  \
                                                                        \
+    __unused__                                                         \
     static inline bool pfx##_ring_shift(pfx##_ring *r, type_t *e) {    \
         if (r->len <= 0)                                               \
             return false;                                              \
@@ -81,6 +86,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
         r->len--;                                                      \
         return true;                                                   \
     }                                                                  \
+    __unused__                                                         \
     static inline bool pfx##_ring_pop(pfx##_ring *r, type_t *e) {      \
         if (r->len <= 0)                                               \
             return false;                                              \
