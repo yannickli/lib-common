@@ -2570,7 +2570,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
 {
     pid_t     pid;
 
-    pid = thr_fork();
+    pid = fork();
     if (pid < 0)
         e_panic("QPS: unable to fork snapshotter in the background, %m");
     if (pid > 0)
@@ -3209,8 +3209,8 @@ Z_GROUP_EXPORT(qps)
     const char S[] = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQSRT";
     qps_handle_t handle1, handle2, handle3;
 
-    MODULE_REQUIRE(thr);
-    qps_initialize(&ps_panic_sighandler);
+    MODULE_PROVIDE(qps, &ps_panic_sighandler);
+    MODULE_REQUIRE(qps);
 
 #define Z_CHECK_ALLOC(handle, size)  ({                                      \
         char *__data = qps_alloc(qps, &handle, size);                        \
@@ -3426,7 +3426,7 @@ Z_GROUP_EXPORT(qps)
         Z_CHECK_HANDLE_FILLED(handle1, 36);
         qps_close(&qps);
     } Z_TEST_END;
-    MODULE_RELEASE(thr);
+    MODULE_RELEASE(qps);
 }
 Z_GROUP_END;
 

@@ -177,8 +177,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    thr_initialize();
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 
     _G.path = argv[1];
     qps_unlink(argv[1]);

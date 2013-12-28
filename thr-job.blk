@@ -784,8 +784,6 @@ static int thr_initialize(void *arg)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-        pthread_atfork(NULL, NULL, thr_wipe);
-
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
@@ -864,21 +862,22 @@ static int thr_shutdown(void)
     return F_SHUTDOWN;
 }
 
-pid_t thr_fork(void)
+static void thr_job_at_fork(void)
 {
-    pid_t pid = RETHROW(fork());
-
-    if (pid > 0) {
-        return pid;
-    }
-    thr_wipe();
     if (MODULE_IS_LOADED(thr)) {
+        thr_wipe();
         thr_initialize(NULL);
     }
-    return pid;
 }
 
-MODULE(thr, NULL, "thr_hooks")
+module_t *thr_module;
+
+static __attribute__((constructor))
+void __thr_module_register(void)
+{
+    thr_module = MODULE_REGISTER(thr, NULL, "thr_hooks");
+    pthread_atfork(NULL, NULL, thr_job_at_fork);
+}
 
 void thr_old_initialize(void)
 {

@@ -386,8 +386,7 @@ static int test_8(qps_t *qps, bool null)
 Z_GROUP_EXPORT(qps_hat) {
     qps_t *qps;
 
-    MODULE_REQUIRE(thr);
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 
     if (qps_exists(z_grpdir_g.s)) {
         qps = qps_open(z_grpdir_g.s, NULL);
@@ -457,5 +456,5 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     qps_close(&qps);
-    MODULE_RELEASE(thr);
+    MODULE_RELEASE(qps);
 } Z_GROUP_END

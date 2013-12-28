@@ -17,8 +17,7 @@ int main(int argc, const char **argv)
 {
     int res = 0;
 
-    thr_initialize();
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 
     for (int i = 1; i < argc; i++) {
         if (__qps_check_consistency(argv[i]))

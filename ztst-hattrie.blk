@@ -252,8 +252,7 @@ int main(int argc, char **argv)
         e_fatal("require a path of a qps as input");
     }
 
-    thr_initialize();
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 #if 0
     {
         cpu_set_t cpuset;

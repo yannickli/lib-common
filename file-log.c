@@ -55,7 +55,7 @@ static void log_file_bgcompress(const char *path)
     sigaddset(&set, SIGCHLD);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
 
-    pid = thr_fork();
+    pid = fork();
     if (pid < 0) {
         pthread_sigmask(SIG_UNBLOCK, &set, NULL);
         e_error("unable to fork gzip in the background, %m");

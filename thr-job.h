@@ -275,8 +275,6 @@ void thr_syn_wait(thr_syn_t *syn);
  */
 void thr_queue_main_drain(void);
 
-pid_t thr_fork(void);
-
 /*- accounting -----------------------------------------------------------*/
 
 #ifndef NDEBUG

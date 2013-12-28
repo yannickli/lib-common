@@ -475,7 +475,7 @@ static bool _z_group_run(void)
         return true;
     }
 
-    pid = thr_fork();
+    pid = fork();
     if (pid == 0) {
         signal(SIGTERM, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);

@@ -21,8 +21,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    thr_initialize();
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 
     if (qps_exists(path)) {
         qps = qps_open(path, NULL);
