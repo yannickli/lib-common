@@ -74,6 +74,7 @@
 
 #define qhp_funcs_t(n, type_t, is_min_heap, cmp, set_pos)                     \
                                                                               \
+    __unused__                                                                \
     static ALWAYS_INLINE int                                                  \
     __qhp_##n##_set(qhp_t(n) *heap, int pos, type_t node)                     \
     {                                                                         \
@@ -83,6 +84,7 @@
         return pos;                                                           \
     }                                                                         \
                                                                               \
+    __unused__                                                                \
     static inline int __qhp_##n##_down(qhp_t(n) *heap, int _pos)              \
     {                                                                         \
         type_t  node = heap->tab[_pos];                                       \
@@ -122,6 +124,7 @@
         return _pos != pos ? __qhp_##n##_set(heap, pos, node) : _pos;         \
     }                                                                         \
                                                                               \
+    __unused__                                                                \
     static inline int __qhp_##n##_up(qhp_t(n) *heap, int _pos)                \
     {                                                                         \
         type_t node = heap->tab[_pos];                                        \
@@ -141,6 +144,7 @@
         return _pos != pos ? __qhp_##n##_set(heap, pos, node) : _pos;         \
     }                                                                         \
                                                                               \
+    __unused__                                                                \
     static inline int qhp_##n##_insert(qhp_t(n) *heap, type_t node)           \
     {                                                                         \
         set_pos(node, heap->len);                                             \
@@ -149,6 +153,7 @@
         return __qhp_up(n, heap, heap->len - 1);                              \
     }                                                                         \
                                                                               \
+    __unused__                                                                \
     static inline int qhp_##n##_fixup(qhp_t(n) *heap, int pos)                \
     {                                                                         \
         type_t *node   = &heap->tab[pos];                                     \
@@ -161,6 +166,7 @@
         }                                                                     \
     }                                                                         \
                                                                               \
+    __unused__                                                                \
     static inline type_t qhp_##n##_remove(qhp_t(n) *heap, int pos)            \
     {                                                                         \
         type_t node;                                                          \
