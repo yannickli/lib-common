@@ -1367,6 +1367,7 @@ static int test_queue_sync(void)
     }
     thr_syn_wait(syn);
     thr_syn_wipe(syn);
+    thr_queue_destroy(q, true);
 
     Z_ASSERT_EQ(queue_sync_g, 10 * thr_parallelism_g * 100);
     Z_HELPER_END;
