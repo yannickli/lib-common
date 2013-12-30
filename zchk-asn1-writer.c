@@ -244,6 +244,7 @@ static int serialize_test_0(uint8_t *dst, const test_0_t *t0)
     qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t0, asn1_test_0_desc(), &stack));
     asn1_pack_(dst, t0, asn1_test_0_desc(), &stack);
+    qv_wipe(i32, &stack);
     return length;
 }
 
@@ -255,6 +256,7 @@ static int serialize_test_1(uint8_t *dst, const test_1_t *t1)
     qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t1, asn1_test_1_desc(), &stack));
     asn1_pack_(dst, t1, asn1_test_1_desc(), &stack);
+    qv_wipe(i32, &stack);
     return length;
 }
 
@@ -266,6 +268,7 @@ static int serialize_test_2(uint8_t *dst, const test_2_t *t2)
     qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t2, asn1_test_2_desc(), &stack));
     asn1_pack_(dst, t2, asn1_test_2_desc(), &stack);
+    qv_wipe(i32, &stack);
     return length;
 }
 
@@ -277,6 +280,7 @@ static int serialize_test_3(uint8_t *dst, const test_3_t *t3)
     qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size(test_3, t3, &stack));
     asn1_pack(test_3, dst, t3, &stack);
+    qv_wipe(i32, &stack);
     return length;
 }
 
