@@ -68,6 +68,7 @@ struct thr_ctor {
     }
 
 void thr_hooks_at_init(void);
+void thr_hooks_reset(void);
 
 /** \brief pulls the pthread hook module (forces a dependency upon pthreads).
  *

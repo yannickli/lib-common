@@ -139,7 +139,6 @@ libcommon_SOURCES = \
 	str-stream.c \
 	\
 	thr.c \
-	thr-pthread-hook.c \
 	thr-evc.c \
 	thr-job.blk \
 	thr-spsc.c \
