@@ -38,7 +38,7 @@ static popt_t popts[] = {
     OPT_END(),
 };
 
-static void on_term(el_t ev, int signo, el_data_t priv)
+static void on_term(el_t ev, int signo, data_t priv)
 {
     el_blocker_unregister(&_G.blocker);
 }

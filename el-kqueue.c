@@ -50,7 +50,7 @@ static void el_fd_kqueue_register(int fd, int filter, int flags,
     qv_append(kevent, &kqueue_g.chlist, ke);
 }
 
-el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
+el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_FD, cb, priv, true);
 
@@ -96,7 +96,7 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
-el_data_t el_fd_unregister(ev_t **evp, bool do_close)
+data_t el_fd_unregister(ev_t **evp, bool do_close)
 {
     if (*evp) {
         ev_t *ev = *evp;
@@ -109,7 +109,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
             el_fd_act_timer_unregister(ev->priv.ptr);
         return el_destroy(evp, false);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 

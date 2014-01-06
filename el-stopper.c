@@ -18,12 +18,12 @@ static struct {
     int   stopme;
 } stopper_g;
 
-static void stopper_dbl_timer(el_t ev, el_data_t priv)
+static void stopper_dbl_timer(el_t ev, data_t priv)
 {
     stopper_g.stopme = 1;
 }
 
-static void stopper_handler(el_t ev, int signum, el_data_t priv)
+static void stopper_handler(el_t ev, int signum, data_t priv)
 {
     if (!stopper_g.stopme) {
         e_info("^C requesting soft termination");

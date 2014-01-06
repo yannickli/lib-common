@@ -131,7 +131,7 @@ static struct {
     ic_hook_ctx_t   *ic_hook_ctx;
     ic_post_hook_f  *post_hook;
     const iop_rpc_t *rpc;
-    el_data_t        post_args;
+    data_t           post_args;
 } ic_hook_flow_g;
 
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
@@ -220,7 +220,7 @@ static inline bool ic_can_reply(const ichannel_t *ic, uint64_t slot) {
     return likely(ic->elh || ic_is_local(ic)) && likely(ic->id == slot >> 32);
 }
 
-static void ic_watch_act_soft(el_t ev, el_data_t priv);
+static void ic_watch_act_soft(el_t ev, data_t priv);
 
 static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
                           const lstr_t *err_str);
@@ -1108,7 +1108,7 @@ close_and_error_out:
     return -1;
 }
 
-static void ic_reconnect(el_t ev, el_data_t priv)
+static void ic_reconnect(el_t ev, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
@@ -1170,7 +1170,7 @@ void ic_wipe(ichannel_t *ic)
 }
 
 static void ic_mark_disconnected(ichannel_t *ic);
-static int ic_event(el_t ev, int fd, short events, el_data_t priv)
+static int ic_event(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
@@ -1615,7 +1615,7 @@ static void ic_mark_disconnected(ichannel_t *ic)
     }
 }
 
-static int ic_connecting(el_t ev, int fd, short events, el_data_t priv)
+static int ic_connecting(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
     int res = socket_connect_status(fd);
@@ -1631,7 +1631,7 @@ static int ic_connecting(el_t ev, int fd, short events, el_data_t priv)
     return 0;
 }
 
-static void ic_watch_act_soft(el_t ev, el_data_t priv)
+static void ic_watch_act_soft(el_t ev, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
@@ -1639,7 +1639,7 @@ static void ic_watch_act_soft(el_t ev, el_data_t priv)
     el_timer_unregister(&ic->wa_soft_timer);
 }
 
-static void ic_watch_act_nop(el_t ev, el_data_t priv)
+static void ic_watch_act_nop(el_t ev, data_t priv)
 {
     ic_nop(priv.ptr);
     el_timer_restart(ev, 0);
@@ -1774,7 +1774,7 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     }
 }
 
-static int ic_accept(el_t ev, int fd, short events, el_data_t priv)
+static int ic_accept(el_t ev, int fd, short events, data_t priv)
 {
     int (*on_accept)(el_t ev, int fd) = priv.ptr;
     int sock;

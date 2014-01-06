@@ -55,9 +55,9 @@ typedef struct ic_creds_t {
 
 typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
 typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t,
-                             const ic__hdr__t *, el_data_t);
+                             const ic__hdr__t *, data_t);
 typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t,
-                              ic_hook_ctx_t *, el_data_t);
+                              ic_hook_ctx_t *, data_t);
 typedef int (ic_creds_f)(ichannel_t *, const ic_creds_t *creds);
 typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
@@ -106,7 +106,7 @@ struct ic_hook_ctx_t {
     uint64_t         slot;
     ic_post_hook_f  *post_hook;
     const iop_rpc_t *rpc;
-    el_data_t        post_hook_args;
+    data_t           post_hook_args;
     byte             data[];  /* data to pass through RPC workflow */
 };
 
@@ -138,8 +138,8 @@ typedef struct ic_cb_entry_t {
 
     ic_pre_hook_f  *pre_hook;
     ic_post_hook_f *post_hook;
-    el_data_t       pre_hook_args;
-    el_data_t       post_hook_args;
+    data_t          pre_hook_args;
+    data_t          post_hook_args;
     union {
         struct {
             void (*cb)(ichannel_t *, uint64_t, void *, const ic__hdr__t *);
@@ -503,7 +503,7 @@ void ic_flush(ichannel_t *ic);
     } while (0)
 
 /** \brief same as #ic_register_pre_post_hook_ but _pre and _post args
- *    will be transform into el_data_t ptr.
+ *    will be transform into data_t ptr.
  */
 #define ic_register_pre_post_hook_p_(h, _mod, _if, _rpc, _cb,                \
                                      _pre_cb, _post_cb, _pre_arg, _post_arg) \
@@ -589,7 +589,7 @@ void ic_flush(ichannel_t *ic);
     } while (0)
 
 /** \brief same as #ic_register_proxy_hdr_pre_post_hook but _pre and _post
- *    args will be transform into el_data_t ptr.
+ *    args will be transform into data_t ptr.
  */
 #define ic_register_proxy_hdr_pre_post_hook_p(h, _mod, _if, _rpc, ic, hdr,   \
                                               _pre_cb, _post_cb,             \
@@ -609,7 +609,7 @@ void ic_flush(ichannel_t *ic);
                                         _pre_arg, _post_arg)
 
 /** \brief same as #ic_register_proxy_hdr_pre_post_hook but _pre and _post
- *    args will be transform into el_data_t ptr.
+ *    args will be transform into data_t ptr.
  */
 #define ic_register_proxy_pre_post_hook_p(h, _mod, _if, _rpc, ic, _pre_cb,   \
                                           _post_cb, _pre_arg, _post_arg)     \
@@ -684,7 +684,7 @@ void ic_flush(ichannel_t *ic);
     } while (0)
 
 /** \brief same as #ic_register_proxy_hdr_p_pre_post_hook but _pre and _post
- *    args will be transform into el_data_t ptr.
+ *    args will be transform into data_t ptr.
  */
 #define ic_register_proxy_hdr_p_pre_post_hook_p(h, _mod, _if, _rpc, ic, hdr, \
                                                 _pre_cb, _post_cb,           \
@@ -771,7 +771,7 @@ void ic_flush(ichannel_t *ic);
     } while (0)
 
 /** \brief same as #ic_register_dynproxy_pre_post_hook but _pre and _post args
- *    will be transform into el_data_t ptr.
+ *    will be transform into data_t ptr.
  */
 #define ic_register_dynproxy_pre_post_hook_p(h, _mod, _if, _rpc, cb, _priv,  \
                                              _pre_cb, _post_cb,              \

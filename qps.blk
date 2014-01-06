@@ -1738,7 +1738,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     qps_m_check_maps(qps);
 }
 
-static void qps_gc_on_idle(el_t ev, el_data_t priv)
+static void qps_gc_on_idle(el_t ev, data_t priv)
 {
     qps_t *qps = priv.ptr;
 
@@ -1768,7 +1768,7 @@ bool qps_gc_enable(qps_t *qps)
 
     e_named_trace(1, "qps/gc", "enable gc on %p", qps);
     if (thr_id() == 0)
-        qps_gc_on_idle(NULL, (el_data_t){ .ptr = qps });
+        qps_gc_on_idle(NULL, (data_t){ .ptr = qps });
     return prev & QPS_GC_ENABLED;
 }
 

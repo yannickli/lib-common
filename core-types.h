@@ -137,5 +137,16 @@ typedef opt_bool_t         opt__Bool_t;
     } while (0)
 
 /* 1}}} */
+/* Data Baton {{{ */
+
+/** Type to pass as a generic context.
+ */
+typedef union data_t {
+    void    *ptr;
+    uint32_t u32;
+    uint64_t u64;
+} data_t;
+
+/* }}} */
 
 #endif

@@ -39,7 +39,7 @@ static const char *t_build_real_path(int *size, log_file_t *log_file,
 }
 
 static void
-log_file_bgcompress_check(el_t ev, pid_t pid, int st, el_data_t priv)
+log_file_bgcompress_check(el_t ev, pid_t pid, int st, data_t priv)
 {
     if (!WIFEXITED(st) || WEXITSTATUS(st) != 0) {
         e_error("background compression of log file failed");

@@ -185,7 +185,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     } while (0)
 
 /** \brief same as #ichttp_register_pre_post_hook_ but _pre and _post args
- *    will be transform into el_data_t ptr.
+ *    will be transform into data_t ptr.
  */
 #define ichttp_register_pre_post_hook_p_(tcb, _mod, _if, _rpc, _cb, _pre_cb, \
                                          _post_cb,  _pre_arg, _post_arg)     \
@@ -374,7 +374,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
         ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 /** \brief same as #ichttp_register_pre_post_hook_ but _pre and _post args
- *    will be transform into el_data_t ptr.
+ *    will be transform into data_t ptr.
  */
 #define ichttp_register_proxy_hdr_p_pre_post_hook_p(tcb, _mod, _if, _rpc,    \
                                                     ic, hdr,                 \
@@ -460,7 +460,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     } while (0)
 
 /** \brief same as #ichttp_register_dynproxy_pre_post_hook but _pre and _post
- *    args will be transform into el_data_t ptr.
+ *    args will be transform into data_t ptr.
  */
 #define ichttp_register_dynproxy_pre_post_hook_p(tcb, _mod, _if, _rpc, cb,   \
                                                  priv_, _pre_cb, _post_cb,   \

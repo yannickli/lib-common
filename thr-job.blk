@@ -747,12 +747,12 @@ static void thr_wipe(void)
 }
 
 
-static void thr_before(el_t ev, el_data_t priv)
+static void thr_before(el_t ev, data_t priv)
 {
     thr_queue_drain(thr_queue_main_g);
 }
 
-static int thr_event(el_t ev, int fd, short evt, el_data_t priv)
+static int thr_event(el_t ev, int fd, short evt, data_t priv)
 {
     uint64_t val[16];
 

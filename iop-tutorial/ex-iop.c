@@ -165,7 +165,7 @@ static popt_t popts[] = {
     OPT_END(),
 };
 
-static void exiop_on_term(el_t idx, int signum, el_data_t priv)
+static void exiop_on_term(el_t idx, int signum, data_t priv)
 {
     if (_G.is_closing)
         return;

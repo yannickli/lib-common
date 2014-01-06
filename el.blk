@@ -103,7 +103,7 @@ typedef struct ev_t {
         el_fs_watch_b fs_watch_blk;
     } cb;
     union {
-        el_data_t priv;
+        data_t priv;
         block_t   wipe;
     };
 
@@ -210,7 +210,7 @@ static void ev_cache_list(dlist_t *l)
     }
 }
 
-static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
+static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
 {
     ev_t *res;
 
@@ -250,7 +250,7 @@ static ev_t *el_blk_register(ev_t *ev, void *cb, block_t wipe)
     return ev;
 }
 
-static el_data_t el_destroy(ev_t **evp, bool move)
+static data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
 
@@ -263,7 +263,7 @@ static el_data_t el_destroy(ev_t **evp, bool move)
         }
         Block_release(ev->cb.cb);
         EV_FLAG_RST(ev, IS_BLK);
-        ev->priv = (el_data_t)NULL;
+        ev->priv = (data_t)NULL;
     }
     el_unref(ev);
     if (move) {
@@ -297,10 +297,10 @@ static void ev_list_process(dlist_t *l)
 
 ev_t *el_blocker_register(void)
 {
-    return el_create(EV_BLOCKER, NULL, (el_data_t)NULL, true);
+    return el_create(EV_BLOCKER, NULL, (data_t)NULL, true);
 }
 
-ev_t *el_before_register_d(el_cb_f *cb, el_data_t priv)
+ev_t *el_before_register_d(el_cb_f *cb, data_t priv)
 {
     return ev_add(&_G.before, el_create(EV_BEFORE, cb, priv, true));
 }
@@ -325,16 +325,16 @@ void el_blocker_unregister(ev_t **evp)
     }
 }
 
-el_data_t el_before_unregister(ev_t **evp)
+data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
         return el_destroy(evp, true);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
-ev_t *el_idle_register_d(el_cb_f *cb, el_data_t priv)
+ev_t *el_idle_register_d(el_cb_f *cb, data_t priv)
 {
     return ev_add(&_G.idle, el_create(EV_IDLE, cb, priv, false));
 }
@@ -351,13 +351,13 @@ void el_idle_set_hook(el_t ev, el_cb_f *cb)
     ev->cb.cb = cb;
 }
 
-el_data_t el_idle_unregister(ev_t **evp)
+data_t el_idle_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_IDLE);
         return el_destroy(evp, true);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 void el_idle_unpark(ev_t *ev)
@@ -439,7 +439,7 @@ void el_signal_set_hook(el_t ev, el_signal_f *cb)
     ev->cb.signal = cb;
 }
 
-ev_t *el_signal_register_d(int signo, el_signal_f *cb, el_data_t priv)
+ev_t *el_signal_register_d(int signo, el_signal_f *cb, data_t priv)
 {
     struct sigaction sa;
     ev_t *ev;
@@ -460,18 +460,18 @@ ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
     return el_blk_register(el_signal_register(signo, NULL, NULL), blk, wipe);
 }
 
-el_data_t el_signal_unregister(ev_t **evp)
+data_t el_signal_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
         return el_destroy(evp, true);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 /*----- child events -----*/
 
-static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
+static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
 {
     pid_t pid;
     int status;
@@ -498,7 +498,7 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
     ev->cb.child = cb;
 }
 
-ev_t *el_child_register_d(pid_t pid, el_child_f *cb, el_data_t priv)
+ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 {
     static bool hooked;
 
@@ -521,7 +521,7 @@ ev_t *el_child_register_blk(pid_t pid, el_child_b blk, block_t wipe)
     return el_blk_register(el_child_register(pid, NULL, NULL), blk, wipe);
 }
 
-el_data_t el_child_unregister(ev_t **evp)
+data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_CHILD);
@@ -529,7 +529,7 @@ el_data_t el_child_unregister(ev_t **evp)
             ASSERT("event not found", false);
         return el_destroy(evp, false);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 pid_t el_child_getpid(el_t ev)
@@ -668,7 +668,7 @@ static bool el_timer_has_pending_events(void)
         the high precision */
 #define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
 
-ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
+ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -718,10 +718,10 @@ void el_timer_restart(ev_t *ev, int restart)
     el_timer_restart_fast(ev, restart);
 }
 
-el_data_t el_timer_unregister(ev_t **evp)
+data_t el_timer_unregister(ev_t **evp)
 {
     if (unlikely(!*evp))
-        return (el_data_t)NULL;
+        return (data_t)NULL;
 
     qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
 
@@ -778,7 +778,7 @@ static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
     _G.has_run = true;
 }
 
-static void el_act_timer(el_t ev, el_data_t priv)
+static void el_act_timer(el_t ev, data_t priv)
 {
     el_fd_fire(el_fd_act_timer_unregister(ev), EL_EVENTS_NOACT);
 }
@@ -889,7 +889,7 @@ int el_fd_loop(ev_t *ev, int timeout)
 
 /*----- proxies events  -----*/
 
-ev_t *el_proxy_register_d(el_proxy_f *cb, el_data_t priv)
+ev_t *el_proxy_register_d(el_proxy_f *cb, data_t priv)
 {
     return ev_add(&_G.proxy, el_create(EV_PROXY, cb, priv, true));
 }
@@ -906,13 +906,13 @@ void el_proxy_set_hook(el_t ev, el_proxy_f *cb)
     ev->cb.prox = cb;
 }
 
-el_data_t el_proxy_unregister(ev_t **evp)
+data_t el_proxy_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_PROXY);
         return el_destroy(evp, true);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 static void el_proxy_change_ready(ev_t *ev, bool was_ready)
@@ -985,7 +985,7 @@ static void el_loop_proxies(void)
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 
-static int inotify_cb(el_t el, int fd, short flags, el_data_t data)
+static int inotify_cb(el_t el, int fd, short flags, data_t data)
 {
     byte buf[sizeof(struct inotify_event) + NAME_MAX + 1];
 
@@ -1072,7 +1072,7 @@ static void inotify_shutdown(void)
 }
 
 el_t el_fs_watch_register_d(const char *path, uint32_t flags,
-                            el_fs_watch_f *cb, el_data_t priv)
+                            el_fs_watch_f *cb, data_t priv)
 {
     int pos;
     ev_t *ev;
@@ -1100,7 +1100,7 @@ el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
                            blk, wipe);
 }
 
-el_data_t el_fs_watch_unregister(ev_t **evp)
+data_t el_fs_watch_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_FS_WATCH);
@@ -1112,7 +1112,7 @@ el_data_t el_fs_watch_unregister(ev_t **evp)
         }
         return el_destroy(evp, false);
     }
-    return (el_data_t)NULL;
+    return (data_t)NULL;
 }
 
 int el_fs_watch_change(el_t el, uint32_t flags)
@@ -1175,13 +1175,13 @@ el_t el_unref(ev_t *ev)
     return ev;
 }
 
-el_data_t el_set_priv(ev_t *ev, el_data_t priv)
+data_t el_set_priv(ev_t *ev, data_t priv)
 {
     CHECK_EV(ev);
     assert (!EV_FLAG_HAS(ev, IS_BLK));
     if (ev->type == EV_FD && EV_FLAG_HAS(ev, FD_WATCHED))
         return el_set_priv(ev->priv.ptr, priv);
-    SWAP(el_data_t, ev->priv, priv);
+    SWAP(data_t, ev->priv, priv);
     return priv;
 }
 
@@ -1296,7 +1296,7 @@ static char const * const typenames[] = {
     [EV_PROXY]   = "proxy",
 };
 
-static void el_show_blockers(el_t evh, int signo, el_data_t priv)
+static void el_show_blockers(el_t evh, int signo, data_t priv)
 {
     e_trace(0, "el blocking summary");
     e_trace(0, "===================");
@@ -1428,7 +1428,7 @@ struct z_el_data {
     bool end;
 };
 
-static int readall(el_t el, int fd, short ev, el_data_t priv)
+static int readall(el_t el, int fd, short ev, data_t priv)
 {
     struct z_el_data *d = priv.ptr;
     byte buf[BUFSIZ];
@@ -1440,7 +1440,7 @@ static int readall(el_t el, int fd, short ev, el_data_t priv)
     return 0;
 }
 
-static int writeall(el_t el, int fd, short ev, el_data_t priv)
+static int writeall(el_t el, int fd, short ev, data_t priv)
 {
     t_scope;
     struct z_el_data *d = priv.ptr;
@@ -1465,7 +1465,7 @@ static int writeall(el_t el, int fd, short ev, el_data_t priv)
 }
 
 static void fs_notify(el_t el, uint32_t event, uint32_t cookie,
-                      lstr_t name, el_data_t data)
+                      lstr_t name, data_t data)
 {
     (*(int *)data.ptr)++;
 }

@@ -14,7 +14,7 @@
 #include "el.h"
 #include "net.h"
 
-static void net_rctl_cron_cb(el_t ev, el_data_t priv)
+static void net_rctl_cron_cb(el_t ev, data_t priv)
 {
     net_rctl_t *rctl = priv.ptr;
     int slot;

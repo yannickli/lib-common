@@ -1663,7 +1663,7 @@ static void httpd_do_trace(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
     ob_add(ob, req->hdrs_ps.s, ps_len(&req->hdrs_ps));
 }
 
-static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
+static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
 {
     httpd_t *w = priv.ptr;
     pstream_t ps;
@@ -1737,7 +1737,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
 }
 
 static int
-httpd_on_accept(el_t evh, int fd, short events, el_data_t priv)
+httpd_on_accept(el_t evh, int fd, short events, data_t priv)
 {
     httpd_cfg_t *cfg = priv.ptr;
     int sock;
@@ -2343,7 +2343,7 @@ static void httpc_set_mask(httpc_t *w)
     el_fd_set_mask(w->ev, mask);
 }
 
-static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
+static int httpc_on_event(el_t evh, int fd, short events, data_t priv)
 {
     httpc_t *w = priv.ptr;
     httpc_query_t *q;
@@ -2404,7 +2404,7 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
     return 0;
 }
 
-static int httpc_on_connect(el_t evh, int fd, short events, el_data_t priv)
+static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
 {
     httpc_t *w   = priv.ptr;
     int      res = socket_connect_status(fd);
@@ -2634,7 +2634,7 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
 #include <lib-common/z.h>
 
-static int z_reply_100(el_t el, int fd, short mask, el_data_t data)
+static int z_reply_100(el_t el, int fd, short mask, data_t data)
 {
     SB_1k(buf);
 
@@ -2648,7 +2648,7 @@ static int z_reply_100(el_t el, int fd, short mask, el_data_t data)
     return 0;
 }
 
-static int z_accept(el_t el, int fd, short mask, el_data_t data)
+static int z_accept(el_t el, int fd, short mask, data_t data)
 {
     el_t *el_client = data.ptr;
     int client = acceptx(fd, 0);
