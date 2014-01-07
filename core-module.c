@@ -14,7 +14,7 @@
 #include "log.h"
 #include "container.h"
 
-/*{{{ Type definition */
+/* {{{ Type definition */
 
 typedef enum module_state_t {
     REGISTERED = 0,
@@ -52,7 +52,8 @@ GENERIC_DELETE(module_t, module);
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
 
-/*}}}*/
+/* }}} */
+/* {{{ Module Registry */
 
 static struct _module_g {
     logger_t logger;
@@ -283,3 +284,5 @@ static void _module_shutdown(void)
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     logger_wipe(&_G.logger);
 }
+
+/* }}} */

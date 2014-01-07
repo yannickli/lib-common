@@ -16,14 +16,21 @@
 #else
 #define IS_LIB_COMMON_CORE_MODULE_H
 
-/*{{{ Types */
+/* {{{ Types */
 
 /** Opaque type that defines a module.
  */
 typedef struct module_t module_t;
 
-/*}}} */
-/*{{{ Macros */
+/* }}} */
+/* {{{ Module creation */
+
+/** Declare a module.
+ *
+ * This macro declares a module variable.
+ */
+#define MODULE_DECLARE(name)  extern module_t *name##_module
+
 
 /** \brief Macro for registering a module
  *              module1
@@ -34,7 +41,7 @@ typedef struct module_t module_t;
  *  Prototype of the module:
  *           int module1_initialize(void *); Return >= 0 if success
  *           int module1_shutdown(void);     Return >= 0 if success
- *           int module1_on_term(int);       Return >= 0 if success
+ *           void module1_on_term(int);
  *
  *  Arguments:
  *        + name of the module
@@ -56,11 +63,6 @@ typedef struct module_t module_t;
                        __##name##_dependencies + 1,                          \
                        countof(__##name##_dependencies) - 1); })
 
-/** Declare a module.
- *
- * This macro declare a module variable.
- */
-#define MODULE_DECLARE(name)  extern module_t *name##_module
 
 /** Macro to perform automatical module registration.
  *
@@ -76,6 +78,28 @@ typedef struct module_t module_t;
     void __##name##_module_register(void) {                                  \
         name##_module = MODULE_REGISTER(name, on_term, ##__VA_ARGS__);       \
     }
+
+/* {{{ Low-level API */
+
+/** \brief Register a module
+ *
+ *  @param name Name of the module
+ *  @param initialize Pointer to the function that initialize the module
+ *  @param shutdown Pointer to the function that shutdown the module
+ *  @param dependencies list of modules
+ *  @param nb_dependencies number of dependent modules
+ *
+ *
+ *  @return The newly registered module in case of success.
+ */
+__leaf
+module_t *module_register(lstr_t name, int (*constructor)(void *),
+                          void (*on_term)(int signo), int (*destructor)(void),
+                          const char *dependencies[], int nb_dependencies);
+
+/* }}} */
+/* }}} */
+/* {{{ Module management */
 
 /** \brief Provide an argument for module constructor
  *  Use:
@@ -135,25 +159,7 @@ typedef struct module_t module_t;
 #define MODULE_IS_LOADED(name)  module_is_loaded(name##_module)
 
 
-/*}}} */
-/*{{{ module functions */
-
-/** \brief Register a module
- *
- *  @param name Name of the module
- *  @param initialize Pointer to the function that initialize the module
- *  @param shutdown Pointer to the function that shutdown the module
- *  @param dependencies list of modules
- *  @param nb_dependencies number of dependent modules
- *
- *
- *  @return The newly registered module in case of success.
- */
-__leaf
-module_t *module_register(lstr_t name, int (*constructor)(void *),
-                          void (*on_term)(int signo), int (*destructor)(void),
-                          const char *dependencies[], int nb_dependencies);
-
+/* {{{ Low-level API */
 
 #define F_INITIALIZE  1
 
@@ -235,6 +241,6 @@ void module_provide(module_t *mod, void *argument);
 __attr_nonnull__((1))
 bool module_is_loaded(const module_t *mod);
 
-/*}}} */
+/* }}} */
 
 #endif
