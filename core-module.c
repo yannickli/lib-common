@@ -133,6 +133,15 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
     return new_module;
 }
 
+void module_add_dep(module_t *module, lstr_t dep, module_t **dep_ptr)
+{
+    /* XXX dep_ptr is used only to force an explicit dependency between
+     * modules. This guarantees that if module is present in the binary, the
+     * dependency will be present too.
+     */
+    assert (module->state == REGISTERED);
+    qv_append(lstr, &module->dependent_of, dep);
+}
 
 void module_require(module_t *module, module_t *required_by)
 {

@@ -32,6 +32,45 @@ typedef struct module_t module_t;
 #define MODULE_DECLARE(name)  extern module_t *name##_module
 
 
+/** Begin the definition of a module.
+ *
+ * This begin a section of code that can contain the description of a module.
+ * The section can currently contain the following descriptions:
+ * - \ref MODULE_DEPENDS_ON to add a dependency.
+ *
+ * The macro can also take a variadic list of dependencies as strings, but
+ * this usage is discouraged since it does not add compile-time dependencies
+ * between compilation units. Using \ref MODULE_DEPENDS_ON should be the
+ * prefered solution to add a new dependence.
+ *
+ * The section must be closed by calling \ref MODULE_END().
+ */
+#define MODULE_BEGIN(name, on_term, ...)                                     \
+    __attr_section("intersec", "module")                                     \
+    module_t *name##_module;                                                 \
+                                                                             \
+    static __attribute__((constructor))                                      \
+    void __##name##_module_register(void) {                                  \
+        __unused__                                                           \
+        module_t *__mod = name##_module = MODULE_REGISTER(name, on_term,     \
+                                                          ##__VA_ARGS__);
+
+/** Macro to end the definition of a module.
+ *
+ * \see MODULE_BEGIN
+ */
+#define MODULE_END()  }
+
+/** Add a dependence on another module.
+ *
+ * This macro can only be used in a MODULE_BEGIN/MODULE_END block of code. It
+ * declares a dependence from the current module on \p dep.
+ */
+#define MODULE_DEPENDS_ON(dep)  \
+    module_add_dep(__mod, LSTR_IMMED_V(#dep), &dep##_module)
+
+/* {{{ Old API */
+
 /** \brief Macro for registering a module
  *              module1
  *             /       \
@@ -71,14 +110,10 @@ typedef struct module_t module_t;
  * MODULE_REGISTER.
  */
 #define MODULE(name, on_term, ...)                                           \
-    __attr_section("intersec", "module")                                     \
-    module_t *name##_module;                                                 \
-                                                                             \
-    static __attribute__((constructor))                                      \
-    void __##name##_module_register(void) {                                  \
-        name##_module = MODULE_REGISTER(name, on_term, ##__VA_ARGS__);       \
-    }
+    MODULE_BEGIN(name, on_term, ##__VA_ARGS__)                               \
+    MODULE_END()
 
+/* }}} */
 /* {{{ Low-level API */
 
 /** \brief Register a module
@@ -96,6 +131,9 @@ __leaf
 module_t *module_register(lstr_t name, int (*constructor)(void *),
                           void (*on_term)(int signo), int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies);
+
+__attr_nonnull__((1))
+void module_add_dep(module_t *mod, lstr_t dep, module_t **dep_ptr);
 
 /* }}} */
 /* }}} */
