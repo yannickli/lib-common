@@ -24,6 +24,8 @@ typedef enum module_state_t {
 } module_state_t;
 
 qvector_t(module, module_t *);
+qm_kptr_ckey_t(methods, void, void *, qhash_hash_ptr, qhash_ptr_equal);
+
 struct module_t {
     lstr_t name;
     module_state_t state;
@@ -32,7 +34,7 @@ struct module_t {
     /* Vector of module name */
     qv_t(lstr)   dependent_of;
     qv_t(module) required_by;
-
+    qm_t(methods) methods;
 
     int (*constructor)(void *);
     int (*destructor)(void);
@@ -40,13 +42,19 @@ struct module_t {
     void *constructor_argument;
 };
 
-GENERIC_NEW_INIT(module_t, module);
-static inline module_t *module_wipe(module_t *module)
+static module_t *module_init(module_t *module)
+{
+    p_clear(module, 1);
+    qm_init(methods, &module->methods, false);
+    return module;
+}
+GENERIC_NEW(module_t, module);
+static void module_wipe(module_t *module)
 {
     lstr_wipe(&(module->name));
     qv_deep_wipe(lstr, &module->dependent_of, lstr_wipe);
     qv_wipe(module, &module->required_by);
-    return module;
+    qm_wipe(methods, &module->methods);
 }
 GENERIC_DELETE(module_t, module);
 
@@ -292,6 +300,84 @@ static void _module_shutdown(void)
     module_hard_shutdown();
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     logger_wipe(&_G.logger);
+}
+
+/* }}} */
+/* {{{ Methods */
+
+void module_implement_method(module_t *module, const module_method_t *method,
+                             void *cb)
+{
+    qm_add(methods, &module->methods, method, cb);
+}
+
+static void do_run_method(module_t *module, const module_method_t *method,
+                          data_t arg, qh_t(ptr) *already_run)
+{
+    void *cb = qm_get_def(methods, &module->methods, method, NULL);
+
+    if (!cb) {
+        return;
+    }
+
+    switch (method->type) {
+      case METHOD_VOID:
+        ((void (*)(void))cb)();
+        break;
+
+      case METHOD_INT:
+        ((void (*)(int))cb)(arg.u32);
+        break;
+
+      case METHOD_PTR:
+      case METHOD_GENERIC:
+        ((void (*)(data_t))cb)(arg);
+        break;
+    }
+}
+
+static void rec_module_run_method(module_t *module,
+                                  const module_method_t *method, data_t arg,
+                                  qh_t(ptr) *already_run)
+{
+    int pos = qh_put(ptr, already_run, module, 0);
+
+    assert (module->state != REGISTERED);
+    if (pos & QHASH_COLLISION) {
+        return;
+    }
+
+    if (method->order == MODULE_DEPS_AFTER) {
+        qv_for_each_entry(module, dep, &module->required_by) {
+            rec_module_run_method(dep, method, arg, already_run);
+        }
+        do_run_method(module, method, arg, already_run);
+    }
+
+    qv_for_each_entry(lstr, dep, &module->dependent_of) {
+        rec_module_run_method(qm_get(module, &_G.modules, &dep), method,
+                              arg, already_run);
+    }
+
+    if (method->order == MODULE_DEPS_BEFORE) {
+        do_run_method(module, method, arg, already_run);
+    }
+}
+
+void module_run_method(const module_method_t *method, data_t arg)
+{
+    qh_t(ptr) already_run;
+
+    qh_init(ptr, &already_run, false);
+    qm_for_each_pos(module, position, &_G.modules) {
+        module_t *module = _G.modules.values[position];
+
+        if (module->state == MANU_REQ && module->required_by.len == 0) {
+            rec_module_run_method(module, method, arg, &already_run);
+        }
+    }
+
+    qh_wipe(ptr, &already_run);
 }
 
 /* }}} */

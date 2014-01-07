@@ -25,6 +25,8 @@
     }                                                                        \
     static module_t *name##_module
 
+static MODULE_METHOD(PTR, DEPS_BEFORE, before);
+static MODULE_METHOD(PTR, DEPS_AFTER, after);
 
 NEW_MOCK_MODULE(mock_ic, 1, 1);
 NEW_MOCK_MODULE(mock_log, 1, 1);
@@ -44,6 +46,13 @@ NEW_MOCK_MODULE(modterm2, 1, 1);
 NEW_MOCK_MODULE(modterm3, 1, 1);
 NEW_MOCK_MODULE(modterm4, 1, 1);
 NEW_MOCK_MODULE(modterm5, 1, 1);
+
+NEW_MOCK_MODULE(modmethod1, 1, 1);
+NEW_MOCK_MODULE(modmethod2, 1, 1);
+NEW_MOCK_MODULE(modmethod3, 1, 1);
+NEW_MOCK_MODULE(modmethod4, 1, 1);
+NEW_MOCK_MODULE(modmethod5, 1, 1);
+NEW_MOCK_MODULE(modmethod6, 1, 1);
 
 int modterm1;
 int modterm2;
@@ -70,6 +79,36 @@ static void modterm5_on_term(int i)
     modterm5 += 5;
 }
 
+int modmethod1;
+int modmethod2;
+int modmethod3;
+int modmethod5;
+int modmethod6;
+
+static void modmethod1_ztst(data_t arg)
+{
+    modmethod1 = (*(int *)arg.ptr)++;
+}
+
+static void modmethod2_ztst(data_t arg)
+{
+    modmethod2 = (*(int *)arg.ptr)++;
+}
+
+static void modmethod3_ztst(data_t arg)
+{
+    modmethod3 = (*(int *)arg.ptr)++;
+}
+
+static void modmethod5_ztst(data_t arg)
+{
+    modmethod5 = (*(int *)arg.ptr)++;
+}
+
+static void modmethod6_ztst(data_t arg)
+{
+    modmethod6 = (*(int *)arg.ptr)++;
+}
 
 
 #undef NEW_MOCK_MODULE
@@ -153,86 +192,187 @@ Z_GROUP_EXPORT(module)
     } Z_TEST_END;
 
 
-     Z_TEST(use_case1,  "Use case1") {
-       /*           mod1           mod6
-        *         /   |   \         |
-        *        /    |    \        |
-        *      mod2  mod3  mod4    mod2
-        *             |
-        *             |
-        *            mod5
-        */
-       Z_MODULE_REGISTER(mod1, NULL, "mod2", "mod3", "mod4");
-       Z_MODULE_REGISTER(mod2, NULL);
-       Z_MODULE_REGISTER(mod3, NULL, "mod5");
-       Z_MODULE_REGISTER(mod4, NULL);
-       Z_MODULE_REGISTER(mod5, NULL);
-       Z_MODULE_REGISTER(mod6, NULL, "mod2");
+    Z_TEST(use_case1,  "Use case1") {
+      /*           mod1           mod6
+       *         /   |   \         |
+       *        /    |    \        |
+       *      mod2  mod3  mod4    mod2
+       *             |
+       *             |
+       *            mod5
+       */
+      Z_MODULE_REGISTER(mod1, NULL, "mod2", "mod3", "mod4");
+      Z_MODULE_REGISTER(mod2, NULL);
+      Z_MODULE_REGISTER(mod3, NULL, "mod5");
+      Z_MODULE_REGISTER(mod4, NULL);
+      Z_MODULE_REGISTER(mod5, NULL);
+      Z_MODULE_REGISTER(mod6, NULL, "mod2");
 
 
 
-       /* Test 1 All init work and shutdown work */
-       MODULE_REQUIRE(mod1);
-       MODULE_REQUIRE(mod1);
-       MODULE_REQUIRE(mod6);
-       MODULE_REQUIRE(mod3);
-       Z_ASSERT(MODULE_IS_LOADED(mod5));
-       Z_ASSERT_EQ(MODULE_RELEASE(mod3), F_RELEASED);
-       Z_ASSERT_EQ(MODULE_RELEASE(mod1),F_RELEASED);
-       Z_ASSERT_EQ(MODULE_RELEASE(mod1), F_SHUTDOWN);
-       Z_ASSERT(MODULE_IS_LOADED(mod2));
-       MODULE_RELEASE(mod6);
-       Z_ASSERT(!MODULE_IS_LOADED(mod2));
+      /* Test 1 All init work and shutdown work */
+      MODULE_REQUIRE(mod1);
+      MODULE_REQUIRE(mod1);
+      MODULE_REQUIRE(mod6);
+      MODULE_REQUIRE(mod3);
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT_EQ(MODULE_RELEASE(mod3), F_RELEASED);
+      Z_ASSERT_EQ(MODULE_RELEASE(mod1),F_RELEASED);
+      Z_ASSERT_EQ(MODULE_RELEASE(mod1), F_SHUTDOWN);
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      MODULE_RELEASE(mod6);
+      Z_ASSERT(!MODULE_IS_LOADED(mod2));
 
-     } Z_TEST_END;
+    } Z_TEST_END;
 
 
-     Z_TEST(provide,  "Provide") {
-         int *a = p_new(int, 1);
-         *a = 4;
+    Z_TEST(provide,  "Provide") {
+        int *a = p_new(int, 1);
+        *a = 4;
 
-         Z_MODULE_REGISTER(module_arg, NULL);
-         MODULE_PROVIDE(module_arg, (void *)a);
-         MODULE_REQUIRE(module_arg);
-         Z_ASSERT(MODULE_IS_LOADED(module_arg));
-         MODULE_RELEASE(module_arg);
+        Z_MODULE_REGISTER(module_arg, NULL);
+        MODULE_PROVIDE(module_arg, (void *)a);
+        MODULE_REQUIRE(module_arg);
+        Z_ASSERT(MODULE_IS_LOADED(module_arg));
+        MODULE_RELEASE(module_arg);
 
-         p_delete(&a);
-     } Z_TEST_END;
+        p_delete(&a);
+    } Z_TEST_END;
 
-     Z_TEST(onterm, "On term") {
-         /**       modterm1
-          *           |
-          *        modterm2
-          *           |
-          *        modterm3
-          *           |
-          *        modterm4
-          *           |
-          *        modterm5
-          **/
+    Z_TEST(onterm, "On term") {
+        /**       modterm1
+         *           |
+         *        modterm2
+         *           |
+         *        modterm3
+         *           |
+         *        modterm4
+         *           |
+         *        modterm5
+         **/
 
-         Z_MODULE_REGISTER(modterm1, modterm1_on_term, "modterm2");
-         Z_MODULE_REGISTER(modterm2, modterm2_on_term, "modterm3");
-         Z_MODULE_REGISTER(modterm3, modterm3_on_term, "modterm4");
-         Z_MODULE_REGISTER(modterm4, NULL, "modterm5");
-         Z_MODULE_REGISTER(modterm5, modterm5_on_term);
+        Z_MODULE_REGISTER(modterm1, modterm1_on_term, "modterm2");
+        Z_MODULE_REGISTER(modterm2, modterm2_on_term, "modterm3");
+        Z_MODULE_REGISTER(modterm3, modterm3_on_term, "modterm4");
+        Z_MODULE_REGISTER(modterm4, NULL, "modterm5");
+        Z_MODULE_REGISTER(modterm5, modterm5_on_term);
 
-         MODULE_REQUIRE(modterm1);
+        MODULE_REQUIRE(modterm1);
 
-         module_on_term(SIGINT);
-         Z_ASSERT_EQ(modterm1, 1);
-         Z_ASSERT_EQ(modterm2, 2);
-         Z_ASSERT_EQ(modterm3, 3);
-         Z_ASSERT_EQ(modterm5, 5);
+        module_on_term(SIGINT);
+        Z_ASSERT_EQ(modterm1, 1);
+        Z_ASSERT_EQ(modterm2, 2);
+        Z_ASSERT_EQ(modterm3, 3);
+        Z_ASSERT_EQ(modterm5, 5);
 
-         module_on_term(SIGINT);
-         Z_ASSERT_EQ(modterm1, 2);
-         Z_ASSERT_EQ(modterm2, 4);
-         Z_ASSERT_EQ(modterm3, 6);
-         Z_ASSERT_EQ(modterm5, 10);
+        module_on_term(SIGINT);
+        Z_ASSERT_EQ(modterm1, 2);
+        Z_ASSERT_EQ(modterm2, 4);
+        Z_ASSERT_EQ(modterm3, 6);
+        Z_ASSERT_EQ(modterm5, 10);
 
-         MODULE_RELEASE(modterm1);
-     } Z_TEST_END;
+        MODULE_RELEASE(modterm1);
+    } Z_TEST_END;
 
+    Z_TEST(method, "Methods") {
+        int val;
+
+        Z_MODULE_REGISTER(modmethod1, NULL, "modmethod2");
+        module_implement_method(modmethod1_module, &after_method,
+                                &modmethod1_ztst);
+        module_implement_method(modmethod1_module, &before_method,
+                                &modmethod1_ztst);
+
+        Z_MODULE_REGISTER(modmethod2, NULL, "modmethod3");
+        module_implement_method(modmethod2_module, &after_method,
+                                &modmethod2_ztst);
+        module_implement_method(modmethod2_module, &before_method,
+                                &modmethod2_ztst);
+
+        Z_MODULE_REGISTER(modmethod3, NULL, "modmethod4");
+        module_implement_method(modmethod3_module, &after_method,
+                                &modmethod3_ztst);
+        module_implement_method(modmethod3_module, &before_method,
+                                &modmethod3_ztst);
+
+        Z_MODULE_REGISTER(modmethod4, NULL, "modmethod5");
+        Z_MODULE_REGISTER(modmethod5, NULL);
+        module_implement_method(modmethod5_module, &after_method,
+                                &modmethod5_ztst);
+        module_implement_method(modmethod5_module, &before_method,
+                                &modmethod5_ztst);
+
+        Z_MODULE_REGISTER(modmethod6, NULL, "modmethod5");
+        module_implement_method(modmethod6_module, &after_method,
+                                &modmethod6_ztst);
+        module_implement_method(modmethod6_module, &before_method,
+                                &modmethod6_ztst);
+
+        val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_METHOD_RUN_PTR(after, &val);
+        Z_ASSERT_ZERO(modmethod1);
+        Z_ASSERT_ZERO(modmethod2);
+        Z_ASSERT_ZERO(modmethod3);
+        Z_ASSERT_ZERO(modmethod5);
+        Z_ASSERT_ZERO(modmethod6);
+        Z_ASSERT_EQ(val, 1);
+
+        MODULE_REQUIRE(modmethod1);
+
+        val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_METHOD_RUN_PTR(after, &val);
+        Z_ASSERT_EQ(modmethod1, 1);
+        Z_ASSERT_EQ(modmethod2, 2);
+        Z_ASSERT_EQ(modmethod3, 3);
+        Z_ASSERT_EQ(modmethod5, 4);
+        Z_ASSERT_ZERO(modmethod6);
+        Z_ASSERT_EQ(val, 5);
+
+        val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_METHOD_RUN_PTR(before, &val);
+        Z_ASSERT_EQ(modmethod1, 4);
+        Z_ASSERT_EQ(modmethod2, 3);
+        Z_ASSERT_EQ(modmethod3, 2);
+        Z_ASSERT_EQ(modmethod5, 1);
+        Z_ASSERT_ZERO(modmethod6);
+        Z_ASSERT_EQ(val, 5);
+
+        MODULE_REQUIRE(modmethod6);
+
+        val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_METHOD_RUN_PTR(after, &val);
+        Z_ASSERT_LT(modmethod1, modmethod2);
+        Z_ASSERT_LT(modmethod2, modmethod3);
+        Z_ASSERT_LT(modmethod3, modmethod5);
+        Z_ASSERT_LT(modmethod6, modmethod5);
+        Z_ASSERT(modmethod1);
+        Z_ASSERT(modmethod6);
+        Z_ASSERT_EQ(val, 6);
+
+        val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_METHOD_RUN_PTR(before, &val);
+        Z_ASSERT_GT(modmethod1, modmethod2);
+        Z_ASSERT_GT(modmethod2, modmethod3);
+        Z_ASSERT_GT(modmethod3, modmethod5);
+        Z_ASSERT_GT(modmethod6, modmethod5);
+        Z_ASSERT(modmethod5);
+        Z_ASSERT_EQ(val, 6);
+
+
+        MODULE_RELEASE(modmethod6);
+        MODULE_RELEASE(modmethod1);
+
+        val = 1;
+        MODULE_METHOD_RUN_PTR(after, &val);
+        Z_ASSERT_EQ(modmethod1, 4);
+        Z_ASSERT_EQ(modmethod2, 3);
+        Z_ASSERT_EQ(modmethod3, 2);
+        Z_ASSERT_EQ(modmethod5, 1);
+        Z_ASSERT_EQ(val, 1);
+    } Z_TEST_END;
 } Z_GROUP_END;
