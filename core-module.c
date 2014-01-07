@@ -38,7 +38,6 @@ struct module_t {
 
     int (*constructor)(void *);
     int (*destructor)(void);
-    void (*on_term)(int);
     void *constructor_argument;
 };
 
@@ -57,6 +56,7 @@ static void module_wipe(module_t *module)
     qm_wipe(methods, &module->methods);
 }
 GENERIC_DELETE(module_t, module);
+
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
 
@@ -86,31 +86,8 @@ set_require_type(module_t *module, module_t *required_by)
     }
 }
 
-
-static void rec_module_on_term(module_t *module, int signo)
-{
-    if (module->on_term)
-        (*module->on_term)(signo);
-
-    qv_for_each_entry(lstr, dep, &module->dependent_of) {
-        rec_module_on_term(qm_get(module, &_G.modules, &dep), signo);
-    }
-}
-
-void module_on_term(int signo)
-{
-    qm_for_each_pos(module, position, &_G.modules){
-        module_t *module = _G.modules.values[position];
-
-        if (module->state == MANU_REQ && module->required_by.len == 0) {
-            rec_module_on_term(module, signo);
-        }
-    }
-}
-
-
 module_t *module_register(lstr_t name, int (*constructor)(void *),
-                          void (*on_term)(int signo), int (*destructor)(void),
+                          int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
@@ -128,7 +105,6 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
     new_module->manu_req_count = 0;
     new_module->constructor_argument = NULL;
     new_module->constructor = constructor;
-    new_module->on_term = on_term;
     new_module->destructor = destructor;
 
     for (int i = 0; i < nb_dependencies; i++) {
@@ -378,6 +354,13 @@ void module_run_method(const module_method_t *method, data_t arg)
     }
 
     qh_wipe(ptr, &already_run);
+}
+
+MODULE_METHOD(INT, DEPS_BEFORE, on_term);
+
+void module_on_term(int signo)
+{
+    module_run_method(&on_term_method, (el_data_t){ .u32 = signo });
 }
 
 /* }}} */

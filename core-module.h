@@ -174,14 +174,14 @@ void module_run_method(const module_method_t *method, data_t arg);
  *
  * The section must be closed by calling \ref MODULE_END().
  */
-#define MODULE_BEGIN(name, on_term, ...)                                     \
+#define MODULE_BEGIN(name, ...)                                              \
     __attr_section("intersec", "module")                                     \
     module_t *name##_module;                                                 \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
         __unused__                                                           \
-        module_t *__mod = name##_module = MODULE_REGISTER(name, on_term,     \
+        module_t *__mod = name##_module = MODULE_REGISTER(name, NULL,        \
                                                           ##__VA_ARGS__);
 
 /** Macro to end the definition of a module.
@@ -277,12 +277,20 @@ void module_run_method(const module_method_t *method, data_t arg);
  *  You can use \ref MODULE to perform automatic registration of a module.
  */
 
-#define MODULE_REGISTER(name, on_term, ...)                                  \
-    ({ const char *__##name##_dependencies[] = {NULL, "log", ##__VA_ARGS__ };\
-       module_register(LSTR_IMMED_V(#name), &name##_initialize,              \
-                       on_term, &name##_shutdown,                            \
-                       __##name##_dependencies + 1,                          \
-                       countof(__##name##_dependencies) - 1); })
+#define MODULE_REGISTER(name, on_term_cb, ...)   ({                          \
+        const char *__##name##_deps[] = { "log", ##__VA_ARGS__ };            \
+        module_t *__rmod;                                                    \
+        void (*__on_term)(int) = on_term_cb;                                 \
+                                                                             \
+        __rmod = module_register(LSTR_IMMED_V(#name),                        \
+                                 &name##_initialize, &name##_shutdown,       \
+                                 __##name##_deps, countof(__##name##_deps)); \
+        if (__on_term) {                                                     \
+            module_implement_method(__rmod, &on_term_method,                 \
+                                    (void *)__on_term);                      \
+        }                                                                    \
+        __rmod;                                                              \
+    })
 
 
 /** Macro to perform automatical module registration.
@@ -291,8 +299,12 @@ void module_run_method(const module_method_t *method, data_t arg);
  * binary/library initialization. It takes the same arguments as \ref
  * MODULE_REGISTER.
  */
-#define MODULE(name, on_term, ...)                                           \
-    MODULE_BEGIN(name, on_term, ##__VA_ARGS__)                               \
+#define MODULE(name, on_term_cb, ...)                                        \
+    MODULE_BEGIN(name, ##__VA_ARGS__)                                        \
+        void (*__cb)(int) = on_term_cb;                                      \
+        if (__cb) {                                                          \
+            MODULE_IMPLEMENTS_INT(on_term, __cb);                            \
+        }                                                                    \
     MODULE_END()
 
 /* }}} */
@@ -311,7 +323,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  */
 __leaf
 module_t *module_register(lstr_t name, int (*constructor)(void *),
-                          void (*on_term)(int signo), int (*destructor)(void),
+                          int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies);
 
 __attr_nonnull__((1))
@@ -451,19 +463,24 @@ int module_shutdown(module_t *mod);
 __attr_nonnull__((1))
 int module_release(module_t *mod);
 
-/** \brief On term all modules
- *
- *  Call the module_on_term if it exists of all modules
- */
-void module_on_term(int signo);
-
-
 __attr_nonnull__((1, 2))
 void module_provide(module_t *mod, void *argument);
 
 /** true if module is loaded (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))
 bool module_is_loaded(const module_t *mod);
+
+/* }}} */
+/* }}} */
+/* {{{ on_term method */
+
+MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, on_term);
+
+/** \brief On term all modules
+ *
+ *  Call the module_on_term if it exists of all modules
+ */
+void module_on_term(int signo);
 
 /* }}} */
 

@@ -822,8 +822,7 @@ static void log_module_register(void)
     static module_t *log_module;
 
     log_module = module_register(LSTR_IMMED_V("log"),
-                                 &log_initialize, NULL,
-                                 &log_shutdown, NULL, 0);
+                                 &log_initialize, &log_shutdown, NULL, 0);
     MODULE_REQUIRE(log);
 }
 

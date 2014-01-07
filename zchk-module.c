@@ -46,6 +46,7 @@ NEW_MOCK_MODULE(modterm2, 1, 1);
 NEW_MOCK_MODULE(modterm3, 1, 1);
 NEW_MOCK_MODULE(modterm4, 1, 1);
 NEW_MOCK_MODULE(modterm5, 1, 1);
+NEW_MOCK_MODULE(modterm6, 1, 1);
 
 NEW_MOCK_MODULE(modmethod1, 1, 1);
 NEW_MOCK_MODULE(modmethod2, 1, 1);
@@ -54,29 +55,36 @@ NEW_MOCK_MODULE(modmethod4, 1, 1);
 NEW_MOCK_MODULE(modmethod5, 1, 1);
 NEW_MOCK_MODULE(modmethod6, 1, 1);
 
+int modterm;
 int modterm1;
 int modterm2;
 int modterm3;
 int modterm5;
+int modterm6;
 
 static void modterm1_on_term(int i)
 {
-    modterm1 += 1;
+    modterm1 = modterm++;
 }
 
 static void modterm2_on_term(int i)
 {
-    modterm2 += 2;
+    modterm2 = modterm++;
 }
 
 static void modterm3_on_term(int i)
 {
-    modterm3 += 3;
+    modterm3 = modterm++;
 }
 
 static void modterm5_on_term(int i)
 {
-    modterm5 += 5;
+    modterm5 = modterm++;
+}
+
+static void modterm6_on_term(int i)
+{
+    modterm6 = modterm++;
 }
 
 int modmethod1;
@@ -246,8 +254,8 @@ Z_GROUP_EXPORT(module)
          *           |
          *        modterm3
          *           |
-         *        modterm4
-         *           |
+         *        modterm4   modterm6
+         *           |     /
          *        modterm5
          **/
 
@@ -256,20 +264,28 @@ Z_GROUP_EXPORT(module)
         Z_MODULE_REGISTER(modterm3, modterm3_on_term, "modterm4");
         Z_MODULE_REGISTER(modterm4, NULL, "modterm5");
         Z_MODULE_REGISTER(modterm5, modterm5_on_term);
+        Z_MODULE_REGISTER(modterm6, modterm6_on_term, "modterm5");
 
         MODULE_REQUIRE(modterm1);
+        MODULE_REQUIRE(modterm6);
 
         module_on_term(SIGINT);
-        Z_ASSERT_EQ(modterm1, 1);
-        Z_ASSERT_EQ(modterm2, 2);
-        Z_ASSERT_EQ(modterm3, 3);
-        Z_ASSERT_EQ(modterm5, 5);
+        Z_ASSERT_GT(modterm1, modterm2);
+        Z_ASSERT_GT(modterm2, modterm3);
+        Z_ASSERT_GT(modterm3, modterm5);
+        Z_ASSERT_GT(modterm6, modterm5);
+        Z_ASSERT_EQ(modterm, 5);
+
+        modterm = modterm1 = modterm2 = modterm3 = modterm5 = modterm6 = 0;
+
+        MODULE_RELEASE(modterm6);
 
         module_on_term(SIGINT);
-        Z_ASSERT_EQ(modterm1, 2);
-        Z_ASSERT_EQ(modterm2, 4);
-        Z_ASSERT_EQ(modterm3, 6);
-        Z_ASSERT_EQ(modterm5, 10);
+        Z_ASSERT_GT(modterm1, modterm2);
+        Z_ASSERT_GT(modterm2, modterm3);
+        Z_ASSERT_GT(modterm3, modterm5);
+        Z_ASSERT_ZERO(modterm6);
+        Z_ASSERT_EQ(modterm, 4);
 
         MODULE_RELEASE(modterm1);
     } Z_TEST_END;
