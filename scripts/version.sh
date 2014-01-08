@@ -16,9 +16,9 @@ git_describe() {
     match="$1"
     dirty=$(git diff-files --quiet && git diff-index --cached --quiet HEAD -- || echo "-dirty")
     if test -n "$match"; then
-        echo "$(git describe --match "$match"'*' 2>/dev/null || git rev-parse --short HEAD)${dirty}"
+        echo "$(git describe --first-parent --match "$match"'*' 2>/dev/null || git rev-parse --short HEAD)${dirty}"
     else
-        echo "$(git describe 2>/dev/null || git rev-parse HEAD)${dirty}"
+        echo "$(git describe --first-parent 2>/dev/null || git rev-parse HEAD)${dirty}"
     fi
 }
 
