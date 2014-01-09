@@ -146,6 +146,8 @@ bool el_stopper_is_waiting(void) __leaf;
 void el_stopper_unregister(void) __leaf;
 
 /*----- fd related -----*/
+extern struct rlimit fd_limit_g;
+
 typedef enum ev_priority_t {
     EV_PRIORITY_LOW    = 0,
     EV_PRIORITY_NORMAL = 1,

@@ -19,6 +19,7 @@
 
 static pthread_mutex_t big_lock_g;
 static bool use_big_lock_g = false;
+struct rlimit fd_limit_g;
 
 /** \addtogroup lc_el
  * \{
@@ -1358,22 +1359,23 @@ __attribute__((constructor))
 static void el_initialize(void)
 {
     struct timeval tm;
-    struct rlimit lim;
 
     gettimeofday(&tm, NULL);
     srand(tm.tv_sec + tm.tv_usec + getpid());
     ha_srand();
 
-    if (getrlimit(RLIMIT_NOFILE, &lim) < 0)
+    if (getrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
         e_panic(E_UNIXERR("getrlimit"));
-    if (lim.rlim_cur < lim.rlim_max && lim.rlim_max != RLIM_INFINITY) {
-        lim.rlim_cur = lim.rlim_max;
-        if (setrlimit(RLIMIT_NOFILE, &lim) < 0)
+    if (fd_limit_g.rlim_cur < fd_limit_g.rlim_max
+    &&  fd_limit_g.rlim_max != RLIM_INFINITY)
+    {
+        fd_limit_g.rlim_cur = fd_limit_g.rlim_max;
+        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
             e_error(E_UNIXERR("setrlimit"));
     } else
-    if (lim.rlim_max == RLIM_INFINITY && lim.rlim_cur < 8192) {
-        lim.rlim_cur = 8192;
-        if (setrlimit(RLIMIT_NOFILE, &lim) < 0)
+    if (fd_limit_g.rlim_max == RLIM_INFINITY && fd_limit_g.rlim_cur < 8192) {
+        fd_limit_g.rlim_cur = 8192;
+        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
             e_error(E_UNIXERR("setrlimit"));
     }
 
