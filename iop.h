@@ -639,6 +639,7 @@ typedef struct iop_sort_t {
     lstr_t field_path;
     int flags;
 } iop_sort_t;
+GENERIC_FUNCTIONS(iop_sort_t, iop_sort)
 
 qvector_t(iop_sort, iop_sort_t);
 
