@@ -304,6 +304,14 @@ int logger_reset_level(lstr_t name)
 /* }}} */
 /* Logging {{{ */
 
+/* syslog_is_critical allows you to know if a LOG_CRIT, LOG_ALERT or LOG_EMERG
+ * logger has been called.
+ *
+ * It is mainly usefull for destructor function in order to skip some code
+ * that shouldn't be run when the system is critical
+ */
+bool syslog_is_critical;
+
 int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
                 const char *file, const char *func, int line,
                 const char *fmt, va_list va)
@@ -311,6 +319,7 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
     if (level <= LOG_CRIT) {
         va_list cpy;
 
+        syslog_is_critical = true;
         va_copy(cpy, va);
         vsyslog(LOG_USER | level, fmt, cpy);
         va_end(cpy);

@@ -270,10 +270,14 @@ static int module_hard_shutdown(void)
     return error;
 }
 
+extern bool syslog_is_critical;
+
 __attribute__((destructor))
 static void _module_shutdown(void)
 {
-    module_hard_shutdown();
+    if (!syslog_is_critical) {
+        module_hard_shutdown();
+    }
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     logger_wipe(&_G.logger);
 }
