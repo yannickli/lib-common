@@ -743,7 +743,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
 
 static int
 t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
-                         field_path_t *fp)
+                         field_path_t *fp, sb_t *err)
 {
     const iop_field_t *fdesc = NULL;
     pstream_t field_path_ps = ps_initlstr(&field_path_s);
@@ -751,7 +751,10 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     field_step_t *step;
 
     if (ps_done(&field_path_ps)) {
-        return e_error("iop_sort: cannot process empty field path");
+        if (err) {
+            sb_adds(err, "cannot process empty field path");
+        }
+        return -1;
     }
     step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
     while (!ps_done(&field_path_ps)) {
@@ -763,26 +766,37 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         }
 
         if (ps_done(&fname)) {
-            return e_error("iop_sort: cannot process field path `%*pM', "
-                           "abnormal termination",
-                           LSTR_FMT_ARG(field_path_s));
+            if (err) {
+                sb_addf(err, "cannot process field path `%*pM' "
+                        "abnormal termination",
+                        LSTR_FMT_ARG(field_path_s));
+            }
+            return -1;
         }
 
         if (__iop_field_find_by_name(it, fname.s, ps_len(&fname),
                                      NULL, &fdesc) < 0)
         {
-            return e_error("iop_sort: cannot process field path `%*pM', "
-                           "field `%*pM' is unknown",
-                           LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname));
+            if (err) {
+                sb_addf(err, "cannot process field path `%*pM', "
+                        "field `%*pM' is unknown in structure `%*pM'",
+                        LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname),
+                        LSTR_FMT_ARG(it->fullname));
+            }
+            return -1;
         }
 
         if (fdesc->repeat == IOP_R_REPEATED) {
             /* XXX we could also sort the repeated fields based on their
              * number of elements
              */
-            return e_error("iop_sort: cannot process field path `%*pM', "
-                           "field `%*pM' is repeated",
-                           LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname));
+            if (err) {
+                sb_addf(err, "cannot process field path `%*pM', "
+                        "field `%*pM' is repeated in structure `%*pM'",
+                        LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname),
+                        LSTR_FMT_ARG(it->fullname));
+            }
+            return -1;
         }
         if (it->is_union) {
             step->is_union = true;
@@ -857,17 +871,27 @@ qvector_t(iop_sort_p, iop_sort_priv_t);
 
 static
 int t_prepare_field(const iop_struct_t *st, const iop_sort_t *sort,
-                    iop_sort_priv_t *priv)
+                    iop_sort_priv_t *priv, sb_t *err)
 {
     field_path_init(&priv->fp);
     t_qv_init(field_step, &priv->fp.steps, 16);
-    RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp));
+    RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp, err));
 
     if (priv->fp.fdesc == NULL) {
-        return e_error("iop_sort: no field specified");
+        if (err) {
+            sb_addf(err, "no description for field `%*pM' "
+                    "in the structure `%*pM'",
+                    LSTR_FMT_ARG(sort->field_path),
+                    LSTR_FMT_ARG(st->fullname));
+        }
+        return -1;
     }
     if (priv->fp.fdesc->type == IOP_T_STRUCT) {
-        return e_error("iop_sort: cannot sort on struct");
+        if (err) {
+            sb_addf(err, "cannot sort on sub-structure `%*pM'",
+                    LSTR_FMT_ARG(sort->field_path));
+        }
+        return -1;
     }
 
     priv->flags = sort->flags;
@@ -894,7 +918,7 @@ int compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
 }
 
 int iop_msort(const iop_struct_t *st, void *vec, int len,
-              const qv_t(iop_sort) *params)
+              const qv_t(iop_sort) *params, sb_t *err)
 {
     t_scope;
     bool is_class = iop_struct_is_class(st);
@@ -903,7 +927,7 @@ int iop_msort(const iop_struct_t *st, void *vec, int len,
     t_qv_init(iop_sort_p, &sorts, params->len);
     qv_growlen(iop_sort_p, &sorts, params->len);
     qv_for_each_pos(iop_sort, pos, params) {
-        RETHROW(t_prepare_field(st, &params->tab[pos], &sorts.tab[pos]));
+        RETHROW(t_prepare_field(st, &params->tab[pos], &sorts.tab[pos], err));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
@@ -927,7 +951,7 @@ int iop_msort(const iop_struct_t *st, void *vec, int len,
 }
 
 int iop_sort(const iop_struct_t *st, void *vec, int len,
-             lstr_t field_path, int flags)
+             lstr_t field_path, int flags, sb_t *err)
 {
     qv_t(iop_sort) params;
     iop_sort_t param = {
@@ -936,7 +960,7 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
     };
 
     qv_init_static(iop_sort, &params, &param, 1);
-    return iop_msort(st, vec, len, &params);
+    return iop_msort(st, vec, len, &params, err);
 }
 
 /* }}} */

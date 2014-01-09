@@ -369,12 +369,12 @@
 #define IOP_GENERIC_BASICS_STRUCT_UNION(pfx)  \
     static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
                                   int flags) {                               \
-        return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
+        return iop_sort(&pfx##__s, (void *)vec, len, path, flags, NULL);     \
     }                                                                        \
     static inline int pfx##__msort(pfx##__t *vec, int len,                   \
                                    const qv_t(iop_sort) *params)             \
     {                                                                        \
-        return iop_msort(&pfx##__s, (void *)vec, len, params);               \
+        return iop_msort(&pfx##__s, (void *)vec, len, params, NULL);         \
     }
 
 /* {{{ Binary helpers */
@@ -509,12 +509,12 @@
 #define IOP_GENERIC_BASICS_CLASS(pfx)  \
     static inline int pfx##__sort(pfx##__t **vec, int len, lstr_t path,      \
                                   int flags) {                               \
-        return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
+        return iop_sort(&pfx##__s, (void *)vec, len, path, flags, NULL);     \
     }                                                                        \
     static inline int pfx##__msort(pfx##__t **vec, int len,                  \
                                    const qv_t(iop_sort) *params)             \
     {                                                                        \
-        return iop_msort(&pfx##__s, (void *)vec, len, params);               \
+        return iop_msort(&pfx##__s, (void *)vec, len, params, NULL);         \
     }
 
 #define IOP_CLASS(pfx) \

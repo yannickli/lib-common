@@ -631,9 +631,10 @@ enum iop_sort_flags {
  *                         Example: "field.subfield1.subfield2"
  *  \param[in] flags       Binary combination of sorting flags (see enum
  *                         iop_sort_flags)
+ *  \param[out] err        In case of error, the error description.
  */
 int iop_sort(const iop_struct_t *st, void *vec, int len,
-             lstr_t field_path, int flags);
+             lstr_t field_path, int flags, sb_t *err);
 
 typedef struct iop_sort_t {
     lstr_t field_path;
@@ -653,9 +654,10 @@ qvector_t(iop_sort, iop_sort_t);
  *                         on the first element, and in case of equality,
  *                         on the seconde one, and so on.
  *                         \see iop_sort for field path syntax and flags desc.
+ *  \param[out] err        In case of error, the error description.
  */
 int iop_msort(const iop_struct_t *st, void *vec, int len,
-              const qv_t(iop_sort) *params);
+              const qv_t(iop_sort) *params, sb_t *err);
 
 /** Duplicate an IOP structure.
  *
