@@ -864,3 +864,46 @@ Z_GROUP_EXPORT(rbt)
 } Z_GROUP_END
 
 /*1}}}*/
+/*{{{1 HTList */
+
+typedef struct {
+    htnode_t node;
+} htlist_test_node_t;
+GENERIC_FUNCTIONS(htlist_test_node_t, htlist_test_node);
+
+static int htlist_nb_nodes(htlist_t *list)
+{
+    int nb_nodes = 0;
+
+    htlist_for_each(n, list)
+        nb_nodes++;
+
+    return nb_nodes;
+}
+
+Z_GROUP_EXPORT(htlist)
+{
+    Z_TEST(clear_add, "htlist:add value after clear") {
+        htlist_t list;
+        htlist_test_node_t *node;
+
+        htlist_init(&list);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 0);
+
+        node = htlist_test_node_new();
+        htlist_add(&list, &node->node);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 1);
+
+        htlist_deep_clear(&list, htlist_test_node_t, node,
+                          htlist_test_node_delete);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 0);
+
+        node = htlist_test_node_new();
+        htlist_add(&list, &node->node);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 1);
+
+        htlist_test_node_delete(&node);
+    } Z_TEST_END
+} Z_GROUP_END
+
+/*1}}}*/

@@ -199,6 +199,7 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
         }                                                                   \
         if (prev)                                                           \
             delete(&prev);                                                  \
+        _ptr->head = NULL;                                                  \
         _ptr->tail = &_ptr->head;                                           \
     } while (0)
 
