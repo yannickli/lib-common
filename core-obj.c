@@ -47,12 +47,13 @@ static void obj_init_real_aux(object_t *o, const object_class_t *cls)
     (*init)(o);
 }
 
-void *obj_init_real(const void *_cls, void *_o, ssize_t refcnt)
+void *obj_init_real(const void *_cls, void *_o, mem_pool_t *mp)
 {
     const object_class_t *cls = _cls;
     object_t *o = _o;
 
-    o->refcnt = refcnt;
+    o->mp     = mp;
+    o->refcnt = 1;
     o->v.ptr  = cls;
     obj_init_real_aux(o, cls);
     return o;
@@ -66,7 +67,7 @@ void obj_wipe_real(object_t *o)
     /* a crash here means obj_wipe was called on a reachable object.
      * It's likely the caller should have used obj_release() instead.
      */
-    assert (o->refcnt == OBJECT_REFCNT_STATIC || o->refcnt == 1);
+    assert (o->refcnt == 1);
 
     while ((wipe = cls->wipe)) {
         (*wipe)(o);
@@ -81,6 +82,8 @@ void obj_wipe_real(object_t *o)
 
 static object_t *obj_retain_(object_t *obj)
 {
+    assert (obj->mp != &mem_pool_static);
+
     if (likely(obj->refcnt > 0)) {
         if (likely(++obj->refcnt > 0))
             return obj;
@@ -90,8 +93,6 @@ static object_t *obj_retain_(object_t *obj)
     switch (obj->refcnt) {
       case 0:
         e_panic("probably acting on a deleted object");
-      case OBJECT_REFCNT_STATIC:
-        e_panic("forbidden to call retain on a statically allocated object");
       default:
         /* WTF?! probably a memory corruption */
         e_panic("should not happen");
@@ -100,6 +101,8 @@ static object_t *obj_retain_(object_t *obj)
 
 static void obj_release_(object_t *obj)
 {
+    assert (obj->mp != &mem_pool_static);
+
     if (obj->refcnt > 1) {
         --obj->refcnt;
         return;
@@ -108,16 +111,13 @@ static void obj_release_(object_t *obj)
         if (obj_vmethod(obj, can_wipe) && !obj_vcall(obj, can_wipe))
             return;
         obj_wipe_real(obj);
-        p_delete(&obj);
+        mp_delete(obj->mp, &obj);
         return;
     }
 
     switch (obj->refcnt) {
       case 0:
         e_panic("object refcounting issue");
-      case OBJECT_REFCNT_STATIC:
-        /* you should call obj_wipe instead */
-        e_panic("forbidden to call release on a statically allocated object");
       default:
         /* WTF?! probably a memory corruption we should have hit 0 first */
         e_panic("should not happen");

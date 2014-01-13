@@ -110,14 +110,12 @@ bool cls_inherits(const void *cls, const void *vptr)
         return res;                                                          \
     }
 
-#define OBJECT_REFCNT_AUTO    (1)
-#define OBJECT_REFCNT_STATIC  (-1)
-
 #define OBJECT_FIELDS(pfx) \
     union {                                                                  \
         const object_class_t *as_obj_cls;                                    \
         const pfx##_class_t  *ptr;                                           \
     } v;                                                                     \
+    mem_pool_t *mp;                                                          \
     ssize_t refcnt
 
 #define OBJECT_METHODS(type_t) \
@@ -132,25 +130,35 @@ bool cls_inherits(const void *cls, const void *vptr)
 OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
 
 
-void *obj_init_real(const void *cls, void *o, ssize_t refcnt);
+void *obj_init_real(const void *cls, void *o, mem_pool_t *mp);
 void obj_wipe_real(object_t *o);
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
-#define obj_new_of_class(pfx, cls) \
-    ((pfx##_t *)(assert(cls_inherits(cls, obj_class(pfx))),                  \
-                 obj_init_real(cls, p_new(char, (cls)->type_size),           \
-                               OBJECT_REFCNT_AUTO)))
+#define obj_mp_new_of_class(mp, pfx, cls)  ({                                \
+        mem_pool_t *_mp = (mp);                                              \
+                                                                             \
+        ((pfx##_t *)(assert(cls_inherits(cls, obj_class(pfx))),              \
+                     obj_init_real(cls, mp_new(_mp, char, (cls)->type_size), \
+                                   _mp)));                                   \
+    })
 
-#define obj_new(pfx)      \
-    ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1),              \
-                              OBJECT_REFCNT_AUTO))
+#define obj_new_of_class(pfx, cls)  \
+    obj_mp_new_of_class(&mem_pool_libc, pfx, cls)
+
+#define obj_mp_new(mp, pfx)  ({                                              \
+        mem_pool_t *_mp = (mp);                                              \
+                                                                             \
+        ((pfx##_t *)obj_init_real(pfx##_class(), mp_new(_mp, pfx##_t, 1),    \
+                                  _mp));                                     \
+    })
+#define obj_new(pfx)  obj_mp_new(&mem_pool_libc, pfx)
 #define obj_retain(o)   obj_vcall(o, retain)
 #define obj_release(o)  obj_vcall(o, release)
 #define obj_delete(op)  ({ if (*(op)) obj_release(*(op)); *(op) = NULL; })
 
 #define obj_init(pfx, v)  \
     ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)),       \
-                              OBJECT_REFCNT_STATIC))
+                              &mem_pool_static))
 #define obj_wipe(o)     obj_wipe_real(obj_vcast(object, o))
 
 /**\}*/
