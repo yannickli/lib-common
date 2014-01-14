@@ -16,22 +16,21 @@
 
 #include "core.h"
 
-typedef struct farch_t farch_t;
 typedef struct farch_entry_t {
     const char *name;
     const void *data;
     int size;
 } farch_entry_t;
 
-farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
-    __leaf;
-void farch_add(farch_t *fa, const farch_entry_t files[]) __leaf;
-void farch_delete(farch_t **fa) __leaf;
-
-const farch_entry_t *farch_find(const farch_t *fa, const char *name)
-    __leaf;
-
-int farch_get(farch_t *fa, sb_t *buf, const byte **data, int *size,
-              const char *name) __leaf;
+static inline
+const farch_entry_t *farch_get(const farch_entry_t files[], const char *name)
+{
+    for (; files->name; files++) {
+        if (strequal(files->name, name)) {
+            return files;
+        }
+    }
+    return NULL;
+}
 
 #endif /* IS_LIB_COMMON_FARCH_H */

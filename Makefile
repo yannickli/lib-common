@@ -35,7 +35,6 @@ _LIBS    = -lz -lrt -ldl -lpthread
 _IOPCLASSRANGE = 1-499
 
 libcommon_SOURCES = \
-	farch.c \
 	licence.c \
 	parseopt.c \
 	\
