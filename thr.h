@@ -67,6 +67,7 @@ struct thr_ctor {
         }));                                                                 \
     }
 
+void thr_hooks_register(void);
 void thr_hooks_at_init(void);
 void thr_hooks_reset(void);
 

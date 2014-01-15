@@ -829,9 +829,12 @@ __attribute__((constructor))
 static void log_module_register(void)
 {
     static module_t *log_module;
+    const char * log_deps[] = { "thr_hooks" };
 
+    thr_hooks_register();
     log_module = module_register(LSTR_IMMED_V("log"),
-                                 &log_initialize, &log_shutdown, NULL, 0);
+                                 &log_initialize, &log_shutdown,
+                                 log_deps, countof(log_deps));
     MODULE_REQUIRE(log);
 }
 
