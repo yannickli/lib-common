@@ -203,6 +203,7 @@ zchk_SOURCES = zchk.c \
 	zchk-time.c \
 	zchk-unix.c \
 	zchk-module.c \
+	zchk-mem.c \
 	$liop/tstiop.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
