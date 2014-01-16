@@ -70,7 +70,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
         return page;
     }
 
-    if (minsize < mfp->page_size) {
+    if (minsize < mfp->page_size - sizeof(mem_page_t)) {
         mapsize = mfp->page_size;
     } else {
         mapsize = ROUND_UP(minsize + sizeof(mem_page_t), 4096);
