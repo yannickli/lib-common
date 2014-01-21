@@ -791,11 +791,6 @@ static int thr_initialize(void *arg)
     pthread_t tid;
     pthread_attr_t attr;
 
-    if (!atfork_registered) {
-        pthread_atfork(NULL, NULL, thr_job_at_fork);
-        atfork_registered = true;
-    }
-
     if (!thr_parallelism_g) {
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
@@ -846,6 +841,16 @@ static int thr_initialize(void *arg)
             _G.efd = fd[1];
         }
         el_unref(_G.eventel);
+    }
+
+    /* XXX done at the end of the function to ensure the el's at_fork is
+     * registered before the thr_job's at fork. Since pthread_atfork()
+     * guarantees the order of execution, this ensure thr_job_atfork won't
+     * affect the parent process' event loop.
+     */
+    if (!atfork_registered) {
+        pthread_atfork(NULL, NULL, thr_job_at_fork);
+        atfork_registered = true;
     }
 
     return F_INITIALIZE;

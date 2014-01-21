@@ -79,7 +79,10 @@ enum ev_flags_t {
 
 typedef struct ev_t {
     uint8_t   type;             /* ev_type_t */
-    uint8_t   signo;            /* EV_SIGNAL */
+    union {
+        uint8_t   signo;        /* EV_SIGNAL */
+        uint8_t   generation;   /* EV_FD */
+    };
     uint16_t  flags     : 14;
     uint16_t  priority  : 2;
     union {
