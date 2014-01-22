@@ -282,7 +282,7 @@ void module_run_method(const module_method_t *method, data_t arg);
         module_t *__rmod;                                                    \
         void (*__on_term)(int) = on_term_cb;                                 \
                                                                              \
-        __rmod = module_register(LSTR_IMMED_V(#name),                        \
+        __rmod = module_register(LSTR_IMMED_V(#name), &name##_module,        \
                                  &name##_initialize, &name##_shutdown,       \
                                  __##name##_deps, countof(__##name##_deps)); \
         if (__on_term) {                                                     \
@@ -321,7 +321,8 @@ void module_run_method(const module_method_t *method, data_t arg);
  *  @return The newly registered module in case of success.
  */
 __leaf
-module_t *module_register(lstr_t name, int (*constructor)(void *),
+module_t *module_register(lstr_t name, module_t **module,
+                          int (*constructor)(void *),
                           int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies);
 
@@ -353,7 +354,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  */
 
 #define MODULE_PROVIDE(name, argument)                                       \
-    module_provide(name##_module, argument)
+    module_provide(&name##_module, argument)
 
 
 /** \brief Macro for requiring a module
@@ -463,7 +464,7 @@ __attr_nonnull__((1))
 int module_release(module_t *mod);
 
 __attr_nonnull__((1, 2))
-void module_provide(module_t *mod, void *argument);
+void module_provide(module_t **mod, void *argument);
 
 /** true if module is loaded (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))

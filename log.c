@@ -832,7 +832,7 @@ static void log_module_register(void)
     const char * log_deps[] = { "thr_hooks" };
 
     thr_hooks_register();
-    log_module = module_register(LSTR_IMMED_V("log"),
+    log_module = module_register(LSTR_IMMED_V("log"), &log_module,
                                  &log_initialize, &log_shutdown,
                                  log_deps, countof(log_deps));
     MODULE_REQUIRE(log);

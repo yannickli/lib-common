@@ -139,6 +139,37 @@ static module_t *module_arg_module;
     (name##_module = MODULE_REGISTER(name, ##__VA_ARGS__))
 
 
+/** Provide arguments in constructor. */
+lstr_t *word_global;
+lstr_t  provide_arg = LSTR_IMMED("HELLO");
+
+MODULE_DECLARE(modprovide);
+
+static int modprovide2_initialize(void *arg)
+{
+    return 0;
+}
+static int modprovide2_shutdown(void)
+{
+    return 0;
+}
+MODULE_BEGIN(modprovide2)
+    MODULE_PROVIDE(modprovide, &provide_arg);
+    MODULE_DEPENDS_ON(modprovide);
+MODULE_END()
+
+static int modprovide_initialize(void *arg)
+{
+    word_global = arg;
+    return 0;
+}
+static int modprovide_shutdown(void)
+{
+    return 0;
+}
+MODULE_BEGIN(modprovide)
+MODULE_END()
+
 Z_GROUP_EXPORT(module)
 {
     Z_TEST(basic,  "basic registering require shutdown") {
@@ -243,6 +274,12 @@ Z_GROUP_EXPORT(module)
         MODULE_REQUIRE(module_arg);
         Z_ASSERT(MODULE_IS_LOADED(module_arg));
         MODULE_RELEASE(module_arg);
+    } Z_TEST_END;
+
+    Z_TEST(provide_constructor, "provide constructor") {
+        MODULE_REQUIRE(modprovide2);
+        Z_ASSERT_LSTREQUAL(*word_global, provide_arg);
+        MODULE_RELEASE(modprovide2);
     } Z_TEST_END;
 
     Z_TEST(onterm, "On term") {

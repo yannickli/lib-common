@@ -60,16 +60,20 @@ GENERIC_DELETE(module_t, module);
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
 
+qm_kptr_t(module_arg, void, void *, qhash_hash_ptr, qhash_ptr_equal);
+
 /* }}} */
 /* {{{ Module Registry */
 
 static struct _module_g {
     logger_t logger;
-    qm_t(module) modules;
+    qm_t(module)     modules;
+    qm_t(module_arg) modules_arg;
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
-    .modules = QM_INIT(module, _G.modules, false),
+    .modules     = QM_INIT(module, _G.modules, false),
+    .modules_arg = QM_INIT(module_arg, _G.modules_arg, false),
 };
 
 
@@ -86,12 +90,14 @@ set_require_type(module_t *module, module_t *required_by)
     }
 }
 
-module_t *module_register(lstr_t name, int (*constructor)(void *),
+module_t *module_register(lstr_t name, module_t **module,
+                          int (*constructor)(void *),
                           int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
     int pos = qm_reserve(module, &_G.modules, &name, 0);
+    int arg_pos;
 
     if (pos & QHASH_COLLISION) {
         logger_warning(&_G.logger,
@@ -103,7 +109,11 @@ module_t *module_register(lstr_t name, int (*constructor)(void *),
     new_module->state = REGISTERED;
     new_module->name = lstr_dupc(name);
     new_module->manu_req_count = 0;
-    new_module->constructor_argument = NULL;
+    if ((arg_pos = qm_find(module_arg, &_G.modules_arg, module)) >= 0) {
+        new_module->constructor_argument = _G.modules_arg.values[arg_pos];
+    } else {
+        new_module->constructor_argument = NULL;
+    }
     new_module->constructor = constructor;
     new_module->destructor = destructor;
 
@@ -148,13 +158,19 @@ void module_require(module_t *module, module_t *required_by)
 
 
 
-void module_provide(module_t *module, void *argument)
+void module_provide(module_t **module, void *argument)
 {
-    if(module->constructor_argument) {
-        logger_warning(&_G.logger, "argument for module '%*pM' has already "
-                       "been provided", LSTR_FMT_ARG(module->name));
+    if (!(*module)) {
+        if (qm_add(module_arg, &_G.modules_arg, module, argument) < 0) {
+            logger_warning(&_G.logger, "argument has already been provided");
+        }
+        return;
     }
-    module->constructor_argument = argument;
+    if ((*module)->constructor_argument) {
+        logger_warning(&_G.logger, "argument for module '%*pM' has already "
+                       "been provided", LSTR_FMT_ARG((*module)->name));
+    }
+    (*module)->constructor_argument = argument;
 }
 
 static int notify_shutdown(module_t *module, module_t *dependence)
@@ -283,6 +299,7 @@ static void _module_shutdown(void)
         module_hard_shutdown();
     }
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
+    qm_wipe(module_arg, &_G.modules_arg);
     logger_wipe(&_G.logger);
 }
 

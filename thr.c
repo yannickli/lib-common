@@ -134,6 +134,7 @@ void thr_hooks_register(void)
 
     if (!thr_hooks_module) {
         thr_hooks_module = module_register(LSTR_IMMED_V("thr_hooks"),
+                                           &thr_hooks_module,
                                            &thr_hooks_initialize,
                                            &thr_hooks_shutdown, NULL, 0);
     }
