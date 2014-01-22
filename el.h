@@ -305,4 +305,9 @@ void el_loop_timeout(int msecs);
 bool el_has_pending_events(void);
 
 /**\}*/
+/* Module {{{ */
+
+MODULE_DECLARE(el);
+
+/* }}} */
 #endif

@@ -114,9 +114,9 @@ int pthread_create(pthread_t *restrict thread,
 void pthread_force_use(void)
 {
 }
+
 static int thr_hooks_initialize(void *arg)
 {
-    pthread_atfork(NULL, NULL, thr_hooks_atfork_in_child);
     return 0;
 }
 
@@ -128,13 +128,15 @@ static int thr_hooks_shutdown(void)
     return 0;
 }
 
+module_t *thr_hooks_module;
+
 void thr_hooks_register(void)
 {
-    static module_t *thr_hooks_module;
-
     if (!thr_hooks_module) {
         thr_hooks_module = module_register(LSTR_IMMED_V("thr_hooks"),
                                            &thr_hooks_initialize,
                                            &thr_hooks_shutdown, NULL, 0);
+        module_implement_method(thr_hooks_module, &at_fork_on_child_method,
+                                &thr_hooks_atfork_in_child);
     }
 }

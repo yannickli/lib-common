@@ -18,7 +18,6 @@
 static struct {
     int fd;
     int pending;
-    bool at_fork_registered;
     int generation;
     struct epoll_event events[FD_SETSIZE];
 } el_epoll_g = {
@@ -41,11 +40,6 @@ static void el_fd_initialize(void)
         if (el_epoll_g.fd < 0)
             e_panic(E_UNIXERR("epoll_create"));
         fd_set_features(el_epoll_g.fd, O_CLOEXEC);
-
-        if (!el_epoll_g.at_fork_registered) {
-            pthread_atfork(NULL, NULL, el_fd_at_fork);
-            el_epoll_g.at_fork_registered = true;
-        }
     }
 }
 

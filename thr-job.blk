@@ -773,18 +773,8 @@ void thr_queue_main_drain(void)
     thr_ec_signal(&_G.ec);
 }
 
-static int thr_initialize(void *arg);
-static void thr_job_at_fork(void)
-{
-    if (MODULE_IS_LOADED(thr)) {
-        thr_wipe();
-        thr_initialize(NULL);
-    }
-}
-
 static int thr_initialize(void *arg)
 {
-    static bool atfork_registered;
     uint64_t key;
     sigset_t fillset;
     sigset_t old;
@@ -843,16 +833,6 @@ static int thr_initialize(void *arg)
         el_unref(_G.eventel);
     }
 
-    /* XXX done at the end of the function to ensure the el's at_fork is
-     * registered before the thr_job's at fork. Since pthread_atfork()
-     * guarantees the order of execution, this ensure thr_job_atfork won't
-     * affect the parent process' event loop.
-     */
-    if (!atfork_registered) {
-        pthread_atfork(NULL, NULL, thr_job_at_fork);
-        atfork_registered = true;
-    }
-
     return F_INITIALIZE;
 }
 
@@ -880,7 +860,17 @@ static int thr_shutdown(void)
     return F_SHUTDOWN;
 }
 
-MODULE(thr, NULL, "thr_hooks");
+static void thr_job_at_fork(void)
+{
+    thr_wipe();
+    thr_initialize(NULL);
+}
+
+MODULE_BEGIN(thr)
+    MODULE_DEPENDS_ON(thr_hooks);
+    MODULE_DEPENDS_ON(el);
+    MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);
+MODULE_END()
 
 void thr_old_initialize(void)
 {
