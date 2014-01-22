@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <pthread.h>
+
 #include "log.h"
 #include "container.h"
 
@@ -367,4 +369,37 @@ void module_on_term(int signo)
     module_run_method(&on_term_method, (el_data_t){ .u32 = signo });
 }
 
+MODULE_METHOD(VOID, DEPS_AFTER, at_fork_prepare);
+MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_parent);
+MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_child);
+
+static void module_at_fork_prepare(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_prepare);
+}
+
+static void module_at_fork_on_parent(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_on_parent);
+}
+
+static void module_at_fork_on_child(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_on_child);
+}
+
+static __attribute__((constructor))
+void module_register_at_fork(void)
+{
+    static bool at_fork_registered = false;
+
+    if (!at_fork_registered) {
+        pthread_atfork(module_at_fork_prepare,
+                       module_at_fork_on_parent,
+                       module_at_fork_on_child);
+        at_fork_registered = true;
+    }
+}
+
 /* }}} */
+
