@@ -40,15 +40,19 @@ static void thr_hooks_at_exit(void *unused)
     }
 }
 
+#ifndef SHARED
 static void thr_hooks_atfork_in_child(void)
 {
     _G.key_once = PTHREAD_ONCE_INIT;
 }
+#endif
 
 static void thr_hooks_key_setup(void)
 {
     pthread_key_create(&_G.key, thr_hooks_at_exit);
+#ifndef SHARED
     pthread_atfork(NULL, NULL, thr_hooks_atfork_in_child);
+#endif
 }
 
 void thr_hooks_at_init(void)

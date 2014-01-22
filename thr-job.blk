@@ -762,7 +762,9 @@ void thr_initialize(void)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
+#ifndef SHARED
         pthread_atfork(NULL, NULL, thr_job_atfork);
+#endif
 
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))

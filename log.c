@@ -688,10 +688,12 @@ static void log_shutdown_thread(void)
 }
 thr_hooks(log_initialize_thread, log_shutdown_thread);
 
+#ifndef SHARED
 static void log_atfork(void)
 {
     _G.pid = getpid();
 }
+#endif
 
 __attribute__((constructor))
 static void log_initialize(void)
@@ -711,7 +713,9 @@ static void log_initialize(void)
     _G.handler = log_stderr_handler_g;
 
     log_initialize_thread();
+#ifndef SHARED
     pthread_atfork(NULL, NULL, &log_atfork);
+#endif
 
 #ifndef NDEBUG
     {
