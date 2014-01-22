@@ -150,6 +150,10 @@ void module_require(module_t *module, module_t *required_by)
 
 void module_provide(module_t *module, void *argument)
 {
+    if(module->constructor_argument) {
+        logger_warning(&_G.logger, "argument for module '%*pM' has already "
+                       "been provided", LSTR_FMT_ARG(module->name));
+    }
     module->constructor_argument = argument;
 }
 

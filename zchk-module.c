@@ -235,16 +235,14 @@ Z_GROUP_EXPORT(module)
 
 
     Z_TEST(provide,  "Provide") {
-        int *a = p_new(int, 1);
-        *a = 4;
+        int a = 4;
 
         Z_MODULE_REGISTER(module_arg, NULL);
-        MODULE_PROVIDE(module_arg, (void *)a);
+        MODULE_PROVIDE(module_arg, &a);
+        MODULE_PROVIDE(module_arg, &a);
         MODULE_REQUIRE(module_arg);
         Z_ASSERT(MODULE_IS_LOADED(module_arg));
         MODULE_RELEASE(module_arg);
-
-        p_delete(&a);
     } Z_TEST_END;
 
     Z_TEST(onterm, "On term") {

@@ -346,7 +346,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *  Exe:
  *     int module_initialize(void *arg) {
  *         if (arg == NULL)
- *            return F_NOT_INITIALIZE; (or assert)
+ *            return -1; (or assert)
  *       ...
  *     }
  *
