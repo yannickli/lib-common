@@ -415,6 +415,16 @@ static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
 }
 __SB_DEFINE_ADDS_ERR(unb64);
 
+/** Append the CSV-escaped version of the string in the given sb.
+ *
+ * If the input string does not contain any '\n', '\t', '"' or ';', it is
+ * appended as-is.
+ *
+ * Otherwise, it is double-quoted, and the double-quotes of the content of the
+ * string (and only them) are escaped with double-quotes.
+ */
+void sb_add_csvescape(sb_t *sb, const void *data, int len);
+__SB_DEFINE_ADDS(csvescape);
 
 /**************************************************************************/
 /* charset conversions (when implicit, charset is utf8)                   */
