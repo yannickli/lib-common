@@ -1017,6 +1017,27 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(sb_add_csvescape, "") {
+        SB_1k(sb);
+
+#define CHECK(_str, _expected)  \
+        do {                                                                 \
+            sb_adds_csvescape(&sb, _str);                                    \
+            Z_ASSERT_STREQUAL(_expected, sb.data);                           \
+            sb_reset(&sb);                                                   \
+        } while (0)
+
+        CHECK("toto", "toto");
+        CHECK("toto;tata", "\"toto;tata\"");
+        CHECK("toto\"tata", "\"toto\"\"tata\"");
+        CHECK("toto\n", "\"toto\n\"");
+        CHECK("toto\"", "\"toto\"\"\"");
+        CHECK("toto\ntata", "\"toto\ntata\"");
+        CHECK("toto\n\"tata", "\"toto\n\"\"tata\"");
+        CHECK("toto\"\ntata", "\"toto\"\"\ntata\"");
+        CHECK("", "");
+        CHECK("\"", "\"\"\"\"");
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
@@ -1054,14 +1075,6 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_P(fields.tab[_n].s);                                        \
         Z_ASSERT_LSTREQUAL(fields.tab[_n], LSTR_STR_V(_str), "field value"); \
     }
-
-#define CSV_TEST_QUOTE(_str, _expected)                                      \
-    do {                                                                     \
-        SB_1k(buf);                                                          \
-                                                                             \
-        sb_adds_csvescape(&buf, _str);                                       \
-        Z_ASSERT_STREQUAL(buf.data, _expected, "invalid quoting");           \
-    } while (0)
 
 Z_GROUP_EXPORT(csv) {
     Z_TEST(row1, "no row") {
@@ -1283,49 +1296,5 @@ Z_GROUP_EXPORT(csv) {
         CSV_TEST_CHECK_NB_FIELDS(1);
         CSV_TEST_CHECK_FIELD(0, "fo\"o");
         CSV_TEST_END();
-    } Z_TEST_END;
-
-    Z_TEST(quoting1, "Field quoting 1") {
-        CSV_TEST_QUOTE("", "");
-    } Z_TEST_END;
-
-    Z_TEST(quoting2, "Field quoting 2") {
-        CSV_TEST_QUOTE("\"", "\"\"");
-    } Z_TEST_END;
-
-    Z_TEST(quoting3, "Field quoting 3") {
-        CSV_TEST_QUOTE("\"\"", "\"\"\"\"");
-    } Z_TEST_END;
-
-    Z_TEST(quoting5, "Field quoting 5") {
-        CSV_TEST_QUOTE("foo", "foo");
-    } Z_TEST_END;
-
-    Z_TEST(quoting5, "Field quoting 5") {
-        CSV_TEST_QUOTE("foo\"", "foo\"\"");
-    } Z_TEST_END;
-
-    Z_TEST(quoting6, "Field quoting 6") {
-        CSV_TEST_QUOTE("\"foo", "\"\"foo");
-    } Z_TEST_END;
-
-    Z_TEST(quoting7, "Field quoting 7") {
-        CSV_TEST_QUOTE("\"foo\"", "\"\"foo\"\"");
-    } Z_TEST_END;
-
-    Z_TEST(quoting8, "Field quoting 8") {
-        CSV_TEST_QUOTE("foo \" bar", "foo \"\" bar");
-    } Z_TEST_END;
-
-    Z_TEST(quoting9, "Field quoting 9") {
-        CSV_TEST_QUOTE("\"foo \" bar", "\"\"foo \"\" bar");
-    } Z_TEST_END;
-
-    Z_TEST(quoting10, "Field quoting 10") {
-        CSV_TEST_QUOTE("foo \" bar\"", "foo \"\" bar\"\"");
-    } Z_TEST_END;
-
-    Z_TEST(quoting11, "Field quoting 11") {
-        CSV_TEST_QUOTE("\"foo \" bar\"", "\"\"foo \"\" bar\"\"");
     } Z_TEST_END;
 } Z_GROUP_END;
