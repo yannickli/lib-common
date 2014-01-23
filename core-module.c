@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <pthread.h>
+
 #include "log.h"
 #include "container.h"
 
@@ -350,7 +352,9 @@ static void rec_module_run_method(module_t *module,
 
     if (method->order == MODULE_DEPS_AFTER) {
         qv_for_each_entry(module, dep, &module->required_by) {
-            rec_module_run_method(dep, method, arg, already_run);
+            if (dep->state != REGISTERED) {
+                rec_module_run_method(dep, method, arg, already_run);
+            }
         }
         do_run_method(module, method, arg, already_run);
     }
@@ -388,4 +392,37 @@ void module_on_term(int signo)
     module_run_method(&on_term_method, (el_data_t){ .u32 = signo });
 }
 
+MODULE_METHOD(VOID, DEPS_AFTER, at_fork_prepare);
+MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_parent);
+MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_child);
+
+static void module_at_fork_prepare(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_prepare);
+}
+
+static void module_at_fork_on_parent(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_on_parent);
+}
+
+static void module_at_fork_on_child(void)
+{
+    MODULE_METHOD_RUN_VOID(at_fork_on_child);
+}
+
+static __attribute__((constructor))
+void module_register_at_fork(void)
+{
+    static bool at_fork_registered = false;
+
+    if (!at_fork_registered) {
+        pthread_atfork(module_at_fork_prepare,
+                       module_at_fork_on_parent,
+                       module_at_fork_on_child);
+        at_fork_registered = true;
+    }
+}
+
 /* }}} */
+

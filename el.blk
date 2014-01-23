@@ -79,7 +79,10 @@ enum ev_flags_t {
 
 typedef struct ev_t {
     uint8_t   type;             /* ev_type_t */
-    uint8_t   signo;            /* EV_SIGNAL */
+    union {
+        uint8_t   signo;        /* EV_SIGNAL */
+        uint8_t   generation;   /* EV_FD */
+    };
     uint16_t  flags     : 14;
     uint16_t  priority  : 2;
     union {
@@ -1355,8 +1358,10 @@ hook_sigpwr(void)
 }
 #endif
 
-__attribute__((constructor))
-static void el_initialize(void)
+/**\}*/
+/* Module {{{ */
+
+static int el_initialize(void *arg)
 {
     struct timeval tm;
 
@@ -1388,10 +1393,10 @@ static void el_initialize(void)
     if (!is_fd_open(STDERR_FILENO)) {
         dup2(STDOUT_FILENO, STDERR_FILENO);
     }
+    return 0;
 }
 
-__attribute__((destructor))
-static void el_shutdown(void)
+static int el_shutdown(void)
 {
     /* Wipe all containers in order to remove traces in valgrind, however
      * ensure they remain valid in case some other destructor perform el
@@ -1417,9 +1422,28 @@ static void el_shutdown(void)
 
     qv_wipe(ev, &_G.cache);
     qv_init(ev, &_G.cache);
+    return 0;
 }
 
-/**\}*/
+static void el_at_fork_on_child(void)
+{
+    el_fd_at_fork();
+}
+
+module_t *el_module;
+
+__attribute__((constructor))
+static void el_module_register(void)
+{
+    el_module = module_register(LSTR_IMMED_V("el"), &el_module,
+                                &el_initialize, &el_shutdown,
+                                NULL, 0);
+    module_implement_method(el_module, &at_fork_on_child_method,
+                            &el_at_fork_on_child);
+    MODULE_REQUIRE(el);
+}
+
+/* }}} */
 /* Tests {{{ */
 
 #include "z.h"

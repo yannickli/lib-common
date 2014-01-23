@@ -483,5 +483,12 @@ MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, on_term);
 void module_on_term(int signo);
 
 /* }}} */
+/* {{{ atfork methods */
+
+MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
+MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
+MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
+
+/* }}} */
 
 #endif

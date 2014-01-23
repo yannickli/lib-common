@@ -773,28 +773,13 @@ void thr_queue_main_drain(void)
     thr_ec_signal(&_G.ec);
 }
 
-static int thr_initialize(void *arg);
-static void thr_job_at_fork(void)
-{
-    if (MODULE_IS_LOADED(thr)) {
-        thr_wipe();
-        thr_initialize(NULL);
-    }
-}
-
 static int thr_initialize(void *arg)
 {
-    static bool atfork_registered;
     uint64_t key;
     sigset_t fillset;
     sigset_t old;
     pthread_t tid;
     pthread_attr_t attr;
-
-    if (!atfork_registered) {
-        pthread_atfork(NULL, NULL, thr_job_at_fork);
-        atfork_registered = true;
-    }
 
     if (!thr_parallelism_g) {
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
@@ -875,7 +860,17 @@ static int thr_shutdown(void)
     return F_SHUTDOWN;
 }
 
-MODULE(thr, NULL, "thr_hooks");
+static void thr_job_at_fork(void)
+{
+    thr_wipe();
+    thr_initialize(NULL);
+}
+
+MODULE_BEGIN(thr)
+    MODULE_DEPENDS_ON(thr_hooks);
+    MODULE_DEPENDS_ON(el);
+    MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);
+MODULE_END()
 
 void thr_old_initialize(void)
 {
