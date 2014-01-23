@@ -773,6 +773,52 @@ error:
     return __sb_rewind_adds(sb, &orig);
 }
 
+void sb_add_csvescape(sb_t *sb, const void *data, int len)
+{
+    static bool first_call = true;
+    static ctype_desc_t ctype_needs_escape;
+    pstream_t ps = ps_init(data, len);
+    pstream_t cspan;
+
+    if (unlikely(first_call)) {
+        ctype_desc_build(&ctype_needs_escape, "\"\n\r;");
+        first_call = false;
+    }
+
+    cspan = ps_get_cspan(&ps, &ctype_needs_escape);
+    if (ps_done(&ps)) {
+        /* No caracter needing escaping was found, just copy the input
+         * string. */
+        sb_add(sb, data, len);
+        return;
+    }
+
+    /* TODO: use ps_get_ps_chr_and_skip and sb_add_ps in earlier versions of
+     *       the lib-common.
+     */
+
+    /* There is at least one special character found in the input string, so
+     * the whole string has to be double-quoted, and the double-quotes have
+     * to be escaped by double-quotes.
+     */
+    sb_grow(sb, len + 2);
+    sb_addc(sb, '"');
+    sb_add(sb, cspan.s, ps_len(&cspan));
+
+    while (!ps_done(&ps)) {
+        if (ps_get_ps_chr(&ps, '"', &cspan) < 0) {
+            sb_add(sb, ps.s, ps_len(&ps));
+            break;
+        }
+        __ps_skip(&ps, 1);
+        cspan.s_end++;
+        sb_add(sb, cspan.s, ps_len(&cspan));
+        sb_addc(sb, '"');
+    }
+
+    sb_addc(sb, '"');
+}
+
 /*{{{ Punycode (RFC 3492) */
 
 #define PUNYCODE_DELIMITER     '-'
