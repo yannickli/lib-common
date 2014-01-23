@@ -331,7 +331,9 @@ static void rec_module_run_method(module_t *module,
 
     if (method->order == MODULE_DEPS_AFTER) {
         qv_for_each_entry(module, dep, &module->required_by) {
-            rec_module_run_method(dep, method, arg, already_run);
+            if (dep->state != REGISTERED) {
+                rec_module_run_method(dep, method, arg, already_run);
+            }
         }
         do_run_method(module, method, arg, already_run);
     }
