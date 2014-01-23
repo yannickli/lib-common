@@ -580,9 +580,6 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(qpe);
 __SB_DEFINE_ADDS(unqpe);
 
-void sb_add_csvescape(sb_t *sb, const void *data, int len) __leaf;
-__SB_DEFINE_ADDS(csvescape);
-
 typedef struct sb_b64_ctx_t {
     short packs_per_line;
     short pack_num;
@@ -607,6 +604,16 @@ static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
 }
 __SB_DEFINE_ADDS_ERR(unb64);
 
+/** Append the CSV-escaped version of the string in the given sb.
+ *
+ * If the input string does not contain any '\n', '\t', '"' or ';', it is
+ * appended as-is.
+ *
+ * Otherwise, it is double-quoted, and the double-quotes of the content of the
+ * string (and only them) are escaped with double-quotes.
+ */
+void sb_add_csvescape(sb_t *sb, const void *data, int len);
+__SB_DEFINE_ADDS(csvescape);
 
 /** Append the Punycode-encoded string corresponding to the input code points
  *  in the given sb.
