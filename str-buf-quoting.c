@@ -794,26 +794,21 @@ void sb_add_csvescape(sb_t *sb, const void *data, int len)
         return;
     }
 
-    /* TODO: use ps_get_ps_chr_and_skip and sb_add_ps in earlier versions of
-     *       the lib-common.
-     */
-
     /* There is at least one special character found in the input string, so
      * the whole string has to be double-quoted, and the double-quotes have
      * to be escaped by double-quotes.
      */
     sb_grow(sb, len + 2);
     sb_addc(sb, '"');
-    sb_add(sb, cspan.s, ps_len(&cspan));
+    sb_add_ps(sb, cspan);
 
     while (!ps_done(&ps)) {
-        if (ps_get_ps_chr(&ps, '"', &cspan) < 0) {
-            sb_add(sb, ps.s, ps_len(&ps));
+        if (ps_get_ps_chr_and_skip(&ps, '"', &cspan) < 0) {
+            sb_add_ps(sb, ps);
             break;
         }
-        __ps_skip(&ps, 1);
         cspan.s_end++;
-        sb_add(sb, cspan.s, ps_len(&cspan));
+        sb_add_ps(sb, cspan);
         sb_addc(sb, '"');
     }
 
