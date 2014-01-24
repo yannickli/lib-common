@@ -37,4 +37,5 @@
 /common.dylib
 /core-iop-plugin.dylib
 
+/json
 /.build*

@@ -21,6 +21,8 @@ none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
 endif
 
+_IOPJSONPATH = $ljson
+
 bench_PROGRAMS += zgcd-bench
 
 DISTCLEANFILES = core-version.c
