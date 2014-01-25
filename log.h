@@ -101,6 +101,7 @@ enum {
  */
 typedef struct logger_t {
     uint32_t conf_gen;
+    flag_t   is_static : 1;
 
     int level;
     int defined_level;
@@ -119,15 +120,19 @@ typedef struct logger_t {
 
 /** Initialize a logger with a default \p LogLevel.
  *
+ * Note that you don't have to wipe a logger initialized with LOGGER_INIT and
+ * derivates.
+ *
  * \param[in] Parent    The parent logger (NULL if parent is the root logger)
  * \param[in] Name      The name of the logger
  * \param[in] LogLevel  The maximum log level activated by default for that
  *                      logger. (can be LOG_INHERITS).
  */
 #define LOGGER_INIT(Parent, Name, LogLevel)  {                               \
-        .parent = (Parent),                                                  \
-        .name   = LSTR_IMMED(Name),                                          \
-        .level  = LOG_UNDEFINED,                                             \
+        .is_static     = true,                                               \
+        .parent        = (Parent),                                           \
+        .name          = LSTR_IMMED(Name),                                   \
+        .level         = LOG_UNDEFINED,                                      \
         .defined_level = LOG_UNDEFINED,                                      \
         .default_level = (LogLevel),                                         \
     }
@@ -141,11 +146,12 @@ typedef struct logger_t {
  * \see LOGGER_INIT
  */
 #define LOGGER_INIT_SILENT(Parent, Name, LogLevel)  {                        \
-        .parent = (Parent),                                                  \
-        .name   = LSTR_IMMED(Name),                                          \
-        .level  = LOG_UNDEFINED,                                             \
-        .defined_level = LOG_UNDEFINED,                                      \
-        .default_level = (LogLevel),                                         \
+        .is_static           = true,                                         \
+        .parent              = (Parent),                                     \
+        .name                = LSTR_IMMED(Name),                             \
+        .level               = LOG_UNDEFINED,                                \
+        .defined_level       = LOG_UNDEFINED,                                \
+        .default_level       = (LogLevel),                                   \
         .level_flags         = LOG_SILENT,                                   \
         .default_level_flags = LOG_SILENT,                                   \
     }

@@ -112,20 +112,24 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
 
 void logger_wipe(logger_t *logger)
 {
-#ifndef NDEBUG
     if (!dlist_is_empty(&logger->children) && logger->children.next) {
         logger_t *child;
 
-        dlist_for_each_entry(child, &logger->children, siblings) {
-            logger_error(&_G.root_logger, "leaked logger %*pM",
-                         LSTR_FMT_ARG(child->full_name));
-        }
-        logger_panic(&_G.root_logger, "cannot wipe logger %*pM",
-                     LSTR_FMT_ARG(logger->full_name));
-    }
+        dlist_for_each_entry_safe(child, &logger->children, siblings) {
+            if (child->is_static) {
+                logger_wipe(child);
+            } else {
+#ifndef NDEBUG
+                logger_panic(&_G.root_logger,
+                             "leaked logger %*pM, cannot wipe %*pM",
+                             LSTR_FMT_ARG(child->full_name),
+                             LSTR_FMT_ARG(logger->full_name));
 #endif
+            }
+        }
+    }
 
-    if (logger->siblings.next) {
+    if (!dlist_is_empty(&logger->siblings) && logger->siblings.next) {
         spin_lock(&logger->parent->children_lock);
         dlist_remove(&logger->siblings);
         spin_unlock(&logger->parent->children_lock);
@@ -820,6 +824,7 @@ static int log_initialize(void* args)
 
 static int log_shutdown(void)
 {
+    logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
     return 1;
 }
