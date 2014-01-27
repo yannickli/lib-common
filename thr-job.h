@@ -275,6 +275,12 @@ void thr_syn_wait(thr_syn_t *syn);
  */
 void thr_queue_main_drain(void);
 
+/** \brief enabled/disable threads-jobs reloading after fork.
+ *
+ * \return Previous state of <reload_at_fork>.
+ */
+bool thr_job_reload_at_fork(bool enabled);
+
 /*- accounting -----------------------------------------------------------*/
 
 #ifndef NDEBUG

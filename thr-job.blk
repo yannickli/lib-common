@@ -131,6 +131,7 @@ static __thread thr_info_t *self_g;
 size_t thr_parallelism_g;
 thr_queue_t *const thr_queue_main_g = &_G.main_queue;
 static thr_evc_t *thr0_cur_ec_g;
+static bool reload_at_fork_g;
 
 /* Tracing {{{ */
 #ifndef NDEBUG
@@ -734,6 +735,15 @@ static void *thr_job_main(void *arg)
 /* }}} */
 /* Module init / shutdown {{{ */
 
+bool thr_job_reload_at_fork(bool enabled)
+{
+    bool prev = reload_at_fork_g;
+
+    reload_at_fork_g = enabled;
+
+    return prev;
+}
+
 static void thr_wipe(void)
 {
     el_before_unregister(&_G.before);
@@ -863,7 +873,9 @@ static int thr_shutdown(void)
 static void thr_job_at_fork(void)
 {
     thr_wipe();
-    thr_initialize(NULL);
+    if (reload_at_fork_g) {
+        thr_initialize(NULL);
+    }
 }
 
 MODULE_BEGIN(thr)
