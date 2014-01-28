@@ -698,6 +698,7 @@ void thr_queue_main_drain(void)
 
 void thr_initialize(void)
 {
+    static bool atfork_registered;
     sigset_t fillset;
     sigset_t old;
     pthread_t tid;
@@ -750,6 +751,16 @@ void thr_initialize(void)
             _G.efd = fd[1];
         }
         el_unref(_G.eventel);
+    }
+
+    /* XXX done at the end of the function to ensure the el's at_fork is
+     * registered before the thr_job's at fork. Since pthread_atfork()
+     * guarantees the order of execution, this ensure thr_job_atfork won't
+     * affect the parent process' event loop.
+     */
+    if (!atfork_registered) {
+        pthread_atfork(NULL, NULL, thr_job_atfork);
+        atfork_registered = true;
     }
 }
 

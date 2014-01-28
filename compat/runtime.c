@@ -36,9 +36,11 @@
  *
  */
 
+#if 0
 static __inline bool OSAtomicCompareAndSwapLong(long oldl, long newl, long volatile *dst) {
   return __sync_bool_compare_and_swap(dst, oldl, newl);
 }
+#endif
 
 static __inline bool OSAtomicCompareAndSwapInt(int oldi, int newi, int volatile *dst) {
   return __sync_bool_compare_and_swap(dst, oldi, newi);
