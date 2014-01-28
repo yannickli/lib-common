@@ -106,9 +106,10 @@ void wah_append_literal(wah_t *map, uint32_t val)
     qv_append(wah_word, &map->data, word);
 }
 
-static inline
+static
 void wah_check_normalized(const wah_t *map)
 {
+#ifdef WAH_CHECK_NORMALIZED
     int pos = 0;
     uint32_t prev_word = 0xcafebabe;
 
@@ -129,6 +130,7 @@ void wah_check_normalized(const wah_t *map)
             prev_word = map->data.tab[pos++].literal;
         }
     }
+#endif
 }
 
 static ALWAYS_INLINE
@@ -139,9 +141,7 @@ void wah_check_invariant(const wah_t *map)
     assert (map->data.len >= 2);
     assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
     assert (map->len >= map->active);
-#ifdef WAH_CHECK_NORMALIZED
     wah_check_normalized(map);
-#endif
 }
 
 
