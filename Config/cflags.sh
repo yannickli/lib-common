@@ -165,6 +165,11 @@ EOF
             echo -Wheader-guard
             echo -Wlogical-not-parentheses
         fi
+        if clang_prereq 3.4; then
+            if is_cpp; then
+                echo -Wno-extern-c-compat
+            fi
+        fi
     fi
 
     echo -Wchar-subscripts

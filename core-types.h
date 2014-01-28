@@ -19,6 +19,7 @@
 /* {{{1 Refcount */
 
 #define REFCNT_NEW(type, pfx)                                             \
+    __unused__                                                            \
     static inline type *pfx##_new(void) {                                 \
         type *res = pfx##_init(p_new_raw(type, 1));                       \
         res->refcnt = 1;                                                  \
@@ -26,12 +27,14 @@
     }
 
 #define REFCNT_DUP(type, pfx)                                             \
+    __unused__                                                            \
     static inline type *pfx##_dup(type *t) {                              \
         t->refcnt++;                                                      \
         return t;                                                         \
     }
 
 #define REFCNT_DELETE(type, pfx)                                          \
+    __unused__                                                            \
     static inline void pfx##_delete(type **tp) {                          \
         if (*tp) {                                                        \
             if (--(*tp)->refcnt > 0) {                                    \
@@ -54,16 +57,19 @@
         subt v;                                                           \
     } type;                                                               \
                                                                           \
+    __unused__                                                            \
     static inline type *tpfx##_new(void) {                                \
         type *res = p_new_raw(type, 1);                                   \
         spfx##_init(&res->v);                                             \
         res->refcnt = 1;                                                  \
         return res;                                                       \
     }                                                                     \
+    __unused__                                                            \
     static inline type *tpfx##_dup(type *t) {                             \
         t->refcnt++;                                                      \
         return t;                                                         \
     }                                                                     \
+    __unused__                                                            \
     static inline void tpfx##_delete(type **tp) {                         \
         if (*tp) {                                                        \
             if (--(*tp)->refcnt > 0) {                                    \
