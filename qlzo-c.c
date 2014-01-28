@@ -23,7 +23,7 @@
 #define D_MASK          ((1u << D_BITS) - 1)
 #define D_HIGH          ((D_MASK >> 1) + 1)
 
-static ALWAYS_INLINE inline uint32_t HASH3(const uint8_t *p)
+static ALWAYS_INLINE uint32_t HASH3(const uint8_t *p)
 {
     const uint32_t s1 = 5;
     const uint32_t s2 = 5;
@@ -41,7 +41,7 @@ static ALWAYS_INLINE inline uint32_t HASH3(const uint8_t *p)
     return (h >> 5) & D_MASK;
 }
 
-static ALWAYS_INLINE inline uint32_t HASH3_SECONDARY(uint32_t h)
+static ALWAYS_INLINE uint32_t HASH3_SECONDARY(uint32_t h)
 {
     return (h & (D_MASK & 0x7ff)) ^ (D_HIGH | 0x1f);
 }

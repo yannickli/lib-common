@@ -11,21 +11,39 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <pthread.h>
 #include <sys/epoll.h>
 #include "unix.h"
 
-static int epollfd_g = -1;
+static struct {
+    int fd;
+    bool at_fork_registered;
+    int generation;
+} el_epoll_g = {
+    .fd = -1,
+};
+
+static void el_fd_at_fork(void)
+{
+    p_close(&el_epoll_g.fd);
+    el_epoll_g.generation++;
+}
 
 static void el_fd_initialize(void)
 {
-    if (unlikely(epollfd_g == -1)) {
+    if (unlikely(el_epoll_g.fd == -1)) {
 #ifdef SIGPIPE
         signal(SIGPIPE, SIG_IGN);
 #endif
-        epollfd_g = epoll_create(1024);
-        if (epollfd_g < 0)
+        el_epoll_g.fd = epoll_create(1024);
+        if (el_epoll_g.fd < 0)
             e_panic(E_UNIXERR("epoll_create"));
-        fd_set_features(epollfd_g, O_CLOEXEC);
+        fd_set_features(el_epoll_g.fd, O_CLOEXEC);
+
+        if (!el_epoll_g.at_fork_registered) {
+            pthread_atfork(NULL, NULL, el_fd_at_fork);
+            el_epoll_g.at_fork_registered = true;
+        }
     }
 }
 
@@ -39,9 +57,10 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
 
     el_fd_initialize();
     ev->fd = fd;
+    ev->generation = el_epoll_g.generation;
     ev->events_wanted = events;
     ev->priority = EV_PRIORITY_NORMAL;
-    if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_ADD, fd, &event)))
+    if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_ADD, fd, &event)))
         e_panic(E_UNIXERR("epoll_ctl"));
     return ev;
 }
@@ -55,12 +74,12 @@ short el_fd_set_mask(ev_t *ev, short events)
                 events & POLLIN ? "IN" : "", events & POLLOUT ? "OUT" : "");
     }
     CHECK_EV_TYPE(ev, EV_FD);
-    if (old != events) {
+    if (old != events && likely(ev->generation == el_epoll_g.generation)) {
         struct epoll_event event = {
             .data.ptr = ev,
             .events   = ev->events_wanted = events,
         };
-        if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_MOD, ev->fd, &event)))
+        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd, &event)))
             e_panic(E_UNIXERR("epoll_ctl"));
     }
     return old;
@@ -91,7 +110,9 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
         ev_t *ev = *evp;
 
         CHECK_EV_TYPE(ev, EV_FD);
-        epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
+        if (el_epoll_g.generation == ev->generation) {
+            epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd, NULL);
+        }
         if (likely(do_close))
             close(ev->fd);
         if (EV_FLAG_HAS(ev, FD_WATCHED))
@@ -111,7 +132,7 @@ static void el_loop_fds(int timeout)
     el_fd_initialize();
     el_bl_unlock();
     before     = get_clock(false);
-    res2 = res = epoll_wait(epollfd_g, events, countof(events),
+    res2 = res = epoll_wait(el_epoll_g.fd, events, countof(events),
                             _G.gotsigs ? 0 : timeout);
     now        = get_clock(false);
     el_bl_lock();

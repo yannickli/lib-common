@@ -166,9 +166,11 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
     typedef int (BLOCK_CARET pfx##_cmp_b)(cval_t *a, cval_t *b);            \
                                                                             \
+    __unused__                                                              \
     static inline void pfx##_sort(pfx##_t *vec, pfx##_cmp_b cmp) {          \
         __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
+    __unused__                                                              \
     static inline void                                                      \
     pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2, pfx##_t *out,      \
                pfx##_cmp_b cmp)                                             \
@@ -176,10 +178,12 @@ qvector_splice(qvector_t *vec, size_t v_size,
         __qvector_diff(&vec1->qv, &vec2->qv, &out->qv,                      \
                        sizeof(val_t), (qvector_cmp_b)cmp);                  \
     }                                                                       \
+    __unused__                                                              \
     static inline                                                           \
     void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp) {                        \
         __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
+    __unused__                                                              \
     static inline                                                           \
     int pfx##_bisect(const pfx##_t *vec, cval_t v, bool *found,             \
                      pfx##_cmp_b cmp)                                       \
@@ -187,6 +191,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
         return __qvector_bisect(&vec->qv, sizeof(val_t), &v, found,         \
                                 (qvector_cmp_b)cmp);                        \
     }                                                                       \
+    __unused__                                                              \
     static inline                                                           \
     int pfx##_find(const pfx##_t *vec, cval_t v, bool sorted,               \
                    pfx##_cmp_b cmp)                                         \
@@ -194,6 +199,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
         return __qvector_find(&vec->qv, sizeof(val_t), &v, sorted,          \
                               (qvector_cmp_b)cmp);                          \
     }                                                                       \
+    __unused__                                                              \
     static inline                                                           \
     bool pfx##_contains(const pfx##_t *vec, cval_t v, bool sorted,          \
                         pfx##_cmp_b cmp) {                                  \
@@ -205,14 +211,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #endif
 
 #define __QVECTOR_BASE_FUNCTIONS(pfx, cval_t, val_t) \
+    __unused__                                                              \
     static inline pfx##_t *                                                 \
     __##pfx##_init(pfx##_t *vec, void *buf, int blen, int bsize, int mp) {  \
         __qvector_init(&vec->qv, buf, blen, bsize, mp);                     \
         return vec;                                                         \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_wipe(pfx##_t *vec) {                           \
         qvector_wipe(&vec->qv, sizeof(val_t));                              \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_delete(pfx##_t **vec) {                        \
         if (likely(*vec)) {                                                 \
             qvector_wipe(&(*vec)->qv, sizeof(val_t));                       \
@@ -220,36 +229,44 @@ qvector_splice(qvector_t *vec, size_t v_size,
         }                                                                   \
     }                                                                       \
                                                                             \
+    __unused__                                                              \
     static inline val_t *                                                   \
     __##pfx##_splice(pfx##_t *vec, int pos, int len, int dlen) {            \
         return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
                                          pos, len, dlen);                   \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_clip(pfx##_t *vec, int at) {                   \
         assert (0 <= at && at <= vec->len);                                 \
         __##pfx##_splice(vec, at, vec->len - at, 0);                        \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_shrink(pfx##_t *vec, int at) {                 \
         assert (0 <= at && at <= vec->len);                                 \
         vec->len -= at;                                                     \
     }                                                                       \
+    __unused__                                                              \
     static inline val_t *                                                   \
     pfx##_splice(pfx##_t *vec, int pos, int len, cval_t *tab, int dlen) {   \
         void *res = qvector_splice(&vec->qv, sizeof(val_t), pos, len,       \
                                    tab, dlen);                              \
         return cast(val_t *, res);                                          \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_optimize(pfx##_t *vec, size_t r1, size_t r2) { \
         qvector_optimize(&vec->qv, sizeof(val_t), r1, r2);                  \
     }                                                                       \
+    __unused__                                                              \
     static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
         void *res = qvector_grow(&vec->qv, sizeof(val_t), extra);           \
         return cast(val_t *, res);                                          \
     }                                                                       \
+    __unused__                                                              \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
         void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
         return cast(val_t *, res);                                          \
     }                                                                       \
+    __unused__                                                              \
     static inline void pfx##_qsort(pfx##_t *vec,                            \
                                    int (*cb)(cval_t *, cval_t *)) {         \
         qsort(vec->qv.tab, vec->qv.len, sizeof(cval_t),                     \

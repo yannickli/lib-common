@@ -203,41 +203,51 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         STRUCT_QHASH_T(key_t, val_t);                                        \
     } pfx##_t;                                                               \
                                                                              \
+    __unused__                                                               \
     static inline void pfx##_init(pfx##_t *qh, bool chahes) {                \
         STATIC_ASSERT(sizeof(key_t) < 256);                                  \
         qhash_init(&qh->qh, sizeof(key_t), v_size, chahes);                  \
     }                                                                        \
+    __unused__                                                               \
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
         qhash_wipe(&qh->qh);                                                 \
     }                                                                        \
+    __unused__                                                               \
     static inline void pfx##_clear(pfx##_t *qh) {                            \
         qhash_clear(&qh->qh);                                                \
     }                                                                        \
+    __unused__                                                               \
     static inline void pfx##_del_at(pfx##_t *qh, uint32_t pos) {             \
         qhash_del_at(&qh->qh, pos);                                          \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t pfx##_len(const pfx##_t *qh) {                     \
         return qh->hdr.len;                                                  \
     }
 
 #define __QH_FIND(sfx, pfx, name, ckey_t, key_t, hashK) \
+    __unused__                                                               \
     static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
         return qhash_get##sfx(&qh->qh, hashK(&qh->qh, key), key);            \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
         return qhash_get##sfx(&qh->qh, h, key);                              \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
         return qhash_safe_get##sfx(&qh->qh, hashK(&qh->qh, key), key);       \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
         return qhash_safe_get##sfx(&qh->qh, h, key);                         \
     }
 
 #define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, iseqK) \
+    __unused__                                                               \
     static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
@@ -245,6 +255,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return qhash_get##sfx(&qh->qh, h, key,                               \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
@@ -252,6 +263,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return qhash_get##sfx(&qh->qh, h, key,                               \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
@@ -260,6 +272,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return qhash_safe_get##sfx(&qh->qh, h, key,                          \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
+    __unused__                                                               \
     static inline int32_t                                                    \
     pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
@@ -272,20 +285,25 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 /*----- macros to define QH's -{{{-*/
 
 #define __QH_ADD(sfx, pfx, name, key_t, hashK) \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put(pfx##_t *qh, key_t key, uint32_t fl) {                     \
         return __##pfx##_put_h(qh, hashK(&qh->qh, key), key, fl);            \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_add_h(pfx##_t *qh, uint32_t h, key_t key)        \
     {                                                                        \
         return (int)__##pfx##_put_h(qh, h, key, 0) >> 31;                    \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_add(pfx##_t *qh, key_t key) {                    \
         return pfx##_add_h(qh, hashK(&qh->qh, key), key);                    \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_replace_h(pfx##_t *qh, uint32_t h, key_t key) {  \
         return (int)__##pfx##_put_h(qh, h, key, QHASH_OVERWRITE) >> 31;      \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_replace(pfx##_t *qh, key_t key) {                \
         return pfx##_replace_h(qh, hashK(&qh->qh, key), key);                \
     }
@@ -294,6 +312,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(sfx, pfx, name, key_t, void, 0);                               \
     __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
                                                                              \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h, key_t key, uint32_t fl) {       \
         uint32_t pos = __qhash_put##sfx(&qh->qh, h, key, fl);                \
@@ -309,6 +328,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(_ptr, pfx, name, key_t *, void, 0);                            \
     __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {      \
         uint32_t (*hf)(const qhash_t *, ckey_t *) = &hashK;                  \
@@ -327,6 +347,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(_vec, pfx, name, key_t, void, 0);                              \
     __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) {     \
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
@@ -346,21 +367,26 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 /*----- macros to define QM's -{{{-*/
 
 #define __QM_ADD(sfx, pfx, name, key_t, val_t, hashK) \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put(pfx##_t *qh, key_t key, val_t v, uint32_t fl) {            \
         return __##pfx##_put_h(qh, hashK(&qh->qh, key), key, v, fl);         \
     }                                                                        \
+    __unused__                                                               \
     static inline int                                                        \
     pfx##_add_h(pfx##_t *qh, uint32_t h, key_t key, val_t v) {               \
         return (int)__##pfx##_put_h(qh, h, key, v, 0) >> 31;                 \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_add(pfx##_t *qh, key_t key, val_t v) {           \
         return pfx##_add_h(qh, hashK(&qh->qh, key), key, v);                 \
     }                                                                        \
+    __unused__                                                               \
     static inline int                                                        \
     pfx##_replace_h(pfx##_t *qh, uint32_t h, key_t key, val_t v) {           \
         return (int)__##pfx##_put_h(qh, h, key, v, QHASH_OVERWRITE) >> 31;   \
     }                                                                        \
+    __unused__                                                               \
     static inline int pfx##_replace(pfx##_t *qh, key_t key, val_t v)         \
     {                                                                        \
         return pfx##_replace_h(qh, hashK(&qh->qh, key), key, v);             \
@@ -370,6 +396,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(sfx, pfx, name, key_t, val_t, sizeof(val_t));                  \
     __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
                                                                              \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
                     key_t key, val_t v, uint32_t fl) {                       \
@@ -387,6 +414,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(_ptr, pfx, name, key_t *, val_t, sizeof(val_t));               \
     __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
                     key_t *key, val_t v, uint32_t fl) {                      \
@@ -406,6 +434,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QM_VKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, key_t, val_t, sizeof(val_t));                 \
     __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
+    __unused__                                                               \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
                     ckey_t *key, val_t v, uint32_t fl) {                     \
