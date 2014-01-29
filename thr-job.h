@@ -281,6 +281,18 @@ void thr_queue_main_drain(void);
  */
 bool thr_job_reload_at_fork(bool enabled);
 
+/** \brief fork() preserving threads-jobs */
+__must_check__
+static inline pid_t thr_job_fork(void)
+{
+    bool prev_val = thr_job_reload_at_fork(true);
+    pid_t pid = fork();
+
+    thr_job_reload_at_fork(prev_val);
+
+    return pid;
+}
+
 /*- accounting -----------------------------------------------------------*/
 
 #ifndef NDEBUG
