@@ -159,6 +159,15 @@ void module_run_method(const module_method_t *method, data_t arg);
  */
 #define MODULE_DECLARE(name)  extern module_t *name##_module
 
+#define _MODULE_BEGIN(attr, name, ...)                                       \
+    __attr_section("intersec", "module")                                     \
+    module_t *name##_module;                                                 \
+                                                                             \
+    static __attribute__((attr))                                             \
+    void __##name##_module_register(void) {                                  \
+        __unused__                                                           \
+        module_t *__mod = name##_module = MODULE_REGISTER(name, NULL,        \
+                                                          ##__VA_ARGS__);
 
 /** Begin the definition of a module.
  *
@@ -174,15 +183,26 @@ void module_run_method(const module_method_t *method, data_t arg);
  *
  * The section must be closed by calling \ref MODULE_END().
  */
-#define MODULE_BEGIN(name, ...)                                              \
-    __attr_section("intersec", "module")                                     \
-    module_t *name##_module;                                                 \
-                                                                             \
-    static __attribute__((constructor))                                      \
-    void __##name##_module_register(void) {                                  \
-        __unused__                                                           \
-        module_t *__mod = name##_module = MODULE_REGISTER(name, NULL,        \
-                                                          ##__VA_ARGS__);
+#define MODULE_BEGIN(name, ...)  \
+    _MODULE_BEGIN(constructor, name, ##__VA_ARGS__)
+
+/** Begin the definition of a disabled module.
+ *
+ * Same as \ref MODULE_BEGIN, but to declare a module that won't be registered
+ * at startup.
+ * One can use this, for example, to disable modules in share libraries, with
+ * code looking like:
+ *
+ *  #ifdef SHARED
+ *  MODULE_BEGIN_DISABLED(thr)
+ *  #else
+ *  MODULE_BEGIN(thr)
+ *  #endif
+ *      ...
+ *  MODULE_END()
+ */
+#define MODULE_BEGIN_DISABLED(name, ...)  \
+    _MODULE_BEGIN(unused, name, ##__VA_ARGS__)
 
 /** Macro to end the definition of a module.
  *

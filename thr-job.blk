@@ -778,7 +778,9 @@ static int thr_event(el_t ev, int fd, short evt, data_t priv)
 
 void thr_queue_main_drain(void)
 {
+#ifndef SHARED
     assert (self_tid_g == 0);
+#endif
     thr_queue_drain(thr_queue_main_g);
     thr_ec_signal(&_G.ec);
 }
@@ -878,7 +880,11 @@ static void thr_job_at_fork(void)
     }
 }
 
+#ifdef SHARED
+MODULE_BEGIN_DISABLED(thr)
+#else
 MODULE_BEGIN(thr)
+#endif
     MODULE_DEPENDS_ON(thr_hooks);
     MODULE_DEPENDS_ON(el);
     MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);

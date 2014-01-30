@@ -829,7 +829,11 @@ static int log_shutdown(void)
     return 1;
 }
 
+#ifndef SHARED
 __attribute__((constructor))
+#else
+__attribute__((unused))
+#endif
 static void log_module_register(void)
 {
     static module_t *log_module;
