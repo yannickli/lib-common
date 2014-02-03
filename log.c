@@ -60,6 +60,11 @@ static struct {
     qv_t(spec)  specs;
     int maxlen, rows, cols;
     int pid;
+
+    /* log buffer */
+    qv_t(log_buffer) vec_buffer;
+    mem_stack_pool_t mp_stack;
+    flag_t is_buffering : 1;
 } log_g = {
 #define _G  log_g
     .root_logger = {
@@ -316,6 +321,24 @@ int logger_reset_level(lstr_t name)
  */
 bool syslog_is_critical;
 
+void log_start_buffering(void)
+{
+    assert (!_G.is_buffering);
+    _G.is_buffering = true;
+    if (_G.vec_buffer.len > 0) {
+        mem_stack_pop(&_G.mp_stack);
+        qv_clear(log_buffer, &_G.vec_buffer);
+    }
+    mem_stack_push(&_G.mp_stack);
+}
+
+const qv_t(log_buffer) *log_stop_buffering(void)
+{
+    assert (_G.is_buffering);
+    _G.is_buffering = false;
+    return &_G.vec_buffer;
+}
+
 int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
                 const char *file, const char *func, int line,
                 const char *fmt, va_list va)
@@ -341,7 +364,24 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
             .is_silent   = !!(logger->level_flags & LOG_SILENT),
         };
 
-        (*_G.handler)(&ctx, fmt, va);
+        if (_G.is_buffering) {
+            int size_fmt;
+            log_buffer_t *log_save;
+            va_list cpy;
+            char *buffer;
+
+            va_copy(cpy, va);
+            size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
+            va_end(cpy);
+
+            buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
+            vsnprintf(buffer, size_fmt, fmt, va);
+            log_save = qv_growlen(log_buffer, &_G.vec_buffer, 1);
+            log_save->ctx = ctx;
+            log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
+        } else {
+            (*_G.handler)(&ctx, fmt, va);
+        }
     }
     return level <= LOG_WARNING ? -1 : 0;
 }
@@ -745,7 +785,9 @@ static void log_atfork(void)
 
 static int log_initialize(void* args)
 {
+    mem_stack_pool_init(&_G.mp_stack, 64 << 10);
     qv_init(spec, &_G.specs);
+    qv_init(log_buffer, &_G.vec_buffer);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     _G.pid   = getpid();
     log_stderr_handler_g = &log_stderr_raw_handler;
@@ -824,6 +866,11 @@ static int log_initialize(void* args)
 
 static int log_shutdown(void)
 {
+    qv_wipe(log_buffer, &_G.vec_buffer);
+    if (_G.vec_buffer.len > 0) {
+        mem_stack_pop(&_G.mp_stack);
+    }
+    mem_stack_pool_wipe(&_G.mp_stack);
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
     return 1;
@@ -952,6 +999,79 @@ Z_GROUP_EXPORT(log) {
         logger_wipe(&c);
         logger_wipe(&b);
         logger_wipe(&a);
+    } Z_TEST_END;
+
+    Z_TEST(log_buffer, "log buffer") {
+        logger_t logger_test = LOGGER_INIT_SILENT(NULL, "logger test",
+                                                  LOG_TRACE);
+        logger_t logger_test_2 = LOGGER_INIT_SILENT(NULL, "logger test 2",
+                                                  LOG_TRACE);
+        const qv_t(log_buffer) *vect_buffer;
+
+        logger_notice(&logger_test_2, "log message outside buffer");
+        log_start_buffering();
+
+        logger_notice(&logger_test, "log message inside buffer %d", 1);
+        logger_error(&logger_test, "log message inside buffer %d", 2);
+        logger_warning(&logger_test, "log message inside buffer %d", 3);
+        logger_info(&logger_test, "log message inside buffer %d", 4);
+        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
+        logger_error(&logger_test_2, "log message inside buffer %d", 6);
+        logger_warning(&logger_test_2, "log message inside buffer %d", 7);
+        logger_info(&logger_test_2, "log message inside buffer %d", 8);
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 8);
+
+#define TEST_LOG_ENTRY(_i, _j, _level, _logger)                              \
+    do {                                                                     \
+        log_buffer_t entry = vect_buffer->tab[_i];                           \
+        Z_ASSERT_LSTREQUAL(entry.msg,                                        \
+                        LSTR_IMMED_V("log message inside buffer " # _j));    \
+        Z_ASSERT_LSTREQUAL(entry.ctx.logger_name, _logger.name);             \
+        Z_ASSERT_EQ(entry.ctx.level, _level);                                \
+    } while (0)
+
+        TEST_LOG_ENTRY(0, 1, LOG_NOTICE, logger_test);
+        TEST_LOG_ENTRY(1, 2, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(2, 3, LOG_WARNING, logger_test);
+        TEST_LOG_ENTRY(3, 4, LOG_INFO, logger_test);
+        TEST_LOG_ENTRY(4, 5, LOG_NOTICE, logger_test_2);
+        TEST_LOG_ENTRY(5, 6, LOG_ERR, logger_test_2);
+        TEST_LOG_ENTRY(6, 7, LOG_WARNING, logger_test_2);
+        TEST_LOG_ENTRY(7, 8, LOG_INFO, logger_test_2);
+
+        log_start_buffering();
+
+        logger_error(&logger_test, "log message inside buffer 2");
+        logger_info(&logger_test_2, "log message inside buffer 8");
+        logger_warning(&logger_test, "log message inside buffer 3");
+        logger_notice(&logger_test, "log message inside buffer 1");
+        logger_info(&logger_test, "log message inside buffer 4");
+        logger_error(&logger_test_2, "log message inside buffer 6");
+        logger_notice(&logger_test_2, "log message inside buffer 5");
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 7);
+
+        TEST_LOG_ENTRY(0, 2, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(1, 8, LOG_INFO, logger_test_2);
+        TEST_LOG_ENTRY(2, 3, LOG_WARNING, logger_test);
+        TEST_LOG_ENTRY(3, 1, LOG_NOTICE, logger_test);
+        TEST_LOG_ENTRY(4, 4, LOG_INFO, logger_test);
+        TEST_LOG_ENTRY(5, 6, LOG_ERR, logger_test_2);
+        TEST_LOG_ENTRY(6, 5, LOG_NOTICE, logger_test_2);
+
+#undef TEST_LOG_ENTRY
+
+        logger_notice(&logger_test_2, "log message outside buffer");
+        log_start_buffering();
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 0);
+
+        logger_wipe(&logger_test);
+        logger_wipe(&logger_test_2);
+
     } Z_TEST_END;
 } Z_GROUP_END;
 

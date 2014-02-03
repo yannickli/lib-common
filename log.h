@@ -368,6 +368,24 @@ typedef struct log_ctx_t {
     flag_t padding   : 31;
 } log_ctx_t;
 
+typedef struct log_buffer_t {
+    log_ctx_t ctx;
+    lstr_t msg;
+} log_buffer_t;
+
+qvector_t(log_buffer, log_buffer_t);
+
+/** Start buffer for logger.
+ */
+void log_start_buffering(void);
+
+/** Stop buffer previously started for logger.
+ *
+ * \return the list of the logs that were emitted since the last call to
+ * log_start_buffering, in the order or emission.
+ */
+const qv_t(log_buffer) *log_stop_buffering(void);
+
 typedef void (log_handler_f)(const log_ctx_t *ctx, const char *fmt, va_list va)
     __attr_printf__(2, 0);
 
