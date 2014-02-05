@@ -50,9 +50,11 @@ void ps_install_panic_sighandlers(void);
 /****************************************************************************/
 
 /* XXX man 2 open
- * NOTES: alignment boundaries on linux 2.6 for direct I/O is 512 bytes
+ * NOTES: minimum alignment boundaries on linux 2.6 for direct I/O is 512
+ * bytes but a lot of devices are aligned on 4K, so we use 4K as our default
+ * alignment.
  */
-#define DIRECT_BITS            9
+#define DIRECT_BITS            12
 #define DIRECT_ALIGN           (1 << DIRECT_BITS)
 #define DIRECT_REMAIN(Val)     ((Val) & BITMASK_LT(typeof(Val), DIRECT_BITS))
 #define DIRECT_TRUNCATE(Val)   ((Val) & BITMASK_GE(typeof(Val), DIRECT_BITS))
