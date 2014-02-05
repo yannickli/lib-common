@@ -419,11 +419,13 @@ Z_GROUP_EXPORT(module)
         MODULE_RELEASE(modmethod1);
 
         val = 1;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
         MODULE_METHOD_RUN_PTR(after, &val);
-        Z_ASSERT_EQ(modmethod1, 4);
-        Z_ASSERT_EQ(modmethod2, 3);
-        Z_ASSERT_EQ(modmethod3, 2);
-        Z_ASSERT_EQ(modmethod5, 1);
+        Z_ASSERT_ZERO(modmethod1);
+        Z_ASSERT_ZERO(modmethod2);
+        Z_ASSERT_ZERO(modmethod3);
+        Z_ASSERT_ZERO(modmethod5);
+        Z_ASSERT_ZERO(modmethod6);
         Z_ASSERT_EQ(val, 1);
     } Z_TEST_END;
 } Z_GROUP_END;
