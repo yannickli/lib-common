@@ -93,6 +93,15 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
             return false;                                              \
         *e = r->tab[pfx##_ring_pos(r, --r->len)];                      \
         return true;                                                   \
+    }                                                                  \
+                                                                       \
+    __unused__                                                         \
+    static inline bool pfx##_ring_skip(pfx##_ring *r, int n) {         \
+        if (r->len < n || n < 0)                                       \
+            return false;                                              \
+        r->first += n - (r->first + n >= r->size ? r->size : 0);       \
+        r->len -= n;                                                   \
+        return true;                                                   \
     }
 
 #define DO_RING(type_t, pfx, wipe) \
