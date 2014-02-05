@@ -1432,11 +1432,7 @@ static void el_at_fork_on_child(void)
 
 module_t *el_module;
 
-#ifndef SHARED
 __attribute__((constructor))
-#else
-__attribute__((unused))
-#endif
 static void el_module_register(void)
 {
     el_module = module_register(LSTR_IMMED_V("el"), &el_module,
