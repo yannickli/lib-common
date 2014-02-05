@@ -361,13 +361,6 @@ static void murmur_hash3_x64_128_(const void *key, const size_t len,
     ((uint64_t*)out)[1] = h2;
 }
 
-uint32_t murmur_hash3_x64_32 (const void *key, size_t len, uint32_t seed)
-{
-    uint32_t buf[4];
-    murmur_hash3_x64_128_(key, len, seed, (void *)&buf);
-    return buf[0];
-}
-
 void murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed, char out[static 16])
 {
     murmur_hash3_x64_128_(key, len, seed, out);
