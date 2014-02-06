@@ -318,6 +318,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  *  @param dependencies list of modules
  *  @param nb_dependencies number of dependent modules
  *
+ *
  *  @return The newly registered module in case of success.
  */
 __leaf

@@ -104,7 +104,7 @@ module_t *module_register(lstr_t name, module_t **module,
     if (pos & QHASH_COLLISION) {
         logger_warning(&_G.logger,
                        "%*pM has already been register", LSTR_FMT_ARG(name));
-        return _G.modules.values[pos ^ QHASH_COLLISION];
+        return NULL;
     }
 
     new_module = module_new();

@@ -189,7 +189,7 @@ Z_GROUP_EXPORT(module)
                     U_T_R"mock_thr");
         Z_ASSERT_P(Z_MODULE_REGISTER(mock_log, NULL),
                     U_T_R"mock_log");
-        Z_ASSERT(MODULE_REGISTER(mock_log, NULL) == mock_log_module);
+        Z_ASSERT_NULL(MODULE_REGISTER(mock_log, NULL));
         #undef U_T_R
 
         MODULE_REQUIRE(mock_log);
