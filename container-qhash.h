@@ -63,9 +63,10 @@
  *     qh->old->len.
  */
 typedef struct qhash_hdr_t {
-    size_t   *bits;
-    uint32_t  len;
-    uint32_t  size;
+    size_t     *bits;
+    uint32_t    len;
+    uint32_t    size;
+    mem_pool_t *mp;
 } qhash_hdr_t;
 
 #define STRUCT_QHASH_T(key_t, val_t) \
@@ -97,7 +98,8 @@ typedef bool     (qhash_kequ_f)(const qhash_t *, const void *, const void *);
 
 uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
     __leaf;
-void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh)
+void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh,
+                mem_pool_t *mp)
     __leaf;
 void qhash_clear(qhash_t *qh)
     __leaf;
@@ -202,9 +204,9 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     } pfx##_t;                                                               \
                                                                              \
     __unused__                                                               \
-    static inline void pfx##_init(pfx##_t *qh, bool chahes) {                \
+    static inline void pfx##_init(pfx##_t *qh, bool chahes, mem_pool_t *mp) {\
         STATIC_ASSERT(sizeof(key_t) < 256);                                  \
-        qhash_init(&qh->qh, sizeof(key_t), v_size, chahes);                  \
+        qhash_init(&qh->qh, sizeof(key_t), v_size, chahes, mp);              \
     }                                                                        \
     __unused__                                                               \
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
@@ -640,7 +642,18 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  * Never set \p chahes to true if the qh is issued from a qh_k32_t or a
  * qh_k64_t.
  */
-#define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes)
+#define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes, NULL)
+#define mp_qh_init(name, mp, h, chahes, sz)  \
+    ({                                                                       \
+        qh_t(name) *_qh = (h);                                               \
+        qh_##name##_init(_qh, (chahes), (mp));                               \
+        qhash_set_minsize(&_qh->qh, (sz));                                   \
+    })
+#define t_qh_init(name, qh, chahes, sz)                                      \
+    mp_qh_init(name, t_pool(), (qh), (chahes), (sz))
+#define r_qh_init(name, qh, chahes, sz)                                      \
+    mp_qh_init(name, r_pool(), (qh), (chahes), (sz))
+
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
@@ -721,7 +734,18 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  *
  * \note You can also use the static initializer \ref QM_INIT
  */
-#define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes)
+#define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes, NULL)
+#define mp_qm_init(name, mp, h, chahes, sz) \
+    ({                                                                       \
+        qm_t(name) *_qh = (h);                                               \
+        qm_##name##_init(_qh, (chahes), (mp));                               \
+        qhash_set_minsize(&_qh->qh, (sz));                                   \
+    })
+#define t_qm_init(name, qh, chahes, sz)                                      \
+    mp_qm_init(name, t_pool(), (qh), (chahes), (sz))
+#define r_qm_init(name, qh, chahes, sz)                                      \
+    mp_qm_init(name, r_pool(), (qh), (chahes), (sz))
+
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)

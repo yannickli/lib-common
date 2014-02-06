@@ -113,7 +113,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         p_clear(&qhh->hdr, 1);                                               \
         for (int it = 0; it < countof(qhh->buckets); it++) {                 \
             qhh->buckets[it].pos = it;                                       \
-            hpfx##_init(&qhh->buckets[it].qm, chashes);                      \
+            hpfx##_init(&qhh->buckets[it].qm, chashes, NULL);                \
         }                                                                    \
         return qhh;                                                          \
     }                                                                        \
