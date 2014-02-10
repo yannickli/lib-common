@@ -898,6 +898,22 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(lstr_startswithc, "str: starts with character") {
+        Z_ASSERT(lstr_startswithc(LSTR_IMMED_V("1234"), '1'));
+        Z_ASSERT(!lstr_startswithc(LSTR_IMMED_V("1234"), '2'));
+        Z_ASSERT(lstr_startswithc(LSTR_IMMED_V("a"), 'a'));
+        Z_ASSERT(!lstr_startswithc(LSTR_NULL_V, '2'));
+        Z_ASSERT(!lstr_startswithc(LSTR_EMPTY_V, '2'));
+    } Z_TEST_END;
+
+    Z_TEST(lstr_endswithc, "str: ends with character") {
+        Z_ASSERT(!lstr_endswithc(LSTR_IMMED_V("1234"), '1'));
+        Z_ASSERT(lstr_endswithc(LSTR_IMMED_V("a"), 'a'));
+        Z_ASSERT(lstr_endswithc(LSTR_IMMED_V("1234"), '4'));
+        Z_ASSERT(!lstr_endswithc(LSTR_NULL_V, '2'));
+        Z_ASSERT(!lstr_endswithc(LSTR_EMPTY_V, '2'));
+    } Z_TEST_END;
+
     Z_TEST(lstr_ascii_reverse, "str: reverse a lstr") {
         t_scope;
 #define T(f, t) do {                                                         \

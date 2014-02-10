@@ -196,11 +196,25 @@ static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
     return s.len >= p.len && memcmp(s.s, p.s, p.len) == 0;
 }
 
+/** \brief returns whether \c s starts with \c c.
+ */
+static ALWAYS_INLINE bool lstr_startswithc(const lstr_t s, int c)
+{
+    return s.len >= 1 && s.s[0] == c;
+}
+
 /** \brief returns whether \c s ends with \c p.
  */
 static ALWAYS_INLINE bool lstr_endswith(const lstr_t s, const lstr_t p)
 {
     return s.len >= p.len && memcmp(s.s + s.len - p.len, p.s, p.len) == 0;
+}
+
+/** \brief returns whether \c s ends with \c c.
+ */
+static ALWAYS_INLINE bool lstr_endswithc(const lstr_t s, int c)
+{
+    return s.len >= 1 && s.s[s.len - 1] == c;
 }
 
 /** \brief returns whether \p s starts with \p p case-insenstively.
