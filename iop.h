@@ -142,6 +142,9 @@ typedef struct iop_enum_value_attrs_t {
 
 typedef enum iop_enum_attr_type_t {
     IOP_ENUM_ATTR_HELP,
+    IOP_ENUM_GEN_ATTR_S,
+    IOP_ENUM_GEN_ATTR_I,
+    IOP_ENUM_GEN_ATTR_D,
 } iop_enum_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
@@ -230,6 +233,9 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_PATTERN,
     IOP_FIELD_PRIVATE,
     IOP_FIELD_ATTR_HELP,
+    IOP_FIELD_GEN_ATTR_S,
+    IOP_FIELD_GEN_ATTR_I,
+    IOP_FIELD_GEN_ATTR_D,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -248,6 +254,9 @@ typedef struct iop_field_attrs_t {
 
 typedef enum iop_struct_attr_type_t {
     IOP_STRUCT_ATTR_HELP,
+    IOP_STRUCT_GEN_ATTR_S,
+    IOP_STRUCT_GEN_ATTR_I,
+    IOP_STRUCT_GEN_ATTR_D,
 } iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
@@ -329,6 +338,9 @@ typedef enum iop_rpc_attr_type_t {
     IOP_RPC_ATTR_ARG_HELP,
     IOP_RPC_ATTR_RES_HELP,
     IOP_RPC_ATTR_EXN_HELP,
+    IOP_RPC_GEN_ATTR_S,
+    IOP_RPC_GEN_ATTR_I,
+    IOP_RPC_GEN_ATTR_D,
 } iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
@@ -356,6 +368,9 @@ typedef struct iop_rpc_t {
 
 typedef enum iop_iface_attr_type_t {
     IOP_IFACE_ATTR_HELP,
+    IOP_IFACE_GEN_ATTR_S,
+    IOP_IFACE_GEN_ATTR_I,
+    IOP_IFACE_GEN_ATTR_D,
 } iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
