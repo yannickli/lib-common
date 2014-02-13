@@ -533,16 +533,26 @@
 #ifndef NDEBUG
 #  define iop_obj_cast_debug(pfx, o)  \
     ({                                                                       \
-        if (!iop_obj_is_a((void *)(o), pfx)) {                               \
-            e_panic("cannot cast %p to type " TOSTR(pfx), (o));              \
+        typeof(*o) *__o = (o);                                               \
+        if (!iop_obj_is_a(__o, pfx)) {                                       \
+            e_panic("cannot cast %p to type " TOSTR(pfx), __o);              \
         }                                                                    \
-        (o);                                                                 \
+        __o;                                                                 \
     })
 #else
 #  define iop_obj_cast_debug(pfx, o)  (o)
 #endif
 
+#define iop_obj_dyn_cast(pfx, o)                                             \
+    ({                                                                       \
+        typeof(*o) *__o = (o);                                               \
+        iop_obj_is_a(__o, pfx) ? __o : NULL;                                 \
+    })
+
 /** Cast an IOP class object to the wanted type.
+ *
+ * This macro is to be used only in case the parent object is known to be of
+ * the target type.
  *
  * In debug mode, this macro checks if the wanted type is compatible with the
  * actual type of the object (ie. if iop_obj_is_a returns true).
@@ -560,6 +570,20 @@
  * Same as iop_obj_vcast, but returns a const pointer.
  */
 #define iop_obj_ccast(pfx, o)  ((const pfx##__t *)iop_obj_cast_debug(pfx, o))
+
+/** Dynamically cast an IOP class object to the wanted type.
+ *
+ * This macro will cast \p o to \p pfx if \p o inherits from \p pfx and will
+ * return NULL if this is not the case.
+ */
+#define iop_obj_dynvcast(pfx, o)  ((pfx##__t *)iop_obj_dyn_cast(pfx, o))
+
+/** Dynamically cast an IOP class object to the wanted type.
+ *
+ * This macro will cast \p o to \p pfx if \p o inherits from \p pfx and will
+ * return NULL if this is not the case.
+ */
+#define iop_obj_dynccast(pfx, o)  ((const pfx##__t *)iop_obj_dyn_cast(pfx, o))
 
 /** Get the class id of a class type */
 #define IOP_CLASS_ID(type)  type##__class_id

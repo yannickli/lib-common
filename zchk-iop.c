@@ -2566,6 +2566,10 @@ Z_GROUP_EXPORT(iop)
             tstiop_inheritance__##_type1##__init(&obj);                      \
             Z_ASSERT(iop_obj_is_a(&obj,                                      \
                                   tstiop_inheritance__##_type2) == _res);    \
+            Z_ASSERT(iop_obj_dynvcast(tstiop_inheritance__##_type2, &obj)    \
+                     == (_res ? (void *)&obj : NULL));                       \
+            Z_ASSERT(iop_obj_dynccast(tstiop_inheritance__##_type2, &obj)    \
+                     == (_res ? (const void *)&obj : NULL));                 \
         } while (0)
 
         CHECK_IS_A(a1, a1, true);
