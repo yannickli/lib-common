@@ -527,7 +527,6 @@ int licence_check_iop_host(const core__licence__t *licence)
     return 0;
 }
 
-static __must_check__
 int licence_check_iop_expiry(const core__licence__t *licence)
 {
     struct tm t;
