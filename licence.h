@@ -40,6 +40,7 @@ int  licence_do_signature(const conf_t *conf, char dst[65]);
 /* IOP Licences {{{ */
 
 struct core__signed_licence__t;
+struct core__licence__t;
 
 enum {
     /* XXX: must not conflict with IOP_HASH_SKIP_* enum */
@@ -59,6 +60,10 @@ __must_check__
 int licence_check_iop(const struct core__signed_licence__t *licence,
                       const iop_struct_t *licence_st, lstr_t version,
                       unsigned flags);
+
+/** Check the expiration of an IOP Licence. */
+__must_check__
+int licence_check_iop_expiry(const struct core__licence__t *licence);
 
 /* }}} */
 
