@@ -25,6 +25,9 @@ else
 	var/srcdir := $(realpath $(var/toolsdir)/..)
 	var/libcommon := $(var/srcdir)
 endif
+ifneq (,$(HAS_PLATFORM))
+	var/platform := $(var/libcommon)/..
+endif
 var/cfgdir    ?= $(realpath $(var/toolsdir)/../Config)
 var/docdir    ?= $(realpath $(var/toolsdir)/../Documentation)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
@@ -34,6 +37,7 @@ var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
 !             := $(var/builddir)/
 ~             := .build-$(var/profile)-$(var/hostname)/
 l             := $(var/libcommon)/
+p             := $(var/platform)
 export var/hostname
 
 var/verbose   := $(V)$(VERBOSE)
