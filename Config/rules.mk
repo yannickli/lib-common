@@ -69,7 +69,7 @@ ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
 define ext/expand/iop
 $3.h: $3.c
 $3.json: $3.c
-$~$3.dep: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
+$~$3.dep: IOPINCPATH_=$l $(var/platform)/lib-inet $(var/platform)/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $~$3.dep: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) .)
 $~$3.dep: IOPCLASSRANGE_=$(firstword $($(1DV)_IOPCLASSRANGE) $($1_IOPCLASSRANGE) $($3_IOPCLASSRANGE))
 $~$3.dep: $3 $(IOPC)
@@ -77,7 +77,7 @@ $~$3.dep: $3 $(IOPC)
 	$(RM) $$@
 	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
 		--json-output-path $$(IOPJSONPATH_) $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) $$<
-$3.c: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
+$3.c: IOPINCPATH_=$l $(var/platform)/lib-inet $(var/platform)/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $3.c: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) .)
 $3.c: IOPCLASSRANGE_=$(firstword $($(1DV)_IOPCLASSRANGE) $($1_IOPCLASSRANGE) $($3_IOPCLASSRANGE))
 $3.c: $3 $(IOPC)
