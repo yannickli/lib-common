@@ -653,6 +653,7 @@ int main(int argc, const char **argv)
     z_register_exports("");
 #else
     z_register_exports("lib-common/");
+    z_register_exports("platform/lib-common/");
 #endif
     return z_run();
 }
