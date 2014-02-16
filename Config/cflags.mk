@@ -74,15 +74,29 @@ endif
 include $!cc-$(CC_BASE)-flags.mk
 include $!cxx-$(CXX_BASE)-flags.mk
 
-CFLAGS       += -I$lcompat -I$/
-CXXFLAGS     += -I$lcompat -I$/
-CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
+CFLAGS              += -I$lcompat
+CXXFLAGS            += -I$lcompat
+CLANGFLAGS          += -I$lcompat
+CLANGREWRITEFLAGS   += -I$lcompat
+CLANGXXFLAGS        += -I$lcompat
+CLANGXXREWRITEFLAGS += -I$lcompat
+ifneq (,$(HAS_PLATFORM))
+CFLAGS              += -I$p/
+CXXFLAGS            += -I$p/
+CLANGFLAGS          += -I$p/
+CLANGREWRITEFLAGS   += -I$p/
+CLANGXXFLAGS        += -I$p/
+CLANGXXREWRITEFLAGS += -I$p/
+endif
+CFLAGS              += -I$/
+CXXFLAGS            += -I$/
+CLANGFLAGS          += -I$/
+CLANGREWRITEFLAGS   += -I$/
+CLANGXXFLAGS        += -I$/
+CLANGXXREWRITEFLAGS += -I$/
 
-CLANGFLAGS          += -I$lcompat -I$/
-CLANGREWRITEFLAGS   += -I$lcompat -I$/
-CLANGXXFLAGS        += -I$lcompat -I$/
+CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
-CLANGXXREWRITEFLAGS += -I$lcompat -I$/
 CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 
 ifeq ($(NOASSERT),1)

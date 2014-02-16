@@ -18,12 +18,20 @@ endif
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # Quite hacky way to detect if we are a subdirectory or not.
+ifneq ($(shell grep 'base\.mk' $(var/toolsdir)/../../..//Makefile 2>/dev/null),)
+	var/srcdir := $(realpath $(var/toolsdir)/../../..)
+else
 ifneq ($(shell grep 'base\.mk' $(var/toolsdir)/../../Makefile 2>/dev/null),)
 	var/srcdir := $(realpath $(var/toolsdir)/../..)
-	var/libcommon := $(var/srcdir)/lib-common
 else
 	var/srcdir := $(realpath $(var/toolsdir)/..)
-	var/libcommon := $(var/srcdir)
+endif
+endif
+var/libcommon := $(realpath $(var/toolsdir)/..)
+ifneq (,$(HAS_PLATFORM))
+	var/platform := $(var/libcommon)/..
+else
+	var/platform := $(var/libcommon)
 endif
 var/cfgdir    ?= $(realpath $(var/toolsdir)/../Config)
 var/docdir    ?= $(realpath $(var/toolsdir)/../Documentation)
@@ -34,6 +42,7 @@ var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
 !             := $(var/builddir)/
 ~             := .build-$(var/profile)-$(var/hostname)/
 l             := $(var/libcommon)/
+p             := $(var/platform)
 export var/hostname
 
 var/verbose   := $(V)$(VERBOSE)
