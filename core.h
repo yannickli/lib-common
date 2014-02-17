@@ -23,6 +23,18 @@
     (__LIB_COMMON_VER(Maj, Min) <= __LIB_COMMON_VER(LIB_COMMON_MAJOR,        \
                                                     LIB_COMMON_MINOR))
 
+#if LIBCOMMON_REPOSITORY
+# define LIBCOMMON_PATH ""
+# define PLATFORM_PATH ""
+#else
+# define LIBCOMMON_PATH "lib-common/"
+# if PLATFORM_REPOSITORY
+#   define PLATFORM_PATH ""
+# else
+#   define PLATFORM_PATH "platform/"
+# endif
+#endif
+
 #include <Block.h>
 #include <alloca.h>
 #include <assert.h>
