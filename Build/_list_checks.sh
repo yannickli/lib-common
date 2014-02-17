@@ -65,7 +65,7 @@ dump_zf()
     ) < "$zf"
 }
 
-find "$1" -type f -name ZFile | (
+find "$1" -type f -not \( -path "$Z_SKIP_PATH" \) -name ZFile | (
     while read zf; do
         dump_zf "$zf" || _err=1
     done
