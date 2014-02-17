@@ -418,6 +418,16 @@ void module_register_at_fork(void)
     static bool at_fork_registered = false;
 
     if (!at_fork_registered) {
+        void *data = NULL;
+
+        /* XXX: ensures internal ressources of the libc used to implement
+         * posix_memalign() are ready here. It looks like the glibc of some
+         * CentOs use an atfork() handler that get registered the first time
+         * you perform an aligned allocation.
+         */
+        IGNORE(posix_memalign(&data, 64, 1024));
+        free(data);
+
         pthread_atfork(module_at_fork_prepare,
                        module_at_fork_on_parent,
                        module_at_fork_on_child);
