@@ -73,14 +73,14 @@ CLANGFLAGS          += -I$lcompat
 CLANGREWRITEFLAGS   += -I$lcompat
 CLANGXXFLAGS        += -I$lcompat
 CLANGXXREWRITEFLAGS += -I$lcompat
-ifneq (,$(HAS_PLATFORM))
-CFLAGS              += -I$p/
-CXXFLAGS            += -I$p/
-CLANGFLAGS          += -I$p/
-CLANGREWRITEFLAGS   += -I$p/
-CLANGXXFLAGS        += -I$p/
-CLANGXXREWRITEFLAGS += -I$p/
-endif
+
+CFLAGS              += -I$l/../
+CXXFLAGS            += -I$l/../
+CLANGFLAGS          += -I$l/../
+CLANGREWRITEFLAGS   += -I$l/../
+CLANGXXFLAGS        += -I$l/../
+CLANGXXREWRITEFLAGS += -I$l/../
+
 CFLAGS              += -I$/
 CXXFLAGS            += -I$/
 CLANGFLAGS          += -I$/
