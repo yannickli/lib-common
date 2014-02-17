@@ -67,26 +67,16 @@ endif
 include $!cc-$(CC_BASE)-flags.mk
 include $!cxx-$(CXX_BASE)-flags.mk
 
-CFLAGS              += -I$lcompat
-CXXFLAGS            += -I$lcompat
-CLANGFLAGS          += -I$lcompat
-CLANGREWRITEFLAGS   += -I$lcompat
-CLANGXXFLAGS        += -I$lcompat
-CLANGXXREWRITEFLAGS += -I$lcompat
+CFLAGSBASE  = -I$lcompat -I$l../ -I$/
+CFLAGSBASE += -DLIBCOMMON_REPOSITORY=$(if $(LIBCOMMON_REPOSITORY),1,0)
+CFLAGSBASE += -DPLATFORM_REPOSITORY=$(if $(PLATFORM_REPOSITORY),1,0)
 
-CFLAGS              += -I$l/../
-CXXFLAGS            += -I$l/../
-CLANGFLAGS          += -I$l/../
-CLANGREWRITEFLAGS   += -I$l/../
-CLANGXXFLAGS        += -I$l/../
-CLANGXXREWRITEFLAGS += -I$l/../
-
-CFLAGS              += -I$/
-CXXFLAGS            += -I$/
-CLANGFLAGS          += -I$/
-CLANGREWRITEFLAGS   += -I$/
-CLANGXXFLAGS        += -I$/
-CLANGXXREWRITEFLAGS += -I$/
+CFLAGS              += $(CFLAGSBASE)
+CXXFLAGS            += $(CFLAGSBASE)
+CLANGFLAGS          += $(CFLAGSBASE)
+CLANGREWRITEFLAGS   += $(CFLAGSBASE)
+CLANGXXFLAGS        += $(CFLAGSBASE)
+CLANGXXREWRITEFLAGS += $(CFLAGSBASE)
 
 CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
