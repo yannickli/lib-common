@@ -196,6 +196,7 @@ zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
+	zchk-asn1-per.c \
 	zchk-bithacks.c \
 	zchk-container.blk \
 	zchk-hat.blk \
