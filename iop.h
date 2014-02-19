@@ -133,7 +133,7 @@ typedef struct iop_enum_value_attr_t {
 } iop_enum_value_attr_t;
 
 typedef struct iop_enum_value_attrs_t {
-    unsigned                     flags;     /**< reserved for future use */
+    unsigned                     flags; /**< bitfield of iop_enum_value_attr_type_t */
     uint16_t                     attrs_len;
     uint8_t                      version;   /**< version 0 */
     uint8_t                      padding;
@@ -155,7 +155,7 @@ typedef struct iop_enum_attr_t {
 } iop_enum_attr_t;
 
 typedef struct iop_enum_attrs_t {
-    unsigned               flags;     /**< reserved for future use */
+    unsigned               flags; /**< bitfield of iop_enum_attr_type_t */
     uint16_t               attrs_len;
     uint8_t                version;   /**< version 0 */
     uint8_t                padding;
@@ -192,7 +192,7 @@ struct iop_enum_t {
     const int                    *values;
     const int                    *ranges;
     uint16_t                      enum_len;
-    uint16_t                      flags;
+    uint16_t                      flags; /**< bitfield of iop_enum_flags_t */
     int                           ranges_len;
     /* XXX do not dereference the following 2 members without checking
      * TST_BIT(this->flags, IOP_ENUM_EXTENDED) first */
@@ -267,7 +267,7 @@ typedef struct iop_struct_attr_t {
 } iop_struct_attr_t;
 
 typedef struct iop_struct_attrs_t {
-    unsigned                 flags;     /**< reserved for future use */
+    unsigned                 flags; /**< bitfield of iop_struct_attr_type_t */
     uint16_t                 attrs_len;
     uint8_t                  version;   /**< version 0 */
     uint8_t                  padding;
@@ -300,11 +300,11 @@ struct iop_struct_t {
     unsigned            flags    : 15;  /**< bitfield of iop_struct_flags_t */
     unsigned            is_union :  1;  /**< struct or union ?              */
     /* XXX do not dereference the following members without checking
-     * (this->flags & IOP_STRUCT_EXTENDED) first */
+     * TST_BIT(this->flags, IOP_STRUCT_EXTENDED) first */
     const iop_struct_attrs_t *st_attrs;
     const iop_field_attrs_t  *fields_attrs;
     /* XXX do not dereference the following members without checking
-     * (this->flags & IOP_STRUCT_IS_CLASS) first */
+     * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
     const iop_class_attrs_t  *class_attrs;
 };
 
@@ -363,7 +363,7 @@ typedef struct iop_rpc_t {
     const iop_struct_t *exn;
     uint32_t            tag;
     unsigned            async : 1;
-    unsigned            flags : 31;
+    unsigned            flags : 31; /**< bitfield of iop_rpc_flags_t */
 } iop_rpc_t;
 
 typedef enum iop_iface_attr_type_t {
@@ -381,7 +381,7 @@ typedef struct iop_iface_attr_t {
 } iop_iface_attr_t;
 
 typedef struct iop_iface_attrs_t {
-    unsigned                flags;     /**< reserved for future use */
+    unsigned                flags; /**< bitfield of iop_iface_attr_type_t */
     uint16_t                attrs_len;
     uint8_t                 version;   /**< version 0 */
     uint8_t                 padding;
@@ -392,7 +392,7 @@ typedef struct iop_iface_t {
     const lstr_t             fullname;
     const iop_rpc_t         *funs;
     uint16_t                 funs_len;
-    uint16_t                 flags;
+    uint16_t                 flags; /**< bitfield of iop_iface_flags_t */
     const iop_rpc_attrs_t   *rpc_attrs;
     /** check TST_BIT(flags, IOP_IFACE_HAS_ATTRS)
      *  before accessing iface_attrs */
@@ -417,7 +417,7 @@ typedef struct iop_mod_iface_attr_t {
 } iop_mod_iface_attr_t;
 
 typedef struct iop_mod_iface_attrs_t {
-    unsigned                flags;
+    unsigned                flags; /**< bitfield of iop_mod_iface_attr_type_t */
     uint16_t                attrs_len;
     uint8_t                 version;   /**< version 0 */
     uint8_t                 padding;
@@ -436,7 +436,7 @@ typedef struct iop_mod_attr_t {
 } iop_mod_attr_t;
 
 typedef struct iop_mod_attrs_t {
-    unsigned              flags;     /**< reserved for future use */
+    unsigned              flags;     /**< bitfield of iop_mod_attr_type_t */
     uint16_t              attrs_len;
     uint8_t               version;   /**< version 0 */
     uint8_t               padding;
@@ -451,7 +451,7 @@ typedef struct iop_mod_t {
     const lstr_t fullname;
     const iop_iface_alias_t *ifaces;
     uint16_t ifaces_len;
-    uint16_t flags;
+    uint16_t flags; /**< bitfield of iop_mod_flags_t */
     /** check TST_BIT(flags, IOP_MOD_EXTENDED)
      *  before accessing mod_attrs and ifaces_attrs */
     const iop_mod_attrs_t       *mod_attrs;
