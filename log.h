@@ -426,7 +426,12 @@ typedef struct log_buffer_t {
 
 qvector_t(log_buffer, log_buffer_t);
 
-void log_start_buffering(void);
+/** Start buffer for logger.
+ *
+ * \param[in] use_handler    if false, the log handler won't be called for the
+ * logs emitted until log_stop_buffering is called.
+ */
+void log_start_buffering(bool use_handler);
 
 /** Stop buffer previously started for logger.
  *
