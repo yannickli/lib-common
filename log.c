@@ -35,8 +35,13 @@ struct trace_spec_t {
     const char *name;
     int level;
 };
-qvector_t(spec, struct trace_spec_t);
 
+typedef struct buffer_instance_t {
+    qv_t(log_buffer) vec_buffer;
+} buffer_instance_t;
+
+qvector_t(spec, struct trace_spec_t);
+qvector_t(buffer_instance, buffer_instance_t);
 
 #ifndef NDEBUG
 #define LOG_DEFAULT  LOG_TRACE
@@ -62,9 +67,9 @@ static struct {
     int pid;
 
     /* log buffer */
-    qv_t(log_buffer) vec_buffer;
+    qv_t(buffer_instance) vec_buff_stack;
     mem_stack_pool_t mp_stack;
-    flag_t is_buffering : 1;
+    int nb_buffer_started;
 } log_g = {
 #define _G  log_g
     .root_logger = {
@@ -321,22 +326,50 @@ int logger_reset_level(lstr_t name)
  */
 bool syslog_is_critical;
 
+GENERIC_INIT(buffer_instance_t, buffer_instance);
+
+static void buffer_instance_wipe(buffer_instance_t *buffer_instance)
+{
+    qv_wipe(log_buffer, &buffer_instance->vec_buffer);
+}
+
+static void free_last_buffer(void)
+{
+    if (_G.vec_buff_stack.len > _G.nb_buffer_started) {
+        assert (_G.vec_buff_stack.len == _G.nb_buffer_started + 1);
+        buffer_instance_wipe(qv_last(buffer_instance,
+                                     &_G.vec_buff_stack));
+        qv_remove(buffer_instance, &_G.vec_buff_stack,
+                  _G.vec_buff_stack.len - 1);
+        mem_stack_pop(&_G.mp_stack);
+    }
+}
+
 void log_start_buffering(void)
 {
-    assert (!_G.is_buffering);
-    _G.is_buffering = true;
-    if (_G.vec_buffer.len > 0) {
-        mem_stack_pop(&_G.mp_stack);
-        qv_clear(log_buffer, &_G.vec_buffer);
-    }
+    buffer_instance_t *buffer_instance;
+
+    free_last_buffer();
+    buffer_instance = qv_growlen(buffer_instance, &_G.vec_buff_stack, 1);
+
+    buffer_instance_init(buffer_instance);
+
     mem_stack_push(&_G.mp_stack);
+    _G.nb_buffer_started++;
 }
 
 const qv_t(log_buffer) *log_stop_buffering(void)
 {
-    assert (_G.is_buffering);
-    _G.is_buffering = false;
-    return &_G.vec_buffer;
+    buffer_instance_t *buffer_instance;
+
+    if (!expect(_G.nb_buffer_started > 0)) {
+        return NULL;
+    }
+    free_last_buffer();
+    buffer_instance = qv_last(buffer_instance, &_G.vec_buff_stack);
+    _G.nb_buffer_started--;
+
+    return &buffer_instance->vec_buffer;
 }
 
 int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
@@ -364,11 +397,15 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
             .is_silent   = !!(logger->level_flags & LOG_SILENT),
         };
 
-        if (_G.is_buffering) {
+        if (_G.nb_buffer_started) {
+            buffer_instance_t *buffer_instance;
             int size_fmt;
             log_buffer_t *log_save;
             va_list cpy;
             char *buffer;
+
+
+            buffer_instance = &_G.vec_buff_stack.tab[_G.nb_buffer_started - 1];
 
             va_copy(cpy, va);
             size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
@@ -376,7 +413,8 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
 
             buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
             vsnprintf(buffer, size_fmt, fmt, va);
-            log_save = qv_growlen(log_buffer, &_G.vec_buffer, 1);
+
+            log_save = qv_growlen(log_buffer, &buffer_instance->vec_buffer, 1);
             log_save->ctx = ctx;
             log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
         } else {
@@ -787,7 +825,7 @@ static int log_initialize(void* args)
 {
     mem_stack_pool_init(&_G.mp_stack, 64 << 10);
     qv_init(spec, &_G.specs);
-    qv_init(log_buffer, &_G.vec_buffer);
+    qv_init(buffer_instance, &_G.vec_buff_stack);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     _G.pid   = getpid();
     log_stderr_handler_g = &log_stderr_raw_handler;
@@ -866,11 +904,8 @@ static int log_initialize(void* args)
 
 static int log_shutdown(void)
 {
-    qv_wipe(log_buffer, &_G.vec_buffer);
-    if (_G.vec_buffer.len > 0) {
-        mem_stack_pop(&_G.mp_stack);
-    }
-    mem_stack_pool_wipe(&_G.mp_stack);
+    qv_deep_wipe(buffer_instance, &_G.vec_buff_stack,
+                 buffer_instance_wipe);
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
     return 1;
@@ -1008,9 +1043,36 @@ Z_GROUP_EXPORT(log) {
                                                   LOG_TRACE);
         const qv_t(log_buffer) *vect_buffer;
 
-        logger_notice(&logger_test_2, "log message outside buffer");
-        log_start_buffering();
+#define TEST_LOG_ENTRY(_i, _j, _level, _logger)                              \
+    do {                                                                     \
+        log_buffer_t entry = vect_buffer->tab[_i];                           \
+        Z_ASSERT_LSTREQUAL(entry.msg,                                        \
+                        LSTR_IMMED_V("log message inside buffer " # _j));      \
+        Z_ASSERT_LSTREQUAL(entry.ctx.logger_name, _logger.name);             \
+        Z_ASSERT_EQ(entry.ctx.level, _level);                                \
+    } while (0)
 
+        /* Buffer imbrication */
+
+        log_start_buffering();
+        logger_notice(&logger_test, "log message inside buffer %d", 1);
+        logger_error(&logger_test_2, "log message inside buffer %d", 2);
+        logger_warning(&logger_test, "log message inside buffer %d", 3);
+
+        log_start_buffering();
+        logger_notice(&logger_test, "log message inside buffer %d", 1);
+        logger_error(&logger_test_2, "log message inside buffer %d", 2);
+        logger_warning(&logger_test, "log message inside buffer %d", 3);
+        logger_info(&logger_test, "log message inside buffer %d", 4);
+
+        log_start_buffering();
+        logger_info(&logger_test, "log message inside buffer %d", 4);
+        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
+        logger_error(&logger_test, "log message inside buffer %d", 6);
+        logger_warning(&logger_test_2, "log message inside buffer %d", 7);
+        logger_info(&logger_test_2, "log message inside buffer %d", 8);
+
+        log_start_buffering();
         logger_notice(&logger_test, "log message inside buffer %d", 1);
         logger_error(&logger_test, "log message inside buffer %d", 2);
         logger_warning(&logger_test, "log message inside buffer %d", 3);
@@ -1023,15 +1085,6 @@ Z_GROUP_EXPORT(log) {
         vect_buffer = log_stop_buffering();
         Z_ASSERT_EQ(vect_buffer->len, 8);
 
-#define TEST_LOG_ENTRY(_i, _j, _level, _logger)                              \
-    do {                                                                     \
-        log_buffer_t entry = vect_buffer->tab[_i];                           \
-        Z_ASSERT_LSTREQUAL(entry.msg,                                        \
-                        LSTR_IMMED_V("log message inside buffer " # _j));    \
-        Z_ASSERT_LSTREQUAL(entry.ctx.logger_name, _logger.name);             \
-        Z_ASSERT_EQ(entry.ctx.level, _level);                                \
-    } while (0)
-
         TEST_LOG_ENTRY(0, 1, LOG_NOTICE, logger_test);
         TEST_LOG_ENTRY(1, 2, LOG_ERR, logger_test);
         TEST_LOG_ENTRY(2, 3, LOG_WARNING, logger_test);
@@ -1042,7 +1095,6 @@ Z_GROUP_EXPORT(log) {
         TEST_LOG_ENTRY(7, 8, LOG_INFO, logger_test_2);
 
         log_start_buffering();
-
         logger_error(&logger_test, "log message inside buffer 2");
         logger_info(&logger_test_2, "log message inside buffer 8");
         logger_warning(&logger_test, "log message inside buffer 3");
@@ -1061,17 +1113,55 @@ Z_GROUP_EXPORT(log) {
         TEST_LOG_ENTRY(4, 4, LOG_INFO, logger_test);
         TEST_LOG_ENTRY(5, 6, LOG_ERR, logger_test_2);
         TEST_LOG_ENTRY(6, 5, LOG_NOTICE, logger_test_2);
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 5);
 
-#undef TEST_LOG_ENTRY
+        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
+
+        TEST_LOG_ENTRY(0, 4, LOG_INFO, logger_test);
+        TEST_LOG_ENTRY(1, 5, LOG_NOTICE, logger_test_2);
+        TEST_LOG_ENTRY(2, 6, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(3, 7, LOG_WARNING, logger_test_2);
+        TEST_LOG_ENTRY(4, 8, LOG_INFO, logger_test_2);
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 5);
+
+        TEST_LOG_ENTRY(0, 1, LOG_NOTICE, logger_test);
+        TEST_LOG_ENTRY(1, 2, LOG_ERR, logger_test_2);
+        TEST_LOG_ENTRY(2, 3, LOG_WARNING, logger_test);
+        TEST_LOG_ENTRY(3, 4, LOG_INFO, logger_test);
+        TEST_LOG_ENTRY(4, 5, LOG_NOTICE, logger_test_2);
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 3);
+
+        TEST_LOG_ENTRY(0, 1, LOG_NOTICE, logger_test);
+        TEST_LOG_ENTRY(1, 2, LOG_ERR, logger_test_2);
+        TEST_LOG_ENTRY(2, 3, LOG_WARNING, logger_test);
 
         logger_notice(&logger_test_2, "log message outside buffer");
+
         log_start_buffering();
+        logger_info(&logger_test, "log message inside buffer %d", 4);
+        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
+        logger_error(&logger_test, "log message inside buffer %d", 6);
+        logger_warning(&logger_test_2, "log message inside buffer %d", 7);
+        logger_info(&logger_test_2, "log message inside buffer %d", 8);
+
         vect_buffer = log_stop_buffering();
-        Z_ASSERT_EQ(vect_buffer->len, 0);
+        Z_ASSERT_EQ(vect_buffer->len, 5);
+
+        TEST_LOG_ENTRY(0, 4, LOG_INFO, logger_test);
+        TEST_LOG_ENTRY(1, 5, LOG_NOTICE, logger_test_2);
+        TEST_LOG_ENTRY(2, 6, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(3, 7, LOG_WARNING, logger_test_2);
+        TEST_LOG_ENTRY(4, 8, LOG_INFO, logger_test_2);
 
         logger_wipe(&logger_test);
         logger_wipe(&logger_test_2);
 
+#undef TEST_LOG_ENTRY
     } Z_TEST_END;
 } Z_GROUP_END;
 
