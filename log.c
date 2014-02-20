@@ -348,7 +348,7 @@ static void free_last_buffer(void)
     }
 }
 
-void log_start_buffering(bool use_handler)
+void log_start_buffering_filter(bool use_handler, int log_level)
 {
     buffer_instance_t *buffer_instance;
 
@@ -364,9 +364,15 @@ void log_start_buffering(bool use_handler)
 
     buffer_instance_init(buffer_instance);
     buffer_instance->use_handler = use_handler;
+    buffer_instance->buffer_log_level = log_level;
 
     mem_stack_push(&_G.mp_stack);
     _G.nb_buffer_started++;
+}
+
+void log_start_buffering(bool use_handler)
+{
+    log_start_buffering_filter(use_handler, INT32_MAX);
 }
 
 const qv_t(log_buffer) *log_stop_buffering(void)
@@ -410,30 +416,31 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
 
         if (_G.nb_buffer_started) {
             buffer_instance_t *buffer_instance;
-            qv_t(log_buffer) *vec_buffer;
-            int size_fmt;
-            log_buffer_t *log_save;
-            va_list cpy;
-            char *buffer;
-
 
             buffer_instance = &_G.vec_buff_stack.tab[_G.nb_buffer_started - 1];
-            vec_buffer = &buffer_instance->vec_buffer;
 
-            if (buffer_instance->use_handler) {
-                (*_G.handler)(&ctx, fmt, va);
+            if (level <= buffer_instance->buffer_log_level) {
+                int size_fmt;
+                log_buffer_t *log_save;
+                va_list cpy;
+                char *buffer;
+                qv_t(log_buffer) *vec_buffer = &buffer_instance->vec_buffer;
+
+                if (buffer_instance->use_handler) {
+                    (*_G.handler)(&ctx, fmt, va);
+                }
+
+                va_copy(cpy, va);
+                size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
+                va_end(cpy);
+
+                buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
+                vsnprintf(buffer, size_fmt, fmt, va);
+
+                log_save = qv_growlen(log_buffer, vec_buffer, 1);
+                log_save->ctx = ctx;
+                log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
             }
-
-            va_copy(cpy, va);
-            size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
-            va_end(cpy);
-
-            buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
-            vsnprintf(buffer, size_fmt, fmt, va);
-
-            log_save = qv_growlen(log_buffer, vec_buffer, 1);
-            log_save->ctx = ctx;
-            log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
         } else {
             (*_G.handler)(&ctx, fmt, va);
         }
@@ -1320,9 +1327,83 @@ Z_GROUP_EXPORT(log) {
         vect_buffer = log_stop_buffering();
         Z_ASSERT_EQ(vect_buffer->len, 0);
 
-        log_set_handler(handler);
+        /* buffer capture different level */
 
-#undef TEST_HANDLER
+        log_start_buffering_filter(true, LOG_NOTICE);
+
+        logger_error(&logger_test, "log message inside buffer 2");
+        logger_info(&logger_test_2, "log message inside buffer 8");
+        logger_warning(&logger_test, "log message inside buffer 3");
+        logger_notice(&logger_test, "log message inside buffer 1");
+        logger_info(&logger_test, "log message inside buffer 4");
+        logger_error(&logger_test_2, "log message inside buffer 6");
+        logger_notice(&logger_test_2, "log message inside buffer 5");
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 5);
+
+        TEST_LOG_ENTRY(0, 2, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(1, 3, LOG_WARNING, logger_test);
+        TEST_LOG_ENTRY(2, 1, LOG_NOTICE, logger_test);
+        TEST_LOG_ENTRY(3, 6, LOG_ERR, logger_test_2);
+        TEST_LOG_ENTRY(4, 5, LOG_NOTICE, logger_test_2);
+
+        log_start_buffering_filter(true, LOG_WARNING);
+
+        logger_error(&logger_test, "log message inside buffer 2");
+        logger_info(&logger_test_2, "log message inside buffer 8");
+        logger_warning(&logger_test, "log message inside buffer 3");
+
+        log_start_buffering_filter(true, LOG_ERR);
+
+        logger_error(&logger_test, "log message inside buffer 2");
+        logger_info(&logger_test_2, "log message inside buffer 8");
+        logger_warning(&logger_test, "log message inside buffer 3");
+        logger_notice(&logger_test, "log message inside buffer 1");
+        logger_info(&logger_test, "log message inside buffer 4");
+        logger_error(&logger_test_2, "log message inside buffer 6");
+        logger_notice(&logger_test_2, "log message inside buffer 5");
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 2);
+
+        TEST_LOG_ENTRY(0, 2, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(1, 6, LOG_ERR, logger_test_2);
+
+        logger_notice(&logger_test, "log message inside buffer 1");
+        logger_info(&logger_test, "log message inside buffer 4");
+        logger_error(&logger_test_2, "log message inside buffer 6");
+        logger_notice(&logger_test_2, "log message inside buffer 5");
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 3);
+
+        TEST_LOG_ENTRY(0, 2, LOG_ERR, logger_test);
+        TEST_LOG_ENTRY(1, 3, LOG_WARNING, logger_test);
+        TEST_LOG_ENTRY(2, 6, LOG_ERR, logger_test_2);
+
+        log_start_buffering_filter(true, LOG_ALERT);
+
+        logger_error(&logger_test, "log message inside buffer 2");
+        logger_info(&logger_test_2, "log message inside buffer 8");
+        logger_warning(&logger_test, "log message inside buffer 3");
+        logger_notice(&logger_test, "log message inside buffer 1");
+        logger_info(&logger_test, "log message inside buffer 4");
+        logger_error(&logger_test_2, "log message inside buffer 6");
+        logger_notice(&logger_test_2, "log message inside buffer 5");
+
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 0);
+
+        logger_notice(&logger_test_2, "log message inside buffer");
+        log_start_buffering_filter(true, LOG_TRACE);
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 0);
+
+        logger_wipe(&logger_test);
+        logger_wipe(&logger_test_2);
+
+        log_set_handler(handler);
 #undef TEST_LOG_ENTRY
     } Z_TEST_END;
 } Z_GROUP_END;

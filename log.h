@@ -426,6 +426,14 @@ typedef struct log_buffer_t {
 
 qvector_t(log_buffer, log_buffer_t);
 
+/** Start buffer for logger and filter on log level.
+ *
+ * \param[in] use_handler    if false, the log handler won't be called for the
+ *                           logs emitted until log_stop_buffering is called.
+ * \param[in] log_level      Set the maximum log level for captured logs.
+ */
+void log_start_buffering_filter(bool use_handler, int log_level);
+
 /** Start buffer for logger.
  *
  * \param[in] use_handler    if false, the log handler won't be called for the
