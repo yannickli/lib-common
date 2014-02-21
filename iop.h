@@ -142,6 +142,9 @@ typedef struct iop_enum_value_attrs_t {
 
 typedef enum iop_enum_attr_type_t {
     IOP_ENUM_ATTR_HELP,
+    IOP_ENUM_GEN_ATTR_S,
+    IOP_ENUM_GEN_ATTR_I,
+    IOP_ENUM_GEN_ATTR_D,
 } iop_enum_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
@@ -230,6 +233,9 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_PATTERN,
     IOP_FIELD_PRIVATE,
     IOP_FIELD_ATTR_HELP,
+    IOP_FIELD_GEN_ATTR_S,
+    IOP_FIELD_GEN_ATTR_I,
+    IOP_FIELD_GEN_ATTR_D,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -248,6 +254,9 @@ typedef struct iop_field_attrs_t {
 
 typedef enum iop_struct_attr_type_t {
     IOP_STRUCT_ATTR_HELP,
+    IOP_STRUCT_GEN_ATTR_S,
+    IOP_STRUCT_GEN_ATTR_I,
+    IOP_STRUCT_GEN_ATTR_D,
 } iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
@@ -329,6 +338,9 @@ typedef enum iop_rpc_attr_type_t {
     IOP_RPC_ATTR_ARG_HELP,
     IOP_RPC_ATTR_RES_HELP,
     IOP_RPC_ATTR_EXN_HELP,
+    IOP_RPC_GEN_ATTR_S,
+    IOP_RPC_GEN_ATTR_I,
+    IOP_RPC_GEN_ATTR_D,
 } iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
@@ -356,6 +368,9 @@ typedef struct iop_rpc_t {
 
 typedef enum iop_iface_attr_type_t {
     IOP_IFACE_ATTR_HELP,
+    IOP_IFACE_GEN_ATTR_S,
+    IOP_IFACE_GEN_ATTR_I,
+    IOP_IFACE_GEN_ATTR_D,
 } iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
@@ -533,6 +548,28 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
     return NULL;
 }
 
+/** Find a generic attribute value for an IOP interface.
+ *
+ * \param[in]  iface The IOP interface definition (__if).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
+                           iop_value_t *value);
+
+/** Find a generic attribute value for an IOP rpc.
+ *
+ * \param[in]  iface The IOP interface definition (__if).
+ * \param[in]  rpc   The IOP rpc definition (__rpc).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
+                         lstr_t key, iop_value_t *value);
 
 static inline check_constraints_f
 iop_field_get_constraints_cb(const iop_struct_t *desc,
@@ -734,6 +771,45 @@ __must_check__
 int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
                         unsigned flags);
 
+/** Find a generic attribute value for an IOP structure.
+ *
+ * \param[in]  st    The IOP structure definition (__s).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
+                            iop_value_t *value);
+
+/** Find a generic attribute value for an IOP field.
+ *
+ * \param[in]  st    The IOP structure definition (__s).
+ * \param[in]  field The IOP field definition.
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
+                           lstr_t key, iop_value_t *value);
+
+/** Find a generic attribute value for an IOP field.
+ *
+ * Same as iop_field_get_gen_attr but a name for the field is given instead of
+ * field definition.
+ *
+ * \param[in]  st         The IOP structure definition (__s).
+ * \param[in]  field_name The field name.
+ * \param[in]  key        The generic attribute key.
+ * \param[out] value      The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 if the field is unknown or
+ *         if the generic attribute is not found.
+ */
+int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
+                                   lstr_t key, iop_value_t *value);
+
 /* }}} */
 /* {{{ IOP class manipulation */
 
@@ -910,6 +986,17 @@ int iop_enum_from_str2(const iop_enum_t *ed, const char *s, int len,
  * \param[out] found Will be set to false upon failure, true otherwise.
  */
 int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
+
+/** Find a generic attribute value for an IOP enum.
+ *
+ * \param[in]  ed    The IOP enum definition (__e).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
+                          iop_value_t *value);
 
 /* }}} */
 /* {{{ IOP binary packing/unpacking */

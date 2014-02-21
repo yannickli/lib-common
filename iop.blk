@@ -114,6 +114,98 @@ int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
 }
 
 /*------ various helpers -}}}-*/
+/*------ generic attributes -{{{-*/
+
+#define ATTR_IS_GENERIC(_attr, _what)                                        \
+    (_attr->type == IOP_##_what##_GEN_ATTR_S                                 \
+  || _attr->type == IOP_##_what##_GEN_ATTR_I                                 \
+  || _attr->type == IOP_##_what##_GEN_ATTR_D)
+
+#define __get_gen_attr_value(_attrs, _len, _key, _what, _what_l, _val)     \
+    ({                                                                     \
+        int _res = -1;                                                     \
+                                                                           \
+        for (int _i = 0; _i < _len; _i++) {                                \
+            const iop_##_what_l##_attr_t *_attr = _attrs + _i;             \
+                                                                           \
+            if (!ATTR_IS_GENERIC(_attr, _what)                             \
+            ||  !lstr_equal2(_key, _attr->args[0].v.s))                    \
+            {                                                              \
+                continue;                                                  \
+            }                                                              \
+                                                                           \
+            _res = 0;                                                      \
+                                                                           \
+            switch (_attr->type) {                                         \
+              case IOP_##_what##_GEN_ATTR_S:                               \
+                _val->s = _attr->args[1].v.s;                              \
+                break;                                                     \
+              case IOP_##_what##_GEN_ATTR_I:                               \
+                _val->i64 = _attr->args[1].v.i64;                          \
+                break;                                                     \
+              case IOP_##_what##_GEN_ATTR_D:                               \
+                _val->d = _attr->args[1].v.d;                              \
+                break;                                                     \
+              default:                                                     \
+                assert (false);                                            \
+            }                                                              \
+            break;                                                         \
+        }                                                                  \
+                                                                           \
+        _res;                                                              \
+    })
+
+int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
+                            iop_value_t *value)
+{
+    return __get_gen_attr_value(st->st_attrs->attrs, st->st_attrs->attrs_len,
+                                key, STRUCT, struct, value);
+}
+
+int iop_enum_get_gen_attr(const iop_enum_t *en, lstr_t key,
+                          iop_value_t *value)
+{
+    return __get_gen_attr_value(en->en_attrs->attrs, en->en_attrs->attrs_len,
+                                key, ENUM, enum, value);
+}
+
+int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
+                           iop_value_t *value)
+{
+    return __get_gen_attr_value(iface->iface_attrs->attrs,
+                                iface->iface_attrs->attrs_len, key, IFACE,
+                                iface, value);
+}
+
+int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
+                         lstr_t key, iop_value_t *value)
+{
+    const iop_rpc_attrs_t *attrs = RETHROW_PN(iop_rpc_get_attrs(iface, rpc));
+
+    return __get_gen_attr_value(attrs->attrs, attrs->attrs_len, key, RPC,
+                                rpc, value);
+}
+
+int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
+                           lstr_t key, iop_value_t *value)
+{
+    const iop_field_attrs_t *attrs = RETHROW_PN(iop_field_get_attrs(st,
+                                                                    field));
+
+    return __get_gen_attr_value(attrs->attrs, attrs->attrs_len, key, FIELD,
+                                field, value);
+}
+
+int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
+                                   lstr_t key, iop_value_t *value)
+{
+    int pos = RETHROW(__iop_field_find_by_name2(st, f_name.s, f_name.len));
+    const iop_field_t *field = st->fields + pos;
+
+    return iop_field_get_gen_attr(st, field, key, value);
+}
+
+/*------ generic attributes -}}}-*/
 /*------ iop_init -{{{-*/
 
 static void
