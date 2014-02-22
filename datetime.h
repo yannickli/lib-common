@@ -88,6 +88,11 @@ time_t localtime_curday(time_t date);
  */
 time_t localtime_nextday(time_t date);
 
+/** Return timestamp of the start of the n'th day that follow the one which
+ * contains the timestamp \p date.
+ */
+time_t localtime_addday(time_t date, int n);
+
 /** Return timestamp of the start of the week which contains
  * the timestamp \p date.
  *

@@ -309,7 +309,7 @@ time_t localtime_curday(time_t date)
     return mktime(&t);
 }
 
-time_t localtime_nextday(time_t date)
+time_t localtime_addday(time_t date, int n)
 {
     struct tm t;
 
@@ -336,10 +336,15 @@ time_t localtime_nextday(time_t date)
     t.tm_sec = 0;
     t.tm_min = 0;
     t.tm_hour = 0;
-    t.tm_mday += 1;
+    t.tm_mday += n;
     t.tm_isdst = -1;
 
     return mktime(&t);
+}
+
+time_t localtime_nextday(time_t date)
+{
+    return localtime_addday(date, 1);
 }
 
 time_t localtime_curweek(time_t date, int first_day_of_week)

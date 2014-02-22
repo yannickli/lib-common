@@ -281,15 +281,6 @@ int psinfo_get(pid_t pid, sb_t *output);
  */
 pid_t psinfo_get_tracer_pid(pid_t pid);
 
-static ALWAYS_INLINE int psinfo_skip_lines(pstream_t *ps, int n)
-{
-    while (--n >= 0) {
-        if (ps_skip_afterchr(ps, '\n') < 0)
-            return e_error("bad status format");
-    }
-    return 0;
-}
-
 /* XXX: This function MUST be inlined in check_strace() to avoid appearing
  * in the stack.
  */
@@ -299,6 +290,7 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
     sb_t      buf;
     pstream_t ps;
     pid_t     tpid;
+    lstr_t    tpid_key;
 
     t_sb_init(&buf, (2 << 10));
 
@@ -313,19 +305,9 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 
     ps = ps_initsb(&buf);
 
-    /* skip Name, State */
-    RETHROW(psinfo_skip_lines(&ps, 2));
-
-    /* Skip optional SleepAVG (absent in 2.6.24) */
-    if (ps_startswithstr(&ps, "SleepAVG:")) {
-        RETHROW(psinfo_skip_lines(&ps, 1));
-    }
-
-    /* Tgid, Pid, PPid */
-    RETHROW(psinfo_skip_lines(&ps, 3));
-
     /* Check for TracerPid: */
-    if (ps_skipstr(&ps, "TracerPid:") < 0)
+    tpid_key = LSTR_IMMED_V("\nTracerPid:");
+    if (ps_skip_after_data(&ps, tpid_key.s, tpid_key.len) < 0)
         return e_error("bad status format");
 
     tpid = ps_geti(&ps);
