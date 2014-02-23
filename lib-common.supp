@@ -117,9 +117,10 @@
 {
     lib-common/log/is_debug
     Memcheck:Leak
+    ...
     fun:malloc
-    fun:strdup
-    fun:mem_strdup
+    ...
+    fun:mp_strdup
     fun:log_initialize
 }
 {
