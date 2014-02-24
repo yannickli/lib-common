@@ -447,8 +447,8 @@ static void build_sorted_uniq_vec(qv_t(u32) *vec)
 #undef N
 }
 
-/* XXX: qv_diff performed in a separate function as block rewriting inside
- * Z_GROUP_EXPORT breaks compilation */
+/* XXX: qv_diff/deep_extend performed in a separate function as block
+ *  rewriting inside Z_GROUP_EXPORT breaks compilation */
 static void do_qv_diff(qv_t(u32) *vec1, qv_t(u32) *vec2,
                        qv_t(u32) *add, qv_t(u32) *del, qv_t(u32) *inter)
 {
@@ -456,6 +456,13 @@ static void do_qv_diff(qv_t(u32) *vec1, qv_t(u32) *vec2,
                  ^int (const uint32_t *v1, const uint32_t *v2) {
                      return CMP(*v1, *v2);
                  });
+}
+static void do_qv_deep_extend(qv_t(str) *vec1, qv_t(str) *vec2)
+{
+    qv_deep_extend(str)(vec1, vec2,
+                        ^void (char **dst, char * const *src) {
+                            *dst = p_strdup(*src);
+                        });
 }
 
 static _Bool qv_search_tst(void)
@@ -660,6 +667,76 @@ Z_GROUP_EXPORT(qvector)
 
     Z_TEST(qv_search, "qvector: bisect, find and contains") {
         Z_ASSERT(qv_search_tst());
+    } Z_TEST_END;
+
+    Z_TEST(qv_extend, "qvector: extend") {
+        t_scope;
+        qv_t(i32) vec1;
+        qv_t(i32) vec2;
+        int N = 10;
+        int res = 0;
+        int awaiting_res = 0;
+
+        t_qv_init(i32, &vec2, N);
+        t_qv_init(i32, &vec1, N);
+        for (int i = 0; i < N; i++) {
+            qv_append(i32, &vec1, i);
+            qv_append(i32, &vec2, N + i);
+            awaiting_res += 2 * i + N;
+        }
+        qv_extend(i32, &vec1, &vec2);
+
+        Z_ASSERT_EQ(vec1.len, 2 * N);
+        qv_for_each_pos(i32, pos, &vec1) {
+            int entry = vec1.tab[pos];
+
+            Z_ASSERT_EQ(pos, entry);
+            res += entry;
+        }
+        Z_ASSERT_EQ(res, awaiting_res);
+    } Z_TEST_END;
+
+    Z_TEST(qv_deep_extend, "qvector: deep_extend") {
+        char palindrome[3][26] = {
+            "karineallaenirak",
+            "alemirasimovavomisarimela",
+            "engagelejeuquejelegagne"
+        };
+        qv_t(str) vec1;
+        qv_t(str) vec2;
+
+        qv_init(str, &vec1);
+        qv_init(str, &vec2);
+        qv_growlen(str, &vec1, 3);
+        for (int i = 0; i < 3; i++) {
+            vec1.tab[i] = p_strdup(palindrome[i]);
+            qv_append(str, &vec2, palindrome[i]);
+        }
+
+        do_qv_deep_extend(&vec1, &vec2);
+        Z_ASSERT_EQ(vec1.len, 6);
+        for (int i = 3; i < 6; i++) {
+            char *tmp = vec1.tab[i];
+
+            while (*tmp) {
+                *tmp -= 'a' - 'A';
+                tmp++;
+            }
+        }
+        qv_for_each_pos(str, pos, &vec2) {
+            Z_ASSERT_EQ(strlen(vec2.tab[pos]), strlen(vec1.tab[pos]));
+            Z_ASSERT_ZERO(strncmp(vec2.tab[pos], vec1.tab[pos],
+                                  strlen(vec2.tab[pos])));
+        }
+        for (int i = 3; i < vec1.len; i++) {
+            Z_ASSERT_EQ(strlen(vec1.tab[i]), strlen(vec1.tab[i - 3]));
+            for (size_t len = 0; vec1.tab[i][len]; len++) {
+                char tmp1 = vec1.tab[i][len] + 'a' - 'A';
+
+                Z_ASSERT_EQ(tmp1, vec1.tab[i - 3][len]);
+            }
+        }
+        qv_deep_wipe(str, &vec1, p_delete);
     } Z_TEST_END;
 } Z_GROUP_END;
 
