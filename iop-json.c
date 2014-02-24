@@ -2067,7 +2067,7 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
         .func  = func,
         .name  = name,
     };
-    iop_jpack(st, v, iop_jtrace_write, &jt, false);
+    iop_jpack(st, v, iop_jtrace_write, &jt, 0);
     e_trace_put_(lvl, fname, lno, func, name, "\n");
 }
 #endif
