@@ -85,4 +85,9 @@ static inline uint32_t mem_hash32(const void *data, ssize_t len)
 #endif
 }
 
+static inline uint32_t u64_hash32(uint64_t u64)
+{
+    return (uint32_t)(u64) ^ (uint32_t)(u64 >> 32);
+}
+
 #endif

@@ -146,14 +146,14 @@ static inline uint32_t qhash_hash_u32(const qhash_t *qh, uint32_t u32)
 }
 static inline uint32_t qhash_hash_u64(const qhash_t *qh, uint64_t u64)
 {
-    return (uint32_t)(u64) ^ (uint32_t)(u64 >> 32);
+    return u64_hash32(u64);
 }
 
 static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
 {
     if (sizeof(void *) == 4)
         return (uintptr_t)ptr;
-    return qhash_hash_u64(qh, (uintptr_t)ptr);
+    return u64_hash32((uintptr_t)ptr);
 }
 
 #define __qhash_for_each(i, qh, doit) \
