@@ -14,31 +14,28 @@
 #include "container-qvector.h"
 #include "sort.h"
 
+static void __qvector_reset(qvector_t *vec, size_t v_size, size_t threshold)
+{
+    mem_pool_t *mp = mp_ipool(vec->mp);
+    size_t sz = vec->size + vec->skip;
+    byte *ptr = vec->tab - vec->skip * v_size;
+
+    if (!(mp->mem_pool & MEM_BY_FRAME) && sz * v_size > threshold) {
+        mp_delete(mp, &ptr);
+        __qvector_init(vec, NULL, 0, 0, vec->mp);
+    } else {
+        __qvector_init(vec, ptr, 0, sz, vec->mp);
+    }
+}
+
 void qvector_reset(qvector_t *vec, size_t v_size)
 {
-    size_t sz = vec->size + vec->skip;
-
-    if (vec->mem_pool == MEM_LIBC && sz * v_size > (128 << 10)) {
-        mp_ifree(&mem_pool_libc, vec->tab - vec->skip * v_size);
-        p_clear(vec, 1);
-    } else {
-        __qvector_init(vec, vec->tab - vec->skip * v_size,
-                       0, sz, vec->mem_pool);
-    }
+    __qvector_reset(vec, v_size, 128 << 10);
 }
 
 void qvector_wipe(qvector_t *vec, size_t v_size)
 {
-    switch (vec->mem_pool & MEM_POOL_MASK) {
-      case MEM_STATIC:
-      case MEM_STACK:
-        qvector_reset(vec, v_size);
-        return;
-      default:
-        ifree(vec->tab - v_size * vec->skip, vec->mem_pool);
-        p_clear(vec, 1);
-        return;
-    }
+    __qvector_reset(vec, v_size, 0);
 }
 
 static void qvector_destroy_skip(qvector_t *vec, size_t v_size)
@@ -51,61 +48,53 @@ static void qvector_destroy_skip(qvector_t *vec, size_t v_size)
 
 void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 {
+    mem_pool_t *mp = mp_ipool(vec->mp);
     int newlen = vec->len + extra;
     int newsz;
 
-    if (unlikely(newlen < 0))
+    if (unlikely(newlen < 0)) {
         e_panic("trying to allocate insane amount of memory");
+    }
 
-    /* if tab fits and skip is worth it, shift it left */
-    if (newlen < vec->skip + vec->size && vec->skip > vec->size / 4) {
+    /* if tab fits and skip is worth it, shift it left.
+     * most of our pool have expensive reallocs wrt a typical memcpy,
+     * and optimize the last realloc so we don't want to alloc and free
+     */
+    if (newlen < vec->skip + vec->size
+    && (vec->skip > vec->size / 4 || !(mp->mem_pool & MEM_EFFICIENT_REALLOC)))
+    {
         qvector_destroy_skip(vec, v_size);
         return;
     }
 
-    /* most of our pool have expensive reallocs wrt a typical memcpy,
-     * and optimize the last realloc so we don't want to alloc and free
-     */
-    if (vec->mem_pool != MEM_LIBC) {
-        qvector_destroy_skip(vec, v_size);
-        if (newlen < vec->size)
-            return;
-    }
-
     newsz = p_alloc_nr(vec->size + vec->skip);
-    if (newsz < newlen)
+    if (newsz < newlen) {
         newsz = newlen;
-    if (vec->mem_pool == MEM_STATIC || vec->skip) {
-        uint8_t *s = pa_new_raw(uint8_t, newsz * v_size, v_align);
-
-        memcpy(s, vec->tab, vec->len * v_size);
-        if (vec->mem_pool != MEM_STATIC) {
-            /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
-            mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
-        }
-        __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
-    } else {
-        vec->tab = irealloc(vec->tab, vec->len * v_size, newsz * v_size,
-                            v_align, vec->mem_pool | MEM_RAW);
-        vec->size = newsz;
     }
+    /* TODO: avoid memmove + memcpy in case of a fallback */
+    qvector_destroy_skip(vec, v_size);
+    vec->tab = mp_irealloc_fallback(&vec->mp, vec->tab, vec->len * v_size,
+                                    newsz * v_size, v_align, MEM_RAW);
+    vec->size = newsz;
 }
 
 void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
                         size_t size)
 {
+    mem_pool_t *mp = mp_ipool(vec->mp);
     char *buf;
 
     if (size == 0) {
         qvector_reset(vec, v_size);
         return;
     }
-    if (vec->mem_pool != MEM_LIBC)
+    if ((mp->mem_pool & MEM_BY_FRAME)) {
         return;
-    buf = pa_new_raw(char, size * v_size, v_align);
+    }
+    buf = mpa_new_raw(mp, char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
-    mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
-    __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
+    mp_ifree(mp, vec->tab - vec->skip * v_size);
+    __qvector_init(vec, buf, vec->len, size, vec->mp);
 }
 
 void *__qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,

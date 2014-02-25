@@ -1351,7 +1351,8 @@ void wah_pool_release(wah_t **pmap)
         return;
     }
     if (pool_g.count == countof(pool_g.pool)
-    || (map->data.mem_pool != MEM_LIBC && map->data.tab != map->padding))
+    || (mp_ipool(map->data.mp) != &mem_pool_libc
+        && map->data.tab != map->padding))
     {
         wah_delete(pmap);
         return;
