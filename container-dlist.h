@@ -132,15 +132,17 @@ __dlist_splice(dlist_t *prev, dlist_t *next, dlist_t *src)
 static inline void
 dlist_splice(dlist_t *dst, dlist_t *src)
 {
-	if (!dlist_is_empty(src))
-		__dlist_splice(dst, dst->next, src);
+    if (!dlist_is_empty(src)) {
+        __dlist_splice(dst, dst->next, src);
+    }
 }
 
 static inline void
 dlist_splice_tail(dlist_t *dst, dlist_t *src)
 {
-	if (!dlist_is_empty(src))
-		__dlist_splice(dst->prev, dst, src);
+    if (!dlist_is_empty(src)) {
+        __dlist_splice(dst->prev, dst, src);
+    }
 }
 
 static inline void
@@ -149,15 +151,15 @@ dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
     if (dlist_is_empty(src) || src == e) {
         dlist_init(dst);
     } else {
-	dlist_t *e_next = e->next;
+        dlist_t *e_next = e->next;
 
-	dst->next = src->next;
-	dst->next->prev = dst;
-	dst->prev = e;
-	e->next = dst;
+        dst->next = src->next;
+        dst->next->prev = dst;
+        dst->prev = e;
+        e->next = dst;
 
-	src->next = e_next;
-	e_next->prev = src;
+        src->next = e_next;
+        e_next->prev = src;
     }
 }
 
