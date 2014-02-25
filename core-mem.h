@@ -389,6 +389,12 @@ mem_pool_t *ipool(mem_flags_t flags)
     }
 }
 
+static ALWAYS_INLINE
+mem_pool_t *mp_ipool(mem_pool_t *mp)
+{
+    return mp ?: &mem_pool_libc;
+}
+
 __attribute__((warn_unused_result, malloc))
 static ALWAYS_INLINE
 void *imalloc(size_t size, size_t alignment, mem_flags_t flags)
