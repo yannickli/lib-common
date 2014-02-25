@@ -253,3 +253,64 @@ bool path_is_safe(const char *path)
     }
     return true;
 }
+
+int path_va_extend(char buf[static PATH_MAX], const char *prefix,
+                   const char *fmt, va_list args)
+{
+    int prefix_len;
+    int suffix_len;
+    va_list cpy;
+
+    prefix_len = pstrcpy(buf, PATH_MAX, prefix);
+
+    if (prefix_len < PATH_MAX && buf[prefix_len - 1] != '/') {
+        prefix_len = pstrcat(buf, PATH_MAX, "/");
+    }
+
+    if (prefix_len >= PATH_MAX - 1) {
+        char temp_buf[2];
+
+        va_copy(cpy, args);
+        suffix_len = vsnprintf(temp_buf, 2, fmt, cpy);
+        va_end(cpy);
+
+        if (suffix_len < PATH_MAX && temp_buf[0] == '/') {
+            return vsnprintf(buf, PATH_MAX, fmt, args);
+        }
+
+        if (!suffix_len && prefix_len == PATH_MAX - 1) {
+            return prefix_len;
+        }
+
+        return -1;
+    }
+
+    va_copy(cpy, args);
+    suffix_len = vsnprintf(buf + prefix_len, PATH_MAX - prefix_len, fmt, cpy);
+    va_end(cpy);
+
+    if (suffix_len && unlikely(buf[prefix_len] == '/')) {
+        /* slow path: optimistic prediction failed */
+        if (prefix_len + suffix_len < PATH_MAX) {
+            p_move(buf, &buf[prefix_len], suffix_len + 1);
+            return suffix_len;
+        } else {
+            suffix_len = vsnprintf(buf, PATH_MAX, fmt, args);
+            return suffix_len < PATH_MAX ? suffix_len : -1;
+        }
+    }
+    return prefix_len + suffix_len < PATH_MAX ? prefix_len + suffix_len : -1;
+}
+
+int path_extend(char buf[static PATH_MAX],  const char *prefix,
+                const char *fmt, ...)
+{
+    int pos = 0;
+    va_list args;
+
+    va_start(args, fmt);
+    pos = path_va_extend(buf, prefix, fmt, args);
+    va_end(args);
+
+    return pos;
+}
