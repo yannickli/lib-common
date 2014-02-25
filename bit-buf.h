@@ -11,10 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_BUF_H)
-#  error "you must include bit.h instead"
-#else
+#ifndef IS_LIB_COMMON_BIT_BUF_H
 #define IS_LIB_COMMON_BIT_BUF_H
+
+#include "core.h"
+#include "arith.h"
 
 typedef struct bb_t {
     union {

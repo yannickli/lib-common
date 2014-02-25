@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_QVECTOR_H)
-#  error "you must include container.h instead"
-#endif
+#ifndef IS_LIB_COMMON_CONTAINER_QVECTOR_H
 #define IS_LIB_COMMON_CONTAINER_QVECTOR_H
+
+#include "core.h"
 
 #define STRUCT_QVECTOR_T(val_t) \
     struct {                         \
@@ -537,3 +537,5 @@ qvector_t(pstream, pstream_t);
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
 qvector_t(sbp,   sb_t *);
+
+#endif

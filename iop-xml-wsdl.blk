@@ -12,7 +12,8 @@
 /**************************************************************************/
 
 #include <lib-common/xmlpp.h>
-#include <lib-common/container.h>
+#include <lib-common/container-qvector.h>
+#include <lib-common/container-qhash.h>
 #include "iop.h"
 #include <lib-common/iop-helpers.inl.c>
 

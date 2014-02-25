@@ -15,7 +15,7 @@
 #define IS_LIB_COMMON_STR_OUTBUF_H
 
 #include "core.h"
-#include "container.h"
+#include "container-htlist.h"
 
 /****************************************************************************/
 /* Outbuf                                                                   */

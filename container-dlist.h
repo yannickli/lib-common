@@ -14,6 +14,11 @@
 #ifndef IS_LIB_COMMON_CONTAINER_DLIST_H
 #define IS_LIB_COMMON_CONTAINER_DLIST_H
 
+/* XXX don't include core.h since dlist are used by core-mem-stack, itself
+ * used by core.h
+ */
+#include <stdbool.h>
+
 typedef struct dlist_t {
     struct dlist_t *next, *prev;
 } dlist_t;

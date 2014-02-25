@@ -11,12 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H)
-#  error "you must include container.h instead"
-#endif
 #ifndef IS_LIB_COMMON_CONTAINER_RBTREE_H
 #define IS_LIB_COMMON_CONTAINER_RBTREE_H
 
+#include "core.h"
 
 /** Red-Back Trees.
  *

@@ -16,7 +16,7 @@
 
 #include <Block.h>
 #include "core.h"
-#include "container.h"
+#include "container-qvector.h"
 
 /** \defgroup Z Intersec Unit Testing Framework.
  * \brief Intersec Unit Testing Framework.

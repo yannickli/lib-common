@@ -22,6 +22,7 @@
 #include <dirent.h>
 #include "qps.h"
 #include "sort.h"
+#include "hash.h"
 
 static struct {
     dlist_t qps_head;

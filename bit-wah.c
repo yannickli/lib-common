@@ -12,7 +12,8 @@
 /**************************************************************************/
 
 #include "thr.h"
-#include "bit.h"
+#include "arith.h"
+#include "bit-wah.h"
 
 //#define WAH_CHECK_NORMALIZED  1
 

@@ -11,7 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "container.h"
+#include "container-qhash.h"
+#include "container-qvector.h"
 #include "arith.h"
 
 #define QH_SETBITS_MASK  ((size_t)0x5555555555555555ULL)

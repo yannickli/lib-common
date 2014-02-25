@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include "asn1-per.h"
+#include "bit-buf.h"
+#include "bit-stream.h"
 #include "z.h"
 
 /* XXX Tracing policy:

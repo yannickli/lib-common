@@ -14,7 +14,8 @@
 #ifndef IS_LIB_COMMON_IOP_H
 #define IS_LIB_COMMON_IOP_H
 
-#include "container.h"
+#include "container-qhash.h"
+#include "container-qvector.h"
 #include "iop-cfolder.h"
 
 /* {{{ IOP library internals */

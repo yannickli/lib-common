@@ -17,6 +17,7 @@
 #include "zlib-wrapper.h"
 #include "el.h"
 #include "net.h"
+#include "container-qhash.h"
 
 typedef enum http_method_t {
     HTTP_METHOD_ERROR = -1,

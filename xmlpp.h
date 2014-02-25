@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_XMLPP_H
 #define IS_LIB_COMMON_XMLPP_H
 
-#include "container.h"
+#include "container-qvector.h"
 
 typedef struct xmlpp_t {
     flag_t can_do_attr : 1;

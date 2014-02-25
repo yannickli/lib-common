@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_LOG_H
 #define IS_LIB_COMMON_LOG_H
 
-#include "container.h"
+#include "container-qvector.h"
 #include "core.h"
 #include "core.iop.h"
 #include "iop-rpc.h"

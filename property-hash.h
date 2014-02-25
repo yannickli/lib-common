@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_PROPERTY_HASH_H
 #define IS_LIB_COMMON_PROPERTY_HASH_H
 
-#include "container.h"
+#include "container-qhash.h"
 #include "xmlpp.h"
 
 qm_k64_t(proph, char *);

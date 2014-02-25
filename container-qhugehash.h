@@ -11,12 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_QHUGEHASH_H)
-#  error "you must include container.h instead"
-#else
+#ifndef IS_LIB_COMMON_CONTAINER_QHUGEHASH_H
 #define IS_LIB_COMMON_CONTAINER_QHUGEHASH_H
 
-#include "hash.h"
+#include "container-qhash.h"
 
 /*
  * QHugeHashes: Real Time huge hash tables.

@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_PROPERTY_H
 #define IS_LIB_COMMON_PROPERTY_H
 
-#include "container.h"
+#include "container-qvector.h"
 
 typedef struct property_t {
     char *name;

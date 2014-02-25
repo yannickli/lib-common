@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "container.h"
+#include "container-qvector.h"
 #include "arith.h"
 #include "qpage.h"
 

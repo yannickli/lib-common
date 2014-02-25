@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_HEAP_H)
-#  error "you must include container.h instead"
-#else
+#ifndef IS_LIB_COMMON_CONTAINER_HEAP_H
 #define IS_LIB_COMMON_CONTAINER_HEAP_H
+
+#include "container-qvector.h"
 
 /* Min/Max Heap Container
  * ----------

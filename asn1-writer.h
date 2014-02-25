@@ -16,6 +16,7 @@
 #else
 #define IS_LIB_COMMON_ASN1_WRITER_H
 
+#include "container-qvector.h"
 #include "asn1-helpers-inl.c"
 
 /* ASN1 writing API

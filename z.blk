@@ -16,6 +16,7 @@
 #include "unix.h"
 #include "z.h"
 #include "thr.h"
+#include "container-qhash.h"
 
 enum z_state {
     Z_START,
