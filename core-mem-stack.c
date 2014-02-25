@@ -236,7 +236,7 @@ static mem_pool_t const pool_funcs = {
     .malloc   = &sp_alloc,
     .realloc  = &sp_realloc,
     .free     = &sp_free,
-    .mem_pool = MEM_STACK,
+    .mem_pool = MEM_STACK | MEM_BY_FRAME,
 #ifndef NDEBUG
     .min_alignment = sizeof(void *)
 #else

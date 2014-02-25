@@ -261,7 +261,7 @@ static mem_pool_t const pool_funcs = {
     .malloc  = &rp_alloc,
     .realloc = &rp_realloc,
     .free    = &rp_free,
-    .mem_pool = MEM_OTHER,
+    .mem_pool = MEM_OTHER | MEM_BY_FRAME,
 };
 
 #ifndef NDEBUG
