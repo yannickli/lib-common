@@ -431,9 +431,9 @@ static inline void *mp_dupz(mem_pool_t *mp, const void *src, size_t len)
 }
 
 __attribute__((malloc, warn_unused_result))
-static inline void *mp_strdup(mem_pool_t *mp, const char *src)
+static inline char *mp_strdup(mem_pool_t *mp, const char *src)
 {
-    return mp_idup(mp, src, strlen(src) + 1, 1);
+    return (char *)mp_idup(mp, src, strlen(src) + 1, 1);
 }
 
 char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
