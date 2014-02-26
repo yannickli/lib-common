@@ -81,7 +81,7 @@ void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
         memcpy(s, vec->tab, vec->len * v_size);
         if (vec->mem_pool != MEM_STATIC) {
             /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
-            libc_free(vec->tab - vec->skip, 0);
+            libc_free(vec->tab - vec->skip * v_size, 0);
         }
         __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
     } else {
@@ -103,7 +103,7 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t size)
         return;
     buf = p_new_raw(char, size * v_size);
     memcpy(buf, vec->tab, vec->len * v_size);
-    libc_free(vec->tab - vec->skip, 0);
+    libc_free(vec->tab - vec->skip * v_size, 0);
     __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 
