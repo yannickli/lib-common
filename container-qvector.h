@@ -28,6 +28,7 @@ typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET qvector_cmp_b)(const void *, const void *);
+typedef void (BLOCK_CARET qvector_cpy_b)(void *, const void *);
 #endif
 
 static inline qvector_t *
@@ -81,6 +82,9 @@ int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
 bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
                         bool sorted, qvector_cmp_b cmp);
 void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp);
+void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
+                           size_t v_size, size_t v_align,
+                           qvector_cpy_b cpy_f);
 #endif
 
 /** \brief optimize vector for space.
@@ -171,6 +175,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
     typedef int (BLOCK_CARET pfx##_cmp_b)(cval_t *a, cval_t *b);            \
+    typedef void (BLOCK_CARET pfx##_cpy_b)(val_t *a,  cval_t *b);           \
                                                                             \
     __unused__                                                              \
     static inline void pfx##_sort(pfx##_t *vec, pfx##_cmp_b cmp) {          \
@@ -212,6 +217,13 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                         pfx##_cmp_b cmp) {                                  \
         return __qvector_contains(&vec->qv, sizeof(val_t), &v, sorted,      \
                                   (qvector_cmp_b)cmp);                      \
+    }                                                                       \
+    __unused__                                                              \
+    static inline                                                           \
+    void pfx##_deep_extend(pfx##_t *vec_dst, pfx##_t *vec_src,              \
+                           pfx##_cpy_b cpy_f) {                             \
+        __qvector_deep_extend(&vec_dst->qv, &vec_src->qv, sizeof(val_t),    \
+                              alignof(val_t), (qvector_cpy_b)cpy_f);        \
     }
 #else
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
@@ -289,6 +301,11 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                vec_in->tab, vec_in->len);                                   \
         return vec_out;                                                     \
     }                                                                       \
+    __unused__                                                              \
+    static inline void pfx##_extend(pfx##_t *vec_dst,                       \
+                                    const pfx##_t *vec_src) {               \
+        pfx##_splice(vec_dst, vec_dst->len, 0, vec_src->tab, vec_src->len); \
+    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
@@ -363,9 +380,14 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_new(n)  p_new(qv_t(n), 1)
 
 #ifdef __has_blocks
-/* You must be in a .blk to use qv_sort, because it expects blocks ! */
+/* You must be in a .blk to use qv_sort/qv_deep_extend, because it
+ * expects blocks !
+ */
 #define qv_sort(n)                          qv_##n##_sort
 #define qv_cmp_b(n)                         qv_##n##_cmp_b
+
+#define qv_deep_extend(n)                   qv_##n##_deep_extend
+#define qv_cpy_b(n)                         qv_##n##_cpy_b
 #endif
 #define qv_qsort(n, vec, cmp)               qv_##n##_qsort(vec, cmp)
 
@@ -416,6 +438,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
 
 #define qv_copy(n, vec_out, vec_in)         qv_##n##_copy(vec_out, vec_in)
+#define qv_extend(n, vec_out, vec_in)       qv_##n##_extend(vec_out, vec_in)
 
 #define qv_for_each_pos(n, pos, vec)                                         \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \

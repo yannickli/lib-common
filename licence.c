@@ -556,7 +556,8 @@ int licence_check_iop_host(const core__licence__t *licence)
     return 0;
 }
 
-int licence_check_iop_expiry(const core__licence__t *licence)
+int licence_check_iop_expiry(const core__licence__t *licence,
+                             time_t reference)
 {
     struct tm t;
 
@@ -570,7 +571,7 @@ int licence_check_iop_expiry(const core__licence__t *licence)
     if (strtotm(licence->expires.s, &t) < 0) {
         return e_error("invalid expiry date");
     }
-    if (mktime(&t) < time(NULL)) {
+    if (mktime(&t) < reference) {
         return e_error("licence is expired");
     }
 
@@ -600,7 +601,7 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
     {
         return e_error("licence does not support that product version");
     }
-    RETHROW(licence_check_iop_expiry(licence));
+    RETHROW(licence_check_iop_expiry(licence, time(NULL)));
     RETHROW(licence_check_iop_host(licence));
     return 0;
 }

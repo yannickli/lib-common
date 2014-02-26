@@ -61,9 +61,17 @@ int licence_check_iop(const struct core__signed_licence__t *licence,
                       const iop_struct_t *licence_st, lstr_t version,
                       unsigned flags);
 
-/** Check the expiration of an IOP Licence. */
+/** Check the expiration of an IOP Licence.
+ *
+ * \param[in] licence    The licence structure to check.
+ * \param[in] reference  The reference time; for example, call with
+ *                       lp_getsec() to check if the licence is expired, or
+ *                       with lp_getsec() + 3600 to check if the licence will
+ *                       be expired in one hour.
+ */
 __must_check__
-int licence_check_iop_expiry(const struct core__licence__t *licence);
+int licence_check_iop_expiry(const struct core__licence__t *licence,
+                             time_t reference);
 
 /* }}} */
 

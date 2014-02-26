@@ -81,7 +81,7 @@ void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
         memcpy(s, vec->tab, vec->len * v_size);
         if (vec->mem_pool != MEM_STATIC) {
             /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
-            mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
+            mp_ifree(&mem_pool_libc, vec->tab - vec->skip * v_size);
         }
         __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
     } else {
@@ -104,7 +104,7 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
         return;
     buf = pa_new_raw(char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
-    mp_ifree(&mem_pool_libc, vec->tab - vec->skip);
+    mp_ifree(&mem_pool_libc, vec->tab - vec->skip * v_size);
     __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 
@@ -334,4 +334,20 @@ bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
 void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
 {
     vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp);
+}
+
+void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
+                           size_t v_size, size_t v_align, qvector_cpy_b cpy_f)
+{
+    size_t original_len = vec_dst->len;
+
+    qvector_growlen(vec_dst, v_size, v_align, vec_src->len);
+    tab_for_each_pos(pos, vec_src) {
+        /* XXX: qvector_t.tab is of type (uint8_t *) so we need to do the
+         *       pointer arithmetic ourselves because the true type of the
+         *       array could be different.
+         */
+        cpy_f(vec_dst->tab + (pos + original_len) * v_size,
+              vec_src->tab + pos * v_size);
+    }
 }
