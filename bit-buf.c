@@ -25,21 +25,15 @@ bb_t *bb_init(bb_t *bb)
 
 void bb_wipe(bb_t *bb)
 {
-    switch (bb->mem_pool & MEM_POOL_MASK) {
-      case MEM_STATIC:
-      case MEM_STACK:
-        return;
-      default:
-        ifree(bb->data, bb->mem_pool);
-        break;
-    }
+    mp_delete(bb->mp, &bb->data);
 }
 
 void bb_reset(bb_t *bb)
 {
+    mem_pool_t *mp = mp_ipool(bb->mp);
     const size_t alignment = bb->alignment;
 
-    if (bb->mem_pool == MEM_LIBC && bb->size > (16 << 10)) {
+    if (!(mp->mem_pool & MEM_BY_FRAME) && bb->size > (16 << 10)) {
         bb_wipe(bb);
         bb_init(bb);
         bb->alignment = alignment;
@@ -52,8 +46,8 @@ void bb_reset(bb_t *bb)
 void bb_init_sb(bb_t *bb, sb_t *sb)
 {
     sb_grow(sb, ROUND_UP(sb->len, 8) - sb->len);
-    bb_init_full(bb, sb->data, sb->len * 8, DIV_ROUND_UP(sb->size, 8),
-                 sb->mem_pool, 8);
+    bb_init_full(bb, sb->data, sb->len * 8, DIV_ROUND_UP(sb->size, 8), 8,
+                 sb->mp);
 
     /* We took ownership of the memory so ensure clear the sb */
     sb_init(sb);
@@ -65,7 +59,7 @@ void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
     sb_wipe(sb);
     bb_grow(bb, 8);
     sb_init_full(sb, bb->data, DIV_ROUND_UP(bb->len, 8),
-                 bb->size * 8, bb->mem_pool);
+                 bb->size * 8, bb->mp);
     bb_init(bb);
 }
 
@@ -81,18 +75,9 @@ void __bb_grow(bb_t *bb, size_t extra)
     assert (bb->alignment && bb->alignment % 8 == 0);
     newsz = ROUND_UP(newsz, bb->alignment / 8);
 
-    if (bb->mem_pool == MEM_STATIC) {
-        uint64_t *d = pa_new_raw(uint64_t, newsz, bb->alignment);
-
-        p_copy(d, bb->data, bb->size);
-        bzero(d + bb->size, (newsz - bb->size) * 8);
-        bb_init_full(bb, d, bb->len, newsz, MEM_LIBC, bb->alignment);
-    } else {
-        bb->data = irealloc(bb->data, bb->size * 8, newsz * 8,
-                            bb->alignment, bb->mem_pool | MEM_RAW);
-        bzero(bb->data + bb->size, (newsz - bb->size) * 8);
-        bb->size = newsz;
-    }
+    bb->data = mp_irealloc_fallback(&bb->mp, bb->data, bb->size * 8,
+                                    newsz * 8, bb->alignment, 0);
+    bb->size = newsz;
 }
 
 void bb_add_bs(bb_t *bb, const bit_stream_t *b)

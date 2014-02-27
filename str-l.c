@@ -100,12 +100,14 @@ void (lstr_munmap)(lstr_t *dst)
 void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
 {
     if (keep_pool) {
-        if (sb->mem_pool != MEM_STATIC) {
+        mem_pool_t *mp = mp_ipool(sb->mp);
+
+        if ((mp_ipool(mp)->mem_pool & MEM_BY_FRAME)) {
             if (sb->skip) {
                 memmove(sb->data - sb->skip, sb->data, sb->len + 1);
             }
         }
-        lstr_copy_(NULL, dst, sb->data, sb->len, sb->mem_pool);
+        lstr_copy_(NULL, dst, sb->data, sb->len, mp->mem_pool & MEM_POOL_MASK);
         sb_init(sb);
     } else {
         dst->v = sb_detach(sb, &dst->len);

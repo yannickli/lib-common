@@ -33,11 +33,11 @@ typedef struct bb_t {
         };
         size_t len;  /* Number of bit used */
     };
-    size_t     size     : 62; /* Number of words allocated */
-    flag_t     mem_pool :  2;
+    size_t     size; /* Number of words allocated */
 
     /** Memory alignment (in bytes) */
     size_t     alignment;
+    mem_pool_t *mp;
 } bb_t;
 
 struct bit_stream_t;
@@ -61,15 +61,15 @@ GENERIC_DELETE(bb_t, bb);
  * \param[alignment] Memory alignment to maintain given in bytes.
  */
 static inline bb_t *
-bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool,
-             size_t alignment)
+bb_init_full(bb_t *bb, void *buf, int blen, int bsize, size_t alignment,
+             mem_pool_t *mp)
 {
     size_t used_bytes = DIV_ROUND_UP(blen, 8);
 
     bb->data = (uint64_t *)buf;
     bb->len = blen;
     bb->size = bsize;
-    bb->mem_pool = mem_pool;
+    bb->mp = mp;
     bb->alignment = alignment;
 
     assert (alignment >= 8 && alignment % 8 == 0);
@@ -83,15 +83,17 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool,
 
 #define bb_inita(bb, sz)  \
     bb_init_full(bb, p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)), \
-                 0, DIV_ROUND_UP(sz, 8), MEM_STATIC, 8)
+                 0, DIV_ROUND_UP(sz, 8), 8, &mem_pool_static)
 
 #define BB(name, sz) \
     bb_t name = { { .data = p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
-                    .size = DIV_ROUND_UP(sz, 8), .alignment = 8 }
+                    .size = DIV_ROUND_UP(sz, 8), .alignment = 8,       \
+                    .mp   = &mem_pool_static }
 #define t_BB(name, sz) \
     bb_t name = { { .data = t_new(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
                     .size = DIV_ROUND_UP(sz, 8),                    \
-                    .mem_pool = MEM_STACK, .alignment = 8 }
+                    .alignment = 8,                                 \
+                    .mp = t_pool() }
 
 #define BB_1k(name)    BB(name, 1 << 10)
 #define BB_8k(name)    BB(name, 8 << 10)
