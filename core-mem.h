@@ -777,12 +777,15 @@ void r_pool_destroy(void) __leaf;
     __attr_nonnull__((1)) void prefix##_wipe(type *var) { }
 
 #define DO_DELETE(type, prefix) \
-    __attr_nonnull__((1))                                   \
-    void prefix##_delete(type **var) {                      \
-        if (*var) {                                         \
-            prefix##_wipe(*var);                            \
-            p_delete(var);                                  \
-        }                                                   \
+    __attr_nonnull__((1))                                                   \
+    void prefix##_delete(type **varp) {                                     \
+        type * const var = *varp;                                           \
+                                                                            \
+        if (var) {                                                          \
+            prefix##_wipe(var);                                             \
+            assert (likely(var == *varp) && "pointer corruption detected"); \
+            p_delete(varp);                                                 \
+        }                                                                   \
     }
 
 
