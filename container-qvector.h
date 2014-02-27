@@ -21,7 +21,6 @@
         val_t *tab;                  \
         int len, size;               \
         flag_t mem_pool   :  2;      \
-        unsigned int skip : 30;      \
     }
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
@@ -38,7 +37,6 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
         blen,
         bsize,
         cast(flag_t, mem_pool),
-        0,
     };
     return vec;
 }
@@ -100,7 +98,7 @@ static inline void
 qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
                  size_t ratio, size_t extra_ratio)
 {
-    size_t cur_waste = vec->size + vec->skip - vec->len;
+    size_t cur_waste = vec->size - vec->len;
 
     if (vec->len * ratio < 100 * cur_waste)
         __qvector_optimize(vec, v_size, v_align,
@@ -115,7 +113,7 @@ void *qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
     if (size > vec->size) {
         __qvector_grow(vec, v_size, v_align, extra);
     } else {
-        ssize_t cursz = vec->size + vec->skip;
+        ssize_t cursz = vec->size;
 
         if (unlikely(cursz * v_size > BUFSIZ && size * 8 < cursz))
             __qvector_optimize(vec, v_size, v_align, p_alloc_nr(size));

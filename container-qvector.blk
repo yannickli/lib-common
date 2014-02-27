@@ -16,14 +16,13 @@
 
 void qvector_reset(qvector_t *vec, size_t v_size)
 {
-    size_t sz = vec->size + vec->skip;
+    size_t sz = vec->size;
 
     if (vec->mem_pool == MEM_LIBC && sz * v_size > (128 << 10)) {
-        libc_free(vec->tab - vec->skip * v_size, 0);
+        libc_free(vec->tab, 0);
         p_clear(vec, 1);
     } else {
-        __qvector_init(vec, vec->tab - vec->skip * v_size,
-                       0, sz, vec->mem_pool);
+        __qvector_init(vec, vec->tab, 0, sz, vec->mem_pool);
     }
 }
 
@@ -35,18 +34,10 @@ void qvector_wipe(qvector_t *vec, size_t v_size)
         qvector_reset(vec, v_size);
         return;
       default:
-        ifree(vec->tab - v_size * vec->skip, vec->mem_pool);
+        ifree(vec->tab, vec->mem_pool);
         p_clear(vec, 1);
         return;
     }
-}
-
-static void qvector_destroy_skip(qvector_t *vec, size_t v_size)
-{
-    memmove(vec->tab - v_size * vec->skip, vec->tab, v_size * vec->len);
-    vec->tab -= v_size * vec->skip;
-    vec->size += v_size * vec->skip;
-    vec->skip  = 0;
 }
 
 void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
@@ -57,32 +48,18 @@ void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
     if (unlikely(newlen < 0))
         e_panic("trying to allocate insane amount of memory");
 
-    /* if tab fits and skip is worth it, shift it left */
-    if (newlen < vec->skip + vec->size && vec->skip > vec->size / 4) {
-        qvector_destroy_skip(vec, v_size);
+    /* if tab fits, return */
+    if (newlen < vec->size) {
         return;
     }
 
-    /* most of our pool have expensive reallocs wrt a typical memcpy,
-     * and optimize the last realloc so we don't want to alloc and free
-     */
-    if (vec->mem_pool != MEM_LIBC) {
-        qvector_destroy_skip(vec, v_size);
-        if (newlen < vec->size)
-            return;
-    }
-
-    newsz = p_alloc_nr(vec->size + vec->skip);
+    newsz = p_alloc_nr(vec->size);
     if (newsz < newlen)
         newsz = newlen;
-    if (vec->mem_pool == MEM_STATIC || vec->skip) {
+    if (vec->mem_pool == MEM_STATIC) {
         uint8_t *s = pa_new_raw(uint8_t, newsz * v_size, v_align);
 
         memcpy(s, vec->tab, vec->len * v_size);
-        if (vec->mem_pool != MEM_STATIC) {
-            /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
-            libc_free(vec->tab - vec->skip * v_size, 0);
-        }
         __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
     } else {
         vec->tab = (irealloc)(vec->tab, vec->len * v_size, newsz * v_size,
@@ -104,7 +81,7 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
         return;
     buf = pa_new_raw(char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
-    libc_free(vec->tab - vec->skip * v_size, 0);
+    libc_free(vec->tab, 0);
     __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 
@@ -118,13 +95,6 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
         memmove(vec->tab + v_size * (pos + dlen),
                 vec->tab + v_size * (pos + len),
                 v_size * (vec->len - pos - len));
-        qvector_grow(vec, v_size, v_align, 0);
-    } else
-    if (len + vec->skip >= dlen) {
-        vec->skip -= dlen - len;
-        vec->tab -= (dlen - len) * v_size;
-        vec->size += dlen - len;
-        memmove(vec->tab, vec->tab + v_size * (dlen - len), pos * v_size);
         qvector_grow(vec, v_size, v_align, 0);
     } else {
         qvector_grow(vec, v_size, v_align, dlen - len);
