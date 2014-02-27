@@ -195,6 +195,85 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(path_extend, "str-path: path_extend") {
+        char path_test[PATH_MAX];
+        char long_prefix[PATH_MAX];
+        char very_long_prefix[2 * PATH_MAX];
+        char very_long_suffix[2 * PATH_MAX];
+
+#define T(_expected, _prefix, _suffix, ...)  \
+        ({ Z_ASSERT_EQ(path_extend(path_test, _prefix, _suffix,              \
+                                   ##__VA_ARGS__),                           \
+                       (int)strlen(_expected));                              \
+            Z_ASSERT_STREQUAL(_expected, path_test);                         \
+        })
+
+        T("/foo/bar/1", "/foo/bar/", "%d", 1);
+        T("/foo/bar/", "/foo/bar/", "");
+        T("/1", "/foo/bar/", "/%d", 1);
+        T("/foo/bar/1", "/foo/bar", "%d", 1);
+        T("/foo/bar/", "/foo/bar", "");
+
+        memset(long_prefix, '1', sizeof(long_prefix));
+        long_prefix[PATH_MAX - 3] = '\0';
+        T("/foo/bar", long_prefix, "/foo/bar");
+
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_prefix[PATH_MAX + 5] = '\0';
+        T("/foo/bar1", very_long_prefix, "/foo/bar%d", 1);
+
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_prefix[PATH_MAX + 5] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, very_long_prefix, "foo/bar%d", 1),
+                    -1);
+
+        memset(long_prefix, '1', sizeof(long_prefix));
+        long_prefix[PATH_MAX - 1] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, long_prefix, ""), -1);
+
+        memset(long_prefix, '1', sizeof(long_prefix));
+        long_prefix[PATH_MAX - 2] = '/';
+        long_prefix[PATH_MAX - 1] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, long_prefix, ""), PATH_MAX - 1);
+
+        memset(long_prefix, '1', sizeof(long_prefix));
+        long_prefix[PATH_MAX - 2] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, long_prefix, "a"), -1);
+
+        memset(long_prefix, '1', sizeof(long_prefix));
+        long_prefix[PATH_MAX - 3] = '/';
+        long_prefix[PATH_MAX - 2] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, long_prefix, "a"), PATH_MAX - 1);
+
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_prefix[PATH_MAX-1] = '\0';
+        very_long_prefix[PATH_MAX-2] = '/';
+        T("/foo/bar1", very_long_prefix, "/foo/bar%d", 1);
+
+        memset(very_long_suffix, '1', sizeof(very_long_suffix));
+        memset(long_prefix, '1', sizeof(long_prefix));
+        very_long_suffix[0] = '/';
+        very_long_suffix[PATH_MAX + 5] = '\0';
+        long_prefix[PATH_MAX - 4] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, long_prefix, "%s",
+                                very_long_suffix), -1);
+
+        memset(very_long_suffix, '1', sizeof(very_long_suffix));
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_suffix[0] = '/';
+        very_long_suffix[PATH_MAX + 5] = '\0';
+        very_long_prefix[PATH_MAX + 5] = '\0';
+        Z_ASSERT_EQ(path_extend(path_test, very_long_prefix, "%s",
+                                very_long_suffix), -1);
+
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_prefix[PATH_MAX-2] = '\0';
+        very_long_prefix[PATH_MAX-3] = '/';
+        T("/foo/bar1", very_long_prefix, "/foo/bar%d", 1);
+#undef T
+
+    } Z_TEST_END;
+
     Z_TEST(strstart, "str: strstart") {
         static const char *week =
             "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";

@@ -128,6 +128,34 @@ char *path_expand(char *buf, int len, const char *path) __leaf;
 
 bool path_is_safe(const char *path) __leaf;
 
+#ifndef __cplusplus
+
+/** Extend a relative path from a prefix.
+ *
+ *      prefix + fmt = prefix + / + fmt
+ *
+ * A '/' will be added between /p prefix and /p fmt if necessary.
+ *
+ * If /p fmt begins with a '/', the prefix will be ignored
+ *
+ * \param[out] buf    buffer where the path will be written.
+ * \param[in]  prefix
+ * \param[in]  fmt    format of the suffix
+ * \param[in]  args   va_list containing the arguments for the \p fmt
+ *                    formatting
+ *
+ * \return -1 if the path overflows the buffer,
+ *            length of the resulting path otherwise.
+ */
+__attribute__((format(printf, 3, 0)))
+int path_va_extend(char buf[static PATH_MAX], const char *prefix,
+                   const char *fmt, va_list args);
+__attribute__((format(printf, 3, 4)))
+int path_extend(char buf[static PATH_MAX], const char *prefix,
+                const char *fmt, ...);
+
+#endif
+
 /* }}} */
 
 #endif /* IS_LIB_COMMON_STR_IS_H */
