@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "zchk-container.h"
 #include "container.h"
 #include "z.h"
 #include "sort.h"
@@ -185,6 +184,7 @@ Z_GROUP_EXPORT(qhash)
             pos = qm_put(type, &h, (key), 2, QHASH_OVERWRITE);              \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 2u);              \
+            qm_wipe(type, &h);                                              \
         } while (0)
 
         /* IKEY */
@@ -201,6 +201,29 @@ Z_GROUP_EXPORT(qhash)
 
     } Z_TEST_END
 
+    Z_TEST(pool, "qhash: pool") {
+        t_scope;
+        qh_t(test) h;
+        uint64_t bits[2] = { 0, 0 };
+
+        t_qh_init(test, &h, false, 128);
+
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+            SET_BIT(bits, i);
+        }
+        Z_ASSERT_EQ(h.hdr.len, 128U);
+
+        qh_for_each_pos(test, pos, &h) {
+            uint32_t v = h.keys[pos];
+
+            Z_ASSERT(v < bitsizeof(bits) && TST_BIT(bits, v));
+            CLR_BIT(bits, v);
+        }
+
+        Z_ASSERT(bits[0] == 0, "all values should have been seen");
+        Z_ASSERT(bits[1] == 0, "all values should have been seen");
+    } Z_TEST_END;
 } Z_GROUP_END
 
 /*1}}}*/
@@ -742,6 +765,31 @@ Z_GROUP_EXPORT(qvector)
 
 /*1}}}*/
 /*{{{1 Heap */
+
+typedef struct test_node_t {
+    int pos;
+    int val;
+} test_node_t;
+
+#define TEST_NODE_CMP(a, op, b)  ((a)->val op (b)->val)
+
+static ALWAYS_INLINE void test_node_set_pos(test_node_t *node, int pos)
+{
+    node->pos = pos;
+}
+
+qhp_min_t(test_heap, test_node_t *, TEST_NODE_CMP, test_node_set_pos);
+
+typedef struct test_node_inl_t {
+    uint8_t val;
+    int8_t  pos;
+} test_node_inl_t;
+
+#define TEST_NODE_INL_CMP(a, op, b)        ((a).val op (b).val)
+#define TEST_NODE_INL_SET_POS(node, _pos)  ((node).pos = _pos)
+
+qhp_min_t(inl_heap, test_node_inl_t, TEST_NODE_INL_CMP,
+          TEST_NODE_INL_SET_POS);
 
 Z_GROUP_EXPORT(qhp)
 {

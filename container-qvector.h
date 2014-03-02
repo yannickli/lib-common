@@ -11,16 +11,16 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_QVECTOR_H)
-#  error "you must include container.h instead"
-#endif
+#ifndef IS_LIB_COMMON_CONTAINER_QVECTOR_H
 #define IS_LIB_COMMON_CONTAINER_QVECTOR_H
+
+#include "core.h"
 
 #define STRUCT_QVECTOR_T(val_t) \
     struct {                         \
         val_t *tab;                  \
+        mem_pool_t *mp;              \
         int len, size;               \
-        flag_t mem_pool   :  2;      \
     }
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
@@ -31,13 +31,14 @@ typedef void (BLOCK_CARET qvector_cpy_b)(void *, const void *);
 #endif
 
 static inline qvector_t *
-__qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
+__qvector_init(qvector_t *vec, void *buf, int blen, int bsize,
+               mem_pool_t *mp)
 {
     *vec = (qvector_t){
         cast(uint8_t *, buf),
+        mp,
         blen,
         bsize,
-        cast(flag_t, mem_pool),
     };
     return vec;
 }
@@ -230,7 +231,9 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define __QVECTOR_BASE_FUNCTIONS(pfx, cval_t, val_t) \
     __unused__                                                              \
     static inline pfx##_t *                                                 \
-    __##pfx##_init(pfx##_t *vec, void *buf, int blen, int bsize, int mp) {  \
+    __##pfx##_init(pfx##_t *vec, void *buf, int blen, int bsize,            \
+                   mem_pool_t *mp)                                          \
+    {                                                                       \
         __qvector_init(&vec->qv, buf, blen, bsize, mp);                     \
         return vec;                                                         \
     }                                                                       \
@@ -333,16 +336,21 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 
 #define qv_t(n)                             qv_##n##_t
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
-#define __qv_init(n, vec, b, bl, bs, mp)    __qv_##n##_init(vec, b, bl, bs, mp)
+#define __qv_init(n, vec, b, bl, bs, mp)    __qv_##n##_init(vec, b, bl, bs,  \
+                                                            ipool(mp))
 #define qv_init_static(n, vec, tab, len) \
     ({ size_t __len = (len); \
-       __qv_init(n, vec, tab, __len, __len, MEM_STATIC); })
+       __qv_##n##_init(vec, tab, __len, __len, &mem_pool_static); })
 #define qv_inita(n, vec, len) \
     ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-       __qv_init(n, vec, alloca(_sz), 0, __len, MEM_STATIC); })
-#define t_qv_init(n, vec, len) \
+       __qv_##n##_init(vec, alloca(_sz), 0, __len, &mem_pool_static); })
+#define mp_qv_init(n, mp, vec, len) \
     ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-       __qv_init(n, vec, t_new_raw(char, _sz), 0, __len, MEM_STACK); })
+       mem_pool_t *_mp = (mp);                         \
+       __qv_##n##_init(vec, mp_new_raw(_mp, char, _sz), 0, __len, _mp); })
+
+#define t_qv_init(n, vec, len)  mp_qv_init(n, t_pool(), (vec), (len))
+#define r_qv_init(n, vec, len)  mp_qv_init(n, r_pool(), (vec), (len))
 
 #define qv_init(n, vec)  \
     ({ qv_t(n) *__vec = (vec);              \
@@ -558,3 +566,5 @@ qvector_t(pstream, pstream_t);
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
 qvector_t(sbp,   sb_t *);
+
+#endif

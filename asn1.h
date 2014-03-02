@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_ASN1_H
 
 #include <lib-common/arith.h>
-#include <lib-common/container.h>
 #include "asn1-macros.h"
 #include "asn1-writer.h"
 

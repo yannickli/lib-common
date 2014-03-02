@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_WAH_H)
-#  error "you must include bit.h instead"
-#else
+#ifndef IS_LIB_COMMON_BIT_WAH_H
 #define IS_LIB_COMMON_BIT_WAH_H
+
+#include "container-qvector.h"
 
 /** \defgroup qkv__ll__wah Word Aligned Hybrid bitmaps.
  * \ingroup qkv__ll

@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "core.h"
-#include "container.h"
+#include "container-qvector.h"
 #include "sort.h"
 
 static const char __b64[] =

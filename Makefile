@@ -261,14 +261,4 @@ zgcd-bench_SOURCES = \
 	zgcd-bench.c \
 	$llibcommon.a
 
-ifneq (SunOS,$(shell uname -s))
-DISTCLEANFILES=Upgrading.html
-all:: Upgrading.html
-Upgrading.html: Upgrading.txt Config/asciidoc.conf
-	@echo " DOC $(@F)"
-	@$(RM) $@
-	@asciidoc -f Config/asciidoc.conf -b xhtml11 -o $@ $<
-	@dos2unix $@
-endif
-
 include Build/base.mk

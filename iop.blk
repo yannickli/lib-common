@@ -15,7 +15,6 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 #include "thr.h"
-#include "container.h"
 #include "sort.h"
 
 /*------ Local declarations -{{{-*/

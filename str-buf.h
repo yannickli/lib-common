@@ -55,17 +55,16 @@
  * - sb.size > sb.len
  * - sb.data - sb.skip points to an array of at least sb.size + sb.skip bytes.
  * - sb.data[sb.len] == '\0'
- * - sb.data - sb.skip is a pointer handled by ialloc / ifree for the pool
- *   sb.mem_pool.
+ * - sb.data - sb.skip is a pointer handled by mp_new/mp_delete for the pool
+ *   sb.mp.
  */
 typedef struct sb_t {
     char *data;
-    int len, size;
-    flag_t mem_pool   :  2;
-    unsigned int skip : 30;
+    int len, size, skip;
+    mem_pool_t *mp;
 #ifdef __cplusplus
     inline sb_t();
-    inline sb_t(void *buf, int len, int size, int pool);
+    inline sb_t(void *buf, int len, int size, mem_pool_t *mp);
     inline ~sb_t();
 
   private:
@@ -73,31 +72,34 @@ typedef struct sb_t {
 #endif
 } sb_t;
 
-/* Default byte array for empty strbufs. It should always stay equal to
- * \0 and is writeable to simplify some strbuf functions that enforce the
- * invariant by writing \0 at data[len].
- * This data is thread specific for obscure and ugly reasons: some strbuf
- * functions may temporarily overwrite the '\0' and would cause
- * spurious bugs in other threads sharing the same strbuf data.
- * It would be much cleaner if this array was const.
+/* Default byte array for empty strbufs.
  */
-extern __thread char __sb_slop[1];
+extern const char __sb_slop[1];
 
 
 /**************************************************************************/
 /* Initialization                                                         */
 /**************************************************************************/
 
+static inline void sb_set_trailing0(sb_t *sb)
+{
+    if (sb->data != __sb_slop) {
+        sb->data[sb->len] = '\0';
+    } else {
+        assert (sb->data[0] == '\0');
+    }
+}
+
 static inline sb_t *
-sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
+sb_init_full(sb_t *sb, void *buf, int blen, int bsize, mem_pool_t *mp)
 {
     assert (blen < bsize);
     sb->data = cast(char *, buf);
     sb->len  = blen;
     sb->size = bsize;
     sb->skip = 0;
-    sb->mem_pool = mem_pool;
-    sb->data[blen] = '\0';
+    sb->mp   = mp;
+    sb_set_trailing0(sb);
     return sb;
 }
 
@@ -106,20 +108,20 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
  * anyway.
  */
 #define sb_inita(sb, sz)                                \
-    sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), MEM_STATIC)
+    sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), &mem_pool_static)
 
 /** SB() macro declare a sb using alloca. It will be automatically wiped when
  * leaving the current scope. */
 #ifdef __cplusplus
-#define SB(name, sz)    sb_t name(alloca(sz), 0, sz, MEM_STATIC)
-#define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, MEM_STACK)
+#define SB(name, sz)    sb_t name(alloca(sz), 0, sz, &mem_pool_static)
+#define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, t_pool())
 #else
 #define SB_INIT(buf, sz, pool)                                               \
     {   .data = memset(buf, 0, 1),                                           \
-        .size = sz, .mem_pool = pool }
+        .size = sz, .mp = pool }
 #define SB(name, sz)    sb_t name __attribute__((cleanup(sb_wipe))) \
-                                  = SB_INIT(alloca(sz), sz, MEM_STATIC)
-#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), sz, MEM_STACK)
+                                  = SB_INIT(alloca(sz), sz, &mem_pool_static)
+#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), sz, t_pool())
 #endif
 
 #define t_SB_1k(name)  t_SB(name, 1 << 10)
@@ -129,49 +131,47 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 
 static inline sb_t *sb_init(sb_t *sb)
 {
-    return sb_init_full(sb, __sb_slop, 0, 1, MEM_STATIC);
+    return sb_init_full(sb, (char *)__sb_slop, 0, 1, &mem_pool_libc);
+}
+
+static inline sb_t *mp_sb_init(mem_pool_t *mp, sb_t *sb, int size)
+{
+    return sb_init_full(sb, mp_new_raw(mp, char, size), 0, size, mp);
 }
 
 static inline sb_t *t_sb_init(sb_t *sb, int size)
 {
-    return sb_init_full(sb, t_new(char, size), 0, size, MEM_STACK);
+    return mp_sb_init(t_pool(), sb, size);
+}
+
+static inline sb_t *r_sb_init(sb_t *sb, int size)
+{
+    return mp_sb_init(r_pool(), sb, size);
 }
 
 void sb_reset(sb_t *sb) __leaf;
-
-static inline void sb_wipe(sb_t *sb)
-{
-    switch (sb->mem_pool & MEM_POOL_MASK) {
-      case MEM_STATIC:
-      case MEM_STACK:
-        sb_reset(sb);
-        return;
-      default:
-        ifree(sb->data - sb->skip, sb->mem_pool);
-        sb_init(sb);
-        return;
-    }
-}
+void sb_wipe(sb_t *sb) __leaf;
 
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
 #ifdef __cplusplus
 sb_t::sb_t() :
-    data(__sb_slop),
+    data((char *)__sb_slop),
     len(0),
     size(1),
-    mem_pool(MEM_STATIC),
-    skip(0)
+    skip(0),
+    mp(NULL)
 {
 }
-sb_t::sb_t(void *buf, int len_, int size_, int pool) :
+sb_t::sb_t(void *buf, int len_, int size_, mem_pool_t *mp_) :
     data(static_cast<char *>(buf)),
     len(len_),
     size(size_),
-    mem_pool(pool),
-    skip(0)
+    skip(0),
+    mp(mp_)
 {
-    data[len] = '\0';
+    assert (len < size);
+    sb_set_trailing0(this);
 }
 sb_t::~sb_t() { sb_wipe(this); }
 #endif
@@ -212,7 +212,7 @@ void __sb_optimize(sb_t *sb, size_t len) __leaf;
 static inline void __sb_fixlen(sb_t *sb, int len)
 {
     sb->len = len;
-    sb->data[sb->len] = '\0';
+    sb_set_trailing0(sb);
 }
 
 static inline void sb_optimize(sb_t *sb, size_t extra)

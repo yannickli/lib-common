@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "net.h"
-#include "container.h"
+#include "container-qvector.h"
 
 int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
 {

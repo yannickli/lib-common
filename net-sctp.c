@@ -16,7 +16,6 @@
 #if defined(HAVE_NETINET_SCTP_H)
 
 #include "unix.h"
-#include "container.h"
 
 int sctp_enable_events(int sd, int flags)
 {

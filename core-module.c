@@ -14,7 +14,8 @@
 #include <pthread.h>
 
 #include "log.h"
-#include "container.h"
+#include "container-qvector.h"
+#include "container-qhash.h"
 
 /* {{{ Type definition */
 

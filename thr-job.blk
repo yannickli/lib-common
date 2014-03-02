@@ -14,7 +14,6 @@
 #include <sys/syscall.h>
 #include <lib-common/arith.h>
 #include <lib-common/datetime.h>
-#include <lib-common/container.h>
 #include <lib-common/el.h>
 #include <lib-common/unix.h>
 #include "thr.h"

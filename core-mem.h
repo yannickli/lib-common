@@ -222,20 +222,23 @@ typedef unsigned __bitwise__ mem_flags_t;
  *     stack pool.
  *
  */
-#define MEM_POOL_MASK  force_cast(mem_flags_t, 0x00ff)
-#define MEM_STATIC     force_cast(mem_flags_t, 0)
-#define MEM_OTHER      force_cast(mem_flags_t, 1)
-#define MEM_LIBC       force_cast(mem_flags_t, 2)
-#define MEM_STACK      force_cast(mem_flags_t, 3)
-#define MEM_MMAP       force_cast(mem_flags_t, 4)
-#define MEM_FLAGS_MASK force_cast(mem_flags_t, 0xff00)
-#define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
-#define MEM_ERRORS_OK  force_cast(mem_flags_t, 1 << 9)
-#define MEM_UNALIGN_OK force_cast(mem_flags_t, 1 << 10)
+#define MEM_POOL_MASK          force_cast(mem_flags_t, 0x00ff)
+#define MEM_STATIC             force_cast(mem_flags_t, 0)
+#define MEM_OTHER              force_cast(mem_flags_t, 1)
+#define MEM_LIBC               force_cast(mem_flags_t, 2)
+#define MEM_STACK              force_cast(mem_flags_t, 3)
+#define MEM_MMAP               force_cast(mem_flags_t, 4)
+#define MEM_FLAGS_MASK         force_cast(mem_flags_t, 0xff00)
+#define MEM_RAW                force_cast(mem_flags_t, 1 << 8)
+#define MEM_ERRORS_OK          force_cast(mem_flags_t, 1 << 9)
+#define MEM_UNALIGN_OK         force_cast(mem_flags_t, 1 << 10)
+#define MEM_BY_FRAME           force_cast(mem_flags_t, 1 << 11)
+#define MEM_EFFICIENT_REALLOC  force_cast(mem_flags_t, 1 << 12)
 
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
     size_t      min_alignment;
+    struct mem_pool_t *realloc_fallback;
 
     /* DO NOT USE DIRECTLY, use mp_imalloc/mp_irealloc/mp_ifree instead */
     void *(*malloc) (struct mem_pool_t *, size_t, size_t, mem_flags_t);
@@ -340,6 +343,33 @@ void mp_ifree(mem_pool_t *mp, void *mem)
     return (*mp->free)(mp, mem);
 }
 
+__attribute__((warn_unused_result))
+static ALWAYS_INLINE
+void *mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
+                           size_t size, size_t alignment, mem_flags_t flags)
+{
+    mem_pool_t *mp = *pmp;
+
+    assert (oldsize != MEM_UNKNOWN);
+    icheck_alloc(size);
+    mp = mp ?: &mem_pool_libc;
+
+    if (mp->realloc_fallback && size > oldsize) {
+        void *out;
+
+        mp  = mp->realloc_fallback;
+        out = mp_imalloc(mp, size, alignment, flags);
+        if (oldsize != MEM_UNKNOWN) {
+            memcpy(out, mem, oldsize);
+        }
+        mp_ifree(*pmp, mem);
+        *pmp = mp;
+        return out;
+    } else {
+        return mp_irealloc(mp, mem, oldsize, size, alignment, flags);
+    }
+}
+
 static ALWAYS_INLINE
 mem_pool_t *ipool(mem_flags_t flags)
 {
@@ -357,6 +387,12 @@ mem_pool_t *ipool(mem_flags_t flags)
         e_panic("pool memory cannot be used with imalloc familly");
         return NULL;
     }
+}
+
+static ALWAYS_INLINE
+mem_pool_t *mp_ipool(mem_pool_t *mp)
+{
+    return mp ?: &mem_pool_libc;
 }
 
 __attribute__((warn_unused_result, malloc))

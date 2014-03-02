@@ -101,7 +101,7 @@ mem_pool_t mem_pool_libc = {
     .malloc   = &libc_malloc,
     .realloc  = &libc_realloc,
     .free     = &libc_free,
-    .mem_pool = MEM_LIBC,
+    .mem_pool = MEM_LIBC | MEM_EFFICIENT_REALLOC,
     .min_alignment = sizeof(void *)
 };
 
@@ -128,8 +128,9 @@ mem_pool_t mem_pool_static = {
     .malloc  = &static_malloc,
     .realloc = &static_realloc,
     .free    = &static_free,
-    .mem_pool = MEM_STATIC,
-    .min_alignment = 1
+    .mem_pool = MEM_STATIC | MEM_BY_FRAME,
+    .min_alignment = 1,
+    .realloc_fallback = &mem_pool_libc
 };
 
 /* }}} */

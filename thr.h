@@ -16,7 +16,8 @@
 
 #include <Block.h>
 #include <pthread.h>
-#include "container.h"
+#include "core.h"
+#include "container-dlist.h"
 
 #include "thr-evc.h"
 #include "thr-job.h"

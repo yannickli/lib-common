@@ -14,7 +14,7 @@
 #include <netdb.h>
 #include "z.h"
 #include "net.h"
-#include "container.h"
+#include "hash.h"
 
 bool sockunion_equal(const sockunion_t *a1, const sockunion_t *a2)
 {
@@ -51,7 +51,7 @@ uint32_t sockunion_hash(const sockunion_t *su)
       case AF_INET:
         u64 = su->sin.sin_family | (su->sin.sin_port << 16)
             | ((uint64_t)su->sin.sin_addr.s_addr << 32);
-        return qhash_hash_u64(NULL, u64);
+        return u64_hash32(u64);
 
       case AF_INET6:
         u32 = su->sin6.sin6_family | (su->sin6.sin6_port << 16);

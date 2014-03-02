@@ -14,10 +14,6 @@
 #ifndef IS_LIB_COMMON_BIT_H
 #define IS_LIB_COMMON_BIT_H
 
-#include "core.h"
-#include "arith.h"
-#include "container.h"
-
 #include "bit-buf.h"
 #include "bit-stream.h"
 #include "bit-wah.h"

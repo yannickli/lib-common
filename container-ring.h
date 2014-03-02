@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_RING_H)
-#  error "you must include container.h instead"
-#endif
+#ifndef IS_LIB_COMMON_CONTAINER_RING_H
 #define IS_LIB_COMMON_CONTAINER_RING_H
+
+#include "core.h"
 
 #define RING_TYPE(type_t, pfx)  \
     typedef struct pfx##_ring { \
@@ -106,3 +106,5 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
 
 #define DO_RING(type_t, pfx, wipe) \
     RING_TYPE(type_t, pfx); RING_FUNCTIONS(type_t, pfx, wipe)
+
+#endif

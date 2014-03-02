@@ -11,7 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "container.h"
+#include "container-qhash.h"
+#include "container-qvector.h"
 #include "arith.h"
 
 #define QH_SETBITS_MASK  ((size_t)0x5555555555555555ULL)
@@ -52,21 +53,29 @@ static void qhash_resize_start(qhash_t *qh)
 
     newsize = qhash_get_size(newsize);
     if (newsize > hdr->size) {
-        p_realloc(&qh->keys, newsize * qh->k_size);
-        if (qh->v_size)
-            p_realloc(&qh->values, newsize * qh->v_size);
-        if (qh->h_size)
-            p_realloc(&qh->hashes, newsize);
+        assert (!hdr->mp || !hdr->mp->realloc_fallback);
+        qh->keys = mp_irealloc(hdr->mp, qh->keys, hdr->size * qh->k_size,
+                               newsize * qh->k_size, 8, MEM_RAW);
+        if (qh->v_size) {
+            qh->values = mp_irealloc(hdr->mp, qh->values,
+                                     hdr->size * qh->v_size,
+                                     newsize * qh->v_size, 8, MEM_RAW);
+        }
+        if (qh->h_size) {
+            qh->hashes = mp_irealloc(hdr->mp, qh->hashes,
+                                     hdr->size * 4, newsize * 4, 4, MEM_RAW);
+        }
     }
     if (hdr->len) {
-        qh->old      = p_dup(hdr, 1);
+        qh->old      = mp_dup(hdr->mp, hdr, 1);
         qh->old->len = hdr->size;
     } else {
-        p_delete(&hdr->bits);
+        mp_delete(hdr->mp, &hdr->bits);
     }
     qh->ghosts     = 0;
     hdr->size      = newsize;
-    hdr->bits      = p_new(size_t, BITS_TO_ARRAY_LEN(size_t, 2 * newsize));
+    hdr->bits      = mp_new(hdr->mp, size_t,
+                            BITS_TO_ARRAY_LEN(size_t, 2 * newsize));
     SET_BIT(hdr->bits, 2 * newsize);
 }
 
@@ -76,23 +85,32 @@ static void qhash_resize_done(qhash_t *qh)
     uint64_t size = hdr->size;
 
     if (qh->old->size > size) {
-        p_realloc(&qh->keys, size * qh->k_size);
-        if (qh->v_size)
-            p_realloc(&qh->values, size * qh->v_size);
-        if (qh->h_size)
-            p_realloc(&qh->hashes, size);
+        qh->keys = mp_irealloc(hdr->mp, qh->keys, qh->old->size * qh->k_size,
+                               size * qh->k_size, 8, MEM_RAW);
+        if (qh->v_size) {
+            qh->values = mp_irealloc(hdr->mp, qh->values,
+                                     qh->old->size * qh->v_size,
+                                     size * qh->v_size, 8, MEM_RAW);
+        }
+        if (qh->h_size) {
+            qh->hashes = mp_irealloc(hdr->mp, qh->hashes,
+                                     qh->old->size * 4,
+                                     size * 4, 4, MEM_RAW);
+        }
     }
 
-    p_delete(&qh->old->bits);
-    p_delete(&qh->old);
+    mp_delete(hdr->mp, &qh->old->bits);
+    mp_delete(hdr->mp, &qh->old);
 }
 
-void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh)
+void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh,
+                mem_pool_t *mp)
 {
     p_clear(qh, 1);
     qh->k_size = k_size;
     qh->v_size = v_size;
     qh->h_size = !!doh;
+    qh->hdr.mp = mp;
 }
 
 void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
@@ -109,21 +127,21 @@ void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
 void qhash_wipe(qhash_t *qh)
 {
     if (qh->old) {
-        p_delete(&qh->old->bits);
-        p_delete(&qh->old);
+        mp_delete(qh->hdr.mp, &qh->old->bits);
+        mp_delete(qh->hdr.mp, &qh->old);
     }
-    p_delete(&qh->hdr.bits);
-    p_delete(&qh->values);
-    p_delete(&qh->hashes);
-    p_delete(&qh->keys);
-    qhash_init(qh, 0, 0, false);
+    mp_delete(qh->hdr.mp, &qh->hdr.bits);
+    mp_delete(qh->hdr.mp, &qh->values);
+    mp_delete(qh->hdr.mp, &qh->hashes);
+    mp_delete(qh->hdr.mp, &qh->keys);
+    qhash_init(qh, 0, 0, false, qh->hdr.mp);
 }
 
 void qhash_clear(qhash_t *qh)
 {
     if (qh->old) {
-        p_delete(&qh->old->bits);
-        p_delete(&qh->old);
+        mp_delete(qh->hdr.mp, &qh->old->bits);
+        mp_delete(qh->hdr.mp, &qh->old);
     }
     if (qh->hdr.bits) {
         uint64_t size = qh->hdr.size;

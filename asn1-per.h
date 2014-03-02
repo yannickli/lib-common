@@ -87,9 +87,6 @@
 #ifndef IS_LIB_INET_ASN1_PER_H
 #define IS_LIB_INET_ASN1_PER_H
 
-#include <lib-common/container.h>
-#include <lib-common/bit.h>
-
 #include "asn1.h"
 #include "asn1-per-macros.h"
 
