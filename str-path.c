@@ -263,7 +263,7 @@ int path_va_extend(char buf[static PATH_MAX], const char *prefix,
 
     prefix_len = pstrcpy(buf, PATH_MAX, prefix);
 
-    if (prefix_len < PATH_MAX && buf[prefix_len - 1] != '/') {
+    if (prefix_len && prefix_len < PATH_MAX && buf[prefix_len - 1] != '/') {
         prefix_len = pstrcat(buf, PATH_MAX, "/");
     }
 
@@ -289,7 +289,7 @@ int path_va_extend(char buf[static PATH_MAX], const char *prefix,
     suffix_len = vsnprintf(buf + prefix_len, PATH_MAX - prefix_len, fmt, cpy);
     va_end(cpy);
 
-    if (suffix_len && unlikely(buf[prefix_len] == '/')) {
+    if (prefix_len && suffix_len && unlikely(buf[prefix_len] == '/')) {
         /* slow path: optimistic prediction failed */
         if (prefix_len + suffix_len < PATH_MAX) {
             p_move(buf, &buf[prefix_len], suffix_len + 1);
