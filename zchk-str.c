@@ -213,6 +213,8 @@ Z_GROUP_EXPORT(str)
         T("/1", "/foo/bar/", "/%d", 1);
         T("/foo/bar/1", "/foo/bar", "%d", 1);
         T("/foo/bar/", "/foo/bar", "");
+        T("1", "", "%d", 1);
+        T("/1", "", "/%d", 1);
 
         memset(long_prefix, '1', sizeof(long_prefix));
         long_prefix[PATH_MAX - 3] = '\0';
