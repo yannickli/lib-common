@@ -619,10 +619,20 @@ void *qpage_dup_n(const void *ptr, size_t n, uint32_t *seg)
     return res;
 }
 
-void qpage_shutdown(void)
+static int qpage_initialize(void *arg)
+{
+    p_clear(&_G, 1);
+    return 0;
+}
+
+static int qpage_shutdown(void)
 {
     for (int i = 0; i < _G.segs.len; i++) {
         free(run_of(_G.segs.tab[i], 0));
     }
     qv_wipe(pgd, &_G.segs);
+    return 0;
 }
+
+MODULE_BEGIN(qpage)
+MODULE_END()
