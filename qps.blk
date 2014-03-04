@@ -3190,7 +3190,9 @@ static int qps_shutdown(void)
     return 0;
 }
 
-MODULE(qps, NULL, "thr")
+MODULE_BEGIN(qps)
+    MODULE_DEPENDS_ON(thr);
+MODULE_END()
 
 void qps_old_initialize(void (*sighandler)(int, siginfo_t *, void *))
 {

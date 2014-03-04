@@ -174,15 +174,18 @@ void module_run_method(const module_method_t *method, data_t arg);
  *
  * The section must be closed by calling \ref MODULE_END().
  */
-#define MODULE_BEGIN(name, ...)                                              \
+#define MODULE_BEGIN(name)                                                   \
     __attr_section("intersec", "module")                                     \
     module_t *name##_module;                                                 \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
+        const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = name##_module = MODULE_REGISTER(name, NULL,        \
-                                                          ##__VA_ARGS__);
+        module_t *__mod = name##_module                                      \
+            = module_register(LSTR_IMMED_V(#name), &name##_module,           \
+                              &name##_initialize, &name##_shutdown,          \
+                              __deps, countof(__deps));                      \
 
 /** Macro to end the definition of a module.
  *
@@ -249,63 +252,6 @@ void module_run_method(const module_method_t *method, data_t arg);
         assert (hook##_method.type == METHOD_GENERIC);                       \
         module_implement_method(__mod, &hook##_method, __hook_cb);           \
     } while (0)
-
-/* }}} */
-/* {{{ Old API */
-
-/** \brief Macro for registering a module
- *              module1
- *             /       \
- *         module2   module3
- *
- *
- *  Prototype of the module:
- *           int module1_initialize(void *); Return >= 0 if success
- *           int module1_shutdown(void);     Return >= 0 if success
- *           void module1_on_term(int);
- *
- *  Arguments:
- *        + name of the module
- *        + callback to the module_on_term function (NULL if none)
- *        + list of dependencies (between "")
- *
- *  Use:
- *      MODULE_REGISTER(module1, module1_on_term, "module2", "module3");
- *      MODULE_REGISTER(module2, NULL);
- *      MODULE_REGISTER(module3, NULL);
- *
- *  You can use \ref MODULE to perform automatic registration of a module.
- */
-
-#define MODULE_REGISTER(name, on_term_cb, ...)   ({                          \
-        const char *__##name##_deps[] = { "log", ##__VA_ARGS__ };            \
-        module_t *__rmod;                                                    \
-        void (*__on_term)(int) = on_term_cb;                                 \
-                                                                             \
-        __rmod = module_register(LSTR_IMMED_V(#name), &name##_module,        \
-                                 &name##_initialize, &name##_shutdown,       \
-                                 __##name##_deps, countof(__##name##_deps)); \
-        if (__on_term) {                                                     \
-            module_implement_method(__rmod, &on_term_method,                 \
-                                    (void *)__on_term);                      \
-        }                                                                    \
-        __rmod;                                                              \
-    })
-
-
-/** Macro to perform automatical module registration.
- *
- * This macro declares a function that will automatically register a module at
- * binary/library initialization. It takes the same arguments as \ref
- * MODULE_REGISTER.
- */
-#define MODULE(name, on_term_cb, ...)                                        \
-    MODULE_BEGIN(name, ##__VA_ARGS__)                                        \
-        void (*__cb)(int) = on_term_cb;                                      \
-        if (__cb) {                                                          \
-            MODULE_IMPLEMENTS_INT(on_term, __cb);                            \
-        }                                                                    \
-    MODULE_END()
 
 /* }}} */
 /* {{{ Low-level API */

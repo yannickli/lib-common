@@ -56,7 +56,8 @@ static int ic_shutdown(void)
     return F_SHUTDOWN;
 }
 
-MODULE(ic, NULL)
+MODULE_BEGIN(ic)
+MODULE_END()
 
 void ic_old_initialize(void)
 {

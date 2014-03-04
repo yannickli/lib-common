@@ -41,51 +41,12 @@ NEW_MOCK_MODULE(mod4, 1, 1);
 NEW_MOCK_MODULE(mod5, 1, 1);
 NEW_MOCK_MODULE(mod6, 1, 0);
 
-NEW_MOCK_MODULE(modterm1, 1, 1);
-NEW_MOCK_MODULE(modterm2, 1, 1);
-NEW_MOCK_MODULE(modterm3, 1, 1);
-NEW_MOCK_MODULE(modterm4, 1, 1);
-NEW_MOCK_MODULE(modterm5, 1, 1);
-NEW_MOCK_MODULE(modterm6, 1, 1);
-
 NEW_MOCK_MODULE(modmethod1, 1, 1);
 NEW_MOCK_MODULE(modmethod2, 1, 1);
 NEW_MOCK_MODULE(modmethod3, 1, 1);
 NEW_MOCK_MODULE(modmethod4, 1, 1);
 NEW_MOCK_MODULE(modmethod5, 1, 1);
 NEW_MOCK_MODULE(modmethod6, 1, 1);
-
-int modterm;
-int modterm1;
-int modterm2;
-int modterm3;
-int modterm5;
-int modterm6;
-
-static void modterm1_on_term(int i)
-{
-    modterm1 = modterm++;
-}
-
-static void modterm2_on_term(int i)
-{
-    modterm2 = modterm++;
-}
-
-static void modterm3_on_term(int i)
-{
-    modterm3 = modterm++;
-}
-
-static void modterm5_on_term(int i)
-{
-    modterm5 = modterm++;
-}
-
-static void modterm6_on_term(int i)
-{
-    modterm6 = modterm++;
-}
 
 int modmethod1;
 int modmethod2;
@@ -135,9 +96,12 @@ static int module_arg_shutdown(void)
 }
 static module_t *module_arg_module;
 
-#define Z_MODULE_REGISTER(name, ...)  \
-    (name##_module = MODULE_REGISTER(name, ##__VA_ARGS__))
-
+#define Z_MODULE_REGISTER(name)                                              \
+    (name##_module = module_register(LSTR_IMMED_V(#name), &name##_module,    \
+                                     &name##_initialize,  &name##_shutdown,  \
+                                     NULL, 0))
+#define Z_MODULE_DEPENDS_ON(name, dep)                                       \
+    module_add_dep(name##_module, LSTR_IMMED_V(#dep), &dep##_module)
 
 /** Provide arguments in constructor. */
 lstr_t *word_global;
@@ -180,16 +144,18 @@ Z_GROUP_EXPORT(module)
          */
 
         #define U_T_R "Unable to register"
-        Z_ASSERT_P(Z_MODULE_REGISTER(mock_ic, NULL),
-                    U_T_R"mock_ic");
-        Z_ASSERT_P(Z_MODULE_REGISTER(mock_platform, NULL, "mock_thr",
-                                    "mock_log", "mock_ic"),
-                   U_T_R"mock_platform");
-        Z_ASSERT_P(Z_MODULE_REGISTER(mock_thr, NULL),
-                    U_T_R"mock_thr");
-        Z_ASSERT_P(Z_MODULE_REGISTER(mock_log, NULL),
-                    U_T_R"mock_log");
-        Z_ASSERT_NULL(MODULE_REGISTER(mock_log, NULL));
+        Z_ASSERT_P(Z_MODULE_REGISTER(mock_ic), U_T_R"mock_ic");
+        Z_ASSERT_P(Z_MODULE_REGISTER(mock_platform), U_T_R"mock_platform");
+        Z_MODULE_DEPENDS_ON(mock_platform, mock_thr);
+        Z_MODULE_DEPENDS_ON(mock_platform, mock_log);
+        Z_MODULE_DEPENDS_ON(mock_platform, mock_ic);
+
+        Z_ASSERT_P(Z_MODULE_REGISTER(mock_thr), U_T_R"mock_thr");
+        Z_ASSERT_P(Z_MODULE_REGISTER(mock_log), U_T_R"mock_log");
+        Z_ASSERT_NULL(module_register(LSTR_IMMED_V("mock_log"),
+                                      &mock_log_module,
+                                      &mock_log_initialize,
+                                      &mock_log_shutdown, NULL, 0));
         #undef U_T_R
 
         MODULE_REQUIRE(mock_log);
@@ -240,12 +206,17 @@ Z_GROUP_EXPORT(module)
        *             |
        *            mod5
        */
-      Z_MODULE_REGISTER(mod1, NULL, "mod2", "mod3", "mod4");
-      Z_MODULE_REGISTER(mod2, NULL);
-      Z_MODULE_REGISTER(mod3, NULL, "mod5");
-      Z_MODULE_REGISTER(mod4, NULL);
-      Z_MODULE_REGISTER(mod5, NULL);
-      Z_MODULE_REGISTER(mod6, NULL, "mod2");
+      Z_MODULE_REGISTER(mod1);
+      Z_MODULE_DEPENDS_ON(mod1, mod2);
+      Z_MODULE_DEPENDS_ON(mod1, mod3);
+      Z_MODULE_DEPENDS_ON(mod1, mod4);
+      Z_MODULE_REGISTER(mod2);
+      Z_MODULE_REGISTER(mod3);
+      Z_MODULE_DEPENDS_ON(mod3, mod5);
+      Z_MODULE_REGISTER(mod4);
+      Z_MODULE_REGISTER(mod5);
+      Z_MODULE_REGISTER(mod6);
+      Z_MODULE_DEPENDS_ON(mod6, mod2);
 
 
 
@@ -268,7 +239,7 @@ Z_GROUP_EXPORT(module)
     Z_TEST(provide,  "Provide") {
         int a = 4;
 
-        Z_MODULE_REGISTER(module_arg, NULL);
+        Z_MODULE_REGISTER(module_arg);
         MODULE_PROVIDE(module_arg, &a);
         MODULE_PROVIDE(module_arg, &a);
         MODULE_REQUIRE(module_arg);
@@ -282,78 +253,40 @@ Z_GROUP_EXPORT(module)
         MODULE_RELEASE(modprovide2);
     } Z_TEST_END;
 
-    Z_TEST(onterm, "On term") {
-        /**       modterm1
-         *           |
-         *        modterm2
-         *           |
-         *        modterm3
-         *           |
-         *        modterm4   modterm6
-         *           |     /
-         *        modterm5
-         **/
-
-        Z_MODULE_REGISTER(modterm1, modterm1_on_term, "modterm2");
-        Z_MODULE_REGISTER(modterm2, modterm2_on_term, "modterm3");
-        Z_MODULE_REGISTER(modterm3, modterm3_on_term, "modterm4");
-        Z_MODULE_REGISTER(modterm4, NULL, "modterm5");
-        Z_MODULE_REGISTER(modterm5, modterm5_on_term);
-        Z_MODULE_REGISTER(modterm6, modterm6_on_term, "modterm5");
-
-        MODULE_REQUIRE(modterm1);
-        MODULE_REQUIRE(modterm6);
-
-        module_on_term(SIGINT);
-        Z_ASSERT_GT(modterm1, modterm2);
-        Z_ASSERT_GT(modterm2, modterm3);
-        Z_ASSERT_GT(modterm3, modterm5);
-        Z_ASSERT_GT(modterm6, modterm5);
-        Z_ASSERT_EQ(modterm, 5);
-
-        modterm = modterm1 = modterm2 = modterm3 = modterm5 = modterm6 = 0;
-
-        MODULE_RELEASE(modterm6);
-
-        module_on_term(SIGINT);
-        Z_ASSERT_GT(modterm1, modterm2);
-        Z_ASSERT_GT(modterm2, modterm3);
-        Z_ASSERT_GT(modterm3, modterm5);
-        Z_ASSERT_ZERO(modterm6);
-        Z_ASSERT_EQ(modterm, 4);
-
-        MODULE_RELEASE(modterm1);
-    } Z_TEST_END;
-
     Z_TEST(method, "Methods") {
         int val;
 
-        Z_MODULE_REGISTER(modmethod1, NULL, "modmethod2");
+        Z_MODULE_REGISTER(modmethod1);
+        Z_MODULE_DEPENDS_ON(modmethod1, modmethod2);
         module_implement_method(modmethod1_module, &after_method,
                                 &modmethod1_ztst);
         module_implement_method(modmethod1_module, &before_method,
                                 &modmethod1_ztst);
 
-        Z_MODULE_REGISTER(modmethod2, NULL, "modmethod3");
+        Z_MODULE_REGISTER(modmethod2);
+        Z_MODULE_DEPENDS_ON(modmethod2, modmethod3);
         module_implement_method(modmethod2_module, &after_method,
                                 &modmethod2_ztst);
         module_implement_method(modmethod2_module, &before_method,
                                 &modmethod2_ztst);
 
-        Z_MODULE_REGISTER(modmethod3, NULL, "modmethod4");
+        Z_MODULE_REGISTER(modmethod3);
+        Z_MODULE_DEPENDS_ON(modmethod3, modmethod4);
         module_implement_method(modmethod3_module, &after_method,
                                 &modmethod3_ztst);
         module_implement_method(modmethod3_module, &before_method,
                                 &modmethod3_ztst);
 
-        Z_MODULE_REGISTER(modmethod4, NULL, "modmethod5");
-        Z_MODULE_REGISTER(modmethod5, NULL);
+        Z_MODULE_REGISTER(modmethod4);
+        Z_MODULE_DEPENDS_ON(modmethod4, modmethod5);
+        Z_MODULE_REGISTER(modmethod5);
         module_implement_method(modmethod5_module, &after_method,
                                 &modmethod5_ztst);
         module_implement_method(modmethod5_module, &before_method,
                                 &modmethod5_ztst);
 
-        Z_MODULE_REGISTER(modmethod6, NULL, "modmethod5");
+        Z_MODULE_REGISTER(modmethod6);
+        Z_MODULE_DEPENDS_ON(modmethod6, modmethod5);
         module_implement_method(modmethod6_module, &after_method,
                                 &modmethod6_ztst);
         module_implement_method(modmethod6_module, &before_method,
