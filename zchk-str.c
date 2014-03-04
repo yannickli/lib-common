@@ -1032,6 +1032,30 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(lstr_dl_distance, "str: Damerau–Levenshtein distance") {
+#define T(s1, s2, exp) do {                                                  \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s1), LSTR_IMMED_V(s2),    \
+                                      exp), exp);                            \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s2), LSTR_IMMED_V(s1),    \
+                                      exp), exp);                            \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s1), LSTR_IMMED_V(s2),    \
+                                      -1), exp);                             \
+        if (exp > 0) {                                                       \
+            Z_ASSERT_NEG(lstr_dlevenshtein(LSTR_IMMED_V(s1),                 \
+                                           LSTR_IMMED_V(s2), exp - 1));      \
+        }                                                                    \
+    } while (0)
+
+        T("",         "",         0);
+        T("abcd",     "abcd",     0);
+        T("",         "abcd",     4);
+        T("toto",     "totototo", 4);
+        T("ba",       "abc",      2);
+        T("fee",      "deed",     2);
+        T("hurqbohp", "qkhoz",    6);
+#undef T
+    } Z_TEST_END;
+
     Z_TEST(ps_split, "str-array: str_explode") {
         qv_t(lstr) arr;
 

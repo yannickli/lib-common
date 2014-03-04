@@ -286,6 +286,25 @@ static ALWAYS_INLINE bool lstr_utf8_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_utf8_equal(&s1, &s2);
 }
 
+/** \brief returns the Damerau–Levenshtein distance between two strings.
+ *
+ * This is the number of additions, deletions, substitutions, and
+ * transpositions needed to transform a string into another.
+ * This can be used to detect possible misspellings in texts written by
+ * humans.
+ *
+ * \param[in]  s1        the first string to compare.
+ * \param[in]  s2        the second string to compare.
+ * \param[in]  max_dist  the distance computation will be aborted if it is
+ *                       detected that the result will be strictly greater
+ *                       than this limit, allowing to save CPU time;
+ *                       can be -1 for no limit.
+ *
+ * \return  -1 if \p max_dist was reached, the Damerau–Levenshtein distance
+ *          between \p s1 and \p s2 otherwise.
+ */
+int lstr_dlevenshtein(const lstr_t s1, const lstr_t s2, int max_dist);
+
 /*--------------------------------------------------------------------------*/
 /** \brief returns a constant copy of \v s.
  */
