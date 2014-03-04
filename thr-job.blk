@@ -839,7 +839,7 @@ static int thr_initialize(void *arg)
         el_unref(_G.eventel);
     }
 
-    return F_INITIALIZE;
+    return 0;
 }
 
 static int thr_shutdown(void)
@@ -863,7 +863,7 @@ static int thr_shutdown(void)
         thr_ec_wipe(&thr_job_g.start_bar_thr);
         thr_ec_wipe(&thr_job_g.ec);
     }
-    return F_SHUTDOWN;
+    return 0;
 }
 
 static void thr_job_at_fork(void)

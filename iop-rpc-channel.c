@@ -41,7 +41,7 @@ static int ic_initialize(void *arg)
         qm_init(ic, &ic_h_g, false);
         qm_init(ic_hook_ctx, &ic_ctx_h_g, false);
     }
-    return F_INITIALIZE;
+    return 0;
 }
 
 static int ic_shutdown(void)
@@ -49,7 +49,7 @@ static int ic_shutdown(void)
     qm_wipe(ic_hook_ctx, &ic_ctx_h_g);
     qm_wipe(ic, &ic_h_g);
     mem_fifo_pool_delete(&ic_mp_g);
-    return F_SHUTDOWN;
+    return 0;
 }
 
 MODULE_BEGIN(ic)

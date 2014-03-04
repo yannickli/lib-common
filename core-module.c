@@ -176,6 +176,9 @@ void module_provide(module_t **module, void *argument)
     (*module)->constructor_argument = argument;
 }
 
+__attr_nonnull__((1))
+static int module_shutdown(module_t *module);
+
 static int notify_shutdown(module_t *module, module_t *dependence)
 {
     qv_for_each_pos(module, pos, &module->required_by) {
@@ -184,14 +187,30 @@ static int notify_shutdown(module_t *module, module_t *dependence)
             break;
         }
     }
-    if (module->required_by.len == 0 && module->state != MANU_REQ)
+    if (module->required_by.len == 0 && module->state != MANU_REQ) {
         return module_shutdown(module);
+    }
 
-    return F_NOTIFIED;
+    return 0;
 }
 
-
-int module_shutdown(module_t *module)
+/** \brief Shutdown a module
+ *
+ *  Two steps   :   - Shutdown the module.
+ *                  - Notify dependent modules that it has been shutdown
+ *                    if the dependent modules don't have any other parent
+ *                    modules and they have been automatically initialize
+ *                    they will shutdown
+ *
+ *  If the module is not able to shutdown (destructor returns a negative
+ *  number), module state change to FAIL_SHUT but we considered as shutdown
+ *  and notify dependent modules.
+ *
+ *
+ *  @param mod The module to shutdown
+ */
+__attr_nonnull__((1))
+static int module_shutdown(module_t *module)
 {
     int shut_self, shut_dependent;
 
@@ -210,43 +229,40 @@ int module_shutdown(module_t *module)
         int shut;
 
         shut = notify_shutdown(qm_get(module, &_G.modules, &dep), module);
-        if (shut < 0)
+        if (shut < 0) {
             shut_dependent = shut;
+        }
     }
 
-    if (shut_dependent < 0 || shut_self < 0)
-        return F_NOT_SHUTDOWN;
-
-    return F_SHUTDOWN;
+    RETHROW(shut_dependent);
+    RETHROW(shut_self);
+    return 0;
 }
 
-
-
-int module_release(module_t *module)
+void module_release(module_t *module)
 {
     if (module->manu_req_count == 0) {
-        /* You are trying to either release:
-         *   - manually a module that have been spawn automatically (AUTO_REQ)
-         *   - a module that is not loaded (F_REGISTER)
+        /* You are trying to manually release a module that have been spawn
+         * automatically (AUTO_REQ)
          */
         assert (false && "unauthorize release");
-        return F_UNAUTHORIZE_RELEASE;
+        return;
     }
 
     if (module->state == MANU_REQ && module->manu_req_count > 1) {
         module->manu_req_count--;
-        return F_RELEASED;
+        return;
     }
 
     if (module->state == MANU_REQ && module->manu_req_count == 1) {
         if (module->required_by.len > 0) {
             module->manu_req_count = 0;
             module->state = AUTO_REQ;
-            return F_RELEASED;
+            return;
         }
     }
 
-    return module_shutdown(module);
+    module_shutdown(module);
 }
 
 

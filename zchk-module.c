@@ -167,21 +167,33 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT(MODULE_IS_LOADED(mock_ic));
         Z_ASSERT(MODULE_IS_LOADED(mock_platform));
 
-        Z_ASSERT_EQ(MODULE_RELEASE(mock_platform), F_SHUTDOWN);
+        MODULE_RELEASE(mock_platform);
         Z_ASSERT(MODULE_IS_LOADED(mock_log));
+        Z_ASSERT(MODULE_IS_LOADED(mock_thr));
+        Z_ASSERT(MODULE_IS_LOADED(mock_ic));
         Z_ASSERT(!MODULE_IS_LOADED(mock_platform),
                  "mock_platform should be shutdown");
 
-        Z_ASSERT_EQ(MODULE_RELEASE(mock_log), F_SHUTDOWN);
-        Z_ASSERT_EQ(MODULE_RELEASE(mock_thr), F_SHUTDOWN);
-        Z_ASSERT_EQ(MODULE_RELEASE(mock_ic), F_SHUTDOWN);
+        MODULE_RELEASE(mock_log);
+        Z_ASSERT(!MODULE_IS_LOADED(mock_log));
+        Z_ASSERT(MODULE_IS_LOADED(mock_thr));
+        Z_ASSERT(MODULE_IS_LOADED(mock_ic));
+        Z_ASSERT(!MODULE_IS_LOADED(mock_platform),
+                 "mock_platform should be shutdown");
+        MODULE_RELEASE(mock_thr);
+        Z_ASSERT(!MODULE_IS_LOADED(mock_log));
+        Z_ASSERT(!MODULE_IS_LOADED(mock_thr));
+        Z_ASSERT(MODULE_IS_LOADED(mock_ic));
+        Z_ASSERT(!MODULE_IS_LOADED(mock_platform),
+                 "mock_platform should be shutdown");
+        MODULE_RELEASE(mock_ic);
 
 
         Z_ASSERT(!MODULE_IS_LOADED(mock_log), "mock_log should be shutdown");
         Z_ASSERT(!MODULE_IS_LOADED(mock_ic), "mock_ic should be shutdown");
         Z_ASSERT(!MODULE_IS_LOADED(mock_thr), "mock_thr should be shutdown");
-
-
+        Z_ASSERT(!MODULE_IS_LOADED(mock_platform),
+                 "mock_platform should be shutdown");
     } Z_TEST_END;
 
     Z_TEST(basic2,  "Require submodule") {
@@ -222,16 +234,62 @@ Z_GROUP_EXPORT(module)
 
       /* Test 1 All init work and shutdown work */
       MODULE_REQUIRE(mod1);
-      MODULE_REQUIRE(mod1);
-      MODULE_REQUIRE(mod6);
-      MODULE_REQUIRE(mod3);
-      Z_ASSERT(MODULE_IS_LOADED(mod5));
-      Z_ASSERT_EQ(MODULE_RELEASE(mod3), F_RELEASED);
-      Z_ASSERT_EQ(MODULE_RELEASE(mod1),F_RELEASED);
-      Z_ASSERT_EQ(MODULE_RELEASE(mod1), F_SHUTDOWN);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
       Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(!MODULE_IS_LOADED(mod6));
+      MODULE_REQUIRE(mod1);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(!MODULE_IS_LOADED(mod6));
+      MODULE_REQUIRE(mod6);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(MODULE_IS_LOADED(mod6));
+      MODULE_REQUIRE(mod3);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(MODULE_IS_LOADED(mod6));
+
+      MODULE_RELEASE(mod3);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(MODULE_IS_LOADED(mod6));
+      MODULE_RELEASE(mod1);
+      Z_ASSERT(MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(MODULE_IS_LOADED(mod3));
+      Z_ASSERT(MODULE_IS_LOADED(mod4));
+      Z_ASSERT(MODULE_IS_LOADED(mod5));
+      Z_ASSERT(MODULE_IS_LOADED(mod6));
+      MODULE_RELEASE(mod1);
+      Z_ASSERT(!MODULE_IS_LOADED(mod1));
+      Z_ASSERT(MODULE_IS_LOADED(mod2));
+      Z_ASSERT(!MODULE_IS_LOADED(mod3));
+      Z_ASSERT(!MODULE_IS_LOADED(mod4));
+      Z_ASSERT(!MODULE_IS_LOADED(mod5));
+      Z_ASSERT(MODULE_IS_LOADED(mod6));
       MODULE_RELEASE(mod6);
+      Z_ASSERT(!MODULE_IS_LOADED(mod1));
       Z_ASSERT(!MODULE_IS_LOADED(mod2));
+      Z_ASSERT(!MODULE_IS_LOADED(mod3));
+      Z_ASSERT(!MODULE_IS_LOADED(mod4));
+      Z_ASSERT(!MODULE_IS_LOADED(mod5));
+      Z_ASSERT(!MODULE_IS_LOADED(mod6));
 
     } Z_TEST_END;
 

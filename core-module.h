@@ -317,7 +317,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *             - module1, module2, module3 initialized
  *             - module1 will have state MANU_REQ
  *             - module2, module3 will have state AUTO_REQ
- *             - MODULE_REQUIRE will return F_INITIALIZE
+ *             - MODULE_REQUIRE will return
  *       + If module3 fail to initialize
  *             - module_require will throw a logger_fatal
  *
@@ -344,8 +344,6 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 
 /* {{{ Low-level API */
 
-#define F_INITIALIZE  1
-
 /** \brief Require a module (initialization)
  *
  *  Two stepts  : - Require dependent modules
@@ -358,57 +356,18 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *  @param required_by - Module that requires \p mod to be initialized
  *                     - NULL -> No parent modules
  *
- *
- *  @return
- *       F_INITIALIZE
  */
 __attr_nonnull__((1))
 void module_require(module_t *mod, module_t *required_by);
-
-
-#define F_RELEASED  3
-#define F_SHUTDOWN  1
-#define F_NOTIFIED  2
-#define F_NOT_SHUTDOWN  (-1) /* One of the module did not shutdown */
-#define F_UNAUTHORIZE_RELEASE (-2)
-
-/** \brief Shutdown a module
- *
- *  Two stepts  :   - Shutdown the module.
- *                  - Notify dependent modules that it has been shutdown
- *                    if the dependent modules don't have any other parent
- *                    modules and they have been automatically initialize
- *                    they will shutdown
- *
- *  If the module is not able to shutdown (destructor returns a negative
- *  number), module state change to FAIL_SHUT but we considered as shutdown
- *  and notify dependent modules.
- *
- *
- *  @param mod The module to shutdown
- *
- *  @return
- *       F_SHUTDOWN
- *       F_NOT_SHUTDOWN
- *       F_NOTIFIED
- */
-__attr_nonnull__((1))
-int module_shutdown(module_t *mod);
-
 
 /** \brief Release a module
  *
  *  assert if you try to release a module that has been automatically loaded
  *
  *  @param mod Module to shutdown
- *
- *  @return
- *       F_SHUTDOWN
- *       F_NOT_SHUTDOWN
- *       F_RELEASED
  */
 __attr_nonnull__((1))
-int module_release(module_t *mod);
+void module_release(module_t *mod);
 
 __attr_nonnull__((1, 2))
 void module_provide(module_t **mod, void *argument);
