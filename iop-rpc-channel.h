@@ -242,7 +242,21 @@ ichannel_t *ic_get_by_id(uint32_t id);
 ichannel_t *ic_init(ichannel_t *);
 void ic_wipe(ichannel_t *);
 GENERIC_NEW(ichannel_t, ic);
-GENERIC_DELETE(ichannel_t, ic);
+
+__attr_nonnull__((1))
+static inline void ic_delete(ichannel_t **icp)
+{
+    ichannel_t *ic = *icp;
+
+    if (ic) {
+        ic_wipe(ic);
+        /* XXX never delete icp which may be set to NULL by ic_wipe() through
+         * ic->owner. */
+        p_delete(&ic);
+        *icp = NULL;
+    }
+}
+
 int  ic_connect(ichannel_t *);
 int  ic_connect_blocking(ichannel_t *ic);
 void ic_disconnect(ichannel_t *ic);
