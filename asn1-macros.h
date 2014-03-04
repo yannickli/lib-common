@@ -111,7 +111,9 @@
 #define ASN1_CHOICE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_CHOICE);                    \
             desc->choice_info.min = 0;                                       \
-            desc->choice_info.max = desc->vec.len - 1;                       \
+            /* - 2 -> index + first choice */                                \
+            assert (desc->vec.len >= 2);                                     \
+            desc->choice_info.max = desc->vec.len - 2;                       \
             asn1_int_info_update(&desc->choice_info);                        \
             asn1_build_choice_table((asn1_choice_desc_t *)desc);             \
         }                                                                    \
