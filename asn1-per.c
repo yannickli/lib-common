@@ -583,7 +583,6 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     assert (desc->vec.len > 1);
 
     enum_field = &desc->vec.tab[0];
-    assert (enum_field->type == ASN1_OBJ_TYPE(enum));
 
     index = *GET_DATA_P(st, enum_field, int);
     choice_field = &desc->vec.tab[index];
@@ -848,7 +847,10 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         if (info->max_blen <= 16) {
             uint16_t u16;
 
-            assert (info->max_blen);
+            if (info->max_blen == 0) {
+                *v = 0;
+                return 0;
+            }
 
             if (aper_read_u16_m(bs, info->max_blen, &u16) < 0) {
                 e_info("Cannot read constrained whole number");
@@ -1042,12 +1044,6 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
 
     if (info && info->min != INT64_MIN) {
         uint64_t u64;
-
-        if (info->min == info->max) {
-            *n = info->min;
-
-            return 0;
-        }
 
         if (aper_read_number(bs, info, &u64) < 0) {
             e_info("Cannot read constrained or semi-constrained number");
