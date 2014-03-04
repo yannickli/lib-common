@@ -24,6 +24,6 @@ int main(int argc, const char **argv)
             res = e_error("inconsistent qps: %s", argv[i]);
     }
 
-    thr_shutdown();
+    MODULE_RELEASE(qps);
     return res;
 }

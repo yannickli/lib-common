@@ -253,6 +253,6 @@ int main(int argc, char **argv)
         check_qps();
     }
 
-    thr_shutdown();
+    MODULE_RELEASE(qps);
     return 0;
 }

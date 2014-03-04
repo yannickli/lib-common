@@ -18,9 +18,6 @@
 #include <lib-common/unix.h>
 #include "thr.h"
 
-#undef thr_initialize
-#undef thr_shutdown
-
 #if !defined(__x86_64__) && !defined(__i386__)
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
@@ -882,16 +879,6 @@ MODULE_BEGIN(thr)
     MODULE_DEPENDS_ON(el);
     MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);
 MODULE_END()
-
-void thr_old_initialize(void)
-{
-    MODULE_REQUIRE(thr);
-}
-
-void thr_old_shutdown(void)
-{
-    MODULE_RELEASE(thr);
-}
 
 /* }}} */
 /* thr_syn {{{ */

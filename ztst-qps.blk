@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     }
 
     qps_close(&qps);
-    thr_shutdown();
+    MODULE_RELEASE(qps);
     return 0;
 }
 

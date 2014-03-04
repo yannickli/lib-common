@@ -124,7 +124,7 @@ Z_GROUP_EXPORT(iop_rpc)
         qm_t(ic_cbs) impl = QM_INIT(ic_cbs, impl, false);
         qm_t(ic_cbs) impl_aux = QM_INIT(ic_cbs, impl_aux, false);
 
-        ic_initialize();
+        MODULE_REQUIRE(ic);
 
         ic_init(&ic);
         ic_set_local(&ic);
@@ -181,5 +181,7 @@ Z_GROUP_EXPORT(iop_rpc)
         ic_disconnect(_G.ic_aux);
         ic_wipe(&ic);
         ic_delete(&_G.ic_aux);
+
+        MODULE_RELEASE(ic);
     } Z_TEST_END;
 } Z_GROUP_END;

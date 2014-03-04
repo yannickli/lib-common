@@ -3169,8 +3169,6 @@ void qps_get_usage(const qps_t *qps, struct qps_stats *st)
 
 /* }}} */
 
-#undef qps_initialize
-
 static int qps_initialize(void *sighandler)
 {
     struct sigaction act = {
@@ -3193,12 +3191,6 @@ static int qps_shutdown(void)
 MODULE_BEGIN(qps)
     MODULE_DEPENDS_ON(thr);
 MODULE_END()
-
-void qps_old_initialize(void (*sighandler)(int, siginfo_t *, void *))
-{
-    MODULE_PROVIDE(qps, sighandler);
-    MODULE_REQUIRE(qps);
-}
 
 /** \} */
 /* Tests {{{ */

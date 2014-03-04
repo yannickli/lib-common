@@ -32,10 +32,6 @@ const QM(ic_cbs, ic_no_impl, false);
 /*----- messages stuff -----*/
 
 
-#undef ic_initialize
-#undef ic_shutdown
-
-
 /* {{{ init/shutdown */
 
 static int ic_initialize(void *arg)
@@ -58,15 +54,6 @@ static int ic_shutdown(void)
 
 MODULE_BEGIN(ic)
 MODULE_END()
-
-void ic_old_initialize(void)
-{
-    MODULE_REQUIRE(ic);
-}
-void ic_old_shutdown(void)
-{
-    MODULE_RELEASE(ic);
-}
 
 /* }}}*/
 
