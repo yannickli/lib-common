@@ -974,6 +974,83 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     }
 }
 
+/* Check flag consistency.
+ */
+static int ic_check_msg_hdr_flags(const ichannel_t *ic, int flags)
+{
+    flags &= ~IC_MSG_SLOT_MASK;
+    if (ic->is_stream && (flags & IC_MSG_HAS_FD)) {
+        return -1;
+    }
+    flags &= ~(IC_MSG_HAS_FD | IC_MSG_HAS_HDR);
+    if (flags) {
+        return -1;
+    }
+    return 0;
+}
+
+/* Check if msg hdr seems valid.
+ */
+static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
+{
+    const byte *hdr = data;
+    int slot = get_unaligned_cpu32(hdr);
+    int cmd  = get_unaligned_cpu32(hdr + IC_MSG_CMD_OFFSET);
+    int dlen = get_unaligned_cpu32(hdr + IC_MSG_DLEN_OFFSET);
+
+    if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
+        /* length is invalid */
+        return -1;
+    }
+
+    RETHROW(ic_check_msg_hdr_flags(ic, slot));
+    if (dlen < 10 << 20) {
+        /* don't lose time validating small message, the correct checks will
+         * be performed when treating the message.
+         */
+        return 0;
+    }
+
+    slot &= ~IC_MSG_SLOT_MASK;
+    if (unlikely(cmd == IC_MSG_STREAM_CONTROL)) {
+        /* we are called because the size of header is to large, so this
+         * cannot be a valid control message.
+         */
+        return -1;
+    } else
+    if (cmd <= 0) {
+        /* reject message that reply to unkown slot.
+         */
+        RETHROW(qm_find_safe(ic_msg, &ic->queries, slot));
+        switch (-cmd) {
+          case IC_MSG_OK:
+          case IC_MSG_EXN:
+          case IC_MSG_INVALID:
+            break;
+
+          case IC_MSG_RETRY:
+          case IC_MSG_ABORT:
+          case IC_MSG_UNIMPLEMENTED:
+          case IC_MSG_SERVER_ERROR:
+          case IC_MSG_PROXY_ERROR:
+            /* no data is expected with those reply codes */
+            return -1;
+
+          default:
+            /* unkown reply code */
+            return -1;
+        }
+    } else {
+        if (!ic->impl) {
+            /* no implementation, so nothing to reply */
+            return -1;
+        }
+        /* unimplemented command */
+        RETHROW(qm_find_safe(ic_cbs, ic->impl, cmd));
+    }
+    return 0;
+}
+
 static int ic_read(ichannel_t *ic, short events, int sock)
 {
     sb_t *buf = &ic->rbuf;
@@ -984,9 +1061,9 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     bool starves = false;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
+        RETHROW(ic_check_msg_hdr(ic, buf->data));
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
         to_read += IC_MSG_HDR_LEN;
-        assert (to_read > buf->len);
         to_read -= buf->len;
     }
 
@@ -1060,14 +1137,16 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
         if (IC_MSG_HDR_LEN + dlen > buf->len) {
+            RETHROW(ic_check_msg_hdr(ic, buf->data));
             to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
         }
 
         starves = true;
+        RETHROW(ic_check_msg_hdr_flags(ic, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
-            if (fdc < 1) {
-                assert (fd_overflow); /* see #664 */
+            if (fdc < 1 && !fd_overflow) {
+                return -1; /* see #664 */
             } else {
                 ic->current_fd = NEXTARG(fdc, fdv);
             }
@@ -1111,10 +1190,15 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     assert (fdc == 0);
 
     if (likely(fdc == 0)) {
-        if (!ic->is_stream && seqpkt_at_least > 0)
+        if (buf->len < IC_MSG_HDR_LEN) {
+            to_read = IC_MSG_HDR_LEN;
+        }
+        if (!ic->is_stream && seqpkt_at_least > 0) {
             goto again;
-        if (ic->is_stream && !starves)
+        }
+        if (ic->is_stream && !starves) {
             goto again;
+        }
         return 0;
     }
 
