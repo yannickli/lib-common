@@ -121,7 +121,15 @@ static void log_check_invariants(log_file_t *log_file)
     qsort(fv, fc, sizeof(fv[0]), qsort_strcmp);
     if (log_file->max_files) {
         for (; fc > log_file->max_files; fc--, fv++) {
-            log_delete_file(log_file, fv[0]);
+            if (log_file->flags & LOG_FILE_COMPRESS) {
+                if (strequal(path_extnul(fv[0]), ".gz")) {
+                    log_delete_file(log_file, fv[0]);
+                } else {
+                    break;
+                }
+            } else {
+                log_delete_file(log_file, fv[0]);
+            }
         }
     }
     if (log_file->max_total_size) {
@@ -133,7 +141,15 @@ static void log_check_invariants(log_file_t *log_file)
                 totalsize -= st.st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
-                    log_delete_file(log_file, fv[j]);
+                    if (log_file->flags & LOG_FILE_COMPRESS) {
+                        if (strequal(path_extnul(fv[j]), ".gz")) {
+                            log_delete_file(log_file, fv[j]);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        log_delete_file(log_file, fv[j]);
+                    }
                 }
                 fv += i + 1;
                 fc -= i + 1;
