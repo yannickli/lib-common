@@ -37,6 +37,7 @@ var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 var/docs       = $(foreach v,$(filter %_DOCS,$(.VARIABLES)),$($v))
+var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
 
 ifeq ($(OS),darwin)
 var/sharedlibext = .dylib
@@ -60,6 +61,7 @@ distclean::
 	$(RM) -r $(filter %/,$(DISTCLEANFILES))
 	$(msg/rm) copied targets
 	$(call fun/expand-if2,$(RM),$(var/docs))
+	$(call fun/expand-if2,$(RM),$(var/css))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=$(var/sharedlibext)*))
@@ -101,6 +103,8 @@ $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 $(foreach p,$(var/docs),$(eval $(call rule/docs,$p)))
+$(foreach p,$(var/css),$(eval $(call rule/css,$p)))
+
 # }}}
 else
 ##########################################################################
@@ -242,9 +246,9 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
-	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_CSS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\

@@ -161,6 +161,52 @@ _generated: $(3:l=c)
 endef
 
 #}}}
+#[ web ]###############################################################{{{#
+# css {{{
+
+ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
+
+define ext/expand/css
+$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3
+	$(msg/MINIFY.css) $3
+	mkdir -p `dirname "$~$$@"`
+	lessc -M $$< $$@ > $~$$@.d
+	(cat $(var/cfgdir)/head.css && lessc --compress $$<) > $$@+
+	$(MV) $$@+ $$@ && chmod a-w $$@
+-include $~$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)).d
+$2: $(strip $($1_DESTDIR))/$(notdir $(3:css=min.css))
+endef
+
+define ext/rule/css
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/css,$1,$2,$$t,$4))))
+$(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)),$3))
+endef
+
+# }}}
+# less {{{
+
+ext/gen/less = $(if $(filter %.less,$1),$(strip $($2_DESTDIR))/$(notdir $(1:less=css)) $(call ext/gen/css,$(strip $($2_DESTDIR))/$(notdir $(1:less=css)),$2))
+
+define ext/expand/less
+$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3
+	$(msg/COMPILE.less) $3
+	mkdir -p `dirname "$~$$@"`
+	lessc -M $$< $$@ > $~$$@.d
+	lessc $$< $$@+
+	$(MV) $$@+ $$@ && chmod a-w $$@
+-include $~$(strip $($1_DESTDIR))/$(notdir $(3:less=css)).d
+$2: $(strip $($1_DESTDIR))/$(notdir $(3:less=css))
+endef
+
+define ext/rule/less
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/less,$1,$2,$$t,$4))))
+$(eval $(call ext/rule/css,$1,$2,$(strip $($1_DESTDIR))/$(notdir $(3:less=css)),$4))
+$(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:less=css)),$3))
+endef
+
+# }}}
+#}}}
+
 -include $(var/cfgdir)/rules.mk
 
 #
@@ -310,8 +356,16 @@ endef
 endif
 
 define rule/program
-$(1DV)all:: $1$(EXEEXT)
+$(1DV)all::
 $(eval $(call rule/exe,$1,$2,$3))
+endef
+
+#}}}
+#[ _CSS ]#############################################################{{{#
+
+define rule/css
+$(1DV)all:: $(1DV)$1
+$(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_SOURCES)))
 endef
 
 #}}}
