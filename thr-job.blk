@@ -756,17 +756,15 @@ void thr_queue_main_drain(void)
 
 void thr_initialize(void)
 {
+#ifndef SHARED
     static bool atfork_registered;
+#endif
     sigset_t fillset;
     sigset_t old;
     pthread_t tid;
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-#ifndef SHARED
-        pthread_atfork(NULL, NULL, thr_job_atfork);
-#endif
-
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
@@ -813,6 +811,7 @@ void thr_initialize(void)
         el_unref(_G.eventel);
     }
 
+#ifndef SHARED
     /* XXX done at the end of the function to ensure the el's at_fork is
      * registered before the thr_job's at fork. Since pthread_atfork()
      * guarantees the order of execution, this ensure thr_job_atfork won't
@@ -822,6 +821,7 @@ void thr_initialize(void)
         pthread_atfork(NULL, NULL, thr_job_atfork);
         atfork_registered = true;
     }
+#endif
 }
 
 __attribute__((destructor))
