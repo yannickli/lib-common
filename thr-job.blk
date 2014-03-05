@@ -631,8 +631,6 @@ void thr_initialize(void)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-        pthread_atfork(NULL, NULL, thr_job_atfork);
-
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(RUNNING_ON_VALGRIND))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
