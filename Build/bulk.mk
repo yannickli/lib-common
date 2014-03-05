@@ -38,6 +38,7 @@ var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 var/docs       = $(foreach v,$(filter %_DOCS,$(.VARIABLES)),$($v))
 var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
+var/js         = $(foreach v,$(filter %_JS,$(.VARIABLES)),$($v))
 
 ifeq ($(OS),darwin)
 var/sharedlibext = .dylib
@@ -104,6 +105,7 @@ $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 $(foreach p,$(var/docs),$(eval $(call rule/docs,$p)))
 $(foreach p,$(var/css),$(eval $(call rule/css,$p)))
+$(foreach p,$(var/js),$(eval $(call rule/js,$p)))
 
 # }}}
 else
@@ -246,9 +248,9 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
-	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_CSS,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_CSS %_JS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\

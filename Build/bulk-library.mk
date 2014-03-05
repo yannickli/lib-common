@@ -369,6 +369,25 @@ $(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_SOURCES)))
 endef
 
 #}}}
+#[ _JS ]##############################################################{{{#
+
+define rule/js
+$(1DV)all:: $~$1/.mark
+$~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
+$~$1/.build: | _generated_hdr
+	mkdir -p $$(dir $$@)
+	cp -r -L -l -f $($1_SOURCES) $$(dir $$@)
+	touch $~$1/.build
+
+$~$1/.mark: $~$1/.build $($1_CONFIG)
+	$(msg/COMPILE.js) $($1_CONFIG)
+	r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
+		|| (cat $~rjs.log; false)
+	touch $~$1/.mark
+endef
+
+$(eval $(call fun/common-depends,$1,$~$1/.build,$1))
+#}}}
 #[ _DATAS ]###########################################################{{{#
 
 define rule/datas
