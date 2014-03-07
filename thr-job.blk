@@ -18,9 +18,6 @@
 #include <lib-common/unix.h>
 #include "thr.h"
 
-#undef thr_initialize
-#undef thr_shutdown
-
 #if !defined(__x86_64__) && !defined(__i386__)
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
@@ -842,7 +839,7 @@ static int thr_initialize(void *arg)
         el_unref(_G.eventel);
     }
 
-    return F_INITIALIZE;
+    return 0;
 }
 
 static int thr_shutdown(void)
@@ -866,7 +863,7 @@ static int thr_shutdown(void)
         thr_ec_wipe(&thr_job_g.start_bar_thr);
         thr_ec_wipe(&thr_job_g.ec);
     }
-    return F_SHUTDOWN;
+    return 0;
 }
 
 static void thr_job_at_fork(void)
@@ -882,16 +879,6 @@ MODULE_BEGIN(thr)
     MODULE_DEPENDS_ON(el);
     MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);
 MODULE_END()
-
-void thr_old_initialize(void)
-{
-    MODULE_REQUIRE(thr);
-}
-
-void thr_old_shutdown(void)
-{
-    MODULE_RELEASE(thr);
-}
 
 /* }}} */
 /* thr_syn {{{ */

@@ -81,22 +81,6 @@ static ALWAYS_INLINE thr_job_t *thr_job_from_blk(block_t blk)
 extern size_t thr_parallelism_g;
 extern thr_queue_t *const thr_queue_main_g;
 
-/** \brief forces the module initialization.
- *
- * This is usually done automatically, but you may have to do it after a fork
- * if you need it.
- */
-void thr_old_initialize(void);
-#define thr_initialize  thr_old_initialize
-
-/** \brief forces the module shutdown.
- *
- * This is usually done automatically. Be careful this doesn't checks that all
- * jobs are done, and it shouldn't be used if you're not sure you can.
- */
-void thr_old_shutdown(void);
-#define thr_shutdown  thr_old_shutdown
-
 /** \brief returns the id of the current thread in [0 .. thr_parallelism_g[
  */
 size_t thr_id(void) __leaf __attribute__((pure));

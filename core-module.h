@@ -174,15 +174,18 @@ void module_run_method(const module_method_t *method, data_t arg);
  *
  * The section must be closed by calling \ref MODULE_END().
  */
-#define MODULE_BEGIN(name, ...)                                              \
+#define MODULE_BEGIN(name)                                                   \
     __attr_section("intersec", "module")                                     \
     module_t *name##_module;                                                 \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
+        const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = name##_module = MODULE_REGISTER(name, NULL,        \
-                                                          ##__VA_ARGS__);
+        module_t *__mod = name##_module                                      \
+            = module_register(LSTR_IMMED_V(#name), &name##_module,           \
+                              &name##_initialize, &name##_shutdown,          \
+                              __deps, countof(__deps));                      \
 
 /** Macro to end the definition of a module.
  *
@@ -251,63 +254,6 @@ void module_run_method(const module_method_t *method, data_t arg);
     } while (0)
 
 /* }}} */
-/* {{{ Old API */
-
-/** \brief Macro for registering a module
- *              module1
- *             /       \
- *         module2   module3
- *
- *
- *  Prototype of the module:
- *           int module1_initialize(void *); Return >= 0 if success
- *           int module1_shutdown(void);     Return >= 0 if success
- *           void module1_on_term(int);
- *
- *  Arguments:
- *        + name of the module
- *        + callback to the module_on_term function (NULL if none)
- *        + list of dependencies (between "")
- *
- *  Use:
- *      MODULE_REGISTER(module1, module1_on_term, "module2", "module3");
- *      MODULE_REGISTER(module2, NULL);
- *      MODULE_REGISTER(module3, NULL);
- *
- *  You can use \ref MODULE to perform automatic registration of a module.
- */
-
-#define MODULE_REGISTER(name, on_term_cb, ...)   ({                          \
-        const char *__##name##_deps[] = { "log", ##__VA_ARGS__ };            \
-        module_t *__rmod;                                                    \
-        void (*__on_term)(int) = on_term_cb;                                 \
-                                                                             \
-        __rmod = module_register(LSTR_IMMED_V(#name), &name##_module,        \
-                                 &name##_initialize, &name##_shutdown,       \
-                                 __##name##_deps, countof(__##name##_deps)); \
-        if (__on_term) {                                                     \
-            module_implement_method(__rmod, &on_term_method,                 \
-                                    (void *)__on_term);                      \
-        }                                                                    \
-        __rmod;                                                              \
-    })
-
-
-/** Macro to perform automatical module registration.
- *
- * This macro declares a function that will automatically register a module at
- * binary/library initialization. It takes the same arguments as \ref
- * MODULE_REGISTER.
- */
-#define MODULE(name, on_term_cb, ...)                                        \
-    MODULE_BEGIN(name, ##__VA_ARGS__)                                        \
-        void (*__cb)(int) = on_term_cb;                                      \
-        if (__cb) {                                                          \
-            MODULE_IMPLEMENTS_INT(on_term, __cb);                            \
-        }                                                                    \
-    MODULE_END()
-
-/* }}} */
 /* {{{ Low-level API */
 
 /** \brief Register a module
@@ -371,7 +317,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *             - module1, module2, module3 initialized
  *             - module1 will have state MANU_REQ
  *             - module2, module3 will have state AUTO_REQ
- *             - MODULE_REQUIRE will return F_INITIALIZE
+ *             - MODULE_REQUIRE will return
  *       + If module3 fail to initialize
  *             - module_require will throw a logger_fatal
  *
@@ -398,8 +344,6 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 
 /* {{{ Low-level API */
 
-#define F_INITIALIZE  1
-
 /** \brief Require a module (initialization)
  *
  *  Two stepts  : - Require dependent modules
@@ -412,57 +356,18 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *  @param required_by - Module that requires \p mod to be initialized
  *                     - NULL -> No parent modules
  *
- *
- *  @return
- *       F_INITIALIZE
  */
 __attr_nonnull__((1))
 void module_require(module_t *mod, module_t *required_by);
-
-
-#define F_RELEASED  3
-#define F_SHUTDOWN  1
-#define F_NOTIFIED  2
-#define F_NOT_SHUTDOWN  (-1) /* One of the module did not shutdown */
-#define F_UNAUTHORIZE_RELEASE (-2)
-
-/** \brief Shutdown a module
- *
- *  Two stepts  :   - Shutdown the module.
- *                  - Notify dependent modules that it has been shutdown
- *                    if the dependent modules don't have any other parent
- *                    modules and they have been automatically initialize
- *                    they will shutdown
- *
- *  If the module is not able to shutdown (destructor returns a negative
- *  number), module state change to FAIL_SHUT but we considered as shutdown
- *  and notify dependent modules.
- *
- *
- *  @param mod The module to shutdown
- *
- *  @return
- *       F_SHUTDOWN
- *       F_NOT_SHUTDOWN
- *       F_NOTIFIED
- */
-__attr_nonnull__((1))
-int module_shutdown(module_t *mod);
-
 
 /** \brief Release a module
  *
  *  assert if you try to release a module that has been automatically loaded
  *
  *  @param mod Module to shutdown
- *
- *  @return
- *       F_SHUTDOWN
- *       F_NOT_SHUTDOWN
- *       F_RELEASED
  */
 __attr_nonnull__((1))
-int module_release(module_t *mod);
+void module_release(module_t *mod);
 
 __attr_nonnull__((1, 2))
 void module_provide(module_t **mod, void *argument);

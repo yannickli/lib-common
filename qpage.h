@@ -28,9 +28,6 @@
 #define QPAGE_COUNT_MAX     (1U << QPAGE_COUNT_BITS)
 #define QPAGE_ALLOC_MAX     (1U << (QPAGE_COUNT_BITS + QPAGE_SHIFT))
 
-void qpage_shutdown(void);
-
-
 void *qpage_alloc_align(size_t n, size_t shift, uint32_t *seg);
 void *qpage_allocraw_align(size_t n, size_t shift, uint32_t *seg);
 
@@ -69,5 +66,7 @@ static inline void qpage_free_n_noseg(void *ptr, size_t n) {
 static inline void qpage_free_noseg(void *ptr) {
     qpage_free_n(ptr, 1, -1);
 }
+
+MODULE_DECLARE(qpage);
 
 #endif

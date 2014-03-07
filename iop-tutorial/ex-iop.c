@@ -196,7 +196,7 @@ int main(int argc, char **argv)
     }
 
     /* initialize the ichannel library */
-    ic_initialize();
+    MODULE_REQUIRE(ic);
 
     if (_G.opt_client) {
         e_notice("launching in client mode…");
@@ -219,8 +219,7 @@ int main(int argc, char **argv)
     if (_G.opt_client)
         ic_wipe(&_G.remote_ic);
 
-    ic_shutdown();
-
+    MODULE_RELEASE(ic);
     return 0;
 }
 
