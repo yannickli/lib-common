@@ -572,6 +572,36 @@ ssize_t tlsf_setsizeof(void *ptr, size_t asked)
     return size;
 }
 
+/* {{{ Wrappers for memory pools integration */
+
+static void *tlsf_malloc_(mem_pool_t *mp, size_t size, size_t alignment,
+                          mem_flags_t flags)
+{
+    if (alignment > 3) {
+        e_panic("tlsf_pool does not support alignments greater than 8");
+    }
+
+    return tlsf_malloc(mp, size, flags);
+}
+
+static void *tlsf_realloc_(mem_pool_t *mp, void *ptr,
+                           size_t oldsize, size_t newsize, size_t alignment,
+                           mem_flags_t flags)
+{
+    if (alignment > 3) {
+        e_panic("tlsf_pool does not support alignments greater than 8");
+    }
+
+    return tlsf_realloc(mp, ptr, oldsize, newsize, flags);
+}
+
+static void tlsf_free_(mem_pool_t *mp, void *ptr)
+{
+    tlsf_free(mp, ptr, 0);
+}
+
+/* }}} */
+
 mem_pool_t *tlsf_pool_new(size_t minpagesize)
 {
     tlsf_pool_t *mp;
@@ -585,9 +615,9 @@ mem_pool_t *tlsf_pool_new(size_t minpagesize)
         return NULL;
 
     STATIC_ASSERT(offsetof(tlsf_pool_t, pool) == 0);
-    mp->pool.malloc   = (fieldtypeof(mem_pool_t, malloc))&tlsf_malloc;
-    mp->pool.realloc  = (fieldtypeof(mem_pool_t, realloc))&tlsf_realloc;
-    mp->pool.free     = (fieldtypeof(mem_pool_t, free))&tlsf_free;
+    mp->pool.malloc   = &tlsf_malloc_;
+    mp->pool.realloc  = &tlsf_realloc_;
+    mp->pool.free     = &tlsf_free_;
     mp->pool_size     = mpsize;
     mp->total_size    = mpsize;
     mp->arena_minsize = minpagesize;
