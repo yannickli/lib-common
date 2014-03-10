@@ -27,9 +27,10 @@ all check fast-check clean distclean::
 FORCE: ;
 .PHONY: all check fast-check clean distclean doc FORCE
 
-var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
+var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
+var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
-var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,$(var/sources))))
+var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(foreach s,$(var/sourcesvars),$(call $f,$($s),$(s:%_SOURCES=%)))))
 
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
