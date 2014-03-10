@@ -54,20 +54,20 @@ clean::
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(_CLEANFILES)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(_CLEANFILES)))
 distclean::
-	$(msg/rm) generated files
+	$(msg/rm) "generated files"
 	$(call fun/expand-if2,$(RM),$(var/generated))
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
 	$(RM) $(filter-out %/,$(DISTCLEANFILES))
 	$(RM) -r $(filter %/,$(DISTCLEANFILES))
-	$(msg/rm) copied targets
+	$(msg/rm) "copied targets"
 	$(call fun/expand-if2,$(RM),$(var/docs))
 	$(call fun/expand-if2,$(RM),$(var/css))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=$(var/sharedlibext)*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
-	$(msg/rm) build system
+	$(msg/rm) "build system"
 	$(RM) -r $~
 check:: all
 	$(var/toolsdir)/_run_checks.sh .
