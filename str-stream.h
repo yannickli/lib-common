@@ -254,6 +254,12 @@ static inline int ps_skip_afterchr(pstream_t *ps, int c) {
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
 }
 
+static inline int ps_skip_afterlastchr(pstream_t *ps, int c)
+{
+    const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
+    return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
+}
+
 /** \brief  Skips up to the (\a data, \a len) word
  * \return -1 if the word cannot be found
  */

@@ -1204,6 +1204,27 @@ Z_GROUP_EXPORT(str)
         CHECK("", "");
         CHECK("\"", "\"\"\"\"");
     } Z_TEST_END;
+
+    Z_TEST(ps_skip_afterlastchr, "") {
+        pstream_t ps = ps_initstr("test_1_2");
+        pstream_t ps2 = ps_initstr("test1.02");
+        pstream_t ps3 = ps_initstr("test_2");
+
+        Z_ASSERT_N(ps_skip_afterlastchr(&ps, '_'));
+        Z_ASSERT(ps_len(&ps) == 1);
+        Z_ASSERT(ps_strequal(&ps, "2"));
+
+        Z_ASSERT_NEG(ps_skip_afterlastchr(&ps2, '_'));
+        Z_ASSERT(ps_len(&ps2) == strlen("test1.02"));
+        Z_ASSERT(ps_strequal(&ps2, "test1.02"));
+        Z_ASSERT_N(ps_skip_afterlastchr(&ps2, '.'));
+        Z_ASSERT(ps_len(&ps2) == 2);
+        Z_ASSERT(ps_strequal(&ps2, "02"));
+
+        Z_ASSERT_N(ps_skip_afterlastchr(&ps3, '_'));
+        Z_ASSERT(ps_len(&ps3) == 1);
+        Z_ASSERT(ps_strequal(&ps3, "2"));
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
