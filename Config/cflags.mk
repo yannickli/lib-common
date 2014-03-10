@@ -68,8 +68,8 @@ include $!cc-$(CC_BASE)-flags.mk
 include $!cxx-$(CXX_BASE)-flags.mk
 
 CFLAGSBASE  = -I$lcompat -I$l../ -I$/
-CFLAGSBASE += -DLIBCOMMON_REPOSITORY=$(if $(LIBCOMMON_REPOSITORY),1,0)
-CFLAGSBASE += -DPLATFORM_REPOSITORY=$(if $(PLATFORM_REPOSITORY),1,0)
+CFLAGSBASE += -DHAS_LIBCOMMON_REPOSITORY=$(if $(filter T$(var/platform)/%,T$(var/libcommon)),1,0)
+CFLAGSBASE += -DHAS_PLATFORM_REPOSITORY=$(if $(filter T$(var/srcdir)/%,T$(var/platform)),1,0)
 
 CFLAGS              += $(CFLAGSBASE)
 CXXFLAGS            += $(CFLAGSBASE)
