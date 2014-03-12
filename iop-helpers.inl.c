@@ -28,7 +28,7 @@
                                    | TO_BIT(U16) | TO_BIT(BOOL))
 
 #define IOP_MAKE_U32(a, b, c, d) \
-    ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
+    ((a) | ((unsigned)(b) << 8) | ((unsigned)(c) << 16) | ((unsigned)(d) << 24))
 
 static ALWAYS_INLINE uint8_t get_len_len(uint32_t u)
 {

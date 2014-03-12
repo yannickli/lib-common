@@ -344,7 +344,7 @@ $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.oo %.ld,$$^) \
-	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
 		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
