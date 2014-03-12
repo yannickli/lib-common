@@ -434,6 +434,7 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
                 size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
                 va_end(cpy);
 
+                free_last_buffer();
                 buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
                 vsnprintf(buffer, size_fmt, fmt, va);
 
@@ -1157,13 +1158,13 @@ Z_GROUP_EXPORT(log) {
         vect_buffer = log_stop_buffering();
         Z_ASSERT_EQ(vect_buffer->len, 5);
 
-        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
-
         TEST_LOG_ENTRY(0, 4, LOG_INFO, logger_test);
         TEST_LOG_ENTRY(1, 5, LOG_NOTICE, logger_test_2);
         TEST_LOG_ENTRY(2, 6, LOG_ERR, logger_test);
         TEST_LOG_ENTRY(3, 7, LOG_WARNING, logger_test_2);
         TEST_LOG_ENTRY(4, 8, LOG_INFO, logger_test_2);
+
+        logger_notice(&logger_test_2, "log message inside buffer %d", 5);
 
         vect_buffer = log_stop_buffering();
         Z_ASSERT_EQ(vect_buffer->len, 5);
