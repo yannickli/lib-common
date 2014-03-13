@@ -356,7 +356,7 @@ endef
 endif
 
 define rule/program
-$(1DV)all::
+$(1DV)all:: $1$(EXEEXT)
 $(eval $(call rule/exe,$1,$2,$3))
 endef
 
