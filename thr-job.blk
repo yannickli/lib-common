@@ -1234,7 +1234,7 @@ static int test_qsort(bool use_blocks)
         vec[j] = p_new_raw(uint32_t, len);
         srand(0);
         for (size_t i = 0; i < len; i++) {
-            vec[j][i] = (rand() << 16) | rand();
+            vec[j][i] = ((unsigned)rand() << 16) | rand();
         }
     }
 

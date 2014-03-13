@@ -147,6 +147,18 @@ The following suffixes are used to define goals of specific kinds:
         list of source is empty, the build system will suppose the source file
         is an asciidoc file with the same name as the generated PDF.
 
+`_CSS`::
+        List of css targets to be generated. This can be used to generate a
+        `.css` file from meta-files such as `.less`. This requires both a
+        `_SOURCES` list and a `_DESTDIR` directory in which the generated file
+        should be written.
+
+`_JS`::
+       List of js targets to be generated. This can be used to compile the
+       javascript using `r.js` into a prodable version. This requires both a
+       `_SOURCES` that contains a list of directories and a `_CONFIG` that
+       specifes the configuration file for `r.js`.
+
 The build system doesn't support any other kind of goal yet, though you can
 add local rules (FIXME: add some doc about how to do that).
 
