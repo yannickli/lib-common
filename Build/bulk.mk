@@ -27,15 +27,18 @@ all check fast-check clean distclean::
 FORCE: ;
 .PHONY: all check fast-check clean distclean doc FORCE
 
-var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
+var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
+var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
-var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,$(var/sources))))
+var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(foreach s,$(var/sourcesvars),$(call $f,$($s),$(s:%_SOURCES=%)))))
 
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 var/docs       = $(foreach v,$(filter %_DOCS,$(.VARIABLES)),$($v))
+var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
+var/js         = $(foreach v,$(filter %_JS,$(.VARIABLES)),$($v))
 
 ifeq ($(OS),darwin)
 var/sharedlibext = .dylib
@@ -51,19 +54,20 @@ clean::
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(_CLEANFILES)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(_CLEANFILES)))
 distclean::
-	$(msg/rm) generated files
+	$(msg/rm) "generated files"
 	$(call fun/expand-if2,$(RM),$(var/generated))
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
 	$(RM) $(filter-out %/,$(DISTCLEANFILES))
 	$(RM) -r $(filter %/,$(DISTCLEANFILES))
-	$(msg/rm) copied targets
+	$(msg/rm) "copied targets"
 	$(call fun/expand-if2,$(RM),$(var/docs))
+	$(call fun/expand-if2,$(RM),$(var/css))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=$(var/sharedlibext)*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
-	$(msg/rm) build system
+	$(msg/rm) "build system"
 	$(RM) -r $~
 check:: all
 	$(var/toolsdir)/_run_checks.sh .
@@ -100,6 +104,9 @@ $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 $(foreach p,$(var/docs),$(eval $(call rule/docs,$p)))
+$(foreach p,$(var/css),$(eval $(call rule/css,$p)))
+$(foreach p,$(var/js),$(eval $(call rule/js,$p)))
+
 # }}}
 else
 ##########################################################################
@@ -241,9 +248,9 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
-	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_CSS %_JS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\

@@ -439,7 +439,7 @@ static void qps_m_insert_search(size_t size, uint32_t *l1, uint32_t *l2)
 static qps_mhdr_t *
 qps_m_find_blk(qps_t *qps, size_t size, uint32_t *l1, uint32_t *l2)
 {
-    uint32_t tmp = qps->m.l2_bitmap[*l1] & (-1 << *l2);
+    uint32_t tmp = qps->m.l2_bitmap[*l1] & ((unsigned)-1 << *l2);
 
     if (tmp) {
         *l2 = bsf32(tmp);
