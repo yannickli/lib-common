@@ -16,7 +16,6 @@
 #include "z.h"
 #include "sort.h"
 
-
 /*{{{1 Qhash */
 
 /* Keep these here, it's to check the macros are used and built */
@@ -199,7 +198,35 @@ Z_GROUP_EXPORT(qhash)
 
 #undef CHECK
 
-    } Z_TEST_END
+    } Z_TEST_END;
+
+    Z_TEST(qm_deep_del, "qhash: qm_deep_del") {
+        int32_t pos;
+        lstr_t *s = p_new(lstr_t, 1);
+        uint32_t hash;
+        QM(test_ptr, h, false);
+        bool passed_func = false;
+
+#define CHECK_DELETE(arg)  \
+        do { p_delete(arg); passed_func = true; } while (0)
+#define Z_CHECK_PASSED  \
+        do { Z_ASSERT(passed_func);  passed_func = false; } while (0)
+
+        *s = LSTR_IMMED_V("test");
+        qm_add(test_ptr, &h, s, 0);
+        hash = qm_hash(test_ptr, &h, s);
+        pos = qm_deep_del_key_h(test_ptr, &h, hash, s, CHECK_DELETE, IGNORE);
+
+        Z_ASSERT(pos >= 0, "qm_find should find %*pM", LSTR_FMT_ARG(*s));
+        Z_ASSERT_ZERO(qm_len(test_ptr, &h));
+        Z_CHECK_PASSED;
+        Z_ASSERT_NEG(qm_find(test_ptr, &h, s));
+
+#undef CHECK_DELETE
+#undef Z_CHECK_PASSED
+
+        qm_wipe(test_ptr, &h);
+    } Z_TEST_END;
 
 } Z_GROUP_END
 
