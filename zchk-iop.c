@@ -2358,6 +2358,7 @@ Z_GROUP_EXPORT(iop)
         bool matched = false;
 
         tstiop_inheritance__c1__init(&c1);
+        Z_ASSERT_EQ(IOP_OBJ_CLASS_ID(&c1), 3);
         IOP_OBJ_EXACT_SWITCH(&c1) {
           IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);

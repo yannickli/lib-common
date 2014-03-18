@@ -585,8 +585,10 @@
  */
 #define iop_obj_dynccast(pfx, o)  ((const pfx##__t *)iop_obj_dyn_cast(pfx, o))
 
-/** Get the class id of a class type */
-#define IOP_CLASS_ID(type)  type##__class_id
+/** Get the class id of a class type. */
+#define IOP_CLASS_ID(type)   type##__class_id
+/** Get the class id of a class instance. */
+#define IOP_OBJ_CLASS_ID(o)  (o)->__vptr->class_attrs->class_id
 
 /** Allow to make a switch on a class instance.
  *
