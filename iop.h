@@ -210,6 +210,8 @@ enum iop_struct_flags_t {
     IOP_STRUCT_EXTENDED,        /**< st_attrs and field_attrs exist */
     IOP_STRUCT_HAS_CONSTRAINTS, /**< will iop_check_constraints do smth? */
     IOP_STRUCT_IS_CLASS,        /**< is it a class? */
+    IOP_STRUCT_STATIC_HAS_TYPE, /**< in class mode, does iop_static_field_t
+                                 * have a type field? */
 };
 
 enum iop_iface_flags_t {
@@ -279,6 +281,7 @@ typedef struct iop_static_field_t {
     lstr_t                   name;
     iop_value_t              value;
     const iop_field_attrs_t *attrs; /**< NULL if there are none */
+    uint16_t                 type;
 } iop_static_field_t;
 
 /* Class attributes */
@@ -842,6 +845,36 @@ const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
 #define iop_get_cvar_desc_cst(desc, name)  \
     iop_get_cvar_desc(desc, LSTR_IMMED_V(name))
 
+/** Check if the static fields types are available for a given class.
+ *
+ * \param[in]  desc  pointer to the class descriptor
+ *
+ * \return  true if and only if the type of static fields can be read
+ */
+__attr_nonnull__((1))
+static inline bool iop_class_static_fields_have_type(const iop_struct_t *desc)
+{
+    unsigned flags = desc->flags;
+    return TST_BIT(&flags, IOP_STRUCT_STATIC_HAS_TYPE);
+}
+
+/** Read the static field type if available.
+ *
+ * \param[in]  desc  pointer to the class descriptor containing
+ *                   the static field
+ * \param[in]  f     static field of which we want to read the type
+ *
+ * \return  the iop_type_t value of the static field type if available
+ *          else -1
+ */
+__attr_nonnull__((1, 2))
+static inline int
+iop_class_static_field_type(const iop_struct_t *desc,
+                            const iop_static_field_t *f)
+{
+    THROW_ERR_UNLESS(iop_class_static_fields_have_type(desc));
+    return f->type;
+}
 
 /** Checks if a class has another class in its parents.
  *
