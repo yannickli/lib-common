@@ -48,7 +48,7 @@ static void qhash_resize_start(qhash_t *qh)
     if (newsize < 2 * (len + 1))
         newsize = 2 * (len + 1);
     if (newsize < hdr->size / 4)
-        newsize = hdr->size;
+        newsize = hdr->size / 4;
 
     newsize = qhash_get_size(newsize);
     if (newsize > hdr->size) {
