@@ -228,6 +228,42 @@ Z_GROUP_EXPORT(qhash)
         qm_wipe(test_ptr, &h);
     } Z_TEST_END;
 
+    Z_TEST(shrink_bug , "qhash: test for hdr->bits overflow after shrink") {
+        qh_t(u32) qh;
+
+        qh_init(u32, &qh, false);
+
+        qh_set_minsize(u32, &qh, 1);
+        Z_ASSERT_N(qh_add(u32, &qh, 0));
+        Z_ASSERT_EQ(qh.hdr.size, 11U);
+        /* Force qh.hdr.size to grow up to x16 */
+        for (int i = 1; i < 8192; i++) {
+            Z_ASSERT_N(qh_add(u32, &qh, i));
+        }
+        Z_ASSERT_EQ(qh.hdr.size, 12289U);
+
+        /* Remove some elements */
+        for (int i = 1; i < 8191; i++) {
+            if (i % 42 == 0)
+                continue;
+            qh_del_key(u32, &qh, i);
+        }
+        Z_ASSERT_EQ(qh.hdr.len, 197U);
+        Z_ASSERT_EQ(qh.hdr.size, 12289U);
+
+        /* Now add one element which should force a shrink */
+        Z_ASSERT_N(qh_add(u32, &qh, 1));
+        Z_ASSERT_EQ(qh.hdr.len, 198U);
+        Z_ASSERT_EQ(qh.hdr.size, 3079U);
+        Z_ASSERT_P(qh.old);
+
+        qh_for_each_pos(u32, pos, &qh) {
+            qh_del_at(u32, &qh, pos);
+        }
+        Z_ASSERT_EQ(qh.hdr.len, 0U);
+
+        qh_wipe(u32, &qh);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/
