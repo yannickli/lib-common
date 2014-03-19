@@ -246,6 +246,9 @@ if [ -n "$pyver_minor" ] && [ "$pyver_minor" -lt 6 ]; then
     fi
 fi
 
+setenv python2_BIN $python2_bin
+setenv python3_BIN $python3_bin
+
 if which "${python2_bin}-config" &> /dev/null; then
     python2_ENABLE=1
     setenv python2_ENABLE  1
