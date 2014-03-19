@@ -157,7 +157,7 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     mem_tool_allow_memory(blk, sizeof(*blk), true);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
-    mem_tool_freelike(mem, blk->blk_size, 0);
+    mem_tool_freelike(mem, blk->blk_size - sizeof(*blk), 0);
     mem_tool_disallow_memory(blk, sizeof(*blk));
 
     if (--page->used_blocks > 0)
