@@ -62,7 +62,7 @@ F(qhash_put_ll)(qhash_t *qh, qhash_hdr_t *old, bool check_collision,
             break;
         }
 
-        if (likely(!old || pos >= old->len || !qhash_slot_is_set(old->bits, pos))) {
+        if (likely(!old || pos >= old->len || !qhash_slot_is_set(old, pos))) {
             SET_BIT(hdr->bits, 2 * pos);
             break;
         }
@@ -139,7 +139,7 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint64_t pos __F_PROTO)
         }
 
         /* loop until we find a cell that isn't occupied in the old view */
-    } while (pos < old->len && qhash_slot_is_set(old->bits, pos));
+    } while (pos < old->len && qhash_slot_is_set(old, pos));
 
     if (has_loop) {
 #ifdef QH_DEEP_COPY

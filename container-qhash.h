@@ -119,9 +119,12 @@ static inline size_t qhash_slot_get_flags(const size_t *bits, uint32_t pos)
     size_t off = (2 * pos) % bitsizeof(size_t);
     return (bits[2 * pos / bitsizeof(size_t)] >> off) & (size_t)3;
 }
-static inline size_t qhash_slot_is_set(const size_t *bits, uint32_t pos)
+static inline size_t qhash_slot_is_set(const qhash_hdr_t *hdr, uint32_t pos)
 {
-    return TST_BIT(bits, 2 * pos);
+    if (unlikely(pos >= hdr->size)) {
+        return 0;
+    }
+    return TST_BIT(hdr->bits, 2 * pos);
 }
 
 static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
@@ -129,12 +132,13 @@ static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
     qhash_hdr_t *hdr = &qh->hdr;
     qhash_hdr_t *old = qh->old;
 
-    if (likely(qhash_slot_is_set(hdr->bits, pos))) {
+    if (likely(qhash_slot_is_set(hdr, pos))) {
         qhash_slot_inv_flags(hdr->bits, pos);
         hdr->len--;
         qh->ghosts++;
     } else
-    if (unlikely(old != NULL) && qhash_slot_is_set(old->bits, pos)) {
+    if (unlikely(old != NULL) && qhash_slot_is_set(old, pos))
+    {
         qhash_slot_inv_flags(old->bits, pos);
         hdr->len--;
     }
