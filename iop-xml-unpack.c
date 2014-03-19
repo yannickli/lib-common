@@ -110,7 +110,7 @@ static int get_text(xml_reader_t xr, mem_pool_t *mp, bool b64, lstr_t *str)
             int   blen = DIV_ROUND_UP(str->len * 3, 4);
             char *buf  = mp_new_raw(mp, char, blen + 1);
 
-            sb_init_full(&sb, buf, 0, blen + 1, MEM_STATIC);
+            sb_init_full(&sb, buf, 0, blen + 1, &mem_pool_static);
             if (sb_add_unb64(&sb, str->s, str->len)) {
                 mp_delete(mp, &buf);
                 return xmlr_fail(xr, "value isn't valid base64");

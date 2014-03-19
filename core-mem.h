@@ -222,12 +222,14 @@ typedef unsigned __bitwise__ mem_flags_t;
  *     stack pool.
  *
  */
+enum mem_pools_t {
+    MEM_STATIC = 0,
+    MEM_OTHER  = 1,
+    MEM_LIBC   = 2,
+    MEM_STACK  = 3,
+    MEM_MMAP   = 4,
+};
 #define MEM_POOL_MASK          force_cast(mem_flags_t, 0x00ff)
-#define MEM_STATIC             force_cast(mem_flags_t, 0)
-#define MEM_OTHER              force_cast(mem_flags_t, 1)
-#define MEM_LIBC               force_cast(mem_flags_t, 2)
-#define MEM_STACK              force_cast(mem_flags_t, 3)
-#define MEM_MMAP               force_cast(mem_flags_t, 4)
 #define MEM_FLAGS_MASK         force_cast(mem_flags_t, 0xff00)
 #define MEM_RAW                force_cast(mem_flags_t, 1 << 8)
 #define MEM_ERRORS_OK          force_cast(mem_flags_t, 1 << 9)
