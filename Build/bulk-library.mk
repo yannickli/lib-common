@@ -205,6 +205,23 @@ $(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:less=css
 endef
 
 # }}}
+# uglifyjs {{{
+
+ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
+
+define ext/expand/js
+$(3:js=min.js): $3
+	$(msg/MINIFY.js) $3
+	(cat $(var/cfgdir)/head.js && uglifyjs $$<) > $$@
+$2: $(3:js=min.js)
+endef
+
+define ext/rule/js
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4))))
+$(eval $(call fun/common-depends,$1,$(3:js=min.js),$3))
+endef
+
+# }}}
 #}}}
 
 -include $(var/cfgdir)/rules.mk
@@ -372,7 +389,7 @@ endef
 #[ _JS ]##############################################################{{{#
 
 define rule/js
-$(1DV)all:: $~$1/.mark
+$(1DV)all:: $~$1/.mark $(1DV)$1
 $~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
 $~$1/.build: | _generated_hdr
 	mkdir -p $$(dir $$@)
@@ -384,6 +401,9 @@ $~$1/.mark: $~$1/.build $($1_CONFIG)
 	r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
 		|| (cat $~rjs.log; false)
 	touch $~$1/.mark
+
+$($1_MINIFY): $~$1/.mark
+$(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_MINIFY)))
 endef
 
 $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
