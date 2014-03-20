@@ -89,7 +89,7 @@ static ALWAYS_INLINE
 void lstr_copy_(mem_pool_t *mp, lstr_t *dst,
                 const void *s, int len, unsigned flags)
 {
-    if (mp && dst->mem_pool == MEM_OTHER) {
+    if (mp && dst->mem_pool == (mp->mem_pool & MEM_POOL_MASK)) {
         mp_delete(mp, &dst->v);
     } else
     if (dst->mem_pool == MEM_MMAP) {
@@ -115,12 +115,7 @@ static inline void lstr_wipe(lstr_t *s)
  */
 static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
 {
-    if (s->mem_pool == MEM_OTHER) {
-        mp_delete(mp, &s->v);
-        *s = lstr_init_(NULL, 0, MEM_STATIC);
-    } else {
-        lstr_wipe(s);
-    }
+    lstr_copy_(mp, s, NULL, 0, MEM_STATIC);
 }
 
 /** \brief copies \v src into \dst tranferring memory ownership to \v dst.
@@ -355,7 +350,7 @@ static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
         return LSTR_NULL_V;
     if (len < 0)
         len = strlen(s);
-    return lstr_init_(mp_dupz(mp, s, len), len, MEM_OTHER);
+    return lstr_init_(mp_dupz(mp, s, len), len, mp->mem_pool);
 }
 
 /** \brief returns new \v mp allocated lstr from its arguments.
@@ -364,7 +359,7 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 {
     if (!s.s)
         return LSTR_NULL_V;
-    return lstr_init_(mp_dupz(mp, s.s, s.len), s.len, MEM_OTHER);
+    return lstr_init_(mp_dupz(mp, s.s, s.len), s.len, mp->mem_pool);
 }
 
 /** \brief ensure \p s is \p mp or heap allocated.
@@ -416,9 +411,11 @@ static inline
 void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
 {
     if (s) {
-        if (len < 0)
+        if (len < 0) {
             len = strlen(s);
-        lstr_copy_(mp, dst, mp_dupz(mp, s, len), len, MEM_OTHER);
+        }
+        lstr_copy_(mp, dst, mp_dupz(mp, s, len), len,
+                   mp->mem_pool & MEM_POOL_MASK);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
     }
@@ -429,7 +426,8 @@ void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
 static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
 {
     if (src.s) {
-        lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len, MEM_OTHER);
+        lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len,
+                   mp->mem_pool & MEM_POOL_MASK);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
     }
@@ -688,6 +686,6 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
 
 #define mp_lstr_fmt(mp, fmt, ...) \
     ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__); \
-       lstr_init_(__s, __len, MEM_OTHER); })
+       lstr_init_(__s, __len, mp->mem_pool); })
 
 #endif
