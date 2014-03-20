@@ -74,6 +74,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
     page->start = page->area;
     page->size  = mapsize - sizeof(mem_page_t);
+    mem_tool_disallow_memory(page->area, page->size);
     mfp->nb_pages++;
     mfp->map_size   += mapsize;
     return page;
