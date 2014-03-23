@@ -250,7 +250,7 @@ __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
 	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_CSS %_JS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG %_MINIFY,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\

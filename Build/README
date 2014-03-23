@@ -157,7 +157,8 @@ The following suffixes are used to define goals of specific kinds:
        List of js targets to be generated. This can be used to compile the
        javascript using `r.js` into a prodable version. This requires both a
        `_SOURCES` that contains a list of directories and a `_CONFIG` that
-       specifes the configuration file for `r.js`.
+       specifies the configuration file for `r.js`. And an optional `_MINIFY`
+       that contains javascript files to compress.
 
 The build system doesn't support any other kind of goal yet, though you can
 add local rules (FIXME: add some doc about how to do that).
