@@ -350,7 +350,8 @@ static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
         return LSTR_NULL_V;
     if (len < 0)
         len = strlen(s);
-    return lstr_init_(mp_dupz(mp, s, len), len, mp ? mp->mem_pool : MEM_LIBC);
+    return lstr_init_(mp_dupz(mp, s, len), len,
+                      mp ? mp->mem_pool : (unsigned)MEM_LIBC);
 }
 
 /** \brief returns new \v mp allocated lstr from its arguments.
@@ -360,7 +361,7 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
     if (!s.s)
         return LSTR_NULL_V;
     return lstr_init_(mp_dupz(mp, s.s, s.len), s.len,
-                      mp ? mp->mem_pool : MEM_LIBC);
+                      mp ? mp->mem_pool : (unsigned)MEM_LIBC);
 }
 
 /** \brief ensure \p s is \p mp or heap allocated.
@@ -416,7 +417,7 @@ void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
             len = strlen(s);
         }
         lstr_copy_(mp, dst, mp_dupz(mp, s, len), len,
-                   mp ? mp->mem_pool & MEM_POOL_MASK : MEM_LIBC);
+                   mp ? mp->mem_pool & MEM_POOL_MASK : (unsigned)MEM_LIBC);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
     }
@@ -428,7 +429,7 @@ static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
 {
     if (src.s) {
         lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len,
-                   mp ? mp->mem_pool & MEM_POOL_MASK : MEM_LIBC);
+                   mp ? mp->mem_pool & MEM_POOL_MASK : (unsigned)MEM_LIBC);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
     }
@@ -687,6 +688,6 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
 
 #define mp_lstr_fmt(mp, fmt, ...) \
     ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__); \
-       lstr_init_(__s, __len, mp ? mp->mem_pool : MEM_LIBC); })
+       lstr_init_(__s, __len, mp ? mp->mem_pool : (unsigned)MEM_LIBC); })
 
 #endif
