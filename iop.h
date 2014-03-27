@@ -929,6 +929,23 @@ typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t *);
 void iop_for_each_registered_classes(iop_for_each_class_b cb);
 #endif
 
+const iop_field_t *
+_iop_class_get_next_field(const iop_struct_t **st, int *it);
+
+/** Loop on all fields of a class and its parents.
+ *
+ *  f is an already-declared iop_field_t where the results will be put in.
+ *
+ *  st is an already-declared iop_struct_t where the class of each field put
+ *  in f will be put in.
+ */
+#define iop_class_for_each_field(f, st, _cl)                                \
+    st = _cl;                                                               \
+    for (int _i_##f = 0; (f = _iop_class_get_next_field(&st, &_i_##f));)
+
+#define iop_obj_for_each_field(f, st, _obj)                                 \
+    iop_class_for_each_field(f, st, (_obj)->__vptr)
+
 /* }}} */
 /* {{{ IOP constraints handling */
 

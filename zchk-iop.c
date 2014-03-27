@@ -3126,4 +3126,103 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_class_for_each_field, "test iop_class_for_each_field") { /* {{{ */
+        tstiop__my_class1__t cls1;
+        tstiop__my_class2__t cls2;
+        tstiop__my_class3__t cls3;
+        const iop_struct_t *st;
+        const iop_struct_t *st2;
+        const iop_field_t  *f;
+        const iop_field_t  *f2;
+        int i = 0;
+
+        tstiop__my_class1__init(&cls1);
+        tstiop__my_class2__init(&cls2);
+        tstiop__my_class3__init(&cls3);
+
+#define TEST_FIELD(_f, _type, _name, _st, _class)                       \
+        do {                                                            \
+            Z_ASSERT_EQ(_f->type, IOP_T_##_type);                       \
+            Z_ASSERT_LSTREQUAL(_f->name, LSTR_IMMED_V(_name));          \
+            Z_ASSERT(_st == _class.__vptr);                             \
+        } while (0)
+
+        iop_obj_for_each_field(f, st, &cls3) {
+            switch (i) {
+              case 0:
+                TEST_FIELD(f, I32, "int3", st, cls3);
+                break;
+              case 1:
+                TEST_FIELD(f, BOOL, "bool1", st, cls3);
+                break;
+              case 2:
+                TEST_FIELD(f, I32, "int2", st, cls2);
+                break;
+              case 3:
+                TEST_FIELD(f, I32, "int1", st, cls1);
+                break;
+              default:
+                Z_ASSERT(false);
+            }
+            i++;
+        }
+        Z_ASSERT_EQ(i, 4);
+
+        i = 0;
+        iop_obj_for_each_field(f, st, &cls2) {
+            switch (i) {
+              case 0:
+                TEST_FIELD(f, I32, "int2", st, cls2);
+                break;
+              case 1:
+                TEST_FIELD(f, I32, "int1", st, cls1);
+                break;
+              default:
+                Z_ASSERT(false);
+            }
+            i++;
+        }
+        Z_ASSERT_EQ(i, 2);
+
+        i = 0;
+        iop_obj_for_each_field(f, st, &cls1) {
+            TEST_FIELD(f, I32, "int1", st, cls1);
+            Z_ASSERT_EQ(i, 0);
+            i++;
+        }
+
+        /* Imbrication */
+        i = 0;
+        iop_obj_for_each_field(f, st, &cls3) {
+            int j = 0;
+
+            iop_obj_for_each_field(f2, st2, &cls1) {
+                TEST_FIELD(f2, I32, "int1", st2, cls1);
+                Z_ASSERT_EQ(j, 0);
+                j++;
+            }
+
+            switch (i) {
+              case 0:
+                TEST_FIELD(f, I32, "int3", st, cls3);
+                break;
+              case 1:
+                TEST_FIELD(f, BOOL, "bool1", st, cls3);
+                break;
+              case 2:
+                TEST_FIELD(f, I32, "int2", st, cls2);
+                break;
+              case 3:
+                TEST_FIELD(f, I32, "int1", st, cls1);
+                break;
+              default:
+                Z_ASSERT(false);
+            }
+            i++;
+        }
+
+#undef TEST_FIELD
+
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END
