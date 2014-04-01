@@ -409,7 +409,7 @@
                                  ps, copy);                                  \
     }                                                                        \
     __must_check__ static inline int                                         \
-    t_##pfx##__bunpack_ptr(lstr_t *s, pfx##__t **value)                      \
+    t_##pfx##__bunpack_ptr(const lstr_t *s, pfx##__t **value)                \
     {                                                                        \
         pstream_t ps = ps_init(s->s, s->len);                                \
         return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
@@ -423,7 +423,7 @@
         return t_iop_bunpack_ps(&pfx##__s, value, ps, copy);                 \
     }                                                                        \
     __must_check__ static inline int                                         \
-    t_##pfx##__bunpack(lstr_t *s, pfx##__t *value)                           \
+    t_##pfx##__bunpack(const lstr_t *s, pfx##__t *value)                     \
     {                                                                        \
         pstream_t ps = ps_init(s->s, s->len);                                \
         return t_iop_bunpack_ps(&pfx##__s, value, ps, false);                \
