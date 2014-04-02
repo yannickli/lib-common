@@ -34,6 +34,8 @@ typedef struct lstr_t {
     flag_t  mem_pool : 3;
 } lstr_t;
 
+/* Static initializers {{{ */
+
 #define LSTR_INIT(s_, len_)     { { (s_) }, (len_), 0 }
 #define LSTR_INIT_V(s, len)     (lstr_t)LSTR_INIT(s, len)
 #define LSTR_IMMED(str)         LSTR_INIT(""str, sizeof(str) - 1)
@@ -57,8 +59,9 @@ typedef struct lstr_t {
                                      __s ? LSTR_INIT_V(__s, strlen(__s))   \
                                          : LSTR_NULL_V; })
 
+/* }}} */
+/* Base helpers {{{ */
 
-/*--------------------------------------------------------------------------*/
 /** \brief lstr_dup_* helper.
  */
 static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
@@ -66,6 +69,12 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
     return (lstr_t){ { (const char *)s }, len, flags };
 }
 
+static ALWAYS_INLINE
+lstr_t mp_lstr_init(mem_pool_t *mp, const void *s, int len)
+{
+    mp = mp ?: &mem_pool_libc;
+    return lstr_init_(s, len, mp->mem_pool & MEM_POOL_MASK);
+}
 
 /** Initialize a lstr_t from the content of a file.
  *
@@ -86,27 +95,181 @@ void lstr_munmap(lstr_t *dst);
 /** \brief lstr_copy_* helper.
  */
 static ALWAYS_INLINE
-void lstr_copy_(mem_pool_t *mp, lstr_t *dst,
-                const void *s, int len, unsigned flags)
+void mp_lstr_copy_(mem_pool_t *mp, lstr_t *dst, const void *s, int len)
 {
-    if (mp && dst->mem_pool == (mp->mem_pool & MEM_POOL_MASK)) {
+    mp = mp ?: &mem_pool_libc;
+    if (dst->mem_pool == (mp->mem_pool & MEM_POOL_MASK)) {
         mp_delete(mp, &dst->v);
     } else
     if (dst->mem_pool == MEM_MMAP) {
         (lstr_munmap)(dst);
-    } else {
-        ifree(dst->v, dst->mem_pool);
     }
-    *dst = lstr_init_(s, len, flags);
+    if (s == NULL) {
+        *dst = lstr_init_(NULL, 0, MEM_STATIC);
+    } else {
+        *dst = lstr_init_(s, len, mp->mem_pool & MEM_POOL_MASK);
+    }
 }
 
-
-/*--------------------------------------------------------------------------*/
-/** \brief wipe a lstr_t (frees memory if needed).
+/** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
  */
-static inline void lstr_wipe(lstr_t *s)
+static inline
+void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
 {
-    lstr_copy_(NULL, s, NULL, 0, MEM_STATIC);
+    if (s) {
+        if (len < 0) {
+            len = strlen(s);
+        }
+        mp = mp ?: &mem_pool_libc;
+        mp_lstr_copy_(mp, dst, mp_dupz(mp, s, len), len);
+    } else {
+        mp_lstr_copy_(&mem_pool_static, dst, NULL, 0);
+    }
+}
+
+/** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
+ */
+static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
+{
+    if (src.s) {
+        mp = mp ?: &mem_pool_libc;
+        mp_lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len);
+    } else {
+        mp_lstr_copy_(&mem_pool_static, dst, NULL, 0);
+    }
+}
+
+/** \brief returns new \v mp allocated lstr from its arguments.
+ */
+static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
+{
+    if (!s) {
+        return LSTR_NULL_V;
+    }
+    if (len < 0) {
+        len = strlen(s);
+    }
+    return mp_lstr_init(mp, mp_dupz(mp, s, len), len);
+}
+
+/** \brief returns new \v mp allocated lstr from its arguments.
+ */
+static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
+{
+    if (!s.s)
+        return LSTR_NULL_V;
+    return mp_lstr_init(mp, mp_dupz(mp, s.s, s.len), s.len);
+}
+
+/** \brief ensure \p s is \p mp or heap allocated.
+ */
+static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
+{
+    mp = mp ?: &mem_pool_libc;
+    if (s->mem_pool != MEM_LIBC
+    &&  s->mem_pool != (mp->mem_pool & MEM_POOL_MASK))
+    {
+        s->s        = (char *)mp_dupz(mp, s->s, s->len);
+        s->mem_pool = mp->mem_pool & MEM_POOL_MASK;
+    }
+}
+
+/** \brief duplicates \p v on the t_stack and reverse its content.
+ *
+ * This function is not unicode-aware.
+ */
+static inline lstr_t mp_lstr_dup_ascii_reversed(mem_pool_t *mp, const lstr_t v)
+{
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = mp_new_raw(mp, char, v.len + 1);
+
+    for (int i = 0; i < v.len; i++) {
+        str[i] = v.s[v.len - i - 1];
+    }
+    str[v.len] = '\0';
+
+    return mp_lstr_init(mp, str, v.len);
+}
+
+/** \brief duplicates \p v on the mem_pool and reverse its content.
+ *
+ * This function reverse character by character, which means that the result
+ * contains the same characters in the reversed order but each character is
+ * preserved in it's origin byte-wise order. This guarantees that both the
+ * source and the destination are valid utf8 strings.
+ *
+ * In case of error, LSTR_NULL_V is returned.
+ */
+static inline lstr_t mp_lstr_dup_utf8_reversed(mem_pool_t *mp, const lstr_t v)
+{
+    int prev_off = 0;
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = mp_new_raw(mp, char, v.len + 1);
+    while (prev_off < v.len) {
+        int off = prev_off;
+        int c = utf8_ngetc_at(v.s, v.len, &off);
+
+        if (unlikely(c < 0)) {
+            return LSTR_NULL_V;
+        }
+        memcpy(str + v.len - off, v.s + prev_off, off - prev_off);
+        prev_off = off;
+    }
+    return mp_lstr_init(mp, str, v.len);
+}
+
+/** \brief concatenates its argument to form a new lstr on the mem pool.
+ */
+static inline
+lstr_t mp_lstr_cat(mem_pool_t *mp, const lstr_t s1, const lstr_t s2)
+{
+    int    len;
+    lstr_t res;
+    void  *s;
+
+    if (unlikely(!s1.s && !s2.s)) {
+        return LSTR_NULL_V;
+    }
+
+    len = s1.len + s2.len;
+    res = mp_lstr_init(mp, mp_new_raw(mp, char, len + 1), len);
+    s = (void *)res.v;
+    s = mempcpy(s, s1.s, s1.len);
+    mempcpyz(s, s2.s, s2.len);
+    return res;
+}
+
+/** \brief concatenates its argument to form a new lstr on the mem pool.
+ */
+static inline
+lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
+                    const lstr_t s3)
+{
+    int    len;
+    lstr_t res;
+    void  *s;
+
+    if (unlikely(!s1.s && !s2.s && !s3.s)) {
+        return LSTR_NULL_V;
+    }
+
+    len = s1.len + s2.len + s3.len;
+    res = mp_lstr_init(mp, mp_new_raw(mp, char, len + 1), len);
+    s = (void *)res.v;
+    s = mempcpy(s, s1.s, s1.len);
+    s = mempcpy(s, s2.s, s2.len);
+    mempcpyz(s, s3.s, s3.len);
+    return res;
 }
 
 /** \brief wipe a lstr_t (frees memory if needed).
@@ -115,14 +278,17 @@ static inline void lstr_wipe(lstr_t *s)
  */
 static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
 {
-    lstr_copy_(mp, s, NULL, 0, MEM_STATIC);
+    mp_lstr_copy_(mp, s, NULL, 0);
 }
+
+/* }}} */
+/* Transfer & static pool {{{ */
 
 /** \brief copies \v src into \dst tranferring memory ownership to \v dst.
  */
 static inline void lstr_transfer(lstr_t *dst, lstr_t *src)
 {
-    lstr_copy_(NULL, dst, src->s, src->len, src->mem_pool);
+    mp_lstr_copy_(ipool(src->mem_pool), dst, src->s, src->len);
     src->mem_pool = MEM_STATIC;
 }
 
@@ -139,8 +305,207 @@ struct sb_t;
  */
 void lstr_transfer_sb(lstr_t *dst, struct sb_t *sb, bool keep_pool);
 
+/** \brief copies a constant of \v s into \v dst.
+ */
+static inline void lstr_copyc(lstr_t *dst, const lstr_t s)
+{
+    mp_lstr_copy_(&mem_pool_static, dst, s.s, s.len);
+}
 
-/*--------------------------------------------------------------------------*/
+/** \brief returns a constant copy of \v s.
+ */
+static inline lstr_t lstr_dupc(const lstr_t s)
+{
+    return lstr_init_(s.s, s.len, MEM_STATIC);
+}
+
+/* }}} */
+/* Heap allocations {{{ */
+
+/** \brief wipe a lstr_t (frees memory if needed).
+ */
+static inline void lstr_wipe(lstr_t *s)
+{
+    return mp_lstr_wipe(NULL, s);
+}
+
+/** \brief returns new libc allocated lstr from its arguments.
+ */
+static inline lstr_t lstr_dups(const char *s, int len)
+{
+    return mp_lstr_dups(NULL, s, len);
+}
+
+/** \brief returns new libc allocated lstr from its arguments.
+ */
+static inline lstr_t lstr_dup(const lstr_t s)
+{
+    return mp_lstr_dup(NULL, s);
+}
+
+/** \brief sets \v dst to a new libc allocated lstr from its arguments.
+ */
+static inline void lstr_copys(lstr_t *dst, const char *s, int len)
+{
+    return mp_lstr_copys(NULL, dst, s, len);
+}
+
+/** \brief sets \v dst to a new libc allocated lstr from its arguments.
+ */
+static inline void lstr_copy(lstr_t *dst, const lstr_t src)
+{
+    return mp_lstr_copy(NULL, dst, src);
+}
+
+/** \brief force lstr to be heap-allocated.
+ *
+ * This function ensure the lstr_t is allocated on the heap and thus is
+ * guaranteed to be persistent.
+ */
+static inline void lstr_persists(lstr_t *s)
+{
+    return mp_lstr_persists(NULL, s);
+}
+
+/** \brief duplicates \p v on the heap and reverse its content.
+ *
+ * This function is not unicode-aware.
+ */
+static inline lstr_t lstr_dup_ascii_reversed(const lstr_t v)
+{
+    return mp_lstr_dup_ascii_reversed(NULL, v);
+}
+
+/** \brief duplicates \p v on the heap and reverse its content.
+ *
+ * This function reverse character by character, which means that the result
+ * contains the same characters in the reversed order but each character is
+ * preserved in it's origin byte-wise order. This guarantees that both the
+ * source and the destination are valid utf8 strings.
+ *
+ * In case of error, LSTR_NULL_V is returned.
+ */
+static inline lstr_t lstr_dup_utf8_reversed(const lstr_t v)
+{
+    return mp_lstr_dup_utf8_reversed(NULL, v);
+}
+
+/** \brief concatenates its argument to form a new lstr on the heap.
+ */
+static inline lstr_t lstr_cat(const lstr_t s1, const lstr_t s2)
+{
+    return mp_lstr_cat(NULL, s1, s2);
+}
+
+/** \brief concatenates its argument to form a new lstr on the heap.
+ */
+static inline lstr_t lstr_cat3(const lstr_t s1, const lstr_t s2,
+                               const lstr_t s3)
+{
+    return mp_lstr_cat3(NULL, s1, s2, s3);
+}
+
+/* }}} */
+/* t_stack allocation {{{ */
+
+/** \brief returns a duplicated lstr from the mem stack.
+ */
+static inline lstr_t t_lstr_dup(const lstr_t s)
+{
+    return mp_lstr_dup(t_pool(), s);
+}
+
+/** \brief returns a duplicated lstr from the mem stack.
+ */
+static inline lstr_t t_lstr_dups(const char *s, int len)
+{
+    return mp_lstr_dups(t_pool(), s, len);
+}
+
+/** \brief sets \v dst to a mem stack allocated copy of its arguments.
+ */
+static inline void t_lstr_copys(lstr_t *dst, const char *s, int len)
+{
+    return mp_lstr_copys(t_pool(), dst, s, len);
+}
+
+/** \brief sets \v dst to a mem stack allocated copy of its arguments.
+ */
+static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
+{
+    return mp_lstr_copy(t_pool(), dst, s);
+}
+
+/** \brief force lstr to be t_stack-allocated.
+ *
+ * This function ensure the lstr_t is allocated on the t_stack and thus is
+ * guaranteed to be persistent.
+ */
+static inline void t_lstr_persists(lstr_t *s)
+{
+    return mp_lstr_persists(t_pool(), s);
+}
+
+/** \brief duplicates \p v on the t_stack and reverse its content.
+ *
+ * This function is not unicode-aware.
+ */
+static inline lstr_t t_lstr_dup_ascii_reversed(const lstr_t v)
+{
+    return mp_lstr_dup_ascii_reversed(t_pool(), v);
+}
+
+/** \brief duplicates \p v on the t_stack and reverse its content.
+ *
+ * This function reverse character by character, which means that the result
+ * contains the same characters in the reversed order but each character is
+ * preserved in it's origin byte-wise order. This guarantees that both the
+ * source and the destination are valid utf8 strings.
+ *
+ * In case of error, LSTR_NULL_V is returned.
+ */
+static inline lstr_t t_lstr_dup_utf8_reversed(const lstr_t v)
+{
+    return mp_lstr_dup_utf8_reversed(t_pool(), v);
+}
+
+/** \brief concatenates its argument to form a new lstr on the t_stack.
+ */
+static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
+{
+    return mp_lstr_cat(t_pool(), s1, s2);
+}
+
+/** \brief concatenates its argument to form a new lstr on the t_stack.
+ */
+static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2,
+                                 const lstr_t s3)
+{
+    return mp_lstr_cat3(t_pool(), s1, s2, s3);
+}
+
+/** \brief return the trimmed lstr.
+ */
+static inline lstr_t lstr_trim(lstr_t s)
+{
+    /* ltrim */
+    while (s.len && isspace((unsigned char)s.s[0])) {
+        s.s++;
+        s.len--;
+    }
+
+    /* rtrim */
+    while (s.len && isspace((unsigned char)s.s[s.len - 1])) {
+        s.len--;
+    }
+
+    s.mem_pool = MEM_STATIC;
+    return s;
+}
+
+/* }}} */
+/* Comparisons {{{ */
+
 /** \brief returns "memcmp" ordering of \v s1 and \v s2.
  */
 static ALWAYS_INLINE int lstr_cmp(const lstr_t *s1, const lstr_t *s2)
@@ -179,7 +544,9 @@ static inline bool lstr_ascii_iequal(const lstr_t s1, const lstr_t s2)
     }
     for (int i = 0; i < s1.len; i++) {
         if (tolower((unsigned char)s1.s[i]) != tolower((unsigned char)s2.s[i]))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -300,297 +667,8 @@ static ALWAYS_INLINE bool lstr_utf8_equal2(const lstr_t s1, const lstr_t s2)
  */
 int lstr_dlevenshtein(const lstr_t s1, const lstr_t s2, int max_dist);
 
-/*--------------------------------------------------------------------------*/
-/** \brief returns a constant copy of \v s.
- */
-static inline lstr_t lstr_dupc(const lstr_t s)
-{
-    return lstr_init_(s.s, s.len, MEM_STATIC);
-}
-
-/** \brief returns new libc allocated lstr from its arguments.
- */
-static inline lstr_t lstr_dups(const char *s, int len)
-{
-    if (!s)
-        return LSTR_NULL_V;
-    if (len < 0)
-        len = strlen(s);
-    return lstr_init_(p_dupz(s, len), len, MEM_LIBC);
-}
-
-/** \brief returns new libc allocated lstr from its arguments.
- */
-static inline lstr_t lstr_dup(const lstr_t s)
-{
-    if (!s.s)
-        return LSTR_NULL_V;
-    return lstr_init_(p_dupz(s.s, s.len), s.len, MEM_LIBC);
-}
-
-/** \brief force lstr to be heap-allocated.
- *
- * This function ensure the lstr_t is allocated on the heap and thus is
- * guaranteed to be persistent.
- */
-static inline void lstr_persists(lstr_t *s)
-{
-    assert (s->mem_pool != MEM_OTHER);
-    if (s->mem_pool != MEM_LIBC) {
-        s->s        = (char *)p_dupz(s->s, s->len);
-        s->mem_pool = MEM_LIBC;
-    }
-}
-
-/** \brief returns new \v mp allocated lstr from its arguments.
- */
-static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
-{
-    if (!s)
-        return LSTR_NULL_V;
-    if (len < 0)
-        len = strlen(s);
-    return lstr_init_(mp_dupz(mp, s, len), len,
-                      mp ? mp->mem_pool : (unsigned)MEM_LIBC);
-}
-
-/** \brief returns new \v mp allocated lstr from its arguments.
- */
-static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
-{
-    if (!s.s)
-        return LSTR_NULL_V;
-    return lstr_init_(mp_dupz(mp, s.s, s.len), s.len,
-                      mp ? mp->mem_pool : (unsigned)MEM_LIBC);
-}
-
-/** \brief ensure \p s is \p mp or heap allocated.
- */
-static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
-{
-    if (s->mem_pool != MEM_LIBC && s->mem_pool != MEM_OTHER) {
-        s->s        = (char *)mp_dupz(mp, s->s, s->len);
-        s->mem_pool = MEM_OTHER;
-    }
-}
-
-
-/*--------------------------------------------------------------------------*/
-/** \brief copies a constant of \v s into \v dst.
- */
-static inline void lstr_copyc(lstr_t *dst, const lstr_t s)
-{
-    lstr_copy_(NULL, dst, s.s, s.len, MEM_STATIC);
-}
-
-/** \brief sets \v dst to a new libc allocated lstr from its arguments.
- */
-static inline void lstr_copys(lstr_t *dst, const char *s, int len)
-{
-    if (s) {
-        if (len < 0)
-            len = strlen(s);
-        lstr_copy_(NULL, dst, p_dupz(s, len), len, MEM_LIBC);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-/** \brief sets \v dst to a new libc allocated lstr from its arguments.
- */
-static inline void lstr_copy(lstr_t *dst, const lstr_t src)
-{
-    if (src.s) {
-        lstr_copy_(NULL, dst, p_dupz(src.s, src.len), src.len, MEM_LIBC);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-/** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
- */
-static inline
-void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
-{
-    if (s) {
-        if (len < 0) {
-            len = strlen(s);
-        }
-        lstr_copy_(mp, dst, mp_dupz(mp, s, len), len,
-                   mp ? mp->mem_pool & MEM_POOL_MASK : (unsigned)MEM_LIBC);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-/** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
- */
-static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
-{
-    if (src.s) {
-        lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len,
-                   mp ? mp->mem_pool & MEM_POOL_MASK : (unsigned)MEM_LIBC);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-
-/*--------------------------------------------------------------------------*/
-/** \brief returns a duplicated lstr from the mem stack.
- */
-static inline lstr_t t_lstr_dup(const lstr_t s)
-{
-    if (!s.s)
-        return LSTR_NULL_V;
-    return lstr_init_(t_dupz(s.s, s.len), s.len, MEM_STACK);
-}
-
-/** \brief returns a duplicated lstr from the mem stack.
- */
-static inline lstr_t t_lstr_dups(const char *s, int len)
-{
-    if (!s)
-        return LSTR_NULL_V;
-    if (len < 0)
-        len = strlen(s);
-    return lstr_init_(t_dupz(s, len), len, MEM_STACK);
-}
-
-/** \brief sets \v dst to a mem stack allocated copy of its arguments.
- */
-static inline void t_lstr_copys(lstr_t *dst, const char *s, int len)
-{
-    if (s) {
-        if (len < 0)
-            len = strlen(s);
-        lstr_copy_(NULL, dst, t_dupz(s, len), len, MEM_STACK);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-/** \brief sets \v dst to a mem stack allocated copy of its arguments.
- */
-static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
-{
-    if (s.s) {
-        lstr_copy_(NULL, dst, t_dupz(s.s, s.len), s.len, MEM_STACK);
-    } else {
-        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
-    }
-}
-
-/** \brief duplicates \p v on the t_stack and reverse its content.
- *
- * This function is not unicode-aware.
- */
-static inline lstr_t t_lstr_dup_ascii_reversed(const lstr_t v)
-{
-    char *str;
-
-    if (!v.s) {
-        return v;
-    }
-
-    str = t_new_raw(char, v.len + 1);
-
-    for (int i = 0; i < v.len; i++) {
-        str[i] = v.s[v.len - i - 1];
-    }
-    str[v.len] = '\0';
-
-    return lstr_init_(str, v.len, MEM_STACK);
-}
-
-/** \brief duplicates \p v on the t_stack and reverse its content.
- *
- * This function reverse character by character, which means that the result
- * contains the same characters in the reversed order but each character is
- * preserved in it's origin byte-wise order. This guarantees that both the
- * source and the destination are valid utf8 strings.
- *
- * In case of error, LSTR_NULL_V is returned.
- */
-static inline lstr_t t_lstr_dup_utf8_reversed(const lstr_t v)
-{
-    int prev_off = 0;
-    char *str;
-
-    if (!v.s) {
-        return v;
-    }
-
-    str = t_new_raw(char, v.len + 1);
-    while (prev_off < v.len) {
-        int off = prev_off;
-        int c = utf8_ngetc_at(v.s, v.len, &off);
-
-        if (unlikely(c < 0)) {
-            return LSTR_NULL_V;
-        }
-        memcpy(str + v.len - off, v.s + prev_off, off - prev_off);
-        prev_off = off;
-    }
-    return lstr_init_(str, v.len, MEM_STACK);
-}
-
-/** \brief concatenates its argument to form a new lstr on the mem stack.
- */
-static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
-{
-    int    len;
-    lstr_t res;
-    void  *s;
-
-    if (unlikely(!s1.s && !s2.s))
-        return LSTR_NULL_V;
-
-    len = s1.len + s2.len;
-    res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    s = (void *)res.v;
-    s = mempcpy(s, s1.s, s1.len);
-    mempcpyz(s, s2.s, s2.len);
-    return res;
-}
-
-/** \brief concatenates its argument to form a new lstr on the mem stack.
- */
-static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t s3)
-{
-    int    len;
-    lstr_t res;
-    void  *s;
-
-    if (unlikely(!s1.s && !s2.s && !s3.s))
-        return LSTR_NULL_V;
-
-    len = s1.len + s2.len + s3.len;
-    res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    s = (void *)res.v;
-    s = mempcpy(s, s1.s, s1.len);
-    s = mempcpy(s, s2.s, s2.len);
-    mempcpyz(s, s3.s, s3.len);
-    return res;
-}
-
-/** \brief return the trimmed lstr.
- */
-static inline lstr_t lstr_trim(lstr_t s)
-{
-    /* ltrim */
-    while (s.len && isspace((unsigned char)s.s[0])) {
-        s.s++;
-        s.len--;
-    }
-
-    /* rtrim */
-    while (s.len && isspace((unsigned char)s.s[s.len - 1]))
-        s.len--;
-
-    s.mem_pool = MEM_STATIC;
-    return s;
-}
+/* }}} */
+/* Conversions {{{ */
 
 /** \brief lower case the given lstr. Work only with ascii strings.
  */
@@ -677,17 +755,18 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
     return 0;
 }
 
-/*--------------------------------------------------------------------------*/
+/* }}} */
+/* Format {{{ */
+
 #define lstr_fmt(fmt, ...) \
     ({ const char *__s = asprintf(fmt, ##__VA_ARGS__); \
        lstr_init_(__s, strlen(__s), MEM_LIBC); })
 
-#define t_lstr_fmt(fmt, ...) \
-    ({ int __len; const char *__s = t_fmt(&__len, fmt, ##__VA_ARGS__); \
-       lstr_init_(__s, __len, MEM_STACK); })
-
 #define mp_lstr_fmt(mp, fmt, ...) \
     ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__); \
-       lstr_init_(__s, __len, mp ? mp->mem_pool : (unsigned)MEM_LIBC); })
+       mp_lstr_init((mp), __s, __len); })
 
+#define t_lstr_fmt(fmt, ...)  mp_lstr_fmt(t_pool(), fmt, ##__VA_ARGS__)
+
+/* }}} */
 #endif
