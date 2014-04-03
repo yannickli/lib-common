@@ -997,13 +997,12 @@ struct {
 
 static int z_wake_up(void)
 {
+    const bool fast = Z_HAS_MODE(FAST)
+                   || mem_tool_is_running(MEM_TOOL_VALGRIND | MEM_TOOL_ASAN);
     int iterations = 100000;
 
-    if (Z_HAS_MODE(FAST)) {
+    if (fast) {
         iterations = 10000;
-    }
-    if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
-        iterations /= 10;
     }
 
     z_wake_up_g.blocker = el_blocker_register();
@@ -1240,7 +1239,9 @@ static void par_qsort_run(thr_job_t *job, thr_syn_t *syn)
 static int test_qsort(bool use_blocks)
 {
     t_scope;
-    const size_t len = Z_HAS_MODE(FAST) ? (8 << 10) : (8 << 15);
+    const bool fast = Z_HAS_MODE(FAST)
+                   || mem_tool_is_running(MEM_TOOL_VALGRIND | MEM_TOOL_ASAN);
+    const size_t len = fast ? (8 << 10) : (8 << 15);
     uint32_t *vec[thr_parallelism_g];
     thr_syn_t syn;
 
@@ -1381,17 +1382,17 @@ static int test_queue_sync(void)
 /* }}} */
 
 Z_GROUP_EXPORT(thrjobs) {
+    const bool fast = Z_HAS_MODE(FAST)
+                   || mem_tool_is_running(MEM_TOOL_VALGRIND | MEM_TOOL_ASAN);
+
     MODULE_REQUIRE(thr);
 
     Z_TEST(contention, "test contention behavior") {
         struct contention_job jobs[2 * thr_parallelism_g * THR_JOB_MAX];
         int iterations = 1 << 10;
 
-        if (Z_HAS_MODE(FAST)) {
+        if (fast) {
             iterations = 1 << 5;
-        }
-        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
-            iterations /= 10;
         }
 
         for (int j = 0; j < iterations; j++) {
@@ -1437,7 +1438,7 @@ Z_GROUP_EXPORT(thrjobs) {
     } Z_TEST_END;
 
     Z_TEST(queue_syn, "tests queue sync") {
-        int loops = Z_HAS_MODE(FAST) ? 100 : 10000;
+        int loops = fast ? 100 : 10000;
 
 #ifdef OS_APPLE
         loops = 100;
@@ -1459,11 +1460,8 @@ Z_GROUP_EXPORT(thrjobs) {
         thr_syn_init(&z_post_notify_g.syn);
         z_post_notify_g.job.run = &run_post_notify;
 
-        if (Z_HAS_MODE(FAST)) {
+        if (fast) {
             iterations = 50000;
-        }
-        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
-            iterations /= 10;
         }
 
 #ifdef OS_APPLE
