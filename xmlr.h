@@ -56,6 +56,15 @@ const char *xmlr_get_err(void);
  */
 int xmlr_next_node(xml_reader_t xr);
 
+/* \brief Get the shorthand reference to the namespace associated with
+ * the node
+ */
+lstr_t xmlr_node_get_xmlns(xml_reader_t xr);
+
+/* \brief Get namespace associated with the node
+ */
+lstr_t xmlr_node_get_xmlns_uri(xml_reader_t xr);
+
 /* \brief Goes to the first child of the current node
  */
 int xmlr_next_child(xml_reader_t xr);
