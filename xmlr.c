@@ -250,6 +250,26 @@ int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out)
     return 0;
 }
 
+lstr_t xmlr_node_get_xmlns(xml_reader_t xr)
+{
+    const char *s;
+
+    assert (xmlr_on_element(xr, false));
+    s = (const char *)xmlTextReaderConstPrefix(xr);
+
+    return LSTR_OPT_STR_V(s);
+}
+
+lstr_t xmlr_node_get_xmlns_uri(xml_reader_t xr)
+{
+    const char *s;
+
+    assert (xmlr_on_element(xr, false));
+    s = (const char *)xmlTextReaderConstNamespaceUri(xr);
+
+    return LSTR_OPT_STR_V(s);
+}
+
 int xmlr_next_node(xml_reader_t xr)
 {
     assert (xmlr_on_element(xr, true));
@@ -662,5 +682,61 @@ static int xmlr_attr_dbl(xml_reader_t xr, const char *name, const char *s,
 #define ARGS_P  double *dblp
 #define ARGS    dblp
 #include "xmlr-get-attr.in.c"
+
+/* }}} */
+/* {{{ Tests */
+
+#include "z.h"
+
+Z_GROUP_EXPORT(xmlr)
+{
+    Z_TEST(xmlr_node_get_xmlns, "xmlr_node_get_xmlns") {
+        lstr_t body = LSTR_IMMED_V("<ns:elt xmlns:ns=\"ns_uri\" />");
+        lstr_t name;
+        lstr_t ns;
+
+        Z_ASSERT(xmlr_setup(&xmlr_g, body.s, body.len) >= 0);
+
+        Z_ASSERT(xmlr_node_get_local_name(xmlr_g, &name) >= 0);
+        Z_ASSERT_STREQUAL(name.s, "elt");
+
+        ns = xmlr_node_get_xmlns(xmlr_g);
+        Z_ASSERT_STREQUAL(ns.s, "ns");
+
+        xmlr_close(&xmlr_g);
+    } Z_TEST_END;
+
+    Z_TEST(xmlr_node_get_xmlns_uri, "xmlr_node_get_xmlns_uri") {
+        lstr_t body = LSTR_IMMED_V("<ns:elt xmlns:ns=\"ns_uri\" />");
+        lstr_t name;
+        lstr_t ns_uri;
+
+        Z_ASSERT(xmlr_setup(&xmlr_g, body.s, body.len) >= 0);
+
+        Z_ASSERT(xmlr_node_get_local_name(xmlr_g, &name) >= 0);
+        Z_ASSERT_STREQUAL(name.s, "elt");
+
+        ns_uri = xmlr_node_get_xmlns_uri(xmlr_g);
+        Z_ASSERT_STREQUAL(ns_uri.s, "ns_uri");
+
+        xmlr_close(&xmlr_g);
+    } Z_TEST_END;
+
+    Z_TEST(xmlr_node_get_xmlns_no_uri, "xmlr_node_get_xmlns_no_uri") {
+        lstr_t body = LSTR_IMMED_V("<elt xmlns:ns=\"ns_uri\" />");
+        lstr_t name;
+        lstr_t ns_uri;
+
+        Z_ASSERT(xmlr_setup(&xmlr_g, body.s, body.len) >= 0);
+
+        Z_ASSERT(xmlr_node_get_local_name(xmlr_g, &name) >= 0);
+        Z_ASSERT_STREQUAL(name.s, "elt");
+
+        ns_uri = xmlr_node_get_xmlns_uri(xmlr_g);
+        Z_ASSERT(ns_uri.len == 0);
+
+        xmlr_close(&xmlr_g);
+    } Z_TEST_END;
+} Z_GROUP_END
 
 /* }}} */
