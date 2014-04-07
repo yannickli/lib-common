@@ -23,9 +23,9 @@ endif
 endif
 
 doc:
-all check fast-check clean distclean::
+all check fast-check clean distclean www::
 FORCE: ;
-.PHONY: all check fast-check clean distclean doc FORCE
+.PHONY: all check fast-check clean distclean doc www FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -82,10 +82,12 @@ jshint:
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
-$(patsubst ./%,%,$(dir $(d:/=)))doc:       $(d)doc
+$(patsubst ./%,%,$(dir $(d:/=)))doc:        $(d)doc
+$(patsubst ./%,%,$(dir $(d:/=)))www::       $(d)www
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(d)all::
 $(d)doc:
+$(d)www::
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)fast-check:: $(d)all
@@ -131,8 +133,8 @@ __setup_buildsys_trampoline: $!deps.mk
 toplevel:
 .PHONY: toplevel
 
-all:: toplevel
-all check fast-check clean distclean:: | __setup_buildsys_trampoline
+all:: toplevel www
+all check fast-check clean distclean www:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 __setup_buildsys_doc: | __setup_buildsys_trampoline
@@ -171,6 +173,8 @@ jshint: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
 	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
 	git ls-files -- '*.js' | xargs jshint
+
+www:: jshint
 
 syntastic: | __setup_buildsys_trampoline
 	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config

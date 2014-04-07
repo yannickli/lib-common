@@ -366,6 +366,12 @@ project.
         build the `_DOCS` target. You can some tasks to that `doc` by adding
         a `doc:` in your local Makefile.
 
+`www::`::
+		This target can be used to generate web specific files. The build
+		system automatically generates the css and javascript files goal that
+		build the `_CSS' and `_JS` target. You can add some tasks to that
+		`www` by adding `www::` in your local Makefile.
+
 // }}}
 
 Things to know
