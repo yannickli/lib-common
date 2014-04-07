@@ -312,10 +312,10 @@ $(eval $(call ext/rule/xml,$1,$2,$(1:%=$~%.xml),$4))
 endef
 
 define ext/expand/sdf
-$~$3.inc.adoc: $3 $~qrrd/sdf2adoc.exe
+$~$3.inc.adoc: $3 $~$(patsubst $(var/srcdir)%,%,$(var/platform))/qrrd/sdf2adoc.exe
 	mkdir -p $$(@D)
 	$(msg/DOC.sdf) $3
-	$~qrrd/sdf2adoc.exe -o $$@+ $$<
+	$~$(patsubst $(var/srcdir)%,%,$(var/platform))/qrrd/sdf2adoc.exe -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
 	$(FASTCP) $$@ $3.inc.adoc
 $(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
