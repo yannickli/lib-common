@@ -381,7 +381,7 @@ endef
 #[ _CSS ]#############################################################{{{#
 
 define rule/css
-$(1DV)all:: $(1DV)$1
+$(1DV)www:: $(1DV)$1
 $(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_SOURCES)))
 endef
 
@@ -389,7 +389,7 @@ endef
 #[ _JS ]##############################################################{{{#
 
 define rule/js
-$(1DV)all:: $~$1/.mark $(1DV)$1
+$(1DV)www:: $~$1/.mark $(1DV)$1
 $~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
 $~$1/.build: | _generated_hdr
 	mkdir -p $$(dir $$@)

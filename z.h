@@ -154,6 +154,22 @@ bool _z_assert_lstrequal(const char *file, int lno,
                          const char *lhs, lstr_t lh,
                          const char *rhs, lstr_t rh,
                          const char *fmt, ...);
+
+struct iop_struct_t;
+__attr_printf__(8, 9)
+bool _z_assert_iopequal(const char *file, int lno,
+                        const struct iop_struct_t *st,
+                        const char *lhs, const void *lh,
+                        const char *rhs, const void *rh,
+                        const char *fmt, ...);
+
+__attr_printf__(8, 9)
+bool _z_assert_iopjsonequal(const char *file, int lno,
+                            const struct iop_struct_t *st,
+                            const char *lhs, const void *lh,
+                            const char *rhs, lstr_t json,
+                            const char *fmt, ...);
+
 __attr_printf__(5, 6)
 bool _z_assert(const char *file, int lno, const char *expr, bool res,
                const char *fmt, ...);
@@ -285,8 +301,39 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
                #lt, LSTR_INIT_V((void *)(lt), sizeof((lt)[0]) * (ll)),    \
                #rt, LSTR_INIT_V((void *)(rt), sizeof((rt)[0]) * (rl)),    \
                ""__VA_ARGS__))                                            \
-        goto _z_step_end; })
+            goto _z_step_end; })
 
+#define Z_ASSERT_IOPEQUAL(st, lhs, rhs, ...) \
+    ({  if (_z_assert_iopequal(__FILE__, __LINE__, &st##__s,              \
+                               #lhs, lhs, #rhs, rhs, ""__VA_ARGS__))      \
+        {                                                                 \
+            goto _z_step_end;                                             \
+        }                                                                 \
+    })
+
+#define Z_ASSERT_IOPEQUAL_DESC(st, lhs, rhs, ...) \
+    ({  if (_z_assert_iopequal(__FILE__, __LINE__, st,                    \
+                               #lhs, lhs, #rhs, rhs, ""__VA_ARGS__))      \
+        {                                                                 \
+            goto _z_step_end;                                             \
+        }                                                                 \
+    })
+
+#define Z_ASSERT_IOPJSONEQUAL(st, lhs, rhs, ...) \
+    ({  if (_z_assert_iopjsonequal(__FILE__, __LINE__, &st##__s,          \
+                               #lhs, lhs, #rhs, rhs, ""__VA_ARGS__))      \
+        {                                                                 \
+            goto _z_step_end;                                             \
+        }                                                                 \
+    })
+
+#define Z_ASSERT_IOPJSONEQUAL_DESC(st, lhs, rhs, ...) \
+    ({  if (_z_assert_iopjsonequal(__FILE__, __LINE__, st,                \
+                               #lhs, lhs, #rhs, rhs, ""__VA_ARGS__))      \
+        {                                                                 \
+            goto _z_step_end;                                             \
+        }                                                                 \
+    })
 
 /****************************************************************************/
 /* Z helpers                                                                */

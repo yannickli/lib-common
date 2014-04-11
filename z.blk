@@ -17,6 +17,7 @@
 #include "z.h"
 #include "thr.h"
 #include "container-qhash.h"
+#include "iop.h"
 
 enum z_state {
     Z_START,
@@ -303,6 +304,76 @@ bool _z_assert_lstrequal(const char *file, int lno,
         }
         return true;
     }
+    return false;
+}
+
+bool _z_assert_iopequal(const char *file, int lno,
+                        const struct iop_struct_t *st,
+                        const char *lhs, const void *lh,
+                        const char *rhs, const void *rh,
+                        const char *fmt, ...)
+{
+    IN_TEST;
+    _G.grp.t_asserts++;
+
+    if (!iop_equals(st, lh, rh)) {
+        SB_1k(sb);
+
+        sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
+                file, lno, lhs, rhs);
+        sb_addf(&sb, " %s:\n  ", lhs);
+        iop_sb_jpack(&sb, st, lh,
+                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+        sb_addf(&sb, "\n %s:\n  ", rhs);
+        iop_sb_jpack(&sb, st, rh,
+                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+        sb_adds(&sb, "\n");
+        _z_add_extra(sb, fmt);
+        lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
+        if (_G.abort_on_fail) {
+            do_fail_comment();
+        }
+        return true;
+    }
+    return false;
+}
+
+bool _z_assert_iopjsonequal(const char *file, int lno,
+                            const struct iop_struct_t *st,
+                            const char *lhs, const void *lh,
+                            const char *rhs, lstr_t json,
+                            const char *fmt, ...)
+{
+    t_scope;
+    SB_1k(err);
+    pstream_t ps = ps_initlstr(&json);
+    void *data = NULL;
+    IN_TEST;
+
+    if (t_iop_junpack_ptr_ps(&ps, st, &data, 0, &err)) {
+        SB_1k(sb);
+
+        _G.grp.t_asserts++;
+        sb_addf(&sb, "%s:%d: invalid json provided: %s\n", file, lno, rhs);
+        sb_addf(&sb, " %s (len: %d):\n  ", rhs, json.len);
+        sb_put_string(&sb, json);
+        sb_addf(&sb, "\n error:\n  %*pM\n", SB_FMT_ARG(&err));
+        _z_add_extra(sb, fmt);
+        lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
+        if (_G.abort_on_fail) {
+            do_fail_comment();
+        }
+        return true;
+    }
+
+    if (!iop_equals(st, lh, data)) {
+        SB_1k(sb);
+
+        _z_add_extra(sb, fmt);
+        return _z_assert_iopequal(file, lno, st, lhs, lh, rhs, data, "%*pM",
+                                  SB_FMT_ARG(&sb));
+    }
+    _G.grp.t_asserts++;
     return false;
 }
 
