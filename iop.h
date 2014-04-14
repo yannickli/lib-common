@@ -1119,10 +1119,10 @@ iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
 void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
                const int *szs);
 
-/** Pack an IOP structure into IOP binary format using the t_pool().
+/** Pack an IOP structure into IOP binary format using a specific mempool.
  *
  * This version of `iop_bpack` allows to pack an IOP structure in one
- * operation and uses the t_pool() to allocate the resulting buffer.
+ * operation and uses the given mempool to allocate the resulting buffer.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -1132,6 +1132,14 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  * \param[in] flags Packer modifiers (see iop_bpack_flags).
  * \return
  *   The buffer containing the packed structure.
+ */
+lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
+                                 const void *v, const unsigned flags);
+
+/** Pack an IOP structure into IOP binary format using the t_pool().
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
  */
 lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
                                 const unsigned flags);

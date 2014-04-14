@@ -1990,8 +1990,8 @@ void iop_bpack(void *dst, const iop_struct_t *desc, const void *v,
     }
 }
 
-lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
-                                const unsigned flags)
+lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
+                                 const void *v, const unsigned flags)
 {
     qv_t(i32) sizes;
     byte *data;
@@ -2003,12 +2003,18 @@ lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
     qv_inita(i32, &sizes, 1024);
 
     len  = iop_bpack_size_flags(st, v, flags, &sizes);
-    data = t_new_raw(byte, len + 1);
+    data = mp_new_raw(mp, byte, len + 1);
     data[len] = '\0';
 
     iop_bpack(data, st, v, sizes.tab);
     qv_wipe(i32, &sizes);
-    return lstr_init_(data, len, MEM_STACK);
+    return mp_lstr_init(mp, data, len);
+}
+
+lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
+                                const unsigned flags)
+{
+    return mp_iop_bpack_struct_flags(t_pool(), st, v, flags);
 }
 
 /*-}}}-*/
