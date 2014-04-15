@@ -341,8 +341,9 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
        __qv_init(n, vec, alloca(_sz), 0, __len, MEM_STATIC); })
 #define t_qv_init(n, vec, len) \
-    ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-       __qv_init(n, vec, t_new_raw(char, _sz), 0, __len, MEM_STACK); })
+    ({ size_t __len = (len); \
+       __qv_init(n, vec, t_new_raw(fieldtypeof(qv_t(n), tab[0]), __len), \
+                 0, __len, MEM_STACK); })
 
 #define qv_init(n, vec)  \
     ({ qv_t(n) *__vec = (vec);              \
