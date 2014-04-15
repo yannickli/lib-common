@@ -343,11 +343,13 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
        __qv_##n##_init(vec, tab, __len, __len, &mem_pool_static); })
 #define qv_inita(n, vec, len) \
     ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-       __qv_##n##_init(vec, alloca(_sz), 0, __len, &mem_pool_static); })
+        __qv_##n##_init(vec, alloca(_sz), 0, __len, &mem_pool_static); })
 #define mp_qv_init(n, mp, vec, len) \
-    ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-       mem_pool_t *_mp = (mp);                         \
-       __qv_##n##_init(vec, mp_new_raw(_mp, char, _sz), 0, __len, _mp); })
+    ({ size_t __len = (len);                                                 \
+       mem_pool_t *_mp = (mp);                                               \
+       __qv_##n##_init(vec,                                                  \
+                       mp_new_raw(_mp, fieldtypeof(qv_t(n), tab[0]), __len), \
+                       0, __len, _mp); })
 
 #define t_qv_init(n, vec, len)  mp_qv_init(n, t_pool(), (vec), (len))
 #define r_qv_init(n, vec, len)  mp_qv_init(n, r_pool(), (vec), (len))
