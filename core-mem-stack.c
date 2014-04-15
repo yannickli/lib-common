@@ -237,11 +237,7 @@ static mem_pool_t const pool_funcs = {
     .realloc  = &sp_realloc,
     .free     = &sp_free,
     .mem_pool = MEM_STACK,
-#ifndef NDEBUG
     .min_alignment = sizeof(void *)
-#else
-    .min_alignment = 1
-#endif
 };
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
