@@ -137,12 +137,19 @@ typedef struct linux_dirent_t {
     char           d_name[];
 } linux_dirent_t;
 
-#define D_TYPE(ld)          *((byte *)ld + ld->d_reclen - 1)
+/* XXX: D_TYPE works only on ext2, ext3, ext4, btrfs (man getdents)
+ *      using D_TYPE() inside of a list_dir block call back is safe,
+ *      list_dir will set the type for you.
+ */
+#define D_TYPE(ld)            *((byte *)ld + ld->d_reclen - 1)
+#define D_SET_TYPE(ld, type)  *((byte *)ld + ld->d_reclen - 1) = type
 
 #else
 typedef struct dirent linux_dirent_t;
 
 #define D_TYPE(ld)  ((ld)->d_type)
+#define D_SET_TYPE(ld, type) ((ld)->type = type
+
 #endif
 
 #ifdef __has_blocks
