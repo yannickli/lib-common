@@ -86,7 +86,7 @@ int thr_create(pthread_t *restrict thread,
     void **pair = p_new(void *, 2);
     int res;
 
-#ifndef __has_asan
+#if !defined(__has_asan) && !defined(__has_tsan)
     if (unlikely(!real_pthread_create))
         real_pthread_create = dlsym(RTLD_NEXT, "pthread_create");
 #else
@@ -101,7 +101,7 @@ int thr_create(pthread_t *restrict thread,
     return res;
 }
 
-#ifndef __has_asan
+#if !defined(__has_asan) && !defined(__has_tsan)
 __attribute__((visibility("default")))
 int pthread_create(pthread_t *restrict thread,
                    const pthread_attr_t *restrict attr,
