@@ -84,18 +84,7 @@
  */
 
 typedef struct thr_evc_t {
-    union {
-        struct {
-#if __BYTE_ORDER == __BIG_ENDIAN
-            unsigned volatile count2;
-            unsigned volatile count;
-#else
-            unsigned volatile count;
-            unsigned volatile count2;
-#endif
-        };
-        uint64_t volatile key;
-    };
+    uint64_t volatile key;
     unsigned volatile waiters;
 #ifndef OS_LINUX
     pthread_mutex_t mutex;

@@ -72,29 +72,10 @@
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
-#if ULONG_MAX == UINT32_MAX
-    /*
-     * We don't know how slow things are between a thr_ec_get() and a
-     * thr_ec_wait. Hence it's not safe to assume the "count" will never
-     * rotate fully between the two.
-     *
-     * In 64bits mode, well, we have 64-bits atomic increments and all is
-     * fine. In 32bits mode, we increment the high word manually every 2^24
-     * low-word increment.
-     *
-     * This assumes that at least one of the 256 threads that will try to
-     * perform the "count2" increment won't be stalled between deciding the
-     * modulo is zero and the increment itself for an almost full cycle
-     * (2^32 - 2^24) of the low word counter.
-     */
-    if (unlikely(atomic_add_and_get(&ec->count, 1) % (1U << 24) == 0))
-        atomic_add(&ec->count2, 1);
-#else
     atomic_add(&ec->key, 1);
-#endif
 
     if (atomic_get_and_add(&ec->waiters, 0))
-        futex_wake_private(&ec->count, count);
+        futex_wake_private(&ec->key, count);
 }
 
 static void thr_ec_wait_cleanup(void *arg)
@@ -115,13 +96,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
      *      assume it's impossible for the low 32bits to cycle between this
      *      test and the call to futex_wait_private.
      */
-    if (unlikely(
-#if ULONG_MAX == UINT32_MAX
-            (uint32_t)(key >> 32) != ec->count2
-#else
-            key != ec->key
-#endif
-    )) {
+    if (unlikely(key != ec->key)) {
         pthread_testcancel();
         return;
     }
@@ -135,9 +110,9 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
             .tv_sec  = timeout / 1000,
             .tv_nsec = (timeout % 1000) * 1000000,
         };
-        res = futex_wait_private(&ec->count, (uint32_t)key, &spec);
+        res = futex_wait_private(&ec->key, (uint32_t)key, &spec);
     } else {
-        res = futex_wait_private(&ec->count, (uint32_t)key, NULL);
+        res = futex_wait_private(&ec->key, (uint32_t)key, NULL);
     }
     if (res == 0)
         sched_yield();
@@ -233,26 +208,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
-#if ULONG_MAX == UINT32_MAX
-    /*
-     * We don't know how slow things are between a thr_ec_get() and a
-     * thr_ec_wait. Hence it's not safe to assume the "count" will never
-     * rotate fully between the two.
-     *
-     * In 64bits mode, well, we have 64-bits atomic increments and all is
-     * fine. In 32bits mode, we increment the high word manually every 2^24
-     * low-word increment.
-     *
-     * This assumes that at least one of the 256 threads that will try to
-     * perform the "count2" increment won't be stalled between deciding the
-     * modulo is zero and the increment itself for an almost full cycle
-     * (2^32 - 2^24) of the low word counter.
-     */
-    if (unlikely(atomic_add_and_get(&ec->count, 1) % (1U << 24) == 0))
-        atomic_add(&ec->count2, 1);
-#else
     atomic_add(&ec->key, 1);
-#endif
 
     if (atomic_get_and_add(&ec->waiters, 0)) {
         mb();
