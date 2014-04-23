@@ -48,6 +48,39 @@ static int opterror(popt_t *opt, const char *reason, int flags)
     return -1;
 }
 
+static int put_int_value(popt_t *opt, uint64_t v)
+{
+    switch (opt->int_vsize) {
+#define CASE(_sc) case _sc / 8:                                              \
+        if (opt->kind == OPTION_UINT) {                                      \
+            if (v <= UINT##_sc##_MAX) {                                      \
+                *(uint##_sc##_t *)opt->value = v;                            \
+            } else {                                                         \
+                return -1;                                                   \
+            }                                                                \
+        } else {                                                             \
+            int64_t w = (int64_t)v;                                          \
+            if (w >= INT##_sc##_MIN && w <= INT##_sc##_MAX) {                \
+                *(int##_sc##_t *)opt->value = v;                             \
+            } else {                                                         \
+                return -1;                                                   \
+            }                                                                \
+        }                                                                    \
+        break;
+
+        CASE(8);
+        CASE(16);
+        CASE(32);
+        CASE(64);
+
+#undef CASE
+
+      default: e_panic("should not happen");
+    }
+
+    return 0;
+}
+
 static int get_value(popt_state_t *st, popt_t *opt, int flags)
 {
     if (st->p && (flags & FLAG_UNSET))
@@ -91,16 +124,33 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
         return 0;
 
       case OPTION_INT:
-        if (flags & FLAG_UNSET) {
-            *(int *)opt->value = opt->init;
-        } else {
-            if (!st->p && st->argc < 2)
-                return opterror(opt, "requires a value", flags);
-            *(int *)opt->value = strtoip(opt_arg(st), &s);
-            if (*s)
-                return opterror(opt, "expects a numerical value", flags);
-        }
-        return 0;
+      case OPTION_UINT:
+      {
+          uint64_t v;
+
+          if (flags & FLAG_UNSET) {
+              v = opt->init;
+          } else {
+              if (!st->p && st->argc < 2) {
+                  return opterror(opt, "requires a value", flags);
+              }
+
+              errno = 0;
+              if (opt->kind == OPTION_UINT) {
+                  v = strtoull(opt_arg(st), &s, 10);
+              } else {
+                  v = strtoll(opt_arg(st), &s, 10);
+              }
+              if (*s || (errno && errno != ERANGE)) {
+                  return opterror(opt, "expects a numerical value", flags);
+              }
+          }
+
+          if (errno == ERANGE || put_int_value(opt, v) < 0) {
+              return opterror(opt, "integer overflow", flags);
+          }
+      }
+      return 0;
 
       case OPTION_VERSION:
         if (flags & FLAG_UNSET) {
