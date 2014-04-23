@@ -1190,8 +1190,6 @@ data_t el_set_priv(ev_t *ev, data_t priv)
     return priv;
 }
 
-#include "el-showflags.c"
-
 void el_loop_timeout(int timeout)
 {
     uint64_t clk = get_clock(false);
@@ -1202,7 +1200,6 @@ void el_loop_timeout(int timeout)
         if (nxt < (uint64_t)timeout + clk)
             timeout = nxt - clk;
     }
-    do_license_checks();
     if (unlikely(_G.unloop))
         return;
     ev_list_process(&_G.before);
