@@ -119,13 +119,19 @@ typedef struct mpsc_it_t {
  * a typical drain looks like that:
  *
  * <code>
+ *   static void doit(mpsc_node_t *node, data_t data)
+ *   {
+ *       process_node(node);
+ *       freenode(node);
+ *   }
+ *
  *   {
  *       mpsc_it_t it;
  *
- *   #define doit(n)  ({ process_node(n); freenode(n); })
  *       mpsc_queue_drain_start(&it, &path->to.your_queue);
  *       do {
- *           mpsc_node_t *n = mpsc_queue_drain_fast(&it, doit);
+ *           mpsc_node_t *n = mpsc_queue_drain_fast(&it, doit,
+ *                                                  (data_t){ .ptr = NULL });
  *           process_node(n);
  *           // XXX do NOT freenode(n) here mpsc_queue_drain_end will use it
  *       } while (!mpsc_queue_drain_end(&it, freenode));
@@ -153,7 +159,7 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
  * \param[in]   doit
  *     a function or macro that takes one mpsc_node_t as an argument: the node
  *     to process.
- * \param[in]   ...  additionnal arguments to pass to \v doit.
+ * \param[in]   data  additionnal data to pass to \p doit.
  *
  * \returns
  *   a non NULL mpsc_node_t that may be the last one in the queue for
@@ -161,46 +167,53 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
  *   up to the caller to do it.
  *   This node should NOT be freed, as mpsc_queue_drain_end will need it.
  */
-#define mpsc_queue_drain_fast(it, doit, ...) \
-    ({                                                                     \
-        mpsc_it_t   *it_ = (it);                                           \
-        mpsc_node_t *h_  = it_->h;                                         \
-        for (mpsc_node_t *n_;                                              \
-             likely(n_ = atomic_load_explicit(&h_->next,                   \
-                                              memory_order_relaxed));      \
-             h_ = n_)                                                      \
-        {                                                                  \
-            doit(h_, ##__VA_ARGS__);                                       \
-        }                                                                  \
-        it_->h = h_;                                                       \
-    })
+static inline
+mpsc_node_t *mpsc_queue_drain_fast(mpsc_it_t *it,
+                                   void (*doit)(mpsc_node_t *, data_t data),
+                                   data_t data)
+{
+    mpsc_node_t *h = it->h;
+    mpsc_node_t *n;
+
+    while (likely(n = atomic_load_explicit(&h->next, memory_order_relaxed))) {
+        (*doit)(h, data);
+        h = n;
+    }
+    it->h = h;
+    return h;
+}
 
 /** \brief implementation of mpsc_queue_drain_end.
  *
  * Do not use directly unless you want to override relax and know what you are
  * doing.
  */
-#define __mpsc_queue_drain_end(it, freenode, relax) \
-    ({                                                                     \
-        mpsc_it_t    *it_ = (it);                                          \
-        mpsc_queue_t *q_  = it_->q;                                        \
-        mpsc_node_t  *h_  = it_->h;                                        \
-        mpsc_node_t  *hq_ = h_;                                            \
-                                                                           \
-        if (h_ == atomic_load_explicit(&q_->tail, memory_order_relaxed)    \
-        &&  atomic_compare_exchange_strong(&q_->tail, &hq_, &q_->head))    \
-        {                                                                  \
-            it_->h = NULL;                                                 \
-        } else {                                                           \
-            while (!(it_->h = atomic_load_explicit(&h_->next,              \
-                                                   memory_order_relaxed))) \
-            {                                                              \
-                relax;                                                     \
-            }                                                              \
-        }                                                                  \
-        freenode(h_);                                                      \
-        it_->h == NULL;                                                    \
-    })
+static inline
+bool __mpsc_queue_drain_end(mpsc_it_t *it, void (*freenode)(mpsc_node_t *),
+                            void (*relax)(void))
+{
+    mpsc_queue_t *q = it->q;
+    mpsc_node_t *h = it->h;
+    mpsc_node_t *hq = h;
+
+    if (h == atomic_load_explicit(&q->tail, memory_order_relaxed)
+    &&  atomic_compare_exchange_strong(&q->tail, &hq, &q->head))
+    {
+        it->h = NULL;
+    } else {
+        while (!(it->h = atomic_load_explicit(&h->next, memory_order_relaxed))) {
+            if (relax) {
+                (*relax)();
+            } else {
+                cpu_relax();
+            }
+        }
+    }
+    if (freenode) {
+        (*freenode)(h);
+    }
+    return it->h == NULL;
+}
 
 /** \brief test for the drain completion.
  *
@@ -216,8 +229,7 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
  *   else in which case the caller has to restart the drain.
  */
 #define mpsc_queue_drain_end(it, freenode) \
-    __mpsc_queue_drain_end(it, freenode, cpu_relax())
-
+    __mpsc_queue_drain_end(it, freenode, NULL)
 
 
 /** \internal

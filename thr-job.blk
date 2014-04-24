@@ -538,6 +538,16 @@ static void thr_queue_wipe(thr_queue_t *q)
 }
 GENERIC_DELETE(thr_queue_t, thr_queue);
 
+static void thr_queue_run_node(mpsc_node_t *m, data_t data)
+{
+    thr_qnode_t *n = thr_qnode_of(m);
+    thr_job_t *job = n->job;
+    thr_syn_t *syn = n->syn;
+
+    thr_qnode_destroy(m);
+    job_run(job, syn);
+}
+
 static void thr_queue_drain(thr_queue_t *q)
 {
     bool wipe = false;
@@ -552,20 +562,15 @@ static void thr_queue_drain(thr_queue_t *q)
         return;
     }
 
-#define doit(n) \
-    ({  thr_job_t *job = thr_qnode_of(n)->job; \
-        thr_syn_t *syn = thr_qnode_of(n)->syn; \
-                                               \
-        thr_qnode_destroy(n);                  \
-        job_run(job, syn);                     \
-    })
     mpsc_queue_drain_start(&it, &q->q);
     do {
-        thr_qnode_t *n = thr_qnode_of(mpsc_queue_drain_fast(&it, doit));
+        mpsc_node_t *m = mpsc_queue_drain_fast(&it, &thr_queue_run_node,
+                                               (data_t){ .ptr = NULL });
+        thr_qnode_t *n = thr_qnode_of(m);
+
         job_run(n->job, n->syn);
         wipe = (n->job == &q->destroy);
-    } while (!__mpsc_queue_drain_end(&it, thr_qnode_destroy, cpu_relax()));
-#undef doit
+    } while (!mpsc_queue_drain_end(&it, &thr_qnode_destroy));
 
     if (wipe) {
         thr_queue_delete(&q);
@@ -1078,6 +1083,12 @@ struct post_notify_node {
 } __attribute__((aligned(64)));
 
 
+static void run_post_check(mpsc_node_t *n, data_t data)
+{
+    assert (!container_of(n, struct post_notify_node, node)->flush);
+    assert (!atomic_load(&z_post_notify_g.flushed));
+}
+
 static void run_post_notify(thr_job_t *job, thr_syn_t *syn)
 {
     mpsc_it_t it;
@@ -1085,19 +1096,15 @@ static void run_post_notify(thr_job_t *job, thr_syn_t *syn)
 
     mpsc_queue_drain_start(&it, &z_post_notify_g.queue);
     do {
-#define check(n)  do {                                                       \
-            assert (!container_of(n, struct post_notify_node, node)->flush); \
-            assert (!atomic_load(&z_post_notify_g.flushed));                 \
-        } while (0)
-
-        mpsc_node_t *n = mpsc_queue_drain_fast(&it, check);
+        mpsc_node_t *n = mpsc_queue_drain_fast(&it, &run_post_check,
+                                               (data_t){ .ptr = NULL });
 
         assert (!atomic_load(&z_post_notify_g.flushed));
         if (container_of(n, struct post_notify_node, node)->flush) {
             atomic_fetch_add(&z_post_notify_g.thr, 1);
             flush = true;
         }
-    } while (!mpsc_queue_drain_end(&it, IGNORE));
+    } while (!mpsc_queue_drain_end(&it, NULL));
 
     thr_syn_queue_b(&z_post_notify_g.syn, thr_queue_main_g, ^{
         if (flush) {
