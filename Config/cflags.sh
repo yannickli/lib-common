@@ -94,7 +94,12 @@ get_internal_clang_args()
 build_flags()
 {
     # use C99 to be able to for (int i =...
-    ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
+    if clang_prereq 3.3 || gcc_prereq 4.7; then
+        ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu11
+    else
+        ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
+    fi
+
     # optimize even more
     echo -O2
 
