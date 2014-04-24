@@ -279,7 +279,7 @@ static inline pid_t thr_job_fork(void)
 
 /*- accounting -----------------------------------------------------------*/
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(__has_tsan)
 void thr_acc_reset(void);
 void thr_acc_set_affinity(size_t offs);
 void thr_acc_trace(int lvl, const char *fmt, ...) __attribute__((format(printf, 2, 3)));

@@ -41,6 +41,9 @@ static int eventfd(int initialvalue, int flags)
 
 #endif
 
+#if !defined(NDEBUG) && !defined(__has_tsan)
+# define __has_thr_acc
+#endif
 #define CACHE_LINE_SIZE   64
 
 typedef struct thr_qnode_t thr_qnode_t;
@@ -84,7 +87,7 @@ typedef struct thr_info_t {
     size_t       ncache_sz;
     thr_qnode_t  ncache;
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
     struct thr_acc {
         uint64_t time;
         uint64_t ec_wait_time;
@@ -130,7 +133,7 @@ static thr_evc_t *thr0_cur_ec_g;
 static bool reload_at_fork_g;
 
 /* Tracing {{{ */
-#ifndef NDEBUG
+#ifdef __has_thr_acc
 
 void thr_acc_reset(void)
 {
@@ -266,7 +269,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
 
 static bool job_run(thr_job_t *job, thr_syn_t *syn)
 {
-#ifndef NDEBUG
+#ifdef __has_thr_acc
     unsigned long start = hardclock();
 
     self_g->acc.jobs_run++;
@@ -281,7 +284,7 @@ static bool job_run(thr_job_t *job, thr_syn_t *syn)
     } else {
         (*job->run)(job, syn);
     }
-#ifndef NDEBUG
+#ifdef __has_thr_acc
     self_g->acc.time += (hardclock() - start);
 #endif
     if (syn)
@@ -294,7 +297,7 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
     unsigned bot, top;
     struct deque_entry *e;
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
     self_g->acc.jobs_queued++;
 #endif
 
@@ -394,7 +397,7 @@ static bool thr_job_dequeue(void)
             e = &self_g->q[bot % THR_JOB_MAX];
             return job_run(e->job, e->syn);
         } else {
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.jobs_failed_dequeues++;
 #endif
         }
@@ -449,13 +452,13 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
             if (to_read > 1) {
                 shared_write(self_g->bot, my_bot + to_read - 1);
             }
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.jobs_stealed += to_read;
             self_g->acc.jobs_steals++;
 #endif
             return job_run(e.job, e.syn);
         } else {
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.jobs_failed_steals++;
 #endif
         }
@@ -705,20 +708,20 @@ static void *thr_job_main(void *arg)
         if (!thr_job_steal()) {
             uint64_t key = thr_ec_get(&_G.ec);
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.ec_gets++;
 #endif
             if (thr_job_steal())
                 continue;
             if (!shared_read(_G.stopping)) {
-#ifndef NDEBUG
+#ifdef __has_thr_acc
                 unsigned long start = hardclock();
 
                 self_g->acc.ec_waits++;
 #endif
                 thr_ec_wait(&_G.ec, key);
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
                 self_g->acc.ec_wait_time += (hardclock() - start);
 #endif
             }
@@ -890,7 +893,7 @@ size_t thr_id(void)
 
 void thr_syn_wait(thr_syn_t *syn)
 {
-#ifndef NDEBUG
+#ifdef __has_thr_acc
     unsigned long start;
 #endif
 
@@ -911,7 +914,7 @@ void thr_syn_wait(thr_syn_t *syn)
 
             shared_write(thr0_cur_ec_g, &syn->ec);
             key = thr_ec_get(&syn->ec);
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.ec_gets++;
 #endif
             if (!shared_read(syn->pending))
@@ -919,12 +922,12 @@ void thr_syn_wait(thr_syn_t *syn)
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.ec_waits++;
             start = hardclock();
 #endif
             thr_ec_wait(&syn->ec, key);
-#ifndef NDEBUG
+#ifdef __has_thr_acc
             self_g->acc.ec_wait_time += (hardclock() - start);
 #endif
           cas:
@@ -938,19 +941,19 @@ void thr_syn_wait(thr_syn_t *syn)
             if (!thr_job_steal()) {
                 uint64_t key = thr_ec_get(&syn->ec);
 
-#ifndef NDEBUG
+#ifdef __has_thr_acc
                 self_g->acc.ec_gets++;
 #endif
                 if (!shared_read(syn->pending))
                     break;
                 if (thr_job_steal())
                     continue;
-#ifndef NDEBUG
+#ifdef __has_thr_acc
                 self_g->acc.ec_waits++;
                 start = hardclock();
 #endif
                 thr_ec_timedwait(&syn->ec, key, 100);
-#ifndef NDEBUG
+#ifdef __has_thr_acc
                 self_g->acc.ec_wait_time += (hardclock() - start);
 #endif
             }
