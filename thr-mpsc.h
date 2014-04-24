@@ -32,18 +32,19 @@
 
 typedef struct mpsc_node_t  mpsc_node_t;
 typedef struct mpsc_queue_t mpsc_queue_t;
+typedef _Atomic(mpsc_node_t *) atomic_mpsc_node_t;
 
 /** \brief node to embed into structures to be put in an mpsc queue.
  */
 struct mpsc_node_t {
-    mpsc_node_t *volatile next;
+    atomic_mpsc_node_t next;
 };
 
 /** \brief head of an mpsc queue.
  */
 struct mpsc_queue_t {
     mpsc_node_t  head;
-    mpsc_node_t *volatile tail;
+    atomic_mpsc_node_t tail;
 };
 
 /** \brief static initializer for mpsc_queues.
@@ -55,7 +56,7 @@ struct mpsc_queue_t {
 static inline mpsc_queue_t *mpsc_queue_init(mpsc_queue_t *q)
 {
     p_clear(q, 1);
-    q->tail = &q->head;
+    atomic_init(&q->tail, &q->head);
     return q;
 }
 
@@ -76,7 +77,7 @@ static inline mpsc_queue_t *mpsc_queue_init(mpsc_queue_t *q)
  */
 static inline bool mpsc_queue_looks_empty(mpsc_queue_t *q)
 {
-    return q->head.next == NULL;
+    return atomic_load_explicit(&q->head.next, memory_order_relaxed) == NULL;
 }
 
 /** \brief enqueue a task in the queue.
@@ -97,9 +98,9 @@ static inline bool mpsc_queue_push(mpsc_queue_t *q, mpsc_node_t *n)
 {
     mpsc_node_t *prev;
 
-    n->next = NULL;
-    prev = atomic_xchg(&q->tail, n);
-    prev->next = n;
+    atomic_store_explicit(&n->next, NULL, memory_order_relaxed);
+    prev = atomic_exchange(&q->tail, n);
+    atomic_store_explicit(&prev->next, n, memory_order_relaxed);
     return prev == &q->head;
 }
 
@@ -140,8 +141,8 @@ typedef struct mpsc_it_t {
 static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
 {
     it->q = q;
-    it->h = q->head.next;
-    q->head.next = NULL;
+    it->h = atomic_load_explicit(&q->head.next, memory_order_relaxed);
+    atomic_store_explicit(&q->head.next, NULL, memory_order_relaxed);
     /* breaks if someone called mpsc_queue_drain_start with the queue empty */
     assert (it->h);
 }
@@ -164,8 +165,13 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
     ({                                                                     \
         mpsc_it_t   *it_ = (it);                                           \
         mpsc_node_t *h_  = it_->h;                                         \
-        for (mpsc_node_t *n_; likely(n_ = h_->next); h_ = n_)              \
+        for (mpsc_node_t *n_;                                              \
+             likely(n_ = atomic_load_explicit(&h_->next,                   \
+                                              memory_order_relaxed));      \
+             h_ = n_)                                                      \
+        {                                                                  \
             doit(h_, ##__VA_ARGS__);                                       \
+        }                                                                  \
         it_->h = h_;                                                       \
     })
 
@@ -179,11 +185,16 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
         mpsc_it_t    *it_ = (it);                                          \
         mpsc_queue_t *q_  = it_->q;                                        \
         mpsc_node_t  *h_  = it_->h;                                        \
+        mpsc_node_t  *hq_ = h_;                                            \
                                                                            \
-        if (h_ == q_->tail && atomic_bool_cas(&q_->tail, h_, &q_->head)) { \
+        if (h_ == atomic_load_explicit(&q_->tail, memory_order_relaxed)    \
+        &&  atomic_compare_exchange_strong(&q_->tail, &hq_, &q_->head))    \
+        {                                                                  \
             it_->h = NULL;                                                 \
         } else {                                                           \
-            while ((it_->h = h_->next) == NULL) {                          \
+            while (!(it_->h = atomic_load_explicit(&h_->next,              \
+                                                   memory_order_relaxed))) \
+            {                                                              \
                 relax;                                                     \
             }                                                              \
         }                                                                  \
@@ -214,24 +225,27 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
 static inline __cold
 bool mpsc_queue_pop_slow(mpsc_queue_t *q, mpsc_node_t *head, bool block)
 {
-    mpsc_node_t *tail = q->tail;
+    mpsc_node_t *tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
     mpsc_node_t *next;
 
     if (head == tail) {
-        q->head.next = NULL;
-        if (atomic_bool_cas(&q->tail, tail, &q->head))
+        atomic_store_explicit(&q->head.next, NULL, memory_order_relaxed);
+        if (atomic_compare_exchange_strong(&q->tail, &tail, &q->head)) {
             return true;
-        q->head.next = head;
+        }
+        atomic_store_explicit(&q->head.next, head, memory_order_relaxed);
     }
 
-    next = head->next;
+    next = atomic_load_explicit(&head->next, memory_order_relaxed);
     if (next == NULL) {
-        if (!block)
+        if (!block) {
             return false;
-        while ((next = head->next) == NULL)
+        }
+        while ((next = atomic_load_explicit(&head->next, memory_order_relaxed)) == NULL) {
             cpu_relax();
+        }
     }
-    q->head.next = next;
+    atomic_store_explicit(&q->head.next, next, memory_order_relaxed);
     return true;
 }
 
@@ -251,14 +265,14 @@ bool mpsc_queue_pop_slow(mpsc_queue_t *q, mpsc_node_t *head, bool block)
  */
 static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
 {
-    mpsc_node_t *head = q->head.next;
+    mpsc_node_t *head = atomic_load_explicit(&q->head.next, memory_order_relaxed);
     mpsc_node_t *next;
 
     if (head == NULL)
         return NULL;
 
-    if (likely(next = head->next)) {
-        q->head.next = next;
+    if (likely(next = atomic_load_explicit(&head->next, memory_order_relaxed))) {
+        atomic_store_explicit(&q->head.next, next, memory_order_relaxed);
         return head;
     }
     if (block) {

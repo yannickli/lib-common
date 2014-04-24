@@ -18,7 +18,8 @@ spsc_queue_t *spsc_queue_init(spsc_queue_t *q, size_t v_size)
     spsc_node_t *n = p_new(spsc_node_t, 1);
 
     p_clear(q, 1);
-    q->tail = q->head = q->first = q->head_copy = n;
+    q->tail = q->first = q->head_copy = n;
+    atomic_store_explicit(&q->head, n, memory_order_relaxed);
     return q;
 }
 
@@ -26,7 +27,7 @@ void spsc_queue_wipe(spsc_queue_t *q)
 {
     spsc_node_t *n = q->first;
     do {
-        spsc_node_t *next = n->next;
+        spsc_node_t *next = atomic_load_explicit(&n->next, memory_order_relaxed);
 
         p_delete(&n);
         n = next;

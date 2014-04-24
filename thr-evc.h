@@ -84,8 +84,8 @@
  */
 
 typedef struct thr_evc_t {
-    uint64_t volatile key;
-    unsigned volatile waiters;
+    atomic_uint_fast64_t key;
+    atomic_uint          waiters;
 #ifndef OS_LINUX
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
@@ -98,8 +98,8 @@ void thr_ec_wipe(thr_evc_t *ec);
 static ALWAYS_INLINE
 uint64_t thr_ec_get(thr_evc_t *ec)
 {
-    mb();
-    return ec->key;
+    atomic_thread_fence(memory_order_acq_rel);
+    return atomic_load(&ec->key);
 }
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout);
 #define thr_ec_wait(ec, key)  thr_ec_timedwait(ec, key, 0)
@@ -113,8 +113,9 @@ void thr_ec_signal(thr_evc_t *ec)
 static ALWAYS_INLINE
 void thr_ec_signal_relaxed(thr_evc_t *ec)
 {
-    if (ec->waiters)
+    if (atomic_load_explicit(&ec->waiters, memory_order_relaxed)) {
         thr_ec_signal(ec);
+    }
 }
 
 static ALWAYS_INLINE
@@ -125,8 +126,9 @@ void thr_ec_broadcast(thr_evc_t *ec)
 static ALWAYS_INLINE
 void thr_ec_broadcast_relaxed(thr_evc_t *ec)
 {
-    if (ec->waiters)
+    if (atomic_load_explicit(&ec->waiters, memory_order_relaxed)) {
         thr_ec_broadcast(ec);
+    }
 }
 
 #endif

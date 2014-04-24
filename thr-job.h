@@ -48,9 +48,9 @@ struct thr_job_t {
  */
 struct thr_syn_t {
     /** number of jobs registered on this thr_syn_t */
-    volatile unsigned pending;
+    atomic_uint pending;
     /** 1 for the owner + 1 for each people inside a thr_syn_wait() call */
-    volatile unsigned refcnt;
+    atomic_uint refcnt;
     /** the eventcount used for the blocking part of the thr_syn_wait() */
     thr_evc_t         ec;
 } __attribute__((aligned(64)));
@@ -158,9 +158,9 @@ static ALWAYS_INLINE void thr_syn_queue_b(thr_syn_t *syn, thr_queue_t *q, block_
 static ALWAYS_INLINE
 void thr_syn__retain(thr_syn_t *syn)
 {
-    unsigned res = atomic_add_and_get(&syn->refcnt, 1);
+    unsigned res = atomic_fetch_add(&syn->refcnt, 1);
 
-    assert (res != 1);
+    assert (res != 0);
 }
 
 /** \brief low level function to release a refcnt
@@ -168,9 +168,9 @@ void thr_syn__retain(thr_syn_t *syn)
 static ALWAYS_INLINE
 void thr_syn__release(thr_syn_t *syn)
 {
-    unsigned res = atomic_sub_and_get(&syn->refcnt, 1);
+    unsigned res = atomic_fetch_sub(&syn->refcnt, 1);
 
-    assert (res != UINT32_MAX);
+    assert (res != 0);
 }
 
 /** \brief initializes a #thr_syn_t structure.
@@ -183,7 +183,8 @@ static ALWAYS_INLINE thr_syn_t *thr_syn_init(thr_syn_t *syn)
 {
     p_clear(syn, 1);
     thr_ec_init(&syn->ec);
-    syn->refcnt = 1;
+    atomic_init(&syn->pending, 0);
+    atomic_init(&syn->refcnt, 1);
     return syn;
 }
 GENERIC_NEW(thr_syn_t, thr_syn);
@@ -191,8 +192,9 @@ GENERIC_NEW(thr_syn_t, thr_syn);
 static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
 {
     thr_syn__release(syn);
-    while (unlikely(syn->refcnt))
-        mb();
+    while (unlikely(atomic_load_explicit(&syn->refcnt, memory_order_acquire))) {
+        cpu_relax();
+    }
     thr_ec_wipe(&syn->ec);
 }
 GENERIC_DELETE(thr_syn_t, thr_syn);
@@ -222,7 +224,7 @@ static ALWAYS_INLINE
 void thr_syn__job_prepare(thr_syn_t *syn)
 {
     thr_syn__retain(syn);
-    atomic_add(&syn->pending, 1);
+    atomic_fetch_add(&syn->pending, 1);
 }
 
 /** \brief low level function to wake up people waiting on a thr_syn_t
@@ -238,11 +240,12 @@ void thr_syn__broacast(thr_syn_t *syn)
 static ALWAYS_INLINE
 void thr_syn__job_done(thr_syn_t *syn)
 {
-    unsigned res = atomic_sub_and_get(&syn->pending, 1);
+    unsigned res = atomic_fetch_sub(&syn->pending, 1);
 
-    assert (res != UINT_MAX);
-    if (res == 0)
+    assert (res != 0);
+    if (res == 1) {
         thr_syn__broacast(syn);
+    }
     thr_syn__release(syn);
 }
 

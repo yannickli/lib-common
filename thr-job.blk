@@ -65,15 +65,15 @@ typedef struct thr_info_t {
      * atomic_bool_cas which ensure load/store consistency. Hence no barrier
      * is needed to read it.
      */
-    unsigned   top;
+    atomic_uint top;
     /** bottom of the deque.
      * this variable is only modified by the current thread, hence it doesn't
      * need read barriers to read it. Though other threads do need a read
      * barrier before acces, and the owner of the deque must publish new
      * values through a write barrier.
      */
-    unsigned   bot;
-    unsigned   alive;
+    atomic_uint bot;
+    atomic_bool alive;
     pthread_t  thr;
     char       padding_0[CACHE_LINE_SIZE];
 
@@ -106,7 +106,7 @@ typedef struct thr_info_t {
 } thr_info_t;
 
 static struct {
-    unsigned volatile stopping;
+    atomic_bool       stopping;
     thr_evc_t         ec;
     thr_evc_t         start_bar_main;
     thr_evc_t         start_bar_thr;
@@ -129,7 +129,9 @@ static __thread thr_info_t *self_g;
 
 size_t thr_parallelism_g;
 thr_queue_t *const thr_queue_main_g = &_G.main_queue;
-static thr_evc_t *thr0_cur_ec_g;
+
+typedef _Atomic(thr_evc_t *) atomic_thr_evc_t;
+static atomic_thr_evc_t thr0_cur_ec_g;
 static bool reload_at_fork_g;
 
 /* Tracing {{{ */
@@ -311,8 +313,8 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
      * job in the queue (and is the actual number if no other thread try to
      * steal a job to that one concurrently to the insertion).
      */
-    bot = shared_read(self_g->bot);
-    top = shared_read(self_g->top);
+    bot = atomic_load(&self_g->bot);
+    top = atomic_load(&self_g->top);
 
     /* Looks like there may be too many jobs in the queue of that thread, run
      * the new one immediately.
@@ -327,9 +329,10 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
      * new job at q[bot] and then increment bot
      */
     e = &self_g->q[bot % THR_JOB_MAX];
-    shared_write(e->job, job);
-    shared_write(e->syn, syn);
-    shared_write(self_g->bot, bot + 1);
+    e->job = job;
+    e->syn = syn;
+    atomic_thread_fence(memory_order_acq_rel);
+    atomic_store(&self_g->bot, bot + 1);
 
     thr_ec_signal_relaxed(&_G.ec);
 }
@@ -347,8 +350,11 @@ void thr_schedule(thr_job_t *job)
  * @return true in case of success, false if another thread already fetched
  *         the top element.
  */
-#define cas_top(ti, top__, count__) \
-    likely(atomic_bool_cas(&(ti)->top, top__, top__ + count__))
+#define cas_top(ti, top__, count__)  ({                                      \
+        unsigned top___ = (top__);                                           \
+        likely(atomic_compare_exchange_strong(&(ti)->top, &top___,           \
+                                              top___ + count__));            \
+    })
 
 
 /** Run the 'bottom' job of the queue of the current thread.
@@ -364,15 +370,15 @@ static bool thr_job_dequeue(void)
      * The remaining of the function will ensure we were effectively the first
      * to reclaim the ownership of that job.
      */
-    bot = shared_read(self_g->bot) - 1;
-    shared_write(self_g->bot, bot);
-    mb();
+    bot = atomic_load(&self_g->bot) - 1;
+    atomic_store(&self_g->bot, bot);
+    atomic_thread_fence(memory_order_acq_rel);
 
     /* Read the top line. The memory barrier ensure that the read is effectively
      * done after updating bot and thus that other thread may have seen the
      * update of bot before touching top.
      */
-    top = shared_read(self_g->top);
+    top = atomic_load(&self_g->top);
 
     /* There are remaining jobs after moving the bottom line. Top has been
      * read after bot, and since bot is refetched before each individual
@@ -393,7 +399,7 @@ static bool thr_job_dequeue(void)
      */
     if (likely(bot == top)) {
         if (cas_top(self_g, top, 1)) {
-            shared_write(self_g->bot, top + 1);
+            atomic_store(&self_g->bot, top + 1);
             e = &self_g->q[bot % THR_JOB_MAX];
             return job_run(e->job, e->syn);
         } else {
@@ -409,7 +415,7 @@ static bool thr_job_dequeue(void)
      * top == bot + 1 == previous value of bot. Thus, we have to restore 'bot'
      * to its previous value since we didn't get ownership of the job.
      */
-    shared_write(self_g->bot, bot + 1);
+    atomic_store(&self_g->bot, bot + 1);
     return false;
 }
 
@@ -425,8 +431,8 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
     /* Read the limits of the queue of the thread and fetch the top 'job' of
      * the queue.
      */
-    top = shared_read(ti->top);
-    bot = shared_read(ti->bot);
+    top = atomic_load(&ti->top);
+    bot = atomic_load(&ti->bot);
 
     /* If the queue does not seem to be empty, then we know we own the job if
      * and only if we can CAS top. This works because a concurrent
@@ -437,20 +443,21 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
      */
     if ((int)(bot - top) > 0) {
         unsigned to_read = 1; // DIV_ROUND_UP(bot - top, (1 << (depth + 1)));
-        unsigned my_bot = shared_read(self_g->bot);
+        unsigned my_bot;
         struct deque_entry e;
 
-        rmc();
-        e = access_once(ti->q[top % THR_JOB_MAX]);
+        my_bot = atomic_load(&self_g->bot);
+        atomic_thread_fence(memory_order_acq_rel);
+        e = ti->q[top % THR_JOB_MAX];
         for (unsigned i = 1; i < to_read; i++) {
-            access_once(self_g->q[(my_bot + i - 1) % THR_JOB_MAX])
-                = access_once(ti->q[(top + i) % THR_JOB_MAX]);
+            self_g->q[(my_bot + i - 1) % THR_JOB_MAX]
+                = ti->q[(top + i) % THR_JOB_MAX];
         }
-        wmc();
+        atomic_thread_fence(memory_order_acq_rel);
 
         if (cas_top(ti, top, to_read)) {
             if (to_read > 1) {
-                shared_write(self_g->bot, my_bot + to_read - 1);
+                atomic_store(&self_g->bot, my_bot + to_read - 1);
             }
 #ifdef __has_thr_acc
             self_g->acc.jobs_stealed += to_read;
@@ -492,12 +499,20 @@ static ALWAYS_INLINE thr_qnode_t *thr_qnode_of(mpsc_node_t *node)
 
 static thr_qnode_t *thr_qnode_create(void)
 {
-    if (likely(self_g && self_g->ncache.qnode.next)) {
-        thr_qnode_t *n = thr_qnode_of(self_g->ncache.qnode.next);
+    if (likely(self_g)) {
+        mpsc_node_t *m = atomic_load_explicit(&self_g->ncache.qnode.next,
+                                              memory_order_relaxed);
 
-        self_g->ncache.qnode.next = n->qnode.next;
-        self_g->ncache_sz--;
-        return n;
+        if (likely(m)) {
+            thr_qnode_t *n = thr_qnode_of(m);
+
+            atomic_store_explicit(&self_g->ncache.qnode.next,
+                                  atomic_load_explicit(&n->qnode.next,
+                                                       memory_order_relaxed),
+                                  memory_order_relaxed);
+            self_g->ncache_sz--;
+            return n;
+        }
     }
     return p_new_raw(thr_qnode_t, 1);
 }
@@ -506,8 +521,12 @@ static void thr_qnode_destroy(mpsc_node_t *n)
 {
     if (likely(self_g && self_g->ncache_sz < NCACHE_MAX)) {
         self_g->ncache_sz++;
-        n->next = self_g->ncache.qnode.next;
-        self_g->ncache.qnode.next = n;
+        atomic_store_explicit(&n->next,
+                              atomic_load_explicit(&self_g->ncache.qnode.next,
+                                                   memory_order_relaxed),
+                              memory_order_relaxed);
+        atomic_store_explicit(&self_g->ncache.qnode.next, n,
+                              memory_order_relaxed);
     } else {
         free(thr_qnode_of(n));
     }
@@ -579,11 +598,11 @@ static thr_queue_t *thr_queue_init(thr_queue_t *q)
 static void thr_wakeup_thr0(void)
 {
     if (self_tid_g != 0) {
-        thr_evc_t *ec = atomic_xchg(&thr0_cur_ec_g, NULL);
+        thr_evc_t *ec = atomic_exchange(&thr0_cur_ec_g, NULL);
 
         if (ec) {
             thr_ec_broadcast(ec);
-            shared_write(thr0_cur_ec_g, ec);
+            atomic_store(&thr0_cur_ec_g, ec);
         } else {
             uint64_t val = 1;
 
@@ -668,33 +687,38 @@ static void thr_info_init(int tid)
 {
     uint64_t key = thr_ec_get(&thr_job_g.start_bar_thr);
 
-    self_tid_g = tid;
-    self_g     = _G.threads + tid;
-    shared_write(self_g->alive, true);
-    shared_write(self_g->thr, pthread_self());
+    self_tid_g  = tid;
+    self_g      = _G.threads + tid;
+    self_g->thr = pthread_self();
+    atomic_thread_fence(memory_order_acq_rel);
+    atomic_store(&self_g->alive, true);
     thr_ec_signal(&thr_job_g.start_bar_main);
     if (tid != 0) {
         thr_ec_wait(&thr_job_g.start_bar_thr, key);
     }
-    mb();
+    atomic_thread_fence(memory_order_acq_rel);
 }
 
 static void thr_info_cleanup(void *unused)
 {
+    mpsc_node_t *m;
+
     do {
         if (self_tid_g == 0)
             thr_queue_drain(thr_queue_main_g);
     } while (thr_job_dequeue());
     if (self_tid_g == 0)
         thr_queue_wipe(thr_queue_main_g);
-    while (self_g->ncache.qnode.next) {
-        thr_qnode_t *n = thr_qnode_of(self_g->ncache.qnode.next);
+    while ((m = atomic_load_explicit(&self_g->ncache.qnode.next,
+                                     memory_order_relaxed)))
+    {
+        thr_qnode_t *n = thr_qnode_of(m);
 
         self_g->ncache.qnode.next = n->qnode.next;
         free(n);
     }
-    mb();
-    shared_write(self_g->alive, false);
+    atomic_thread_fence(memory_order_acq_rel);
+    atomic_store(&self_g->alive, false);
 }
 
 static void *thr_job_main(void *arg)
@@ -702,7 +726,7 @@ static void *thr_job_main(void *arg)
     thr_info_init((uintptr_t)arg);
     pthread_cleanup_push(thr_info_cleanup, NULL);
 
-    while (likely(!shared_read(_G.stopping))) {
+    while (likely(!atomic_load(&_G.stopping))) {
         while (likely(thr_job_dequeue()))
             continue;
         if (!thr_job_steal()) {
@@ -713,7 +737,7 @@ static void *thr_job_main(void *arg)
 #endif
             if (thr_job_steal())
                 continue;
-            if (!shared_read(_G.stopping)) {
+            if (!atomic_load(&_G.stopping)) {
 #ifdef __has_thr_acc
                 unsigned long start = hardclock();
 
@@ -796,6 +820,13 @@ static int thr_initialize(void *arg)
             thr_parallelism_g = MIN(2, thr_parallelism_g);
         _G.threads = p_new(thr_info_t, thr_parallelism_g);
 
+        atomic_init(&_G.stopping, false);
+        for (size_t i = 0; i < thr_parallelism_g; i++) {
+            atomic_init(&_G.threads[i].top, 0);
+            atomic_init(&_G.threads[i].bot, 0);
+            atomic_init(&_G.threads[i].alive, false);
+        }
+
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         sigfillset(&fillset);
@@ -848,12 +879,12 @@ static int thr_initialize(void *arg)
 static int thr_shutdown(void)
 {
     if (thr_parallelism_g && self_tid_g == 0) {
-        shared_write(_G.stopping, true);
+        atomic_store(&_G.stopping, true);
         thr_ec_broadcast(&_G.ec);
 
         for (size_t i = 1; i < thr_parallelism_g; i++) {
-            mb();
-            while (access_once(_G.threads[i].alive)) {
+            atomic_thread_fence(memory_order_acq_rel);
+            while (atomic_load(&_G.threads[i].alive)) {
                 thr_ec_broadcast(&_G.ec);
                 sched_yield();
             }
@@ -900,8 +931,9 @@ void thr_syn_wait(thr_syn_t *syn)
     thr_syn__retain(syn);
 
     if (self_tid_g == 0) {
-        while (shared_read(syn->pending)) {
+        while (atomic_load(&syn->pending)) {
             uint64_t key;
+            thr_evc_t *ec;
 
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
                 thr_queue_drain(thr_queue_main_g);
@@ -912,12 +944,12 @@ void thr_syn_wait(thr_syn_t *syn)
             if (thr_job_steal())
                 continue;
 
-            shared_write(thr0_cur_ec_g, &syn->ec);
+            atomic_store(&thr0_cur_ec_g, &syn->ec);
             key = thr_ec_get(&syn->ec);
 #ifdef __has_thr_acc
             self_g->acc.ec_gets++;
 #endif
-            if (!shared_read(syn->pending))
+            if (!atomic_load(&syn->pending))
                 goto cas;
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
@@ -931,11 +963,12 @@ void thr_syn_wait(thr_syn_t *syn)
             self_g->acc.ec_wait_time += (hardclock() - start);
 #endif
           cas:
-            while (unlikely(!atomic_bool_cas(&thr0_cur_ec_g, &syn->ec, NULL)))
+            ec = &syn->ec;
+            while (unlikely(!atomic_compare_exchange_strong(&thr0_cur_ec_g, &ec, NULL)))
                 sched_yield();
         }
     } else {
-        while (shared_read(syn->pending)) {
+        while (atomic_load(&syn->pending)) {
             if (likely(thr_job_dequeue()))
                 continue;
             if (!thr_job_steal()) {
@@ -944,7 +977,7 @@ void thr_syn_wait(thr_syn_t *syn)
 #ifdef __has_thr_acc
                 self_g->acc.ec_gets++;
 #endif
-                if (!shared_read(syn->pending))
+                if (!atomic_load(&syn->pending))
                     break;
                 if (thr_job_steal())
                     continue;
@@ -1033,10 +1066,10 @@ struct {
     thr_syn_t    syn;
 
     unsigned val __attribute__((aligned(64)));
-    unsigned thr __attribute__((aligned(64)));
+    atomic_uint thr __attribute__((aligned(64)));
     unsigned mq  __attribute__((aligned(64)));
-    unsigned pmq __attribute__((aligned(64)));
-    bool     flushed __attribute__((aligned(64)));
+    atomic_uint pmq __attribute__((aligned(64)));
+    atomic_bool flushed __attribute__((aligned(64)));
 } z_post_notify_g;
 
 struct post_notify_node {
@@ -1054,14 +1087,14 @@ static void run_post_notify(thr_job_t *job, thr_syn_t *syn)
     do {
 #define check(n)  do {                                                       \
             assert (!container_of(n, struct post_notify_node, node)->flush); \
-            assert (!shared_read(z_post_notify_g.flushed));                  \
+            assert (!atomic_load(&z_post_notify_g.flushed));                 \
         } while (0)
 
         mpsc_node_t *n = mpsc_queue_drain_fast(&it, check);
 
-        assert (!shared_read(z_post_notify_g.flushed));
+        assert (!atomic_load(&z_post_notify_g.flushed));
         if (container_of(n, struct post_notify_node, node)->flush) {
-            atomic_add(&z_post_notify_g.thr, 1);
+            atomic_fetch_add(&z_post_notify_g.thr, 1);
             flush = true;
         }
     } while (!mpsc_queue_drain_end(&it, IGNORE));
@@ -1072,9 +1105,12 @@ static void run_post_notify(thr_job_t *job, thr_syn_t *syn)
         }
         z_post_notify_g.mq++;
     });
-    atomic_add(&z_post_notify_g.pmq, 1);
+    atomic_fetch_add(&z_post_notify_g.pmq, 1);
     if (flush) {
-        assert (atomic_bool_cas(&z_post_notify_g.flushed, false, true));
+        bool exp = false;
+
+        assert (atomic_compare_exchange_strong(&z_post_notify_g.flushed,
+                                               &exp, true));
     }
 }
 
@@ -1467,7 +1503,7 @@ Z_GROUP_EXPORT(thrjobs) {
             struct post_notify_node *nodes = t_new(struct post_notify_node,
                                                    count + 1);
 
-            shared_write(z_post_notify_g.flushed, false);
+            atomic_store(&z_post_notify_g.flushed, false);
             for (int i = 0; i < count; i++) {
                 nodes[i].flush = false;
                 if (mpsc_queue_push(&z_post_notify_g.queue, &nodes[i].node)) {
@@ -1484,14 +1520,14 @@ Z_GROUP_EXPORT(thrjobs) {
             thr_syn_wait(&z_post_notify_g.syn);
 
             e_trace(3, "val=%d thr=%d => jobs=%d mq=%d pmq=%d flush=%d",
-                    z_post_notify_g.val, shared_read(z_post_notify_g.thr),
+                    z_post_notify_g.val, atomic_load(&z_post_notify_g.thr),
                     mq + posted, z_post_notify_g.mq,
-                    shared_read(z_post_notify_g.pmq), posted_flush);
+                    atomic_load(&z_post_notify_g.pmq), posted_flush);
             Z_ASSERT_EQ(val + 1, z_post_notify_g.val);
-            Z_ASSERT_EQ(z_post_notify_g.val, shared_read(z_post_notify_g.thr));
-            Z_ASSERT_EQ(shared_read(z_post_notify_g.pmq), mq + posted);
+            Z_ASSERT_EQ(z_post_notify_g.val, atomic_load(&z_post_notify_g.thr));
+            Z_ASSERT_EQ(atomic_load(&z_post_notify_g.pmq), mq + posted);
             Z_ASSERT_EQ(z_post_notify_g.mq, mq + posted);
-            Z_ASSERT(shared_read(z_post_notify_g.flushed));
+            Z_ASSERT(atomic_load(&z_post_notify_g.flushed));
         }
 
         thr_syn_wipe(&z_post_notify_g.syn);

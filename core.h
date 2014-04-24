@@ -51,6 +51,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +67,7 @@
 #endif
 #include <time.h>
 #include <unistd.h>
+#include <sched.h>
 
 #define __ISLIBC__
 
@@ -80,7 +82,6 @@
 extern "C" {
 #endif
 #include "core-bithacks.h"
-#include "core-atomic.h"
 #include "core-blocks.h"
 #include "core-errors.h"
 #include "core-mem.h"

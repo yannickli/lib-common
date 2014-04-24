@@ -72,23 +72,23 @@
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
-    atomic_add(&ec->key, 1);
+    atomic_fetch_add(&ec->key, 1);
 
-    if (atomic_get_and_add(&ec->waiters, 0))
+    if (atomic_load(&ec->waiters))
         futex_wake_private(&ec->key, count);
 }
 
 static void thr_ec_wait_cleanup(void *arg)
 {
     thr_evc_t *ec = arg;
-    atomic_sub(&ec->waiters, 1);
+    atomic_fetch_sub(&ec->waiters, 1);
 }
 
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 {
     int canceltype, res;
 
-    mb();
+    atomic_thread_fence(memory_order_acq_rel);
 
     /*
      * XXX: futex only works on integers (32bits) so we have to check if the
@@ -96,12 +96,12 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
      *      assume it's impossible for the low 32bits to cycle between this
      *      test and the call to futex_wait_private.
      */
-    if (unlikely(key != ec->key)) {
+    if (unlikely(key != atomic_load(&ec->key))) {
         pthread_testcancel();
         return;
     }
 
-    atomic_add(&ec->waiters, 1);
+    atomic_fetch_add(&ec->waiters, 1);
     pthread_cleanup_push(&thr_ec_wait_cleanup, ec);
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &canceltype);
 
@@ -124,6 +124,8 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 thr_evc_t *thr_ec_init(thr_evc_t *ec)
 {
     p_clear(ec, 1);
+    atomic_init(&ec->key, 0);
+    atomic_init(&ec->waiters, 0);
     return ec;
 }
 

@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_THR_H
 #define IS_LIB_COMMON_THR_H
 
-#include <Block.h>
 #include <pthread.h>
 #include "core.h"
 #include "container-dlist.h"

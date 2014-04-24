@@ -68,15 +68,17 @@
 
 typedef struct spsc_node_t  spsc_node_t;
 typedef struct spsc_queue_t spsc_queue_t;
+typedef _Atomic(spsc_node_t *) atomic_spsc_node_t;
 
 struct spsc_node_t {
-    spsc_node_t *next;
-    void        *value;
+    atomic_spsc_node_t next;
+    void              *value;
 };
+
 
 struct spsc_queue_t {
     /* Consumer part */
-    spsc_node_t *head;
+    atomic_spsc_node_t head;
     char         pad_after_head[64 - sizeof(spsc_node_t *)];
     /* Producer part */
     spsc_node_t *tail;
@@ -92,14 +94,14 @@ static inline spsc_node_t *spsc_queue_alloc_node(spsc_queue_t *q)
     if (likely(q->first != q->head_copy)) {
         spsc_node_t *n = q->first;
 
-        q->first = n->next;
+        q->first = atomic_load(&n->next);
         return n;
     }
-    q->head_copy = shared_read(q->head);
+    q->head_copy = atomic_load(&q->head);
     if (likely(q->first != q->head_copy)) {
         spsc_node_t *n = q->first;
 
-        q->first = n->next;
+        q->first = atomic_load(&n->next);
         return n;
     }
 
@@ -110,15 +112,16 @@ static ALWAYS_INLINE void spsc_queue_push(spsc_queue_t *q, void *v)
 {
     spsc_node_t *n = spsc_queue_alloc_node(q);
 
-    n->next  = NULL;
+    atomic_init(&n->next, NULL);
     n->value = v;
-    shared_write(q->tail->next, n);
+    atomic_store(&q->tail->next, n);
     q->tail = n;
 }
 
 static ALWAYS_INLINE bool spsc_queue_pop(spsc_queue_t *q, void *v, size_t v_size)
 {
-    spsc_node_t *n = shared_read(q->head->next);
+    spsc_node_t *head = atomic_load_explicit(&q->head, memory_order_relaxed);
+    spsc_node_t *n = atomic_load(&head->next);
 
     if (n) {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -126,7 +129,7 @@ static ALWAYS_INLINE bool spsc_queue_pop(spsc_queue_t *q, void *v, size_t v_size
 #else
         memcpy(v, (char *)&n->value[1] - v_size, v_size);
 #endif
-        shared_write(q->head, n);
+        atomic_store(&q->head, n);
         return true;
     }
     return false;
@@ -134,11 +137,12 @@ static ALWAYS_INLINE bool spsc_queue_pop(spsc_queue_t *q, void *v, size_t v_size
 
 static inline void *spsc_queue_pop_ptr(spsc_queue_t *q)
 {
-    spsc_node_t *n = shared_read(q->head->next);
+    spsc_node_t *head = atomic_load_explicit(&q->head, memory_order_relaxed);
+    spsc_node_t *n = atomic_load(&head->next);
 
     if (n) {
         void *v = n->value;
-        shared_write(q->head, n);
+        atomic_store(&q->head, n);
         return v;
     }
     return NULL;

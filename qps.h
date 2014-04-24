@@ -230,7 +230,7 @@ enum {
 typedef struct qps_t {
     dir_lock_t   lock;
     int          dfd;
-    uint16_t     gc_state;   /* QPS_GC_* mask */
+    atomic_uint_fast16_t gc_state;   /* QPS_GC_* mask */
     uint16_t     snapshotting;
     uint32_t     generation;
     qv_t(qpsm)   maps;
@@ -246,7 +246,7 @@ typedef struct qps_t {
     uint32_t     handles_max;
     uint32_t     handles_freelist;
     uint32_t     handles_gc_gen;
-    unsigned     gc_gen;
+    atomic_uint  gc_gen;
     struct ev_t *gc_idle;
 
     /* Allocator state, private */
