@@ -506,14 +506,6 @@ int list_my_cpus(char *dst, size_t size)
 static __must_check__
 int licence_check_iop_host(const core__licence__t *licence)
 {
-    if (!licence->cpu_signatures.len && !licence->mac_addresses.len) {
-#ifdef NDEBUG
-        return -1;
-#else
-        e_warning("unrestricted licence");
-#endif
-    }
-
     /* check optional CPU Signatures */
     if (licence->cpu_signatures.len) {
         uint32_t cpusig;
