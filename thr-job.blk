@@ -372,13 +372,15 @@ void thr_schedule(thr_job_t *job)
  * @return true in case of success, false if another thread already fetched
  *         the top element.
  */
-#define cas_top(ti, top__, count__)  ({                                      \
-        unsigned top___ = (top__);                                           \
-        likely(atomic_compare_exchange_strong(&(ti)->top, &top___,           \
-                                              top___ + count__));            \
-    })
+static bool thr_consume_top(thr_info_t *ti, unsigned top, unsigned count)
+{
+    return atomic_compare_exchange_strong_explicit(&ti->top, &top,
+                                                   top + count,
+                                                   memory_order_relaxed,
+                                                   memory_order_relaxed);
+}
 
-static bool thr_run_job(struct deque_entry *e)
+static bool thr_run_deque_entry(struct deque_entry *e)
 {
     thr_job_t *job = atomic_load_explicit(&e->job, memory_order_acquire);
     thr_syn_t *syn = e->syn;
@@ -399,15 +401,15 @@ static bool thr_job_dequeue(void)
      * The remaining of the function will ensure we were effectively the first
      * to reclaim the ownership of that job.
      */
-    bot = atomic_load(&self_g->bot) - 1;
-    atomic_store(&self_g->bot, bot);
+    bot = atomic_load_explicit(&self_g->bot, memory_order_relaxed) - 1;
+    atomic_store_explicit(&self_g->bot, bot, memory_order_seq_cst);
     atomic_thread_fence(memory_order_acq_rel);
 
     /* Read the top line. The memory barrier ensure that the read is effectively
      * done after updating bot and thus that other thread may have seen the
      * update of bot before touching top.
      */
-    top = atomic_load(&self_g->top);
+    top = atomic_load_explicit(&self_g->top, memory_order_relaxed);
 
     /* There are remaining jobs after moving the bottom line. Top has been
      * read after bot, and since bot is refetched before each individual
@@ -415,7 +417,7 @@ static bool thr_job_dequeue(void)
      * we are the owner of the job we fetched, run it.
      */
     if (likely((int)(bot - top) > 0)) {
-        return thr_run_job(&self_g->q[bot % THR_JOB_MAX]);
+        return thr_run_deque_entry(&self_g->q[bot % THR_JOB_MAX]);
     }
 
     /* 'bot' and 'top' are equal, that mean that either we're consuming the
@@ -426,9 +428,9 @@ static bool thr_job_dequeue(void)
      * 'top' to the same point since the queue is empty.
      */
     if (likely(bot == top)) {
-        if (cas_top(self_g, top, 1)) {
-            atomic_store(&self_g->bot, top + 1);
-            return thr_run_job(&self_g->q[bot % THR_JOB_MAX]);
+        if (likely(thr_consume_top(self_g, top, 1))) {
+            atomic_store_explicit(&self_g->bot, top + 1, memory_order_relaxed);
+            return thr_run_deque_entry(&self_g->q[bot % THR_JOB_MAX]);
         } else {
 #ifdef __has_thr_acc
             self_g->acc.jobs_failed_dequeues++;
@@ -442,7 +444,7 @@ static bool thr_job_dequeue(void)
      * top == bot + 1 == previous value of bot. Thus, we have to restore 'bot'
      * to its previous value since we didn't get ownership of the job.
      */
-    atomic_store(&self_g->bot, bot + 1);
+    atomic_store_explicit(&self_g->bot, bot + 1, memory_order_relaxed);
     return false;
 }
 
@@ -458,8 +460,8 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
     /* Read the limits of the queue of the thread and fetch the top 'job' of
      * the queue.
      */
-    top = atomic_load(&ti->top);
-    bot = atomic_load(&ti->bot);
+    top = atomic_load_explicit(&ti->top, memory_order_relaxed);
+    bot = atomic_load_explicit(&ti->bot, memory_order_relaxed);
 
     /* If the queue does not seem to be empty, then we know we own the job if
      * and only if we can CAS top. This works because a concurrent
@@ -469,13 +471,13 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
      * emptying the queue.
      */
     if ((int)(bot - top) > 0) {
-        if (cas_top(ti, top, 1)) {
+        if (likely(thr_consume_top(ti, top, 1))) {
 #ifdef __has_thr_acc
             self_g->acc.jobs_stealed += 1;
             self_g->acc.jobs_steals++;
 
 #endif
-            return thr_run_job(&ti->q[top % THR_JOB_MAX]);
+            return thr_run_deque_entry(&ti->q[top % THR_JOB_MAX]);
         } else {
 #ifdef __has_thr_acc
             self_g->acc.jobs_failed_steals++;
