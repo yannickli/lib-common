@@ -59,6 +59,8 @@ struct thr_queue_t {
     mpsc_queue_t q;
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 
+typedef _Atomic(thr_job_t *) atomic_thr_job_t;
+
 typedef struct thr_info_t {
     /** top of the deque.
      * this variable is accessed through shared_read, and modified through
@@ -78,7 +80,7 @@ typedef struct thr_info_t {
     char       padding_0[CACHE_LINE_SIZE];
 
     struct deque_entry {
-        thr_job_t *job;
+        atomic_thr_job_t job;
         thr_syn_t *syn;
     } q[THR_JOB_MAX];
     char       padding_1[CACHE_LINE_SIZE];
@@ -93,6 +95,7 @@ typedef struct thr_info_t {
         uint64_t ec_wait_time;
         uint64_t ec_steal_time;
 
+        unsigned jobs_local;
         unsigned jobs_queued;
         unsigned jobs_run;
         unsigned ec_gets;
@@ -190,6 +193,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         struct thr_acc *acc = &_G.threads[i].acc;
 
         total.time        += acc->time;
+        total.jobs_local  += acc->jobs_local;
         total.jobs_queued += acc->jobs_queued;
         total.jobs_run    += acc->jobs_run;
         total.ec_gets     += acc->ec_gets;
@@ -201,6 +205,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         total.jobs_failed_dequeues += acc->jobs_failed_dequeues;
 
         width.time         = MAX(width.time,        int_width(acc->time / 1000000));
+        width.jobs_local   = MAX(width.jobs_local,  int_width(acc->jobs_local));
         width.jobs_queued  = MAX(width.jobs_queued, int_width(acc->jobs_queued));
         width.jobs_run     = MAX(width.jobs_run,    int_width(acc->jobs_run));
         width.ec_gets      = MAX(width.ec_gets,     int_width(acc->ec_gets));
@@ -228,7 +233,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         struct thr_acc *acc = &_G.threads[i].acc;
 
         e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, %*u steals (%*u jobs, %*u failed), "
-                "%*u failed dequeues, %*u gets, %*u waits (%*uM)", i,
+                "%*u failed dequeues, %*u failed queues, %*u gets, %*u waits (%*uM)", i,
                 TIME_FMT_ARG(acc->time),
                 width.jobs_queued, acc->jobs_queued,
                 width.jobs_run,    acc->jobs_run,
@@ -236,18 +241,20 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
                 width.jobs_stealed, acc->jobs_stealed,
                 width.jobs_failed_steals, acc->jobs_failed_steals,
                 width.jobs_failed_dequeues, acc->jobs_failed_dequeues,
+                width.jobs_local, acc->jobs_local,
                 width.ec_gets,     acc->ec_gets,
                 width.ec_waits,    acc->ec_waits,
                 TIME_FMT_ARG(acc->ec_wait_time));
     }
     e_trace(lvl, "wall %*uM, %*u queued, %*u run, %*u steals (%*u jobs, %*u failed), "
-            "%*u failed dequeues, %*u gets, %*u waits (%*uM)", TIME_FMT_ARG(wall),
+            "%*u failed dequeues, %*u failed queues, %*u gets, %*u waits (%*uM)", TIME_FMT_ARG(wall),
             width.jobs_queued, total.jobs_queued,
             width.jobs_run,    total.jobs_run,
             width.jobs_steals, total.jobs_steals,
             width.jobs_stealed, total.jobs_stealed,
             width.jobs_failed_steals, total.jobs_failed_steals,
             width.jobs_failed_dequeues, total.jobs_failed_dequeues,
+            width.jobs_local, total.jobs_local,
             width.ec_gets,     total.ec_gets,
             width.ec_waits,    total.ec_waits,
             TIME_FMT_ARG(total.ec_wait_time));
@@ -299,10 +306,6 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
     unsigned bot, top;
     struct deque_entry *e;
 
-#ifdef __has_thr_acc
-    self_g->acc.jobs_queued++;
-#endif
-
     if (syn)
         thr_syn__job_prepare(syn);
 
@@ -320,6 +323,22 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
      * the new one immediately.
      */
     if (unlikely((int)(bot - top) >= THR_JOB_MAX)) {
+#ifdef __has_thr_acc
+        self_g->acc.jobs_local++;
+#endif
+        job_run(job, syn);
+        return;
+    }
+
+    e = &self_g->q[bot % THR_JOB_MAX];
+
+    /* Looks like we are inserting the job in an empty queue and that the
+     * current object is still used by another thread. Run it locally.
+     */
+    if (atomic_load_explicit(&e->job, memory_order_acquire) != NULL) {
+#ifdef __has_thr_acc
+        self_g->acc.jobs_local++;
+#endif
         job_run(job, syn);
         return;
     }
@@ -328,11 +347,14 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
      * only consume jobs from the queue (increment top), we can safely add the
      * new job at q[bot] and then increment bot
      */
-    e = &self_g->q[bot % THR_JOB_MAX];
-    e->job = job;
     e->syn = syn;
-    atomic_thread_fence(memory_order_acq_rel);
+    atomic_store_explicit(&e->job, job, memory_order_release);
     atomic_store(&self_g->bot, bot + 1);
+
+#ifdef __has_thr_acc
+    self_g->acc.jobs_queued++;
+#endif
+
 
     thr_ec_signal_relaxed(&_G.ec);
 }
@@ -356,6 +378,14 @@ void thr_schedule(thr_job_t *job)
                                               top___ + count__));            \
     })
 
+static bool thr_run_job(struct deque_entry *e)
+{
+    thr_job_t *job = atomic_load_explicit(&e->job, memory_order_acquire);
+    thr_syn_t *syn = e->syn;
+
+    atomic_store_explicit(&e->job, NULL, memory_order_release);
+    return job_run(job, syn);
+}
 
 /** Run the 'bottom' job of the queue of the current thread.
  *
@@ -363,7 +393,6 @@ void thr_schedule(thr_job_t *job)
  */
 static bool thr_job_dequeue(void)
 {
-    struct deque_entry *e;
     unsigned top, bot;
 
     /* Read the bottom job and update the mark to mark that job as consumed.
@@ -386,8 +415,7 @@ static bool thr_job_dequeue(void)
      * we are the owner of the job we fetched, run it.
      */
     if (likely((int)(bot - top) > 0)) {
-        e = &self_g->q[bot % THR_JOB_MAX];
-        return job_run(e->job, e->syn);
+        return thr_run_job(&self_g->q[bot % THR_JOB_MAX]);
     }
 
     /* 'bot' and 'top' are equal, that mean that either we're consuming the
@@ -400,8 +428,7 @@ static bool thr_job_dequeue(void)
     if (likely(bot == top)) {
         if (cas_top(self_g, top, 1)) {
             atomic_store(&self_g->bot, top + 1);
-            e = &self_g->q[bot % THR_JOB_MAX];
-            return job_run(e->job, e->syn);
+            return thr_run_job(&self_g->q[bot % THR_JOB_MAX]);
         } else {
 #ifdef __has_thr_acc
             self_g->acc.jobs_failed_dequeues++;
@@ -442,28 +469,13 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
      * emptying the queue.
      */
     if ((int)(bot - top) > 0) {
-        unsigned to_read = 1; // DIV_ROUND_UP(bot - top, (1 << (depth + 1)));
-        unsigned my_bot;
-        struct deque_entry e;
-
-        my_bot = atomic_load(&self_g->bot);
-        atomic_thread_fence(memory_order_acq_rel);
-        e = ti->q[top % THR_JOB_MAX];
-        for (unsigned i = 1; i < to_read; i++) {
-            self_g->q[(my_bot + i - 1) % THR_JOB_MAX]
-                = ti->q[(top + i) % THR_JOB_MAX];
-        }
-        atomic_thread_fence(memory_order_acq_rel);
-
-        if (cas_top(ti, top, to_read)) {
-            if (to_read > 1) {
-                atomic_store(&self_g->bot, my_bot + to_read - 1);
-            }
+        if (cas_top(ti, top, 1)) {
 #ifdef __has_thr_acc
-            self_g->acc.jobs_stealed += to_read;
+            self_g->acc.jobs_stealed += 1;
             self_g->acc.jobs_steals++;
+
 #endif
-            return job_run(e.job, e.syn);
+            return thr_run_job(&ti->q[top % THR_JOB_MAX]);
         } else {
 #ifdef __has_thr_acc
             self_g->acc.jobs_failed_steals++;
