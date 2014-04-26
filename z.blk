@@ -447,6 +447,7 @@ static void do_fail_comment(void)
            LSTR_FMT_ARG(_G.grp.name), LSTR_FMT_ARG(_G.grp.t_name)));
     do_comment(LSTR_IMMED_V("\n"));
     do_comment(_G.grp.t_fail_reason);
+    fflush(stdout);
     if (_G.abort_on_fail) {
         abort();
     }
@@ -457,6 +458,7 @@ static void do_skip(void)
     _G.grp.t_skipped++;
     printf("%*d skip %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
            LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_skip_reason));
+    fflush(stdout);
 }
 
 static void do_passed(void)
@@ -464,6 +466,7 @@ static void do_passed(void)
     _G.grp.t_passed++;
     printf("%*d pass %*pM\t# %d assertions\n", _G.grp.n_total_digits, _G.grp.t_idx,
            LSTR_FMT_ARG(_G.grp.t_name), _G.grp.t_asserts);
+    fflush(stdout);
 }
 
 static void do_failed(void)
@@ -496,6 +499,7 @@ static void do_bail_out_(lstr_t s)
     } else {
         printf("panic\n");
     }
+    fflush(stdout);
 }
 #define do_bail_out(fmt, ...) \
     ({ t_scope; do_bail_out_(t_lstr_fmt(fmt, ##__VA_ARGS__)); })
