@@ -688,7 +688,7 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
 /* low precision time() and gettimeofday() replacements                    */
 /***************************************************************************/
 
-static struct {
+static __thread struct {
     char sec_str[24];
     time_t sec;
 } lp_time_g;
