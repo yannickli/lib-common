@@ -204,11 +204,16 @@ int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
     va_list ap2;
     int len;
 
+    len = sb_avail(sb);
+    if (len != 0) {
+        len = len + 1;
+    }
+
     va_copy(ap2, ap);
-    len = ivsnprintf(sb_end(sb), sb_avail(sb) + 1, fmt, ap2);
+    len = ivsnprintf(sb_end(sb), len, fmt, ap2);
     va_end(ap2);
 
-    if (len < sb_avail(sb)) {
+    if (len <= sb_avail(sb)) {
         __sb_fixlen(sb, sb->len + len);
     } else {
         ivsnprintf(sb_growlen(sb, len), len + 1, fmt, ap);
