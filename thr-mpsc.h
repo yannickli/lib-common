@@ -98,9 +98,9 @@ static inline bool mpsc_queue_push(mpsc_queue_t *q, mpsc_node_t *n)
 {
     mpsc_node_t *prev;
 
-    atomic_store_explicit(&n->next, NULL, memory_order_relaxed);
-    prev = atomic_exchange(&q->tail, n);
-    atomic_store_explicit(&prev->next, n, memory_order_relaxed);
+    atomic_store_explicit(&n->next, NULL, memory_order_release);
+    prev = atomic_exchange_explicit(&q->tail, n, memory_order_seq_cst);
+    atomic_store_explicit(&prev->next, n, memory_order_seq_cst);
     return prev == &q->head;
 }
 
@@ -147,7 +147,7 @@ typedef struct mpsc_it_t {
 static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
 {
     it->q = q;
-    it->h = atomic_load_explicit(&q->head.next, memory_order_relaxed);
+    it->h = atomic_load_explicit(&q->head.next, memory_order_acquire);
     atomic_store_explicit(&q->head.next, NULL, memory_order_relaxed);
     /* breaks if someone called mpsc_queue_drain_start with the queue empty */
     assert (it->h);
@@ -175,7 +175,7 @@ mpsc_node_t *mpsc_queue_drain_fast(mpsc_it_t *it,
     mpsc_node_t *h = it->h;
     mpsc_node_t *n;
 
-    while (likely(n = atomic_load_explicit(&h->next, memory_order_relaxed))) {
+    while (likely(n = atomic_load_explicit(&h->next, memory_order_acquire))) {
         (*doit)(h, data);
         h = n;
     }
@@ -196,12 +196,12 @@ bool __mpsc_queue_drain_end(mpsc_it_t *it, void (*freenode)(mpsc_node_t *),
     mpsc_node_t *h = it->h;
     mpsc_node_t *hq = h;
 
-    if (h == atomic_load_explicit(&q->tail, memory_order_relaxed)
+    if (h == atomic_load_explicit(&q->tail, memory_order_acquire)
     &&  atomic_compare_exchange_strong(&q->tail, &hq, &q->head))
     {
         it->h = NULL;
     } else {
-        while (!(it->h = atomic_load_explicit(&h->next, memory_order_relaxed))) {
+        while (!(it->h = atomic_load_explicit(&h->next, memory_order_acquire))) {
             if (relax) {
                 (*relax)();
             } else {
@@ -209,7 +209,7 @@ bool __mpsc_queue_drain_end(mpsc_it_t *it, void (*freenode)(mpsc_node_t *),
             }
         }
     }
-    if (freenode) {
+    if (freenode && h) {
         (*freenode)(h);
     }
     return it->h == NULL;
