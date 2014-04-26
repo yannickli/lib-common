@@ -786,6 +786,7 @@ bool thr_job_reload_at_fork(bool enabled)
     return prev;
 }
 
+__attr_notsan__
 static void thr_wipe(void)
 {
     el_before_unregister(&_G.before);
