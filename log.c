@@ -102,9 +102,11 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level)
     return logger_init(p_new_raw(logger_t, 1), parent, name, default_level);
 }
 
+/* Suppose the parent is locked */
 void logger_wipe(logger_t *logger)
 {
 #ifndef NDEBUG
+    spin_lock(&logger->children_lock);
     if (!dlist_is_empty(&logger->children) && logger->children.next) {
         logger_t *child;
 
@@ -115,11 +117,14 @@ void logger_wipe(logger_t *logger)
         logger_panic(&_G.root_logger, "cannot wipe logger %*pM",
                      LSTR_FMT_ARG(logger->full_name));
     }
+    spin_unlock(&logger->children_lock);
 #endif
 
-    if (logger->siblings.next) {
+    if (logger->parent) {
         spin_lock(&logger->parent->children_lock);
-        dlist_remove(&logger->siblings);
+        if (logger->siblings.next) {
+            dlist_remove(&logger->siblings);
+        }
         spin_unlock(&logger->parent->children_lock);
     }
     lstr_wipe(&logger->name);
@@ -231,12 +236,14 @@ static logger_t *logger_get_by_name(lstr_t name)
             ps = ps_init(NULL, 0);
         }
 
+        spin_lock(&logger->children_lock);
         dlist_for_each_entry(child, &logger->children, siblings) {
             if (lstr_equal2(child->name, LSTR_PS_V(&n))) {
                 next = child;
                 break;
             }
         }
+        spin_unlock(&logger->children_lock);
 
         RETHROW_P(next);
         logger = next;
