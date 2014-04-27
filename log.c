@@ -123,14 +123,16 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
                        level_flags);
 }
 
-void logger_wipe(logger_t *logger)
+/* Suppose the parent is locked */
+static void logger_wipe_child(logger_t *logger)
 {
-    if (!dlist_is_empty(&logger->children) && logger->children.next) {
+    spin_lock(&logger->children_lock);
+    if (!dlist_is_empty(&logger->children)) {
         logger_t *child;
 
         dlist_for_each_entry_safe(child, &logger->children, siblings) {
             if (child->is_static) {
-                logger_wipe(child);
+                logger_wipe_child(child);
             } else {
 #ifndef NDEBUG
                 logger_panic(&_G.root_logger,
@@ -141,14 +143,24 @@ void logger_wipe(logger_t *logger)
             }
         }
     }
+    spin_unlock(&logger->children_lock);
 
-    if (!dlist_is_empty(&logger->siblings) && logger->siblings.next) {
-        spin_lock(&logger->parent->children_lock);
+    if (!dlist_is_empty(&logger->siblings)) {
         dlist_remove(&logger->siblings);
-        spin_unlock(&logger->parent->children_lock);
     }
     lstr_wipe(&logger->name);
     lstr_wipe(&logger->full_name);
+}
+
+void logger_wipe(logger_t *logger)
+{
+    if (logger->parent) {
+        spin_lock(&logger->parent->children_lock);
+    }
+    logger_wipe_child(logger);
+    if (logger->parent) {
+        spin_unlock(&logger->parent->children_lock);
+    }
 }
 
 static void logger_compute_fullname(logger_t *logger)
@@ -257,12 +269,14 @@ static logger_t *logger_get_by_name(lstr_t name)
             ps = ps_init(NULL, 0);
         }
 
+        spin_lock(&logger->children_lock);
         dlist_for_each_entry(child, &logger->children, siblings) {
             if (lstr_equal2(child->name, LSTR_PS_V(&n))) {
                 next = child;
                 break;
             }
         }
+        spin_unlock(&logger->children_lock);
 
         RETHROW_P(next);
         logger = next;
