@@ -135,9 +135,27 @@ class LogFileConfiguration {
  */
 class Licence {
     /** Expiration date of the licence.
+     *
+     * After that date the product could be used until \ref expirationHardDate
+     * but it will emit errors.
      */
-    @minLength(11) @maxLength(11) @pattern("[a-zA-Z0-9\-]*")
-    string expires = "31-dec-2035";
+    @length(11) @pattern("[a-zA-Z0-9\-]*")
+    string expirationDate = "31-dec-2035";
+
+    /** Real expiration date of the licence.
+     *
+     * After that date the product will be disabled.
+     * If not provided, the default value is \ref expirationDate.
+     */
+    @length(11) @pattern("[a-zA-Z0-9\-]*")
+    string? expirationHardDate;
+
+    /** Delay to emit warnings before expiration.
+     *
+     * The product will start emitting warnings from
+     * \ref expirationDate - \ref expirationWarningDelay. Value is in seconds.
+     */
+    uint expirationWarningDelay = 15d;
 
     /** Licencee identification.
      */

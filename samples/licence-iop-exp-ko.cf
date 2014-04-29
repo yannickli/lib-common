@@ -1,9 +1,9 @@
 {
     "licence": {
-        "expires": "02-apr-2012",
+        "expirationDate": "02-apr-2012",
         "registeredTo": "Z",
         "productionUse": false,
         "version": "1.0"
     },
-    "signature": "$256:422CA5CE$2B810FBCC2AEA14767657813B8408B84B003C48ACA046E82AAF22353B7F0DD00"
+    "signature": "$256:422CA5CE$3CCFC1EE2D3825C3E2E0DCCEBB237D016994EFDDE641F4FC70F5E91754F8140F"
 }

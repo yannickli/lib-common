@@ -43,7 +43,9 @@ IOP_CLASS(core__log_file_configuration);
 
 struct core__licence__t {
     const iop_struct_t *__vptr;
-    lstr_t   expires;
+    lstr_t   expiration_date;
+    lstr_t           expiration_hard_date;
+    uint32_t expiration_warning_delay;
     lstr_t   registered_to;
     lstr_t   version;
     bool     production_use;

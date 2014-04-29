@@ -548,26 +548,61 @@ int licence_check_iop_host(const core__licence__t *licence)
     return 0;
 }
 
-int licence_check_iop_expiry(const core__licence__t *licence,
-                             time_t reference)
+static int strtotime(lstr_t s, time_t *out)
 {
     struct tm t;
 
-    if (licence->expires.len != 11) {
-        return e_error("invalid expiry date");
-    }
-
     p_clear(&t, 1);
     t.tm_isdst = -1;
+    RETHROW(strtotm(s.s, &t));
 
-    if (strtotm(licence->expires.s, &t) < 0) {
-        return e_error("invalid expiry date");
-    }
-    if (mktime(&t) < reference) {
-        return e_error("licence is expired");
-    }
+    *out = RETHROW(mktime(&t));
 
     return 0;
+}
+
+licence_expiry_t licence_check_iop_expiry(const core__licence__t *licence)
+{
+    time_t expires_soon_ts, soft_expiration_ts, hard_expiration_ts;
+    time_t now = lp_getsec();
+
+    if (strtotime(licence->expiration_date, &soft_expiration_ts) < 0) {
+        e_error("invalid soft expiration date");
+        return LICENCE_INVALID_EXPIRATION;
+    }
+
+    expires_soon_ts = soft_expiration_ts - licence->expiration_warning_delay;
+
+    if (licence->expiration_hard_date.s) {
+        if (strtotime(licence->expiration_hard_date, &hard_expiration_ts) < 0)
+        {
+            e_error("invalid hard expiration date");
+            return LICENCE_INVALID_EXPIRATION;
+        }
+    } else {
+        hard_expiration_ts = soft_expiration_ts;
+    }
+
+    if (soft_expiration_ts > hard_expiration_ts) {
+        e_error("invalid expiration dates, expiration date must "
+                "be before hard expiration date");
+        return LICENCE_INVALID_EXPIRATION;
+    }
+
+    if (hard_expiration_ts < now) {
+        e_error("licence expired");
+        return LICENCE_HARD_EXPIRED;
+    } else
+    if (soft_expiration_ts < now) {
+        e_error("licence expired, your product is going to be disabled soon");
+        return LICENCE_SOFT_EXPIRED;
+    } else
+    if (expires_soon_ts < now) {
+        e_warning("licence expires soon");
+        return LICENCE_EXPIRES_SOON;
+    } else {
+        return LICENCE_OK;
+    }
 }
 
 int licence_check_iop(const core__signed_licence__t *signed_licence,
@@ -588,7 +623,7 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 
     RETHROW(iop_check_signature(&core__licence__s, licence,
                                 signed_licence->signature, flags));
-    RETHROW(licence_check_iop_expiry(licence, time(NULL)));
+    RETHROW(licence_check_iop_expiry(licence));
     RETHROW(licence_check_iop_host(licence));
     return 0;
 }
@@ -620,6 +655,18 @@ static int find_local_mac(char buf[static 6 * 3])
     if_freenameindex(iflist);
 
     Z_HELPER_END;
+}
+
+static void t_ts_to_lstr(time_t ts, lstr_t *out)
+{
+    char *date;
+
+    date = t_new(char, 20);
+    if (strftime(date, 20, "%d-%b-%Y", localtime(&ts)) != 0) {
+        *out = LSTR_STR_V(date);
+    } else {
+        *out = LSTR_EMPTY_V;
+    }
 }
 
 Z_GROUP_EXPORT(licence)
@@ -683,8 +730,53 @@ Z_GROUP_EXPORT(licence)
 
         Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-exp-ko.cf",
                                                         &lic, 0, &tmp));
+        Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
+                                       lic.signature, 0));
         Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
                                        LSTR_IMMED_V("1.0"), 0));
+
+        /* Invalid expiration date : "02-aaa-2012" */
+        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-exp-invalid.cf",
+                                                        &lic, 0, &tmp));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_EQ(licence_check_iop_expiry(
+                    (const struct core__licence__t*)&lic),
+                    LICENCE_INVALID_EXPIRATION);
+
+        /* Invalid expiration date : soft expiration > hard expiration */
+        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
+        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
+                     &lic.licence->expiration_hard_date);
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+                    LICENCE_INVALID_EXPIRATION);
+
+        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
+        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
+                     &lic.licence->expiration_hard_date);
+        lic.licence->expiration_warning_delay = 7 * 24 * 3600;
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+                    LICENCE_EXPIRES_SOON);
+
+        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
+        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
+                   &lic.licence->expiration_hard_date);
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+                    LICENCE_SOFT_EXPIRED);
+
+        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
+        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
+                   &lic.licence->expiration_hard_date);
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+                    LICENCE_HARD_EXPIRED);
     } Z_TEST_END;
 } Z_GROUP_END
 

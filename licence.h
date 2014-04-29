@@ -42,6 +42,18 @@ int  licence_do_signature(const conf_t *conf, char dst[65]);
 struct core__signed_licence__t;
 struct core__licence__t;
 
+typedef enum licence_expiry_t {
+    LICENCE_OK = 0,
+
+    /* Error cases */
+    LICENCE_INVALID_EXPIRATION = -2,
+    LICENCE_HARD_EXPIRED = -1,
+
+    /* Warning cases */
+    LICENCE_SOFT_EXPIRED = 1,
+    LICENCE_EXPIRES_SOON = 2,
+} licence_expiry_t;
+
 /** Check an IOP Licence.
  *
  * \param[in] licence     The signed licence structure.
@@ -58,15 +70,10 @@ int licence_check_iop(const struct core__signed_licence__t *licence,
 
 /** Check the expiration of an IOP Licence.
  *
- * \param[in] licence    The licence structure to check.
- * \param[in] reference  The reference time; for example, call with
- *                       lp_getsec() to check if the licence is expired, or
- *                       with lp_getsec() + 3600 to check if the licence will
- *                       be expired in one hour.
+ * \param[in]  licence      The licence structure to check.
  */
-__must_check__
-int licence_check_iop_expiry(const struct core__licence__t *licence,
-                             time_t reference);
+__must_check__ licence_expiry_t
+licence_check_iop_expiry(const struct core__licence__t *licence);
 
 /* }}} */
 
