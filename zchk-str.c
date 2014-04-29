@@ -164,6 +164,72 @@ Z_GROUP_EXPORT(str)
 #undef RUN_UTF8_TEST
     } Z_TEST_END;
 
+    Z_TEST(utf8_str_istartswith, "str: utf8_str_istartswith test") {
+
+#define RUN_UTF8_TEST(Str1, Str2, Val)  \
+        ({  int len1 = strlen(Str1);                                         \
+            int len2 = strlen(Str2);                                         \
+            int cmp  = utf8_str_istartswith(Str1, len1, Str2, len2);         \
+                                                                             \
+            Z_ASSERT_EQ(cmp, Val,                                            \
+                        "utf8_str_istartswith(\"%.*s\", \"%.*s\") "          \
+                        "returned bad value: %d, expected %d",               \
+                        len1, Str1, len2, Str2, cmp, Val);                   \
+        })
+
+        /* Basic tests and case tests */
+        RUN_UTF8_TEST("abcdef", "abc", true);
+        RUN_UTF8_TEST("abcdef", "abcdef", true);
+        RUN_UTF8_TEST("abcdef", "abcdefg", false);
+        RUN_UTF8_TEST("AbCdEf", "abc", true);
+        RUN_UTF8_TEST("abcdef", "AbC", true);
+        RUN_UTF8_TEST("aBCdef", "AbC", true);
+
+        /* Accentuation tests */
+        RUN_UTF8_TEST("abcdéf", "abcde", true);
+        RUN_UTF8_TEST("abcdÉf", "abcdè", true);
+        RUN_UTF8_TEST("àbcdèf", "abcdé", true);
+        RUN_UTF8_TEST("àbcdè", "abcdé", true);
+        RUN_UTF8_TEST("abcde", "àbCdé", true);
+        RUN_UTF8_TEST("abcde", "àbcdéf", false);
+
+#undef RUN_UTF8_TEST
+    } Z_TEST_END;
+
+    Z_TEST(utf8_str_startswith, "str: utf8_str_startswith test") {
+
+#define RUN_UTF8_TEST(Str1, Str2, Val)  \
+        ({  int len1 = strlen(Str1);                                         \
+            int len2 = strlen(Str2);                                         \
+            int cmp  = utf8_str_startswith(Str1, len1, Str2, len2);          \
+                                                                             \
+            Z_ASSERT_EQ(cmp, Val,                                            \
+                        "utf8_str_startswith(\"%.*s\", \"%.*s\") "           \
+                        "returned bad value: %d, expected %d",               \
+                        len1, Str1, len2, Str2, cmp, Val);                   \
+        })
+
+        /* Basic tests and case tests */
+        RUN_UTF8_TEST("abcdef", "abc", true);
+        RUN_UTF8_TEST("abcdef", "abcdef", true);
+        RUN_UTF8_TEST("abcdef", "abcdefg", false);
+        RUN_UTF8_TEST("AbCdEf", "abc", false);
+        RUN_UTF8_TEST("abcdef", "AbC", false);
+        RUN_UTF8_TEST("aBCdef", "AbC", false);
+        RUN_UTF8_TEST("aBCdef", "aBC", true);
+
+        /* Accentuation tests */
+        RUN_UTF8_TEST("abcdéf", "abcde", true);
+        RUN_UTF8_TEST("abcdÉf", "abcdè", false);
+        RUN_UTF8_TEST("àbcdèf", "abcdé", true);
+        RUN_UTF8_TEST("àbcdèf", "abcdé", true);
+        RUN_UTF8_TEST("abcde", "àbcdé", true);
+        RUN_UTF8_TEST("abcde", "àbcdéf", false);
+
+
+#undef RUN_UTF8_TEST
+    } Z_TEST_END;
+
     Z_TEST(path_simplify, "str-path: path_simplify") {
 #define T(s0, s1)  \
         ({ pstrcpy(buf, sizeof(buf), s0);    \

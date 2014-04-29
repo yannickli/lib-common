@@ -219,6 +219,16 @@ int utf8_stricmp(const char *str1, int len1,
 int utf8_strcmp(const char *str1, int len1,
                 const char *str2, int len2, bool strip) __leaf;
 
+/** Return whether \p str1 starts with \p str2 utf8 case-insensitive way.
+ */
+int utf8_str_istartswith(const char *str1, int len1,
+                         const char *str2, int len2);
+
+/** Return whether \p str1 starts with \p str2 utf8 case-sensitive way.
+ */
+int utf8_str_startswith(const char *str1, int len1,
+                        const char *str2, int len2);
+
 static inline
 bool utf8_striequal(const char *str1, int len1,
                     const char *str2, int len2, bool strip)

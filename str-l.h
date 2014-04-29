@@ -293,6 +293,24 @@ static ALWAYS_INLINE bool lstr_utf8_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_utf8_equal(&s1, &s2);
 }
 
+/** \brief returns whether \v s starts with \v p, in a case-insensitive
+ * utf8-aware way.
+ */
+static ALWAYS_INLINE
+int lstr_utf8_istartswith(const lstr_t *s1, const lstr_t *s2)
+{
+    return utf8_str_istartswith(s1->s, s1->len, s2->s, s2->len);
+}
+
+/** \brief returns whether \v s starts with \v p, in a case-sensitive
+ * utf8-aware way.
+ */
+static ALWAYS_INLINE
+int lstr_utf8_startswith(const lstr_t *s1, const lstr_t *s2)
+{
+    return utf8_str_startswith(s1->s, s1->len, s2->s, s2->len);
+}
+
 /*--------------------------------------------------------------------------*/
 /** \brief returns a constant copy of \v s.
  */
