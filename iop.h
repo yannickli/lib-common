@@ -552,6 +552,14 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
     return NULL;
 }
 
+/** Get the string description of an iop type.
+ *
+ * \param[in]  type iop type
+ *
+ * \return the string description.
+ */
+const char *iop_type_get_string_desc(iop_type_t type);
+
 /** Find a generic attribute value for an IOP interface.
  *
  * \param[in]  iface The IOP interface definition (__if).

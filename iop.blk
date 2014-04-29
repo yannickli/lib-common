@@ -113,6 +113,48 @@ int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
 }
 
 /*------ various helpers -}}}-*/
+/*------ iop type string description -{{{-*/
+
+const char *iop_type_get_string_desc(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_I8:
+        return "byte";
+      case IOP_T_I16:
+        return "short";
+      case IOP_T_I32:
+        return "int";
+      case IOP_T_I64:
+        return "long";
+      case IOP_T_U8:
+        return "ubyte";
+      case IOP_T_U16:
+        return "ushort";
+      case IOP_T_U32:
+        return "uint";
+      case IOP_T_U64:
+        return "ulong";
+      case IOP_T_BOOL:
+        return "bool";
+      case IOP_T_ENUM:
+        return "enum";
+      case IOP_T_DOUBLE:
+        return "double";
+      case IOP_T_STRING:
+        return "string";
+      case IOP_T_DATA:
+        return "bytes";
+      case IOP_T_UNION:
+        return "union";
+      case IOP_T_STRUCT:
+        return "struct";
+      case IOP_T_XML:
+        return "xml";
+    }
+    e_panic("iop_type unsupported");
+}
+
+/*------ iop type string description -}}}-*/
 /*------ generic attributes -{{{-*/
 
 #define ATTR_IS_GENERIC(_attr, _what)                                        \
