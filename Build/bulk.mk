@@ -133,7 +133,7 @@ __setup_buildsys_trampoline: $!deps.mk
 toplevel:
 .PHONY: toplevel
 
-all:: toplevel www
+all:: toplevel
 all check fast-check clean distclean www:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
