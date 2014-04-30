@@ -100,6 +100,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 
 void ps_install_panic_sighandlers(void)
 {
+#ifndef __has_asan
     struct sigaction sa = {
         .sa_flags     = SA_RESTART | SA_SIGINFO,
         .sa_sigaction = &ps_panic_sighandler,
@@ -112,6 +113,7 @@ void ps_install_panic_sighandlers(void)
     sigaction(SIGBUS,    &sa, NULL);
 #if defined(__linux__)
     sigaction(SIGSTKFLT, &sa, NULL);
+#endif
 #endif
 }
 
