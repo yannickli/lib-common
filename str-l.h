@@ -168,6 +168,13 @@ static ALWAYS_INLINE bool lstr_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_equal(&s1, &s2);
 }
 
+/** \brief returns whether \v s1 contains substring \v s2.
+ */
+static ALWAYS_INLINE bool lstr_contains(const lstr_t s1, const lstr_t s2)
+{
+    return memmem(s1.data, s1.len, s2.data, s2.len) != NULL;
+}
+
 /** \brief returns whether \p s1 and \p s2 contents are case-insentively equal.
  *
  * This function should only be used in case you have a small number of
