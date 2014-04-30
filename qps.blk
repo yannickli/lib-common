@@ -3175,6 +3175,7 @@ void qps_get_usage(const qps_t *qps, struct qps_stats *st)
 
 static int qps_initialize(void *sighandler)
 {
+    struct sigaction prev;
     struct sigaction act = {
         .sa_sigaction = qps_on_segfault,
         .sa_flags     = SA_SIGINFO,
@@ -3182,8 +3183,11 @@ static int qps_initialize(void *sighandler)
 
     _G.sighandler = sighandler;
     sigfillset(&act.sa_mask);
-    sigaction(SIGSEGV, &act, NULL);
+    sigaction(SIGSEGV, &act, &prev);
     sigaction(SIGBUS, &act, NULL);
+#ifdef __has_asan
+    _G.sighandler = prev.sa_sigaction;
+#endif
     return 0;
 }
 
@@ -3195,6 +3199,14 @@ static int qps_shutdown(void)
 MODULE_BEGIN(qps)
     MODULE_DEPENDS_ON(thr);
 MODULE_END()
+
+#ifdef __has_asan
+const char* __asan_default_options(void);
+const char* __asan_default_options(void)
+{
+    return "allow_user_segv_handler=1";
+}
+#endif
 
 /** \} */
 /* Tests {{{ */

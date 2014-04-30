@@ -551,6 +551,13 @@ static inline bool lstr_ascii_iequal(const lstr_t s1, const lstr_t s2)
     return true;
 }
 
+/** \brief returns whether \v s1 contains substring \v s2.
+ */
+static ALWAYS_INLINE bool lstr_contains(const lstr_t s1, const lstr_t s2)
+{
+    return memmem(s1.data, s1.len, s2.data, s2.len) != NULL;
+}
+
 /** \brief returns whether \v s starts with \v p
  */
 static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
