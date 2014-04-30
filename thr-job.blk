@@ -984,8 +984,12 @@ void thr_syn_wait(thr_syn_t *syn)
 #endif
           cas:
             ec = &syn->ec;
-            while (unlikely(!atomic_compare_exchange_strong(&thr0_cur_ec_g, &ec, NULL)))
+            while (unlikely(!atomic_compare_exchange_strong(&thr0_cur_ec_g,
+                                                            &ec, NULL)))
+            {
                 sched_yield();
+                ec = &syn->ec;
+            }
         }
     } else {
         while (atomic_load(&syn->pending)) {
