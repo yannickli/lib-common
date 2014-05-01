@@ -49,6 +49,7 @@ static struct {
     e_handler_f   *e_handler;
     log_handler_f *handler;
 
+    char          *is_debug;
     qm_t(level)    pending_levels;
 
     bool fancy;
@@ -728,17 +729,11 @@ static void log_initialize(void)
     {
         char *p = getenv("IS_DEBUG");
 
-        if (!p)
+        if (!p) {
             return;
+        }
 
-        /* XXX This string is "leaked" because we could need debug information
-         *     written in it *ANYTIME* (including at shutdown).
-         *
-         *     If related valgrind error is boring you, please add
-         *         --suppressions=<path-to-lib-common>/lib-common.supp
-         *     to your valgrind command line.
-         */
-        p = p_strdup(skipspaces(p));
+        _G.is_debug = p = p_strdup(skipspaces(p));
 
         /*
          * parses blank separated <specs>
@@ -788,6 +783,7 @@ __attribute__((destructor))
 static void log_shutdown(void)
 {
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
+    p_delete(&_G.is_debug);
 }
 
 /* }}} */
