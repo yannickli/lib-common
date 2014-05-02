@@ -331,10 +331,9 @@ static int btree_parse_test(const char *filename, const char *indexname)
             break;
         len = strlen(buf);
         if (buf[11] == '@' || buf[11] == '<') {
-            int pos = 0, line_no, camp_id, n;
+            int pos = 0, line_no, camp_id;
 
-            n = buf_unpack((byte*)buf, len, &pos, "s|c|s|d|d|", NULL, NULL, NULL, &line_no, &camp_id);
-            IGNORE(n);
+            IGNORE(buf_unpack((byte*)buf, len, &pos, "s|c|s|d|d|", NULL, NULL, NULL, &line_no, &camp_id));
             num = MAKE64(camp_id, line_no);
             data = offset;
 
