@@ -925,7 +925,6 @@ static void srunner_send_evt(SRunner *sr, void *obj, enum cl_event evt)
 void stdout_lfun(SRunner *sr, FILE *file, enum print_output printmode,
                  void *obj, enum cl_event evt)
 {
-    TestResult *tr;
     Suite *s;
 
     if (printmode == CK_ENV) {
@@ -961,7 +960,6 @@ void stdout_lfun(SRunner *sr, FILE *file, enum print_output printmode,
         s = obj;
         break;
     case CLEND_T:
-        tr = obj;
         break;
     default:
         eprintf("Bad event type received in stdout_lfun", __FILE__, __LINE__);

@@ -331,7 +331,9 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
         if (count + n1 >= size) {
             n1 = count >= size ? 0 : size - count - 1;
         }
-        memset(str + count, c, n1);
+        if (n1) {
+            memset(str + count, c, n1);
+        }
     }
     return count + n;
 }
@@ -360,7 +362,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
     char buf[(64 + 2) / 3 + 1 + 1];
     int c, count, len, width, prec, base, flags, type_flags;
     int left_pad, prefix_len, zero_pad, right_pad;
-    const char *format0, *lp;
+    const char *lp;
     int sign;
 
     if (size > INT_MAX) {
@@ -436,7 +438,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         }
 
         /* general case: parse complete format syntax */
-        format0 = format;
         flags = 0;
 
         /* parse optional flags */

@@ -85,7 +85,7 @@ static int find_extra_flags(byte *src, unsigned src_len,
 __attribute__((unused))
 static int show_flags(const char *arg, int flags)
 {
-    int hd, insize, size0, size1, res = 0;
+    int hd, insize, size1;
     byte *inbuf = NULL;
     unsigned outsize;
     unsigned block_outsize;
@@ -106,7 +106,6 @@ static int show_flags(const char *arg, int flags)
     lseek(hd, 0L, SEEK_SET);
     if (read(hd, inbuf, insize) != insize) {
         if (flags) fprintf(stderr, "read\n");
-        res = 3;
         goto done;
     }
 
@@ -134,7 +133,6 @@ static int show_flags(const char *arg, int flags)
     outsize = header[1];
 
     blockhdr = header + 3;
-    size0 = blockhdr[0];
     size1 = blockhdr[1] & 0x7fffffff;
 
     if (blockhdr[1] & 0x80000000) {
@@ -147,13 +145,11 @@ static int show_flags(const char *arg, int flags)
 
     if (block_outsize != outsize) {
         if (flags) fprintf(stderr, "size\n");
-        res = 5;
         goto done;
     }
     lseek(hd, 0L, SEEK_SET);
     if (write(hd, inbuf, insize) != insize) {
         if (flags) fprintf(stderr, "write\n");
-        res = 6;
         goto done;
     }
     if (flags) fprintf(stderr, "%s flagged\n", arg);
