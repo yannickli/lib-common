@@ -46,6 +46,9 @@ typedef IOP_ARRAY_OF(core__log_configuration__t) core__log_configuration__array_
 typedef struct core__log_file_configuration__t core__log_file_configuration__t;
 typedef IOP_ARRAY_OF(core__log_file_configuration__t *) core__log_file_configuration__array_t;
 
+typedef struct core__licence_module__t core__licence_module__t;
+typedef IOP_ARRAY_OF(core__licence_module__t *) core__licence_module__array_t;
+
 typedef struct core__licence__t core__licence__t;
 typedef IOP_ARRAY_OF(core__licence__t *) core__licence__array_t;
 

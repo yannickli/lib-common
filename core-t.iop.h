@@ -41,6 +41,16 @@ IOP_CLASS(core__log_file_configuration);
 
 #define core__log_file_configuration__class_id  0
 
+struct core__licence_module__t {
+    const iop_struct_t *__vptr;
+    lstr_t           expiration_date;
+    uint32_t expiration_warning_delay;
+};
+extern iop_struct_t const core__licence_module__s;
+IOP_CLASS(core__licence_module);
+
+#define core__licence_module__class_id  0
+
 struct core__licence__t {
     const iop_struct_t *__vptr;
     lstr_t   expiration_date;
@@ -59,6 +69,7 @@ struct core__licence__t {
 #else
     iop_array_lstr_t   mac_addresses;
 #endif
+    core__licence_module__array_t modules;
 };
 extern iop_struct_t const core__licence__s;
 IOP_CLASS(core__licence);

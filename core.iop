@@ -129,6 +129,33 @@ class LogFileConfiguration {
     bool compress     = true;
 };
 
+@length(11) @pattern("[a-zA-Z0-9\-]*")
+typedef string ExpirationDate;
+
+/** Licence module.
+ *
+ * This class provides the base for a licence module format.
+ */
+abstract class LicenceModule {
+    /** Could be displayed on the GUI for example. */
+    static string name;
+
+    /** If false, no expiration date can be set. */
+    static bool canExpire;
+
+    /** Expiration date of the licence module.
+     *
+     * After that date the module will stop.
+     */
+    ExpirationDate? expirationDate;
+
+    /** Delay to emit warning before expiration.
+     * The module will start emitting warnings from
+     * \ref expirationDate - \ref expirationWarningDelay. Value is in seconds.
+     */
+    uint expirationWarningDelay = 15d;
+};
+
 /** Product licence.
  *
  * This class provides the base for a product licence format.
@@ -147,8 +174,7 @@ class Licence {
      * After that date the product will be disabled.
      * If not provided, the default value is \ref expirationDate.
      */
-    @length(11) @pattern("[a-zA-Z0-9\-]*")
-    string? expirationHardDate;
+    ExpirationDate? expirationHardDate;
 
     /** Delay to emit warnings before expiration.
      *
@@ -177,6 +203,9 @@ class Licence {
     /** Hardware limitation: MAC Address.
      */
     string[] macAddresses;
+
+    /** Array containing a licence for each module. */
+    LicenceModule[] modules;
 };
 
 /** Signed licence.

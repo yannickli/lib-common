@@ -37,7 +37,7 @@ _LIBS    = -lz -lrt -ldl -lpthread
 _IOPCLASSRANGE = 1-499
 
 libcommon_SOURCES = \
-	licence.c \
+	licence.blk \
 	parseopt.c \
 	\
 	arith-int.c \
@@ -202,6 +202,7 @@ zchk_SOURCES = zchk.c \
 	zchk-hat.blk \
 	zchk-iop.c \
 	zchk-iop-rpc.c \
+	zchk-licence.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \

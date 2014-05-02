@@ -14,7 +14,7 @@
 ifeq (,$(TOOLS_REPOSITORY))
 examples_LIBRARIES = tstiop
 
-tstiop_SOURCES = tstiop.iop tstiop_inheritance.iop
+tstiop_SOURCES = tstiop.iop tstiop_inheritance.iop tstiop_licence.iop
 endif
 
 include ../Build/base.mk

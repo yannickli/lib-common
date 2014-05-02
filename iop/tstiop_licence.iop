@@ -1,0 +1,30 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2014 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+/* This file is used to test the IOPs licences. */
+package tstiop_licence;
+
+class LicenceTst1 : 1 : core.LicenceModule {
+    static string name =  "LicenceTST1";
+    static bool canExpire = true;
+};
+
+class LicenceTst2 : 2 : core.LicenceModule {
+    static string name =  "LicenceTST2";
+    static bool canExpire = true;
+};
+
+class LicenceTst3 : 3 : core.LicenceModule {
+    static string name =  "LicenceTST3";
+    static bool canExpire = false;
+};

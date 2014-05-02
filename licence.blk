@@ -548,9 +548,20 @@ int licence_check_iop_host(const core__licence__t *licence)
     return 0;
 }
 
+/** Converter of licence date from lstr_t to time_t.
+ *
+ * The value of out will be the timestamp corresponding to the given date
+ * parameter, at midnight.
+ *
+ * \param[in]   s    String describing a date, for example `07-may-2014`.
+ * \param[out]  out  The timestamp,
+ *                   for example the timestamp of 07-05-2014 00:00:00.
+ */
 static int strtotime(lstr_t s, time_t *out)
 {
     struct tm t;
+
+    RETHROW_PN(s.s);
 
     p_clear(&t, 1);
     t.tm_isdst = -1;
@@ -574,7 +585,8 @@ licence_expiry_t licence_check_iop_expiry(const core__licence__t *licence)
     expires_soon_ts = soft_expiration_ts - licence->expiration_warning_delay;
 
     if (licence->expiration_hard_date.s) {
-        if (strtotime(licence->expiration_hard_date, &hard_expiration_ts) < 0)
+        if (strtotime(licence->expiration_hard_date,
+                      &hard_expiration_ts) < 0)
         {
             e_error("invalid hard expiration date");
             return LICENCE_INVALID_EXPIRATION;
@@ -605,6 +617,79 @@ licence_expiry_t licence_check_iop_expiry(const core__licence__t *licence)
     }
 }
 
+__must_check__
+licence_expiry_t licence_check_module_expiry(const core__licence_module__t *e)
+{
+    time_t now = lp_getsec();
+    time_t expiration, soon_expiration;
+
+    if (!e->expiration_date.s) {
+        return LICENCE_OK;
+    }
+    if (!expect(strtotime(e->expiration_date, &expiration) >= 0)) {
+        return LICENCE_INVALID_EXPIRATION;
+    }
+    soon_expiration = expiration - e->expiration_warning_delay;
+
+    if (soon_expiration <= now && now < expiration) {
+        return LICENCE_EXPIRES_SOON;
+    } else
+    if (expiration <= now) {
+        return LICENCE_HARD_EXPIRED;
+    }
+    return LICENCE_OK;
+}
+
+int licence_check_modules(const core__licence__t *licence)
+{
+    t_scope;
+    static bool first_call = true;
+    qh_t(lstr) fullnames;
+
+    /* The goal of this code that is only executed the first time that
+     * function is called is to check that there is not duplicate values of
+     * field `name` in child classes of core.LicenceModule.
+     */
+    if (unlikely(first_call)) {
+        QH(lstr, static_names, false);
+        qh_t(lstr) *static_names_p = &static_names;
+
+        first_call = false;
+        iop_for_each_registered_classes(^(const iop_struct_t *child) {
+            if (iop_class_is_a(child, &core__licence_module__s)
+            && !child->class_attrs->is_abstract)
+            {
+                const lstr_t *name;
+
+                name = &iop_get_cvar(&child, LSTR_IMMED_V("name"))->s;
+                if (qh_add(lstr, static_names_p, name) < 0) {
+                    e_fatal("duplicated static name `%*pM` in the children "
+                            "of core.LicenceModule", LSTR_FMT_ARG(*name));
+                }
+            }
+        });
+        qh_wipe(lstr, &static_names);
+    }
+
+    t_qh_init(lstr, &fullnames, 0, licence->modules.len);
+
+    tab_for_each_entry(e, &licence->modules) {
+        lstr_t name = iop_get_cvar(e, LSTR_IMMED_V("name"))->s;
+        bool can_expire = iop_get_cvar(e, LSTR_IMMED_V("canExpire"))->b;
+
+        if (qh_add(lstr, &fullnames, &e->__vptr->fullname) < 0) {
+            return e_error("licence module `%*pM` declared twice in "
+                           "the licence file", LSTR_FMT_ARG(name));
+        }
+        if (e->expiration_date.s && !can_expire) {
+            return e_error("licence module `%*pM` cannot expire",
+                           LSTR_FMT_ARG(name));
+        }
+    }
+
+    return 0;
+}
+
 int licence_check_iop(const core__signed_licence__t *signed_licence,
                       const iop_struct_t *licence_st, lstr_t version,
                       unsigned flags)
@@ -625,7 +710,31 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
                                 signed_licence->signature, flags));
     RETHROW(licence_check_iop_expiry(licence));
     RETHROW(licence_check_iop_host(licence));
+    RETHROW(licence_check_modules(licence));
     return 0;
+}
+
+__must_check__
+bool licence_is_module_activated_desc(const struct core__licence__t *licence,
+                                      const iop_struct_t *mod)
+{
+    tab_for_each_entry(e, &licence->modules) {
+        if (!iop_obj_is_a_desc(e, mod)) {
+            continue;
+        } else
+        if (!e->expiration_date.s) {
+            return true;
+        } else {
+            time_t exp;
+
+            if (!expect(strtotime(e->expiration_date, &exp) >= 0)) {
+                return false;
+            }
+
+            return exp >= lp_getsec();
+        }
+    }
+    return false;
 }
 
 /* }}} */
@@ -655,18 +764,6 @@ static int find_local_mac(char buf[static 6 * 3])
     if_freenameindex(iflist);
 
     Z_HELPER_END;
-}
-
-static void t_ts_to_lstr(time_t ts, lstr_t *out)
-{
-    char *date;
-
-    date = t_new(char, 20);
-    if (strftime(date, 20, "%d-%b-%Y", localtime(&ts)) != 0) {
-        *out = LSTR_STR_V(date);
-    } else {
-        *out = LSTR_EMPTY_V;
-    }
 }
 
 Z_GROUP_EXPORT(licence)
@@ -708,75 +805,6 @@ Z_GROUP_EXPORT(licence)
         Z_ASSERT(conf = conf_load("samples/licence-v1-ko.conf"));
         Z_ASSERT(!licence_check_expiration_ok(conf), "licence-test-ko passed");
         conf_delete(&conf);
-    } Z_TEST_END;
-
-    Z_TEST(iop, "") {
-        t_scope;
-        SB_1k(tmp);
-        core__signed_licence__t lic;
-
-        Z_ASSERT_N(chdir(z_cmddir_g.s));
-        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-ok.cf",
-                                                        &lic, 0, &tmp));
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                     LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                     LSTR_IMMED_V("2.0"), 0));
-
-        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-sig-ko.cf",
-                                                        &lic, 0, &tmp));
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-
-        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-exp-ko.cf",
-                                                        &lic, 0, &tmp));
-        Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
-                                       lic.signature, 0));
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-
-        /* Invalid expiration date : "02-aaa-2012" */
-        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-exp-invalid.cf",
-                                                        &lic, 0, &tmp));
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_EQ(licence_check_iop_expiry(
-                    (const struct core__licence__t*)&lic),
-                    LICENCE_INVALID_EXPIRATION);
-
-        /* Invalid expiration date : soft expiration > hard expiration */
-        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
-        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
-                     &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_INVALID_EXPIRATION);
-
-        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
-        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
-                     &lic.licence->expiration_hard_date);
-        lic.licence->expiration_warning_delay = 7 * 24 * 3600;
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_EXPIRES_SOON);
-
-        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
-        t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
-                   &lic.licence->expiration_hard_date);
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_SOFT_EXPIRED);
-
-        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
-        t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
-                   &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), 0));
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_HARD_EXPIRED);
     } Z_TEST_END;
 } Z_GROUP_END
 

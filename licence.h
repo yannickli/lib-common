@@ -41,6 +41,7 @@ int  licence_do_signature(const conf_t *conf, char dst[65]);
 
 struct core__signed_licence__t;
 struct core__licence__t;
+struct core__licence_module__t;
 
 typedef enum licence_expiry_t {
     LICENCE_OK = 0,
@@ -75,6 +76,31 @@ int licence_check_iop(const struct core__signed_licence__t *licence,
 __must_check__ licence_expiry_t
 licence_check_iop_expiry(const struct core__licence__t *licence);
 
-/* }}} */
+/** Check whether a module is activated or not.
+ *
+ * \param[in]  mod      The module of which activation must be checked.
+ * \param[in]  licence  The licence in which the check must be done.
+ *
+ * \return              true if it is activated, false if it is not.
+ */
+__must_check__
+bool licence_is_module_activated_desc(const struct core__licence__t *licence,
+                                      const iop_struct_t *mod);
+#define licence_is_module_activated(licence, pfx) \
+    licence_is_module_activated_desc(licence, &pfx##__s)
 
+/** Check the expiration of a licence module in an IOP Licence.
+ *
+ * \param[in]  licence      The licence module structure to check.
+ */
+__must_check__ licence_expiry_t
+licence_check_module_expiry(const struct core__licence_module__t *licence);
+
+/* }}} */
+/*{{{ Private function. Exposed for unit tests pruposes only. */
+
+__must_check__
+int licence_check_modules(const struct core__licence__t *licence);
+
+/*}}} */
 #endif /* IS_LIB_COMMON_LICENCE_H */
