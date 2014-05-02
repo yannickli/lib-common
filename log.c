@@ -115,7 +115,7 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
 static void logger_wipe_child(logger_t *logger)
 {
     spin_lock(&logger->children_lock);
-    if (!dlist_is_empty(&logger->children)) {
+    if (!dlist_is_empty(&logger->children) && logger->children.next) {
         logger_t *child;
 
         dlist_for_each_entry_safe(child, &logger->children, siblings) {
@@ -133,7 +133,7 @@ static void logger_wipe_child(logger_t *logger)
     }
     spin_unlock(&logger->children_lock);
 
-    if (!dlist_is_empty(&logger->siblings)) {
+    if (!dlist_is_empty(&logger->siblings) && logger->siblings.next) {
         dlist_remove(&logger->siblings);
     }
     lstr_wipe(&logger->name);
