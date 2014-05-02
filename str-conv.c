@@ -450,7 +450,8 @@ int strconv_hexencode(char *dest, int size, const void *src, int len)
 }
 
 static int utf8_strcmp_(const char *str1, int len1, const char *str2, int len2,
-                        bool strip, uint32_t const str_conv[], int str_conv_len)
+                        bool strip, bool starts_with,
+                        uint32_t const str_conv[], int str_conv_len)
 {
     int c1, c2, cc1, cc2;
     int off1 = 0, off2 = 0;
@@ -533,6 +534,9 @@ static int utf8_strcmp_(const char *str1, int len1, const char *str2, int len2,
     return c2 < 0 ? 0 : -1;
 
   eos2:
+    if (starts_with) {
+        return 0;
+    }
     if (strip) {
         /* Ignore trailing white space */
         while (c1 == ' ') {
@@ -548,7 +552,7 @@ static int utf8_strcmp_(const char *str1, int len1, const char *str2, int len2,
 int utf8_stricmp(const char *str1, int len1,
                  const char *str2, int len2, bool strip)
 {
-    return utf8_strcmp_(str1, len1, str2, len2, strip,
+    return utf8_strcmp_(str1, len1, str2, len2, strip, false,
                         __str_unicode_general_ci,
                         countof(__str_unicode_general_ci));
 }
@@ -556,9 +560,25 @@ int utf8_stricmp(const char *str1, int len1,
 int utf8_strcmp(const char *str1, int len1,
                 const char *str2, int len2, bool strip)
 {
-    return utf8_strcmp_(str1, len1, str2, len2, strip,
+    return utf8_strcmp_(str1, len1, str2, len2, strip, false,
                         __str_unicode_general_cs,
                         countof(__str_unicode_general_cs));
+}
+
+int utf8_str_istartswith(const char *str1, int len1,
+                       const char *str2, int len2)
+{
+    return !utf8_strcmp_(str1, len1, str2, len2, false, true,
+                         __str_unicode_general_ci,
+                         countof(__str_unicode_general_ci));
+}
+
+int utf8_str_startswith(const char *str1, int len1,
+                       const char *str2, int len2)
+{
+    return !utf8_strcmp_(str1, len1, str2, len2, false, true,
+                         __str_unicode_general_cs,
+                         countof(__str_unicode_general_cs));
 }
 
 /****************************************************************************/
