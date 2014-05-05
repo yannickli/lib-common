@@ -716,6 +716,9 @@ int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
     __leaf;
 int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8,
                      int unknown, gsm_conv_plan_t plan) __leaf;
+int  sb_conv_to_gsm7_max_len(sb_t *sb, int gsm_start, const char *utf8,
+                             int unknown, gsm_conv_plan_t plan, int max_len)
+    __leaf;
 int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen)
     __leaf;
 int gsm7_to_unicode(uint8_t u8, int unknown)

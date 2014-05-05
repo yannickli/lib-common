@@ -710,8 +710,15 @@ static uint64_t get_gsm7_pack(const void *src, int len)
 int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
                     gsm_conv_plan_t plan)
 {
+    return sb_conv_to_gsm7_max_len(out, gsm_start, utf8, unknown, plan, -1);
+}
+
+int sb_conv_to_gsm7_max_len(sb_t *out, int gsm_start, const char *utf8,
+                            int unknown, gsm_conv_plan_t plan, int max_len)
+{
     uint64_t pack = 0;
     int septet = (out->len - gsm_start) % 7;
+    int current_len = 0;
 
     if (septet) {
         pack = get_gsm7_pack(out->data + out->len - septet, septet);
@@ -731,6 +738,12 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
         c = RETHROW(unicode_to_gsm7(c, unknown, plan));
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
+            /* XXX escaping character should not be written if no place to
+             * write the next character
+             */
+            if (max_len > 0 && ++current_len + 1 > max_len) {
+                return -1;
+            }
             if (++septet == 8) {
                 put_gsm_pack(out, pack, 7);
                 septet = 0;
@@ -738,6 +751,9 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
             }
         }
         pack |= ((uint64_t)(c & 0x7f) << (7 * septet));
+        if (max_len > 0 && ++current_len > max_len) {
+            return -1;
+        }
         if (++septet == 8) {
             put_gsm_pack(out, pack, 7);
             septet = 0;
@@ -972,6 +988,41 @@ Z_GROUP_EXPORT(conv)
 
 #undef T
     } Z_TEST_END
+    Z_TEST(sb_conv_to_gsm7, "sb conv to gsm7") {
+        SB_1k(sb);
+        struct {
+            const char *in;
+            int size;
+        } t[] = {
+
+#define T(_in, _size) { .in = _in, .size = _size }
+
+            T("abcd", 4),
+            T("\xE2\x82\xAC\x00", 2), /* euro symbole */
+            T("abcd\xE2\x82\xAC", 6), /* start with euro */
+            T("ab\xE2\x82\xAC""cd", 6), /* euro in the middle */
+            T("\xE2\x82\xAC""abcd", 6), /* stop with euro */
+            T("[*]", 5), /* [ and ] are extended */
+
+#undef T
+
+        };
+
+        for (int i = 0; i < countof(t); i++) {
+            Z_ASSERT_N(sb_conv_to_gsm7(&sb, 0, t[i].in, ' ',
+                                       GSM_EXTENSION_PLAN));
+            Z_ASSERT_N(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+                                               GSM_EXTENSION_PLAN,
+                                               t[i].size));
+            Z_ASSERT_N(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+                                               GSM_EXTENSION_PLAN,
+                                               t[i].size + 1));
+            Z_ASSERT_NEG(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+                                                 GSM_EXTENSION_PLAN,
+                                                 t[i].size - 1));
+        }
+    } Z_TEST_END
+
 } Z_GROUP_END
 
 /* }}} */
