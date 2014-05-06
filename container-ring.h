@@ -102,7 +102,59 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
         r->first += n - (r->first + n >= r->size ? r->size : 0);       \
         r->len -= n;                                                   \
         return true;                                                   \
-    }
+    }                                                                  \
+                                                                       \
+    __unused__                                                         \
+    static inline type_t pfx##_ring_get(pfx##_ring *r, int n) {        \
+        return r->tab[pfx##_ring_pos(r, n)];                           \
+    }                                                                  \
+                                                                       \
+    __unused__                                                         \
+    static inline type_t *pfx##_ring_get_first_ptr(pfx##_ring *r) {    \
+        return r->len > 0 ? r->tab + r->first : NULL;                  \
+    }                                                                  \
+                                                                       \
+    __unused__                                                         \
+    static inline type_t *pfx##_ring_get_last_ptr(pfx##_ring *r) {     \
+        return r->tab + pfx##_ring_pos(r, r->len - 1);                 \
+    }                                                                  \
 
 #define DO_RING(type_t, pfx, wipe) \
     RING_TYPE(type_t, pfx); RING_FUNCTIONS(type_t, pfx, wipe)
+
+#define ring_for_each_ptr(pfx, ptr, r)                             \
+    for (typeof((r)->tab) ptr = pfx##_ring_get_first_ptr((r)),     \
+         __ptr_last = pfx##_ring_get_last_ptr((r)),                \
+         __ptr_end  = (r)->tab + (r)->size;                        \
+         ptr != NULL;                                              \
+         ({                                                        \
+             if (ptr == __ptr_last) {                              \
+                 ptr = NULL;                                       \
+             } else {                                              \
+                 ptr++;                                            \
+                 if (ptr == __ptr_end) {                           \
+                     ptr = (r)->tab;                               \
+                 }                                                 \
+             }                                                     \
+         }))
+
+#define ring_for_each_entry(pfx, e, r)                             \
+    for (typeof(*(r)->tab) *__ptr = pfx##_ring_get_first_ptr((r)), \
+         *__ptr_last = pfx##_ring_get_last_ptr((r)),               \
+         *__ptr_end  = (r)->tab + (r)->size, e;                    \
+         ({                                                        \
+             bool e##__res = __ptr != NULL;                        \
+             if (e##__res) {                                       \
+                 e = *__ptr;                                       \
+             }                                                     \
+             e##__res;                                             \
+         });                                                       \
+         ({                                                        \
+             if (__ptr == __ptr_last) {                            \
+                 __ptr = NULL;                                     \
+             } else {                                              \
+                 if (++__ptr == __ptr_end) {                       \
+                     __ptr = (r)->tab;                             \
+                 }                                                 \
+             }                                                     \
+         }))
