@@ -1290,15 +1290,22 @@ bool el_has_pending_events(void)
 }
 
 #ifndef NDEBUG
-static char const * const typenames[] = {
-    [EV_BLOCKER] = "blocker",
-    [EV_BEFORE]  = "before loop",
-    [EV_SIGNAL]  = "signal",
-    [EV_CHILD]   = "child",
-    [EV_FD]      = "file desc.",
-    [EV_TIMER]   = "timer",
-    [EV_PROXY]   = "proxy",
-};
+static const char *ev_type_to_str(ev_type_t type)
+{
+    switch (type) {
+      case EV_UNUSED:   return "unused";
+      case EV_BLOCKER:  return "blocker";
+      case EV_BEFORE:   return "before loop";
+      case EV_SIGNAL:   return "signal";
+      case EV_CHILD:    return "child";
+      case EV_FD:       return "file desc.";
+      case EV_TIMER:    return "timer";
+      case EV_PROXY:    return "proxy";
+      case EV_IDLE:     return "idle";
+      case EV_FS_WATCH: return "fs watch";
+    }
+    return "unknown";
+}
 
 static void el_show_blockers(el_t evh, int signo, data_t priv)
 {
@@ -1316,7 +1323,7 @@ static void el_show_blockers(el_t evh, int signo, data_t priv)
 
             e_trace_start(0, "ev %p │ cb %p │ data %p │ type %d %s",
                           ev, (void *)ev->cb.cb, ev->priv.ptr, ev->type,
-                          typenames[ev->type]);
+                          ev_type_to_str(ev->type));
 
             switch (ev->type) {
               case EV_SIGNAL:
