@@ -37,6 +37,7 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
     uint32_t    occupied;
+    uint32_t    used_blocks;
 
     /* p_delete codepath */
     bool        alive;
@@ -143,6 +144,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
+    mfp->used_blocks++;
     return page->last = blk->area;
 }
 
@@ -161,6 +163,7 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     VALGRIND_MEMPOOL_FREE(page, blk->area);
     blk_protect(blk);
 
+    mfp->used_blocks--;
     if (--page->used_blocks > 0)
         return;
 
@@ -276,8 +279,8 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
     }
 
     if (mfp->nb_pages) {
-        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes)",
-                mfp->nb_pages, mfp->occupied);
+        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes in %u blocks)",
+                mfp->nb_pages, mfp->occupied, mfp->used_blocks);
         mfp->owner   = poolp;
         return;
     }
