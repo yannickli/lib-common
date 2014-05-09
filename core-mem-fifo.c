@@ -130,6 +130,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     page = mfp->current;
+    assert (!page || page->used_blocks != 0);
     if (!page || mem_page_size_left(page) < size) {
         mfp->current = page = mem_page_new(mfp);
     }
@@ -169,8 +170,7 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
 
     /* this was the last block, collect this page */
     if (page == mfp->current) {
-        mem_page_reset(page);
-        return;
+        mfp->current = NULL;
     }
 
     /* specific case for a dying pool */
@@ -182,7 +182,7 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     }
 
     /* keep the page around if we have none kept around yet */
-    if (mfp->freepage || mfp->nb_pages == 1) {
+    if (mfp->freepage) {
         mem_page_delete(mfp, &page);
     } else {
         mem_page_reset(page);
