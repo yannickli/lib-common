@@ -37,6 +37,7 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
     uint32_t    occupied;
+    uint32_t    used_blocks;
     size_t      map_size;
 
     /* p_delete codepath */
@@ -140,6 +141,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
         e_panic("trying to allocate from a dead pool");
 
     page = mfp->current;
+    assert (!page || page->used_blocks != 0);
     if (!page || mem_page_size_left(page) < size) {
         page = mfp->current = mem_page_new(mfp, size);
     }
@@ -155,6 +157,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
+    mfp->used_blocks++;
     return page->last = blk->area;
 }
 
@@ -175,6 +178,7 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     VALGRIND_FREELIKE_BLOCK(mem, 0);
     blk_protect(blk);
 
+    mfp->used_blocks--;
     if (--page->used_blocks > 0)
         return;
 
@@ -188,12 +192,11 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
 
     /* this was the last block, collect this page */
     if (page == mfp->current) {
-        mem_page_reset(page);
-        return;
+        mfp->current = NULL;
     }
 
     /* keep the page around if we have none kept around yet */
-    if (mfp->freepage || mfp->nb_pages == 1) {
+    if (mfp->freepage) {
         mem_page_delete(mfp, &page);
     } else {
         mem_page_reset(page);
@@ -303,8 +306,8 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
     }
 
     if (mfp->nb_pages) {
-        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes)",
-                mfp->nb_pages, mfp->occupied);
+        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes in %u blocks)",
+                mfp->nb_pages, mfp->occupied, mfp->used_blocks);
         mfp->owner   = poolp;
         return;
     }
