@@ -13,6 +13,7 @@
 
 #include "z.h"
 #include "el.h"
+#include "core.h"
 
 #define NEW_MOCK_MODULE(name, init_ret, shut_ret)                            \
     static int name##_initialize(void *args)                                 \
@@ -132,6 +133,80 @@ static int modprovide_shutdown(void)
     return 0;
 }
 MODULE_BEGIN(modprovide)
+MODULE_END()
+
+/** Dependency checks
+ * ex. module_a depends on module_b and module_c
+ *
+ *          module_a
+ *         /        \
+ *     module_b    module_c
+ *                    \
+ *                  module_d
+ *
+ *
+ *          module_g    module_e
+ *              |           |
+ *          module_h    module_f
+ *                  \  /
+ *                module_i
+ *
+ */
+
+#define MODULE_INIT_SHUTDOWN_FUNCTIONS(mod) \
+    static int mod##_initialize(void *arg)                                   \
+    {                                                                        \
+        return 0;                                                            \
+    }                                                                        \
+    static int mod##_shutdown(void)                                          \
+    {                                                                        \
+        return 0;                                                            \
+    }
+
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_a)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_b)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_c)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_d)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_e)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_f)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_g)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_h)
+MODULE_INIT_SHUTDOWN_FUNCTIONS(module_i)
+
+#undef MODULE_INIT_SHUTDOWN_FUNCTIONS
+
+static MODULE_BEGIN(module_i)
+MODULE_END()
+
+static MODULE_BEGIN(module_h)
+    MODULE_DEPENDS_ON(module_i);
+MODULE_END()
+
+static MODULE_BEGIN(module_g)
+    MODULE_DEPENDS_ON(module_h);
+MODULE_END()
+
+static MODULE_BEGIN(module_f)
+    MODULE_DEPENDS_ON(module_i);
+MODULE_END()
+
+static MODULE_BEGIN(module_e)
+    MODULE_DEPENDS_ON(module_f);
+MODULE_END()
+
+static MODULE_BEGIN(module_d)
+MODULE_END()
+
+static MODULE_BEGIN(module_c)
+    MODULE_DEPENDS_ON(module_d);
+MODULE_END()
+
+static MODULE_BEGIN(module_b)
+MODULE_END()
+
+static MODULE_BEGIN(module_a)
+    MODULE_DEPENDS_ON(module_b);
+    MODULE_DEPENDS_ON(module_c);
 MODULE_END()
 
 Z_GROUP_EXPORT(module)
@@ -418,5 +493,21 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_ZERO(modmethod5);
         Z_ASSERT_ZERO(modmethod6);
         Z_ASSERT_EQ(val, 1);
+    } Z_TEST_END;
+
+    Z_TEST(dependency, "Modules dependency check") {
+        module_t* liste1[] = {module_a_module, module_e_module};
+        module_t* liste2[] = {module_a_module, module_e_module,
+                              module_g_module};
+        module_t* liste3[] = {module_a_module, module_e_module,
+                              module_i_module};
+        lstr_t collision;
+
+        Z_ASSERT_N(module_check_no_dependencies(liste1, countof(liste1),
+                                                &collision));
+        Z_ASSERT_N(module_check_no_dependencies(liste2, countof(liste2),
+                                                &collision));
+        Z_ASSERT_NEG(module_check_no_dependencies(liste3, countof(liste3),
+                                                  &collision));
     } Z_TEST_END;
 } Z_GROUP_END;

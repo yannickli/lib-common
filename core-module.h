@@ -396,5 +396,20 @@ MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
 
 /* }}} */
+/*{{{ Dependency collision */
 
+/** Checks if the given modules are independent from each other.
+ *
+ * \param[in]   tab        input modules list.
+ * \param[in]   len        length of the modules list.
+ * \param[out]  collision  is set so that collision is a lstr that contains
+ *                         the name of the module that collides with another
+ *                         module. This field is only set when -1 is
+ *                         returned.
+ */
+__must_check__
+int module_check_no_dependencies(module_t *tab[], int len,
+                                 lstr_t *collision);
+
+/*}}} */
 #endif

@@ -454,4 +454,45 @@ void module_register_at_fork(void)
 #endif
 
 /* }}} */
+/*{{{ Dependency collision */
 
+/** Adds to qh all the modules that are dependent of the module m.
+ */
+static void add_dependencies_to_qh(module_t *m, qh_t(lstr) *qh)
+{
+    qv_for_each_entry(lstr, e, &m->dependent_of) {
+        if (qh_add(lstr, qh, &e) >= 0) {
+            module_t *mod;
+            int pos = qm_find(module, &_G.modules, &e);
+
+            if (!expect(pos >= 0)) {
+                logger_error(&_G.logger, "unknown module `%*pM`",
+                             LSTR_FMT_ARG(e));
+                continue;
+            }
+            mod = _G.modules.values[pos];
+            add_dependencies_to_qh(mod, qh);
+        }
+    }
+}
+
+int module_check_no_dependencies(module_t *tab[], int len,
+                                 lstr_t *collision)
+{
+    t_scope;
+    qh_t(lstr) dependencies;
+
+    t_qh_init(lstr, &dependencies, false, len);
+    for (int pos = 0; pos < len; pos++) {
+        add_dependencies_to_qh(tab[pos], &dependencies);
+    }
+    for (int pos = 0; pos < len; pos++) {
+        if (qh_find(lstr, &dependencies, &tab[pos]->name) >= 0) {
+            *collision = tab[pos]->name;
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/*}}} */
