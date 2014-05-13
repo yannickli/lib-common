@@ -698,6 +698,8 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__my_class2__t cls2;
 
+        tstiop__my_union_a__t un = IOP_UNION(tstiop__my_union_a, ua, 1);
+
         tstiop__my_struct_a__t sa = {
             .a = 42,
             .b = 5,
@@ -712,6 +714,7 @@ Z_GROUP_EXPORT(iop)
             .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,
@@ -964,6 +967,8 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__my_class2__t cls2;
 
+        tstiop__my_union_a__t un = IOP_UNION(tstiop__my_union_a, ua, 1);
+
         tstiop__my_struct_a__t sa = {
             .a = 42,
             .b = 5,
@@ -978,6 +983,7 @@ Z_GROUP_EXPORT(iop)
             .xml_field = LSTR_IMMED("<foo />"),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,
@@ -1002,6 +1008,7 @@ Z_GROUP_EXPORT(iop)
             .xml_field = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,
@@ -1027,6 +1034,7 @@ Z_GROUP_EXPORT(iop)
             "    \"xmlField\": \"\",\n"
             "    \"k\": \"B\",\n"
             "    l.us: \"union value\",\n"
+            "    lr.ua: 1,\n"
             "    cls2: {\n"
             "        \"_class\": \"tstiop.MyClass2\",\n"
             "        \"int1\": 1,\n"
@@ -1064,6 +1072,7 @@ Z_GROUP_EXPORT(iop)
             "    \"xmlField\": \"\",\n"
             "    \"k\": \"B\",\n"
             "    l: {us: \"union value\"},\n"
+            "    lr: {ua: 1},\n"
             "    cls2: {\n"
             "        \"_class\": \"tstiop.MyClass2\",\n"
             "        \"int1\": 1,\n"
@@ -1096,6 +1105,7 @@ Z_GROUP_EXPORT(iop)
             .xml_field = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, us, LSTR_IMMED("union value")),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 0.42,
             .n = true,
@@ -1296,6 +1306,8 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__my_class2__t cls2;
 
+        tstiop__my_union_a__t un = IOP_UNION(tstiop__my_union_a, ua, 1);
+
         tstiop__my_struct_a__t sa = {
             .a = 42,
             .b = 5,
@@ -1309,6 +1321,7 @@ Z_GROUP_EXPORT(iop)
             .j = LSTR_IMMED("baré© \" foo ."),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,
@@ -1327,6 +1340,7 @@ Z_GROUP_EXPORT(iop)
             .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &un,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,
@@ -1875,6 +1889,7 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(iop_sort, "test IOP structures/unions sorting") { /* {{{ */
         t_scope;
         qv_t(my_struct_a) vec;
+        tstiop__my_union_a__t un[5];
         tstiop__my_struct_a__t a;
         qv_t(my_struct_a_opt) vec2;
         tstiop__my_struct_a_opt__t a2;
@@ -1888,41 +1903,51 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_a__init(&a);
         tstiop__my_class2__init(&cls2);
 
+        un[0] = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.e = 1;
         a.j = LSTR_IMMED_V("xyz");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 111);
+        a.lr = &un[0];
         cls2.int1 = 10;
         cls2.int2 = 100;
         a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
         qv_append(my_struct_a, &vec, a);
 
+        un[1] = IOP_UNION(tstiop__my_union_a, ub, 23);
         a.e = 2;
         a.j = LSTR_IMMED_V("abc");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 666);
+        a.lr = &un[1];
         cls2.int1 = 15;
         cls2.int2 = 95;
         a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
         qv_append(my_struct_a, &vec, a);
 
+        un[2] = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.e = 3;
         a.j = LSTR_IMMED_V("Jkl");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 222);
+        a.lr = &un[2];
         cls2.int1 = 13;
         cls2.int2 = 98;
         a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
         qv_append(my_struct_a, &vec, a);
 
+        un[3] = IOP_UNION(tstiop__my_union_a, ua, 666);
         a.e = 3;
         a.j = LSTR_IMMED_V("jKl");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 23);
+        a.lr = &un[3];
         cls2.int1 = 14;
         cls2.int2 = 96;
         a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
         qv_append(my_struct_a, &vec, a);
 
+        un[4] = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.e = 3;
         a.j = LSTR_IMMED_V("jkL");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 42);
+        a.lr = &un[4];
         cls2.int1 = 16;
         cls2.int2 = 97;
         a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
@@ -1988,6 +2013,55 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
         Z_ASSERT_EQ(vec.tab[3].l.ua, 23);
         Z_ASSERT_EQ(vec.tab[4].l.ua, 42);
+
+        /* sort on union lr */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr"), 0));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[4].lr, ub));
+
+        /* sort on int ua, member of union lr */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), 0));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
+        Z_ASSERT_EQ(vec.tab[0].lr->ua, 111);
+        Z_ASSERT_EQ(vec.tab[1].lr->ua, 222);
+        Z_ASSERT_EQ(vec.tab[2].lr->ua, 666);
+
+        /* reverse sort on int ua, member of union lr */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), IOP_SORT_REVERSE));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
+        Z_ASSERT_EQ(vec.tab[0].lr->ua, 666);
+        Z_ASSERT_EQ(vec.tab[1].lr->ua, 222);
+        Z_ASSERT_EQ(vec.tab[2].lr->ua, 111);
+
+        /* sort on int ua, member of union lr, put other union members first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ub));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ub));
+        Z_ASSERT_EQ(vec.tab[2].lr->ua, 111);
+        Z_ASSERT_EQ(vec.tab[3].lr->ua, 222);
+        Z_ASSERT_EQ(vec.tab[4].lr->ua, 666);
+
+        /* reverse sort on int ua, member of union lr, put other union members
+         * first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"),
+                                IOP_SORT_NULL_FIRST | IOP_SORT_REVERSE));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ub));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ub));
+        Z_ASSERT_EQ(vec.tab[2].lr->ua, 666);
+        Z_ASSERT_EQ(vec.tab[3].lr->ua, 222);
+        Z_ASSERT_EQ(vec.tab[4].lr->ua, 111);
+
+        /* sort on byte ub, member of union lr, put other union members first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ub"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
+        Z_ASSERT_EQ(vec.tab[3].lr->ua, 23);
+        Z_ASSERT_EQ(vec.tab[4].lr->ua, 42);
 
         /* sort on class members */
         Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("cls2.int1"), 0));
@@ -2061,6 +2135,7 @@ Z_GROUP_EXPORT(iop)
 
         /* sort on optional union l */
         Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l"), 0));
+        Z_ASSERT_P(vec2.tab[0].l);
         Z_ASSERT_EQ(vec2.tab[0].l->ua, 222);
 
         /* sort on optional int a, member of optional struct MyStructB o */
@@ -3071,10 +3146,108 @@ Z_GROUP_EXPORT(iop)
 #undef MAP
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_references, "test iop references") { /* {{{ */
+        t_scope;
+        SB_1k(err);
+        tstiop__my_referenced_struct__t rs = { .a = 666 };
+        tstiop__my_referenced_union__t ru;
+        tstiop__my_ref_union__t uu;
+        tstiop__my_ref_union__t us;
+        tstiop__my_ref_struct__t s = {
+            .s = &rs,
+            .u = &ru
+        };
+
+        uu = IOP_UNION(tstiop__my_ref_union, u, &ru);
+        us = IOP_UNION(tstiop__my_ref_union, s, &rs);
+        ru = IOP_UNION(tstiop__my_referenced_union, b, 42);
+
+#define XUNPACK_OK(_type, _str)                                              \
+        do {                                                                 \
+            void *_type = NULL;                                              \
+                                                                             \
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, _str, strlen(_str)));             \
+            Z_ASSERT_N(t_iop_xunpack_ptr(xmlr_g, &tstiop__##_type##__s,      \
+                                         &_type),                            \
+                       "XML unpacking failure: %s", xmlr_get_err());         \
+        } while (0)
+
+#define XUNPACK_FAIL(_type, _str, _err)                                      \
+        do {                                                                 \
+            void *_type = NULL;                                              \
+                                                                             \
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, _str, strlen(_str)));             \
+            Z_ASSERT_NEG(t_iop_xunpack_ptr(xmlr_g, &tstiop__##_type##__s,    \
+                                           &_type));                         \
+            Z_ASSERT(strstr(xmlr_get_err(), _err), "%s", xmlr_get_err());    \
+        } while (0)
+
+#define JUNPACK_FAIL(_type, _str, _err)                                      \
+        do {                                                                 \
+            void *_type = NULL;                                              \
+            pstream_t ps = ps_initstr(_str);                                 \
+                                                                             \
+            sb_reset(&err);                                                  \
+            Z_ASSERT_NEG(t_iop_junpack_ptr_ps(&ps, &tstiop__##_type##__s,    \
+                                              &_type, 0, &err));             \
+            Z_ASSERT(strstr(err.data, _err), "%s", err.data);                \
+        } while (0)
+
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop__my_ref_struct__s, &s, "s"));
+        Z_HELPER_RUN(iop_json_test_struct(&tstiop__my_ref_struct__s, &s, "s"));
+        Z_HELPER_RUN(iop_xml_test_struct(&tstiop__my_ref_struct__s, &s, "s"));
+        XUNPACK_OK(my_ref_struct,
+                   "<MyRefStruct><s><a>2</a></s><u><b>1</b></u></MyRefStruct>");
+        XUNPACK_FAIL(my_ref_struct,
+                     "<MyRefStruct><u><b>1</b></u></MyRefStruct>",
+                     "missing mandatory tag <s>");
+        XUNPACK_FAIL(my_ref_struct,
+                     "<MyRefStruct><u><b>1</b></u></MyRefStruct>",
+                     "missing mandatory tag <s>");
+        XUNPACK_FAIL(my_ref_struct,
+                     "<MyRefStruct><s></s></MyRefStruct>",
+                     "missing mandatory tag <a>");
+        Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_struct, &s,
+                              LSTR_IMMED_V("{ u: { b: 42 }, s: { a: 666 } }"));
+        Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_struct, &s,
+                              LSTR_IMMED_V("{ u.b: 42, s: { a: 666 } }"));
+        JUNPACK_FAIL(my_ref_struct, "{ u: { b: 1 } }",
+                     "member `tstiop.MyRefStruct:s' is missing");
+        JUNPACK_FAIL(my_ref_struct, "{ s: { a: 1 } }",
+                     "member `tstiop.MyRefStruct:u' is missing");
+
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop__my_ref_union__s, &uu, "uu"));
+        Z_HELPER_RUN(iop_json_test_struct(&tstiop__my_ref_union__s, &uu, "uu"));
+        Z_HELPER_RUN(iop_xml_test_struct(&tstiop__my_ref_union__s, &uu, "uu"));
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop__my_ref_union__s, &us, "us"));
+        Z_HELPER_RUN(iop_json_test_struct(&tstiop__my_ref_union__s, &us, "us"));
+        Z_HELPER_RUN(iop_xml_test_struct(&tstiop__my_ref_union__s, &us, "us"));
+        XUNPACK_OK(my_ref_union, "<MyRefUnion><s><a>2</a></s></MyRefUnion>");
+        XUNPACK_OK(my_ref_union, "<MyRefUnion><u><b>2</b></u></MyRefUnion>");
+        XUNPACK_FAIL(my_ref_union, "<MyRefUnion></MyRefUnion>",
+                     "node has no children");
+        XUNPACK_FAIL(my_ref_union, "<MyRefUnion><u></u></MyRefUnion>",
+                     "node has no children");
+        XUNPACK_FAIL(my_ref_union,
+                     "<MyRefUnion><s><a>2</a></s><u><b>1</b></u></MyRefUnion>",
+                     "closing tag expected");
+        Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &uu,
+                              LSTR_IMMED_V("{ u: { b: 42 } }"));
+        Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &uu,
+                              LSTR_IMMED_V("{ u.b: 42 }"));
+        Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &us,
+                              LSTR_IMMED_V("{ s: { a: 666 } }"));
+
+#undef JUNPACK_FAIL
+#undef XUNPACK_OK
+#undef XUNPACK_FAIL
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(iop_get_field_len, "test iop_get_field_len") { /* {{{ */
         t_scope;
 
         tstiop__my_class2__t cls2;
+        tstiop__my_union_a__t ua = IOP_UNION(tstiop__my_union_a, ua, 1);
         tstiop__my_struct_a__t sa = {
             .a = 42,
             .b = 5,
@@ -3088,6 +3261,7 @@ Z_GROUP_EXPORT(iop)
             .j = LSTR_IMMED("baré© \" foo ."),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .lr = &ua,
             .cls2 = &cls2,
             .m = 3.14159265,
             .n = true,

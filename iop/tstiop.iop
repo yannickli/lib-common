@@ -82,6 +82,7 @@ struct MyStructA {
     xml xmlField;
     MyEnumA k;
     MyUnionA l;
+    MyUnionA& lr;
     MyClass2 cls2;
     double m;
     bool n;
@@ -105,6 +106,7 @@ struct MyStructAOpt {
     string? j;
     MyEnumA? k;
     MyUnionA? l;
+    MyUnionA? lr;
     double? m;
     bool? n;
     MyStructB? o;
@@ -297,6 +299,24 @@ struct MyHashedExtended {
     int? b;
     int[] c;
     int d = 12;
+};
+
+struct MyReferencedStruct {
+    int a;
+};
+
+union MyReferencedUnion {
+    int b;
+};
+
+struct MyRefStruct {
+    MyReferencedStruct& s;
+    MyReferencedUnion&   u;
+};
+
+union MyRefUnion {
+    MyReferencedStruct& s;
+    MyReferencedUnion&   u;
 };
 
 /* Interfaces */
