@@ -912,6 +912,11 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
         return unpack_arr(ll, fdesc, value);
     }
 
+    if (iop_field_is_reference(fdesc)) {
+        /* reference fields must be dereferenced */
+        value = iop_value_set_here(ll->mp, fdesc, value);
+    }
+
     switch (PS_CHECK(iop_json_lex(ll, fdesc))) {
       case IOP_JSON_IDENT:
         if (IS_TRUE()) {
@@ -1198,9 +1203,13 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
 
             /* Write the selected field */
             *((uint16_t *)value) = fdesc->tag;
+            value = (char *)value + fdesc->data_offs;
+            if (iop_field_is_reference(fdesc)) {
+                /* reference fields must be dereferenced */
+                value = iop_value_set_here(ll->mp, fdesc, value);
+            }
 
-            PS_CHECK(unpack_union(ll, fdesc->u1.st_desc,
-                                  (char *)value + fdesc->data_offs, true));
+            PS_CHECK(unpack_union(ll, fdesc->u1.st_desc, value, true));
         } else {
             PS_CHECK(unpack_union(ll, NULL, NULL, true));
         }
@@ -1695,6 +1704,9 @@ get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
       case IOP_R_REQUIRED:
       case IOP_R_DEFVAL:
         *n = 1;
+        if (iop_field_is_reference(fdesc)) {
+            ptr = *(void **)ptr;
+        }
         break;
       case IOP_R_REPEATED:
         *n  = ((lstr_t *)ptr)->len;
@@ -1884,14 +1896,14 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_UNION:
               case IOP_T_STRUCT:
                 v = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                if (iop_field_is_class(fdesc)) {
+                if (iop_field_is_class(fdesc)
+                &&  fdesc->repeat != IOP_R_OPTIONAL)
+                {
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
                      */
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        v = *(void **)v;
-                    }
+                    v = *(void **)v;
                 }
                 len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, flags));
                 res += len;

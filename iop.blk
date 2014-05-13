@@ -260,7 +260,7 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
              * has been selected */
             const iop_struct_t *desc = fdesc->u1.st_desc;
 
-            if (iop_struct_is_class(desc)) {
+            if (iop_field_is_reference(fdesc) || iop_field_is_class(fdesc)) {
                 /* Field is a mandatory class instance, and should be init as
                  * an optional field: NULL pointer. */
                 continue;
@@ -353,6 +353,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
     for (; fdesc < end; fdesc++) {
         const void *ptr = (char *)val + fdesc->data_offs;
         bool is_class = iop_field_is_class(fdesc);
+        bool is_ref   = iop_field_is_reference(fdesc);
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
@@ -383,17 +384,22 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
             for (int j = 0; j < n; j++) {
                 const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
 
-                if (is_class) {
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        /* Non-optional class fields have to be dereferenced
-                         * (dereferencing of optional fields was already done
-                         *  just above).
-                         */
-                        v = *(void **)v;
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
+                    /* Non-optional reference fields have to be dereferenced
+                     * (dereferencing of optional fields was already done
+                     *  just above).
+                     */
+                    v = *(void **)v;
+                    if (is_class) {
                         len += ROUND_UP((*(const iop_struct_t **)v)->size, 8);
                     }
+                }
+                if (is_class) {
                     len += iop_dup_size(fdesc->u1.st_desc, v);
                 } else {
+                    if (is_ref) {
+                        len += ROUND_UP(fdesc->size, 8);
+                    }
                     len += __iop_dup_size(fdesc->u1.st_desc, v);
                 }
             }
@@ -481,22 +487,27 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
 
             for (int j = 0; j < n; j++) {
                 const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
                 void       *wv = &IOP_FIELD(char,       wp, j * fdesc->size);
 
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
+                    /* Non-optional referenced fields have to be dereferenced
+                     * (dereferencing of optional fields was already done
+                     *  just above).
+                     */
+                    rv = *(void **)rv;
+                    wv = *(void **)wv = dst;
+                }
                 if (is_class) {
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        /* Non-optional class fields have to be dereferenced
-                         * (dereferencing of optional fields was already done
-                         *  just above).
-                         */
-                        rv = *(void **)rv;
-                        wv = *(void **)wv = dst;
-                    }
                     dst = __iop_copy_class(fdesc->u1.st_desc, dst, wv, rv);
                 } else {
+                    if (is_ref) {
+                        /* Will be done in __iop_copy_class for classes */
+                        dst = realign(mempcpy(dst, rv, fdesc->size));
+                    }
                     dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
                 }
             }
@@ -676,6 +687,7 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
 
             /* We need to recurse to compare structures & unions. */
             for (int i = 0; i < n; i++) {
@@ -684,15 +696,15 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                 t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
                 t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
 
-                if (is_class) {
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
                      */
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        t1  = *(void **)t1;
-                        t2  = *(void **)t2;
-                    }
+                    t1  = *(void **)t1;
+                    t2  = *(void **)t2;
+                }
+                if (is_class) {
                     THROW_IF(!iop_equals(fdesc->u1.st_desc, t1, t2), false);
                 } else {
                     THROW_IF(!__iop_equals(fdesc->u1.st_desc, t1, t2), false);
@@ -941,7 +953,9 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
             it = fdesc->u1.st_desc;
 
-            if (fdesc->repeat == IOP_R_OPTIONAL || iop_field_is_class(fdesc))
+            if (fdesc->repeat == IOP_R_OPTIONAL
+            ||  iop_field_is_class(fdesc)
+            ||  iop_field_is_reference(fdesc))
             {
                 step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
             }
@@ -1245,7 +1259,6 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v,
 
     for (; fdesc < end; fdesc++) {
         const void *r = v + fdesc->data_offs;
-        bool is_class = false;
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
@@ -1340,27 +1353,30 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v,
             }
             break;
           case IOP_T_UNION:
-          case IOP_T_STRUCT:
-            is_class = iop_field_is_class(fdesc);
+          case IOP_T_STRUCT: {
+            bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
+
             for (int i = 0; i < n; i++) {
                 const uint8_t *v2;
 
                 v2 = &IOP_FIELD(const uint8_t, r, i * fdesc->size);
 
-                if (is_class) {
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
                      */
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        v2 = *(void **)v2;
-                    }
+                    v2 = *(void **)v2;
+                }
+                if (is_class) {
                     __iop_hash_class(ctx, fdesc->u1.st_desc, v2, flags);
                 } else {
                     __iop_hash(ctx, fdesc->u1.st_desc, v2, flags);
                 }
             }
             break;
+          }
           case IOP_T_XML:
           case IOP_T_STRING:
           case IOP_T_DATA:
@@ -1460,7 +1476,6 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val);
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse)
 {
-    bool is_class;
     check_constraints_f check_constraints = NULL;
 
     if ((check_constraints = iop_field_get_constraints_cb(desc, fdesc))) {
@@ -1484,6 +1499,7 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
             }
         }
         break;
+
       case IOP_T_I8:
       case IOP_T_U8:
       case IOP_T_I16:
@@ -1498,29 +1514,37 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
       case IOP_T_DATA:
       case IOP_T_XML:
         break;
+
       case IOP_T_UNION:
       case IOP_T_STRUCT:
-      default:
-        if (!recurse)
+      default: {
+        bool is_class;
+        bool is_ref;
+
+        if (!recurse) {
             return 0;
+        }
+
         is_class = iop_field_is_class(fdesc);
+        is_ref   = iop_field_is_reference(fdesc);
         for (int j = 0; j < n; j++) {
             const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
 
-            if (is_class) {
+            if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
                 /* Non-optional class fields have to be dereferenced
                  * (dereferencing of optional fields was already done
                  *  by the caller).
                  */
-                if (fdesc->repeat != IOP_R_OPTIONAL) {
-                    v = *(void **)v;
-                }
+                v = *(void **)v;
+            }
+            if (is_class) {
                 RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
             } else {
                 RETHROW(__iop_check_constraints(fdesc->u1.st_desc, v));
             }
         }
         break;
+      }
     }
 
     return 0;
@@ -1659,8 +1683,6 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
 
         len += 1 + fdesc->tag_len;
         switch (fdesc->type) {
-            bool is_class;
-
           case IOP_T_I8:
             len += n;
             break;
@@ -1705,25 +1727,27 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
                 len += get_len_len(i32 + 1) + i32 + 1;
             }
             break;
+
           case IOP_T_UNION:
           case IOP_T_STRUCT:
+          default: {
+            bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
 
-          default:
-            is_class = iop_field_is_class(fdesc);
             for (int j = 0; j < n; j++) {
                 const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
 
-                if (is_class) {
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done
                      *  just above).
                      */
-                    if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        v = *(void **)v;
-                    }
+                    v = *(void **)v;
+                }
+                if (is_class) {
                     i32 = __iop_bpack_size_class(fdesc->u1.st_desc, v, flags,
                                                  szs);
                 } else {
@@ -1734,6 +1758,7 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
                 len += get_len_len(i32) + i32;
             }
             break;
+          }
         }
     }
 
@@ -1833,22 +1858,29 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v,
         dst = mempcpyz(dst, ((lstr_t *)v)->data, len);
         return dst;
       case IOP_T_UNION:
+        if (iop_field_is_reference(f)) {
+            v = *(void **)v;
+        }
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
         return pack_union(dst, f->u1.st_desc, v, flags, szsp);
       case IOP_T_STRUCT:
-      default:
+      default: {
+        bool is_class = iop_field_is_class(f);
+        bool is_ref   = iop_field_is_reference(f);
+
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        if (iop_field_is_class(f)) {
+        if ((is_class || is_ref) && f->repeat != IOP_R_OPTIONAL) {
             /* Non-optional class fields have to be dereferenced
              * (dereferencing of optional fields was done in pack_struct).
              */
-            if (f->repeat != IOP_R_OPTIONAL) {
-                v = *(void **)v;
-            }
+            v = *(void **)v;
+        }
+        if (is_class) {
             return pack_class(dst, f->u1.st_desc, v, flags, szsp);
         } else {
             return pack_struct(dst, f->u1.st_desc, v, flags, szsp);
         }
+      }
     }
 }
 
@@ -2266,6 +2298,10 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
             *(void **)ptr = mp_imalloc(mp, desc->size, 8, MEM_RAW);
             ptr = *(void **)ptr;
             *(const iop_struct_t **)ptr = desc;
+        } else
+        if (iop_field_is_reference(fdesc)) {
+            *(void **)ptr = mp_imalloc(mp, desc->size, 8, MEM_RAW);
+            ptr = *(void **)ptr;
         }
         do {
             for (int i = 0; i < desc->fields_len; i++) {
@@ -2341,6 +2377,10 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
 {
     uint32_t u32 = 0;
     pstream_t ps_tmp;
+
+    if (iop_field_is_reference(fdesc)) {
+        v = iop_value_set_here(mp, fdesc, v);
+    }
 
     switch (wt) {
       case IOP_WIRE_BLK1:
@@ -2538,8 +2578,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
             }
-            if (fdesc->repeat == IOP_R_OPTIONAL
-            &&  !iop_field_is_class(fdesc))
+            if (fdesc->repeat == IOP_R_OPTIONAL && !iop_field_is_class(fdesc))
             {
                 v = iop_value_set_here(mp, fdesc, v);
             }

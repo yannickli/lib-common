@@ -44,22 +44,22 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
     const lstr_t *s;
     const iop_field_attrs_t *attrs;
     bool is_class = iop_field_is_class(f);
+    bool is_ref   = iop_field_is_reference(f);
 
     sb_grow(sb, 64 + f->name.len * 2);
     sb_addc(sb, '<');
     sb_add(sb, f->name.s, f->name.len);
 
+    if ((is_class || is_ref) && f->repeat != IOP_R_OPTIONAL) {
+        /* Non-optional reference fields have to be dereferenced
+         * (dereferencing of optional fields was already done by
+         * caller).
+         */
+        v = *(void **)v;
+    }
     if (is_class) {
-        const iop_struct_t *real_desc;
+        const iop_struct_t *real_desc = *(const iop_struct_t **)v;
 
-        if (f->repeat != IOP_R_OPTIONAL) {
-            /* Non-optional class fields have to be dereferenced
-             * (dereferencing of optional fields was already done by
-             * caller).
-             */
-            v = *(void **)v;
-        }
-        real_desc = *(const iop_struct_t **)v;
         /* The "n" namespace is used here because it's the one used in
          * ichttp_serialize_soap. */
         sb_addf(sb, " xsi:type=\"n:%*pM\">",

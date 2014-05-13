@@ -609,6 +609,14 @@ bool iop_field_has_constraints(const iop_struct_t *desc,
     return false;
 }
 
+static inline
+bool iop_field_is_reference(const iop_field_t *fdesc)
+{
+    unsigned fdesc_flags = fdesc->flags;
+
+    return TST_BIT(&fdesc_flags, IOP_FIELD_IS_REFERENCE);
+}
+
 int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
                              const iop_struct_t **found_st,
                              const iop_field_t  **found_fdesc);
