@@ -321,7 +321,7 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                    st->fullname.s, info);
 
     /* check equality */
-    Z_ASSERT(iop_equals(st, v, res));
+    Z_ASSERT_IOPEQUAL_DESC(st, v, res);
 
     /* test duplication */
     Z_ASSERT_NULL(iop_dup(NULL, st, NULL, NULL));
@@ -329,7 +329,7 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                "IOP duplication error! (%s, %s)", st->fullname.s, info);
 
     /* check equality */
-    Z_ASSERT(iop_equals(st, v, res));
+    Z_ASSERT_IOPEQUAL_DESC(st, v, res);
 
     /* check hashes equality */
     iop_hash_sha1(st, res, buf2, 0);
@@ -343,7 +343,7 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     iop_copy(t_pool(), st, (void **)&res, v, NULL);
 
     /* check equality */
-    Z_ASSERT(iop_equals(st, v, res));
+    Z_ASSERT_IOPEQUAL_DESC(st, v, res);
 
     /* check hashes equality */
     iop_hash_sha1(st, res, buf2, 0);
@@ -1585,7 +1585,7 @@ Z_GROUP_EXPORT(iop)
         /* Test with all the default values */
         iop_init(st_sg, &sg_a);
         iop_init(st_sg, &sg_b);
-        Z_ASSERT(iop_equals(st_sg, &sg_a, &sg_b));
+        Z_ASSERT_IOPEQUAL_DESC(st_sg, &sg_a, &sg_b);
 
         /* Change some fields and test */
         sg_a.b++;
@@ -1598,13 +1598,13 @@ Z_GROUP_EXPORT(iop)
         /* Use a more complex structure */
         iop_init(st_sa_opt, &sa_opt_a);
         iop_init(st_sa_opt, &sa_opt_b);
-        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         IOP_OPT_SET(sa_opt_a.a, 42);
         IOP_OPT_SET(sa_opt_b.a, 42);
         sa_opt_a.j = LSTR_IMMED_V("plop");
         sa_opt_b.j = LSTR_IMMED_V("plop");
-        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         IOP_OPT_CLR(sa_opt_b.a);
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
@@ -1621,7 +1621,7 @@ Z_GROUP_EXPORT(iop)
         ua_b = IOP_UNION(tstiop__my_union_a, ua, 1);
         sa_opt_a.l = &ua_a;
         sa_opt_b.l = &ua_b;
-        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         sa_opt_b.l = NULL;
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
@@ -1634,7 +1634,7 @@ Z_GROUP_EXPORT(iop)
         iop_init(st_sa_opt, &sa_opt_a);
         iop_init(st_sa_opt, &sa_opt_b);
         sa_opt_a.a.v = 42;
-        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         /* Now test with some arrays */
         {
@@ -1644,13 +1644,13 @@ Z_GROUP_EXPORT(iop)
 
             iop_init(st_sr, &sr_a);
             iop_init(st_sr, &sr_b);
-            Z_ASSERT(iop_equals(st_sr, &sr_a, &sr_b));
+            Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
             sr_a.s.tab = strs, sr_a.s.len = countof(strs);
             sr_b.s.tab = strs, sr_b.s.len = countof(strs);
             sr_a.u8.tab = uints, sr_a.u8.len = countof(uints);
             sr_b.u8.tab = uints, sr_b.u8.len = countof(uints);
-            Z_ASSERT(iop_equals(st_sr, &sr_a, &sr_b));
+            Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
             sr_b.s.len--;
             Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
@@ -2169,7 +2169,7 @@ Z_GROUP_EXPORT(iop)
             .field_path = LSTR_IMMED_V(_field),                              \
             .flags = _flags,                                                 \
         }));                                                                 \
-    } while(0)
+    } while (0)
 
 #define SORT_AND_CHECK(p1, p2, p3)  do {                                     \
         Z_ASSERT_ZERO(tstiop__my_struct_a__msort(sorted.tab, sorted.len,     \
@@ -2598,7 +2598,7 @@ Z_GROUP_EXPORT(iop)
 
         /* Cast it in B2, and change some values */
         b2p = iop_obj_vcast(tstiop_inheritance__b2, &c2);
-        Z_ASSERT(iop_equals(&tstiop_inheritance__b2__s, b2p, &c2));
+        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2);
         Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__b2__s, b2p,
                                          "b2p"));
         Z_ASSERT_EQ(b2p->a, 11111);
@@ -2608,7 +2608,7 @@ Z_GROUP_EXPORT(iop)
 
         /* Re-cast it in C2, and check fields equality */
         c2p = iop_obj_vcast(tstiop_inheritance__c2, b2p);
-        Z_ASSERT(iop_equals(&tstiop_inheritance__b2__s, b2p, &c2));
+        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2);
         Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__c2__s, c2p,
                                          "c2p"));
         Z_ASSERT_EQ(c2p->a, 22222);
