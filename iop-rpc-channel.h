@@ -209,7 +209,7 @@ static inline bool ic_is_ready(const ichannel_t *ic) {
 }
 
 static inline bool ic_slot_is_async(uint64_t slot) {
-    return slot == 0;
+    return !(slot & IC_MSG_SLOT_MASK);
 }
 
 void ic_watch_activity(ichannel_t *ic, int timeout);
