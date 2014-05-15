@@ -95,27 +95,26 @@ uint32_t gcd(uint32_t a, uint32_t b)
 Z_GROUP_EXPORT(arithint)
 {
     Z_TEST(gcd, "gcd: Euclid's algorithm") {
-#define Z_GCD(_u1, _u2, _exp)                                                \
-        do {                                                                 \
-            uint32_t res;                                                    \
-                                                                             \
-            res = gcd_euclid(_u1, _u2);                                      \
-            Z_ASSERT(res == _exp, "EUCLID: GCD("#_u1", "#_u2") = "#_exp      \
-                     ", got %u", res);                                       \
-            res = gcd_stein(_u1, _u2);                                       \
-            Z_ASSERT(res == _exp, "STEIN: GCD("#_u1", "#_u2") = "#_exp       \
-                     ", got %u", res);                                       \
-        } while (0)
+        struct {
+            uint32_t i;
+            uint32_t j;
+            uint32_t gcd;
+        } t[] = {
+            { 5,  0,   5  },
+            { 0,  7,   7  },
+            { 4,  1,   1  },
+            { 1,  15,  1  },
+            { 17, 999, 1  },
+            { 15, 18,  3  },
+            { 18, 15,  3  },
+            { 60, 84,  12 },
+        };
 
-        Z_GCD(5, 0, 5);
-        Z_GCD(0, 7, 7);
-        Z_GCD(4, 1, 1);
-        Z_GCD(1, 15, 1);
-        Z_GCD(17, 999, 1);
-        Z_GCD(15, 18, 3);
-        Z_GCD(18, 15, 3);
-        Z_GCD(60, 84, 12);
-
-#undef Z_GCD
+        for (int i = 0; i < countof(t); i++) {
+            Z_ASSERT_EQ(t[i].gcd, gcd_euclid(t[i].i, t[i].j),
+                        "EUCLID: GCD(%u, %u)", t[i].i, t[i].j);
+            Z_ASSERT_EQ(t[i].gcd, gcd_stein(t[i].i, t[i].j),
+                        "STEIN: GCD(%u, %u)", t[i].i, t[i].j);
+        }
     } Z_TEST_END
 } Z_GROUP_END
