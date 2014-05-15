@@ -12,9 +12,6 @@
 /**************************************************************************/
 
 #include "arith.h"
-#include "core.h"
-
-/* TODO restablish after merge into lib-common/master */
 #include "z.h"
 
 uint64_t const powerof10[16] = {
