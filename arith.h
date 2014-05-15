@@ -26,4 +26,6 @@ unsigned gcd(unsigned a, unsigned b);
 unsigned gcd_euclid(unsigned a, unsigned b);
 unsigned gcd_stein(unsigned a, unsigned b);
 
+extern uint64_t const powerof10[16];
+
 #endif

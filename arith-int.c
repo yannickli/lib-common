@@ -17,6 +17,25 @@
 /* TODO restablish after merge into lib-common/master */
 #include "z.h"
 
+uint64_t const powerof10[16] = {
+    1LL,
+    10LL,
+    100LL,
+    1000LL,
+    10000LL,
+    100000LL,
+    1000000LL,
+    10000000LL,
+    100000000LL,
+    1000000000LL,
+    10000000000LL,
+    100000000000LL,
+    1000000000000LL,
+    10000000000000LL,
+    100000000000000LL,
+    1000000000000000LL,
+};
+
 /* Note about GCD algorithms:
  *
  * Stein's algorithm is significantly better than Euclid's one for lower
