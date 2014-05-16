@@ -233,6 +233,9 @@ EOF
         else
             echo -Wno-shadow
         fi
+        if gcc_prereq 4.9; then
+            echo -Wno-extern-c-compat
+        fi
     else
         # warn about functions declared without complete a prototype
         echo -Wstrict-prototypes
