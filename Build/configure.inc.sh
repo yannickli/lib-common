@@ -98,7 +98,7 @@ ruby_var() {
 }
 
 check_iopc() {
-    IOPC_VER=3.0.10
+    IOPC_VER=3.0.11
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
         warn "iopc version $IOPC_VER required, update your tools"
     fi
