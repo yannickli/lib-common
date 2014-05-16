@@ -322,6 +322,16 @@ el_t ic_listento(const sockunion_t *su, int type, int proto,
                  int (*on_accept)(el_t ev, int fd));
 void ic_flush(ichannel_t *ic);
 
+/** Mark an ichannel_t as disconnected.
+ *
+ * This function ensures that the ichannel_t is properly disconnected and
+ * restart the connection procedure if needed. This is useful when having a
+ * connected but not properly started ichannel (handshake failure for
+ * example).
+ *
+ * \param[in]  ic The ichannel_t to mark as disconnected.
+ */
+void ic_mark_disconnected(ichannel_t *ic);
 
 /*----- rpc handling / registering -----*/
 
