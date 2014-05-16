@@ -156,15 +156,23 @@ typedef struct dirent linux_dirent_t;
 typedef int (BLOCK_CARET on_file_b)(const char *dir,
                                     const linux_dirent_t *de);
 
+enum list_dir_flags_t {
+    /** List subdirectories recursively. */
+    LIST_DIR_RECUR = 1 << 0,
+
+    /** Follow symbolic links when inspecting files/directories. */
+    LIST_DIR_FOLLOW_SYMLINK = 1 << 1,
+};
+
 /** List all the files of a directory and apply the specified treatment
  * on them.
  *
  * This function is designed to limit system calls even on directories with a
- * very large amound of files. The performance will mostly rely on the
+ * very large amount of files. The performance will mostly rely on the
  * treatment function given.
  *
  * @param dir Path to the directory to read.
- * @param recur List subdirectories recursively.
+ * @param flags 0 or a combination of \ref list_dir_flags_t flags.
  * @param on_file The function called on each file found.
  *
  * @return The number of files found in the directory (and its sub-directories
@@ -173,7 +181,7 @@ typedef int (BLOCK_CARET on_file_b)(const char *dir,
  * The function returns the result of the processing function if it fails.
  *
  */
-int list_dir(const char *path, bool recur, on_file_b on_file);
+int list_dir(const char *path, unsigned flags, on_file_b on_file);
 #endif
 
 /****************************************************************************/
