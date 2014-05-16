@@ -1241,7 +1241,6 @@ void ic_wipe(ichannel_t *ic)
     ic->is_wiped   = true;
 }
 
-static void ic_mark_disconnected(ichannel_t *ic);
 static int ic_event(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
@@ -1676,7 +1675,7 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
     return 0;
 }
 
-static void ic_mark_disconnected(ichannel_t *ic)
+void ic_mark_disconnected(ichannel_t *ic)
 {
     ic_disconnect(ic);
     if (!ic->is_spawned && ic->auto_reconn) {
