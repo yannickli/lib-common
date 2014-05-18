@@ -447,8 +447,8 @@ static int __list_dir(const char *path, unsigned flags,
     /* XXX: do not use t_stack here to allow on_file owner to allocate memory
      *      in their own frame. */
     int nread, total = 0;
-    byte *buf = p_new_raw(byte, LIST_DIR_BUF_SIZE);
     int dfd = RETHROW(open(path, O_RDONLY | O_DIRECTORY));
+    byte *buf = p_new_raw(byte, LIST_DIR_BUF_SIZE);
     int tmp_res;
 
     while ((nread = syscall(SYS_getdents, dfd, buf, LIST_DIR_BUF_SIZE)) > 0) {
@@ -923,6 +923,8 @@ static int z_list_dir_tests(void)
                                 LSTR_FMT_ARG(z_tmpdir_g));
     __block int nb_bfile = 0;
     int nb_file;
+
+    Z_ASSERT_NEG(list_dir(new_dir, 0, NULL));
 
     /* z_tmpdir_g/list_dir_test
      *  |- dir2
