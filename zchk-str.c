@@ -1291,6 +1291,29 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT(ps_len(&ps3) == 1);
         Z_ASSERT(ps_strequal(&ps3, "2"));
     } Z_TEST_END;
+
+    Z_TEST(lstr_ascii_icmp, "str: lstr_ascii_icmp") {
+#define T(_str1, _str2, _expected)                                       \
+        Z_ASSERT(lstr_ascii_icmp(&LSTR_IMMED_V(_str1),                   \
+                 &LSTR_IMMED_V(_str2)) _expected)
+
+        T("a",    "b",     <  0);
+        T("b",    "a",     >  0);
+        T("a",    "a",     == 0);
+        T("A",    "a",     == 0);
+        T("aaa",  "b",     <  0);
+        T("bbb",  "a",     >  0);
+        T("aaa",  "aa",    >  0);
+        T("aaa",  "AA",    >  0);
+        T("AbCd", "aBcD",  == 0);
+        T("AbCd", "aBcDe", <  0);
+        T("faaa", "FAAB",  <  0);
+        T("FAAA", "faab",  <  0);
+        T("faaa", "FAAA",  == 0);
+        T("faab", "faaba", <  0);
+        T("faab", "faaab", >  0);
+#undef T
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 

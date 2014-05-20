@@ -514,6 +514,24 @@ static ALWAYS_INLINE int lstr_cmp(const lstr_t *s1, const lstr_t *s2)
     return memcmp(s1->s, s2->s, len) ?: CMP(s1->len, s2->len);
 }
 
+/** \brief returns "memcmp" ordering of lowercase \v s1 and lowercase \v s2.
+ */
+static inline int lstr_ascii_icmp(const lstr_t *s1, const lstr_t *s2)
+{
+    int min = MIN(s1->len, s2->len);
+
+    for (int i = 0; i < min; i++) {
+        int a = tolower((unsigned char)s1->s[i]);
+        int b = tolower((unsigned char)s2->s[i]);
+
+        if (a != b) {
+            return CMP(a, b);
+        }
+    }
+
+    return CMP(s1->len, s2->len);
+}
+
 /** \brief returns whether \v s1 and \v s2 contents are equal.
  */
 static ALWAYS_INLINE bool lstr_equal(const lstr_t *s1, const lstr_t *s2)
