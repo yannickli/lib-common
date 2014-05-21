@@ -13,6 +13,12 @@
 
 package ic;
 
+enum IcPriority {
+    LOW,
+    NORMAL,
+    HIGH,
+};
+
 struct SimpleHdr {
     string? login;
     string? password;
@@ -21,12 +27,24 @@ struct SimpleHdr {
     string? host;
 };
 
-union Hdr {
-    SimpleHdr simple;
+struct NameRoutingHdr {
+    string     name;
+    int?       hostId;
+    int?       instanceId;
+    Hdr?       packetHdr;
 };
 
-enum IcPriority {
-    LOW,
-    NORMAL,
-    HIGH,
+struct HostRoutingHdr {
+    int        sourceHost;
+    int        destHost;
+    int        ttl;
+    IcPriority priority = IC_PRIORITY_NORMAL;
+    Hdr?       packetHdr;
+};
+
+union Hdr {
+    SimpleHdr      simple;
+    HostRoutingHdr hostRouting;
+    NameRoutingHdr serviceRouting;
+    NameRoutingHdr roleRouting;
 };
