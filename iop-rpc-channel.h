@@ -127,6 +127,9 @@ typedef struct ic_dynproxy_t {
     ichannel_t *ic;
     ic__hdr__t *hdr;
 } ic_dynproxy_t;
+
+typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t *hdr, void *priv);
+
 #define IC_DYNPROXY_NULL    ((ic_dynproxy_t){ .ic = NULL })
 #define IC_DYNPROXY(_ic)    ((ic_dynproxy_t){ .ic = (_ic) })
 #define IC_DYNPROXY_HDR(_ic, _hdr) \
@@ -156,7 +159,7 @@ typedef struct ic_cb_entry_t {
         } proxy_pp;
 
         struct {
-            ic_dynproxy_t (*get_ic)(void *);
+            ic_dynproxy_f *get_ic;
             void *priv;
         } dynproxy;
 

@@ -864,8 +864,22 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         break;
       case IC_CB_DYNAMIC_PROXY:
         {
+            t_scope;
+            ic__hdr__t *hdr = NULL;
             ic_dynproxy_t dynproxy;
-            dynproxy = (*e->u.dynproxy.get_ic)(e->u.dynproxy.priv);
+
+            if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
+                                         unpacked_msg, st, &hdr, NULL) < 0)
+            {
+                if (slot) {
+                    lstr_t err_str = iop_get_err_lstr();
+
+                    ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+                }
+                return;
+            }
+
+            dynproxy = (*e->u.dynproxy.get_ic)(hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
         }

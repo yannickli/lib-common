@@ -227,7 +227,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
       case IC_CB_DYNAMIC_PROXY:
         {
             ic_dynproxy_t dynproxy;
-            dynproxy = (*e->u.dynproxy.get_ic)(e->u.dynproxy.priv);
+            dynproxy = (*e->u.dynproxy.get_ic)(&hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
         }
