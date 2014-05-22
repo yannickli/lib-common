@@ -820,7 +820,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         return;
     }
     e = ic->impl->values + pos;
-    st = e->rpc->args;
+    st = e->rpc ? e->rpc->args : NULL;
 
     switch (e->cb_type) {
       case IC_CB_NORMAL:
