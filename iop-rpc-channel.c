@@ -972,7 +972,7 @@ static int ic_check_msg_hdr_flags(const ichannel_t *ic, int flags)
 static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
 {
     const byte *hdr = data;
-    int slot = get_unaligned_cpu32(hdr);
+    uint32_t slot = get_unaligned_cpu32(hdr);
     int cmd  = get_unaligned_cpu32(hdr + IC_MSG_CMD_OFFSET);
     int dlen = get_unaligned_cpu32(hdr + IC_MSG_DLEN_OFFSET);
 
@@ -989,7 +989,7 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
         return 0;
     }
 
-    slot &= ~IC_MSG_SLOT_MASK;
+    slot &= IC_MSG_SLOT_MASK;
     if (unlikely(cmd == IC_MSG_STREAM_CONTROL)) {
         /* we are called because the size of header is to large, so this
          * cannot be a valid control message.
