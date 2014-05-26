@@ -113,6 +113,54 @@ int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
     return -1;
 }
 
+const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
+                                 lstr_t path, const void **out_ptr)
+{
+    pstream_t ps = ps_initlstr(&path);
+    const iop_field_t *iop_field = NULL;
+
+    while (!ps_done(&ps)) {
+        pstream_t s;
+
+        if (ps_get_ps_chr_and_skip(&ps, '.', &s) < 0) {
+            s = ps;
+            ps = ps_init(NULL, 0);
+        }
+
+        RETHROW_NP(__iop_field_find_by_name(st, s.s, ps_len(&s), NULL,
+                                            &iop_field));
+        ptr = (const byte *)ptr + iop_field->data_offs;
+        switch (iop_field->type) {
+          case IOP_T_UNION:
+            if (iop_field->repeat == IOP_R_OPTIONAL) {
+                ptr = *(const void **)ptr;
+            }
+            st = iop_field->u1.st_desc;
+            break;
+          case IOP_T_STRUCT:
+            if (iop_field->repeat == IOP_R_OPTIONAL
+            ||  iop_field_is_class(iop_field))
+            {
+                ptr = *(const void **)ptr;
+            }
+
+            if (iop_field_is_class(iop_field)) {
+                st = (iop_struct_t *)*(const void **)ptr;
+            } else {
+                st = iop_field->u1.st_desc;
+            }
+            break;
+          default:
+            THROW_NULL_IF(!ps_done(&ps));
+            break;
+        }
+    }
+    if (out_ptr) {
+        *out_ptr = ptr;
+    }
+    return iop_field;
+}
+
 /*------ various helpers -}}}-*/
 /*------ generic attributes -{{{-*/
 

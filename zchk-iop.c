@@ -3181,4 +3181,119 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_get_field, "test iop_get_field function") { /* {{{ */
+        tstiop__my_struct_a__t struct_a;
+        tstiop__my_struct_b__t struct_b;
+        tstiop__my_struct_c__t struct_c;
+        tstiop__my_struct_e__t struct_e;
+        tstiop__my_class3__t cls3;
+        tstiop__my_struct_a_opt__t struct_a_opt;
+        const iop_field_t *iop_field;
+        const void *out = NULL;
+
+        tstiop__my_struct_a__init(&struct_a);
+        tstiop__my_struct_b__init(&struct_b);
+        tstiop__my_struct_c__init(&struct_c);
+        tstiop__my_struct_e__init(&struct_e);
+        tstiop__my_class3__init(&cls3);
+        tstiop__my_struct_a_opt__init(&struct_a_opt);
+        cls3.int3 = 10;
+        cls3.int2 = 5;
+        cls3.int1 = 2;
+        struct_a.a = 15;
+        struct_a.j = LSTR_IMMED_V("toto");
+        struct_a.l = IOP_UNION(tstiop__my_union_a, ua, 25);
+        struct_a.cls2 = iop_obj_vcast(tstiop__my_class2, &cls3);
+        struct_c.b = &struct_c;
+        struct_a_opt.l = &IOP_UNION(tstiop__my_union_a, ua, 10);
+        OPT_SET(struct_e.c.a, 42);
+
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V("unknown_field"), NULL));
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V(""), NULL));
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V("."), NULL));
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V(".a"), NULL));
+        Z_ASSERT_P(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                 LSTR_IMMED_V("l."), NULL));
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V("l.."), NULL));
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("a"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_a.a);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("l"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("l.ua"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_a.l.ua);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("cls2"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("cls2.int2"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("cls2.int1"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                  LSTR_IMMED_V("j"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V("cls2.bool10"), NULL));
+
+        iop_field = iop_get_field(&struct_e, &tstiop__my_struct_e__s,
+                                  LSTR_IMMED_V("c"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_e, &tstiop__my_struct_e__s,
+                                  LSTR_IMMED_V("c.a"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_b, &tstiop__my_struct_b__s,
+                                  LSTR_IMMED_V("a"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR_IMMED_V("a.b"), NULL));
+
+        iop_field = iop_get_field(&struct_a_opt, &tstiop__my_struct_a_opt__s,
+                                  LSTR_IMMED_V("l.ua"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
+                                  LSTR_IMMED_V("b.a"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+
+        iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
+                                  LSTR_IMMED_V("b.b.a"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+    } Z_TEST_END
+    /* }}} */
+
 } Z_GROUP_END
