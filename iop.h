@@ -831,6 +831,18 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
                                    lstr_t key, iop_value_t *value);
 
+/** Find an IOP field description from a iop object.
+ *
+ * \param[in]  ptr      The IOP object.
+ * \param[in]  st       The iop_struct_t describing the object.
+ * \param[in]  path     The path to the field (separate members with a '.').
+ * \param[out] out      A pointer to the final IOP object.
+ *
+ * \return The iop field description if found, NULL otherwise.
+ */
+const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
+                                 lstr_t path, const void **out_ptr);
+
 /* }}} */
 /* {{{ IOP class manipulation */
 
