@@ -1850,7 +1850,7 @@ size_t qps_sizeof(qps_t *qps, const void *ptr)
     if (ptr == NULL)
         return 0;
     if (qps_map_is_pg(qps_map_of(ptr)))
-        return qps->hdrs[qps_pg_of(ptr)].size * QPS_MAP_SIZE;
+        return qps->hdrs[qps_pg_of(ptr)].size * QPS_PAGE_SIZE;
     return qps_m_blk_size(container_of((void *)ptr, qps_mhdr_t, data));
 }
 
@@ -2215,7 +2215,8 @@ static void *qps_realloc_int(qps_t *qps, uint32_t id, void *ptr, size_t asked)
 #endif
             return blk->data;
         }
-        if ((next->flags & QPS_BLK_FREE) && nsz <= osz + qps_m_blk_size(next))
+        if ((next->flags & QPS_BLK_FREE) && nsz <= osz + qps_m_blk_size(next)
+        &&   nsz < QPS_M_ALLOC_MAX)
         {
             tsz  = qps_m_blk_remove(qps, next);
             tsz += osz + QPS_MBLK_HDRSZ;
@@ -2333,8 +2334,9 @@ void *qps_alloc(qps_t *qps, uint32_t *id, size_t size)
         *id = h = qps_handle_new(qps);
         res = qps_alloc_int(qps, h, size);
     }
-    TRACE_ALLOC("frag", "alloc  (%p, %d, %zd) = "QPS_PTR_FMT,
-                qps, h, size, QPS_PTR_ARG(qps_encode(res)));
+    TRACE_ALLOC("frag", "alloc  (%p, %d, %zd) = "QPS_PTR_FMT" (%zd)",
+                qps, h, size, QPS_PTR_ARG(qps_encode(res)),
+                qps_sizeof(qps, qps_handle_deref(qps, *id)));
     qps_m_check_maps(qps);
     return res;
 }
@@ -2346,8 +2348,9 @@ void *qps_realloc(qps_t *qps, uint32_t id, size_t nsz)
     qps_m_check_maps(qps);
     TRACE_ALLOC("frag", "realloc(%p, %d, %zd) = ...", qps, id, nsz);
     res = qps_realloc_int(qps, id, qps_handle_deref(qps, id), nsz);
-    TRACE_ALLOC("frag", "realloc(%p, %d, %zd) = "QPS_PTR_FMT,
-                qps, id, nsz, QPS_PTR_ARG(qps_encode(res)));
+    TRACE_ALLOC("frag", "realloc(%p, %d, %zd) = "QPS_PTR_FMT" (%zd)",
+                qps, id, nsz, QPS_PTR_ARG(qps_encode(res)),
+                qps_sizeof(qps, qps_handle_deref(qps, id)));
     qps_m_check_maps(qps);
     return res;
 }
