@@ -94,7 +94,7 @@ prereq() {
 }
 
 ruby_var() {
-    echo $(ruby -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
+    echo $($ruby_bin -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
 }
 
 # }}}
@@ -195,6 +195,12 @@ fi
 
 # }}}
 # Ruby {{{
+
+if which ruby1.8 &> /dev/null; then
+    ruby_bin="ruby1.8"
+else
+    ruby_bin="ruby"
+fi
 
 ruby_hdrdir="$(ruby_var rubyhdrdir topdir)"
 ruby_arch="$(ruby_var arch)"
