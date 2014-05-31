@@ -1361,6 +1361,62 @@ static int test_queue_sync(void)
 }
 
 /* }}} */
+/* Steal job {{{ */
+
+typedef struct rci_t {
+    mpsc_node_t node;
+    int   seqid;
+    byte *data;
+} rci_t;
+qvector_t(rci, rci_t *);
+
+static struct {
+    qv_t(rci) ci_ring;
+    mpsc_queue_t mpsc;
+    int last_acked;
+} queue_steal_g = {
+    .last_acked = -1,
+};
+
+static void run_node(mpsc_node_t *node, int *unqueued)
+{
+    usleep(1);
+    (*unqueued)++;
+}
+
+static void run_job(thr_job_t *j, thr_syn_t *syn)
+{
+    mpsc_it_t it;
+    int to_sync;
+    int unqueued = 0;
+
+    mpsc_queue_drain_start(&it, &queue_steal_g.mpsc);
+    do {
+        mpsc_node_t *node;
+        rci_t *rci;
+
+        node = mpsc_queue_drain_fast(&it, run_node, &unqueued);
+
+        rci = container_of(node, rci_t, node);
+        to_sync = rci->seqid;
+        usleep(5);
+        unqueued++;
+    } while (!mpsc_queue_drain_end(&it, IGNORE));
+
+    thr_syn_queue_b(syn, thr_queue_main_g, ^{
+        while (queue_steal_g.last_acked < to_sync) {
+            rci_t *rci = queue_steal_g.ci_ring.tab[0];
+
+            queue_steal_g.last_acked++;
+            assert (queue_steal_g.last_acked == rci->seqid);
+            p_delete(&rci->data);
+            p_delete(&rci);
+            qv_skip(rci, &queue_steal_g.ci_ring, 1);
+        }
+    });
+}
+
+/* }}} */
 
 Z_GROUP_EXPORT(thrjobs) {
     const bool fast = Z_HAS_MODE(FAST)
@@ -1477,6 +1533,37 @@ Z_GROUP_EXPORT(thrjobs) {
         }
 
         thr_syn_wipe(&z_post_notify_g.syn);
+    } Z_TEST_END;
+
+    Z_TEST(queue_steal, "queue steal jobs") {
+        int seqid = 0;
+        thr_job_t job = { .run = &run_job };
+
+        mpsc_queue_init(&queue_steal_g.mpsc);
+
+        while (seqid < 30000) {
+            rci_t *rci = p_new(rci_t, 1);
+
+            rci->data  = p_new(byte, 16 << 10);
+            rci->seqid = seqid++;
+
+            qv_append(rci, &queue_steal_g.ci_ring, rci);
+
+            if (mpsc_queue_push(&queue_steal_g.mpsc, &rci->node)) {
+                thr_schedule(&job);
+            }
+
+            el_loop_timeout(queue_steal_g.ci_ring.len > 1000 ? 0 : 1);
+        }
+
+        for (int i = 0; i < 1000; i++) {
+            el_loop_timeout(1);
+            if (queue_steal_g.last_acked == seqid - 1) {
+                break;
+            }
+        }
+        Z_ASSERT_EQ(queue_steal_g.last_acked, seqid - 1);
+        Z_ASSERT_ZERO(queue_steal_g.ci_ring.len);
     } Z_TEST_END;
 } Z_GROUP_END;
 
