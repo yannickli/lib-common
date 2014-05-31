@@ -780,10 +780,14 @@ void thr_initialize(void)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-        thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
+        ssize_t cpus = sysconf(_SC_NPROCESSORS_CONF);
+
+        thr_parallelism_g = MAX(cpus, 2);
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
         _G.threads = p_new(thr_info_t, thr_parallelism_g);
+        e_info("%zd CPUs detected, using %zd threads", cpus,
+               thr_parallelism_g);
 
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
