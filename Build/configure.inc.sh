@@ -196,11 +196,13 @@ fi
 # }}}
 # Ruby {{{
 
-if which ruby1.8 &> /dev/null; then
-    ruby_bin="ruby1.8"
-else
-    ruby_bin="ruby"
-fi
+ruby_bin=ruby
+for bin in ruby1.9.1 ruby1.8; do
+    if which $bin &> /dev/null; then
+        ruby_bin=$bin
+        break
+    fi
+done
 
 ruby_hdrdir="$(ruby_var rubyhdrdir topdir)"
 ruby_arch="$(ruby_var arch)"
