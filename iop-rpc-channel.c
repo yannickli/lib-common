@@ -1210,13 +1210,22 @@ void ic_disconnect(ichannel_t *ic)
     el_timer_unregister(&ic->timer);
     el_timer_unregister(&ic->wa_soft_timer);
     ic_drop_id(ic);
-    ic_choose_id(ic);
-    qv_clear(iovec, &ic->iov);
-    ic->is_closing = false;
-    ic->wpos = 0;
-    ic->iov_total_len = 0;
-    sb_reset(&ic->rbuf);
-    ic->queuable = false;
+
+    if (ic->is_closing) {
+        return;
+    }
+
+    if (ic->is_spawned && !ic->no_autodel) {
+        ic_delete(&ic);
+    } else {
+        ic_choose_id(ic);
+        qv_clear(iovec, &ic->iov);
+        ic->is_closing = false;
+        ic->wpos = 0;
+        ic->iov_total_len = 0;
+        sb_reset(&ic->rbuf);
+        ic->queuable = false;
+    }
 }
 
 void ic_wipe(ichannel_t *ic)
