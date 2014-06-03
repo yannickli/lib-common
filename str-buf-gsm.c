@@ -706,15 +706,13 @@ static uint64_t get_gsm7_pack(const void *src, int len)
  * For us here, we know that if gsm->len - gsm_start is 7, 7 _octets_ of UDH
  * are written and no padding is needed to be aligned on the next septet
  * boundary.
+ *
+ * %max_len is the maximum length of the output in octets. If the size written
+ * is bigger than the size given, it returns an error.
+ * If -1 is given, no check is done.
  */
 int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
-                    gsm_conv_plan_t plan)
-{
-    return sb_conv_to_gsm7_max_len(out, gsm_start, utf8, unknown, plan, -1);
-}
-
-int sb_conv_to_gsm7_max_len(sb_t *out, int gsm_start, const char *utf8,
-                            int unknown, gsm_conv_plan_t plan, int max_len)
+                    gsm_conv_plan_t plan, int max_len)
 {
     uint64_t pack = 0;
     int septet = (out->len - gsm_start) % 7;
@@ -731,6 +729,14 @@ int sb_conv_to_gsm7_max_len(sb_t *out, int gsm_start, const char *utf8,
 
         if (c <= 0) {
             int len = 8 * (out->len - gsm_start) / 7;
+
+            /* XXX: septet is always < 8 means septet is the number of bytes
+             * to write as explain for put_gsm_pack
+             */
+            current_len += septet;
+            if (max_len >= 0 && current_len > max_len) {
+                return -1;
+            }
             put_gsm_pack(out, pack, septet);
             return c < 0 ? c : len + septet;
         }
@@ -738,23 +744,23 @@ int sb_conv_to_gsm7_max_len(sb_t *out, int gsm_start, const char *utf8,
         c = RETHROW(unicode_to_gsm7(c, unknown, plan));
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
-            /* XXX escaping character should not be written if no place to
-             * write the next character
-             */
-            if (max_len > 0 && ++current_len + 1 > max_len) {
-                return -1;
-            }
             if (++septet == 8) {
+                current_len += 7;
+                if (max_len >= 0 && current_len > max_len) {
+                    return -1;
+                }
                 put_gsm_pack(out, pack, 7);
                 septet = 0;
                 pack = 0;
             }
         }
+
         pack |= ((uint64_t)(c & 0x7f) << (7 * septet));
-        if (max_len > 0 && ++current_len > max_len) {
-            return -1;
-        }
         if (++septet == 8) {
+            current_len += 7;
+            if (max_len >= 0 && current_len > max_len) {
+                return -1;
+            }
             put_gsm_pack(out, pack, 7);
             septet = 0;
             pack = 0;
@@ -990,37 +996,59 @@ Z_GROUP_EXPORT(conv)
     } Z_TEST_END
     Z_TEST(sb_conv_to_gsm7, "sb conv to gsm7") {
         SB_1k(sb);
+        const char *long_str = "abcdefghijklmnopqrstuvwxyz";
         struct {
             const char *in;
-            int size;
+            int         size;
+            lstr_t      exp;
         } t[] = {
 
-#define T(_in, _size) { .in = _in, .size = _size }
+#define T(_in, _size, _exp) { .in = _in, .size = _size, .exp = _exp }
 
-            T("abcd", 4),
-            T("\xE2\x82\xAC\x00", 2), /* euro symbole */
-            T("abcd\xE2\x82\xAC", 6), /* start with euro */
-            T("ab\xE2\x82\xAC""cd", 6), /* euro in the middle */
-            T("\xE2\x82\xAC""abcd", 6), /* stop with euro */
-            T("[*]", 5), /* [ and ] are extended */
+            T("abcd", 4, LSTR_IMMED("\x61\xF1\x98\x0C")),
+            /* euro symbole */
+            T("\xE2\x82\xAC\x00", 2, LSTR_IMMED("\x9B\x32")),
+            /* start with euro */
+            T("\xE2\x82\xAC""abcd", 6, LSTR_IMMED("\x9B\x72\x58\x3C\x26\x03")),
+            /* euro in the middle */
+            T("ab\xE2\x82\xAC""cd", 6, LSTR_IMMED("\x61\xF1\xA6\x3C\x26\x03")),
+            /* stop with euro */
+            T("abcd\xE2\x82\xAC", 6, LSTR_IMMED("\x61\xF1\x98\xBC\x29\x03")),
+            /* [ and ] are extended */
+            T("[*]", 5, LSTR_IMMED("\x1B\x9E\x6A\xE3\x03")),
+            /* long string */
+            T(long_str, 23,
+              LSTR_IMMED("\x61\xF1\x98\x5C\x36\x9F\xD1\x69\xF5\x9A\xDD\x76"
+                         "\xBF\xE1\x71\xF9\x9C\x5E\xB7\xDF\xF1\x79\x3D")),
 
 #undef T
 
         };
 
         for (int i = 0; i < countof(t); i++) {
+            sb_reset(&sb);
             Z_ASSERT_N(sb_conv_to_gsm7(&sb, 0, t[i].in, ' ',
-                                       GSM_EXTENSION_PLAN));
-            Z_ASSERT_N(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+                                       GSM_EXTENSION_PLAN, -1));
+            sb_reset(&sb);
+            Z_ASSERT_N(sb_conv_to_gsm7(&sb, 0, t[i].in, ' ',
                                                GSM_EXTENSION_PLAN,
                                                t[i].size));
-            Z_ASSERT_N(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+            Z_ASSERT_LSTREQUAL(t[i].exp, LSTR_SB_V(&sb));
+            sb_reset(&sb);
+            Z_ASSERT_N(sb_conv_to_gsm7(&sb, 0, t[i].in, ' ',
                                                GSM_EXTENSION_PLAN,
                                                t[i].size + 1));
-            Z_ASSERT_NEG(sb_conv_to_gsm7_max_len(&sb, 0, t[i].in, ' ',
+            Z_ASSERT_LSTREQUAL(t[i].exp, LSTR_SB_V(&sb));
+            sb_reset(&sb);
+            Z_ASSERT_NEG(sb_conv_to_gsm7(&sb, 0, t[i].in, ' ',
                                                  GSM_EXTENSION_PLAN,
                                                  t[i].size - 1));
         }
+
+        /* long string without check */
+        Z_ASSERT_N(sb_conv_to_gsm7(&sb, 0, long_str, ' ',
+                                           GSM_EXTENSION_PLAN, -1));
+
     } Z_TEST_END
 
 } Z_GROUP_END
