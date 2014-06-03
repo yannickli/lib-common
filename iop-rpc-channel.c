@@ -1211,11 +1211,7 @@ void ic_disconnect(ichannel_t *ic)
     el_timer_unregister(&ic->wa_soft_timer);
     ic_drop_id(ic);
 
-    if (ic->is_closing) {
-        return;
-    }
-
-    if (ic->is_spawned && !ic->no_autodel) {
+    if (!ic->is_closing && ic->is_spawned && !ic->no_autodel) {
         ic_delete(&ic);
     } else {
         ic_choose_id(ic);
