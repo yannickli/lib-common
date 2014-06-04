@@ -3533,4 +3533,29 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END
     /* }}} */
 
+    Z_TEST(iop_value_from_field, "test iop_value_from_field") { /* {{{ */
+        tstiop__my_struct_g__t sg;
+        const iop_struct_t *st;
+        const iop_field_t *field;
+        iop_value_t value;
+
+        tstiop__my_struct_g__init(&sg);
+        st = &tstiop__my_struct_g__s;
+
+#define TEST_FIELD(_n, _type, _u, _res)                                    \
+        field = &st->fields[_n];                                           \
+        Z_ASSERT_N(iop_value_from_field((void *) &sg, field, &value));     \
+        Z_ASSERT_EQ(value._u, (_type) _res)
+
+        TEST_FIELD(0, int64_t, i, -1);
+        TEST_FIELD(1, uint64_t, u, 2);
+        TEST_FIELD(11, double, d, 10.5);
+#undef TEST_FIELD
+
+        field = &st->fields[9];
+        Z_ASSERT_N(iop_value_from_field((void *) &sg, field, &value));
+        Z_ASSERT_LSTREQUAL(value.s, LSTR_IMMED_V("fo\"o?cbaré©"));
+    } Z_TEST_END
+    /* }}} */
+
 } Z_GROUP_END

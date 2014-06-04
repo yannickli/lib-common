@@ -843,6 +843,17 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
 const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
                                  lstr_t path, const void **out_ptr);
 
+/** Get an IOP value from an IOP field and an IOP object.
+ *
+ * \param[in]  ptr   The IOP object.
+ * \param[in]  field The IOP field definition.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the value is found, -1 otherwise.
+ */
+int iop_value_from_field(const void *ptr, const iop_field_t *field,
+                         iop_value_t *value);
+
 /* }}} */
 /* {{{ IOP class manipulation */
 
