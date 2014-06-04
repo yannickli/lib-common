@@ -7,6 +7,13 @@
 extern iop_enum_t const ic__ic_priority__e;
 IOP_ENUM(ic__ic_priority);
 
+struct ic__tracer__t {
+    uint64_t token;
+    uint64_t epoch;
+};
+extern iop_struct_t const ic__tracer__s;
+IOP_GENERIC(ic__tracer);
+
 struct ic__simple_hdr__t {
     lstr_t           login;
     lstr_t           password;
@@ -22,6 +29,7 @@ struct ic__name_routing_hdr__t {
     iop_opt_i32_t    host_id;
     iop_opt_i32_t    instance_id;
     struct ic__hdr__t *packet_hdr;
+    struct ic__tracer__t *tracer;
 };
 extern iop_struct_t const ic__name_routing_hdr__s;
 IOP_GENERIC(ic__name_routing_hdr);
@@ -32,6 +40,7 @@ struct ic__host_routing_hdr__t {
     int32_t  ttl;
     ic__ic_priority__t priority;
     struct ic__hdr__t *packet_hdr;
+    struct ic__tracer__t *tracer;
 };
 extern iop_struct_t const ic__host_routing_hdr__s;
 IOP_GENERIC(ic__host_routing_hdr);

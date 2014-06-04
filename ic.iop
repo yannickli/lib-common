@@ -19,6 +19,11 @@ enum IcPriority {
     HIGH,
 };
 
+struct Tracer {
+    ulong token;
+    ulong epoch;
+};
+
 struct SimpleHdr {
     string? login;
     string? password;
@@ -32,6 +37,7 @@ struct NameRoutingHdr {
     int?       hostId;
     int?       instanceId;
     Hdr?       packetHdr;
+    Tracer?    tracer;
 };
 
 struct HostRoutingHdr {
@@ -40,6 +46,7 @@ struct HostRoutingHdr {
     int        ttl;
     IcPriority priority = IC_PRIORITY_NORMAL;
     Hdr?       packetHdr;
+    Tracer?    tracer;
 };
 
 union Hdr {

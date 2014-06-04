@@ -14,6 +14,9 @@ typedef IOP_ARRAY_OF(enum ic__ic_priority__t) ic__ic_priority__array_t;
 #define IC_PRIORITY_min   0
 #define IC_PRIORITY_max   2
 
+typedef struct ic__tracer__t ic__tracer__t;
+typedef IOP_ARRAY_OF(ic__tracer__t) ic__tracer__array_t;
+
 typedef struct ic__simple_hdr__t ic__simple_hdr__t;
 typedef IOP_ARRAY_OF(ic__simple_hdr__t) ic__simple_hdr__array_t;
 

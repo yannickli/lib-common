@@ -33,6 +33,42 @@ iop_enum_t const ic__ic_priority__e = {
 };
 
 /* }}} */
+/* Structure ic.Tracer {{{ */
+
+static iop_field_t const ic__tracer__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("token"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_U64,
+        .data_offs = offsetof(ic__tracer__t, token),
+        .size      = fieldsizeof(ic__tracer__t, token),
+    },
+    {
+        .name      = LSTR_IMMED("epoch"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_U64,
+        .data_offs = offsetof(ic__tracer__t, epoch),
+        .size      = fieldsizeof(ic__tracer__t, epoch),
+    },
+};
+static int const iop__ranges__2[] = {
+    0, 1,
+    2,
+};
+const iop_struct_t ic__tracer__s = {
+    .fullname   = LSTR_IMMED("ic.Tracer"),
+    .fields     = ic__tracer__desc_fields,
+    .ranges     = iop__ranges__2,
+    .fields_len = countof(ic__tracer__desc_fields),
+    .ranges_len = countof(iop__ranges__2) / 2,
+    .size       = sizeof(ic__tracer__t),
+};
+
+/* }}} */
 /* Structure ic.SimpleHdr {{{ */
 
 static iop_field_t const ic__simple_hdr__desc_fields[] = {
@@ -83,16 +119,16 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .size      = fieldsizeof(ic__simple_hdr__t, host),
     },
 };
-static int const iop__ranges__2[] = {
+static int const iop__ranges__3[] = {
     0, 1,
     5,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),
     .fields     = ic__simple_hdr__desc_fields,
-    .ranges     = iop__ranges__2,
+    .ranges     = iop__ranges__3,
     .fields_len = countof(ic__simple_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__2) / 2,
+    .ranges_len = countof(iop__ranges__3) / 2,
     .size       = sizeof(ic__simple_hdr__t),
 };
 
@@ -137,10 +173,16 @@ static iop_field_t const ic__name_routing_hdr__desc_fields[] = {
         .size      = sizeof(ic__hdr__t),
         .u1        = { .st_desc = &ic__hdr__s },
     },
-};
-static int const iop__ranges__3[] = {
-    0, 1,
-    4,
+    {
+        .name      = LSTR_IMMED("tracer"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(ic__name_routing_hdr__t, tracer),
+        .size      = sizeof(ic__tracer__t),
+        .u1        = { .st_desc = &ic__tracer__s },
+    },
 };
 const iop_struct_t ic__name_routing_hdr__s = {
     .fullname   = LSTR_IMMED("ic.NameRoutingHdr"),
@@ -203,13 +245,27 @@ static iop_field_t const ic__host_routing_hdr__desc_fields[] = {
         .size      = sizeof(ic__hdr__t),
         .u1        = { .st_desc = &ic__hdr__s },
     },
+    {
+        .name      = LSTR_IMMED("tracer"),
+        .tag       = 6,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(ic__host_routing_hdr__t, tracer),
+        .size      = sizeof(ic__tracer__t),
+        .u1        = { .st_desc = &ic__tracer__s },
+    },
+};
+static int const iop__ranges__4[] = {
+    0, 1,
+    6,
 };
 const iop_struct_t ic__host_routing_hdr__s = {
     .fullname   = LSTR_IMMED("ic.HostRoutingHdr"),
     .fields     = ic__host_routing_hdr__desc_fields,
-    .ranges     = iop__ranges__2,
+    .ranges     = iop__ranges__4,
     .fields_len = countof(ic__host_routing_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__2) / 2,
+    .ranges_len = countof(iop__ranges__4) / 2,
     .size       = sizeof(ic__host_routing_hdr__t),
 };
 
@@ -258,12 +314,16 @@ static iop_field_t const ic__hdr__desc_fields[] = {
         .u1        = { .st_desc = &ic__name_routing_hdr__s },
     },
 };
+static int const iop__ranges__5[] = {
+    0, 1,
+    4,
+};
 const iop_struct_t ic__hdr__s = {
     .fullname   = LSTR_IMMED("ic.Hdr"),
     .fields     = ic__hdr__desc_fields,
-    .ranges     = iop__ranges__3,
+    .ranges     = iop__ranges__5,
     .fields_len = countof(ic__hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__3) / 2,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
 };
@@ -281,6 +341,7 @@ static const iop_enum_t *const ic__enums[] = {
 };
 
 static const iop_struct_t *const ic__structs[] = {
+    &ic__tracer__s,
     &ic__simple_hdr__s,
     &ic__name_routing_hdr__s,
     &ic__host_routing_hdr__s,
