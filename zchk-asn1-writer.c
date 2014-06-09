@@ -116,6 +116,21 @@ typedef struct il_test_base_t {
     il_test_t t;
 } il_test_base_t;
 
+typedef struct il_rec_t {
+    asn1_uint32_vector_t v32;
+} il_rec_t;
+
+ASN1_DEF_VECTOR(il_rec, const il_rec_t);
+ASN1_DEF_ARRAY(il_rec, const il_rec_t);
+
+typedef struct il_rec_vec_t {
+    asn1_il_rec_vector_t rec;
+} il_rec_vec_t;
+
+typedef struct il_rec_base_t {
+    il_rec_vec_t vec;
+} il_rec_base_t;
+
 ASN1_DESC(test_0);
 ASN1_DESC(test_1);
 ASN1_DESC(test_2);
@@ -205,6 +220,18 @@ static ASN1_DESC_BEGIN(desc, il_test_base);
     asn1_reg_sequence(desc, il_test_base, il_test, t, 0x76);
 ASN1_DESC_END(desc);
 
+static ASN1_DESC_BEGIN(desc, il_rec);
+    asn1_reg_scalar(desc, il_rec, v32, 0x12);
+ASN1_DESC_END(desc);
+
+static ASN1_DESC_BEGIN(desc, il_rec_vec);
+    asn1_reg_seq_of_sequence(desc, il_rec_vec, il_rec, rec, 0x34);
+ASN1_DESC_END(desc);
+
+static ASN1_DESC_BEGIN(desc, il_rec_base);
+    asn1_reg_sequence(desc, il_rec_base, il_rec_vec, vec, 0x66);
+ASN1_DESC_END(desc);
+
 uint8_t il_test_input[] = {
     0x76, 0x80,
           0x12, 0x02,
@@ -219,6 +246,29 @@ uint8_t il_test_input[] = {
                 0x00, 0x00,
           0x00, 0x00,
     0x00, 0x00
+};
+
+uint8_t il_rec_input[] = {
+    0x66, 0x80,
+          0x34, 0x80,
+                0x12, 0x01, 0x01,
+                0x12, 0x01, 0x02,
+                0x00, 0x00,
+          0x34, 0x80,
+                0x12, 0x01, 0x03,
+                0x12, 0x01, 0x04,
+                0x12, 0x01, 0x05,
+                0x00, 0x00,
+          0x00, 0x00,
+};
+
+uint8_t il_rec_uchoice_input[] = {
+    0x23, 0x01, 0x01,
+    0xec, 0x80,
+          0xbb, 0x01, 0x01,
+          0x16, 0x01, 0x42,
+          0x00, 0x00,
+    0x34, 0x01, 0x02,
 };
 
 static int serialize_test_0(uint8_t *dst, const test_0_t *t0)
@@ -653,6 +703,7 @@ Z_GROUP_EXPORT(asn1_ber)
         test_vector_t test_vector;
         test_array_t test_array;
         il_test_base_t il;
+        il_rec_base_t il_rec;
 
         /* Sequence of untagged choice test (with a vector) */
         len = asn1_pack_size(test_vector, &test_vector_in, &stack);
@@ -678,6 +729,30 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT_N(asn1_unpack(il_test_base, &ps, t_pool(), &il, false));
         Z_ASSERT_EQ(il.t.i1, 0x1000);
         Z_ASSERT_EQ(il.t.i2, 0x0);
+
+        ps = ps_init(il_rec_input, sizeof(il_rec_input));
+        Z_ASSERT_N(asn1_unpack(il_rec_base, &ps, t_pool(), &il_rec, false));
+        Z_ASSERT_EQ(il_rec.vec.rec.len, 2);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[0].v32.len, 2);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[1].v32.len, 3);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[0].v32.data[0], 1u);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[0].v32.data[1], 2u);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[1].v32.data[0], 3u);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[1].v32.data[1], 4u);
+        Z_ASSERT_EQ(il_rec.vec.rec.data[1].v32.data[2], 5u);
+
+        p_clear(&test_vector, 1);
+        ps = ps_init(il_rec_uchoice_input, sizeof(il_rec_uchoice_input));
+        Z_ASSERT_N(asn1_unpack(test_vector, &ps, t_pool(), &test_vector,
+                               false));
+        Z_ASSERT_EQ(test_vector.choice.len, 3);
+        Z_ASSERT_EQ((int)test_vector.choice.data[0].type, CHOICE_TYPE_1);
+        Z_ASSERT_EQ((int)test_vector.choice.data[0].choice1, 1);
+        Z_ASSERT_EQ((int)test_vector.choice.data[1].type, CHOICE_TYPE_REC1);
+        Z_ASSERT_EQ(test_vector.choice.data[1].rec1.b, true);
+        Z_ASSERT_EQ(test_vector.choice.data[1].rec1.u32, (uint32_t)0x42);
+        Z_ASSERT_EQ((int)test_vector.choice.data[2].type, CHOICE_TYPE_2);
+        Z_ASSERT_EQ((int)test_vector.choice.data[2].choice2, 2);
     } Z_TEST_END;
 
     Z_TEST(asn1_skip_field, "asn1: asn1_skip_field()") {

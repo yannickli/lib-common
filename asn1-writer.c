@@ -15,6 +15,13 @@
 #include "z.h"
 
 /*----- COMMON -{{{- */
+
+/* Note: this function should be replaced by ps_peekc when merging in 2013.3
+ */
+static inline int asn1_ps_peekc(pstream_t ps) {
+    return ps_getc(&ps);
+}
+
 #ifndef NDEBUG
 static const char *asn1_type_name(enum obj_type type)
 {
@@ -1044,13 +1051,11 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
 {
     int len;
 
-    for (len = 0; ps_getc(&ps) == tag; len++) {
-        uint32_t data_size;
-        if (unlikely(RETHROW(ber_decode_len32(&ps, &data_size)))) {
-            e_trace(1, "indefinite length not supported in sequences-of yet");
+    for (len = 0; asn1_ps_peekc(ps) == tag; len++) {
+        if (asn1_get_field(&ps, false, NULL) < 0) {
+            e_trace(1, "invalid BER content in SEQUENCE OF");
             return -1;
         }
-        RETHROW(ps_skip(&ps, data_size));
     }
 
     return len;
@@ -1244,16 +1249,13 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
 
     for (len = 0;
          !ps_done(&temp_ps)
-      && asn1_find_choice(choice_desc, ps_getc(&temp_ps));
+      && asn1_find_choice(choice_desc, asn1_ps_peekc(temp_ps));
          len++)
     {
-        uint32_t data_size;
-        if (unlikely(RETHROW(ber_decode_len32(&temp_ps, &data_size)))) {
-            e_trace(1, "indefinite length not supported in sequences-of "
-                    "untagged choices yet");
+        if (asn1_get_field(&temp_ps, false, NULL) < 0) {
+            e_trace(1, "invalid BER content in SEQUENCE OF untagged choice");
             return -1;
         }
-        RETHROW(ps_skip(&temp_ps, data_size));
     }
 
     if (unlikely(!len)) {
