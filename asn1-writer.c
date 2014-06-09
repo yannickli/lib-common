@@ -899,8 +899,6 @@ static void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
 
 /** \brief Get an ASN.1 field recursively supporting indefinite lengths.
  *  \note This function is designed for ASN.1 fields without description.
- *  XXX No support of exact field size constraint, this type of field
- *      would cause unpacking fail or very unlikely fantasist data.
  */
 static int asn1_get_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
 {
