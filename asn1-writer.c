@@ -899,8 +899,6 @@ static void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
 
 /** \brief Get an ASN.1 field recursively supporting indefinite lengths.
  *  \note This function is designed for ASN.1 fields without description.
- *  XXX No support of exact field size constraint, this type of field
- *      would cause unpacking fail or very unlikely fantasist data.
  */
 static int asn1_get_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
 {
@@ -1109,13 +1107,11 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
 {
     int len;
 
-    for (len = 0; ps_getc(&ps) == tag; len++) {
-        uint32_t data_size;
-        if (unlikely(RETHROW(ber_decode_len32(&ps, &data_size)))) {
-            e_trace(1, "indefinite length not supported in sequences-of yet");
+    for (len = 0; ps_peekc(ps) == tag; len++) {
+        if (asn1_get_field(&ps, false, NULL) < 0) {
+            e_trace(1, "invalid BER content in SEQUENCE OF");
             return -1;
         }
-        RETHROW(ps_skip(&ps, data_size));
     }
 
     return len;
@@ -1316,16 +1312,13 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
 
     for (len = 0;
          !ps_done(&temp_ps)
-      && asn1_find_choice(choice_desc, ps_getc(&temp_ps));
+      && asn1_find_choice(choice_desc, ps_peekc(temp_ps));
          len++)
     {
-        uint32_t data_size;
-        if (unlikely(RETHROW(ber_decode_len32(&temp_ps, &data_size)))) {
-            e_trace(1, "indefinite length not supported in sequences-of "
-                    "untagged choices yet");
+        if (asn1_get_field(&temp_ps, false, NULL) < 0) {
+            e_trace(1, "invalid BER content in SEQUENCE OF untagged choice");
             return -1;
         }
-        RETHROW(ps_skip(&temp_ps, data_size));
     }
 
     if (unlikely(!len)) {
