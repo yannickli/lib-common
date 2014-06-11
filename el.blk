@@ -1049,8 +1049,9 @@ el_t el_fs_watch_register_d(const char *path, uint32_t flags,
 el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
                               el_fs_watch_b blk, block_t wipe)
 {
-    return el_blk_register(el_fs_watch_register(path, flags, NULL, NULL),
-                           blk, wipe);
+    el_t el = RETHROW_P(el_fs_watch_register(path, flags, NULL, NULL));
+
+    return el_blk_register(el, blk, wipe);
 }
 
 el_data_t el_fs_watch_unregister(ev_t **evp)
