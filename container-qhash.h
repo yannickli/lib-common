@@ -706,7 +706,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     do {                                                                 \
         qh_t(name) *__h = (qh);                                          \
                                                                          \
-        if (likely(pos >= 0)) {                                          \
+        if (likely((int32_t)pos >= 0)) {                                 \
             wipe(&(__h)->keys[pos]);                                     \
         }                                                                \
     } while (0)
@@ -911,7 +911,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     do {                                                                 \
         qm_t(name) *__h = (qh);                                          \
                                                                          \
-        if (likely(pos >= 0)) {                                          \
+        if (likely((int32_t)pos >= 0)) {                                 \
             k_wipe(&(__h)->keys[pos]);                                   \
             v_wipe(&(__h)->values[pos]);                                 \
         }                                                                \

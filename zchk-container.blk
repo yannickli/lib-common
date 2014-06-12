@@ -144,6 +144,14 @@ Z_GROUP_EXPORT(qhash)
 
         Z_ASSERT_EQ(h.hdr.len, 0U);
 
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+        }
+        qh_for_each_pos(test, pos, &h) {
+            qh_deep_del_at(test, &h, pos, IGNORE);
+        }
+        Z_ASSERT_EQ(h.hdr.len, 0U);
+
         qh_wipe(test, &h);
     } Z_TEST_END;
 
@@ -163,6 +171,14 @@ Z_GROUP_EXPORT(qhash)
             Z_ASSERT_EQ(h.values[pos], i);
         }
 
+        Z_ASSERT_EQ(h.hdr.len, 0U);
+
+        for (int i = 0; i < 128; i++) {
+            qm_add(test, &h, i, i);
+        }
+        qm_for_each_pos(test, pos, &h) {
+            qm_deep_del_at(test, &h, pos, IGNORE, IGNORE);
+        }
         Z_ASSERT_EQ(h.hdr.len, 0U);
 
         qm_wipe(test, &h);
