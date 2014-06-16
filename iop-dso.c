@@ -203,3 +203,11 @@ iop_enum_t const *iop_dso_find_enum(iop_dso_t const *dso, lstr_t name)
 {
     return qm_get_def_safe(iop_enum, &dso->enum_h, &name, NULL);
 }
+
+const void *const *iop_dso_get_ressources(const iop_dso_t *dso, lstr_t category)
+{
+    t_scope;
+    lstr_t name = t_lstr_cat(LSTR_IMMED_V("iop_dso_ressources_"), category);
+
+    return dlsym(dso->handle, name.s);
+}

@@ -85,4 +85,33 @@ iop_enum_t const *iop_dso_find_enum(iop_dso_t const *dso, lstr_t name);
         return -1;                                                      \
     }                                                                   \
 
+const void *const *iop_dso_get_ressources(const iop_dso_t *, lstr_t category);
+
+#define iop_dso_ressource_t(category)  iop_dso_ressource_##category##_t
+
+#define IOP_DSO_GET_RESSOURCES(dso, category)                 \
+    ((const iop_dso_ressource_t(category) *const *)           \
+        iop_dso_get_ressources(dso, LSTR_IMMED_V(#category)))
+
+#define iop_dso_ressources_for_each_entry(category, ressource, ressources) \
+    for (const iop_dso_ressource_t(category) *ressource,                   \
+         *const *_ressource_ptr = (ressources);                            \
+         (ressource = _ressource_ptr ? *_ressource_ptr : NULL);            \
+         _ressource_ptr++)
+
+#define iop_dso_for_each_ressource(dso, category, ressource)                 \
+    iop_dso_ressources_for_each_entry(category, ressource,                   \
+                                      IOP_DSO_GET_RESSOURCES(dso, category))
+
+#define IOP_DSO_DECLARE_RESSOURCE_CATEGORY(category, type)  \
+    typedef type iop_dso_ressource_t(category)
+
+#define IOP_DSO_EXPORT_RESSOURCES(category, ...)                \
+    EXPORT const iop_dso_ressource_t(category) *const           \
+        iop_dso_ressources_##category[];                        \
+    const iop_dso_ressource_t(category) *const                  \
+        iop_dso_ressources_##category[] = { __VA_ARGS__, NULL }
+
+IOP_DSO_DECLARE_RESSOURCE_CATEGORY(iopy_on_register, struct farch_entry_t);
+
 #endif
