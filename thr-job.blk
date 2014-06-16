@@ -1538,6 +1538,7 @@ Z_GROUP_EXPORT(thrjobs) {
     Z_TEST(queue_steal, "queue steal jobs") {
         int seqid = 0;
         thr_job_t job = { .run = &run_job };
+        struct timeval start;
 
         mpsc_queue_init(&queue_steal_g.mpsc);
 
@@ -1553,11 +1554,20 @@ Z_GROUP_EXPORT(thrjobs) {
                 thr_schedule(&job);
             }
 
-            el_loop_timeout(queue_steal_g.ci_ring.len > 1000 ? 0 : 1);
+            el_loop_timeout(queue_steal_g.ci_ring.len > 1000 ? 0 : 10);
         }
 
-        for (int i = 0; i < 1000; i++) {
-            el_loop_timeout(1);
+        lp_gettv(&start);
+        for (;;) {
+            struct timeval end;
+            int64_t diff;
+
+            lp_gettv(&end);
+            diff = timeval_diffmsec(&end, &start);
+            if (diff > 1000) {
+                break;
+            }
+            el_loop_timeout(1000 - diff);
             if (queue_steal_g.last_acked == seqid - 1) {
                 break;
             }
