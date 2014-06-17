@@ -854,6 +854,33 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
 int iop_value_from_field(const void *ptr, const iop_field_t *field,
                          iop_value_t *value);
 
+/** Used for iop_type_vector_to_iop_struct function.
+ */
+typedef struct iop_field_info_t {
+    lstr_t       name;
+    iop_type_t   type;
+    iop_repeat_t repeat;
+    union {
+        const iop_struct_t *st_desc;
+        const iop_enum_t   *en_desc;
+    } u1;
+} iop_field_info_t;
+
+qvector_t(iop_field_info, iop_field_info_t);
+
+/** Get an IOP struct from a vector of IOP type. Does not work with types
+ * IOP_T_STRUCT, IOP_T_UNION and IOP_T_ENUM.
+ *
+ * \param[in]  fullname    The full name of the IOP struct.
+ * \param[in]  types       The vector of IOP types.
+ * \param[in]  fields_name The vector of fields name corresponding to the types.
+ *
+ * \return the IOP struct.
+*/
+iop_struct_t *
+iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
+                              const qv_t(iop_field_info) *fields_info);
+
 /* }}} */
 /* {{{ IOP class manipulation */
 

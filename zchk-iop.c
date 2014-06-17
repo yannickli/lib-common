@@ -3584,4 +3584,115 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END
     /* }}} */
 
+    Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */
+        t_scope;
+        iop_field_info_t info;
+        qv_t(iop_field_info) fields_info;
+        qv_t(lstr) fields_name;
+        iop_struct_t *st;
+        const iop_field_t *f;
+        mem_pool_t *mp = t_pool();
+
+        qv_init(iop_field_info, &fields_info);
+        qv_init(lstr, &fields_name);
+
+#define POLULATE_FIELDSINFO(_type, _name)                            \
+        info.type = _type;                                           \
+        info.name = _name;                                           \
+        qv_append(iop_field_info, &fields_info, info)
+
+        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR_IMMED_V("f0"));
+        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR_IMMED_V("f1"));
+        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR_IMMED_V("f2"));
+        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR_IMMED_V("f3"));
+        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR_IMMED_V("f4"));
+        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR_IMMED_V("f5"));
+
+#undef POLULATE_FIELDSINFO
+
+        st = iop_type_vector_to_iop_struct(mp, LSTR_IMMED_V("fullname"),
+                                           &fields_info);
+
+        Z_ASSERT_LSTREQUAL(st->fullname, LSTR_IMMED_V("fullname"));
+        Z_ASSERT_GE(st->size, 31);
+
+#define GET_FIELD_FROM_NAME(_name)                                           \
+        ({                                                                   \
+            const iop_field_t *tmp_field = NULL;                             \
+            const iop_struct_t *tmp_struct = NULL;                           \
+            lstr_t name = LSTR_IMMED_V(_name);                               \
+                                                                             \
+            __iop_field_find_by_name(st, name.s, name.len,                   \
+                                     &tmp_struct, &tmp_field);               \
+            tmp_field;                                                       \
+        })
+
+        /* test fields */
+        f = GET_FIELD_FROM_NAME("f0");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I8);
+        Z_ASSERT_EQ(f->size, 1);
+        Z_ASSERT_EQ(f->tag, 1);
+
+        f = GET_FIELD_FROM_NAME("f1");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I16);
+        Z_ASSERT_EQ(f->size, 2);
+        Z_ASSERT_EQ(f->tag, 2);
+
+        f = GET_FIELD_FROM_NAME("f2");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I32);
+        Z_ASSERT_EQ(f->size, 4);
+        Z_ASSERT_EQ(f->tag, 3);
+
+        f = GET_FIELD_FROM_NAME("f3");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I64);
+        Z_ASSERT_EQ(f->size, 8);
+        Z_ASSERT_EQ(f->tag, 4);
+
+        f = GET_FIELD_FROM_NAME("f4");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_DOUBLE);
+        Z_ASSERT_EQ(f->size, 8);
+        Z_ASSERT_EQ(f->tag, 5);
+
+        f = GET_FIELD_FROM_NAME("f5");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_STRING);
+        Z_ASSERT_EQ(f->size, sizeof(lstr_t));
+        Z_ASSERT_EQ(f->tag, 6);
+
+#undef GET_FIELD_FROM_NAME
+
+        /* test if no field overlap another */
+        for (int i = 0; i < st->fields_len - 1; i++) {
+            Z_ASSERT(st->fields[i].data_offs + st->fields[i].size <=
+                     st->fields[i + 1].data_offs);
+        }
+
+        /* test if the whole size of the structure is in a reasonable range. */
+        {
+            int sum_field_sizes = 0;
+            int sum_max_field_sizes = 0;
+
+            for (int i = 0; i < st->fields_len; i++) {
+                sum_field_sizes += st->fields[i].size;
+                sum_max_field_sizes +=
+                    ROUND_UP(st->fields[i].size, sizeof(void *));
+            }
+
+            Z_ASSERT(st->size >= sum_field_sizes);
+            Z_ASSERT(st->size <= sum_max_field_sizes);
+        }
+
+        /* ranges test */
+        Z_ASSERT_EQ(st->fields_len, fields_info.len);
+        Z_ASSERT_EQ(st->ranges[0], 0);
+        Z_ASSERT_EQ(st->ranges[1], 1);
+        Z_ASSERT_EQ(st->ranges[2], fields_info.len);
+
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END
