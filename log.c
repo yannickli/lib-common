@@ -940,6 +940,10 @@ static int log_shutdown(void)
 {
     qv_deep_wipe(buffer_instance, &_G.vec_buff_stack,
                  buffer_instance_wipe);
+    if (_G.vec_buff_stack.len > 0) {
+        mem_stack_pop(&_G.mp_stack);
+    }
+    mem_stack_pool_wipe(&_G.mp_stack);
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
     p_delete(&_G.is_debug);
