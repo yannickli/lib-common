@@ -125,7 +125,7 @@ static inline bool ps_done(const pstream_t *ps) {
     return ps->p >= ps->p_end;
 }
 static inline bool ps_has(const pstream_t *ps, size_t len) {
-    return ps->s + len <= ps->s_end;
+    return (ps_done(ps) && len == 0) || (size_t)(ps->s_end - ps->s) >= len;
 }
 static inline bool ps_contains(const pstream_t *ps, const void *p) {
     return p >= ps->p && p <= ps->p_end;
