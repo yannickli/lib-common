@@ -11,13 +11,18 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef IS_ZCHK_IOP_RESSOURCES_H
+#define IS_ZCHK_IOP_RESSOURCES_H
+
 #include "iop.h"
-#include "ic.iop.h"
-#include "zchk-iop-ressources.h"
 
-IOP_EXPORT_PACKAGES_COMMON;
+IOP_DSO_DECLARE_RESSOURCE_CATEGORY(str, const char *);
+IOP_DSO_DECLARE_RESSOURCE_CATEGORY(int, int);
 
-IOP_EXPORT_PACKAGES(&ic__pkg);
+extern const char *z_ressource_str_a;
+extern const char *z_ressource_str_b;
 
-IOP_DSO_EXPORT_RESSOURCES(str, &z_ressource_str_a, &z_ressource_str_b);
-IOP_DSO_EXPORT_RESSOURCES(int, &z_ressources_int_1, &z_ressources_int_2);
+extern const int z_ressources_int_1;
+extern const int z_ressources_int_2;
+
+#endif

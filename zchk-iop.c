@@ -18,6 +18,7 @@
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
 #include "xmlr.h"
+#include "zchk-iop-ressources.h"
 
 /* {{{ IOP testing helpers */
 
@@ -394,6 +395,8 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         const iop_struct_t *st;
+        qv_t(cstr) ressources_str;
+        qv_t(i32) ressources_int;
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-iop-plugin"SO_FILEEXT));
 
@@ -403,6 +406,22 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR_IMMED_V("ic.SimpleHdr")));
         Z_ASSERT(st != &ic__simple_hdr__s);
+
+        t_qv_init(cstr, &ressources_str, 0);
+        iop_dso_for_each_ressource(dso, str, ressource) {
+            qv_append(cstr, &ressources_str, *ressource);
+        }
+        Z_ASSERT_EQ(ressources_str.len, 2, "loading ressources failed");
+        Z_ASSERT_ZERO(strcmp(ressources_str.tab[0], z_ressource_str_a));
+        Z_ASSERT_ZERO(strcmp(ressources_str.tab[1], z_ressource_str_b));
+
+        t_qv_init(i32, &ressources_int, 0);
+        iop_dso_for_each_ressource(dso, int, ressource) {
+            qv_append(i32, &ressources_int, *ressource);
+        }
+        Z_ASSERT_EQ(ressources_int.len, 2, "loading ressources failed");
+        Z_ASSERT_EQ(ressources_int.tab[0], z_ressources_int_1);
+        Z_ASSERT_EQ(ressources_int.tab[1], z_ressources_int_2);
 
         iop_dso_close(&dso);
     } Z_TEST_END;

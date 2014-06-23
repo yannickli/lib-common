@@ -191,7 +191,7 @@ ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
 core-iop-plugin_LDFLAGS = -Wl,-z,defs
 
-zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c
+zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c zchk-iop-ressources.c
 zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \
@@ -208,6 +208,7 @@ zchk_SOURCES = zchk.c \
 	zchk-unix.c \
 	zchk-module.c \
 	zchk-mem.c \
+	zchk-iop-ressources.c \
 	$liop/tstiop.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm

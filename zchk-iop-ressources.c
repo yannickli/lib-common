@@ -11,13 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iop.h"
-#include "ic.iop.h"
 #include "zchk-iop-ressources.h"
 
-IOP_EXPORT_PACKAGES_COMMON;
+const char *z_ressource_str_a = "string A";
+const char *z_ressource_str_b = "string B";
 
-IOP_EXPORT_PACKAGES(&ic__pkg);
-
-IOP_DSO_EXPORT_RESSOURCES(str, &z_ressource_str_a, &z_ressource_str_b);
-IOP_DSO_EXPORT_RESSOURCES(int, &z_ressources_int_1, &z_ressources_int_2);
+const int z_ressources_int_1 = 10;
+const int z_ressources_int_2 = 20;
