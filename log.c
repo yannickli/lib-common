@@ -835,6 +835,7 @@ static int log_shutdown(void)
 {
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
+    qv_wipe(spec, &_G.specs);
     p_delete(&_G.is_debug);
     return 0;
 }
