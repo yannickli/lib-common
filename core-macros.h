@@ -394,9 +394,10 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
     for (int pos = 0; pos < (vec)->len; pos++)
 
 #define tab_for_each_ptr(ptr, vec)                                           \
-    for (typeof(*(vec)->tab) *ptr = (vec)->tab;                              \
-         ptr < (vec)->tab + (vec)->len;                                      \
-         ptr++)
+    for (__unused__ typeof(*(vec)->tab) *ptr = (vec)->tab,                   \
+         *__i_##ptr = (vec)->tab;                                            \
+         __i_##ptr < (vec)->tab + (vec)->len;                                \
+         ptr = ++__i_##ptr)
 
 #define tab_for_each_entry(e, vec)                                           \
     for (typeof(*(vec)->tab) e,                                              \
