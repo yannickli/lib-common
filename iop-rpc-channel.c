@@ -660,7 +660,13 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
 
         if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, &value) < 0)) {
 #ifndef NDEBUG
-            if (!iop_get_err()) {
+            const char *err = iop_get_err();
+
+            if (err) {
+                e_trace(0, "rpc(%04x:%04x):%s: %s",
+                        (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
+                        tmp->rpc->name.s, err);
+            } else {
                 e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
                         (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
                         tmp->rpc->name.s);
@@ -775,13 +781,12 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
 {
     pstream_t ps = ps_init(data, dlen);
 
-#define TRACE_INVALID(X)                                         \
-    e_trace(0, "query %04x:%04x, type %s: invalid " X,           \
-            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s)
+#define QUERY_FMT      "query %04x:%04x, type %s: "
+#define QUERY_FMT_ARG  (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s
 
     if (unlikely(flags & IC_MSG_HAS_HDR)) {
         if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
-            TRACE_INVALID("header encoding");
+            e_trace(0, QUERY_FMT "header encoding", QUERY_FMT_ARG);
             return -1;
         }
         /* XXX on simple header we write the payload size of the iop query */
@@ -800,15 +805,20 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
     &&  unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0))
     {
 #ifndef NDEBUG
-        if (!iop_get_err()) {
-            TRACE_INVALID("encoding");
+        const char *err = iop_get_err();
+
+        if (err) {
+            e_trace(0, QUERY_FMT "%s", QUERY_FMT_ARG, err);
+        } else {
+            e_trace(0, QUERY_FMT "encoding", QUERY_FMT_ARG);
         }
 #endif
         return -1;
     }
 
     return 0;
-#undef TRACE_INVALID
+#undef QUERY_FMT
+#undef QUERY_FMT_ARG
 }
 
 static ALWAYS_INLINE void
