@@ -296,6 +296,7 @@ struct MyHashedExtended {
     int? b;
     int[] c;
     int d = 12;
+    string s = "default-value";
 };
 
 /* Interfaces */
