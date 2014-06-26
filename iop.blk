@@ -732,11 +732,20 @@ iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
              * string is an empty string whatever its pointer is. */
             return !((lstr_t *)ptr)->len;
         } else {
-            /* We consider a NULL string as “take the default value please”
-             * and otherwise we check for the pointer equality. */
-            return !((lstr_t *)ptr)->data
-                || (((lstr_t *)ptr)->data == fdesc->u1.defval_data
-                 && ((lstr_t *)ptr)->len  == fdesc->u0.defval_len);
+            /* We consider a NULL string as “take the default value please”;
+             * otherwise we first check for the pointer equality and finally
+             * for the string equality. */
+            if (!((lstr_t *)ptr)->data) {
+                return true;
+            }
+            if (((lstr_t *)ptr)->len != fdesc->u0.defval_len) {
+                return false;
+            }
+            if (((lstr_t *)ptr)->data == fdesc->u1.defval_data) {
+                return true;
+            }
+            return memcmp(((lstr_t *)ptr)->s, fdesc->u1.defval_data,
+                          fdesc->u0.defval_len) == 0;
         }
       default:
         e_panic("unsupported");

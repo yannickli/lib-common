@@ -495,7 +495,6 @@ static PyObject *python_http_shutdown(PyObject *self, PyObject *arg)
     lstr_wipe(&_G.user);
     lstr_wipe(&_G.url);
     lstr_wipe(&_G.url_args);
-    PyEval_RestoreThread(python_state_g);
     Py_XDECREF(_G.cb_parse_answer);
     Py_XDECREF(_G.cb_build_body);
     Py_XDECREF(_G.cb_build_headers);

@@ -2273,6 +2273,13 @@ Z_GROUP_EXPORT(iop)
             t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
             0));
 
+        b.s = LSTR_IMMED_V("default-value");
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING |
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
+
         Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
             t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING),
