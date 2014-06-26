@@ -103,10 +103,15 @@ data_t el_fd_unregister(ev_t **evp, bool do_close)
 
         CHECK_EV_TYPE(ev, EV_FD);
         el_fd_set_mask(ev, 0);
-        if (likely(do_close))
+        if (likely(do_close)) {
             close(ev->fd);
-        if (EV_FLAG_HAS(ev, FD_WATCHED))
+        }
+        if (EV_FLAG_HAS(ev, FD_WATCHED)) {
             el_fd_act_timer_unregister(ev->priv.ptr);
+        }
+        if (EV_FLAG_HAS(ev, FD_FIRED)) {
+            dlist_remove(&ev->ev_list);
+        }
         return el_destroy(evp, false);
     }
     return (data_t)NULL;

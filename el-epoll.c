@@ -90,10 +90,15 @@ data_t el_fd_unregister(ev_t **evp, bool do_close)
         if (el_epoll_g.generation == ev->generation) {
             epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd, NULL);
         }
-        if (likely(do_close))
+        if (likely(do_close)) {
             close(ev->fd);
-        if (EV_FLAG_HAS(ev, FD_WATCHED))
+        }
+        if (EV_FLAG_HAS(ev, FD_WATCHED)) {
             el_fd_act_timer_unregister(ev->priv.ptr);
+        }
+        if (EV_FLAG_HAS(ev, FD_FIRED)) {
+            dlist_remove(&ev->ev_list);
+        }
         return el_destroy(evp, false);
     }
     return (data_t)NULL;
@@ -124,6 +129,7 @@ static void el_loop_fds(int timeout)
     uint64_t before, now;
 
     el_fd_initialize();
+
     if (el_epoll_g.pending == 0) {
         before = get_clock(false);
         el_loop_fds_poll(timeout);

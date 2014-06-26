@@ -171,6 +171,7 @@ int   el_fd_loop(el_t, int timeout);
 short el_fd_get_mask(el_t) __leaf __attribute__((pure));
 short el_fd_set_mask(el_t, short events) __leaf;
 int   el_fd_get_fd(el_t) __leaf __attribute__((pure));
+void  el_fd_mark_fired(el_t) __leaf;
 
 ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
 #define el_fd_set_priority(el, prio)  \

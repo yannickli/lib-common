@@ -67,6 +67,7 @@ enum ev_flags_t {
     EV_FLAG_TIMER_UPDATED = (1U << 10),
 
     EV_FLAG_FD_WATCHED    = (1U <<  8),
+    EV_FLAG_FD_FIRED      = (1U <<  9),
 #define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
 #define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
 #define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
@@ -112,8 +113,8 @@ typedef struct ev_t {
         block_t   wipe;
     };
 
+    dlist_t ev_list;            /* EV_BEFORE, EV_SIGNAL, EV_PROXY, EV_FD */
     union {
-        dlist_t ev_list;        /* EV_BEFORE, EV_SIGNAL, EV_PROXY */
         int     fd;             /* EV_FD */
         pid_t   pid;            /* EV_CHILD */
         struct {
@@ -155,6 +156,7 @@ static struct {
     dlist_t   before;         /* ev_t to run just before the epoll call     */
     dlist_t   sigs;           /* signals el_t's                             */
     dlist_t   proxy, proxy_ready;
+    dlist_t   fired;          /* fds with applicative pending events        */
     qhp_t(timer) timers;      /* relative timers heap (see comments after)  */
     qv_t(ev)  cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
@@ -187,6 +189,7 @@ static struct {
     .proxy_ready    = DLIST_INIT(_G.proxy_ready),
     .evs_free       = DLIST_INIT(_G.evs_free),
     .evs_gc         = DLIST_INIT(_G.evs_gc),
+    .fired          = DLIST_INIT(_G.fired),
     .childs         = QM_INIT(ev_assoc, _G.childs, false),
     .fd_act         = QM_INIT(ev, _G.fd_act, false),
     .fs_watches     = QM_INIT(ev, _G.fs_watches, false),
@@ -852,6 +855,15 @@ int el_fd_get_fd(ev_t *ev)
     return -1;
 }
 
+void el_fd_mark_fired(ev_t *ev)
+{
+    CHECK_EV_TYPE(ev, EV_FD);
+    if (!EV_FLAG_HAS(ev, FD_FIRED)) {
+        ev_add(&_G.fired, ev);
+        EV_FLAG_SET(ev, FD_FIRED);
+    }
+}
+
 int el_fd_watch_activity(el_t ev, short mask, int timeout)
 {
     el_t timer;
@@ -881,15 +893,43 @@ int el_fd_loop(ev_t *ev, int timeout)
 {
     struct pollfd pfd = { .fd = ev->fd, .events = ev->events_wanted };
     int res;
+    bool has_fired = false;
 
     CHECK_EV_TYPE(ev, EV_FD);
 
+    if (EV_FLAG_HAS(ev, FD_FIRED)) {
+        EV_FLAG_RST(ev, FD_FIRED);
+        dlist_remove(&ev->ev_list);
+        el_fd_fire(ev, POLLIN);
+        timeout = 0;
+        has_fired = true;
+    }
+
     res = poll(&pfd, 1, timeout);
-    if (!qhp_is_empty(timer, &_G.timers))
+    if (!qhp_is_empty(timer, &_G.timers)) {
         el_timer_process(get_clock(false));
-    if (res == 1 && likely(ev->type == EV_FD))
+    }
+    if (res == 1 && likely(ev->type == EV_FD)) {
         el_fd_fire(ev, pfd.revents);
-    return res;
+        has_fired = true;
+    }
+    return has_fired ? 1 : res;
+}
+
+static void el_fd_process_fired(void)
+{
+    if (dlist_is_empty(&_G.fired)) {
+        return;
+    }
+
+    ev_cache_list(&_G.fired);
+    dlist_init(&_G.fired);
+    qv_for_each_entry(ev, ev, &_G.cache) {
+        EV_FLAG_RST(ev, FD_FIRED);
+    }
+    qv_for_each_entry(ev, ev, &_G.cache) {
+        el_fd_fire(ev, POLLIN);
+    }
 }
 
 /*----- proxies events  -----*/
@@ -1205,8 +1245,11 @@ void el_loop_timeout(int timeout)
         return;
     ev_list_process(&_G.before);
     el_idle_process(clk);
-    if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle))
+    if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle)
+    ||  !dlist_is_empty(&_G.fired))
+    {
         timeout = 0;
+    }
     if (_G.worker && timeout && !el_has_pending_events()) {
         uint64_t start, end;
         int diff;
@@ -1225,6 +1268,8 @@ void el_loop_timeout(int timeout)
         }
         timeout = MAX(0, timeout - diff);
     }
+
+    el_fd_process_fired();
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
