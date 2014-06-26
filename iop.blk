@@ -171,7 +171,7 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
 {
     THROW_ERR_IF(field->repeat == IOP_R_REPEATED);
 
-    ptr = (const byte *)ptr + field->data_offs;
+    ptr = (byte *)ptr + field->data_offs;
 
 #define GET_SCALAR(type, opt, f)                                             \
         if (field->repeat == IOP_R_OPTIONAL) {                               \
@@ -240,6 +240,18 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
         } else {
             value->s = lstr_dupc(*str);
         }
+        return 0;
+      }
+      case IOP_T_STRUCT:
+      case IOP_T_UNION: {
+        if (iop_field_is_class(field)
+        || iop_field_is_reference(field)
+        || field->repeat == IOP_R_OPTIONAL)
+        {
+            ptr = *(const void **)ptr;
+        }
+
+        value->p = (void *)ptr;
         return 0;
       }
     }

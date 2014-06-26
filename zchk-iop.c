@@ -3566,6 +3566,7 @@ Z_GROUP_EXPORT(iop)
         iop_value_t value;
 
         tstiop__my_struct_g__init(&sg);
+
         st = &tstiop__my_struct_g__s;
 
 #define TEST_FIELD(_n, _type, _u, _res)                                    \
@@ -3576,11 +3577,59 @@ Z_GROUP_EXPORT(iop)
         TEST_FIELD(0, int64_t, i, -1);
         TEST_FIELD(1, uint64_t, u, 2);
         TEST_FIELD(11, double, d, 10.5);
+
 #undef TEST_FIELD
 
         field = &st->fields[9];
         Z_ASSERT_N(iop_value_from_field((void *) &sg, field, &value));
         Z_ASSERT_LSTREQUAL(value.s, LSTR_IMMED_V("fo\"o?cbaré©"));
+
+        /* test to get struct */
+        {
+            tstiop__my_struct_k__t sk;
+            tstiop__my_struct_j__t *sj;
+
+            tstiop__my_struct_k__init(&sk);
+
+            sk.j.cval = 2314;
+            st = &tstiop__my_struct_k__s;
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_from_field((void *) &sk, field, &value));
+            sj = value.s.data;
+            Z_ASSERT_EQ(sj->cval, 2314);
+        }
+
+        /* test to get reference */
+        {
+            tstiop__my_ref_struct__t ref_st;
+            tstiop__my_referenced_struct__t referenced_st;
+            tstiop__my_referenced_struct__t *p;
+
+            tstiop__my_ref_struct__init(&ref_st);
+            tstiop__my_referenced_struct__init(&referenced_st);
+
+            referenced_st.a = 23;
+            ref_st.s = &referenced_st;
+
+            st = &tstiop__my_ref_struct__s;
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_from_field((void *) &ref_st, field, &value));
+            p = value.s.data;
+            Z_ASSERT_EQ(p->a, 23);
+        }
+
+        /* test to get optional */
+        {
+            tstiop__my_struct_b__t sb;
+
+            tstiop__my_struct_b__init(&sb);
+            OPT_SET(sb.a, 42);
+
+            st = &tstiop__my_struct_b__s;
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_from_field((void *) &sb, field, &value));
+            Z_ASSERT_EQ(value.i, 42);
+        }
     } Z_TEST_END
     /* }}} */
 
