@@ -854,6 +854,17 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
 int iop_value_from_field(const void *ptr, const iop_field_t *field,
                          iop_value_t *value);
 
+/** Set a field of an IOP object from an IOP value and an IOP field.
+ *
+ * \param[in] ptr   The IOP object.
+ * \param[in] field The IOP field definition.
+ * \param[in] value The value to put the field.
+ *
+ * \return 0 if the value is found, -1 otherwise.
+ */
+int iop_value_to_field(void *ptr, const iop_field_t *field,
+                       const iop_value_t *value);
+
 /** Used for iop_type_vector_to_iop_struct function.
  */
 typedef struct iop_field_info_t {

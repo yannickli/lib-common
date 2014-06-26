@@ -3633,6 +3633,75 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END
     /* }}} */
 
+    Z_TEST(iop_value_to_field, "test iop_value_to_field") { /* {{{ */
+        tstiop__my_struct_g__t sg;
+        tstiop__my_struct_k__t sk;
+        tstiop__my_struct_j__t sj;
+        const iop_struct_t *st;
+        const iop_field_t *field;
+        iop_value_t value;
+
+        tstiop__my_struct_g__init(&sg);
+        tstiop__my_struct_k__init(&sk);
+        tstiop__my_struct_j__init(&sj);
+
+        st = &tstiop__my_struct_g__s;
+
+        /* test with int */
+        field = &st->fields[0];
+        value.i = 2314;
+        Z_ASSERT_N(iop_value_to_field((void *) &sg, field, &value));
+        Z_ASSERT_EQ(sg.a, 2314);
+
+        /* test with string */
+        field = &st->fields[9];
+        value.s = LSTR_IMMED_V("fo\"o?cbaré©");
+        Z_ASSERT_N(iop_value_to_field((void *) &sg, field, &value));
+        Z_ASSERT_LSTREQUAL(sg.j, LSTR_IMMED_V("fo\"o?cbaré©"));
+
+        /* test struct */
+        sj.cval = 42;
+        value.p = &sj;
+        st = &tstiop__my_struct_k__s;
+        field = &st->fields[0];
+        Z_ASSERT_N(iop_value_to_field((void *) &sk, field, &value));
+        Z_ASSERT_EQ(sk.j.cval, 42);
+
+        /* test to get reference */
+        {
+            t_scope;
+            tstiop__my_ref_struct__t ref_st;
+            tstiop__my_referenced_struct__t referenced_st;
+
+            tstiop__my_ref_struct__init(&ref_st);
+            tstiop__my_referenced_struct__init(&referenced_st);
+
+            referenced_st.a = 23;
+            ref_st.s = t_new(tstiop__my_referenced_struct__t, 1);
+            tstiop__my_referenced_struct__init(ref_st.s);
+
+            value.p = &referenced_st;
+
+            st = &tstiop__my_ref_struct__s;
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_to_field((void *) &ref_st, field, &value));
+            Z_ASSERT_EQ(ref_st.s->a, 23);
+        }
+
+        /* test to get optional */
+        {
+            tstiop__my_struct_b__t sb;
+
+            tstiop__my_struct_b__init(&sb);
+
+            value.i = 42;
+            st = &tstiop__my_struct_b__s;
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_to_field((void *) &sb, field, &value));
+            Z_ASSERT_EQ(*OPT_GET(&sb.a), 42);
+        }
+    } Z_TEST_END
+
     Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */
         t_scope;
         iop_field_info_t info;
