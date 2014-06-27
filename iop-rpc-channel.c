@@ -977,22 +977,21 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
 static int ic_read(ichannel_t *ic, short events, int sock)
 {
     sb_t *buf = &ic->rbuf;
-    int *fdv = NULL;
-    int fdc = 0;
+    int *fdv, fdc;
     bool fd_overflow = false;
     ssize_t seqpkt_at_least = IC_PKT_MAX;
     int to_read = IC_PKT_MAX;
     bool starves = false;
-    int processed_packets = 0;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
         to_read += IC_MSG_HDR_LEN;
+        assert (to_read > buf->len);
         to_read -= buf->len;
     }
 
   again:
-    if (to_read > 0) {
+    {
         char cmsgbuf[BUFSIZ];
         struct iovec iov;
         struct msghdr msgh = {
@@ -1063,14 +1062,9 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         if (IC_MSG_HDR_LEN + dlen > buf->len) {
             to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
-        } else
-        if (fdc == 0 && processed_packets >= 16) {
-            el_fd_mark_fired(ic->elh);
-            break;
         }
 
         starves = true;
-        processed_packets++;
         if (unlikely(flags & IC_MSG_HAS_FD)) {
             if (fdc < 1) {
                 assert (fd_overflow); /* see #664 */
@@ -1107,13 +1101,13 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         }
         sb_skip(buf, IC_MSG_HDR_LEN + dlen);
     }
-    if (expect(fdc == 0)) {
-        if (!ic->is_stream && seqpkt_at_least > 0) {
+    assert (fdc == 0);
+
+    if (likely(fdc == 0)) {
+        if (!ic->is_stream && seqpkt_at_least > 0)
             goto again;
-        }
-        if (ic->is_stream && !starves) {
+        if (ic->is_stream && !starves)
             goto again;
-        }
         return 0;
     }
 
