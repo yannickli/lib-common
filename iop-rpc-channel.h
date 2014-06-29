@@ -1258,6 +1258,18 @@ void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
                            int cmd, const void *res, const void *exn);
 
 
+/** \brief Manually reply to a message with an error code.
+ *
+ * This function may be used in case you are manually dealing with ic_msg_t in
+ * order to implement some routing layer.
+ *
+ * \param[in]  ic     the ichannel_t the "thing" the message come from (NULL
+ *                    if unknown)
+ * \param[in]  msg    the message that get replied.
+ * \param[in]  status the reply status.
+ */
+void __ic_msg_reply_err(ichannel_t *ic, ic_msg_t *msg, ic_status_t status);
+
 /* Compatibility aliases */
 #define ic_reply_throw_p(...)  ic_throw_p(__VA_ARGS__)
 #define ic_reply_throw(...)    ic_throw(__VA_ARGS__)

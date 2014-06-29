@@ -263,6 +263,15 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
     }
 }
 
+void __ic_msg_reply_err(ichannel_t *ic, ic_msg_t *msg, ic_status_t status)
+{
+    if (msg->cb == IC_PROXY_MAGIC_CB) {
+        ic_proxify(ic, msg, -status, NULL, 0, NULL);
+    } else {
+        (*msg->cb)(ic, msg, status, NULL, NULL);
+    }
+}
+
 void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
                            const void *res, const void *exn)
 {
@@ -343,11 +352,7 @@ static void ic_cancel_all(ichannel_t *ic)
         qm_del_at(ic_msg, &h, pos);
 
         msg = h.values[pos];
-        if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0, NULL);
-        } else {
-            (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
-        }
+        __ic_msg_reply_err(ic, msg, IC_MSG_ABORT);
         ic_msg_delete(&msg);
     }
     qm_wipe(ic_msg, &h);
@@ -393,11 +398,7 @@ static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
         __unused__ ic_msg_t *tmp = ic_query_take(ic, msg->slot);
 
         assert (tmp == msg);
-        if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(ic, msg, -IC_MSG_RETRY, NULL, 0, NULL);
-        } else {
-            (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
-        }
+        __ic_msg_reply_err(ic, msg, IC_MSG_ABORT);
     }
     ic_msg_delete(&msg);
 }
@@ -1406,11 +1407,7 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
             }
             if (unlikely(ic->nextslot == start)) {
                 /* can't find a free slot, abort this query */
-                if (msg->cb == IC_PROXY_MAGIC_CB) {
-                    ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0, NULL);
-                } else {
-                    (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
-                }
+                __ic_msg_reply_err(ic, msg, IC_MSG_ABORT);
                 ic_msg_delete(&msg);
                 return;
             }
