@@ -217,6 +217,8 @@ data_t el_fs_watch_unregister(el_t *);
 
 int el_fs_watch_change(el_t el, uint32_t flags);
 
+const char *el_fs_watch_get_path(el_t el);
+
 /** \} */
 #endif
 
