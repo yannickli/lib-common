@@ -621,7 +621,7 @@ static inline int lstr_to_int(lstr_t lstr, int *out)
     int         tmp = errno;
     const byte *endp;
 
-    lstr_trim(lstr);
+    lstr = lstr_rtrim(lstr);
 
     errno = 0;
     *out = memtoip(lstr.s, lstr.len, &endp);
@@ -650,10 +650,39 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
     int         tmp = errno;
     const byte *endp;
 
-    lstr_trim(lstr);
+    lstr = lstr_rtrim(lstr);
 
     errno = 0;
     *out = memtollp(lstr.s, lstr.len, &endp);
+
+    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+/** \brief  convert a lstr into an uint64.
+ *
+ *  \param  lstr the string to convert
+ *  \param  out  pointer to the memory to store the result of the conversion
+ *
+ *  \result int
+ *
+ *  \retval  0   success
+ *  \retval -1   failure (errno set)
+ */
+static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_rtrim(lstr);
+
+    errno = 0;
+    *out = memtoullp(lstr.s, lstr.len, &endp);
 
     if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
         return -1;

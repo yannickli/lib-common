@@ -1038,6 +1038,42 @@ Z_GROUP_EXPORT(str)
         CHECK("", "");
         CHECK("\"", "\"\"\"\"");
     } Z_TEST_END;
+
+    Z_TEST(lstr_to_int, "str: lstr_to_int and friends") {
+        int      i;
+        int64_t  i64;
+        uint64_t u64;
+
+#define T_OK(_str, _exp)  \
+        do {                                                                 \
+            Z_ASSERT_N(lstr_to_int(LSTR_IMMED_V(_str), &i));                 \
+            Z_ASSERT_EQ(i, _exp);                                            \
+            Z_ASSERT_N(lstr_to_int64(LSTR_IMMED_V(_str), &i64));             \
+            Z_ASSERT_EQ(i64, _exp);                                          \
+            Z_ASSERT_N(lstr_to_uint64(LSTR_IMMED_V(_str), &u64));            \
+            Z_ASSERT_EQ(u64, (uint64_t)_exp);                                \
+        } while (0)
+
+        T_OK("0",        0);
+        T_OK("1234",     1234);
+        T_OK("  1234  ", 1234);
+#undef T_OK
+
+#define T_KO(_str)  \
+        do {                                                                 \
+            Z_ASSERT_NEG(lstr_to_int(LSTR_IMMED_V(_str), &i));               \
+            Z_ASSERT_NEG(lstr_to_int64(LSTR_IMMED_V(_str), &i64));           \
+            Z_ASSERT_NEG(lstr_to_uint64(LSTR_IMMED_V(_str), &u64));          \
+        } while (0)
+
+        T_KO("");
+        T_KO("   ");
+        T_KO("abcd");
+        T_KO("  12 12 ");
+        T_KO("  12abcd");
+        T_KO("12.12");
+#undef T_KO
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
