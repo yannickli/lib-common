@@ -548,22 +548,35 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t 
     return res;
 }
 
-/** \brief return the trimmed lstr.
+/** \brief return the left-trimmed lstr.
  */
-static inline lstr_t lstr_trim(lstr_t s)
+static inline lstr_t lstr_ltrim(lstr_t s)
 {
-    /* ltrim */
     while (s.len && isspace((unsigned char)s.s[0])) {
         s.s++;
         s.len--;
     }
 
-    /* rtrim */
-    while (s.len && isspace((unsigned char)s.s[s.len - 1]))
-        s.len--;
-
     s.mem_pool = MEM_STATIC;
     return s;
+}
+
+/** \brief return the right-trimmed lstr.
+ */
+static inline lstr_t lstr_rtrim(lstr_t s)
+{
+    while (s.len && isspace((unsigned char)s.s[s.len - 1])) {
+        s.len--;
+    }
+
+    return s;
+}
+
+/** \brief return the trimmed lstr.
+ */
+static inline lstr_t lstr_trim(lstr_t s)
+{
+    return lstr_rtrim(lstr_ltrim(s));
 }
 
 /** \brief lower case the given lstr. Work only with ascii strings.
