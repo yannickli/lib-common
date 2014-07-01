@@ -171,6 +171,24 @@ int64_t parse_number(const char *str)
     return value * mult + frac * mult / denom;
 }
 
+uint64_t memtoullp(const void *s, int len, const byte **endp)
+{
+    t_scope;
+    const char *str = t_dupz(s, len);
+    const char *tail;
+    uint64_t res;
+
+    if (!len) {
+        errno = EINVAL;
+        return 0;
+    }
+
+    res = strtoull(str, &tail, 10);
+    *endp = (const byte *)s + (tail - str);
+
+    return res;
+}
+
 /** Parses a string to extract a long, checking some constraints.
  * <code>res</code> points to the destination of the long value
  * <code>p</code> points to the string to parse
