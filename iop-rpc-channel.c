@@ -1057,23 +1057,22 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
 static int ic_read(ichannel_t *ic, short events, int sock)
 {
     sb_t *buf = &ic->rbuf;
-    int *fdv = NULL;
-    int fdc = 0;
+    int *fdv, fdc;
     bool fd_overflow = false;
     ssize_t seqpkt_at_least = IC_PKT_MAX;
     int to_read = IC_PKT_MAX;
     bool starves = false;
-    int processed_packets = 0;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         RETHROW(ic_check_msg_hdr(ic, buf->data));
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
         to_read += IC_MSG_HDR_LEN;
+        assert (to_read > buf->len);
         to_read -= buf->len;
     }
 
   again:
-    if (to_read > 0) {
+    {
         char cmsgbuf[BUFSIZ];
         struct iovec iov;
         struct msghdr msgh = {
@@ -1145,14 +1144,9 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             RETHROW(ic_check_msg_hdr(ic, buf->data));
             to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
-        } else
-        if (fdc == 0 && processed_packets >= 16) {
-            el_fd_mark_fired(ic->elh);
-            break;
         }
 
         starves = true;
-        processed_packets++;
         RETHROW(ic_check_msg_hdr_flags(ic, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
             if (fdc < 1 && !fd_overflow) {
