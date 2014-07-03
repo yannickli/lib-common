@@ -23,6 +23,8 @@ typedef void (*iop_hash_f)(void *ctx, const void *input, int ilen);
 enum {
     IOP_HASH_SKIP_MISSING = 1 << 0, /* Skip missing optional fields         */
     IOP_HASH_SKIP_DEFAULT = 1 << 1, /* Skip fields having the default value */
+    IOP_HASH_SHALLOW_DEFAULT = 1 << 2, /* Compare pointers, not content of
+                                          string to detect default values */
 };
 
 void iop_hash(const struct iop_struct_t *st, const void *v,

@@ -606,7 +606,7 @@ bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
 }
 
 static inline bool
-iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
+iop_field_is_defval(const iop_field_t *fdesc, const void *ptr, bool deep)
 {
     assert (fdesc->repeat == IOP_R_DEFVAL);
 
@@ -646,8 +646,11 @@ iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
             if (((lstr_t *)ptr)->data == fdesc->u1.defval_data) {
                 return true;
             }
-            return memcmp(((lstr_t *)ptr)->s, fdesc->u1.defval_data,
-                          fdesc->u0.defval_len) == 0;
+            if (deep) {
+                return memcmp(((lstr_t *)ptr)->s, fdesc->u1.defval_data,
+                              fdesc->u0.defval_len) == 0;
+            }
+            return false;
         }
       default:
         e_panic("unsupported");
@@ -1064,7 +1067,7 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v,
             continue;
         }
         if (fdesc->repeat == IOP_R_DEFVAL && (flags & IOP_HASH_SKIP_DEFAULT)
-        &&  iop_field_is_defval(fdesc, r))
+        &&  iop_field_is_defval(fdesc, r, !(flags & IOP_HASH_SHALLOW_DEFAULT)))
         {
             continue;
         }
@@ -1369,7 +1372,7 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
         } else
         if (fdesc->repeat == IOP_R_DEFVAL) {
             /* Skip the field if it's still equal to its default value */
-            if (iop_field_is_defval(fdesc, ptr))
+            if (iop_field_is_defval(fdesc, ptr, true))
                 continue;
         }
 
@@ -1453,7 +1456,7 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
         if (fdesc->repeat == IOP_R_DEFVAL) {
             /* Skip the field if still equals to its default value */
             if ((flags & IOP_BPACK_SKIP_DEFVAL)
-            &&   iop_field_is_defval(fdesc, ptr))
+            &&   iop_field_is_defval(fdesc, ptr, true))
             {
                 continue;
             }
@@ -1770,7 +1773,7 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
         if (f->repeat == IOP_R_DEFVAL) {
             /* Skip the field if it's still equal to its default value */
             if ((flags & IOP_BPACK_SKIP_DEFVAL)
-            &&  iop_field_is_defval(f, ptr))
+            &&  iop_field_is_defval(f, ptr, true))
             {
                 continue;
             }
@@ -2790,11 +2793,23 @@ int (iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
 
     exp = t_iop_sign_salt_sha256(st, v, be_to_cpu32(salt), flags);
     if (!lstr_equal2(sig, exp)) {
+        if (!(flags & IOP_HASH_SKIP_DEFAULT)) {
 #ifdef NDEBUG
-        return -1;
+            return -1;
 #else
-        return e_error("invalid signature (invalid value)");
+            return e_error("invalid signature (invalid value)");
 #endif
+        }
+
+        exp = t_iop_sign_salt_sha256(st, v, be_to_cpu32(salt),
+                                     flags | IOP_HASH_SHALLOW_DEFAULT);
+        if (!lstr_equal2(sig, exp)) {
+#ifdef NDEBUG
+            return -1;
+#else
+            return e_error("invalid signature (invalid value)");
+#endif
+        }
     }
 
     return 0;
