@@ -486,7 +486,7 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2,
 
 /** \brief return the left-trimmed lstr.
  */
-static inline lstr_t lstr_ltrim(lstr_t s)
+static __must_check__ inline lstr_t lstr_ltrim(lstr_t s)
 {
     while (s.len && isspace((unsigned char)s.s[0])) {
         s.s++;
@@ -499,7 +499,7 @@ static inline lstr_t lstr_ltrim(lstr_t s)
 
 /** \brief return the right-trimmed lstr.
  */
-static inline lstr_t lstr_rtrim(lstr_t s)
+static __must_check__ inline lstr_t lstr_rtrim(lstr_t s)
 {
     while (s.len && isspace((unsigned char)s.s[s.len - 1])) {
         s.len--;
@@ -510,7 +510,7 @@ static inline lstr_t lstr_rtrim(lstr_t s)
 
 /** \brief return the trimmed lstr.
  */
-static inline lstr_t lstr_trim(lstr_t s)
+static __must_check__ inline lstr_t lstr_trim(lstr_t s)
 {
     return lstr_rtrim(lstr_ltrim(s));
 }
