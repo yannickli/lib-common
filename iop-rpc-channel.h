@@ -320,6 +320,7 @@ void ic_nop(ichannel_t *);
 el_t ic_listento(const sockunion_t *su, int type, int proto,
                  int (*on_accept)(el_t ev, int fd));
 void ic_flush(ichannel_t *ic);
+lstr_t ic_get_client_addr(ichannel_t *ic);
 
 /** Mark an ichannel_t as disconnected.
  *

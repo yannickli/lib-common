@@ -683,7 +683,7 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     return 0;
 }
 
-static lstr_t ic_get_client_addr(ichannel_t *ic)
+lstr_t ic_get_client_addr(ichannel_t *ic)
 {
     if (!ic->peer_address.s) {
         t_scope;
