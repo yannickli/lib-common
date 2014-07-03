@@ -600,6 +600,7 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t 
 
 /** \brief return the left-trimmed lstr.
  */
+__attribute__((warn_unused_result))
 static inline lstr_t lstr_ltrim(lstr_t s)
 {
     while (s.len && isspace((unsigned char)s.s[0])) {
@@ -613,6 +614,7 @@ static inline lstr_t lstr_ltrim(lstr_t s)
 
 /** \brief return the right-trimmed lstr.
  */
+__attribute__((warn_unused_result))
 static inline lstr_t lstr_rtrim(lstr_t s)
 {
     while (s.len && isspace((unsigned char)s.s[s.len - 1])) {
@@ -624,6 +626,7 @@ static inline lstr_t lstr_rtrim(lstr_t s)
 
 /** \brief return the trimmed lstr.
  */
+__attribute__((warn_unused_result))
 static inline lstr_t lstr_trim(lstr_t s)
 {
     return lstr_rtrim(lstr_ltrim(s));
