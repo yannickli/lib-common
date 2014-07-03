@@ -942,6 +942,13 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             close(ic->current_fd);
             ic->current_fd = -1;
         }
+
+        if (unlikely(!ic->elh)) {
+            assert (buf->len == 0);
+            /* a problem occured and the ichannel has been closed */
+            errno = 0;
+            return -1;
+        }
         sb_skip(buf, IC_MSG_HDR_LEN + dlen);
     }
     assert (fdc == 0);
