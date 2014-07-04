@@ -881,8 +881,12 @@ static int ic_event(el_t ev, int fd, short events, el_data_t priv)
             e_trace(1, "ic_read error: %m");
         goto close;
     }
-    if (unlikely(ic->is_closing))
+    if (unlikely(ic->is_closing)) {
         ic_msg_filter_on_bye(ic);
+    }
+    if (!ic->elh) {
+        return 0;
+    }
     if (ic->is_stream ? ic_write_stream(ic, fd) : ic_write_seq(ic, fd)) {
         if (errno)
             e_trace(1, "ic_write error: %m");
