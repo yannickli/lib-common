@@ -748,8 +748,6 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
 
 static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
 {
-    sb_grow(out, 8 * 3); /* XXX: no gsm char takes 4 bytes in utf8 */
-
     for (int i = 0; i < nbchars; i++) {
         c |= pack & 0x7f;
         pack >>= 7;
@@ -776,6 +774,8 @@ int sb_conv_from_gsm7(sb_t *out, const void *_src, int gsmlen, int udhlen)
 {
     const char *src = _src;
     int c = 0;
+
+    sb_grow(out, (gsmlen - udhlen) * 2);
 
     src    += udhlen - (udhlen % 7);
     gsmlen -= 8 * (udhlen / 7);
