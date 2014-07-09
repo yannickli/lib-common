@@ -1197,7 +1197,7 @@ httpd_flush_data(httpd_t *w, httpd_query_t *q, pstream_t *ps, bool done)
     q->received_body_length += ps_len(ps);
 
     if (q->on_data) {
-        if (w->compressed) {
+        if (w->compressed && !ps_done(ps)) {
             t_scope;
             sb_t zbuf;
 
@@ -2042,7 +2042,7 @@ httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
 {
     q->received_body_length += ps_len(ps);
 
-    if (w->compressed) {
+    if (w->compressed && !ps_done(ps)) {
         t_scope;
         sb_t zbuf;
 
@@ -2634,6 +2634,15 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
 #include <lib-common/z.h>
 
+static bool has_reply_g;
+static http_code_t code_g;
+static lstr_t body_g;
+static httpc_query_t zquery_g;
+static el_t zel_server_g;
+static el_t zel_client_g;
+static httpc_cfg_t zcfg_g;
+static httpc_status_t zstatus_g;
+
 static int z_reply_100(el_t el, int fd, short mask, data_t data)
 {
     SB_1k(buf);
@@ -2648,20 +2657,31 @@ static int z_reply_100(el_t el, int fd, short mask, data_t data)
     return 0;
 }
 
-static int z_accept(el_t el, int fd, short mask, data_t data)
+static int z_reply_gzip_empty(el_t el, int fd, short mask, data_t data)
 {
-    el_t *el_client = data.ptr;
-    int client = acceptx(fd, 0);
+    SB_1k(buf);
 
-    if (client >= 0) {
-        *el_client = el_fd_register(client, POLLIN, &z_reply_100, NULL);
+    if (sb_read(&buf, fd, 1000) > 0) {
+        char reply[] = "HTTP/1.1 202 Accepted\r\n"
+                       "Content-Encoding: gzip\r\n"
+                       "Content-Length: 0\r\n"
+                       "\r\n";
+
+        IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
     }
     return 0;
 }
 
-static bool has_reply_g = false;
-static http_code_t code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
-static lstr_t body_g;
+static int z_accept(el_t el, int fd, short mask, data_t data)
+{
+    int (* query_cb)(el_t, int, short, data_t) = data.ptr;
+    int client = acceptx(fd, 0);
+
+    if (client >= 0) {
+        zel_client_g = el_fd_register(client, POLLIN, query_cb, NULL);
+    }
+    return 0;
+}
 
 static int z_query_on_hdrs(httpc_query_t *q)
 {
@@ -2678,55 +2698,77 @@ static int z_query_on_data(httpc_query_t *q, pstream_t ps)
 static void z_query_on_done(httpc_query_t *q, httpc_status_t status)
 {
     has_reply_g = true;
+    zstatus_g = status;
+}
+
+static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
+    sockunion_t su;
+    int server;
+    httpc_t *httpc;
+
+    zstatus_g = HTTPC_STATUS_ABORT;
+    has_reply_g = false;
+    code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
+    body_g = LSTR_NULL_V;
+
+    Z_ASSERT_N(addr_resolve("test", LSTR_IMMED_V("127.0.0.1:1"), &su));
+    sockunion_setport(&su, 0);
+
+    server = listenx(-1, &su, 1, SOCK_STREAM, IPPROTO_TCP, 0);
+    Z_ASSERT_N(server);
+    zel_server_g = el_fd_register(server, POLLIN, &z_accept, query_cb);
+
+    sockunion_setport(&su, getsockport(server, AF_INET));
+
+    httpc_cfg_init(&zcfg_g);
+    zcfg_g.refcnt++;
+    httpc = httpc_connect(&su, &zcfg_g, NULL);
+    Z_ASSERT_P(httpc);
+
+    httpc_query_init(&zquery_g);
+    httpc_bufferize(&zquery_g, 1024);
+    zquery_g.on_hdrs = &z_query_on_hdrs;
+    zquery_g.on_data = &z_query_on_data;
+    zquery_g.on_done = &z_query_on_done;
+
+    httpc_query_attach(&zquery_g, httpc);
+    httpc_query_start(&zquery_g, HTTP_METHOD_GET, LSTR_IMMED_V("localhost"),
+                      LSTR_IMMED_V("/"));
+    httpc_query_hdrs_done(&zquery_g, 0, false);
+    httpc_query_done(&zquery_g);
+
+    while (!has_reply_g) {
+        el_loop_timeout(10);
+    }
+    Z_ASSERT_EQ(zstatus_g, HTTPC_STATUS_OK);
+    Z_HELPER_END;
+}
+
+static void z_query_cleanup(void) {
+    httpc_query_wipe(&zquery_g);
+    el_fd_unregister(&zel_server_g, true);
+    el_fd_unregister(&zel_client_g, true);
+    el_loop_timeout(10);
+    lstr_wipe(&body_g);
 }
 
 Z_GROUP_EXPORT(httpc) {
     Z_TEST(unexpected_100_continue, "test behavior when receiving 100") {
-        sockunion_t su;
-        int server;
-        el_t el_server;
-        el_t el_client;
-        httpc_t *httpc;
-        httpc_cfg_t cfg;
-        httpc_query_t query;
-
-        Z_ASSERT_N(addr_resolve("test", LSTR_IMMED_V("127.0.0.1:1"), &su));
-        sockunion_setport(&su, 0);
-
-        server = listenx(-1, &su, 1, SOCK_STREAM, IPPROTO_TCP, 0);
-        Z_ASSERT_N(server);
-        el_server = el_fd_register(server, POLLIN, &z_accept, &el_client);
-
-        sockunion_setport(&su, getsockport(server, AF_INET));
-
-        httpc_cfg_init(&cfg);
-        cfg.refcnt++;
-        httpc = httpc_connect(&su, &cfg, NULL);
-        Z_ASSERT_P(httpc);
-
-        httpc_query_init(&query);
-        httpc_bufferize(&query, 1024);
-        query.on_hdrs = &z_query_on_hdrs;
-        query.on_data = &z_query_on_data;
-        query.on_done = &z_query_on_done;
-
-        httpc_query_attach(&query, httpc);
-        httpc_query_start(&query, HTTP_METHOD_GET, LSTR_IMMED_V("localhost"),
-                          LSTR_IMMED_V("/"));
-        httpc_query_hdrs_done(&query, 0, false);
-        httpc_query_done(&query);
-
-        while (!has_reply_g) {
-            el_loop_timeout(10);
-        }
+        Z_HELPER_RUN(z_query_setup(&z_reply_100));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
         Z_ASSERT_LSTREQUAL(body_g, LSTR_IMMED_V("Coucou"));
-        httpc_query_wipe(&query);
-        el_fd_unregister(&el_server, true);
-        el_fd_unregister(&el_client, true);
-        el_loop_timeout(10);
-        lstr_wipe(&body_g);
+
+        z_query_cleanup();
+    } Z_TEST_END;
+
+    Z_TEST(gzip_with_zero_length, "test Content-Encoding: gzip with Content-Length: 0") {
+        Z_HELPER_RUN(z_query_setup(&z_reply_gzip_empty));
+
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_ACCEPTED , code_g);
+        Z_ASSERT_LSTREQUAL(body_g, LSTR_IMMED_V(""));
+
+        z_query_cleanup();
     } Z_TEST_END;
 } Z_GROUP_END;
 
