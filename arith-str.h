@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_STR_STREAM_H)
+#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_STR_H)
 #  error "you must include arith.h instead"
 #else
-#define IS_LIB_COMMON_ARITH_STR_STREAM_H
+#define IS_LIB_COMMON_ARITH_STR_H
 
 #define __PS_GET(ps, w, endianess)                                   \
     do {                                                             \
