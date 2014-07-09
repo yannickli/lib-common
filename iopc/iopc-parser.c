@@ -2773,10 +2773,8 @@ void iopc_parser_initialize(void)
 
 void iopc_parser_shutdown(void)
 {
+    qm_deep_wipe(pkg, &_G.mods, IGNORE, iopc_pkg_delete);
     qm_deep_wipe(enums, &_G.enums, p_delete, IGNORE);
     qm_deep_wipe(enums, &_G.enums_forbidden, p_delete, IGNORE);
-
     qm_deep_wipe(attr_desc, &_G.attrs, IGNORE, iopc_attr_desc_wipe);
-
-    qm_wipe(pkg, &_G.mods);
 }
