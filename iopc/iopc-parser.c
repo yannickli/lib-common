@@ -1962,7 +1962,8 @@ enum {
     IOP_F_EXN  = 2,
 };
 
-static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
+static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
+                                qv_t(dox_chunk) *chunks)
 {
     static char const * const type_names[] = { "Args", "Res", "Exn", };
     static char const * const tokens[]     = { "in",   "out", "throw", };
@@ -1970,13 +1971,12 @@ static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
     const char *token = tokens[what];
     iopc_struct_t **sptr;
     iopc_field_t  **fptr;
-    qv_t(dox_chunk) chunks;
 
-    qv_init(dox_chunk, &chunks);
+    read_dox_front(pp, chunks);
 
-    read_dox_front(pp, &chunks);
-    if (!CHECK_KW(pp, 0, token))
+    if (!CHECK_KW(pp, 0, token)) {
         return false;
+    }
 
     if (fun->fun_is_async && (what == IOP_F_EXN))
         fatal_loc("async functions cannot throw", TK(pp, 0)->loc);
@@ -2005,8 +2005,8 @@ static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
         (*sptr)->loc = TK(pp, 0)->loc;
         parse_struct(pp, *sptr, ',', ')');
         EAT(pp, ')');
-        read_dox_back(pp, &chunks, 0);
-        build_dox_check_all(&chunks, *sptr);
+        read_dox_back(pp, chunks, 0);
+        build_dox_check_all(chunks, *sptr);
     } else                          /* fname in void ... */
     if (CHECK_KW(pp, 0, "void")) {
         DROP(pp, 1);
@@ -2043,17 +2043,15 @@ static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
         f->loc = TK(pp, 0)->loc;
         f->kind = IOP_T_STRUCT;
 
-        read_dox_front(pp, &chunks);
-
         parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
 
-        read_dox_back(pp, &chunks, 0);
-        build_dox_check_all(&chunks, f);
+        read_dox_back(pp, chunks, 0);
+        build_dox_check_all(chunks, f);
 
         iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
         *fptr = f;
     }
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
     return true;
 }
 
@@ -2064,6 +2062,10 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     iopc_fun_t *fun = NULL;
     iopc_token_t *tk;
     int tag;
+    qv_t(dox_chunk) fun_chunks, arg_chunks;
+
+    qv_init(dox_chunk, &fun_chunks);
+    (check_dox_and_attrs)(pp, &fun_chunks, attrs, IOPC_ATTR_T_RPC);
 
     fun = iopc_fun_new();
     fun->loc = TK(pp, 0)->loc;
@@ -2085,20 +2087,24 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
                   TK(pp, 0)->loc, fun->tag);
     }
 
-
     qv_splice(iopc_attr, &fun->attrs, fun->attrs.len, 0,
               attrs->tab, attrs->len);
 
     fun->name = iopc_lower_ident(pp);
     check_name(fun->name, TK(pp, 0)->loc, &fun->attrs);
+    read_dox_back(pp, &fun_chunks, 0);
 
-    parse_function_stuff(pp, IOP_F_ARGS, fun);
-    if ((!parse_function_stuff(pp, IOP_F_RES,  fun))
-    &   (!parse_function_stuff(pp, IOP_F_EXN,  fun)))
+    qv_init(dox_chunk, &arg_chunks);
+    parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks);
+
+    /* XXX we use & to execute both function calls */
+    if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks))
+    &   (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks)))
     {
         info_loc("function %s may be a candidate for async-ness",
                  fun->loc, fun->name);
     }
+    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
 
     EAT(pp, ';');
 
@@ -2108,6 +2114,9 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
             fatal_loc("tag %d is used twice", fun->loc, tag);
     }
     qv_append(i32, tags, tag);
+
+    build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
+    qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
     return fun;
 }
 
@@ -2118,7 +2127,6 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
     qv_t(iopc_attr) attrs;
     int next_tag = 1;
     iopc_iface_t *iface = iopc_iface_new();
-    qv_t(dox_chunk) chunks;
 
     iface->loc = TK(pp, 0)->loc;
 
@@ -2128,17 +2136,14 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
 
     qv_inita(i32, &tags, 1024);
     qv_inita(iopc_attr, &attrs, 16);
-    qv_init(dox_chunk, &chunks);
 
     while (!CHECK_NOEOF(pp, 0, '}')) {
         iopc_fun_t *fun;
 
-        (check_dox_and_attrs)(pp, &chunks, &attrs, IOPC_ATTR_T_RPC);
         fun = parse_function_stmt(pp, &attrs, &tags, &next_tag);
-        if (!fun)
+        if (!fun) {
             continue;
-        read_dox_back(pp, &chunks, 0);
-        build_dox(&chunks, fun, IOPC_ATTR_T_RPC);
+        }
         qv_append(iopc_fun, &iface->funs, fun);
         if (qm_add(fun, &funs, fun->name, fun)) {
             fatal_loc("a function `%s` already exists", fun->loc, fun->name);
@@ -2147,7 +2152,6 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
     qm_wipe(fun, &funs);
     qv_wipe(i32, &tags);
     qv_wipe(iopc_attr, &attrs);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
 
     iopc_loc_merge(&iface->loc, TK(pp, 1)->loc);
     WANT(pp, 1, ';');
