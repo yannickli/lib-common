@@ -2223,7 +2223,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         st->has_constraints     = as->has_constraints;
     } else
     if (!iopc_g.v2) {
-        as_base = strdup(tbase);
+        as_base = p_strdup(tbase);
         /* only generate <tbase>__desc_fields */
         sb_addf(buf, "static iop_field_t const %s__desc_fields[] = {\n", tbase);
         for (int i = 0; i < st->fields.len; i++) {
@@ -2234,7 +2234,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     } else {
         qv_t(iopc_attrs) fields_attrs;
 
-        as_base = strdup(tbase);
+        as_base = p_strdup(tbase);
 
         qv_init(iopc_attrs, &fields_attrs);
 
