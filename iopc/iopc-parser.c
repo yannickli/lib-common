@@ -1240,8 +1240,7 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
 }
 
 static qv_t(iopc_dox)
-build_dox_(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
-           const void *owner, int attr_type)
+build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
 {
     qv_t(iopc_dox) res;
 
@@ -1293,14 +1292,14 @@ build_dox_(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
     return res;
 }
 
-#define build_dox(_pp, _chunks, _owner, _attr_type)                        \
+#define build_dox(_chunks, _owner, _attr_type)                             \
     do {                                                                   \
-        (_owner)->comments = build_dox_(_pp, _chunks, _owner, _attr_type); \
+        (_owner)->comments = build_dox_(_chunks, _owner, _attr_type);      \
         debug_dump_dox((_owner)->comments, (_owner)->name);                \
     } while (0)
 
-#define build_dox_check_all(_pp, _chunks, _owner)  \
-    do { build_dox(_pp, _chunks, _owner, -1); } while (0)
+#define build_dox_check_all(_chunks, _owner)  \
+    do { build_dox(_chunks, _owner, -1); } while (0)
 
 static iopc_attr_t *parse_attr(iopc_parser_t *pp);
 
@@ -1762,7 +1761,7 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         if (f) {
             f->pos = next_pos++;
             read_dox_back(pp, &chunks, sep);
-            build_dox_check_all(pp, &chunks, f);
+            build_dox_check_all(&chunks, f);
         }
         if (CHECK(pp, 0, paren))
             break;
@@ -1921,7 +1920,7 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
         qv_append(i32, &values, f->value);
 
         read_dox_back(pp, &chunks, ',');
-        build_dox_check_all(pp, &chunks, f);
+        build_dox_check_all(&chunks, f);
 
         if (SKIP(pp, ','))
             continue;
@@ -2007,7 +2006,7 @@ static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
         parse_struct(pp, *sptr, ',', ')');
         EAT(pp, ')');
         read_dox_back(pp, &chunks, 0);
-        build_dox_check_all(pp, &chunks, *sptr);
+        build_dox_check_all(&chunks, *sptr);
     } else                          /* fname in void ... */
     if (CHECK_KW(pp, 0, "void")) {
         DROP(pp, 1);
@@ -2049,7 +2048,7 @@ static bool parse_function_stuff(iopc_parser_t *pp, int what, iopc_fun_t *fun)
         parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
 
         read_dox_back(pp, &chunks, 0);
-        build_dox_check_all(pp, &chunks, f);
+        build_dox_check_all(&chunks, f);
 
         iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
         *fptr = f;
@@ -2139,7 +2138,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
         if (!fun)
             continue;
         read_dox_back(pp, &chunks, 0);
-        build_dox(pp, &chunks, fun, IOPC_ATTR_T_RPC);
+        build_dox(&chunks, fun, IOPC_ATTR_T_RPC);
         qv_append(iopc_fun, &iface->funs, fun);
         if (qm_add(fun, &funs, fun->name, fun)) {
             fatal_loc("a function `%s` already exists", fun->loc, fun->name);
@@ -2243,7 +2242,7 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
         f = parse_mod_field_stmt(pp, mod, &fields, &tags, &next_tag);
         if (f) {
             read_dox_back(pp, &chunks, ';');
-            build_dox_check_all(pp, &chunks, f);
+            build_dox_check_all(&chunks, f);
         }
         EAT(pp, ';');
     }
@@ -2530,7 +2529,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     read_dox_front(pp, &chunks);
     pkg->name = parse_pkg_stmt(pp);
     read_dox_back(pp, &chunks, 0);
-    build_dox_check_all(pp, &chunks, pkg);
+    build_dox_check_all(&chunks, pkg);
 
     pkg->file = file;
     if (!strequal(file, "<stdin>")) {
@@ -2576,7 +2575,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 qv_append(iopc_attr, &_o->attrs, _attr);     \
             }                                                \
             read_dox_back(pp, &chunks, 0);                   \
-            build_dox(pp, &chunks, _o, _t);                  \
+            build_dox(&chunks, _o, _t);                      \
         } while (0)
 
         id = ident(TK(pp, 0));
