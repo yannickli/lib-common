@@ -1811,7 +1811,6 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
     st->is_abstract = is_abstract;
 
     if (st->type == STRUCT_TYPE_CLASS) {
-        iopc_extends_t *xt = iopc_extends_new();
         iopc_token_t *tk;
 
         if (!iopc_g.v2) {
@@ -1835,6 +1834,8 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
 
             /* Parse parent */
             if (SKIP(pp, ':')) {
+                iopc_extends_t *xt = iopc_extends_new();
+
                 xt->loc  = TK(pp, 0)->loc;
                 parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
                 iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
