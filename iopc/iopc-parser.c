@@ -1304,8 +1304,9 @@ build_dox_(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
 
 static iopc_attr_t *parse_attr(iopc_parser_t *pp);
 
-static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t *attr)
+static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
 {
+    iopc_attr_t *attr = *attrp;
     int pos = check_attr_multi(attrs, attr);
 
     if (pos < 0 || attr->desc->args.len != 1) {
@@ -1314,13 +1315,15 @@ static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t *attr)
         qv_splice(iopc_arg, &attrs->tab[pos]->args,
                   attrs->tab[pos]->args.len, 0,
                   attr->args.tab, attr->args.len);
+        attr->args.len = 0;
+        iopc_attr_delete(attrp);
     }
 }
 
-void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t *attr, bool tdef)
+void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef)
 {
-    check_attr_type_field(attr, f, tdef);
-    iopc_add_attr(&f->attrs, attr);
+    check_attr_type_field(*attrp, f, tdef);
+    iopc_add_attr(&f->attrs, attrp);
 }
 
 static void
@@ -1333,9 +1336,10 @@ check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
         if (CHECK(pp, 0, ITOK_ATTR)) {
             iopc_attr_t *attr = parse_attr(pp);
 
-            if (attr_type >= 0)
+            if (attr_type >= 0) {
                 check_attr_type_decl(attr, attr_type);
-            iopc_add_attr(attrs, attr);
+            }
+            iopc_add_attr(attrs, &attr);
         } else
         if (read_dox(pp, 0, chunks, false, 0) < 0) {
             break;

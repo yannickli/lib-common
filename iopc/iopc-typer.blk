@@ -186,8 +186,10 @@ iopc_apply_typedef(const iopc_field_t *tdef, iopc_field_t *f, bool f_is_tdef)
     }
 
     iopc_check_field_attributes(f, f_is_tdef);
-    qv_for_each_entry(iopc_attr, attr, &tdef->attrs) {
-        iopc_field_add_attr(f, iopc_attr_dup(attr), f_is_tdef);
+    qv_for_each_entry(iopc_attr, e, &tdef->attrs) {
+        iopc_attr_t *attr = iopc_attr_dup(e);
+
+        iopc_field_add_attr(f, &attr, f_is_tdef);
     }
 }
 

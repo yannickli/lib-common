@@ -545,7 +545,7 @@ qm_kptr_t(field, char, iopc_field_t *,
           qhash_str_hash, qhash_str_equal);
 
 void iopc_check_field_attributes(iopc_field_t *f, bool tdef);
-void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t *attr, bool tdef);
+void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef);
 
 /* used for the code generation of field attributes */
 typedef struct iopc_attrs_t {
