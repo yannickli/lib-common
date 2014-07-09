@@ -416,8 +416,16 @@ static inline iopc_arg_t *iopc_arg_init(iopc_arg_t *a) {
     return a;
 }
 static inline void iopc_arg_wipe(iopc_arg_t *a) {
-    if (a->desc && a->desc->type == ITOK_STRING)
-        lstr_wipe(&a->v.s);
+    if (a->desc) {
+        switch (a->desc->type) {
+          case ITOK_STRING:
+          case ITOK_IDENT:
+            lstr_wipe(&a->v.s);
+            break;
+          default:
+            break;
+        }
+    }
 }
 GENERIC_NEW(iopc_arg_t, iopc_arg);
 GENERIC_DELETE(iopc_arg_t, iopc_arg);
