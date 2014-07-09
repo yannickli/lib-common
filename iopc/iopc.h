@@ -527,6 +527,17 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     iopc_path_delete(&field->type_path);
     qv_deep_wipe(iopc_attr, &field->attrs, iopc_attr_delete);
     qv_deep_wipe(iopc_dox, &field->comments, iopc_dox_wipe);
+    if (field->has_defval) {
+        switch (field->kind) {
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+          case IOP_T_XML:
+            p_delete(&field->defval.ptr);
+            break;
+          default:
+            break;
+        }
+    }
 }
 DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
