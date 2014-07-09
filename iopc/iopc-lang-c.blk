@@ -2378,6 +2378,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     }
 
     #undef WRITE_STRUCT
+
+    p_delete(&as_base);
 }
 
 static void
