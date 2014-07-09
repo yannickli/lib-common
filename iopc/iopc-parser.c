@@ -2544,13 +2544,12 @@ static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *bas
 
 /* Force struct, enum and union to have distinguished name (things qm)*/
 /* Force module and interface to have distinguished name   (mod_inter qm)*/
-static iopc_pkg_t *parse_package(iopc_parser_t *pp, const char *file,
+static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                                  bool is_main_pkg)
 {
     iopc_pkg_t *pkg = iopc_pkg_new();
     qm_t(struct) things = QM_INIT(struct, things, true);
     qm_t(struct) mod_inter = QM_INIT(struct, mod_inter, true);
-    int is_stdin = !file || strequal(file, "-");
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
@@ -2561,7 +2560,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, const char *file,
     read_dox_back(pp, &chunks, 0);
     build_dox_check_all(pp, &chunks, pkg);
 
-    if (!is_stdin) {
+    pkg->file = file;
+    if (!strequal(file, "<stdin>")) {
         char base[PATH_MAX];
 
         path_dirname(base, sizeof(base), file);
@@ -2570,7 +2570,6 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, const char *file,
         }
         path_simplify(base);
         check_pkg_path(pp, pkg->name, base);
-        pkg->file = p_strdup(file);
         pp->base  = pkg->base = p_strdup(base);
         qm_add(pkg, &_G.mods, pkg->file, pkg);
     }
@@ -2742,13 +2741,19 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
             pkg = iopc_pkg_dup(_G.mods.values[pos]);
     }
     if (!pkg) {
+        char *path;
         iopc_parser_t pp = {
-            .ld      = iopc_lexer_new(file),
             .ipath   = ipath,
             .cfolder = iop_cfolder_new(),
         };
 
-        pkg = parse_package(&pp, file, is_main_pkg);
+        if (!file || strequal(file, "-")) {
+            path = p_strdup("<stdin>");
+        } else {
+            path = p_strdup(file);
+        }
+        pp.ld = iopc_lexer_new(path);
+        pkg = parse_package(&pp, path, is_main_pkg);
         qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
         iopc_lexer_delete(&pp.ld);
         iop_cfolder_delete(&pp.cfolder);

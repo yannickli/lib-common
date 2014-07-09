@@ -578,13 +578,12 @@ struct lexdata *iopc_lexer_new(const char *file)
 
     sb_init(&ld->buf);
     ld->lno = 1;
-    if (!file || strequal(file, "-")) {
-        ld->path = "<stdin>";
-    } else {
-        ld->path = strdup(file);
+    ld->path = file;
+    if (!strequal(file, "<stdin>")) {
         ld->fd = fopen(file, "rb");
-        if (!ld->fd)
+        if (!ld->fd) {
             fatal("unable to open file `%s` for reading", file);
+        }
     }
 
     yylex_init(&ld->scanner);
