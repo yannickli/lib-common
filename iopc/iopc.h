@@ -521,7 +521,6 @@ static inline iopc_field_t *iopc_field_init(iopc_field_t *field) {
 static inline void iopc_field_wipe(iopc_field_t *field) {
     p_delete(&field->name);
     p_delete(&field->type_name);
-    p_delete(&field->type_path);
     p_delete(&field->pp_type);
     iopc_pkg_delete(&field->found_pkg);
     iopc_pkg_delete(&field->type_pkg);
