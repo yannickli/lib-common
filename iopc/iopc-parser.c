@@ -1649,14 +1649,6 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     iopc_token_t *tk;
     int           tag;
 
-    /* obsolete field */
-    if (SKIP(pp, '_')) {
-        EAT(pp, ':');
-        EAT(pp, ITOK_IDENT);
-        tag = (*next_tag)++;
-        goto check_tag;
-    }
-
     f = iopc_field_new();
     f->loc = TK(pp, 0)->loc;
 
@@ -1739,7 +1731,6 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     }
     qv_append(iopc_field, &st->fields, f);
 
-  check_tag:
     qv_for_each_entry(i32, t, tags) {
         if (t == tag)
             fatal_loc("tag %d is used twice", f->loc, tag);
@@ -2075,15 +2066,6 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     iopc_token_t *tk;
     int tag;
 
-    /* obsolete field */
-    if (SKIP(pp, '_')) {
-        EAT(pp, ':');
-        EAT(pp, ITOK_IDENT);
-        EAT(pp, ';');
-        tag = (*next_tag)++;
-        goto check_tag;
-    }
-
     fun = iopc_fun_new();
     fun->loc = TK(pp, 0)->loc;
     if (CHECK(pp, 0, ITOK_INTEGER)) {
@@ -2122,7 +2104,6 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     EAT(pp, ';');
 
     tag = fun->tag;
-  check_tag:
     for (int i = 0; i < tags->len; i++) {
         if (tags->tab[i] == tag)
             fatal_loc("tag %d is used twice", fun->loc, tag);
@@ -2183,14 +2164,6 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     iopc_token_t *tk;
     int tag;
 
-    /* obsolete field */
-    if (SKIP(pp, '_')) {
-        EAT(pp, ':');
-        EAT(pp, ITOK_IDENT);
-        tag = (*next_tag)++;
-        goto check_tag;
-    }
-
     f = iopc_field_new();
     f->loc = TK(pp, 0)->loc;
     if (CHECK(pp, 0, ITOK_INTEGER)) {
@@ -2224,7 +2197,6 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     if (qm_add(field, fields, f->name, f)) {
         fatal_loc("field name `%s` is already in use", f->loc, f->name);
     }
-  check_tag:
     for (int i = 0; i < tags->len; i++) {
         if (tags->tab[i] == tag)
             fatal_loc("tag %d is used twice", f->loc, tag);
