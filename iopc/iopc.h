@@ -729,12 +729,16 @@ static inline iopc_fun_t *iopc_fun_init(iopc_fun_t *fun) {
     return fun;
 }
 static inline void iopc_fun_wipe(iopc_fun_t *fun) {
-    if (fun->res_is_anonymous)
-        iopc_struct_delete(&fun->res);
-    if (fun->arg_is_anonymous)
-        iopc_struct_delete(&fun->arg);
-    if (fun->exn_is_anonymous)
-        iopc_struct_delete(&fun->exn);
+#define DELETE(v) \
+    if (fun->v##_is_anonymous) {                \
+        iopc_struct_delete(&fun->v);            \
+    } else {                                    \
+        iopc_field_delete(&fun->f##v);          \
+    }
+    DELETE(arg);
+    DELETE(res);
+    DELETE(exn);
+#undef DELETE
     p_delete(&fun->name);
     qv_deep_wipe(iopc_attr, &fun->attrs, iopc_attr_delete);
     qv_deep_wipe(iopc_dox, &fun->comments, iopc_dox_wipe);
