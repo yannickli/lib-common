@@ -3039,8 +3039,8 @@ void iopc_do_c(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
     iopc_write_file(&buf, path);
 
     /*----- collect memory -----*/
-    qv_deep_wipe(iopc_pkg, &t_deps, iopc_pkg_delete);
-    qv_deep_wipe(iopc_pkg, &i_deps, iopc_pkg_delete);
+    qv_wipe(iopc_pkg, &t_deps);
+    qv_wipe(iopc_pkg, &i_deps);
     sb_wipe(&buf);
     qv_deep_wipe(str, &pp_g, p_delete);
     iopc_put_range_cleanup();

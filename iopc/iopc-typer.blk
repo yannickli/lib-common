@@ -21,8 +21,9 @@ static struct {
 static iopc_struct_t *pkg_find_module(iopc_pkg_t *pkg, const char *name)
 {
     qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
-        if (strequal(mod->name, name))
-            return iopc_struct_dup(mod);
+        if (strequal(mod->name, name)) {
+            return mod;
+        }
     }
     return NULL;
 }
@@ -83,7 +84,7 @@ iopc_ifaces_find_n_check(iopc_pkg_t *pkg, iopc_field_t *iface)
 
     if (pkg_provides_iface(pkg, iface->type_name, false)) {
         found = true;
-        iface->type_pkg = t_pkg = iopc_pkg_dup(pkg);
+        iface->type_pkg = t_pkg = pkg;
     }
 
     qv_for_each_pos_safe(iopc_import, i, &pkg->imports) {
@@ -93,7 +94,7 @@ iopc_ifaces_find_n_check(iopc_pkg_t *pkg, iopc_field_t *iface)
             continue;
         if (!found) {
             pkg->imports.tab[i]->used = found = true;
-            iface->type_pkg = t_pkg = iopc_pkg_dup(ipkg);
+            iface->type_pkg = t_pkg = ipkg;
             continue;
         }
 
@@ -119,15 +120,16 @@ iopc_modules_find_n_check(iopc_pkg_t *pkg, iopc_extends_t *xt)
 
     if (t_pkg) {
         xt->st = pkg_find_module(t_pkg, xt->name);
-        if (xt->st)
+        if (xt->st) {
             return 0;
+        }
         fatal_loc("unable to find module `%s` in pkg `%s`",
                   xt->loc, xt->name, pretty_path_dot(t_pkg->name));
     }
 
     xt->st = pkg_find_module(pkg, xt->name);
     if (xt->st) {
-        xt->pkg = t_pkg = iopc_pkg_dup(pkg);
+        xt->pkg = t_pkg = pkg;
     }
 
     qv_for_each_pos_safe(iopc_import, i, &pkg->imports) {
@@ -135,16 +137,16 @@ iopc_modules_find_n_check(iopc_pkg_t *pkg, iopc_extends_t *xt)
         iopc_struct_t *st;
 
         st = pkg_find_module(ipkg, xt->name);
-        if (!st)
+        if (!st) {
             continue;
+        }
         if (!xt->st) {
             xt->st  = st;
-            xt->pkg = t_pkg = iopc_pkg_dup(ipkg);
+            xt->pkg = t_pkg = ipkg;
             pkg->imports.tab[i]->used = true;
             continue;
         }
 
-        iopc_struct_delete(&st);
         warn_loc("module `%s` is provided by both `%s` and `%s`",
                  xt->loc, xt->name,
                  pretty_path_dot(t_pkg->name),
@@ -175,11 +177,11 @@ iopc_apply_typedef(const iopc_field_t *tdef, iopc_field_t *f, bool f_is_tdef)
     }
     p_delete(&f->type_name);
     iopc_path_delete(&f->type_path);
-    iopc_pkg_delete(&f->type_pkg);
+    f->type_pkg = NULL;
     if (tdef->kind == IOP_T_STRUCT || tdef->kind == IOP_T_UNION
     ||  tdef->kind == IOP_T_ENUM)
     {
-        f->type_pkg   = iopc_pkg_dup(tdef->type_pkg);
+        f->type_pkg   = tdef->type_pkg;
         f->type_name  = p_strdup(tdef->type_name);
         f->type_path  = iopc_path_dup(tdef->type_path);
         f->struct_def = tdef->struct_def;
@@ -206,23 +208,23 @@ static int iopc_find_type_in_pkg(iopc_pkg_t *pkg, iopc_field_t *f,
 
     if ((st = pkg_provides_struct(pkg, name, visible))) {
         if (!f->type_pkg) {
-            f->type_pkg = iopc_pkg_dup(pkg);
+            f->type_pkg = pkg;
         }
         if (!f->found_pkg) {
-            f->found_pkg = iopc_pkg_dup(pkg);
+            f->found_pkg = pkg;
         }
-        f->struct_def = iopc_struct_dup(st);
+        f->struct_def = st;
         f->kind = (st->type == STRUCT_TYPE_UNION) ? IOP_T_UNION : IOP_T_STRUCT;
         return 0;
     }
     if ((en = pkg_provides_enum(pkg, name, visible))) {
         if (!f->type_pkg) {
-            f->type_pkg = iopc_pkg_dup(pkg);
+            f->type_pkg = pkg;
         }
         if (!f->found_pkg) {
-            f->found_pkg = iopc_pkg_dup(pkg);
+            f->found_pkg = pkg;
         }
-        f->enum_def = iopc_enum_dup(en);
+        f->enum_def = en;
         f->kind = IOP_T_ENUM;
         return 0;
     }
@@ -235,7 +237,7 @@ static int iopc_find_type_in_pkg(iopc_pkg_t *pkg, iopc_field_t *f,
 
         iopc_apply_typedef(tdef, f, f_is_tdef);
         if (!f->found_pkg) {
-            f->found_pkg = iopc_pkg_dup(pkg);
+            f->found_pkg = pkg;
         }
         return 0;
     }
@@ -295,7 +297,7 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
                      pretty_path_dot(ipkg->name));
         } else {
             pkg->imports.tab[i]->used = true;
-            f->type_pkg = iopc_pkg_dup(ipkg);
+            f->type_pkg = ipkg;
         }
     }
     if (f->kind == IOP_T_STRUCT && !f->struct_def) {
@@ -375,7 +377,7 @@ static void iopc_struct_resolve(const qv_t(cstr) *ipath,
         assert (st->extends.len == 1);
 
         if (!xt->pkg) {
-            xt->pkg = iopc_pkg_dup(pkg);
+            xt->pkg = pkg;
             iopc_path_delete(&xt->path);
             xt->path = iopc_path_dup(pkg->name);
         } else
@@ -396,7 +398,7 @@ static void iopc_struct_resolve(const qv_t(cstr) *ipath,
             fatal_loc("parent object `%s` is not a class", xt->loc,
                       st2->name);
         }
-        xt->st = iopc_struct_dup(st2);
+        xt->st = st2;
     }
 
     /* Resolve fields */
@@ -520,8 +522,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     /* Check class ids unicity */
   check_ids:
     if (!parent_st->resolved_inheritance) {
-        qm_add(id_class, ids, parent_st->class_id,
-               iopc_struct_dup(parent_st));
+        qm_add(id_class, ids, parent_st->class_id, parent_st);
     }
     if (!parent_st->extends.len) {
         /* This is a master class, store ids in its children_by_id table */
@@ -656,7 +657,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
             if (fun->arg) {
                 if (fun->arg_is_anonymous) {
                     iopc_struct_resolve(ipath, pkg, fun->arg);
-                    fun->arg->iface = iopc_iface_dup(iface);
+                    fun->arg->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->farg, false);
                 }
@@ -664,7 +665,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
             if (fun->res) {
                 if (fun->res_is_anonymous) {
                     iopc_struct_resolve(ipath, pkg, fun->res);
-                    fun->res->iface = iopc_iface_dup(iface);
+                    fun->res->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->fres, false);
                 }
@@ -672,7 +673,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
             if (fun->exn) {
                 if (fun->exn_is_anonymous) {
                     iopc_struct_resolve(ipath, pkg, fun->exn);
-                    fun->exn->iface = iopc_iface_dup(iface);
+                    fun->exn->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->fexn, false);
                 }
@@ -920,7 +921,7 @@ static void iopc_type_fold_one(qm_t(uid) *h, iopc_struct_t *st)
         if (st == st2 || st->same_as)
             return;
 
-        st->same_as = iopc_struct_dup(st2);
+        st->same_as = st2;
     }
 }
 

@@ -110,7 +110,7 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
     path_simplify(file);
     pos = qm_find(pkg, &_G.mods, file);
     if (pos >= 0)
-        return iopc_pkg_dup(_G.mods.values[pos]);
+        return _G.mods.values[pos];
 
     if (stat(file, &st) == 0 && S_ISREG(st.st_mode))
         return iopc_parse_file(pp->ipath, file, false);
@@ -2738,7 +2738,7 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
         file = tmp;
         pos = qm_find(pkg, &_G.mods, file);
         if (pos >= 0)
-            pkg = iopc_pkg_dup(_G.mods.values[pos]);
+            pkg = _G.mods.values[pos];
     }
     if (!pkg) {
         char *path;
