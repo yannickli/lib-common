@@ -203,6 +203,8 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
         e_panic("mem_pool_ring does not support alignments greater than 16");
     }
 
+    THROW_NULL_IF(size == 0);
+
     res = rp_reserve(rp, size, &rp->cblk);
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
