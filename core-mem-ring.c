@@ -198,6 +198,8 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, mem_flags_t flags)
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
     byte *res;
 
+    THROW_NULL_IF(size == 0);
+
     res = rp_reserve(rp, size, &rp->cblk);
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
