@@ -119,4 +119,25 @@ static inline int ps_get_cpu64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 6
 #undef __PS_GET
 #undef PS_GET
 
+#define SB_ADD(sb, u, r, endianess) \
+    put_unaligned_##endianess##r(sb_growlen(sb, r / 8), u)
+
+static inline void sb_add_be16(sb_t *sb, uint16_t u) { SB_ADD(sb, u, 16, be); }
+static inline void sb_add_be24(sb_t *sb, uint32_t u) { SB_ADD(sb, u, 24, be); }
+static inline void sb_add_be32(sb_t *sb, uint32_t u) { SB_ADD(sb, u, 32, be); }
+static inline void sb_add_be48(sb_t *sb, uint64_t u) { SB_ADD(sb, u, 48, be); }
+static inline void sb_add_be64(sb_t *sb, uint64_t u) { SB_ADD(sb, u, 64, be); }
+
+static inline void sb_add_le16(sb_t *sb, uint16_t u) { SB_ADD(sb, u, 16, le); }
+static inline void sb_add_le24(sb_t *sb, uint32_t u) { SB_ADD(sb, u, 24, le); }
+static inline void sb_add_le32(sb_t *sb, uint32_t u) { SB_ADD(sb, u, 32, le); }
+static inline void sb_add_le48(sb_t *sb, uint64_t u) { SB_ADD(sb, u, 48, le); }
+static inline void sb_add_le64(sb_t *sb, uint64_t u) { SB_ADD(sb, u, 64, le); }
+
+static inline void sb_add_cpu16(sb_t *sb, uint16_t u) { SB_ADD(sb, u, 16, cpu); }
+static inline void sb_add_cpu32(sb_t *sb, uint32_t u) { SB_ADD(sb, u, 32, cpu); }
+static inline void sb_add_cpu64(sb_t *sb, uint64_t u) { SB_ADD(sb, u, 64, cpu); }
+
+#undef SB_ADD
+
 #endif
