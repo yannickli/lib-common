@@ -1,0 +1,111 @@
+package attrs_valid;
+
+@ctype(my_enum_a) @ctype(type = enum_a)
+@prefix(A)
+@strict
+enum MyEnumA {
+    A = 0x0,
+    B = 0x1,
+    C = 0x2,
+};
+
+@ctype(type = my_union_a)
+union MyUnionA {
+    byte    ub;
+    @nonEmpty @maxLength(64) @pattern("[^a-zA-Z0-9_\- ]*")
+    string  us1;
+    @pattern("[ABa-fCD0-9EF]*")
+    string  us2;
+    @length(8)
+    string  fls;
+    @nowarn(keyword)
+    @min(1 << 2) @max(1 << 5)
+    int     class;
+};
+
+struct User {
+    MyEnumA     a;
+
+    @cdata @maxLength(64)
+    string[]    login;
+    @nonEmpty @maxLength(64)
+    bytes       datas;
+
+    @nowarn(bytes)
+    byte[]      data;
+
+    @disallow(us1) @disallow(us2)
+    MyUnionA    u;
+    @allow(us1) @allow(us2)
+    MyUnionA    u2;
+    @allow(us1, us2)
+    MyUnionA    u3;
+    @minOccurs(5) @maxOccurs(10)
+    @min(5 - 15) @max(-5)
+    int[]  intTab;
+    @min(3+2) @max(10*5)
+    uint[]  uintTab;
+    @min(-5.5) @max(10.5)
+    double[]  doubleTab;
+};
+
+struct User2 {
+    @cdata
+    string  login;
+    MyEnumA a;
+    @nowarn(bytes)
+    byte[]  data;
+
+    @minOccurs(5) @maxOccurs(10)
+    @min(5 - 15) @max(-5)
+    int[]  intTab;
+    @min(3+2) @max(10*5)
+    uint[]  uintTab;
+    @min(-5.5) @max(10.5)
+    double[]  doubleTab;
+};
+
+@ctype(pkg_a_t)
+struct A {
+    MyEnumA a;
+
+    @nonZero @min(2)
+    byte    i8;
+    @nonZero @min(2)
+    ushort  u16;
+    @nonZero @min(2)
+    int     i32;
+    @nonZero @min(2)
+    long    i64;
+    @nonZero @min(2)
+    ulong   u64;
+};
+
+struct B {
+    @private
+    int?  a;
+    @private
+    int[] b;
+    @private
+    int   c = 42;
+};
+
+interface AIface {
+    @alias (brpc)
+    arpc in (int a)
+         out (int res);
+    @alias(crpc)
+    @alias(drpc)
+    erpc in A
+         out null;
+    @alias(frpc)
+    grpc in void
+         out B;
+};
+
+%C{
+static inline int a_get_a(attrs_valid__a__t *a)
+{
+    return a->a;;
+}
+%}

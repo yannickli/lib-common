@@ -11,11 +11,18 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = iopc
+iopc_LIBRARIES = libiopc
+iopc_PROGRAMS = iopc
 
 _LIBS = -ldl -lpthread -lrt
 
 iopc_SOURCES = \
+    iopc.c                          \
+    libiopc.a                       \
+    $lcore-version.c                \
+    $llibcommon.a
+
+libiopc_SOURCES = \
     iopc-lex.l                \
     iopc-parser.c             \
     iopc-pretty.c             \
