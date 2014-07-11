@@ -271,6 +271,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 %option 8bit batch nointeractive reentrant stack
 %option noyywrap nounput noyy_top_state noinput
+%option prefix="iopc_"
 
 %x      DOX_COMMENT DOX_LINE_COMMENT DOX_PARAM COMMENT STRING CSTRING VERBATIM
 %s      ATTR

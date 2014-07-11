@@ -24,8 +24,6 @@ iopc_SOURCES = \
     iopc-write.c              \
     \
     iopc-lang-c.blk           \
-    iopc-lang-json.blk        \
-    \
-    $llibcommon.a
+    iopc-lang-json.blk
 
 include ../Build/base.mk
