@@ -536,8 +536,7 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
 }
 DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
-qm_kptr_t(field, char, iopc_field_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(field, char, iopc_field_t *, qhash_str_hash, qhash_str_equal);
 
 void iopc_check_field_attributes(iopc_field_t *f, bool tdef);
 void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef);
@@ -630,8 +629,7 @@ static inline void iopc_struct_wipe(iopc_struct_t *st) {
 GENERIC_NEW(iopc_struct_t, iopc_struct);
 GENERIC_DELETE(iopc_struct_t, iopc_struct);
 qvector_t(iopc_struct, iopc_struct_t *);
-qm_kptr_t(struct, char, iopc_struct_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(struct, char, iopc_struct_t *, qhash_str_hash, qhash_str_equal);
 
 static inline void iopc_extends_wipe(iopc_extends_t *extends) {
     iopc_path_delete(&extends->path);
@@ -681,8 +679,7 @@ static inline void iopc_enum_wipe(iopc_enum_t *e) {
 GENERIC_NEW(iopc_enum_t, iopc_enum);
 GENERIC_DELETE(iopc_enum_t, iopc_enum);
 qvector_t(iopc_enum, iopc_enum_t *);
-qm_kptr_t(enum, char, iopc_enum_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(enum, char, iopc_enum_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_fun_t {
     iopc_loc_t loc;
@@ -733,8 +730,7 @@ static inline void iopc_fun_wipe(iopc_fun_t *fun) {
 GENERIC_NEW(iopc_fun_t, iopc_fun);
 GENERIC_DELETE(iopc_fun_t, iopc_fun);
 qvector_t(iopc_fun, iopc_fun_t *);
-qm_kptr_t(fun, char, iopc_fun_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(fun, char, iopc_fun_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_iface_t {
     flag_t     is_visible : 1;
@@ -762,8 +758,7 @@ static inline void iopc_iface_wipe(iopc_iface_t *iface) {
 GENERIC_NEW(iopc_iface_t, iopc_iface);
 GENERIC_DELETE(iopc_iface_t, iopc_iface);
 qvector_t(iopc_iface, iopc_iface_t *);
-qm_kptr_t(iface, char, iopc_iface_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(iface, char, iopc_iface_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_resolve_t {
     const qv_t(cstr)    *ipath;
