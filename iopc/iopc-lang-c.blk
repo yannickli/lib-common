@@ -2869,7 +2869,8 @@ static void put_include(sb_t *sb, const char *ext,
           pretty_path(pkg->name), iop_path);
 }
 
-void iopc_do_c(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
+               const char *iop_compat, sb_t *depbuf)
 {
     qv_t(iopc_pkg) t_deps, t_weak_deps, i_deps;
     const char *pkg_name;
@@ -2888,7 +2889,8 @@ void iopc_do_c(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
     pkg_name = pp_under(pkg->name);
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
 
-    iopc_set_path(outdir, pkg, "-tdef.iop.h", sizeof(path), path, false);
+    iopc_set_path(outdir, pkg, "-tdef.iop.h", sizeof(path), path,
+                  !!iop_compat);
 
     /*----- dump the typedef header ------*/
     sb_sets(&buf, RO_WARN);
@@ -2896,8 +2898,15 @@ void iopc_do_c(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
             "#ifndef IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "#define IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "\n"
-            "#include <lib-common/iop.h>\n"
             "\n", pkg_name, pkg_name);
+    if (iop_compat) {
+        sb_adds(&buf, iop_compat);
+        sb_addc(&buf, '\n');
+    } else {
+        sb_adds(&buf,
+                "#include <lib-common/iop.h>\n"
+                "\n");
+    }
 
     qv_for_each_entry(iopc_enum, en, &pkg->enums) {
         iopc_enum_dump_tdef_hdr(&buf, pkg_name, en);
@@ -3016,27 +3025,29 @@ void iopc_do_c(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
     iopc_pkg_dump_src(&buf, pkg, pkg_name, &t_deps, &i_deps);
     sb_addc(&buf, '\n');
 
-    sb_adds(depbuf, path);
-    sb_addc(depbuf, ' ');
     path[strlen(path) - 1] = 'c';
-    sb_adds(depbuf, path);
-    sb_adds(depbuf, ":");
-
-    qv_for_each_entry(iopc_pkg, dep, &t_deps) {
-        char tmp[PATH_MAX];
-
-        path_canonify(tmp, sizeof(tmp), dep->file);
-        sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
-    }
-    qv_for_each_entry(iopc_pkg, dep, &i_deps) {
-        char tmp[PATH_MAX];
-
-        path_canonify(tmp, sizeof(tmp), dep->file);
-        sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
-    }
-    sb_addc(depbuf, '\n');
-
     iopc_write_file(&buf, path);
+
+    if (depbuf) {
+        sb_adds(depbuf, path);
+        sb_addc(depbuf, ' ');
+        sb_adds(depbuf, path);
+        sb_adds(depbuf, ":");
+
+        qv_for_each_entry(iopc_pkg, dep, &t_deps) {
+            char tmp[PATH_MAX];
+
+            path_canonify(tmp, sizeof(tmp), dep->file);
+            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
+        }
+        qv_for_each_entry(iopc_pkg, dep, &i_deps) {
+            char tmp[PATH_MAX];
+
+            path_canonify(tmp, sizeof(tmp), dep->file);
+            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
+        }
+        sb_addc(depbuf, '\n');
+    }
 
     /*----- collect memory -----*/
     qv_wipe(iopc_pkg, &t_deps);

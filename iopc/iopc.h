@@ -894,7 +894,10 @@ extern struct iopc_do_c_globs {
     const char *data_c_type;
 } iopc_do_c_g;
 
-void iopc_do_c(const char *outdir, sb_t *deps, iopc_pkg_t *pkg);
-void iopc_do_json(const char *outdir, sb_t *deps, iopc_pkg_t *pkg);
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
+               const char *iop_compat, sb_t *depbuf);
+void iopc_do_json(iopc_pkg_t *pkg, const char *outdir,
+                  const char *iop_compat, sb_t *depbuf);
+
 
 #endif

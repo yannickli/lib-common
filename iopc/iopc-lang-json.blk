@@ -713,7 +713,8 @@ iopc_module_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
 /*}}} */
 
-void iopc_do_json(const char *outdir, sb_t *depbuf, iopc_pkg_t *pkg)
+void iopc_do_json(iopc_pkg_t *pkg, const char *outdir,
+                  const char *iop_compat, sb_t *deps)
 {
     char path[PATH_MAX];
     SB(buf, 32 << 10);
