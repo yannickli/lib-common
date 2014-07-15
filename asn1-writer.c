@@ -1091,12 +1091,11 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
 
     if (indef_len) {
         *ps = field_ps;
-        if (!ps_has(ps, 2) || ps->b[0] != 0x00 || ps->b[1] != 0x00) {
-            e_trace(1, "error: Incorrect EOC");
-            e_trace_hex(2, "current input stream", ps->b, (int)ps_len(ps));
-            return -1;
-        }
 
+        /* Skip every trailing fields up to EOC. */
+        RETHROW(asn1_get_field(ps, true, NULL));
+
+        /* Skip EOC. */
         __ps_skip(ps, 2);
     }
 

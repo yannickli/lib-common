@@ -140,6 +140,11 @@ typedef struct il_rec_base_t {
     il_rec_vec_t vec;
 } il_rec_base_t;
 
+typedef struct il_trailing_t {
+    il_test_t t;
+    int32_t i;
+} il_trailing_t;
+
 ASN1_DESC(test_0);
 ASN1_DESC(test_1);
 ASN1_DESC(test_2);
@@ -233,6 +238,11 @@ ASN1_DESC_END(desc);
 
 static ASN1_DESC_BEGIN(desc, il_test_base);
     asn1_reg_sequence(desc, il_test_base, il_test, t, 0x76);
+ASN1_DESC_END(desc);
+
+static ASN1_DESC_BEGIN(desc, il_trailing);
+    asn1_reg_sequence(desc, il_trailing, il_test, t, 0x76);
+    asn1_reg_scalar(desc, il_trailing, i, 0x01);
 ASN1_DESC_END(desc);
 
 static ASN1_DESC_BEGIN(desc, il_rec);
@@ -528,6 +538,53 @@ Z_GROUP_EXPORT(asn1_ber)
 
         len = serialize_test_3(buf, &t3);
         Z_ASSERT_EQUAL(buf, len, expected, sizeof(expected));
+    } Z_TEST_END;
+
+    Z_TEST(indef_len_skip_trailing_fields, "asn1: BER decoder - "
+           "skip trailing filed in case of indefinite length")
+    {
+        t_scope;
+
+        /* One trailing field. */
+        static uint8_t const in1[] = {
+            0x76, 0x80,
+                        /* Declared fields. */
+                        0x12, 0x01, 0x01,
+                        0x34, 0x01, 0x02,
+                        /* Trailing field. */
+                        0x56, 0x02, 0xab, 0xcd,
+                        /* EOC */
+                        0x00, 0x00,
+            0x01, 0x01, 0x03,
+        };
+        /* Two trailing fields. */
+        static uint8_t const in2[] = {
+            0x76, 0x80,
+                        /* Declared fields. */
+                        0x12, 0x01, 0x01,
+                        0x34, 0x01, 0x02,
+                        /* Trailing fields. */
+                        0x56, 0x02, 0xab, 0xcd,
+                        0x78, 0x03, 0xab, 0xcd, 0xef,
+                        /* EOC */
+                        0x00, 0x00,
+            0x01, 0x01, 0x03,
+        };
+
+        il_trailing_t t;
+
+        p_clear(&t, 1);
+
+        ps = ps_init(in1, sizeof(in1));
+        Z_ASSERT_N(asn1_unpack(il_trailing, &ps, t_pool(), &t, false));
+        Z_ASSERT_EQ(t.t.i1, 1);
+        Z_ASSERT_EQ(t.t.i2, 2);
+        Z_ASSERT_EQ(t.i, 3);
+        ps = ps_init(in2, sizeof(in2));
+        Z_ASSERT_N(asn1_unpack(il_trailing, &ps, t_pool(), &t, false));
+        Z_ASSERT_EQ(t.t.i1, 1);
+        Z_ASSERT_EQ(t.t.i2, 2);
+        Z_ASSERT_EQ(t.i, 3);
     } Z_TEST_END;
 
     Z_TEST(reader, "asn1: BER reader test") {
