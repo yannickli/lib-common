@@ -14,7 +14,7 @@
 #include "iopc.h"
 
 static struct {
-    qv_t(iopc_resolve) resolve_list;
+    qv_t(iopc_pkg) resolve_list;
 } iopc_typer_g;
 #define _G iopc_typer_g
 
@@ -322,11 +322,11 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
     iopc_check_field_attributes(f, f_is_tdef);
 }
 
-static void iopc_t_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg);
-static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg);
+static void iopc_t_resolve(iopc_pkg_t *pkg);
+static void iopc_i_resolve(iopc_pkg_t *pkg);
 
-static void iopc_field_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg,
-                               iopc_field_t *field, iopc_struct_t *st)
+static void iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
+                               iopc_struct_t *st)
 {
     t_scope;
 
@@ -347,8 +347,7 @@ static void iopc_field_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg,
          * contains a constraints and we can't recurse in this context, so
          * we schedule the type resolution for later. */
         if (!fpkg->t_resolved) {
-            iopc_resolve_t r = { ipath, fpkg };
-            qv_append(iopc_resolve, &_G.resolve_list, r);
+            qv_append(iopc_pkg, &_G.resolve_list, fpkg);
         }
         return;
     }
@@ -361,12 +360,11 @@ static void iopc_field_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg,
                    pretty_path_dot(pkg->name), field->name,
                    pretty_path_dot(field->type_path));
     }
-    iopc_t_resolve(ipath, field->type_pkg);
+    iopc_t_resolve(field->type_pkg);
     pop_loc();
 }
 
-static void iopc_struct_resolve(const qv_t(cstr) *ipath,
-                                iopc_pkg_t *pkg, iopc_struct_t *st)
+static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
 {
     /* Resolve inheritance */
     if (st->extends.len) {
@@ -386,7 +384,7 @@ static void iopc_struct_resolve(const qv_t(cstr) *ipath,
                        "for inheritance",
                        pretty_path_dot(pkg->name), st->name,
                        pretty_path_dot(xt->path));
-            iopc_t_resolve(ipath, xt->pkg);
+            iopc_t_resolve(xt->pkg);
             pop_loc();
         }
         if (!(st2 = pkg_provides_struct(xt->pkg, xt->name, true))) {
@@ -403,7 +401,7 @@ static void iopc_struct_resolve(const qv_t(cstr) *ipath,
 
     /* Resolve fields */
     qv_for_each_entry(iopc_field, f, &st->fields) {
-        iopc_field_resolve(ipath, pkg, f, st);
+        iopc_field_resolve(pkg, f, st);
 
         if (st->type == STRUCT_TYPE_UNION) {
             if (f->repeat == IOP_R_OPTIONAL) {
@@ -596,7 +594,7 @@ static void iopc_struct_check_abstract_static_fields(const iopc_struct_t *st)
     qh_wipe(str, &fields_seen);
 }
 
-static void iopc_t_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
+static void iopc_t_resolve(iopc_pkg_t *pkg)
 {
     if (pkg->t_resolved)
         return;
@@ -605,10 +603,10 @@ static void iopc_t_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
 
     pkg->t_resolving = true;
     qv_for_each_entry(iopc_field, tdef, &pkg->typedefs) {
-        iopc_field_resolve(ipath, pkg, tdef, NULL);
+        iopc_field_resolve(pkg, tdef, NULL);
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        iopc_struct_resolve(ipath, pkg, st);
+        iopc_struct_resolve(pkg, st);
     }
     pkg->t_resolving = false;
     pkg->t_resolved = true;
@@ -644,7 +642,7 @@ static void iopc_t_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
     }
 }
 
-static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
+static void iopc_i_resolve(iopc_pkg_t *pkg)
 {
     if (pkg->i_resolved)
         return;
@@ -656,7 +654,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {
             if (fun->arg) {
                 if (fun->arg_is_anonymous) {
-                    iopc_struct_resolve(ipath, pkg, fun->arg);
+                    iopc_struct_resolve(pkg, fun->arg);
                     fun->arg->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->farg, false);
@@ -664,7 +662,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
             }
             if (fun->res) {
                 if (fun->res_is_anonymous) {
-                    iopc_struct_resolve(ipath, pkg, fun->res);
+                    iopc_struct_resolve(pkg, fun->res);
                     fun->res->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->fres, false);
@@ -672,7 +670,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
             }
             if (fun->exn) {
                 if (fun->exn_is_anonymous) {
-                    iopc_struct_resolve(ipath, pkg, fun->exn);
+                    iopc_struct_resolve(pkg, fun->exn);
                     fun->exn->iface = iface;
                 } else {
                     iopc_types_find_n_check(pkg, fun->fexn, false);
@@ -691,7 +689,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
                            "in package %s, module %s, iface %s needs package %s",
                            pretty_path_dot(pkg->name), mod->name, iface->name,
                            pretty_path_dot(iface->type_path));
-                iopc_resolve(ipath, iface->type_pkg);
+                iopc_resolve(iface->type_pkg);
                 pop_loc();
             }
         }
@@ -706,7 +704,7 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
                 if (xt->pkg->i_resolving || xt->pkg->t_resolving) {
                     fatal_loc("circular dependency", xt->loc);
                 }
-                iopc_resolve(ipath, xt->pkg);
+                iopc_resolve(xt->pkg);
                 pop_loc();
             }
             iopc_module_check_extends(mod, xt);
@@ -722,10 +720,10 @@ static void iopc_i_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
     pkg->i_resolved  = true;
 }
 
-void iopc_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg)
+void iopc_resolve(iopc_pkg_t *pkg)
 {
-    iopc_t_resolve(ipath, pkg);
-    iopc_i_resolve(ipath, pkg);
+    iopc_t_resolve(pkg);
+    iopc_i_resolve(pkg);
 }
 
 void iopc_resolve_second_pass(iopc_pkg_t *pkg)
@@ -735,13 +733,12 @@ void iopc_resolve_second_pass(iopc_pkg_t *pkg)
     /* XXX: do not use qv_for_each_ptr/entry here, entries get appended to
      * the vector while it is consumed.
      */
-    qv_for_each_pos(iopc_resolve, pos, &_G.resolve_list) {
-        iopc_resolve_t *r = &_G.resolve_list.tab[pos];
-        if (!r->pkg->t_resolved) {
-            iopc_resolve(r->ipath, r->pkg);
+    qv_for_each_entry(iopc_pkg, rpkg, &_G.resolve_list) {
+        if (!rpkg->t_resolved) {
+            iopc_resolve(rpkg);
         }
     }
-    qv_deep_wipe(iopc_resolve, &_G.resolve_list, iopc_resolve_wipe);
+    qv_wipe(iopc_pkg, &_G.resolve_list);
 
     /* Count static fields having a default value */
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {

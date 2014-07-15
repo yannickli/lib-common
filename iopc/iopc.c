@@ -204,7 +204,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         iopc_parser_initialize();
         pkg = iopc_parse_file(&incpath, argv[i], true);
-        iopc_resolve(&incpath, pkg);
+        iopc_resolve(pkg);
         iopc_resolve_second_pass(pkg);
         iopc_types_fold(pkg);
         qv_for_each_ptr(doit, doit, &doits) {

@@ -760,13 +760,6 @@ GENERIC_DELETE(iopc_iface_t, iopc_iface);
 qvector_t(iopc_iface, iopc_iface_t *);
 qm_kptr_t(iface, char, iopc_iface_t *, qhash_str_hash, qhash_str_equal);
 
-typedef struct iopc_resolve_t {
-    const qv_t(cstr)    *ipath;
-    struct iopc_pkg_t   *pkg;
-} iopc_resolve_t;
-GENERIC_FUNCTIONS(iopc_resolve_t, iopc_resolve);
-qvector_t(iopc_resolve, iopc_resolve_t);
-
 struct iopc_pkg_t {
     flag_t t_resolving : 1;
     flag_t i_resolving : 1;
@@ -832,7 +825,7 @@ void iopc_parser_initialize(void);
 void iopc_parser_shutdown(void);
 iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
                             bool is_main_pkg);
-void iopc_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg);
+void iopc_resolve(iopc_pkg_t *pkg);
 void iopc_resolve_second_pass(iopc_pkg_t *pkg);
 void iopc_types_fold(iopc_pkg_t *pkg);
 void iopc_depends_uniquify(qv_t(iopc_pkg) *deps);
