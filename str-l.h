@@ -703,6 +703,22 @@ int lstr_utf8_startswith(const lstr_t *s1, const lstr_t *s2)
     return utf8_str_startswith(s1->s, s1->len, s2->s, s2->len);
 }
 
+/* @func lstr_match_ctype
+ * @param[in] s: The string to check.
+ * @param[in] d: The ctype description.
+ * @return a boolean if the string contains exclusively characters from the
+ *         ctype description.
+ */
+static inline bool lstr_match_ctype(lstr_t s, const ctype_desc_t *d)
+{
+    for (int i = 0; i < s.len; i++) {
+        if (!ctype_desc_contains(d, (unsigned char)s.s[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /** \brief returns the Damerau–Levenshtein distance between two strings.
  *
  * This is the number of additions, deletions, substitutions, and

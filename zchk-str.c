@@ -1350,6 +1350,37 @@ Z_GROUP_EXPORT(str)
         T_KO("12.12");
 #undef T_KO
     } Z_TEST_END;
+
+    Z_TEST(str_match_ctype, "str: strings match the ctype description") {
+        struct {
+            lstr_t              s;
+            const ctype_desc_t *d;
+            bool                expected;
+        } t[] = {
+#define T(_str, _ctype, _expected)                                           \
+            {.s = LSTR_IMMED(_str), .d = _ctype, .expected = _expected}
+
+            T("0123456789",       &ctype_isdigit,    true),
+            T("abcde",            &ctype_islower,    true),
+            T("ABCDE",            &ctype_isupper,    true),
+            T(" \n",              &ctype_isspace,    true),
+            T("0123456789ABCDEF", &ctype_ishexdigit, true),
+            T("0123456789abcdef", &ctype_ishexdigit, true),
+
+            T("abcdEF",           &ctype_isdigit,    false),
+            T("ABC",              &ctype_islower,    false),
+            T("abcABC",           &ctype_islower,    false),
+            T("abc132",           &ctype_islower,    false),
+            T("abc",              &ctype_isupper,    false),
+            T("aBCDE",            &ctype_isupper,    false),
+
+#undef T
+        };
+
+        for (int i = 0; i < countof(t); i++) {
+            Z_ASSERT_EQ(lstr_match_ctype(t[i].s, t[i].d), t[i].expected);
+        }
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
