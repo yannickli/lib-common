@@ -22,8 +22,9 @@ void iopdso_register_struct(iop_dso_t *dso, iop_struct_t const *st)
 
 static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
 {
-    if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0)
+    if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0) {
         return;
+    }
     iop_register_packages(&pkg, 1);
     for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
@@ -68,8 +69,9 @@ static void iop_dso_wipe(iop_dso_t *dso)
     qm_wipe(iop_iface,  &dso->iface_h);
     qm_wipe(iop_mod,    &dso->mod_h);
     lstr_wipe(&dso->path);
-    if (dso->handle)
+    if (dso->handle) {
         dlclose(dso->handle);
+    }
 }
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
@@ -90,7 +92,7 @@ iop_dso_t *iop_dso_open(const char *path)
         return NULL;
     }
 
-    dso_vt = (iop_dso_vt_t *) dlsym(handle, "iop_vtable");
+    dso_vt = (iop_dso_vt_t *)dlsym(handle, "iop_vtable");
     if (dso_vt == NULL || dso_vt->vt_size == 0) {
         e_warning("IOP DSO: unable to find valid IOP vtable in plugin (%s), "
                   "no error management allowed: %s", path, dlerror());
@@ -109,8 +111,9 @@ iop_dso_t *iop_dso_open(const char *path)
     dso = iop_dso_new();
     dso->path   = lstr_dups(path, strlen(path));
     dso->handle = handle;
-    while (*pkgp)
+    while (*pkgp) {
         iopdso_register_pkg(dso, *pkgp++);
+    }
     return dso;
 }
 
@@ -130,8 +133,9 @@ find_rpc_in_iface(iop_iface_t const *iface, lstr_t fname)
     for (int i = 0; i < iface->funs_len; i++) {
         iop_rpc_t const *rpc = &iface->funs[i];
 
-        if (lstr_equal2(rpc->name, fname))
+        if (lstr_equal2(rpc->name, fname)) {
             return rpc;
+        }
     }
     return NULL;
 }
@@ -142,8 +146,9 @@ find_rpc_in_mod(iop_mod_t const *mod, lstr_t iface, lstr_t fname)
     for (int i = 0; i < mod->ifaces_len; i++) {
         const iop_iface_alias_t *alias = &mod->ifaces[i];
 
-        if (lstr_equal2(alias->name, iface))
+        if (lstr_equal2(alias->name, iface)) {
             return find_rpc_in_iface(alias->iface, fname);
+        }
     }
     return NULL;
 }
@@ -156,8 +161,9 @@ iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name)
     iop_rpc_t const *rpc;
 
     pos = qm_find_safe(iop_struct, &dso->struct_h, &name);
-    if (pos >= 0)
+    if (pos >= 0) {
         return dso->struct_h.values[pos];
+    }
 
     if (lstr_endswith(name, LSTR_IMMED_V("Args"))) {
         name.len -= strlen("Args");
