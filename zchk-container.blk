@@ -31,6 +31,41 @@ qm_kptr_t(test_ptr,  void,   uint32_t, qhash_hash_ptr,  qhash_ptr_equal);
 
 Z_GROUP_EXPORT(qhash)
 {
+
+    Z_TEST(size_qh, "qh: count size") {
+        QH(test, h, false);
+        uint32_t min_size;
+
+        Z_ASSERT_EQ(qh_memory_footprint(test,& h), sizeof(h));
+
+        for (int i = 0; i < 100; i++) {
+            qh_add(test, &h, i);
+        }
+        min_size = h.hdr.size * ( h.k_size + h.v_size);
+        Z_ASSERT_GT(qh_memory_footprint(test,& h), min_size);
+
+        qh_wipe(test, &h);
+
+        Z_ASSERT_EQ(qh_memory_footprint(test,& h), sizeof(h));
+    } Z_TEST_END;
+
+    Z_TEST(size_qm , "qm: count size") {
+        QM(test, h, true);
+        uint32_t min_size;
+
+        Z_ASSERT_EQ(qm_memory_footprint(test,& h), sizeof(h));
+
+        for (int i = 0; i < 8; i++) {
+            qm_add(test, &h, i, i);
+        }
+        min_size = h.hdr.size * ( h.k_size + h.v_size);
+        Z_ASSERT_GT(qm_memory_footprint(test,& h), min_size);
+
+        qm_wipe(test, &h);
+        Z_ASSERT_EQ(qm_memory_footprint(test,& h), sizeof(h));
+
+    } Z_TEST_END;
+
     Z_TEST(insertion, "qhash: insertion") {
         QH(test, h, false);
         uint64_t bits[2] = { 0, 0 };

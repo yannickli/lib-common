@@ -201,7 +201,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 /* }}} */
 /*----- base macros to define QH's and QM's -{{{-*/
 
-#define __QH_BASE(sfx, pfx, name, key_t, val_t, v_size) \
+#define __QH_BASE(sfx, pfx, name, key_t, val_t, _v_size) \
     typedef union pfx##_t {                                                  \
         qhash_t qh;                                                          \
         STRUCT_QHASH_T(key_t, val_t);                                        \
@@ -210,7 +210,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __unused__                                                               \
     static inline void pfx##_init(pfx##_t *qh, bool chahes, mem_pool_t *mp) {\
         STATIC_ASSERT(sizeof(key_t) < 256);                                  \
-        qhash_init(&qh->qh, sizeof(key_t), v_size, chahes, mp);              \
+        qhash_init(&qh->qh, sizeof(key_t), _v_size, chahes, mp);             \
     }                                                                        \
     __unused__                                                               \
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
@@ -226,7 +226,27 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     }                                                                        \
     __unused__                                                               \
     static inline int32_t pfx##_len(const pfx##_t *qh) {                     \
-        return qh->hdr.len;                                                  \
+        return qh->qh.hdr.len;                                               \
+    }                                                                        \
+    __unused__                                                               \
+    static inline size_t pfx##_memory_footprint(const pfx##_t *qh) {         \
+        size_t size, max_size;                                               \
+                                                                             \
+        max_size = qh->hdr.size;                                             \
+        size = sizeof(*qh);                                                  \
+        if (qh->old) {                                                       \
+            max_size = MAX(qh->hdr.size, qh->old->size);                     \
+            size += sizeof(qhash_hdr_t);                                     \
+            size += sizeof(size_t) *                                         \
+                    BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size);            \
+        }                                                                    \
+        size += sizeof(size_t) * BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size);\
+        size += max_size * (qh->k_size + qh->v_size);                        \
+        if (qh->h_size) {                                                    \
+            size += max_size * 4;                                            \
+        }                                                                    \
+                                                                             \
+        return size;                                                         \
     }
 
 #define __QH_FIND(sfx, pfx, name, ckey_t, key_t, hashK) \
@@ -659,6 +679,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     mp_qh_init(name, r_pool(), (qh), (chahes), (sz))
 
 #define qh_len(name, qh)                    qh_##name##_len(qh)
+#define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qh_wipe(name, qh)                   qh_##name##_wipe(qh)
@@ -778,6 +799,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     mp_qm_init(name, r_pool(), (qh), (chahes), (sz))
 
 #define qm_len(name, qh)                    qm_##name##_len(qh)
+#define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)
 #define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qm_wipe(name, qh)                   qm_##name##_wipe(qh)
