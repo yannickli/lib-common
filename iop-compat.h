@@ -11,6 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* This header contains a minimal set of definitions needed to compile IOP
+ * files (and will be used to compile IOP at runtime).
+ * These definitions are duplicated from other lib-common headers.
+ */
+
 #ifndef IS_LIB_COMMON_IOP_COMPAT_H
 #define IS_LIB_COMMON_IOP_COMPAT_H
 
