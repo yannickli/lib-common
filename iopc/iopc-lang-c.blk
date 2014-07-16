@@ -2897,7 +2897,6 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
     sb_addf(&buf,
             "#ifndef IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "#define IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
-            "\n"
             "\n", pkg_name, pkg_name);
     if (iop_compat) {
         sb_adds(&buf, iop_compat);
