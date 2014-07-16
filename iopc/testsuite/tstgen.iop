@@ -1,0 +1,25 @@
+package tstgen;
+
+@(test:gen1, true)
+enum MyEnumA {
+    VAL_A,
+    VAL_B,
+    VAL_C,
+};
+
+@(test:gen2, 10)
+@(test:gen3, "test")
+@(test:gen4, false)
+struct MyStructA {
+    int i;
+    @(test:gen3, 10.0)
+    int j;
+};
+
+@(test:gen4, "test")
+interface MyIfaceA {
+    @(test:gen5, 20.005)
+    @(test:gen6, true)
+    @(test:gen7, "gen7")
+    funA in (int a);
+};

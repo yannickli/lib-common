@@ -1,0 +1,7 @@
+package typedef_invalid_4;
+
+@min(3)
+typedef ulong Min3;
+
+@min(5)
+typedef Min3 Min5;

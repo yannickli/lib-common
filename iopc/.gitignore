@@ -1,0 +1,5 @@
+/*.pyc
+/iopc
+/iopc-lex.c
+/iopctokens.c
+/iopctokens.h

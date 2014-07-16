@@ -1,0 +1,3058 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2014 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "iopc.h"
+
+static qv_t(str) pp_g;
+struct iopc_do_c_globs iopc_do_c_g;
+#define _G  iopc_do_c_g
+
+
+static const char *pp_under(iopc_path_t *path)
+{
+    sb_t buf;
+    char *res;
+
+    sb_inita(&buf, 1024);
+    qv_for_each_entry(str, bit, &path->bits) {
+        sb_addf(&buf, "%s__", bit);
+    }
+    sb_shrink(&buf, 2);
+    qv_append(str, &pp_g, res = sb_detach(&buf, NULL));
+    return res;
+}
+
+static const char *pp_to_c(const char *s)
+{
+    t_scope;
+    lstr_t str = lstr_dup(t_camelcase_to_c(s));
+
+    qv_append(str, &pp_g, str.v);
+    return str.v;
+}
+
+static void iopc_field_compute_size(iopc_field_t *f);
+
+static iopc_field_t *iopc_struct_bubble_field(iopc_struct_t *st, int pos, size_t size)
+{
+    int lost = INT_MAX, match = 0;
+    iopc_field_t **tab = st->fields.tab + pos;
+
+    for (int i = 0; i < st->fields.len - pos; i++) {
+        iopc_field_t *f = tab[i];
+        int f_lost = ROUND_UP(size, f->align) - size;
+
+        if (f_lost < lost) {
+            lost  = f_lost;
+            match = i;
+        }
+    }
+
+    if (match) {
+        iopc_field_t *f = tab[match];
+
+        p_move(tab + 1, tab, match);
+        tab[0] = f;
+    }
+    return tab[0];
+}
+
+static void iopc_struct_optimize(iopc_struct_t *st)
+{
+    size_t size = 0;
+    size_t opt_size = 0;
+    size_t orig_size = 0;
+    bool do_reorder;
+
+    if (st->size || st->optimized)
+        return;
+    st->optimized = true;
+
+    st->align = (st->type == STRUCT_TYPE_UNION ? 2 : 1);
+    qv_for_each_entry(iopc_field, f, &st->fields) {
+        iopc_field_compute_size(f);
+        st->align = MAX(st->align, f->align);
+        orig_size = ROUND_UP(orig_size, f->align) + f->size;
+        opt_size += f->size;
+    }
+    orig_size = ROUND_UP(orig_size, st->align);
+
+    qv_sort(iopc_field)(&st->fields,
+                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
+        return (*f1)->tag - (*f2)->tag;
+    });
+
+    if (st->type == STRUCT_TYPE_UNION) {
+        /*
+         * union is struct { uint16_t tag; union { ... }; }
+         *
+         * so its align is at least 2, and its size is an alignment + max size
+         * of any member of the union.
+         */
+        for (int i = 0; i < st->fields.len; i++) {
+            size = MAX(size, st->fields.tab[i]->size);
+        }
+        size     = ROUND_UP(size, st->align);
+        st->size = st->align + size;
+        return;
+    }
+
+    if (st->type == STRUCT_TYPE_CLASS) {
+        /* XXX: we don't want to reorder class fields to ease debugging and
+         *      backward compatibility. */
+        do_reorder = false;
+    } else {
+        do_reorder = iopc_attr_check(&st->attrs, IOPC_ATTR_NO_REORDER,
+                                     NULL) < 0;
+    }
+
+    for (int i = 0; i < st->fields.len; i++) {
+        iopc_field_t *f = do_reorder ? iopc_struct_bubble_field(st, i, size)
+                                     : st->fields.tab[i];
+
+        size = ROUND_UP(size, f->align) + f->size;
+    }
+    st->size = size = ROUND_UP(size, st->align);
+
+    if (do_reorder && st->size - opt_size >= st->align)
+        warn_loc("suboptimal type size (%s packed is %zd, size is %d@%d)",
+                 st->loc, st->name, opt_size, st->size, st->align);
+#if 0
+    if (orig_size > size) {
+        warn_loc("%s:\torig:%3zd now:%3zd gain:%2zd packed:%3zd",
+                 st->loc, st->name, orig_size, size,
+                 orig_size - size, opt_size);
+    }
+#endif
+}
+
+static void iopc_field_compute_size(iopc_field_t *f)
+{
+    if (f->size)
+        return;
+    if (f->repeat == IOP_R_OPTIONAL || f->is_ref) {
+        switch (f->kind) {
+          case IOP_T_BOOL:
+            f->align = alignof(iop_opt_bool_t);
+            f->size  = sizeof(iop_opt_bool_t);
+            break;
+          case IOP_T_U8:
+          case IOP_T_I8:
+            f->align = alignof(iop_opt_i8_t);
+            f->size  = sizeof(iop_opt_i8_t);
+            break;
+          case IOP_T_U16:
+          case IOP_T_I16:
+            f->align = alignof(iop_opt_i16_t);
+            f->size  = sizeof(iop_opt_i16_t);
+            break;
+          case IOP_T_U32:
+          case IOP_T_I32:
+          case IOP_T_ENUM:
+            f->align = alignof(iop_opt_i32_t);
+            f->size  = sizeof(iop_opt_i32_t);
+            break;
+          case IOP_T_U64:
+          case IOP_T_I64:
+            f->align = alignof(iop_opt_i64_t);
+            f->size  = sizeof(iop_opt_i64_t);
+            break;
+          case IOP_T_DOUBLE:
+            f->align = alignof(iop_opt_double_t);
+            f->size  = sizeof(iop_opt_double_t);
+            break;
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+          case IOP_T_XML:
+            f->align = alignof(lstr_t);
+            f->size  = sizeof(lstr_t);
+            break;
+          case IOP_T_UNION:
+          case IOP_T_STRUCT:
+            f->align = alignof(void *);
+            f->size  = sizeof(void *);
+            break;
+          default:
+            e_panic("should not happen");
+        }
+    } else
+    if (f->repeat == IOP_R_REPEATED) {
+        f->align = alignof(IOP_ARRAY_OF(void));
+        f->size  = sizeof(IOP_ARRAY_OF(void));
+        return;
+    } else
+    switch (f->kind) {
+      case IOP_T_BOOL:
+        f->align = alignof(bool);
+        f->size  = sizeof(bool);
+        break;
+      case IOP_T_U8:
+      case IOP_T_I8:
+        f->align = alignof(int8_t);
+        f->size  = sizeof(int8_t);
+        break;
+      case IOP_T_U16:
+      case IOP_T_I16:
+        f->align = alignof(int16_t);
+        f->size  = sizeof(int16_t);
+        break;
+      case IOP_T_U32:
+      case IOP_T_I32:
+      case IOP_T_ENUM:
+        f->align = alignof(int32_t);
+        f->size  = sizeof(int32_t);
+        break;
+      case IOP_T_U64:
+      case IOP_T_I64:
+        f->align = alignof(int64_t);
+        f->size  = sizeof(int64_t);
+        break;
+      case IOP_T_DOUBLE:
+        f->align = alignof(double);
+        f->size  = sizeof(double);
+        break;
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        f->align = alignof(lstr_t);
+        f->size  = sizeof(lstr_t);
+        break;
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        iopc_struct_optimize(f->struct_def);
+        f->align = f->struct_def->align;
+        f->size  = f->struct_def->size;
+        break;
+      default:
+        e_panic("should not happen");
+    }
+}
+
+static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
+{
+    const char *switch_type = NULL;
+    const char *old_type = NULL;
+    const char *new_type = NULL;
+    bool type_is_class = false;
+
+    if (f->kind == IOP_T_STRUCT && f->struct_def->type == STRUCT_TYPE_CLASS) {
+        type_is_class = true;
+    }
+
+    switch (f->repeat) {
+      case IOP_R_REPEATED:
+        switch_type = "IOP_ARRAY_T";
+        switch (f->kind) {
+          case IOP_T_U8:
+            new_type = "iop_array_u8_t     ";
+            old_type = "IOP_ARRAY_OF(uint8_t)  ";
+            break;
+          case IOP_T_I8:
+            new_type = "iop_array_i8_t     ";
+            old_type = "IOP_ARRAY_OF(int8_t)   ";
+            break;
+          case IOP_T_U16:
+            new_type = "iop_array_u16_t    ";
+            old_type = "IOP_ARRAY_OF(uint16_t) ";
+            break;
+          case IOP_T_I16:
+            new_type = "iop_array_i16_t    ";
+            old_type = "IOP_ARRAY_OF(int16_t)  ";
+            break;
+          case IOP_T_U32:
+            new_type = "iop_array_u32_t    ";
+            old_type = "IOP_ARRAY_OF(uint32_t) ";
+            break;
+          case IOP_T_I32:
+            new_type = "iop_array_i32_t    ";
+            old_type = "IOP_ARRAY_OF(int32_t)  ";
+            break;
+          case IOP_T_U64:
+            new_type = "iop_array_u64_t    ";
+            old_type = "IOP_ARRAY_OF(uint64_t) ";
+            break;
+          case IOP_T_I64:
+            new_type = "iop_array_i64_t    ";
+            old_type = "IOP_ARRAY_OF(int64_t)  ";
+            break;
+          case IOP_T_BOOL:
+            new_type = "iop_array_bool_t   ";
+            old_type = "IOP_ARRAY_OF(bool)     ";
+            break;
+          case IOP_T_DOUBLE:
+            new_type = "iop_array_double_t ";
+            old_type = "IOP_ARRAY_OF(double)   ";
+            break;
+          case IOP_T_STRING:
+          case IOP_T_XML:
+            new_type = "iop_array_lstr_t   ";
+            old_type = "IOP_ARRAY_OF(lstr_t)   ";
+            break;
+          case IOP_T_DATA:
+            new_type = "iop_array_lstr_t   ";
+            old_type = "IOP_ARRAY_OF(iop_data_t) ";
+            break;
+          default:
+            sb_addnc(sb, indent, ' ');
+            sb_addf(sb, "%s__%s__array_t %s;\n",
+                    pp_under(f->type_path), pp_to_c(f->type_name),
+                    pp_to_c(f->name));
+            return;
+        }
+        break;
+
+      case IOP_R_OPTIONAL:
+        switch (f->kind) {
+          case IOP_T_U8:     old_type = "iop_opt_u8_t     ";    break;
+          case IOP_T_I8:     old_type = "iop_opt_i8_t     ";    break;
+          case IOP_T_U16:    old_type = "iop_opt_u16_t    ";    break;
+          case IOP_T_I16:    old_type = "iop_opt_i16_t    ";    break;
+          case IOP_T_U32:    old_type = "iop_opt_u32_t    ";    break;
+          case IOP_T_I32:    old_type = "iop_opt_i32_t    ";    break;
+          case IOP_T_U64:    old_type = "iop_opt_u64_t    ";    break;
+          case IOP_T_I64:    old_type = "iop_opt_i64_t    ";    break;
+          case IOP_T_BOOL:   old_type = "iop_opt_bool_t   ";    break;
+          case IOP_T_DOUBLE: old_type = "iop_opt_double_t ";    break;
+          case IOP_T_STRING: old_type = "lstr_t           ";    break;
+          case IOP_T_XML:    old_type = "lstr_t           ";    break;
+          case IOP_T_DATA:   old_type = _G.data_c_type;    break;
+          case IOP_T_ENUM:
+            sb_addnc(sb, indent, ' ');
+            sb_addf(sb, "IOP_OPT_OF(%s__%s__t)  %s;\n",
+                    pp_under(f->type_path), pp_to_c(f->type_name),
+                    pp_to_c(f->name));
+            return;
+          default:
+            sb_addnc(sb, indent, ' ');
+            sb_addf(sb, "struct %s__%s__t *%s;\n", pp_under(f->type_path),
+                    pp_to_c(f->type_name), pp_to_c(f->name));
+            return;
+        }
+        break;
+
+      default:
+        switch (f->kind) {
+          case IOP_T_U8:     old_type = "uint8_t  ";   break;
+          case IOP_T_I8:     old_type = "int8_t   ";   break;
+          case IOP_T_U16:    old_type = "uint16_t ";   break;
+          case IOP_T_I16:    old_type = "int16_t  ";   break;
+          case IOP_T_U32:    old_type = "uint32_t ";   break;
+          case IOP_T_I32:    old_type = "int32_t  ";   break;
+          case IOP_T_U64:    old_type = "uint64_t ";   break;
+          case IOP_T_I64:    old_type = "int64_t  ";   break;
+          case IOP_T_BOOL:   old_type = "bool     ";   break;
+          case IOP_T_DOUBLE: old_type = "double   ";   break;
+          case IOP_T_STRING: old_type = "lstr_t   ";   break;
+          case IOP_T_DATA:   old_type = _G.data_c_type; break;
+          case IOP_T_XML:    old_type = "lstr_t   ";   break;
+          case IOP_T_ENUM:
+            sb_addnc(sb, indent, ' ');
+            sb_addf(sb, "%s__%s__t %s;\n", pp_under(f->type_path),
+                    pp_to_c(f->type_name), pp_to_c(f->name));
+            return;
+          default:
+            sb_addnc(sb, indent, ' ');
+            sb_addf(sb, "struct %s__%s__t%s%s;\n", pp_under(f->type_path),
+                    pp_to_c(f->type_name),
+                    type_is_class || f->is_ref ? " *" : " ",
+                    pp_to_c(f->name));
+            return;
+        }
+        break;
+    }
+
+    if (switch_type) {
+        sb_addf(sb, "#ifndef %s\n", switch_type);
+    }
+    assert (old_type);
+    sb_addnc(sb, indent, ' ');
+    sb_addf(sb, "%s%s;\n", old_type, pp_to_c(f->name));
+
+    if (switch_type) {
+        assert (new_type);
+        sb_adds(sb, "#else\n");
+        sb_addnc(sb, indent, ' ');
+        sb_addf(sb, "%s%s;\n", new_type, pp_to_c(f->name));
+        sb_adds(sb, "#endif\n");
+    }
+}
+
+qm_kvec_t(rg, lstr_t, int, qhash_lstr_hash, qhash_lstr_equal);
+static qm_t(rg) range_h_g = QM_INIT(rg, range_h_g, true);
+
+static int iopc_put_range(sb_t *sb, qv_t(i32) *tab)
+{
+    qm_t(rg) *h = &range_h_g;
+    lstr_t    s   = LSTR_INIT((char *)tab->tab, 4 * tab->len);
+    int       pos = qm_reserve(rg, h, &s, 0);
+    int       res;
+
+    if (pos & QHASH_COLLISION)
+        return h->values[pos ^ QHASH_COLLISION];
+
+    h->keys[pos]   = lstr_dup(s);
+    h->values[pos] = res = qm_len(rg, h);
+    sb_addf(sb, "static int const iop__ranges__%d[] = {\n", res);
+    for (int i = 0; i < tab->len / 2; i++)
+        sb_addf(sb, "    %d, %d,\n", tab->tab[2 * i], tab->tab[2 * i + 1]);
+    sb_addf(sb, "    %d,\n"
+            "};\n", tab->tab[tab->len - 1]);
+    return res;
+}
+
+static void iopc_put_range_cleanup(void)
+{
+    qm_deep_clear(rg, &range_h_g, lstr_wipe, IGNORE);
+}
+
+static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
+                           iop_type_t type)
+{
+    assert (type == IOP_T_STRUCT || type == IOP_T_UNION
+    ||      type == IOP_T_ENUM);
+
+    qv_for_each_entry(iopc_attr, attr, attrs) {
+        if (attr->desc->id == IOPC_ATTR_CTYPE) {
+            qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+                lstr_t ctype = arg->v.s;
+                lstr_t pfx   = lstr_dupc(ctype);
+
+                sb_addf(buf, "typedef %s__t %*pM;\n", tbase,
+                        LSTR_FMT_ARG(ctype));
+
+                if (ctype.s[ctype.len-2] == '_'
+                &&  ctype.s[ctype.len-1] == 't')
+                {
+                    pfx.len -= 2;
+                }
+#define ALIAS(_f) \
+                sb_addf(buf, "#define %*pM_" _f "(...) "                    \
+                        "%s__" _f "(__VA_ARGS__)\n",                        \
+                        LSTR_FMT_ARG(pfx), tbase);
+
+                if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
+                    ALIAS("equals");
+                    ALIAS("init");
+                    ALIAS("dup");
+                    ALIAS("copy");
+                    ALIAS("jpack");
+                    ALIAS("junpack");
+                    ALIAS("check");
+                    if (type == IOP_T_UNION)
+                        ALIAS("get");
+                } else
+                if (type == IOP_T_ENUM) {
+                    ALIAS("to_str");
+                    ALIAS("to_lstr");
+                    ALIAS("from_str");
+                    ALIAS("from_str2");
+                    ALIAS("from_lstr");
+                }
+#undef ALIAS
+                sb_addc(buf, '\n');
+            }
+        }
+    }
+}
+
+/*{{{ doxygen */
+
+static void write_string(sb_t *buf, const char *s, const char *escaped_chars)
+{
+    for (;; s++) {
+        const char *c;
+
+        for (c = s; isprint(*c) && *c != '"'; c++) {
+            for (const char *ec = escaped_chars; *ec ; ec++) {
+                if (*c == *ec)
+                    goto write_chars;
+            }
+        }
+      write_chars:
+        sb_add(buf, s, c - s);
+        s = c;
+
+        if (!*s)
+            break;
+        sb_addf(buf, "\\%03o", (uint8_t)*s);
+    }
+}
+
+static void write_help_string(sb_t *buf, const char *s)
+{
+    write_string(buf, s, "\\");
+}
+
+#define NAME_FIELD_FMT(_bname, _fname, _ext)  "%s%s%s__%s"
+#define NAME_FIELD_FMT_ARG(_bname, _fname, _ext)  \
+    _bname, _fname[0] ? "__" : "", _fname, _ext
+
+#define NAME_HELP_FMT(_bname, _fname, _ext)  \
+    NAME_FIELD_FMT(_bname, _fname, _ext)"_help"
+#define NAME_HELP_FMT_ARG(_bname, _fname, _ext)  \
+    NAME_FIELD_FMT_ARG(_bname, _fname, _ext)
+
+static void
+iopc_dump_help(sb_t *buf, const char *bname, const char *fname,
+               const char *ext, const qv_t(iopc_dox) *comments)
+{
+    sb_addf(buf, "static const iop_help_t "NAME_HELP_FMT(bname, fname, ext)
+                 " = {\n", NAME_HELP_FMT_ARG(bname, fname, ext));
+
+    for (int i = 0; i < IOPC_DOX_TYPE_count; i++) {
+        const iopc_dox_t *dox = iopc_dox_find_type(comments, i);
+        lstr_t type;
+
+        if (!dox)
+            continue;
+
+        type = iopc_dox_type_to_lstr(i);
+        sb_addf(buf, "    .%*pM = LSTR_IMMED(\"", LSTR_FMT_ARG(type));
+        write_help_string(buf, dox->desc.s);
+        sb_adds(buf, "\"),\n");
+    }
+    sb_addf(buf, "};\n");
+}
+
+static void
+iopc_dump_help_ref(sb_t *buf, int type, const char *attr_kind,
+                   const char *bname, const char *fname, const char *ext)
+{
+    sb_addf(buf, "    {\n"
+                 "        .type = %d,\n"
+                 "        .args = (iop_%s_attr_arg_t[]){ { .v.p = &"
+                                  NAME_HELP_FMT(bname, fname, ext)" } },\n"
+                 "    },\n",
+            type, attr_kind, NAME_HELP_FMT_ARG(bname, fname, ext));
+}
+
+static void
+iopc_dump_help_and_ref(sb_t *buf_help, sb_t *buf_ref,
+                       int type, const char *attr_kind,
+                       const char *bname, const char *fname, const char *ext,
+                       const qv_t(iopc_dox) *comments)
+{
+    if (!comments->len)
+        return;
+    iopc_dump_help(buf_help, bname, fname, ext, comments);
+    iopc_dump_help_ref(buf_ref, type, attr_kind, bname, fname, ext);
+}
+
+static void
+iopc_dump_attr_table_head(sb_t *buf, const char *attr_kind, const char *bname,
+                          const char *fname, const char *ext)
+{
+    sb_addf(buf, "static const iop_%s_attr_t "
+            NAME_FIELD_FMT(bname, fname, ext)"_attrs[] = {\n",
+            attr_kind, NAME_FIELD_FMT_ARG(bname, fname, ext));
+}
+
+static void
+iopc_dump_attrs_only_help(sb_t *buf, int type, const char *attr_kind,
+                          const char *bname, const char *fname,
+                          const char *ext, const qv_t(iopc_dox) *comments)
+{
+    if (!comments->len)
+        return;
+
+    iopc_dump_help(buf, bname, fname, ext, comments);
+
+    iopc_dump_attr_table_head(buf, attr_kind, bname, fname, ext);
+    iopc_dump_help_ref(buf, type, attr_kind, bname, fname, ext);
+    sb_addf(buf, "};\n");
+}
+
+static void
+iopc_dump_attrs_ref(sb_t *buf, unsigned int flags, uint16_t attrs_len,
+                    const char *bname, const char *fname, const char *ext)
+{
+    const char *tabs = fname[0] ? "    " : "";
+
+    sb_addf(buf,
+            "%s{\n"
+            "%s    .flags     = %u,\n",
+            tabs, tabs, flags);
+
+    if (attrs_len) {
+        sb_addf(buf,
+            "%s    .attrs_len = %u,\n"
+            "%s    .attrs     = "
+            NAME_FIELD_FMT(bname, fname, ext)"_attrs,\n",
+            tabs, attrs_len,
+            tabs, NAME_FIELD_FMT_ARG(bname, fname, ext));
+    }
+    sb_addf(buf,
+            "%s}%s\n",
+            tabs, fname[0] ? "," : ";");
+}
+
+/*}}} */
+
+static void
+iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
+{
+    t_scope;
+    const char *tname = pp_to_c(en->name);
+    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    int next_value = 0;
+    lstr_t ns = LSTR_NULL_V;
+    int min = INT_MAX;
+    int max = INT_MIN;
+
+    if (t_iopc_attr_check_prefix(&en->attrs, &ns) < 0) {
+        ns = t_lstr_dup(LSTR_STR_V(pp_to_c(en->name)));
+    }
+    lstr_ascii_toupper(&ns);
+
+    sb_addf(buf, "typedef enum %s__t {\n", tbase);
+    qv_for_each_entry(iopc_enum_field, f, &en->values) {
+        sb_addf(buf, "    %*pM_%s", LSTR_FMT_ARG(ns), f->name);
+        if (f->value == next_value++) {
+            sb_adds(buf, ",\n");
+        } else {
+            sb_addf(buf, " = %d,\n", f->value);
+            next_value = f->value + 1;
+        }
+        if (f->value > max)
+            max = f->value;
+        if (f->value < min)
+            min = f->value;
+    }
+    sb_addf(buf,
+            "} %s__t;\n"
+            "typedef IOP_ARRAY_OF(enum %s__t) %s__array_t;\n",
+            tbase, tbase, tbase);
+    if (iopc_g.v2) {
+        sb_addf(buf,
+                "#define %*pM_count %d\n"
+                "#define %*pM_min   %d\n"
+                "#define %*pM_max   %d\n",
+                LSTR_FMT_ARG(ns), en->values.len, LSTR_FMT_ARG(ns), min,
+                LSTR_FMT_ARG(ns), max);
+    }
+    sb_addc(buf, '\n');
+}
+
+static void
+iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
+{
+    t_scope;
+    const char *tname = pp_to_c(en->name);
+    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+
+    sb_addf(buf,
+            "extern iop_enum_t const %s__e;\n"
+            "IOP_ENUM(%s);\n\n",
+            tbase, tbase);
+
+    iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM);
+}
+
+
+static void
+iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
+                          const char *ns)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    char *tbase = t_fmt(NULL, "%s__%s", ns ?: pkg_name, tname);
+
+    sb_addf(buf,
+            "typedef struct %s__t %s__t;\n"
+            "typedef IOP_ARRAY_OF(%s__t%s) %s__array_t;\n\n",
+            tbase, tbase, tbase, st->type == STRUCT_TYPE_CLASS ? " *" : "",
+            tbase);
+}
+
+
+static void
+iopc_struct_dump_fields(sb_t *buf, int ident, iopc_field_t **fields, int len)
+{
+    for (int i = 0; i < len; i++) {
+        pp_field_with_type(buf, fields[i], ident);
+    }
+}
+
+static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
+{
+    qv_t(iopc_struct) parents;
+    qv_t(iopc_pkg)    parents_pkgs;
+    int ident;
+
+    if (!st->extends.len) {
+        sb_adds(buf, "    const iop_struct_t *__vptr;\n");
+        return;
+    }
+
+    /* Get parents list; last element of vector will be the master class, and
+     * the first one the nearest parent. */
+    qv_init(iopc_struct, &parents);
+    qv_init(iopc_pkg,    &parents_pkgs);
+    do {
+        qv_append(iopc_pkg, &parents_pkgs, st->extends.tab[0]->pkg);
+        st = st->extends.tab[0]->st;
+        qv_append(iopc_struct, &parents, st);
+    } while (st->extends.len);
+
+    /* Print parent structure */
+    for (ident = 4; ident <= 4 * parents.len; ident += 4) {
+        sb_addnc(buf, ident, ' ');
+        sb_adds(buf, "struct {\n");
+    }
+    sb_addnc(buf, ident, ' ');
+    sb_adds(buf, "const iop_struct_t *__vptr;\n");
+
+    qv_for_each_pos_safe(iopc_struct, pos, &parents) {
+        st = parents.tab[pos];
+        sb_addnc(buf, ident, ' ');
+        sb_addf(buf, "/* fields of %s__%s__t */\n",
+                pp_under(parents_pkgs.tab[pos]->name), pp_to_c(st->name));
+        iopc_struct_optimize(st);
+        iopc_struct_dump_fields(buf, ident, st->fields.tab, st->fields.len);
+        ident -= 4;
+        sb_addnc(buf, ident, ' ');
+        sb_adds(buf, "};\n");
+    }
+
+    qv_wipe(iopc_struct, &parents);
+    qv_wipe(iopc_pkg,    &parents_pkgs);
+}
+
+static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
+                                 iopc_struct_t *st, const char *ns)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    char *tbase = t_fmt(NULL, "%s__%s", ns ?: pkg_name, tname);
+
+    assert (st->type != STRUCT_TYPE_UNION);
+
+    iopc_struct_optimize(st);
+    sb_addf(buf, "struct %s__t {\n", tbase);
+
+    if (st->type == STRUCT_TYPE_CLASS) {
+        iopc_struct_dump_hdr_class(buf, st);
+    }
+    iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
+
+    sb_addf(buf, "};\n"
+            "extern iop_struct_t const %s__s;\n",
+            tbase);
+    if (st->type == STRUCT_TYPE_CLASS) {
+        sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
+        sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
+    } else {
+        sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
+    }
+    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT);
+}
+
+static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
+                                 iopc_struct_t *st)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+
+    assert (st->type == STRUCT_TYPE_UNION);
+
+    iopc_struct_optimize(st);
+    sb_addf(buf, "struct %s__t {\n"
+            "    uint16_t iop_tag;\n"
+            "    union {\n",
+            tbase);
+    qv_for_each_entry(iopc_field, f, &st->fields) {
+        pp_field_with_type(buf, f, 8);
+    }
+    sb_addf(buf, "    };\n"
+            "};\n"
+            "extern iop_struct_t const %s__s;\n"
+            "IOP_GENERIC(%s);\n",
+            tbase, tbase);
+
+    sb_adds(buf, "/*----- XXX private data, do not use directly -{{{-*/\n");
+    qv_for_each_entry(iopc_field, f, &st->fields) {
+        /* Tag of the field */
+        sb_addf(buf, "#define %s__%s__ft %d\n", tbase,
+                pp_to_c(f->name), f->tag);
+    }
+    sb_adds(buf, "/*-}}}-*/\n");
+    /* Get & copy functions */
+    sb_addf(buf, "#define %s__get(u, field)       "
+            "IOP_UNION_GET(%s, u, field)\n",
+            tbase, tbase);
+
+    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_UNION);
+}
+
+static int
+iopc_fun_n_aliases(iopc_fun_t *fun)
+{
+    qv_for_each_entry(iopc_attr, attr, &fun->attrs) {
+        if (attr->desc->id == IOPC_ATTR_ALIAS) {
+            return attr->args.len;
+        }
+    }
+    return 0;
+}
+
+static void
+iopc_iface_dump_tdef_hdr(sb_t *buf, iopc_pkg_t *pkg,
+                         const char *pkg_name, iopc_iface_t *iface)
+{
+    t_scope;
+    const char *iname = pp_to_c(iface->name);
+    const char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+
+    if (!iface->funs.len) {
+        return;
+    }
+
+    qv_sort(iopc_fun)(&iface->funs,
+                      ^int (iopc_fun_t * const *f1, iopc_fun_t * const *f2) {
+        return (*f1)->tag - (*f2)->tag;
+    });
+
+    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        const char *fbase = t_fmt(NULL, "%s__%s", ibase, pp_to_c(fun->name));
+
+        if (fun->arg) {
+            if (fun->arg_is_anonymous) {
+                iopc_struct_dump_tdef_hdr(buf, pkg_name, fun->arg, ibase);
+            } else {
+                /* When the function argument is just a reference to another
+                 * structure, we just yield several alias using macros */
+                sb_addf(buf, "typedef %s__%s__t %s_args__t;\n",
+                        pp_under(fun->farg->type_path),
+                        pp_to_c(fun->farg->type_name), fbase);
+            }
+        } else {
+            sb_addf(buf, "typedef iop__void__t %s_args__t;\n", fbase);
+        }
+        if (fun->res) {
+            if (fun->res_is_anonymous) {
+                iopc_struct_dump_tdef_hdr(buf, pkg_name, fun->res, ibase);
+            } else {
+                /* When the function argument is just a reference to another
+                 * structure, we just yield several alias using macros */
+                sb_addf(buf, "typedef %s__%s__t %s_res__t;\n",
+                        pp_under(fun->fres->type_path),
+                        pp_to_c(fun->fres->type_name), fbase);
+            }
+        } else {
+            sb_addf(buf, "typedef iop__void__t %s_res__t;\n", fbase);
+        }
+        if (fun->exn) {
+            if (fun->exn_is_anonymous) {
+                iopc_struct_dump_tdef_hdr(buf, pkg_name, fun->exn, ibase);
+            } else {
+                /* When the function argument is just a reference to another
+                 * structure, we just yield several alias using macros */
+                sb_addf(buf, "typedef %s__%s__t %s_exn__t;\n",
+                        pp_under(fun->fexn->type_path),
+                        pp_to_c(fun->fexn->type_name), fbase);
+            }
+        } else {
+            sb_addf(buf, "typedef iop__void__t %s_exn__t;\n", fbase);
+        }
+    }
+}
+
+static void
+iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
+                    const char *pkg_name, iopc_iface_t *iface)
+{
+    t_scope;
+    const char *iname = pp_to_c(iface->name);
+    char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+    int j = 0;
+
+    if (!iface->funs.len)
+        return;
+
+    sb_addf(buf,
+            "/*----- interface %s.%s -----*/\n",
+            pretty_path_dot(pkg->name), iface->name);
+
+    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        char *fbase = t_fmt(NULL, "%s__%s", ibase, pp_to_c(fun->name));
+
+        if (fun->arg && fun->arg_is_anonymous) {
+            iopc_struct_dump_hdr(buf, pkg_name, fun->arg, ibase);
+        }
+        if (fun->res && fun->res_is_anonymous) {
+            iopc_struct_dump_hdr(buf, pkg_name, fun->res, ibase);
+        }
+        if (fun->exn && fun->exn_is_anonymous) {
+            iopc_struct_dump_hdr(buf, pkg_name, fun->exn, ibase);
+        }
+        sb_addf(buf,
+                "#define %s__rpc__tag    0x%04x\n"
+                "#define %s__rpc__async  %d\n"
+                "#define %s__rpc         (%s__if.funs + %d)\n\n",
+                fbase, fun->tag, fbase, fun->fun_is_async, fbase, ibase, j);
+        j += 1 + iopc_fun_n_aliases(fun);
+    }
+    sb_addf(buf, "extern iop_iface_t const %s__if;\n\n", ibase);
+}
+
+static void
+iopc_module_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
+                     const char *pkg_name, iopc_struct_t *mod)
+{
+    t_scope;
+    char *mbase = t_fmt(NULL, "%s__%s", pkg_name, pp_to_c(mod->name));
+
+    sb_addf(buf,
+            "\n"
+            "/*----- module %s.%s -----*/\n",
+            pretty_path_dot(pkg->name), mod->name);
+
+    qv_sort(iopc_field)(&mod->fields,
+                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
+        return (*f1)->tag - (*f2)->tag;
+    });
+
+
+    for (int i = 0; i < mod->fields.len; i++) {
+        iopc_field_t *f = mod->fields.tab[i];
+
+        sb_addf(buf,
+                "#define %s__%s__TAG    0x%04x\n"
+                "#define %s__%s(a)      %s__%s__##a\n"
+                "#define %s__%s__alias  (%s__mod.ifaces + %d)\n\n",
+                mbase, pp_to_c(f->name), f->tag,
+                mbase, pp_to_c(f->name),
+                pp_under(f->type_path), pp_to_c(f->type_name),
+                mbase, pp_to_c(f->name), mbase, i);
+    }
+    sb_addf(buf,
+            "extern iop_mod_t const %s__mod;\n"
+            "\n", mbase);
+}
+
+static void
+iopc_pkg_dump_verbatim_c(sb_t *buf, iopc_pkg_t *pkg)
+{
+    if (pkg->verbatim_c.len) {
+        sb_addf(buf,
+                "\n"
+                "/*----- verbatim section -----*/\n"
+                "%*pM"
+                "\n",
+                pkg->verbatim_c.len, pkg->verbatim_c.data);
+    }
+}
+
+static void
+iopc_pkg_dump_hdr(sb_t *buf, iopc_pkg_t *pkg, const char *pkg_name)
+{
+    sb_addf(buf,
+            "\n"
+            "/*----- package %s -----*/\n"
+            "extern iop_pkg_t const %s__pkg;\n"
+            "\n",
+            pretty_path_dot(pkg->name), pkg_name);
+}
+
+static char const * const repeats[] = {
+    [IOP_R_OPTIONAL] = "IOP_R_OPTIONAL",
+    [IOP_R_DEFVAL]   = "IOP_R_DEFVAL",
+    [IOP_R_REQUIRED] = "IOP_R_REQUIRED",
+    [IOP_R_REPEATED] = "IOP_R_REPEATED",
+};
+static char const * const types[] = {
+#define ITEM(n)  [IOP_T_##n] = TOSTR(IOP_T_##n)
+    ITEM(U8),  ITEM(I8),
+    ITEM(U16), ITEM(I16),
+    ITEM(U32), ITEM(I32),
+    ITEM(U64), ITEM(I64),
+    ITEM(BOOL),
+    ITEM(ENUM),
+    ITEM(DOUBLE),
+    ITEM(STRING),
+    ITEM(DATA),
+    ITEM(XML),
+    ITEM(UNION),
+    ITEM(STRUCT),
+#undef ITEM
+};
+
+static int tag_len(int32_t tag)
+{
+    /* Tags 0..29 are encoded inline -> 0 byte,
+     * Tags 30..255 are encoded as value 30 plus 1 byte,
+     * Tags 256..65535 are encoded as value 31 plus 2 extra bytes */
+    return (tag >= 30) + (tag >= 256);
+}
+
+static void defval_escape(sb_t *sb, const void *ptr)
+{
+    write_string(sb, ptr, "?");
+}
+
+static void
+iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
+                    iopc_field_t *f, iopc_attrs_t *attrs)
+{
+    unsigned flags = 0;
+    const char *cname = pp_to_c(f->name);
+
+    sb_addf(buf,
+            "    {\n"
+            "        .name      = LSTR_IMMED(\"%s\"),\n"
+            "        .tag       = %d,\n"
+            "        .tag_len   = %d,\n"
+            "        .repeat    = %s,\n"
+            "        .type      = %s,\n"
+            "        .data_offs = offsetof(%s__t, %s),\n",
+            f->name, f->tag, tag_len(f->tag),
+            repeats[f->repeat], types[f->kind], tbase, cname);
+
+    if (f->is_ref) {
+        SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);
+    }
+    if (attrs && attrs->checkf_name.len) {
+        SET_BIT(&flags, IOP_FIELD_CHECK_CONSTRAINTS);
+    }
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        if (attr->desc->id == IOPC_ATTR_MIN_OCCURS) {
+            SET_BIT(&flags, 1 /* IOP_FIELD_NO_EMPTY_ARRAY */);
+            break;
+        }
+    }
+    if (flags) {
+        sb_addf(buf, "        .flags     = %u,\n", flags);
+    }
+
+    if (f->repeat == IOP_R_DEFVAL) {
+        t_scope;
+        sb_t sb;
+
+        t_sb_init(&sb, BUFSIZ);
+        switch (f->kind) {
+          case IOP_T_ENUM:
+            sb_addf(buf,
+                    "        .u0        = { .defval_enum = %jd },\n",
+                    f->defval.u64);
+            break;
+          case IOP_T_I8 ... IOP_T_U64:
+            sb_addf(buf,
+                    "        .u1        = { .defval_u64 = 0x%jx },\n",
+                    f->defval.u64);
+            break;
+          case IOP_T_BOOL:
+            sb_addf(buf,
+                    "        .u1        = { .defval_u64 = %s },\n",
+                    f->defval.u64 ? "true" : "false");
+            break;
+          case IOP_T_DOUBLE:
+            sb_addf(buf,
+                    "        .u1        = { .defval_d = "DOUBLE_FMT" },\n",
+                    f->defval.d);
+            break;
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+          case IOP_T_XML:
+            /* Perform an octal escaping */
+            defval_escape(&sb, f->defval.ptr);
+            sb_addf(buf,
+                    "        .u0        = { .defval_len  = %zd },\n"
+                    "        .u1        = { .defval_data = \"%s\" },\n",
+                    strlen(f->defval.ptr), sb.data);
+            break;
+
+          default:
+            break;
+        }
+    }
+
+    if (f->kind == IOP_T_STRUCT || f->kind == IOP_T_UNION) {
+        /* XXX: Fields of type class are ALWAYS pointed, and the size of
+         *      a class type is uninformative (we have to know the real
+         *      instanciated class to know the size), so write the size of
+         *      the pointer in that case, this will simplify some code during
+         *      packing/unpacking. */
+        sb_addf(buf,
+                "        .size      = sizeof(%s__%s__t%s),\n"
+                "        .u1        = { .st_desc = &%s__%s__s },\n",
+                pp_under(f->type_path), pp_to_c(f->type_name),
+                f->struct_def->type == STRUCT_TYPE_CLASS ? " *" : "",
+                pp_under(f->type_path), pp_to_c(f->type_name));
+    } else if (f->repeat == IOP_R_REPEATED) {
+        sb_addf(buf,
+                "        .size      = fieldsizeof(%s__t, %s.tab[0]),\n",
+                tbase, cname);
+    } else {
+        sb_addf(buf,
+                "        .size      = fieldsizeof(%s__t, %s),\n",
+                tbase, cname);
+    }
+    if (f->kind == IOP_T_ENUM) {
+        sb_addf(buf,
+                "        .u1        = { .en_desc = &%s__%s__e },\n",
+                pp_under(f->type_path),
+                pp_to_c(f->type_name));
+    }
+    sb_addf(buf, "    },\n");
+}
+
+static void
+iopc_dump_static_field_src(sb_t *buf, iopc_field_t *f, const char *name)
+{
+    if (f->comments.len) {
+        iopc_dump_attrs_only_help(buf, IOP_FIELD_ATTR_HELP, "field",
+                                  name, "", "sf", &f->comments);
+
+        sb_addf(buf, "static const iop_field_attrs_t %s__sf_desc_attrs = ",
+                name);
+        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, IOP_FIELD_ATTR_HELP),
+                            1, name, "", "sf");
+    }
+
+    sb_addf(buf,
+            "static const iop_static_field_t %s = {\n"
+            "    .name  = LSTR_IMMED(\"%s\"),\n"
+            "    .value = ",
+            name, f->name);
+
+    switch (f->kind) {
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+        sb_addf(buf, "{ .u = %ju },\n", f->defval.u64);
+        break;
+
+      case IOP_T_DOUBLE:
+        sb_addf(buf, "{ .d = %.17e },\n", f->defval.d);
+        break;
+
+      case IOP_T_BOOL:
+        sb_addf(buf, "{ .b = %s },\n",
+                f->defval.u64 ? "true" : "false");
+        break;
+
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        sb_adds(buf, "{ .s = LSTR_IMMED(\"");
+        defval_escape(buf, f->defval.ptr);
+        sb_adds(buf, "\") },\n");
+        break;
+
+      default:
+        sb_addf(buf, "{ .i = %jd },\n", f->defval.u64);
+        break;
+    }
+
+    if (f->comments.len) {
+        sb_addf(buf, "    .attrs = &%s__sf_desc_attrs,\n", name);
+    }
+
+    sb_addf(buf, "};\n");
+}
+
+static void
+iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
+                                   const char *tbase)
+{
+    t_scope;
+    int index_field;
+
+    if (unlikely(!st->nb_real_static_fields)) {
+        return;
+    }
+    assert (st->type == STRUCT_TYPE_CLASS);
+
+    sb_addc(buf, '\n');
+
+    /* Generate static fields structures */
+    qv_sort(iopc_field)(&st->static_fields,
+        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2)
+    {
+        return strcmp((*f1)->name, (*f2)->name);
+    });
+    index_field = 0;
+    qv_for_each_entry(iopc_field, f, &st->static_fields) {
+        if (!f->has_defval) {
+            continue;
+        }
+        iopc_dump_static_field_src(buf, f, t_fmt(NULL, "%s__static_field_%d",
+                                                 tbase, index_field));
+        index_field++;
+    }
+
+    /* generate <tbase>__static_fields */
+    sb_addf(buf,
+            "static const iop_static_field_t *%s__static_fields[] = {\n",
+            tbase);
+    index_field = 0;
+    qv_for_each_entry(iopc_field, f, &st->static_fields) {
+        if (!f->has_defval) {
+            continue;
+        }
+        sb_addf(buf, "    &%s__static_field_%d,\n", tbase, index_field);
+        index_field++;
+    }
+    sb_adds(buf, "};\n\n");
+}
+
+bool iopc_field_is_signed(const iopc_field_t *f)
+{
+    switch (f->kind) {
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_ENUM:
+        return true;
+
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_BOOL:
+        return false;
+
+      default:
+        fatal("expected integer type, got %d", f->kind);
+    }
+}
+
+#define LVL1 "    "
+#define LVL2 LVL1 LVL1
+#define LVL3 LVL2 LVL1
+#define LVL4 LVL2 LVL2
+#define LVL5 LVL3 LVL2
+
+/* {{{ Generic attributes helpers */
+
+/* Convert a token type to a generic attribute type */
+#define TK_TYPE_TO_GEN_TYPE(_what, _type)                                   \
+    ({                                                                      \
+        int _gen_type = 0;                                                  \
+                                                                            \
+        switch (_type){                                                     \
+          case ITOK_STRING:                                                 \
+            _gen_type = IOP_##_what##_GEN_ATTR_S;                           \
+            break;                                                          \
+          case ITOK_INTEGER:                                                \
+          case ITOK_BOOL:                                                   \
+            _gen_type = IOP_##_what##_GEN_ATTR_I;                           \
+            break;                                                          \
+          case ITOK_DOUBLE:                                                 \
+            _gen_type = IOP_##_what##_GEN_ATTR_D;                           \
+            break;                                                          \
+          default:                                                          \
+            assert (false);                                                 \
+        }                                                                   \
+                                                                            \
+        _gen_type;                                                          \
+    })
+
+/* Dump a generic attribute */
+static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
+{
+    SB_1k(tmp);
+    assert (attr->args.len == 1);
+
+    /* Generic attributes have only one argument, their values. But we
+     * want to write two arguments in the generated .c file: the name of
+     * the attribute, and its value
+     */
+
+    /* First argument: name of the generic attribute */
+    sb_addf(buf,
+            LVL1 "{\n"
+            LVL1 "    .type = %d,\n"
+            LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED(\"%*pM\") }, ",
+            type, LSTR_FMT_ARG(attr->real_name));
+
+    /* Second argument: value of the generic attribute */
+    switch (attr->args.tab[0].type) {
+      case ITOK_STRING:
+        sb_add_slashes(&tmp, attr->args.tab[0].v.s.s,
+                       attr->args.tab[0].v.s.len, "\\", "\\");
+        sb_addf(buf, "{.v.s = LSTR_IMMED(\"%*pM\") } },\n",
+                SB_FMT_ARG(&tmp));
+        break;
+      case ITOK_BOOL:
+      case ITOK_INTEGER:
+        sb_addf(buf,"{ .v.i64 = %jdUL } },\n",
+                IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]));
+        break;
+      case ITOK_DOUBLE:
+        sb_addf(buf, "{ .v.d = "DOUBLE_FMT" } },\n",
+                IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]));
+        break;
+
+      default:
+        assert(false);
+        return;
+    }
+
+    sb_addf(buf,
+            LVL1 "},\n");
+
+    sb_wipe(&tmp);
+}
+
+/* Dump run-time needed attributes for structs/enums/ifaces */
+#define DUMP_ATTRS(_what, _out, _ptr, _name, _kind, _ext, _desc, _flags,     \
+                   _flag)                                                    \
+    ({                                                                       \
+        SB_1k(attrs_body);                                                   \
+        int type;                                                            \
+        bool _res;                                                           \
+        int nbr_attrs = _ptr->comments.len > 0 ? 1 : 0;                      \
+                                                                             \
+        iopc_dump_help_and_ref(_out, &attrs_body, IOP_##_what##_ATTR_HELP,   \
+                               _kind, _name, "", _ext, &_ptr->comments);     \
+                                                                             \
+        qv_for_each_pos(iopc_attr, _pos, &_ptr->attrs) {                     \
+            iopc_attr_t *_attr = _ptr->attrs.tab[_pos];                      \
+                                                                             \
+            switch(_attr->desc->id) {                                        \
+              case IOPC_ATTR_GENERIC:                                        \
+                type = TK_TYPE_TO_GEN_TYPE(_what, _attr->args.tab[0].type);  \
+                iopc_dump_gen_attr(&attrs_body, _attr, type);                \
+                nbr_attrs++;                                                 \
+                break;                                                       \
+                                                                             \
+              default:                                                       \
+                break;                                                       \
+            }                                                                \
+        }                                                                    \
+                                                                             \
+        if (nbr_attrs > 0) {                                                 \
+            unsigned help_flag;                                              \
+                                                                             \
+            help_flag = _ptr->comments.len > 0 ? BITMASK_NTH(unsigned,       \
+                                                    IOP_##_what##_ATTR_HELP) \
+                                               : 0;                          \
+            SET_BIT(_flags, _flag);                                          \
+                                                                             \
+            iopc_dump_attr_table_head(_out, _kind, _name, "", _ext);         \
+            sb_addsb(_out, &attrs_body);                                     \
+            sb_addf(_out, "};\n");                                           \
+            sb_addf(_out, "static const iop_%s_attrs_t %s__%s_attrs "        \
+                    "= ", _kind, _name, _desc);                              \
+            iopc_dump_attrs_ref(_out, help_flag, nbr_attrs, _name, "", _ext);\
+                                                                             \
+            _res = true;                                                     \
+        } else {                                                             \
+            _res = false;                                                    \
+        }                                                                    \
+        _res;                                                                \
+    })
+
+/* }}} */
+
+static void
+iopc_dump_fieldval_loop(sb_t *buf, iopc_field_t *f)
+{
+    const char *type;
+
+    sb_adds(buf, LVL1 "for (int j = 0; j < n; j++) {\n");
+
+    switch (f->kind) {
+      case IOP_T_U8:     type = "uint8_t  ";   break;
+      case IOP_T_I8:     type = "int8_t   ";   break;
+      case IOP_T_U16:    type = "uint16_t ";   break;
+      case IOP_T_I16:    type = "int16_t  ";   break;
+      case IOP_T_U32:    type = "uint32_t ";   break;
+      case IOP_T_I32:    type = "int32_t  ";   break;
+      case IOP_T_U64:    type = "uint64_t ";   break;
+      case IOP_T_I64:    type = "int64_t  ";   break;
+      case IOP_T_BOOL:   type = "bool     ";   break;
+      case IOP_T_DOUBLE: type = "double   ";   break;
+      case IOP_T_STRING: type = "lstr_t   ";   break;
+      case IOP_T_DATA:   type = _G.data_c_type; break;
+      case IOP_T_XML:    type = "lstr_t   ";   break;
+      case IOP_T_ENUM:
+        sb_addf(buf, LVL2 "%s__%s__t val = IOP_FIELD(int32_t, ptr, j);\n\n",
+                pp_under(f->type_path),
+                pp_to_c(f->type_name));
+        return;
+
+      case IOP_T_UNION:
+        sb_addf(buf, LVL2
+                "%s__%s__t *val = &IOP_FIELD(%s__%s__t, ptr, j);\n\n",
+                pp_under(f->type_path), pp_to_c(f->type_name), 
+                pp_under(f->type_path), pp_to_c(f->type_name));
+        return;
+
+      default:
+        fatal("constraints not supported for fields of kind %d", f->kind);
+    }
+    sb_addf(buf, LVL2 "%s val = IOP_FIELD(%s, ptr, j);\n\n",
+            type, type);
+}
+
+static void
+iopc_dump_minmax_occurs(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
+{
+    sb_addf(sb,
+            LVL1 "if (n %c %jd) {\n"
+            LVL2 "iop_set_err(\"violation of constraint %%s (%%d) "
+                 "on field %%s: length=%%d\",\n"
+            LVL2 "            \"%*pM\", %jd, \"%s\", n);\n"
+            LVL2 "return -1;\n"
+            LVL1 "}\n",
+            cmp, attr->args.tab[0].v.i64,
+            LSTR_FMT_ARG(attr->desc->name), attr->args.tab[0].v.i64, f->name);
+}
+
+static void
+iopc_dump_minmax_length(sb_t *sb, const char *cmp, iopc_attr_t *attr,
+                        iopc_field_t *f)
+{
+    sb_addf(sb,
+            LVL2 "if (val.len %s %jd) {\n"
+            LVL3 "iop_set_err(\"violation of constraint %%s (%%d) "
+                 "on field %%s: length=%%d\",\n"
+            LVL3 "            \"%*pM\", %jd, \"%s\", val.len);\n"
+            LVL3 "return -1;\n"
+            LVL2 "}\n",
+            cmp, attr->args.tab[0].v.i64,
+            LSTR_FMT_ARG(attr->desc->name), attr->args.tab[0].v.i64, f->name);
+}
+
+static inline int get_char(pstream_t *ps, lstr_t *s) {
+    int c, d;
+
+    PS_CHECK(c = ps_getc(ps));
+    if (c == '\\') {
+        /* escaped character */
+        PS_CHECK(d = ps_getc(ps));
+        switch (d) {
+          case '\\':
+            *s = LSTR_IMMED_V("\\\\");
+            return 0;
+          case '|': case '.': case '-': case '^': case '?':
+          case '*': case '+': case '{': case '}': case '(': case ')':
+          case '[': case ']':
+            *s = LSTR_INIT_V(ps->s - 1, 1);
+            return 0;
+          default:
+            return -1;
+        }
+    } else {
+        switch (c) {
+            /* unsupported regexp special char */
+          case '|': case '.': case '-': case '^': case '?':
+          case '*': case '+': case '{': case '}': case '(': case ')':
+          case '[': case ']':
+            return -1;
+          default:
+            *s = LSTR_INIT_V(ps->s - 1, 1);
+            return 0;
+        }
+    }
+}
+
+static int
+iopc_dump_pattern(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
+{
+
+    SB_1k(sbcase);
+    SB_1k(cpattern);
+    SB_1k(error);
+    bool negative = false;
+    lstr_t pattern = attr->args.tab[0].v.s;
+    pstream_t ps = ps_initlstr(&pattern);
+
+    PS_WANT(ps_getc(&ps) == '[');
+
+    PS_WANT(ps_has(&ps, 2));
+    PS_WANT(ps.b_end[-2] == ']' && ps.b_end[-1] == '*');
+    PS_CHECK(ps_shrink(&ps, 2));
+
+    PS_WANT(!ps_done(&ps));
+    if (*ps.b == '^') {
+        negative = true;
+        ps_skip(&ps, 1);
+        PS_WANT(!ps_done(&ps));
+    }
+
+    while (!ps_done(&ps)) {
+        lstr_t start = LSTR_EMPTY_V;
+
+        PS_CHECK(get_char(&ps, &start));
+
+        if (ps_has(&ps, 1) && *ps.b == '-') {
+            lstr_t end = LSTR_EMPTY_V;
+
+            __ps_skip(&ps, 1);
+            PS_CHECK(get_char(&ps, &end));
+            sb_addf(&sbcase, LVL4 "case '%*pM' ... '%*pM':\n",
+                    LSTR_FMT_ARG(start), LSTR_FMT_ARG(end));
+        } else {
+            sb_addf(&sbcase, LVL4 "case '%*pM':\n", LSTR_FMT_ARG(start));
+        }
+    }
+
+    sb_add_slashes(&cpattern, pattern.s, pattern.len, "\\", "\\");
+
+    sb_addf(&error,
+            LVL5 "iop_set_err(\"violation of constraint %%s (%%s) "
+                 "on field %%s: %%*pM\",\n"
+            LVL5 "            \"%*pM\", \"%*pM\", \"%s\", LSTR_FMT_ARG(val));\n"
+            LVL5 "return -1;\n",
+            LSTR_FMT_ARG(attr->desc->name),
+            cpattern.len, cpattern.data, f->name);
+
+    sb_addf(sb,
+            LVL2 "for (int c = 0; c < val.len; c++) {\n"
+            LVL3 "switch (val.s[c]) {\n"
+                 "%*pM"
+                 "%s"
+            LVL4 "default:\n"
+                 "%s"
+            LVL3 "}\n"
+            LVL2 "}\n",
+            sbcase.len, sbcase.data, negative ? error.data : LVL5 "break;\n",
+            negative ? LVL5 "break;\n" : error.data);
+
+    sb_wipe(&error);
+    sb_wipe(&sbcase);
+    sb_wipe(&cpattern);
+    return 0;
+}
+
+static int
+iopc_dump_allow(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
+{
+    const bool is_allow = (attr->desc->id == IOPC_ATTR_ALLOW);
+
+    sb_adds(sb, LVL2 "switch (val->iop_tag) {\n");
+
+    qv_for_each_entry(iopc_field, uf, &f->union_def->fields) {
+        bool allowed = !is_allow;
+
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            lstr_t name = arg->v.s;
+
+            if (strequal(uf->name, name.s)) {
+                allowed = !allowed;
+                break;
+            }
+        }
+
+        sb_addf(sb, LVL2 "  case %s__%s__%s__ft:\n", pp_under(f->type_path),
+                pp_to_c(f->type_name), pp_to_c(uf->name));
+        if (allowed) {
+            sb_addf(sb, LVL2 "    break;\n");
+        } else {
+            sb_addf(sb, LVL2 "    iop_set_err(\"violation of constraint %s "
+                             "(%s) on field %s\");\n"
+                        LVL2 "    return -1;\n",
+                        is_allow ? "allow" : "disallow", uf->name, f->name);
+        }
+    }
+    sb_adds(sb, LVL2 "}\n");
+    return 0;
+}
+
+static void
+iopc_dump_minmax(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
+{
+    iopc_arg_t *arg = &attr->args.tab[0];
+
+#define GEN_TEST(fmt1, fmt2, type) \
+    sb_addf(sb,                                                             \
+            LVL2 "if (val %c " fmt1 ") {\n"                                 \
+            LVL3 "if (n > 1) {\n"                                           \
+            \
+            LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") "    \
+                 "on field %%s[%%d]: val=" fmt2 "\",\n"                     \
+            LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", j, "    \
+                 "(" type ")val);\n"                                        \
+            \
+            LVL3 "} else {\n"                                               \
+            \
+            LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") "    \
+                 "on field %%s: val=" fmt2 "\",\n"                          \
+            LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", "       \
+                 "(" type ")val);\n"                                        \
+            \
+            LVL3 "}\n"                                                      \
+            \
+            LVL3 "return -1;\n"                                             \
+            LVL2 "}\n",                                                     \
+            cmp, v, LSTR_FMT_ARG(attr->desc->name), v, f->name,             \
+            LSTR_FMT_ARG(attr->desc->name), v, f->name);
+
+    assert (iopc_g.v2);
+    if (f->kind == IOP_T_DOUBLE) {
+        double v = IOPC_ATTR_GET_ARG_V(double, arg);
+
+        GEN_TEST("%.17e", "%%.17e", "double");
+    } else
+    if (iopc_field_is_signed(f)) {
+        int64_t v = IOPC_ATTR_GET_ARG_V(int64_t, arg);
+
+        GEN_TEST("%jdLL", "%%jd", "int64_t");
+    } else {
+        uint64_t v = IOPC_ATTR_GET_ARG_V(uint64_t, arg);
+
+        GEN_TEST("%juULL", "%%ju", "uint64_t");
+    }
+#undef GEN_TEST
+}
+
+static void
+iopc_dump_non_zero(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
+{
+    sb_addf(sb,
+            LVL2 "if (val == 0) {\n"
+            LVL3 "if (n > 1) {\n"
+
+            LVL4 "iop_set_err(\"violation of constraint %%s on field %%s[%%d]\",\n"
+            LVL4 "            \"%*pM\", \"%s\", j);\n"
+
+            LVL3 "} else {\n"
+
+            LVL4 "iop_set_err(\"violation of constraint %%s on field %%s\",\n"
+            LVL4 "            \"%*pM\", \"%s\");\n"
+
+            LVL3 "}\n"
+
+            LVL3 "return -1;\n"
+            LVL2 "}\n",
+            LSTR_FMT_ARG(attr->desc->name), f->name,
+            LSTR_FMT_ARG(attr->desc->name), f->name);
+}
+
+static void
+iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
+{
+    sb_addf(sb,
+            LVL2 "if (val.len == 0) {\n"
+            LVL3 "if (n > 1) {\n"
+
+            LVL4 "iop_set_err(\"violation of constraint %%s on field %%s[%%d]\",\n"
+            LVL4 "            \"%*pM\", \"%s\", j);\n"
+
+            LVL3 "} else {\n"
+
+            LVL4 "iop_set_err(\"violation of constraint %%s on field %%s\",\n"
+            LVL4 "            \"%*pM\", \"%s\");\n"
+
+            LVL3 "}\n"
+
+            LVL3 "return -1;\n"
+            LVL2 "}\n",
+            LSTR_FMT_ARG(attr->desc->name), f->name,
+            LSTR_FMT_ARG(attr->desc->name), f->name);
+}
+
+static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
+                                 sb_t *sb, iopc_attrs_t *attrs,
+                                 const iopc_field_t *f)
+{
+    SB_1k(pattern);
+
+    SET_BIT(&attrs->flags, type);
+    attrs->attrs_len++;
+
+    /* only supports these two attributes for now which have a single int64
+     * arg */
+    assert (iopc_g.v2);
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_MIN_OCCURS:
+      case IOPC_ATTR_MAX_OCCURS:
+      case IOPC_ATTR_MIN_LENGTH:
+      case IOPC_ATTR_MAX_LENGTH:
+      case IOPC_ATTR_LENGTH:
+        assert (attr->args.tab[0].type == ITOK_INTEGER);
+        assert (attr->args.len == 1);
+        sb_addf(sb,
+                LVL1 "{\n"
+                LVL1 "    .type = %d,\n"
+                LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %jdLL } },\n"
+                LVL1 "},\n",
+                type, attr->args.tab[0].v.i64);
+        break;
+
+      case IOPC_ATTR_PATTERN:
+        assert (attr->args.tab[0].type == ITOK_STRING);
+        assert (attr->args.len == 1);
+        sb_add_slashes(&pattern, attr->args.tab[0].v.s.s,
+                       attr->args.tab[0].v.s.len, "\\", "\\");
+        sb_addf(sb,
+                LVL1 "{\n"
+                LVL1 "    .type = %d,\n"
+                LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED(\"%*pM\") } },\n"
+                LVL1 "},\n",
+                type, pattern.len, pattern.data);
+        break;
+
+      case IOPC_ATTR_MIN:
+      case IOPC_ATTR_MAX:
+        assert (attr->args.len == 1);
+        if (f->kind == IOP_T_DOUBLE) {
+            sb_addf(sb,
+                    LVL1 "{\n"
+                    LVL1 "    .type = %d,\n"
+                    LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.d = %.17e } },\n"
+                    LVL1 "},\n",
+                    type, IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]));
+        } else
+        if (iopc_field_is_signed(f)) {
+            sb_addf(sb,
+                    LVL1 "{\n"
+                    LVL1 "    .type = %d,\n"
+                    LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %jdLL } },\n"
+                    LVL1 "},\n",
+                    type, IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]));
+        } else {
+            sb_addf(sb,
+                    LVL1 "{\n"
+                    LVL1 "    .type = %d,\n"
+                    LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %juULL } },\n"
+                    LVL1 "},\n",
+                    type, IOPC_ATTR_GET_ARG_V(uint64_t, &attr->args.tab[0]));
+        }
+        break;
+
+      case IOPC_ATTR_GENERIC:
+        iopc_dump_gen_attr(sb, attr, type);
+        break;
+
+      default:
+        e_panic("should not happen");
+    }
+
+    sb_wipe(&pattern);
+}
+
+static void
+iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
+                      iopc_field_t *f, iopc_attrs_t *attrs)
+{
+    SB_1k(attrs_body);
+    SB_1k(checkf_body);
+    SB_1k(checkf_loopbody);
+    const char *cname = pp_to_c(f->name);
+    int type;
+
+    iopc_dump_help_and_ref(buf, &attrs_body, IOP_FIELD_ATTR_HELP, "field",
+                           tbase, cname, "f", &f->comments);
+    if (f->comments.len) {
+        attrs->attrs_len++;
+        SET_BIT(&attrs->flags, IOP_FIELD_ATTR_HELP);
+    }
+
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        switch (attr->desc->id) {
+
+          case IOPC_ATTR_CDATA:
+            SET_BIT(&attrs->flags, IOP_FIELD_CDATA);
+            break;
+
+          case IOPC_ATTR_MIN_OCCURS:
+            iopc_dump_minmax_occurs(&checkf_body, '<', attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MIN_OCCURS, &attrs_body,
+                                 attrs, f);
+            break;
+          case IOPC_ATTR_MAX_OCCURS:
+            iopc_dump_minmax_occurs(&checkf_body, '>', attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MAX_OCCURS, &attrs_body,
+                                 attrs, f);
+            break;
+
+          case IOPC_ATTR_MIN_LENGTH:
+            iopc_dump_minmax_length(&checkf_loopbody, "<", attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH, &attrs_body,
+                                 attrs, f);
+            break;
+
+          case IOPC_ATTR_MAX_LENGTH:
+            iopc_dump_minmax_length(&checkf_loopbody, ">", attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH, &attrs_body,
+                                 attrs, f);
+            break;
+
+          case IOPC_ATTR_LENGTH:
+            iopc_dump_minmax_length(&checkf_loopbody, "!=", attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH, &attrs_body,
+                                 attrs, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH, &attrs_body,
+                                 attrs, f);
+            break;
+
+          case IOPC_ATTR_PATTERN:
+            if (iopc_dump_pattern(&checkf_loopbody, attr, f) == -1) {
+                fatal("unsupported pattern: %*pM",
+                      LSTR_FMT_ARG(attr->args.tab[0].v.s));
+            }
+            iopc_dump_field_attr(attr, IOP_FIELD_PATTERN, &attrs_body,
+                                 attrs, f);
+            break;
+
+          case IOPC_ATTR_MIN:
+            iopc_dump_minmax(&checkf_loopbody, '<', attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MIN, &attrs_body, attrs, f);
+            break;
+          case IOPC_ATTR_MAX:
+            iopc_dump_minmax(&checkf_loopbody, '>', attr, f);
+            iopc_dump_field_attr(attr, IOP_FIELD_MAX, &attrs_body, attrs, f);
+            break;
+          case IOPC_ATTR_NON_EMPTY:
+            iopc_dump_non_empty(&checkf_loopbody, attr, f);
+            SET_BIT(&attrs->flags, IOP_FIELD_NON_EMPTY);
+            break;
+          case IOPC_ATTR_NON_ZERO:
+            iopc_dump_non_zero(&checkf_loopbody, attr, f);
+            SET_BIT(&attrs->flags, IOP_FIELD_NON_ZERO);
+            break;
+          case IOPC_ATTR_ALLOW:
+          case IOPC_ATTR_DISALLOW:
+            iopc_dump_allow(&checkf_loopbody, attr, f);
+            break;
+
+          case IOPC_ATTR_PRIVATE:
+            SET_BIT(&attrs->flags, IOP_FIELD_PRIVATE);
+            break;
+
+          case IOPC_ATTR_GENERIC:
+            type = TK_TYPE_TO_GEN_TYPE(FIELD, attr->args.tab[0].type);
+            iopc_dump_field_attr(attr, type, &attrs_body, attrs, f);
+            break;
+
+          default:
+            break;
+        }
+    }
+
+    if (checkf_body.len || checkf_loopbody.len) {
+        attrs->checkf_name = lstr_fmt("%s__%s__check", tbase, cname);
+
+        sb_addf(buf,
+                "static int %*pM(const void *ptr, int n)\n"
+                "{\n",
+                LSTR_FMT_ARG(attrs->checkf_name));
+        sb_addsb(buf, &checkf_body);
+        if (checkf_loopbody.len) {
+            iopc_dump_fieldval_loop(buf, f);
+            sb_addsb(buf, &checkf_loopbody);
+            sb_adds(buf, "    }\n");
+        }
+        sb_adds(buf,
+                "    return 0;\n"
+                "}\n");
+    }
+    if (attrs_body.len) {
+        attrs->attrs_name = lstr_fmt("%s__%s__attrs", tbase, cname);
+
+        sb_addf(buf,
+                "static iop_field_attr_t const %*pM[] = {\n",
+                LSTR_FMT_ARG(attrs->attrs_name));
+        sb_addsb(buf, &attrs_body);
+        sb_adds(buf,
+                "};\n");
+    }
+
+    sb_wipe(&checkf_loopbody);
+    sb_wipe(&checkf_body);
+    sb_wipe(&attrs_body);
+}
+
+/** XXX: sb_na    buffer where to write attributes other than IOPC_ATTR_ALIAS
+ *       sb_alias buffer where to write attribute IOPC_ATTR_ALIAS
+ */
+static void
+iopc_dump_rpc_attr(iopc_attr_t *attr, sb_t *sb_na, sb_t *sb_alias,
+                   iopc_attrs_t *attrs, char* ibase, uint *n_func_and_alias)
+{
+    unsigned type = 0;
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_ALIAS:
+        type = IOP_RPC_ALIAS;
+        qv_for_each_entry(iopc_arg, arg, &attr->args) {
+            sb_addf(sb_alias,
+                    LVL1 "{\n"
+                    LVL1 "    .type = %d,\n"
+                    LVL1 "    .args = (iop_rpc_attr_arg_t[]){ { .v.p = (void*)&%s__if_funs[%u] } },\n"
+                    LVL1 "},\n",
+                    type, ibase, *n_func_and_alias);
+            (*n_func_and_alias)++;
+            attrs->attrs_len++;
+        }
+        break;
+      case IOPC_ATTR_GENERIC:
+        type = TK_TYPE_TO_GEN_TYPE(RPC, attr->args.tab[0].type);
+        iopc_dump_gen_attr(sb_na, attr, type);
+        attrs->attrs_len++;
+        break;
+      default:
+        e_panic("should not happen");
+    }
+    SET_BIT(&attrs->flags, type);
+}
+
+static void
+iopc_dump_rpc_attrs(sb_t *buf, char *tbase, iopc_fun_t *f, iopc_attrs_t *attrs,
+                    uint *n_func_and_alias)
+{
+    SB_1k(attrs_body);
+    SB_1k(attrs_body_alias);
+    const char *cname = pp_to_c(f->name);
+
+    iopc_dump_help_and_ref(buf, &attrs_body, IOP_RPC_ATTR_HELP, "rpc",
+                           tbase, cname, "rpc", &f->comments);
+    if (f->comments.len) {
+        SET_BIT(&attrs->flags, IOP_RPC_ATTR_HELP);
+        attrs->attrs_len++;
+    }
+
+#define CHECK_HELP_ARG(X, Y)                                                 \
+    do {                                                                     \
+        if (f->Y##_is_anonymous || !f->f##Y)                                 \
+            break;                                                           \
+        iopc_dump_help_and_ref(buf, &attrs_body,                             \
+                               IOP_RPC_ATTR_##X##_HELP, "rpc",               \
+                               tbase, cname, "rpc_"#Y, &f->f##Y->comments);  \
+        if (f->f##Y->comments.len) {                                         \
+            SET_BIT(&attrs->flags, IOP_RPC_ATTR_##X##_HELP);                 \
+            attrs->attrs_len++;                                              \
+        }                                                                    \
+    } while (0)
+
+    CHECK_HELP_ARG(ARG, arg);
+    CHECK_HELP_ARG(RES, res);
+    CHECK_HELP_ARG(EXN, exn);
+#undef CHECK_HELP_ARG
+
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        iopc_dump_rpc_attr(attr, &attrs_body, &attrs_body_alias, attrs, tbase,
+                           n_func_and_alias);
+    }
+    if (!attrs->attrs_len)
+        return;
+
+    attrs->attrs_name = lstr_fmt("%s__%s__attrs", tbase, cname);
+
+    if (attrs_body.len && attrs_body_alias.len) {
+        /** dump attributes other than aliases, used by aliased functions */
+        sb_addf(buf, "static iop_rpc_attr_t const %*pM_na[] = {\n",
+                LSTR_FMT_ARG(attrs->attrs_name));
+        sb_addsb(buf, &attrs_body);
+        sb_adds(buf, "};\n");
+    }
+
+    sb_addsb(&attrs_body, &attrs_body_alias);
+    sb_wipe(&attrs_body_alias);
+
+    /** dump all attributes */
+    sb_addf(buf,
+            "static iop_rpc_attr_t const %*pM[] = {\n",
+            LSTR_FMT_ARG(attrs->attrs_name));
+    sb_addsb(buf, &attrs_body);
+    sb_adds(buf,
+            "};\n");
+    sb_wipe(&attrs_body);
+}
+
+#undef LVL1
+#undef LVL2
+#undef LVL3
+#undef LVL4
+
+static void
+iopc_dump_field_attrs_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
+                          iopc_field_t *f, iopc_attrs_t *attrs)
+{
+    assert (iopc_g.v2);
+    sb_addf(buf,
+            "    {\n"
+            "        .flags             = %u,\n"
+            "        .attrs_len         = %u,\n",
+            attrs->flags, attrs->attrs_len);
+
+    if (attrs->checkf_name.len) {
+        sb_addf(buf, "        .check_constraints = &%*pM,\n",
+                LSTR_FMT_ARG(attrs->checkf_name));
+    }
+    if (attrs->attrs_name.len) {
+        sb_addf(buf, "        .attrs             = %*pM,\n",
+                LSTR_FMT_ARG(attrs->attrs_name));
+    }
+
+    sb_adds(buf,
+            "    },\n");
+}
+
+static void
+iopc_dump_rpc_attrs_src(sb_t *buf, const iopc_attrs_t *attrs)
+{
+    assert (iopc_g.v2);
+    sb_addf(buf,
+            "    {\n"
+            "        .flags             = %u,\n",
+            attrs->flags);
+    if (attrs->attrs_len) {
+        sb_addf(buf,
+                "        .attrs_len         = %u,\n"
+                "        .attrs             = %*pM,\n",
+                attrs->attrs_len, LSTR_FMT_ARG(attrs->attrs_name));
+    }
+    sb_adds(buf,
+            "    },\n");
+}
+
+static void
+iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
+                   const char *pkg_name, iopc_enum_t *en)
+{
+    t_scope;
+    const char *tname = pp_to_c(en->name);
+    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    int range;
+    unsigned flags = 0;
+    bool values_have_comments = false;
+    bool has_attrs;
+    qv_t(i32) t;
+
+    qv_sort(iopc_enum_field)(&en->values,
+                             ^int (iopc_enum_field_t * const *f1,
+                                   iopc_enum_field_t * const *f2) {
+        return CMP((*f1)->value, (*f2)->value);
+    });
+    sb_addf(buf,
+            "/* Enum %s.%s {""{{ */\n"
+            "\n"
+            "static int const %s__values[] = {\n",
+            pretty_path_dot(pkg->name), en->name, tbase);
+    qv_for_each_entry(iopc_enum_field, f, &en->values) {
+        sb_addf(buf, " %d,", f->value);
+    }
+    sb_adds(buf,
+            "\n"
+            "};\n");
+
+    t_qv_init(i32, &t, 1024);
+    for (int i = 0, last_enum = 0; i < en->values.len; i++) {
+        iopc_enum_field_t *f = en->values.tab[i];
+
+        if (!i || ++last_enum != f->value) {
+            qv_append(i32, &t, i);
+            qv_append(i32, &t, f->value);
+            last_enum = f->value;
+        }
+    }
+    qv_append(i32, &t, en->values.len);
+    range = iopc_put_range(buf, &t);
+
+    sb_addf(buf,
+            "static const lstr_t %s__names[] = {\n",
+            tbase);
+    qv_for_each_entry(iopc_enum_field, value, &en->values) {
+        sb_addf(buf, "    LSTR_IMMED(\"%s\"),\n", value->name);
+        if (value->comments.len)
+            values_have_comments = true;
+    }
+    sb_adds(buf, "};\n");
+    qv_for_each_pos(iopc_attr, pos, &en->attrs) {
+        if (en->attrs.tab[pos]->desc->id == IOPC_ATTR_STRICT) {
+            SET_BIT(&flags, IOP_ENUM_STRICT);
+            break;
+        }
+    }
+    if (values_have_comments) {
+        SB_1k(help_body);
+
+        SET_BIT(&flags, IOP_ENUM_EXTENDED);
+        qv_for_each_entry(iopc_enum_field, f, &en->values) {
+            t_scope;
+            int len = !!f->comments.len;
+            lstr_t fname = t_lstr_dups(f->name, strlen(f->name));
+
+            lstr_ascii_tolower(&fname);
+            iopc_dump_attrs_only_help(buf, IOP_ENUM_VALUE_ATTR_HELP,
+                "enum_value", tbase, fname.s, "v", &f->comments);
+
+            iopc_dump_attrs_ref(&help_body,
+                BITMASK_NTH(unsigned, IOP_ENUM_VALUE_ATTR_HELP) * len, len,
+                tbase, fname.s, "v");
+        }
+        sb_addf(buf, "static const iop_enum_value_attrs_t "
+                     "%s__e_desc_values_attrs[] = {\n%*pM};\n",
+                tbase, SB_FMT_ARG(&help_body));
+    }
+
+    has_attrs = DUMP_ATTRS(ENUM, buf, en, tbase, "enum", "e", "e_desc",
+                           &flags, IOP_ENUM_EXTENDED);
+
+    sb_addf(buf,
+            "iop_enum_t const %s__e = {\n"
+            "    .name         = LSTR_IMMED(\"%s\"),\n"
+            "    .fullname     = LSTR_IMMED(\"%s.%s\"),\n"
+            "    .names        = %s__names,\n"
+            "    .values       = %s__values,\n"
+            "    .ranges       = iop__ranges__%d,\n"
+            "    .ranges_len   = countof(iop__ranges__%d) / 2,\n"
+            "    .enum_len     = %d,\n",
+            tbase, en->name, pretty_path_dot(pkg->name), en->name,
+            tbase, tbase, range, range, en->values.len);
+    if (flags)
+        sb_addf(buf, "    .flags        = %u,\n", flags);
+    if (has_attrs)
+        sb_addf(buf, "    .en_attrs     = &%s__e_desc_attrs,\n", tbase);
+    if (values_have_comments)
+        sb_addf(buf, "    .values_attrs = %s__e_desc_values_attrs,\n", tbase);
+    sb_adds(buf,
+            "};\n"
+            "\n"
+            "/* }""}} */\n");
+}
+
+static bool
+iopc_has_constraints(qv_t(iopc_attr) *attrs)
+{
+    qv_for_each_entry(iopc_attr, attr, attrs) {
+        if (TST_BIT(&attr->desc->flags, IOPC_ATTR_F_CONSTRAINT))
+            return true;
+    }
+    return false;
+}
+
+static void
+iopc_struct_check_constraints(iopc_struct_t *st)
+{
+    if (st->checked_constraints)
+        return;
+    st->checked_constraints = true;
+
+    if (iopc_has_constraints(&st->attrs))
+        st->has_constraints = true;
+
+    qv_for_each_entry(iopc_field, f, &st->fields) {
+        if (iopc_has_constraints(&f->attrs))
+            st->has_constraints = true;
+
+        switch (f->kind) {
+          case IOP_T_STRUCT:
+            iopc_struct_check_constraints(f->struct_def);
+            if (f->struct_def->has_constraints)
+                st->has_constraints = true;
+            break;
+          case IOP_T_UNION:
+            iopc_struct_check_constraints(f->union_def);
+            if (f->union_def->has_constraints)
+                st->has_constraints = true;
+            break;
+          case IOP_T_ENUM:
+            if (iopc_has_constraints(&f->enum_def->attrs))
+                st->has_constraints = true;
+            break;
+          default:
+            break;
+        }
+    }
+}
+
+static const char *get_struct_type_desc(iopc_struct_type_t type)
+{
+    switch (type) {
+      default:
+      case STRUCT_TYPE_STRUCT: return "Structure";
+      case STRUCT_TYPE_CLASS:  return "Class";
+      case STRUCT_TYPE_UNION:  return "Union";
+    }
+}
+
+static void
+iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
+                     const char *pkg_name,
+                     iopc_struct_t *st, qv_t(lstr) *paliases)
+{
+    t_scope;
+    const char *comment = get_struct_type_desc(st->type);
+    const char *tname = pp_to_c(st->name);
+    const char *iname = st->iface ? st->iface->name : NULL;
+    char *tbase = iname ? t_fmt(NULL, "%s__%s__%s", pkg_name, pp_to_c(iname),
+                                tname)
+                        : t_fmt(NULL, "%s__%s", pkg_name, tname);
+    char *sname = iname ? t_fmt(NULL, "%s.%s", iname, st->name)
+                        : t_fmt(NULL, "%s", st->name);
+    char *as_base;
+    int last_tag   = INT_MIN;
+    int range;
+    qv_t(i32) t;
+    bool has_attrs;
+
+    qv_sort(iopc_field)(&st->fields,
+                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
+        return (*f1)->tag - (*f2)->tag;
+    });
+    sb_addf(buf, "/* %s %s.%s {""{{ */\n\n",
+            comment, pretty_path_dot(pkg->name), sname);
+
+    if (st->same_as) {
+        iopc_struct_t *as = st->same_as;
+
+        if (as->iface) {
+            sb_addf(buf, "/* same as %s.%s.%s */\n\n",
+                    pretty_path_dot(pkg->name), as->iface->name, as->name);
+            as_base = asprintf("%s__%s__%s", pkg_name, pp_to_c(as->iface->name),
+                               pp_to_c(as->name));
+        } else {
+            sb_addf(buf, "/* same as %s.%s */\n\n",
+                    pretty_path_dot(pkg->name), as->name);
+            as_base = asprintf("%s__%s", pkg_name, pp_to_c(as->name));
+        }
+        /* all the attributes and constraints work has already been done with
+         * the as struct, so re-use it */
+        st->flags               = as->flags;
+        st->has_fields_attrs    = as->has_fields_attrs;
+        st->has_constraints     = as->has_constraints;
+    } else
+    if (!iopc_g.v2) {
+        as_base = p_strdup(tbase);
+        /* only generate <tbase>__desc_fields */
+        sb_addf(buf, "static iop_field_t const %s__desc_fields[] = {\n", tbase);
+        for (int i = 0; i < st->fields.len; i++) {
+            iopc_dump_field_src(buf, st, tbase, st->fields.tab[i], NULL);
+        }
+        sb_adds(buf,
+                "};\n");
+    } else {
+        qv_t(iopc_attrs) fields_attrs;
+
+        as_base = p_strdup(tbase);
+
+        qv_init(iopc_attrs, &fields_attrs);
+
+        /* check attributes and generate everything that is needed for
+         * <tbase>__desc_fields_attrs (attributes, constraints func and help)
+         */
+        qv_for_each_entry(iopc_field, field, &st->fields) {
+            iopc_attrs_t attrs;
+
+            iopc_attrs_init(&attrs);
+
+            iopc_dump_field_attrs(buf, st, tbase, field, &attrs);
+            if (attrs.checkf_name.len || attrs.flags) {
+                st->has_fields_attrs = true;
+            }
+            qv_append(iopc_attrs, &fields_attrs, attrs);
+        }
+
+        /* generate <tbase>__desc_fields_attrs */
+        if (st->has_fields_attrs) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            sb_addf(buf,
+                    "static iop_field_attrs_t const %s__desc_fields_attrs[] = {\n",
+                    tbase);
+            qv_for_each_pos(iopc_field, i, &st->fields) {
+                iopc_dump_field_attrs_src(buf, st, tbase, st->fields.tab[i],
+                                          &fields_attrs.tab[i]);
+            }
+            sb_adds(buf, "};\n");
+        }
+
+        /* generate <tbase>__desc_fields */
+        sb_addf(buf, "static iop_field_t const %s__desc_fields[] = {\n", tbase);
+        qv_for_each_pos(iopc_field, i, &st->fields) {
+            iopc_dump_field_src(buf, st, tbase, st->fields.tab[i],
+                                &fields_attrs.tab[i]);
+        }
+        sb_adds(buf,
+                "};\n");
+
+        qv_deep_wipe(iopc_attrs, &fields_attrs, iopc_attrs_wipe);
+
+        iopc_struct_check_constraints(st);
+        if (st->has_constraints) {
+            SET_BIT(&st->flags, IOP_STRUCT_HAS_CONSTRAINTS);
+        }
+
+        /* generate static fields */
+        if (st->nb_real_static_fields) {
+            iopc_struct_dump_static_fields_src(buf, st, tbase);
+        }
+
+        if (st->type == STRUCT_TYPE_CLASS) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            SET_BIT(&st->flags, IOP_STRUCT_IS_CLASS);
+        }
+    }
+
+    t_qv_init(i32, &t, 1024);
+    qv_for_each_pos(iopc_field, i, &st->fields) {
+        iopc_field_t *f = st->fields.tab[i];
+        if (++last_tag != f->tag) {
+            qv_append(i32, &t, i);
+            qv_append(i32, &t, f->tag);
+            last_tag = f->tag;
+        }
+    }
+    qv_append(i32, &t, st->fields.len);
+    range = iopc_put_range(buf, &t);
+
+    has_attrs = DUMP_ATTRS(STRUCT, buf, st, tbase, "struct", "s", "s_desc",
+                           &st->flags, IOP_STRUCT_EXTENDED);
+
+    #define WRITE_STRUCT(_tbase, _sname)                                     \
+        do {                                                                 \
+            if (st->type == STRUCT_TYPE_CLASS) {                             \
+                sb_addf(buf,                                                 \
+                        "static const iop_class_attrs_t %s__class_s = {\n",  \
+                        _tbase);                                             \
+                if (st->extends.len) {                                       \
+                    sb_addf(buf, "    .parent            = &%s__%s__s,\n",   \
+                            pp_under(st->extends.tab[0]->pkg->name),         \
+                            pp_to_c(st->extends.tab[0]->st->name));          \
+                }                                                            \
+                if (st->nb_real_static_fields) {                             \
+                    sb_addf(buf,                                             \
+                            "    .static_fields     = %s__static_fields,\n"  \
+                            "    .static_fields_len = %d,\n",                \
+                            as_base, st->nb_real_static_fields);             \
+                }                                                            \
+                if (st->is_abstract) {                                       \
+                    sb_adds(buf, "    .is_abstract       = true,\n");        \
+                }                                                            \
+                sb_addf(buf,                                                 \
+                        "    .class_id          = %d,\n", st->class_id);     \
+                sb_adds(buf, "};\n");                                        \
+            }                                                                \
+            sb_addf(buf,                                                     \
+                    "const iop_struct_t %s__s = {\n"                         \
+                    "    .fullname   = LSTR_IMMED(\"%s.%s\"),\n"             \
+                    "    .fields     = %s__desc_fields,\n"                   \
+                    "    .ranges     = iop__ranges__%d,\n"                   \
+                    "    .fields_len = countof(%s__desc_fields),\n"          \
+                    "    .ranges_len = countof(iop__ranges__%d) / 2,\n"      \
+                    "    .size       = sizeof(%s__t),\n",                    \
+                    _tbase, pretty_path_dot(pkg->name),                      \
+                    _sname, as_base, range, as_base, range, tbase);          \
+            if (st->type == STRUCT_TYPE_UNION)                               \
+                sb_adds(buf, "    .is_union   = true,\n");                   \
+            if (st->flags)                                                   \
+                sb_addf(buf, "    .flags      = %d,\n", st->flags);          \
+            if (has_attrs) {                                                 \
+                sb_addf(buf, "    .st_attrs   = &%s__s_desc_attrs,\n",       \
+                        tbase);                                              \
+            }                                                                \
+            if (st->has_fields_attrs) {                                      \
+                sb_addf(buf, "    .fields_attrs = %s__desc_fields_attrs,\n", \
+                        as_base);                                            \
+            }                                                                \
+            if (st->type == STRUCT_TYPE_CLASS) {                             \
+                sb_addf(buf, "    .class_attrs  = &%s__class_s,\n", _tbase); \
+            }                                                                \
+            sb_adds(buf, "};\n");                                            \
+                                                                             \
+            sb_adds(buf, "\n/* }""}} */\n");                                 \
+        } while (0)
+
+    WRITE_STRUCT(tbase, sname);
+
+    if (paliases) {
+        qv_for_each_entry(lstr, alias, paliases) {
+            const char *new_tname = pp_to_c(alias.s);
+            char *new_tbase = iname ? t_fmt(NULL, "%s__%s__%s", pkg_name,
+                                            pp_to_c(iname), new_tname)
+                : t_fmt(NULL, "%s__%s", pkg_name, new_tname);
+            const char *new_sname = iname ? t_fmt(NULL, "%s.%s", iname, alias.s)
+                : alias.s;
+
+            WRITE_STRUCT(new_tbase, new_sname);
+        }
+    }
+
+    #undef WRITE_STRUCT
+
+    p_delete(&as_base);
+}
+
+static void
+iopc_dump_rpc_defines(sb_t *buf, char *ibase, iopc_field_t *field,
+                      const char *alias_name)
+{
+    t_scope;
+    const char *name = alias_name ? alias_name : field->name;
+    const char *tbase_arg = t_fmt(NULL, "%s__%s", ibase, pp_to_c(name));
+    const char *tbase_ref = t_fmt(NULL, "%s__%s",
+                                  pp_under(field->type_path),
+                                  pp_to_c(field->type_name));
+
+    if (alias_name == NULL) {
+        /* These defines are not needed for RPC aliases (c.f. WRITE_STRUCT) */
+        sb_addf(buf, "#define %s__desc_fields  %s__desc_fields\n",
+                tbase_arg, tbase_ref);
+        sb_addf(buf, "#define %s__s_ranges     %s__s_ranges\n",
+                tbase_arg, tbase_ref);
+    }
+    sb_addf(buf, "#define %s__s            %s__s\n", tbase_arg,
+            tbase_ref);
+}
+
+static bool iopc_fun_has_alias(iopc_fun_t *fun)
+{
+    qv_for_each_entry(iopc_attr, attr, &fun->attrs) {
+        if (attr->desc->id == IOPC_ATTR_ALIAS) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static inline void
+iopc_get_aliases(iopc_fun_t *fun, qv_t(lstr) *aliases, const char *suffix)
+{
+    /* build a vector of aliases of this RPC */
+    qv_deep_clear(lstr, aliases, lstr_wipe);
+    qv_for_each_entry(iopc_attr, attr, &fun->attrs) {
+        if (attr->desc->id == IOPC_ATTR_ALIAS) {
+            qv_for_each_entry(iopc_arg, arg, &attr->args) {
+                lstr_t alias = lstr_fmt("%*pM%s", LSTR_FMT_ARG(arg.v.s),
+                                        suffix);
+                qv_append(lstr, aliases, alias);
+            }
+        }
+    }
+}
+
+static inline void
+iopc_register_fun(sb_t *buf, char *ibase, iopc_fun_t *f, const char *falias_name)
+{
+    const char *fname = falias_name ? falias_name : f->name;
+
+    sb_addf(buf,
+            "    {\n"
+            "        .name      = LSTR_IMMED(\"%s\"),\n"
+            "        .tag       = %d,\n",
+            fname, f->tag);
+
+#define REGISTER_FUN_VAR(_var, _varname, _fvarname, _is_anonymous, _t)       \
+        do {                                                                 \
+            if (_var) {                                                      \
+                if (_is_anonymous) {                                         \
+                    sb_addf(buf,                                             \
+                            "        ." _t "    = &%s__%s__s,\n",            \
+                            ibase, pp_to_c(_varname));                       \
+                } else {                                                     \
+                    sb_addf(buf,                                             \
+                            "        ." _t "    = &%s__%s__s,\n",            \
+                            ibase, pp_to_c(_fvarname));                      \
+                }                                                            \
+            } else {                                                         \
+                sb_addf(buf,                                                 \
+                        "        ." _t "    = &iop__void__s,\n");            \
+            }                                                                \
+        } while (0)
+
+    if (!falias_name) {
+        REGISTER_FUN_VAR(f->arg, f->arg->name, f->farg->name,
+                         f->arg_is_anonymous, "args  ");
+        REGISTER_FUN_VAR(f->res, f->res->name, f->fres->name,
+                         f->res_is_anonymous, "result");
+        REGISTER_FUN_VAR(f->exn, f->exn->name, f->fexn->name,
+                         f->exn_is_anonymous, "exn   ");
+    } else {
+        t_scope;
+        const char *argname = t_fmt(NULL, "%s_args", falias_name);
+        const char *resname = t_fmt(NULL, "%s_res", falias_name);
+        const char *exnname = t_fmt(NULL, "%s_exn", falias_name);
+
+        REGISTER_FUN_VAR(f->arg, argname, argname, f->arg_is_anonymous, "args  ");
+        REGISTER_FUN_VAR(f->res, resname, resname, f->res_is_anonymous, "result");
+        REGISTER_FUN_VAR(f->exn, exnname, exnname, f->exn_is_anonymous, "exn   ");
+    }
+
+#undef REGISTER_FUN_VAR
+
+    if (f->fun_is_async) {
+        sb_addf(buf,
+                "        .async     = true,\n");
+    }
+
+    /* handle flags */
+    {
+        unsigned flags = 0;
+
+        if (falias_name) {
+            SET_BIT(&flags, IOP_RPC_IS_ALIAS);
+        } else
+        if (iopc_fun_has_alias(f)) {
+            SET_BIT(&flags, IOP_RPC_HAS_ALIAS);
+        }
+        if (flags) {
+            sb_addf(buf, "        .flags     = %u,\n", flags);
+        }
+    }
+    sb_adds(buf, "    },\n");
+}
+
+static inline void
+iopc_iface_dump_rpc_attrs(sb_t *buf, iopc_iface_t *iface, char * ibase)
+{
+    unsigned n_func_and_alias = 0;
+    qv_t(iopc_attrs) rpc_attrs;
+    bool dump_attrs = false;
+
+    qv_init(iopc_attrs, &rpc_attrs);
+    qv_for_each_entry(iopc_fun, f, &iface->funs) {
+        iopc_attrs_t attrs;
+
+        n_func_and_alias++;
+        iopc_attrs_init(&attrs);
+        iopc_dump_rpc_attrs(buf, ibase, f, &attrs, &n_func_and_alias);
+        if (attrs.attrs_len)
+            dump_attrs = true;
+        qv_append(iopc_attrs, &rpc_attrs, attrs);
+    }
+
+    if (dump_attrs) {
+        SET_BIT(&iface->flags, IOP_IFACE_EXTENDED);
+        sb_addf(buf,
+                "static iop_rpc_attrs_t const %s__rpc_desc_attrs[] = {\n",
+                ibase);
+        qv_for_each_pos(iopc_fun, pos, &iface->funs) {
+            t_scope;
+            const iopc_fun_t *f = iface->funs.tab[pos];
+            iopc_attrs_t attrs = rpc_attrs.tab[pos];
+            int aliases_count = 0;
+
+            iopc_dump_rpc_attrs_src(buf, &attrs);
+
+            /* dump attributes for aliases
+             * these attributes are the same as for *f but IOPC_ATTR_ALIAS */
+            qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+                if (attr->desc->id == IOPC_ATTR_ALIAS) {
+                    aliases_count = attr->args.len;
+                    break;
+                }
+            }
+            attrs.attrs_len -= aliases_count;
+            CLR_BIT(&attrs.flags, IOP_RPC_ALIAS);
+            assert (!attrs.attrs_len || attrs.flags);
+            attrs.attrs_name = t_lstr_fmt("%*pM_na",
+                                          LSTR_FMT_ARG(attrs.attrs_name));
+            while (aliases_count--) {
+                iopc_dump_rpc_attrs_src(buf, &attrs);
+            }
+        }
+        sb_adds(buf, "};\n");
+    }
+    qv_deep_wipe(iopc_attrs, &rpc_attrs, iopc_attrs_wipe);
+}
+
+static void
+iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
+                    const char *pkg_name, iopc_iface_t *iface)
+{
+    t_scope;
+    const char *iname = pp_to_c(iface->name);
+    char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+    qv_t(lstr) aliases;
+
+    qv_init(lstr, &aliases);
+    sb_addf(buf, "/* Interface %s.%s {""{{ */\n",
+            pretty_path_dot(pkg->name), iface->name);
+
+    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+#define HANDLE_FUN_VAR(_var, _fvar, is_anonymous, type)                      \
+            do {                                                             \
+                if (_var) {                                                  \
+                    iopc_get_aliases(fun, &aliases, type);                   \
+                    if (is_anonymous) {                                      \
+                        iopc_struct_dump_src(buf, pkg, pkg_name, _var,       \
+                                              &aliases);                     \
+                    } else {                                                 \
+                        /* When the function argument is just a              \
+                         * reference to another structure, we just           \
+                         * yield several #define. */                         \
+                        iopc_dump_rpc_defines(buf, ibase, _fvar, NULL);      \
+                        qv_for_each_entry(lstr, alias, &aliases) {           \
+                            iopc_dump_rpc_defines(buf, ibase, _fvar,         \
+                                                  alias.s);                  \
+                        }                                                    \
+                    }                                                        \
+                }                                                            \
+            } while (0)
+
+        HANDLE_FUN_VAR(fun->arg, fun->farg, fun->arg_is_anonymous, "Args");
+        HANDLE_FUN_VAR(fun->res, fun->fres, fun->res_is_anonymous, "Res");
+        HANDLE_FUN_VAR(fun->exn, fun->fexn, fun->exn_is_anonymous, "Exn");
+#undef HANDLE_FUN_VAR
+    }
+
+    sb_addf(buf, "static iop_rpc_t const %s__if_funs[] = {\n",  ibase);
+    qv_for_each_entry(iopc_fun, f, &iface->funs) {
+        iopc_register_fun(buf, ibase, f, NULL);
+        iopc_get_aliases(f, &aliases, "");
+        qv_for_each_entry(lstr, alias, &aliases) {
+            iopc_register_fun(buf, ibase, f, alias.s);
+        }
+    }
+    sb_adds(buf, "};\n");
+
+    iopc_iface_dump_rpc_attrs(buf, iface, ibase);
+
+    DUMP_ATTRS(IFACE, buf, iface, ibase, "iface", "if", "desc_if",
+               &iface->flags, IOP_IFACE_HAS_ATTRS);
+
+    sb_addf(buf,
+            "const iop_iface_t %s__if = {\n"
+            "    .fullname   = LSTR_IMMED(\"%s.%s\"),\n"
+            "    .funs       = %s__if_funs,\n"
+            "    .funs_len   = countof(%s__if_funs),\n",
+            ibase, pretty_path_dot(pkg->name),
+            iface->name, ibase, ibase);
+    if (iface->flags) {
+        sb_addf(buf, "    .flags      = %d,\n", iface->flags);
+    }
+    if (TST_BIT(&iface->flags, IOP_IFACE_EXTENDED)) {
+        sb_addf(buf, "    .rpc_attrs  = %s__rpc_desc_attrs,\n", ibase);
+    }
+    if (TST_BIT(&iface->flags, IOP_IFACE_HAS_ATTRS)) {
+        sb_addf(buf, "    .iface_attrs  = &%s__desc_if_attrs,\n", ibase);
+    }
+    sb_adds(buf, "};\n\n");
+    sb_adds(buf, "/* }""}} */\n");
+
+    qv_deep_wipe(lstr, &aliases, lstr_wipe);
+}
+
+static void
+iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
+                     const char *pkg_name, iopc_struct_t *mod)
+{
+    t_scope;
+    char *mbase = t_fmt(NULL, "%s__%s", pkg_name, pp_to_c(mod->name));
+    uint16_t flags = 0;
+    bool ifaces_have_comments = false;
+
+    sb_addf(buf,
+            "/* Module %s.%s {""{{ */\n"
+            "\n"
+            "static iop_iface_alias_t const %s__aliases[] = {\n",
+            pretty_path_dot(pkg->name), mod->name, mbase);
+    for (int i = 0; i < mod->fields.len; i++) {
+        iopc_field_t *f = mod->fields.tab[i];
+
+        sb_addf(buf,
+                "    {\n"
+                "        .name  = LSTR_IMMED(\"%s\"),\n"
+                "        .iface = &%s__%s__if,\n"
+                "        .tag   = %d,\n"
+                "    },\n",
+                f->name, pp_under(f->type_path), pp_to_c(f->type_name),
+                f->tag);
+        if (f->comments.len)
+            ifaces_have_comments = true;
+    }
+    sb_adds(buf, "};\n");
+
+    if (ifaces_have_comments) {
+        SB_1k(help_body);
+
+        SET_BIT(&flags, IOP_MOD_EXTENDED);
+        qv_for_each_entry(iopc_field, f, &mod->fields) {
+            int len = !!f->comments.len;
+            const char *fname = pp_to_c(f->name);
+
+            iopc_dump_attrs_only_help(buf, IOP_MOD_IFACE_ATTR_HELP,
+                "mod_iface", mbase, fname, "m_if", &f->comments);
+
+            iopc_dump_attrs_ref(&help_body,
+                BITMASK_NTH(unsigned, IOP_MOD_IFACE_ATTR_HELP) * len, len,
+                mbase, fname, "m_if");
+        }
+        sb_addf(buf, "static const iop_mod_iface_attrs_t "
+                     "%s__m_desc_if_attrs[] = {\n%*pM};\n",
+                mbase, SB_FMT_ARG(&help_body));
+    }
+    if (mod->comments.len) {
+        SET_BIT(&flags, IOP_MOD_EXTENDED);
+        iopc_dump_attrs_only_help(buf, IOP_MOD_ATTR_HELP, "mod",
+                                  mbase, "", "m", &mod->comments);
+        sb_addf(buf, "static const iop_mod_attrs_t %s__m_desc_attrs = ",
+                mbase);
+        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, IOP_MOD_ATTR_HELP), 1,
+                            mbase, "", "m");
+    }
+
+    sb_addf(buf,
+            "iop_mod_t const %s__mod = {\n"
+            "    .fullname   = LSTR_IMMED(\"%s.%s\"),\n"
+            "    .ifaces     = %s__aliases,\n"
+            "    .ifaces_len = countof(%s__aliases),\n",
+            mbase, pretty_path_dot(pkg->name), mod->name,
+            mbase, mbase);
+    if (flags) {
+        sb_addf(buf,
+            "    .flags      = %u,\n", flags);
+    }
+    if (mod->comments.len) {
+        sb_addf(buf,
+            "    .mod_attrs  = &%s__m_desc_attrs,\n", mbase);
+    }
+    if (ifaces_have_comments) {
+        sb_addf(buf,
+            "    .ifaces_attrs = %s__m_desc_if_attrs,\n", mbase);
+    }
+    sb_addf(buf,
+            "};\n\n"
+            "/* }""}} */\n");
+}
+
+static void
+iopc_pkg_dump_src(sb_t *buf, iopc_pkg_t *pkg,
+                  const char *pkg_name,
+                  qv_t(iopc_pkg) *t_deps,
+                  qv_t(iopc_pkg) *i_deps)
+{
+    t_scope;
+    qv_t(iopc_pkg) deps;
+
+    t_qv_init(iopc_pkg, &deps, 1024);
+    qv_splice(iopc_pkg, &deps, deps.len, 0, t_deps->tab, t_deps->len);
+    qv_splice(iopc_pkg, &deps, deps.len, 0, i_deps->tab, i_deps->len);
+    iopc_depends_uniquify(&deps);
+
+    sb_addf(buf,
+            "/* Package %s {""{{ */\n"
+            "\n"
+            "static const iop_pkg_t *const %s__deps[] = {\n",
+            pretty_path_dot(pkg->name), pkg_name);
+    for (int i = 0; i < deps.len; i++) {
+        sb_addf(buf, "    &%s__pkg,\n", pp_under(deps.tab[i]->name));
+    }
+
+    sb_addf(buf,
+            "    NULL,\n"
+            "};\n"
+            "\n"
+            "static const iop_enum_t *const %s__enums[] = {\n",
+            pkg_name);
+    for (int i = 0; i < pkg->enums.len; i++) {
+        sb_addf(buf, "    &%s__%s__e,\n", pkg_name, pp_to_c(pkg->enums.tab[i]->name));
+    }
+    sb_addf(buf,
+            "    NULL,\n"
+            "};\n"
+            "\n"
+            "static const iop_struct_t *const %s__structs[] = {\n",
+            pkg_name);
+    for (int i = 0; i < pkg->structs.len; i++) {
+        sb_addf(buf, "    &%s__%s__s,\n", pkg_name, pp_to_c(pkg->structs.tab[i]->name));
+    }
+    sb_addf(buf,
+            "    NULL,\n"
+            "};\n"
+            "\n"
+            "static const iop_iface_t *const %s__ifaces[] = {\n",
+            pkg_name);
+    for (int i = 0; i < pkg->ifaces.len; i++) {
+        sb_addf(buf, "    &%s__%s__if,\n", pkg_name, pp_to_c(pkg->ifaces.tab[i]->name));
+    }
+    sb_addf(buf,
+            "    NULL,\n"
+            "};\n"
+            "\n"
+            "static const iop_mod_t *const %s__mods[] = {\n",
+            pkg_name);
+    for (int i = 0; i < pkg->modules.len; i++) {
+        sb_addf(buf, "    &%s__%s__mod,\n", pkg_name, pp_to_c(pkg->modules.tab[i]->name));
+    }
+    sb_addf(buf,
+            "    NULL,\n"
+            "};\n"
+            "\n"
+            "iop_pkg_t const %s__pkg = {\n"
+            "    .name    = LSTR_IMMED(\"%s\"),\n"
+            "    .deps    = %s__deps,\n"
+            "    .enums   = %s__enums,\n"
+            "    .structs = %s__structs,\n"
+            "    .ifaces  = %s__ifaces,\n"
+            "    .mods    = %s__mods,\n"
+            "};\n"
+            "\n"
+            "/* }""}} */\n",
+            pkg_name, pretty_path_dot(pkg->name),
+            pkg_name, pkg_name, pkg_name, pkg_name, pkg_name);
+}
+
+#define RO_WARN \
+    "/***** THIS FILE IS AUTOGENERATED DO NOT MODIFY DIRECTLY ! *****/\n"
+
+static bool strendswith(const char *s, const char *needle, const char **endp)
+{
+    size_t nlen = strlen(needle);
+    size_t slen = strlen(s);
+
+    if (nlen > slen)
+        return false;
+    if (endp)
+        *endp = s + slen - nlen;
+    return strequal(s + slen - nlen, needle);
+}
+
+static size_t path_count_atoms(const char *s)
+{
+    size_t n = 0;
+
+    if (*s == 0)
+        return 0;
+    if (*s == '/')
+        s++;
+    while ((s = strchr(s, '/')))
+        n++, s++;
+    return n + 1;
+}
+
+static size_t common_prefix(const char *s, const char *t)
+{
+    size_t n = 0;
+
+    while (s[n] && s[n] == t[n])
+        n++;
+    return n;
+}
+
+static void put_include(sb_t *sb, const char *ext,
+                        iopc_pkg_t *pkg, iopc_pkg_t *us)
+{
+    const char *iop_path = pretty_path(pkg->name);
+
+    sb_adds(sb, "#include \"");
+    if (_G.resolve_includes) {
+        char our_path[PATH_MAX], dep_path[PATH_MAX];
+        int pfx, n;
+        char *p;
+
+        path_dirname(dep_path, sizeof(dep_path), us->file);
+        path_canonify(our_path, sizeof(our_path), dep_path);
+        path_canonify(dep_path, sizeof(dep_path), pkg->file);
+        if (!strendswith(dep_path, iop_path, (const char **)&p))
+            goto no_rel;
+        assert (p > dep_path && p[-1] == '/');
+        *--p = '\0';
+        pfx = common_prefix(our_path, dep_path);
+        while (pfx > 0 && our_path[pfx - 1] != '/')
+            pfx--;
+        if (pfx == 1)
+            goto no_rel;
+        n = path_count_atoms(our_path + pfx);
+        for (int j = 0; j < n; j++) {
+            sb_adds(sb, "../");
+        }
+        if (dep_path[pfx] == '/')
+            pfx++;
+        if (dep_path[pfx])
+            sb_addf(sb, "%s/", dep_path + pfx);
+    }
+    sb_addf(sb, "%*pM%s\"\n", (int)strlen(iop_path) - 4, iop_path, ext);
+    return;
+
+  no_rel:
+    fatal("[%s] unable to make a relative #include path for %s",
+          pretty_path(pkg->name), iop_path);
+}
+
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
+               const char *iop_compat, sb_t *depbuf)
+{
+    qv_t(iopc_pkg) t_deps, t_weak_deps, i_deps;
+    const char *pkg_name;
+    sb_t buf;
+    char path[PATH_MAX];
+
+    _G.data_c_type = iopc_g.v3 ? "lstr_t " : "iop_data_t ";
+
+    /*----- prepare stuff -----*/
+    qv_init(str, &pp_g);
+    qv_inita(iopc_pkg, &t_deps, 1024);
+    qv_inita(iopc_pkg, &t_weak_deps, 1024);
+    qv_inita(iopc_pkg, &i_deps, 1024);
+    sb_inita(&buf, 32 << 10);
+
+    pkg_name = pp_under(pkg->name);
+    iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
+
+    iopc_set_path(outdir, pkg, "-tdef.iop.h", sizeof(path), path,
+                  !!iop_compat);
+
+    /*----- dump the typedef header ------*/
+    sb_sets(&buf, RO_WARN);
+    sb_addf(&buf,
+            "#ifndef IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
+            "#define IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
+            "\n"
+            "\n", pkg_name, pkg_name);
+    if (iop_compat) {
+        sb_adds(&buf, iop_compat);
+        sb_addc(&buf, '\n');
+    } else {
+        sb_adds(&buf,
+                "#include <lib-common/iop.h>\n"
+                "\n");
+    }
+
+    qv_for_each_entry(iopc_enum, en, &pkg->enums) {
+        iopc_enum_dump_tdef_hdr(&buf, pkg_name, en);
+    }
+    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+        iopc_struct_dump_tdef_hdr(&buf, pkg_name, st, NULL);
+    }
+    sb_adds(&buf, "#endif\n");
+
+    iopc_write_file(&buf, path);
+
+    /*----- dump the types header -----*/
+    sb_sets(&buf, RO_WARN);
+    sb_addf(&buf,
+            "#ifndef IOP_HEADER_GUARD_%s_TYPES_H\n"
+            "#define IOP_HEADER_GUARD_%s_TYPES_H\n"
+            "\n"
+            "#include \"%s-tdef.iop.h\"\n"
+            "\n", pkg_name, pkg_name, pretty_path_base(pkg->name));
+
+    qv_for_each_entry(iopc_pkg, dep, &t_weak_deps) {
+        put_include(&buf, "-tdef.iop.h", dep, pkg);
+    }
+    qv_for_each_entry(iopc_pkg, dep, &t_deps) {
+        put_include(&buf, "-t.iop.h", dep, pkg);
+    }
+    if (t_deps.len || t_weak_deps.len) {
+        sb_adds(&buf, "\n");
+    }
+
+    qv_for_each_entry(iopc_enum, en, &pkg->enums) {
+        iopc_enum_dump_hdr(&buf, pkg_name, en);
+    }
+    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+        if (st->type == STRUCT_TYPE_UNION) {
+            iopc_union_dump_hdr(&buf, pkg_name, st);
+        } else {
+            iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
+        }
+    }
+    sb_adds(&buf, "#endif\n");
+
+    strcpy(path + strlen(path) - strlen("-tdef.iop.h"), "-t.iop.h");
+    iopc_write_file(&buf, path);
+
+    /*----- dump the iface header -----*/
+    sb_sets(&buf, RO_WARN);
+    sb_addf(&buf,
+            "#ifndef IOP_HEADER_GUARD_%s_H\n"
+            "#define IOP_HEADER_GUARD_%s_H\n"
+            "\n"
+            "#include \"%s-t.iop.h\"\n",
+            pkg_name, pkg_name, pretty_path_base(pkg->name));
+    qv_for_each_entry(iopc_pkg, dep, &t_deps) {
+        put_include(&buf, ".iop.h", dep, pkg);
+    }
+    qv_for_each_entry(iopc_pkg, dep, &i_deps) {
+        put_include(&buf, ".iop.h", dep, pkg);
+    }
+    sb_adds(&buf, "\n");
+    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        iopc_iface_dump_tdef_hdr(&buf, pkg, pkg_name, iface);
+    }
+    sb_adds(&buf, "\n");
+    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        iopc_iface_dump_hdr(&buf, pkg, pkg_name, iface);
+    }
+    qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
+        iopc_module_dump_hdr(&buf, pkg, pkg_name, mod);
+    }
+    iopc_pkg_dump_verbatim_c(&buf, pkg);
+    iopc_pkg_dump_hdr(&buf, pkg, pkg_name);
+    sb_adds(&buf, "#endif\n");
+
+    strcpy(path + strlen(path) - strlen("-t.iop.h"), ".iop.h");
+    iopc_write_file(&buf, path);
+
+    /*----- dump the C file -----*/
+    sb_sets(&buf, RO_WARN);
+    sb_adds(&buf,
+            "#if !defined(linux) && !defined(__APPLE__)\n"
+            "#  warning \"%s assumed linux alignments\"\n"
+            "#endif\n");
+#ifdef __x86_64__
+    sb_addf(&buf,
+            "#ifndef __x86_64__\n"
+            "#  warning \"%s assumed x86_64 alignments\"\n"
+            "#endif\n", pretty_path(pkg->name));
+#endif
+#ifdef __i386__
+    sb_addf(&buf,
+            "#ifndef __i386__\n"
+            "#  warning \"%s assumed i386 alignments\"\n"
+            "#endif\n", pretty_path(pkg->name));
+#endif
+    sb_addf(&buf,
+            "\n"
+            "#include \"%s.iop.h\"\n",
+            pretty_path_base(pkg->name));
+    qv_for_each_entry(iopc_pkg, dep, &t_weak_deps) {
+        put_include(&buf, ".iop.h", dep, pkg);
+    }
+    sb_adds(&buf, "\n");
+    qv_for_each_entry(iopc_enum, en, &pkg->enums) {
+        iopc_enum_dump_src(&buf, pkg, pkg_name, en);
+    }
+    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL);
+    }
+    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        iopc_iface_dump_src(&buf, pkg, pkg_name, iface);
+    }
+    qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
+        iopc_module_dump_src(&buf, pkg, pkg_name, mod);
+    }
+    iopc_pkg_dump_src(&buf, pkg, pkg_name, &t_deps, &i_deps);
+    sb_addc(&buf, '\n');
+
+    path[strlen(path) - 1] = 'c';
+    iopc_write_file(&buf, path);
+
+    if (depbuf) {
+        sb_adds(depbuf, path);
+        sb_addc(depbuf, ' ');
+        sb_adds(depbuf, path);
+        sb_adds(depbuf, ":");
+
+        qv_for_each_entry(iopc_pkg, dep, &t_deps) {
+            char tmp[PATH_MAX];
+
+            path_canonify(tmp, sizeof(tmp), dep->file);
+            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
+        }
+        qv_for_each_entry(iopc_pkg, dep, &i_deps) {
+            char tmp[PATH_MAX];
+
+            path_canonify(tmp, sizeof(tmp), dep->file);
+            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
+        }
+        sb_addc(depbuf, '\n');
+    }
+
+    /*----- collect memory -----*/
+    qv_wipe(iopc_pkg, &t_deps);
+    qv_wipe(iopc_pkg, &i_deps);
+    sb_wipe(&buf);
+    qv_deep_wipe(str, &pp_g, p_delete);
+    iopc_put_range_cleanup();
+}
