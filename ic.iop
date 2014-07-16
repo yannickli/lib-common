@@ -32,26 +32,18 @@ struct SimpleHdr {
     string? host;
 };
 
-struct NameRoutingHdr {
-    string     name;
-    int?       hostId;
-    int?       instanceId;
-    Hdr?       packetHdr;
-    Tracer?    tracer;
+abstract class Route {
 };
 
-struct HostRoutingHdr {
-    int        sourceHost;
-    int        destHost;
+struct RoutingHdr {
+    Route route;
+
     int        ttl;
     IcPriority priority = IC_PRIORITY_NORMAL;
-    Hdr?       packetHdr;
     Tracer?    tracer;
 };
 
 union Hdr {
     SimpleHdr      simple;
-    HostRoutingHdr hostRouting;
-    NameRoutingHdr serviceRouting;
-    NameRoutingHdr roleRouting;
+    RoutingHdr     routing;
 };

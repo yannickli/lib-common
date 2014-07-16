@@ -20,11 +20,11 @@ typedef IOP_ARRAY_OF(ic__tracer__t) ic__tracer__array_t;
 typedef struct ic__simple_hdr__t ic__simple_hdr__t;
 typedef IOP_ARRAY_OF(ic__simple_hdr__t) ic__simple_hdr__array_t;
 
-typedef struct ic__name_routing_hdr__t ic__name_routing_hdr__t;
-typedef IOP_ARRAY_OF(ic__name_routing_hdr__t) ic__name_routing_hdr__array_t;
+typedef struct ic__route__t ic__route__t;
+typedef IOP_ARRAY_OF(ic__route__t *) ic__route__array_t;
 
-typedef struct ic__host_routing_hdr__t ic__host_routing_hdr__t;
-typedef IOP_ARRAY_OF(ic__host_routing_hdr__t) ic__host_routing_hdr__array_t;
+typedef struct ic__routing_hdr__t ic__routing_hdr__t;
+typedef IOP_ARRAY_OF(ic__routing_hdr__t) ic__routing_hdr__array_t;
 
 typedef struct ic__hdr__t ic__hdr__t;
 typedef IOP_ARRAY_OF(ic__hdr__t) ic__hdr__array_t;

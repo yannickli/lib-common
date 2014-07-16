@@ -133,140 +133,84 @@ const iop_struct_t ic__simple_hdr__s = {
 };
 
 /* }}} */
-/* Structure ic.NameRoutingHdr {{{ */
+/* Class ic.Route {{{ */
 
-static iop_field_t const ic__name_routing_hdr__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("name"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_STRING,
-        .data_offs = offsetof(ic__name_routing_hdr__t, name),
-        .size      = fieldsizeof(ic__name_routing_hdr__t, name),
-    },
-    {
-        .name      = LSTR_IMMED("hostId"),
-        .tag       = 2,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_I32,
-        .data_offs = offsetof(ic__name_routing_hdr__t, host_id),
-        .size      = fieldsizeof(ic__name_routing_hdr__t, host_id),
-    },
-    {
-        .name      = LSTR_IMMED("instanceId"),
-        .tag       = 3,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_I32,
-        .data_offs = offsetof(ic__name_routing_hdr__t, instance_id),
-        .size      = fieldsizeof(ic__name_routing_hdr__t, instance_id),
-    },
-    {
-        .name      = LSTR_IMMED("packetHdr"),
-        .tag       = 4,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_UNION,
-        .data_offs = offsetof(ic__name_routing_hdr__t, packet_hdr),
-        .size      = sizeof(ic__hdr__t),
-        .u1        = { .st_desc = &ic__hdr__s },
-    },
-    {
-        .name      = LSTR_IMMED("tracer"),
-        .tag       = 5,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(ic__name_routing_hdr__t, tracer),
-        .size      = sizeof(ic__tracer__t),
-        .u1        = { .st_desc = &ic__tracer__s },
-    },
+static iop_field_t const ic__route__desc_fields[] = {
 };
-const iop_struct_t ic__name_routing_hdr__s = {
-    .fullname   = LSTR_IMMED("ic.NameRoutingHdr"),
-    .fields     = ic__name_routing_hdr__desc_fields,
-    .ranges     = iop__ranges__3,
-    .fields_len = countof(ic__name_routing_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__3) / 2,
-    .size       = sizeof(ic__name_routing_hdr__t),
+static int const iop__ranges__4[] = {
+    0,
+};
+static const iop_class_attrs_t ic__route__class_s = {
+    .is_abstract       = true,
+    .class_id          = 0,
+};
+const iop_struct_t ic__route__s = {
+    .fullname   = LSTR_IMMED("ic.Route"),
+    .fields     = ic__route__desc_fields,
+    .ranges     = iop__ranges__4,
+    .fields_len = countof(ic__route__desc_fields),
+    .ranges_len = countof(iop__ranges__4) / 2,
+    .size       = sizeof(ic__route__t),
+    .flags      = 5,
+    .class_attrs  = &ic__route__class_s,
 };
 
 /* }}} */
-/* Structure ic.HostRoutingHdr {{{ */
+/* Structure ic.RoutingHdr {{{ */
 
-static iop_field_t const ic__host_routing_hdr__desc_fields[] = {
+static iop_field_t const ic__routing_hdr__desc_fields[] = {
     {
-        .name      = LSTR_IMMED("sourceHost"),
+        .name      = LSTR_IMMED("route"),
         .tag       = 1,
         .tag_len   = 0,
         .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_I32,
-        .data_offs = offsetof(ic__host_routing_hdr__t, source_host),
-        .size      = fieldsizeof(ic__host_routing_hdr__t, source_host),
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(ic__routing_hdr__t, route),
+        .size      = sizeof(ic__route__t *),
+        .u1        = { .st_desc = &ic__route__s },
     },
     {
-        .name      = LSTR_IMMED("destHost"),
+        .name      = LSTR_IMMED("ttl"),
         .tag       = 2,
         .tag_len   = 0,
         .repeat    = IOP_R_REQUIRED,
         .type      = IOP_T_I32,
-        .data_offs = offsetof(ic__host_routing_hdr__t, dest_host),
-        .size      = fieldsizeof(ic__host_routing_hdr__t, dest_host),
-    },
-    {
-        .name      = LSTR_IMMED("ttl"),
-        .tag       = 3,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_I32,
-        .data_offs = offsetof(ic__host_routing_hdr__t, ttl),
-        .size      = fieldsizeof(ic__host_routing_hdr__t, ttl),
+        .data_offs = offsetof(ic__routing_hdr__t, ttl),
+        .size      = fieldsizeof(ic__routing_hdr__t, ttl),
     },
     {
         .name      = LSTR_IMMED("priority"),
-        .tag       = 4,
+        .tag       = 3,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_ENUM,
-        .data_offs = offsetof(ic__host_routing_hdr__t, priority),
+        .data_offs = offsetof(ic__routing_hdr__t, priority),
         .u0        = { .defval_enum = 1 },
-        .size      = fieldsizeof(ic__host_routing_hdr__t, priority),
+        .size      = fieldsizeof(ic__routing_hdr__t, priority),
         .u1        = { .en_desc = &ic__ic_priority__e },
     },
     {
-        .name      = LSTR_IMMED("packetHdr"),
-        .tag       = 5,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_UNION,
-        .data_offs = offsetof(ic__host_routing_hdr__t, packet_hdr),
-        .size      = sizeof(ic__hdr__t),
-        .u1        = { .st_desc = &ic__hdr__s },
-    },
-    {
         .name      = LSTR_IMMED("tracer"),
-        .tag       = 6,
+        .tag       = 4,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
         .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(ic__host_routing_hdr__t, tracer),
+        .data_offs = offsetof(ic__routing_hdr__t, tracer),
         .size      = sizeof(ic__tracer__t),
         .u1        = { .st_desc = &ic__tracer__s },
     },
 };
-static int const iop__ranges__4[] = {
+static int const iop__ranges__5[] = {
     0, 1,
-    6,
+    4,
 };
-const iop_struct_t ic__host_routing_hdr__s = {
-    .fullname   = LSTR_IMMED("ic.HostRoutingHdr"),
-    .fields     = ic__host_routing_hdr__desc_fields,
-    .ranges     = iop__ranges__4,
-    .fields_len = countof(ic__host_routing_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__4) / 2,
-    .size       = sizeof(ic__host_routing_hdr__t),
+const iop_struct_t ic__routing_hdr__s = {
+    .fullname   = LSTR_IMMED("ic.RoutingHdr"),
+    .fields     = ic__routing_hdr__desc_fields,
+    .ranges     = iop__ranges__5,
+    .fields_len = countof(ic__routing_hdr__desc_fields),
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .size       = sizeof(ic__routing_hdr__t),
 };
 
 /* }}} */
@@ -284,46 +228,22 @@ static iop_field_t const ic__hdr__desc_fields[] = {
         .u1        = { .st_desc = &ic__simple_hdr__s },
     },
     {
-        .name      = LSTR_IMMED("hostRouting"),
+        .name      = LSTR_IMMED("routing"),
         .tag       = 2,
         .tag_len   = 0,
         .repeat    = IOP_R_REQUIRED,
         .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(ic__hdr__t, host_routing),
-        .size      = sizeof(ic__host_routing_hdr__t),
-        .u1        = { .st_desc = &ic__host_routing_hdr__s },
+        .data_offs = offsetof(ic__hdr__t, routing),
+        .size      = sizeof(ic__routing_hdr__t),
+        .u1        = { .st_desc = &ic__routing_hdr__s },
     },
-    {
-        .name      = LSTR_IMMED("serviceRouting"),
-        .tag       = 3,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(ic__hdr__t, service_routing),
-        .size      = sizeof(ic__name_routing_hdr__t),
-        .u1        = { .st_desc = &ic__name_routing_hdr__s },
-    },
-    {
-        .name      = LSTR_IMMED("roleRouting"),
-        .tag       = 4,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(ic__hdr__t, role_routing),
-        .size      = sizeof(ic__name_routing_hdr__t),
-        .u1        = { .st_desc = &ic__name_routing_hdr__s },
-    },
-};
-static int const iop__ranges__5[] = {
-    0, 1,
-    4,
 };
 const iop_struct_t ic__hdr__s = {
     .fullname   = LSTR_IMMED("ic.Hdr"),
     .fields     = ic__hdr__desc_fields,
-    .ranges     = iop__ranges__5,
+    .ranges     = iop__ranges__2,
     .fields_len = countof(ic__hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges_len = countof(iop__ranges__2) / 2,
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
 };
@@ -343,8 +263,8 @@ static const iop_enum_t *const ic__enums[] = {
 static const iop_struct_t *const ic__structs[] = {
     &ic__tracer__s,
     &ic__simple_hdr__s,
-    &ic__name_routing_hdr__s,
-    &ic__host_routing_hdr__s,
+    &ic__route__s,
+    &ic__routing_hdr__s,
     &ic__hdr__s,
     NULL,
 };
