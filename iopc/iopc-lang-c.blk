@@ -2986,10 +2986,10 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
 
     /*----- dump the C file -----*/
     sb_sets(&buf, RO_WARN);
-    sb_adds(&buf,
+    sb_addf(&buf,
             "#if !defined(linux) && !defined(__APPLE__)\n"
             "#  warning \"%s assumed linux alignments\"\n"
-            "#endif\n");
+            "#endif\n", pretty_path(pkg->name));
 #ifdef __x86_64__
     sb_addf(&buf,
             "#ifndef __x86_64__\n"
