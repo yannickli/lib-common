@@ -18,7 +18,8 @@ typedef struct iopc_parser_t {
     qv_t(iopc_token) tokens;
     struct lexdata *ld;
 
-    const qv_t(cstr) *ipath;
+    const qv_t(cstr) *includes;
+    const qm_t(env)  *env;
     const char *base;
     iop_cfolder_t *cfolder;
 } iopc_parser_t;
@@ -104,16 +105,25 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
 {
     struct stat st;
     char file[PATH_MAX];
-    int pos;
+    iopc_pkg_t *pkg;
 
     snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
     path_simplify(file);
-    pos = qm_find(pkg, &_G.mods, file);
-    if (pos >= 0)
-        return _G.mods.values[pos];
 
-    if (stat(file, &st) == 0 && S_ISREG(st.st_mode))
-        return iopc_parse_file(pp->ipath, file, false);
+    pkg = qm_get_def(pkg, &_G.mods, file, NULL);
+    if (pkg) {
+        return pkg;
+    }
+    if (pp->env) {
+        const char *data = qm_get_def_safe(env, pp->env, file, NULL);
+
+        if (data) {
+            return iopc_parse_file(pp->includes, pp->env, file, data, false);
+        }
+    }
+    if (stat(file, &st) == 0 && S_ISREG(st.st_mode)) {
+        return iopc_parse_file(pp->includes, pp->env, file, NULL, false);
+    }
     return NULL;
 }
 
@@ -1406,12 +1416,16 @@ check_path_exists(iopc_parser_t *pp, iopc_path_t *path)
     iopc_pkg_t *pkg;
 
     if (pp->base) {
-        if ((pkg = iopc_try_file(pp, pp->base, path)))
+        if ((pkg = iopc_try_file(pp, pp->base, path))) {
             return pkg;
+        }
     }
-    qv_for_each_entry(cstr, p, pp->ipath) {
-        if ((pkg = iopc_try_file(pp, p, path)))
-            return pkg;
+    if (pp->includes) {
+        qv_for_each_entry(cstr, include, pp->includes) {
+            if ((pkg = iopc_try_file(pp, include, path))) {
+                return pkg;
+            }
+        }
     }
     fatal_loc("unable to find file `%s` in the include path",
               path->loc, pretty_path(path));
@@ -2520,7 +2534,7 @@ static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *bas
 /* Force struct, enum and union to have distinguished name (things qm)*/
 /* Force module and interface to have distinguished name   (mod_inter qm)*/
 static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
-                                 bool is_main_pkg)
+                                 iopc_file_t type, bool is_main_pkg)
 {
     iopc_pkg_t *pkg = iopc_pkg_new();
     qm_t(struct) things = QM_INIT(struct, things, true);
@@ -2536,7 +2550,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     build_dox_check_all(&chunks, pkg);
 
     pkg->file = file;
-    if (!strequal(file, "<stdin>")) {
+    if (type != IOPC_FILE_STDIN) {
         char base[PATH_MAX];
 
         path_dirname(base, sizeof(base), file);
@@ -2544,8 +2558,10 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             path_join(base, sizeof(base), "..");
         }
         path_simplify(base);
-        check_pkg_path(pp, pkg->name, base);
-        pp->base  = pkg->base = p_strdup(base);
+        if (type == IOPC_FILE_FD) {
+            check_pkg_path(pp, pkg->name, base);
+        }
+        pp->base = pkg->base = p_strdup(base);
         qm_add(pkg, &_G.mods, pkg->file, pkg);
     }
 
@@ -2699,36 +2715,46 @@ void iopc_loc_merge(iopc_loc_t *l1, iopc_loc_t l2)
     *l1 = iopc_loc_merge2(*l1, l2);
 }
 
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
+iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
+                            const char *file, const char *data,
                             bool is_main_pkg)
 {
     iopc_pkg_t *pkg = NULL;
-    char tmp[PATH_MAX];
+    iopc_file_t type;
 
-    if (file) {
-        int pos;
+    if (data) {
+        type = IOPC_FILE_BUFFER;
+    } else
+    if (strequal(file, "-")) {
+        type = IOPC_FILE_STDIN;
+    } else {
+        type = IOPC_FILE_FD;
+    }
+
+    if (type != IOPC_FILE_STDIN) {
+        char tmp[PATH_MAX];
 
         pstrcpy(tmp, sizeof(tmp), file);
         path_simplify(tmp);
         file = tmp;
-        pos = qm_find(pkg, &_G.mods, file);
-        if (pos >= 0)
-            pkg = _G.mods.values[pos];
+        pkg = qm_get_def(pkg, &_G.mods, file, NULL);
     }
+
     if (!pkg) {
         char *path;
         iopc_parser_t pp = {
-            .ipath   = ipath,
-            .cfolder = iop_cfolder_new(),
+            .includes = includes,
+            .env      = env,
+            .cfolder  = iop_cfolder_new(),
         };
 
-        if (!file || strequal(file, "-")) {
+        if (type == IOPC_FILE_STDIN) {
             path = p_strdup("<stdin>");
         } else {
             path = p_strdup(file);
         }
-        pp.ld = iopc_lexer_new(path);
-        pkg = parse_package(&pp, path, is_main_pkg);
+        pp.ld = iopc_lexer_new(path, data, type);
+        pkg = parse_package(&pp, path, type, is_main_pkg);
         qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
         iopc_lexer_delete(&pp.ld);
         iop_cfolder_delete(&pp.cfolder);

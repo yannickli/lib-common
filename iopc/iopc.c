@@ -203,7 +203,7 @@ int main(int argc, char **argv)
     }
     for (int i = 0; i < argc; i++) {
         iopc_parser_initialize();
-        pkg = iopc_parse_file(&incpath, argv[i], true);
+        pkg = iopc_parse_file(&incpath, NULL, argv[i], NULL, true);
         iopc_resolve(pkg);
         iopc_resolve_second_pass(pkg);
         iopc_types_fold(pkg);

@@ -231,7 +231,14 @@ static inline void iopc_token_wipe(iopc_token_t *tk) {
 DO_REFCNT(iopc_token_t, iopc_token);
 qvector_t(iopc_token, iopc_token_t *);
 
-struct lexdata *iopc_lexer_new(const char *file);
+typedef enum iopc_file_t {
+    IOPC_FILE_FD,
+    IOPC_FILE_STDIN,
+    IOPC_FILE_BUFFER,
+} iopc_file_t;
+
+struct lexdata *iopc_lexer_new(const char *file, const char *data,
+                               iopc_file_t type);
 int iopc_lexer_fd(struct lexdata *);
 void iopc_lexer_push_state_attr(struct lexdata *ld);
 void iopc_lexer_pop_state(struct lexdata *ld);
@@ -807,7 +814,7 @@ static inline void iopc_pkg_wipe(iopc_pkg_t *pkg) {
 GENERIC_NEW(iopc_pkg_t, iopc_pkg);
 GENERIC_DELETE(iopc_pkg_t, iopc_pkg);
 qvector_t(iopc_pkg, iopc_pkg_t *);
-qm_kptr_t(pkg, char, iopc_pkg_t *, qhash_str_hash, qhash_str_equal);
+qm_kptr_ckey_t(pkg, char, iopc_pkg_t *, qhash_str_hash, qhash_str_equal);
 
 /*----- pretty printing  -----*/
 
@@ -821,9 +828,12 @@ static inline const char *pretty_path_base(iopc_path_t *path) {
 
 /*----- parser & typer -----*/
 
+qm_kptr_t(env, char, char *, qhash_str_hash, qhash_str_equal);
+
 void iopc_parser_initialize(void);
 void iopc_parser_shutdown(void);
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
+iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
+                            const char *file, const char *data,
                             bool is_main_pkg);
 void iopc_resolve(iopc_pkg_t *pkg);
 void iopc_resolve_second_pass(iopc_pkg_t *pkg);
