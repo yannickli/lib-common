@@ -23,6 +23,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <stdarg.h>
+#include <stdlib.h>
 
 /* core-macros.h */
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
@@ -39,6 +41,10 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define ssizeof(foo)            (cast(ssize_t, sizeof(foo)))
 
 #define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
+
+# ifndef EXPORT
+#   define EXPORT  extern __attribute__((visibility("default")))
+# endif
 
 /* str-l.h */
 typedef struct lstr_t {
