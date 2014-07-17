@@ -900,5 +900,23 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
 void iopc_do_json(iopc_pkg_t *pkg, const char *outdir,
                   const char *iop_compat, sb_t *depbuf);
 
+/*----- IOPC DSO -----*/
+
+/** Specify the class id range used when building IOP DSO with iopc_dso_load.
+ */
+void iopc_dso_set_class_id_range(uint16_t class_id_min,
+                                 uint16_t class_id_max);
+
+/** Build an IOP DSO.
+ *
+ * \param[in] iopfile  the source IOP file
+ * \param[in] env      a map of buffered IOP files (dependencies)
+ * \param[in] outdir   the directory to store the IOP DSO file
+ *                     (outdir/pkgname.so)
+ *
+ * \return             0 if ok, -1 if the build failed
+ */
+int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
+                   const char *outdir);
 
 #endif
