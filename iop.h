@@ -903,6 +903,11 @@ enum iop_unpack_flags {
 /* }}} */
 /* {{{ IOP packages registration */
 
+qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t *,
+          qhash_lstr_hash, qhash_lstr_equal);
+
+const iop_pkg_t *iop_get_pkg(lstr_t pkgname);
+
 /** Register a list of packages.
  *
  * Registering a package is necessary if it contains classes; this should be

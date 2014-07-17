@@ -16,8 +16,6 @@
 #else
 #define IS_LIB_COMMON_IOP_DSO_H
 
-qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t *,
-          qhash_lstr_hash, qhash_lstr_equal);
 qm_kvec_t(iop_enum, lstr_t, const iop_enum_t *,
           qhash_lstr_hash, qhash_lstr_equal);
 qm_kvec_t(iop_struct, lstr_t, const iop_struct_t *,
