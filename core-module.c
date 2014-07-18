@@ -142,6 +142,13 @@ void module_add_dep(module_t *module, lstr_t dep, module_t **dep_ptr)
 
 void module_require(module_t *module, module_t *required_by)
 {
+    if (!module_is_loaded(module)) {
+        logger_trace(&_G.logger, 1, "`%*pM` has been required %s%*pM",
+                     LSTR_FMT_ARG(module->name), required_by ? "by " : "",
+                     LSTR_FMT_ARG(required_by ? required_by->name
+                                              : LSTR_NULL_V));
+    }
+
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
         set_require_type(module, required_by);
         return;
@@ -150,6 +157,9 @@ void module_require(module_t *module, module_t *required_by)
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
     }
+
+    logger_trace(&_G.logger, 1, "initializing `%*pM`",
+                 LSTR_FMT_ARG(module->name));
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
         set_require_type(module, required_by);

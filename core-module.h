@@ -231,7 +231,7 @@ void module_run_method(const module_method_t *method, data_t arg);
 
 /** Declare the implementation of the method \p hook.
  *
- * \see MODULE_IMPLEMENTS_INT
+ * \see MODULE_IMPLEMENTS_VOID
  *
  * This macro can only be used if the method takes an integer as argument.
  */
@@ -243,7 +243,7 @@ void module_run_method(const module_method_t *method, data_t arg);
 
 /** Declare the implementation of the method \p hook.
  *
- * \see MODULE_IMPLEMENTS_INT
+ * \see MODULE_IMPLEMENTS_VOID
  *
  * This macro can only be used if the method takes a \ref data_t as argument.
  */
