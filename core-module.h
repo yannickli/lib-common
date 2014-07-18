@@ -180,10 +180,11 @@ void module_run_method(const module_method_t *method, data_t arg);
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
+        lstr_t __name = LSTR_IMMED(#name);                                   \
         const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
         module_t *__mod = name##_module                                      \
-            = module_register(LSTR_IMMED_V(#name), &name##_module,           \
+            = module_register(__name, &name##_module,                        \
                               &name##_initialize, &name##_shutdown,          \
                               __deps, countof(__deps));                      \
 
@@ -199,7 +200,16 @@ void module_run_method(const module_method_t *method, data_t arg);
  * declares a dependence from the current module on \p dep.
  */
 #define MODULE_DEPENDS_ON(dep)  \
-    module_add_dep(__mod, LSTR_IMMED_V(#dep), &dep##_module)
+    module_add_dep(__mod, __name, LSTR_IMMED_V(#dep), &dep##_module)
+
+/** Add a dependence to another module.
+ *
+ * As \ref MODULE_DEPENDS_ON this macro can only be used in a
+ * MODULE_BEGIN/MODULE_END block.
+ * It declares a dependence from the current module to \p need.
+ */
+#define MODULE_NEEDED_BY(need)  \
+    module_add_dep(need##_module, LSTR_IMMED_V(#need), __name, &__mod)
 
 /* {{{ Method */
 
@@ -274,7 +284,8 @@ module_t *module_register(lstr_t name, module_t **module,
                           const char *dependencies[], int nb_dependencies);
 
 __attr_nonnull__((1))
-void module_add_dep(module_t *mod, lstr_t dep, module_t **dep_ptr);
+void module_add_dep(module_t *mod, lstr_t name, lstr_t dep,
+                    module_t **dep_ptr);
 
 __attr_nonnull__((1, 2, 3))
 void module_implement_method(module_t *mod, const module_method_t *method,

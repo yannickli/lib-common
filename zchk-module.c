@@ -49,6 +49,10 @@ NEW_MOCK_MODULE(modmethod4, 1, 1);
 NEW_MOCK_MODULE(modmethod5, 1, 1);
 NEW_MOCK_MODULE(modmethod6, 1, 1);
 
+NEW_MOCK_MODULE(depmod1, 1, 1);
+NEW_MOCK_MODULE(depmod2, 1, 1);
+NEW_MOCK_MODULE(depmod3, 1, 1);
+
 int modmethod1;
 int modmethod2;
 int modmethod3;
@@ -102,7 +106,12 @@ static module_t *module_arg_module;
                                      &name##_initialize,  &name##_shutdown,  \
                                      NULL, 0))
 #define Z_MODULE_DEPENDS_ON(name, dep)                                       \
-    module_add_dep(name##_module, LSTR_IMMED_V(#dep), &dep##_module)
+    module_add_dep(name##_module, LSTR_IMMED_V(#name), LSTR_IMMED_V(#dep),   \
+                   &dep##_module)
+
+#define Z_MODULE_NEEDED_BY(name, need)                                       \
+    module_add_dep(need##_module, LSTR_IMMED_V(#need), LSTR_IMMED_V(#name),  \
+                   &name##_module)
 
 /** Provide arguments in constructor. */
 lstr_t *word_global;
@@ -493,6 +502,27 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_ZERO(modmethod5);
         Z_ASSERT_ZERO(modmethod6);
         Z_ASSERT_EQ(val, 1);
+    } Z_TEST_END;
+
+    Z_TEST(invert_dependency, "invert dependency") {
+        Z_MODULE_REGISTER(depmod1);
+        Z_MODULE_DEPENDS_ON(depmod1, depmod2);
+        Z_MODULE_REGISTER(depmod2);
+        Z_MODULE_REGISTER(depmod3);
+        Z_MODULE_NEEDED_BY(depmod3, depmod1);
+
+        MODULE_REQUIRE(depmod1);
+
+        Z_ASSERT(MODULE_IS_LOADED(depmod1));
+        Z_ASSERT(MODULE_IS_LOADED(depmod2));
+        Z_ASSERT(MODULE_IS_LOADED(depmod3));
+
+        MODULE_RELEASE(depmod1);
+
+        Z_ASSERT(!MODULE_IS_LOADED(depmod1));
+        Z_ASSERT(!MODULE_IS_LOADED(depmod2));
+        Z_ASSERT(!MODULE_IS_LOADED(depmod3));
+
     } Z_TEST_END;
 
     Z_TEST(dependency, "Modules dependency check") {

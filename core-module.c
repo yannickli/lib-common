@@ -65,6 +65,8 @@ qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
 
 qm_kptr_t(module_arg, void, void *, qhash_hash_ptr, qhash_ptr_equal);
 
+qm_kvec_t(module_dep, lstr_t, qh_t(ptr), qhash_lstr_hash, qhash_lstr_equal);
+
 /* }}} */
 /* {{{ Module Registry */
 
@@ -72,11 +74,13 @@ static struct _module_g {
     logger_t logger;
     qm_t(module)     modules;
     qm_t(module_arg) modules_arg;
+    qm_t(module_dep) module_dep_resolve;
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
     .modules     = QM_INIT(module, _G.modules, false),
     .modules_arg = QM_INIT(module_arg, _G.modules_arg, false),
+    .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve, false),
 };
 
 
@@ -99,8 +103,10 @@ module_t *module_register(lstr_t name, module_t **module,
                           const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
-    int pos = qm_reserve(module, &_G.modules, &name, 0);
-    int arg_pos;
+    qh_t(ptr) *modules_dep;
+    int pos, arg_pos, qm_pos;
+
+    pos = qm_reserve(module, &_G.modules, &name, 0);
 
     if (pos & QHASH_COLLISION) {
         logger_warning(&_G.logger,
@@ -121,7 +127,17 @@ module_t *module_register(lstr_t name, module_t **module,
     new_module->destructor = destructor;
 
     for (int i = 0; i < nb_dependencies; i++) {
-        qv_append(lstr, &new_module->dependent_of, LSTR_STR_V(dependencies[i]));
+        qv_append(lstr, &new_module->dependent_of,
+                  LSTR_STR_V(dependencies[i]));
+    }
+
+    qm_pos = qm_del_key(module_dep, &_G.module_dep_resolve, &name);
+    if (qm_pos >= 0) {
+        modules_dep = &_G.module_dep_resolve.values[qm_pos];
+        qh_for_each_pos(ptr, qh_pos, modules_dep) {
+            qv_append(lstr, &new_module->dependent_of,
+                      ((module_t *)modules_dep->keys[qh_pos])->name);
+        }
     }
 
     _G.modules.keys[pos] = &new_module->name;
@@ -130,12 +146,32 @@ module_t *module_register(lstr_t name, module_t **module,
     return new_module;
 }
 
-void module_add_dep(module_t *module, lstr_t dep, module_t **dep_ptr)
+void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
+                    module_t **dep_ptr)
 {
     /* XXX dep_ptr is used only to force an explicit dependency between
      * modules. This guarantees that if module is present in the binary, the
      * dependency will be present too.
      */
+
+    if (!module) {
+        int pos;
+        qh_t(ptr) *dep_modules;
+
+        pos = qm_reserve(module_dep, &_G.module_dep_resolve, &name, 0);
+
+        if (pos & QHASH_COLLISION) {
+            pos ^= QHASH_COLLISION;
+
+            dep_modules = &_G.module_dep_resolve.values[pos];
+        } else {
+            dep_modules = &_G.module_dep_resolve.values[pos];
+            qh_init(ptr, dep_modules, false);
+        }
+        expect(qh_add(ptr, dep_modules, *dep_ptr) >= 0);
+        return;
+    }
+
     assert (module->state == REGISTERED);
     qv_append(lstr, &module->dependent_of, dep);
 }
@@ -321,6 +357,11 @@ static int module_hard_shutdown(void)
 
 extern bool syslog_is_critical;
 
+static void module_dep_qh_wipe(qh_t(ptr) *qh)
+{
+    qh_wipe(ptr, qh);
+}
+
 __attribute__((destructor))
 static void _module_shutdown(void)
 {
@@ -329,6 +370,8 @@ static void _module_shutdown(void)
     }
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     qm_wipe(module_arg, &_G.modules_arg);
+    qm_deep_wipe(module_dep, &_G.module_dep_resolve, IGNORE,
+                 module_dep_qh_wipe);
     logger_wipe(&_G.logger);
 }
 
