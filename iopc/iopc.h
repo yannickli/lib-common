@@ -880,6 +880,9 @@ void iopc_write_file(const sb_t *buf, const char *path);
 extern struct iopc_do_c_globs {
     int resolve_includes;
     const char *data_c_type;
+    /** remove const on all objects that may contain a pointer to an
+     * iop_struct_t */
+    bool no_const;
 } iopc_do_c_g;
 
 void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
