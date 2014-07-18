@@ -893,12 +893,12 @@ extern struct iopc_do_c_globs {
     /** remove const on all objects that may contain a pointer to an
      * iop_struct_t */
     bool no_const;
+    /** use iop compat header in memory instead of lib-common/iop.h */
+    const char *iop_compat_header;
 } iopc_do_c_g;
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
-               const char *iop_compat, sb_t *depbuf);
-void iopc_do_json(iopc_pkg_t *pkg, const char *outdir,
-                  const char *iop_compat, sb_t *depbuf);
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 
 /*----- IOPC DSO -----*/
 

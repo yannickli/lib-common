@@ -129,13 +129,14 @@ iopc_build(const qm_t(env) *env, const char *iopfile, const char *iopdata,
     iopc_g.v3 = true;
     iopc_do_c_g.resolve_includes = false;
     iopc_do_c_g.no_const = true;
+    iopc_do_c_g.iop_compat_header = sb.data;
 
     iopc_parser_initialize();
     pkg = iopc_parse_file(NULL, env, iopfile, iopdata, is_main_pkg);
     iopc_resolve(pkg);
     iopc_resolve_second_pass(pkg);
     iopc_types_fold(pkg);
-    iopc_do_c(pkg, outdir, sb.data, NULL);
+    iopc_do_c(pkg, outdir, NULL);
 
     if (pkgname) {
         *pkgname = lstr_dups(pretty_path_dot(pkg->name), -1);

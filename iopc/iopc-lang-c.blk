@@ -2872,8 +2872,7 @@ static void put_include(sb_t *sb, const char *ext,
           pretty_path(pkg->name), iop_path);
 }
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
-               const char *iop_compat, sb_t *depbuf)
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     qv_t(iopc_pkg) t_deps, t_weak_deps, i_deps;
     const char *pkg_name;
@@ -2893,7 +2892,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
 
     iopc_set_path(outdir, pkg, "-tdef.iop.h", sizeof(path), path,
-                  !!iop_compat);
+                  !!iopc_do_c_g.iop_compat_header);
 
     /*----- dump the typedef header ------*/
     sb_sets(&buf, RO_WARN);
@@ -2901,8 +2900,8 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
             "#ifndef IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "#define IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "\n", pkg_name, pkg_name);
-    if (iop_compat) {
-        sb_adds(&buf, iop_compat);
+    if (iopc_do_c_g.iop_compat_header) {
+        sb_adds(&buf, iopc_do_c_g.iop_compat_header);
         sb_addc(&buf, '\n');
     } else {
         sb_adds(&buf,
