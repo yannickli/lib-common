@@ -118,8 +118,8 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         return qhh;                                                          \
     }                                                                        \
                                                                              \
-   __unused__                                                                \
-        static inline size_t pfx##_get_memory_footprint(const pfx##_t *qhh)  \
+    __unused__                                                               \
+    static inline size_t pfx##_memory_footprint(const pfx##_t *qhh)          \
     {                                                                        \
         size_t size = sizeof(*qhh);                                          \
                                                                              \
@@ -555,7 +555,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 
 #define qhm_init(name, qhm, chashes)        qhm_##name##_init(qhm, chashes)
 #define qhm_len(name, qhm)                  qhm_##name##_len(qhm)
-#define qhm_size(name, qhm)                 qhm_##name##_get_memsize(qhm)
+#define qhm_memory_footprint(name, qhm)     qhm_##name##_memory_footprint(qhm)
 #define qhm_hash(name, qhm, key)            qhm_##name##_hash(qhm, key)
 #define qhm_set_minsize(name, qhm, sz)      qhm_##name##_set_minsize(qhm, sz)
 #define qhm_clear(name, qhm)                qhm_##name##_clear(qhm)

@@ -1229,6 +1229,8 @@ static void ic_reconnect(el_t ev, data_t priv)
 
 void ic_disconnect(ichannel_t *ic)
 {
+    ic->queuable = false;
+
     if (ic->elh) {
         el_fd_unregister(&ic->elh, true);
         ic_cancel_all(ic);
@@ -1251,7 +1253,6 @@ void ic_disconnect(ichannel_t *ic)
         ic->wpos = 0;
         ic->iov_total_len = 0;
         sb_reset(&ic->rbuf);
-        ic->queuable = false;
     }
 }
 
@@ -1682,6 +1683,7 @@ ichannel_t *ic_init(ichannel_t *ic)
 
 static int ic_mark_connected(ichannel_t *ic, int fd)
 {
+    ic->queuable = true;
     el_fd_set_hook(ic->elh, ic_event);
     ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && !ic->is_stream) {
@@ -1798,10 +1800,12 @@ static int __ic_connect(ichannel_t *ic, int flags)
     }
 
     sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
-    if (sock < 0)
+    if (sock < 0) {
         return -1;
+    }
     if (flags & O_NONBLOCK) {
         ic->elh = el_fd_register(sock, POLLOUT, &ic_connecting, ic);
+        ic->queuable = true;
     } else {
         ic->elh = el_fd_register(sock, POLLINOUT, &ic_event, ic);
         if (ic_mark_connected(ic, sock)) {
@@ -1812,9 +1816,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
     }
     (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
-    if (ic->do_el_unref)
+    if (ic->do_el_unref) {
         el_unref(ic->elh);
-    ic->queuable = true;
+    }
     return 0;
 }
 
@@ -1872,12 +1876,12 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
     (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
-    if (ic->do_el_unref)
+    if (ic->do_el_unref) {
         el_unref(ic->elh);
+    }
+
     if (ic_mark_connected(ic, fd)) {
         ic_mark_disconnected(ic);
-    } else {
-        ic->queuable = true;
     }
 }
 
