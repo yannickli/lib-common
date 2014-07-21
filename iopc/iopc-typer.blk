@@ -733,7 +733,9 @@ void iopc_resolve_second_pass(iopc_pkg_t *pkg)
     /* XXX: do not use qv_for_each_ptr/entry here, entries get appended to
      * the vector while it is consumed.
      */
-    qv_for_each_entry(iopc_pkg, rpkg, &_G.resolve_list) {
+    qv_for_each_pos(iopc_pkg, pos, &_G.resolve_list) {
+        iopc_pkg_t *rpkg = _G.resolve_list.tab[pos];
+
         if (!rpkg->t_resolved) {
             iopc_resolve(rpkg);
         }
