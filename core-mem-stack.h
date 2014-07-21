@@ -27,7 +27,7 @@
  * This mostly works like alloca() wrt your stack, except that it's a chain of
  * malloc()ed blocks. It also works like alloca in the sense that it aligns
  * allocated memory bits to the lowest required alignment possible (IOW
- * allocting blocks of sizes < 2, < 4, < 8, < 16 or >= 16 yield blocks aligned
+ * allocating blocks of sizes < 2, < 4, < 8, < 16 or >= 16 yield blocks aligned
  * to a 1, 2, 4, 8, and 16 boundary respectively.
  *
  * Additionnally to that, you have mem_stack_{push,pop} APIs that push/pop new
@@ -35,7 +35,7 @@
  * last push is freed when you call pop.
  *
  * push/pop return void* cookies that you can match if you want to be sure
- * you're not screwing yourself with non matchin push/pops. Matching push/pop
+ * you're not screwing yourself with non matching push/pops. Matching push/pop
  * should return the same cookie value.
  *
  * Note that a pristine stacked pool has an implicit push() done, with a
@@ -76,7 +76,7 @@
  *        \____________________/      \_/      \_______________________/
  *
  * consecutive frames may or may not be in the same physical block.
- * the bottom of a frame may or may not bi in the same physical block where it
+ * the bottom of a frame may or may not be in the same physical block where it
  * lives.
  */
 
