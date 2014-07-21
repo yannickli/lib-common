@@ -63,9 +63,6 @@ const void *const *iop_dso_get_ressources(const iop_dso_t *, lstr_t category);
     iop_dso_ressources_for_each_entry(category, ressource,                   \
                                       IOP_DSO_GET_RESSOURCES(dso, category))
 
-#define IOP_DSO_DECLARE_RESSOURCE_CATEGORY(category, type)  \
-    typedef type iop_dso_ressource_t(category)
-
 IOP_DSO_DECLARE_RESSOURCE_CATEGORY(iopy_on_register, struct farch_entry_t);
 
 #endif

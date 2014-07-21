@@ -551,6 +551,9 @@ typedef struct iop_dso_vt_t {
 
 #define iop_dso_ressource_t(category)  iop_dso_ressource_##category##_t
 
+#define IOP_DSO_DECLARE_RESSOURCE_CATEGORY(category, type)  \
+    typedef type iop_dso_ressource_t(category)
+
 #define IOP_DSO_EXPORT_RESSOURCES(category, ...)                \
     EXPORT const iop_dso_ressource_t(category) *const           \
         iop_dso_ressources_##category[];                        \
