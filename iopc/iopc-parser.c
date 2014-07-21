@@ -2719,6 +2719,7 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
                             const char *file, const char *data,
                             bool is_main_pkg)
 {
+    char tmp[PATH_MAX];
     iopc_pkg_t *pkg = NULL;
     iopc_file_t type;
 
@@ -2732,8 +2733,6 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
     }
 
     if (type != IOPC_FILE_STDIN) {
-        char tmp[PATH_MAX];
-
         pstrcpy(tmp, sizeof(tmp), file);
         path_simplify(tmp);
         file = tmp;
