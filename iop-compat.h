@@ -11,6 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* This header contains a minimal set of definitions needed to compile IOP
+ * files (and will be used to compile IOP at runtime).
+ * These definitions are duplicated from other lib-common headers.
+ */
+
 #ifndef IS_LIB_COMMON_IOP_COMPAT_H
 #define IS_LIB_COMMON_IOP_COMPAT_H
 
@@ -18,6 +23,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <stdarg.h>
+#include <stdlib.h>
 
 /* core-macros.h */
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
@@ -34,6 +41,10 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define ssizeof(foo)            (cast(ssize_t, sizeof(foo)))
 
 #define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
+
+# ifndef EXPORT
+#   define EXPORT  extern __attribute__((visibility("default")))
+# endif
 
 /* str-l.h */
 typedef struct lstr_t {

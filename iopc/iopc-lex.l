@@ -24,6 +24,7 @@ struct lexdata {
 
     const char *path;
     FILE *fd;
+    YY_BUFFER_STATE buffer;
     sb_t buf;
     yyscan_t scanner;
 
@@ -33,7 +34,6 @@ struct lexdata {
     int    dox_sp_count;
     int    dox_scan_params_args_counter;
     flag_t dox_inline_comment : 1;
-
 };
 
 /* helpers {{{ */
@@ -573,14 +573,15 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
 
 %%
 
-struct lexdata *iopc_lexer_new(const char *file)
+struct lexdata *iopc_lexer_new(const char *file, const char *data,
+                               iopc_file_t type)
 {
     struct lexdata *ld = p_new(struct lexdata, 1);
 
     sb_init(&ld->buf);
     ld->lno = 1;
     ld->path = file;
-    if (!strequal(file, "<stdin>")) {
+    if (type == IOPC_FILE_FD) {
         ld->fd = fopen(file, "rb");
         if (!ld->fd) {
             fatal("unable to open file `%s` for reading", file);
@@ -589,7 +590,13 @@ struct lexdata *iopc_lexer_new(const char *file)
 
     yylex_init(&ld->scanner);
     yyset_extra(ld, ld->scanner);
-    yyset_in(ld->fd, ld->scanner);
+    if (type == IOPC_FILE_FD) {
+        yyset_in(ld->fd, ld->scanner);
+    } else
+    if (type == IOPC_FILE_BUFFER) {
+        ld->buffer = yy_scan_string(data, ld->scanner);
+    }
+
     return ld;
 }
 
@@ -611,6 +618,7 @@ void iopc_lexer_pop_state(struct lexdata *ld)
 static void iopc_lexer_wipe(struct lexdata *ld)
 {
     sb_wipe(&ld->buf);
+    yy_delete_buffer(ld->buffer, ld->scanner);
     yylex_destroy(ld->scanner);
     p_fclose(&ld->fd);
 }

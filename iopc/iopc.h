@@ -231,7 +231,14 @@ static inline void iopc_token_wipe(iopc_token_t *tk) {
 DO_REFCNT(iopc_token_t, iopc_token);
 qvector_t(iopc_token, iopc_token_t *);
 
-struct lexdata *iopc_lexer_new(const char *file);
+typedef enum iopc_file_t {
+    IOPC_FILE_FD,
+    IOPC_FILE_STDIN,
+    IOPC_FILE_BUFFER,
+} iopc_file_t;
+
+struct lexdata *iopc_lexer_new(const char *file, const char *data,
+                               iopc_file_t type);
 int iopc_lexer_fd(struct lexdata *);
 void iopc_lexer_push_state_attr(struct lexdata *ld);
 void iopc_lexer_pop_state(struct lexdata *ld);
@@ -536,8 +543,7 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
 }
 DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
-qm_kptr_t(field, char, iopc_field_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(field, char, iopc_field_t *, qhash_str_hash, qhash_str_equal);
 
 void iopc_check_field_attributes(iopc_field_t *f, bool tdef);
 void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef);
@@ -630,8 +636,7 @@ static inline void iopc_struct_wipe(iopc_struct_t *st) {
 GENERIC_NEW(iopc_struct_t, iopc_struct);
 GENERIC_DELETE(iopc_struct_t, iopc_struct);
 qvector_t(iopc_struct, iopc_struct_t *);
-qm_kptr_t(struct, char, iopc_struct_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(struct, char, iopc_struct_t *, qhash_str_hash, qhash_str_equal);
 
 static inline void iopc_extends_wipe(iopc_extends_t *extends) {
     iopc_path_delete(&extends->path);
@@ -681,8 +686,7 @@ static inline void iopc_enum_wipe(iopc_enum_t *e) {
 GENERIC_NEW(iopc_enum_t, iopc_enum);
 GENERIC_DELETE(iopc_enum_t, iopc_enum);
 qvector_t(iopc_enum, iopc_enum_t *);
-qm_kptr_t(enum, char, iopc_enum_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(enum, char, iopc_enum_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_fun_t {
     iopc_loc_t loc;
@@ -733,8 +737,7 @@ static inline void iopc_fun_wipe(iopc_fun_t *fun) {
 GENERIC_NEW(iopc_fun_t, iopc_fun);
 GENERIC_DELETE(iopc_fun_t, iopc_fun);
 qvector_t(iopc_fun, iopc_fun_t *);
-qm_kptr_t(fun, char, iopc_fun_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_t(fun, char, iopc_fun_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_iface_t {
     flag_t     is_visible : 1;
@@ -762,15 +765,7 @@ static inline void iopc_iface_wipe(iopc_iface_t *iface) {
 GENERIC_NEW(iopc_iface_t, iopc_iface);
 GENERIC_DELETE(iopc_iface_t, iopc_iface);
 qvector_t(iopc_iface, iopc_iface_t *);
-qm_kptr_t(iface, char, iopc_iface_t *,
-          qhash_str_hash, qhash_str_equal);
-
-typedef struct iopc_resolve_t {
-    const qv_t(cstr)    *ipath;
-    struct iopc_pkg_t   *pkg;
-} iopc_resolve_t;
-GENERIC_FUNCTIONS(iopc_resolve_t, iopc_resolve);
-qvector_t(iopc_resolve, iopc_resolve_t);
+qm_kptr_t(iface, char, iopc_iface_t *, qhash_str_hash, qhash_str_equal);
 
 struct iopc_pkg_t {
     flag_t t_resolving : 1;
@@ -819,7 +814,7 @@ static inline void iopc_pkg_wipe(iopc_pkg_t *pkg) {
 GENERIC_NEW(iopc_pkg_t, iopc_pkg);
 GENERIC_DELETE(iopc_pkg_t, iopc_pkg);
 qvector_t(iopc_pkg, iopc_pkg_t *);
-qm_kptr_t(pkg, char, iopc_pkg_t *, qhash_str_hash, qhash_str_equal);
+qm_kptr_ckey_t(pkg, char, iopc_pkg_t *, qhash_str_hash, qhash_str_equal);
 
 /*----- pretty printing  -----*/
 
@@ -833,11 +828,14 @@ static inline const char *pretty_path_base(iopc_path_t *path) {
 
 /*----- parser & typer -----*/
 
+qm_kptr_t(env, char, char *, qhash_str_hash, qhash_str_equal);
+
 void iopc_parser_initialize(void);
 void iopc_parser_shutdown(void);
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *ipath, const char *file,
+iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
+                            const char *file, const char *data,
                             bool is_main_pkg);
-void iopc_resolve(const qv_t(cstr) *ipath, iopc_pkg_t *pkg);
+void iopc_resolve(iopc_pkg_t *pkg);
 void iopc_resolve_second_pass(iopc_pkg_t *pkg);
 void iopc_types_fold(iopc_pkg_t *pkg);
 void iopc_depends_uniquify(qv_t(iopc_pkg) *deps);
@@ -892,12 +890,33 @@ void iopc_write_file(const sb_t *buf, const char *path);
 extern struct iopc_do_c_globs {
     int resolve_includes;
     const char *data_c_type;
+    /** remove const on all objects that may contain a pointer to an
+     * iop_struct_t */
+    bool no_const;
+    /** use iop compat header in memory instead of lib-common/iop.h */
+    const char *iop_compat_header;
 } iopc_do_c_g;
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
-               const char *iop_compat, sb_t *depbuf);
-void iopc_do_json(iopc_pkg_t *pkg, const char *outdir,
-                  const char *iop_compat, sb_t *depbuf);
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 
+/*----- IOPC DSO -----*/
+
+/** Specify the class id range used when building IOP DSO with iopc_dso_load.
+ */
+void iopc_dso_set_class_id_range(uint16_t class_id_min,
+                                 uint16_t class_id_max);
+
+/** Build an IOP DSO.
+ *
+ * \param[in] iopfile  the source IOP file
+ * \param[in] env      a map of buffered IOP files (dependencies)
+ * \param[in] outdir   the directory to store the IOP DSO file
+ *                     (outdir/pkgname.so)
+ *
+ * \return             0 if ok, -1 if the build failed
+ */
+int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
+                   const char *outdir);
 
 #endif

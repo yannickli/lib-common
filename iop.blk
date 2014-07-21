@@ -66,10 +66,12 @@ qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
 static struct {
     qm_t(class_id)   classes_by_id;
     qm_t(class_name) classes_by_name;
+    qm_t(iop_pkg)    pkgs_by_name;
 } iop_g = {
 #define _G  iop_g
     .classes_by_id   = QM_INIT(class_id,   _G.classes_by_id,   false),
     .classes_by_name = QM_INIT(class_name, _G.classes_by_name, false),
+    .pkgs_by_name    = QM_INIT(iop_pkg,    _G.pkgs_by_name,    false),
 };
 
 /*------ various helpers -{{{-*/
@@ -3571,6 +3573,7 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len)
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
+        qm_add(iop_pkg, &_G.pkgs_by_name, &pkg->name, pkg);
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -3579,6 +3582,11 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len)
             }
         }
     }
+}
+
+const iop_pkg_t *iop_get_pkg(lstr_t pkgname)
+{
+    return qm_get_def(iop_pkg, &_G.pkgs_by_name, &pkgname, NULL);
 }
 
 static void iop_unregister_class(const iop_struct_t *desc)
@@ -3613,6 +3621,7 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
+        qm_del_key(iop_pkg, &_G.pkgs_by_name, &pkg->name);
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -3630,6 +3639,7 @@ static void iop_shutdown(void)
 {
     qm_wipe(class_id,   &_G.classes_by_id);
     qm_wipe(class_name, &_G.classes_by_name);
+    qm_wipe(iop_pkg,    &_G.pkgs_by_name);
 }
 
 iop_struct_t const iop__void__s = {

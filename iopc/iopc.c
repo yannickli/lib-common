@@ -111,7 +111,7 @@ static int parse_class_id_range(const char *class_id_range)
 static char const * const only_stdin[] = { "-", NULL };
 
 struct doit {
-    void (*cb)(iopc_pkg_t *, const char *, const char *, sb_t *);
+    void (*cb)(iopc_pkg_t *, const char *, sb_t *);
     const char *outpath;
 };
 qvector_t(doit, struct doit);
@@ -203,12 +203,12 @@ int main(int argc, char **argv)
     }
     for (int i = 0; i < argc; i++) {
         iopc_parser_initialize();
-        pkg = iopc_parse_file(&incpath, argv[i], true);
-        iopc_resolve(&incpath, pkg);
+        pkg = iopc_parse_file(&incpath, NULL, argv[i], NULL, true);
+        iopc_resolve(pkg);
         iopc_resolve_second_pass(pkg);
         iopc_types_fold(pkg);
         qv_for_each_ptr(doit, doit, &doits) {
-            (*doit->cb)(pkg, doit->outpath, NULL, &deps);
+            (*doit->cb)(pkg, doit->outpath, &deps);
         }
         iopc_parser_shutdown();
     }

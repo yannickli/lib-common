@@ -17,6 +17,7 @@ static qv_t(str) pp_g;
 struct iopc_do_c_globs iopc_do_c_g;
 #define _G  iopc_do_c_g
 
+#define CONST  _G.no_const ? "" : "const"
 
 static const char *pp_under(iopc_path_t *path)
 {
@@ -2225,7 +2226,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (!iopc_g.v2) {
         as_base = p_strdup(tbase);
         /* only generate <tbase>__desc_fields */
-        sb_addf(buf, "static iop_field_t const %s__desc_fields[] = {\n", tbase);
+        sb_addf(buf, "static iop_field_t %s %s__desc_fields[] = {\n", CONST,
+                tbase);
         for (int i = 0; i < st->fields.len; i++) {
             iopc_dump_field_src(buf, st, tbase, st->fields.tab[i], NULL);
         }
@@ -2267,7 +2269,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
 
         /* generate <tbase>__desc_fields */
-        sb_addf(buf, "static iop_field_t const %s__desc_fields[] = {\n", tbase);
+        sb_addf(buf, "static iop_field_t %s %s__desc_fields[] = {\n", CONST,
+                tbase);
         qv_for_each_pos(iopc_field, i, &st->fields) {
             iopc_dump_field_src(buf, st, tbase, st->fields.tab[i],
                                 &fields_attrs.tab[i]);
@@ -2312,8 +2315,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         do {                                                                 \
             if (st->type == STRUCT_TYPE_CLASS) {                             \
                 sb_addf(buf,                                                 \
-                        "static const iop_class_attrs_t %s__class_s = {\n",  \
-                        _tbase);                                             \
+                        "static %s iop_class_attrs_t %s__class_s = {\n",     \
+                        CONST, _tbase);                                      \
                 if (st->extends.len) {                                       \
                     sb_addf(buf, "    .parent            = &%s__%s__s,\n",   \
                             pp_under(st->extends.tab[0]->pkg->name),         \
@@ -2595,7 +2598,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 #undef HANDLE_FUN_VAR
     }
 
-    sb_addf(buf, "static iop_rpc_t const %s__if_funs[] = {\n",  ibase);
+    sb_addf(buf, "static iop_rpc_t %s %s__if_funs[] = {\n", CONST, ibase);
     qv_for_each_entry(iopc_fun, f, &iface->funs) {
         iopc_register_fun(buf, ibase, f, NULL);
         iopc_get_aliases(f, &aliases, "");
@@ -2869,8 +2872,7 @@ static void put_include(sb_t *sb, const char *ext,
           pretty_path(pkg->name), iop_path);
 }
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
-               const char *iop_compat, sb_t *depbuf)
+void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     qv_t(iopc_pkg) t_deps, t_weak_deps, i_deps;
     const char *pkg_name;
@@ -2890,17 +2892,16 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
 
     iopc_set_path(outdir, pkg, "-tdef.iop.h", sizeof(path), path,
-                  !!iop_compat);
+                  !!iopc_do_c_g.iop_compat_header);
 
     /*----- dump the typedef header ------*/
     sb_sets(&buf, RO_WARN);
     sb_addf(&buf,
             "#ifndef IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
             "#define IOP_HEADER_GUARD_%s_TYPEDEFS_H\n"
-            "\n"
             "\n", pkg_name, pkg_name);
-    if (iop_compat) {
-        sb_adds(&buf, iop_compat);
+    if (iopc_do_c_g.iop_compat_header) {
+        sb_adds(&buf, iopc_do_c_g.iop_compat_header);
         sb_addc(&buf, '\n');
     } else {
         sb_adds(&buf,
@@ -2986,10 +2987,10 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir,
 
     /*----- dump the C file -----*/
     sb_sets(&buf, RO_WARN);
-    sb_adds(&buf,
+    sb_addf(&buf,
             "#if !defined(linux) && !defined(__APPLE__)\n"
             "#  warning \"%s assumed linux alignments\"\n"
-            "#endif\n");
+            "#endif\n", pretty_path(pkg->name));
 #ifdef __x86_64__
     sb_addf(&buf,
             "#ifndef __x86_64__\n"

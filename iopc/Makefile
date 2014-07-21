@@ -23,6 +23,8 @@ iopc_SOURCES = \
     $llibcommon.a
 
 libiopc_SOURCES = \
+    iopc.fc                   \
+    iopc-dso.c                \
     iopc-lex.l                \
     iopc-parser.c             \
     iopc-pretty.c             \

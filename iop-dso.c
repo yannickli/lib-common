@@ -20,10 +20,104 @@ void iopdso_register_struct(iop_dso_t *dso, iop_struct_t const *st)
     qm_add(iop_struct, &dso->struct_h, &st->fullname, st);
 }
 
-static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
+static lstr_t iop_pkgname_from_fullname(lstr_t fullname)
 {
-    if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0)
+    const void *p;
+    pstream_t pkgname;
+    pstream_t ps = ps_initlstr(&fullname);
+
+    p = memrchr(ps.s, '.', ps_len(&ps));
+    pkgname = __ps_get_ps_upto(&ps, p);
+    return LSTR_PS_V(&pkgname);
+}
+
+static const iop_struct_t *
+iop_get_struct(const iop_pkg_t *pkg, lstr_t fullname)
+{
+    for (const iop_struct_t * const *st = pkg->structs; *st; st++) {
+        if (lstr_equal2(fullname, (*st)->fullname)) {
+            return *st;
+        }
+    }
+    return NULL;
+}
+
+static void iopdso_fix_struct_ref(const iop_struct_t **st)
+{
+    const iop_struct_t *fix;
+    lstr_t pkgname = iop_pkgname_from_fullname((*st)->fullname);
+    const iop_pkg_t *pkg = iop_get_pkg(pkgname);
+
+    if (!pkg) {
         return;
+    }
+    fix = iop_get_struct(pkg, (*st)->fullname);
+    if (!fix) {
+        e_error("IOP DSO: did not find struct %s in memory",
+                fix->fullname.s);
+    }
+    *st = fix;
+}
+
+static void iopdso_fix_class_parent(const iop_struct_t *desc)
+{
+    iop_class_attrs_t *class_attrs;
+
+    if (!iop_struct_is_class(desc)) {
+        return;
+    }
+    class_attrs = (iop_class_attrs_t *)desc->class_attrs;
+    if (!class_attrs->parent) {
+        return;
+    }
+    iopdso_fix_struct_ref(&class_attrs->parent);
+}
+
+static void iopdso_fix_rpc(lstr_t iface, const iop_struct_t **st)
+{
+    if (lstr_startswith((*st)->fullname, iface)) {
+        return;
+    }
+    iopdso_fix_struct_ref(st);
+}
+
+static void iopdso_fix_pkg(const iop_pkg_t *pkg)
+{
+    for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+        const iop_struct_t *desc = *it;
+
+        iopdso_fix_class_parent(desc);
+
+        for (int i = 0; i < desc->fields_len; i++) {
+            iop_field_t *f = (iop_field_t *)&desc->fields[i];
+
+            if (f->type == IOP_T_STRUCT || f->type == IOP_T_UNION) {
+                iopdso_fix_struct_ref(&f->u1.st_desc);
+            }
+        }
+    }
+    for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+        lstr_t fullname = (*it)->fullname;
+
+        for (int i = 0; i < (*it)->funs_len; i++) {
+            iop_rpc_t *rpc = (iop_rpc_t *)&(*it)->funs[i];
+
+            iopdso_fix_rpc(fullname, &rpc->args);
+            iopdso_fix_rpc(fullname, &rpc->result);
+            iopdso_fix_rpc(fullname, &rpc->exn);
+        }
+    }
+}
+
+static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
+                                bool use_external_packages)
+{
+    if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0) {
+        return;
+    }
+    if (use_external_packages) {
+        iopdso_fix_pkg(pkg);
+    }
     iop_register_packages(&pkg, 1);
     for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
@@ -45,7 +139,10 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
         qm_add(iop_mod, &dso->mod_h, &(*it)->fullname, *it);
     }
     for (const iop_pkg_t *const *it = pkg->deps; *it; it++) {
-        iopdso_register_pkg(dso, *it);
+        if (use_external_packages && iop_get_pkg((*it)->name)) {
+            continue;
+        }
+        iopdso_register_pkg(dso, *it, use_external_packages);
     }
 }
 
@@ -68,8 +165,9 @@ static void iop_dso_wipe(iop_dso_t *dso)
     qm_wipe(iop_iface,  &dso->iface_h);
     qm_wipe(iop_mod,    &dso->mod_h);
     lstr_wipe(&dso->path);
-    if (dso->handle)
+    if (dso->handle) {
         dlclose(dso->handle);
+    }
 }
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
@@ -77,6 +175,7 @@ REFCNT_DELETE(iop_dso_t, iop_dso);
 iop_dso_t *iop_dso_open(const char *path)
 {
     iop_pkg_t       **pkgp;
+    bool              use_external_packages;
     void             *handle;
     iop_dso_vt_t     *dso_vt;
     iop_dso_t        *dso;
@@ -90,7 +189,7 @@ iop_dso_t *iop_dso_open(const char *path)
         return NULL;
     }
 
-    dso_vt = (iop_dso_vt_t *) dlsym(handle, "iop_vtable");
+    dso_vt = dlsym(handle, "iop_vtable");
     if (dso_vt == NULL || dso_vt->vt_size == 0) {
         e_warning("IOP DSO: unable to find valid IOP vtable in plugin (%s), "
                   "no error management allowed: %s", path, dlerror());
@@ -106,11 +205,14 @@ iop_dso_t *iop_dso_open(const char *path)
         return NULL;
     }
 
+    use_external_packages = !!dlsym(handle, "iop_use_external_packages");
+
     dso = iop_dso_new();
     dso->path   = lstr_dups(path, strlen(path));
     dso->handle = handle;
-    while (*pkgp)
-        iopdso_register_pkg(dso, *pkgp++);
+    while (*pkgp) {
+        iopdso_register_pkg(dso, *pkgp++, use_external_packages);
+    }
     return dso;
 }
 
@@ -130,8 +232,9 @@ find_rpc_in_iface(iop_iface_t const *iface, lstr_t fname)
     for (int i = 0; i < iface->funs_len; i++) {
         iop_rpc_t const *rpc = &iface->funs[i];
 
-        if (lstr_equal2(rpc->name, fname))
+        if (lstr_equal2(rpc->name, fname)) {
             return rpc;
+        }
     }
     return NULL;
 }
@@ -142,8 +245,9 @@ find_rpc_in_mod(iop_mod_t const *mod, lstr_t iface, lstr_t fname)
     for (int i = 0; i < mod->ifaces_len; i++) {
         const iop_iface_alias_t *alias = &mod->ifaces[i];
 
-        if (lstr_equal2(alias->name, iface))
+        if (lstr_equal2(alias->name, iface)) {
             return find_rpc_in_iface(alias->iface, fname);
+        }
     }
     return NULL;
 }
@@ -156,8 +260,9 @@ iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name)
     iop_rpc_t const *rpc;
 
     pos = qm_find_safe(iop_struct, &dso->struct_h, &name);
-    if (pos >= 0)
+    if (pos >= 0) {
         return dso->struct_h.values[pos];
+    }
 
     if (lstr_endswith(name, LSTR_IMMED_V("Args"))) {
         name.len -= strlen("Args");
