@@ -302,11 +302,6 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                vec_in->tab, vec_in->len);                                   \
         return vec_out;                                                     \
     }                                                                       \
-    __unused__                                                              \
-    static inline void pfx##_extend(pfx##_t *vec_dst,                       \
-                                    const pfx##_t *vec_src) {               \
-        pfx##_splice(vec_dst, vec_dst->len, 0, vec_src->tab, vec_src->len); \
-    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
@@ -445,8 +440,14 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
 
+#define qv_extend(n, vec, _tab)                                          \
+    ({                                                                   \
+        typeof(_tab) __tab = _tab;                                       \
+                                                                         \
+        p_copy(qv_growlen(n, vec, __tab->len), __tab->tab, __tab->len);  \
+    })
+
 #define qv_copy(n, vec_out, vec_in)         qv_##n##_copy(vec_out, vec_in)
-#define qv_extend(n, vec_out, vec_in)       qv_##n##_extend(vec_out, vec_in)
 
 #define qv_for_each_pos(n, pos, vec)                                         \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
