@@ -419,10 +419,12 @@ typedef struct proctimer_t {
 #if PROCTIMER_USE_RUSAGE
     struct rusage ru, ru1;
 #endif
-    unsigned int elapsed_real;
-    unsigned int elapsed_user;
-    unsigned int elapsed_sys;
-    unsigned int elapsed_proc;
+    unsigned long hc, hc1;
+    unsigned int  elapsed_real;
+    unsigned int  elapsed_user;
+    unsigned int  elapsed_sys;
+    unsigned int  elapsed_proc;
+    unsigned long elapsed_hard;
 } proctimer_t;
 
 typedef struct proctimerstat_t {
@@ -442,6 +444,10 @@ typedef struct proctimerstat_t {
     unsigned int proc_min;
     unsigned int proc_max;
     unsigned int proc_tot;
+
+    unsigned long hard_min;
+    unsigned long hard_max;
+    unsigned long hard_tot;
 } proctimerstat_t;
 
 
@@ -450,9 +456,11 @@ static inline void proctimer_start(proctimer_t *tp) {
 #if PROCTIMER_USE_RUSAGE
     getrusage(RUSAGE_SELF, &tp->ru);
 #endif
+    tp->hc = hardclock();
 }
 
 static inline long long proctimer_stop(proctimer_t *tp) {
+    tp->hc1 = hardclock();
 #if PROCTIMER_USE_RUSAGE
     getrusage(RUSAGE_SELF, &tp->ru1);
 #endif
@@ -466,6 +474,7 @@ static inline long long proctimer_stop(proctimer_t *tp) {
     tp->elapsed_sys = 0;
     tp->elapsed_proc = tp->elapsed_user = tp->elapsed_real;
 #endif
+    tp->elapsed_hard = tp->hc1 - tp->hc;
     return tp->elapsed_proc;
 }
 
@@ -486,6 +495,7 @@ static inline void proctimerstat_addsample(proctimerstat_t *pts,
     COUNT(user);
     COUNT(sys);
     COUNT(proc);
+    COUNT(hard);
 #undef COUNT
     pts->nb++;
 }

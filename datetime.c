@@ -582,9 +582,9 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
 
     if (!fmt) {
 #ifdef OS_WINDOWS
-        fmt = "real %rms";
+        fmt = "real %rms, %h cycles";
 #else
-        fmt = "real %rms, proc %pms, user %ums, sys %sms";
+        fmt = "real %rms, proc %pms, user %ums, sys %sms, %h cycles";
 #endif
     }
 
@@ -602,11 +602,19 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
                 goto format_elapsed;
             case 'p':   /* process */
                 elapsed = tp->elapsed_proc;
+                goto format_elapsed;
             format_elapsed:
                 snprintf(buf + pos, sizeof(buf) - pos, "%d.%03d",
                          elapsed / 1000, elapsed % 1000);
                 pos += strlen(buf + pos);
                 continue;
+
+            case 'h':   /* hardware */
+                snprintf(buf + pos, sizeof(buf) - pos, "%lu",
+                         tp->elapsed_hard);
+                pos += strlen(buf + pos);
+                continue;
+
             case '%':
             default:
                 break;
@@ -622,18 +630,21 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
 {
     static char buf[1024];
     int pos;
-    unsigned int min, max, tot, mean;
+    unsigned long min, max, tot, mean;
     const char *p;
+    const char *unit;
 
     if (!fmt) {
 #ifdef OS_WINDOWS
-        fmt = "real: %r";
+        fmt = "real: %r\nproc cycles: %h";
 #else
-        fmt = "%n samples\nreal: %r\nproc: %p\nuser: %u\nsys : %s";
+        fmt = "%n samples\nreal: %r\nproc: %p\nuser: %u\nsys : %s\nproc cycles: %h";
 #endif
     }
 
     for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {
+        unit = "ms";
+
         if (*p == '%') {
             switch (*++p) {
             case 'n':   /* nb samples */
@@ -660,15 +671,21 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
                 max = pts->proc_max;
                 tot = pts->proc_tot;
                 goto format;
+            case 'h':   /* hardware */
+                unit = "cycles";
+                min = pts->hard_min;
+                max = pts->hard_max;
+                tot = pts->hard_tot;
+                goto format;
             format:
                 mean = tot / pts->nb;
                 snprintf(buf + pos, sizeof(buf) - pos,
-                         "min=%d.%03dms "
-                         "max=%d.%03dms "
-                         "mean=%d.%03dms",
-                         min / 1000, min % 1000,
-                         max / 1000, max % 1000,
-                         mean / 1000, mean % 1000
+                         "min=%ld.%03ld%s "
+                         "max=%ld.%03ld%s "
+                         "mean=%ld.%03ld%s",
+                         min / 1000, min % 1000, unit,
+                         max / 1000, max % 1000, unit,
+                         mean / 1000, mean % 1000, unit
                          );
                 pos += strlen(buf + pos);
                 continue;
