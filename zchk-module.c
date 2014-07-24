@@ -15,6 +15,8 @@
 #include "el.h"
 #include "core.h"
 
+/* mock module {{{ */
+
 #define NEW_MOCK_MODULE(name, init_ret, shut_ret)                            \
     static int name##_initialize(void *args)                                 \
     {                                                                        \
@@ -218,8 +220,12 @@ static MODULE_BEGIN(module_a)
     MODULE_DEPENDS_ON(module_c);
 MODULE_END()
 
+/* }}} */
+
 Z_GROUP_EXPORT(module)
 {
+/* basic behavior {{{ */
+
     Z_TEST(basic,  "basic registering require shutdown") {
         /*         platform
          *        /   |    \
@@ -314,8 +320,6 @@ Z_GROUP_EXPORT(module)
       Z_MODULE_REGISTER(mod6);
       Z_MODULE_DEPENDS_ON(mod6, mod2);
 
-
-
       /* Test 1 All init work and shutdown work */
       MODULE_REQUIRE(mod1);
       Z_ASSERT(MODULE_IS_LOADED(mod1));
@@ -377,6 +381,8 @@ Z_GROUP_EXPORT(module)
 
     } Z_TEST_END;
 
+/* }}} */
+/* provide {{{ */
 
     Z_TEST(provide,  "Provide") {
         int a = 4;
@@ -394,6 +400,9 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_LSTREQUAL(*word_global, provide_arg);
         MODULE_RELEASE(modprovide2);
     } Z_TEST_END;
+
+/* }}} */
+/* methods {{{ */
 
     Z_TEST(method, "Methods") {
         int val;
@@ -504,6 +513,9 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_EQ(val, 1);
     } Z_TEST_END;
 
+/* }}} */
+/* invert dependency {{{ */
+
     Z_TEST(invert_dependency, "invert dependency") {
         Z_MODULE_REGISTER(depmod1);
         Z_MODULE_DEPENDS_ON(depmod1, depmod2);
@@ -525,6 +537,9 @@ Z_GROUP_EXPORT(module)
 
     } Z_TEST_END;
 
+/* }}} */
+/* dependency check {{{ */
+
     Z_TEST(dependency, "Modules dependency check") {
         module_t* liste1[] = {module_a_module, module_e_module};
         module_t* liste2[] = {module_a_module, module_e_module,
@@ -540,4 +555,7 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_NEG(module_check_no_dependencies(liste3, countof(liste3),
                                                   &collision));
     } Z_TEST_END;
+
+/* }}} */
+
 } Z_GROUP_END;
