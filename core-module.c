@@ -75,6 +75,9 @@ static struct _module_g {
     qm_t(module)     modules;
     qm_t(module_arg) modules_arg;
     qm_t(module_dep) module_dep_resolve;
+
+    /* Keep track if we are currently initializing a module */
+    int in_initialization;
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
@@ -180,6 +183,8 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
 
 void module_require(module_t *module, module_t *required_by)
 {
+    _G.in_initialization++;
+
     if (!module_is_loaded(module)) {
         logger_trace(&_G.logger, 1, "`%*pM` has been required %s%*pM",
                      LSTR_FMT_ARG(module->name), required_by ? "by " : "",
@@ -189,6 +194,7 @@ void module_require(module_t *module, module_t *required_by)
 
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
         set_require_type(module, required_by);
+        _G.in_initialization--;
         return;
     }
 
@@ -201,6 +207,7 @@ void module_require(module_t *module, module_t *required_by)
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
         set_require_type(module, required_by);
+        _G.in_initialization--;
         return;
     }
     logger_fatal(&_G.logger, "unable to initialize %*pM",
@@ -446,10 +453,30 @@ void module_run_method(const module_method_t *method, data_t arg)
     qh_t(ptr) already_run;
 
     qh_init(ptr, &already_run, false);
+    /* First pass: run the method from all manual required modules. */
     qm_for_each_pos(module, position, &_G.modules) {
         module_t *module = _G.modules.values[position];
 
         if (module->state == MANU_REQ && module->required_by.len == 0) {
+            rec_module_run_method(module, method, arg, &already_run);
+        }
+    }
+
+    if (!_G.in_initialization) {
+        qh_wipe(ptr, &already_run);
+        return;
+    }
+
+    /* Second pass: run the method on auto required modules that might not
+     * have been run on the first pass.
+     * This can happen when you have a module that run its method during its
+     * initialization since the state of the module is set only when it is
+     * completly initialized.
+     */
+    qm_for_each_pos(module, position, &_G.modules) {
+        module_t *module = _G.modules.values[position];
+
+        if (module->state == AUTO_REQ) {
             rec_module_run_method(module, method, arg, &already_run);
         }
     }

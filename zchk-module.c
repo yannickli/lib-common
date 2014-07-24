@@ -44,16 +44,11 @@ NEW_MOCK_MODULE(mod4, 1, 1);
 NEW_MOCK_MODULE(mod5, 1, 1);
 NEW_MOCK_MODULE(mod6, 1, 0);
 
-NEW_MOCK_MODULE(modmethod1, 1, 1);
-NEW_MOCK_MODULE(modmethod2, 1, 1);
-NEW_MOCK_MODULE(modmethod3, 1, 1);
-NEW_MOCK_MODULE(modmethod4, 1, 1);
-NEW_MOCK_MODULE(modmethod5, 1, 1);
-NEW_MOCK_MODULE(modmethod6, 1, 1);
-
 NEW_MOCK_MODULE(depmod1, 1, 1);
 NEW_MOCK_MODULE(depmod2, 1, 1);
 NEW_MOCK_MODULE(depmod3, 1, 1);
+
+/* method {{{ */
 
 int modmethod1;
 int modmethod2;
@@ -85,6 +80,44 @@ static void modmethod6_ztst(data_t arg)
 {
     modmethod6 = (*(int *)arg.ptr)++;
 }
+
+enum {
+    DONT_RUN_METHOD_DURING_INITIALIZATION,
+    RUN_METHOD_BEFORE_DURING_INITIALIZATION,
+    RUN_METHOD_AFTER_DURING_INITIALIZATION,
+};
+
+int init_method = DONT_RUN_METHOD_DURING_INITIALIZATION;
+int val_method = 0;
+
+NEW_MOCK_MODULE(modmethod2, 1, 1);
+NEW_MOCK_MODULE(modmethod3, 1, 1);
+NEW_MOCK_MODULE(modmethod4, 1, 1);
+NEW_MOCK_MODULE(modmethod5, 1, 1);
+NEW_MOCK_MODULE(modmethod6, 1, 1);
+
+static int modmethod1_initialize(void *args)
+{
+    switch (init_method) {
+      case RUN_METHOD_BEFORE_DURING_INITIALIZATION:
+        MODULE_METHOD_RUN_PTR(before, &val_method);
+        break;
+      case RUN_METHOD_AFTER_DURING_INITIALIZATION:
+        MODULE_METHOD_RUN_PTR(after, &val_method);
+        break;
+      default:
+        break;
+    }
+
+    return 1;
+}
+static int modmethod1_shutdown(void)
+{
+    return 1;
+}
+static module_t *modmethod1_module;
+
+/* }}} */
 
 
 #undef NEW_MOCK_MODULE
@@ -405,8 +438,6 @@ Z_GROUP_EXPORT(module)
 /* methods {{{ */
 
     Z_TEST(method, "Methods") {
-        int val;
-
         Z_MODULE_REGISTER(modmethod1);
         Z_MODULE_DEPENDS_ON(modmethod1, modmethod2);
         module_implement_method(modmethod1_module, &after_method,
@@ -443,74 +474,117 @@ Z_GROUP_EXPORT(module)
         module_implement_method(modmethod6_module, &before_method,
                                 &modmethod6_ztst);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(after, &val);
+        MODULE_METHOD_RUN_PTR(after, &val_method);
         Z_ASSERT_ZERO(modmethod1);
         Z_ASSERT_ZERO(modmethod2);
         Z_ASSERT_ZERO(modmethod3);
         Z_ASSERT_ZERO(modmethod5);
         Z_ASSERT_ZERO(modmethod6);
-        Z_ASSERT_EQ(val, 1);
+        Z_ASSERT_EQ(val_method, 1);
 
         MODULE_REQUIRE(modmethod1);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(after, &val);
+        MODULE_METHOD_RUN_PTR(after, &val_method);
         Z_ASSERT_EQ(modmethod1, 1);
         Z_ASSERT_EQ(modmethod2, 2);
         Z_ASSERT_EQ(modmethod3, 3);
         Z_ASSERT_EQ(modmethod5, 4);
         Z_ASSERT_ZERO(modmethod6);
-        Z_ASSERT_EQ(val, 5);
+        Z_ASSERT_EQ(val_method, 5);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(before, &val);
+        MODULE_METHOD_RUN_PTR(before, &val_method);
         Z_ASSERT_EQ(modmethod1, 4);
         Z_ASSERT_EQ(modmethod2, 3);
         Z_ASSERT_EQ(modmethod3, 2);
         Z_ASSERT_EQ(modmethod5, 1);
         Z_ASSERT_ZERO(modmethod6);
-        Z_ASSERT_EQ(val, 5);
+        Z_ASSERT_EQ(val_method, 5);
 
         MODULE_REQUIRE(modmethod6);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(after, &val);
+        MODULE_METHOD_RUN_PTR(after, &val_method);
         Z_ASSERT_LT(modmethod1, modmethod2);
         Z_ASSERT_LT(modmethod2, modmethod3);
         Z_ASSERT_LT(modmethod3, modmethod5);
         Z_ASSERT_LT(modmethod6, modmethod5);
         Z_ASSERT(modmethod1);
         Z_ASSERT(modmethod6);
-        Z_ASSERT_EQ(val, 6);
+        Z_ASSERT_EQ(val_method, 6);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(before, &val);
+        MODULE_METHOD_RUN_PTR(before, &val_method);
         Z_ASSERT_GT(modmethod1, modmethod2);
         Z_ASSERT_GT(modmethod2, modmethod3);
         Z_ASSERT_GT(modmethod3, modmethod5);
         Z_ASSERT_GT(modmethod6, modmethod5);
         Z_ASSERT(modmethod5);
-        Z_ASSERT_EQ(val, 6);
+        Z_ASSERT_EQ(val_method, 6);
 
 
         MODULE_RELEASE(modmethod6);
         MODULE_RELEASE(modmethod1);
 
-        val = 1;
+        val_method = 1;
         modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
-        MODULE_METHOD_RUN_PTR(after, &val);
+        MODULE_METHOD_RUN_PTR(after, &val_method);
         Z_ASSERT_ZERO(modmethod1);
         Z_ASSERT_ZERO(modmethod2);
         Z_ASSERT_ZERO(modmethod3);
         Z_ASSERT_ZERO(modmethod5);
         Z_ASSERT_ZERO(modmethod6);
-        Z_ASSERT_EQ(val, 1);
+        Z_ASSERT_EQ(val_method, 1);
+
+        val_method = 1;
+        init_method = RUN_METHOD_BEFORE_DURING_INITIALIZATION;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_REQUIRE(modmethod1);
+        Z_ASSERT_GT(modmethod2, modmethod3);
+        Z_ASSERT_GT(modmethod3, modmethod5);
+        Z_ASSERT_EQ(val_method, 4);
+        MODULE_RELEASE(modmethod1);
+
+        val_method = 1;
+        init_method = RUN_METHOD_AFTER_DURING_INITIALIZATION;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_REQUIRE(modmethod1);
+        Z_ASSERT_GT(modmethod5, modmethod3);
+        Z_ASSERT_GT(modmethod3, modmethod2);
+        Z_ASSERT_EQ(val_method, 4);
+        MODULE_RELEASE(modmethod1);
+
+        val_method = 1;
+        init_method = RUN_METHOD_BEFORE_DURING_INITIALIZATION;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_REQUIRE(modmethod6);
+        MODULE_REQUIRE(modmethod1);
+        Z_ASSERT_GT(modmethod6, modmethod5);
+        Z_ASSERT_GT(modmethod3, modmethod5);
+        Z_ASSERT_GT(modmethod2, modmethod3);
+        Z_ASSERT_EQ(val_method, 5);
+        MODULE_RELEASE(modmethod1);
+        MODULE_RELEASE(modmethod6);
+
+        val_method = 1;
+        init_method = RUN_METHOD_AFTER_DURING_INITIALIZATION;
+        modmethod1 = modmethod2 = modmethod3 = modmethod5 = modmethod6 = 0;
+        MODULE_REQUIRE(modmethod6);
+        MODULE_REQUIRE(modmethod1);
+        Z_ASSERT_GT(modmethod5, modmethod6);
+        Z_ASSERT_GT(modmethod5, modmethod3);
+        Z_ASSERT_GT(modmethod3, modmethod2);
+        Z_ASSERT_EQ(val_method, 5);
+        MODULE_RELEASE(modmethod1);
+        MODULE_RELEASE(modmethod6);
+
     } Z_TEST_END;
 
 /* }}} */
