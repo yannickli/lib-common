@@ -630,6 +630,31 @@
 #define IOP_OBJ_EXACT_SWITCH(inst) \
     switch ((inst)->__vptr->class_attrs->class_id)
 
+/** Allow to make a switch on a class descriptor.
+ *
+ * Same as \ref IOP_OBJ_EXACT_SWITCH, but with a class descriptor instead of a
+ * class instance.
+ * Of course, \ref IOP_OBJ_CASE cannot be used inside such a switch.
+ *
+ * This should be used line that:
+ *
+ * IOP_OBJ_EXACT_SWITCH(my_class_descriptor) {
+ *   case IOP_CLASS_ID(a_class):
+ *     // This is a a_class
+ *     break;
+ *
+ *   case IOP_CLASS_ID(b_class):
+ *     // This is a b_class
+ *     break;
+ *
+ *   default:
+ *     // This is something else...
+ *     break;
+ * }
+ */
+#define IOP_CLASS_EXACT_SWITCH(cls) \
+    switch ((cls)->class_attrs->class_id)
+
 /** Case matching a given IOP class and giving the casted value.
  *
  * XXX never use _continue_ inside an IOP_OBJ_CASE of an IOP_OBJ_SWITCH.
