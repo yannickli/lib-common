@@ -2412,6 +2412,34 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(matched);
 
         matched = false;
+        IOP_CLASS_EXACT_SWITCH(&tstiop_inheritance__c1__s) {
+          case IOP_CLASS_ID(tstiop_inheritance__a1):
+            Z_ASSERT(false);
+            break;
+
+          case IOP_CLASS_ID(tstiop_inheritance__b1):
+            Z_ASSERT(false);
+            break;
+
+          case IOP_CLASS_ID(tstiop_inheritance__b2):
+            Z_ASSERT(false);
+            break;
+
+          case IOP_CLASS_ID(tstiop_inheritance__c1):
+            matched = true;
+            break;
+
+          case IOP_CLASS_ID(tstiop_inheritance__c2):
+            Z_ASSERT(false);
+            break;
+
+          default:
+            Z_ASSERT(false);
+            break;
+        }
+        Z_ASSERT(matched);
+
+        matched = false;
         IOP_OBJ_SWITCH(c1, &c1) {
           IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);
