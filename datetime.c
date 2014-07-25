@@ -678,7 +678,7 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
                 tot = pts->hard_tot;
                 goto format;
             format:
-                mean = tot / pts->nb;
+                mean = tot / MAX(1, pts->nb);
                 snprintf(buf + pos, sizeof(buf) - pos,
                          "min=%ld.%03ld%s "
                          "max=%ld.%03ld%s "
