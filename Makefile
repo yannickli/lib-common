@@ -15,7 +15,7 @@ none_LIBRARIES = libcommon python time-lp-simple
 python_SHARED_LIBRARIES += common
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
-test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie
+test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
 ifeq (,$(TOOLS_REPOSITORY))
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
@@ -262,6 +262,10 @@ ztst-hattrie_SOURCES = \
 
 zgcd-bench_SOURCES = \
 	zgcd-bench.c \
+	$llibcommon.a
+
+ztst-mem-bench_SOURCES = \
+	ztst-mem-bench.c \
 	$llibcommon.a
 
 include Build/base.mk

@@ -26,6 +26,7 @@
 /ztst-iprintf-glibc
 /ztst-iprintf-speed
 /ztst-lzo
+/ztst-mem-bench
 /ztst-qps
 /ztst-qpscheck
 /ztst-qpsstress
