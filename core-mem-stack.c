@@ -14,6 +14,15 @@
 #include "container-dlist.h"
 #include "thr.h"
 
+#ifdef MEM_BENCH
+#include "core-mem-bench.h"
+
+static DLIST(mem_stack_pool_list);
+static spinlock_t mem_stack_dlist_lock;
+static FILE *mem_stack_data_file;
+static spinlock_t mem_stack_file_lock;
+#endif
+
 #ifndef __BIGGEST_ALIGNMENT__
 #define __BIGGEST_ALIGNMENT__  16
 #endif
@@ -54,12 +63,27 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     sp->stacksize += blk->size;
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
     sp->nbpages++;
+
+#ifdef MEM_BENCH
+    sp->mem_bench->malloc_calls++;
+    sp->mem_bench->current_allocated += blk->size;
+    sp->mem_bench->total_allocated += blksize;
+    mem_bench_update_max(sp->mem_bench);
+    mem_bench_print_csv(sp->mem_bench);
+#endif
+
     return blk;
 }
 
 __cold
 static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
+#ifdef MEM_BENCH
+    sp->mem_bench->current_allocated -= blk->size;
+    mem_bench_update_max(sp->mem_bench);
+    mem_bench_print_csv(sp->mem_bench);
+#endif
+
     sp->stacksize -= blk->size;
     sp->nbpages--;
     dlist_remove(&blk->blk_list);
@@ -72,6 +96,10 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
                    size_t size)
 {
     mem_stack_blk_t *blk;
+
+#ifdef MEM_BENCH
+    sp->mem_bench->alloc.nb_slow_path++;
+#endif
 
     dlist_for_each_entry_safe_continue(cur, blk, &sp->blk_list, blk_list) {
         size_t needed_size = size;
@@ -157,6 +185,10 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
     uint8_t *res;
+#ifdef MEM_BENCH
+    proctimer_t ptimer;
+    proctimer_start(&ptimer);
+#endif
 
     THROW_NULL_IF(size == 0);
 
@@ -168,12 +200,37 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
     size += 1 << alignment;
 #endif
     res = sp_reserve(sp, size, alignment, &frame->blk, &frame->pos);
-    if (!(flags & MEM_RAW))
+    if (!(flags & MEM_RAW)) {
+#ifdef MEM_BENCH
+        /* since sp_free is no-op, we use the fields to measure memset */
+        proctimer_t free_timer;
+        proctimer_start(&free_timer);
+#endif
         memset(res, 0, size);
+
+#ifdef MEM_BENCH
+        proctimer_stop(&free_timer);
+        proctimerstat_addsample(&sp->mem_bench->free.timer_stat, &free_timer);
+
+        sp->mem_bench->free.nb_calls++;
+        mem_bench_update_max(sp->mem_bench);
+#endif
+    }
+
 #ifndef NDEBUG
     res += 1 << alignment;
     ((void **)res)[-1] = sp->stack;
     mem_tool_disallow_memory(res - (1 << alignment), 1 << alignment);
+#endif
+
+#ifdef MEM_BENCH
+    proctimer_stop(&ptimer);
+    proctimerstat_addsample(&sp->mem_bench->alloc.timer_stat, &ptimer);
+
+    sp->mem_bench->alloc.nb_calls++;
+    sp->mem_bench->current_used += size;
+    sp->mem_bench->total_requested += size;
+    mem_bench_update_max(sp->mem_bench);
 #endif
     return frame->last = res;
 }
@@ -189,6 +246,11 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
     mem_stack_frame_t *frame = sp->stack;
     size_t size  = mem_align_ptr(asked, alignment);
     uint8_t *res;
+
+#ifdef MEM_BENCH
+    proctimer_t ptimer;
+    proctimer_start(&ptimer);
+#endif
 
 #ifndef NDEBUG
     if (frame->prev & 1)
@@ -208,6 +270,16 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
             sp->stack->pos = (uint8_t *)mem + size;
         }
         mem_tool_disallow_memory((byte *)mem + asked, oldsize - asked);
+
+#ifdef MEM_BENCH
+        proctimer_stop(&ptimer);
+        proctimerstat_addsample(&sp->mem_bench->realloc.timer_stat, &ptimer);
+
+        sp->mem_bench->realloc.nb_calls++;
+        sp->mem_bench->current_used -= oldsize - asked;
+        mem_bench_update_max(sp->mem_bench);
+#endif
+
         return size ? mem : NULL;
     }
 
@@ -218,6 +290,16 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         sp->alloc_sz  += size - oldsize;
         mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
         res = mem;
+
+#ifdef MEM_BENCH
+        proctimer_stop(&ptimer);
+        proctimerstat_addsample(&sp->mem_bench->realloc.timer_stat, &ptimer);
+
+        sp->mem_bench->realloc.nb_calls++;
+        sp->mem_bench->total_requested += asked - oldsize;
+        sp->mem_bench->current_used += asked - oldsize;
+        mem_bench_update_max(sp->mem_bench);
+#endif
     } else {
         res = sp_alloc(_sp, size, alignment, flags | MEM_RAW);
         if (mem) {
@@ -258,6 +340,13 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->funcs    = pool_funcs;
     sp->alloc_nb = 1; /* avoid the division by 0 */
 
+#ifdef MEM_BENCH
+    /* this pointer will never be deallocated,
+     * since we have nowhere to do it
+     */
+    sp->mem_bench = p_new(mem_bench_t, 1);
+#endif
+
     return sp;
 }
 
@@ -276,12 +365,82 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
                               bsrsz(__BIGGEST_ALIGNMENT__), &blk, &end);
     mem_stack_frame_t *frame;
 
+#ifdef MEM_BENCH
+    mem_stack_write_stats(&sp->funcs, "push");
+#endif
     frame = (mem_stack_frame_t *)res;
     frame->blk  = blk;
     frame->pos  = end;
     frame->last = NULL;
     frame->prev = (uintptr_t)sp->stack;
     return sp->stack = frame;
+}
+
+#ifdef MEM_BENCH
+void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
+{
+    mem_stack_blk_t *last_block = frame->blk;
+    int32_t cused = sp->mem_bench->current_used;
+
+    mem_stack_write_stats(&sp->funcs, "pop");
+    if (sp->stack->blk == last_block) {
+        cused -= (frame->pos - sp->stack->pos
+                  - sizeof(mem_stack_frame_t));
+    } else {
+        cused -= frame->pos - last_block->area;
+        last_block = container_of(last_block->blk_list.prev,
+                                  mem_stack_blk_t, blk_list);
+        while (sp->stack->blk != last_block) {
+            cused -= last_block->size;
+            /* Note: this is inaccurate, because we don't know the size of the
+               unused space at the end of the block
+            */
+            last_block = container_of(last_block->blk_list.prev,
+                                      mem_stack_blk_t, blk_list);
+        }
+        cused -= (last_block->area + last_block->size
+                  - sp->stack->pos + sizeof(mem_stack_frame_t));
+    }
+    if (cused <= 0 || mem_stack_is_at_top(sp)) {
+        cused = 0;
+    }
+    sp->mem_bench->current_used = cused;
+    mem_bench_update_max(sp->mem_bench);
+}
+
+static int mem_stack_stats_open_file(void) {
+    /* No need for locking here since this is only called by write_stats, and
+       the lock is already acquired
+     */
+    if (!mem_stack_data_file) {
+        mem_stack_data_file = RETHROW_PN(fopen("./mem.stack.data", "w"));
+    }
+    return 0;
+}
+#endif
+
+void mem_stack_write_stats(mem_pool_t *mp, const char *context) {
+#ifdef MEM_BENCH
+    mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
+
+    spin_lock(&mem_stack_file_lock);
+    if (mem_stack_data_file || mem_stack_stats_open_file() >= 0) {
+        mem_bench_print_csv(sp->mem_bench, context, mem_stack_data_file);
+    }
+    spin_unlock(&mem_stack_file_lock);
+#endif
+}
+
+void mem_stack_pools_print_stats(void) {
+#ifdef MEM_BENCH
+    printf("\x1b[32mPrinting all STACK allocators state:\x1b[0m\n");
+    spin_lock(&mem_stack_dlist_lock);
+    dlist_for_each_safe(n, &mem_stack_pool_list) {
+        mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);
+        mem_bench_print_human(mp->mem_bench, MEM_BENCH_PRINT_CURRENT);
+    }
+    spin_unlock(&mem_stack_dlist_lock);
+#endif
 }
 
 #ifndef NDEBUG
@@ -312,9 +471,29 @@ __attribute__((constructor))
 static void t_pool_init(void)
 {
     mem_stack_pool_init(&t_pool_g, 64 << 10);
+
+#ifdef MEM_BENCH
+    spin_lock(&mem_stack_dlist_lock);
+    dlist_add_tail(&mem_stack_pool_list, &t_pool_g.pool_list);
+    spin_unlock(&mem_stack_dlist_lock);
+#endif
 }
 static void t_pool_wipe(void)
 {
+#ifdef MEM_BENCH
+    mem_bench_print_human(t_pool_g.mem_bench, 0);
+    spin_lock(&mem_stack_dlist_lock);
+    dlist_remove(&t_pool_g.pool_list);
+    if (dlist_is_empty(&mem_stack_pool_list)) {
+        spin_lock(&mem_stack_file_lock);
+        if (mem_stack_data_file) {
+            fclose(mem_stack_data_file);
+        }
+        spin_unlock(&mem_stack_file_lock);
+    }
+    spin_unlock(&mem_stack_dlist_lock);
+#endif
+
     mem_stack_pool_wipe(&t_pool_g);
 }
 thr_hooks(t_pool_init, t_pool_wipe);

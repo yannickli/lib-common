@@ -80,6 +80,11 @@
  * lives.
  */
 
+#ifdef MEM_BENCH
+/* defined in mem-bench.h */
+struct mem_bench_t;
+#endif
+
 typedef struct mem_stack_blk_t {
     const void *start;
     size_t      size;
@@ -113,6 +118,11 @@ typedef struct mem_stack_pool_t {
     size_t               alloc_sz;
 
     mem_pool_t           funcs;
+
+#ifdef MEM_BENCH
+    struct mem_bench_t  *mem_bench;
+    dlist_t              pool_list;
+#endif
 } mem_stack_pool_t;
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize)
@@ -144,11 +154,21 @@ static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
 }
 
 const void *mem_stack_push(mem_stack_pool_t *) __leaf;
+
+#ifdef MEM_BENCH
+void mem_stack_bench_pop(mem_stack_pool_t *, mem_stack_frame_t *);
+#endif
+void mem_stack_write_stats(mem_pool_t *mp, const char *context);
+void mem_stack_pools_print_stats(void);
+
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
     sp->stack = mem_stack_prev(frame);
+#ifdef MEM_BENCH
+    mem_stack_bench_pop(sp, frame);
+#endif
     assert (sp->stack);
     mem_stack_protect(sp, frame);
     if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
