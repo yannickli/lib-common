@@ -288,16 +288,18 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
-    if (unlikely(!mfp->alive))
+    if (unlikely(!mfp->alive)) {
         e_panic("trying to reallocate from a dead pool");
+    }
 
     if (unlikely(size == 0)) {
         mfp_free(_mfp, mem);
         return NULL;
     }
 
-    if (!mem)
+    if (!mem) {
         return mfp_alloc(_mfp, size, alignment, flags);
+    }
 
     blk  = container_of(mem, mem_block_t, area);
     mem_tool_allow_memory(blk, sizeof(*blk), true);
