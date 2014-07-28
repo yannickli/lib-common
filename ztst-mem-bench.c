@@ -78,6 +78,9 @@ static int benchmark_fifo(void)
                              rand() % settings.max_alloc_size);
         mp_ifree(mp_fifo, a);
     }
+#ifdef MEM_BENCH
+    mem_fifo_pools_print_stats();
+#endif
 
     /* Real fifo behaviour, settings.max_allocated at a time */
     for (int i = 0; i < settings.num_allocs / 3; i++) {
@@ -89,6 +92,9 @@ static int benchmark_fifo(void)
         table[chosen] = mp_new_raw(mp_fifo, byte,
                                    rand() % settings.max_alloc_size);
     }
+#ifdef MEM_BENCH
+    mem_fifo_pools_print_stats();
+#endif
 
     /* Almost fifo */
     for (int i = 0; i < settings.num_allocs / 3; i++) {
@@ -100,6 +106,9 @@ static int benchmark_fifo(void)
         table[chosen] = mp_new_raw(mp_fifo, byte,
                                    rand() % settings.max_alloc_size);
     }
+#ifdef MEM_BENCH
+    mem_fifo_pools_print_stats();
+#endif
 
     /* Clean leftovers */
     for (int i = 0; i < settings.max_allocated; i++) {
@@ -107,6 +116,9 @@ static int benchmark_fifo(void)
             mp_ifree(mp_fifo, table[i]);
         }
     }
+#ifdef MEM_BENCH
+    mem_fifo_pools_print_stats();
+#endif
 
     p_delete(&table);
     mem_fifo_pool_delete(&mp_fifo);

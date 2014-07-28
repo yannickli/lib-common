@@ -13,6 +13,18 @@
 
 #include "core.h"
 
+#ifdef MEM_BENCH
+
+#include "core-mem-bench.h"
+#include "thr.h"
+
+static DLIST(mem_fifo_pool_list);
+static spinlock_t mem_fifo_dlist_lock;
+static FILE *mem_fifo_data_file;
+static spinlock_t mem_fifo_file_lock;
+
+#endif
+
 typedef struct mem_page_t {
     void    *start;
     size_t   size;
@@ -43,8 +55,14 @@ typedef struct mem_fifo_pool_t {
     /* p_delete codepath */
     bool        alive;
     mem_pool_t **owner;
-} mem_fifo_pool_t;
 
+#ifdef MEM_BENCH
+    /* Instrumentation */
+    mem_bench_t  mem_bench;
+    dlist_t      pool_list;
+#endif
+
+} mem_fifo_pool_t;
 
 static ALWAYS_INLINE mem_page_t *pageof(mem_block_t *blk)
 {
@@ -69,6 +87,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
     page = mmap(NULL, mapsize, PROT_READ | PROT_WRITE,
                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
     if (page == MAP_FAILED) {
         e_panic(E_UNIXERR("mmap"));
     }
@@ -78,6 +97,15 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     mem_tool_disallow_memory(page->area, page->size);
     mfp->nb_pages++;
     mfp->map_size   += mapsize;
+
+#ifdef MEM_BENCH
+    mfp->mem_bench.malloc_calls++;
+    mfp->mem_bench.current_allocated += mapsize;
+    mfp->mem_bench.total_allocated += mapsize;
+    mem_bench_update_max(&mfp->mem_bench);
+    mem_fifo_write_stats(&mfp->funcs, "newpage");
+#endif
+
     return page;
 }
 
@@ -97,6 +125,11 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
     mem_page_t *page = *pagep;
 
     if (page) {
+#ifdef MEM_BENCH
+        mfp->mem_bench.current_allocated -= page->size + sizeof(mem_page_t);
+        mem_fifo_write_stats(&mfp->funcs, "page_delete");
+#endif
+
         mfp->nb_pages--;
         mfp->map_size -= page->size;
         mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
@@ -118,6 +151,11 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     mem_page_t *page;
     size_t req_size = size;
 
+#ifdef MEM_BENCH
+    proctimer_t ptimer;
+    proctimer_start(&ptimer);
+#endif
+
     if (alignment > 3) {
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
@@ -132,6 +170,10 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     assert (!page || page->used_blocks != 0);
     if (!page || mem_page_size_left(page) < size) {
         page = mfp->current = mem_page_new(mfp, size);
+
+#ifdef MEM_BENCH
+        mfp->mem_bench.alloc.nb_slow_path++;
+#endif
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
@@ -145,6 +187,18 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     page->used_size += size;
     page->used_blocks++;
     mfp->used_blocks++;
+
+#ifdef MEM_BENCH
+    proctimer_stop(&ptimer);
+    proctimerstat_addsample(&mfp->mem_bench.alloc.timer_stat, &ptimer);
+
+    mfp->mem_bench.alloc.nb_calls++;
+    mfp->mem_bench.current_used = mfp->occupied;
+    mfp->mem_bench.total_requested += req_size;
+    mem_bench_update_max(&mfp->mem_bench);
+    mem_fifo_write_stats(&mfp->funcs, "alloc");
+#endif
+
     return page->last = blk->area;
 }
 
@@ -153,6 +207,11 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+
+#ifdef MEM_BENCH
+    proctimer_t ptimer;
+    proctimer_start(&ptimer);
+#endif
 
     if (!mem)
         return;
@@ -165,8 +224,18 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     mem_tool_disallow_memory(blk, sizeof(*blk));
 
     mfp->used_blocks--;
-    if (--page->used_blocks > 0)
+    if (--page->used_blocks > 0) {
+#ifdef MEM_BENCH
+        proctimer_stop(&ptimer);
+        proctimerstat_addsample(&mfp->mem_bench.free.timer_stat, &ptimer);
+
+        mfp->mem_bench.free.nb_calls++;
+        mfp->mem_bench.current_used = mfp->occupied;
+        mem_bench_update_max(&mfp->mem_bench);
+        mem_fifo_write_stats(&mfp->funcs, "free");
+#endif
         return;
+    }
 
     /* specific case for a dying pool */
     if (unlikely(!mfp->alive)) {
@@ -188,6 +257,17 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
         mem_page_reset(page);
         mfp->freepage = page;
     }
+
+#ifdef MEM_BENCH
+    proctimer_stop(&ptimer);
+    proctimerstat_addsample(&mfp->mem_bench.free.timer_stat, &ptimer);
+
+    mfp->mem_bench.free.nb_calls++;
+    mfp->mem_bench.free.nb_slow_path++;
+    mfp->mem_bench.current_used = mfp->occupied;
+    mem_bench_update_max(&mfp->mem_bench);
+    mem_fifo_write_stats(&mfp->funcs, "free");
+#endif
 }
 
 static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
@@ -199,6 +279,10 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
     size_t alloced_size;
     size_t req_size = size;
 
+#ifdef MEM_BENCH
+    proctimer_t ptimer;
+    proctimer_start(&ptimer);
+#endif
 
     if (alignment > 3) {
         e_panic("mem_fifo_pool does not support alignments greater than 8");
@@ -254,6 +338,15 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
         return mem;
     }
 
+#ifdef MEM_BENCH
+    proctimer_stop(&ptimer);
+    proctimerstat_addsample(&mfp->mem_bench.realloc.timer_stat, &ptimer);
+
+    mfp->mem_bench.realloc.nb_calls++;
+    mfp->mem_bench.current_used = mfp->occupied;
+    mem_bench_update_max(&mfp->mem_bench);
+#endif
+
     mem_tool_disallow_memory(blk, sizeof(*blk));
     return mem;
 }
@@ -274,6 +367,13 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
     mfp->alive     = true;
+
+#ifdef MEM_BENCH
+    spin_lock(&mem_fifo_dlist_lock);
+    dlist_add_tail(&mem_fifo_pool_list, &mfp->pool_list);
+    spin_unlock(&mem_fifo_dlist_lock);
+#endif
+
     return &mfp->funcs;
 }
 
@@ -285,6 +385,12 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         return;
 
     mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
+
+#ifdef MEM_BENCH
+    dlist_remove(&mfp->pool_list);
+    mem_bench_print_human(&mfp->mem_bench, 0);
+#endif
+
     mfp->alive = false;
     mem_page_delete(mfp, &mfp->freepage);
     if (mfp->current && mfp->current->used_blocks == 0) {
@@ -300,6 +406,18 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         return;
     }
     p_delete(poolp);
+#ifdef MEM_BENCH
+    spin_lock(&mem_fifo_dlist_lock);
+    if (dlist_is_empty(&mem_fifo_pool_list)) {
+        spin_lock(&mem_fifo_file_lock);
+        if (mem_fifo_data_file) {
+            fclose(mem_fifo_data_file);
+            mem_fifo_data_file = NULL;
+        }
+        spin_unlock(&mem_fifo_dlist_lock);
+    }
+    spin_unlock(&mem_fifo_file_lock);
+#endif
 }
 
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
@@ -310,3 +428,40 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     *allocated = mfp->map_size - (mfp->freepage ? mfp->freepage->size : 0);
     *used      = mfp->occupied;
 }
+
+#ifdef MEM_BENCH
+static int mem_fifo_stats_open_file(void) {
+    /* No need for locking here since this is only called by write_stats, and
+       the lock is already acquired
+     */
+    if (!mem_fifo_data_file) {
+        mem_fifo_data_file = RETHROW_PN(fopen("./mem.fifo.data", "w"));
+    }
+    return 0;
+}
+#endif
+
+void mem_fifo_write_stats(mem_pool_t *mp, const char *context) {
+#ifdef MEM_BENCH
+    mem_fifo_pool_t *mfp = container_of(mp, mem_fifo_pool_t, funcs);
+
+    spin_lock(&mem_fifo_file_lock);
+    if (mem_fifo_data_file || mem_fifo_stats_open_file() >= 0) {
+        mem_bench_print_csv(&mfp->mem_bench, context, mem_fifo_data_file);
+    }
+    spin_unlock(&mem_fifo_file_lock);
+#endif
+}
+
+void mem_fifo_pools_print_stats(void) {
+#ifdef MEM_BENCH
+    printf("\x1b[32mPrinting all FIFO allocators state:\x1b[0m\n");
+    spin_lock(&mem_fifo_dlist_lock);
+    dlist_for_each_safe(n, &mem_fifo_pool_list) {
+        mem_fifo_pool_t *mfp = container_of(n, mem_fifo_pool_t, pool_list);
+        mem_bench_print_human(&mfp->mem_bench, MEM_BENCH_PRINT_CURRENT);
+    }
+    spin_unlock(&mem_fifo_dlist_lock);
+#endif
+}
+
