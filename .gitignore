@@ -40,3 +40,7 @@
 
 /json
 /.build*
+
+mem.stack.data
+mem.fifo.data
+
