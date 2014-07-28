@@ -427,29 +427,27 @@ typedef struct proctimer_t {
     unsigned long elapsed_hard;
 } proctimer_t;
 
+/* for each time source, the following statistics are computed :
+ * - minimal value
+ * - maximal value
+ * - cumulated sum (tot)
+ */
+#define PTIMER_STATS(T, type)  \
+    T type##_min; \
+    T type##_max; \
+    T type##_tot
+
 typedef struct proctimerstat_t {
     unsigned int nb;
-    unsigned int real_min;
-    unsigned int real_max;
-    unsigned int real_tot;
 
-    unsigned int user_min;
-    unsigned int user_max;
-    unsigned int user_tot;
-
-    unsigned int sys_min;
-    unsigned int sys_max;
-    unsigned int sys_tot;
-
-    unsigned int proc_min;
-    unsigned int proc_max;
-    unsigned int proc_tot;
-
-    unsigned long hard_min;
-    unsigned long hard_max;
-    unsigned long hard_tot;
+    PTIMER_STATS(unsigned int,  real);
+    PTIMER_STATS(unsigned int,  user);
+    PTIMER_STATS(unsigned int,  sys);
+    PTIMER_STATS(unsigned int,  proc);
+    PTIMER_STATS(unsigned long, hard);
 } proctimerstat_t;
 
+#undef PTIMER_STATS
 
 static inline void proctimer_start(proctimer_t *tp) {
     gettimeofday(&tp->tv, NULL);
@@ -480,7 +478,7 @@ static inline long long proctimer_stop(proctimer_t *tp) {
 
 static inline void proctimerstat_addsample(proctimerstat_t *pts,
                                            proctimer_t *tp) {
-#define COUNT(type) \
+#define PTIMER_COUNT(type) \
     if (pts->nb != 0) { \
         pts->type##_min = MIN(tp->elapsed_##type, pts->type##_min); \
         pts->type##_max = MAX(tp->elapsed_##type, pts->type##_max); \
@@ -491,12 +489,12 @@ static inline void proctimerstat_addsample(proctimerstat_t *pts,
         pts->type##_tot = tp->elapsed_##type; \
     } \
 
-    COUNT(real);
-    COUNT(user);
-    COUNT(sys);
-    COUNT(proc);
-    COUNT(hard);
-#undef COUNT
+    PTIMER_COUNT(real);
+    PTIMER_COUNT(user);
+    PTIMER_COUNT(sys);
+    PTIMER_COUNT(proc);
+    PTIMER_COUNT(hard);
+#undef PTIMER_COUNT
     pts->nb++;
 }
 
