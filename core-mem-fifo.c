@@ -131,7 +131,7 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 #endif
 
         mfp->nb_pages--;
-        mfp->map_size -= page->size;
+        mfp->map_size -= page->size + sizeof(mem_page_t);
         mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
         munmap(page, page->size + sizeof(mem_page_t));
     }
