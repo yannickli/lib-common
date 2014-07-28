@@ -478,16 +478,18 @@ static inline long long proctimer_stop(proctimer_t *tp) {
 
 static inline void proctimerstat_addsample(proctimerstat_t *pts,
                                            proctimer_t *tp) {
-#define PTIMER_COUNT(type) \
-    if (pts->nb != 0) { \
-        pts->type##_min = MIN(tp->elapsed_##type, pts->type##_min); \
-        pts->type##_max = MAX(tp->elapsed_##type, pts->type##_max); \
-        pts->type##_tot += tp->elapsed_##type; \
-    } else { \
-        pts->type##_min = tp->elapsed_##type; \
-        pts->type##_max = tp->elapsed_##type; \
-        pts->type##_tot = tp->elapsed_##type; \
-    } \
+#define PTIMER_COUNT(type)                                              \
+    do {                                                                \
+        if (pts->nb != 0) {                                             \
+            pts->type##_min = MIN(tp->elapsed_##type, pts->type##_min); \
+            pts->type##_max = MAX(tp->elapsed_##type, pts->type##_max); \
+            pts->type##_tot += tp->elapsed_##type;                      \
+        } else {                                                        \
+            pts->type##_min = tp->elapsed_##type;                       \
+            pts->type##_max = tp->elapsed_##type;                       \
+            pts->type##_tot = tp->elapsed_##type;                       \
+        }                                                               \
+    } while (0)
 
     PTIMER_COUNT(real);
     PTIMER_COUNT(user);
