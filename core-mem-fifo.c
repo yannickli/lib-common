@@ -437,7 +437,10 @@ static int mem_fifo_stats_open_file(void) {
        the lock is already acquired
      */
     if (!mem_fifo_data_file) {
-        mem_fifo_data_file = RETHROW_PN(fopen("./mem.fifo.data", "w"));
+        char filename [PATH_MAX];
+
+        path_extend(filename, ".", "mem.fifo.data.%u", getpid());
+        mem_fifo_data_file = RETHROW_PN(fopen(filename, "w"));
     }
     return 0;
 }

@@ -413,7 +413,10 @@ static int mem_stack_stats_open_file(void) {
        the lock is already acquired
      */
     if (!mem_stack_data_file) {
-        mem_stack_data_file = RETHROW_PN(fopen("./mem.stack.data", "w"));
+        char filename [PATH_MAX];
+
+        path_extend(filename, ".", "mem.stack.data.%u", getpid());
+        mem_stack_data_file = RETHROW_PN(fopen(filename, "w"));
     }
     return 0;
 }

@@ -41,6 +41,6 @@
 /json
 /.build*
 
-mem.stack.data
-mem.fifo.data
+mem.stack.data.*
+mem.fifo.data.*
 
