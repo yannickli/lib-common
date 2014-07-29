@@ -27,6 +27,8 @@ typedef struct mem_bench_func_t {
 
 typedef struct mem_bench_t {
     FILE      *file;
+    uint32_t   out_period;
+    uint32_t   out_counter;
 
     mem_bench_func_t alloc;
     mem_bench_func_t realloc;
@@ -44,11 +46,11 @@ typedef struct mem_bench_t {
     uint32_t current_allocated;
 } mem_bench_t;
 
-void mem_bench_init(mem_bench_t *sp, const char *file);
+void mem_bench_init(mem_bench_t *sp, const char *file, uint32_t period);
 void mem_bench_wipe(mem_bench_t *sp);
 
-void mem_bench_update_max(mem_bench_t *sp);
-void mem_bench_print_csv(mem_bench_t *sp, const char *context);
+void mem_bench_update(mem_bench_t *sp);
+void mem_bench_print_csv(mem_bench_t *sp);
 void mem_bench_print_human(mem_bench_t *sp, int flags);
 
 #define MEM_BENCH_PRINT_CURRENT  1

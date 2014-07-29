@@ -15,12 +15,14 @@
 #include "unix.h"
 #include "thr.h"
 
-void mem_bench_init(mem_bench_t *sp, const char *filename)
+void mem_bench_init(mem_bench_t *sp, const char *filename, uint32_t period)
 {
     if (filename) {
         sp->file = fopen(filename, "w");
         /* not fatal if sp->file is NULL : we won't log anything. */
     }
+    sp->out_period = period;
+    sp->out_counter = period;
 }
 
 void mem_bench_wipe(mem_bench_t *sp)
@@ -39,13 +41,13 @@ static void mem_bench_print_func_csv(mem_bench_func_t *spf, FILE *file)
             spf->timer_stat.hard_tot);
 }
 
-void mem_bench_print_csv(mem_bench_t *sp, const char *context)
+void mem_bench_print_csv(mem_bench_t *sp)
 {
     if (!sp->file) {
         return;
     }
-    fprintf(sp->file, "%s,%ld,%p",
-            context, (long)thr_id(), sp);
+    fprintf(sp->file, "%ld,%p",
+            (long)thr_id(), sp);
     mem_bench_print_func_csv(&sp->alloc, sp->file);
     mem_bench_print_func_csv(&sp->realloc, sp->file);
     mem_bench_print_func_csv(&sp->free, sp->file);
@@ -55,12 +57,18 @@ void mem_bench_print_csv(mem_bench_t *sp, const char *context)
             sp->malloc_calls, sp->current_used, sp->current_allocated);
 }
 
-void mem_bench_update_max(mem_bench_t *sp)
+void mem_bench_update(mem_bench_t *sp)
 {
     sp->max_used      = MAX(sp->current_used, sp->max_used);
     sp->max_allocated = MAX(sp->current_allocated, sp->max_allocated);
     sp->max_unused    = MAX(sp->current_allocated - sp->current_used,
                             sp->max_unused);
+
+    sp->out_counter--;
+    if (sp->file && sp->out_counter <= 0) {
+        mem_bench_print_csv(sp);
+        sp->out_counter = sp->out_period;
+    }
 }
 
 static void mem_bench_print_func_human(mem_bench_func_t *spf)

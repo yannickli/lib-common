@@ -158,7 +158,7 @@ const void *mem_stack_push(mem_stack_pool_t *) __leaf;
 #ifdef MEM_BENCH
 void mem_stack_bench_pop(mem_stack_pool_t *, mem_stack_frame_t *);
 #endif
-void mem_stack_write_stats(mem_pool_t *mp, const char *context);
+void mem_stack_pool_print_stats(mem_pool_t *);
 void mem_stack_pools_print_stats(void);
 
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)

@@ -20,7 +20,7 @@
 
 static DLIST(mem_fifo_pool_list);
 static spinlock_t mem_fifo_dlist_lock;
-
+#define WRITE_PERIOD 256
 #endif
 
 typedef struct mem_page_t {
@@ -100,8 +100,8 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     mfp->mem_bench.malloc_calls++;
     mfp->mem_bench.current_allocated += mapsize;
     mfp->mem_bench.total_allocated += mapsize;
-    mem_bench_update_max(&mfp->mem_bench);
-    mem_fifo_write_stats(&mfp->funcs, "newpage");
+    mem_bench_update(&mfp->mem_bench);
+    mem_bench_print_csv(&mfp->mem_bench);
 #endif
 
     return page;
@@ -125,7 +125,8 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
     if (page) {
 #ifdef MEM_BENCH
         mfp->mem_bench.current_allocated -= page->size + sizeof(mem_page_t);
-        mem_fifo_write_stats(&mfp->funcs, "page_delete");
+        mem_bench_update(&mfp->mem_bench);
+        mem_bench_print_csv(&mfp->mem_bench);
 #endif
 
         mfp->nb_pages--;
@@ -193,8 +194,8 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     mfp->mem_bench.alloc.nb_calls++;
     mfp->mem_bench.current_used = mfp->occupied;
     mfp->mem_bench.total_requested += req_size;
-    mem_bench_update_max(&mfp->mem_bench);
-    mem_fifo_write_stats(&mfp->funcs, "alloc");
+    mem_bench_update(&mfp->mem_bench);
+    mem_bench_print_csv(&mfp->mem_bench);
 #endif
 
     return page->last = blk->area;
@@ -229,8 +230,8 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
 
         mfp->mem_bench.free.nb_calls++;
         mfp->mem_bench.current_used = mfp->occupied;
-        mem_bench_update_max(&mfp->mem_bench);
-        mem_fifo_write_stats(&mfp->funcs, "free");
+        mem_bench_update(&mfp->mem_bench);
+        mem_bench_print_csv(&mfp->mem_bench);
 #endif
         return;
     }
@@ -263,8 +264,8 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     mfp->mem_bench.free.nb_calls++;
     mfp->mem_bench.free.nb_slow_path++;
     mfp->mem_bench.current_used = mfp->occupied;
-    mem_bench_update_max(&mfp->mem_bench);
-    mem_fifo_write_stats(&mfp->funcs, "free");
+    mem_bench_update(&mfp->mem_bench);
+    mem_bench_print_csv(&mfp->mem_bench);
 #endif
 }
 
@@ -344,7 +345,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
 
     mfp->mem_bench.realloc.nb_calls++;
     mfp->mem_bench.current_used = mfp->occupied;
-    mem_bench_update_max(&mfp->mem_bench);
+    mem_bench_update(&mfp->mem_bench);
 #endif
 
     mem_tool_disallow_memory(blk, sizeof(*blk));
@@ -373,7 +374,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
         char filename [PATH_MAX];
 
         path_extend(filename, ".", "mem.fifo.data.%u.%p", getpid(), mfp);
-        mem_bench_init(&mfp->mem_bench, filename);
+        mem_bench_init(&mfp->mem_bench, filename, WRITE_PERIOD);
     }
 
     spin_lock(&mem_fifo_dlist_lock);
@@ -426,10 +427,10 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     *used      = mfp->occupied;
 }
 
-void mem_fifo_write_stats(mem_pool_t *mp, const char *context) {
+void mem_fifo_pool_print_stats(mem_pool_t *mp) {
 #ifdef MEM_BENCH
     mem_fifo_pool_t *mfp = container_of(mp, mem_fifo_pool_t, funcs);
-    mem_bench_print_csv(&mfp->mem_bench, context);
+    mem_bench_print_human(&mfp->mem_bench, MEM_BENCH_PRINT_CURRENT);
 #endif
 }
 

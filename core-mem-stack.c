@@ -19,6 +19,7 @@
 
 static DLIST(mem_stack_pool_list);
 static spinlock_t mem_stack_dlist_lock;
+#define WRITE_PERIOD  256
 #endif
 
 #ifndef __BIGGEST_ALIGNMENT__
@@ -66,7 +67,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     sp->mem_bench->malloc_calls++;
     sp->mem_bench->current_allocated += blk->size;
     sp->mem_bench->total_allocated += blksize;
-    mem_bench_update_max(sp->mem_bench);
+    mem_bench_update(sp->mem_bench);
     mem_bench_print_csv(sp->mem_bench);
 #endif
 
@@ -78,7 +79,7 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
 #ifdef MEM_BENCH
     sp->mem_bench->current_allocated -= blk->size;
-    mem_bench_update_max(sp->mem_bench);
+    mem_bench_update(sp->mem_bench);
     mem_bench_print_csv(sp->mem_bench);
 #endif
 
@@ -211,7 +212,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
         proctimerstat_addsample(&sp->mem_bench->free.timer_stat, &free_timer);
 
         sp->mem_bench->free.nb_calls++;
-        mem_bench_update_max(sp->mem_bench);
+        mem_bench_update(sp->mem_bench);
 #endif
     }
 
@@ -228,7 +229,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
     sp->mem_bench->alloc.nb_calls++;
     sp->mem_bench->current_used += size;
     sp->mem_bench->total_requested += size;
-    mem_bench_update_max(sp->mem_bench);
+    mem_bench_update(sp->mem_bench);
 #endif
     return frame->last = res;
 }
@@ -275,7 +276,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
 
         sp->mem_bench->realloc.nb_calls++;
         sp->mem_bench->current_used -= oldsize - asked;
-        mem_bench_update_max(sp->mem_bench);
+        mem_bench_update(sp->mem_bench);
 #endif
 
         return size ? mem : NULL;
@@ -296,7 +297,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         sp->mem_bench->realloc.nb_calls++;
         sp->mem_bench->total_requested += asked - oldsize;
         sp->mem_bench->current_used += asked - oldsize;
-        mem_bench_update_max(sp->mem_bench);
+        mem_bench_update(sp->mem_bench);
 #endif
     } else {
         res = sp_alloc(_sp, size, alignment, flags | MEM_RAW);
@@ -348,7 +349,7 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 
         path_extend(filename, ".", "mem.stack.data.%u.%p", getpid(), sp);
         sp->mem_bench = p_new(mem_bench_t, 1);
-        mem_bench_init(sp->mem_bench, filename);
+        mem_bench_init(sp->mem_bench, filename, WRITE_PERIOD);
     }
 #endif
 
@@ -371,7 +372,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     mem_stack_frame_t *frame;
 
 #ifdef MEM_BENCH
-    mem_stack_write_stats(&sp->funcs, "push");
+    mem_bench_print_csv(sp->mem_bench);
 #endif
     frame = (mem_stack_frame_t *)res;
     frame->blk  = blk;
@@ -387,7 +388,7 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
     mem_stack_blk_t *last_block = frame->blk;
     int32_t cused = sp->mem_bench->current_used;
 
-    mem_stack_write_stats(&sp->funcs, "pop");
+    mem_bench_print_csv(sp->mem_bench);
     if (sp->stack->blk == last_block) {
         cused -= (frame->pos - sp->stack->pos
                   - sizeof(mem_stack_frame_t));
@@ -410,14 +411,14 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
         cused = 0;
     }
     sp->mem_bench->current_used = cused;
-    mem_bench_update_max(sp->mem_bench);
+    mem_bench_update(sp->mem_bench);
 }
 #endif
 
-void mem_stack_write_stats(mem_pool_t *mp, const char *context) {
+void mem_stack_pool_print_stats(mem_pool_t *mp) {
 #ifdef MEM_BENCH
     mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
-    mem_bench_print_csv(sp->mem_bench, context);
+    mem_bench_print_human(sp->mem_bench, MEM_BENCH_PRINT_CURRENT);
 #endif
 }
 

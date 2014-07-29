@@ -637,7 +637,7 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     __leaf;
 
-void mem_fifo_write_stats(mem_pool_t *mp, const char *context);
+void mem_fifo_pool_print_stats(mem_pool_t *mp);
 void mem_fifo_pools_print_stats(void);
 
 /* }}} */
