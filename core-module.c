@@ -103,7 +103,6 @@ module_t *module_register(lstr_t name, module_t **module,
                           const char *dependencies[], int nb_dependencies)
 {
     module_t *new_module;
-    qh_t(ptr) *modules_dep;
     int pos, arg_pos, qm_pos;
 
     pos = qm_reserve(module, &_G.modules, &name, 0);
@@ -133,11 +132,14 @@ module_t *module_register(lstr_t name, module_t **module,
 
     qm_pos = qm_del_key(module_dep, &_G.module_dep_resolve, &name);
     if (qm_pos >= 0) {
+        qh_t(ptr) *modules_dep;
+
         modules_dep = &_G.module_dep_resolve.values[qm_pos];
         qh_for_each_pos(ptr, qh_pos, modules_dep) {
             qv_append(lstr, &new_module->dependent_of,
                       ((module_t *)modules_dep->keys[qh_pos])->name);
         }
+        qh_wipe(ptr, modules_dep);
     }
 
     _G.modules.keys[pos] = &new_module->name;
