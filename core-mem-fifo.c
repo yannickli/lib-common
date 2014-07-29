@@ -20,8 +20,6 @@
 
 static DLIST(mem_fifo_pool_list);
 static spinlock_t mem_fifo_dlist_lock;
-static FILE *mem_fifo_data_file;
-static spinlock_t mem_fifo_file_lock;
 
 #endif
 
@@ -371,6 +369,13 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->alive     = true;
 
 #ifdef MEM_BENCH
+    {
+        char filename [PATH_MAX];
+
+        path_extend(filename, ".", "mem.fifo.data.%u.%p", getpid(), mfp);
+        mem_bench_init(&mfp->mem_bench, filename);
+    }
+
     spin_lock(&mem_fifo_dlist_lock);
     dlist_add_tail(&mem_fifo_pool_list, &mfp->pool_list);
     spin_unlock(&mem_fifo_dlist_lock);
@@ -391,6 +396,8 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 #ifdef MEM_BENCH
     dlist_remove(&mfp->pool_list);
     mem_bench_print_human(&mfp->mem_bench, 0);
+
+    mem_bench_wipe(&mfp->mem_bench);
 #endif
 
     mfp->alive = false;
@@ -408,18 +415,6 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         return;
     }
     p_delete(poolp);
-#ifdef MEM_BENCH
-    spin_lock(&mem_fifo_dlist_lock);
-    if (dlist_is_empty(&mem_fifo_pool_list)) {
-        spin_lock(&mem_fifo_file_lock);
-        if (mem_fifo_data_file) {
-            fclose(mem_fifo_data_file);
-            mem_fifo_data_file = NULL;
-        }
-        spin_unlock(&mem_fifo_dlist_lock);
-    }
-    spin_unlock(&mem_fifo_file_lock);
-#endif
 }
 
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
@@ -431,30 +426,10 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     *used      = mfp->occupied;
 }
 
-#ifdef MEM_BENCH
-static int mem_fifo_stats_open_file(void) {
-    /* No need for locking here since this is only called by write_stats, and
-       the lock is already acquired
-     */
-    if (!mem_fifo_data_file) {
-        char filename [PATH_MAX];
-
-        path_extend(filename, ".", "mem.fifo.data.%u", getpid());
-        mem_fifo_data_file = RETHROW_PN(fopen(filename, "w"));
-    }
-    return 0;
-}
-#endif
-
 void mem_fifo_write_stats(mem_pool_t *mp, const char *context) {
 #ifdef MEM_BENCH
     mem_fifo_pool_t *mfp = container_of(mp, mem_fifo_pool_t, funcs);
-
-    spin_lock(&mem_fifo_file_lock);
-    if (mem_fifo_data_file || mem_fifo_stats_open_file() >= 0) {
-        mem_bench_print_csv(&mfp->mem_bench, context, mem_fifo_data_file);
-    }
-    spin_unlock(&mem_fifo_file_lock);
+    mem_bench_print_csv(&mfp->mem_bench, context);
 #endif
 }
 

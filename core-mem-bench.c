@@ -12,7 +12,21 @@
 /**************************************************************************/
 
 #include "core-mem-bench.h"
+#include "unix.h"
 #include "thr.h"
+
+void mem_bench_init(mem_bench_t *sp, const char *filename)
+{
+    if (filename) {
+        sp->file = fopen(filename, "w");
+        /* not fatal if sp->file is NULL : we won't log anything. */
+    }
+}
+
+void mem_bench_wipe(mem_bench_t *sp)
+{
+    p_fclose(&sp->file);
+}
 
 static void mem_bench_print_func_csv(mem_bench_func_t *spf, FILE *file)
 {
@@ -25,15 +39,17 @@ static void mem_bench_print_func_csv(mem_bench_func_t *spf, FILE *file)
             spf->timer_stat.hard_tot);
 }
 
-void mem_bench_print_csv(mem_bench_t *sp, const char *context, FILE *file)
+void mem_bench_print_csv(mem_bench_t *sp, const char *context)
 {
-    assert (file);
-    fprintf(file, "%s,%ld,%p,",
+    if (!sp->file) {
+        return;
+    }
+    fprintf(sp->file, "%s,%ld,%p",
             context, (long)thr_id(), sp);
-    mem_bench_print_func_csv(&sp->alloc, file);
-    mem_bench_print_func_csv(&sp->realloc, file);
-    mem_bench_print_func_csv(&sp->free, file);
-    fprintf(file, "%lu,%lu,%u,%u,%u,%u,%u,%u\n",
+    mem_bench_print_func_csv(&sp->alloc, sp->file);
+    mem_bench_print_func_csv(&sp->realloc, sp->file);
+    mem_bench_print_func_csv(&sp->free, sp->file);
+    fprintf(sp->file, "%lu,%lu,%u,%u,%u,%u,%u,%u\n",
             sp->total_allocated, sp->total_requested,
             sp->max_allocated, sp->max_unused, sp->max_used,
             sp->malloc_calls, sp->current_used, sp->current_allocated);

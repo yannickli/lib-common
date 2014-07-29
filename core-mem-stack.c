@@ -19,8 +19,6 @@
 
 static DLIST(mem_stack_pool_list);
 static spinlock_t mem_stack_dlist_lock;
-static FILE *mem_stack_data_file;
-static spinlock_t mem_stack_file_lock;
 #endif
 
 #ifndef __BIGGEST_ALIGNMENT__
@@ -342,9 +340,16 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 
 #ifdef MEM_BENCH
     /* this pointer will never be deallocated,
-     * since we have nowhere to do it
+     * and the file will be leaked,
+     * since we have nowhere to clean up
      */
-    sp->mem_bench = p_new(mem_bench_t, 1);
+    {
+        char filename [PATH_MAX];
+
+        path_extend(filename, ".", "mem.stack.data.%u.%p", getpid(), sp);
+        sp->mem_bench = p_new(mem_bench_t, 1);
+        mem_bench_init(sp->mem_bench, filename);
+    }
 #endif
 
     return sp;
@@ -407,30 +412,12 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
     sp->mem_bench->current_used = cused;
     mem_bench_update_max(sp->mem_bench);
 }
-
-static int mem_stack_stats_open_file(void) {
-    /* No need for locking here since this is only called by write_stats, and
-       the lock is already acquired
-     */
-    if (!mem_stack_data_file) {
-        char filename [PATH_MAX];
-
-        path_extend(filename, ".", "mem.stack.data.%u", getpid());
-        mem_stack_data_file = RETHROW_PN(fopen(filename, "w"));
-    }
-    return 0;
-}
 #endif
 
 void mem_stack_write_stats(mem_pool_t *mp, const char *context) {
 #ifdef MEM_BENCH
     mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
-
-    spin_lock(&mem_stack_file_lock);
-    if (mem_stack_data_file || mem_stack_stats_open_file() >= 0) {
-        mem_bench_print_csv(sp->mem_bench, context, mem_stack_data_file);
-    }
-    spin_unlock(&mem_stack_file_lock);
+    mem_bench_print_csv(sp->mem_bench, context);
 #endif
 }
 
@@ -487,13 +474,6 @@ static void t_pool_wipe(void)
     mem_bench_print_human(t_pool_g.mem_bench, 0);
     spin_lock(&mem_stack_dlist_lock);
     dlist_remove(&t_pool_g.pool_list);
-    if (dlist_is_empty(&mem_stack_pool_list)) {
-        spin_lock(&mem_stack_file_lock);
-        if (mem_stack_data_file) {
-            fclose(mem_stack_data_file);
-        }
-        spin_unlock(&mem_stack_file_lock);
-    }
     spin_unlock(&mem_stack_dlist_lock);
 #endif
 
