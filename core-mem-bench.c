@@ -46,8 +46,6 @@ void mem_bench_print_csv(mem_bench_t *sp)
     if (!sp->file) {
         return;
     }
-    fprintf(sp->file, "%ld,%p",
-            (long)thr_id(), sp);
     mem_bench_print_func_csv(&sp->alloc, sp->file);
     mem_bench_print_func_csv(&sp->realloc, sp->file);
     mem_bench_print_func_csv(&sp->free, sp->file);
