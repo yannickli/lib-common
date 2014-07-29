@@ -46,7 +46,7 @@ typedef struct mem_bench_t {
     uint32_t current_allocated;
 } mem_bench_t;
 
-void mem_bench_init(mem_bench_t *sp, const char *file, uint32_t period);
+void mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period);
 void mem_bench_wipe(mem_bench_t *sp);
 
 void mem_bench_update(mem_bench_t *sp);

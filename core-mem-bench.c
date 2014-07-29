@@ -15,9 +15,13 @@
 #include "unix.h"
 #include "thr.h"
 
-void mem_bench_init(mem_bench_t *sp, const char *filename, uint32_t period)
+void mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
 {
-    if (filename) {
+    if (period) {
+        char filename[PATH_MAX];
+
+        path_extend(filename, ".", "mem.%*pM.data.%u.%p",
+                    LSTR_FMT_ARG(type), getpid(), sp);
         sp->file = fopen(filename, "w");
         /* not fatal if sp->file is NULL : we won't log anything. */
     }

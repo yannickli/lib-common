@@ -344,13 +344,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
      * and the file will be leaked,
      * since we have nowhere to clean up
      */
-    {
-        char filename [PATH_MAX];
-
-        path_extend(filename, ".", "mem.stack.data.%u.%p", getpid(), sp);
-        sp->mem_bench = p_new(mem_bench_t, 1);
-        mem_bench_init(sp->mem_bench, filename, WRITE_PERIOD);
-    }
+    sp->mem_bench = p_new_raw(mem_bench_t, 1);
+    mem_bench_init(sp->mem_bench, LSTR_IMMED_V("stack"), WRITE_PERIOD);
 #endif
 
     return sp;
@@ -473,6 +468,11 @@ static void t_pool_wipe(void)
 {
 #ifdef MEM_BENCH
     mem_bench_print_human(t_pool_g.mem_bench, 0);
+    mem_bench_wipe(t_pool_g.mem_bench);
+    /* do not delete the mem_bench pointer,
+     * it may be used later, in an allocation triggered by a destructor
+     */
+
     spin_lock(&mem_stack_dlist_lock);
     dlist_remove(&t_pool_g.pool_list);
     spin_unlock(&mem_stack_dlist_lock);
