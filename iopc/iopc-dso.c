@@ -79,25 +79,24 @@ static int do_compile(const qv_t(str) *in, const char *out)
     qv_append(cstr, &args, "-shared");
     qv_append(cstr, &args, "-fPIC");
 
-#ifndef NDEBUG
     qv_append(cstr, &args, "-Wall");
     qv_append(cstr, &args, "-Werror");
     qv_append(cstr, &args, "-Wextra");
     qv_append(cstr, &args, "-Wno-unused-parameter");
 
+#ifdef NDEBUG
+    qv_append(cstr, &args, "-s");                       /* strip DSO        */
+    qv_append(cstr, &args, "-O3");
+#else
+    qv_append(cstr, &args, "-O0");
+    /* XXX valgrind does not support loading dso built with -g3, it fails with
+     * "Warning: DWARF2 reader: Badly formed extended line op encountered"
+     */
     if (RUNNING_ON_VALGRIND) {
-#endif
-        qv_append(cstr, &args, "-s");                   /* strip DSO        */
-        qv_append(cstr, &args, "-O3");
-        qv_append(cstr, &args, "-finline-functions");
-#ifndef NDEBUG
-    } else {
         qv_append(cstr, &args, "-g");
+    } else {
         qv_append(cstr, &args, "-g3");
-        qv_append(cstr, &args, "-O0");
     }
-    qv_append(cstr, &args, "-fno-inline");
-    qv_append(cstr, &args, "-fno-inline-functions");
 #endif
     qv_append(cstr, &args, "-fno-strict-aliasing");
 
@@ -162,6 +161,9 @@ static int iopc_dso_uptodate(const char *dso, const char *iopfile)
         return logger_error(&_G.logger, "unable to stat IOP file build %s",
                             iopfile);
     }
+    /* XXX valgrind does not support loading dso built with -g3, so always
+     * rebuild the dso just in case (c.f. do_compile)
+     */
     if (!RUNNING_ON_VALGRIND) {
         if (stat(dso, &dso_st) == 0 && iop_st.st_mtime < dso_st.st_mtime) {
             return true;
