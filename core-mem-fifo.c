@@ -166,8 +166,10 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
         e_panic("trying to allocate from a dead pool");
 
     page = mfp->current;
-    assert (!page || page->used_blocks != 0);
     if (!page || mem_page_size_left(page) < size) {
+        if (unlikely(page && !page->used_blocks)) {
+            mem_page_delete(mfp, &page);
+        }
         page = mfp->current = mem_page_new(mfp, size);
 
 #ifdef MEM_BENCH
@@ -244,11 +246,10 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
         return;
     }
 
-    /* this was the last block, collect this page */
+    /* this was the last block, reset this page */
     if (page == mfp->current) {
-        mfp->current = NULL;
-    }
-
+        mem_page_reset(page);
+    } else
     /* keep the page around if we have none kept around yet */
     if (mfp->freepage) {
         mem_page_delete(mfp, &page);
