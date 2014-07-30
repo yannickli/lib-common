@@ -31,6 +31,7 @@ static struct {
     int max_alloc_size;
     int max_depth;
     int num_tries;
+    int compare;
 } settings = {
     .num_allocs = 1 << 20,
     .max_allocated = 10000,
@@ -43,6 +44,7 @@ static popt_t popts[] = {
     OPT_FLAG('h', "help", &settings.help, "show this help"),
     OPT_FLAG('s', "stack", &settings.test_stack, "test stack allocator"),
     OPT_FLAG('f', "fifo", &settings.test_fifo, "test fifo allocator"),
+    OPT_FLAG('c', "comp", &settings.compare, "also run the test with malloc"),
     OPT_FLAG('w', "worst-case", &settings.worst_case,
              "worst case test (fifo)"),
     OPT_INT('n', "allocs", &settings.num_allocs,
@@ -58,25 +60,28 @@ static popt_t popts[] = {
     OPT_END(),
 };
 
+/* {{{ FIFO benchmarks */
 
 /** Fifo allocator benchmarking
  *
  * First check is under real fifo behaviour: every block allocated is freed
  * immediately
  *
- * Second check is randomized: blocks are deallocated at a random time, and at
- * most MAX_ALLOCATED blocks are simultaneously allocated
+ * Second check is also a real fifo behaviour, but several blocks are
+ * allocated simultaneously
+ *
+ * The third test is randomized: blocks are deallocated at a random time, and
+ * at most MAX_ALLOCATED blocks are simultaneously allocated
  */
-static int benchmark_fifo(void)
+static int benchmark_fifo_pool(mem_pool_t *mp)
 {
-    mem_pool_t *mp_fifo = mem_fifo_pool_new(0);
     byte **table = p_new(byte *, settings.max_allocated);
 
     /* Real fifo behavior, one at a time */
     for (int i = 0; i < settings.num_allocs / 3; i++) {
-        byte *a = mp_new_raw(mp_fifo, byte,
+        byte *a = mp_new_raw(mp, byte,
                              rand() % settings.max_alloc_size);
-        mp_ifree(mp_fifo, a);
+        mp_ifree(mp, a);
     }
 #ifdef MEM_BENCH
     mem_fifo_pools_print_stats();
@@ -87,9 +92,9 @@ static int benchmark_fifo(void)
         int chosen = i % settings.max_allocated;
 
         if (table[chosen]) {
-            mp_ifree(mp_fifo, table[chosen]);
+            mp_ifree(mp, table[chosen]);
         }
-        table[chosen] = mp_new_raw(mp_fifo, byte,
+        table[chosen] = mp_new_raw(mp, byte,
                                    rand() % settings.max_alloc_size);
     }
 #ifdef MEM_BENCH
@@ -101,9 +106,9 @@ static int benchmark_fifo(void)
         int chosen = rand() % settings.max_allocated;
 
         if (table[chosen]) {
-            mp_ifree(mp_fifo, table[chosen]);
+            mp_ifree(mp, table[chosen]);
         }
-        table[chosen] = mp_new_raw(mp_fifo, byte,
+        table[chosen] = mp_new_raw(mp, byte,
                                    rand() % settings.max_alloc_size);
     }
 #ifdef MEM_BENCH
@@ -113,7 +118,7 @@ static int benchmark_fifo(void)
     /* Clean leftovers */
     for (int i = 0; i < settings.max_allocated; i++) {
         if (table[i]) {
-            mp_ifree(mp_fifo, table[i]);
+            mp_ifree(mp, table[i]);
         }
     }
 #ifdef MEM_BENCH
@@ -121,23 +126,35 @@ static int benchmark_fifo(void)
 #endif
 
     p_delete(&table);
-    mem_fifo_pool_delete(&mp_fifo);
     return 0;
+}
+
+static int benchmark_fifo(void)
+{
+    int res;
+    mem_pool_t *mp_fifo = mem_fifo_pool_new(0);
+
+    res = benchmark_fifo_pool(mp_fifo);
+    mem_fifo_pool_delete(&mp_fifo);
+
+    return res;
+}
+
+static int benchmark_fifo_malloc(void)
+{
+    return benchmark_fifo_pool(&mem_pool_libc);
 }
 
 #if 1
 /** This one tries to trigger an allocation each time
  */
-static int benchmark_fifo_worst_case(void)
+static int benchmark_fifo_worst_case_pool(mem_pool_t *mp)
 {
-    mem_pool_t *mp = mem_fifo_pool_new(32 * 4096);
-
     for (int i = 0; i < settings.num_allocs; i++) {
         void *a = mp_new_raw(mp, byte, 32 * 4096 + i);
 
         mp_ifree(mp, a);
     }
-    mem_fifo_pool_delete(&mp);
     return 0;
 }
 
@@ -160,10 +177,30 @@ static int benchmark_fifo_worst_case(void)
         b = mp_new(mp, byte, 256);
         mp_ifree(mp, a);
     }
+    mp_ifree(mp, b);
     mem_fifo_pool_delete(&mp);
     return 0;
 }
 #endif
+
+static int benchmark_fifo_worst_case(void)
+{
+    int res;
+    mem_pool_t *mp = mem_fifo_pool_new(32 * 4096);
+
+    res = benchmark_fifo_worst_case_pool(mp);
+    mem_fifo_pool_delete(&mp);
+
+    return res;
+}
+
+static int benchmark_fifo_worst_case_malloc(void)
+{
+    return benchmark_fifo_worst_case_pool(&mem_pool_libc);
+}
+
+/* }}} */
+/* {{{ Stack benchmarks */
 
 /** Stack allocator bench
  *
@@ -179,7 +216,7 @@ static int recursive_memory_user(int depth)
     t_scope;
     int size = rand() % MAX(2 * settings.num_allocs /
                         (settings.num_tries * settings.max_depth), 1);
-    byte ** mem = t_new_raw(byte *, size);
+    byte **mem = t_new_raw(byte *, size);
 
     for (int i = 0; i < size; i++) {
         mem[i] = t_new_raw(byte, rand() % settings.max_alloc_size);
@@ -198,17 +235,57 @@ static int benchmark_stack(void)
 {
     for (int i = 0; i < settings.num_tries; i++) {
         int depth = rand() % settings.max_depth;
+
         recursive_memory_user(depth);
     }
     return 0;
 }
 
+/** Same bench with malloc
+ */
+static int recursive_memory_user_malloc(int depth)
+{
+    int size = rand() % MAX(2 * settings.num_allocs /
+                        (settings.num_tries * settings.max_depth), 1);
+    byte **mem = p_new_raw(byte *, size * 2);
+
+    for (int i = 0; i < size; i ++) {
+        mem[i] = p_new_raw(byte, rand() % settings.max_alloc_size);
+    }
+
+    if (likely(depth > 0)) {
+        recursive_memory_user(depth - 1);
+    }
+    for (int i = size; i < 2 * size; i ++) {
+        mem[i] = p_new_raw(byte, rand() % settings.max_alloc_size);
+    }
+    for (int i = 0; i < size; i ++) {
+        p_delete(&mem[i]);
+    }
+    p_delete(&mem);
+    return 0;
+}
+
+static int benchmark_stack_malloc(void)
+{
+    for (int i = 0; i < settings.num_tries; i ++) {
+        int depth = rand() % settings.max_depth;
+
+        recursive_memory_user_malloc(depth);
+    }
+    return 0;
+}
+
+/** This function's branching behaviour is random, and allows a more realistic
+ * check.
+ * It is launched with -sw
+ * XXX: it always terminates, but it can take a long time...
+ */
 static void random_recursive_func(int depth)
 {
     t_scope;
     int size = rand() % (2 * settings.num_allocs /
                         (settings.num_tries * settings.max_depth));
-
     byte **mem = t_new_raw(byte *, size);
     int threshold = 4100;
 
@@ -221,23 +298,37 @@ static void random_recursive_func(int depth)
         return;
     } else {
         random_recursive_func(depth + 1);
-        threshold += 00;
+        threshold -= 50;
         goto retry;
     }
 }
 
 static int benchmark_stack_random(void)
 {
-    printf("Random bench started\n");
+    printf("Random stack bench started\n");
     random_recursive_func(0);
     return 0;
 }
 
-int main(int argc, char **argv)
-{
+/* }}} */
+
+/** Times the execution of a function
+ */
+static void benchmark_func(int func(void), const char* message) {
     proctimer_t pt;
     int elapsed;
+
+    proctimer_start(&pt);
+    func();
+    elapsed = proctimer_stop(&pt);
+    printf("%s done. Elapsed time: %d.%06d s\n", message, elapsed / 1000000,
+           elapsed % 1000000);
+}
+
+int main(int argc, char **argv)
+{
     const char *arg0 = NEXTARG(argc, argv);
+
     srand(time(NULL));
 
     argc = parseopt(argc, argv, popts, 0);
@@ -249,29 +340,33 @@ int main(int argc, char **argv)
 
     if (settings.test_stack) {
         printf("Starting stack allocator test...\n");
-        proctimer_start(&pt);
         if (settings.worst_case) {
-            benchmark_stack_random();
+            benchmark_func(benchmark_stack_random,
+                           "Worst-case stack allocator test.");
         } else {
-            benchmark_stack();
+            benchmark_func(benchmark_stack, "Stack allocator test");
+            if (settings.compare) {
+                benchmark_func(benchmark_stack_malloc, "With malloc:");
+            }
         }
-        elapsed = proctimer_stop(&pt);
-        printf("Stack allocator test done. Elapsed time: %d.%06d s\n",
-               elapsed / 1000000, elapsed % 1000000);
+
     }
     if (settings.test_fifo) {
         printf("Starting fifo allocator test...\n");
-        proctimer_start(&pt);
         if (settings.worst_case) {
-            benchmark_fifo_worst_case();
+            benchmark_func(benchmark_fifo_worst_case,
+                           "Worst-case fifo allocator test.");
+            if (settings.compare) {
+                benchmark_func(benchmark_fifo_worst_case_malloc, "With malloc:");
+            }
         } else {
-            benchmark_fifo();
+            benchmark_func(benchmark_fifo, "Fifo allocator test");
+            if (settings.compare) {
+                benchmark_func(benchmark_fifo_malloc, "With malloc:");
+            }
         }
-        elapsed = proctimer_stop(&pt);
-        printf("Fifo allocator test done. Elapsed time: %d.%06d s\n",
-               elapsed / 1000000, elapsed % 1000000);
     }
-    return 0;
 
+    return 0;
 }
 
