@@ -200,7 +200,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
         e_panic("allocation performed without a t_scope");
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
-    size += 1 << alignment;
+    size += alignment;
 #endif
     res = sp_reserve(sp, size, alignment, &frame->pos);
     if (!(flags & MEM_RAW)) {
@@ -221,9 +221,9 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
     }
 
 #ifndef NDEBUG
-    res += 1 << alignment;
+    res += alignment;
     ((void **)res)[-1] = sp->stack;
-    mem_tool_disallow_memory(res - (1 << alignment), 1 << alignment);
+    mem_tool_disallow_memory(res - alignment, alignment);
 #endif
 
 #ifdef MEM_BENCH
@@ -377,7 +377,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
 {
     uint8_t *end;
     uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t),
-                              bsrsz(__BIGGEST_ALIGNMENT__), &end);
+                              __BIGGEST_ALIGNMENT__, &end);
     mem_stack_frame_t *frame;
     mem_stack_frame_t *oldframe = sp->stack;
 

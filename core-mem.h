@@ -263,18 +263,17 @@ extern void __imalloc_too_large(void);
 #endif
 
 static ALWAYS_INLINE
-unsigned mem_bit_align(const mem_pool_t *mp, size_t alignment)
+size_t mem_bit_align(const mem_pool_t *mp, size_t alignment)
 {
     assert (bitcountsz(alignment) <= 1);
-    return bsrsz(alignment ? MAX(mp->min_alignment, alignment)
-                           : __BIGGEST_ALIGNMENT__);
+    return (alignment ? MAX(mp->min_alignment, alignment)
+            : __BIGGEST_ALIGNMENT__);
 }
 
 static ALWAYS_INLINE
-uintptr_t mem_align_ptr(uintptr_t ptr, unsigned bit_align)
+uintptr_t mem_align_ptr(uintptr_t ptr, size_t align)
 {
-    return (ptr + BITMASK_LT(uintptr_t, bit_align))
-         & BITMASK_GE(uintptr_t, bit_align);
+    return ROUND_UP_2EXP(ptr, align);
 }
 
 static ALWAYS_INLINE void icheck_alloc(size_t size)

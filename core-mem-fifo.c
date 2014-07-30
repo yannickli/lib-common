@@ -146,7 +146,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     proctimer_start(&ptimer);
 #endif
 
-    if (alignment > 3) {
+    if (alignment > 8) {
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
@@ -286,7 +286,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
     proctimer_start(&ptimer);
 #endif
 
-    if (alignment > 3) {
+    if (alignment > 8) {
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 

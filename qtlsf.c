@@ -577,7 +577,7 @@ ssize_t tlsf_setsizeof(void *ptr, size_t asked)
 static void *tlsf_malloc_(mem_pool_t *mp, size_t size, size_t alignment,
                           mem_flags_t flags)
 {
-    if (alignment > 3) {
+    if (alignment > 8) {
         e_panic("tlsf_pool does not support alignments greater than 8");
     }
 
@@ -588,7 +588,7 @@ static void *tlsf_realloc_(mem_pool_t *mp, void *ptr,
                            size_t oldsize, size_t newsize, size_t alignment,
                            mem_flags_t flags)
 {
-    if (alignment > 3) {
+    if (alignment > 8) {
         e_panic("tlsf_pool does not support alignments greater than 8");
     }
 
