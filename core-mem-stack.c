@@ -126,6 +126,14 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
     return blk_create(sp, size);
 }
 
+static ALWAYS_INLINE void frame_set_blk(mem_stack_frame_t *frame,
+                                        mem_stack_blk_t *blk)
+{
+    frame->blk  = blk;
+    frame->pos  = blk->area;
+    frame->last = NULL;
+}
+
 static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 {
     mem_stack_blk_t *blk = frame->blk;
@@ -133,7 +141,7 @@ static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 }
 
 static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
-                        mem_stack_blk_t **blkp, uint8_t **end)
+                        uint8_t **end)
 {
     uint8_t           *res;
     mem_stack_frame_t *frame = sp->stack;
@@ -143,15 +151,13 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
     if (unlikely(res + asked > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, alignment,
                                                   asked);
+        frame_set_blk(frame, blk);
 
-        *blkp = blk;
         res   = blk->area;
         res   = (uint8_t *)mem_align_ptr((uintptr_t)res, alignment);
-        mem_tool_disallow_memory(blk->area, res - blk->area);
-    } else {
-        *blkp = frame->blk;
-        mem_tool_disallow_memory(frame->pos, res - frame->pos);
     }
+
+    mem_tool_disallow_memory(frame->pos, res - frame->pos);
     mem_tool_allow_memory(res, asked, false);
 
     /* compute a progressively forgotten mean of the allocation size.
@@ -201,7 +207,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
         e_panic("allocation performed on a sealed stack");
     size += 1 << alignment;
 #endif
-    res = sp_reserve(sp, size, alignment, &frame->blk, &frame->pos);
+    res = sp_reserve(sp, size, alignment, &frame->pos);
     if (!(flags & MEM_RAW)) {
 #ifdef MEM_BENCH
         /* since sp_free is no-op, we use the fields to measure memset */
@@ -329,8 +335,7 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->start    = blk_entry(&sp->blk_list)->area;
     sp->size     = 0;
 
-    sp->base.blk = blk_entry(&sp->blk_list);
-    sp->base.pos = sp->base.blk->area;
+    frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
     sp->stack    = &sp->base;
 
     /* 640k should be enough for everybody =) */
@@ -354,6 +359,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 
 void mem_stack_pool_reset(mem_stack_pool_t *sp)
 {
+    frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
+
     dlist_for_each_safe(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
@@ -374,11 +381,11 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
 {
-    mem_stack_blk_t *blk;
     uint8_t *end;
     uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t),
-                              bsrsz(__BIGGEST_ALIGNMENT__), &blk, &end);
+                              bsrsz(__BIGGEST_ALIGNMENT__), &end);
     mem_stack_frame_t *frame;
+    mem_stack_frame_t *oldframe = sp->stack;
 
 #ifdef MEM_BENCH
     /* if the assert fires,
@@ -390,10 +397,10 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     mem_bench_print_csv(sp->mem_bench);
 #endif
     frame = (mem_stack_frame_t *)res;
-    frame->blk  = blk;
+    frame->blk  = oldframe->blk;
     frame->pos  = end;
     frame->last = NULL;
-    frame->prev = (uintptr_t)sp->stack;
+    frame->prev = (uintptr_t)oldframe;
     return sp->stack = frame;
 }
 
