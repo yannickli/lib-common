@@ -46,6 +46,9 @@ typedef struct mem_bench_t {
     uint32_t malloc_calls;
     uint32_t current_used;
     uint32_t current_allocated;
+
+    /* allocator type */
+    lstr_t   allocator_name;
 } mem_bench_t;
 
 /** Initialize mem_bench object.

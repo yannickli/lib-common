@@ -30,6 +30,8 @@ mem_bench_t *mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
     sp->out_period = period;
     sp->out_counter = period;
 
+    lstr_copy(&sp->allocator_name, type);
+
     return sp;
 }
 
@@ -37,6 +39,7 @@ void mem_bench_wipe(mem_bench_t *sp)
 {
     mem_bench_print_csv(sp);
     p_fclose(&sp->file);
+    lstr_wipe(&sp->allocator_name);
 }
 
 static void mem_bench_print_func_csv(mem_bench_func_t *spf, FILE *file)
@@ -94,7 +97,9 @@ void mem_bench_print_human(mem_bench_t *sp, int flags)
     } else {
         printf("\x1b[31m");
     }
-    printf("Stack allocator @%p stats  :\x1b[0m\n", sp);
+
+    printf("%*pM allocator @%p stats  :\x1b[0m\n",
+           LSTR_FMT_ARG(sp->allocator_name), sp);
     printf("  alloc                    :\n");
     mem_bench_print_func_human(&sp->alloc);
     printf("  realloc                  :\n");
