@@ -81,8 +81,10 @@ void mem_bench_update(mem_bench_t *sp)
 static void mem_bench_print_func_human(mem_bench_func_t *spf)
 {
     printf("    requests               : %10u \n", spf->nb_calls);
-    printf("    slow path calls        : %10u \n", spf->nb_slow_path);
-    printf("    %s", proctimerstat_report(&spf->timer_stat, "%h"));
+    printf("    slow path calls        : %10u \t%u.%u %%\n", spf->nb_slow_path,
+           100 * spf->nb_slow_path / MAX(1, spf->nb_calls),
+           (10000 * spf->nb_slow_path / MAX(1, spf->nb_calls)) % 100);
+    printf("    %s\n", proctimerstat_report(&spf->timer_stat, "%h"));
 }
 
 void mem_bench_print_human(mem_bench_t *sp, int flags)
