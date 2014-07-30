@@ -15,8 +15,10 @@
 #include "unix.h"
 #include "thr.h"
 
-void mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
+mem_bench_t *mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
 {
+    p_clear(sp, 1);
+
     if (period) {
         char filename[PATH_MAX];
 
@@ -27,10 +29,13 @@ void mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
     }
     sp->out_period = period;
     sp->out_counter = period;
+
+    return sp;
 }
 
 void mem_bench_wipe(mem_bench_t *sp)
 {
+    mem_bench_print_csv(sp);
     p_fclose(&sp->file);
 }
 
