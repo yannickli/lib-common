@@ -239,6 +239,7 @@
 
 #define CLIP(v,m,M)  (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
 
+#define ROUND(x, y)          (((x) / (y)) * (y))
 #define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
 #define ROUND_UP(x, y)       (DIV_ROUND_UP(x, y) * (y))
 
