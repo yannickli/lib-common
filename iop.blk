@@ -3421,41 +3421,59 @@ static void iop_signature_initialize(void)
 /*------ Signature -}}}-*/
 /*------ class manipulation -{{{-*/
 
-iop_value_t const *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name)
+iop_value_t const *
+iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name)
 {
     iop_static_field_t _search = { .name = name };
     iop_static_field_t *search = &_search;
 
+    const iop_class_attrs_t *cls = desc->class_attrs;
+    bool found;
+    int pos;
+    cmp_b cmp = ^int (const void *a, const void *b) {
+        const iop_static_field_t **v1 = (const iop_static_field_t **)a;
+        const iop_static_field_t **v2 = (const iop_static_field_t **)b;
+
+        return lstr_cmp(&(*v1)->name, &(*v2)->name);
+    };
+
+    assert (iop_struct_is_class(desc));
+
+    pos = bisect_blk(&search, cls->static_fields,
+                     sizeof(iop_static_field_t *),
+                     cls->static_fields_len, &found, cmp);
+    if (found) {
+        const iop_static_field_t *f;
+
+        f = desc->class_attrs->static_fields[pos];
+        return &f->value;
+    }
+    return NULL;
+}
+
+const iop_value_t *iop_get_class_cvar(const void *obj, lstr_t name)
+{
+    return iop_get_class_cvar_desc(*(iop_struct_t **)obj, name);
+}
+
+const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name)
+{
     assert (iop_struct_is_class(desc));
 
     while (desc) {
         const iop_class_attrs_t *cls = desc->class_attrs;
-        bool found;
-        int pos;
-        cmp_b cmp = ^int (const void *a, const void *b) {
-            const iop_static_field_t **v1 = (const iop_static_field_t **)a;
-            const iop_static_field_t **v2 = (const iop_static_field_t **)b;
+        const iop_value_t *v;
 
-            return lstr_cmp(&(*v1)->name, &(*v2)->name);
-        };
-
-        pos = bisect_blk(&search, cls->static_fields,
-                         sizeof(iop_static_field_t *),
-                         cls->static_fields_len, &found, cmp);
-        if (found) {
-            const iop_static_field_t *f;
-
-            f = desc->class_attrs->static_fields[pos];
-            return &f->value;
+        if ((v = iop_get_class_cvar_desc(desc, name))) {
+            return v;
         }
-
         desc = cls->parent;
-    };
+    }
 
     return NULL;
 }
 
-iop_value_t const *iop_get_cvar(const void *obj, lstr_t name)
+const iop_value_t *iop_get_cvar(const void *obj, lstr_t name)
 {
     return iop_get_cvar_desc(*(iop_struct_t **)obj, name);
 }

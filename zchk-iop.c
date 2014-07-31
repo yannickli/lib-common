@@ -2822,6 +2822,20 @@ Z_GROUP_EXPORT(iop)
             a3.__vptr = &tstiop_inheritance__a3__s;
             Z_ASSERT_NULL(iop_get_cvar_cst(&a3, "staticInt"));
         }
+
+        {
+            tstiop_inheritance__a1__t a1;
+            tstiop_inheritance__b1__t b1;
+
+            a1.__vptr = &tstiop_inheritance__a1__s;
+            b1.__vptr = &tstiop_inheritance__b1__s;
+            Z_ASSERT(iop_get_cvar_cst(&a1, "staticStr"));
+            Z_ASSERT(iop_get_cvar_cst(&b1, "staticStr"));
+            cvar = iop_get_class_cvar_cst(&a1, "staticStr");
+            Z_ASSERT_P(cvar);
+            Z_ASSERT_LSTREQUAL(cvar->s, LSTR_IMMED_V("a1"));
+            Z_ASSERT_NULL(iop_get_class_cvar_cst(&b1, "staticStr"));
+        }
     } Z_TEST_END
     /* }}} */
     Z_TEST(inheritance_equals, "test iop_equals/hash with inheritance") { /* {{{ */
