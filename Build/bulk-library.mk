@@ -465,6 +465,27 @@ define ext/rule/sdf
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/sdf,$1,$2,$$t,$4))))
 endef
 
+define ext/expand/txt
+ifeq ($(%-MIB.txt,$3),)
+$~$3.inc.adoc: FL_=$($(1DV)_MIBFLAGS) $($1_MIBFLAGS) $($3_MIBFLAGS)
+$~$3.inc.adoc: $3
+	mkdir -p $$(@D)
+	$(msg/DOC.mib) $3
+	smidump -q -f python -k $$(FL_) -o $$@.py $$<
+	cat $(var/cfgdir)/mib.py >> $$@.py
+
+	python $$@.py > $$@+
+	$(MV) $$@+ $$@ && chmod a-w $$@
+	$(FASTCP) $$@ $3.inc.adoc
+$(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
+endif
+endef
+
+define ext/rule/txt
+$(eval $(call fun/common-depends,$1,$(3:%=$~%.inc.adoc),$3))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/txt,$1,$2,$$t,$4))))
+endef
+
 define rule/pdf
 $1: $~$1 FORCE
 	$(FASTCP) $$< $$@
