@@ -220,10 +220,12 @@ void iop_dso_close(iop_dso_t **dsop)
 {
     const iop_dso_t *dso = *dsop;
 
-    qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
-        iop_unregister_packages(&dso->pkg_h.values[pos], 1);
+    if (dso) {
+        qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
+            iop_unregister_packages(&dso->pkg_h.values[pos], 1);
+        }
+        iop_dso_delete(dsop);
     }
-    iop_dso_delete(dsop);
 }
 
 static iop_rpc_t const *
