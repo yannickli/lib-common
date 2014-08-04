@@ -137,13 +137,12 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
 {
     uint8_t           *res;
     mem_stack_frame_t *frame = sp->stack;
-    size_t             size  = mem_align_ptr(asked, alignment);
 
     res = (uint8_t *)mem_align_ptr((uintptr_t)frame->pos, alignment);
 
-    if (unlikely(res + size > frame_end(frame))) {
+    if (unlikely(res + asked > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, alignment,
-                                                  size);
+                                                  asked);
 
         *blkp = blk;
         res   = blk->area;
@@ -154,7 +153,6 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
         mem_tool_disallow_memory(frame->pos, res - frame->pos);
     }
     mem_tool_allow_memory(res, asked, false);
-    mem_tool_disallow_memory(res + asked, size - asked);
 
     /* compute a progressively forgotten mean of the allocation size.
      *
@@ -167,18 +165,18 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
      * from this computation. Those hence will always yield a malloc (actually
      * a mmap) which is fine.
      */
-    if (size < 128 << 20) {
-        if (unlikely(sp->alloc_sz + size < sp->alloc_sz)
+    if (asked < 128 << 20) {
+        if (unlikely(sp->alloc_sz + asked < sp->alloc_sz)
         ||  unlikely(sp->alloc_nb >= UINT16_MAX))
         {
             sp->alloc_sz /= 4;
             sp->alloc_nb /= 4;
         }
-        sp->alloc_sz += size;
+        sp->alloc_sz += asked;
         sp->alloc_nb += 1;
     }
 
-    *end = res + size;
+    *end = res + asked;
     return res;
 }
 
@@ -248,7 +246,6 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    size_t size  = mem_align_ptr(asked, alignment);
     uint8_t *res;
 
 #ifdef MEM_BENCH
@@ -269,9 +266,9 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         e_panic("stack pools do not support reallocs with unknown old size");
 #endif
 
-    if (oldsize >= size) {
+    if (oldsize >= asked) {
         if (mem == frame->last) {
-            sp->stack->pos = (uint8_t *)mem + size;
+            frame->pos = (uint8_t *)mem + asked;
         }
         mem_tool_disallow_memory((byte *)mem + asked, oldsize - asked);
 
@@ -284,14 +281,14 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         mem_bench_update(sp->mem_bench);
 #endif
 
-        return size ? mem : NULL;
+        return asked ? mem : NULL;
     }
 
     if (mem != NULL && mem == frame->last
-    && frame->last + size <= frame_end(sp->stack))
+    && frame->last + asked <= frame_end(frame))
     {
-        sp->stack->pos = frame->last + size;
-        sp->alloc_sz  += size - oldsize;
+        frame->pos = frame->last + asked;
+        sp->alloc_sz  += asked - oldsize;
         mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
         res = mem;
 
@@ -305,13 +302,12 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         mem_bench_update(sp->mem_bench);
 #endif
     } else {
-        res = sp_alloc(_sp, size, alignment, flags | MEM_RAW);
+        res = sp_alloc(_sp, asked, alignment, flags | MEM_RAW);
         if (mem) {
             memcpy(res, mem, oldsize);
             mem_tool_disallow_memory(mem, oldsize);
         }
     }
-    mem_tool_disallow_memory(res + asked, size - asked);
 
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);
