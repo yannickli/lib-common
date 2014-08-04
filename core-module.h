@@ -283,7 +283,6 @@ module_t *module_register(lstr_t name, module_t **module,
                           int (*destructor)(void),
                           const char *dependencies[], int nb_dependencies);
 
-__attr_nonnull__((1))
 void module_add_dep(module_t *mod, lstr_t name, lstr_t dep,
                     module_t **dep_ptr);
 
