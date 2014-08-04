@@ -97,6 +97,7 @@ struct mem_stack_frame_t {
     uintptr_t        prev;
     mem_stack_blk_t *blk;
     uint8_t         *pos;
+    uint8_t         *end;
     uint8_t         *last;
 };
 

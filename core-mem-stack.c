@@ -121,18 +121,24 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
     return blk_create(sp, size);
 }
 
+static ALWAYS_INLINE uint8_t *blk_end(mem_stack_blk_t *blk)
+{
+    return blk->area + blk->size;
+}
+
 static ALWAYS_INLINE void frame_set_blk(mem_stack_frame_t *frame,
                                         mem_stack_blk_t *blk)
 {
     frame->blk  = blk;
     frame->pos  = blk->area;
     frame->last = NULL;
+    frame->end  = blk_end(blk);
 }
 
 static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 {
-    mem_stack_blk_t *blk = frame->blk;
-    return blk->area + blk->size;
+    assert (frame->end == blk_end(frame->blk));
+    return frame->end;
 }
 
 static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
@@ -393,6 +399,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     frame = (mem_stack_frame_t *)res;
     frame->blk  = oldframe->blk;
     frame->pos  = end;
+    frame->end  = oldframe->end;
     frame->last = NULL;
     frame->prev = (uintptr_t)oldframe;
     return sp->stack = frame;
