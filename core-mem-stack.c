@@ -161,6 +161,8 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
     mem_tool_disallow_memory(frame->pos, res - frame->pos);
     mem_tool_allow_memory(res, asked, false);
 
+    *end = res + asked;
+
     /* compute a progressively forgotten mean of the allocation size.
      *
      * Every 64k allocations, we divide the sum of allocations by four so that
@@ -183,7 +185,6 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
         sp->alloc_nb += 1;
     }
 
-    *end = res + asked;
     return res;
 }
 
