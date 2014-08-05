@@ -1045,6 +1045,15 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(lstr_copyc, "str: const copy") {
+        /* XXX: should not leak */
+        lstr_t dst = lstr_fmt("%s", "toto");
+        lstr_t src = LSTR_IMMED_V("tata");
+
+        lstr_copyc(&dst, src);
+        Z_ASSERT(lstr_equal2(dst, src));
+    } Z_TEST_END;
+
     Z_TEST(lstr_startswithc, "str: starts with character") {
         Z_ASSERT(lstr_startswithc(LSTR_IMMED_V("1234"), '1'));
         Z_ASSERT(!lstr_startswithc(LSTR_IMMED_V("1234"), '2'));
