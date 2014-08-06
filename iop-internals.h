@@ -82,6 +82,8 @@ typedef struct iop_field_t {
     } u1;
 } iop_field_t;
 
+#define IOP_FIELD(type_t, v, i)  (((type_t *)v)[i])
+
 /*}}}*/
 /*{{{ Generic attributes */
 
@@ -507,12 +509,22 @@ typedef struct iop__void__t { } iop__void__t;
 extern iop_struct_t const iop__void__s;
 
 /*}}}*/
+/*{{{ IOP constraints */
+
+__attr_printf__(1, 2)
+int         iop_set_err(const char *fmt, ...) __cold;
+__attr_printf__(1, 0)
+void        iop_set_verr(const char *fmt, va_list ap) __cold ;
+int         iop_set_err2(const lstr_t *s) __cold;
+void        iop_clear_err(void);
+
+/*}}}*/
 /*{{{ IOP DSO */
 
 typedef struct iop_dso_vt_t {
     size_t  vt_size;
-    void  (*iop_set_verr)(const char *fmt, va_list ap)
-        __attribute__((format(printf, 1, 0)));
+    __attr_printf__(1, 0)
+    void  (*iop_set_verr)(const char *fmt, va_list ap);
 } iop_dso_vt_t;
 
 #define IOP_EXPORT_PACKAGES(...) \
@@ -535,7 +547,7 @@ typedef struct iop_dso_vt_t {
         .size       = 0,                                                \
     };                                                                  \
                                                                         \
-    __attribute__((format(printf, 1, 2)))                               \
+    __attr_printf__(1, 2)                                               \
     int iop_set_err(const char *fmt, ...) {                             \
         va_list ap;                                                     \
                                                                         \

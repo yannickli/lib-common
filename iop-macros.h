@@ -767,10 +767,5 @@
 #define IOP_OBJ_DEFAULT  IOP_CLASS_DEFAULT
 
 /* }}} */
-/* {{{ Private helpers */
-
-#define IOP_FIELD(type_t, v, i)  (((type_t *)v)[i])
-
-/* }}} */
 
 #endif

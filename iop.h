@@ -36,12 +36,6 @@ qvector_t(iop_struct, const iop_struct_t *);
 
 /* {{{ IOP attributes and constraints */
 
-int         iop_set_err(const char *fmt, ...) __cold __attr_printf__(1, 2);
-__attribute__((format(printf, 1, 0)))
-void        iop_set_verr(const char *fmt, va_list ap) __cold ;
-int         iop_set_err2(const lstr_t *s) __cold;
-void        iop_clear_err(void) ;
-
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse);
 
