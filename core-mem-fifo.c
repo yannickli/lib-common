@@ -150,19 +150,24 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
+    if (unlikely(!mfp->alive)) {
+        e_panic("trying to allocate from a dead pool");
+    }
+
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
-
-    if (unlikely(!mfp->alive))
-        e_panic("trying to allocate from a dead pool");
-
     page = mfp->current;
-    if (!page || mem_page_size_left(page) < size) {
-        if (unlikely(page && !page->used_blocks)) {
-            mem_page_delete(mfp, &page);
+    if (mem_page_size_left(page) < size) {
+        if (unlikely(!page->used_blocks)) {
+            if (page->size >= size) {
+                mem_page_reset(page);
+            } else {
+                mem_page_delete(mfp, &page);
+                page = mfp->current = mem_page_new(mfp, size);
+            }
+        } else {
+            page = mfp->current = mem_page_new(mfp, size);
         }
-        page = mfp->current = mem_page_new(mfp, size);
-
 #ifdef MEM_BENCH
         mfp->mem_bench.alloc.nb_slow_path++;
 #endif
@@ -235,16 +240,23 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
         return;
     }
 
-    /* this was the last block, reset this page */
-    if (page == mfp->current) {
-        mem_page_reset(page);
-    } else
-    /* keep the page around if we have none kept around yet */
-    if (mfp->freepage) {
-        mem_page_delete(mfp, &page);
-    } else {
-        mem_page_reset(page);
-        mfp->freepage = page;
+    /* this was the last block,
+     * reset this page unless it is the current one
+     */
+    if (page != mfp->current) {
+        /* keep the page around if we have none kept around yet */
+        if (mfp->freepage) {
+            if (mfp->freepage->size >= page->size) {
+                mem_page_delete(mfp, &page);
+            } else {
+                mem_page_delete(mfp, &mfp->freepage);
+                mem_page_reset(page);
+                mfp->freepage = page;
+            }
+        } else {
+            mem_page_reset(page);
+            mfp->freepage = page;
+        }
     }
 
 #ifdef MEM_BENCH
@@ -358,6 +370,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
     mfp->alive     = true;
+    mfp->current   = mem_page_new(mfp, 0);
 
 #ifdef MEM_BENCH
     mem_bench_init(&mfp->mem_bench, LSTR_IMMED_V("fifo"), WRITE_PERIOD);
