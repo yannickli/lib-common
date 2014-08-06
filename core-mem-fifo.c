@@ -150,14 +150,15 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
-    if (unlikely(!mfp->alive)) {
-        e_panic("trying to allocate from a dead pool");
-    }
-
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
     page = mfp->current;
     if (mem_page_size_left(page) < size) {
+#ifndef NDEBUG
+        if (unlikely(!mfp->alive)) {
+            e_panic("trying to allocate from a dead pool");
+        }
+#endif
         if (unlikely(!page->used_blocks)) {
             if (page->size >= size) {
                 mem_page_reset(page);
