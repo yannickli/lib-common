@@ -150,9 +150,9 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
+    page = mfp->current;
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
-    page = mfp->current;
     if (mem_page_size_left(page) < size) {
 #ifndef NDEBUG
         if (unlikely(!mfp->alive)) {
