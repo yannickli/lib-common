@@ -79,8 +79,9 @@ static int benchmark_fifo_pool(mem_pool_t *mp)
 
     /* Real fifo behavior, one at a time */
     for (int i = 0; i < settings.num_allocs / 3; i++) {
-        byte *a = mp_new_raw(mp, byte,
-                             rand() % settings.max_alloc_size);
+        byte *a = mp_new(mp, byte,
+                         rand() % settings.max_alloc_size);
+
         mp_ifree(mp, a);
     }
 #ifdef MEM_BENCH
@@ -94,8 +95,8 @@ static int benchmark_fifo_pool(mem_pool_t *mp)
         if (table[chosen]) {
             mp_ifree(mp, table[chosen]);
         }
-        table[chosen] = mp_new_raw(mp, byte,
-                                   rand() % settings.max_alloc_size);
+        table[chosen] = mp_new(mp, byte,
+                               rand() % settings.max_alloc_size);
     }
 #ifdef MEM_BENCH
     mem_fifo_pools_print_stats();
@@ -108,8 +109,8 @@ static int benchmark_fifo_pool(mem_pool_t *mp)
         if (table[chosen]) {
             mp_ifree(mp, table[chosen]);
         }
-        table[chosen] = mp_new_raw(mp, byte,
-                                   rand() % settings.max_alloc_size);
+        table[chosen] = mp_new(mp, byte,
+                               rand() % settings.max_alloc_size);
     }
 #ifdef MEM_BENCH
     mem_fifo_pools_print_stats();
@@ -151,7 +152,7 @@ static int benchmark_fifo_malloc(void)
 static int benchmark_fifo_worst_case_pool(mem_pool_t *mp)
 {
     for (int i = 0; i < settings.num_allocs; i++) {
-        void *a = mp_new_raw(mp, byte, 32 * 4096 + i);
+        void *a = mp_new(mp, byte, 32 * 4096 + i);
 
         mp_ifree(mp, a);
     }
