@@ -81,12 +81,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
         mapsize = ROUND_UP(minsize + sizeof(mem_page_t), 4096);
     }
 
-    page = mmap(NULL, mapsize, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-    if (page == MAP_FAILED) {
-        e_panic(E_UNIXERR("mmap"));
-    }
+    page = (mem_page_t *) pa_new(byte, mapsize, 8);
 
     page->size  = mapsize - sizeof(mem_page_t);
     mem_tool_disallow_memory(page->area, page->size);
@@ -110,8 +105,8 @@ static void mem_page_reset(mem_page_t *page)
     p_clear(page->area, page->used_size);
     mem_tool_disallow_memory(page->area, page->size);
 
-    page->used_size   = 0;
     page->used_blocks = 0;
+    page->used_size   = 0;
     page->last        = NULL;
 }
 
@@ -129,9 +124,8 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
         mfp->nb_pages--;
         mfp->map_size -= page->size + sizeof(mem_page_t);
         mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
-        munmap(page, page->size + sizeof(mem_page_t));
+        p_delete(pagep);
     }
-    *pagep = NULL;
 }
 
 static uint32_t mem_page_size_left(mem_page_t *page)
