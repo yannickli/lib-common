@@ -24,11 +24,10 @@ static spinlock_t mem_fifo_dlist_lock;
 #endif
 
 typedef struct mem_page_t {
-    void    *start;
-    size_t   size;
+
     uint32_t used_size;
     uint32_t used_blocks;
-
+    size_t   size;
     void    *last;           /* last result of an allocation */
 
     byte __attribute__((aligned(8))) area[];
@@ -42,17 +41,16 @@ typedef struct mem_block_t {
 
 typedef struct mem_fifo_pool_t {
     mem_pool_t  funcs;
-    mem_page_t *freepage;
-    mem_page_t *current;
+    union {
+        mem_page_t *freepage;
+        mem_pool_t **owner;
+    };
+    mem_page_t  *current;
+    size_t      occupied:63;
+    bool        alive:1;
+    size_t      map_size;
     uint32_t    page_size;
     uint32_t    nb_pages;
-    uint32_t    occupied;
-    uint32_t    used_blocks;
-    size_t      map_size;
-
-    /* p_delete codepath */
-    bool        alive;
-    mem_pool_t **owner;
 
 #ifdef MEM_BENCH
     /* Instrumentation */
@@ -90,7 +88,6 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
         e_panic(E_UNIXERR("mmap"));
     }
 
-    page->start = page->area;
     page->size  = mapsize - sizeof(mem_page_t);
     mem_tool_disallow_memory(page->area, page->size);
     mfp->nb_pages++;
@@ -187,7 +184,6 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
     mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
-    mfp->used_blocks++;
 
 #ifdef MEM_BENCH
     proctimer_stop(&ptimer);
@@ -224,7 +220,6 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     mem_tool_freelike(mem, blk->blk_size - sizeof(*blk), 0);
     mem_tool_disallow_memory(blk, sizeof(*blk));
 
-    mfp->used_blocks--;
     if (--page->used_blocks > 0) {
 #ifdef MEM_BENCH
         proctimer_stop(&ptimer);
@@ -404,8 +399,8 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
     }
 
     if (mfp->nb_pages) {
-        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes in %u blocks)",
-                mfp->nb_pages, mfp->occupied, mfp->used_blocks);
+        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %lubytes)",
+                mfp->nb_pages, (unsigned long) mfp->occupied);
         mfp->owner   = poolp;
         return;
     }

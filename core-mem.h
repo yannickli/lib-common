@@ -239,7 +239,7 @@ enum mem_pools_t {
 
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
-    size_t      min_alignment;
+    uint32_t    min_alignment;
     struct mem_pool_t *realloc_fallback;
 
     /* DO NOT USE DIRECTLY, use mp_imalloc/mp_irealloc/mp_ifree instead */
