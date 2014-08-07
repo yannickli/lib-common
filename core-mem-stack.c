@@ -51,7 +51,8 @@ static ALWAYS_INLINE mem_stack_blk_t *blk_entry(dlist_t *l)
 }
 
 __cold
-static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
+static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp,
+                                   mem_stack_blk_t *cur, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(mem_stack_blk_t);
     mem_stack_blk_t *blk;
@@ -65,7 +66,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
         e_panic("you cannot allocate that amount of memory");
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
     blk->size      = blksize - sizeof(*blk);
-    dlist_add_tail(&sp->blk_list, &blk->blk_list);
+    dlist_add_after(&cur->blk_list, &blk->blk_list);
 
 #ifdef MEM_BENCH
     sp->mem_bench->malloc_calls++;
@@ -101,6 +102,7 @@ static ALWAYS_INLINE mem_stack_blk_t *
 frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
                    size_t size)
 {
+    size_t deleted_size = 0;
     mem_stack_blk_t *blk;
 
 #ifdef MEM_BENCH
@@ -114,8 +116,16 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
         aligned_area = (uint8_t *)mem_align_ptr((uintptr_t)blk->area, alignment);
         needed_size += aligned_area - blk->area;
 
-        if (blk->size >= needed_size)
+        if (blk->size >= needed_size) {
             return blk;
+        }
+
+        /* bound deleted size by created size */
+        if (deleted_size >= needed_size) {
+            break;
+        }
+
+        deleted_size += blk->size;
         blk_destroy(sp, blk);
     }
 
@@ -125,7 +135,7 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
          */
         size += 1 << alignment;
     }
-    return blk_create(sp, size);
+    return blk_create(sp, cur, size);
 }
 
 static ALWAYS_INLINE uint8_t *blk_end(mem_stack_blk_t *blk)
