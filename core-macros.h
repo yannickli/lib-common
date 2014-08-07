@@ -229,15 +229,15 @@
 /*---------------- useful expressions ----------------*/
 
 #ifndef MAX
-#define MAX(a,b)     (((a) > (b)) ? (a) : (b))
+#define MAX(a, b)            (((a) > (b)) ? (a) : (b))
 #endif
 #ifndef MIN
-#define MIN(a,b)     (((a) > (b)) ? (b) : (a))
+#define MIN(a, b)            (((a) > (b)) ? (b) : (a))
 #endif
-#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
-#define MAX3(a,b,c)  (((a) > (b)) ? MAX(a, c) : MAX(b, c))
+#define MIN3(a, b, c)        (((a) > (b)) ? MIN(b, c) : MIN(a, c))
+#define MAX3(a, b, c)        (((a) > (b)) ? MAX(a, c) : MAX(b, c))
 
-#define CLIP(v,m,M)  (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
+#define CLIP(v, m, M)        (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
 
 #define ROUND(x, y)          (((x) / (y)) * (y))
 #define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
