@@ -361,10 +361,35 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 
 void mem_stack_pool_reset(mem_stack_pool_t *sp)
 {
-    frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
+    /* we do not want to wipe everything :
+     * we will keep one block, iff
+     * its size is more than 56*alloc_mean
+     * (blk_create has minimum 64*alloc_mean)
+     * and less than 256*alloc_mean.
+     * we keep the biggest in this range.
+     */
+    mem_stack_blk_t *saved_blk = NULL;
+    size_t saved_size =  56 * sp_alloc_mean(sp);
+    size_t max_size   = 256 * sp_alloc_mean(sp);
 
     dlist_for_each_safe(e, &sp->blk_list) {
-        blk_destroy(sp, blk_entry(e));
+        mem_stack_blk_t *blk = blk_entry(e);
+
+        if (blk->size > saved_size && blk->size < max_size) {
+            if (saved_blk) {
+                blk_destroy(sp, saved_blk);
+            }
+            saved_blk  = blk;
+            saved_size = blk->size;
+        } else {
+            blk_destroy(sp, blk);
+        }
+    }
+
+    if (saved_blk) {
+        frame_set_blk(&sp->base, saved_blk);
+    } else {
+        frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
     }
 }
 
@@ -378,7 +403,11 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     spin_unlock(&mem_stack_dlist_lock);
 #endif
 
-    mem_stack_pool_reset(sp);
+    frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
+
+    dlist_for_each_safe(e, &sp->blk_list) {
+        blk_destroy(sp, blk_entry(e));
+    }
 }
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
