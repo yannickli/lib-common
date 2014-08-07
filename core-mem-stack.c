@@ -131,7 +131,7 @@ static ALWAYS_INLINE void frame_set_blk(mem_stack_frame_t *frame,
 {
     frame->blk  = blk;
     frame->pos  = blk->area;
-    frame->last = NULL;
+    frame->last = blk->area;
     frame->end  = blk_end(blk);
 }
 
@@ -292,9 +292,10 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         return asked ? mem : NULL;
     }
 
-    if (mem != NULL && mem == frame->last
-    && frame->last + asked <= frame_end(frame))
+    if (mem == frame->last && frame->last + asked <= frame_end(frame))
     {
+        assert (mem);
+
         frame->pos = frame->last + asked;
         sp->alloc_sz  += asked - oldsize;
         mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
@@ -401,7 +402,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     frame->blk  = oldframe->blk;
     frame->pos  = end;
     frame->end  = oldframe->end;
-    frame->last = NULL;
+    frame->last = end;
     frame->prev = (uintptr_t)oldframe;
     return sp->stack = frame;
 }
