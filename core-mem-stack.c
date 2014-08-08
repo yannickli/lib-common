@@ -346,16 +346,39 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
      */
     sp->mem_bench = p_new_raw(mem_bench_t, 1);
     mem_bench_init(sp->mem_bench, LSTR_IMMED_V("stack"), WRITE_PERIOD);
+
+    spin_lock(&mem_stack_dlist_lock);
+    dlist_add_tail(&mem_stack_pool_list, &sp->pool_list);
+    spin_unlock(&mem_stack_dlist_lock);
 #endif
 
     return sp;
 }
 
-void mem_stack_pool_wipe(mem_stack_pool_t *sp)
+void mem_stack_pool_reset(mem_stack_pool_t *sp)
 {
     dlist_for_each_safe(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
+}
+
+void mem_stack_pool_wipe(mem_stack_pool_t *sp)
+{
+#ifdef MEM_BENCH
+    mem_bench_print_human(sp->mem_bench, 0);
+    mem_bench_wipe(sp->mem_bench);
+    /* do not delete the mem_bench object :
+     * the memory must be reachable at all times.
+     * it may be used later, in an allocation
+     * triggered by a file destructor
+     */
+
+    spin_lock(&mem_stack_dlist_lock);
+    dlist_remove(&sp->pool_list);
+    spin_unlock(&mem_stack_dlist_lock);
+#endif
+
+    mem_stack_pool_reset(sp);
 }
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
@@ -457,27 +480,9 @@ __attribute__((constructor))
 static void t_pool_init(void)
 {
     mem_stack_pool_init(&t_pool_g, 64 << 10);
-
-#ifdef MEM_BENCH
-    spin_lock(&mem_stack_dlist_lock);
-    dlist_add_tail(&mem_stack_pool_list, &t_pool_g.pool_list);
-    spin_unlock(&mem_stack_dlist_lock);
-#endif
 }
 static void t_pool_wipe(void)
 {
-#ifdef MEM_BENCH
-    mem_bench_print_human(t_pool_g.mem_bench, 0);
-    mem_bench_wipe(t_pool_g.mem_bench);
-    /* do not delete the mem_bench pointer,
-     * it may be used later, in an allocation triggered by a destructor
-     */
-
-    spin_lock(&mem_stack_dlist_lock);
-    dlist_remove(&t_pool_g.pool_list);
-    spin_unlock(&mem_stack_dlist_lock);
-#endif
-
     mem_stack_pool_wipe(&t_pool_g);
 }
 thr_hooks(t_pool_init, t_pool_wipe);

@@ -127,6 +127,8 @@ typedef struct mem_stack_pool_t {
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize)
     __leaf;
+void              mem_stack_pool_reset(mem_stack_pool_t *)
+    __leaf;
 void              mem_stack_pool_wipe(mem_stack_pool_t *)
     __leaf;
 
@@ -173,7 +175,7 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
     mem_stack_protect(sp, frame);
     if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
         sp->nbpops = 0;
-        mem_stack_pool_wipe(sp);
+        mem_stack_pool_reset(sp);
     }
     return frame;
 }
