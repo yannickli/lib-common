@@ -206,6 +206,7 @@ struct ichannel_t {
     const qm_t(ic_cbs) *impl;
     ic_hook_f   *on_event;
     ic_creds_f  *on_creds;
+    void        (*on_wipe)(ichannel_t *ic);
 
     /* private */
     qm_t(ic_msg) queries;      /**< hash of queries waiting for an answer  */

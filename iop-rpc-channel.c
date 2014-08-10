@@ -1266,6 +1266,9 @@ void ic_wipe(ichannel_t *ic)
     if (ic->owner) {
         *ic->owner = NULL;
     }
+    if (ic->on_wipe) {
+        (*ic->on_wipe)(ic);
+    }
     ic_drop_id(ic);
     qm_wipe(ic_msg, &ic->queries);
 #ifdef IC_DEBUG_REPLIES
