@@ -29,6 +29,7 @@ static struct {
 } opts;
 
 typeof(iopc_g) iopc_g = {
+    .logger       = LOGGER_INIT_INHERITS(NULL, "iopc"),
     .class_id_min = 0,
     .class_id_max = 0xFFFF,
 };
@@ -59,6 +60,12 @@ static popt_t options[] = {
              &iopc_do_c_g.resolve_includes,       "try to generate relative includes"),
     OPT_END(),
 };
+
+__attr_printf__(2, 0) static void
+iopc_log_handler(const log_ctx_t *ctx, const char *fmt, va_list va)
+{
+    vfprintf(stderr, fmt, va);
+}
 
 static void parse_incpath(qv_t(cstr) *ipath, char *spec)
 {
@@ -183,6 +190,8 @@ int main(int argc, char **argv)
     opts.json_outpath = opts.json_outpath ?: opts.outpath;
 
     _G.v2 = _G.v2 || _G.v3;
+
+    log_set_handler(&iopc_log_handler);
 
     if (opts.c_outpath && iopc_do_c_g.resolve_includes)
         fatal("outdir and --c-resolve-includes are incompatible");

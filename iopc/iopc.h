@@ -20,6 +20,7 @@
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
+#include <lib-common/log.h>
 
 typedef enum iopc_tok_type_t {
     ITOK_EOF       = -1,
@@ -74,6 +75,8 @@ typedef struct iopc_loc_t {
 qvector_t(iopc_loc, iopc_loc_t);
 
 extern struct {
+    logger_t logger;
+
     qv_t(iopc_loc) loc_stack;
     int            print_info;
     int            v2;
@@ -86,7 +89,8 @@ extern struct {
 void iopc_loc_merge(iopc_loc_t *l1, iopc_loc_t l2);
 iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
 
-#define print_warning(fmt, ...)  (fprintf(stderr, fmt"\n", ##__VA_ARGS__))
+#define print_warning(fmt, ...)  \
+    logger_warning(&iopc_g.logger, fmt, ##__VA_ARGS__)
 
 #define fatal(fmt, ...)  \
     do {                                    \
@@ -113,32 +117,44 @@ static inline const char *cwd(void)
     return ".../";
 }
 
-#define do_loc_(fmt, t, loc, ...) \
-    fprintf(stderr, "%s%s:%d:%d: %s: "fmt"\n", cwd(), \
-            (loc).file, (loc).lmin, (loc).cmin, (t), ##__VA_ARGS__)
+#define do_loc_(fmt, level, t, loc, ...) \
+    logger_log(&iopc_g.logger, level, "%s%s:%d:%d: %s: "fmt, cwd(),          \
+               (loc).file, (loc).lmin, (loc).cmin, (t), ##__VA_ARGS__)
 
-#define do_loc(fmt, t, loc, ...)  ({                                         \
-        do_loc_(fmt, t, loc, ##__VA_ARGS__);                                 \
+#define do_loc(fmt, level, t, loc, ...)  \
+    do {                                                                     \
+        do_loc_(fmt, level, t, loc, ##__VA_ARGS__);                          \
         for (int i_ = 0; i_ < iopc_g.loc_stack.len; i_++) {                  \
             iopc_loc_t loc_ = iopc_g.loc_stack.tab[i_];                      \
-            do_loc_("%s", " from", loc_, loc_.comment);                      \
+            do_loc_("%s", level, " from", loc_, loc_.comment);               \
         }                                                                    \
-    })
+    } while (0)
 
-#define t_push_loc(loc, ...)   ({                                            \
+#define t_push_loc(loc, ...)  \
+    do {                                                                     \
         qv_append(iopc_loc, &iopc_g.loc_stack, loc);                         \
         qv_last(iopc_loc, &iopc_g.loc_stack)->comment                        \
             = t_fmt(NULL, ##__VA_ARGS__);                                    \
-    })
+    } while (0)
+
 #define pop_loc()          qv_shrink(iopc_loc, &iopc_g.loc_stack, 1)
 #define clear_loc()        qv_clear(iopc_loc,  &iopc_g.loc_stack)
 
 #define info_loc(fmt, loc, ...)   \
-    if (iopc_g.print_info) do_loc(fmt, "info", loc, ##__VA_ARGS__)
+    do {                                                                     \
+        if (iopc_g.print_info) {                                             \
+            do_loc(fmt, LOG_INFO, "info", loc, ##__VA_ARGS__);               \
+        }                                                                    \
+    } while (0)
+
 #define warn_loc(fmt, loc, ...)   \
-    do_loc(fmt, "warning", loc, ##__VA_ARGS__)
+    do_loc(fmt, LOG_WARNING, "warning", loc, ##__VA_ARGS__)
+
 #define fatal_loc(fmt, loc, ...)  \
-    ({ do_loc(fmt, "error", loc, ##__VA_ARGS__); exit(-1); })
+    do {                                                                     \
+        do_loc(fmt, LOG_ERR, "error", loc, ##__VA_ARGS__);                   \
+        exit(-1);                                                            \
+    } while (0)
 
 /*----- doxygen lexer part -----*/
 

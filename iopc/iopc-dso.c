@@ -16,13 +16,13 @@
 
 #include <lib-common/unix.h>
 #include <lib-common/farch.h>
-#include <lib-common/log.h>
 #include <lib-common/core.h>
 
 #include "iopc.h"
 #include "iopc.fc.c"
 
 typeof(iopc_g) iopc_g = {
+    .logger       = LOGGER_INIT_INHERITS(NULL, "iopc"),
     .class_id_min = 0,
     .class_id_max = 0xFFFF,
 };
@@ -31,7 +31,7 @@ static struct {
     logger_t logger;
 } iopc_so_g = {
 #define _G  iopc_so_g
-    .logger = LOGGER_INIT_INHERITS(NULL, "iopc-dso"),
+    .logger = LOGGER_INIT_INHERITS(&iopc_g.logger, "dso"),
 };
 
 static int do_call(char * const argv[])
