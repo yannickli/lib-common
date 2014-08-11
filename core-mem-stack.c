@@ -78,9 +78,14 @@ __cold
 static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
 #ifdef MEM_BENCH
-    sp->mem_bench->current_allocated -= blk->size;
-    mem_bench_update(sp->mem_bench);
-    mem_bench_print_csv(sp->mem_bench);
+    /* if called by mem_stack_pool_wipe,
+     * the mem_bench might be deleted
+     */
+    if (sp->mem_bench) {
+        sp->mem_bench->current_allocated -= blk->size;
+        mem_bench_update(sp->mem_bench);
+        mem_bench_print_csv(sp->mem_bench);
+    }
 #endif
 
     sp->stacksize -= blk->size;
@@ -340,12 +345,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->alloc_nb = 1; /* avoid the division by 0 */
 
 #ifdef MEM_BENCH
-    /* this pointer will never be deallocated,
-     * and the file will be leaked,
-     * since we have nowhere to clean up
-     */
-    sp->mem_bench = p_new_raw(mem_bench_t, 1);
-    mem_bench_init(sp->mem_bench, LSTR_IMMED_V("stack"), WRITE_PERIOD);
+    sp->mem_bench = mem_bench_new(LSTR_IMMED_V("stack"), WRITE_PERIOD);
+    mem_bench_leak(sp->mem_bench);
 
     spin_lock(&mem_stack_dlist_lock);
     dlist_add_tail(&mem_stack_pool_list, &sp->pool_list);
@@ -365,13 +366,7 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
 void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 {
 #ifdef MEM_BENCH
-    mem_bench_print_human(sp->mem_bench, 0);
-    mem_bench_wipe(sp->mem_bench);
-    /* do not delete the mem_bench object :
-     * the memory must be reachable at all times.
-     * it may be used later, in an allocation
-     * triggered by a file destructor
-     */
+    mem_bench_delete(&sp->mem_bench);
 
     spin_lock(&mem_stack_dlist_lock);
     dlist_remove(&sp->pool_list);
@@ -390,6 +385,12 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     mem_stack_frame_t *frame;
 
 #ifdef MEM_BENCH
+    /* if the assert fires,
+     * it means the stack pool has been wiped by mem_stack_pool_wipe.
+     * t_push'ing again is then an incorrect behaviour.
+     */
+    assert (sp->mem_bench);
+
     mem_bench_print_csv(sp->mem_bench);
 #endif
     frame = (mem_stack_frame_t *)res;
@@ -442,7 +443,6 @@ void mem_stack_pool_print_stats(mem_pool_t *mp) {
 
 void mem_stack_pools_print_stats(void) {
 #ifdef MEM_BENCH
-    printf("\x1b[32mPrinting all STACK allocators state:\x1b[0m\n");
     spin_lock(&mem_stack_dlist_lock);
     dlist_for_each_safe(n, &mem_stack_pool_list) {
         mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);

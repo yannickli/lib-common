@@ -15,9 +15,21 @@
 #include "unix.h"
 #include "thr.h"
 
+static logger_t mem_bench_logger_g = LOGGER_INIT_INHERITS(NULL, "mem-bench");
+
+static spinlock_t  mem_bench_leak_lock_g;
+static       DLIST(mem_bench_leak_list_g);
+
 mem_bench_t *mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
 {
     p_clear(sp, 1);
+    dlist_init(&sp->bench_list);
+
+    {
+        lstr_t logname = lstr_fmt("%*pM.%p", LSTR_FMT_ARG(type), sp);
+        sp->logger = logger_new(&mem_bench_logger_g, logname, LOG_INHERITS, 0);
+        lstr_wipe(&logname);
+    }
 
     if (period) {
         char filename[PATH_MAX];
@@ -35,15 +47,35 @@ mem_bench_t *mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period)
     return sp;
 }
 
+void mem_bench_leak(mem_bench_t *sp)
+{
+    spin_lock(&mem_bench_leak_lock_g);
+    dlist_add_tail(&mem_bench_leak_list_g, &sp->bench_list);
+    spin_unlock(&mem_bench_leak_lock_g);
+}
+
+static void mem_bench_partial_wipe(mem_bench_t *sp)
+{
+    mem_bench_print_human(sp, 0);
+
+    spin_lock(&mem_bench_leak_lock_g);
+    dlist_remove(&sp->bench_list);
+    spin_unlock(&mem_bench_leak_lock_g);
+
+    logger_delete(&sp->logger);
+}
+
 void mem_bench_wipe(mem_bench_t *sp)
 {
     mem_bench_print_csv(sp);
+    mem_bench_partial_wipe(sp);
     p_fclose(&sp->file);
     lstr_wipe(&sp->allocator_name);
 }
 
 static void mem_bench_print_func_csv(mem_bench_func_t *spf, FILE *file)
 {
+    assert (file);
     fprintf(file, "%u,%u,",
             spf->nb_calls, spf->nb_slow_path);
     fprintf(file, "%u,%lu,%lu,%lu,",
@@ -58,6 +90,11 @@ void mem_bench_print_csv(mem_bench_t *sp)
     if (!sp->file) {
         return;
     }
+
+    if (sp->logger) {
+        logger_trace(sp->logger, 1, "CSV trace");
+    }
+
     mem_bench_print_func_csv(&sp->alloc, sp->file);
     mem_bench_print_func_csv(&sp->realloc, sp->file);
     mem_bench_print_func_csv(&sp->free, sp->file);
@@ -79,53 +116,92 @@ void mem_bench_update(mem_bench_t *sp)
         mem_bench_print_csv(sp);
         sp->out_counter = sp->out_period;
     }
+
+    if (sp->logger) {
+        logger_trace(sp->logger, 2, "Update");
+    }
 }
 
-static void mem_bench_print_func_human(mem_bench_func_t *spf)
+static void mem_bench_print_func_human(mem_bench_t *sp,
+                                       mem_bench_func_t *spf,
+                                       const char* prefix)
 {
-    printf("    requests               : %10u \n", spf->nb_calls);
-    printf("    slow path calls        : %10u \t%u.%u %%\n", spf->nb_slow_path,
-           100 * spf->nb_slow_path / MAX(1, spf->nb_calls),
-           (10000 * spf->nb_slow_path / MAX(1, spf->nb_calls)) % 100);
-    printf("    %s\n", proctimerstat_report(&spf->timer_stat, "%h"));
+    assert (sp->logger);
+    logger_debug(sp->logger, "%s/requests          : %10u",
+                 prefix, spf->nb_calls);
+    logger_debug(sp->logger, "%s/slow path calls   : %10u \t%u.%u %%",
+                 prefix, spf->nb_slow_path,
+                 100 * spf->nb_slow_path / MAX(1, spf->nb_calls),
+                 (10000 * spf->nb_slow_path / MAX(1, spf->nb_calls)) % 100);
+    logger_debug(sp->logger, "%s/timer             : %s",
+                 prefix, proctimerstat_report(&spf->timer_stat, "%h"));
 }
 
 void mem_bench_print_human(mem_bench_t *sp, int flags)
 {
-    if (flags & MEM_BENCH_PRINT_CURRENT) {
-        printf("\x1b[32m");
-    } else {
-        printf("\x1b[31m");
+    if (!sp->logger) {
+        return;
     }
 
-    printf("%*pM allocator @%p stats  :\x1b[0m\n",
-           LSTR_FMT_ARG(sp->allocator_name), sp);
-    printf("  alloc                    :\n");
-    mem_bench_print_func_human(&sp->alloc);
-    printf("  realloc                  :\n");
-    mem_bench_print_func_human(&sp->realloc);
-    printf("  free                     :\n");
-    mem_bench_print_func_human(&sp->free);
-    printf("  average request size     : %10lu bytes \n",
-           sp->total_requested / MAX(1, sp->alloc.nb_calls));
-    printf("  average block size       : %10lu bytes\n",
-           sp->total_allocated / MAX(1, sp->malloc_calls));
-    printf("  total memory allocated   : %10lu K \n",
-           sp->total_allocated / 1024);
-    printf("  total memory requested   : %10lu K \n",
-           sp->total_requested / 1024);
-    printf("  max used memory          : %10d K \n",
-           sp->max_used / 1024);
-    printf("  max unused memory        : %10u K \n",
-           sp->max_unused / 1024);
-    printf("  max memory allocated     : %10u K \n",
-           sp->max_allocated / 1024);
-    printf("  malloc calls             : %10u \n",
-           sp->malloc_calls);
+    logger_debug(sp->logger, "%*pM allocator @%p stats  :",
+                 LSTR_FMT_ARG(sp->allocator_name), sp);
+    mem_bench_print_func_human(sp, &sp->alloc,   "alloc  ");
+    mem_bench_print_func_human(sp, &sp->realloc, "realloc");
+    mem_bench_print_func_human(sp, &sp->free,    "free   ");
+    logger_debug(sp->logger, "average request size      : %10lu bytes",
+                 sp->total_requested / MAX(1,sp->alloc.nb_calls));
+    logger_debug(sp->logger, "average block size        : %10lu bytes",
+                 sp->total_allocated / MAX(1,sp->malloc_calls));
+    logger_debug(sp->logger, "total memory allocated    : %10lu K",
+                 sp->total_allocated / 1024);
+    logger_debug(sp->logger, "total memory requested    : %10lu K",
+                 sp->total_requested / 1024);
+    logger_debug(sp->logger, "max used memory           : %10d K",
+                 sp->max_used / 1024);
+    logger_debug(sp->logger, "max unused memory         : %10u K",
+                 sp->max_unused / 1024);
+    logger_debug(sp->logger, "max memory allocated      : %10u K",
+                 sp->max_allocated / 1024);
+    logger_debug(sp->logger, "malloc calls              : %10u",
+                 sp->malloc_calls);
     if (flags & MEM_BENCH_PRINT_CURRENT) {
-        printf("  current used memory      : %10u K \n",
-               sp->current_used / 1024);
-        printf("  current allocated memory : %10u K \n",
-               sp->current_allocated / 1024);
+        logger_debug(sp->logger, "current used memory       : %10u K",
+                     sp->current_used / 1024);
+        logger_debug(sp->logger, "current allocated memory  : %10u K",
+                     sp->current_allocated / 1024);
     }
+}
+
+static int mem_bench_initialize(void *arg)
+{
+    (void)arg;
+    return 0;
+}
+
+static int mem_bench_shutdown(void)
+{
+    mem_bench_t *sp;
+
+    spin_lock(&mem_bench_leak_lock_g);
+    dlist_for_each_entry_safe(sp, &mem_bench_leak_list_g, bench_list) {
+        spin_unlock(&mem_bench_leak_lock_g);
+
+        mem_bench_partial_wipe(sp);
+
+        spin_lock(&mem_bench_leak_lock_g);
+    }
+    spin_unlock(&mem_bench_leak_lock_g);
+
+    return 0;
+}
+
+void mem_bench_require(void)
+{
+    static module_t *mb_module;
+    const char *deps[] = { "log" };
+
+    mb_module = module_register(LSTR_IMMED_V("mem-bench"), &mb_module,
+                                &mem_bench_initialize, &mem_bench_shutdown,
+                                deps, countof(deps));
+    module_require(mb_module, NULL);
 }

@@ -18,6 +18,10 @@
 
 #include "log.h"
 
+#ifdef MEM_BENCH
+#include "core-mem-bench.h"
+#endif
+
 uint32_t log_conf_gen_g = 1;
 log_handler_f *log_stderr_handler_g;
 int log_stderr_handler_teefd_g = -1;
@@ -964,6 +968,10 @@ static void log_module_register(void)
     module_implement_method(log_module, &at_fork_on_child_method,
                             &log_atfork);
     MODULE_REQUIRE(log);
+
+#ifdef MEM_BENCH
+    mem_bench_require();
+#endif
 }
 
 /* }}} */

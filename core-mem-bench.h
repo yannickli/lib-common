@@ -16,6 +16,7 @@
 
 #include "core.h"
 #include "datetime.h"
+#include "log.h"
 
 /* for timing individual function */
 typedef struct mem_bench_func_t {
@@ -26,11 +27,6 @@ typedef struct mem_bench_func_t {
 } mem_bench_func_t;
 
 typedef struct mem_bench_t {
-    /* CSV dumping */
-    FILE      *file;
-    uint32_t   out_period;
-    uint32_t   out_counter;
-
     /* profile data */
     mem_bench_func_t alloc;
     mem_bench_func_t realloc;
@@ -47,6 +43,17 @@ typedef struct mem_bench_t {
     uint32_t current_used;
     uint32_t current_allocated;
 
+    /* live summary printing */
+    logger_t  *logger;
+
+    /* leak destruction */
+    dlist_t    bench_list;
+
+    /* CSV dumping */
+    FILE      *file;
+    uint32_t   out_period;
+    uint32_t   out_counter;
+
     /* allocator type */
     lstr_t   allocator_name;
 } mem_bench_t;
@@ -56,11 +63,18 @@ typedef struct mem_bench_t {
  * The mem_bench object is initialized to dump into a file
  * each \p period iterations. The filename is
  * "./mem.[\p name].[pid].[address of \p sp]".
+ * "[\p type].[address of \p sp] is also used for logger name.
  *
  * \param[in] type   Name of mem_bench object.
  * \param[in] period Logging period. 0 means no logging.
  */
 mem_bench_t *mem_bench_init(mem_bench_t *sp, lstr_t type, uint32_t period);
+
+/** Wipes a mem_bench object.
+ *
+ * Note : the mem_bench object is still usable after call to this method,
+ * but any operation on it will be no-op.
+ */
 void mem_bench_wipe(mem_bench_t *sp);
 
 __unused__
@@ -69,6 +83,22 @@ static inline mem_bench_t *mem_bench_new(lstr_t type, uint32_t period)
     return mem_bench_init(p_new_raw(mem_bench_t, 1), type, period);
 }
 GENERIC_DELETE(mem_bench_t, mem_bench)
+
+/** Declare a mem_bench object to be leaked.
+ *
+ * If you cannot ensure the mem_bench object will be
+ * wiped before the log module termination
+ * (if it must be destroyed by a thr_hook for example),
+ * it must be registered with this function.
+ * It will do a partial wipe, allowing to work properly.
+ *
+ * The mem_bench object must still be mem_bench_wipe'd manually
+ * to finish the cleanup.
+ *
+ * Wipe time is unspecified, and the allocated memory
+ * will not be reclaimed.
+ */
+void mem_bench_leak(mem_bench_t *sp);
 
 /** Update state of the mem-bench object.
  *
@@ -88,5 +118,8 @@ void mem_bench_print_human(mem_bench_t *sp, int flags);
 
 /** Flag for print_human : print current allocation status. */
 #define MEM_BENCH_PRINT_CURRENT  1
+
+/** Require mem_bench module manually */
+void mem_bench_require(void);
 
 #endif /* IS_LIB_COMMON_CORE_MEM_BENCH_H */

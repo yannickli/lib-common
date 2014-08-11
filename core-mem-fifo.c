@@ -392,8 +392,6 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 
 #ifdef MEM_BENCH
     dlist_remove(&mfp->pool_list);
-    mem_bench_print_human(&mfp->mem_bench, 0);
-
     mem_bench_wipe(&mfp->mem_bench);
 #endif
 
@@ -432,7 +430,6 @@ void mem_fifo_pool_print_stats(mem_pool_t *mp) {
 
 void mem_fifo_pools_print_stats(void) {
 #ifdef MEM_BENCH
-    printf("\x1b[32mPrinting all FIFO allocators state:\x1b[0m\n");
     spin_lock(&mem_fifo_dlist_lock);
     dlist_for_each_safe(n, &mem_fifo_pool_list) {
         mem_fifo_pool_t *mfp = container_of(n, mem_fifo_pool_t, pool_list);
