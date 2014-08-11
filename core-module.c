@@ -20,10 +20,13 @@
 /* {{{ Type definition */
 
 typedef enum module_state_t {
-    REGISTERED = 0,
-    AUTO_REQ   = 1 << 0, /* Initialized automatically */
-    MANU_REQ   = 1 << 1, /* Initialize manually */
-    FAIL_SHUT  = 1 << 2, /* Fail to shutdown */
+    REGISTERED   = 0,
+    AUTO_REQ     = 1 << 0, /* Initialized automatically */
+    MANU_REQ     = 1 << 1, /* Initialized manually */
+
+    INITIALIZING = 1 << 2, /* In initialization */
+    SHUTTING     = 1 << 3, /* Shutting down */
+    FAIL_SHUT    = 1 << 4, /* Fail to shutdown */
 } module_state_t;
 
 qvector_t(module, module_t *);
@@ -183,6 +186,21 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
 
 void module_require(module_t *module, module_t *required_by)
 {
+    if (module->state == INITIALIZING) {
+        logger_fatal(&_G.logger,
+                     "`%*pM` has been recursively required %s%*pM",
+                     LSTR_FMT_ARG(module->name), required_by ? "by " : "",
+                     LSTR_FMT_ARG(required_by ? required_by->name
+                                              : LSTR_NULL_V));
+    }
+    if (module->state == SHUTTING) {
+        logger_fatal(&_G.logger,
+                     "`%*pM` has been required %s%*pM while shutting down",
+                     LSTR_FMT_ARG(module->name), required_by ? "by " : "",
+                     LSTR_FMT_ARG(required_by ? required_by->name
+                                              : LSTR_NULL_V));
+    }
+
     _G.in_initialization++;
 
     if (!module_is_loaded(module)) {
@@ -198,11 +216,15 @@ void module_require(module_t *module, module_t *required_by)
         return;
     }
 
+    module->state = INITIALIZING;
+    logger_trace(&_G.logger, 1, "requiring `%*pM` dependencies",
+                 LSTR_FMT_ARG(module->name));
+
     qv_for_each_entry(lstr, dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
     }
 
-    logger_trace(&_G.logger, 1, "initializing `%*pM`",
+    logger_trace(&_G.logger, 1, "calling `%*pM` constructor",
                  LSTR_FMT_ARG(module->name));
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
@@ -271,10 +293,16 @@ static int module_shutdown(module_t *module)
 
     shut_self = shut_dependent = 1;
 
-    if ((shut_self = (*module->destructor)()) >= 0) {
-        module->state = REGISTERED;
-        module->manu_req_count = 0;
-    } else {
+    assert (module->state == MANU_REQ || module->state == AUTO_REQ);
+
+    /* shutdown must be symmetric to require */
+    module->manu_req_count = 0;
+
+    module->state = SHUTTING;
+    logger_trace(&_G.logger, 1, "shutting down `%*pM`",
+                 LSTR_FMT_ARG(module->name));
+
+    if ((shut_self = (*module->destructor)()) < 0) {
         logger_warning(&_G.logger, "unable to shutdown   %*pM",
                        LSTR_FMT_ARG(module->name));
         module->state = FAIL_SHUT;
@@ -287,6 +315,10 @@ static int module_shutdown(module_t *module)
         if (shut < 0) {
             shut_dependent = shut;
         }
+    }
+
+    if (shut_self >= 0) {
+        module->state = REGISTERED;
     }
 
     RETHROW(shut_dependent);
@@ -324,6 +356,16 @@ void module_release(module_t *module)
 bool module_is_loaded(const module_t *module)
 {
     return module->state == AUTO_REQ || module->state == MANU_REQ;
+}
+
+bool module_is_initializing(const module_t *module)
+{
+    return module->state == INITIALIZING;
+}
+
+bool module_is_shutting_down(const module_t *module)
+{
+    return module->state == SHUTTING;
 }
 
 
@@ -424,14 +466,14 @@ static void rec_module_run_method(module_t *module,
 {
     int pos = qh_put(ptr, already_run, module, 0);
 
-    assert (module->state != REGISTERED);
+    assert (module_is_loaded(module));
     if (pos & QHASH_COLLISION) {
         return;
     }
 
     if (method->order == MODULE_DEPS_AFTER) {
         qv_for_each_entry(module, dep, &module->required_by) {
-            if (dep->state != REGISTERED) {
+            if (module_is_loaded(dep)) {
                 rec_module_run_method(dep, method, arg, already_run);
             }
         }

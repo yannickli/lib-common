@@ -351,6 +351,9 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 
 #define MODULE_IS_LOADED(name)  module_is_loaded(name##_module)
 
+#define MODULE_IS_INITIALIZING(name)  module_is_initializing(name##_module)
+#define MODULE_IS_SHUTTING_DOWN(name)  module_is_shutting_down(name##_module)
+
 
 /* {{{ Low-level API */
 
@@ -385,6 +388,14 @@ void module_provide(module_t **mod, void *argument);
 /** true if module is loaded (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))
 bool module_is_loaded(const module_t *mod);
+
+/** true if module is currently loading */
+__attr_nonnull__((1))
+bool module_is_initializing(const module_t *mod);
+
+/** true if module is currently shutting down */
+__attr_nonnull__((1))
+bool module_is_shutting_down(const module_t *mod);
 
 /* }}} */
 /* }}} */

@@ -48,6 +48,30 @@ NEW_MOCK_MODULE(depmod1, 1, 1);
 NEW_MOCK_MODULE(depmod2, 1, 1);
 NEW_MOCK_MODULE(depmod3, 1, 1);
 
+static module_t *load_shut_module;
+
+static struct _load_shut_state_g {
+    bool loaded;
+    bool initializing;
+    bool shutting;
+} load_shut_state_g;
+
+static int load_shut_initialize(void *args)
+{
+    load_shut_state_g.loaded       = MODULE_IS_LOADED(load_shut);
+    load_shut_state_g.initializing = MODULE_IS_INITIALIZING(load_shut);
+    load_shut_state_g.shutting     = MODULE_IS_SHUTTING_DOWN(load_shut);
+    return 0;
+}
+
+static int load_shut_shutdown(void)
+{
+    load_shut_state_g.loaded       = MODULE_IS_LOADED(load_shut);
+    load_shut_state_g.initializing = MODULE_IS_INITIALIZING(load_shut);
+    load_shut_state_g.shutting     = MODULE_IS_SHUTTING_DOWN(load_shut);
+    return 0;
+}
+
 /* method {{{ */
 
 int modmethod1;
@@ -331,6 +355,26 @@ Z_GROUP_EXPORT(module)
        Z_ASSERT(!MODULE_IS_LOADED(mock_ic));
     } Z_TEST_END;
 
+    Z_TEST(load_shut, "Initialize and shutting down states") {
+        Z_MODULE_REGISTER(load_shut);
+        Z_ASSERT(!MODULE_IS_LOADED(load_shut));
+        Z_ASSERT(!MODULE_IS_INITIALIZING(load_shut));
+        Z_ASSERT(!MODULE_IS_SHUTTING_DOWN(load_shut));
+        MODULE_REQUIRE(load_shut);
+        Z_ASSERT(load_shut_state_g.loaded       == false);
+        Z_ASSERT(load_shut_state_g.initializing == true);
+        Z_ASSERT(load_shut_state_g.shutting     == false);
+        Z_ASSERT( MODULE_IS_LOADED(load_shut));
+        Z_ASSERT(!MODULE_IS_INITIALIZING(load_shut));
+        Z_ASSERT(!MODULE_IS_SHUTTING_DOWN(load_shut));
+        MODULE_RELEASE(load_shut);
+        Z_ASSERT(load_shut_state_g.loaded       == false);
+        Z_ASSERT(load_shut_state_g.initializing == false);
+        Z_ASSERT(load_shut_state_g.shutting     == true);
+        Z_ASSERT(!MODULE_IS_LOADED(load_shut));
+        Z_ASSERT(!MODULE_IS_INITIALIZING(load_shut));
+        Z_ASSERT(!MODULE_IS_SHUTTING_DOWN(load_shut));
+    } Z_TEST_END;
 
     Z_TEST(use_case1,  "Use case1") {
       /*           mod1           mod6
