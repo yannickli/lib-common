@@ -86,7 +86,6 @@ struct mem_bench_t;
 #endif
 
 typedef struct mem_stack_blk_t {
-    const void *start;
     size_t      size;
     dlist_t     blk_list;
     uint8_t     area[];

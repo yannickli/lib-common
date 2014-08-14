@@ -57,7 +57,6 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     if (unlikely(blksize > MEM_ALLOC_MAX))
         e_panic("you cannot allocate that amount of memory");
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
-    blk->start     = blk->area;
     blk->size      = blksize - sizeof(*blk);
     sp->stacksize += blk->size;
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
@@ -332,7 +331,6 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 {
     p_clear(sp, 1);
     dlist_init(&sp->blk_list);
-    sp->start    = blk_entry(&sp->blk_list)->area;
     sp->size     = 0;
 
     frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
@@ -469,10 +467,10 @@ void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
         mem_tool_disallow_memory(sp->stack->pos, remainsz);
         dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
             if (blk == end_blk) {
-                mem_tool_disallow_memory(blk->start, end - (byte *)blk->start);
+                mem_tool_disallow_memory(blk->area, end - blk->area);
                 break;
             } else {
-                mem_tool_disallow_memory(blk->start, blk->size);
+                mem_tool_disallow_memory(blk->area, blk->size);
             }
         }
     }
