@@ -58,9 +58,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
         e_panic("you cannot allocate that amount of memory");
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
     blk->size      = blksize - sizeof(*blk);
-    sp->stacksize += blk->size;
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
-    sp->nbpages++;
 
 #ifdef MEM_BENCH
     sp->mem_bench->malloc_calls++;
@@ -87,8 +85,6 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
     }
 #endif
 
-    sp->stacksize -= blk->size;
-    sp->nbpages--;
     dlist_remove(&blk->blk_list);
     mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
     ifree(blk, MEM_LIBC);

@@ -100,25 +100,28 @@ struct mem_stack_frame_t {
     uint8_t         *last;
 };
 
+/* all fields are annotated like this [offset (size) : usage] */
 typedef struct mem_stack_pool_t {
-    const void          *start;
-    size_t               size;
-    dlist_t              blk_list;
+    /* hot data : align on cache boundary */
+    __attribute__((aligned(64)))
+    mem_stack_frame_t   *stack;     /*<  0  (8) : everywhere */
+    size_t               alloc_sz;  /*<  8  (8) : alloc */
+    uint32_t             alloc_nb;  /*< 16  (4) : alloc */
+    uint32_t             nbpops;    /*< 20  (4) : pop */
 
-    /* XXX: kludge: below this point we're the "blk" data */
-    mem_stack_frame_t    base;
-    mem_stack_frame_t   *stack;
-    size_t               stacksize;
-    uint32_t             minsize;
-    uint32_t             nbpages;
-    uint32_t             nbpops;
+    mem_pool_t           funcs;     /*< 24 (40) : mp_* functions */
 
-    uint32_t             alloc_nb;
-    size_t               alloc_sz;
+    /* cache line boundary */
 
-    mem_pool_t           funcs;
+    /* cold data : root block */
+    size_t               size;      /*< never */
+    dlist_t              blk_list;  /*< blk_create */
+
+    mem_stack_frame_t    base;      /*< never */
+    uint32_t             minsize;   /*< blk_create */
 
 #ifdef MEM_BENCH
+    /* never mind data : bench */
     struct mem_bench_t  *mem_bench;
     dlist_t              pool_list;
 #endif
