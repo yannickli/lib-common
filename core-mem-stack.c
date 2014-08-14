@@ -327,10 +327,10 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     p_clear(sp, 1);
     dlist_init(&sp->blk_list);
     sp->start    = blk_entry(&sp->blk_list)->area;
-    sp->size     = sizeof(mem_stack_pool_t) - sizeof(mem_stack_blk_t);
+    sp->size     = 0;
 
     sp->base.blk = blk_entry(&sp->blk_list);
-    sp->base.pos = (void *)(sp + 1);
+    sp->base.pos = sp->base.blk->area;
     sp->stack    = &sp->base;
 
     /* 640k should be enough for everybody =) */
