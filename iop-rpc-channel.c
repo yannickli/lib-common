@@ -89,8 +89,6 @@ void ic_msg_delete(ic_msg_t **msgp)
     ic_msg_t *msg = *msgp;
     if (unlikely(!msg))
         return;
-    if (msg->fini)
-        (*msg->fini)(msg->priv);
     if (msg->fd >= 0)
         close(msg->fd);
     if (msg->dlen) {

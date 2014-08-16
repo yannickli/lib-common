@@ -85,7 +85,6 @@ struct ic_msg_t {
     const iop_rpc_t  *rpc;
     const ic__hdr__t *hdr;
     ic_msg_cb_f      *cb;
-    void            (*fini)(void *);
     byte              priv[];
 };
 ic_msg_t *ic_msg_new(int len);
