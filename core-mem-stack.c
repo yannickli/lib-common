@@ -33,6 +33,13 @@ static spinlock_t mem_stack_dlist_lock;
 # define MIN_ALIGNMENT  1
 #endif
 
+/** Size tuning parameters.
+ * These are multiplicative factors over sp_alloc_mean.
+ */
+#define ALLOC_MIN   64 /*< minimum block allocation */
+#define RESET_MIN   56 /*< minimum size in mem_stack_pool_reset */
+#define RESET_MAX  256 /*< maximum size in mem_stack_pool_reset */
+
 static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
     return sp->alloc_sz / sp->alloc_nb;
@@ -51,8 +58,8 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
 
     if (blksize < sp->minsize)
         blksize = sp->minsize;
-    if (blksize < 64 * sp_alloc_mean(sp))
-        blksize = 64 * sp_alloc_mean(sp);
+    if (blksize < ALLOC_MIN * sp_alloc_mean(sp))
+        blksize = ALLOC_MIN * sp_alloc_mean(sp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (unlikely(blksize > MEM_ALLOC_MAX))
         e_panic("you cannot allocate that amount of memory");
@@ -369,8 +376,8 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
      * we keep the biggest in this range.
      */
     mem_stack_blk_t *saved_blk = NULL;
-    size_t saved_size =  56 * sp_alloc_mean(sp);
-    size_t max_size   = 256 * sp_alloc_mean(sp);
+    size_t saved_size = RESET_MIN * sp_alloc_mean(sp);
+    size_t max_size   = RESET_MAX * sp_alloc_mean(sp);
 
     dlist_for_each_safe(e, &sp->blk_list) {
         mem_stack_blk_t *blk = blk_entry(e);
