@@ -271,7 +271,8 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    uint8_t *res;
+    ssize_t sizediff = asked - oldsize;
+    uint8_t *res = mem;
 
 #ifdef MEM_BENCH
     proctimer_t ptimer;
@@ -291,52 +292,64 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         e_panic("stack pools do not support reallocs with unknown old size");
 #endif
 
-    if (oldsize >= asked) {
-        if (mem == frame->last) {
-            frame->pos = (uint8_t *)mem + asked;
-        }
-        mem_tool_disallow_memory((byte *)mem + asked, oldsize - asked);
-
-#ifdef MEM_BENCH
-        proctimer_stop(&ptimer);
-        proctimerstat_addsample(&sp->mem_bench->realloc.timer_stat, &ptimer);
-
-        sp->mem_bench->realloc.nb_calls++;
-        sp->mem_bench->current_used -= oldsize - asked;
-        mem_bench_update(sp->mem_bench);
-#endif
-
-        return asked ? mem : NULL;
-    }
-
-    if (mem == frame->last && frame->last + asked <= frame_end(frame))
+    if (likely(res == frame->last)
+    &&  likely(res + asked <= frame_end(frame)))
     {
-        assert (mem);
+        assert (res);
 
-        frame->pos = frame->last + asked;
-        sp->alloc_sz  += asked - oldsize;
-        mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
-        res = mem;
+        frame->pos = res + asked;
+        sp->alloc_sz += sizediff;
+
+        if (likely(sizediff >= 0)) {
+            mem_tool_allow_memory(res + oldsize, sizediff, false);
+
+            if (!(flags & MEM_RAW)) {
+                p_clear(res + oldsize, sizediff);
+            }
+        } else {
+            mem_tool_disallow_memory(res + asked, -sizediff);
+            if (!asked) {
+                res = NULL;
+            }
+        }
 
 #ifdef MEM_BENCH
         proctimer_stop(&ptimer);
         proctimerstat_addsample(&sp->mem_bench->realloc.timer_stat, &ptimer);
 
         sp->mem_bench->realloc.nb_calls++;
-        sp->mem_bench->total_requested += asked - oldsize;
-        sp->mem_bench->current_used += asked - oldsize;
+        sp->mem_bench->total_requested += sizediff;
+        sp->mem_bench->current_used += sizediff;
         mem_bench_update(sp->mem_bench);
 #endif
-    } else {
-        res = sp_alloc(_sp, asked, alignment, flags | MEM_RAW);
-        if (mem) {
-            memcpy(res, mem, oldsize);
-            mem_tool_disallow_memory(mem, oldsize);
-        }
+
+        return res;
     }
 
-    if (!(flags & MEM_RAW))
-        p_clear(res + oldsize, asked - oldsize);
+    if (likely(sizediff <= 0)) {
+        mem_tool_disallow_memory(res + asked, -sizediff);
+
+#ifdef MEM_BENCH
+        proctimer_stop(&ptimer);
+        proctimerstat_addsample(&sp->mem_bench->realloc.timer_stat, &ptimer);
+
+        sp->mem_bench->realloc.nb_calls++;
+        sp->mem_bench->current_used -= sizediff;
+        mem_bench_update(sp->mem_bench);
+#endif
+
+        return asked ? res : NULL;
+    }
+
+    res = sp_alloc(_sp, asked, alignment, flags | MEM_RAW);
+    if (mem) {
+        memcpy(res, mem, oldsize);
+        mem_tool_disallow_memory(mem, oldsize);
+    }
+    if (!(flags & MEM_RAW)) {
+        p_clear(res + oldsize, sizediff);
+    }
+
     return res;
 }
 
