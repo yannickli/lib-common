@@ -247,6 +247,18 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     if (page != mfp->current) {
         /* keep the page around if we have none kept around yet */
         if (mfp->freepage) {
+            /* if the current page is almost full, better replace the current
+             * by this one than deleting it and wasting the freepage soon
+             */
+            if (page->size >
+                8 * (mfp->current->size - mfp->current->used_size))
+            {
+                if (mfp->current->used_blocks == 0) {
+                    mem_page_delete(mfp, &mfp->current);
+                }
+                mem_page_reset(page);
+                mfp->current = page;
+            } else
             if (mfp->freepage->size >= page->size) {
                 mem_page_delete(mfp, &page);
             } else {
