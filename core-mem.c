@@ -317,6 +317,11 @@ static void core_versions_initialize(void)
 {
     core_push_version(false, "lib-common", LIB_COMMON_VERSION,
                       libcommon_git_revision);
+
+    /* check sanity of PAGE_SIZE */
+    if (sysconf(_SC_PAGESIZE) != PAGE_SIZE) {
+        e_panic("System page size is different from defined PAGE_SIZE");
+    }
 }
 
 /*}}} */

@@ -346,7 +346,7 @@ mem_pool_t *mem_ring_pool_new(int initialsize)
     /* 640k should be enough for everybody =) */
     if (initialsize <= 0)
         initialsize = 640 << 10;
-    rp->minsize    = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
+    rp->minsize    = ROUND_UP(initialsize, PAGE_SIZE);
     rp->funcs      = pool_funcs;
     rp->alloc_nb   = 1; /* avoid the division by 0 */
 

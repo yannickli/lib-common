@@ -262,6 +262,12 @@ extern void __imalloc_too_large(void);
 # define __BIGGEST_ALIGNMENT__  16
 #endif
 
+#ifdef PAGE_SIZE
+# undef PAGE_SIZE
+#endif
+#define PAGE_SIZE_SHIFT     12
+#define PAGE_SIZE   ((uintptr_t) 1 << PAGE_SIZE_SHIFT)
+
 static ALWAYS_INLINE
 size_t mem_bit_align(const mem_pool_t *mp, size_t alignment)
 {

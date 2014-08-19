@@ -373,7 +373,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     /* 640k should be enough for everybody =) */
     if (initialsize <= 0)
         initialsize = 640 << 10;
-    sp->minsize  = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
+    sp->minsize  = ROUND_UP(initialsize, PAGE_SIZE);
+
     sp->funcs    = pool_funcs;
     sp->alloc_nb = 1; /* avoid the division by 0 */
 

@@ -78,7 +78,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     if (minsize < mfp->page_size - sizeof(mem_page_t)) {
         mapsize = mfp->page_size;
     } else {
-        mapsize = ROUND_UP(minsize + sizeof(mem_page_t), 4096);
+        mapsize = ROUND_UP(minsize + sizeof(mem_page_t), PAGE_SIZE);
     }
 
     page = (mem_page_t *) pa_new(byte, mapsize, 8);
@@ -381,7 +381,8 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 
     STATIC_ASSERT((offsetof(mem_page_t, area) % 8) == 0);
     mfp->funcs     = mem_fifo_pool_funcs;
-    mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
+    mfp->page_size = MAX(16 * PAGE_SIZE,
+                         ROUND_UP(page_size_hint, PAGE_SIZE));
     mfp->alive     = true;
     mfp->current   = mem_page_new(mfp, 0);
 
