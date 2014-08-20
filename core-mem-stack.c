@@ -361,20 +361,33 @@ static mem_pool_t const pool_funcs = {
 
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 {
-    p_clear(sp, 1);
-    dlist_init(&sp->blk_list);
-    sp->size     = 0;
+    /* no p_clear is made for two reasons :
+     * - there is few objects that shall be zero-initialized
+     * - it is very poorly optimized by gcc
+     * Therefore, is is needed to explicitly initialize
+     * all the added fields. Thus, it is advised to keep initializations
+     * of the fields in the order of declaration.
+     */
+    sp->stack     = &sp->base;
 
+    sp->alloc_sz  = 0;
+    sp->alloc_nb  = 1; /* avoid the division by 0 */
+    sp->nbpops    = 0;
+
+    sp->funcs     = pool_funcs;
+
+    /* root block */
+    sp->size      = 0;
+    dlist_init(&sp->blk_list);
+
+    /* root frame */
     frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
-    sp->stack    = &sp->base;
+    sp->base.prev = 0;
 
     /* 640k should be enough for everybody =) */
     if (initialsize <= 0)
         initialsize = 640 << 10;
-    sp->minsize  = ROUND_UP(initialsize, PAGE_SIZE);
-
-    sp->funcs    = pool_funcs;
-    sp->alloc_nb = 1; /* avoid the division by 0 */
+    sp->minsize   = ROUND_UP(initialsize, PAGE_SIZE);
 
 #ifdef MEM_BENCH
     sp->mem_bench = mem_bench_new(LSTR_IMMED_V("stack"), WRITE_PERIOD);
