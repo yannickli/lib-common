@@ -103,8 +103,6 @@ void mp_lstr_copy_(mem_pool_t *mp, lstr_t *dst, const void *s, int len)
     } else
     if (dst->mem_pool == MEM_MMAP) {
         (lstr_munmap)(dst);
-    } else {
-        ifree(dst->v, dst->mem_pool);
     }
     if (s == NULL) {
         *dst = lstr_init_(NULL, 0, MEM_STATIC);
