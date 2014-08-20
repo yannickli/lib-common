@@ -413,6 +413,11 @@ static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
         }
 
     }
+
+    /* Resolve static fields */
+    qv_for_each_entry(iopc_field, f, &st->static_fields) {
+        iopc_field_resolve(pkg, f, st);
+    }
 }
 
 static void iopc_module_check_extends(iopc_struct_t *mod, iopc_extends_t *xt)

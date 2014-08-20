@@ -7,9 +7,15 @@ package inheritance_pkg_a;
  *       C1     C2   C3      C4
  */
 
+enum Number {
+    ONE = 1,
+};
+
 class A1 {
     static string name = "pif";
     static string name2 = "paf";
+    static Number num = NUMBER_ONE;
+    static enum1.MyEnum e = MY_ENUM_B;
     int a;
 };
 
