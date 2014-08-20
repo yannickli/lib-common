@@ -129,11 +129,11 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
         blk_destroy(sp, blk);
     }
 
-    if ((offsetof(mem_stack_blk_t, area) & BITMASK_LT(size_t, alignment)) != 0) {
+    if ((offsetof(mem_stack_blk_t, area) & (alignment - 1)) != 0) {
         /* require enough free space so we're sure we can allocate the size
          * bytes properly aligned.
          */
-        size += 1 << alignment;
+        size += alignment;
     }
     return blk_create(sp, cur, size);
 }
