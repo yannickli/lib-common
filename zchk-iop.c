@@ -3770,6 +3770,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(st->ranges[1], 1);
         Z_ASSERT_EQ(st->ranges[2], fields_info.len);
 
+        qv_wipe(iop_field_info, &fields_info);
+        qv_wipe(lstr, &fields_name);
     } Z_TEST_END
     /* }}} */
 } Z_GROUP_END

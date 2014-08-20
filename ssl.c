@@ -423,6 +423,7 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_STREQUAL("plop", sb.data);
 
         conf_delete(&conf);
+        p_delete(&encrypted_key);
     } Z_TEST_END;
 } Z_GROUP_END
 
