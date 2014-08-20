@@ -1724,6 +1724,7 @@ Z_GROUP_EXPORT(wah)
 
         wah_wipe(&map1);
         wah_wipe(&map2);
+        wah_wipe(&map3);
     } Z_TEST_END;
 
     Z_TEST(redmine_4576, "") {

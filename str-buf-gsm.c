@@ -944,6 +944,7 @@ Z_GROUP_EXPORT(conv)
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_SB_V(&out));
 
         sb_wipe(&out);
+        sb_wipe(&tmp);
 
 #undef T
     } Z_TEST_END
