@@ -234,6 +234,7 @@ Z_GROUP_EXPORT(qhash)
             pos = qm_put(type, &h, (key), 2, QHASH_OVERWRITE);              \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
             Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 2u);              \
+                                                                            \
             qm_wipe(type, &h);                                              \
         } while (0)
 
@@ -874,6 +875,7 @@ Z_GROUP_EXPORT(qvector)
             }
         }
         qv_deep_wipe(str, &vec1, p_delete);
+        qv_wipe(str, &vec2);
     } Z_TEST_END;
 } Z_GROUP_END;
 
