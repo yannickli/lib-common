@@ -184,21 +184,18 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
      * the distant past has less and less consequences on the mean in the hope
      * that it will converge.
      *
-     * As the t_stack should not be used for large allocations, at least it's
-     * clearly not its typical usage, ignore the allocation larger than 128M
-     * from this computation. Those hence will always yield a malloc (actually
-     * a mmap) which is fine.
+     * There is no risk of overflow on alloc_sz,
+     * since mp_imalloc checks that asked < MEM_ALLOC_MAX = (1 << 30),
+     * and MEM_ALLOC_MAX * UINT16_MAX < SIZE_MAX.
      */
-    if (asked < 128 << 20) {
-        if (unlikely(sp->alloc_sz + asked < sp->alloc_sz)
-        ||  unlikely(sp->alloc_nb >= UINT16_MAX))
-        {
-            sp->alloc_sz /= 4;
-            sp->alloc_nb /= 4;
-        }
-        sp->alloc_sz += asked;
-        sp->alloc_nb += 1;
+    if (unlikely(sp->alloc_nb >= UINT16_MAX)) {
+        STATIC_ASSERT (MEM_ALLOC_MAX * UINT16_MAX < SIZE_MAX);
+
+        sp->alloc_sz /= 4;
+        sp->alloc_nb /= 4;
     }
+    sp->alloc_sz += asked;
+    sp->alloc_nb += 1;
 
     return res;
 }
