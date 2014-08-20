@@ -95,7 +95,8 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
 #define fatal(fmt, ...)  \
     do {                                    \
         print_warning(fmt, ##__VA_ARGS__);  \
-        exit(-1);                           \
+        fflush(stderr);                     \
+        _exit(-1);                          \
     } while (0)
 
 static inline const char *cwd(void)
@@ -153,7 +154,8 @@ static inline const char *cwd(void)
 #define fatal_loc(fmt, loc, ...)  \
     do {                                                                     \
         do_loc(fmt, LOG_ERR, "error", loc, ##__VA_ARGS__);                   \
-        exit(-1);                                                            \
+        fflush(stderr);                                                      \
+        _exit(-1);                                                           \
     } while (0)
 
 /*----- doxygen lexer part -----*/
