@@ -715,26 +715,39 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 }
 
 __must_check__
+const struct core__licence_module__t *
+licence_get_module_desc(const struct core__licence__t *licence,
+                        const iop_struct_t *mod)
+{
+    tab_for_each_entry(e, &licence->modules) {
+        if (iop_obj_is_a_desc(e, mod)) {
+            return e;
+        }
+    }
+    return NULL;
+}
+
+__must_check__
 bool licence_is_module_activated_desc(const struct core__licence__t *licence,
                                       const iop_struct_t *mod)
 {
-    tab_for_each_entry(e, &licence->modules) {
-        if (!iop_obj_is_a_desc(e, mod)) {
-            continue;
-        } else
-        if (!e->expiration_date.s) {
-            return true;
-        } else {
-            time_t exp;
+    const struct core__licence_module__t *e;
+    time_t exp;
 
-            if (!expect(strtotime(e->expiration_date, &exp) >= 0)) {
-                return false;
-            }
-
-            return exp >= lp_getsec();
-        }
+    e = licence_get_module_desc(licence, mod);
+    if (!e) {
+        return false;
     }
-    return false;
+
+    if (!e->expiration_date.s) {
+        return true;
+    }
+
+    if (!expect(strtotime(e->expiration_date, &exp) >= 0)) {
+        return false;
+    }
+
+    return exp >= lp_getsec();
 }
 
 /* }}} */

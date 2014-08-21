@@ -111,6 +111,19 @@ Z_GROUP_EXPORT(licence)
         /* Module not declared in the licence */
         Z_MODULE_ACTIVATION(&tstiop_licence__licence_tst3__s, false);
 
+#define Z_MODULE_TYPE(_lic, _type)                                          \
+    do {                                                                    \
+        Z_ASSERT_P(licence_get_module(_lic, _type));                        \
+        Z_ASSERT(iop_obj_is_a(licence_get_module(_lic, _type), _type));     \
+    } while (0)
+
+        Z_MODULE_TYPE(lic.licence, tstiop_licence__licence_tst1);
+        Z_MODULE_TYPE(lic.licence, tstiop_licence__licence_tst2);
+        Z_ASSERT_NULL(licence_get_module(lic.licence,
+                                         tstiop_licence__licence_tst3));
+
+#undef Z_MODULE_TYPE
+
         lic.licence->modules.tab[0]->expiration_warning_delay = 3 * 24 * 3600;
 
         t_ts_to_lstr(time(NULL) + (5 * 24 * 3600),

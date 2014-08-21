@@ -76,6 +76,20 @@ int licence_check_iop(const struct core__signed_licence__t *licence,
 __must_check__ licence_expiry_t
 licence_check_iop_expiry(const struct core__licence__t *licence);
 
+/** Returns a licence module.
+ *
+ * \param[in] licence   The licence from which we want a module.
+ * \param[in] mod       The module we want.
+ *
+ * \return              The module if it exists, else NULL.
+ */
+__must_check__
+const struct core__licence_module__t *
+licence_get_module_desc(const struct core__licence__t *licence,
+                        const iop_struct_t *mod);
+#define licence_get_module(licence, pfx) \
+    ((const pfx##__t*)licence_get_module_desc(licence, &pfx##__s))
+
 /** Check whether a module is activated or not.
  *
  * \param[in]  mod      The module of which activation must be checked.
