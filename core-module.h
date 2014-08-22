@@ -153,11 +153,15 @@ void module_run_method(const module_method_t *method, data_t arg);
 /* }}} */
 /* {{{ Module creation */
 
+/** Pointer to the module of the given name.
+ */
+#define MODULE(name)  name##_module
+
 /** Declare a module.
  *
  * This macro declares a module variable.
  */
-#define MODULE_DECLARE(name)  extern module_t *name##_module
+#define MODULE_DECLARE(name)  extern module_t *MODULE(name)
 
 
 /** Begin the definition of a module.
@@ -176,15 +180,15 @@ void module_run_method(const module_method_t *method, data_t arg);
  */
 #define MODULE_BEGIN(name)                                                   \
     __attr_section("intersec", "module")                                     \
-    module_t *name##_module;                                                 \
+    module_t *MODULE(name);                                                  \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
         lstr_t __name = LSTR_IMMED(#name);                                   \
         const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = name##_module                                      \
-            = module_register(__name, &name##_module,                        \
+        module_t *__mod = MODULE(name)                                       \
+            = module_register(__name, &MODULE(name),                         \
                               &name##_initialize, &name##_shutdown,          \
                               __deps, countof(__deps));                      \
 
@@ -200,7 +204,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  * declares a dependence from the current module on \p dep.
  */
 #define MODULE_DEPENDS_ON(dep)  \
-    module_add_dep(__mod, __name, LSTR_IMMED_V(#dep), &dep##_module)
+    module_add_dep(__mod, __name, LSTR_IMMED_V(#dep), &MODULE(dep))
 
 /** Add a dependence to another module.
  *
@@ -209,7 +213,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  * It declares a dependence from the current module to \p need.
  */
 #define MODULE_NEEDED_BY(need)  \
-    module_add_dep(need##_module, LSTR_IMMED_V(#need), __name, &__mod)
+    module_add_dep(MODULE(need), LSTR_IMMED_V(#need), __name, &__mod)
 
 /* {{{ Method */
 
@@ -311,7 +315,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  */
 
 #define MODULE_PROVIDE(name, argument)                                       \
-    module_provide(&name##_module, argument)
+    module_provide(&MODULE(name), argument)
 
 
 /** \brief Macro for requiring a module
@@ -332,7 +336,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *             - module_require will throw a logger_fatal
  *
  */
-#define MODULE_REQUIRE(name)  module_require(name##_module, NULL)
+#define MODULE_REQUIRE(name)  module_require(MODULE(name), NULL)
 
 /** \brief Macro for releasing a module
  *  Use:
@@ -346,13 +350,13 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *
  */
 
-#define MODULE_RELEASE(name)  module_release(name##_module)
+#define MODULE_RELEASE(name)  module_release(MODULE(name))
 
 
-#define MODULE_IS_LOADED(name)  module_is_loaded(name##_module)
+#define MODULE_IS_LOADED(name)  module_is_loaded(MODULE(name))
 
-#define MODULE_IS_INITIALIZING(name)  module_is_initializing(name##_module)
-#define MODULE_IS_SHUTTING_DOWN(name)  module_is_shutting_down(name##_module)
+#define MODULE_IS_INITIALIZING(name)  module_is_initializing(MODULE(name))
+#define MODULE_IS_SHUTTING_DOWN(name)  module_is_shutting_down(MODULE(name))
 
 
 /* {{{ Low-level API */

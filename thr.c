@@ -128,16 +128,16 @@ static int thr_hooks_shutdown(void)
     return 0;
 }
 
-module_t *thr_hooks_module;
+module_t *MODULE(thr_hooks);
 
 void thr_hooks_register(void)
 {
-    if (!thr_hooks_module) {
-        thr_hooks_module = module_register(LSTR_IMMED_V("thr_hooks"),
-                                           &thr_hooks_module,
-                                           &thr_hooks_initialize,
-                                           &thr_hooks_shutdown, NULL, 0);
-        module_implement_method(thr_hooks_module, &at_fork_on_child_method,
+    if (!MODULE(thr_hooks)) {
+        MODULE(thr_hooks) = module_register(LSTR_IMMED_V("thr_hooks"),
+                                            &MODULE(thr_hooks),
+                                            &thr_hooks_initialize,
+                                            &thr_hooks_shutdown, NULL, 0);
+        module_implement_method(MODULE(thr_hooks), &at_fork_on_child_method,
                                 &thr_hooks_atfork_in_child);
     }
 }

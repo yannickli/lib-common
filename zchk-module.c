@@ -26,7 +26,7 @@
     {                                                                        \
         return shut_ret;                                                     \
     }                                                                        \
-    static module_t *name##_module
+    static module_t *MODULE(name)
 
 static MODULE_METHOD(PTR, DEPS_BEFORE, before);
 static MODULE_METHOD(PTR, DEPS_AFTER, after);
@@ -48,7 +48,7 @@ NEW_MOCK_MODULE(depmod1, 1, 1);
 NEW_MOCK_MODULE(depmod2, 1, 1);
 NEW_MOCK_MODULE(depmod3, 1, 1);
 
-static module_t *load_shut_module;
+static module_t *MODULE(load_shut);
 
 static struct _load_shut_state_g {
     bool loaded;
@@ -139,7 +139,7 @@ static int modmethod1_shutdown(void)
 {
     return 1;
 }
-static module_t *modmethod1_module;
+static module_t *MODULE(modmethod1);
 
 /* }}} */
 
@@ -158,19 +158,19 @@ static int module_arg_shutdown(void)
 {
     return 1;
 }
-static module_t *module_arg_module;
+static module_t *MODULE(module_arg);
 
 #define Z_MODULE_REGISTER(name)                                              \
-    (name##_module = module_register(LSTR_IMMED_V(#name), &name##_module,    \
+    (MODULE(name) = module_register(LSTR_IMMED_V(#name), &MODULE(name),      \
                                      &name##_initialize,  &name##_shutdown,  \
                                      NULL, 0))
 #define Z_MODULE_DEPENDS_ON(name, dep)                                       \
-    module_add_dep(name##_module, LSTR_IMMED_V(#name), LSTR_IMMED_V(#dep),   \
-                   &dep##_module)
+    module_add_dep(MODULE(name), LSTR_IMMED_V(#name), LSTR_IMMED_V(#dep),    \
+                   &MODULE(dep))
 
 #define Z_MODULE_NEEDED_BY(name, need)                                       \
-    module_add_dep(need##_module, LSTR_IMMED_V(#need), LSTR_IMMED_V(#name),  \
-                   &name##_module)
+    module_add_dep(MODULE(need), LSTR_IMMED_V(#need), LSTR_IMMED_V(#name),   \
+                   &MODULE(name))
 
 /** Provide arguments in constructor. */
 lstr_t *word_global;
@@ -300,7 +300,7 @@ Z_GROUP_EXPORT(module)
         Z_ASSERT_P(Z_MODULE_REGISTER(mock_thr), U_T_R"mock_thr");
         Z_ASSERT_P(Z_MODULE_REGISTER(mock_log), U_T_R"mock_log");
         Z_ASSERT_NULL(module_register(LSTR_IMMED_V("mock_log"),
-                                      &mock_log_module,
+                                      &MODULE(mock_log),
                                       &mock_log_initialize,
                                       &mock_log_shutdown, NULL, 0));
         #undef U_T_R
@@ -484,38 +484,38 @@ Z_GROUP_EXPORT(module)
     Z_TEST(method, "Methods") {
         Z_MODULE_REGISTER(modmethod1);
         Z_MODULE_DEPENDS_ON(modmethod1, modmethod2);
-        module_implement_method(modmethod1_module, &after_method,
+        module_implement_method(MODULE(modmethod1), &after_method,
                                 &modmethod1_ztst);
-        module_implement_method(modmethod1_module, &before_method,
+        module_implement_method(MODULE(modmethod1), &before_method,
                                 &modmethod1_ztst);
 
         Z_MODULE_REGISTER(modmethod2);
         Z_MODULE_DEPENDS_ON(modmethod2, modmethod3);
-        module_implement_method(modmethod2_module, &after_method,
+        module_implement_method(MODULE(modmethod2), &after_method,
                                 &modmethod2_ztst);
-        module_implement_method(modmethod2_module, &before_method,
+        module_implement_method(MODULE(modmethod2), &before_method,
                                 &modmethod2_ztst);
 
         Z_MODULE_REGISTER(modmethod3);
         Z_MODULE_DEPENDS_ON(modmethod3, modmethod4);
-        module_implement_method(modmethod3_module, &after_method,
+        module_implement_method(MODULE(modmethod3), &after_method,
                                 &modmethod3_ztst);
-        module_implement_method(modmethod3_module, &before_method,
+        module_implement_method(MODULE(modmethod3), &before_method,
                                 &modmethod3_ztst);
 
         Z_MODULE_REGISTER(modmethod4);
         Z_MODULE_DEPENDS_ON(modmethod4, modmethod5);
         Z_MODULE_REGISTER(modmethod5);
-        module_implement_method(modmethod5_module, &after_method,
+        module_implement_method(MODULE(modmethod5), &after_method,
                                 &modmethod5_ztst);
-        module_implement_method(modmethod5_module, &before_method,
+        module_implement_method(MODULE(modmethod5), &before_method,
                                 &modmethod5_ztst);
 
         Z_MODULE_REGISTER(modmethod6);
         Z_MODULE_DEPENDS_ON(modmethod6, modmethod5);
-        module_implement_method(modmethod6_module, &after_method,
+        module_implement_method(MODULE(modmethod6), &after_method,
                                 &modmethod6_ztst);
-        module_implement_method(modmethod6_module, &before_method,
+        module_implement_method(MODULE(modmethod6), &before_method,
                                 &modmethod6_ztst);
 
         val_method = 1;
@@ -659,11 +659,11 @@ Z_GROUP_EXPORT(module)
 /* dependency check {{{ */
 
     Z_TEST(dependency, "Modules dependency check") {
-        module_t* liste1[] = {module_a_module, module_e_module};
-        module_t* liste2[] = {module_a_module, module_e_module,
-                              module_g_module};
-        module_t* liste3[] = {module_a_module, module_e_module,
-                              module_i_module};
+        module_t* liste1[] = { MODULE(module_a), MODULE(module_e) };
+        module_t* liste2[] = { MODULE(module_a), MODULE(module_e),
+                               MODULE(module_g) };
+        module_t* liste3[] = { MODULE(module_a), MODULE(module_e),
+                               MODULE(module_i) };
         lstr_t collision;
 
         Z_ASSERT_N(module_check_no_dependencies(liste1, countof(liste1),

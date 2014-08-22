@@ -1487,15 +1487,15 @@ static void el_at_fork_on_child(void)
     el_fd_at_fork();
 }
 
-module_t *el_module;
+module_t *MODULE(el);
 
 __attribute__((constructor))
 static void el_module_register(void)
 {
-    el_module = module_register(LSTR_IMMED_V("el"), &el_module,
-                                &el_initialize, &el_shutdown,
-                                NULL, 0);
-    module_implement_method(el_module, &at_fork_on_child_method,
+    MODULE(el) = module_register(LSTR_IMMED_V("el"), &MODULE(el),
+                                 &el_initialize, &el_shutdown,
+                                 NULL, 0);
+    module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
     MODULE_REQUIRE(el);
 }

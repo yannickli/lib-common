@@ -964,7 +964,7 @@ static void log_module_register(void)
     log_module = module_register(LSTR_IMMED_V("log"), &log_module,
                                  &log_initialize, &log_shutdown, NULL, 0);
     module_add_dep(log_module, LSTR_IMMED_V("log"),  LSTR_IMMED_V("thr_hooks"),
-                   &thr_hooks_module);
+                   &MODULE(thr_hooks));
     module_implement_method(log_module, &at_fork_on_child_method,
                             &log_atfork);
     MODULE_REQUIRE(log);
