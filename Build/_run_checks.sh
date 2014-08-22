@@ -91,7 +91,7 @@ for TAG in ${TAGS[@]}
 do
      BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=-$TAG"
 done
-export BEHAVE_FLAGS=$BEHAVE_FLAGS
+export BEHAVE_FLAGS="$BEHAVE_FLAGS --tags=-web --format z --no-summary"
 
 while read t; do
     say_color info "starting suite $t..."
@@ -99,17 +99,26 @@ while read t; do
     start=$(date '+%s')
     case ./"$t" in
         */behave)
-            res="$pybin -m z $BEHAVE_FLAGS --format z --no-summary --tags=-web $(dirname "./$t")/ci/features"
+            $pybin -m z $BEHAVE_FLAGS  $(dirname "./$t")/ci/features
+            res=$?
             ;;
         *.py)
-            res="$pybin ./$t"
+            $pybin ./$t
+            res=$?
+            ;;
+        *testem.json)
+            cd $(dirname "./$t")
+            ztestem
+            res=$?
+            cd - &>/dev/null
             ;;
         *)
-            res="./$t"
+            ./$t
+            res=$?
             ;;
     esac
 
-    if $res ; then
+    if [ $res -eq 0 ] ; then
         end=$(date '+%s')
         say_color pass "done ($((end - start)) seconds)"
     else

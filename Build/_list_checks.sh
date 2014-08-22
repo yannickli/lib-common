@@ -50,7 +50,7 @@ dump_zf()
                         echo "${f#$CURDIR/}"
                         continue
                         ;;
-                    *.py)
+                    *.py|*testem.json)
                         test -f "$f" || continue
                         ;;
                     *)
