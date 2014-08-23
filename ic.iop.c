@@ -199,17 +199,23 @@ static iop_field_t const ic__routing_hdr__desc_fields[] = {
         .size      = sizeof(ic__tracer__t),
         .u1        = { .st_desc = &ic__tracer__s },
     },
-};
-static int const iop__ranges__5[] = {
-    0, 1,
-    4,
+    {
+        .name      = LSTR_IMMED("originalHdr"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_UNION,
+        .data_offs = offsetof(ic__routing_hdr__t, original_hdr),
+        .size      = sizeof(ic__hdr__t),
+        .u1        = { .st_desc = &ic__hdr__s },
+    },
 };
 const iop_struct_t ic__routing_hdr__s = {
     .fullname   = LSTR_IMMED("ic.RoutingHdr"),
     .fields     = ic__routing_hdr__desc_fields,
-    .ranges     = iop__ranges__5,
+    .ranges     = iop__ranges__3,
     .fields_len = countof(ic__routing_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges_len = countof(iop__ranges__3) / 2,
     .size       = sizeof(ic__routing_hdr__t),
 };
 

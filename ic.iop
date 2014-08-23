@@ -41,6 +41,7 @@ struct RoutingHdr {
     int        ttl;
     IcPriority priority = IC_PRIORITY_NORMAL;
     Tracer?    tracer;
+    Hdr?       originalHdr;
 };
 
 union Hdr {

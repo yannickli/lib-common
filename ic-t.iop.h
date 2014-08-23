@@ -37,6 +37,7 @@ struct ic__routing_hdr__t {
     int32_t  ttl;
     ic__ic_priority__t priority;
     struct ic__tracer__t *tracer;
+    struct ic__hdr__t *original_hdr;
 };
 extern iop_struct_t const ic__routing_hdr__s;
 IOP_GENERIC(ic__routing_hdr);
