@@ -646,6 +646,42 @@ Z_GROUP_EXPORT(bit_stream)
     /* }}} */
 } Z_GROUP_END;
 
+/* {{{ core-macros.h */
+
+Z_GROUP_EXPORT(core_macros) {
+    Z_TEST(carray_loops, "C array loop helpers") {
+        int i = 0;
+        lstr_t strs[] = {
+            LSTR_IMMED("toto"),
+            LSTR_IMMED("1234567890"),
+            LSTR_IMMED("yop")
+        };
+
+        carray_for_each_pos(pos, strs) {
+            Z_ASSERT_LT(pos, countof(strs));
+            Z_ASSERT_EQ(pos, i++);
+        }
+
+        i = 0;
+        carray_for_each_entry(s, strs) {
+            Z_ASSERT_LSTREQUAL(s, strs[i++]);
+        }
+
+        i = 0;
+        carray_for_each_ptr(s, strs) {
+            Z_ASSERT(s == &strs[i++]);
+        }
+
+        i = 0;
+        carray_for_each_ptr(s, strs) {
+            Z_ASSERT(s == &strs[i++]);
+            s = NULL;
+        }
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */
+
 int main(int argc, const char **argv)
 {
     z_setup(argc, argv);
