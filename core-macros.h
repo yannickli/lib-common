@@ -430,6 +430,27 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define tab_for_each_pos_safe(pos, vec)                                      \
     tab_for_each_pos_rev(pos, vec)
 
+/* Standard loops for C arrays (ex: int values[] = { 1, 2, 3 }) */
+
+#define carray_for_each_pos(pos, array)                                      \
+    for (int pos = 0; pos < countof(array); pos++)
+
+#define carray_for_each_ptr(ptr, array)                                      \
+    for (__unused__ typeof(*array) *ptr = (array),                           \
+         *__i_##ptr = (array);                                               \
+         __i_##ptr < (array) + countof(array);                               \
+         ptr = ++__i_##ptr)
+
+#define carray_for_each_entry(e, array)                                      \
+    for (typeof(*array) e, *e##__ptr = (array);                              \
+         ({                                                                  \
+              bool e##__res = e##__ptr < (array) + countof(array);           \
+              if (e##__res) {                                                \
+                  e = *(e##__ptr++);                                         \
+              }                                                              \
+              e##__res;                                                      \
+         });)
+
 
 /*---------------- Dangerous APIs ----------------*/
 
