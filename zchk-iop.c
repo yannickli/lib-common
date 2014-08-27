@@ -2787,6 +2787,7 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_EQ(cvar->_field, _value);                               \
         } while (0)
 
+        CHECK_STATIC(a1, "staticEnum", i, MY_ENUM_A_B);
         CHECK_STATIC(b1, "staticInt", i, 12);
         CHECK_STATIC(c4, "staticInt", u, (uint64_t)44);
         CHECK_STATIC(b4, "staticInt", u, (uint64_t)4);

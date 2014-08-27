@@ -26,6 +26,7 @@ package tstiop_inheritance;
 
 class A1 {
     static string staticStr = "a1";
+    static tstiop.MyEnumA staticEnum = MY_ENUM_A_B;
     @nonZero
     int a = 1;
     int a2;
