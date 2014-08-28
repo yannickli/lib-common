@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include "iopc.h"
+#include <float.h>
+#include <math.h>
 
 static qv_t(str) pp_g;
 struct iopc_do_c_globs iopc_do_c_g;
@@ -1566,47 +1568,129 @@ iopc_dump_allow(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
     return 0;
 }
 
+static int64_t merge_int64(iopc_attr_t *attr) {
+    int64_t ret;
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_MIN_OCCURS:
+      case IOPC_ATTR_MIN_LENGTH:
+      case IOPC_ATTR_MIN:
+        ret = INT64_MIN;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MAX(ret, IOPC_ATTR_GET_ARG_V(int64_t, arg));
+        }
+        break;
+
+      case IOPC_ATTR_MAX_OCCURS:
+      case IOPC_ATTR_MAX_LENGTH:
+      case IOPC_ATTR_MAX:
+        ret = INT64_MAX;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MIN(ret, IOPC_ATTR_GET_ARG_V(int64_t, arg));
+        }
+        break;
+
+     case IOPC_ATTR_LENGTH:
+        assert (attr->args.len == 1);
+        ret = attr->args.tab[0].v.i64;
+        break;
+
+      default:
+        e_panic("attribute type not handled in `int64`");
+    }
+    return ret;
+}
+
+static uint64_t merge_uint64(iopc_attr_t *attr) {
+    uint64_t ret;
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_MIN:
+        ret = 0;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MAX(ret, IOPC_ATTR_GET_ARG_V(uint64_t, arg));
+        }
+        break;
+
+      case IOPC_ATTR_MAX:
+        ret = UINT64_MAX;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MIN(ret, IOPC_ATTR_GET_ARG_V(uint64_t, arg));
+        }
+        break;
+
+      default:
+        e_panic("attribute type not handled in `uint64`");
+    }
+    return ret;
+}
+
+static double merge_double(iopc_attr_t *attr) {
+    double ret;
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_MIN:
+        ret = FLT_MIN;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MAX(ret, IOPC_ATTR_GET_ARG_V(double, arg));
+        }
+        break;
+
+      case IOPC_ATTR_MAX:
+        ret = FLT_MAX;
+        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            ret = MIN(ret, IOPC_ATTR_GET_ARG_V(double, arg));
+        }
+        break;
+
+      default:
+        e_panic("attribute type not handled in `double`");
+    }
+    return ret;
+}
+
 static void
 iopc_dump_minmax(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
 {
-    iopc_arg_t *arg = &attr->args.tab[0];
 
 #define GEN_TEST(fmt1, fmt2, type) \
-    sb_addf(sb,                                                             \
-            LVL2 "if (val %c " fmt1 ") {\n"                                 \
-            LVL3 "if (n > 1) {\n"                                           \
-            \
-            LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") "    \
-                 "on field %%s[%%d]: val=" fmt2 "\",\n"                     \
-            LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", j, "    \
-                 "(" type ")val);\n"                                        \
-            \
-            LVL3 "} else {\n"                                               \
-            \
-            LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") "    \
-                 "on field %%s: val=" fmt2 "\",\n"                          \
-            LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", "       \
-                 "(" type ")val);\n"                                        \
-            \
-            LVL3 "}\n"                                                      \
-            \
-            LVL3 "return -1;\n"                                             \
-            LVL2 "}\n",                                                     \
-            cmp, v, LSTR_FMT_ARG(attr->desc->name), v, f->name,             \
-            LSTR_FMT_ARG(attr->desc->name), v, f->name);
+    do {                                                                     \
+        sb_addf(sb,                                                          \
+                LVL2 "if (val %c " fmt1 ") {\n"                              \
+                LVL3 "if (n > 1) {\n"                                        \
+                                                                             \
+                LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") " \
+                     "on field %%s[%%d]: val=" fmt2 "\",\n"                  \
+                LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", j, " \
+                     "(" type ")val);\n"                                     \
+                                                                             \
+                LVL3 "} else {\n"                                            \
+                                                                             \
+                LVL4 "iop_set_err(\"violation of constraint %%s (" fmt2 ") " \
+                     "on field %%s: val=" fmt2 "\",\n"                       \
+                LVL4 "            \"%*pM\", (" type ")" fmt1 ", \"%s\", "    \
+                     "(" type ")val);\n"                                     \
+                                                                             \
+                LVL3 "}\n"                                                   \
+                                                                             \
+                LVL3 "return -1;\n"                                          \
+                LVL2 "}\n",                                                  \
+                cmp, v, LSTR_FMT_ARG(attr->desc->name), v, f->name,          \
+                LSTR_FMT_ARG(attr->desc->name), v, f->name);                 \
+    } while (0)
 
     assert (iopc_g.v2);
     if (f->kind == IOP_T_DOUBLE) {
-        double v = IOPC_ATTR_GET_ARG_V(double, arg);
+        double v = merge_double(attr);
 
         GEN_TEST("%.17e", "%%.17e", "double");
     } else
     if (iopc_field_is_signed(f)) {
-        int64_t v = IOPC_ATTR_GET_ARG_V(int64_t, arg);
+        int64_t v = merge_int64(attr);
 
         GEN_TEST("%jdLL", "%%jd", "int64_t");
     } else {
-        uint64_t v = IOPC_ATTR_GET_ARG_V(uint64_t, arg);
+        uint64_t v = merge_uint64(attr);
 
         GEN_TEST("%juULL", "%%ju", "uint64_t");
     }
@@ -1678,14 +1762,12 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
       case IOPC_ATTR_MIN_LENGTH:
       case IOPC_ATTR_MAX_LENGTH:
       case IOPC_ATTR_LENGTH:
-        assert (attr->args.tab[0].type == ITOK_INTEGER);
-        assert (attr->args.len == 1);
         sb_addf(sb,
                 LVL1 "{\n"
                 LVL1 "    .type = %d,\n"
                 LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %jdLL } },\n"
                 LVL1 "},\n",
-                type, attr->args.tab[0].v.i64);
+                type, merge_int64(attr));
         break;
 
       case IOPC_ATTR_PATTERN:
@@ -1703,14 +1785,13 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
 
       case IOPC_ATTR_MIN:
       case IOPC_ATTR_MAX:
-        assert (attr->args.len == 1);
         if (f->kind == IOP_T_DOUBLE) {
             sb_addf(sb,
                     LVL1 "{\n"
                     LVL1 "    .type = %d,\n"
                     LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.d = %.17e } },\n"
                     LVL1 "},\n",
-                    type, IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]));
+                    type, merge_double(attr));
         } else
         if (iopc_field_is_signed(f)) {
             sb_addf(sb,
@@ -1718,14 +1799,14 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                     LVL1 "    .type = %d,\n"
                     LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %jdLL } },\n"
                     LVL1 "},\n",
-                    type, IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]));
+                    type, merge_int64(attr));
         } else {
             sb_addf(sb,
                     LVL1 "{\n"
                     LVL1 "    .type = %d,\n"
                     LVL1 "    .args = (iop_field_attr_arg_t[]){ { .v.i64 = %juULL } },\n"
                     LVL1 "},\n",
-                    type, IOPC_ATTR_GET_ARG_V(uint64_t, &attr->args.tab[0]));
+                    type, merge_uint64(attr));
         }
         break;
 

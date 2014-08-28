@@ -384,6 +384,7 @@ static void init_attributes(void)
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->types, IOPC_ATTR_T_INT);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_DOUBLE);
     ADD_ATTR_ARG(d, "value", ITOK_DOUBLE);
 
@@ -391,6 +392,7 @@ static void init_attributes(void)
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->types, IOPC_ATTR_T_INT);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_DOUBLE);
     ADD_ATTR_ARG(d, "value", ITOK_DOUBLE);
 
@@ -398,6 +400,7 @@ static void init_attributes(void)
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->types, IOPC_ATTR_T_STRING);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_DATA);
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
@@ -405,6 +408,7 @@ static void init_attributes(void)
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->types, IOPC_ATTR_T_STRING);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_DATA);
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
@@ -418,12 +422,14 @@ static void init_attributes(void)
     d = add_attr(IOPC_ATTR_MIN_OCCURS, "minOccurs");
     SET_BIT(&d->flags, IOPC_ATTR_F_FIELD_REPEATED);
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_MAX_OCCURS, "maxOccurs");
     SET_BIT(&d->flags, IOPC_ATTR_F_FIELD_REPEATED);
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 

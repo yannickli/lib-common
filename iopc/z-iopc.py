@@ -18,11 +18,14 @@ import sys, os, os.path
 SELF_PATH = os.path.dirname(__file__)
 TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
 self_path = os.path.dirname(sys.argv[0])
+SELF_PATH = os.path.dirname(__file__)
+TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
 sys.path.append(self_path+ "/../lib-common")
 
 import z
 import subprocess
 import string
+import tempfile
 
 @z.ZGroup
 class IopcTest(z.TestCase):
@@ -161,6 +164,17 @@ class IopcTest(z.TestCase):
                                  'attrs_multi_valid.iop.c')
         path_ref = os.path.join(TEST_PATH,
                                 'reference_attrs_multi_valid.c')
+        ref_base = open(path_base, "r")
+        ref = open(path_ref, "r")
+        self.assertEqual(ref.read(), ref_base.read())
+
+    def test_attrs_multi_constraints(self):
+        f = 'attrs_multi_constraints.iop'
+        self.run_iopc_pass(f, 3)
+        self.run_gcc(f)
+        path_base = os.path.join(TEST_PATH, 'attrs_multi_constraints.iop.c')
+        path_ref = os.path.join(TEST_PATH,
+                                'reference_attrs_multi_constraints.c')
         ref_base = open(path_base, "r")
         ref = open(path_ref, "r")
         self.assertEqual(ref.read(), ref_base.read())
@@ -422,10 +436,6 @@ class IopcTest(z.TestCase):
             'attribute ctype does not apply to typedefs')
         self.run_iopc2('typedef_invalid_3.iop', False,
             'attribute pattern does not apply to integer')
-        self.run_iopc2('typedef_invalid_4.iop', False,
-            'attribute min must be unique')
-        self.run_iopc2('typedef_invalid_5.iop', False,
-            'attribute min must be unique')
         self.run_iopc('typedef_invalid_6.iop', False,
             'recursive typedef for type `MyTypedef1` in pkg `typedef_invalid_6`')
         self.run_iopc('typedef_invalid_7.iop', False,

@@ -1,9 +1,0 @@
-package typedef_invalid_5;
-
-@min(3)
-typedef ulong Min3;
-
-struct MyStruct {
-    @min(5)
-    Min3 min5;
-};
