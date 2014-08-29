@@ -356,6 +356,99 @@ static mem_pool_t const pool_funcs = {
     .min_alignment = sizeof(void *)
 };
 
+#ifndef NDEBUG
+/** Special code to bypass the allocator.
+ * The frames keep their usual behaviour.
+ * The blk objects are now the prefixes of all the allocations performed.
+ */
+static void *sp_alloc_libc(mem_pool_t *_sp, size_t asked, size_t alignment,
+                           mem_flags_t flags)
+{
+    mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
+    size_t oversize = mem_align_ptr(sizeof(mem_stack_blk_t), alignment);
+    mem_stack_blk_t *blk;
+    uint8_t *ptr;
+
+    assert (alignment >= 8);
+
+    ptr  = mp_imalloc(&mem_pool_libc, asked + oversize, alignment, flags);
+    ptr += oversize;
+
+    blk  = (mem_stack_blk_t *)ptr - 1;
+    blk->size = oversize;
+    dlist_add_tail(&sp->blk_list, &blk->blk_list);
+
+    return ptr;
+}
+
+static void *sp_realloc_libc(mem_pool_t *_sp, void *mem, size_t oldsize,
+                             size_t asked, size_t alignment,
+                             mem_flags_t flags)
+{
+    mem_stack_blk_t *blk = (mem_stack_blk_t *)mem - 1;
+    size_t oversize = blk->size;
+    uint8_t *ptr = (uint8_t *)mem;
+
+    assert (oversize >= sizeof(mem_stack_blk_t));
+
+    ptr -= oversize;
+    ptr  = mp_irealloc(&mem_pool_libc, ptr, oldsize + oversize,
+                       asked + oversize, alignment, flags);
+    ptr += oversize;
+
+    blk  = (mem_stack_blk_t *)ptr - 1;
+    __dlist_repair(&blk->blk_list);
+
+    return ptr;
+}
+
+static void sp_free_libc(mem_pool_t *_sp, void *mem)
+{
+}
+
+static void *sp_push_libc(mem_stack_pool_t *sp)
+{
+    mem_stack_frame_t *frame = p_new(mem_stack_frame_t, 1);
+
+    frame->prev = (uintptr_t)sp->stack;
+    frame->blk  = blk_entry(sp->blk_list.prev);
+
+    return sp->stack = frame;
+}
+
+const void *mem_stack_pop_libc(mem_stack_pool_t *sp)
+{
+    mem_stack_frame_t *frame = sp->stack;
+    mem_stack_blk_t *blk;
+
+    sp->stack = mem_stack_prev(frame);
+
+    dlist_for_each_entry_safe_continue(frame->blk, blk, &sp->blk_list,
+                                       blk_list) {
+        uint8_t *ptr = (uint8_t *)(blk + 1) - blk->size;
+
+        dlist_remove(&blk->blk_list);
+        mp_ifree(&mem_pool_libc, ptr);
+    }
+
+    {
+        mem_stack_frame_t *f = frame;
+
+        p_delete(&f);
+    }
+
+    return frame;
+}
+
+static mem_pool_t const pool_funcs_libc = {
+    .malloc  = &sp_alloc_libc,
+    .realloc = &sp_realloc_libc,
+    .free    = &sp_free_libc,
+    .mem_pool= MEM_STACK | MEM_BY_FRAME,
+    .min_alignment = sizeof(void *)
+};
+#endif
+
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 {
     /* no p_clear is made for two reasons :
@@ -386,6 +479,17 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
         initialsize = 640 << 10;
     sp->minsize   = ROUND_UP(initialsize, PAGE_SIZE);
 
+#ifndef NDEBUG
+    /* bypass mem_pool if demanded
+     * XXX this code is intentionnally
+     * placed at the end of the init function,
+     * to avoid problems with seal/unseal macros */
+    if (!mem_pool_is_enabled()) {
+        sp->funcs = pool_funcs_libc;
+        return sp;
+    }
+#endif
+
 #ifdef MEM_BENCH
     sp->mem_bench = mem_bench_new(LSTR_IMMED_V("stack"), WRITE_PERIOD);
     mem_bench_leak(sp->mem_bench);
@@ -400,6 +504,15 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 
 void mem_stack_pool_reset(mem_stack_pool_t *sp)
 {
+    mem_stack_blk_t *saved_blk;
+    size_t saved_size;
+    size_t max_size;
+
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     /* we do not want to wipe everything :
      * we will keep one block, iff
      * its size is more than 56*alloc_mean
@@ -407,9 +520,9 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
      * and less than 256*alloc_mean.
      * we keep the biggest in this range.
      */
-    mem_stack_blk_t *saved_blk = NULL;
-    size_t saved_size = RESET_MIN * sp_alloc_mean(sp);
-    size_t max_size   = RESET_MAX * sp_alloc_mean(sp);
+    saved_blk  = NULL;
+    saved_size = RESET_MIN * sp_alloc_mean(sp);
+    max_size   = RESET_MAX * sp_alloc_mean(sp);
 
     dlist_for_each_safe(e, &sp->blk_list) {
         mem_stack_blk_t *blk = blk_entry(e);
@@ -434,6 +547,11 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
 
 void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 {
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
 #ifdef MEM_BENCH
     mem_bench_delete(&sp->mem_bench);
 
@@ -452,10 +570,19 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 const void *mem_stack_push(mem_stack_pool_t *sp)
 {
     uint8_t *end;
-    uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t),
-                              __BIGGEST_ALIGNMENT__, &end);
+    uint8_t *res;
     mem_stack_frame_t *frame;
     mem_stack_frame_t *oldframe = sp->stack;
+
+#ifndef NDEBUG
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return sp_push_libc(sp);
+    }
+#endif
+
+    res = sp_reserve(sp, sizeof(mem_stack_frame_t),
+                     __BIGGEST_ALIGNMENT__, &end);
 
 #ifdef MEM_BENCH
     /* if the assert fires,
@@ -510,6 +637,11 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
 
 void mem_stack_pool_print_stats(mem_pool_t *mp) {
 #ifdef MEM_BENCH
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
     mem_bench_print_human(sp->mem_bench, MEM_BENCH_PRINT_CURRENT);
 #endif
@@ -517,6 +649,11 @@ void mem_stack_pool_print_stats(mem_pool_t *mp) {
 
 void mem_stack_pools_print_stats(void) {
 #ifdef MEM_BENCH
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     spin_lock(&mem_stack_dlist_lock);
     dlist_for_each_safe(n, &mem_stack_pool_list) {
         mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);

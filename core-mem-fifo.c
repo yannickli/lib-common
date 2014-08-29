@@ -379,6 +379,12 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
     mem_fifo_pool_t *mfp = p_new(mem_fifo_pool_t, 1);
 
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        mfp->funcs = mem_pool_libc;
+        return &mfp->funcs;
+    }
+
     STATIC_ASSERT((offsetof(mem_page_t, area) % 8) == 0);
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * PAGE_SIZE,
@@ -400,6 +406,12 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
     mem_fifo_pool_t *mfp;
+
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        p_delete(poolp);
+        return;
+    }
 
     if (!*poolp)
         return;
@@ -431,6 +443,12 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 {
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
+
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
     *allocated = mfp->map_size - (mfp->freepage ? mfp->freepage->size : 0);
@@ -439,6 +457,11 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 
 void mem_fifo_pool_print_stats(mem_pool_t *mp) {
 #ifdef MEM_BENCH
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     mem_fifo_pool_t *mfp = container_of(mp, mem_fifo_pool_t, funcs);
     mem_bench_print_human(&mfp->mem_bench, MEM_BENCH_PRINT_CURRENT);
 #endif
@@ -446,6 +469,11 @@ void mem_fifo_pool_print_stats(mem_pool_t *mp) {
 
 void mem_fifo_pools_print_stats(void) {
 #ifdef MEM_BENCH
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+
     spin_lock(&mem_fifo_dlist_lock);
     dlist_for_each_safe(n, &mem_fifo_pool_list) {
         mem_fifo_pool_t *mfp = container_of(n, mem_fifo_pool_t, pool_list);

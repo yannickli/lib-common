@@ -159,6 +159,9 @@ static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
 }
 
 const void *mem_stack_push(mem_stack_pool_t *) __leaf;
+#ifndef NDEBUG
+const void *mem_stack_pop_libc(mem_stack_pool_t *);
+#endif
 
 #ifdef MEM_BENCH
 void mem_stack_bench_pop(mem_stack_pool_t *, mem_stack_frame_t *);
@@ -169,6 +172,13 @@ void mem_stack_pools_print_stats(void);
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
+
+#ifndef NDEBUG
+    /* bypass mem_pool if demanded */
+    if (!mem_pool_is_enabled()) {
+        return mem_stack_pop_libc(sp);
+    }
+#endif
 
     sp->stack = mem_stack_prev(frame);
 #ifdef MEM_BENCH

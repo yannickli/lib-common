@@ -186,6 +186,19 @@ pstrcat(char *dest, ssize_t size, const char *src)
 /* Memory Allocations {{{ */
 /* Memory Pools {{{ */
 
+/** Check whether the memory pools are active.
+ * If not, all the memory pools should fallback
+ * mem_pool_libc.
+ */
+#ifndef NDEBUG
+bool mem_pool_is_enabled(void);
+#else
+static inline bool mem_pool_is_enabled(void)
+{
+    return true;
+}
+#endif
+
 typedef unsigned __bitwise__ mem_flags_t;
 
 /*
