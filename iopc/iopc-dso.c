@@ -193,7 +193,11 @@ int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
     }
 
     path_extend(tmppath, outdir, "%s.%d.XXXXXX", filepart, getpid());
-    RETHROW_PN(mkdtemp(tmppath));
+    if (!mkdtemp(tmppath)) {
+        return logger_error(&_G.logger,
+                            "failed to create temporary directory %s: %m",
+                            tmppath);
+    }
 
     iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath);
     path_extend(path, tmppath, "%*pM.c",  LSTR_FMT_ARG(pkgpath));
