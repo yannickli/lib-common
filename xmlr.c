@@ -103,7 +103,7 @@ static void xmlr_fmt_loc(xml_reader_t xr, sb_t *sb)
     int col, lno;
 
     n[0] = xmlTextReaderCurrentNode(xr);
-    for (; n[nlen] && nlen < countof(n); nlen++) {
+    for (; n[nlen] && nlen + 1 < countof(n); nlen++) {
         n[nlen + 1] = n[nlen]->parent;
     }
     lno = xmlTextReaderGetParserLineNumber(xr);
