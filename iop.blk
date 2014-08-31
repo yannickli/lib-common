@@ -3034,7 +3034,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
     *(const iop_struct_t **)(*value) = real_desc;
 
     /* Unpack the several levels */
-    do {
+    for (;;) {
         uint16_t class_id = 0;
         int res;
 
@@ -3067,9 +3067,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
             PS_CHECK(unpack_skip_all_fields(mp, real_desc, *value));
             PS_WANT((real_desc = real_desc->class_attrs->parent));
         }
-    } while (real_desc);
-
-    return 0;
+    }
 }
 
 /* note: returns 0 on success, -1 on error and 1 if the pstream hasn't been

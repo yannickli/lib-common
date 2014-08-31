@@ -54,7 +54,7 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
     fix = iop_get_struct(pkg, (*st)->fullname);
     if (!fix) {
         e_error("IOP DSO: did not find struct %s in memory",
-                fix->fullname.s);
+                (*st)->fullname.s);
     }
     *st = fix;
 }
