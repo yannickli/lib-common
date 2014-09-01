@@ -1381,6 +1381,18 @@ Z_GROUP_EXPORT(str)
             Z_ASSERT_EQ(lstr_match_ctype(t[i].s, t[i].d), t[i].expected);
         }
     } Z_TEST_END;
+
+    Z_TEST(lstr_macros, "lstr: macros") {
+        uint16_t data[] = { 11, 22, 33 };
+        lstr_t data_ref, data_s, data_c;
+
+        data_ref = LSTR_INIT_V((const char *)data, sizeof(data));
+        data_s = LSTR_DATA_V(data, sizeof(data));
+        data_c = LSTR_CARRAY_V(data);
+
+        Z_ASSERT_LSTREQUAL(data_s, data_ref);
+        Z_ASSERT_LSTREQUAL(data_c, data_ref);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 

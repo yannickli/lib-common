@@ -53,6 +53,12 @@ typedef struct lstr_t {
 #define LSTR_PTR(start, end)    LSTR_INIT((start), (end) - (start))
 #define LSTR_PTR_V(start, end)  LSTR_INIT_V((start), (end) - (start))
 
+#define LSTR_DATA(data, len)    LSTR_INIT((const char *)(data), (len))
+#define LSTR_DATA_V(data, len)  (lstr_t)LSTR_DATA(data, len)
+
+#define LSTR_CARRAY(carray)     LSTR_DATA((carray), sizeof(carray))
+#define LSTR_CARRAY_V(carray)   (lstr_t)LSTR_CARRAY(carray)
+
 #define LSTR_FMT_ARG(s_)      (s_).len, (s_).s
 
 #define LSTR_OPT_STR_V(str)       ({ const char *__s = (str);              \
