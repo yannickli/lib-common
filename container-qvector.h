@@ -333,21 +333,22 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
 #define __qv_init(n, vec, b, bl, bs, mp)    __qv_##n##_init(vec, b, bl, bs,  \
                                                             ipool(mp))
-#define qv_init_static(n, vec, tab, len) \
-    ({ size_t __len = (len); \
-       __qv_##n##_init(vec, tab, __len, __len, &mem_pool_static); })
-#define qv_inita(n, vec, len) \
-    ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
-        __qv_##n##_init(vec, alloca(_sz), 0, __len, &mem_pool_static); })
-#define mp_qv_init(n, mp, vec, len) \
+#define qv_init_static(n, vec, tab, len)                                     \
     ({ size_t __len = (len);                                                 \
+       __qv_##n##_init(vec, tab, __len, __len, &mem_pool_static); })
+#define qv_inita(n, vec, size)                                               \
+    ({ size_t __size = (size), _sz = __size * __qv_sz(n);                    \
+        __qv_##n##_init(vec, alloca(_sz), 0, __size, &mem_pool_static); })
+#define mp_qv_init(n, mp, vec, size)                                         \
+    ({ size_t __size = (size);                                               \
        mem_pool_t *_mp = (mp);                                               \
        __qv_##n##_init(vec,                                                  \
-                       mp_new_raw(_mp, fieldtypeof(qv_t(n), tab[0]), __len), \
-                       0, __len, _mp); })
+                       mp_new_raw(_mp, fieldtypeof(qv_t(n), tab[0]),         \
+                                  __size),                                   \
+                       0, __size, _mp); })
 
-#define t_qv_init(n, vec, len)  mp_qv_init(n, t_pool(), (vec), (len))
-#define r_qv_init(n, vec, len)  mp_qv_init(n, r_pool(), (vec), (len))
+#define t_qv_init(n, vec, size)  mp_qv_init(n, t_pool(), (vec), (size))
+#define r_qv_init(n, vec, size)  mp_qv_init(n, r_pool(), (vec), (size))
 
 #define qv_init(n, vec)  \
     ({ qv_t(n) *__vec = (vec);              \
