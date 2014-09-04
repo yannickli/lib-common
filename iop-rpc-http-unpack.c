@@ -193,6 +193,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     uint64_t    slot = ichttp_query_to_slot(iq);
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
+    bool force_pxy_hdr = false;
 
     if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
         hdr.simple.login    = LSTR_PS_V(&login);
@@ -230,6 +231,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
             dynproxy = (*e->u.dynproxy.get_ic)(&hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
+            force_pxy_hdr = pxy_hdr && !ic__hdr__equals(pxy_hdr, &hdr);
         }
         break;
       default:
@@ -240,7 +242,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     if (likely(pxy)) {
         ic_msg_t *msg = ic_msg_new(sizeof(uint64_t));
 
-        if (!ps_len(&login) && pxy_hdr) {
+        if ((!ps_len(&login) || force_pxy_hdr) && pxy_hdr) {
             /* XXX on simple header we write the payload size of the HTTP query */
             if (unlikely(pxy_hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple)))
             {

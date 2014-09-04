@@ -819,6 +819,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     ic__hdr__t *hdr = NULL;
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
+    bool take_pxy_hdr = false;
     uint64_t query_slot = MAKE64(ic->id, slot);
     int pos;
 
@@ -875,6 +876,10 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             dynproxy = (*e->u.dynproxy.get_ic)(hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
+            /* check for header replacement forcing */
+            if (pxy_hdr && hdr && !ic__hdr__equals(pxy_hdr, hdr)) {
+                take_pxy_hdr = true;
+            }
         }
         break;
       default:
@@ -887,7 +892,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic_reply_err(ic, query_slot, IC_MSG_PROXY_ERROR);
     } else {
         ic_msg_t *tmp;
-        bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
 
         if (e->pre_hook) {
             if (hdr || !(flags & IC_MSG_HAS_HDR)) {
@@ -912,6 +916,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             t_unseal();
         }
 
+        take_pxy_hdr |= !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
         tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
         if (slot) {
             tmp->cb = IC_PROXY_MAGIC_CB;
