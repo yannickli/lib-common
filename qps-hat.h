@@ -121,8 +121,6 @@ typedef union qhat_node_t {
 
 typedef struct qhat_root_t {
     /* Signature */
-#define QPS_TRIE_SIG_10  "QPS_trie/v01.00"
-#define QPS_TRIE_SIG_11  "QPS_trie/v01.01"
 #define QPS_TRIE_SIG_12  "QPS_trie/v01.02"
 #define QPS_TRIE_SIG     QPS_TRIE_SIG_12
     uint8_t     sig[16];
@@ -439,8 +437,6 @@ void qhat_fix_stored0(qhat_t *hat) __leaf;
  */
 /* {{{ */
 
-void qhat_upgrade(qhat_t *hat);
-
 static inline
 void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
 {
@@ -452,7 +448,8 @@ void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
 
     /* Conversion from older version of the structure */
     if (memcmp(QPS_TRIE_SIG, hat->root->sig, sizeof(QPS_TRIE_SIG))) {
-        qhat_upgrade(hat);
+        e_fatal("cannot upgrade trie from %*pM", (int)sizeof(QPS_TRIE_SIG) - 1,
+                hat->root->sig);
     }
     hat->do_stats = hat->root->do_stats;
 

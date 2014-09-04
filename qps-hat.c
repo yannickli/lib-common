@@ -1160,7 +1160,6 @@ static void qhat_initializes(void)
 /* }}} */
 /* Fix consistency {{{ */
 
-
 void qhat_fix_stored0(qhat_t *hat)
 {
     uint32_t c = 0;
@@ -1185,111 +1184,6 @@ void qhat_fix_stored0(qhat_t *hat)
     if (c > 0) {
         e_info("found and removed %u stored 0", c);
     }
-}
-
-typedef struct qhat_meta_t {
-    qhat_node_t leaf;
-    uint8_t     null_bits[];
-} qhat_meta_t;
-
-static void qhat_upgrade_node(qhat_t *hat, qhat_node_memory_t memory,
-                              uint32_t max, uint32_t key, int depth)
-{
-    qhat_node_t current = QHAT_NULL_NODE;
-    int shift = qhat_depth_shift(hat, depth);
-
-    for (uint32_t i = 0; i < max; i++) {
-        uint32_t new_key = key | (i << shift);
-
-        if (memory.nodes[i].value == current.value) {
-            continue;
-        }
-
-        current = memory.nodes[i];
-        if (current.value == 0) {
-            continue;
-        }
-
-        if (!current.leaf) {
-            qhat_node_memory_t child;
-
-            child = qhat_node_w_deref_(hat->qps, current);
-            qhat_upgrade_node(hat, child, QHAT_COUNT, new_key, depth + 1);
-        } else
-        if (current.compact) {
-            qhat_node_const_memory_t child;
-
-            child = qhat_node_deref_(hat->qps, current);
-            for (uint32_t p = 0; p < child.compact->count; p++) {
-                qps_bitmap_set(&hat->bitmap, child.compact->keys[p]);
-            }
-            i = child.compact->parent_right - 1;
-        } else {
-            qps_handle_t handle = current.page;
-            qhat_meta_t *meta   = qps_handle_deref(hat->qps, handle);
-            int words = hat->desc->leaves_per_flat / 64;
-            const uint8_t *data = meta->null_bits;
-
-            memory.nodes[i].page = meta->leaf.page;
-
-            for (int w = 0; w < words; w++) {
-                uint32_t k    = new_key + (w * 64);
-                uint64_t word = ~get_unaligned_le64(data);
-
-                while (word) {
-                    int bit = bsf64(word);
-
-                    k += bit;
-                    word >>= bit;
-                    word  &= ~UINT64_C(1);
-                    qps_bitmap_set(&hat->bitmap, k);
-                }
-                data += 8;
-            }
-
-            qps_free(hat->qps, handle);
-        }
-    }
-}
-
-void qhat_upgrade(qhat_t *hat)
-{
-    qhat_node_memory_t memory;
-    int ver;
-
-
-    if (memcmp(QPS_TRIE_SIG_10, hat->root->sig, sizeof(QPS_TRIE_SIG_10))
-    &&  memcmp(QPS_TRIE_SIG_11, hat->root->sig, sizeof(QPS_TRIE_SIG_11)))
-    {
-         e_fatal("cannot upgrade trie from %s", hat->root->sig);
-    }
-
-    ver = hat->root->sig[14];
-
-    e_info("upgrading trie from %s to %s", hat->root->sig, QPS_TRIE_SIG);
-    qps_hptr_realloc(hat->qps, sizeof(qhat_root_t), &hat->root_cache);
-
-    /* Initialize new fields */
-    hat->root->bitmap = 0;
-    if (ver == '0') {
-        hat->root->do_stats = false;
-    }
-
-    /* Set the new signature */
-    memcpy(hat->root->sig, QPS_TRIE_SIG, countof(hat->root->sig));
-
-    /* Upgrade the structure of the tree */
-    if (!hat->root->nullable) {
-        return;
-    }
-
-    hat->root->bitmap = qps_bitmap_create(hat->qps, false);
-    qps_bitmap_init(&hat->bitmap, hat->qps, hat->root->bitmap);
-
-    memory.nodes = hat->root->nodes;
-    qhat_upgrade_node(hat, memory, hat->desc->root_node_count, 0, 0);
-
-    qhat_fix_stored0(hat);
 }
 
 /* }}} */
