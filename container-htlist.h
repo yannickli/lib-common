@@ -27,10 +27,10 @@
  *
  * Here is an example with 3 htlists and 7 htnodes:
  *
- *             l3-------------------.
- * l1-----------|-------.  l2-------|-----.
- *  |           |       |   |       |     |
- *  v           v       v   v       v     v
+ *             l3-----------------.
+ * l1-----------|-----.    l2-----|-----.
+ *  |           |     |     |     |     |
+ *  v           v     v     v     v     v
  *  x --> x --> x --> x --> x --> x --> x --> NULL
  *
  * You can add elements to l1 at the end, it won't break l3, and will
@@ -44,19 +44,18 @@
  * modified: in the example above, doing htlist_add_tail(l1, l3) will
  * result in a big mess:
  *
- *                      .-----------.
- * l1-------------------'  l2-------|-----.
- *  |                       |       |     |
- *  v                       v       v     v
+ *                      .---------.
+ * l1-------------------'  l2-----|-----.
+ *  |                       |     |     |
+ *  v                       v     v     v
  *  x --> x --> x --> x     x --> x --> x --> NULL
  *              ^     |
  *              `-----'
  *
  * Note that an empty htlist looks like this:
  *
- *     l--.
- *     |  |
- *     |<-'
+ *     l --> NULL
+ *     |
  *     v
  *     ?? (may not be NULL, should not be dereferenced)
  *
@@ -71,32 +70,34 @@ typedef struct htnode_t {
 
 typedef struct htlist_t {
     htnode_t *head;
-    htnode_t **tail;
+    htnode_t *tail;
 } htlist_t;
+GENERIC_INIT(htlist_t, htlist);
 
 #define HTLIST(name)              htlist_t name = HTLIST_INIT(name)
-#define HTLIST_INIT(name)         { .tail = &(name).head }
+#define HTLIST_INIT(name)         { .tail = NULL }
 #define HTLIST_ATOMIC_INIT(name)  { .l = HTLIST_INIT(name.l) }
-static inline void htlist_init(htlist_t *l) {
-    l->head = NULL;
-    l->tail = &l->head;
-}
 
 static inline bool htlist_is_empty(const htlist_t *l) {
-    return l->tail == &l->head;
+    return l->tail == NULL;
 }
 
 static inline void htlist_add(htlist_t *l, htnode_t *n) {
     n->next = l->head;
     l->head = n;
-    if (l->tail == &l->head)
-        l->tail = &n->next;
+    if (htlist_is_empty(l)) {
+        l->tail = n;
+    }
 }
 
 static inline void htlist_add_tail(htlist_t *l, htnode_t *n) {
-    n->next  = *l->tail;
-    *l->tail = n;
-    l->tail  = &n->next;
+    if (htlist_is_empty(l)) {
+        htlist_add(l, n);
+    } else {
+        n->next = l->tail->next;
+        l->tail->next = n;
+        l->tail  = n;
+    }
 }
 
 /* Adding a node after another one. If prev is NULL, the new_node will be
@@ -110,8 +111,8 @@ static inline void htlist_add_after(htlist_t *l, htnode_t *prev,
     new_node->next = prev->next;
     prev->next = new_node;
 
-    if (l->tail == &prev->next)
-        l->tail = &new_node->next;
+    if (l->tail == prev)
+        l->tail = new_node;
 }
 
 static inline htnode_t *htlist_pop(htlist_t *l) {
@@ -120,8 +121,8 @@ static inline htnode_t *htlist_pop(htlist_t *l) {
     assert (!htlist_is_empty(l));
 
     l->head = res->next;
-    if (l->tail == &res->next) {
-        l->tail = &l->head;
+    if (l->tail == res) {
+        l->tail = NULL;
     }
     return res;
 }
@@ -130,10 +131,12 @@ static inline void
 htlist_splice(htlist_t *dst, htlist_t *src)
 {
     if (!htlist_is_empty(src)) {
-        *src->tail = dst->head;
-        dst->head  = src->head;
-        if (dst->tail == &dst->head)
+        src->tail->next = dst->head;
+        dst->head = src->head;
+
+        if (htlist_is_empty(dst)) {
             dst->tail = src->tail;
+        }
     }
 }
 
@@ -149,8 +152,8 @@ static inline void
 htlist_splice_tail(htlist_t *dst, htlist_t *src)
 {
     if (!htlist_is_empty(src)) {
-        *src->tail = *dst->tail;
-        *dst->tail = src->head;
+        src->tail->next = dst->tail->next;
+        dst->tail->next = src->head;
         /* XXX: src->tail points to an actual element because src is
          * not empty.
          */
@@ -165,7 +168,8 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
 #define htlist_pop_entry(hd, type, member) htlist_entry(htlist_pop(hd), type, member)
 
 #define __htlist_for_each(pos, n, hd, doit) \
-     for (htnode_t *n##_end_ = *(hd)->tail, *n = (pos); \
+     for (htnode_t *n##_end_ = (hd)->tail ? (hd)->tail->next : (pos),        \
+          *n = (pos);                                                        \
           n != n##_end_ && ({ doit; 1; }); n = n->next)
 
 #define htlist_for_each(n, hd)    __htlist_for_each((hd)->head, n, hd, )
@@ -200,7 +204,7 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
         if (prev)                                                           \
             delete(&prev);                                                  \
         _ptr->head = NULL;                                                  \
-        _ptr->tail = &_ptr->head;                                           \
+        _ptr->tail = _ptr->head;                                            \
     } while (0)
 
 #endif
