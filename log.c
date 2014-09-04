@@ -98,7 +98,11 @@ static __thread struct {
     bool inited;
     sb_t log;
     sb_t buf;
+
+    log_ctx_t ml_ctx;
 } log_thr_g;
+
+__thread log_thr_ml_t log_thr_ml_g;
 
 /* Configuration {{{ */
 
@@ -408,63 +412,107 @@ const qv_t(log_buffer) *log_stop_buffering(void)
     return &buffer_instance->vec_buffer;
 }
 
-int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
-                const char *file, const char *func, int line,
-                const char *fmt, va_list va)
+static __attr_printf__(3, 0)
+void logger_putv(const log_ctx_t *ctx, bool do_log,
+                 const char *fmt, va_list va)
 {
-    if (level <= LOG_CRIT) {
+    buffer_instance_t *buffer_instance;
+
+    if (ctx->level <= LOG_CRIT) {
         va_list cpy;
 
         syslog_is_critical = true;
         va_copy(cpy, va);
-        vsyslog(LOG_USER | level, fmt, cpy);
+        vsyslog(LOG_USER | ctx->level, fmt, cpy);
         va_end(cpy);
     }
 
-    if (logger_has_level(logger, level) || level >= LOG_TRACE) {
-        log_ctx_t ctx = {
-            .logger_name = lstr_dupc(logger->full_name),
-            .level       = level,
-            .file        = file,
-            .func        = func,
-            .line        = line,
-            .pid         = pid < 0 ? _G.pid : pid,
-            .prog_name   = prog ?: program_invocation_short_name,
-            .is_silent   = !!(logger->level_flags & LOG_SILENT),
-        };
-
-        if (_G.nb_buffer_started) {
-            buffer_instance_t *buffer_instance;
-
-            buffer_instance = &_G.vec_buff_stack.tab[_G.nb_buffer_started - 1];
-
-            if (level <= buffer_instance->buffer_log_level) {
-                int size_fmt;
-                log_buffer_t *log_save;
-                va_list cpy;
-                char *buffer;
-                qv_t(log_buffer) *vec_buffer = &buffer_instance->vec_buffer;
-
-                if (buffer_instance->use_handler) {
-                    (*_G.handler)(&ctx, fmt, va);
-                }
-
-                va_copy(cpy, va);
-                size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
-                va_end(cpy);
-
-                free_last_buffer();
-                buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
-                vsnprintf(buffer, size_fmt, fmt, va);
-
-                log_save = qv_growlen(log_buffer, vec_buffer, 1);
-                log_save->ctx = ctx;
-                log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
-            }
-        } else {
-            (*_G.handler)(&ctx, fmt, va);
-        }
+    if (!do_log) {
+        return;
     }
+
+    if (!_G.nb_buffer_started) {
+        (*_G.handler)(ctx, fmt, va);
+        return;
+    }
+
+    buffer_instance = &_G.vec_buff_stack.tab[_G.nb_buffer_started - 1];
+
+    if (ctx->level <= buffer_instance->buffer_log_level) {
+        int size_fmt;
+        log_buffer_t *log_save;
+        va_list cpy;
+        char *buffer;
+        qv_t(log_buffer) *vec_buffer = &buffer_instance->vec_buffer;
+
+        if (buffer_instance->use_handler) {
+            (*_G.handler)(ctx, fmt, va);
+        }
+
+        va_copy(cpy, va);
+        size_fmt = vsnprintf(NULL, 0, fmt, cpy) + 1;
+        va_end(cpy);
+
+        free_last_buffer();
+        buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
+        vsnprintf(buffer, size_fmt, fmt, va);
+
+        log_save = qv_growlen(log_buffer, vec_buffer, 1);
+        log_save->ctx = *ctx;
+        log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
+    }
+}
+
+static __attr_printf__(3, 4)
+void logger_put(const log_ctx_t *ctx, bool do_log, const char *fmt, ...)
+{
+    va_list va;
+
+    va_start(va, fmt);
+    logger_putv(ctx, do_log, fmt, va);
+    va_end(va);
+}
+
+static __attr_printf__(2, 0)
+void logger_put_in_buf(const log_ctx_t *ctx, const char *fmt, va_list ap)
+{
+    const char *p;
+    sb_t *buf = &log_thr_g.buf;
+
+    sb_addvf(buf, fmt, ap);
+
+    while ((p = memchr(buf->data, '\n', buf->len))) {
+        logger_put(ctx, true, "%*pM", (int)(p - buf->data), buf->data);
+        sb_skip_upto(buf, p + 1);
+    }
+}
+
+static __attr_noreturn__
+void logger_do_fatal(void)
+{
+    if (psinfo_get_tracer_pid(0) > 0) {
+        abort();
+    }
+    exit(127);
+}
+
+int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
+                const char *file, const char *func, int line,
+                const char *fmt, va_list va)
+{
+    log_ctx_t ctx = {
+        .logger_name = lstr_dupc(logger->full_name),
+        .level       = level,
+        .file        = file,
+        .func        = func,
+        .line        = line,
+        .pid         = pid < 0 ? _G.pid : pid,
+        .prog_name   = prog ?: program_invocation_short_name,
+        .is_silent   = !!(logger->level_flags & LOG_SILENT),
+    };
+
+    logger_putv(&ctx, logger_has_level(logger, level) || level >= LOG_TRACE,
+                fmt, va);
     return level <= LOG_WARNING ? -1 : 0;
 }
 
@@ -488,10 +536,7 @@ int __logger_log(logger_t *logger, int level, const char *prog, int pid,
     va_end(va);
 
     if (unlikely(level <= LOG_CRIT)) {
-        if (psinfo_get_tracer_pid(0) > 0) {
-            abort();
-        }
-        exit(127);
+        logger_do_fatal();
     }
 
     return res;
@@ -515,10 +560,7 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
     va_start(va, fmt);
     logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
 
-    if (psinfo_get_tracer_pid(0) > 0) {
-        abort();
-    }
-    exit(127);
+    logger_do_fatal();
 }
 
 #ifndef NDEBUG
@@ -550,6 +592,56 @@ int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
 }
 
 #endif
+
+void __logger_start(logger_t *logger, int level, const char *prog, int pid,
+                    const char *file, const char *func, int line)
+{
+    log_thr_g.ml_ctx = (log_ctx_t){
+        .logger_name = lstr_dupc(logger->full_name),
+        .level       = level,
+        .file        = file,
+        .func        = func,
+        .line        = line,
+        .pid         = pid < 0 ? _G.pid : pid,
+        .prog_name   = prog ?: program_invocation_short_name,
+        .is_silent   = !!(logger->level_flags & LOG_SILENT),
+    };
+}
+
+void __logger_vcont(const char *fmt, va_list ap)
+{
+    if (log_thr_ml_g.activated) {
+        logger_put_in_buf(&log_thr_g.ml_ctx, fmt, ap);
+    }
+}
+
+void __logger_cont(const char *fmt, ...)
+{
+    va_list va;
+
+    va_start(va, fmt);
+    __logger_vcont(fmt, va);
+    va_end(va);
+}
+
+void __logger_end(void)
+{
+    if (log_thr_ml_g.activated) {
+        __logger_cont("\n");
+    }
+}
+
+void __logger_end_panic(void)
+{
+    __logger_end();
+    abort();
+}
+
+void __logger_end_fatal(void)
+{
+    __logger_end();
+    logger_do_fatal();
+}
 
 /* }}} */
 /* Handlers {{{ */
@@ -795,22 +887,10 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
     return __logger_is_traced(logger, lvl, modname, func, name);
 }
 
-__attr_printf__(2, 3)
-static void e_trace_vput_(const log_ctx_t *ctx, const char *fmt, ...)
-{
-    va_list va;
-
-    va_start(va, fmt);
-    (*_G.handler)(ctx, fmt, va);
-    va_end(va);
-}
-
 void e_trace_put_(int level, const char *module, int lno,
                   const char *func, const char *name, const char *fmt, ...)
 {
-    const char *p;
     va_list ap;
-    sb_t *buf = &log_thr_g.buf;
     log_ctx_t ctx = {
         .logger_name = LSTR_OPT_STR_V(name),
         .level       = LOG_TRACE + level,
@@ -822,13 +902,8 @@ void e_trace_put_(int level, const char *module, int lno,
     };
 
     va_start(ap, fmt);
-    sb_addvf(buf, fmt, ap);
+    logger_put_in_buf(&ctx, fmt, ap);
     va_end(ap);
-
-    while ((p = memchr(buf->data, '\n', buf->len))) {
-        e_trace_vput_(&ctx, "%*pM", (int)(p - buf->data), buf->data);
-        sb_skip_upto(buf, p + 1);
-    }
 }
 
 #endif

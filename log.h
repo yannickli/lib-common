@@ -58,6 +58,30 @@
  * When a log is accepted, it is pushed to a handler that performs the output.
  * The handler can be changed by a call to \ref log_set_handler. A default
  * handler that prints on stderr is provided.
+ *
+ *
+ * \section log_scope Logging scope
+ *
+ * The logging facility provides two main APIs:
+ *  - the classic API that formats a whole line.
+ *  - a scoped API that let you build one or more line chunk-by-chunk.
+ *
+ * The scoped API works by delimiting a logging scope in which you will build
+ * the logs using calls to \ref logger_cont ("continue logging"). The scope
+ * itself is delimited by a starting call to \ref logger_*_start and an
+ * ending call to \ref logger_end. However, a more convenient solution
+ * consists in using \ref logger_*_scope that automatically start and stop the
+ * scope according to the C syntaxic scope.
+ *
+ * <pre>
+ *  {
+ *      logger_trace_scope(&logger, 1);
+ *
+ *      logger_cont("start ");
+ *      logger_cont("writing %d ", 2);
+ *      logger_cont("logs");
+ *  }
+ * </pre>
  */
 
 /* Logger {{{ */
@@ -205,7 +229,7 @@ void __logger_cold(void)
 }
 
 /* }}} */
-/* Logging {{{ */
+/* Simple logging {{{ */
 
 __attr_printf__(8, 0)
 int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
@@ -314,6 +338,180 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 
 #define logger_trace(Logger, Level, Fmt, ...)                                \
     __LOGGER_LOG(Logger, LOG_TRACE + (Level),, Fmt, ##__VA_ARGS__)
+
+#endif
+
+/* }}} */
+/* Multi-line logging {{{ */
+
+typedef struct log_thr_ml_t {
+    logger_t *logger;
+    bool activated;
+} log_thr_ml_t;
+
+extern __thread log_thr_ml_t log_thr_ml_g;
+
+void __logger_start(logger_t *logger, int level, const char *prog, int pid,
+                    const char *file, const char *func, int line);
+
+__attr_printf__(1, 2)
+void __logger_cont(const char *fmt, ...);
+
+__attr_printf__(1, 0)
+void __logger_vcont(const char *fmt, va_list va);
+
+void __logger_end(void);
+
+__attr_noreturn__ __cold
+void __logger_end_fatal(void);
+
+__attr_noreturn__ __cold
+void __logger_end_panic(void);
+
+
+#define __logger_log_start(Logger, Level, Mark)  ({                          \
+        const logger_t *__clogger = (Logger);                                \
+        logger_t *__logger = (logger_t *)__clogger;                          \
+        const int __level = (Level);                                         \
+                                                                             \
+        Mark;                                                                \
+        assert (!log_thr_ml_g.logger);                                       \
+        log_thr_ml_g.logger = __logger;                                      \
+        if (logger_has_level(__logger, __level)) {                           \
+            __logger_start(__logger, __level, NULL, -1, __FILE__, __func__,  \
+                           __LINE__);                                        \
+            log_thr_ml_g.activated = true;                                   \
+        }                                                                    \
+        __logger;                                                            \
+    })
+
+#define logger_panic_start(Logger)   __logger_log_start((Logger), LOG_CRIT,)
+
+#define logger_fatal_start(Logger)   __logger_log_start((Logger), LOG_CRIT,)
+
+#define logger_error_start(Logger)                                           \
+    __logger_log_start((Logger), LOG_ERR, __logger_cold())
+
+#define logger_warning_start(Logger)                                         \
+    __logger_log_start((Logger), LOG_WARNING, __logger_cold())
+
+#define logger_notice_start(Logger)  __logger_log_start((Logger), LOG_NOTICE,)
+
+#define logger_info_start(Logger)    __logger_log_start((Logger), LOG_INFO,)
+
+#define logger_debug_start(Logger)   __logger_log_start((Logger), LOG_DEBUG,)
+
+
+#define __logger_trace_start(Logger, Level, Mark)  ({                        \
+        const logger_t *__clogger = (Logger);                                \
+        logger_t *__logger = (logger_t *)__clogger;                          \
+        const int __level = (Level);                                         \
+                                                                             \
+        assert (!log_thr_ml_g.logger);                                       \
+        log_thr_ml_g.logger = __logger;                                      \
+        if (logger_is_traced(__logger, __level)) {                           \
+            __logger_start(__logger, LOG_TRACE + __level, NULL, -1, __FILE__,\
+                           __func__, __LINE__);                              \
+            log_thr_ml_g.activated = true;                                   \
+        }                                                                    \
+        __logger;                                                            \
+    })
+
+#define logger_trace_start(Logger, Level)                                    \
+    __logger_trace_start((Logger), (Level),)
+
+static inline void logger_end(logger_t *logger)
+{
+    assert (logger == log_thr_ml_g.logger);
+
+    if (log_thr_ml_g.activated) {
+        __logger_end();
+    }
+    log_thr_ml_g.logger = NULL;
+    log_thr_ml_g.activated = false;
+}
+
+static inline void _logger_end(logger_t **logger)
+{
+    logger_end(*logger);
+}
+
+static inline void logger_end_fatal(logger_t *logger)
+{
+    assert (logger == log_thr_ml_g.logger);
+
+    __logger_end_fatal();
+}
+
+static inline void _logger_end_fatal(logger_t **logger)
+{
+    logger_end_fatal(*logger);
+}
+
+static inline void logger_end_panic(logger_t *logger)
+{
+    assert (logger == log_thr_ml_g.logger);
+
+    __logger_end_panic();
+}
+
+static inline void _logger_end_panic(logger_t **logger)
+{
+    logger_end_panic(*logger);
+}
+
+#define logger_cont(Fmt, ...)  do {                                          \
+        assert (log_thr_ml_g.logger);                                        \
+        if (log_thr_ml_g.activated) {                                        \
+            __logger_cont(Fmt, ##__VA_ARGS__);                               \
+        }                                                                    \
+    } while (0)
+
+#define logger_vcont(Fmt, va)  do {                                          \
+        assert (log_thr_ml_g.logger);                                        \
+        if (log_thr_ml_g.activated) {                                        \
+            __logger_vcont(Fmt, va);                                         \
+        }                                                                    \
+    } while (0)
+
+#ifndef __cplusplus
+
+#define ___logger_scope(Logger, Level, Mark, Start, End, n)                  \
+    logger_t *l_scope##n __attribute__((unused,cleanup(End)))                \
+        = Start(Logger, Level, Mark)
+
+#define __logger_scope(Logger, Level, Mark, Start, End, n)                   \
+    ___logger_scope((Logger), (Level), Mark, Start, End, n)
+
+#define _logger_scope(Logger, Level, Mark, Start, End)                       \
+    __logger_scope((Logger), (Level), Mark, Start, End, __LINE__)
+
+#define logger_panic_scope(Logger)                                           \
+    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, logger_end_panic)
+
+#define logger_fatal_scope(Logger)                                           \
+    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, logger_end_fatal)
+
+#define logger_error_scope(Logger)                                           \
+    _logger_scope((Logger), LOG_ERR, __logger_cold(),                        \
+                  __logger_log_start, _logger_end)
+
+#define logger_warning_scope(Logger)                                         \
+    _logger_scope((Logger), LOG_WARNING, __logger_cold(),                    \
+                  __logger_log_start, _logger_end)
+
+#define logger_notice_scope(Logger)                                          \
+    _logger_scope((Logger), LOG_NOTICE,, __logger_log_start, _logger_end)
+
+#define logger_info_scope(Logger)                                            \
+    _logger_scope((Logger), LOG_INFO,, __logger_log_start, _logger_end)
+
+#define logger_debug_scope(Logger)                                           \
+    _logger_scope((Logger), LOG_DEBUG,, __logger_log_start, _logger_end)
+
+
+#define logger_trace_scope(Logger, Level)                                    \
+    _logger_scope((Logger), (Level),, __logger_trace_start, _logger_end)
 
 #endif
 
