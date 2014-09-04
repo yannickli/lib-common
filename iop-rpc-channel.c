@@ -813,8 +813,10 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                       uint32_t flags, const void *data, int dlen,
                       const ic_msg_t *unpacked_msg)
 {
+    t_scope;
     const ic_cb_entry_t *e;
     const iop_struct_t *st;
+    ic__hdr__t *hdr = NULL;
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
     uint64_t query_slot = MAKE64(ic->id, slot);
@@ -834,8 +836,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     switch (e->cb_type) {
       case IC_CB_NORMAL:
       case IC_CB_WS_SHARED: {
-        t_scope;
-        ic__hdr__t *hdr = NULL;
         void *value = NULL;
 
         if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
@@ -865,8 +865,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         break;
       case IC_CB_DYNAMIC_PROXY:
         {
-            t_scope;
-            ic__hdr__t *hdr = NULL;
             ic_dynproxy_t dynproxy;
 
             if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
@@ -892,19 +890,18 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
 
         if (e->pre_hook) {
-            t_scope;
-            ic__hdr__t *hdr = NULL;
-
-            if (flags & IC_MSG_HAS_HDR) {
-                if (unpacked_msg) {
-                    hdr = (ic__hdr__t *)unpacked_msg->hdr;
-                } else
-                if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
-                                             NULL, st, &hdr, NULL) < 0)
-                {
-                    goto invalid_iop;
-                }
+            if (hdr || !(flags & IC_MSG_HAS_HDR)) {
+                goto pre_hook;
             }
+            if (unpacked_msg) {
+                hdr = (ic__hdr__t *)unpacked_msg->hdr;
+            } else
+            if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, NULL, st,
+                                         &hdr, NULL) < 0)
+            {
+                goto invalid_iop;
+            }
+          pre_hook:
             t_seal();
             ic->cmd = cmd;
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
@@ -912,6 +909,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 return;
             }
             ic->cmd = 0;
+            t_unseal();
         }
 
         tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
