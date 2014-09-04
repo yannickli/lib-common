@@ -1025,6 +1025,7 @@ Z_GROUP_EXPORT(rbt)
 /*{{{1 HTList */
 
 typedef struct {
+    int id;
     htnode_t node;
 } htlist_test_node_t;
 GENERIC_FUNCTIONS(htlist_test_node_t, htlist_test_node);
@@ -1061,6 +1062,79 @@ Z_GROUP_EXPORT(htlist)
         Z_ASSERT_EQ(htlist_nb_nodes(&list), 1);
 
         htlist_test_node_delete(&node);
+    } Z_TEST_END
+
+    Z_TEST(accessors, "htlist:accessors") {
+        htlist_t list;
+        htlist_test_node_t node1 = {.id = 1};
+        htlist_test_node_t node2 = {.id = 2};
+        htlist_test_node_t node3 = {.id = 3};
+        htlist_test_node_t node4 = {.id = 4};
+
+        htlist_init(&list);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 0);
+
+        htlist_add(&list, &node1.node);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 1);
+
+        htlist_add_tail(&list, &node2.node);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 2);
+
+        htlist_add_tail(&list, &node3.node);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 3);
+
+        /* List =  1 --> 2 --> 3 */
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 1);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 3);
+        /* List =  2 --> 3 */
+        Z_ASSERT_EQ(htlist_pop_entry(&list, htlist_test_node_t,
+                                     node)->id, 1);
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 2);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 3);
+        /* List =  3 */
+        Z_ASSERT_EQ(htlist_pop_entry(&list, htlist_test_node_t,
+                                     node)->id, 2);
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 3);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 3);
+        /* List =  2 --> 3 */
+        htlist_add(&list, &node2.node);
+
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 2);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 3);
+        /* List =  2 --> 3 --> 4 */
+        htlist_add_tail(&list, &node4.node);
+
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 2);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 4);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 3);
+
+        /* Empty list */
+        Z_ASSERT_EQ(htlist_pop_entry(&list, htlist_test_node_t,
+                                     node)->id, 2);
+        Z_ASSERT_EQ(htlist_pop_entry(&list, htlist_test_node_t,
+                                     node)->id, 3);
+        Z_ASSERT_EQ(htlist_pop_entry(&list, htlist_test_node_t,
+                                     node)->id, 4);
+        Z_ASSERT_EQ(htlist_nb_nodes(&list), 0);
+
+        /* List = 4 */
+        htlist_add_tail(&list, &node4.node);
+
+        Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
+                                       node)->id, 4);
+        Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
+                                      node)->id, 4);
+
     } Z_TEST_END
 } Z_GROUP_END
 
