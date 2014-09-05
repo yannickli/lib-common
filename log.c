@@ -1506,6 +1506,80 @@ Z_GROUP_EXPORT(log) {
         log_set_handler(handler);
 #undef TEST_LOG_ENTRY
     } Z_TEST_END;
+
+    Z_TEST(scope, "scoped logs") {
+        logger_t l = LOGGER_INIT_INHERITS(NULL, "blah");
+
+#define _CHECK_RES(Level, Catch)  do {                                       \
+        if (Catch) {                                                         \
+            Z_ASSERT_EQ(vect_buffer->len, 2);                                \
+            Z_ASSERT_EQ(vect_buffer->tab[0].ctx.level, Level);               \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[0].msg,                      \
+                               LSTR_IMMED_V("coucou2"));                     \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[0].ctx.logger_name,          \
+                               LSTR_IMMED_V("blah"));                        \
+            Z_ASSERT_EQ(vect_buffer->tab[1].ctx.level, Level);               \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[1].msg,                      \
+                               LSTR_IMMED_V("coucou"));                      \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[1].ctx.logger_name,          \
+                               LSTR_IMMED_V("blah"));                        \
+        } else {                                                             \
+            Z_ASSERT_ZERO(vect_buffer->len);                                 \
+        }                                                                    \
+    } while (0)
+
+#define TEST(Scope, Start, End, Level, Catch)  do {                          \
+        const qv_t(log_buffer) *vect_buffer;                                 \
+                                                                             \
+        log_start_buffering(false);                                          \
+        Start;                                                               \
+        logger_cont("coucou");                                               \
+        logger_cont("%d", 2);                                                \
+        logger_cont("\ncou");                                                \
+        logger_cont("cou");                                                  \
+        End;                                                                 \
+        vect_buffer = log_stop_buffering();                                  \
+        _CHECK_RES(Level, Catch);                                            \
+                                                                             \
+        log_start_buffering(false);                                          \
+        {                                                                    \
+            Scope;                                                           \
+            logger_cont("coucou");                                           \
+            logger_cont("%d", 2);                                            \
+            logger_cont("\ncou");                                            \
+            logger_cont("cou");                                              \
+        }                                                                    \
+        vect_buffer = log_stop_buffering();                                  \
+        _CHECK_RES(Level, Catch);                                            \
+    } while (0)
+
+        TEST(logger_error_scope(&l),
+             logger_error_start(&l), logger_end(&l),
+             LOG_ERR, true);
+        TEST(logger_warning_scope(&l),
+             logger_warning_start(&l), logger_end(&l),
+             LOG_WARNING, true);
+        TEST(logger_notice_scope(&l),
+             logger_notice_start(&l), logger_end(&l),
+             LOG_NOTICE, true);
+        TEST(logger_info_scope(&l),
+             logger_info_start(&l), logger_end(&l),
+             LOG_INFO, true);
+        TEST(logger_debug_scope(&l),
+             logger_debug_start(&l), logger_end(&l),
+             LOG_DEBUG, true);
+        TEST(logger_trace_scope(&l, 0),
+             logger_trace_start(&l, 0), logger_end(&l),
+             LOG_TRACE, true);
+        TEST(logger_trace_scope(&l, 3),
+             logger_trace_start(&l, 3), logger_end(&l),
+             LOG_TRACE + 3, false);
+
+        logger_set_level(LSTR_IMMED_V("blah"), LOG_TRACE + 8, 0);
+        TEST(logger_trace_scope(&l, 3),
+             logger_trace_start(&l, 3), logger_end(&l),
+             LOG_TRACE + 3, true);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
