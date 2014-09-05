@@ -533,7 +533,12 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
     return iop_class_is_a(*(const iop_struct_t **)obj, desc);
 }
 
-#define iop_obj_is_a(obj, pfx)  iop_obj_is_a_desc((void *)(obj), &pfx##__s)
+#define iop_obj_is_a(obj, pfx)  ({                                           \
+        typeof(*(obj)) *__obj = (obj);                                       \
+                                                                             \
+        assert (__obj->__vptr);                                              \
+        iop_obj_is_a_desc((void *)(__obj), &pfx##__s);                       \
+    })
 
 /** Get the descriptor of a class from its fullname.
  *
