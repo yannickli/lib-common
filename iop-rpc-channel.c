@@ -764,7 +764,7 @@ static int
 t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
                          const void *data, int dlen,
                          const ic_msg_t *unpacked_msg, const iop_struct_t *st,
-                         ic__hdr__t **hdr, void **value)
+                         int *packed_hdr_len, ic__hdr__t **hdr, void **value)
 {
     pstream_t ps = ps_init(data, dlen);
 
@@ -786,6 +786,10 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
                 shdr->host = ic_get_client_addr(ic);
             }
         }
+    }
+
+    if (packed_hdr_len) {
+        *packed_hdr_len = dlen - ps_len(&ps);
     }
 
     if (value
@@ -817,6 +821,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     const ic_cb_entry_t *e;
     const iop_struct_t *st;
     ic__hdr__t *hdr = NULL;
+    int hlen = -1;
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
     bool take_pxy_hdr = false;
@@ -840,7 +845,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         void *value = NULL;
 
         if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
-                                     st, &hdr, &value) < 0)
+                                     st, NULL, &hdr, &value) < 0)
         {
             goto invalid_iop;
         }
@@ -869,7 +874,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic_dynproxy_t dynproxy;
 
             if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
-                                         unpacked_msg, st, &hdr, NULL) < 0)
+                                         unpacked_msg, st,
+                                         &hlen, &hdr, NULL) < 0)
             {
                 goto invalid_iop;
             }
@@ -901,7 +907,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 hdr = (ic__hdr__t *)unpacked_msg->hdr;
             } else
             if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, NULL, st,
-                                         &hdr, NULL) < 0)
+                                         &hlen, &hdr, NULL) < 0)
             {
                 goto invalid_iop;
             }
@@ -926,7 +932,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         tmp->cmd = cmd;
         *(uint64_t *)tmp->priv = query_slot;
 
-        /* XXX We do not support header replacement with proxyfication */
+        /* XXX We do not support header replacement with static proxyfication.
+         */
 
         if (unpacked_msg) {
             tmp->hdr = take_pxy_hdr ? pxy_hdr : unpacked_msg->hdr;
@@ -942,7 +949,14 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             if (take_pxy_hdr) {
                 qv_t(i32) szs;
                 uint8_t *buf;
-                int hlen;
+
+                /* skip the original hdr inside the data */
+                if (hlen < 0) {
+                    assert (!(flags & IC_MSG_HAS_HDR));
+                    hlen = 0;
+                }
+                data = (const char *)data + hlen;
+                dlen -= hlen;
 
                 /* Pack the given header in proxyfied request */
                 qv_inita(i32, &szs, 128);
