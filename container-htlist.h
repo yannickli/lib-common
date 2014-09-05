@@ -161,6 +161,7 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
 #define htlist_entry(ptr, type, member)    container_of(ptr, type, member)
 #define htlist_entry_of(ptr, n, member)    htlist_entry(ptr, typeof(*(n)), member)
 #define htlist_first_entry(l, type, member)  htlist_entry((l)->head, type, member)
+#define htlist_last_entry(l, type, member)  htlist_entry((htnode_t *)(l)->tail, type, member)
 #define htlist_pop_entry(hd, type, member) htlist_entry(htlist_pop(hd), type, member)
 
 #define __htlist_for_each(pos, n, hd, doit) \
