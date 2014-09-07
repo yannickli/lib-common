@@ -689,7 +689,7 @@ Z_GROUP_EXPORT(asn1_ber)
         int    blen;
 
         ps = ps_initlstr(&ber);
-        Z_ASSERT_N(asn1_unpack(test_iop_choice, &ps, NULL, &choice, false) < 0);
+        Z_ASSERT_N(asn1_unpack(test_iop_choice, &ps, NULL, &choice, false));
         Z_ASSERT_EQ(choice.iop_tag, 2);
         Z_ASSERT_EQ(choice.i16,     0x45);
 
