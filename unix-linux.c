@@ -15,6 +15,7 @@
 
 #include <dirent.h>
 #include <execinfo.h> /* backtrace_symbols_fd */
+#include <sys/wait.h>
 #include "unix.h"
 #include "datetime.h"
 
@@ -57,6 +58,19 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
         }
     } else {
         XWRITE("\n");
+    }
+}
+
+void ps_dump_core_of_current_thread(void)
+{
+    pid_t pid = fork();
+
+    if (!pid) {
+        abort();
+    } else
+    if (pid > 0) {
+        while (waitpid(pid, NULL, 0) < 0) {
+        }
     }
 }
 
