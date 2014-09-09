@@ -682,7 +682,12 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     int         tmp = errno;
     const byte *endp;
 
-    lstr = lstr_rtrim(lstr);
+    lstr = lstr_trim(lstr);
+
+    if (lstr.len && lstr.s[0] == '-') {
+        errno = ERANGE;
+        return -1;
+    }
 
     errno = 0;
     *out = memtoullp(lstr.s, lstr.len, &endp);
