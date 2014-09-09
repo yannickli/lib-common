@@ -1325,6 +1325,9 @@ Z_GROUP_EXPORT(str)
         T_KO("  12abcd");
         T_KO("12.12");
 #undef T_KO
+
+        Z_ASSERT_NEG(lstr_to_uint64(LSTR_IMMED_V(" -123"), &u64));
+        Z_ASSERT_EQ(errno, ERANGE);
     } Z_TEST_END;
 } Z_GROUP_END;
 
