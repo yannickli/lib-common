@@ -839,26 +839,18 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         void *value = NULL;
 
         if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
-                                     st, &hdr, &value) >= 0)
+                                     st, &hdr, &value) < 0)
         {
-            t_seal();
-            ic->desc = e->rpc;
-            ic->cmd  = cmd;
-
-            if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
-                ic->desc = NULL;
-                ic->cmd  = 0;
-                return;
-            }
-            (*e->u.cb.cb)(ic, query_slot, value, hdr);
-            ic->desc = NULL;
-            ic->cmd  = 0;
-        } else
-        if (slot) {
-            lstr_t err_str = iop_get_err_lstr();
-
-            ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+            goto invalid_iop;
         }
+        t_seal();
+        ic->desc = e->rpc;
+        ic->cmd  = cmd;
+        if (ic_query_do_pre_hook(ic, query_slot, hdr, e) >= 0) {
+            (*e->u.cb.cb)(ic, query_slot, value, hdr);
+        }
+        ic->desc = NULL;
+        ic->cmd  = 0;
         return;
       }
 
@@ -880,14 +872,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
                                          unpacked_msg, st, &hdr, NULL) < 0)
             {
-                if (slot) {
-                    lstr_t err_str = iop_get_err_lstr();
-
-                    ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
-                }
-                return;
+                goto invalid_iop;
             }
-
             dynproxy = (*e->u.dynproxy.get_ic)(hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
@@ -916,11 +902,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
                                              NULL, st, &hdr, NULL) < 0)
                 {
-                    if (slot) {
-                        lstr_t err_str = iop_get_err_lstr();
-                        ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
-                    }
-                    return;
+                    goto invalid_iop;
                 }
             }
             t_seal();
@@ -975,6 +957,13 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             flags |= IC_MSG_HAS_HDR;
         }
         ___ic_query_flags(pxy, tmp, flags);
+    }
+    return;
+
+  invalid_iop:
+    if (slot) {
+        lstr_t err_str = iop_get_err_lstr();
+        ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
     }
 }
 
