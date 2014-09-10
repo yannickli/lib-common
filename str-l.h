@@ -733,6 +733,7 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     const byte *endp;
 
     lstr = lstr_trim(lstr);
+    *out = 0;
 
     if (lstr.len && lstr.s[0] == '-') {
         errno = ERANGE;
