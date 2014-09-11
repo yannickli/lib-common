@@ -915,9 +915,10 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
                                              NULL, st, &hdr, NULL) < 0)
                 {
-                    lstr_t err_str = iop_get_err_lstr();
-
-                    ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+                    if (slot) {
+                        lstr_t err_str = iop_get_err_lstr();
+                        ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+                    }
                     return;
                 }
             }
