@@ -349,42 +349,58 @@ bool licence_check_general_ok(const conf_t *conf)
 
 bool licence_check_specific_host_ok(const conf_t *conf)
 {
-    uint32_t cpusig;
-    char buf[64];
+    pstream_t ps, out;
     const char *p;
 
     /* cpu_signature is optional in licence section : If it does not
      * appear, we do not check it. */
     p = conf_get_raw(conf, "licence", "cpu_signature");
     if (p) {
-        uint32_t sig;
+        uint32_t cpusig;
 
         if (read_cpu_signature(&cpusig)) {
             return false;
         }
 
-        while (*p) {
-            sig = strtol(p, &p, 0);
-            if (sig == cpusig)
-                goto cpu_ok;
+        ps = ps_initstr(p);
+        while (!ps_done(&ps)) {
+            uint32_t sig;
 
-            while (*p && (*p == ' ' || *p == ','))
-                p++;
+            if (ps_get_ps_chr_and_skip(&ps, ',', &out) < 0) {
+                out = ps;
+                ps = ps_init(NULL, 0);
+            }
+            ps_trim(&out);
+            errno = 0;
+            sig = strtol(out.s, &out.s, 0);
+            if (errno || !ps_done(&out)) {
+                continue;
+            }
+            if (sig == cpusig) {
+                goto cpu_ok;
+            }
         }
         return false;
     }
 
   cpu_ok:
     p = conf_get_raw(conf, "licence", "mac_addresses");
-    if (!p)
+    if (!p) {
         return false;
-    while (*p) {
-        p += pstrcpylen(buf, sizeof(buf), p, 17);
+    }
+    ps = ps_initstr(p);
+    while (!ps_done(&ps)) {
+        char buf[64];
+
+        if (ps_get_ps_chr_and_skip(&ps, ',', &out) < 0) {
+            out = ps;
+            ps = ps_init(NULL, 0);
+        }
+        ps_trim(&out);
+        pstrcpylen(buf, sizeof(buf), out.s, ps_len(&out));
         if (is_my_mac_addr(buf)) {
             goto mac_ok;
         }
-        while (*p && (*p == ' ' || *p == ','))
-            p++;
     }
     return false;
 
