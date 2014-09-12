@@ -65,6 +65,8 @@ typedef struct log_file_t {
     char     prefix[PATH_MAX];
     char     ext[8];
 
+    flag_t   disable_rotation : 1;
+
     /* Event callback */
     log_file_cb_f *on_event;
     void          *priv_cb;
@@ -96,6 +98,20 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
     __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
 
 int log_file_flush(log_file_t *log_file);
+
+/** Disable file rotations until 'log_file_enable_rotation' is called.
+ *
+ * This function should be used for logs we don't want to spread on two (or
+ * more) files because of rotation mechanism.
+ */
+void log_file_disable_rotation(log_file_t *file);
+
+/** Re-enable file rotations after 'log_file_disable_rotation' has been
+ *  called and trigger a rotation if needed.
+ *
+ * \return 0 on success, -1 in case of rotation failure.
+ */
+int log_file_enable_rotation(log_file_t *log_file);
 
 /** Get the creation timestamp of a log file from his full path.
  *

@@ -359,6 +359,10 @@ static int log_file_rotate_(log_file_t *file, time_t now)
 
 static int log_check_rotate(log_file_t *lf)
 {
+    if (lf->disable_rotation) {
+        return 0;
+    }
+
     if (lf->max_size > 0) {
         off_t size = file_tell(lf->_internal);
         if (size >= lf->max_size)
@@ -409,6 +413,18 @@ int log_file_flush(log_file_t *log_file)
     if (log_file->_internal)
         return file_flush(log_file->_internal);
     return 0;
+}
+
+void log_file_disable_rotation(log_file_t *file)
+{
+    file->disable_rotation = true;
+}
+
+int log_file_enable_rotation(log_file_t *file)
+{
+    file->disable_rotation = false;
+
+    return log_check_rotate(file);
 }
 
 int log_file_get_file_stamp(const log_file_t *file, const char *path,
