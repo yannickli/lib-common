@@ -904,9 +904,37 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (slot)
             ic_reply_err(ic, query_slot, IC_MSG_PROXY_ERROR);
     } else {
-        ic_msg_t *tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
+        ic_msg_t *tmp;
         bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
 
+        if (e->pre_hook) {
+            t_scope;
+            ic__hdr__t *hdr = NULL;
+
+            if (flags & IC_MSG_HAS_HDR) {
+                if (unpacked_msg) {
+                    hdr = (ic__hdr__t *)unpacked_msg->hdr;
+                } else
+                if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
+                                             NULL, st, &hdr, NULL) < 0)
+                {
+                    if (slot) {
+                        lstr_t err_str = iop_get_err_lstr();
+                        ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
+                    }
+                    return;
+                }
+            }
+            t_seal();
+            ic->cmd = cmd;
+            if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
+                ic->cmd = 0;
+                return;
+            }
+            ic->cmd = 0;
+        }
+
+        tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
         if (slot) {
             tmp->cb = IC_PROXY_MAGIC_CB;
         } else {
@@ -945,31 +973,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             }
         }
 
-        if (e->pre_hook) {
-            t_scope;
-            ic__hdr__t *hdr = NULL;
-
-            if (flags & IC_MSG_HAS_HDR) {
-                if (unpacked_msg) {
-                    hdr = (ic__hdr__t *)unpacked_msg->hdr;
-                } else
-                if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
-                                             NULL, st, &hdr, NULL) < 0)
-                {
-                    lstr_t err_str = iop_get_err_lstr();
-
-                    ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
-                    return;
-                }
-            }
-            t_seal();
-            ic->cmd = cmd;
-            if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
-                ic->cmd = 0;
-                return;
-            }
-            ic->cmd = 0;
-        }
         if (take_pxy_hdr) {
             flags |= IC_MSG_HAS_HDR;
         }
