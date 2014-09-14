@@ -3752,7 +3752,6 @@ Z_GROUP_EXPORT(iop)
         qv_t(lstr) fields_name;
         iop_struct_t *st;
         const iop_field_t *f;
-        mem_pool_t *mp = t_pool();
 
         qv_init(iop_field_info, &fields_info);
         qv_init(lstr, &fields_name);
@@ -3771,7 +3770,7 @@ Z_GROUP_EXPORT(iop)
 
 #undef POLULATE_FIELDSINFO
 
-        st = iop_type_vector_to_iop_struct(mp, LSTR_IMMED_V("fullname"),
+        st = iop_type_vector_to_iop_struct(NULL, LSTR_IMMED_V("fullname"),
                                            &fields_info);
 
         Z_ASSERT_LSTREQUAL(st->fullname, LSTR_IMMED_V("fullname"));
@@ -3856,6 +3855,7 @@ Z_GROUP_EXPORT(iop)
 
         qv_wipe(iop_field_info, &fields_info);
         qv_wipe(lstr, &fields_name);
+        p_delete(&st);
     } Z_TEST_END
     /* }}} */
 } Z_GROUP_END

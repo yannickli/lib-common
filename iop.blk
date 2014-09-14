@@ -434,7 +434,7 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
 
         /* update field attributes */
         *field = (iop_field_t){
-            .name      = mp_lstr_dup(mp, field_info->name),
+            .name      = LSTR_NULL,
             .tag       = field - st->fields + 1,
             .tag_len   = 0,
             .repeat    = field_info->repeat,
