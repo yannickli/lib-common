@@ -427,6 +427,25 @@ int log_file_enable_rotation(log_file_t *file)
     return log_check_rotate(file);
 }
 
+int log_fwrite_transaction(log_file_t *file, int (^log_b)(void))
+{
+    off_t fpos;
+
+    log_file_disable_rotation(file);
+    fpos = file_tell(file->_internal);
+
+    if (log_b() < 0) {
+        file->disable_rotation = false;
+        IGNORE(file_truncate(file->_internal, fpos));
+
+        return -1;
+    }
+
+    RETHROW(log_file_enable_rotation(file));
+
+    return 0;
+}
+
 int log_file_get_file_stamp(const log_file_t *file, const char *path,
                             time_t *out)
 {

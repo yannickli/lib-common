@@ -143,4 +143,28 @@ static inline bool log_file_isopen(log_file_t *log_file)
     return (log_file->_internal != NULL);
 }
 
+#ifdef __has_blocks
+
+/** Write logs in the current file in a transaction-like mode.
+ *
+ * This function should be used for logs we don't want to split on two (or
+ * more) files because of the rotation mechanism.
+ *
+ * This function executes the block given as an argument with file rotations
+ * disabled. In case of failure, the current file is rewinded to the position
+ * it had before the call.
+ *
+ * XXX Warning: we speak about transaction here because of the rollback
+ * capability of the feature. For example, this function does *not* unlock the
+ * possibility to write logs from different threads using the same log_file_t.
+ *
+ * \param[in]  file   The log_file_t.
+ * \param[in]  log_b  The callback block.
+ *
+ * \return 0 on success, a negative value on failure.
+ */
+int log_fwrite_transaction(log_file_t *file, int (BLOCK_CARET log_b)(void));
+
+#endif
+
 #endif /* IS_LIB_COMMON_LOG_FILE_H */
