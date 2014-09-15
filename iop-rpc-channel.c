@@ -459,7 +459,7 @@ static int ic_write_stream(ichannel_t *ic, int fd)
     } while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list));
 
     el_fd_set_mask(ic->elh, POLLIN);
-    return 0;
+    return 1;
 }
 
 #ifndef CMSG_ALIGN
@@ -563,7 +563,7 @@ static int ic_write_seq(ichannel_t *ic, int fd)
 #undef iovc
     }
     el_fd_set_mask(ic->elh, POLLIN);
-    return 0;
+    return 1;
 }
 
 
@@ -1193,6 +1193,18 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             return -1;
         }
         sb_skip(buf, IC_MSG_HDR_LEN + dlen);
+
+        if (events & POLLOUT) {
+            int ret = ic->is_stream ? ic_write_stream(ic, sock)
+                                    : ic_write_seq(ic, sock);
+
+            if (ret <= 0) {
+                /* XXX don't raise an error since we want to read a potential
+                 * pending IC_BYE on the channel.
+                 */
+                events &= ~POLLOUT;
+            }
+        }
     }
     if (expect(fdc == 0)) {
         if (buf->len < IC_MSG_HDR_LEN) {
@@ -1299,7 +1311,7 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
     if (!ic->elh) {
         return 0;
     }
-    if (ic->is_stream ? ic_write_stream(ic, fd) : ic_write_seq(ic, fd)) {
+    if ((ic->is_stream ? ic_write_stream(ic, fd) : ic_write_seq(ic, fd)) < 0) {
         if (errno)
             e_trace(1, "ic_write error: %m");
         goto close;
