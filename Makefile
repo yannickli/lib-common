@@ -76,7 +76,7 @@ libcommon_SOURCES = \
 	el-stopper.c \
 	\
 	file.c \
-	file-log.c \
+	file-log.blk \
 	\
 	hash-aes.c \
 	hash-arc4.c \
