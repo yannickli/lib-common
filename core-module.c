@@ -176,7 +176,7 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
             dep_modules = &_G.module_dep_resolve.values[pos];
             qh_init(ptr, dep_modules, false);
         }
-        expect(qh_add(ptr, dep_modules, *dep_ptr) >= 0);
+        IGNORE(expect(qh_add(ptr, dep_modules, *dep_ptr) >= 0));
         return;
     }
 
