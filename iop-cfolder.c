@@ -145,13 +145,11 @@ static int cf_reduce(qv_t(cf_elem) *stack)
       case CF_OP_DIV:
         if (!eright.num) {
             return e_error("invalid division by 0");
-            break;
         }
         if (eleft.is_signed && eleft.num == (uint64_t)INT64_MIN
         &&  eright.is_signed && eright.num == (uint64_t)-1)
         {
             return e_error("division overflow");
-            break;
         }
 
         res.is_signed = eleft.is_signed ^ eright.is_signed;
