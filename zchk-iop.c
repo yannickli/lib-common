@@ -475,11 +475,11 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END;
     /* }}} */
     Z_TEST(constant_folder, "test the IOP constant folder") { /* {{{ */
-#define feed_num(_num) \
-        Z_ASSERT_N(iop_cfolder_feed_number(&cfolder, _num, true), \
-                   "error when feeding %d", _num)
-#define feed_op(_op) \
-        Z_ASSERT_N(iop_cfolder_feed_operator(&cfolder, _op), \
+#define feed_num(_num)                                                  \
+        Z_ASSERT_N(iop_cfolder_feed_number(&cfolder, _num, true),       \
+                   "error when feeding %jd", (int64_t)_num)
+#define feed_op(_op)                                                    \
+        Z_ASSERT_N(iop_cfolder_feed_operator(&cfolder, _op),            \
                    "error when feeding with %d", _op)
 
 #define result(_res) \
@@ -489,6 +489,15 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(iop_cfolder_get_result(&cfolder, &cres),         \
                        "constant folder error");                        \
             Z_ASSERT_EQ((int64_t)cres, (int64_t)_res);                  \
+            iop_cfolder_wipe(&cfolder);                                 \
+            iop_cfolder_init(&cfolder);                                 \
+        } while (false)
+
+#define error()                                                         \
+        do {                                                            \
+            uint64_t cres;                                              \
+                                                                        \
+            Z_ASSERT_NEG(iop_cfolder_get_result(&cfolder, &cres));      \
             iop_cfolder_wipe(&cfolder);                                 \
             iop_cfolder_init(&cfolder);                                 \
         } while (false)
@@ -598,10 +607,21 @@ Z_GROUP_EXPORT(iop)
         feed_num(3);
         result(131);
 
+        feed_num(1);
+        feed_op('/');
+        feed_num(0);
+        error();
+
+        feed_num(INT64_MIN);
+        feed_op('/');
+        feed_num(-1);
+        error();
+
         iop_cfolder_wipe(&cfolder);
 #undef feed_num
 #undef feed_op
 #undef result
+#undef error
     } Z_TEST_END;
     /* }}} */
     Z_TEST(unions, "test IOP union helpers") { /* {{{ */
