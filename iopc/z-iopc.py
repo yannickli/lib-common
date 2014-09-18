@@ -15,6 +15,8 @@
 
 import sys, os, os.path
 
+SELF_PATH = os.path.dirname(__file__)
+TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
 self_path = os.path.dirname(sys.argv[0])
 sys.path.append(self_path+ "/../lib-common")
 
@@ -150,6 +152,18 @@ class IopcTest(z.TestCase):
         f = 'attrs_valid.iop'
         self.run_iopc_pass(f, 3)
         self.run_gcc(f)
+
+    def test_attrs_multi_valid(self):
+        f = 'attrs_multi_valid.iop'
+        self.run_iopc_pass(f, 3)
+        self.run_gcc(f)
+        path_base = os.path.join(TEST_PATH,
+                                 'attrs_multi_valid.iop.c')
+        path_ref = os.path.join(TEST_PATH,
+                                'reference_attrs_multi_valid.c')
+        ref_base = open(path_base, "r")
+        ref = open(path_ref, "r")
+        self.assertEqual(ref.read(), ref_base.read())
 
     def test_attrs_invalid_1(self):
         self.run_iopc2('attrs_invalid_1.iop', False, 'incorrect attribute name')

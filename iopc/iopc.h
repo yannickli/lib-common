@@ -432,6 +432,21 @@ typedef struct iopc_arg_t {
     } v;
 } iopc_arg_t;
 
+static inline iopc_arg_t iopc_arg_dup(const iopc_arg_t *arg) {
+    iopc_arg_t a = *arg;
+
+    if (a.desc) {
+        switch (a.desc->type) {
+          case ITOK_STRING:
+          case ITOK_IDENT:
+            a.v.s = lstr_dup(arg->v.s);
+            break;
+          default:
+            break;
+        }
+    }
+    return a;
+}
 static inline iopc_arg_t *iopc_arg_init(iopc_arg_t *a) {
     p_clear(a, 1);
     return a;

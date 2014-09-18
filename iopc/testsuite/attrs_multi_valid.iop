@@ -1,0 +1,17 @@
+package attrs_multi_valid;
+union MyUnion {
+    int a;
+    long b;
+    string c;
+    double d;
+};
+
+@allow(a)
+typedef MyUnion Un;
+
+struct Toto {
+    @allow(b)
+    Un b;
+    @allow(c)
+    Un c;
+};

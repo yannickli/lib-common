@@ -1321,10 +1321,10 @@ static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
     if (pos < 0 || attr->desc->args.len != 1) {
         qv_append(iopc_attr, attrs, attr);
     } else {
-        qv_splice(iopc_arg, &attrs->tab[pos]->args,
-                  attrs->tab[pos]->args.len, 0,
-                  attr->args.tab, attr->args.len);
-        attr->args.len = 0;
+        qv_for_each_entry(iopc_arg, arg, &attr->args) {
+            *qv_growlen(iopc_arg, &attrs->tab[pos]->args, 1) =
+                iopc_arg_dup(&arg);
+        }
         iopc_attr_delete(attrp);
     }
 }
