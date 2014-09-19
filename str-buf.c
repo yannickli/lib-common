@@ -22,9 +22,10 @@ char *sb_detach(sb_t *sb, int *len)
 {
     char *s;
 
-    if (len)
+    if (len) {
         *len = sb->len;
-    if (mp_ipool(sb->mp) == &mem_pool_libc) {
+    }
+    if (mp_ipool(sb->mp) == &mem_pool_libc && sb->data != __sb_slop) {
         if (sb->skip) {
             memmove(sb->data - sb->skip, sb->data, sb->len + 1);
         }
