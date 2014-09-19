@@ -21,6 +21,24 @@ Z_GROUP_EXPORT(str)
     char    buf[BUFSIZ];
     ssize_t res;
 
+    Z_TEST(sb_detach, "sb_detach") {
+        sb_t sb;
+        char *p;
+        int len;
+
+        sb_init(&sb);
+        p = sb_detach(&sb, NULL);
+        Z_ASSERT(p != __sb_slop);
+        Z_ASSERT_EQ(*p, '\0');
+        p_delete(&p);
+
+        sb_adds(&sb, "foo");
+        p = sb_detach(&sb, &len);
+        Z_ASSERT_EQ(len, 3);
+        Z_ASSERT_STREQUAL(p, "foo");
+        p_delete(&p);
+    } Z_TEST_END;
+
     Z_TEST(ebcdic, "str: sb_conv_from_ebcdic297") {
         static char const ebcdic[] = {
 #include "samples/ebcdic.sample.bin"
