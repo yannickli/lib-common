@@ -606,7 +606,7 @@ int module_check_no_dependencies(module_t *tab[], int len,
     t_scope;
     qh_t(lstr) dependencies;
 
-    t_qh_init(lstr, &dependencies, false, len);
+    t_qh_init(lstr, &dependencies, len);
     for (int pos = 0; pos < len; pos++) {
         add_dependencies_to_qh(tab[pos], &dependencies);
     }

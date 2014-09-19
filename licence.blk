@@ -687,7 +687,7 @@ int licence_check_modules(const core__licence__t *licence)
         qh_wipe(lstr, &static_names);
     }
 
-    t_qh_init(lstr, &fullnames, 0, licence->modules.len);
+    t_qh_init(lstr, &fullnames, licence->modules.len);
 
     tab_for_each_entry(e, &licence->modules) {
         lstr_t name = iop_get_cvar(e, LSTR_IMMED_V("name"))->s;

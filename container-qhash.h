@@ -597,29 +597,52 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_kptr_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t, val_t, hf, ef)
 #define qm_kptr_ckey_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t const, val_t, hf, ef)
 
-/** Statis QH initializer.
+/** Static QH initializer.
  *
  * \see qh_init
  */
-#define QH_INIT(name, var, cacheh) \
+#define QH_INIT(name, var, ...) \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
-        .h_size = !!(cacheh),                   \
+        .h_size = sizeof(#__VA_ARGS__) == 5,    \
+    } }
+
+/** Static QH initializer with hash caching.
+ *
+ * \see qh_init_cached
+ */
+#define QH_INIT_CACHED(name, var) \
+    { .qh = {                                   \
+        .k_size = sizeof((var).keys[0]),        \
+        .h_size = true,                         \
     } }
 
 /** Static QM initializer.
  *
  * \see qm_init
  */
-#define QM_INIT(name, var, cacheh) \
+#define QM_INIT(name, var, ...) \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
         .v_size = sizeof((var).values[0]),      \
-        .h_size = !!(cacheh),                   \
+        .h_size = sizeof(#__VA_ARGS__) == 5,    \
     } }
 
-#define QH(name, var, cacheh)  qh_t(name) var = QH_INIT(name, var, cacheh)
-#define QM(name, var, cacheh)  qm_t(name) var = QM_INIT(name, var, cacheh)
+/** Static QM initializer with hash caching.
+ *
+ * \see qm_init_cached
+ */
+#define QM_INIT_CACHED(name, var) \
+    { .qh = {                                   \
+        .k_size = sizeof((var).keys[0]),        \
+        .v_size = sizeof((var).values[0]),      \
+        .h_size = true,                         \
+    } }
+
+#define QH(name, var, ...)  qh_t(name) var = QH_INIT(name, var, ##__VA_ARGS__)
+#define QH_CACHED(name, var)  qh_t(name) var = QH_INIT_CACHED(name, var)
+#define QM(name, var, ...)  qm_t(name) var = QM_INIT(name, var, ##__VA_ARGS__)
+#define QM_CACHED(name, var)  qm_t(name) var = QM_INIT_CACHED(name, var)
 
 /*
  * The difference between the qh_ and qm_ functions is for the `add` and
@@ -642,9 +665,20 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  *
  * \param[in] name The type of the hash set.
  * \param[in] qh   A pointer to the hash set to initialize.
- * \param[in] chahes If true, enables caching of hashes.
  *
- * When \p chahes is true, the table cache, in addition to the keys, the hash
+ */
+#define qh_init(name, qh, ...)  do {                                         \
+        bool chahes[] = { false, ##__VA_ARGS__ };                            \
+        STATIC_ASSERT(countof(chahes) <= 2);                                 \
+        qh_##name##_init(qh, chahes[countof(chahes) - 1], NULL);             \
+    } while (0)
+
+/** Initialize a Hash-Set with hash caching.
+ *
+ * \param[in] name The type of the hash set.
+ * \param[in] qh   A pointer to the hash set to initialize.
+ *
+ * This variant enables the table cache, in addition to the keys, the hash
  * of those keys. This has two consequences:
  *  - first, in memory usage: 4 bytes is reserved per slot of the of qh (the
  *    number of slot being larger than the number of keys actually inserted in
@@ -658,25 +692,22 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  * As a consequence, the hash caching should be reserved to use cases in which
  * the hash or equality operation is expensive or in case the hash table will
  * get frequently resized. In a general fashion, if you have any doubt, don't
- * put \p chahes at true a priori, and change the parameter afterward if you
- * identify a bottleneck in the hashing function (you may even try using \ref
- * qh_set_minsize before change \p chahes if you trigger too many resizes
- * of you table).
+ * use hash caching before identifying a bottleneck in hashing function (you
+ * may even try using \ref qh_set_minsize before activating the caching if you
+ * trigger too many resizes of you table).
  *
- * Never set \p chahes to true if the qh is issued from a qh_k32_t or a
- * qh_k64_t.
+ * Never uses this function with issued from a qh_k32_t or a qh_k64_t.
  */
-#define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes, NULL)
-#define mp_qh_init(name, mp, h, chahes, sz)  \
+#define qh_init_cached(name, qh)  qh_##name##_init(qh, true, NULL)
+
+#define mp_qh_init(name, mp, h, sz)                                          \
     ({                                                                       \
         qh_t(name) *_qh = (h);                                               \
-        qh_##name##_init(_qh, (chahes), (mp));                               \
+        qh_##name##_init(_qh, false, (mp));                                  \
         qhash_set_minsize(&_qh->qh, (sz));                                   \
     })
-#define t_qh_init(name, qh, chahes, sz)                                      \
-    mp_qh_init(name, t_pool(), (qh), (chahes), (sz))
-#define r_qh_init(name, qh, chahes, sz)                                      \
-    mp_qh_init(name, r_pool(), (qh), (chahes), (sz))
+#define t_qh_init(name, qh, sz)  mp_qh_init(name, t_pool(), (qh), (sz))
+#define r_qh_init(name, qh, sz)  mp_qh_init(name, r_pool(), (qh), (sz))
 
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
@@ -779,24 +810,33 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  *
  * \param[in] name   The type of the map.
  * \param[in] qh     A pointer to the map to initialize.
- * \param[in] chahes If true, enables caching of hashes.
- *
- * A discussion about the \p chahes parameter is available in \ref qh_init
- * documentation.
  *
  * \note You can also use the static initializer \ref QM_INIT
  */
-#define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes, NULL)
-#define mp_qm_init(name, mp, h, chahes, sz) \
+#define qm_init(name, qh, ...)  do {                                         \
+        bool chahes[] = { false, ##__VA_ARGS__ };                            \
+        STATIC_ASSERT(countof(chahes) <= 2);                                 \
+        qm_##name##_init(qh, chahes[countof(chahes) - 1], NULL);             \
+    } while (0)
+
+/** Initialize a hash-map with hash caching.
+ *
+ * \param[in] name   The type of the map.
+ * \param[in] qh     A pointer to the map to initialize.
+ *
+ * A discussion about the hash caching is available in \ref qh_init_cached
+ * documentation.
+ */
+#define qm_init_cached(name, qh)  qm_##name##_init(qh, true, NULL)
+
+#define mp_qm_init(name, mp, h, sz)                                          \
     ({                                                                       \
         qm_t(name) *_qh = (h);                                               \
-        qm_##name##_init(_qh, (chahes), (mp));                               \
+        qm_##name##_init(_qh, false, (mp));                                  \
         qhash_set_minsize(&_qh->qh, (sz));                                   \
     })
-#define t_qm_init(name, qh, chahes, sz)                                      \
-    mp_qm_init(name, t_pool(), (qh), (chahes), (sz))
-#define r_qm_init(name, qh, chahes, sz)                                      \
-    mp_qm_init(name, r_pool(), (qh), (chahes), (sz))
+#define t_qm_init(name, qh, sz)  mp_qm_init(name, t_pool(), (qh), (sz))
+#define r_qm_init(name, qh, sz)  mp_qm_init(name, r_pool(), (qh), (sz))
 
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)

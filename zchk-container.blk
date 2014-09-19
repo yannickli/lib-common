@@ -284,7 +284,7 @@ Z_GROUP_EXPORT(qhash)
         qh_t(test) h;
         uint64_t bits[2] = { 0, 0 };
 
-        t_qh_init(test, &h, false, 128);
+        t_qh_init(test, &h, 128);
 
         for (int i = 0; i < 128; i++) {
             qh_add(test, &h, i);
