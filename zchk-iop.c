@@ -838,7 +838,7 @@ Z_GROUP_EXPORT(iop)
             SB_1k(sb);
             qm_t(part) parts;
 
-            qm_init(part, &parts, true);
+            qm_init_cached(part, &parts);
             qm_add(part, &parts, &LSTR_IMMED_V("foo"), LSTR_IMMED_V("part cid foo"));
             qm_add(part, &parts, &LSTR_IMMED_V("bar"), LSTR_IMMED_V("part cid bar"));
 

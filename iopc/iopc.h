@@ -636,7 +636,7 @@ static inline iopc_struct_t *iopc_struct_init(iopc_struct_t *st) {
     qv_init(iopc_extends, &st->extends);
     qv_init(iopc_attr, &st->attrs);
     qv_init(iopc_dox, &st->comments);
-    qm_init(id_class, &st->children_by_id, false);
+    qm_init(id_class, &st->children_by_id);
     return st;
 }
 static inline void iopc_struct_delete(iopc_struct_t **);

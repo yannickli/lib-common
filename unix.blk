@@ -519,7 +519,7 @@ int list_dir(const char *path, unsigned flags, on_file_b on_file)
     int res;
     qh_t(st_file) files_seen;
 
-    qh_init(st_file, &files_seen, false);
+    qh_init(st_file, &files_seen);
     res = __list_dir(path, flags, &files_seen, on_file);
     qh_wipe(st_file, &files_seen);
 

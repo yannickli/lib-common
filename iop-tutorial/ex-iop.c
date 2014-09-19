@@ -30,7 +30,7 @@ static struct {
     int opt_server;
 } exiop_g = {
 #define _G  exiop_g
-    .ic_impl = QM_INIT(ic_cbs, _G.ic_impl, false),
+    .ic_impl = QM_INIT(ic_cbs, _G.ic_impl),
 };
 
 /* {{{ utils */

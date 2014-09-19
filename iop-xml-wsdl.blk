@@ -502,7 +502,7 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
     __block iop_xwsdl_put_types_t p = {.h = &h, .a = &a, .b = &b};
     iop_rpc_loop_body_b scan_types, dump_alias;
 
-    qh_init(iop_type,  &h, false);
+    qh_init(iop_type,  &h);
     qv_inita(iop_type, &a, 1024);
     qv_inita(iop_enum, &b, 1024);
 

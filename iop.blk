@@ -69,9 +69,9 @@ static struct {
     qm_t(iop_pkg)    pkgs_by_name;
 } iop_g = {
 #define _G  iop_g
-    .classes_by_id   = QM_INIT(class_id,   _G.classes_by_id,   false),
-    .classes_by_name = QM_INIT(class_name, _G.classes_by_name, false),
-    .pkgs_by_name    = QM_INIT(iop_pkg,    _G.pkgs_by_name,    false),
+    .classes_by_id   = QM_INIT(class_id,   _G.classes_by_id),
+    .classes_by_name = QM_INIT(class_name, _G.classes_by_name),
+    .pkgs_by_name    = QM_INIT(iop_pkg,    _G.pkgs_by_name),
 };
 
 /*------ various helpers -{{{-*/

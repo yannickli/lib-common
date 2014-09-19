@@ -32,7 +32,7 @@ typedef struct props_hash_t {
 static inline props_hash_t *props_hash_init(props_hash_t *ph, qh_t(str) *names)
 {
     p_clear(ph, 1);
-    qm_init(proph, &ph->h, false);
+    qm_init(proph, &ph->h);
     ph->names = names;
     return ph;
 }

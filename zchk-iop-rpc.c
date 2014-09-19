@@ -121,8 +121,8 @@ Z_GROUP_EXPORT(iop_rpc)
 {
     Z_TEST(ic_local, "iop-rpc: ic local") {
         ichannel_t ic;
-        qm_t(ic_cbs) impl = QM_INIT(ic_cbs, impl, false);
-        qm_t(ic_cbs) impl_aux = QM_INIT(ic_cbs, impl_aux, false);
+        qm_t(ic_cbs) impl = QM_INIT(ic_cbs, impl);
+        qm_t(ic_cbs) impl_aux = QM_INIT(ic_cbs, impl_aux);
 
         MODULE_REQUIRE(ic);
 

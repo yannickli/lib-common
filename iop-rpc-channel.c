@@ -38,8 +38,8 @@ static int ic_initialize(void *arg)
 {
     if (!ic_mp_g) {
         ic_mp_g = mem_fifo_pool_new(1 << 20);
-        qm_init(ic, &ic_h_g, false);
-        qm_init(ic_hook_ctx, &ic_ctx_h_g, false);
+        qm_init(ic, &ic_h_g);
+        qm_init(ic_hook_ctx, &ic_ctx_h_g);
     }
     return 0;
 }
@@ -345,7 +345,7 @@ static void ic_cancel_all(ichannel_t *ic)
     }
 
     h = ic->queries;
-    qm_init(ic_msg, &ic->queries, false);
+    qm_init(ic_msg, &ic->queries);
     qm_for_each_pos(ic_msg, pos, &h) {
         qm_del_at(ic_msg, &h, pos);
 
@@ -1255,7 +1255,7 @@ void ic_disconnect(ichannel_t *ic)
         ic_cancel_all(ic);
 #ifdef IC_DEBUG_REPLIES
         qh_wipe(ic_replies, &ic->dbg_replies);
-        qh_init(ic_replies, &ic->dbg_replies, false);
+        qh_init(ic_replies, &ic->dbg_replies);
 #endif
         ic->on_event(ic, IC_EVT_DISCONNECTED);
     }
@@ -1291,7 +1291,7 @@ void ic_wipe(ichannel_t *ic)
     ic_drop_id(ic);
     qm_wipe(ic_msg, &ic->queries);
 #ifdef IC_DEBUG_REPLIES
-    qh_init(ic_replies, &ic->dbg_replies, false);
+    qh_init(ic_replies, &ic->dbg_replies);
 #endif
     qv_wipe(iovec, &ic->iov);
     sb_wipe(&ic->rbuf);
@@ -1688,11 +1688,11 @@ ichannel_t *ic_init(ichannel_t *ic)
     ic->current_fd  = -1;
     ic->auto_reconn = true;
     ic->priority    = EV_PRIORITY_NORMAL;
-    qm_init(ic_msg, &ic->queries, false);
+    qm_init(ic_msg, &ic->queries);
     sb_init(&ic->rbuf);
     ic_choose_id(ic);
 #ifdef IC_DEBUG_REPLIES
-    qh_init(ic_replies, &ic->dbg_replies, false);
+    qh_init(ic_replies, &ic->dbg_replies);
 #endif
 #ifndef NDEBUG
     ic->pending_max = 128;

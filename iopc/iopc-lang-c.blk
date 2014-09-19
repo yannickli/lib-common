@@ -389,7 +389,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
 }
 
 qm_kvec_t(rg, lstr_t, int, qhash_lstr_hash, qhash_lstr_equal);
-static qm_t(rg) range_h_g = QM_INIT(rg, range_h_g, true);
+static qm_t(rg) range_h_g = QM_INIT_CACHED(rg, range_h_g);
 
 static int iopc_put_range(sb_t *sb, qv_t(i32) *tab)
 {

@@ -71,7 +71,7 @@ static struct {
 } z_ctx_g = {
 #define _G  z_ctx_g
     .do_fork  = true,
-    .tag_skip = QH_INIT(lstr, _G.tag_skip, true),
+    .tag_skip = QH_INIT(lstr, _G.tag_skip),
 };
 
 lstr_t z_tmpdir_g;

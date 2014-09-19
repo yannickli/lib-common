@@ -90,7 +90,7 @@ static struct {
         .children      = DLIST_INIT(_G.root_logger.children),
         .siblings      = DLIST_INIT(_G.root_logger.siblings)
     },
-    .pending_levels = QM_INIT(level, _G.pending_levels, false),
+    .pending_levels = QM_INIT(level, _G.pending_levels),
     .handler        = &log_stderr_raw_handler,
 };
 

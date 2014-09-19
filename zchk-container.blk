@@ -50,7 +50,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(size_qm , "qm: count size") {
-        QM(test, h, true);
+        QM_CACHED(test, h);
         uint32_t min_size;
 
         Z_ASSERT_EQ(qm_memory_footprint(test,& h), sizeof(h));
@@ -190,7 +190,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(qm_hash , "qhash: qm_hash/qh_del_key_h") {
-        QM(test, h, false);
+        QM(test, h);
 
         for (uint32_t i = 0; i < 128; i++) {
             qm_add(test, &h, i, i);
@@ -225,7 +225,7 @@ Z_GROUP_EXPORT(qhash)
         do {                                                                \
             uint32_t pos;                                                   \
                                                                             \
-            QM(type, h, true);                                              \
+            QM_CACHED(type, h);                                             \
             pos = qm_put(type, &h, (key), 1, 0);                            \
             Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                         \
             pos = qm_put(type, &h, (key), 2, 0);                            \
@@ -256,7 +256,7 @@ Z_GROUP_EXPORT(qhash)
         int32_t pos;
         lstr_t s = LSTR_IMMED("test");
         uint32_t hash;
-        QM(test_ptr, h, false);
+        QM(test_ptr, h);
         bool passed_func = false;
 
 #define CHECK_DELETE(arg)  \
@@ -306,7 +306,7 @@ Z_GROUP_EXPORT(qhash)
     Z_TEST(shrink_bug , "qhash: test for hdr->bits overflow after shrink") {
         qh_t(u32) qh;
 
-        qh_init(u32, &qh, false);
+        qh_init(u32, &qh);
 
         qh_set_minsize(u32, &qh, 1);
         Z_ASSERT_N(qh_add(u32, &qh, 0));

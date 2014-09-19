@@ -678,7 +678,7 @@ iopc_module_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
     /* XXX: base_tags is used in order to not put the interfaces belonging
      *      to inherited modules
      */
-    qh_t(u32) base_tags = QH_INIT(u32, base_tags, false);
+    qh_t(u32) base_tags = QH_INIT(u32, base_tags);
 
     dump_name(wbuf, pkg_name, mod->name);
     iopc_dox_dump_json(wbuf, mod);

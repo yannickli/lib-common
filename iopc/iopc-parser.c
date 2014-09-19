@@ -1755,7 +1755,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
 static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
                          int paren)
 {
-    qm_t(field) fields = QM_INIT(field, fields, true);
+    qm_t(field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
     int next_pos = 1;
     qv_t(i32) tags;
@@ -2136,7 +2136,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
 
 static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
 {
-    qm_t(fun) funs = QM_INIT(fun, funs, true);
+    qm_t(fun) funs = QM_INIT_CACHED(fun, funs);
     qv_t(i32) tags;
     qv_t(iopc_attr) attrs;
     int next_tag = 1;
@@ -2225,7 +2225,7 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
 static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
 {
     int next_tag = 1;
-    qm_t(field) fields = QM_INIT(field, fields, true);
+    qm_t(field) fields = QM_INIT_CACHED(field, fields);
     qv_t(i32) tags;
     iopc_struct_t *mod = iopc_struct_new();
     qv_t(dox_chunk) chunks;
@@ -2537,8 +2537,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                                  iopc_file_t type, bool is_main_pkg)
 {
     iopc_pkg_t *pkg = iopc_pkg_new();
-    qm_t(struct) things = QM_INIT(struct, things, true);
-    qm_t(struct) mod_inter = QM_INIT(struct, mod_inter, true);
+    qm_t(struct) things = QM_INIT_CACHED(struct, things);
+    qm_t(struct) mod_inter = QM_INIT_CACHED(struct, mod_inter);
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
@@ -2764,10 +2764,10 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
 
 void iopc_parser_initialize(void)
 {
-    qm_init(pkg, &_G.mods, true);
-    qm_init(enums, &_G.enums, true);
-    qm_init(enums, &_G.enums_forbidden, true);
-    qm_init(attr_desc, &_G.attrs, true);
+    qm_init_cached(pkg, &_G.mods);
+    qm_init_cached(enums, &_G.enums);
+    qm_init_cached(enums, &_G.enums_forbidden);
+    qm_init_cached(attr_desc, &_G.attrs);
     init_attributes();
 }
 

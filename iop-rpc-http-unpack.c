@@ -331,7 +331,7 @@ httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
     cb->query_max_size = szmax;
     cb->jpack_flags    = IOP_JPACK_COMPACT;
     cb->xpack_flags    = IOP_XPACK_LITERAL_ENUMS;
-    qm_init(ichttp_cbs, &cb->impl, true);
+    qm_init_cached(ichttp_cbs, &cb->impl);
     return cb;
 }
 

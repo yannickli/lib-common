@@ -769,7 +769,7 @@ httpd_trigger_node_new(httpd_trigger_node_t *parent, lstr_t path)
 
     parent->childs.values[pos] = node =
         p_new_extra(httpd_trigger_node_t, path.len + 1);
-    qm_init(http_path, &node->childs, true);
+    qm_init_cached(http_path, &node->childs);
     memcpy(node->path, path.s, path.len + 1);
 
     /* Ensure the key point to a valid string since path may be deallocated */
@@ -1365,7 +1365,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     httpd_cfg_from_iop(cfg, &iop_cfg);
 
     for (int i = 0; i < countof(cfg->roots); i++) {
-        qm_init(http_path, &cfg->roots[i].childs, true);
+        qm_init_cached(http_path, &cfg->roots[i].childs);
     }
     return cfg;
 }

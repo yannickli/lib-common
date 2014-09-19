@@ -576,7 +576,7 @@ static void iopc_struct_check_abstract_static_fields(const iopc_struct_t *st)
         return;
     }
 
-    qh_init(str, &fields_seen, true);
+    qh_init_cached(str, &fields_seen);
     qv_for_each_entry(iopc_field, field, &st->static_fields) {
         assert (field->has_defval);
         qh_add(str, &fields_seen, field->name);
@@ -631,13 +631,13 @@ static void iopc_t_resolve(iopc_pkg_t *pkg)
 
         /* This hash table will be recursively filled with the field names
          * of st and all his parents */
-        qm_init(field_struct, &fields, false);
+        qm_init(field_struct, &fields);
 
         /* This hash table will be recursively filled with the ids of the
          * classes st and its parents, up to the first resolved class.
          * Its content will be transfered into the children_by_id hash
          * table of the master class. */
-        qm_init(id_class, &ids, false);
+        qm_init(id_class, &ids);
 
         iopc_struct_check_inheritance(st, st, &fields, &ids);
         qm_wipe(field_struct, &fields);
@@ -931,7 +931,7 @@ static void iopc_type_fold_one(qm_t(uid) *h, iopc_struct_t *st)
 
 void iopc_types_fold(iopc_pkg_t *pkg)
 {
-    qm_t(uid) h = QM_INIT(uid, h, true);
+    qm_t(uid) h = QM_INIT_CACHED(uid, h);
 
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_type_fold_one(&h, st);

@@ -149,11 +149,11 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
 static iop_dso_t *iop_dso_init(iop_dso_t *dso)
 {
     p_clear(dso, 1);
-    qm_init(iop_pkg,    &dso->pkg_h,    true);
-    qm_init(iop_enum,   &dso->enum_h,   true);
-    qm_init(iop_struct, &dso->struct_h, true);
-    qm_init(iop_iface,  &dso->iface_h,  true);
-    qm_init(iop_mod,    &dso->mod_h,    true);
+    qm_init_cached(iop_pkg,    &dso->pkg_h);
+    qm_init_cached(iop_enum,   &dso->enum_h);
+    qm_init_cached(iop_struct, &dso->struct_h);
+    qm_init_cached(iop_iface,  &dso->iface_h);
+    qm_init_cached(iop_mod,    &dso->mod_h);
 
     return dso;
 }

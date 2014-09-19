@@ -50,7 +50,7 @@ struct module_t {
 static module_t *module_init(module_t *module)
 {
     p_clear(module, 1);
-    qm_init(methods, &module->methods, false);
+    qm_init(methods, &module->methods);
     return module;
 }
 GENERIC_NEW(module_t, module);
@@ -84,9 +84,9 @@ static struct _module_g {
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
-    .modules     = QM_INIT(module, _G.modules, false),
-    .modules_arg = QM_INIT(module_arg, _G.modules_arg, false),
-    .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve, false),
+    .modules     = QM_INIT(module, _G.modules),
+    .modules_arg = QM_INIT(module_arg, _G.modules_arg),
+    .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve),
 };
 
 
@@ -174,7 +174,7 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
             dep_modules = &_G.module_dep_resolve.values[pos];
         } else {
             dep_modules = &_G.module_dep_resolve.values[pos];
-            qh_init(ptr, dep_modules, false);
+            qh_init(ptr, dep_modules);
         }
         IGNORE(expect(qh_add(ptr, dep_modules, *dep_ptr) >= 0));
         return;
@@ -494,7 +494,7 @@ void module_run_method(const module_method_t *method, data_t arg)
 {
     qh_t(ptr) already_run;
 
-    qh_init(ptr, &already_run, false);
+    qh_init(ptr, &already_run);
     /* First pass: run the method from all manual required modules. */
     qm_for_each_pos(module, position, &_G.modules) {
         module_t *module = _G.modules.values[position];
