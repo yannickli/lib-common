@@ -218,10 +218,6 @@ if [ -f "$ruby_hdrdir/ruby.h" ] && [ -d "$ruby_hdrdir/$ruby_arch" ]; then
     # Ruby >= 1.9
     setvar "ruby_CFLAGS" "-I$ruby_hdrdir -I$ruby_hdrdir/$ruby_arch -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_19"
     setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
-elif [ -f "$ruby_hdrdir/ruby.h" ] && [ -d "$ruby_hdrdir/../$ruby_arch" ]; then
-    # Ruby >= 2.1
-    setvar "ruby_CFLAGS" "-I$ruby_hdrdir -I$ruby_hdrdir/$ruby_arch -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_19"
-    setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
 elif [ -f "$ruby_hdrdir/ruby.h" ]; then
     # Ruby >= 1.8
     setvar "ruby_CFLAGS" "-I$ruby_hdrdir -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_18"
