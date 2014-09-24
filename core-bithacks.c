@@ -399,7 +399,7 @@ static size_t membitcount_c(const void *ptr, size_t n)
             break;
 
           case 3:
-            c1 += bitcount8(*p) + bitcount16(*(const uint16_t *)(p + 1));
+            c1 += bitcount8(*(p + 2)) + bitcount16(*(const uint16_t *)p);
             break;
         }
     }
