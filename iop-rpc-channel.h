@@ -88,11 +88,11 @@ struct ic_msg_t {
     byte              priv[];
 };
 ic_msg_t *ic_msg_new(int len);
-#define ic_msg_p(_t, _v)                                                    \
-    ({                                                                      \
-        ic_msg_t *_msg = ic_msg_new(sizeof(_t));                            \
-        *(_t *)_msg->priv = *(_v);                                          \
-        _msg;                                                               \
+#define ic_msg_p(_t, _v)                                                     \
+    ({                                                                       \
+        ic_msg_t *_msg = ic_msg_new(sizeof(_t));                             \
+        *acast(_t, _msg->priv) = *(_v);                                      \
+        _msg;                                                                \
     })
 #define ic_msg(_t, ...)  ic_msg_p(_t, (&(_t){ __VA_ARGS__ }))
 

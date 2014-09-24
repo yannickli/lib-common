@@ -463,7 +463,7 @@ qps_m_find_blk(qps_t *qps, size_t size, uint32_t *l1, uint32_t *l2)
 
 static qps_mhdr_t *qps_m_blk_next(qps_mhdr_t *blk, size_t n)
 {
-    return (qps_mhdr_t *)(blk->data + n);
+    return acast(qps_mhdr_t, blk->data + n);
 }
 
 static qps_mhdr_t *qps_m_blk_get_prev(qps_mhdr_t *blk)

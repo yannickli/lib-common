@@ -244,7 +244,7 @@ static const type_t *get_null(qhat_path_t *path)
         return NULL;
     }
 
-    return get(path) ?: (const type_t *)&qhat_default_zero_g;
+    return get(path) ?: acast(const type_t, &qhat_default_zero_g);
 }
 
 static type_t *set(qhat_path_t *path)

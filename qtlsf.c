@@ -189,7 +189,7 @@ static ALWAYS_INLINE uint32_t blk_size(blk_hdr_t *blk)
 
 static ALWAYS_INLINE blk_hdr_t *blk_next(blk_hdr_t *blk, size_t size)
 {
-    return (blk_hdr_t *)(blk->data + size);
+    return acast(blk_hdr_t, blk->data + size);
 }
 
 static ALWAYS_INLINE void blk_set_prev(blk_hdr_t *blk, blk_hdr_t *prev)
@@ -302,7 +302,7 @@ static NEVER_INLINE arena_t *arena_prepare(void *ptr, size_t size)
     end->flags = BLK_PREV_FREE | BLK_USED;
     blk_set_prev(end, blk);
 
-    a = (arena_t *)ablk->data;
+    a = acast(arena_t, ablk->data);
     a->end = end;
     return a;
 }

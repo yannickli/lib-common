@@ -179,7 +179,7 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 time-lp-simple_SOURCES = time-lp-simple.c
 
 python_SOURCES = python-common.c
-python_CFLAGS = $(python2_CFLAGS)
+python_CFLAGS = $(python2_CFLAGS) -Wno-strict-aliasing
 python_LIBS = $(python2_LIBS)
 
 common_SOURCES = python-module.c python.a libcommon.a

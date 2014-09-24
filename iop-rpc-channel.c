@@ -78,7 +78,7 @@ ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
 {
     ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, sizeof(slot));
 
-    *(uint64_t *)msg->priv = slot;
+    put_unaligned_cpu64(&msg->priv, slot);
     msg->fd  = fd;
     msg->hdr = hdr;
     return msg;
@@ -218,7 +218,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
                        const void *data, int dlen,
                        const ic_msg_t *unpacked_msg)
 {
-    uint64_t slot = *(uint64_t *)msg->priv;
+    uint64_t slot = get_unaligned_cpu64(msg->priv);
     ichannel_t *ic;
 
     cmd = -cmd;
@@ -576,7 +576,7 @@ ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
         switch (cmsg->cmsg_type) {
           case SCM_RIGHTS:
             *fdcp = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
-            *fdvp = (int *)CMSG_DATA(cmsg);
+            *fdvp = acast(int, &CMSG_DATA(cmsg));
             break;
         }
     }
@@ -687,9 +687,7 @@ lstr_t ic_get_client_addr(ichannel_t *ic)
         t_scope;
         socklen_t saddr_len = sizeof(ic->su.ss);
 
-        if (getpeername(el_fd_get_fd(ic->elh), (struct sockaddr *)&ic->su.ss,
-                        &saddr_len) < 0)
-        {
+        if (getpeername(el_fd_get_fd(ic->elh), &ic->su.sa, &saddr_len) < 0) {
             e_error("unable to get peer name: %m");
             ic->peer_address = LSTR_EMPTY_V;
         } else {
@@ -930,7 +928,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             tmp->async = true;
         }
         tmp->cmd = cmd;
-        *(uint64_t *)tmp->priv = query_slot;
+        put_unaligned_cpu64(tmp->priv, query_slot);
 
         /* XXX We do not support header replacement with static proxyfication.
          */

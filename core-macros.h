@@ -200,11 +200,14 @@
 #undef __releases
 #undef __needlock
 
-#if 0 && defined(__cplusplus)
-#  define cast(type, v)    reinterpret_cast<type>(v)
-#else
-#  define cast(type, v)    ((type)(v))
-#endif
+#define cast(type, v)    ((type)(v))
+#define acast(type, v)   ({                                                  \
+        union {                                                              \
+            typeof(*(v)) *__v;                                               \
+            type         *__c;                                               \
+        } __u = { .__v = (v) };                                              \
+        __u.__c;                                                             \
+    })
 
 #ifdef __SPARSE__
 # define __bitwise__   __attribute__((bitwise))

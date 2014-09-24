@@ -265,7 +265,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
 
         if (!msg->async) {
             msg->cb = IC_PROXY_MAGIC_CB;
-            *(uint64_t *)msg->priv = slot;
+            put_unaligned_cpu64(msg->priv, slot);
         }
         __ic_bpack(msg, cbe->fun->args, value);
         __ic_query(pxy, msg);

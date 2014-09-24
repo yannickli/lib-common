@@ -353,7 +353,7 @@ mem_pool_t *mem_ring_pool_new(int initialsize)
     /* Makes the first frame */
     blk = blk_create(rp, sizeof(frame_t));
     mem_tool_allow_memory(blk->area, sizeof(frame_t), false);
-    ring_setup_frame(rp, blk, (frame_t *)blk->area);
+    ring_setup_frame(rp, blk, acast(frame_t, &blk->area));
 
     return &rp->funcs;
 }

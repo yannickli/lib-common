@@ -50,13 +50,14 @@ static void IOP_RPC_IMPL(core__core, log, set_root_level)
     do {                                         \
         _G.status = status;                      \
         _G.level = res ? res->level : INT32_MIN; \
-        _G.ctx = *(ctx_t *)msg->priv;            \
+        _G.ctx = *acast(ctx_t, msg->priv);       \
     } while (0)
 
 static void IOP_RPC_CB(core__core, log, set_root_level)
 {
     if (_G.mode) {
-        __ic_forward_reply_to(ic, *(uint64_t *)msg->priv, status, res, exn);
+        __ic_forward_reply_to(ic, get_unaligned_cpu64(msg->priv),
+                              status, res, exn);
     } else {
         RPC_CB();
     }

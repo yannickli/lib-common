@@ -162,8 +162,7 @@ int acceptx_get_addr(int server_fd, int flags, sockunion_t *su)
     int sock;
     socklen_t len = sizeof(su->ss);
 
-    sock = RETHROW(accept(server_fd, su ? (struct sockaddr *)&su->ss : NULL,
-                          su ? &len : NULL));
+    sock = RETHROW(accept(server_fd, su ? &su->sa : NULL, su ? &len : NULL));
 
     if (fd_set_features(sock, flags)) {
         PROTECT_ERRNO(p_close(&sock));

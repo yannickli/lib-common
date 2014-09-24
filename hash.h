@@ -38,9 +38,9 @@
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
 
 #define GET_U32_LE(n,b,i)    ((n) = cpu_to_le32pu((b) + (i)))
-#define PUT_U32_LE(n,b,i)    (*(le32_t *)((b) + (i)) = cpu_to_le32(n))
+#define PUT_U32_LE(n,b,i)    (*acast(le32_t, (b) + (i)) = cpu_to_le32(n))
 #define GET_U32_BE(n,b,i)    ((n) = cpu_to_be32pu((b) + (i)))
-#define PUT_U32_BE(n,b,i)    (*(be32_t *)((b) + (i)) = cpu_to_be32(n))
+#define PUT_U32_BE(n,b,i)    (*acast(be32_t, (b) + (i)) = cpu_to_be32(n))
 
 #include "hash-aes.h"
 #include "hash-arc4.h"

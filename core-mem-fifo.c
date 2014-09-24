@@ -174,7 +174,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
 #endif
     }
 
-    blk = (mem_block_t *)(page->area + page->used_size);
+    blk = acast(mem_block_t, page->area + page->used_size);
     mem_tool_allow_memory(blk, sizeof(*blk), true);
     mem_tool_malloclike(blk->area, req_size, 0, true);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
