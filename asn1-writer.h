@@ -282,7 +282,7 @@ asn1_int_info_update(asn1_int_info_t *info)
     info->max_blen = u64_blen(d_max);
 
     if (info->max_blen > 16) {
-        info->max_olen_blen = u64_blen(u64_olen(d_max));
+        info->max_olen_blen = u64_blen(u64_olen(d_max) - 1);
     }
 }
 
