@@ -176,10 +176,10 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
         if (info->max_blen <= 16) {
             aper_write_u16_m(bb, v, info->max_blen);
             return;
-        } else {
-            olen = u64_olen(v);
-            aper_write_u16_m(bb, olen, info->max_olen_blen);
         }
+
+        olen = u64_olen(v);
+        aper_write_u16_m(bb, olen - 1, info->max_olen_blen);
     } else {
         olen = u64_olen(v);
         aper_write_ulen(bb, olen);
@@ -843,7 +843,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
                 return -1;
             }
 
-            olen = u16;
+            olen = u16 + 1;
         }
     } else {
         if (aper_read_ulen(bs, &olen) < 0) {
@@ -1706,8 +1706,9 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { -3,    &fc1, ".010" },
             { -1,    &fc1, ".100" },
             { -1,    NULL, ".00000001.11111111" },
-            { 45,    &fc2, ".01000000.00101101" },
-            { 128,   &fc2, ".01000000.10000000" },
+            { 45,    &fc2, ".00000000.00101101" },
+            { 128,   &fc2, ".00000000.10000000" },
+            { 256,   &fc2, ".01000000.00000001.00000000" },
             { 666,   &fc3, "" },
             { 5,     &ext, ".0101" },
             { 8,     &ext, ".10000000.00000001.00001000" },
