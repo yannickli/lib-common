@@ -1277,9 +1277,8 @@ void ic_wipe(ichannel_t *ic)
 {
     ic->is_closing = true;
     ic_disconnect(ic);
-    if (qm_len(ic_msg, &ic->queries) > 0) {
-        ic_cancel_all(ic);
-    }
+    ic_cancel_all(ic);
+
     if (ic->owner) {
         *ic->owner = NULL;
     }
