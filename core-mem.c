@@ -135,7 +135,7 @@ mem_pool_t mem_pool_static = {
 
 /* }}} */
 
-char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
+char *mp_fmt(mem_pool_t *mp, int *lenp, const char *fmt, ...)
 {
 #define MP_FMT_LEN   1024
     va_list ap;
@@ -154,8 +154,9 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
         len = vsnprintf(res, len + 1, fmt, ap);
         va_end(ap);
     }
-    if (out)
-        *out = len;
+    if (lenp) {
+        *lenp = len;
+    }
     return res;
 #undef MP_FMT_LEN
 }

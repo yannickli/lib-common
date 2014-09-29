@@ -604,7 +604,7 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
 {
     t_scope;
     const char *tname = pp_to_c(en->name);
-    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", pkg_name, tname);
     int next_value = 0;
     lstr_t ns = LSTR_NULL_V;
     int min = INT_MAX;
@@ -649,7 +649,7 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
 {
     t_scope;
     const char *tname = pp_to_c(en->name);
-    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", pkg_name, tname);
 
     sb_addf(buf,
             "extern iop_enum_t const %s__e;\n"
@@ -666,7 +666,7 @@ iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
 {
     t_scope;
     const char *tname = pp_to_c(st->name);
-    char *tbase = t_fmt(NULL, "%s__%s", ns ?: pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", ns ?: pkg_name, tname);
 
     sb_addf(buf,
             "typedef struct %s__t %s__t;\n"
@@ -734,7 +734,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
 {
     t_scope;
     const char *tname = pp_to_c(st->name);
-    char *tbase = t_fmt(NULL, "%s__%s", ns ?: pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", ns ?: pkg_name, tname);
 
     assert (st->type != STRUCT_TYPE_UNION);
 
@@ -763,7 +763,7 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
 {
     t_scope;
     const char *tname = pp_to_c(st->name);
-    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", pkg_name, tname);
 
     assert (st->type == STRUCT_TYPE_UNION);
 
@@ -813,7 +813,7 @@ iopc_iface_dump_tdef_hdr(sb_t *buf, iopc_pkg_t *pkg,
 {
     t_scope;
     const char *iname = pp_to_c(iface->name);
-    const char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+    const char *ibase = t_fmt("%s__%s", pkg_name, iname);
 
     if (!iface->funs.len) {
         return;
@@ -825,7 +825,7 @@ iopc_iface_dump_tdef_hdr(sb_t *buf, iopc_pkg_t *pkg,
     });
 
     qv_for_each_entry(iopc_fun, fun, &iface->funs) {
-        const char *fbase = t_fmt(NULL, "%s__%s", ibase, pp_to_c(fun->name));
+        const char *fbase = t_fmt("%s__%s", ibase, pp_to_c(fun->name));
 
         if (fun->arg) {
             if (fun->arg_is_anonymous) {
@@ -875,7 +875,7 @@ iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
 {
     t_scope;
     const char *iname = pp_to_c(iface->name);
-    char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+    char *ibase = t_fmt("%s__%s", pkg_name, iname);
     int j = 0;
 
     if (!iface->funs.len)
@@ -886,7 +886,7 @@ iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
             pretty_path_dot(pkg->name), iface->name);
 
     qv_for_each_entry(iopc_fun, fun, &iface->funs) {
-        char *fbase = t_fmt(NULL, "%s__%s", ibase, pp_to_c(fun->name));
+        char *fbase = t_fmt("%s__%s", ibase, pp_to_c(fun->name));
 
         if (fun->arg && fun->arg_is_anonymous) {
             iopc_struct_dump_hdr(buf, pkg_name, fun->arg, ibase);
@@ -912,7 +912,7 @@ iopc_module_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
                      const char *pkg_name, iopc_struct_t *mod)
 {
     t_scope;
-    char *mbase = t_fmt(NULL, "%s__%s", pkg_name, pp_to_c(mod->name));
+    char *mbase = t_fmt("%s__%s", pkg_name, pp_to_c(mod->name));
 
     sb_addf(buf,
             "\n"
@@ -1189,7 +1189,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
         if (!f->has_defval) {
             continue;
         }
-        iopc_dump_static_field_src(buf, f, t_fmt(NULL, "%s__static_field_%d",
+        iopc_dump_static_field_src(buf, f, t_fmt("%s__static_field_%d",
                                                  tbase, index_field));
         index_field++;
     }
@@ -2022,7 +2022,7 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 {
     t_scope;
     const char *tname = pp_to_c(en->name);
-    char *tbase = t_fmt(NULL, "%s__%s", pkg_name, tname);
+    char *tbase = t_fmt("%s__%s", pkg_name, tname);
     int range;
     unsigned flags = 0;
     bool values_have_comments = false;
@@ -2186,11 +2186,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     const char *comment = get_struct_type_desc(st->type);
     const char *tname = pp_to_c(st->name);
     const char *iname = st->iface ? st->iface->name : NULL;
-    char *tbase = iname ? t_fmt(NULL, "%s__%s__%s", pkg_name, pp_to_c(iname),
-                                tname)
-                        : t_fmt(NULL, "%s__%s", pkg_name, tname);
-    char *sname = iname ? t_fmt(NULL, "%s.%s", iname, st->name)
-                        : t_fmt(NULL, "%s", st->name);
+    char *tbase = iname ? t_fmt("%s__%s__%s", pkg_name, pp_to_c(iname), tname)
+                        : t_fmt("%s__%s", pkg_name, tname);
+    char *sname = iname ? t_fmt("%s.%s", iname, st->name)
+                        : t_fmt("%s", st->name);
     char *as_base;
     int last_tag   = INT_MIN;
     int range;
@@ -2370,10 +2369,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (paliases) {
         qv_for_each_entry(lstr, alias, paliases) {
             const char *new_tname = pp_to_c(alias.s);
-            char *new_tbase = iname ? t_fmt(NULL, "%s__%s__%s", pkg_name,
+            char *new_tbase = iname ? t_fmt("%s__%s__%s", pkg_name,
                                             pp_to_c(iname), new_tname)
-                : t_fmt(NULL, "%s__%s", pkg_name, new_tname);
-            const char *new_sname = iname ? t_fmt(NULL, "%s.%s", iname, alias.s)
+                : t_fmt("%s__%s", pkg_name, new_tname);
+            const char *new_sname = iname ? t_fmt("%s.%s", iname, alias.s)
                 : alias.s;
 
             WRITE_STRUCT(new_tbase, new_sname);
@@ -2391,8 +2390,8 @@ iopc_dump_rpc_defines(sb_t *buf, char *ibase, iopc_field_t *field,
 {
     t_scope;
     const char *name = alias_name ? alias_name : field->name;
-    const char *tbase_arg = t_fmt(NULL, "%s__%s", ibase, pp_to_c(name));
-    const char *tbase_ref = t_fmt(NULL, "%s__%s",
+    const char *tbase_arg = t_fmt("%s__%s", ibase, pp_to_c(name));
+    const char *tbase_ref = t_fmt("%s__%s",
                                   pp_under(field->type_path),
                                   pp_to_c(field->type_name));
 
@@ -2471,9 +2470,9 @@ iopc_register_fun(sb_t *buf, char *ibase, iopc_fun_t *f, const char *falias_name
                          f->exn_is_anonymous, "exn   ");
     } else {
         t_scope;
-        const char *argname = t_fmt(NULL, "%s_args", falias_name);
-        const char *resname = t_fmt(NULL, "%s_res", falias_name);
-        const char *exnname = t_fmt(NULL, "%s_exn", falias_name);
+        const char *argname = t_fmt("%s_args", falias_name);
+        const char *resname = t_fmt("%s_res", falias_name);
+        const char *exnname = t_fmt("%s_exn", falias_name);
 
         REGISTER_FUN_VAR(f->arg, argname, argname, f->arg_is_anonymous, "args  ");
         REGISTER_FUN_VAR(f->res, resname, resname, f->res_is_anonymous, "result");
@@ -2564,7 +2563,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 {
     t_scope;
     const char *iname = pp_to_c(iface->name);
-    char *ibase = t_fmt(NULL, "%s__%s", pkg_name, iname);
+    char *ibase = t_fmt("%s__%s", pkg_name, iname);
     qv_t(lstr) aliases;
 
     qv_init(lstr, &aliases);
@@ -2640,7 +2639,7 @@ iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
                      const char *pkg_name, iopc_struct_t *mod)
 {
     t_scope;
-    char *mbase = t_fmt(NULL, "%s__%s", pkg_name, pp_to_c(mod->name));
+    char *mbase = t_fmt("%s__%s", pkg_name, pp_to_c(mod->name));
     uint16_t flags = 0;
     bool ifaces_have_comments = false;
 

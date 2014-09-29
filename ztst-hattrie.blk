@@ -60,8 +60,8 @@ static void (print_time_diff)(const char *str, struct rusage *tstart,
         (Code);                                                              \
         getrusage(RUSAGE_SELF, &end);                                        \
         gettimeofday(&tend, NULL);                                           \
-        (print_time_diff)(t_fmt(NULL, Name" of %u entries", Count), &start,  \
-                          &end, &tstart, &tend, Count);                      \
+        (print_time_diff)(t_fmt(Name" of %u entries", Count), &start, &end,  \
+                          &tstart, &tend, Count);                            \
     } while (0)
 
 static void run_seq_test(qps_t *qps, bool nullable, uint32_t count)

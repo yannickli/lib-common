@@ -134,8 +134,7 @@ static inline const char *cwd(void)
 #define t_push_loc(loc, ...)  \
     do {                                                                     \
         qv_append(iopc_loc, &iopc_g.loc_stack, loc);                         \
-        qv_last(iopc_loc, &iopc_g.loc_stack)->comment                        \
-            = t_fmt(NULL, ##__VA_ARGS__);                                    \
+        qv_last(iopc_loc, &iopc_g.loc_stack)->comment = t_fmt(__VA_ARGS__);  \
     } while (0)
 
 #define pop_loc()          qv_shrink(iopc_loc, &iopc_g.loc_stack, 1)

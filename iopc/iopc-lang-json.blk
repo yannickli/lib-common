@@ -626,7 +626,7 @@ iopc_iface_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                      const iopc_iface_t *iface)
 {
     t_scope;
-    const char *fbase = t_fmt(NULL, "%s.%s", pkg_name, iface->name);
+    const char *fbase = t_fmt("%s.%s", pkg_name, iface->name);
 
     dump_name(wbuf, pkg_name, iface->name);
     iopc_dox_dump_json(wbuf, iface);
@@ -755,7 +755,7 @@ void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {
             t_scope;
-            const char *fbase = t_fmt(NULL, "%s.%s", pkg_name, iface->name);
+            const char *fbase = t_fmt("%s.%s", pkg_name, iface->name);
 
 #define DUMP_FUN_PARAM(what) \
             do {                                                            \

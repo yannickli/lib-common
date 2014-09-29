@@ -3032,7 +3032,7 @@ Z_GROUP_EXPORT(iop)
 #define CHECK_OK(_type, _filename)  \
         do {                                                                 \
             Z_ASSERT_N(t_tstiop_inheritance__##_type##__junpack_ptr_file(    \
-                       t_fmt(NULL, "%*pM/iop/" _filename,                    \
+                       t_fmt("%*pM/iop/" _filename,                          \
                              LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err),    \
                        "junpack failed: %s", err.data);                      \
         } while (0)
@@ -3090,7 +3090,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             sb_reset(&err);                                                  \
             Z_ASSERT_NEG(t_tstiop_inheritance__##_type##__junpack_ptr_file(  \
-                         t_fmt(NULL, "%*pM/iop/" _filename,                  \
+                         t_fmt("%*pM/iop/" _filename,                        \
                                LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err)); \
             Z_ASSERT(strstr(err.data, _err));                                \
         } while (0)
@@ -3152,7 +3152,7 @@ Z_GROUP_EXPORT(iop)
 #define MAP(_filename)  \
         do {                                                                 \
             Z_ASSERT_N(lstr_init_from_file(&file,                            \
-                           t_fmt(NULL, "%*pM/iop/" _filename,                \
+                           t_fmt("%*pM/iop/" _filename,                      \
                                  LSTR_FMT_ARG(z_cmddir_g)),                  \
                            PROT_READ, MAP_SHARED));                          \
         } while (0)

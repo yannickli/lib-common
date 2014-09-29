@@ -1635,13 +1635,13 @@ Z_GROUP_EXPORT(el)
 
         watch = el_fs_watch_register(z_grpdir_g.s, IN_CREATE, fs_notify, &called);
 
-        fd = open(t_fmt(NULL, "%s/blah", z_grpdir_g.s),
+        fd = open(t_fmt("%s/blah", z_grpdir_g.s),
                   O_WRONLY | O_CREAT, 0660);
         el_loop_timeout(100);
         Z_ASSERT_EQ(called, 1);
         close(fd);
 
-        fd = open(t_fmt(NULL, "%s/blah", z_grpdir_g.s),
+        fd = open(t_fmt("%s/blah", z_grpdir_g.s),
                   O_WRONLY | O_CREAT, 0660);
         el_loop_timeout(100);
         Z_ASSERT_EQ(called, 1);
@@ -1652,16 +1652,14 @@ Z_GROUP_EXPORT(el)
         el_fs_watch_change(watch, IN_OPEN | IN_CLOSE);
 
 
-        fd = open(t_fmt(NULL, "%s/blah2", z_grpdir_g.s),
-                  O_WRONLY | O_CREAT, 0660);
+        fd = open(t_fmt("%s/blah2", z_grpdir_g.s), O_WRONLY | O_CREAT, 0660);
         el_loop_timeout(100);
         Z_ASSERT_EQ(called, 2);
         close(fd);
         el_loop_timeout(100);
         Z_ASSERT_EQ(called, 3);
 
-        fd = open(t_fmt(NULL, "%s/blah2", z_grpdir_g.s),
-                  O_WRONLY | O_CREAT, 0660);
+        fd = open(t_fmt("%s/blah2", z_grpdir_g.s), O_WRONLY | O_CREAT, 0660);
         close(fd);
         el_loop_timeout(100);
         Z_ASSERT_EQ(called, 5);

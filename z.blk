@@ -927,7 +927,7 @@ static void z_on_term(int signum)
 static int t_our_mkdtemp_(const char *wd, const char *ns, lstr_t *out,
                           int *dfd)
 {
-    char *s = t_fmt(NULL, "%s/z.%s.%d.XXXXXX", wd, ns, 0 + getpid());
+    char *s = t_fmt("%s/z.%s.%d.XXXXXX", wd, ns, 0 + getpid());
 
     RETHROW_PN(mkdtemp(s));
     *out = lstr_fmt("%s/", s);

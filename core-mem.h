@@ -456,7 +456,7 @@ static inline char *mp_strdup(mem_pool_t *mp, const char *src)
     return (char *)mp_idup(mp, src, strlen(src) + 1, 1);
 }
 
-char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
+char *mp_fmt(mem_pool_t *mp, int *lenp, const char *fmt, ...)
     __leaf __attr_printf__(3, 4);
 
 
@@ -744,8 +744,6 @@ void r_pool_destroy(void) __leaf;
 #define r_checkpoint()              mem_ring_checkpoint(r_pool())
 #define r_rewind(ptr)               mem_ring_rewind(r_pool(), ptr)
 
-
-#define r_fmt(fmt, ...)  mp_fmt(&r_pool_g.funcs, (fmt), ##__VA_ARGS__)
 
 /* Aligned pointers allocation helpers */
 

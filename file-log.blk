@@ -24,8 +24,7 @@
  * scheme should shorten log filename so reopening it yields the same
  * file
  */
-static const char *t_build_real_path(int *size, log_file_t *log_file,
-                                     time_t date)
+static const char *t_build_real_path(log_file_t *log_file, time_t date)
 {
     struct tm tm;
 
@@ -34,7 +33,7 @@ static const char *t_build_real_path(int *size, log_file_t *log_file,
     } else {
         localtime_r(&date, &tm);
     }
-    return t_fmt(size, "%s_" LOG_FILE_DATE_FMT ".%s",
+    return t_fmt("%s_" LOG_FILE_DATE_FMT ".%s",
                  log_file->prefix, LOG_FILE_DATE_FMT_ARG(tm), log_file->ext);
 }
 
@@ -88,7 +87,7 @@ static void log_file_call_cb(log_file_t *l, enum log_file_event evt,
         t_scope;
 
         if (!fname) {
-            fname = t_build_real_path(NULL, l, l->open_date);
+            fname = t_build_real_path(l, l->open_date);
         }
 
         (*l->on_event)(l, evt, fname, l->priv_cb);
@@ -173,7 +172,7 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
     t_scope;
     const char *real_path;
 
-    real_path = t_build_real_path(NULL, log_file, date);
+    real_path = t_build_real_path(log_file, date);
 
     log_file->open_date = date;
     log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE |

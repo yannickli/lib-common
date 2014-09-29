@@ -203,7 +203,7 @@ static ALWAYS_INLINE mem_pool_t *t_pool(void)
 #define t_seal()      mem_stack_seal(&t_pool_g)
 #define t_unseal()    mem_stack_unseal(&t_pool_g)
 
-#define t_fmt(fmt, ...)  mp_fmt(&t_pool_g.funcs, (fmt), ##__VA_ARGS__)
+#define t_fmt(fmt, ...)  mp_fmt(&t_pool_g.funcs, NULL, fmt, ##__VA_ARGS__)
 
 /* Aligned pointers allocation helpers */
 
