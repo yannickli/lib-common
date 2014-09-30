@@ -126,16 +126,7 @@ static inline int xmlr_node_open_s(xml_reader_t xr, const char *s)
     return xmlr_node_enter_s(xr, s, 0);
 }
 
-static inline int xmlr_node_close(xml_reader_t xr)
-{
-    if (xmlr_node_is_empty(xr) == 1 || xmlr_node_is_closing(xr) == 1)
-        return xmlr_next_node(xr);
-    /* check if next tag is the closing tag */
-    RETHROW(xmlr_next_node(xr));
-    if (xmlr_node_is_closing(xr) == 1)
-        return xmlr_next_node(xr);
-    return xmlr_fail(xr, "closing tag expected");
-}
+int xmlr_node_close(xml_reader_t xr);
 
 static inline int xmlr_node_close_n(xml_reader_t xr, size_t n)
 {
