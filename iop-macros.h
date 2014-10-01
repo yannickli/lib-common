@@ -189,22 +189,6 @@
 
 
 /* }}} */
-/* {{{ Optional scalar fields usage (Deprecated) */
-
-/* XXX Deprecated, please use OPT_XXX macros  */
-#define IOP_OPT(...)         OPT(__VA_ARGS__)
-#define IOP_OPT_NONE         OPT_NONE
-#define IOP_OPT_IF(...)      OPT_IF(__VA_ARGS__)
-#define IOP_OPT_ISSET(...)   OPT_ISSET(__VA_ARGS__)
-#define IOP_OPT_VAL(...)     OPT_VAL(__VA_ARGS__)
-#define IOP_OPT_DEFVAL(...)  OPT_DEFVAL(__VA_ARGS__)
-#define IOP_OPT_GET(...)     OPT_GET(__VA_ARGS__)
-#define IOP_OPT_SET(...)     OPT_SET(__VA_ARGS__)
-#define IOP_OPT_CLR(...)     OPT_CLR(__VA_ARGS__)
-#define IOP_OPT_SET_IF(...)  OPT_SET_IF(__VA_ARGS__)
-#define IOP_OPT_CLR_IF(...)  OPT_CLR_IF(__VA_ARGS__)
-
-/* }}} */
 /* {{{ Data packing helpers */
 
 /** Pack an IOP structure into IOP binary format using the t_pool().
