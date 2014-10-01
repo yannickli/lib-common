@@ -52,17 +52,17 @@ static inline bool iop_value_has(const iop_field_t *f, const void *v)
 {
     switch (f->type) {
       case IOP_T_I8:  case IOP_T_U8:
-        return ((iop_opt_u8_t *)v)->has_field != 0;
+        return ((opt_u8_t *)v)->has_field != 0;
       case IOP_T_I16: case IOP_T_U16:
-        return ((iop_opt_u16_t *)v)->has_field != 0;
+        return ((opt_u16_t *)v)->has_field != 0;
       case IOP_T_I32: case IOP_T_U32: case IOP_T_ENUM:
-        return ((iop_opt_u32_t *)v)->has_field != 0;
+        return ((opt_u32_t *)v)->has_field != 0;
       case IOP_T_I64: case IOP_T_U64:
-        return ((iop_opt_u64_t *)v)->has_field != 0;
+        return ((opt_u64_t *)v)->has_field != 0;
       case IOP_T_BOOL:
-        return ((iop_opt_bool_t *)v)->has_field != 0;
+        return ((opt_bool_t *)v)->has_field != 0;
       case IOP_T_DOUBLE:
-        return ((iop_opt_double_t *)v)->has_field != 0;
+        return ((opt_double_t *)v)->has_field != 0;
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
@@ -102,22 +102,22 @@ void *iop_value_set_here(mem_pool_t *mp, const iop_field_t *f, void *v)
 {
     switch (f->type) {
       case IOP_T_I8:  case IOP_T_U8:
-        ((iop_opt_u8_t *)v)->has_field = true;
+        ((opt_u8_t *)v)->has_field = true;
         return v;
       case IOP_T_I16: case IOP_T_U16:
-        ((iop_opt_u16_t *)v)->has_field = true;
+        ((opt_u16_t *)v)->has_field = true;
         return v;
       case IOP_T_I32: case IOP_T_U32: case IOP_T_ENUM:
-        ((iop_opt_u32_t *)v)->has_field = true;
+        ((opt_u32_t *)v)->has_field = true;
         return v;
       case IOP_T_I64: case IOP_T_U64:
-        ((iop_opt_u64_t *)v)->has_field = true;
+        ((opt_u64_t *)v)->has_field = true;
         return v;
       case IOP_T_BOOL:
-        ((iop_opt_bool_t *)v)->has_field = true;
+        ((opt_bool_t *)v)->has_field = true;
         return v;
       case IOP_T_DOUBLE:
-        ((iop_opt_double_t *)v)->has_field = true;
+        ((opt_double_t *)v)->has_field = true;
         return v;
       case IOP_T_STRING:
       case IOP_T_DATA:
@@ -132,22 +132,22 @@ static inline void iop_value_set_absent(const iop_field_t *f, void *v)
 {
     switch (f->type) {
       case IOP_T_I8:  case IOP_T_U8:
-        ((iop_opt_u8_t *)v)->has_field = false;
+        ((opt_u8_t *)v)->has_field = false;
         return;
       case IOP_T_I16: case IOP_T_U16:
-        ((iop_opt_u16_t *)v)->has_field = false;
+        ((opt_u16_t *)v)->has_field = false;
         return;
       case IOP_T_I32: case IOP_T_U32: case IOP_T_ENUM:
-        ((iop_opt_u32_t *)v)->has_field = false;
+        ((opt_u32_t *)v)->has_field = false;
         return;
       case IOP_T_I64: case IOP_T_U64:
-        ((iop_opt_u64_t *)v)->has_field = false;
+        ((opt_u64_t *)v)->has_field = false;
         return;
       case IOP_T_BOOL:
-        ((iop_opt_bool_t *)v)->has_field = false;
+        ((opt_bool_t *)v)->has_field = false;
         return;
       case IOP_T_DOUBLE:
-        ((iop_opt_double_t *)v)->has_field = false;
+        ((opt_double_t *)v)->has_field = false;
         return;
       case IOP_T_STRING:
       case IOP_T_DATA:

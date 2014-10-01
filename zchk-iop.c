@@ -1652,16 +1652,16 @@ Z_GROUP_EXPORT(iop)
         iop_init(st_sa_opt, &sa_opt_b);
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
-        IOP_OPT_SET(sa_opt_a.a, 42);
-        IOP_OPT_SET(sa_opt_b.a, 42);
+        OPT_SET(sa_opt_a.a, 42);
+        OPT_SET(sa_opt_b.a, 42);
         sa_opt_a.j = LSTR("plop");
         sa_opt_b.j = LSTR("plop");
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
-        IOP_OPT_CLR(sa_opt_b.a);
+        OPT_CLR(sa_opt_b.a);
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
-        IOP_OPT_SET(sa_opt_b.a, 42);
+        OPT_SET(sa_opt_b.a, 42);
         sa_opt_b.j = LSTR_NULL_V;
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
@@ -2129,11 +2129,11 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_a_opt__init(&a2);
 
         qv_append(my_struct_a_opt, &vec2, a2);
-        IOP_OPT_SET(a2.a, 42);
+        OPT_SET(a2.a, 42);
         qv_append(my_struct_a_opt, &vec2, a2);
-        IOP_OPT_SET(a2.a, 43);
+        OPT_SET(a2.a, 43);
         qv_append(my_struct_a_opt, &vec2, a2);
-        IOP_OPT_CLR(a2.a);
+        OPT_CLR(a2.a);
         a2.j = LSTR("abc");
         a2.l = &IOP_UNION(tstiop__my_union_a, ua, 222);
         qv_append(my_struct_a_opt, &vec2, a2);
@@ -2144,12 +2144,12 @@ Z_GROUP_EXPORT(iop)
         qv_append(my_struct_a_opt, &vec2, a2);
 
         tstiop__my_struct_b__init(&b1);
-        IOP_OPT_SET(b1.a, 42);
+        OPT_SET(b1.a, 42);
         a2.o = &b1;
         qv_append(my_struct_a_opt, &vec2, a2);
 
         tstiop__my_struct_b__init(&b2);
-        IOP_OPT_SET(b2.a, 72);
+        OPT_SET(b2.a, 72);
         a2.o = &b2;
         qv_append(my_struct_a_opt, &vec2, a2);
 
@@ -2157,12 +2157,12 @@ Z_GROUP_EXPORT(iop)
 
         /* sort on optional int a */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("a"), 0));
-        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].a), 42);
-        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].a), 43);
-        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[2].a));
-        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[3].a));
-        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[4].a));
-        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[5].a));
+        Z_ASSERT_EQ(OPT_VAL(vec2.tab[0].a), 42);
+        Z_ASSERT_EQ(OPT_VAL(vec2.tab[1].a), 43);
+        Z_ASSERT(!OPT_ISSET(vec2.tab[2].a));
+        Z_ASSERT(!OPT_ISSET(vec2.tab[3].a));
+        Z_ASSERT(!OPT_ISSET(vec2.tab[4].a));
+        Z_ASSERT(!OPT_ISSET(vec2.tab[5].a));
 
         /* sort on optional string j */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("j"), 0));
@@ -2176,8 +2176,8 @@ Z_GROUP_EXPORT(iop)
 
         /* sort on optional int a, member of optional struct MyStructB o */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("o.a"), 0));
-        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].o->a), 42);
-        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].o->a), 72);
+        Z_ASSERT_EQ(OPT_VAL(vec2.tab[0].o->a), 42);
+        Z_ASSERT_EQ(OPT_VAL(vec2.tab[1].o->a), 72);
 
         /* error: cannot sort on struct */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("o"), 0));

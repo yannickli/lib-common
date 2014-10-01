@@ -146,33 +146,33 @@ static void iopc_field_compute_size(iopc_field_t *f)
     if (f->repeat == IOP_R_OPTIONAL || f->is_ref) {
         switch (f->kind) {
           case IOP_T_BOOL:
-            f->align = alignof(iop_opt_bool_t);
-            f->size  = sizeof(iop_opt_bool_t);
+            f->align = alignof(opt_bool_t);
+            f->size  = sizeof(opt_bool_t);
             break;
           case IOP_T_U8:
           case IOP_T_I8:
-            f->align = alignof(iop_opt_i8_t);
-            f->size  = sizeof(iop_opt_i8_t);
+            f->align = alignof(opt_i8_t);
+            f->size  = sizeof(opt_i8_t);
             break;
           case IOP_T_U16:
           case IOP_T_I16:
-            f->align = alignof(iop_opt_i16_t);
-            f->size  = sizeof(iop_opt_i16_t);
+            f->align = alignof(opt_i16_t);
+            f->size  = sizeof(opt_i16_t);
             break;
           case IOP_T_U32:
           case IOP_T_I32:
           case IOP_T_ENUM:
-            f->align = alignof(iop_opt_i32_t);
-            f->size  = sizeof(iop_opt_i32_t);
+            f->align = alignof(opt_i32_t);
+            f->size  = sizeof(opt_i32_t);
             break;
           case IOP_T_U64:
           case IOP_T_I64:
-            f->align = alignof(iop_opt_i64_t);
-            f->size  = sizeof(iop_opt_i64_t);
+            f->align = alignof(opt_i64_t);
+            f->size  = sizeof(opt_i64_t);
             break;
           case IOP_T_DOUBLE:
-            f->align = alignof(iop_opt_double_t);
-            f->size  = sizeof(iop_opt_double_t);
+            f->align = alignof(opt_double_t);
+            f->size  = sizeof(opt_double_t);
             break;
           case IOP_T_STRING:
           case IOP_T_DATA:

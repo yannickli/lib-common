@@ -1236,21 +1236,21 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
     switch (fdesc->type) {
       case IOP_T_I8:
       case IOP_T_U8:
-        return OPT_GET((const iop_opt_u8_t *)data);
+        return OPT_GET((const opt_u8_t *)data);
       case IOP_T_I16:
       case IOP_T_U16:
-        return OPT_GET((const iop_opt_u16_t *)data);
+        return OPT_GET((const opt_u16_t *)data);
       case IOP_T_ENUM:
       case IOP_T_I32:
       case IOP_T_U32:
-        return OPT_GET((const iop_opt_u32_t *)data);
+        return OPT_GET((const opt_u32_t *)data);
       case IOP_T_I64:
       case IOP_T_U64:
-        return OPT_GET((const iop_opt_u64_t *)data);
+        return OPT_GET((const opt_u64_t *)data);
       case IOP_T_BOOL:
-        return OPT_GET((const iop_opt_bool_t *)data);
+        return OPT_GET((const opt_bool_t *)data);
       case IOP_T_DOUBLE:
-        return OPT_GET((const iop_opt_double_t *)data);
+        return OPT_GET((const opt_double_t *)data);
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
@@ -1566,41 +1566,41 @@ void iop_hash_update_i64(struct iop_hash_ctx *ctx, int64_t i)
     iop_hash_update_i64(ctx, double_bits_cpu(d))
 
 static void
-iop_opt_hash(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
+iop_hash_opt(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
 {
     uint8_t b;
 
     switch (f->type) {
       case IOP_T_BOOL:
-        b = !!((iop_opt_bool_t *)v)->v;
+        b = !!((opt_bool_t *)v)->v;
         iop_hash_update(ctx, &b, 1);
         break;
       case IOP_T_I8:
-        iop_hash_update_i64(ctx, ((iop_opt_i8_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_i8_t *)v)->v);
         break;
       case IOP_T_U8:
-        iop_hash_update_i64(ctx, ((iop_opt_u8_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_u8_t *)v)->v);
         break;
       case IOP_T_I16:
-        iop_hash_update_i64(ctx, ((iop_opt_i16_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_i16_t *)v)->v);
         break;
       case IOP_T_U16:
-        iop_hash_update_i64(ctx, ((iop_opt_u16_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_u16_t *)v)->v);
         break;
       case IOP_T_I32: case IOP_T_ENUM:
-        iop_hash_update_i64(ctx, ((iop_opt_i32_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_i32_t *)v)->v);
         break;
       case IOP_T_U32:
-        iop_hash_update_i64(ctx, ((iop_opt_u32_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_u32_t *)v)->v);
         break;
       case IOP_T_I64:
-        iop_hash_update_i64(ctx, ((iop_opt_i64_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_i64_t *)v)->v);
         break;
       case IOP_T_U64:
-        iop_hash_update_i64(ctx, ((iop_opt_u64_t *)v)->v);
+        iop_hash_update_i64(ctx, ((opt_u64_t *)v)->v);
         break;
       case IOP_T_DOUBLE:
-        iop_hash_update_dbl(ctx, ((iop_opt_double_t *)v)->v);
+        iop_hash_update_dbl(ctx, ((opt_double_t *)v)->v);
         break;
       default:
         e_panic("should not happen");
@@ -1674,7 +1674,7 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v,
                     r = *(void **)r;
                 }
             } else {
-                iop_opt_hash(ctx, fdesc, r);
+                iop_hash_opt(ctx, fdesc, r);
                 continue;
             }
         }
