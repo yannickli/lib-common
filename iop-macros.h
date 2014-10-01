@@ -362,8 +362,8 @@
     pfx##__copy(mem_pool_t *mp, pfx##__t **out, const pfx##__t *v) {         \
         iop_copy(mp, &pfx##__s, (void **)out, (const void *)v, NULL);        \
     }                                                                        \
-    static inline int pfx##__check(pfx##__t *v) {                            \
-        return iop_check_constraints(&pfx##__s, (void *)v);                  \
+    static inline int pfx##__check(const pfx##__t *v) {                      \
+        return iop_check_constraints(&pfx##__s, (const void *)v);            \
     }
 
 #define IOP_GENERIC_BASICS_STRUCT_UNION(pfx)  \
