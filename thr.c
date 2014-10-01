@@ -133,7 +133,7 @@ module_t *MODULE(thr_hooks);
 void thr_hooks_register(void)
 {
     if (!MODULE(thr_hooks)) {
-        MODULE(thr_hooks) = module_register(LSTR_IMMED_V("thr_hooks"),
+        MODULE(thr_hooks) = module_register(LSTR("thr_hooks"),
                                             &MODULE(thr_hooks),
                                             &thr_hooks_initialize,
                                             &thr_hooks_shutdown, NULL, 0);

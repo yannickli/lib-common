@@ -304,8 +304,7 @@ static void process_queries(httpc_pool_t *m, httpc_t *w)
             dlist_pop(&_G.pending);
             _G.nb_pending--;
             python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
-                                  LSTR_IMMED_V("request timeout in queue"),
-                                  true);
+                                  LSTR("request timeout in queue"), true);
             continue;
         }
 
@@ -335,18 +334,14 @@ static void python_http_on_done(httpc_query_t *_q, httpc_status_t status)
       case HTTPC_STATUS_ABORT:
       case HTTPC_STATUS_TIMEOUT:
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
-                              LSTR_IMMED_V(
-                              "HTTP request could not complete"),
-                              true);
+                              LSTR("HTTP request could not complete"), true);
         break;
 
       case HTTPC_STATUS_INVALID:
       case HTTPC_STATUS_TOOLARGE:
       default:
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
-                              LSTR_IMMED_V(
-                              "unable to parse server response"),
-                              true);
+                              LSTR("unable to parse server response"), true);
         break;
     }
     python_query_delete(&q);
@@ -467,8 +462,8 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.cb_build_body    = cb_build_body;
     _G.cb_parse_answer  = cb_parse;
 
-    _G.user             = LSTR_STR_V(user);
-    _G.password         = LSTR_STR_V(password);
+    _G.user     = LSTR(user);
+    _G.password = LSTR(password);
 
     _G.m = httpc_pool_new();
     _G.m->su       = su;
@@ -537,8 +532,7 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
 
     if (_G.nb_pending > PYTHON_HTTP_MAX_PENDING) {
         python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
-                              LSTR_IMMED_V("too many requests in queue"),
-                              false);
+                              LSTR("too many requests in queue"), false);
         return NULL;
     }
 

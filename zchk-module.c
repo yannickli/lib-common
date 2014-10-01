@@ -161,16 +161,14 @@ static int module_arg_shutdown(void)
 static module_t *MODULE(module_arg);
 
 #define Z_MODULE_REGISTER(name)                                              \
-    (MODULE(name) = module_register(LSTR_IMMED_V(#name), &MODULE(name),      \
+    (MODULE(name) = module_register(LSTR(#name), &MODULE(name),              \
                                      &name##_initialize,  &name##_shutdown,  \
                                      NULL, 0))
 #define Z_MODULE_DEPENDS_ON(name, dep)                                       \
-    module_add_dep(MODULE(name), LSTR_IMMED_V(#name), LSTR_IMMED_V(#dep),    \
-                   &MODULE(dep))
+    module_add_dep(MODULE(name), LSTR(#name), LSTR(#dep), &MODULE(dep))
 
 #define Z_MODULE_NEEDED_BY(name, need)                                       \
-    module_add_dep(MODULE(need), LSTR_IMMED_V(#need), LSTR_IMMED_V(#name),   \
-                   &MODULE(name))
+    module_add_dep(MODULE(need), LSTR(#need), LSTR(#name), &MODULE(name))
 
 /** Provide arguments in constructor. */
 lstr_t *word_global;
@@ -299,7 +297,7 @@ Z_GROUP_EXPORT(module)
 
         Z_ASSERT_P(Z_MODULE_REGISTER(mock_thr), U_T_R"mock_thr");
         Z_ASSERT_P(Z_MODULE_REGISTER(mock_log), U_T_R"mock_log");
-        Z_ASSERT_NULL(module_register(LSTR_IMMED_V("mock_log"),
+        Z_ASSERT_NULL(module_register(LSTR("mock_log"),
                                       &MODULE(mock_log),
                                       &mock_log_initialize,
                                       &mock_log_shutdown, NULL, 0));

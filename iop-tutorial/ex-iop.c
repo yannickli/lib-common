@@ -103,7 +103,7 @@ static void exiop_client_initialize(const char *addr)
     _G.remote_ic.on_event = exiop_client_on_event;
     _G.remote_ic.impl     = &ic_no_impl;
 
-    exiop_addr_resolve(LSTR_STR_V(addr), &_G.remote_ic.su);
+    exiop_addr_resolve(LSTR(addr), &_G.remote_ic.su);
 
     if (ic_connect(&_G.remote_ic) < 0)
         e_fatal("cannot connect to %s", addr);
@@ -147,7 +147,7 @@ static int exiop_on_accept(el_t ev, int fd)
 static void exiop_server_initialize(const char *addr)
 {
     /* Start listening */
-    _G.ic_srv = exiop_ic_listento(LSTR_STR_V(addr), &exiop_on_accept);
+    _G.ic_srv = exiop_ic_listento(LSTR(addr), &exiop_on_accept);
 
     /* Register RPCs */
     ic_register(&_G.ic_impl, exiop__hello_mod, hello_interface, send);

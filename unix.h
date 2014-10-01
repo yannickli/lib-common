@@ -322,7 +322,7 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
     ps = ps_initsb(&buf);
 
     /* Check for TracerPid: */
-    tpid_key = LSTR_IMMED_V("\nTracerPid:");
+    tpid_key = LSTR("\nTracerPid:");
     if (ps_skip_after_data(&ps, tpid_key.s, tpid_key.len) < 0)
         return e_error("bad status format");
 

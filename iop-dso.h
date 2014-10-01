@@ -51,7 +51,7 @@ const void *const *iop_dso_get_ressources(const iop_dso_t *, lstr_t category);
 
 #define IOP_DSO_GET_RESSOURCES(dso, category)                 \
     ((const iop_dso_ressource_t(category) *const *)           \
-        iop_dso_get_ressources(dso, LSTR_IMMED_V(#category)))
+        iop_dso_get_ressources(dso, LSTR(#category)))
 
 #define iop_dso_ressources_for_each_entry(category, ressource, ressources) \
     for (const iop_dso_ressource_t(category) *ressource,                   \

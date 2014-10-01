@@ -204,7 +204,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  * declares a dependence from the current module on \p dep.
  */
 #define MODULE_DEPENDS_ON(dep)  \
-    module_add_dep(__mod, __name, LSTR_IMMED_V(#dep), &MODULE(dep))
+    module_add_dep(__mod, __name, LSTR(#dep), &MODULE(dep))
 
 /** Add a dependence to another module.
  *
@@ -213,7 +213,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  * It declares a dependence from the current module to \p need.
  */
 #define MODULE_NEEDED_BY(need)  \
-    module_add_dep(MODULE(need), LSTR_IMMED_V(#need), __name, &__mod)
+    module_add_dep(MODULE(need), LSTR(#need), __name, &__mod)
 
 /* {{{ Method */
 

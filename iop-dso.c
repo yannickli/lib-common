@@ -266,15 +266,15 @@ iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name)
         return dso->struct_h.values[pos];
     }
 
-    if (lstr_endswith(name, LSTR_IMMED_V("Args"))) {
+    if (lstr_endswith(name, LSTR("Args"))) {
         name.len -= strlen("Args");
         what = 0;
     } else
-    if (lstr_endswith(name, LSTR_IMMED_V("Res"))) {
+    if (lstr_endswith(name, LSTR("Res"))) {
         name.len -= strlen("Res");
         what = 1;
     } else
-    if (lstr_endswith(name, LSTR_IMMED_V("Exn"))) {
+    if (lstr_endswith(name, LSTR("Exn"))) {
         name.len -= strlen("Exn");
         what = 2;
     } else {
@@ -314,7 +314,7 @@ iop_enum_t const *iop_dso_find_enum(iop_dso_t const *dso, lstr_t name)
 const void *const *iop_dso_get_ressources(const iop_dso_t *dso, lstr_t category)
 {
     t_scope;
-    lstr_t name = t_lstr_cat(LSTR_IMMED_V("iop_dso_ressources_"), category);
+    lstr_t name = t_lstr_cat(LSTR("iop_dso_ressources_"), category);
 
     return dlsym(dso->handle, name.s);
 }

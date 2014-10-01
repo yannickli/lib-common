@@ -24,7 +24,7 @@ iopc_set_path(const char *outdir, const iopc_pkg_t *pkg,
 
     if (outdir) {
         if (only_pkg) {
-            lstr_t sp = LSTR_STR_V(pretty_path(pkg->name));
+            lstr_t sp = LSTR(pretty_path(pkg->name));
 
             /* pretty path force the .iop extension which may differs of the
              * given extension. */

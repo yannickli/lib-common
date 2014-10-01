@@ -242,7 +242,7 @@ Z_GROUP_EXPORT(qhash)
         CHECK(test, 1);
 
         /* VKEY */
-        str = LSTR_IMMED_V("foo");
+        str = LSTR("foo");
         CHECK(test_lstr, &str);
 
         /* PKEY */
@@ -537,7 +537,7 @@ Z_GROUP_EXPORT(qhugehash)
         CHECK(test, 1);
 
         /* VKEY */
-        str = LSTR_IMMED_V("foo");
+        str = LSTR("foo");
         CHECK(test_lstr, &str);
 
         /* PKEY */
@@ -998,9 +998,9 @@ Z_GROUP_EXPORT(qhp)
     Z_TEST(lstr, "qhp: lstr") {
         t_scope;
         qhp_t(lstr_min)  qhp;
-        lstr_t           toto = LSTR_IMMED_V("toto");
-        lstr_t           tata = LSTR_IMMED_V("tata");
-        lstr_t           tutu = LSTR_IMMED_V("tutu");
+        lstr_t           toto = LSTR("toto");
+        lstr_t           tata = LSTR("tata");
+        lstr_t           tutu = LSTR("tutu");
 
         t_qhp_init(lstr_min, &qhp, 3);
 

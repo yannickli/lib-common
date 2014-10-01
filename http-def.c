@@ -30,7 +30,7 @@ lstr_t const http_method_str[HTTP_METHOD__MAX] = {
 lstr_t http_code_to_str(http_code_t code)
 {
     switch (code) {
-#define CASE(c, v)  case HTTP_CODE_##c: return LSTR_IMMED_V(v)
+#define CASE(c, v)  case HTTP_CODE_##c: return LSTR(v)
         CASE(CONTINUE                , "Continue");
         CASE(SWITCHING_PROTOCOL      , "Switching Protocols");
 
@@ -78,5 +78,5 @@ lstr_t http_code_to_str(http_code_t code)
         CASE(VERSION_NOT_SUPPORTED   , "HTTP Version not supported");
 #undef CASE
     }
-    return LSTR_IMMED_V("<unknown>");
+    return LSTR("<unknown>");
 }

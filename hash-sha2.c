@@ -934,16 +934,16 @@ Z_GROUP_EXPORT(sha2)
                                              &rounds, &salt, &hash));
             Z_ASSERT_EQ(rounds, tests_crypt[i].expected_rounds);
             Z_ASSERT_LSTREQUAL(LSTR_PS_V(&salt),
-                               LSTR_STR_V(tests_crypt[i].expected_salt));
+                               LSTR(tests_crypt[i].expected_salt));
             Z_ASSERT_LSTREQUAL(LSTR_PS_V(&hash),
-                               LSTR_STR_V(tests_crypt[i].expected_hash));
+                               LSTR(tests_crypt[i].expected_hash));
 
         }
 
         /* Check the parse function on bad cases */
 
 #define CHECK_FAIL(str)                \
-    Z_ASSERT_NEG(sha2_crypt_parse(LSTR_IMMED_V(str), NULL, NULL, NULL))
+    Z_ASSERT_NEG(sha2_crypt_parse(LSTR(str), NULL, NULL, NULL))
 
         /* Wrong algorithm code */
         CHECK_FAIL("$6$rounds=10000$salt"

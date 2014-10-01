@@ -1724,7 +1724,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         };
 
         for (int i = 0; i < countof(t); i++) {
-            lstr_t src = LSTR_STR_V(t[i].os);
+            lstr_t src = LSTR(t[i].os);
             lstr_t dst;
 
             bb_reset(&bb);

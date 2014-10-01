@@ -105,7 +105,7 @@ static int t_parse_soap(ichttp_query_t *iq,
     return 0;
 
   xmlerror:
-    s = LSTR_STR_V(xmlr_get_err() ?: "parsing error");
+    s = LSTR(xmlr_get_err() ?: "parsing error");
     __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false, &s);
   error:
     xmlr_close(&xr);

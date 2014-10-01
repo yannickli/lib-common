@@ -152,7 +152,7 @@ bool _z_step_check_flags(int unused, ...)
 
     va_start(ap, unused);
     while (!hit && (s = va_arg(ap, const char *))) {
-        lstr_t t = LSTR_STR_V(s);
+        lstr_t t = LSTR(s);
 
         if (qh_find(lstr, &_G.tag_skip, &t) >= 0) {
             _z_step_skip("skipping tests flagged '%*pM'", LSTR_FMT_ARG(t));
@@ -445,7 +445,7 @@ static void do_fail_comment(void)
 
     do_comment(t_lstr_fmt("$ %*pM %*pM.%*pM", LSTR_FMT_ARG(_G.arg0),
            LSTR_FMT_ARG(_G.grp.name), LSTR_FMT_ARG(_G.grp.t_name)));
-    do_comment(LSTR_IMMED_V("\n"));
+    do_comment(LSTR("\n"));
     do_comment(_G.grp.t_fail_reason);
     fflush(stdout);
     if (_G.abort_on_fail) {
@@ -516,7 +516,7 @@ static void __z_group_start(lstr_t name)
 
 void _z_group_start(const char *name)
 {
-    __z_group_start(LSTR_STR_V(name));
+    __z_group_start(LSTR(name));
 }
 
 static bool _z_is_group_ignored(void)
@@ -711,7 +711,7 @@ static void _z_blkgrp_process(struct z_blkgrp *g)
 
 int _z_step_run(const char *name)
 {
-    lstr_t n = LSTR_STR_V(name);
+    lstr_t n = LSTR(name);
 
     NOT_IN_TEST;
 
@@ -742,8 +742,10 @@ void _z_step_report(void)
     if (_G.grp.t_skip_reason.s) {
         do_skip();
     } else {
-        if (_G.grp.t_asserts == 0)
-            lstr_copyc(&_G.grp.t_fail_reason, LSTR_IMMED_V("no assertions in test !?"));
+        if (_G.grp.t_asserts == 0) {
+            lstr_copyc(&_G.grp.t_fail_reason,
+                       LSTR("no assertions in test !?"));
+        }
         if (_G.grp.t_todo_reason.s) {
             if (_G.grp.t_fail_reason.s) {
                 do_todo_failed();
@@ -793,7 +795,7 @@ int z_setup(int argc, const char **argv)
     _G.do_fork       = !is_traced && !mem_tool_is_running(MEM_TOOL_VALGRIND);
     _G.abort_on_fail = is_traced;
 
-    lstr_copy(&_G.arg0, LSTR_STR_V(argv[0]));
+    lstr_copy(&_G.arg0, LSTR(argv[0]));
 
     for (int i = 1; i < argc; i++) {
         if (strequal(argv[i], "--")) {
@@ -803,15 +805,15 @@ int z_setup(int argc, const char **argv)
         }
 
         if (z_is_opt_with_arg("--z-tag-skip", &i, argv)) {
-            lstr_t arg = LSTR_STR_V(argv[i]);
+            lstr_t arg = LSTR(argv[i]);
 
             qh_add(lstr, &_G.tag_skip, &arg);
             continue;
         } else
         if (z_is_opt_with_arg("--z-mode", &i, argv)) {
-            lstr_t arg = LSTR_STR_V(argv[i]);
+            lstr_t arg = LSTR(argv[i]);
 
-            if (lstr_equal2(LSTR_IMMED_V("fast"), arg)) {
+            if (lstr_equal2(LSTR("fast"), arg)) {
                 SET_BIT(&z_modes_g, Z_MODE_FAST);
             } else {
                 e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(arg));
@@ -842,7 +844,7 @@ int z_setup(int argc, const char **argv)
         if (argv[i][0] == '-')
             e_fatal("%s flag unknown", argv[i]);
 
-        qv_append(lstr, &_G.only, LSTR_STR_V(argv[i]));
+        qv_append(lstr, &_G.only, LSTR(argv[i]));
     }
 
     s = getenv("Z_TAG_SKIP");
@@ -867,7 +869,7 @@ int z_setup(int argc, const char **argv)
             pstream_t tok  = ps_get_cspan(&ps, &ctype_isspace);
             lstr_t    stok = LSTR_INIT_V(tok.s, ps_len(&tok));
 
-            if (lstr_equal2(LSTR_IMMED_V("fast"), stok)) {
+            if (lstr_equal2(LSTR("fast"), stok)) {
                 SET_BIT(&z_modes_g, Z_MODE_FAST);
             } else {
                 e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(stok));

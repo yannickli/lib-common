@@ -21,7 +21,7 @@ static void t_ts_to_lstr(time_t ts, lstr_t *out)
 
     date = t_new(char, 20);
     if (strftime(date, 20, "%d-%b-%Y", localtime(&ts)) != 0) {
-        *out = LSTR_STR_V(date);
+        *out = LSTR(date);
     } else {
         *out = LSTR_EMPTY_V;
     }
@@ -42,25 +42,25 @@ Z_GROUP_EXPORT(licence)
 
         Z_ASSERT_N(chdir(z_cmddir_g.s));
         Z_LOAD_LICENCE("samples/licence-iop-ok.cf");
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                     LSTR_IMMED_V("1.0"), flags));
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                     LSTR_IMMED_V("2.0"), flags));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                     flags));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s, LSTR("2.0"),
+                                     flags));
 
         Z_LOAD_LICENCE("samples/licence-iop-sig-ko.cf");
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                       flags));
 
         Z_LOAD_LICENCE("samples/licence-iop-exp-ko.cf");
         Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
                                        lic.signature, flags));
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                       flags));
 
         /* Invalid expiration date : "02-aaa-2012" */
         Z_LOAD_LICENCE("samples/licence-iop-exp-invalid.cf");
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                       flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_INVALID_EXPIRATION);
 
@@ -68,8 +68,8 @@ Z_GROUP_EXPORT(licence)
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                      &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                       flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_INVALID_EXPIRATION);
 
@@ -77,24 +77,24 @@ Z_GROUP_EXPORT(licence)
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
                      &lic.licence->expiration_hard_date);
         lic.licence->expiration_warning_delay = 7 * 24 * 3600;
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                     flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_EXPIRES_SOON);
 
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
                    &lic.licence->expiration_hard_date);
-        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                     flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_SOFT_EXPIRED);
 
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                    &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
-                                       LSTR_IMMED_V("1.0"), flags));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s, LSTR("1.0"),
+                                       flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_HARD_EXPIRED);
 

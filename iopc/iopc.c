@@ -139,13 +139,13 @@ static void build_doit_table(qv_t(doit) *doits)
     qv_for_each_entry(lstr, lang, &langs) {
         struct doit doit;
 
-        if (lstr_ascii_iequal(lang, LSTR_IMMED_V("c"))) {
+        if (lstr_ascii_iequal(lang, LSTR("c"))) {
             doit = (struct doit){
                 .cb = &iopc_do_c,
                 .outpath = opts.c_outpath
             };
         } else
-        if (lstr_ascii_iequal(lang, LSTR_IMMED_V("json"))) {
+        if (lstr_ascii_iequal(lang, LSTR("json"))) {
             doit = (struct doit){
                 .cb = &iopc_do_json,
                 .outpath = opts.json_outpath

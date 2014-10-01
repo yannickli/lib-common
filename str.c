@@ -295,8 +295,8 @@ size_t strrand(char dest[], size_t dest_size, lstr_t alphabet)
     char *last = p + dest_size - 1;
 
     if (!alphabet.s && alphabet.len == 0) {
-        alphabet = LSTR_IMMED_V("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop"
-                                "qrstuvwxyz0123456789+/");
+        alphabet = LSTR("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop"
+                        "qrstuvwxyz0123456789+/");
     }
 
     assert (alphabet.len > 0);
@@ -323,7 +323,7 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
 
     /* RFE: This is very naive. Should at least call ha_rand() only every 4
      * bytes. */
-    return strrand(dest + offset, n, LSTR_IMMED_V("0123456789ABCDEF"));
+    return strrand(dest + offset, n, LSTR("0123456789ABCDEF"));
 }
 
 int str_replace(const char search, const char replace, char *subject)

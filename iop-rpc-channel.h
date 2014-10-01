@@ -242,7 +242,7 @@ static inline bool ic_is_local(const ichannel_t *ic) {
 
 static inline void ic_set_local(ichannel_t *ic) {
     ic->is_local = true;
-    ic->peer_address = LSTR_IMMED_V("127.0.0.1");
+    ic->peer_address = LSTR("127.0.0.1");
 }
 
 static inline int ic_get_fd(ichannel_t *ic) {

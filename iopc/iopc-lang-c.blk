@@ -613,7 +613,7 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
     int max = INT_MIN;
 
     if (t_iopc_attr_check_prefix(&en->attrs, &ns) < 0) {
-        ns = t_lstr_dup(LSTR_STR_V(pp_to_c(en->name)));
+        ns = t_lstr_dups(pp_to_c(en->name), -1);
     }
     lstr_ascii_toupper(&ns);
 
@@ -1441,7 +1441,7 @@ static inline int get_char(pstream_t *ps, lstr_t *s) {
         PS_CHECK(d = ps_getc(ps));
         switch (d) {
           case '\\':
-            *s = LSTR_IMMED_V("\\\\");
+            *s = LSTR("\\\\");
             return 0;
           case '|': case '.': case '-': case '^': case '?':
           case '*': case '+': case '{': case '}': case '(': case ')':

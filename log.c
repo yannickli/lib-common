@@ -1036,9 +1036,9 @@ static void log_module_register(void)
     static module_t *log_module;
 
     thr_hooks_register();
-    log_module = module_register(LSTR_IMMED_V("log"), &log_module,
+    log_module = module_register(LSTR("log"), &log_module,
                                  &log_initialize, &log_shutdown, NULL, 0);
-    module_add_dep(log_module, LSTR_IMMED_V("log"),  LSTR_IMMED_V("thr_hooks"),
+    module_add_dep(log_module, LSTR("log"),  LSTR("thr_hooks"),
                    &MODULE(thr_hooks));
     module_implement_method(log_module, &at_fork_on_child_method,
                             &log_atfork);
@@ -1071,7 +1071,7 @@ Z_GROUP_EXPORT(log) {
         logger_t c = LOGGER_INIT(&b, "c", LOG_ERR);
         logger_t d;
 
-        logger_init(&d, &c, LSTR_IMMED_V("d"), LOG_INHERITS, LOG_SILENT);
+        logger_init(&d, &c, LSTR("d"), LOG_INHERITS, LOG_SILENT);
 
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
@@ -1110,7 +1110,7 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
 
-        logger_set_level(LSTR_IMMED_V("a"), LOG_WARNING, 0);
+        logger_set_level(LSTR("a"), LOG_WARNING, 0);
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
@@ -1118,7 +1118,7 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
 
-        logger_set_level(LSTR_IMMED_V("a"), LOG_WARNING, LOG_RECURSIVE);
+        logger_set_level(LSTR("a"), LOG_WARNING, LOG_RECURSIVE);
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&c));
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
@@ -1126,7 +1126,7 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
 
-        logger_set_level(LSTR_IMMED_V("a/b/c"), LOG_TRACE, 0);
+        logger_set_level(LSTR("a/b/c"), LOG_TRACE, 0);
         Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&c));
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
@@ -1134,7 +1134,7 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
 
-        logger_reset_level(LSTR_IMMED_V("a"));
+        logger_reset_level(LSTR("a"));
         Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&c));
         Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
@@ -1142,7 +1142,7 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(log_g.root_logger.default_level,
                     logger_get_level(&log_g.root_logger));
 
-        logger_reset_level(LSTR_IMMED_V("a/b/c"));
+        logger_reset_level(LSTR("a/b/c"));
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
         Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
         Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
@@ -1157,10 +1157,10 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(c.level_flags, 0u);
         Z_ASSERT_EQ(d.level_flags, (unsigned)LOG_SILENT);
 
-        logger_set_level(LSTR_IMMED_V("a/b"), LOG_WARNING, 0);
+        logger_set_level(LSTR("a/b"), LOG_WARNING, 0);
         Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
         Z_ASSERT_EQ(b.level_flags, 0u);
-        logger_reset_level(LSTR_IMMED_V("a/b"));
+        logger_reset_level(LSTR("a/b"));
         Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
         Z_ASSERT_EQ(b.level_flags, (unsigned)LOG_SILENT);
 
@@ -1182,7 +1182,7 @@ Z_GROUP_EXPORT(log) {
     do {                                                                     \
         log_buffer_t entry = vect_buffer->tab[_i];                           \
         Z_ASSERT_LSTREQUAL(entry.msg,                                        \
-                        LSTR_IMMED_V("log message inside buffer " # _j));    \
+                           LSTR("log message inside buffer " # _j));         \
         Z_ASSERT_LSTREQUAL(entry.ctx.logger_name, _logger.name);             \
         Z_ASSERT_EQ(entry.ctx.level, _level);                                \
     } while (0)
@@ -1514,15 +1514,13 @@ Z_GROUP_EXPORT(log) {
         if (Catch) {                                                         \
             Z_ASSERT_EQ(vect_buffer->len, 2);                                \
             Z_ASSERT_EQ(vect_buffer->tab[0].ctx.level, Level);               \
-            Z_ASSERT_LSTREQUAL(vect_buffer->tab[0].msg,                      \
-                               LSTR_IMMED_V("coucou2"));                     \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[0].msg, LSTR("coucou2"));    \
             Z_ASSERT_LSTREQUAL(vect_buffer->tab[0].ctx.logger_name,          \
-                               LSTR_IMMED_V("blah"));                        \
+                               LSTR("blah"));                                \
             Z_ASSERT_EQ(vect_buffer->tab[1].ctx.level, Level);               \
-            Z_ASSERT_LSTREQUAL(vect_buffer->tab[1].msg,                      \
-                               LSTR_IMMED_V("coucou"));                      \
+            Z_ASSERT_LSTREQUAL(vect_buffer->tab[1].msg, LSTR("coucou"));     \
             Z_ASSERT_LSTREQUAL(vect_buffer->tab[1].ctx.logger_name,          \
-                               LSTR_IMMED_V("blah"));                        \
+                               LSTR("blah"));                                \
         } else {                                                             \
             Z_ASSERT_ZERO(vect_buffer->len);                                 \
         }                                                                    \
@@ -1575,7 +1573,7 @@ Z_GROUP_EXPORT(log) {
              logger_trace_start(&l, 3), logger_end(&l),
              LOG_TRACE + 3, false);
 
-        logger_set_level(LSTR_IMMED_V("blah"), LOG_TRACE + 8, 0);
+        logger_set_level(LSTR("blah"), LOG_TRACE + 8, 0);
         TEST(logger_trace_scope(&l, 3),
              logger_trace_start(&l, 3), logger_end(&l),
              LOG_TRACE + 3, true);

@@ -262,7 +262,7 @@ int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out)
     s = (const char *)xmlTextReaderConstLocalName(xr);
     if (s == NULL)
         return XMLR_ERROR;
-    *out = LSTR_STR_V(s);
+    *out = LSTR(s);
     return 0;
 }
 
@@ -376,7 +376,7 @@ int xmlr_get_cstr_start(xml_reader_t xr, bool emptyok, lstr_t *out)
             s = (const char *)xmlTextReaderConstValue(xr);
     }
     if (s) {
-        *out = LSTR_STR_V(s);
+        *out = LSTR(s);
     } else {
         if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
@@ -707,7 +707,7 @@ static int xmlr_attr_dbl(xml_reader_t xr, const char *name, const char *s,
 Z_GROUP_EXPORT(xmlr)
 {
     Z_TEST(xmlr_node_get_xmlns, "xmlr_node_get_xmlns") {
-        lstr_t body = LSTR_IMMED_V("<ns:elt xmlns:ns=\"ns_uri\" />");
+        lstr_t body = LSTR("<ns:elt xmlns:ns=\"ns_uri\" />");
         lstr_t name;
         lstr_t ns;
 
@@ -723,7 +723,7 @@ Z_GROUP_EXPORT(xmlr)
     } Z_TEST_END;
 
     Z_TEST(xmlr_node_get_xmlns_uri, "xmlr_node_get_xmlns_uri") {
-        lstr_t body = LSTR_IMMED_V("<ns:elt xmlns:ns=\"ns_uri\" />");
+        lstr_t body = LSTR("<ns:elt xmlns:ns=\"ns_uri\" />");
         lstr_t name;
         lstr_t ns_uri;
 
@@ -739,7 +739,7 @@ Z_GROUP_EXPORT(xmlr)
     } Z_TEST_END;
 
     Z_TEST(xmlr_node_get_xmlns_no_uri, "xmlr_node_get_xmlns_no_uri") {
-        lstr_t body = LSTR_IMMED_V("<elt xmlns:ns=\"ns_uri\" />");
+        lstr_t body = LSTR("<elt xmlns:ns=\"ns_uri\" />");
         lstr_t name;
         lstr_t ns_uri;
 

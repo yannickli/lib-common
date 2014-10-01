@@ -677,7 +677,7 @@ int licence_check_modules(const core__licence__t *licence)
             {
                 const lstr_t *name;
 
-                name = &iop_get_cvar(&child, LSTR_IMMED_V("name"))->s;
+                name = &iop_get_cvar(&child, LSTR("name"))->s;
                 if (qh_add(lstr, static_names_p, name) < 0) {
                     e_fatal("duplicated static name `%*pM` in the children "
                             "of core.LicenceModule", LSTR_FMT_ARG(*name));
@@ -690,8 +690,8 @@ int licence_check_modules(const core__licence__t *licence)
     t_qh_init(lstr, &fullnames, licence->modules.len);
 
     tab_for_each_entry(e, &licence->modules) {
-        lstr_t name = iop_get_cvar(e, LSTR_IMMED_V("name"))->s;
-        bool can_expire = iop_get_cvar(e, LSTR_IMMED_V("canExpire"))->b;
+        lstr_t name = iop_get_cvar(e, LSTR("name"))->s;
+        bool can_expire = iop_get_cvar(e, LSTR("canExpire"))->b;
 
         if (qh_add(lstr, &fullnames, &e->__vptr->fullname) < 0) {
             return e_error("licence module `%*pM` declared twice in "

@@ -819,7 +819,7 @@ Z_GROUP_EXPORT(str)
     ({  SB_1k(sb);                                                           \
                                                                              \
         sb_add_double_fmt(&sb, val, nb_max_decimals, dec_sep, thousand_sep); \
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(res));                       \
     })
 
         T(    0,          5, '.', ',',  "0");
@@ -847,7 +847,7 @@ Z_GROUP_EXPORT(str)
 #define T(_in, _out) \
         do {                                                                 \
             Z_ASSERT_N(sb_add_punycode_str(&sb, _in, strlen(_in)));          \
-            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(_out));          \
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(_out));                  \
             sb_reset(&sb);                                                   \
         } while (0)
 
@@ -864,7 +864,7 @@ Z_GROUP_EXPORT(str)
                                                                              \
             Z_ASSERT_N(sb_add_punycode_vec(&sb, _in, countof(_in)),          \
                        "punycode encoding failed for " _name);               \
-            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(_out),           \
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(_out),                   \
                                "punycode comparison failed for " _name);     \
             sb_reset(&sb);                                                   \
         } while (0)
@@ -963,7 +963,7 @@ Z_GROUP_EXPORT(str)
                                                     _flags);                 \
             Z_ASSERT_N(nb_labels);                                           \
             Z_ASSERT_EQ(nb_labels, _nb_labels);                              \
-            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(_out));          \
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(_out));                  \
             sb_reset(&sb);                                                   \
         } while (0)
 
@@ -1013,7 +1013,7 @@ Z_GROUP_EXPORT(str)
         sb_adduc(&domain, 0xfe01);
         sb_adds(&domain, "sec.com");
         Z_ASSERT_N(sb_add_idna_domain_name(&sb, domain.data, domain.len, 0));
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V("intersec.com"));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR("intersec.com"));
         sb_reset(&domain);
         sb_reset(&sb);
         sb_adds(&domain, "büc");
@@ -1022,7 +1022,7 @@ Z_GROUP_EXPORT(str)
         sb_adduc(&domain, 0xfe01);
         sb_adds(&domain, "r.com");
         Z_ASSERT_N(sb_add_idna_domain_name(&sb, domain.data, domain.len, 0));
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V("xn--bcher-kva.com"));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR("xn--bcher-kva.com"));
 
         /* Prohibited output */
         sb_reset(&domain);
@@ -1047,8 +1047,8 @@ Z_GROUP_EXPORT(str)
         SB_1k(sb);
 
 #define T(f, d, from, to) do {                                               \
-        f(&sb, LSTR_IMMED_V(from), d);                                       \
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(to));                \
+        f(&sb, LSTR(from), d);                                               \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(to));                        \
         sb_reset(&sb);                                                       \
     } while (0)
 
@@ -1064,17 +1064,17 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(lstr_startswithc, "str: starts with character") {
-        Z_ASSERT(lstr_startswithc(LSTR_IMMED_V("1234"), '1'));
-        Z_ASSERT(!lstr_startswithc(LSTR_IMMED_V("1234"), '2'));
-        Z_ASSERT(lstr_startswithc(LSTR_IMMED_V("a"), 'a'));
+        Z_ASSERT(lstr_startswithc(LSTR("1234"), '1'));
+        Z_ASSERT(!lstr_startswithc(LSTR("1234"), '2'));
+        Z_ASSERT(lstr_startswithc(LSTR("a"), 'a'));
         Z_ASSERT(!lstr_startswithc(LSTR_NULL_V, '2'));
         Z_ASSERT(!lstr_startswithc(LSTR_EMPTY_V, '2'));
     } Z_TEST_END;
 
     Z_TEST(lstr_endswithc, "str: ends with character") {
-        Z_ASSERT(!lstr_endswithc(LSTR_IMMED_V("1234"), '1'));
-        Z_ASSERT(lstr_endswithc(LSTR_IMMED_V("a"), 'a'));
-        Z_ASSERT(lstr_endswithc(LSTR_IMMED_V("1234"), '4'));
+        Z_ASSERT(!lstr_endswithc(LSTR("1234"), '1'));
+        Z_ASSERT(lstr_endswithc(LSTR("a"), 'a'));
+        Z_ASSERT(lstr_endswithc(LSTR("1234"), '4'));
         Z_ASSERT(!lstr_endswithc(LSTR_NULL_V, '2'));
         Z_ASSERT(!lstr_endswithc(LSTR_EMPTY_V, '2'));
     } Z_TEST_END;
@@ -1090,10 +1090,10 @@ Z_GROUP_EXPORT(str)
     } while (0)
         T(LSTR_NULL_V, LSTR_NULL_V);
         T(LSTR_EMPTY_V, LSTR_EMPTY_V);
-        T(LSTR_IMMED_V("a"), LSTR_IMMED_V("a"));
-        T(LSTR_IMMED_V("ab"), LSTR_IMMED_V("ba"));
-        T(LSTR_IMMED_V("abc"), LSTR_IMMED_V("cba"));
-        T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
+        T(LSTR("a"), LSTR("a"));
+        T(LSTR("ab"), LSTR("ba"));
+        T(LSTR("abc"), LSTR("cba"));
+        T(LSTR("abcd"), LSTR("dcba"));
 #undef T
     } Z_TEST_END;
 
@@ -1105,28 +1105,24 @@ Z_GROUP_EXPORT(str)
     } while (0)
         T(LSTR_NULL_V, LSTR_NULL_V);
         T(LSTR_EMPTY_V, LSTR_EMPTY_V);
-        T(LSTR_IMMED_V("a"), LSTR_IMMED_V("a"));
-        T(LSTR_IMMED_V("ab"), LSTR_IMMED_V("ba"));
-        T(LSTR_IMMED_V("abc"), LSTR_IMMED_V("cba"));
-        T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
-        T(LSTR_IMMED_V("aé"), LSTR_IMMED_V("éa"));
-        T(LSTR_IMMED_V("é"), LSTR_IMMED_V("é"));
-        T(LSTR_IMMED_V("éa"), LSTR_IMMED_V("aé"));
-        T(LSTR_IMMED_V("béa"), LSTR_IMMED_V("aéb"));
+        T(LSTR("a"), LSTR("a"));
+        T(LSTR("ab"), LSTR("ba"));
+        T(LSTR("abc"), LSTR("cba"));
+        T(LSTR("abcd"), LSTR("dcba"));
+        T(LSTR("aé"), LSTR("éa"));
+        T(LSTR("é"), LSTR("é"));
+        T(LSTR("éa"), LSTR("aé"));
+        T(LSTR("béa"), LSTR("aéb"));
 #undef T
     } Z_TEST_END;
 
     Z_TEST(lstr_dl_distance, "str: Damerau–Levenshtein distance") {
 #define T(s1, s2, exp) do {                                                  \
-        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s1), LSTR_IMMED_V(s2),    \
-                                      exp), exp);                            \
-        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s2), LSTR_IMMED_V(s1),    \
-                                      exp), exp);                            \
-        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR_IMMED_V(s1), LSTR_IMMED_V(s2),    \
-                                      -1), exp);                             \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR(s1), LSTR(s2), exp), exp);        \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR(s2), LSTR(s1), exp), exp);        \
+        Z_ASSERT_EQ(lstr_dlevenshtein(LSTR(s1), LSTR(s2), -1), exp);         \
         if (exp > 0) {                                                       \
-            Z_ASSERT_NEG(lstr_dlevenshtein(LSTR_IMMED_V(s1),                 \
-                                           LSTR_IMMED_V(s2), exp - 1));      \
+            Z_ASSERT_NEG(lstr_dlevenshtein(LSTR(s1), LSTR(s2), exp - 1));    \
         }                                                                    \
     } while (0)
 
@@ -1164,9 +1160,9 @@ Z_GROUP_EXPORT(str)
             qv_deep_clear(lstr, &arr, lstr_wipe);                            \
             ps_split(ps, &desc, flags, &arr);                                \
             Z_ASSERT_EQ(arr.len, 3);                                         \
-            Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR_IMMED_V(str1));              \
-            Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR_IMMED_V(str2));              \
-            Z_ASSERT_LSTREQUAL(arr.tab[2], LSTR_IMMED_V(str3)); })
+            Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str1));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR(str2));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[2], LSTR(str3)); })
 
         T("123", "abc", "!%*", "/", "/");
         T("123", "abc", "!%*", " ", " ");
@@ -1215,14 +1211,14 @@ Z_GROUP_EXPORT(str)
 
         ps = ps_initstr("cid1%3d1%26cid2=2&cid3=3&cid4=");
         Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
-        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid1=1&cid2"));
-        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V("2"));
+        Z_ASSERT_LSTREQUAL(key,   LSTR("cid1=1&cid2"));
+        Z_ASSERT_LSTREQUAL(value, LSTR("2"));
         Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
-        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid3"));
-        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V("3"));
+        Z_ASSERT_LSTREQUAL(key,   LSTR("cid3"));
+        Z_ASSERT_LSTREQUAL(value, LSTR("3"));
         Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
-        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid4"));
-        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V(""));
+        Z_ASSERT_LSTREQUAL(key,   LSTR("cid4"));
+        Z_ASSERT_LSTREQUAL(value, LSTR(""));
         Z_ASSERT(ps_done(&ps));
         Z_ASSERT_NEG(t_ps_get_http_var(&ps, &key, &value));
     } Z_TEST_END;
@@ -1232,7 +1228,7 @@ Z_GROUP_EXPORT(str)
     ({  SB_1k(sb);                                                           \
                                                                              \
         sb_add_int_fmt(&sb, val, thousand_sep);                              \
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(res));                       \
     })
 
         T(        0, ',', "0");
@@ -1253,7 +1249,7 @@ Z_GROUP_EXPORT(str)
     ({  SB_1k(sb);                                                           \
                                                                              \
         sb_add_uint_fmt(&sb, val, thousand_sep);                             \
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(res));                       \
     })
 
         T(         0, ',', "0");
@@ -1340,11 +1336,11 @@ Z_GROUP_EXPORT(str)
 
 #define T_OK(_str, _exp)  \
         do {                                                                 \
-            Z_ASSERT_N(lstr_to_int(LSTR_IMMED_V(_str), &i));                 \
+            Z_ASSERT_N(lstr_to_int(LSTR(_str), &i));                         \
             Z_ASSERT_EQ(i, _exp);                                            \
-            Z_ASSERT_N(lstr_to_int64(LSTR_IMMED_V(_str), &i64));             \
+            Z_ASSERT_N(lstr_to_int64(LSTR(_str), &i64));                     \
             Z_ASSERT_EQ(i64, _exp);                                          \
-            Z_ASSERT_N(lstr_to_uint64(LSTR_IMMED_V(_str), &u64));            \
+            Z_ASSERT_N(lstr_to_uint64(LSTR(_str), &u64));                    \
             Z_ASSERT_EQ(u64, (uint64_t)_exp);                                \
         } while (0)
 
@@ -1355,9 +1351,9 @@ Z_GROUP_EXPORT(str)
 
 #define T_KO(_str)  \
         do {                                                                 \
-            Z_ASSERT_NEG(lstr_to_int(LSTR_IMMED_V(_str), &i));               \
-            Z_ASSERT_NEG(lstr_to_int64(LSTR_IMMED_V(_str), &i64));           \
-            Z_ASSERT_NEG(lstr_to_uint64(LSTR_IMMED_V(_str), &u64));          \
+            Z_ASSERT_NEG(lstr_to_int(LSTR(_str), &i));                       \
+            Z_ASSERT_NEG(lstr_to_int64(LSTR(_str), &i64));                   \
+            Z_ASSERT_NEG(lstr_to_uint64(LSTR(_str), &u64));                  \
         } while (0)
 
         T_KO("");
@@ -1368,7 +1364,7 @@ Z_GROUP_EXPORT(str)
         T_KO("12.12");
 #undef T_KO
 
-        Z_ASSERT_NEG(lstr_to_uint64(LSTR_IMMED_V(" -123"), &u64));
+        Z_ASSERT_NEG(lstr_to_uint64(LSTR(" -123"), &u64));
         Z_ASSERT_EQ(errno, ERANGE);
     } Z_TEST_END;
 
@@ -1449,7 +1445,7 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_NULL(fields.tab[_n].s);                                     \
     } else {                                                                 \
         Z_ASSERT_P(fields.tab[_n].s);                                        \
-        Z_ASSERT_LSTREQUAL(fields.tab[_n], LSTR_STR_V(_str), "field value"); \
+        Z_ASSERT_LSTREQUAL(fields.tab[_n], LSTR(_str), "field value");       \
     }
 
 Z_GROUP_EXPORT(csv) {

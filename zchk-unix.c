@@ -69,7 +69,7 @@ Z_GROUP_EXPORT(file)
         t_scope;
 
         struct stat st;
-        lstr_t absdir = t_lstr_cat(z_tmpdir_g, LSTR_IMMED_V("tst/mkdir_p"));
+        lstr_t absdir = t_lstr_cat(z_tmpdir_g, LSTR("tst/mkdir_p"));
         lstr_t reldir = LSTR_IMMED("tst/mkdir_p2");
 
         Z_ASSERT_N(chdir(z_tmpdir_g.s));

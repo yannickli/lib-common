@@ -398,13 +398,12 @@ Z_GROUP_EXPORT(iop)
         qv_t(cstr) ressources_str;
         qv_t(i32) ressources_int;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-iop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-iop-plugin"SO_FILEEXT));
 
         Z_ASSERT(dso = iop_dso_open(path.s));
-        Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h,
-                           &LSTR_IMMED_V("ic.Hdr")));
+        Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h, &LSTR_IMMED_V("ic.Hdr")));
 
-        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR_IMMED_V("ic.SimpleHdr")));
+        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));
         Z_ASSERT(st != &ic__simple_hdr__s);
 
         t_qv_init(cstr, &ressources_str, 0);
@@ -455,15 +454,15 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
         uint8_t buf1[20], buf2[20];
 
         dso = iop_dso_open(path.s);
         if (dso == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(stv1 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.HashV1")));
-        Z_ASSERT_P(stv2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.HashV2")));
+        Z_ASSERT_P(stv1 = iop_dso_find_type(dso, LSTR("tstiop.HashV1")));
+        Z_ASSERT_P(stv2 = iop_dso_find_type(dso, LSTR("tstiop.HashV2")));
 
         iop_hash_sha1(stv1, &v1, buf1, 0);
         iop_hash_sha1(stv2, &v2, buf2, 0);
@@ -629,7 +628,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -701,7 +700,7 @@ Z_GROUP_EXPORT(iop)
                 Z_ASSERT(false, "shouldn't be reached");
               }
               IOP_UNION_CASE(tstiop__my_union_a, &us, us, v) {
-                Z_ASSERT_LSTREQUAL(v, LSTR_IMMED_V("foo"));
+                Z_ASSERT_LSTREQUAL(v, LSTR("foo"));
               }
               IOP_UNION_DEFAULT() {
                 Z_ASSERT(false, "default case shouldn't be reached");
@@ -709,7 +708,7 @@ Z_GROUP_EXPORT(iop)
             }
 
             Z_ASSERT_P(usvp = tstiop__my_union_a__get(&us, us));
-            Z_ASSERT_LSTREQUAL(*usvp, LSTR_IMMED_V("foo"));
+            Z_ASSERT_LSTREQUAL(*usvp, LSTR("foo"));
 
             Z_ASSERT_NULL(tstiop__my_union_a__get(&us, ua));
             Z_ASSERT_NULL(tstiop__my_union_a__get(&us, ub));
@@ -723,7 +722,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
         int32_t val[] = {15, 30, 45};
 
@@ -786,12 +785,12 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructE")));
-        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
-        Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
-        Z_ASSERT_P(st_cs = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintS")));
-        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
-        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyClass2")));
+        Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR("tstiop.MyStructE")));
+        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
+        Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR("tstiop.MyStructF")));
+        Z_ASSERT_P(st_cs = iop_dso_find_type(dso, LSTR("tstiop.ConstraintS")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
         iop_init(st_cls2, &cls2);
 
@@ -839,8 +838,8 @@ Z_GROUP_EXPORT(iop)
             qm_t(part) parts;
 
             qm_init_cached(part, &parts);
-            qm_add(part, &parts, &LSTR_IMMED_V("foo"), LSTR_IMMED_V("part cid foo"));
-            qm_add(part, &parts, &LSTR_IMMED_V("bar"), LSTR_IMMED_V("part cid bar"));
+            qm_add(part, &parts, &LSTR_IMMED_V("foo"), LSTR("part cid foo"));
+            qm_add(part, &parts, &LSTR_IMMED_V("bar"), LSTR("part cid bar"));
 
             sb_adds(&sb, "<root "
                     "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
@@ -911,8 +910,8 @@ Z_GROUP_EXPORT(iop)
             byte *res;
             int ret;
             lstr_t strings[] = {
-                LSTR_IMMED_V("foo5"),
-                LSTR_IMMED_V("foo6"),
+                LSTR("foo5"),
+                LSTR("foo6"),
             };
 
             iop_init(st_cs, &cs);
@@ -1273,7 +1272,7 @@ Z_GROUP_EXPORT(iop)
                 .cval   = 2,
                 .b      = IOP_UNION(tstiop__my_union_b, a,
                                     IOP_UNION(tstiop__my_union_a, us,
-                                              LSTR_IMMED_V("foo"))),
+                                              LSTR("foo"))),
                 .btab = IOP_ARRAY(j_bvals, countof(j_bvals)),
             },
         };
@@ -1287,7 +1286,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
@@ -1296,12 +1295,12 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
-        Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
-        Z_ASSERT_P(st_si = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructI")));
-        Z_ASSERT_P(st_sk = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructK")));
-        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
-        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyClass2")));
+        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
+        Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR("tstiop.MyStructF")));
+        Z_ASSERT_P(st_si = iop_dso_find_type(dso, LSTR("tstiop.MyStructI")));
+        Z_ASSERT_P(st_sk = iop_dso_find_type(dso, LSTR("tstiop.MyStructK")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
         iop_init(st_cls2, &cls2);
         cls2.int1 = 1;
@@ -1395,7 +1394,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sa, *st_sa_opt, *st_se, *st_cls2;
@@ -1404,10 +1403,10 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
-        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
-        Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructE")));
-        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyClass2")));
+        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR("tstiop.MyStructE")));
+        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
         iop_init(st_cls2, &cls2);
 
@@ -1420,7 +1419,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_init(st_sa_opt, &sa_opt);
         OPT_SET(sa_opt.a, 32);
-        sa_opt.j = LSTR_IMMED_V("foo");
+        sa_opt.j = LSTR("foo");
         Z_HELPER_RUN(iop_std_test_struct(st_sa_opt, &sa_opt, "sa_opt"));
 
         iop_dso_close(&dso);
@@ -1447,7 +1446,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
         unsigned seed = (unsigned)time(NULL);
 
 
@@ -1455,7 +1454,7 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.Repeated")));
+        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
 
         /* initialize my arrays */
         {
@@ -1512,7 +1511,7 @@ Z_GROUP_EXPORT(iop)
             pstream_t ps;
 
             path = t_lstr_cat(z_cmddir_g,
-                              LSTR_IMMED_V("samples/repeated.ibp"));
+                              LSTR("samples/repeated.ibp"));
 
             /* map our data file */
             Z_ASSERT_N(fd = open(path.s, O_RDONLY), "open failed: %m");
@@ -1554,7 +1553,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sg;
@@ -1566,7 +1565,7 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructG")));
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
 
         t_qv_init(i32, &szs, 1024);
 
@@ -1595,7 +1594,7 @@ Z_GROUP_EXPORT(iop)
                     "sg-string-null");
 
         /* test with a different string */
-        sg.j = LSTR_IMMED_V("plop");
+        sg.j = LSTR("plop");
         Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 7,
                     "sg-string-diff");
         Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags,
@@ -1622,7 +1621,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sg, *st_sa_opt, *st_ua, *st_sr;
@@ -1630,10 +1629,10 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructG")));
-        Z_ASSERT_P(st_sr = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.Repeated")));
-        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
-        Z_ASSERT_P(st_ua = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyUnionA")));
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
+        Z_ASSERT_P(st_sr = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_ua = iop_dso_find_type(dso, LSTR("tstiop.MyUnionA")));
 
         /* Test with all the default values */
         iop_init(st_sg, &sg_a);
@@ -1645,7 +1644,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
 
         sg_a.b--;
-        sg_b.j = LSTR_IMMED_V("not equal");
+        sg_b.j = LSTR("not equal");
         Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
 
         /* Use a more complex structure */
@@ -1655,8 +1654,8 @@ Z_GROUP_EXPORT(iop)
 
         IOP_OPT_SET(sa_opt_a.a, 42);
         IOP_OPT_SET(sa_opt_b.a, 42);
-        sa_opt_a.j = LSTR_IMMED_V("plop");
-        sa_opt_b.j = LSTR_IMMED_V("plop");
+        sa_opt_a.j = LSTR("plop");
+        sa_opt_b.j = LSTR("plop");
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         IOP_OPT_CLR(sa_opt_b.a);
@@ -1666,10 +1665,10 @@ Z_GROUP_EXPORT(iop)
         sa_opt_b.j = LSTR_NULL_V;
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
-        sa_opt_b.j = LSTR_IMMED_V("plop2");
+        sa_opt_b.j = LSTR("plop2");
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
-        sa_opt_b.j = LSTR_IMMED_V("plop");
+        sa_opt_b.j = LSTR("plop");
         ua_a = IOP_UNION(tstiop__my_union_a, ua, 1);
         ua_b = IOP_UNION(tstiop__my_union_a, ua, 1);
         sa_opt_a.l = &ua_a;
@@ -1765,14 +1764,14 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
         const iop_struct_t *st_sl;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructL")));
+        Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR("tstiop.MyStructL")));
 
         Z_ASSERT_N(iop_check_constraints(st_sl, &sl1));
         Z_ASSERT_N(tstiop__my_struct_l__check(&sl2));
@@ -1803,17 +1802,17 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__c1__t c;
 
         lstr_t strings[] = {
-            LSTR_IMMED_V("fooBAR_1"),
-            LSTR_IMMED_V("foobar_2"),
-            LSTR_IMMED_V("foo3"),
-            LSTR_IMMED_V("foo4"),
-            LSTR_IMMED_V("foo5"),
-            LSTR_IMMED_V("foo6"),
+            LSTR("fooBAR_1"),
+            LSTR("foobar_2"),
+            LSTR("foo3"),
+            LSTR("foo4"),
+            LSTR("foo5"),
+            LSTR("foo6"),
         };
 
         lstr_t bad_strings[] = {
-            LSTR_IMMED_V("abcd[]"),
-            LSTR_IMMED_V("a b c"),
+            LSTR("abcd[]"),
+            LSTR("a b c"),
         };
 
         int8_t   i8tab[] = { INT8_MIN,  INT8_MAX,  3, 4, 5, 6 };
@@ -1823,19 +1822,17 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
         const iop_struct_t *st_s, *st_u, *st_c;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_s = iop_dso_find_type(dso,
-                              LSTR_IMMED_V("tstiop.ConstraintS")));
-        Z_ASSERT_P(st_u = iop_dso_find_type(dso,
-                              LSTR_IMMED_V("tstiop.ConstraintU")));
+        Z_ASSERT_P(st_s = iop_dso_find_type(dso, LSTR("tstiop.ConstraintS")));
+        Z_ASSERT_P(st_u = iop_dso_find_type(dso, LSTR("tstiop.ConstraintU")));
         Z_ASSERT_P(st_c = iop_dso_find_type(dso,
-                              LSTR_IMMED_V("tstiop_inheritance.C1")));
+                                            LSTR("tstiop_inheritance.C1")));
 
         iop_init(st_u, &u);
         iop_init(st_s, &s);
@@ -1869,11 +1866,11 @@ Z_GROUP_EXPORT(iop)
         CHECK_INVALID(st_u, &u, "s_empty");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_NULL_V);
         CHECK_INVALID(st_u, &u, "s_null");
-        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("way_too_long"));
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR("way_too_long"));
         CHECK_INVALID(st_u, &u, "s_maxlength");
-        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("ab.{}[]"));
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR("ab.{}[]"));
         CHECK_INVALID(st_u, &u, "s_pattern");
-        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("ab.{}()"));
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR("ab.{}()"));
         CHECK_VALID(st_u, &u, "s");
 
         CHECK_INVALID(st_s, &s, "s_minoccurs");
@@ -1944,7 +1941,7 @@ Z_GROUP_EXPORT(iop)
 
         un[0] = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.e = 1;
-        a.j = LSTR_IMMED_V("xyz");
+        a.j = LSTR("xyz");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.lr = &un[0];
         cls2.int1 = 10;
@@ -1954,7 +1951,7 @@ Z_GROUP_EXPORT(iop)
 
         un[1] = IOP_UNION(tstiop__my_union_a, ub, 23);
         a.e = 2;
-        a.j = LSTR_IMMED_V("abc");
+        a.j = LSTR("abc");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 666);
         a.lr = &un[1];
         cls2.int1 = 15;
@@ -1964,7 +1961,7 @@ Z_GROUP_EXPORT(iop)
 
         un[2] = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.e = 3;
-        a.j = LSTR_IMMED_V("Jkl");
+        a.j = LSTR("Jkl");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.lr = &un[2];
         cls2.int1 = 13;
@@ -1974,7 +1971,7 @@ Z_GROUP_EXPORT(iop)
 
         un[3] = IOP_UNION(tstiop__my_union_a, ua, 666);
         a.e = 3;
-        a.j = LSTR_IMMED_V("jKl");
+        a.j = LSTR("jKl");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 23);
         a.lr = &un[3];
         cls2.int1 = 14;
@@ -1984,7 +1981,7 @@ Z_GROUP_EXPORT(iop)
 
         un[4] = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.e = 3;
-        a.j = LSTR_IMMED_V("jkL");
+        a.j = LSTR("jkL");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.lr = &un[4];
         cls2.int1 = 16;
@@ -1995,22 +1992,22 @@ Z_GROUP_EXPORT(iop)
 #define TST_SORT_VEC(p, f)  tstiop__my_struct_a__sort(vec.tab, vec.len, p, f)
 
         /* reverse sort on short e */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("e"), IOP_SORT_REVERSE));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("e"), IOP_SORT_REVERSE));
         Z_ASSERT_EQ(vec.tab[0].e, 3);
         Z_ASSERT_EQ(vec.tab[4].e, 1);
 
         /* sort on string j */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("j"), 0));
-        Z_ASSERT_LSTREQUAL(vec.tab[0].j, LSTR_IMMED_V("abc"));
-        Z_ASSERT_LSTREQUAL(vec.tab[4].j, LSTR_IMMED_V("xyz"));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("j"), 0));
+        Z_ASSERT_LSTREQUAL(vec.tab[0].j, LSTR("abc"));
+        Z_ASSERT_LSTREQUAL(vec.tab[4].j, LSTR("xyz"));
 
         /* sort on union l */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l"), 0));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[4].l, ub));
 
         /* sort on int ua, member of union l */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ua"), 0));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
@@ -2019,7 +2016,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[2].l.ua, 666);
 
         /* reverse sort on int ua, member of union l */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), IOP_SORT_REVERSE));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ua"), IOP_SORT_REVERSE));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
@@ -2028,7 +2025,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[2].l.ua, 111);
 
         /* sort on int ua, member of union l, put other union members first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ua"), IOP_SORT_NULL_FIRST));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ub));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ub));
         Z_ASSERT_EQ(vec.tab[2].l.ua, 111);
@@ -2037,7 +2034,7 @@ Z_GROUP_EXPORT(iop)
 
         /* reverse sort on int ua, member of union l, put other union members
          * first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"),
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ua"),
                                 IOP_SORT_NULL_FIRST | IOP_SORT_REVERSE));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ub));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ub));
@@ -2046,7 +2043,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[4].l.ua, 111);
 
         /* sort on byte ub, member of union l, put other union members first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ub"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ub"), IOP_SORT_NULL_FIRST));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
@@ -2054,12 +2051,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[4].l.ua, 42);
 
         /* sort on union lr */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr"), 0));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[4].lr, ub));
 
         /* sort on int ua, member of union lr */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr.ua"), 0));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
@@ -2068,7 +2065,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[2].lr->ua, 666);
 
         /* reverse sort on int ua, member of union lr */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), IOP_SORT_REVERSE));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr.ua"), IOP_SORT_REVERSE));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
@@ -2077,7 +2074,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[2].lr->ua, 111);
 
         /* sort on int ua, member of union lr, put other union members first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr.ua"), IOP_SORT_NULL_FIRST));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ub));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ub));
         Z_ASSERT_EQ(vec.tab[2].lr->ua, 111);
@@ -2086,7 +2083,7 @@ Z_GROUP_EXPORT(iop)
 
         /* reverse sort on int ua, member of union lr, put other union members
          * first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ua"),
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr.ua"),
                                 IOP_SORT_NULL_FIRST | IOP_SORT_REVERSE));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ub));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ub));
@@ -2095,7 +2092,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[4].lr->ua, 111);
 
         /* sort on byte ub, member of union lr, put other union members first */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("lr.ub"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("lr.ub"), IOP_SORT_NULL_FIRST));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[0].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[1].lr, ua));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, vec.tab[2].lr, ua));
@@ -2103,13 +2100,13 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[4].lr->ua, 42);
 
         /* sort on class members */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("cls2.int1"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("cls2.int1"), 0));
         Z_ASSERT_EQ(vec.tab[0].cls2->int1, 10);
         Z_ASSERT_EQ(vec.tab[1].cls2->int1, 13);
         Z_ASSERT_EQ(vec.tab[2].cls2->int1, 14);
         Z_ASSERT_EQ(vec.tab[3].cls2->int1, 15);
         Z_ASSERT_EQ(vec.tab[4].cls2->int1, 16);
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("cls2.int2"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("cls2.int2"), 0));
         Z_ASSERT_EQ(vec.tab[0].cls2->int2, 95);
         Z_ASSERT_EQ(vec.tab[1].cls2->int2, 96);
         Z_ASSERT_EQ(vec.tab[2].cls2->int2, 97);
@@ -2117,13 +2114,13 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[4].cls2->int2, 100);
 
         /* error: empty field path */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V(""), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("."), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("."), 0));
         /* error: bar field does not exist */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("bar"), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("bar"), 0));
         /* error: htab is a repeated field */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("htab"), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("htab"), 0));
 
         qv_wipe(my_struct_a, &vec);
 #undef TST_SORT_VEC
@@ -2137,13 +2134,13 @@ Z_GROUP_EXPORT(iop)
         IOP_OPT_SET(a2.a, 43);
         qv_append(my_struct_a_opt, &vec2, a2);
         IOP_OPT_CLR(a2.a);
-        a2.j = LSTR_IMMED_V("abc");
+        a2.j = LSTR("abc");
         a2.l = &IOP_UNION(tstiop__my_union_a, ua, 222);
         qv_append(my_struct_a_opt, &vec2, a2);
-        a2.j = LSTR_IMMED_V("def");
+        a2.j = LSTR("def");
         a2.l = &IOP_UNION(tstiop__my_union_a, ub, 222);
         qv_append(my_struct_a_opt, &vec2, a2);
-        a2.l = &IOP_UNION(tstiop__my_union_a, us, LSTR_IMMED_V("xyz"));
+        a2.l = &IOP_UNION(tstiop__my_union_a, us, LSTR("xyz"));
         qv_append(my_struct_a_opt, &vec2, a2);
 
         tstiop__my_struct_b__init(&b1);
@@ -2159,7 +2156,7 @@ Z_GROUP_EXPORT(iop)
 #define TST_SORT_VEC(p, f)  tstiop__my_struct_a_opt__sort(vec2.tab, vec2.len, p, f)
 
         /* sort on optional int a */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("a"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("a"), 0));
         Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].a), 42);
         Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].a), 43);
         Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[2].a));
@@ -2168,22 +2165,22 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[5].a));
 
         /* sort on optional string j */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("j"), 0));
-        Z_ASSERT_LSTREQUAL(vec2.tab[0].j, LSTR_IMMED_V("abc"));
-        Z_ASSERT_LSTREQUAL(vec2.tab[1].j, LSTR_IMMED_V("def"));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("j"), 0));
+        Z_ASSERT_LSTREQUAL(vec2.tab[0].j, LSTR("abc"));
+        Z_ASSERT_LSTREQUAL(vec2.tab[1].j, LSTR("def"));
 
         /* sort on optional union l */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("l"), 0));
         Z_ASSERT_P(vec2.tab[0].l);
         Z_ASSERT_EQ(vec2.tab[0].l->ua, 222);
 
         /* sort on optional int a, member of optional struct MyStructB o */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("o.a"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("o.a"), 0));
         Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].o->a), 42);
         Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].o->a), 72);
 
         /* error: cannot sort on struct */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("o"), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("o"), 0));
 
         qv_wipe(my_struct_a_opt, &vec2);
 #undef TST_SORT_VEC
@@ -2204,14 +2201,14 @@ Z_GROUP_EXPORT(iop)
 #define TST_SORT_VEC(p, f)  tstiop__my_struct_m__sort(mvec.tab, mvec.len, p, f)
 
         /* sort on int cval from MyStructJ j from MyStructK k */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("k.j.cval"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("k.j.cval"), 0));
         Z_ASSERT_EQ(mvec.tab[0].k.j.cval, 3);
         Z_ASSERT_EQ(mvec.tab[1].k.j.cval, 4);
         Z_ASSERT_EQ(mvec.tab[2].k.j.cval, 5);
 
         /* sort on int bval from MyUnionB b from MyStructJ j from MyStructK k
          */
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("k.j.b.bval"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("k.j.b.bval"), 0));
         Z_ASSERT_EQ(mvec.tab[0].k.j.b.bval, 33);
         Z_ASSERT_EQ(mvec.tab[1].k.j.b.bval, 44);
         Z_ASSERT_EQ(mvec.tab[2].k.j.b.bval, 55);
@@ -2237,12 +2234,12 @@ Z_GROUP_EXPORT(iop)
 #define TST_SORT_VEC(p, f)  \
         tstiop__my_class2__sort(cls2_vec.tab, cls2_vec.len, p, f)
 
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("int1"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("int1"), 0));
         Z_ASSERT_EQ(cls2_vec.tab[0]->int1, 1);
         Z_ASSERT_EQ(cls2_vec.tab[1]->int1, 2);
         Z_ASSERT_EQ(cls2_vec.tab[2]->int1, 3);
 
-        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("int2"), 0));
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("int2"), 0));
         Z_ASSERT_EQ(cls2_vec.tab[0]->int2, 4);
         Z_ASSERT_EQ(cls2_vec.tab[1]->int2, 5);
         Z_ASSERT_EQ(cls2_vec.tab[2]->int2, 6);
@@ -2280,7 +2277,7 @@ Z_GROUP_EXPORT(iop)
 
 #define ADD_PARAM(_field, _flags)  do {                                      \
         qv_append(iop_sort, &params, ((iop_sort_t){                          \
-            .field_path = LSTR_IMMED_V(_field),                              \
+            .field_path = LSTR(_field),                                      \
             .flags = _flags,                                                 \
         }));                                                                 \
     } while (0)
@@ -2335,7 +2332,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
 
         const iop_struct_t *st_sb;
@@ -2343,7 +2340,7 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructB")));
+        Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
 
         iop_init(st_sb, &sb);
         sb.b.tab = (void *)0x42;
@@ -2387,7 +2384,7 @@ Z_GROUP_EXPORT(iop)
             t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
             0));
 
-        b.s = LSTR_IMMED_V("default-value");
+        b.s = LSTR("default-value");
         Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
             t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING |
@@ -2665,7 +2662,7 @@ Z_GROUP_EXPORT(iop)
 
             tstiop_inheritance__b1__init(&b1);
             Z_ASSERT_EQ(b1.a, 1);
-            Z_ASSERT_LSTREQUAL(b1.b, LSTR_IMMED_V("b"));
+            Z_ASSERT_LSTREQUAL(b1.b, LSTR("b"));
         }
         {
             tstiop_inheritance__c1__t c1;
@@ -2687,7 +2684,7 @@ Z_GROUP_EXPORT(iop)
             tstiop_inheritance__c3__t c3;
 
             tstiop_inheritance__c3__init(&c3);
-            Z_ASSERT_LSTREQUAL(c3.a, LSTR_IMMED_V("A2"));
+            Z_ASSERT_LSTREQUAL(c3.a, LSTR("A2"));
             Z_ASSERT_EQ(c3.b, 5);
             Z_ASSERT_EQ(c3.c, 6);
         }
@@ -2695,7 +2692,7 @@ Z_GROUP_EXPORT(iop)
             tstiop_inheritance__c4__t c4;
 
             tstiop_inheritance__c4__init(&c4);
-            Z_ASSERT_LSTREQUAL(c4.a, LSTR_IMMED_V("A2"));
+            Z_ASSERT_LSTREQUAL(c4.a, LSTR("A2"));
             Z_ASSERT_EQ(c4.b, 5);
             Z_ASSERT_EQ(c4.c, false);
         }
@@ -2780,7 +2777,7 @@ Z_GROUP_EXPORT(iop)
             tstiop_inheritance__##_type##__init(&obj);                       \
             cvar = iop_get_cvar_cst(&obj, _varname);                         \
             Z_ASSERT_P(cvar);                                                \
-            Z_ASSERT_LSTREQUAL(cvar->s, LSTR_IMMED_V(_value));               \
+            Z_ASSERT_LSTREQUAL(cvar->s, LSTR(_value));                       \
         } while (0)
 
         CHECK_STATIC_STR(a1, "staticStr",  "a1");
@@ -2854,7 +2851,7 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT(iop_get_cvar_cst(&b1, "staticStr"));
             cvar = iop_get_class_cvar_cst(&a1, "staticStr");
             Z_ASSERT_P(cvar);
-            Z_ASSERT_LSTREQUAL(cvar->s, LSTR_IMMED_V("a1"));
+            Z_ASSERT_LSTREQUAL(cvar->s, LSTR("a1"));
             Z_ASSERT_NULL(iop_get_class_cvar_cst(&b1, "staticStr"));
         }
     } Z_TEST_END
@@ -3070,7 +3067,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(class_container2->a1->a2, 10);
         Z_ASSERT_P(class_container2->b3);
         Z_ASSERT(class_container2->b3->__vptr == &tstiop_inheritance__b3__s);
-        Z_ASSERT_LSTREQUAL(class_container2->b3->a, LSTR_IMMED_V("A2"));
+        Z_ASSERT_LSTREQUAL(class_container2->b3->a, LSTR("A2"));
         Z_ASSERT_EQ(class_container2->b3->b, 5);
         Z_ASSERT(class_container2->a3->__vptr == &tstiop_inheritance__b4__s);
         b4 = iop_obj_vcast(tstiop_inheritance__b4, class_container2->a3);
@@ -3191,14 +3188,14 @@ Z_GROUP_EXPORT(iop)
         /* Test with missing optional fields */
         UNPACK_OK("tstiop_inheritance_valid2.xml", c3);
         Z_ASSERT(c3->__vptr == &tstiop_inheritance__c3__s);
-        Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("I am the only field"));
+        Z_ASSERT_LSTREQUAL(c3->a, LSTR("I am the only field"));
         Z_ASSERT_EQ(c3->b, 5);
         Z_ASSERT_EQ(c3->c, 6);
 
         /* Test with no field at all (all are optional) */
         UNPACK_OK("tstiop_inheritance_valid3.xml", c3);
         Z_ASSERT(c3->__vptr == &tstiop_inheritance__c3__s);
-        Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("A2"));
+        Z_ASSERT_LSTREQUAL(c3->a, LSTR("A2"));
         Z_ASSERT_EQ(c3->b, 5);
         Z_ASSERT_EQ(c3->c, 6);
 
@@ -3297,9 +3294,9 @@ Z_GROUP_EXPORT(iop)
                      "<MyRefStruct><s></s></MyRefStruct>",
                      "missing mandatory tag <a>");
         Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_struct, &s,
-                              LSTR_IMMED_V("{ u: { b: 42 }, s: { a: 666 } }"));
+                              LSTR("{ u: { b: 42 }, s: { a: 666 } }"));
         Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_struct, &s,
-                              LSTR_IMMED_V("{ u.b: 42, s: { a: 666 } }"));
+                              LSTR("{ u.b: 42, s: { a: 666 } }"));
         JUNPACK_FAIL(my_ref_struct, "{ u: { b: 1 } }",
                      "member `tstiop.MyRefStruct:s' is missing");
         JUNPACK_FAIL(my_ref_struct, "{ s: { a: 1 } }",
@@ -3321,11 +3318,11 @@ Z_GROUP_EXPORT(iop)
                      "<MyRefUnion><s><a>2</a></s><u><b>1</b></u></MyRefUnion>",
                      "closing tag expected");
         Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &uu,
-                              LSTR_IMMED_V("{ u: { b: 42 } }"));
+                              LSTR("{ u: { b: 42 } }"));
         Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &uu,
-                              LSTR_IMMED_V("{ u.b: 42 }"));
+                              LSTR("{ u.b: 42 }"));
         Z_ASSERT_IOPJSONEQUAL(tstiop__my_ref_union, &us,
-                              LSTR_IMMED_V("{ s: { a: 666 } }"));
+                              LSTR("{ s: { a: 666 } }"));
 
 #undef JUNPACK_FAIL
 #undef XUNPACK_OK
@@ -3358,7 +3355,7 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR_IMMED_V("zchk-tstiop-plugin"SO_FILEEXT));
+                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
         const iop_struct_t *st_sa, *st_cls2;
         qv_t(i32) szs;
         int len;
@@ -3368,8 +3365,8 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
-        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyClass2")));
+        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
+        Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
         t_qv_init(i32, &szs, 1024);
         iop_init(st_cls2, &cls2);
@@ -3406,7 +3403,7 @@ Z_GROUP_EXPORT(iop)
 #define TEST_FIELD(_f, _type, _name, _st, _class)                       \
         do {                                                            \
             Z_ASSERT_EQ(_f->type, IOP_T_##_type);                       \
-            Z_ASSERT_LSTREQUAL(_f->name, LSTR_IMMED_V(_name));          \
+            Z_ASSERT_LSTREQUAL(_f->name, LSTR(_name));                  \
             Z_ASSERT(_st == _class.__vptr);                             \
         } while (0)
 
@@ -3512,7 +3509,7 @@ Z_GROUP_EXPORT(iop)
         cls3.int1 = 2;
         cls3.bool1 = true;
         struct_a.a = 15;
-        struct_a.j = LSTR_IMMED_V("toto");
+        struct_a.j = LSTR("toto");
         struct_a.l = IOP_UNION(tstiop__my_union_a, ua, 25);
         struct_a.cls2 = iop_obj_vcast(tstiop__my_class2, &cls3);
         struct_c.b = &struct_c;
@@ -3520,103 +3517,103 @@ Z_GROUP_EXPORT(iop)
         OPT_SET(struct_e.c.a, 42);
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V("unknown_field"), NULL));
+                                    LSTR("unknown_field"), NULL));
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V(""), NULL));
+                                    LSTR(""), NULL));
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V("."), NULL));
+                                    LSTR("."), NULL));
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V(".a"), NULL));
+                                    LSTR(".a"), NULL));
         Z_ASSERT_P(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                 LSTR_IMMED_V("l."), NULL));
+                                 LSTR("l."), NULL));
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V("l.."), NULL));
+                                    LSTR("l.."), NULL));
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("a"), &out);
+                                  LSTR("a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
         Z_ASSERT_EQ(*(int *)out, struct_a.a);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("l"), &out);
+                                  LSTR("l"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("l.ua"), &out);
+                                  LSTR("l.ua"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
         Z_ASSERT_EQ(*(int *)out, struct_a.l.ua);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("cls2"), &out);
+                                  LSTR("cls2"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("cls2.int2"), &out);
+                                  LSTR("cls2.int2"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("cls2.int1"), &out);
+                                  LSTR("cls2.int1"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("cls2.bool1"), &out);
+                                  LSTR("cls2.bool1"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("j"), &out);
+                                  LSTR("j"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V("cls2.bool10"), NULL));
+                                    LSTR("cls2.bool10"), NULL));
 
         iop_field = iop_get_field(&struct_e, &tstiop__my_struct_e__s,
-                                  LSTR_IMMED_V("c"), &out);
+                                  LSTR("c"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_e, &tstiop__my_struct_e__s,
-                                  LSTR_IMMED_V("c.a"), &out);
+                                  LSTR("c.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_b, &tstiop__my_struct_b__s,
-                                  LSTR_IMMED_V("a"), &out);
+                                  LSTR("a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                    LSTR_IMMED_V("a.b"), NULL));
+                                    LSTR("a.b"), NULL));
 
         iop_field = iop_get_field(&struct_a_opt, &tstiop__my_struct_a_opt__s,
-                                  LSTR_IMMED_V("l.ua"), &out);
+                                  LSTR("l.ua"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
-                                  LSTR_IMMED_V("b.a"), &out);
+                                  LSTR("b.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR_IMMED_V("lr.ua"), &out);
+                                  LSTR("lr.ua"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
 
         iop_field = iop_get_field(&struct_ref, &tstiop__my_ref_struct__s,
-                                  LSTR_IMMED_V("s.a"), &out);
+                                  LSTR("s.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_NULL(out);
 
         iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
-                                  LSTR_IMMED_V("b.b.a"), &out);
+                                  LSTR("b.b.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
     } Z_TEST_END
@@ -3645,7 +3642,7 @@ Z_GROUP_EXPORT(iop)
 
         field = &st->fields[9];
         Z_ASSERT_N(iop_value_from_field((void *) &sg, field, &value));
-        Z_ASSERT_LSTREQUAL(value.s, LSTR_IMMED_V("fo\"o?cbaré©"));
+        Z_ASSERT_LSTREQUAL(value.s, LSTR("fo\"o?cbaré©"));
 
         /* test to get struct */
         {
@@ -3718,9 +3715,9 @@ Z_GROUP_EXPORT(iop)
 
         /* test with string */
         field = &st->fields[9];
-        value.s = LSTR_IMMED_V("fo\"o?cbaré©");
+        value.s = LSTR("fo\"o?cbaré©");
         Z_ASSERT_N(iop_value_to_field((void *) &sg, field, &value));
-        Z_ASSERT_LSTREQUAL(sg.j, LSTR_IMMED_V("fo\"o?cbaré©"));
+        Z_ASSERT_LSTREQUAL(sg.j, LSTR("fo\"o?cbaré©"));
 
         /* test struct */
         sj.cval = 42;
@@ -3781,26 +3778,26 @@ Z_GROUP_EXPORT(iop)
         info.name = _name;                                           \
         qv_append(iop_field_info, &fields_info, info)
 
-        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR_IMMED_V("f0"));
-        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR_IMMED_V("f1"));
-        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR_IMMED_V("f2"));
-        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR_IMMED_V("f3"));
-        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR_IMMED_V("f4"));
-        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR_IMMED_V("f5"));
+        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR("f0"));
+        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR("f1"));
+        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR("f2"));
+        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR("f3"));
+        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR("f4"));
+        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR("f5"));
 
 #undef POLULATE_FIELDSINFO
 
-        st = iop_type_vector_to_iop_struct(NULL, LSTR_IMMED_V("fullname"),
+        st = iop_type_vector_to_iop_struct(NULL, LSTR("fullname"),
                                            &fields_info);
 
-        Z_ASSERT_LSTREQUAL(st->fullname, LSTR_IMMED_V("fullname"));
+        Z_ASSERT_LSTREQUAL(st->fullname, LSTR("fullname"));
         Z_ASSERT_GE(st->size, 31);
 
 #define GET_FIELD_FROM_NAME(_name)                                           \
         ({                                                                   \
             const iop_field_t *tmp_field = NULL;                             \
             const iop_struct_t *tmp_struct = NULL;                           \
-            lstr_t name = LSTR_IMMED_V(_name);                               \
+            lstr_t name = LSTR(_name);                                       \
                                                                              \
             __iop_field_find_by_name(st, name.s, name.len,                   \
                                      &tmp_struct, &tmp_field);               \

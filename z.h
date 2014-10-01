@@ -289,9 +289,8 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
                                ""__VA_ARGS__))                            \
         goto _z_step_end; })
 #define Z_ASSERT_STREQUAL(lhs, rhs, ...) \
-    ({ if (_z_assert_lstrequal(__FILE__, __LINE__, #lhs,                  \
-                               LSTR_STR_V(lhs), #rhs, LSTR_STR_V(rhs),    \
-                               ""__VA_ARGS__))                            \
+    ({ if (_z_assert_lstrequal(__FILE__, __LINE__, #lhs,                     \
+                               LSTR(lhs), #rhs, LSTR(rhs), ""__VA_ARGS__))   \
         goto _z_step_end; })
 
 #define Z_ASSERT_EQUAL(lt, ll, rt, rl, ...) \

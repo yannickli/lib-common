@@ -306,10 +306,10 @@ char *licence_compute_encryption_key(const char *signature, const char *key)
     int len;
     SB_1k(sb);
 
-    RETHROW_P(ssl_ctx_init_aes256(&ctx, LSTR_STR_V(signature),
-                                  42424242424242ULL, 1024));
+    RETHROW_P(ssl_ctx_init_aes256(&ctx, LSTR(signature), 42424242424242ULL,
+                                  1024));
 
-    if (ssl_encrypt(&ctx, LSTR_STR_V(key), &sb) < 0) {
+    if (ssl_encrypt(&ctx, LSTR(key), &sb) < 0) {
         ssl_ctx_wipe(&ctx);
         return NULL;
     }
@@ -333,8 +333,8 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
     RETHROW_PN(signature = conf_get_raw(conf, "licence", "signature"));
     RETHROW_PN(key = conf_get_raw(conf, "licence", "encryptionKey"));
 
-    RETHROW_PN(ssl_ctx_init_aes256(&ctx, LSTR_STR_V(signature),
-                                   42424242424242ULL, 1024));
+    RETHROW_PN(ssl_ctx_init_aes256(&ctx, LSTR(signature), 42424242424242ULL,
+                                   1024));
     /* Decode the hex-string */
     if (sb_add_unhex(&sb, key, strlen(key)) < 0) {
         goto end;
@@ -364,7 +364,7 @@ Z_GROUP_EXPORT(ssl)
                                        "\x49\x09\x77\xF8\xE8\x08\x2C\x58");
         SB_1k(sb);
 
-        Z_ASSERT_P(ssl_ctx_init_aes256(&ctx, LSTR_IMMED_V("plop"), 42, 1024));
+        Z_ASSERT_P(ssl_ctx_init_aes256(&ctx, LSTR("plop"), 42, 1024));
 
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb));
 
@@ -393,11 +393,11 @@ Z_GROUP_EXPORT(ssl)
                                        "\x49\x09\x77\xF8\xE8\x08\x2C\x58");
         SB_1k(sb);
 
-        Z_ASSERT_P(ssl_ctx_init_aes256(&ctx, LSTR_IMMED_V("plop"), 42, 1024));
+        Z_ASSERT_P(ssl_ctx_init_aes256(&ctx, LSTR("plop"), 42, 1024));
 
         Z_ASSERT_N(ssl_decrypt(&ctx, text, &sb));
 
-        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("Encrypt me"), LSTR_SB_V(&sb));
+        Z_ASSERT_LSTREQUAL(LSTR("Encrypt me"), LSTR_SB_V(&sb));
 
         ssl_ctx_wipe(&ctx);
     } Z_TEST_END;

@@ -734,9 +734,9 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
 
 void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
 {
-    const lstr_t body = LSTR_IMMED_V("<html><body>"
-                                     "<h1>401 - Authentication required</h1>"
-                                     "</body></html>\r\n");
+    const lstr_t body = LSTR("<html><body>"
+                             "<h1>401 - Authentication required</h1>"
+                             "</body></html>\r\n");
     va_list va;
     outbuf_t *ob;
 
@@ -2536,8 +2536,8 @@ void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
         ob_adds(ob, " HTTP/1.1\r\n");
     } else {
         /* TODO: this function does not support absolute path */
-        assert (!lstr_startswith(uri, LSTR_IMMED_V("http://"))
-             && !lstr_startswith(uri, LSTR_IMMED_V("https://")));
+        assert (!lstr_startswith(uri, LSTR("http://"))
+             && !lstr_startswith(uri, LSTR("https://")));
         ob_add(ob, http_method_str[m].s, http_method_str[m].len);
         ob_adds(ob, " ");
         if (httpc_encode_url) {
@@ -2711,7 +2711,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
     body_g = LSTR_NULL_V;
 
-    Z_ASSERT_N(addr_resolve("test", LSTR_IMMED_V("127.0.0.1:1"), &su));
+    Z_ASSERT_N(addr_resolve("test", LSTR("127.0.0.1:1"), &su));
     sockunion_setport(&su, 0);
 
     server = listenx(-1, &su, 1, SOCK_STREAM, IPPROTO_TCP, 0);
@@ -2732,8 +2732,8 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     zquery_g.on_done = &z_query_on_done;
 
     httpc_query_attach(&zquery_g, httpc);
-    httpc_query_start(&zquery_g, HTTP_METHOD_GET, LSTR_IMMED_V("localhost"),
-                      LSTR_IMMED_V("/"));
+    httpc_query_start(&zquery_g, HTTP_METHOD_GET, LSTR("localhost"),
+                      LSTR("/"));
     httpc_query_hdrs_done(&zquery_g, 0, false);
     httpc_query_done(&zquery_g);
 
@@ -2757,7 +2757,7 @@ Z_GROUP_EXPORT(httpc) {
         Z_HELPER_RUN(z_query_setup(&z_reply_100));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
-        Z_ASSERT_LSTREQUAL(body_g, LSTR_IMMED_V("Coucou"));
+        Z_ASSERT_LSTREQUAL(body_g, LSTR("Coucou"));
 
         z_query_cleanup();
     } Z_TEST_END;
@@ -2766,7 +2766,7 @@ Z_GROUP_EXPORT(httpc) {
         Z_HELPER_RUN(z_query_setup(&z_reply_gzip_empty));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_ACCEPTED , code_g);
-        Z_ASSERT_LSTREQUAL(body_g, LSTR_IMMED_V(""));
+        Z_ASSERT_LSTREQUAL(body_g, LSTR(""));
 
         z_query_cleanup();
     } Z_TEST_END;

@@ -1072,7 +1072,7 @@ static int inotify_cb(el_t el, int fd, short flags, data_t data)
                 /* XXX We cannot use e->len - 1 as the string length because
                  *     e->name can be padded by several null bytes
                  */
-                name = LSTR_STR_V(e->name);
+                name = LSTR(e->name);
             }
 
             wel = _G.fs_watches.values[pos];
@@ -1492,7 +1492,7 @@ module_t *MODULE(el);
 __attribute__((constructor))
 static void el_module_register(void)
 {
-    MODULE(el) = module_register(LSTR_IMMED_V("el"), &MODULE(el),
+    MODULE(el) = module_register(LSTR("el"), &MODULE(el),
                                  &el_initialize, &el_shutdown,
                                  NULL, 0);
     module_implement_method(MODULE(el), &at_fork_on_child_method,

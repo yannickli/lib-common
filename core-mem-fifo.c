@@ -393,7 +393,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->current   = mem_page_new(mfp, 0);
 
 #ifdef MEM_BENCH
-    mem_bench_init(&mfp->mem_bench, LSTR_IMMED_V("fifo"), WRITE_PERIOD);
+    mem_bench_init(&mfp->mem_bench, LSTR("fifo"), WRITE_PERIOD);
 
     spin_lock(&mem_fifo_dlist_lock);
     dlist_add_tail(&mem_fifo_pool_list, &mfp->pool_list);

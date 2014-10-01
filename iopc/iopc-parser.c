@@ -64,7 +64,7 @@ static const char * const avoid_keywords[] = {
 
 static bool warn(qv_t(iopc_attr) *attrs, const char *category)
 {
-    lstr_t s = LSTR_STR_V(category);
+    lstr_t s = LSTR(category);
 
     if (!attrs)
         return true;
@@ -333,7 +333,7 @@ static iopc_attr_desc_t *add_attr(iopc_attr_id_t id, const char *name)
 
     iopc_attr_desc_init(&d);
     d.id    = id;
-    d.name  = LSTR_STR_V(name);
+    d.name  = LSTR(name);
     pos = qm_put(attr_desc, &_G.attrs, &d.name, d, 0);
 
     if (pos & QHASH_COLLISION) {
@@ -350,7 +350,7 @@ static void init_attributes(void)
     ({  \
         iopc_arg_desc_t arg;                                    \
         iopc_arg_desc_init(&arg);                               \
-        arg.name = LSTR_IMMED_V(_s);                            \
+        arg.name = LSTR(_s);                                    \
         arg.type = _tok;                                        \
         qv_append(iopc_arg_desc, &_d->args, arg);               \
     })
@@ -821,9 +821,9 @@ typedef enum iopc_dox_arg_dir_t {
 static lstr_t iopc_dox_arg_dir_to_lstr(iopc_dox_arg_dir_t dir)
 {
     switch (dir) {
-      case IOPC_DOX_ARG_DIR_IN:    return LSTR_IMMED_V("in");
-      case IOPC_DOX_ARG_DIR_OUT:   return LSTR_IMMED_V("out");
-      case IOPC_DOX_ARG_DIR_THROW: return LSTR_IMMED_V("throw");
+      case IOPC_DOX_ARG_DIR_IN:    return LSTR("in");
+      case IOPC_DOX_ARG_DIR_OUT:   return LSTR("out");
+      case IOPC_DOX_ARG_DIR_THROW: return LSTR("throw");
       default:                     fatal("invalid doxygen arg dir %d", dir);
     }
 }
@@ -842,9 +842,9 @@ static int iopc_dox_check_param_dir(lstr_t dir_name, iopc_dox_arg_dir_t *out)
 lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
 {
     switch (type) {
-      case IOPC_DOX_TYPE_BRIEF:   return LSTR_IMMED_V("brief");
-      case IOPC_DOX_TYPE_DETAILS: return LSTR_IMMED_V("details");
-      case IOPC_DOX_TYPE_WARNING: return LSTR_IMMED_V("warning");
+      case IOPC_DOX_TYPE_BRIEF:   return LSTR("brief");
+      case IOPC_DOX_TYPE_DETAILS: return LSTR("details");
+      case IOPC_DOX_TYPE_WARNING: return LSTR("warning");
       default:                    fatal("invalid doxygen type %d", type);
     }
 }
@@ -863,7 +863,7 @@ static int iopc_dox_check_keyword(lstr_t keyword, int *type)
             return 0;
         }
     }
-    if (lstr_equal2(keyword, LSTR_IMMED_V("param"))) {
+    if (lstr_equal2(keyword, LSTR("param"))) {
         *type = IOPC_DOX_TYPE_PARAM;
         return 0;
     }
@@ -918,7 +918,7 @@ iopc_dox_arg_find_in_fun(lstr_t name, iopc_dox_arg_dir_t dir,
             return fun->f##Y;                                                \
         }                                                                    \
         qv_for_each_entry(iopc_field, f, &fun->Y->fields) {                  \
-            if (lstr_equal2(name, LSTR_STR_V(f->name)))                      \
+            if (lstr_equal2(name, LSTR(f->name)))                            \
                 return f;                                                    \
         }                                                                    \
         return NULL;
@@ -2342,7 +2342,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         bool    found = false;
 
         WANT(pp, 0, ITOK_IDENT);
-        str = LSTR_STR_V(TK(pp, 0)->b.data);
+        str = LSTR(TK(pp, 0)->b.data);
 
         qv_for_each_ptr(iopc_arg_desc, d, &attr->desc->args) {
             if (lstr_equal(&str, &d->name)) {
@@ -2384,7 +2384,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
     switch (arg.type) {
       case ITOK_STRING:
-        arg.v.s = lstr_dup(LSTR_STR_V(TK(pp, 0)->b.data));
+        arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
         e_trace(1, "%s=(str)%s", desc->name.s, arg.v.s.s);
         DROP(pp, 1);
         break;
@@ -2396,7 +2396,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         break;
 
       case ITOK_IDENT:
-        arg.v.s = lstr_dup(LSTR_STR_V(TK(pp, 0)->b.data));
+        arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
         e_trace(1, "%s=(id)%s", desc->name.s, arg.v.s.s);
         DROP(pp, 1);
         break;
@@ -2488,7 +2488,7 @@ static iopc_attr_t *parse_attr(iopc_parser_t *pp)
         fatal_loc("attributes forbidden (use -2 parameter)", TK(pp, 0)->loc);
 
     attr->loc = TK(pp, 0)->loc;
-    name = LSTR_STR_V(ident(TK(pp, 0)));
+    name = LSTR(ident(TK(pp, 0)));
     pos = qm_find(attr_desc, &_G.attrs, &name);
     if (pos < 0) {
         fatal_loc("incorrect attribute name", attr->loc);

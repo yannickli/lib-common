@@ -389,7 +389,7 @@ static inline void
 httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
                        const char *auth_realm)
 {
-    lstr_t s = LSTR_STR_V(auth_realm ?: "Intersec HTTP Server");
+    lstr_t s = LSTR(auth_realm ?: "Intersec HTTP Server");
 
     lstr_copy(&cb->auth_realm, s);
     cb->auth = auth;
@@ -903,7 +903,7 @@ static inline void httpc_query_hdrs_add(httpc_query_t *q, lstr_t hdr)
 
 static inline void httpc_query_hdrs_adds(httpc_query_t *q, const char *hdr)
 {
-    httpc_query_hdrs_add(q, LSTR_STR_V(hdr));
+    httpc_query_hdrs_add(q, LSTR(hdr));
 }
 
 #endif

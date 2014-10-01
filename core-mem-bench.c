@@ -200,7 +200,7 @@ void mem_bench_require(void)
     static module_t *mb_module;
     const char *deps[] = { "log" };
 
-    mb_module = module_register(LSTR_IMMED_V("mem-bench"), &mb_module,
+    mb_module = module_register(LSTR("mem-bench"), &mb_module,
                                 &mem_bench_initialize, &mem_bench_shutdown,
                                 deps, countof(deps));
     module_require(mb_module, NULL);

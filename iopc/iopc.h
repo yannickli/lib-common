@@ -903,7 +903,7 @@ typedef struct iopc_write_buf_t {
     } while (0)
 
 #define IOPC_WRITE_START_LINE_CSTR(_wbuf, _str)  \
-    IOPC_WRITE_START_LINE((_wbuf), sb_add_lstr, LSTR_IMMED_V(_str))
+    IOPC_WRITE_START_LINE((_wbuf), sb_add_lstr, LSTR(_str))
 
 void iopc_write_buf_init(iopc_write_buf_t *wbuf, sb_t *buf, sb_t *tab);
 

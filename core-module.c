@@ -132,8 +132,7 @@ module_t *module_register(lstr_t name, module_t **module,
     new_module->destructor = destructor;
 
     for (int i = 0; i < nb_dependencies; i++) {
-        qv_append(lstr, &new_module->dependent_of,
-                  LSTR_STR_V(dependencies[i]));
+        qv_append(lstr, &new_module->dependent_of, LSTR(dependencies[i]));
     }
 
     qm_pos = qm_del_key(module_dep, &_G.module_dep_resolve, &name);

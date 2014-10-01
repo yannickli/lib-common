@@ -491,7 +491,7 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 #endif
 
 #ifdef MEM_BENCH
-    sp->mem_bench = mem_bench_new(LSTR_IMMED_V("stack"), WRITE_PERIOD);
+    sp->mem_bench = mem_bench_new(LSTR("stack"), WRITE_PERIOD);
     mem_bench_leak(sp->mem_bench);
 
     spin_lock(&mem_stack_dlist_lock);

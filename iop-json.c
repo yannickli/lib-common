@@ -1370,9 +1370,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     /* We are looping on the fields of a class and we
                      * already found the "_class" field. We have to skip
                      * it when reading it again. */
-                    if (lstr_equal2(LSTR_SB_V(&ll->ctx->b),
-                                    LSTR_IMMED_V("_class")))
-                    {
+                    if (lstr_equal2(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
                         skip_field = true;
                         break;
                     }
@@ -1397,9 +1395,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 /* We are looping on the fields of a class, looking for
                  * the "_class" one, which determines the real class type.
                  */
-                if (lstr_equal2(LSTR_SB_V(&ll->ctx->b),
-                                LSTR_IMMED_V("_class")))
-                {
+                if (lstr_equal2(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
                     found_class_field = true;
                 }
                 skip_field = true;

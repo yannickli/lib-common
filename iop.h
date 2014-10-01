@@ -448,7 +448,7 @@ static inline bool iop_field_is_class(const iop_field_t *f)
 __attr_nonnull__((1))
 const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
 
-#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
+#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR(name))
 
 /** Gets the value of a class variable (static field) from a class descriptor.
  *
@@ -458,21 +458,21 @@ __attr_nonnull__((1))
 const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
 
 #define iop_get_cvar_desc_cst(desc, name)  \
-    iop_get_cvar_desc(desc, LSTR_IMMED_V(name))
+    iop_get_cvar_desc(desc, LSTR(name))
 
 /* The following variants of iop_get_cvar do not recurse on parents */
 __attr_nonnull__((1))
 const iop_value_t *iop_get_class_cvar(const void *obj, lstr_t name);
 
 #define iop_get_class_cvar_cst(obj, name)  \
-    iop_get_class_cvar(obj, LSTR_IMMED_V(name))
+    iop_get_class_cvar(obj, LSTR(name))
 
 __attr_nonnull__((1))
 const iop_value_t *
 iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name);
 
 #define iop_get_class_cvar_desc_cst(desc, name)  \
-    iop_get_class_cvar_desc(desc, LSTR_IMMED_V(name))
+    iop_get_class_cvar_desc(desc, LSTR(name))
 
 
 /** Check if the static fields types are available for a given class.
