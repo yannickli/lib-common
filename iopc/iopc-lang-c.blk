@@ -315,23 +315,49 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
         break;
 
       case IOP_R_OPTIONAL:
+        if (!iopc_g.v3) {
+            switch (f->kind) {
+              case IOP_T_U8:     old_type = "iop_opt_u8_t     ";    break;
+              case IOP_T_I8:     old_type = "iop_opt_i8_t     ";    break;
+              case IOP_T_U16:    old_type = "iop_opt_u16_t    ";    break;
+              case IOP_T_I16:    old_type = "iop_opt_i16_t    ";    break;
+              case IOP_T_U32:    old_type = "iop_opt_u32_t    ";    break;
+              case IOP_T_I32:    old_type = "iop_opt_i32_t    ";    break;
+              case IOP_T_U64:    old_type = "iop_opt_u64_t    ";    break;
+              case IOP_T_I64:    old_type = "iop_opt_i64_t    ";    break;
+              case IOP_T_BOOL:   old_type = "iop_opt_bool_t   ";    break;
+              case IOP_T_DOUBLE: old_type = "iop_opt_double_t ";    break;
+              default:                                          break;
+              case IOP_T_ENUM:
+                sb_addnc(sb, indent, ' ');
+                sb_addf(sb, "IOP_OPT_OF(%s__%s__t)  %s;\n",
+                        pp_under(f->type_path), pp_to_c(f->type_name),
+                        pp_to_c(f->name));
+                return;
+            }
+
+            if (old_type) {
+                break;
+            }
+        }
+
         switch (f->kind) {
-          case IOP_T_U8:     old_type = "iop_opt_u8_t     ";    break;
-          case IOP_T_I8:     old_type = "iop_opt_i8_t     ";    break;
-          case IOP_T_U16:    old_type = "iop_opt_u16_t    ";    break;
-          case IOP_T_I16:    old_type = "iop_opt_i16_t    ";    break;
-          case IOP_T_U32:    old_type = "iop_opt_u32_t    ";    break;
-          case IOP_T_I32:    old_type = "iop_opt_i32_t    ";    break;
-          case IOP_T_U64:    old_type = "iop_opt_u64_t    ";    break;
-          case IOP_T_I64:    old_type = "iop_opt_i64_t    ";    break;
-          case IOP_T_BOOL:   old_type = "iop_opt_bool_t   ";    break;
-          case IOP_T_DOUBLE: old_type = "iop_opt_double_t ";    break;
+          case IOP_T_U8:     old_type = "opt_u8_t         ";    break;
+          case IOP_T_I8:     old_type = "opt_i8_t         ";    break;
+          case IOP_T_U16:    old_type = "opt_u16_t        ";    break;
+          case IOP_T_I16:    old_type = "opt_i16_t        ";    break;
+          case IOP_T_U32:    old_type = "opt_u32_t        ";    break;
+          case IOP_T_I32:    old_type = "opt_i32_t        ";    break;
+          case IOP_T_U64:    old_type = "opt_u64_t        ";    break;
+          case IOP_T_I64:    old_type = "opt_i64_t        ";    break;
+          case IOP_T_BOOL:   old_type = "opt_bool_t       ";    break;
+          case IOP_T_DOUBLE: old_type = "opt_double_t     ";    break;
           case IOP_T_STRING: old_type = "lstr_t           ";    break;
           case IOP_T_XML:    old_type = "lstr_t           ";    break;
           case IOP_T_DATA:   old_type = _G.data_c_type;    break;
           case IOP_T_ENUM:
             sb_addnc(sb, indent, ' ');
-            sb_addf(sb, "IOP_OPT_OF(%s__%s__t)  %s;\n",
+            sb_addf(sb, "OPT_OF(%s__%s__t)  %s;\n",
                     pp_under(f->type_path), pp_to_c(f->type_name),
                     pp_to_c(f->name));
             return;
