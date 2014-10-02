@@ -30,6 +30,13 @@ typedef struct core__log__reset_logger_level_res__t core__log__reset_logger_leve
 typedef IOP_ARRAY_OF(core__log__reset_logger_level_res__t) core__log__reset_logger_level_res__array_t;
 
 typedef iop__void__t core__log__reset_logger_level_exn__t;
+typedef struct core__log__list_loggers_args__t core__log__list_loggers_args__t;
+typedef IOP_ARRAY_OF(core__log__list_loggers_args__t) core__log__list_loggers_args__array_t;
+
+typedef struct core__log__list_loggers_res__t core__log__list_loggers_res__t;
+typedef IOP_ARRAY_OF(core__log__list_loggers_res__t) core__log__list_loggers_res__array_t;
+
+typedef iop__void__t core__log__list_loggers_exn__t;
 
 /*----- interface core.Log -----*/
 struct core__log__set_root_level_args__t {
@@ -94,6 +101,22 @@ IOP_GENERIC(core__log__reset_logger_level_res);
 #define core__log__reset_logger_level__rpc__tag    0x0004
 #define core__log__reset_logger_level__rpc__async  0
 #define core__log__reset_logger_level__rpc         (core__log__if.funs + 3)
+
+struct core__log__list_loggers_args__t {
+    lstr_t           prefix;
+};
+extern iop_struct_t const core__log__list_loggers_args__s;
+IOP_GENERIC(core__log__list_loggers_args);
+
+struct core__log__list_loggers_res__t {
+    core__logger_configuration__array_t loggers;
+};
+extern iop_struct_t const core__log__list_loggers_res__s;
+IOP_GENERIC(core__log__list_loggers_res);
+
+#define core__log__list_loggers__rpc__tag    0x0005
+#define core__log__list_loggers__rpc__async  0
+#define core__log__list_loggers__rpc         (core__log__if.funs + 4)
 
 extern iop_iface_t const core__log__if;
 

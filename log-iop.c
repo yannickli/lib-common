@@ -51,3 +51,16 @@ void IOP_RPC_IMPL(core__core, log, reset_logger_level)
     ic_reply(ic, slot, core__core, log, reset_logger_level,
              .level = logger_reset_level(arg->full_name));
 }
+
+void IOP_RPC_IMPL(core__core, log, list_loggers)
+{
+    t_scope;
+    qv_t(logger_conf) confs;
+
+    t_qv_init(logger_conf, &confs, 1024);
+
+    logger_get_all_configurations(arg->prefix, &confs);
+
+    ic_reply(ic, slot, core__core, log, list_loggers,
+             .loggers = IOP_ARRAY_TAB(&confs));
+}

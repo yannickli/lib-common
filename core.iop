@@ -35,7 +35,6 @@ enum LogLevel {
 struct LoggerConfiguration {
     /** Name of the logger to configure.
      */
-    @minLength(1)
     string fullName;
 
     /** Logging level.
@@ -57,7 +56,8 @@ struct LoggerConfiguration {
     bool isSilent = false;
 };
 
-/** Interface providing the basis for configuring the logging system.
+/** Interface providing the basis for configuring and accessing
+ *  the logging system.
  */
 interface Log {
     setRootLevel
@@ -76,6 +76,10 @@ interface Log {
     resetLoggerLevel
         in (string fullName)
         out (LogLevel level);
+
+    listLoggers
+        in (string? prefix)
+        out (LoggerConfiguration[] loggers);
 };
 
 /** Configuration of the logging system.

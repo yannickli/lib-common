@@ -342,6 +342,46 @@ int logger_reset_level(lstr_t name)
 }
 
 /* }}} */
+/* Accessors {{{ */
+
+static void
+get_configurations_recursive(logger_t *logger, lstr_t prefix,
+                             qv_t(logger_conf) *res)
+{
+    logger_t *child;
+    core__logger_configuration__t conf;
+
+    /* called first as it can force the update of several parameters
+     * including the full name (calling __logger_refresh) */
+    core__logger_configuration__init(&conf);
+    conf.level = logger_get_level(logger);
+
+    /* check if the first element in the full name is the prefix */
+    if (lstr_startswith(logger->full_name, prefix)) {
+        conf.full_name = lstr_dupc(logger->full_name);
+        conf.force_all = logger->level_flags & LOG_FORCED;
+        conf.is_silent = logger->level_flags & LOG_SILENT;
+
+        qv_append(logger_conf, res, conf);
+
+        /* all children will have the same prefix. No need to check it
+         * anymore, we set it to null */
+        prefix = LSTR_NULL_V;
+    }
+
+    spin_lock(&logger->children_lock);
+    dlist_for_each_entry(child, &logger->children, siblings) {
+        get_configurations_recursive(child, prefix, res);
+    }
+    spin_unlock(&logger->children_lock);
+}
+
+void logger_get_all_configurations(lstr_t prefix, qv_t(logger_conf) *confs)
+{
+    get_configurations_recursive(&_G.root_logger, prefix, confs);
+}
+
+/* }}} */
 /* Logging {{{ */
 
 /* syslog_is_critical allows you to know if a LOG_CRIT, LOG_ALERT or LOG_EMERG
@@ -1170,6 +1210,73 @@ Z_GROUP_EXPORT(log) {
         logger_wipe(&a);
     } Z_TEST_END;
 
+    Z_TEST(get_loggers_confs, "get loggers confs") {
+        t_scope;
+        logger_t a = LOGGER_INIT_INHERITS(NULL, "ztest_log_conf");
+        logger_t b = LOGGER_INIT_SILENT_INHERITS(&a, "son");
+        logger_t c = LOGGER_INIT(&b, "gdson", LOG_ERR);
+        logger_t d;
+        qv_t(logger_conf) confs;
+
+        logger_init(&d, &a, LSTR("sibl"), LOG_INHERITS, LOG_SILENT);
+
+        /* force update of the tree */
+        logger_get_level(&a);
+        logger_get_level(&b);
+        logger_get_level(&c);
+        logger_get_level(&d);
+
+        t_qv_init(logger_conf, &confs, 10);
+
+        logger_get_all_configurations(LSTR("ztest_log_conf"), &confs);
+
+        Z_ASSERT_EQ(confs.len, 4);
+        Z_ASSERT_LSTREQUAL(confs.tab[0].full_name, LSTR("ztest_log_conf"));
+        Z_ASSERT_LSTREQUAL(confs.tab[1].full_name,
+                           LSTR("ztest_log_conf/son"));
+        Z_ASSERT_LSTREQUAL(confs.tab[2].full_name,
+                           LSTR("ztest_log_conf/son/gdson"));
+        Z_ASSERT_LSTREQUAL(confs.tab[3].full_name,
+                           LSTR("ztest_log_conf/sibl"));
+
+        Z_ASSERT_EQ(confs.tab[0].level, log_g.root_logger.default_level);
+        Z_ASSERT_EQ(confs.tab[1].level, log_g.root_logger.default_level);
+        Z_ASSERT_EQ(confs.tab[2].level, LOG_ERR);
+        Z_ASSERT_EQ(confs.tab[3].level, log_g.root_logger.default_level);
+
+        Z_ASSERT_EQ(confs.tab[0].force_all, false);
+        Z_ASSERT_EQ(confs.tab[1].force_all, false);
+        Z_ASSERT_EQ(confs.tab[2].force_all, false);
+        Z_ASSERT_EQ(confs.tab[3].force_all, false);
+
+        Z_ASSERT_EQ(confs.tab[0].is_silent, false);
+        Z_ASSERT_EQ(confs.tab[1].is_silent, true);
+        Z_ASSERT_EQ(confs.tab[2].is_silent, false);
+        Z_ASSERT_EQ(confs.tab[3].is_silent, true);
+
+        logger_set_level(LSTR("ztest_log_conf"), LOG_WARNING, LOG_RECURSIVE);
+
+        logger_get_all_configurations(LSTR("ztest_log_conf/son"),
+                                      &confs);
+
+        Z_ASSERT_EQ(confs.len, 6);
+        Z_ASSERT_LSTREQUAL(confs.tab[4].full_name,
+                           LSTR("ztest_log_conf/son"));
+        Z_ASSERT_LSTREQUAL(confs.tab[5].full_name,
+                           LSTR("ztest_log_conf/son/gdson"));
+
+        Z_ASSERT_EQ(confs.tab[4].level, LOG_WARNING);
+        Z_ASSERT_EQ(confs.tab[5].level, LOG_WARNING);
+
+        Z_ASSERT_EQ(confs.tab[4].force_all, true);
+        Z_ASSERT_EQ(confs.tab[5].force_all, true);
+
+        logger_wipe(&d);
+        logger_wipe(&c);
+        logger_wipe(&b);
+        logger_wipe(&a);
+    } Z_TEST_END;
+
     Z_TEST(log_buffer, "log buffer") {
         log_handler_f *handler = log_set_handler(&z_log_buffer_handler);
         logger_t logger_test = LOGGER_INIT_SILENT(NULL, "logger test",
@@ -1577,6 +1684,8 @@ Z_GROUP_EXPORT(log) {
         TEST(logger_trace_scope(&l, 3),
              logger_trace_start(&l, 3), logger_end(&l),
              LOG_TRACE + 3, true);
+
+        logger_wipe(&l);
     } Z_TEST_END;
 } Z_GROUP_END;
 
