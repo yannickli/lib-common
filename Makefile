@@ -77,6 +77,7 @@ libcommon_SOURCES = \
 	\
 	file.c \
 	file-log.blk \
+	file-bin.c \
 	\
 	hash-aes.c \
 	hash-arc4.c \
