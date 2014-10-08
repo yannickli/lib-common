@@ -334,10 +334,12 @@ bool mem_pool_is_enabled(void)
     static int mp_is_enabled = -1;
 
     if (unlikely(mp_is_enabled < 0)) {
-        mp_is_enabled = !getenv("BYPASS_MEMPOOL");
+        const char *val = getenv("BYPASS_MEMPOOL");
+
+        mp_is_enabled = !val || strlen(val) == 0;
     }
 
-    return mp_is_enabled == 1;
+    return mp_is_enabled;
 }
 #endif
 
