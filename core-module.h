@@ -350,6 +350,10 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 #define MODULE_IS_INITIALIZING(name)  module_is_initializing(MODULE(name))
 #define MODULE_IS_SHUTTING_DOWN(name)  module_is_shutting_down(MODULE(name))
 
+/** Retreives the name of a module.
+ */
+__attr_nonnull__((1))
+const char *module_get_name(const module_t *mod);
 
 /* {{{ Low-level API */
 

@@ -367,6 +367,10 @@ bool module_is_shutting_down(const module_t *module)
     return module->state == SHUTTING;
 }
 
+const char *module_get_name(const module_t *module)
+{
+    return module->name.s;
+}
 
 /**  - __attribute__((destructor))
  *      static void _module_shutdown(void)
