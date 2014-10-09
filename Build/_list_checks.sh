@@ -46,19 +46,28 @@ dump_zf()
             for f in "$zd/"$line; do
                 case ./"$f" in
                     */behave)
-                        has_match=b
+                        has_match=y
+                        [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         echo "${f#$CURDIR/}"
                         continue
                         ;;
-                    *.py|*testem.json)
+                    *testem.json)
                         test -f "$f" || continue
+                        has_match=y
+                        [[ "$Z_LIST_SKIP" =~ "web" ]] && continue
+                        ;;
+                    *.py)
+                        test -f "$f" || continue
+                        has_match=y
+                        [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         ;;
                     *)
                         test -x "$f" || continue
+                        has_match=y
+                        [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         ;;
                 esac
 
-                has_match=t
                 if [ "${OS}" != "darwin" ]; then
                     f="$(readlink -e "$f")"
                     echo "${f#$CURDIR/}"

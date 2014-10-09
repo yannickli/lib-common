@@ -23,9 +23,9 @@ endif
 endif
 
 doc:
-all check fast-check clean distclean www::
+all check fast-check www-check clean distclean www::
 FORCE: ;
-.PHONY: all check fast-check clean distclean doc www FORCE
+.PHONY: all check fast-check www-check clean distclean doc www FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -73,6 +73,8 @@ check:: all
 	$(var/toolsdir)/_run_checks.sh .
 fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
+www-check:: | _generated_hdr
+	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh .
 
 tags: $(var/generated)
 syntastic:
@@ -90,6 +92,8 @@ $(d)doc:
 $(d)www::
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
+$(d)www-check:: | _generated_hdr
+	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh $(d)
 $(d)fast-check:: $(d)all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
@@ -134,7 +138,7 @@ toplevel:
 .PHONY: toplevel
 
 all:: toplevel
-all check fast-check clean distclean www:: | __setup_buildsys_trampoline
+all check fast-check www-check clean distclean www:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 __setup_buildsys_doc: | __setup_buildsys_trampoline
