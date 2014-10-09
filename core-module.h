@@ -135,8 +135,6 @@ typedef struct module_method_t {
         module_run_method(&method##_method, data);                           \
     } while (0)
 
-
-
 /** Run a method.
  *
  * Traverse the list of started modules and run the given method in all
@@ -162,7 +160,6 @@ void module_run_method(const module_method_t *method, data_t arg);
  * This macro declares a module variable.
  */
 #define MODULE_DECLARE(name)  extern module_t *MODULE(name)
-
 
 /** Begin the definition of a module.
  *
@@ -270,16 +267,16 @@ void module_run_method(const module_method_t *method, data_t arg);
 /* }}} */
 /* {{{ Low-level API */
 
-/** \brief Register a module
+/** Register a module.
  *
- *  @param name Name of the module
- *  @param initialize Pointer to the function that initialize the module
- *  @param shutdown Pointer to the function that shutdown the module
- *  @param dependencies list of modules
- *  @param nb_dependencies number of dependent modules
+ *  \param[in] name         name of the module
+ *  \param[in] initialize   pointer to the function that initialize the module
+ *  \param[in] shutdown     pointer to the function that shutdown the module
+ *  \param[in] dependencies list of modules
+ *  \param[in] nb_dependencies number of dependent modules
  *
  *
- *  @return The newly registered module in case of success.
+ *  \return the newly registered module in case of success.
  */
 __leaf
 module_t *module_register(lstr_t name, module_t **module,
@@ -298,7 +295,8 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 /* }}} */
 /* {{{ Module management */
 
-/** \brief Provide an argument for module constructor
+/** Provide an argument for module constructor.
+ *
  *  Use:
  *      MODULE_PROVIDE(module, (void *)arg)
  *
@@ -311,14 +309,12 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *            return -1; (or assert)
  *       ...
  *     }
- *
  */
-
 #define MODULE_PROVIDE(name, argument)                                       \
     module_provide(&MODULE(name), argument)
 
-
-/** \brief Macro for requiring a module
+/** Macro for requiring a module.
+ *
  *   Use:
  *     MODULE_REQUIRE(module1);
  *
@@ -334,11 +330,11 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *             - MODULE_REQUIRE will return
  *       + If module3 fail to initialize
  *             - module_require will throw a logger_fatal
- *
  */
 #define MODULE_REQUIRE(name)  module_require(MODULE(name), NULL)
 
-/** \brief Macro for releasing a module
+/** Macro for releasing a module.
+ *
  *  Use:
  *    MODULE_RELEASE(module);
  *
@@ -347,57 +343,46 @@ void module_implement_method(module_t *mod, const module_method_t *method,
  *       the program will assert
  *       In other words only RELEASE modules that has been require with REQUIRE
  *     + For returns value see module_release and module_shutdown
- *
  */
-
 #define MODULE_RELEASE(name)  module_release(MODULE(name))
 
-
 #define MODULE_IS_LOADED(name)  module_is_loaded(MODULE(name))
-
 #define MODULE_IS_INITIALIZING(name)  module_is_initializing(MODULE(name))
 #define MODULE_IS_SHUTTING_DOWN(name)  module_is_shutting_down(MODULE(name))
 
 
 /* {{{ Low-level API */
 
-/** \brief Require a module (initialization)
+/** Require a module. (initialization)
  *
- *  Two stepts  : - Require dependent modules
+ *  Two steps  : - Require dependent modules
  *                - Initialize the module
  *
  *  If one of the required modules does not initialize, the function
  *  will throw a logger_fatal.
  *
- *  @param mod Name of the module to initialize
- *  @param required_by - Module that requires \p mod to be initialized
- *                     - NULL -> No parent modules
- *
+ *  \param[in] mod          pointer to the module to initialize
+ *  \param[in] required_by  module that requires \p mod to be initialized
+ *                          it can be NULL if \p mod has no parent module
  */
 __attr_nonnull__((1))
 void module_require(module_t *mod, module_t *required_by);
 
-/** \brief Release a module
- *
- *  assert if you try to release a module that has been automatically loaded
- *
- *  @param mod Module to shutdown
- */
 __attr_nonnull__((1))
 void module_release(module_t *mod);
 
 __attr_nonnull__((1, 2))
 void module_provide(module_t **mod, void *argument);
 
-/** true if module is loaded (AUTO_REQ || MANU_REQ) */
+/** true if module is loaded. (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))
 bool module_is_loaded(const module_t *mod);
 
-/** true if module is currently loading */
+/** true if module is currently loading. */
 __attr_nonnull__((1))
 bool module_is_initializing(const module_t *mod);
 
-/** true if module is currently shutting down */
+/** true if module is currently shutting down. */
 __attr_nonnull__((1))
 bool module_is_shutting_down(const module_t *mod);
 
@@ -407,7 +392,7 @@ bool module_is_shutting_down(const module_t *mod);
 
 MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, on_term);
 
-/** \brief On term all modules
+/** On term all modules.
  *
  *  Call the module_on_term if it exists of all modules
  */
@@ -421,7 +406,7 @@ MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
 
 /* }}} */
-/*{{{ Dependency collision */
+/* {{{ Dependency collision */
 
 /** Checks if the given modules are independent from each other.
  *
@@ -436,5 +421,6 @@ __must_check__
 int module_check_no_dependencies(module_t *tab[], int len,
                                  lstr_t *collision);
 
-/*}}} */
+/* }}} */
+
 #endif
