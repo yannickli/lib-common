@@ -273,7 +273,7 @@ lstr_t xmlr_node_get_xmlns(xml_reader_t xr)
     assert (xmlr_on_element(xr, false));
     s = (const char *)xmlTextReaderConstPrefix(xr);
 
-    return LSTR_OPT_STR_V(s);
+    return LSTR_OPT(s);
 }
 
 lstr_t xmlr_node_get_xmlns_uri(xml_reader_t xr)
@@ -283,7 +283,7 @@ lstr_t xmlr_node_get_xmlns_uri(xml_reader_t xr)
     assert (xmlr_on_element(xr, false));
     s = (const char *)xmlTextReaderConstNamespaceUri(xr);
 
-    return LSTR_OPT_STR_V(s);
+    return LSTR_OPT(s);
 }
 
 int xmlr_next_node(xml_reader_t xr)

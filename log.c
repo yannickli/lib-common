@@ -923,7 +923,7 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
 {
     logger_t *logger;
 
-    logger = logger_get_by_name(LSTR_OPT_STR_V(name)) ?: &log_g.root_logger;
+    logger = logger_get_by_name(LSTR_OPT(name)) ?: &log_g.root_logger;
     return __logger_is_traced(logger, lvl, modname, func, name);
 }
 
@@ -932,7 +932,7 @@ void e_trace_put_(int level, const char *module, int lno,
 {
     va_list ap;
     log_ctx_t ctx = {
-        .logger_name = LSTR_OPT_STR_V(name),
+        .logger_name = LSTR_OPT(name),
         .level       = LOG_TRACE + level,
         .file        = module,
         .func        = func,
@@ -1046,7 +1046,7 @@ static int log_initialize(void* args)
                 *p++ = '\0';
 
             if (!spec.func && !spec.path) {
-                logger_set_level(LSTR_OPT_STR_V(spec.name), spec.level, 0);
+                logger_set_level(LSTR_OPT(spec.name), spec.level, 0);
             }
             qv_append(spec, &_G.specs, spec);
         }
