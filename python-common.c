@@ -309,7 +309,7 @@ static void process_queries(httpc_pool_t *m, httpc_t *w)
         }
 
         if (!w && !(w = httpc_pool_get(m))) {
-            /* No connection ready */
+            e_error("no connection ready to %*pM", LSTR_FMT_ARG(_G.url));
             break;
         }
 
