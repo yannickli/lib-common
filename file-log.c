@@ -249,7 +249,7 @@ log_file_t *log_file_new(const char *nametpl, int flags)
 log_file_t *
 log_file_create_from_iop(const char *nametpl,
                          const core__log_file_configuration__t *conf,
-                         int flags)
+                         int flags, log_file_cb_f *on_event, void *priv)
 {
     log_file_t *log_file;
 
@@ -264,6 +264,9 @@ log_file_create_from_iop(const char *nametpl,
     log_file_set_maxsize(log_file, conf->max_size);
     log_file_set_rotate_delay(log_file, conf->max_time);
 
+    if (on_event) {
+        log_file_set_file_cb(log_file, on_event, priv);
+    }
     if (log_file_open(log_file)) {
         e_error("cannot open log file %s: %m", nametpl);
         PROTECT_ERRNO(IGNORE(log_file_close(&log_file)));
