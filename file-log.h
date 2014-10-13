@@ -82,7 +82,7 @@ __must_check__ int log_file_rotate(log_file_t *log_file);
 log_file_t *
 log_file_create_from_iop(const char *nametpl,
                          const core__log_file_configuration__t *conf,
-                         int flags);
+                         int flags, log_file_cb_f *on_event, void *priv);
 
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);
