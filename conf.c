@@ -343,10 +343,12 @@ const char *conf_put(conf_t *conf, const char *section,
 
             for (j = 0; j < s->vals.len; j++) {
                 property_t *prop = s->vals.tab[j];
-                if (strcasecmp(prop->name, var))
+
+                if (strcasecmp(prop->name, var)) {
                     continue;
+                }
                 if (value) {
-                    if (!strcmp(prop->value, value)) {
+                    if (prop->value && strequal(prop->value, value)) {
                         /* same value already: no nothing */
                         return prop->value;
                     }
