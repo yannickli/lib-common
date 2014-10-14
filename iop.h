@@ -32,8 +32,24 @@ typedef enum iop_wire_type_t {
     IOP_WIRE_REPEAT,
 } iop_wire_type_t;
 
+/* {{{ IOP various useful typedefs and functions */
+
 qvector_t(iop_struct, const iop_struct_t *);
 
+static inline uint32_t
+qhash_iop_struct_hash(const qhash_t *h, const iop_struct_t *st)
+{
+    return qhash_hash_ptr(h, st);
+}
+
+static inline bool qhash_iop_struct_equal(const qhash_t *h,
+                                          const iop_struct_t *st1,
+                                          const iop_struct_t *st2)
+{
+    return st1 == st2;
+}
+
+/* }}} */
 /* {{{ IOP attributes and constraints */
 
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t

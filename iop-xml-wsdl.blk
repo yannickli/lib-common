@@ -17,22 +17,10 @@
 #include "iop.h"
 #include <lib-common/iop-helpers.inl.c>
 
-static inline uint32_t
-qhash_iop_type_hash(const qhash_t *qh, const iop_struct_t *st)
-{
-    return qhash_hash_ptr(qh, st);
-}
-static inline bool
-qhash_iop_type_equal(const qhash_t *qh,
-                     const iop_struct_t *st1, const iop_struct_t *st2)
-{
-    return st1 == st2;
-}
-
 qvector_t(iop_type, const iop_struct_t *);
 qvector_t(iop_enum, const iop_enum_t *);
 qh_kptr_ckey_t(iop_type, iop_struct_t,
-               qhash_iop_type_hash, qhash_iop_type_equal);
+               qhash_iop_struct_hash, qhash_iop_struct_equal);
 
 
 typedef struct wsdlpp_t {
