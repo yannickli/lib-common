@@ -101,7 +101,7 @@ status meaning:
 -  HTTP_ERROR means fails to send request.
 -  HTTP_USERERROR means that your parse answer callback does not return 0.
 -  HTTP_BUILD_QUERY_ERROR means that your build headers callback or your
-   build body callback returns None or thrown an buildPartError exception.
+   build body callback thrown an buildPartError exception.
 
 This function throws an queryError exception if there is an error.
 
