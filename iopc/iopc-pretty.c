@@ -13,30 +13,27 @@
 
 #include "iopc.h"
 
-const char *pretty_token(iopc_tok_type_t token)
+const char *t_pretty_token(iopc_tok_type_t token)
 {
-    static char tmpbufs[8][4] = {
-        "`.`", "`.`", "`.`", "`.`",
-        "`.`", "`.`", "`.`", "`.`",
-    };
-    static int cur;
+    if (isprint(token)) {
+        return t_fmt("`%c`", token);
+    }
     switch (token) {
-      case ITOK_IDENT:         return "identifier";
-      case ITOK_INTEGER:       return "integer";
-      case ITOK_DOUBLE:        return "double";
-      case ITOK_COMMENT:       return "comment";
-      case ITOK_STRING:        return "string";
       case ITOK_EOF:           return "end of file";
+      case ITOK_IDENT:         return "identifier";
       case ITOK_LSHIFT:        return "`<<`";
       case ITOK_RSHIFT:        return "`>>`";
       case ITOK_EXP:           return "`**`";
+      case ITOK_INTEGER:       return "integer";
+      case ITOK_DOUBLE:        return "double";
+      case ITOK_BOOL:          return "boolean";
+      case ITOK_STRING:        return "string";
+      case ITOK_COMMENT:       return "comment";
       case ITOK_DOX_COMMENT:   return "doxygen comment";
+      case ITOK_VERBATIM_C:    return "verbatim c";
+      case ITOK_ATTR:          return "attribute";
       case ITOK_GEN_ATTR_NAME: return "generic attribute name (namespace:id)";
-      default:
-        if (cur >= countof(tmpbufs))
-            cur = 0;
-        tmpbufs[cur][1] = token;
-        return tmpbufs[cur++];
+      default:                 return "unknown token";
     }
 }
 

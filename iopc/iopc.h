@@ -50,18 +50,18 @@ typedef enum iopc_tok_type_t {
     ITOK_GT        = '>',
 
     ITOK_IDENT     = 128,
-    ITOK_ATTR,
-    ITOK_INTEGER,
-    ITOK_DOUBLE,
-    ITOK_COMMENT,
-    ITOK_STRING,
-    ITOK_VERBATIM_C,
     ITOK_LSHIFT,
     ITOK_RSHIFT,
     ITOK_EXP,
-    ITOK_DOX_COMMENT,
-    ITOK_GEN_ATTR_NAME,
+    ITOK_INTEGER,
+    ITOK_DOUBLE,
     ITOK_BOOL,
+    ITOK_STRING,
+    ITOK_COMMENT,
+    ITOK_DOX_COMMENT,
+    ITOK_VERBATIM_C,
+    ITOK_ATTR,
+    ITOK_GEN_ATTR_NAME,
 } iopc_tok_type_t;
 
 /*----- locations -----*/
@@ -850,7 +850,7 @@ qm_kptr_ckey_t(pkg, char, iopc_pkg_t *, qhash_str_hash, qhash_str_equal);
 
 /*----- pretty printing  -----*/
 
-const char *pretty_token(iopc_tok_type_t token);
+const char *t_pretty_token(iopc_tok_type_t token);
 const char *pretty_path(iopc_path_t *path);
 const char *pretty_path_dot(iopc_path_t *path);
 static inline const char *pretty_path_base(iopc_path_t *path) {

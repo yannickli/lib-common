@@ -611,12 +611,14 @@ static bool CHECK_KW(iopc_parser_t *pp, int i, const char *kw)
 static void WANT(iopc_parser_t *pp, int i, iopc_tok_type_t token)
 {
     iopc_token_t *tk = TK(pp, i);
+
     if (tk->token != token) {
+        t_scope;
         if (tk->token == ITOK_EOF) {
             fatal_loc("unexpected end of file", tk->loc);
         }
         fatal_loc("%s expected, but got %s instead",
-                  tk->loc, pretty_token(token), pretty_token(tk->token));
+                  tk->loc, t_pretty_token(token), t_pretty_token(tk->token));
     }
 }
 
@@ -1490,10 +1492,11 @@ static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
         import->type = iopc_upper_ident(pp);
     } else
     if (!CHECK(pp, 0, '*')) {
+        t_scope;
         tk = TK(pp, 0);
         fatal_loc("%s or %s expected, but got %s instead",
-                  tk->loc, pretty_token('*'), pretty_token(ITOK_IDENT),
-                  pretty_token(tk->token));
+                  tk->loc, t_pretty_token('*'), t_pretty_token(ITOK_IDENT),
+                  t_pretty_token(tk->token));
     } else {
         DROP(pp, 1);
     }
