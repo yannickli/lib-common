@@ -2,8 +2,12 @@ package tstgen;
 
 @(test:gen1, true)
 enum MyEnumA {
+    /*! Test doc + generic attributes on enum value */
+    @(test:gen10, 20.005)
     VAL_A,
+    @(test:gen11, true)
     VAL_B,
+    @(test:gen12, "gen7")
     VAL_C,
 };
 

@@ -1908,7 +1908,7 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
         iopc_enum_field_t *f = iopc_enum_field_new();
         char *ename;
 
-        read_dox_front(pp, &chunks);
+        check_dox_and_attrs(pp, &chunks, &f->attrs);
 
         f->name  = iopc_aupper_ident(pp);
         f->loc   = TK(pp, 0)->loc;
@@ -1917,6 +1917,13 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
 
         if (SKIP(pp, '=')) {
             next_value = parse_constant_integer(pp, '}');
+        }
+
+        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+            if (attr->desc->id != IOPC_ATTR_GENERIC) {
+                fatal_loc("invalid attribute %s on enum field", f->loc,
+                          attr->desc->name.s);
+            }
         }
 
         /* handle properly prefixed enums */

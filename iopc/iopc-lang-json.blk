@@ -294,10 +294,13 @@ iopc_enum_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
     LINE_START_OBJ_CKEY(wbuf, "values");
     qv_for_each_entry(iopc_enum_field, f, &en->values) {
-        IOPC_WRITE_START_LINE(wbuf, sb_addf, KEY("%s")"%d"SEP,
-                              f->name, f->value);
-        if (f->comments.len)
+        LINE_START_OBJ_KEY(wbuf, f->name);
+        LINE_KEY_VAL_FMT(wbuf, "value", "%d", f->value);
+        dump_gen_attrs(wbuf, &f->attrs);
+        if (f->comments.len) {
             help_values = true;
+        }
+        LINE_END_OBJ(wbuf);
     }
     LINE_END_OBJ(wbuf);
 

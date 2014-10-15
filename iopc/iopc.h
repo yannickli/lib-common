@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   3
 #define IOPC_MINOR   0
-#define IOPC_PATCH   12
+#define IOPC_PATCH   13
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
@@ -679,15 +679,18 @@ typedef struct iopc_enum_field_t {
     iopc_loc_t loc;
     char *name;
     int value;
+    qv_t(iopc_attr) attrs;
     qv_t(iopc_dox) comments;
 } iopc_enum_field_t;
 static inline iopc_enum_field_t *iopc_enum_field_init(iopc_enum_field_t *e) {
     p_clear(e, 1);
+    qv_init(iopc_attr, &e->attrs);
     qv_init(iopc_dox, &e->comments);
     return e;
 }
 static inline void iopc_enum_field_wipe(iopc_enum_field_t *e) {
     p_delete(&e->name);
+    qv_deep_wipe(iopc_attr, &e->attrs, iopc_attr_delete);
     qv_deep_wipe(iopc_dox, &e->comments, iopc_dox_wipe);
 }
 GENERIC_NEW(iopc_enum_field_t, iopc_enum_field);

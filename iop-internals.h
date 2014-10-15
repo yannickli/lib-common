@@ -116,6 +116,9 @@ typedef struct iop_generic_attr_arg_t {
 
 typedef enum iop_enum_value_attr_type_t {
     IOP_ENUM_VALUE_ATTR_HELP,
+    IOP_ENUM_VALUE_GEN_ATTR_S,
+    IOP_ENUM_VALUE_GEN_ATTR_I,
+    IOP_ENUM_VALUE_GEN_ATTR_D,
 } iop_enum_value_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;

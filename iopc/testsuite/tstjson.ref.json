@@ -18,10 +18,24 @@
 				"warning": "this is a warning for MyEnumA"
 			},
 			"values": {
-				"A": 0,
-				"B": 1,
-				"C": 100,
-				"D": 101
+				"A": {
+					"value": 0,
+					"genAttrs": {
+						"test:gen10": {
+							"type": "double",
+							"value": 2.000500e+01
+						}
+					}
+				},
+				"B": {
+					"value": 1
+				},
+				"C": {
+					"value": 100
+				},
+				"D": {
+					"value": 101
+				}
 			},
 			"valuesHelp": {
 				"A": {
@@ -46,9 +60,15 @@
 				"strict": true
 			},
 			"values": {
-				"A": 0,
-				"B": 1,
-				"C": 2
+				"A": {
+					"value": 0
+				},
+				"B": {
+					"value": 1
+				},
+				"C": {
+					"value": 2
+				}
 			}
 		},
 		{
@@ -62,8 +82,12 @@
 				}
 			},
 			"values": {
-				"A": 0,
-				"B": 1
+				"A": {
+					"value": 0
+				},
+				"B": {
+					"value": 1
+				}
 			}
 		},
 		{

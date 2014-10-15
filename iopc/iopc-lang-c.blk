@@ -2126,13 +2126,15 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                    const char *pkg_name, iopc_enum_t *en)
 {
     t_scope;
+    SB_1k(values_attrs_body);
+    SB_1k(v_attrs_body);
     const char *tname = pp_to_c(en->name);
     char *tbase = t_fmt("%s__%s", pkg_name, tname);
     int range;
     unsigned flags = 0;
-    bool values_have_comments = false;
     bool has_attrs;
     qv_t(i32) t;
+    bool values_have_attributes = false;
 
     qv_sort(iopc_enum_field)(&en->values,
                              ^int (iopc_enum_field_t * const *f1,
@@ -2169,8 +2171,6 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             tbase);
     qv_for_each_entry(iopc_enum_field, value, &en->values) {
         sb_addf(buf, "    LSTR_IMMED(\"%s\"),\n", value->name);
-        if (value->comments.len)
-            values_have_comments = true;
     }
     sb_adds(buf, "};\n");
     qv_for_each_pos(iopc_attr, pos, &en->attrs) {
@@ -2179,26 +2179,48 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             break;
         }
     }
-    if (values_have_comments) {
-        SB_1k(help_body);
 
-        SET_BIT(&flags, IOP_ENUM_EXTENDED);
-        qv_for_each_entry(iopc_enum_field, f, &en->values) {
-            t_scope;
-            int len = !!f->comments.len;
-            lstr_t fname = t_lstr_dups(f->name, strlen(f->name));
+    qv_for_each_entry(iopc_enum_field, f, &en->values) {
+        t_scope;
+        lstr_t fname = t_lstr_dups(f->name, -1);
+        unsigned v_flags = 0;
+        int nb_attrs = 0;
 
-            lstr_ascii_tolower(&fname);
-            iopc_dump_attrs_only_help(buf, IOP_ENUM_VALUE_ATTR_HELP,
-                "enum_value", tbase, fname.s, "v", &f->comments);
+        lstr_ascii_tolower(&fname);
 
-            iopc_dump_attrs_ref(&help_body,
-                BITMASK_NTH(unsigned, IOP_ENUM_VALUE_ATTR_HELP) * len, len,
-                tbase, fname.s, "v");
+        sb_reset(&v_attrs_body);
+        if (f->comments.len) {
+            iopc_dump_help_and_ref(buf, &v_attrs_body,
+                                   IOP_ENUM_VALUE_ATTR_HELP, "enum_value",
+                                   tbase, fname.s, "v", &f->comments);
+            SET_BIT(&v_flags, IOP_ENUM_VALUE_ATTR_HELP);
+            nb_attrs++;
         }
+        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+            if (attr->desc->id == IOPC_ATTR_GENERIC) {
+                int type;
+
+                type = TK_TYPE_TO_GEN_TYPE(ENUM_VALUE,
+                                           attr->args.tab[0].type);
+                iopc_dump_gen_attr(&v_attrs_body, attr, type);
+                nb_attrs++;
+                SET_BIT(&v_flags, type);
+            }
+        }
+        if (v_attrs_body.len) {
+            iopc_dump_attr_table_head(buf, "enum_value", tbase, fname.s, "v");
+            sb_addsb(buf, &v_attrs_body);
+            sb_addf(buf, "};\n");
+            values_have_attributes = true;
+        }
+        iopc_dump_attrs_ref(&values_attrs_body, v_flags, nb_attrs, tbase,
+                            fname.s, "v");
+    }
+    if (values_have_attributes) {
+        SET_BIT(&flags, IOP_ENUM_EXTENDED);
         sb_addf(buf, "static const iop_enum_value_attrs_t "
-                     "%s__e_desc_values_attrs[] = {\n%*pM};\n",
-                tbase, SB_FMT_ARG(&help_body));
+                "%s__e_desc_values_attrs[] = {\n%*pM};\n",
+                tbase, SB_FMT_ARG(&values_attrs_body));
     }
 
     has_attrs = DUMP_ATTRS(ENUM, buf, en, tbase, "enum", "e", "e_desc",
@@ -2215,12 +2237,15 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             "    .enum_len     = %d,\n",
             tbase, en->name, pretty_path_dot(pkg->name), en->name,
             tbase, tbase, range, range, en->values.len);
-    if (flags)
+    if (flags) {
         sb_addf(buf, "    .flags        = %u,\n", flags);
-    if (has_attrs)
+    }
+    if (has_attrs) {
         sb_addf(buf, "    .en_attrs     = &%s__e_desc_attrs,\n", tbase);
-    if (values_have_comments)
+    }
+    if (values_have_attributes) {
         sb_addf(buf, "    .values_attrs = %s__e_desc_values_attrs,\n", tbase);
+    }
     sb_adds(buf,
             "};\n"
             "\n"

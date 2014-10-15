@@ -22,6 +22,48 @@ static const lstr_t tstgen__my_enum_a__names[] = {
     LSTR_IMMED("VAL_B"),
     LSTR_IMMED("VAL_C"),
 };
+static const iop_help_t tstgen__my_enum_a__val_a__v_help = {
+    .brief = LSTR_IMMED("Test doc + generic attributes on enum value"),
+};
+static const iop_enum_value_attr_t tstgen__my_enum_a__val_a__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &tstgen__my_enum_a__val_a__v_help } },
+    },
+    {
+        .type = 3,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen10") }, { .v.d = 2.00049999999999990e+01 } },
+    },
+};
+static const iop_enum_value_attr_t tstgen__my_enum_a__val_b__v_attrs[] = {
+    {
+        .type = 2,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen11") }, { .v.i64 = 1UL } },
+    },
+};
+static const iop_enum_value_attr_t tstgen__my_enum_a__val_c__v_attrs[] = {
+    {
+        .type = 1,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen12") }, {.v.s = LSTR_IMMED("gen7") } },
+    },
+};
+static const iop_enum_value_attrs_t tstgen__my_enum_a__e_desc_values_attrs[] = {
+    {
+        .flags     = 9,
+        .attrs_len = 2,
+        .attrs     = tstgen__my_enum_a__val_a__v_attrs,
+    },
+    {
+        .flags     = 4,
+        .attrs_len = 1,
+        .attrs     = tstgen__my_enum_a__val_b__v_attrs,
+    },
+    {
+        .flags     = 2,
+        .attrs_len = 1,
+        .attrs     = tstgen__my_enum_a__val_c__v_attrs,
+    },
+};
 static const iop_enum_attr_t tstgen__my_enum_a__e_attrs[] = {
     {
         .type = 2,
@@ -43,6 +85,7 @@ iop_enum_t const tstgen__my_enum_a__e = {
     .enum_len     = 3,
     .flags        = 1,
     .en_attrs     = &tstgen__my_enum_a__e_desc_attrs,
+    .values_attrs = tstgen__my_enum_a__e_desc_values_attrs,
 };
 
 /* }}} */

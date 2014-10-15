@@ -25,6 +25,7 @@ package tstjson;
     @warning this is a warning for MyEnumA
  */
 enum MyEnumA {
+    @(test:gen10, 20.005)
     A, ///< comment for A in MyEnumA
     /// comment for B in MyEnum A,
     B /**< another comment for B in MyEnumA */,
