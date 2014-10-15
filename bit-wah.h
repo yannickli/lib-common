@@ -90,7 +90,6 @@ typedef struct wah_t {
     uint32_t       pending;
     wah_word_t     padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
-qvector_t(wah, wah_t);
 
 #define WAH_BIT_IN_WORD  bitsizeof(wah_word_t)
 
