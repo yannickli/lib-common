@@ -3485,7 +3485,6 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END
     /* }}} */
-
     Z_TEST(iop_get_field, "test iop_get_field function") { /* {{{ */
         tstiop__my_struct_a__t struct_a;
         tstiop__my_struct_b__t struct_b;
@@ -3618,7 +3617,6 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(out);
     } Z_TEST_END
     /* }}} */
-
     Z_TEST(iop_value_from_field, "test iop_value_from_field") { /* {{{ */
         tstiop__my_struct_g__t sg;
         const iop_struct_t *st;
@@ -3692,7 +3690,6 @@ Z_GROUP_EXPORT(iop)
         }
     } Z_TEST_END
     /* }}} */
-
     Z_TEST(iop_value_to_field, "test iop_value_to_field") { /* {{{ */
         tstiop__my_struct_g__t sg;
         tstiop__my_struct_k__t sk;
@@ -3761,7 +3758,7 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_EQ(*OPT_GET(&sb.a), 42);
         }
     } Z_TEST_END
-
+    /* }}} */
     Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */
         t_scope;
         iop_field_info_t info;
