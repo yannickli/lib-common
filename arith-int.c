@@ -33,6 +33,8 @@ uint64_t const powerof10[16] = {
     1000000000000000LL,
 };
 
+/* {{{ GCD */
+
 /* Note about GCD algorithms:
  *
  * Stein's algorithm is significantly better than Euclid's one for lower
@@ -92,6 +94,18 @@ uint32_t gcd(uint32_t a, uint32_t b)
     return gcd_stein(a, b);
 }
 
+/* }}} */
+
+uint32_t get_multiples_nb_in_range(uint32_t n, uint32_t min, uint32_t max)
+{
+    if (!expect(max >= min && n != 0)) {
+        return 0;
+    }
+    return 1 + (max / n) - DIV_ROUND_UP(min, n);
+}
+
+/* {{{ Tests */
+
 Z_GROUP_EXPORT(arithint)
 {
     Z_TEST(gcd, "gcd: Euclid's algorithm") {
@@ -117,4 +131,26 @@ Z_GROUP_EXPORT(arithint)
                         "STEIN: GCD(%u, %u)", t[i].i, t[i].j);
         }
     } Z_TEST_END
+
+    Z_TEST(multiples, "Multiples count in a range") {
+        /* Multiples of 5 between 0 and 100 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(5, 0, 100), 21U);
+
+        /* Multiples of 5 between 1 and 100 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(5, 1, 100), 20U);
+
+        /* Multiples of 12 between 22 and 25 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(12, 22, 25), 1U);
+
+        /* Multiples of 12 between 25 and 28 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(12, 25, 28), 0U);
+
+        /* Multiples of 1000 between 1 and 2 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(1000, 1, 2), 0U);
+
+        /* Multiples of 1000 between 7598 and 125829 */
+        Z_ASSERT_EQ(get_multiples_nb_in_range(1000, 7598, 125829), 118U);
+    } Z_TEST_END
 } Z_GROUP_END
+
+/* }}} */

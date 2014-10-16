@@ -26,6 +26,19 @@ unsigned gcd(unsigned a, unsigned b);
 unsigned gcd_euclid(unsigned a, unsigned b);
 unsigned gcd_stein(unsigned a, unsigned b);
 
+/** Count the number of multiples of a number in a range.
+ *
+ * Count the number of multiples of a number 'n' in the range 'min' --> 'max'
+ * (min and max included).
+ *
+ * \param[in]  n   The number 'n' whose we are counting the multiples.
+ * \param[in]  min The lower inclusive boundary of the range.
+ * \param[in]  max The upper inclusive boundary of the range.
+ *
+ * \return  The number of multiples of 'n' in the range min --> max.
+ */
+uint32_t get_multiples_nb_in_range(uint32_t n, uint32_t min, uint32_t max);
+
 extern uint64_t const powerof10[16];
 
 #endif
