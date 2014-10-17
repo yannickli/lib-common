@@ -540,7 +540,6 @@ MODULE_METHOD(VOID, DEPS_AFTER, at_fork_prepare);
 MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_child);
 
-#ifndef SHARED
 static void module_at_fork_prepare(void)
 {
     MODULE_METHOD_RUN_VOID(at_fork_prepare);
@@ -556,7 +555,9 @@ static void module_at_fork_on_child(void)
     MODULE_METHOD_RUN_VOID(at_fork_on_child);
 }
 
-static __attribute__((constructor))
+#ifndef SHARED
+__attribute__((constructor))
+#endif
 void module_register_at_fork(void)
 {
     static bool at_fork_registered = false;
@@ -578,7 +579,6 @@ void module_register_at_fork(void)
         at_fork_registered = true;
     }
 }
-#endif
 
 /* }}} */
 /*{{{ Dependency collision */

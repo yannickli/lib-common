@@ -409,6 +409,23 @@ MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
 
+/** Register at fork methods.
+ *
+ * Automatically called for non shared libraries.
+ * When compiling for non shared libraries this function has constructor
+ * attribute so is automatically called before main() function of the program.
+ *
+ * For shared libraries, at fork methods are not enabled by default because
+ * when the dso is unloaded, at fork functions point to invalid addresses that
+ * trigger a segfault when forking after unload.
+ *
+ * So this function should be called only by shared libraries that need to
+ * have at fork methods and that are not unloaded during execution of the
+ * program (python modules for example) or the program shouldn't fork after
+ * unloading the library.
+ */
+void module_register_at_fork(void);
+
 /* }}} */
 /* {{{ Dependency collision */
 
