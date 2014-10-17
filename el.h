@@ -227,7 +227,17 @@ enum {
     EL_TIMER_LOWRES = (1 << 1),
 };
 
-/** \brief registers a timer.
+
+/** \brief registers a timer
+ *
+ * There are two kinds of timers: one shot and repeating timers:
+ * - One shot timers fire their callback once, when they time out.
+ * - Repeating timers automatically rearm after being fired.
+ *
+ * One shot timers are automatically destroyed at the end of the callback if
+ * they have not be rearmed in it. As a consequence, you must be careful to
+ * cleanup all references to one-shot timers you don't rearm within the
+ * callback.
  *
  * \param[in]  next    relative time in ms at which the timers fires.
  * \param[in]  repeat  repeat interval in ms, 0 means single shot.
