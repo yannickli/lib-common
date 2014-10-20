@@ -14,6 +14,7 @@
 #ifndef IS_LIB_COMMON_LOG_FILE_H
 #define IS_LIB_COMMON_LOG_FILE_H
 
+#include "file-bin.h"
 #include "file.h"
 #include "core.iop.h"
 
@@ -55,17 +56,21 @@ typedef void (log_file_cb_f)(struct log_file_t *file,
                              const char *fpath, void *priv);
 
 typedef struct log_file_t {
-    uint32_t flags;
-    int      max_size;
-    int      max_files;
-    int      max_total_size; /* in Mo */
-    time_t   open_date;
-    time_t   rotate_delay;
-    file_t  *_internal;
-    char     prefix[PATH_MAX];
-    char     ext[8];
+    /* Binary file */
+    file_bin_t *_bin_internal;
 
-    flag_t   disable_rotation : 1;
+    /* Not binary */
+    uint32_t    flags;
+    int         max_size;
+    int         max_files;
+    int         max_total_size; /* in Mo */
+    time_t      open_date;
+    time_t      rotate_delay;
+    file_t     *_internal;
+    char        prefix[PATH_MAX];
+    char        ext[8];
+
+    flag_t      disable_rotation : 1;
 
     /* Event callback */
     log_file_cb_f *on_event;
@@ -74,7 +79,17 @@ typedef struct log_file_t {
 
 log_file_t *log_file_init(log_file_t *, const char *nametpl, int flags);
 log_file_t *log_file_new(const char *nametpl, int flags);
-__must_check__ int log_file_open(log_file_t *log_file);
+
+/** Open a log file.
+ *
+ * \param[in]  log_file      The log file to open
+ * \param[in]  use_file_bin  True if the file bin library should be used,
+ *                           false otherwise.
+ *
+ * \return  0 on success, a negative value otherwise.
+ */
+__must_check__ int log_file_open(log_file_t *log_file, bool use_file_bin);
+
 __must_check__ int log_file_close(log_file_t **log_file);
 __must_check__ int log_file_rotate(log_file_t *log_file);
 
@@ -82,7 +97,8 @@ __must_check__ int log_file_rotate(log_file_t *log_file);
 log_file_t *
 log_file_create_from_iop(const char *nametpl,
                          const core__log_file_configuration__t *conf,
-                         int flags, log_file_cb_f *on_event, void *priv);
+                         bool use_file_bin, int flags,
+                         log_file_cb_f *on_event, void *priv);
 
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);
@@ -126,21 +142,14 @@ int log_file_get_file_stamp(const log_file_t *file, const char *path,
 
 static inline off_t log_file_tell(log_file_t *log_file)
 {
-    if (log_file->_internal)
+    if (log_file->_internal) {
         return file_tell(log_file->_internal);
+    } else
+    if (log_file->_bin_internal) {
+        return log_file->_bin_internal->cur;
+    }
     errno = EBADF;
     return -1;
-}
-static inline int log_file_truncate(log_file_t *log_file, off_t len)
-{
-    if (log_file->_internal)
-        return file_truncate(log_file->_internal, len);
-    errno = EBADF;
-    return -1;
-}
-static inline bool log_file_isopen(log_file_t *log_file)
-{
-    return (log_file->_internal != NULL);
 }
 
 #ifdef __has_blocks
