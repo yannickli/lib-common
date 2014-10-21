@@ -255,38 +255,70 @@
 
 #define NEXTARG(argc, argv)  (argc--, *argv++)
 
-#define RETHROW(e)        \
-    ({ typeof(e) __res = (e);                          \
-       if (unlikely(__res < 0))                        \
-           return __res;                               \
-       __res;                                          \
+/** RETHROW macros.
+ *
+ * P = Pointer
+ * N = Negative
+ *
+ * These macros can be used on the following pattern:
+ * \code
+ *     int toto(...) {
+ *         object_t *obj;               int toto(...) {
+ *                                          object *obj;
+ *         obj = get_object(...);  =>
+ *         if (!obj) {                      obj = RETHROW_NP(get_object(...));
+ *             return -1;                   ...
+ *         }                            }
+ *     ...
+ *     }
+ * \endcode
+ */
+#define RETHROW(e)                                                           \
+    ({ typeof(e) __res = (e);                                                \
+       if (unlikely(__res < 0)) {                                            \
+           return __res;                                                     \
+       }                                                                     \
+       __res;                                                                \
     })
 
-#define RETHROW_P(e)        \
-    ({ typeof(e) __res = (e);                          \
-       if (unlikely(__res == NULL))                    \
-           return NULL;                                \
-       __res;                                          \
+#define RETHROW_P(e)                                                         \
+    ({ typeof(e) __res = (e);                                                \
+       if (unlikely(__res == NULL)) {                                        \
+           return NULL;                                                      \
+       }                                                                     \
+       __res;                                                                \
     })
 
-#define RETHROW_PN(e)        \
-    ({ typeof(e) __res = (e);                          \
-       if (unlikely(__res == NULL))                    \
-           return -1;                                  \
-       __res;                                          \
+#define RETHROW_PN(e)                                                        \
+    ({ typeof(e) __res = (e);                                                \
+       if (unlikely(__res == NULL)) {                                        \
+           return -1;                                                        \
+       }                                                                     \
+       __res;                                                                \
     })
 
-#define RETHROW_NP(e)        \
-    ({ typeof(e) __res = (e);                          \
-       if (unlikely(__res < 0))                        \
-           return NULL;                                \
-       __res;                                          \
+#define RETHROW_NP(e)                                                        \
+    ({ typeof(e) __res = (e);                                                \
+       if (unlikely(__res < 0)) {                                            \
+           return NULL;                                                      \
+       }                                                                     \
+       __res;                                                                \
     })
 
-#define THROW_IF(e, val)                               \
-    do {                                               \
-        if (unlikely(e))                               \
-            return (val);                              \
+/** THROW macros.
+ *
+ * These macros can be used on the following pattern:
+ * \code
+ *     if (time < lunch_time) {
+ *         return false;         =>    THROW_FALSE_IF(time < lunch_time );
+ *     }
+ * \endcode
+ */
+#define THROW_IF(e, val)                                                     \
+    do {                                                                     \
+        if (unlikely(e)) {                                                   \
+            return (val);                                                    \
+        }                                                                    \
     } while (0)
 #define THROW_UNLESS(e, val)    THROW_IF(!(e), (val))
 
