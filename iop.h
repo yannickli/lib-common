@@ -700,6 +700,30 @@ int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
 int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
                           iop_value_t *value);
 
+/** Find a generic attribute value for an IOP enum value (integer).
+ *
+ * \param[in]  ed    The IOP enum definition (__e).
+ * \param[in]  val   The enum value (integer).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
+                                   lstr_t key, iop_value_t *value);
+
+/** Find a generic attribute value for an IOP enum value (string).
+ *
+ * \param[in]  ed    The IOP enum definition (__e).
+ * \param[in]  val   The enum value (string).
+ * \param[in]  key   The generic attribute key.
+ * \param[out] value The value to put the result in.
+ *
+ * \return 0 if the generic attribute is found, -1 otherwise.
+ */
+int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
+                                   lstr_t key, iop_value_t *value);
+
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
 

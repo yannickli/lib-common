@@ -576,6 +576,31 @@ int iop_enum_get_gen_attr(const iop_enum_t *en, lstr_t key,
                                 key, ENUM, enum, value);
 }
 
+static int iop_enum_pos_from_val(const iop_enum_t *e, int val);
+static int iop_enum_pos_from_str(const iop_enum_t *e, const char *s, int len);
+
+int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
+                                   lstr_t key, iop_value_t *value)
+{
+    const iop_enum_value_attrs_t *va;
+    int pos = RETHROW(iop_enum_pos_from_val(ed, val));
+
+    va = &ed->values_attrs[pos];
+    return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
+                                enum_value, value);
+}
+
+int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
+                                   lstr_t key, iop_value_t *value)
+{
+    const iop_enum_value_attrs_t *va;
+    int pos = RETHROW(iop_enum_pos_from_str(ed, val.s, val.len));
+
+    va = &ed->values_attrs[pos];
+    return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
+                                enum_value, value);
+}
+
 int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
                            iop_value_t *value)
 {
@@ -2531,7 +2556,6 @@ int iop_ranges_search(int const * ranges, int ranges_len, int tag)
     return -1;
 }
 
-__unused__
 static int iop_enum_pos_from_val(const iop_enum_t *e, int val)
 {
     return iop_ranges_search(e->ranges, e->ranges_len, val);
