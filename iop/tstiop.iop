@@ -30,7 +30,9 @@ struct HashV2 {
     string s;
 };
 
+@(test:gen1, 1)
 enum MyEnumA {
+    @(test:gen2, 2.2)
     A = 0x0,
     B = 0x1,
     C = 0x2,
@@ -67,7 +69,10 @@ class MyClass3 : 3 : MyClass2 {
     bool bool1;
 };
 
+
+@(test:gen3, "3")
 struct MyStructA {
+    @(test:gen4, 4)
     int a;
     uint b;
     byte cOfMyStructA;
@@ -321,7 +326,10 @@ union MyRefUnion {
 };
 
 /* Interfaces */
+
+@(test:gen5, 5)
 interface MyIfaceA {
+    @(test:gen6, 6)
     funA      in (int a, MyStructA b)  out (MyUnionA c, int d);
     funb                               out (int a, int b);
     funC      in MyStructA             out MyStructB;
