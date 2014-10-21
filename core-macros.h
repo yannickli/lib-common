@@ -34,7 +34,7 @@
 # define __has_attribute(x)  0
 #endif
 
-/*---------------- GNU extension wrappers ----------------*/
+/* {{{ GNU extension wrappers */
 
 #if defined(__clang__)
 # undef __GNUC_PREREQ
@@ -229,7 +229,8 @@
 # define __attr_section(sg, sc)  __attribute__((section("."sg"."sc)))
 #endif
 
-/*---------------- useful expressions ----------------*/
+/* }}} */
+/* {{{ Useful expressions */
 
 #ifndef MAX
 #define MAX(a, b)            (((a) > (b)) ? (a) : (b))
@@ -346,7 +347,8 @@ enum sign {
     })
 #define put_unaligned(ptr, v)  put_unaligned_type(typeof(v), ptr, v)
 
-/*---------------- Types ----------------*/
+/* }}} */
+/* {{{ Types */
 
 typedef uint64_t cpu64_t;
 typedef uint64_t __bitwise__ be64_t;
@@ -400,8 +402,8 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
       cast(type_t *, cast(char *, (obj)) - offsetof(type_t, member))
 #endif
 
-
-/*---------------- Loops -------------------------*/
+/* }}} */
+/* {{{ Loops */
 
 /* Standard loops for structures of the form struct { type_t *tab; int len; }.
  */
@@ -461,8 +463,8 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
               e##__res;                                                      \
          });)
 
-
-/*---------------- Dangerous APIs ----------------*/
+/* }}} */
+/* {{{ Dangerous APIs */
 
 #undef sprintf
 #define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)
@@ -473,5 +475,6 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #undef strncat
 #define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
 
+/* }}} */
 /** \} */
 #endif
