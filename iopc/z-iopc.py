@@ -25,7 +25,6 @@ sys.path.append(self_path+ "/../lib-common")
 import z
 import subprocess
 import string
-import tempfile
 
 @z.ZGroup
 class IopcTest(z.TestCase):
@@ -225,6 +224,10 @@ class IopcTest(z.TestCase):
     def test_attrs_invalid_12(self):
         self.run_iopc2('attrs_invalid_12.iop', False,
                 'unknown field c in MyUnion')
+
+    def test_attrs_invalid_enumval(self):
+        self.run_iopc2('attrs_invalid_enumval.iop', False,
+                'invalid attribute min on enum field')
 
     def test_default_char_valid(self):
         self.run_iopc_pass('pkg_d.iop', 1)
