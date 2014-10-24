@@ -108,7 +108,7 @@ while read t; do
             ;;
         *testem.json)
             cd $(dirname "./$t")
-            ztestem
+            ztestem $(basename "./$t")
             res=$?
             cd - &>/dev/null
             ;;
