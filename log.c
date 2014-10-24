@@ -221,7 +221,7 @@ void __logger_refresh(logger_t *logger)
 
     if (!logger->full_name.s) {
         int pos = 0;
-        logger_t *sibbling;
+        logger_t *sibling;
 
         logger_compute_fullname(logger);
 
@@ -230,8 +230,8 @@ void __logger_refresh(logger_t *logger)
         assert (logger->defined_level >= LOG_UNDEFINED);
 
         spin_lock(&logger->parent->children_lock);
-        dlist_for_each_entry(sibbling, &logger->parent->children, siblings) {
-            assert (!lstr_equal2(sibbling->name, logger->name));
+        dlist_for_each_entry(sibling, &logger->parent->children, siblings) {
+            assert (!lstr_equal2(sibling->name, logger->name));
         }
         dlist_add(&logger->parent->children, &logger->siblings);
         dlist_init(&logger->children);
