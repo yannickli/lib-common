@@ -28,22 +28,22 @@ wah_word_enum_t wah_word_enum_start(const wah_t *map, bool reverse)
         en.current = en.reverse;
         return en;
     }
-    if (map->data.tab[0].head.words > 0) {
+    if (map->_data.tab[0].head.words > 0) {
         en.state        = WAH_ENUM_RUN;
-        en.remain_words = map->data.tab[0].head.words;
-        en.current      = 0 - map->data.tab[0].head.bit;
+        en.remain_words = map->_data.tab[0].head.words;
+        en.current      = 0 - map->_data.tab[0].head.bit;
     } else
-    if (map->data.tab[1].count > 0) {
+    if (map->_data.tab[1].count > 0) {
         en.state        = WAH_ENUM_LITERAL;
-        en.pos          = map->data.tab[1].count + 2;
-        en.remain_words = map->data.tab[1].count;
-        en.current      = map->data.tab[2].literal;
-        assert (en.pos <= map->data.len);
+        en.pos          = map->_data.tab[1].count + 2;
+        en.remain_words = map->_data.tab[1].count;
+        en.current      = map->_data.tab[2].literal;
+        assert (en.pos <= map->_data.len);
         assert ((int)en.remain_words <= en.pos);
     } else {
         en.state        = WAH_ENUM_PENDING;
         en.remain_words = 1;
-        en.current      = map->pending;
+        en.current      = map->_pending;
     }
     en.current ^= en.reverse;
     return en;
@@ -54,7 +54,8 @@ bool wah_word_enum_next(wah_word_enum_t *en)
     if (en->remain_words != 1) {
         en->remain_words--;
         if (en->state == WAH_ENUM_LITERAL) {
-            en->current  = en->map->data.tab[en->pos - en->remain_words].literal;
+            en->current  = en->map->_data.tab[en->pos
+                         - en->remain_words].literal;
             en->current ^= en->reverse;
         }
         return true;
@@ -71,13 +72,13 @@ bool wah_word_enum_next(wah_word_enum_t *en)
       default: /* WAH_ENUM_RUN */
         assert (en->state == WAH_ENUM_RUN);
         en->pos++;
-        en->remain_words = en->map->data.tab[en->pos++].count;
+        en->remain_words = en->map->_data.tab[en->pos++].count;
         en->pos         += en->remain_words;
-        assert (en->pos <= en->map->data.len);
+        assert (en->pos <= en->map->_data.len);
         assert ((int)en->remain_words <= en->pos);
         en->state = WAH_ENUM_LITERAL;
         if (en->remain_words != 0) {
-            en->current  = en->map->data.tab[en->pos - en->remain_words].literal;
+            en->current  = en->map->_data.tab[en->pos - en->remain_words].literal;
             en->current ^= en->reverse;
             return true;
         }
@@ -85,11 +86,11 @@ bool wah_word_enum_next(wah_word_enum_t *en)
         /* Transition to literal, so don't break here */
 
       case WAH_ENUM_LITERAL:
-        if (en->pos == en->map->data.len) {
+        if (en->pos == en->map->_data.len) {
             if ((en->map->len % WAH_BIT_IN_WORD)) {
                 en->state = WAH_ENUM_PENDING;
                 en->remain_words = 1;
-                en->current  = en->map->pending;
+                en->current  = en->map->_pending;
                 en->current ^= en->reverse;
                 return true;
             } else {
@@ -99,8 +100,8 @@ bool wah_word_enum_next(wah_word_enum_t *en)
             }
         }
         en->state = WAH_ENUM_RUN;
-        en->remain_words = en->map->data.tab[en->pos].head.words;
-        en->current  = 0 - en->map->data.tab[en->pos].head.bit;
+        en->remain_words = en->map->_data.tab[en->pos].head.words;
+        en->current  = 0 - en->map->_data.tab[en->pos].head.bit;
         en->current ^= en->reverse;
         return true;
     }
@@ -277,7 +278,7 @@ void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip)
 
 wah_t *wah_init(wah_t *map)
 {
-    qv_init(wah_word, &map->data);
+    qv_init(wah_word, &map->_data);
     wah_reset_map(map);
     return map;
 }
@@ -286,26 +287,26 @@ wah_t *wah_new(void)
 {
     wah_t *map = p_new_raw(wah_t, 1);
 
-    __qv_init(wah_word, &map->data, map->padding, 0, 3, MEM_STATIC);
+    __qv_init(wah_word, &map->_data, map->_padding, 0, 3, MEM_STATIC);
     wah_reset_map(map);
     return map;
 }
 
 void wah_wipe(wah_t *map)
 {
-    qv_wipe(wah_word, &map->data);
+    qv_wipe(wah_word, &map->_data);
 }
 
 /* WAH copy requires an initialized wah as target
  */
 void wah_copy(wah_t *map, const wah_t *src)
 {
-    qv_t(wah_word) data = map->data;
+    qv_t(wah_word) data = map->_data;
 
     p_copy(map, src, 1);
-    map->data = data;
-    qv_splice(wah_word, &map->data, 0, map->data.len,
-              src->data.tab, src->data.len);
+    map->_data = data;
+    qv_splice(wah_word, &map->_data, 0, map->_data.len,
+              src->_data.tab, src->_data.len);
 }
 
 wah_t *wah_dup(const wah_t *src)
@@ -319,7 +320,7 @@ wah_t *wah_dup(const wah_t *src)
 wah_t *t_wah_new(int size)
 {
     wah_t *map = t_new(wah_t, 1);
-    t_qv_init(wah_word, &map->data, size);
+    t_qv_init(wah_word, &map->_data, size);
     wah_reset_map(map);
     return map;
 }
@@ -328,8 +329,8 @@ wah_t *t_wah_dup(const wah_t *src)
 {
     wah_t *map = t_new(wah_t, 1);
     p_copy(map, src, 1);
-    t_qv_init(wah_word, &map->data, src->data.len);
-    qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
+    t_qv_init(wah_word, &map->_data, src->_data.len);
+    qv_splice(wah_word, &map->_data, 0, 0, src->_data.tab, src->_data.len);
     return map;
 }
 
@@ -340,14 +341,14 @@ static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(const wah_t *map)
 {
     assert (map->last_run_pos >= 0);
-    return &map->data.tab[map->last_run_pos].head;
+    return &map->_data.tab[map->last_run_pos].head;
 }
 
 static ALWAYS_INLINE
 uint32_t *wah_last_run_count(const wah_t *map)
 {
     assert (map->last_run_pos >= 0);
-    return &map->data.tab[map->last_run_pos + 1].count;
+    return &map->_data.tab[map->last_run_pos + 1].count;
 }
 
 static ALWAYS_INLINE
@@ -355,9 +356,9 @@ void wah_append_header(wah_t *map, wah_header_t head)
 {
     wah_word_t word;
     word.head = head;
-    qv_append(wah_word, &map->data, word);
+    qv_append(wah_word, &map->_data, word);
     word.count = 0;
-    qv_append(wah_word, &map->data, word);
+    qv_append(wah_word, &map->_data, word);
 }
 
 static ALWAYS_INLINE
@@ -365,7 +366,7 @@ void wah_append_literal(wah_t *map, uint32_t val)
 {
     wah_word_t word;
     word.literal = val;
-    qv_append(wah_word, &map->data, word);
+    qv_append(wah_word, &map->_data, word);
 }
 
 static
@@ -375,11 +376,11 @@ void wah_check_normalized(const wah_t *map)
     int pos = 0;
     uint32_t prev_word = 0xcafebabe;
 
-    while (pos < map->data.len) {
-        wah_header_t *head  = &map->data.tab[pos++].head;
-        uint32_t      count = map->data.tab[pos++].count;
+    while (pos < map->_data.len) {
+        wah_header_t *head  = &map->_data.tab[pos++].head;
+        uint32_t      count = map->_data.tab[pos++].count;
 
-        assert (head->words >= 2 || pos == map->data.len || pos == 2);
+        assert (head->words >= 2 || pos == map->_data.len || pos == 2);
         if (prev_word == UINT32_MAX || prev_word == 0) {
             assert (prev_word != head->bit ? UINT32_MAX : 0);
             prev_word = head->bit ? UINT32_MAX : 0;
@@ -387,9 +388,9 @@ void wah_check_normalized(const wah_t *map)
 
         for (uint32_t i = 0; i < count; i++) {
             if (prev_word == UINT32_MAX || prev_word == 0) {
-                assert (prev_word != map->data.tab[pos].literal);
+                assert (prev_word != map->_data.tab[pos].literal);
             }
-            prev_word = map->data.tab[pos++].literal;
+            prev_word = map->_data.tab[pos++].literal;
         }
     }
 #endif
@@ -400,8 +401,9 @@ void wah_check_invariant(const wah_t *map)
 {
     assert (map->last_run_pos >= 0);
     assert (map->previous_run_pos >= -1);
-    assert (map->data.len >= 2);
-    assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
+    assert (map->_data.len >= 2);
+    assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2
+        ==  map->_data.len);
     assert (map->len >= map->active);
     wah_check_normalized(map);
 }
@@ -417,16 +419,16 @@ void wah_flatten_last_run(wah_t *map)
         return;
     }
     assert (*wah_last_run_count(map) == 0);
-    assert (map->data.len == map->last_run_pos + 2);
+    assert (map->_data.len == map->last_run_pos + 2);
 
     if (map->last_run_pos > 0) {
-        map->data.len -= 2;
-        map->data.tab[map->previous_run_pos + 1].count++;
+        map->_data.len -= 2;
+        map->_data.tab[map->previous_run_pos + 1].count++;
         map->last_run_pos     = map->previous_run_pos;
         map->previous_run_pos = -1;
     } else {
         head->words = 0;
-        map->data.tab[1].count = 1;
+        map->_data.tab[1].count = 1;
     }
 
     wah_append_literal(map, head->bit ? UINT32_MAX : 0);
@@ -436,35 +438,35 @@ void wah_flatten_last_run(wah_t *map)
 static inline
 void wah_push_pending(wah_t *map, uint32_t words)
 {
-    const bool is_trivial = map->pending == UINT32_MAX || map->pending == 0;
+    const bool is_trivial = map->_pending == UINT32_MAX || map->_pending == 0;
     if (!is_trivial) {
         wah_flatten_last_run(map);
         *wah_last_run_count(map) += words;
         while (words > 0) {
-            wah_append_literal(map, map->pending);
+            wah_append_literal(map, map->_pending);
             words--;
         }
     } else {
         wah_header_t *head = wah_last_run_header(map);
         if (*wah_last_run_count(map) == 0
-        && (!head->bit == !map->pending || head->words == 0)) {
+        && (!head->bit == !map->_pending || head->words == 0)) {
             /* Merge with previous */
             head->words += words;
-            head->bit    = !!map->pending;
+            head->bit    = !!map->_pending;
         } else {
             /* Create a new run */
             wah_header_t new_head;
             if (head->words < 2) {
                 wah_flatten_last_run(map);
             }
-            new_head.bit          = !!map->pending;
+            new_head.bit          = !!map->_pending;
             new_head.words        = words;
             map->previous_run_pos = map->last_run_pos;
-            map->last_run_pos     = map->data.len;
+            map->last_run_pos     = map->_data.len;
             wah_append_header(map, new_head);
         }
     }
-    map->pending = 0;
+    map->_pending = 0;
 }
 
 void wah_add0s(wah_t *map, uint64_t count)
@@ -504,24 +506,24 @@ void wah_add1s(wah_t *map, uint64_t count)
 
     wah_check_invariant(map);
     if (remain + count < WAH_BIT_IN_WORD) {
-        map->pending |= BITMASK_LT(uint32_t, count) << remain;
+        map->_pending |= BITMASK_LT(uint32_t, count) << remain;
         map->len     += count;
         map->active  += count;
         wah_check_invariant(map);
         return;
     }
     if (remain > 0) {
-        map->pending |= BITMASK_GE(uint32_t, remain);
+        map->_pending |= BITMASK_GE(uint32_t, remain);
         map->len     += WAH_BIT_IN_WORD - remain;
         map->active  += WAH_BIT_IN_WORD - remain;
         count        -= WAH_BIT_IN_WORD - remain;
         wah_push_pending(map, 1);
     }
     if (count >= WAH_BIT_IN_WORD) {
-        map->pending = UINT32_MAX;
+        map->_pending = UINT32_MAX;
         wah_push_pending(map, count / WAH_BIT_IN_WORD);
     }
-    map->pending = BITMASK_LT(uint32_t, count);
+    map->_pending = BITMASK_LT(uint32_t, count);
     map->len    += count;
     map->active += count;
     wah_check_invariant(map);
@@ -632,7 +634,7 @@ void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
     wah_flatten_last_run(map);
     *wah_last_run_count(map) += count / 4;
 
-    data = qv_growlen(wah_word, &map->data, count / 4);
+    data = qv_growlen(wah_word, &map->_data, count / 4);
     memcpy(data, src, count);
     map->len    += count * 8;
     map->active += membitcount(src, count);
@@ -698,7 +700,7 @@ void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
         assert (map->len == exp_len - count);
         from = src;
     }
-    map->pending = 0;
+    map->_pending = 0;
 
     if (count > 0) {
         uint64_t word = 0;
@@ -706,9 +708,9 @@ void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 
         wah_read_word(src, count, &word, &bits);
         assert ((size_t)bits == count);
-        map->pending = word;
+        map->_pending = word;
         map->len    += bits;
-        map->active += bitcount32(map->pending);
+        map->active += bitcount32(map->_pending);
         wah_check_invariant(map);
     }
     assert (map->len == exp_len);
@@ -738,7 +740,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
 #define PUSH_1RUN(Count) ({                                                  \
             uint32_t __run = (Count);                                        \
                                                                              \
-            map->pending  = UINT32_MAX;                                      \
+            map->_pending  = UINT32_MAX;                                     \
             map->len     += __run * WAH_BIT_IN_WORD;                         \
             map->active  += __run * WAH_BIT_IN_WORD;                         \
             wah_push_pending(map, __run);                                    \
@@ -749,7 +751,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
 #define PUSH_0RUN(Count) ({                                                  \
             uint32_t __run = (Count);                                        \
                                                                              \
-            map->pending  = 0;                                               \
+            map->_pending  = 0;                                              \
             map->len     += __run * WAH_BIT_IN_WORD;                         \
             wah_push_pending(map, __run);                                    \
             wah_word_enum_skip(&src_en, __run);                              \
@@ -765,8 +767,8 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
     wah_word_enum_skip(run, count);
 
     if (unlikely(!data->current || data->current == UINT32_MAX)) {
-        map->pending  = data->current;
-        map->active  += bitcount32(map->pending);
+        map->_pending  = data->current;
+        map->active  += bitcount32(map->_pending);
         map->len     += WAH_BIT_IN_WORD;
         wah_push_pending(map, 1);
         wah_word_enum_next(data);
@@ -775,19 +777,19 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
     if (likely(count > 0)) {
         const wah_word_t *words;
 
-        words = &data->map->data.tab[data->pos - data->remain_words];
+        words = &data->map->_data.tab[data->pos - data->remain_words];
         wah_word_enum_skip(data, count);
 
         wah_flatten_last_run(map);
         *wah_last_run_count(map) += count;
-        qv_splice(wah_word, &map->data, map->data.len, 0, words, count);
+        qv_splice(wah_word, &map->_data, map->_data.len, 0, words, count);
         if (data->reverse) {
-            for (int i = map->data.len - count; i < map->data.len; i++) {
-                map->data.tab[i].literal = ~map->data.tab[i].literal;
+            for (int i = map->_data.len - count; i < map->_data.len; i++) {
+                map->_data.tab[i].literal = ~map->_data.tab[i].literal;
             }
         }
         map->len    += count * WAH_BIT_IN_WORD;
-        map->active += membitcount(&map->data.tab[map->data.len - count],
+        map->active += membitcount(&map->_data.tab[map->_data.len - count],
                                    count * sizeof(wah_word_t));
     }
 }
@@ -819,8 +821,8 @@ void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
             map->len     = MAX(other->len, src->len);
-            map->pending = src_en.current & other_en.current;
-            map->active += bitcount32(map->pending);
+            map->_pending = src_en.current & other_en.current;
+            map->active += bitcount32(map->_pending);
             wah_word_enum_next(&src_en);
             wah_word_enum_next(&other_en);
             break;
@@ -863,8 +865,8 @@ void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
 
           default:
             map->len    += WAH_BIT_IN_WORD;
-            map->pending = src_en.current & other_en.current;
-            map->active += bitcount32(map->pending);
+            map->_pending = src_en.current & other_en.current;
+            map->active += bitcount32(map->_pending);
             wah_push_pending(map, 1);
             wah_word_enum_next(&src_en);
             wah_word_enum_next(&other_en);
@@ -915,7 +917,7 @@ static void wah_add_en(wah_t *dest, wah_word_enum_t *en, uint64_t words)
         switch (en->state) {
           case WAH_ENUM_LITERAL:
             wah_add_aligned(dest,
-                            (const uint8_t *)&en->map->data.tab[en->pos - en->remain_words],
+                            (const uint8_t *)&en->map->_data.tab[en->pos - en->remain_words],
                             to_read * WAH_BIT_IN_WORD);
             break;
 
@@ -1087,7 +1089,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
 
                 switch (en->state) {
                   case WAH_ENUM_LITERAL: {
-                    const uint32_t *data = (const uint32_t *)en->map->data.tab;
+                    const uint32_t *data = (const uint32_t *)en->map->_data.tab;
 
                     data = &data[en->pos - en->remain_words];
                     for (uint32_t i = 0; i < to_consume; i++) {
@@ -1207,17 +1209,17 @@ void wah_not(wah_t *map)
     uint32_t pos = 0;
 
     wah_check_invariant(map);
-    while (pos < (uint32_t)map->data.len) {
-        wah_header_t *head  = &map->data.tab[pos++].head;
-        uint32_t      count = map->data.tab[pos++].count;
+    while (pos < (uint32_t)map->_data.len) {
+        wah_header_t *head  = &map->_data.tab[pos++].head;
+        uint32_t      count = map->_data.tab[pos++].count;
         head->bit = !head->bit;
         for (uint32_t i = 0; i < count; i++) {
-            map->data.tab[pos].literal = ~map->data.tab[pos].literal;
+            map->_data.tab[pos].literal = ~map->_data.tab[pos].literal;
             pos++;
         }
     }
     if ((map->len % WAH_BIT_IN_WORD) != 0) {
-        map->pending = ~map->pending & BITMASK_LT(uint32_t, map->len);
+        map->_pending = ~map->_pending & BITMASK_LT(uint32_t, map->len);
     }
     map->active = map->len - map->active;
     wah_check_invariant(map);
@@ -1234,12 +1236,12 @@ bool wah_get(const wah_t *map, uint64_t pos)
     }
     if (pos >= map->len - remain) {
         pos %= WAH_BIT_IN_WORD;
-        return map->pending & (1 << pos);
+        return map->_pending & (1 << pos);
     }
 
-    while (i < map->data.len) {
-        wah_header_t head  = map->data.tab[i++].head;
-        uint32_t     words = map->data.tab[i++].count;
+    while (i < map->_data.len) {
+        wah_header_t head  = map->_data.tab[i++].head;
+        uint32_t     words = map->_data.tab[i++].count;
 
         count = head.words * WAH_BIT_IN_WORD;
         if (pos < count) {
@@ -1251,7 +1253,7 @@ bool wah_get(const wah_t *map, uint64_t pos)
         if (pos < count) {
             i   += pos / WAH_BIT_IN_WORD;
             pos %= WAH_BIT_IN_WORD;
-            return !!(map->data.tab[i].literal & (1 << pos));
+            return !!(map->_data.tab[i].literal & (1 << pos));
         }
         pos -= count;
         i   += words;
@@ -1260,7 +1262,7 @@ bool wah_get(const wah_t *map, uint64_t pos)
 }
 
 /* }}} */
-/* Open existing WAH {{{ */
+/* Open/store existing WAH {{{ */
 
 wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
                           bool scan)
@@ -1268,7 +1270,7 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
     int pos = 0;
 
     p_clear(map, 1);
-    __qv_init(wah_word, &map->data, (wah_word_t *)data,
+    __qv_init(wah_word, &map->_data, (wah_word_t *)data,
               data_len, data_len, MEM_STATIC);
     map->previous_run_pos = -1;
     map->last_run_pos = -1;
@@ -1278,25 +1280,25 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
         return map;
     }
 
-    while (pos < map->data.len - 1) {
-        wah_header_t head  = map->data.tab[pos++].head;
-        uint32_t     words = map->data.tab[pos++].count;
+    while (pos < map->_data.len - 1) {
+        wah_header_t head  = map->_data.tab[pos++].head;
+        uint32_t     words = map->_data.tab[pos++].count;
 
-        THROW_NULL_IF(words > (uint32_t)map->data.len
-                    || (uint32_t)pos > map->data.len - words);
+        THROW_NULL_IF(words > (uint32_t)map->_data.len
+                    || (uint32_t)pos > map->_data.len - words);
         map->previous_run_pos = map->last_run_pos;
         map->last_run_pos     = pos - 2;
         if (head.bit) {
             map->active += WAH_BIT_IN_WORD * head.words;
         }
         if (words) {
-            map->active += membitcount(map->data.tab + pos,
+            map->active += membitcount(map->_data.tab + pos,
                                        words * sizeof(wah_word_t));
         }
         map->len += WAH_BIT_IN_WORD * (head.words + words);
         pos += words;
     }
-    THROW_NULL_IF(pos != map->data.len);
+    THROW_NULL_IF(pos != map->_data.len);
 
     return map;
 }
@@ -1311,6 +1313,17 @@ wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan)
         wah_delete(&map);
     }
     return ret;
+}
+
+wah_t *wah_new_from_data_lstr(lstr_t data, bool scan)
+{
+    return wah_new_from_data(data.data, data.len / sizeof(wah_word_t), scan);
+}
+
+lstr_t wah_get_data(const wah_t *wah)
+{
+    assert (wah->len % WAH_BIT_IN_WORD == 0);
+    return LSTR_DATA_V(wah->_data.tab, wah->_data.len * sizeof(wah_word_t));
 }
 
 /* }}} */
@@ -1351,8 +1364,8 @@ void wah_pool_release(wah_t **pmap)
         return;
     }
     if (pool_g.count == countof(pool_g.pool)
-    || (mp_ipool(map->data.mp) != &mem_pool_libc
-        && map->data.tab != map->padding))
+    || (mp_ipool(map->_data.mp) != &mem_pool_libc
+        && map->_data.tab != map->_padding))
     {
         wah_delete(pmap);
         return;
@@ -1412,21 +1425,21 @@ void wah_debug_print(const wah_t *wah, bool print_content)
     for (;;) {
         if (print_content) {
             for (uint32_t i = 0; i < len; i++) {
-                wah_debug_print_literal(pos, wah->data.tab[off++].literal);
+                wah_debug_print_literal(pos, wah->_data.tab[off++].literal);
                 pos += 32;
             }
         } else {
             off += len;
             pos += wah_debug_print_literals(pos, len);
         }
-        if (off < wah->data.len) {
-            pos += wah_debug_print_run(pos, wah->data.tab[off++].head);
-            len  = wah->data.tab[off++].count;
+        if (off < wah->_data.len) {
+            pos += wah_debug_print_run(pos, wah->_data.tab[off++].head);
+            len  = wah->_data.tab[off++].count;
         } else {
             break;
         }
     }
-    wah_debug_print_pending(pos, wah->pending, wah->len % 32);
+    wah_debug_print_pending(pos, wah->_pending, wah->len % 32);
 }
 
 /* }}} */
@@ -1510,8 +1523,8 @@ Z_GROUP_EXPORT(wah)
 
         Z_ASSERT_EQ(map.len, bitsizeof(data));
 
-        Z_ASSERT_P(wah_init_from_data(&map2, (uint32_t *)map.data.tab,
-                                      map.data.len, true));
+        Z_ASSERT_P(wah_init_from_data(&map2, (uint32_t *)map._data.tab,
+                                      map._data.len, true));
         Z_ASSERT_EQ(map.len, map2.len);
 
         Z_ASSERT_EQ(map.active, bc, "invalid bit count");
@@ -1778,22 +1791,21 @@ Z_GROUP_EXPORT(wah)
     } Z_TEST_END;
 
     Z_TEST(non_reg_and, "") {
-        uint32_t src_data[] = { 0x00000519,      0x00000000,      0x80000101,      0x00000000 };
-        uint32_t other_data[] = { 0x00000000,      0x00000002,      0x80000010,      0x00000003,
-                                  0x0000001d,      0x00000001,      0x00007e00,      0x0000001e,
+        uint32_t src_data[]   = { 0x00000519, 0x00000000, 0x80000101, 0x00000000 };
+        uint32_t other_data[] = { 0x00000000, 0x00000002, 0x80000010, 0x00000003,
+                                  0x0000001d, 0x00000001, 0x00007e00, 0x0000001e,
                                   0x00000000 };
-
         wah_t src;
         wah_t other;
         wah_t res;
 
         wah_init_from_data(&src, src_data, countof(src_data), true);
-        src.pending = 0x1ffff;
-        src.active  = 8241;
-        src.len     = 50001;
+        src._pending = 0x1ffff;
+        src.active   = 8241;
+        src.len      = 50001;
 
         wah_init_from_data(&other, other_data, countof(other_data), true);
-        other.pending = 0x600000;
+        other._pending = 0x600000;
         other.active  = 12;
         other.len     = 2007;
 

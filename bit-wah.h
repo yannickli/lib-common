@@ -85,10 +85,11 @@ typedef struct wah_t {
     int            previous_run_pos;
     int            last_run_pos;
 
-    qv_t(wah_word) data;
-
-    uint32_t       pending;
-    wah_word_t     padding[3]; /* Ensure sizeof(wah_t) == 64 */
+    /* Do not directly access these fields unless you really know what you are
+     * doing. In most cases, you'll want to use wah_get_data. */
+    qv_t(wah_word) _data;
+    uint32_t       _pending;
+    wah_word_t     _padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
 
 #define WAH_BIT_IN_WORD  bitsizeof(wah_word_t)
@@ -114,6 +115,18 @@ wah_t *wah_dup(const wah_t *src) __leaf;
 wah_t *wah_init_from_data(wah_t *wah, const uint32_t *data,
                           int data_len, bool scan);
 wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan);
+wah_t *wah_new_from_data_lstr(lstr_t data, bool scan);
+
+/** Get the raw data contained in a wah_t.
+ *
+ * This function must be used to get the data contained by a wah_t, in order
+ * to, for example, write it on disk (and then use \ref wah_new_from_data to
+ * reload it).
+ *
+ * \warning a wah must not have pending data if you want this to properly
+ *          work; use \ref wah_pad32 to ensure that.
+ */
+lstr_t wah_get_data(const wah_t *wah);
 
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
@@ -139,9 +152,9 @@ void wah_reset_map(wah_t *map)
     map->active               = 0;
     map->previous_run_pos     = -1;
     map->last_run_pos         = 0;
-    qv_clear(wah_word, &map->data);
-    p_clear(qv_growlen(wah_word, &map->data, 2), 2);
-    map->pending              = 0;
+    qv_clear(wah_word, &map->_data);
+    p_clear(qv_growlen(wah_word, &map->_data, 2), 2);
+    map->_pending             = 0;
 }
 
 /* }}} */
