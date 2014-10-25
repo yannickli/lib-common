@@ -79,7 +79,8 @@ www-check:: | _generated_hdr
 tags: $(var/generated)
 syntastic:
 jshint:
-.PHONY: tags jshint syntastic
+pylint:
+.PHONY: tags jshint pylint syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -179,6 +180,11 @@ jshint: | __setup_buildsys_trampoline
 	git ls-files -- '*.js' | xargs jshint
 
 www:: jshint
+
+pylint: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile pylint
+	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
+	$(foreach f,$(shell git ls-files -- '*.py'), $(msg/CHECK.py) $f && pylint $f;)
 
 syntastic: | __setup_buildsys_trampoline
 	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
