@@ -17,21 +17,17 @@ import sys, os, os.path
 
 SELF_PATH = os.path.dirname(__file__)
 TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
-self_path = os.path.dirname(sys.argv[0])
-SELF_PATH = os.path.dirname(__file__)
-TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
-sys.path.append(self_path+ "/../lib-common")
+IOPC = os.path.join(SELF_PATH, 'iopc')
 
 import z
 import subprocess
-import string
 
 @z.ZGroup
 class IopcTest(z.TestCase):
 
     def run_iopc(self, iop, expect_pass, errors, version=1, lang='',
                  class_id_range=''):
-        iopc_args = [self_path + '/iopc', self_path + '/testsuite/' + iop]
+        iopc_args = [IOPC, os.path.join(TEST_PATH, iop)]
         # enable features of v2
         if version == 2:
             iopc_args.append('--features-v2')
@@ -58,8 +54,9 @@ class IopcTest(z.TestCase):
                 if isinstance(errors, basestring):
                     errors = [errors]
                 for error in errors:
-                    if string.find(output, error) < 0:
-                        print >> sys.stderr, "did not find '%s' in '%s'" % (output, error)
+                    if output.find(error) < 0:
+                        print >> sys.stderr, "did not find '%s' in '%s'" %   \
+                                 (error, output)
                         self.assertFalse(True)
 
     def run_iopc_pass(self, iop, version, lang='', class_id_range=''):
@@ -86,27 +83,28 @@ class IopcTest(z.TestCase):
 
     def run_gcc(self, iop):
         gcc_args = ['gcc', '-c', '-o', '/dev/null', '-std=gnu99',
-                '-O', '-Wall', '-Werror',
-                '-D_GNU_SOURCE',
-                '-I'+self_path+'/../lib-common/compat',
-                '-I'+self_path+'/..',
-                self_path + '/testsuite/' + iop + '.c' ]
+                    '-O', '-Wall', '-Werror',
+                    '-D_GNU_SOURCE',
+                    '-I' + os.path.join(SELF_PATH, '../lib-common/compat'),
+                    '-I' + os.path.join(SELF_PATH, '..'),
+                    os.path.join(TEST_PATH, iop + '.c') ]
         gcc_p = subprocess.Popen(gcc_args)
         self.assertIsNotNone(gcc_p)
         gcc_p.wait()
         self.assertEqual(gcc_p.returncode, 0)
 
     def check_file(self, file_name, string_list, wanted = True):
-        f = open(self_path + '/testsuite/' + file_name)
+        f = open(os.path.join(TEST_PATH, file_name))
         self.assertIsNotNone(f)
         content = f.read()
         for s in string_list:
             if wanted:
-                if string.find(content, s) < 0:
-                    print >> sys.stderr, "did not find '%s' in '%s'" % (s, file_name)
+                if content.find(s) < 0:
+                    print >> sys.stderr, "did not find '%s' in '%s'" %       \
+                            (s, file_name)
                     self.assertFalse(True)
             else:
-                if string.find(content, s) >= 0:
+                if content.find(s) >= 0:
                     print >> sys.stderr, "found '%s' in '%s'" % (s, file_name)
                     self.assertFalse(True)
         f.close()
@@ -179,15 +177,16 @@ class IopcTest(z.TestCase):
         self.assertEqual(ref.read(), ref_base.read())
 
     def test_attrs_invalid_1(self):
-        self.run_iopc2('attrs_invalid_1.iop', False, 'incorrect attribute name')
+        self.run_iopc2('attrs_invalid_1.iop', False,
+                       'incorrect attribute name')
 
     def test_attrs_invalid_2(self):
         self.run_iopc2('attrs_invalid_2.iop', False,
-                'attribute ctype does not apply to fields')
+                       'attribute ctype does not apply to fields')
 
     def test_attrs_invalid_3(self):
         self.run_iopc2('attrs_invalid_3.iop', False,
-                'attribute ctype does not apply to interface')
+                       'attribute ctype does not apply to interface')
 
     def test_attrs_invalid_4(self):
         self.run_iopc2('attrs_invalid_4.iop', False,
@@ -199,35 +198,38 @@ class IopcTest(z.TestCase):
 
     def test_attrs_invalid_6(self):
         self.run_iopc2('attrs_invalid_6.iop', False,
-            'attribute minOccurs does not apply to fields with default value')
+                       'attribute minOccurs does not apply to fields with '  \
+                       'default value')
 
     def test_attrs_invalid_7(self):
         self.run_iopc2('attrs_invalid_7.iop', False,
-                'attribute maxOccurs does not apply to required fields')
+                       'attribute maxOccurs does not apply to required '     \
+                       'fields')
 
     def test_attrs_invalid_8(self):
         self.run_iopc2('attrs_invalid_8.iop', False,
-                'unknown field c in MyUnion')
+                       'unknown field c in MyUnion')
 
     def test_attrs_invalid_9(self):
         self.run_iopc2('attrs_invalid_9.iop', False,
-                'unknown field c in MyUnion')
+                       'unknown field c in MyUnion')
 
     def test_attrs_invalid_10(self):
         self.run_iopc2('attrs_invalid_10.iop', False,
-                'cannot use both @allow and @disallow on the same field')
+                       'cannot use both @allow and @disallow '               \
+                       'on the same field')
 
     def test_attrs_invalid_11(self):
         self.run_iopc2('attrs_invalid_11.iop', False,
-                'unknown field c in MyUnion')
+                       'unknown field c in MyUnion')
 
     def test_attrs_invalid_12(self):
         self.run_iopc2('attrs_invalid_12.iop', False,
-                'unknown field c in MyUnion')
+                       'unknown field c in MyUnion')
 
     def test_attrs_invalid_enumval(self):
         self.run_iopc2('attrs_invalid_enumval.iop', False,
-                'invalid attribute min on enum field')
+                       'invalid attribute min on enum field')
 
     def test_default_char_valid(self):
         self.run_iopc_pass('pkg_d.iop', 1)
@@ -324,11 +326,12 @@ class IopcTest(z.TestCase):
 
     def test_inheritance_invalid_circular1(self):
         self.run_iopc2('inheritance_invalid_circular1.iop', False,
-            ['circular dependency',
-             'inheritance_invalid_circular1.iop:3:2:  from: class A',
-             'class A inherits from class C2',
-             'class C2 inherits from class B',
-             'class B inherits from class A'])
+                       ['circular dependency',
+                        'inheritance_invalid_circular1.iop:3:2:  '           \
+                        'from: class A',
+                        'class A inherits from class C2',
+                        'class C2 inherits from class B',
+                        'class B inherits from class A'])
 
     def test_inheritance_invalid_circular2(self):
         self.run_iopc2('inheritance_invalid_circular2_pkg_a.iop', False,
@@ -354,29 +357,38 @@ class IopcTest(z.TestCase):
         self.run_iopc('inheritance_invalid_static_struct.iop', False,
                       'static keyword is only authorized for class fields')
         self.run_iopc2('inheritance_invalid_static_no_default.iop', False,
-                'static fields of non-abstract classes must have a default value')
+                       'static fields of non-abstract classes must '         \
+                       'have a default value')
         self.run_iopc2('inheritance_invalid_static_repeated.iop', False,
                        'repeated static members are forbidden')
         self.run_iopc2('inheritance_invalid_static_optional.iop', False,
                        'optional static members are forbidden')
         self.run_iopc2('inheritance_invalid_static_type_mismatch.iop', False,
-                'incompatible type for static field `toto`: should be `int`')
-        self.run_iopc2('inheritance_invalid_static_already_defined.iop', False,
-                       'field `toto` already defined by parent `A`')
+                       'incompatible type for static field `toto`: '         \
+                       'should be `int`')
+        self.run_iopc2('inheritance_invalid_static_already_defined.iop',
+                       False, 'field `toto` already defined by parent `A`')
         self.run_iopc2('inheritance_invalid_static_abstract_not_defined.iop',
-                       False,
-                       'error: class `D1` must define a static field named `withoutDefval`')
+                       False, 'error: class `D1` must define a static '      \
+                       'field named `withoutDefval`')
 
     def test_inheritance_class_id_ranges(self):
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '10')
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '-10')
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '-10-10')
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '65536-10')
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '10-9')
-        self.run_iopc_fail('', 'invalid class-id-range', class_id_range = '10-65536')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '10')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '-10')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '-10-10')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '65536-10')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '10-9')
+        self.run_iopc_fail('', 'invalid class-id-range',
+                           class_id_range = '10-65536')
 
         self.run_iopc_pass('inheritance_pkg_b.iop', 3, class_id_range = '')
-        self.run_iopc_pass('inheritance_pkg_b.iop', 3, class_id_range = '10-19')
+        self.run_iopc_pass('inheritance_pkg_b.iop', 3,
+                           class_id_range = '10-19')
         self.run_iopc('inheritance_pkg_b.iop', False,
                       'id is too small (must be >= 11, got 10)', 3,
                       class_id_range = '11-19')
@@ -397,24 +409,26 @@ class IopcTest(z.TestCase):
             'inheritance_pkg_a__a2__array_t class_container_a2;'])
 
         # Check the "same as" feature with inheritance
-        self.check_file('inheritance_pkg_b.iop.c', wanted = True, string_list = [
-            'inheritance_pkg_b__a1__desc_fields',
-            'inheritance_pkg_b__a2__desc_fields',
-            'inheritance_pkg_b__a3__desc_fields',
-            'inheritance_pkg_b__a4__desc_fields',
-            'inheritance_pkg_b__a5__desc_fields',
-            'inheritance_pkg_b__a6__class_s',
-            'inheritance_pkg_b__a7__desc_fields',
-            'inheritance_pkg_b__a9__desc_fields',
-            'inheritance_pkg_b__a10__desc_fields',
-            'same as inheritance_pkg_b.A5',
-            'same as inheritance_pkg_b.A7'])
-        self.check_file('inheritance_pkg_b.iop.c', wanted = False, string_list = [
-            'same as inheritance_pkg_b.A1',
-            'same as inheritance_pkg_b.A3',
-            'same as inheritance_pkg_b.A9',
-            'inheritance_pkg_b__a6__desc_fields',
-            'inheritance_pkg_b__a8__desc_fields'])
+        self.check_file('inheritance_pkg_b.iop.c', wanted = True,
+                        string_list = [
+                            'inheritance_pkg_b__a1__desc_fields',
+                            'inheritance_pkg_b__a2__desc_fields',
+                            'inheritance_pkg_b__a3__desc_fields',
+                            'inheritance_pkg_b__a4__desc_fields',
+                            'inheritance_pkg_b__a5__desc_fields',
+                            'inheritance_pkg_b__a6__class_s',
+                            'inheritance_pkg_b__a7__desc_fields',
+                            'inheritance_pkg_b__a9__desc_fields',
+                            'inheritance_pkg_b__a10__desc_fields',
+                            'same as inheritance_pkg_b.A5',
+                            'same as inheritance_pkg_b.A7'])
+        self.check_file('inheritance_pkg_b.iop.c', wanted = False,
+                        string_list = [
+                            'same as inheritance_pkg_b.A1',
+                            'same as inheritance_pkg_b.A3',
+                            'same as inheritance_pkg_b.A9',
+                            'inheritance_pkg_b__a6__desc_fields',
+                            'inheritance_pkg_b__a8__desc_fields'])
 
     # }}}
     # {{{ Typedef
@@ -430,46 +444,53 @@ class IopcTest(z.TestCase):
         self.run_gcc(f1)
         self.run_gcc(f2)
         self.run_iopc('typedef_valid.iop', False,
-                'type `MyType` is provided by both `typedef2` and `typedef1`', 3)
+                      'type `MyType` is provided by both `typedef2` '        \
+                      'and `typedef1`', 3)
 
     def test_typedef_invalid(self):
         self.run_iopc('typedef_invalid_1.iop', False,
-            'unable to find any pkg providing type `MyStruct`')
+                      'unable to find any pkg providing type `MyStruct`')
         self.run_iopc2('typedef_invalid_2.iop', False,
-            'attribute ctype does not apply to typedefs')
+                       'attribute ctype does not apply to typedefs')
         self.run_iopc2('typedef_invalid_3.iop', False,
-            'attribute pattern does not apply to integer')
+                       'attribute pattern does not apply to integer')
         self.run_iopc('typedef_invalid_6.iop', False,
-            'recursive typedef for type `MyTypedef1` in pkg `typedef_invalid_6`')
+                      'recursive typedef for type `MyTypedef1` in pkg '      \
+                      '`typedef_invalid_6`')
         self.run_iopc('typedef_invalid_7.iop', False,
-            'cannot declare repeated optional fields')
+                      'cannot declare repeated optional fields')
         self.run_iopc('typedef_invalid_8.iop', False,
-            'optional members are forbidden in union types')
+                      'optional members are forbidden in union types')
         self.run_iopc('typedef_invalid_9.iop', False,
-            'cannot declare repeated optional fields')
+                      'cannot declare repeated optional fields')
         self.run_iopc('typedef_invalid_10.iop', False,
-            'cannot declare repeated optional fields')
+                      'cannot declare repeated optional fields')
         self.run_iopc('typedef_invalid_11.iop', False,
-            'repeated members are forbidden in union types')
+                      'repeated members are forbidden in union types')
         self.run_iopc2('typedef_invalid_12.iop', False,
-            'pkg `typedef_invalid_12` does not provide class `B` when resolving inheritance of class `C`')
+                       'pkg `typedef_invalid_12` does not provide class '    \
+                       '`B` when resolving inheritance of class `C`')
         self.run_iopc2('typedef_invalid_13.iop', False,
-            'attribute minOccurs does not apply to required typedefs')
+                       'attribute minOccurs does not apply to required '     \
+                       'typedefs')
 
     # }}}
     # {{{ Generic attributes
 
     def test_generic_invalid_value(self):
         self.run_iopc2('generic_attrs_invalid_1.iop', False,
-                'unable to parse value for generic argument \'test:gen1\'')
+                       'unable to parse value for generic argument '         \
+                       '\'test:gen1\'')
 
     def test_generic_invalid_key(self):
         self.run_iopc2('generic_attrs_invalid_2.iop', False,
-                'generic attribute name (namespace:id) expected, but got identifier instead')
+                       'generic attribute name (namespace:id) expected, '    \
+                       'but got identifier instead')
 
     def test_generic_repeated_key(self):
         self.run_iopc2('generic_attrs_invalid_3.iop', False,
-                'generic attribute \'test:gen3\' must be unique for each IOP object')
+                       'generic attribute \'test:gen3\' must be unique for ' \
+                       'each IOP object')
 
     # }}}
     # {{{ References
@@ -481,38 +502,43 @@ class IopcTest(z.TestCase):
 
     def test_reference_invalid(self):
         self.run_iopc('reference_invalid_1.iop', False,
-            'references can only be applied to structures or unions')
+                      'references can only be applied to structures or '     \
+                      'unions')
         self.run_iopc('reference_invalid_2.iop', False,
-            'references can only be applied to structures or unions')
+                      'references can only be applied to structures or '     \
+                      'unions')
         self.run_iopc2('reference_invalid_3.iop', False,
-            'references can only be applied to structures or unions')
+                       'references can only be applied to structures or '    \
+                       'unions')
         self.run_iopc('reference_invalid_4.iop', False,
-            'references can only be applied to structures or unions')
+                      'references can only be applied to structures or '     \
+                      'unions')
         self.run_iopc('reference_invalid_5.iop', False,
-            'circular dependency')
+                      'circular dependency')
         self.run_iopc('reference_invalid_6.iop', False,
-            'identifier expected, but got `?` instead')
+                      'identifier expected, but got `?` instead')
         self.run_iopc('reference_invalid_7.iop', False,
-            'identifier expected, but got `&` instead')
+                      'identifier expected, but got `&` instead')
         self.run_iopc2('reference_invalid_8.iop', False,
-            'referenced static members are forbidden')
+                       'referenced static members are forbidden')
         self.run_iopc('reference_invalid_9.iop', False,
-            'circular dependency')
+                      'circular dependency')
 
     # }}}
 
     def test_json(self):
         f = 'tstjson'
-        g = self_path + '/testsuite/' + f
+        g = os.path.join(TEST_PATH, f)
         for lang in ['json', 'C,json', 'json,C']:
             subprocess.call(['rm', '-f', g + '.iop.json'])
             self.run_iopc_pass(f + '.iop', 3, lang)
-            self.assertEqual(
-                subprocess.call(['diff', '-u', g + '.iop.json', g + '.ref.json']), 0)
+            self.assertEqual(subprocess.call(['diff', '-u',
+                                              g + '.iop.json',
+                                              g + '.ref.json']), 0)
 
     def test_dox_c(self):
         f = 'tstdox'
-        g = self_path + '/testsuite/' + f
+        g = os.path.join(TEST_PATH, f)
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
         self.run_gcc(f + '.iop')
@@ -521,7 +547,7 @@ class IopcTest(z.TestCase):
 
     def test_gen_c(self):
         f = 'tstgen'
-        g = self_path + '/testsuite/' + f
+        g = os.path.join(TEST_PATH, f)
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
         self.run_gcc(f + '.iop')
