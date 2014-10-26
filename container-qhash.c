@@ -17,7 +17,7 @@
 
 #define QH_SETBITS_MASK  ((size_t)0x5555555555555555ULL)
 
-/* 2^i < prime[i], and often prime[i] > 2^i */
+/* 2^i < prime[i] */
 static uint32_t const prime_list[32] = {
     11,         11,         11,         11,
     23,         53,         97,         193,
