@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
-columns = [
+COLUMNS = [
     # alloc block
     "alloc_nb", "alloc_slow",
     "alloc_nbtimer", "alloc_min", "alloc_max",
@@ -32,20 +32,20 @@ columns = [
     "max_allocated", "max_unused", "max_used",
     "malloc_calls", "current_used", "current_allocated"
 ]
-POSITION = { s: i for (i, s) in enumerate(columns) }
-NUM_COLUMNS = len(columns)
+POSITION = { s: i for (i, s) in enumerate(COLUMNS) }
+NUM_COLUMNS = len(COLUMNS)
 
-filename = sys.argv[1]
-if __name__ == "__main__":
-    data = np.loadtxt(filename, delimiter=',')
+
+def plot(filename):
+    data = np.loadtxt(filename, delimiter=',') #pylint: disable=E1101
     print data.shape
     print NUM_COLUMNS
 
     # adding "time"
-    time = np.array(xrange(len(data[:,0])))
+    time = np.array(xrange(len(data[:,0]))) #pylint: disable=E1101
 
     # generate figure
-    fig, ax1 = plt.subplots()
+    (_, ax1) = plt.subplots()
     ax1.plot(time, data[:,POSITION["current_used"]] / (1024 * 1024))
     ax1.plot(time, data[:,POSITION["current_allocated"]] / (1024 * 1024))
     ax1.set_xlabel('saves')
@@ -56,3 +56,8 @@ if __name__ == "__main__":
     ax2.set_ylabel('malloc calls', color='r')
     plt.show()
 
+
+
+FILENAME = sys.argv[1]
+if __name__ == "__main__":
+    plot(FILENAME)
