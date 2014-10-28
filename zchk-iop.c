@@ -3959,4 +3959,23 @@ Z_GROUP_EXPORT(iop)
                                           LSTR("test:gen1"), &value));
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_dso_fixup, "test iop dso fixup") { /* {{{ */
+        t_scope;
+
+        iop_dso_t *dso;
+        lstr_t js_path = t_lstr_cat(z_cmddir_g, LSTR("zchk-fixup.json"));
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR("zchk-iop-plugin"SO_FILEEXT));
+        tstiop__my_class1__t *my_class3 = NULL;
+        SB_1k(err);
+
+        IOP_REGISTER_PACKAGES(&tstiop__pkg);
+        Z_ASSERT(dso = iop_dso_open(path.s, true));
+        Z_ASSERT_N(t_iop_junpack_ptr_file(js_path.s, &tstiop__my_class1__s,
+                                          (void **)&my_class3, 0, &err));
+        Z_ASSERT_LSTREQUAL(my_class3->__vptr->fullname,
+                           LSTR("tstiop3.MyClass3"));
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END
