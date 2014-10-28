@@ -49,6 +49,7 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
     const iop_pkg_t *pkg = iop_get_pkg(pkgname);
 
     if (!pkg) {
+        e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
         return;
     }
     fix = iop_get_struct(pkg, (*st)->fullname);
@@ -56,6 +57,8 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
         e_error("IOP DSO: did not find struct %s in memory",
                 (*st)->fullname.s);
     }
+    e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname), *st,
+            fix);
     *st = fix;
 }
 
@@ -116,6 +119,7 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         return;
     }
     if (use_external_packages) {
+        e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
         iopdso_fix_pkg(pkg);
     }
     iop_register_packages(&pkg, 1);
