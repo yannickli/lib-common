@@ -400,7 +400,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR("zchk-iop-plugin"SO_FILEEXT));
 
-        Z_ASSERT(dso = iop_dso_open(path.s));
+        Z_ASSERT(dso = iop_dso_open(path.s, false));
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h, &LSTR_IMMED_V("ic.Hdr")));
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));
@@ -457,7 +457,7 @@ Z_GROUP_EXPORT(iop)
                                  LSTR("zchk-tstiop-plugin"SO_FILEEXT));
         uint8_t buf1[20], buf2[20];
 
-        dso = iop_dso_open(path.s);
+        dso = iop_dso_open(path.s, false);
         if (dso == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
@@ -630,7 +630,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR("zchk-tstiop-plugin"SO_FILEEXT));
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         {
@@ -782,7 +782,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *st_se, *st_sa, *st_sf, *st_cs, *st_sa_opt;
         const iop_struct_t *st_cls2;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR("tstiop.MyStructE")));
@@ -1292,7 +1292,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
         const iop_struct_t *st_cls2;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
@@ -1400,7 +1400,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *st_sa, *st_sa_opt, *st_se, *st_cls2;
 
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
@@ -1451,7 +1451,7 @@ Z_GROUP_EXPORT(iop)
 
 
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
@@ -1562,7 +1562,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t s;
         const unsigned flags = IOP_BPACK_SKIP_DEFVAL;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
@@ -1626,7 +1626,7 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_sg, *st_sa_opt, *st_ua, *st_sr;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
@@ -1768,7 +1768,7 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_sl;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR("tstiop.MyStructL")));
@@ -1826,7 +1826,7 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_s, *st_u, *st_c;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_s = iop_dso_find_type(dso, LSTR("tstiop.ConstraintS")));
@@ -2337,7 +2337,7 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_sb;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
@@ -3362,7 +3362,7 @@ Z_GROUP_EXPORT(iop)
         byte *dst;
         pstream_t ps;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        if ((dso = iop_dso_open(path.s, false)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
