@@ -67,7 +67,7 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
 
 #ifdef __cplusplus
 #define memcpy_check_types(e1, e2) \
-    STATIC_ASSERT(sizeof(*(e1)) == sizeof(*(e1)))
+    STATIC_ASSERT(sizeof(*(e1)) == sizeof(*(e2)))
 #else
 #define memcpy_check_types(e1, e2) \
     STATIC_ASSERT(                                                           \
