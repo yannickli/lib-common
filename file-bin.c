@@ -187,25 +187,33 @@ _file_bin_get_next_record(file_bin_t *file)
         return LSTR_NULL_V;
     }
 
+    if (file->version > 0) {
+        file->cur = MAX(file->cur, HEADER_SIZE(file));
+    }
+
     sb_reset(&file->record_buf);
 
     if (file_bin_remaining_space_in_slot(file) < RC_HDR_SIZE) {
         file->cur += file_bin_remaining_space_in_slot(file);
     }
 
-    while (is_at_slot_start(file) && file->cur < file->length
-    &&     file->version > 0)
-    {
+    while (is_at_slot_start(file) && file->version > 0) {
         uint32_t next_entry;
 
-        if (file_bin_get_cpu32(file, &next_entry) < 0
-        ||  next_entry > file->length - RC_HDR_SIZE)
-        {
-            /* Buggy slot header, jump to next slot */
-            file->cur += file->slot_size;
-        } else {
-            file->cur += next_entry;
+        if (file_bin_get_cpu32(file, &next_entry) < 0) {
+            goto jump;
         }
+        if (next_entry > file->length - RC_HDR_SIZE) {
+            logger_error(&_G.logger, "buggy slot header in file '%*pM' at "
+                         "offset %jd, next entry is supposed to be at offset "
+                         "%jd whereas file is %u bytes long",
+                         LSTR_FMT_ARG(file->path),
+                         file->cur - SLOT_HDR_SIZE(file),
+                         file->cur + next_entry, file->length);
+            goto jump;
+        }
+
+        file->cur += next_entry;
     }
 
     if (file_bin_get_cpu32(file, &sz) < 0) {
