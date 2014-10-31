@@ -82,8 +82,13 @@ Z_GROUP_EXPORT(file)
                                       LSTR("file_bin.test"));
         file_bin_t *file = file_bin_create(file_path, 30, true);
         /* test_struct_t size is 16 */
-        test_struct_t test = {.a = -1, .b = UINT32_MAX + 1, .c = 1};
+        test_struct_t test;
         int nbr_record = 0;
+
+        p_clear(&test, 1);
+        test.a = -1;
+        test.b = UINT32_MAX + 1L;
+        test.c = 1;
 
         Z_ASSERT_P(file);
 
@@ -113,7 +118,7 @@ Z_GROUP_EXPORT(file)
             test_ptr = record.data;
 
             Z_ASSERT_EQ(test_ptr->a, -1);
-            Z_ASSERT_EQ(test_ptr->b, UINT32_MAX + 1);
+            Z_ASSERT_EQ(test_ptr->b, UINT32_MAX + 1L);
             Z_ASSERT_EQ(test_ptr->c, 1);
 
             nbr_record--;
