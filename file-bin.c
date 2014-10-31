@@ -410,7 +410,11 @@ file_bin_t *file_bin_open(lstr_t path)
 
 int file_bin_truncate(file_bin_t *file, off_t pos)
 {
-    if (ftruncate(fileno(file->f), pos) < 0) {
+    if (fflush(file->f) < 0) {
+        return logger_error(&_G.logger, "cannot flush file '%*pM'",
+                            LSTR_FMT_ARG(file->path));
+    }
+    if (xftruncate(fileno(file->f), pos) < 0) {
         return logger_error(&_G.logger, "cannot truncate file '%*pM' at pos "
                             "%jd: %m", LSTR_FMT_ARG(file->path), pos);
     }
