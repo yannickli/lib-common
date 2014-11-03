@@ -27,6 +27,10 @@ static lstr_t iop_pkgname_from_fullname(lstr_t fullname)
     pstream_t ps = ps_initlstr(&fullname);
 
     p = memrchr(ps.s, '.', ps_len(&ps));
+    if (!p) {
+        /* XXX: This case case may happen with the special 'Void' package */
+        return LSTR_NULL_V;
+    }
     pkgname = __ps_get_ps_upto(&ps, p);
     return LSTR_PS_V(&pkgname);
 }
@@ -46,9 +50,14 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
 {
     const iop_struct_t *fix;
     lstr_t pkgname = iop_pkgname_from_fullname((*st)->fullname);
-    const iop_pkg_t *pkg = iop_get_pkg(pkgname);
+    const iop_pkg_t *pkg;
 
+    if (!pkgname.s) {
+        return;
+    }
+    pkg = iop_get_pkg(pkgname);
     if (!pkg) {
+        e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
         return;
     }
     fix = iop_get_struct(pkg, (*st)->fullname);
@@ -56,7 +65,11 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
         e_error("IOP DSO: did not find struct %s in memory",
                 (*st)->fullname.s);
     }
-    *st = fix;
+    if (fix != *st) {
+        e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname),
+                *st, fix);
+        *st = fix;
+    }
 }
 
 static void iopdso_fix_class_parent(const iop_struct_t *desc)
@@ -67,10 +80,11 @@ static void iopdso_fix_class_parent(const iop_struct_t *desc)
         return;
     }
     class_attrs = (iop_class_attrs_t *)desc->class_attrs;
-    if (!class_attrs->parent) {
-        return;
+    while (class_attrs->parent) {
+        iopdso_fix_struct_ref(&class_attrs->parent);
+        desc = class_attrs->parent;
+        class_attrs = (iop_class_attrs_t *)desc->class_attrs;
     }
-    iopdso_fix_struct_ref(&class_attrs->parent);
 }
 
 static void iopdso_fix_rpc(lstr_t iface, const iop_struct_t **st)
@@ -86,6 +100,7 @@ static void iopdso_fix_pkg(const iop_pkg_t *pkg)
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
         const iop_struct_t *desc = *it;
 
+        iopdso_fix_struct_ref(&desc);
         iopdso_fix_class_parent(desc);
 
         for (int i = 0; i < desc->fields_len; i++) {
@@ -116,6 +131,7 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         return;
     }
     if (use_external_packages) {
+        e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
         iopdso_fix_pkg(pkg);
     }
     iop_register_packages(&pkg, 1);
@@ -172,7 +188,7 @@ static void iop_dso_wipe(iop_dso_t *dso)
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
 
-iop_dso_t *iop_dso_open(const char *path)
+iop_dso_t *iop_dso_open(const char *path, bool force_external_package)
 {
     iop_pkg_t       **pkgp;
     bool              use_external_packages;
@@ -205,7 +221,8 @@ iop_dso_t *iop_dso_open(const char *path)
         return NULL;
     }
 
-    use_external_packages = !!dlsym(handle, "iop_use_external_packages");
+    use_external_packages = !!dlsym(handle, "iop_use_external_packages")
+        || force_external_package;
 
     dso = iop_dso_new();
     dso->path   = lstr_dups(path, strlen(path));
