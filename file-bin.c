@@ -126,6 +126,33 @@ static off_t file_bin_get_next_entry_off(file_bin_t *f, uint32_t d_len)
 /* }}} */
 /* {{{ Reading */
 
+int file_bin_refresh(file_bin_t *file)
+{
+    struct stat st;
+    void *new_map;
+
+    if (fstat(fileno(file->f), &st) < 0) {
+        return logger_error(&_G.logger, "cannot stat file '%*pM': %m",
+                            LSTR_FMT_ARG(file->path));
+    }
+
+    if (file->length == st.st_size) {
+        return 0;
+    }
+
+    new_map = mremap(file->map, file->length, st.st_size, MREMAP_MAYMOVE);
+
+    if (new_map == MAP_FAILED) {
+        return logger_error(&_G.logger, "cannot remap file '%*pM': %m",
+                            LSTR_FMT_ARG(file->path));
+    }
+
+    file->map = new_map;
+    file->length = st.st_size;
+
+    return 0;
+}
+
 int _file_bin_seek(file_bin_t *file, off_t pos)
 {
     /* If this one fails, you are probably looking for file_bin_truncate. */
@@ -408,12 +435,20 @@ file_bin_t *file_bin_open(lstr_t path)
 /* }}} */
 /* {{{ Writing */
 
-int file_bin_truncate(file_bin_t *file, off_t pos)
+int file_bin_flush(file_bin_t *file)
 {
     if (fflush(file->f) < 0) {
-        return logger_error(&_G.logger, "cannot flush file '%*pM'",
+        return logger_error(&_G.logger, "cannot flush file '%*pM': %m",
                             LSTR_FMT_ARG(file->path));
     }
+
+    return 0;
+}
+
+int file_bin_truncate(file_bin_t *file, off_t pos)
+{
+    RETHROW(file_bin_flush(file));
+
     if (xftruncate(fileno(file->f), pos) < 0) {
         return logger_error(&_G.logger, "cannot truncate file '%*pM' at pos "
                             "%jd: %m", LSTR_FMT_ARG(file->path), pos);

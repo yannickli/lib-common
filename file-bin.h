@@ -120,6 +120,9 @@ static inline int file_bin_put_record_sb(file_bin_t *file, sb_t data) {
 __must_check__
 int file_bin_truncate(file_bin_t *file, off_t pos);
 
+__must_check__
+int file_bin_flush(file_bin_t *file);
+
 /* }}} */
 /* {{{ Reading */
 
@@ -133,6 +136,17 @@ int file_bin_truncate(file_bin_t *file, off_t pos);
  * \return the newly created file_bin_t on success, NULL otherwise.
  */
 file_bin_t *file_bin_open(lstr_t path);
+
+/** Refresh the mapping of a binary file if needed.
+ *
+ * If binary file has changed, its content will be reloaded in memory.
+ *
+ * \param[in] file  The binary file to refresh.
+ *
+ * \return 0 on success, a negative value otherwise.
+ */
+__must_check__
+int file_bin_refresh(file_bin_t *file);
 
 /** Read last records from a binary file.
  *
