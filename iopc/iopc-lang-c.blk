@@ -1654,7 +1654,7 @@ static double merge_double(iopc_attr_t *attr) {
 
     switch (attr->desc->id) {
       case IOPC_ATTR_MIN:
-        ret = FLT_MIN;
+        ret = -FLT_MAX;
         qv_for_each_ptr(iopc_arg, arg, &attr->args) {
             ret = MAX(ret, IOPC_ATTR_GET_ARG_V(double, arg));
         }

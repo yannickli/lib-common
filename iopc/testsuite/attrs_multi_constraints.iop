@@ -16,6 +16,16 @@ struct Test {
     Min5 c;
 };
 
+@min(-1.0)
+typedef double Neg;
+@min(0.0)
+typedef Neg Zero;
+
+struct Test2 {
+    Neg a;
+    Zero b;
+};
+
 @minLength(5) @maxLength(128)
 typedef string ExStr;
 
