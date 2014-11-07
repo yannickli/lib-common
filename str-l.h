@@ -884,5 +884,17 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
 
 #define t_lstr_fmt(fmt, ...)  mp_lstr_fmt(t_pool(), fmt, ##__VA_ARGS__)
 
+
+#define lstr_vfmt(fmt, va) \
+    ({ const char *__s = vasprintf(fmt, va); \
+       lstr_init_(__s, strlen(__s), MEM_LIBC); })
+
+#define mp_lstr_vfmt(mp, fmt, va) \
+    ({ int __len; const char *__s = mp_vfmt(mp, &__len, fmt, va); \
+       mp_lstr_init((mp), __s, __len); })
+
+#define t_lstr_vfmt(fmt, va)  mp_lstr_vfmt(t_pool(), fmt, va)
+
+
 /* }}} */
 #endif

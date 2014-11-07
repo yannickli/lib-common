@@ -459,6 +459,8 @@ static inline char *mp_strdup(mem_pool_t *mp, const char *src)
 char *mp_fmt(mem_pool_t *mp, int *lenp, const char *fmt, ...)
     __leaf __attr_printf__(3, 4);
 
+char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
+    __leaf __attr_printf__(3, 0);
 
 /* Generic Helpers */
 
