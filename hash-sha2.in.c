@@ -37,6 +37,7 @@
 /*
  * SHA-256 context setup
  */
+ATTRS
 void F(sha2_starts)( sha2_ctx *ctx, int is224 )
 {
     ctx->total[0] = 0;
@@ -71,6 +72,7 @@ void F(sha2_starts)( sha2_ctx *ctx, int is224 )
     ctx->is224 = is224;
 }
 
+ATTRS
 static void F(sha2_process)( sha2_ctx *ctx, const byte data[64] )
 {
     uint32_t temp1, temp2, W[64];
@@ -205,6 +207,7 @@ static void F(sha2_process)( sha2_ctx *ctx, const byte data[64] )
 /*
  * SHA-256 process buffer
  */
+ATTRS
 void F(sha2_update)( sha2_ctx *ctx, const void *_input, int ilen )
 {
     const byte *input = _input;
@@ -258,6 +261,7 @@ static const byte sha2_padding[64] =
 /*
  * SHA-256 final digest
  */
+ATTRS
 void F(sha2_finish)( sha2_ctx *ctx, byte output[32] )
 {
     uint32_t last, padn;
@@ -292,6 +296,7 @@ void F(sha2_finish)( sha2_ctx *ctx, byte output[32] )
 /*
  * output = SHA-256( input buffer )
  */
+ATTRS
 void F(sha2)( const void *input, int ilen, byte output[32], int is224 )
 {
     sha2_ctx ctx;
@@ -306,6 +311,7 @@ void F(sha2)( const void *input, int ilen, byte output[32], int is224 )
 /*
  * SHA-256 HMAC context setup
  */
+ATTRS
 void F(sha2_hmac_starts)( sha2_ctx *ctx, const void *_key, int keylen,
                           int is224 )
 {
@@ -338,6 +344,7 @@ void F(sha2_hmac_starts)( sha2_ctx *ctx, const void *_key, int keylen,
 /*
  * SHA-256 HMAC process buffer
  */
+ATTRS
 void F(sha2_hmac_update)( sha2_ctx *ctx, const void *input, int ilen )
 {
     F(sha2_update)( ctx, input, ilen );
@@ -346,6 +353,7 @@ void F(sha2_hmac_update)( sha2_ctx *ctx, const void *input, int ilen )
 /*
  * SHA-256 HMAC final digest
  */
+ATTRS
 void F(sha2_hmac_finish)( sha2_ctx *ctx, byte output[32] )
 {
     int is224, hlen;

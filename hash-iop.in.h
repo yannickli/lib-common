@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+ATTRS
 void F(iop_hash)(const struct iop_struct_t *st, const void *v,
                  iop_hash_f hfun, void *ctx, unsigned flags);
 
@@ -43,28 +44,36 @@ void F(iop_hash)(const struct iop_struct_t *st, const void *v,
     uint8_t buf[static sz], unsigned flags
 #endif
 
-static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
-static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
+ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
+ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
 
-static inline void F(iop_hash_md4)(HASH_ARGS(16))    { HASH(md4); }
-static inline void F(iop_hmac_md4)(HMAC_ARGS(16))    { HMAC(md4); }
+ATTRS static inline void F(iop_hash_md4)(HASH_ARGS(16))    { HASH(md4); }
+ATTRS static inline void F(iop_hmac_md4)(HMAC_ARGS(16))    { HMAC(md4); }
 
-static inline void F(iop_hash_md5)(HASH_ARGS(16))    { HASH(md5); }
-static inline void F(iop_hmac_md5)(HMAC_ARGS(16))    { HMAC(md5); }
+ATTRS static inline void F(iop_hash_md5)(HASH_ARGS(16))    { HASH(md5); }
+ATTRS static inline void F(iop_hmac_md5)(HMAC_ARGS(16))    { HMAC(md5); }
 
-static inline void F(iop_hash_sha1)(HASH_ARGS(20))   { HASH(sha1); }
-static inline void F(iop_hmac_sha1)(HMAC_ARGS(20))   { HMAC(sha1); }
+ATTRS static inline void F(iop_hash_sha1)(HASH_ARGS(20))   { HASH(sha1); }
+ATTRS static inline void F(iop_hmac_sha1)(HMAC_ARGS(20))   { HMAC(sha1); }
 
+ATTRS
 static inline void F(iop_hash_sha224)(HASH_ARGS(28)) { HASH(sha2, true); }
+ATTRS
 static inline void F(iop_hmac_sha224)(HMAC_ARGS(28)) { HMAC(sha2, true); }
 
+ATTRS
 static inline void F(iop_hash_sha256)(HASH_ARGS(32)) { HASH(sha2, false); }
+ATTRS
 static inline void F(iop_hmac_sha256)(HMAC_ARGS(32)) { HMAC(sha2, false); }
 
+ATTRS
 static inline void F(iop_hash_sha384)(HASH_ARGS(48)) { HASH(sha4, true); }
+ATTRS
 static inline void F(iop_hmac_sha384)(HMAC_ARGS(48)) { HMAC(sha4, true); }
 
+ATTRS
 static inline void F(iop_hash_sha512)(HASH_ARGS(64)) { HASH(sha4, false); }
+ATTRS
 static inline void F(iop_hmac_sha512)(HMAC_ARGS(64)) { HMAC(sha4, false); }
 
 #undef HMAC_ARGS

@@ -18,6 +18,7 @@ struct iop_hash_ctx {
     void    *ctx;
 };
 
+ATTRS
 static ALWAYS_INLINE
 void F(iop_hash_update)(struct iop_hash_ctx *ctx, const void *d, size_t len)
 {
@@ -38,6 +39,7 @@ void F(iop_hash_update)(struct iop_hash_ctx *ctx, const void *d, size_t len)
     }
 }
 
+ATTRS
 static ALWAYS_INLINE
 void F(iop_hash_update_u16)(struct iop_hash_ctx *ctx, uint16_t i)
 {
@@ -53,6 +55,7 @@ void F(iop_hash_update_u16)(struct iop_hash_ctx *ctx, uint16_t i)
     }
 }
 
+ATTRS
 static ALWAYS_INLINE
 void F(iop_hash_update_u32)(struct iop_hash_ctx *ctx, uint32_t i)
 {
@@ -68,6 +71,7 @@ void F(iop_hash_update_u32)(struct iop_hash_ctx *ctx, uint32_t i)
     }
 }
 
+ATTRS
 static ALWAYS_INLINE
 void F(iop_hash_update_i64)(struct iop_hash_ctx *ctx, int64_t i)
 {
@@ -85,6 +89,7 @@ void F(iop_hash_update_i64)(struct iop_hash_ctx *ctx, int64_t i)
 #define iop_hash_update_dbl(ctx, d) \
     F(iop_hash_update_i64)(ctx, double_bits_cpu(d))
 
+ATTRS
 static void
 F(iop_hash_opt)(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
 {
@@ -127,9 +132,11 @@ F(iop_hash_opt)(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
     }
 }
 
+ATTRS
 static void F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
                           const uint8_t *v, unsigned flags);
 
+ATTRS
 static inline void
 F(__iop_hash_class)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
                     const uint8_t *v, unsigned flags)
@@ -140,6 +147,7 @@ F(__iop_hash_class)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
     } while ((st = st->class_attrs->parent));
 }
 
+ATTRS
 static void
 F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
               const uint8_t *v, unsigned flags)
@@ -291,6 +299,7 @@ F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
     }
 }
 
+ATTRS
 void F(iop_hash)(const iop_struct_t *st, const void *v,
                  void (*hfun)(void *ctx, const void *input, int ilen),
                  void *hctx, unsigned flags)

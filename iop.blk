@@ -1516,9 +1516,11 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
 /* }}} */
 /*----- hashing values -{{{-*/
 
+#define ATTRS
 #define F(x)  x
 #include "iop-hashing-values.in.c"
 #undef F
+#undef ATTRS
 
 /*----- duplicating values -}}}-*/
 /*----- check constraints before packing -{{{-*/
@@ -3067,9 +3069,11 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 /*------ introspection -}}}-*/
 /*------ Signature -{{{-*/
 
+#define ATTRS
 #define F(x)  x
 #include "iop-signature.in.c"
 #undef F
+#undef ATTRS
 
 lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
                                unsigned flags)

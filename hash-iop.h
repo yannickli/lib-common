@@ -27,8 +27,10 @@ enum {
                                           string to detect default values */
 };
 
+#define ATTRS
 #define F(x)  x
 #include "hash-iop.in.h"
 #undef F
+#undef ATTRS
 
 #endif

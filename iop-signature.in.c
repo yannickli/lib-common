@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+ATTRS
 static lstr_t F(t_iop_sign_salt_sha256)(const iop_struct_t *st, const void *v,
                                         uint32_t salt, unsigned flags)
 {
@@ -22,6 +23,7 @@ static lstr_t F(t_iop_sign_salt_sha256)(const iop_struct_t *st, const void *v,
                       SHA256_DIGEST_SIZE, buf);
 }
 
+ATTRS
 __must_check__
 static int F(iop_signature_get_salt)(lstr_t signature, be32_t *salt)
 {
@@ -54,6 +56,7 @@ static int F(iop_signature_get_salt)(lstr_t signature, be32_t *salt)
     return 0;
 }
 
+ATTRS
 int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
                            unsigned flags)
 {
