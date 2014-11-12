@@ -47,6 +47,8 @@ void F(iop_hash)(const struct iop_struct_t *st, const void *v,
     uint8_t buf[static sz], unsigned flags
 #endif
 
+#ifndef ONLY_HMAC_SHA256
+
 ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
 ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
 
@@ -66,8 +68,13 @@ static inline void F(iop_hmac_sha224)(HMAC_ARGS(28)) { HMAC(sha2, true); }
 
 ATTRS
 static inline void F(iop_hash_sha256)(HASH_ARGS(32)) { HASH(sha2, false); }
+
+#endif
+
 ATTRS
 static inline void F(iop_hmac_sha256)(HMAC_ARGS(32)) { HMAC(sha2, false); }
+
+#ifndef ONLY_HMAC_SHA256
 
 ATTRS
 static inline void F(iop_hash_sha384)(HASH_ARGS(48)) { HASH(sha4, true); }
@@ -78,6 +85,8 @@ ATTRS
 static inline void F(iop_hash_sha512)(HASH_ARGS(64)) { HASH(sha4, false); }
 ATTRS
 static inline void F(iop_hmac_sha512)(HMAC_ARGS(64)) { HMAC(sha4, false); }
+
+#endif
 
 #undef HMAC_ARGS
 #undef HASH_ARGS
