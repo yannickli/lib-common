@@ -300,6 +300,9 @@ F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
 }
 
 ATTRS
+#ifdef ALL_STATIC
+static
+#endif
 void F(iop_hash)(const iop_struct_t *st, const void *v,
                  void (*hfun)(void *ctx, const void *input, int ilen),
                  void *hctx, unsigned flags)

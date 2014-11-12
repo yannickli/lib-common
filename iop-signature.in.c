@@ -57,6 +57,9 @@ static int F(iop_signature_get_salt)(lstr_t signature, be32_t *salt)
 }
 
 ATTRS
+#ifdef ALL_STATIC
+static
+#endif
 int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
                            unsigned flags)
 {

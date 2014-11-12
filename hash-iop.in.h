@@ -12,6 +12,9 @@
 /**************************************************************************/
 
 ATTRS
+#ifdef ALL_STATIC
+static
+#endif
 void F(iop_hash)(const struct iop_struct_t *st, const void *v,
                  iop_hash_f hfun, void *ctx, unsigned flags);
 
