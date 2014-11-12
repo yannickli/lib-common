@@ -37,7 +37,11 @@
 #include "z.h"
 #include "hash.h"
 
+#define F(x)  x
+
 #include "hash-sha2.in.c"
+
+#undef F
 
 void sha2_finish_hex( sha2_ctx *ctx, char output[65] )
 {

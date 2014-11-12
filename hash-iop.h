@@ -27,6 +27,8 @@ enum {
                                           string to detect default values */
 };
 
+#define F(x)  x
 #include "hash-iop.in.h"
+#undef F
 
 #endif

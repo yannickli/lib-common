@@ -11,9 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-static
-lstr_t t_iop_sign_salt_sha256(const iop_struct_t *st, const void *v,
-                              uint32_t salt, unsigned flags)
+static lstr_t F(t_iop_sign_salt_sha256)(const iop_struct_t *st, const void *v,
+                                        uint32_t salt, unsigned flags)
 {
     uint8_t buf[SHA256_DIGEST_SIZE];
     be32_t  s = cpu_to_be32(salt);
@@ -24,7 +23,7 @@ lstr_t t_iop_sign_salt_sha256(const iop_struct_t *st, const void *v,
 }
 
 __must_check__
-static int iop_signature_get_salt(lstr_t signature, be32_t *salt)
+static int F(iop_signature_get_salt)(lstr_t signature, be32_t *salt)
 {
     if (lstr_startswith(signature, LSTR("$256:"))) {
         if (signature.len != 5 + 8 + 1 + SHA256_DIGEST_SIZE * 2)
@@ -55,8 +54,8 @@ static int iop_signature_get_salt(lstr_t signature, be32_t *salt)
     return 0;
 }
 
-int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
-                        unsigned flags)
+int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
+                           unsigned flags)
 {
     t_scope;
     lstr_t exp;
@@ -67,18 +66,18 @@ int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
         return 0;
 #endif
 
-    if (iop_signature_get_salt(sig, &salt) < 0) {
+    if (F(iop_signature_get_salt)(sig, &salt) < 0) {
         return -1;
     }
 
-    exp = t_iop_sign_salt_sha256(st, v, be_to_cpu32(salt), flags);
+    exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt), flags);
     if (!lstr_equal2(sig, exp)) {
         if (!(flags & IOP_HASH_SKIP_DEFAULT)) {
             return -1;
         }
 
-        exp = t_iop_sign_salt_sha256(st, v, be_to_cpu32(salt),
-                                     flags | IOP_HASH_SHALLOW_DEFAULT);
+        exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt),
+                                        flags | IOP_HASH_SHALLOW_DEFAULT);
         if (!lstr_equal2(sig, exp)) {
             return -1;
         }
