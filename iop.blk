@@ -1147,58 +1147,6 @@ bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
     }
 }
 
-static inline bool
-iop_field_is_defval(const iop_field_t *fdesc, const void *ptr, bool deep)
-{
-    assert (fdesc->repeat == IOP_R_DEFVAL);
-
-    switch (fdesc->type) {
-      case IOP_T_I8: case IOP_T_U8:
-        return *(uint8_t *)ptr == (uint8_t)fdesc->u1.defval_u64;
-      case IOP_T_I16: case IOP_T_U16:
-        return *(uint16_t *)ptr == (uint16_t)fdesc->u1.defval_u64;
-      case IOP_T_ENUM:
-        return *(int *)ptr == fdesc->u0.defval_enum;
-      case IOP_T_I32: case IOP_T_U32:
-        return *(uint32_t *)ptr == (uint32_t)fdesc->u1.defval_u64;
-      case IOP_T_I64: case IOP_T_U64:
-      case IOP_T_DOUBLE:
-        /* XXX double is handled like U64 because we want to compare them as
-         * bit to bit */
-        return *(uint64_t *)ptr == fdesc->u1.defval_u64;
-      case IOP_T_BOOL:
-        return fdesc->u1.defval_u64 ? *(bool *)ptr : !*(bool *)ptr;
-      case IOP_T_STRING:
-      case IOP_T_XML:
-      case IOP_T_DATA:
-        if (!fdesc->u0.defval_len) {
-            /* In this case we don't care about the string pointer. An empty
-             * string is an empty string whatever its pointer is. */
-            return !((lstr_t *)ptr)->len;
-        } else {
-            /* We consider a NULL string as “take the default value please”;
-             * otherwise we first check for the pointer equality and finally
-             * for the string equality. */
-            if (!((lstr_t *)ptr)->data) {
-                return true;
-            }
-            if (((lstr_t *)ptr)->len != fdesc->u0.defval_len) {
-                return false;
-            }
-            if (((lstr_t *)ptr)->data == fdesc->u1.defval_data) {
-                return true;
-            }
-            if (deep) {
-                return memcmp(((lstr_t *)ptr)->s, fdesc->u1.defval_data,
-                              fdesc->u0.defval_len) == 0;
-            }
-            return false;
-        }
-      default:
-        e_panic("unsupported");
-    }
-}
-
 /*----- comparing values -}}}-*/
 /*----- sorting values -{{{-*/
 

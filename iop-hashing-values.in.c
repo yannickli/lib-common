@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "iop-helpers.inl.c"
+
 struct iop_hash_ctx {
     size_t   pos;
     uint8_t  buf[1024];
