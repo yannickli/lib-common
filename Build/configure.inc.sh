@@ -93,10 +93,6 @@ prereq() {
     return 0
 }
 
-ruby_var() {
-    echo $($ruby_bin -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
-}
-
 check_iopc() {
     IOPC_VER=3.0.3
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
@@ -144,7 +140,7 @@ fi
 
 # {{{ tools
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
+for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons python; do
     check_tool $tool $tool
 done
 
@@ -199,31 +195,6 @@ else
     else
         warn "libncurses.so is missing (apt-get install libncurses5-dev)"
     fi
-fi
-
-# }}}
-# Ruby {{{
-
-ruby_bin=ruby
-for bin in ruby1.9.1 ruby1.8; do
-    if which $bin &> /dev/null; then
-        ruby_bin=$bin
-        break
-    fi
-done
-
-ruby_hdrdir="$(ruby_var rubyhdrdir topdir)"
-ruby_arch="$(ruby_var arch)"
-if [ -f "$ruby_hdrdir/ruby.h" ] && [ -d "$ruby_hdrdir/$ruby_arch" ]; then
-    # Ruby >= 1.9
-    setvar "ruby_CFLAGS" "-I$ruby_hdrdir -I$ruby_hdrdir/$ruby_arch -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_19"
-    setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
-elif [ -f "$ruby_hdrdir/ruby.h" ]; then
-    # Ruby >= 1.8
-    setvar "ruby_CFLAGS" "-I$ruby_hdrdir -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_18"
-    setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
-else
-    warn "ruby headers are missing, apt-get install ruby-dev"
 fi
 
 # }}}
