@@ -141,6 +141,12 @@
 # define __leaf
 #endif
 
+#if __has_attribute(optimize)
+# define __attr_optimize__(o)  __attribute__((optimize(o)))
+#else
+# define __attr_optimize__(o)
+#endif
+
 #ifdef __GNUC__
 # define likely(expr)     __builtin_expect(!!(expr), 1)
 # define unlikely(expr)   __builtin_expect(!!(expr), 0)
