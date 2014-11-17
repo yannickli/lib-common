@@ -429,8 +429,16 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_remove(n, vec, i)                (void)__qv_splice(n, vec, i,   1, 0)
 #define qv_pop(n, vec)                      (void)__qv_splice(n, vec, 0,   1, 0)
 
-#define qv_insert(n, vec, i, v)             (*__qv_splice(n, vec, i, 0, 1) = (v))
-#define qv_append(n, vec, v)                (*qv_growlen(n, vec, 1) = (v))
+#define qv_insert(n, vec, i, v)                                     \
+    ({                                                              \
+        typeof(*(vec)->tab) __v = (v);                              \
+        *__qv_splice(n, vec, i, 0, 1) = __v;                        \
+    })
+#define qv_append(n, vec, v)                                        \
+    ({                                                              \
+        typeof(*(vec)->tab) __v = (v);                              \
+        *qv_growlen(n, vec, 1) = (__v);                             \
+    })
 #define qv_push(n, vec, v)                  qv_insert(n, vec, 0, (v))
 #define qv_insertp(n, vec, i, v)            qv_insert(n, vec, i, *(v))
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
