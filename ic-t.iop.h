@@ -26,8 +26,8 @@ IOP_GENERIC(ic__simple_hdr);
 
 struct ic__name_routing_hdr__t {
     lstr_t   name;
-    iop_opt_i32_t    host_id;
-    iop_opt_i32_t    instance_id;
+    opt_i32_t        host_id;
+    opt_i32_t        instance_id;
     struct ic__hdr__t *packet_hdr;
     struct ic__tracer__t *tracer;
 };
