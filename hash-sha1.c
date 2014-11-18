@@ -312,6 +312,20 @@ void sha1( const void *input, int ilen, byte output[20] )
 }
 
 /*
+ * output = SHA-1( input buffer )
+ */
+void sha1_hex(const void *input, int ilen, char output[41])
+{
+    sha1_ctx ctx;
+
+    sha1_starts(&ctx);
+    sha1_update(&ctx, input, ilen);
+    sha1_finish_hex(&ctx, output);
+
+    memset(&ctx, 0, sizeof(sha1_ctx));
+}
+
+/*
  * output = SHA-1( file contents )
  */
 int sha1_file( char *path, byte output[20] )
