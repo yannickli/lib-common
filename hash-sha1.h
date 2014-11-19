@@ -62,6 +62,15 @@ void sha1_finish_hex(sha1_ctx *ctx, char output[41]) __leaf;
 void sha1(const void *input, int ilen, byte output[20]) __leaf;
 
 /**
+ * \brief          Output = SHA-1(input buffer)
+ *
+ * \param input    buffer holding the  data
+ * \param ilen     length of the input data
+ * \param output   SHA-1 checksum result
+ */
+void sha1_hex(const void *input, int ilen, char output[41]) __leaf;
+
+/**
  * \brief          Output = SHA-1(file contents)
  *
  * \param path     input file name

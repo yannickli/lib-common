@@ -673,11 +673,29 @@ void mem_fifo_pools_print_stats(void);
  *
  * \param[initialsize]  First memory block size.
  */
-mem_pool_t *mem_ring_pool_new(int initialsize)
+mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
     __leaf __attribute__((malloc));
+
+#define mem_ring_pool_new(is)  __mem_ring_pool_new(is, __FILE__, __LINE__)
 
 /** Delete the given memory ring-pool */
 void mem_ring_pool_delete(mem_pool_t **) __leaf;
+
+/** Force clean the ring pool from empty memory blocks.
+ *
+ * Adapted from mem_stack_pool_reset().
+ *
+ * Only keeps the current frame so as the one that fits the best the current
+ * needs regarding the mean allocation size (see code for details).
+ *
+ * Should be called when the pool is idle: won't do anything if called while
+ * there are still some frames not released.
+ *
+ * XXX The clean-up is supposed to be automatically triggered every 64K frame
+ * releases, using this function to force it means that you have a clear
+ * understanding of what you are doing.
+ */
+void mem_ring_reset(mem_pool_t *) __leaf;
 
 /** Create a new frame of memory in the ring.
  *
@@ -694,8 +712,8 @@ const void *mem_ring_getframe(mem_pool_t *) __leaf;
 
 /** Seal the active frame.
  *
- * When you seal the active frame, you cannot performed new allocations in it
- * but the allocated data are still accessible. Do not forget to release it
+ * When you seal the active frame, you cannot perform new allocations in it
+ * but the allocated data is still accessible. Do not forget to release it
  * later!
  *
  * \return Frame cookie (needed to release the frame later).

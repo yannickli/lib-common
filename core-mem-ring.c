@@ -27,6 +27,12 @@
  *
  */
 
+/** Size tuning parameters.
+ * These are multiplicative factors over rp_alloc_mean.
+ */
+#define RESET_MIN   56 /*< minimum size in mem_stack_pool_reset */
+#define RESET_MAX  256 /*< maximum size in mem_stack_pool_reset */
+
 typedef struct ring_pool_t ring_pool_t;
 
 typedef struct ring_blk_t {
@@ -58,6 +64,9 @@ struct ring_pool_t {
     uint32_t     alloc_nb;
     uint32_t     nbpages;
     spinlock_t   lock;
+
+    uint32_t     frames_cnt;
+    uint32_t     nb_frames_release;
 
     mem_pool_t   funcs;
 };
@@ -141,8 +150,9 @@ static byte *blk_end(ring_blk_t *blk)
 }
 
 static ring_blk_t *
-frame_get_next_blk(ring_pool_t *rp, ring_blk_t *cur, size_t size)
+frame_get_next_blk(ring_pool_t *rp, size_t size)
 {
+    ring_blk_t *cur = rp->cblk;
     frame_t *start = dlist_first_entry(&rp->fhead, frame_t, flist);
 
     while (!dlist_is_empty(&cur->blist)) {
@@ -173,7 +183,7 @@ static void *rp_reserve(ring_pool_t *rp, size_t size, ring_blk_t **blkp)
     assert (rp->pos);
 
     if (unlikely(res + size > blk_end(rp->cblk))) {
-        ring_blk_t *blk = frame_get_next_blk(rp, rp->cblk, size);
+        ring_blk_t *blk = frame_get_next_blk(rp, size);
 
         *blkp = blk;
         res = blk->area;
@@ -336,7 +346,7 @@ void ring_setup_frame(ring_pool_t *rp, ring_blk_t *blk, frame_t *frame)
 
 /*------ Public API -{{{-*/
 
-mem_pool_t *mem_ring_pool_new(int initialsize)
+mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
 {
     ring_pool_t *rp = p_new(ring_pool_t, 1);
     ring_blk_t *blk;
@@ -349,6 +359,7 @@ mem_pool_t *mem_ring_pool_new(int initialsize)
     rp->minsize    = ROUND_UP(initialsize, PAGE_SIZE);
     rp->funcs      = pool_funcs;
     rp->alloc_nb   = 1; /* avoid the division by 0 */
+    rp->frames_cnt  = 0;
 
     /* Makes the first frame */
     blk = blk_create(rp, sizeof(frame_t));
@@ -384,6 +395,7 @@ const void *mem_ring_newframe(mem_pool_t *_rp)
 
     e_assert_null(panic, rp->pos, "previous memory frame not released!");
     rp->pos = &rp->ring[1];
+    rp->frames_cnt++;
 
     return rp->ring;
 }
@@ -407,6 +419,52 @@ const void *mem_ring_seal(mem_pool_t *_rp)
     return last;
 }
 
+static void __mem_ring_reset(ring_pool_t *rp)
+{
+    size_t saved_size;
+    size_t max_size;
+    ring_blk_t *saved_blk = NULL;
+
+    if (!mem_pool_is_enabled()) {
+        return;
+    }
+    if (rp->frames_cnt) {
+        return;
+    }
+
+    saved_blk  = NULL;
+    saved_size = RESET_MIN * rp_alloc_mean(rp);
+    max_size   = RESET_MAX * rp_alloc_mean(rp);
+
+    /* Keep the current block plus the one with more adapted size
+     * regarding the mean allocation size.
+     */
+    dlist_for_each_safe(e, &rp->cblk->blist) {
+        ring_blk_t *blk = blk_entry(e);
+
+        if (blk->size > saved_size && blk->size < max_size) {
+            if (saved_blk) {
+                blk_destroy(rp, saved_blk);
+            }
+            saved_blk  = blk;
+            saved_size = blk->size;
+        } else {
+            blk_destroy(rp, blk);
+        }
+    }
+
+    rp->nb_frames_release = 0;
+}
+
+void mem_ring_reset(mem_pool_t *_rp)
+{
+    ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
+
+    spin_lock(&rp->lock);
+    __mem_ring_reset(rp);
+    spin_unlock(&rp->lock);
+}
+
 void mem_ring_release(const void *cookie)
 {
     frame_t *frame  = (frame_t *)cookie;
@@ -426,6 +484,7 @@ void mem_ring_release(const void *cookie)
             frame_t *fprev = dlist_prev_entry(frame, flist);
 
             if (fprev->rp & FRAME_IS_FREE) {
+                /* TODO We could rewind on more than one frame. */
                 ring_reset_to_prevframe(rp, fprev, frame);
             } else {
                 ring_reset_frame(rp, frame, true);
@@ -472,6 +531,14 @@ void mem_ring_release(const void *cookie)
             }
         }
     }
+
+    rp->frames_cnt--;
+    rp->nb_frames_release++;
+
+    if (rp->nb_frames_release >= UINT16_MAX) {
+        __mem_ring_reset(rp);
+    }
+
     spin_unlock(&rp->lock);
 }
 
