@@ -51,22 +51,41 @@ void lp_gettv(struct timeval *);
 
 static inline void time_fmt_iso8601(char buf[static 21], time_t t)
 {
+    int len;
     struct tm tm;
 
-    gmtime_r(&t, &tm);
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec);
+    if (!gmtime_r(&t, &tm)) {
+        e_panic("invalid timestamp: %jd", t);
+    }
+    len = snprintf(buf, 21, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec);
+    if (len >= 21) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
-static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t, int msec)
+static inline
+void time_fmt_iso8601_msec(char buf[static 25], time_t t, int msec)
 {
+    int len;
     struct tm tm;
 
-    gmtime_r(&t, &tm);
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+    /* XXX %03d gives a minimum width but not a maximum one, so we need to be
+     * careful and not overflow the buffer of size 25 with invalid inputs.
+     */
+    if (msec < 0 || msec >= 1000) {
+        e_panic("invalid msec: %d", msec);
+    }
+    if (!gmtime_r(&t, &tm)) {
+        e_panic("invalid timestamp: %jd", t);
+    }
+    len = snprintf(buf, 25, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+    if (len >= 25) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
 static inline void sb_add_time_iso8601(sb_t *sb, time_t t)
