@@ -713,6 +713,16 @@ int lstr_utf8_startswith(const lstr_t *s1, const lstr_t *s2)
     return utf8_str_startswith(s1->s, s1->len, s2->s, s2->len);
 }
 
+/** \brief returns whether \v s ends with \v p, in a case-insensitive
+ * utf8-aware way.
+ */
+int lstr_utf8_iendswith(const lstr_t *s1, const lstr_t *s2);
+
+/** \brief returns whether \v s ends with \v p, in a case-sensitive
+ * utf8-aware way.
+ */
+int lstr_utf8_endswith(const lstr_t *s1, const lstr_t *s2);
+
 /* @func lstr_match_ctype
  * @param[in] s: The string to check.
  * @param[in] d: The ctype description.
