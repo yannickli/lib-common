@@ -93,4 +93,16 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_N(time_parse_iso8601(&ps, &res));
         Z_ASSERT_EQ(res, 1173180853);
     } Z_TEST_END;
+
+    Z_TEST(iso8601_ms, "time: time_fmt_iso8601_msec")
+    {
+        char buf[1024];
+
+        time_fmt_iso8601_msec(buf, 0, 999);
+        Z_ASSERT_EQ(strlen(buf), 24U);
+        time_fmt_iso8601_msec(buf, INT32_MAX, 0);
+        Z_ASSERT_EQ(strlen(buf), 24U);
+        time_fmt_iso8601_msec(buf, UINT32_MAX, 999);
+        Z_ASSERT_EQ(strlen(buf), 24U);
+    } Z_TEST_END;
 } Z_GROUP_END;
