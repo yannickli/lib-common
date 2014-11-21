@@ -159,12 +159,18 @@ int format_timestamp(const char *fmt, time_t ts, const char *locale,
 
 static inline void time_fmt_iso8601(char buf[static 21], time_t t)
 {
+    int len;
     struct tm tm;
 
-    gmtime_r(&t, &tm);
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec);
+    if (!gmtime_r(&t, &tm)) {
+        e_panic("invalid timestamp: %jd", t);
+    }
+    len = snprintf(buf, 21, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec);
+    if (len >= 21) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
 /* Format a timestamp into a local ISO 8601 time. This function calls the
@@ -175,6 +181,7 @@ static inline void time_fmt_iso8601(char buf[static 21], time_t t)
 static inline void time_fmt_localtime_iso8601(char buf[static 26], time_t t,
                                               const char *tz)
 {
+    int len;
     struct tm tm;
     int delta_h, delta_m;
 
@@ -183,20 +190,35 @@ static inline void time_fmt_localtime_iso8601(char buf[static 26], time_t t,
     delta_h = tm.tm_gmtoff / 3600;
     delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
 
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec, delta_h, delta_m);
+    len = snprintf(buf, 26, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec, delta_h, delta_m);
+    if (len >= 26) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
 static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t,
                                          int msec)
 {
+    int len;
     struct tm tm;
 
-    gmtime_r(&t, &tm);
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+    /* XXX %03d gives a minimum width but not a maximum one, so we need to be
+     * careful and not overflow the buffer of size 25 with invalid inputs.
+     */
+    if (msec < 0 || msec >= 1000) {
+        e_panic("invalid msec: %d", msec);
+    }
+    if (!gmtime_r(&t, &tm)) {
+        e_panic("invalid timestamp: %jd", t);
+    }
+    len = snprintf(buf, 25, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+    if (len >= 25) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
 /* Format a timestamp into a local ISO 8601 time. This function calls the
@@ -208,6 +230,7 @@ static inline
 void time_fmt_localtime_iso8601_msec(char buf[static 30], time_t t,
                                      int msec, const char *tz)
 {
+    int len;
     struct tm tm;
     int delta_h, delta_m;
 
@@ -216,9 +239,12 @@ void time_fmt_localtime_iso8601_msec(char buf[static 30], time_t t,
     delta_h = tm.tm_gmtoff / 3600;
     delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
 
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d",
-            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-            tm.tm_hour, tm.tm_min, tm.tm_sec, msec, delta_h, delta_m);
+    len = snprintf(buf, 30, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d",
+                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                   tm.tm_hour, tm.tm_min, tm.tm_sec, msec, delta_h, delta_m);
+    if (len >= 30) {
+        e_panic("invalid timestamp: %jd", t);
+    }
 }
 
 static inline void sb_add_time_iso8601(sb_t *sb, time_t t)
