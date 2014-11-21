@@ -178,3 +178,25 @@ int lstr_dlevenshtein(const lstr_t cs1, const lstr_t cs2, int max_dist)
 
     return cur[s2.len];
 }
+
+int lstr_utf8_iendswith(const lstr_t *s1, const lstr_t *s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1->s, s1->len, true));
+    RETHROW(sb_normalize_utf8(&sb2, s2->s, s2->len, true));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}
+
+int lstr_utf8_endswith(const lstr_t *s1, const lstr_t *s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1->s, s1->len, false));
+    RETHROW(sb_normalize_utf8(&sb2, s2->s, s2->len, false));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}

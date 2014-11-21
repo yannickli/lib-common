@@ -445,6 +445,18 @@ int file_bin_flush(file_bin_t *file)
     return 0;
 }
 
+int file_bin_sync(file_bin_t *file)
+{
+    RETHROW(file_bin_flush(file));
+
+    if (fsync(fileno(file->f)) < 0) {
+        return logger_error(&_G.logger, "cannot sync file '%*pM': %m",
+                            LSTR_FMT_ARG(file->path));
+    }
+
+    return 0;
+}
+
 int file_bin_truncate(file_bin_t *file, off_t pos)
 {
     RETHROW(file_bin_flush(file));

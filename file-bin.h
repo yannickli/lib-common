@@ -123,6 +123,9 @@ int file_bin_truncate(file_bin_t *file, off_t pos);
 __must_check__
 int file_bin_flush(file_bin_t *file);
 
+__must_check__
+int file_bin_sync(file_bin_t *file);
+
 /* }}} */
 /* {{{ Reading */
 
