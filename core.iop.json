@@ -10,17 +10,39 @@
 				"brief": "List of supported log levels."
 			},
 			"values": {
-				"DEFAULT": -2,
-				"INHERITS": -1,
-				"EMERG": 0,
-				"ALERT": 1,
-				"CRIT": 2,
-				"ERR": 3,
-				"WARNING": 4,
-				"NOTICE": 5,
-				"INFO": 6,
-				"DEBUG": 7,
-				"TRACE": 8
+				"DEFAULT": {
+					"value": -2
+				},
+				"INHERITS": {
+					"value": -1
+				},
+				"EMERG": {
+					"value": 0
+				},
+				"ALERT": {
+					"value": 1
+				},
+				"CRIT": {
+					"value": 2
+				},
+				"ERR": {
+					"value": 3
+				},
+				"WARNING": {
+					"value": 4
+				},
+				"NOTICE": {
+					"value": 5
+				},
+				"INFO": {
+					"value": 6
+				},
+				"DEBUG": {
+					"value": 7
+				},
+				"TRACE": {
+					"value": 8
+				}
 			},
 			"valuesHelp": {
 				"DEFAULT": {
@@ -63,14 +85,30 @@
 			"fullName": "core.IopHttpMethod",
 			"type": "enum",
 			"values": {
-				"OPTIONS": 0,
-				"GET": 1,
-				"HEAD": 2,
-				"POST": 3,
-				"PUT": 4,
-				"DELETE": 5,
-				"TRACE": 6,
-				"CONNECT": 7
+				"OPTIONS": {
+					"value": 0
+				},
+				"GET": {
+					"value": 1
+				},
+				"HEAD": {
+					"value": 2
+				},
+				"POST": {
+					"value": 3
+				},
+				"PUT": {
+					"value": 4
+				},
+				"DELETE": {
+					"value": 5
+				},
+				"TRACE": {
+					"value": 6
+				},
+				"CONNECT": {
+					"value": 7
+				}
 			}
 		},
 		{
