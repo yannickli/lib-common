@@ -11,13 +11,16 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sysexits.h>
 #include <sys/wait.h>
 #include <fnmatch.h>
+
 #include "unix.h"
 #include "z.h"
 #include "thr.h"
 #include "container-qhash.h"
 #include "iop.h"
+#include "parseopt.h"
 
 enum z_state {
     Z_START,
@@ -56,22 +59,53 @@ struct z_export *z_exports_g;
 
 static struct {
     bool          stopping;
-    bool          do_fork;
-    bool          abort_on_fail;
     int           res;
-    lstr_t        arg0;
     char         *wd;
-    const char   *tmp_dir;
     struct z_grp  grp;
     qv_t(z_cbs)   cbs;
     qv_t(lstr)    only;
     qv_t(z_blk)   blks;
 
     qh_t(lstr)    tag_skip;
+
+    /* Command-line options. */
+    lstr_t      arg0;
+    int         opt_help;
+    int         abort_on_fail;
+    int         do_fork;
+    const char *tmp_dir;
+    const char *opt_tag_skip;
+    const char *opt_mode;
 } z_ctx_g = {
 #define _G  z_ctx_g
-    .do_fork  = true,
     .tag_skip = QH_INIT(lstr, _G.tag_skip),
+};
+
+static popt_t z_opts_g[] = {
+    OPT_GROUP("Options:"),
+    OPT_FLAG('h', "help", &_G.opt_help,    "show this help"),
+
+    OPT_FLAG('f', "fork", &_G.do_fork,
+             "run in fork mode. In this mode, every test will be run in a "
+             "dedicated fork so that a crashing test do not impact others. "
+             "It is enabled by default except when running under a debugging "
+             "tool. Use --no-fork to disable."),
+    OPT_FLAG('a', "abort", &_G.abort_on_fail,
+             "abort when a test fails. It is enabled by default when running "
+             "in gdb. Use --no-abort to disable."),
+
+    OPT_STR('d', "z-dir", &_G.tmp_dir,
+            "specify the tests temporary directory. If not specified, the "
+            "current directory or /tmp is taken. It can also be specified "
+            "using the Z_DIR environment variable."),
+    OPT_STR('s', "z-tag-skip", &_G.opt_tag_skip,
+            "specify the list of Z tags to skip, separated by spaces. It can "
+            "also be specified using the Z_TAG_SKIP environment variable."),
+    OPT_STR('m', "z-mode", &_G.opt_mode,
+            "specify the list of Z modes to apply, separated by spaces. It "
+            "can also be specified using the Z_MODE environment variable. "
+            "List of supported modes: fast."),
+    OPT_END(),
 };
 
 lstr_t z_tmpdir_g;
@@ -769,85 +803,8 @@ void _z_step_report(void)
 /* }}} */
 /* public helpers {{{ */
 
-static bool z_is_opt_with_arg(const char *opt, int *i, const char **argv)
+static void z_parse_tag_skip(const char *s)
 {
-    const char *p;
-
-    if (strequal(opt, argv[*i])) {
-        if (argv[++*i] == NULL)
-            e_fatal("%s takes an argument", opt);
-        return true;
-    }
-    if (strstart(argv[*i], opt, &p)) {
-        if (*p == '=') {
-            argv[*i] = p + 1;
-            return true;
-        }
-    }
-    return false;
-}
-
-int z_setup(int argc, const char **argv)
-{
-    const char *s;
-    bool is_traced = psinfo_get_tracer_pid(0) > 0;
-
-    _G.do_fork       = !is_traced && !mem_tool_is_running(MEM_TOOL_VALGRIND);
-    _G.abort_on_fail = is_traced;
-
-    lstr_copy(&_G.arg0, LSTR(argv[0]));
-
-    for (int i = 1; i < argc; i++) {
-        if (strequal(argv[i], "--")) {
-            p_move(argv + 1, argv + i, argc - i);
-            argv[1 + argc - i] = NULL;
-            return 1 + argc - i;
-        }
-
-        if (z_is_opt_with_arg("--z-tag-skip", &i, argv)) {
-            lstr_t arg = LSTR(argv[i]);
-
-            qh_add(lstr, &_G.tag_skip, &arg);
-            continue;
-        } else
-        if (z_is_opt_with_arg("--z-mode", &i, argv)) {
-            lstr_t arg = LSTR(argv[i]);
-
-            if (lstr_equal2(LSTR("fast"), arg)) {
-                SET_BIT(&z_modes_g, Z_MODE_FAST);
-            } else {
-                e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(arg));
-            }
-            continue;
-        } else
-        if (z_is_opt_with_arg("--z-dir", &i, argv)) {
-            _G.tmp_dir = argv[i];
-            continue;
-        } else
-        if (strequal("--z-abort", argv[i])) {
-            _G.abort_on_fail = true;
-            continue;
-        } else
-        if (strequal("--z-no-abort", argv[i])) {
-            _G.abort_on_fail = false;
-            continue;
-        } else
-        if (strequal("--z-fork", argv[i])) {
-            _G.do_fork = true;
-            continue;
-        } else
-        if (strequal("--z-no-fork", argv[i])) {
-            _G.do_fork = false;
-            continue;
-        }
-
-        if (argv[i][0] == '-')
-            e_fatal("%s flag unknown", argv[i]);
-
-        qv_append(lstr, &_G.only, LSTR(argv[i]));
-    }
-
-    s = getenv("Z_TAG_SKIP");
     if (s) {
         pstream_t ps = ps_initstr(s);
 
@@ -859,8 +816,10 @@ int z_setup(int argc, const char **argv)
             ps_skipspaces(&ps);
         }
     }
+}
 
-    s = getenv("Z_MODE");
+static void z_parse_mode(const char *s)
+{
     if (s) {
         pstream_t ps = ps_initstr(s);
 
@@ -876,7 +835,32 @@ int z_setup(int argc, const char **argv)
             }
         }
     }
+}
 
+int z_setup(int argc, char **argv)
+{
+    const char *s;
+    bool is_traced = psinfo_get_tracer_pid(0) > 0;
+
+    _G.do_fork       = !is_traced && !mem_tool_is_running(MEM_TOOL_VALGRIND);
+    _G.abort_on_fail = is_traced;
+
+    lstr_copy(&_G.arg0, LSTR(NEXTARG(argc, argv)));
+
+    argc = parseopt(argc, argv, z_opts_g, 0);
+    if (argc < 0 || _G.opt_help) {
+        makeusage(EX_USAGE, _G.arg0.s, "[tests...]", NULL, z_opts_g);
+    }
+
+    /* Parse tags to skip. */
+    z_parse_tag_skip(getenv("Z_TAG_SKIP"));
+    z_parse_tag_skip(_G.opt_tag_skip);
+
+    /* Parse modes. */
+    z_parse_mode(getenv("Z_MODE"));
+    z_parse_mode(_G.opt_mode);
+
+    /* Temporary directory. */
     s = getenv("Z_DIR");
     if (s) {
         _G.tmp_dir = s;
@@ -886,6 +870,12 @@ int z_setup(int argc, const char **argv)
             e_warning("cannot create %s: %m", _G.tmp_dir);
         }
     }
+
+    /* Specific tests to run. */
+    for (int i = 0; i < argc; i++) {
+        qv_append(lstr, &_G.only, LSTR(argv[i]));
+    }
+
     return 1;
 }
 

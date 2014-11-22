@@ -682,7 +682,7 @@ Z_GROUP_EXPORT(core_macros) {
 
 /* }}} */
 
-int main(int argc, const char **argv)
+int main(int argc, char **argv)
 {
     z_setup(argc, argv);
     z_register_exports(PLATFORM_PATH LIBCOMMON_PATH);

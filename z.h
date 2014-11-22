@@ -343,7 +343,7 @@ void z_skip_end(void);
 void z_todo_start(const char *reason, ...) __attr_printf__(1, 2);
 void z_todo_end(void);
 
-int  z_setup(int argc, const char **argv);
+int  z_setup(int argc, char **argv);
 void z_register_exports(const char *prefix);
 void z_register_group(z_cb_f cb);
 #ifdef __has_blocks
