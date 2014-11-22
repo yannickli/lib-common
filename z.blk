@@ -71,6 +71,7 @@ static struct {
     /* Command-line options. */
     lstr_t      arg0;
     int         opt_help;
+    int         opt_list;
     int         abort_on_fail;
     int         do_fork;
     const char *tmp_dir;
@@ -85,6 +86,8 @@ static popt_t z_opts_g[] = {
     OPT_GROUP("Options:"),
     OPT_FLAG('h', "help", &_G.opt_help,    "show this help"),
 
+    OPT_FLAG('l', "list", &_G.opt_list,
+             "only list the available Z groups and tests."),
     OPT_FLAG('f', "fork", &_G.do_fork,
              "run in fork mode. In this mode, every test will be run in a "
              "dedicated fork so that a crashing test do not impact others. "
@@ -626,21 +629,31 @@ static bool _z_group_exit(void)
 
 bool _z_group_process(void)
 {
-    if (_z_is_group_ignored())
+    if (_z_is_group_ignored()) {
         return false;
+    }
 
     assert (_G.grp.state < Z_CHILD_DIE);
+
     switch (++_G.grp.state) {
       case Z_COUNT:
+        if (_G.opt_list) {
+            printf("%*pM\n", LSTR_FMT_ARG(_G.grp.name));
+        }
         return true;
+
       case Z_RUN:
-        if (_G.grp.n_total == 0)
+        if (_G.opt_list || !_G.grp.n_total) {
             return false;
+        }
         return _z_group_run();
+
       case Z_CHILD_DIE:
-        if (!_G.grp.n_total == 0)
+        if (!_G.opt_list && _G.grp.n_total) {
             do_summary();
+        }
         return _z_group_exit();
+
       default:
         e_panic("should not happen");
     }
@@ -755,6 +768,9 @@ int _z_step_run(const char *name)
     switch (_G.grp.state) {
       case Z_COUNT:
         _G.grp.n_total++;
+        if (_G.opt_list) {
+            printf("%*pM.%s\n", LSTR_FMT_ARG(_G.grp.name), name);
+        }
         return 0;
 
       case Z_RUN:
