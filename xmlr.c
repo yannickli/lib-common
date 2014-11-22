@@ -796,7 +796,7 @@ Z_GROUP_EXPORT(xmlr)
         Z_ASSERT_NEG(xmlr_node_close(xmlr_g));
     } Z_TEST_END;
 
-    Z_TEST(node_should_close, "") {
+    Z_TEST(node_should_close_2, "") {
         lstr_t xml = LSTR("<root>"
                           "    <child>value_child</child>"
                           "</root>");

@@ -1631,16 +1631,6 @@ Z_GROUP_EXPORT(csv) {
         CSV_TEST_CHECK_FIELD(2, NULL);
         CSV_TEST_END();
     } Z_TEST_END;
-    Z_TEST(empty4, "Empty fields 4") {
-        CSV_TEST_START(",,", ',', '"');
-        CSV_TEST_GET_ROW();
-        CSV_TEST_CHECK_NB_FIELDS(3);
-        CSV_TEST_CHECK_FIELD(0, NULL);
-        CSV_TEST_CHECK_FIELD(1, NULL);
-        CSV_TEST_CHECK_FIELD(2, NULL);
-        CSV_TEST_END();
-    } Z_TEST_END;
-
 
     Z_TEST(quoted1, "Quoted fields 1") {
         CSV_TEST_START("foo,\"bar\",baz", ',', '"');
