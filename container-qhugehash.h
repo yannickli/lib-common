@@ -468,6 +468,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 
 #define qhh_init(name, qhh, chashes)        qhh_##name##_init(qhh, chashes)
 #define qhh_len(name, qhh)                  qhh_##name##_len(qhh)
+#define qhh_memory_footprint(name, qhh)     qhh_##name##_memory_footprint(qhh)
 #define qhh_hash(name, qhh, key)            qhh_##name##_hash(qhh, key)
 #define qhh_set_minsize(name, qhh, sz)      qhh_##name##_set_minsize(qhh, sz)
 #define qhh_clear(name, qhh)                qhh_##name##_clear(qhh)
