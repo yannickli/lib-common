@@ -21,6 +21,7 @@
 #include "container-qhash.h"
 #include "iop.h"
 #include "parseopt.h"
+#include "log.h"
 
 enum z_state {
     Z_START,
@@ -987,6 +988,11 @@ int z_run(void)
     our_mkdtemp("tst", &z_tmpdir_g, &z_tmpdfd_g);
     our_mkdtemp("grp", &z_grpdir_g, &z_grpdfd_g);
 
+    if (_G.opt_list) {
+        /* We are in list mode, prevent Z_GROUPS from printing anything. */
+        log_start_buffering(false);
+    }
+
     _G.res = 0;
     qv_for_each_pos(z_cbs, i, &_G.cbs) {
         if (_G.stopping)
@@ -997,6 +1003,10 @@ int z_run(void)
         if (_G.stopping)
             break;
         _z_blkgrp_process(&_G.blks.tab[i]);
+    }
+
+    if (_G.opt_list) {
+        log_stop_buffering();
     }
 
     p_close(&z_tmpdfd_g);
