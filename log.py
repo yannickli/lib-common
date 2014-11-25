@@ -53,7 +53,8 @@ class IntersecLogHandler(logging.Handler):
 
     def emit(self, record):
         level = self.level_map.get(record.levelno, common.LOG_ERR)
-        common.log(level, record.getMessage())
+        msg = self.format(record)
+        common.log(level, msg)
 
 MYHANDLER = IntersecLogHandler()
 LOGGER = IntersecLogger()
