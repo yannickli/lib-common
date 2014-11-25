@@ -36,21 +36,22 @@ class IntersecLogHandler(logging.Handler):
         logging.addLevelName("NOTICE", 25)
 
     def emit(self, record):
+        msg = self.format(record)
         if record.levelno == logging._levelNames["ERROR"]:
-            common.log(common.LOG_ERR, record.msg)
+            common.log(common.LOG_ERR, msg)
         elif record.levelno == logging._levelNames["WARNING"]\
           or record.levelno == logging._levelNames["WARN"]:
-            common.log(common.LOG_WARNING, record.msg)
+            common.log(common.LOG_WARNING, msg)
         elif record.levelno == logging._levelNames["NOTICE"]:
-            common.log(common.LOG_NOTICE, record.msg)
+            common.log(common.LOG_NOTICE, msg)
         elif record.levelno == logging._levelNames["INFO"]:
-            common.log(common.LOG_INFO, record.msg)
+            common.log(common.LOG_INFO, msg)
         elif record.levelno == logging._levelNames["DEBUG"]:
-            common.log(common.LOG_DEBUG, record.msg)
+            common.log(common.LOG_DEBUG, msg)
         elif record.levelno == logging._levelNames["PANIC"]:
-            common.log(common.LOG_PANIC, record.msg)
+            common.log(common.LOG_PANIC, msg)
         elif record.levelno ==  logging._levelNames["CRITICAL"]:
-            common.log(common.LOG_CRIT, record.msg)
+            common.log(common.LOG_CRIT, msg)
 
 myHandler = IntersecLogHandler()
 logger = IntersecLogger()
