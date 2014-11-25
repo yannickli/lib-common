@@ -237,6 +237,14 @@ static inline int ps_clip_afterchr(pstream_t *ps, int c) {
     const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_clip_at(ps, p + 1) : -1;
 }
+static inline int ps_clip_atlastchr(pstream_t *ps, int c) {
+    const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
+    return likely(p) ? __ps_clip_at(ps, p) : -1;
+}
+static inline int ps_clip_afterlastchr(pstream_t *ps, int c) {
+    const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
+    return likely(p) ? __ps_clip_at(ps, p + 1) : -1;
+}
 
 static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
     PS_WANT(ps_startswith(ps, data, len));

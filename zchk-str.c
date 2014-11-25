@@ -1370,6 +1370,48 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT(ps_strequal(&ps3, "2"));
     } Z_TEST_END;
 
+    Z_TEST(ps_clip_atlastchr, "") {
+        pstream_t ps = ps_initstr("test_1_2");
+        pstream_t ps2 = ps_initstr("test1.02");
+        pstream_t ps3 = ps_initstr("test_2");
+
+        Z_ASSERT_N(ps_clip_atlastchr(&ps, '_'));
+        Z_ASSERT(ps_len(&ps) == 6);
+        Z_ASSERT(ps_strequal(&ps, "test_1"));
+
+        Z_ASSERT_NEG(ps_clip_atlastchr(&ps2, '_'));
+        Z_ASSERT(ps_len(&ps2) == strlen("test1.02"));
+        Z_ASSERT(ps_strequal(&ps2, "test1.02"));
+        Z_ASSERT_N(ps_clip_atlastchr(&ps2, '.'));
+        Z_ASSERT(ps_len(&ps2) == 5);
+        Z_ASSERT(ps_strequal(&ps2, "test1"));
+
+        Z_ASSERT_N(ps_clip_atlastchr(&ps3, '_'));
+        Z_ASSERT(ps_len(&ps3) == 4);
+        Z_ASSERT(ps_strequal(&ps3, "test"));
+    } Z_TEST_END;
+
+    Z_TEST(ps_clip_afterlastchr, "") {
+        pstream_t ps = ps_initstr("test_1_2");
+        pstream_t ps2 = ps_initstr("test1.02");
+        pstream_t ps3 = ps_initstr("test_2");
+
+        Z_ASSERT_N(ps_clip_afterlastchr(&ps, '_'));
+        Z_ASSERT(ps_len(&ps) == 7);
+        Z_ASSERT(ps_strequal(&ps, "test_1_"));
+
+        Z_ASSERT_NEG(ps_clip_afterlastchr(&ps2, '_'));
+        Z_ASSERT(ps_len(&ps2) == strlen("test1.02"));
+        Z_ASSERT(ps_strequal(&ps2, "test1.02"));
+        Z_ASSERT_N(ps_clip_afterlastchr(&ps2, '.'));
+        Z_ASSERT(ps_len(&ps2) == 6);
+        Z_ASSERT(ps_strequal(&ps2, "test1."));
+
+        Z_ASSERT_N(ps_clip_afterlastchr(&ps3, '_'));
+        Z_ASSERT(ps_len(&ps3) == 5);
+        Z_ASSERT(ps_strequal(&ps3, "test_"));
+    } Z_TEST_END;
+
     Z_TEST(lstr_ascii_icmp, "str: lstr_ascii_icmp") {
 #define T(_str1, _str2, _expected)                                       \
         Z_ASSERT(lstr_ascii_icmp(&LSTR_IMMED_V(_str1),                   \
