@@ -64,6 +64,7 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
     if (!fix) {
         e_error("IOP DSO: did not find struct %s in memory",
                 (*st)->fullname.s);
+        return;
     }
     if (fix != *st) {
         e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname),
