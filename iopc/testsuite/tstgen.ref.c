@@ -44,7 +44,7 @@ static const iop_enum_value_attr_t tstgen__my_enum_a__val_b__v_attrs[] = {
 static const iop_enum_value_attr_t tstgen__my_enum_a__val_c__v_attrs[] = {
     {
         .type = 1,
-        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen12") }, {.v.s = LSTR_IMMED("gen7") } },
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen12") }, {.v.s = LSTR_IMMED("gen7\n") } },
     },
 };
 static const iop_enum_value_attrs_t tstgen__my_enum_a__e_desc_values_attrs[] = {

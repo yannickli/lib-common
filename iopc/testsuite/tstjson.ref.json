@@ -214,7 +214,7 @@
 				},
 				"l": {
 					"type": "string",
-					"default": "fo\"o?\\cbaré©@A"
+					"default": "fo\"o?\\cbaré©@A\n"
 				},
 				"m": {
 					"type": "tstjson.MyEnumA",

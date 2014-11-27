@@ -1310,7 +1310,8 @@ static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
     switch (attr->args.tab[0].type) {
       case ITOK_STRING:
         sb_add_slashes(&tmp, attr->args.tab[0].v.s.s,
-                       attr->args.tab[0].v.s.len, "\\", "\\");
+                       attr->args.tab[0].v.s.len,
+                       "\a\b\e\t\n\v\f\r'\"", "abetnvfr'\"");
         sb_addf(buf, "{.v.s = LSTR_IMMED(\"%*pM\") } },\n",
                 SB_FMT_ARG(&tmp));
         break;
