@@ -492,6 +492,10 @@ class IopcTest(z.TestCase):
                        'generic attribute \'test:gen3\' must be unique for ' \
                        'each IOP object')
 
+    def test_generic_invalid_len(self):
+        self.run_iopc2('generic_attrs_invalid_4.iop', False,
+                       'error: `)` expected, but got `,` instead')
+
     # }}}
     # {{{ References
 

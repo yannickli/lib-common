@@ -2451,14 +2451,15 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
 
         if (attr->desc->id == IOPC_ATTR_GENERIC) {
             new_name = parse_gen_attr_arg(pp, attr, desc);
+            WANT(pp, 0, ')');
+            break;
         } else {
             parse_attr_arg(pp, attr, desc);
+            if (CHECK(pp, 0, ')')) {
+                break;
+            }
+            EAT(pp, ',');
         }
-
-        if (CHECK(pp, 0, ')')) {
-            break;
-        }
-        EAT(pp, ',');
     }
     iopc_lexer_pop_state(pp->ld);
     DROP(pp, 1);
