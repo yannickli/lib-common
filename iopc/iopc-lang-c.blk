@@ -1281,6 +1281,9 @@ bool iopc_field_is_signed(const iopc_field_t *f)
           case ITOK_DOUBLE:                                                 \
             _gen_type = IOP_##_what##_GEN_ATTR_D;                           \
             break;                                                          \
+          case ITOK_IDENT:                                                  \
+            _gen_type = IOP_##_what##_GEN_ATTR_O;                           \
+            break;                                                          \
           default:                                                          \
             assert (false);                                                 \
         }                                                                   \
@@ -1308,6 +1311,13 @@ static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
 
     /* Second argument: value of the generic attribute */
     switch (attr->args.tab[0].type) {
+      case ITOK_IDENT:
+        /* JSON object */
+        sb_add_slashes(&tmp, attr->args.tab[0].v.s.s,
+                       attr->args.tab[0].v.s.len, "\"", "\"");
+        sb_addf(buf, "{.v.s = LSTR_IMMED(\"%*pM\") } },\n",
+                SB_FMT_ARG(&tmp));
+        break;
       case ITOK_STRING:
         sb_add_slashes(&tmp, attr->args.tab[0].v.s.s,
                        attr->args.tab[0].v.s.len,

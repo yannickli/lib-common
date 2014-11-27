@@ -1,0 +1,30 @@
+package json_generic_attributes;
+
+@(scenario:label, "en" : "Price", "fr" : "Prix" )
+@(scenario:type, "dbl" : { "format" : "CURRENCY" })
+typedef double Price;
+
+@(scenario:label, en = "Voice call",
+                  fr = "Appel téléphonique")
+class VoiceEvent {
+    @(scenario:label, en = "Duration", fr = "Durée")
+    @(scenario:type, integer = { size = "INT32",
+                                 format = "TIME" })
+    int length;
+    Price price;
+};
+
+@(scenario:label, en = "Data session",
+                  fr = "Session de donnée")
+class DataEvent {
+    @(scenario:label, en = "Bandwidth size",
+                      fr = "Bande passante")
+    @(scenario:type, integer = { size = "INT32",
+                                 format = "TIME" })
+    int length;
+    Price price;
+};
+
+@(ns:id, a1 = [1, 2, 3,], a2 = [], s1 = { f1 = 1, }, s2 = { })
+struct Test {
+};
