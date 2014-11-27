@@ -318,6 +318,7 @@ static NEVER_INLINE int create_arena(size_t npages)
     pgs  = mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (pgs == MAP_FAILED)
         return -1;
+    mem_tool_disallow_memory(pgs, size);
 
     run = calloc(1, sizeof(page_run_t) + (npages + 1) * sizeof(page_desc_t));
     if (run == NULL) {
@@ -390,12 +391,15 @@ free_n(page_run_t *run, page_desc_t *blk, size_t npages, uint32_t seg)
     if (bsz == run->npages) {
         madvise(run->mem_pages, bsz * QPAGE_SIZE, MADV_DONTNEED);
         blk_set_clean(run->pages, bsz);
+        mem_tool_disallow_memory(run->mem_pages, bsz * QPAGE_SIZE);
     } else
     if (npages > QDB_MADVISE_THRESHOLD) {
         madvise(run->mem_pages + blkno, npages * QPAGE_SIZE, MADV_DONTNEED);
         blk_set_clean(run->pages + blkno, npages);
+        mem_tool_disallow_memory(run->mem_pages + blkno, npages * QPAGE_SIZE);
     } else {
         blk_set_dirty(run->pages + blkno, npages);
+        mem_tool_disallow_memory(run->mem_pages + blkno, npages * QPAGE_SIZE);
     }
 
     qpages_check(run);
@@ -455,6 +459,8 @@ qpage_alloc_align_impl(size_t npages, size_t shift, bool zero, page_run_t **runp
     }
     spin_unlock(&_G.lock);
 
+    mem_tool_allow_memory(run->mem_pages + blk_no(blk), npages * QPAGE_SIZE,
+                          zero);
     if (zero)
         blk_cleanse(run, blkno, npages);
     *runp = run;
@@ -539,6 +545,7 @@ static void *remap(void *ptr, size_t old_n, uint32_t old_seg,
         }
         blk_setup_backptrs(blk, (blk->flags & BLK_PREV_FREE), new_n);
         spin_unlock(&_G.lock);
+        mem_tool_allow_memory(qp + old_n, (new_n - old_n) * QPAGE_SIZE, zero);
 
         if (zero) {
             p_clear(qp + old_n, bsz - old_n);
