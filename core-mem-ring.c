@@ -667,4 +667,13 @@ void mem_ring_dump(const mem_pool_t *_rp)
     printf("-- }\n");
 }
 
+size_t mem_ring_memory_footprint(const mem_pool_t *_rp)
+{
+    ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
+
+    /* The ring_pool_t size should count as long as it is malloc'd. */
+
+    return sizeof(*rp) + rp->ringsize;
+}
+
 /* }}} */
