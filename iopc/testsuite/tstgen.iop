@@ -7,7 +7,7 @@ enum MyEnumA {
     VAL_A,
     @(test:gen11, true)
     VAL_B,
-    @(test:gen12, "gen7")
+    @(test:gen12, "gen\u0037")
     VAL_C,
 };
 

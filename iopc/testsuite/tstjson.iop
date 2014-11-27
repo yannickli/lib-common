@@ -97,7 +97,7 @@ struct MyStructB {
     double     i = 10.5;
     bool       j = true;
     bytes      k = "default data value"; /**< comment for k of MyStructB */
-    string     l = "fo\"o?\\cbaré©";
+    string     l = "fo\"o?\\cbaré©\x40\u0041";
     MyEnumA    m = A_C;
     MyUnionA[] unionA;
     MyStructA  structA;
