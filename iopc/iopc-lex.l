@@ -388,7 +388,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           yyextra->tk = token_new(ITOK_VERBATIM_C);
                           BEGIN(VERBATIM);
                         }
-    "-"?[0-9]*"."[0-9]+ {
+    "-"?[0-9]*"."[0-9]+([eE][+-]?[0-9]+)? {
                           iopc_token_t *tk = token_new(ITOK_DOUBLE);
                           errno = 0;
                           tk->d = strtod(yytext, NULL);

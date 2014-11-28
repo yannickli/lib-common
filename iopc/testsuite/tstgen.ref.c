@@ -97,6 +97,16 @@ static iop_field_attr_t const tstgen__my_struct_a__j__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:gen3") }, { .v.d = 1.00000000000000000e+01 } },
     },
 };
+static iop_field_attr_t const tstgen__my_struct_a__d1__attrs[] = {
+    {
+        .type = 14,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:d1") }, { .v.d = 1.00000000000000002e-02 } },
+    },
+    {
+        .type = 14,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("test:d2") }, { .v.d = 1.00000000000000000e+02 } },
+    },
+};
 static iop_field_attrs_t const tstgen__my_struct_a__desc_fields_attrs[] = {
     {
         .flags             = 0,
@@ -106,6 +116,11 @@ static iop_field_attrs_t const tstgen__my_struct_a__desc_fields_attrs[] = {
         .flags             = 16384,
         .attrs_len         = 1,
         .attrs             = tstgen__my_struct_a__j__attrs,
+    },
+    {
+        .flags             = 16384,
+        .attrs_len         = 2,
+        .attrs             = tstgen__my_struct_a__d1__attrs,
     },
 };
 static iop_field_t const tstgen__my_struct_a__desc_fields[] = {
@@ -127,10 +142,20 @@ static iop_field_t const tstgen__my_struct_a__desc_fields[] = {
         .data_offs = offsetof(tstgen__my_struct_a__t, j),
         .size      = fieldsizeof(tstgen__my_struct_a__t, j),
     },
+    {
+        .name      = LSTR_IMMED("d1"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_DOUBLE,
+        .data_offs = offsetof(tstgen__my_struct_a__t, d1),
+        .u1        = { .defval_d = 1.00000000000000000e+02 },
+        .size      = fieldsizeof(tstgen__my_struct_a__t, d1),
+    },
 };
 static int const iop__ranges__2[] = {
     0, 1,
-    2,
+    3,
 };
 static const iop_struct_attr_t tstgen__my_struct_a__s_attrs[] = {
     {
