@@ -525,6 +525,7 @@ const char *iop_type_get_string_desc(iop_type_t type)
 
 #define ATTR_IS_GENERIC(_attr, _what)                                        \
     (_attr->type == IOP_##_what##_GEN_ATTR_S                                 \
+  || _attr->type == IOP_##_what##_GEN_ATTR_O                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_I                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_D)
 
@@ -544,6 +545,7 @@ const char *iop_type_get_string_desc(iop_type_t type)
             _res = 0;                                                      \
                                                                            \
             switch (_attr->type) {                                         \
+              case IOP_##_what##_GEN_ATTR_O:                               \
               case IOP_##_what##_GEN_ATTR_S:                               \
                 _val->s = _attr->args[1].v.s;                              \
                 break;                                                     \
