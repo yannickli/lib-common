@@ -68,6 +68,8 @@ struct ring_pool_t {
     uint32_t     frames_cnt;
     uint32_t     nb_frames_release;
 
+    flag_t       alive : 1;
+
     mem_pool_t   funcs;
 };
 
@@ -370,6 +372,7 @@ mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
     rp->funcs      = pool_funcs;
     rp->alloc_nb   = 1; /* avoid the division by 0 */
     rp->frames_cnt  = 0;
+    rp->alive = true;
 
     /* Makes the first frame */
     blk = blk_create(rp, sizeof(frame_t));
@@ -379,10 +382,26 @@ mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
     return &rp->funcs;
 }
 
+static void __mem_ring_reset(ring_pool_t *rp);
+
 void mem_ring_pool_delete(mem_pool_t **rpp)
 {
     if (*rpp) {
         ring_pool_t *rp = container_of(*rpp, ring_pool_t, funcs);
+
+        spin_lock(&rp->lock);
+
+        if (rp->frames_cnt) {
+            assert (rp->alive);
+            rp->alive = false;
+
+            e_trace(0, "keep ring-pool alive: %d frames in use",
+                    rp->frames_cnt);
+            spin_unlock(&rp->lock);
+
+            *rpp = NULL;
+            return;
+        }
 
         dlist_for_each_safe(e, &rp->cblk->blist) {
             blk_destroy(rp, blk_entry(e));
@@ -479,6 +498,7 @@ void mem_ring_release(const void *cookie)
 {
     frame_t *frame  = (frame_t *)cookie;
     ring_pool_t *rp;
+    bool to_delete = false;
 
     if (!cookie) {
         return;
@@ -550,7 +570,15 @@ void mem_ring_release(const void *cookie)
         __mem_ring_reset(rp);
     }
 
+    to_delete = rp->frames_cnt == 0 && !rp->alive;
+
     spin_unlock(&rp->lock);
+
+    if (to_delete) {
+        mem_pool_t *mp = &rp->funcs;
+
+        mem_ring_pool_delete(&mp);
+    }
 }
 
 const void *mem_ring_checkpoint(mem_pool_t *_rp)
