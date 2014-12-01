@@ -109,13 +109,16 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
     size_t blksize = size_hint + sizeof(ring_blk_t);
     ring_blk_t *blk;
 
-    if (blksize < rp->minsize)
+    if (blksize < rp->minsize) {
         blksize = rp->minsize;
-    if (blksize < 64 * rp_alloc_mean(rp))
+    }
+    if (blksize < 64 * rp_alloc_mean(rp)) {
         blksize = 64 * rp_alloc_mean(rp);
+    }
     blksize = ROUND_UP(blksize, PAGE_SIZE);
-    if (blksize > MEM_ALLOC_MAX)
+    if (blksize > MEM_ALLOC_MAX) {
         e_panic("you cannot allocate that amount of memory");
+    }
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
     blk->start    = blk->area;
     blk->size     = blksize - sizeof(*blk);
@@ -163,11 +166,13 @@ frame_get_next_blk(ring_pool_t *rp, size_t size)
          *      from the next block, even if blocks are allocated
          *      without overhead, such as by mmapping.
          */
-        if (blk_contains(blk, start))
+        if (blk_contains(blk, start)) {
             break;
+        }
 
-        if (blk->size >= size && blk->size > 8 * rp_alloc_mean(rp))
+        if (blk->size >= size && blk->size > 8 * rp_alloc_mean(rp)) {
             return blk;
+        }
         blk_destroy(rp, blk);
     }
     return blk_create(rp, size);
@@ -216,8 +221,9 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
     THROW_NULL_IF(size == 0);
 
     res = rp_reserve(rp, size, &rp->cblk);
-    if (!(flags & MEM_RAW))
+    if (!(flags & MEM_RAW)) {
         memset(res, 0, size);
+    }
     rp->pos = res + size;
     return rp->last = res;
 }
@@ -237,8 +243,9 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
     }
 
 
-    if (unlikely(oldsize == MEM_UNKNOWN))
+    if (unlikely(oldsize == MEM_UNKNOWN)) {
         e_panic("ring pools do not support reallocs with unknown old size");
+    }
 
     if (oldsize >= size) {
         if (mem == rp->last) {
@@ -263,8 +270,9 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
             mem_tool_allow_memory(mem, oldsize, false);
         }
     }
-    if (!(flags & MEM_RAW))
+    if (!(flags & MEM_RAW)) {
         memset(res + oldsize, 0, size - oldsize);
+    }
     return res;
 }
 
@@ -300,8 +308,9 @@ void ring_reset_frame(ring_pool_t *rp, frame_t *frame, bool protect)
 {
     assert (rp->ring == frame);
 
-    if (protect && rp->pos)
+    if (protect && rp->pos) {
         mem_ring_protect(rp, frame->blk, &frame[1], rp->pos);
+    }
 
     rp->last = NULL;
     rp->pos  = NULL;
@@ -354,8 +363,9 @@ mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
     dlist_init(&rp->fhead);
 
     /* 640k should be enough for everybody =) */
-    if (initialsize <= 0)
+    if (initialsize <= 0) {
         initialsize = 640 << 10;
+    }
     rp->minsize    = ROUND_UP(initialsize, PAGE_SIZE);
     rp->funcs      = pool_funcs;
     rp->alloc_nb   = 1; /* avoid the division by 0 */
@@ -470,8 +480,9 @@ void mem_ring_release(const void *cookie)
     frame_t *frame  = (frame_t *)cookie;
     ring_pool_t *rp;
 
-    if (!cookie)
+    if (!cookie) {
         return;
+    }
 
     rp = (ring_pool_t *)frame->rp;
     assert (!(frame->rp & FRAME_IS_FREE));
@@ -578,8 +589,9 @@ static __thread mem_pool_t *r_pool_g;
 
 mem_pool_t *r_pool(void)
 {
-    if (unlikely(!r_pool_g))
+    if (unlikely(!r_pool_g)) {
         r_pool_g = mem_ring_pool_new(64 << 10);
+    }
     return r_pool_g;
 }
 
@@ -609,8 +621,9 @@ static size_t frame_getsize(frame_t *frame, const byte *pos)
             break;
         }
         size += blk_end(blk) - start;
-        if (dlist_is_last(&rp->cblk->blist, &blk->blist))
+        if (dlist_is_last(&rp->cblk->blist, &blk->blist)) {
             break;
+        }
         blk = dlist_next_entry(blk, blist);
         start = blk->area;
     }
