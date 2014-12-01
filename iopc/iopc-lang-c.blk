@@ -3170,6 +3170,12 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             path_canonify(tmp, sizeof(tmp), dep->file);
             sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
         }
+        qv_for_each_entry(iopc_pkg, dep, &t_weak_deps) {
+            char tmp[PATH_MAX];
+
+            path_canonify(tmp, sizeof(tmp), dep->file);
+            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
+        }
         qv_for_each_entry(iopc_pkg, dep, &i_deps) {
             char tmp[PATH_MAX];
 
@@ -3181,6 +3187,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 
     /*----- collect memory -----*/
     qv_wipe(iopc_pkg, &t_deps);
+    qv_wipe(iopc_pkg, &t_weak_deps);
     qv_wipe(iopc_pkg, &i_deps);
     sb_wipe(&buf);
     qv_deep_wipe(str, &pp_g, p_delete);
