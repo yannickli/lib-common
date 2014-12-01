@@ -506,7 +506,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     qv_for_each_entry(iopc_field, master_field, &parent_st->static_fields) {
         qv_for_each_entry(iopc_field, field, &st->static_fields) {
             if (strequal(master_field->name, field->name)) {
-                if (!field->has_defval) {
+                if (!field->defval_type) {
                     clear_loc();
                     fatal_loc("field `%s` already defined by parent `%s`",
                               field->loc, field->name, parent_st->name);
@@ -578,13 +578,13 @@ static void iopc_struct_check_abstract_static_fields(const iopc_struct_t *st)
 
     qh_init_cached(str, &fields_seen);
     qv_for_each_entry(iopc_field, field, &st->static_fields) {
-        assert (field->has_defval);
+        assert (field->defval_type);
         qh_add(str, &fields_seen, field->name);
     }
 
     do {
         qv_for_each_entry(iopc_field, field, &it_st->static_fields) {
-            if (field->has_defval) {
+            if (field->defval_type) {
                 qh_add(str, &fields_seen, field->name);
             } else
             if (qh_find(str, &fields_seen, field->name) < 0) {
@@ -752,7 +752,7 @@ void iopc_resolve_second_pass(iopc_pkg_t *pkg)
         if (st->type == STRUCT_TYPE_CLASS && st->is_abstract) {
             st->nb_real_static_fields = 0;
             qv_for_each_entry(iopc_field, f, &st->static_fields) {
-                if (f->has_defval) {
+                if (f->defval_type) {
                     st->nb_real_static_fields++;
                 }
             }
@@ -770,6 +770,40 @@ void iopc_resolve_second_pass(iopc_pkg_t *pkg)
                 {
                     fatal_loc("references can only be applied to structures "
                               "or unions", f->loc);
+                }
+            }
+            if (f->repeat == IOP_R_DEFVAL) {
+                switch (f->kind) {
+                  case IOP_T_ENUM:
+                  case IOP_T_I8 ... IOP_T_U64:
+                  case IOP_T_BOOL:
+                    if (f->defval_type != IOPC_DEFVAL_INTEGER) {
+                        fatal_loc("invalid default value on integer field",
+                                  f->loc);
+                    }
+                    break;
+                  case IOP_T_DOUBLE:
+                    if (f->defval_type == IOPC_DEFVAL_STRING) {
+                        fatal_loc("string default value on double field",
+                                  f->loc);
+                    } else
+                    if (f->defval_type == IOPC_DEFVAL_INTEGER) {
+                        f->defval.d = f->defval.u64;
+                    }
+                    break;
+
+                  case IOP_T_STRING:
+                  case IOP_T_DATA:
+                  case IOP_T_XML:
+                    if (f->defval_type != IOPC_DEFVAL_STRING) {
+                        fatal_loc("invalid default value on string field",
+                                  f->loc);
+                    }
+                    break;
+
+                  default:
+                    e_panic("should not happen");
+                    break;
                 }
             }
         }

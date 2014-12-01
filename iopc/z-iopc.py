@@ -283,6 +283,14 @@ class IopcTest(z.TestCase):
             '{ .defval_u64 = 0xffffffffffffffff }',
             '{ .defval_data = "RST" }'])
 
+    def test_defval_invalid(self):
+        self.run_iopc('defval_invalid_int.iop', False,
+                      'invalid default value on integer field', 2)
+        self.run_iopc('defval_invalid_double.iop', False,
+                      'string default value on double field', 2)
+        self.run_iopc('defval_invalid_str.iop', False,
+                      'invalid default value on string field', 2)
+
     def test_integer_ext_overflow(self):
         self.run_iopc('integer_ext_overflow.iop', False,
                       'integer overflow', 2)

@@ -7,6 +7,7 @@ import typedef2.*;
 
 typedef string MyString;
 typedef ulong MyULong;
+typedef double MyDouble;
 
 @pattern("[0-9]*")
 typedef string MyNumericalString;
@@ -80,9 +81,16 @@ typedef B Bdef;
 
 struct TypedefStructUseAll {
     MyString ms;
+    MyString? opt;
+    MyString def = "test";
     @maxLength(12)
     typedef_valid.MyString mst;
-    MyULong  mul;
+
+    MyULong mul;
+    MyULong muldef = 2;
+    MyDouble md;
+    MyDouble mddef = 2.0;
+    MyDouble mddef2 = 2;
 
     MyNumericalString mns;
     Min3 m3;

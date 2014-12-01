@@ -1,0 +1,5 @@
+package defval_invalid_str;
+
+struct Test {
+    string s = 2;
+};

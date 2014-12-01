@@ -1,0 +1,5 @@
+package defval_invalid_int;
+
+struct Test {
+    uint u = 2.0;
+};

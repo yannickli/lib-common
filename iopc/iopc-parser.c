@@ -1613,6 +1613,7 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
         fatal_loc("default values for non required fields makes no sense",
                   tk->loc);
     }
+    f->repeat = IOP_R_DEFVAL;
 
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
         if (attr->desc->id == IOPC_ATTR_NON_EMPTY
@@ -1623,41 +1624,37 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
         }
     }
 
-    f->repeat = IOP_R_DEFVAL;
-
-    switch (f->kind) {
-      case IOP_T_STRING:
-      case IOP_T_DATA:
-      case IOP_T_XML:
+    if (tk->b_is_char) {
         WANT(pp, 0, ITOK_STRING);
-        f->defval.ptr = p_strdup(tk->b.data);
-        if (nonzero && !tk->b.len)
-            fatal_loc("default value violates nonEmpty constraint", tk->loc);
-        DROP(pp, 1);
-        break;
-
-      case IOP_T_DOUBLE:
-        WANT(pp, 0, ITOK_DOUBLE);
-        f->defval.d = tk->d;
-        if (nonzero && !f->defval.d)
+        f->defval.u64 = (uint64_t)tk->b.data[0];
+        f->defval_type = IOPC_DEFVAL_INTEGER;
+        if (nonzero && !f->defval.u64) {
             fatal_loc("default value violates nonZero constraint", tk->loc);
-        DROP(pp, 1);
-        break;
-
-      case IOP_T_STRUCT:
-        /* assume it's an enum in disguise */
-      default: /* integer */
-        if (tk->b_is_char) {
-            WANT(pp, 0, ITOK_STRING);
-            f->defval.u64 = (uint64_t) tk->b.data[0];
-            DROP(pp, 1);
-        } else {
-            f->defval.u64 = parse_constant_integer(pp, paren);
         }
-        if (nonzero && !f->defval.u64)
+        DROP(pp, 1);
+    } else
+    if (CHECK(pp, 0, ITOK_STRING)) {
+        f->defval.ptr = p_strdup(tk->b.data);
+        f->defval_type = IOPC_DEFVAL_STRING;
+        if (nonzero && !tk->b.len) {
+            fatal_loc("default value violates nonEmpty constraint", tk->loc);
+        }
+        DROP(pp, 1);
+    } else
+    if (CHECK(pp, 0, ITOK_DOUBLE)) {
+        f->defval.d = tk->d;
+        f->defval_type = IOPC_DEFVAL_DOUBLE;
+        if (nonzero && !f->defval.d) {
+            fatal_loc("default value violates nonZero constraint", tk->loc);
+        }
+        DROP(pp, 1);
+    } else {
+        f->defval.u64 = parse_constant_integer(pp, paren);
+        f->defval_type = IOPC_DEFVAL_INTEGER;
+        if (nonzero && !f->defval.u64) {
             fatal_loc("default value violates nonZero constraint",
                       TK(pp, 0)->loc);
-        break;
+        }
     }
 }
 
@@ -1720,7 +1717,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         if (st->type == STRUCT_TYPE_UNION)
             fatal_loc("default values are forbidden in union types", f->loc);
         parse_field_defval(pp, f, paren);
-        f->has_defval = true;
+        assert (f->defval_type);
     } else
     if (f->is_static && !st->is_abstract) {
         fatal_loc("static fields of non-abstract classes must have a default "
