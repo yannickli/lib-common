@@ -94,7 +94,7 @@ prereq() {
 }
 
 check_iopc() {
-    IOPC_VER=3.0.13
+    IOPC_VER=3.0.15
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
         warn "iopc version $IOPC_VER required, update your tools"
     fi

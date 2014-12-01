@@ -3957,6 +3957,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NEG(iop_rpc_get_gen_attr(&tstiop__my_iface_a__if,
                                           tstiop__my_iface_a__fun_a__rpc,
                                           LSTR("test:gen1"), &value));
+
+        /* json object */
+        Z_ASSERT_N(iop_struct_get_gen_attr(&tstiop__my_struct_a__s,
+                                           LSTR("test:json"), &value));
+        Z_ASSERT_STREQUAL(value.s.s,
+            "{\"field\":{\"f1\":\"val1\",\"f2\":-1.00000000000000000e+02}}");
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_dso_fixup, "test iop dso fixup") { /* {{{ */
