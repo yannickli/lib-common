@@ -238,7 +238,7 @@ void qps_bitmap_enumeration_find_word(qps_bitmap_enumerator_t *en,
 {
     if (en->nullable) {
         assert (en->leaf != NULL);
-        for (unsigned i = key.word_null; i < QPS_BITMAP_WORD; i++) {
+        for (unsigned i = key.word_null; i < 2 * QPS_BITMAP_WORD; i++) {
             if (en->leaf[i] != 0) {
                 en->key.bit_null  = 0;
                 en->key.word_null = i;
