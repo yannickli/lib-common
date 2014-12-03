@@ -2291,9 +2291,135 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
     return mod;
 }
 
+static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
+static void parse_json_array(iopc_parser_t *pp, sb_t *sb);
+
+static void parse_json_value(iopc_parser_t *pp, sb_t *sb)
+{
+    SB_1k(tmp);
+    iopc_token_t *tk = TK(pp, 0);
+
+    switch (tk->token) {
+      case ITOK_STRING:
+        sb_add_slashes(&tmp, tk->b.data, tk->b.len,
+                       "\a\b\e\t\n\v\f\r'\"", "abetnvfr'\"");
+        sb_addf(sb, "\"%*pM\"",  SB_FMT_ARG(&tmp));
+        break;
+
+      case ITOK_INTEGER:
+        if (tk->i_is_signed) {
+            sb_addf(sb, "%jd", tk->i);
+        } else {
+            sb_addf(sb, "%ju", tk->i);
+        }
+        break;
+
+      case ITOK_DOUBLE:
+        sb_addf(sb, DOUBLE_FMT, tk->d);
+        break;
+
+      case ITOK_LBRACE:
+        parse_json_object(pp, sb, false);
+        return;
+
+      case ITOK_LBRACKET:
+        parse_json_array(pp, sb);
+        return;
+
+      case ITOK_BOOL:
+        sb_addf(sb, "%s", tk->i ? "true" : "false");
+        break;
+
+      case ITOK_IDENT:
+        if (CHECK_KW(pp, 0, "null")) {
+            sb_adds(sb, "null");
+        } else {
+            fatal_loc("invalid identifier when parsing json value", tk->loc);
+        }
+        break;
+
+      default:
+        fatal_loc("invalid token when parsing json value", tk->loc);
+        break;
+    }
+
+    DROP(pp, 1);
+}
+
+static void parse_json_array(iopc_parser_t *pp, sb_t *sb)
+{
+    EAT(pp, '[');
+    sb_addc(sb, '[');
+
+    if (CHECK_NOEOF(pp, 0, ']')) {
+        goto end;
+    }
+    for (;;) {
+        parse_json_value(pp, sb);
+
+        if (!CHECK(pp, 0, ',')) {
+            break;
+        }
+        DROP(pp, 1);
+        if (CHECK_NOEOF(pp, 0, ']')) {
+            break;
+        }
+        sb_addc(sb, ',');
+    }
+  end:
+    EAT(pp, ']');
+    sb_addc(sb, ']');
+}
+
+static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel)
+{
+    char end = toplevel ? ')' : '}';
+
+    if (!toplevel) {
+        EAT(pp, '{');
+        sb_addc(sb, '{');
+    }
+    if (CHECK_NOEOF(pp, 0, end)) {
+        goto end;
+    }
+    for (;;) {
+        iopc_token_t *tk = TK(pp, 0);
+
+        if (!CHECK(pp, 0, ITOK_IDENT)) {
+            WANT(pp, 0, ITOK_STRING);
+        }
+        sb_addf(sb, "\"%*pM\"",  SB_FMT_ARG(&tk->b));
+        DROP(pp, 1);
+
+        if (CHECK(pp, 0, '=')) {
+            DROP(pp, 1);
+        } else {
+            EAT(pp, ':');
+        }
+        sb_addc(sb, ':');
+
+        parse_json_value(pp, sb);
+
+        if (!CHECK(pp, 0, ',')) {
+            break;
+        }
+        DROP(pp, 1);
+        if (CHECK_NOEOF(pp, 0, end)) {
+            break;
+        }
+        sb_addc(sb, ',');
+    }
+  end:
+    if (!toplevel) {
+        EAT(pp, '}');
+        sb_addc(sb, '}');
+    }
+}
+
 static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
                                  iopc_arg_desc_t *desc)
 {
+    SB_1k(sb);
     iopc_arg_t arg;
     lstr_t new_name;
     iopc_token_t *tk;
@@ -2314,6 +2440,15 @@ static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
     tk = TK(pp, 0);
     arg.type = tk->token;
+
+    if (CHECK(pp, 1, ':') || CHECK(pp, 1, '=')) {
+        arg.type = ITOK_IDENT;
+        sb_addc(&sb, '{');
+        parse_json_object(pp, &sb, true);
+        sb_addc(&sb, '}');
+        lstr_transfer_sb(&arg.v.s, &sb, false);
+        goto append;
+    }
 
     switch (arg.type) {
       case ITOK_STRING:
@@ -2336,8 +2471,8 @@ static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
     DROP(pp, 1);
 
+  append:
     qv_append(iopc_arg, &attr->args, arg);
-
     return new_name;
 }
 
@@ -2451,14 +2586,15 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
 
         if (attr->desc->id == IOPC_ATTR_GENERIC) {
             new_name = parse_gen_attr_arg(pp, attr, desc);
+            WANT(pp, 0, ')');
+            break;
         } else {
             parse_attr_arg(pp, attr, desc);
+            if (CHECK(pp, 0, ')')) {
+                break;
+            }
+            EAT(pp, ',');
         }
-
-        if (CHECK(pp, 0, ')')) {
-            break;
-        }
-        EAT(pp, ',');
     }
     iopc_lexer_pop_state(pp->ld);
     DROP(pp, 1);

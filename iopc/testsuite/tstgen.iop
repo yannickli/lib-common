@@ -7,7 +7,7 @@ enum MyEnumA {
     VAL_A,
     @(test:gen11, true)
     VAL_B,
-    @(test:gen12, "gen7")
+    @(test:gen12, "gen\u0037\n")
     VAL_C,
 };
 
@@ -18,6 +18,9 @@ struct MyStructA {
     int i;
     @(test:gen3, 10.0)
     int j;
+    @(test:d1, 1.0e-2)
+    @(test:d2, 1.0E+2)
+    double d1 = 1.0e2;
 };
 
 @(test:gen4, "test")
