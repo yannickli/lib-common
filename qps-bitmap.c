@@ -406,8 +406,7 @@ void qps_bitmap_get_qps_roots(qps_bitmap_t *map, qps_roots_t *roots)
 Z_GROUP_EXPORT(qps_bitmap) {
     qps_t *qps;
 
-    thr_initialize();
-    qps_initialize(NULL);
+    MODULE_REQUIRE(qps);
 
     if (qps_exists(z_grpdir_g.s)) {
         qps = qps_open(z_grpdir_g.s, NULL);
