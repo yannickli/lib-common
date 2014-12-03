@@ -792,7 +792,9 @@ static inline int lstr_to_int(lstr_t lstr, int *out)
     errno = 0;
     *out = memtoip(lstr.s, lstr.len, &endp);
 
-    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
         return -1;
     }
 
@@ -821,7 +823,9 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
     errno = 0;
     *out = memtollp(lstr.s, lstr.len, &endp);
 
-    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
         return -1;
     }
 
@@ -856,7 +860,9 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     errno = 0;
     *out = memtoullp(lstr.s, lstr.len, &endp);
 
-    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
         return -1;
     }
 
