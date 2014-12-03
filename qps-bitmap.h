@@ -32,10 +32,11 @@
  *   * 11: bit set at 1
  */
 
-#define QPS_BITMAP_ROOTS     64
-#define QPS_BITMAP_DISPATCH  2048
-#define QPS_BITMAP_WORD      (QPS_PAGE_SIZE / 8)
-#define QPS_BITMAP_LEAF      (8 * QPS_PAGE_SIZE)
+#define QPS_BITMAP_ROOTS      64
+#define QPS_BITMAP_DISPATCH   2048
+#define QPS_BITMAP_WORD       (QPS_PAGE_SIZE / 8)
+#define QPS_BITMAP_NULL_WORD  (2 * QPS_BITMAP_WORD)
+#define QPS_BITMAP_LEAF       (8 * QPS_PAGE_SIZE)
 
 /* Typedefs {{{ */
 
@@ -238,7 +239,7 @@ void qps_bitmap_enumeration_find_word(qps_bitmap_enumerator_t *en,
 {
     if (en->nullable) {
         assert (en->leaf != NULL);
-        for (unsigned i = key.word_null; i < 2 * QPS_BITMAP_WORD; i++) {
+        for (unsigned i = key.word_null; i < QPS_BITMAP_NULL_WORD; i++) {
             if (en->leaf[i] != 0) {
                 en->key.bit_null  = 0;
                 en->key.word_null = i;
@@ -498,6 +499,7 @@ static inline
 void qps_bitmap_enumeration_find_word_nn(qps_bitmap_enumerator_t *en,
                                          qps_bitmap_key_t key)
 {
+    assert (!en->nullable);
     assert (en->leaf != NULL);
     for (unsigned i = key.word; i < QPS_BITMAP_WORD; i++) {
         if (en->leaf[i] != 0) {
