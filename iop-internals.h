@@ -107,6 +107,13 @@ typedef union iop_value_t {
     void       *v;
 } iop_value_t;
 
+/* For each iop object, an enum *_attr_type_t is declared which contains the
+ * supported types for a generic attribute:
+ * _GEN_ATTR_S for strings (v.s)
+ * _GEN_ATTR_I for integers (v.i64)
+ * _GEN_ATTR_D for doubles (v.d)
+ * _GEN_ATTR_O for json objects (v.s)
+ */
 typedef struct iop_generic_attr_arg_t {
     iop_value_t v;
 } iop_generic_attr_arg_t;
@@ -119,6 +126,7 @@ typedef enum iop_enum_value_attr_type_t {
     IOP_ENUM_VALUE_GEN_ATTR_S,
     IOP_ENUM_VALUE_GEN_ATTR_I,
     IOP_ENUM_VALUE_GEN_ATTR_D,
+    IOP_ENUM_VALUE_GEN_ATTR_O,
 } iop_enum_value_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;
@@ -141,6 +149,7 @@ typedef enum iop_enum_attr_type_t {
     IOP_ENUM_GEN_ATTR_S,
     IOP_ENUM_GEN_ATTR_I,
     IOP_ENUM_GEN_ATTR_D,
+    IOP_ENUM_GEN_ATTR_O,
 } iop_enum_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
@@ -224,6 +233,7 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_GEN_ATTR_S,
     IOP_FIELD_GEN_ATTR_I,
     IOP_FIELD_GEN_ATTR_D,
+    IOP_FIELD_GEN_ATTR_O,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -245,6 +255,7 @@ typedef enum iop_struct_attr_type_t {
     IOP_STRUCT_GEN_ATTR_S,
     IOP_STRUCT_GEN_ATTR_I,
     IOP_STRUCT_GEN_ATTR_D,
+    IOP_STRUCT_GEN_ATTR_O,
 } iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
@@ -324,6 +335,7 @@ typedef enum iop_rpc_attr_type_t {
     IOP_RPC_GEN_ATTR_S,
     IOP_RPC_GEN_ATTR_I,
     IOP_RPC_GEN_ATTR_D,
+    IOP_RPC_GEN_ATTR_O,
 } iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
@@ -357,6 +369,7 @@ typedef enum iop_iface_attr_type_t {
     IOP_IFACE_GEN_ATTR_S,
     IOP_IFACE_GEN_ATTR_I,
     IOP_IFACE_GEN_ATTR_D,
+    IOP_IFACE_GEN_ATTR_O,
 } iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;

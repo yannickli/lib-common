@@ -78,7 +78,7 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
 {
     unsigned desc_flags = desc->flags;
 
-    if (TST_BIT(&desc_flags, IOP_STRUCT_EXTENDED) && desc->rpc_attrs) {
+    if (TST_BIT(&desc_flags, IOP_IFACE_EXTENDED) && desc->rpc_attrs) {
         const iop_rpc_attrs_t *attrs;
 
         attrs = &desc->rpc_attrs[fdesc - desc->funs];

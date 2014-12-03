@@ -109,6 +109,11 @@ class IopcTest(z.TestCase):
                     self.assertFalse(True)
         f.close()
 
+    def check_ref(self, pkg, lang):
+        self.assertEqual(subprocess.call(['diff', '-u',
+                                          pkg + '.iop.' + lang,
+                                          pkg + '.ref.' + lang]), 0)
+
     def test_circular_type_valid(self):
         f = 'circular_type_valid.iop'
         self.run_iopc_pass(f, 1)
@@ -492,6 +497,28 @@ class IopcTest(z.TestCase):
                        'generic attribute \'test:gen3\' must be unique for ' \
                        'each IOP object')
 
+    def test_generic_invalid_len(self):
+        self.run_iopc2('generic_attrs_invalid_4.iop', False,
+                       'error: `)` expected, but got `,` instead')
+
+    def test_generic_json(self):
+        f = 'json_generic_attributes'
+        g = os.path.join(TEST_PATH, f)
+        self.run_iopc_pass(f + '.iop', 3, 'C,json')
+        self.run_gcc(f + '.iop')
+        for lang in ['json', 'c']:
+            self.check_ref(g, lang)
+        self.run_iopc2('json_generic_invalid1.iop', False,
+                       'error: `:` expected, but got `)` instead')
+        self.run_iopc2('json_generic_invalid2.iop', False,
+                       'error: invalid token when parsing json value')
+        self.run_iopc2('json_generic_invalid3.iop', False,
+                       'error: string expected, but got `,` instead')
+        self.run_iopc2('json_generic_invalid4.iop', False,
+                       'error: `]` expected, but got integer instead')
+        self.run_iopc2('json_generic_invalid5.iop', False,
+                       'error: `)` expected, but got identifier instead')
+
     # }}}
     # {{{ References
 
@@ -532,9 +559,7 @@ class IopcTest(z.TestCase):
         for lang in ['json', 'C,json', 'json,C']:
             subprocess.call(['rm', '-f', g + '.iop.json'])
             self.run_iopc_pass(f + '.iop', 3, lang)
-            self.assertEqual(subprocess.call(['diff', '-u',
-                                              g + '.iop.json',
-                                              g + '.ref.json']), 0)
+            self.check_ref(g, 'json')
 
     def test_dox_c(self):
         f = 'tstdox'
@@ -542,8 +567,7 @@ class IopcTest(z.TestCase):
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
         self.run_gcc(f + '.iop')
-        self.assertEqual(
-            subprocess.call(['diff', g + '.iop.c', g + '.ref.c']), 0)
+        self.check_ref(g, 'c')
 
     def test_gen_c(self):
         f = 'tstgen'
@@ -551,8 +575,7 @@ class IopcTest(z.TestCase):
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
         self.run_gcc(f + '.iop')
-        self.assertEqual(
-            subprocess.call(['diff', g + '.iop.c', g + '.ref.c']), 0)
+        self.check_ref(g, 'c')
 
 if __name__ == "__main__":
     z.main()

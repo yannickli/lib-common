@@ -525,6 +525,7 @@ const char *iop_type_get_string_desc(iop_type_t type)
 
 #define ATTR_IS_GENERIC(_attr, _what)                                        \
     (_attr->type == IOP_##_what##_GEN_ATTR_S                                 \
+  || _attr->type == IOP_##_what##_GEN_ATTR_O                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_I                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_D)
 
@@ -544,6 +545,7 @@ const char *iop_type_get_string_desc(iop_type_t type)
             _res = 0;                                                      \
                                                                            \
             switch (_attr->type) {                                         \
+              case IOP_##_what##_GEN_ATTR_O:                               \
               case IOP_##_what##_GEN_ATTR_S:                               \
                 _val->s = _attr->args[1].v.s;                              \
                 break;                                                     \
@@ -565,6 +567,11 @@ const char *iop_type_get_string_desc(iop_type_t type)
 int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
                             iop_value_t *value)
 {
+    unsigned flags = st->flags;
+
+    if (!TST_BIT(&flags, IOP_STRUCT_EXTENDED) || !st->st_attrs) {
+        return -1;
+    }
     return __get_gen_attr_value(st->st_attrs->attrs, st->st_attrs->attrs_len,
                                 key, STRUCT, struct, value);
 }
@@ -572,6 +579,9 @@ int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
 int iop_enum_get_gen_attr(const iop_enum_t *en, lstr_t key,
                           iop_value_t *value)
 {
+    if (!TST_BIT(&en->flags, IOP_ENUM_EXTENDED) || !en->en_attrs) {
+        return -1;
+    }
     return __get_gen_attr_value(en->en_attrs->attrs, en->en_attrs->attrs_len,
                                 key, ENUM, enum, value);
 }
@@ -583,8 +593,12 @@ int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
                                    lstr_t key, iop_value_t *value)
 {
     const iop_enum_value_attrs_t *va;
-    int pos = RETHROW(iop_enum_pos_from_val(ed, val));
+    int pos;
 
+    if (!TST_BIT(&ed->flags, IOP_ENUM_EXTENDED) || !ed->values_attrs) {
+        return -1;
+    }
+    pos = RETHROW(iop_enum_pos_from_val(ed, val));
     va = &ed->values_attrs[pos];
     return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
                                 enum_value, value);
@@ -594,8 +608,12 @@ int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
                                    lstr_t key, iop_value_t *value)
 {
     const iop_enum_value_attrs_t *va;
-    int pos = RETHROW(iop_enum_pos_from_str(ed, val.s, val.len));
+    int pos;
 
+    if (!TST_BIT(&ed->flags, IOP_ENUM_EXTENDED) || !ed->values_attrs) {
+        return -1;
+    }
+    pos = RETHROW(iop_enum_pos_from_str(ed, val.s, val.len));
     va = &ed->values_attrs[pos];
     return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
                                 enum_value, value);
@@ -604,6 +622,9 @@ int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
 int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
                            iop_value_t *value)
 {
+    if (!TST_BIT(&iface->flags, IOP_IFACE_HAS_ATTRS) || !iface->iface_attrs) {
+        return -1;
+    }
     return __get_gen_attr_value(iface->iface_attrs->attrs,
                                 iface->iface_attrs->attrs_len, key, IFACE,
                                 iface, value);

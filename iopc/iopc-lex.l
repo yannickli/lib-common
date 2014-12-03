@@ -388,7 +388,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           yyextra->tk = token_new(ITOK_VERBATIM_C);
                           BEGIN(VERBATIM);
                         }
-    "-"?[0-9]*"."[0-9]+ {
+    "-"?[0-9]*"."[0-9]+([eE][+-]?[0-9]+)? {
                           iopc_token_t *tk = token_new(ITOK_DOUBLE);
                           errno = 0;
                           tk->d = strtod(yytext, NULL);
@@ -551,8 +551,8 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           return yyextra->tk;
                         }
     \\[0-2][0-7]{2}     { sb_addc(&yyextra->tk->b, strtol(yytext + 1, NULL, 8)); }
-    \\x[0-9a-fA-F]{2}   { sb_addc(&yyextra->tk->b, strtol(yytext + 2, NULL, 0)); }
-    \\u[0-9a-fA-F]{4}   { sb_adduc(&yyextra->tk->b, strtol(yytext + 2, NULL, 0)); }
+    \\x[0-9a-fA-F]{2}   { sb_addc(&yyextra->tk->b, strtol(yytext + 2, NULL, 16)); }
+    \\u[0-9a-fA-F]{4}   { sb_adduc(&yyextra->tk->b, strtol(yytext + 2, NULL, 16)); }
     \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->tk->b, yytext, 2); }
     \\.                 { sb_add(&yyextra->tk->b, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->tk->b, yytext, yyleng); }

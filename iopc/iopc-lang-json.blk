@@ -205,6 +205,12 @@ static void dump_gen_attr(const iopc_write_buf_t *wbuf, iopc_attr_t *attr)
     LINE_START_OBJ_KEY(wbuf, attr->real_name.s);
 
     switch (attr->args.tab[0].type) {
+      case ITOK_IDENT:
+        /* JSON object */
+        LINE_CKEY_VAL_CSTR(wbuf, "type", "object");
+        LINE_CKEY_VAL_FMT(wbuf, "value", "%*pM",
+                          LSTR_FMT_ARG(attr->args.tab[0].v.s));
+        break;
       case ITOK_STRING:
         LINE_CKEY_VAL_CSTR(wbuf, "type", "string");
         dump_key_val_string(wbuf, "value", attr->args.tab[0].v.s.s);
