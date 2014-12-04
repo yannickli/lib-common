@@ -71,6 +71,7 @@ class MyClass3 : 3 : MyClass2 {
 
 
 @(test:gen3, "3")
+@(test:json, "field": { "f1": "val1", "f2": -1.0e2 } )
 struct MyStructA {
     @(test:gen4, 4)
     int a;
