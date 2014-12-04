@@ -730,3 +730,16 @@ __attribute__((weak)) void lp_gettv(struct timeval *tv)
         (sprintf)(lp_time_g.sec_str, "%lld", (long long)lp_time_g.sec);
     }
 }
+
+__attribute__((weak)) uint64_t lp_getmsec(void)
+{
+    struct timeval tv;
+
+    lp_gettv(&tv);
+    return tv.tv_sec * 1000ull + tv.tv_usec / 1000ull;
+}
+
+__attribute__((weak)) uint64_t lp_getcsec(void)
+{
+    return lp_getmsec() / 10ull;
+}
