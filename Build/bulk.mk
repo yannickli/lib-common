@@ -23,9 +23,9 @@ endif
 endif
 
 doc:
-all check fast-check www-check clean distclean www::
+all check fast-check www-check clean distclean www pylint::
 FORCE: ;
-.PHONY: all check fast-check www-check clean distclean doc www FORCE
+.PHONY: all check fast-check www-check clean distclean doc www pylint FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -75,12 +75,15 @@ fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
 www-check:: | _generated_hdr
 	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh .
+%.pylint:: %.py
+	$(msg/CHECK.py) $<
+	pylint $<
+pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 
 tags: $(var/generated)
 syntastic:
 jshint:
-pylint:
-.PHONY: tags jshint pylint syntastic
+.PHONY: tags jshint syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -88,6 +91,7 @@ $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))doc:        $(d)doc
 $(patsubst ./%,%,$(dir $(d:/=)))www::       $(d)www
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
+$(patsubst ./%,%,$(dir $(d:/=)))pylint::    $(d)pylint
 $(d)all::
 $(d)doc:
 $(d)www::
@@ -102,6 +106,10 @@ $(d)clean::
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$($(d)_CLEANFILES)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$($(d)_CLEANFILES)))
 $(d)distclean:: distclean
+%.pylint:: %.py
+	$(msg/CHECK.py) $$<
+	pylint $$<
+$(d)pylint:: $$(addprefix $(d),$$(addsuffix lint,$$(shell cd '$(d)' && git ls-files '*.py' '**/*.py')))
 )
 endef
 $(eval $(call fun/subdirs-targets,$(patsubst $/%Makefile,%,$(var/makefiles))))
@@ -181,10 +189,9 @@ jshint: | __setup_buildsys_trampoline
 
 www:: jshint
 
-pylint: | __setup_buildsys_trampoline
-	$(MAKEPARALLEL) -C $/ -f $!Makefile pylint
+pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
-	$(foreach f,$(shell git ls-files -- '*.py'), $(msg/CHECK.py) $f && pylint $f;)
+	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)pylint
 
 syntastic: | __setup_buildsys_trampoline
 	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
