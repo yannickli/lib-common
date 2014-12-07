@@ -877,6 +877,15 @@ Z_GROUP_EXPORT(qvector)
         qv_deep_wipe(str, &vec1, p_delete);
         qv_wipe(str, &vec2);
     } Z_TEST_END;
+
+    Z_TEST(mp_qv_init, "qvector: mp_qv_init leak") {
+        qv_t(str) vec;
+
+        mp_qv_init(str, NULL, &vec, 0);
+        qv_deep_wipe(str, &vec, p_delete);
+
+        Z_ASSERT(true);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /*1}}}*/
