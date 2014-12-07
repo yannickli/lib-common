@@ -551,6 +551,7 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
         .is_silent   = !!(logger->level_flags & LOG_SILENT),
     };
 
+    assert (logger->conf_gen == log_conf_gen_g);
     logger_putv(&ctx, logger_has_level(logger, level) || level >= LOG_TRACE,
                 fmt, va);
     return level <= LOG_WARNING ? -1 : 0;
@@ -636,6 +637,8 @@ int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
 void __logger_start(logger_t *logger, int level, const char *prog, int pid,
                     const char *file, const char *func, int line)
 {
+    assert (logger->conf_gen == log_conf_gen_g);
+
     log_thr_g.ml_ctx = (log_ctx_t){
         .logger_name = lstr_dupc(logger->full_name),
         .level       = level,
