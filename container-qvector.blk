@@ -19,7 +19,7 @@ static void __qvector_reset(qvector_t *vec, size_t v_size, size_t threshold)
     mem_pool_t *mp = mp_ipool(vec->mp);
     size_t sz = vec->size;
 
-    if (!(mp->mem_pool & MEM_BY_FRAME) && sz * v_size > threshold) {
+    if (!(mp->mem_pool & MEM_BY_FRAME) && sz * v_size >= threshold) {
         mp_delete(mp, &vec->tab);
         __qvector_init(vec, NULL, 0, 0, vec->mp);
     } else {
