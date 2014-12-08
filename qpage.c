@@ -322,6 +322,7 @@ static NEVER_INLINE int create_arena(size_t npages)
 
     run = calloc(1, sizeof(page_run_t) + (npages + 1) * sizeof(page_desc_t));
     if (run == NULL) {
+        mem_tool_allow_memory(pgs, size, true);
         munmap(pgs, size);
         return -1;
     }
@@ -329,10 +330,13 @@ static NEVER_INLINE int create_arena(size_t npages)
         offset = (uintptr_t)pgs & QPAGE_MASK;
         if (offset) {
             npages--;
+            mem_tool_allow_memory(pgs, QPAGE_SIZE - offset, true);
             munmap(pgs, QPAGE_SIZE - offset);
             pgs = (qpage_t *)((uintptr_t)pgs + QPAGE_SIZE - offset);
+            mem_tool_allow_memory(pgs + npages, offset, true);
             munmap(pgs + npages, offset);
         } else {
+            mem_tool_allow_memory(pgs + npages, QPAGE_SIZE, true);
             munmap(pgs + npages, QPAGE_SIZE);
         }
     }
