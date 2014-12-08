@@ -1,4 +1,4 @@
-package defval_invalid_str;
+package defval_str_invalid;
 
 struct Test {
     string s = 2;

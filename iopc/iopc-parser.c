@@ -1604,7 +1604,6 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 {
     iopc_token_t *tk;
-    bool nonzero = false;
 
     EAT(pp, '=');
     tk = TK(pp, 0);
@@ -1615,46 +1614,24 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
     }
     f->repeat = IOP_R_DEFVAL;
 
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
-        if (attr->desc->id == IOPC_ATTR_NON_EMPTY
-        ||  attr->desc->id == IOPC_ATTR_NON_ZERO)
-        {
-            nonzero = true;
-            break;
-        }
-    }
-
     if (tk->b_is_char) {
         WANT(pp, 0, ITOK_STRING);
         f->defval.u64 = (uint64_t)tk->b.data[0];
         f->defval_type = IOPC_DEFVAL_INTEGER;
-        if (nonzero && !f->defval.u64) {
-            fatal_loc("default value violates nonZero constraint", tk->loc);
-        }
         DROP(pp, 1);
     } else
     if (CHECK(pp, 0, ITOK_STRING)) {
         f->defval.ptr = p_strdup(tk->b.data);
         f->defval_type = IOPC_DEFVAL_STRING;
-        if (nonzero && !tk->b.len) {
-            fatal_loc("default value violates nonEmpty constraint", tk->loc);
-        }
         DROP(pp, 1);
     } else
     if (CHECK(pp, 0, ITOK_DOUBLE)) {
         f->defval.d = tk->d;
         f->defval_type = IOPC_DEFVAL_DOUBLE;
-        if (nonzero && !f->defval.d) {
-            fatal_loc("default value violates nonZero constraint", tk->loc);
-        }
         DROP(pp, 1);
     } else {
         f->defval.u64 = parse_constant_integer(pp, paren);
         f->defval_type = IOPC_DEFVAL_INTEGER;
-        if (nonzero && !f->defval.u64) {
-            fatal_loc("default value violates nonZero constraint",
-                      TK(pp, 0)->loc);
-        }
     }
 }
 

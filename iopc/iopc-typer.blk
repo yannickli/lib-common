@@ -731,6 +731,208 @@ void iopc_resolve(iopc_pkg_t *pkg)
     iopc_i_resolve(pkg);
 }
 
+static void check_defval_int(iopc_field_t *f)
+{
+    bool is_signed = iopc_field_is_signed(f);
+    uint64_t u64 = f->defval.u64;
+    int64_t  i64 = f->defval.u64;
+
+    if (f->defval_type != IOPC_DEFVAL_INTEGER) {
+        fatal_loc("invalid default value on integer field (wrong type)",
+                  f->loc);
+    }
+    switch (f->kind) {
+      case IOP_T_BOOL:
+        if (u64 > 1) {
+            fatal_loc("invalid default value on bool field: %jd", f->loc,
+                      i64);
+        }
+        break;
+      case IOP_T_U8:
+        if (u64 > UINT8_MAX) {
+            fatal_loc("invalid default value on ubyte field: %ju", f->loc,
+                      u64);
+        }
+        break;
+      case IOP_T_I8:
+        if (i64 < INT8_MIN || i64 > INT8_MAX) {
+            fatal_loc("invalid default value on byte field: %jd", f->loc,
+                      i64);
+        }
+        break;
+      case IOP_T_U16:
+        if (u64 > UINT16_MAX) {
+            fatal_loc("invalid default value on ushort field: %ju", f->loc,
+                      u64);
+        }
+        break;
+      case IOP_T_I16:
+        if (i64 < INT16_MIN || i64 > INT16_MAX) {
+            fatal_loc("invalid default value on short field: %jd", f->loc,
+                      i64);
+        }
+        break;
+      case IOP_T_U32:
+        if (u64 > UINT32_MAX) {
+            fatal_loc("invalid default value on uint field: %ju", f->loc,
+                      u64);
+        }
+        break;
+      case IOP_T_ENUM:
+      case IOP_T_I32:
+        if (i64 < INT32_MIN || i64 > INT32_MAX) {
+            fatal_loc("invalid default value on int field: %jd", f->loc, i64);
+        }
+        break;
+      default:
+        break;
+    }
+    if (f->kind == IOP_T_ENUM) {
+        bool strict = false;
+
+        qv_for_each_entry(iopc_attr, attr, &f->enum_def->attrs) {
+            if (attr->desc->id == IOPC_ATTR_STRICT) {
+                strict = true;
+                break;
+            }
+        }
+        if (!strict) {
+            return;
+        }
+        qv_for_each_entry(iopc_enum_field, value, &f->enum_def->values) {
+            if (value->value == i64) {
+                return;
+            }
+        }
+        fatal_loc("invalid default value on strict enum field: %jd", f->loc,
+                  i64);
+        return;
+    }
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        int64_t val;
+
+        switch (attr->desc->id) {
+          case IOPC_ATTR_MAX:
+            val = IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]);
+            if (is_signed && i64 > val) {
+                fatal_loc("invalid default value, "
+                          "violation of @max constraint: %jd > %jd", f->loc,
+                          i64, val);
+            } else
+            if (!is_signed && u64 > (uint64_t)val) {
+                fatal_loc("invalid default value, "
+                          "violation of @max constraint: %ju > %ju", f->loc,
+                          u64, val);
+            }
+            break;
+          case IOPC_ATTR_MIN:
+            val = IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]);
+            if (is_signed && i64 < val) {
+                fatal_loc("invalid default value, "
+                          "violation of @min constraint: %jd < %jd", f->loc,
+                          i64, val);
+            } else
+            if (!is_signed && u64 < (uint64_t)val) {
+                fatal_loc("invalid default value, "
+                          "violation of @min constraint: %ju < %ju", f->loc,
+                          u64, val);
+            }
+            break;
+          case IOPC_ATTR_NON_ZERO:
+            if (!i64) {
+                fatal_loc("invalid default value, "
+                          "violation of @nonZero constraint", f->loc);
+            }
+            break;
+          default:
+            break;
+        }
+    }
+}
+
+static void check_defval_double(iopc_field_t *f)
+{
+    if (f->defval_type == IOPC_DEFVAL_STRING) {
+        fatal_loc("string default value on double field",
+                  f->loc);
+    } else
+    if (f->defval_type == IOPC_DEFVAL_INTEGER) {
+        f->defval.d = f->defval.u64;
+    }
+
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        double val;
+
+        switch (attr->desc->id) {
+          case IOPC_ATTR_MAX:
+            val = IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]);
+            if (f->defval.d > val) {
+                fatal_loc("invalid default value, "
+                          "violation of @max constraint: %f > %f", f->loc,
+                          f->defval.d, val);
+            }
+            break;
+          case IOPC_ATTR_MIN:
+            val = IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]);
+            if (f->defval.d < val) {
+                fatal_loc("invalid default value, "
+                          "violation of @min constraint: %f < %f", f->loc,
+                          f->defval.d, val);
+            }
+            break;
+          case IOPC_ATTR_NON_ZERO:
+            if (!f->defval.d) {
+                fatal_loc("invalid default value, "
+                          "violation of @nonZero constraint", f->loc);
+            }
+            break;
+          default:
+            break;
+        }
+    }
+}
+
+static void check_defval_string(iopc_field_t *f)
+{
+    int len;
+    if (f->defval_type != IOPC_DEFVAL_STRING) {
+        fatal_loc("invalid default value on string field",
+                  f->loc);
+    }
+    len = strlen(f->defval.ptr);
+
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        int64_t val;
+
+        switch (attr->desc->id) {
+          case IOPC_ATTR_MAX_LENGTH:
+            val = IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]);
+            if (len > val) {
+                fatal_loc("invalid default value, "
+                          "violation of @maxLength constraint: %d > %jd",
+                          f->loc, len, val);
+            }
+            break;
+          case IOPC_ATTR_MIN_LENGTH:
+            val = IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]);
+            if (len < val) {
+                fatal_loc("invalid default value, "
+                          "violation of @minLength constraint: %d < %jd",
+                          f->loc, len, val);
+            }
+            break;
+          case IOPC_ATTR_NON_EMPTY:
+            if (!len) {
+                fatal_loc("invalid default value, "
+                          "violation of @nonEmpty constraint", f->loc);
+            }
+            break;
+          default:
+            break;
+        }
+    }
+}
+
 void iopc_resolve_second_pass(iopc_pkg_t *pkg)
 {
     /* second pass: resolving of weak deps */
@@ -777,28 +979,16 @@ void iopc_resolve_second_pass(iopc_pkg_t *pkg)
                   case IOP_T_ENUM:
                   case IOP_T_I8 ... IOP_T_U64:
                   case IOP_T_BOOL:
-                    if (f->defval_type != IOPC_DEFVAL_INTEGER) {
-                        fatal_loc("invalid default value on integer field",
-                                  f->loc);
-                    }
+                    check_defval_int(f);
                     break;
                   case IOP_T_DOUBLE:
-                    if (f->defval_type == IOPC_DEFVAL_STRING) {
-                        fatal_loc("string default value on double field",
-                                  f->loc);
-                    } else
-                    if (f->defval_type == IOPC_DEFVAL_INTEGER) {
-                        f->defval.d = f->defval.u64;
-                    }
+                    check_defval_double(f);
                     break;
 
                   case IOP_T_STRING:
                   case IOP_T_DATA:
                   case IOP_T_XML:
-                    if (f->defval_type != IOPC_DEFVAL_STRING) {
-                        fatal_loc("invalid default value on string field",
-                                  f->loc);
-                    }
+                    check_defval_string(f);
                     break;
 
                   default:
