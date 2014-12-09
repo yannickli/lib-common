@@ -109,10 +109,21 @@ int  e_is_traced_(int level, const char *fname, const char *func,
                   const char *name);
 
 #define e_name_is_traced(lvl, name) \
-    ({ static int8_t e_traced;                                               \
-       if (unlikely(e_traced == 0))                                          \
-           e_traced = e_is_traced_(lvl, __FILE__, __func__, name);           \
-       likely(e_traced > 0); })
+    ({                                                                       \
+       int8_t e_res;                                                         \
+                                                                             \
+       if (__builtin_constant_p(lvl) && __builtin_constant_p(name)) {        \
+           static int8_t e_traced;                                           \
+                                                                             \
+           if (unlikely(e_traced == 0)) {                                    \
+               e_traced = e_is_traced_(lvl, __FILE__, __func__, name);       \
+           }                                                                 \
+           e_res = e_traced;                                                 \
+       } else {                                                              \
+           e_res = e_is_traced_(lvl, __FILE__, __func__, name);              \
+       }                                                                     \
+       e_res > 0;                                                            \
+    })
 #define e_is_traced(lvl)  e_name_is_traced(lvl, NULL)
 
 __attr_printf__(6, 7) __cold
