@@ -871,6 +871,53 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     return 0;
 }
 
+/** \brief  Decode a hexadecimal lstr
+ *
+ *  \param  lstr      the hexadecimal string to convert
+ *
+ *  \result lstr_t    the result of the conversion (allocated on t_stack)
+ *
+ *  \retval LSTR_NULL failure
+ */
+static inline lstr_t t_lstr_hexdecode(lstr_t lstr)
+{
+    char *s;
+    int len;
+
+    len = lstr.len / 2;
+    s   = t_new_raw(char, len + 1);
+
+    if (strconv_hexdecode(s, len, lstr.s, lstr.len) < 0) {
+        return LSTR_NULL_V;
+    }
+
+    s[len] = '\0';
+    return LSTR_INIT_V(s, len);
+}
+
+/** \brief  Enccode a lstr into hexadecimal
+ *
+ *  \param  lstr        the string to convert
+ *
+ *  \result lstr_t      the result of the conversion (allocated on t_stack)
+ *
+ *  \retval  LSTR_NULL  failure
+ */
+static inline lstr_t t_lstr_hexencode(lstr_t lstr)
+{
+    char *s;
+    int len;
+
+    len = lstr.len * 2;
+    s   = t_new_raw(char, len + 1);
+
+    if (strconv_hexencode(s, len + 1, lstr.s, lstr.len) < 0) {
+        return LSTR_NULL_V;
+    }
+
+    return LSTR_INIT_V(s, len);
+}
+
 /* }}} */
 /* Format {{{ */
 
