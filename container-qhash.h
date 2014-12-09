@@ -705,9 +705,18 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         qh_t(name) *_qh = (h);                                               \
         qh_##name##_init(_qh, false, (mp));                                  \
         qhash_set_minsize(&_qh->qh, (sz));                                   \
+        _qh;                                                                 \
     })
 #define t_qh_init(name, qh, sz)  mp_qh_init(name, t_pool(), (qh), (sz))
 #define r_qh_init(name, qh, sz)  mp_qh_init(name, r_pool(), (qh), (sz))
+
+#define mp_qh_new(name, mp, sz)                                              \
+    ({                                                                       \
+        mem_pool_t *__mp = (mp);                                             \
+        mp_qh_init(name, __mp, mp_new_raw(__mp, qh_t(name), 1), (sz));       \
+    })
+#define t_qh_new(name, sz)  mp_qh_new(name, t_pool(), (sz))
+#define r_qh_new(name, sz)  mp_qh_new(name, r_pool(), (sz))
 
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
@@ -834,9 +843,18 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         qm_t(name) *_qh = (h);                                               \
         qm_##name##_init(_qh, false, (mp));                                  \
         qhash_set_minsize(&_qh->qh, (sz));                                   \
+        _qh;                                                                 \
     })
 #define t_qm_init(name, qh, sz)  mp_qm_init(name, t_pool(), (qh), (sz))
 #define r_qm_init(name, qh, sz)  mp_qm_init(name, r_pool(), (qh), (sz))
+
+#define mp_qm_new(name, mp, sz)                                              \
+    ({                                                                       \
+        mem_pool_t *__mp = (mp);                                             \
+        mp_qm_init(name, __mp, mp_new_raw(__mp, qm_t(name), 1), (sz));       \
+    })
+#define t_qm_new(name, sz)  mp_qm_new(name, t_pool(), (sz))
+#define r_qm_new(name, sz)  mp_qm_new(name, r_pool(), (sz))
 
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)
