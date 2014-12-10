@@ -213,7 +213,11 @@ int logger_get_level(logger_t *logger)
     if (logger->conf_gen != log_conf_gen_g) {
         __logger_refresh(logger);
     }
-    return logger->level;
+
+    /* We always want to catch fatal/panic issues which are associated to the
+     * LOG_CRIT level.
+     */
+    return MAX(logger->level, LOG_CRIT);
 }
 
 static ALWAYS_INLINE
@@ -250,10 +254,6 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
                     int line, const char *fmt, ...);
 
 
-#define logger_log(Logger, Level, Fmt, ...)                                  \
-    __logger_log((Logger), (Level), NULL, -1, __FILE__, __func__, __LINE__,  \
-                 (Fmt), ##__VA_ARGS__)
-
 #define logger_panic(Logger, Fmt, ...)                                       \
     __logger_panic((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
 
@@ -273,6 +273,9 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
         }                                                                    \
         __level <= LOG_WARNING ? -1 : 0;                                     \
     })
+
+#define logger_log(Logger, Level, Fmt, ...)                                  \
+    __LOGGER_LOG(Logger, Level,, Fmt, ##__VA_ARGS__)
 
 #define logger_error(Logger, Fmt, ...)                                       \
     __LOGGER_LOG(Logger, LOG_ERR, __logger_cold(), Fmt, ##__VA_ARGS__)
@@ -297,16 +300,20 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 
 #define logger_is_traced(Logger, Level)  ({                                  \
         static int8_t __traced;                                              \
+        static const logger_t *__last_logger = NULL;                         \
         const logger_t *__i_clogger = (Logger);                              \
         logger_t *__i_logger = (logger_t *)__i_clogger;                      \
         const int __i_level = (Level);                                       \
         bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
                                                                              \
         if (!__h_level) {                                                    \
-            if (unlikely(__traced == 0)) {                                   \
+            if (unlikely(!__builtin_constant_p(Level)                        \
+                       || __i_clogger != __last_logger))                     \
+            {                                                                \
                 __traced = __logger_is_traced(__i_logger, __i_level,         \
                                               __FILE__, __func__,            \
                                               __i_logger->full_name.s);      \
+                __last_logger = __i_clogger;                                 \
             }                                                                \
         }                                                                    \
         __h_level || __traced > 0;                                           \
