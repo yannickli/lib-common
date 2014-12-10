@@ -300,16 +300,20 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 
 #define logger_is_traced(Logger, Level)  ({                                  \
         static int8_t __traced;                                              \
+        static const logger_t *__last_logger = NULL;                         \
         const logger_t *__i_clogger = (Logger);                              \
         logger_t *__i_logger = (logger_t *)__i_clogger;                      \
         const int __i_level = (Level);                                       \
         bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
                                                                              \
         if (!__h_level) {                                                    \
-            if (unlikely(__traced == 0)) {                                   \
+            if (unlikely(!__builtin_constant_p(Level)                        \
+                       || __i_clogger != __last_logger))                     \
+            {                                                                \
                 __traced = __logger_is_traced(__i_logger, __i_level,         \
                                               __FILE__, __func__,            \
                                               __i_logger->full_name.s);      \
+                __last_logger = __i_clogger;                                 \
             }                                                                \
         }                                                                    \
         __h_level || __traced > 0;                                           \
