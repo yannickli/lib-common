@@ -1412,6 +1412,86 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT(ps_strequal(&ps3, "test_"));
     } Z_TEST_END;
 
+    Z_TEST(ps_skip_upto_str, "") {
+        const char *str = "foo bar baz";
+        pstream_t ps = ps_initstr(str);
+
+        Z_ASSERT_NEG(ps_skip_upto_str(&ps, "toto"));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+
+        Z_ASSERT_N(ps_skip_upto_str(&ps, ""));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+
+        Z_ASSERT_N(ps_skip_upto_str(&ps, "bar"));
+        Z_ASSERT(ps_len(&ps) == 7);
+        Z_ASSERT(ps_strequal(&ps, "bar baz"));
+    } Z_TEST_END;
+
+    Z_TEST(ps_skip_after_str, "") {
+        const char *str = "foo bar baz";
+        pstream_t ps = ps_initstr(str);
+
+        Z_ASSERT_NEG(ps_skip_after_str(&ps, "toto"));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+
+        Z_ASSERT_N(ps_skip_after_str(&ps, ""));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+
+        Z_ASSERT_N(ps_skip_after_str(&ps, "bar"));
+        Z_ASSERT(ps_len(&ps) == 4);
+        Z_ASSERT(ps_strequal(&ps, " baz"));
+    } Z_TEST_END;
+
+    Z_TEST(ps_get_ps_upto_str, "") {
+        const char *str = "foo bar baz";
+        pstream_t ps = ps_initstr(str);
+        pstream_t extract;
+
+        p_clear(&extract, 1);
+        Z_ASSERT_NEG(ps_get_ps_upto_str(&ps, "toto", &extract));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+        Z_ASSERT(ps_len(&extract) == 0);
+
+        Z_ASSERT_N(ps_get_ps_upto_str(&ps, "", &extract));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+        Z_ASSERT(ps_len(&extract) == 0);
+
+        Z_ASSERT_N(ps_get_ps_upto_str(&ps, "bar", &extract));
+        Z_ASSERT(ps_len(&ps) ==  7);
+        Z_ASSERT(ps_strequal(&ps, "bar baz"));
+        Z_ASSERT(ps_len(&extract) == 4);
+        Z_ASSERT(ps_strequal(&extract, "foo "));
+    } Z_TEST_END;
+
+    Z_TEST(ps_get_ps_upto_str_and_skip, "") {
+        const char *str = "foo bar baz";
+        pstream_t ps = ps_initstr(str);
+        pstream_t extract;
+
+        p_clear(&extract, 1);
+        Z_ASSERT_NEG(ps_get_ps_upto_str_and_skip(&ps, "toto", &extract));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+        Z_ASSERT(ps_len(&extract) == 0);
+
+        Z_ASSERT_N(ps_get_ps_upto_str_and_skip(&ps, "", &extract));
+        Z_ASSERT(ps_len(&ps) ==  strlen(str));
+        Z_ASSERT(ps_strequal(&ps, str));
+        Z_ASSERT(ps_len(&extract) == 0);
+
+        Z_ASSERT_N(ps_get_ps_upto_str_and_skip(&ps, "bar", &extract));
+        Z_ASSERT(ps_len(&ps) ==  4);
+        Z_ASSERT(ps_strequal(&ps, " baz"));
+        Z_ASSERT(ps_len(&extract) == 4);
+        Z_ASSERT(ps_strequal(&extract, "foo "));
+    } Z_TEST_END;
+
     Z_TEST(lstr_ascii_icmp, "str: lstr_ascii_icmp") {
 #define T(_str1, _str2, _expected)                                       \
         Z_ASSERT(lstr_ascii_icmp(&LSTR_IMMED_V(_str1),                   \

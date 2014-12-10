@@ -277,6 +277,10 @@ int ps_skip_upto_data(pstream_t *ps, const void *data, size_t len)
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     return __ps_skip_upto(ps, mem);
 }
+static inline int ps_skip_upto_str(pstream_t *ps, const char *s)
+{
+    return ps_skip_upto_data(ps, s, strlen(s));
+}
 
 /** \brief  Skips after the (\a data, \a len) word
  * \return -1 if the word cannot be found
@@ -287,7 +291,10 @@ int ps_skip_after_data(pstream_t *ps, const void *data, size_t len)
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     return __ps_skip_upto(ps, (char *)mem + len);
 }
-
+static inline int ps_skip_after_str(pstream_t *ps, const char *s)
+{
+    return ps_skip_after_data(ps, s, strlen(s));
+}
 
 /****************************************************************************/
 /* extracting sub pstreams                                                  */
@@ -355,6 +362,11 @@ ps_get_ps_upto_data(pstream_t *ps, const void *d, size_t len, pstream_t *out)
     *out = __ps_get_ps_upto(ps, mem);
     return 0;
 }
+static inline int
+ps_get_ps_upto_str(pstream_t *ps, const char *s, pstream_t *out)
+{
+    return ps_get_ps_upto_data(ps, s, strlen(s), out);
+}
 
 /** \brief  Returns the bytes up to the (\a data, \a len) word, and skip it.
  * \return -1 if the word cannot be found
@@ -367,6 +379,11 @@ ps_get_ps_upto_data_and_skip(pstream_t *ps,
     *out = __ps_get_ps_upto(ps, mem);
     __ps_skip_upto(ps, (char *)mem + len);
     return 0;
+}
+static inline int
+ps_get_ps_upto_str_and_skip(pstream_t *ps, const char *s, pstream_t *out)
+{
+    return ps_get_ps_upto_data_and_skip(ps, s, strlen(s), out);
 }
 
 /****************************************************************************/
