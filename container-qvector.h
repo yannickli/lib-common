@@ -383,6 +383,14 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 
 #define qv_new(n)  p_new(qv_t(n), 1)
 
+#define mp_qv_new(n, mp, sz)                                                 \
+    ({                                                                       \
+        mem_pool_t *__mp = (mp);                                             \
+        mp_qv_init(n, __mp, mp_new_raw(__mp, qv_t(n), 1), (sz));             \
+    })
+#define t_qv_new(n, sz)  mp_qv_new(n, t_pool(), (sz))
+#define r_qv_new(n, sz)  mp_qv_new(n, r_pool(), (sz))
+
 #ifdef __has_blocks
 /* You must be in a .blk to use qv_sort/qv_deep_extend, because it
  * expects blocks !

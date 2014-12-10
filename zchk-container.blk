@@ -339,6 +339,26 @@ Z_GROUP_EXPORT(qhash)
 
         qh_wipe(u32, &qh);
     } Z_TEST_END
+
+    Z_TEST(alloc_helpers, "qhash: check mp_q[hm]_new() helpers") {
+        t_scope;
+        qh_t(u32) *h32;
+        qm_t(test) *test_map;
+
+        r_newframe();
+
+        h32 = t_qh_new(u32, 64);
+        Z_ASSERT_P(h32);
+        h32 = t_qh_new(u32, 64);
+        Z_ASSERT_P(h32);
+
+        test_map = t_qm_new(test, 128);
+        Z_ASSERT_P(test_map);
+        test_map = r_qm_new(test, 128);
+        Z_ASSERT_P(test_map);
+
+        r_release(r_getframe());
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/
@@ -886,6 +906,20 @@ Z_GROUP_EXPORT(qvector)
 
         Z_ASSERT(true);
     } Z_TEST_END;
+
+    Z_TEST(alloc_helpers, "qvector: check mp_qv_new() helpers") {
+        t_scope;
+        qv_t(u8) *vec8;
+        qv_t(u32) *vec32;
+
+        vec8 = t_qv_new(u8, 12);
+        Z_ASSERT_P(vec8);
+
+        r_newframe();
+        vec32 = r_qv_new(u32, 42);
+        Z_ASSERT_P(vec32);
+        r_release(r_getframe());
+    } Z_TEST_END
 } Z_GROUP_END;
 
 /*1}}}*/
