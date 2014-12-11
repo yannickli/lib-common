@@ -74,6 +74,22 @@ Z_GROUP_EXPORT(str)
                  "str_hexdecode accepted non hexadecimal string");
     } Z_TEST_END;
 
+    Z_TEST(lstr_hexencode, "str: t_lstr_hexencode/t_lstr_hexdecode") {
+        t_scope;
+        lstr_t src = LSTR_IMMED("intersec");
+        lstr_t hex = LSTR_IMMED("696e746572736563");
+        lstr_t out;
+
+        out = t_lstr_hexencode(src);
+        Z_ASSERT_LSTREQUAL(out, hex);
+        out = t_lstr_hexdecode(hex);
+        Z_ASSERT_LSTREQUAL(out, src);
+
+        out = t_lstr_hexdecode(LSTR_IMMED_V("F"));
+        Z_ASSERT_EQ(out.len, 0);
+        Z_ASSERT_NULL(out.s);
+    } Z_TEST_END;
+
     Z_TEST(utf8_stricmp, "str: utf8_stricmp test") {
 
 #define RUN_UTF8_TEST_(Str1, Str2, Strip, Val) \
