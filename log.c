@@ -871,14 +871,17 @@ int e_fatal(const char *fmt, ...)
 #define E_FUNCTION(Name, Level)                                              \
     int Name(const char *fmt, ...)                                           \
     {                                                                        \
-        int ret;                                                             \
-        va_list va;                                                          \
+        if (logger_has_level(&_G.root_logger, (Level))) {                    \
+            int ret;                                                         \
+            va_list va;                                                      \
                                                                              \
-        va_start(va, fmt);                                                   \
-        ret = logger_vlog(&_G.root_logger, (Level), NULL, -1, NULL, NULL, -1,\
-                          fmt, va);                                          \
-        va_end(va);                                                          \
-        return ret;                                                          \
+            va_start(va, fmt);                                               \
+            ret = logger_vlog(&_G.root_logger, (Level), NULL, -1, NULL,      \
+                              NULL, -1, fmt, va);                            \
+            va_end(va);                                                      \
+            return ret;                                                      \
+        }                                                                    \
+        return (Level) <= LOG_WARNING ? -1 : 0;                              \
     }
 E_FUNCTION(e_error,   LOG_ERR)
 E_FUNCTION(e_warning, LOG_WARNING)
