@@ -372,7 +372,9 @@ const void *mem_ring_newframe(mem_pool_t *_rp)
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
 
     e_assert_null(panic, rp->pos, "previous memory frame not released!");
+    spin_lock(&rp->lock);
     rp->pos = &rp->ring[1];
+    spin_unlock(&rp->lock);
 
     return rp->ring;
 }
