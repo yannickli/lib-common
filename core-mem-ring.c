@@ -368,7 +368,10 @@ const void *mem_ring_newframe(mem_pool_t *_rp)
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
 
     assert (rp->pos == NULL);
+    spin_lock(&rp->lock);
     rp->pos = &rp->ring[1];
+    spin_unlock(&rp->lock);
+
     return rp->ring;
 }
 
