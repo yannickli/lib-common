@@ -363,6 +363,8 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
        }                                     \
        qv_clear(n, __vec); })
 
+#define qv_fn(n, fname)  qv_##n##_##fname
+
 #define qv_wipe(n, vec)  qv_##n##_wipe(vec)
 #define qv_deep_wipe(n, vec, wipe) \
     ({ qv_t(n) *__vec = (vec);               \

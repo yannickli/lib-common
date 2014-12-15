@@ -718,6 +718,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define t_qh_new(name, sz)  mp_qh_new(name, t_pool(), (sz))
 #define r_qh_new(name, sz)  mp_qh_new(name, r_pool(), (sz))
 
+#define qh_fn(name, fname)                  qh_##name##_##fname
+
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
@@ -855,6 +857,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     })
 #define t_qm_new(name, sz)  mp_qm_new(name, t_pool(), (sz))
 #define r_qm_new(name, sz)  mp_qm_new(name, r_pool(), (sz))
+
+#define qm_fn(name, fname)                  qm_##name##_##fname
 
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)

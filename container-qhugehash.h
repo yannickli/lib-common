@@ -462,6 +462,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 
 #define qhh_t(name)     qhh_##name##_t
 #define qhh_qh_t(name)  qh_t(qhh_##name)
+#define qhh_fn(name, fname)                 qhh_##name##_##fname
 
 #define qhh_key_p(name, qhh, pos)           qhh_##name##_key_p(qhh, pos)
 #define qhh_hash_p(name, qhh, pos)          qhh_##name##_hash_p(qhh, pos)
@@ -549,6 +550,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 
 #define qhm_t(name)  qhm_##name##_t
 #define qhm_qm_t(name)  qm_t(qhm_##name)
+#define qhm_fn(name, fname)                 qhm_##name##_##fname
 
 #define qhm_key_p(name, qhh, pos)           qhm_##name##_key_p(qhh, pos)
 #define qhm_hash_p(name, qhh, pos)          qhm_##name##_hash_p(qhh, pos)
