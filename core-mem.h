@@ -278,7 +278,8 @@ static ALWAYS_INLINE void icheck_alloc(size_t size)
         __imalloc_too_large();
     } else
     if (size > MEM_ALLOC_MAX) {
-        e_panic("you cannot allocate that amount of memory");
+        e_panic("you cannot allocate that amount of memory: %zu (max %llu)",
+                size, MEM_ALLOC_MAX);
     }
 }
 
