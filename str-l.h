@@ -759,7 +759,39 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     return 0;
 }
 
+/** \brief  convert a lstr into an double.
+ *
+ *  \param  lstr the string to convert
+ *  \param  out  pointer to the memory to store the result of the conversion
+ *
+ *  \result int
+ *
+ *  \retval  0   success
+ *  \retval -1   failure (errno set)
+ */
+static inline int lstr_to_double(lstr_t lstr, double *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_rtrim(lstr);
+
+    errno = 0;
+    *out = memtod(lstr.s, lstr.len, &endp);
+
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
 /*--------------------------------------------------------------------------*/
+
 #define lstr_fmt(fmt, ...) \
     ({ const char *__s = asprintf(fmt, ##__VA_ARGS__); \
        lstr_init_(__s, strlen(__s), MEM_LIBC); })
