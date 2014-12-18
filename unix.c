@@ -190,34 +190,31 @@ int filecopy(const char *pathin, const char *pathout)
  */
     int fdin = -1, fdout = -1;
     struct stat st;
-    off_t total;
+    off_t total = -1;
 
     fdin = open(pathin, O_RDONLY | O_BINARY);
-    if (fdin < 0)
-        goto error;
-
-    if (fstat(fdin, &st))
-        goto error;
+    if (fdin < 0) {
+        goto end;
+    }
+    if (fstat(fdin, &st)) {
+        goto end;
+    }
 
     /* OG: this will not work if the source file is not writeable ;-) */
     /* OG: should test if source and destination files are the same
      * file before truncating destination file ;-) */
     fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
-    if (fdout < 0)
-        goto error;
+    if (fdout < 0) {
+        goto end;
+    }
 
     total = fcopy(fdin, &st, fdout);
-    close(fdin);
-    close(fdout);
+
+  end:
+    PROTECT_ERRNO(p_close(&fdin));
+    PROTECT_ERRNO(p_close(&fdout));
 
     return total;
-
-  error:
-    p_close(&fdin);
-    p_close(&fdout);
-
-    /* OG: destination file should be removed upon error ? */
-    return -1;
 }
 
 /** Copy file from a directory descriptor to another. If the file already
