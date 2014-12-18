@@ -46,8 +46,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     if (blksize < 64 * sp_alloc_mean(sp))
         blksize = 64 * sp_alloc_mean(sp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
-    if (unlikely(blksize > MEM_ALLOC_MAX))
-        e_panic("you cannot allocate that amount of memory");
+    icheck_alloc(blksize);
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
     blk->start     = blk->area;
     blk->size      = blksize - sizeof(*blk);

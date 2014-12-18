@@ -850,7 +850,20 @@ static int thr_initialize(void *arg)
     pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
-        thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
+        const char *env = getenv("THR_MAX_PARALLELISM");
+        size_t nb_cpu = sysconf(_SC_NPROCESSORS_CONF);
+
+        if (env) {
+            thr_parallelism_g = atoi(env);
+            if (thr_parallelism_g < 2) {
+                e_fatal("invalid THR_PARALLELISM value `%s`", env);
+            }
+            thr_parallelism_g = MIN(thr_parallelism_g, nb_cpu);
+        } else {
+            thr_parallelism_g = nb_cpu;
+        }
+        thr_parallelism_g = MAX(thr_parallelism_g, 2);
+
         if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
         _G.threads = p_new(thr_info_t, thr_parallelism_g);
