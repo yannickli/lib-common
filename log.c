@@ -588,6 +588,8 @@ void __logger_panic(logger_t *logger, const char *file, const char *func,
 {
     va_list va;
 
+    __logger_refresh(logger);
+
     va_start(va, fmt);
     logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
     abort();
@@ -597,6 +599,8 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
                     int line, const char *fmt, ...)
 {
     va_list va;
+
+    __logger_refresh(logger);
 
     va_start(va, fmt);
     logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
