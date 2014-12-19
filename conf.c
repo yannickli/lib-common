@@ -161,9 +161,12 @@ int conf_save(const conf_t *conf, const char *filename)
 
             fprintf(fp, "[%s]\n", section->name);
             for (j = 0; j < section->vals.len; j++) {
-                fprintf(fp, "%s = %s\n",
-                        section->vals.tab[j]->name,
-                        section->vals.tab[j]->value);
+                property_t *prop = section->vals.tab[j];
+
+                if (!prop->value) {
+                    continue;
+                }
+                fprintf(fp, "%s = %s\n", prop->name, prop->value);
             }
             fprintf(fp, "\n");
         }

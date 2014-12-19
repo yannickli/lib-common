@@ -171,6 +171,9 @@ int licence_do_signature(const conf_t *conf, char dst[65])
         }                                                           \
         sha2_update(&ctx, content, len);
 
+        if (!tosign.tab[i]->value) {
+            continue;
+        }
         DO_SIGNATURE(tosign.tab[i]->name);
         sha2_update(&ctx, ":", 1);
         DO_SIGNATURE(tosign.tab[i]->value);
