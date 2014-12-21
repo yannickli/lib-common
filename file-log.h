@@ -63,6 +63,7 @@ typedef struct log_file_t {
     };
 
     uint32_t flags;
+    uint64_t total_size;
     int      max_size;
     int      max_files;
     int      max_total_size; /* in Mo */

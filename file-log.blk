@@ -94,19 +94,24 @@ static void log_file_call_cb(log_file_t *l, enum log_file_event evt,
     }
 }
 
-static void log_delete_file(log_file_t *log_file, const char *path)
+static void log_delete_file(log_file_t *log_file, const char *path,
+                            off_t size)
 {
     if (unlink(path) < 0) {
         e_error("cannot delete log file '%s': %m", path);
     } else {
+        assert (log_file->total_size >= (uint64_t)size);
+        log_file->total_size -= size;
         log_file_call_cb(log_file, LOG_FILE_DELETE, path);
     }
 }
 
 static void log_check_invariants(log_file_t *log_file)
 {
+    t_scope;
     glob_t globbuf;
     char buf[PATH_MAX];
+    struct stat *sts;
     char **fv;
     int  fc;
 
@@ -116,47 +121,60 @@ static void log_check_invariants(log_file_t *log_file)
         globfree(&globbuf);
         return;
     }
+
     fv = globbuf.gl_pathv;
     fc = globbuf.gl_pathc;
     qsort(fv, fc, sizeof(fv[0]), qsort_strcmp);
+
+    log_file->total_size = 0;
+    sts = t_new_raw(struct stat, fc);
+    for (int i = 0; i < fc; i++) {
+        if (lstat(fv[i], &sts[i]) < 0 || !S_ISREG(sts[i].st_mode)) {
+            sts[i].st_size = 0;
+        } else {
+            log_file->total_size += sts[i].st_size;
+        }
+    }
+
     if (log_file->max_files) {
-        for (; fc > log_file->max_files; fc--, fv++) {
+        for (; fc > log_file->max_files; fc--, fv++, sts++) {
             if (log_file->flags & LOG_FILE_COMPRESS) {
                 if (strequal(path_extnul(fv[0]), ".gz")) {
-                    log_delete_file(log_file, fv[0]);
+                    log_delete_file(log_file, fv[0], sts[0].st_size);
                 } else {
                     break;
                 }
             } else {
-                log_delete_file(log_file, fv[0]);
+                log_delete_file(log_file, fv[0], sts[0].st_size);
             }
         }
     }
+
     if (log_file->max_total_size) {
         int64_t totalsize = (int64_t)log_file->max_total_size << 20;
-        struct stat st;
 
         for (int i = fc; i-- > 0; ) {
-            if (lstat(fv[i], &st) == 0 && S_ISREG(st.st_mode))
-                totalsize -= st.st_size;
+            totalsize -= sts[i].st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
                     if (log_file->flags & LOG_FILE_COMPRESS) {
                         if (strequal(path_extnul(fv[j]), ".gz")) {
-                            log_delete_file(log_file, fv[j]);
+                            log_delete_file(log_file, fv[j], sts[j].st_size);
                         } else {
                             break;
                         }
                     } else {
-                        log_delete_file(log_file, fv[j]);
+                        log_delete_file(log_file, fv[j], sts[j].st_size);
                     }
                 }
-                fv += i + 1;
-                fc -= i + 1;
+                fv  += i + 1;
+                sts += i + 1;
+                fc  -= i + 1;
                 break;
             }
         }
     }
+
     if (log_file->flags & LOG_FILE_COMPRESS) {
         for (int i = 0; i < fc - 1; i++) {
             if (!strequal(path_extnul(fv[i]), ".gz")) {
@@ -179,6 +197,7 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
     if (log_file->is_file_bin) {
         log_file->_bin_internal = file_bin_create(LSTR(real_path),
                                                   1 << 20, false);
+        log_file->total_size += log_file->_bin_internal->cur;
     } else {
         log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE |
                                         FILE_EXCL, 0644);
@@ -415,11 +434,18 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
 
     assert (!log_file->is_file_bin);
 
-    if (log_check_rotate(log_file))
+    if (log_check_rotate(log_file)) {
         return -1;
+    }
+
     va_start(ap, format);
     res = file_writevf(log_file->_internal, format, ap);
     va_end(ap);
+
+    if (res > 0) {
+        log_file->total_size += res;
+    }
+
     return res;
 }
 
@@ -430,20 +456,32 @@ int log_fwrite(log_file_t *log_file, const void *data, size_t len)
     }
 
     if (log_file->is_file_bin) {
-        return file_bin_put_record(log_file->_bin_internal, data, len);
+        off_t orig_pos = log_file->_bin_internal->cur;
+
+        RETHROW(file_bin_put_record(log_file->_bin_internal, data, len));
+        log_file->total_size += log_file->_bin_internal->cur - orig_pos;
     } else {
-        return file_write(log_file->_internal, data, len);
+        RETHROW(file_write(log_file->_internal, data, len));
+        log_file->total_size += len;
     }
+
+    return 0;
 }
 
 int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen)
 {
+    ssize_t size;
+
     assert (!log_file->is_file_bin);
 
     if (log_check_rotate(log_file)) {
         return -1;
     }
-    return file_writev(log_file->_internal, iov, iovlen);
+
+    size = RETHROW(file_writev(log_file->_internal, iov, iovlen));
+    log_file->total_size += size;
+
+    return 0;
 }
 
 int log_file_flush(log_file_t *log_file)
@@ -469,6 +507,7 @@ int log_file_enable_rotation(log_file_t *file)
 
 int log_fwrite_transaction(log_file_t *file, int (^log_b)(void))
 {
+    uint64_t orig_total_size = file->total_size;
     off_t fpos;
 
     log_file_disable_rotation(file);
@@ -487,6 +526,7 @@ int log_fwrite_transaction(log_file_t *file, int (^log_b)(void))
         } else {
             IGNORE(file_truncate(file->_internal, fpos));
         }
+        file->total_size = orig_total_size;
 
         return -1;
     }
