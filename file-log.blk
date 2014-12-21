@@ -167,7 +167,7 @@ static void log_check_invariants(log_file_t *log_file)
     globfree(&globbuf);
 }
 
-static void log_file_open_new(log_file_t *log_file, time_t date, bool bin)
+static void log_file_open_new(log_file_t *log_file, time_t date)
 {
     t_scope;
     const char *real_path;
@@ -176,7 +176,7 @@ static void log_file_open_new(log_file_t *log_file, time_t date, bool bin)
 
     log_file->open_date = date;
 
-    if (bin) {
+    if (log_file->is_file_bin) {
         log_file->_bin_internal = file_bin_create(LSTR(real_path),
                                                   1 << 20, false);
     } else {
@@ -292,9 +292,10 @@ log_file_create_from_iop(const char *nametpl,
 
 int log_file_open(log_file_t *log_file, bool use_file_bin)
 {
+    log_file->is_file_bin = use_file_bin;
     log_file_find_last_date(log_file);
-    log_file_open_new(log_file, log_file->open_date, use_file_bin);
-    if (!log_file->_internal && !log_file->_bin_internal) {
+    log_file_open_new(log_file, log_file->open_date);
+    if (!log_file->_internal) {
         e_trace(1, "could not open first log file");
         return -1;
     }
@@ -309,8 +310,11 @@ int log_file_close(log_file_t **lfp)
 
         log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         log_file_flush(log_file);
-        res = file_close(&log_file->_internal);
-        res = file_bin_close(&log_file->_bin_internal);
+        if (log_file->is_file_bin) {
+            res = file_bin_close(&log_file->_bin_internal);
+        } else {
+            res = file_close(&log_file->_internal);
+        }
         p_delete(lfp);
     }
     return res;
@@ -353,16 +357,18 @@ log_file_set_file_cb(log_file_t *file,
 
 static int log_file_rotate_(log_file_t *file, time_t now)
 {
-    bool is_bin = !!file->_bin_internal;
-
-    if (file->open_date == now)
+    if (file->open_date == now) {
         return 0;
+    }
 
-    IGNORE(file_bin_close(&file->_bin_internal));
-    IGNORE(file_close(&file->_internal));
+    if (file->is_file_bin) {
+        IGNORE(file_bin_close(&file->_bin_internal));
+    } else {
+        IGNORE(file_close(&file->_internal));
+    }
 
-    log_file_open_new(file, now, is_bin);
-    if (!file->_internal && !file->_bin_internal) {
+    log_file_open_new(file, now);
+    if (!file->_internal) {
         e_trace(1, "could not rotate");
         return -1;
     }
@@ -379,17 +385,15 @@ static int log_check_rotate(log_file_t *lf)
     if (lf->max_size > 0) {
         off_t size;
 
-        if (lf->_internal) {
-            size = file_tell(lf->_internal);
-        } else
-        if (lf->_bin_internal) {
+        if (lf->is_file_bin) {
             size = lf->_bin_internal->cur;
         } else {
-            assert (false);
-            return 0;
+            size = file_tell(lf->_internal);
         }
-        if (size >= lf->max_size)
+
+        if (size >= lf->max_size) {
              return log_file_rotate_(lf, time(NULL));
+        }
     }
     if (lf->rotate_delay > 0) {
         time_t now = time(NULL);
@@ -409,7 +413,7 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
     int res;
     va_list ap;
 
-    assert (log_file->_internal);
+    assert (!log_file->is_file_bin);
 
     if (log_check_rotate(log_file))
         return -1;
@@ -425,15 +429,16 @@ int log_fwrite(log_file_t *log_file, const void *data, size_t len)
         return -1;
     }
 
-    if (log_file->_internal) {
+    if (log_file->is_file_bin) {
+        return file_bin_put_record(log_file->_bin_internal, data, len);
+    } else {
         return file_write(log_file->_internal, data, len);
     }
-    return file_bin_put_record(log_file->_bin_internal, data, len);
 }
 
 int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen)
 {
-    assert (log_file->_internal);
+    assert (!log_file->is_file_bin);
 
     if (log_check_rotate(log_file)) {
         return -1;
@@ -443,8 +448,9 @@ int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen)
 
 int log_file_flush(log_file_t *log_file)
 {
-    if (log_file->_internal)
+    if (!log_file->is_file_bin) {
         return file_flush(log_file->_internal);
+    }
     return 0;
 }
 
@@ -466,23 +472,19 @@ int log_fwrite_transaction(log_file_t *file, int (^log_b)(void))
 
     log_file_disable_rotation(file);
 
-    if (file->_internal) {
-        fpos = file_tell(file->_internal);
-    } else
-    if (file->_bin_internal) {
+    if (file->is_file_bin) {
         fpos = file->_bin_internal->cur;
     } else {
-        assert (false);
-        return -1;
+        fpos = file_tell(file->_internal);
     }
 
     if (log_b() < 0) {
         file->disable_rotation = false;
 
-        if (file->_internal) {
-            IGNORE(file_truncate(file->_internal, fpos));
-        } else {
+        if (file->is_file_bin) {
             IGNORE(file_bin_truncate(file->_bin_internal, fpos));
+        } else {
+            IGNORE(file_truncate(file->_internal, fpos));
         }
 
         return -1;

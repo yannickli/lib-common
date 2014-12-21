@@ -56,21 +56,24 @@ typedef void (log_file_cb_f)(struct log_file_t *file,
                              const char *fpath, void *priv);
 
 typedef struct log_file_t {
-    /* Binary file */
-    file_bin_t *_bin_internal;
+    /* Internal file handler. */
+    union {
+        file_bin_t *_bin_internal;
+        file_t     *_internal;
+    };
 
-    /* Not binary */
-    uint32_t    flags;
-    int         max_size;
-    int         max_files;
-    int         max_total_size; /* in Mo */
-    time_t      open_date;
-    time_t      rotate_delay;
-    file_t     *_internal;
-    char        prefix[PATH_MAX];
-    char        ext[8];
+    uint32_t flags;
+    int      max_size;
+    int      max_files;
+    int      max_total_size; /* in Mo */
+    time_t   open_date;
+    time_t   rotate_delay;
+    char     prefix[PATH_MAX];
+    char     ext[8];
 
-    flag_t      disable_rotation : 1;
+    /* Flags. */
+    flag_t disable_rotation : 1;
+    flag_t is_file_bin      : 1;
 
     /* Event callback */
     log_file_cb_f *on_event;
