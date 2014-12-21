@@ -55,15 +55,17 @@ static inline __must_check__ off_t file_rewind(file_t *f) {
 
 /*----- writing -----*/
 int file_putc(file_t *f, int c);
-int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt);
-int file_write(file_t *f, const void *data, size_t len);
-static inline int file_puts(file_t *f, const char *s) {
+ssize_t file_writev(file_t *f, const struct iovec *iov, size_t iovcnt);
+ssize_t file_write(file_t *f, const void *data, size_t len);
+static inline ssize_t file_puts(file_t *f, const char *s) {
     return file_write(f, s, strlen(s));
 }
 
-int file_writevf(file_t *f, const char *fmt, va_list ap) __attr_printf__(2, 0);
+__attr_printf__(2, 0)
+ssize_t file_writevf(file_t *f, const char *fmt, va_list ap);
+
 __attr_printf__(2, 3)
-static inline int file_writef(file_t *f, const char *fmt, ...) {
+static inline ssize_t file_writef(file_t *f, const char *fmt, ...) {
     int res;
     va_list ap;
     va_start(ap, fmt);

@@ -207,14 +207,16 @@ int file_putc(file_t *f, int c)
     return 0;
 }
 
-static int __file_writev(file_t *f, struct iovec *iov, size_t iovcnt)
+static ssize_t __file_writev(file_t *f, struct iovec *iov, size_t iovcnt)
 {
     size_t oldcnt = iovcnt;
     size_t len = 0;
-    int res = 0;
+    ssize_t res = 0;
 
-    for (size_t i = 0; i < iovcnt; i++)
+    for (size_t i = 0; i < iovcnt; i++) {
         len += iov[i].iov_len;
+    }
+    res = len;
 
     while (len >= BUFSIZ) {
         ssize_t resv = writev(f->fd, iov, iovcnt);
@@ -256,7 +258,7 @@ static int __file_writev(file_t *f, struct iovec *iov, size_t iovcnt)
     return res;
 }
 
-int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
+ssize_t file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
 {
     struct iovec iov2[IOV_MAX];
 
@@ -277,15 +279,22 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
     return __file_writev(f, iov2, iovcnt + 1);
 }
 
-int file_writevf(file_t *f, const char *fmt, va_list ap)
+ssize_t file_writevf(file_t *f, const char *fmt, va_list ap)
 {
+    int orig_len, res;
+
+    orig_len = f->obuf.len;
     sb_addvf(&f->obuf, fmt, ap);
-    if (f->obuf.len > BUFSIZ)
+    res = f->obuf.len - orig_len;
+
+    if (f->obuf.len > BUFSIZ) {
         RETHROW(file_flush(f));
-    return 0;
+    }
+
+    return res;
 }
 
-int file_write(file_t *f, const void *data, size_t len)
+ssize_t file_write(file_t *f, const void *data, size_t len)
 {
     struct iovec iov[2];
 
