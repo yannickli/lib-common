@@ -771,18 +771,18 @@ void r_pool_destroy(void) __leaf;
 
 /* Aligned pointers allocation helpers */
 
-#define ra_new_raw(rype, count, alignment)                                   \
-    mpa_new_raw(r_pool(), rype, (count), (alignment))
-#define ra_new(rype, count, alignment)                                       \
-    mpa_new(r_pool(), rype, (count), (alignment))
-#define ra_new_extra(rype, size, alignment)                                  \
-    mpa_new_extra(r_pool(), rype, (size), (alignment))
-#define ra_new_extra_raw(rype, size, alignment)                              \
-    mpa_new_extra_raw(r_pool(), rype, (size), (alignment))
-#define ra_new_extra_field(rype, field, size, alignment)                     \
-    mpa_new_extra_field(r_pool(), rype, field, (size), (alignment))
-#define ra_new_extra_field_raw(rype, field, size, alignment)                 \
-    mpa_new_extra_field_raw(r_pool(), rype, field, (size), (alignment))
+#define ra_new_raw(type, count, alignment)                                   \
+    mpa_new_raw(r_pool(), type, (count), (alignment))
+#define ra_new(type, count, alignment)                                       \
+    mpa_new(r_pool(), type, (count), (alignment))
+#define ra_new_extra(type, size, alignment)                                  \
+    mpa_new_extra(r_pool(), type, (size), (alignment))
+#define ra_new_extra_raw(type, size, alignment)                              \
+    mpa_new_extra_raw(r_pool(), type, (size), (alignment))
+#define ra_new_extra_field(type, field, size, alignment)                     \
+    mpa_new_extra_field(r_pool(), type, field, (size), (alignment))
+#define ra_new_extra_field_raw(type, field, size, alignment)                 \
+    mpa_new_extra_field_raw(r_pool(), type, field, (size), (alignment))
 
 #define ra_realloc0(pp, old, now, alignment)                                 \
     mpa_realloc0(r_pool(), (pp), (old), (now), (alignment))
@@ -802,14 +802,14 @@ void r_pool_destroy(void) __leaf;
 
 /* Pointer allocations helpers */
 
-#define r_new_raw(rype, count)       ra_new_raw(rype, count, alignof(rype))
-#define r_new(rype, count)           ra_new(rype, count, alignof(rype))
-#define r_new_extra(rype, size)      ra_new_extra(rype, size, alignof(rype))
-#define r_new_extra_raw(rype, size)  ra_new_extra_raw(rype, size, alignof(rype))
-#define r_new_extra_field(rype, field, size)  \
-    ra_new_extra_field(rype, field, size, alignof(rype))
-#define r_new_extra_field_raw(rype, field, size) \
-    ra_new_extra_field_raw(rype, field, size, alignof(rype))
+#define r_new_raw(type, count)       ra_new_raw(type, count, alignof(type))
+#define r_new(type, count)           ra_new(type, count, alignof(type))
+#define r_new_extra(type, size)      ra_new_extra(type, size, alignof(type))
+#define r_new_extra_raw(type, size)  ra_new_extra_raw(type, size, alignof(type))
+#define r_new_extra_field(type, field, size)  \
+    ra_new_extra_field(type, field, size, alignof(type))
+#define r_new_extra_field_raw(type, field, size) \
+    ra_new_extra_field_raw(type, field, size, alignof(type))
 
 #define r_realloc0(rp, old, now)    ra_realloc0(rp, old, now, alignof(**(rp)))
 #define r_realloc_extra(rp, extra)  ra_realloc0_extra(rp, extra, alignof(**(rp)))
