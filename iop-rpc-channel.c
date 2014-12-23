@@ -1065,6 +1065,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     ssize_t seqpkt_at_least = IC_PKT_MAX;
     int to_read = IC_PKT_MAX;
     bool starves = false;
+    int write_errno = 0;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         RETHROW(ic_check_msg_hdr(ic, buf->data));
@@ -1199,10 +1200,14 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                                     : ic_write_seq(ic, sock);
 
             if (ret <= 0) {
-                /* XXX don't raise an error since we want to read a potential
-                 * pending IC_BYE on the channel.
-                 */
+                /* Stop writing */
                 events &= ~POLLOUT;
+                if (ret < 0) {
+                    /* XXX don't raise an error _now_ since we want to read
+                     * a potential pending IC_BYE on the channel.
+                     */
+                    write_errno = errno ?: EINVAL;
+                }
             }
         }
     }
@@ -1215,6 +1220,10 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         }
         if (ic->is_stream && !starves) {
             goto again;
+        }
+        if (write_errno) {
+            errno = write_errno;
+            return -1;
         }
         return 0;
     }
