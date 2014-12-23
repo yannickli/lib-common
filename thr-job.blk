@@ -783,7 +783,7 @@ void thr_initialize(void)
         const char *env = getenv("THR_MAX_PARALLELISM");
         size_t nb_cpu = sysconf(_SC_NPROCESSORS_CONF);
 
-        if (env) {
+        if (env && *env) {
             thr_parallelism_g = atoi(env);
             if (thr_parallelism_g < 2) {
                 e_fatal("invalid THR_PARALLELISM value `%s`", env);
