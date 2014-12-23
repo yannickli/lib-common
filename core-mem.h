@@ -616,25 +616,25 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
 #define p_new_raw(type, count)       pa_new_raw(type, (count), alignof(type))
 #define p_new(type, count)           pa_new(type, (count), alignof(type))
 #define p_new_extra(type, size)      pa_new_extra(type, (size), alignof(type))
-#define p_new_extra_raw(type, size)  \
+#define p_new_extra_raw(type, size)                                          \
     pa_new_extra_raw(type, (size), alignof(type))
-#define p_new_extra_field(type, field, size)  \
+#define p_new_extra_field(type, field, size)                                 \
     pa_new_extra_field(type, field, (size), alignof(type))
-#define p_new_extra_field_raw(type, field, size) \
+#define p_new_extra_field_raw(type, field, size)                             \
     pa_new_extra_field_raw(type, field, (size), alignof(type))
 
 #define p_realloc(pp, count)        pa_realloc((pp), (count), alignof(**(pp)))
-#define p_realloc0(pp, old, now)  \
+#define p_realloc0(pp, old, now)                                             \
     pa_realloc0((pp), (old), (now), alignof(**(pp)))
-#define p_realloc_extra(pp, extra)  \
-    pa_realloc_extra(pp, extra, alignof(**(pp)))
-#define p_realloc0_extra(pp, old_extra, new_extra)  \
+#define p_realloc_extra(pp, extra)                                           \
+    pa_realloc_extra((pp), (extra), alignof(**(pp)))
+#define p_realloc0_extra(pp, old_extra, new_extra)                           \
     pa_realloc0_extra((pp), (old_extra), (new_extra), alignof(**(pp)))
 
-#define p_realloc_extra_field(pp, field, count)  \
+#define p_realloc_extra_field(pp, field, count)                              \
     pa_realloc_extra_field((pp), field, (count), alignof(**(pp)))
-#define p_realloc0_extra_field(pp, field, old_count, new_count)  \
-    pa_realloc0_extra_field((pp), field, (old_count), (new_count),         \
+#define p_realloc0_extra_field(pp, field, old_count, new_count)              \
+    pa_realloc0_extra_field((pp), field, (old_count), (new_count),           \
                             alignof(**(pp)))
 
 #define p_dup(p, count)         pa_dup((p), (count), alignof(p))
@@ -809,24 +809,24 @@ void r_pool_destroy(void) __leaf;
 #define r_new_raw(type, count)       ra_new_raw(type, (count), alignof(type))
 #define r_new(type, count)           ra_new(type, (count), alignof(type))
 #define r_new_extra(type, size)      ra_new_extra(type, (size), alignof(type))
-#define r_new_extra_raw(type, size)  \
+#define r_new_extra_raw(type, size)                                          \
     ra_new_extra_raw(type, (size), alignof(type))
-#define r_new_extra_field(type, field, size)  \
+#define r_new_extra_field(type, field, size)                                 \
     ra_new_extra_field(type, field, (size), alignof(type))
-#define r_new_extra_field_raw(type, field, size) \
+#define r_new_extra_field_raw(type, field, size)                             \
     ra_new_extra_field_raw(type, field, (size), alignof(type))
 
-#define r_realloc0(rp, old, now)  \
+#define r_realloc0(rp, old, now)                                             \
     ra_realloc0((rp), (old), (now), alignof(**(rp)))
-#define r_realloc_extra(rp, extra)  \
+#define r_realloc_extra(rp, extra)                                           \
     ra_realloc0_extra((rp), (extra), alignof(**(rp)))
-#define r_realloc0_extra(rp, old_extra, new_extra)  \
+#define r_realloc0_extra(rp, old_extra, new_extra)                           \
     ra_realloc0_extra((rp), (old_extra), (new_extra), alignof(**(rp)))
 
-#define r_realloc_extra_field(rp, field, count)  \
+#define r_realloc_extra_field(rp, field, count)                              \
     ra_realloc_extra_field((rp), field, (count), alignof(**(rp)))
-#define r_realloc0_extra_field(rp, field, old_count, new_count)  \
-    ra_realloc0_extra_field((rp), field, (old_count), (new_count), \
+#define r_realloc0_extra_field(rp, field, old_count, new_count)              \
+    ra_realloc0_extra_field((rp), (field), (old_count), (new_count),         \
                             alignof(**(rp)))
 
 
