@@ -136,6 +136,9 @@ iopc_build(const qm_t(env) *env, const char *iopfile, const char *iopdata,
     iopc_resolve_second_pass(pkg);
     iopc_types_fold(pkg);
     iopc_do_c(pkg, outdir, NULL);
+    if (is_main_pkg) {
+        iopc_do_json(pkg, outdir, NULL);
+    }
 
     if (pkgname) {
         *pkgname = lstr_dups(pretty_path_dot(pkg->name), -1);
@@ -178,6 +181,7 @@ int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
     SB_1k(sb);
     lstr_t pkgname, pkgpath;
     char so_path[PATH_MAX], path[PATH_MAX], tmppath[PATH_MAX];
+    char json_path[PATH_MAX];
     qv_t(str) sources;
     int ret = 0;
     const char *filepart = path_filepart(iopfile);
@@ -200,6 +204,15 @@ int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
     }
 
     iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath);
+
+    /* move json to outdir */
+    path_extend(json_path, outdir, "%*pM.json", LSTR_FMT_ARG(pkgpath));
+    path_extend(path, tmppath, "%*pM.json",  LSTR_FMT_ARG(pkgpath));
+    if (rename(path, json_path) < 0) {
+        return logger_error(&_G.logger, "failed to create json file %s: %m",
+                            json_path);
+    }
+
     path_extend(path, tmppath, "%*pM.c",  LSTR_FMT_ARG(pkgpath));
     qv_append(str, &sources, p_strdup(path));
 
