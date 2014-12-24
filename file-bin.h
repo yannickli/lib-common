@@ -66,7 +66,7 @@ typedef struct file_bin_t {
     FILE     *f;
     off_t     cur;
     lstr_t    path;
-    int32_t   slot_size;
+    uint32_t  slot_size;
     uint16_t  version;
 
     /* Read mode fields. */
