@@ -26,6 +26,44 @@ typedef struct large_test_struct_t {
     char buf[1000];
 } large_test_struct_t;
 
+static int z_check_file_bin_records(file_bin_t *file, lstr_t path,
+                                    int read_nb, int exp_nb)
+{
+    t_scope;
+    bool do_close = false;
+    qv_t(lstr) results;
+
+    t_qv_init(lstr, &results, exp_nb);
+
+    if (file) {
+        Z_ASSERT_ZERO(file_bin_refresh(file));
+    } else {
+        Z_ASSERT_P((file = file_bin_open(path)));
+        do_close = true;
+    }
+
+    Z_ASSERT_ZERO(t_file_bin_get_last_records(file, read_nb, &results));
+
+    Z_ASSERT_EQ(results.len, exp_nb);
+
+    qv_for_each_pos(lstr, pos, &results) {
+        lstr_t entry = results.tab[pos];
+        test_struct_t *test_ptr = entry.data;
+
+        Z_ASSERT_EQ(entry.len, ssizeof(test_struct_t));
+
+        Z_ASSERT_EQ(test_ptr->a, 100 - pos);
+        Z_ASSERT_EQ(test_ptr->b, 100 - pos + 1);
+        Z_ASSERT_EQ(test_ptr->c, 100 - pos + 2);
+    }
+
+    if (do_close) {
+        Z_ASSERT_ZERO(file_bin_close(&file));
+    }
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(file)
 {
     Z_TEST(truncate, "file: truncate") {
@@ -130,59 +168,69 @@ Z_GROUP_EXPORT(file)
 
     Z_TEST(file_bin_reverse, "file_bin: reverse parsing") {
         t_scope;
-        lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
-                                      LSTR("file_bin.test"));
-        file_bin_t *file = file_bin_create(file_path, 30, true);
-        test_struct_t test = {.a = 1, .b = 2, .c = 3};
-        qv_t(lstr) results;
+        lstr_t path = t_lstr_cat(LSTR(z_tmpdir_g.s),
+                                 LSTR("file_bin.test"));
+        file_bin_t *file;
+        file_bin_t *read_file;
 
-        Z_ASSERT_P(file);
+#define WRITE_RECORDS(_file)  \
+        do {                                                                 \
+            for (int i = 0; i < 100; i++) {                                  \
+                test_struct_t test = {                                       \
+                    .a = i + 1,                                              \
+                    .b = i + 2,                                              \
+                    .c = i + 3,                                              \
+                };                                                           \
+                                                                             \
+                Z_ASSERT_ZERO(file_bin_put_record(file, &test,               \
+                                                  sizeof(test)));            \
+            }                                                                \
+            Z_ASSERT_ZERO(file_bin_flush(file));                             \
+        } while (0)
 
-        t_qv_init(lstr, &results, 100);
+        /* Create a file with small slots. */
+        Z_ASSERT_P((file = file_bin_create(path, 30, true)));
+        Z_ASSERT_P((read_file = file_bin_open(path)));
 
-        for (int i = 0; i < 100; i++) {
-            Z_ASSERT_ZERO(file_bin_put_record(file, &test, sizeof(test)));
+        /* Read the empty file. */
+        Z_HELPER_RUN(z_check_file_bin_records(NULL,      path, 1024, 0));
+        Z_HELPER_RUN(z_check_file_bin_records(read_file, path, 1024, 0));
+
+        /* Write records. */
+        WRITE_RECORDS(file);
+
+        /* Read them. */
+        Z_HELPER_RUN(z_check_file_bin_records(NULL,      path, 1024, 100));
+        Z_HELPER_RUN(z_check_file_bin_records(read_file, path, 1024, 100));
+
+        /* Read the last i records, for i from 0 to 100. */
+        for (int i = 0; i <= 100; i++) {
+            Z_HELPER_RUN(z_check_file_bin_records(NULL,      path, i, i));
+            Z_HELPER_RUN(z_check_file_bin_records(read_file, path, i, i));
         }
 
         Z_ASSERT_ZERO(file_bin_close(&file));
-        Z_ASSERT_P((file = file_bin_open(file_path)));
+        Z_ASSERT_ZERO(file_bin_close(&read_file));
 
-        Z_ASSERT_ZERO(t_file_bin_get_last_records(file, 1024, &results));
-        Z_ASSERT_EQ(results.len, 100);
-
-        qv_for_each_entry(lstr, entry, &results) {
-            test_struct_t *test_ptr = entry.data;
-
-            Z_ASSERT_EQ(test_ptr->a, 1);
-            Z_ASSERT_EQ(test_ptr->b, 2);
-            Z_ASSERT_EQ(test_ptr->c, 3);
-        }
-
-        Z_ASSERT_ZERO(file_bin_close(&file));
 
         /* Same with larger slots */
-        qv_clear(lstr, &results);
-        Z_ASSERT_P((file = file_bin_create(file_path, 500, true)));
+        Z_ASSERT_P((file = file_bin_create(path, 500, true)));
+        Z_ASSERT_P((read_file = file_bin_open(path)));
 
-        for (int i = 0; i < 100; i++) {
-            Z_ASSERT_ZERO(file_bin_put_record(file, &test, sizeof(test)));
+        WRITE_RECORDS(file);
+
+        Z_HELPER_RUN(z_check_file_bin_records(NULL,      path, 1024, 100));
+        Z_HELPER_RUN(z_check_file_bin_records(read_file, path, 1024, 100));
+
+        for (int i = 0; i <= 100; i++) {
+            Z_HELPER_RUN(z_check_file_bin_records(NULL,      path, i, i));
+            Z_HELPER_RUN(z_check_file_bin_records(read_file, path, i, i));
         }
 
         Z_ASSERT_ZERO(file_bin_close(&file));
-        Z_ASSERT_P((file = file_bin_open(file_path)));
+        Z_ASSERT_ZERO(file_bin_close(&read_file));
 
-        Z_ASSERT_ZERO(t_file_bin_get_last_records(file, 100, &results));
-        Z_ASSERT_EQ(results.len, 100);
-
-        qv_for_each_entry(lstr, entry, &results) {
-            test_struct_t *test_ptr = entry.data;
-
-            Z_ASSERT_EQ(test_ptr->a, 1);
-            Z_ASSERT_EQ(test_ptr->b, 2);
-            Z_ASSERT_EQ(test_ptr->c, 3);
-        }
-
-        Z_ASSERT_ZERO(file_bin_close(&file));
+#undef WRITE_RECORDS
     } Z_TEST_END;
 
     Z_TEST(file_bin_large, "file_bin: large records") {
