@@ -131,6 +131,8 @@ int file_bin_refresh(file_bin_t *file)
     struct stat st;
     void *new_map;
 
+    assert (file->read_mode);
+
     if (fstat(fileno(file->f), &st) < 0) {
         return logger_error(&_G.logger, "cannot stat file '%*pM': %m",
                             LSTR_FMT_ARG(file->path));
@@ -156,7 +158,7 @@ int file_bin_refresh(file_bin_t *file)
 int _file_bin_seek(file_bin_t *file, off_t pos)
 {
     /* If this one fails, you are probably looking for file_bin_truncate. */
-    assert (file->map);
+    assert (file->read_mode);
 
     THROW_ERR_UNLESS(expect(pos <= file->length));
 
@@ -329,6 +331,8 @@ lstr_t file_bin_get_next_record(file_bin_t *file)
 {
     lstr_t res = LSTR_NULL_V;
 
+    assert (file->read_mode);
+
     while (!res.s && !file_bin_is_finished(file)) {
         res = _file_bin_get_next_record(file);
     }
@@ -342,6 +346,8 @@ int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
     off_t slot_off = file->length;
     off_t prev_slot;
     qv_t(lstr) tmp;
+
+    assert (file->read_mode);
 
     t_qv_init(lstr, &tmp, count);
 
@@ -395,7 +401,7 @@ file_bin_t *file_bin_open(lstr_t path)
     }
 
     if (st.st_size < 0) {
-        logger_error(&_G.logger, "empty binary file '%*pM'",
+        logger_error(&_G.logger, "invalid size of binary file '%*pM'",
                      LSTR_FMT_ARG(path));
         goto error;
     }
@@ -415,6 +421,7 @@ file_bin_t *file_bin_open(lstr_t path)
     }
 
     res = file_bin_new();
+    res->read_mode = true;
     res->f = file;
     res->path = r_path;
     res->length = st.st_size;
@@ -422,7 +429,6 @@ file_bin_t *file_bin_open(lstr_t path)
     res->version = version;
     res->slot_size = slot_size;
     res->cur = HEADER_SIZE(res);
-    sb_init(&res->record_buf);
 
     return res;
 
@@ -685,7 +691,6 @@ int file_bin_close(file_bin_t **file_ptr)
             res = logger_error(&_G.logger, "cannot unmap file '%*pM': %m",
                                LSTR_FMT_ARG(file->path));
         }
-        sb_wipe(&file->record_buf);
     }
 
     if (p_fclose(&file->f) < 0) {

@@ -60,22 +60,31 @@
 #define FILE_BIN_DEFAULT_SLOT_SIZE  (1 << 20) /* 1 Megabyte */
 
 typedef struct file_bin_t {
+    bool read_mode;
+
+    /* Read/Write mode common fields. */
     FILE     *f;
     off_t     cur;
     lstr_t    path;
     int32_t   slot_size;
+    uint16_t  version;
 
-    /* Read mode opening fields */
+    /* Read mode fields. */
     uint32_t  length;
     byte     *map;
     sb_t      record_buf;
-
-    uint16_t  version;
 } file_bin_t;
-GENERIC_NEW_INIT(file_bin_t, file_bin);
+static inline file_bin_t *file_bin_init(file_bin_t *var)
+{
+    p_clear(var, 1);
+    sb_init(&var->record_buf);
+    return var;
+}
+GENERIC_NEW(file_bin_t, file_bin);
 static inline void file_bin_wipe(file_bin_t *var)
 {
     lstr_wipe(&var->path);
+    sb_wipe(&var->record_buf);
 }
 GENERIC_DELETE(file_bin_t, file_bin);
 
