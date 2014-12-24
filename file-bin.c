@@ -243,7 +243,7 @@ _file_bin_get_next_record(file_bin_t *file)
         file->cur += next_entry;
     }
 
-    if (file_bin_get_cpu32(file, &sz) < 0) {
+    if (file_bin_is_finished(file) || file_bin_get_cpu32(file, &sz) < 0) {
         goto jump;
     }
 
@@ -251,8 +251,7 @@ _file_bin_get_next_record(file_bin_t *file)
         logger_error(&_G.logger, "buggy record header in file '%*pM' at "
                      "offset %jd, size is %u and does "
                      "not match the remaining data in the file (%ld)",
-                     LSTR_FMT_ARG(file->path),
-                     file->cur - SLOT_HDR_SIZE(file), sz,
+                     LSTR_FMT_ARG(file->path), file->cur - RC_HDR_SIZE, sz,
                      file->length - file->cur);
         goto jump;
     }
@@ -340,32 +339,33 @@ lstr_t file_bin_get_next_record(file_bin_t *file)
 int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
 {
     off_t save_cur = file->cur;
-    off_t slot_off = file->cur = file_bin_get_prev_slot(file, file->length);
+    off_t slot_off = file->length;
+    off_t prev_slot;
     qv_t(lstr) tmp;
 
     t_qv_init(lstr, &tmp, count);
 
-    while (slot_off >= 0 && count > 0) {
-        while (file->cur < (slot_off + file->slot_size - SLOT_HDR_SIZE(file))
-            && count > 0 && !file_bin_is_finished(file))
+    do {
+        prev_slot = slot_off;
+        file->cur = slot_off = file_bin_get_prev_slot(file, prev_slot - 1);
+
+        while (file->cur <= prev_slot - RC_HDR_SIZE
+            && !file_bin_is_finished(file))
         {
             lstr_t res = file_bin_get_next_record(file);
 
             if (res.s) {
                 qv_append(lstr, &tmp, t_lstr_dup(res));
-                count--;
             }
         }
 
         qv_grow(lstr, out, tmp.len);
-        for (int pos = tmp.len; pos-- > 0;) {
+        for (int pos = tmp.len; pos-- > 0 && count > 0; count--) {
             qv_append(lstr, out, tmp.tab[pos]);
         }
 
         qv_clear(lstr, &tmp);
-        slot_off = file_bin_get_prev_slot(file, slot_off - 1);
-        file->cur = slot_off;
-    }
+    } while (count > 0 && slot_off > HEADER_SIZE(file));
 
     file->cur = save_cur;
 
@@ -599,6 +599,7 @@ file_bin_t *file_bin_create(lstr_t path, uint32_t slot_size, bool trunc)
     file_bin_t *res;
     FILE *file;
     lstr_t r_path = lstr_dup(path);
+    uint32_t min_slot_size;
 
     file = fopen(r_path.s, trunc ? "w" : "a+");
     if (!file) {
@@ -650,10 +651,11 @@ file_bin_t *file_bin_create(lstr_t path, uint32_t slot_size, bool trunc)
         return res;
     }
 
-    if (unlikely(slot_size < HEADER_SIZE(res) + SLOT_HDR_SIZE(res))) {
-        logger_error(&_G.logger, "slot size should be higher than %ld, got "
-                     " %u for file '%*pM'",
-                     HEADER_SIZE(res) + SLOT_HDR_SIZE(res), slot_size,
+    min_slot_size = HEADER_SIZE(res) + SLOT_HDR_SIZE(res) + RC_HDR_SIZE;
+
+    if (unlikely(slot_size < min_slot_size)) {
+        logger_error(&_G.logger, "slot size should be higher than %u, got "
+                     " %u for file '%*pM'", min_slot_size, slot_size,
                      LSTR_FMT_ARG(r_path));
         goto error;
     }

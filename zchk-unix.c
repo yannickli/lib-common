@@ -132,7 +132,7 @@ Z_GROUP_EXPORT(file)
         t_scope;
         lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
                                       LSTR("file_bin.test"));
-        file_bin_t *file = file_bin_create(file_path, 25, true);
+        file_bin_t *file = file_bin_create(file_path, 30, true);
         test_struct_t test = {.a = 1, .b = 2, .c = 3};
         qv_t(lstr) results;
 
@@ -147,7 +147,7 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_ZERO(file_bin_close(&file));
         Z_ASSERT_P((file = file_bin_open(file_path)));
 
-        Z_ASSERT_ZERO(t_file_bin_get_last_records(file, 100, &results));
+        Z_ASSERT_ZERO(t_file_bin_get_last_records(file, 1024, &results));
         Z_ASSERT_EQ(results.len, 100);
 
         qv_for_each_entry(lstr, entry, &results) {
