@@ -146,14 +146,15 @@ int log_file_get_file_stamp(const log_file_t *file, const char *path,
 
 static inline off_t log_file_tell(log_file_t *log_file)
 {
-    if (log_file->_internal) {
-        return file_tell(log_file->_internal);
-    } else
-    if (log_file->_bin_internal) {
-        return log_file->_bin_internal->cur;
+    if (!log_file->_internal) {
+        errno = EBADF;
+        return -1;
     }
-    errno = EBADF;
-    return -1;
+    if (log_file->is_file_bin) {
+        return log_file->_bin_internal->cur;
+    } else {
+        return file_tell(log_file->_internal);
+    }
 }
 
 #ifdef __has_blocks
