@@ -78,6 +78,7 @@ static inline bool iop_cfolder_empty(iop_cfolder_t *cfolder)
 iop_cfolder_err_t iop_cfolder_feed_number(iop_cfolder_t *, uint64_t,
                                           bool is_signed);
 iop_cfolder_err_t iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
-iop_cfolder_err_t iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res);
+iop_cfolder_err_t
+iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res, bool *is_signed);
 
 #endif

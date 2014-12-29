@@ -301,6 +301,8 @@ class IopcTest(z.TestCase):
              's' : 'violation of @min constraint'},
             {'f' : 'defval_int_nonzero.iop',
              's' : 'violation of @nonZero constraint'},
+            {'f' : 'defval_int_unsigned.iop',
+             's' : 'invalid default value on unsigned integer field'},
             {'f' : 'defval_str_invalid.iop',
              's' : 'invalid default value on string field'},
             {'f' : 'defval_str_maxlength.iop',

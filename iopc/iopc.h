@@ -528,6 +528,7 @@ typedef struct iopc_field_t {
         void *ptr;
     } defval;
     iopc_defval_t defval_type;
+    flag_t defval_is_signed : 1;
     flag_t is_visible : 1;
     flag_t resolving  : 1;
     flag_t is_static  : 1;

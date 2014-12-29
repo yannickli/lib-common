@@ -741,6 +741,10 @@ static void check_defval_int(iopc_field_t *f)
         fatal_loc("invalid default value on integer field (wrong type)",
                   f->loc);
     }
+    if (!is_signed && f->defval_is_signed) {
+        fatal_loc("invalid default value on unsigned integer field: %jd",
+                  f->loc, i64);
+    }
     switch (f->kind) {
       case IOP_T_BOOL:
         if (u64 > 1) {

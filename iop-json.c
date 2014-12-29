@@ -543,7 +543,7 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
 
   result:
     /* Let's try to get a result */
-    if (iop_cfolder_get_result(ll->cfolder, &num) < 0)
+    if (iop_cfolder_get_result(ll->cfolder, &num, NULL) < 0)
         return RJERROR_WARG(IOP_JERR_PARSE_NUM);
 
     ll->ctx->u.i = num;

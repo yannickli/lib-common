@@ -666,7 +666,8 @@ static inline const char *ident(iopc_token_t *tk)
     return tk->b.data;
 }
 
-static uint64_t parse_constant_integer(iopc_parser_t *pp, int paren)
+static uint64_t
+parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
 {
     uint64_t num = 0;
     int pos = 0;
@@ -774,8 +775,9 @@ static uint64_t parse_constant_integer(iopc_parser_t *pp, int paren)
 
   end:
     /* Let's try to get a result */
-    if (iop_cfolder_get_result(pp->cfolder, &num) < 0)
+    if (iop_cfolder_get_result(pp->cfolder, &num, is_signed) < 0) {
         fatal_loc("invalid arithmetic expression", TK(pp, 0)->loc);
+    }
     DROP(pp, pos - 1);
 
     return num;
@@ -1630,7 +1632,10 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
         f->defval_type = IOPC_DEFVAL_DOUBLE;
         DROP(pp, 1);
     } else {
-        f->defval.u64 = parse_constant_integer(pp, paren);
+        bool is_signed;
+
+        f->defval.u64 = parse_constant_integer(pp, paren, &is_signed);
+        f->defval_is_signed = is_signed;
         f->defval_type = IOPC_DEFVAL_INTEGER;
     }
 }
@@ -1890,7 +1895,7 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
         ename = asprintf("%*pM_%s", LSTR_FMT_ARG(ns), f->name);
 
         if (SKIP(pp, '=')) {
-            next_value = parse_constant_integer(pp, '}');
+            next_value = parse_constant_integer(pp, '}', NULL);
         }
 
         qv_for_each_entry(iopc_attr, attr, &f->attrs) {
@@ -2522,7 +2527,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
       case ITOK_INTEGER:
       case ITOK_BOOL:
-        arg.v.i64 = parse_constant_integer(pp, ')');
+        arg.v.i64 = parse_constant_integer(pp, ')', NULL);
         e_trace(1, "%s=(i64)%jd", desc->name.s, arg.v.i64);
         break;
 
