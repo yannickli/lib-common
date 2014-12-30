@@ -666,7 +666,8 @@ static inline const char *ident(iopc_token_t *tk)
     return tk->b.data;
 }
 
-static uint64_t parse_constant_integer(iopc_parser_t *pp, int paren)
+static uint64_t
+parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
 {
     uint64_t num = 0;
     int pos = 0;
@@ -774,8 +775,9 @@ static uint64_t parse_constant_integer(iopc_parser_t *pp, int paren)
 
   end:
     /* Let's try to get a result */
-    if (iop_cfolder_get_result(pp->cfolder, &num) < 0)
+    if (iop_cfolder_get_result(pp->cfolder, &num, is_signed) < 0) {
         fatal_loc("invalid arithmetic expression", TK(pp, 0)->loc);
+    }
     DROP(pp, pos - 1);
 
     return num;
@@ -1604,7 +1606,6 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 {
     iopc_token_t *tk;
-    bool nonzero = false;
 
     EAT(pp, '=');
     tk = TK(pp, 0);
@@ -1613,51 +1614,29 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
         fatal_loc("default values for non required fields makes no sense",
                   tk->loc);
     }
-
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
-        if (attr->desc->id == IOPC_ATTR_NON_EMPTY
-        ||  attr->desc->id == IOPC_ATTR_NON_ZERO)
-        {
-            nonzero = true;
-            break;
-        }
-    }
-
     f->repeat = IOP_R_DEFVAL;
 
-    switch (f->kind) {
-      case IOP_T_STRING:
-      case IOP_T_DATA:
-      case IOP_T_XML:
+    if (tk->b_is_char) {
         WANT(pp, 0, ITOK_STRING);
+        f->defval.u64 = (uint64_t)tk->b.data[0];
+        f->defval_type = IOPC_DEFVAL_INTEGER;
+        DROP(pp, 1);
+    } else
+    if (CHECK(pp, 0, ITOK_STRING)) {
         f->defval.ptr = p_strdup(tk->b.data);
-        if (nonzero && !tk->b.len)
-            fatal_loc("default value violates nonEmpty constraint", tk->loc);
+        f->defval_type = IOPC_DEFVAL_STRING;
         DROP(pp, 1);
-        break;
-
-      case IOP_T_DOUBLE:
-        WANT(pp, 0, ITOK_DOUBLE);
+    } else
+    if (CHECK(pp, 0, ITOK_DOUBLE)) {
         f->defval.d = tk->d;
-        if (nonzero && !f->defval.d)
-            fatal_loc("default value violates nonZero constraint", tk->loc);
+        f->defval_type = IOPC_DEFVAL_DOUBLE;
         DROP(pp, 1);
-        break;
+    } else {
+        bool is_signed;
 
-      case IOP_T_STRUCT:
-        /* assume it's an enum in disguise */
-      default: /* integer */
-        if (tk->b_is_char) {
-            WANT(pp, 0, ITOK_STRING);
-            f->defval.u64 = (uint64_t) tk->b.data[0];
-            DROP(pp, 1);
-        } else {
-            f->defval.u64 = parse_constant_integer(pp, paren);
-        }
-        if (nonzero && !f->defval.u64)
-            fatal_loc("default value violates nonZero constraint",
-                      TK(pp, 0)->loc);
-        break;
+        f->defval.u64 = parse_constant_integer(pp, paren, &is_signed);
+        f->defval_is_signed = is_signed;
+        f->defval_type = IOPC_DEFVAL_INTEGER;
     }
 }
 
@@ -1720,7 +1699,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         if (st->type == STRUCT_TYPE_UNION)
             fatal_loc("default values are forbidden in union types", f->loc);
         parse_field_defval(pp, f, paren);
-        f->has_defval = true;
+        assert (f->defval_type);
     } else
     if (f->is_static && !st->is_abstract) {
         fatal_loc("static fields of non-abstract classes must have a default "
@@ -1916,7 +1895,7 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
         ename = asprintf("%*pM_%s", LSTR_FMT_ARG(ns), f->name);
 
         if (SKIP(pp, '=')) {
-            next_value = parse_constant_integer(pp, '}');
+            next_value = parse_constant_integer(pp, '}', NULL);
         }
 
         qv_for_each_entry(iopc_attr, attr, &f->attrs) {
@@ -2548,7 +2527,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
       case ITOK_INTEGER:
       case ITOK_BOOL:
-        arg.v.i64 = parse_constant_integer(pp, ')');
+        arg.v.i64 = parse_constant_integer(pp, ')', NULL);
         e_trace(1, "%s=(i64)%jd", desc->name.s, arg.v.i64);
         break;
 

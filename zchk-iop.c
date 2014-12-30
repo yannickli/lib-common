@@ -481,13 +481,15 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(iop_cfolder_feed_operator(&cfolder, _op),            \
                    "error when feeding with %d", _op)
 
-#define result(_res) \
+#define result(_res, _signed) \
         do {                                                            \
             uint64_t cres;                                              \
+            bool is_signed;                                             \
             \
-            Z_ASSERT_N(iop_cfolder_get_result(&cfolder, &cres),         \
+            Z_ASSERT_N(iop_cfolder_get_result(&cfolder, &cres, &is_signed),\
                        "constant folder error");                        \
             Z_ASSERT_EQ((int64_t)cres, (int64_t)_res);                  \
+            Z_ASSERT_EQ(is_signed, _signed);                            \
             iop_cfolder_wipe(&cfolder);                                 \
             iop_cfolder_init(&cfolder);                                 \
         } while (false)
@@ -496,7 +498,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                            \
             uint64_t cres;                                              \
                                                                         \
-            Z_ASSERT_NEG(iop_cfolder_get_result(&cfolder, &cres));      \
+            Z_ASSERT_NEG(iop_cfolder_get_result(&cfolder, &cres, NULL));\
             iop_cfolder_wipe(&cfolder);                                 \
             iop_cfolder_init(&cfolder);                                 \
         } while (false)
@@ -514,7 +516,7 @@ Z_GROUP_EXPORT(iop)
         feed_num(4);
         feed_op('-');
         feed_num(10);
-        result(24);
+        result(24, false);
 
         feed_num(10);
         feed_op('*');
@@ -525,7 +527,7 @@ Z_GROUP_EXPORT(iop)
         feed_num(4);
         feed_op('*');
         feed_num(10);
-        result(63);
+        result(63, false);
 
         feed_num(8);
         feed_op('+');
@@ -542,7 +544,7 @@ Z_GROUP_EXPORT(iop)
         feed_num(2);
         feed_op('+');
         feed_num(1);
-        result(6);
+        result(6, false);
 
         feed_num(32);
         feed_op('/');
@@ -551,14 +553,14 @@ Z_GROUP_EXPORT(iop)
         feed_num(2);
         feed_op('/');
         feed_num(2);
-        result(1);
+        result(1, false);
 
         feed_num(8);
         feed_op('/');
         feed_num(4);
         feed_op('/');
         feed_num(2);
-        result(1);
+        result(1, false);
 
         feed_num(8);
         feed_op('/');
@@ -567,14 +569,14 @@ Z_GROUP_EXPORT(iop)
         feed_op('/');
         feed_num(2);
         feed_op(')');
-        result(4);
+        result(4, false);
 
         feed_num(4);
         feed_op(CF_OP_EXP);
         feed_num(3);
         feed_op(CF_OP_EXP);
         feed_num(2);
-        result(262144);
+        result(262144, false);
 
         feed_num(4);
         feed_op('+');
@@ -582,7 +584,7 @@ Z_GROUP_EXPORT(iop)
         feed_num(2);
         feed_op(CF_OP_EXP);
         feed_num(2);
-        result(0);
+        result(0, false);
 
         feed_num(1);
         feed_op('+');
@@ -595,7 +597,7 @@ Z_GROUP_EXPORT(iop)
         feed_num(1);
         feed_op('-');
         feed_num(1);
-        result(65);
+        result(65, false);
 
         feed_num(0xfffff);
         feed_op('&');
@@ -604,7 +606,12 @@ Z_GROUP_EXPORT(iop)
         feed_num(2);
         feed_op('|');
         feed_num(3);
-        result(131);
+        result(131, false);
+
+        feed_num(63);
+        feed_op('-');
+        feed_num(64);
+        result(-1, true);
 
         feed_num(1);
         feed_op('/');

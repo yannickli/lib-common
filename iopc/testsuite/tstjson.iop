@@ -93,7 +93,7 @@ struct MyStructB {
     short      e = -1 << 15;
     ushort     f = (1 << 16) - 1;
     long       g = -1 << 63;
-    ulong      h = -1;
+    ulong      h = 0xffffffffffffffff;
     double     i = 10.5;
     bool       j = true;
     bytes      k = "default data value"; /**< comment for k of MyStructB */

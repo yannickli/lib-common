@@ -363,7 +363,7 @@ iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
 }
 
 iop_cfolder_err_t
-iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
+iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res, bool *is_signed)
 {
     int ret;
     iop_cfolder_elem_t elem;
@@ -387,6 +387,9 @@ iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
         return CF_ERR(INVALID, "invalid stack content");
 
     *res = elem.num;
+    if (is_signed) {
+        *is_signed = (elem.is_signed && SIGNED(elem.num) < 0);
+    }
 
     return CF_OK;
 }

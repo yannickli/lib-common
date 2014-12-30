@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   3
 #define IOPC_MINOR   0
-#define IOPC_PATCH   15
+#define IOPC_PATCH   16
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
@@ -502,6 +502,13 @@ typedef enum iopc_struct_type_t {
     STRUCT_TYPE_TYPEDEF = 3,
 } iopc_struct_type_t;
 
+typedef enum iopc_defval_t {
+    IOPC_DEFVAL_NONE,
+    IOPC_DEFVAL_STRING,
+    IOPC_DEFVAL_INTEGER,
+    IOPC_DEFVAL_DOUBLE,
+} iopc_defval_t;
+
 typedef struct iopc_field_t {
     int        refcnt;
     uint16_t   size;
@@ -520,7 +527,8 @@ typedef struct iopc_field_t {
         double d;
         void *ptr;
     } defval;
-    flag_t has_defval : 1;
+    iopc_defval_t defval_type;
+    flag_t defval_is_signed : 1;
     flag_t is_visible : 1;
     flag_t resolving  : 1;
     flag_t is_static  : 1;
@@ -561,16 +569,8 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     iopc_path_delete(&field->type_path);
     qv_deep_wipe(iopc_attr, &field->attrs, iopc_attr_delete);
     qv_deep_wipe(iopc_dox, &field->comments, iopc_dox_wipe);
-    if (field->has_defval) {
-        switch (field->kind) {
-          case IOP_T_STRING:
-          case IOP_T_DATA:
-          case IOP_T_XML:
-            p_delete(&field->defval.ptr);
-            break;
-          default:
-            break;
-        }
+    if (field->defval_type == IOPC_DEFVAL_STRING) {
+        p_delete(&field->defval.ptr);
     }
 }
 DO_REFCNT(iopc_field_t, iopc_field);
