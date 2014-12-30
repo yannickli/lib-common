@@ -13,7 +13,7 @@
 #                                                                        #
 ##########################################################################
 
-import sys, os, os.path
+import os, os.path
 
 SELF_PATH = os.path.dirname(__file__)
 TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
@@ -47,17 +47,18 @@ class IopcTest(z.TestCase):
         self.assertIsNotNone(iopc_p)
         output = iopc_p.communicate()[1]
         if (expect_pass):
-            self.assertEqual(iopc_p.returncode, 0)
+            self.assertEqual(iopc_p.returncode, 0,
+                             "unexpected failure on %s: %s" % (iop, output))
         else:
-            self.assertTrue(iopc_p.returncode > 0)
+            self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s"
+                            % (iop))
             if (errors):
                 if isinstance(errors, basestring):
                     errors = [errors]
                 for error in errors:
-                    if output.find(error) < 0:
-                        print >> sys.stderr, "did not find '%s' in '%s'" %   \
-                                 (error, output)
-                        self.assertFalse(True)
+                    self.assertTrue(output.find(error) >= 0,
+                                    "did not find '%s' in '%s'" \
+                                    % (error, output))
 
     def run_iopc_pass(self, iop, version, lang='', class_id_range=''):
         self.run_iopc(iop, True, None, version, lang, class_id_range)
@@ -99,14 +100,13 @@ class IopcTest(z.TestCase):
         content = f.read()
         for s in string_list:
             if wanted:
-                if content.find(s) < 0:
-                    print >> sys.stderr, "did not find '%s' in '%s'" %       \
-                            (s, file_name)
-                    self.assertFalse(True)
+                self.assertTrue(content.find(s) >= 0,
+                                "did not find '%s' in '%s'" \
+                                % (s, file_name))
             else:
-                if content.find(s) >= 0:
-                    print >> sys.stderr, "found '%s' in '%s'" % (s, file_name)
-                    self.assertFalse(True)
+                self.assertTrue(content.find(s) < 0,
+                                "found '%s' in '%s'" \
+                                % (s, file_name))
         f.close()
 
     def check_ref(self, pkg, lang):
@@ -282,6 +282,38 @@ class IopcTest(z.TestCase):
             '{ .defval_u64 = 0x8000000000000000 }',
             '{ .defval_u64 = 0xffffffffffffffff }',
             '{ .defval_data = "RST" }'])
+
+    def test_defval(self):
+        tests_invalid = [
+            {'f' : 'defval_bool_invalid.iop',
+             's' : 'invalid default value on bool field'},
+            {'f' : 'defval_double_nonzero.iop',
+             's' : 'violation of @nonZero constraint'},
+            {'f' : 'defval_double_string.iop',
+             's' : 'string default value on double field'},
+            {'f' : 'defval_enum_strict.iop',
+             's' : 'invalid default value on strict enum field'},
+            {'f' : 'defval_int_invalid.iop',
+             's' : 'invalid default value on integer field'},
+            {'f' : 'defval_int_max.iop',
+             's' : 'violation of @max constraint'},
+            {'f' : 'defval_int_min.iop',
+             's' : 'violation of @min constraint'},
+            {'f' : 'defval_int_nonzero.iop',
+             's' : 'violation of @nonZero constraint'},
+            {'f' : 'defval_int_unsigned.iop',
+             's' : 'invalid default value on unsigned integer field'},
+            {'f' : 'defval_str_invalid.iop',
+             's' : 'invalid default value on string field'},
+            {'f' : 'defval_str_maxlength.iop',
+             's' : 'violation of @maxLength constraint'},
+        ]
+        for t in tests_invalid:
+            self.run_iopc(t['f'], False, t['s'], 2)
+
+        f = 'defval_valid.iop'
+        self.run_iopc2(f, True, None)
+        self.run_gcc(f)
 
     def test_integer_ext_overflow(self):
         self.run_iopc('integer_ext_overflow.iop', False,

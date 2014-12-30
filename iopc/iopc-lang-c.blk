@@ -1212,7 +1212,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
     });
     index_field = 0;
     qv_for_each_entry(iopc_field, f, &st->static_fields) {
-        if (!f->has_defval) {
+        if (!f->defval_type) {
             continue;
         }
         iopc_dump_static_field_src(buf, f, t_fmt("%s__static_field_%d",
@@ -1226,7 +1226,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
             tbase);
     index_field = 0;
     qv_for_each_entry(iopc_field, f, &st->static_fields) {
-        if (!f->has_defval) {
+        if (!f->defval_type) {
             continue;
         }
         sb_addf(buf, "    &%s__static_field_%d,\n", tbase, index_field);
