@@ -191,6 +191,7 @@ zchk_SOURCES = zchk.c \
 	zchk-container.blk \
 	zchk-hat.blk \
 	zchk-iop.c \
+	zchk-mem.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \

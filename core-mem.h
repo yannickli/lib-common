@@ -337,7 +337,7 @@ static inline void *p_dupz(const void *src, size_t len)
 
 #define p_realloc(pp, count)        pa_realloc(pp, count, alignof(**(pp)))
 #define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, alignof(**(pp)))
-#define p_realloc_extra(pp, extra)  pa_realloc0_extra(pp, extra, alignof(**(pp)))
+#define p_realloc_extra(pp, extra)  pa_realloc_extra(pp, extra, alignof(**(pp)))
 #define p_realloc0_extra(pp, old_extra, new_extra)  \
     pa_realloc0_extra(pp, old_extra, new_extra, alignof(**(pp)))
 
