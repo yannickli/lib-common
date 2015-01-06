@@ -538,7 +538,7 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
 #define pa_realloc0(pp, old, now, alignment)                                 \
     mpa_realloc0(&mem_pool_libc, (pp), (old), (now), (alignment))
 #define pa_realloc_extra(pp, extra, alignment)                               \
-    mpa_realloc0_extra(&mem_pool_libc, (pp), (extra), (alignment))
+    mpa_realloc_extra(&mem_pool_libc, (pp), (extra), (alignment))
 #define pa_realloc0_extra(pp, old_extra, new_extra, alignment)               \
     mpa_realloc0_extra(&mem_pool_libc, (pp), (old_extra), (new_extra),       \
                        (alignment))
@@ -566,7 +566,7 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
 
 #define p_realloc(pp, count)        pa_realloc(pp, count, alignof(**(pp)))
 #define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, alignof(**(pp)))
-#define p_realloc_extra(pp, extra)  pa_realloc0_extra(pp, extra, alignof(**(pp)))
+#define p_realloc_extra(pp, extra)  pa_realloc_extra(pp, extra, alignof(**(pp)))
 #define p_realloc0_extra(pp, old_extra, new_extra)  \
     pa_realloc0_extra(pp, old_extra, new_extra, alignof(**(pp)))
 
