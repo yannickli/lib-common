@@ -491,9 +491,8 @@ Z_GROUP_EXPORT(str)
         TT_ALL("  123  ", INT_MAX, true, 0,  123, 5, 0, 0);
         TT_ALL("+123",    INT_MAX, true, 0,  123, INT_MAX, 0, 0);
         TT_SGN("-123",    INT_MAX, true, 0, -123, INT_MAX, 0, 0);
-        TT_ALL("  +",     INT_MAX, true, 0,  0,  0, 0, 0);
-        TT_SGN("  -",     INT_MAX, true, 0,  0,  0, 0, 0);
-        TT_USGN("  -",    INT_MAX, true, 0,  0, -1, 0, ERANGE);
+        TT_ALL("  +",     INT_MAX, true, 0,  0, 0, 0, 0);
+        TT_ALL("  -",     INT_MAX, true, 0,  0, 0, 0, 0);
 
         /* other bases than 10 */
         TT_ALL("0x123", INT_MAX, true,  0, 0x123, INT_MAX, 0, 0);
@@ -531,8 +530,6 @@ Z_GROUP_EXPORT(str)
         TT_USGN("16777215T", INT_MAX, true, 0, 16777215 * (1UL << 40),
                 INT_MAX, 0, 0);
         TT_USGN("16777216T", INT_MAX, true, 0, UINT64_MAX, -1, 9, ERANGE);
-        TT_USGN("-123", INT_MAX, true, 0, 0, -1, 0, ERANGE);
-        TT_USGN("   -123", INT_MAX, true, 0, 0, -1, 0, ERANGE);
 
         /* positives values at limits for signed */
         TT_SGN("9223372036854775807s", INT_MAX, true, 0, INT64_MAX,

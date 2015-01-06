@@ -677,9 +677,6 @@ static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
 
 /** \brief  convert a lstr into an uint64.
  *
- *  If the string begins with a minus sign (white spaces are escaped), the
- *  function returns -1 and errno is set to ERANGE.
- *
  *  \param  lstr the string to convert
  *  \param  out  pointer to the memory to store the result of the conversion
  *
@@ -695,6 +692,11 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
 
     lstr = lstr_trim(lstr);
     *out = 0;
+
+    if (lstr.len && lstr.s[0] == '-') {
+        errno = ERANGE;
+        return -1;
+    }
 
     errno = 0;
     *out = memtoullp(lstr.s, lstr.len, &endp);

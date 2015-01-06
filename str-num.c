@@ -171,17 +171,6 @@ int64_t parse_number(const char *str)
     return value * mult + frac * mult / denom;
 }
 
-static bool mem_startswith_minus(const void *p, int len)
-{
-    pstream_t ps = ps_init(p, len);
-
-    ps_ltrim(&ps);
-    if (ps_skipc(&ps, '-') == 0) {
-        return true;
-    }
-    return false;
-}
-
 uint64_t memtoullp(const void *s, int len, const byte **endp)
 {
     t_scope;
@@ -194,10 +183,6 @@ uint64_t memtoullp(const void *s, int len, const byte **endp)
         return 0;
     }
 
-    if (mem_startswith_minus(s, len)) {
-        errno = ERANGE;
-        return 0;
-    }
     res = strtoull(str, &tail, 10);
     *endp = (const byte *)s + (tail - str);
 
@@ -402,10 +387,6 @@ memtoxll_ext(const void *p, int len, bool is_signed, uint64_t *out,
     if (is_signed) {
         *out = strtoll(s, &tail, base);
     } else {
-        if (mem_startswith_minus(p, len)) {
-            errno = ERANGE;
-            return -1;
-        }
         *out = strtoull(s, &tail, base);
     }
 
