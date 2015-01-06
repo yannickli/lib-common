@@ -203,6 +203,7 @@ zchk_SOURCES = zchk.c \
 	zchk-iop.c \
 	zchk-iop-rpc.c \
 	zchk-licence.c \
+	zchk-mem.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
