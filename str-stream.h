@@ -596,6 +596,23 @@ static inline pstream_t ps_get_cspan(pstream_t *ps, const ctype_desc_t *d)
     return __ps_get_ps_upto(ps, b);
 }
 
+/** Check if a pstream_t contains at least one character from a ctype_desc_t.
+ *
+ * \param ps The pstream on which do the search.
+ * \param d  The ctype_desc_t containing the characters we are looking for.
+ * \return true if ps contains at least one character from d, false otherwise.
+ */
+static inline bool
+ps_has_char_in_ctype(const pstream_t *ps, const ctype_desc_t *d)
+{
+    for (const byte *b = ps->b; b < ps->b_end; b++) {
+        if (ctype_desc_contains(d, *b)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static inline pstream_t ps_get_tok(pstream_t *ps, const ctype_desc_t *d)
 {
     pstream_t out = ps_get_cspan(ps, d);

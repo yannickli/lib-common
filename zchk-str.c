@@ -1640,6 +1640,26 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_LSTREQUAL(data_s, data_ref);
         Z_ASSERT_LSTREQUAL(data_c, data_ref);
     } Z_TEST_END;
+
+    Z_TEST(ps_has_char, "ps: ps_has_char_in_ctype") {
+        pstream_t p;
+
+        p = ps_initstr("aBcdEfGhij");
+        Z_ASSERT(!ps_has_char_in_ctype(&p, &ctype_isdigit));
+        Z_ASSERT( ps_has_char_in_ctype(&p, &ctype_isalpha));
+
+        p = ps_initstr("abcdef1hij");
+        Z_ASSERT(ps_has_char_in_ctype(&p, &ctype_isdigit));
+        Z_ASSERT(ps_has_char_in_ctype(&p, &ctype_isalpha));
+
+        p = ps_initstr("ABCDEFJHIJ8");
+        Z_ASSERT(ps_has_char_in_ctype(&p, &ctype_isdigit));
+        Z_ASSERT(ps_has_char_in_ctype(&p, &ctype_isalpha));
+
+        p = ps_initstr("9191959485889");
+        Z_ASSERT( ps_has_char_in_ctype(&p, &ctype_isdigit));
+        Z_ASSERT(!ps_has_char_in_ctype(&p, &ctype_isalpha));
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
