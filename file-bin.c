@@ -126,10 +126,40 @@ static off_t file_bin_get_next_entry_off(file_bin_t *f, uint32_t d_len)
 /* }}} */
 /* {{{ Reading */
 
+static int file_bin_parse_header(lstr_t path, void *data, size_t len,
+                                 uint16_t *version, uint32_t *slot_size)
+{
+    file_bin_header_t *header = data;
+
+    if (len < sizeof(file_bin_header_t)) {
+        logger_error(&_G.logger,
+                     "not enough data in '%*pM' to parse header: %ju < %ju",
+                     LSTR_FMT_ARG(path), len, sizeof(file_bin_header_t));
+        return -1;
+    }
+
+    if (strequal(header->version, SIG_0100)) {
+        *version = 1;
+        *slot_size = le_to_cpu32p(&header->slot_size);
+    } else {
+        /* Unknown header. File is probably in version 0 */
+        *version = 0;
+        *slot_size = FILE_BIN_DEFAULT_SLOT_SIZE;
+    }
+
+    logger_trace(&_G.logger, 3, "parsed file header for '%*pM': version = %u,"
+                 " slot size = %u", LSTR_FMT_ARG(path), *version, *slot_size);
+
+    return 0;
+}
+
 int file_bin_refresh(file_bin_t *file)
 {
     struct stat st;
     void *new_map;
+    bool parse_header;
+
+    assert (file->read_mode);
 
     if (fstat(fileno(file->f), &st) < 0) {
         return logger_error(&_G.logger, "cannot stat file '%*pM': %m",
@@ -140,11 +170,25 @@ int file_bin_refresh(file_bin_t *file)
         return 0;
     }
 
-    new_map = mremap(file->map, file->length, st.st_size, MREMAP_MAYMOVE);
+    if (file->map) {
+        new_map = mremap(file->map, file->length, st.st_size, MREMAP_MAYMOVE);
+
+    } else {
+        assert (file->length == 0);
+        parse_header = true;
+        new_map = mmap(NULL, st.st_size, PROT_READ,
+                       MAP_SHARED, fileno(file->f), 0);
+    }
 
     if (new_map == MAP_FAILED) {
-        return logger_error(&_G.logger, "cannot remap file '%*pM': %m",
-                            LSTR_FMT_ARG(file->path));
+        logger_error(&_G.logger, "cannot %smap file '%*pM': %m",
+                     file->map ? "re" : "", LSTR_FMT_ARG(file->path));
+        return -1;
+    }
+
+    if (parse_header) {
+        RETHROW(file_bin_parse_header(file->path, new_map, st.st_size,
+                                      &file->version, &file->slot_size));
     }
 
     file->map = new_map;
@@ -156,33 +200,12 @@ int file_bin_refresh(file_bin_t *file)
 int _file_bin_seek(file_bin_t *file, off_t pos)
 {
     /* If this one fails, you are probably looking for file_bin_truncate. */
-    assert (file->map);
+    assert (file->read_mode);
 
     THROW_ERR_UNLESS(expect(pos <= file->length));
 
     file->cur = pos;
 
-    return 0;
-}
-
-static int file_bin_parse_header(lstr_t path, void *data, uint16_t *version,
-                                 uint32_t *slot_size)
-{
-    file_bin_header_t *header = data;
-
-    if (lstr_equal2(LSTR(header->version), LSTR(SIG_0100))) {
-        *version = 1;
-        *slot_size = le_to_cpu32p(&header->slot_size);
-        goto end;
-    }
-
-    /* Unknown header. File is probably in version 0 */
-    *version = 0;
-    *slot_size = FILE_BIN_DEFAULT_SLOT_SIZE;
-
-  end:
-    logger_trace(&_G.logger, 3, "parsed file header for '%*pM': version = %u,"
-                 " slot size = %u", LSTR_FMT_ARG(path), *version, *slot_size);
     return 0;
 }
 
@@ -243,7 +266,7 @@ _file_bin_get_next_record(file_bin_t *file)
         file->cur += next_entry;
     }
 
-    if (file_bin_get_cpu32(file, &sz) < 0) {
+    if (file_bin_is_finished(file) || file_bin_get_cpu32(file, &sz) < 0) {
         goto jump;
     }
 
@@ -251,8 +274,7 @@ _file_bin_get_next_record(file_bin_t *file)
         logger_error(&_G.logger, "buggy record header in file '%*pM' at "
                      "offset %jd, size is %u and does "
                      "not match the remaining data in the file (%ld)",
-                     LSTR_FMT_ARG(file->path),
-                     file->cur - SLOT_HDR_SIZE(file), sz,
+                     LSTR_FMT_ARG(file->path), file->cur - RC_HDR_SIZE, sz,
                      file->length - file->cur);
         goto jump;
     }
@@ -330,6 +352,8 @@ lstr_t file_bin_get_next_record(file_bin_t *file)
 {
     lstr_t res = LSTR_NULL_V;
 
+    assert (file->read_mode);
+
     while (!res.s && !file_bin_is_finished(file)) {
         res = _file_bin_get_next_record(file);
     }
@@ -340,32 +364,35 @@ lstr_t file_bin_get_next_record(file_bin_t *file)
 int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
 {
     off_t save_cur = file->cur;
-    off_t slot_off = file->cur = file_bin_get_prev_slot(file, file->length);
+    off_t slot_off = file->length;
+    off_t prev_slot;
     qv_t(lstr) tmp;
+
+    assert (file->read_mode);
 
     t_qv_init(lstr, &tmp, count);
 
-    while (slot_off >= 0 && count > 0) {
-        while (file->cur < (slot_off + file->slot_size - SLOT_HDR_SIZE(file))
-            && count > 0 && !file_bin_is_finished(file))
+    do {
+        prev_slot = slot_off;
+        file->cur = slot_off = file_bin_get_prev_slot(file, prev_slot - 1);
+
+        while (file->cur <= prev_slot - RC_HDR_SIZE
+            && !file_bin_is_finished(file))
         {
             lstr_t res = file_bin_get_next_record(file);
 
             if (res.s) {
                 qv_append(lstr, &tmp, t_lstr_dup(res));
-                count--;
             }
         }
 
         qv_grow(lstr, out, tmp.len);
-        for (int pos = tmp.len; pos-- > 0;) {
+        for (int pos = tmp.len; pos-- > 0 && count > 0; count--) {
             qv_append(lstr, out, tmp.tab[pos]);
         }
 
         qv_clear(lstr, &tmp);
-        slot_off = file_bin_get_prev_slot(file, slot_off - 1);
-        file->cur = slot_off;
-    }
+    } while (count > 0 && slot_off > HEADER_SIZE(file));
 
     file->cur = save_cur;
 
@@ -378,7 +405,7 @@ file_bin_t *file_bin_open(lstr_t path)
     struct stat st;
     void *mapping = NULL;
     uint16_t version = 0;
-    uint32_t slot_size = 1 << 20;
+    uint32_t slot_size = 0;
     lstr_t r_path = lstr_dup(path);
     FILE *file = fopen(r_path.s, "r");
 
@@ -395,7 +422,7 @@ file_bin_t *file_bin_open(lstr_t path)
     }
 
     if (st.st_size < 0) {
-        logger_error(&_G.logger, "empty binary file '%*pM'",
+        logger_error(&_G.logger, "invalid size of binary file '%*pM'",
                      LSTR_FMT_ARG(path));
         goto error;
     }
@@ -409,12 +436,15 @@ file_bin_t *file_bin_open(lstr_t path)
             goto error;
         }
 
-        if (file_bin_parse_header(path, mapping, &version, &slot_size) < 0) {
+        if (file_bin_parse_header(path, mapping, st.st_size,
+                                  &version, &slot_size) < 0)
+        {
             goto error;
         }
     }
 
     res = file_bin_new();
+    res->read_mode = true;
     res->f = file;
     res->path = r_path;
     res->length = st.st_size;
@@ -422,7 +452,6 @@ file_bin_t *file_bin_open(lstr_t path)
     res->version = version;
     res->slot_size = slot_size;
     res->cur = HEADER_SIZE(res);
-    sb_init(&res->record_buf);
 
     return res;
 
@@ -599,6 +628,7 @@ file_bin_t *file_bin_create(lstr_t path, uint32_t slot_size, bool trunc)
     file_bin_t *res;
     FILE *file;
     lstr_t r_path = lstr_dup(path);
+    uint32_t min_slot_size;
 
     file = fopen(r_path.s, trunc ? "w" : "a+");
     if (!file) {
@@ -625,35 +655,32 @@ file_bin_t *file_bin_create(lstr_t path, uint32_t slot_size, bool trunc)
     if (res->cur > 0) {
         /* Appending an already existing file */
         byte buf[20];
-        uint16_t ver;
-        uint32_t tmp_slot_sz;
 
-        if (res->cur < 20) {
+        if (res->cur < countof(buf)) {
             res->slot_size = FILE_BIN_DEFAULT_SLOT_SIZE;
             res->version = 0;
             return res;
         }
 
         rewind(file);
-        if (fread(buf, 1, 20, file) < 20) {
+        if (fread(buf, 1, countof(buf), file) < countof(buf)) {
             logger_error(&_G.logger, "cannot read binary file header "
                          "for file '%*pM': %m", LSTR_FMT_ARG(r_path));
             goto error;
         }
 
         GOTO_ERROR_IF_FAIL(file_bin_seek(res, 0, SEEK_END));
-        GOTO_ERROR_IF_FAIL(file_bin_parse_header(r_path, buf, &ver,
-                                                 &tmp_slot_sz));
-
-        res->slot_size = tmp_slot_sz;
-        res->version = ver;
+        GOTO_ERROR_IF_FAIL(file_bin_parse_header(r_path, buf, countof(buf),
+                                                 &res->version,
+                                                 &res->slot_size));
         return res;
     }
 
-    if (unlikely(slot_size < HEADER_SIZE(res) + SLOT_HDR_SIZE(res))) {
-        logger_error(&_G.logger, "slot size should be higher than %ld, got "
-                     " %u for file '%*pM'",
-                     HEADER_SIZE(res) + SLOT_HDR_SIZE(res), slot_size,
+    min_slot_size = HEADER_SIZE(res) + SLOT_HDR_SIZE(res) + RC_HDR_SIZE;
+
+    if (unlikely(slot_size < min_slot_size)) {
+        logger_error(&_G.logger, "slot size should be higher than %u, got "
+                     " %u for file '%*pM'", min_slot_size, slot_size,
                      LSTR_FMT_ARG(r_path));
         goto error;
     }
@@ -683,7 +710,6 @@ int file_bin_close(file_bin_t **file_ptr)
             res = logger_error(&_G.logger, "cannot unmap file '%*pM': %m",
                                LSTR_FMT_ARG(file->path));
         }
-        sb_wipe(&file->record_buf);
     }
 
     if (p_fclose(&file->f) < 0) {
