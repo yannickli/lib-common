@@ -41,10 +41,10 @@ Z_GROUP_EXPORT(mem_pool_macros) {
         p = t_new_extra(int, 16);
         p = t_new_extra_raw(int, 16);
 
-        t = t_new_extra_field(z_mp_test_t, tab, 42);
         t = t_new_extra_field_raw(z_mp_test_t, tab, 42);
+        t = t_new_extra_field(z_mp_test_t, tab, 42);
 
-        t = t_dup(t, 256);
+        t = t_dup(t, 1);
         s = t_dupz("toto", 4);
 
         Z_ASSERT(true, "execution OK");
@@ -63,7 +63,7 @@ Z_GROUP_EXPORT(mem_pool_macros) {
 
         p = r_new_extra(int, 16);
 
-        t = r_new_raw(z_mp_test_t, 256);
+        t = r_new(z_mp_test_t, 256);
         t = r_dup(t, 256);
         s = r_dupz("toto", 4);
 
