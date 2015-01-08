@@ -269,7 +269,8 @@ bool el_timer_is_repeated(el_t ev) __leaf __attribute__((pure));
  * Note that if the timer hasn't expired yet, it just sets it to a later time.
  *
  * \param[in]  el      timer handler descriptor.
- * \param[in]  next    relative time in ms at wich the timers will fire.
+ * \param[in]  next    relative time in ms at wich the timers will fire. If
+ *                     it's negative, the previous relative value is reused.
  */
 void el_timer_restart(el_t, int next) __leaf;
 void el_timer_set_hook(el_t, el_cb_f *) __leaf;
