@@ -415,6 +415,8 @@ typedef struct asn1_choice_desc_t {
     uint8_t     choice_table[256];
 } asn1_choice_desc_t;
 
+GENERIC_NEW_INIT(asn1_choice_desc_t, asn1_choice_desc);
+
 int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
                     qv_t(i32) *stack);
 uint8_t *asn1_pack_(uint8_t *dst, const void *st, const asn1_desc_t *desc,
