@@ -44,6 +44,7 @@ typedef enum ic_event_t {
 #define IC_MSG_SLOT_MASK        (0xffffff)
 #define IC_MSG_HAS_FD           (1U << 24)
 #define IC_MSG_HAS_HDR          (1U << 25)
+#define IC_MSG_IS_TRACED        (1U << 26)
 
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
@@ -74,7 +75,8 @@ struct ic_msg_t {
                                      false then hdr and arg are duplicated
                                      before being used in rpc implementation
                                 */
-    unsigned padding    :  4;
+    flag_t   trace      :  1;   /**< Activate tracing for this message. */
+    unsigned padding    :  3;
     int32_t  cmd;               /**< automatically filled by ic_query/reply */
     uint32_t slot;              /**< automatically filled by ic_query/reply */
     unsigned dlen;
