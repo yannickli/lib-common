@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "log.h"
 #include "unix.h"
 #include "iop-rpc.h"
 
@@ -34,8 +35,13 @@ static struct {
     ic_post_hook_f  *post_hook;
     const iop_rpc_t *rpc;
     data_t           post_args;
-} ic_g;
+
+    /* Loggers */
+    logger_t logger;
+} ic_g = {
 #define _G  ic_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "ic")
+};
 
 const QM(ic_cbs, ic_no_impl, false);
 
@@ -112,8 +118,9 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
 #ifdef IC_DEBUG_REPLIES
     int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
     if (pos < 0)
-        e_panic("answering to slot %d twice or unexpected answer!",
-                (uint32_t)slot);
+        logger_panic(&_G.logger,
+                     "answering to slot %d twice or unexpected answer!",
+                     (uint32_t)slot);
 #endif
     assert (ic->pending > 0);
     ic->pending--;
@@ -273,8 +280,10 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
 {
     ichannel_t *ic;
 
-    e_assert_p(panic, pxy_ic,
-               "are you trying to forward a webservices answer?");
+    if (!pxy_ic) {
+        logger_panic(&_G.logger,
+                     "are you trying to forward a webservices answer?");
+    }
 
     if (unlikely(ic_slot_is_http(slot))) {
         __ichttp_forward_reply(pxy_ic, slot, cmd, res, exn);
@@ -648,13 +657,14 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
             const char *err = iop_get_err();
 
             if (err) {
-                e_trace(0, "rpc(%04x:%04x):%s: %s",
-                        (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
-                        tmp->rpc->name.s, err);
+                logger_trace(&_G.logger, 0, "rpc(%04x:%04x):%s: %s",
+                             (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
+                             tmp->rpc->name.s, err);
             } else {
-                e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
-                        (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
-                        tmp->rpc->name.s);
+                logger_trace(&_G.logger, 0,
+                             "rpc(%04x:%04x):%s: answer with invalid encoding",
+                             (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
+                             tmp->rpc->name.s);
             }
 #endif
             t_seal();
@@ -686,7 +696,7 @@ lstr_t ic_get_client_addr(ichannel_t *ic)
         socklen_t saddr_len = sizeof(ic->su.ss);
 
         if (getpeername(el_fd_get_fd(ic->elh), &ic->su.sa, &saddr_len) < 0) {
-            e_error("unable to get peer name: %m");
+            logger_error(&_G.logger, "unable to get peer name: %m");
             ic->peer_address = LSTR_EMPTY_V;
         } else {
             ic->peer_address = lstr_dup(t_addr_fmt_lstr(&ic->su));
@@ -710,8 +720,9 @@ static inline void ic_update_pending(ichannel_t *ic, uint32_t slot)
          *
          */
         if (ic->pending >= ic->pending_max * 9 / 8) {
-            e_trace(0, "warning: %p peaked at %d pending requests (cb %p)",
-                    ic, ic->pending, ic->on_event);
+            logger_trace(&_G.logger, 0,
+                         "warning: %p peaked at %d pending requests (cb %p)",
+                         ic, ic->pending, ic->on_event);
             ic->pending_max = ic->pending;
         }
 #endif
@@ -769,7 +780,8 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
 
     if (unlikely(flags & IC_MSG_HAS_HDR)) {
         if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
-            e_trace(0, QUERY_FMT "header encoding", QUERY_FMT_ARG);
+            logger_trace(&_G.logger, 0, QUERY_FMT "header encoding",
+                         QUERY_FMT_ARG);
             return -1;
         }
         /* XXX on simple header we write the payload size of the iop query */
@@ -791,15 +803,17 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
     if (value
     &&  unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0))
     {
-#ifndef NDEBUG
-        const char *err = iop_get_err();
+        if (logger_is_traced(&_G.logger, 0)) {
+            const char *err = iop_get_err();
 
-        if (err) {
-            e_trace(0, QUERY_FMT "%s", QUERY_FMT_ARG, err);
-        } else {
-            e_trace(0, QUERY_FMT "encoding", QUERY_FMT_ARG);
+            if (err) {
+                logger_trace(&_G.logger, 0, QUERY_FMT "%s",
+                             QUERY_FMT_ARG, err);
+            } else {
+                logger_trace(&_G.logger, 0, QUERY_FMT "encoding",
+                             QUERY_FMT_ARG);
+            }
         }
-#endif
         return -1;
     }
 
@@ -826,10 +840,12 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
 
     pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
     if (unlikely(pos < 0)) {
-        e_trace(1, "received query for unimplemented RPC (%04x:%04x)",
-                (cmd >> 16) & 0x7fff, cmd & 0x7fff);
-        if (slot)
+        logger_trace(&_G.logger, 1,
+                     "received query for unimplemented RPC (%04x:%04x)",
+                     (cmd >> 16) & 0x7fff, cmd & 0x7fff);
+        if (slot) {
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_UNIMPLEMENTED);
+        }
         return;
     }
     e = ic->impl->values + pos;
@@ -885,7 +901,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         }
         break;
       default:
-        e_panic("should not happen");
+        logger_panic(&_G.logger, "should not happen");
         break;
     }
 
@@ -1159,7 +1175,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                 ic->current_fd = NEXTARG(fdc, fdv);
             }
             if (unlikely(ic->current_fd < 0)) {
-                e_warning("file descriptor table overflow");
+                logger_warning(&_G.logger, "file descriptor table overflow");
             }
             flags &= ~IC_MSG_HAS_FD;
         }
@@ -1312,8 +1328,9 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
         goto close;
 
     if ((events & POLLIN) && ic_read(ic, events, fd)) {
-        if (errno)
-            e_trace(1, "ic_read error: %m");
+        if (errno) {
+            logger_trace(&_G.logger, 1, "ic_read error: %m");
+        }
         goto close;
     }
     if (unlikely(ic->is_closing)) {
@@ -1323,8 +1340,9 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
         return 0;
     }
     if ((ic->is_stream ? ic_write_stream(ic, fd) : ic_write_seq(ic, fd)) < 0) {
-        if (errno)
-            e_trace(1, "ic_write error: %m");
+        if (errno) {
+            logger_trace(&_G.logger, 1, "ic_write error: %m");
+        }
         goto close;
     }
     if (ic->is_closing && ic_is_empty(ic))
@@ -1346,8 +1364,10 @@ close:
 static ichannel_t *ic_get_from_slot(uint64_t slot)
 {
 #ifndef NDEBUG
-    if (unlikely(!(slot >> 32)))
-        e_panic("slot truncated at some point: ic->id bits are missing");
+    if (!(slot >> 32)) {
+        logger_panic(&_G.logger, "slot truncated at some point: "
+                     "ic->id bits are missing");
+    }
 #endif
     return qm_get_def(ic, &_G.ics, slot >> 32, NULL);
 }
@@ -1810,8 +1830,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 {
     int type, sock;
 
-    if (unlikely(ic_is_local(ic)))
-        e_fatal("cannot connect a local ic");
+    if (ic_is_local(ic)) {
+        logger_fatal(&_G.logger, "cannot connect a local ic");
+    }
 
     assert (!ic->elh);
 
@@ -1891,8 +1912,9 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     if (unlikely(ic_is_local(ic)))
         return;
 
-    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len))
-        e_panic(E_UNIXERR("getsockopt"));
+    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len)) {
+        logger_panic(&_G.logger, E_UNIXERR("getsockopt"));
+    }
     assert (type == SOCK_STREAM || type == SOCK_SEQPACKET);
 
     ic->is_spawned = true;
