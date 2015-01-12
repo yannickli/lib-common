@@ -24,9 +24,19 @@ enum ic_msg_sc_slots {
 qm_k32_t(ic, ichannel_t *);
 qm_k64_t(ic_hook_ctx, ic_hook_ctx_t *);
 
-static mem_pool_t *ic_mp_g;
-static qm_t(ic)    ic_h_g;
-static qm_t(ic_hook_ctx) ic_ctx_h_g;
+static struct {
+    mem_pool_t *mp;
+    qm_t(ic)    ics;
+    qm_t(ic_hook_ctx) hook_ctxs;
+
+    /* Hook flow */
+    ic_hook_ctx_t   *ic_hook_ctx;
+    ic_post_hook_f  *post_hook;
+    const iop_rpc_t *rpc;
+    data_t           post_args;
+} ic_g;
+#define _G  ic_g
+
 const QM(ic_cbs, ic_no_impl, false);
 
 /*----- messages stuff -----*/
@@ -36,19 +46,17 @@ const QM(ic_cbs, ic_no_impl, false);
 
 static int ic_initialize(void *arg)
 {
-    if (!ic_mp_g) {
-        ic_mp_g = mem_fifo_pool_new(1 << 20);
-        qm_init(ic, &ic_h_g);
-        qm_init(ic_hook_ctx, &ic_ctx_h_g);
-    }
+    _G.mp = mem_fifo_pool_new(1 << 20);
+    qm_init(ic, &_G.ics);
+    qm_init(ic_hook_ctx, &_G.hook_ctxs);
     return 0;
 }
 
 static int ic_shutdown(void)
 {
-    qm_wipe(ic_hook_ctx, &ic_ctx_h_g);
-    qm_wipe(ic, &ic_h_g);
-    mem_fifo_pool_delete(&ic_mp_g);
+    qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
+    qm_wipe(ic, &_G.ics);
+    mem_fifo_pool_delete(&_G.mp);
     return 0;
 }
 
@@ -60,7 +68,7 @@ MODULE_END()
 
 ic_msg_t *ic_msg_new_fd(int fd, int len)
 {
-    ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, len);
+    ic_msg_t *msg = mp_new_extra(_G.mp, ic_msg_t, len);
 
     msg->fd = fd;
     return msg;
@@ -68,7 +76,7 @@ ic_msg_t *ic_msg_new_fd(int fd, int len)
 
 ic_msg_t *ic_msg_new(int len)
 {
-    ic_msg_t *res = mp_new_extra(ic_mp_g, ic_msg_t, len);
+    ic_msg_t *res = mp_new_extra(_G.mp, ic_msg_t, len);
 
     res->fd = -1;
     return res;
@@ -76,7 +84,7 @@ ic_msg_t *ic_msg_new(int len)
 
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
 {
-    ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, sizeof(slot));
+    ic_msg_t *msg = mp_new_extra(_G.mp, ic_msg_t, sizeof(slot));
 
     put_unaligned_cpu64(&msg->priv, slot);
     msg->fd  = fd;
@@ -93,9 +101,9 @@ void ic_msg_delete(ic_msg_t **msgp)
         close(msg->fd);
     if (msg->dlen) {
         assert (msg->dlen >= IC_MSG_HDR_LEN);
-        mp_delete(ic_mp_g, &msg->data);
+        mp_delete(_G.mp, &msg->data);
     }
-    mp_delete(ic_mp_g, msgp);
+    mp_delete(_G.mp, msgp);
 }
 
 static void
@@ -113,42 +121,32 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
     msg->cmd  = -cmd;
 }
 
-static struct {
-    ic_hook_ctx_t   *ic_hook_ctx;
-    ic_post_hook_f  *post_hook;
-    const iop_rpc_t *rpc;
-    data_t           post_args;
-} ic_hook_flow_g;
-
 int ic_hook_ctx_save(ic_hook_ctx_t *ctx)
 {
-    return qm_add(ic_hook_ctx, &ic_ctx_h_g, ctx->slot, ctx);
+    return qm_add(ic_hook_ctx, &_G.hook_ctxs, ctx->slot, ctx);
 }
 
 ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
 {
-    if (ic_hook_flow_g.ic_hook_ctx) {
-        assert(ic_hook_flow_g.ic_hook_ctx->slot != slot);
-        ic_hook_ctx_save(ic_hook_flow_g.ic_hook_ctx);
+    if (_G.ic_hook_ctx) {
+        assert (_G.ic_hook_ctx->slot != slot);
+        ic_hook_ctx_save(_G.ic_hook_ctx);
     }
-    ic_hook_flow_g.ic_hook_ctx = mp_new_extra_field(ic_mp_g, ic_hook_ctx_t,
-                                                    data, extra);
-    ic_hook_flow_g.ic_hook_ctx->slot = slot;
-    ic_hook_flow_g.ic_hook_ctx->rpc = ic_hook_flow_g.rpc;
-    ic_hook_flow_g.ic_hook_ctx->post_hook = ic_hook_flow_g.post_hook;
-    ic_hook_flow_g.ic_hook_ctx->post_hook_args = ic_hook_flow_g.post_args;
+    _G.ic_hook_ctx = mp_new_extra_field(_G.mp, ic_hook_ctx_t, data, extra);
+    _G.ic_hook_ctx->slot = slot;
+    _G.ic_hook_ctx->rpc = _G.rpc;
+    _G.ic_hook_ctx->post_hook = _G.post_hook;
+    _G.ic_hook_ctx->post_hook_args = _G.post_args;
 
-    return ic_hook_flow_g.ic_hook_ctx;
+    return _G.ic_hook_ctx;
 }
 
 ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot)
 {
-    if (ic_hook_flow_g.ic_hook_ctx
-    &&  ic_hook_flow_g.ic_hook_ctx->slot == slot)
-    {
-        return ic_hook_flow_g.ic_hook_ctx;
+    if (_G.ic_hook_ctx &&  _G.ic_hook_ctx->slot == slot) {
+        return _G.ic_hook_ctx;
     } else {
-        return qm_get_def(ic_hook_ctx, &ic_ctx_h_g, slot, NULL);
+        return qm_get_def(ic_hook_ctx, &_G.hook_ctxs, slot, NULL);
     }
 }
 
@@ -157,13 +155,13 @@ void ic_hook_ctx_delete(ic_hook_ctx_t **pctx)
     if (*pctx) {
         ic_hook_ctx_t *ctx = *pctx;
 
-        if (ctx == ic_hook_flow_g.ic_hook_ctx) {
-            ic_hook_flow_g.ic_hook_ctx = NULL;
+        if (ctx == _G.ic_hook_ctx) {
+            _G.ic_hook_ctx = NULL;
         } else {
-            qm_del_key(ic_hook_ctx, &ic_ctx_h_g, ctx->slot);
+            qm_del_key(ic_hook_ctx, &_G.hook_ctxs, ctx->slot);
         }
     }
-    mp_delete(ic_mp_g, pctx);
+    mp_delete(_G.mp, pctx);
 }
 
 int
@@ -171,15 +169,15 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
                      const ic__hdr__t *hdr, const ic_cb_entry_t *e)
 {
     if (e->pre_hook) {
-        ic_hook_flow_g.post_hook = e->post_hook;
-        ic_hook_flow_g.rpc = e->rpc;
-        ic_hook_flow_g.post_args = e->post_hook_args;
+        _G.post_hook = e->post_hook;
+        _G.rpc = e->rpc;
+        _G.post_args = e->post_hook_args;
         (*e->pre_hook)(ic, slot, hdr, e->pre_hook_args);
         /* XXX: if we reply to the query during pre_hook then
          *      ic_hook_flow.ic_hook_ctx will be NULL, so we mustn't
          *      call the implementation of the RPC
          */
-        if (!ic_hook_flow_g.ic_hook_ctx) {
+        if (!_G.ic_hook_ctx) {
             return -1;
         }
     }
@@ -371,13 +369,13 @@ static void ic_choose_id(ichannel_t *ic)
     do {
         if (unlikely(nextid == IC_ID_MAX))
             nextid = 0;
-    } while (unlikely(qm_add(ic, &ic_h_g, ++nextid, ic) < 0));
+    } while (unlikely(qm_add(ic, &_G.ics, ++nextid, ic) < 0));
     ic->id = nextid;
 }
 
 static void ic_drop_id(ichannel_t *ic)
 {
-    qm_del_key(ic, &ic_h_g, ic->id);
+    qm_del_key(ic, &_G.ics, ic->id);
     ic->id = 0;
 }
 
@@ -1351,12 +1349,12 @@ static ichannel_t *ic_get_from_slot(uint64_t slot)
     if (unlikely(!(slot >> 32)))
         e_panic("slot truncated at some point: ic->id bits are missing");
 #endif
-    return qm_get_def(ic, &ic_h_g, slot >> 32, NULL);
+    return qm_get_def(ic, &_G.ics, slot >> 32, NULL);
 }
 
 void *__ic_get_buf(ic_msg_t *msg, int len)
 {
-    msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + len);
+    msg->data = mp_new_raw(_G.mp, char, IC_MSG_HDR_LEN + len);
     msg->dlen = IC_MSG_HDR_LEN + len;
     return (char *)msg->data + IC_MSG_HDR_LEN;
 }
@@ -1633,11 +1631,11 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
         return;
 
     if (err_str && err_str->len) {
-        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
+        msg->data = mp_new_raw(_G.mp, char, IC_MSG_HDR_LEN + err_str->len + 1);
         msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
         memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
     } else {
-        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
+        msg->data = mp_new_raw(_G.mp, char, IC_MSG_HDR_LEN);
         msg->dlen = IC_MSG_HDR_LEN;
     }
     ic_queue_for_reply(ic, msg);
@@ -1652,7 +1650,7 @@ static void ic_sc_do(ichannel_t *ic, int sc_op)
 {
     if (!ic->is_closing && !ic_is_local(ic)) {
         ic_msg_t *msg = ic_msg_new(0);
-        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
+        msg->data = mp_new_raw(_G.mp, char, IC_MSG_HDR_LEN);
         msg->dlen = IC_MSG_HDR_LEN;
         msg->cmd  = IC_MSG_STREAM_CONTROL;
         msg->slot = sc_op;
@@ -1680,13 +1678,13 @@ void ic_nop(ichannel_t *ic)
 
 ichannel_t *ic_get_by_id(uint32_t id)
 {
-    return qm_get_def(ic, &ic_h_g, id, NULL);
+    return qm_get_def(ic, &_G.ics, id, NULL);
 }
 
 ichannel_t *ic_init(ichannel_t *ic)
 {
     /* ic_initialize() should be called before ic_init() */
-    assert (ic_h_g.k_size);
+    assert (_G.ics.k_size);
 
     p_clear(ic, 1);
     htlist_init(&ic->msg_list);
