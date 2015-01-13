@@ -883,6 +883,47 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
  * \param[in]  slot    the slot of the received query.
  */
 void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
+#ifndef NDEBUG
+bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
+
+/** Check if the given RPC is traced.
+ *
+ * Traces are automatically enabled for RPCs listed in IC_TRACE. That
+ * environment variable is a space-separate list of interface and RPC names.
+ * The names are provided in the camel-case form (same os .iop files),
+ * including the package name:
+ *
+ *  IC_TRACE="core.Log" will trace all logging RPCs
+ *  IC_TRACE="core.Log.setRootLevel" will trace the setRootLevel RPCs
+ *
+ * Traces are emitted using the ic/tracing logger that is a silent logger, and
+ * thus you must make sure you activated that logger in order to get the
+ * traces. For example, using the IS_DEBUG environment variable, this would be
+ *
+ *  IS_DEBUG=+ic/tracing:0
+ *
+ * A more complete example with mixed RPC and interface names:
+ *
+ *  IC_TRACE="qkv.Base qkv.Repl.push" IS_DEBUG=+ic/tracing:0 ./zchk-cluster
+ *
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \return true if tracing is activated for that RPC.
+ */
+#define ic_rpc_is_traced(_mod, _if, _rpc)  ({                               \
+        static int _mod##__##_if##__##_rpc##_traced = -1;                   \
+                                                                            \
+        if (unlikely(_mod##__##_if##__##_rpc##_traced < 0)) {               \
+            _mod##__##_if##__##_rpc##_traced                                \
+                = __ic_rpc_is_traced(&_mod##__##_if(if),                    \
+                                     IOP_RPC(_mod, _if, _rpc));             \
+        }                                                                   \
+        _mod##__##_if##__##_rpc##_traced;                                   \
+    })
+#else
+#define ic_rpc_is_traced(_mod, _if, _rpc)  (false)
+#endif
 
 /** \brief helper to build a typed query message.
  * \param[in]  _ich   the #ichannel_t to send the query to.
@@ -903,6 +944,7 @@ void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
         __msg->rpc = IOP_RPC(_mod, _if, _rpc);                              \
         __msg->async = __msg->rpc->async;                                   \
         __msg->cmd = IOP_RPC_CMD(_mod, _if, _rpc);                          \
+        __msg->trace = __msg->trace || ic_rpc_is_traced(_mod, _if, _rpc);   \
         __ic_msg_build(__msg, IOP_RPC(_mod, _if, _rpc)->args, __v,          \
                        !ic_is_local(__ich) || __msg->force_pack);           \
         __msg;                                                              \

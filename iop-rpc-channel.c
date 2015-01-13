@@ -29,6 +29,7 @@ static struct {
     mem_pool_t *mp;
     qm_t(ic)    ics;
     qm_t(ic_hook_ctx) hook_ctxs;
+    qv_t(lstr) traced_names;
 
     /* Hook flow */
     ic_hook_ctx_t   *ic_hook_ctx;
@@ -49,29 +50,7 @@ const QM(ic_cbs, ic_no_impl, false);
 
 /*----- messages stuff -----*/
 
-
-/* {{{ init/shutdown */
-
-static int ic_initialize(void *arg)
-{
-    _G.mp = mem_fifo_pool_new(1 << 20);
-    qm_init(ic, &_G.ics);
-    qm_init(ic_hook_ctx, &_G.hook_ctxs);
-    return 0;
-}
-
-static int ic_shutdown(void)
-{
-    qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
-    qm_wipe(ic, &_G.ics);
-    mem_fifo_pool_delete(&_G.mp);
-    return 0;
-}
-
-MODULE_BEGIN(ic)
-MODULE_END()
-
-/* }}}*/
+/* Tracing {{{ */
 
 #define ic_msg_trace(msg, fmt, ...)  do {                                    \
         const ic_msg_t *__tr_msg = (msg);                                    \
@@ -92,6 +71,81 @@ MODULE_END()
         }                                                                    \
     } while (0)
 
+static void ic_read_tracing(void)
+{
+#ifndef NDEBUG
+    /* IC_TRACE environment variable contains a list of interface or
+     * interface.rpc to trace.
+     */
+    const char *trace = getenv("IC_TRACE");
+    pstream_t ps;
+
+    if (!trace) {
+        return;
+    }
+
+    ps = ps_initstr(trace);
+    ps_ltrim(&ps);
+
+    while (!ps_done(&ps)) {
+        pstream_t n;
+
+        ps_ltrim(&ps);
+        if (ps_get_ps_chr(&ps, ' ', &n) < 0) {
+            n = ps;
+            ps = ps_init(NULL, 0);
+        }
+
+        qv_append(lstr, &_G.traced_names, LSTR_PS_V(&n));
+    }
+#endif
+}
+
+#ifndef NDEBUG
+bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc)
+{
+    t_scope;
+    lstr_t rpc_name = t_lstr_fmt("%*pM.%*pM", LSTR_FMT_ARG(iface->fullname),
+                                 LSTR_FMT_ARG(rpc->name));
+
+    qv_for_each_entry(lstr, name, &_G.traced_names) {
+        if (lstr_equal2(rpc_name, name)
+        ||  lstr_equal2(iface->fullname, name))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif
+
+/* }}} */
+/* {{{ init/shutdown */
+
+static int ic_initialize(void *arg)
+{
+    _G.mp = mem_fifo_pool_new(1 << 20);
+    qm_init(ic, &_G.ics);
+    qm_init(ic_hook_ctx, &_G.hook_ctxs);
+    qv_init(lstr, &_G.traced_names);
+    ic_read_tracing();
+    return 0;
+}
+
+static int ic_shutdown(void)
+{
+    qv_deep_wipe(lstr, &_G.traced_names, lstr_wipe);
+    qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
+    qm_wipe(ic, &_G.ics);
+    mem_fifo_pool_delete(&_G.mp);
+    return 0;
+}
+
+MODULE_BEGIN(ic)
+MODULE_END()
+
+/* }}}*/
 
 ic_msg_t *ic_msg_new_fd(int fd, int len)
 {
