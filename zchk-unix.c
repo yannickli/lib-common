@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "arith.h"
 #include "unix.h"
 #include "file.h"
 #include "file-bin.h"
@@ -176,8 +177,10 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_P((file = file_bin_open(file_path)));
 
         while (!file_bin_is_finished(file)) {
-            lstr_t record = file_bin_get_next_record(file);
+            lstr_t record;
             test_struct_t *test_ptr;
+
+            record = file_bin_get_next_record(file);
 
             Z_ASSERT_EQ((unsigned)record.len, sizeof(test));
             test_ptr = record.data;
@@ -283,6 +286,76 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_EQ(nbr_record, 1000);
 
         Z_ASSERT_ZERO(file_bin_close(&file));
+    } Z_TEST_END;
+
+    Z_TEST(file_bin_truncated, "file_bin: truncated file") {
+        t_scope;
+        lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
+                                      LSTR("file_bin.test"));
+        file_bin_t *file = file_bin_create(file_path, 50, true);
+        int nbr_record = 0;
+        off_t pos;
+
+        /* Write some records in file. */
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 0));
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 1));
+        pos = file->cur;
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 2));
+
+        /* Truncate the file in the middle of the last record. */
+        Z_ASSERT_N(file_bin_truncate(file, pos + 50));
+        Z_ASSERT_N(file_bin_close(&file));
+
+        /* Read the records. */
+        Z_ASSERT_P((file = file_bin_open(file_path)));
+
+        file_bin_for_each_entry(file, record) {
+            Z_HELPER_RUN(z_file_bin_check_large_rec(record, nbr_record));
+            nbr_record++;
+        }
+        Z_ASSERT_EQ(nbr_record, 2);
+
+        Z_ASSERT_N(file_bin_close(&file));
+    } Z_TEST_END;
+
+    Z_TEST(file_bin_corrupted_rec_len, "file_bin: corrupted record len") {
+        t_scope;
+        lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
+                                      LSTR("file_bin.test"));
+        lstr_t record;
+        file_bin_t *file = file_bin_create(file_path, 50, true);
+        le32_t corrupted_len = cpu_to_le32(10000);
+        off_t pos;
+
+        /* Write some records in file. */
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 0));
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 1));
+        pos = file->cur;
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 2));
+        Z_HELPER_RUN(z_file_bin_write_large_rec(file, 3));
+
+        /* Corrupt the len of the 3rd record */
+        Z_ASSERT_N(fseek(file->f, pos, SEEK_SET));
+        Z_ASSERT_EQ(fwrite(&corrupted_len, 1, sizeof(le32_t), file->f),
+                    sizeof(le32_t));
+        Z_ASSERT_N(file_bin_close(&file));
+
+        /* Read the records. */
+        Z_ASSERT_P((file = file_bin_open(file_path)));
+
+        record = file_bin_get_next_record(file);
+        Z_HELPER_RUN(z_file_bin_check_large_rec(record, 0));
+
+        record = file_bin_get_next_record(file);
+        Z_HELPER_RUN(z_file_bin_check_large_rec(record, 1));
+
+        record = file_bin_get_next_record(file);
+        Z_HELPER_RUN(z_file_bin_check_large_rec(record, 3));
+
+        record = file_bin_get_next_record(file);
+        Z_ASSERT_NULL(record.s);
+
+        Z_ASSERT_N(file_bin_close(&file));
     } Z_TEST_END;
 
     Z_TEST(file_bin_v0, "file_bin: version 0") {

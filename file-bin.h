@@ -206,8 +206,7 @@ lstr_t file_bin_get_next_record(file_bin_t *file);
  */
 #define file_bin_for_each_entry(file, entry)                                 \
     for (lstr_t entry = file_bin_get_next_record(file);                      \
-         entry.s || !file_bin_is_finished(file);                             \
-         entry = file_bin_get_next_record(file))
+         entry.s; entry = file_bin_get_next_record(file))
 
 /** Tell if the parsing of a binary file is finished or not.
  *
