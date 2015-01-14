@@ -68,12 +68,7 @@ dump_zf()
                         ;;
                 esac
 
-                if [ "${OS}" != "darwin" ]; then
-                    f="$(readlink -e "$f")"
-                    echo "${f#$CURDIR/}"
-                else
-                    echo "$f"
-                fi
+                echo "$zd/ $line"
             done
             test -n "$has_match" || err "$zf:$lno: no match for $line"
             IFS="$ifs"

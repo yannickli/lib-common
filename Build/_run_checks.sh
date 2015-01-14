@@ -93,7 +93,8 @@ do
 done
 export BEHAVE_FLAGS="$BEHAVE_FLAGS --tags=-web --format z --no-summary"
 
-while read t; do
+while read -r zd line; do
+    t="${zd}${line}"
     say_color info "starting suite $t..."
 
     start=$(date '+%s')
@@ -107,8 +108,8 @@ while read t; do
             res=$?
             ;;
         *testem.json)
-            cd $(dirname "./$t")
-            ztestem $(basename "./$t")
+            cd $zd
+            ztestem $line
             res=$?
             cd - &>/dev/null
             ;;
