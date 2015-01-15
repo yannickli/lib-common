@@ -74,6 +74,13 @@ ic_msg_t *ic_msg_new(int len)
     return res;
 }
 
+ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout)
+{
+    msg->timeout = timeout;
+
+    return msg;
+}
+
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
 {
     ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, sizeof(slot));
@@ -97,6 +104,8 @@ void ic_msg_delete(ic_msg_t **msgp)
         assert (msg->dlen >= IC_MSG_HDR_LEN);
         mp_delete(ic_mp_g, &msg->data);
     }
+
+    el_timer_unregister(&msg->timeout_timer);
     mp_delete(ic_mp_g, msgp);
 }
 
@@ -265,6 +274,10 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
 
 void __ic_msg_reply_err(ichannel_t *ic, ic_msg_t *msg, ic_status_t status)
 {
+    if (msg->canceled) {
+        return;
+    }
+
     if (msg->cb == IC_PROXY_MAGIC_CB) {
         ic_proxify(ic, msg, -status, NULL, 0, NULL);
     } else {
@@ -392,15 +405,21 @@ static ic_msg_t *ic_query_take(ichannel_t *ic, uint32_t slot)
     return pos < 0 ? NULL : ic->queries.values[pos];
 }
 
+static void ic_msg_take_and_delete(ic_msg_t *msg)
+{
+    if (msg->slot) {
+        __unused__ ic_msg_t *tmp = ic_query_take(msg->ic, msg->slot);
+        assert (tmp == msg);
+    }
+    ic_msg_delete(&msg);
+}
+
 static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
 {
     if (msg->slot) {
-        __unused__ ic_msg_t *tmp = ic_query_take(ic, msg->slot);
-
-        assert (tmp == msg);
-        __ic_msg_reply_err(ic, msg, IC_MSG_ABORT);
+        __ic_msg_reply_err(msg->ic, msg, IC_MSG_ABORT);
     }
-    ic_msg_delete(&msg);
+    ic_msg_take_and_delete(msg);
 }
 
 static void ic_msg_filter_on_bye(ichannel_t *ic)
@@ -429,6 +448,11 @@ static int ic_write_stream(ichannel_t *ic, int fd)
     do {
         while (!htlist_is_empty(&ic->msg_list) && ic->iov_total_len < IC_PKT_MAX) {
             ic_msg_t *msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+
+            if (msg->canceled) {
+                ic_msg_take_and_delete(msg);
+                continue;
+            }
 
             htlist_add_tail(&ic->iov_list, &msg->msg_link);
             qv_append(iovec, &ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
@@ -509,6 +533,11 @@ static int ic_write_seq(ichannel_t *ic, int fd)
         htlist_for_each(it, &ic->msg_list) {
             ic_msg_t *msg = htlist_entry(it, ic_msg_t, msg_link);
 
+            if (msg->canceled) {
+                to_drop++;
+                continue;
+            }
+
             if (unlikely(fdc == countof(fdv) && msg->fd >= 0))
                 break;
 
@@ -556,6 +585,11 @@ static int ic_write_seq(ichannel_t *ic, int fd)
         while (to_drop-- > 0) {
             ic_msg_t *tmp = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
 
+            if (tmp->canceled) {
+                ic_msg_take_and_delete(tmp);
+                continue;
+            }
+
             if (tmp->cmd <= 0 || tmp->slot == 0) {
                 ic_msg_delete(&tmp);
             }
@@ -599,6 +633,10 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     if (unlikely(!tmp)) {
         errno = 0;
         return -1;
+    }
+
+    if (tmp->canceled) {
+        goto wipe;
     }
 
     if (ic_is_local(ic)) {
@@ -1416,6 +1454,34 @@ void ic_flush(ichannel_t *ic)
     fd_set_features(fd, O_NONBLOCK);
 }
 
+void ic_msg_cancel(ic_msg_t *msg)
+{
+    if (expect(!msg->async)) {
+        __ic_msg_reply_err(msg->ic, msg, IC_MSG_CANCELED);
+    }
+    msg->canceled = true;
+}
+
+static void ic_msg_on_timeout(el_t ev, el_data_t data)
+{
+    ic_msg_t *msg = data.ptr;
+    htlist_t *queue = &msg->ic->msg_list;
+
+    if (!msg->async) {
+        __ic_msg_reply_err(msg->ic, msg, IC_MSG_TIMEDOUT);
+    }
+
+    msg->timeout_timer = NULL;
+    msg->canceled = true;
+
+    while (!htlist_is_empty(queue)
+    &&    (htlist_first_entry(queue, ic_msg_t, msg_link)->canceled))
+    {
+        ic_msg_take_and_delete(htlist_pop_entry(queue, ic_msg_t, msg_link));
+    }
+
+}
+
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 {
     bool async = msg->async;
@@ -1424,6 +1490,15 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
      * that ichannel_t which is forbidden, fix the code
      */
     assert (ic->cancel_guard == false);
+
+    msg->ic = ic;
+
+    if (msg->timeout > 0) {
+        msg->timeout_timer = el_timer_register(msg->timeout, 0,
+                                               EL_TIMER_LOWRES,
+                                               ic_msg_on_timeout, msg);
+        el_unref(msg->timeout_timer);
+    }
 
     if (!async) {
         unsigned start = ic->nextslot;
