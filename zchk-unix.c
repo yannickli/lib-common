@@ -23,7 +23,7 @@ typedef struct test_struct_t {
 } test_struct_t;
 
 typedef struct large_test_struct_t {
-    char buf[1000];
+    int values[1000 / sizeof(int)];
 } large_test_struct_t;
 
 static int z_check_file_bin_records(file_bin_t *file, lstr_t path,
@@ -59,6 +59,33 @@ static int z_check_file_bin_records(file_bin_t *file, lstr_t path,
 
     if (do_close) {
         Z_ASSERT_ZERO(file_bin_close(&file));
+    }
+
+    Z_HELPER_END;
+}
+
+static int z_file_bin_write_large_rec(file_bin_t *file, int recno)
+{
+    large_test_struct_t test;
+
+    for (int i = 0; i < countof(test.values); i++) {
+        test.values[i] = recno + i;
+    }
+
+    Z_ASSERT_N(file_bin_put_record(file, &test, sizeof(test)));
+
+    Z_HELPER_END;
+}
+
+static int z_file_bin_check_large_rec(lstr_t record, int recno)
+{
+    large_test_struct_t *test;
+
+    Z_ASSERT_EQ(record.len, ssizeof(large_test_struct_t));
+    test = record.data;
+
+    for (int i = 0; i < countof(test->values); i++) {
+        Z_ASSERT_EQ(test->values[i], recno + i);
     }
 
     Z_HELPER_END;
@@ -238,41 +265,22 @@ Z_GROUP_EXPORT(file)
         lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
                                       LSTR("file_bin.test"));
         file_bin_t *file = file_bin_create(file_path, 50, true);
-        /* large_test_struct_t size is 1000 */
-        large_test_struct_t test;
         int nbr_record = 0;
 
         Z_ASSERT_P(file);
 
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 10; j++) {
-                test.buf[i * 10 + j] = j;
-            }
-        }
-
-        for (int i = 0; i < 10000; i++) {
-            nbr_record++;
-            Z_ASSERT_N(file_bin_put_record(file, &test, sizeof(test)));
+        for (int i = 0; i < 1000; i++) {
+            Z_HELPER_RUN(z_file_bin_write_large_rec(file, i));
         }
 
         Z_ASSERT_ZERO(file_bin_close(&file));
         Z_ASSERT_P((file = file_bin_open(file_path)));
 
         file_bin_for_each_entry(file, record) {
-            large_test_struct_t *test_ptr;
-
-            Z_ASSERT_EQ((unsigned)record.len, sizeof(test));
-            test_ptr = record.data;
-
-            for (int i = 0; i < 100; i++) {
-                for (int j = 0; j < 10; j++) {
-                    Z_ASSERT_EQ(test_ptr->buf[i * 10 + j], j);
-                }
-            }
-
-            nbr_record--;
+            Z_HELPER_RUN(z_file_bin_check_large_rec(record, nbr_record));
+            nbr_record++;
         }
-        Z_ASSERT_ZERO(nbr_record);
+        Z_ASSERT_EQ(nbr_record, 1000);
 
         Z_ASSERT_ZERO(file_bin_close(&file));
     } Z_TEST_END;
@@ -282,7 +290,6 @@ Z_GROUP_EXPORT(file)
         lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
                                       LSTR("file_bin.test"));
         file_bin_t *file = file_bin_create(file_path, 1 << 20, true);
-        large_test_struct_t test;
         int nbr_record = 0;
 
         Z_ASSERT_P(file);
@@ -290,36 +297,19 @@ Z_GROUP_EXPORT(file)
         /* Let's trick the library and force it to use V0 */
         file->version = 0;
 
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 10; j++) {
-                test.buf[i * 10 + j] = j;
-            }
-        }
-
         /* +10M of datas */
         for (int i = 0; i < 10010; i++) {
-            nbr_record++;
-            Z_ASSERT_N(file_bin_put_record(file, &test, sizeof(test)));
+            Z_HELPER_RUN(z_file_bin_write_large_rec(file, i));
         }
 
         Z_ASSERT_ZERO(file_bin_close(&file));
         Z_ASSERT_P((file = file_bin_open(file_path)));
 
         file_bin_for_each_entry(file, record) {
-            large_test_struct_t *test_ptr;
-
-            Z_ASSERT_EQ((unsigned)record.len, sizeof(test));
-            test_ptr = record.data;
-
-            for (int i = 0; i < 100; i++) {
-                for (int j = 0; j < 10; j++) {
-                    Z_ASSERT_EQ(test_ptr->buf[i * 10 + j], j);
-                }
-            }
-
-            nbr_record--;
+            Z_HELPER_RUN(z_file_bin_check_large_rec(record, nbr_record));
+            nbr_record++;
         }
-        Z_ASSERT_ZERO(nbr_record);
+        Z_ASSERT_EQ(nbr_record, 10010);
 
         Z_ASSERT_ZERO(file_bin_close(&file));
     } Z_TEST_END;
