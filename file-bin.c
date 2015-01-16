@@ -220,6 +220,8 @@ static int file_bin_get_cpu32(file_bin_t *file, uint32_t *res)
     pstream_t ps = ps_init(file->map + file->cur, sizeof(le32_t));
     le32_t le32;
 
+    THROW_ERR_IF(!file_bin_has(file, sizeof(le32_t)));
+
     if (ps_get_le32(&ps, &le32) < 0) {
         return logger_error(&_G.logger, "cannot read le32 at offset '%ju' "
                             "for file '%*pM'", file->cur,
@@ -234,7 +236,7 @@ static int file_bin_get_cpu32(file_bin_t *file, uint32_t *res)
 
 static int _file_bin_skip(file_bin_t *file, off_t toskip)
 {
-    THROW_ERR_IF(file->cur + toskip > file->length);
+    THROW_ERR_IF(!file_bin_has(file, toskip));
     file->cur += toskip;
     return 0;
 }

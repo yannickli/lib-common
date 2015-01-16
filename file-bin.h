@@ -218,6 +218,13 @@ static inline bool file_bin_is_finished(file_bin_t *file)
     return file->cur >= file->length;
 }
 
+/** Tell if the file_bin has at least \p len bytes from the current position.
+ */
+static inline bool file_bin_has(file_bin_t *file, off_t len)
+{
+    return file->cur + len <= file->length;
+}
+
 /** Move the current file position to the one given as argument.
  *
  * Be careful as this function is kind of tricky. It will move the current
