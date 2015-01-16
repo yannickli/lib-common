@@ -6,12 +6,26 @@ union MyUnion {
     double d;
 };
 
+enum MyEnum {
+    E,
+    F,
+    G,
+};
+
 @allow(a)
 typedef MyUnion Un;
+
+@allow(E)
+typedef MyEnum En;
 
 struct Toto {
     @allow(b)
     Un b;
     @allow(c)
     Un c;
+
+    @allow(F)
+    En f;
+    @allow(G)
+    En g = MY_ENUM_E;
 };

@@ -731,6 +731,35 @@ void iopc_resolve(iopc_pkg_t *pkg)
     iopc_i_resolve(pkg);
 }
 
+static int enum_get_value(iopc_enum_t *en, const char *name)
+{
+    qv_for_each_entry(iopc_enum_field, elem, &en->values) {
+        if (strequal(elem->name, name)) {
+            return elem->value;
+        }
+    }
+    return -1;
+}
+
+static void check_defval_enum_allow(iopc_field_t *f, iopc_attr_t *attr)
+{
+    int64_t i64 = f->defval.u64;
+
+    qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+        if (enum_get_value(f->enum_def, arg->v.s.s) == i64) {
+            if (attr->desc->id == IOPC_ATTR_ALLOW) {
+                return;
+            }
+            fatal_loc("invalid default value on enum field: %jd", f->loc, i64);
+        }
+    }
+
+    if (attr->desc->id == IOPC_ATTR_ALLOW) {
+        fatal_loc("invalid default value on enum field: %jd", f->loc,
+                  i64);
+    }
+}
+
 static void check_defval_int(iopc_field_t *f)
 {
     bool is_signed = iopc_field_is_signed(f);
@@ -793,6 +822,14 @@ static void check_defval_int(iopc_field_t *f)
     }
     if (f->kind == IOP_T_ENUM) {
         bool strict = false;
+
+        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+            if (attr->desc->id == IOPC_ATTR_ALLOW
+            ||  attr->desc->id == IOPC_ATTR_DISALLOW)
+            {
+                check_defval_enum_allow(f, attr);
+            }
+        }
 
         qv_for_each_entry(iopc_attr, attr, &f->enum_def->attrs) {
             if (attr->desc->id == IOPC_ATTR_STRICT) {

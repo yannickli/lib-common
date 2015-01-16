@@ -8,6 +8,31 @@
 
 #include "attrs_multi_valid.iop.h"
 
+/* Enum attrs_multi_valid.MyEnum {{{ */
+
+static int const attrs_multi_valid__my_enum__values[] = {
+ 0, 1, 2,
+};
+static int const iop__ranges__1[] = {
+    0, 0,
+    3,
+};
+static const lstr_t attrs_multi_valid__my_enum__names[] = {
+    LSTR_IMMED("E"),
+    LSTR_IMMED("F"),
+    LSTR_IMMED("G"),
+};
+iop_enum_t const attrs_multi_valid__my_enum__e = {
+    .name         = LSTR_IMMED("MyEnum"),
+    .fullname     = LSTR_IMMED("attrs_multi_valid.MyEnum"),
+    .names        = attrs_multi_valid__my_enum__names,
+    .values       = attrs_multi_valid__my_enum__values,
+    .ranges       = iop__ranges__1,
+    .ranges_len   = countof(iop__ranges__1) / 2,
+    .enum_len     = 3,
+};
+
+/* }}} */
 /* Union attrs_multi_valid.MyUnion {{{ */
 
 static iop_field_t const attrs_multi_valid__my_union__desc_fields[] = {
@@ -48,16 +73,16 @@ static iop_field_t const attrs_multi_valid__my_union__desc_fields[] = {
         .size      = fieldsizeof(attrs_multi_valid__my_union__t, d),
     },
 };
-static int const iop__ranges__1[] = {
+static int const iop__ranges__2[] = {
     0, 1,
     4,
 };
 const iop_struct_t attrs_multi_valid__my_union__s = {
     .fullname   = LSTR_IMMED("attrs_multi_valid.MyUnion"),
     .fields     = attrs_multi_valid__my_union__desc_fields,
-    .ranges     = iop__ranges__1,
+    .ranges     = iop__ranges__2,
     .fields_len = countof(attrs_multi_valid__my_union__desc_fields),
-    .ranges_len = countof(iop__ranges__1) / 2,
+    .ranges_len = countof(iop__ranges__2) / 2,
     .size       = sizeof(attrs_multi_valid__my_union__t),
     .is_union   = true,
 };
@@ -105,6 +130,40 @@ static int attrs_multi_valid__toto__c__check(const void *ptr, int n)
     }
     return 0;
 }
+static int attrs_multi_valid__toto__f__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        attrs_multi_valid__my_enum__t val = IOP_FIELD(int32_t, ptr, j);
+
+        switch (val) {
+          case MY_ENUM_E:
+            break;
+          case MY_ENUM_F:
+            break;
+          case MY_ENUM_G:
+            iop_set_err("violation of constraint allow (G) on field f");
+            return -1;
+        }
+    }
+    return 0;
+}
+static int attrs_multi_valid__toto__g__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        attrs_multi_valid__my_enum__t val = IOP_FIELD(int32_t, ptr, j);
+
+        switch (val) {
+          case MY_ENUM_E:
+            break;
+          case MY_ENUM_F:
+            iop_set_err("violation of constraint allow (F) on field g");
+            return -1;
+          case MY_ENUM_G:
+            break;
+        }
+    }
+    return 0;
+}
 static iop_field_attrs_t const attrs_multi_valid__toto__desc_fields_attrs[] = {
     {
         .flags             = 0,
@@ -115,6 +174,16 @@ static iop_field_attrs_t const attrs_multi_valid__toto__desc_fields_attrs[] = {
         .flags             = 0,
         .attrs_len         = 0,
         .check_constraints = &attrs_multi_valid__toto__c__check,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+        .check_constraints = &attrs_multi_valid__toto__f__check,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+        .check_constraints = &attrs_multi_valid__toto__g__check,
     },
 };
 static iop_field_t const attrs_multi_valid__toto__desc_fields[] = {
@@ -140,10 +209,29 @@ static iop_field_t const attrs_multi_valid__toto__desc_fields[] = {
         .size      = sizeof(attrs_multi_valid__my_union__t),
         .u1        = { .st_desc = &attrs_multi_valid__my_union__s },
     },
-};
-static int const iop__ranges__2[] = {
-    0, 1,
-    2,
+    {
+        .name      = LSTR_IMMED("f"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(attrs_multi_valid__toto__t, f),
+        .flags     = 1,
+        .size      = fieldsizeof(attrs_multi_valid__toto__t, f),
+        .u1        = { .en_desc = &attrs_multi_valid__my_enum__e },
+    },
+    {
+        .name      = LSTR_IMMED("g"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(attrs_multi_valid__toto__t, g),
+        .flags     = 1,
+        .u0        = { .defval_enum = 0 },
+        .size      = fieldsizeof(attrs_multi_valid__toto__t, g),
+        .u1        = { .en_desc = &attrs_multi_valid__my_enum__e },
+    },
 };
 const iop_struct_t attrs_multi_valid__toto__s = {
     .fullname   = LSTR_IMMED("attrs_multi_valid.Toto"),
@@ -164,6 +252,7 @@ static const iop_pkg_t *const attrs_multi_valid__deps[] = {
 };
 
 static const iop_enum_t *const attrs_multi_valid__enums[] = {
+    &attrs_multi_valid__my_enum__e,
     NULL,
 };
 

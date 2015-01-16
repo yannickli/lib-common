@@ -26,6 +26,15 @@ union MyUnionA {
 struct User {
     MyEnumA     a;
 
+    @allow(A, B)
+    MyEnumA     abOnly;
+    @allow(A, B)
+    MyEnumA     abDef = A_A;
+    @disallow(A)
+    MyEnumA     bcOnly;
+    @disallow(A)
+    MyEnumA     bcDef = A_C;
+
     @cdata @maxLength(64)
     string[]    login;
     @nonEmpty @maxLength(64)

@@ -232,6 +232,22 @@ class IopcTest(z.TestCase):
         self.run_iopc2('attrs_invalid_12.iop', False,
                        'unknown field c in MyUnion')
 
+    def test_attrs_invalid_13(self):
+        self.run_iopc2('attrs_invalid_13.iop', False,
+                       'unknown field C in MyEnum')
+
+    def test_attrs_invalid_14(self):
+        self.run_iopc2('attrs_invalid_14.iop', False,
+                       'unknown field C in MyEnum')
+
+    def test_attrs_invalid_15(self):
+        self.run_iopc2('attrs_invalid_15.iop', False,
+                       'invalid default value on enum field: 1')
+
+    def test_attrs_invalid_16(self):
+        self.run_iopc2('attrs_invalid_16.iop', False,
+                       'invalid default value on enum field: 0')
+
     def test_attrs_invalid_enumval(self):
         self.run_iopc2('attrs_invalid_enumval.iop', False,
                        'invalid attribute min on enum field')

@@ -182,6 +182,7 @@ static void check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
       case IOP_T_XML:       type = IOPC_ATTR_T_XML; break;
       case IOP_T_STRUCT:    type = IOPC_ATTR_T_STRUCT; break;
       case IOP_T_UNION:     type = IOPC_ATTR_T_UNION; break;
+      case IOP_T_ENUM:      type = IOPC_ATTR_T_ENUM; break;
       case IOP_T_BOOL:      type = IOPC_ATTR_T_BOOL; break;
       default:              type = IOPC_ATTR_T_INT; break;
     }
@@ -306,12 +307,25 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
             qv_for_each_ptr(iopc_arg, arg, &attr->args) {
                 bool found = false;
 
-                qv_for_each_entry(iopc_field, uf, &f->union_def->fields) {
-                    if (strequal(uf->name, arg->v.s.s)) {
-                        found = true;
-                        break;
+                if (type == IOPC_ATTR_T_UNION) {
+                    qv_for_each_entry(iopc_field, uf, &f->union_def->fields) {
+                        if (strequal(uf->name, arg->v.s.s)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                } else
+                if (type == IOPC_ATTR_T_ENUM) {
+                    qv_for_each_entry(iopc_enum_field, ef,
+                                      &f->enum_def->values)
+                    {
+                        if (strequal(ef->name, arg->v.s.s)) {
+                            found = true;
+                            break;
+                        }
                     }
                 }
+
                 if (!found) {
                     fatal_loc("unknown field %*pM in %s",
                               attr->loc, LSTR_FMT_ARG(arg->v.s),
@@ -475,6 +489,7 @@ static void init_attributes(void)
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_UNION);
+    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
     ADD_ATTR_ARG(d, "field", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_DISALLOW, "disallow");
@@ -482,6 +497,7 @@ static void init_attributes(void)
     SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
     SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->types, IOPC_ATTR_T_UNION);
+    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
     ADD_ATTR_ARG(d, "field", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_GENERIC, "generic");

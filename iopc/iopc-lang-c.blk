@@ -44,6 +44,17 @@ static const char *pp_to_c(const char *s)
     return str.v;
 }
 
+static lstr_t t_enum_get_prefix(iopc_enum_t *en)
+{
+    lstr_t ns = LSTR_NULL;
+
+    if (t_iopc_attr_check_prefix(&en->attrs, &ns) < 0) {
+        ns = t_lstr_dups(pp_to_c(en->name), -1);
+    }
+    lstr_ascii_toupper(&ns);
+    return ns;
+}
+
 static void iopc_field_compute_size(iopc_field_t *f);
 
 static iopc_field_t *iopc_struct_bubble_field(iopc_struct_t *st, int pos, size_t size)
@@ -632,14 +643,9 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
     const char *tname = pp_to_c(en->name);
     char *tbase = t_fmt("%s__%s", pkg_name, tname);
     int next_value = 0;
-    lstr_t ns = LSTR_NULL_V;
+    lstr_t ns = t_enum_get_prefix(en);
     int min = INT_MAX;
     int max = INT_MIN;
-
-    if (t_iopc_attr_check_prefix(&en->attrs, &ns) < 0) {
-        ns = t_lstr_dups(pp_to_c(en->name), -1);
-    }
-    lstr_ascii_toupper(&ns);
 
     sb_addf(buf, "typedef enum %s__t {\n", tbase);
     qv_for_each_entry(iopc_enum_field, f, &en->values) {
@@ -1569,38 +1575,74 @@ iopc_dump_pattern(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
     return 0;
 }
 
-static int
-iopc_dump_allow(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
+static void
+iopc_dump_case_allow(sb_t *sb, const char *elem_name,
+                     const iopc_attr_t *attr, const iopc_field_t *f)
 {
-    const bool is_allow = (attr->desc->id == IOPC_ATTR_ALLOW);
+    bool is_allow = (attr->desc->id == IOPC_ATTR_ALLOW);
+    bool allowed = !is_allow;
 
+    qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+        if (strequal(elem_name, arg->v.s.s)) {
+            allowed = !allowed;
+            break;
+        }
+    }
+
+    if (allowed) {
+        sb_addf(sb, LVL2 "    break;\n");
+    } else {
+        sb_addf(sb, LVL2 "    iop_set_err(\"violation of constraint %s "
+                         "(%s) on field %s\");\n"
+                    LVL2 "    return -1;\n",
+                    is_allow ? "allow" : "disallow", elem_name, f->name);
+    }
+}
+
+static int
+iopc_dump_allow_union(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
+{
     sb_adds(sb, LVL2 "switch (val->iop_tag) {\n");
 
     qv_for_each_entry(iopc_field, uf, &f->union_def->fields) {
-        bool allowed = !is_allow;
-
-        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
-            lstr_t name = arg->v.s;
-
-            if (strequal(uf->name, name.s)) {
-                allowed = !allowed;
-                break;
-            }
-        }
-
         sb_addf(sb, LVL2 "  case %s__%s__%s__ft:\n", pp_under(f->type_path),
                 pp_to_c(f->type_name), pp_to_c(uf->name));
-        if (allowed) {
-            sb_addf(sb, LVL2 "    break;\n");
-        } else {
-            sb_addf(sb, LVL2 "    iop_set_err(\"violation of constraint %s "
-                             "(%s) on field %s\");\n"
-                        LVL2 "    return -1;\n",
-                        is_allow ? "allow" : "disallow", uf->name, f->name);
-        }
+
+        iopc_dump_case_allow(sb, uf->name, attr, f);
     }
     sb_adds(sb, LVL2 "}\n");
     return 0;
+}
+
+static int
+iopc_dump_allow_enum(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
+{
+    t_scope;
+
+    sb_adds(sb, LVL2 "switch (val) {\n");
+
+    qv_for_each_entry(iopc_enum_field, ef, &f->enum_def->values) {
+        lstr_t prefix = t_enum_get_prefix(f->enum_def);
+
+        sb_addf(sb, LVL2 "  case %*pM_%s:\n", LSTR_FMT_ARG(prefix), ef->name);
+
+        iopc_dump_case_allow(sb, ef->name, attr, f);
+    }
+    sb_adds(sb, LVL2 "}\n");
+    return 0;
+}
+
+static int
+iopc_dump_allow(sb_t *sb, const iopc_attr_t *attr, iopc_field_t *f)
+{
+    switch (f->kind) {
+      case IOP_T_UNION:
+        return iopc_dump_allow_union(sb, attr, f);
+      case IOP_T_ENUM:
+        return iopc_dump_allow_enum(sb, attr, f);
+      default:
+        e_panic("attribute type not handled for this kind");
+    }
 }
 
 static int64_t merge_int64(iopc_attr_t *attr) {
