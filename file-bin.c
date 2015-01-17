@@ -87,7 +87,7 @@ static off_t file_bin_tell(const file_bin_t *file)
     return res;
 }
 
-static off_t file_bin_get_next_entry_off(file_bin_t *f, uint32_t d_len)
+static off_t file_bin_get_entry_end_off(const file_bin_t *f, uint32_t d_len)
 {
     /* Number of slot header in this range */
     int tmp_header = 1;
@@ -113,9 +113,15 @@ static off_t file_bin_get_next_entry_off(file_bin_t *f, uint32_t d_len)
         res += SLOT_HDR_SIZE(f) * tmp_header;
     }
 
-    /* If not enough space to put a record header, let's jump to the next slot
-     * beginning
-     */
+    return res;
+}
+
+static off_t file_bin_get_next_entry_off(const file_bin_t *f, uint32_t d_len)
+{
+    off_t res = file_bin_get_entry_end_off(f, d_len);
+
+    /* If not enough space to put a record header, let's jump to the next
+     * slot beginning. */
     if (f->slot_size - (res % f->slot_size) < RC_HDR_SIZE) {
         res += f->slot_size - (res % f->slot_size) + SLOT_HDR_SIZE(f);
     }
@@ -214,6 +220,8 @@ static int file_bin_get_cpu32(file_bin_t *file, uint32_t *res)
     pstream_t ps = ps_init(file->map + file->cur, sizeof(le32_t));
     le32_t le32;
 
+    THROW_ERR_IF(!file_bin_has(file, sizeof(le32_t)));
+
     if (ps_get_le32(&ps, &le32) < 0) {
         return logger_error(&_G.logger, "cannot read le32 at offset '%ju' "
                             "for file '%*pM'", file->cur,
@@ -226,15 +234,23 @@ static int file_bin_get_cpu32(file_bin_t *file, uint32_t *res)
     return 0;
 }
 
-static lstr_t
-_file_bin_get_next_record(file_bin_t *file)
+static int _file_bin_skip(file_bin_t *file, off_t toskip)
 {
+    THROW_ERR_IF(!file_bin_has(file, toskip));
+    file->cur += toskip;
+    return 0;
+}
+
+static int _file_bin_get_next_record(file_bin_t *file, lstr_t *rec)
+{
+    off_t prev_off = file->cur;
+    off_t rec_end_off;
     uint32_t sz;
     uint32_t check_slot_hdr;
     bool is_spanning = false;
 
-    if (!expect(!file_bin_is_finished(file))) {
-        return LSTR_NULL_V;
+    if (file_bin_is_finished(file)) {
+        return -1;
     }
 
     if (file->version > 0) {
@@ -243,48 +259,75 @@ _file_bin_get_next_record(file_bin_t *file)
 
     sb_reset(&file->record_buf);
 
-    if (file_bin_remaining_space_in_slot(file) < RC_HDR_SIZE) {
-        file->cur += file_bin_remaining_space_in_slot(file);
-    }
-
-    while (is_at_slot_start(file) && file->version > 0) {
-        uint32_t next_entry;
-
-        if (file_bin_get_cpu32(file, &next_entry) < 0) {
-            goto jump;
+    sz = file_bin_remaining_space_in_slot(file);
+    if (sz < RC_HDR_SIZE) {
+        if (_file_bin_skip(file, sz) < 0) {
+            return -1;
         }
-        if (next_entry > file->length - RC_HDR_SIZE) {
-            logger_error(&_G.logger, "buggy slot header in file '%*pM' at "
-                         "offset %jd, next entry is supposed to be at offset "
-                         "%jd whereas file is %u bytes long",
-                         LSTR_FMT_ARG(file->path),
-                         file->cur - SLOT_HDR_SIZE(file),
-                         file->cur + next_entry, file->length);
-            goto jump;
+    }
+
+    if (file->version > 0) {
+        while (is_at_slot_start(file)) {
+            if (file_bin_get_cpu32(file, &sz) < 0
+            ||  _file_bin_skip(file, sz) < 0)
+            {
+                goto error;
+            }
         }
-
-        file->cur += next_entry;
     }
 
-    if (file_bin_is_finished(file) || file_bin_get_cpu32(file, &sz) < 0) {
-        goto jump;
+    if (file_bin_is_finished(file)) {
+        return -1;
+    }
+    if (file_bin_get_cpu32(file, &sz) < 0) {
+        goto error;
     }
 
-    if (file->cur + sz > file->length) {
-        logger_error(&_G.logger, "buggy record header in file '%*pM' at "
-                     "offset %jd, size is %u and does "
-                     "not match the remaining data in the file (%ld)",
-                     LSTR_FMT_ARG(file->path), file->cur - RC_HDR_SIZE, sz,
-                     file->length - file->cur);
-        goto jump;
+    rec_end_off = file_bin_get_entry_end_off(file, sz);
+    if (rec_end_off > file->length) {
+        slot_hdr_t tmp_size;
+
+        /* There is not enough data in the file to read the record. This could
+         * happen for two reasons:
+         *  - the record header is corrupted and the length is non-sense;
+         *    in that case, we want to skip this corrupted slot.
+         *  - the record is being written and we do not have enough data yet;
+         *    in that case, we want to stay here.
+         *
+         * In order to guess in which case we are, read the next slot header
+         * (if available) in which there is also the information about the
+         * offset of the end of the record. If the two offsets mismatch, we
+         * are in the first case.
+         */
+        if (_file_bin_skip(file, file_bin_remaining_space_in_slot(file)) < 0
+        ||  file_bin_get_cpu32(file, &tmp_size) < 0
+        ||  rec_end_off == file->cur + tmp_size)
+        {
+            file->cur = prev_off;
+            return -1;
+        }
+        logger_error(&_G.logger, "corrupted record length in file '%*pM' at "
+                     "pos %jd", LSTR_FMT_ARG(file->path), prev_off);
+        file->cur -= sizeof(slot_hdr_t);
+        *rec = LSTR_NULL_V;
+        return 0;
     }
 
-    if (is_at_slot_start(file)) {
-        file->cur += SLOT_HDR_SIZE(file);
+    if (is_at_slot_start(file)
+    &&  _file_bin_skip(file, SLOT_HDR_SIZE(file)) < 0)
+    {
+        goto error;
     }
 
     if (sz == 0) {
-        goto jump;
+        if (file->version == 0) {
+            /* In V0, the end of the slots are filled with 0s. Go to error so
+             * that we jump to next slot. */
+            goto error;
+        } else {
+            *rec = LSTR_EMPTY_V;
+            return 0;
+        }
     }
 
     check_slot_hdr = file_bin_get_next_entry_off(file, sz);
@@ -302,17 +345,17 @@ _file_bin_get_next_record(file_bin_t *file)
             file->cur += sz;
 
             if (!is_spanning) {
-                return res;
+                *rec = res;
             } else {
                 sb_add_lstr(&file->record_buf, res);
-
-                return LSTR_SB_V(&file->record_buf);
+                *rec = LSTR_SB_V(&file->record_buf);
             }
+            return 0;
         }
 
         assert (file->version > 0);
 
-        /* Record span on multiple slots. */
+        /* Record spans on multiple slots. */
         if (!is_spanning) {
             is_spanning = true;
             sb_grow(&file->record_buf, sz);
@@ -322,15 +365,17 @@ _file_bin_get_next_record(file_bin_t *file)
         sz -= remaining;
         file->cur += remaining;
 
-        if (!expect(is_at_slot_start(file))) {
-            logger_error(&_G.logger, "corrupted binary file, a slot start was"
-                         " expected at pos %jd", file->cur);
-            goto jump;
+        if (!is_at_slot_start(file)) {
+            logger_error(&_G.logger, "corrupted file '%*pM', a slot start "
+                         "was expected at pos %jd",
+                         LSTR_FMT_ARG(file->path), file->cur);
+            assert (false);
+            goto error;
         }
 
         /* Consuming slot header */
         if (file_bin_get_cpu32(file, &tmp_size) < 0) {
-            goto jump;
+            goto error;
         }
 
         if (tmp_size != check_slot_hdr - file->cur) {
@@ -338,27 +383,35 @@ _file_bin_get_next_record(file_bin_t *file)
                          "expected %ld, got %u, jumping to next slot",
                          LSTR_FMT_ARG(file->path), check_slot_hdr - file->cur,
                          tmp_size);
-            goto jump;
+            goto error;
         }
     }
 
     assert (false);
-  jump:
-    file->cur += file_bin_remaining_space_in_slot(file);
-    return LSTR_NULL_V;
+
+  error:
+    /* An error occured, try to jump to the next slot. */
+    if (_file_bin_skip(file, file_bin_remaining_space_in_slot(file)) < 0) {
+        /* There is not enough data in the file, rollback position. */
+        file->cur = prev_off;
+        return -1;
+    }
+    *rec = LSTR_NULL_V;
+    return 0;
 }
 
 lstr_t file_bin_get_next_record(file_bin_t *file)
 {
-    lstr_t res = LSTR_NULL_V;
+    int res;
+    lstr_t rec = LSTR_NULL_V;
 
     assert (file->read_mode);
 
-    while (!res.s && !file_bin_is_finished(file)) {
-        res = _file_bin_get_next_record(file);
-    }
+    do {
+        res = _file_bin_get_next_record(file, &rec);
+    } while (res >= 0 && !rec.s);
 
-    return res;
+    return rec;
 }
 
 int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)

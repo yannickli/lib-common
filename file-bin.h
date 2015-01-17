@@ -206,8 +206,7 @@ lstr_t file_bin_get_next_record(file_bin_t *file);
  */
 #define file_bin_for_each_entry(file, entry)                                 \
     for (lstr_t entry = file_bin_get_next_record(file);                      \
-         entry.s || !file_bin_is_finished(file);                             \
-         entry = file_bin_get_next_record(file))
+         entry.s; entry = file_bin_get_next_record(file))
 
 /** Tell if the parsing of a binary file is finished or not.
  *
@@ -217,6 +216,13 @@ lstr_t file_bin_get_next_record(file_bin_t *file);
 static inline bool file_bin_is_finished(file_bin_t *file)
 {
     return file->cur >= file->length;
+}
+
+/** Tell if the file_bin has at least \p len bytes from the current position.
+ */
+static inline bool file_bin_has(file_bin_t *file, off_t len)
+{
+    return file->cur + len <= file->length;
 }
 
 /** Move the current file position to the one given as argument.
