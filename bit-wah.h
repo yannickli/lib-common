@@ -70,6 +70,7 @@ typedef struct wah_header_t {
     unsigned  bit   : 1;
 #endif
 } wah_header_t;
+#define WAH_MAX_WORDS_IN_RUN  ((1ull << 31) - 1)
 
 typedef union wah_word_t {
     wah_header_t head;
