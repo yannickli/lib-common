@@ -141,7 +141,7 @@ for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; d
 done
 
 if ! test -f /usr/include/sys/capability.h; then
-    warn "missing libpcap, apt-get install libpcap-dev"
+    warn "missing libcap, apt-get install libcap-dev"
 elif test -r /usr/include/pcap.h; then
     setvar "libpcap_CFLAGS"
     setvar "libpcap_LIBS" "-lpcap"
