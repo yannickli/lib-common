@@ -76,9 +76,13 @@ struct ic_msg_t {
                                      before being used in rpc implementation
                                 */
     flag_t   trace      :  1;   /**< Activate tracing for this message. */
-    unsigned padding    :  3;
+    flag_t   canceled   :  1;   /**< Is the query canceled ? */
+    unsigned padding    :  2;
     int32_t  cmd;               /**< automatically filled by ic_query/reply */
     uint32_t slot;              /**< automatically filled by ic_query/reply */
+    uint32_t timeout;           /**< max lifetime of the query */
+    ichannel_t *ic;             /**< the ichannel_t used for the query */
+    el_t     timeout_timer;
     unsigned dlen;
     void    *data;
     pstream_t raw_res;
@@ -101,6 +105,32 @@ ic_msg_t *ic_msg_new(int len);
 ic_msg_t *ic_msg_new_fd(int fd, int len);
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr);
 void ic_msg_delete(ic_msg_t **);
+
+/** Cancel an ic message.
+ *
+ * Flag an ic_msg_t as "canceled". The message will not be sent or, if it is
+ * already sent, the potential answer will be dropped.
+ *
+ * \param[in]  msg the message to cancel.
+ */
+void ic_msg_cancel(ic_msg_t *msg);
+
+/** Set a timeout for ic_msg_t.
+ *
+ *  When sending a query with such a ic_msg_t, the query will fail with the
+ *  IC_MSG_TIMEDOUT error if it is not entirely processed after 'timeout'
+ *  milliseconds.
+ *
+ * \param[in]  msg      the ic_msg_t on which the timeout should be set.
+ * \param[in]  timeout  the maximum lifetime, in milliseconds, of the query in
+ *                      the ichannel.
+ *                      Upon expiration of this period, the query will fail
+ *                      with IC_MSG_TIMEDOUT if it hasn't been processed yet.
+ *
+ * \return the ic_msg_t with the timeout set.
+ */
+ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout);
+
 qm_k32_t(ic_msg, ic_msg_t *);
 
 struct ic_hook_ctx_t {

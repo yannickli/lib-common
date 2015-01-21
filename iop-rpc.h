@@ -30,6 +30,8 @@ typedef enum ic_status_t {
     IC_MSG_UNIMPLEMENTED  = 5,
     IC_MSG_SERVER_ERROR   = 6,
     IC_MSG_PROXY_ERROR    = 7,
+    IC_MSG_TIMEDOUT       = 8,
+    IC_MSG_CANCELED       = 9,
 #define IC_MSG_STREAM_CONTROL   INT32_MIN
 } ic_status_t;
 
