@@ -72,6 +72,22 @@ ps_panic_sighandler_print_version(int fd, const core_version_t *version)
     XWRITE("\n");
 }
 
+__attr_printf__(2, 3)
+static void ps_print_file(const char *path, const char *fmt, ...)
+{
+    va_list va;
+    char cmd[BUFSIZ];
+    int len;
+
+    va_start(va, fmt);
+    len = vsnprintf(cmd, sizeof(cmd), fmt, va);
+    va_end(va);
+
+    snprintf(cmd + len, sizeof(cmd) - len, " >> %s", path);
+
+    IGNORE(system(cmd));
+}
+
 /** XXX The backtrace() function calls an init() function which uses malloc()
  * and leads to deadlock in the signals handler. So we always call backtrace()
  * once outside of the signals hander. It's an horrible hack but it works.
@@ -90,7 +106,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
         .sa_handler = SIG_DFL,
     };
 
-    char   path[128];
+    char   path[PATH_MAX];
     int    fd;
 
     sigaction(signum, &sa, NULL);
@@ -123,7 +139,13 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
         XWRITE("\n");
 
         ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
-        close(fd);
+        p_close(&fd);
+
+        ps_print_file(path, "echo '\n--- File descriptors (using ls):\n'");
+        ps_print_file(path, "ls -al /proc/self/fd");
+
+        ps_print_file(path, "echo '\n--- File descriptors (using lsof):\n'");
+        ps_print_file(path, "lsof -p %d", getpid());
     }
 #ifndef NDEBUG
     ps_dump_backtrace(signum, program_invocation_short_name,
