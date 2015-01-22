@@ -704,8 +704,6 @@ void r_pool_destroy(void) __leaf;
 #define ra_new_extra_field_raw(rype, field, size, alignment)                 \
     mpa_new_extra_field_raw(r_pool(), rype, field, (size), (alignment))
 
-#define ra_realloc(pp, count, alignment)                                     \
-    mpa_realloc(r_pool(), (pp), (count), (alignment))
 #define ra_realloc0(pp, old, now, alignment)                                 \
     mpa_realloc0(r_pool(), (pp), (old), (now), (alignment))
 #define ra_realloc_extra(pp, extra, alignment)                               \
@@ -733,7 +731,6 @@ void r_pool_destroy(void) __leaf;
 #define r_new_extra_field_raw(rype, field, size) \
     ra_new_extra_field_raw(rype, field, size, alignof(rype))
 
-#define r_realloc(rp, count)        ra_realloc(rp, count, alignof(**(rp)))
 #define r_realloc0(rp, old, now)    ra_realloc0(rp, old, now, alignof(**(rp)))
 #define r_realloc_extra(rp, extra)  ra_realloc0_extra(rp, extra, alignof(**(rp)))
 #define r_realloc0_extra(rp, old_extra, new_extra)  \

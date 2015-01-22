@@ -185,8 +185,6 @@ static ALWAYS_INLINE mem_pool_t *t_pool(void)
 #define ta_new_extra_field_raw(type, field, size, alignment)                 \
     mpa_new_extra_field_raw(t_pool(), type, field, (size), (alignment))
 
-#define ta_realloc(pp, count, alignment)                                     \
-    mpa_realloc(t_pool(), (pp), (count), (alignment))
 #define ta_realloc0(pp, old, now, alignment)                                 \
     mpa_realloc0(t_pool(), (pp), (old), (now), (alignment))
 #define ta_realloc_extra(pp, extra, alignment)                               \
@@ -214,7 +212,6 @@ static ALWAYS_INLINE mem_pool_t *t_pool(void)
 #define t_new_extra_field_raw(type, field, size) \
     ta_new_extra_field_raw(type, field, size, alignof(type))
 
-#define t_realloc(tp, count)        ta_realloc(tp, count, alignof(**(tp)))
 #define t_realloc0(tp, old, now)    ta_realloc0(tp, old, now, alignof(**(tp)))
 #define t_realloc_extra(tp, extra)  ta_realloc0_extra(tp, extra, alignof(**(tp)))
 #define t_realloc0_extra(tp, old_extra, new_extra)  \
