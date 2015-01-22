@@ -504,8 +504,8 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhh_deep_clear(name, h, wipe)                                        \
     do {                                                                     \
         qhh_t(name) *__h = (h);                                              \
-        qhh_for_each_pos(name, __pos, __hh) {                                \
-            wipe(qhh_key_p(name, __hh, __pos));                              \
+        qhh_for_each_pos(name, __pos, __h) {                                 \
+            wipe(qhh_key_p(name, __h, __pos));                               \
         }                                                                    \
         qhh_clear(name, __h);                                                \
     } while (0)
@@ -513,7 +513,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhh_deep_wipe(name, h, wipe)                                         \
     do {                                                                     \
         qhh_t(name) *__h = (h);                                              \
-        qhh_for_each_pos(name, __pos, __hh) {                                \
+        qhh_for_each_pos(name, __pos, __h) {                                 \
             wipe(qhh_key_p(name, __h, __pos));                               \
         }                                                                    \
         qhh_wipe(name, __h);                                                 \
@@ -589,9 +589,9 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhm_deep_clear(name, h, kwipe, vwipe)                                \
     do {                                                                     \
         qhm_t(name) *__h = (h);                                              \
-        qhm_for_each_pos(name, __pos, __hh) {                                \
-            kwipe(qhm_key_p(name, __hh, __pos));                             \
-            vwipe(qhm_value_p(name, __hh, __pos));                           \
+        qhm_for_each_pos(name, __pos, __h) {                                 \
+            kwipe(qhm_key_p(name, __h, __pos));                              \
+            vwipe(qhm_value_p(name, __h, __pos));                            \
         }                                                                    \
         qhm_clear(name, __h);                                                \
     } while (0)
@@ -599,9 +599,9 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhm_deep_wipe(name, h, kwipe, vwipe)                                 \
     do {                                                                     \
         qhm_t(name) *__h = (h);                                              \
-        qhm_for_each_pos(name, __pos, __hh) {                                \
+        qhm_for_each_pos(name, __pos, __h) {                                 \
             kwipe(qhm_key_p(name, __h, __pos));                              \
-            vkwipe(qhm_value_p(name, __h, __pos));                           \
+            vwipe(qhm_value_p(name, __h, __pos));                            \
         }                                                                    \
         qhm_wipe(name, __h);                                                 \
     } while (0)
