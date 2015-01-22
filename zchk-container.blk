@@ -277,7 +277,7 @@ Z_GROUP_EXPORT(qhugehash)
 
         Z_ASSERT(bits[0] == 0, "all values should have been seen");
         Z_ASSERT(bits[1] == 0, "all values should have been seen");
-        qhh_wipe(test, &h);
+        qhh_deep_wipe(test, &h, IGNORE, IGNORE);
     } Z_TEST_END;
 
     Z_TEST(collision, "qhhash: collision") {
@@ -293,9 +293,9 @@ Z_GROUP_EXPORT(qhugehash)
             Z_ASSERT(qhh_add(test, &h, i), "double insertion of %d", i);
         }
 
-        qhh_clear(test, &h);
+        qhh_deep_clear(test, &h, IGNORE, IGNORE);
         Z_ASSERT_ZERO(qhh_len(test, &h));
-
+        qhh_clear(test, &h);
         qhh_wipe(test, &h);
     } Z_TEST_END;
 
@@ -408,7 +408,9 @@ Z_GROUP_EXPORT(qhugehash)
 
         Z_ASSERT_ZERO(qhm_len(test, &h));
 
-        qhm_wipe(test, &h);
+        qhm_deep_wipe(test, &h, IGNORE, IGNORE);
+        qhm_deep_clear(test, &h, IGNORE, IGNORE);
+        qhm_clear(test, &h);
     } Z_TEST_END;
 
     Z_TEST(__qhm_put , "qhhash: __qhm_put") {
