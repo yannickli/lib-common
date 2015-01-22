@@ -932,6 +932,9 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
  *
  *  IS_DEBUG=+ic/tracing:0
  *
+ * Packed and unpacked arguments/responses/headers are emitted at trace level
+ * 1 only.
+ *
  * A more complete example with mixed RPC and interface names:
  *
  *  IC_TRACE="qkv.Base qkv.Repl.push" IS_DEBUG=+ic/tracing:0 ./zchk-cluster

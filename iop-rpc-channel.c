@@ -61,10 +61,11 @@ const QM(ic_cbs, ic_no_impl, false);
         }                                                                    \
     } while (0)
 
+#define ic_slot_is_traced(slot, flags)  \
+    (((slot) | (flags)) & IC_MSG_IS_TRACED)
+
 #define ic_slot_trace(slot, flags, fmt, ...)  do {                           \
-        uint32_t __slot = (slot) | (flags);                                  \
-                                                                             \
-        if (unlikely(__slot & IC_MSG_IS_TRACED)) {                           \
+        if (unlikely(ic_slot_is_traced(slot, flags))) {                      \
             logger_notice(&_G.tracing_logger, "[slot:%x] "fmt,               \
                           (uint32_t)(slot & IC_MSG_SLOT_MASK),               \
                           ##__VA_ARGS__);                                    \
@@ -898,7 +899,8 @@ t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
 }
 
 static int
-t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
+t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
+                         uint32_t slot, uint32_t flags,
                          const void *data, int dlen,
                          const ic_msg_t *unpacked_msg, const iop_struct_t *st,
                          int *packed_hdr_len, ic__hdr__t **hdr, void **value)
@@ -924,27 +926,48 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
                 shdr->host = ic_get_client_addr(ic);
             }
         }
+        if (unlikely(ic_slot_is_traced(slot, flags)
+                  && logger_is_traced(&_G.tracing_logger, 1)))
+        {
+            SB_1k(sb);
+
+            sb_addf(&sb, "[slot:%x]; unpacked header: ",
+                    (uint32_t)(slot & IC_MSG_SLOT_MASK));
+            ic__hdr__sb_jpack(&sb, *hdr, 0);
+            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+        }
     }
 
     if (packed_hdr_len) {
         *packed_hdr_len = dlen - ps_len(&ps);
     }
 
-    if (value
-    &&  unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0))
-    {
-        if (logger_is_traced(&_G.logger, 0)) {
-            const char *err = iop_get_err();
+    if (value) {
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
+            if (logger_is_traced(&_G.logger, 0)) {
+                const char *err = iop_get_err();
 
-            if (err) {
-                logger_trace(&_G.logger, 0, QUERY_FMT "%s",
-                             QUERY_FMT_ARG, err);
-            } else {
-                logger_trace(&_G.logger, 0, QUERY_FMT "encoding",
-                             QUERY_FMT_ARG);
+                if (err) {
+                    logger_trace(&_G.logger, 0, QUERY_FMT "%s",
+                                 QUERY_FMT_ARG, err);
+                } else {
+                    logger_trace(&_G.logger, 0, QUERY_FMT "encoding",
+                                 QUERY_FMT_ARG);
+                }
             }
+            return -1;
         }
-        return -1;
+        if (unlikely(ic_slot_is_traced(slot, flags)
+                  && logger_is_traced(&_G.tracing_logger, 1)))
+        {
+            SB_1k(sb);
+
+            sb_addf(&sb, "[slot:%x]; unpacked %*pM: ",
+                    (uint32_t)(slot & IC_MSG_SLOT_MASK),
+                    LSTR_FMT_ARG(st->fullname));
+            iop_sb_jpack(&sb, st, *value, 0);
+            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+        }
     }
 
     return 0;
@@ -987,8 +1010,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
       case IC_CB_WS_SHARED: {
         void *value = NULL;
 
-        if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
-                                     st, NULL, &hdr, &value) < 0)
+        if (t_get_hdr_value_of_query(ic, cmd, slot, flags, data, dlen,
+                                     unpacked_msg, st, NULL,
+                                     &hdr, &value) < 0)
         {
             goto invalid_iop;
         }
@@ -1016,7 +1040,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         {
             ic_dynproxy_t dynproxy;
 
-            if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen,
+            if (t_get_hdr_value_of_query(ic, cmd, slot, flags, data, dlen,
                                          unpacked_msg, st,
                                          &hlen, &hdr, NULL) < 0)
             {
@@ -1049,8 +1073,8 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             if (unpacked_msg) {
                 hdr = (ic__hdr__t *)unpacked_msg->hdr;
             } else
-            if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, NULL, st,
-                                         &hlen, &hdr, NULL) < 0)
+            if (t_get_hdr_value_of_query(ic, cmd, slot, flags, data, dlen,
+                                         NULL, st, &hlen, &hdr, NULL) < 0)
             {
                 goto invalid_iop;
             }
@@ -1715,11 +1739,30 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
 
         iop_bpack(buf, &ic__hdr__s, msg->hdr, szs.tab);
         iop_bpack(buf + hlen, st, arg, szs.tab + szpos);
+
+        if (unlikely(msg->trace && logger_is_traced(&_G.tracing_logger, 1))) {
+            SB_1k(sb);
+
+            sb_addf(&sb, "[msg:%p/slot:%x]; packed header: ", msg, msg->slot);
+            ic__hdr__sb_jpack(&sb, msg->hdr, 0);
+            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+        }
     } else {
         len   = iop_bpack_size_flags(st, arg, IOP_BPACK_SKIP_DEFVAL, &szs);
         buf   = __ic_get_buf(msg, len);
         iop_bpack(buf, st, arg, szs.tab);
+
     }
+
+    if (unlikely(msg->trace && logger_is_traced(&_G.tracing_logger, 1))) {
+        SB_1k(sb);
+
+        sb_addf(&sb, "[msg:%p/slot:%x]; packed %*pM: ", msg, msg->slot,
+                LSTR_FMT_ARG(st->fullname));
+        iop_sb_jpack(&sb, st, arg, 0);
+        logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+    }
+
     qv_wipe(i32, &szs);
 }
 
