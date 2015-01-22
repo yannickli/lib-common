@@ -154,6 +154,9 @@ static void python_http_process_answer(python_query_t *q)
 {
     t_scope;
 
+    PyObject *exc_type  = NULL;
+    PyObject *exc_value = NULL;
+    PyObject *exc_tb    = NULL;
     int res = q->q.qinfo->code;
 
     PyObject *cbk_res = NULL;
@@ -166,16 +169,34 @@ static void python_http_process_answer(python_query_t *q)
 
     PyEval_RestoreThread(python_state_g);
 
+    PyErr_Clear();
     cbk_res = PyObject_CallFunction(_G.cb_parse_answer, (char *)"z#O",
                                     q->q.payload.data, q->q.payload.len,
                                     q->ctx->data);
+    PyErr_Fetch(&exc_type, &exc_value, &exc_tb);
+    if (exc_type) {
+        t_scope;
+        PyObject *exc_str;
+        lstr_t errmsg;
 
+        exc_str = exc_value ? PyObject_Str(exc_value) :
+                              PyString_FromString("undefined");
+        errmsg = t_lstr_fmt("parse cbk raises: %s",
+                            PyString_AsString(exc_str));
+        Py_XDECREF(exc_str);
+        Py_XDECREF(exc_type);
+        Py_XDECREF(exc_value);
+        Py_XDECREF(exc_tb);
+
+        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
+                              errmsg, false);
+    } else
     if (!cbk_res || !PyInt_Check(cbk_res) || PyInt_AsLong(cbk_res) != 0l) {
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
-                             LSTR_NULL_V, false);
+                              LSTR_NULL_V, false);
     } else {
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_OK,
-                             LSTR_NULL_V, false);
+                              LSTR_NULL_V, false);
     }
 
     Py_XDECREF(cbk_res);

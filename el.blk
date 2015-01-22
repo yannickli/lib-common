@@ -1268,9 +1268,13 @@ void el_loop_timeout(int timeout)
         end = get_clock(false);
 
         diff = end - start;
-        if (diff / 3 > timeout / 2) {
-            e_warning("worker is too long: %dms while expecting %dms",
+        if (diff > timeout + 100) {
+            e_warning("worker is too long: %dms while expected %dms",
                       diff, timeout);
+        } else
+        if (diff > MAX(timeout * 2, timeout + 10)) {
+            e_trace(0, "worker is too long: %dms while expecting %dms",
+                    diff, timeout);
         }
         timeout = MAX(0, timeout - diff);
     }
