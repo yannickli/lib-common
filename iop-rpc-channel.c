@@ -153,21 +153,25 @@ ic_msg_t *ic_msg_new_fd(int fd, int len)
     ic_msg_t *msg = mp_new_extra(_G.mp, ic_msg_t, len);
 
     msg->fd = fd;
+    msg = ic_msg_set_priority(msg, EV_PRIORITY_NORMAL);
     return msg;
 }
 
 ic_msg_t *ic_msg_new(int len)
 {
-    ic_msg_t *res = mp_new_extra(_G.mp, ic_msg_t, len);
-
-    res->fd = -1;
-    return res;
+    return ic_msg_new_fd(-1, len);
 }
 
 ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout)
 {
     msg->timeout = timeout;
 
+    return msg;
+}
+
+ic_msg_t *ic_msg_set_priority(ic_msg_t *msg, ev_priority_t priority)
+{
+    msg->priority = priority;
     return msg;
 }
 
@@ -178,6 +182,11 @@ ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
     put_unaligned_cpu64(&msg->priv, slot);
     msg->fd  = fd;
     msg->hdr = hdr;
+
+    /* XXX The +/- 1 is because of backward compatibility:
+     * 0 means EV_PRIORITY_NORMAL on the wire. */
+    msg->priority = ((slot & IC_MSG_PRIORITY_MASK)
+                     >> IC_MSG_PRIORITY_SHIFT) + 1;
     return msg;
 }
 
@@ -215,6 +224,12 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
     ic->pending--;
     msg->slot = slot & IC_MSG_SLOT_MASK;
     msg->trace = !!(slot & IC_MSG_IS_TRACED);
+
+    /* XXX The +/- 1 is because of backward compatibility:
+     * 0 means EV_PRIORITY_NORMAL on the wire. */
+    msg->priority = ((slot & IC_MSG_PRIORITY_MASK)
+                     >> IC_MSG_PRIORITY_SHIFT) + 1;
+
     msg->cmd  = -cmd;
 }
 
@@ -1187,7 +1202,9 @@ static int ic_check_msg_hdr_flags(const ichannel_t *ic, uint32_t slot,
                       ic);
         return -1;
     }
-    if (flags & ~(IC_MSG_HAS_FD | IC_MSG_HAS_HDR | IC_MSG_IS_TRACED)) {
+    if (flags & ~(IC_MSG_HAS_FD | IC_MSG_HAS_HDR | IC_MSG_IS_TRACED
+                  | IC_MSG_PRIORITY_MASK))
+    {
         ic_slot_trace(slot, flags, "unexpected flags value %x on ic %p",
                       flags, ic);
         return -1;
@@ -1577,6 +1594,11 @@ static void ic_msg_update_flags(const ic_msg_t *msg, uint32_t *flags)
     if (msg->trace) {
         *flags |= IC_MSG_IS_TRACED;
     }
+
+    /* XXX The +/- 1 is because of backward compatibility:
+     * 0 means EV_PRIORITY_NORMAL on the wire. */
+    *flags |= IC_MSG_PRIORITY_MASK
+              & ((msg->priority - 1) << IC_MSG_PRIORITY_SHIFT);
 }
 
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
@@ -1595,7 +1617,37 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
         el_fd_set_mask(ic->elh, POLLINOUT);
 
     ic_msg_trace(msg, "queueing message on ic %p with cmd %x", ic, msg->cmd);
-    ic_add_msg_tail(ic, msg);
+
+    if (htlist_is_empty(&ic->msg_list)
+    ||  msg->priority <= htlist_last_entry(&ic->msg_list, ic_msg_t,
+                                           msg_link)->priority)
+    {
+        htlist_add_tail(&ic->msg_list, &msg->msg_link);
+    } else
+    if (msg->priority > htlist_first_entry(&ic->msg_list, ic_msg_t,
+                                           msg_link)->priority) {
+        htlist_add(&ic->msg_list, &msg->msg_link);
+    } else
+    if (msg->priority == EV_PRIORITY_NORMAL && ic->last_normal_prio_msg) {
+        htlist_add_after(&ic->msg_list, ic->last_normal_prio_msg,
+                         &msg->msg_link);
+    } else {
+        ic_msg_t *curr;
+        ic_msg_t *prev = NULL;
+
+        htlist_for_each_entry(curr, &ic->msg_list, msg_link) {
+            if (curr->priority != EV_PRIORITY_HIGH) {
+                break;
+            }
+            prev = curr;
+        }
+        htlist_add_after(&ic->msg_list, &prev->msg_link,
+                         &msg->msg_link);
+    }
+
+    if (msg->priority == EV_PRIORITY_NORMAL) {
+        ic->last_normal_prio_msg = &msg->msg_link;
+    }
 }
 
 static void __ic_flush(ichannel_t *ic, int fd)
