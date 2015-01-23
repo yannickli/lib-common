@@ -417,9 +417,12 @@ static void ic_msg_take_and_delete(ic_msg_t *msg)
 static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
 {
     if (msg->slot) {
+        __unused__ ic_msg_t *tmp = ic_query_take(msg->ic, msg->slot);
+        assert (tmp == msg);
+
         __ic_msg_reply_err(msg->ic, msg, IC_MSG_ABORT);
     }
-    ic_msg_take_and_delete(msg);
+    ic_msg_delete(&msg);
 }
 
 static void ic_msg_filter_on_bye(ichannel_t *ic)
