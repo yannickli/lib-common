@@ -45,6 +45,9 @@ typedef enum ic_event_t {
 #define IC_MSG_HAS_FD           (1U << 24)
 #define IC_MSG_HAS_HDR          (1U << 25)
 #define IC_MSG_IS_TRACED        (1U << 26)
+#define IC_MSG_PRIORITY_SHIFT   27
+#define IC_MSG_PRIORITY_MASK    (BITMASK_LT(uint32_t,                        \
+                                            2) << IC_MSG_PRIORITY_SHIFT)
 
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
@@ -64,24 +67,26 @@ typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
 
 struct ic_msg_t {
-    htnode_t msg_link;          /**< private field used by ichannel_t       */
-    int      fd         : 24;   /**< the fd to send                         */
-    flag_t   async      :  1;   /**< whether the RPC is async               */
-    flag_t   raw        :  1;   /**< whether the answer should be decoded or
-                                     not. */
-    flag_t   force_pack :  1;   /**< if set then msg is packed even if it is
-                                     used with a local ic */
-    flag_t   force_dup  :  1;   /**< if set when ic is local and force_pack is
-                                     false then hdr and arg are duplicated
-                                     before being used in rpc implementation
-                                */
-    flag_t   trace      :  1;   /**< Activate tracing for this message. */
-    flag_t   canceled   :  1;   /**< Is the query canceled ? */
-    unsigned padding    :  2;
-    int32_t  cmd;               /**< automatically filled by ic_query/reply */
-    uint32_t slot;              /**< automatically filled by ic_query/reply */
-    uint32_t timeout;           /**< max lifetime of the query */
-    ichannel_t *ic;             /**< the ichannel_t used for the query */
+    htnode_t      msg_link;        /**< private field used by ichannel_t */
+    int           fd         : 24; /**< the fd to send */
+    flag_t        async      :  1; /**< whether the RPC is async */
+    flag_t        raw        :  1; /**< whether the answer should be decoded
+                                        or not. */
+    flag_t        force_pack :  1; /**< if set then msg is packed even if it
+                                        is used with a local ic */
+    flag_t        force_dup  :  1; /**< if set when ic is local and force_pack
+                                        is false then hdr and arg are
+                                        duplicated before being used in rpc
+                                        implementation */
+    flag_t        trace      :  1; /**< Activate tracing for this message. */
+    flag_t        canceled   :  1; /**< Is the query canceled ? */
+    ev_priority_t priority   :  2; /**< Priority of the message. */
+    int32_t  cmd;                  /**< automatically filled by ic_query/reply
+                                        */
+    uint32_t slot;                 /**< automatically filled by ic_query/reply
+                                        */
+    uint32_t timeout;              /**< max lifetime of the query */
+    ichannel_t *ic;                /**< the ichannel_t used for the query */
     el_t     timeout_timer;
     unsigned dlen;
     void    *data;
@@ -130,6 +135,21 @@ void ic_msg_cancel(ic_msg_t *msg);
  * \return the ic_msg_t with the timeout set.
  */
 ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout);
+
+/** Set a priority for ic_msg_t.
+ *
+ * When adding a message to the queue, messages with a high priority level
+ * will be at the head, just after the other messages having the same priority
+ * level, while messages with a low priority level will be at the tail. As a
+ * consequence, if there is a lot of messages with a high priority level,
+ * messages with a low or normal priority will never be pop'ed from the queue.
+ *
+ * \param[in]  msg       the ic_msg_t on which the priority should be set.
+ * \param[in]  priority  the priority to set.
+ *
+ * \return the ic_msg_t with the priority set.
+ */
+ic_msg_t *ic_msg_set_priority(ic_msg_t *msg, ev_priority_t priority);
 
 qm_k32_t(ic_msg, ic_msg_t *);
 
