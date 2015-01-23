@@ -425,6 +425,24 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
     }
 }
 
+static void ic_add_msg_tail(ichannel_t *ic, ic_msg_t *msg)
+{
+    htlist_add_tail(&ic->msg_list, &msg->msg_link);
+    if (msg->priority == EV_PRIORITY_NORMAL) {
+        ic->last_normal_prio_msg = ic->msg_list.head;
+    }
+}
+
+static ic_msg_t *ic_pop_msg(ichannel_t *ic)
+{
+    ic_msg_t *msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+
+    if (&msg->msg_link == ic->last_normal_prio_msg) {
+        ic->last_normal_prio_msg = NULL;
+    }
+    return msg;
+}
+
 static void ic_cancel_all(ichannel_t *ic)
 {
     ic_msg_t *msg;
@@ -440,10 +458,11 @@ static void ic_cancel_all(ichannel_t *ic)
             ic_msg_delete(&msg);
     }
     while (!htlist_is_empty(&ic->msg_list)) {
-        msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+        msg = ic_pop_msg(ic);
         if (msg->cmd <= 0 || msg->slot == 0)
             ic_msg_delete(&msg);
     }
+    ic->last_normal_prio_msg = NULL;
 
     h = ic->queries;
     qm_init(ic_msg, &ic->queries);
@@ -516,8 +535,11 @@ static void ic_msg_filter_on_bye(ichannel_t *ic)
     htlist_t l;
 
     htlist_move(&l, &ic->msg_list);
-    if (!ic->is_stream && ic->wpos)
-        htlist_add_tail(&ic->msg_list, htlist_pop(&l));
+    ic->last_normal_prio_msg = NULL;
+
+    if (!ic->is_stream && ic->wpos) {
+        ic_add_msg_tail(ic, htlist_pop_entry(&l, ic_msg_t, msg_link));
+    }
 
     while (!htlist_is_empty(&l)) {
         ic_msg_t *msg = htlist_pop_entry(&l, ic_msg_t, msg_link);
@@ -525,7 +547,7 @@ static void ic_msg_filter_on_bye(ichannel_t *ic)
         if (msg->cmd > 0) {
             ic_msg_abort(ic, msg);
         } else {
-            htlist_add_tail(&ic->msg_list, &msg->msg_link);
+            ic_add_msg_tail(ic, msg);
         }
     }
 }
@@ -536,7 +558,7 @@ static int ic_write_stream(ichannel_t *ic, int fd)
 
     do {
         while (!htlist_is_empty(&ic->msg_list) && ic->iov_total_len < IC_PKT_MAX) {
-            ic_msg_t *msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+            ic_msg_t *msg = ic_pop_msg(ic);
 
             if (msg->canceled) {
                 ic_msg_take_and_delete(msg);
@@ -676,7 +698,7 @@ static int ic_write_seq(ichannel_t *ic, int fd)
         size = fdc = iovc = 0;
         ic->wpos = wpos;
         while (to_drop-- > 0) {
-            ic_msg_t *tmp = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+            ic_msg_t *tmp = ic_pop_msg(ic);
 
             if (tmp->canceled) {
                 ic_msg_take_and_delete(tmp);
@@ -1573,7 +1595,7 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
         el_fd_set_mask(ic->elh, POLLINOUT);
 
     ic_msg_trace(msg, "queueing message on ic %p with cmd %x", ic, msg->cmd);
-    htlist_add_tail(&ic->msg_list, &msg->msg_link);
+    ic_add_msg_tail(ic, msg);
 }
 
 static void __ic_flush(ichannel_t *ic, int fd)
@@ -1634,9 +1656,8 @@ static void ic_msg_on_timeout(el_t ev, el_data_t data)
     while (!htlist_is_empty(queue)
     &&    (htlist_first_entry(queue, ic_msg_t, msg_link)->canceled))
     {
-        ic_msg_take_and_delete(htlist_pop_entry(queue, ic_msg_t, msg_link));
+        ic_msg_take_and_delete(ic_pop_msg(msg->ic));
     }
-
 }
 
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)

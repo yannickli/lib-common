@@ -263,6 +263,8 @@ struct ichannel_t {
     qm_t(ic_msg) queries;      /**< hash of queries waiting for an answer  */
     htlist_t     iov_list;     /**< list of messages to send, in iov       */
     htlist_t     msg_list;     /**< list of messages to send               */
+    htnode_t    *last_normal_prio_msg;  /**< last message of msg_list having
+                                             the priority NORMAL */
     int          current_fd;   /**< used to store the current fd           */
     int          pending;
 
