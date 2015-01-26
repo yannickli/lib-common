@@ -454,7 +454,7 @@ static void iopc_put_range_cleanup(void)
 }
 
 static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
-                           iop_type_t type)
+                           iop_type_t type, bool is_class)
 {
     assert (type == IOP_T_STRUCT || type == IOP_T_UNION
     ||      type == IOP_T_ENUM);
@@ -468,8 +468,9 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                 sb_addf(buf, "typedef %s__t %*pM;\n", tbase,
                         LSTR_FMT_ARG(ctype));
 
-                if (ctype.s[ctype.len-2] == '_'
-                &&  ctype.s[ctype.len-1] == 't')
+                if (ctype.len >= 2
+                &&  ctype.s[ctype.len - 2] == '_'
+                &&  ctype.s[ctype.len - 1] == 't')
                 {
                     pfx.len -= 2;
                 }
@@ -477,26 +478,62 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                 sb_addf(buf, "#define %*pM_" _f "(...) "                    \
                         "%s__" _f "(__VA_ARGS__)\n",                        \
                         LSTR_FMT_ARG(pfx), tbase);
+#define T_ALIAS(_f) \
+                sb_addf(buf, "#define t_%*pM_" _f "(...) "                  \
+                        "t_%s__" _f "(__VA_ARGS__)\n",                      \
+                        LSTR_FMT_ARG(pfx), tbase);
 
                 if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
+                    /* IOP_GENERIC_BASICS */
                     ALIAS("equals");
                     ALIAS("init");
                     ALIAS("dup");
                     ALIAS("copy");
-                    ALIAS("jpack");
-                    ALIAS("junpack");
                     ALIAS("check");
-                    if (type == IOP_T_UNION)
+                    ALIAS("sort");
+                    ALIAS("msort");
+                    if (!is_class) {
+                        /* IOP_GENERIC_BINARY_UNION */
+                        T_ALIAS("bunpack_multi");
+                        /* IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION */
+                        T_ALIAS("bunpack_ps");
+                        T_ALIAS("bunpack");
+                    }
+                    /* IOP_GENERIC_BINARY_PACK */
+                    ALIAS("bpack_size");
+                    ALIAS("bpack");
+                    T_ALIAS("bpack");
+                    /* IOP_GENERIC_BINARY_UNPACK */
+                    T_ALIAS("bunpack_ptr_ps");
+                    T_ALIAS("bunpack_ptr");
+                    /* IOP_GENERIC_JSON_PACK */
+                    ALIAS("jpack");
+                    T_ALIAS("sb_jpack");
+                    /* IOP_GENERIC_JSON_UNPACK */
+                    ALIAS("junpack_ptr");
+                    T_ALIAS("junpack_ptr_ps");
+                    T_ALIAS("junpack_ptr_file");
+                    if (!is_class) {
+                        /* IOP_GENERIC_JSON_UNPACK_STRUCT_UNION */
+                        ALIAS("junpack");
+                        T_ALIAS("junpack_ps");
+                        T_ALIAS("junpack_file");
+                    }
+                    if (type == IOP_T_UNION) {
                         ALIAS("get");
+                    }
                 } else
                 if (type == IOP_T_ENUM) {
+                    /* IOP_ENUM(pfx) */
                     ALIAS("to_str");
                     ALIAS("to_lstr");
                     ALIAS("from_str");
                     ALIAS("from_str2");
                     ALIAS("from_lstr");
+                    ALIAS("exists");
                 }
 #undef ALIAS
+#undef T_ALIAS
                 sb_addc(buf, '\n');
             }
         }
@@ -688,7 +725,7 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
             "IOP_ENUM(%s);\n\n",
             tbase, tbase);
 
-    iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM);
+    iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, false);
 }
 
 
@@ -784,10 +821,11 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     if (st->type == STRUCT_TYPE_CLASS) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
+        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, true);
     } else {
         sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
+        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, false);
     }
-    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT);
 }
 
 static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
@@ -825,7 +863,7 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
             "IOP_UNION_GET(%s, u, field)\n",
             tbase, tbase);
 
-    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_UNION);
+    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_UNION, false);
 }
 
 static int
