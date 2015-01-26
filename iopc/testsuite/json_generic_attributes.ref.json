@@ -94,6 +94,22 @@
 			},
 			"fields": {
 			}
+		},
+		{
+			"name": "Price",
+			"fullName": "json_generic_attributes.Price",
+			"type": "typedef",
+			"typedef": "number",
+			"genAttrs": {
+				"scenario:label": {
+					"type": "object",
+					"value": {"en":"Price","fr":"Prix"}
+				},
+				"scenario:type": {
+					"type": "object",
+					"value": {"dbl":{"format":"CURRENCY"}}
+				}
+			}
 		}
 	]
 }

@@ -36,7 +36,7 @@
 #define LINE_START_COLLECTION(_wbuf, _key, _sep)                             \
     do {                                                                     \
         const iopc_write_buf_t *_b = (_wbuf);                                \
-        if (_key) {                                                          \
+        if (_key[0]) {                                                       \
             IOPC_WRITE_START_LINE(_b, sb_addf, KEY("%s") _sep, _key ?: "");  \
         } else {                                                             \
             IOPC_WRITE_START_LINE(_b, sb_addf, _sep);                        \
@@ -50,7 +50,7 @@
 #define LINE_START_OBJ_CKEY(_wbuf, _key)  \
     LINE_START_OBJ_PREFIX(_wbuf, _key)
 
-#define LINE_START_OBJ(_wbuf)  LINE_START_OBJ_PREFIX(_wbuf, NULL)
+#define LINE_START_OBJ(_wbuf)  LINE_START_OBJ_PREFIX(_wbuf, "")
 
 #define LINE_START_ARRAY(_wbuf, _key)  \
     LINE_START_COLLECTION(_wbuf, _key, "[")
@@ -349,7 +349,8 @@ dump_field_type_obj(const iopc_write_buf_t *wbuf, const char *key,
 
 
 static
-void dump_field_type(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
+void dump_field_type(const iopc_write_buf_t *wbuf, const char *type_label,
+                     const iopc_field_t *f)
 {
     const char *type;
 
@@ -369,11 +370,11 @@ void dump_field_type(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
       case IOP_T_XML:    type = "xml";     break;
 
       default:
-        dump_field_type_obj(wbuf, TYPE_LABEL, f);
+        dump_field_type_obj(wbuf, type_label, f);
         return;
     }
 
-    LINE_CKEY_VAL_STR(wbuf, TYPE_LABEL, type);
+    LINE_KEY_VAL_FMT(wbuf, type_label, QUOTE("%s"), type);
 }
 
 static void dump_defval(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
@@ -523,16 +524,38 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
     }
 }
 
+static void
+dump_field_constraints(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
+{
+    bool has_constraint = false;
+
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        if (is_dummy_constraint(attr)) {
+            continue;
+        }
+
+        if (!has_constraint) {
+            has_constraint = true;
+            LINE_START_OBJ_CKEY(wbuf, "constraints");
+        }
+
+        dump_constraint(wbuf, f, attr);
+    }
+
+    if (has_constraint) {
+        LINE_END_OBJ(wbuf);
+    }
+}
+
 static
 void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 {
     qv_for_each_entry(iopc_field, f, fields) {
-        bool has_constraint = false;
         bool private = false;
 
         LINE_START_OBJ_KEY(wbuf, f->name);
 
-        dump_field_type(wbuf, f);
+        dump_field_type(wbuf, TYPE_LABEL, f);
 
         switch (f->repeat) {
           case IOP_R_DEFVAL:
@@ -548,30 +571,31 @@ void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 
         iopc_dox_dump_json(wbuf, f);
         qv_for_each_entry(iopc_attr, attr, &f->attrs) {
-            if (attr->desc->id == IOPC_ATTR_PRIVATE)
+            if (attr->desc->id == IOPC_ATTR_PRIVATE) {
                 private = true;
-
-            if (is_dummy_constraint(attr))
-                continue;
-
-            if (!has_constraint) {
-                has_constraint = true;
-                LINE_START_OBJ_CKEY(wbuf, "constraints");
             }
-
-            dump_constraint(wbuf, f, attr);
         }
 
-        if (has_constraint)
-            LINE_END_OBJ(wbuf);
-
+        dump_field_constraints(wbuf, f);
         dump_gen_attrs(wbuf, &f->attrs);
 
-        if (private)
+        if (private) {
             LINE_CKEY_TRUE(wbuf, "private");
+        }
 
         LINE_END_OBJ(wbuf);
     }
+}
+
+static void
+iopc_typedef_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
+                       const iopc_field_t *tdef)
+{
+    dump_name(wbuf, pkg_name, tdef->name);
+    LINE_CKEY_VAL_CSTR(wbuf, "type", "typedef");
+    dump_field_type(wbuf, "typedef", tdef);
+    dump_field_constraints(wbuf, tdef);
+    dump_gen_attrs(wbuf, &tdef->attrs);
 }
 
 static void
@@ -760,6 +784,12 @@ void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
 
     DUMP_PKG_ITEMS(enum);
     DUMP_PKG_ITEMS(struct); /* structs, unions and classes */
+
+    qv_for_each_entry(iopc_field, tdef, &pkg->typedefs) {
+        LINE_START_OBJ(&wbuf);
+        iopc_typedef_dump_json(&wbuf, pkg_name, tdef);
+        LINE_END_OBJ(&wbuf);
+    }
 
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {

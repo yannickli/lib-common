@@ -57,6 +57,9 @@ union MyUnionA {
     string s;
 }; ///< back comment for MyUnionA
 
+@allow(i)
+typedef MyUnionA MyUnionInt;
+
 /*!
  *  @details detailed comment for MyStructA
  *******************************************

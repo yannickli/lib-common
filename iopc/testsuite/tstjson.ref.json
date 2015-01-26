@@ -507,6 +507,16 @@
 			}
 		},
 		{
+			"name": "MyUnionInt",
+			"fullName": "tstjson.MyUnionInt",
+			"type": "typedef",
+			"typedef": "tstjson.MyUnionA",
+			"constraints": {
+				"allow": ["i"
+				]
+			}
+		},
+		{
 			"name": "funAArgs",
 			"fullName": "tstjson.MyIfaceA.funAArgs",
 			"type": "struct",
