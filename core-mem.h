@@ -472,29 +472,28 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
 #define mpa_new_extra(mp, type, size, alignment)                             \
     ((type *)mp_imalloc((mp), sizeof(type) + (size), (alignment), 0))
 #define mpa_new_extra_field(mp, type, field, size, alignment)                \
-    ((type *)mp_imalloc((mp), extra_field_size(type, field, size),            \
+    ((type *)mp_imalloc((mp), extra_field_size(type, field, (size)),         \
                         (alignment), 0))
 #define mpa_new_extra_raw(mp, type, size, alignment)                         \
     ((type *)mp_imalloc((mp), sizeof(type) + (size), (alignment), MEM_RAW))
 #define mpa_new_extra_field_raw(mp, type, field, size, alignment)            \
-    ((type *)mp_imalloc((mp), extra_field_size(type, field, size),            \
+    ((type *)mp_imalloc((mp), extra_field_size(type, field, (size)),         \
                         (alignment), MEM_RAW))
 
-#define mpa_realloc(mp, pp, count, alignment)                                \
-      ({                                                                     \
-          typeof(**(pp)) **__ptr = (pp);                                     \
-          *__ptr = mp_irealloc((mp), *__ptr, MEM_UNKNOWN,                    \
-                               sizeof(**__ptr) * (count),                    \
-                               (alignment), MEM_RAW);                        \
-      })
-
-#define mpa_realloc0(mp, pp, old, now, alignment)                            \
+#define __mpa_realloc(mp, pp, old, now, alignment, flags)                    \
     ({                                                                       \
         typeof(**(pp)) **__ptr = (pp);                                       \
-        size_t sz = sizeof(**__ptr);                                         \
-        *__ptr = mp_irealloc((mp), *__ptr, sz * (old), sz * (now),           \
-                             (alignment), 0);                                \
+        *__ptr = mp_irealloc((mp), *__ptr, sizeof(**__ptr) * (old),          \
+                             sizeof(**__ptr) * (now),                        \
+                             (alignment), (flags));                          \
     })
+
+#define mpa_realloc(mp, pp, count, alignment)                                \
+    __mpa_realloc((mp), (pp), MEM_UNKNOWN, (count), (alignment), MEM_RAW)
+#define mpa_realloc0(mp, pp, old, now, alignment)                            \
+    __mpa_realloc((mp), (pp), (old), (now), (alignment), 0)
+#define mpa_realloc_from(mp, pp, old, now, alignment)                        \
+    __mpa_realloc((mp), (pp), (old), (now), (alignment), MEM_RAW)
 
 #define mpa_realloc_extra(mp, pp, extra, alignment)                          \
     ({                                                                       \
@@ -504,13 +503,22 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
                              (alignment), MEM_RAW);                          \
     })
 
-#define mpa_realloc0_extra(mp, pp, old_extra, new_extra, alignment)          \
+#define __mpa_realloc_extra_from(mp, pp, old_extra, new_extra, alignment,    \
+                                 flags)                                      \
     ({                                                                       \
         typeof(**(pp)) **__ptr = (pp);                                       \
         *__ptr = mp_irealloc((mp), *__ptr, sizeof(**__ptr) + (old_extra),    \
                              sizeof(**__ptr) + (new_extra), (alignment),     \
-                             0);                                             \
+                             (flags));                                       \
     })
+
+#define mpa_realloc0_extra(mp, pp, old_extra, new_extra, alignment)          \
+    __mpa_realloc_extra_from((mp), (pp), (old_extra), (new_extra),           \
+                             (alignment), 0)
+
+#define mpa_realloc_extra_from(mp, pp, old_extra, new_extra, alignment)      \
+    __mpa_realloc_extra_from((mp), (pp), (old_extra), (new_extra),           \
+                             (alignment), MEM_RAW)
 
 #define mpa_realloc_extra_field(mp, pp, field, count, alignment)             \
     ({                                                                       \
@@ -520,15 +528,24 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
                              (alignment), MEM_RAW);                          \
     })
 
-#define mpa_realloc0_extra_field(mp, pp, field, old_count, new_count,        \
-                                 alignment)                                  \
+#define __mpa_realloc_extra_field_from(mp, pp, field, old_count, new_count,  \
+                                       alignment, flags)                     \
     ({                                                                       \
         typeof(**(pp)) **__ptr = (pp);                                       \
         *__ptr = mp_irealloc((mp), *__ptr,                                   \
-                          extra_field_size(typeof(**pp), field, (old_count)),\
-                          extra_field_size(typeof(**pp), field, (new_count)),\
-                          (alignment), 0);                                   \
+                     extra_field_size(typeof(**pp), field, (old_count)),     \
+                     extra_field_size(typeof(**pp), field, (new_count)),     \
+                     (alignment), (flags));                                  \
     })
+#define mpa_realloc0_extra_field(mp, pp, field, old_count, new_count,        \
+                                 alignment)                                  \
+    __mpa_realloc_extra_field_from((mp), (pp), field, (old_count),           \
+                                   (new_count), (alignment), 0)
+
+#define mpa_realloc_extra_field_from(mp, pp, field, old_count, new_count,    \
+                                 alignment)                                  \
+    __mpa_realloc_extra_field_from((mp), (pp), field, (old_count),           \
+                                   (new_count), (alignment), MEM_RAW)
 
 #define mpa_dup(mp, ptr, count, alignment)                                   \
     mp_idup((mp), (ptr), sizeof(*ptr) * (count), (alignment))
@@ -551,6 +568,8 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
 
 #define mp_realloc(mp, pp, count)                                            \
     mpa_realloc((mp), (pp), (count), alignof(**(pp)))
+#define mp_realloc_from(mp, pp, old, now)                                    \
+    mpa_realloc_from((mp), (pp), (old), (now), alignof(**(pp)))
 #define mp_realloc0(mp, pp, old, now)                                        \
     mpa_realloc0((mp), (pp), (old), (now), alignof(**(pp)))
 #define mp_realloc_extra(mp, pp, extra)                                      \
@@ -613,25 +632,29 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
 
 /* Alignement aware helpers */
 
-#define p_new_raw(type, count)       pa_new_raw(type, count, alignof(type))
-#define p_new(type, count)           pa_new(type, count, alignof(type))
-#define p_new_extra(type, size)      pa_new_extra(type, size, alignof(type))
-#define p_new_extra_raw(type, size)  pa_new_extra_raw(type, size, alignof(type))
-#define p_new_extra_field(type, field, size)  \
-    pa_new_extra_field(type, field, size, alignof(type))
-#define p_new_extra_field_raw(type, field, size) \
-    pa_new_extra_field_raw(type, field, size, alignof(type))
+#define p_new_raw(type, count)       pa_new_raw(type, (count), alignof(type))
+#define p_new(type, count)           pa_new(type, (count), alignof(type))
+#define p_new_extra(type, size)      pa_new_extra(type, (size), alignof(type))
+#define p_new_extra_raw(type, size)                                          \
+    pa_new_extra_raw(type, (size), alignof(type))
+#define p_new_extra_field(type, field, size)                                 \
+    pa_new_extra_field(type, field, (size), alignof(type))
+#define p_new_extra_field_raw(type, field, size)                             \
+    pa_new_extra_field_raw(type, field, (size), alignof(type))
 
-#define p_realloc(pp, count)        pa_realloc(pp, count, alignof(**(pp)))
-#define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, alignof(**(pp)))
-#define p_realloc_extra(pp, extra)  pa_realloc_extra(pp, extra, alignof(**(pp)))
-#define p_realloc0_extra(pp, old_extra, new_extra)  \
-    pa_realloc0_extra(pp, old_extra, new_extra, alignof(**(pp)))
+#define p_realloc(pp, count)        pa_realloc((pp), (count), alignof(**(pp)))
+#define p_realloc0(pp, old, now)                                             \
+    pa_realloc0((pp), (old), (now), alignof(**(pp)))
+#define p_realloc_extra(pp, extra)                                           \
+    pa_realloc_extra((pp), (extra), alignof(**(pp)))
+#define p_realloc0_extra(pp, old_extra, new_extra)                           \
+    pa_realloc0_extra((pp), (old_extra), (new_extra), alignof(**(pp)))
 
-#define p_realloc_extra_field(pp, field, count)  \
-    pa_realloc_extra_field(pp, field, count, alignof(**(pp)))
-#define p_realloc0_extra_field(pp, field, old_count, new_count)  \
-    pa_realloc0_extra_field(pp, field, old_count, new_count, alignof(**(pp)))
+#define p_realloc_extra_field(pp, field, count)                              \
+    pa_realloc_extra_field((pp), field, (count), alignof(**(pp)))
+#define p_realloc0_extra_field(pp, field, old_count, new_count)              \
+    pa_realloc0_extra_field((pp), field, (old_count), (new_count),           \
+                            alignof(**(pp)))
 
 #define p_dup(p, count)         pa_dup((p), (count), alignof(p))
 #define p_dupz(p, count)        mp_dupz(&mem_pool_libc, (p), (count))
@@ -771,30 +794,35 @@ void r_pool_destroy(void) __leaf;
 
 /* Aligned pointers allocation helpers */
 
-#define ra_new_raw(rype, count, alignment)                                   \
-    mpa_new_raw(r_pool(), rype, (count), (alignment))
-#define ra_new(rype, count, alignment)                                       \
-    mpa_new(r_pool(), rype, (count), (alignment))
-#define ra_new_extra(rype, size, alignment)                                  \
-    mpa_new_extra(r_pool(), rype, (size), (alignment))
-#define ra_new_extra_raw(rype, size, alignment)                              \
-    mpa_new_extra_raw(r_pool(), rype, (size), (alignment))
-#define ra_new_extra_field(rype, field, size, alignment)                     \
-    mpa_new_extra_field(r_pool(), rype, field, (size), (alignment))
-#define ra_new_extra_field_raw(rype, field, size, alignment)                 \
-    mpa_new_extra_field_raw(r_pool(), rype, field, (size), (alignment))
+#define ra_new_raw(type, count, alignment)                                   \
+    mpa_new_raw(r_pool(), type, (count), (alignment))
+#define ra_new(type, count, alignment)                                       \
+    mpa_new(r_pool(), type, (count), (alignment))
+#define ra_new_extra(type, size, alignment)                                  \
+    mpa_new_extra(r_pool(), type, (size), (alignment))
+#define ra_new_extra_raw(type, size, alignment)                              \
+    mpa_new_extra_raw(r_pool(), type, (size), (alignment))
+#define ra_new_extra_field(type, field, size, alignment)                     \
+    mpa_new_extra_field(r_pool(), type, field, (size), (alignment))
+#define ra_new_extra_field_raw(type, field, size, alignment)                 \
+    mpa_new_extra_field_raw(r_pool(), type, field, (size), (alignment))
 
+#define ra_realloc_from(pp, old, now, alignment)                             \
+    mpa_realloc_from(r_pool(), (pp), (old), (now), (alignment))
 #define ra_realloc0(pp, old, now, alignment)                                 \
     mpa_realloc0(r_pool(), (pp), (old), (now), (alignment))
-#define ra_realloc_extra(pp, extra, alignment)                               \
-    mpa_realloc0_extra(r_pool(), (pp), (extra), (alignment))
+#define ra_realloc_extra_from(pp, old_extra, new_extra, alignment)           \
+    mpa_realloc_extra_from(r_pool(), (pp), (old_extra), (new_extra),         \
+                           (alignment))
 #define ra_realloc0_extra(pp, old_extra, new_extra, alignment)               \
     mpa_realloc0_extra(r_pool(), (pp), (old_extra), (new_extra), (alignment))
 
-#define ra_realloc_extra_field(pp, field, count, alignment)                  \
-    mpa_realloc_extra_field(r_pool(), (pp), field, (count), (alignment))
+#define ra_realloc_extra_field_from(pp, field, old_count, new_count,         \
+                                    alignment)                               \
+    mpa_realloc_extra_field_from(r_pool(), (pp), field, (old_count),         \
+                                 (new_count), (alignment))
 #define ra_realloc0_extra_field(pp, field, old_count, new_count, alignment)  \
-    mpa_realloc0_extra_field(&r_pool(), (pp), field, (old_count),            \
+    mpa_realloc0_extra_field(r_pool(), (pp), field, (old_count),             \
                              (new_count), (alignment))
 
 #define ra_dup(p, count, alignment)                                          \
@@ -802,25 +830,31 @@ void r_pool_destroy(void) __leaf;
 
 /* Pointer allocations helpers */
 
-#define r_new_raw(rype, count)       ra_new_raw(rype, count, alignof(rype))
-#define r_new(rype, count)           ra_new(rype, count, alignof(rype))
-#define r_new_extra(rype, size)      ra_new_extra(rype, size, alignof(rype))
-#define r_new_extra_raw(rype, size)  ra_new_extra_raw(rype, size, alignof(rype))
-#define r_new_extra_field(rype, field, size)  \
-    ra_new_extra_field(rype, field, size, alignof(rype))
-#define r_new_extra_field_raw(rype, field, size) \
-    ra_new_extra_field_raw(rype, field, size, alignof(rype))
+#define r_new_raw(type, count)       ra_new_raw(type, (count), alignof(type))
+#define r_new(type, count)           ra_new(type, (count), alignof(type))
+#define r_new_extra(type, size)      ra_new_extra(type, (size), alignof(type))
+#define r_new_extra_raw(type, size)                                          \
+    ra_new_extra_raw(type, (size), alignof(type))
+#define r_new_extra_field(type, field, size)                                 \
+    ra_new_extra_field(type, field, (size), alignof(type))
+#define r_new_extra_field_raw(type, field, size)                             \
+    ra_new_extra_field_raw(type, field, (size), alignof(type))
 
-#define r_realloc0(rp, old, now)    ra_realloc0(rp, old, now, alignof(**(rp)))
-#define r_realloc_extra(rp, extra)  ra_realloc0_extra(rp, extra, alignof(**(rp)))
-#define r_realloc0_extra(rp, old_extra, new_extra)  \
-    ra_realloc0_extra(rp, old_extra, new_extra, alignof(**(rp)))
+#define r_realloc_from(tp, old, now)                                         \
+    ra_realloc_from(tp, (old), (now), alignof(**(tp)))
+#define r_realloc0(tp, old, now)                                             \
+    ra_realloc0(tp, (old), (now), alignof(**(tp)))
+#define r_realloc_extra_from(tp, old_extra, new_extra)                       \
+    ra_realloc_extra_from((tp), (old_extra), (new_extra), alignof(**(tp)))
+#define r_realloc0_extra(tp, old_extra, new_extra)                           \
+    ra_realloc0_extra(tp, (old_extra), (new_extra), alignof(**(tp)))
 
-#define r_realloc_extra_field(rp, field, count)  \
-    ra_realloc_extra_field(rp, field, count, alignof(**(rp)))
-#define r_realloc0_extra_field(rp, field, old_count, new_count)  \
-    ra_realloc0_extra_field(rp, field, old_count, new_count, alignof(**(rp)))
-
+#define r_realloc_extra_field_from(tp, field, old_count, new_count)          \
+    ra_realloc_extra_field_from((tp), field, (old_count), (new_count),       \
+                                alignof(**(tp)))
+#define r_realloc0_extra_field(tp, field, old_count, new_count)              \
+    ra_realloc0_extra_field((tp), field, (old_count), (new_count),           \
+                            alignof(**(tp)))
 
 #define r_dup(p, count)    ra_dup((p), (count), alignof(p))
 #define r_dupz(p, count)   mp_dupz(r_pool(), (p), (count))
