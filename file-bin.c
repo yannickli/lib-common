@@ -434,9 +434,10 @@ int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
         {
             lstr_t res = file_bin_get_next_record(file);
 
-            if (res.s) {
-                qv_append(lstr, &tmp, t_lstr_dup(res));
+            if (!res.s) {
+                break;
             }
+            qv_append(lstr, &tmp, t_lstr_dup(res));
         }
 
         qv_grow(lstr, out, tmp.len);
