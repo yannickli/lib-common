@@ -1,6 +1,7 @@
 package tstgen;
 
 @(test:gen1, true)
+@ctype(my_enum_a)
 enum MyEnumA {
     /*! Test doc + generic attributes on enum value */
     @(test:gen10, 20.005)
@@ -14,6 +15,7 @@ enum MyEnumA {
 @(test:gen2, 10)
 @(test:gen3, "test")
 @(test:gen4, false)
+@ctype(my_struct_a_t)
 struct MyStructA {
     int i;
     @(test:gen3, 10.0)
@@ -21,6 +23,10 @@ struct MyStructA {
     @(test:d1, 1.0e-2)
     @(test:d2, 1.0E+2)
     double d1 = 1.0e2;
+};
+
+@ctype(my_class_a__t)
+class MyClassA {
 };
 
 @(test:gen4, "test")

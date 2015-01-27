@@ -464,24 +464,31 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
             qv_for_each_ptr(iopc_arg, arg, &attr->args) {
                 lstr_t ctype = arg->v.s;
                 lstr_t pfx   = lstr_dupc(ctype);
+                const char *underscore;
+
+                if (iopc_g.v4) {
+                    underscore = "__";
+                    if (expect(lstr_endswith(ctype, LSTR("__t")))) {
+                        pfx.len -= 3;
+                    }
+                } else {
+                    underscore = "_";
+                    if (lstr_endswith(ctype, LSTR("_t"))) {
+                        pfx.len -= 2;
+                    }
+                }
 
                 sb_addf(buf, "typedef %s__t %*pM;\n", tbase,
                         LSTR_FMT_ARG(ctype));
 
-                if (ctype.len >= 2
-                &&  ctype.s[ctype.len - 2] == '_'
-                &&  ctype.s[ctype.len - 1] == 't')
-                {
-                    pfx.len -= 2;
-                }
-#define ALIAS(_f) \
-                sb_addf(buf, "#define %*pM_" _f "(...) "                    \
+#define ALIAS(_f)  \
+                sb_addf(buf, "#define %*pM%s" _f "(...) "                   \
                         "%s__" _f "(__VA_ARGS__)\n",                        \
-                        LSTR_FMT_ARG(pfx), tbase);
-#define T_ALIAS(_f) \
-                sb_addf(buf, "#define t_%*pM_" _f "(...) "                  \
+                        LSTR_FMT_ARG(pfx), underscore, tbase);
+#define T_ALIAS(_f)  \
+                sb_addf(buf, "#define t_%*pM%s" _f "(...) "                 \
                         "t_%s__" _f "(__VA_ARGS__)\n",                      \
-                        LSTR_FMT_ARG(pfx), tbase);
+                        LSTR_FMT_ARG(pfx), underscore, tbase);
 
                 if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
                     /* IOP_GENERIC_BASICS */

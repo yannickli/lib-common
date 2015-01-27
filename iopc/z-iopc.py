@@ -33,6 +33,8 @@ class IopcTest(z.TestCase):
             iopc_args.append('--features-v2')
         if version == 3:
             iopc_args.append('--features-v3')
+        if version == 4:
+            iopc_args.append('--features-v4')
         # in case of expected success if no language is specified
         # the success must be for all the languages
         if expect_pass and not lang:
@@ -624,6 +626,9 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass(f + '.iop', 3)
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
+        self.check_ref(g + '-t', 'h')
+        self.run_iopc(f + '.iop', False,
+                      'error: invalid ctype my_enum_a: missing __t suffix', 4)
 
 if __name__ == "__main__":
     z.main()

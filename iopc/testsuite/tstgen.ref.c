@@ -189,6 +189,28 @@ const iop_struct_t tstgen__my_struct_a__s = {
 };
 
 /* }}} */
+/* Class tstgen.MyClassA {{{ */
+
+static iop_field_t const tstgen__my_class_a__desc_fields[] = {
+};
+static int const iop__ranges__3[] = {
+    0,
+};
+static const iop_class_attrs_t tstgen__my_class_a__class_s = {
+    .class_id          = 0,
+};
+const iop_struct_t tstgen__my_class_a__s = {
+    .fullname   = LSTR_IMMED("tstgen.MyClassA"),
+    .fields     = tstgen__my_class_a__desc_fields,
+    .ranges     = iop__ranges__3,
+    .fields_len = countof(tstgen__my_class_a__desc_fields),
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .size       = sizeof(tstgen__my_class_a__t),
+    .flags      = 5,
+    .class_attrs  = &tstgen__my_class_a__class_s,
+};
+
+/* }}} */
 /* Interface tstgen.MyIfaceA {{{ */
 /* Structure tstgen.MyIfaceA.funAArgs {{{ */
 
@@ -203,16 +225,16 @@ static iop_field_t const tstgen__my_iface_a__fun_a_args__desc_fields[] = {
         .size      = fieldsizeof(tstgen__my_iface_a__fun_a_args__t, a),
     },
 };
-static int const iop__ranges__3[] = {
+static int const iop__ranges__4[] = {
     0, 1,
     1,
 };
 const iop_struct_t tstgen__my_iface_a__fun_a_args__s = {
     .fullname   = LSTR_IMMED("tstgen.MyIfaceA.funAArgs"),
     .fields     = tstgen__my_iface_a__fun_a_args__desc_fields,
-    .ranges     = iop__ranges__3,
+    .ranges     = iop__ranges__4,
     .fields_len = countof(tstgen__my_iface_a__fun_a_args__desc_fields),
-    .ranges_len = countof(iop__ranges__3) / 2,
+    .ranges_len = countof(iop__ranges__4) / 2,
     .size       = sizeof(tstgen__my_iface_a__fun_a_args__t),
 };
 
@@ -281,6 +303,7 @@ static const iop_enum_t *const tstgen__enums[] = {
 
 static const iop_struct_t *const tstgen__structs[] = {
     &tstgen__my_struct_a__s,
+    &tstgen__my_class_a__s,
     NULL,
 };
 

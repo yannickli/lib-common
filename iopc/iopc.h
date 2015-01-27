@@ -81,6 +81,7 @@ extern struct {
     int            print_info;
     int            v2;
     int            v3;
+    int            v4;
 
     int class_id_min;
     int class_id_max;
