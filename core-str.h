@@ -136,7 +136,9 @@ bool path_is_safe(const char *path) __leaf;
  *
  * A '/' will be added between /p prefix and /p fmt if necessary.
  *
- * If /p fmt begins with a '/', the prefix will be ignored
+ * If /p fmt begins with a '/', the prefix will be ignored.
+ * If /p fmt begins with '~/', the prefix will be ignored, and ~ replaced by
+ * the HOME prefix of the current user.
  *
  * \param[out] buf    buffer where the path will be written.
  * \param[in]  prefix
