@@ -724,6 +724,12 @@ int gsm7_to_unicode(uint8_t u8, int unknown)
 /* normalisation */
 int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci) __leaf;
 
+/** append to \p sb the string describe by \p s with a lower case */
+int sb_add_utf8_tolower(sb_t *sb, const char *s, int len);
+
+/** append to \p sb the string describe by \p s with an upper case */
+int sb_add_utf8_toupper(sb_t *sb, const char *s, int len);
+
 /**************************************************************************/
 /* misc helpers                                                           */
 /**************************************************************************/

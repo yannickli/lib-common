@@ -881,6 +881,50 @@ static int sb_normalize_utf8_(sb_t *sb, const char *s, int len,
     return 0;
 }
 
+static int sb_utf8_transform(sb_t *sb, const char *s, int len,
+                             uint16_t const str_conv[], int str_conv_len)
+{
+    sb_t orig = *sb;
+    int off = 0;
+    char *pos;
+    char *end;
+
+    pos = sb_grow(sb, len);
+    end = pos + sb_avail(sb);
+
+    for (;;) {
+        int c = utf8_ngetc_at(s, len, &off);
+        int bytes;
+
+        if (c < 0) {
+            if (likely(off >= len)) {
+                break;
+            }
+            c = s[off++];
+        }
+        if (c > 0xffff) {
+            return __sb_rewind_adds(sb, &orig);
+        }
+
+        if (c < str_conv_len) {
+            c = str_conv[c];
+        } else {
+            c &= 0xffff;
+        }
+
+        bytes = __utf8_clz_to_charlen[bsr16(c | 1)];
+
+        if (end - pos < bytes) {
+            __sb_fixlen(sb, pos - sb->data);
+            pos = sb_grow(sb, len - off + bytes);
+            end = pos + sb_avail(sb);
+        }
+        pos += __pstrputuc(pos, c);
+    }
+    __sb_fixlen(sb, pos - sb->data);
+    return 0;
+}
+
 int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci)
 {
     if (ci) {
@@ -890,4 +934,16 @@ int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci)
         return sb_normalize_utf8_(sb, s, len, __str_unicode_general_cs,
                                   countof(__str_unicode_general_cs));
     }
+}
+
+int sb_add_utf8_tolower(sb_t *sb, const char *s, int len)
+{
+    return sb_utf8_transform(sb, s, len, __str_unicode_lower,
+                             countof(__str_unicode_lower));
+}
+
+int sb_add_utf8_toupper(sb_t *sb, const char *s, int len)
+{
+    return sb_utf8_transform(sb, s, len, __str_unicode_upper,
+                             countof(__str_unicode_upper));
 }

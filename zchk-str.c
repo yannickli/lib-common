@@ -894,6 +894,29 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
+    Z_TEST(str_lowup, "str: utf8 tolower/toupper") {
+        SB_1k(sb);
+
+#define T(from, low, up)  do {                                               \
+        sb_reset(&sb);                                                       \
+        Z_ASSERT_N(sb_add_utf8_tolower(&sb, from, sizeof(from) - 1));        \
+        Z_ASSERT_EQUAL(sb.data, sb.len, low, sizeof(low) - 1);               \
+        sb_reset(&sb);                                                       \
+        Z_ASSERT_N(sb_add_utf8_toupper(&sb, from, sizeof(from) - 1));        \
+        Z_ASSERT_EQUAL(sb.data, sb.len, up, sizeof(up) - 1);                 \
+    } while (0)
+
+        T("toto", "toto", "TOTO");
+        T("ToTo", "toto", "TOTO");
+        T("électron", "électron", "ÉLECTRON");
+        T("Électron", "électron", "ÉLECTRON");
+
+        T("Blisßs", "blisßs", "BLISßS");
+        T("Œœ", "œœ", "ŒŒ");
+#undef T
+    } Z_TEST_END;
+
+
     Z_TEST(sb_add_double_fmt, "str: sb_add_double_fmt") {
 #define T(val, nb_max_decimals, dec_sep, thousand_sep, res) \
     ({  SB_1k(sb);                                                           \
