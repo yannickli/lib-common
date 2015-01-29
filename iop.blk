@@ -2573,27 +2573,27 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             return 1;
         }
         while (unlikely(tag > fdesc->tag)) {
-            e_named_trace(5, "iop/c/unpacker",
-                          "unpacking struct %*pM, skipping %*pM field",
+            e_named_trace(5, "iop/c/unpacker", "unpacking struct %*pM, "
+                          "skipping absent field %*pM (tag %u)",
                           LSTR_FMT_ARG(desc->fullname),
-                          LSTR_FMT_ARG(fdesc->name));
+                          LSTR_FMT_ARG(fdesc->name), fdesc->tag);
             PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
-            if (++fdesc == end)
+            if (++fdesc == end) {
                 return 0;
+            }
         }
         if (unlikely(tag < fdesc->tag)) {
             e_named_trace(5, "iop/c/unpacker",
-                          "unpacking struct %*pM, skipping %*pM field",
-                          LSTR_FMT_ARG(desc->fullname),
-                          LSTR_FMT_ARG(fdesc->name));
+                          "unpacking struct %*pM, skipping unknown tag %u",
+                          LSTR_FMT_ARG(desc->fullname), tag);
             PS_CHECK(iop_skip_field(ps, wt));
             continue;
         }
 
         e_named_trace(5, "iop/c/unpacker",
-                      "unpacking struct %*pM, unpacking %*pM field",
+                      "unpacking struct %*pM, unpacking field %*pM (tag %u)",
                       LSTR_FMT_ARG(desc->fullname),
-                      LSTR_FMT_ARG(fdesc->name));
+                      LSTR_FMT_ARG(fdesc->name), tag);
 
         if (wt == IOP_WIRE_REPEAT) {
             PS_CHECK(get_uint32(ps, 4, &n));
