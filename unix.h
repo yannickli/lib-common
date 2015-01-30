@@ -67,7 +67,7 @@ int rmdirat_r(int dfd, const char *dir, bool only_content);
 
 int get_mtime(const char *filename, time_t *t);
 
-int filecopy(const char *pathin, const char *pathout);
+off_t filecopy(const char *pathin, const char *pathout);
 off_t filecopyat(int dfd_src, const char* name_src,
                  int dfd_dst, const char* name_dst);
 
