@@ -88,4 +88,33 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_N(stat(reldir.s, &st));
         Z_ASSERT(S_ISDIR(st.st_mode));
     } Z_TEST_END;
+
+    Z_TEST(filecopy, "filecopy") {
+        t_scope;
+        const int size = 10 << 20; /* 10 MB */
+        const char *file_in;
+        const char *file_out;
+        lstr_t out_map;
+        sb_t str;
+
+        file_in  = t_fmt(NULL, "%*pM/in",  LSTR_FMT_ARG(z_tmpdir_g));
+        file_out = t_fmt(NULL, "%*pM/out", LSTR_FMT_ARG(z_tmpdir_g));
+
+        /* Generate a string of 'size' bytes. */
+        t_sb_init(&str, size + 1);
+        while (str.len < size) {
+            sb_addc(&str, 'a' + (str.len % 26));
+        }
+
+        /* Write it into a file. */
+        Z_ASSERT_N(sb_write_file(&str, file_in));
+
+        /* Copy this file, and check the two files have the same content. */
+        Z_ASSERT_N(filecopy(file_in, file_out));
+        Z_ASSERT_N(lstr_init_from_file(&out_map, file_out,
+                                       PROT_READ, MAP_SHARED));
+        Z_ASSERT_LSTREQUAL(out_map, LSTR_SB_V(&str));
+
+        lstr_wipe(&out_map);
+    } Z_TEST_END;
 } Z_GROUP_END
