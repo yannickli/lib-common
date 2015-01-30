@@ -2332,6 +2332,157 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_filter, "test IOP structures filtering") { /* {{{ */
+        t_scope;
+        tstiop__my_struct_g__t first;
+        tstiop__my_struct_g__t second;
+        tstiop__my_struct_g__t third;
+        qv_t(my_struct_g) original;
+        void **allowed = t_new_raw(void *, 3);
+
+        t_qv_init(my_struct_g, &original, 3);
+
+        tstiop__my_struct_g__init(&first);
+        tstiop__my_struct_g__init(&second);
+        tstiop__my_struct_g__init(&third);
+        first.a = 1;
+        first.b = 1;
+        first.d = 42;
+        second.a = 2;
+        second.b = 1;
+        second.d = 43;
+        third.a = 1;
+        third.b = 1;
+        third.d = 44;
+
+        original.tab[0] = first;
+        original.tab[1] = second;
+        original.tab[2] = third;
+        original.len = 3;
+
+#define ADD_PARAM(_value, idx)  do {                                         \
+            allowed[idx] = t_new_raw(int, 1);                                \
+            *(int *)allowed[idx] = _value;                                   \
+        } while (0)
+
+#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
+        Z_ASSERT_ZERO(iop_filter(&tstiop__my_struct_g__s, original.tab,      \
+                                 &original.len, LSTR(_field), allowed,       \
+                                 _allowed_len, NULL));                       \
+        Z_ASSERT_EQ(_result_len, original.len);                              \
+    } while (0)
+
+        /* Simple filter */
+        ADD_PARAM(1, 0);
+        FILTER_AND_CHECK_LEN("a", 1, 2);
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &first));
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[1], &third));
+
+        /* Filter on several values */
+        qv_clear(my_struct_g, &original);
+        t_qv_init(my_struct_g, &original, 3);
+        original.tab[0] = first;
+        original.tab[1] = second;
+        original.tab[2] = third;
+        original.len = 3;
+        ADD_PARAM(2, 1);
+
+        FILTER_AND_CHECK_LEN("a", 2, 3);
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &first));
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[1], &second));
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[2], &third));
+
+        /* Filter with no match */
+        qv_clear(my_struct_g, &original);
+        t_qv_init(my_struct_g, &original, 3);
+        original.tab[0] = first;
+        original.tab[1] = second;
+        original.tab[2] = third;
+        original.len = 3;
+        ADD_PARAM(3773, 0);
+
+        FILTER_AND_CHECK_LEN("a", 1, 0);
+
+        /* Filter excluding tip */
+        qv_clear(my_struct_g, &original);
+        t_qv_init(my_struct_g, &original, 3);
+        original.tab[0] = first;
+        original.tab[1] = second;
+        original.tab[2] = third;
+        original.len = 3;
+        ADD_PARAM(43, 0);
+
+        FILTER_AND_CHECK_LEN("d", 1, 1);
+        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &second));
+
+#undef ADD_PARAM
+#undef FILTER_AND_CHECK_LEN
+
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_filter_class, "test IOP classes filtering") { /* {{{ */
+        t_scope;
+        qv_t(my_class2) original;
+        qv_t(my_class2) vec;
+        void **allowed = t_new_raw(void *, 3);
+
+        t_qv_init(my_class2, &original, 3);
+        original.tab[0] = t_new_raw(tstiop__my_class2__t, 1);
+        original.tab[1] = t_new_raw(tstiop__my_class2__t, 1);
+        original.tab[2] =
+            (tstiop__my_class2__t *)t_new_raw(tstiop__my_class3__t, 1);
+        tstiop__my_class2__init(original.tab[0]);
+        tstiop__my_class2__init(original.tab[1]);
+        tstiop__my_class3__init((tstiop__my_class3__t *)original.tab[2]);
+        original.tab[0]->int1 = 1;
+        original.tab[0]->int2 = 1;
+        original.tab[1]->int1 = 2;
+        original.tab[1]->int2 = 1;
+        original.tab[2]->int1 = 1;
+        original.tab[2]->int2 = 1;
+        original.len = 3;
+
+        t_qv_init(my_class2, &vec, 3);
+        vec.tab[0] = tstiop__my_class2__dup(t_pool(), original.tab[0]);
+        vec.tab[1] = tstiop__my_class2__dup(t_pool(), original.tab[1]);
+        vec.tab[2] = tstiop__my_class2__dup(t_pool(), original.tab[2]);
+        vec.len = 3;
+
+#define ADD_PARAM(_value, idx)  do {                                         \
+            allowed[idx] = t_new_raw(int, 1);                                \
+            *(int *)allowed[idx] = _value;                                   \
+        } while (0)
+
+#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
+        Z_ASSERT_ZERO(iop_filter(&tstiop__my_class2__s, vec.tab,             \
+                                 &vec.len, LSTR(_field), allowed,            \
+                                 _allowed_len, NULL));                       \
+        Z_ASSERT_EQ(_result_len, vec.len);                                   \
+    } while (0)
+
+        /* Simple filter */
+        ADD_PARAM(1, 0);
+        FILTER_AND_CHECK_LEN("int1", 1, 2);
+        Z_ASSERT(tstiop__my_class2__equals(original.tab[0], vec.tab[0]));
+        Z_ASSERT(tstiop__my_class2__equals(original.tab[2], vec.tab[1]));
+
+        /* Filter on several values */
+        vec.tab[0] = tstiop__my_class2__dup(t_pool(), original.tab[0]);
+        vec.tab[1] = tstiop__my_class2__dup(t_pool(), original.tab[1]);
+        vec.tab[2] = tstiop__my_class2__dup(t_pool(), original.tab[2]);
+        vec.len = 3;
+        ADD_PARAM(2, 1);
+
+        FILTER_AND_CHECK_LEN("int1", 2, 3);
+        Z_ASSERT(tstiop__my_class2__equals(original.tab[0], vec.tab[0]));
+        Z_ASSERT(tstiop__my_class2__equals(original.tab[1], vec.tab[1]));
+        Z_ASSERT(tstiop__my_class2__equals(original.tab[2], vec.tab[2]));
+
+#undef ADD_PARAM
+#undef FILTER_AND_CHECK_LEN
+
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_copy_inv_tab, "iop_copy(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
 

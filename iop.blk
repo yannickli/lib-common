@@ -1491,6 +1491,52 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
     return iop_msort(st, vec, len, &params, err);
 }
 
+int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
+               void * const *allowed_values, int values_len, sb_t *err)
+{
+    t_scope;
+    bool is_pointer = iop_struct_is_class(st);
+    field_path_t fp;
+    cmp_f cmp;
+    byte *vec_read = vec;
+    byte *vec_write = vec;
+    byte *vec_start = vec;
+    size_t elem_size = is_pointer ? sizeof(void *) : st->size;
+
+    RETHROW(t_prepare_field(st, field_path, 0, &fp, &cmp, err));
+
+    for (int i = 0; i < *len; i++) {
+        bool is_valid = false;
+        const void *d;
+        const void *tmp;
+
+        tmp = is_pointer ? *(void **)vec_read : vec_read;
+        d = iop_get_fieldp(tmp, &fp);
+        for (int j = 0; d && j < values_len; j++) {
+            /* TODO: sort allowed_values and use a bisection to compare. */
+            if (cmp(d, allowed_values[j]) == 0) {
+                is_valid = true;
+                break;
+            }
+        }
+        if (!is_valid) {
+            if (vec_start != vec_read && vec_write != vec_read) {
+                p_move(vec_write, vec_start, vec_read - vec_start);
+            }
+            vec_write += vec_read - vec_start;
+            vec_start = vec_read + elem_size;
+        }
+        vec_read += elem_size;
+    }
+    if (vec_start != vec_read && vec_write != vec_read) {
+        p_move(vec_write, vec_start, vec_read - vec_start);
+        vec_write += vec_read - vec_start;
+    }
+    *len = (vec_write - (byte *)vec) / elem_size;
+
+    return 0;
+}
+
 /* }}} */
 /*----- hashing values -{{{-*/
 

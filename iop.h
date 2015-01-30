@@ -279,6 +279,30 @@ qvector_t(iop_sort, iop_sort_t);
 int iop_msort(const iop_struct_t *st, void *vec, int len,
               const qv_t(iop_sort) *params, sb_t *err);
 
+/** Filter a vector of IOP based on a given field or subfield of reference.
+ *  It takes an array of IOP objets and an array of values, and filters out
+ *  the objects whose field value is not in the values array.
+ *  \param[in] st             The IOP structure definition (__s).
+ *  \param[in/out] vec        Array of objects to filter. If st is a class,
+ *                            this must be an array of pointers on the
+ *                            elements, and not an array of elements.
+ *  \param[in/out] len        Length of the array. It is adjusted with the new
+ *                            value once the filter is done.
+ *  \param[in] field_path     Path of the field of reference for filtering,
+ *                            containing the names of the fields and subfield,
+ *                            separated by dots
+ *                            Example: "field.subfield1.subfield2"
+ *  \param[in] allowed_values Array of pointer on allowed values to keep
+ *                            inside vec.
+ *                            \warning the type of values must be the right
+ *                            one because no check is done inside the
+ *                            function.
+ *  \param[in] values_len     Length of the array of allowed values.
+ *  \param[out] err           In case of error, the error description.
+ */
+int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
+               void * const *allowed_values, int values_len, sb_t *err);
+
 /** Duplicate an IOP structure.
  *
  * The resulting IOP structure will fully contained in one block of memory.
