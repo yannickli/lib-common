@@ -231,6 +231,7 @@ qps_bitmap_state_t qps_bitmap_reset(qps_bitmap_t *map, uint32_t row)
     qps_bitmap_dispatch_t *dispatch;
     uint64_t *leaf;
 
+    qps_hptr_deref(map->qps, &map->root_cache);
     dispatch = w_deref_dispatch(map, key, map->root->nullable);
     leaf = w_deref_leaf(map, &dispatch, key, map->root->nullable);
     if (leaf == NULL) {
