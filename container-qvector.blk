@@ -231,7 +231,7 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
 #define append_inter(src, len)  append_tab(inter, src, len)
 
     if (add) {
-        qvector_grow(add, v_size, vec1->len + add->len);
+        qvector_grow(add, v_size, vec2->len + add->len);
     }
     if (del) {
         qvector_grow(del, v_size, vec1->len + del->len);
