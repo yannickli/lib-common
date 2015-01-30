@@ -93,15 +93,16 @@ int get_mtime(const char *filename, time_t *t)
     return 0;
 }
 
-static off_t fcopy(int fdin, struct stat *stin, int fdout)
+static off_t fcopy(int fdin, const struct stat *stin, int fdout)
 {
-    const char *p;
-    int nread, nwrite;
-    char buf[BUFSIZ];
+#define BUF_SIZE  (8 << 20) /* 8MB */
+    t_scope;
+    int nread;
+    byte *buf = t_new_raw(byte, BUF_SIZE);
     off_t total = 0;
 
     for (;;) {
-        nread = read(fdin, buf, sizeof(buf));
+        nread = read(fdin, buf, BUF_SIZE);
         if (nread == 0)
             break;
         if (nread < 0) {
@@ -109,23 +110,16 @@ static off_t fcopy(int fdin, struct stat *stin, int fdout)
                 continue;
             goto error;
         }
-        for (p = buf; p - buf < nread; ) {
-            nwrite = write(fdout, p, nread - (p - buf));
-            if (nwrite == 0) {
-                goto error;
-            }
-            if (nwrite < 0) {
-                if (ERR_RW_RETRIABLE(errno))
-                    continue;
-                goto error;
-            }
-            p += nwrite;
+        if (xwrite(fdout, buf, nread) < 0) {
+            goto error;
         }
         total += nread;
     }
+#undef BUF_SIZE
 
-    if (total != stin->st_size) {
-        /* This should not happen... But who knows ? */
+    if (unlikely(total != stin->st_size)) {
+        assert (false);
+        errno = EIO;
         goto error;
     }
 
@@ -167,7 +161,7 @@ static off_t fcopy(int fdin, struct stat *stin, int fdout)
  * @return -1 on error
  * @return n  number of bytes copied
  */
-int filecopy(const char *pathin, const char *pathout)
+off_t filecopy(const char *pathin, const char *pathout)
 {
 /* OG: since this function returns the number of bytes copied, the
  * return type should be off_t.
