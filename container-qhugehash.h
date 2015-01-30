@@ -377,6 +377,27 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     }                                                                        \
                                                                              \
     __unused__                                                               \
+    static inline uint64_t pfx##_reserve_h(pfx##_t *qhh, uint32_t h,         \
+                                           key_t key, uint32_t fl)           \
+    {                                                                        \
+        uint64_t bid = h % countof(qhh->buckets);                            \
+        uint64_t pos;                                                        \
+                                                                             \
+        pos  = hpfx##_reserve_h(&qhh->buckets[bid].qm, h, key, fl);          \
+        if (!(pos & QHASH_COLLISION)) {                                      \
+            qhh->hdr.len++;                                                  \
+        }                                                                    \
+        pos |= (bid << 32);                                                  \
+        return pos;                                                          \
+    }                                                                        \
+    __unused__                                                               \
+    static inline uint64_t pfx##_reserve(pfx##_t *qhh, key_t key,            \
+                                         uint32_t fl)                        \
+    {                                                                        \
+        return pfx##_reserve_h(qhh, pfx##_hash(qhh, key), key, fl);          \
+    }                                                                        \
+                                                                             \
+    __unused__                                                               \
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key,       \
                                   val_t v)                                   \
     {                                                                        \
@@ -622,6 +643,11 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         }                                                                    \
         qhm_wipe(name, __h);                                                 \
     } while (0)
+
+#define qhm_reserve(name, qhm, key, fl)         \
+    qhm_##name##_reserve(qhm, key, fl)
+#define qhm_reserve_h(name, qhm, h, key, fl)    \
+    qhm_##name##_reserve_h(qhm, h, key, fl)
 
 /* }}} */
 #endif
