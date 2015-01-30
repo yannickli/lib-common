@@ -410,6 +410,14 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                                                __vec->tab + __vec->len - 1; })
 
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
+
+/** At a given position, remove N elements then insert M other elements.
+ *
+ *  \param[in] pos Position of removal or/and insertion.
+ *  \param[in] l   Number of elements to remove (N).
+ *  \param[in] tab Pointer on the array of values to insert in the vector.
+ *  \param[in] dl  Number of elements to insert (M).
+ */
 #define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
 #define qv_optimize(n, vec, r1, r2)         qv_##n##_optimize(vec, r1, r2)
 
