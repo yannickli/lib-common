@@ -202,17 +202,13 @@ static const char *
 __path_expand(char *buf, int len, const char *path, bool force_copy)
 {
     static char const *env_home = NULL;
-    static char const root[] = "/";
 
     if (path[0] == '~' && path[1] == '/') {
-        if (!env_home) {
-            env_home = getenv("HOME") ?: root;
+        if (unlikely(!env_home)) {
+            env_home = getenv("HOME");
         }
-        if (env_home != root) {
-            snprintf(buf, len, "%s%s", env_home, path + 1);
-            return buf;
-        }
-        path++;
+        snprintf(buf, len, "%s%s", env_home, path + 1);
+        return buf;
     }
 
     if (force_copy) {

@@ -1496,12 +1496,21 @@ module_t *MODULE(el);
 __attribute__((constructor))
 static void el_module_register(void)
 {
+    const char *env_home = getenv("HOME");
+
+    /* Register the el module. */
     MODULE(el) = module_register(LSTR("el"), &MODULE(el),
                                  &el_initialize, &el_shutdown,
                                  NULL, 0);
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
     MODULE_REQUIRE(el);
+
+    /* Check that the $HOME environment variable is set. This is necessary for
+     * some APIs (like path_expand) to work. */
+    if (!env_home || !*env_home) {
+        e_fatal("$HOME environment variable must be set");
+    }
 }
 
 /* }}} */
