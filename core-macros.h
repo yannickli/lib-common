@@ -90,8 +90,8 @@
 # define __must_check__         __attribute__((warn_unused_result))
 # define __attr_noreturn__      __attribute__((noreturn))
 # define __attr_nonnull__(l)    __attribute__((nonnull l))
-# define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
-# define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
+# define __attr_printf__(a, b)  __attribute__((format(printf, a, b),nonnull(a)))
+# define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b),nonnull(a)))
 #endif
 
 #ifdef __GNUC__
