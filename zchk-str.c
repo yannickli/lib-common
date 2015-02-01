@@ -360,7 +360,9 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(path_extend, "str-path: path_extend") {
+        const char *env_home = getenv("HOME");
         char path_test[PATH_MAX];
+        char expected[PATH_MAX];
         char long_prefix[PATH_MAX];
         char very_long_prefix[2 * PATH_MAX];
         char very_long_suffix[2 * PATH_MAX];
@@ -436,6 +438,13 @@ Z_GROUP_EXPORT(str)
         very_long_prefix[PATH_MAX-2] = '\0';
         very_long_prefix[PATH_MAX-3] = '/';
         T("/foo/bar1", very_long_prefix, "/foo/bar%d", 1);
+
+        snprintf(expected, sizeof(expected), "%s/foo/bar/1", env_home);
+        T(expected, "/prefix", "~/foo/bar/%d", 1);
+
+        memset(very_long_prefix, '1', sizeof(very_long_prefix));
+        very_long_prefix[PATH_MAX + 5] = '\0';
+        T(expected, very_long_prefix, "~/foo/bar/%d", 1);
 #undef T
 
     } Z_TEST_END;

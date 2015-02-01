@@ -198,6 +198,27 @@ int path_canonify(char *buf, int len, const char *path)
     return strlen(out);
 }
 
+static const char *
+__path_expand(char *buf, int len, const char *path, bool force_copy)
+{
+    static char const *env_home = NULL;
+
+    if (path[0] == '~' && path[1] == '/') {
+        if (unlikely(!env_home)) {
+            env_home = getenv("HOME");
+        }
+        snprintf(buf, len, "%s%s", env_home, path + 1);
+        return buf;
+    }
+
+    if (force_copy) {
+        pstrcpy(buf, len, path);
+        return buf;
+    }
+
+    return path;
+}
+
 /* Expand '~/' at the start of a path.
  * Ex: "~/tmp" => "getenv($HOME)/tmp"
  *     "~foobar" => "~foo" (don't use nis to get home dir for user foo !)
@@ -205,22 +226,12 @@ int path_canonify(char *buf, int len, const char *path)
  */
 char *path_expand(char *buf, int len, const char *path)
 {
-    static char const *env_home = NULL;
-    static char const root[] = "/";
     char path_l[PATH_MAX];
 
     assert (len >= PATH_MAX);
 
-    if (path[0] == '~' && path[1] == '/') {
-        if (!env_home)
-            env_home = getenv("HOME") ?: root;
-        if (env_home == root) {
-            path++;
-        } else {
-            snprintf(path_l, sizeof(path_l), "%s%s", env_home, path + 1);
-            path = path_l;
-        }
-    }
+    path = __path_expand(path_l, sizeof(path_l), path, false);
+
     /* XXX: The use of path_canonify() here is debatable. */
     return path_canonify(buf, len, path) < 0 ? NULL : buf;
 }
@@ -267,8 +278,8 @@ int path_va_extend(char buf[static PATH_MAX], const char *prefix,
         prefix_len = pstrcat(buf, PATH_MAX, "/");
     }
 
-    if (prefix_len >= PATH_MAX - 1) {
-        char temp_buf[2];
+    if (unlikely(prefix_len >= PATH_MAX - 1)) {
+        char temp_buf[PATH_MAX];
 
         va_copy(cpy, args);
         suffix_len = vsnprintf(temp_buf, 2, fmt, cpy);
@@ -276,6 +287,11 @@ int path_va_extend(char buf[static PATH_MAX], const char *prefix,
 
         if (suffix_len < PATH_MAX && temp_buf[0] == '/') {
             return vsnprintf(buf, PATH_MAX, fmt, args);
+        }
+        if (suffix_len < PATH_MAX && temp_buf[0] == '~') {
+            vsnprintf(temp_buf, PATH_MAX, fmt, args);
+            __path_expand(buf, PATH_MAX, temp_buf, true);
+            return strlen(buf);
         }
 
         if (!suffix_len && prefix_len == PATH_MAX - 1) {
@@ -289,8 +305,17 @@ int path_va_extend(char buf[static PATH_MAX], const char *prefix,
     suffix_len = vsnprintf(buf + prefix_len, PATH_MAX - prefix_len, fmt, cpy);
     va_end(cpy);
 
-    if (prefix_len && suffix_len && unlikely(buf[prefix_len] == '/')) {
+    if (prefix_len && suffix_len
+    &&  unlikely(buf[prefix_len] == '/' || buf[prefix_len] == '~'))
+    {
         /* slow path: optimistic prediction failed */
+        if (buf[prefix_len] == '~') {
+            char temp_buf[PATH_MAX];
+
+            vsnprintf(temp_buf, PATH_MAX, fmt, args);
+            __path_expand(buf, PATH_MAX, temp_buf, true);
+            return strlen(buf);
+        } else
         if (prefix_len + suffix_len < PATH_MAX) {
             p_move(buf, &buf[prefix_len], suffix_len + 1);
             return suffix_len;
