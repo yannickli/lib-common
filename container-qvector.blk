@@ -79,23 +79,23 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
 }
 
 void *__qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
-                       int pos, int len, int dlen)
+                       int pos, int rm_len, int inserted_len)
 {
-    assert (pos >= 0 && len >= 0 && dlen >= 0);
-    assert (pos <= vec->len && pos + len <= vec->len);
+    assert (pos >= 0 && rm_len >= 0 && inserted_len >= 0);
+    assert (pos <= vec->len && pos + rm_len <= vec->len);
 
-    if (len >= dlen) {
-        memmove(vec->tab + v_size * (pos + dlen),
-                vec->tab + v_size * (pos + len),
-                v_size * (vec->len - pos - len));
+    if (rm_len >= inserted_len) {
+        memmove(vec->tab + v_size * (pos + inserted_len),
+                vec->tab + v_size * (pos + rm_len),
+                v_size * (vec->len - pos - rm_len));
         qvector_grow(vec, v_size, v_align, 0);
     } else {
-        qvector_grow(vec, v_size, v_align, dlen - len);
-        memmove(vec->tab + v_size * (pos + dlen),
-                vec->tab + v_size * (pos + len),
-                v_size * (vec->len - pos - len));
+        qvector_grow(vec, v_size, v_align, inserted_len - rm_len);
+        memmove(vec->tab + v_size * (pos + inserted_len),
+                vec->tab + v_size * (pos + rm_len),
+                v_size * (vec->len - pos - rm_len));
     }
-    vec->len += dlen - len;
+    vec->len += inserted_len - rm_len;
     return vec->tab + pos * v_size;
 }
 

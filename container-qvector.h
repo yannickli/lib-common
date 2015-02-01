@@ -52,7 +52,7 @@ void  __qvector_grow(qvector_t *, size_t v_size, size_t v_align, int extra)
 void  __qvector_optimize(qvector_t *, size_t v_size, size_t size, size_t v_align)
     __leaf;
 void *__qvector_splice(qvector_t *, size_t v_size, size_t v_align,
-                       int pos, int len, int dlen)
+                       int pos, int rm_len, int inserted_len)
     __leaf;
 #ifdef __has_blocks
 void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp);
@@ -140,29 +140,36 @@ void *qvector_growlen(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 
 static inline void *
 qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
-               int pos, int len, const void *tab, int dlen)
+               int pos, int rm_len, const void *inserted_values,
+               int inserted_len)
 {
     void *res;
 
-    assert (pos >= 0 && len >= 0 && dlen >= 0);
+    assert (pos >= 0 && rm_len >= 0 && inserted_len >= 0);
     assert ((unsigned)pos <= (unsigned)vec->len);
-    assert ((unsigned)pos + (unsigned)len <= (unsigned)vec->len);
+    assert ((unsigned)pos + (unsigned)rm_len <= (unsigned)vec->len);
 
-    if (__builtin_constant_p(dlen)) {
-        if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
-            memmove(vec->tab + v_size * (pos + dlen),
-                    vec->tab + v_size * (pos + len),
-                    v_size * (vec->len - pos - len));
-            vec->len += dlen - len;
+    if (__builtin_constant_p(inserted_len)) {
+        if (inserted_len == 0
+        ||  (__builtin_constant_p(rm_len) && rm_len >= inserted_len))
+        {
+            memmove(vec->tab + v_size * (pos + inserted_len),
+                    vec->tab + v_size * (pos + rm_len),
+                    v_size * (vec->len - pos - rm_len));
+            vec->len += inserted_len - rm_len;
             return vec->tab + v_size * pos;
         }
     }
-    if (__builtin_constant_p(len) && len == 0 && pos == vec->len) {
-        res = qvector_growlen(vec, v_size, v_align, dlen);
+    if (__builtin_constant_p(rm_len) && rm_len == 0 && pos == vec->len) {
+        res = qvector_growlen(vec, v_size, v_align, inserted_len);
     } else {
-        res = __qvector_splice(vec, v_size, v_align, pos, len, dlen);
+        res = __qvector_splice(vec, v_size, v_align, pos, rm_len,
+                               inserted_len);
     }
-    return tab ? memcpy(res, tab, dlen * v_size) : res;
+
+    return inserted_values
+         ? memcpy(res, inserted_values, inserted_len * v_size)
+         : res;
 }
 
 #define __QVECTOR_BASE_TYPE(pfx, cval_t, val_t)                             \
@@ -251,9 +258,10 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                                                                             \
     __unused__                                                              \
     static inline val_t *                                                   \
-    __##pfx##_splice(pfx##_t *vec, int pos, int len, int dlen) {            \
+    __##pfx##_splice(pfx##_t *vec, int pos, int rm_len, int inserted_len) { \
         return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
-                                         alignof(val_t), pos, len, dlen);   \
+                                         alignof(val_t), pos, rm_len,       \
+                                         inserted_len);                     \
     }                                                                       \
     __unused__                                                              \
     static inline void pfx##_clip(pfx##_t *vec, int len) {                  \
@@ -267,9 +275,12 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     }                                                                       \
     __unused__                                                              \
     static inline val_t *                                                   \
-    pfx##_splice(pfx##_t *vec, int pos, int len, cval_t *tab, int dlen) {   \
+    pfx##_splice(pfx##_t *vec, int pos, int rm_len,                         \
+                 cval_t *inserted_values, int inserted_len)                 \
+    {                                                                       \
         void *res = qvector_splice(&vec->qv, sizeof(val_t), alignof(val_t), \
-                                   pos, len, tab, dlen);                    \
+                                   pos, rm_len, inserted_values,            \
+                                   inserted_len);                           \
         return cast(val_t *, res);                                          \
     }                                                                       \
     __unused__                                                              \
@@ -409,16 +420,23 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                                                assert (__vec->len > 0);      \
                                                __vec->tab + __vec->len - 1; })
 
-#define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
+#define __qv_splice(n, vec, pos, rm_len, inserted_len)  \
+    __qv_##n##_splice(vec, pos, rm_len, inserted_len)
 
-/** At a given position, remove N elements then insert M other elements.
+/** At a given position, remove N elements then insert M extra elements.
  *
- *  \param[in] pos Position of removal or/and insertion.
- *  \param[in] l   Number of elements to remove (N).
- *  \param[in] tab Pointer on the array of values to insert in the vector.
- *  \param[in] dl  Number of elements to insert (M).
+ *  \param[in] pos              Position of removal or/and insertion.
+ *  \param[in] rm_len           Number of elements to remove (N).
+ *  \param[in] inserted_values  Values to set for the inserted elements
+ *                              (optional: if null, the inserted elements are
+ *                              left uninitialized, the returned pointer can
+ *                              be used to initialize them manually).
+ *  \param[in] inserted_len     Number of elements to insert (M).
+ *
+ *  \return Pointer to vec->tab[pos].
  */
-#define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
+#define qv_splice(n, vec, pos, rm_len, inserted_values, inserted_len)  \
+    qv_##n##_splice(vec, pos, rm_len, inserted_values, inserted_len)
 #define qv_optimize(n, vec, r1, r2)         qv_##n##_optimize(vec, r1, r2)
 
 #define qv_grow(n, vec, extra)              qv_##n##_grow(vec, extra)
