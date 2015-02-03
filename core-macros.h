@@ -272,7 +272,7 @@
  *         object_t *obj;               int toto(...) {
  *                                          object *obj;
  *         obj = get_object(...);  =>
- *         if (!obj) {                      obj = RETHROW_NP(get_object(...));
+ *         if (!obj) {                      obj = RETHROW_PN(get_object(...));
  *             return -1;                   ...
  *         }                            }
  *     ...
