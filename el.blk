@@ -1498,7 +1498,6 @@ static void el_module_register(void)
 {
     const char *env_home = getenv("HOME");
 
-    /* Register the el module. */
     MODULE(el) = module_register(LSTR("el"), &MODULE(el),
                                  &el_initialize, &el_shutdown,
                                  NULL, 0);
@@ -1506,10 +1505,10 @@ static void el_module_register(void)
                             &el_at_fork_on_child);
     MODULE_REQUIRE(el);
 
-    /* Check that the $HOME environment variable is set. This is necessary for
-     * some APIs (like path_expand) to work. */
+    /* Check that the $HOME environment variable is set. */
     if (!env_home || !*env_home) {
-        e_fatal("$HOME environment variable must be set");
+        e_warning("$HOME environment variable is not set, '/' will be used "
+                  "as home prefix");
     }
 }
 

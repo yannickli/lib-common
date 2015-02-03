@@ -360,7 +360,7 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(path_extend, "str-path: path_extend") {
-        const char *env_home = getenv("HOME");
+        const char *env_home = getenv("HOME") ?: "/";
         char path_test[PATH_MAX];
         char expected[PATH_MAX];
         char long_prefix[PATH_MAX];
