@@ -457,11 +457,13 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
 
-#define qv_extend(n, vec, _tab)                                          \
-    ({                                                                   \
-        typeof(_tab) __tab = _tab;                                       \
-                                                                         \
-        p_copy(qv_growlen(n, vec, __tab->len), __tab->tab, __tab->len);  \
+#define qv_extend(n, vec, _tab)                                              \
+    ({                                                                       \
+        typeof(_tab) __tab = (_tab);                                         \
+        int __len = __tab->len;                                              \
+        typeof(*(vec)->tab) *__w = qv_growlen(n, (vec), __len);              \
+                                                                             \
+        p_copy(__w, __tab->tab, __len);                                      \
     })
 
 #define qv_copy(n, vec_out, vec_in)         qv_##n##_copy(vec_out, vec_in)
