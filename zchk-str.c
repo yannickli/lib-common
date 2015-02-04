@@ -16,10 +16,38 @@
 #include "http.h"
 #include "z.h"
 
+const void *to_free_g;
+
+static void custom_free(mem_pool_t *m, void *p)
+{
+    free(p);
+    if (p == to_free_g) {
+        to_free_g = NULL;
+    }
+}
+
 Z_GROUP_EXPORT(str)
 {
     char    buf[BUFSIZ];
     ssize_t res;
+
+    Z_TEST(lstr_copyc, "lstr_copyc") {
+        lstr_t dst = lstr_dup(LSTR("a string"));
+        lstr_t src = LSTR("an other string");
+        void (*libc_free)(mem_pool_t *, void *) = mem_pool_libc.free;
+
+        to_free_g = dst.s;
+
+        mem_pool_libc.free = &custom_free,
+        lstr_copyc(&dst, src);
+        mem_pool_libc.free = libc_free;
+
+        Z_ASSERT_NULL(to_free_g, "destination string has not been freed"
+                      " before writing a new value to it");
+
+        Z_ASSERT(dst.mem_pool == MEM_STATIC);
+        Z_ASSERT(lstr_equal2(dst, src));
+    } Z_TEST_END;
 
     Z_TEST(sb_detach, "sb_detach") {
         sb_t sb;
