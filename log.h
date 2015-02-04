@@ -35,9 +35,9 @@
  * Each \ref logger_t also comes with a name, that name can be printed in the
  * logs, allowing more contextual informations to be provided.
  *
- * When a log is rejected it costs near to 0 since only an integer comparision
- * is performed. This let you put logging even in ciritical pathes with low
- * impact on global performances. Arguments of the logging function are
+ * When a log is rejected it costs near to 0 since only an integer comparison
+ * is performed. This let you put logging even in critical paths with low
+ * impact on global performances. Arguments of the logging functions are
  * evaluated only in case the log is emitted. As a consequence, you must take
  * care only passing arguments that have no side effects.
  *
