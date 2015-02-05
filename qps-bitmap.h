@@ -284,10 +284,10 @@ void qps_bitmap_enumeration_find_bit(qps_bitmap_enumerator_t *en,
     if (unlikely(en->struct_gen != en->map->struct_gen)) {
         if (en->map->struct_gen == en->struct_gen + 2) {
             en->struct_gen = en->map->struct_gen;
-            qps_bitmap_enumeration_find_leaf(en, en->key);
+            qps_bitmap_enumeration_find_leaf(en, key);
         } else {
             en->struct_gen = en->map->struct_gen;
-            qps_bitmap_enumeration_find_dispatch(en, en->key);
+            qps_bitmap_enumeration_find_dispatch(en, key);
         }
         return;
     }
@@ -529,10 +529,10 @@ void qps_bitmap_enumeration_find_bit_nn(qps_bitmap_enumerator_t *en,
     if (unlikely(en->struct_gen != en->map->struct_gen)) {
         if (en->map->struct_gen == en->struct_gen + 2) {
             en->struct_gen = en->map->struct_gen;
-            qps_bitmap_enumeration_find_leaf_nn(en, en->key);
+            qps_bitmap_enumeration_find_leaf_nn(en, key);
         } else {
             en->struct_gen = en->map->struct_gen;
-            qps_bitmap_enumeration_find_dispatch_nn(en, en->key);
+            qps_bitmap_enumeration_find_dispatch_nn(en, key);
         }
         return;
     }

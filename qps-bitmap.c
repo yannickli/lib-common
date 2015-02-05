@@ -455,6 +455,32 @@ Z_GROUP_EXPORT(qps_bitmap) {
         qps_bitmap_destroy(&bitmap);
     } Z_TEST_END;
 
+    Z_TEST(nr_33413, "nr_33413") {
+        /* Non-regression test for ticket #33413. */
+        qps_handle_t handle = qps_bitmap_create(qps, true);
+        qps_bitmap_t bitmap;
+        qps_bitmap_enumerator_t en;
+
+        qps_bitmap_init(&bitmap, qps, handle);
+
+        Z_ASSERT_EQ(qps_bitmap_set(&bitmap, 270100),
+                    (uint32_t)QPS_BITMAP_NULL);
+        Z_ASSERT_EQ(qps_bitmap_set(&bitmap, 270101),
+                    (uint32_t)QPS_BITMAP_NULL);
+
+        en = qps_bitmap_start_enumeration(&bitmap);
+        Z_ASSERT_EQ(en.key.key, 270100u);
+
+        for (uint32_t i = 0; i < 270100; i++) {
+            Z_ASSERT_EQ(qps_bitmap_set(&bitmap, i), (uint32_t)QPS_BITMAP_NULL);
+        }
+
+        qps_bitmap_enumeration_next(&en);
+        Z_ASSERT_EQ(en.key.key, 270101u);
+
+        qps_bitmap_destroy(&bitmap);
+    } Z_TEST_END;
+
     qps_close(&qps);
 } Z_GROUP_END
 
