@@ -118,6 +118,13 @@ time_t localtime_nextweek(time_t date, int first_day_of_week);
  */
 time_t localtime_curmonth(time_t date);
 
+/** Return timestamp of the start of the year which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_curyear(time_t date);
+
 /** Return timestamp of the start of the month that follows the one which
  * contains the timestamp \p date.
  *

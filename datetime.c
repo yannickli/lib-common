@@ -393,6 +393,22 @@ time_t localtime_curmonth(time_t date)
     return mktime(&t);
 }
 
+time_t localtime_curyear(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec = 0;
+    t.tm_min = 0;
+    t.tm_hour = 0;
+    t.tm_mday = 1;
+    t.tm_mon  = 0;
+    t.tm_isdst = -1;
+
+    return mktime(&t);
+}
+
 time_t localtime_nextmonth(time_t date)
 {
     struct tm t;
