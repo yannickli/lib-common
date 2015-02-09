@@ -361,6 +361,8 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     IGNORE(file_bin_close(&file->_bin_internal));
     IGNORE(file_close(&file->_internal));
 
+    log_file_call_cb(file, LOG_FILE_ROTATE, NULL);
+
     log_file_open_new(file, now, is_bin);
     if (!file->_internal && !file->_bin_internal) {
         e_trace(1, "could not rotate");
