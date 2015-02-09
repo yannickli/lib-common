@@ -307,10 +307,10 @@ int log_file_close(log_file_t **lfp)
     if (*lfp) {
         log_file_t *log_file = *lfp;
 
-        log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         log_file_flush(log_file);
         res = file_close(&log_file->_internal);
         res = file_bin_close(&log_file->_bin_internal);
+        log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         p_delete(lfp);
     }
     return res;
