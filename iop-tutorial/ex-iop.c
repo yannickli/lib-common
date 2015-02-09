@@ -114,14 +114,13 @@ static void exiop_client_initialize(const char *addr)
 
 static void IOP_RPC_IMPL(exiop__hello_mod, hello_interface, send)
 {
-    e_trace(0, "helloworld: msg = %s, seqnum = %d\n", arg->msg.s,
+    e_trace(0, "helloworld: msg = %s, seqnum = %d", arg->msg.s,
             arg->seqnum);
     ic_reply(ic, slot, exiop__hello_mod, hello_interface, send, .res = 1);
 }
 
 static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
 {
-
     if (evt == IC_EVT_CONNECTED) {
         e_notice("client %p connected", ic);
     } else
