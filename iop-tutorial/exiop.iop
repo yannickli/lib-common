@@ -30,6 +30,10 @@ interface HelloIface {
         in    HelloMsg
         out   (int res)
         throw HelloException;
+
+   sendAsync
+        in    HelloMsg
+        out   null;
 };
 
 module HelloMod {

@@ -15,6 +15,8 @@
 #include <lib-common/iop-rpc.h>
 #include "exiop.iop.h"
 
+qvector_t(ichannel, ichannel_t *);
+
 static struct {
     bool is_closing;
     el_t blocker;
@@ -28,6 +30,8 @@ static struct {
     int opt_version;
     int opt_client;
     int opt_server;
+
+    qv_t(ichannel) clients;
 } exiop_g = {
 #define _G  exiop_g
     .ic_impl = QM_INIT(ic_cbs, _G.ic_impl),
@@ -61,6 +65,13 @@ static el_t exiop_ic_listento(lstr_t addr, int (*on_accept)(el_t ev, int fd))
 
 /* }}} */
 /* {{{ client */
+
+
+static void IOP_RPC_IMPL(exiop__hello_mod, hello_interface, send_async)
+{
+    e_trace(0, "received: msg = '%s', from client = %d", arg->msg.s,
+            arg->seqnum);
+}
 
 static void IOP_RPC_CB(exiop__hello_mod, hello_interface, send)
 {
@@ -100,13 +111,16 @@ static void exiop_client_on_event(ichannel_t *ic, ic_event_t evt)
 static void exiop_client_initialize(const char *addr)
 {
     ic_init(&_G.remote_ic);
-    _G.remote_ic.on_event = exiop_client_on_event;
-    _G.remote_ic.impl     = &ic_no_impl;
+    _G.remote_ic.on_event = &exiop_client_on_event;
+    _G.remote_ic.impl     = &_G.ic_impl;
 
     exiop_addr_resolve(LSTR(addr), &_G.remote_ic.su);
 
     if (ic_connect(&_G.remote_ic) < 0)
         e_fatal("cannot connect to %s", addr);
+
+    /* Register RPCs */
+    ic_register(&_G.ic_impl, exiop__hello_mod, hello_interface, send_async);
 }
 
 /* }}} */
@@ -117,15 +131,41 @@ static void IOP_RPC_IMPL(exiop__hello_mod, hello_interface, send)
     e_trace(0, "helloworld: msg = %s, seqnum = %d", arg->msg.s,
             arg->seqnum);
     ic_reply(ic, slot, exiop__hello_mod, hello_interface, send, .res = 1);
+
+    /* send message to clients */
+    qv_for_each_entry(ichannel, ic_client, &_G.clients) {
+        ic_msg_t *msg;
+
+        if (ic == ic_client) {
+            continue;
+        }
+
+        ic_query2(ic_client, msg = ic_msg_new(0),
+                  exiop__hello_mod, hello_interface, send_async,
+                 .seqnum = 0,
+                 .msg    = arg->msg);
+
+    }
 }
 
 static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
 {
     if (evt == IC_EVT_CONNECTED) {
         e_notice("client %p connected", ic);
+
+        qv_append(ichannel, &_G.clients, ic);
+
     } else
     if (evt == IC_EVT_DISCONNECTED) {
         e_warning("client %p disconnected", ic);
+
+        /* delete client from vector */
+        qv_for_each_pos(ichannel, i, &_G.clients) {
+            if (_G.clients.tab[i] == ic) {
+                qv_remove(ichannel, &_G.clients, i);
+                break;
+            }
+        }
     }
 }
 
@@ -217,6 +257,8 @@ int main(int argc, char **argv)
 
     if (_G.opt_client)
         ic_wipe(&_G.remote_ic);
+
+    qv_wipe(ichannel, &_G.clients);
 
     MODULE_RELEASE(ic);
     return 0;
