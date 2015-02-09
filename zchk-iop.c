@@ -3701,6 +3701,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_g__t sg;
         tstiop__my_struct_k__t sk;
         tstiop__my_struct_j__t sj;
+        tstiop__my_struct_a_opt__t saopt;
         const iop_struct_t *st;
         const iop_field_t *field;
         iop_value_t value;
@@ -3708,20 +3709,34 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_g__init(&sg);
         tstiop__my_struct_k__init(&sk);
         tstiop__my_struct_j__init(&sj);
-
-        st = &tstiop__my_struct_g__s;
+        tstiop__my_struct_a_opt__init(&saopt);
 
         /* test with int */
+        st = &tstiop__my_struct_g__s;
         field = &st->fields[0];
         value.i = 2314;
         Z_ASSERT_N(iop_value_to_field((void *) &sg, field, &value));
         Z_ASSERT_EQ(sg.a, 2314);
 
+        /* test with optional int */
+        st = &tstiop__my_struct_a_opt__s;
+        field = &st->fields[0];
+        Z_ASSERT_N(iop_value_to_field((void *) &saopt, field, &value));
+        Z_ASSERT(OPT_ISSET(saopt.a));
+        Z_ASSERT_EQ(OPT_VAL(saopt.a), 2314);
+
         /* test with string */
+        st = &tstiop__my_struct_g__s;
         field = &st->fields[9];
         value.s = LSTR("fo\"o?cbaré©");
         Z_ASSERT_N(iop_value_to_field((void *) &sg, field, &value));
         Z_ASSERT_LSTREQUAL(sg.j, LSTR("fo\"o?cbaré©"));
+
+        /* test with optional string */
+        st = &tstiop__my_struct_a_opt__s;
+        field = &st->fields[9];
+        Z_ASSERT_N(iop_value_to_field((void *) &saopt, field, &value));
+        Z_ASSERT_LSTREQUAL(saopt.j, LSTR("fo\"o?cbaré©"));
 
         /* test struct */
         sj.cval = 42;

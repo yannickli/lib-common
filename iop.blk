@@ -325,11 +325,7 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
       case IOP_T_DATA: {
         lstr_t *str = ptr;
 
-        if (field->repeat == IOP_R_OPTIONAL && !str->s) {
-            return -1;
-        } else {
-            *str = lstr_dupc(value->s);
-        }
+        *str = lstr_dupc(value->s);
         return 0;
       }
       case IOP_T_STRUCT:
