@@ -1683,6 +1683,10 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
             f->tag = tk->i;
             *next_tag = f->tag + 1;
             DROP(pp, 2);
+            if (CHECK_KW(pp, 0, "static")) {
+                fatal_loc("tag is not authorized for static class fields",
+                          TK(pp, 0)->loc);
+            }
         } else {
             f->tag = (*next_tag)++;
         }

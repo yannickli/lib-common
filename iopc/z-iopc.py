@@ -261,6 +261,10 @@ class IopcTest(z.TestCase):
         self.run_iopc2('attrs_invalid_enumval.iop', False,
                        'invalid attribute min on enum field')
 
+    def test_tag_static_invalid(self):
+        self.run_iopc2('tag_static_invalid.iop', False,
+                       'tag is not authorized for static class fields')
+
     def test_default_char_valid(self):
         self.run_iopc_pass('pkg_d.iop', 1)
 
