@@ -54,13 +54,13 @@ class IopcTest(z.TestCase):
         else:
             self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s"
                             % (iop))
-            if (errors):
-                if isinstance(errors, basestring):
-                    errors = [errors]
-                for error in errors:
-                    self.assertTrue(output.find(error) >= 0,
-                                    "did not find '%s' in '%s'" \
-                                    % (error, output))
+        if (errors):
+            if isinstance(errors, basestring):
+                errors = [errors]
+            for error in errors:
+                self.assertTrue(output.find(error) >= 0,
+                                "did not find '%s' in '%s'" \
+                                % (error, output))
 
     def run_iopc_pass(self, iop, version, lang='', class_id_range=''):
         self.run_iopc(iop, True, None, version, lang, class_id_range)
@@ -249,6 +249,13 @@ class IopcTest(z.TestCase):
     def test_attrs_invalid_16(self):
         self.run_iopc2('attrs_invalid_16.iop', False,
                        'invalid default value on enum field: 0')
+
+    def test_attrs_invalid_17(self):
+        f = 'attrs_invalid_17.iop'
+        self.run_iopc(f, False,
+                      'all static attributes must be declared first', 4)
+        self.run_iopc(f, True,
+                      'all static attributes must be declared first', 2)
 
     def test_attrs_invalid_enumval(self):
         self.run_iopc2('attrs_invalid_enumval.iop', False,

@@ -1762,6 +1762,7 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
     qm_t(field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
     int next_pos = 1;
+    bool previous_static = true;
     qv_t(i32) tags;
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
@@ -1777,6 +1778,17 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         f = parse_field_stmt(pp, st, &attrs, &fields, &tags, &next_tag,
                              paren);
         if (f) {
+            if (!previous_static && f->is_static) {
+                if (iopc_g.v4) {
+                    fatal_loc("all static attributes must be declared first",
+                              TK(pp, 0)->loc);
+                } else {
+                    warn_loc("all static attributes must be declared first",
+                             TK(pp, 0)->loc);
+                }
+            }
+            previous_static = f->is_static;
+
             f->pos = next_pos++;
             read_dox_back(pp, &chunks, sep);
             build_dox_check_all(&chunks, f);
