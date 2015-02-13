@@ -530,7 +530,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
 
     pos = qm_find_safe(ic_cbs, ic->impl, cmd);
     if (unlikely(pos < 0)) {
-        e_trace(1, "received query for unimplemented RPC (%04x:%04x)",
+        e_trace(0, "received query for unimplemented RPC (%04x:%04x)",
                 (cmd >> 16) & 0x7fff, cmd & 0x7fff);
         if (slot)
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_UNIMPLEMENTED);
