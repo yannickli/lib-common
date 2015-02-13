@@ -465,6 +465,7 @@ class IopcTest(z.TestCase):
     def test_inheritance(self):
         self.run_iopc_pass('inheritance_pkg_a.iop', 3)
         self.run_iopc_pass('inheritance_pkg_b.iop', 3)
+        self.run_iopc_pass('inheritance_valid_local_pkg.iop', 3)
         self.run_gcc('inheritance_pkg_a.iop')
         self.run_gcc('inheritance_pkg_b.iop')
 
@@ -495,6 +496,12 @@ class IopcTest(z.TestCase):
                             'same as inheritance_pkg_b.A9',
                             'inheritance_pkg_b__a6__desc_fields',
                             'inheritance_pkg_b__a8__desc_fields'])
+
+    def test_inheritance_invalid_local_pkg(self):
+        self.run_iopc('inheritance_invalid_local_pkg.iop', False,
+                      'as the parent class `Local1` of class `NonLocal`'
+                      ' is `local`, both classes need to be'
+                      ' in the same package', 3)
 
     # }}}
     # {{{ Typedef

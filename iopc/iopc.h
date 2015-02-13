@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   3
 #define IOPC_MINOR   0
-#define IOPC_PATCH   18
+#define IOPC_PATCH   19
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
@@ -626,6 +626,7 @@ typedef struct iopc_struct_t {
     flag_t     has_constraints      : 1;
     flag_t     has_fields_attrs     : 1;    /**< st.fields_attrs existence  */
     flag_t     is_abstract          : 1;
+    flag_t     is_local             : 1;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;

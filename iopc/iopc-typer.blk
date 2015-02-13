@@ -396,6 +396,13 @@ static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
             fatal_loc("parent object `%s` is not a class", xt->loc,
                       st2->name);
         }
+
+        if (st2->is_local && xt->pkg != pkg) {
+            fatal_loc("as the parent class `%s` of class `%s` is `local`, "
+                      "both classes need to be in the same package",
+                      xt->loc, st2->name, st->name);
+        }
+
         xt->st = st2;
     }
 

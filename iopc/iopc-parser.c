@@ -1824,7 +1824,7 @@ check_class_id_range(iopc_parser_t *pp, int class_id, int min, int max)
 static iopc_struct_t *
 parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
                                     iopc_struct_type_t type, bool is_abstract,
-                                    bool is_main_pkg)
+                                    bool is_local, bool is_main_pkg)
 {
     iopc_struct_t *st = iopc_struct_new();
 
@@ -1833,6 +1833,7 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
     st->name = iopc_upper_ident(pp);
     st->loc = TK(pp, 0)->loc;
     st->is_abstract = is_abstract;
+    st->is_local = is_local;
 
     if (st->type == STRUCT_TYPE_CLASS) {
         iopc_token_t *tk;
@@ -1872,9 +1873,13 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
                 }
             }
         }
-    } else
-    if (is_abstract) {
-        fatal_loc("only classes can be abstract", TK(pp, 0)->loc);
+    } else {
+        if (is_abstract) {
+            fatal_loc("only classes can be abstract", TK(pp, 0)->loc);
+        }
+        if (is_local) {
+            fatal_loc("only classes can be local", TK(pp, 0)->loc);
+        }
     }
 
     EAT(pp, '{');
@@ -2751,6 +2756,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     while (!CHECK(pp, 0, ITOK_EOF)) {
         const char *id;
         bool is_abstract = false;
+        bool is_local = false;
 
         if (CHECK(pp, 0, ITOK_VERBATIM_C)) {
             sb_addsb(&pkg->verbatim_c, &TK(pp, 0)->b);
@@ -2775,13 +2781,26 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             build_dox(&chunks, _o, _t);                      \
         } while (0)
 
-        id = ident(TK(pp, 0));
-
-        if (strequal(id, "abstract")) {
-            is_abstract = true;
-            SKIP_KW(pp, "abstract");
-            id = ident(TK(pp, 0));
+        for (int i = 0; i < 2; i++) {
+            if (SKIP_KW(pp, "abstract")) {
+                if (is_abstract) {
+                    fatal_loc("repetition of `abstract` keyword",
+                             TK(pp, 0)->loc);
+                }
+                is_abstract = true;
+            } else
+            if (SKIP_KW(pp, "local")) {
+                if (is_local) {
+                    fatal_loc("repetition of `local` keyword",
+                             TK(pp, 0)->loc);
+                }
+                is_local = true;
+            } else {
+                break;
+            }
         }
+
+        id = ident(TK(pp, 0));
 
 #define PARSE_STRUCT(_id, _type, _attr)  \
         if (strequal(id, _id)) {                                             \
@@ -2789,7 +2808,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                                                                              \
             SKIP_KW(pp, _id);                                                \
             st = parse_struct_or_class_or_union_stmt(pp, _type, is_abstract, \
-                                                     is_main_pkg);           \
+                                                     is_local, is_main_pkg); \
             SET_ATTRS_AND_COMMENTS(st, _attr);                               \
                                                                              \
             qv_append(iopc_struct, &pkg->structs, st);                       \
