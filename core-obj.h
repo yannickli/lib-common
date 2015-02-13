@@ -100,16 +100,33 @@ bool cls_inherits(const void *cls, const void *vptr)
         __attr_section("intersec", "class")                                  \
         static pfx##_class_t pfx;                                            \
         static pfx##_class_t * const res = &pfx;                             \
+        /* double checked locking for lazy initialization of the             \
+         * pfx_class_t structure */                                          \
         if (unlikely(!pfx.super)) {                                          \
-            const void * const cls_super = pfx##_super();                    \
-            const char * const type_name = #pfx;                             \
-            const int          type_size = sizeof(pfx##_t);                  \
-            memcpy(&pfx, pfx##_super(), sizeof(*pfx##_super()));
+            static spinlock_t lock;                                          \
+                                                                             \
+            atomic_thread_fence(memory_order_acquire);                       \
+                                                                             \
+            spin_lock(&lock);                                                \
+            if (unlikely(!pfx.super)) {                                      \
+                const void *cls_super;                                       \
+                const char *type_name;                                       \
+                int         type_size;                                       \
+                                                                             \
+                atomic_thread_fence(memory_order_acquire);                   \
+                                                                             \
+                cls_super = pfx##_super();                                   \
+                type_name = #pfx;                                            \
+                type_size = sizeof(pfx##_t);                                 \
+                memcpy(&pfx, pfx##_super(), sizeof(*pfx##_super()));
 
 #define OBJ_VTABLE_END() \
-            res->super     = cls_super;                                      \
-            res->type_name = type_name;                                      \
-            res->type_size = type_size;                                      \
+                res->type_name = type_name;                                  \
+                res->type_size = type_size;                                  \
+                atomic_thread_fence(memory_order_release);                   \
+                res->super     = cls_super;                                  \
+            }                                                                \
+            spin_unlock(&lock);                                              \
         }                                                                    \
         return res;                                                          \
     }
