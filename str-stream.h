@@ -389,6 +389,13 @@ static inline int64_t ps_get_ll_ext(pstream_t *ps, int base)
     return res;
 }
 
+/** Get a unsigned integer.
+ *
+ * To check if the function fails, errno must be checked.
+ *
+ * If the pstream begins with a minus sign (white spaces are skipped), the
+ * function fails and errno is set to ERANGE.
+ */
 static inline uint64_t ps_get_ull_ext(pstream_t *ps, int base)
 {
     uint64_t res;
