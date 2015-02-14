@@ -952,8 +952,8 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 
     if (unlikely(flags & IC_MSG_HAS_HDR)) {
         if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
-            logger_trace(&_G.logger, 0, QUERY_FMT "header encoding",
-                         QUERY_FMT_ARG);
+            logger_warning(&_G.logger, QUERY_FMT "invalid header encoding",
+                           QUERY_FMT_ARG);
             return -1;
         }
         /* XXX on simple header we write the payload size of the iop query */
@@ -988,11 +988,11 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
                 const char *err = iop_get_err();
 
                 if (err) {
-                    logger_trace(&_G.logger, 0, QUERY_FMT "%s",
-                                 QUERY_FMT_ARG, err);
+                    logger_warning(&_G.logger, QUERY_FMT "%s",
+                                   QUERY_FMT_ARG, err);
                 } else {
-                    logger_trace(&_G.logger, 0, QUERY_FMT "encoding",
-                                 QUERY_FMT_ARG);
+                    logger_warning(&_G.logger, QUERY_FMT "invalid encoding",
+                                   QUERY_FMT_ARG);
                 }
             }
             return -1;
@@ -1189,6 +1189,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         lstr_t err_str = iop_get_err_lstr();
         ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
     }
+    ic_bye(ic);
 }
 
 /* Check flag consistency.
