@@ -184,6 +184,31 @@ int iop_ranges_search(int const *ranges, int ranges_len, int tag);
  */
 void  iop_init(const iop_struct_t *st, void *value);
 
+/** Allocate an IOP structure and initialize it with the correct
+ *  default values.
+ *
+ * \param[in] mp  The memory pool on which the allocation will be done.
+ *                Can be NULL to use malloc.
+ * \param[in] st  The IOP structure definition (__s).
+ */
+__attribute__((malloc, warn_unused_result))
+void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st);
+
+__attribute__((malloc, warn_unused_result))
+static inline void *iop_new_desc(const iop_struct_t *st)
+{
+    return mp_iop_new_desc(NULL, st);
+}
+__attribute__((malloc, warn_unused_result))
+static inline void *t_iop_new_desc(const iop_struct_t *st)
+{
+    return mp_iop_new_desc(t_pool(), st);
+}
+
+#define mp_iop_new(mp, pfx)  (pfx##__t *)mp_iop_new_desc(mp, &pfx##__s)
+#define iop_new(mp, pfx)     (pfx##__t *)iop_new_desc(&pfx##__s)
+#define t_iop_new(pfx)       (pfx##__t *)t_iop_new_desc(&pfx##__s)
+
 /** Return whether two IOP structures are equals or not.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC

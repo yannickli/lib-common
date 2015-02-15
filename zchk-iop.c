@@ -3991,4 +3991,30 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_new, "test iop_new and sisters") { /* {{{ */
+        t_scope;
+        tstiop__my_struct_g__t  g;
+        tstiop__my_struct_g__t *gp;
+
+        tstiop__my_struct_g__init(&g);
+
+        gp = mp_iop_new_desc(NULL, &tstiop__my_struct_g__s);
+        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        p_delete(&gp);
+
+        gp = t_iop_new_desc(&tstiop__my_struct_g__s);
+        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+
+        gp = mp_iop_new(NULL, tstiop__my_struct_g);
+        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        p_delete(&gp);
+
+        gp = iop_new(NULL, tstiop__my_struct_g);
+        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        p_delete(&gp);
+
+        gp = t_iop_new(tstiop__my_struct_g);
+        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END

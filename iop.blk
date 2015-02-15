@@ -659,7 +659,7 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
 }
 
 /*------ generic attributes -}}}-*/
-/*------ iop_init -{{{-*/
+/*------ iop_init / iop_new -{{{-*/
 
 static void
 iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
@@ -741,6 +741,15 @@ void iop_init(const iop_struct_t *desc, void *value)
     }
 
     iop_init_fields(value, desc->fields, desc->fields + desc->fields_len);
+}
+
+void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st)
+{
+    void *res = mp_imalloc(mp, st->size, 8, MEM_RAW);
+
+    iop_init(st, res);
+
+    return res;
 }
 
 /*------ iop_init -}}}-*/
