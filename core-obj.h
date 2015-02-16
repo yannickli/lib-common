@@ -96,39 +96,42 @@ bool cls_inherits(const void *cls, const void *vptr)
     OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)
 
 #define OBJ_VTABLE(pfx) \
+    typedef _Atomic(pfx##_class_t *) pfx##_atomic_ptrclass_t;                \
+                                                                             \
     const pfx##_class_t *pfx##_class(void) {                                 \
         __attr_section("intersec", "class")                                  \
-        static pfx##_class_t pfx;                                            \
-        static pfx##_class_t * const res = &pfx;                             \
+        static pfx##_atomic_ptrclass_t ptr;                                  \
+        pfx##_class_t *cls;                                                  \
+                                                                             \
+        cls = atomic_load_explicit(&ptr, memory_order_acquire);              \
         /* double checked locking for lazy initialization of the             \
          * pfx_class_t structure */                                          \
-        if (unlikely(!pfx.super)) {                                          \
+        if (unlikely(!cls)) {                                                 \
             static spinlock_t lock;                                          \
                                                                              \
-            atomic_thread_fence(memory_order_acquire);                       \
-                                                                             \
             spin_lock(&lock);                                                \
-            if (unlikely(!pfx.super)) {                                      \
-                const void *cls_super;                                       \
-                const char *type_name;                                       \
-                int         type_size;                                       \
-                                                                             \
-                atomic_thread_fence(memory_order_acquire);                   \
+            cls = atomic_load_explicit(&ptr, memory_order_relaxed);          \
+            if (unlikely(!cls)) {                                            \
+                static pfx##_class_t  pfx;                                   \
+                typeof(pfx.super)     cls_super;                             \
+                const char           *type_name;                             \
+                int                   type_size;                             \
                                                                              \
                 cls_super = pfx##_super();                                   \
                 type_name = #pfx;                                            \
                 type_size = sizeof(pfx##_t);                                 \
-                memcpy(&pfx, pfx##_super(), sizeof(*pfx##_super()));
+                cls = &pfx;                                                  \
+                memcpy(cls, cls_super, sizeof(*cls_super));
 
 #define OBJ_VTABLE_END() \
-                res->type_name = type_name;                                  \
-                res->type_size = type_size;                                  \
-                atomic_thread_fence(memory_order_release);                   \
-                res->super     = cls_super;                                  \
+                cls->type_name = type_name;                                  \
+                cls->type_size = type_size;                                  \
+                cls->super     = cls_super;                                  \
+                atomic_store_explicit(&ptr, cls, memory_order_release);      \
             }                                                                \
             spin_unlock(&lock);                                              \
         }                                                                    \
-        return res;                                                          \
+        return cls;                                                          \
     }
 
 #define OBJECT_FIELDS(pfx) \
