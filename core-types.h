@@ -160,4 +160,34 @@ typedef union data_t {
 
 /* }}} */
 
+#ifdef __has_blocks
+
+#define core_cmp_b(pfx)  pfx##_cmp_b
+
+#define CORE_CMP_TYPE(pfx, val_t) __CORE_CMP_TYPE(pfx, val_t const)
+
+#define __CORE_CMP_TYPE(pfx, cval_t)                                         \
+    typedef int (BLOCK_CARET core_cmp_b(pfx))(cval_t *a, cval_t *b)
+
+#define CORE_CMP_BLOCK(pfx, val_t)                                           \
+    CORE_CMP_TYPE(pfx, val_t);                                               \
+    extern const core_cmp_b(pfx) core_##pfx##_cmp
+
+struct lstr_t;
+
+CORE_CMP_BLOCK(i8, int8_t);
+CORE_CMP_BLOCK(u8, uint8_t);
+CORE_CMP_BLOCK(i16, int16_t);
+CORE_CMP_BLOCK(u16, uint16_t);
+CORE_CMP_BLOCK(i32, int32_t);
+CORE_CMP_BLOCK(u32, uint32_t);
+CORE_CMP_BLOCK(i64, int64_t);
+CORE_CMP_BLOCK(u64, uint64_t);
+CORE_CMP_BLOCK(double, double);
+CORE_CMP_BLOCK(lstr, struct lstr_t);
+CORE_CMP_BLOCK(str, char *);
+CORE_CMP_BLOCK(cstr, const char *);
+
+#endif
+
 #endif

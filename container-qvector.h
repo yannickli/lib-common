@@ -180,7 +180,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
-    typedef int (BLOCK_CARET pfx##_cmp_b)(cval_t *a, cval_t *b);            \
+    CORE_CMP_TYPE(pfx, val_t);                                              \
     typedef void (BLOCK_CARET pfx##_cpy_b)(val_t *a,  cval_t *b);           \
                                                                             \
     __unused__                                                              \
@@ -616,5 +616,27 @@ qvector_t(pstream, pstream_t);
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
 qvector_t(sbp,   sb_t *);
+
+/* Built-in comparison blocks for common types */
+#ifdef __has_blocks
+
+#define qv_i8_cmp  core_i8_cmp
+#define qv_i16_cmp  core_i16_cmp
+#define qv_i32_cmp  core_i32_cmp
+#define qv_i64_cmp  core_i64_cmp
+#define qv_double_cmp  core_double_cmp
+#define qv_str_cmp  core_str_cmp
+#define qv_cstr_cmp  core_cstr_cmp
+#define qv_lstr_cmp  core_lstr_cmp
+
+/* XXX Always use optimized dsort##n/uniq##n variants instead of
+ *     qv_sort(u##n)/qv_uniq(u##n).
+ */
+#define qv_u8_cmp  NEVER_USE_qv_u8_cmp
+#define qv_u16_cmp  NEVER_USE_qv_u16_cmp
+#define qv_u32_cmp  NEVER_USE_qv_u32_cmp
+#define qv_u64_cmp  NEVER_USE_qv_u64_cmp
+
+#endif
 
 #endif

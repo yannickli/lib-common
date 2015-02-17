@@ -66,6 +66,7 @@ libcommon_SOURCES = \
 	core-mem-ring.c \
 	core-mem-stack.c \
 	core-mem-bench.c \
+	core-types.blk \
 	core-version.c \
 	core.iop.c \
 	core-module.c \
