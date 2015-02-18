@@ -1393,36 +1393,35 @@ typedef struct iop_sort_priv_t {
 
 qvector_t(iop_sort_p, iop_sort_priv_t);
 
-static
-int t_prepare_field(const iop_struct_t *st, const iop_sort_t *sort,
-                    iop_sort_priv_t *priv, sb_t *err)
+static int
+t_prepare_field(const iop_struct_t *st, lstr_t field_path, int flags,
+                field_path_t *fp, cmp_f *cmp, sb_t *err)
 {
-    field_path_init(&priv->fp);
-    t_qv_init(field_step, &priv->fp.steps, 16);
-    RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp, err));
+    field_path_init(fp);
+    t_qv_init(field_step, &fp->steps, 16);
+    RETHROW(t_iop_compile_field_path(st, field_path, fp, err));
 
-    if (priv->fp.fdesc == NULL) {
+    if (fp->fdesc == NULL) {
         if (err) {
             sb_addf(err, "no description for field `%*pM' "
                     "in the structure `%*pM'",
-                    LSTR_FMT_ARG(sort->field_path),
+                    LSTR_FMT_ARG(field_path),
                     LSTR_FMT_ARG(st->fullname));
         }
         return -1;
     }
-    if (priv->fp.fdesc->type == IOP_T_STRUCT) {
+    if (fp->fdesc->type == IOP_T_STRUCT) {
         if (err) {
-            sb_addf(err, "cannot sort on sub-structure `%*pM'",
-                    LSTR_FMT_ARG(sort->field_path));
+            sb_addf(err, "cannot compare on sub-structure `%*pM'",
+                    LSTR_FMT_ARG(field_path));
         }
         return -1;
     }
 
-    priv->flags = sort->flags;
-    if (priv->flags & IOP_SORT_REVERSE) {
-        priv->cmp = iop_cmp_rev_funs[priv->fp.fdesc->type];
+    if (flags & IOP_SORT_REVERSE) {
+        *cmp = iop_cmp_rev_funs[fp->fdesc->type];
     } else {
-        priv->cmp = iop_cmp_funs[priv->fp.fdesc->type];
+        *cmp = iop_cmp_funs[fp->fdesc->type];
     }
     return 0;
 }
@@ -1451,7 +1450,12 @@ int iop_msort(const iop_struct_t *st, void *vec, int len,
     t_qv_init(iop_sort_p, &sorts, params->len);
     qv_growlen(iop_sort_p, &sorts, params->len);
     qv_for_each_pos(iop_sort, pos, params) {
-        RETHROW(t_prepare_field(st, &params->tab[pos], &sorts.tab[pos], err));
+        iop_sort_priv_t *priv = &sorts.tab[pos];
+        iop_sort_t *sort = &params->tab[pos];
+
+        priv->flags = sort->flags;
+        RETHROW(t_prepare_field(st, sort->field_path, sort->flags,
+                                &priv->fp, &priv->cmp, err));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
