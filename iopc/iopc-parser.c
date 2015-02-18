@@ -1970,9 +1970,10 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
 
         if (SKIP(pp, ','))
             continue;
-        EAT(pp, '}');
-        break;
+
+        fatal_loc("`,` expected on every line", f->loc);
     }
+
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
     iopc_loc_merge(&en->loc, TK(pp, 1)->loc);
 

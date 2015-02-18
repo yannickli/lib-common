@@ -290,6 +290,10 @@ class IopcTest(z.TestCase):
     def test_deprecated_enum(self):
         self.run_iopc2('enum6.iop', True, None)
 
+    def test_invalid_comma_enum(self):
+        self.run_iopc('enum_invalid_comma.iop', False,
+                      '`,` expected on every line', 2)
+
     def test_struct_noreorder(self):
         f = 'struct_noreorder.iop'
         self.run_iopc2(f, True, None)
