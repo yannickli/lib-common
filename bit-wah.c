@@ -809,7 +809,8 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
 
 #define PUSH_COPY(Run, Data)  wah_copy_run(map, &(Run), &(Data))
 
-#define REMAIN_WORDS(Long, Map) (((Long)->len - (Map)->len) / WAH_BIT_IN_WORD)
+#define REMAIN_WORDS(Long, Map)  \
+    MIN(((Long)->len - (Map)->len) / WAH_BIT_IN_WORD, WAH_MAX_WORDS_IN_RUN)
 
 static
 void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
@@ -1887,6 +1888,23 @@ Z_GROUP_EXPORT(wah)
         wah_and_(&map1, &map2, false, true);
         Z_ASSERT_EQ(85038314623ull + 1ull, map1.len);
         Z_ASSERT_EQ(85038314623ull - 84969209384ull + 1ull, map1.active);
+
+        wah_wipe(&map2);
+        wah_wipe(&map1);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20150219, "") {
+        wah_init(&map1);
+        wah_add1s(&map1, 68719476704ull * 2 + 11395279936ull + 31);
+        Z_ASSERT_EQ(68719476704ull * 2 + 11395279936ull + 31, map1.len);
+        Z_ASSERT_EQ(68719476704ull * 2 + 11395279936ull + 31, map1.active);
+
+        wah_init(&map2);
+        wah_add0s(&map2, 960);
+
+        wah_and_(&map1, &map2, false, true);
+        Z_ASSERT_EQ(68719476704ull * 2 + 11395279936ull + 31, map1.len);
+        Z_ASSERT_EQ(68719476704ull * 2 + 11395279936ull + 31, map1.active);
 
         wah_wipe(&map2);
         wah_wipe(&map1);
