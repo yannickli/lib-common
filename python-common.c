@@ -41,7 +41,7 @@ enum {
     PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR = -3,
 };
 
-/* module structure {{{*/
+/* {{{ module structure */
 
 static struct {
     struct ev_t             *blocker;
@@ -70,7 +70,7 @@ static struct {
 PyThreadState *python_state_g;
 
 /* }}}*/
-/* python_ctx_t {{{*/
+/* {{{ python_ctx_t */
 
 typedef struct python_ctx_t {
     PyObject *data;
@@ -88,6 +88,7 @@ static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
     ctx->expiry = _G.queue_timeout > 0 ? lp_getsec() + _G.queue_timeout : 0;
     return ctx;
 }
+
 static python_ctx_t *python_ctx_new(void);
 DO_MP_NEW(_G.pool, python_ctx_t, python_ctx);
 
@@ -99,11 +100,12 @@ static void python_ctx_wipe(python_ctx_t *ctx)
     Py_XDECREF(ctx->data);
     Py_XDECREF(ctx->cb_query_done);
 }
+
 static void python_ctx_delete(python_ctx_t **ctx);
 DO_MP_DELETE(_G.pool, python_ctx_t, python_ctx);
 
 /* }}}*/
-/* python_query_t {{{*/
+/* {{{ python_query_t */
 
 typedef struct python_query_t {
     python_ctx_t *ctx;
@@ -128,7 +130,7 @@ GENERIC_DELETE(python_query_t, python_query);
 
 /* }}}*/
 /* }}}*/
-/* private {{{*/
+/* {{{ private */
 
 static void
 python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
@@ -137,8 +139,9 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
     python_ctx_t *ctx = *_ctx;
     PyObject     *res = NULL;
 
-    if (restore_Thread)
+    if (restore_Thread) {
         PyEval_RestoreThread(python_state_g);
+    }
 
     res = PyObject_CallFunction(ctx->cb_query_done, (char *)"Ois",
                                 ctx->data, status, err_msg.s);
@@ -146,8 +149,9 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
     Py_XDECREF(res);
     python_ctx_delete(&ctx);
 
-    if (restore_Thread)
+    if (restore_Thread) {
         python_state_g = PyEval_SaveThread();
+    }
 }
 
 static void python_http_process_answer(python_query_t *q)
@@ -163,7 +167,7 @@ static void python_http_process_answer(python_query_t *q)
 
     if (res != HTTP_CODE_OK) {
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
-                             http_code_to_str(res), true);
+                              http_code_to_str(res), true);
         return;
     }
 
@@ -215,7 +219,6 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     python_query_t *q   = NULL;
     outbuf_t *ob;
     SB_1k(sb);
-
 
     /* build headers and body data */
     PyEval_RestoreThread(python_state_g);
@@ -305,8 +308,9 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
 static void process_queries(httpc_pool_t *m, httpc_t *w)
 {
     if (!python_state_g) {
-        /*while PyEval_SaveThread is not called by python_http_loop,
-         * do nothing*/
+        /* while PyEval_SaveThread is not called by python_http_loop,
+         * do nothing.
+         */
         return;
     }
 
@@ -347,8 +351,7 @@ static void python_http_on_done(httpc_query_t *_q, httpc_status_t status)
 {
     python_query_t *q = container_of(_q, python_query_t, q);
 
-
-    switch(status) {
+    switch (status) {
       case HTTPC_STATUS_OK:
         python_http_process_answer(q);
         break;
@@ -390,10 +393,9 @@ static void net_rtcl_on_ready(net_rctl_t *rctl)
 static PyObject *python_http_initialize(PyObject *self, PyObject *args)
 {
     t_scope;
-
-    PyObject   *cb_build_headers = NULL;
-    PyObject   *cb_build_body    = NULL;
-    PyObject   *cb_parse         = NULL;
+    PyObject *cb_build_headers = NULL;
+    PyObject *cb_build_body    = NULL;
+    PyObject *cb_parse         = NULL;
 
     struct core__httpc_cfg__t iop_cfg;
     httpc_cfg_t              *cfg     = NULL;
@@ -472,8 +474,8 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.url_args = lstr_dups(url_arg, strlen(url_arg));
 
     if (addr_info_str(&su, _G.url.s, _G.port, AF_UNSPEC) < 0) {
-        lstr_t str_err = lstr_fmt("unable to resolve: %s",
-                                 _G.url.s);
+        lstr_t str_err = lstr_fmt("unable to resolve: %s", _G.url.s);
+
         PyErr_SetString(http_initialize_error, str_err.s);
         return NULL;
     }
@@ -535,7 +537,8 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
                           &data,
                           &cb_query_done,
                           &path,
-                          &url_args)) {
+                          &url_args))
+    {
         PyErr_SetString(http_query_error,
                         "failed to parse http_query argument");
         return NULL;
@@ -581,7 +584,7 @@ static PyObject *loop(PyObject *self, PyObject *arg)
 
 /* }}} */
 /* }}} */
-/* log {{{ */
+/* {{{ log */
 
 static PyObject *python_log(PyObject *self, PyObject *args)
 {
@@ -630,7 +633,7 @@ static PyObject *python_log(PyObject *self, PyObject *args)
 }
 
 /* }}} */
-/* python module {{{ */
+/* {{{ python module */
 
 PyDoc_STRVAR(commonmodule_doc,
 "The goal of this module is to bind lib-common http and log API to python.\n"
