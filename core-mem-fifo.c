@@ -290,6 +290,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+    bool guessed_size = false;
     size_t alloced_size;
     size_t req_size = size;
 
@@ -320,8 +321,10 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
     page = pageof(blk);
 
     alloced_size = blk->blk_size - sizeof(*blk);
-    if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN)
+    if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN) {
         oldsize = alloced_size;
+        guessed_size = true;
+    }
     assert (oldsize <= alloced_size);
     if (req_size <= alloced_size) {
         mem_tool_freelike(mem, oldsize, 0);
@@ -349,6 +352,16 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
         void *old = mem;
 
         mem = mfp_alloc(_mfp, size, alignment, flags);
+
+        if (guessed_size) {
+            /* XXX we guessed the size from the size of the block, as a
+             * consequence, we don't know the exact amount of used memory, and
+             * only have an upper bound, this means that some trailing bytes
+             * may be part of oldsize but not actually part of the allocation,
+             * so we must ensure we are allowed to copy those bytes.
+             */
+            mem_tool_allow_memory(old, oldsize, true);
+        }
         memcpy(mem, old, oldsize);
         mfp_free(_mfp, old);
         return mem;
