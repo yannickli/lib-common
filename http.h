@@ -74,6 +74,8 @@ typedef enum http_code_t {
     HTTP_CODE_UNSUPPORTED_MEDIA_TYPE   = 415,
     HTTP_CODE_REQUEST_RANGE_UNSAT      = 416,
     HTTP_CODE_EXPECTATION_FAILED       = 417,
+    /* the status 429 was introduced in rfc 6585 $4 */
+    HTTP_CODE_TOO_MANY_REQUESTS        = 429,
 
     HTTP_CODE_INTERNAL_SERVER_ERROR    = 500,
     HTTP_CODE_NOT_IMPLEMENTED          = 501,
