@@ -797,6 +797,10 @@ int z_setup(int argc, const char **argv)
 
     lstr_copy(&_G.arg0, LSTR(argv[0]));
 
+    /* XXX force TZ to Europe/Paris for tests using dates and timestamps */
+    setenv("TZ", "Europe/Paris", true);
+    tzset();
+
     for (int i = 1; i < argc; i++) {
         if (strequal(argv[i], "--")) {
             p_move(argv + 1, argv + i, argc - i);
