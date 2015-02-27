@@ -864,6 +864,10 @@ int z_setup(int argc, char **argv)
 
     lstr_copy(&_G.arg0, LSTR(NEXTARG(argc, argv)));
 
+    /* XXX force TZ to Europe/Paris for tests using dates and timestamps */
+    setenv("TZ", "Europe/Paris", true);
+    tzset();
+
     argc = parseopt(argc, argv, z_opts_g, 0);
     if (argc < 0 || _G.opt_help) {
         makeusage(EX_USAGE, _G.arg0.s, "[tests...]", NULL, z_opts_g);
