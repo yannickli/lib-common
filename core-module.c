@@ -34,6 +34,24 @@ static inline bool module_method_equal(const qhash_t *h,
 qm_kptr_ckey_t(methods, module_method_t, void *,
                module_method_hash, module_method_equal);
 
+qvector_t(methods_cb, void *);
+
+typedef struct module_method_impl_t {
+    const module_method_t *params;
+    qv_t(methods_cb) callbacks;
+} module_method_impl_t;
+
+GENERIC_NEW_INIT(module_method_impl_t, module_method);
+static module_method_impl_t *module_method_wipe(module_method_impl_t *method)
+{
+    qv_wipe(methods_cb, &method->callbacks);
+    return method;
+}
+GENERIC_DELETE(module_method_impl_t, module_method);
+
+qm_kptr_ckey_t(methods_impl, module_method_t, module_method_impl_t *,
+               module_method_hash, module_method_equal);
+
 /* }}} */
 /* {{{ modules */
 
@@ -96,6 +114,8 @@ static struct module_g {
     qm_t(module_arg) modules_arg;
     qm_t(module_dep) module_dep_resolve;
 
+    qm_t(methods_impl) methods;
+
     /* Keep track if we are currently initializing a module */
     int in_initialization;
 } module_g = {
@@ -104,6 +124,7 @@ static struct module_g {
     .modules     = QM_INIT(module, _G.modules),
     .modules_arg = QM_INIT(module_arg, _G.modules_arg),
     .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve),
+    .methods = QM_INIT(methods_impl, _G.methods),
 };
 
 /* {{{ Module Registry */
@@ -440,6 +461,7 @@ static void _module_shutdown(void)
     if (!syslog_is_critical) {
         module_hard_shutdown();
     }
+    qm_deep_wipe(methods_impl, &_G.methods, IGNORE, module_method_delete);
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     qm_wipe(module_arg, &_G.modules_arg);
     qm_deep_wipe(module_dep, &_G.module_dep_resolve, IGNORE,
@@ -453,6 +475,17 @@ static void _module_shutdown(void)
 void module_implement_method(module_t *module, const module_method_t *method,
                              void *cb)
 {
+    int pos;
+
+    pos = qm_reserve(methods_impl, &_G.methods, method, 0);
+    if (!(pos & QHASH_COLLISION)) {
+        module_method_impl_t *m;
+
+        m = module_method_new();
+
+        m->params = method;
+        _G.methods.values[pos] = m;
+    }
     qm_add(methods, &module->methods, method, cb);
 }
 
