@@ -327,13 +327,13 @@ int log_file_close(log_file_t **lfp)
     if (*lfp) {
         log_file_t *log_file = *lfp;
 
-        log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         log_file_flush(log_file);
         if (log_file->is_file_bin) {
             res = file_bin_close(&log_file->_bin_internal);
         } else {
             res = file_close(&log_file->_internal);
         }
+        log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         p_delete(lfp);
     }
     return res;
@@ -385,6 +385,8 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     } else {
         IGNORE(file_close(&file->_internal));
     }
+
+    log_file_call_cb(file, LOG_FILE_ROTATE, NULL);
 
     log_file_open_new(file, now);
     if (!file->_internal) {
