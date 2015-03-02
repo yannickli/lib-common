@@ -709,3 +709,23 @@ int module_check_no_dependencies(module_t *tab[], int len,
 }
 
 /* }}} */
+
+/* {{{ Debug */
+
+void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies)
+{
+    sb_sets(modules, "nodes;loaded\n");
+    sb_sets(dependencies, "nodes;dest\n");
+    qm_for_each_pos(module, pos, &_G.modules) {
+        module_t *module = _G.modules.values[pos];
+
+        sb_addf(modules, "%*pM;%d\n", LSTR_FMT_ARG(module->name),
+                module_is_loaded(module) ? 1 : 0);
+        qv_for_each_entry(lstr, dep_name, &module->dependent_of) {
+            sb_addf(dependencies, "%*pM;%*pM\n", LSTR_FMT_ARG(module->name),
+                    LSTR_FMT_ARG(dep_name));
+        }
+    }
+}
+
+/* }}} */

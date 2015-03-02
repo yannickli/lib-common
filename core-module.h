@@ -390,6 +390,23 @@ bool module_is_initializing(const module_t *mod);
 __attr_nonnull__((1))
 bool module_is_shutting_down(const module_t *mod);
 
+/** Fetch the module hierarchy.
+ *
+ * \param[out] modules      This buffer will contains all the registered
+ *                          modules formated like a csv file.
+ *                               * nodes;loaded
+ *                          nodes represents the name of a module
+ *                          loaded is a boolean (1 for loaded, 0 for unloaded)
+ * \param[out] dependencies This buffer will contains all the dependencies
+ *                          between the registered modules formated like a csv
+ *                          file.
+ *                               * nodes;dest
+ *                          nodes represents the name of a module
+ *                          dest  represents the name of the one of the
+ *                          dependencies of nodes.
+ */
+void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies);
+
 /* }}} */
 /* }}} */
 /* {{{ on_term method */
