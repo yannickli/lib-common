@@ -18,6 +18,24 @@
 #include "container-qhash.h"
 
 /* {{{ Type definition */
+/* {{{ methods */
+
+static inline uint32_t module_method_hash(const qhash_t *h,
+                                          const module_method_t *m)
+{
+    return qhash_hash_ptr(h, m);
+}
+static inline bool module_method_equal(const qhash_t *h,
+                                       const module_method_t *m1,
+                                       const module_method_t *m2)
+{
+    return qhash_ptr_equal(h, m1, m2);
+}
+qm_kptr_ckey_t(methods, module_method_t, void *,
+               module_method_hash, module_method_equal);
+
+/* }}} */
+/* {{{ modules */
 
 typedef enum module_state_t {
     REGISTERED   = 0,
@@ -30,7 +48,6 @@ typedef enum module_state_t {
 } module_state_t;
 
 qvector_t(module, module_t *);
-qm_kptr_ckey_t(methods, void, void *, qhash_hash_ptr, qhash_ptr_equal);
 
 struct module_t {
     lstr_t name;
@@ -71,9 +88,9 @@ qm_kptr_t(module_arg, void, void *, qhash_hash_ptr, qhash_ptr_equal);
 qm_kvec_t(module_dep, lstr_t, qh_t(ptr), qhash_lstr_hash, qhash_lstr_equal);
 
 /* }}} */
-/* {{{ Module Registry */
+/* }}} */
 
-static struct _module_g {
+static struct module_g {
     logger_t logger;
     qm_t(module)     modules;
     qm_t(module_arg) modules_arg;
@@ -89,6 +106,7 @@ static struct _module_g {
     .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve),
 };
 
+/* {{{ Module Registry */
 
 static void
 set_require_type(module_t *module, module_t *required_by)
@@ -581,7 +599,7 @@ void module_register_at_fork(void)
 }
 
 /* }}} */
-/*{{{ Dependency collision */
+/* {{{ Dependency collision */
 
 /** Adds to qh all the modules that are dependent of the module m.
  */
@@ -622,4 +640,4 @@ int module_check_no_dependencies(module_t *tab[], int len,
     return 0;
 }
 
-/*}}} */
+/* }}} */
