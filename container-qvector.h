@@ -344,9 +344,10 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
 #define __qv_init(n, vec, b, bl, bs, mp)    __qv_##n##_init(vec, b, bl, bs,  \
                                                             ipool(mp))
-#define qv_init_static(n, vec, tab, len)                                     \
-    ({ size_t __len = (len);                                                 \
-       __qv_##n##_init(vec, tab, __len, __len, &mem_pool_static); })
+#define qv_init_static(n, vec, _tab, _len)                                   \
+    ({ size_t __len = (_len);                                                \
+       typeof(*(vec)->tab) const * const __tab = (_tab);                     \
+       __qv_##n##_init(vec, (void *)__tab, __len, __len, &mem_pool_static); })
 #define qv_inita(n, vec, size)                                               \
     ({ size_t __size = (size), _sz = __size * __qv_sz(n);                    \
         __qv_##n##_init(vec, alloca(_sz), 0, __size, &mem_pool_static); })
