@@ -937,6 +937,31 @@ Z_GROUP_EXPORT(qvector)
         Z_ASSERT_P(vec32);
         r_release(r_getframe());
     } Z_TEST_END
+
+    Z_TEST(qv_init_static, "qvector: qv_init_static() helper") {
+        t_scope;
+        qv_t(u32) vec;
+        uint32_t tab[] = { 0, 1, 2, 3 };
+        const uint32_t ctab[] = { 0, 1, 2, 3 };
+        uint32_t *ttab = t_dup(tab, countof(tab));
+        const uint32_t *cttab = ttab;
+
+        qv_init_static(u32, &vec, tab, countof(tab));
+        Z_ASSERT(vec.tab == tab);
+        Z_ASSERT_EQ(vec.len, countof(tab));
+
+        qv_init_static(u32, &vec, ctab, countof(ctab));
+        Z_ASSERT(vec.tab == ctab);
+        Z_ASSERT_EQ(vec.len, countof(ctab));
+
+        qv_init_static(u32, &vec, ttab, countof(tab));
+        Z_ASSERT(vec.tab == ttab);
+        Z_ASSERT_EQ(vec.len, countof(tab));
+
+        qv_init_static(u32, &vec, cttab, countof(tab));
+        Z_ASSERT(vec.tab == cttab);
+        Z_ASSERT_EQ(vec.len, countof(tab));
+    } Z_TEST_END
 } Z_GROUP_END;
 
 /*1}}}*/
