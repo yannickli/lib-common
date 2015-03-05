@@ -630,6 +630,20 @@ Z_GROUP_EXPORT(iop)
 #undef error
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(camelcase_to_c, "test IOP camelcase name to C") { /* {{{ */
+        t_scope;
+
+        Z_ASSERT_LSTREQUAL(LSTR("foo"), t_camelcase_to_c(LSTR("foo")));
+        Z_ASSERT_LSTREQUAL(LSTR("foo_bar123_long_name456"),
+                           t_camelcase_to_c(LSTR("FooBar123LongName456")));
+
+        Z_ASSERT_LSTREQUAL(LSTR("foo"), t_iop_type_to_c(LSTR("foo")));
+        Z_ASSERT_LSTREQUAL(LSTR("pa__cka__ge__foo_bar123_long_name456"),
+            t_iop_type_to_c(LSTR("pa.cka.ge.FooBar123LongName456")));
+        Z_ASSERT_LSTREQUAL(LSTR("foo__bar__baz_baz__qux"),
+                           t_iop_type_to_c(LSTR("foo.bar.baz_baz.qux")));
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(unions, "test IOP union helpers") { /* {{{ */
         t_scope;
 

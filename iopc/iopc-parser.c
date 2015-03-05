@@ -562,20 +562,6 @@ int t_iopc_attr_check_prefix(const qv_t(iopc_attr) *attrs, lstr_t *out)
 /*}}}*/
 /*----- helpers -{{{-*/
 
-lstr_t t_camelcase_to_c(const char *s)
-{
-    t_SB_1k(buf);
-    const unsigned char *c = (const unsigned char *)s;
-
-    while (*c) {
-        sb_addc(&buf, tolower(*c++));
-        if (isupper(*c))
-            sb_addc(&buf, '_');
-    }
-
-    return lstr_init_(buf.data, buf.len, MEM_STACK);
-}
-
 static iopc_token_t *TK(iopc_parser_t *pp, int i)
 {
     qv_t(iopc_token) *tks = &pp->tokens;
@@ -1912,7 +1898,7 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
     t_iopc_attr_check_prefix(attrs, &prefix);
     lstr_ascii_toupper(&prefix);
 
-    ns = t_camelcase_to_c(en->name);
+    ns = t_camelcase_to_c(LSTR(en->name));
     lstr_ascii_toupper(&ns);
 
     if (lstr_equal2(ns, prefix))

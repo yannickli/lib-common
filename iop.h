@@ -49,6 +49,12 @@ static inline bool qhash_iop_struct_equal(const qhash_t *h,
     return st1 == st2;
 }
 
+/** Convert an IOP identifier from CamelCase naming to C underscored naming */
+lstr_t t_camelcase_to_c(lstr_t name);
+
+/** Convert an IOP type name (pkg.CamelCase) to C underscored naming */
+lstr_t t_iop_type_to_c(lstr_t fullname);
+
 /* }}} */
 /* {{{ IOP attributes and constraints */
 

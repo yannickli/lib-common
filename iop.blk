@@ -474,6 +474,43 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
     return st;
 }
 
+lstr_t t_camelcase_to_c(lstr_t s)
+{
+    t_SB(buf, 64);
+
+    for (int i = 0; i < s.len; i++) {
+        if (i && isupper(s.s[i])) {
+            sb_addc(&buf, '_');
+        }
+        sb_addc(&buf, tolower(s.s[i]));
+    }
+
+    return lstr_init_(buf.data, buf.len, MEM_STACK);
+}
+
+lstr_t t_iop_type_to_c(lstr_t name)
+{
+    t_SB(buf, 64);
+    qv_t(lstr) parts;
+    pstream_t ps = ps_initlstr(&name);
+    ctype_desc_t dot;
+
+    t_qv_init(lstr, &parts, 3);
+    ctype_desc_build(&dot, ".");
+    ps_split(ps, &dot, 0, &parts);
+    if (!parts.len) {
+        return LSTR_EMPTY_V;
+    }
+
+    for (int i = 0; i < parts.len - 1; i++) {
+        sb_add_lstr(&buf, parts.tab[i]);
+        sb_adds(&buf, "__");
+    }
+    sb_add_lstr(&buf, t_camelcase_to_c(parts.tab[parts.len - 1]));
+
+    return lstr_init_(buf.data, buf.len, MEM_STACK);
+}
+
 /*------ various helpers -}}}-*/
 /*------ iop type string description -{{{-*/
 

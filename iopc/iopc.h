@@ -884,7 +884,6 @@ void iopc_get_depends(iopc_pkg_t *pkg,
 
 /*----- utilities -----*/
 
-lstr_t t_camelcase_to_c(const char *);
 bool iopc_field_is_signed(const iopc_field_t *);
 
 /*----- writing output files -----*/

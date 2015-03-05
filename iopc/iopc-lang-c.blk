@@ -38,7 +38,7 @@ static const char *pp_under(iopc_path_t *path)
 static const char *pp_to_c(const char *s)
 {
     t_scope;
-    lstr_t str = lstr_dup(t_camelcase_to_c(s));
+    lstr_t str = lstr_dup(t_camelcase_to_c(LSTR(s)));
 
     qv_append(str, &pp_g, str.v);
     return str.v;
