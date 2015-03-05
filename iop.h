@@ -1063,6 +1063,10 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
 
 /* }}} */
 
+/** Module that handles IOP registration data.
+ */
+MODULE_DECLARE(iop);
+
 #include "iop-macros.h"
 #include "iop-xml.h"
 #include "iop-json.h"

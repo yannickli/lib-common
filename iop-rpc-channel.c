@@ -144,6 +144,8 @@ static int ic_shutdown(void)
 }
 
 MODULE_BEGIN(ic)
+    MODULE_DEPENDS_ON(el);
+    MODULE_DEPENDS_ON(iop);
 MODULE_END()
 
 /* }}}*/
