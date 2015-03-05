@@ -375,7 +375,7 @@ void module_require(module_t *mod, module_t *required_by);
 __attr_nonnull__((1))
 void module_release(module_t *mod);
 
-__attr_nonnull__((1, 2))
+__attr_nonnull__((1))
 void module_provide(module_t **mod, void *argument);
 
 /** true if module is loaded. (AUTO_REQ || MANU_REQ) */
