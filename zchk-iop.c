@@ -4199,6 +4199,45 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
     } Z_TEST_END
     /* }}} */
+    Z_TEST(class_printf, "test %*pC in format strings") { /* {{{ */
+        t_scope;
+        SB_1k(ref);
+        SB_1k(tst_sb);
+        tstiop__my_class3__t obj;
+        char buf[10];
+        char *path;
+        lstr_t file;
+        FILE *out;
+
+        tstiop__my_class3__init(&obj);
+        obj.int1 = 12345;
+        obj.int2 = 67890;
+        obj.int2 = -2;
+        obj.bool1 = true;
+
+        tstiop__my_class3__sb_jpack(&ref, &obj, IOP_JPACK_COMPACT
+                                              | IOP_JPACK_NO_TRAILING_EOL);
+
+        sb_addf(&tst_sb, "%*pC", IOP_OBJ_FMT_ARG(&obj));
+        Z_ASSERT_EQ(tst_sb.len, ref.len);
+        Z_ASSERT_STREQUAL(tst_sb.data, ref.data);
+
+        Z_ASSERT_EQ(snprintf(buf, countof(buf), "%*pC", IOP_OBJ_FMT_ARG(&obj)),
+                    ref.len);
+        Z_ASSERT_LSTREQUAL(LSTR_INIT_V(buf, countof(buf) - 1),
+                           LSTR_INIT_V(ref.data, countof(buf) - 1));
+
+        path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
+        out = fopen(path, "w");
+        Z_ASSERT_EQ(fprintf(out, "%*pC", IOP_OBJ_FMT_ARG(&obj)), ref.len);
+        fclose(out);
+
+        Z_ASSERT_N(lstr_init_from_file(&file, path, MAP_SHARED, PROT_READ),
+                   "%m");
+        Z_ASSERT_LSTREQUAL(file, LSTR_SB_V(&ref));
+        lstr_wipe(&file);
+    } Z_TEST_END;
+    /* }}} */
 
     MODULE_RELEASE(iop);
 } Z_GROUP_END

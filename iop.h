@@ -652,6 +652,35 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
 #define iop_obj_for_each_field(f, st, _obj)                                 \
     iop_class_for_each_field(f, st, (_obj)->__vptr)
 
+
+/** Provide the appropriate arguments to the %*pC modifier.
+ *
+ * '%*pC' can be used in format string in order to print the JSON-encoded
+ * content of an IOP object (instance of an IOP class). You can provide the
+ * flags to be used to the JSON packer in the format arguments
+ * (\ref iop_jpack_flags).
+ *
+ * \param[in]  _obj   The object to print.
+ * \param[in]  _flags The JSON packing flags
+ *
+ * See \ref IOP_OBJ_FMT_ARG() for a convenience helper to print compact JSON.
+ */
+#define IOP_OBJ_FMT_ARG_FLAGS(_obj, _flags)  \
+    (_flags), ({ typeof(*_obj) *_fmt_obj = (_obj);                           \
+                 assert (_fmt_obj->__vptr != NULL);                          \
+                 _fmt_obj; })
+
+/** Provide the appropriate argument to print compact JSON with the %*pC
+ * format.
+ *
+ * This macro is a convienience helper for \ref IOP_OBJ_FMT_ARG_FLAGS to
+ * cover the usual use case where compact JSON is needed.
+ *
+ * \param[in]  _obj  The object to print.
+ */
+#define IOP_OBJ_FMT_ARG(_obj)  \
+    IOP_OBJ_FMT_ARG_FLAGS(_obj, IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL)
+
 /* }}} */
 /* {{{ IOP constraints handling */
 

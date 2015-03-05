@@ -3377,12 +3377,59 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
 }
 
 /*------ Packages registration -}}}-*/
+/* {{{ printf formatter */
+
+static int iop_file_write(void *file, const void *buf, int len)
+{
+    if (fwrite(buf, 1, len, file) != (size_t)len) {
+        return -1;
+    }
+    return len;
+}
+
+typedef struct iop_formatter_t {
+    char  *buf;
+    size_t buf_len;
+} iop_formatter_t;
+
+static int iop_formatter_write(void *out, const void *buf, int len)
+{
+    iop_formatter_t *f = out;
+    int to_copy = MIN((size_t)len, f->buf_len);
+
+    if (to_copy) {
+        memcpy(f->buf, buf, to_copy);
+        f->buf += to_copy;
+        f->buf_len -= to_copy;
+    }
+    return len;
+}
+
+static ssize_t iop_class_formatter(int modifier, const void *obj, size_t flags,
+                                   FILE *stream, char *buf, size_t buf_len)
+{
+    const iop_struct_t *st = *(const void **)obj;
+
+    if (stream) {
+        return iop_jpack(st, obj, &iop_file_write, stream, flags);
+    } else {
+        iop_formatter_t f = {
+            .buf = buf,
+            .buf_len = buf_len,
+        };
+
+        return iop_jpack(st, obj, &iop_formatter_write, &f, flags);
+    }
+}
+
+/* }}} */
 
 static int iop_initialize(void *arg)
 {
     qm_init(class_id,   &_G.classes_by_id);
     qm_init(class_name, &_G.classes_by_name);
     qm_init(iop_pkg,    &_G.pkgs_by_name);
+    iprintf_register_formatter('C', iop_class_formatter);
     return 0;
 }
 
