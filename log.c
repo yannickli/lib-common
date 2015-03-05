@@ -980,6 +980,27 @@ static void z_log_buffer_handler(const log_ctx_t *ctx, const char *fmt,
     z_handler_was_used_g = true;
 }
 
+typedef struct z_logger_init_job_t {
+    thr_job_t job;
+
+    logger_t  *loggers;
+    thr_evc_t *ec;
+    int        count;
+} z_logger_init_job_t;
+
+static void z_logger_init_job(thr_job_t *tjob, thr_syn_t *syn)
+{
+    z_logger_init_job_t *job = container_of(tjob, z_logger_init_job_t, job);
+
+    for (int i = 0; i < job->count; i++) {
+        logger_t *logger = &job->loggers[i];
+        uint64_t key = thr_ec_get(job->ec);
+
+        thr_ec_wait(job->ec, key);
+        logger_notice(logger, "coucou");
+    }
+}
+
 Z_GROUP_EXPORT(log) {
     Z_TEST(log_level, "log") {
         logger_t a = LOGGER_INIT_INHERITS(NULL, "a");
@@ -1421,6 +1442,65 @@ Z_GROUP_EXPORT(log) {
 
         log_set_handler(handler);
 #undef TEST_LOG_ENTRY
+    } Z_TEST_END;
+
+    Z_TEST(thr, "concurrent access to a logger") {
+        t_scope;
+        thr_syn_t syn;
+        thr_evc_t ec;
+        logger_t parent0 = LOGGER_INIT_INHERITS(NULL, "thrbase");
+        logger_t parent1[2] = {
+            LOGGER_INIT_INHERITS(&parent0, "a"),
+            LOGGER_INIT_INHERITS(&parent0, "b")
+        };
+        logger_t parent2[4] = {
+            LOGGER_INIT_INHERITS(&parent1[0], "a"),
+            LOGGER_INIT_INHERITS(&parent1[0], "b"),
+            LOGGER_INIT_INHERITS(&parent1[1], "c"),
+            LOGGER_INIT_INHERITS(&parent1[1], "d")
+        };
+        logger_t children[10] = {
+            LOGGER_INIT_INHERITS(&parent2[0], "a"),
+            LOGGER_INIT_INHERITS(&parent2[0], "b"),
+            LOGGER_INIT_INHERITS(&parent2[1], "c"),
+            LOGGER_INIT_INHERITS(&parent2[1], "d"),
+            LOGGER_INIT_INHERITS(&parent2[2], "e"),
+            LOGGER_INIT_INHERITS(&parent2[2], "f"),
+            LOGGER_INIT_INHERITS(&parent2[3], "g"),
+            LOGGER_INIT_INHERITS(&parent2[3], "h"),
+            LOGGER_INIT_INHERITS(&parent2[3], "i"),
+            LOGGER_INIT_INHERITS(&parent2[3], "j")
+        };
+
+        MODULE_REQUIRE(thr);
+
+        thr_syn_init(&syn);
+        thr_ec_init(&ec);
+
+        for (size_t i = 0; i < thr_parallelism_g - 1; i++) {
+            z_logger_init_job_t *job = t_new(z_logger_init_job_t, 1);
+
+            job->job.run = &z_logger_init_job;
+            job->count = countof(children);
+            job->loggers = children;
+            job->ec      = &ec;
+
+            thr_syn_schedule(&syn, &job->job);
+        }
+
+        for (int c = 0; c < countof(children); c++) {
+            sleep(1);
+            thr_ec_broadcast(&ec);
+            logger_notice(&children[c], "coucou");
+        }
+
+        Z_ASSERT(true);
+
+        thr_syn_wait(&syn);
+        thr_syn_wipe(&syn);
+        thr_ec_wipe(&ec);
+
+        MODULE_RELEASE(thr);
     } Z_TEST_END;
 } Z_GROUP_END;
 
