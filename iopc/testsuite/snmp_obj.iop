@@ -1,0 +1,20 @@
+package snmp_obj;
+
+snmpObj MySnmp : 1 : Intersec {
+1:  int b;
+};
+
+snmpObj MySnmp1 : 1 : MySnmp {
+    /** DESCRIPTION
+     */
+    @snmpGet
+2:  string a;
+};
+
+@snmpParams
+snmpObj MySnmp2 : 1 : MySnmp {
+    /** Here comes a description
+     */
+    @deprecated
+3:  string c;
+};

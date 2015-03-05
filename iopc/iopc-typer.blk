@@ -18,6 +18,24 @@ static struct {
 } iopc_typer_g;
 #define _G iopc_typer_g
 
+static const char *struct_type_to_str(enum iopc_struct_type_t type)
+{
+    switch (type) {
+      case STRUCT_TYPE_CLASS:
+        return "class";
+      case STRUCT_TYPE_SNMP_OBJ:
+        return "snmpObj";
+      case STRUCT_TYPE_UNION:
+        return "union";
+      case STRUCT_TYPE_TYPEDEF:
+        return "typedef";
+      case STRUCT_TYPE_STRUCT:
+        return "struct";
+    }
+    assert (false);
+    return "";
+}
+
 static iopc_struct_t *pkg_find_module(iopc_pkg_t *pkg, const char *name)
 {
     qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
@@ -46,6 +64,52 @@ pkg_provides_struct(iopc_pkg_t *pkg, const char *type, bool visible)
             return st;
     }
     return NULL;
+}
+
+static bool
+pkg_provides_fields_for_param(iopc_pkg_t *pkg, iopc_field_t *field,
+                              const char *snmp_obj, const char *name)
+{
+    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+        bool has_snmp_params_attr = false;
+
+        if (!strequal(st->name, snmp_obj)) {
+            continue;
+        }
+        /* Check attribute snmp params */
+        qv_for_each_entry(iopc_attr, attr, &st->attrs) {
+            if (attr->desc->id == IOPC_ATTR_SNMP_PARAMS) {
+                has_snmp_params_attr = true;
+                break;
+            }
+        }
+        if (!has_snmp_params_attr) {
+            fatal_loc("snmpObj `%s` does not have the attribute @snmpParams",
+                      st->loc, st->name);
+        }
+        qv_for_each_entry(iopc_field, f, &st->fields) {
+            iopc_extends_t *xt;
+
+            if (!strequal(f->name, name)) {
+                continue;
+            }
+
+            xt = iopc_extends_new();
+
+            /* Define parent */
+            xt->loc = st->loc;
+            xt->pkg = pkg;
+            xt->path = iopc_path_dup(pkg->name);
+            xt->name = p_strdup(st->name);
+            xt->st = st;
+
+            field->field_origin = f;
+            qv_append(iopc_extends, &field->parents, xt);
+
+            return true;
+        }
+    }
+    return false;
 }
 
 static iopc_enum_t *
@@ -364,46 +428,111 @@ static void iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
     pop_loc();
 }
 
+static void
+resolve_pkg_parent_and_params(iopc_extends_t *xt, iopc_pkg_t *pkg,
+                              iopc_struct_type_t type,
+                              const char *name, const char *type_obj,
+                              const char *action)
+{
+    t_scope;
+    iopc_struct_t *st = NULL;
+
+    if (!xt->pkg) {
+        xt->pkg = pkg;
+        iopc_path_delete(&xt->path);
+        xt->path = iopc_path_dup(pkg->name);
+    } else
+    if (xt->pkg != pkg) {
+        t_push_loc(xt->loc, "in package %s, %s  %s, needs package %s "
+                   "for %s", pretty_path_dot(pkg->name), type_obj, name,
+                   pretty_path_dot(xt->pkg->name), action);
+        iopc_t_resolve(xt->pkg);
+        pop_loc();
+    }
+    if (xt->is_snmp_root) {
+        return;
+    }
+    if (!(st = pkg_provides_struct(xt->pkg, xt->name, true))) {
+        fatal_loc("pkg `%s` does not provide %s `%s` when resolving %s of "
+                  "%s `%s`", xt->loc, pretty_path_dot(xt->pkg->name),
+                  struct_type_to_str(type), xt->name, action, type_obj, name);
+    }
+    if (st->type != type) {
+        fatal_loc("parent object `%s` is not a %s", xt->loc,
+                  st->name, struct_type_to_str(type));
+    }
+    if (type == STRUCT_TYPE_CLASS && st->is_local && xt->pkg != pkg) {
+        fatal_loc("as the parent class `%s` of class `%s` is `local`, "
+                  "both classes need to be in the same package",
+                  xt->loc, st->name, name);
+    }
+    xt->st = st;
+}
+
+static void resolve_snmp_iface_field(iopc_iface_t *iface, iopc_field_t *field)
+{
+    bool resolved = false;
+    bool found = false;
+    /* Keep information about the field */
+    iopc_loc_t loc = field->loc;
+    int pos = field->pos;
+
+    if (!field->snmp_is_from_param) {
+        fatal_loc("any field should be a snmpObj previously defined",
+                  field->loc);
+    }
+
+    qv_for_each_entry(iopc_attr, attr, &iface->attrs) {
+        if (attr->desc->id != IOPC_ATTR_SNMP_PARAMS_FROM) {
+            continue;
+        }
+        qv_for_each_entry(iopc_extends, from, &attr->snmp_params_from) {
+            found = pkg_provides_fields_for_param(from->pkg, field,
+                                                  from->name, field->name);
+            if (found && resolved) {
+                fatal_loc("several snmpObjs given by the attribute "
+                          "snmpParamsFrom have a field with the same name "
+                          "`%s`", field->loc, field->name);
+            }
+            if (found) {
+                resolved = true;
+            }
+        }
+        if (!resolved) {
+            fatal_loc("when resolving snmpIface `%s`, field `%s` is not "
+                      "found in any of the snmpObjs given by the attribute "
+                      "snmpParamsFrom", field->loc, iface->name, field->name);
+        } else {
+            /* Give back information on the field */
+            field->loc = loc;
+            field->pos = pos;
+        }
+    }
+}
+
+static void
+resolve_pkg_parent(iopc_extends_t *xt, iopc_pkg_t *pkg,
+                   iopc_struct_type_t type, const char *name)
+{
+    const char *str;
+
+    if (type == STRUCT_TYPE_CLASS) {
+        str = "class";
+    } else {
+        str = "snmpObj";
+    }
+    resolve_pkg_parent_and_params(xt, pkg, type, name, str, "inheritance");
+}
+
 static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
 {
     /* Resolve inheritance */
     if (st->extends.len) {
         t_scope;
         iopc_extends_t *xt = st->extends.tab[0];
-        iopc_struct_t *st2;
 
         assert (st->extends.len == 1);
-
-        if (!xt->pkg) {
-            xt->pkg = pkg;
-            iopc_path_delete(&xt->path);
-            xt->path = iopc_path_dup(pkg->name);
-        } else
-        if (xt->pkg != pkg) {
-            t_push_loc(xt->loc, "in package %s, class %s, needs package %s "
-                       "for inheritance",
-                       pretty_path_dot(pkg->name), st->name,
-                       pretty_path_dot(xt->path));
-            iopc_t_resolve(xt->pkg);
-            pop_loc();
-        }
-        if (!(st2 = pkg_provides_struct(xt->pkg, xt->name, true))) {
-            fatal_loc("pkg `%s` does not provide class `%s` when "
-                      "resolving inheritance of class `%s`", xt->loc,
-                      pretty_path_dot(xt->pkg->name), xt->name, st->name);
-        }
-        if (st2->type != STRUCT_TYPE_CLASS) {
-            fatal_loc("parent object `%s` is not a class", xt->loc,
-                      st2->name);
-        }
-
-        if (st2->is_local && xt->pkg != pkg) {
-            fatal_loc("as the parent class `%s` of class `%s` is `local`, "
-                      "both classes need to be in the same package",
-                      xt->loc, st2->name, st->name);
-        }
-
-        xt->st = st2;
+        resolve_pkg_parent(xt, pkg, st->type, st->name);
     }
 
     /* Resolve fields */
@@ -424,6 +553,48 @@ static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
     /* Resolve static fields */
     qv_for_each_entry(iopc_field, f, &st->static_fields) {
         iopc_field_resolve(pkg, f, st);
+    }
+}
+
+static void iopc_snmp_iface_resolve(iopc_pkg_t *pkg, iopc_iface_t *iface)
+{
+    /* Resolve inheritance */
+    iopc_extends_t *xt;
+    bool resolved = false;
+
+    if (iface->extends.len != 1) {
+            fatal_loc("a snmpIface should always have one and only parent",
+                      iface->loc);
+    }
+    xt = iface->extends.tab[0];
+    resolve_pkg_parent_and_params(xt, pkg, STRUCT_TYPE_SNMP_OBJ, iface->name,
+                                  "snmpIface", "inheritance");
+
+    /* Check params from */
+    qv_for_each_entry(iopc_attr, attr, &iface->attrs) {
+        if (attr->desc->id != IOPC_ATTR_SNMP_PARAMS_FROM) {
+            continue;
+        }
+        qv_for_each_pos(iopc_extends, pos, &attr->snmp_params_from) {
+            iopc_extends_t *xt_param = attr->snmp_params_from.tab[pos];
+
+            resolve_pkg_parent_and_params(xt_param, pkg, STRUCT_TYPE_SNMP_OBJ,
+                                          iface->name, "snmpIface",
+                                          "snmp params");
+            resolved = true;
+        }
+    }
+    if (!resolved) {
+        fatal_loc("snmpIface should have an attribute snmpParamsFrom",
+                  iface->loc);
+    }
+
+    /* Resolve rpcs in funs */
+    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        qv_for_each_entry(iopc_field, field, &fun->arg->fields) {
+            resolve_snmp_iface_field(iface, field);
+            fun->arg->fields_contain_snmp_info = true;
+        }
     }
 }
 
@@ -488,11 +659,15 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
 {
     t_scope;
     iopc_struct_t *xt;
+    const char *type;
 
-    assert (parent_st->type == STRUCT_TYPE_CLASS);
-    if (parent_st->resolving_inheritance) {
+    assert (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type));
+    assert (parent_st->type == st->type);
+
+    type = struct_type_to_str(st->type);
+
+    if (parent_st->resolving_inheritance)
         fatal_loc("circular dependency", *qv_last(iopc_loc, &iopc_g.loc_stack));
-    }
 
     /* Check field names unicity */
     qv_for_each_entry(iopc_field, field, &parent_st->fields) {
@@ -529,13 +704,14 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
         }
     }
 
-    /* Check class ids unicity */
+    /* Check class or snmpObj ids unicity */
   check_ids:
     if (!parent_st->resolved_inheritance) {
         qm_add(id_class, ids, parent_st->class_id, parent_st);
     }
-    if (!parent_st->extends.len) {
-        /* This is a master class, store ids in its children_by_id table */
+    if (!parent_st->extends.len && st->type == STRUCT_TYPE_CLASS) {
+        /* This is a master class, store ids in its children_by_id
+         * table */
         qm_for_each_pos(id_class, slot, ids) {
             iopc_struct_t *st2 = ids->values[slot];
             uint32_t pos;
@@ -556,12 +732,16 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     assert (parent_st->extends.len == 1);
     assert (!qm_len(id_class, &parent_st->children_by_id));
 
+    if (parent_st->extends.tab[0]->is_snmp_root) {
+        return;
+    }
     parent_st->resolving_inheritance = true;
+
     xt = parent_st->extends.tab[0]->st;
 
     /* Check for circular dependencies */
-    t_push_loc(parent_st->loc, "class %s inherits from class %s",
-               parent_st->name, xt->name);
+    t_push_loc(parent_st->loc, "%s %s inherits from %s %s",
+               type, parent_st->name, type, xt->name);
     iopc_struct_check_inheritance(st, xt, fields, ids);
     pop_loc();
 
@@ -579,6 +759,10 @@ static void iopc_struct_check_abstract_static_fields(const iopc_struct_t *st)
      * "st" (and with a value).
      */
 
+    /* if SNMP root then the structure extends.tab[0]->st is not defined */
+    if (st->extends.tab[0]->is_snmp_root) {
+        return;
+    }
     if (st->is_abstract || !it_st->is_abstract) {
         return;
     }
@@ -620,6 +804,12 @@ static void iopc_t_resolve(iopc_pkg_t *pkg)
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_struct_resolve(pkg, st);
     }
+    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+            iopc_snmp_iface_resolve(pkg, iface);
+        }
+    }
+
     pkg->t_resolving = false;
     pkg->t_resolved = true;
 
@@ -1272,6 +1462,20 @@ get_structs_t_depends(iopc_pkg_t *pkg, qv_t(iopc_pkg) *t_deps,
     }
 }
 
+static void
+get_ifaces_t_depends(iopc_pkg_t *pkg, qv_t(iopc_pkg) *t_deps,
+                     iopc_iface_t *iface)
+{
+    if (iface->extends.len) {
+        assert (iface->extends.len == 1);
+        if (iface->extends.tab[0]->is_snmp_root) {
+            return;
+        }
+
+        iopc_add_depends(pkg, iface->extends.tab[0]->pkg, t_deps);
+    }
+}
+
 void iopc_depends_uniquify(qv_t(iopc_pkg) *deps)
 {
     int w = 0, r = 0;
@@ -1304,12 +1508,23 @@ void iopc_get_depends(iopc_pkg_t *pkg,
     }
 
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        /* Check inheritance dependencies of snmpIface */
+        get_ifaces_t_depends(pkg, t_deps, iface);
+
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {
             if (fun->arg) {
                 if (fun->arg_is_anonymous) {
                     get_structs_depends(pkg, i_deps, fun->arg);
                 } else {
                     iopc_add_depends(pkg, fun->farg->type_pkg, i_deps);
+                }
+                if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+                    /* If snmpIface add dependencies necessary for the fun
+                     * fields */
+                    qv_for_each_entry(iopc_field, field, &fun->arg->fields) {
+                        iopc_add_depends(pkg, field->parents.tab[0]->pkg,
+                                         t_deps);
+                    }
                 }
             }
             if (fun->res) {

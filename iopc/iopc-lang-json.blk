@@ -515,7 +515,23 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
         dump_key_val_string(wbuf, "pattern", attr->args.tab[0].v.s.s);
         break;
 
+      case IOPC_ATTR_DEPRECATED:
+        /* TODO */
+        break;
+
       case IOPC_ATTR_GENERIC:
+        /* TODO */
+        break;
+
+      case IOPC_ATTR_SNMP_GET:
+        /* TODO */
+        break;
+
+      case IOPC_ATTR_SNMP_PARAMS:
+        /* TODO */
+        break;
+
+      case IOPC_ATTR_SNMP_PARAMS_FROM:
         /* TODO */
         break;
 
@@ -623,6 +639,12 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         }
         LINE_CKEY_VAL_BOOL(wbuf, "isAbstract", st->is_abstract);
         break;
+      case STRUCT_TYPE_SNMP_OBJ:
+        LINE_CKEY_VAL_CSTR(wbuf, "type", "snmpObj");
+        LINE_CKEY_VAL_FMT(wbuf, "parent", XT_FMT,
+                          XT_FMT_ARG(st->extends.tab[0]));
+        break;
+
       default:
         fatal("unsupported struct type: %d", st->type);
     }
@@ -663,6 +685,18 @@ iopc_iface_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
     dump_name(wbuf, pkg_name, iface->name);
     iopc_dox_dump_json(wbuf, iface);
+
+    switch (iface->type) {
+      case IFACE_TYPE_IFACE:
+        break;
+      case IFACE_TYPE_SNMP_IFACE:
+        LINE_CKEY_VAL_CSTR(wbuf, "type", "snmpIface");
+        LINE_CKEY_VAL_FMT(wbuf, "parent", XT_FMT,
+                          XT_FMT_ARG(iface->extends.tab[0]));
+        break;
+      default:
+        fatal("unsupported interface type: %d", iface->type);
+    }
 
     dump_gen_attrs(wbuf, &iface->attrs);
 

@@ -1,0 +1,19 @@
+package snmp_invalid_iface3;
+
+@snmpParams
+snmpObj Params : 80 : Intersec {
+    int c;
+
+};
+
+@snmpParams
+snmpObj Params2 : 80 : Intersec {
+    int c;
+
+};
+
+@snmpParamsFrom( Params, Params2 )
+snmpIface Notifications : 81 : snmp_obj.MySnmp {
+    notif1
+        in (c);
+};

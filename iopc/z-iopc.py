@@ -304,6 +304,46 @@ class IopcTest(z.TestCase):
         self.run_iopc2(f, True, None)
         self.run_gcc(f)
 
+    def test_snmp_struct_obj(self):
+        f = 'snmp_obj.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
+    def test_snmp_struct_obj_2(self):
+        f = 'snmp_obj2.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
+    def test_snmp_valid_iface(self):
+        f = 'snmp_valid_iface.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
+    def test_snmp_valid_iface_params_from_diff_pkg(self):
+        f = 'snmp_valid_params_from_different_pkg.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
+    def test_snmp_invalid_use_out_throw_snmp_iface(self):
+        self.run_iopc('snmp_invalid_iface1.iop', False,
+                      'snmpIface cannot out and/or throw', 4)
+
+    def test_snmp_invalid_params_from_snmp_iface(self):
+        self.run_iopc('snmp_invalid_iface2.iop', False,
+                      'pkg `snmp_invalid_iface2` does not provide snmpObj '  \
+                      '`IncorrectParams` when resolving snmp params of '     \
+                      'snmpIface `Notifications`', 4)
+
+    def test_snmp_invalid_several_identic_field_snmp_iface(self):
+        self.run_iopc('snmp_invalid_iface3.iop', False,
+                      'several snmpObjs given by the attribute '             \
+                      'snmpParamsFrom have a field with the same name `c`', 4)
+
+    def test_snmp_invalid_not_snmp_param(self):
+        self.run_iopc('snmp_invalid_iface4.iop', False,
+                      'snmpObj `Params` does not have the attribute '
+                      '@snmpParams', 4)
+
     def test_attrs_invalid_noreorder(self):
         self.run_iopc2('attrs_invalid_noreorder.iop', False,
                        'attribute noReorder does not apply to union')

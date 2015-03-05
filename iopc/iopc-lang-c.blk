@@ -1113,6 +1113,11 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
 {
     unsigned flags = 0;
     const char *cname = pp_to_c(f->name);
+    iop_type_t kind = f->kind;
+
+    if (f->snmp_is_from_param) {
+       kind = f->field_origin->kind;
+    }
 
     sb_addf(buf,
             "    {\n"
@@ -1123,7 +1128,7 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             "        .type      = %s,\n"
             "        .data_offs = offsetof(%s__t, %s),\n",
             f->name, f->tag, tag_len(f->tag),
-            repeats[f->repeat], types[f->kind], tbase, cname);
+            repeats[f->repeat], types[kind], tbase, cname);
 
     if (f->is_ref) {
         SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);

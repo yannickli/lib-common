@@ -1,0 +1,5 @@
+package snmp_obj2;
+
+@deprecated
+snmpObj MySnmp3 : 1 : snmp_obj.MySnmp {
+};
