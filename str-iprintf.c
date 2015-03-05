@@ -339,75 +339,83 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
     return count + n;
 }
 
-enum {
-    OUTPUT_UNKNOWN    = 0,
-    OUTPUT_RAW        = 1,
-    OUTPUT_UPPER_HEX  = 2,
-    OUTPUT_LOWER_HEX  = 3,
-};
+static ssize_t fmt_output_raw(int modifier, const void *val, size_t val_len,
+                              FILE *stream, char *buf, size_t buf_len)
+{
+    const char *lp = val;
 
-static const char put_memory_flags[256] = {
-    ['M'] = OUTPUT_RAW,
-    ['X'] = OUTPUT_UPPER_HEX,
-    ['x'] = OUTPUT_LOWER_HEX,
+    if (stream) {
+        for (size_t i = 0; i < val_len; i++) {
+            ISPUTC(lp[i], stream);
+        }
+    } else {
+        ssize_t len1 = MIN(val_len, buf_len);;
+
+        memcpy(buf, lp, len1);
+    }
+    return val_len;
+}
+
+static ssize_t fmt_output_hex(int modifier, const void *val, size_t val_len,
+                              FILE *stream, char *buf, size_t buf_len)
+{
+    const char *digits;
+    const char *lp = val;
+
+    if (modifier == 'X') {
+        digits = __str_digits_upper;
+    } else {
+        digits = __str_digits_lower;
+    }
+
+    if (stream) {
+        for (size_t i = 0; i < val_len; i++) {
+            ISPUTC(digits[(lp[i] >> 4) & 0x0f], stream);
+            ISPUTC(digits[(lp[i] >> 0) & 0x0f], stream);
+        }
+    } else {
+        size_t len1 = MIN(val_len * 2, buf_len);
+
+        for (size_t i = 0; i < len1 / 2; i++) {
+            buf[i * 2]     = digits[(lp[i] >> 4) & 0x0f];
+            buf[(i * 2) + 1] = digits[(lp[i] >> 0) & 0x0f];
+        }
+        if (len1 & 1) {
+            buf[len1 - 1] = digits[(lp[len1 / 2] >> 4) & 0x0f];
+        }
+    }
+    return val_len * 2;
+}
+
+static formatter_f *put_memory_fmt[256] = {
+    ['M'] = &fmt_output_raw,
+    ['X'] = &fmt_output_hex,
+    ['x'] = &fmt_output_hex,
 };
 
 static ALWAYS_INLINE
-int fmt_output_chunk(FILE *stream, char *str, size_t size,
-                     size_t count, const char *lp, size_t len,
-                     int enc)
+ssize_t fmt_output_chunk(FILE *stream, char *str, size_t size,
+                         size_t count, const char *lp, size_t len,
+                         int modifier)
 {
-    size_t len1 = len;
-    bool   half = false;
-    const char *digits = __str_digits_lower;
+    formatter_f *f;
+    size_t out_len;
 
-    switch (enc) {
-      case OUTPUT_RAW:
-        if (stream) {
-            for (size_t i = 0; i < len; i++)
-                ISPUTC(lp[i], stream);
-        } else {
-            if (count + len1 >= size) {
-                len1 = count >= size ? 0 : size - count - 1;
-            }
-            memcpy(str + count, lp, len1);
+    size = count >= size ? 0 : size - count - 1;
+    str += count;
+    if (likely(modifier == 'M')) {
+        out_len = RETHROW(fmt_output_raw(modifier, lp, len, stream,
+                                         str, size));
+    } else {
+        f = put_memory_fmt[(unsigned char)modifier];
+        if (!expect(f)) {
+            return -1;
         }
-        return count + len;
 
-      case OUTPUT_UPPER_HEX:
-        digits = __str_digits_upper;
-        /* FALLTHROUGH */
-
-      case OUTPUT_LOWER_HEX:
-        if (stream) {
-            for (size_t i = 0; i < len; i++) {
-                ISPUTC(digits[(lp[i] >> 4) & 0x0f], stream);
-                ISPUTC(digits[(lp[i] >> 0) & 0x0f], stream);
-            }
-        } else {
-            if (count + len1 * 2 >= size) {
-                if (count >= size) {
-                    len1 = 0;
-                    half = false;
-                } else {
-                    len1 = size - count - 1;
-                    half = len1 & 1;
-                    len1 /= 2;
-                }
-            }
-            for (size_t i = 0; i < len1; i++) {
-                str[count + (i * 2)]     = digits[(lp[i] >> 4) & 0x0f];
-                str[count + (i * 2) + 1] = digits[(lp[i] >> 0) & 0x0f];
-            }
-            if (half) {
-                str[count + (len1 * 2)] = digits[(lp[len1] >> 4) & 0x0f];
-            }
-        }
-        return count + len * 2;
-
-      default:
-        e_panic("unkown encoding requested");
+        out_len = RETHROW((*f)(modifier, lp, len, stream, str, size));
     }
+
+    return count + out_len;
 }
 
 static int fmt_output(FILE *stream, char *str, size_t size,
@@ -445,14 +453,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 
     for (;;) {
-        int enc = OUTPUT_RAW;
+        /* Modifier 'M' is for 'put memory', this is the modifier to use to
+         * put raw data in the output stream/buffer */
+        int modifier = 'M';
 
         for (lp = format; *format && *format != '%'; format++)
             continue;
         len = format - lp;
       haslp:
-        count = fmt_output_chunk(stream, str, size, count, lp, len, enc);
-        enc   = OUTPUT_RAW;
+        count = fmt_output_chunk(stream, str, size, count, lp, len, modifier);
+        modifier  = 'M';
         if (right_pad) {
             count = fmt_output_chars(stream, str, size, count, ' ', right_pad);
         }
@@ -495,18 +505,20 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             goto haslp;
         }
 
-        /* also special case %*pM, understand it as "put memory content here"
-         * and %*pX, understand as "put hexadecimal content here"
+        /* also special case %*p?, where '?' is a registered modifier. We
+         * natively support %*pM for "put memory content here"
+         * and %*pX for "put hexadecimal content here".
          */
         if (format[0] == '*' && format[1] == 'p'
-        &&  put_memory_flags[(unsigned char)format[2]])
+        &&  put_memory_fmt[(unsigned char)format[2]])
         {
-            enc     = put_memory_flags[(unsigned char)format[2]];
+            modifier = format[2];
             format += 3;
             len = va_arg(ap, int);
             lp  = va_arg(ap, const char *);
-            /* XXX No "trailing garbage" consumption: %*pM format will not
-             *     be extended
+
+            /* XXX No "trailing garbage" consumption: we support only single
+             *     character modifiers for now.
              */
             goto haslp;
         }
@@ -978,7 +990,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             if (prefix_len) {
                 /* prefix_len is 0, 1 or 2 */
                 count = fmt_output_chunk(stream, str, size, count,
-                                         buf, prefix_len, enc);
+                                         buf, prefix_len, modifier);
             }
             if (zero_pad) {
                 count = fmt_output_chars(stream, str, size, count,
@@ -1118,7 +1130,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     realsz++;
                 }
 
-#define PRINT(s,n)  count = fmt_output_chunk(stream, str, size, count, s, n, enc)
+#define PRINT(s,n)  count = fmt_output_chunk(stream, str, size, count, s, n, 'M')
 #define PAD(n,c)    count = fmt_output_chars(stream, str, size, count, c, n)
 #define zeroes '0'
 #define blanks ' '
@@ -1471,6 +1483,18 @@ static int exponent(char *p0, int expn, int fmtch)
 }
 
 #endif /* FLOATING_POINT */
+
+void iprintf_register_formatter(int modifier, formatter_f *formatter)
+{
+    formatter_f *old = put_memory_fmt[(unsigned char)modifier];
+
+    if (old && old != formatter) {
+        e_panic("trying to overload already defined memory formatter for "
+                "modifier '%c'", modifier);
+    }
+
+    put_memory_fmt[(unsigned char)modifier] = formatter;
+}
 
 Z_GROUP_EXPORT(iprintf) {
     char buffer[128];

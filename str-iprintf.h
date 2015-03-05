@@ -91,4 +91,41 @@ static inline char *iasprintf(const char *fmt, ...)
     return s;
 }
 
+/* {{{ Formatter registration */
+
+/** Formatter function type.
+ *
+ * A formatter is called when, for a formatter f, the format %*pf is
+ * encountered in the format string. The formatter is then called with the
+ * parameters passed as argument of that particular format as well as the
+ * modifier.
+ *
+ * A formatter can either write in a stream or in a buffer, in both cases, it
+ * must return the size of the formatted object if it had enough place to
+ * write in it. The function must check if the output is supposed to be a
+ * stream or a buffer based on the presence of a stream.
+ *
+ * The buffer may not be large enough to write the received data, and the
+ * formatter is not responsible for the appending of a terminating zero.
+ *
+ * \param[in] modifier  The modifier that triggered the call
+ * \param[in] val       The pointer received as parameter.
+ * \param[in] val_len   The length received as parameter.
+ * \param[out] stream   If the formatter is expected to write on a stream,
+ *                      this is the destination stream.
+ * \param[out] buf      If the formatter is expected to write in a buffer,
+ *                      this is the destination buffer.
+ * \param[out] buf_len  The size of the buffer.
+ *
+ * \return The size required to format the \p val (not including the trailing
+ *         zero).
+ */
+typedef ssize_t (formatter_f)(int modifier, const void *val, size_t val_len,
+                              FILE *stream, char *buf, size_t buf_len);
+
+/** Register a formatter for the provided modifier.
+ */
+__attr_nonnull__((2))
+void iprintf_register_formatter(int modifier, formatter_f *formatter);
+
 #endif /* IS_LIB_COMMON_STR_IPRINTF_H */
