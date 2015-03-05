@@ -68,6 +68,7 @@ static struct {
     qv_t(spec)  specs;
     int maxlen, rows, cols;
     int pid;
+    spinlock_t update_lock;
 
     /* log buffer */
     qv_t(buffer_instance) vec_buff_stack;
@@ -127,7 +128,6 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
 /* Suppose the parent is locked */
 static void logger_wipe_child(logger_t *logger)
 {
-    spin_lock(&logger->children_lock);
     if (!dlist_is_empty(&logger->children) && logger->children.next) {
         logger_t *child;
 
@@ -144,7 +144,6 @@ static void logger_wipe_child(logger_t *logger)
             }
         }
     }
-    spin_unlock(&logger->children_lock);
 
     if (!dlist_is_empty(&logger->siblings) && logger->siblings.next) {
         dlist_remove(&logger->siblings);
@@ -155,13 +154,9 @@ static void logger_wipe_child(logger_t *logger)
 
 void logger_wipe(logger_t *logger)
 {
-    if (logger->parent) {
-        spin_lock(&logger->parent->children_lock);
-    }
+    spin_lock(&_G.update_lock);
     logger_wipe_child(logger);
-    if (logger->parent) {
-        spin_unlock(&logger->parent->children_lock);
-    }
+    spin_unlock(&_G.update_lock);
 }
 
 static void logger_compute_fullname(logger_t *logger)
@@ -195,20 +190,21 @@ static void logger_compute_fullname(logger_t *logger)
     }
 }
 
-void __logger_refresh(logger_t *logger)
+static void __logger_do_refresh(logger_t *logger)
 {
-    if (logger->conf_gen == log_conf_gen_g) {
+    if (atomic_load_explicit(&logger->conf_gen, memory_order_acquire)
+        == log_conf_gen_g)
+    {
         return;
     }
 
-    logger->conf_gen     = log_conf_gen_g;
     logger->level_flags &= ~LOG_FORCED;
 
     if (logger->parent == NULL && logger != &_G.root_logger) {
         logger->parent = &_G.root_logger;
     }
     if (logger->parent) {
-        __logger_refresh(logger->parent);
+        __logger_do_refresh(logger->parent);
     }
 
     if (!logger->full_name.s) {
@@ -221,13 +217,11 @@ void __logger_refresh(logger_t *logger)
         assert (logger->default_level >= LOG_INHERITS);
         assert (logger->defined_level >= LOG_UNDEFINED);
 
-        spin_lock(&logger->parent->children_lock);
         dlist_for_each_entry(sibbling, &logger->parent->children, siblings) {
             assert (!lstr_equal2(sibbling->name, logger->name));
         }
         dlist_add(&logger->parent->children, &logger->siblings);
         dlist_init(&logger->children);
-        spin_unlock(&logger->parent->children_lock);
 
         pos = qm_del_key(level, &_G.pending_levels, &logger->full_name);
         if (pos >= 0) {
@@ -253,6 +247,21 @@ void __logger_refresh(logger_t *logger)
     }
 
     assert (logger->level >= 0);
+    atomic_store_explicit(&logger->conf_gen, log_conf_gen_g,
+                          memory_order_release);
+}
+
+void __logger_refresh(logger_t *logger)
+{
+    if (atomic_load_explicit(&logger->conf_gen, memory_order_acquire)
+        == log_conf_gen_g)
+    {
+        return;
+    }
+
+    spin_lock(&_G.update_lock);
+    __logger_do_refresh(logger);
+    spin_unlock(&_G.update_lock);
 }
 
 static logger_t *logger_get_by_name(lstr_t name)
@@ -270,14 +279,12 @@ static logger_t *logger_get_by_name(lstr_t name)
             ps = ps_init(NULL, 0);
         }
 
-        spin_lock(&logger->children_lock);
         dlist_for_each_entry(child, &logger->children, siblings) {
             if (lstr_equal2(child->name, LSTR_PS_V(&n))) {
                 next = child;
                 break;
             }
         }
-        spin_unlock(&logger->children_lock);
 
         RETHROW_P(next);
         logger = next;
@@ -288,7 +295,10 @@ static logger_t *logger_get_by_name(lstr_t name)
 
 int logger_set_level(lstr_t name, int level, unsigned flags)
 {
-    logger_t *logger = logger_get_by_name(name);
+    logger_t *logger;
+
+    spin_lock(&_G.update_lock);
+    logger = logger_get_by_name(name);
 
     assert (level >= LOG_UNDEFINED);
     assert ((flags & (LOG_RECURSIVE | LOG_SILENT)) == flags);
@@ -314,6 +324,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
                 _G.pending_levels.keys[pos] = lstr_dup(name);
             }
         }
+        spin_unlock(&_G.update_lock);
         return LOG_UNDEFINED;
     }
 
@@ -325,6 +336,8 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
     SWAP(int, logger->level, level);
     logger->defined_level = logger->level;
     log_conf_gen_g += 2;
+
+    spin_unlock(&_G.update_lock);
     return level;
 }
 
@@ -787,7 +800,9 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
 {
     logger_t *logger;
 
+    spin_lock(&_G.update_lock);
     logger = logger_get_by_name(LSTR_OPT_STR_V(name)) ?: &log_g.root_logger;
+    spin_unlock(&_G.update_lock);
     return __logger_is_traced(logger, lvl, modname, func, name);
 }
 
