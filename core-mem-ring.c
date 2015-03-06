@@ -220,12 +220,17 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
 
     THROW_NULL_IF(size == 0);
 
+    spin_lock(&rp->lock);
     res = rp_reserve(rp, size, &rp->cblk);
+    rp->pos = res + size;
+    rp->last = res;
+    spin_unlock(&rp->lock);
+
     if (!(flags & MEM_RAW)) {
         memset(res, 0, size);
     }
-    rp->pos = res + size;
-    return rp->last = res;
+
+    return res;
 }
 
 static void rp_free(mem_pool_t *_rp, void *mem)
@@ -347,10 +352,10 @@ void ring_setup_frame(ring_pool_t *rp, ring_blk_t *blk, frame_t *frame)
     frame->blk = blk;
     frame->rp  = (uintptr_t)rp;
     dlist_add_tail(&rp->fhead, &frame->flist);
-    spin_unlock(&rp->lock);
 
     rp->ring = frame;
     ring_reset_frame(rp, frame, false);
+    spin_unlock(&rp->lock);
 }
 
 /*------ Public API -{{{-*/
