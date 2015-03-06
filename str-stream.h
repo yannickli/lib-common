@@ -667,18 +667,22 @@ union qv_lstr_t;
  * In case of error, the pstream is placed where it encountered the error.
  * In case of success it is placed at the beginning of the next line.
  *
- * \param mp The pool on which data that must be copied is allocated (NULL to
- *           allocate data on the heap).
- * \param ps The stream from which data is read.
- * \param sep The separator (usually comma or semi-colon)
- * \param quote The quoting character (usually double quote), can be -1 if
- *              quoting is disallowed.
- * \param fields A vector that will be filled with the fields.
+ * \param[in] mp The pool on which data that must be copied is allocated (NULL
+ *                to allocate data on the heap).
+ * \param[in,out] ps The stream from which data is read.
+ * \param[in] sep The separator (usually comma or semi-colon)
+ * \param[in] quote The quoting character (usually double quote), can be -1 if
+ *                   quoting is disallowed.
+ * \param[out] fields A vector that will be filled with the fields.
+ * \param[out] out_line A pstream which will contain the content of the read
+ *                      CSV line (without the final line break).
+ *                      Can be NULL if you are not interrested in this peace
+ *                      of information.
  * \return -1 if the content of the pstream does not starts with a valid CSV
  *            record.
  */
 int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
-                    union qv_lstr_t *fields);
+                    union qv_lstr_t *fields, pstream_t *out_line);
 
 enum {
     PS_SPLIT_SKIP_EMPTY = 1 << 0
