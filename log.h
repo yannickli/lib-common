@@ -124,7 +124,7 @@ enum {
  * the sake of inlining.
  */
 typedef struct logger_t {
-    uint32_t conf_gen;
+    atomic_uint conf_gen;
     flag_t   is_static : 1;
 
     int level;
@@ -132,8 +132,6 @@ typedef struct logger_t {
     int default_level;
     unsigned level_flags;
     unsigned default_level_flags;
-
-    spinlock_t children_lock;
 
     lstr_t name;
     lstr_t full_name;
@@ -210,7 +208,9 @@ void __logger_refresh(logger_t *logger) __leaf __cold;
 static ALWAYS_INLINE
 int logger_get_level(logger_t *logger)
 {
-    if (logger->conf_gen != log_conf_gen_g) {
+    if (atomic_load_explicit(&logger->conf_gen, memory_order_acquire)
+        != log_conf_gen_g)
+    {
         __logger_refresh(logger);
     }
 
