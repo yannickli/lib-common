@@ -76,20 +76,27 @@ static int ps_get_csv_quoted_field(mem_pool_t *mp, pstream_t *ps, int quote,
 }
 
 int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
-                    qv_t(lstr) *fields)
+                    qv_t(lstr) *fields, pstream_t *out_line)
 {
     ctype_desc_t cdesc;
     char cdesc_tok[] = { '\r', '\n', sep, '\0' };
+    pstream_t out = *ps;
 
     ctype_desc_build(&cdesc, cdesc_tok);
 
+    if (!out_line) {
+        out_line = &out;
+    }
+
     if (ps_done(ps)) {
+        *out_line = ps_init(NULL, 0);
         return 0;
     }
 
     for (;;) {
         if (ps_done(ps)) {
             qv_append(lstr, fields, LSTR_NULL_V);
+            *out_line = ps_initptr(out.s, ps->s);
             return 0;
         } else
         if (*ps->s == quote) {
@@ -106,10 +113,15 @@ int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
 
         switch (ps_getc(ps)) {
           case '\r':
+            *out_line = ps_initptr(out.s, ps->s - 1);
             return ps_skipc(ps, '\n');
 
           case '\n':
+            *out_line = ps_initptr(out.s, ps->s - 1);
+            return 0;
+
           case EOF:
+            *out_line = ps_initptr(out.s, ps->s);
             return 0;
 
           default:
