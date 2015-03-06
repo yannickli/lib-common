@@ -184,6 +184,25 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 /* Writing tests                                                            */
 /****************************************************************************/
 
+#ifdef __has_blocks
+
+#define Z_BLKGROUP(_grp)                                                  \
+    __cold static void z_##_grp(void) {                                   \
+        static struct z_blkgrp *grp = &_grp;                              \
+                                                                          \
+        z_register_blkgroup(grp);                                         \
+    }
+
+#ifdef NDEBUG
+#define Z_BLKGROUP_EXPORT(_grp)  \
+    __attribute__((unused)) Z_BLKGROUP(_grp)
+#else
+#define Z_BLKGROUP_EXPORT(_grp)  \
+    __attribute__((constructor)) Z_BLKGROUP(_grp)
+#endif /* NDEBUG */
+
+#endif /* __has_blocks */
+
 #define Z_GROUP(name) \
     __cold static void z_##name(void)                                     \
     {                                                                     \
