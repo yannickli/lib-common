@@ -109,7 +109,7 @@ int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
             return ps_skipc(ps, '\n');
 
           case '\n':
-          case -1:
+          case EOF:
             return 0;
 
           default:
