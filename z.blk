@@ -913,9 +913,26 @@ void z_register_exports(const char *prefix)
     }
 }
 
+static void z_check_blktest_name(lstr_t name, const char *what)
+{
+    ctype_desc_t ctype;
+    pstream_t ps = ps_initlstr(&name);
+
+    ctype_desc_build(&ctype, "-_");
+    ctype_desc_combine(&ctype, &ctype, &ctype_isalnum);
+
+    ps_skip_span(&ps, &ctype);
+
+    if (!ps_done(&ps)) {
+        e_panic("invalid %s name: `%*pM`", what, LSTR_FMT_ARG(name));
+    }
+}
+
 void z_register_blkgroup(struct z_blkgrp const *g)
 {
     struct z_blkgrp *t = qv_growlen(z_blk, &_G.blks, 1);
+
+    z_check_blktest_name(g->name, "group");
 
     p_clear(t, 1);
     t->name     = lstr_dup(g->name);
@@ -926,7 +943,9 @@ void z_register_blkgroup(struct z_blkgrp const *g)
 
     t->len      = g->len;
     t->tests    = p_new(struct z_blktst, t->len);
+
     for (size_t i = 0; i < t->len; i++) {
+        z_check_blktest_name(g->tests[i].name, "test");
         t->tests[i].name = lstr_dup(g->tests[i].name);
         t->tests[i].run  = Block_copy(g->tests[i].run);
     }
