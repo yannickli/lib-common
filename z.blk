@@ -712,8 +712,13 @@ static void _z_blkgrp_process(struct z_blkgrp *g)
     t_scope;
 
     __z_group_start(g->name);
-    if (_z_is_group_ignored())
+    if (_z_is_group_ignored()) {
         goto end;
+    }
+
+    if (_G.opt_list) {
+        printf("%*pM\n", LSTR_FMT_ARG(g->name));
+    }
 
     _G.grp.state = Z_COUNT;
     for (size_t i = 0; i < g->len; i++) {
@@ -722,10 +727,15 @@ static void _z_blkgrp_process(struct z_blkgrp *g)
             g->tests[i].run = NULL;
             continue;
         }
+        if (_G.opt_list) {
+            printf("%*pM.%*pM\n",
+                   LSTR_FMT_ARG(g->name), LSTR_FMT_ARG(g->tests[i].name));
+        }
         _G.grp.n_total++;
     }
-    if (_G.grp.n_total == 0)
+    if (_G.grp.n_total == 0 || _G.opt_list) {
         goto end;
+    }
 
     if (_z_group_run()) {
         if (g->before && g->before() < 0) {
