@@ -736,7 +736,7 @@ static void _z_blkgrp_process(struct z_blkgrp *g)
         for (size_t i = 0; i < g->len; i++) {
             if (!g->tests[i].run)
                 continue;
-            _z_step_prepare(g->name);
+            _z_step_prepare(g->tests[i].name);
             if (_G.grp.t_skip_reason.s == NULL) {
                 if (g->setup)
                     g->setup();
