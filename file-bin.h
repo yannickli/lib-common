@@ -96,8 +96,8 @@ GENERIC_DELETE(file_bin_t, file_bin);
  * making it ready to be written.
  *
  * \param[in] path       The path to the binary file to write.
- * \param[in] slot_size  The slot size to use for this file. Use 0 or a
- *                       negative value to use FILE_BIN_DEFAULT_SLOT_SIZE.
+ * \param[in] slot_size  The slot size to use for this file. Use 0 to use
+ *                       FILE_BIN_DEFAULT_SLOT_SIZE.
  * \param[in] truncate   Tells if the file should be truncated if it already
  *                       exists.
  *

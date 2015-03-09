@@ -872,6 +872,8 @@ int e_panic(const char *fmt, ...)
 {
     va_list va;
 
+    __logger_refresh(&_G.root_logger);
+
     va_start(va, fmt);
     logger_vlog(&_G.root_logger, LOG_CRIT, NULL, -1, NULL, NULL, -1, fmt, va);
     abort();
@@ -880,6 +882,8 @@ int e_panic(const char *fmt, ...)
 int e_fatal(const char *fmt, ...)
 {
     va_list va;
+
+    __logger_refresh(&_G.root_logger);
 
     va_start(va, fmt);
     logger_vlog(&_G.root_logger, LOG_CRIT, NULL, -1, NULL, NULL, -1, fmt, va);
