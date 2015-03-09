@@ -707,6 +707,21 @@ static void _z_step_prepare(lstr_t n)
         e_panic("unable to chdir to original directory '%s': %m", _G.wd);
 }
 
+static void _z_check_test_name(lstr_t name, const char *what)
+{
+    ctype_desc_t ctype;
+    pstream_t ps = ps_initlstr(&name);
+
+    ctype_desc_build(&ctype, "-_");
+    ctype_desc_combine(&ctype, &ctype, &ctype_isalnum);
+
+    ps_skip_span(&ps, &ctype);
+
+    if (!ps_done(&ps)) {
+        e_panic("invalid %s name: `%*pM`", what, LSTR_FMT_ARG(name));
+    }
+}
+
 static void _z_blkgrp_process(struct z_blkgrp *g)
 {
     t_scope;
@@ -773,11 +788,13 @@ int _z_step_run(const char *name)
 
     NOT_IN_TEST;
 
-    if (_z_is_step_ignored(n))
+    if (_z_is_step_ignored(n)) {
         return 0;
+    }
 
     switch (_G.grp.state) {
       case Z_COUNT:
+        _z_check_test_name(n, "test");
         _G.grp.n_total++;
         if (_G.opt_list) {
             printf("%*pM.%s\n", LSTR_FMT_ARG(_G.grp.name), name);
@@ -923,26 +940,11 @@ void z_register_exports(const char *prefix)
     }
 }
 
-static void z_check_blktest_name(lstr_t name, const char *what)
-{
-    ctype_desc_t ctype;
-    pstream_t ps = ps_initlstr(&name);
-
-    ctype_desc_build(&ctype, "-_");
-    ctype_desc_combine(&ctype, &ctype, &ctype_isalnum);
-
-    ps_skip_span(&ps, &ctype);
-
-    if (!ps_done(&ps)) {
-        e_panic("invalid %s name: `%*pM`", what, LSTR_FMT_ARG(name));
-    }
-}
-
 void z_register_blkgroup(struct z_blkgrp const *g)
 {
     struct z_blkgrp *t = qv_growlen(z_blk, &_G.blks, 1);
 
-    z_check_blktest_name(g->name, "group");
+    _z_check_test_name(g->name, "group");
 
     p_clear(t, 1);
     t->name     = lstr_dup(g->name);
@@ -955,7 +957,7 @@ void z_register_blkgroup(struct z_blkgrp const *g)
     t->tests    = p_new(struct z_blktst, t->len);
 
     for (size_t i = 0; i < t->len; i++) {
-        z_check_blktest_name(g->tests[i].name, "test");
+        _z_check_test_name(g->tests[i].name, "test");
         t->tests[i].name = lstr_dup(g->tests[i].name);
         t->tests[i].run  = Block_copy(g->tests[i].run);
     }
