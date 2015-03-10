@@ -180,7 +180,7 @@ bool e_expect(bool cond, const char *expr, const char *file, int line,
 }
 
 #define expect(Cond)  \
-    likely(e_expect((Cond), TOSTR(Cond), __FILE__, __LINE__, __func__))
+    e_expect((Cond), TOSTR(Cond), __FILE__, __LINE__, __func__)
 
 #endif
 
