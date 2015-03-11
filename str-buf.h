@@ -479,14 +479,12 @@ struct sockaddr;
  *
  * <code>
  * int res;
- * sb_t sb;
- * FILE *f = fopen(...)
+ * SB_1K(sb);
+ * FILE *f = RETHROW_PN(fopen(...));
  *
- * if (f == NULL)
- *     return -1;
- *
- * while ((res = sb_getline(sb, f)) > 0) {
- *     // use sb
+ * while ((res = sb_getline(&sb, f)) > 0) {
+ *     // use sb. WARNING: the last character is always '\n'.
+ *     sb_reset(&sb);
  * }
  * if (res == 0) {
  *     // EOF
