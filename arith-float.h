@@ -184,4 +184,23 @@ static inline double get_unaligned_double_be(const void *p) {
     return bits_to_double_(get_unaligned_be64(p));
 }
 
+
+/** Round a double value to a given precision.
+ *
+ * Round a double value to a given precision, expressed in number of decimal
+ * digits.
+ *
+ * Examples:
+ *  - double_round(12.1234567, 0) -> 12.0
+ *  - double_round(12.6,       0) -> 13.0
+ *  - double_round(12.1234567, 3) -> 12.123
+ *  - double_round(12.1234567, 4) -> 12.1235
+ *
+ * \param[in]  val        the input value to round.
+ * \param[in]  precision  the precision, in number of decimal digits.
+ *
+ * \return  the rounded value.
+ */
+double double_round(double val, uint8_t precision);
+
 #endif
