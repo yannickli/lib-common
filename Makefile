@@ -41,6 +41,7 @@ libcommon_SOURCES = \
 	parseopt.c \
 	\
 	arith-int.c \
+	arith-float.c \
 	arith-scan.c \
 	\
 	asn1.c \
