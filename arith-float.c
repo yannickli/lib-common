@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <math.h>
+#include <float.h>
 
 #include "arith.h"
 #include "z.h"
@@ -37,7 +38,8 @@ double double_round(double val, uint8_t precision)
 Z_GROUP_EXPORT(arithfloat)
 {
     Z_TEST(double_round, "double_round") {
-#define T(val, precision, res)  Z_ASSERT_EQ(double_round(val, precision), res)
+#define T(val, precision, res)  \
+    Z_ASSERT_LT(fabs(double_round(val, precision) - res), DBL_EPSILON)
 
         T(12.1234567, 0, 12.);
         T(12.1234567, 1, 12.1);
@@ -48,6 +50,7 @@ Z_GROUP_EXPORT(arithfloat)
         T(12.1234567, 6, 12.123457);
         T(12.1234567, 7, 12.1234567);
         T(12.1234567, 8, 12.1234567);
+        T(12.12345,   4, 12.1235);
 
         T(12.6, 0, 13.);
 
@@ -60,6 +63,7 @@ Z_GROUP_EXPORT(arithfloat)
         T(-12.1234567, 6, -12.123457);
         T(-12.1234567, 7, -12.1234567);
         T(-12.1234567, 8, -12.1234567);
+        T(-12.12345,   4, -12.1234);
 
         T(-12.6, 0, -13.);
 #undef T
