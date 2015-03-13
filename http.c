@@ -482,7 +482,6 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
     obj_retain(q);
     obj_retain(q);
     q->owner = w;
-    w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
     if (cb)
         q->trig_cb = httpd_trigger_dup(cb);
@@ -497,7 +496,9 @@ static ALWAYS_INLINE void httpd_query_detach(httpd_query_t *q)
         if (!q->own_ob)
             q->ob = NULL;
         dlist_remove(&q->query_link);
-        w->queries--;
+        if (q->parsed) {
+            w->queries--;
+        }
         w->queries_done -= q->answered;
         q->owner = NULL;
         obj_release(q);
@@ -962,6 +963,7 @@ static void httpd_query_done(httpd_t *w, httpd_query_t *q)
     q->query_sec  = now.tv_sec;
     q->query_usec = now.tv_usec;
     q->parsed     = true;
+    w->queries++;
     httpd_flush_answered(w);
     if (w->connection_close) {
         w->state = HTTP_PARSER_CLOSE;
@@ -1700,8 +1702,14 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
     }
 
     if (unlikely(w->state == HTTP_PARSER_CLOSE)) {
-        if (w->queries == 0 && ob_is_empty(&w->ob))
+        if (w->queries == 0 && ob_is_empty(&w->ob)) {
+            /* XXX We call shutdown(…, SHUT_RW) to force TCP to flush our
+             * writing buffer and protect our responses against a TCP RST
+             * which could be emitted by close() if there is some pending data
+             * in the read buffer (think about pipelining). */
+            shutdown(fd, SHUT_WR);
             goto close;
+        }
     } else {
         /* w->state == HTTP_PARSER_IDLE:
          *   queries > 0 means pending answer, client isn't lagging, we are.

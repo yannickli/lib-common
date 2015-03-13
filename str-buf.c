@@ -355,6 +355,12 @@ int sb_getline(sb_t *sb, FILE *f)
         start = end;
     } while (sb->data[sb->len - 1] != '\n');
 
+    if (likely(sb->len - orig.len > 0)
+    &&  unlikely(sb->data[sb->len - 1] != '\n'))
+    {
+        sb_addc(sb, '\n');
+    }
+
     return sb->len - orig.len;
 }
 
