@@ -1110,6 +1110,7 @@ static void log_module_register(void)
     static module_t *log_module;
 
     thr_hooks_register();
+    iop_module_register();
     log_module = module_register(LSTR("log"), &log_module,
                                  &log_initialize, &log_shutdown, NULL, 0);
     module_add_dep(log_module, LSTR("log"),  LSTR("thr_hooks"),
@@ -1117,6 +1118,7 @@ static void log_module_register(void)
     module_implement_method(log_module, &at_fork_on_child_method,
                             &log_atfork);
     MODULE_REQUIRE(log);
+    MODULE_REQUIRE(iop);
 
 #ifdef MEM_BENCH
     mem_bench_require();

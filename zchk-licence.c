@@ -29,7 +29,6 @@ static void t_ts_to_lstr(time_t ts, lstr_t *out)
 
 Z_GROUP_EXPORT(licence)
 {
-    MODULE_REQUIRE(iop);
     IOP_REGISTER_PACKAGES(&tstiop_licence__pkg, &core__pkg);
 
     Z_TEST(iop, "") {
@@ -154,5 +153,4 @@ Z_GROUP_EXPORT(licence)
         Z_ASSERT_NEG(licence_check_modules(lic.licence));
     } Z_TEST_END;
 
-    MODULE_RELEASE(iop);
 } Z_GROUP_END

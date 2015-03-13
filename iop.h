@@ -1096,6 +1096,8 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
  */
 MODULE_DECLARE(iop);
 
+void iop_module_register(void);
+
 #include "iop-macros.h"
 #include "iop-xml.h"
 #include "iop-json.h"

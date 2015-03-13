@@ -390,7 +390,6 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
 
 Z_GROUP_EXPORT(iop)
 {
-    MODULE_REQUIRE(iop);
 
     Z_TEST(dso_open, "test wether iop_dso_open works and loads stuff") { /* {{{ */
         t_scope;
@@ -4239,5 +4238,4 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END;
     /* }}} */
 
-    MODULE_RELEASE(iop);
 } Z_GROUP_END
