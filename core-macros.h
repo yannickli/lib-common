@@ -63,20 +63,17 @@
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
 # endif
 
-#if defined(__has_feature)
-# if  __has_feature(address_sanitizer)
-#   define __has_asan       1
-#   define __attr_noasan__  __attribute__((no_address_safety_analysis))
-# endif
-# if  __has_feature(thread_sanitizer)
-#   define __has_tsan       1
-#   define __attr_notsan__  __attribute__((no_sanitize_thread))
-# endif
-#endif
-#ifndef __has_asan
+#if  __has_feature(address_sanitizer)
+#  define __has_asan       1
+#  define __attr_noasan__  __attribute__((no_address_safety_analysis))
+#else
 # define __attr_noasan__
 #endif
-#ifndef __has_tsan
+
+#if  __has_feature(thread_sanitizer)
+#  define __has_tsan       1
+#  define __attr_notsan__  __attribute__((no_sanitize_thread))
+#else
 # define __attr_notsan__
 #endif
 
