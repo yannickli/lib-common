@@ -96,14 +96,14 @@ int str_replace(const char search, const char replace, char *subject);
 ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
     __leaf;
 
-__attribute__((nonnull)) const char *path_filepart(const char *filename);
-__attribute__((nonnull)) static inline char *vpath_filepart(char *path)
+__attr_nonnull__() const char *path_filepart(const char *filename);
+__attr_nonnull__() static inline char *vpath_filepart(char *path)
 {
     return (char*)path_filepart(path);
 }
 
-__attribute__((nonnull)) const char *path_extnul(const char *filename);
-__attribute__((nonnull)) static inline char *vpath_extnul(char *path)
+__attr_nonnull__() const char *path_extnul(const char *filename);
+__attr_nonnull__() static inline char *vpath_extnul(char *path)
 {
     return (char*)path_extnul(path);
 }

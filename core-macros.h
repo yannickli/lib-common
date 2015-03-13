@@ -77,6 +77,16 @@
 # define __attr_notsan__
 #endif
 
+#if  !__has_feature(nullability)
+# define nullable
+# define nonnull
+# define null_unspecified
+#else
+# define nullable          __nullable
+# define nonnull           __nonnull
+# define null_unspecified  __null_unspecified
+#endif
+
 /*
  * __attr_unused__             => unused vars
  * __attr_noreturn__           => functions that perform abord()/exit()
@@ -86,9 +96,9 @@
 # define __unused__             __attribute__((unused))
 # define __must_check__         __attribute__((warn_unused_result))
 # define __attr_noreturn__      __attribute__((noreturn))
-# define __attr_nonnull__(l)    __attribute__((nonnull l))
-# define __attr_printf__(a, b)  __attribute__((format(printf, a, b),nonnull(a)))
-# define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b),nonnull(a)))
+# define __attr_nonnull__(l)    __attribute__((__nonnull__ l))
+# define __attr_printf__(a, b)  __attribute__((format(printf, a, b),__nonnull__(a)))
+# define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b),__nonnull__(a)))
 #endif
 
 #ifdef __GNUC__

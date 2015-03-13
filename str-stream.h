@@ -391,7 +391,7 @@ ps_get_ps_upto_str_and_skip(pstream_t *ps, const char *s, pstream_t *out)
 /****************************************************************************/
 
 int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
-    __leaf __attribute__((nonnull(1, 2, 3)));
+    __leaf __attr_nonnull__((1, 2, 3));
 
 
 /****************************************************************************/
