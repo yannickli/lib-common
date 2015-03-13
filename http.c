@@ -1702,8 +1702,14 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
     }
 
     if (unlikely(w->state == HTTP_PARSER_CLOSE)) {
-        if (w->queries == 0 && ob_is_empty(&w->ob))
+        if (w->queries == 0 && ob_is_empty(&w->ob)) {
+            /* XXX We call shutdown(…, SHUT_RW) to force TCP to flush our
+             * writing buffer and protect our responses against a TCP RST
+             * which could be emitted by close() if there is some pending data
+             * in the read buffer (think about pipelining). */
+            shutdown(fd, SHUT_WR);
             goto close;
+        }
     } else {
         /* w->state == HTTP_PARSER_IDLE:
          *   queries > 0 means pending answer, client isn't lagging, we are.
