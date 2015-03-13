@@ -482,7 +482,6 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
     obj_retain(q);
     obj_retain(q);
     q->owner = w;
-    w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
     if (cb)
         q->trig_cb = httpd_trigger_dup(cb);
@@ -497,7 +496,9 @@ static ALWAYS_INLINE void httpd_query_detach(httpd_query_t *q)
         if (!q->own_ob)
             q->ob = NULL;
         dlist_remove(&q->query_link);
-        w->queries--;
+        if (q->parsed) {
+            w->queries--;
+        }
         w->queries_done -= q->answered;
         q->owner = NULL;
         obj_release(q);
@@ -962,6 +963,7 @@ static void httpd_query_done(httpd_t *w, httpd_query_t *q)
     q->query_sec  = now.tv_sec;
     q->query_usec = now.tv_usec;
     q->parsed     = true;
+    w->queries++;
     httpd_flush_answered(w);
     if (w->connection_close) {
         w->state = HTTP_PARSER_CLOSE;
