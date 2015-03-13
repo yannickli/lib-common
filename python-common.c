@@ -156,8 +156,6 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
 
 static void python_http_process_answer(python_query_t *q)
 {
-    t_scope;
-
     PyObject *exc_type  = NULL;
     PyObject *exc_value = NULL;
     PyObject *exc_tb    = NULL;
@@ -296,8 +294,7 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     httpc_query_hdrs_done(&q->q, -1, false);
 
     if (body && PyString_Check(body) && PyString_Size(body) > 0) {
-        const char *body_str = PyString_AsString(body);
-        ob_adds(ob, body_str);
+        ob_adds(ob, PyString_AsString(body));
     }
     Py_XDECREF(body);
     python_state_g = PyEval_SaveThread();
@@ -474,9 +471,8 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.url_args = lstr_dups(url_arg, strlen(url_arg));
 
     if (addr_info_str(&su, _G.url.s, _G.port, AF_UNSPEC) < 0) {
-        lstr_t str_err = lstr_fmt("unable to resolve: %s", _G.url.s);
-
-        PyErr_SetString(http_initialize_error, str_err.s);
+        PyErr_Format(http_initialize_error,
+                     "unable to resolve: %s", _G.url.s);
         return NULL;
     }
 
