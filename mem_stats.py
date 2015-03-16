@@ -32,7 +32,7 @@ COLUMNS = [
     "max_allocated", "max_unused", "max_used",
     "malloc_calls", "current_used", "current_allocated"
 ]
-POSITION = { s: i for (i, s) in enumerate(COLUMNS) }
+POSITION = dict((s, i) for (i, s) in enumerate(COLUMNS))
 NUM_COLUMNS = len(COLUMNS)
 
 

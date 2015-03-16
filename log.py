@@ -25,7 +25,9 @@ logging.addLevelName("NOTICE", NOTICE)
 class IntersecLogger(logging.Logger):
 
     def __init__(self):
-        super(IntersecLogger, self).__init__("intersec", 0)
+        # The python 2.6 implementation of the logging module use the old
+        # python class model, as a consequence we must not use super() here.
+        logging.Logger.__init__("intersec", 0)
 
     def panic(self, msg, *args, **kwargs):
         self.log(PANIC, msg, *args, **kwargs)
