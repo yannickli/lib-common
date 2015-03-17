@@ -226,7 +226,7 @@ iop_dso_t *iop_dso_open(const char *path, bool force_external_package)
         || force_external_package;
 
     dso = iop_dso_new();
-    dso->path   = lstr_dups(path, strlen(path));
+    dso->path = lstr_dup(LSTR_OPT(path));
     dso->handle = handle;
     while (*pkgp) {
         iopdso_register_pkg(dso, *pkgp++, use_external_packages);
