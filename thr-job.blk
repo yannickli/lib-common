@@ -44,7 +44,6 @@ static int eventfd(int initialvalue, int flags)
 #if !defined(NDEBUG) && !defined(__has_tsan)
 # define __has_thr_acc
 #endif
-#define CACHE_LINE_SIZE   64
 
 typedef struct thr_qnode_t thr_qnode_t;
 struct thr_qnode_t {

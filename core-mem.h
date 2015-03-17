@@ -250,6 +250,8 @@ enum mem_pools_t {
 #define MEM_BY_FRAME           force_cast(mem_flags_t, 1 << 11)
 #define MEM_EFFICIENT_REALLOC  force_cast(mem_flags_t, 1 << 12)
 
+#define CACHE_LINE_SIZE   64
+
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
     uint32_t    min_alignment;
@@ -262,7 +264,14 @@ typedef struct mem_pool_t {
     void  (*free)   (struct mem_pool_t *, void *);
 } mem_pool_t;
 
+
+
+/*
+ * mem_pool_cl_aligned ensure that allocation will be aligned on
+ * CACHE_LINE_SIZE to prevent false sharing between threads.
+ */
 extern mem_pool_t mem_pool_libc;
+extern mem_pool_t mem_pool_cl_aligned;
 extern mem_pool_t mem_pool_static;
 static ALWAYS_INLINE mem_pool_t *t_pool(void);
 

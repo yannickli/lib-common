@@ -27,7 +27,6 @@
 
 #include "core.h"
 
-
 /* Libc allocator {{{ */
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
@@ -103,6 +102,17 @@ mem_pool_t mem_pool_libc = {
     .free     = &libc_free,
     .mem_pool = MEM_LIBC | MEM_EFFICIENT_REALLOC,
     .min_alignment = sizeof(void *)
+};
+
+/* }}} */
+/* Libc cacheline aligned allocator {{{ */
+
+mem_pool_t mem_pool_cl_aligned = {
+    .malloc   = &libc_malloc,
+    .realloc  = &libc_realloc,
+    .free     = &libc_free,
+    .mem_pool = MEM_OTHER | MEM_EFFICIENT_REALLOC,
+    .min_alignment = CACHE_LINE_SIZE
 };
 
 /* }}} */
@@ -331,6 +341,11 @@ static void core_versions_initialize(void)
     /* check sanity of PAGE_SIZE */
     if (sysconf(_SC_PAGESIZE) != PAGE_SIZE) {
         e_panic("System page size is different from defined PAGE_SIZE");
+    }
+
+    /* check cache line */
+    if (sysconf(_SC_LEVEL1_DCACHE_LINESIZE) != CACHE_LINE_SIZE) {
+        e_panic("Cache line is different from defined CACHELINE");
     }
 }
 
