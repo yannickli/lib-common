@@ -156,6 +156,16 @@ const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
  */
 const char *iop_type_get_string_desc(iop_type_t type);
 
+/** Return whether the IOP type is scalar or not.
+ *
+ * A scalar type is a type that holds one and only one value (no structure,
+ * class or union).
+ *
+ * \param[in] type The IOP type
+ * \return true if the IOP type is scalar, false otherwise
+ */
+bool iop_type_is_scalar(iop_type_t type);
+
 static inline
 bool iop_field_is_reference(const iop_field_t *fdesc)
 {

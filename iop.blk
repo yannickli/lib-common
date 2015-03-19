@@ -507,6 +507,33 @@ lstr_t t_iop_type_to_c(lstr_t name)
     return lstr_init_(buf.data, buf.len, MEM_STACK);
 }
 
+bool iop_type_is_scalar(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_BOOL:
+      case IOP_T_ENUM:
+      case IOP_T_DOUBLE:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return true;
+
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        return false;
+    }
+
+    e_panic("iop_type unsupported");
+}
+
 /*------ various helpers -}}}-*/
 /*------ iop type string description -{{{-*/
 
