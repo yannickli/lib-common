@@ -20,29 +20,6 @@
 #include "python-common.h"
 #include "core.iop.h"
 
-/* http {{{ */
-/* type declaration {{{*/
-
-#define PYTHON_HTTP_POOL_SIZE 4096
-#define PYTHON_HTTP_MAX_PENDING 5000
-#define PYTHON_HTTP_MAXRATE_DEFAULT 100
-#define PYTHON_HTTP_MAXCONN_DEFAULT 10
-
-static void python_http_on_done(httpc_query_t *q, httpc_status_t status);
-
-static PyObject *http_initialize_error = NULL;
-static PyObject *http_query_error      = NULL;
-static PyObject *http_build_part_error = NULL;
-
-enum {
-    PYTHON_HTTP_STATUS_OK = 0,
-    PYTHON_HTTP_STATUS_ERROR = -1,
-    PYTHON_HTTP_STATUS_USERERROR = -2,
-    PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR = -3,
-};
-
-/* module structure {{{*/
-
 static struct {
     struct ev_t             *blocker;
     httpc_pool_t            *m;
@@ -64,13 +41,106 @@ static struct {
     PyObject                *cb_build_headers;
     PyObject                *cb_build_body;
     PyObject                *cb_parse_answer;
+
+    PyObject                *tb_module;
 } python_http_g;
 #define _G  python_http_g
 
 PyThreadState *python_state_g;
 
-/* }}}*/
-/* python_ctx_t {{{*/
+/* {{{ Helper */
+
+#define PYTHON_EXN_DEFAULT_MSG "failed to fetch exception traceback"
+
+static PyObject *py_bytes_from_obj(PyObject *o)
+{
+    if (Py_TYPE(o) == &PyUnicode_Type) {
+        return PyUnicode_AsEncodedString(o, "utf-8", "strict");
+    }
+    return PyObject_Str(o);
+}
+
+int sb_add_py_obj(sb_t *sb, PyObject *o)
+{
+    PyObject *obj;
+    char *tmp;
+    ssize_t len;
+
+    obj = RETHROW_PN(py_bytes_from_obj(o));
+
+    if (PyBytes_AsStringAndSize(obj, &tmp, &len) >= 0) {
+        sb_add(sb, tmp, len);
+    }
+    Py_DECREF(obj);
+
+    return 0;
+}
+
+void sb_add_py_traceback(sb_t *err)
+{
+    PyObject *type;
+    PyObject *value;
+    PyObject *traceback;
+    PyObject *tc_str;
+
+    PyErr_Fetch(&type, &value, &traceback);
+    if (unlikely(!type || !value || !traceback || !_G.tb_module)) {
+        if (!value || sb_add_py_obj(err, value) < 0) {
+            sb_adds(err, PYTHON_EXN_DEFAULT_MSG);
+        }
+        goto wipe;
+    }
+
+    tc_str = PyObject_CallMethod(_G.tb_module, (char *)"format_exception",
+                                 (char *)"OOO", type, value, traceback);
+    if (unlikely(!tc_str)) {
+        sb_adds(err, PYTHON_EXN_DEFAULT_MSG);
+    } else {
+        PyObject *string;
+        PyObject *ret;
+
+        string = PyUnicode_FromString("\n");
+        ret = PyUnicode_Join(string, tc_str);
+        if (sb_add_py_obj(err, ret) < 0) {
+            sb_adds(err, PYTHON_EXN_DEFAULT_MSG);
+        }
+
+        Py_DECREF(string);
+        Py_DECREF(tc_str);
+        Py_DECREF(ret);
+    }
+
+  wipe:
+    Py_XDECREF(type);
+    Py_XDECREF(value);
+    Py_XDECREF(traceback);
+}
+
+#undef PYTHON_EXN_DEFAULT_MSG
+
+/* }}} */
+/* http {{{ */
+/* type declaration {{{*/
+
+#define PYTHON_HTTP_POOL_SIZE 4096
+#define PYTHON_HTTP_MAX_PENDING 5000
+#define PYTHON_HTTP_MAXRATE_DEFAULT 100
+#define PYTHON_HTTP_MAXCONN_DEFAULT 10
+
+static void python_http_on_done(httpc_query_t *q, httpc_status_t status);
+
+static PyObject *http_initialize_error = NULL;
+static PyObject *http_query_error      = NULL;
+static PyObject *http_build_part_error = NULL;
+
+enum {
+    PYTHON_HTTP_STATUS_OK = 0,
+    PYTHON_HTTP_STATUS_ERROR = -1,
+    PYTHON_HTTP_STATUS_USERERROR = -2,
+    PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR = -3,
+};
+
+/* {{{ python_ctx_t */
 
 typedef struct python_ctx_t {
     PyObject *data;
@@ -88,6 +158,7 @@ static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
     ctx->expiry = _G.queue_timeout > 0 ? lp_getsec() + _G.queue_timeout : 0;
     return ctx;
 }
+
 static python_ctx_t *python_ctx_new(void);
 DO_MP_NEW(_G.pool, python_ctx_t, python_ctx);
 
@@ -99,11 +170,12 @@ static void python_ctx_wipe(python_ctx_t *ctx)
     Py_XDECREF(ctx->data);
     Py_XDECREF(ctx->cb_query_done);
 }
+
 static void python_ctx_delete(python_ctx_t **ctx);
 DO_MP_DELETE(_G.pool, python_ctx_t, python_ctx);
 
 /* }}}*/
-/* python_query_t {{{*/
+/* {{{ python_query_t */
 
 typedef struct python_query_t {
     python_ctx_t *ctx;
@@ -128,7 +200,7 @@ GENERIC_DELETE(python_query_t, python_query);
 
 /* }}}*/
 /* }}}*/
-/* private {{{*/
+/* {{{ private */
 
 static void
 python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
@@ -136,86 +208,104 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
 {
     python_ctx_t *ctx = *_ctx;
     PyObject     *res = NULL;
+    SB_1k(err);
 
-    if (restore_Thread)
+    if (restore_Thread) {
         PyEval_RestoreThread(python_state_g);
+    }
 
-    res = PyObject_CallFunction(ctx->cb_query_done, (char *)"Ois",
-                                ctx->data, status, err_msg.s);
+    res = PY_TRY_CATCH(PyObject_CallFunction(ctx->cb_query_done,
+                                             (char *)"Ois", ctx->data, status,
+                                             err_msg.s),
+                       &err);
+    if (!res) {
+        e_error("query_done callback raised an exception: \n%*pM",
+                SB_FMT_ARG(&err));
+    } else {
+        Py_DECREF(res);
+    }
 
-    Py_XDECREF(res);
     python_ctx_delete(&ctx);
 
-    if (restore_Thread)
+    if (restore_Thread) {
         python_state_g = PyEval_SaveThread();
+    }
 }
 
 static void python_http_process_answer(python_query_t *q)
 {
-    t_scope;
-
-    PyObject *exc_type  = NULL;
-    PyObject *exc_value = NULL;
-    PyObject *exc_tb    = NULL;
     int res = q->q.qinfo->code;
+    SB_8k(err);
 
     PyObject *cbk_res = NULL;
 
     if (res != HTTP_CODE_OK) {
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
-                             http_code_to_str(res), true);
+                              http_code_to_str(res), true);
         return;
     }
 
     PyEval_RestoreThread(python_state_g);
 
-    PyErr_Clear();
-    cbk_res = PyObject_CallFunction(_G.cb_parse_answer, (char *)"z#O",
-                                    q->q.payload.data, q->q.payload.len,
-                                    q->ctx->data);
-    PyErr_Fetch(&exc_type, &exc_value, &exc_tb);
-    if (exc_type) {
-        t_scope;
-        PyObject *exc_str;
-        lstr_t errmsg;
+    cbk_res = PY_TRY_CATCH(PyObject_CallFunction(_G.cb_parse_answer,
+                                                 (char *)"z#O",
+                                                 q->q.payload.data,
+                                                 q->q.payload.len,
+                                                 q->ctx->data),
+                           &err);
+    if (!cbk_res) {
+        lstr_t err_msg = LSTR_IMMED_V("parse callback raised an exception");
 
-        exc_str = exc_value ? PyObject_Str(exc_value) :
-                              PyString_FromString("undefined");
-        errmsg = t_lstr_fmt("parse cbk raises: %s",
-                            PyString_AsString(exc_str));
-        Py_XDECREF(exc_str);
-        Py_XDECREF(exc_type);
-        Py_XDECREF(exc_value);
-        Py_XDECREF(exc_tb);
+        e_error("%*pM: \n%*pM", LSTR_FMT_ARG(err_msg), SB_FMT_ARG(&err));
+        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
+                              err_msg, false);
+        goto end;
+    }
+
+    if (!PyInt_Check(cbk_res) || PyInt_AsLong(cbk_res) != 0l) {
+        lstr_t err_msg = LSTR_IMMED_V("parse callback does not return 0");
 
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
-                              errmsg, false);
-    } else
-    if (!cbk_res || !PyInt_Check(cbk_res) || PyInt_AsLong(cbk_res) != 0l) {
-        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
-                              LSTR_NULL_V, false);
+                              err_msg, false);
     } else {
         python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_OK,
                               LSTR_NULL_V, false);
     }
 
-    Py_XDECREF(cbk_res);
+    Py_DECREF(cbk_res);
 
+  end:
     python_state_g = PyEval_SaveThread();
+}
+
+static PyObject *build_part(python_ctx_t *ctx, PyObject *cb,
+                            PyObject *cb_args, const char *cb_name)
+{
+    t_scope;
+    PyObject *res;
+    SB_8k(err);
+    lstr_t err_msg;
+
+    if ((res = PY_TRY_CATCH(PyObject_CallObject(cb, cb_args), &err))) {
+        return res;
+    }
+
+    err_msg = t_lstr_fmt("%s callback raised an exception", cb_name);
+    e_error("%*pM: \n%*pM", LSTR_FMT_ARG(err_msg), SB_FMT_ARG(&err));
+
+    python_http_query_end(&ctx, PYTHON_HTTP_STATUS_USERERROR, err_msg, false);
+
+    return NULL;
 }
 
 static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
 {
-    PyObject *headers   = NULL;
-    PyObject *body      = NULL;
-    PyObject *cb_arg    = NULL;
-    PyObject *exc_type  = NULL;
-    PyObject *exc_value = NULL;
-    PyObject *exc_tb    = NULL;
-    python_query_t *q   = NULL;
+    PyObject *hdr  = NULL;
+    PyObject *body = NULL;
+    PyObject *cb_arg;
+    python_query_t *q;
     outbuf_t *ob;
     SB_1k(sb);
-
 
     /* build headers and body data */
     PyEval_RestoreThread(python_state_g);
@@ -224,40 +314,11 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     PyTuple_SetItem(cb_arg, 0, ctx->data);
     Py_XINCREF(ctx->data);
 
-    PyErr_Clear();
-#define PYTHON_HTTP_BUILD_PART(obj, cbk, part)                               \
-    obj = PyObject_CallObject(cbk, cb_arg);                                  \
-    PyErr_Fetch(&exc_type, &exc_value, &exc_tb);                             \
-    if (exc_type                                                             \
-    &&  PyErr_GivenExceptionMatches(exc_type, http_build_part_error))        \
-    {                                                                        \
-        t_scope;                                                             \
-        PyObject *exc_str;                                                   \
-        lstr_t errmsg;                                                       \
-                                                                             \
-        exc_str = exc_value ? PyObject_Str(exc_value) :                      \
-                              PyString_FromString("undefined");              \
-        errmsg = t_lstr_fmt("build %s cbk raises buildPartError: %s",        \
-                             part, PyString_AsString(exc_str));              \
-        python_http_query_end(&ctx, PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR,    \
-                              errmsg, false);                                \
-        Py_XDECREF(cb_arg);                                                  \
-        Py_XDECREF(headers);                                                 \
-        Py_XDECREF(body);                                                    \
-        Py_XDECREF(exc_str);                                                 \
-        Py_XDECREF(exc_type);                                                \
-        Py_XDECREF(exc_value);                                               \
-        Py_XDECREF(exc_tb);                                                  \
-        python_state_g = PyEval_SaveThread();                                \
-        return;                                                              \
-    }                                                                        \
-    PyErr_Restore(exc_type, exc_value, exc_tb);
-
-    PYTHON_HTTP_BUILD_PART(headers, _G.cb_build_headers, "headers");
-    PYTHON_HTTP_BUILD_PART(body, _G.cb_build_body, "body");
-#undef PYTHON_HTTP_BUILD_PART
-
-    Py_XDECREF(cb_arg);
+    if (!(hdr = build_part(ctx, _G.cb_build_headers, cb_arg, "build_headers"))
+    ||  !(body = build_part(ctx, _G.cb_build_body, cb_arg, "build_body")))
+    {
+        goto wipe;
+    }
 
     /* launch query */
     q = python_query_new();
@@ -286,27 +347,31 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     }
 
     ob = httpc_get_ob(&q->q);
-    if (headers && PyString_Check(headers) && PyString_Size(headers) > 0) {
-        ob_adds(ob, PyString_AsString(headers));
+    if (PyString_Check(hdr) && PyString_Size(hdr) > 0) {
+        ob_adds(ob, PyString_AsString(hdr));
     }
-    Py_XDECREF(headers);
     httpc_query_hdrs_done(&q->q, -1, false);
 
-    if (body && PyString_Check(body) && PyString_Size(body) > 0) {
-        const char *body_str = PyString_AsString(body);
-        ob_adds(ob, body_str);
+    if (PyString_Check(body) && PyString_Size(body) > 0) {
+        ob_adds(ob, PyString_AsString(body));
     }
+
+    httpc_query_done(&q->q);
+
+  wipe:
+    Py_DECREF(cb_arg);
+    Py_XDECREF(hdr);
     Py_XDECREF(body);
     python_state_g = PyEval_SaveThread();
 
-    httpc_query_done(&q->q);
 }
 
 static void process_queries(httpc_pool_t *m, httpc_t *w)
 {
     if (!python_state_g) {
-        /*while PyEval_SaveThread is not called by python_http_loop,
-         * do nothing*/
+        /* while PyEval_SaveThread is not called by python_http_loop,
+         * do nothing.
+         */
         return;
     }
 
@@ -346,8 +411,7 @@ static void python_http_on_done(httpc_query_t *_q, httpc_status_t status)
 {
     python_query_t *q = container_of(_q, python_query_t, q);
 
-
-    switch(status) {
+    switch (status) {
       case HTTPC_STATUS_OK:
         python_http_process_answer(q);
         break;
@@ -385,10 +449,9 @@ static void net_rtcl_on_ready(net_rctl_t *rctl)
 static PyObject *python_http_initialize(PyObject *self, PyObject *args)
 {
     t_scope;
-
-    PyObject   *cb_build_headers = NULL;
-    PyObject   *cb_build_body    = NULL;
-    PyObject   *cb_parse         = NULL;
+    PyObject *cb_build_headers = NULL;
+    PyObject *cb_build_body    = NULL;
+    PyObject *cb_parse         = NULL;
 
     struct core__httpc_cfg__t iop_cfg;
     httpc_cfg_t              *cfg     = NULL;
@@ -467,9 +530,8 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.url_args = lstr_dups(url_arg, strlen(url_arg));
 
     if (addr_info_str(&su, _G.url.s, _G.port, AF_UNSPEC) < 0) {
-        lstr_t str_err = lstr_fmt("unable to resolve: %s",
-                                 _G.url.s);
-        PyErr_SetString(http_initialize_error, str_err.s);
+        PyErr_Format(http_initialize_error,
+                     "unable to resolve: %s", _G.url.s);
         return NULL;
     }
 
@@ -499,6 +561,10 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     net_rctl_init(&_G.rctl, maxrate, net_rtcl_on_ready);
     net_rctl_start(&_G.rctl);
 
+    if (unlikely(!(_G.tb_module = PyImport_ImportModule("traceback")))) {
+        e_error("unable to import the Python traceback module");
+    }
+
     Py_RETURN_TRUE;
 }
 
@@ -514,6 +580,7 @@ static PyObject *python_http_shutdown(PyObject *self, PyObject *arg)
     Py_XDECREF(_G.cb_parse_answer);
     Py_XDECREF(_G.cb_build_body);
     Py_XDECREF(_G.cb_build_headers);
+    Py_XDECREF(_G.tb_module);
 
     Py_RETURN_TRUE;
 }
@@ -530,7 +597,8 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
                           &data,
                           &cb_query_done,
                           &path,
-                          &url_args)) {
+                          &url_args))
+    {
         PyErr_SetString(http_query_error,
                         "failed to parse http_query argument");
         return NULL;
@@ -575,7 +643,7 @@ static PyObject *loop(PyObject *self, PyObject *arg)
 
 /* }}} */
 /* }}} */
-/* log {{{ */
+/* {{{ log */
 
 static PyObject *python_log(PyObject *self, PyObject *args)
 {
@@ -624,7 +692,7 @@ static PyObject *python_log(PyObject *self, PyObject *args)
 }
 
 /* }}} */
-/* python module {{{ */
+/* {{{ python module */
 
 PyDoc_STRVAR(commonmodule_doc,
 "The goal of this module is to bind lib-common http and log API to python.\n"

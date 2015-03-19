@@ -43,6 +43,22 @@ iop_get_struct(const iop_pkg_t *pkg, lstr_t fullname)
             return *st;
         }
     }
+    for (const iop_iface_t * const *iface = pkg->ifaces; *iface; iface++) {
+        for (int i = 0; i < (*iface)->funs_len; i++) {
+            const iop_rpc_t *rpc = &(*iface)->funs[i];
+
+            if (lstr_equal2(fullname, rpc->args->fullname)) {
+                return rpc->args;
+            }
+            if (lstr_equal2(fullname, rpc->result->fullname)) {
+                return rpc->result;
+            }
+            if (lstr_equal2(fullname, rpc->exn->fullname)) {
+                return rpc->exn;
+            }
+        }
+    }
+
     return NULL;
 }
 
@@ -52,13 +68,14 @@ static void iopdso_fix_struct_ref(const iop_struct_t **st)
     lstr_t pkgname = iop_pkgname_from_fullname((*st)->fullname);
     const iop_pkg_t *pkg;
 
-    if (!pkgname.s) {
-        return;
-    }
     pkg = iop_get_pkg(pkgname);
     if (!pkg) {
-        e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
-        return;
+        pkgname = iop_pkgname_from_fullname(pkgname);
+        pkg = iop_get_pkg(pkgname);
+        if (!pkg) {
+            e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
+            return;
+        }
     }
     fix = iop_get_struct(pkg, (*st)->fullname);
     if (!fix) {
@@ -88,14 +105,6 @@ static void iopdso_fix_class_parent(const iop_struct_t *desc)
     }
 }
 
-static void iopdso_fix_rpc(lstr_t iface, const iop_struct_t **st)
-{
-    if (lstr_startswith((*st)->fullname, iface)) {
-        return;
-    }
-    iopdso_fix_struct_ref(st);
-}
-
 static void iopdso_fix_pkg(const iop_pkg_t *pkg)
 {
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
@@ -113,14 +122,12 @@ static void iopdso_fix_pkg(const iop_pkg_t *pkg)
         }
     }
     for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
-        lstr_t fullname = (*it)->fullname;
-
         for (int i = 0; i < (*it)->funs_len; i++) {
             iop_rpc_t *rpc = (iop_rpc_t *)&(*it)->funs[i];
 
-            iopdso_fix_rpc(fullname, &rpc->args);
-            iopdso_fix_rpc(fullname, &rpc->result);
-            iopdso_fix_rpc(fullname, &rpc->exn);
+            iopdso_fix_struct_ref(&rpc->args);
+            iopdso_fix_struct_ref(&rpc->result);
+            iopdso_fix_struct_ref(&rpc->exn);
         }
     }
 }
