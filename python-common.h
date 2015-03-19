@@ -15,7 +15,7 @@
 #define IS_LIBCOMMON_PYTHON_COMMON
 
 #include <Python.h>
-#include "str.h"
+#include "core.h"
 
 #if PY_MAJOR_VERSION >= 3
 #define IS_PY3K
