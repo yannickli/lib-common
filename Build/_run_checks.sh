@@ -13,6 +13,7 @@
 ##########################################################################
 
 where="$1"
+libcommondir=$(dirname "$(dirname "$(readlink -f "$0")")")
 shift
 
 if test "$TERM" != "dumb" -a -t 1 &&
@@ -79,10 +80,40 @@ else
 fi
 trap "rm $tmp $tmp2" 0
 
+set_www_env() {
+    case "$Z_TAG_SKIP" in *web*) return;; esac
+
+    z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
+    productdir=$(readlink -e "$1")
+    htdocs="$productdir"/www/htdocs/
+    index=$(basename "$productdir").php
+    intersec_so=$(find $(dirname "$productdir") -name intersec.so -not -path '*/\.*')
+    Z_WWW_HOST="${Z_WWW_HOST:-$(hostname -f)}"
+    Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium}"
+    Z_WWW_BROWSER="${Z_WWW_BROWSER:-Remote}"
+
+    # configure an apache website and add intersec.so to the php configuration
+    make -C "$z_www" all htdocs=$htdocs index=$index intersec_so=$intersec_so \
+                         host="${Z_WWW_PREFIX}.${Z_WWW_HOST}"
+    if [ $? -ne 0 ]; then
+        echo -e "****** Error ******\n"                                       \
+            "To run web test suite you need to have some privileges:\n"       \
+            " write access on: /etc/apache2/sites* | /etc/httpd/conf.d\n"     \
+            " write access on: /etc/php5/conf.d | /etc/php.d/ \n"             \
+            " sudoers without pwd on: /etc/init.d/apache2 | /etc/init.d/httpd"
+        exit 1
+    fi
+    # configure the product website spool (cache dir, .htaccess...)
+    make -C $htdocs
+
+    export Z_WWW_HOST Z_WWW_PREFIX Z_WWW_BROWSER
+}
+
+
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 export Z_BEHAVE=1
 export Z_HARNESS=1
-export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade}"
+export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
 
@@ -91,7 +122,7 @@ for TAG in ${TAGS[@]}
 do
      BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=-$TAG"
 done
-export BEHAVE_FLAGS="$BEHAVE_FLAGS --tags=-web --format z --no-summary"
+export BEHAVE_FLAGS="$BEHAVE_FLAGS --format z --no-summary"
 
 while read -r zd line; do
     t="${zd}${line}"
@@ -100,7 +131,9 @@ while read -r zd line; do
     start=$(date '+%s')
     case ./"$t" in
         */behave)
-            $pybin -m z $BEHAVE_FLAGS  $(dirname "./$t")/ci/features
+            productdir=$(dirname "./$t")
+            set_www_env $PWD/"$productdir"
+            $pybin -m z $BEHAVE_FLAGS "$productdir"/ci/features
             res=$?
             ;;
         *.py)
