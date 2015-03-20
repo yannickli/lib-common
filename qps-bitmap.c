@@ -52,7 +52,7 @@ uint64_t *w_deref_leaf(qps_bitmap_t *map, qps_bitmap_dispatch_t **dispatch,
 
     leaf_node = (*(*dispatch))[key.dispatch].node;
     if (leaf_node == 0) {
-        const uint32_t pages = map->root->nullable ? 2 : 1;
+        const uint32_t pages = map->root->is_nullable ? 2 : 1;
         if (!create) {
             return NULL;
         }
@@ -150,7 +150,7 @@ void unload_nodes(qps_bitmap_t *map)
 /* }}} */
 /* Public API {{{ */
 
-qps_handle_t qps_bitmap_create(qps_t *qps, bool nullable)
+qps_handle_t qps_bitmap_create(qps_t *qps, bool is_nullable)
 {
     qps_bitmap_root_t *map;
     qps_hptr_t cache;
@@ -158,7 +158,7 @@ qps_handle_t qps_bitmap_create(qps_t *qps, bool nullable)
     map = qps_hptr_alloc(qps, sizeof(qps_bitmap_root_t), &cache);
     p_clear(map, 1);
     memcpy(map->sig, QPS_BITMAP_SIG, countof(map->sig));
-    map->nullable = nullable;
+    map->is_nullable = is_nullable;
     return cache.handle;
 }
 
@@ -193,17 +193,17 @@ qps_bitmap_state_t qps_bitmap_get(qps_bitmap_t *map, uint32_t row)
     qps_hptr_deref(map->qps, &map->root_cache);
     dispatch_node = map->root->roots[key.root];
     if (dispatch_node == QPS_HANDLE_NULL) {
-        return map->root->nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
+        return map->root->is_nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
     }
 
     dispatch  = qps_pg_deref(map->qps, dispatch_node);
     leaf_node = (*dispatch)[key.dispatch].node;
     if (leaf_node == 0) {
-        return map->root->nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
+        return map->root->is_nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
     }
 
     leaf = qps_pg_deref(map->qps, leaf_node);
-    if (map->root->nullable) {
+    if (map->root->is_nullable) {
         uint64_t word = leaf[key.word_null];
         word >>= (key.bit_null * 2);
         if (!(word & 0x2)) {
@@ -226,7 +226,7 @@ qps_bitmap_state_t qps_bitmap_set(qps_bitmap_t *map, uint32_t row)
     dispatch = w_deref_dispatch(map, key, true);
     leaf     = w_deref_leaf(map, &dispatch, key, true);
 
-    if (map->root->nullable) {
+    if (map->root->is_nullable) {
         uint64_t word = leaf[key.word_null];
         word >>= (key.bit_null * 2);
         if (!(word & 0x2)) {
@@ -259,13 +259,13 @@ qps_bitmap_state_t qps_bitmap_reset(qps_bitmap_t *map, uint32_t row)
     uint64_t *leaf;
 
     qps_hptr_deref(map->qps, &map->root_cache);
-    dispatch = w_deref_dispatch(map, key, map->root->nullable);
-    leaf = w_deref_leaf(map, &dispatch, key, map->root->nullable);
+    dispatch = w_deref_dispatch(map, key, map->root->is_nullable);
+    leaf = w_deref_leaf(map, &dispatch, key, map->root->is_nullable);
     if (leaf == NULL) {
         return QPS_BITMAP_0;
     }
 
-    if (map->root->nullable) {
+    if (map->root->is_nullable) {
         uint64_t word = leaf[key.word_null];
         uint64_t mask;
         word >>= (key.bit_null * 2);
@@ -308,10 +308,10 @@ qps_bitmap_state_t qps_bitmap_remove(qps_bitmap_t *map, uint32_t row)
     dispatch = w_deref_dispatch(map, key, false);
     leaf = w_deref_leaf(map, &dispatch, key, false);
     if (leaf == NULL) {
-        return map->root->nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
+        return map->root->is_nullable ? QPS_BITMAP_NULL : QPS_BITMAP_0;
     }
 
-    if (map->root->nullable) {
+    if (map->root->is_nullable) {
         qps_bitmap_state_t previous;
         uint64_t word = leaf[key.word_null];
         uint64_t mask;
@@ -360,7 +360,7 @@ void qps_bitmap_compute_stats(qps_bitmap_t *map, size_t *_memory,
 
             for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
                 if ((*dispatch[j]).node) {
-                    if (map->root->nullable) {
+                    if (map->root->is_nullable) {
                         memory += 2 * QPS_PAGE_SIZE;
                     } else {
                         memory += QPS_PAGE_SIZE;

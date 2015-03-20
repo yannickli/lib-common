@@ -64,9 +64,9 @@ static void (print_time_diff)(const char *str, struct rusage *tstart,
                           &tstart, &tend, Count);                            \
     } while (0)
 
-static void run_seq_test(qps_t *qps, bool nullable, uint32_t count)
+static void run_seq_test(qps_t *qps, bool is_nullable, uint32_t count)
 {
-    qps_handle_t htrie = qhat_create(qps, 4, nullable);
+    qps_handle_t htrie = qhat_create(qps, 4, is_nullable);
     qhat_t trie;
 
     qhat_init(&trie, qps, htrie);
@@ -162,7 +162,7 @@ static void run_seq_test(qps_t *qps, bool nullable, uint32_t count)
     qhat_destroy(&trie);
 }
 
-static void run_rand_test(qps_t *qps, bool nullable, uint32_t count,
+static void run_rand_test(qps_t *qps, bool is_nullable, uint32_t count,
                           uint32_t (^sel_rand)(void))
 {
     qps_handle_t htrie = qhat_create(qps, 4, false);

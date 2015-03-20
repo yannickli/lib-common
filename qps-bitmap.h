@@ -83,7 +83,7 @@ typedef struct qps_bitmap_root_t {
     uint8_t  sig[16];
 
     /* Structure description */
-    flag_t nullable : 1;
+    flag_t is_nullable : 1;
     qps_bitmap_node_t roots[QPS_BITMAP_ROOTS];
 } qps_bitmap_root_t;
 
@@ -106,7 +106,7 @@ typedef enum qps_bitmap_state_t {
 /* }}} */
 /* Public API {{{ */
 
-qps_handle_t qps_bitmap_create(qps_t *qps, bool nullable) __leaf;
+qps_handle_t qps_bitmap_create(qps_t *qps, bool is_nullable) __leaf;
 void qps_bitmap_destroy(qps_bitmap_t *map) __leaf;
 void qps_bitmap_clear(qps_bitmap_t *map) __leaf;
 void qps_bitmap_unload(qps_bitmap_t *map) __leaf;
@@ -137,7 +137,7 @@ typedef struct qps_bitmap_enumerator_t {
     qps_bitmap_key_t key;
     bool end;
     bool value;
-    bool nullable;
+    bool is_nullable;
 
     const uint64_t *leaf;
     const qps_bitmap_dispatch_t *dispatch;
@@ -237,7 +237,7 @@ static inline
 void qps_bitmap_enumeration_find_word(qps_bitmap_enumerator_t *en,
                                       qps_bitmap_key_t key)
 {
-    if (en->nullable) {
+    if (en->is_nullable) {
         assert (en->leaf != NULL);
         for (unsigned i = key.word_null; i < QPS_BITMAP_NULL_WORD; i++) {
             if (en->leaf[i] != 0) {
@@ -291,7 +291,7 @@ void qps_bitmap_enumeration_find_bit(qps_bitmap_enumerator_t *en,
         }
         return;
     }
-    if (en->nullable) {
+    if (en->is_nullable) {
         while (en->current_word != 0) {
             unsigned bit = bsf64(en->current_word);
 
@@ -337,7 +337,7 @@ void qps_bitmap_enumeration_next(qps_bitmap_enumerator_t *en)
 {
     qps_bitmap_key_t key = en->key;
 
-    if (en->nullable) {
+    if (en->is_nullable) {
         en->current_word &= ~UINT64_C(3);
         key.bit_null++;
     } else {
@@ -363,7 +363,7 @@ void qps_bitmap_enumeration_go_to(qps_bitmap_enumerator_t *en, uint32_t row)
     if (en->key.dispatch < key.dispatch) {
         qps_bitmap_enumeration_find_leaf(en, key);
     } else
-    if (en->nullable) {
+    if (en->is_nullable) {
         if (en->key.word_null < key.word_null) {
             qps_bitmap_enumeration_find_word(en, key);
         } else {
@@ -390,8 +390,8 @@ qps_bitmap_enumerator_t qps_bitmap_start_enumeration_at(qps_bitmap_t *map,
     en.struct_gen = map->struct_gen;
     qps_hptr_deref(map->qps, &map->root_cache);
 
-    en.nullable = en.map->root->nullable;
-    if (!en.nullable) {
+    en.is_nullable = en.map->root->is_nullable;
+    if (!en.is_nullable) {
         en.value = 1;
     }
 
@@ -499,7 +499,7 @@ static inline
 void qps_bitmap_enumeration_find_word_nn(qps_bitmap_enumerator_t *en,
                                          qps_bitmap_key_t key)
 {
-    assert (!en->nullable);
+    assert (!en->is_nullable);
     assert (en->leaf != NULL);
     for (unsigned i = key.word; i < QPS_BITMAP_WORD; i++) {
         if (en->leaf[i] != 0) {
@@ -561,7 +561,7 @@ void qps_bitmap_enumeration_next_nn(qps_bitmap_enumerator_t *en)
 {
     qps_bitmap_key_t key = en->key;
 
-    if (en->nullable) {
+    if (en->is_nullable) {
         en->current_word &= ~UINT64_C(3);
         key.bit_null++;
     } else {
@@ -607,9 +607,9 @@ qps_bitmap_enumerator_t qps_bitmap_start_enumeration_at_nn(qps_bitmap_t *map,
     en.struct_gen = map->struct_gen;
     qps_hptr_deref(map->qps, &map->root_cache);
 
-    assert (!en.map->root->nullable);
-    en.nullable = false;
-    if (!en.nullable) {
+    assert (!en.map->root->is_nullable);
+    en.is_nullable = false;
+    if (!en.is_nullable) {
         en.value = 1;
     }
 

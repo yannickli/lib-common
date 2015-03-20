@@ -127,7 +127,7 @@ typedef struct qhat_root_t {
 
     /* Trie description */
     uint32_t    value_len;
-    flag_t      nullable : 1;
+    flag_t      is_nullable : 1;
     flag_t      do_stats : 1;
     qhat_node_t nodes[QHAT_ROOTS];
 
@@ -215,7 +215,8 @@ typedef struct qhat_compacthdr_t {
     uint32_t  keys[];
 } qhat_compacthdr_t;
 
-qps_handle_t qhat_create(qps_t *qps, uint32_t value_len, bool nullable) __leaf;
+qps_handle_t qhat_create(qps_t *qps, uint32_t value_len, bool is_nullable)
+    __leaf;
 void qhat_destroy(qhat_t *hat) __leaf;
 void qhat_clear(qhat_t *hat) __leaf;
 void qhat_unload(qhat_t *hat) __leaf;
@@ -444,7 +445,8 @@ void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
     hat->qps        = qps;
     hat->struct_gen = 1;
     qps_hptr_init(qps, handle, &hat->root_cache);
-    hat->desc = &qhat_descs_g[bsr32(hat->root->value_len) << 1 | hat->root->nullable];
+    hat->desc = &qhat_descs_g[bsr32(hat->root->value_len) << 1
+                              | hat->root->is_nullable];
 
     /* Conversion from older version of the structure */
     if (memcmp(QPS_TRIE_SIG, hat->root->sig, sizeof(QPS_TRIE_SIG))) {
@@ -453,7 +455,7 @@ void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
     }
     hat->do_stats = hat->root->do_stats;
 
-    if (hat->root->nullable) {
+    if (hat->root->is_nullable) {
         qps_bitmap_init(&hat->bitmap, qps, hat->root->bitmap);
     }
 }
@@ -646,7 +648,7 @@ typedef struct qhat_tree_enumerator_t {
      */
     uint32_t    key;
     bool        end;
-    bool        nullable;
+    bool        is_nullable;
 
     uint8_t     value_len;
     bool        compact;
@@ -939,7 +941,7 @@ typedef union qhat_enumerator_t {
     struct {
         uint32_t    key;
         bool        end;
-        bool        nullable;
+        bool        is_nullable;
         /* 2 bytes padding */
         const void *value;
 
@@ -972,8 +974,8 @@ void qhat_enumeration_catchup(qhat_enumerator_t *en, bool value, bool safe)
 static ALWAYS_INLINE
 void qhat_enumeration_next(qhat_enumerator_t *en, bool value, bool safe)
 {
-    if (en->nullable) {
-        assert (!en->bitmap.map->root->nullable);
+    if (en->is_nullable) {
+        assert (!en->bitmap.map->root->is_nullable);
         qps_bitmap_enumeration_next_nn(&en->bitmap);
         qhat_enumeration_catchup(en, value, safe);
     } else {
@@ -987,15 +989,15 @@ qhat_enumerator_t qhat_start_enumeration_at(qhat_t *trie, uint32_t key)
     qhat_enumerator_t en;
 
     qps_hptr_deref(trie->qps, &trie->root_cache);
-    if (trie->root->nullable) {
+    if (trie->root->is_nullable) {
         p_clear(&en, 1);
-        en.trie     = qhat_tree_start_enumeration_at(trie, key);
-        en.bitmap   = qps_bitmap_start_enumeration_at_nn(&trie->bitmap, key);
-        en.nullable = true;
+        en.trie        = qhat_tree_start_enumeration_at(trie, key);
+        en.bitmap      = qps_bitmap_start_enumeration_at_nn(&trie->bitmap, key);
+        en.is_nullable = true;
         qhat_enumeration_catchup(&en, true, true);
     } else {
         en.t = qhat_tree_start_enumeration_at(trie, key);
-        en.nullable = false;
+        en.is_nullable = false;
     }
     return en;
 }
@@ -1010,8 +1012,8 @@ static ALWAYS_INLINE
 void qhat_enumeration_go_to(qhat_enumerator_t *en, uint32_t key, bool value,
                             bool safe)
 {
-    if (en->nullable) {
-        assert (!en->bitmap.map->root->nullable);
+    if (en->is_nullable) {
+        assert (!en->bitmap.map->root->is_nullable);
         qps_bitmap_enumeration_go_to_nn(&en->bitmap, key);
         qhat_enumeration_catchup(en, value, safe);
     } else {
@@ -1022,12 +1024,12 @@ void qhat_enumeration_go_to(qhat_enumerator_t *en, uint32_t key, bool value,
 static ALWAYS_INLINE
 const void *qhat_enumeration_get_value_safe(qhat_enumerator_t *en)
 {
-    if (en->nullable) {
+    if (en->is_nullable) {
         if (!en->end && en->trie.key != en->key) {
             qhat_enumeration_catchup(en, true, true);
         } else {
             en->value = qhat_tree_enumeration_get_value_safe(&en->trie);
-            if (en->nullable && en->value == NULL) {
+            if (en->is_nullable && en->value == NULL) {
                 en->value = &qhat_default_zero_g;
             }
         }
@@ -1040,12 +1042,12 @@ const void *qhat_enumeration_get_value_safe(qhat_enumerator_t *en)
 static ALWAYS_INLINE
 const void *qhat_get_enumeration_value(qhat_enumerator_t *en)
 {
-    if (en->nullable) {
+    if (en->is_nullable) {
         if (!en->end && en->trie.key != en->key) {
             qhat_enumeration_catchup(en, true, false);
         } else {
             en->value = qhat_tree_get_enumeration_value(&en->trie);
-            if (en->nullable && en->value == NULL) {
+            if (en->is_nullable && en->value == NULL) {
                 en->value = &qhat_default_zero_g;
             }
         }
@@ -1060,7 +1062,7 @@ qhat_path_t qhat_enumeration_get_path(const qhat_enumerator_t *en)
 {
     qhat_path_t p;
 
-    if (en->nullable) {
+    if (en->is_nullable) {
         if (!en->trie.end && en->key == en->trie.key) {
             p = en->trie.path;
         } else {
@@ -1076,7 +1078,7 @@ qhat_path_t qhat_enumeration_get_path(const qhat_enumerator_t *en)
 static ALWAYS_INLINE
 qhat_t *qhat_enumeration_get_hat(qhat_enumerator_t *en)
 {
-    if (en->nullable) {
+    if (en->is_nullable) {
         return en->trie.path.hat;
     } else {
         return en->t.path.hat;

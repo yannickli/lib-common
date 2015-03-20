@@ -982,17 +982,17 @@ void qhat_optimize(qhat_path_t *path)
 /** \} */
 /* Public API {{{ */
 
-qps_handle_t qhat_create(qps_t *qps, uint32_t value_len, bool nullable)
+qps_handle_t qhat_create(qps_t *qps, uint32_t value_len, bool is_nullable)
 {
     qps_hptr_t cache;
     qhat_root_t *hat = qps_hptr_alloc(qps, sizeof(qhat_root_t), &cache);
 
     p_clear(hat, 1);
     memcpy(hat->sig, QPS_TRIE_SIG, countof(hat->sig));
-    hat->value_len = value_len;
-    hat->nullable  = nullable;
+    hat->value_len   = value_len;
+    hat->is_nullable = is_nullable;
 
-    if (nullable) {
+    if (is_nullable) {
         hat->bitmap = qps_bitmap_create(qps, false);
     }
     return cache.handle;
@@ -1049,7 +1049,7 @@ void qhat_clear(qhat_t *hat)
     p_clear(hat->root->nodes, QHAT_ROOTS);
     hat->struct_gen++;
 
-    if (hat->root->nullable) {
+    if (hat->root->is_nullable) {
         qps_bitmap_clear(&hat->bitmap);
     }
 
@@ -1078,7 +1078,7 @@ void qhat_destroy(qhat_t *hat)
         qhat_wipe_dispatch_node(hat, root, hat->desc->root_node_count);
         e_named_trace(3, "trie/wipe", "wipe done  root");
 
-        if (hat->root->nullable) {
+        if (hat->root->is_nullable) {
             qps_bitmap_destroy(&hat->bitmap);
         }
         qps_hptr_free(hat->qps, &hat->root_cache);
@@ -1313,8 +1313,8 @@ qhat_tree_enumerator_t qhat_tree_start_enumeration_at(qhat_t *trie, uint32_t key
     p_clear(&en, 1);
     en.path.hat        = trie;
     en.path.generation = trie->struct_gen;
-    en.value_len = en.path.hat->desc->value_len;
-    en.nullable  = en.path.hat->root->nullable;
+    en.value_len   = en.path.hat->desc->value_len;
+    en.is_nullable = en.path.hat->root->is_nullable;
 
     qhat_tree_enumeration_find_up_down(&en, key);
     if (!en.end) {
@@ -1379,7 +1379,7 @@ void qhat_get_qps_roots(qhat_t *hat, qps_roots_t *roots)
 
     qv_append(qps_handle, &roots->handles, hat->root_cache.handle);
 
-    if (hat->root->nullable) {
+    if (hat->root->is_nullable) {
         qps_bitmap_get_qps_roots(&hat->bitmap, roots);
     }
 }
