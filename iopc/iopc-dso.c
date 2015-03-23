@@ -156,25 +156,6 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min, uint16_t class_id_max)
     iopc_g.class_id_max = class_id_max;
 }
 
-static int iopc_dso_uptodate(const char *dso, const char *iopfile)
-{
-    struct stat dso_st, iop_st;
-
-    if (stat(iopfile, &iop_st) < 0) {
-        return logger_error(&_G.logger, "unable to stat IOP file build %s",
-                            iopfile);
-    }
-    /* XXX valgrind does not support loading dso built with -g3, so always
-     * rebuild the dso just in case (c.f. do_compile)
-     */
-    if (!RUNNING_ON_VALGRIND) {
-        if (stat(dso, &dso_st) == 0 && iop_st.st_mtime < dso_st.st_mtime) {
-            return true;
-        }
-    }
-    return false;
-}
-
 int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
                    const char *outdir)
 {
@@ -185,15 +166,15 @@ int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
     qv_t(str) sources;
     int ret = 0;
     const char *filepart = path_filepart(iopfile);
-    bool uptodate;
+    struct stat iop_st;
 
     qv_init(str, &sources);
 
     path_extend(so_path, outdir, "%s.so", filepart);
-    uptodate = RETHROW(iopc_dso_uptodate(so_path, iopfile));
-    if (uptodate) {
-        logger_info(&_G.logger, "iop plugin %s already up-to-date", so_path);
-        return 0;
+
+    if (stat(iopfile, &iop_st) < 0) {
+        return logger_error(&_G.logger, "unable to stat IOP file %s: %m",
+                            iopfile);
     }
 
     path_extend(tmppath, outdir, "%s.%d.XXXXXX", filepart, getpid());
