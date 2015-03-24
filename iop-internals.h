@@ -47,6 +47,8 @@ enum iop_field_flags_t {
     IOP_FIELD_IS_REFERENCE,         /**< field points to the value          */
 };
 
+/* XXX do not change the field structure because of backward
+ * compatibility issues */
 typedef struct iop_field_t {
     lstr_t       name;
     uint16_t     tag;
