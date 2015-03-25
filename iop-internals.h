@@ -236,6 +236,8 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_GEN_ATTR_I,
     IOP_FIELD_GEN_ATTR_D,
     IOP_FIELD_GEN_ATTR_O,
+    IOP_FIELD_DEPRECATED,
+    IOP_FIELD_SNMP_GET,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -258,6 +260,7 @@ typedef enum iop_struct_attr_type_t {
     IOP_STRUCT_GEN_ATTR_I,
     IOP_STRUCT_GEN_ATTR_D,
     IOP_STRUCT_GEN_ATTR_O,
+    IOP_STRUCT_DEPRECATED,
 } iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
@@ -292,6 +295,12 @@ typedef struct iop_class_attrs_t {
     uint16_t                   class_id;
 } iop_class_attrs_t;
 
+/* SnmpObj and snmpIface attributes */
+typedef struct iop_snmp_attrs_t {
+    const iop_struct_t        *parent; /**< NULL if parent is Intersec      */
+    uint16_t                   oid;
+} iop_snmp_attrs_t;
+
 struct iop_struct_t {
     const lstr_t        fullname;
     const iop_field_t  *fields;
@@ -308,7 +317,10 @@ struct iop_struct_t {
     union {
         /* XXX do not dereference the following members without checking
          * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
-        const iop_class_attrs_t  *class_attrs;
+        const iop_class_attrs_t *class_attrs;
+        /* XXX do not dereference the following members without checking
+         * TST_BIT(this->flags, IOP_STRUCT_IS_SNMP_OBJ) first */
+        const iop_snmp_attrs_t *snmp_attrs;
     };
 };
 
@@ -318,6 +330,7 @@ enum iop_struct_flags_t {
     IOP_STRUCT_IS_CLASS,        /**< is it a class? */
     IOP_STRUCT_STATIC_HAS_TYPE, /**< in class mode, does iop_static_field_t
                                  * have a type field? */
+    IOP_STRUCT_IS_SNMP_OBJ,     /**< is it a snmpObj? */
 };
 
 /*}}}*/

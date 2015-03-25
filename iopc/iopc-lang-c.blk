@@ -121,9 +121,9 @@ static void iopc_struct_optimize(iopc_struct_t *st)
         return;
     }
 
-    if (st->type == STRUCT_TYPE_CLASS) {
-        /* XXX: we don't want to reorder class fields to ease debugging and
-         *      backward compatibility. */
+    if (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)) {
+        /* XXX: we don't want to reorder class/snmpObj fields to ease
+         * debugging and backward compatibility. */
         do_reorder = false;
     } else {
         do_reorder = iopc_attr_check(&st->attrs, IOPC_ATTR_NO_REORDER,
@@ -788,13 +788,13 @@ iopc_struct_dump_fields(sb_t *buf, int ident, iopc_field_t **fields, int len)
     }
 }
 
-static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
+static void iopc_struct_dump_hdr_class_snmp_obj(sb_t *buf, iopc_struct_t *st)
 {
     qv_t(iopc_struct) parents;
     qv_t(iopc_pkg)    parents_pkgs;
     int ident;
 
-    if (!st->extends.len) {
+    if (!st->extends.len || st->extends.tab[0]->is_snmp_root) {
         sb_adds(buf, "    const iop_struct_t *__vptr;\n");
         return;
     }
@@ -807,7 +807,7 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
         qv_append(iopc_pkg, &parents_pkgs, st->extends.tab[0]->pkg);
         st = st->extends.tab[0]->st;
         qv_append(iopc_struct, &parents, st);
-    } while (st->extends.len);
+    } while (st->extends.len && !st->extends.tab[0]->is_snmp_root);
 
     /* Print parent structure */
     for (ident = 4; ident <= 4 * parents.len; ident += 4) {
@@ -845,8 +845,8 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     iopc_struct_optimize(st);
     sb_addf(buf, "struct %s__t {\n", tbase);
 
-    if (st->type == STRUCT_TYPE_CLASS) {
-        iopc_struct_dump_hdr_class(buf, st);
+    if (st->type == STRUCT_TYPE_CLASS || st->type == STRUCT_TYPE_SNMP_OBJ) {
+        iopc_struct_dump_hdr_class_snmp_obj(buf, st);
     }
     iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
 
@@ -1898,6 +1898,24 @@ iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
             LSTR_FMT_ARG(attr->desc->name), f->name);
 }
 
+static void
+iopc_dump_snmp_obj_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
+                         const char *tbase, int oid, bool xt_is_snmp_root)
+{
+    sb_addf(buf,
+            "%s iop_snmp_attrs_t %s__snmp_obj__s "
+            "= {\n",
+            CONST, tbase);
+    if (!xt_is_snmp_root) {
+        sb_addf(buf,
+                "    .parent = &%s__%s__s,\n",
+                pp_under(pkg->name), pp_to_c(st->name));
+    }
+    sb_addf(buf,
+            "    .oid    = %d,\n", oid);
+    sb_adds(buf, "};\n");
+}
+
 static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                                  sb_t *sb, iopc_attrs_t *attrs,
                                  const iopc_field_t *f)
@@ -2068,6 +2086,13 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
           case IOPC_ATTR_GENERIC:
             type = TK_TYPE_TO_GEN_TYPE(FIELD, attr->args.tab[0].type);
             iopc_dump_field_attr(attr, type, &attrs_body, attrs, f);
+            break;
+
+          case IOPC_ATTR_SNMP_GET:
+            SET_BIT(&attrs->flags, IOP_FIELD_SNMP_GET);
+            break;
+          case IOPC_ATTR_DEPRECATED:
+            SET_BIT(&attrs->flags, IOP_FIELD_DEPRECATED);
             break;
 
           default:
@@ -2436,7 +2461,7 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
 static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                                    bool has_attrs, char *as_base)
 {
-    if (iopc_g.v4 && st->type == STRUCT_TYPE_CLASS) {
+    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type))) {
         t_scope;
         lstr_t st_attrs = t_lstr_fmt("&%s__s_desc_attrs", tbase);
         lstr_t fields_attrs = t_lstr_fmt("%s__desc_fields_attrs", as_base);
@@ -2451,11 +2476,18 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                 st->has_fields_attrs ? fields_attrs.s : "NULL");
 
         sb_adds(buf, LVL1 "{\n");
-        sb_addf(buf, LVL2 ".class_attrs  = &%s__class_s,\n", tbase);
+        if (iopc_is_class(st->type)) {
+            sb_addf(buf, LVL2 ".class_attrs  = &%s__class_s,\n", tbase);
+        } else {
+            sb_addf(buf, LVL2".snmp_attrs  = &%s__snmp_obj__s,\n", tbase);
+        }
         sb_adds(buf, LVL1 "}\n");
         return;
     }
 
+    if (iopc_is_snmp_obj(st->type)) {
+        fatal_loc("snmp can only be used with iopc v4", st->loc);
+    }
     if (st->flags) {
         sb_addf(buf, LVL1 ".flags      = %d,\n", st->flags);
     }
@@ -2593,6 +2625,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         if (st->type == STRUCT_TYPE_CLASS) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_CLASS);
+        } else
+        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_OBJ);
         }
     }
 
@@ -2634,6 +2670,12 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 sb_addf(buf,                                                 \
                         "    .class_id          = %d,\n", st->class_id);     \
                 sb_adds(buf, "};\n");                                        \
+            } else                                                           \
+            if (st->type == STRUCT_TYPE_SNMP_OBJ) {                          \
+                iopc_dump_snmp_obj_attrs(buf, st->extends.tab[0]->st,        \
+                                         st->extends.tab[0]->pkg, _tbase,    \
+                                         st->oid,                            \
+                                         st->extends.tab[0]->is_snmp_root);  \
             }                                                                \
             sb_addf(buf,                                                     \
                     "const iop_struct_t %s__s = {\n"                         \
