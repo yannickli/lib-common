@@ -45,6 +45,7 @@ enum iop_field_flags_t {
     IOP_FIELD_CHECK_CONSTRAINTS,    /**< check_constraints function exists  */
     IOP_FIELD_NO_EMPTY_ARRAY,       /**< indicates presence of @minOccurs   */
     IOP_FIELD_IS_REFERENCE,         /**< field points to the value          */
+    IOP_FIELD_HAS_SNMP_INFO,
 };
 
 /* XXX do not change the field structure because of backward
@@ -238,6 +239,7 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_GEN_ATTR_O,
     IOP_FIELD_DEPRECATED,
     IOP_FIELD_SNMP_GET,
+    IOP_FIELD_SNMP_INFO, /**< not a real attribute, used in snmpObj         */
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -387,6 +389,7 @@ typedef enum iop_iface_attr_type_t {
     IOP_IFACE_GEN_ATTR_I,
     IOP_IFACE_GEN_ATTR_D,
     IOP_IFACE_GEN_ATTR_O,
+    IOP_IFACE_DEPRECATED,
 } iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
@@ -413,11 +416,15 @@ typedef struct iop_iface_t {
     /** check TST_BIT(flags, IOP_IFACE_HAS_ATTRS)
      *  before accessing iface_attrs */
     const iop_iface_attrs_t *iface_attrs;
+    /** check TST_BIT(flags, IOP_IFACE_IS_SNMP_IFACE)
+     *  before accessing iface_attrs */
+    const iop_snmp_attrs_t  *snmp_iface_attrs;
 } iop_iface_t;
 
 enum iop_iface_flags_t {
     IOP_IFACE_EXTENDED,
     IOP_IFACE_HAS_ATTRS,
+    IOP_IFACE_IS_SNMP_IFACE,
 };
 
 /*}}}*/
