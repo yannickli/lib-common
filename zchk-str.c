@@ -1574,6 +1574,18 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT(ps_strequal(&extract, "foo "));
     } Z_TEST_END;
 
+    Z_TEST(ps_endswith, "") {
+        pstream_t ps1 = ps_initstr("toto");
+        pstream_t ps2 = ps_initstr("42toto");
+        pstream_t ps3 = ps_initstr("toto42");
+        pstream_t ps4 = ps_initstr("");
+
+        Z_ASSERT(ps_endswithstr(&ps1, "toto"));
+        Z_ASSERT(ps_endswithstr(&ps2, "toto"));
+        Z_ASSERT(!ps_endswithstr(&ps3, "toto"));
+        Z_ASSERT(!ps_endswithstr(&ps4, "toto"));
+    } Z_TEST_END;
+
     Z_TEST(lstr_ascii_icmp, "str: lstr_ascii_icmp") {
 #define T(_str1, _str2, _expected)                                       \
         Z_ASSERT(lstr_ascii_icmp(&LSTR_IMMED_V(_str1),                   \
