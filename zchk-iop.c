@@ -4066,22 +4066,25 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(iop_enum, "test iop enums") { /* {{{ */
         bool found = false;
 
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str("A", -1, -1), MY_ENUM_A_A);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str("b", -1, -1), MY_ENUM_A_B);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str("c", -1, -1), MY_ENUM_A_C);
-
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str2("A", -1, &found),
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "A", -1, -1),
                     MY_ENUM_A_A);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str2("b", -1, &found),
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "b", -1, -1),
                     MY_ENUM_A_B);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_str2("c", -1, &found),
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "c", -1, -1),
                     MY_ENUM_A_C);
 
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_lstr(LSTR("A"), &found),
+        Z_ASSERT_EQ(iop_enum_from_str2(tstiop__my_enum_a, "A", -1, &found),
                     MY_ENUM_A_A);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_lstr(LSTR("b"), &found),
+        Z_ASSERT_EQ(iop_enum_from_str2(tstiop__my_enum_a, "b", -1, &found),
                     MY_ENUM_A_B);
-        Z_ASSERT_EQ(tstiop__my_enum_a__from_lstr(LSTR("c"), &found),
+        Z_ASSERT_EQ(iop_enum_from_str2(tstiop__my_enum_a, "c", -1, &found),
+                    MY_ENUM_A_C);
+
+        Z_ASSERT_EQ(iop_enum_from_lstr(tstiop__my_enum_a, LSTR("A"), &found),
+                    MY_ENUM_A_A);
+        Z_ASSERT_EQ(iop_enum_from_lstr(tstiop__my_enum_a, LSTR("b"), &found),
+                    MY_ENUM_A_B);
+        Z_ASSERT_EQ(iop_enum_from_lstr(tstiop__my_enum_a, LSTR("c"), &found),
                     MY_ENUM_A_C);
     } Z_TEST_END
     /* }}} */

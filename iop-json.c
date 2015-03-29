@@ -450,7 +450,7 @@ static int iop_json_lex_enum(iop_json_lex_t *ll, int terminator,
     len = end - PS->s;
     s = LSTR_INIT_V(PS->s, len);
 
-    ll->ctx->u.i = iop_enum_from_lstr(fdesc->u1.en_desc, s, &found);
+    ll->ctx->u.i = iop_enum_from_lstr_desc(fdesc->u1.en_desc, s, &found);
     if (!found)
         return JERROR_WARG(IOP_JERR_ENUM_VALUE, len);
 
@@ -1860,7 +1860,8 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 #undef CASE
 
               case IOP_T_ENUM:
-                v = iop_enum_to_str(fdesc->u1.en_desc, IOP_FIELD(int, ptr, j)).s;
+                v = iop_enum_to_str_desc(fdesc->u1.en_desc,
+                                         IOP_FIELD(int, ptr, j)).s;
                 if (likely(v)) {
                     PUTS("\""); PUTS(v); PUTS("\"");
                 } else {

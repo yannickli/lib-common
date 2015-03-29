@@ -132,7 +132,7 @@ static int get_enum_value(xml_reader_t xr, const iop_enum_t *en_desc,
     RETHROW(xmlr_get_cstr_start(xr, false, &xval));
 
     /* Try to unpack the string value */
-    *intval = iop_enum_from_lstr(en_desc, xval, &found);
+    *intval = iop_enum_from_lstr_desc(en_desc, xval, &found);
     if (!found) {
         RETHROW(parse_int(xr, xval.s, intval));
     }

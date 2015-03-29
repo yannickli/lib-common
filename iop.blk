@@ -2367,8 +2367,8 @@ static int iop_enum_pos_from_str(const iop_enum_t *e, const char *s, int len)
     return -1;
 }
 
-int iop_enum_from_str2(const iop_enum_t *e, const char *s, int len,
-                       bool *found)
+int iop_enum_from_str2_desc(const iop_enum_t *e, const char *s, int len,
+                            bool *found)
 {
     int pos = iop_enum_pos_from_str(e, s, len);
 
@@ -2380,17 +2380,18 @@ int iop_enum_from_str2(const iop_enum_t *e, const char *s, int len,
     return e->values[pos];
 }
 
-int iop_enum_from_str(const iop_enum_t *e, const char *s, int len, int err)
+int iop_enum_from_str_desc(const iop_enum_t *e, const char *s, int len,
+                           int err)
 {
     bool found;
-    int val = iop_enum_from_str2(e, s, len, &found);
+    int val = iop_enum_from_str2_desc(e, s, len, &found);
 
     return (found) ? val : err;
 }
 
-int iop_enum_from_lstr(const iop_enum_t *e, const lstr_t s, bool *found)
+int iop_enum_from_lstr_desc(const iop_enum_t *e, const lstr_t s, bool *found)
 {
-    return iop_enum_from_str2(e, s.s, s.len, found);
+    return iop_enum_from_str2_desc(e, s.s, s.len, found);
 }
 
 

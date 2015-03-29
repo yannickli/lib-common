@@ -801,10 +801,24 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
  * \param[in] ed The IOP enum definition (__e).
  * \param[in] v  Integer value to look for.
  */
-static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
+static inline lstr_t iop_enum_to_str_desc(const iop_enum_t *ed, int v)
+{
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
     return unlikely(res < 0) ? LSTR_NULL_V : ed->names[res];
 }
+
+#define iop_enum_to_lstr(pfx, v)  ({                                         \
+        const pfx##__t _etl_v = (v);                                         \
+                                                                             \
+        iop_enum_to_str_desc(&pfx##__e, _etl_v);                             \
+    })
+#define iop_enum_to_str(pfx, v)  iop_enum_to_lstr(pfx, (v)).s
+
+#define iop_enum_exists(pfx, v)  ({                                          \
+        const pfx##__t _ee_v = (v);                                          \
+                                                                             \
+        iop_ranges_search(pfx##__e.ranges, pfx##__e.ranges_len, _ee_v) >= 0; \
+    })
 
 /** Convert a string to its integer value using an IOP enum mapping.
  *
@@ -819,7 +833,11 @@ static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
  * \param[in] len String length (or -1 if unknown).
  * \param[in] err Value to return in case of conversion error.
  */
-int iop_enum_from_str(const iop_enum_t *ed, const char *s, int len, int err);
+int iop_enum_from_str_desc(const iop_enum_t *ed, const char *s, int len,
+                           int err);
+
+#define iop_enum_from_str(pfx, s, len, err)  \
+    iop_enum_from_str_desc(&pfx##__e, (s), (len), (err))
 
 /** Convert a string to its integer value using an IOP enum mapping.
  *
@@ -834,8 +852,11 @@ int iop_enum_from_str(const iop_enum_t *ed, const char *s, int len, int err);
  * \param[in]  len   String length (or -1 if unknown).
  * \param[out] found Will be set to false upon failure, true otherwise.
  */
-int iop_enum_from_str2(const iop_enum_t *ed, const char *s, int len,
-                       bool *found);
+int iop_enum_from_str2_desc(const iop_enum_t *ed, const char *s, int len,
+                            bool *found);
+
+#define iop_enum_from_str2(pfx, s, len, found)  \
+    iop_enum_from_str2_desc(&pfx##__e, (s), (len), (found))
 
 /** Convert a lstr_t to its integer value using an IOP enum mapping.
  *
@@ -850,7 +871,12 @@ int iop_enum_from_str2(const iop_enum_t *ed, const char *s, int len,
  * \param[in]  len   String length (or -1 if unknown).
  * \param[out] found Will be set to false upon failure, true otherwise.
  */
-int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
+int iop_enum_from_lstr_desc(const iop_enum_t *ed, const lstr_t s,
+                            bool *found);
+
+#define iop_enum_from_lstr(pfx, s, found)  \
+    iop_enum_from_lstr_desc(&pfx##__e, (s), (found))
+
 
 /** Find a generic attribute value for an IOP enum.
  *

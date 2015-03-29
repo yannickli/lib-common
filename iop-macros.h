@@ -302,29 +302,7 @@
 /* }}} */
 /* {{{ Helpers generated for enums */
 
-#define IOP_ENUM(pfx) \
-    static inline const char *pfx##__to_str(pfx##__t v) {                    \
-        return iop_enum_to_str(&pfx##__e, v).s;                              \
-    }                                                                        \
-    static inline lstr_t pfx##__to_lstr(pfx##__t v) {                        \
-        return iop_enum_to_str(&pfx##__e, v);                                \
-    }                                                                        \
-    static inline int pfx##__from_str(const char *s, int len, int err) {     \
-        return iop_enum_from_str(&pfx##__e, s, len, err);                    \
-    }                                                                        \
-    static inline int pfx##__from_str2(const char *s, int len, bool *found)  \
-    {                                                                        \
-        return iop_enum_from_str2(&pfx##__e, s, len, found);                 \
-    }                                                                        \
-    static inline int pfx##__from_lstr(const lstr_t s, bool *found)          \
-    {                                                                        \
-        return iop_enum_from_lstr(&pfx##__e, s, found);                      \
-    }                                                                        \
-    static inline bool pfx##__exists(pfx##__t v)                             \
-    {                                                                        \
-        return iop_ranges_search(pfx##__e.ranges, pfx##__e.ranges_len,       \
-                                 v) >= 0;                                    \
-    }
+#define IOP_ENUM(pfx)
 
 /* }}} */
 /* {{{ Helpers generated for structures and unions */

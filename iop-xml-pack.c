@@ -85,7 +85,7 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         if (!(flags & IOP_XPACK_LITERAL_ENUMS)) {
             sb_addf(sb, "%i",      *( int32_t *)v);
         } else {
-            lstr_t str = iop_enum_to_str(f->u1.en_desc, *(int32_t *)v);
+            lstr_t str = iop_enum_to_str_desc(f->u1.en_desc, *(int32_t *)v);
             if (!str.s) {
                 sb_addf(sb, "%i",      *( int32_t *)v);
             } else {
