@@ -3204,9 +3204,10 @@ Z_GROUP_EXPORT(iop)
 
 #define CHECK_OK(_type, _filename)  \
         do {                                                                 \
-            Z_ASSERT_N(t_tstiop_inheritance__##_type##__junpack_ptr_file(    \
-                       t_fmt("%*pM/iop/" _filename,                          \
-                             LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err),    \
+            Z_ASSERT_N(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename,   \
+                                                    LSTR_FMT_ARG(z_cmddir_g)),\
+                                              &tstiop_inheritance__##_type##__s,\
+                                              (void **)&_type, 0, &err),     \
                        "junpack failed: %s", err.data);                      \
         } while (0)
 
@@ -3262,9 +3263,9 @@ Z_GROUP_EXPORT(iop)
 #define CHECK_FAIL(_type, _filename, _err)  \
         do {                                                                 \
             sb_reset(&err);                                                  \
-            Z_ASSERT_NEG(t_tstiop_inheritance__##_type##__junpack_ptr_file(  \
-                         t_fmt("%*pM/iop/" _filename,                        \
-                               LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err)); \
+            Z_ASSERT_NEG(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename, \
+                LSTR_FMT_ARG(z_cmddir_g)), &tstiop_inheritance__##_type##__s,\
+                (void **)&_type, 0, &err));                                  \
             Z_ASSERT(strstr(err.data, _err));                                \
         } while (0)
 
@@ -4220,8 +4221,8 @@ Z_GROUP_EXPORT(iop)
         obj.int2 = -2;
         obj.bool1 = true;
 
-        tstiop__my_class3__sb_jpack(&ref, &obj, IOP_JPACK_COMPACT
-                                              | IOP_JPACK_NO_TRAILING_EOL);
+        iop_sb_jpack(&ref, &tstiop__my_class3__s, &obj,
+                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
 
         sb_addf(&tst_sb, "%*pC", IOP_OBJ_FMT_ARG(&obj));
         Z_ASSERT_EQ(tst_sb.len, ref.len);

@@ -38,7 +38,8 @@ Z_GROUP_EXPORT(licence)
         core__signed_licence__t lic;
 
 #define Z_LOAD_LICENCE(path) \
-    Z_ASSERT_N(t_core__signed_licence__junpack_file(path, &lic, 0, &tmp));
+    Z_ASSERT_N(t_iop_junpack_file(path, &core__signed_licence__s, &lic, \
+                                  0, &tmp));
 
         Z_ASSERT_N(chdir(z_cmddir_g.s));
         Z_LOAD_LICENCE("samples/licence-iop-ok.cf");

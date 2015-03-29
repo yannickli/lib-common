@@ -917,7 +917,7 @@ t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
         }
     } else {
         *hdr = t_new_raw(ic__hdr__t, 1);
-        RETHROW(t_ic__hdr__bunpack_multi(*hdr, ps, false));
+        RETHROW(t_iop_bunpack_multi(&ic__hdr__s, *hdr, ps, false));
     }
     return 0;
 }
@@ -975,7 +975,7 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 
             sb_addf(&sb, "[slot:%x]; unpacked header: ",
                     (uint32_t)(slot & IC_MSG_SLOT_MASK));
-            ic__hdr__sb_jpack(&sb, *hdr, 0);
+            iop_sb_jpack(&sb, &ic__hdr__s, *hdr, 0);
             logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
         }
     }
@@ -1823,7 +1823,7 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
             SB_1k(sb);
 
             sb_addf(&sb, "[msg:%p/slot:%x]; packed header: ", msg, msg->slot);
-            ic__hdr__sb_jpack(&sb, msg->hdr, 0);
+            iop_sb_jpack(&sb, &ic__hdr__s, msg->hdr, 0);
             logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
         }
     } else {
