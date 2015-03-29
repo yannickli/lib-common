@@ -533,12 +533,15 @@ typedef struct iop_dso_vt_t {
     EXPORT bool iop_use_external_packages;  \
     bool iop_use_external_packages = true;
 
-#define IOP_EXPORT_PACKAGES_COMMON \
+#define IOP_EXPORT_PACKAGES_VTABLE \
     EXPORT iop_dso_vt_t iop_vtable;                                     \
     iop_dso_vt_t iop_vtable = {                                         \
         .vt_size = sizeof(iop_dso_vt_t),                                \
         .iop_set_verr = NULL,                                           \
-    };                                                                  \
+    };
+
+#define IOP_EXPORT_PACKAGES_COMMON \
+    IOP_EXPORT_PACKAGES_VTABLE                                          \
     iop_struct_t const iop__void__s = {                                 \
         .fullname   = LSTR_IMMED("Void"),                               \
         .fields_len = 0,                                                \
