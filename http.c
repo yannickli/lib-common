@@ -1363,7 +1363,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     dlist_init(&cfg->httpd_list);
     cfg->httpd_cls = obj_class(httpd);
 
-    core__httpd_cfg__init(&iop_cfg);
+    iop_init(core__httpd_cfg, &iop_cfg);
     httpd_cfg_from_iop(cfg, &iop_cfg);
 
     for (int i = 0; i < countof(cfg->roots); i++) {
@@ -2162,7 +2162,7 @@ httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg)
     p_clear(cfg, 1);
 
     cfg->httpc_cls = obj_class(httpc);
-    core__httpc_cfg__init(&iop_cfg);
+    iop_init(core__httpc_cfg, &iop_cfg);
     httpc_cfg_from_iop(cfg, &iop_cfg);
 
     return cfg;

@@ -776,7 +776,7 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
         }
     }
 }
-void iop_init(const iop_struct_t *desc, void *value)
+void iop_init_desc(const iop_struct_t *desc, void *value)
 {
     memset(value, 0, desc->size);
 
@@ -803,7 +803,7 @@ void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st)
 {
     void *res = mp_imalloc(mp, st->size, 8, MEM_RAW);
 
-    iop_init(st, res);
+    iop_init_desc(st, res);
 
     return res;
 }
@@ -1025,8 +1025,8 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
     return dst;
 }
 
-void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
-              size_t *psz)
+void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
+                         const void *v, size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -1059,8 +1059,8 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
     return res;
 }
 
-void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-              const void *v, size_t *psz)
+void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+                         const void *v, size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -1097,7 +1097,7 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
     *outp = res;
 }
 
-void iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
+void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
 {
     size_t offset = sizeof(iop_struct_t *);
     const iop_struct_t *v_desc = *(const iop_struct_t **)v;
@@ -1182,7 +1182,8 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                     t2  = *(void **)t2;
                 }
                 if (is_class) {
-                    THROW_IF(!iop_equals(fdesc->u1.st_desc, t1, t2), false);
+                    THROW_IF(!iop_equals_desc(fdesc->u1.st_desc, t1, t2),
+                             false);
                 } else {
                     THROW_IF(!__iop_equals(fdesc->u1.st_desc, t1, t2), false);
                 }
@@ -1207,7 +1208,7 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
     return true;
 }
 
-bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
+bool iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2)
 {
     if (v1 && v2) {
         if (iop_struct_is_class(st)) {
@@ -1500,8 +1501,8 @@ int compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
     return priv->cmp(d1, d2);
 }
 
-int iop_msort(const iop_struct_t *st, void *vec, int len,
-              const qv_t(iop_sort) *params, sb_t *err)
+int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
+                   const qv_t(iop_sort) *params, sb_t *err)
 {
     t_scope;
     bool is_class = iop_struct_is_class(st);
@@ -1538,8 +1539,8 @@ int iop_msort(const iop_struct_t *st, void *vec, int len,
     return 0;
 }
 
-int iop_sort(const iop_struct_t *st, void *vec, int len,
-             lstr_t field_path, int flags, sb_t *err)
+int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
+                  lstr_t field_path, int flags, sb_t *err)
 {
     qv_t(iop_sort) params;
     iop_sort_t param = {
@@ -1548,7 +1549,7 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
     };
 
     qv_init_static(iop_sort, &params, &param, 1);
-    return iop_msort(st, vec, len, &params, err);
+    return iop_msort_desc(st, vec, len, &params, err);
 }
 
 int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
@@ -1733,7 +1734,7 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                 v = *(void **)v;
             }
             if (is_class) {
-                RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
+                RETHROW(iop_check_constraints_desc(fdesc->u1.st_desc, v));
             } else {
                 RETHROW(__iop_check_constraints(fdesc->u1.st_desc, v));
             }
@@ -1796,7 +1797,7 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
     return 0;
 }
 
-int iop_check_constraints(const iop_struct_t *desc, const void *val)
+int iop_check_constraints_desc(const iop_struct_t *desc, const void *val)
 {
     if (iop_struct_is_class(desc)) {
         desc = *(const iop_struct_t **)val;

@@ -198,7 +198,14 @@ int iop_ranges_search(int const *ranges, int ranges_len, int tag);
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the IOP structure to initialize.
  */
-void  iop_init(const iop_struct_t *st, void *value);
+void  iop_init_desc(const iop_struct_t *st, void *value);
+
+#define iop_init(pfx, value)  ({                                             \
+        pfx##__t *__v = (value);                                             \
+                                                                             \
+        iop_init_desc(&pfx##__s, (void *)__v);                               \
+        __v;                                                                 \
+    })
 
 /** Allocate an IOP structure and initialize it with the correct
  *  default values.
@@ -237,7 +244,14 @@ static inline void *t_iop_new_desc(const iop_struct_t *st)
  * \param[in] v1  Pointer on the IOP structure to be compared.
  * \param[in] v2  Pointer on the IOP structure to be compared with.
  */
-bool  iop_equals(const iop_struct_t *st, const void *v1, const void *v2);
+bool  iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2);
+
+#define iop_equals(pfx, v1, v2)  ({                                          \
+        const pfx##__t *__v1 = (v1);                                         \
+        const pfx##__t *__v2 = (v2);                                         \
+                                                                             \
+        iop_equals_desc(&pfx##__s, (const void *)__v1, (const void *)__v2);  \
+    })
 
 /** Flags for IOP sorter. */
 enum iop_sort_flags {
@@ -269,8 +283,22 @@ enum iop_sort_flags {
  *                         iop_sort_flags)
  *  \param[out] err        In case of error, the error description.
  */
-int iop_sort(const iop_struct_t *st, void *vec, int len,
-             lstr_t field_path, int flags, sb_t *err);
+int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
+                  lstr_t field_path, int flags, sb_t *err);
+
+#define iop_sort(pfx, vec, len, field_path, flags, err)  ({                  \
+        pfx##__t *__vec = (vec);                                             \
+                                                                             \
+        iop_sort_desc(&pfx##__s, (void *)__vec, (len), (field_path),         \
+                      (flags), (err));                                       \
+    })
+
+#define iop_obj_sort(pfx, vec, len, field_path, flags, err)  ({              \
+        pfx##__t **__vec = (vec);                                            \
+                                                                             \
+        iop_sort_desc(&pfx##__s, (void *)__vec, (len), (field_path),         \
+                      (flags), (err));                                       \
+    })
 
 typedef struct iop_sort_t {
     lstr_t field_path;
@@ -292,8 +320,20 @@ qvector_t(iop_sort, iop_sort_t);
  *                         \see iop_sort for field path syntax and flags desc.
  *  \param[out] err        In case of error, the error description.
  */
-int iop_msort(const iop_struct_t *st, void *vec, int len,
-              const qv_t(iop_sort) *params, sb_t *err);
+int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
+                   const qv_t(iop_sort) *params, sb_t *err);
+
+#define iop_msort(pfx, vec, len, params, err)  ({                            \
+        pfx##__t *__vec = (vec);                                             \
+                                                                             \
+        iop_msort_desc(&pfx##__s, (void *)__vec, (len), (params), (err));    \
+    })
+
+#define iop_obj_msort(pfx, vec, len, params, err)  ({                        \
+        pfx##__t **__vec = (vec);                                            \
+                                                                             \
+        iop_msort_desc(&pfx##__s, (void *)__vec, (len), (params), (err));    \
+    })
 
 /** Filter a vector of IOP based on a given field or subfield of reference.
  *  It takes an array of IOP objets and an array of values, and filters out
@@ -332,8 +372,19 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
  * \param[in] v  The IOP structure to duplicate.
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
-              size_t *sz);
+void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
+                         const void *v, size_t *sz);
+
+#define mp_iop_dup_sz(mp, pfx, v, sz)  ({                                    \
+        const pfx##__t *_id_v = (v);                                         \
+                                                                             \
+        (pfx##__t *)mp_iop_dup_desc_sz((mp), &pfx##__s, (const void *)_id_v, \
+                                       (sz));                                \
+    })
+
+#define mp_iop_dup(mp, pfx, v)  mp_iop_dup_sz((mp), pfx, (v), NULL)
+#define iop_dup(pfx, v)         mp_iop_dup(NULL, pfx, (v))
+#define t_iop_dup(pfx, v)       mp_iop_dup(t_pool(), pfx, (v))
 
 /** Copy an IOP structure into another one.
  *
@@ -351,8 +402,20 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
  * \param[in] v    The IOP structure to copy.
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-               const void *v, size_t *sz);
+void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+                         const void *v, size_t *sz);
+
+#define mp_iop_copy_sz(mp, pfx, outp, v, sz)  do {                           \
+        pfx##__t **__outp = (outp);                                          \
+        const pfx##__t *__v = (v);                                           \
+                                                                             \
+        mp_iop_copy_desc_sz(mp, &pfx##__s, (void **)__outp,                  \
+                            (const void *)__v, (sz));                        \
+    } while (0)
+
+#define mp_iop_copy(mp, pfx, outp, v)  \
+    mp_iop_copy_sz((mp), pfx, (outp), (v), NULL)
+#define iop_copy(pfx, outp, v)  mp_iop_copy(NULL, pfx, (outp), (v))
 
 /** Copy an iop object into another one.
  *
@@ -366,7 +429,7 @@ void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
  *                  IOP_OBJ_DEEP_COPY: if set, data of v is duplicated
  */
 #define IOP_OBJ_DEEP_COPY  (1 << 0)
-void iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags);
+void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags);
 
 /** Generate a signature of an IOP structure.
  *
@@ -716,7 +779,13 @@ lstr_t iop_get_err_lstr(void) __cold;
  * \param[in] desc  IOP structure description.
  * \param[in] val   Pointer on the IOP structure to check constraints.
  */
-int iop_check_constraints(const iop_struct_t *desc, const void *val);
+int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
+
+#define iop_check_constraints(pfx, val)  ({                                  \
+        const pfx##__t *__v = (val);                                         \
+                                                                             \
+        iop_check_constraints_desc(&pfx##__s, (const void *)__v);            \
+    })
 
 /* }}} */
 /* {{{ IOP enum manipulation */

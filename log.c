@@ -366,7 +366,7 @@ get_configurations_recursive(logger_t *logger, lstr_t prefix,
 
     /* called first as it can force the update of several parameters
      * including the full name (calling __logger_refresh) */
-    core__logger_configuration__init(&conf);
+    iop_init(core__logger_configuration, &conf);
 
     /* Don't use logger_get_level since it takes the update_lock */
     __logger_do_refresh(logger);

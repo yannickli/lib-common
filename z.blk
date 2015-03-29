@@ -354,7 +354,7 @@ bool _z_assert_iopequal(const char *file, int lno,
     IN_TEST;
     _G.grp.t_asserts++;
 
-    if (!iop_equals(st, lh, rh)) {
+    if (!iop_equals_desc(st, lh, rh)) {
         SB_1k(sb);
 
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
@@ -404,7 +404,7 @@ bool _z_assert_iopjsonequal(const char *file, int lno,
         return true;
     }
 
-    if (!iop_equals(st, lh, data)) {
+    if (!iop_equals_desc(st, lh, data)) {
         SB_1k(sb);
 
         _z_add_extra(sb, fmt);

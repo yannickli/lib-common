@@ -909,9 +909,9 @@ t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
                    ic__hdr__t **hdr)
 {
     if (unpacked_msg) {
-        RETHROW(ic__hdr__check((ic__hdr__t *)unpacked_msg->hdr));
+        RETHROW(iop_check_constraints(ic__hdr, unpacked_msg->hdr));
         if (unpacked_msg->force_dup) {
-            *hdr = ic__hdr__dup(t_pool(), unpacked_msg->hdr);
+            *hdr = t_iop_dup(ic__hdr, unpacked_msg->hdr);
         } else {
             *hdr = (ic__hdr__t *)unpacked_msg->hdr;
         }
@@ -927,9 +927,10 @@ t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
                   pstream_t ps, void **value)
 {
     if (unpacked_msg) {
-        RETHROW(iop_check_constraints(st, unpacked_msg->data));
+        RETHROW(iop_check_constraints_desc(st, unpacked_msg->data));
         if (unpacked_msg->force_dup) {
-            *value = iop_dup(t_pool(), st, unpacked_msg->data, NULL);
+            *value = mp_iop_dup_desc_sz(t_pool(), st, unpacked_msg->data,
+                                        NULL);
         } else {
             *value = unpacked_msg->data;
         }
@@ -1091,7 +1092,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
             /* check for header replacement forcing */
-            if (pxy_hdr && hdr && !ic__hdr__equals(pxy_hdr, hdr)) {
+            if (pxy_hdr && hdr && !iop_equals(ic__hdr, pxy_hdr, hdr)) {
                 take_pxy_hdr = true;
             }
         }

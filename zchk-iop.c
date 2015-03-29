@@ -325,8 +325,8 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     Z_ASSERT_IOPEQUAL_DESC(st, v, res);
 
     /* test duplication */
-    Z_ASSERT_NULL(iop_dup(NULL, st, NULL, NULL));
-    Z_ASSERT_P(res = iop_dup(t_pool(), st, v, NULL),
+    Z_ASSERT_NULL(mp_iop_dup_desc_sz(NULL, st, NULL, NULL));
+    Z_ASSERT_P(res = mp_iop_dup_desc_sz(t_pool(), st, v, NULL),
                "IOP duplication error! (%s, %s)", st->fullname.s, info);
 
     /* check equality */
@@ -339,9 +339,9 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                    st->fullname.s, info);
 
     /* test copy */
-    iop_copy(t_pool(), st, (void **)&res, NULL, NULL);
+    mp_iop_copy_desc_sz(t_pool(), st, (void **)&res, NULL, NULL);
     Z_ASSERT_NULL(res);
-    iop_copy(t_pool(), st, (void **)&res, v, NULL);
+    mp_iop_copy_desc_sz(t_pool(), st, (void **)&res, v, NULL);
 
     /* check equality */
     Z_ASSERT_IOPEQUAL_DESC(st, v, res);
@@ -814,7 +814,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
-        iop_init(st_cls2, &cls2);
+        iop_init_desc(st_cls2, &cls2);
 
         /* We test that packing and unpacking of XML structures is stable */
         Z_HELPER_RUN(iop_xml_test_struct(st_se, &se, "se"));
@@ -839,13 +839,13 @@ Z_GROUP_EXPORT(iop)
                     "<unk4>foo</unk4>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_sf, &sf_ret);
+            iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
                          "unexpected successful unpacking");
             xmlr_close(&xmlr_g);
 
-            iop_init(st_sf, &sf_ret);
+            iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack_flags(xmlr_g, t_pool(), st_sf, &sf_ret,
                                          IOP_UNPACK_IGNORE_UNKNOWN),
@@ -875,13 +875,13 @@ Z_GROUP_EXPORT(iop)
                     "<b href=\'cid:foo\'/>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_sf, &sf_ret);
+            iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
                          "unexpected successful unpacking");
             xmlr_close(&xmlr_g);
 
-            iop_init(st_sf, &sf_ret);
+            iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack_parts(xmlr_g, t_pool(), st_sf, &sf_ret,
                                          0, &parts),
@@ -907,7 +907,7 @@ Z_GROUP_EXPORT(iop)
                     "<f>0x42</f>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_sa_opt, &sa_opt);
+            iop_init_desc(st_sa_opt, &sa_opt);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack(xmlr_g, t_pool(), st_sa_opt, &sa_opt));
             xmlr_close(&xmlr_g);
@@ -936,7 +936,7 @@ Z_GROUP_EXPORT(iop)
                 LSTR("foo6"),
             };
 
-            iop_init(st_cs, &cs);
+            iop_init_desc(st_cs, &cs);
             cs.s.tab = strings;
             cs.s.len = 2;
             Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
@@ -956,7 +956,7 @@ Z_GROUP_EXPORT(iop)
 
             /* unpacking should work (private values are gone) */
             res = t_new(byte, ROUND_UP(st_cs->size, 8));
-            iop_init(st_cs, res);
+            iop_init_desc(st_cs, res);
 
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             ret = iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
@@ -978,7 +978,7 @@ Z_GROUP_EXPORT(iop)
                     "<s>abcd</s>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_cs, &cs);
+            iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
                                          IOP_UNPACK_FORBID_PRIVATE));
@@ -995,7 +995,7 @@ Z_GROUP_EXPORT(iop)
                     "<priv>true</priv>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_cs, &cs);
+            iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
                                            IOP_UNPACK_FORBID_PRIVATE));
@@ -1012,7 +1012,7 @@ Z_GROUP_EXPORT(iop)
                     "<priv2>true</priv2>");
             sb_adds(&sb, "</root>\n");
 
-            iop_init(st_cs, &cs);
+            iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
                                            IOP_UNPACK_FORBID_PRIVATE));
@@ -1324,7 +1324,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
-        iop_init(st_cls2, &cls2);
+        iop_init_desc(st_cls2, &cls2);
         cls2.int1 = 1;
         cls2.int2 = 2;
 
@@ -1430,16 +1430,16 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR("tstiop.MyStructE")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
-        iop_init(st_cls2, &cls2);
+        iop_init_desc(st_cls2, &cls2);
 
-        Z_ASSERT_N(iop_check_constraints(st_sa, &sa));
-        Z_ASSERT_N(iop_check_constraints(st_sa, &sa2));
+        Z_ASSERT_N(iop_check_constraints_desc(st_sa, &sa));
+        Z_ASSERT_N(iop_check_constraints_desc(st_sa, &sa2));
 
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa,  "sa"));
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa2, "sa2"));
         Z_HELPER_RUN(iop_std_test_struct(st_se, &se, "se"));
 
-        iop_init(st_sa_opt, &sa_opt);
+        iop_init_desc(st_sa_opt, &sa_opt);
         OPT_SET(sa_opt.a, 32);
         sa_opt.j = LSTR("foo");
         Z_HELPER_RUN(iop_std_test_struct(st_sa_opt, &sa_opt, "sa_opt"));
@@ -1502,11 +1502,11 @@ Z_GROUP_EXPORT(iop)
         /* do some tests… */
 #define SET(dst, f, _len)  ({ dst.f.tab = f; dst.f.len = (_len); })
 #define SET_RAND(dst, f)   ({ dst.f.tab = f; dst.f.len = (rand() % 256); })
-        iop_init(st, &sr);
+        iop_init_desc(st, &sr);
         SET(sr, i8, 13);
         Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr1"));
 
-        iop_init(st, &sr);
+        iop_init_desc(st, &sr);
         SET(sr, i8, 13);
         SET(sr, i32, 4);
         Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr2"));
@@ -1514,7 +1514,7 @@ Z_GROUP_EXPORT(iop)
         srand(seed);
         e_trace(1, "rand seed: %u", seed);
         for (int i = 0; i < 256; i++ ) {
-            iop_init(st, &sr);
+            iop_init_desc(st, &sr);
             SET_RAND(sr, i8);
             SET_RAND(sr, u8);
             SET_RAND(sr, i16);
@@ -1554,7 +1554,7 @@ Z_GROUP_EXPORT(iop)
                 Z_ASSERT_N(ps_get_cpu32(&ps, &dlen));
                 Z_ASSERT(ps_has(&ps, dlen));
 
-                iop_init(st, &sr);
+                iop_init_desc(st, &sr);
                 Z_ASSERT_N(iop_bunpack(t_pool(), st, &sr_res,
                                        __ps_get_ps(&ps, dlen), false),
                            "IOP unpacking error (%s) at offset %zu",
@@ -1592,7 +1592,7 @@ Z_GROUP_EXPORT(iop)
         t_qv_init(i32, &szs, 1024);
 
         /* test with all the default values */
-        iop_init(st_sg, &sg);
+        iop_init_desc(st_sg, &sg);
         Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 0,
                     "sg-empty");
         Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags,
@@ -1657,21 +1657,21 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_ua = iop_dso_find_type(dso, LSTR("tstiop.MyUnionA")));
 
         /* Test with all the default values */
-        iop_init(st_sg, &sg_a);
-        iop_init(st_sg, &sg_b);
+        iop_init_desc(st_sg, &sg_a);
+        iop_init_desc(st_sg, &sg_b);
         Z_ASSERT_IOPEQUAL_DESC(st_sg, &sg_a, &sg_b);
 
         /* Change some fields and test */
         sg_a.b++;
-        Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
+        Z_ASSERT(!iop_equals_desc(st_sg, &sg_a, &sg_b));
 
         sg_a.b--;
         sg_b.j = LSTR("not equal");
-        Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
+        Z_ASSERT(!iop_equals_desc(st_sg, &sg_a, &sg_b));
 
         /* Use a more complex structure */
-        iop_init(st_sa_opt, &sa_opt_a);
-        iop_init(st_sa_opt, &sa_opt_b);
+        iop_init_desc(st_sa_opt, &sa_opt_a);
+        iop_init_desc(st_sa_opt, &sa_opt_b);
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         OPT_SET(sa_opt_a.a, 42);
@@ -1681,14 +1681,14 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         OPT_CLR(sa_opt_b.a);
-        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
         OPT_SET(sa_opt_b.a, 42);
         sa_opt_b.j = LSTR_NULL_V;
-        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
         sa_opt_b.j = LSTR("plop2");
-        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
         sa_opt_b.j = LSTR("plop");
         ua_a = IOP_UNION(tstiop__my_union_a, ua, 1);
@@ -1698,15 +1698,15 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         sa_opt_b.l = NULL;
-        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
         ua_b = IOP_UNION(tstiop__my_union_a, ub, 1);
         sa_opt_b.l = &ua_b;
-        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
         /* test with non initialized optional fields values */
-        iop_init(st_sa_opt, &sa_opt_a);
-        iop_init(st_sa_opt, &sa_opt_b);
+        iop_init_desc(st_sa_opt, &sa_opt_a);
+        iop_init_desc(st_sa_opt, &sa_opt_b);
         sa_opt_a.a.v = 42;
         Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
@@ -1716,8 +1716,8 @@ Z_GROUP_EXPORT(iop)
             uint8_t uints[] = { 1, 2, 3, 4 };
             uint8_t uints2[] = { 1, 2, 4, 4 };
 
-            iop_init(st_sr, &sr_a);
-            iop_init(st_sr, &sr_b);
+            iop_init_desc(st_sr, &sr_a);
+            iop_init_desc(st_sr, &sr_b);
             Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
             sr_a.s.tab = strs, sr_a.s.len = countof(strs);
@@ -1727,15 +1727,15 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
             sr_b.s.len--;
-            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
             sr_b.s.len++;
 
             sr_b.u8.len--;
-            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
             sr_b.u8.len++;
 
             sr_b.u8.tab = uints2;
-            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
         }
         iop_dso_close(&dso);
     } Z_TEST_END
@@ -1795,9 +1795,9 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR("tstiop.MyStructL")));
 
-        Z_ASSERT_N(iop_check_constraints(st_sl, &sl1));
-        Z_ASSERT_N(tstiop__my_struct_l__check(&sl2));
-        Z_ASSERT_NEG(iop_check_constraints(st_sl, &sl3));
+        Z_ASSERT_N(iop_check_constraints_desc(st_sl, &sl1));
+        Z_ASSERT_N(iop_check_constraints(tstiop__my_struct_l, &sl2));
+        Z_ASSERT_NEG(iop_check_constraints_desc(st_sl, &sl3));
         e_trace(1, "%s", iop_get_err());
 
         Z_HELPER_RUN(iop_std_test_struct(st_sl, &sl1, "sl1"));
@@ -1856,17 +1856,17 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_c = iop_dso_find_type(dso,
                                             LSTR("tstiop_inheritance.C1")));
 
-        iop_init(st_u, &u);
-        iop_init(st_s, &s);
+        iop_init_desc(st_u, &u);
+        iop_init_desc(st_s, &s);
 
 #define CHECK_VALID(st, v, info) \
-        Z_ASSERT_N(iop_check_constraints((st), (v)));                   \
+        Z_ASSERT_N(iop_check_constraints_desc((st), (v)));              \
         Z_HELPER_RUN(iop_std_test_struct((st), (v), (info)));           \
         Z_HELPER_RUN(iop_xml_test_struct((st), (v), (info)));           \
         Z_HELPER_RUN(iop_json_test_struct((st), (v), (info)));
 
 #define CHECK_INVALID(st, v, info) \
-        Z_ASSERT_NEG(iop_check_constraints((st), (v)));                 \
+        Z_ASSERT_NEG(iop_check_constraints_desc((st), (v)));            \
         Z_HELPER_RUN(iop_std_test_struct_invalid((st), (v), (info)));   \
         Z_HELPER_RUN(iop_xml_test_struct_invalid((st), (v), (info)));   \
         Z_HELPER_RUN(iop_json_test_struct_invalid((st), (v), (info)));
@@ -1926,7 +1926,7 @@ Z_GROUP_EXPORT(iop)
         CHECK_TAB(i64,  i64tab);
 
         /* With inheritance */
-        iop_init(st_c, &c);
+        iop_init_desc(st_c, &c);
         CHECK_VALID(st_c, &c, "c");
         c.a = 0;
         CHECK_INVALID(st_c, &c, "c");
@@ -1958,8 +1958,8 @@ Z_GROUP_EXPORT(iop)
         qv_t(my_class2) cls2_vec;
 
         qv_init(my_struct_a, &vec);
-        tstiop__my_struct_a__init(&a);
-        tstiop__my_class2__init(&cls2);
+        iop_init(tstiop__my_struct_a, &a);
+        iop_init(tstiop__my_class2, &cls2);
 
         un[0] = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.e = 1;
@@ -1968,7 +1968,7 @@ Z_GROUP_EXPORT(iop)
         a.lr = &un[0];
         cls2.int1 = 10;
         cls2.int2 = 100;
-        a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
         qv_append(my_struct_a, &vec, a);
 
         un[1] = IOP_UNION(tstiop__my_union_a, ub, 23);
@@ -1978,7 +1978,7 @@ Z_GROUP_EXPORT(iop)
         a.lr = &un[1];
         cls2.int1 = 15;
         cls2.int2 = 95;
-        a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
         qv_append(my_struct_a, &vec, a);
 
         un[2] = IOP_UNION(tstiop__my_union_a, ua, 222);
@@ -1988,7 +1988,7 @@ Z_GROUP_EXPORT(iop)
         a.lr = &un[2];
         cls2.int1 = 13;
         cls2.int2 = 98;
-        a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
         qv_append(my_struct_a, &vec, a);
 
         un[3] = IOP_UNION(tstiop__my_union_a, ua, 666);
@@ -1998,7 +1998,7 @@ Z_GROUP_EXPORT(iop)
         a.lr = &un[3];
         cls2.int1 = 14;
         cls2.int2 = 96;
-        a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
         qv_append(my_struct_a, &vec, a);
 
         un[4] = IOP_UNION(tstiop__my_union_a, ua, 111);
@@ -2008,10 +2008,11 @@ Z_GROUP_EXPORT(iop)
         a.lr = &un[4];
         cls2.int1 = 16;
         cls2.int2 = 97;
-        a.cls2 = tstiop__my_class2__dup(t_pool(), &cls2);
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
         qv_append(my_struct_a, &vec, a);
 
-#define TST_SORT_VEC(p, f)  tstiop__my_struct_a__sort(vec.tab, vec.len, p, f)
+#define TST_SORT_VEC(p, f)  \
+        iop_sort(tstiop__my_struct_a, vec.tab, vec.len, p, f, NULL)
 
         /* reverse sort on short e */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("e"), IOP_SORT_REVERSE));
@@ -2148,7 +2149,7 @@ Z_GROUP_EXPORT(iop)
 #undef TST_SORT_VEC
 
         qv_init(my_struct_a_opt, &vec2);
-        tstiop__my_struct_a_opt__init(&a2);
+        iop_init(tstiop__my_struct_a_opt, &a2);
 
         qv_append(my_struct_a_opt, &vec2, a2);
         OPT_SET(a2.a, 42);
@@ -2165,17 +2166,18 @@ Z_GROUP_EXPORT(iop)
         a2.l = &IOP_UNION(tstiop__my_union_a, us, LSTR("xyz"));
         qv_append(my_struct_a_opt, &vec2, a2);
 
-        tstiop__my_struct_b__init(&b1);
+        iop_init(tstiop__my_struct_b, &b1);
         OPT_SET(b1.a, 42);
         a2.o = &b1;
         qv_append(my_struct_a_opt, &vec2, a2);
 
-        tstiop__my_struct_b__init(&b2);
+        iop_init(tstiop__my_struct_b, &b2);
         OPT_SET(b2.a, 72);
         a2.o = &b2;
         qv_append(my_struct_a_opt, &vec2, a2);
 
-#define TST_SORT_VEC(p, f)  tstiop__my_struct_a_opt__sort(vec2.tab, vec2.len, p, f)
+#define TST_SORT_VEC(p, f)  \
+        iop_sort(tstiop__my_struct_a_opt, vec2.tab, vec2.len, p, f, NULL)
 
         /* sort on optional int a */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("a"), 0));
@@ -2208,7 +2210,7 @@ Z_GROUP_EXPORT(iop)
 #undef TST_SORT_VEC
 
         qv_init(my_struct_m, &mvec);
-        tstiop__my_struct_m__init(&m);
+        iop_init(tstiop__my_struct_m, &m);
 
         m.k.j.cval = 5;
         m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 55);
@@ -2220,7 +2222,8 @@ Z_GROUP_EXPORT(iop)
         m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 33);
         qv_append(my_struct_m, &mvec, m);
 
-#define TST_SORT_VEC(p, f)  tstiop__my_struct_m__sort(mvec.tab, mvec.len, p, f)
+#define TST_SORT_VEC(p, f)  \
+        iop_sort(tstiop__my_struct_m, mvec.tab, mvec.len, p, f, NULL)
 
         /* sort on int cval from MyStructJ j from MyStructK k */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("k.j.cval"), 0));
@@ -2243,18 +2246,18 @@ Z_GROUP_EXPORT(iop)
         cls2.int1 = 3;
         cls2.int2 = 4;
         qv_append(my_class2, &cls2_vec,
-                  tstiop__my_class2__dup(t_pool(), &cls2));
+                  t_iop_dup(tstiop__my_class2, &cls2));
         cls2.int1 = 2;
         cls2.int2 = 5;
         qv_append(my_class2, &cls2_vec,
-                  tstiop__my_class2__dup(t_pool(), &cls2));
+                  t_iop_dup(tstiop__my_class2, &cls2));
         cls2.int1 = 1;
         cls2.int2 = 6;
         qv_append(my_class2, &cls2_vec,
-                  tstiop__my_class2__dup(t_pool(), &cls2));
+                  t_iop_dup(tstiop__my_class2, &cls2));
 
 #define TST_SORT_VEC(p, f)  \
-        tstiop__my_class2__sort(cls2_vec.tab, cls2_vec.len, p, f)
+        iop_obj_sort(tstiop__my_class2, cls2_vec.tab, cls2_vec.len, p, f, NULL)
 
         Z_ASSERT_N(TST_SORT_VEC(LSTR("int1"), 0));
         Z_ASSERT_EQ(cls2_vec.tab[0]->int1, 1);
@@ -2280,9 +2283,9 @@ Z_GROUP_EXPORT(iop)
         t_qv_init(iop_sort, &params, 2);
 
         qv_growlen(my_struct_a, &original, 3);
-        tstiop__my_struct_a__init(&original.tab[0]);
-        tstiop__my_struct_a__init(&original.tab[1]);
-        tstiop__my_struct_a__init(&original.tab[2]);
+        iop_init(tstiop__my_struct_a, &original.tab[0]);
+        iop_init(tstiop__my_struct_a, &original.tab[1]);
+        iop_init(tstiop__my_struct_a, &original.tab[2]);
 
         original.tab[0].a = 1;
         original.tab[1].a = 2;
@@ -2305,8 +2308,8 @@ Z_GROUP_EXPORT(iop)
     } while (0)
 
 #define SORT_AND_CHECK(p1, p2, p3)  do {                                     \
-        Z_ASSERT_ZERO(tstiop__my_struct_a__msort(sorted.tab, sorted.len,     \
-                                                 &params));                  \
+        Z_ASSERT_ZERO(iop_msort(tstiop__my_struct_a, sorted.tab, sorted.len, \
+                                &params, NULL));                             \
         Z_ASSERT_EQ(sorted.tab[0].a, original.tab[p1].a);                    \
         Z_ASSERT_EQ(sorted.tab[1].a, original.tab[p2].a);                    \
         Z_ASSERT_EQ(sorted.tab[2].a, original.tab[p3].a);                    \
@@ -2357,9 +2360,9 @@ Z_GROUP_EXPORT(iop)
 
         t_qv_init(my_struct_g, &original, 3);
 
-        tstiop__my_struct_g__init(&first);
-        tstiop__my_struct_g__init(&second);
-        tstiop__my_struct_g__init(&third);
+        iop_init(tstiop__my_struct_g, &first);
+        iop_init(tstiop__my_struct_g, &second);
+        iop_init(tstiop__my_struct_g, &third);
         first.a = 1;
         first.b = 1;
         first.d = 42;
@@ -2390,8 +2393,8 @@ Z_GROUP_EXPORT(iop)
         /* Simple filter */
         ADD_PARAM(1, 0);
         FILTER_AND_CHECK_LEN("a", 1, 2);
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &first));
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[1], &third));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &third);
 
         /* Filter on several values */
         qv_clear(my_struct_g, &original);
@@ -2403,9 +2406,9 @@ Z_GROUP_EXPORT(iop)
         ADD_PARAM(2, 1);
 
         FILTER_AND_CHECK_LEN("a", 2, 3);
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &first));
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[1], &second));
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[2], &third));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &second);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[2], &third);
 
         /* Filter with no match */
         qv_clear(my_struct_g, &original);
@@ -2428,7 +2431,7 @@ Z_GROUP_EXPORT(iop)
         ADD_PARAM(43, 0);
 
         FILTER_AND_CHECK_LEN("d", 1, 1);
-        Z_ASSERT(tstiop__my_struct_g__equals(&original.tab[0], &second));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
 
 #undef ADD_PARAM
 #undef FILTER_AND_CHECK_LEN
@@ -2446,9 +2449,9 @@ Z_GROUP_EXPORT(iop)
         original.tab[1] = t_new_raw(tstiop__my_class2__t, 1);
         original.tab[2] =
             (tstiop__my_class2__t *)t_new_raw(tstiop__my_class3__t, 1);
-        tstiop__my_class2__init(original.tab[0]);
-        tstiop__my_class2__init(original.tab[1]);
-        tstiop__my_class3__init((tstiop__my_class3__t *)original.tab[2]);
+        iop_init(tstiop__my_class2, original.tab[0]);
+        iop_init(tstiop__my_class2, original.tab[1]);
+        iop_init(tstiop__my_class3, (tstiop__my_class3__t *)original.tab[2]);
         original.tab[0]->int1 = 1;
         original.tab[0]->int2 = 1;
         original.tab[1]->int1 = 2;
@@ -2458,9 +2461,9 @@ Z_GROUP_EXPORT(iop)
         original.len = 3;
 
         t_qv_init(my_class2, &vec, 3);
-        vec.tab[0] = tstiop__my_class2__dup(t_pool(), original.tab[0]);
-        vec.tab[1] = tstiop__my_class2__dup(t_pool(), original.tab[1]);
-        vec.tab[2] = tstiop__my_class2__dup(t_pool(), original.tab[2]);
+        vec.tab[0] = t_iop_dup(tstiop__my_class2, original.tab[0]);
+        vec.tab[1] = t_iop_dup(tstiop__my_class2, original.tab[1]);
+        vec.tab[2] = t_iop_dup(tstiop__my_class2, original.tab[2]);
         vec.len = 3;
 
 #define ADD_PARAM(_value, idx)  do {                                         \
@@ -2478,27 +2481,27 @@ Z_GROUP_EXPORT(iop)
         /* Simple filter */
         ADD_PARAM(1, 0);
         FILTER_AND_CHECK_LEN("int1", 1, 2);
-        Z_ASSERT(tstiop__my_class2__equals(original.tab[0], vec.tab[0]));
-        Z_ASSERT(tstiop__my_class2__equals(original.tab[2], vec.tab[1]));
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[1]);
 
         /* Filter on several values */
-        vec.tab[0] = tstiop__my_class2__dup(t_pool(), original.tab[0]);
-        vec.tab[1] = tstiop__my_class2__dup(t_pool(), original.tab[1]);
-        vec.tab[2] = tstiop__my_class2__dup(t_pool(), original.tab[2]);
+        vec.tab[0] = t_iop_dup(tstiop__my_class2, original.tab[0]);
+        vec.tab[1] = t_iop_dup(tstiop__my_class2, original.tab[1]);
+        vec.tab[2] = t_iop_dup(tstiop__my_class2, original.tab[2]);
         vec.len = 3;
         ADD_PARAM(2, 1);
 
         FILTER_AND_CHECK_LEN("int1", 2, 3);
-        Z_ASSERT(tstiop__my_class2__equals(original.tab[0], vec.tab[0]));
-        Z_ASSERT(tstiop__my_class2__equals(original.tab[1], vec.tab[1]));
-        Z_ASSERT(tstiop__my_class2__equals(original.tab[2], vec.tab[2]));
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[1], vec.tab[1]);
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[2]);
 
 #undef ADD_PARAM
 #undef FILTER_AND_CHECK_LEN
 
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(iop_copy_inv_tab, "iop_copy(): invalid tab pointer when len == 0") { /* {{{ */
+    Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
 
         tstiop__my_struct_b__t sb, *sb_dup;
@@ -2515,11 +2518,11 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
 
-        iop_init(st_sb, &sb);
+        iop_init_desc(st_sb, &sb);
         sb.b.tab = (void *)0x42;
         sb.b.len = 0;
 
-        sb_dup = iop_dup(NULL, st_sb, &sb, NULL);
+        sb_dup = mp_iop_dup_desc_sz(NULL, st_sb, &sb, NULL);
         Z_ASSERT_NULL(sb_dup->b.tab);
         Z_ASSERT_ZERO(sb_dup->b.len);
 
@@ -2533,8 +2536,8 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_hashed__t a;
         tstiop__my_hashed_extended__t b;
 
-        tstiop__my_hashed__init(&a);
-        tstiop__my_hashed_extended__init(&b);
+        iop_init(tstiop__my_hashed, &a);
+        iop_init(tstiop__my_hashed_extended, &b);
 
         Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
             t_iop_compute_signature(&tstiop__my_hashed__s, &a, 0), 0));
@@ -2648,7 +2651,7 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__c1__t c1;
         bool matched = false;
 
-        tstiop_inheritance__c1__init(&c1);
+        iop_init(tstiop_inheritance__c1, &c1);
         Z_ASSERT_EQ(IOP_OBJ_CLASS_ID(&c1), 3);
         IOP_OBJ_EXACT_SWITCH(&c1) {
           IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
@@ -2833,14 +2836,14 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop_inheritance__b1__t b1;
 
-            tstiop_inheritance__b1__init(&b1);
+            iop_init(tstiop_inheritance__b1, &b1);
             Z_ASSERT_EQ(b1.a, 1);
             Z_ASSERT_LSTREQUAL(b1.b, LSTR("b"));
         }
         {
             tstiop_inheritance__c1__t c1;
 
-            tstiop_inheritance__c1__init(&c1);
+            iop_init(tstiop_inheritance__c1, &c1);
             Z_ASSERT_EQ(c1.a, 1);
             Z_ASSERT_EQ(c1.b, true);
             Z_ASSERT_EQ(c1.c, (uint32_t)3);
@@ -2848,7 +2851,7 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop_inheritance__c2__t c2;
 
-            tstiop_inheritance__c2__init(&c2);
+            iop_init(tstiop_inheritance__c2, &c2);
             Z_ASSERT_EQ(c2.a, 1);
             Z_ASSERT_EQ(c2.b, true);
             Z_ASSERT_EQ(c2.c, 4);
@@ -2856,7 +2859,7 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop_inheritance__c3__t c3;
 
-            tstiop_inheritance__c3__init(&c3);
+            iop_init(tstiop_inheritance__c3, &c3);
             Z_ASSERT_LSTREQUAL(c3.a, LSTR("A2"));
             Z_ASSERT_EQ(c3.b, 5);
             Z_ASSERT_EQ(c3.c, 6);
@@ -2864,7 +2867,7 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop_inheritance__c4__t c4;
 
-            tstiop_inheritance__c4__init(&c4);
+            iop_init(tstiop_inheritance__c4, &c4);
             Z_ASSERT_LSTREQUAL(c4.a, LSTR("A2"));
             Z_ASSERT_EQ(c4.b, 5);
             Z_ASSERT_EQ(c4.c, false);
@@ -2883,7 +2886,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             tstiop_inheritance__##_type1##__t obj;                           \
                                                                              \
-            tstiop_inheritance__##_type1##__init(&obj);                      \
+            iop_init(tstiop_inheritance__##_type1, &obj);                    \
             Z_ASSERT(iop_obj_is_a(&obj,                                      \
                                   tstiop_inheritance__##_type2) == _res);    \
             Z_ASSERT(iop_obj_dynvcast(tstiop_inheritance__##_type2, &obj)    \
@@ -2911,7 +2914,7 @@ Z_GROUP_EXPORT(iop)
 #undef CHECK_IS_A
 
         /* Initialize a C2 class */
-        tstiop_inheritance__c2__init(&c2);
+        iop_init(tstiop_inheritance__c2, &c2);
         c2.a = 11111;
         c2.c = 500;
 
@@ -2947,7 +2950,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             tstiop_inheritance__##_type##__t obj;                            \
                                                                              \
-            tstiop_inheritance__##_type##__init(&obj);                       \
+            iop_init(tstiop_inheritance__##_type, &obj);                     \
             cvar = iop_get_cvar_cst(&obj, _varname);                         \
             Z_ASSERT_P(cvar);                                                \
             Z_ASSERT_LSTREQUAL(cvar->s, LSTR(_value));                       \
@@ -2971,7 +2974,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             tstiop_inheritance__##_type##__t obj;                            \
                                                                              \
-            tstiop_inheritance__##_type##__init(&obj);                       \
+            iop_init(tstiop_inheritance__##_type, &obj);                     \
             cvar = iop_get_cvar_cst(&obj, _varname);                         \
             Z_ASSERT_P(cvar);                                                \
             Z_ASSERT_EQ(cvar->_field, _value);                               \
@@ -2995,7 +2998,7 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             tstiop_inheritance__##_type##__t obj;                            \
                                                                              \
-            tstiop_inheritance__##_type##__init(&obj);                       \
+            iop_init(tstiop_inheritance__##_type, &obj);                     \
             Z_ASSERT_NULL(iop_get_cvar_cst(&obj, _varname));                 \
         } while (0)
 
@@ -3038,18 +3041,18 @@ Z_GROUP_EXPORT(iop)
 
         IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
 
-        tstiop_inheritance__c2__init(&c2_1_1);
-        tstiop_inheritance__c2__init(&c2_1_2);
-        tstiop_inheritance__c2__init(&c2_1_3);
-        tstiop_inheritance__c2__init(&c2_2_1);
-        tstiop_inheritance__c2__init(&c2_2_2);
-        tstiop_inheritance__c2__init(&c2_2_3);
+        iop_init(tstiop_inheritance__c2, &c2_1_1);
+        iop_init(tstiop_inheritance__c2, &c2_1_2);
+        iop_init(tstiop_inheritance__c2, &c2_1_3);
+        iop_init(tstiop_inheritance__c2, &c2_2_1);
+        iop_init(tstiop_inheritance__c2, &c2_2_2);
+        iop_init(tstiop_inheritance__c2, &c2_2_3);
 
-        tstiop_inheritance__b2__init(&b2_1);
-        tstiop_inheritance__b2__init(&b2_2);
+        iop_init(tstiop_inheritance__b2, &b2_1);
+        iop_init(tstiop_inheritance__b2, &b2_2);
 
-        tstiop_inheritance__class_container__init(&cc_1);
-        tstiop_inheritance__class_container__init(&cc_2);
+        iop_init(tstiop_inheritance__class_container, &cc_1);
+        iop_init(tstiop_inheritance__class_container, &cc_2);
 
         /* These tests rely on the fact that there are no hash collisions in
          * the test samples, which is the case.
@@ -3062,8 +3065,8 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             uint8_t buf1[20], buf2[20];                                      \
                                                                              \
-            Z_ASSERT(iop_equals(&tstiop_inheritance__##_type##__s,           \
-                                _v1, _v2) == _res);                          \
+            Z_ASSERT(iop_equals_desc(&tstiop_inheritance__##_type##__s,      \
+                                     _v1, _v2) == _res);                     \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1, 0);  \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2, 0);  \
             Z_ASSERT(lstr_equal2(                                            \
@@ -3109,18 +3112,18 @@ Z_GROUP_EXPORT(iop)
             t_scope;
             tstiop_inheritance__c2__t *c2_1_4;
 
-            /* With iop_dup */
+            /* With mp_iop_dup_desc_sz */
             c2_1_1.a3 = t_lstr_fmt("a");
-            c2_1_4 = tstiop_inheritance__c2__dup(t_pool(), &c2_1_1);
+            c2_1_4 = t_iop_dup(tstiop_inheritance__c2, &c2_1_1);
             CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
             c2_1_1.a3.v[0] = 'b';
             CHECK_EQUALS(c2, &c2_1_1, c2_1_4, false);
             c2_1_4->a3.v[0] = 'b';
             CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
 
-            /* And with iop_copy */
+            /* And with mp_iop_copy_desc_sz */
             c2_1_1.a3 = t_lstr_fmt("c");
-            tstiop_inheritance__c2__copy(t_pool(), &c2_1_4, &c2_1_1);
+            mp_iop_copy(t_pool(), tstiop_inheritance__c2, &c2_1_4, &c2_1_1);
             CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
             c2_1_1.a3.v[0] = 'd';
             CHECK_EQUALS(c2, &c2_1_1, c2_1_4, false);
@@ -3542,7 +3545,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
         t_qv_init(i32, &szs, 1024);
-        iop_init(st_cls2, &cls2);
+        iop_init_desc(st_cls2, &cls2);
 
         /* packing */
         Z_ASSERT_N((len = iop_bpack_size(st_sa, &sa, &szs)),
@@ -3569,9 +3572,9 @@ Z_GROUP_EXPORT(iop)
         const iop_field_t  *f2;
         int i = 0;
 
-        tstiop__my_class1__init(&cls1);
-        tstiop__my_class2__init(&cls2);
-        tstiop__my_class3__init(&cls3);
+        iop_init(tstiop__my_class1, &cls1);
+        iop_init(tstiop__my_class2, &cls2);
+        iop_init(tstiop__my_class3, &cls3);
 
 #define TEST_FIELD(_f, _type, _name, _st, _class)                       \
         do {                                                            \
@@ -3669,13 +3672,13 @@ Z_GROUP_EXPORT(iop)
         const iop_field_t *iop_field;
         const void *out = NULL;
 
-        tstiop__my_struct_a__init(&struct_a);
-        tstiop__my_struct_b__init(&struct_b);
-        tstiop__my_struct_c__init(&struct_c);
-        tstiop__my_struct_e__init(&struct_e);
-        tstiop__my_class3__init(&cls3);
-        tstiop__my_struct_a_opt__init(&struct_a_opt);
-        tstiop__my_ref_struct__init(&struct_ref);
+        iop_init(tstiop__my_struct_a, &struct_a);
+        iop_init(tstiop__my_struct_b, &struct_b);
+        iop_init(tstiop__my_struct_c, &struct_c);
+        iop_init(tstiop__my_struct_e, &struct_e);
+        iop_init(tstiop__my_class3, &cls3);
+        iop_init(tstiop__my_struct_a_opt, &struct_a_opt);
+        iop_init(tstiop__my_ref_struct, &struct_ref);
         cls3.int3 = 10;
         cls3.int2 = 5;
         cls3.int1 = 2;
@@ -3796,7 +3799,7 @@ Z_GROUP_EXPORT(iop)
         const iop_field_t *field;
         iop_value_t value;
 
-        tstiop__my_struct_g__init(&sg);
+        iop_init(tstiop__my_struct_g, &sg);
 
         st = &tstiop__my_struct_g__s;
 
@@ -3820,7 +3823,7 @@ Z_GROUP_EXPORT(iop)
             tstiop__my_struct_k__t sk;
             tstiop__my_struct_j__t *sj;
 
-            tstiop__my_struct_k__init(&sk);
+            iop_init(tstiop__my_struct_k, &sk);
 
             sk.j.cval = 2314;
             st = &tstiop__my_struct_k__s;
@@ -3836,8 +3839,8 @@ Z_GROUP_EXPORT(iop)
             tstiop__my_referenced_struct__t referenced_st;
             tstiop__my_referenced_struct__t *p;
 
-            tstiop__my_ref_struct__init(&ref_st);
-            tstiop__my_referenced_struct__init(&referenced_st);
+            iop_init(tstiop__my_ref_struct, &ref_st);
+            iop_init(tstiop__my_referenced_struct, &referenced_st);
 
             referenced_st.a = 23;
             ref_st.s = &referenced_st;
@@ -3853,7 +3856,7 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop__my_struct_b__t sb;
 
-            tstiop__my_struct_b__init(&sb);
+            iop_init(tstiop__my_struct_b, &sb);
             OPT_SET(sb.a, 42);
 
             st = &tstiop__my_struct_b__s;
@@ -3872,10 +3875,10 @@ Z_GROUP_EXPORT(iop)
         const iop_field_t *field;
         iop_value_t value;
 
-        tstiop__my_struct_g__init(&sg);
-        tstiop__my_struct_k__init(&sk);
-        tstiop__my_struct_j__init(&sj);
-        tstiop__my_struct_a_opt__init(&saopt);
+        iop_init(tstiop__my_struct_g, &sg);
+        iop_init(tstiop__my_struct_k, &sk);
+        iop_init(tstiop__my_struct_j, &sj);
+        iop_init(tstiop__my_struct_a_opt, &saopt);
 
         /* test with int */
         st = &tstiop__my_struct_g__s;
@@ -3918,12 +3921,12 @@ Z_GROUP_EXPORT(iop)
             tstiop__my_ref_struct__t ref_st;
             tstiop__my_referenced_struct__t referenced_st;
 
-            tstiop__my_ref_struct__init(&ref_st);
-            tstiop__my_referenced_struct__init(&referenced_st);
+            iop_init(tstiop__my_ref_struct, &ref_st);
+            iop_init(tstiop__my_referenced_struct, &referenced_st);
 
             referenced_st.a = 23;
             ref_st.s = t_new(tstiop__my_referenced_struct__t, 1);
-            tstiop__my_referenced_struct__init(ref_st.s);
+            iop_init(tstiop__my_referenced_struct, ref_st.s);
 
             value.p = &referenced_st;
 
@@ -3937,7 +3940,7 @@ Z_GROUP_EXPORT(iop)
         {
             tstiop__my_struct_b__t sb;
 
-            tstiop__my_struct_b__init(&sb);
+            iop_init(tstiop__my_struct_b, &sb);
 
             value.i = 42;
             st = &tstiop__my_struct_b__s;
@@ -4177,25 +4180,25 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_g__t  g;
         tstiop__my_struct_g__t *gp;
 
-        tstiop__my_struct_g__init(&g);
+        iop_init(tstiop__my_struct_g, &g);
 
         gp = mp_iop_new_desc(NULL, &tstiop__my_struct_g__s);
-        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &g, gp);
         p_delete(&gp);
 
         gp = t_iop_new_desc(&tstiop__my_struct_g__s);
-        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &g, gp);
 
         gp = mp_iop_new(NULL, tstiop__my_struct_g);
-        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &g, gp);
         p_delete(&gp);
 
         gp = iop_new(NULL, tstiop__my_struct_g);
-        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &g, gp);
         p_delete(&gp);
 
         gp = t_iop_new(tstiop__my_struct_g);
-        Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &g, gp);
     } Z_TEST_END
     /* }}} */
     Z_TEST(class_printf, "test %*pC in format strings") { /* {{{ */
@@ -4208,7 +4211,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t file;
         FILE *out;
 
-        tstiop__my_class3__init(&obj);
+        iop_init(tstiop__my_class3, &obj);
         obj.int1 = 12345;
         obj.int2 = 67890;
         obj.int2 = -2;
