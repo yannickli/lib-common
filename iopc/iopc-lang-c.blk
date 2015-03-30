@@ -529,6 +529,8 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                     if (type == IOP_T_UNION) {
                         ALIAS("get");
                     }
+                    sb_addf(buf, "#define %*pM%ss  %s__s\n",
+                            LSTR_FMT_ARG(pfx), underscore, tbase);
                 } else
                 if (type == IOP_T_ENUM) {
                     /* IOP_ENUM(pfx) */
@@ -538,6 +540,8 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                     ALIAS("from_str2");
                     ALIAS("from_lstr");
                     ALIAS("exists");
+                    sb_addf(buf, "#define %*pM%se  %s__e\n",
+                            LSTR_FMT_ARG(pfx), underscore, tbase);
                 }
 #undef ALIAS
 #undef T_ALIAS

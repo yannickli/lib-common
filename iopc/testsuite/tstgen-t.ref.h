@@ -14,6 +14,7 @@ typedef tstgen__my_enum_a__t my_enum_a;
 #define my_enum_a_from_str2(...) tstgen__my_enum_a__from_str2(__VA_ARGS__)
 #define my_enum_a_from_lstr(...) tstgen__my_enum_a__from_lstr(__VA_ARGS__)
 #define my_enum_a_exists(...) tstgen__my_enum_a__exists(__VA_ARGS__)
+#define my_enum_a_e  tstgen__my_enum_a__e
 
 struct tstgen__my_struct_a__t {
     int32_t  i;
@@ -47,6 +48,7 @@ typedef tstgen__my_struct_a__t my_struct_a_t;
 #define my_struct_a_junpack(...) tstgen__my_struct_a__junpack(__VA_ARGS__)
 #define t_my_struct_a_junpack_ps(...) t_tstgen__my_struct_a__junpack_ps(__VA_ARGS__)
 #define t_my_struct_a_junpack_file(...) t_tstgen__my_struct_a__junpack_file(__VA_ARGS__)
+#define my_struct_a_s  tstgen__my_struct_a__s
 
 struct tstgen__my_class_a__t {
     const iop_struct_t *__vptr;
@@ -74,5 +76,6 @@ typedef tstgen__my_class_a__t my_class_a__t;
 #define my_class_a__junpack_ptr(...) tstgen__my_class_a__junpack_ptr(__VA_ARGS__)
 #define t_my_class_a__junpack_ptr_ps(...) t_tstgen__my_class_a__junpack_ptr_ps(__VA_ARGS__)
 #define t_my_class_a__junpack_ptr_file(...) t_tstgen__my_class_a__junpack_ptr_file(__VA_ARGS__)
+#define my_class_a__s  tstgen__my_class_a__s
 
 #endif
