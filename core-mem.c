@@ -335,6 +335,8 @@ extern const char libcommon_git_revision[];
 __attribute__((constructor))
 static void core_versions_initialize(void)
 {
+    int cache_line_size = 0;
+
     core_push_version(false, "lib-common", LIB_COMMON_VERSION,
                       libcommon_git_revision);
 
@@ -344,7 +346,8 @@ static void core_versions_initialize(void)
     }
 
     /* check cache line */
-    if (sysconf(_SC_LEVEL1_DCACHE_LINESIZE) != CACHE_LINE_SIZE) {
+    cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+    if (cache_line_size && cache_line_size != CACHE_LINE_SIZE) {
         e_panic("Cache line is different from defined CACHELINE");
     }
 }
