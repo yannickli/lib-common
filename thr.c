@@ -38,12 +38,17 @@ static struct {
     .key_once = PTHREAD_ONCE_INIT,
 };
 
-static void thr_hooks_at_exit(void *unused)
+void thr_detach(void)
 {
-    pthread_setspecific(_G.key, NULL);
     dlist_for_each(it, &thr_hooks_g.exit_cbs) {
         (container_of(it, struct thr_ctor, link)->cb)();
     }
+}
+
+static void thr_hooks_at_exit(void *unused)
+{
+    pthread_setspecific(_G.key, NULL);
+    thr_detach();
 }
 
 static void thr_hooks_atfork_in_child(void)
@@ -56,7 +61,7 @@ static void thr_hooks_key_setup(void)
     pthread_key_create(&_G.key, thr_hooks_at_exit);
 }
 
-void thr_hooks_at_init(void)
+void thr_attach(void)
 {
     pthread_once(&_G.key_once, thr_hooks_key_setup);
     if (pthread_getspecific(_G.key) == NULL) {
@@ -74,7 +79,7 @@ static void *thr_hooks_wrapper(void *data)
     void   *arg         = ((void **)data)[1];
 
     p_delete(&data);
-    thr_hooks_at_init();
+    thr_attach();
     return fn(arg);
 }
 
