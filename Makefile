@@ -70,7 +70,7 @@ libcommon_SOURCES = \
 	core-types.blk \
 	core-version.c \
 	core-errors.c \
-	core.iop.c \
+	core.iop \
 	core-module.c \
 	qpage.c \
 	\
@@ -106,7 +106,7 @@ libcommon_SOURCES = \
 	iop-rpc-channel.blk \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
-	ic.iop.c \
+	ic.iop \
 	\
 	log.c \
 	log-iop.c \
