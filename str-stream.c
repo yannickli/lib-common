@@ -13,6 +13,7 @@
 
 #include "net.h"
 #include "str.h"
+#include "container.h"
 
 int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
 {
@@ -37,4 +38,22 @@ int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
         *flags |= MSG_TRUNC;
     }
     return orig_len - ps_len(ps);
+}
+
+void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
+              qv_t(lstr) *res)
+{
+    if (flags & PS_SPLIT_SKIP_EMPTY) {
+        ps_skip_span(&ps, sep);
+    }
+    while (!ps_done(&ps)) {
+        pstream_t n = ps_get_cspan(&ps, sep);
+
+        qv_append(lstr, res, LSTR_PS_V(&n));
+        if (flags & PS_SPLIT_SKIP_EMPTY) {
+            ps_skip_span(&ps, sep);
+        } else {
+            ps_skip(&ps, 1);
+        }
+    }
 }

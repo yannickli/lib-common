@@ -548,6 +548,28 @@ static inline size_t ps_trim(pstream_t *ps)
     return ps_ltrim(ps) + ps_rtrim(ps);
 }
 
+union qv_lstr_t;
+
+enum {
+    PS_SPLIT_SKIP_EMPTY = 1 << 0
+};
+
+/** Split a stream based on a set of separator.
+ *
+ * The line is parsed and each time one of the separators is encountered,
+ * a new chunk is added in the result vector. The results do not contain the
+ * separator and may contain empty strings.
+ *
+ * Strings appended are not copied, they point to the content of the origin
+ * pstream.
+ *
+ * \param ps The input stream.
+ * \param sep The separating characters.
+ * \param flags Some flags (see the enum declaration above)
+ * \param res A vector that get filled with the content of the ps.
+ */
+void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
+              union qv_lstr_t *res);
 
 /****************************************************************************/
 /* binary parsing helpers                                                   */
