@@ -711,7 +711,7 @@ enum {
  * Strings appended are not copied, they point to the content of the origin
  * pstream.
  *
- * \param ps The input stream. It will be completely consumed.
+ * \param ps The input stream.
  * \param sep The separating characters.
  * \param flags Some flags (see the enum declaration above)
  * \param res A vector that get filled with the content of the ps.

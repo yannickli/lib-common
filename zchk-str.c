@@ -1282,7 +1282,7 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
-    Z_TEST(ps_split, "str-array: str_explode") {
+    Z_TEST(ps_split, "str-stream: ps_split") {
         qv_t(lstr) arr;
 
         qv_init(lstr, &arr);
