@@ -66,7 +66,7 @@ libcommon_SOURCES = \
 	core-mem-ring.c \
 	core-mem-stack.c \
 	core-version.c \
-	core.iop.c \
+	core.iop \
 	qpage.c \
 	qtlsf.c \
 	\
@@ -101,7 +101,7 @@ libcommon_SOURCES = \
 	iop-rpc-channel.c \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
-	ic.iop.c \
+	ic.iop \
 	\
 	net-addr.c \
 	net-rate.blk \

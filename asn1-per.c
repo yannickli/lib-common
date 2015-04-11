@@ -1437,9 +1437,16 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
 
     e_trace(5, "decoded choice index (index = %zd)", index);
 
+    if ((int)index + 1 >= desc->vec.len) {
+        e_info("the choice index read is not compatible with the "
+               "description: either the data is invalid or the description "
+               "incomplete");
+        return -1;
+    }
+
     enum_field = &desc->vec.tab[0];
-    choice_field = &desc->vec.tab[index + 1];     /* XXX Indexes start from 0 */
-    *GET_PTR(st, enum_field, int) = index + 1;    /* Write enum value         */
+    choice_field = &desc->vec.tab[index + 1];   /* XXX Indexes start from 0 */
+    *GET_PTR(st, enum_field, int) = index + 1;  /* Write enum value         */
     v = t_alloc_if_pointed(choice_field, st);
 
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
