@@ -68,7 +68,7 @@ libcommon_SOURCES = \
 	core-mem-stack.c \
 	core-mem-bench.c \
 	core-version.c \
-	core.iop.c \
+	core.iop \
 	core-module.c \
 	qpage.c \
 	qtlsf.c \
@@ -105,7 +105,7 @@ libcommon_SOURCES = \
 	iop-rpc-channel.c \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
-	ic.iop.c \
+	ic.iop \
 	\
 	log.c \
 	log-iop.c \

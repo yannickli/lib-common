@@ -2,6 +2,9 @@
 *.fc.c
 *.pyo
 *.pyc
+*.iop.h
+*.iop.c
+*.iop.json
 
 /Upgrading.html
 /conf-parser.c
