@@ -1780,7 +1780,9 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
                 unsigned fdesc_flags = fdesc->flags;
 
                 if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY)) {
-                    return iop_set_err("empty array not allowed");
+                    iop_set_err("empty array not allowed for field `%*pM`",
+                                LSTR_FMT_ARG(fdesc->name));
+                    return -1;
                 }
                 continue;
             }
@@ -2556,8 +2558,11 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
       case IOP_R_REPEATED: {
         unsigned fdesc_flags = fdesc->flags;
 
-        if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY))
-            return iop_set_err("empty array not allowed");
+        if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY)) {
+            iop_set_err("empty array not allowed for field `%*pM`",
+                        LSTR_FMT_ARG(fdesc->name));
+            return -1;
+        }
         p_clear((lstr_t *)ptr, 1);
       } break;
 
