@@ -331,7 +331,8 @@ void module_release(module_t *module)
         /* You are trying to manually release a module that have been spawn
          * automatically (AUTO_REQ)
          */
-        assert (false && "unauthorize release");
+        logger_panic(&_G.logger, "unauthorized release for module '%*pM'",
+                     LSTR_FMT_ARG(module->name));
         return;
     }
 
