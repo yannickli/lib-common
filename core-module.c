@@ -257,6 +257,10 @@ static int module_shutdown(module_t *module);
 
 static int notify_shutdown(module_t *module, module_t *dependence)
 {
+    logger_trace(&_G.logger, 2, "module '%*pM' notify shutdown to '%*pM'"
+                 ": %d pending dependencies", LSTR_FMT_ARG(dependence->name),
+                 LSTR_FMT_ARG(module->name), module->required_by.len);
+
     qv_for_each_pos(module, pos, &module->required_by) {
         if (module->required_by.tab[pos] == dependence) {
             qv_remove(module, &module->required_by, pos);
