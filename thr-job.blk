@@ -970,16 +970,35 @@ size_t thr_id(void)
     return self_tid_g;
 }
 
-void thr_syn_wait(thr_syn_t *syn)
+void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
 {
 #ifdef __has_thr_acc
     unsigned long start;
 #endif
 
+    cond = ^bool (void) {
+        int pending = atomic_load(&syn->pending);
+
+        if (cond) {
+            if (!cond()) {
+                /* XXX ensure pending has been fetched before executing cond,
+                 * otherwise this would be racy.
+                 *
+                 * BTW, if this assert fails, the condition probably does not
+                 * really depend on the syn to be verified.
+                 */
+                assert (pending);
+                return false;
+            }
+            return true;
+        }
+        return pending == 0;
+    };
+
     thr_syn__retain(syn);
 
     if (self_tid_g == 0) {
-        while (atomic_load(&syn->pending)) {
+        while (!cond()) {
             uint64_t key;
             thr_evc_t *ec;
 
@@ -999,7 +1018,7 @@ void thr_syn_wait(thr_syn_t *syn)
 #ifdef __has_thr_acc
             self_g->acc.ec_gets++;
 #endif
-            if (!atomic_load(&syn->pending)) {
+            if (cond()) {
                 goto cas;
             }
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
@@ -1024,7 +1043,7 @@ void thr_syn_wait(thr_syn_t *syn)
             }
         }
     } else {
-        while (atomic_load(&syn->pending)) {
+        while (!cond()) {
             int res = -1;
             uint64_t key = 0;
 
@@ -1040,7 +1059,7 @@ void thr_syn_wait(thr_syn_t *syn)
 #ifdef __has_thr_acc
                 self_g->acc.ec_gets++;
 #endif
-            } while (atomic_load(&syn->pending) && (res = thr_job_steal()) < 0);
+            } while (!cond() && (res = thr_job_steal()) < 0);
             if (res == 0) {
 #ifdef __has_thr_acc
                 self_g->acc.ec_waits++;
@@ -1055,6 +1074,11 @@ void thr_syn_wait(thr_syn_t *syn)
     }
 
     thr_syn__release(syn);
+}
+
+void thr_syn_wait(thr_syn_t *syn)
+{
+    thr_syn_wait_until(syn, NULL);
 }
 
 void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
