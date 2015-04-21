@@ -1919,7 +1919,8 @@ iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
 
 static void
 iopc_dump_snmp_obj_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
-                         const char *tbase, int oid, bool xt_is_snmp_root)
+                         const char *tbase, int oid, bool xt_is_snmp_root,
+                         iop_type_t kind)
 {
     sb_addf(buf,
             "%s iop_snmp_attrs_t %s__snmp_obj__s "
@@ -1927,12 +1928,14 @@ iopc_dump_snmp_obj_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
             CONST, tbase);
     if (!xt_is_snmp_root) {
         sb_addf(buf,
-                "    .parent = &%s__%s__s,\n",
+                "    .parent       = &%s__%s__s,\n",
                 pp_under(pkg->name), pp_to_c(st->name));
     }
     sb_addf(buf,
-            "    .oid    = %d,\n", oid);
-    sb_adds(buf, "};\n");
+            "    .oid          = %d,\n"
+            "    .type         = %s,\n"
+            "};\n",
+            oid, types[kind]);
 }
 
 static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
@@ -2618,9 +2621,11 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             qv_for_each_entry(iopc_field, field, &st->fields) {
                 fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
                 xt = field->parents.tab[0];
+
                 iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, fbase,
                                          field->field_origin->tag,
-                                         xt->is_snmp_root);
+                                         xt->is_snmp_root,
+                                         field->field_origin->kind);
             }
         } else
         if (iopc_is_snmp_obj(st->type)) {
@@ -2628,8 +2633,9 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
             qv_for_each_entry(iopc_field, field, &st->fields) {
                 fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
+
                 iopc_dump_snmp_obj_attrs(buf, st, pkg, fbase, field->tag,
-                                         false);
+                                         false, field->kind);
             }
         }
 
@@ -2733,10 +2739,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 sb_adds(buf, "};\n");                                        \
             } else                                                           \
             if (st->type == STRUCT_TYPE_SNMP_OBJ) {                          \
-                iopc_dump_snmp_obj_attrs(buf, st->extends.tab[0]->st,        \
-                                         st->extends.tab[0]->pkg, _tbase,    \
-                                         st->oid,                            \
-                                         st->extends.tab[0]->is_snmp_root);  \
+                iopc_extends_t *xt = st->extends.tab[0];                     \
+                iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, _tbase,       \
+                                         st->oid, xt->is_snmp_root,          \
+                                         IOP_T_STRUCT);                      \
             }                                                                \
             sb_addf(buf,                                                     \
                     "const iop_struct_t %s__s = {\n"                         \
@@ -3019,7 +3025,8 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         iopc_extends_t *xt = iface->extends.tab[0];
 
         iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, ibase,
-                                 iface->oid, xt->is_snmp_root);
+                                 iface->oid, xt->is_snmp_root,
+                                 IOP_T_STRUCT);
     }
 
     iopc_iface_dump_rpc_attrs(buf, iface, ibase);

@@ -299,8 +299,9 @@ typedef struct iop_class_attrs_t {
 
 /* SnmpObj and snmpIface attributes */
 typedef struct iop_snmp_attrs_t {
-    const iop_struct_t        *parent; /**< NULL if parent is Intersec      */
-    uint16_t                   oid;
+    const iop_struct_t *parent; /**< NULL if parent is Intersec             */
+    uint16_t            oid;
+    uint16_t            type;   /**< iop_type_t                             */
 } iop_snmp_attrs_t;
 
 struct iop_struct_t {
