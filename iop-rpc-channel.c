@@ -1092,7 +1092,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
             /* check for header replacement forcing */
-            if (pxy_hdr && hdr && !iop_equals(ic__hdr, pxy_hdr, hdr)) {
+            if (pxy_hdr && hdr) {
                 take_pxy_hdr = true;
             }
         }
