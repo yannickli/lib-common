@@ -246,19 +246,57 @@
 /* {{{ Useful expressions */
 
 #ifndef MAX
-#define MAX(a, b)            (((a) > (b)) ? (a) : (b))
+# define MAX(a, b)                                                           \
+    ({                                                                       \
+        typeof(a) __a = (a);                                                 \
+        typeof(b) __b = (b);                                                 \
+                                                                             \
+        __a > __b ? __a : __b;                                               \
+    })
 #endif
 #ifndef MIN
-#define MIN(a, b)            (((a) > (b)) ? (b) : (a))
+# define MIN(a, b)                                                           \
+    ({                                                                       \
+        typeof(a) __a = (a);                                                 \
+        typeof(b) __b = (b);                                                 \
+                                                                             \
+        __a > __b ? __b : __a;                                               \
+    })
 #endif
-#define MIN3(a, b, c)        (((a) > (b)) ? MIN(b, c) : MIN(a, c))
-#define MAX3(a, b, c)        (((a) > (b)) ? MAX(a, c) : MAX(b, c))
+#define MIN3(a, b, c)        MIN((a), MIN((b), (c)))
+#define MAX3(a, b, c)        MAX((a), MAX((b), (c)))
 
-#define CLIP(v, m, M)        (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
+#define CLIP(v, m, M)                                                        \
+    ({                                                                       \
+        typeof(v) __v = (v);                                                 \
+        typeof(m) __m = (m);                                                 \
+        typeof(M) __M = (M);                                                 \
+                                                                             \
+        __v > __M ? __M : (__v < __m ? __m : __v);                           \
+    })
 
-#define ROUND(x, y)          (((x) / (y)) * (y))
-#define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
-#define ROUND_UP(x, y)       (DIV_ROUND_UP(x, y) * (y))
+#define ROUND(x, y)                                                          \
+    ({                                                                       \
+        typeof(x) __x = (x);                                                 \
+        typeof(y) __y = (y);                                                 \
+                                                                             \
+        (__x / __y) * __y;                                                   \
+    })
+#define DIV_ROUND_UP_S(x, y)   (((x) + (y) - 1) / (y))
+#define DIV_ROUND_UP(x, y)                                                   \
+    ({                                                                       \
+        typeof(x) __x = (x);                                                 \
+        typeof(y) __y = (y);                                                 \
+                                                                             \
+        (__x + __y - 1) / __y;                                               \
+    })
+#define ROUND_UP(x, y)                                                       \
+    ({                                                                       \
+        typeof(x) __x = (x);                                                 \
+        typeof(y) __y = (y);                                                 \
+                                                                             \
+        ((__x + __y - 1) / __y) * __y;                                       \
+    })
 
 #define ROUND_UP_2EXP(x, y)                            \
     ({ typeof((y)) __y = (y);                          \
@@ -422,7 +460,7 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \
-    DIV_ROUND_UP(nbits, bitsizeof(type_t))
+    DIV_ROUND_UP_S(nbits, bitsizeof(type_t))
 
 #define BITMASK_NTH(type_t, n) ( cast(type_t, 1) << ((n) & (bitsizeof(type_t) - 1)))
 #define BITMASK_LT(type_t, n)  (BITMASK_NTH(type_t, n) - 1)
