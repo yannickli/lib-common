@@ -558,6 +558,17 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
                               const qv_t(iop_field_info) *fields_info);
 
 /* }}} */
+/* {{{ IOP pkg manipulation */
+
+#ifdef __has_blocks
+typedef void (BLOCK_CARET iop_for_each_pkg_b)(const iop_pkg_t *);
+
+/** Loop on all the pkg registered by `iop_register_packages`.
+ */
+void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb);
+#endif
+
+/* }}} */
 /* {{{ IOP class manipulation */
 
 static inline bool iop_struct_is_class(const iop_struct_t *st)

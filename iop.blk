@@ -3204,6 +3204,16 @@ static void iop_signature_initialize(void)
 }
 
 /*------ Signature -}}}-*/
+/* {{{ pkg manipulation */
+
+void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
+{
+    qm_for_each_pos(iop_pkg, pos, &_G.pkgs_by_name) {
+        cb(_G.pkgs_by_name.values[pos]);
+    }
+}
+
+/* }}} */
 /*------ class manipulation -{{{-*/
 
 iop_value_t const *
