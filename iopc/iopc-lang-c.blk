@@ -779,6 +779,44 @@ iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
             tbase);
 }
 
+static const char *iopc_field_type(iopc_field_t *f)
+{
+    switch (f->kind) {
+      case IOP_T_U8:     return "uint8_t  ";
+      case IOP_T_I8:     return "int8_t   ";
+      case IOP_T_U16:    return "uint16_t ";
+      case IOP_T_I16:    return "int16_t  ";
+      case IOP_T_U32:    return "uint32_t ";
+      case IOP_T_I32:    return "int32_t  ";
+      case IOP_T_U64:    return "uint64_t ";
+      case IOP_T_I64:    return "int64_t  ";
+      case IOP_T_BOOL:   return "bool     ";
+      case IOP_T_DOUBLE: return "double   ";
+      case IOP_T_STRING: return "lstr_t   ";
+      case IOP_T_DATA:   return _G.data_c_type;
+      case IOP_T_XML:    return "lstr_t   ";
+
+      default:
+        fatal_loc("attribute type not handled for this kind", f->loc);
+    }
+
+    assert(false);
+    return NULL;
+}
+
+static void
+iopc_snmp_field_dump_tdef_hdr(sb_t *buf, const char *pkg_name,
+                              iopc_struct_t *st, iopc_field_t *field)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    const char *fname = pp_to_c(field->name);
+    char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
+
+    sb_addf(buf, "typedef %s %s_typedef__t;\n",
+            iopc_field_type(field), tbase);
+}
+
 
 static void
 iopc_struct_dump_fields(sb_t *buf, int ident, iopc_field_t **fields, int len)
@@ -877,6 +915,17 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
         sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, false);
     }
+}
+
+static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
+                                     iopc_struct_t *st, iopc_field_t *field)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    const char *fname = pp_to_c(field->name);
+    char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
+
+    sb_addf(buf, "extern iop_snmp_attrs_t const %s__snmp_obj__s;\n", tbase);
 }
 
 static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
@@ -3338,6 +3387,15 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_struct_dump_tdef_hdr(&buf, pkg_name, st, NULL);
+
+        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+            sb_addf(&buf,
+                    "/*----- snmp fields of struct %s.%s -----*/\n",
+                    pretty_path_dot(pkg->name), st->name);
+            qv_for_each_entry(iopc_field, f, &st->fields) {
+                iopc_snmp_field_dump_tdef_hdr(&buf, pkg_name, st, f);
+            }
+        }
     }
     sb_adds(&buf, "#endif\n");
 
@@ -3370,6 +3428,12 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             iopc_union_dump_hdr(&buf, pkg_name, st);
         } else {
             iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
+        }
+
+        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+            qv_for_each_entry(iopc_field, field, &st->fields) {
+               iopc_snmp_field_dump_hdr(&buf, pkg_name, st, field);
+            }
         }
     }
     sb_adds(&buf, "#endif\n");
