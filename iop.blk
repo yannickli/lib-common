@@ -117,16 +117,41 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
     const iop_field_t *iop_field = NULL;
 
     while (!ps_done(&ps)) {
+        pstream_t as;
         pstream_t s;
+        int array_index;
 
-        if (ps_get_ps_chr_and_skip(&ps, '.', &s) < 0) {
-            s = ps;
+        if (ps_get_ps_chr_and_skip(&ps, '.', &as) < 0) {
+            as = ps;
             ps = ps_init(NULL, 0);
+        }
+
+        if (ps_get_ps_chr_and_skip(&as, '[', &s) < 0) {
+            s = as;
+            array_index = -1;
+        } else {
+            errno = 0;
+            array_index = ps_geti(&as);
+            THROW_NULL_IF(array_index < 0 || errno);
+            RETHROW_NP(ps_skipc(&as, ']'));
+            THROW_NULL_IF(!ps_done(&as));
         }
 
         RETHROW_NP(__iop_field_find_by_name(st, s.s, ps_len(&s), NULL,
                                             &iop_field));
         ptr = (const byte *)ptr + iop_field->data_offs;
+
+        if (array_index >= 0) {
+            const IOP_ARRAY_OF(byte) *array_ptr = ptr;
+
+            THROW_NULL_IF(iop_field->repeat != IOP_R_REPEATED);
+            THROW_NULL_IF(array_ptr->len <= array_index);
+            ptr = array_ptr->tab + (iop_field->size * array_index);
+        } else
+        if (iop_field->repeat == IOP_R_REPEATED) {
+            THROW_NULL_IF(!ps_done(&ps));
+        }
+
         switch (iop_field->type) {
           case IOP_T_UNION:
             if (iop_field->repeat == IOP_R_OPTIONAL
