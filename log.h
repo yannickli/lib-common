@@ -253,6 +253,9 @@ __attr_printf__(5, 6) __attr_noreturn__ __cold
 void __logger_fatal(logger_t *logger, const char *file, const char *func,
                     int line, const char *fmt, ...);
 
+__attr_printf__(5, 6) __attr_noreturn__ __cold
+void __logger_exit(logger_t *logger, const char *file, const char *func,
+                   int line, const char *fmt, ...);
 
 #define logger_panic(Logger, Fmt, ...)                                       \
     __logger_panic((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
@@ -260,6 +263,8 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 #define logger_fatal(Logger, Fmt, ...)                                       \
     __logger_fatal((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
 
+#define logger_exit(Logger, Fmt, ...)                                        \
+    __logger_exit((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
 
 #define __LOGGER_LOG(Logger, Level, Mark, Fmt, ...)  ({                      \
         const logger_t *__clogger = (Logger);                                \

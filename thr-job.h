@@ -253,10 +253,31 @@ void thr_syn__job_done(thr_syn_t *syn)
  *
  * This function waits until all jobs that have been registered as
  * synchronizing against this #thr_syn_t to complete. If there are jobs
- * running, the waiter is used to perform new jobs inbetween to avoid
+ * running, the waiter is used to perform new jobs in between to avoid
  * blocking, using the #thr_drain_one function.
  */
 void thr_syn_wait(thr_syn_t *syn);
+
+#ifdef __has_blocks
+
+/** \brief wait for a condition to become true.
+ *
+ * This function waits until the given callback returns true. This supposes
+ * the condition will become true because of the consumption of the jobs
+ * associated with this #thr_syn_t.
+ *
+ * If there are jobs pending, the waiter is used to perform any jobs in
+ * between to avoid blocking, using the #thr_drain_one function.
+ *
+ * \param[in] syn  A #thr_syn_t on which you which to wait.
+ * \param[in] cond A callback returning true when the condition is verified.
+ *                 If NULL is provided, this function becomes equivalent to
+ *                 \ref thr_syn_wait. The callback must be pure and you have
+ *                 no guarantees on the number of times it will be called.
+ */
+void thr_syn_wait_until(thr_syn_t *syn, bool (BLOCK_CARET cond)(void));
+
+#endif
 
 /** \brief process one job from the main queue.
  */

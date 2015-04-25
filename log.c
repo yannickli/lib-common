@@ -625,6 +625,21 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
     logger_do_fatal();
 }
 
+void __logger_exit(logger_t *logger, const char *file, const char *func,
+                   int line, const char *fmt, ...)
+{
+    va_list va;
+
+    __logger_refresh(logger);
+
+    va_start(va, fmt);
+    logger_vlog(logger, LOG_ERR, NULL, -1, file, func, line, fmt, va);
+    vsyslog(LOG_USER | LOG_ERR, fmt, va);
+    va_end(va);
+
+    _exit(0);
+}
+
 #ifndef NDEBUG
 
 int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
