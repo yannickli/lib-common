@@ -179,6 +179,11 @@ typedef struct ic_dynproxy_t {
     ic__hdr__t *hdr;
 } ic_dynproxy_t;
 
+/** Callback to fetch a dynamic proxy (pair of ichannel + header).
+ *
+ * This function is allowed to return an header allocated on the t_pool() just
+ * like a t_ function.
+ */
 typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t *hdr, void *priv);
 
 #define IC_DYNPROXY_NULL    ((ic_dynproxy_t){ .ic = NULL })
