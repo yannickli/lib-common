@@ -898,7 +898,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
         iopc_struct_dump_hdr_class_snmp_obj(buf, st);
     }
 
-    if (st->fields_contain_snmp_info) {
+    if (st->contains_snmp_info) {
         iopc_struct_dump_snmp_fields(buf, 4, st->fields.tab, st->fields.len);
     } else {
         iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
@@ -1969,24 +1969,40 @@ iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
 static void
 iopc_dump_snmp_obj_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
                          const char *tbase, int oid, bool xt_is_snmp_root,
-                         iop_type_t kind)
+                         const char *if_name, bool is_rpc, iop_type_t kind)
 {
     sb_addf(buf,
             "%s iop_snmp_attrs_t %s__snmp_obj__s "
             "= {\n",
             CONST, tbase);
-    if (!xt_is_snmp_root) {
+    if (!is_rpc && !xt_is_snmp_root) {
         sb_addf(buf,
                 "    .parent       = &%s__%s__s,\n",
                 pp_under(pkg->name), pp_to_c(st->name));
+    } else
+    if (is_rpc) {
+        sb_addf(buf,
+                "    .iface_parent = &%s__%s__if,\n",
+                pp_under(pkg->name), if_name);
     }
     sb_addf(buf,
             "    .oid          = %d,\n"
             "    .type         = %s,\n"
-            "};\n",
-            oid, types[kind]);
+            "};\n", oid, types[kind]);
 }
 
+static void
+iopc_dump_if_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
+                        const char *tbase, int oid)
+{
+    sb_addf(buf,
+            "%s iop_snmp_attrs_t %s__snmp_obj__s "
+            "= {\n"
+            "    .parent       = &%s__%s__s,\n"
+            "    .oid          = %d,\n"
+             "};\n",
+            CONST, tbase, pp_under(pkg->name), pp_to_c(st->name), oid);
+}
 static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                                  sb_t *sb, iopc_attrs_t *attrs,
                                  const iopc_field_t *f)
@@ -2184,7 +2200,7 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
         }
     }
 
-    if (st->fields_contain_snmp_info || iopc_is_snmp_obj(st->type)) {
+    if (st->contains_snmp_info || iopc_is_snmp_obj(st->type)) {
         iopc_dump_snmp_field_attr(&attrs_body, attrs, tbase, cname);
         SET_BIT(&attrs->flags, IOP_FIELD_SNMP_INFO);
     }
@@ -2550,7 +2566,9 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
 static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                                    bool has_attrs, char *as_base)
 {
-    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type))) {
+    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)
+     || st->contains_snmp_info))
+    {
         t_scope;
         lstr_t st_attrs = t_lstr_fmt("&%s__s_desc_attrs", tbase);
         lstr_t fields_attrs = t_lstr_fmt("%s__desc_fields_attrs", as_base);
@@ -2602,7 +2620,8 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
 static void
 iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                      const char *pkg_name,
-                     iopc_struct_t *st, qv_t(lstr) *paliases)
+                     iopc_struct_t *st, qv_t(lstr) *paliases,
+                     const char *iface_name, int rpc_oid)
 {
     t_scope;
     const char *comment = get_struct_type_desc(st->type);
@@ -2663,7 +2682,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
         /* generate <tbase>__<field>__snmp_obj__s for fields of snmpIface
          * rpcs */
-        if (st->fields_contain_snmp_info) {
+        if (st->contains_snmp_info) {
             char *fbase;
             iopc_extends_t *xt;
 
@@ -2673,7 +2692,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
                 iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, fbase,
                                          field->field_origin->tag,
-                                         xt->is_snmp_root,
+                                         xt->is_snmp_root, "", false,
                                          field->field_origin->kind);
             }
         } else
@@ -2684,7 +2703,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
 
                 iopc_dump_snmp_obj_attrs(buf, st, pkg, fbase, field->tag,
-                                         false, field->kind);
+                                         false, "", false, field->kind);
             }
         }
 
@@ -2791,6 +2810,11 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 iopc_extends_t *xt = st->extends.tab[0];                     \
                 iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, _tbase,       \
                                          st->oid, xt->is_snmp_root,          \
+                                         "", false, IOP_T_STRUCT);           \
+            }                                                                \
+            if (st->contains_snmp_info) {                                    \
+                iopc_dump_snmp_obj_attrs(buf, st, pkg, _tbase, rpc_oid,      \
+                                         false, iface_name, true,           \
                                          IOP_T_STRUCT);                      \
             }                                                                \
             sb_addf(buf,                                                     \
@@ -3025,7 +3049,8 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 iopc_get_aliases(fun, &aliases, "Args");
                 if (fun->arg_is_anonymous) {
                     iopc_struct_dump_src(buf, pkg, pkg_name, fun->arg,
-                                         &aliases);
+                                         &aliases, pp_to_c(iface->name),
+                                         fun->tag);
                 } else {
                     fatal_loc("should not happen", fun->loc);
                 }
@@ -3039,7 +3064,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     iopc_get_aliases(fun, &aliases, type);                   \
                     if (is_anonymous) {                                      \
                         iopc_struct_dump_src(buf, pkg, pkg_name, _var,       \
-                                              &aliases);                     \
+                                              &aliases, NULL, 0);            \
                     } else {                                                 \
                         /* When the function argument is just a              \
                          * reference to another structure, we just           \
@@ -3073,9 +3098,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (iface->type == IFACE_TYPE_SNMP_IFACE) {
         iopc_extends_t *xt = iface->extends.tab[0];
 
-        iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, ibase,
-                                 iface->oid, xt->is_snmp_root,
-                                 IOP_T_STRUCT);
+        iopc_dump_if_snmp_attrs(buf, xt->st, xt->pkg, ibase, iface->oid);
     }
 
     iopc_iface_dump_rpc_attrs(buf, iface, ibase);
@@ -3503,7 +3526,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         iopc_enum_dump_src(&buf, pkg, pkg_name, en);
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL);
+        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL, NULL, 0);
     }
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
         iopc_iface_dump_src(&buf, pkg, pkg_name, iface);

@@ -669,7 +669,7 @@ typedef struct iopc_struct_t {
     flag_t     is_abstract          : 1;
     flag_t     is_local             : 1;
     flag_t     is_snmp_params       : 1;
-    flag_t     fields_contain_snmp_info : 1;
+    flag_t     contains_snmp_info : 1;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;

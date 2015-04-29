@@ -591,9 +591,9 @@ static void iopc_snmp_iface_resolve(iopc_pkg_t *pkg, iopc_iface_t *iface)
 
     /* Resolve rpcs in funs */
     qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        fun->arg->contains_snmp_info = true;
         qv_for_each_entry(iopc_field, field, &fun->arg->fields) {
             resolve_snmp_iface_field(iface, field);
-            fun->arg->fields_contain_snmp_info = true;
         }
     }
 }

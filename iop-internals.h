@@ -219,6 +219,7 @@ enum iop_enum_flags_t {
 typedef int (*check_constraints_f)(const void *ptr, int n);
 
 typedef iop_generic_attr_arg_t iop_field_attr_arg_t;
+typedef struct iop_iface_t iop_iface_t;
 
 typedef enum iop_field_attr_type_t {
     IOP_FIELD_MIN_OCCURS,
@@ -300,6 +301,7 @@ typedef struct iop_class_attrs_t {
 /* SnmpObj and snmpIface attributes */
 typedef struct iop_snmp_attrs_t {
     const iop_struct_t *parent; /**< NULL if parent is Intersec             */
+    const iop_iface_t  *iface_parent; /**< in case of snmpIface rpc'        */
     uint16_t            oid;
     uint16_t            type;   /**< iop_type_t                             */
 } iop_snmp_attrs_t;
@@ -408,7 +410,7 @@ typedef struct iop_iface_attrs_t {
     const iop_iface_attr_t *attrs;
 } iop_iface_attrs_t;
 
-typedef struct iop_iface_t {
+struct iop_iface_t {
     const lstr_t             fullname;
     const iop_rpc_t         *funs;
     uint16_t                 funs_len;
@@ -420,7 +422,7 @@ typedef struct iop_iface_t {
     /** check TST_BIT(flags, IOP_IFACE_IS_SNMP_IFACE)
      *  before accessing iface_attrs */
     const iop_snmp_attrs_t  *snmp_iface_attrs;
-} iop_iface_t;
+};
 
 enum iop_iface_flags_t {
     IOP_IFACE_EXTENDED,
