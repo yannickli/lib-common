@@ -131,6 +131,7 @@ libcommon_SOURCES = \
 	str.c \
 	str-buf-gsm.c \
 	str-buf-quoting.c \
+	str-buf-pp.c \
 	str-buf.c \
 	str-conv-ebcdic.c \
 	str-conv.c \
