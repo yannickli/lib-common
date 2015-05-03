@@ -167,6 +167,65 @@ void sb_add_unslashes(sb_t *sb, const void *_data, int len,
     sb_add(sb, p, end - p);
 }
 
+int sb_add_expandenv(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    pstream_t ps = ps_init(data, len);
+    SB_1k(env_buf);
+
+    while (!ps_done(&ps)) {
+        pstream_t n;
+        pstream_t env_name;
+        const char *var;
+        bool has_env = false;
+
+        if (ps_get_ps_chr_and_skip(&ps, '$', &n) < 0) {
+            n = ps;
+            ps = ps_init(NULL, 0);
+        } else {
+            pstream_t prev = n;
+            int slashes = 0;
+
+            while (ps_endswithstr(&prev, "\\")) {
+                slashes++;
+                prev.s_end--;
+            }
+            if ((slashes & 1)) {
+                n.s_end++;
+            } else {
+                has_env = true;
+            }
+        }
+
+        sb_add_unslashes(sb, n.s, ps_len(&n), "$", "$");
+
+        if (!has_env) {
+            break;
+        }
+
+        if (ps_skipc(&ps, '{') < 0) {
+            env_name = ps_get_span(&ps, &ctype_iscvar);
+        } else
+        if (ps_get_ps_chr_and_skip(&ps, '}', &env_name) < 0) {
+            return __sb_rewind_adds(sb, &orig);
+        }
+
+        if (ps_done(&env_name)) {
+            return __sb_rewind_adds(sb, &orig);
+        }
+
+        sb_set(&env_buf, env_name.s, ps_len(&env_name));
+        var = getenv(env_buf.data);
+
+        if (!var) {
+            return __sb_rewind_adds(sb, &orig);
+        }
+
+        sb_adds(sb, var);
+    }
+    return 0;
+}
+
 static char const __c_unescape[] = {
     ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
     ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',

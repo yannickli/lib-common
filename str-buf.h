@@ -548,6 +548,16 @@ sb_adds_unslashes(sb_t *sb, const char *s, const char *tounesc, const char *unes
     sb_add_unslashes(sb, s, strlen(s), tounesc, unesc);
 }
 
+/** Add a string by expanding the environment variables.
+ *
+ * This adds the string pointed by \p data with length \p len in the buffer
+ * \p sb after expanding environment variables marked with syntax
+ * <code>${VAR_NAME}</code> or <code>$VAR_NAME</code>. Literal <code>$</code>
+ * or <code>\</code> must be escaped using backslashes.
+ */
+int sb_add_expandenv(sb_t *sb, const void *data, int len) __leaf;
+__SB_DEFINE_ADDS_ERR(expandenv);
+
 void sb_add_unquoted(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(unquoted);
 

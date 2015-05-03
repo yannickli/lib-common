@@ -1738,6 +1738,40 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT( ps_has_char_in_ctype(&p, &ctype_isdigit));
         Z_ASSERT(!ps_has_char_in_ctype(&p, &ctype_isalpha));
     } Z_TEST_END;
+
+    Z_TEST(sb_add_expandenv, "sb: sb_add_expandenv") {
+        const char *var = getenv("USER");
+        SB_1k(data);
+        SB_1k(expected);
+
+#define T(str, res, ...)  do {                                               \
+        sb_reset(&data);                                                     \
+        sb_adds_expandenv(&data, str);                                       \
+                                                                             \
+        sb_setf(&expected, res, ##__VA_ARGS__);                              \
+        Z_ASSERT_STREQUAL(data.data, expected.data);                         \
+    } while (0)
+
+        T("toto", "toto");
+        T("", "");
+        T("$USER", "%s", var);
+        T("${USER}", "%s", var);
+        T("$USER ", "%s ", var);
+        T("$USER$USER", "%s%s", var, var);
+        T("/$USER/", "/%s/", var);
+        T("Hello ${USER}!", "Hello %s!", var);
+        T("\\$", "$");
+        T("\\\\$USER", "\\%s", var);
+
+#undef T
+#define T_ERR(str)  Z_ASSERT_NEG(sb_adds_expandenv(&data, str))
+
+        T_ERR("${USER");
+        T_ERR("$$");
+
+#undef T_ERR
+
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
