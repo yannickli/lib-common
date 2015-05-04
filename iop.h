@@ -174,7 +174,7 @@ bool iop_field_is_reference(const iop_field_t *fdesc)
     return TST_BIT(&fdesc_flags, IOP_FIELD_IS_REFERENCE);
 }
 
-int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
+int __iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
                              const iop_struct_t **found_st,
                              const iop_field_t  **found_fdesc);
 

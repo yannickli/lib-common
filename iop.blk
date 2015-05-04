@@ -73,19 +73,20 @@ static struct {
 /*------ various helpers -{{{-*/
 
 static inline int
-__iop_field_find_by_name2(const iop_struct_t *desc, const void *s, int len)
+__iop_field_find_by_name2(const iop_struct_t *desc, const lstr_t name)
 {
     const iop_field_t *field = desc->fields;
 
     for (int i = 0; i < desc->fields_len; i++) {
-        if (len == field->name.len && !memcmp(field->name.s, s, len))
+        if (lstr_equal2(field->name, name)) {
             return i;
+        }
         field++;
     }
     return -1;
 }
 
-int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
+int __iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
                              const iop_struct_t **found_st,
                              const iop_field_t  **found_fdesc)
 {
@@ -93,7 +94,7 @@ int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
     bool is_class = iop_struct_is_class(st);
 
     do {
-        int pos = __iop_field_find_by_name2(st, s, len);
+        int pos = __iop_field_find_by_name2(st, name);
 
         if (pos >= 0) {
             if (found_st) {
@@ -137,7 +138,7 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             THROW_NULL_IF(!ps_done(&as));
         }
 
-        RETHROW_NP(__iop_field_find_by_name(st, s.s, ps_len(&s), NULL,
+        RETHROW_NP(__iop_field_find_by_name(st, LSTR_PS_V(&s), NULL,
                                             &iop_field));
         ptr = (const byte *)ptr + iop_field->data_offs;
 
@@ -733,7 +734,7 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
                                    lstr_t key, iop_value_t *value)
 {
-    int pos = RETHROW(__iop_field_find_by_name2(st, f_name.s, f_name.len));
+    int pos = RETHROW(__iop_field_find_by_name2(st, f_name));
     const iop_field_t *field = st->fields + pos;
 
     return iop_field_get_gen_attr(st, field, key, value);
@@ -1382,8 +1383,8 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             return -1;
         }
 
-        if (__iop_field_find_by_name(it, fname.s, ps_len(&fname),
-                                     NULL, &fdesc) < 0)
+        if (__iop_field_find_by_name(it, LSTR_PS_V(&fname), NULL,
+                                     &fdesc) < 0)
         {
             if (err) {
                 sb_addf(err, "cannot process field path `%*pM', "

@@ -1162,8 +1162,8 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            if (__iop_field_find_by_name(desc, ll->ctx->b.data,
-                                         ll->ctx->b.len, NULL, &fdesc) < 0)
+            if (__iop_field_find_by_name(desc, LSTR_SB_V(&ll->ctx->b), NULL,
+                                         &fdesc) < 0)
             {
                 return RJERROR_EXP("a valid union member name");
             }
@@ -1377,8 +1377,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     }
                 }
                 ifield = __iop_field_find_by_name(real_desc,
-                                                  ll->ctx->b.data,
-                                                  ll->ctx->b.len,
+                                                  LSTR_SB_V(&ll->ctx->b),
                                                   &desc, &fdesc);
                 if (fdesc) {
                     if (TST_BIT(seen, ifield)) {
