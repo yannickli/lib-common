@@ -179,3 +179,14 @@
     fun:qv_spec_growlen
     fun:log_initialize
 }
+
+# conversion from string to double
+# Valgrind 3.7.0 does not handle __GI___strncasecmp_l, seems to be fixed
+# on subsequent versions
+{
+    lib-common/str-num/memtod
+    Memcheck:Addr8
+    fun:__GI___strncasecmp_l
+    ...
+    fun:memtod
+}
