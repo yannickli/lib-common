@@ -344,6 +344,11 @@ class IopcTest(z.TestCase):
                       'snmpObj `Params` does not have the attribute '
                       '@snmpParams', 4)
 
+    def test_snmp_invalid_type_fields(self):
+        self.run_iopc('snmp_invalid_fields.iop', False,
+                      'only int/string/boolean types are handled for snmpObj '
+                      'fields', 4)
+
     def test_attrs_invalid_noreorder(self):
         self.run_iopc2('attrs_invalid_noreorder.iop', False,
                        'attribute noReorder does not apply to union')

@@ -1580,11 +1580,36 @@ static void parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
     *name = iopc_upper_ident(pp);
 }
 
+static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
+{
+    switch(kind) {
+      case IOP_T_STRING:
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_BOOL:
+        return;
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      default:
+        fatal_loc("only int/string/boolean types are handled for snmpObj "
+                  "fields", st->loc);
+    }
+}
+
 static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
                              iopc_field_t *f)
 {
     WANT(pp, 0, ITOK_IDENT);
     f->kind = get_type_kind(TK(pp, 0));
+
+    /* in case of snmpObj structure, some field type are not handled */
+    if (st && iopc_is_snmp_obj(st->type)) {
+        check_snmp_obj_field_type(st, f->kind);
+    }
     if (f->kind == IOP_T_STRUCT) {
         parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
     } else {
