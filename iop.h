@@ -174,13 +174,42 @@ bool iop_field_is_reference(const iop_field_t *fdesc)
     return TST_BIT(&fdesc_flags, IOP_FIELD_IS_REFERENCE);
 }
 
-int __iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
-                             const iop_struct_t **found_st,
-                             const iop_field_t  **found_fdesc);
+/** Get an iop_field from its name.
+ *
+ * Get an iop_field_t in an iop_struct_t if it exists. If \p st is a class,
+ * its parents will be walked through in order to check if they contain a
+ * field named \p name.
+ *
+ * \param[in]  st  the iop_struct_t in which the field \p name is searched.
+ * \param[in]  name  the name of the field to look for.
+ * \param[out] found_st  set to the class that contains the field if \p st is
+ *                       a class - or to \p st otherwise - if the field is
+ *                       found.
+ * \param[out] found_fdesc  set to the field descriptor if the field is found.
+ *
+ * \return  index of the field in a structure if the field is found, -1
+ *          otherwise.
+ */
+int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
+                           nullable const iop_struct_t **found_st,
+                           nullable const iop_field_t  **found_fdesc);
 
+/** Fill a field in an iop structure.
+ *
+ * Fill a field of an iop structure if it is possible to set it empty or to
+ * set a default value.
+ *
+ * \param[in]  mp  the memory pool on which the missing data will be
+ *                 allocated.
+ * \param[in]  value  the pointer to an iop structure of the type \p fdesc
+ *                    belongs to.
+ * \param[in]  fdesc  the descriptor of the field to fill.
+ *
+ * \return  0 if the field was filled, -1 otherwise.
+ */
 __must_check__
-int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
-                                 const iop_field_t *fdesc);
+int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
+                               const iop_field_t *fdesc);
 
 int iop_ranges_search(int const *ranges, int ranges_len, int tag);
 

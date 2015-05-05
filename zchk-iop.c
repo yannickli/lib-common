@@ -4156,7 +4156,7 @@ Z_GROUP_EXPORT(iop)
             const iop_struct_t *tmp_struct = NULL;                           \
             lstr_t name = LSTR(_name);                                       \
                                                                              \
-            __iop_field_find_by_name(st, name, &tmp_struct, &tmp_field);     \
+            iop_field_find_by_name(st, name, &tmp_struct, &tmp_field);       \
             tmp_field;                                                       \
         })
 

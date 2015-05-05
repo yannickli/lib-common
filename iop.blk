@@ -86,9 +86,9 @@ __iop_field_find_by_name2(const iop_struct_t *desc, const lstr_t name)
     return -1;
 }
 
-int __iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
-                             const iop_struct_t **found_st,
-                             const iop_field_t  **found_fdesc)
+int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
+                           const iop_struct_t **found_st,
+                           const iop_field_t  **found_fdesc)
 {
     int acc = 0;
     bool is_class = iop_struct_is_class(st);
@@ -138,8 +138,8 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             THROW_NULL_IF(!ps_done(&as));
         }
 
-        RETHROW_NP(__iop_field_find_by_name(st, LSTR_PS_V(&s), NULL,
-                                            &iop_field));
+        RETHROW_NP(iop_field_find_by_name(st, LSTR_PS_V(&s), NULL,
+                                          &iop_field));
         ptr = (const byte *)ptr + iop_field->data_offs;
 
         if (array_index >= 0) {
@@ -1383,8 +1383,8 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             return -1;
         }
 
-        if (__iop_field_find_by_name(it, LSTR_PS_V(&fname), NULL,
-                                     &fdesc) < 0)
+        if (iop_field_find_by_name(it, LSTR_PS_V(&fname), NULL,
+                                   &fdesc) < 0)
         {
             if (err) {
                 sb_addf(err, "cannot process field path `%*pM', "
@@ -2509,8 +2509,8 @@ __get_class_id(pstream_t *ps, iop_wire_type_t wt, uint16_t *class_id)
     }
 }
 
-int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
-                                 const iop_field_t *fdesc)
+int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
+                               const iop_field_t *fdesc)
 {
     void *ptr = (char *)value + fdesc->data_offs;
 
@@ -2538,8 +2538,8 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
         }
         do {
             for (int i = 0; i < desc->fields_len; i++) {
-                PS_CHECK(__iop_skip_absent_field_desc(mp, ptr,
-                                                      desc->fields + i));
+                PS_CHECK(iop_skip_absent_field_desc(mp, ptr,
+                                                    desc->fields + i));
             }
         } while (is_class && (desc = desc->class_attrs->parent));
       } return 0;
@@ -2715,7 +2715,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "unpacking class %*pM, got change of level tag",
                           LSTR_FMT_ARG(desc->fullname));
             do {
-                PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
+                PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
             } while (++fdesc != end);
             *class_id_wt = wt;
             return 1;
@@ -2725,7 +2725,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "skipping absent field %*pM (tag %u)",
                           LSTR_FMT_ARG(desc->fullname),
                           LSTR_FMT_ARG(fdesc->name), fdesc->tag);
-            PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
+            PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
             if (++fdesc == end) {
                 return 0;
             }
@@ -2834,7 +2834,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                       "unpacking struct %*pM, skipping %*pM field",
                       LSTR_FMT_ARG(desc->fullname),
                       LSTR_FMT_ARG(fdesc->name));
-        PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
+        PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
     }
 
     return 0;
@@ -2847,7 +2847,7 @@ unpack_skip_all_fields(mem_pool_t *mp, const iop_struct_t *desc, void *value)
     const iop_field_t *end   = fdesc + desc->fields_len;
 
     for ( ; fdesc < end; fdesc++) {
-        PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
+        PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
     }
     return 0;
 }

@@ -1162,8 +1162,8 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            if (__iop_field_find_by_name(desc, LSTR_SB_V(&ll->ctx->b), NULL,
-                                         &fdesc) < 0)
+            if (iop_field_find_by_name(desc, LSTR_SB_V(&ll->ctx->b), NULL,
+                                       &fdesc) < 0)
             {
                 return RJERROR_EXP("a valid union member name");
             }
@@ -1376,9 +1376,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                         break;
                     }
                 }
-                ifield = __iop_field_find_by_name(real_desc,
-                                                  LSTR_SB_V(&ll->ctx->b),
-                                                  &desc, &fdesc);
+                ifield = iop_field_find_by_name(real_desc,
+                                                LSTR_SB_V(&ll->ctx->b), &desc,
+                                                &fdesc);
                 if (fdesc) {
                     if (TST_BIT(seen, ifield)) {
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
@@ -1527,7 +1527,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         for (; i < acc + real_desc->fields_len; i++, fdesc++) {
             if (TST_BIT(seen, i))
                 continue;
-            if (__iop_skip_absent_field_desc(ll->mp, value, fdesc) < 0)
+            if (iop_skip_absent_field_desc(ll->mp, value, fdesc) < 0)
                 return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, real_desc,
                                       fdesc);
         }
@@ -1603,8 +1603,8 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
 
         /* At this point we check for any required field */
         for (int i = 0; i < desc->fields_len; i++) {
-            if (__iop_skip_absent_field_desc(ll->mp, value,
-                                             desc->fields + i) < 0)
+            if (iop_skip_absent_field_desc(ll->mp, value,
+                                           desc->fields + i) < 0)
             {
                 return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER,
                                       desc, desc->fields + i);
