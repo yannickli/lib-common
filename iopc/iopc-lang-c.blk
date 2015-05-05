@@ -775,7 +775,7 @@ iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
     sb_addf(buf,
             "typedef struct %s__t %s__t;\n"
             "typedef IOP_ARRAY_OF(%s__t%s) %s__array_t;\n\n",
-            tbase, tbase, tbase, st->type == STRUCT_TYPE_CLASS ? " *" : "",
+            tbase, tbase, tbase, iopc_is_class(st->type) ? " *" : "",
             tbase);
 }
 
@@ -894,7 +894,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     iopc_struct_optimize(st);
     sb_addf(buf, "struct %s__t {\n", tbase);
 
-    if (st->type == STRUCT_TYPE_CLASS || st->type == STRUCT_TYPE_SNMP_OBJ) {
+    if (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)) {
         iopc_struct_dump_hdr_class_snmp_obj(buf, st);
     }
 
@@ -907,7 +907,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     sb_addf(buf, "};\n"
             "extern iop_struct_t const %s__s;\n",
             tbase);
-    if (st->type == STRUCT_TYPE_CLASS) {
+    if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, true);
@@ -1352,7 +1352,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
     if (unlikely(!st->nb_real_static_fields)) {
         return;
     }
-    assert (st->type == STRUCT_TYPE_CLASS);
+    assert (iopc_is_class(st->type));
 
     sb_addc(buf, '\n');
 
@@ -2757,11 +2757,11 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             iopc_struct_dump_static_fields_src(buf, st, tbase);
         }
 
-        if (st->type == STRUCT_TYPE_CLASS) {
+        if (iopc_is_class(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_CLASS);
         } else
-        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+        if (iopc_is_snmp_obj(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_OBJ);
         }
@@ -2784,7 +2784,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
     #define WRITE_STRUCT(_tbase, _sname)                                     \
         do {                                                                 \
-            if (st->type == STRUCT_TYPE_CLASS) {                             \
+            if (iopc_is_class(st->type)) {                                   \
                 sb_addf(buf,                                                 \
                         "static %s iop_class_attrs_t %s__class_s = {\n",     \
                         CONST, _tbase);                                      \
@@ -2806,7 +2806,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                         "    .class_id          = %d,\n", st->class_id);     \
                 sb_adds(buf, "};\n");                                        \
             } else                                                           \
-            if (st->type == STRUCT_TYPE_SNMP_OBJ) {                          \
+            if (iopc_is_snmp_obj(st->type)) {                                \
                 iopc_extends_t *xt = st->extends.tab[0];                     \
                 iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, _tbase,       \
                                          st->oid, xt->is_snmp_root,          \
@@ -3411,7 +3411,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_struct_dump_tdef_hdr(&buf, pkg_name, st, NULL);
 
-        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+        if (iopc_is_snmp_obj(st->type)) {
             sb_addf(&buf,
                     "/*----- snmp fields of struct %s.%s -----*/\n",
                     pretty_path_dot(pkg->name), st->name);
@@ -3453,7 +3453,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
         }
 
-        if (st->type == STRUCT_TYPE_SNMP_OBJ) {
+        if (iopc_is_snmp_obj(st->type)) {
             qv_for_each_entry(iopc_field, field, &st->fields) {
                iopc_snmp_field_dump_hdr(&buf, pkg_name, st, field);
             }

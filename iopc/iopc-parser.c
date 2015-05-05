@@ -1704,7 +1704,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     f->loc = TK(pp, 0)->loc;
 
     if (SKIP_KW(pp, "static")) {
-        if (st->type != STRUCT_TYPE_CLASS) {
+        if (!iopc_is_class(st->type)) {
             fatal_loc("static keyword is only authorized for class fields",
                       f->loc);
         }
