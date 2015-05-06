@@ -15,6 +15,7 @@
 where="$1"
 libcommondir=$(dirname "$(dirname "$(readlink -f "$0")")")
 shift
+BEHAVE_FLAGS="${BEHAVE_FLAGS:-}"
 
 if test "$TERM" != "dumb" -a -t 1 &&
     tput bold >/dev/null 2>&1 &&
@@ -50,7 +51,7 @@ else
         shift 1
         echo "$@"
     }
-    BEHAVE_FLAGS="--no-color"
+    BEHAVE_FLAGS="${BEHAVE_FLAGS} --no-color"
 
     post_process()
     {
@@ -133,9 +134,9 @@ export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
 TAGS=($Z_TAG_SKIP)
 for TAG in ${TAGS[@]}
 do
-     BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=-$TAG"
+     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG"
 done
-export BEHAVE_FLAGS="$BEHAVE_FLAGS --format z --no-summary"
+export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
 
 while read -r zd line; do
     t="${zd}${line}"
