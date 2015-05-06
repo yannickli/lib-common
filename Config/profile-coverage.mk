@@ -41,12 +41,12 @@ www-coverage:: __setup_forward
 	mkdir -p $!${REPORT_DIR}
 	$(msg/generate) "$!"
 	cp -a $/* $!
-	find -type d -name "javascript" -not -path '*/\.*' | while read line ; do \
+	find -type d -name "javascript" -not -path '*/\.*' -not -path '*/cache/*' | while read line ; do \
 		$(msg/generate) "instrumented directory: $!$${line}"; \
 		$(RM) -rf $!$${line}; \
 		rand=`date | md5sum | head -c 9` && istanbul instrument --save-baseline --baseline-file $!${REPORT_DIR}/coverage-$${rand}-baseline.json --complete-copy --no-compact -x "**/ext/**" --output $!$${line} $/$${line} ; \
 	done
-	find -type d -name "ext" -not -path '*/\.*' | grep "javascript" | while read line ; do \
+	find -type d -name "ext" -not -path '*/\.*' -not -path '*/cache/*' -path '*/javascript/*' | while read line ; do \
 		$(msg/generate) "external lib $!$${line}"; \
 		cp -r $/$${line} $!$${line}; \
 	done
