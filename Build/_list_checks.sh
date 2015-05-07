@@ -47,7 +47,7 @@ dump_zf()
                 case ./"$f" in
                     */behave)
                         has_match=y
-                        [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
+                        [[ "$Z_LIST_SKIP" =~ "behave" ]] && continue
                         echo "${f#$CURDIR/}"
                         continue
                         ;;

@@ -74,7 +74,7 @@ check:: all
 fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
 www-check:: | _generated_hdr
-	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh .
+	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh .
 %.pylint:: %.py
 	$(msg/CHECK.py) $<
 	pylint $<
