@@ -628,9 +628,9 @@
  * class instance.
  * Of course, \ref IOP_OBJ_CASE cannot be used inside such a switch.
  *
- * This should be used line that:
+ * This should be used like that:
  *
- * IOP_OBJ_EXACT_SWITCH(my_class_descriptor) {
+ * IOP_CLASS_EXACT_SWITCH(my_class_descriptor) {
  *   case IOP_CLASS_ID(a_class):
  *     // This is a a_class
  *     break;
