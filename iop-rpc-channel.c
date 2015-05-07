@@ -481,8 +481,6 @@ static void ic_prepare_cmsg(ichannel_t *ic, struct msghdr *msgh,
                             void *cbuf, int clen, int fdc, int *fdv)
 {
     struct cmsghdr *cmsg;
-    if (!fdc)
-        return;
 
     msgh->msg_control    = cbuf;
     msgh->msg_controllen = clen;
