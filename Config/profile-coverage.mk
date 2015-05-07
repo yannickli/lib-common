@@ -51,7 +51,7 @@ www-coverage:: __setup_forward
 		cp -r $/$${line} $!$${line}; \
 	done
 	server=`find -not -path '*/\.*' -name coverage-server.js` ; node $$server $!${REPORT_DIR} &
-	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 L=1 www-check
+	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 Z_LIST_SKIP='C' Z_TAG_SKIP='wip upgrade' BEHAVE_FLAGS='--tags=web' L=1 check
 	pkill -f coverage-server
 	$(msg/generate) "report in $!${REPORT_DIR}"
 	istanbul report --root $!${REPORT_DIR} --dir $!${REPORT_DIR}
