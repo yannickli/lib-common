@@ -41,6 +41,10 @@ void xmlpp_put(xmlpp_t *, const void *data, int len);
 static inline void xmlpp_puts(xmlpp_t *pp, const char *s) {
     xmlpp_put(pp, s, strlen(s));
 }
+static inline void xmlpp_put_lstr(xmlpp_t *pp, lstr_t s)
+{
+    xmlpp_put(pp, s.s, s.len);
+}
 void xmlpp_putf(xmlpp_t *, const char *fmt, ...) __attr_printf__(2, 3);
 
 
