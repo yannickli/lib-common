@@ -101,6 +101,23 @@ check_iopc() {
     setenv "IOPC" "$(which iopc)"
 }
 
+__check_python_mod() {
+    mod="$1"
+    msg="$2"
+
+    if ! $python2_bin -c "import $mod" 2> /dev/null; then
+        warn "python module $mod is missing$msg"
+    fi
+}
+
+check_python_mod_pip() {
+    __check_python_mod "$1" " (pip install $2)"
+}
+
+check_python_mod_tools() {
+    __check_python_mod "$1" ", update your tools"
+}
+
 # }}}
 
 while test $# != 0; do
@@ -140,7 +157,7 @@ fi
 
 # {{{ tools
 
-for tool in clang clang++ flex gperf xsltproc python; do
+for tool in clang clang++ flex gperf xsltproc; do
     check_tool $tool $tool
 done
 
@@ -222,6 +239,8 @@ case "$pyver_major" in
         ;;
 esac
 
+check_tool $python2_bin "python"
+
 # check that python2 is at least a 2.6
 if [ -n "$pyver_minor" ] && [ "$pyver_minor" -lt 6 ]; then
     if which python2.7-config &> /dev/null; then
@@ -254,6 +273,8 @@ fi
 if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
     warn "python headers are missing, apt-get install python-dev"
 fi
+
+check_python_mod_pip "matplotlib" "matplotlib"
 
 # }}}
 # {{{ flex
