@@ -74,9 +74,8 @@ typedef struct htlist_t {
 } htlist_t;
 GENERIC_INIT(htlist_t, htlist);
 
-#define HTLIST(name)              htlist_t name = HTLIST_INIT(name)
-#define HTLIST_INIT(name)         { .tail = NULL }
-#define HTLIST_ATOMIC_INIT(name)  { .l = HTLIST_INIT(name.l) }
+#define HTLIST(name)       htlist_t name = HTLIST_INIT(name)
+#define HTLIST_INIT(name)  { .tail = NULL }
 
 static inline bool htlist_is_empty(const htlist_t *l) {
     return l->tail == NULL;
