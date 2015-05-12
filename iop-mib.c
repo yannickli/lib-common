@@ -91,6 +91,20 @@ static lstr_t t_mib_field_get_help(const iop_field_attrs_t *attrs)
     logger_fatal(&_G.logger, "each field needs a description");
 }
 
+static lstr_t t_mib_rpc_get_help(const iop_rpc_attrs_t *attrs)
+{
+    const iop_rpc_attr_t *attr = attrs->attrs;
+
+    for (int i = 0; i < attrs->attrs_len; i++) {
+        if (attr[i].type == IOP_RPC_ATTR_HELP) {
+            const iop_help_t *help = attr[i].args->v.p;
+
+            return t_lstr_cat3(help->brief, help->details, help->warning);
+        }
+    }
+    logger_fatal(&_G.logger, "each rpc needs a description");
+}
+
 /* }}} */
 /* {{{ Header/Footer */
 
@@ -239,12 +253,74 @@ static void mib_put_fields(sb_t *buf, const iop_pkg_t *pkg)
 }
 
 /* }}} */
+/* {{{ SnmpIface rpcs */
+
+static void mib_put_rpc(sb_t *buf, int pos, const iop_rpc_t *rpc,
+                        const iop_rpc_attrs_t attrs, lstr_t iface_name)
+{
+    t_scope;
+    const iop_struct_t *st = rpc->args;
+
+    sb_addf(buf,
+            "\n%*pM NOTIFICATION-TYPE\n"
+            LVL1 "OBJECTS { ", LSTR_FMT_ARG(rpc->name));
+
+    for (int i = 0; i < st->fields_len; i++) {
+        sb_addf(buf, "%*pM", LSTR_FMT_ARG(st->fields[i].name));
+        if (i < st->fields_len - 1) {
+            sb_addf(buf, ", ");
+        }
+    }
+    sb_addf(buf, " }\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"%*pM\"\n"
+            LVL1 "::= { %*pM %d }\n",
+            LSTR_FMT_ARG(t_mib_rpc_get_help(&attrs)),
+            LSTR_FMT_ARG(t_get_short_name(iface_name, true)), pos + 1);
+
+    /* TODO: for brief lstr_len/80 then cut the lstr */
+}
+
+static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
+{
+    for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+        const iop_iface_t *iface = *it;
+        bool has_rpcs = iface->funs_len > 0;
+
+        if (!iop_iface_is_snmp_iface(iface)) {
+            continue;
+        }
+
+        if (has_rpcs) {
+            t_scope;
+
+            sb_addf(buf, "-- {{{ %*pM\n",
+                    LSTR_FMT_ARG(t_get_short_name(iface->fullname, false)));
+        }
+
+        /* deal with snmp rpcs */
+        for (int i = 0; i < iface->funs_len; i++) {
+            const iop_rpc_t rpc = iface->funs[i];
+            const iop_rpc_attrs_t attrs = iface->rpc_attrs[i];
+
+            mib_put_rpc(buf, i, &rpc, attrs, iface->fullname);
+        }
+
+        if (has_rpcs) {
+            sb_addf(buf, "\n-- }}}\n");
+        }
+    }
+}
+
+/* }}} */
 
 void iop_mib(sb_t *sb, lstr_t name, const iop_pkg_t *pkg)
 {
     mib_open_banner(sb, name);
     mib_put_object_identifier(sb, pkg);
     mib_put_fields(sb, pkg);
+    mib_put_rpcs(sb, pkg);
     mib_close_banner(sb);
 }
 
