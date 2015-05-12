@@ -47,6 +47,50 @@ static lstr_t t_get_short_name(const lstr_t fullname, bool down)
     return out;
 }
 
+static const
+iop_snmp_attrs_t *mib_field_get_snmp_attr(const iop_field_attrs_t attrs)
+{
+    for (int i = 0; i < attrs.attrs_len; i++) {
+        if (attrs.attrs[i].type == IOP_FIELD_SNMP_INFO) {
+            iop_field_attr_arg_t const *arg = attrs.attrs[i].args;
+
+            return (iop_snmp_attrs_t*)arg->v.p;
+        }
+    }
+    logger_fatal(&_G.logger,
+                 "all snmpObj fields should contain at least a brief");
+}
+
+static lstr_t get_type_to_lstr(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_STRING:
+        return LSTR("OCTET STRING");
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+        return LSTR("Integer32");
+      case IOP_T_BOOL:
+        return LSTR("BOOLEAN");
+      default:
+        logger_fatal(&_G.logger, "type not handled");
+    }
+}
+
+static lstr_t t_mib_field_get_help(const iop_field_attrs_t *attrs)
+{
+    const iop_field_attr_t *attr = attrs->attrs;
+
+    for (int i = 0; i < attrs->attrs_len; i++) {
+        if (attr[i].type == IOP_FIELD_ATTR_HELP) {
+            const iop_help_t *help = attr[i].args->v.p;
+
+            return t_lstr_cat3(help->brief, help->details, help->warning);
+        }
+    }
+    logger_fatal(&_G.logger, "each field needs a description");
+}
+
 /* }}} */
 /* {{{ Header/Footer */
 
@@ -134,11 +178,73 @@ static void mib_put_object_identifier(sb_t *buf, const iop_pkg_t *pkg)
 }
 
 /* }}} */
+/* {{{ SnmpObj fields */
+
+static void mib_put_field(sb_t *buf, lstr_t name, int pos,
+                          const iop_struct_t *st)
+{
+    t_scope;
+    const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
+    const iop_snmp_attrs_t *snmp_attrs;
+
+    snmp_attrs = mib_field_get_snmp_attr(field_attrs);
+    sb_addf(buf,
+            "\n%*pM OBJECT-TYPE\n"
+            LVL1 "SYNTAX %*pM\n"
+            LVL1 "MAX-ACCESS read-only\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"%*pM\"\n"
+            LVL1 "::= { %*pM %d }\n",
+            LSTR_FMT_ARG(name),
+            LSTR_FMT_ARG(get_type_to_lstr(snmp_attrs->type)),
+            LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
+            LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
+            snmp_attrs->oid);
+
+    /* TODO: for brief lstr_len/80 then cut the lstr */
+}
+
+static void mib_put_fields(sb_t *buf, const iop_pkg_t *pkg)
+{
+    for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+        const iop_struct_t *desc = *it;
+        bool has_fields = desc->fields_len > 0;
+
+        if (!iop_struct_is_snmp_obj(desc)) {
+            continue;
+        }
+
+        if (has_fields) {
+            t_scope;
+
+            sb_addf(buf,
+                "-- {{{ %*pM\n",
+                LSTR_FMT_ARG(t_get_short_name(desc->fullname, false)));
+        }
+
+        /* deal with snmp fields */
+        for (int i = 0; i < desc->fields_len; i++) {
+            const iop_field_t field = desc->fields[i];
+            if (!iop_field_has_snmp_info(&field)) {
+                continue;
+            }
+            mib_put_field(buf, field.name, i, desc);
+        }
+
+        if (has_fields) {
+            sb_addf(buf, "\n-- }}}\n");
+        }
+    }
+}
+
+/* }}} */
 
 void iop_mib(sb_t *sb, lstr_t name, const iop_pkg_t *pkg)
 {
     mib_open_banner(sb, name);
     mib_put_object_identifier(sb, pkg);
+    mib_put_fields(sb, pkg);
     mib_close_banner(sb);
 }
 
