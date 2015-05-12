@@ -40,9 +40,19 @@ static const char *t_build_real_path(log_file_t *log_file, time_t date)
 static void
 log_file_bgcompress_check(el_t ev, pid_t pid, int st, data_t priv)
 {
-    if (!WIFEXITED(st) || WEXITSTATUS(st) != 0) {
-        e_error("background compression of log file failed");
+    char *path = priv.ptr;
+
+    if (!WIFEXITED(st)) {
+        e_error("background compression of log file `%s` failed: "
+                "gzip killed with signal %d (%s)",
+                path, WTERMSIG(st), sys_siglist[WTERMSIG(st)]);
+    } else
+    if (WEXITSTATUS(st) != 0) {
+        e_error("background compression of log file `%s` failed: "
+                "gzip exited with status %d", path, WEXITSTATUS(st));
     }
+
+    p_delete(&path);
 }
 
 static void log_file_bgcompress(const char *path)
@@ -61,7 +71,8 @@ static void log_file_bgcompress(const char *path)
         return;
     }
     if (pid > 0) {
-        el_unref(el_child_register(pid, log_file_bgcompress_check, NULL));
+        el_unref(el_child_register(pid, log_file_bgcompress_check,
+                                   p_strdup(path)));
         pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     } else {
         setsid();
