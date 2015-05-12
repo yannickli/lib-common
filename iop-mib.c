@@ -21,6 +21,10 @@
 
 static struct {
     logger_t   logger;
+    qh_t(lstr) unicity_conformance_objects;
+    qh_t(lstr) unicity_conformance_notifs;
+    qv_t(lstr) conformance_objects;
+    qv_t(lstr) conformance_notifs;
 } mib_g = {
 #define _G  mib_g
     .logger = LOGGER_INIT_INHERITS(NULL, "iop2mib"),
@@ -216,6 +220,12 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             snmp_attrs->oid);
 
+    if (qh_add(lstr, &_G.unicity_conformance_objects, &name) < 0) {
+        logger_fatal(&_G.logger,
+                     "conflicting field name `%*pM`", LSTR_FMT_ARG(name));
+    }
+    qv_append(lstr, &_G.conformance_objects, name);
+
     /* TODO: for brief lstr_len/80 then cut the lstr */
 }
 
@@ -280,6 +290,13 @@ static void mib_put_rpc(sb_t *buf, int pos, const iop_rpc_t *rpc,
             LSTR_FMT_ARG(t_get_short_name(iface_name, true)), pos + 1);
 
     /* TODO: for brief lstr_len/80 then cut the lstr */
+
+    if (qh_add(lstr, &_G.unicity_conformance_notifs, &rpc->name) < 0) {
+        logger_fatal(&_G.logger,
+                     "conflicting notification name `%*pM`",
+                     LSTR_FMT_ARG(rpc->name));
+    }
+    qv_append(lstr, &_G.conformance_notifs, rpc->name);
 }
 
 static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
@@ -314,14 +331,119 @@ static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
 }
 
 /* }}} */
+/* {{{ Conformance Groups */
+
+static void mib_put_compliance(sb_t *buf, lstr_t name)
+{
+    sb_addf(buf,
+            "\n%*pMCompliance MODULE-COMPLIANCE\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION \"The compliance statement for %*pM entities\"\n"
+            LVL1 "MODULE\n"
+            LVL2 "MANDATORY-GROUPS { %*pMConformanceObject, "
+            "%*pMConformanceNotification }\n"
+            LVL1 "::= { %*pMIdentity 1 }\n",
+            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name),
+            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name),
+            LSTR_FMT_ARG(name));
+}
+
+static void mib_put_objects_conformance(sb_t *buf, lstr_t name)
+{
+    sb_addf(buf,
+            "\n%*pMConformanceObject OBJECT-GROUP\n"
+            LVL1 "OBJECTS { ", LSTR_FMT_ARG(name));
+
+    qv_for_each_pos(lstr, pos, &_G.conformance_objects) {
+        sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_objects.tab[pos]));
+        if (pos < _G.conformance_objects.len - 1) {
+            sb_addf(buf, ", ");
+        }
+    }
+    sb_addf(buf, " }\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"%*pM conformance objects\"\n"
+            LVL1 "::= { %*pMIdentity 81 }\n",
+            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name));
+}
+
+static void mib_put_notifs_conformance(sb_t *buf, lstr_t name)
+{
+    sb_addf(buf,
+            "\n%*pMConformanceNotification NOTIFICATION-GROUP\n"
+            LVL1 "NOTIFICATIONS { ", LSTR_FMT_ARG(name));
+
+    qv_for_each_pos(lstr, pos, &_G.conformance_notifs) {
+        sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_notifs.tab[pos]));
+        if (pos < _G.conformance_notifs.len - 1) {
+            sb_addf(buf, ", ");
+        }
+    }
+    sb_addf(buf, " }\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"%*pM conformance notifications\"\n"
+            LVL1 "::= { %*pMIdentity 80 }\n",
+            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name));
+}
+
+static void mib_put_compliance_fold(sb_t *buf, lstr_t name)
+{
+    if (_G.conformance_notifs.len == 0 && _G.conformance_objects.len == 0) {
+        return;
+    }
+
+    sb_addf(buf, "-- {{{ Compliance\n");
+    mib_put_compliance(buf, name);
+    mib_put_notifs_conformance(buf, name);
+    mib_put_objects_conformance(buf, name);
+    sb_addf(buf, "\n-- }}}\n");
+}
+
+/* }}} */
+/* {{{ Module */
+
+static int iop_mib_initialize(void *arg)
+{
+    qh_init(lstr, &_G.unicity_conformance_objects);
+    qh_init(lstr, &_G.unicity_conformance_notifs);
+    qv_init(lstr, &_G.conformance_objects);
+    qv_init(lstr, &_G.conformance_notifs);
+    return 0;
+}
+
+static int iop_mib_shutdown(void)
+{
+    qh_wipe(lstr, &_G.unicity_conformance_objects);
+    qh_wipe(lstr, &_G.unicity_conformance_notifs);
+    qv_wipe(lstr, &_G.conformance_objects);
+    qv_wipe(lstr, &_G.conformance_notifs);
+    return 0;
+}
+
+MODULE_BEGIN(iop_mib)
+MODULE_END()
+
+/* }}} */
 
 void iop_mib(sb_t *sb, lstr_t name, const iop_pkg_t *pkg)
 {
+    SB_8k(buffer);
+
+    MODULE_REQUIRE(iop_mib);
+
     mib_open_banner(sb, name);
-    mib_put_object_identifier(sb, pkg);
-    mib_put_fields(sb, pkg);
-    mib_put_rpcs(sb, pkg);
+    mib_put_object_identifier(&buffer, pkg);
+    mib_put_fields(&buffer, pkg);
+    mib_put_rpcs(&buffer, pkg);
+    mib_put_compliance_fold(sb, name);
+
+    /* Concat both sb */
+    sb_addsb(sb, &buffer);
     mib_close_banner(sb);
+
+    MODULE_RELEASE(iop_mib);
 }
 
 #undef LVL1
