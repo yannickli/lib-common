@@ -132,7 +132,43 @@ static void mib_open_banner(sb_t *buf, lstr_t name)
 
 static void mib_close_banner(sb_t *buf)
 {
-            sb_adds(buf, "\n\n-- vim:syntax=mib\n");
+    sb_adds(buf, "\n\n-- vim:syntax=mib\n");
+}
+
+/* }}} */
+/* {{{ Identity */
+
+static void mib_put_identity(sb_t *buf, lstr_t name,
+                             qv_t(revi) revisions)
+{
+    revision_t *last_update = *qv_last(revi, &revisions);
+
+    sb_addf(buf, "-- {{{ Identity\n"
+            "\n%*pM MODULE-IDENTITY\n"
+            LVL1 "LAST-UPDATED \"%*pM\"\n\n"
+            LVL1 "ORGANIZATION \"Intersec\"\n"
+            LVL1 "CONTACT-INFO \"postal: Tour W - 102 Terasse Boieldieu\n"
+            LVL5 LVL1 "  92085 Paris La Defense - Cedex France\n\n"
+            LVL4 "  tel:    +33 1 55 70 33 55\n"
+            LVL4 "  email:  contact@intersec.com\n"
+            LVL4 "  \"\n\n"
+            LVL1 "DESCRIPTION \"For more details see Intersec website "
+            "http://www.intersec.com\"\n",
+            LSTR_FMT_ARG(name), LSTR_FMT_ARG(last_update->timestamp));
+
+    qv_for_each_pos_rev(revi, pos, &revisions) {
+        revision_t *changmt = revisions.tab[pos];
+
+        sb_addf(buf, LVL1 "REVISION \"%*pM\"\n",
+                LSTR_FMT_ARG(changmt->timestamp));
+        sb_addf(buf, LVL1 "DESCRIPTION \"%*pM\"\n",
+                LSTR_FMT_ARG(changmt->description));
+    }
+
+    sb_addf(buf,
+            LVL1 "::= { %*pM 100 }\n\n"
+            "\n-- }}}\n",
+            LSTR_FMT_ARG(name));
 }
 
 /* }}} */
@@ -427,17 +463,19 @@ MODULE_END()
 
 /* }}} */
 
-void iop_mib(sb_t *sb, lstr_t name, const iop_pkg_t *pkg)
+void iop_mib(sb_t *sb, lstr_t parent, const iop_pkg_t *pkg,
+             qv_t(revi) revisions)
 {
     SB_8k(buffer);
 
     MODULE_REQUIRE(iop_mib);
 
-    mib_open_banner(sb, name);
+    mib_open_banner(sb, parent);
+    mib_put_identity(sb, parent, revisions);
     mib_put_object_identifier(&buffer, pkg);
     mib_put_fields(&buffer, pkg);
     mib_put_rpcs(&buffer, pkg);
-    mib_put_compliance_fold(sb, name);
+    mib_put_compliance_fold(sb, parent);
 
     /* Concat both sb */
     sb_addsb(sb, &buffer);

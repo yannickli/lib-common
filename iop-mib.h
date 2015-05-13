@@ -16,7 +16,25 @@
 
 #include "iopc/iopc.h"
 
-void iop_mib(sb_t *, lstr_t, const iop_pkg_t *);
+/* {{{ Local type definitions */
 
+typedef struct revision_t {
+    lstr_t timestamp;
+    lstr_t description;
+} revision_t;
+
+GENERIC_NEW_INIT(revision_t, revision);
+static inline void revision_wipe(revision_t *rev)
+{
+    lstr_wipe(&rev->timestamp);
+    lstr_wipe(&rev->description);
+}
+GENERIC_DELETE(revision_t, revision);
+
+qvector_t(revi, revision_t *);
+
+/* }}} */
+
+void iop_mib(sb_t *, lstr_t, const iop_pkg_t *, qv_t(revi));
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
