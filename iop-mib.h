@@ -32,9 +32,10 @@ static inline void revision_wipe(revision_t *rev)
 GENERIC_DELETE(revision_t, revision);
 
 qvector_t(revi, revision_t *);
+qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
 
-void iop_mib(sb_t *, lstr_t, const iop_pkg_t *, qv_t(revi));
+void iop_mib(sb_t *, lstr_t, qv_t(pkg), qv_t(revi));
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */

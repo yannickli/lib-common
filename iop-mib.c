@@ -208,27 +208,34 @@ static void mib_put_snmp_iface(sb_t *buf, const iop_iface_t *snmp_iface)
             snmp_attrs->oid);
 }
 
-static void mib_put_object_identifier(sb_t *buf, const iop_pkg_t *pkg)
+static void mib_put_object_identifier(sb_t *buf, qv_t(pkg) pkgs)
 {
-    sb_addf(buf, "-- {{{ Top Level Structure\n\n");
-
-    for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
-        const iop_struct_t *desc = *it;
-
-        if (!iop_struct_is_snmp_obj(desc)) {
-            continue;
-        }
-        mib_put_snmp_obj(buf, desc);
+    if (pkgs.len) {
+        sb_addf(buf, "-- {{{ Top Level Structures\n\n");
     }
-    for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
-        const iop_iface_t *iface = *it;
 
-        if (!iop_iface_is_snmp_iface(iface)) {
-            continue;
+    qv_for_each_entry(pkg, pkg, &pkgs) {
+        for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+            const iop_struct_t *desc = *it;
+
+            if (!iop_struct_is_snmp_obj(desc)) {
+                continue;
+            }
+            mib_put_snmp_obj(buf, desc);
         }
-        mib_put_snmp_iface(buf, iface);
+        for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+            const iop_iface_t *iface = *it;
+
+            if (!iop_iface_is_snmp_iface(iface)) {
+                continue;
+            }
+            mib_put_snmp_iface(buf, iface);
+        }
     }
-    sb_addf(buf, "\n-- }}}\n");
+
+    if (pkgs.len) {
+        sb_addf(buf, "\n-- }}}\n");
+    }
 }
 
 /* }}} */
@@ -344,14 +351,12 @@ static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
         if (!iop_iface_is_snmp_iface(iface)) {
             continue;
         }
-
         if (has_rpcs) {
             t_scope;
 
             sb_addf(buf, "-- {{{ %*pM\n",
                     LSTR_FMT_ARG(t_get_short_name(iface->fullname, false)));
         }
-
         /* deal with snmp rpcs */
         for (int i = 0; i < iface->funs_len; i++) {
             const iop_rpc_t rpc = iface->funs[i];
@@ -361,7 +366,7 @@ static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
         }
 
         if (has_rpcs) {
-            sb_addf(buf, "\n-- }}}\n");
+            sb_addf(buf, " \n-- }}}\n");
         }
     }
 }
@@ -463,8 +468,7 @@ MODULE_END()
 
 /* }}} */
 
-void iop_mib(sb_t *sb, lstr_t parent, const iop_pkg_t *pkg,
-             qv_t(revi) revisions)
+void iop_mib(sb_t *sb, lstr_t parent, qv_t(pkg) pkgs, qv_t(revi) revisions)
 {
     SB_8k(buffer);
 
@@ -472,9 +476,12 @@ void iop_mib(sb_t *sb, lstr_t parent, const iop_pkg_t *pkg,
 
     mib_open_banner(sb, parent);
     mib_put_identity(sb, parent, revisions);
-    mib_put_object_identifier(&buffer, pkg);
-    mib_put_fields(&buffer, pkg);
-    mib_put_rpcs(&buffer, pkg);
+    mib_put_object_identifier(&buffer, pkgs);
+
+    qv_for_each_entry(pkg, pkg, &pkgs) {
+        mib_put_fields(&buffer, pkg);
+        mib_put_rpcs(&buffer, pkg);
+    }
     mib_put_compliance_fold(sb, parent);
 
     /* Concat both sb */
