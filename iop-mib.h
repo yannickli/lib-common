@@ -36,9 +36,19 @@ qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
 
-void iop_mib(sb_t *, qv_t(pkg), qv_t(revi));
+/** Generate the MIB corresponding to IOP packages.
+ *
+ * \param[out] sb          Output buffer.
+ * \param[in]  pkgs        List of the different iop packages that will be
+ *                         added to the MIB.
+ * \param[in]  revisions   List of the different revisions the MIB has had,
+ *                         \note: the order of the different elements of the
+ *                         qv must follow the chronological order, from the
+ *                         initial to the last revision.
+ */
+void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions);
 
-#define mib_register(h, _pkg) \
+#define mib_register(h, _pkg)  \
     qv_append(pkg, h, (void *)&_pkg##__pkg)
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
