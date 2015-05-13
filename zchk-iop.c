@@ -4009,7 +4009,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
         p_delete(&gp);
 
-        gp = iop_new(NULL, tstiop__my_struct_g);
+        gp = iop_new(tstiop__my_struct_g);
         Z_ASSERT(tstiop__my_struct_g__equals(&g, gp));
         p_delete(&gp);
 
