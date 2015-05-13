@@ -274,8 +274,6 @@ if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
     warn "python headers are missing, apt-get install python-dev"
 fi
 
-check_python_mod_pip "matplotlib" "matplotlib"
-
 # }}}
 # {{{ flex
 
