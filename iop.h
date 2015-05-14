@@ -222,7 +222,7 @@ static inline void *t_iop_new_desc(const iop_struct_t *st)
 }
 
 #define mp_iop_new(mp, pfx)  (pfx##__t *)mp_iop_new_desc(mp, &pfx##__s)
-#define iop_new(mp, pfx)     (pfx##__t *)iop_new_desc(&pfx##__s)
+#define iop_new(pfx)         (pfx##__t *)iop_new_desc(&pfx##__s)
 #define t_iop_new(pfx)       (pfx##__t *)t_iop_new_desc(&pfx##__s)
 
 /** Return whether two IOP structures are equals or not.
