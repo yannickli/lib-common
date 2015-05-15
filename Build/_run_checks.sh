@@ -81,17 +81,20 @@ fi
 trap "rm $tmp $tmp2" 0
 
 set_www_env() {
-    case "$Z_TAG_SKIP" in *web*) return;; esac
+    case "$Z_TAG_SKIP" in *web*) return 0;; esac
 
-    z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
     productdir=$(readlink -e "$1")
     htdocs="$productdir"/www/htdocs/
+    [ -d $htdocs ] || return 0;
+    # configure the product website spool (cache dir, .htaccess...)
+    make -C $htdocs
+
+    z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
     index=$(basename "$productdir").php
     intersec_so=$(find $(dirname "$productdir") -name intersec.so -not -path '*/\.*')
     Z_WWW_HOST="${Z_WWW_HOST:-$(hostname -f)}"
     Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium}"
     Z_WWW_BROWSER="${Z_WWW_BROWSER:-Remote}"
-
     # configure an apache website and add intersec.so to the php configuration
     make -C "$z_www" all htdocs=$htdocs index=$index intersec_so=$intersec_so \
                          host="${Z_WWW_PREFIX}.${Z_WWW_HOST}"
@@ -101,11 +104,8 @@ set_www_env() {
             " write access on: /etc/apache2/sites* | /etc/httpd/conf.d\n"     \
             " write access on: /etc/php5/conf.d | /etc/php.d/ \n"             \
             " sudoers without pwd on: /etc/init.d/apache2 | /etc/init.d/httpd"
-        exit 1
+        return 1
     fi
-    # configure the product website spool (cache dir, .htaccess...)
-    make -C $htdocs
-
     export Z_WWW_HOST Z_WWW_PREFIX Z_WWW_BROWSER
 }
 
@@ -132,9 +132,12 @@ while read -r zd line; do
     case ./"$t" in
         */behave)
             productdir=$(dirname "./$t")
+            res=1
             set_www_env $PWD/"$productdir"
-            $pybin -m z $BEHAVE_FLAGS "$productdir"/ci/features
-            res=$?
+            if [ $? -eq 0 ]; then
+                $pybin -m z $BEHAVE_FLAGS "$productdir"/ci/features
+                res=$?
+            fi
             ;;
         *.py)
             $pybin ./$t
