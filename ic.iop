@@ -30,6 +30,7 @@ struct SimpleHdr {
     string? kind;
     int     payload = -1;
     string? host;
+    string? group;
 };
 
 abstract class Route {
