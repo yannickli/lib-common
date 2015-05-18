@@ -1798,6 +1798,18 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     return f;
 }
 
+static void check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
+                             char *name, const char *type)
+{
+    qv_for_each_pos(iopc_dox, pos, &comments) {
+        if (comments.tab[pos].type == IOPC_DOX_TYPE_BRIEF) {
+            return;
+        }
+    }
+    fatal_loc("%s `%s` needs a brief that would be used as a "
+              "description in the generated MIB", loc, type, name);
+}
+
 static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
                          int paren, bool is_snmp_iface)
 {
@@ -1834,6 +1846,11 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
             f->pos = next_pos++;
             read_dox_back(pp, &chunks, sep);
             build_dox_check_all(&chunks, f);
+
+            if (iopc_is_snmp_obj(st->type)) {
+                check_snmp_brief(f->comments, f->loc, f->name, "field");
+            }
+
         }
         if (CHECK(pp, 0, paren))
             break;
@@ -2272,6 +2289,10 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     qv_append(i32, tags, tag);
 
     build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
+    if (type == IFACE_TYPE_SNMP_IFACE) {
+        check_snmp_brief(fun->comments, fun->loc, fun->name, "notification");
+    }
+
     qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
     return fun;
 }

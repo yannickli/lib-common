@@ -349,6 +349,16 @@ class IopcTest(z.TestCase):
                       'only int/string/boolean types are handled for snmpObj '
                       'fields', 4)
 
+    def test_snmp_invalid_brief_field(self):
+        self.run_iopc('snmp_invalid_brief_field.iop', False,
+                      'field `a` needs a brief that would be used as a '
+                      'description in the generated MIB', 4)
+
+    def test_snmp_invalid_brief_rpc(self):
+        self.run_iopc('snmp_invalid_brief_rpc.iop', False,
+                      'notification `notif` needs a brief that would be used '
+                      'as a description in the generated MIB', 4)
+
     def test_attrs_invalid_noreorder(self):
         self.run_iopc2('attrs_invalid_noreorder.iop', False,
                        'attribute noReorder does not apply to union')

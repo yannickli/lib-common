@@ -1,17 +1,25 @@
 package snmp_obj;
 
+/** Description.
+ */
 snmpObj MySnmp : 1 : Intersec {
+    /** Description.
+     */
 1:  int b;
 };
 
+/** Description.
+ */
 snmpObj MySnmp1 : 1 : MySnmp {
-    /** DESCRIPTION
+    /** Description.
      */
     @snmpGet
 2:  string a;
 };
 
 @snmpParams
+/** Description.
+ */
 snmpObj MySnmp2 : 1 : MySnmp {
     /** Here comes a description
      */
