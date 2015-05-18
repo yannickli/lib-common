@@ -359,6 +359,7 @@ typedef enum iopc_attr_type_t {
     /* snmp */
     IOPC_ATTR_T_SNMP_OBJ,
     IOPC_ATTR_T_SNMP_IFACE,
+    IOPC_ATTR_T_SNMP_TBL,
 } iopc_attr_type_t;
 
 #define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, IOPC_ATTR_T_STRUCT)
@@ -532,6 +533,7 @@ typedef enum iopc_struct_type_t {
     STRUCT_TYPE_UNION    = 2,
     STRUCT_TYPE_TYPEDEF  = 3,
     STRUCT_TYPE_SNMP_OBJ = 4,
+    STRUCT_TYPE_SNMP_TBL = 5,
 } iopc_struct_type_t;
 
 static inline bool iopc_is_class(iopc_struct_type_t type)
@@ -541,6 +543,14 @@ static inline bool iopc_is_class(iopc_struct_type_t type)
 static inline bool iopc_is_snmp_obj(iopc_struct_type_t type)
 {
     return type == STRUCT_TYPE_SNMP_OBJ;
+}
+static inline bool iopc_is_snmp_tbl(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_SNMP_TBL;
+}
+static inline bool iopc_is_snmp_st(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_SNMP_TBL || type == STRUCT_TYPE_SNMP_OBJ;
 }
 static inline const char *iopc_struct_type_to_str(iopc_struct_type_t type)
 {
@@ -555,6 +565,8 @@ static inline const char *iopc_struct_type_to_str(iopc_struct_type_t type)
         return "typedef";
       case STRUCT_TYPE_STRUCT:
         return "struct";
+      case STRUCT_TYPE_SNMP_TBL:
+        return "snmpTbl";
       default:
         e_panic("type not handled");
     }

@@ -121,7 +121,7 @@ static void iopc_struct_optimize(iopc_struct_t *st)
         return;
     }
 
-    if (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)) {
+    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
         /* XXX: we don't want to reorder class/snmpObj fields to ease
          * debugging and backward compatibility. */
         do_reorder = false;
@@ -894,7 +894,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     iopc_struct_optimize(st);
     sb_addf(buf, "struct %s__t {\n", tbase);
 
-    if (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)) {
+    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
         iopc_struct_dump_hdr_class_snmp_obj(buf, st);
     }
 
@@ -1201,7 +1201,7 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
     if (attrs && attrs->checkf_name.len) {
         SET_BIT(&flags, IOP_FIELD_CHECK_CONSTRAINTS);
     }
-    if (f->snmp_is_from_param || iopc_is_snmp_obj(st->type)) {
+    if (f->snmp_is_from_param || iopc_is_snmp_st(st->type)) {
         SET_BIT(&flags, IOP_FIELD_HAS_SNMP_INFO);
     }
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
@@ -2200,7 +2200,7 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
         }
     }
 
-    if (st->contains_snmp_info || iopc_is_snmp_obj(st->type)) {
+    if (st->contains_snmp_info || iopc_is_snmp_st(st->type)) {
         iopc_dump_snmp_field_attr(&attrs_body, attrs, tbase, cname);
         SET_BIT(&attrs->flags, IOP_FIELD_SNMP_INFO);
     }
@@ -2566,7 +2566,7 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
 static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                                    bool has_attrs, char *as_base)
 {
-    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)
+    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)
      || st->contains_snmp_info))
     {
         t_scope;
@@ -2592,7 +2592,7 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
         return;
     }
 
-    if (iopc_is_snmp_obj(st->type)) {
+    if (iopc_is_snmp_st(st->type)) {
         fatal_loc("snmp can only be used with iopc v4", st->loc);
     }
     if (st->flags) {
@@ -2696,7 +2696,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                                          field->field_origin->kind);
             }
         } else
-        if (iopc_is_snmp_obj(st->type)) {
+        if (iopc_is_snmp_st(st->type)) {
             char *fbase;
 
             qv_for_each_entry(iopc_field, field, &st->fields) {
@@ -2764,6 +2764,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         if (iopc_is_snmp_obj(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_OBJ);
+        } else
+        if (iopc_is_snmp_tbl(st->type)) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_TBL);
         }
     }
 
@@ -2806,7 +2810,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                         "    .class_id          = %d,\n", st->class_id);     \
                 sb_adds(buf, "};\n");                                        \
             } else                                                           \
-            if (iopc_is_snmp_obj(st->type)) {                                \
+            if (iopc_is_snmp_st(st->type)) {                                 \
                 iopc_extends_t *xt = st->extends.tab[0];                     \
                 iopc_dump_snmp_obj_attrs(buf, xt->st, xt->pkg, _tbase,       \
                                          st->oid, xt->is_snmp_root,          \
@@ -3411,7 +3415,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_struct_dump_tdef_hdr(&buf, pkg_name, st, NULL);
 
-        if (iopc_is_snmp_obj(st->type)) {
+        if (iopc_is_snmp_st(st->type)) {
             sb_addf(&buf,
                     "/*----- snmp fields of struct %s.%s -----*/\n",
                     pretty_path_dot(pkg->name), st->name);
@@ -3453,7 +3457,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
         }
 
-        if (iopc_is_snmp_obj(st->type)) {
+        if (iopc_is_snmp_st(st->type)) {
             qv_for_each_entry(iopc_field, field, &st->fields) {
                iopc_snmp_field_dump_hdr(&buf, pkg_name, st, field);
             }

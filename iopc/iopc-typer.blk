@@ -440,11 +440,14 @@ resolve_pkg_parent_and_params(iopc_extends_t *xt, iopc_pkg_t *pkg,
                   iopc_struct_type_to_str(type), xt->name, action,
                   type_obj, name);
     }
-    if (st->type != type) {
+    if (!iopc_is_snmp_tbl(type) && st->type != type) {
         fatal_loc("parent object `%s` is not a %s", xt->loc,
                   st->name, iopc_struct_type_to_str(type));
     }
-    if (type == STRUCT_TYPE_CLASS && st->is_local && xt->pkg != pkg) {
+    if (iopc_is_snmp_tbl(type) && !iopc_is_snmp_obj(st->type)) {
+        fatal_loc("parent object `%s` is not a snmpObj", xt->loc, st->name);
+    }
+    if (iopc_is_class(type) && st->is_local && xt->pkg != pkg) {
         fatal_loc("as the parent class `%s` of class `%s` is `local`, "
                   "both classes need to be in the same package",
                   xt->loc, st->name, name);
@@ -639,8 +642,8 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     iopc_struct_t *xt;
     const char *type;
 
-    assert (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type));
-    assert (parent_st->type == st->type);
+    assert (iopc_is_class(st->type) || iopc_is_snmp_st(st->type));
+    assert (iopc_is_snmp_tbl(st->type) || parent_st->type == st->type);
 
     type = iopc_struct_type_to_str(st->type);
 

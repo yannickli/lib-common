@@ -644,6 +644,11 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         LINE_CKEY_VAL_FMT(wbuf, "parent", XT_FMT,
                           XT_FMT_ARG(st->extends.tab[0]));
         break;
+      case STRUCT_TYPE_SNMP_TBL:
+        LINE_CKEY_VAL_CSTR(wbuf, "type", "snmpTbl");
+        LINE_CKEY_VAL_FMT(wbuf, "parent", XT_FMT,
+                          XT_FMT_ARG(st->extends.tab[0]));
+        break;
 
       default:
         fatal("unsupported struct type: %d", st->type);

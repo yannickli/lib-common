@@ -359,6 +359,11 @@ class IopcTest(z.TestCase):
                       'notification `notif` needs a brief that would be used '
                       'as a description in the generated MIB', 4)
 
+    def test_snmp_valid_tbl(self):
+        f = 'snmp_tbl.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
     def test_attrs_invalid_noreorder(self):
         self.run_iopc2('attrs_invalid_noreorder.iop', False,
                        'attribute noReorder does not apply to union')

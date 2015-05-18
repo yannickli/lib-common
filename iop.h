@@ -607,6 +607,21 @@ static inline bool iop_struct_is_snmp_obj(const iop_struct_t *st)
     return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_OBJ);
 }
 
+static inline bool iop_struct_is_snmp_tbl(const iop_struct_t *st)
+{
+    unsigned st_flags = st->flags;
+
+    return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_TBL);
+}
+
+static inline bool iop_struct_is_snmp_st(const iop_struct_t *st)
+{
+    unsigned st_flags = st->flags;
+
+    return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_OBJ)
+        || TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_TBL);
+}
+
 static inline bool iop_field_has_snmp_info(const iop_field_t *f)
 {
     unsigned st_flags = f->flags;

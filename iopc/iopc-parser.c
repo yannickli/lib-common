@@ -146,6 +146,7 @@ static const char *type_to_str(iopc_attr_type_t type)
       case IOPC_ATTR_T_MOD:     return "module";
       case IOPC_ATTR_T_SNMP_IFACE:  return "snmpIface";
       case IOPC_ATTR_T_SNMP_OBJ:    return "snmpObj";
+      case IOPC_ATTR_T_SNMP_TBL:    return "snmpTbl";
       default:                  fatal("invalid type %d", type);
     }
 }
@@ -515,6 +516,7 @@ static void init_attributes(void)
     SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_TBL);
 
     d = add_attr(IOPC_ATTR_SNMP_GET, "snmpGet");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
@@ -1607,7 +1609,7 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
     f->kind = get_type_kind(TK(pp, 0));
 
     /* in case of snmpObj structure, some field type are not handled */
-    if (st && iopc_is_snmp_obj(st->type)) {
+    if (st && iopc_is_snmp_st(st->type)) {
         check_snmp_obj_field_type(st, f->kind);
     }
     if (f->kind == IOP_T_STRUCT) {
@@ -1847,7 +1849,7 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
             read_dox_back(pp, &chunks, sep);
             build_dox_check_all(&chunks, f);
 
-            if (iopc_is_snmp_obj(st->type)) {
+            if (iopc_is_snmp_st(st->type)) {
                 check_snmp_brief(f->comments, f->loc, f->name, "field");
             }
 
@@ -1895,7 +1897,7 @@ static void parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
     iopc_token_t *tk;
     bool is_class = iopc_is_class(st->type);
 
-    assert (is_class || iopc_is_snmp_obj(st->type));
+    assert (is_class || iopc_is_snmp_st(st->type));
 
     parse_check_class_snmp(pp, is_class);
 
@@ -1946,14 +1948,14 @@ static void parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
                           TK(pp, 0)->loc);
             }
         } else
-        if (iopc_is_snmp_obj(st->type)) {
-            fatal_loc("snmpObj `%s` needs a snmpObj parent", TK(pp, 0)->loc,
-                      st->name);
+        if (iopc_is_snmp_st(st->type)) {
+            fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+                      iopc_struct_type_to_str(st->type), st->name);
         }
     } else
-    if (iopc_is_snmp_obj(st->type)) {
-        fatal_loc("snmpObj `%s` needs a snmpObj parent", TK(pp, 0)->loc,
-                  st->name);
+    if (iopc_is_snmp_st(st->type)) {
+        fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+                  iopc_struct_type_to_str(st->type), st->name);
     }
 }
 
@@ -1972,7 +1974,7 @@ parse_struct_class_union_snmp_stmt(iopc_parser_t *pp,
     st->is_abstract = is_abstract;
     st->is_local = is_local;
 
-    if (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type)) {
+    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
         parse_handle_class_snmp(pp, st, is_main_pkg);
     }
 
@@ -3069,6 +3071,9 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             st = parse_struct_class_union_snmp_stmt(pp, _type, is_abstract,  \
                                                     is_local, is_main_pkg);  \
             SET_ATTRS_AND_COMMENTS(st, _attr);                               \
+            if (iopc_is_snmp_tbl(_type)) {                                   \
+                check_snmp_brief(st->comments, st->loc, st->name, _id);      \
+            }                                                                \
                                                                              \
             qv_append(iopc_struct, &pkg->structs, st);                       \
             if (qm_add(struct, &things, st->name, st)) {                     \
@@ -3081,6 +3086,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         PARSE_STRUCT("struct", STRUCT_TYPE_STRUCT, IOPC_ATTR_T_STRUCT);
         PARSE_STRUCT("class",  STRUCT_TYPE_CLASS,  IOPC_ATTR_T_STRUCT);
         PARSE_STRUCT("snmpObj", STRUCT_TYPE_SNMP_OBJ, IOPC_ATTR_T_SNMP_OBJ);
+        PARSE_STRUCT("snmpTbl", STRUCT_TYPE_SNMP_TBL, IOPC_ATTR_T_SNMP_TBL);
         PARSE_STRUCT("union",  STRUCT_TYPE_UNION,  IOPC_ATTR_T_UNION);
 #undef PARSE_STRUCT
 
