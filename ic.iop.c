@@ -118,10 +118,19 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, host),
         .size      = fieldsizeof(ic__simple_hdr__t, host),
     },
+    {
+        .name      = LSTR_IMMED("group"),
+        .tag       = 6,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(ic__simple_hdr__t, group),
+        .size      = fieldsizeof(ic__simple_hdr__t, group),
+    },
 };
 static int const iop__ranges__3[] = {
     0, 1,
-    5,
+    6,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),
@@ -210,12 +219,16 @@ static iop_field_t const ic__routing_hdr__desc_fields[] = {
         .u1        = { .st_desc = &ic__hdr__s },
     },
 };
+static int const iop__ranges__5[] = {
+    0, 1,
+    5,
+};
 const iop_struct_t ic__routing_hdr__s = {
     .fullname   = LSTR_IMMED("ic.RoutingHdr"),
     .fields     = ic__routing_hdr__desc_fields,
-    .ranges     = iop__ranges__3,
+    .ranges     = iop__ranges__5,
     .fields_len = countof(ic__routing_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__3) / 2,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(ic__routing_hdr__t),
 };
 
