@@ -94,6 +94,20 @@ el_t el_before_register_blk(el_cb_b, block_t wipe) __leaf;
 el_t el_idle_register_blk(el_cb_b, block_t wipe) __leaf;
 el_t el_signal_register_blk(int signo, el_signal_b, block_t) __leaf;
 el_t el_child_register_blk(pid_t pid, el_child_b, block_t) __leaf;
+
+/** Run a command in the background.
+ *
+ * \param[in]  file    the command to run.
+ * \param[in]  argv    the argument list available to the executed program.
+ * \param[in]  envp    the environment for the new process (optional).
+ * \param[in]  child   optional callback to run in the child before exec.
+ * \param[in]  blk     the callback to run in the parent when the child exits.
+ * \param[in]  wipe    optional block to wipe the environment of the callback.
+ *
+ * \return the pid
+ */
+pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
+                     block_t child, el_child_b blk, block_t wipe);
 #endif
 
 static inline el_t el_before_register(el_cb_f *f, void *ptr) {
