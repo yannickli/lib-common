@@ -18,24 +18,6 @@ static struct {
 } iopc_typer_g;
 #define _G iopc_typer_g
 
-static const char *struct_type_to_str(enum iopc_struct_type_t type)
-{
-    switch (type) {
-      case STRUCT_TYPE_CLASS:
-        return "class";
-      case STRUCT_TYPE_SNMP_OBJ:
-        return "snmpObj";
-      case STRUCT_TYPE_UNION:
-        return "union";
-      case STRUCT_TYPE_TYPEDEF:
-        return "typedef";
-      case STRUCT_TYPE_STRUCT:
-        return "struct";
-    }
-    assert (false);
-    return "";
-}
-
 static iopc_struct_t *pkg_find_module(iopc_pkg_t *pkg, const char *name)
 {
     qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
@@ -455,11 +437,12 @@ resolve_pkg_parent_and_params(iopc_extends_t *xt, iopc_pkg_t *pkg,
     if (!(st = pkg_provides_struct(xt->pkg, xt->name, true))) {
         fatal_loc("pkg `%s` does not provide %s `%s` when resolving %s of "
                   "%s `%s`", xt->loc, pretty_path_dot(xt->pkg->name),
-                  struct_type_to_str(type), xt->name, action, type_obj, name);
+                  iopc_struct_type_to_str(type), xt->name, action,
+                  type_obj, name);
     }
     if (st->type != type) {
         fatal_loc("parent object `%s` is not a %s", xt->loc,
-                  st->name, struct_type_to_str(type));
+                  st->name, iopc_struct_type_to_str(type));
     }
     if (type == STRUCT_TYPE_CLASS && st->is_local && xt->pkg != pkg) {
         fatal_loc("as the parent class `%s` of class `%s` is `local`, "
@@ -514,13 +497,8 @@ static void
 resolve_pkg_parent(iopc_extends_t *xt, iopc_pkg_t *pkg,
                    iopc_struct_type_t type, const char *name)
 {
-    const char *str;
+    const char *str = iopc_struct_type_to_str(type);
 
-    if (type == STRUCT_TYPE_CLASS) {
-        str = "class";
-    } else {
-        str = "snmpObj";
-    }
     resolve_pkg_parent_and_params(xt, pkg, type, name, str, "inheritance");
 }
 
@@ -664,7 +642,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     assert (iopc_is_class(st->type) || iopc_is_snmp_obj(st->type));
     assert (parent_st->type == st->type);
 
-    type = struct_type_to_str(st->type);
+    type = iopc_struct_type_to_str(st->type);
 
     if (parent_st->resolving_inheritance)
         fatal_loc("circular dependency", *qv_last(iopc_loc, &iopc_g.loc_stack));

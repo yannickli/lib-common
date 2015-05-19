@@ -542,6 +542,23 @@ static inline bool iopc_is_snmp_obj(iopc_struct_type_t type)
 {
     return type == STRUCT_TYPE_SNMP_OBJ;
 }
+static inline const char *iopc_struct_type_to_str(iopc_struct_type_t type)
+{
+    switch (type) {
+      case STRUCT_TYPE_CLASS:
+        return "class";
+      case STRUCT_TYPE_SNMP_OBJ:
+        return "snmpObj";
+      case STRUCT_TYPE_UNION:
+        return "union";
+      case STRUCT_TYPE_TYPEDEF:
+        return "typedef";
+      case STRUCT_TYPE_STRUCT:
+        return "struct";
+      default:
+        e_panic("type not handled");
+    }
+}
 
 typedef enum iopc_defval_t {
     IOPC_DEFVAL_NONE,
