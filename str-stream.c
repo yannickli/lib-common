@@ -63,7 +63,7 @@ static int ps_get_csv_quoted_field(mem_pool_t *mp, pstream_t *ps, int quote,
             if (mp) {
                 qv_append(lstr, fields, mp_lstr_dups(mp, sb.data, sb.len));
             } else {
-                lstr_t dst;
+                lstr_t dst = LSTR_NULL;
 
                 lstr_transfer_sb(&dst, &sb, false);
                 qv_append(lstr, fields, dst);

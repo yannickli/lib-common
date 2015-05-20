@@ -110,6 +110,7 @@ void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
         mp_lstr_copy_(mp, dst, sb->data, sb->len);
         sb_init(sb);
     } else {
+        lstr_wipe(dst);
         dst->v = sb_detach(sb, &dst->len);
         dst->mem_pool = MEM_LIBC;
     }
