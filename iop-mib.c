@@ -18,13 +18,19 @@
 #define LVL3 LVL2 LVL1
 #define LVL4 LVL2 LVL2
 #define LVL5 LVL3 LVL2
+#define IMPORT_IF_INTERSEC "enterprises"
+#define INTERSEC_OID "32436"
 
 static struct {
     logger_t   logger;
+    lstr_t     head;
+    bool       head_is_intersec;
     qh_t(lstr) unicity_conformance_objects;
     qh_t(lstr) unicity_conformance_notifs;
     qv_t(lstr) conformance_objects;
     qv_t(lstr) conformance_notifs;
+    qh_t(lstr) objects_identifier;
+    qv_t(lstr) objects_identifier_parent;
 } mib_g = {
 #define _G  mib_g
     .logger = LOGGER_INIT_INHERITS(NULL, "iop2mib"),
@@ -112,39 +118,117 @@ static lstr_t t_mib_rpc_get_help(const iop_rpc_attrs_t *attrs)
 /* }}} */
 /* {{{ Header/Footer */
 
-static void mib_open_banner(sb_t *buf, lstr_t name)
+static void mib_open_banner(sb_t *buf)
 {
     t_scope;
-    lstr_t up_name = t_lstr_dup(name);
+    lstr_t up_name;
 
-    lstr_ascii_toupper(&up_name);
+    if(_G.head_is_intersec) {
+        up_name = LSTR_NULL_V;
+    } else {
+        up_name = t_lstr_fmt("-%*pM", LSTR_FMT_ARG(_G.head));
+        lstr_ascii_toupper(&up_name);
+    }
 
+    sb_addf(buf, "INTERSEC%*pM-MIB DEFINITIONS ::= BEGIN\n\n",
+            LSTR_FMT_ARG(up_name));
+}
+
+static void mib_close_banner(sb_t *buf)
+{
+    sb_adds(buf, "\nEND\n"
+            "\n\n-- vim:syntax=mib\n");
+}
+
+static void mib_get_head(qv_t(pkg) pkgs)
+{
+    bool resolved = false;
+
+    if (pkgs.len <= 0) {
+        logger_fatal(&_G.logger,
+                     "a package must be provided to build the MIB");
+    }
+
+    qv_for_each_entry(pkg, pkg, &pkgs) {
+        for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+            const iop_struct_t *desc = *it;
+
+            if (!iop_struct_is_snmp_obj(desc)) {
+                continue;
+            }
+            if (qh_add(lstr, &_G.objects_identifier, &desc->fullname) < 0) {
+                logger_fatal(&_G.logger, "name `%*pM` already exists",
+                             LSTR_FMT_ARG(desc->fullname));
+            }
+            if (desc->snmp_attrs->parent) {
+                qv_append(lstr, &_G.objects_identifier_parent,
+                          desc->snmp_attrs->parent->fullname);
+            }
+        }
+        for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+            const iop_iface_t *iface = *it;
+
+            if (!iop_iface_is_snmp_iface(iface)) {
+                continue;
+            }
+            if (qh_add(lstr, &_G.objects_identifier, &iface->fullname) < 0) {
+                logger_fatal(&_G.logger, "name `%*pM` already exists",
+                             LSTR_FMT_ARG(iface->fullname));
+            }
+            qv_append(lstr, &_G.objects_identifier_parent,
+                      iface->snmp_iface_attrs->parent->fullname);
+        }
+    }
+
+    qv_for_each_entry(lstr, name, &_G.objects_identifier_parent) {
+        if (qh_find(lstr, &_G.objects_identifier, &name) < 0) {
+            lstr_t short_name = t_get_short_name(name, true);
+
+            if (resolved && !lstr_equal2(short_name, _G.head)) {
+                logger_fatal(&_G.logger, "only one snmpObj parent should be "
+                             "imported");
+            }
+            _G.head = short_name;
+            resolved = true;
+        }
+    }
+
+    if (!resolved) {
+        _G.head = LSTR("intersec");
+        _G.head_is_intersec = true;
+    }
+}
+
+/* }}} */
+/* {{{ Import */
+
+static void mib_put_imports(sb_t *buf)
+{
+    sb_adds(buf, "IMPORTS\n");
+
+    if (_G.head_is_intersec) {
+        sb_adds(buf, LVL1 "MODULE-IDENTITY, " IMPORT_IF_INTERSEC
+                " FROM SNMPv2-SMI;\n\n");
+        return;
+    }
     sb_addf(buf,
-            "INTERSEC-%*pM-MIB DEFINITIONS ::= BEGIN\n\n"
-            "IMPORTS\n"
             LVL1 "MODULE-COMPLIANCE, OBJECT-GROUP, "
             "NOTIFICATION-GROUP FROM SNMPv2-CONF\n"
             LVL1 "MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, "
             "Integer32 FROM SNMPv2-SMI\n"
             LVL1 "%*pM FROM INTERSEC-MIB;\n\n",
-            LSTR_FMT_ARG(up_name), LSTR_FMT_ARG(name));
-}
-
-static void mib_close_banner(sb_t *buf)
-{
-    sb_adds(buf, "\n\n-- vim:syntax=mib\n");
+            LSTR_FMT_ARG(_G.head));
 }
 
 /* }}} */
 /* {{{ Identity */
 
-static void mib_put_identity(sb_t *buf, lstr_t name,
-                             qv_t(revi) revisions)
+static void mib_put_identity(sb_t *buf, qv_t(revi) revisions)
 {
     revision_t *last_update = *qv_last(revi, &revisions);
 
     sb_addf(buf, "-- {{{ Identity\n"
-            "\n%*pM MODULE-IDENTITY\n"
+            "\n%*pM%s MODULE-IDENTITY\n"
             LVL1 "LAST-UPDATED \"%*pM\"\n\n"
             LVL1 "ORGANIZATION \"Intersec\"\n"
             LVL1 "CONTACT-INFO \"postal: Tour W - 102 Terasse Boieldieu\n"
@@ -154,7 +238,8 @@ static void mib_put_identity(sb_t *buf, lstr_t name,
             LVL4 "  \"\n\n"
             LVL1 "DESCRIPTION \"For more details see Intersec website "
             "http://www.intersec.com\"\n",
-            LSTR_FMT_ARG(name), LSTR_FMT_ARG(last_update->timestamp));
+            LSTR_FMT_ARG(_G.head), _G.head_is_intersec ? "" : "Identity",
+            LSTR_FMT_ARG(last_update->timestamp));
 
     qv_for_each_pos_rev(revi, pos, &revisions) {
         revision_t *changmt = revisions.tab[pos];
@@ -165,10 +250,13 @@ static void mib_put_identity(sb_t *buf, lstr_t name,
                 LSTR_FMT_ARG(changmt->description));
     }
 
-    sb_addf(buf,
-            LVL1 "::= { %*pM 100 }\n\n"
-            "\n-- }}}\n",
-            LSTR_FMT_ARG(name));
+    if (_G.head_is_intersec) {
+        sb_adds(buf,
+                LVL1 "::= { " IMPORT_IF_INTERSEC " " INTERSEC_OID " }\n");
+    } else {
+        sb_addf(buf, LVL1 "::= { %*pM 100 }\n", LSTR_FMT_ARG(_G.head));
+    }
+    sb_adds(buf, "\n-- }}}\n");
 }
 
 /* }}} */
@@ -374,7 +462,7 @@ static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
 /* }}} */
 /* {{{ Conformance Groups */
 
-static void mib_put_compliance(sb_t *buf, lstr_t name)
+static void mib_put_compliance(sb_t *buf)
 {
     sb_addf(buf,
             "\n%*pMCompliance MODULE-COMPLIANCE\n"
@@ -383,17 +471,17 @@ static void mib_put_compliance(sb_t *buf, lstr_t name)
             LVL1 "MODULE\n"
             LVL2 "MANDATORY-GROUPS { %*pMConformanceObject, "
             "%*pMConformanceNotification }\n"
-            LVL1 "::= { %*pMIdentity 1 }\n",
-            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(name));
+            LVL1 "::= { %*pMIdentity 1}\n",
+            LSTR_FMT_ARG(_G.head), LSTR_FMT_ARG(_G.head),
+            LSTR_FMT_ARG(_G.head), LSTR_FMT_ARG(_G.head),
+            LSTR_FMT_ARG(_G.head));
 }
 
-static void mib_put_objects_conformance(sb_t *buf, lstr_t name)
+static void mib_put_objects_conformance(sb_t *buf)
 {
     sb_addf(buf,
             "\n%*pMConformanceObject OBJECT-GROUP\n"
-            LVL1 "OBJECTS { ", LSTR_FMT_ARG(name));
+            LVL1 "OBJECTS { ", LSTR_FMT_ARG(_G.head));
 
     qv_for_each_pos(lstr, pos, &_G.conformance_objects) {
         sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_objects.tab[pos]));
@@ -406,14 +494,14 @@ static void mib_put_objects_conformance(sb_t *buf, lstr_t name)
             LVL1 "DESCRIPTION\n"
             LVL2 "\"%*pM conformance objects\"\n"
             LVL1 "::= { %*pMIdentity 81 }\n",
-            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name));
+            LSTR_FMT_ARG(_G.head), LSTR_FMT_ARG(_G.head));
 }
 
-static void mib_put_notifs_conformance(sb_t *buf, lstr_t name)
+static void mib_put_notifs_conformance(sb_t *buf)
 {
     sb_addf(buf,
             "\n%*pMConformanceNotification NOTIFICATION-GROUP\n"
-            LVL1 "NOTIFICATIONS { ", LSTR_FMT_ARG(name));
+            LVL1 "NOTIFICATIONS { ", LSTR_FMT_ARG(_G.head));
 
     qv_for_each_pos(lstr, pos, &_G.conformance_notifs) {
         sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_notifs.tab[pos]));
@@ -426,19 +514,19 @@ static void mib_put_notifs_conformance(sb_t *buf, lstr_t name)
             LVL1 "DESCRIPTION\n"
             LVL2 "\"%*pM conformance notifications\"\n"
             LVL1 "::= { %*pMIdentity 80 }\n",
-            LSTR_FMT_ARG(name), LSTR_FMT_ARG(name));
+            LSTR_FMT_ARG(_G.head), LSTR_FMT_ARG(_G.head));
 }
 
-static void mib_put_compliance_fold(sb_t *buf, lstr_t name)
+static void mib_put_compliance_fold(sb_t *buf)
 {
     if (_G.conformance_notifs.len == 0 && _G.conformance_objects.len == 0) {
         return;
     }
 
     sb_addf(buf, "-- {{{ Compliance\n");
-    mib_put_compliance(buf, name);
-    mib_put_notifs_conformance(buf, name);
-    mib_put_objects_conformance(buf, name);
+    mib_put_compliance(buf);
+    mib_put_notifs_conformance(buf);
+    mib_put_objects_conformance(buf);
     sb_addf(buf, "\n-- }}}\n");
 }
 
@@ -451,6 +539,8 @@ static int iop_mib_initialize(void *arg)
     qh_init(lstr, &_G.unicity_conformance_notifs);
     qv_init(lstr, &_G.conformance_objects);
     qv_init(lstr, &_G.conformance_notifs);
+    qh_init(lstr, &_G.objects_identifier);
+    qv_init(lstr, &_G.objects_identifier_parent);
     return 0;
 }
 
@@ -460,6 +550,10 @@ static int iop_mib_shutdown(void)
     qh_wipe(lstr, &_G.unicity_conformance_notifs);
     qv_wipe(lstr, &_G.conformance_objects);
     qv_wipe(lstr, &_G.conformance_notifs);
+    qh_wipe(lstr, &_G.objects_identifier);
+    qv_wipe(lstr, &_G.objects_identifier_parent);
+    lstr_wipe(&_G.head);
+    _G.head_is_intersec = false;
     return 0;
 }
 
@@ -468,21 +562,25 @@ MODULE_END()
 
 /* }}} */
 
-void iop_mib(sb_t *sb, lstr_t parent, qv_t(pkg) pkgs, qv_t(revi) revisions)
+void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
 {
+    t_scope;
     SB_8k(buffer);
 
     MODULE_REQUIRE(iop_mib);
 
-    mib_open_banner(sb, parent);
-    mib_put_identity(sb, parent, revisions);
-    mib_put_object_identifier(&buffer, pkgs);
+    mib_get_head(pkgs);
 
+    mib_put_object_identifier(&buffer, pkgs);
     qv_for_each_entry(pkg, pkg, &pkgs) {
         mib_put_fields(&buffer, pkg);
         mib_put_rpcs(&buffer, pkg);
     }
-    mib_put_compliance_fold(sb, parent);
+
+    mib_open_banner(sb);
+    mib_put_imports(sb);
+    mib_put_identity(sb, revisions);
+    mib_put_compliance_fold(sb);
 
     /* Concat both sb */
     sb_addsb(sb, &buffer);
@@ -496,3 +594,5 @@ void iop_mib(sb_t *sb, lstr_t parent, qv_t(pkg) pkgs, qv_t(revi) revisions)
 #undef LVL3
 #undef LVL4
 #undef LVL5
+#undef IMPORT_IF_INTERSEC
+#undef INTERSEC_OID

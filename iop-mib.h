@@ -36,6 +36,6 @@ qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
 
-void iop_mib(sb_t *, lstr_t, qv_t(pkg), qv_t(revi));
+void iop_mib(sb_t *, qv_t(pkg), qv_t(revi));
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
