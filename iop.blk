@@ -285,8 +285,6 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
 int iop_value_to_field(void *ptr, const iop_field_t *field,
                        const iop_value_t *value)
 {
-    THROW_ERR_IF(field->repeat == IOP_R_REPEATED);
-
     ptr = (byte *)ptr + field->data_offs;
 
 #define SET_SCALAR(type, opt, f)                                             \
