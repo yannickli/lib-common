@@ -573,10 +573,11 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
             child();
         }
         if (envp) {
-            execvpe(file, (char **)argv, (char **)envp);
-        } else {
-            execvp(file, (char **)argv);
+            /* XXX we cannot use execvpe which appeared in glibc 2.11 since
+             * centos 5 only has gblic 2.5 */
+            environ = (char **)envp;
         }
+        execvp(file, (char **)argv);
         logger_fatal(&_G.logger, "unable to execute `%s`: %m", file);
     } else
     if (pid < 0) {
