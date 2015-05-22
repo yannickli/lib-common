@@ -71,6 +71,31 @@ iop_snmp_attrs_t *mib_field_get_snmp_attr(const iop_field_attrs_t attrs)
                  "all snmpObj fields should contain at least a brief");
 }
 
+static lstr_t t_split_on_str(lstr_t name, const char *letter)
+{
+    t_SB(buf, 64);
+    qv_t(lstr) parts;
+    lstr_t word = t_lstr_dup(name);
+    pstream_t ps = ps_initlstr(&word);
+    ctype_desc_t dot;
+
+    t_qv_init(lstr, &parts, 80);
+    ctype_desc_build(&dot, letter);
+    ps_split(ps, &dot, 0, &parts);
+    if (!parts.len) {
+        return LSTR_EMPTY_V;
+    }
+
+    qv_for_each_pos(lstr, i, &parts) {
+        if (i < parts.len -1) {
+            parts.tab[i] = t_lstr_cat(parts.tab[i], LSTR("\'"));
+        }
+        sb_add_lstr(&buf, parts.tab[i]);
+    }
+
+    return lstr_init_(buf.data, buf.len, MEM_STACK);
+}
+
 static lstr_t get_type_to_lstr(iop_type_t type)
 {
     switch (type) {
@@ -87,33 +112,36 @@ static lstr_t get_type_to_lstr(iop_type_t type)
     }
 }
 
+
+#define T_RETURN_HELP(_attr, _len, _type, _name)  \
+    do {                                                                     \
+        for (int i = 0; i < _len; i++) {                                     \
+            if (_attr[i].type == _type) {                                    \
+                const iop_help_t *help = _attr[i].args->v.p;                 \
+                lstr_t descri;                                               \
+                                                                             \
+                descri = t_lstr_cat3(help->brief, help->details,             \
+                                     help->warning);                         \
+                return t_split_on_str(descri, "\"");                         \
+            }                                                                \
+        }                                                                    \
+        logger_fatal(&_G.logger, "each %s needs a description", _name);      \
+    } while (0)
+
 static lstr_t t_mib_field_get_help(const iop_field_attrs_t *attrs)
 {
     const iop_field_attr_t *attr = attrs->attrs;
 
-    for (int i = 0; i < attrs->attrs_len; i++) {
-        if (attr[i].type == IOP_FIELD_ATTR_HELP) {
-            const iop_help_t *help = attr[i].args->v.p;
-
-            return t_lstr_cat3(help->brief, help->details, help->warning);
-        }
-    }
-    logger_fatal(&_G.logger, "each field needs a description");
+    T_RETURN_HELP(attr, attrs->attrs_len, IOP_FIELD_ATTR_HELP, "field");
 }
 
 static lstr_t t_mib_rpc_get_help(const iop_rpc_attrs_t *attrs)
 {
     const iop_rpc_attr_t *attr = attrs->attrs;
 
-    for (int i = 0; i < attrs->attrs_len; i++) {
-        if (attr[i].type == IOP_RPC_ATTR_HELP) {
-            const iop_help_t *help = attr[i].args->v.p;
-
-            return t_lstr_cat3(help->brief, help->details, help->warning);
-        }
-    }
-    logger_fatal(&_G.logger, "each rpc needs a description");
+    T_RETURN_HELP(attr, attrs->attrs_len, IOP_RPC_ATTR_HELP, "rpc");
 }
+#undef T_GET_HELP
 
 /* }}} */
 /* {{{ Header/Footer */
