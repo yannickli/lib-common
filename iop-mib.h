@@ -38,4 +38,7 @@ qvector_t(pkg, iop_pkg_t *);
 
 void iop_mib(sb_t *, qv_t(pkg), qv_t(revi));
 
+#define mib_register(h, _pkg) \
+    qv_append(pkg, h, (void *)&_pkg##__pkg)
+
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
