@@ -96,7 +96,7 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter)
     return lstr_init_(buf.data, buf.len, MEM_STACK);
 }
 
-static lstr_t get_type_to_lstr(iop_type_t type)
+static lstr_t get_type_to_lstr(iop_type_t type, bool from_tbl)
 {
     switch (type) {
       case IOP_T_STRING:
@@ -104,7 +104,8 @@ static lstr_t get_type_to_lstr(iop_type_t type)
       case IOP_T_I8:
       case IOP_T_I16:
       case IOP_T_I32:
-        return LSTR("Integer32");
+        return from_tbl ? LSTR("Integer32")
+                        : LSTR("Integer32 (1..2147483647)");
       case IOP_T_BOOL:
         return LSTR("BOOLEAN");
       default:
@@ -140,6 +141,13 @@ static lstr_t t_mib_rpc_get_help(const iop_rpc_attrs_t *attrs)
     const iop_rpc_attr_t *attr = attrs->attrs;
 
     T_RETURN_HELP(attr, attrs->attrs_len, IOP_RPC_ATTR_HELP, "rpc");
+}
+
+static lstr_t t_mib_tbl_get_help(const iop_struct_attrs_t *attrs)
+{
+    const iop_struct_attr_t *attr = attrs->attrs;
+
+    T_RETURN_HELP(attr, attrs->attrs_len, IOP_STRUCT_ATTR_HELP, "snmpTbl");
 }
 #undef T_GET_HELP
 
@@ -355,10 +363,86 @@ static void mib_put_object_identifier(sb_t *buf, qv_t(pkg) pkgs)
 }
 
 /* }}} */
+/* {{{ SnmpTbl */
+
+static void mib_put_tbl_entries(const iop_struct_t *st, lstr_t name_down,
+                                sb_t *buf)
+{
+    t_scope;
+
+    sb_addf(buf, "\n%*pMEntry ::= SEQUENCE {\n",
+            LSTR_FMT_ARG(t_get_short_name(st->fullname, false)));
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t field = st->fields[i];
+
+        sb_addf(buf, LVL1 "%*pM %*pM,\n",
+                LSTR_FMT_ARG(field.name),
+                LSTR_FMT_ARG(get_type_to_lstr(field.type, true)));
+    }
+    sb_addf(buf, LVL1 "%*pMIndex Integer32\n}\n", LSTR_FMT_ARG(name_down));
+}
+
+static void mib_put_snmp_tbl(const iop_struct_t *st, sb_t *buf)
+{
+    t_scope;
+    const iop_snmp_attrs_t *snmp_attrs;
+    lstr_t help = t_mib_tbl_get_help(st->st_attrs);
+    lstr_t name_up = t_get_short_name(st->fullname, false);
+    lstr_t name_down = t_get_short_name(st->fullname, true);
+
+    assert(iop_struct_is_snmp_tbl(st));
+    snmp_attrs = st->snmp_attrs;
+
+    help = t_split_on_str(help, "\'");
+
+    sb_addf(buf,
+            "\n%*pMTable OBJECT-TYPE\n"
+            LVL1 "SYNTAX SEQUENCE OF %*pMEntry\n"
+            LVL1 "MAX-ACCESS not-accessible\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"%*pM\"\n"
+            LVL1 "::= { %*pM %d }\n",
+            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_up), LSTR_FMT_ARG(help),
+            LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
+            snmp_attrs->oid);
+
+    /* Define the table entry that gives global information about table
+     * entries */
+    sb_addf(buf,
+            "\n%*pMEntry OBJECT-TYPE\n"
+            LVL1 "SYNTAX %*pMEntry\n"
+            LVL1 "MAX-ACCESS not-accessible\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"An entry in the table of %*pM\"\n"
+            LVL1 "INDEX { %*pMIndex }\n"
+            LVL1 "::= { %*pMTable 1 }\n",
+            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_up),
+            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_down),
+            LSTR_FMT_ARG(name_down));
+
+    /* Define the table entries (corresponding to the columns) */
+    mib_put_tbl_entries(st, name_down, buf);
+
+    /* Generate a generic index */
+    sb_addf(buf,
+            "\n%*pMIndex OBJECT-TYPE\n"
+            LVL1 "SYNTAX Integer32 (1..2147483647)\n"
+            LVL1 "MAX-ACCESS not-accessible\n"
+            LVL1 "STATUS current\n"
+            LVL1 "DESCRIPTION\n"
+            LVL2 "\"The table index.\"\n"
+            LVL1 "::= { %*pMEntry 9999 }\n",
+            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_down));
+}
+
+/* }}} */
 /* {{{ SnmpObj fields */
 
 static void mib_put_field(sb_t *buf, lstr_t name, int pos,
-                          const iop_struct_t *st)
+                          const iop_struct_t *st, bool from_tbl)
 {
     t_scope;
     const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
@@ -372,11 +456,12 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LVL1 "STATUS current\n"
             LVL1 "DESCRIPTION\n"
             LVL2 "\"%*pM\"\n"
-            LVL1 "::= { %*pM %d }\n",
+            LVL1 "::= { %*pM%s %d }\n",
             LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(get_type_to_lstr(snmp_attrs->type)),
+            LSTR_FMT_ARG(get_type_to_lstr(snmp_attrs->type, from_tbl)),
             LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
+            from_tbl ? "Entry" : "",
             snmp_attrs->oid);
 
     if (qh_add(lstr, &_G.unicity_conformance_objects, &name) < 0) {
@@ -388,13 +473,37 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
     /* TODO: for brief lstr_len/80 then cut the lstr */
 }
 
-static void mib_put_fields(sb_t *buf, const iop_pkg_t *pkg)
+static void mib_put_tbl_fields(sb_t *buf, const iop_struct_t *desc)
+{
+    /* deal with snmp fields */
+    for (int i = 0; i < desc->fields_len; i++) {
+        const iop_field_t *field = &desc->fields[i];
+
+        if (iop_field_has_snmp_info(field)) {
+            mib_put_field(buf, field->name, i, desc, true);
+        }
+    }
+}
+
+static void mib_put_fields_and_tbl(sb_t *buf, const iop_pkg_t *pkg)
 {
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
         const iop_struct_t *desc = *it;
         bool has_fields = desc->fields_len > 0;
 
-        if (!iop_struct_is_snmp_obj(desc)) {
+        if (!iop_struct_is_snmp_st(desc)) {
+            continue;
+        }
+
+        if (iop_struct_is_snmp_tbl(desc)) {
+            t_scope;
+
+            sb_addf(buf, "-- {{{ %*pMTable\n",
+                    LSTR_FMT_ARG(t_get_short_name(desc->fullname, false)));
+
+            mib_put_snmp_tbl(desc, buf);
+            mib_put_tbl_fields(buf, desc);
+            sb_addf(buf, "\n-- }}}\n");
             continue;
         }
 
@@ -409,10 +518,11 @@ static void mib_put_fields(sb_t *buf, const iop_pkg_t *pkg)
         /* deal with snmp fields */
         for (int i = 0; i < desc->fields_len; i++) {
             const iop_field_t field = desc->fields[i];
+
             if (!iop_field_has_snmp_info(&field)) {
                 continue;
             }
-            mib_put_field(buf, field.name, i, desc);
+            mib_put_field(buf, field.name, i, desc, false);
         }
 
         if (has_fields) {
@@ -601,7 +711,7 @@ void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
 
     mib_put_object_identifier(&buffer, pkgs);
     qv_for_each_entry(pkg, pkg, &pkgs) {
-        mib_put_fields(&buffer, pkg);
+        mib_put_fields_and_tbl(&buffer, pkg);
         mib_put_rpcs(&buffer, pkg);
     }
 
