@@ -1,0 +1,56 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2015 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+package snmp_test;
+
+enum SomeEnum {
+    STATE_ONE,
+    STATE_TWO,
+    STATE_THREE,
+    FOUR,
+};
+
+snmpObj Obj : 1 : snmp_intersec_test.Test {
+    /** Description, ex: "some string".
+     */
+1:  string a;
+
+    /** Description.
+     */
+2:  SomeEnum b;
+};
+
+/** Table.
+ */
+snmpTbl Tbl : 3 : Obj {
+     /** Description.
+      */
+1:   string column1;
+
+     /** Description.
+      */
+2:   int column2;
+};
+
+@snmpParamsFrom(Obj)
+snmpIface Iface : 4 : Obj {
+    /** Description ex: "some notif".
+     */
+1:  notifUnresponsive
+        in (a, b);
+
+    /** Description.
+     */
+2:  notifResponsive
+        in (a);
+};

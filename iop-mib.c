@@ -754,6 +754,165 @@ void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
     MODULE_RELEASE(iop_mib);
 }
 
+/* {{{ Tests */
+
+/* LCOV_EXCL_START */
+
+#include <lib-common/z.h>
+#include "test-data/snmp/snmp_test.iop.h"
+#include "test-data/snmp/snmp_intersec_test.iop.h"
+
+#define FOLDER "lib-common/test-data/snmp/mibs/"
+
+static qv_t(revi) z_fill_up_revisions(void)
+{
+    qv_t(revi) revisions;
+    revision_t *revision = revision_new();
+
+    qv_init(revi, &revisions);
+
+    revision->timestamp = LSTR("201003091349Z");
+    revision->description = LSTR("Initial release");
+    qv_append(revi, &revisions, revision);
+
+    return revisions;
+}
+
+static void z_init(sb_t *sb, qv_t(pkg) *pkgs)
+{
+    sb_init(sb);
+    qv_init(pkg, pkgs);
+}
+
+static void z_wipe(sb_t sb, qv_t(revi) revisions, qv_t(pkg) pkgs)
+{
+    sb_wipe(&sb);
+    qv_deep_wipe(revi, &revisions, revision_delete);
+    qv_wipe(pkg, &pkgs);
+}
+
+static int z_check_wanted_file(lstr_t name, sb_t sb)
+{
+    t_scope;
+    char line[PATH_MAX];
+    lstr_t path = t_lstr_cat(LSTR(FOLDER), name);
+    FILE *f = fopen(path.s, "r");
+
+    if (f == NULL) {
+        logger_panic(&_G.logger, "cannot load reference file '%*pM'",
+                     LSTR_FMT_ARG(path));
+    }
+
+    /* Check that each line of good file is present into the generated file */
+    while (fgets(line, sizeof(line), f) != NULL) {
+        if (!lstr_contains(LSTR(sb.data), LSTR(line))) {
+            fclose(f);
+            return -1;
+        }
+    }
+    p_fclose(&f);
+    return 0;
+}
+
+Z_GROUP_EXPORT(iop_mib)
+{
+    Z_TEST(test_registration, "test registering of packages") {
+        qv_t(pkg) pkgs;
+
+        qv_init(pkg, &pkgs);
+
+        mib_register(&pkgs, snmp_test);
+        mib_register(&pkgs, snmp_intersec_test);
+
+        Z_ASSERT_EQ(pkgs.len, 2);
+
+        qv_wipe(pkg, &pkgs);
+    } Z_TEST_END;
+
+    Z_TEST(test_intersec_mib_generated, "compare generated and ref file") {
+        t_scope;
+        sb_t sb;
+        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(pkg) pkgs;
+
+        z_init(&sb, &pkgs);
+
+        mib_register(&pkgs, snmp_intersec_test);
+        iop_mib(&sb, pkgs, revisions);
+
+        Z_ASSERT_N(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
+
+        z_wipe(sb, revisions, pkgs);
+    } Z_TEST_END;
+
+    Z_TEST(test_intersec_mib_smilint, "test intersec mib using smilint") {
+        t_scope;
+        sb_t sb;
+        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(pkg) pkgs;
+        char *path = t_fmt("%*pM/intersec", LSTR_FMT_ARG(z_tmpdir_g));
+        lstr_t cmd;
+
+        z_init(&sb, &pkgs);
+
+        mib_register(&pkgs, snmp_intersec_test);
+
+        iop_mib(&sb, pkgs, revisions);
+
+        /* Check smilint compliance level 6*/
+        sb_write_file(&sb, path);
+        cmd = t_lstr_fmt("smilint -s -e -l 6 %s", path);
+        Z_ASSERT_ZERO(system(cmd.s));
+
+        z_wipe(sb, revisions, pkgs);
+    } Z_TEST_END;
+
+    Z_TEST(test_revisions, "test complete mib") {
+        t_scope;
+        sb_t sb;
+        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(pkg) pkgs;
+        char *new_path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
+        lstr_t cmd;
+
+        z_init(&sb, &pkgs);
+
+        mib_register(&pkgs, snmp_test);
+
+        iop_mib(&sb, pkgs, revisions);
+        Z_ASSERT_N(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
+
+        /* Check smilint compliance level 6*/
+        sb_write_file(&sb, new_path);
+        cmd = t_lstr_fmt("smilint -s -e -l 6 -i notification-not-reversible "
+                         "-p %s %s", FOLDER "REF-INTERSEC-MIB.txt", new_path);
+        Z_ASSERT_ZERO(system(cmd.s));
+
+        z_wipe(sb, revisions, pkgs);
+    } Z_TEST_END;
+
+    Z_TEST(test_quotes, "check double quotes are replaced by single ones") {
+        t_scope;
+        lstr_t text = LSTR(" \" = double, \' = single \"between\"\n");
+
+        Z_ASSERT_LSTREQUAL(LSTR(" \' = double, \' = single \'between\'\n"),
+                           t_split_on_str(text, "\"", false));
+    } Z_TEST_END;
+
+    Z_TEST(test_enum, "check double quotes are replaced by single ones") {
+        t_scope;
+        const iop_enum_t *en = &snmp_test__some_enum__e;
+
+        Z_ASSERT_LSTREQUAL(LSTR("INTEGER { stateOne(0), stateTwo(1), "
+                                "stateThree(2), four(3) }"),
+                           t_mib_put_enum(en));
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* LCOV_EXCL_STOP */
+
+/* }}} */
+
 #undef LVL1
 #undef LVL2
 #undef LVL3
