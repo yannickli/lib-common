@@ -16,7 +16,7 @@
 
 #include "iopc/iopc.h"
 
-void iop_mib(sb_t *, lstr_t);
+void iop_mib(sb_t *, lstr_t, const iop_pkg_t *);
 
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
