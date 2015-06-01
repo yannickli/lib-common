@@ -349,7 +349,7 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     if (file->open_date == now)
         return 0;
 
-    IGNORE(file_close(&file->_internal));
+    RETHROW(file_close(&file->_internal));
 
     log_file_open_new(file, now);
     if (!file->_internal) {
