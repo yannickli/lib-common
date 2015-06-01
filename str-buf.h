@@ -417,6 +417,10 @@ static inline void sb_sets(sb_t *sb, const char *s)
 {
     sb_set(sb, s, strlen(s));
 }
+static inline void sb_set_lstr(sb_t *sb, lstr_t s)
+{
+    sb_set(sb, s.s, s.len);
+}
 
 /** Appends a pretty-formated unsigned integer to a string buffer with a
  *  thousand separator.
