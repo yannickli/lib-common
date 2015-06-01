@@ -786,7 +786,7 @@ static void iopc_t_resolve(iopc_pkg_t *pkg)
         iopc_struct_resolve(pkg, st);
     }
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
-        if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+        if (iopc_is_snmp_iface(iface->type)) {
             iopc_snmp_iface_resolve(pkg, iface);
         }
     }
@@ -1499,7 +1499,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
                 } else {
                     iopc_add_depends(pkg, fun->farg->type_pkg, i_deps);
                 }
-                if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+                if (iopc_is_snmp_iface(iface->type)) {
                     /* If snmpIface add dependencies necessary for the fun
                      * fields */
                     qv_for_each_entry(iopc_field, field, &fun->arg->fields) {

@@ -2124,7 +2124,7 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
     const char *token = tokens[what];
     iopc_struct_t **sptr;
     iopc_field_t  **fptr;
-    bool is_snmp_iface = iface_type == IFACE_TYPE_SNMP_IFACE;
+    bool is_snmp_iface = iopc_is_snmp_iface(iface_type);
 
     read_dox_front(pp, chunks);
 
@@ -2273,7 +2273,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks, type))
      &  (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks, type)))
     {
-        if (type == IFACE_TYPE_IFACE) {
+        if (!iopc_is_snmp_iface(type)) {
             info_loc("function %s may be a candidate for async-ness",
                      fun->loc, fun->name);
         }
@@ -2291,7 +2291,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     qv_append(i32, tags, tag);
 
     build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
-    if (type == IFACE_TYPE_SNMP_IFACE) {
+    if (iopc_is_snmp_iface(type)) {
         check_snmp_brief(fun->comments, fun->loc, fun->name, "notification");
     }
 
@@ -2358,7 +2358,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
     EAT_KW(pp, name);
     iface->name = iopc_upper_ident(pp);
 
-    if (type == IFACE_TYPE_SNMP_IFACE) {
+    if (iopc_is_snmp_iface(type)) {
         parse_snmp_iface_parent(pp, iface, is_main_pkg);
     }
 

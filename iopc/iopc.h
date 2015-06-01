@@ -584,6 +584,11 @@ typedef enum iopc_iface_type_t {
     IFACE_TYPE_SNMP_IFACE   = 1,
 } iopc_iface_type_t;
 
+static inline bool iopc_is_snmp_iface(iopc_iface_type_t type)
+{
+    return type == IFACE_TYPE_SNMP_IFACE;
+}
+
 typedef struct iopc_field_t {
     int        refcnt;
     uint16_t   size;
