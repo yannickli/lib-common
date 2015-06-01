@@ -402,6 +402,7 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
         unsigned field_size = 1;
         int field_align = 1;
         iop_type_t type = field_info->type;
+        int tag;
 
         switch (type) {
           case IOP_T_I8:
@@ -449,10 +450,11 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
         max_align   = MAX(max_align, field_align);
 
         /* update field attributes */
+        tag = field - st->fields + 1;
         *field = (iop_field_t){
             .name      = LSTR_NULL,
-            .tag       = field - st->fields + 1,
-            .tag_len   = 0,
+            .tag       = tag,
+            .tag_len   = (tag >= 30) + (tag >= 256),
             .repeat    = field_info->repeat,
             .type      = type,
             .size      = field_size,

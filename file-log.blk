@@ -392,9 +392,9 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     }
 
     if (file->is_file_bin) {
-        IGNORE(file_bin_close(&file->_bin_internal));
+        RETHROW(file_bin_close(&file->_bin_internal));
     } else {
-        IGNORE(file_close(&file->_internal));
+        RETHROW(file_close(&file->_internal));
     }
 
     log_file_call_cb(file, LOG_FILE_ROTATE, NULL);
