@@ -3671,6 +3671,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_class3__t cls3;
         tstiop__my_struct_a_opt__t struct_a_opt;
         tstiop__my_ref_struct__t struct_ref;
+        tstiop__my_referenced_struct__t referenced_struct;
         const iop_field_t *iop_field;
         const void *out = NULL;
         uint64_t htab_vals[] = {42, 22};
@@ -3717,6 +3718,7 @@ Z_GROUP_EXPORT(iop)
         iop_init(tstiop__my_class3, &cls3);
         iop_init(tstiop__my_struct_a_opt, &struct_a_opt);
         iop_init(tstiop__my_ref_struct, &struct_ref);
+        iop_init(tstiop__my_referenced_struct, &referenced_struct);
         cls3.int3 = 10;
         cls3.int2 = 5;
         cls3.int1 = 2;
@@ -3727,6 +3729,8 @@ Z_GROUP_EXPORT(iop)
         struct_a.cls2 = iop_obj_vcast(tstiop__my_class2, &cls3);
         struct_c.b = &struct_c;
         struct_a_opt.l = &IOP_UNION(tstiop__my_union_a, ua, 10);
+        referenced_struct.a = 21;
+        struct_ref.s = &referenced_struct;
         OPT_SET(struct_e.c.a, 42);
         struct_a.htab = (iop_array_u64_t)IOP_ARRAY(htab_vals,
                                                    countof(htab_vals));
@@ -3782,6 +3786,7 @@ Z_GROUP_EXPORT(iop)
                                   LSTR("l"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_IOPEQUAL(tstiop__my_union_a, out, &struct_a.l);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("l.ua"), &out);
@@ -3793,26 +3798,32 @@ Z_GROUP_EXPORT(iop)
                                   LSTR("cls2"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, *(tstiop__my_class2__t **)out,
+                          struct_a.cls2);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("cls2.int2"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_a.cls2->int2);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("cls2.int1"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_a.cls2->int1);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("cls2.bool1"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(bool *)out, cls3.bool1);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("j"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_LSTREQUAL(*(lstr_t *)out, struct_a.j);
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                     LSTR("cls2.bool10"), NULL));
@@ -3821,44 +3832,73 @@ Z_GROUP_EXPORT(iop)
                                   LSTR("c"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_b, out, &struct_e.c);
 
         iop_field = iop_get_field(&struct_e, &tstiop__my_struct_e__s,
                                   LSTR("c.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, OPT_VAL(struct_e.c.a));
 
         iop_field = iop_get_field(&struct_b, &tstiop__my_struct_b__s,
                                   LSTR("a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, OPT_VAL(struct_b.a));
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                     LSTR("a.b"), NULL));
 
         iop_field = iop_get_field(&struct_a_opt, &tstiop__my_struct_a_opt__s,
+                                  LSTR("l"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+        Z_ASSERT_IOPEQUAL(tstiop__my_union_a, *(tstiop__my_union_a__t **)out,
+                          struct_a_opt.l);
+
+        iop_field = iop_get_field(&struct_a_opt, &tstiop__my_struct_a_opt__s,
                                   LSTR("l.ua"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*((int *)out), struct_a_opt.l->ua);
 
         iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
                                   LSTR("b.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_c.b->a);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
-                                  LSTR("lr.ua"), &out);
+                                  LSTR("lr"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_NULL(*((tstiop__my_union_a__t **)out));
+
+        Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
+                                    LSTR("lr.ua"), &out));
+
+        iop_field = iop_get_field(&struct_ref, &tstiop__my_ref_struct__s,
+                                  LSTR("s"), &out);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+        Z_ASSERT_IOPEQUAL(tstiop__my_referenced_struct,
+                          *(tstiop__my_referenced_struct__t **)out,
+                          struct_ref.s);
 
         iop_field = iop_get_field(&struct_ref, &tstiop__my_ref_struct__s,
                                   LSTR("s.a"), &out);
         Z_ASSERT_P(iop_field);
-        Z_ASSERT_NULL(out);
+        Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_ref.s->a);
+
+        Z_ASSERT_NULL(iop_get_field(&struct_ref, &tstiop__my_ref_struct__s,
+                                    LSTR("u.b"), &out));
 
         iop_field = iop_get_field(&struct_c, &tstiop__my_struct_c__s,
                                   LSTR("b.b.a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
+        Z_ASSERT_EQ(*(int *)out, struct_c.b->b->a);
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("htab[0]"), &out);
@@ -4033,6 +4073,48 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(iop_value_from_field((void *) &sb, field, &value));
             Z_ASSERT_EQ(value.i, 42);
         }
+
+        /* test with iop_get_field */
+        {
+            tstiop__my_struct_a__t struct_a;
+            tstiop__my_class2__t cls2;
+            const void *ptr;
+
+            iop_init(tstiop__my_struct_a, &struct_a);
+            iop_init(tstiop__my_class2, &cls2);
+            struct_a.a = 42;
+            struct_a.l = IOP_UNION(tstiop__my_union_a, ua, 21);
+            struct_a.lr = &struct_a.l;
+            cls2.int1 = 12;
+            struct_a.cls2 = &cls2;
+            st = &tstiop__my_struct_a__s;
+
+            field = iop_get_field(&struct_a, st, LSTR("a"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_from_field(ptr, field, &value));
+            Z_ASSERT_EQ(value.i, struct_a.a);
+
+            field = iop_get_field(&struct_a, st, LSTR("l.ua"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_from_field(ptr, field, &value));
+            Z_ASSERT_EQ(value.i, struct_a.l.ua);
+
+            field = iop_get_field(&struct_a, st, LSTR("lr"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_from_field(ptr, field, &value));
+            Z_ASSERT_EQ(((tstiop__my_union_a__t *)value.p)->ua,
+                        struct_a.lr->ua);
+
+            field = iop_get_field(&struct_a, st, LSTR("cls2"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_from_field(ptr, field, &value));
+            Z_ASSERT_EQ(((tstiop__my_class2__t *)value.p)->int1,
+                        struct_a.cls2->int1);
+        }
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_value_to_field, "test iop_value_to_field") { /* {{{ */
@@ -4136,6 +4218,46 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_EQ(sb.b.tab[1], 42);
         }
 
+        /* test with iop_get_field */
+        {
+            tstiop__my_struct_a__t struct_a;
+            tstiop__my_class2__t cls2;
+            const void *ptr;
+
+            iop_init(tstiop__my_struct_a, &struct_a);
+            iop_init(tstiop__my_class2, &cls2);
+            cls2.int1 = 12;
+            struct_a.cls2 = &cls2;
+            st = &tstiop__my_struct_a__s;
+
+            value.i = 42;
+            field = iop_get_field(&struct_a, st, LSTR("a"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_to_field((void *)ptr, field, &value));
+            Z_ASSERT_EQ(value.i, struct_a.a);
+
+            value.i = 21;
+            field = iop_get_field(&struct_a, st, LSTR("l.ua"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_to_field((void *)ptr, field, &value));
+            Z_ASSERT_EQ(value.i, struct_a.l.ua);
+
+            value.p = &struct_a.l;
+            field = iop_get_field(&struct_a, st, LSTR("lr"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_to_field((void *)ptr, field, &value));
+            Z_ASSERT_EQ(struct_a.l.ua, struct_a.lr->ua);
+
+            value.p = &cls2;
+            field = iop_get_field(&struct_a, st, LSTR("cls2"), &ptr);
+            Z_ASSERT_P(field);
+            ptr = (const byte *)ptr - field->data_offs;
+            Z_ASSERT_N(iop_value_to_field((void *)ptr, field, &value));
+            Z_ASSERT_EQ(cls2.int1, struct_a.cls2->int1);
+        }
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */

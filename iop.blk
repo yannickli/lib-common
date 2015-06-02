@@ -122,6 +122,8 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
         pstream_t s;
         int array_index;
 
+        RETHROW_P(ptr);
+
         if (ps_get_ps_chr_and_skip(&ps, '.', &as) < 0) {
             as = ps;
             ps = ps_init(NULL, 0);
@@ -155,17 +157,17 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
 
         switch (iop_field->type) {
           case IOP_T_UNION:
-            if (iop_field->repeat == IOP_R_OPTIONAL
-            ||  iop_field_is_reference(iop_field))
+            if (!ps_done(&ps) && (iop_field->repeat == IOP_R_OPTIONAL
+            ||  iop_field_is_reference(iop_field)))
             {
                 ptr = *(const void **)ptr;
             }
             st = iop_field->u1.st_desc;
             break;
           case IOP_T_STRUCT:
-            if (iop_field->repeat == IOP_R_OPTIONAL
+            if (!ps_done(&ps) && (iop_field->repeat == IOP_R_OPTIONAL
             ||  iop_field_is_class(iop_field)
-            ||  iop_field_is_reference(iop_field))
+            ||  iop_field_is_reference(iop_field)))
             {
                 ptr = *(const void **)ptr;
             }
@@ -177,9 +179,6 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             }
             break;
           default:
-            if (iop_field_is_reference(iop_field)) {
-                ptr = *(const void **)ptr;
-            }
             THROW_NULL_IF(!ps_done(&ps));
             break;
         }
