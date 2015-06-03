@@ -176,6 +176,7 @@ static struct {
     dlist_t evs_free;
     dlist_t evs_gc;
     logger_t logger;
+    logger_t tracing_logger;
 } el_g = {
 #define _G el_g
     .evs[0]         = _G.evs_initial,
@@ -197,6 +198,7 @@ static struct {
     .fs_watches     = QM_INIT(ev, _G.fs_watches),
     .inotify_fd     = -1,
     .logger         = LOGGER_INIT_INHERITS(NULL, "el"),
+    .tracing_logger = LOGGER_INIT_SILENT_INHERITS(&_G.logger, "tracing"),
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -559,7 +561,7 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
     sigaddset(&set, SIGCHLD);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
     {
-        logger_debug_scope(&_G.logger);
+        logger_debug_scope(&_G.tracing_logger);
         const char **ptr = &argv[0];
 
         logger_cont("running command ");
