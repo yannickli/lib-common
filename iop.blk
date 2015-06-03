@@ -354,7 +354,8 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
         || iop_field_is_reference(field))
         {
             *(void **)ptr = (void *)value->p;
-        } else {
+        } else
+        if (value->p != ptr) {
             memcpy(ptr, value->p, field->size);
         }
 
