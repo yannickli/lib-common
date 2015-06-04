@@ -33,4 +33,9 @@ const farch_entry_t *farch_get(const farch_entry_t files[], const char *name)
     return NULL;
 }
 
+static inline pstream_t ps_initfarch(const farch_entry_t *fe)
+{
+    return ps_init(fe->data, fe->size);
+}
+
 #endif /* IS_LIB_COMMON_FARCH_H */
