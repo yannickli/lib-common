@@ -385,6 +385,141 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     Z_HELPER_END;
 }
 
+static int iop_check_retro_compat_roptimized(lstr_t path)
+{
+    tstiop__repeated__t sr;
+    const iop_struct_t *st;
+
+    int8_t   *i8;
+    uint8_t  *u8;
+    bool     *b;
+    int16_t  *i16;
+    uint16_t *u16;
+    int32_t  *i32;
+
+    lstr_t s[] = {
+        LSTR_IMMED("foo"),
+        LSTR_IMMED("bar"),
+        LSTR_IMMED("foobar"),
+    };
+
+    iop_dso_t *dso;
+    unsigned seed = (unsigned)time(NULL);
+
+    if ((dso = iop_dso_open(path.s, false)) == NULL) {
+        Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+    }
+
+    Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
+
+    /* initialize my arrays */
+    {
+        const int sz = 256;
+
+        i8  = t_new_raw(int8_t, sz);
+        u8  = t_new_raw(uint8_t, sz);
+        i16 = t_new_raw(int16_t, sz);
+        u16 = t_new_raw(uint16_t, sz);
+        b   = t_new_raw(bool, sz);
+        i32 = t_new_raw(int32_t, sz);
+
+        for (int i = 0; i < sz; i++) {
+            i8[i]  = (int8_t)i;
+            u8[i]  = (uint8_t)i;
+            i16[i] = (int16_t)i;
+            u16[i] = (uint16_t)i;
+            b[i]   = (bool)i;
+            i32[i] = i;
+        }
+    }
+
+    /* do some tests… */
+#define SET(dst, f, _len)  ({ dst.f.tab = f; dst.f.len = (_len); })
+#define SET_RAND(dst, f)   ({ dst.f.tab = f; dst.f.len = (rand() % 256); })
+    iop_init_desc(st, &sr);
+    SET(sr, i8, 13);
+    Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr1"));
+
+    iop_init_desc(st, &sr);
+    SET(sr, i8, 13);
+    SET(sr, i32, 4);
+    Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr2"));
+
+    srand(seed);
+    e_trace(1, "rand seed: %u", seed);
+    for (int i = 0; i < 256; i++ ) {
+        iop_init_desc(st, &sr);
+        SET_RAND(sr, i8);
+        SET_RAND(sr, u8);
+        SET_RAND(sr, i16);
+        SET_RAND(sr, u16);
+        SET_RAND(sr, b);
+        SET_RAND(sr, i32);
+        SET(sr, s, rand() % (countof(s) + 1));
+        Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr_rand"));
+    }
+    /* Check the retro-compatibility */
+    {
+        lstr_t file_map;
+        pstream_t ps;
+
+        /* map the file */
+        path = t_lstr_cat(z_cmddir_g,
+                          LSTR("samples/repeated.ibp"));
+        Z_ASSERT_N(lstr_init_from_file(&file_map, path.s,
+                                       PROT_READ, MAP_SHARED));
+
+        /* check the data */
+        ps = ps_initlstr(&file_map);
+        while (ps_len(&ps) > 0) {
+            t_scope;
+            uint32_t dlen = 0;
+            tstiop__repeated__t sr_res;
+
+            Z_ASSERT_N(ps_get_cpu32(&ps, &dlen));
+            Z_ASSERT(ps_has(&ps, dlen));
+
+            iop_init_desc(st, &sr);
+            Z_ASSERT_N(iop_bunpack(t_pool(), st, &sr_res,
+                                   __ps_get_ps(&ps, dlen), false),
+                       "IOP unpacking error (%s) at offset %zu",
+                       st->fullname.s, ps.b - (byte *)file_map.data);
+        }
+
+        lstr_wipe(&file_map);
+    }
+
+    iop_dso_close(&dso);
+#undef SET
+#undef SET_RAND
+    Z_HELPER_END;
+}
+
+static int iop_check_retro_compat_copy_inv_tab(lstr_t path)
+{
+    tstiop__my_struct_b__t sb, *sb_dup;
+    iop_dso_t *dso;
+    const iop_struct_t *st_sb;
+
+    if ((dso = iop_dso_open(path.s, false)) == NULL) {
+        Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+    }
+
+    Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
+
+    iop_init_desc(st_sb, &sb);
+    sb.b.tab = (void *)0x42;
+    sb.b.len = 0;
+
+    sb_dup = mp_iop_dup_desc_sz(NULL, st_sb, &sb, NULL);
+    Z_ASSERT_NULL(sb_dup->b.tab);
+    Z_ASSERT_ZERO(sb_dup->b.len);
+
+    p_delete(&sb_dup);
+
+    iop_dso_close(&dso);
+    Z_HELPER_END;
+}
 
 /* }}} */
 
@@ -1449,123 +1584,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(roptimized, "test IOP std: optimized repeated fields") { /* {{{ */
         t_scope;
+        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_v3;
+        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        tstiop__repeated__t sr;
-        const iop_struct_t *st;
+        path_v3 = t_lstr_cat3(z_cmddir_g,
+                              LSTR("/test-data/test_v3_centos-5u4/"), file);
 
-        int8_t   *i8;
-        uint8_t  *u8;
-        bool     *b;
-        int16_t  *i16;
-        uint16_t *u16;
-        int32_t  *i32;
-
-        lstr_t s[] = {
-            LSTR_IMMED("foo"),
-            LSTR_IMMED("bar"),
-            LSTR_IMMED("foobar"),
-        };
-
-        iop_dso_t *dso;
-        lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
-        unsigned seed = (unsigned)time(NULL);
-
-
-
-        if ((dso = iop_dso_open(path.s, false)) == NULL)
-            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
-
-        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
-
-        /* initialize my arrays */
-        {
-            const int sz = 256;
-
-            i8  = t_new_raw(int8_t, sz);
-            u8  = t_new_raw(uint8_t, sz);
-            i16 = t_new_raw(int16_t, sz);
-            u16 = t_new_raw(uint16_t, sz);
-            b   = t_new_raw(bool, sz);
-            i32 = t_new_raw(int32_t, sz);
-
-            for (int i = 0; i < sz; i++) {
-                i8[i]  = (int8_t)i;
-                u8[i]  = (uint8_t)i;
-                i16[i] = (int16_t)i;
-                u16[i] = (uint16_t)i;
-                b[i]   = (bool)i;
-                i32[i] = i;
-            }
-        }
-
-        /* do some tests… */
-#define SET(dst, f, _len)  ({ dst.f.tab = f; dst.f.len = (_len); })
-#define SET_RAND(dst, f)   ({ dst.f.tab = f; dst.f.len = (rand() % 256); })
-        iop_init_desc(st, &sr);
-        SET(sr, i8, 13);
-        Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr1"));
-
-        iop_init_desc(st, &sr);
-        SET(sr, i8, 13);
-        SET(sr, i32, 4);
-        Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr2"));
-
-        srand(seed);
-        e_trace(1, "rand seed: %u", seed);
-        for (int i = 0; i < 256; i++ ) {
-            iop_init_desc(st, &sr);
-            SET_RAND(sr, i8);
-            SET_RAND(sr, u8);
-            SET_RAND(sr, i16);
-            SET_RAND(sr, u16);
-            SET_RAND(sr, b);
-            SET_RAND(sr, i32);
-            SET(sr, s, rand() % (countof(s) + 1));
-            Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr_rand"));
-        }
-
-        /* Check the retro-compatibility */
-        {
-            void *map;
-            int fd;
-            struct stat sts;
-            pstream_t ps;
-
-            path = t_lstr_cat(z_cmddir_g,
-                              LSTR("samples/repeated.ibp"));
-
-            /* map our data file */
-            Z_ASSERT_N(fd = open(path.s, O_RDONLY), "open failed: %m");
-            Z_ASSERT_N(fstat(fd, &sts), "fstat failed: %m");
-            Z_ASSERT_GT(sts.st_size, 0);
-
-            map = mmap(NULL, sts.st_size, PROT_READ, MAP_SHARED, fd, 0);
-            Z_ASSERT(map != MAP_FAILED, "mmap failed: %m");
-            close(fd);
-
-            /* check the data */
-            ps = ps_init(map, sts.st_size);
-            while (ps_len(&ps) > 0) {
-                t_scope;
-                uint32_t dlen = 0;
-                tstiop__repeated__t sr_res;
-
-                Z_ASSERT_N(ps_get_cpu32(&ps, &dlen));
-                Z_ASSERT(ps_has(&ps, dlen));
-
-                iop_init_desc(st, &sr);
-                Z_ASSERT_N(iop_bunpack(t_pool(), st, &sr_res,
-                                       __ps_get_ps(&ps, dlen), false),
-                           "IOP unpacking error (%s) at offset %zu",
-                           st->fullname.s, ps.b - (byte *)map);
-            }
-
-            munmap(map, sts.st_size);
-        }
-
-        iop_dso_close(&dso);
-#undef SET
+        Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_curr_v));
+        Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_v3));
     } Z_TEST_END
     /* }}} */
     Z_TEST(defval, "test IOP std: do not pack default values") { /* {{{ */
@@ -2503,32 +2530,16 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
+        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_v3;
+        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        tstiop__my_struct_b__t sb, *sb_dup;
+        path_v3 = t_lstr_cat3(z_cmddir_g,
+                              LSTR("/test-data/test_v3_centos-5u4/"), file);
 
-        iop_dso_t *dso;
-        lstr_t path = t_lstr_cat(z_cmddir_g,
-                                 LSTR("zchk-tstiop-plugin"SO_FILEEXT));
+        Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_curr_v));
+        Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_v3));
 
-
-        const iop_struct_t *st_sb;
-
-        if ((dso = iop_dso_open(path.s, false)) == NULL)
-            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
-
-        Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
-
-        iop_init_desc(st_sb, &sb);
-        sb.b.tab = (void *)0x42;
-        sb.b.len = 0;
-
-        sb_dup = mp_iop_dup_desc_sz(NULL, st_sb, &sb, NULL);
-        Z_ASSERT_NULL(sb_dup->b.tab);
-        Z_ASSERT_ZERO(sb_dup->b.len);
-
-        p_delete(&sb_dup);
-
-        iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_signature, "iop_compute/check_signature()") { /* {{{ */
