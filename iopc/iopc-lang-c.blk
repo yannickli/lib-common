@@ -2176,11 +2176,6 @@ iopc_dump_rpc_attrs(sb_t *buf, char *tbase, iopc_fun_t *f, iopc_attrs_t *attrs,
     sb_wipe(&attrs_body);
 }
 
-#undef LVL1
-#undef LVL2
-#undef LVL3
-#undef LVL4
-
 static void
 iopc_dump_field_attrs_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
                           iopc_field_t *f, iopc_attrs_t *attrs)
@@ -2409,6 +2404,51 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
     }
 }
 
+static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
+                                   bool has_attrs, char *as_base)
+{
+    if (iopc_g.v4 && st->type == STRUCT_TYPE_CLASS) {
+        t_scope;
+        lstr_t st_attrs = t_lstr_fmt("&%s__s_desc_attrs", tbase);
+        lstr_t fields_attrs = t_lstr_fmt("%s__desc_fields_attrs", as_base);
+
+        sb_addf(buf,
+                "    .flags      = %d,\n"
+                "    .is_union   = %s,\n"
+                "    .st_attrs   = %s,\n"
+                "    .fields_attrs = %s,\n",
+                st->flags, st->type == STRUCT_TYPE_UNION ? "true": "false",
+                has_attrs ? st_attrs.s : "NULL",
+                st->has_fields_attrs ? fields_attrs.s : "NULL");
+
+        sb_adds(buf, LVL1 "{\n");
+        sb_addf(buf, LVL2 ".class_attrs  = &%s__class_s,\n", tbase);
+        sb_adds(buf, LVL1 "}\n");
+        return;
+    }
+
+    if (st->flags) {
+        sb_addf(buf, LVL1 ".flags      = %d,\n", st->flags);
+    }
+    if (st->type == STRUCT_TYPE_UNION) {
+        sb_adds(buf, LVL1 ".is_union   = true,\n");
+    }
+    if (has_attrs) {
+        sb_addf(buf, LVL1 ".st_attrs   = &%s__s_desc_attrs,\n", tbase);
+    }
+    if (st->has_fields_attrs) {
+        sb_addf(buf, LVL1 ".fields_attrs = %s__desc_fields_attrs,\n", as_base);
+    }
+    if (st->type == STRUCT_TYPE_CLASS) {
+        sb_addf(buf, LVL1 ".class_attrs  = &%s__class_s,\n", tbase);
+    }
+}
+
+#undef LVL1
+#undef LVL2
+#undef LVL3
+#undef LVL4
+
 static void
 iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                      const char *pkg_name,
@@ -2571,26 +2611,13 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     "    .fullname   = LSTR_IMMED(\"%s.%s\"),\n"             \
                     "    .fields     = %s__desc_fields,\n"                   \
                     "    .ranges     = iop__ranges__%d,\n"                   \
-                    "    .fields_len = countof(%s__desc_fields),\n"          \
                     "    .ranges_len = countof(iop__ranges__%d) / 2,\n"      \
+                    "    .fields_len = countof(%s__desc_fields),\n"          \
                     "    .size       = sizeof(%s__t),\n",                    \
                     _tbase, pretty_path_dot(pkg->name),                      \
-                    _sname, as_base, range, as_base, range, tbase);          \
-            if (st->type == STRUCT_TYPE_UNION)                               \
-                sb_adds(buf, "    .is_union   = true,\n");                   \
-            if (st->flags)                                                   \
-                sb_addf(buf, "    .flags      = %d,\n", st->flags);          \
-            if (has_attrs) {                                                 \
-                sb_addf(buf, "    .st_attrs   = &%s__s_desc_attrs,\n",       \
-                        tbase);                                              \
-            }                                                                \
-            if (st->has_fields_attrs) {                                      \
-                sb_addf(buf, "    .fields_attrs = %s__desc_fields_attrs,\n", \
-                        as_base);                                            \
-            }                                                                \
-            if (st->type == STRUCT_TYPE_CLASS) {                             \
-                sb_addf(buf, "    .class_attrs  = &%s__class_s,\n", _tbase); \
-            }                                                                \
+                    _sname, as_base, range, range, as_base, tbase);          \
+                                                                             \
+            iopc_put_struct_fields(buf, st, tbase, has_attrs, as_base);      \
             sb_adds(buf, "};\n");                                            \
                                                                              \
             sb_adds(buf, "\n/* }""}} */\n");                                 \

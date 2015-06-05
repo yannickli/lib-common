@@ -14,9 +14,9 @@
 #ifndef IS_IOP_IOPC_IOPC_H
 #define IS_IOP_IOPC_IOPC_H
 
-#define IOPC_MAJOR   3
+#define IOPC_MAJOR   4
 #define IOPC_MINOR   0
-#define IOPC_PATCH   20
+#define IOPC_PATCH   0
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
