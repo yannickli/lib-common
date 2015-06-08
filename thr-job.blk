@@ -750,6 +750,19 @@ static void thr_info_cleanup(void *unused)
 
 static void *thr_job_main(void *arg)
 {
+    sigset_t set;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGABRT);
+    sigaddset(&set, SIGILL);
+    sigaddset(&set, SIGFPE);
+    sigaddset(&set, SIGSEGV);
+    sigaddset(&set, SIGBUS);
+#if defined(__linux__)
+    sigaddset(&set, SIGSTKFLT);
+#endif
+    pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+
     thr_info_init((uintptr_t)arg);
     pthread_cleanup_push(thr_info_cleanup, NULL);
 
