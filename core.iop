@@ -133,6 +133,11 @@ class LogFileConfiguration {
     bool compress     = true;
 };
 
+/** Expiration date.
+  *
+  * formatted as DD-MMM-YYYY.
+  * @example "31-dec-2035"
+  */
 @length(11) @pattern("[a-zA-Z0-9\-]*")
 typedef string ExpirationDate;
 
