@@ -63,8 +63,8 @@ const iop_struct_t ic__tracer__s = {
     .fullname   = LSTR_IMMED("ic.Tracer"),
     .fields     = ic__tracer__desc_fields,
     .ranges     = iop__ranges__2,
-    .fields_len = countof(ic__tracer__desc_fields),
     .ranges_len = countof(iop__ranges__2) / 2,
+    .fields_len = countof(ic__tracer__desc_fields),
     .size       = sizeof(ic__tracer__t),
 };
 
@@ -136,8 +136,8 @@ const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),
     .fields     = ic__simple_hdr__desc_fields,
     .ranges     = iop__ranges__3,
-    .fields_len = countof(ic__simple_hdr__desc_fields),
     .ranges_len = countof(iop__ranges__3) / 2,
+    .fields_len = countof(ic__simple_hdr__desc_fields),
     .size       = sizeof(ic__simple_hdr__t),
 };
 
@@ -157,11 +157,16 @@ const iop_struct_t ic__route__s = {
     .fullname   = LSTR_IMMED("ic.Route"),
     .fields     = ic__route__desc_fields,
     .ranges     = iop__ranges__4,
-    .fields_len = countof(ic__route__desc_fields),
     .ranges_len = countof(iop__ranges__4) / 2,
+    .fields_len = countof(ic__route__desc_fields),
     .size       = sizeof(ic__route__t),
     .flags      = 5,
-    .class_attrs  = &ic__route__class_s,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &ic__route__class_s,
+    }
 };
 
 /* }}} */
@@ -227,8 +232,8 @@ const iop_struct_t ic__routing_hdr__s = {
     .fullname   = LSTR_IMMED("ic.RoutingHdr"),
     .fields     = ic__routing_hdr__desc_fields,
     .ranges     = iop__ranges__5,
-    .fields_len = countof(ic__routing_hdr__desc_fields),
     .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(ic__routing_hdr__desc_fields),
     .size       = sizeof(ic__routing_hdr__t),
 };
 
@@ -261,8 +266,8 @@ const iop_struct_t ic__hdr__s = {
     .fullname   = LSTR_IMMED("ic.Hdr"),
     .fields     = ic__hdr__desc_fields,
     .ranges     = iop__ranges__2,
-    .fields_len = countof(ic__hdr__desc_fields),
     .ranges_len = countof(iop__ranges__2) / 2,
+    .fields_len = countof(ic__hdr__desc_fields),
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
 };

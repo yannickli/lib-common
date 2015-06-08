@@ -688,7 +688,12 @@ const iop_struct_t tstdox__my_class_base__s = {
     .fields_len = countof(tstdox__my_class_base__desc_fields),
     .size       = sizeof(tstdox__my_class_base__t),
     .flags      = 5,
-    .class_attrs  = &tstdox__my_class_base__class_s,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &tstdox__my_class_base__class_s,
+    }
 };
 
 /* }}} */
@@ -724,7 +729,12 @@ const iop_struct_t tstdox__my_class_a__s = {
     .fields_len = countof(tstdox__my_class_a__desc_fields),
     .size       = sizeof(tstdox__my_class_a__t),
     .flags      = 5,
-    .class_attrs  = &tstdox__my_class_a__class_s,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &tstdox__my_class_a__class_s,
+    }
 };
 
 /* }}} */
@@ -758,8 +768,12 @@ const iop_struct_t tstdox__my_class1__s = {
     .fields_len = countof(tstdox__my_class1__desc_fields),
     .size       = sizeof(tstdox__my_class1__t),
     .flags      = 5,
+    .is_union   = false,
     .st_attrs   = &tstdox__my_class1__s_desc_attrs,
-    .class_attrs  = &tstdox__my_class1__class_s,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &tstdox__my_class1__class_s,
+    }
 };
 
 /* }}} */
@@ -790,7 +804,12 @@ const iop_struct_t tstdox__my_class2__s = {
     .fields_len = countof(tstdox__my_class2__desc_fields),
     .size       = sizeof(tstdox__my_class2__t),
     .flags      = 5,
-    .class_attrs  = &tstdox__my_class2__class_s,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &tstdox__my_class2__class_s,
+    }
 };
 
 /* }}} */

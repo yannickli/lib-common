@@ -257,6 +257,11 @@ class IopcTest(z.TestCase):
         self.run_iopc(f, True,
                       'all static attributes must be declared first', 2)
 
+    def test_attrs_invalid_18(self):
+        f = 'attrs_invalid_18.iop'
+        self.run_iopc(f, False,
+                      'error: invalid ctype user_t: missing __t suffix', 4)
+
     def test_attrs_invalid_enumval(self):
         self.run_iopc2('attrs_invalid_enumval.iop', False,
                        'invalid attribute min on enum field')
@@ -470,6 +475,9 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass('inheritance_pkg_a.iop', 3)
         self.run_iopc_pass('inheritance_pkg_b.iop', 3)
         self.run_iopc_pass('inheritance_valid_local_pkg.iop', 3)
+        self.run_iopc_pass('inheritance_pkg_a.iop', 4)
+        self.run_iopc_pass('inheritance_pkg_b.iop', 4)
+        self.run_iopc_pass('inheritance_valid_local_pkg.iop', 4)
         self.run_gcc('inheritance_pkg_a.iop')
         self.run_gcc('inheritance_pkg_b.iop')
 
@@ -511,7 +519,7 @@ class IopcTest(z.TestCase):
     # {{{ Typedef
 
     def test_typedef_valid(self):
-        f  = 'typedef_valid.iop'
+        f  = 'typedef_valid_no_class.iop'
         f1 = 'typedef1.iop'
         f2 = 'typedef2.iop'
         self.run_iopc2(f, True, None)
@@ -523,6 +531,9 @@ class IopcTest(z.TestCase):
         self.run_iopc('typedef_valid.iop', False,
                       'type `MyType` is provided by both `typedef2` '        \
                       'and `typedef1`', 3)
+        self.run_iopc('typedef_valid.iop', False,
+                      'type `MyType` is provided by both `typedef2` '        \
+                      'and `typedef1`', 4)
 
     def test_typedef_invalid(self):
         self.run_iopc('typedef_invalid_1.iop', False,
@@ -577,6 +588,7 @@ class IopcTest(z.TestCase):
         f = 'json_generic_attributes'
         g = os.path.join(TEST_PATH, f)
         self.run_iopc_pass(f + '.iop', 3, 'C,json')
+        self.run_iopc_pass(f + '.iop', 4, 'C,json')
         self.run_gcc(f + '.iop')
         for lang in ['json', 'c']:
             self.check_ref(g, lang)
@@ -638,6 +650,7 @@ class IopcTest(z.TestCase):
         g = os.path.join(TEST_PATH, f)
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
+        self.run_iopc_pass(f + '.iop', 4)
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
 
@@ -646,11 +659,10 @@ class IopcTest(z.TestCase):
         g = os.path.join(TEST_PATH, f)
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
+        self.run_iopc_pass(f + '.iop', 4)
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
         self.check_ref(g + '-t', 'h')
-        self.run_iopc(f + '.iop', False,
-                      'error: invalid ctype my_enum_a: missing __t suffix', 4)
 
 if __name__ == "__main__":
     z.main()

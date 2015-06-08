@@ -207,7 +207,12 @@ const iop_struct_t tstgen__my_class_a__s = {
     .fields_len = countof(tstgen__my_class_a__desc_fields),
     .size       = sizeof(tstgen__my_class_a__t),
     .flags      = 5,
-    .class_attrs  = &tstgen__my_class_a__class_s,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &tstgen__my_class_a__class_s,
+    }
 };
 
 /* }}} */

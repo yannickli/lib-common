@@ -305,9 +305,11 @@ struct iop_struct_t {
      * TST_BIT(this->flags, IOP_STRUCT_EXTENDED) first */
     const iop_struct_attrs_t *st_attrs;
     const iop_field_attrs_t  *fields_attrs;
-    /* XXX do not dereference the following members without checking
-     * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
-    const iop_class_attrs_t  *class_attrs;
+    union {
+        /* XXX do not dereference the following members without checking
+         * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
+        const iop_class_attrs_t  *class_attrs;
+    };
 };
 
 enum iop_struct_flags_t {

@@ -88,9 +88,12 @@ const iop_struct_t json_generic_attributes__voice_event__s = {
     .fields_len = countof(json_generic_attributes__voice_event__desc_fields),
     .size       = sizeof(json_generic_attributes__voice_event__t),
     .flags      = 5,
+    .is_union   = false,
     .st_attrs   = &json_generic_attributes__voice_event__s_desc_attrs,
     .fields_attrs = json_generic_attributes__voice_event__desc_fields_attrs,
-    .class_attrs  = &json_generic_attributes__voice_event__class_s,
+    {
+        .class_attrs  = &json_generic_attributes__voice_event__class_s,
+    }
 };
 
 /* }}} */
@@ -170,9 +173,12 @@ const iop_struct_t json_generic_attributes__data_event__s = {
     .fields_len = countof(json_generic_attributes__data_event__desc_fields),
     .size       = sizeof(json_generic_attributes__data_event__t),
     .flags      = 5,
+    .is_union   = false,
     .st_attrs   = &json_generic_attributes__data_event__s_desc_attrs,
     .fields_attrs = json_generic_attributes__data_event__desc_fields_attrs,
-    .class_attrs  = &json_generic_attributes__data_event__class_s,
+    {
+        .class_attrs  = &json_generic_attributes__data_event__class_s,
+    }
 };
 
 /* }}} */
