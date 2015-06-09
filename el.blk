@@ -117,7 +117,10 @@ typedef struct ev_t {
     dlist_t ev_list;            /* EV_BEFORE, EV_SIGNAL, EV_PROXY, EV_FD */
     union {
         int     fd;             /* EV_FD */
-        pid_t   pid;            /* EV_CHILD */
+        struct {
+            pid_t   pid;
+            int     status;
+        } child;                /* EV_CHILD */
         struct {
             uint64_t expiry;
             int      repeat;
@@ -290,18 +293,40 @@ static data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
+static void el_child_fire(ev_t **ev, int pid, int status)
+{
+    ev_t *e = *ev;
+
+    assert (e->child.pid == pid);
+    if (EV_FLAG_HAS(e, IS_BLK)) {
+        e->cb.child_blk(e, pid, status);
+    } else {
+        (*e->cb.child)(e, pid, status, e->priv);
+    }
+    el_destroy(ev, false);
+}
+
 static void ev_list_process(dlist_t *l)
 {
     ev_cache_list(l);
     for (int i = 0; i < _G.cache.len; i++) {
         ev_t *ev = _G.cache.tab[i];
 
-        if (unlikely(ev->type == EV_UNUSED))
+        switch (ev->type) {
+          case EV_UNUSED:
             continue;
-        if (EV_FLAG_HAS(ev, IS_BLK)) {
-            ev->cb.cb_blk(ev);
-        } else {
-            (*ev->cb.cb)(ev, ev->priv);
+
+          case EV_CHILD:
+            el_child_fire(&ev, ev->child.pid, ev->child.status);
+            break;
+
+          default:
+            if (EV_FLAG_HAS(ev, IS_BLK)) {
+                ev->cb.cb_blk(ev);
+            } else {
+                (*ev->cb.cb)(ev, ev->priv);
+            }
+            break;
         }
     }
 }
@@ -493,13 +518,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
         int32_t pos = qm_del_key(ev_assoc, &_G.childs, pid);
 
         if (likely(pos >= 0)) {
-            ev_t *e = _G.childs.values[pos];
-            if (EV_FLAG_HAS(e, IS_BLK)) {
-                e->cb.child_blk(e, pid, status);
-            } else {
-                (*e->cb.child)(e, pid, status, e->priv);
-            }
-            el_destroy(&_G.childs.values[pos], false);
+            el_child_fire(&_G.childs.values[pos], pid, status);
         }
     }
 }
@@ -514,8 +533,26 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
 ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 {
     static bool hooked;
+    sigset_t set;
+    sigset_t prev;
+    int status;
 
     ev_t *ev = el_create(EV_CHILD, cb, priv, true);
+
+    ev->child.pid = pid;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+
+    pthread_sigmask(SIG_BLOCK, &set, &prev);
+
+    if (waitpid(pid, &status, WNOHANG) > 0) {
+        /* The process is already dead */
+        ev->child.status = status;
+
+        pthread_sigmask(SIG_SETMASK, &prev, NULL);
+        return ev_add(&_G.before, ev);;
+    }
 
     if (unlikely(!hooked)) {
         hooked = true;
@@ -525,7 +562,8 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
     if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
         ASSERT("pid is already watched", false);
     }
-    ev->pid = pid;
+
+    pthread_sigmask(SIG_SETMASK, &prev, NULL);
     return ev;
 }
 
@@ -538,7 +576,7 @@ data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_CHILD);
-        if (qm_del_key(ev_assoc, &_G.childs, (*evp)->pid) < 0)
+        if (qm_del_key(ev_assoc, &_G.childs, (*evp)->child.pid) < 0)
             ASSERT("event not found", false);
         return el_destroy(evp, false);
     }
@@ -548,18 +586,14 @@ data_t el_child_unregister(ev_t **evp)
 pid_t el_child_getpid(el_t ev)
 {
     CHECK_EV_TYPE(ev, EV_CHILD);
-    return ev->pid;
+    return ev->child.pid;
 }
 
 pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
                      block_t child, el_child_b blk, block_t wipe)
 {
     pid_t pid;
-    sigset_t set;
 
-    sigemptyset(&set);
-    sigaddset(&set, SIGCHLD);
-    pthread_sigmask(SIG_BLOCK, &set, NULL);
     {
         logger_debug_scope(&_G.tracing_logger);
         const char **ptr = &argv[0];
@@ -583,12 +617,10 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
         logger_fatal(&_G.logger, "unable to execute `%s`: %m", file);
     } else
     if (pid < 0) {
-        pthread_sigmask(SIG_UNBLOCK, &set, NULL);
         logger_fatal(&_G.logger,
                      "unable to fork `%s` in the background: %m", file);
     }
     el_child_register_blk(pid, blk, wipe);
-    pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     return pid;
 }
 
@@ -1431,7 +1463,7 @@ static void el_show_blockers(el_t evh, int signo, data_t priv)
                 e_trace_end(0, ":%d", ev->signo);
                 break;
               case EV_CHILD:
-                e_trace_end(0, ":%d", ev->pid);
+                e_trace_end(0, ":%d", ev->child.pid);
                 break;
               case EV_FD:
                 e_trace_end(0, ":%d (%04x)", ev->fd, ev->events_wanted);
