@@ -60,17 +60,23 @@ MODULE_END()
 
 ic_msg_t *ic_msg_new_fd(int fd, int len)
 {
-    ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, len);
+    ic_msg_t *msg;
 
+    assert (len >= 0);
+    msg = mp_new_extra(ic_mp_g, ic_msg_t, len);
     msg->fd = fd;
+
     return msg;
 }
 
 ic_msg_t *ic_msg_new(int len)
 {
-    ic_msg_t *res = mp_new_extra(ic_mp_g, ic_msg_t, len);
+    ic_msg_t *res;
 
+    assert (len >= 0);
+    res = mp_new_extra(ic_mp_g, ic_msg_t, len);
     res->fd = -1;
+
     return res;
 }
 
