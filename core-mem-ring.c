@@ -597,7 +597,8 @@ const void *mem_ring_checkpoint(mem_pool_t *_rp)
     };
     void *res;
 
-    res = memcpy(rp_alloc(_rp, sizeof(cp), alignof(cp), MEM_RAW),
+    res = memcpy(rp_alloc(_rp, sizeof(cp), mem_bit_align(_rp, alignof(cp)),
+                          MEM_RAW),
                  &cp, sizeof(cp));
     mem_ring_seal(_rp);
 

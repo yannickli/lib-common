@@ -151,10 +151,13 @@ MODULE_END()
 
 ic_msg_t *ic_msg_new_fd(int fd, int len)
 {
-    ic_msg_t *msg = mp_new_extra(_G.mp, ic_msg_t, len);
+    ic_msg_t *msg;
 
+    assert (len >= 0);
+    msg = mp_new_extra(_G.mp, ic_msg_t, len);
     msg->fd = fd;
     msg = ic_msg_set_priority(msg, EV_PRIORITY_NORMAL);
+
     return msg;
 }
 
