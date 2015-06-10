@@ -886,6 +886,34 @@ static inline int lstr_to_uint64(lstr_t lstr, uint64_t *out)
     return 0;
 }
 
+/** \brief  convert a lstr into an uint32.
+ *
+ *  If the string begins with a minus sign (white spaces are skipped), the
+ *  function returns -1 and errno is set to ERANGE.
+ *
+ *  \param  lstr the string to convert
+ *  \param  out  pointer to the memory to store the result of the conversion
+ *
+ *  \result int
+ *
+ *  \retval  0   success
+ *  \retval -1   failure (errno set)
+ */
+static inline int lstr_to_uint(lstr_t lstr, uint32_t *out)
+{
+    uint64_t u64;
+
+    RETHROW(lstr_to_uint64(lstr, &u64));
+
+    if (u64 > UINT32_MAX) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    *out = u64;
+    return 0;
+}
+
 /** \brief  convert a lstr into an double.
  *
  *  \param  lstr the string to convert

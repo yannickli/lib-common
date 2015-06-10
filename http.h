@@ -241,7 +241,7 @@ enum httpd_query_status {
     uint16_t           queries;                                              \
     uint16_t           queries_done;                                         \
     unsigned           max_queries;                                          \
-    unsigned           chunk_length;                                         \
+    int                chunk_length;                                         \
                                                                              \
     dlist_t            query_list;                                           \
     outbuf_t           ob;                                                   \
@@ -717,7 +717,7 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
     flag_t        compressed       : 1;                                      \
     uint8_t       state;                                                     \
     uint16_t      queries;                                                   \
-    unsigned      chunk_length;                                              \
+    int           chunk_length;                                              \
     unsigned      max_queries;                                               \
     unsigned      received_hdr_length;                                       \
     unsigned      received_body_length;                                      \

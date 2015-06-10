@@ -25,8 +25,6 @@
  * ETags
  * Range requests
  *
- * Support Connection: close + no Content-Length as per RFC
- *
  * Automatically transform chunked-encoding to C-L for HTTP/1.0
  *
  */
@@ -131,7 +129,7 @@ static void http_zlib_stream_reset(z_stream *s)
         _w->compressed = false;                            \
     })
 
-static int http_zlib_inflate(z_stream *s, unsigned *clen,
+static int http_zlib_inflate(z_stream *s, int *clen,
                              sb_t *out, pstream_t *in, int flush)
 {
     int rc;
@@ -151,7 +149,9 @@ static int http_zlib_inflate(z_stream *s, unsigned *clen,
           case Z_OK:
           case Z_STREAM_END:
             __sb_fixlen(out, (char *)s->next_out - out->data);
-            *clen -= (char *)s->next_in - in->s;
+            if (*clen >= 0) {
+                *clen -= (char *)s->next_in - in->s;
+            }
             __ps_skip_upto(in, s->next_in);
             break;
           default:
@@ -1225,9 +1225,10 @@ httpd_flush_data(httpd_t *w, httpd_query_t *q, pstream_t *ps, bool done)
 static int httpd_parse_body(httpd_t *w, pstream_t *ps)
 {
     httpd_query_t *q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
-    size_t plen = ps_len(ps);
+    ssize_t plen = ps_len(ps);
 
     q->expect100cont = false;
+    assert (w->chunk_length >= 0);
     if (plen >= w->chunk_length) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
@@ -1289,8 +1290,9 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
 static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
 {
     httpd_query_t *q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
-    size_t plen = ps_len(ps);
+    ssize_t plen = ps_len(ps);
 
+    assert (w->chunk_length >= 0);
     if (plen >= w->chunk_length + 2) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
@@ -1986,7 +1988,8 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         w->chunk_length = 0;
         w->state = HTTP_PARSER_CHUNK_HDR;
     } else {
-        w->chunk_length = clen < 0 ? 0 : clen;
+        /* rfc 2616: §4.4: support no Content-Length followed by close */
+        w->chunk_length = clen;
         w->state = HTTP_PARSER_BODY;
     }
     req.hdrs     = hdrs.tab;
@@ -2060,7 +2063,9 @@ httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
         RETHROW(q->on_data(q, ps_initsb(&zbuf)));
     } else {
         RETHROW(q->on_data(q, *ps));
-        w->chunk_length -= ps_len(ps);
+        if (w->chunk_length >= 0) {
+            w->chunk_length -= ps_len(ps);
+        }
         ps->b = ps->b_end;
     }
     return PARSE_OK;
@@ -2069,9 +2074,9 @@ httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
 static int httpc_parse_body(httpc_t *w, pstream_t *ps)
 {
     httpc_query_t *q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
-    size_t plen = ps_len(ps);
+    ssize_t plen = ps_len(ps);
 
-    if (plen >= w->chunk_length) {
+    if (plen >= w->chunk_length && w->chunk_length >= 0) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
         RETHROW(httpc_flush_data(w, q, &tmp, true));
@@ -2111,8 +2116,9 @@ static int httpc_parse_chunk_hdr(httpc_t *w, pstream_t *ps)
 static int httpc_parse_chunk(httpc_t *w, pstream_t *ps)
 {
     httpc_query_t *q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
-    size_t plen = ps_len(ps);
+    ssize_t plen = ps_len(ps);
 
+    assert (w->chunk_length >= 0);
     if (plen >= w->chunk_length + 2) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
@@ -2375,10 +2381,20 @@ static int httpc_on_event(el_t evh, int fd, short events, data_t priv)
     }
 
     if (events & POLLIN) {
-        if (sb_read(&w->ibuf, fd, 0) <= 0)
+        if ((res = sb_read(&w->ibuf, fd, 0)) < 0) {
             goto close;
+        }
 
         ps = ps_initsb(&w->ibuf);
+        if (res == 0) {
+            if (w->chunk_length >= 0 || w->state != HTTP_PARSER_BODY) {
+                goto close;
+            }
+            assert (!dlist_is_empty(&w->query_list));
+            /* rfc 2616: §4.4: support no Content-Length followed by close */
+            w->chunk_length = ps_len(&ps);
+        }
+
         do {
             res = (*httpc_parsers[w->state])(w, &ps);
         } while (res == PARSE_OK);
@@ -2644,7 +2660,7 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
 static bool has_reply_g;
 static http_code_t code_g;
-static lstr_t body_g;
+static sb_t body_g;
 static httpc_query_t zquery_g;
 static el_t zel_server_g;
 static el_t zel_client_g;
@@ -2680,6 +2696,26 @@ static int z_reply_gzip_empty(el_t el, int fd, short mask, data_t data)
     return 0;
 }
 
+static int z_reply_close_without_content_length(el_t el, int fd, short mask,
+                                                data_t data)
+{
+    SB_1k(buf);
+
+    if (sb_read(&buf, fd, 1000) > 0) {
+        char reply[] = "HTTP/1.1 200 OK\r\n\r\n"
+                       "Plop";
+        char s[4096];
+
+        IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
+        for (int i = 0; i < 64; i++) {
+            memset(s, 'a' + i, 4096);
+            IGNORE(xwrite(fd, s, 4096));
+        }
+        el_fd_unregister(&zel_client_g, true);
+    }
+    return 0;
+}
+
 static int z_accept(el_t el, int fd, short mask, data_t data)
 {
     int (* query_cb)(el_t, int, short, data_t) = data.ptr;
@@ -2699,7 +2735,7 @@ static int z_query_on_hdrs(httpc_query_t *q)
 
 static int z_query_on_data(httpc_query_t *q, pstream_t ps)
 {
-    body_g = lstr_dups(ps.s, ps_len(&ps));
+    sb_add(&body_g, ps.s, ps_len(&ps));
     return 0;
 }
 
@@ -2717,7 +2753,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     zstatus_g = HTTPC_STATUS_ABORT;
     has_reply_g = false;
     code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
-    body_g = LSTR_NULL_V;
+    sb_init(&body_g);
 
     Z_ASSERT_N(addr_resolve("test", LSTR("127.0.0.1:1"), &su));
     sockunion_setport(&su, 0);
@@ -2757,7 +2793,7 @@ static void z_query_cleanup(void) {
     el_fd_unregister(&zel_server_g, true);
     el_fd_unregister(&zel_client_g, true);
     el_loop_timeout(10);
-    lstr_wipe(&body_g);
+    sb_wipe(&body_g);
 }
 
 Z_GROUP_EXPORT(httpc) {
@@ -2765,7 +2801,7 @@ Z_GROUP_EXPORT(httpc) {
         Z_HELPER_RUN(z_query_setup(&z_reply_100));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
-        Z_ASSERT_LSTREQUAL(body_g, LSTR("Coucou"));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
 
         z_query_cleanup();
     } Z_TEST_END;
@@ -2774,7 +2810,19 @@ Z_GROUP_EXPORT(httpc) {
         Z_HELPER_RUN(z_query_setup(&z_reply_gzip_empty));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_ACCEPTED , code_g);
-        Z_ASSERT_LSTREQUAL(body_g, LSTR(""));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR(""));
+
+        z_query_cleanup();
+    } Z_TEST_END;
+
+    Z_TEST(close_with_no_content_length, "test close without Content-Length") {
+        Z_HELPER_RUN(z_query_setup(&z_reply_close_without_content_length));
+
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_EQ(body_g.len, 4096 * 64  + 4);
+        Z_ASSERT_LSTREQUAL(LSTR_INIT_V(body_g.data, 4), LSTR("Plop"));
+        Z_ASSERT_EQ(body_g.data[5], 'a');
+        Z_ASSERT_EQ(body_g.data[body_g.len - 1], 'a' + 63);
 
         z_query_cleanup();
     } Z_TEST_END;

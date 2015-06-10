@@ -1610,7 +1610,9 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(lstr_to_int, "str: lstr_to_int and friends") {
+        t_scope;
         int      i;
+        uint32_t u32;
         int64_t  i64;
         uint64_t u64;
 
@@ -1618,6 +1620,8 @@ Z_GROUP_EXPORT(str)
         do {                                                                 \
             Z_ASSERT_N(lstr_to_int(LSTR(_str), &i));                         \
             Z_ASSERT_EQ(i, _exp);                                            \
+            Z_ASSERT_N(lstr_to_uint(LSTR(_str), &u32));                      \
+            Z_ASSERT_EQ(u32, (uint32_t)_exp);                                \
             Z_ASSERT_N(lstr_to_int64(LSTR(_str), &i64));                     \
             Z_ASSERT_EQ(i64, _exp);                                          \
             Z_ASSERT_N(lstr_to_uint64(LSTR(_str), &u64));                    \
@@ -1629,9 +1633,13 @@ Z_GROUP_EXPORT(str)
         T_OK("  1234  ", 1234);
 #undef T_OK
 
+        Z_ASSERT_N(lstr_to_uint(t_lstr_fmt("%u", UINT32_MAX), &u32));
+        Z_ASSERT_EQ(u32, UINT32_MAX);
+
 #define T_KO(_str)  \
         do {                                                                 \
             Z_ASSERT_NEG(lstr_to_int(LSTR(_str), &i));                       \
+            Z_ASSERT_NEG(lstr_to_uint(LSTR(_str), &u32));                    \
             Z_ASSERT_NEG(lstr_to_int64(LSTR(_str), &i64));                   \
             Z_ASSERT_NEG(lstr_to_uint64(LSTR(_str), &u64));                  \
         } while (0)
@@ -1644,6 +1652,14 @@ Z_GROUP_EXPORT(str)
         T_KO("12.12");
 #undef T_KO
 
+        errno = 0;
+        Z_ASSERT_NEG(lstr_to_uint(LSTR(" -123"), &u32));
+        Z_ASSERT_EQ(errno, ERANGE);
+        Z_ASSERT_NEG(lstr_to_uint(t_lstr_fmt("%jd", (uint64_t)UINT32_MAX + 1),
+                                  &u32));
+        Z_ASSERT_EQ(errno, ERANGE);
+
+        errno = 0;
         Z_ASSERT_NEG(lstr_to_uint64(LSTR(" -123"), &u64));
         Z_ASSERT_EQ(errno, ERANGE);
     } Z_TEST_END;
