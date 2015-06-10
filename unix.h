@@ -306,7 +306,6 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
     sb_t      buf;
     pstream_t ps;
     pid_t     tpid;
-    lstr_t    tpid_key;
 
     t_sb_init(&buf, (2 << 10));
 
@@ -321,13 +320,15 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 
     ps = ps_initsb(&buf);
 
-    /* Check for TracerPid: */
-    tpid_key = LSTR("\nTracerPid:");
-    if (ps_skip_after_data(&ps, tpid_key.s, tpid_key.len) < 0)
-        return e_error("bad status format");
+    while (!ps_done(&ps)) {
+        if (ps_skipstr(&ps, "TracerPid:") >= 0) {
+            tpid = ps_geti(&ps);
+            return tpid > 0 ? tpid : 0;
+        }
+        RETHROW(ps_skip_afterchr(&ps, '\n'));
+    }
 
-    tpid = ps_geti(&ps);
-    return tpid > 0 ? tpid : 0;
+    return -1;
 }
 
 #endif /* IS_LIB_COMMON_UNIX_H */
