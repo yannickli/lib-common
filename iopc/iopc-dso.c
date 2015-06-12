@@ -126,6 +126,7 @@ iopc_build(const qm_t(env) *env, const char *iopfile, const char *iopdata,
 
     iopc_g.v2 = true;
     iopc_g.v3 = true;
+    iopc_g.v4 = true;
     iopc_do_c_g.resolve_includes = false;
     iopc_do_c_g.no_const = true;
     iopc_do_c_g.iop_compat_header = sb.data;
