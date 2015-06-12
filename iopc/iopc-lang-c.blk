@@ -1180,6 +1180,8 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
     const char *cname = pp_to_c(f->name);
     iop_type_t kind = f->kind;
 
+    /* If the field is a field of a snmp rpc' struct, it is needed to get the
+     * real type of the field, which is the one of field_origin */
     if (f->snmp_is_from_param) {
        kind = f->field_origin->kind;
     }

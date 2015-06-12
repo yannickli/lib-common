@@ -647,8 +647,9 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
 
     type = iopc_struct_type_to_str(st->type);
 
-    if (parent_st->resolving_inheritance)
+    if (parent_st->resolving_inheritance) {
         fatal_loc("circular dependency", *qv_last(iopc_loc, &iopc_g.loc_stack));
+    }
 
     /* Check field names unicity */
     qv_for_each_entry(iopc_field, field, &parent_st->fields) {
@@ -691,8 +692,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
         qm_add(id_class, ids, parent_st->class_id, parent_st);
     }
     if (!parent_st->extends.len && st->type == STRUCT_TYPE_CLASS) {
-        /* This is a master class, store ids in its children_by_id
-         * table */
+        /* This is a master class, store ids in its children_by_id table */
         qm_for_each_pos(id_class, slot, ids) {
             iopc_struct_t *st2 = ids->values[slot];
             uint32_t pos;
@@ -717,7 +717,6 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
         return;
     }
     parent_st->resolving_inheritance = true;
-
     xt = parent_st->extends.tab[0]->st;
 
     /* Check for circular dependencies */

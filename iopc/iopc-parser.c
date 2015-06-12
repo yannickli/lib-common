@@ -1736,6 +1736,9 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
     }
 
+    /* If the field is contained by a snmpIface rpc struct, it will have no
+     * type (so no need to parse the type), and the flag snmp_is_from_param
+     * needs to be set at true */
     if (is_snmp_iface) {
         f->snmp_is_from_param = true;
     } else {

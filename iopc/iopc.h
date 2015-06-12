@@ -613,6 +613,8 @@ typedef struct iopc_field_t {
     flag_t resolving  : 1;
     flag_t is_static  : 1;
     flag_t is_ref     : 1;
+    /* In case the field is contained by a snmpIface rpc struct', it
+     * references another snmpObj field */
     flag_t snmp_is_from_param : 1;
 
     /** kind of the resolved type */
@@ -636,8 +638,8 @@ typedef struct iopc_field_t {
     qv_t(iopc_attr) attrs;
     qv_t(iopc_dox)  comments;
 
-    /* In case the field has a snmp field parent */
-    struct iopc_field_t *field_origin;
+    /* In case the field is contained by a snmpIface rpc struct' */
+    struct iopc_field_t *field_origin; /* the reference field */
     qv_t(iopc_extends) parents;
 } iopc_field_t;
 static inline iopc_field_t *iopc_field_init(iopc_field_t *field) {
@@ -702,7 +704,9 @@ typedef struct iopc_struct_t {
     flag_t     has_fields_attrs     : 1;    /**< st.fields_attrs existence  */
     flag_t     is_abstract          : 1;
     flag_t     is_local             : 1;
+    /* struct has snmpParams attribute */
     flag_t     is_snmp_params       : 1;
+    /* struct is a snmpIface rpc' struct */
     flag_t     contains_snmp_info : 1;
     unsigned   flags;                       /**< st.flags                   */
 
