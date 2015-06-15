@@ -8,6 +8,7 @@ extern iop_enum_t const tstgen__my_enum_a__e;
 IOP_ENUM(tstgen__my_enum_a);
 
 typedef tstgen__my_enum_a__t my_enum_a__t;
+typedef tstgen__my_enum_a__array_t my_enum_a__array_t;
 #define my_enum_a__to_str(...) tstgen__my_enum_a__to_str(__VA_ARGS__)
 #define my_enum_a__to_lstr(...) tstgen__my_enum_a__to_lstr(__VA_ARGS__)
 #define my_enum_a__from_str(...) tstgen__my_enum_a__from_str(__VA_ARGS__)
@@ -25,6 +26,7 @@ extern iop_struct_t const tstgen__my_struct_a__s;
 IOP_GENERIC(tstgen__my_struct_a);
 
 typedef tstgen__my_struct_a__t my_struct_a__t;
+typedef tstgen__my_struct_a__array_t my_struct_a__array_t;
 #define my_struct_a__equals(...) tstgen__my_struct_a__equals(__VA_ARGS__)
 #define my_struct_a__init(...) tstgen__my_struct_a__init(__VA_ARGS__)
 #define my_struct_a__dup(...) tstgen__my_struct_a__dup(__VA_ARGS__)
@@ -59,6 +61,7 @@ IOP_CLASS(tstgen__my_class_a);
 #define tstgen__my_class_a__class_id  0
 
 typedef tstgen__my_class_a__t my_class_a__t;
+typedef tstgen__my_class_a__array_t my_class_a__array_t;
 #define my_class_a__equals(...) tstgen__my_class_a__equals(__VA_ARGS__)
 #define my_class_a__init(...) tstgen__my_class_a__init(__VA_ARGS__)
 #define my_class_a__dup(...) tstgen__my_class_a__dup(__VA_ARGS__)
