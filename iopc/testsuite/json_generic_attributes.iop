@@ -1,6 +1,6 @@
 package json_generic_attributes;
 
-@(scenario:label, "en" : "Price", "fr" : "Prix" )
+@(scenario:label, "en" : "Price", "fr" : "\"Gougou\" d'ooo\'\n" )
 @(scenario:type, "dbl" : { "format" : "CURRENCY" })
 typedef double Price;
 
