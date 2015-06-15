@@ -37,8 +37,9 @@ DO_REFCNT(ichttp_cb_t, ichttp_cb);
 #define ICHTTP_QUERY_FIELDS(pfx) \
     HTTPD_QUERY_FIELDS(pfx);     \
     ichttp_cb_t *cbe;            \
-    bool   json;                 \
+    ic__hdr__t *ic_hdr;          \
     size_t iop_res_size;         \
+    bool   json;                 \
     bool   iop_answered
 
 #define ICHTTP_QUERY_METHODS(type_t) \

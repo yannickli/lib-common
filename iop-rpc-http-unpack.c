@@ -182,8 +182,9 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
                                      void *value)
 {
     ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
-    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
-    ic__hdr__t           hdr = IOP_UNION_VA(ic__hdr, simple,
+    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t,
+                                            cb);
+    ic__hdr__t   default_hdr = IOP_UNION_VA(ic__hdr, simple,
        .kind = LSTR_OPT(tcb->auth_kind),
        .payload = q->received_body_length,
     );
@@ -194,22 +195,30 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
     bool force_pxy_hdr = false;
+    ic__hdr__t          *hdr;
+    ichttp_query_t *ic_q = obj_vcast(ichttp_query, q);
 
-    if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
-        hdr.simple.login    = LSTR_PS_V(&login);
-        hdr.simple.password = LSTR_PS_V(&pw);
+    if (ic_q && ic_q->ic_hdr) {
+        hdr = ic_q->ic_hdr;
+    } else {
+        hdr = &default_hdr;
+
+        if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
+            hdr->simple.login    = LSTR_PS_V(&login);
+            hdr->simple.password = LSTR_PS_V(&pw);
+        }
+        hdr->simple.host = httpd_get_peer_address(q->owner);
     }
-    hdr.simple.host = httpd_get_peer_address(q->owner);
 
     switch ((e = &cbe->e)->cb_type) {
       case IC_CB_NORMAL:
       case IC_CB_WS_SHARED:
         t_seal();
 
-        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
+        if (ic_query_do_pre_hook(NULL, slot, hdr, e) < 0) {
             return;
         }
-        (*e->u.cb.cb)(NULL, slot, value, &hdr);
+        (*e->u.cb.cb)(NULL, slot, value, hdr);
         if (cbe->fun->async)
             httpd_reply_202accepted(q);
 
@@ -231,7 +240,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
 
             /* XXX dynproxy are allowed to return memory allocated on the
              * t_pool() and thus mustn't be wrapped in a local t_scope */
-            dynproxy = (*e->u.dynproxy.get_ic)(&hdr, e->u.dynproxy.priv);
+            dynproxy = (*e->u.dynproxy.get_ic)(hdr, e->u.dynproxy.priv);
             pxy      = dynproxy.ic;
             pxy_hdr  = dynproxy.hdr;
             force_pxy_hdr = pxy_hdr != NULL;
@@ -257,12 +266,12 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         } else {
             assert(!pxy_hdr);
             /* XXX We do not support header replacement with proxyfication */
-            msg->hdr = &hdr;
+            msg->hdr = hdr;
         }
         msg->cmd = cbe->cmd;
         msg->rpc = cbe->fun;
         msg->async = cbe->fun->async;
-        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
+        if (ic_query_do_pre_hook(NULL, slot, hdr, e) < 0) {
             return;
         }
 
