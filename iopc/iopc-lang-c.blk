@@ -471,6 +471,72 @@ static lstr_t ctype_get_prefix(lstr_t ctype, const char **underscore)
     return pfx;
 }
 
+static void
+ctype_define_old_helpers(sb_t *buf, lstr_t pfx, const char *underscore,
+                         const char *tbase, iop_type_t type, bool is_class)
+{
+#define ALIAS(_f)                                                            \
+    sb_addf(buf, "#define %*pM%s" _f "(...) "                                \
+                 "%s__" _f "(__VA_ARGS__)\n",                                \
+            LSTR_FMT_ARG(pfx), underscore, tbase);
+#define T_ALIAS(_f)                                                          \
+    sb_addf(buf, "#define t_%*pM%s" _f "(...) "                              \
+                 "t_%s__" _f "(__VA_ARGS__)\n",                              \
+            LSTR_FMT_ARG(pfx), underscore, tbase);
+
+    if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
+        /* IOP_GENERIC_BASICS */
+        ALIAS("equals");
+        ALIAS("init");
+        ALIAS("dup");
+        ALIAS("copy");
+        ALIAS("check");
+        ALIAS("sort");
+        ALIAS("msort");
+        if (!is_class) {
+            /* IOP_GENERIC_BINARY_UNION */
+            T_ALIAS("bunpack_multi");
+            /* IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION */
+            T_ALIAS("bunpack_ps");
+            T_ALIAS("bunpack");
+        }
+        /* IOP_GENERIC_BINARY_PACK */
+        ALIAS("bpack_size");
+        ALIAS("bpack");
+        T_ALIAS("bpack");
+        /* IOP_GENERIC_BINARY_UNPACK */
+        T_ALIAS("bunpack_ptr_ps");
+        T_ALIAS("bunpack_ptr");
+        /* IOP_GENERIC_JSON_PACK */
+        ALIAS("jpack");
+        T_ALIAS("sb_jpack");
+        /* IOP_GENERIC_JSON_UNPACK */
+        ALIAS("junpack_ptr");
+        T_ALIAS("junpack_ptr_ps");
+        T_ALIAS("junpack_ptr_file");
+        if (!is_class) {
+            /* IOP_GENERIC_JSON_UNPACK_STRUCT_UNION */
+            ALIAS("junpack");
+            T_ALIAS("junpack_ps");
+            T_ALIAS("junpack_file");
+        }
+        if (type == IOP_T_UNION) {
+            ALIAS("get");
+        }
+    } else
+    if (type == IOP_T_ENUM) {
+        /* IOP_ENUM(pfx) */
+        ALIAS("to_str");
+        ALIAS("to_lstr");
+        ALIAS("from_str");
+        ALIAS("from_str2");
+        ALIAS("from_lstr");
+        ALIAS("exists");
+    }
+#undef ALIAS
+#undef T_ALIAS
+}
+
 static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                            iop_type_t type, bool is_class)
 {
@@ -490,70 +556,19 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                 sb_addf(buf, "typedef %s__array_t %*pM__array_t;\n", tbase,
                         LSTR_FMT_ARG(pfx));
 
-#define ALIAS(_f)  \
-                sb_addf(buf, "#define %*pM%s" _f "(...) "                   \
-                        "%s__" _f "(__VA_ARGS__)\n",                        \
-                        LSTR_FMT_ARG(pfx), underscore, tbase);
-#define T_ALIAS(_f)  \
-                sb_addf(buf, "#define t_%*pM%s" _f "(...) "                 \
-                        "t_%s__" _f "(__VA_ARGS__)\n",                      \
-                        LSTR_FMT_ARG(pfx), underscore, tbase);
-
                 if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
-                    /* IOP_GENERIC_BASICS */
-                    ALIAS("equals");
-                    ALIAS("init");
-                    ALIAS("dup");
-                    ALIAS("copy");
-                    ALIAS("check");
-                    ALIAS("sort");
-                    ALIAS("msort");
-                    if (!is_class) {
-                        /* IOP_GENERIC_BINARY_UNION */
-                        T_ALIAS("bunpack_multi");
-                        /* IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION */
-                        T_ALIAS("bunpack_ps");
-                        T_ALIAS("bunpack");
-                    }
-                    /* IOP_GENERIC_BINARY_PACK */
-                    ALIAS("bpack_size");
-                    ALIAS("bpack");
-                    T_ALIAS("bpack");
-                    /* IOP_GENERIC_BINARY_UNPACK */
-                    T_ALIAS("bunpack_ptr_ps");
-                    T_ALIAS("bunpack_ptr");
-                    /* IOP_GENERIC_JSON_PACK */
-                    ALIAS("jpack");
-                    T_ALIAS("sb_jpack");
-                    /* IOP_GENERIC_JSON_UNPACK */
-                    ALIAS("junpack_ptr");
-                    T_ALIAS("junpack_ptr_ps");
-                    T_ALIAS("junpack_ptr_file");
-                    if (!is_class) {
-                        /* IOP_GENERIC_JSON_UNPACK_STRUCT_UNION */
-                        ALIAS("junpack");
-                        T_ALIAS("junpack_ps");
-                        T_ALIAS("junpack_file");
-                    }
-                    if (type == IOP_T_UNION) {
-                        ALIAS("get");
-                    }
                     sb_addf(buf, "#define %*pM%ss  %s__s\n",
                             LSTR_FMT_ARG(pfx), underscore, tbase);
                 } else
                 if (type == IOP_T_ENUM) {
-                    /* IOP_ENUM(pfx) */
-                    ALIAS("to_str");
-                    ALIAS("to_lstr");
-                    ALIAS("from_str");
-                    ALIAS("from_str2");
-                    ALIAS("from_lstr");
-                    ALIAS("exists");
                     sb_addf(buf, "#define %*pM%se  %s__e\n",
                             LSTR_FMT_ARG(pfx), underscore, tbase);
                 }
-#undef ALIAS
-#undef T_ALIAS
+                if (!iopc_g.v4) {
+                    ctype_define_old_helpers(buf, pfx, underscore, tbase,
+                                             type, is_class);
+                }
+
                 sb_addc(buf, '\n');
             }
         }

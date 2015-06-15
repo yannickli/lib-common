@@ -9,12 +9,6 @@ IOP_ENUM(tstgen__my_enum_a);
 
 typedef tstgen__my_enum_a__t my_enum_a__t;
 typedef tstgen__my_enum_a__array_t my_enum_a__array_t;
-#define my_enum_a__to_str(...) tstgen__my_enum_a__to_str(__VA_ARGS__)
-#define my_enum_a__to_lstr(...) tstgen__my_enum_a__to_lstr(__VA_ARGS__)
-#define my_enum_a__from_str(...) tstgen__my_enum_a__from_str(__VA_ARGS__)
-#define my_enum_a__from_str2(...) tstgen__my_enum_a__from_str2(__VA_ARGS__)
-#define my_enum_a__from_lstr(...) tstgen__my_enum_a__from_lstr(__VA_ARGS__)
-#define my_enum_a__exists(...) tstgen__my_enum_a__exists(__VA_ARGS__)
 #define my_enum_a__e  tstgen__my_enum_a__e
 
 struct tstgen__my_struct_a__t {
@@ -27,29 +21,6 @@ IOP_GENERIC(tstgen__my_struct_a);
 
 typedef tstgen__my_struct_a__t my_struct_a__t;
 typedef tstgen__my_struct_a__array_t my_struct_a__array_t;
-#define my_struct_a__equals(...) tstgen__my_struct_a__equals(__VA_ARGS__)
-#define my_struct_a__init(...) tstgen__my_struct_a__init(__VA_ARGS__)
-#define my_struct_a__dup(...) tstgen__my_struct_a__dup(__VA_ARGS__)
-#define my_struct_a__copy(...) tstgen__my_struct_a__copy(__VA_ARGS__)
-#define my_struct_a__check(...) tstgen__my_struct_a__check(__VA_ARGS__)
-#define my_struct_a__sort(...) tstgen__my_struct_a__sort(__VA_ARGS__)
-#define my_struct_a__msort(...) tstgen__my_struct_a__msort(__VA_ARGS__)
-#define t_my_struct_a__bunpack_multi(...) t_tstgen__my_struct_a__bunpack_multi(__VA_ARGS__)
-#define t_my_struct_a__bunpack_ps(...) t_tstgen__my_struct_a__bunpack_ps(__VA_ARGS__)
-#define t_my_struct_a__bunpack(...) t_tstgen__my_struct_a__bunpack(__VA_ARGS__)
-#define my_struct_a__bpack_size(...) tstgen__my_struct_a__bpack_size(__VA_ARGS__)
-#define my_struct_a__bpack(...) tstgen__my_struct_a__bpack(__VA_ARGS__)
-#define t_my_struct_a__bpack(...) t_tstgen__my_struct_a__bpack(__VA_ARGS__)
-#define t_my_struct_a__bunpack_ptr_ps(...) t_tstgen__my_struct_a__bunpack_ptr_ps(__VA_ARGS__)
-#define t_my_struct_a__bunpack_ptr(...) t_tstgen__my_struct_a__bunpack_ptr(__VA_ARGS__)
-#define my_struct_a__jpack(...) tstgen__my_struct_a__jpack(__VA_ARGS__)
-#define t_my_struct_a__sb_jpack(...) t_tstgen__my_struct_a__sb_jpack(__VA_ARGS__)
-#define my_struct_a__junpack_ptr(...) tstgen__my_struct_a__junpack_ptr(__VA_ARGS__)
-#define t_my_struct_a__junpack_ptr_ps(...) t_tstgen__my_struct_a__junpack_ptr_ps(__VA_ARGS__)
-#define t_my_struct_a__junpack_ptr_file(...) t_tstgen__my_struct_a__junpack_ptr_file(__VA_ARGS__)
-#define my_struct_a__junpack(...) tstgen__my_struct_a__junpack(__VA_ARGS__)
-#define t_my_struct_a__junpack_ps(...) t_tstgen__my_struct_a__junpack_ps(__VA_ARGS__)
-#define t_my_struct_a__junpack_file(...) t_tstgen__my_struct_a__junpack_file(__VA_ARGS__)
 #define my_struct_a__s  tstgen__my_struct_a__s
 
 struct tstgen__my_class_a__t {
@@ -62,23 +33,6 @@ IOP_CLASS(tstgen__my_class_a);
 
 typedef tstgen__my_class_a__t my_class_a__t;
 typedef tstgen__my_class_a__array_t my_class_a__array_t;
-#define my_class_a__equals(...) tstgen__my_class_a__equals(__VA_ARGS__)
-#define my_class_a__init(...) tstgen__my_class_a__init(__VA_ARGS__)
-#define my_class_a__dup(...) tstgen__my_class_a__dup(__VA_ARGS__)
-#define my_class_a__copy(...) tstgen__my_class_a__copy(__VA_ARGS__)
-#define my_class_a__check(...) tstgen__my_class_a__check(__VA_ARGS__)
-#define my_class_a__sort(...) tstgen__my_class_a__sort(__VA_ARGS__)
-#define my_class_a__msort(...) tstgen__my_class_a__msort(__VA_ARGS__)
-#define my_class_a__bpack_size(...) tstgen__my_class_a__bpack_size(__VA_ARGS__)
-#define my_class_a__bpack(...) tstgen__my_class_a__bpack(__VA_ARGS__)
-#define t_my_class_a__bpack(...) t_tstgen__my_class_a__bpack(__VA_ARGS__)
-#define t_my_class_a__bunpack_ptr_ps(...) t_tstgen__my_class_a__bunpack_ptr_ps(__VA_ARGS__)
-#define t_my_class_a__bunpack_ptr(...) t_tstgen__my_class_a__bunpack_ptr(__VA_ARGS__)
-#define my_class_a__jpack(...) tstgen__my_class_a__jpack(__VA_ARGS__)
-#define t_my_class_a__sb_jpack(...) t_tstgen__my_class_a__sb_jpack(__VA_ARGS__)
-#define my_class_a__junpack_ptr(...) tstgen__my_class_a__junpack_ptr(__VA_ARGS__)
-#define t_my_class_a__junpack_ptr_ps(...) t_tstgen__my_class_a__junpack_ptr_ps(__VA_ARGS__)
-#define t_my_class_a__junpack_ptr_file(...) t_tstgen__my_class_a__junpack_ptr_file(__VA_ARGS__)
 #define my_class_a__s  tstgen__my_class_a__s
 
 #endif
