@@ -32,7 +32,7 @@
 					"genAttrs": {
 						"scenario:label": {
 							"type": "object",
-							"value": {"en":"Price","fr":"Prix"}
+							"value": {"en":"Price","fr":"\"Gougou\" d'ooo'\n"}
 						},
 						"scenario:type": {
 							"type": "object",
@@ -72,7 +72,7 @@
 					"genAttrs": {
 						"scenario:label": {
 							"type": "object",
-							"value": {"en":"Price","fr":"Prix"}
+							"value": {"en":"Price","fr":"\"Gougou\" d'ooo'\n"}
 						},
 						"scenario:type": {
 							"type": "object",
@@ -103,7 +103,7 @@
 			"genAttrs": {
 				"scenario:label": {
 					"type": "object",
-					"value": {"en":"Price","fr":"Prix"}
+					"value": {"en":"Price","fr":"\"Gougou\" d'ooo'\n"}
 				},
 				"scenario:type": {
 					"type": "object",

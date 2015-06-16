@@ -2305,7 +2305,7 @@ static void parse_json_value(iopc_parser_t *pp, sb_t *sb)
     switch (tk->token) {
       case ITOK_STRING:
         sb_add_slashes(&tmp, tk->b.data, tk->b.len,
-                       "\a\b\e\t\n\v\f\r'\"", "abetnvfr'\"");
+                       "\a\b\e\t\n\v\f\r\"", "abetnvfr\"");
         sb_addf(sb, "\"%*pM\"",  SB_FMT_ARG(&tmp));
         break;
 
