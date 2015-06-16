@@ -23,7 +23,7 @@ static iop_field_attr_t const json_generic_attributes__voice_event__length__attr
 static iop_field_attr_t const json_generic_attributes__voice_event__price__attrs[] = {
     {
         .type = 15,
-        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Price\",\"fr\":\"Prix\"}") } },
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Price\",\"fr\":\"\\\"Gougou\\\" d'ooo'\\n\"}") } },
     },
     {
         .type = 15,
@@ -112,7 +112,7 @@ static iop_field_attr_t const json_generic_attributes__data_event__length__attrs
 static iop_field_attr_t const json_generic_attributes__data_event__price__attrs[] = {
     {
         .type = 15,
-        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Price\",\"fr\":\"Prix\"}") } },
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Price\",\"fr\":\"\\\"Gougou\\\" d'ooo'\\n\"}") } },
     },
     {
         .type = 15,
