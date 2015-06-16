@@ -760,6 +760,28 @@ static inline bool lstr_match_ctype(lstr_t s, const ctype_desc_t *d)
  */
 int lstr_dlevenshtein(const lstr_t s1, const lstr_t s2, int max_dist);
 
+/** Retrieve the number of characters of an utf-8 encoded string.
+ */
+static inline int lstr_utf8_strlen(lstr_t s)
+{
+    return utf8_strnlen(s.s, s.len);
+}
+
+/** Truncate the string to the given number of utf8 characters.
+ */
+static inline lstr_t lstr_utf8_truncate(lstr_t s, int char_len)
+{
+    int pos = 0;
+
+    while (char_len > 0 && pos < s.len) {
+        if (utf8_ngetc_at(s.s, s.len, &pos) < 0) {
+            return LSTR_NULL_V;
+        }
+        char_len--;
+    }
+    return LSTR_INIT_V(s.s, pos);
+}
+
 /* }}} */
 /* Conversions {{{ */
 

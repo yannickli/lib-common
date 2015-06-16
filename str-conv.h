@@ -134,6 +134,24 @@ static inline uint8_t utf8_charlen(const char *s)
     }
 }
 
+static inline size_t utf8_strnlen(const char *s, size_t len)
+{
+    const char *end = s + len;
+
+    len = 0;
+    while (s < end) {
+        len++;
+
+        s += utf8_charlen(s);
+    }
+    return len;
+}
+
+static inline size_t utf8_strlen(const char *s)
+{
+    return utf8_strnlen(s, strlen(s));
+}
+
 static inline int utf8_getc_slow(const char *s, const char **out)
 {
     uint32_t ret = 0;

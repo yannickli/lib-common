@@ -356,6 +356,46 @@ Z_GROUP_EXPORT(str)
 #undef RUN_UTF8_TEST
     } Z_TEST_END;
 
+    Z_TEST(lstr_utf8_strlen, "str: lstr_utf8_strlen test") {
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_NULL_V), 0);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_EMPTY_V), 0);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("abcdefgh")), 8);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("àbçdéfgh")), 8);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("à")), 1);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("é")), 1);
+    } Z_TEST_END;
+
+    Z_TEST(lstr_utf8_truncate, "str: lstr_utf8_truncate test") {
+        char data[9] = { 'a', 'b', 'c', 0xff, 'e', 0xff, 'g', 'h', '\0' };
+
+#define RUN_TEST(str, count, out) \
+        Z_ASSERT_LSTREQUAL(lstr_utf8_truncate(LSTR(str), count), LSTR(out))
+
+        RUN_TEST("abcdefgh", 9, "abcdefgh");
+        RUN_TEST("abcdefgh", 8, "abcdefgh");
+        RUN_TEST("abcdefgh", 7, "abcdefg");
+        RUN_TEST("abcdefgh", 0, "");
+
+        RUN_TEST("àbçdéfgh", 9, "àbçdéfgh");
+        RUN_TEST("àbçdéfgh", 8, "àbçdéfgh");
+        RUN_TEST("àbçdéfgh", 7, "àbçdéfg");
+        RUN_TEST("àbçdéfgh", 5, "àbçdé");
+        RUN_TEST("àbçdéfgh", 4, "àbçd");
+        RUN_TEST("àbçdéfgh", 3, "àbç");
+        RUN_TEST("àbçdéfgh", 2, "àb");
+        RUN_TEST("àbçdéfgh", 1, "à");
+        RUN_TEST("àbçdéfgh", 0, "");
+
+        RUN_TEST(data, 9, "");
+        RUN_TEST(data, 8, "");
+        RUN_TEST(data, 7, "");
+        RUN_TEST(data, 6, "");
+        RUN_TEST(data, 5, "");
+        RUN_TEST(data, 4, "");
+        RUN_TEST(data, 3, "abc");
+#undef RUN_TEST
+    } Z_TEST_END;
+
     Z_TEST(path_simplify, "str-path: path_simplify") {
 #define T(s0, s1)  \
         ({ pstrcpy(buf, sizeof(buf), s0);    \
