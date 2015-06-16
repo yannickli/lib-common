@@ -16,21 +16,26 @@
 /* {{{ Table printer */
 
 static void sb_add_cell(sb_t *out, const struct table_hdr_t *col,
-                            int col_size, bool is_hdr, bool is_last,
-                            lstr_t content)
+                        int col_size, bool is_hdr, bool is_last,
+                        lstr_t content)
 {
-    if (content.len == 0) {
+    int len = lstr_utf8_strlen(content);
+
+    if (len == 0) {
         content = col->empty_value;
+        len = lstr_utf8_strlen(content);
     }
 
-    if (content.len > col_size && col->add_ellipsis) {
-        sb_add(out, content.s, col_size - 1);
+    if (len > col_size && col->add_ellipsis) {
+        content = lstr_utf8_truncate(content, col_size - 1);
+        sb_add(out, content.s, content.len);
         sb_adduc(out, 0x2026 /* … */);
     } else
-    if (content.len >= col_size) {
-        sb_add(out, content.s, col_size);
+    if (len >= col_size) {
+        content = lstr_utf8_truncate(content, col_size);
+        sb_add(out, content.s, content.len);
     } else {
-        int padding = col_size - content.len;
+        int padding = col_size - len;
         int left_padding = 0;
         int right_padding = 0;
 
@@ -58,7 +63,7 @@ static void sb_add_cell(sb_t *out, const struct table_hdr_t *col,
 }
 
 void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
-                      const qv_t(table_data) *data)
+                  const qv_t(table_data) *data)
 {
     t_scope;
     int *col_sizes = t_new_raw(int, hdr->len);
@@ -70,13 +75,14 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
         int *col = &col_sizes[pos];
         bool has_value = false;
 
-        *col = MAX(hdr->tab[pos].min_width, hdr->tab[pos].title.len);
+        *col = MAX(hdr->tab[pos].min_width,
+                   lstr_utf8_strlen(hdr->tab[pos].title));
 
         qv_for_each_ptr(table_data, row, data) {
             if (row->len <= pos) {
-                *col = MAX(*col, hdr->tab[pos].empty_value.len);
+                *col = MAX(*col, lstr_utf8_strlen(hdr->tab[pos].empty_value));
             } else {
-                *col = MAX(*col, row->tab[pos].len);
+                *col = MAX(*col, lstr_utf8_strlen(row->tab[pos]));
 
                 if (row->tab[pos].len) {
                     has_value = true;
@@ -158,18 +164,18 @@ Z_GROUP_EXPORT(str_buf_pp) {
         t_qv_init(table_data, &data, 2);
         row = qv_growlen(table_data, &data, 1);
         t_qv_init(lstr, row, countof(hdr_data));
-        qv_append(lstr, row, LSTR("col A - row 1"));
+        qv_append(lstr, row, LSTR("col A - rôw 1"));
         qv_append(lstr, row, LSTR("col B - row 1"));
         row = qv_growlen(table_data, &data, 1);
         t_qv_init(lstr, row, countof(hdr_data));
         qv_append(lstr, row, LSTR("col A - row 2"));
-        qv_append(lstr, row, LSTR("col B - row 2"));
+        qv_append(lstr, row, LSTR("çôl B - row 2"));
 
         sb_reset(&sb);
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL A          COL B          COL C\n"
-                                   "col A - row 1  col B - row 1  \n"
-                                   "col A - row 2  col B - row 2  \n");
+                                   "col A - rôw 1  col B - row 1  \n"
+                                   "col A - row 2  çôl B - row 2  \n");
 
         hdr_data[0].max_width = 7;
         hdr_data[1].min_width = 20;
@@ -179,7 +185,7 @@ Z_GROUP_EXPORT(str_buf_pp) {
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B               \n"
                                    "col A -  col B - row 1       \n"
-                                   "col A -  col B - row 2       \n");
+                                   "col A -  çôl B - row 2       \n");
 
         hdr_data[0].max_width = 7;
         hdr_data[0].add_ellipsis = true;
@@ -191,7 +197,7 @@ Z_GROUP_EXPORT(str_buf_pp) {
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B          COL C\n"
                                    "col A …  col B - row 1  -\n"
-                                   "col A …  col B - row 2  -\n");
+                                   "col A …  çôl B - row 2  -\n");
 
         hdr_data[2].align = ALIGN_RIGHT;
 
@@ -199,7 +205,7 @@ Z_GROUP_EXPORT(str_buf_pp) {
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B          COL C\n"
                                    "col A …  col B - row 1      -\n"
-                                   "col A …  col B - row 2      -\n");
+                                   "col A …  çôl B - row 2      -\n");
 
         hdr_data[2].align = ALIGN_CENTER;
 
@@ -207,7 +213,7 @@ Z_GROUP_EXPORT(str_buf_pp) {
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B          COL C\n"
                                    "col A …  col B - row 1    -\n"
-                                   "col A …  col B - row 2    -\n");
+                                   "col A …  çôl B - row 2    -\n");
     } Z_TEST_END;
 } Z_GROUP_END
 
