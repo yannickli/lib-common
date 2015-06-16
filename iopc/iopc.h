@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   4
 #define IOPC_MINOR   0
-#define IOPC_PATCH   0
+#define IOPC_PATCH   1
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
