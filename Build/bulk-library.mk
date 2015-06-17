@@ -280,7 +280,7 @@ tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$(
 
 $(1DV)all:: $1$(var/sharedlibext)
 $1$(var/sharedlibext): $~$1$(var/sharedlibext)$$(tmp/$1/build) FORCE
-	$$(if $$(NOLINK),:,$(FASTCP) $$< $/$$@$$(tmp/$1/build))
+	$$(if $$(NOLINK),:,chmod a-wx $$< && $(FASTCP) $$< $/$$@$$(tmp/$1/build))
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
 
@@ -306,7 +306,7 @@ tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$(
 
 $(1DV)all:: $1$(var/sharedlibext)
 $1$(var/sharedlibext): $~$1$(var/sharedlibext)$$(tmp/$1/build) FORCE
-	$$(if $$(NOLINK),:,$(FASTCP) $$< $/$$@$$(tmp/$1/build))
+	$$(if $$(NOLINK),:,chmod a-wx $$< && $(FASTCP) $$< $/$$@$$(tmp/$1/build))
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
 
