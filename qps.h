@@ -17,6 +17,7 @@
 #include <sysexits.h>
 #include "unix.h"
 #include "thr.h"
+#include "el.h"
 
 #define QPS_EX_ENOSPC   EX_IOERR
 __attribute__((noreturn))
@@ -227,6 +228,12 @@ enum {
     QPS_GC_RUNNING   = 3,
 };
 
+#ifdef __has_blocks
+typedef void (BLOCK_CARET qps_notify_b)(uint32_t gen);
+#else
+typedef void *qps_notify_b;
+#endif
+
 typedef struct qps_t {
     dir_lock_t   lock;
     int          dfd;
@@ -253,6 +260,13 @@ typedef struct qps_t {
     qps_pghdr_t *hdrs;
     qps_map_t   *gc_map;     /* do not use, filled for the SIGBUS handler */
     thr_syn_t    snap_syn;
+    el_t         snap_el;
+    el_t         snap_timer_el;
+    qps_notify_b snap_notify;
+    pid_t        snap_pid;
+    struct timeval snap_start;
+    uint32_t     snap_gen;
+
     thr_syn_t    gc_syn;
 
     struct {

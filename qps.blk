@@ -2597,6 +2597,67 @@ qps_t *qps_create(const char *path, mode_t mode)
     return NULL;
 }
 
+static void qps_snapshot_bg_done(el_t el, pid_t pid, int status, data_t data)
+{
+    qps_t *qps = data.ptr;
+
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        logger_panic(&_G.logger, "background snapshot failed");
+    }
+
+    qps->snap_el = NULL;
+
+    thr_schedule_b(^{
+        thr_syn_wait(&qps->snap_syn);
+
+        thr_queue_b(thr_queue_main_g, ^{
+            struct timeval end;
+
+            el_timer_unregister(&qps->snap_timer_el);
+            logger_trace(&_G.logger, 1, "snapshot commited and notified");
+
+            qps_dir_cleanup(qps, qps->snap_gen);
+            qps_unquarantine_nos(qps);
+
+            for (int i = 0; i < qps->maps.len; i++) {
+                qps_map_t *map = qps->maps.tab[i];
+
+                if (!map)
+                    continue;
+
+                if (QPS_GEN_CMP(map->hdr.generation, >, qps->snap_gen))
+                    continue;
+                if (qps_map_is_pg(map)) {
+                    map->hdr.generation = qps->snap_gen;
+                    continue;
+                }
+                if (map->hdr.remaining == 0) {
+                    qps_map_recycle(qps, map, i, true);
+                } else
+                if (map->hdr.generation == qps->snap_gen) {
+                    uint32_t   remaining = map->hdr.remaining;
+                    qps_map_t *m = qps_m_map_open(qps, map->hdr.mapno);
+
+                    if (map != m) {
+                        logger_panic(&_G.logger, "snapshot is inconsistent");
+                    }
+                    /* Some entries may have been deallocated since the
+                     * beginning of the snapshot, so keep the remaining count
+                     */
+                    m->hdr.remaining = remaining;
+                }
+            }
+
+            qps->snapshotting = false;
+            lp_gettv(&end);
+            logger_debug(&_G.logger, "snapshot done in %jdms",
+                         timeval_diffmsec(&end, &qps->snap_start));
+            qps->snap_notify(qps->snap_gen);
+            Block_release_p(&qps->snap_notify);
+        });
+    });
+}
+
 static pid_t
 qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                 qv_t(u32) t, uint32_t generation)
@@ -2703,20 +2764,18 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                       void (^notify)(uint32_t))
 {
     t_scope;
-    struct timeval start;
-    uint32_t  generation = qps->generation;
     uint32_t  rec_pos;
     qv_t(u32) t;
-    el_t      timer;
-    pid_t     pid;
     thr_syn_t madvise_syn;
 
     assert (qps->snapshotting == false);
 
-    lp_gettv(&start);
+    qps->snap_gen = qps->generation;
+    lp_gettv(&qps->snap_start);
     qps_gc_disable(qps);
     qps->snapshotting = true;
     qps->generation  += 2;
+    qps->snap_notify = Block_copy(notify);
 
     logger_trace(&_G.logger, 1, "qps_snapshot(%p)", qps);
     t_qv_init(u32, &t, 1024);
@@ -2743,11 +2802,11 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
         if (!map)
             continue;
-        assert (QPS_GEN_CMP(generation, >=, map->hdr.generation));
+        assert (QPS_GEN_CMP(qps->snap_gen, >=, map->hdr.generation));
         qps_map_protect(map, PROT_READ);
 
         if (!qps_map_is_pg(map)) {
-            if (map->hdr.generation == generation) {
+            if (map->hdr.generation == qps->snap_gen) {
                 map->hdr.remaining  = map->hdr.allocated;
                 map->hdr.disk_usage = 0;
             }
@@ -2782,66 +2841,15 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     }
     t.tab[rec_pos] = (t.len - rec_pos) / 2;
 
-    pid   = qps_snapshot_bg(qps, data, dlen, t, generation);
-    timer = el_timer_register_blk(3600 * 1000, 0, 0, ^(el_t ev){
+    qps->snap_pid = qps_snapshot_bg(qps, data, dlen, t, qps->snap_gen);
+    qps->snap_el = el_child_register(qps->snap_pid, &qps_snapshot_bg_done, qps);
+    el_unref(qps->snap_el);
+
+    qps->snap_timer_el = el_timer_register_blk(3600 * 1000, 0, 0, ^(el_t ev){
         logger_fatal(&_G.logger, "snapshot (generation %x) stuck for "
-                     "more than an hour", generation);
+                     "more than an hour", qps->snap_gen);
     }, NULL);
-
-    thr_schedule_b(^{
-        int status;
-
-        thr_syn_wait(&qps->snap_syn);
-        do { } while (waitpid(pid, &status, 0) != pid);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            logger_panic(&_G.logger, "background snapshot failed");
-
-        thr_queue_b(thr_queue_main_g, ^{
-            el_t timer_copy = timer;
-            struct timeval end;
-
-            el_timer_unregister(&timer_copy);
-            logger_trace(&_G.logger, 1, "snapshot commited and notified");
-
-            qps_dir_cleanup(qps, generation);
-            qps_unquarantine_nos(qps);
-
-            for (int i = 0; i < qps->maps.len; i++) {
-                qps_map_t *map = qps->maps.tab[i];
-
-                if (!map)
-                    continue;
-
-                if (QPS_GEN_CMP(map->hdr.generation, >, generation))
-                    continue;
-                if (qps_map_is_pg(map)) {
-                    map->hdr.generation = generation;
-                    continue;
-                }
-                if (map->hdr.remaining == 0) {
-                    qps_map_recycle(qps, map, i, true);
-                } else
-                if (map->hdr.generation == generation) {
-                    uint32_t   remaining = map->hdr.remaining;
-                    qps_map_t *m = qps_m_map_open(qps, map->hdr.mapno);
-
-                    if (map != m) {
-                        logger_panic(&_G.logger, "snapshot is inconsistent");
-                    }
-                    /* Some entries may have been deallocated since the
-                     * beginning of the snapshot, so keep the remaining count
-                     */
-                    m->hdr.remaining = remaining;
-                }
-            }
-
-            qps->snapshotting = false;
-            lp_gettv(&end);
-            logger_debug(&_G.logger, "snapshot done in %jdms",
-                         timeval_diffmsec(&end, &start));
-            notify(generation);
-        });
-    });
+    el_unref(qps->snap_timer_el);
 
     thr_syn_wait(&madvise_syn);
     thr_syn_wipe(&madvise_syn);
@@ -2856,6 +2864,18 @@ void qps_snapshot_wait(qps_t *qps)
 {
     if (qps->snapshotting) {
         thr_syn_wait(&qps->snap_syn);
+
+        if (qps->snap_el) {
+            int status;
+
+            do {
+            } while (waitpid(qps->snap_pid, &status, 0) != qps->snap_pid);
+
+            el_child_unregister(&qps->snap_el);
+            qps_snapshot_bg_done(NULL, qps->snap_pid, status,
+                                 (data_t){ .ptr = qps });
+        }
+
         while (qps->snapshotting) {
             thr_queue_main_drain();
         }
