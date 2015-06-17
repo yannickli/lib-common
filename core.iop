@@ -156,12 +156,16 @@ abstract class LicenceModule {
      *
      * After that date the module will stop.
      */
+    @(licence:label, en = "Expiration date"
+                   , fr = "Date d\'expiration")
     ExpirationDate? expirationDate;
 
     /** Delay to emit warning before expiration.
      * The module will start emitting warnings from
      * \ref expirationDate - \ref expirationWarningDelay. Value is in seconds.
      */
+    @(licence:label, en = "Expiration warning delay"
+                   , fr = "Délais d\'avertissement d\'expiration")
     uint expirationWarningDelay = 15d;
 };
 
