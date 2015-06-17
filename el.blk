@@ -293,7 +293,7 @@ static data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static void el_child_fire(ev_t **ev, int pid, int status)
+static void el_child_fire(ev_t **ev, int pid, int status, bool move)
 {
     ev_t *e = *ev;
 
@@ -303,7 +303,7 @@ static void el_child_fire(ev_t **ev, int pid, int status)
     } else {
         (*e->cb.child)(e, pid, status, e->priv);
     }
-    el_destroy(ev, false);
+    el_destroy(ev, move);
 }
 
 static void ev_list_process(dlist_t *l)
@@ -317,7 +317,7 @@ static void ev_list_process(dlist_t *l)
             continue;
 
           case EV_CHILD:
-            el_child_fire(&ev, ev->child.pid, ev->child.status);
+            el_child_fire(&ev, ev->child.pid, ev->child.status, true);
             break;
 
           default:
@@ -518,7 +518,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
         int32_t pos = qm_del_key(ev_assoc, &_G.childs, pid);
 
         if (likely(pos >= 0)) {
-            el_child_fire(&_G.childs.values[pos], pid, status);
+            el_child_fire(&_G.childs.values[pos], pid, status, false);
         }
     }
 }
