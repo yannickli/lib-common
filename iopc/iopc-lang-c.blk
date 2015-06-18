@@ -795,6 +795,7 @@ static const char *iopc_field_type(iopc_field_t *f)
       case IOP_T_STRING: return "lstr_t   ";
       case IOP_T_DATA:   return _G.data_c_type;
       case IOP_T_XML:    return "lstr_t   ";
+      case IOP_T_ENUM:   return "enum ";
 
       default:
         fatal_loc("attribute type not handled for this kind", f->loc);
@@ -812,6 +813,13 @@ iopc_snmp_field_dump_tdef_hdr(sb_t *buf, const char *pkg_name,
     const char *tname = pp_to_c(st->name);
     const char *fname = pp_to_c(field->name);
     char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
+
+    if (field->kind == IOP_T_ENUM) {
+        sb_addf(buf, "typedef %s %s__%s__t %s_typedef__t;\n",
+                iopc_field_type(field), pp_under(field->type_path),
+                pp_to_c(field->type_name), tbase);
+        return;
+    }
 
     sb_addf(buf, "typedef %s %s_typedef__t;\n",
             iopc_field_type(field), tbase);

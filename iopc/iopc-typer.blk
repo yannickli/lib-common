@@ -371,16 +371,34 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
 static void iopc_t_resolve(iopc_pkg_t *pkg);
 static void iopc_i_resolve(iopc_pkg_t *pkg);
 
+static void iopc_check_field_kind(iop_type_t kind, iopc_struct_t *st) {
+    switch(kind) {
+      case IOP_T_ENUM:
+      case IOP_T_STRING:
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_BOOL:
+        return;
+      default:
+        fatal_loc("only int/string/boolean/enum types are handled for "
+                  "snmp objects' fields", st->loc);
+    }
+}
+
 static void iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
                                iopc_struct_t *st)
 {
     t_scope;
 
-    if (field->kind != IOP_T_STRUCT)
+    if (field->kind != IOP_T_STRUCT) {
         return;
+    }
     iopc_types_find_n_check(pkg, field, st == NULL);
-    if (pkg == field->type_pkg || !field->struct_def)
+
+    if (pkg == field->type_pkg || !field->struct_def) {
         return;
+    }
     if (field->repeat == IOP_R_REPEATED
     ||  field->repeat == IOP_R_OPTIONAL)
     {
@@ -519,6 +537,9 @@ static void iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
     /* Resolve fields */
     qv_for_each_entry(iopc_field, f, &st->fields) {
         iopc_field_resolve(pkg, f, st);
+        if (iopc_is_snmp_st(st->type)) {
+            iopc_check_field_kind(f->kind, st);
+        }
 
         if (st->type == STRUCT_TYPE_UNION) {
             if (f->repeat == IOP_R_OPTIONAL) {

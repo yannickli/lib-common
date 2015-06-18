@@ -1585,6 +1585,7 @@ static void parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
 static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
 {
     switch(kind) {
+      case IOP_T_STRUCT:
       case IOP_T_STRING:
       case IOP_T_I8:
       case IOP_T_I16:
@@ -1597,8 +1598,8 @@ static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
       case IOP_T_U32:
       case IOP_T_U64:
       default:
-        fatal_loc("only int/string/boolean types are handled for snmpObj "
-                  "fields", st->loc);
+        fatal_loc("only int/string/boolean/enum types are handled for "
+                  "snmp objects' fields", st->loc);
     }
 }
 

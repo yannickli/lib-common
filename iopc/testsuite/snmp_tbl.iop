@@ -1,5 +1,11 @@
 package snmp_tbl;
 
+enum SomeEnum {
+    STATE1,
+    STATE2,
+    STATE3,
+};
+
 /** Description.
  */
 snmpObj A : 81 : snmp_obj.MySnmp {
@@ -19,4 +25,8 @@ snmpTbl B : 1 : A {
      /** Description.
       */
 3:   int b3;
+
+     /** Description.
+      */
+4:   SomeEnum b4;
 };

@@ -346,8 +346,8 @@ class IopcTest(z.TestCase):
 
     def test_snmp_invalid_type_fields(self):
         self.run_iopc('snmp_invalid_fields.iop', False,
-                      'only int/string/boolean types are handled for snmpObj '
-                      'fields', 4)
+                      'only int/string/boolean/enum types are handled for '
+                      'snmp objects\' fields', 4)
 
     def test_snmp_invalid_brief_field(self):
         self.run_iopc('snmp_invalid_brief_field.iop', False,
@@ -359,8 +359,18 @@ class IopcTest(z.TestCase):
                       'notification `notif` needs a brief that would be used '
                       'as a description in the generated MIB', 4)
 
+    def test_snmp_invalid_struct_type_for_field(self):
+        self.run_iopc('snmp_invalid1.iop', False,
+                      'only int/string/boolean/enum types are handled for '
+                      'snmp objects\' fields', 4)
+
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
+        self.run_iopc_pass(f, 4)
+        self.run_gcc(f)
+
+    def test_snmp_valid_enum(self):
+        f = 'snmp_valid_enum.iop'
         self.run_iopc_pass(f, 4)
         self.run_gcc(f)
 
