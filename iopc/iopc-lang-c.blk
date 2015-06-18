@@ -1974,19 +1974,14 @@ iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
     sb_addf(buf,
             "%s iop_snmp_attrs_t %s__snmp_attrs__s "
             "= {\n", CONST, tbase);
-    if (!is_rpc && !xt_is_snmp_root) {
+    if (!xt_is_snmp_root && !is_rpc) {
         sb_addf(buf,
-                "    .parent       = &%s__%s__s,\n",
+                LVL1 ".parent = &%s__%s__s,\n",
                 pp_under(pkg->name), pp_to_c(st->name));
-    } else
-    if (is_rpc) {
-        sb_addf(buf,
-                "    .iface_parent = &%s__%s__if,\n",
-                pp_under(pkg->name), if_name);
     }
     sb_addf(buf,
-            "    .oid          = %d,\n"
-            "    .type         = %s,\n"
+            LVL1 ".oid          = %d,\n"
+            LVL1 ".type         = %s,\n"
             "};\n", oid, types[kind]);
 }
 
