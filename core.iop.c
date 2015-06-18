@@ -860,6 +860,10 @@ static iop_field_attr_t const core__licence__expiration_date__attrs[] = {
         .type = 9,
         .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[a-zA-Z0-9\\-]*") } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration date\",\"fr\":\"Date d'expiration\"}") } },
+    },
 };
 static const iop_help_t core__licence__expiration_hard_date__f_help = {
     .brief = LSTR_IMMED("Real expiration date of the licence."),
@@ -897,6 +901,10 @@ static iop_field_attr_t const core__licence__expiration_hard_date__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expiration_hard_date__f_help } },
     },
     {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Real expiration date\",\"fr\":\"Date réelle d'expiration\"}") } },
+    },
+    {
         .type = 7,
         .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
     },
@@ -918,6 +926,10 @@ static iop_field_attr_t const core__licence__expiration_warning_delay__attrs[] =
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expiration_warning_delay__f_help } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Delais d'avertissement d'expiration\"}") } },
+    },
 };
 static const iop_help_t core__licence__registered_to__f_help = {
     .brief = LSTR_IMMED("Licencee identification."),
@@ -926,6 +938,10 @@ static iop_field_attr_t const core__licence__registered_to__attrs[] = {
     {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__registered_to__f_help } },
+    },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Registered to\",\"fr\":\"Attribuée à\"}") } },
     },
 };
 static const iop_help_t core__licence__version__f_help = {
@@ -936,6 +952,10 @@ static iop_field_attr_t const core__licence__version__attrs[] = {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__version__f_help } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Version\",\"fr\":\"Version\"}") } },
+    },
 };
 static const iop_help_t core__licence__production_use__f_help = {
     .brief = LSTR_IMMED("If true, the licencee is allowed to use the product for production."),
@@ -944,6 +964,10 @@ static iop_field_attr_t const core__licence__production_use__attrs[] = {
     {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__production_use__f_help } },
+    },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Production use\",\"fr\":\"Usage en production\"}") } },
     },
 };
 static const iop_help_t core__licence__cpu_signatures__f_help = {
@@ -954,6 +978,10 @@ static iop_field_attr_t const core__licence__cpu_signatures__attrs[] = {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__cpu_signatures__f_help } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"CPU signatures\",\"fr\":\"Signatures CPU\"}") } },
+    },
 };
 static const iop_help_t core__licence__mac_addresses__f_help = {
     .brief = LSTR_IMMED("Hardware limitation: MAC Address."),
@@ -962,6 +990,10 @@ static iop_field_attr_t const core__licence__mac_addresses__attrs[] = {
     {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__mac_addresses__f_help } },
+    },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"MAC addresses\",\"fr\":\"Addresses MAC\"}") } },
     },
 };
 static const iop_help_t core__licence__modules__f_help = {
@@ -972,53 +1004,57 @@ static iop_field_attr_t const core__licence__modules__attrs[] = {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__modules__f_help } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Modules\",\"fr\":\"Modules\"}") } },
+    },
 };
 static iop_field_attrs_t const core__licence__desc_fields_attrs[] = {
     {
-        .flags             = 2944,
-        .attrs_len         = 4,
+        .flags             = 35712,
+        .attrs_len         = 5,
         .check_constraints = &core__licence__expiration_date__check,
         .attrs             = core__licence__expiration_date__attrs,
     },
     {
-        .flags             = 2944,
-        .attrs_len         = 4,
+        .flags             = 35712,
+        .attrs_len         = 5,
         .check_constraints = &core__licence__expiration_hard_date__check,
         .attrs             = core__licence__expiration_hard_date__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__expiration_warning_delay__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__registered_to__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__version__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__production_use__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__cpu_signatures__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__mac_addresses__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence__modules__attrs,
     },
 };
