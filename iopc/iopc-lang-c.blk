@@ -1971,7 +1971,7 @@ iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
 static void
 iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
                      const char *tbase, int oid, bool xt_is_snmp_root,
-                     const char *if_name, bool is_rpc, iop_type_t kind)
+                     bool is_rpc, bool is_iface, iop_type_t kind)
 {
     sb_addf(buf,
             "%s iop_snmp_attrs_t %s__snmp_attrs__s "
@@ -1981,24 +1981,15 @@ iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
                 LVL1 ".parent = &%s__%s__s,\n",
                 pp_under(pkg->name), pp_to_c(st->name));
     }
-    sb_addf(buf,
-            LVL1 ".oid          = %d,\n"
-            LVL1 ".type         = %s,\n"
-            "};\n", oid, types[kind]);
+    sb_addf(buf, LVL1 ".oid    = %d,\n", oid);
+
+    if (!is_iface) {
+        sb_addf(buf, LVL1 ".type   = %s,\n", types[kind]);
+    }
+
+    sb_addf(buf, "};\n");
 }
 
-static void
-iopc_dump_if_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
-                        const char *tbase, int oid)
-{
-    sb_addf(buf,
-            "%s iop_snmp_attrs_t %s__snmp_attrs__s "
-            "= {\n"
-            "    .parent       = &%s__%s__s,\n"
-            "    .oid          = %d,\n"
-             "};\n",
-            CONST, tbase, pp_under(pkg->name), pp_to_c(st->name), oid);
-}
 static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                                  sb_t *sb, iopc_attrs_t *attrs,
                                  const iopc_field_t *f)
@@ -2689,7 +2680,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, fbase,
                                      field->field_origin->tag,
                                      xt->is_snmp_root,
-                                     "", false, field->field_origin->kind);
+                                     false, false, field->field_origin->kind);
             }
         } else
         if (iopc_is_snmp_st(st->type)) {
@@ -2699,7 +2690,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
 
                 iopc_dump_snmp_attrs(buf, st, pkg, fbase, field->tag,
-                                     false, "", false, field->kind);
+                                     false, false, false, field->kind);
             }
         }
 
@@ -2809,12 +2800,12 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             if (iopc_is_snmp_st(st->type)) {                                 \
                 iopc_extends_t *xt = st->extends.tab[0];                     \
                 iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, _tbase, st->oid,  \
-                                     xt->is_snmp_root, "", false,            \
+                                     xt->is_snmp_root, false, false,         \
                                      IOP_T_STRUCT);                          \
             }                                                                \
             if (st->contains_snmp_info) {                                    \
                 iopc_dump_snmp_attrs(buf, st, pkg, _tbase, rpc_oid, false,   \
-                                     iface_name, true, IOP_T_STRUCT);        \
+                                     true, false, IOP_T_STRUCT);             \
             }                                                                \
             sb_addf(buf,                                                     \
                     "const iop_struct_t %s__s = {\n"                         \
@@ -3097,7 +3088,8 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (iface->type == IFACE_TYPE_SNMP_IFACE) {
         iopc_extends_t *xt = iface->extends.tab[0];
 
-        iopc_dump_if_snmp_attrs(buf, xt->st, xt->pkg, ibase, iface->oid);
+        iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, ibase, iface->oid, false,
+                             false, true, IOP_T_STRUCT);
     }
 
     iopc_iface_dump_rpc_attrs(buf, iface, ibase);
