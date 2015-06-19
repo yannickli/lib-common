@@ -934,6 +934,9 @@ static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
     char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
 
     sb_addf(buf, "extern iop_snmp_attrs_t const %s__snmp_attrs__s;\n", tbase);
+    if (iopc_is_snmp_tbl(st->type)) {
+        sb_addf(buf, "#define %s__oid  %d\n\n", tbase, field->tag);
+    }
 }
 
 static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
