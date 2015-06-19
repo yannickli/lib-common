@@ -724,8 +724,11 @@ int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st);
  */
 int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st);
 
-const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
-                                                    int oid);
+const iop_snmp_attrs_t *iop_get_snmp_attrs(const iop_field_attrs_t *attrs);
+const iop_snmp_attrs_t *
+iop_get_snmp_attr_match_oid(const iop_struct_t *st, int oid);
+const iop_field_attrs_t *
+iop_get_field_attr_match_oid(const iop_struct_t *st, int tag);
 
 /* }}} */
 /* {{{ IOP class manipulation */

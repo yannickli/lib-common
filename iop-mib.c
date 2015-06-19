@@ -64,20 +64,6 @@ static lstr_t t_get_short_name(const lstr_t fullname, bool down)
     return out;
 }
 
-static const
-iop_snmp_attrs_t *mib_field_get_snmp_attr(const iop_field_attrs_t attrs)
-{
-    for (int i = 0; i < attrs.attrs_len; i++) {
-        if (attrs.attrs[i].type == IOP_FIELD_SNMP_INFO) {
-            iop_field_attr_arg_t const *arg = attrs.attrs[i].args;
-
-            return (iop_snmp_attrs_t*)arg->v.p;
-        }
-    }
-    logger_fatal(&_G.logger,
-                 "all snmpObj fields should have snmp attribute");
-}
-
 static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
 {
     t_SB(buf, 64);
@@ -494,13 +480,13 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
                           const iop_struct_t *st, bool from_tbl)
 {
     t_scope;
-    const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
+    const iop_field_attrs_t *field_attrs = &st->fields_attrs[pos];
     const iop_field_t *field = &st->fields[pos];
     const iop_snmp_attrs_t *snmp_attrs;
     bool is_index = iop_field_is_snmp_index(field);
     const char *access_str;
 
-    snmp_attrs = mib_field_get_snmp_attr(field_attrs);
+    snmp_attrs = iop_get_snmp_attrs(field_attrs);
 
     access_str = iop_struct_is_snmp_param(snmp_attrs->parent) ?
         "accessible-for-notify" : "read-only";
@@ -516,7 +502,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LSTR_FMT_ARG(name),
             LSTR_FMT_ARG(t_get_type_to_lstr(field, false, is_index)),
             is_index ? "not-accessible" : access_str,
-            LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
+            LSTR_FMT_ARG(t_mib_field_get_help(field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             from_tbl ? "Entry" : "",
             snmp_attrs->oid);
