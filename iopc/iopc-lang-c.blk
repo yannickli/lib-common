@@ -845,7 +845,7 @@ iopc_struct_dump_snmp_fields(sb_t *buf, int ident, iopc_field_t **fields,
     }
 }
 
-static void iopc_struct_dump_hdr_class_snmp_obj(sb_t *buf, iopc_struct_t *st)
+static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
 {
     qv_t(iopc_struct) parents;
     qv_t(iopc_pkg)    parents_pkgs;
@@ -900,26 +900,30 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     assert (st->type != STRUCT_TYPE_UNION);
 
     iopc_struct_optimize(st);
-    sb_addf(buf, "struct %s__t {\n", tbase);
 
-    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
-        iopc_struct_dump_hdr_class_snmp_obj(buf, st);
+    if (!iopc_is_snmp_st(st->type)) {
+        sb_addf(buf, "struct %s__t {\n", tbase);
+
+        if (iopc_is_class(st->type)) {
+            iopc_struct_dump_hdr_class(buf, st);
+        }
+
+        if (st->contains_snmp_info) {
+            iopc_struct_dump_snmp_fields(buf, 4, st->fields.tab, st->fields.len);
+        } else {
+            iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
+        }
+
+        sb_adds(buf, "};\n");
     }
-
-    if (st->contains_snmp_info) {
-        iopc_struct_dump_snmp_fields(buf, 4, st->fields.tab, st->fields.len);
-    } else {
-        iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
-    }
-
-    sb_addf(buf, "};\n"
-            "extern iop_struct_t const %s__s;\n",
+    sb_addf(buf, "extern iop_struct_t const %s__s;\n",
             tbase);
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, true);
-    } else {
+    } else
+    if (!iopc_is_snmp_st(st->type)) {
         sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, false);
     }
@@ -1203,10 +1207,15 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             "        .tag       = %d,\n"
             "        .tag_len   = %d,\n"
             "        .repeat    = %s,\n"
-            "        .type      = %s,\n"
-            "        .data_offs = offsetof(%s__t, %s),\n",
+            "        .type      = %s,\n",
             f->name, f->tag, tag_len(f->tag),
-            repeats[f->repeat], types[kind], tbase, cname);
+            repeats[f->repeat], types[kind]);
+
+    if (!iopc_is_snmp_st(st->type)) {
+        sb_addf(buf,
+                "        .data_offs = offsetof(%s__t, %s),\n",
+                tbase, cname);
+    }
 
     if (f->is_ref) {
         SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);
@@ -1285,7 +1294,8 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
         sb_addf(buf,
                 "        .size      = fieldsizeof(%s__t, %s.tab[0]),\n",
                 tbase, cname);
-    } else {
+    } else
+    if (!iopc_is_snmp_st(st->type)) {
         sb_addf(buf,
                 "        .size      = fieldsizeof(%s__t, %s),\n",
                 tbase, cname);
@@ -2824,11 +2834,13 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     "    .fields     = %s__desc_fields,\n"                   \
                     "    .ranges     = iop__ranges__%d,\n"                   \
                     "    .ranges_len = countof(iop__ranges__%d) / 2,\n"      \
-                    "    .fields_len = countof(%s__desc_fields),\n"          \
-                    "    .size       = sizeof(%s__t),\n",                    \
+                    "    .fields_len = countof(%s__desc_fields),\n",         \
                     _tbase, pretty_path_dot(pkg->name),                      \
-                    _sname, as_base, range, range, as_base, tbase);          \
+                    _sname, as_base, range, range, as_base);                 \
                                                                              \
+            if (!iopc_is_snmp_st(st->type)) {                                \
+                sb_addf(buf, "    .size       = sizeof(%s__t),\n", tbase);   \
+            }                                                                \
             iopc_put_struct_fields(buf, st, tbase, has_attrs, as_base);      \
             sb_adds(buf, "};\n");                                            \
                                                                              \
