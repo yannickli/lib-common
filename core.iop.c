@@ -714,6 +714,10 @@ static iop_field_attr_t const core__licence_module__expiration_date__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence_module__expiration_date__f_help } },
     },
     {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration date\",\"fr\":\"Date d'expiration\"}") } },
+    },
+    {
         .type = 7,
         .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
     },
@@ -735,17 +739,21 @@ static iop_field_attr_t const core__licence_module__expiration_warning_delay__at
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence_module__expiration_warning_delay__f_help } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Délais d'avertissement d'expiration\"}") } },
+    },
 };
 static iop_field_attrs_t const core__licence_module__desc_fields_attrs[] = {
     {
-        .flags             = 2944,
-        .attrs_len         = 4,
+        .flags             = 35712,
+        .attrs_len         = 5,
         .check_constraints = &core__licence_module__expiration_date__check,
         .attrs             = core__licence_module__expiration_date__attrs,
     },
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 34816,
+        .attrs_len         = 2,
         .attrs             = core__licence_module__expiration_warning_delay__attrs,
     },
 };
