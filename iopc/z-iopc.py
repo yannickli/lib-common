@@ -364,6 +364,10 @@ class IopcTest(z.TestCase):
                       'only int/string/boolean/enum types are handled for '
                       'snmp objects\' fields', 4)
 
+    def test_snmp_invalid_snmp_obj_type_for_field(self):
+        self.run_iopc('snmp_invalid2.iop', False,
+                      'snmp objects cannot be used to define a field type', 4)
+
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
         self.run_iopc_pass(f, 4)

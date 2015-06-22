@@ -39,11 +39,17 @@ pkg_provides_iface(iopc_pkg_t *pkg, const char *type, bool visible)
 }
 
 static iopc_struct_t *
-pkg_provides_struct(iopc_pkg_t *pkg, const char *type, bool visible)
+pkg_provides_struct(iopc_pkg_t *pkg, const char *type, bool visible,
+                    bool checking_field)
 {
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        if ((st->is_visible || !visible) && strequal(st->name, type))
+        if ((st->is_visible || !visible) && strequal(st->name, type)) {
+            if (checking_field && iopc_is_snmp_st(st->type)) {
+                fatal_loc("snmp objects cannot be used to define a field type"
+                          , st->loc);
+            }
             return st;
+        }
     }
     return NULL;
 }
@@ -252,7 +258,7 @@ static int iopc_find_type_in_pkg(iopc_pkg_t *pkg, iopc_field_t *f,
     iopc_enum_t   *en;
     iopc_field_t  *tdef;
 
-    if ((st = pkg_provides_struct(pkg, name, visible))) {
+    if ((st = pkg_provides_struct(pkg, name, visible, true))) {
         if (!f->type_pkg) {
             f->type_pkg = pkg;
         }
@@ -452,7 +458,7 @@ resolve_pkg_parent_and_params(iopc_extends_t *xt, iopc_pkg_t *pkg,
     if (xt->is_snmp_root) {
         return;
     }
-    if (!(st = pkg_provides_struct(xt->pkg, xt->name, true))) {
+    if (!(st = pkg_provides_struct(xt->pkg, xt->name, true, false))) {
         fatal_loc("pkg `%s` does not provide %s `%s` when resolving %s of "
                   "%s `%s`", xt->loc, pretty_path_dot(xt->pkg->name),
                   iopc_struct_type_to_str(type), xt->name, action,
