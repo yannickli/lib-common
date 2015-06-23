@@ -71,7 +71,7 @@ iop_snmp_attrs_t *mib_field_get_snmp_attr(const iop_field_attrs_t attrs)
                  "all snmpObj fields should contain at least a brief");
 }
 
-static lstr_t t_split_on_str(lstr_t name, const char *letter)
+static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
 {
     t_SB(buf, 64);
     qv_t(lstr) parts;
@@ -87,6 +87,11 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter)
     }
 
     qv_for_each_pos(lstr, i, &parts) {
+        if (enums) {
+            for (int j = i != 0; j < parts.tab[i].len; j++) {
+                parts.tab[i].v[j] = tolower(parts.tab[i].v[j]);
+            }
+        } else
         if (i < parts.len -1) {
             parts.tab[i] = t_lstr_cat(parts.tab[i], LSTR("\'"));
         }
@@ -96,9 +101,24 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter)
     return lstr_init_(buf.data, buf.len, MEM_STACK);
 }
 
-static lstr_t get_type_to_lstr(iop_type_t type, bool from_tbl)
+static lstr_t t_mib_put_enum(const iop_enum_t *en)
 {
-    switch (type) {
+    SB_1k(names);
+
+    sb_add_lstr(&names, LSTR("INTEGER {"));
+    for (int i = 0; i < en->enum_len; i++) {
+        lstr_t next = i < en->enum_len -1 ? LSTR(",") : LSTR(" }");
+
+        sb_addf(&names, " %*pM(%d)%*pM",
+                LSTR_FMT_ARG(t_split_on_str(en->names[i], "_", true)), i,
+                LSTR_FMT_ARG(next));
+    }
+    return t_lstr_fmt("%*pM", SB_FMT_ARG(&names));
+}
+
+static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool from_tbl)
+{
+    switch (field->type) {
       case IOP_T_STRING:
         return LSTR("OCTET STRING");
       case IOP_T_I8:
@@ -108,6 +128,10 @@ static lstr_t get_type_to_lstr(iop_type_t type, bool from_tbl)
                         : LSTR("Integer32 (1..2147483647)");
       case IOP_T_BOOL:
         return LSTR("BOOLEAN");
+
+      case IOP_T_ENUM:
+        return t_mib_put_enum(field->u1.en_desc);
+
       default:
         logger_fatal(&_G.logger, "type not handled");
     }
@@ -123,7 +147,7 @@ static lstr_t get_type_to_lstr(iop_type_t type, bool from_tbl)
                                                                              \
                 descri = t_lstr_cat3(help->brief, help->details,             \
                                      help->warning);                         \
-                return t_split_on_str(descri, "\"");                         \
+                return t_split_on_str(descri, "\"", false);                  \
             }                                                                \
         }                                                                    \
         logger_fatal(&_G.logger, "each %s needs a description", _name);      \
@@ -378,7 +402,7 @@ static void mib_put_tbl_entries(const iop_struct_t *st, lstr_t name_down,
 
         sb_addf(buf, LVL1 "%*pM %*pM,\n",
                 LSTR_FMT_ARG(field.name),
-                LSTR_FMT_ARG(get_type_to_lstr(field.type, true)));
+                LSTR_FMT_ARG(t_get_type_to_lstr(&field, true)));
     }
     sb_addf(buf, LVL1 "%*pMIndex Integer32\n}\n", LSTR_FMT_ARG(name_down));
 }
@@ -394,7 +418,7 @@ static void mib_put_snmp_tbl(const iop_struct_t *st, sb_t *buf)
     assert(iop_struct_is_snmp_tbl(st));
     snmp_attrs = st->snmp_attrs;
 
-    help = t_split_on_str(help, "\'");
+    help = t_split_on_str(help, "\'", false);
 
     sb_addf(buf,
             "\n%*pMTable OBJECT-TYPE\n"
@@ -446,6 +470,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
 {
     t_scope;
     const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
+    const iop_field_t *field = &st->fields[pos];
     const iop_snmp_attrs_t *snmp_attrs;
 
     snmp_attrs = mib_field_get_snmp_attr(field_attrs);
@@ -458,7 +483,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LVL2 "\"%*pM\"\n"
             LVL1 "::= { %*pM%s %d }\n",
             LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(get_type_to_lstr(snmp_attrs->type, from_tbl)),
+            LSTR_FMT_ARG(t_get_type_to_lstr(field, from_tbl)),
             LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             from_tbl ? "Entry" : "",
