@@ -311,7 +311,8 @@
        __x - (__x & (__y - 1));                        \
     })
 
-#define NEXTARG(argc, argv)  (argc--, *argv++)
+#define NEXTARG(argc, argv)  (assert (argc), argc--, *argv++)
+#define NEXTOPTARG(argc, argv)  ((argc) ? NEXTARG(argc, argv) : NULL)
 
 /** RETHROW macros.
  *
