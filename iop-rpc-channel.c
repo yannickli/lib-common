@@ -986,16 +986,15 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 
     if (value) {
         if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
-            if (logger_is_traced(&_G.logger, 0)) {
-                const char *err = iop_get_err();
+            const char *err = iop_get_err();
 
-                if (err) {
-                    logger_warning(&_G.logger, QUERY_FMT "%s",
-                                   QUERY_FMT_ARG, err);
-                } else {
-                    logger_warning(&_G.logger, QUERY_FMT "invalid encoding",
-                                   QUERY_FMT_ARG);
-                }
+            if (err) {
+                /* Constraints violation */
+                logger_trace(&_G.logger, 0, QUERY_FMT "%s",
+                             QUERY_FMT_ARG, err);
+            } else {
+                logger_warning(&_G.logger, QUERY_FMT "invalid encoding",
+                               QUERY_FMT_ARG);
             }
             return -1;
         }
@@ -1193,7 +1192,10 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         lstr_t err_str = iop_get_err_lstr();
         ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
     }
-    ic_bye(ic);
+    if (!iop_get_err()) {
+        /* Close connection unless we just had a constraint violation */
+        ic_bye(ic);
+    }
 }
 
 /* Check flag consistency.
