@@ -16,7 +16,12 @@
 
 #define IOPC_MAJOR   4
 #define IOPC_MINOR   0
-#define IOPC_PATCH   1
+#define IOPC_PATCH   2
+
+#define SNMP_OBJ_OID_MIN 1
+#define SNMP_OBJ_OID_MAX 0xFFFF
+#define SNMP_IFACE_OID_MIN 0
+#define SNMP_IFACE_OID_MAX 0xFFFF
 
 #include <lib-common/container.h>
 #include <lib-common/iop.h>
@@ -328,6 +333,8 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_ALLOW,
     IOPC_ATTR_DISALLOW,
     IOPC_ATTR_GENERIC,
+    IOPC_ATTR_DEPRECATED,
+    IOPC_ATTR_SNMP_PARAMS_FROM,
 } iopc_attr_id_t;
 
 /* types on which an attribute can apply */
@@ -347,6 +354,10 @@ typedef enum iopc_attr_type_t {
     IOPC_ATTR_T_RPC,
     IOPC_ATTR_T_IFACE,
     IOPC_ATTR_T_MOD,
+    /* snmp */
+    IOPC_ATTR_T_SNMP_OBJ,
+    IOPC_ATTR_T_SNMP_IFACE,
+    IOPC_ATTR_T_SNMP_TBL,
 } iopc_attr_type_t;
 
 #define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, IOPC_ATTR_T_STRUCT)
@@ -468,6 +479,19 @@ GENERIC_NEW(iopc_arg_t, iopc_arg);
 GENERIC_DELETE(iopc_arg_t, iopc_arg);
 qvector_t(iopc_arg, iopc_arg_t);
 
+typedef struct iopc_extends_t {
+    flag_t     is_snmp_root : 1;
+    iopc_loc_t loc;
+    iopc_path_t *path;
+    iopc_pkg_t  *pkg;
+    char *name;
+    struct iopc_struct_t *st;
+} iopc_extends_t;
+GENERIC_NEW_INIT(iopc_extends_t, iopc_extends);
+static inline void iopc_extends_wipe(iopc_extends_t *extends);
+GENERIC_DELETE(iopc_extends_t, iopc_extends);
+qvector_t(iopc_extends, iopc_extends_t *);
+
 typedef struct iopc_attr_t {
     int                  refcnt;
     iopc_loc_t           loc;
@@ -476,16 +500,21 @@ typedef struct iopc_attr_t {
 
     /* Used only for generic attributes */
     lstr_t               real_name;
+
+    /* Used only for snmp_params_from attributes */
+    qv_t(iopc_extends)   snmp_params_from;
 } iopc_attr_t;
 
 static inline iopc_attr_t *iopc_attr_init(iopc_attr_t *a) {
     p_clear(a, 1);
     qv_init(iopc_arg, &a->args);
+    qv_init(iopc_extends, &a->snmp_params_from);
     return a;
 }
 static inline void iopc_attr_wipe(iopc_attr_t *a) {
     lstr_wipe(&a->real_name);
     qv_deep_wipe(iopc_arg, &a->args, iopc_arg_wipe);
+    qv_deep_wipe(iopc_extends, &a->snmp_params_from, iopc_extends_delete);
 }
 DO_REFCNT(iopc_attr_t, iopc_attr);
 qvector_t(iopc_attr, iopc_attr_t *);
@@ -497,11 +526,49 @@ iopc_attr_check(const qv_t(iopc_attr) *, iopc_attr_id_t,
 int t_iopc_attr_check_prefix(const qv_t(iopc_attr) *, lstr_t *out);
 
 typedef enum iopc_struct_type_t {
-    STRUCT_TYPE_STRUCT  = 0,
-    STRUCT_TYPE_CLASS   = 1,
-    STRUCT_TYPE_UNION   = 2,
-    STRUCT_TYPE_TYPEDEF = 3,
+    STRUCT_TYPE_STRUCT   = 0,
+    STRUCT_TYPE_CLASS    = 1,
+    STRUCT_TYPE_UNION    = 2,
+    STRUCT_TYPE_TYPEDEF  = 3,
+    STRUCT_TYPE_SNMP_OBJ = 4,
+    STRUCT_TYPE_SNMP_TBL = 5,
 } iopc_struct_type_t;
+
+static inline bool iopc_is_class(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_CLASS;
+}
+static inline bool iopc_is_snmp_obj(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_SNMP_OBJ;
+}
+static inline bool iopc_is_snmp_tbl(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_SNMP_TBL;
+}
+static inline bool iopc_is_snmp_st(iopc_struct_type_t type)
+{
+    return type == STRUCT_TYPE_SNMP_TBL || type == STRUCT_TYPE_SNMP_OBJ;
+}
+static inline const char *iopc_struct_type_to_str(iopc_struct_type_t type)
+{
+    switch (type) {
+      case STRUCT_TYPE_CLASS:
+        return "class";
+      case STRUCT_TYPE_SNMP_OBJ:
+        return "snmpObj";
+      case STRUCT_TYPE_UNION:
+        return "union";
+      case STRUCT_TYPE_TYPEDEF:
+        return "typedef";
+      case STRUCT_TYPE_STRUCT:
+        return "struct";
+      case STRUCT_TYPE_SNMP_TBL:
+        return "snmpTbl";
+      default:
+        e_panic("type not handled");
+    }
+}
 
 typedef enum iopc_defval_t {
     IOPC_DEFVAL_NONE,
@@ -509,6 +576,16 @@ typedef enum iopc_defval_t {
     IOPC_DEFVAL_INTEGER,
     IOPC_DEFVAL_DOUBLE,
 } iopc_defval_t;
+
+typedef enum iopc_iface_type_t {
+    IFACE_TYPE_IFACE        = 0,
+    IFACE_TYPE_SNMP_IFACE   = 1,
+} iopc_iface_type_t;
+
+static inline bool iopc_is_snmp_iface(iopc_iface_type_t type)
+{
+    return type == IFACE_TYPE_SNMP_IFACE;
+}
 
 typedef struct iopc_field_t {
     int        refcnt;
@@ -534,6 +611,9 @@ typedef struct iopc_field_t {
     flag_t resolving  : 1;
     flag_t is_static  : 1;
     flag_t is_ref     : 1;
+    /* In case the field is contained by a snmpIface rpc struct', it
+     * references another snmpObj field */
+    flag_t snmp_is_from_param : 1;
 
     /** kind of the resolved type */
     iop_type_t kind;
@@ -555,12 +635,17 @@ typedef struct iopc_field_t {
 
     qv_t(iopc_attr) attrs;
     qv_t(iopc_dox)  comments;
+
+    /* In case the field is contained by a snmpIface rpc struct' */
+    struct iopc_field_t *field_origin; /* the reference field */
+    qv_t(iopc_extends) parents;
 } iopc_field_t;
 static inline iopc_field_t *iopc_field_init(iopc_field_t *field) {
     p_clear(field, 1);
     field->type = STRUCT_TYPE_TYPEDEF;
     qv_init(iopc_attr, &field->attrs);
     qv_init(iopc_dox, &field->comments);
+    qv_init(iopc_extends, &field->parents);
     return field;
 }
 static inline void iopc_field_wipe(iopc_field_t *field) {
@@ -573,6 +658,7 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     if (field->defval_type == IOPC_DEFVAL_STRING) {
         p_delete(&field->defval.ptr);
     }
+    qv_deep_wipe(iopc_extends, &field->parents, iopc_extends_delete);
 }
 DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
@@ -596,17 +682,6 @@ static inline void iopc_attrs_wipe(iopc_attrs_t *attrs)
     lstr_wipe(&attrs->checkf_name);
 }
 
-typedef struct iopc_extends_t {
-    iopc_loc_t loc;
-    iopc_path_t *path;
-    iopc_pkg_t  *pkg;
-    char *name;
-    struct iopc_struct_t *st;
-} iopc_extends_t;
-GENERIC_NEW_INIT(iopc_extends_t, iopc_extends);
-static inline void iopc_extends_wipe(iopc_extends_t *extends);
-GENERIC_DELETE(iopc_extends_t, iopc_extends);
-qvector_t(iopc_extends, iopc_extends_t *);
 
 /* Used to detect duplicated ids in an inheritance tree */
 qm_k32_t(id_class, struct iopc_struct_t *);
@@ -627,11 +702,18 @@ typedef struct iopc_struct_t {
     flag_t     has_fields_attrs     : 1;    /**< st.fields_attrs existence  */
     flag_t     is_abstract          : 1;
     flag_t     is_local             : 1;
+    /* struct has snmpParams attribute */
+    flag_t     is_snmp_params       : 1;
+    /* struct is a snmpIface rpc' struct */
+    flag_t     contains_snmp_info : 1;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;
     lstr_t     sig;
-    int        class_id;
+    union {
+        int    class_id;
+        int    oid;
+    };
     struct iopc_struct_t *same_as;
     struct iopc_iface_t  *iface;
     qv_t(iopc_field)   fields;
@@ -785,18 +867,25 @@ typedef struct iopc_iface_t {
     qv_t(iopc_fun)  funs;
     qv_t(iopc_attr) attrs;
     qv_t(iopc_dox)  comments;
+
+    /* Used only for snmpIface*/
+    iopc_iface_type_t type;
+    int oid;
+    qv_t(iopc_extends) extends;
 } iopc_iface_t;
 static inline iopc_iface_t *iopc_iface_init(iopc_iface_t *iface) {
     p_clear(iface, 1);
     qv_init(iopc_fun, &iface->funs);
     qv_init(iopc_attr, &iface->attrs);
     qv_init(iopc_dox, &iface->comments);
+    qv_init(iopc_extends, &iface->extends);
     return iface;
 }
 static inline void iopc_iface_wipe(iopc_iface_t *iface) {
     qv_deep_wipe(iopc_fun, &iface->funs, iopc_fun_delete);
     qv_deep_wipe(iopc_attr, &iface->attrs, iopc_attr_delete);
     qv_deep_wipe(iopc_dox, &iface->comments, iopc_dox_wipe);
+    qv_deep_wipe(iopc_extends, &iface->extends, iopc_extends_delete);
     p_delete(&iface->name);
 }
 GENERIC_NEW(iopc_iface_t, iopc_iface);

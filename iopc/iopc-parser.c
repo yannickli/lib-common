@@ -144,6 +144,9 @@ static const char *type_to_str(iopc_attr_type_t type)
       case IOPC_ATTR_T_RPC:     return "rpc";
       case IOPC_ATTR_T_IFACE:   return "interface";
       case IOPC_ATTR_T_MOD:     return "module";
+      case IOPC_ATTR_T_SNMP_IFACE:  return "snmpIface";
+      case IOPC_ATTR_T_SNMP_OBJ:    return "snmpObj";
+      case IOPC_ATTR_T_SNMP_TBL:    return "snmpTbl";
       default:                  fatal("invalid type %d", type);
     }
 }
@@ -506,6 +509,20 @@ static void init_attributes(void)
     SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "", ITOK_STRING);
+
+    d = add_attr(IOPC_ATTR_DEPRECATED, "deprecated");
+    d->flags |= IOPC_ATTR_F_FIELD_ALL;
+    d->types |= IOPC_ATTR_T_ALL;
+    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_TBL);
+
+    d = add_attr(IOPC_ATTR_SNMP_PARAMS_FROM, "snmpParamsFrom");
+    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
+    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
+    ADD_ATTR_ARG(d, "param", ITOK_IDENT);
 #undef ADD_ATTR_ARG
 }
 
@@ -1557,11 +1574,37 @@ static void parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
     *name = iopc_upper_ident(pp);
 }
 
+static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
+{
+    switch(kind) {
+      case IOP_T_STRUCT:
+      case IOP_T_STRING:
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_BOOL:
+        return;
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      default:
+        fatal_loc("only int/string/boolean/enum types are handled for "
+                  "snmp objects' fields", st->loc);
+    }
+}
+
 static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
                              iopc_field_t *f)
 {
     WANT(pp, 0, ITOK_IDENT);
     f->kind = get_type_kind(TK(pp, 0));
+
+    /* in case of snmpObj structure, some field type are not handled */
+    if (st && iopc_is_snmp_st(st->type)) {
+        check_snmp_obj_field_type(st, f->kind);
+    }
     if (f->kind == IOP_T_STRUCT) {
         parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
     } else {
@@ -1645,7 +1688,7 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 static iopc_field_t *
 parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
                  qm_t(field) *fields, qv_t(i32) *tags, int *next_tag,
-                 int paren)
+                 int paren, bool is_snmp_iface)
 {
     iopc_loc_t    name_loc;
     iopc_field_t *f = NULL;
@@ -1656,7 +1699,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     f->loc = TK(pp, 0)->loc;
 
     if (SKIP_KW(pp, "static")) {
-        if (st->type != STRUCT_TYPE_CLASS) {
+        if (!iopc_is_class(st->type)) {
             fatal_loc("static keyword is only authorized for class fields",
                       f->loc);
         }
@@ -1686,7 +1729,14 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
     }
 
-    parse_field_type(pp, st, f);
+    /* If the field is contained by a snmpIface rpc struct, it will have no
+     * type (so no need to parse the type), and the flag snmp_is_from_param
+     * needs to be set at true */
+    if (is_snmp_iface) {
+        f->snmp_is_from_param = true;
+    } else {
+        parse_field_type(pp, st, f);
+    }
 
     WANT(pp, 0, ITOK_IDENT);
     f->name = dup_ident(TK(pp, 0));
@@ -1746,8 +1796,20 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     return f;
 }
 
+static void check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
+                             char *name, const char *type)
+{
+    qv_for_each_pos(iopc_dox, pos, &comments) {
+        if (comments.tab[pos].type == IOPC_DOX_TYPE_BRIEF) {
+            return;
+        }
+    }
+    fatal_loc("%s `%s` needs a brief that would be used as a "
+              "description in the generated MIB", loc, type, name);
+}
+
 static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
-                         int paren)
+                         int paren, bool is_snmp_iface)
 {
     qm_t(field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
@@ -1766,7 +1828,7 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
 
         check_dox_and_attrs(pp, &chunks, &attrs);
         f = parse_field_stmt(pp, st, &attrs, &fields, &tags, &next_tag,
-                             paren);
+                             paren, is_snmp_iface);
         if (f) {
             if (!previous_static && f->is_static) {
                 if (iopc_g.v4) {
@@ -1782,6 +1844,11 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
             f->pos = next_pos++;
             read_dox_back(pp, &chunks, sep);
             build_dox_check_all(&chunks, f);
+
+            if (iopc_is_snmp_st(st->type)) {
+                check_snmp_brief(f->comments, f->loc, f->name, "field");
+            }
+
         }
         if (CHECK(pp, 0, paren))
             break;
@@ -1795,22 +1862,104 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
 }
 
 static void
-check_class_id_range(iopc_parser_t *pp, int class_id, int min, int max)
+check_class_or_snmp_obj_id_range(iopc_parser_t *pp, int struct_id,
+                                 int min, int max)
 {
-    if (class_id < min) {
+    if (struct_id < min) {
         fatal_loc("id is too small (must be >= %d, got %d)",
-                  TK(pp, 0)->loc, min, class_id);
+                  TK(pp, 0)->loc, min, struct_id);
     }
-    if (class_id > max) {
+    if (struct_id > max) {
         fatal_loc("id is too large (must be <= %d, got %d)",
-                  TK(pp, 0)->loc, max, class_id);
+                  TK(pp, 0)->loc, max, struct_id);
+    }
+}
+
+static void parse_check_class_snmp(iopc_parser_t *pp, bool is_class)
+{
+    if (!iopc_g.v2 && is_class) {
+        fatal_loc("inheritance forbidden (use -2 parameter)",
+                  TK(pp, 0)->loc);
+    } else
+    if (!iopc_g.v4 && !is_class) {
+            fatal_loc("use of snmp forbidden (use -4 parameter)",
+                      TK(pp, 0)->loc);
+    }
+}
+
+static void parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
+                                    bool is_main_pkg)
+{
+    iopc_token_t *tk;
+    bool is_class = iopc_is_class(st->type);
+
+    assert (is_class || iopc_is_snmp_st(st->type));
+
+    parse_check_class_snmp(pp, is_class);
+
+    /* Parse struct id; This is optional for a struct without parent, and
+     * in this case default is 0. */
+    if (SKIP(pp, ':')) {
+        int id, pkg_min, pkg_max, global_min;
+
+        WANT(pp, 0, ITOK_INTEGER);
+        tk = TK(pp, 0);
+        st->class_id = tk->i; /* so st->snmp_obj_id is also set to tk->i */
+
+        if (is_class) {
+            id = st->class_id;
+            pkg_min = iopc_g.class_id_min;
+            pkg_max = iopc_g.class_id_max;
+            global_min = 0;
+        } else {
+            id = st->oid;
+            pkg_min = SNMP_OBJ_OID_MIN;
+            pkg_max = SNMP_OBJ_OID_MAX;
+            global_min = 1;
+        }
+
+        if (is_main_pkg) {
+            check_class_or_snmp_obj_id_range(pp, id, pkg_min, pkg_max);
+        } else {
+            check_class_or_snmp_obj_id_range(pp, id, global_min, 0xFFFF);
+        }
+
+        DROP(pp, 1);
+
+        /* Parse parent */
+        if (SKIP(pp, ':')) {
+            iopc_extends_t *xt = iopc_extends_new();
+
+            xt->loc = TK(pp, 0)->loc;
+            parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
+            iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
+
+            /* Check if snmpObj parent is Intersec */
+            xt->is_snmp_root = strequal(xt->name, "Intersec");
+
+            qv_append(iopc_extends, &st->extends, xt);
+
+            if (SKIP(pp, ',')) {
+                fatal_loc("multiple inheritance is not supported",
+                          TK(pp, 0)->loc);
+            }
+        } else
+        if (iopc_is_snmp_st(st->type)) {
+            fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+                      iopc_struct_type_to_str(st->type), st->name);
+        }
+    } else
+    if (iopc_is_snmp_st(st->type)) {
+        fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+                  iopc_struct_type_to_str(st->type), st->name);
     }
 }
 
 static iopc_struct_t *
-parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
-                                    iopc_struct_type_t type, bool is_abstract,
-                                    bool is_local, bool is_main_pkg)
+parse_struct_class_union_snmp_stmt(iopc_parser_t *pp,
+                                   iopc_struct_type_t type,
+                                   bool is_abstract, bool is_local,
+                                   bool is_main_pkg)
 {
     iopc_struct_t *st = iopc_struct_new();
 
@@ -1821,45 +1970,11 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
     st->is_abstract = is_abstract;
     st->is_local = is_local;
 
-    if (st->type == STRUCT_TYPE_CLASS) {
-        iopc_token_t *tk;
+    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
+        parse_handle_class_snmp(pp, st, is_main_pkg);
+    }
 
-        if (!iopc_g.v2) {
-            fatal_loc("inheritance forbidden (use -2 parameter)",
-                      TK(pp, 0)->loc);
-        }
-
-        /* Parse class id; This is optional for a class without parent, and
-         * in this case default is 0. */
-        if (SKIP(pp, ':')) {
-            WANT(pp, 0, ITOK_INTEGER);
-            tk = TK(pp, 0);
-            st->class_id = tk->i;
-            if (is_main_pkg) {
-                check_class_id_range(pp, st->class_id, iopc_g.class_id_min,
-                                     iopc_g.class_id_max);
-            } else {
-                check_class_id_range(pp, st->class_id, 0, 0xFFFF);
-            }
-            DROP(pp, 1);
-
-            /* Parse parent */
-            if (SKIP(pp, ':')) {
-                iopc_extends_t *xt = iopc_extends_new();
-
-                xt->loc  = TK(pp, 0)->loc;
-                parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
-                iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
-
-                qv_append(iopc_extends, &st->extends, xt);
-
-                if (SKIP(pp, ',')) {
-                    fatal_loc("multiple inheritance is not supported",
-                              TK(pp, 0)->loc);
-                }
-            }
-        }
-    } else {
+    if (!iopc_is_class(st->type)) {
         if (is_abstract) {
             fatal_loc("only classes can be abstract", TK(pp, 0)->loc);
         }
@@ -1869,7 +1984,7 @@ parse_struct_or_class_or_union_stmt(iopc_parser_t *pp,
     }
 
     EAT(pp, '{');
-    parse_struct(pp, st, ';', '}');
+    parse_struct(pp, st, ';', '}', false);
     EAT(pp, '}');
     EAT(pp, ';');
     return st;
@@ -1996,7 +2111,8 @@ enum {
 };
 
 static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
-                                qv_t(dox_chunk) *chunks)
+                                qv_t(dox_chunk) *chunks,
+                                iopc_iface_type_t iface_type)
 {
     static char const * const type_names[] = { "Args", "Res", "Exn", };
     static char const * const tokens[]     = { "in",   "out", "throw", };
@@ -2004,6 +2120,7 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
     const char *token = tokens[what];
     iopc_struct_t **sptr;
     iopc_field_t  **fptr;
+    bool is_snmp_iface = iopc_is_snmp_iface(iface_type);
 
     read_dox_front(pp, chunks);
 
@@ -2013,6 +2130,9 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
 
     if (fun->fun_is_async && (what == IOP_F_EXN))
         fatal_loc("async functions cannot throw", TK(pp, 0)->loc);
+    if (is_snmp_iface && (what == IOP_F_EXN || what == IOP_F_RES)) {
+        fatal_loc("snmpIface cannot out and/or throw", TK(pp, 0)->loc);
+    }
 
     DROP(pp, 1);
     if (SKIP(pp, '(')) {
@@ -2036,16 +2156,28 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
         *sptr = iopc_struct_new();
         (*sptr)->name = asprintf("%s%s", fun->name, type_name);
         (*sptr)->loc = TK(pp, 0)->loc;
-        parse_struct(pp, *sptr, ',', ')');
+        parse_struct(pp, *sptr, ',', ')', is_snmp_iface);
         EAT(pp, ')');
         read_dox_back(pp, chunks, 0);
         build_dox_check_all(chunks, *sptr);
     } else                          /* fname in void ... */
     if (CHECK_KW(pp, 0, "void")) {
+        if (is_snmp_iface) {
+            fatal_loc("void is not supported by snmpIface RPCs",
+                      TK(pp, 0)->loc);
+        }
         DROP(pp, 1);
+    } else
+    if (is_snmp_iface && SKIP_KW(pp, "null")) {
+        fatal_loc("null is not supported by snmpIface RPCs",
+                  TK(pp, 0)->loc);
     } else
     if ((what == IOP_F_RES) && SKIP_KW(pp, "null")) {
         fun->fun_is_async = true;
+    } else
+    if (is_snmp_iface) {
+        fatal_loc("snmpIface RPC argument must be anonymous. example "
+                  "`in (a, b, c);`", TK(pp, 0)->loc);
     } else {                        /* fname in Type ... */
         iop_type_t type = get_type_kind(TK(pp, 0));
         iopc_field_t *f;
@@ -2090,7 +2222,8 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
 
 static iopc_fun_t *
 parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
-                    qv_t(i32) *tags, int *next_tag)
+                    qv_t(i32) *tags, int *next_tag,
+                    iopc_iface_type_t type)
 {
     iopc_fun_t *fun = NULL;
     iopc_token_t *tk;
@@ -2128,15 +2261,20 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     read_dox_back(pp, &fun_chunks, 0);
 
     qv_init(dox_chunk, &arg_chunks);
-    parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks);
+
+    /* Parse function desc */
+    parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks, type);
 
     /* XXX we use & to execute both function calls */
-    if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks))
-    &   (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks)))
+    if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks, type))
+     &  (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks, type)))
     {
-        info_loc("function %s may be a candidate for async-ness",
-                 fun->loc, fun->name);
+        if (!iopc_is_snmp_iface(type)) {
+            info_loc("function %s may be a candidate for async-ness",
+                     fun->loc, fun->name);
+        }
     }
+
     qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
 
     EAT(pp, ';');
@@ -2149,11 +2287,60 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     qv_append(i32, tags, tag);
 
     build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
+    if (iopc_is_snmp_iface(type)) {
+        check_snmp_brief(fun->comments, fun->loc, fun->name, "notification");
+    }
+
     qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
     return fun;
 }
 
-static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
+static void parse_snmp_iface_parent(iopc_parser_t *pp, iopc_iface_t *iface,
+                                    bool is_main_pkg)
+{
+   iopc_token_t *tk;
+
+    /* Check OID */
+    if (SKIP(pp, ':')) {
+        WANT(pp, 0, ITOK_INTEGER);
+        tk = TK (pp, 0);
+
+        iface->oid = tk->i;
+
+        if (is_main_pkg) {
+            check_class_or_snmp_obj_id_range(pp, iface->oid,
+                                             SNMP_IFACE_OID_MIN,
+                                             SNMP_IFACE_OID_MAX);
+        } else {
+            check_class_or_snmp_obj_id_range(pp, iface->oid,
+                                             0, 0xFFFF);
+        }
+        DROP(pp, 1);
+    }
+
+    /* Parse parent */
+    if (SKIP(pp, ':')) {
+        iopc_extends_t *xt = iopc_extends_new();
+
+        xt->loc = TK(pp, 0)->loc;
+        parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
+        iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
+
+        qv_append(iopc_extends, &iface->extends, xt);
+
+        if (SKIP(pp, ',')) {
+            fatal_loc("multiple inheritance is not supported",
+                      TK(pp, 0)->loc);
+        }
+    } else {
+        fatal_loc("snmpIface `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+                  iface->name);
+    }
+}
+
+static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
+                                      iopc_iface_type_t type,
+                                      const char *name, bool is_main_pkg)
 {
     qm_t(fun) funs = QM_INIT_CACHED(fun, funs);
     qv_t(i32) tags;
@@ -2162,9 +2349,15 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
     iopc_iface_t *iface = iopc_iface_new();
 
     iface->loc = TK(pp, 0)->loc;
+    iface->type = type;
 
-    EAT_KW(pp, "interface");
+    EAT_KW(pp, name);
     iface->name = iopc_upper_ident(pp);
+
+    if (iopc_is_snmp_iface(type)) {
+        parse_snmp_iface_parent(pp, iface, is_main_pkg);
+    }
+
     EAT(pp, '{');
 
     qv_inita(i32, &tags, 1024);
@@ -2173,7 +2366,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp)
     while (!CHECK_NOEOF(pp, 0, '}')) {
         iopc_fun_t *fun;
 
-        fun = parse_function_stmt(pp, &attrs, &tags, &next_tag);
+        fun = parse_function_stmt(pp, &attrs, &tags, &next_tag, iface->type);
         if (!fun) {
             continue;
         }
@@ -2479,6 +2672,68 @@ static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     return new_name;
 }
 
+static void parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
+                                   iopc_path_t **path, char **name)
+{
+    pstream_t ps = ps_initstr(TK(pp, 0)->b.data);
+    ctype_desc_t sep;
+
+    ctype_desc_build(&sep, ".");
+
+    if (ps_has_char_in_ctype(&ps, &sep)) {
+        iopc_path_t *path_new = iopc_path_new();
+        qv_t(lstr) words;
+
+        qv_init(lstr, &words);
+        path_new->loc = TK(pp, 0)->loc;
+
+        /* Split the token */
+        ps_split(ps, &sep, 0, &words);
+
+        /* Get the path */
+        for (int i = 0; i < words.len - 1; i++) {
+            qv_append(str, &path_new->bits, lstr_dup(words.tab[i]).v);
+        }
+        if (pkg) {
+            *pkg = check_path_exists(pp, path_new);
+        }
+
+        *path = path_new;
+        *name = lstr_dup(words.tab[words.len - 1]).v;
+
+        qv_wipe(lstr, &words);
+        DROP(pp, 1);
+    } else {
+        parse_struct_type(pp, pkg, path, name);
+    }
+}
+
+static void parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
+                                iopc_arg_desc_t *desc)
+{
+    iopc_arg_t arg;
+
+    iopc_arg_init(&arg);
+    arg.desc = desc;
+    arg.loc  = TK(pp, 0)->loc;
+    arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
+    e_trace(1, "%s=(id)%s", desc->name.s, arg.v.s.s);
+
+    WANT(pp, 0, ITOK_IDENT);
+    arg.type = ITOK_IDENT;
+    qv_append(iopc_arg, &attr->args, arg);
+
+    do {
+        iopc_extends_t *xt = iopc_extends_new();
+
+        xt->loc  = TK(pp, 0)->loc;
+        parse_struct_snmp_from(pp, &xt->pkg, &xt->path, &xt->name);
+        iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
+
+        qv_append(iopc_extends, &attr->snmp_params_from, xt);
+    } while (SKIP(pp, ','));
+}
+
 static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
                            iopc_arg_desc_t *desc)
 {
@@ -2591,6 +2846,11 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
             new_name = parse_gen_attr_arg(pp, attr, desc);
             WANT(pp, 0, ')');
             break;
+        } else
+        if (attr->desc->id == IOPC_ATTR_SNMP_PARAMS_FROM) {
+            parse_snmp_attr_arg(pp, attr, desc);
+            WANT(pp, 0, ')');
+            break;
         } else {
             parse_attr_arg(pp, attr, desc);
             if (CHECK(pp, 0, ')')) {
@@ -2700,6 +2960,16 @@ static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *bas
         fatal_loc("incorrect package name", path->loc);
 }
 
+static void add_iface(iopc_pkg_t *pkg, iopc_iface_t *iface,
+                      qm_t(struct) *mod_inter, const char *obj)
+{
+    qv_append(iopc_iface, &pkg->ifaces, iface);
+    if (qm_add(struct, mod_inter, iface->name, (iopc_struct_t *)iface)) {
+        fatal_loc("%s named `%s` already exists", iface->loc,
+                  obj, iface->name);
+    }
+}
+
 /* Force struct, enum and union to have distinguished name (things qm)*/
 /* Force module and interface to have distinguished name   (mod_inter qm)*/
 static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
@@ -2794,9 +3064,12 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             iopc_struct_t *st;                                               \
                                                                              \
             SKIP_KW(pp, _id);                                                \
-            st = parse_struct_or_class_or_union_stmt(pp, _type, is_abstract, \
-                                                     is_local, is_main_pkg); \
+            st = parse_struct_class_union_snmp_stmt(pp, _type, is_abstract,  \
+                                                    is_local, is_main_pkg);  \
             SET_ATTRS_AND_COMMENTS(st, _attr);                               \
+            if (iopc_is_snmp_tbl(_type)) {                                   \
+                check_snmp_brief(st->comments, st->loc, st->name, _id);      \
+            }                                                                \
                                                                              \
             qv_append(iopc_struct, &pkg->structs, st);                       \
             if (qm_add(struct, &things, st->name, st)) {                     \
@@ -2808,8 +3081,11 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
 
         PARSE_STRUCT("struct", STRUCT_TYPE_STRUCT, IOPC_ATTR_T_STRUCT);
         PARSE_STRUCT("class",  STRUCT_TYPE_CLASS,  IOPC_ATTR_T_STRUCT);
+        PARSE_STRUCT("snmpObj", STRUCT_TYPE_SNMP_OBJ, IOPC_ATTR_T_SNMP_OBJ);
+        PARSE_STRUCT("snmpTbl", STRUCT_TYPE_SNMP_TBL, IOPC_ATTR_T_SNMP_TBL);
         PARSE_STRUCT("union",  STRUCT_TYPE_UNION,  IOPC_ATTR_T_UNION);
 #undef PARSE_STRUCT
+
 
         if (strequal(id, "enum")) {
             iopc_enum_t *en = parse_enum_stmt(pp, &attrs);
@@ -2825,17 +3101,26 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         }
 
         if (strequal(id, "interface")) {
-            iopc_iface_t *iface = parse_iface_stmt(pp);
+            iopc_iface_t *iface;
+            const char *obj = "interface";
+
+            iface = parse_iface_stmt(pp, IFACE_TYPE_IFACE, obj,
+                                     is_main_pkg);
 
             SET_ATTRS_AND_COMMENTS(iface, IOPC_ATTR_T_IFACE);
+            add_iface(pkg, iface, &mod_inter, obj);
+            continue;
+        }
 
-            qv_append(iopc_iface, &pkg->ifaces, iface);
-            if (qm_add(struct, &mod_inter, iface->name,
-                       (iopc_struct_t *)iface))
-            {
-                fatal_loc("something named `%s` already exists",
-                          iface->loc, iface->name);
-            }
+        if (strequal(id, "snmpIface")) {
+            iopc_iface_t *iface;
+            const char *obj = "snmpIface";
+
+            iface = parse_iface_stmt(pp, IFACE_TYPE_SNMP_IFACE, obj,
+                                     is_main_pkg);
+
+            SET_ATTRS_AND_COMMENTS(iface, IOPC_ATTR_T_SNMP_IFACE);
+            add_iface(pkg, iface, &mod_inter, obj);
             continue;
         }
 

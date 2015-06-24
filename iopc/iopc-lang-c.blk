@@ -121,9 +121,9 @@ static void iopc_struct_optimize(iopc_struct_t *st)
         return;
     }
 
-    if (st->type == STRUCT_TYPE_CLASS) {
-        /* XXX: we don't want to reorder class fields to ease debugging and
-         *      backward compatibility. */
+    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
+        /* XXX: we don't want to reorder class/snmpObj fields to ease
+         * debugging and backward compatibility. */
         do_reorder = false;
     } else {
         do_reorder = iopc_attr_check(&st->attrs, IOPC_ATTR_NO_REORDER,
@@ -775,8 +775,54 @@ iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
     sb_addf(buf,
             "typedef struct %s__t %s__t;\n"
             "typedef IOP_ARRAY_OF(%s__t%s) %s__array_t;\n\n",
-            tbase, tbase, tbase, st->type == STRUCT_TYPE_CLASS ? " *" : "",
+            tbase, tbase, tbase, iopc_is_class(st->type) ? " *" : "",
             tbase);
+}
+
+static const char *iopc_field_type(iopc_field_t *f)
+{
+    switch (f->kind) {
+      case IOP_T_U8:     return "uint8_t  ";
+      case IOP_T_I8:     return "int8_t   ";
+      case IOP_T_U16:    return "uint16_t ";
+      case IOP_T_I16:    return "int16_t  ";
+      case IOP_T_U32:    return "uint32_t ";
+      case IOP_T_I32:    return "int32_t  ";
+      case IOP_T_U64:    return "uint64_t ";
+      case IOP_T_I64:    return "int64_t  ";
+      case IOP_T_BOOL:   return "bool     ";
+      case IOP_T_DOUBLE: return "double   ";
+      case IOP_T_STRING: return "lstr_t   ";
+      case IOP_T_DATA:   return _G.data_c_type;
+      case IOP_T_XML:    return "lstr_t   ";
+      case IOP_T_ENUM:   return "enum ";
+
+      default:
+        fatal_loc("attribute type not handled for this kind", f->loc);
+    }
+
+    assert(false);
+    return NULL;
+}
+
+static void
+iopc_snmp_field_dump_tdef_hdr(sb_t *buf, const char *pkg_name,
+                              iopc_struct_t *st, iopc_field_t *field)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    const char *fname = pp_to_c(field->name);
+    char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
+
+    if (field->kind == IOP_T_ENUM) {
+        sb_addf(buf, "typedef %s %s__%s__t %s_typedef__t;\n",
+                iopc_field_type(field), pp_under(field->type_path),
+                pp_to_c(field->type_name), tbase);
+        return;
+    }
+
+    sb_addf(buf, "typedef %s %s_typedef__t;\n",
+            iopc_field_type(field), tbase);
 }
 
 
@@ -788,13 +834,24 @@ iopc_struct_dump_fields(sb_t *buf, int ident, iopc_field_t **fields, int len)
     }
 }
 
+static void
+iopc_struct_dump_snmp_fields(sb_t *buf, int ident, iopc_field_t **fields,
+                             int len)
+{
+    for (int i = 0; i < len; i++) {
+        iopc_field_t *field_origin = fields[i]->field_origin;
+
+        pp_field_with_type(buf, field_origin, ident);
+    }
+}
+
 static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
 {
     qv_t(iopc_struct) parents;
     qv_t(iopc_pkg)    parents_pkgs;
     int ident;
 
-    if (!st->extends.len) {
+    if (!st->extends.len || st->extends.tab[0]->is_snmp_root) {
         sb_adds(buf, "    const iop_struct_t *__vptr;\n");
         return;
     }
@@ -807,7 +864,7 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
         qv_append(iopc_pkg, &parents_pkgs, st->extends.tab[0]->pkg);
         st = st->extends.tab[0]->st;
         qv_append(iopc_struct, &parents, st);
-    } while (st->extends.len);
+    } while (st->extends.len && !st->extends.tab[0]->is_snmp_root);
 
     /* Print parent structure */
     for (ident = 4; ident <= 4 * parents.len; ident += 4) {
@@ -843,23 +900,46 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     assert (st->type != STRUCT_TYPE_UNION);
 
     iopc_struct_optimize(st);
-    sb_addf(buf, "struct %s__t {\n", tbase);
 
-    if (st->type == STRUCT_TYPE_CLASS) {
-        iopc_struct_dump_hdr_class(buf, st);
+    if (!iopc_is_snmp_st(st->type)) {
+        sb_addf(buf, "struct %s__t {\n", tbase);
+
+        if (iopc_is_class(st->type)) {
+            iopc_struct_dump_hdr_class(buf, st);
+        }
+
+        if (st->contains_snmp_info) {
+            iopc_struct_dump_snmp_fields(buf, 4, st->fields.tab, st->fields.len);
+        } else {
+            iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
+        }
+
+        sb_adds(buf, "};\n");
     }
-    iopc_struct_dump_fields(buf, 4, st->fields.tab, st->fields.len);
-
-    sb_addf(buf, "};\n"
-            "extern iop_struct_t const %s__s;\n",
+    sb_addf(buf, "extern iop_struct_t const %s__s;\n",
             tbase);
-    if (st->type == STRUCT_TYPE_CLASS) {
+    if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, true);
-    } else {
+    } else
+    if (!iopc_is_snmp_st(st->type)) {
         sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, false);
+    }
+}
+
+static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
+                                     iopc_struct_t *st, iopc_field_t *field)
+{
+    t_scope;
+    const char *tname = pp_to_c(st->name);
+    const char *fname = pp_to_c(field->name);
+    char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
+
+    sb_addf(buf, "extern iop_snmp_attrs_t const %s__snmp_attrs__s;\n", tbase);
+    if (iopc_is_snmp_tbl(st->type)) {
+        sb_addf(buf, "#define %s__oid  %d\n\n", tbase, field->tag);
     }
 }
 
@@ -1113,6 +1193,13 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
 {
     unsigned flags = 0;
     const char *cname = pp_to_c(f->name);
+    iop_type_t kind = f->kind;
+
+    /* If the field is a field of a snmp rpc' struct, it is needed to get the
+     * real type of the field, which is the one of field_origin */
+    if (f->snmp_is_from_param) {
+       kind = f->field_origin->kind;
+    }
 
     sb_addf(buf,
             "    {\n"
@@ -1120,16 +1207,24 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             "        .tag       = %d,\n"
             "        .tag_len   = %d,\n"
             "        .repeat    = %s,\n"
-            "        .type      = %s,\n"
-            "        .data_offs = offsetof(%s__t, %s),\n",
+            "        .type      = %s,\n",
             f->name, f->tag, tag_len(f->tag),
-            repeats[f->repeat], types[f->kind], tbase, cname);
+            repeats[f->repeat], types[kind]);
+
+    if (!iopc_is_snmp_st(st->type)) {
+        sb_addf(buf,
+                "        .data_offs = offsetof(%s__t, %s),\n",
+                tbase, cname);
+    }
 
     if (f->is_ref) {
         SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);
     }
     if (attrs && attrs->checkf_name.len) {
         SET_BIT(&flags, IOP_FIELD_CHECK_CONSTRAINTS);
+    }
+    if (f->snmp_is_from_param || iopc_is_snmp_st(st->type)) {
+        SET_BIT(&flags, IOP_FIELD_HAS_SNMP_INFO);
     }
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
         if (attr->desc->id == IOPC_ATTR_MIN_OCCURS) {
@@ -1199,7 +1294,8 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
         sb_addf(buf,
                 "        .size      = fieldsizeof(%s__t, %s.tab[0]),\n",
                 tbase, cname);
-    } else {
+    } else
+    if (!iopc_is_snmp_st(st->type)) {
         sb_addf(buf,
                 "        .size      = fieldsizeof(%s__t, %s),\n",
                 tbase, cname);
@@ -1279,7 +1375,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
     if (unlikely(!st->nb_real_static_fields)) {
         return;
     }
-    assert (st->type == STRUCT_TYPE_CLASS);
+    assert (iopc_is_class(st->type));
 
     sb_addc(buf, '\n');
 
@@ -1893,6 +1989,28 @@ iopc_dump_non_empty(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
             LSTR_FMT_ARG(attr->desc->name), f->name);
 }
 
+static void
+iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
+                     const char *tbase, int oid, bool xt_is_snmp_root,
+                     bool is_rpc, bool is_iface, iop_type_t kind)
+{
+    sb_addf(buf,
+            "%s iop_snmp_attrs_t %s__snmp_attrs__s "
+            "= {\n", CONST, tbase);
+    if (!xt_is_snmp_root && !is_rpc) {
+        sb_addf(buf,
+                LVL1 ".parent = &%s__%s__s,\n",
+                pp_under(pkg->name), pp_to_c(st->name));
+    }
+    sb_addf(buf, LVL1 ".oid    = %d,\n", oid);
+
+    if (!is_iface) {
+        sb_addf(buf, LVL1 ".type   = %s,\n", types[kind]);
+    }
+
+    sb_addf(buf, "};\n");
+}
+
 static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                                  sb_t *sb, iopc_attrs_t *attrs,
                                  const iopc_field_t *f)
@@ -1969,6 +2087,19 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
     }
 
     sb_wipe(&pattern);
+}
+
+static void
+iopc_dump_snmp_field_attr(sb_t *sb, iopc_attrs_t *attrs,
+                          const char* ibase, const char* field_name)
+{
+    sb_addf(sb,
+            LVL1 "{\n"
+            LVL2 ".type = %d,\n"
+            LVL2 ".args = (iop_field_attr_arg_t[]){ { .v.p = (void*)&%s__%s__snmp_attrs__s } },\n"
+            LVL1 "},\n",
+            IOP_FIELD_SNMP_INFO, ibase, pp_to_c(field_name));
+    attrs->attrs_len++;
 }
 
 static void
@@ -2065,9 +2196,18 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
             iopc_dump_field_attr(attr, type, &attrs_body, attrs, f);
             break;
 
+          case IOPC_ATTR_DEPRECATED:
+            SET_BIT(&attrs->flags, IOP_FIELD_DEPRECATED);
+            break;
+
           default:
             break;
         }
+    }
+
+    if (st->contains_snmp_info || iopc_is_snmp_st(st->type)) {
+        iopc_dump_snmp_field_attr(&attrs_body, attrs, tbase, cname);
+        SET_BIT(&attrs->flags, IOP_FIELD_SNMP_INFO);
     }
 
     if (checkf_body.len || checkf_loopbody.len) {
@@ -2431,7 +2571,9 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
 static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                                    bool has_attrs, char *as_base)
 {
-    if (iopc_g.v4 && st->type == STRUCT_TYPE_CLASS) {
+    if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)
+     || st->contains_snmp_info))
+    {
         t_scope;
         lstr_t st_attrs = t_lstr_fmt("&%s__s_desc_attrs", tbase);
         lstr_t fields_attrs = t_lstr_fmt("%s__desc_fields_attrs", as_base);
@@ -2446,11 +2588,18 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
                 st->has_fields_attrs ? fields_attrs.s : "NULL");
 
         sb_adds(buf, LVL1 "{\n");
-        sb_addf(buf, LVL2 ".class_attrs  = &%s__class_s,\n", tbase);
+        if (iopc_is_class(st->type)) {
+            sb_addf(buf, LVL2 ".class_attrs  = &%s__class_s,\n", tbase);
+        } else {
+            sb_addf(buf, LVL2".snmp_attrs  = &%s__snmp_attrs__s,\n", tbase);
+        }
         sb_adds(buf, LVL1 "}\n");
         return;
     }
 
+    if (iopc_is_snmp_st(st->type)) {
+        fatal_loc("snmp can only be used with iopc v4", st->loc);
+    }
     if (st->flags) {
         sb_addf(buf, LVL1 ".flags      = %d,\n", st->flags);
     }
@@ -2476,7 +2625,8 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
 static void
 iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                      const char *pkg_name,
-                     iopc_struct_t *st, qv_t(lstr) *paliases)
+                     iopc_struct_t *st, qv_t(lstr) *paliases,
+                     const char *iface_name, int rpc_oid)
 {
     t_scope;
     const char *comment = get_struct_type_desc(st->type);
@@ -2535,6 +2685,33 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
         qv_init(iopc_attrs, &fields_attrs);
 
+        /* generate <tbase>__<field>__snmp_attrs__s for fields of snmpIface
+         * rpcs */
+        if (st->contains_snmp_info) {
+            char *fbase;
+            iopc_extends_t *xt;
+
+            qv_for_each_entry(iopc_field, field, &st->fields) {
+                fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
+                xt = field->parents.tab[0];
+
+                iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, fbase,
+                                     field->field_origin->tag,
+                                     xt->is_snmp_root,
+                                     false, false, field->field_origin->kind);
+            }
+        } else
+        if (iopc_is_snmp_st(st->type)) {
+            char *fbase;
+
+            qv_for_each_entry(iopc_field, field, &st->fields) {
+                fbase = t_fmt("%s__%s", tbase, pp_to_c(field->name));
+
+                iopc_dump_snmp_attrs(buf, st, pkg, fbase, field->tag,
+                                     false, false, false, field->kind);
+            }
+        }
+
         /* check attributes and generate everything that is needed for
          * <tbase>__desc_fields_attrs (attributes, constraints func and help)
          */
@@ -2585,9 +2762,17 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             iopc_struct_dump_static_fields_src(buf, st, tbase);
         }
 
-        if (st->type == STRUCT_TYPE_CLASS) {
+        if (iopc_is_class(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_CLASS);
+        } else
+        if (iopc_is_snmp_obj(st->type)) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_OBJ);
+        } else
+        if (iopc_is_snmp_tbl(st->type)) {
+            SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
+            SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_TBL);
         }
     }
 
@@ -2608,7 +2793,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
     #define WRITE_STRUCT(_tbase, _sname)                                     \
         do {                                                                 \
-            if (st->type == STRUCT_TYPE_CLASS) {                             \
+            if (iopc_is_class(st->type)) {                                   \
                 sb_addf(buf,                                                 \
                         "static %s iop_class_attrs_t %s__class_s = {\n",     \
                         CONST, _tbase);                                      \
@@ -2629,6 +2814,16 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 sb_addf(buf,                                                 \
                         "    .class_id          = %d,\n", st->class_id);     \
                 sb_adds(buf, "};\n");                                        \
+            } else                                                           \
+            if (iopc_is_snmp_st(st->type)) {                                 \
+                iopc_extends_t *xt = st->extends.tab[0];                     \
+                iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, _tbase, st->oid,  \
+                                     xt->is_snmp_root, false, false,         \
+                                     IOP_T_STRUCT);                          \
+            }                                                                \
+            if (st->contains_snmp_info) {                                    \
+                iopc_dump_snmp_attrs(buf, st, pkg, _tbase, rpc_oid, false,   \
+                                     true, false, IOP_T_STRUCT);             \
             }                                                                \
             sb_addf(buf,                                                     \
                     "const iop_struct_t %s__s = {\n"                         \
@@ -2636,11 +2831,13 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     "    .fields     = %s__desc_fields,\n"                   \
                     "    .ranges     = iop__ranges__%d,\n"                   \
                     "    .ranges_len = countof(iop__ranges__%d) / 2,\n"      \
-                    "    .fields_len = countof(%s__desc_fields),\n"          \
-                    "    .size       = sizeof(%s__t),\n",                    \
+                    "    .fields_len = countof(%s__desc_fields),\n",         \
                     _tbase, pretty_path_dot(pkg->name),                      \
-                    _sname, as_base, range, range, as_base, tbase);          \
+                    _sname, as_base, range, range, as_base);                 \
                                                                              \
+            if (!iopc_is_snmp_st(st->type)) {                                \
+                sb_addf(buf, "    .size       = sizeof(%s__t),\n", tbase);   \
+            }                                                                \
             iopc_put_struct_fields(buf, st, tbase, has_attrs, as_base);      \
             sb_adds(buf, "};\n");                                            \
                                                                              \
@@ -2853,14 +3050,31 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     sb_addf(buf, "/* Interface %s.%s {""{{ */\n",
             pretty_path_dot(pkg->name), iface->name);
 
-    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+    if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+        SET_BIT(&iface->flags, IOP_IFACE_IS_SNMP_IFACE);
+
+        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+            if (fun->arg) {
+                /* snmpIface can only have "args" and anonymous funs */
+                iopc_get_aliases(fun, &aliases, "Args");
+                if (fun->arg_is_anonymous) {
+                    iopc_struct_dump_src(buf, pkg, pkg_name, fun->arg,
+                                         &aliases, pp_to_c(iface->name),
+                                         fun->tag);
+                } else {
+                    fatal_loc("should not happen", fun->loc);
+                }
+            }
+        }
+    } else {
+        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
 #define HANDLE_FUN_VAR(_var, _fvar, is_anonymous, type)                      \
             do {                                                             \
                 if (_var) {                                                  \
                     iopc_get_aliases(fun, &aliases, type);                   \
                     if (is_anonymous) {                                      \
                         iopc_struct_dump_src(buf, pkg, pkg_name, _var,       \
-                                              &aliases);                     \
+                                              &aliases, NULL, 0);            \
                     } else {                                                 \
                         /* When the function argument is just a              \
                          * reference to another structure, we just           \
@@ -2874,10 +3088,11 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 }                                                            \
             } while (0)
 
-        HANDLE_FUN_VAR(fun->arg, fun->farg, fun->arg_is_anonymous, "Args");
-        HANDLE_FUN_VAR(fun->res, fun->fres, fun->res_is_anonymous, "Res");
-        HANDLE_FUN_VAR(fun->exn, fun->fexn, fun->exn_is_anonymous, "Exn");
+            HANDLE_FUN_VAR(fun->arg, fun->farg, fun->arg_is_anonymous, "Args");
+            HANDLE_FUN_VAR(fun->res, fun->fres, fun->res_is_anonymous, "Res");
+            HANDLE_FUN_VAR(fun->exn, fun->fexn, fun->exn_is_anonymous, "Exn");
 #undef HANDLE_FUN_VAR
+        }
     }
 
     sb_addf(buf, "static iop_rpc_t %s %s__if_funs[] = {\n", CONST, ibase);
@@ -2889,6 +3104,13 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
     sb_adds(buf, "};\n");
+
+    if (iface->type == IFACE_TYPE_SNMP_IFACE) {
+        iopc_extends_t *xt = iface->extends.tab[0];
+
+        iopc_dump_snmp_attrs(buf, xt->st, xt->pkg, ibase, iface->oid, false,
+                             false, true, IOP_T_STRUCT);
+    }
 
     iopc_iface_dump_rpc_attrs(buf, iface, ibase);
 
@@ -2910,6 +3132,9 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     }
     if (TST_BIT(&iface->flags, IOP_IFACE_HAS_ATTRS)) {
         sb_addf(buf, "    .iface_attrs  = &%s__desc_if_attrs,\n", ibase);
+    }
+    if (TST_BIT(&iface->flags, IOP_IFACE_IS_SNMP_IFACE)) {
+        sb_addf(buf, "    .snmp_iface_attrs = &%s__snmp_attrs__s,\n", ibase);
     }
     sb_adds(buf, "};\n\n");
     sb_adds(buf, "/* }""}} */\n");
@@ -3196,6 +3421,15 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_struct_dump_tdef_hdr(&buf, pkg_name, st, NULL);
+
+        if (iopc_is_snmp_st(st->type)) {
+            sb_addf(&buf,
+                    "/*----- snmp fields of struct %s.%s -----*/\n",
+                    pretty_path_dot(pkg->name), st->name);
+            qv_for_each_entry(iopc_field, f, &st->fields) {
+                iopc_snmp_field_dump_tdef_hdr(&buf, pkg_name, st, f);
+            }
+        }
     }
     sb_adds(&buf, "#endif\n");
 
@@ -3228,6 +3462,12 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             iopc_union_dump_hdr(&buf, pkg_name, st);
         } else {
             iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
+        }
+
+        if (iopc_is_snmp_st(st->type)) {
+            qv_for_each_entry(iopc_field, field, &st->fields) {
+               iopc_snmp_field_dump_hdr(&buf, pkg_name, st, field);
+            }
         }
     }
     sb_adds(&buf, "#endif\n");
@@ -3297,7 +3537,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         iopc_enum_dump_src(&buf, pkg, pkg_name, en);
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL);
+        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL, NULL, 0);
     }
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
         iopc_iface_dump_src(&buf, pkg, pkg_name, iface);

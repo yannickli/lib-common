@@ -3332,6 +3332,31 @@ void iop_for_each_registered_classes(iop_for_each_class_b cb)
 }
 
 /*------ class manipulation -}}}-*/
+/* {{{ snmp manipulation */
+
+const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
+                                                    int oid)
+{
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *field = &st->fields[i];
+
+        if (field->tag == oid) {
+            iop_field_attrs_t attrs = st->fields_attrs[i];
+
+            for (int j = 0; j < attrs.attrs_len; j++) {
+                if (attrs.attrs[i].type == IOP_FIELD_SNMP_INFO) {
+                    iop_field_attr_arg_t const *arg = attrs.attrs[j].args;
+
+                    return (iop_snmp_attrs_t *)arg->v.p;
+                }
+            }
+        }
+        e_panic("no snmp attrs find for field");
+    }
+    e_panic("no field matches wanted OID");
+}
+
+/* }}} */
 /*------ Packages registration -{{{-*/
 
 static void iop_register_class(const iop_struct_t *desc)

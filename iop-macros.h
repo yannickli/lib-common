@@ -562,5 +562,52 @@
 #define IOP_OBJ_DEFAULT  IOP_CLASS_DEFAULT
 
 /* }}} */
+/* {{{ Helpers for snmp manipulation */
+
+#define IOP_SNMP_TBL_OID(_pkg, _tbl, _field)  \
+    _pkg##__##_tbl##__##_field##__oid
+
+/** Case matching a given IOP snmp field.
+ *
+ * \param[in] _pkg    The package name
+ * \param[in] _tbl    The snmpTbl name
+ * \param[in] _field  The field name
+ *
+ */
+#define IOP_SNMP_TBL_CASE(_pkg, _tbl, _field)  \
+        break;                                                               \
+      case IOP_SNMP_TBL_OID(_pkg, _tbl, _field):
+
+/** Case to match unsupported snmp field.
+ */
+#define IOP_SNMP_TBL_DEFAULT()  \
+          break;                                                             \
+      default:
+
+/** Allow to make a switch on snmpTbl field.
+ *
+ * This switch matches the oid of a snmpTbl' field.
+ * It must be used with the IOP_SNMP_TBL_CASE() macro and must contain a
+ * IOP_SNMP_TBL_DEFAULT().
+ *
+ * IOP_SNMP_TBL_SWITCH(pkg, tbl) {
+ *   IOP_SNMP_TBL_CASE(pkg, tbl, a_field) {
+ *   }
+ *
+ *   IOP_SNMP_TBL_CASE(pkg, tbl, b_field) {
+ *   }
+ *
+ *   IOP_SNMP_TBL_DEFAULT() {
+ *   }
+ * }
+ *
+ * \param[in] _pkg  The package name
+ * \param[in] _tbl  The snmpTbl name
+ */
+#define IOP_SNMP_TBL_SWITCH(_pkg, _tbl)  \
+        switch (iop_get_snmp_attr_match_oid(&_pkg##__##_tbl##__s,            \
+                                            __query->range_value)->oid)
+
+/* }}} */
 
 #endif
