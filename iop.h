@@ -256,10 +256,16 @@ static inline void *t_iop_new_desc(const iop_struct_t *st)
 {
     return mp_iop_new_desc(t_pool(), st);
 }
+__attribute__((malloc, warn_unused_result))
+static inline void *r_iop_new_desc(const iop_struct_t *st)
+{
+    return mp_iop_new_desc(r_pool(), st);
+}
 
 #define mp_iop_new(mp, pfx)  (pfx##__t *)mp_iop_new_desc(mp, &pfx##__s)
 #define iop_new(pfx)         (pfx##__t *)iop_new_desc(&pfx##__s)
 #define t_iop_new(pfx)       (pfx##__t *)t_iop_new_desc(&pfx##__s)
+#define r_iop_new(pfx)       (pfx##__t *)r_iop_new_desc(&pfx##__s)
 
 /** Return whether two IOP structures are equals or not.
  *
@@ -414,6 +420,7 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
 #define mp_iop_dup(mp, pfx, v)  mp_iop_dup_sz((mp), pfx, (v), NULL)
 #define iop_dup(pfx, v)         mp_iop_dup(NULL, pfx, (v))
 #define t_iop_dup(pfx, v)       mp_iop_dup(t_pool(), pfx, (v))
+#define r_iop_dup(pfx, v)       mp_iop_dup(r_pool(), pfx, (v))
 
 /** Copy an IOP structure into another one.
  *

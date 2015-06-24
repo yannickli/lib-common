@@ -528,6 +528,23 @@ static __must_check__ inline lstr_t lstr_trim(lstr_t s)
 }
 
 /* }}} */
+/* r_pool allocation {{{ */
+
+/** \brief returns a duplicated lstr from the mem stack.
+ */
+static inline lstr_t r_lstr_dup(const lstr_t s)
+{
+    return mp_lstr_dup(r_pool(), s);
+}
+
+/** \brief concatenates its argument to form a new lstr on the r_stack.
+ */
+static inline lstr_t r_lstr_cat(const lstr_t s1, const lstr_t s2)
+{
+    return mp_lstr_cat(r_pool(), s1, s2);
+}
+
+/* }}} */
 /* Comparisons {{{ */
 
 /** \brief returns "memcmp" ordering of \v s1 and \v s2.
