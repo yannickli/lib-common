@@ -38,3 +38,10 @@ snmpIface Notifications : 81 : snmp_obj.MySnmp {
     notif2
         in (b, c, d);
 };
+
+snmpIface EmptyNotifications : 81 : snmp_obj.MySnmp {
+    /** Description.
+     */
+    notif1
+        in ();
+};
