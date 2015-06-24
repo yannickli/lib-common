@@ -597,43 +597,84 @@ const void *wah_read_word(const uint8_t *src, uint64_t count,
     return src;
 }
 
+static void wah_add_bits(wah_t *map, uint64_t word, int bits)
+{
+    bool     on_0 = true;
+
+    while (bits > 0) {
+        if (word == 0) {
+            if (on_0) {
+                wah_add0s(map, bits);
+            } else {
+                wah_add1s(map, bits);
+            }
+            return;
+        } else {
+            int first = bsf64(word);
+            if (first > bits) {
+                first = bits;
+            }
+            if (first != 0) {
+                if (on_0) {
+                    wah_add0s(map, first);
+                } else {
+                    wah_add1s(map, first);
+                }
+                bits  -= first;
+                word >>= first;
+            }
+            word = ~word;
+            on_0 = !on_0;
+        }
+    }
+}
+
 static
 const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
+    while (count >= 64) {
+        ssize_t run_length = 64;
+        bool    bit = false;
+        uint64_t word = get_unaligned_le64(src);
+
+        switch (word) {
+          case 0:
+            bit = false;
+            break;
+
+          case UINT64_MAX:
+            bit = true;
+            break;
+
+          default:
+            wah_add_bits(map, word, 64);
+            goto end;
+        }
+
+        run_length = bsf(src, 0, count, bit);
+        if (run_length < 0) {
+            run_length = count;
+        }
+        run_length = ROUND_2EXP(run_length, 8);
+        if (bit) {
+            wah_add1s(map, run_length);
+        } else {
+            wah_add0s(map, run_length);
+        }
+
+      end:
+        src   += run_length / 8;
+        count -= run_length;
+    }
+
     while (count > 0) {
         uint64_t word;
         int      bits = 0;
-        bool     on_0 = true;
 
         src    = wah_read_word(src, count, &word, &bits);
         count -= bits;
 
-        while (bits > 0) {
-            if (word == 0) {
-                if (on_0) {
-                    wah_add0s(map, bits);
-                } else {
-                    wah_add1s(map, bits);
-                }
-                bits = 0;
-            } else {
-                int first = bsf64(word);
-                if (first > bits) {
-                    first = bits;
-                }
-                if (first != 0) {
-                    if (on_0) {
-                        wah_add0s(map, first);
-                    } else {
-                        wah_add1s(map, first);
-                    }
-                    bits  -= first;
-                    word >>= first;
-                }
-                word = ~word;
-                on_0 = !on_0;
-            }
-        }
+        wah_add_bits(map, word, bits);
     }
     wah_check_invariant(map);
     return src;
@@ -656,63 +697,42 @@ void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 static
 void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    bool literal = false;
-    bool val     = false;
-    const uint8_t *from = src;
     uint64_t exp_len = map->len + count;
 
     while (count >= 32) {
-        bool previous_literal = literal;
-        bool previous_val     = val;
+        ssize_t run_length = 32;
+        bool    bit = false;
 
         switch (get_unaligned_le32(src)) {
           case 0:
-            literal = false;
-            val     = false;
+            bit = false;
             break;
 
           case UINT32_MAX:
-            literal = false;
-            val     = true;
+            bit = true;
             break;
 
           default:
-            literal = true;
-            val     = false;
-            break;
+            wah_add_literal(map, src, 4);
+            goto end;
         }
 
-        if (src != from
-        &&  (literal != previous_literal || val != previous_val))
-        {
-            if (previous_literal) {
-                wah_add_literal(map, from, src - from);
-            } else
-            if (previous_val) {
-                wah_add1s(map, 8 * (src - from));
-            } else {
-                wah_add0s(map, 8 * (src - from));
-            }
-            wah_check_invariant(map);
-            assert (map->len == exp_len - count);
-            from = src;
+        run_length = bsf(src, 0, ROUND_2EXP(count, 32), bit);
+        if (run_length < 0) {
+            run_length = count;
         }
-        src   += 4;
-        count -= 32;
-    }
-    if (src != from) {
-        if (literal) {
-            wah_add_literal(map, from, src - from);
-        } else
-        if (val) {
-            wah_add1s(map, 8 * (src - from));
+        run_length = ROUND_2EXP(run_length, 32);
+        if (bit) {
+            wah_add1s(map, run_length);
         } else {
-            wah_add0s(map, 8 * (src - from));
+            wah_add0s(map, run_length);
         }
-        wah_check_invariant(map);
-        assert (map->len == exp_len - count);
-        from = src;
+
+      end:
+        src   += run_length / 8;
+        count -= run_length;
     }
+    wah_check_invariant(map);
     map->_pending = 0;
 
     if (count > 0) {

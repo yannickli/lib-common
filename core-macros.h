@@ -266,6 +266,13 @@
        ((x) + __y - 1) & ~(__y - 1);                   \
     })
 
+#define ROUND_2EXP(x, y)                               \
+    ({ typeof((y)) __y = (y);                          \
+       typeof((x)) __x = (x);                          \
+       assert((__y & (__y - 1)) == 0);                 \
+       __x - (__x & (__y - 1));                        \
+    })
+
 #define NEXTARG(argc, argv)  (argc--, *argv++)
 
 /** RETHROW macros.
