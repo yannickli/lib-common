@@ -365,6 +365,46 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
     return -1;
 }
 
+void iop_set_opt_field(void *ptr, const iop_field_t *field)
+{
+    if (field->repeat != IOP_R_OPTIONAL) {
+        e_panic("non-optional fields are not supported in iop_set_opt_field");
+    }
+
+    ptr = (byte *)ptr + field->data_offs;
+
+    switch ((iop_type_t)field->type) {
+      case IOP_T_U8: case IOP_T_I8: case IOP_T_BOOL:
+        ((opt_i8_t *)ptr)->has_field = true;
+        break;
+
+      case IOP_T_U16: case IOP_T_I16:
+        ((opt_i16_t *)ptr)->has_field = true;
+        break;
+
+      case IOP_T_U32: case IOP_T_I32: case IOP_T_ENUM:
+        ((opt_i32_t *)ptr)->has_field = true;
+        break;
+
+      case IOP_T_U64: case IOP_T_I64: case IOP_T_DOUBLE:
+        ((opt_i64_t *)ptr)->has_field = true;
+        break;
+
+      case IOP_T_STRING: case IOP_T_DATA: case IOP_T_XML: {
+        lstr_t *s = ptr;
+
+        if (!s->s) {
+            assert (!s->len);
+            s->s = "";
+        }
+      } break;
+
+      case IOP_T_UNION: case IOP_T_STRUCT:
+        e_panic("unions/structs are not supported in iop_set_opt_field");
+        break;
+    }
+}
+
 iop_struct_t *
 iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
                               const qv_t(iop_field_info) *fields_info)

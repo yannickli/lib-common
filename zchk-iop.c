@@ -4563,5 +4563,49 @@ Z_GROUP_EXPORT(iop)
         lstr_wipe(&file);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_set_opt_field, "test iop_set_opt_field function") { /* {{{ */
+        tstiop__my_struct_a_opt__t obj;
+        const iop_field_t *f;
+
+        iop_init(tstiop__my_struct_a_opt, &obj);
+
+        /* Field a (int) */
+        Z_ASSERT_N(iop_field_find_by_name(&tstiop__my_struct_a_opt__s,
+                                          LSTR("a"), NULL, &f));
+        obj.a.v = 10;
+        Z_ASSERT(!OPT_ISSET(obj.a));
+        iop_set_opt_field(&obj, f);
+        Z_ASSERT(OPT_ISSET(obj.a));
+        Z_ASSERT_EQ(obj.a.v, 10);
+
+        /* Field b (uint) */
+        Z_ASSERT_N(iop_field_find_by_name(&tstiop__my_struct_a_opt__s,
+                                          LSTR("b"), NULL, &f));
+        obj.b.v = 11;
+        Z_ASSERT(!OPT_ISSET(obj.b));
+        iop_set_opt_field(&obj, f);
+        Z_ASSERT(OPT_ISSET(obj.b));
+        Z_ASSERT_EQ(obj.b.v, 11u);
+
+        /* Field n (bool) */
+        Z_ASSERT_N(iop_field_find_by_name(&tstiop__my_struct_a_opt__s,
+                                          LSTR("n"), NULL, &f));
+        obj.n.v = true;
+        Z_ASSERT(!OPT_ISSET(obj.n));
+        iop_set_opt_field(&obj, f);
+        Z_ASSERT(OPT_ISSET(obj.n));
+        Z_ASSERT_EQ(obj.n.v, true);
+
+        /* Field j (string) */
+        Z_ASSERT_N(iop_field_find_by_name(&tstiop__my_struct_a_opt__s,
+                                          LSTR("j"), NULL, &f));
+        Z_ASSERT(!obj.j.s);
+        iop_set_opt_field(&obj, f);
+        Z_ASSERT_LSTREQUAL(obj.j, LSTR_EMPTY_V);
+        obj.j = LSTR("toto");
+        iop_set_opt_field(&obj, f);
+        Z_ASSERT_LSTREQUAL(obj.j, LSTR("toto"));
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END

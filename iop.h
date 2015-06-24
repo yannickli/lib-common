@@ -559,6 +559,21 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
 int iop_value_to_field(void *ptr, const iop_field_t *field,
                        const iop_value_t *value);
 
+/** Set an optional field of an IOP object.
+ *
+ * For optional scalar fields (integers, double, boolean, enum), this function
+ * sets the `has_field` flag to true, without modifying the value.
+ *
+ * For string/data/xml fields, it ensures the `s` field is not NULL (setting
+ * it to the empty string if needed).
+ *
+ * Other types of fields are not supported.
+ *
+ * \param[in] ptr   The IOP object.
+ * \param[in] field The IOP field definition.
+ */
+void iop_set_opt_field(void *ptr, const iop_field_t *field);
+
 /** Used for iop_type_vector_to_iop_struct function.
  */
 typedef struct iop_field_info_t {
