@@ -2658,6 +2658,7 @@ static el_t zel_server_g;
 static el_t zel_client_g;
 static httpc_cfg_t zcfg_g;
 static httpc_status_t zstatus_g;
+static httpc_t *zhttpc_g;
 
 static int z_reply_100(el_t el, int fd, short mask, data_t data)
 {
@@ -2696,12 +2697,28 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
     if (sb_read(&buf, fd, 1000) > 0) {
         char reply[] = "HTTP/1.1 200 OK\r\n\r\n"
                        "Plop";
-        char s[4096];
+        char s[8192];
 
         IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
-        for (int i = 0; i < 64; i++) {
-            memset(s, 'a' + i, 4096);
-            IGNORE(xwrite(fd, s, 4096));
+        fd_set_features(fd, O_NONBLOCK);
+        for (int i = 0; i < 4096; i++) {
+            ssize_t len = ssizeof(s);
+            char *ptr = s;
+
+            memset(s, 'a' + (i % 26), sizeof(s));
+            while (len > 0) {
+                ssize_t res;
+
+                if ((res = write(fd, ptr, len)) <= 0) {
+                    if (res < 0 && !ERR_RW_RETRIABLE(errno)) {
+                        e_panic("write error: %m");
+                    }
+                    el_fd_loop(zhttpc_g->ev, 10);
+                    continue;
+                }
+                ptr += res;
+                len -= res;
+            }
         }
         el_fd_unregister(&zel_client_g, true);
     }
@@ -2740,7 +2757,6 @@ static void z_query_on_done(httpc_query_t *q, httpc_status_t status)
 static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     sockunion_t su;
     int server;
-    httpc_t *httpc;
 
     zstatus_g = HTTPC_STATUS_ABORT;
     has_reply_g = false;
@@ -2758,16 +2774,16 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
 
     httpc_cfg_init(&zcfg_g);
     zcfg_g.refcnt++;
-    httpc = httpc_connect(&su, &zcfg_g, NULL);
-    Z_ASSERT_P(httpc);
+    zhttpc_g = httpc_connect(&su, &zcfg_g, NULL);
+    Z_ASSERT_P(zhttpc_g);
 
     httpc_query_init(&zquery_g);
-    httpc_bufferize(&zquery_g, 1024);
+    httpc_bufferize(&zquery_g, 40 << 20);
     zquery_g.on_hdrs = &z_query_on_hdrs;
     zquery_g.on_data = &z_query_on_data;
     zquery_g.on_done = &z_query_on_done;
 
-    httpc_query_attach(&zquery_g, httpc);
+    httpc_query_attach(&zquery_g, zhttpc_g);
     httpc_query_start(&zquery_g, HTTP_METHOD_GET, LSTR_IMMED_V("localhost"),
                       LSTR_IMMED_V("/"));
     httpc_query_hdrs_done(&zquery_g, 0, false);
@@ -2811,10 +2827,12 @@ Z_GROUP_EXPORT(httpc) {
         Z_HELPER_RUN(z_query_setup(&z_reply_close_without_content_length));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
-        Z_ASSERT_EQ(body_g.len, 4096 * 64  + 4);
+        Z_ASSERT_EQ(body_g.len, 8192 * 4096  + 4);
         Z_ASSERT_LSTREQUAL(LSTR_INIT_V(body_g.data, 4), LSTR("Plop"));
-        Z_ASSERT_EQ(body_g.data[5], 'a');
-        Z_ASSERT_EQ(body_g.data[body_g.len - 1], 'a' + 63);
+        sb_skip(&body_g, 4);
+        for (int i = 0; i < body_g.len; i++) {
+            Z_ASSERT_EQ(body_g.data[i], 'a' + ((i / 8192) % 26));
+        }
 
         z_query_cleanup();
     } Z_TEST_END;
