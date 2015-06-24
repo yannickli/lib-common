@@ -586,16 +586,6 @@ iop_struct_t *
 iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
                               const qv_t(iop_field_info) *fields_info);
 
-/* }}} */
-/* {{{ IOP pkg manipulation */
-
-#ifdef __has_blocks
-typedef void (BLOCK_CARET iop_for_each_pkg_b)(const iop_pkg_t *);
-
-/** Loop on all the pkg registered by `iop_register_packages`.
- */
-void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb);
-#endif
 
 /* }}} */
 /* {{{ IOP snmp manipulation */
@@ -1227,7 +1217,7 @@ enum iop_unpack_flags {
 };
 
 /* }}} */
-/* {{{ IOP packages registration */
+/* {{{ IOP packages registration / manipulation */
 
 qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t *,
           qhash_lstr_hash, qhash_lstr_equal);
@@ -1276,6 +1266,14 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
         const iop_pkg_t *__pkgs[] = { __VA_ARGS__ };                         \
         iop_unregister_packages(__pkgs, countof(__pkgs));                    \
     } while (0)
+
+#ifdef __has_blocks
+typedef void (BLOCK_CARET iop_for_each_pkg_b)(const iop_pkg_t *);
+
+/** Loop on all the pkg registered by `iop_register_packages`.
+ */
+void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb);
+#endif
 
 /* }}} */
 

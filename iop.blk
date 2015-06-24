@@ -17,7 +17,7 @@
 #include "thr.h"
 #include "sort.h"
 
-/*------ Local declarations -{{{-*/
+/* {{{ Local declarations */
 
 typedef struct class_id_key_t {
     const iop_struct_t *master;
@@ -61,7 +61,7 @@ class_name_key_equal(const qhash_t *h, const class_name_key_t *k1,
 qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
           class_name_key_hash, class_name_key_equal);
 
-/*------ Local declarations -}}}-*/
+/* }}} */
 
 static struct {
     qm_t(class_id)   classes_by_id;
@@ -70,7 +70,7 @@ static struct {
 } iop_g;
 #define _G  iop_g
 
-/*------ various helpers -{{{-*/
+/* {{{ Various helpers */
 
 static inline int
 __iop_field_find_by_name2(const iop_struct_t *desc, const lstr_t name)
@@ -560,8 +560,8 @@ bool iop_type_is_scalar(iop_type_t type)
     e_panic("iop_type unsupported");
 }
 
-/*------ various helpers -}}}-*/
-/*------ iop type string description -{{{-*/
+/* }}} */
+/* {{{ Iop type string description */
 
 const char *iop_type_get_string_desc(iop_type_t type)
 {
@@ -602,8 +602,8 @@ const char *iop_type_get_string_desc(iop_type_t type)
     e_panic("iop_type unsupported");
 }
 
-/*------ iop type string description -}}}-*/
-/*------ generic attributes -{{{-*/
+/* }}} */
+/* {{{ Generic attributes */
 
 #define ATTR_IS_GENERIC(_attr, _what)                                        \
     (_attr->type == IOP_##_what##_GEN_ATTR_S                                 \
@@ -740,8 +740,8 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
     return iop_field_get_gen_attr(st, field, key, value);
 }
 
-/*------ generic attributes -}}}-*/
-/*------ iop_init / iop_new -{{{-*/
+/* }}} */
+/* {{{ iop_init / iop_new */
 
 static void
 iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
@@ -834,8 +834,8 @@ void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st)
     return res;
 }
 
-/*------ iop_init -}}}-*/
-/*----- duplicating values -{{{-*/
+/* }}} */
+/* {{{ Duplicating values */
 
 static size_t iop_dup_size(const iop_struct_t *desc, const void *val);
 
@@ -1138,8 +1138,8 @@ void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
            v_desc->size - offset);
 }
 
-/*----- duplicating values -}}}-*/
-/*----- comparing values -{{{-*/
+/* }}} */
+/* {{{ Comparing values */
 
 static bool
 __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
@@ -1260,9 +1260,8 @@ bool iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2)
     }
 }
 
-/*----- comparing values -}}}-*/
-/*----- sorting values -{{{-*/
-
+/* }}} */
+/* {{{ Sorting values */
 /* {{{ Field path */
 
 typedef struct field_step_t {
@@ -1625,7 +1624,7 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
 }
 
 /* }}} */
-/*----- hashing values -{{{-*/
+/* {{{ Hashing values */
 
 #define ATTRS
 #define F(x)  x
@@ -1633,8 +1632,8 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
 #undef F
 #undef ATTRS
 
-/*----- duplicating values -}}}-*/
-/*----- check constraints before packing -{{{-*/
+/* }}} */
+/* {{{ Check constraints before packing */
 
 static __thread sb_t iop_err_g;
 
@@ -1845,8 +1844,8 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val)
     }
 }
 
-/*-}}}-*/
-/*----- get value encoding size -{{{-*/
+/* }}} */
+/* {{{ Get value encoding size */
 
 static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
                                   const unsigned flags, qv_t(i32) *szs);
@@ -2031,8 +2030,8 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
     }
 }
 
-/*-}}}-*/
-/*----- packing -{{{-*/
+/* }}} */
+/* {{{ Packing */
 
 static uint8_t *pack_struct(void *dst, const iop_struct_t *, const void *,
                             const unsigned, const int **);
@@ -2315,8 +2314,8 @@ lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
     return mp_iop_bpack_struct_flags(t_pool(), st, v, flags);
 }
 
-/*-}}}-*/
-/*----- unpacking -{{{-*/
+/* }}} */
+/* {{{ Unpacking */
 
 static inline int get_uint32(pstream_t *ps, int ilen, uint32_t *u32)
 {
@@ -3123,8 +3122,8 @@ ssize_t iop_get_field_len(pstream_t ps)
     return tag_len + len_len + u32;
 }
 
-/*-}}}-*/
-/*------ introspection -{{{-*/
+/* }}} */
+/* {{{ Introspection */
 
 const iop_iface_t *iop_mod_find_iface(const iop_mod_t *mod, uint32_t tag)
 {
@@ -3183,8 +3182,8 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
     return *st ? (*st)->fields + (*it)++ : NULL;
 }
 
-/*------ introspection -}}}-*/
-/*------ Signature -{{{-*/
+/* }}} */
+/* {{{ Signature */
 
 #define ATTRS
 #define F(x)  x
@@ -3204,18 +3203,8 @@ static void iop_signature_initialize(void)
     ha_srand();
 }
 
-/*------ Signature -}}}-*/
-/* {{{ pkg manipulation */
-
-void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
-{
-    qm_for_each_pos(iop_pkg, pos, &_G.pkgs_by_name) {
-        cb(_G.pkgs_by_name.values[pos]);
-    }
-}
-
 /* }}} */
-/*------ class manipulation -{{{-*/
+/* {{{ Class manipulation */
 
 iop_value_t const *
 iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name)
@@ -3331,7 +3320,7 @@ void iop_for_each_registered_classes(iop_for_each_class_b cb)
     }
 }
 
-/*------ class manipulation -}}}-*/
+/* }}} */
 /* {{{ snmp manipulation */
 
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
@@ -3357,7 +3346,7 @@ const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
 }
 
 /* }}} */
-/*------ Packages registration -{{{-*/
+/* {{{ Packages registration / manipulation */
 
 static void iop_register_class(const iop_struct_t *desc)
 {
@@ -3471,8 +3460,15 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
     }
 }
 
-/*------ Packages registration -}}}-*/
-/* {{{ printf formatter */
+void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
+{
+    qm_for_each_pos(iop_pkg, pos, &_G.pkgs_by_name) {
+        cb(_G.pkgs_by_name.values[pos]);
+    }
+}
+
+/* }}} */
+/* {{{ Printf formatter */
 
 static int iop_file_write(void *file, const void *buf, int len)
 {
