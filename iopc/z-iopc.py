@@ -339,11 +339,6 @@ class IopcTest(z.TestCase):
                       'several snmpObjs given by the attribute '             \
                       'snmpParamsFrom have a field with the same name `c`', 4)
 
-    def test_snmp_invalid_not_snmp_param(self):
-        self.run_iopc('snmp_invalid_iface4.iop', False,
-                      'snmpObj `Params` does not have the attribute '
-                      '@snmpParams', 4)
-
     def test_snmp_invalid_type_fields(self):
         self.run_iopc('snmp_invalid_fields.iop', False,
                       'only int/string/boolean/enum types are handled for '

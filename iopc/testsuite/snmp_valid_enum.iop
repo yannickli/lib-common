@@ -6,7 +6,6 @@ enum SomeEnum {
     STATE3,
 };
 
-@snmpParams
 snmpObj Params : 1 : Intersec {
       /** Description.
        */

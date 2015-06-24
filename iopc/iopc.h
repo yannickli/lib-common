@@ -333,10 +333,8 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_ALLOW,
     IOPC_ATTR_DISALLOW,
     IOPC_ATTR_GENERIC,
-    IOPC_ATTR_SNMP_GET,
     IOPC_ATTR_DEPRECATED,
     IOPC_ATTR_SNMP_PARAMS_FROM,
-    IOPC_ATTR_SNMP_PARAMS,
 } iopc_attr_id_t;
 
 /* types on which an attribute can apply */

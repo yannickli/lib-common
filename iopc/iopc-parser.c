@@ -518,14 +518,6 @@ static void init_attributes(void)
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_TBL);
 
-    d = add_attr(IOPC_ATTR_SNMP_GET, "snmpGet");
-    d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    d->types |= IOPC_ATTR_T_ALL;
-
-    d = add_attr(IOPC_ATTR_SNMP_PARAMS, "snmpParams");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
-
     d = add_attr(IOPC_ATTR_SNMP_PARAMS_FROM, "snmpParamsFrom");
     SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
     SET_BIT(&d->flags, IOPC_ATTR_F_DECL);

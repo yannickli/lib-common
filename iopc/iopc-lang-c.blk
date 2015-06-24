@@ -2196,9 +2196,6 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
             iopc_dump_field_attr(attr, type, &attrs_body, attrs, f);
             break;
 
-          case IOPC_ATTR_SNMP_GET:
-            SET_BIT(&attrs->flags, IOP_FIELD_SNMP_GET);
-            break;
           case IOPC_ATTR_DEPRECATED:
             SET_BIT(&attrs->flags, IOP_FIELD_DEPRECATED);
             break;

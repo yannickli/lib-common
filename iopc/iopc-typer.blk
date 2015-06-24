@@ -59,21 +59,8 @@ pkg_provides_fields_for_param(iopc_pkg_t *pkg, iopc_field_t *field,
                               const char *snmp_obj, const char *name)
 {
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        bool has_snmp_params_attr = false;
-
         if (!strequal(st->name, snmp_obj)) {
             continue;
-        }
-        /* Check attribute snmp params */
-        qv_for_each_entry(iopc_attr, attr, &st->attrs) {
-            if (attr->desc->id == IOPC_ATTR_SNMP_PARAMS) {
-                has_snmp_params_attr = true;
-                break;
-            }
-        }
-        if (!has_snmp_params_attr) {
-            fatal_loc("snmpObj `%s` does not have the attribute @snmpParams",
-                      st->loc, st->name);
         }
         qv_for_each_entry(iopc_field, f, &st->fields) {
             iopc_extends_t *xt;

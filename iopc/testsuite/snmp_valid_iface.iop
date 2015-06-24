@@ -2,7 +2,6 @@ package snmp_valid_iface;
 
 /** Description.
  */
-@snmpParams @deprecated
 snmpObj Params : 80 : Intersec {
       /** Description.
        */
@@ -15,7 +14,6 @@ snmpObj Params : 80 : Intersec {
 
 /** Description.
  */
-@snmpParams
 snmpObj Params2 : 80 : Intersec {
       /** Description.
        */

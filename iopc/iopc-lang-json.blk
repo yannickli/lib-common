@@ -523,14 +523,6 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
         /* TODO */
         break;
 
-      case IOPC_ATTR_SNMP_GET:
-        /* TODO */
-        break;
-
-      case IOPC_ATTR_SNMP_PARAMS:
-        /* TODO */
-        break;
-
       case IOPC_ATTR_SNMP_PARAMS_FROM:
         /* TODO */
         break;

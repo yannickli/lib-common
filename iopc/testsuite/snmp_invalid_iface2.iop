@@ -2,7 +2,6 @@ package snmp_invalid_iface2;
 
 /** Description.
  */
-@snmpParams
 snmpObj Params : 80 : Intersec {
     /** Description.
      */

@@ -13,11 +13,9 @@ snmpObj MySnmp : 1 : Intersec {
 snmpObj MySnmp1 : 1 : MySnmp {
     /** Description.
      */
-    @snmpGet
 2:  string a;
 };
 
-@snmpParams
 /** Description.
  */
 snmpObj MySnmp2 : 1 : MySnmp {
