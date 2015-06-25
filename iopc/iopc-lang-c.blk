@@ -553,8 +553,8 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                 pfx = ctype_get_prefix(ctype, &underscore);
                 sb_addf(buf, "typedef %s__t %*pM;\n", tbase,
                         LSTR_FMT_ARG(ctype));
-                sb_addf(buf, "typedef %s__array_t %*pM__array_t;\n", tbase,
-                        LSTR_FMT_ARG(pfx));
+                sb_addf(buf, "typedef %s__array_t %*pM%sarray_t;\n", tbase,
+                        LSTR_FMT_ARG(pfx), underscore);
 
                 if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
                     sb_addf(buf, "#define %*pM%ss  %s__s\n",
