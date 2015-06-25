@@ -20,6 +20,7 @@ This module declares 4 methods, 2 exceptions and 4 constants.
 
 === Details ===
 
+[[http_initialize]]
 ==== http_initialize ====
 
 parameters:
@@ -87,7 +88,8 @@ parameters:
    this callback is called when the http request has been processed (see
    below).
 -  path: string.
--  url_arg: string (optional).
+-  url_arg: string (optional) default: value of url_arg provided in
+   <<http_initialize,http_initialize>>.
 
 cb_query_done parameters:
 
