@@ -238,7 +238,6 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_GEN_ATTR_D,
     IOP_FIELD_GEN_ATTR_O,
     IOP_FIELD_DEPRECATED,
-    IOP_FIELD_SNMP_GET,
     IOP_FIELD_SNMP_INFO, /**< not a real attribute, used in snmpObj         */
 } iop_field_attr_type_t;
 
