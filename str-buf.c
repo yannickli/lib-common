@@ -327,6 +327,56 @@ void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d)
     }
 }
 
+void _sb_add_duration_ms(sb_t *sb, uint64_t ms, bool print_ms)
+{
+    uint8_t nb_prints = 0;
+    static const uint32_t units[] = {
+        24 * 60 * 60 * 1000, /* day */
+             60 * 60 * 1000, /* hour */
+                  60 * 1000, /* minute */
+                       1000, /* second */
+                          1, /* millisecond */
+    };
+
+    if (!ms) {
+        sb_adds(sb, "0s");
+        return;
+    }
+
+    for (int j = 0; j < countof(units) - 1; j++) {
+        if (ms >= units[j]) {
+            /* only units j and j + 1 will be printed, round the remainder to
+             * the nearest value in unit j + 1 */
+            ms = ROUND(ms + units[j + 1] / 2, units[j + 1]);
+            break;
+        }
+    }
+
+#define SB_ADD_DUR(_unit, i)                                                 \
+    do {                                                                     \
+        uint32_t nb_ms_unit = units[i];                                      \
+                                                                             \
+        if ((ms) >= nb_ms_unit || nb_prints == 1) {                          \
+            if (nb_prints) {                                                 \
+                sb_addc(sb, ' ');                                            \
+            }                                                                \
+            sb_addf(sb, "%lu" _unit, ms / (nb_ms_unit));                     \
+            ms %= (nb_ms_unit);                                              \
+            nb_prints++;                                                     \
+        }                                                                    \
+    } while (0)
+
+    SB_ADD_DUR(     "d", 0);
+    SB_ADD_DUR(     "h", 1);
+    SB_ADD_DUR(     "m", 2);
+    SB_ADD_DUR(     "s", 3);
+    if (print_ms) {
+        SB_ADD_DUR("ms", 4);
+    }
+
+#undef SB_ADD_DUR
+}
+
 /**************************************************************************/
 /* FILE *                                                                 */
 /**************************************************************************/

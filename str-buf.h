@@ -470,6 +470,21 @@ void sb_add_int_fmt(sb_t *sb, int64_t val, int thousand_sep);
 void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
                        int dec_sep, int thousand_sep);
 
+/** Appends a pretty-formatted duration to a string buffer.
+ *
+ * Only the two main units are used, e.g. if the duration is at least 1 day,
+ * only days and hours will be kept. Plus, the duration is rounded:
+ * e.g. 61001 => 1m 1s   1ms => 1m 1s
+ *      61999 => 1m 1s 999ms => 1m 2s
+ *
+ * \param[inout] sb       Buffer to be updated.
+ * \param[in]    ms       The duration, in milliseconds.
+ * \param[in]    print_ms Whether to print the milliseconds or not.
+ */
+void _sb_add_duration_ms(sb_t *sb, uint64_t ms, bool print_ms);
+#define sb_add_duration_s(sb, s)  \
+    _sb_add_duration_ms((sb), (s) * 1000ULL, false)
+#define sb_add_duration_ms(sb, ms)  _sb_add_duration_ms((sb), (ms), true)
 
 /**************************************************************************/
 /* syscall/system wrappers                                                */

@@ -1229,6 +1229,61 @@ Z_GROUP_EXPORT(str)
                                          IDNA_ALLOW_UNASSIGNED) == 2);
     } Z_TEST_END;
 
+    Z_TEST(sb_add_duration, "str: sb_add_duration") {
+        SB_1k(sb);
+
+#define T(d, h, m, s, ms, str)                                               \
+    do {                                                                     \
+        uint64_t dur;                                                        \
+        dur = (d)  * 24 * 60 * 60 * 1000                                     \
+            + (h)  *      60 * 60 * 1000                                     \
+            + (m)  *           60 * 1000                                     \
+            + (s)  *                1000                                     \
+            + (ms) *                   1;                                    \
+        sb_add_duration_ms(&sb, dur);                                        \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(str));                       \
+        sb_reset(&sb);                                                       \
+    } while (0)
+
+        T(2, 3,  5, 6, 900, "2d 3h");
+        T(2, 3,  5, 0,   0, "2d 3h");
+        T(2, 3, 45, 0,   0, "2d 4h");
+        T(2, 4,  0, 0,   0, "2d 4h");
+
+        T(0, 3, 5, 29,   0, "3h 5m");
+        T(0, 3, 5, 30,   0, "3h 6m");
+        T(0, 3, 5, 31,   0, "3h 6m");
+        T(0, 3, 5, 31, 300, "3h 6m");
+
+        T(0, 0, 59, 59, 999, "1h 0m");
+        T(0, 1,  0, 29,   0, "1h 0m");
+
+        T(0, 1, 45, 29,  12, "1h 45m");
+        T(0, 1, 45, 34,  12, "1h 46m");
+
+        T(0, 0, 45, 34,   0, "45m 34s");
+        T(0, 0, 45, 34,  12, "45m 34s");
+        T(0, 0, 45, 34, 888, "45m 35s");
+
+        T(0, 0, 0, 8,   0, "8s 0ms");
+        T(0, 0, 0, 8, 100, "8s 100ms");
+        T(0, 0, 0, 8, 900, "8s 900ms");
+
+        /* corner case */
+        T(0, 0, 0, 0, 0, "0s");
+
+        /* test the helper for seconds */
+        sb_add_duration_s(&sb, 65);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR("1m 5s"));
+        sb_reset(&sb);
+
+        sb_add_duration_s(&sb, 3);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR("3s"));
+        sb_reset(&sb);
+
+#undef T
+    } Z_TEST_END;
+
     Z_TEST(str_span, "str: filtering") {
         SB_1k(sb);
 
