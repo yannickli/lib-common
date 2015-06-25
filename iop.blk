@@ -3361,11 +3361,13 @@ void iop_for_each_registered_classes(iop_for_each_class_b cb)
 }
 
 /* }}} */
-/* {{{ snmp manipulation */
+/* {{{ Snmp manipulation */
 
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid)
 {
+    assert (iop_struct_is_snmp_st(st));
+
     for (int i = 0; i < st->fields_len; i++) {
         const iop_field_t *field = &st->fields[i];
 
@@ -3373,14 +3375,12 @@ const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
             iop_field_attrs_t attrs = st->fields_attrs[i];
 
             for (int j = 0; j < attrs.attrs_len; j++) {
-                if (attrs.attrs[i].type == IOP_FIELD_SNMP_INFO) {
-                    iop_field_attr_arg_t const *arg = attrs.attrs[j].args;
-
-                    return (iop_snmp_attrs_t *)arg->v.p;
+                if (attrs.attrs[j].type == IOP_FIELD_SNMP_INFO) {
+                    return (iop_snmp_attrs_t *)attrs.attrs[j].args->v.p;
                 }
             }
+            e_panic("no snmp attrs find for field");
         }
-        e_panic("no snmp attrs find for field");
     }
     e_panic("no field matches wanted OID");
 }
