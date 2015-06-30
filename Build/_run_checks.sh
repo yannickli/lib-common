@@ -91,7 +91,7 @@ set_www_env() {
 
     z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
     index=$(basename "$productdir").php
-    intersec_so=$(find $(dirname "$productdir") -name intersec.so -not -path '*/\.*')
+    intersec_so=$(find $(dirname "$productdir") -name intersec.so -print -quit)
     Z_WWW_HOST="${Z_WWW_HOST:-$(hostname -f)}"
     Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium}"
     Z_WWW_BROWSER="${Z_WWW_BROWSER:-Remote}"
