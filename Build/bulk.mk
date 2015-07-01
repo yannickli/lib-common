@@ -80,7 +80,7 @@ www-check:: | _generated_hdr
 	pylint $<
 pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 
-tags: $(var/generated)
+tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 syntastic:
 jshint:
 .PHONY: tags jshint syntastic
