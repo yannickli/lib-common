@@ -145,29 +145,51 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
     lstr_t *str = NULL;
 
     switch (fdesc->type) {
-      case IOP_T_I8: case IOP_T_U8:
+#define CHECK_RANGE(_min, _max)  \
+        THROW_ERR_IF(intval < _min || intval > _max)
+
+      case IOP_T_I8:
         RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(INT8_MIN, INT8_MAX);
+        *(int8_t *)v = intval;
+        break;
+      case IOP_T_U8:
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(0, UINT8_MAX);
         *(uint8_t *)v = intval;
         break;
-      case IOP_T_I16: case IOP_T_U16:
+      case IOP_T_I16:
         RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(INT16_MIN, INT16_MAX);
+        *(int16_t *)v = intval;
+        break;
+      case IOP_T_U16:
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(0, UINT16_MAX);
         *(uint16_t *)v = intval;
         break;
-      case IOP_T_ENUM:
-        RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
-        *(uint32_t *)v = intval;
-        break;
-      case IOP_T_I32: case IOP_T_U32:
+      case IOP_T_I32:
         RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(INT32_MIN, INT32_MAX);
+        *(int32_t *)v = intval;
+        break;
+      case IOP_T_U32:
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+        CHECK_RANGE(0, UINT32_MAX);
         *(uint32_t *)v = intval;
         break;
       case IOP_T_I64:
         RETHROW(xmlr_get_i64_base(xr, 0, &intval));
-        *(uint64_t *)v = intval;
+        *(int64_t *)v = intval;
         break;
       case IOP_T_U64:
         RETHROW(xmlr_get_u64_base(xr, 0, &uintval));
         *(uint64_t *)v = uintval;
+        break;
+      case IOP_T_ENUM:
+        RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
+        CHECK_RANGE(INT32_MIN, INT32_MAX);
+        *(int32_t *)v = intval;
         break;
       case IOP_T_BOOL:
         RETHROW(xmlr_get_bool(xr, (bool *)v));
@@ -191,6 +213,8 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         return xunpack_union(xr, mp, fdesc->u1.st_desc, v, flags);
       case IOP_T_STRUCT:
         return xunpack_struct(xr, mp, fdesc->u1.st_desc, v, flags);
+
+#undef CHECK_RANGE
       default:
         e_panic("should not happen");
     }
@@ -219,44 +243,60 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
         }
 
         switch (fdesc->type) {
-          case IOP_T_I8: case IOP_T_U8:
+#define CHECK_RANGE(_min, _max)  \
+            THROW_ERR_IF(intval < _min || intval > _max)
+
+          case IOP_T_I8:
             RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(INT8_MIN, INT8_MAX);
+            ((int8_t *)data->data)[data->len] = intval;
+            break;
+          case IOP_T_U8:
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(0, UINT8_MAX);
             ((uint8_t *)data->data)[data->len] = intval;
             break;
-
-          case IOP_T_I16: case IOP_T_U16:
+          case IOP_T_I16:
             RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(INT16_MIN, INT16_MAX);
+            ((int16_t *)data->data)[data->len] = intval;
+            break;
+          case IOP_T_U16:
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(0, UINT16_MAX);
             ((uint16_t *)data->data)[data->len] = intval;
             break;
-
-          case IOP_T_ENUM:
-            RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
-            ((uint32_t *)data->data)[data->len] = intval;
-            break;
-
-          case IOP_T_I32: case IOP_T_U32:
+          case IOP_T_I32:
             RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(INT32_MIN, INT32_MAX);
+            ((int32_t *)data->data)[data->len] = intval;
+            break;
+          case IOP_T_U32:
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
+            CHECK_RANGE(0, UINT32_MAX);
             ((uint32_t *)data->data)[data->len] = intval;
             break;
-
           case IOP_T_I64:
             RETHROW(xmlr_get_i64_base(xr, 0, &intval));
-            ((uint64_t *)data->data)[data->len] = intval;
+            ((int64_t *)data->data)[data->len] = intval;
             break;
-
           case IOP_T_U64:
             RETHROW(xmlr_get_u64_base(xr, 0, &uintval));
             ((uint64_t *)data->data)[data->len] = uintval;
             break;
-
+          case IOP_T_ENUM:
+            RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
+            CHECK_RANGE(INT32_MIN, INT32_MAX);
+            ((int32_t *)data->data)[data->len] = intval;
+            break;
           case IOP_T_BOOL:
             RETHROW(xmlr_get_bool(xr, (bool *)data->data + data->len));
             break;
-
           case IOP_T_DOUBLE:
             RETHROW(xmlr_get_dbl(xr, (double *)data->data + data->len));
             break;
 
+#undef CHECK_RANGE
           default:
             assert(false);
         }
