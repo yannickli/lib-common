@@ -74,7 +74,7 @@ check:: all
 fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
 
-tags: $(var/generated)
+tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 syntastic:
 jshint:
 .PHONY: tags jshint syntastic

@@ -95,7 +95,7 @@ int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 
 static void sb_destroy_skip(sb_t *sb)
 {
-    if (sb->data == __sb_slop) {
+    if (sb->data == __sb_slop || sb->skip == 0) {
         return;
     }
 
