@@ -79,6 +79,10 @@ int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 
 static void sb_destroy_skip(sb_t *sb)
 {
+    if (sb->skip == 0) {
+        return;
+    }
+
     memmove(sb->data - sb->skip, sb->data, sb->len + 1);
     sb->data -= sb->skip;
     sb->size += sb->skip;
