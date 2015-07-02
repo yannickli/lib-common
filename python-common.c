@@ -149,6 +149,7 @@ typedef struct python_ctx_t {
     PyObject *cb_query_done;
     dlist_t   list;
     time_t    expiry;
+    core__iop_http_method__t http_method;
 } python_ctx_t;
 
 static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
@@ -339,7 +340,7 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
         sb_add_lstr(&sb, _G.url_args);
     }
 
-    httpc_query_start_flags(&q->q, (int)_G.http_method, _G.m->host,
+    httpc_query_start_flags(&q->q, (int)ctx->http_method, _G.m->host,
                             LSTR_SB_V(&sb), false);
 
     if (_G.user.len && _G.password.len) {
@@ -585,24 +586,27 @@ static PyObject *python_http_shutdown(PyObject *self, PyObject *arg)
     Py_RETURN_TRUE;
 }
 
-static PyObject *python_http_query(PyObject *self, PyObject *arg)
+static PyObject *
+python_http_query(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    PyObject     *data = NULL;
-    PyObject     *cb_query_done = NULL;
-    char         *path = NULL;
-    char         *url_args = NULL;
+    static const char *kwlist[] = {"data", "query_done_cb", "url_path",
+                                   "url_args", "http_method", NULL};
+    PyObject                 *data = NULL;
+    PyObject                 *cb_query_done = NULL;
+    char                     *path = NULL;
+    char                     *url_args = NULL;
+    core__iop_http_method__t http_method = _G.http_method;
     python_ctx_t *ctx;
 
-    if (!PyArg_ParseTuple(arg, "OOz|z",
-                          &data,
-                          &cb_query_done,
-                          &path,
-                          &url_args))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOz|zi", (char **)kwlist,
+                                     &data, &cb_query_done, &path, &url_args,
+                                     &http_method))
     {
         PyErr_SetString(http_query_error,
                         "failed to parse http_query argument");
         return NULL;
     }
+
     if (!PyCallable_Check(cb_query_done)) {
         PyErr_SetString(http_query_error,
                         "http_query 2nd argument is not "
@@ -618,6 +622,7 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
     ctx->path = path? lstr_dups(path, strlen(path)) : LSTR_NULL_V;
     ctx->url_args = url_args ? lstr_dups(url_args, strlen(url_args))
                              : LSTR_NULL_V;
+    ctx->http_method = http_method;
 
     if (_G.nb_pending > PYTHON_HTTP_MAX_PENDING) {
         python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
@@ -723,8 +728,8 @@ static PyMethodDef myModule_methods[] = {
     },
     {
         "http_query",
-        python_http_query,
-        METH_VARARGS,
+        (PyCFunction) python_http_query,
+        METH_VARARGS|METH_KEYWORDS,
         "http query"
     },
     {
