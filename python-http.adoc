@@ -90,6 +90,8 @@ parameters:
 -  path: string.
 -  url_arg: string (optional) default: value of url_arg provided in
    <<http_initialize,http_initialize>>.
+-  http_method: int (optional) default: value of http_method provided in
+   <<http_initialize,http_initialize>>.
 
 cb_query_done parameters:
 
