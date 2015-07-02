@@ -3738,6 +3738,7 @@ Z_GROUP_EXPORT(iop)
         struct_a.j = LSTR("toto");
         struct_a.l = IOP_UNION(tstiop__my_union_a, ua, 25);
         struct_a.cls2 = iop_obj_vcast(tstiop__my_class2, &cls3);
+        OPT_SET(struct_b.a, 5);
         struct_c.b = &struct_c;
         struct_a_opt.l = &IOP_UNION(tstiop__my_union_a, ua, 10);
         referenced_struct.a = 21;
@@ -3855,7 +3856,8 @@ Z_GROUP_EXPORT(iop)
                                   LSTR("a"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
-        Z_ASSERT_EQ(*(int *)out, OPT_VAL(struct_b.a));
+        Z_ASSERT_EQ(OPT_ISSET(*(opt_i32_t *)out), OPT_ISSET(struct_b.a));
+        Z_ASSERT_EQ(OPT_VAL(*(opt_i32_t *)out), OPT_VAL(struct_b.a));
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                     LSTR("a.b"), NULL));
