@@ -366,7 +366,7 @@ static inline struct timeval timeval_add(struct timeval a, struct timeval b)
     return res;
 }
 
-static inline struct timeval timeval_addmsec(struct timeval a, int msec)
+static inline struct timeval timeval_addmsec(struct timeval a, int64_t msec)
 {
     struct timeval res;
 
