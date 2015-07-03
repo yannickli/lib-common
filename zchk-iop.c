@@ -3768,12 +3768,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */
         t_scope;
+        SB_1k(json);
+        SB_1k(err);
         iop_field_info_t info;
         qv_t(iop_field_info) fields_info;
         qv_t(lstr) fields_name;
         iop_struct_t *st;
         const iop_field_t *f;
-        void *v;
+        void *v, *vtest;
+        pstream_t ps;
 
         qv_init(iop_field_info, &fields_info);
         qv_init(lstr, &fields_name);
@@ -3922,6 +3925,15 @@ Z_GROUP_EXPORT(iop)
         /* test structure validity */
         v = t_iop_new_desc(st);
         Z_HELPER_RUN(iop_std_test_struct(st, v, ""));
+
+        /* pack/unpack using JSON */
+        Z_ASSERT_N(iop_sb_jpack(&json, st, v, 0));
+
+        vtest = t_new_raw(byte, st->size);
+        ps = ps_initsb(&json);
+        Z_ASSERT_N(t_iop_junpack_ps(&ps, st, vtest, 0, &err));
+
+        Z_ASSERT(iop_equals(st, v, vtest));
 
         /* clear */
         qv_wipe(iop_field_info, &fields_info);
