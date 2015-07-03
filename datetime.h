@@ -432,6 +432,10 @@ static inline bool timeval_is_ge0(const struct timeval t) {
     return !timeval_is_lt0(t);
 }
 
+static inline int64_t timeval_to_msec(const struct timeval tv)
+{
+    return tv.tv_sec * 1000 + (tv.tv_usec / 1000);
+}
 
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
