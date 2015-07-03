@@ -4076,15 +4076,77 @@ Z_GROUP_EXPORT(iop)
 
         /* test to get optional */
         {
+            t_scope;
+            tstiop__my_struct_a_opt__t s;
             tstiop__my_struct_b__t sb;
 
+            st = &tstiop__my_struct_a_opt__s;
+
+            /* simple field */
+            iop_init(tstiop__my_struct_a_opt, &s);
+            OPT_SET(s.a, 42);
+
+            field = &st->fields[0];
+            Z_ASSERT_N(iop_value_from_field((void *)&s, field, &value));
+            Z_ASSERT_EQ(value.i, 42);
+
+            iop_init(tstiop__my_struct_a_opt, &s);
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_NOT_SET);
+
+            /* string field */
+            iop_init(tstiop__my_struct_a_opt, &s);
+            s.j = LSTR("abc");
+            field = &st->fields[9];
+            Z_ASSERT_N(iop_value_from_field((void *)&s, field, &value));
+            Z_ASSERT_LSTREQUAL(value.s, LSTR("abc"));
+
+            iop_init(tstiop__my_struct_a_opt, &s);
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_NOT_SET);
+
+            /* struct field */
+            iop_init(tstiop__my_struct_a_opt, &s);
+            s.o = t_iop_new(tstiop__my_struct_b);
+            OPT_SET(s.o->a, 42);
+
+            field = &st->fields[15];
+            Z_ASSERT_N(iop_value_from_field((void *)&s, field, &value));
+            Z_ASSERT_P(value.v);
+            Z_ASSERT_EQ(OPT_VAL(((tstiop__my_struct_b__t *)value.v)->a), 42);
+
+            iop_init(tstiop__my_struct_a_opt, &s);
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_NOT_SET);
+
+            /* class field */
+            iop_init(tstiop__my_struct_a_opt, &s);
+            s.cls2 = t_iop_new(tstiop__my_class2);
+            s.cls2->int2 = 42;
+
+            field = &st->fields[16];
+            Z_ASSERT_N(iop_value_from_field((void *)&s, field, &value));
+            Z_ASSERT_P(value.v);
+            Z_ASSERT_EQ(((tstiop__my_class2__t *)value.v)->int2, 42);
+
+            iop_init(tstiop__my_struct_a_opt, &s);
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_NOT_SET);
+
+            /* not handled array field */
             iop_init(tstiop__my_struct_b, &sb);
-            OPT_SET(sb.a, 42);
+            sb.b.tab = t_new_raw(int, 1);
+            sb.b.tab[0] = 42;
+            sb.b.len = 1;
 
             st = &tstiop__my_struct_b__s;
-            field = &st->fields[0];
-            Z_ASSERT_N(iop_value_from_field((void *) &sb, field, &value));
-            Z_ASSERT_EQ(value.i, 42);
+            field = &st->fields[1];
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_ERROR);
+
+            iop_init(tstiop__my_struct_b, &sb);
+            Z_ASSERT_EQ(iop_value_from_field((void *)&s, field, &value),
+                        IOP_FIELD_ERROR);
         }
 
         /* test with iop_get_field */

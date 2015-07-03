@@ -189,8 +189,9 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
     return iop_field;
 }
 
-int iop_value_from_field(const void *ptr, const iop_field_t *field,
-                         iop_value_t *value)
+iop_value_from_field_res_t
+iop_value_from_field(const void *ptr, const iop_field_t *field,
+                     iop_value_t *value)
 {
     THROW_ERR_IF(field->repeat == IOP_R_REPEATED);
 
@@ -203,7 +204,7 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
             if (OPT_ISSET(*o)) {                                             \
                 value->f = OPT_VAL(*o);                                      \
             } else {                                                         \
-                return -1;                                                   \
+                return IOP_FIELD_NOT_SET;                                    \
             }                                                                \
         } else {                                                             \
             value->f = *(const type *)ptr;                                   \
@@ -259,7 +260,7 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
         const lstr_t *str = ptr;
 
         if (field->repeat == IOP_R_OPTIONAL && !str->s) {
-            return -1;
+            return IOP_FIELD_NOT_SET;
         } else {
             value->s = lstr_dupc(*str);
         }
@@ -274,11 +275,14 @@ int iop_value_from_field(const void *ptr, const iop_field_t *field,
             ptr = *(const void **)ptr;
         }
 
+        if (!ptr) {
+            return IOP_FIELD_NOT_SET;
+        }
         value->p = (void *)ptr;
         return 0;
       }
     }
-    return -1;
+    return IOP_FIELD_ERROR;
 }
 
 int iop_value_to_field(void *ptr, const iop_field_t *field,
