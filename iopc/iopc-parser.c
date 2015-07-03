@@ -233,6 +233,12 @@ static void check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
                   LSTR_FMT_ARG(attr->desc->name),
                   type_to_str(type));
     }
+
+    /* Field snmp specific checks */
+    if (attr->desc->id == IOPC_ATTR_SNMP_INDEX && !f->snmp_is_in_tbl) {
+        fatal_loc("field '%s' does not support @snmpIndex attribute",
+                  attr->loc, f->name);
+    }
 }
 
 void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
@@ -523,6 +529,10 @@ static void init_attributes(void)
     SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
     ADD_ATTR_ARG(d, "param", ITOK_IDENT);
+
+    d = add_attr(IOPC_ATTR_SNMP_INDEX, "snmpIndex");
+    d->flags |= IOPC_ATTR_F_FIELD_ALL;
+    d->types |= IOPC_ATTR_T_ALL;
 #undef ADD_ATTR_ARG
 }
 
@@ -1697,6 +1707,8 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
 
     f = iopc_field_new();
     f->loc = TK(pp, 0)->loc;
+
+    f->snmp_is_in_tbl = iopc_is_snmp_tbl(st->type);
 
     if (SKIP_KW(pp, "static")) {
         if (!iopc_is_class(st->type)) {

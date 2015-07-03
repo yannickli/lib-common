@@ -1222,6 +1222,9 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
         SET_BIT(&flags, IOP_FIELD_HAS_SNMP_INFO);
     }
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
+            SET_BIT(&flags, IOP_FIELD_IS_SNMP_INDEX);
+        } else
         if (attr->desc->id == IOPC_ATTR_MIN_OCCURS) {
             SET_BIT(&flags, 1 /* IOP_FIELD_NO_EMPTY_ARRAY */);
             break;
