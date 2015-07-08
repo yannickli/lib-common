@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = libcommon python time-lp-simple iopmib
+none_LIBRARIES = libcommon python time-lp-simple iopmib iopsnmpdoc
 python_SHARED_LIBRARIES += common
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
@@ -202,6 +202,10 @@ zchk-iop-plugin_SOURCES =  \
 zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 iopmib_SOURCES = iop-mib.c \
+	$ltest-data/snmp/snmp_test.iop \
+	$ltest-data/snmp/snmp_intersec_test.iop
+
+iopsnmpdoc_SOURCES = iop-snmp-doc.c \
 	$ltest-data/snmp/snmp_test.iop \
 	$ltest-data/snmp/snmp_intersec_test.iop
 
