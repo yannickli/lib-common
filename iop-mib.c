@@ -647,9 +647,10 @@ static void mib_put_objects_conformance(sb_t *buf)
             LVL1 "OBJECTS { ", LSTR_FMT_ARG(_G.head));
 
     qv_for_each_pos(lstr, pos, &_G.conformance_objects) {
-        sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_objects.tab[pos]));
+        sb_addf(buf, "%s%*pM", pos == 0 ? "": "  "LVL3,
+                LSTR_FMT_ARG(_G.conformance_objects.tab[pos]));
         if (pos < _G.conformance_objects.len - 1) {
-            sb_addf(buf, ", ");
+            sb_addf(buf, ",\n");
         }
     }
     sb_addf(buf, " }\n"
@@ -667,9 +668,10 @@ static void mib_put_notifs_conformance(sb_t *buf)
             LVL1 "NOTIFICATIONS { ", LSTR_FMT_ARG(_G.head));
 
     qv_for_each_pos(lstr, pos, &_G.conformance_notifs) {
-        sb_addf(buf, "%*pM", LSTR_FMT_ARG(_G.conformance_notifs.tab[pos]));
+        sb_addf(buf, "%s%*pM", pos == 0 ? "": LVL5,
+                LSTR_FMT_ARG(_G.conformance_notifs.tab[pos]));
         if (pos < _G.conformance_notifs.len - 1) {
-            sb_addf(buf, ", ");
+            sb_addf(buf, ",\n");
         }
     }
     sb_addf(buf, " }\n"
