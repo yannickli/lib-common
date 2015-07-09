@@ -31,10 +31,12 @@ static struct {
     void  (*sighandler)(int, siginfo_t *, void *);
 
     logger_t logger;
+    logger_t tracing_logger;
 } qps_store_g = {
 #define _G  qps_store_g
     .qps_head = DLIST_INIT(_G.qps_head),
     .logger   = LOGGER_INIT_INHERITS(NULL, "qps"),
+    .tracing_logger = LOGGER_INIT_SILENT_INHERITS(&_G.logger, "tracing"),
 };
 
 #if 0
@@ -723,7 +725,8 @@ qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no, bool quarantine)
 {
     int pos;
 
-    logger_trace(&_G.logger, 1, "map %x recycled on %p", map->hdr.mapno, qps);
+    logger_trace(&_G.tracing_logger, 1, "map %x recycled on %p",
+                 map->hdr.mapno, qps);
 
     /* remove it from the allowed maps */
     qps->maps.tab[no] = NULL;
@@ -1668,7 +1671,7 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
     qps_map_bless(qps, map);
     qps_m_blk_insert(qps, dst, (uint8_t *)dst_end - dst->data);
 
-    logger_trace(&_G.logger, 1, "gc compaction done on %p", qps);
+    logger_trace(&_G.tracing_logger, 1, "gc compaction done on %p", qps);
     qv_wipe(qps_gcmap, &maps);
     assert (!qps->snapshotting);
     atomic_fetch_sub(&qps->gc_state, 2);
@@ -1683,17 +1686,17 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
 
     assert (!qps->snapshotting);
     if (atomic_load(&qps->gc_gen) != gc_gen) {
-        logger_trace(&_G.logger, 2, "ignored stalled gc on %p", qps);
+        logger_trace(&_G.tracing_logger, 2, "ignored stalled gc on %p", qps);
         return;
     }
     if (!atomic_compare_exchange_strong(&qps->gc_state, &enabled,
                                         QPS_GC_RUNNING))
     {
-        logger_trace(&_G.logger, 2, "ignored cancelled gc on %p", qps);
+        logger_trace(&_G.tracing_logger, 2, "ignored cancelled gc on %p", qps);
         return;
     }
 
-    logger_trace(&_G.logger, 1, "start gc on %p", qps);
+    logger_trace(&_G.tracing_logger, 1, "start gc on %p", qps);
     qps_m_check_maps(qps);
 
     qv_init(qps_gcmap, &maps);
@@ -1727,12 +1730,12 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     }
 
     if (maps.len == 0) {
-        logger_trace(&_G.logger, 1, "nothing to gc on %p", qps);
+        logger_trace(&_G.tracing_logger, 1, "nothing to gc on %p", qps);
         goto end_no_trace;
     }
 
     if (maps.len < 4 && allocated < QPS_MAP_SIZE / 2 && disk_usage < QPS_MAP_SIZE) {
-        logger_trace(&_G.logger, 1, "nothing worthy to gc on %p", qps);
+        logger_trace(&_G.tracing_logger, 1, "nothing worthy to gc on %p", qps);
         goto end_no_trace;
     }
 
@@ -1757,7 +1760,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     }
 
   end:
-    logger_trace(&_G.logger, 1, "cancelled gc on %p", qps);
+    logger_trace(&_G.tracing_logger, 1, "cancelled gc on %p", qps);
   end_no_trace:
     qv_wipe(qps_gcmap, &maps);
     atomic_fetch_sub(&qps->gc_state, 2);
@@ -1772,7 +1775,7 @@ static void qps_gc_on_idle(el_t ev, data_t priv)
         if (atomic_load(&qps->gc_syn.pending) == 0) {
             uint32_t gc_gen = atomic_fetch_add(&qps->gc_gen, 1) + 1;
 
-            logger_trace(&_G.logger, 1, "schedule gc on %p", qps);
+            logger_trace(&_G.tracing_logger, 1, "schedule gc on %p", qps);
             qps_gc(qps, gc_gen);
         }
     }
@@ -1792,7 +1795,7 @@ bool qps_gc_enable(qps_t *qps)
 {
     int prev = atomic_fetch_or(&qps->gc_state, QPS_GC_ENABLED);
 
-    logger_trace(&_G.logger, 1, "enable gc on %p", qps);
+    logger_trace(&_G.tracing_logger, 1, "enable gc on %p", qps);
     if (thr_id() == 0)
         qps_gc_on_idle(NULL, (data_t){ .ptr = qps });
     return prev & QPS_GC_ENABLED;
@@ -1812,7 +1815,7 @@ bool qps_gc_disable(qps_t *qps)
 {
     int prev = atomic_fetch_and(&qps->gc_state, ~QPS_GC_ENABLED);
 
-    logger_trace(&_G.logger, 1, "disable gc on %p", qps);
+    logger_trace(&_G.tracing_logger, 1, "disable gc on %p", qps);
     if (prev & QPS_GC_RUNNING)
         thr_syn_wait(&qps->gc_syn);
     return prev & QPS_GC_ENABLED;
@@ -2614,7 +2617,8 @@ static void qps_snapshot_bg_done(el_t el, pid_t pid, int status, data_t data)
             struct timeval end;
 
             el_timer_unregister(&qps->snap_timer_el);
-            logger_trace(&_G.logger, 1, "snapshot commited and notified");
+            logger_trace(&_G.tracing_logger, 1, "snapshot commited and "
+                         "notified");
 
             qps_dir_cleanup(qps, qps->snap_gen);
             qps_unquarantine_nos(qps);
@@ -2650,7 +2654,7 @@ static void qps_snapshot_bg_done(el_t el, pid_t pid, int status, data_t data)
 
             qps->snapshotting = false;
             lp_gettv(&end);
-            logger_debug(&_G.logger, "snapshot done in %jdms",
+            logger_debug(&_G.tracing_logger, "snapshot done in %jdms",
                          timeval_diffmsec(&end, &qps->snap_start));
             qps->snap_notify(qps->snap_gen);
             Block_release_p(&qps->snap_notify);
@@ -2677,7 +2681,8 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
     setsid();
     setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
 
-    logger_debug(&_G.logger, "start snapshotting %d maps", qps->maps.len);
+    logger_debug(&_G.tracing_logger, "start snapshotting %d maps",
+                 qps->maps.len);
     for (int i = 0; i < qps->maps.len; i++) {
         struct timeval start, end;
         qps_map_t *map = qps->maps.tab[i];
@@ -2713,7 +2718,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
 
       next:
         lp_gettv(&end);
-        logger_debug(&_G.logger, "snapshotting %d/%d (%jdms)", i + 1,
+        logger_debug(&_G.tracing_logger, "snapshotting %d/%d (%jdms)", i + 1,
                      qps->maps.len, timeval_diffmsec(&end, &start));
     }
     x_write_meta(qps, generation, t, data, dlen);
