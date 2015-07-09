@@ -98,7 +98,7 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
         sb_add_lstr(&buf, parts.tab[i]);
     }
 
-    return lstr_init_(buf.data, buf.len, MEM_STACK);
+    return t_lstr_fmt("%*pM", SB_FMT_ARG(&buf));
 }
 
 static lstr_t t_mib_put_enum(const iop_enum_t *en)
@@ -138,9 +138,9 @@ static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool from_tbl)
 }
 
 
-#define T_RETURN_HELP(_attr, _len, _type, _name)  \
+#define T_RETURN_HELP(_attr, _type, _name)  \
     do {                                                                     \
-        for (int i = 0; i < _len; i++) {                                     \
+        for (int i = 0; i < attrs->attrs_len; i++) {                         \
             if (_attr[i].type == _type) {                                    \
                 const iop_help_t *help = _attr[i].args->v.p;                 \
                 lstr_t descri;                                               \
@@ -157,21 +157,21 @@ static lstr_t t_mib_field_get_help(const iop_field_attrs_t *attrs)
 {
     const iop_field_attr_t *attr = attrs->attrs;
 
-    T_RETURN_HELP(attr, attrs->attrs_len, IOP_FIELD_ATTR_HELP, "field");
+    T_RETURN_HELP(attr, IOP_FIELD_ATTR_HELP, "field");
 }
 
 static lstr_t t_mib_rpc_get_help(const iop_rpc_attrs_t *attrs)
 {
     const iop_rpc_attr_t *attr = attrs->attrs;
 
-    T_RETURN_HELP(attr, attrs->attrs_len, IOP_RPC_ATTR_HELP, "rpc");
+    T_RETURN_HELP(attr, IOP_RPC_ATTR_HELP, "rpc");
 }
 
 static lstr_t t_mib_tbl_get_help(const iop_struct_attrs_t *attrs)
 {
     const iop_struct_attr_t *attr = attrs->attrs;
 
-    T_RETURN_HELP(attr, attrs->attrs_len, IOP_STRUCT_ATTR_HELP, "snmpTbl");
+    T_RETURN_HELP(attr, IOP_STRUCT_ATTR_HELP, "snmpTbl");
 }
 #undef T_GET_HELP
 
@@ -617,7 +617,7 @@ static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
         }
 
         if (has_rpcs) {
-            sb_addf(buf, " \n-- }}}\n");
+            sb_addf(buf, "\n-- }}}\n");
         }
     }
 }
