@@ -213,4 +213,9 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
  */
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
+/* Module {{{ */
+
+MODULE_DECLARE(ssl);
+
+/* }}} */
 #endif

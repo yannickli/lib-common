@@ -15,6 +15,26 @@
 #include <lib-common/z.h>
 #include "ssl.h"
 
+/* {{{ Module */
+
+static int ssl_initialize(void *arg)
+{
+    /* interpreting internal errors is a nightmare, we want human readable
+     * messages */
+    ERR_load_crypto_strings();
+    return 0;
+}
+
+static int ssl_shutdown(void)
+{
+    ERR_free_strings();
+    return 0;
+}
+
+MODULE_BEGIN(ssl)
+MODULE_END()
+
+/* }}} */
 /* {{{ Initialize & wipe */
 
 static __thread char openssl_errbuf_g[1024];
@@ -357,6 +377,8 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
 
 Z_GROUP_EXPORT(ssl)
 {
+    MODULE_REQUIRE(ssl);
+
     Z_TEST(encrypt, "encrypt") {
         ssl_ctx_t ctx;
         const lstr_t text = LSTR_IMMED("Encrypt me");
@@ -425,6 +447,9 @@ Z_GROUP_EXPORT(ssl)
         conf_delete(&conf);
         p_delete(&encrypted_key);
     } Z_TEST_END;
+
+    MODULE_RELEASE(ssl);
+
 } Z_GROUP_END
 
 /* }}} */
