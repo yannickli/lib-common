@@ -379,31 +379,32 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
         unsigned field_size = 1;
         int field_align = 1;
         iop_type_t type = field_info->type;
+        bool is_optional = field_info->repeat == IOP_R_OPTIONAL;
         int tag;
 
         switch (type) {
           case IOP_T_I8:
           case IOP_T_U8:
           case IOP_T_BOOL:
-            field_size = 1;
-            field_align = field_size;
+            field_size = is_optional ? sizeof(opt_i8_t) : 1;
+            field_align = is_optional ? alignof(opt_i8_t) : 1;
             break;
           case IOP_T_I16:
           case IOP_T_U16:
-            field_size = 2;
-            field_align = field_size;
+            field_size = is_optional ? sizeof(opt_i16_t) : 2;
+            field_align = is_optional ? alignof(opt_i16_t) : 2;
             break;
           case IOP_T_I32:
           case IOP_T_U32:
           case IOP_T_ENUM:
-            field_size = 4;
-            field_align = field_size;
+            field_size = is_optional ? sizeof(opt_i32_t) : 4;
+            field_align = is_optional ? alignof(opt_i32_t) : 4;
             break;
           case IOP_T_I64:
           case IOP_T_U64:
           case IOP_T_DOUBLE:
-            field_size = 8;
-            field_align = field_size;
+            field_size = is_optional ? sizeof(opt_i64_t) : 8;
+            field_align = is_optional ? alignof(opt_i64_t) : 8;
             break;
           case IOP_T_STRING:
           case IOP_T_DATA:
