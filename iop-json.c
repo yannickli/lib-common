@@ -1783,6 +1783,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         res += __res;                                                      \
     } while (0)
 #define PUTS(s)  WRITE(s, strlen(s))
+#define PUTLSTR(s)  WRITE(s.data, s.len)
 #define IPUTS(s_with_indent, s_no_indent) \
     do {                                                                   \
         if (with_indent) {                                                 \
@@ -1838,7 +1839,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         if (!desc->is_union)
             INDENT();
         PUTS("\"");
-        PUTS(fdesc->name.s);
+        PUTLSTR(fdesc->name);
         if (with_indent) {
             PUTS(repeated ? "\": [ " : "\": ");
         } else {
@@ -1991,7 +1992,7 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         INDENT();
         IPUTS("\"_class\": ", "\"_class\":");
         PUTS("\"");
-        PUTS(real_desc->fullname.s);
+        PUTLSTR(real_desc->fullname);
         PUTS("\"");
         first = false;
 

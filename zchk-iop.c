@@ -4337,26 +4337,38 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_type_vector_to_iop_struct, "test IOP struct build") { /* {{{ */
         t_scope;
+        SB_1k(json);
+        SB_1k(err);
         iop_field_info_t info;
         qv_t(iop_field_info) fields_info;
         qv_t(lstr) fields_name;
         iop_struct_t *st;
         const iop_field_t *f;
+        void *v, *vtest;
+        pstream_t ps;
 
         qv_init(iop_field_info, &fields_info);
         qv_init(lstr, &fields_name);
 
-#define POLULATE_FIELDSINFO(_type, _name)                            \
+#define POLULATE_FIELDSINFO(_type, _name, _repeated)                 \
         info.type = _type;                                           \
         info.name = _name;                                           \
+        info.repeat = _repeated;                                     \
         qv_append(iop_field_info, &fields_info, info)
 
-        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR("f0"));
-        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR("f1"));
-        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR("f2"));
-        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR("f3"));
-        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR("f4"));
-        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR("f5"));
+        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR("f0"), IOP_R_REQUIRED);
+        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR("f1"), IOP_R_REQUIRED);
+        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR("f2"), IOP_R_REQUIRED);
+        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR("f3"), IOP_R_REQUIRED);
+        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR("f4"), IOP_R_REQUIRED);
+        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR("f5"), IOP_R_REQUIRED);
+
+        POLULATE_FIELDSINFO(IOP_T_I8,     LSTR("f6"), IOP_R_OPTIONAL);
+        POLULATE_FIELDSINFO(IOP_T_I16,    LSTR("f7"), IOP_R_OPTIONAL);
+        POLULATE_FIELDSINFO(IOP_T_I32,    LSTR("f8"), IOP_R_OPTIONAL);
+        POLULATE_FIELDSINFO(IOP_T_I64,    LSTR("f9"), IOP_R_OPTIONAL);
+        POLULATE_FIELDSINFO(IOP_T_DOUBLE, LSTR("f10"), IOP_R_OPTIONAL);
+        POLULATE_FIELDSINFO(IOP_T_STRING, LSTR("f11"), IOP_R_OPTIONAL);
 
 #undef POLULATE_FIELDSINFO
 
@@ -4364,7 +4376,7 @@ Z_GROUP_EXPORT(iop)
                                            &fields_info);
 
         Z_ASSERT_LSTREQUAL(st->fullname, LSTR("fullname"));
-        Z_ASSERT_GE(st->size, 31);
+        Z_ASSERT_GE(st->size, 62);
 
 #define GET_FIELD_FROM_NAME(_name)                                           \
         ({                                                                   \
@@ -4413,6 +4425,42 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(f->size, sizeof(lstr_t));
         Z_ASSERT_EQ(f->tag, 6);
 
+        f = GET_FIELD_FROM_NAME("f6");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I8);
+        Z_ASSERT_EQ(f->size, sizeof(opt_i8_t));
+        Z_ASSERT_EQ(f->tag, 7);
+
+        f = GET_FIELD_FROM_NAME("f7");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I16);
+        Z_ASSERT_EQ(f->size, sizeof(opt_i16_t));
+        Z_ASSERT_EQ(f->tag, 8);
+
+        f = GET_FIELD_FROM_NAME("f8");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I32);
+        Z_ASSERT_EQ(f->size, sizeof(opt_i32_t));
+        Z_ASSERT_EQ(f->tag, 9);
+
+        f = GET_FIELD_FROM_NAME("f9");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_I64);
+        Z_ASSERT_EQ(f->size, sizeof(opt_i64_t));
+        Z_ASSERT_EQ(f->tag, 10);
+
+        f = GET_FIELD_FROM_NAME("f10");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_DOUBLE);
+        Z_ASSERT_EQ(f->size, sizeof(opt_double_t));
+        Z_ASSERT_EQ(f->tag, 11);
+
+        f = GET_FIELD_FROM_NAME("f11");
+        Z_ASSERT_P(f);
+        Z_ASSERT_EQ(f->type, IOP_T_STRING);
+        Z_ASSERT_EQ(f->size, sizeof(lstr_t));
+        Z_ASSERT_EQ(f->tag, 12);
+
 #undef GET_FIELD_FROM_NAME
 
         /* test if no field overlap another */
@@ -4442,6 +4490,20 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(st->ranges[1], 1);
         Z_ASSERT_EQ(st->ranges[2], fields_info.len);
 
+        /* test structure validity */
+        v = t_iop_new_desc(st);
+        Z_HELPER_RUN(iop_std_test_struct(st, v, ""));
+
+        /* pack/unpack using JSON */
+        Z_ASSERT_N(iop_sb_jpack(&json, st, v, 0));
+
+        vtest = t_new_raw(byte, st->size);
+        ps = ps_initsb(&json);
+        Z_ASSERT_N(t_iop_junpack_ps(&ps, st, vtest, 0, &err));
+
+        Z_ASSERT(iop_equals_desc(st, v, vtest));
+
+        /* clear */
         qv_wipe(iop_field_info, &fields_info);
         qv_wipe(lstr, &fields_name);
         p_delete(&st);
