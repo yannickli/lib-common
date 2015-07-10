@@ -18,6 +18,7 @@
 #include "thr.h"
 #include "container-qhash.h"
 #include "iop.h"
+#include "datetime.h"
 
 enum z_state {
     Z_START,
@@ -50,6 +51,9 @@ struct z_grp {
     lstr_t t_skip_reason;
     lstr_t t_todo_reason;
     lstr_t t_fail_reason;
+
+    struct timeval tv_start;
+    struct timeval tv_diff;
 };
 
 struct z_export *z_exports_g;
@@ -456,39 +460,46 @@ static void do_fail_comment(void)
 static void do_skip(void)
 {
     _G.grp.t_skipped++;
-    printf("%*d skip %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
-           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_skip_reason));
+    printf("%*d skip %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
+           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
+           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec,
+           LSTR_FMT_ARG(_G.grp.t_skip_reason));
     fflush(stdout);
 }
 
 static void do_passed(void)
 {
     _G.grp.t_passed++;
-    printf("%*d pass %*pM\t# %d assertions\n", _G.grp.n_total_digits, _G.grp.t_idx,
-           LSTR_FMT_ARG(_G.grp.t_name), _G.grp.t_asserts);
+    printf("%*d pass %*pM\t# (%ld.%06lds) %d assertions\n",
+           _G.grp.n_total_digits, _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
+           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec, _G.grp.t_asserts);
     fflush(stdout);
 }
 
 static void do_failed(void)
 {
     _G.grp.t_failed++;
-    printf("%*d fail %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
-           LSTR_FMT_ARG(_G.grp.t_name));
+    printf("%*d fail %*pM\n # (%ld.%06lds)", _G.grp.n_total_digits,
+           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name), _G.grp.tv_diff.tv_sec,
+           _G.grp.tv_diff.tv_usec);
     do_fail_comment();
 }
 
 static void do_todo_passed(void)
 {
     _G.grp.t_todo_passed++;
-    printf("%*d todo-pass %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
-           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_todo_reason));
+    printf("%*d todo-pass %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
+           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),  _G.grp.tv_diff.tv_sec,
+           _G.grp.tv_diff.tv_usec, LSTR_FMT_ARG(_G.grp.t_todo_reason));
 }
 
 static void do_todo_failed(void)
 {
     _G.grp.t_todo_failed++;
-    printf("%*d todo-fail %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
-           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_todo_reason));
+    printf("%*d todo-fail %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
+           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
+           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec,
+           LSTR_FMT_ARG(_G.grp.t_todo_reason));
     do_fail_comment();
 }
 
@@ -655,8 +666,10 @@ static void _z_step_prepare(lstr_t n)
     lstr_copyc(&_G.grp.t_skip_reason, _G.grp.skip_reason);
     lstr_copyc(&_G.grp.t_todo_reason, _G.grp.todo_reason);
     rmdir_r(z_tmpdir_g.s, true);
-    if (chdir(_G.wd) < 0)
+    if (chdir(_G.wd) < 0) {
         e_panic("unable to chdir to original directory '%s': %m", _G.wd);
+    }
+    lp_gettv(&_G.grp.tv_start);
 }
 
 static void _z_blkgrp_process(struct z_blkgrp *g)
@@ -736,8 +749,12 @@ int _z_step_run(const char *name)
 
 void _z_step_report(void)
 {
+    struct timeval tv_end;
+
     IN_TEST;
     _G.grp.t_running = false;
+    lp_gettv(&tv_end);
+    _G.grp.tv_diff = timeval_sub(tv_end, _G.grp.tv_start);
 
     if (_G.grp.t_skip_reason.s) {
         do_skip();
