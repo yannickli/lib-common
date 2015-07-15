@@ -221,8 +221,7 @@ int iop_ranges_search(int const *ranges, int ranges_len, int tag);
  * You always need to initialize your IOP structure before packing it, however
  * it is useless when you unpack a structure it will be done for you.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro version iop_init() instead of this low-level API.
  *
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the IOP structure to initialize.
@@ -269,8 +268,7 @@ static inline void *r_iop_new_desc(const iop_struct_t *st)
 
 /** Return whether two IOP structures are equals or not.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro version iop_equals instead of this low-level API.
  *
  * v1 and v2 can be NULL. If both v1 and v2 are NULL they are considered as
  * equals.
@@ -302,8 +300,8 @@ enum iop_sort_flags {
  *  subfield of reference. The comparison function is the canonical comparison
  *  associated to the type of field.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro versions iop_sort() and iop_obj_sort() instead of this
+ * low-level API.
  *
  *  \param[in] st          The IOP structure definition (__s).
  *  \param[in] vec         Array of objects to sort. If st is a class, this
@@ -398,8 +396,7 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
  *
  * The resulting IOP structure will fully contained in one block of memory.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro versions instead of this low-level API.
  *
  * \param[in] mp The memory pool to use for the new allocation. If mp is NULL
  *               the libc malloc() will be used.
@@ -427,8 +424,7 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
  * The destination IOP structure will reallocated to handle the source
  * structure.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro versions instead of this low-level API.
  *
  * \param[in] mp   The memory pool to use for the reallocation. If mp is NULL
  *                 the libc realloc() will be used.
@@ -875,8 +871,8 @@ lstr_t iop_get_err_lstr(void) __cold;
  * return -1 in case of constraint violation. In case of constraint violation,
  * you can use iop_get_err() to get the error message.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Prefer the macro version iop_check_constraints() instead of this low-level
+ * API.
  *
  * \param[in] desc  IOP structure description.
  * \param[in] val   Pointer on the IOP structure to check constraints.
@@ -897,8 +893,7 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
  * This function will return NULL if the integer value doesn't exist in the
  * enum set.
  *
- * Prefer the generated version instead of this low-level API (see IOP_ENUM
- * in iop-macros.h).
+ * Prefer the macro version iop_enum_to_lstr() instead of this low-level API.
  *
  * \param[in] ed The IOP enum definition (__e).
  * \param[in] v  Integer value to look for.
@@ -927,8 +922,7 @@ static inline lstr_t iop_enum_to_str_desc(const iop_enum_t *ed, int v)
  * This function will return `err` if the string value doesn't exist in the
  * enum set.
  *
- * Prefer the generated version instead of this low-level API (see IOP_ENUM
- * in iop-macros.h).
+ * Prefer the macro version iop_enum_from_str() instead of this low-level API.
  *
  * \param[in] ed  The IOP enum definition (__e).
  * \param[in] s   String value to look for.
@@ -946,8 +940,8 @@ int iop_enum_from_str_desc(const iop_enum_t *ed, const char *s, int len,
  * This function will return `-1` if the string value doesn't exist in the
  * enum set and set the `found` variable to false.
  *
- * Prefer the generated version instead of this low-level API (see IOP_ENUM
- * in iop-macros.h).
+ * Prefer the macro version iop_enum_from_str2() instead of this low-level
+ * API.
  *
  * \param[in]  ed    The IOP enum definition (__e).
  * \param[in]  s     String value to look for.
@@ -965,8 +959,8 @@ int iop_enum_from_str2_desc(const iop_enum_t *ed, const char *s, int len,
  * This function will return `-1` if the string value doesn't exist in the
  * enum set and set the `found` variable to false.
  *
- * Prefer the generated version instead of this low-level API (see IOP_ENUM
- * in iop-macros.h).
+ * Prefer the macro version iop_enum_from_lstr() instead of this low-level
+ * API.
  *
  * \param[in]  ed    The IOP enum definition (__e).
  * \param[in]  s     String value to look for.
@@ -1031,9 +1025,6 @@ enum iop_bpack_flags {
  * This function _must_ be used before the `iop_bpack` function. It will
  * compute some necessary informations.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in]  st    The IOP structure definition (__s).
  * \param[in]  v     The IOP structure to pack.
  * \param[in]  flags Packer modifiers (see iop_bpack_flags).
@@ -1074,9 +1065,6 @@ iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
  * iop_bpack(data, &foo__bar__s, obj, sizes.tab);
  * </code>
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] st  The IOP structure definition (__s).
  * \param[in] v   The IOP structure to pack.
  * \param[in] szs The data of the qvector given to the `iop_bpack_size`
@@ -1090,9 +1078,6 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  * This version of `iop_bpack` allows to pack an IOP structure in one
  * operation and uses the given mempool to allocate the resulting buffer.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] v     The IOP structure to pack.
  * \param[in] flags Packer modifiers (see iop_bpack_flags).
@@ -1103,9 +1088,6 @@ lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
                                  const void *v, const unsigned flags);
 
 /** Pack an IOP structure into IOP binary format using the t_pool().
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  */
 lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
                                 const unsigned flags);
@@ -1124,9 +1106,6 @@ static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
  * This function cannot be used to unpack a class; use `iop_bunpack_ptr`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination structure.
@@ -1140,9 +1119,6 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st, void *value,
                 pstream_t ps, bool copy);
 
 /** Unpack a packed IOP structure using the t_pool().
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  */
 __must_check__ static inline int
 t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
@@ -1158,9 +1134,6 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
  * This function MUST be used to unpack a class instead of `iop_bunpack`,
  * because the size of a class is not known before unpacking it (this could be
  * a child).
- *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed;
  *                  will be used at least to allocate the destination
@@ -1183,9 +1156,6 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st, void **value,
  * check that the pstream has been fully consumed. This allows to unpack
  * a suite of unions.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination unpacked IOP union.
@@ -1199,9 +1169,6 @@ int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
                       pstream_t *ps, bool copy);
 
 /** Unpack a packed IOP union using the t_pool().
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  */
 __must_check__ static inline int
 t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
@@ -1215,9 +1182,6 @@ t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
  * This function skips a packed IOP union in a pstream_t.
  * This function is efficient because it will not fully unpack the union to
  * skip. But it will not fully check its validity either.
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  *
  * \param[in] st    The IOP union definition (__s).
  * \param[in] ps    The pstream_t containing the packed IOP union.

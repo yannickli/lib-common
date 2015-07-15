@@ -336,9 +336,6 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
  *
  * This function packs an IOP structure into (strict) JSon format.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] st       IOP structure description.
  * \param[in] value    Pointer on the IOP structure to pack.
  * \param[in] writecb  Callback to call when writing (like iop_sb_write).
@@ -352,9 +349,6 @@ int iop_jpack(const iop_struct_t *st, const void *value,
 /** Pack an IOP C structure to IOP-JSon in a sb_t.
  *
  * See iop_jpack().
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  */
 static inline int
 iop_sb_jpack(sb_t *sb, const iop_struct_t *st, const void *value,

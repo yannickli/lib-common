@@ -34,9 +34,6 @@
  * This function cannot be used to unpack a class; use `iop_xunpack_ptr_flags`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] xp     The xml_reader_t setup on the XML data (see xmlr.h).
  * \param[in] mp     Memory pool to use for memory allocations.
  * \param[in] st     The IOP structure description.
@@ -56,8 +53,6 @@ int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
  * `iop_xunpack_flags`, because the size of a class is not known before
  * unpacking it (this could be a child).
  *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
  */
 __must_check__
 int iop_xunpack_ptr_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
@@ -95,9 +90,6 @@ qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
  * This function cannot be used to unpack a class; use `iop_xunpack_ptr_parts`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
- *
  * \param[in] xp     The xml_reader_t setup on the XML data (see xmlr.h).
  * \param[in] mp     Memory pool to use for memory allocations.
  * \param[in] st     The IOP structure description.
@@ -117,9 +109,6 @@ int iop_xunpack_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
  * This function MUST be used to unpack a class instead of
  * `iop_xunpack_parts`, because the size of a class is not known before
  * unpacking it (this could be a child).
- *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
  */
 __must_check__
 int iop_xunpack_ptr_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
@@ -190,9 +179,6 @@ enum iop_xpack_flags {
  * have already written the root node with xsi pointing to
  * http://www.w3.org/2001/XMLSchema-instance and xsd to
  * http://www.w3.org/2001/XMLSchema.
- *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
  *
  * \param[out] sb          Buffer used to write the generated XML.
  * \param[in]  st          IOP structure definition.
