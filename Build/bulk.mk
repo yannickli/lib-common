@@ -194,8 +194,8 @@ pylint:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)pylint
 
 syntastic: | __setup_buildsys_trampoline
-	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
-	echo '$(CLANGXXFLAGS) $(libxml2_CFLAGS) $(openssl_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_cpp_config
+	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
+	echo '$(CLANGXXFLAGS) $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_cpp_config
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
