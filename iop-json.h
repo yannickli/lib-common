@@ -164,8 +164,10 @@ static inline void iop_jlex_set_flags(iop_json_lex_t *ll, int flags)
  * This function cannot be used to unpack a class; use `iop_junpack_ptr`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * The provided memory pool *MUST* be a frame-based pool. The unpacker does
+ * not provide any guarantee about the individual allocations made.
+ * Use iop_dup() if you want to transfer the unpacked object to a pool with a
+ * single allocation.
  *
  * \param[in]  ll            The JSon parser.
  * \param[in]  st            The IOP structure description.
@@ -195,8 +197,10 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
  * because the size of a class is not known before unpacking it (this could be
  * a child).
  *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ * The provided memory pool *MUST* be a frame-based pool. The unpacker does
+ * not provide any guarantee about the individual allocations made.
+ * Use iop_dup() if you want to transfer the unpacked object to a pool with a
+ * single allocation.
  */
 __must_check__
 int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
@@ -219,8 +223,8 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
  * This function cannot be used to unpack a class; use `t_iop_junpack_ptr_ps`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Only the t_pool() version is provided since the provided memory pool of
+ * iop_junpack() must be a frame-based pool.
  *
  * \param[in]  ps    The pstream_t to parse.
  * \param[in]  st    The IOP structure description.
@@ -244,8 +248,8 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
  * because the size of a class is not known before unpacking it (this could be
  * a child).
  *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ * Only the t_pool() version is provided since the provided memory pool of
+ * iop_junpack_ptr() must be a frame-based pool.
  */
 __must_check__
 int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
@@ -259,8 +263,8 @@ int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
  * This function cannot be used to unpack a class; use `t_iop_junpack_ptr_file`
  * instead.
  *
- * Prefer the generated version instead of this low-level API (see IOP_GENERIC
- * in iop-macros.h).
+ * Only the t_pool() version is provided since the provided memory pool of
+ * iop_junpack() must be a frame-based pool.
  *
  * \param[in]  filename The file name to read and parse.
  * \param[in]  st       The IOP structure description.
@@ -285,8 +289,8 @@ int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
  * `t_iop_junpack_file`, because the size of a class is not known before
  * unpacking it (this could be a child).
  *
- * Prefer the generated version instead of this low-level API
- * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ * Only the t_pool() version is provided since the provided memory pool of
+ * iop_junpack_ptr() must be a frame-based pool.
  */
 __must_check__
 int t_iop_junpack_ptr_file(const char *filename, const iop_struct_t *st,
