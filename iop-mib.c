@@ -123,7 +123,7 @@ static lstr_t t_mib_put_enum(const iop_enum_t *en)
     return t_lstr_fmt("%*pM", SB_FMT_ARG(&names));
 }
 
-static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool from_tbl)
+static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool seq)
 {
     switch (field->type) {
       case IOP_T_STRING:
@@ -131,16 +131,15 @@ static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool from_tbl)
       case IOP_T_I8:
       case IOP_T_I16:
       case IOP_T_I32:
-        return from_tbl ? LSTR("Integer32")
-                        : LSTR("Integer32 (1..2147483647)");
+        return LSTR("Integer32");
       case IOP_T_BOOL:
         return LSTR("BOOLEAN");
 
       case IOP_T_ENUM:
-        return t_mib_put_enum(field->u1.en_desc);
+        return seq ? LSTR("INTEGER") : t_mib_put_enum(field->u1.en_desc);
 
       default:
-        logger_fatal(&_G.logger, "type not handled");
+        logger_panic(&_G.logger, "type not handled");
     }
 }
 
@@ -490,7 +489,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LVL2 "\"%*pM\"\n"
             LVL1 "::= { %*pM%s %d }\n",
             LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(t_get_type_to_lstr(field, from_tbl)),
+            LSTR_FMT_ARG(t_get_type_to_lstr(field, false)),
             LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             from_tbl ? "Entry" : "",
@@ -501,8 +500,6 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
                      "conflicting field name `%*pM`", LSTR_FMT_ARG(name));
     }
     qv_append(lstr, &_G.conformance_objects, name);
-
-    /* TODO: for brief lstr_len/80 then cut the lstr */
 }
 
 static void mib_put_tbl_fields(sb_t *buf, const iop_struct_t *desc)
@@ -589,8 +586,6 @@ static void mib_put_rpc(sb_t *buf, int pos, const iop_rpc_t *rpc,
             LVL1 "::= { %*pM %d }\n",
             LSTR_FMT_ARG(t_mib_rpc_get_help(&attrs)),
             LSTR_FMT_ARG(t_get_short_name(iface_name, true)), pos + 1);
-
-    /* TODO: for brief lstr_len/80 then cut the lstr */
 
     if (qh_add(lstr, &_G.unicity_conformance_notifs, &rpc->name) < 0) {
         logger_fatal(&_G.logger,
