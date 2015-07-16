@@ -36,6 +36,13 @@ qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
 
+/** Check usage of "product"2mib exe.
+ *
+ * \param[in]  argc        Number of received arguments.
+ * \param[in]  argv        Arguments received.
+ */
+void t_mib_parseopt(int argc, char **argv, lstr_t *output);
+
 /** Generate the MIB corresponding to IOP packages.
  *
  * \param[out] sb          Output buffer.

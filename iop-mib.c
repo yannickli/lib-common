@@ -13,6 +13,9 @@
 
 #include "iop-mib.h"
 
+#include <sysexits.h>
+#include <lib-common/parseopt.h>
+
 #define LVL1 "    "
 #define LVL2 LVL1 LVL1
 #define LVL3 LVL2 LVL1
@@ -31,9 +34,13 @@ static struct {
     qv_t(lstr) conformance_notifs;
     qh_t(lstr) objects_identifier;
     qv_t(lstr) objects_identifier_parent;
+
+    bool   help;
+    const char *output;
 } mib_g = {
 #define _G  mib_g
     .logger = LOGGER_INIT_INHERITS(NULL, "iop2mib"),
+    .output = "a.out",
 };
 
 /* {{{ Helpers */
@@ -724,6 +731,32 @@ static int iop_mib_shutdown(void)
 
 MODULE_BEGIN(iop_mib)
 MODULE_END()
+
+/* }}} */
+/* {{{ Usage */
+
+static popt_t popt_g[] = {
+    OPT_FLAG('h', "help",   &_G.help,   "show this help"),
+    OPT_FLAG('o', "output", &_G.output, "define output path"),
+    OPT_END(),
+};
+
+__attr_noreturn__
+static void usage(const char *arg0)
+{
+    makeusage(EX_USAGE, arg0, "<command> <output file>", NULL, popt_g);
+}
+
+void t_mib_parseopt(int argc, char **argv, lstr_t *output)
+{
+    const char *arg0 = NEXTARG(argc, argv);
+
+    argc = parseopt(argc, argv, popt_g, 0);
+    if (argc != 1 || _G.help) {
+        usage(arg0);
+    }
+    *output = t_lstr_fmt("%s", NEXTARG(argc, argv));
+}
 
 /* }}} */
 
