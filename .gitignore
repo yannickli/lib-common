@@ -44,3 +44,5 @@
 mem.stack.data.*
 mem.fifo.data.*
 
+test-data/snmp/*.iop.h
+test-data/snmp/*.iop.c
