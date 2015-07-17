@@ -711,6 +711,15 @@ static inline bool iop_iface_is_snmp_iface(const iop_iface_t *iface)
     return TST_BIT(&st_flags, IOP_IFACE_IS_SNMP_IFACE);
 }
 
+static inline bool iop_field_is_snmp_index(const iop_field_t *field)
+{
+    unsigned st_flags = field->flags;
+
+    return TST_BIT(&st_flags, IOP_FIELD_IS_SNMP_INDEX);
+}
+
+int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st);
+
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid);
 

@@ -3380,6 +3380,18 @@ void iop_for_each_registered_classes(iop_for_each_class_b cb)
 /* }}} */
 /* {{{ Snmp manipulation */
 
+int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st)
+{
+    int nb = 0;
+
+    for (int i = 0; i < st->fields_len; i++) {
+        if (iop_field_is_snmp_index(&st->fields[i])) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid)
 {
