@@ -67,6 +67,7 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
     if (unlikely(ctx->decrypt_state == SSL_CTX_UPDATE))
         e_trace(0, "SSL context closed with inconsistent decrypt state");
 #endif
+#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey_encrypt) {
         EVP_PKEY_CTX_free(ctx->pkey_encrypt);
         ctx->pkey_encrypt = NULL;
@@ -79,6 +80,7 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
         EVP_PKEY_free(ctx->pkey);
         ctx->pkey = NULL;
     }
+#endif
 
     EVP_CIPHER_CTX_cleanup(&ctx->encrypt);
     EVP_CIPHER_CTX_cleanup(&ctx->decrypt);
@@ -142,6 +144,7 @@ ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
 ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
                              lstr_t priv_key, lstr_t pub_key, lstr_t pass)
 {
+#ifdef SSL_HAVE_EVP_PKEY
     t_scope;
     lstr_t key = priv_key.len ? priv_key : pub_key;
     void *u = pass.len ? t_dupz(pass.data, pass.len) : NULL;
@@ -207,6 +210,11 @@ ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
     }
     ssl_ctx_wipe(ctx);
     return NULL;
+#else
+    __ssl_set_error("private key not supported");
+    ssl_ctx_wipe(ctx);
+    return NULL;
+#endif
 }
 
 int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
@@ -407,6 +415,7 @@ int ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
 
 int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
+#ifdef SSL_HAVE_EVP_PKEY
     size_t outlen;
     size_t inlen = data.len;
     const unsigned char *in = data.data;
@@ -433,6 +442,10 @@ int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     }
     sb_growlen(out, outlen);
     return 0;
+#else
+    __ssl_set_error("private key not supported");
+    return -1;
+#endif
 }
 
 /* }}} */
@@ -440,6 +453,7 @@ int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
 int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
+#ifdef SSL_HAVE_EVP_PKEY
     size_t outlen;
     size_t inlen = data.len;
     const unsigned char *in = data.data;
@@ -466,6 +480,10 @@ int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     }
     sb_growlen(out, outlen);
     return 0;
+#else
+    __ssl_set_error("private key not supported");
+    return -1;
+#endif
 }
 
 /* }}} */
@@ -584,6 +602,7 @@ Z_GROUP_EXPORT(ssl)
 /* }}} */
 /* {{{ PKEY */
 
+#ifdef SSL_HAVE_EVP_PKEY
     {
         /* To generate such test data, you can:
          * $ openssl genpkey -algorithm RSA -out priv.pem -pkeyopt
@@ -862,6 +881,7 @@ Z_GROUP_EXPORT(ssl)
 /* }}} */
 
     }
+#endif
 
 /* }}} */
 /* {{{ licence_encryption_key */
