@@ -15,10 +15,10 @@
 #define IS_LIB_COMMON_SSL_H
 
 /**
- * This file offers an interface which wrap the openssl AES-CBC interface.
+ * This file offers an interface which wrap the openssl AES-CBC & PKEY
+ * interfaces.
  *
- * Basics
- * ======
+ * \section AES-CBS
  *
  * The generic way to performs encrypt is to get an SSL context using one of
  * the initializer, then update() the encrypted data as much as you want and
@@ -46,10 +46,51 @@
  *
  * Decryption works in the same way.
  *
+ * \section PKEY
+ *
+ * \subsection encryption
+ *
+ * The generic way to performs encryption is to init the SSL context with your
+ * public key (or private if you have access to it, although it's not required
+ * for encryption), call encrypt() on your data, and wipe the context.
+ *
+ * Example:
+ *
+ * ssl_ctx_t ctx;
+ * if (!ssl_ctx_init_pkey(&ctx, LSTR_NULL_V, pub_key, LSTR_NULL_V)) {
+ *     return logger_error(… "key loading error: %s", ssl_get_error());
+ * }
+ * if (ssl_encrypt(&ctx, msg, &msg_encrypted) < 0) {
+ *     ssl_ctx_wipe(&ctx);
+ *     return logger_error(… "decrypt error: %s", ssl_get_error());
+ * }
+ * ssl_ctx_wipe(&ctx);
+ *
+ * \subsection decryption
+ *
+ * Decryption works in the same way, except that you need the private key and
+ * the passphrase if this key have been created with one.
+ *
+ * Example:
+ *
+ * ssl_ctx_t ctx;
+ * if (!ssl_ctx_init_pkey(&ctx, priv_key, LSTR_NULL_V, pass)) {
+ *     return logger_error(… "key loading error: %s", ssl_get_error());
+ * }
+ * if (ssl_decrypt(&ctx, msg_encrypted, &msg_clear) < 0) {
+ *     ssl_ctx_wipe(&ctx);
+ *     return logger_error(… "decrypt error: %s", ssl_get_error());
+ * }
+ * ssl_ctx_wipe(&ctx);
+ *
  */
 
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+#include <openssl/bio.h>
+#include <openssl/pem.h>
+#include <openssl/engine.h>
+#include <openssl/rsa.h>
 #include "core.h"
 #include "licence.h"
 
@@ -64,12 +105,18 @@ enum ssl_ctx_state {
  * SSL context used to encrypt and decrypt data.
  */
 typedef struct ssl_ctx_t {
+    /* CIPHER data */
     const EVP_CIPHER  *type;
     const EVP_MD      *md;
-
     EVP_CIPHER_CTX     encrypt;
     EVP_CIPHER_CTX     decrypt;
 
+    /* PKEY data */
+    EVP_PKEY          *pkey;
+    EVP_PKEY_CTX      *pkey_encrypt;
+    EVP_PKEY_CTX      *pkey_decrypt;
+
+    /* common data */
     enum ssl_ctx_state encrypt_state;
     enum ssl_ctx_state decrypt_state;
 } ssl_ctx_t;
@@ -117,6 +164,61 @@ ssl_ctx_new_aes256(lstr_t key, uint64_t salt, int nb_rounds)
 int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds);
 
 /**
+ * Init the given SSL context with the given key. You can use private or
+ * public key to init the context, depending on what you need.
+ *
+ * You don't need to call ssl_ctx_init() it will be done for you.
+ *
+ * \param ctx       The SSL context.
+ * \param priv_key  The private key.
+ * \param pub_key   The public key.
+ * \param pass      The passphrase.
+ *
+ * \return The initialized context or NULL in case of error.
+ */
+__attr_nonnull__((1))
+ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
+                             lstr_t priv_key, lstr_t pub_key,
+                             lstr_t pass);
+
+/**
+ * Init the given SSL context with the public key.
+ *
+ * \warning You won't be able to decrypt data using this context.
+ *
+ * You don't need to call ssl_ctx_init() it will be done for you.
+ *
+ * \param ctx       The SSL context.
+ * \param pub_key   The public key.
+ *
+ * \return The initialized context or NULL in case of error.
+ */
+__attr_nonnull__((1)) static inline
+ssl_ctx_t *ssl_ctx_init_pkey_pub(ssl_ctx_t *ctx, lstr_t pub_key)
+{
+    return ssl_ctx_init_pkey(ctx, LSTR_EMPTY_V, pub_key, LSTR_EMPTY_V);
+
+}
+
+/**
+ * Init the given SSL context with the private key and the passphrase.
+ *
+ * You don't need to call ssl_ctx_init() it will be done for you.
+ *
+ * \param ctx       The SSL context.
+ * \param priv_key  The private key.
+ * \param pass      The passphrase.
+ *
+ * \return The initialized context or NULL in case of error.
+ */
+__attr_nonnull__((1)) static inline
+ssl_ctx_t *ssl_ctx_init_pkey_priv(ssl_ctx_t *ctx,
+                                  lstr_t priv_key, lstr_t pass)
+{
+    return ssl_ctx_init_pkey(ctx, priv_key, LSTR_EMPTY_V, pass);
+}
+
+/**
  * Retrieve the last SSL error in the current thread.
  */
 const char *ssl_get_error(void);
@@ -148,15 +250,24 @@ ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
                        int nb_rounds);
 
 /**
+ * Encrypt the given data via public key and append the result to out.
+ */
+__must_check__ int
+ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+
+/**
  * Encrypt a bunch of data in one operation. The SSL context will be ready to
  * be updated again.
  */
 __must_check__ static inline int
 ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-    RETHROW(ssl_encrypt_update(ctx, data, out));
-    RETHROW(ssl_encrypt_reset(ctx, out));
-
+    if (ctx->pkey) {
+        RETHROW(ssl_encrypt_pkey(ctx, data, out));
+    } else {
+        RETHROW(ssl_encrypt_update(ctx, data, out));
+        RETHROW(ssl_encrypt_reset(ctx, out));
+    }
     return 0;
 }
 
@@ -188,14 +299,24 @@ ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
                        int nb_rounds);
 
 /**
+ * Decrypt the given data via private key and append the result to out.
+ */
+__must_check__ int
+ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+
+/**
  * Decrypt a bunch of data in one operation. The SSL context will be ready to
  * be updated again.
  */
 __must_check__ static inline int
 ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-    RETHROW(ssl_decrypt_update(ctx, data, out));
-    RETHROW(ssl_decrypt_reset(ctx, out));
+    if (ctx->pkey) {
+        RETHROW(ssl_decrypt_pkey(ctx, data, out));
+    } else {
+        RETHROW(ssl_decrypt_update(ctx, data, out));
+        RETHROW(ssl_decrypt_reset(ctx, out));
+    }
 
     return 0;
 }
@@ -213,4 +334,9 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
  */
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
+/* Module {{{ */
+
+MODULE_DECLARE(ssl);
+
+/* }}} */
 #endif
