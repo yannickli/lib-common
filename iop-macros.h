@@ -38,6 +38,17 @@
 #define IOP_TYPED_ARRAY_TAB(_iop_type, vec)                                  \
     (IOP_ARRAY_T(_iop_type))IOP_ARRAY_TAB(vec);
 
+/** Duplicate a repeated field (the array is copied shallowly) */
+#define IOP_ARRAY_DUP(mp, array)                                             \
+    ({                                                                       \
+        typeof(array) _dup_array = (array);                                  \
+                                                                             \
+        _dup_array.tab = mp_dup(mp, _dup_array.tab, _dup_array.len);         \
+        _dup_array;                                                          \
+    })
+
+#define T_IOP_ARRAY_DUP(array)  IOP_ARRAY_DUP(t_pool(), array)
+
 /* }}} */
 /* {{{ IOP union helpers */
 

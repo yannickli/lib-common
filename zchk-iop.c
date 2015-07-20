@@ -4733,5 +4733,34 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_LSTREQUAL(obj.j, LSTR("toto"));
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_array_dup, "test the IOP_ARRAY_DUP macro") { /* {{{ */
+        t_scope;
+        int32_t a[] = { 1, 2, 3 };
+        iop_array_i32_t m = IOP_ARRAY(a, 3);
+        iop_array_i32_t n;
+
+        n = T_IOP_ARRAY_DUP(m);
+        Z_ASSERT_EQ(m.len, n.len);
+        /* both arrays have the same elements */
+        carray_for_each_pos(i, a) {
+            Z_ASSERT_EQ(m.tab[i], a[i]);
+            Z_ASSERT_EQ(m.tab[i], n.tab[i]);
+        }
+
+        /* modify a */
+        n = IOP_ARRAY_DUP(NULL, m);
+        carray_for_each_ptr(p, a) {
+            (*p)++;
+        }
+
+        /* m has the new values, n has the old ones */
+        carray_for_each_pos(i, a) {
+            Z_ASSERT_EQ(m.tab[i], a[i]);
+            Z_ASSERT_EQ(n.tab[i], a[i] - 1);
+        }
+
+        p_delete(&n.tab);
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END
