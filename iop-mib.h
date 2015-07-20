@@ -41,8 +41,13 @@ qvector_t(pkg, iop_pkg_t *);
  */
 int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions);
 
-#define mib_register(h, _pkg)  \
-    qv_append(pkg, h, (void *)&_pkg##__pkg)
+/** Register a package into a qv of packages.
+ *
+ * \param[out]  _vec  The qv_t(pkg) of packages to register the package into.
+ * \param[in]   _pkg  Name of the package.
+ */
+#define mib_register_pkg(_vec, _pkg)  \
+    qv_append(pkg, _vec, (void *)&_pkg##__pkg)
 
 /** Register a revision into a qv of revisions.
  *

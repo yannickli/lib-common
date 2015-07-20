@@ -854,13 +854,13 @@ static int z_check_wanted_file(lstr_t name, sb_t sb)
 
 Z_GROUP_EXPORT(iop_mib)
 {
-    Z_TEST(test_registration, "test registering of packages") {
+    Z_TEST(test_pkg_registration, "test registering of packages") {
         qv_t(pkg) pkgs;
 
         qv_init(pkg, &pkgs);
 
-        mib_register(&pkgs, snmp_test);
-        mib_register(&pkgs, snmp_intersec_test);
+        mib_register_pkg(&pkgs, snmp_test);
+        mib_register_pkg(&pkgs, snmp_intersec_test);
 
         Z_ASSERT_EQ(pkgs.len, 2);
 
@@ -875,7 +875,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         z_init(&sb, &pkgs);
 
-        mib_register(&pkgs, snmp_intersec_test);
+        mib_register_pkg(&pkgs, snmp_intersec_test);
         iop_write_mib(&sb, pkgs, revisions);
 
         Z_ASSERT_N(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
@@ -893,8 +893,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         z_init(&sb, &pkgs);
 
-        mib_register(&pkgs, snmp_intersec_test);
-
+        mib_register_pkg(&pkgs, snmp_intersec_test);
         iop_write_mib(&sb, pkgs, revisions);
 
         /* Check smilint compliance level 6*/
@@ -915,7 +914,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         z_init(&sb, &pkgs);
 
-        mib_register(&pkgs, snmp_test);
+        mib_register_pkg(&pkgs, snmp_test);
 
         iop_write_mib(&sb, pkgs, revisions);
         Z_ASSERT_N(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
