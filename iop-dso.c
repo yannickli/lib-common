@@ -196,7 +196,7 @@ static void iop_dso_wipe(iop_dso_t *dso)
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
 
-iop_dso_t *iop_dso_open(const char *path, bool force_external_package)
+iop_dso_t *iop_dso_open(const char *path)
 {
     iop_pkg_t       **pkgp;
     bool              use_external_packages;
@@ -229,8 +229,7 @@ iop_dso_t *iop_dso_open(const char *path, bool force_external_package)
         return NULL;
     }
 
-    use_external_packages = !!dlsym(handle, "iop_use_external_packages")
-        || force_external_package;
+    use_external_packages = !!dlsym(handle, "iop_use_external_packages");
 
     dso = iop_dso_new();
     dso->path   = lstr_dups(path, strlen(path));

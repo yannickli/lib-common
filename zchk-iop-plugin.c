@@ -14,11 +14,10 @@
 #include "iop.h"
 #include "ic.iop.h"
 #include "zchk-iop-ressources.h"
-#include "iop/tstiop3.iop.h"
 
 IOP_EXPORT_PACKAGES_COMMON;
 
-IOP_EXPORT_PACKAGES(&ic__pkg, &tstiop__pkg, &tstiop3__pkg, &tstiop2__pkg);
+IOP_EXPORT_PACKAGES(&ic__pkg);
 
 IOP_DSO_EXPORT_RESSOURCES(str, &z_ressource_str_a, &z_ressource_str_b);
 IOP_DSO_EXPORT_RESSOURCES(int, &z_ressources_int_1, &z_ressources_int_2);
