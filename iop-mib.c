@@ -742,7 +742,7 @@ static void usage(const char *arg0)
     makeusage(EX_USAGE, arg0, "<command> <output file>", NULL, popt_g);
 }
 
-void t_mib_parseopt(int argc, char **argv, lstr_t *output)
+static void t_mib_parseopt(int argc, char **argv, lstr_t *output)
 {
     const char *arg0 = NEXTARG(argc, argv);
 
@@ -755,9 +755,8 @@ void t_mib_parseopt(int argc, char **argv, lstr_t *output)
 
 /* }}} */
 
-void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
+static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
 {
-    t_scope;
     SB_8k(buffer);
 
     MODULE_REQUIRE(iop_mib);
@@ -780,6 +779,22 @@ void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
     mib_close_banner(sb);
 
     MODULE_RELEASE(iop_mib);
+}
+
+int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(revi) revisions)
+{
+    t_scope;
+    lstr_t path = LSTR_NULL;
+    SB_8k(sb);
+
+    t_mib_parseopt(argc, argv, &path);
+
+    iop_write_mib(&sb, pkgs, revisions);
+    if (sb_write_file(&sb, path.s) < 0) {
+        logger_error(&_G.logger, "couldn't write MIB file");
+        return -1;
+    }
+    return 0;
 }
 
 /* {{{ Tests */
@@ -866,7 +881,7 @@ Z_GROUP_EXPORT(iop_mib)
         z_init(&sb, &pkgs);
 
         mib_register(&pkgs, snmp_intersec_test);
-        iop_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, pkgs, revisions);
 
         Z_ASSERT_N(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
 
@@ -885,7 +900,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         mib_register(&pkgs, snmp_intersec_test);
 
-        iop_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, pkgs, revisions);
 
         /* Check smilint compliance level 6*/
         sb_write_file(&sb, path);
@@ -907,7 +922,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         mib_register(&pkgs, snmp_test);
 
-        iop_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, pkgs, revisions);
         Z_ASSERT_N(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
 
         /* Check smilint compliance level 6*/

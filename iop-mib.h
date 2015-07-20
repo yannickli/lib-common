@@ -36,16 +36,10 @@ qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
 
-/** Check usage of "product"2mib exe.
+/** Write the MIB file corresponding to IOP packages.
  *
  * \param[in]  argc        Number of received arguments.
  * \param[in]  argv        Arguments received.
- */
-void t_mib_parseopt(int argc, char **argv, lstr_t *output);
-
-/** Generate the MIB corresponding to IOP packages.
- *
- * \param[out] sb          Output buffer.
  * \param[in]  pkgs        List of the different iop packages that will be
  *                         added to the MIB.
  * \param[in]  revisions   List of the different revisions the MIB has had,
@@ -53,7 +47,7 @@ void t_mib_parseopt(int argc, char **argv, lstr_t *output);
  *                         qv must follow the chronological order, from the
  *                         initial to the last revision.
  */
-void iop_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions);
+int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(revi) revisions);
 
 #define mib_register(h, _pkg)  \
     qv_append(pkg, h, (void *)&_pkg##__pkg)
