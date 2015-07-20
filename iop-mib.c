@@ -289,9 +289,9 @@ static void mib_put_imports(sb_t *buf)
 /* }}} */
 /* {{{ Identity */
 
-static void mib_put_identity(sb_t *buf, qv_t(revi) revisions)
+static void mib_put_identity(sb_t *buf, qv_t(mib_rev) revisions)
 {
-    revision_t *last_update = *qv_last(revi, &revisions);
+    mib_revision_t *last_update = qv_last(mib_rev, &revisions);
 
     sb_addf(buf, "-- {{{ Identity\n"
             "\n%*pM%s MODULE-IDENTITY\n"
@@ -307,8 +307,8 @@ static void mib_put_identity(sb_t *buf, qv_t(revi) revisions)
             LSTR_FMT_ARG(_G.head), _G.head_is_intersec ? "" : "Identity",
             LSTR_FMT_ARG(last_update->timestamp));
 
-    qv_for_each_pos_rev(revi, pos, &revisions) {
-        revision_t *changmt = revisions.tab[pos];
+    qv_for_each_pos_rev(mib_rev, pos, &revisions) {
+        mib_revision_t *changmt = &revisions.tab[pos];
 
         sb_addf(buf, LVL1 "REVISION \"%*pM\"\n",
                 LSTR_FMT_ARG(changmt->timestamp));
@@ -755,7 +755,7 @@ static void t_mib_parseopt(int argc, char **argv, lstr_t *output)
 
 /* }}} */
 
-static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
+static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
 {
     SB_8k(buffer);
 
@@ -781,7 +781,7 @@ static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(revi) revisions)
     MODULE_RELEASE(iop_mib);
 }
 
-int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(revi) revisions)
+int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
 {
     t_scope;
     lstr_t path = LSTR_NULL;
@@ -807,16 +807,12 @@ int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(revi) revisions)
 
 #define FOLDER "lib-common/test-data/snmp/mibs/"
 
-static qv_t(revi) z_fill_up_revisions(void)
+static qv_t(mib_rev) t_z_fill_up_revisions(void)
 {
-    qv_t(revi) revisions;
-    revision_t *revision = revision_new();
+    qv_t(mib_rev) revisions;
 
-    qv_init(revi, &revisions);
-
-    revision->timestamp = LSTR("201003091349Z");
-    revision->description = LSTR("Initial release");
-    qv_append(revi, &revisions, revision);
+    t_qv_init(mib_rev, &revisions, PATH_MAX);
+    mib_register_revision(&revisions, "201003091349Z", "Initial release");
 
     return revisions;
 }
@@ -827,10 +823,9 @@ static void z_init(sb_t *sb, qv_t(pkg) *pkgs)
     qv_init(pkg, pkgs);
 }
 
-static void z_wipe(sb_t sb, qv_t(revi) revisions, qv_t(pkg) pkgs)
+static void z_wipe(sb_t sb, qv_t(pkg) pkgs)
 {
     sb_wipe(&sb);
-    qv_deep_wipe(revi, &revisions, revision_delete);
     qv_wipe(pkg, &pkgs);
 }
 
@@ -875,7 +870,7 @@ Z_GROUP_EXPORT(iop_mib)
     Z_TEST(test_intersec_mib_generated, "compare generated and ref file") {
         t_scope;
         sb_t sb;
-        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
 
         z_init(&sb, &pkgs);
@@ -885,13 +880,13 @@ Z_GROUP_EXPORT(iop_mib)
 
         Z_ASSERT_N(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
 
-        z_wipe(sb, revisions, pkgs);
+        z_wipe(sb, pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_intersec_mib_smilint, "test intersec mib using smilint") {
         t_scope;
         sb_t sb;
-        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
         char *path = t_fmt("%*pM/intersec", LSTR_FMT_ARG(z_tmpdir_g));
         lstr_t cmd;
@@ -907,13 +902,13 @@ Z_GROUP_EXPORT(iop_mib)
         cmd = t_lstr_fmt("smilint -s -e -l 6 %s", path);
         Z_ASSERT_ZERO(system(cmd.s));
 
-        z_wipe(sb, revisions, pkgs);
+        z_wipe(sb, pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_revisions, "test complete mib") {
         t_scope;
         sb_t sb;
-        qv_t(revi) revisions = z_fill_up_revisions();
+        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
         char *new_path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
         lstr_t cmd;
@@ -931,7 +926,7 @@ Z_GROUP_EXPORT(iop_mib)
                          "-p %s %s", FOLDER "REF-INTERSEC-MIB.txt", new_path);
         Z_ASSERT_ZERO(system(cmd.s));
 
-        z_wipe(sb, revisions, pkgs);
+        z_wipe(sb, pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_quotes, "check double quotes are replaced by single ones") {

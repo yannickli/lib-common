@@ -18,20 +18,12 @@
 
 /* {{{ Local type definitions */
 
-typedef struct revision_t {
+typedef struct mib_revision_t {
     lstr_t timestamp;
     lstr_t description;
-} revision_t;
+} mib_revision_t;
 
-GENERIC_NEW_INIT(revision_t, revision);
-static inline void revision_wipe(revision_t *rev)
-{
-    lstr_wipe(&rev->timestamp);
-    lstr_wipe(&rev->description);
-}
-GENERIC_DELETE(revision_t, revision);
-
-qvector_t(revi, revision_t *);
+qvector_t(mib_rev, mib_revision_t);
 qvector_t(pkg, iop_pkg_t *);
 
 /* }}} */
@@ -47,9 +39,25 @@ qvector_t(pkg, iop_pkg_t *);
  *                         qv must follow the chronological order, from the
  *                         initial to the last revision.
  */
-int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(revi) revisions);
+int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions);
 
 #define mib_register(h, _pkg)  \
     qv_append(pkg, h, (void *)&_pkg##__pkg)
+
+/** Register a revision into a qv of revisions.
+ *
+ * \param[out]  _vec          The qv_t(revi) of revisions to register the
+ *                            revision into.
+ * \param[in]   _timestamp    Timestamp of the new revision.
+ * \param[in]   _description  Description of the new revision.
+ */
+#define mib_register_revision(_vec, _timestamp, _description)  \
+    ({                                                                       \
+        mib_revision_t _rev = {                                              \
+            .timestamp = LSTR(_timestamp),                                   \
+            .description = LSTR(_description),                               \
+        };                                                                   \
+        qv_append(mib_rev, _vec, _rev);                                      \
+    })
 
 #endif /* IS_LIB_COMMON_IOP_MIB_H */
