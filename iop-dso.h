@@ -36,7 +36,7 @@ typedef struct iop_dso_t {
     qm_t(iop_mod)    mod_h;
 } iop_dso_t;
 
-iop_dso_t *iop_dso_open(const char *path, bool force_external_package);
+iop_dso_t *iop_dso_open(const char *path);
 static ALWAYS_INLINE iop_dso_t *iop_dso_dup(iop_dso_t *dso)
 {
     dso->refcnt++;
