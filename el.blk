@@ -518,7 +518,12 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
         int32_t pos = qm_del_key(ev_assoc, &_G.childs, pid);
 
         if (likely(pos >= 0)) {
-            el_child_fire(&_G.childs.values[pos], pid, status, false);
+            ev_t *child = _G.childs.values[pos];
+
+            /* XXX callback inside el_child_fire may change the qm, so we
+             * mustn't use a pointer to the qm's data.
+             */
+            el_child_fire(&child, pid, status, false);
         }
     }
 }
