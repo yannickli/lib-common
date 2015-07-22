@@ -741,7 +741,7 @@ static iop_field_attr_t const core__licence_module__expiration_warning_delay__at
     },
     {
         .type = 15,
-        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Délais d'avertissement d'expiration\"}") } },
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Délai d'avertissement d'expiration\"}") } },
     },
 };
 static iop_field_attrs_t const core__licence_module__desc_fields_attrs[] = {
@@ -936,7 +936,7 @@ static iop_field_attr_t const core__licence__expiration_warning_delay__attrs[] =
     },
     {
         .type = 15,
-        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Delais d'avertissement d'expiration\"}") } },
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Expiration warning delay\",\"fr\":\"Délai d'avertissement d'expiration\"}") } },
     },
 };
 static const iop_help_t core__licence__registered_to__f_help = {

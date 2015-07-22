@@ -165,7 +165,7 @@ abstract class LicenceModule {
      * \ref expirationDate - \ref expirationWarningDelay. Value is in seconds.
      */
     @(licence:label, en = "Expiration warning delay"
-                   , fr = "Délais d\'avertissement d\'expiration")
+                   , fr = "Délai d\'avertissement d\'expiration")
     uint expirationWarningDelay = 15d;
 };
 
@@ -199,7 +199,7 @@ class Licence {
      * \ref expirationDate - \ref expirationWarningDelay. Value is in seconds.
      */
     @(licence:label, en = "Expiration warning delay"
-                   , fr = "Delais d\'avertissement d\'expiration")
+                   , fr = "Délai d\'avertissement d\'expiration")
     uint expirationWarningDelay = 15d;
 
     /** Licencee identification.
