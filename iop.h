@@ -173,6 +173,16 @@ static inline bool iop_field_is_reference(const iop_field_t *fdesc)
     return TST_BIT(&fdesc_flags, IOP_FIELD_IS_REFERENCE);
 }
 
+/** Return whether the C representation of the IOP field is a pointer or not.
+ *
+ * \param[in] fdesc IOP field description.
+ * \return true if the associated C field is a pointer, false otherwise.
+ *
+ * \note For repeated fields, the function returns true if the elements of the
+ *       associated array are pointers.
+ */
+bool iop_field_is_pointed(const iop_field_t *fdesc);
+
 /** Get an iop_field from its name.
  *
  * Get an iop_field_t in an iop_struct_t if it exists. If \p st is a class,
