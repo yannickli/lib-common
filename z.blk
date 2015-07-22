@@ -723,11 +723,13 @@ int z_setup(int argc, const char **argv)
 {
     const char *s;
     bool is_traced = psinfo_get_tracer_pid(0) > 0;
+    char abspath[PATH_MAX];
 
     _G.do_fork       = !is_traced && !RUNNING_ON_VALGRIND;
     _G.abort_on_fail = is_traced;
 
-    lstr_copy(&_G.arg0, LSTR_STR_V(argv[0]));
+    path_canonify(abspath, sizeof(abspath), argv[0]);
+    lstr_copy(&_G.arg0, LSTR_STR_V(abspath));
 
     for (int i = 1; i < argc; i++) {
         if (strequal(argv[i], "--")) {
