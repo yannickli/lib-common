@@ -40,7 +40,7 @@ static struct {
 } mib_g = {
 #define _G  mib_g
     .logger = LOGGER_INIT_INHERITS(NULL, "iop2mib"),
-    .output = "a.out",
+    .output = "MIB.txt",
 };
 
 /* {{{ Helpers */
@@ -854,19 +854,6 @@ static int z_check_wanted_file(lstr_t name, sb_t sb)
 
 Z_GROUP_EXPORT(iop_mib)
 {
-    Z_TEST(test_pkg_registration, "test registering of packages") {
-        qv_t(pkg) pkgs;
-
-        qv_init(pkg, &pkgs);
-
-        mib_register_pkg(&pkgs, snmp_test);
-        mib_register_pkg(&pkgs, snmp_intersec_test);
-
-        Z_ASSERT_EQ(pkgs.len, 2);
-
-        qv_wipe(pkg, &pkgs);
-    } Z_TEST_END;
-
     Z_TEST(test_intersec_mib_generated, "compare generated and ref file") {
         t_scope;
         sb_t sb;
