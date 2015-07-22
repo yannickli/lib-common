@@ -162,12 +162,11 @@ const char *iop_type_get_string_desc(iop_type_t type);
  * class or union).
  *
  * \param[in] type The IOP type
- * \return true if the IOP type is scalar, false otherwise
+ * \return true if the IOP type is scalar, false otherwise.
  */
 bool iop_type_is_scalar(iop_type_t type);
 
-static inline
-bool iop_field_is_reference(const iop_field_t *fdesc)
+static inline bool iop_field_is_reference(const iop_field_t *fdesc)
 {
     unsigned fdesc_flags = fdesc->flags;
 
