@@ -1496,6 +1496,61 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */
+        SB_1k(err);
+
+#define T_KO(_file, _exp)  \
+        do {                                                                 \
+            t_scope;                                                         \
+            tstiop__my_struct_a_opt__t _a_opt;                               \
+            const char *_path = t_fmt("%*pM/iop/" _file,                     \
+                                      LSTR_FMT_ARG(z_cmddir_g));             \
+                                                                             \
+            Z_ASSERT_NEG(t_iop_junpack_file(_path,                           \
+                                            &tstiop__my_struct_a_opt__s,     \
+                                            &_a_opt, 0, &err));              \
+            Z_ASSERT_STREQUAL(err.data, _exp);                               \
+            sb_reset(&err);                                                  \
+        } while (0)
+
+        T_KO("tstiop_file_inclusion_invalid1.json",
+             "4:19: unexpected token `t'");
+        T_KO("tstiop_file_inclusion_invalid2.json", "4:20: unclosed string");
+        T_KO("tstiop_file_inclusion_invalid3.json",
+             "4:39: expected ), got `g'");
+        T_KO("tstiop_file_inclusion_invalid4.json",
+             "4:19: cannot read file `/path/to/unknown/file`: No such file "
+             "or directory");
+        T_KO("tstiop_file_inclusion_invalid5.json",
+             "3:19: file inclusion not supported for int fields");
+#undef T_KO
+
+#define T_OK(_type, _file)  \
+        do {                                                                 \
+            t_scope;                                                         \
+            _type##__t _obj;                                                 \
+            _type##__t _exp;                                                 \
+            const char *_path;                                               \
+                                                                             \
+            _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file ".json",   \
+                          LSTR_FMT_ARG(z_cmddir_g));                         \
+            Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, &_obj, 0,      \
+                                          &err),                             \
+                       "cannot unpack `%s`: %*pM", _path, SB_FMT_ARG(&err)); \
+                                                                             \
+            _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file            \
+                          "-exp.json", LSTR_FMT_ARG(z_cmddir_g));            \
+            Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, &_exp, 0,      \
+                                          &err),                             \
+                       "cannot unpack `%s`: %*pM", _path, SB_FMT_ARG(&err)); \
+            Z_ASSERT_IOPEQUAL(_type, &_obj, &_exp);                          \
+        } while (0)
+
+        T_OK(tstiop__my_struct_a_opt, "basic-string");
+        T_OK(tstiop__my_struct_f,     "string-array");
+#undef T_OK
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(std, "test IOP std (un)packer") { /* {{{ */
         t_scope;
 

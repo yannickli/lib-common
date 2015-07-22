@@ -51,6 +51,10 @@ enum {
     ({ jerror_strncpy(ll, PS->s, _len);                                     \
        JERROR(_err);                                                        \
     })
+#define JERROR_VARIOUS(fmt, ...)  \
+    ({  ll->err_str = mp_fmt(ll->mp, NULL, fmt, ##__VA_ARGS__);             \
+        JERROR(IOP_JERR_VARIOUS);                                           \
+    })
 
 /* Errors throwing with context restoring */
 #define RJERROR(_err)   (ll->ctx->line = ll->s_line,                        \
@@ -165,6 +169,7 @@ iop_jlex_werror(iop_json_lex_t *ll, void *buf, int len,
       case IOP_JERR_EXP_SMTH:
         return ESTR("something was expected after `%s'", ll->err_str);
       case IOP_JERR_EXP_VAL:
+      case IOP_JERR_VARIOUS:
         return ESTR("%s", ll->err_str);
       case IOP_JERR_BAD_TOKEN:
         return ESTR("unexpected token `%s'", ll->err_str);
@@ -903,6 +908,68 @@ static int skip_val(iop_json_lex_t *ll, bool in_arr)
     }
 }
 
+static int unpack_val_file_inclusion(iop_json_lex_t *ll,
+                                     const iop_field_t *fdesc, void *value)
+{
+    char orig_path[PATH_MAX];
+    char prefix[PATH_MAX];
+    char path[PATH_MAX];
+
+    if (!ll->filename) {
+        return JERROR_VARIOUS("file inclusion only supported when parsing a "
+                              "file");
+    }
+
+    SKIP(strlen("include("));
+
+    switch (READC()) {
+      case '\'': case '"':
+        STORECTX();
+        RETHROW(iop_json_lex_str(ll, EATC()));
+        break;
+      default:
+        return JERROR_WARG(IOP_JERR_BAD_TOKEN, 1);
+    }
+
+    path_expand(orig_path, sizeof(orig_path), ll->filename);
+    path_dirname(prefix, sizeof(prefix), orig_path);
+    if (path_extend(path, prefix, "%*pM", SB_FMT_ARG(&ll->ctx->b)) < 0) {
+        return JERROR_VARIOUS("cannot get fullpath of `%*pM`",
+                              SB_FMT_ARG(&ll->ctx->b));
+    }
+
+    switch (fdesc->type) {
+      case IOP_T_STRING: case IOP_T_DATA: case IOP_T_XML: {
+        sb_t content;
+
+        mp_sb_init(ll->mp, &content, 1024);
+        if (sb_read_file(&content, path) < 0) {
+            RESTORECTX();
+            return JERROR_VARIOUS("cannot read file `%s`: %m", path);
+        }
+
+        *(lstr_t *)value = LSTR_SB_V(&content);
+      } break;
+
+      case IOP_T_UNION: case IOP_T_STRUCT:
+        /* TODO */
+        break;
+
+      default:
+        RESTORECTX();
+        return JERROR_VARIOUS("file inclusion not supported for %s fields",
+                              iop_type_get_string_desc(fdesc->type));
+    }
+
+    STORECTX();
+
+    if (EATC() != ')') {
+        return RJERROR_EXP(")");
+    }
+
+    return 0;
+}
+
 static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                       void *value, bool in_arr)
 {
@@ -1075,20 +1142,27 @@ do_double:
         }
         return RJERROR_EXP_TYPE(fdesc->type);
 
-        /* Extended syntax of union */
       case '.':
-        if (fdesc->type != IOP_T_UNION)
+        /* Extended syntax of union */
+        if (fdesc->type != IOP_T_UNION) {
             return RJERROR(IOP_JERR_UNION_RESERVED);
+        }
         return unpack_union(ll, fdesc->u1.st_desc, value, true);
 
-        /* Prefix extended syntax */
       case '@':
-        if (fdesc->type != IOP_T_STRUCT)
-            return RJERROR_EXP_TYPE(fdesc->type);
-        if (iop_field_is_class(fdesc)) {
-            *(void **)value = NULL;
+        if (ps_startswithlstr(PS, LSTR("include("))) {
+            /* File inclusion */
+            return unpack_val_file_inclusion(ll, fdesc, value);
+        } else {
+            /* Prefix extended syntax */
+            if (fdesc->type != IOP_T_STRUCT) {
+                return RJERROR_EXP_TYPE(fdesc->type);
+            }
+            if (iop_field_is_class(fdesc)) {
+                *(void **)value = NULL;
+            }
+            return unpack_struct(ll, fdesc->u1.st_desc, value, true);
         }
-        return unpack_struct(ll, fdesc->u1.st_desc, value, true);
 
       case IOP_JSON_EOF:
         return RJERROR_WARG(IOP_JERR_EXP_SMTH);
@@ -1630,14 +1704,15 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
 }
 
 #define CREATE_JUNPACK_PS(_fun, _data_type, _fun_to_call)  \
-int _fun(pstream_t *ps, const iop_struct_t *desc, _data_type v,              \
-         int flags, sb_t *errb)                                              \
+static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
+                const char *filename, _data_type v, int flags, sb_t *errb)   \
 {                                                                            \
     iop_json_lex_t  jll;                                                     \
     int res;                                                                 \
                                                                              \
     iop_jlex_init(t_pool(), &jll);                                           \
     iop_jlex_attach(&jll, ps);                                               \
+    jll.filename = filename;                                                 \
     jll.flags = flags;                                                       \
                                                                              \
     if ((res = _fun_to_call(&jll, desc, v, true)) < 0) {                     \
@@ -1651,9 +1726,21 @@ int _fun(pstream_t *ps, const iop_struct_t *desc, _data_type v,              \
     return res;                                                              \
 }
 
-CREATE_JUNPACK_PS(t_iop_junpack_ps,     void *,  iop_junpack)
-CREATE_JUNPACK_PS(t_iop_junpack_ptr_ps, void **, iop_junpack_ptr)
+CREATE_JUNPACK_PS(__t_iop_junpack_ps,     void *,  iop_junpack)
+CREATE_JUNPACK_PS(__t_iop_junpack_ptr_ps, void **, iop_junpack_ptr)
 #undef CREATE_JUNPACK_PS
+
+int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
+                     int flags, sb_t *errb)
+{
+    return __t_iop_junpack_ps(ps, st, NULL, out, flags, errb);
+}
+
+int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
+                         int flags, sb_t *errb)
+{
+    return __t_iop_junpack_ptr_ps(ps, st, NULL, out, flags, errb);
+}
 
 #define CREATE_JUNPACK_FILE(_fun, _data_type, _fun_to_call)  \
 int _fun(const char *filename, const iop_struct_t *st, _data_type out,       \
@@ -1672,15 +1759,15 @@ int _fun(const char *filename, const iop_struct_t *st, _data_type out,       \
     }                                                                        \
                                                                              \
     ps = ps_initlstr(&file);                                                 \
-    res = _fun_to_call(&ps, st, out, flags, errb);                           \
+    res = _fun_to_call(&ps, st, filename, out, flags, errb);                 \
                                                                              \
  end:                                                                        \
     lstr_wipe(&file);                                                        \
     return res;                                                              \
 }
 
-CREATE_JUNPACK_FILE(t_iop_junpack_file,     void *,  t_iop_junpack_ps)
-CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, t_iop_junpack_ptr_ps)
+CREATE_JUNPACK_FILE(t_iop_junpack_file,     void *,  __t_iop_junpack_ps)
+CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, __t_iop_junpack_ptr_ps)
 #undef CREATE_JUNPACK_FILE
 
 /*-}}}-*/

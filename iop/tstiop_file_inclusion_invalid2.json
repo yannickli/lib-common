@@ -1,0 +1,5 @@
+/* Unterminated quotes in @include */
+{
+    "a": 1,
+    "j": @include("toto)
+}

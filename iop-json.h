@@ -52,6 +52,8 @@ typedef enum iop_json_error {
 
     IOP_JERR_CONSTRAINT                      = -20,
 
+    /* Various errors (information is in err_str) */
+    IOP_JERR_VARIOUS                         = -21,
 } iop_json_error;
 
 typedef struct iop_json_lex_ctx_t {
@@ -78,6 +80,9 @@ typedef struct iop_json_lex_t {
     int             s_col;
     pstream_t       s_ps;
     iop_cfolder_t  *cfolder;
+
+    /* Path of the file being parsed (if a junpack_file function is used) */
+    const char *filename;
 
     iop_json_error err;
     char *         err_str;

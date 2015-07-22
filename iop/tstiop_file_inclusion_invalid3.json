@@ -1,0 +1,5 @@
+/* Unclosed parenthesis in @include */
+{
+    "a": 1,
+    "j": @include("/proc/self/cmdline"garbage
+}
