@@ -165,10 +165,7 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             st = iop_field->u1.st_desc;
             break;
           case IOP_T_STRUCT:
-            if (!ps_done(&ps) && (iop_field->repeat == IOP_R_OPTIONAL
-            ||  iop_field_is_class(iop_field)
-            ||  iop_field_is_reference(iop_field)))
-            {
+            if (!ps_done(&ps) && iop_field_is_pointed(iop_field)) {
                 ptr = *(const void **)ptr;
             }
 
@@ -268,10 +265,7 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
       }
       case IOP_T_STRUCT:
       case IOP_T_UNION: {
-        if (iop_field_is_class(field)
-        || iop_field_is_reference(field)
-        || field->repeat == IOP_R_OPTIONAL)
-        {
+        if (iop_field_is_pointed(field)) {
             ptr = *(const void **)ptr;
         }
 
@@ -353,10 +347,7 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
       }
       case IOP_T_STRUCT:
       case IOP_T_UNION: {
-        if (iop_field_is_class(field)
-        || field->repeat == IOP_R_OPTIONAL
-        || iop_field_is_reference(field))
-        {
+        if (iop_field_is_pointed(field)) {
             *(void **)ptr = (void *)value->p;
         } else
         if (value->p != ptr) {
@@ -812,9 +803,9 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
              * has been selected */
             const iop_struct_t *desc = fdesc->u1.st_desc;
 
-            if (iop_field_is_reference(fdesc) || iop_field_is_class(fdesc)) {
-                /* Field is a mandatory class instance, and should be init as
-                 * an optional field: NULL pointer. */
+            if (iop_field_is_pointed(fdesc)) {
+                /* Field should be initialized as an optional field: NULL
+                 * pointer. */
                 continue;
             }
 
@@ -1474,10 +1465,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
             it = fdesc->u1.st_desc;
 
-            if (fdesc->repeat == IOP_R_OPTIONAL
-            ||  iop_field_is_class(fdesc)
-            ||  iop_field_is_reference(fdesc))
-            {
+            if (iop_field_is_pointed(fdesc)) {
                 step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
             }
         }
