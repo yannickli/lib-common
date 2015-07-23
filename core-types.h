@@ -119,7 +119,13 @@ typedef opt_bool_t         opt__Bool_t;
 /** Tell whether the optional field is set or not. */
 #define OPT_ISSET(_v)  ((_v).has_field == true)
 /** Get the optional field value. */
-#define OPT_VAL(_v)    ((_v).v)
+#define OPT_VAL_P(_v)                                                        \
+    ({                                                                       \
+        typeof(_v) __p_opt = (_v);                                           \
+        assert (OPT_ISSET(*__p_opt));                                        \
+        &__p_opt->v;                                                         \
+    })
+#define OPT_VAL(_v)  ({ typeof(_v) _opt = (_v); *OPT_VAL_P(&(_opt)); })
 #define OPT_DEFVAL(_v, _defval)                       \
     ({ typeof(_v) __v = (_v);                         \
        (__v).has_field ? (__v).v : (_defval); })

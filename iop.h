@@ -162,17 +162,26 @@ const char *iop_type_get_string_desc(iop_type_t type);
  * class or union).
  *
  * \param[in] type The IOP type
- * \return true if the IOP type is scalar, false otherwise
+ * \return true if the IOP type is scalar, false otherwise.
  */
 bool iop_type_is_scalar(iop_type_t type);
 
-static inline
-bool iop_field_is_reference(const iop_field_t *fdesc)
+static inline bool iop_field_is_reference(const iop_field_t *fdesc)
 {
     unsigned fdesc_flags = fdesc->flags;
 
     return TST_BIT(&fdesc_flags, IOP_FIELD_IS_REFERENCE);
 }
+
+/** Return whether the C representation of the IOP field is a pointer or not.
+ *
+ * \param[in] fdesc IOP field description.
+ * \return true if the associated C field is a pointer, false otherwise.
+ *
+ * \note For repeated fields, the function returns true if the elements of the
+ *       associated array are pointers.
+ */
+bool iop_field_is_pointed(const iop_field_t *fdesc);
 
 /** Get an iop_field from its name.
  *

@@ -605,6 +605,19 @@ bool iop_type_is_scalar(iop_type_t type)
     e_panic("iop_type unsupported");
 }
 
+bool iop_field_is_pointed(const iop_field_t *fdesc)
+{
+    if (iop_type_is_scalar(fdesc->type)) {
+        return false;
+    }
+
+    if (fdesc->repeat == IOP_R_OPTIONAL) {
+        return true;
+    }
+
+    return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
+}
+
 /* }}} */
 /* {{{ Iop type string description */
 

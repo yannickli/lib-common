@@ -4743,5 +4743,45 @@ Z_GROUP_EXPORT(iop)
         p_delete(&n.tab);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */
+        struct {
+            const iop_struct_t *st;
+            lstr_t field_name;
+            bool is_pointed;
+        } t[] = {
+#define TEST(pfx, field, res)                                                \
+            { &pfx##__s, LSTR(#field), res }
+
+            TEST(tstiop__my_struct_a, a, false),
+            TEST(tstiop__my_struct_a, k, false),
+            TEST(tstiop__my_struct_a, l, false),
+            TEST(tstiop__my_struct_a, lr, true),
+            TEST(tstiop__my_struct_a, cls2, true),
+
+            TEST(tstiop__my_struct_a_opt, a, false),
+            TEST(tstiop__my_struct_a_opt, j, false),
+            TEST(tstiop__my_struct_a_opt, l, true),
+            TEST(tstiop__my_struct_a_opt, lr, true),
+            TEST(tstiop__my_struct_a_opt, o, true),
+            TEST(tstiop__my_struct_a_opt, cls2, true),
+
+            TEST(tstiop__my_struct_f, a, false),
+            TEST(tstiop__my_struct_f, b, false),
+            TEST(tstiop__my_struct_f, c, false),
+            TEST(tstiop__my_struct_f, d, false),
+            TEST(tstiop__my_struct_f, e, true),
+
+#undef TEST
+        };
+
+        carray_for_each_ptr(test, t) {
+            const iop_field_t *field;
+
+            Z_ASSERT_N(iop_field_find_by_name(test->st, test->field_name,
+                                              NULL, &field));
+            Z_ASSERT_EQ(test->is_pointed, iop_field_is_pointed(field));
+        }
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END
