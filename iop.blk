@@ -157,13 +157,6 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
 
         switch (iop_field->type) {
           case IOP_T_UNION:
-            if (!ps_done(&ps) && (iop_field->repeat == IOP_R_OPTIONAL
-            ||  iop_field_is_reference(iop_field)))
-            {
-                ptr = *(const void **)ptr;
-            }
-            st = iop_field->u1.st_desc;
-            break;
           case IOP_T_STRUCT:
             if (!ps_done(&ps) && iop_field_is_pointed(iop_field)) {
                 ptr = *(const void **)ptr;
