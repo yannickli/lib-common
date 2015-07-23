@@ -335,6 +335,7 @@ enum iop_struct_flags_t {
                                  * have a type field? */
     IOP_STRUCT_IS_SNMP_OBJ,     /**< is it a snmpObj? */
     IOP_STRUCT_IS_SNMP_TBL,     /**< is it a snmpTbl? */
+    IOP_STRUCT_IS_SNMP_PARAM,   /**< does it have @snmpParam? */
 };
 
 /*}}}*/

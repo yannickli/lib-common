@@ -335,6 +335,7 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_GENERIC,
     IOPC_ATTR_DEPRECATED,
     IOPC_ATTR_SNMP_PARAMS_FROM,
+    IOPC_ATTR_SNMP_PARAM,
     IOPC_ATTR_SNMP_INDEX,
 } iopc_attr_id_t;
 

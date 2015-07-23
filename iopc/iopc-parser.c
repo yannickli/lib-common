@@ -530,6 +530,10 @@ static void init_attributes(void)
     SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
     ADD_ATTR_ARG(d, "param", ITOK_IDENT);
 
+    d = add_attr(IOPC_ATTR_SNMP_PARAM, "snmpParam");
+    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
+    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
+
     d = add_attr(IOPC_ATTR_SNMP_INDEX, "snmpIndex");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     d->types |= IOPC_ATTR_T_ALL;

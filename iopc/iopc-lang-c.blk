@@ -2767,6 +2767,14 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         if (iopc_is_snmp_obj(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_OBJ);
+
+            /* check @snmpParam attribute */
+            qv_for_each_pos(iopc_attr, pos, &st->attrs) {
+                if (st->attrs.tab[pos]->desc->id == IOPC_ATTR_SNMP_PARAM) {
+                    SET_BIT(&st->flags, IOP_STRUCT_IS_SNMP_PARAM);
+                    break;
+                }
+            }
         } else
         if (iopc_is_snmp_tbl(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
