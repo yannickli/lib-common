@@ -808,11 +808,13 @@ int z_setup(int argc, const char **argv)
 {
     const char *s;
     bool is_traced = psinfo_get_tracer_pid(0) > 0;
+    char abspath[PATH_MAX];
 
     _G.do_fork       = !is_traced && !mem_tool_is_running(MEM_TOOL_VALGRIND);
     _G.abort_on_fail = is_traced;
 
-    lstr_copy(&_G.arg0, LSTR(argv[0]));
+    path_canonify(abspath, sizeof(abspath), argv[0]);
+    lstr_copy(&_G.arg0, LSTR(abspath));
 
     /* XXX force TZ to Europe/Paris for tests using dates and timestamps */
     setenv("TZ", "Europe/Paris", true);
