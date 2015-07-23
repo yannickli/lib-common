@@ -228,6 +228,10 @@ void term_get_size(int *cols, int *rows);
 int fd_set_features(int fd, int flags);
 int fd_unset_features(int fd, int flags);
 
+/** Build an eventfd
+ */
+int eventfd(int initialvalue, int flags);
+
 /** Get the path of the file opened by that file descriptor.
  *
  * In case of success this function guarantees the buffer is terminated by a

@@ -13,6 +13,7 @@
 
 /* holds the linux-dependent implementations for unix.h functions */
 
+#include <sys/syscall.h>
 #include <dirent.h>
 #include <execinfo.h> /* backtrace_symbols_fd */
 #include <sys/wait.h>
@@ -287,5 +288,24 @@ int close_fds_higher_than(int fd)
     }
     return 0;
 }
+
+#ifdef SYS_eventfd
+
+int eventfd(int initialvalue, int flags)
+{
+    int fd = RETHROW(syscall(SYS_eventfd, initialvalue));
+
+    fd_set_features(fd, flags);
+    return fd;
+}
+
+#else
+
+int eventfd(int initialvalue, int flags)
+{
+    return -1;
+}
+
+#endif
 
 #endif
