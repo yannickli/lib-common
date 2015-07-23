@@ -93,9 +93,12 @@ do
 done
 export BEHAVE_FLAGS="$BEHAVE_FLAGS --tags=-web --format z --no-summary"
 
+has_core_dump=$(which core_dump)
+
 while read -r zd line; do
     t="${zd}${line}"
     say_color info "starting suite $t..."
+    [ -n "$has_core_dump" ] && cores="$(core_dump list)"
 
     start=$(date '+%s')
     case ./"$t" in
@@ -118,6 +121,7 @@ while read -r zd line; do
             res=$?
             ;;
     esac
+    [ -n "$has_core_dump" ] && core_dump --format z -i "$cores" -r $PWD diff
 
     if [ $res -eq 0 ] ; then
         end=$(date '+%s')
