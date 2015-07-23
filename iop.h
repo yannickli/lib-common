@@ -720,6 +720,10 @@ static inline bool iop_field_is_snmp_index(const iop_field_t *field)
 
 int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st);
 
+/** Get the number of SNMP indexes used by the AgentX layer (cf RFC RFC 2578).
+ */
+int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st);
+
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid);
 

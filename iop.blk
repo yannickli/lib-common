@@ -3392,6 +3392,27 @@ int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st)
     return nb;
 }
 
+int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st)
+{
+    int nb = 0;
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *field =&st->fields[i];
+
+        if (iop_field_is_snmp_index(field)) {
+            if (field->type == IOP_T_STRING) {
+                /* there is at most 128 sub-identifiers
+                 * (see RFC 2578, section 3.5). */
+                return 128;
+            } else {
+                nb++;
+            }
+        }
+    }
+
+    return MIN(nb, 128);
+}
+
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid)
 {
