@@ -62,7 +62,7 @@ iface    OBJECT IDENTIFIER ::= { obj 4 }
 
 a OBJECT-TYPE
     SYNTAX OCTET STRING
-    MAX-ACCESS read-only
+    MAX-ACCESS accessible-for-notify
     STATUS current
     DESCRIPTION
         "Description, ex: 'some string'."
@@ -70,7 +70,7 @@ a OBJECT-TYPE
 
 b OBJECT-TYPE
     SYNTAX INTEGER { stateOne(0), stateTwo(1), stateThree(2), four(3) }
-    MAX-ACCESS read-only
+    MAX-ACCESS accessible-for-notify
     STATUS current
     DESCRIPTION
         "Description."

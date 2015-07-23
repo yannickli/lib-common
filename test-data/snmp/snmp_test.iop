@@ -20,6 +20,7 @@ enum SomeEnum {
     FOUR,
 };
 
+@snmpParam
 snmpObj Obj : 1 : snmp_intersec_test.Test {
     /** Description, ex: "some string".
      */

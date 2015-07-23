@@ -498,8 +498,13 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
     const iop_field_t *field = &st->fields[pos];
     const iop_snmp_attrs_t *snmp_attrs;
     bool is_index = iop_field_is_snmp_index(field);
+    const char *access_str;
 
     snmp_attrs = mib_field_get_snmp_attr(field_attrs);
+
+    access_str = iop_struct_is_snmp_param(snmp_attrs->parent) ?
+        "accessible-for-notify" : "read-only";
+
     sb_addf(buf,
             "\n%*pM OBJECT-TYPE\n"
             LVL1 "SYNTAX %*pM\n"
@@ -510,7 +515,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
             LVL1 "::= { %*pM%s %d }\n",
             LSTR_FMT_ARG(name),
             LSTR_FMT_ARG(t_get_type_to_lstr(field, false, is_index)),
-            is_index ? "not-accessible" : "read-only",
+            is_index ? "not-accessible" : access_str,
             LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             from_tbl ? "Entry" : "",
