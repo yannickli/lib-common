@@ -1,4 +1,3 @@
-/* Non-existing included file. */
 {
     "a": 1,
     "j": @include("/path/to/unknown/file")
