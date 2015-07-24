@@ -951,9 +951,30 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         *(lstr_t *)value = LSTR_SB_V(&content);
       } break;
 
-      case IOP_T_UNION: case IOP_T_STRUCT:
-        /* TODO */
-        break;
+      case IOP_T_UNION: case IOP_T_STRUCT: {
+        SB_1k(err);
+        int res;
+
+        if (iop_field_is_class(fdesc)) {
+            *(void **)value = NULL;
+            res = t_iop_junpack_ptr_file(path, fdesc->u1.st_desc, value,
+                                         ll->flags, &err);
+        } else
+        if (fdesc->repeat == IOP_R_OPTIONAL) {
+            *(void **)value = NULL;
+            res = t_iop_junpack_ptr_file(path, fdesc->u1.st_desc, &value,
+                                         ll->flags, &err);
+        } else {
+            res = t_iop_junpack_file(path, fdesc->u1.st_desc, value,
+                                     ll->flags, &err);
+        }
+
+        if (res < 0) {
+            RESTORECTX();
+            return JERROR_VARIOUS("cannot unpack file `%s`: %*pM",
+                                  path, SB_FMT_ARG(&err));
+        }
+      } break;
 
       default:
         RESTORECTX();

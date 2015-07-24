@@ -157,6 +157,7 @@ struct MyStructF {
     MyStructB[] c;
     MyUnionA[] d;
     MyClass1[] e;
+    MyClass1? f;
 };
 
 /* Default values */

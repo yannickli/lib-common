@@ -1,0 +1,9 @@
+/* This is a tstiop.MyStructF */
+{
+    "e": [ {
+        "int1": 12
+    } ],
+    "f": {
+        "int1": 12
+    }
+}

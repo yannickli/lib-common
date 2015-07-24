@@ -1499,6 +1499,8 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */
         SB_1k(err);
 
+        IOP_REGISTER_PACKAGES(&tstiop__pkg);
+
 #define T_KO(_file, _exp)  \
         do {                                                                 \
             t_scope;                                                         \
@@ -1509,7 +1511,8 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_NEG(t_iop_junpack_file(_path,                           \
                                             &tstiop__my_struct_a_opt__s,     \
                                             &_a_opt, 0, &err));              \
-            Z_ASSERT_STREQUAL(err.data, _exp);                               \
+            Z_ASSERT(strstart(err.data, _exp, NULL), "unexpected error: %s", \
+                     err.data);                                              \
             sb_reset(&err);                                                  \
         } while (0)
 
@@ -1523,6 +1526,8 @@ Z_GROUP_EXPORT(iop)
              "or directory");
         T_KO("tstiop_file_inclusion_invalid5.json",
              "3:19: file inclusion not supported for int fields");
+        T_KO("tstiop_file_inclusion_invalid6.json",
+             "3:22: cannot unpack file");
 #undef T_KO
 
 #define T_OK(_type, _file)  \
@@ -1548,6 +1553,10 @@ Z_GROUP_EXPORT(iop)
 
         T_OK(tstiop__my_struct_a_opt, "basic-string");
         T_OK(tstiop__my_struct_f,     "string-array");
+        T_OK(tstiop__my_struct_c,     "struct");
+        T_OK(tstiop__my_struct_e,     "union");
+        T_OK(tstiop__my_struct_f,     "class");
+        T_OK(tstiop__my_ref_struct,   "ref");
 #undef T_OK
     } Z_TEST_END
     /* }}} */
