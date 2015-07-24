@@ -468,8 +468,12 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 /** \brief skip the first len elements */
 #define qv_skip(n, vec, len)                (void)__qv_splice(n, vec, 0, len, 0)
 
-#define qv_remove(n, vec, i)                (void)__qv_splice(n, vec, i,   1, 0)
-#define qv_pop(n, vec)                      (void)__qv_splice(n, vec, 0,   1, 0)
+/** \brief remove the element at position i */
+#define qv_remove(n, vec, i)    (void)__qv_splice(n, vec, i, 1, 0)
+/** \brief remove the last element */
+#define qv_remove_last(n, vec)  (void)__qv_splice(n, vec, (vec)->len - 1, 1, 0)
+/** \brief remove the first element */
+#define qv_pop(n, vec)          (void)__qv_splice(n, vec, 0, 1, 0)
 
 #define qv_insert(n, vec, i, v)                                     \
     ({                                                              \
