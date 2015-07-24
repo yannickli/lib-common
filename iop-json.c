@@ -15,6 +15,7 @@
 #include "unix.h"
 #include "iop.h"
 #include "iop-helpers.inl.c"
+#include "thr.h"
 
 /* {{{ lexing json */
 
@@ -870,6 +871,20 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 /*-}}}-*/
 /* {{{ unpacking json way */
 
+/** Stack of names of parsed files when using junpack_file helpers.
+ *
+ * Filenames of parsed files are stored in this stack in order to detect
+ * infinite recursions in includes.
+ */
+static __thread qv_t(lstr) filenames_g;
+
+static void filenames_wipe(void)
+{
+    qv_deep_wipe(lstr, &filenames_g, lstr_wipe);
+}
+thr_hooks(NULL, filenames_wipe);
+
+
 static int unpack_arr(iop_json_lex_t *, const iop_field_t *, void *);
 static int unpack_union(iop_json_lex_t *, const iop_struct_t *, void *, bool);
 static int unpack_struct(iop_json_lex_t *, const iop_struct_t *, void *,
@@ -911,11 +926,11 @@ static int skip_val(iop_json_lex_t *ll, bool in_arr)
 static int unpack_val_file_inclusion(iop_json_lex_t *ll,
                                      const iop_field_t *fdesc, void *value)
 {
-    char orig_path[PATH_MAX];
     char prefix[PATH_MAX];
     char path[PATH_MAX];
+    lstr_t path_lstr;
 
-    if (!ll->filename) {
+    if (!filenames_g.len) {
         return JERROR_VARIOUS("file inclusion only supported when parsing a "
                               "file");
     }
@@ -931,11 +946,18 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         return JERROR_WARG(IOP_JERR_BAD_TOKEN, 1);
     }
 
-    path_expand(orig_path, sizeof(orig_path), ll->filename);
-    path_dirname(prefix, sizeof(prefix), orig_path);
+    path_dirname(prefix, sizeof(prefix), qv_last(lstr, &filenames_g)->s);
     if (path_extend(path, prefix, "%*pM", SB_FMT_ARG(&ll->ctx->b)) < 0) {
         return JERROR_VARIOUS("cannot get fullpath of `%*pM`",
                               SB_FMT_ARG(&ll->ctx->b));
+    }
+
+    path_lstr = LSTR(path);
+    qv_for_each_entry(lstr, s, &filenames_g) {
+        if (lstr_equal2(s, path_lstr)) {
+            RESTORECTX();
+            return JERROR_VARIOUS("infinite recursion detected in includes");
+        }
     }
 
     switch (fdesc->type) {
@@ -1733,8 +1755,14 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
                                                                              \
     iop_jlex_init(t_pool(), &jll);                                           \
     iop_jlex_attach(&jll, ps);                                               \
-    jll.filename = filename;                                                 \
     jll.flags = flags;                                                       \
+                                                                             \
+    if (filename) {                                                          \
+        char path[PATH_MAX];                                                 \
+                                                                             \
+        path_expand(path, sizeof(path), filename);                           \
+        qv_append(lstr, &filenames_g, lstr_dups(path, -1));                  \
+    }                                                                        \
                                                                              \
     if ((res = _fun_to_call(&jll, desc, v, true)) < 0) {                     \
         if (errb) {                                                          \
@@ -1742,6 +1770,10 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
         }                                                                    \
     }                                                                        \
                                                                              \
+    if (filename) {                                                          \
+        lstr_wipe(qv_last(lstr, &filenames_g));                              \
+        qv_shrink(lstr, &filenames_g, 1);                                    \
+    }                                                                        \
     iop_jlex_wipe(&jll);                                                     \
                                                                              \
     return res;                                                              \

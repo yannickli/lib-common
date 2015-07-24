@@ -81,9 +81,6 @@ typedef struct iop_json_lex_t {
     pstream_t       s_ps;
     iop_cfolder_t  *cfolder;
 
-    /* Path of the file being parsed (if a junpack_file function is used) */
-    const char *filename;
-
     iop_json_error err;
     char *         err_str;
 

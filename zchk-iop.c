@@ -1501,33 +1501,35 @@ Z_GROUP_EXPORT(iop)
 
         IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
-#define T_KO(_file, _exp)  \
+#define T_KO(_type, _file, _exp)  \
         do {                                                                 \
             t_scope;                                                         \
-            tstiop__my_struct_a_opt__t _a_opt;                               \
+            _type##__t _obj;                                                 \
             const char *_path = t_fmt("%*pM/iop/" _file,                     \
                                       LSTR_FMT_ARG(z_cmddir_g));             \
                                                                              \
-            Z_ASSERT_NEG(t_iop_junpack_file(_path,                           \
-                                            &tstiop__my_struct_a_opt__s,     \
-                                            &_a_opt, 0, &err));              \
-            Z_ASSERT(strstart(err.data, _exp, NULL), "unexpected error: %s", \
+            Z_ASSERT_NEG(t_iop_junpack_file(_path, &_type##__s, &_obj, 0,    \
+                                            &err));                          \
+            Z_ASSERT(strstr(err.data, _exp), "unexpected error: %s",         \
                      err.data);                                              \
             sb_reset(&err);                                                  \
         } while (0)
 
-        T_KO("tstiop_file_inclusion_invalid1.json",
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid1.json",
              "4:19: unexpected token `t'");
-        T_KO("tstiop_file_inclusion_invalid2.json", "4:20: unclosed string");
-        T_KO("tstiop_file_inclusion_invalid3.json",
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid2.json",
+             "4:20: unclosed string");
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid3.json",
              "4:39: expected ), got `g'");
-        T_KO("tstiop_file_inclusion_invalid4.json",
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid4.json",
              "4:19: cannot read file `/path/to/unknown/file`: No such file "
              "or directory");
-        T_KO("tstiop_file_inclusion_invalid5.json",
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid5.json",
              "3:19: file inclusion not supported for int fields");
-        T_KO("tstiop_file_inclusion_invalid6.json",
+        T_KO(tstiop__my_struct_a_opt, "tstiop_file_inclusion_invalid6.json",
              "3:22: cannot unpack file");
+        T_KO(tstiop__my_struct_c, "tstiop_file_inclusion_invalid7.json",
+             "infinite recursion detected in includes");
 #undef T_KO
 
 #define T_OK(_type, _file)  \
