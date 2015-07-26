@@ -207,10 +207,11 @@ static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
 }
 
 
-static int iop_json_test_json(const iop_struct_t *st, const char *json, const
-                              void *expected, const char *info)
+static int iop_json_test_json(const iop_struct_t *st, const char *json,
+                              const void *expected, const char *info)
 {
     t_scope;
+    const char *path;
     iop_json_lex_t jll;
     pstream_t ps;
     void *res = NULL;
@@ -246,6 +247,15 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
                    st->fullname.s, info);
 
     iop_jlex_wipe(&jll);
+
+    /* Test iop_jpack_file / t_iop_junpack_file */
+    path = t_fmt("%*pM/tstjson.json", LSTR_FMT_ARG(z_cmddir_g));
+    sb_reset(&sb);
+    Z_ASSERT_N(iop_jpack_file(path, st, res, 0, &sb),
+               "%*pM", SB_FMT_ARG(&sb));
+    Z_ASSERT_N(t_iop_junpack_ptr_file(path, st, &res, 0, &sb),
+               "%*pM", SB_FMT_ARG(&sb));
+    Z_ASSERT_IOPEQUAL_DESC(st, res, expected);
 
     Z_HELPER_END;
 }
@@ -1159,6 +1169,9 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(json, "test IOP JSon (un)packer") { /* {{{ */
         t_scope;
+        /* {{{ Variable declarations */
+
+        SB_1k(err);
 
         tstiop__my_class2__t cls2;
 
@@ -1449,8 +1462,11 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
         const iop_struct_t *st_cls2;
 
-        if ((dso = iop_dso_open(path.s)) == NULL)
+        /* }}} */
+
+        if ((dso = iop_dso_open(path.s)) == NULL) {
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+        }
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR("tstiop.MyStructF")));
@@ -1492,6 +1508,13 @@ Z_GROUP_EXPORT(iop)
                                           "json_si_n1"));
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n2, false,
                                           "json_si_n2"));
+
+        /* Test iop_jpack_file failure */
+        Z_ASSERT_NEG(iop_jpack_file("/path/to/unknown/dir.json", st_sk,
+                                    &json_sk_res, 0, &err));
+        Z_ASSERT_STREQUAL(err.data, "cannot open output file "
+                          "`/path/to/unknown/dir.json`: "
+                          "No such file or directory");
 
         iop_dso_close(&dso);
     } Z_TEST_END

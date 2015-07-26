@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_IOP_JSON_H
 
+#include "file.h"
+
 /* {{{ Private API and definitions */
 
 typedef enum iop_json_error {
@@ -347,6 +349,32 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
 int iop_jpack(const iop_struct_t *st, const void *value,
               int (*writecb)(void *, const void *buf, int len), void *priv,
               unsigned flags);
+
+/** Serialize an IOP C structure in an IOP-JSon file.
+ *
+ * This function packs an IOP structure into (strict) JSon format and writes
+ * it in a file.
+ *
+ * \param[in]  filename   The file in which the value is packed.
+ * \param[in]  file_flags The flags to use when opening the file.
+ * \param[in]  file_mode  The mode to use when opening the file.
+ * \param[in]  st         IOP structure description.
+ * \param[in]  value      Pointer on the IOP structure to pack.
+ * \param[in]  flags      Packer flags bitfield (see iop_jpack_flags).
+ * \param[out] err        Buffer filled in case of error.
+ */
+int __iop_jpack_file(const char *filename, enum file_flags file_flags,
+                     mode_t file_mode, const iop_struct_t *st,
+                     const void *value, unsigned flags, sb_t *err);
+
+static inline int
+iop_jpack_file(const char *filename, const iop_struct_t *st,
+               const void *value, unsigned flags, sb_t *err)
+{
+    return __iop_jpack_file(filename, FILE_WRONLY | FILE_CREATE | FILE_TRUNC,
+                            0644, st, value, flags, err);
+}
+
 
 /** Pack an IOP C structure to IOP-JSon in a sb_t.
  *

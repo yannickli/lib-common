@@ -2185,6 +2185,58 @@ int iop_jpack(const iop_struct_t *desc, const void *value,
     return pack_txt(desc, value, 0, writecb, priv, flags);
 }
 
+/* {{{ iop_jpack_file */
+
+typedef struct jpack_file_ctx_t {
+    file_t *file;
+    sb_t   *err;
+} jpack_file_ctx_t;
+
+static int iop_jpack_write_file(void *priv, const void *data, int len)
+{
+    jpack_file_ctx_t *ctx = priv;
+
+    if (file_write(ctx->file, data, len) < 0) {
+        sb_addf(ctx->err, "cannot write in output file: %m");
+        return -1;
+    }
+
+    return len;
+}
+
+int __iop_jpack_file(const char *filename, enum file_flags file_flags,
+                     mode_t file_mode, const iop_struct_t *st,
+                     const void *value, unsigned flags, sb_t *err)
+{
+    int res;
+    jpack_file_ctx_t ctx = {
+        .file = file_open(filename, file_flags, file_mode),
+        .err  = err,
+    };
+
+    if (!ctx.file) {
+        sb_addf(err, "cannot open output file `%s`: %m", filename);
+        return -1;
+    }
+
+    res = iop_jpack(st, value, &iop_jpack_write_file, &ctx, flags);
+
+    if (res < 0) {
+        IGNORE(file_close(&ctx.file));
+        IGNORE(unlink(filename));
+        return res;
+    }
+
+    if (file_close(&ctx.file) < 0) {
+        sb_addf(err, "cannot close output file `%s`: %m", filename);
+        IGNORE(unlink(filename));
+        return -1;
+    }
+
+    return res;
+}
+
+/* }}} */
 /* }}} */
 
 struct jtrace {
