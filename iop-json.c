@@ -1750,6 +1750,7 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
 static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
                 const char *filename, _data_type v, int flags, sb_t *errb)   \
 {                                                                            \
+    char path[PATH_MAX];                                                     \
     iop_json_lex_t  jll;                                                     \
     int res;                                                                 \
                                                                              \
@@ -1758,10 +1759,8 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
     jll.flags = flags;                                                       \
                                                                              \
     if (filename) {                                                          \
-        char path[PATH_MAX];                                                 \
-                                                                             \
         path_expand(path, sizeof(path), filename);                           \
-        qv_append(lstr, &filenames_g, lstr_dups(path, -1));                  \
+        qv_append(lstr, &filenames_g, LSTR(path));                           \
     }                                                                        \
                                                                              \
     if ((res = _fun_to_call(&jll, desc, v, true)) < 0) {                     \
@@ -1771,8 +1770,7 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
     }                                                                        \
                                                                              \
     if (filename) {                                                          \
-        lstr_wipe(qv_last(lstr, &filenames_g));                              \
-        qv_shrink(lstr, &filenames_g, 1);                                    \
+        qv_remove_last(lstr, &filenames_g);                                  \
     }                                                                        \
     iop_jlex_wipe(&jll);                                                     \
                                                                              \
