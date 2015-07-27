@@ -330,11 +330,7 @@ enum iop_jpack_flags {
     IOP_JPACK_SKIP_PRIVATE  = (1U << 3),
 };
 
-/** Callback to use for writing JSon into a sb_t. */
-static inline int iop_sb_write(void *_b, const void *buf, int len) {
-    sb_add((sb_t *)_b, buf, len);
-    return len;
-}
+typedef int (iop_jpack_writecb_f)(void *priv, const void *buf, int len);
 
 /** Convert an IOP C structure to IOP-JSon.
  *
@@ -347,8 +343,7 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
  * \param[in] flags    Packer flags bitfield (see iop_jpack_flags).
  */
 int iop_jpack(const iop_struct_t *st, const void *value,
-              int (*writecb)(void *, const void *buf, int len), void *priv,
-              unsigned flags);
+              iop_jpack_writecb_f *writecb, void *priv, unsigned flags);
 
 
 /** Sub-file parameters to use with \ref __iop_jpack_file.
@@ -403,6 +398,11 @@ iop_jpack_file(const char *filename, const iop_struct_t *st,
                             0644, st, value, flags, NULL, err);
 }
 
+/** Callback to use for writing JSon into a sb_t. */
+static inline int iop_sb_write(void *_b, const void *buf, int len) {
+    sb_add((sb_t *)_b, buf, len);
+    return len;
+}
 
 /** Pack an IOP C structure to IOP-JSon in a sb_t.
  *

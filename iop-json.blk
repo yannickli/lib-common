@@ -1864,8 +1864,8 @@ get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
     return ptr;
 }
 
-static int do_write(int (*writecb)(void *, const void *, int),
-                    void *priv, const void *_buf, int len)
+static int do_write(iop_jpack_writecb_f *writecb, void *priv,
+                    const void *_buf, int len)
 {
     const uint8_t *buf = _buf;
     int pos = 0;
@@ -1883,8 +1883,7 @@ static int do_write(int (*writecb)(void *, const void *, int),
     return len;
 }
 
-static int do_indent(int (*writecb)(void *, const void *, int),
-                     void *priv, int lvl)
+static int do_indent(iop_jpack_writecb_f *writecb, void *priv, int lvl)
 {
     static char const tabs[32] = {
         '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t',
@@ -1945,8 +1944,7 @@ static int do_indent(int (*writecb)(void *, const void *, int),
 #define IBUF_LEN  25
 
 static int write_string(lstr_t val, iop_type_t type,
-                        int (*writecb)(void *, const void *buf, int len),
-                        void *priv)
+                        iop_jpack_writecb_f *writecb, void *priv)
 {
     SB_8k(sb);
     int res = 0;
@@ -1994,8 +1992,8 @@ static int write_string(lstr_t val, iop_type_t type,
 }
 
 static int write_field(const iop_struct_t *st, const void *value,
-                       int (*writecb)(void *, const void *buf, int len),
-                       void *priv, unsigned flags, jpack_file_ctx_t *file_ctx,
+                       iop_jpack_writecb_f *writecb, void *priv,
+                       unsigned flags, jpack_file_ctx_t *file_ctx,
                        int (^do_inline)(void),
                        int (^do_include)(const char *path))
 {
@@ -2038,13 +2036,12 @@ static int write_field(const iop_struct_t *st, const void *value,
 
 static int
 pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-         int (*writecb)(void *, const void *buf, int len),
-         void *priv, unsigned flags, jpack_file_ctx_t *file_ctx);
+         iop_jpack_writecb_f *writecb, void *priv, unsigned flags,
+         jpack_file_ctx_t *file_ctx);
 
 static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-                      int (*writecb)(void *, const void *buf, int len),
-                      void *priv, unsigned flags, jpack_file_ctx_t *file_ctx,
-                      bool *first)
+                      iop_jpack_writecb_f *writecb, void *priv,
+                      unsigned flags, jpack_file_ctx_t *file_ctx, bool *first)
 {
     char ibuf[IBUF_LEN];
     int res = 0;
@@ -2201,8 +2198,8 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
 static int
 pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-         int (*writecb)(void *, const void *buf, int len),
-         void *priv, unsigned flags, jpack_file_ctx_t *file_ctx)
+         iop_jpack_writecb_f *writecb, void *priv, unsigned flags,
+         jpack_file_ctx_t *file_ctx)
 {
     int res = 0;
     bool first = true;
@@ -2276,8 +2273,7 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 #undef PUTI
 
 int iop_jpack(const iop_struct_t *desc, const void *value,
-              int (*writecb)(void *, const void *buf, int len),
-              void *priv, unsigned flags)
+              iop_jpack_writecb_f *writecb, void *priv, unsigned flags)
 {
     return pack_txt(desc, value, 0, writecb, priv, flags, NULL);
 }
