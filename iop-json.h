@@ -350,10 +350,34 @@ int iop_jpack(const iop_struct_t *st, const void *value,
               int (*writecb)(void *, const void *buf, int len), void *priv,
               unsigned flags);
 
+
+/** Sub-file parameters to use with \ref __iop_jpack_file.
+ *
+ * \ref __iop_jpack_file supports to pack sub-objects in dedicated files using
+ * the include feature, using this configuration structure.
+ *
+ * To achieve that, one must create and fill a hash table of this kind, and
+ * give it as argument to \ref __iop_jpack_file.
+ *
+ * The key is a pointer on a sub-object to pack in a dedicated file.
+ * For string (and XML or data) fields, it must be a pointer on the associated
+ * lstr_t.
+ * For unions/struct/classes, it must be a pointer on the object.
+ * The given sub-object can be in an array.
+ *
+ * The value is the path of the file in which it will be written, which can be
+ * either absolute or relative to the main file.
+ */
+qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
+               qhash_hash_ptr, qhash_ptr_equal);
+
 /** Serialize an IOP C structure in an IOP-JSon file.
  *
  * This function packs an IOP structure into (strict) JSon format and writes
  * it in a file.
+ *
+ * Some IOP sub-objects can be written in separate files using the include
+ * feature. Only one level of inclusion is supported.
  *
  * \param[in]  filename   The file in which the value is packed.
  * \param[in]  file_flags The flags to use when opening the file.
@@ -361,18 +385,22 @@ int iop_jpack(const iop_struct_t *st, const void *value,
  * \param[in]  st         IOP structure description.
  * \param[in]  value      Pointer on the IOP structure to pack.
  * \param[in]  flags      Packer flags bitfield (see iop_jpack_flags).
+ * \param[in]  sub_files  If set, this is the list of IOP objects that must be
+ *                        written in separate files using @include.
  * \param[out] err        Buffer filled in case of error.
  */
 int __iop_jpack_file(const char *filename, enum file_flags file_flags,
                      mode_t file_mode, const iop_struct_t *st,
-                     const void *value, unsigned flags, sb_t *err);
+                     const void *value, unsigned flags,
+                     nullable const qm_t(iop_jpack_sub_file) *sub_files,
+                     sb_t *err);
 
 static inline int
 iop_jpack_file(const char *filename, const iop_struct_t *st,
                const void *value, unsigned flags, sb_t *err)
 {
     return __iop_jpack_file(filename, FILE_WRONLY | FILE_CREATE | FILE_TRUNC,
-                            0644, st, value, flags, err);
+                            0644, st, value, flags, NULL, err);
 }
 
 

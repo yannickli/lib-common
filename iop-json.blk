@@ -1824,6 +1824,18 @@ CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, __t_iop_junpack_ptr_ps)
 /*-}}}-*/
 /* {{{ jpack */
 
+typedef struct jpack_file_ctx_t {
+    sb_t *err;
+
+    file_t         *file;
+    char            file_dir[PATH_MAX];
+    enum file_flags file_flags;
+    mode_t          file_mode;
+
+    const qm_t(iop_jpack_sub_file) *sub_files;
+    qv_t(str)                       created_sub_files;
+} jpack_file_ctx_t;
+
 static inline const void *
 get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
 {
@@ -1894,25 +1906,6 @@ static int do_indent(int (*writecb)(void *, const void *, int),
     return lvl;
 }
 
-static int
-pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-         int (*writecb)(void *, const void *buf, int len),
-         void *priv, unsigned flags);
-
-static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-                      int (*writecb)(void *, const void *buf, int len),
-                      void *priv, unsigned flags, bool *first)
-{
-    /* ints:   sign, 20 digits, and NUL -> 22
-       double: sign, digit, dot, 17 digits, e, sign, up to 3 digits NUL -> 25
-     */
-    char ibuf[25];
-    int res = 0;
-
-    const iop_field_t *fdesc, *fend;
-    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
-    SB_8k(sb);
-
 #define WRITE(b, l)    \
     do {                                                                   \
         int __res = do_write(writecb, priv, b, l);                         \
@@ -1945,6 +1938,120 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     WRITE(ibuf, sprintf(ibuf, "%llu", (unsigned long long)i))
 #define PUTD(i)  \
     WRITE(ibuf, sprintf(ibuf, "%lld", (long long)i))
+
+/* ints:   sign, 20 digits, and NUL -> 22
+ * double: sign, digit, dot, 17 digits, e, sign, up to 3 digits NUL -> 25
+ */
+#define IBUF_LEN  25
+
+static int write_string(lstr_t val, iop_type_t type,
+                        int (*writecb)(void *, const void *buf, int len),
+                        void *priv)
+{
+    SB_8k(sb);
+    int res = 0;
+
+    PUTS("\"");
+
+    if (type == IOP_T_DATA) {
+        if (val.len) {
+            sb_reset(&sb);
+            sb_add_b64(&sb, val.data, val.len, -1);
+            WRITE(sb.data, sb.len);
+        }
+    } else {
+        pstream_t ps = ps_initlstr(&val);
+
+        while (!ps_done(&ps)) {
+            char ibuf[IBUF_LEN];
+            /* r:32-127 -s:'\\"' */
+            static ctype_desc_t const json_safe_chars = { {
+                0x00000000, 0xfffffffb, 0xefffffff, 0xffffffff,
+                    0x00000000, 0x00000000, 0x00000000, 0x00000000,
+            } };
+
+            const uint8_t *p = ps.b;
+            size_t nbchars;
+            int c;
+
+            nbchars = ps_skip_span(&ps, &json_safe_chars);
+            WRITE(p, nbchars);
+
+            if (ps_done(&ps)) {
+                break;
+            }
+            /* Assume broken utf-8 is mixed latin1 */
+            c = ps_getuc(&ps);
+            if (unlikely(c < 0)) {
+                c = ps_getc(&ps);
+            }
+            WRITE(ibuf, sprintf(ibuf, "\\u%04x", c));
+        }
+    }
+
+    PUTS("\"");
+    return res;
+}
+
+static int write_field(const iop_struct_t *st, const void *value,
+                       int (*writecb)(void *, const void *buf, int len),
+                       void *priv, unsigned flags, jpack_file_ctx_t *file_ctx,
+                       int (^do_inline)(void),
+                       int (^do_include)(const char *path))
+{
+    int res = 0;
+    const char *sub_file_path = NULL;
+    char fullpath[PATH_MAX];
+
+    /* Check if value must be packed in a different file. */
+    if (!file_ctx || !file_ctx->sub_files
+    ||  !(sub_file_path = qm_get_def_safe(iop_jpack_sub_file,
+                                          file_ctx->sub_files, value, NULL)))
+    {
+        /* This field shoud be packed inline. */
+        return do_inline();
+    }
+
+    /* This field should be written in a dedicated file.
+     * Get include full path. */
+    if (path_extend(fullpath, file_ctx->file_dir, "%s", sub_file_path) < 0) {
+        sb_addf(file_ctx->err, "cannot get fullpath of `%s`", sub_file_path);
+        return -1;
+    }
+
+    /* Write include file. */
+    if (do_include(fullpath) < 0) {
+        return -1;
+    }
+
+    /* Write include in original path. */
+    PUTS("@include(");
+    res += RETHROW(write_string(LSTR(sub_file_path), IOP_T_STRING, writecb,
+                                priv));
+    PUTS(")");
+
+    /* Remember include file as a created file. */
+    qv_append(str, &file_ctx->created_sub_files, p_strdup(fullpath));
+
+    return res;
+}
+
+static int
+pack_txt(const iop_struct_t *desc, const void *value, int lvl,
+         int (*writecb)(void *, const void *buf, int len),
+         void *priv, unsigned flags, jpack_file_ctx_t *file_ctx);
+
+static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
+                      int (*writecb)(void *, const void *buf, int len),
+                      void *priv, unsigned flags, jpack_file_ctx_t *file_ctx,
+                      bool *first)
+{
+    char ibuf[IBUF_LEN];
+    int res = 0;
+    int tmp_res;
+
+    const iop_field_t *fdesc, *fend;
+    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, value);
@@ -1985,12 +2092,12 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         }
 
         for (int j = 0; j < n; j++) {
-            if (repeated && j)
+            if (repeated && j) {
                 IPUTS(", ", ",");
+            }
+
             switch (fdesc->type) {
                 const void *v;
-                pstream_t ps;
-                int len;
 
 #define CASE(n) \
               case IOP_T_I##n: PUTD(IOP_FIELD(int##n##_t, ptr, j)); break;  \
@@ -2017,17 +2124,15 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 }
                 break;
 
-              case IOP_T_DOUBLE:
-                {
-                    double d = IOP_FIELD(double, ptr, j);
+              case IOP_T_DOUBLE: {
+                double d = IOP_FIELD(double, ptr, j);
 
-                    if (isnan(d) || isinf(d)) {
-                        PUTS("null");
-                    } else {
-                        WRITE(ibuf, sprintf(ibuf, "%.17e", d));
-                    }
+                if (isnan(d) || isinf(d)) {
+                    PUTS("null");
+                } else {
+                    WRITE(ibuf, sprintf(ibuf, "%.17e", d));
                 }
-                break;
+              } break;
 
               case IOP_T_UNION:
               case IOP_T_STRUCT:
@@ -2041,55 +2146,47 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                      */
                     v = *(void **)v;
                 }
-                len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, flags));
-                res += len;
+
+                tmp_res = write_field(desc, v, writecb, priv, flags, file_ctx,
+                                      ^int (void) {
+                    /* Write the field inline. */
+                    return pack_txt(fdesc->u1.st_desc, v, lvl, writecb,
+                                    priv, flags, file_ctx);
+                },
+                ^int (const char *path) {
+                    /* Write the field in a dedicated file. */
+                    return __iop_jpack_file(path, file_ctx->file_flags,
+                                            file_ctx->file_mode,
+                                            fdesc->u1.st_desc, v, flags, NULL,
+                                            file_ctx->err);
+                });
+
+                res += RETHROW(tmp_res);
                 break;
 
               case IOP_T_STRING:
               case IOP_T_XML:
-                ps = ps_init(IOP_FIELD(const lstr_t, ptr, j).s,
-                             IOP_FIELD(const lstr_t, ptr, j).len);
+              case IOP_T_DATA: {
+                const lstr_t *sv = &IOP_FIELD(const lstr_t, ptr, j);
 
-                PUTS("\"");
-                while (!ps_done(&ps)) {
-                    /* r:32-127 -s:'\\"' */
-                    static ctype_desc_t const json_safe_chars = { {
-                        0x00000000, 0xfffffffb, 0xefffffff, 0xffffffff,
-                        0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                    } };
+                tmp_res = write_field(desc, sv, writecb, priv, flags, file_ctx,
+                                      ^int (void) {
+                    /* Write the field inline. */
+                    return write_string(*sv, fdesc->type, writecb, priv);
+                },
+                ^int (const char *path) {
+                    /* Write the field in a dedicated file. */
+                    if (xwrite_file(path, sv->data, sv->len) < 0) {
+                        sb_addf(file_ctx->err, "cannot write `%s`: %m",
+                                path);
+                        return -1;
+                    }
+                    return 0;
+                });
 
-                    const uint8_t *p = ps.b;
-                    size_t nbchars;
-                    int c;
+                res += RETHROW(tmp_res);
 
-                    nbchars = ps_skip_span(&ps, &json_safe_chars);
-                    WRITE(p, nbchars);
-
-                    if (ps_done(&ps))
-                        break;
-                    /* Assume broken utf-8 is mixed latin1 */
-                    c = ps_getuc(&ps);
-                    if (unlikely(c < 0))
-                        c = ps_getc(&ps);
-                    WRITE(ibuf, sprintf(ibuf, "\\u%04x", c));
-                }
-                PUTS("\"");
-                break;
-
-              case IOP_T_DATA:
-                if (IOP_FIELD(const lstr_t, ptr, j).len) {
-                    int dlen = IOP_FIELD(const lstr_t, ptr, j).len;
-
-                    sb_reset(&sb);
-                    sb_addc(&sb, '"');
-                    sb_add_b64(&sb, IOP_FIELD(const lstr_t, ptr, j).data,
-                               dlen, -1);
-                    sb_addc(&sb, '"');
-                    WRITE(sb.data, sb.len);
-                } else {
-                    PUTS("\"\"");
-                }
-                break;
+              } break;
 
               default:
                 abort();
@@ -2105,7 +2202,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 static int
 pack_txt(const iop_struct_t *desc, const void *value, int lvl,
          int (*writecb)(void *, const void *buf, int len),
-         void *priv, unsigned flags)
+         void *priv, unsigned flags, jpack_file_ctx_t *file_ctx)
 {
     int res = 0;
     bool first = true;
@@ -2145,13 +2242,13 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         /* Write fields of different levels */
         for (int pos = parents.len; pos-- > 0; ) {
             res += RETHROW(__pack_txt(parents.tab[pos], value, lvl, writecb,
-                                      priv, flags, &first));
+                                      priv, flags, file_ctx, &first));
         }
         qv_wipe(iop_struct, &parents);
 
     } else {
         res += RETHROW(__pack_txt(desc, value, lvl, writecb, priv, flags,
-                                  &first));
+                                  file_ctx, &first));
     }
 
     if (desc->is_union) {
@@ -2182,15 +2279,8 @@ int iop_jpack(const iop_struct_t *desc, const void *value,
               int (*writecb)(void *, const void *buf, int len),
               void *priv, unsigned flags)
 {
-    return pack_txt(desc, value, 0, writecb, priv, flags);
+    return pack_txt(desc, value, 0, writecb, priv, flags, NULL);
 }
-
-/* {{{ iop_jpack_file */
-
-typedef struct jpack_file_ctx_t {
-    file_t *file;
-    sb_t   *err;
-} jpack_file_ctx_t;
 
 static int iop_jpack_write_file(void *priv, const void *data, int len)
 {
@@ -2206,12 +2296,16 @@ static int iop_jpack_write_file(void *priv, const void *data, int len)
 
 int __iop_jpack_file(const char *filename, enum file_flags file_flags,
                      mode_t file_mode, const iop_struct_t *st,
-                     const void *value, unsigned flags, sb_t *err)
+                     const void *value, unsigned flags,
+                     const qm_t(iop_jpack_sub_file) *sub_files, sb_t *err)
 {
     int res;
     jpack_file_ctx_t ctx = {
-        .file = file_open(filename, file_flags, file_mode),
-        .err  = err,
+        .err        = err,
+        .file       = file_open(filename, file_flags, file_mode),
+        .file_flags = file_flags,
+        .file_mode  = file_mode,
+        .sub_files  = sub_files,
     };
 
     if (!ctx.file) {
@@ -2219,24 +2313,36 @@ int __iop_jpack_file(const char *filename, enum file_flags file_flags,
         return -1;
     }
 
-    res = iop_jpack(st, value, &iop_jpack_write_file, &ctx, flags);
+    if (sub_files) {
+        char path[PATH_MAX];
+
+        path_expand(path, sizeof(path), filename);
+        path_dirname(ctx.file_dir, sizeof(ctx.file_dir), path);
+    }
+
+    res = pack_txt(st, value, 0, &iop_jpack_write_file, &ctx, flags, &ctx);
 
     if (res < 0) {
         IGNORE(file_close(&ctx.file));
-        IGNORE(unlink(filename));
-        return res;
+        goto end;
     }
 
     if (file_close(&ctx.file) < 0) {
         sb_addf(err, "cannot close output file `%s`: %m", filename);
-        IGNORE(unlink(filename));
-        return -1;
+        res = -1;
     }
 
+  end:
+    if (res < 0) {
+        IGNORE(unlink(filename));
+        qv_for_each_entry(str, file, &ctx.created_sub_files) {
+            IGNORE(unlink(file));
+        }
+    }
+    qv_deep_wipe(str, &ctx.created_sub_files, p_delete);
     return res;
 }
 
-/* }}} */
 /* }}} */
 
 struct jtrace {
