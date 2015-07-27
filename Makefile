@@ -97,7 +97,7 @@ libcommon_SOURCES = \
 	\
 	iop-cfolder.c \
 	iop-dso.c \
-	iop-json.c \
+	iop-json.blk \
 	iop-xml-pack.c \
 	iop-xml-unpack.c \
 	iop-xml-wsdl.blk \
