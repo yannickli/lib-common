@@ -805,7 +805,7 @@ int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
 #include "test-data/snmp/snmp_test.iop.h"
 #include "test-data/snmp/snmp_intersec_test.iop.h"
 
-#define FOLDER "lib-common/test-data/snmp/mibs/"
+#define FOLDER "test-data/snmp/mibs/"
 
 static qv_t(mib_rev) t_z_fill_up_revisions(void)
 {
@@ -833,23 +833,29 @@ static int z_check_wanted_file(lstr_t name, sb_t sb)
 {
     t_scope;
     char line[PATH_MAX];
-    lstr_t path = t_lstr_cat(LSTR(FOLDER), name);
-    FILE *f = fopen(path.s, "r");
+    const char *path = t_fmt(FOLDER"/%*pM", LSTR_FMT_ARG(name));
+    int fd;
+    FILE *f;
 
-    if (f == NULL) {
-        logger_panic(&_G.logger, "cannot load reference file '%*pM'",
-                     LSTR_FMT_ARG(path));
+    fd = openat(z_cmddfd_g, path, O_RDONLY);
+    Z_ASSERT_N(fd, "cannot load reference file `%s`: %m", path);
+
+    f = fdopen(fd, "re");
+    if (!f) {
+        p_close(&fd);
+        Z_ASSERT_P(f, "cannot create FILE from fd for path `%s`", path);
     }
 
     /* Check that each line of good file is present into the generated file */
     while (fgets(line, sizeof(line), f) != NULL) {
         if (!lstr_contains(LSTR(sb.data), LSTR(line))) {
-            fclose(f);
-            return -1;
+            p_fclose(&f);
+            Z_ASSERT(false, "cannot find `%s` in `%s`", sb.data, line);
         }
     }
+
     p_fclose(&f);
-    return 0;
+    Z_HELPER_END;
 }
 
 Z_GROUP_EXPORT(iop_mib)
@@ -865,7 +871,7 @@ Z_GROUP_EXPORT(iop_mib)
         mib_register_pkg(&pkgs, snmp_intersec_test);
         iop_write_mib(&sb, pkgs, revisions);
 
-        Z_ASSERT_N(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
 
         z_wipe(sb, pkgs);
     } Z_TEST_END;
@@ -904,7 +910,7 @@ Z_GROUP_EXPORT(iop_mib)
         mib_register_pkg(&pkgs, snmp_test);
 
         iop_write_mib(&sb, pkgs, revisions);
-        Z_ASSERT_N(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
 
         /* Check smilint compliance level 6*/
         sb_write_file(&sb, new_path);
