@@ -51,8 +51,7 @@ static int file_flush_obuf(file_t *f, int len)
 /* open/close                                                               */
 /****************************************************************************/
 
-file_t *file_open_at(int dfd, const char *path,
-                     enum file_flags flags, mode_t mode)
+file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
 {
     file_t *res;
     int oflags;
@@ -99,7 +98,7 @@ file_t *file_open_at(int dfd, const char *path,
     return res;
 }
 
-file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
+file_t *file_open(const char *path, unsigned flags, mode_t mode)
 {
     file_t *res;
     int oflags;

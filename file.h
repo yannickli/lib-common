@@ -32,7 +32,7 @@ enum file_flags {
 };
 
 typedef struct file_t {
-    enum file_flags flags;
+    unsigned flags; /* Combination of enum file_flags. */
     int fd;
     off_t wpos;
     sb_t obuf;
@@ -40,9 +40,9 @@ typedef struct file_t {
 
 /*----- open/close -----*/
 __must_check__ file_t *file_open_at(int dfd, const char *path,
-                                    enum file_flags flags, mode_t mode);
+                                    unsigned flags, mode_t mode);
 __must_check__ file_t *file_open(const char *path,
-                                 enum file_flags flags, mode_t mode);
+                                 unsigned flags, mode_t mode);
 __must_check__ int file_flush(file_t *);
 __must_check__ int file_close(file_t **);
 
