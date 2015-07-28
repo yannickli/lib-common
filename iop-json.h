@@ -375,7 +375,8 @@ qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
  * feature. Only one level of inclusion is supported.
  *
  * \param[in]  filename   The file in which the value is packed.
- * \param[in]  file_flags The flags to use when opening the file.
+ * \param[in]  file_flags The flags to use when opening the file
+ *                        (\ref enum file_flags).
  * \param[in]  file_mode  The mode to use when opening the file.
  * \param[in]  st         IOP structure description.
  * \param[in]  value      Pointer on the IOP structure to pack.
@@ -385,7 +386,7 @@ qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
  * \param[out] err        Buffer filled in case of error.
  * \param[out] err        NULL or the buffer to use to write textual error.
  */
-int __iop_jpack_file(const char *filename, enum file_flags file_flags,
+int __iop_jpack_file(const char *filename, unsigned file_flags,
                      mode_t file_mode, const iop_struct_t *st,
                      const void *value, unsigned flags,
                      nullable const qm_t(iop_jpack_sub_file) *sub_files,

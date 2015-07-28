@@ -2297,7 +2297,7 @@ static int iop_jpack_write_file(void *priv, const void *data, int len)
     return len;
 }
 
-int __iop_jpack_file(const char *filename, enum file_flags file_flags,
+int __iop_jpack_file(const char *filename, unsigned file_flags,
                      mode_t file_mode, const iop_struct_t *st,
                      const void *value, unsigned flags,
                      const qm_t(iop_jpack_sub_file) *sub_files, sb_t *err)
