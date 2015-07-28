@@ -241,7 +241,7 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
  */
 __must_check__
 int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
-                     int flags, sb_t *errb);
+                     int flags, nullable sb_t *errb);
 
 /** Convert IOP-JSon to an IOP C structure using the t_pool().
  *
@@ -257,7 +257,7 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
  */
 __must_check__
 int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
-                         int flags, sb_t *errb);
+                         int flags, nullable sb_t *errb);
 
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
@@ -282,7 +282,7 @@ int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
  */
 __must_check__
 int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
-                       void *out, int flags, sb_t *errb);
+                       void *out, int flags, nullable sb_t *errb);
 
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
@@ -298,7 +298,7 @@ int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
  */
 __must_check__
 int t_iop_junpack_ptr_file(const char *filename, const iop_struct_t *st,
-                           void **out, int flags, sb_t *errb);
+                           void **out, int flags, nullable sb_t *errb);
 
 /** Print a textual error after iop_junpack() failure.
  *
@@ -383,16 +383,17 @@ qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
  * \param[in]  sub_files  If set, this is the list of IOP objects that must be
  *                        written in separate files using @include.
  * \param[out] err        Buffer filled in case of error.
+ * \param[out] err        NULL or the buffer to use to write textual error.
  */
 int __iop_jpack_file(const char *filename, enum file_flags file_flags,
                      mode_t file_mode, const iop_struct_t *st,
                      const void *value, unsigned flags,
                      nullable const qm_t(iop_jpack_sub_file) *sub_files,
-                     sb_t *err);
+                     nullable sb_t *err);
 
 static inline int
 iop_jpack_file(const char *filename, const iop_struct_t *st,
-               const void *value, unsigned flags, sb_t *err)
+               const void *value, unsigned flags, nullable sb_t *err)
 {
     return __iop_jpack_file(filename, FILE_WRONLY | FILE_CREATE | FILE_TRUNC,
                             0644, st, value, flags, NULL, err);

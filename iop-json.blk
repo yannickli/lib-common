@@ -2013,7 +2013,10 @@ static int write_field(const iop_struct_t *st, const void *value,
     /* This field should be written in a dedicated file.
      * Get include full path. */
     if (path_extend(fullpath, file_ctx->file_dir, "%s", sub_file_path) < 0) {
-        sb_addf(file_ctx->err, "cannot get fullpath of `%s`", sub_file_path);
+        if (file_ctx->err) {
+            sb_addf(file_ctx->err, "cannot get fullpath of `%s`",
+                    sub_file_path);
+        }
         return -1;
     }
 
@@ -2174,8 +2177,10 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 ^int (const char *path) {
                     /* Write the field in a dedicated file. */
                     if (xwrite_file(path, sv->data, sv->len) < 0) {
-                        sb_addf(file_ctx->err, "cannot write `%s`: %m",
-                                path);
+                        if (file_ctx->err) {
+                            sb_addf(file_ctx->err, "cannot write `%s`: %m",
+                                    path);
+                        }
                         return -1;
                     }
                     return 0;
@@ -2283,7 +2288,9 @@ static int iop_jpack_write_file(void *priv, const void *data, int len)
     jpack_file_ctx_t *ctx = priv;
 
     if (file_write(ctx->file, data, len) < 0) {
-        sb_addf(ctx->err, "cannot write in output file: %m");
+        if (ctx->err) {
+            sb_addf(ctx->err, "cannot write in output file: %m");
+        }
         return -1;
     }
 
@@ -2305,7 +2312,9 @@ int __iop_jpack_file(const char *filename, enum file_flags file_flags,
     };
 
     if (!ctx.file) {
-        sb_addf(err, "cannot open output file `%s`: %m", filename);
+        if (err) {
+            sb_addf(err, "cannot open output file `%s`: %m", filename);
+        }
         return -1;
     }
 
@@ -2324,7 +2333,9 @@ int __iop_jpack_file(const char *filename, enum file_flags file_flags,
     }
 
     if (file_close(&ctx.file) < 0) {
-        sb_addf(err, "cannot close output file `%s`: %m", filename);
+        if (err) {
+            sb_addf(err, "cannot close output file `%s`: %m", filename);
+        }
         res = -1;
     }
 
