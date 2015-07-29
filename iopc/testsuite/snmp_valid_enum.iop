@@ -26,6 +26,11 @@ snmpTbl B : 2 : Intersec {
      /** Description.
       */
 4:   SomeEnum b2;
+
+     /** Description.
+      */
+     @snmpIndex
+5:   uint indexB;
 };
 
 @snmpParamsFrom(Params)

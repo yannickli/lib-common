@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   4
 #define IOPC_MINOR   0
-#define IOPC_PATCH   4
+#define IOPC_PATCH   5
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -86,10 +86,18 @@ extern struct {
     bool        display_prefix;
 
     qv_t(iopc_loc) loc_stack;
-    int            print_info;
-    int            v2;
-    int            v3;
-    int            v4;
+
+    int print_info;
+    int v2;
+    int v3;
+    int v4;
+
+    /** Check the presence of an @snmpIndex in each snmpTbl.
+     *
+     * This flag exists because the @snmpIndex attribute did not exist before
+     * 3c446cb6bd293 and is now mandatory.
+     */
+    int check_snmp_table_has_index;
 
     int class_id_min;
     int class_id_max;

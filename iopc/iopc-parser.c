@@ -2039,6 +2039,26 @@ static int check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
               "description in the generated MIB", loc, type, name);
 }
 
+static int check_snmp_tbl_has_index(iopc_struct_t *st)
+{
+    bool has_index = false;
+
+    qv_for_each_entry(iopc_field, field, &st->fields) {
+        qv_for_each_entry(iopc_attr, attr, &field->attrs) {
+            if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
+                has_index = true;
+            }
+        }
+    }
+
+    if (!has_index) {
+        throw_loc("each snmp table must contain at least one field that has "
+                  "attribute @snmpIndex of type 'uint' or 'string'", st->loc);
+    }
+
+    return 0;
+}
+
 static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
                         int paren, bool is_snmp_iface)
 {
@@ -2093,6 +2113,12 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         if (__eat(pp, sep) < 0) {
             goto error;
         }
+    }
+
+    if (iopc_g.check_snmp_table_has_index && iopc_is_snmp_tbl(st->type)
+    &&  check_snmp_tbl_has_index(st) < 0)
+    {
+        goto error;
     }
 
     iopc_loc_merge(&st->loc, TK(pp, 1, goto error)->loc);

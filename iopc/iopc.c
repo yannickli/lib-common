@@ -52,6 +52,8 @@ static popt_t options[] = {
     OPT_STR(0,  "class-id-range", &opts.class_id_range,
             "authorized class id range (min-max, included)"),
     OPT_FLAG(0,   "Wextra",       &_G.print_info,  "add extra warnings"),
+    OPT_FLAG(0,  "check-snmp-table-has-index", &_G.check_snmp_table_has_index,
+             "check each snmpTbl has an @snmpIndex"),
     OPT_FLAG('2', "features-v2",  &_G.v2,          "use iopc v2 features"),
     OPT_FLAG('3', "features-v3",  &_G.v3,          "use iopc v3 features"),
     /* XXX this currently only impacts @ctype behavior */

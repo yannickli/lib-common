@@ -30,23 +30,30 @@ class IopcTest(z.TestCase):
     def run_iopc(self, iop, expect_pass, errors, version=1, lang='',
                  class_id_range=''):
         iopc_args = [IOPC, os.path.join(TEST_PATH, iop)]
-        # enable features of v2
+
+        # enable features of v2, v3 and v4
         if version == 2:
             iopc_args.append('--features-v2')
         if version == 3:
             iopc_args.append('--features-v3')
         if version == 4:
             iopc_args.append('--features-v4')
+
         # in case of expected success if no language is specified
         # the success must be for all the languages
         if expect_pass and not lang:
             lang = 'C,json'
+
         # specific language(s)
         if lang:
             iopc_args.append('-l' + lang)
+
         if class_id_range:
             iopc_args.append('--class-id-range')
             iopc_args.append(class_id_range)
+
+        iopc_args.append('--check-snmp-table-has-index')
+
         iopc_p = subprocess.Popen(iopc_args, stderr=subprocess.PIPE)
         self.assertIsNotNone(iopc_p)
         output = iopc_p.communicate()[1]
@@ -264,6 +271,12 @@ class IopcTest(z.TestCase):
     def test_snmp_invalid_index(self):
         self.run_iopc('snmp_invalid_index.iop', False,
                       "field 'st1' does not support @snmpIndex attribute", 4)
+
+    def test_snmp_invalid_missing_index(self):
+        self.run_iopc('snmp_invalid_missing_index.iop', False,
+                      "each snmp table must contain at least one field that "
+                      "has attribute @snmpIndex of type 'uint' or 'string'",
+                      4)
 
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
