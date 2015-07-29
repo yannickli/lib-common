@@ -17,7 +17,7 @@ snmpTbl B : 1 : A {
      /** Description.
       */
      @snmpIndex
-1:   string b1;
+1:   uint b1;
 
      /** Description.
       */

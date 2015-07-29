@@ -376,9 +376,19 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
 static int iopc_t_resolve(iopc_pkg_t *pkg);
 static int iopc_i_resolve(iopc_pkg_t *pkg);
 
-static int iopc_check_field_kind(iop_type_t kind, iopc_struct_t *st)
+static int iopc_check_snmp_field_kind(iopc_field_t *f)
 {
-    switch (kind) {
+    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
+            if (f->kind != IOP_T_U32 && f->kind != IOP_T_STRING) {
+                throw_loc("a snmp index should be declared with the 'uint' "
+                          "or 'string' type", f->loc);
+            }
+            return 0;
+        }
+    }
+
+    switch (f->kind) {
       case IOP_T_ENUM:
       case IOP_T_STRING:
       case IOP_T_I8:
@@ -389,7 +399,7 @@ static int iopc_check_field_kind(iop_type_t kind, iopc_struct_t *st)
 
       default:
         throw_loc("only int/string/boolean/enum types are handled for "
-                  "snmp objects' fields", st->loc);
+                  "snmp objects' fields", f->loc);
     }
 }
 
@@ -553,7 +563,7 @@ static int iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
     qv_for_each_entry(iopc_field, f, &st->fields) {
         RETHROW(iopc_field_resolve(pkg, f, st));
         if (iopc_is_snmp_st(st->type)) {
-            RETHROW(iopc_check_field_kind(f->kind, st));
+            RETHROW(iopc_check_snmp_field_kind(f));
         }
 
         if (st->type == STRUCT_TYPE_UNION) {
@@ -566,7 +576,6 @@ static int iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
                           f->loc);
             }
         }
-
     }
 
     /* Resolve static fields */
