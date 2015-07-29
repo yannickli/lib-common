@@ -900,7 +900,7 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
 
     iopc_struct_optimize(st);
 
-    if (!iopc_is_snmp_st(st->type)) {
+    if (!iopc_is_snmp_obj(st->type)) {
         sb_addf(buf, "struct %s__t {\n", tbase);
 
         if (iopc_is_class(st->type)) {
@@ -1205,7 +1205,7 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             f->name, f->tag, tag_len(f->tag),
             repeats[f->repeat], types[kind]);
 
-    if (!iopc_is_snmp_st(st->type)) {
+    if (!iopc_is_snmp_obj(st->type)) {
         sb_addf(buf,
                 "        .data_offs = offsetof(%s__t, %s),\n",
                 tbase, cname);
@@ -2841,7 +2841,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     _tbase, pretty_path_dot(pkg->name),                      \
                     _sname, as_base, range, range, as_base);                 \
                                                                              \
-            if (!iopc_is_snmp_st(st->type)) {                                \
+            if (!iopc_is_snmp_obj(st->type)) {                               \
                 sb_addf(buf, "    .size       = sizeof(%s__t),\n", tbase);   \
             }                                                                \
             RETHROW(iopc_put_struct_fields(buf, st, tbase, has_attrs,        \
