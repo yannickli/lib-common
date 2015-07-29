@@ -123,15 +123,20 @@ static lstr_t t_mib_put_enum(const iop_enum_t *en)
     return t_lstr_fmt("%*pM", SB_FMT_ARG(&names));
 }
 
-static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool seq)
+static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool seq,
+                                 bool is_index)
 {
     switch (field->type) {
       case IOP_T_STRING:
-        return LSTR("OCTET STRING");
+        return is_index ? LSTR("OCTET STRING (SIZE(0..100))") :
+                          LSTR("OCTET STRING");
       case IOP_T_I8:
       case IOP_T_I16:
       case IOP_T_I32:
         return LSTR("Integer32");
+      case IOP_T_U32:
+        return is_index ? LSTR("Integer32 (1..2147483647)") :
+                          LSTR("Integer32");
       case IOP_T_BOOL:
         return LSTR("BOOLEAN");
 
@@ -406,23 +411,36 @@ static void mib_put_tbl_entries(const iop_struct_t *st, lstr_t name_down,
     for (int i = 0; i < st->fields_len; i++) {
         const iop_field_t field = st->fields[i];
 
-        sb_addf(buf, LVL1 "%*pM %*pM,\n",
+        /* In the sequence, the limits should not be given so the
+         * is_index argument of t_get_type_to_lstr is set at false
+         */
+        sb_addf(buf, LVL1 "%*pM %*pM",
                 LSTR_FMT_ARG(field.name),
-                LSTR_FMT_ARG(t_get_type_to_lstr(&field, true)));
+                LSTR_FMT_ARG(t_get_type_to_lstr(&field, true, false)));
+
+        if (i == st->fields_len - 1) {
+            sb_addc(buf, '\n');
+        } else {
+            sb_adds(buf, ",\n");
+        }
     }
-    sb_addf(buf, LVL1 "%*pMIndex Integer32\n}\n", LSTR_FMT_ARG(name_down));
+    sb_adds(buf, "}\n");
 }
 
-static void mib_put_snmp_tbl(const iop_struct_t *st, sb_t *buf)
+static void mib_put_snmp_tbl(const iop_struct_t *st, bool has_index,
+                             sb_t *buf)
 {
     t_scope;
     const iop_snmp_attrs_t *snmp_attrs;
-    lstr_t help = t_mib_tbl_get_help(st->st_attrs);
     lstr_t name_up = t_get_short_name(st->fullname, false);
     lstr_t name_down = t_get_short_name(st->fullname, true);
+    lstr_t help;
+    int nb = 0;
 
-    assert(iop_struct_is_snmp_tbl(st));
+    assert (iop_struct_is_snmp_tbl(st));
+
     snmp_attrs = st->snmp_attrs;
+    help = t_mib_tbl_get_help(st->st_attrs);
 
     help = t_split_on_str(help, "\'", false);
 
@@ -446,26 +464,27 @@ static void mib_put_snmp_tbl(const iop_struct_t *st, sb_t *buf)
             LVL1 "MAX-ACCESS not-accessible\n"
             LVL1 "STATUS current\n"
             LVL1 "DESCRIPTION\n"
-            LVL2 "\"An entry in the table of %*pM\"\n"
-            LVL1 "INDEX { %*pMIndex }\n"
-            LVL1 "::= { %*pMTable 1 }\n",
+            LVL2 "\"An entry in the table of %*pM\"\n",
             LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_up),
-            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_down),
             LSTR_FMT_ARG(name_down));
+
+    sb_adds(buf, LVL1 "INDEX { ");
+    for (int i = 0; i < st->fields_len; i++) {
+        if (iop_field_is_snmp_index(&st->fields[i])) {
+            sb_addf(buf, "%*pM", LSTR_FMT_ARG(st->fields[i].name));
+            nb++;
+
+            if (nb < iop_struct_get_nb_snmp_indexes(st)) {
+                sb_adds(buf, ", ");
+            }
+        }
+    }
+    sb_adds(buf, " }\n");
+
+    sb_addf(buf, LVL1 "::= { %*pMTable 1 }\n", LSTR_FMT_ARG(name_down));
 
     /* Define the table entries (corresponding to the columns) */
     mib_put_tbl_entries(st, name_down, buf);
-
-    /* Generate a generic index */
-    sb_addf(buf,
-            "\n%*pMIndex OBJECT-TYPE\n"
-            LVL1 "SYNTAX Integer32 (1..2147483647)\n"
-            LVL1 "MAX-ACCESS not-accessible\n"
-            LVL1 "STATUS current\n"
-            LVL1 "DESCRIPTION\n"
-            LVL2 "\"The table index.\"\n"
-            LVL1 "::= { %*pMEntry 9999 }\n",
-            LSTR_FMT_ARG(name_down), LSTR_FMT_ARG(name_down));
 }
 
 /* }}} */
@@ -478,18 +497,20 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
     const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
     const iop_field_t *field = &st->fields[pos];
     const iop_snmp_attrs_t *snmp_attrs;
+    bool is_index = iop_field_is_snmp_index(field);
 
     snmp_attrs = mib_field_get_snmp_attr(field_attrs);
     sb_addf(buf,
             "\n%*pM OBJECT-TYPE\n"
             LVL1 "SYNTAX %*pM\n"
-            LVL1 "MAX-ACCESS read-only\n"
+            LVL1 "MAX-ACCESS %s\n"
             LVL1 "STATUS current\n"
             LVL1 "DESCRIPTION\n"
             LVL2 "\"%*pM\"\n"
             LVL1 "::= { %*pM%s %d }\n",
             LSTR_FMT_ARG(name),
-            LSTR_FMT_ARG(t_get_type_to_lstr(field, false)),
+            LSTR_FMT_ARG(t_get_type_to_lstr(field, false, is_index)),
+            is_index ? "not-accessible" : "read-only",
             LSTR_FMT_ARG(t_mib_field_get_help(&field_attrs)),
             LSTR_FMT_ARG(t_get_short_name(snmp_attrs->parent->fullname, true)),
             from_tbl ? "Entry" : "",
@@ -499,7 +520,9 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
         logger_fatal(&_G.logger,
                      "conflicting field name `%*pM`", LSTR_FMT_ARG(name));
     }
-    qv_append(lstr, &_G.conformance_objects, name);
+    if (!is_index) {
+        qv_append(lstr, &_G.conformance_objects, name);
+    }
 }
 
 static void mib_put_tbl_fields(sb_t *buf, const iop_struct_t *desc)
@@ -530,7 +553,9 @@ static void mib_put_fields_and_tbl(sb_t *buf, const iop_pkg_t *pkg)
             sb_addf(buf, "-- {{{ %*pMTable\n",
                     LSTR_FMT_ARG(t_get_short_name(desc->fullname, false)));
 
-            mib_put_snmp_tbl(desc, buf);
+
+            mib_put_snmp_tbl(desc, iop_struct_get_nb_snmp_indexes(desc) > 0,
+                             buf);
             mib_put_tbl_fields(buf, desc);
             sb_addf(buf, "\n-- }}}\n");
             continue;
@@ -897,7 +922,7 @@ Z_GROUP_EXPORT(iop_mib)
         z_wipe(sb, pkgs);
     } Z_TEST_END;
 
-    Z_TEST(test_revisions, "test complete mib") {
+    Z_TEST(test_entire_mib, "test complete mib") {
         t_scope;
         sb_t sb;
         qv_t(mib_rev) revisions = t_z_fill_up_revisions();

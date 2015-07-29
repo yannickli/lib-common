@@ -35,12 +35,17 @@ snmpObj Obj : 1 : snmp_intersec_test.Test {
 snmpTbl Tbl : 3 : Obj {
      /** Description.
       */
-    @snmpIndex
+     @snmpIndex
 1:   string column1;
 
      /** Description.
       */
 2:   int column2;
+
+     /** Description.
+      */
+     @snmpIndex
+3:   uint indexTbl;
 };
 
 @snmpParamsFrom(Obj)
@@ -54,4 +59,22 @@ snmpIface Iface : 4 : Obj {
      */
 2:  notifResponsive
         in (a);
+};
+
+/** Table with indexes.
+ */
+snmpTbl TblWithIndex : 5 : Obj {
+     /** Description.
+      */
+     @snmpIndex
+1:   string index1;
+
+     /** Description.
+      */
+     @snmpIndex
+2:   uint index2;
+
+     /** Description.
+      */
+3:   int notIndex;
 };
