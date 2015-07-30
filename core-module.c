@@ -119,6 +119,7 @@ static struct module_g {
 
     /* Keep track if we are currently initializing a module */
     int in_initialization;
+    bool is_shutdown;
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
@@ -469,6 +470,10 @@ static void module_dep_qh_wipe(qh_t(ptr) *qh)
 __attribute__((destructor))
 static void _module_shutdown(void)
 {
+    if (_G.is_shutdown) {
+        return;
+    }
+
     if (!syslog_is_critical) {
         module_hard_shutdown();
     }
@@ -478,6 +483,12 @@ static void _module_shutdown(void)
     qm_deep_wipe(module_dep, &_G.module_dep_resolve, IGNORE,
                  module_dep_qh_wipe);
     logger_wipe(&_G.logger);
+    _G.is_shutdown = true;
+}
+
+void module_destroy_all(void)
+{
+    _module_shutdown();
 }
 
 /* }}} */

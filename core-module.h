@@ -407,6 +407,14 @@ bool module_is_shutting_down(const module_t *mod);
  */
 void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies);
 
+/** Destroy all modules.
+ *
+ * XXX This is needed when calling C code from Java code using JNI. If not,
+ * the Java code is crashing at shutdown when the C module destructor is
+ * called. This function should not be called otherwise.
+ */
+void module_destroy_all(void);
+
 /* }}} */
 /* }}} */
 /* {{{ on_term method */
