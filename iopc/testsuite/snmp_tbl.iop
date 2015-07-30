@@ -17,17 +17,22 @@ snmpTbl B : 1 : A {
      /** Description.
       */
      @snmpIndex
-1:   uint b1;
+1:   string i1;
 
      /** Description.
       */
-2:   int b2;
+     @snmpIndex
+2:   uint i2;
 
      /** Description.
       */
-3:   int b3;
+3:   int b2;
 
      /** Description.
       */
-4:   SomeEnum b4;
+4:   int b3;
+
+     /** Description.
+      */
+5:   SomeEnum b4;
 };
