@@ -75,7 +75,7 @@ iop_snmp_attrs_t *mib_field_get_snmp_attr(const iop_field_attrs_t attrs)
         }
     }
     logger_fatal(&_G.logger,
-                 "all snmpObj fields should contain at least a brief");
+                 "all snmpObj fields should have snmp attribute");
 }
 
 static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
