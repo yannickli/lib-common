@@ -435,3 +435,56 @@ int iop_snmp_doc(int argc, char **argv, qv_t(pkg) pkgs)
 
     return 0;
 }
+
+/* {{{ Tests */
+
+/* LCOV_EXCL_START */
+
+#include <lib-common/z.h>
+
+#include "test-data/snmp/snmp_test_doc.iop.h"
+
+static int z_check_wanted_file(lstr_t filename, sb_t *sb)
+{
+    char path[PATH_MAX];
+    lstr_t file_map;
+
+    snprintf(path, sizeof(path), "%*pM/test-data/snmp/docs/%*pM",
+             LSTR_FMT_ARG(z_cmddir_g), LSTR_FMT_ARG(filename));
+
+    sb_write_file(sb, t_fmt("/tmp/%*pM", LSTR_FMT_ARG(filename)));
+
+    Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ, MAP_SHARED));
+
+    Z_ASSERT_LSTREQUAL(file_map, LSTR_SB_V(sb));
+
+    lstr_wipe(&file_map);
+    Z_HELPER_END;
+}
+
+Z_GROUP_EXPORT(iop_snmp_doc)
+{
+    Z_TEST(test_doc, "test generated doc") {
+        t_scope;
+        SB_1k(notifs_sb);
+        SB_1k(objects_sb);
+        qv_t(pkg) pkgs;
+
+        qv_init(pkg, &pkgs);
+
+        doc_register_pkg(&pkgs, snmp_test_doc);
+        t_iop_write_snmp_doc(&notifs_sb, &objects_sb, pkgs);
+
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("ref-notif.inc.adoc"),
+                                         &notifs_sb));
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("ref-object.inc.adoc"),
+                                         &objects_sb));
+
+        qv_wipe(pkg, &pkgs);
+    } Z_TEST_END;
+
+} Z_GROUP_END;
+
+/* LCOV_EXCL_STOP */
+
+/* }}} */

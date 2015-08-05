@@ -206,8 +206,7 @@ iopmib_SOURCES = iop-mib.c \
 	$ltest-data/snmp/snmp_intersec_test.iop
 
 iopsnmpdoc_SOURCES = iop-snmp-doc.c \
-	$ltest-data/snmp/snmp_test.iop \
-	$ltest-data/snmp/snmp_intersec_test.iop
+	$ltest-data/snmp/snmp_test_doc.iop
 
 zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
@@ -226,6 +225,7 @@ zchk_SOURCES = zchk.c \
 	zchk-mem.c \
 	zchk-iop-ressources.c \
 	$liopmib.wa \
+	$liopsnmpdoc.wa \
 	$liop/tstiop.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
