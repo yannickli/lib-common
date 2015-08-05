@@ -215,7 +215,7 @@ else
 fi
 
 # }}}
-# Python {{{
+# {{{ Python
 
 read_py2ver() {
     pyver="$(python -V 2>&1)"

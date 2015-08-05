@@ -163,7 +163,7 @@ endef
 
 #}}}
 #[ web ]###############################################################{{{#
-# css {{{
+# {{{ css
 
 ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
 
@@ -184,7 +184,7 @@ $(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:css=min.
 endef
 
 # }}}
-# less {{{
+# {{{ less
 
 ext/gen/less = $(if $(filter %.less,$1),$(strip $($2_DESTDIR))/$(notdir $(1:less=css)) $(call ext/gen/css,$(strip $($2_DESTDIR))/$(notdir $(1:less=css)),$2))
 
@@ -206,7 +206,7 @@ $(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:less=css
 endef
 
 # }}}
-# uglifyjs {{{
+# {{{ uglifyjs
 
 ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
 
