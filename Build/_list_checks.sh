@@ -70,7 +70,7 @@ dump_zf()
 
                 echo "$zd/ $line"
             done
-            test -n "$has_match" || err "$zf:$lno: no match for $line"
+            test -n "$has_match" || err "ERROR: $zf:$lno: no match for $line"
             IFS="$ifs"
         done
         exit $_err

@@ -12,6 +12,8 @@
 #                                                                        #
 ##########################################################################
 
+set -o pipefail
+
 where="$1"
 libcommondir=$(dirname "$(dirname "$(readlink -f "$0")")")
 shift
@@ -183,9 +185,15 @@ while read -r zd line; do
 done
 ) | tee $tmp | post_process
 
-res=1
-if $pybin -m z < $tmp > $tmp2; then
-    res=0
+# Thanks to pipefail, it is not zero if at least one process failed
+res=$?
+if [ $res -ne 0 ]; then
+    say_color error "check processes failed. check head or tail of log output"
+fi
+
+# whatever the previous status, set an error if a test failed
+if ! $pybin -m z < $tmp > $tmp2; then
+    res=1
 fi
 cat $tmp2 | post_process
 exit $res
