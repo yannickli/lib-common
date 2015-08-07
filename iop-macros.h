@@ -198,14 +198,21 @@
  * \param[in] _data      The IOP union.
  * \param[in] _type_desc The IOP union description.
  */
-#define IOP_UNION_TYPE_TO_STR(_data, _type_desc)                        \
+#define IOP_UNION_TYPE_TO_LSTR(_data, _type_desc)                       \
     ({                                                                  \
         int _res = iop_ranges_search((_type_desc).ranges,               \
                                      (_type_desc).ranges_len,           \
                                      (_data)->iop_tag);                 \
-        _res >= 0 ? (_type_desc).fields[_res].name.s : NULL;            \
+        _res >= 0 ? (_type_desc).fields[_res].name : LSTR_NULL_V;       \
     })
 
+/** Get the selected field name of an IOP union.
+ *
+ * \param[in] _data      The IOP union.
+ * \param[in] _type_desc The IOP union description.
+ */
+#define IOP_UNION_TYPE_TO_STR(_data, _type_desc)  \
+    IOP_UNION_TYPE_TO_LSTR((_data), (_type_desc)).s
 
 /* }}} */
 /* {{{ Data packing helpers */
