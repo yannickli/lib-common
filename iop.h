@@ -853,7 +853,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
 /** Provide the appropriate argument to print compact JSON with the %*pC
  * format.
  *
- * This macro is a convienience helper for \ref IOP_OBJ_FMT_ARG_FLAGS to
+ * This macro is a convenience helper for \ref IOP_OBJ_FMT_ARG_FLAGS to
  * cover the usual use case where compact JSON is needed.
  *
  * \param[in]  _obj  The object to print.
