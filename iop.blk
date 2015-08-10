@@ -3539,6 +3539,11 @@ static ssize_t
 iop_struct_format(const iop_struct_t *st, const void *val, size_t flags,
                   FILE *stream, char *buf, size_t buf_len)
 {
+    if (!st) {
+        /* The struct is an IOP class. */
+        st = *(const iop_struct_t **)val;
+    }
+
     if (stream) {
         return iop_jpack(st, val, &iop_file_write, stream, flags);
     } else {
@@ -3549,15 +3554,6 @@ iop_struct_format(const iop_struct_t *st, const void *val, size_t flags,
 
         return iop_jpack(st, val, &iop_formatter_write, &f, flags);
     }
-}
-
-static ssize_t
-iop_class_formatter(int modifier, const void *obj, size_t flags, FILE *stream,
-                    char *buf, size_t buf_len)
-{
-    const iop_struct_t *st = *(const void **)obj;
-
-    return iop_struct_format(st, obj, flags, stream, buf, buf_len);
 }
 
 static ssize_t
@@ -3576,7 +3572,6 @@ static int iop_initialize(void *arg)
     qm_init(class_id,   &_G.classes_by_id);
     qm_init(class_name, &_G.classes_by_name);
     qm_init(iop_pkg,    &_G.pkgs_by_name);
-    iprintf_register_formatter('C', iop_class_formatter);
     iprintf_register_formatter('S', iop_struct_formatter);
     return 0;
 }

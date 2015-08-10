@@ -624,7 +624,11 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
 
 /** Private intermediary structure for IOP struct/union formatting. */
 struct iop_struct_value {
+    /* Struct/union description, can be null only when the element is an
+     * object.
+     */
     const iop_struct_t *st;
+
     const void *val;
 };
 
@@ -654,7 +658,7 @@ struct iop_struct_value {
  * \param[in]  pfx  IOP struct descriptor prefix.
  * \param[in]  _val The IOP struct or union to print.
  *
- * \note If the struct is actually a class, use the %*pC format and related
+ * \note If the struct is actually a class, use \ref IOP_OBJ_FMT_ARG
  *       formatting helper instead to get the code smaller.
  */
 #define IOP_ST_FMT_ARG(pfx, _val)                                            \
@@ -872,9 +876,10 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
     iop_class_for_each_field(f, st, (_obj)->__vptr)
 
 
-/** Provide the appropriate arguments to the %*pC modifier.
+/** Provide the appropriate arguments to print an IOP class instance in JSON
+ *  with the %*pS modifier.
  *
- * '%*pC' can be used in format string in order to print the JSON-encoded
+ * '%*pS' can be used in format string in order to print the JSON-encoded
  * content of an IOP object (instance of an IOP class). You can provide the
  * flags to be used to the JSON packer in the format arguments
  * (\ref iop_jpack_flags).
@@ -884,13 +889,19 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
  *
  * See \ref IOP_OBJ_FMT_ARG() for a convenience helper to print compact JSON.
  */
-#define IOP_OBJ_FMT_ARG_FLAGS(_obj, _flags)  \
-    (_flags), ({ typeof(*_obj) *_fmt_obj = (_obj);                           \
-                 assert (_fmt_obj->__vptr != NULL);                          \
-                 _fmt_obj; })
+#define IOP_OBJ_FMT_ARG_FLAGS(_obj, _flags)                                  \
+    (_flags),                                                                \
+    &(struct iop_struct_value){                                              \
+        .st = NULL,                                                          \
+        .val = ({                                                            \
+            typeof(*_obj) *_fmt_obj = (_obj);                                \
+            __unused__ const iop_struct_t *st = _fmt_obj->__vptr;            \
+            _fmt_obj;                                                        \
+        })                                                                   \
+    }
 
-/** Provide the appropriate argument to print compact JSON with the %*pC
- * format.
+/** Provide the appropriate argument to print an IOP class instance in compact
+ *  JSON with the %*pS modifier.
  *
  * This macro is a convenience helper for \ref IOP_OBJ_FMT_ARG_FLAGS to
  * cover the usual use case where compact JSON is needed.
