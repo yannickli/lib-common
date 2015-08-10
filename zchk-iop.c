@@ -4931,6 +4931,54 @@ Z_GROUP_EXPORT(iop)
         lstr_wipe(&file);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(struct_printf, "test %*pS in format strings") { /* {{{ */
+        t_scope;
+        SB_1k(ref);
+        SB_1k(tst_sb);
+        tstiop__my_struct_a__t st;
+        tstiop__my_class2__t cls2;
+        char buf[10];
+        char *path;
+        lstr_t file;
+        FILE *out;
+
+        iop_init(tstiop__my_class2, &cls2);
+
+        iop_init(tstiop__my_struct_a, &st);
+        st.a = 12345;
+        st.b = 67890;
+        st.p = -2;
+        st.n = true;
+        st.j = LSTR("toto");
+        st.l = IOP_UNION(tstiop__my_union_a, ua, 1);
+        st.lr = &st.l;
+        st.cls2 = &cls2;
+
+        iop_sb_jpack(&ref, &tstiop__my_struct_a__s, &st,
+                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+
+        sb_addf(&tst_sb, "%*pS", IOP_ST_FMT_ARG(tstiop__my_struct_a, &st));
+        Z_ASSERT_EQ(tst_sb.len, ref.len);
+        Z_ASSERT_STREQUAL(tst_sb.data, ref.data);
+
+        Z_ASSERT_EQ(snprintf(buf, countof(buf), "%*pS",
+                             IOP_ST_FMT_ARG(tstiop__my_struct_a, &st)),
+                    ref.len);
+        Z_ASSERT_LSTREQUAL(LSTR_INIT_V(buf, countof(buf) - 1),
+                           LSTR_INIT_V(ref.data, countof(buf) - 1));
+
+        path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
+        out = fopen(path, "w");
+        Z_ASSERT_EQ(fprintf(out, "%*pS", IOP_ST_FMT_ARG(tstiop__my_struct_a,
+                                                        &st)), ref.len);
+        fclose(out);
+
+        Z_ASSERT_N(lstr_init_from_file(&file, path, MAP_SHARED, PROT_READ),
+                   "%m");
+        Z_ASSERT_LSTREQUAL(file, LSTR_SB_V(&ref));
+        lstr_wipe(&file);
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_set_opt_field, "test iop_set_opt_field function") { /* {{{ */
         tstiop__my_struct_a_opt__t obj;
         const iop_field_t *f;
