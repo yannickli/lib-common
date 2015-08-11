@@ -1422,6 +1422,34 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_EQ(errno, ERANGE);
     } Z_TEST_END;
 
+    Z_TEST(lstr_to_double, "str: lstr_to_double") {
+        double d;
+
+#define T_OK(_str, _exp)  \
+        do {                                                                 \
+            Z_ASSERT_N(lstr_to_double(LSTR(_str), &d));                      \
+            Z_ASSERT_EQ(d, _exp);                                            \
+        } while (0)
+
+        T_OK("0",        0);
+        T_OK("1234",     1234);
+        T_OK("  1234  ", 1234);
+        T_OK("-1.33e12", -1.33e12);
+        T_OK("INF", INFINITY);
+        T_OK("INFINITY", INFINITY);
+#undef T_OK
+
+#define T_KO(_str)  \
+        do {                                                                 \
+            Z_ASSERT_NEG(lstr_to_double(LSTR(_str), &d));                    \
+        } while (0)
+
+        T_KO("abcd");
+        T_KO("  12 12 ");
+        T_KO("  12abcd");
+#undef T_KO
+    } Z_TEST_END;
+
     Z_TEST(str_match_ctype, "str: strings match the ctype description") {
         struct {
             lstr_t              s;
@@ -1452,6 +1480,7 @@ Z_GROUP_EXPORT(str)
             Z_ASSERT_EQ(lstr_match_ctype(t[i].s, t[i].d), t[i].expected);
         }
     } Z_TEST_END;
+
 } Z_GROUP_END;
 
 
