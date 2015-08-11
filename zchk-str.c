@@ -1561,6 +1561,7 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_LSTREQUAL(data_s, data_ref);
         Z_ASSERT_LSTREQUAL(data_c, data_ref);
     } Z_TEST_END;
+
 } Z_GROUP_END;
 
 
