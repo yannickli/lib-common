@@ -132,13 +132,12 @@ static void iopdso_fix_pkg(const iop_pkg_t *pkg)
     }
 }
 
-static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
-                                bool use_external_packages)
+static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
 {
     if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0) {
         return;
     }
-    if (use_external_packages) {
+    if (dso->use_external_packages) {
         e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
         iopdso_fix_pkg(pkg);
     }
@@ -163,10 +162,10 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         qm_add(iop_mod, &dso->mod_h, &(*it)->fullname, *it);
     }
     for (const iop_pkg_t *const *it = pkg->deps; *it; it++) {
-        if (use_external_packages && iop_get_pkg((*it)->name)) {
+        if (dso->use_external_packages && iop_get_pkg((*it)->name)) {
             continue;
         }
-        iopdso_register_pkg(dso, *it, use_external_packages);
+        iopdso_register_pkg(dso, *it);
     }
 }
 
@@ -199,7 +198,6 @@ REFCNT_DELETE(iop_dso_t, iop_dso);
 iop_dso_t *iop_dso_open(const char *path)
 {
     iop_pkg_t       **pkgp;
-    bool              use_external_packages;
     void             *handle;
     iop_dso_vt_t     *dso_vt;
     iop_dso_t        *dso;
@@ -229,26 +227,51 @@ iop_dso_t *iop_dso_open(const char *path)
         return NULL;
     }
 
-    use_external_packages = !!dlsym(handle, "iop_use_external_packages");
-
     dso = iop_dso_new();
     dso->path = lstr_dup(LSTR_OPT(path));
     dso->handle = handle;
-    while (*pkgp) {
-        iopdso_register_pkg(dso, *pkgp++, use_external_packages);
-    }
+
+    dso->use_external_packages = !!dlsym(handle, "iop_use_external_packages");
+
+    iop_dso_register(dso);
+
     return dso;
 }
 
 void iop_dso_close(iop_dso_t **dsop)
 {
-    const iop_dso_t *dso = *dsop;
+    iop_dso_t *dso = *dsop;
 
     if (dso) {
+        iop_dso_unregister(dso);
+        iop_dso_delete(dsop);
+    }
+}
+
+void iop_dso_register(iop_dso_t *dso)
+{
+    if (!dso->is_registered) {
+        iop_pkg_t **pkgp = dlsym(dso->handle, "iop_packages");
+
+        if (!pkgp) {
+            /* This should not happen because this was checked before. */
+            e_panic("iop_packages not found when registering DSO");
+        }
+
+        while (*pkgp) {
+            iopdso_register_pkg(dso, *pkgp++);
+        }
+        dso->is_registered = true;
+    }
+}
+
+void iop_dso_unregister(iop_dso_t *dso)
+{
+    if (dso->is_registered) {
         qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
             iop_unregister_packages(&dso->pkg_h.values[pos], 1);
         }
-        iop_dso_delete(dsop);
+        dso->is_registered = false;
     }
 }
 

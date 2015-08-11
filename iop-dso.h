@@ -29,20 +29,40 @@ typedef struct iop_dso_t {
     int              refcnt;
     void            *handle;
     lstr_t           path;
+
     qm_t(iop_pkg)    pkg_h;
     qm_t(iop_enum)   enum_h;
     qm_t(iop_struct) struct_h;
     qm_t(iop_iface)  iface_h;
     qm_t(iop_mod)    mod_h;
+
+    flag_t use_external_packages : 1;
+    flag_t is_registered         : 1;
 } iop_dso_t;
 
+/** Load a DSO from a file, and register its packages. */
 iop_dso_t *iop_dso_open(const char *path);
+
 static ALWAYS_INLINE iop_dso_t *iop_dso_dup(iop_dso_t *dso)
 {
     dso->refcnt++;
     return dso;
 }
+
+/** Close a DSO and unregister its packages. */
 void iop_dso_close(iop_dso_t **dsop);
+
+/** Register the packages contained in a DSO.
+ *
+ * Packages registration is mandatory in order to pack/unpack classes
+ * they contain.
+ * \ref iop_dso_open already registers the DSO packages, so calling this
+ * function only makes sense if you've called \ref iop_dso_unregister before.
+ */
+void iop_dso_register(iop_dso_t *dso);
+
+/** Unregister the packages contained in a DSO. */
+void iop_dso_unregister(iop_dso_t *dso);
 
 iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name);
 iop_enum_t const *iop_dso_find_enum(iop_dso_t const *dso, lstr_t name);

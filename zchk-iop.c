@@ -637,6 +637,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(ressources_int.tab[0], z_ressources_int_1);
         Z_ASSERT_EQ(ressources_int.tab[1], z_ressources_int_2);
 
+        /* Play with register/unregister */
+        iop_dso_unregister(dso);
+        iop_dso_unregister(dso);
+        iop_dso_register(dso);
+        iop_dso_register(dso);
+
         iop_dso_close(&dso);
     } Z_TEST_END;
     /* }}} */
