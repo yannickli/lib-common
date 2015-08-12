@@ -111,7 +111,7 @@ static int do_compile(const qv_t(str) *in, const char *out)
 }
 
 static void
-iopc_build(const qm_t(env) *env, const char *iopfile, const char *iopdata,
+iopc_build(const qm_t(iopc_env) *env, const char *iopfile, const char *iopdata,
            const char *outdir, bool is_main_pkg, lstr_t *pkgname,
            lstr_t *pkgpath)
 {
@@ -157,7 +157,7 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min, uint16_t class_id_max)
     iopc_g.class_id_max = class_id_max;
 }
 
-int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
+int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
                    const char *outdir)
 {
     SB_1k(sb);
@@ -207,7 +207,7 @@ int iopc_dso_build(const char *iopfile, const qm_t(env) *env,
     sb_write_file(&sb, path);
     qv_append(str, &sources, p_strdup(path));
 
-    qm_for_each_pos(env, pos, env) {
+    qm_for_each_pos(iopc_env, pos, env) {
         lstr_t deppath;
         const char *depfile = env->keys[pos];
         const char *depdata = env->values[pos];

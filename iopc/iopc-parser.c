@@ -19,7 +19,7 @@ typedef struct iopc_parser_t {
     struct lexdata *ld;
 
     const qv_t(cstr) *includes;
-    const qm_t(env)  *env;
+    const qm_t(iopc_env) *env;
     const char *base;
     iop_cfolder_t *cfolder;
 } iopc_parser_t;
@@ -28,7 +28,7 @@ qm_kptr_t(enums, char, const iopc_enum_field_t *, qhash_str_hash,
           qhash_str_equal);
 
 static struct {
-    qm_t(pkg)       mods;
+    qm_t(iopc_pkg)  pkgs;
     qm_t(enums)     enums;
     qm_t(enums)     enums_forbidden;
     qm_t(attr_desc) attrs;
@@ -110,12 +110,12 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
     snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
     path_simplify(file);
 
-    pkg = qm_get_def(pkg, &_G.mods, file, NULL);
+    pkg = qm_get_def(iopc_pkg, &_G.pkgs, file, NULL);
     if (pkg) {
         return pkg;
     }
     if (pp->env) {
-        const char *data = qm_get_def_safe(env, pp->env, file, NULL);
+        const char *data = qm_get_def_safe(iopc_env, pp->env, file, NULL);
 
         if (data) {
             return iopc_parse_file(pp->includes, pp->env, file, data, false);
@@ -1687,7 +1687,7 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 
 static iopc_field_t *
 parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
-                 qm_t(field) *fields, qv_t(i32) *tags, int *next_tag,
+                 qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag,
                  int paren, bool is_snmp_iface)
 {
     iopc_loc_t    name_loc;
@@ -1778,7 +1778,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
 
     tag = f->tag;
-    if (qm_add(field, fields, f->name, f)) {
+    if (qm_add(iopc_field, fields, f->name, f)) {
         fatal_loc("field name `%s` is already in use", f->loc, f->name);
     }
 
@@ -1811,7 +1811,7 @@ static void check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
 static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
                          int paren, bool is_snmp_iface)
 {
-    qm_t(field) fields = QM_INIT_CACHED(field, fields);
+    qm_t(iopc_field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
     int next_pos = 1;
     bool previous_static = true;
@@ -1854,7 +1854,7 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
             break;
         EAT(pp, sep);
     }
-    qm_wipe(field, &fields);
+    qm_wipe(iopc_field, &fields);
     qv_wipe(i32, &tags);
     qv_wipe(iopc_attr, &attrs);
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
@@ -2342,7 +2342,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
                                       iopc_iface_type_t type,
                                       const char *name, bool is_main_pkg)
 {
-    qm_t(fun) funs = QM_INIT_CACHED(fun, funs);
+    qm_t(iopc_fun) funs = QM_INIT_CACHED(fun, funs);
     qv_t(i32) tags;
     qv_t(iopc_attr) attrs;
     int next_tag = 1;
@@ -2371,11 +2371,11 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
             continue;
         }
         qv_append(iopc_fun, &iface->funs, fun);
-        if (qm_add(fun, &funs, fun->name, fun)) {
+        if (qm_add(iopc_fun, &funs, fun->name, fun)) {
             fatal_loc("a function `%s` already exists", fun->loc, fun->name);
         }
     }
-    qm_wipe(fun, &funs);
+    qm_wipe(iopc_fun, &funs);
     qv_wipe(i32, &tags);
     qv_wipe(iopc_attr, &attrs);
 
@@ -2387,7 +2387,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
 
 static iopc_field_t *
 parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
-                     qm_t(field) *fields, qv_t(i32) *tags, int *next_tag)
+                     qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag)
 {
     iopc_field_t *f = NULL;
     iopc_token_t *tk;
@@ -2423,7 +2423,7 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     qv_append(iopc_field, &mod->fields, f);
 
     tag = f->tag;
-    if (qm_add(field, fields, f->name, f)) {
+    if (qm_add(iopc_field, fields, f->name, f)) {
         fatal_loc("field name `%s` is already in use", f->loc, f->name);
     }
     for (int i = 0; i < tags->len; i++) {
@@ -2437,7 +2437,7 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
 static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
 {
     int next_tag = 1;
-    qm_t(field) fields = QM_INIT_CACHED(field, fields);
+    qm_t(iopc_field) fields = QM_INIT_CACHED(field, fields);
     qv_t(i32) tags;
     iopc_struct_t *mod = iopc_struct_new();
     qv_t(dox_chunk) chunks;
@@ -2476,7 +2476,7 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
         }
         EAT(pp, ';');
     }
-    qm_wipe(field, &fields);
+    qm_wipe(iopc_field, &fields);
     qv_wipe(i32, &tags);
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
     DROP(pp, 1);
@@ -2961,10 +2961,10 @@ static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *bas
 }
 
 static void add_iface(iopc_pkg_t *pkg, iopc_iface_t *iface,
-                      qm_t(struct) *mod_inter, const char *obj)
+                      qm_t(iopc_struct) *mod_inter, const char *obj)
 {
     qv_append(iopc_iface, &pkg->ifaces, iface);
-    if (qm_add(struct, mod_inter, iface->name, (iopc_struct_t *)iface)) {
+    if (qm_add(iopc_struct, mod_inter, iface->name, (iopc_struct_t *)iface)) {
         fatal_loc("%s named `%s` already exists", iface->loc,
                   obj, iface->name);
     }
@@ -2976,8 +2976,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                                  iopc_file_t type, bool is_main_pkg)
 {
     iopc_pkg_t *pkg = iopc_pkg_new();
-    qm_t(struct) things = QM_INIT_CACHED(struct, things);
-    qm_t(struct) mod_inter = QM_INIT_CACHED(struct, mod_inter);
+    qm_t(iopc_struct) things = QM_INIT_CACHED(struct, things);
+    qm_t(iopc_struct) mod_inter = QM_INIT_CACHED(struct, mod_inter);
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
@@ -3001,7 +3001,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             check_pkg_path(pp, pkg->name, base);
         }
         pp->base = pkg->base = p_strdup(base);
-        qm_add(pkg, &_G.mods, pkg->file, pkg);
+        qm_add(iopc_pkg, &_G.pkgs, pkg->file, pkg);
     }
 
     while (CHECK_KW(pp, 0, "import")) {
@@ -3072,7 +3072,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             }                                                                \
                                                                              \
             qv_append(iopc_struct, &pkg->structs, st);                       \
-            if (qm_add(struct, &things, st->name, st)) {                     \
+            if (qm_add(iopc_struct, &things, st->name, st)) {                \
                 fatal_loc("something named `%s` already exists",             \
                           st->loc, st->name);                                \
             }                                                                \
@@ -3093,7 +3093,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             SET_ATTRS_AND_COMMENTS(en, IOPC_ATTR_T_ENUM);
 
             qv_append(iopc_enum, &pkg->enums, en);
-            if (qm_add(struct, &things, en->name, (iopc_struct_t *)en)) {
+            if (qm_add(iopc_struct, &things, en->name, (iopc_struct_t *)en)) {
                 fatal_loc("something named `%s` already exists",
                           en->loc, en->name);
             }
@@ -3130,7 +3130,9 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             SET_ATTRS_AND_COMMENTS(mod, IOPC_ATTR_T_MOD);
 
             qv_append(iopc_struct, &pkg->modules, mod);
-            if (qm_add(struct, &mod_inter, mod->name, (iopc_struct_t *)mod)) {
+            if (qm_add(iopc_struct, &mod_inter, mod->name,
+                       (iopc_struct_t *)mod))
+            {
                 fatal_loc("something named `%s` already exists",
                           mod->loc, mod->name);
             }
@@ -3145,7 +3147,9 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 qv_append(iopc_attr, &tdef->attrs, attr);
             }
             qv_append(iopc_field, &pkg->typedefs, tdef);
-            if (qm_add(struct, &things, tdef->name, (iopc_struct_t *)tdef)) {
+            if (qm_add(iopc_struct, &things, tdef->name,
+                       (iopc_struct_t *)tdef))
+            {
                 fatal_loc("something named `%s` already exists",
                           tdef->loc, tdef->name);
             }
@@ -3157,8 +3161,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     }
     qv_wipe(iopc_attr, &attrs);
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
-    qm_wipe(struct, &things);
-    qm_wipe(struct, &mod_inter);
+    qm_wipe(iopc_struct, &things);
+    qm_wipe(iopc_struct, &mod_inter);
 
     EAT(pp, ITOK_EOF);
     return pkg;
@@ -3183,7 +3187,8 @@ void iopc_loc_merge(iopc_loc_t *l1, iopc_loc_t l2)
     *l1 = iopc_loc_merge2(*l1, l2);
 }
 
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
+iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
+                            const qm_t(iopc_env) *env,
                             const char *file, const char *data,
                             bool is_main_pkg)
 {
@@ -3204,7 +3209,7 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
         pstrcpy(tmp, sizeof(tmp), file);
         path_simplify(tmp);
         file = tmp;
-        pkg = qm_get_def(pkg, &_G.mods, file, NULL);
+        pkg = qm_get_def(iopc_pkg, &_G.pkgs, file, NULL);
     }
 
     if (!pkg) {
@@ -3232,7 +3237,7 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes, const qm_t(env) *env,
 
 void iopc_parser_initialize(void)
 {
-    qm_init_cached(pkg, &_G.mods);
+    qm_init_cached(iopc_pkg, &_G.pkgs);
     qm_init_cached(enums, &_G.enums);
     qm_init_cached(enums, &_G.enums_forbidden);
     qm_init_cached(attr_desc, &_G.attrs);
@@ -3241,7 +3246,7 @@ void iopc_parser_initialize(void)
 
 void iopc_parser_shutdown(void)
 {
-    qm_deep_wipe(pkg, &_G.mods, IGNORE, iopc_pkg_delete);
+    qm_deep_wipe(iopc_pkg, &_G.pkgs, IGNORE, iopc_pkg_delete);
     qm_deep_wipe(enums, &_G.enums, p_delete, IGNORE);
     qm_deep_wipe(enums, &_G.enums_forbidden, p_delete, IGNORE);
     qm_deep_wipe(attr_desc, &_G.attrs, IGNORE, iopc_attr_desc_wipe);
