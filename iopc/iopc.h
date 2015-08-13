@@ -1037,10 +1037,11 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min,
  * \param[in] env      a map of buffered IOP files (dependencies)
  * \param[in] outdir   the directory to store the IOP DSO file
  *                     (outdir/pkgname.so)
+ * \param[out] err     buffer filled in case of error
  *
  * \return             0 if ok, -1 if the build failed
  */
 int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
-                   const char *outdir);
+                   const char *outdir, sb_t *err);
 
 #endif

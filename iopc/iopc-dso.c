@@ -34,13 +34,14 @@ static struct {
     .logger = LOGGER_INIT_INHERITS(&iopc_g.logger, "dso"),
 };
 
-static int do_call(char * const argv[])
+static int do_call(char * const argv[], sb_t *err)
 {
     pid_t pid;
 
     pid = fork();
     if (pid < 0) {
-        logger_fatal(&_G.logger, "unable to fork(): %m");
+        sb_setf(err, "unable to fork(): %m");
+        return -1;
     }
 
     if (pid == 0) {
@@ -52,21 +53,22 @@ static int do_call(char * const argv[])
         int status;
 
         if (waitpid(pid, &status, 0) < 0) {
-            logger_fatal(&_G.logger, "waitpid: %m");
+            sb_setf(err, "waitpid: %m");
         }
         if (WIFEXITED(status)) {
             return WEXITSTATUS(status) ? -1 : 0;
         }
         if (WIFSIGNALED(status)) {
-            logger_fatal(&_G.logger, "%s killed with signal %s", argv[0],
-                         sys_siglist[WTERMSIG(status)]);
+            sb_setf(err, "%s killed with signal %s", argv[0],
+                    sys_siglist[WTERMSIG(status)]);
+            return -1;
         }
     }
 
     return 0;
 }
 
-static int do_compile(const qv_t(str) *in, const char *out)
+static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
 {
     t_scope;
     qv_t(cstr) args;
@@ -107,7 +109,7 @@ static int do_compile(const qv_t(str) *in, const char *out)
     }
     qv_append(cstr, &args, NULL);
 
-    return do_call((char * const *)args.tab);
+    return do_call((char * const *)args.tab, err);
 }
 
 static void
@@ -158,9 +160,10 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min, uint16_t class_id_max)
 }
 
 int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
-                   const char *outdir)
+                   const char *outdir, sb_t *err)
 {
     SB_1k(sb);
+    SB_1k(local_err);
     lstr_t pkgname, pkgpath;
     char so_path[PATH_MAX], path[PATH_MAX], tmppath[PATH_MAX];
     char json_path[PATH_MAX];
@@ -174,15 +177,15 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
     path_extend(so_path, outdir, "%s.so", filepart);
 
     if (stat(iopfile, &iop_st) < 0) {
-        return logger_error(&_G.logger, "unable to stat IOP file %s: %m",
-                            iopfile);
+        sb_setf(err, "unable to stat IOP file `%s`: %m", iopfile);
+        return -1;
     }
 
     path_extend(tmppath, outdir, "%s.%d.XXXXXX", filepart, getpid());
     if (!mkdtemp(tmppath)) {
-        return logger_error(&_G.logger,
-                            "failed to create temporary directory %s: %m",
-                            tmppath);
+        sb_setf(err, "failed to create temporary directory %s: %m",
+                tmppath);
+        return -1;
     }
 
     iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath);
@@ -191,8 +194,8 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
     path_extend(json_path, outdir, "%*pM.json", LSTR_FMT_ARG(pkgpath));
     path_extend(path, tmppath, "%*pM.json",  LSTR_FMT_ARG(pkgpath));
     if (rename(path, json_path) < 0) {
-        return logger_error(&_G.logger, "failed to create json file %s: %m",
-                            json_path);
+        sb_setf(err, "failed to create json file `%s`: %m", json_path);
+        return -1;
     }
 
     path_extend(path, tmppath, "%*pM.c",  LSTR_FMT_ARG(pkgpath));
@@ -218,12 +221,14 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         lstr_wipe(&deppath);
     }
 
-    if (do_compile(&sources, so_path) < 0) {
-        ret = logger_error(&_G.logger, "failed to build %s", so_path);
+    if (do_compile(&sources, so_path, &local_err) < 0) {
+        sb_setf(err, "failed to build `%s`: %*pM",
+                so_path, SB_FMT_ARG(&local_err));
+        ret = -1;
         goto end;
     }
-    logger_info(&_G.logger, "iop plugin %s successfully built from %s",
-                so_path, iopfile);
+    logger_trace(&_G.logger, 1, "iop plugin %s successfully built from %s",
+                 so_path, iopfile);
 
   end:
     qv_deep_wipe(str, &sources, p_delete);
