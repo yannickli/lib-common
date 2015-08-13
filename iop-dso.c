@@ -182,6 +182,7 @@ static iop_dso_t *iop_dso_init(iop_dso_t *dso)
 }
 static void iop_dso_wipe(iop_dso_t *dso)
 {
+    iop_dso_unregister(dso);
     qm_wipe(iop_pkg,    &dso->pkg_h);
     qm_wipe(iop_enum,   &dso->enum_h);
     qm_wipe(iop_struct, &dso->struct_h);
@@ -240,12 +241,7 @@ iop_dso_t *iop_dso_open(const char *path)
 
 void iop_dso_close(iop_dso_t **dsop)
 {
-    iop_dso_t *dso = *dsop;
-
-    if (dso) {
-        iop_dso_unregister(dso);
-        iop_dso_delete(dsop);
-    }
+    iop_dso_delete(dsop);
 }
 
 void iop_dso_register(iop_dso_t *dso)
