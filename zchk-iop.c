@@ -249,7 +249,7 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json,
     iop_jlex_wipe(&jll);
 
     /* Test iop_jpack_file / t_iop_junpack_file */
-    path = t_fmt("%*pM/tstjson.json", LSTR_FMT_ARG(z_cmddir_g));
+    path = t_fmt("%*pM/tstjson.json", LSTR_FMT_ARG(z_tmpdir_g));
     sb_reset(&sb);
     Z_ASSERT_N(iop_jpack_file(path, st, res, 0, &sb),
                "%*pM", SB_FMT_ARG(&sb));
