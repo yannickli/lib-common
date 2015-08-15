@@ -1,9 +1,19 @@
 /* This is a tstiop.MyStructF */
 {
     "e": [ {
-        "int1": 12
+        "_class": "tstiop.MyClass3",
+        "int1": 12,
+        "int2": 13,
+        "int3": 14,
+        "bool1": true,
+        "string1": "This is an included string!"
     } ],
     "f": {
-        "int1": 12
+        "_class": "tstiop.MyClass3",
+        "int1": 12,
+        "int2": 13,
+        "int3": 14,
+        "bool1": true,
+        "string1": "This is an included string!"
     }
 }

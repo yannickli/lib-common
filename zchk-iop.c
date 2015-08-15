@@ -3865,9 +3865,12 @@ Z_GROUP_EXPORT(iop)
                 TEST_FIELD(f, BOOL, "bool1", st, cls3);
                 break;
               case 2:
-                TEST_FIELD(f, I32, "int2", st, cls2);
+                TEST_FIELD(f, STRING, "string1", st, cls3);
                 break;
               case 3:
+                TEST_FIELD(f, I32, "int2", st, cls2);
+                break;
+              case 4:
                 TEST_FIELD(f, I32, "int1", st, cls1);
                 break;
               default:
@@ -3875,7 +3878,7 @@ Z_GROUP_EXPORT(iop)
             }
             i++;
         }
-        Z_ASSERT_EQ(i, 4);
+        Z_ASSERT_EQ(i, 5);
 
         i = 0;
         iop_obj_for_each_field(f, st, &cls2) {
@@ -3919,9 +3922,12 @@ Z_GROUP_EXPORT(iop)
                 TEST_FIELD(f, BOOL, "bool1", st, cls3);
                 break;
               case 2:
-                TEST_FIELD(f, I32, "int2", st, cls2);
+                TEST_FIELD(f, STRING, "string1", st, cls3);
                 break;
               case 3:
+                TEST_FIELD(f, I32, "int2", st, cls2);
+                break;
+              case 4:
                 TEST_FIELD(f, I32, "int1", st, cls1);
                 break;
               default:
