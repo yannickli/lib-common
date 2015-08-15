@@ -48,19 +48,23 @@ class IopcTest(z.TestCase):
         iopc_p = subprocess.Popen(iopc_args, stderr=subprocess.PIPE)
         self.assertIsNotNone(iopc_p)
         output = iopc_p.communicate()[1]
+
+        context = "when executing %s" % ' '.join(iopc_args)
+
         if (expect_pass):
             self.assertEqual(iopc_p.returncode, 0,
-                             "unexpected failure on %s: %s" % (iop, output))
+                             "unexpected failure on %s %s: %s"
+                             % (iop, context, output))
         else:
-            self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s"
-                            % (iop))
+            self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s %s"
+                            % (iop, context))
         if (errors):
             if isinstance(errors, basestring):
                 errors = [errors]
             for error in errors:
                 self.assertTrue(output.find(error) >= 0,
-                                "did not find '%s' in '%s'" \
-                                % (error, output))
+                                "did not find '%s' in '%s' %s" \
+                                % (error, output, context))
 
     def run_iopc_pass(self, iop, version, lang='', class_id_range=''):
         self.run_iopc(iop, True, None, version, lang, class_id_range)
