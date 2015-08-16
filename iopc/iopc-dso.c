@@ -112,10 +112,10 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
     return do_call((char * const *)args.tab, err);
 }
 
-static void
-iopc_build(const qm_t(iopc_env) *env, const char *iopfile, const char *iopdata,
-           const char *outdir, bool is_main_pkg, lstr_t *pkgname,
-           lstr_t *pkgpath)
+static int
+iopc_build(const qm_t(iopc_env) *env, const char *iopfile,
+           const char *iopdata, const char *outdir, bool is_main_pkg,
+           lstr_t *pkgname, lstr_t *pkgpath)
 {
     SB_1k(sb);
     iopc_pkg_t *pkg;
@@ -134,13 +134,28 @@ iopc_build(const qm_t(iopc_env) *env, const char *iopfile, const char *iopdata,
     iopc_do_c_g.iop_compat_header = sb.data;
 
     iopc_parser_initialize();
+
     pkg = iopc_parse_file(NULL, env, iopfile, iopdata, is_main_pkg);
-    iopc_resolve(pkg);
-    iopc_resolve_second_pass(pkg);
+    if (!pkg) {
+        goto error;
+    }
+
+    if (iopc_resolve(pkg) < 0) {
+        goto error;
+    }
+
+    if (iopc_resolve_second_pass(pkg) < 0) {
+        goto error;
+    }
+
     iopc_types_fold(pkg);
-    iopc_do_c(pkg, outdir, NULL);
-    if (is_main_pkg) {
-        iopc_do_json(pkg, outdir, NULL);
+
+    if (iopc_do_c(pkg, outdir, NULL) < 0) {
+        goto error;
+    }
+
+    if (is_main_pkg && iopc_do_json(pkg, outdir, NULL) < 0) {
+        goto error;
     }
 
     if (pkgname) {
@@ -151,6 +166,11 @@ iopc_build(const qm_t(iopc_env) *env, const char *iopfile, const char *iopdata,
     }
 
     iopc_parser_shutdown();
+    return 0;
+
+  error:
+    iopc_parser_shutdown();
+    return -1;
 }
 
 void iopc_dso_set_class_id_range(uint16_t class_id_min, uint16_t class_id_max)
@@ -188,6 +208,7 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         return -1;
     }
 
+    /* TODO: check error. */
     iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath);
 
     /* move json to outdir */
@@ -215,7 +236,9 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         const char *depfile = env->keys[pos];
         const char *depdata = env->values[pos];
 
+        /* TODO: check error */
         iopc_build(env, depfile, depdata, tmppath, false, NULL, &deppath);
+
         path_extend(path, tmppath, "%*pM.c", LSTR_FMT_ARG(deppath));
         qv_append(str, &sources, p_strdup(path));
         lstr_wipe(&deppath);

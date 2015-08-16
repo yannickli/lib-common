@@ -246,8 +246,10 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define WARN_OFFS(offs, fmt, ...)  \
     PRINT_MSG_OFFS(print_warning, offs, " warning: "fmt, ##__VA_ARGS__)
 
-#define ERROR_OFFS(offs, fmt, ...)  \
-    PRINT_MSG_OFFS(fatal, offs, fmt, ##__VA_ARGS__)
+#define ERROR_OFFS(offs, fmt, ...)  do {                   \
+    PRINT_MSG_OFFS(print_error, offs, fmt, ##__VA_ARGS__); \
+    return NULL;                                           \
+} while (0)
 
 #define WARN(fmt, ...)   WARN_OFFS(0, fmt, ##__VA_ARGS__)
 #define ERROR(fmt, ...)  ERROR_OFFS(0, fmt, ##__VA_ARGS__)
@@ -393,6 +395,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           errno = 0;
                           tk->d = strtod(yytext, NULL);
                           if (errno) {
+                              iopc_token_delete(&tk);
                               ERROR("double overflow");
                           }
                           return tk;
@@ -409,6 +412,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                               tk->i_is_signed = false;
                           }
                           if (i_res < 0) {
+                              iopc_token_delete(&tk);
                               INTEGER_ERROR(errno);
                           }
                           return tk;
@@ -418,6 +422,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           if (strtoll_ext(yytext, (int64_t *)&tk->i, NULL, 8)
                               < 0)
                           {
+                              iopc_token_delete(&tk);
                               INTEGER_ERROR(errno);
                           }
                           tk->i_is_signed = true;
@@ -581,10 +586,13 @@ struct lexdata *iopc_lexer_new(const char *file, const char *data,
     sb_init(&ld->buf);
     ld->lno = 1;
     ld->path = file;
+
     if (type == IOPC_FILE_FD) {
         ld->fd = fopen(file, "rb");
         if (!ld->fd) {
-            fatal("unable to open file `%s` for reading", file);
+            print_error("unable to open file `%s` for reading", file);
+            p_delete(&ld);
+            return NULL;
         }
     }
 
@@ -624,21 +632,27 @@ static void iopc_lexer_wipe(struct lexdata *ld)
 }
 DO_DELETE(struct lexdata, iopc_lexer);
 
-iopc_token_t *iopc_next_token(struct lexdata *ld, bool want_comments)
+int iopc_next_token(struct lexdata *ld, bool want_comments,
+                    iopc_token_t **out_tk)
 {
-    if (ld->done)
-        return NULL;
+    if (ld->done) {
+        *out_tk = NULL;
+        return 0;
+    }
 
     for (;;) {
-        iopc_token_t *tk = yylex(ld->scanner);
+        iopc_token_t *tk = RETHROW_PN(yylex(ld->scanner));
 
         if (tk->token == ITOK_EOF) {
             ld->done = true;
-            return tk;
+            *out_tk = tk;
+            return 0;
         }
 
-        if (want_comments || tk->token != ITOK_COMMENT)
-            return tk;
+        if (want_comments || tk->token != ITOK_COMMENT) {
+            *out_tk = tk;
+            return 0;
+        }
         iopc_token_delete(&tk);
     }
 }

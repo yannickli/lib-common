@@ -98,11 +98,13 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
 #define print_warning(fmt, ...)  \
     logger_warning(&iopc_g.logger, fmt, ##__VA_ARGS__)
 
-#define fatal(fmt, ...)  \
+#define print_error(fmt, ...)  \
+    logger_error(&iopc_g.logger, fmt, ##__VA_ARGS__)
+
+#define throw_error(fmt, ...)  \
     do {                                    \
-        print_warning(fmt, ##__VA_ARGS__);  \
-        fflush(stderr);                     \
-        _exit(-1);                          \
+        print_error(fmt, ##__VA_ARGS__);    \
+        return -1;                          \
     } while (0)
 
 static inline const char *cwd(void)
@@ -156,11 +158,19 @@ static inline const char *cwd(void)
 #define warn_loc(fmt, loc, ...)   \
     do_loc(fmt, LOG_WARNING, "warning", loc, ##__VA_ARGS__)
 
-#define fatal_loc(fmt, loc, ...)  \
+#define error_loc(fmt, loc, ...)  \
+    do_loc(fmt, LOG_ERR, "error", loc, ##__VA_ARGS__)
+
+#define throw_loc(fmt, loc, ...)  \
     do {                                                                     \
-        do_loc(fmt, LOG_ERR, "error", loc, ##__VA_ARGS__);                   \
-        fflush(stderr);                                                      \
-        _exit(-1);                                                           \
+        error_loc(fmt, loc, ##__VA_ARGS__);                                  \
+        return -1;                                                           \
+    } while (0)
+
+#define throw_loc_p(fmt, loc, ...)  \
+    do {                                                                     \
+        error_loc(fmt, loc, ##__VA_ARGS__);                                  \
+        return NULL;                                                         \
     } while (0)
 
 /*----- doxygen lexer part -----*/
@@ -266,8 +276,8 @@ int iopc_lexer_fd(struct lexdata *);
 void iopc_lexer_push_state_attr(struct lexdata *ld);
 void iopc_lexer_pop_state(struct lexdata *ld);
 void iopc_lexer_delete(struct lexdata **);
-iopc_token_t *iopc_next_token(struct lexdata *, bool want_comments);
-
+int iopc_next_token(struct lexdata *, bool want_comments,
+                    iopc_token_t **out_tk);
 
 /*----- ast -----*/
 
@@ -664,8 +674,8 @@ DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
 qm_kptr_t(iopc_field, char, iopc_field_t *, qhash_str_hash, qhash_str_equal);
 
-void iopc_check_field_attributes(iopc_field_t *f, bool tdef);
-void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef);
+int iopc_check_field_attributes(iopc_field_t *f, bool tdef);
+int iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef);
 
 /* used for the code generation of field attributes */
 typedef struct iopc_attrs_t {
@@ -960,8 +970,8 @@ void iopc_parser_shutdown(void);
 iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
                             const qm_t(iopc_env) *env, const char *file,
                             const char *data, bool is_main_pkg);
-void iopc_resolve(iopc_pkg_t *pkg);
-void iopc_resolve_second_pass(iopc_pkg_t *pkg);
+int iopc_resolve(iopc_pkg_t *pkg);
+int iopc_resolve_second_pass(iopc_pkg_t *pkg);
 void iopc_types_fold(iopc_pkg_t *pkg);
 void iopc_depends_uniquify(qv_t(iopc_pkg) *deps);
 void iopc_get_depends(iopc_pkg_t *pkg,
@@ -1007,7 +1017,7 @@ int
 iopc_set_path(const char *outdir, const iopc_pkg_t *pkg,
               const char *ext, int max_len, char *path, bool only_pkg);
 
-void iopc_write_file(const sb_t *buf, const char *path);
+int iopc_write_file(const sb_t *buf, const char *path);
 
 /*----- language backends -----*/
 
@@ -1021,8 +1031,8 @@ extern struct iopc_do_c_globs {
     const char *iop_compat_header;
 } iopc_do_c_g;
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
-void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 
 /*----- IOPC DSO -----*/
 

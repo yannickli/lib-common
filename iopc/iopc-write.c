@@ -39,7 +39,7 @@ iopc_set_path(const char *outdir, const iopc_pkg_t *pkg,
         }
         path_dirname(dpath, max_len, path);
         if (mkdir_p(dpath, 0777) < 0) {
-            fatal("cannot create directory `%s`: %m", dpath);
+            throw_error("cannot create directory `%s`: %m", dpath);
         }
     } else {
         path_dirname(dpath, max_len, pkg->file);
@@ -49,15 +49,16 @@ iopc_set_path(const char *outdir, const iopc_pkg_t *pkg,
     return res;
 }
 
-void iopc_write_file(const sb_t *buf, const char *path)
+int iopc_write_file(const sb_t *buf, const char *path)
 {
     if (unlink(path) < 0 && errno != ENOENT) {
-        fatal("unable to remove existing file `%s`: %m", path);
+        throw_error("unable to remove existing file `%s`: %m", path);
     }
     if (sb_write_file(buf, path) < 0 || chmod(path, 0444) < 0) {
         PROTECT_ERRNO(unlink(path));
-        fatal("unable to write file `%s`: %m", path);
+        throw_error("unable to write file `%s`: %m", path);
     }
+    return 0;
 }
 
 void iopc_write_buf_init(iopc_write_buf_t *wbuf, sb_t *buf, sb_t *tab)

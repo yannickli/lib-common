@@ -121,12 +121,12 @@ static int parse_class_id_range(const char *class_id_range)
 static char const * const only_stdin[] = { "-", NULL };
 
 struct doit {
-    void (*cb)(iopc_pkg_t *, const char *, sb_t *);
+    int (*cb)(iopc_pkg_t *, const char *, sb_t *);
     const char *outpath;
 };
 qvector_t(doit, struct doit);
 
-static void build_doit_table(qv_t(doit) *doits)
+static int build_doit_table(qv_t(doit) *doits)
 {
     qv_t(lstr) langs;
     ctype_desc_t sep;
@@ -154,32 +154,41 @@ static void build_doit_table(qv_t(doit) *doits)
                 .outpath = opts.json_outpath
             };
         } else {
-            fatal("unsupported language `%*pM`", LSTR_FMT_ARG(lang));
+            print_error("unsupported language `%*pM`", LSTR_FMT_ARG(lang));
+            goto error;
         }
 
         if (doit.outpath) {
             if (mkdir_p(doit.outpath, 0777) < 0) {
-                fatal("cannot create output directory `%s`: %m", doit.outpath);
+                print_error("cannot create output directory `%s`: %m",
+                            doit.outpath);
+                goto error;
             }
         }
         qv_append(doit, doits, doit);
     }
 
     qv_wipe(lstr, &langs);
+    return 0;
+
+  error:
+    qv_wipe(lstr, &langs);
+    return -1;
 }
 
 int main(int argc, char **argv)
 {
     const char *arg0 = NEXTARG(argc, argv);
     qv_t(cstr) incpath;
+    qv_t(doit) doits;
     iopc_pkg_t *pkg;
     SB_8k(deps);
-    qv_t(doit) doits;
 
     setlinebuf(stderr);
     argc = parseopt(argc, argv, options, 0);
-    if (argc < 0 || opts.help)
+    if (argc < 0 || opts.help) {
         makeusage(!opts.help, arg0, "<iop file>", NULL, options);
+    }
     if (opts.version) {
         printf("%d.%d.%d\n", IOPC_MAJOR, IOPC_MINOR, IOPC_PATCH);
         return 0;
@@ -189,6 +198,9 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    qv_init(cstr, &incpath);
+    qv_init(doit, &doits);
+
     opts.c_outpath    = opts.c_outpath ?: opts.outpath;
     opts.json_outpath = opts.json_outpath ?: opts.outpath;
 
@@ -197,17 +209,21 @@ int main(int argc, char **argv)
 
     log_set_handler(&iopc_log_handler);
 
-    if (opts.c_outpath && iopc_do_c_g.resolve_includes)
-        fatal("outdir and --c-resolve-includes are incompatible");
-    qv_init(doit, &doits);
-    build_doit_table(&doits);
+    if (opts.c_outpath && iopc_do_c_g.resolve_includes) {
+        print_error("outdir and --c-resolve-includes are incompatible");
+        goto error;
+    }
 
-    qv_init(cstr, &incpath);
+    if (build_doit_table(&doits) < 0) {
+        goto error;
+    }
+
     parse_incpath(&incpath, opts.incpath);
 
     if (opts.class_id_range && parse_class_id_range(opts.class_id_range) < 0)
     {
-        fatal("invalid class-id-range `%s`", opts.class_id_range);
+        print_error("invalid class-id-range `%s`", opts.class_id_range);
+        goto error;
     }
 
     if (argc == 0) {
@@ -216,23 +232,52 @@ int main(int argc, char **argv)
     }
     for (int i = 0; i < argc; i++) {
         iopc_parser_initialize();
-        pkg = iopc_parse_file(&incpath, NULL, argv[i], NULL, true);
-        iopc_resolve(pkg);
-        iopc_resolve_second_pass(pkg);
-        iopc_types_fold(pkg);
-        qv_for_each_ptr(doit, doit, &doits) {
-            (*doit->cb)(pkg, doit->outpath, &deps);
+
+        if (!(pkg = iopc_parse_file(&incpath, NULL, argv[i], NULL, true))) {
+            iopc_parser_shutdown();
+            goto error;
         }
+        if (iopc_resolve(pkg) < 0) {
+            iopc_parser_shutdown();
+            goto error;
+        }
+        if (iopc_resolve_second_pass(pkg) < 0) {
+            iopc_parser_shutdown();
+            goto error;
+        }
+
+        iopc_types_fold(pkg);
+
+        qv_for_each_ptr(doit, doit, &doits) {
+            if ((*doit->cb)(pkg, doit->outpath, &deps) < 0) {
+                iopc_parser_shutdown();
+                goto error;
+            }
+        }
+
         iopc_parser_shutdown();
     }
-    qv_wipe(doit, &doits);
-    qv_wipe(cstr, &incpath);
+
     if (opts.depends) {
         char dir[PATH_MAX];
 
         path_dirname(dir, sizeof(dir), opts.depends);
-        RETHROW(mkdir_p(dir, 0755));
-        RETHROW(sb_write_file(&deps, opts.depends));
+        if (mkdir_p(dir, 0755) < 0) {
+            print_error("cannot create directory `%s`: %m", dir);
+            goto error;
+        }
+        if (sb_write_file(&deps, opts.depends) < 0) {
+            print_error("cannot write file `%s`: %m", opts.depends);
+            goto error;
+        }
     }
+
+    qv_wipe(cstr, &incpath);
+    qv_wipe(doit, &doits);
     return 0;
+
+  error:
+    qv_wipe(cstr, &incpath);
+    qv_wipe(doit, &doits);
+    return -1;
 }

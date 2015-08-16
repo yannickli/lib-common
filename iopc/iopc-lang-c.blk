@@ -798,11 +798,10 @@ static const char *iopc_field_type(iopc_field_t *f)
       case IOP_T_ENUM:   return "enum ";
 
       default:
-        fatal_loc("attribute type not handled for this kind", f->loc);
+        warn_loc("attribute type not handled for this kind", f->loc);
+        assert (false);
+        return NULL;
     }
-
-    assert(false);
-    return NULL;
 }
 
 static void
@@ -1423,7 +1422,7 @@ bool iopc_field_is_signed(const iopc_field_t *f)
         return false;
 
       default:
-        fatal("expected integer type, got %d", f->kind);
+        throw_error("expected integer type, got %d", f->kind);
     }
 }
 
@@ -1567,7 +1566,7 @@ static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
 
 /* }}} */
 
-static void
+static int
 iopc_dump_fieldval_loop(sb_t *buf, iopc_field_t *f)
 {
     const char *type;
@@ -1592,20 +1591,22 @@ iopc_dump_fieldval_loop(sb_t *buf, iopc_field_t *f)
         sb_addf(buf, LVL2 "%s__%s__t val = IOP_FIELD(int32_t, ptr, j);\n\n",
                 pp_under(f->type_path),
                 pp_to_c(f->type_name));
-        return;
+        return 0;
 
       case IOP_T_UNION:
         sb_addf(buf, LVL2
                 "%s__%s__t *val = &IOP_FIELD(%s__%s__t, ptr, j);\n\n",
                 pp_under(f->type_path), pp_to_c(f->type_name), 
                 pp_under(f->type_path), pp_to_c(f->type_name));
-        return;
+        return 0;
 
       default:
-        fatal("constraints not supported for fields of kind %d", f->kind);
+        throw_error("constraints not supported for fields of kind %d",
+                    f->kind);
     }
     sb_addf(buf, LVL2 "%s val = IOP_FIELD(%s, ptr, j);\n\n",
             type, type);
+    return 0;
 }
 
 static void
@@ -2097,7 +2098,7 @@ iopc_dump_snmp_field_attr(sb_t *sb, iopc_attrs_t *attrs,
     attrs->attrs_len++;
 }
 
-static void
+static int
 iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
                       iopc_field_t *f, iopc_attrs_t *attrs)
 {
@@ -2153,9 +2154,9 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
             break;
 
           case IOPC_ATTR_PATTERN:
-            if (iopc_dump_pattern(&checkf_loopbody, attr, f) == -1) {
-                fatal("unsupported pattern: %*pM",
-                      LSTR_FMT_ARG(attr->args.tab[0].v.s));
+            if (iopc_dump_pattern(&checkf_loopbody, attr, f) < 0) {
+                throw_error("unsupported pattern: %*pM",
+                            LSTR_FMT_ARG(attr->args.tab[0].v.s));
             }
             iopc_dump_field_attr(attr, IOP_FIELD_PATTERN, &attrs_body,
                                  attrs, f);
@@ -2214,7 +2215,7 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
                 LSTR_FMT_ARG(attrs->checkf_name));
         sb_addsb(buf, &checkf_body);
         if (checkf_loopbody.len) {
-            iopc_dump_fieldval_loop(buf, f);
+            RETHROW(iopc_dump_fieldval_loop(buf, f));
             sb_addsb(buf, &checkf_loopbody);
             sb_adds(buf, "    }\n");
         }
@@ -2233,9 +2234,7 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
                 "};\n");
     }
 
-    sb_wipe(&checkf_loopbody);
-    sb_wipe(&checkf_body);
-    sb_wipe(&attrs_body);
+    return 0;
 }
 
 /** XXX: sb_na    buffer where to write attributes other than IOPC_ATTR_ALIAS
@@ -2563,8 +2562,8 @@ static const char *get_struct_type_desc(iopc_struct_type_t type)
     }
 }
 
-static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
-                                   bool has_attrs, char *as_base)
+static int iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
+                                  bool has_attrs, char *as_base)
 {
     if (iopc_g.v4 && (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)
      || st->contains_snmp_info))
@@ -2589,11 +2588,11 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
             sb_addf(buf, LVL2".snmp_attrs  = &%s__snmp_attrs__s,\n", tbase);
         }
         sb_adds(buf, LVL1 "}\n");
-        return;
+        return 0;
     }
 
     if (iopc_is_snmp_st(st->type)) {
-        fatal_loc("snmp can only be used with iopc v4", st->loc);
+        throw_loc("snmp can only be used with iopc v4", st->loc);
     }
     if (st->flags) {
         sb_addf(buf, LVL1 ".flags      = %d,\n", st->flags);
@@ -2610,6 +2609,7 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
     if (st->type == STRUCT_TYPE_CLASS) {
         sb_addf(buf, LVL1 ".class_attrs  = &%s__class_s,\n", tbase);
     }
+    return 0;
 }
 
 #undef LVL1
@@ -2617,7 +2617,7 @@ static void iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
 #undef LVL3
 #undef LVL4
 
-static void
+static int
 iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                      const char *pkg_name,
                      iopc_struct_t *st, qv_t(lstr) *paliases,
@@ -2650,12 +2650,12 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         if (as->iface) {
             sb_addf(buf, "/* same as %s.%s.%s */\n\n",
                     pretty_path_dot(pkg->name), as->iface->name, as->name);
-            as_base = asprintf("%s__%s__%s", pkg_name, pp_to_c(as->iface->name),
-                               pp_to_c(as->name));
+            as_base = t_fmt("%s__%s__%s", pkg_name, pp_to_c(as->iface->name),
+                            pp_to_c(as->name));
         } else {
             sb_addf(buf, "/* same as %s.%s */\n\n",
                     pretty_path_dot(pkg->name), as->name);
-            as_base = asprintf("%s__%s", pkg_name, pp_to_c(as->name));
+            as_base = t_fmt("%s__%s", pkg_name, pp_to_c(as->name));
         }
         /* all the attributes and constraints work has already been done with
          * the as struct, so re-use it */
@@ -2664,7 +2664,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         st->has_constraints     = as->has_constraints;
     } else
     if (!iopc_g.v2) {
-        as_base = p_strdup(tbase);
+        as_base = tbase;
         /* only generate <tbase>__desc_fields */
         sb_addf(buf, "static iop_field_t %s %s__desc_fields[] = {\n", CONST,
                 tbase);
@@ -2676,7 +2676,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     } else {
         qv_t(iopc_attrs) fields_attrs;
 
-        as_base = p_strdup(tbase);
+        as_base = tbase;
 
         qv_init(iopc_attrs, &fields_attrs);
 
@@ -2715,7 +2715,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
             iopc_attrs_init(&attrs);
 
-            iopc_dump_field_attrs(buf, st, tbase, field, &attrs);
+            RETHROW(iopc_dump_field_attrs(buf, st, tbase, field, &attrs));
             if (attrs.checkf_name.len || attrs.flags) {
                 st->has_fields_attrs = true;
             }
@@ -2833,7 +2833,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             if (!iopc_is_snmp_st(st->type)) {                                \
                 sb_addf(buf, "    .size       = sizeof(%s__t),\n", tbase);   \
             }                                                                \
-            iopc_put_struct_fields(buf, st, tbase, has_attrs, as_base);      \
+            RETHROW(iopc_put_struct_fields(buf, st, tbase, has_attrs,        \
+                                           as_base));                        \
             sb_adds(buf, "};\n");                                            \
                                                                              \
             sb_adds(buf, "\n/* }""}} */\n");                                 \
@@ -2856,7 +2857,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
     #undef WRITE_STRUCT
 
-    p_delete(&as_base);
+    return 0;
 }
 
 static void
@@ -2892,15 +2893,16 @@ static bool iopc_fun_has_alias(iopc_fun_t *fun)
 }
 
 static inline void
-iopc_get_aliases(iopc_fun_t *fun, qv_t(lstr) *aliases, const char *suffix)
+t_iopc_get_aliases(iopc_fun_t *fun, qv_t(lstr) *aliases, const char *suffix)
 {
     /* build a vector of aliases of this RPC */
     qv_deep_clear(lstr, aliases, lstr_wipe);
     qv_for_each_entry(iopc_attr, attr, &fun->attrs) {
         if (attr->desc->id == IOPC_ATTR_ALIAS) {
             qv_for_each_entry(iopc_arg, arg, &attr->args) {
-                lstr_t alias = lstr_fmt("%*pM%s", LSTR_FMT_ARG(arg.v.s),
-                                        suffix);
+                lstr_t alias = t_lstr_fmt("%*pM%s", LSTR_FMT_ARG(arg.v.s),
+                                          suffix);
+
                 qv_append(lstr, aliases, alias);
             }
         }
@@ -3032,7 +3034,7 @@ iopc_iface_dump_rpc_attrs(sb_t *buf, iopc_iface_t *iface, char * ibase)
     qv_deep_wipe(iopc_attrs, &rpc_attrs, iopc_attrs_wipe);
 }
 
-static void
+static int
 iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                     const char *pkg_name, iopc_iface_t *iface)
 {
@@ -3041,7 +3043,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     char *ibase = t_fmt("%s__%s", pkg_name, iname);
     qv_t(lstr) aliases;
 
-    qv_init(lstr, &aliases);
+    t_qv_init(lstr, &aliases, 16);
     sb_addf(buf, "/* Interface %s.%s {""{{ */\n",
             pretty_path_dot(pkg->name), iface->name);
 
@@ -3051,13 +3053,14 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {
             if (fun->arg) {
                 /* snmpIface can only have "args" and anonymous funs */
-                iopc_get_aliases(fun, &aliases, "Args");
+                t_iopc_get_aliases(fun, &aliases, "Args");
                 if (fun->arg_is_anonymous) {
-                    iopc_struct_dump_src(buf, pkg, pkg_name, fun->arg,
-                                         &aliases, pp_to_c(iface->name),
-                                         fun->tag);
+                    RETHROW(iopc_struct_dump_src(buf, pkg, pkg_name, fun->arg,
+                                                 &aliases,
+                                                 pp_to_c(iface->name),
+                                                 fun->tag));
                 } else {
-                    fatal_loc("should not happen", fun->loc);
+                    throw_loc("should not happen", fun->loc);
                 }
             }
         }
@@ -3066,10 +3069,11 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 #define HANDLE_FUN_VAR(_var, _fvar, is_anonymous, type)                      \
             do {                                                             \
                 if (_var) {                                                  \
-                    iopc_get_aliases(fun, &aliases, type);                   \
+                    t_iopc_get_aliases(fun, &aliases, type);                 \
                     if (is_anonymous) {                                      \
-                        iopc_struct_dump_src(buf, pkg, pkg_name, _var,       \
-                                              &aliases, NULL, 0);            \
+                        RETHROW(iopc_struct_dump_src(buf, pkg, pkg_name,     \
+                                                     _var, &aliases, NULL,   \
+                                                     0));                    \
                     } else {                                                 \
                         /* When the function argument is just a              \
                          * reference to another structure, we just           \
@@ -3093,7 +3097,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     sb_addf(buf, "static iop_rpc_t %s %s__if_funs[] = {\n", CONST, ibase);
     qv_for_each_entry(iopc_fun, f, &iface->funs) {
         iopc_register_fun(buf, ibase, f, NULL);
-        iopc_get_aliases(f, &aliases, "");
+        t_iopc_get_aliases(f, &aliases, "");
         qv_for_each_entry(lstr, alias, &aliases) {
             iopc_register_fun(buf, ibase, f, alias.s);
         }
@@ -3134,7 +3138,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     sb_adds(buf, "};\n\n");
     sb_adds(buf, "/* }""}} */\n");
 
-    qv_deep_wipe(lstr, &aliases, lstr_wipe);
+    return 0;
 }
 
 static void
@@ -3334,8 +3338,8 @@ static size_t common_prefix(const char *s, const char *t)
     return n;
 }
 
-static void put_include(sb_t *sb, const char *ext,
-                        iopc_pkg_t *pkg, iopc_pkg_t *us)
+static int put_include(sb_t *sb, const char *ext,
+                       iopc_pkg_t *pkg, iopc_pkg_t *us)
 {
     const char *iop_path = pretty_path(pkg->name);
 
@@ -3367,19 +3371,27 @@ static void put_include(sb_t *sb, const char *ext,
             sb_addf(sb, "%s/", dep_path + pfx);
     }
     sb_addf(sb, "%*pM%s\"\n", (int)strlen(iop_path) - 4, iop_path, ext);
-    return;
+    return 0;
 
   no_rel:
-    fatal("[%s] unable to make a relative #include path for %s",
-          pretty_path(pkg->name), iop_path);
+    throw_error("[%s] unable to make a relative #include path for %s",
+                pretty_path(pkg->name), iop_path);
 }
 
-void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
+int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
+    SB_8k(buf);
     qv_t(iopc_pkg) t_deps, t_weak_deps, i_deps;
     const char *pkg_name;
-    sb_t buf;
     char path[PATH_MAX];
+    int res = 0;
+
+#define IOPC_DO_C_RETHROW(e)  \
+    do {                                                                     \
+        if ((res = (e)) < 0) {                                               \
+            goto end;                                                        \
+        }                                                                    \
+    } while (0)
 
     _G.data_c_type = iopc_g.v3 ? "lstr_t " : "iop_data_t ";
 
@@ -3388,7 +3400,6 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     qv_inita(iopc_pkg, &t_deps, 1024);
     qv_inita(iopc_pkg, &t_weak_deps, 1024);
     qv_inita(iopc_pkg, &i_deps, 1024);
-    sb_inita(&buf, 32 << 10);
 
     pkg_name = pp_under(pkg->name);
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
@@ -3428,7 +3439,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     }
     sb_adds(&buf, "#endif\n");
 
-    iopc_write_file(&buf, path);
+    IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
     /*----- dump the types header -----*/
     sb_sets(&buf, RO_WARN);
@@ -3440,10 +3451,10 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             "\n", pkg_name, pkg_name, pretty_path_base(pkg->name));
 
     qv_for_each_entry(iopc_pkg, dep, &t_weak_deps) {
-        put_include(&buf, "-tdef.iop.h", dep, pkg);
+        IOPC_DO_C_RETHROW(put_include(&buf, "-tdef.iop.h", dep, pkg));
     }
     qv_for_each_entry(iopc_pkg, dep, &t_deps) {
-        put_include(&buf, "-t.iop.h", dep, pkg);
+        IOPC_DO_C_RETHROW(put_include(&buf, "-t.iop.h", dep, pkg));
     }
     if (t_deps.len || t_weak_deps.len) {
         sb_adds(&buf, "\n");
@@ -3468,7 +3479,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     sb_adds(&buf, "#endif\n");
 
     strcpy(path + strlen(path) - strlen("-tdef.iop.h"), "-t.iop.h");
-    iopc_write_file(&buf, path);
+    IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
     /*----- dump the iface header -----*/
     sb_sets(&buf, RO_WARN);
@@ -3479,10 +3490,10 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             "#include \"%s-t.iop.h\"\n",
             pkg_name, pkg_name, pretty_path_base(pkg->name));
     qv_for_each_entry(iopc_pkg, dep, &t_deps) {
-        put_include(&buf, ".iop.h", dep, pkg);
+        IOPC_DO_C_RETHROW(put_include(&buf, ".iop.h", dep, pkg));
     }
     qv_for_each_entry(iopc_pkg, dep, &i_deps) {
-        put_include(&buf, ".iop.h", dep, pkg);
+        IOPC_DO_C_RETHROW(put_include(&buf, ".iop.h", dep, pkg));
     }
     sb_adds(&buf, "\n");
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
@@ -3500,7 +3511,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     sb_adds(&buf, "#endif\n");
 
     strcpy(path + strlen(path) - strlen("-t.iop.h"), ".iop.h");
-    iopc_write_file(&buf, path);
+    IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
     /*----- dump the C file -----*/
     sb_sets(&buf, RO_WARN);
@@ -3525,17 +3536,18 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             "#include \"%s.iop.h\"\n",
             pretty_path_base(pkg->name));
     qv_for_each_entry(iopc_pkg, dep, &t_weak_deps) {
-        put_include(&buf, ".iop.h", dep, pkg);
+        IOPC_DO_C_RETHROW(put_include(&buf, ".iop.h", dep, pkg));
     }
     sb_adds(&buf, "\n");
     qv_for_each_entry(iopc_enum, en, &pkg->enums) {
         iopc_enum_dump_src(&buf, pkg, pkg_name, en);
     }
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
-        iopc_struct_dump_src(&buf, pkg, pkg_name, st, NULL, NULL, 0);
+        IOPC_DO_C_RETHROW(iopc_struct_dump_src(&buf, pkg, pkg_name, st,
+                                               NULL, NULL, 0));
     }
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
-        iopc_iface_dump_src(&buf, pkg, pkg_name, iface);
+        IOPC_DO_C_RETHROW(iopc_iface_dump_src(&buf, pkg, pkg_name, iface));
     }
     qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
         iopc_module_dump_src(&buf, pkg, pkg_name, mod);
@@ -3544,7 +3556,7 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     sb_addc(&buf, '\n');
 
     path[strlen(path) - 1] = 'c';
-    iopc_write_file(&buf, path);
+    IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
     if (depbuf) {
         sb_adds(depbuf, path);
@@ -3573,11 +3585,14 @@ void iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         sb_addc(depbuf, '\n');
     }
 
+#undef IOPC_DO_C_RETHROW
+
     /*----- collect memory -----*/
+  end:
     qv_wipe(iopc_pkg, &t_deps);
     qv_wipe(iopc_pkg, &t_weak_deps);
     qv_wipe(iopc_pkg, &i_deps);
-    sb_wipe(&buf);
     qv_deep_wipe(str, &pp_g, p_delete);
     iopc_put_range_cleanup();
+    return res;
 }

@@ -528,7 +528,7 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
         break;
 
       default:
-        fatal("unsupported constraint %d", attr->desc->id);
+        print_error("unsupported constraint %d", attr->desc->id);
     }
 }
 
@@ -626,8 +626,10 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                               XT_FMT_ARG(st->extends.tab[0]));
         } else
         if (st->extends.len) {
-            fatal("multiple class inheritance is not allowed: %s.%s",
-                  pkg_name, st->name);
+            print_error("multiple class inheritance is not allowed: %s.%s",
+                        pkg_name, st->name);
+            assert (false);
+            return;
         }
         LINE_CKEY_VAL_BOOL(wbuf, "isAbstract", st->is_abstract);
         break;
@@ -643,7 +645,9 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         break;
 
       default:
-        fatal("unsupported struct type: %d", st->type);
+        print_error("unsupported struct type: %d", st->type);
+        assert (false);
+        return;
     }
 
     iopc_dox_dump_json(wbuf, st);
@@ -691,8 +695,11 @@ iopc_iface_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         LINE_CKEY_VAL_FMT(wbuf, "parent", XT_FMT,
                           XT_FMT_ARG(iface->extends.tab[0]));
         break;
+
       default:
-        fatal("unsupported interface type: %d", iface->type);
+        print_error("unsupported interface type: %d", iface->type);
+        assert (false);
+        return;
     }
 
     dump_gen_attrs(wbuf, &iface->attrs);
@@ -777,7 +784,7 @@ iopc_module_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
 /*}}} */
 
-void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
+int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
 {
     char path[PATH_MAX];
     SB(buf, 32 << 10);
@@ -877,7 +884,7 @@ void iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
     suppress_sep(&wbuf);
     sb_adds(&buf, "\n}\n");
 
-    iopc_write_file(&buf, path);
+    return iopc_write_file(&buf, path);
 
 #undef DUMP_PKG_ITEMS_TYPE
 #undef DUMP_PKG_ITEMS

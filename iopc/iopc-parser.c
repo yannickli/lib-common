@@ -83,21 +83,26 @@ static bool warn(qv_t(iopc_attr) *attrs, const char *category)
     return true;
 }
 
-static void check_name(const char *name, iopc_loc_t loc,
+static int check_name(const char *name, iopc_loc_t loc,
                        qv_t(iopc_attr) *attrs)
 {
-    if (strchr(name, '_'))
-        fatal_loc("%s contains a _", loc, name);
+    if (strchr(name, '_')) {
+        throw_loc("%s contains a _", loc, name);
+    }
     for (int i = 0; i < countof(reserved_keywords); i++) {
-        if (strequal(name, reserved_keywords[i]))
-            fatal_loc("%s is a reserved keyword", loc, name);
+        if (strequal(name, reserved_keywords[i])) {
+            throw_loc("%s is a reserved keyword", loc, name);
+        }
     }
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
-            if (strequal(name, avoid_keywords[i]))
+            if (strequal(name, avoid_keywords[i])) {
                 warn_loc("%s is a keyword in some languages", loc, name);
+            }
         }
     }
+
+    return 0;
 }
 
 static iopc_pkg_t *
@@ -147,34 +152,39 @@ static const char *type_to_str(iopc_attr_type_t type)
       case IOPC_ATTR_T_SNMP_IFACE:  return "snmpIface";
       case IOPC_ATTR_T_SNMP_OBJ:    return "snmpObj";
       case IOPC_ATTR_T_SNMP_TBL:    return "snmpTbl";
-      default:                  fatal("invalid type %d", type);
+
+      default:
+        print_error("invalid type %d", type);
+        return NULL;
     }
 }
 
-static void check_attr_type_decl(iopc_attr_t *attr, iopc_attr_type_t type)
+static int check_attr_type_decl(iopc_attr_t *attr, iopc_attr_type_t type)
 {
     if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_DECL)) {
-        fatal_loc("attribute %*pM does not apply to declarations",
+        throw_loc("attribute %*pM does not apply to declarations",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name));
     }
 
     if (!TST_BIT(&attr->desc->types, type)) {
-        fatal_loc("attribute %*pM does not apply to %s",
+        throw_loc("attribute %*pM does not apply to %s",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name),
                   type_to_str(type));
     }
+
+    return 0;
 }
 
-static void check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
-                                  bool tdef)
+static int check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
+                                 bool tdef)
 {
     const char *tstr = tdef ? "typedefs" : "fields";
     iopc_attr_type_t type;
 
     if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_ALL)) {
-        fatal_loc("attribute %*pM does not apply to %s", attr->loc,
+        throw_loc("attribute %*pM does not apply to %s", attr->loc,
                   LSTR_FMT_ARG(attr->desc->name), tstr);
     }
 
@@ -193,20 +203,20 @@ static void check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
     if (f->kind == IOP_T_STRUCT && !f->struct_def) {
         /* struct or union or enum -> the typer will know the real type and
          * will check this attribute in iopc_check_field_attributes */
-        return;
+        return 0;
     }
 
     switch (f->repeat) {
       case IOP_R_REQUIRED:
         if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REQUIRED)) {
-            fatal_loc("attribute %*pM does not apply to required %s",
+            throw_loc("attribute %*pM does not apply to required %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
 
       case IOP_R_DEFVAL:
         if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_DEFVAL)) {
-            fatal_loc("attribute %*pM does not apply to %s "
+            throw_loc("attribute %*pM does not apply to %s "
                       "with default value", attr->loc,
                       LSTR_FMT_ARG(attr->desc->name), tstr);
         }
@@ -214,28 +224,30 @@ static void check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
 
       case IOP_R_OPTIONAL:
         if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_OPTIONAL)) {
-            fatal_loc("attribute %*pM does not apply to optional %s",
+            throw_loc("attribute %*pM does not apply to optional %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
 
       case IOP_R_REPEATED:
         if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REPEATED)) {
-            fatal_loc("attribute %*pM does not apply to repeated %s",
+            throw_loc("attribute %*pM does not apply to repeated %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
     }
 
     if (!TST_BIT(&attr->desc->types, type)) {
-        fatal_loc("attribute %*pM does not apply to %s",
+        throw_loc("attribute %*pM does not apply to %s",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name),
                   type_to_str(type));
     }
+
+    return 0;
 }
 
-void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
+int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
 {
     const char *tstr = tdef ? "typedefs" : "fields";
     iopc_attr_type_t type;
@@ -255,7 +267,7 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
 
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
         if (!TST_BIT(&attr->desc->types, type)) {
-            fatal_loc("attribute %*pM does not apply to %s",
+            throw_loc("attribute %*pM does not apply to %s",
                       attr->loc,
                       LSTR_FMT_ARG(attr->desc->name),
                       type_to_str(type));
@@ -264,14 +276,14 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
         switch (f->repeat) {
           case IOP_R_REQUIRED:
             if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REQUIRED)) {
-                fatal_loc("attribute %*pM does not apply to required %s",
+                throw_loc("attribute %*pM does not apply to required %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
             break;
 
           case IOP_R_DEFVAL:
             if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_DEFVAL)) {
-                fatal_loc("attribute %*pM does not apply to %s "
+                throw_loc("attribute %*pM does not apply to %s "
                           "with default value",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
@@ -279,20 +291,20 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
 
           case IOP_R_OPTIONAL:
             if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_OPTIONAL)) {
-                fatal_loc("attribute %*pM does not apply to optional %s",
+                throw_loc("attribute %*pM does not apply to optional %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
             break;
 
           case IOP_R_REPEATED:
             if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REPEATED)) {
-                fatal_loc("attribute %*pM does not apply to repeated %s",
+                throw_loc("attribute %*pM does not apply to repeated %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
             break;
 
           default:
-            fatal_loc("unknown repeat kind for field `%s`", attr->loc, f->name);
+            throw_loc("unknown repeat kind for field `%s`", attr->loc, f->name);
         }
 
         /* Field specific checks */
@@ -303,7 +315,7 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
             if (TST_BIT(&flags, IOPC_ATTR_ALLOW)
             &&  TST_BIT(&flags, IOPC_ATTR_DISALLOW))
             {
-                fatal_loc("cannot use both @allow and @disallow on the same "
+                throw_loc("cannot use both @allow and @disallow on the same "
                           "field", attr->loc);
             }
 
@@ -330,7 +342,7 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                 }
 
                 if (!found) {
-                    fatal_loc("unknown field %*pM in %s",
+                    throw_loc("unknown field %*pM in %s",
                               attr->loc, LSTR_FMT_ARG(arg->v.s),
                               f->type_name);
                 }
@@ -341,6 +353,8 @@ void iopc_check_field_attributes(iopc_field_t *f, bool tdef)
             break;
         }
     }
+
+    return 0;
 }
 
 static iopc_attr_desc_t *add_attr(iopc_attr_id_t id, const char *name)
@@ -354,7 +368,8 @@ static iopc_attr_desc_t *add_attr(iopc_attr_id_t id, const char *name)
     pos = qm_put(attr_desc, &_G.attrs, &d.name, d, 0);
 
     if (pos & QHASH_COLLISION) {
-        fatal("attribute %s already exists", name);
+        print_error("attribute %s already exists", name);
+        assert (false);
     }
     return &_G.attrs.values[pos];
 }
@@ -526,30 +541,36 @@ static void init_attributes(void)
 #undef ADD_ATTR_ARG
 }
 
-static int check_attr_multi(qv_t(iopc_attr) *attrs, iopc_attr_t *attr)
+static int
+check_attr_multi(qv_t(iopc_attr) *attrs, iopc_attr_t *attr, int *pos_out)
 {
     qv_for_each_pos(iopc_attr, pos, attrs) {
         iopc_attr_t *a = attrs->tab[pos];
+
         if (a->desc == attr->desc) {
             /* Generic attributes share the same desc */
             if (a->desc->id == IOPC_ATTR_GENERIC) {
                 if (lstr_equal2(a->real_name, attr->real_name)) {
-                    fatal_loc("generic attribute '%*pM' must be unique for "
+                    throw_loc("generic attribute '%*pM' must be unique for "
                               "each IOP object", attr->loc,
                               LSTR_FMT_ARG(attr->real_name));
                 }
-                return -1;
+                *pos_out = -1;
+                return 0;
             }
 
             if (TST_BIT(&attr->desc->flags, IOPC_ATTR_F_MULTI)) {
-                return pos;
+                *pos_out = pos;
+                return 0;
             } else {
-                fatal_loc("attribute %*pM must be unique", attr->loc,
+                throw_loc("attribute %*pM must be unique", attr->loc,
                           LSTR_FMT_ARG(attr->desc->name));
             }
         }
     }
-    return -1;
+
+    *pos_out = -1;
+    return 0;
 }
 
 int
@@ -579,20 +600,34 @@ int t_iopc_attr_check_prefix(const qv_t(iopc_attr) *attrs, lstr_t *out)
 /*}}}*/
 /*----- helpers -{{{-*/
 
-static iopc_token_t *TK(iopc_parser_t *pp, int i)
+static int __tk(iopc_parser_t *pp, int i, iopc_token_t **out_tk)
 {
     qv_t(iopc_token) *tks = &pp->tokens;
 
     while (i >= tks->len) {
-        iopc_token_t *tk = iopc_next_token(pp->ld, false);
+        iopc_token_t *tk;
+
+        RETHROW(iopc_next_token(pp->ld, false, &tk));
         if (!tk) {
             assert (tks->len && tks->tab[tks->len - 1]->token == ITOK_EOF);
             tk = iopc_token_dup(tks->tab[tks->len - 1]);
         }
         qv_append(iopc_token, tks, tk);
     }
-    return tks->tab[i];
+    *out_tk = tks->tab[i];
+    return 0;
 }
+#define TK(pp, i, on_error)  ({  \
+    iopc_token_t *_res;                                                      \
+                                                                             \
+    if (__tk(pp, i, &_res) < 0) {                                            \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define TK_N(pp, i)  TK(pp, i, return -1)
+#define TK_P(pp, i)  TK(pp, i, return NULL)
 
 static void DROP(iopc_parser_t *pp, int len, int offset)
 {
@@ -606,75 +641,148 @@ static void DROP(iopc_parser_t *pp, int len, int offset)
 }
 #define DROP(_pp, _len)  ((DROP)(_pp, _len, 0))
 
-static bool CHECK(iopc_parser_t *pp, int i, iopc_tok_type_t token)
+static int __check(iopc_parser_t *pp, int i, iopc_tok_type_t token, bool *res)
 {
-    iopc_token_t *tk = TK(pp, i);
-    return tk->token == token;
-}
+    iopc_token_t *tk = TK_N(pp, i);
 
-static bool CHECK_NOEOF(iopc_parser_t *pp, int i, iopc_tok_type_t token)
+    *res = tk->token == token;
+    return 0;
+}
+#define CHECK(pp, i, token, on_error)  ({  \
+    bool _res;                                                               \
+                                                                             \
+    if (__check(pp, i, token, &_res) < 0) {                                  \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define CHECK_N(pp, i, token)  CHECK(pp, i, token, return -1)
+#define CHECK_P(pp, i, token)  CHECK(pp, i, token, return NULL)
+
+static int
+__check_noeof(iopc_parser_t *pp, int i, iopc_tok_type_t token, bool *res)
 {
-    iopc_token_t *tk = TK(pp, i);
+    iopc_token_t *tk = TK_N(pp, i);
+
     if (tk->token == ITOK_EOF) {
-        fatal_loc("unexpected end of file", tk->loc);
+        throw_loc("unexpected end of file", tk->loc);
     }
-    return tk->token == token;
+    *res = tk->token == token;
+    return 0;
 }
+#define CHECK_NOEOF(pp, i, token, on_error)  ({  \
+    bool _res;                                                               \
+                                                                             \
+    if (__check_noeof(pp, i, token, &_res) < 0) {                            \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define CHECK_NOEOF_N(pp, i, token)  CHECK_NOEOF(pp, i, token, return -1)
 
-static bool CHECK_KW(iopc_parser_t *pp, int i, const char *kw)
+static int __check_kw(iopc_parser_t *pp, int i, const char *kw, bool *res)
 {
-    iopc_token_t *tk = TK(pp, i);
-    return tk->token == ITOK_IDENT && strequal(tk->b.data, kw);
+    iopc_token_t *tk = TK_N(pp, i);
+
+    *res = tk->token == ITOK_IDENT && strequal(tk->b.data, kw);
+    return 0;
 }
+#define CHECK_KW(pp, i, kw, on_error)  ({  \
+    bool _res;                                                               \
+                                                                             \
+    if (__check_kw(pp, i, kw, &_res) < 0) {                                  \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define CHECK_KW_N(pp, i, kw)  CHECK_KW(pp, i, kw, return -1)
 
-static void WANT(iopc_parser_t *pp, int i, iopc_tok_type_t token)
+static int __want(iopc_parser_t *pp, int i, iopc_tok_type_t token)
 {
-    iopc_token_t *tk = TK(pp, i);
+    iopc_token_t *tk = TK_N(pp, i);
 
     if (tk->token != token) {
         t_scope;
+
         if (tk->token == ITOK_EOF) {
-            fatal_loc("unexpected end of file", tk->loc);
+            throw_loc("unexpected end of file", tk->loc);
         }
-        fatal_loc("%s expected, but got %s instead",
+        throw_loc("%s expected, but got %s instead",
                   tk->loc, t_pretty_token(token), t_pretty_token(tk->token));
     }
-}
 
-static bool SKIP(iopc_parser_t *pp, iopc_tok_type_t token)
+    return 0;
+}
+#define WANT(pp, i, token)    RETHROW(__want(pp, i, token))
+#define WANT_P(pp, i, token)  RETHROW_NP(__want(pp, i, token))
+
+static int __skip(iopc_parser_t *pp, iopc_tok_type_t token, bool *res)
 {
-    if (CHECK(pp, 0, token)) {
+    if (CHECK_N(pp, 0, token)) {
         DROP(pp, 1);
-        return true;
+        *res = true;
+    } else {
+        *res = false;
     }
-    return false;
+    return 0;
 }
+#define SKIP(pp, token, on_error)  ({  \
+    bool _res;                                                               \
+                                                                             \
+    if (__skip(pp, token, &_res) < 0) {                                      \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define SKIP_N(pp, token)  SKIP(pp, token, return -1)
 
-static bool SKIP_KW(iopc_parser_t *pp, const char *kw)
+static int __skip_kw(iopc_parser_t *pp, const char *kw, bool *res)
 {
-    if (CHECK_KW(pp, 0, kw)) {
+    if (CHECK_KW_N(pp, 0, kw)) {
         DROP(pp, 1);
-        return true;
+        *res = true;
+    } else {
+        *res = false;
     }
-    return false;
+    return 0;
 }
+#define SKIP_KW(pp, kw, on_error)  ({  \
+    bool _res;                                                               \
+                                                                             \
+    if (__skip_kw(pp, kw, &_res) < 0) {                                      \
+        on_error;                                                            \
+        assert (false);                                                      \
+    }                                                                        \
+    _res;                                                                    \
+})
+#define SKIP_KW_N(pp, kw)  SKIP_KW(pp, kw, return -1)
 
-static void EAT(iopc_parser_t *pp, iopc_tok_type_t token)
+static int __eat(iopc_parser_t *pp, iopc_tok_type_t token)
 {
     WANT(pp, 0, token);
     DROP(pp, 1);
+    return 0;
 }
+#define EAT(pp, token)    RETHROW(__eat(pp, token))
+#define EAT_P(pp, token)  RETHROW_NP(__eat(pp, token))
 
-static void EAT_KW(iopc_parser_t *pp, const char *kw)
+static int __eat_kw(iopc_parser_t *pp, const char *kw)
 {
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_N(pp, 0);
 
-    if (!SKIP_KW(pp, kw)) {
+    if (!SKIP_KW_N(pp, kw)) {
         WANT(pp, 0, ITOK_IDENT);
-        fatal_loc("%s expected, but got %s instead",
+        throw_loc("%s expected, but got %s instead",
                   tk->loc, kw, tk->b.data);
     }
+    return 0;
 }
+#define EAT_KW(pp, token)    RETHROW(__eat_kw(pp, token))
+#define EAT_KW_P(pp, token)  RETHROW_NP(__eat_kw(pp, token))
 
 static inline char *dup_ident(iopc_token_t *tk)
 {
@@ -685,8 +793,9 @@ static inline const char *ident(iopc_token_t *tk)
     return tk->b.data;
 }
 
-static uint64_t
-parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
+static int
+parse_constant_integer(iopc_parser_t *pp, int paren, uint64_t *res,
+                       bool *is_signed)
 {
     uint64_t num = 0;
     int pos = 0;
@@ -694,7 +803,7 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
     int nparen = 1;
 
     for (;;) {
-        tk = TK(pp, pos++);
+        tk = TK_N(pp, pos++);
 
         switch (tk->token) {
           case '-': case '+': case '*': case '/': case '~':
@@ -702,9 +811,10 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
             if (tk->token == '(') {
                 nparen++;
             }
-            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0)
-                fatal_loc("error when feeding the constant folder with `%c'",
+            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0) {
+                throw_loc("error when feeding the constant folder with `%c'",
                           tk->loc, tk->token);
+            }
             break;
 
           case ')':
@@ -715,38 +825,43 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
                 goto end;
             }
 
-            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0)
-                fatal_loc("error when feeding the constant folder with `%c'",
+            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0) {
+                throw_loc("error when feeding the constant folder with `%c'",
                           tk->loc, tk->token);
+            }
             break;
 
           case ITOK_LSHIFT:
-            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_LSHIFT) < 0)
-                fatal_loc("error when feeding the constant folder with `<<'",
+            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_LSHIFT) < 0) {
+                throw_loc("error when feeding the constant folder with `<<'",
                           tk->loc);
+            }
             break;
 
           case ITOK_RSHIFT:
-            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_RSHIFT) < 0)
-                fatal_loc("error when feeding the constant folder with `>>'",
+            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_RSHIFT) < 0) {
+                throw_loc("error when feeding the constant folder with `>>'",
                           tk->loc);
+            }
             break;
 
           case ITOK_EXP:
-            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_EXP) < 0)
-                fatal_loc("error when feeding the constant folder with `**'",
+            if (iop_cfolder_feed_operator(pp->cfolder, CF_OP_EXP) < 0) {
+                throw_loc("error when feeding the constant folder with `**'",
                           tk->loc);
+            }
             break;
 
           case ITOK_INTEGER:
           case ITOK_BOOL:
-            if (iop_cfolder_feed_number(pp->cfolder, tk->i, tk->i_is_signed) < 0)
+            if (iop_cfolder_feed_number(pp->cfolder, tk->i,
+                                        tk->i_is_signed) < 0)
             {
                 if (tk->i_is_signed) {
-                    fatal_loc("error when feeding the constant folder with `%"
+                    throw_loc("error when feeding the constant folder with `%"
                               PRIi64"'", tk->loc, (int64_t)tk->i);
                 } else {
-                    fatal_loc("error when feeding the constant folder with `%"
+                    throw_loc("error when feeding the constant folder with `%"
                               PRIu64"'", tk->loc, tk->i);
                 }
             }
@@ -766,7 +881,7 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
                         f = _G.enums_forbidden.values[qpos];
                         goto compatibility;
                     }
-                    fatal_loc("unknown enumeration value `%s'", tk->loc,
+                    throw_loc("unknown enumeration value `%s'", tk->loc,
                               ident(tk));
                 }
 
@@ -781,7 +896,7 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
                 /* feed the enum value */
                 if (iop_cfolder_feed_number(pp->cfolder, f->value, true) < 0)
                 {
-                    fatal_loc("error when feeding the constant folder with `%d'",
+                    throw_loc("error when feeding the constant folder with `%d'",
                               tk->loc, f->value);
                 }
             }
@@ -795,11 +910,12 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
   end:
     /* Let's try to get a result */
     if (iop_cfolder_get_result(pp->cfolder, &num, is_signed) < 0) {
-        fatal_loc("invalid arithmetic expression", TK(pp, 0)->loc);
+        throw_loc("invalid arithmetic expression", TK_N(pp, 0)->loc);
     }
     DROP(pp, pos - 1);
 
-    return num;
+    *res = num;
+    return 0;
 }
 
 /*-}}}-*/
@@ -847,7 +963,10 @@ static lstr_t iopc_dox_arg_dir_to_lstr(iopc_dox_arg_dir_t dir)
       case IOPC_DOX_ARG_DIR_IN:    return LSTR("in");
       case IOPC_DOX_ARG_DIR_OUT:   return LSTR("out");
       case IOPC_DOX_ARG_DIR_THROW: return LSTR("throw");
-      default:                     fatal("invalid doxygen arg dir %d", dir);
+
+      default:
+        print_error("invalid doxygen arg dir %d", dir);
+        return LSTR_NULL_V;
     }
 }
 
@@ -868,7 +987,10 @@ lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
       case IOPC_DOX_TYPE_BRIEF:   return LSTR("brief");
       case IOPC_DOX_TYPE_DETAILS: return LSTR("details");
       case IOPC_DOX_TYPE_WARNING: return LSTR("warning");
-      default:                    fatal("invalid doxygen type %d", type);
+
+      default:
+        print_error("invalid doxygen type %d", type);
+        return LSTR_NULL_V;
     }
 }
 
@@ -1068,19 +1190,24 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
 
 static int
 read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
-         int ignore_token)
+         int ignore_token, bool *res)
 {
     const iopc_token_t *tk;
     dox_tok_t *dox;
 
-    if (ignore_token && CHECK(pp, tk_offset, ignore_token))
+    if (ignore_token && CHECK_N(pp, tk_offset, ignore_token)) {
         tk_offset++;
+    }
 
-    tk = TK(pp, tk_offset);
+    tk = TK_N(pp, tk_offset);
     dox = tk->dox;
 
-    if (!CHECK(pp, tk_offset, ITOK_DOX_COMMENT) || (back && !dox->is_back))
-        return -1;
+    if (!CHECK_N(pp, tk_offset, ITOK_DOX_COMMENT)
+    ||  (back && !dox->is_back))
+    {
+        *res = false;
+        return 0;
+    }
 
     /* XXX: when reading front, back comments are forced to be front
      *      with first chunk = "<" */
@@ -1106,24 +1233,38 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         }
     }
     (DROP)(pp, 1, tk_offset);
+    *res = true;
     return 0;
 }
 
-static void read_dox_front(iopc_parser_t *pp, qv_t(dox_chunk) *chunks)
+static int read_dox_front(iopc_parser_t *pp, qv_t(dox_chunk) *chunks)
 {
     int offset = 0;
+    bool read_dox_res;
 
     do {
         /* XXX: we ignore tags when reading doxygen front comments */
-        if (CHECK(pp, offset, ITOK_INTEGER) && CHECK(pp, offset + 1, ':'))
+        if (CHECK_N(pp, offset, ITOK_INTEGER)
+        &&  CHECK_N(pp, offset + 1, ':'))
+        {
             offset += 2;
-    } while (read_dox(pp, offset, chunks, false, 0) >= 0);
+        }
+        RETHROW(read_dox(pp, offset, chunks, false, 0, &read_dox_res));
+    } while (read_dox_res);
+
+    return 0;
 }
 
-static void
+static int
 read_dox_back(iopc_parser_t *pp, qv_t(dox_chunk) *chunks, int ignore_token)
 {
-    while (read_dox(pp, 0, chunks, true, ignore_token) >= 0);
+    bool read_dox_res;
+
+    do {
+        RETHROW(read_dox(pp, 0, chunks, true, ignore_token, &read_dox_res));
+    } while (read_dox_res);
+
+    return 0;
 }
 
 static
@@ -1254,13 +1395,13 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
         for (int j = i + 1; j < chunk->params_args.len; j++) {
             if (!lstr_equal2(arg, chunk->params_args.tab[j]))
                 continue;
-            fatal_loc("doxygen duplicated `%*pM` argument `%*pM`", chunk->loc,
+            throw_loc("doxygen duplicated `%*pM` argument `%*pM`", chunk->loc,
                       LSTR_FMT_ARG(chunk->params.tab[0]), LSTR_FMT_ARG(arg));
         }
 
         arg_field = iopc_dox_arg_find_in_fun(arg, dir, owner);
         if (!arg_field) {
-            fatal_loc("doxygen unrelated `%*pM` argument `%*pM` for RPC `%s`",
+            throw_loc("doxygen unrelated `%*pM` argument `%*pM` for RPC `%s`",
                       chunk->loc, LSTR_FMT_ARG(chunk->params.tab[0]),
                       LSTR_FMT_ARG(arg), owner->name);
         }
@@ -1342,10 +1483,12 @@ build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
 
 static iopc_attr_t *parse_attr(iopc_parser_t *pp);
 
-static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
+static int iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
 {
     iopc_attr_t *attr = *attrp;
-    int pos = check_attr_multi(attrs, attr);
+    int pos;
+
+    RETHROW(check_attr_multi(attrs, attr, &pos));
 
     if (pos < 0 || attr->desc->args.len != 1) {
         qv_append(iopc_attr, attrs, attr);
@@ -1356,34 +1499,49 @@ static void iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
         }
         iopc_attr_delete(attrp);
     }
+
+    return 0;
 }
 
-void iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef)
+int iopc_field_add_attr(iopc_field_t *f, iopc_attr_t **attrp, bool tdef)
 {
-    check_attr_type_field(*attrp, f, tdef);
-    iopc_add_attr(&f->attrs, attrp);
+    RETHROW(check_attr_type_field(*attrp, f, tdef));
+    RETHROW(iopc_add_attr(&f->attrs, attrp));
+    return 0;
 }
 
-static void
+static int
 check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
                     qv_t(iopc_attr) *attrs, int attr_type)
 {
     qv_clear(iopc_attr, attrs);
     qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
+
     for (;;) {
-        if (CHECK(pp, 0, ITOK_ATTR)) {
-            iopc_attr_t *attr = parse_attr(pp);
+        if (CHECK_N(pp, 0, ITOK_ATTR)) {
+            iopc_attr_t *attr = RETHROW_PN(parse_attr(pp));
 
             if (attr_type >= 0) {
-                check_attr_type_decl(attr, attr_type);
+                if (check_attr_type_decl(attr, attr_type) < 0) {
+                    iopc_attr_delete(&attr);
+                    return -1;
+                }
             }
-            iopc_add_attr(attrs, &attr);
-        } else
-        if (read_dox(pp, 0, chunks, false, 0) < 0) {
-            break;
+            if (iopc_add_attr(attrs, &attr) < 0) {
+                iopc_attr_delete(&attr);
+                return -1;
+            }
+        } else {
+            bool read_dox_res;
+
+            RETHROW(read_dox(pp, 0, chunks, false, 0, &read_dox_res));
+            if (!read_dox_res) {
+                break;
+            }
         }
     }
-    read_dox_front(pp, chunks);
+
+    return read_dox_front(pp, chunks);
 }
 #define check_dox_and_attrs(_pp, _chunks, _attrs)  \
     ((check_dox_and_attrs)((_pp), (_chunks), (_attrs), -1))
@@ -1393,13 +1551,13 @@ check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
 
 static char *iopc_upper_ident(iopc_parser_t *pp)
 {
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_P(pp, 0);
     char *res;
 
-    WANT(pp, 0, ITOK_IDENT);
+    WANT_P(pp, 0, ITOK_IDENT);
     if (!isupper((unsigned char)ident(tk)[0])) {
-        fatal_loc("first character must be uppercased (got %s)",
-                  tk->loc, ident(tk));
+        throw_loc_p("first character must be uppercased (got %s)",
+                    tk->loc, ident(tk));
     }
     res = dup_ident(tk);
     DROP(pp, 1);
@@ -1408,16 +1566,18 @@ static char *iopc_upper_ident(iopc_parser_t *pp)
 
 static char *iopc_aupper_ident(iopc_parser_t *pp)
 {
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_P(pp, 0);
     char *res;
 
-    WANT(pp, 0, ITOK_IDENT);
+    WANT_P(pp, 0, ITOK_IDENT);
     for (const char *s = ident(tk); *s; s++) {
-        if (isdigit((unsigned char)*s) || *s == '_')
+        if (isdigit((unsigned char)*s) || *s == '_') {
             continue;
-        if (isupper((unsigned char)*s))
+        }
+        if (isupper((unsigned char)*s)) {
             continue;
-        fatal_loc("this token should be all uppercase", tk->loc);
+        }
+        throw_loc_p("this token should be all uppercase", tk->loc);
     }
     res = dup_ident(tk);
     DROP(pp, 1);
@@ -1426,13 +1586,13 @@ static char *iopc_aupper_ident(iopc_parser_t *pp)
 
 static char *iopc_lower_ident(iopc_parser_t *pp)
 {
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_P(pp, 0);
     char *res;
 
-    WANT(pp, 0, ITOK_IDENT);
+    WANT_P(pp, 0, ITOK_IDENT);
     if (!islower((unsigned char)ident(tk)[0])) {
-        fatal_loc("first character must be lowercased (got %s)",
-                  tk->loc, ident(tk));
+        throw_loc_p("first character must be lowercased (got %s)",
+                    tk->loc, ident(tk));
     }
     res = dup_ident(tk);
     DROP(pp, 1);
@@ -1456,44 +1616,68 @@ check_path_exists(iopc_parser_t *pp, iopc_path_t *path)
             }
         }
     }
-    fatal_loc("unable to find file `%s` in the include path",
-              path->loc, pretty_path(path));
+    throw_loc_p("unable to find file `%s` in the include path",
+                path->loc, pretty_path(path));
 }
 
 static iopc_path_t *parse_path_aux(iopc_parser_t *pp, iopc_pkg_t **modp)
 {
-    iopc_path_t *path = iopc_path_new();
-    iopc_token_t *tk0 = TK(pp, 0);
+    iopc_path_t *path;
+    iopc_token_t *tk0 = TK_P(pp, 0);
+    char *lowered;
 
+    path = iopc_path_new();
     path->loc = tk0->loc;
-    qv_append(str, &path->bits, iopc_lower_ident(pp));
+    if (!(lowered = iopc_lower_ident(pp))) {
+        goto error;
+    }
+    qv_append(str, &path->bits, lowered);
 
-    while (CHECK(pp, 0, '.') && CHECK(pp, 1, ITOK_IDENT)) {
-        iopc_token_t *tk1 = TK(pp, 1);
+    while (CHECK(pp, 0, '.',        goto error)
+    &&     CHECK(pp, 1, ITOK_IDENT, goto error))
+    {
+        iopc_token_t *tk1 = TK(pp, 1, goto error);
 
-        if (!islower((unsigned char)ident(tk1)[0]))
+        if (!islower((unsigned char)ident(tk1)[0])) {
             break;
+        }
         qv_append(str, &path->bits, dup_ident(tk1));
         iopc_loc_merge(&path->loc, tk1->loc);
         DROP(pp, 2);
     }
 
-    if (modp)
-        *modp = check_path_exists(pp, path);
-
+    if (modp && !(*modp = check_path_exists(pp, path))) {
+        goto error;
+    }
     return path;
+
+  error:
+    iopc_path_delete(&path);
+    return NULL;
 }
 
 static iopc_path_t *parse_pkg_stmt(iopc_parser_t *pp)
 {
     iopc_path_t *path;
 
-    EAT_KW(pp, "package");
-    path = parse_path_aux(pp, NULL);
-    if (CHECK(pp, 0, '.'))
-        WANT(pp, 1, ITOK_IDENT);
-    EAT(pp, ';');
+    EAT_KW_P(pp, "package");
+    path = RETHROW_P(parse_path_aux(pp, NULL));
+
+    if (CHECK(pp, 0, '.', goto error)) {
+        if (__want(pp, 1, ITOK_IDENT) < 0) {
+            goto error;
+        }
+    }
+
+    if (__eat(pp, ';') < 0) {
+        goto error;
+    }
+
     return path;
+
+  error:
+    iopc_path_delete(&path);
+    return NULL;
 }
 
 static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
@@ -1501,31 +1685,48 @@ static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
     iopc_import_t *import = iopc_import_new();
     iopc_token_t *tk;
 
-    import->loc  = TK(pp, 0)->loc;
-    EAT_KW(pp, "import");
-    import->path = parse_path_aux(pp, &import->pkg);
+    import->loc  = TK(pp, 0, goto error)->loc;
+    if (__eat_kw(pp, "import") < 0
+    ||  !(import->path = parse_path_aux(pp, &import->pkg)))
+    {
+        goto error;
+    }
 
-    if (!CHECK(pp, 0, '.'))
-        fatal_loc("no type is specified, missing `.*` ?", TK(pp, 0)->loc);
+    if (!CHECK(pp, 0, '.', goto error)) {
+        error_loc("no type is specified, missing `.*` ?",
+                  TK(pp, 0, goto error)->loc);
+        goto error;
+    }
     DROP(pp, 1);
 
-    if (CHECK(pp, 0, ITOK_IDENT)) {
-        import->type = iopc_upper_ident(pp);
+    if (CHECK(pp, 0, ITOK_IDENT, goto error)) {
+        if (!(import->type = iopc_upper_ident(pp))) {
+            goto error;
+        }
     } else
-    if (!CHECK(pp, 0, '*')) {
+    if (!CHECK(pp, 0, '*', goto error)) {
         t_scope;
-        tk = TK(pp, 0);
-        fatal_loc("%s or %s expected, but got %s instead",
+
+        tk = TK(pp, 0, goto error);
+        error_loc("%s or %s expected, but got %s instead",
                   tk->loc, t_pretty_token('*'), t_pretty_token(ITOK_IDENT),
                   t_pretty_token(tk->token));
+        goto error;
     } else {
         DROP(pp, 1);
     }
-    WANT(pp, 0, ';');
-    iopc_loc_merge(&import->loc, TK(pp, 0)->loc);
+
+    if (__want(pp, 0, ';') < 0) {
+        goto error;
+    }
+    iopc_loc_merge(&import->loc, TK(pp, 0, goto error)->loc);
     DROP(pp, 1);
 
     return import;
+
+  error:
+    iopc_import_delete(&import);
+    return NULL;
 }
 
 static iop_type_t get_type_kind(iopc_token_t *tk)
@@ -1559,22 +1760,23 @@ static iop_type_t get_type_kind(iopc_token_t *tk)
     }
 }
 
-static void parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
-                              iopc_path_t **path, char **name)
+static int parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
+                             iopc_path_t **path, char **name)
 {
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_N(pp, 0);
 
     WANT(pp, 0, ITOK_IDENT);
     if (islower((unsigned char)ident(tk)[0])) {
-        *path = parse_path_aux(pp, type_pkg);
+        *path = RETHROW_PN(parse_path_aux(pp, type_pkg));
         EAT(pp, '.');
         WANT(pp, 0, ITOK_IDENT);
-        tk = TK(pp, 0);
+        tk = TK_N(pp, 0);
     }
-    *name = iopc_upper_ident(pp);
+    *name = RETHROW_PN(iopc_upper_ident(pp));
+    return 0;
 }
 
-static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
+static int check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
 {
     switch(kind) {
       case IOP_T_STRUCT:
@@ -1583,38 +1785,39 @@ static void check_snmp_obj_field_type(iopc_struct_t *st, iop_type_t kind)
       case IOP_T_I16:
       case IOP_T_I32:
       case IOP_T_BOOL:
-        return;
+        return 0;
       case IOP_T_I64:
       case IOP_T_U8:
       case IOP_T_U16:
       case IOP_T_U32:
       case IOP_T_U64:
       default:
-        fatal_loc("only int/string/boolean/enum types are handled for "
+        throw_loc("only int/string/boolean/enum types are handled for "
                   "snmp objects' fields", st->loc);
     }
 }
 
-static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
-                             iopc_field_t *f)
+static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
+                            iopc_field_t *f)
 {
     WANT(pp, 0, ITOK_IDENT);
-    f->kind = get_type_kind(TK(pp, 0));
+    f->kind = get_type_kind(TK_N(pp, 0));
 
     /* in case of snmpObj structure, some field type are not handled */
     if (st && iopc_is_snmp_st(st->type)) {
-        check_snmp_obj_field_type(st, f->kind);
+        RETHROW(check_snmp_obj_field_type(st, f->kind));
     }
     if (f->kind == IOP_T_STRUCT) {
-        parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
+        RETHROW(parse_struct_type(pp, &f->type_pkg, &f->type_path,
+                                  &f->type_name));
     } else {
         DROP(pp, 1);
     }
 
-    switch (TK(pp, 0)->token) {
+    switch (TK_N(pp, 0)->token) {
       case '?':
         if (f->is_static) {
-            fatal_loc("optional static members are forbidden", f->loc);
+            throw_loc("optional static members are forbidden", f->loc);
         }
         f->repeat = IOP_R_OPTIONAL;
         DROP(pp, 1);
@@ -1622,10 +1825,10 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 
       case '&':
         if (f->is_static) {
-            fatal_loc("referenced static members are forbidden", f->loc);
+            throw_loc("referenced static members are forbidden", f->loc);
         }
         if (f->kind != IOP_T_STRUCT) {
-            fatal_loc("references can only be applied to structures or unions",
+            throw_loc("references can only be applied to structures or unions",
                       f->loc);
         }
         f->repeat = IOP_R_REQUIRED;
@@ -1635,7 +1838,7 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 
       case '[':
         if (f->is_static) {
-            fatal_loc("repeated static members are forbidden", f->loc);
+            throw_loc("repeated static members are forbidden", f->loc);
         }
         WANT(pp, 1, ']');
         f->repeat = IOP_R_REPEATED;
@@ -1646,17 +1849,18 @@ static void parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
         f->repeat = IOP_R_REQUIRED;
         break;
     }
+    return 0;
 }
 
-static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
+static int parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 {
     iopc_token_t *tk;
 
     EAT(pp, '=');
-    tk = TK(pp, 0);
+    tk = TK_N(pp, 0);
 
     if (f->repeat != IOP_R_REQUIRED) {
-        fatal_loc("default values for non required fields makes no sense",
+        throw_loc("default values for non required fields makes no sense",
                   tk->loc);
     }
     f->repeat = IOP_R_DEFVAL;
@@ -1667,22 +1871,24 @@ static void parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
         f->defval_type = IOPC_DEFVAL_INTEGER;
         DROP(pp, 1);
     } else
-    if (CHECK(pp, 0, ITOK_STRING)) {
+    if (CHECK_N(pp, 0, ITOK_STRING)) {
         f->defval.ptr = p_strdup(tk->b.data);
         f->defval_type = IOPC_DEFVAL_STRING;
         DROP(pp, 1);
     } else
-    if (CHECK(pp, 0, ITOK_DOUBLE)) {
+    if (CHECK_N(pp, 0, ITOK_DOUBLE)) {
         f->defval.d = tk->d;
         f->defval_type = IOPC_DEFVAL_DOUBLE;
         DROP(pp, 1);
     } else {
         bool is_signed;
 
-        f->defval.u64 = parse_constant_integer(pp, paren, &is_signed);
+        RETHROW(parse_constant_integer(pp, paren, &f->defval.u64,
+                                       &is_signed));
         f->defval_is_signed = is_signed;
         f->defval_type = IOPC_DEFVAL_INTEGER;
     }
+    return 0;
 }
 
 static iopc_field_t *
@@ -1696,36 +1902,42 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     int           tag;
 
     f = iopc_field_new();
-    f->loc = TK(pp, 0)->loc;
+    f->loc = TK(pp, 0, goto error)->loc;
 
-    if (SKIP_KW(pp, "static")) {
+    if (SKIP_KW(pp, "static", goto error)) {
         if (!iopc_is_class(st->type)) {
-            fatal_loc("static keyword is only authorized for class fields",
+            error_loc("static keyword is only authorized for class fields",
                       f->loc);
+            goto error;
         }
         f->is_static = true;
     } else {
         /* Tag */
-        if (CHECK(pp, 0, ITOK_INTEGER)) {
-            WANT(pp, 1, ':');
-            tk = TK(pp, 0);
+        if (CHECK(pp, 0, ITOK_INTEGER, goto error)) {
+            if (__want(pp, 1, ':') < 0) {
+                goto error;
+            }
+            tk = TK(pp, 0, goto error);
             f->tag = tk->i;
             *next_tag = f->tag + 1;
             DROP(pp, 2);
-            if (CHECK_KW(pp, 0, "static")) {
-                fatal_loc("tag is not authorized for static class fields",
-                          TK(pp, 0)->loc);
+            if (CHECK_KW(pp, 0, "static", goto error)) {
+                error_loc("tag is not authorized for static class fields",
+                          TK(pp, 0, goto error)->loc);
+                goto error;
             }
         } else {
             f->tag = (*next_tag)++;
         }
         if (f->tag < 1) {
-            fatal_loc("tag is too small (must be >= 1, got %d)",
-                      TK(pp, 0)->loc, f->tag);
+            error_loc("tag is too small (must be >= 1, got %d)",
+                      TK(pp, 0, goto error)->loc, f->tag);
+            goto error;
         }
         if (f->tag >= 0x8000) {
-            fatal_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                      TK(pp, 0)->loc, f->tag);
+            error_loc("tag is too large (must be < 0x8000, got 0x%x)",
+                      TK(pp, 0, goto error)->loc, f->tag);
+            goto error;
         }
     }
 
@@ -1735,31 +1947,43 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     if (is_snmp_iface) {
         f->snmp_is_from_param = true;
     } else {
-        parse_field_type(pp, st, f);
+        if (parse_field_type(pp, st, f) < 0) {
+            goto error;
+        }
     }
 
-    WANT(pp, 0, ITOK_IDENT);
-    f->name = dup_ident(TK(pp, 0));
+    if (__want(pp, 0, ITOK_IDENT) < 0) {
+        goto error;
+    }
+    f->name = dup_ident(TK(pp, 0, goto error));
     if (strchr(f->name, '_')) {
-        fatal_loc("identifier '%s' contains a _", TK(pp, 0)->loc, f->name);
+        error_loc("identifier '%s' contains a _",
+                  TK(pp, 0, goto error)->loc, f->name);
+        goto error;
     }
     if (!islower(f->name[0])) {
-        fatal_loc("first character must be lowercased (got %s)",
-                 TK(pp, 0)->loc, f->name);
+        error_loc("first character must be lowercased (got %s)",
+                  TK(pp, 0, goto error)->loc, f->name);
+        goto error;
     }
 
-    name_loc = TK(pp, 0)->loc;
+    name_loc = TK(pp, 0, goto error)->loc;
     DROP(pp, 1);
 
-    if (CHECK(pp, 0, '=')) {
-        if (st->type == STRUCT_TYPE_UNION)
-            fatal_loc("default values are forbidden in union types", f->loc);
-        parse_field_defval(pp, f, paren);
+    if (CHECK(pp, 0, '=', goto error)) {
+        if (st->type == STRUCT_TYPE_UNION) {
+            error_loc("default values are forbidden in union types", f->loc);
+            goto error;
+        }
+        if (parse_field_defval(pp, f, paren) < 0) {
+            goto error;
+        }
         assert (f->defval_type);
     } else
     if (f->is_static && !st->is_abstract) {
-        fatal_loc("static fields of non-abstract classes must have a default "
-                  "value", f->loc);
+        error_loc("static fields of non-abstract classes must have a "
+                  "default value", f->loc);
+        goto error;
     }
 
     /* XXX At this point, the default value (if there is one) has been read,
@@ -1767,19 +1991,29 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
      * example for check_attr_type_field()), your code should be below this
      * line. */
 
-    qv_for_each_entry(iopc_attr, attr, attrs) {
-        check_attr_type_field(attr, f, false);
+    qv_for_each_pos(iopc_attr, pos, attrs) {
+        iopc_attr_t *attr = attrs->tab[pos];
+
+        if (check_attr_type_field(attr, f, false) < 0) {
+            for (; pos < attrs->len; pos++) {
+                iopc_attr_delete(&attrs->tab[pos]);
+            }
+            goto error;
+        }
         qv_append(iopc_attr, &f->attrs, attr);
     }
 
     /* Looks for blacklisted keyword (after attribute has been parsed) */
-    check_name(f->name, name_loc, &f->attrs);
+    if (check_name(f->name, name_loc, &f->attrs) < 0) {
+        goto error;
+    }
 
-    iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
+    iopc_loc_merge(&f->loc, TK(pp, 0, goto error)->loc);
 
     tag = f->tag;
     if (qm_add(iopc_field, fields, f->name, f)) {
-        fatal_loc("field name `%s` is already in use", f->loc, f->name);
+        error_loc("field name `%s` is already in use", f->loc, f->name);
+        goto error;
     }
 
     if (f->is_static) {
@@ -1789,28 +2023,35 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     qv_append(iopc_field, &st->fields, f);
 
     qv_for_each_entry(i32, t, tags) {
-        if (t == tag)
-            fatal_loc("tag %d is used twice", f->loc, tag);
+        if (t == tag) {
+            error_loc("tag %d is used twice", f->loc, tag);
+            goto error;
+        }
     }
     qv_append(i32, tags, tag);
     return f;
+
+  error:
+    iopc_field_delete(&f);
+    return NULL;
 }
 
-static void check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
-                             char *name, const char *type)
+static int check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
+                            char *name, const char *type)
 {
     qv_for_each_pos(iopc_dox, pos, &comments) {
         if (comments.tab[pos].type == IOPC_DOX_TYPE_BRIEF) {
-            return;
+            return 0;
         }
     }
-    fatal_loc("%s `%s` needs a brief that would be used as a "
+    throw_loc("%s `%s` needs a brief that would be used as a "
               "description in the generated MIB", loc, type, name);
 }
 
-static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
-                         int paren, bool is_snmp_iface)
+static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
+                        int paren, bool is_snmp_iface)
 {
+    int res = 0;
     qm_t(iopc_field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
     int next_pos = 1;
@@ -1823,87 +2064,105 @@ static void parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
     qv_inita(iopc_attr, &attrs, 16);
     qv_init(dox_chunk, &chunks);
 
-    while (!CHECK_NOEOF(pp, 0, paren)) {
+    while (!CHECK_NOEOF(pp, 0, paren, goto error)) {
         iopc_field_t *f;
 
-        check_dox_and_attrs(pp, &chunks, &attrs);
-        f = parse_field_stmt(pp, st, &attrs, &fields, &tags, &next_tag,
-                             paren, is_snmp_iface);
-        if (f) {
-            if (!previous_static && f->is_static) {
-                if (iopc_g.v4) {
-                    fatal_loc("all static attributes must be declared first",
-                              TK(pp, 0)->loc);
-                } else {
-                    warn_loc("all static attributes must be declared first",
-                             TK(pp, 0)->loc);
-                }
-            }
-            previous_static = f->is_static;
-
-            f->pos = next_pos++;
-            read_dox_back(pp, &chunks, sep);
-            build_dox_check_all(&chunks, f);
-
-            if (iopc_is_snmp_st(st->type)) {
-                check_snmp_brief(f->comments, f->loc, f->name, "field");
-            }
-
+        if (check_dox_and_attrs(pp, &chunks, &attrs) < 0
+        ||  !(f = parse_field_stmt(pp, st, &attrs, &fields, &tags, &next_tag,
+                                   paren, is_snmp_iface)))
+        {
+            goto error;
         }
-        if (CHECK(pp, 0, paren))
+
+        if (!previous_static && f->is_static) {
+            if (iopc_g.v4) {
+                error_loc("all static attributes must be declared first",
+                            TK(pp, 0, goto error)->loc);
+                goto error;
+            } else {
+                warn_loc("all static attributes must be declared first",
+                         TK(pp, 0, goto error)->loc);
+            }
+        }
+        previous_static = f->is_static;
+
+        f->pos = next_pos++;
+        RETHROW(read_dox_back(pp, &chunks, sep));
+        build_dox_check_all(&chunks, f);
+
+        if (iopc_is_snmp_st(st->type)
+        &&  check_snmp_brief(f->comments, f->loc, f->name, "field") < 0)
+        {
+            goto error;
+        }
+
+        if (CHECK(pp, 0, paren, goto error)) {
             break;
-        EAT(pp, sep);
+        }
+        if (__eat(pp, sep) < 0) {
+            goto error;
+        }
     }
+
+    iopc_loc_merge(&st->loc, TK(pp, 1, goto error)->loc);
+
+  end:
     qm_wipe(iopc_field, &fields);
     qv_wipe(i32, &tags);
     qv_wipe(iopc_attr, &attrs);
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
-    iopc_loc_merge(&st->loc, TK(pp, 1)->loc);
+    return res;
+
+  error:
+    res = -1;
+    goto end;
 }
 
-static void
+static int
 check_class_or_snmp_obj_id_range(iopc_parser_t *pp, int struct_id,
                                  int min, int max)
 {
     if (struct_id < min) {
-        fatal_loc("id is too small (must be >= %d, got %d)",
-                  TK(pp, 0)->loc, min, struct_id);
+        throw_loc("id is too small (must be >= %d, got %d)",
+                  TK_N(pp, 0)->loc, min, struct_id);
     }
     if (struct_id > max) {
-        fatal_loc("id is too large (must be <= %d, got %d)",
-                  TK(pp, 0)->loc, max, struct_id);
+        throw_loc("id is too large (must be <= %d, got %d)",
+                  TK_N(pp, 0)->loc, max, struct_id);
     }
+    return 0;
 }
 
-static void parse_check_class_snmp(iopc_parser_t *pp, bool is_class)
+static int parse_check_class_snmp(iopc_parser_t *pp, bool is_class)
 {
     if (!iopc_g.v2 && is_class) {
-        fatal_loc("inheritance forbidden (use -2 parameter)",
-                  TK(pp, 0)->loc);
+        throw_loc("inheritance forbidden (use -2 parameter)",
+                  TK_N(pp, 0)->loc);
     } else
     if (!iopc_g.v4 && !is_class) {
-            fatal_loc("use of snmp forbidden (use -4 parameter)",
-                      TK(pp, 0)->loc);
+        throw_loc("use of snmp forbidden (use -4 parameter)",
+                  TK_N(pp, 0)->loc);
     }
+    return 0;
 }
 
-static void parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
-                                    bool is_main_pkg)
+static int parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
+                                   bool is_main_pkg)
 {
     iopc_token_t *tk;
     bool is_class = iopc_is_class(st->type);
 
     assert (is_class || iopc_is_snmp_st(st->type));
 
-    parse_check_class_snmp(pp, is_class);
+    RETHROW(parse_check_class_snmp(pp, is_class));
 
     /* Parse struct id; This is optional for a struct without parent, and
      * in this case default is 0. */
-    if (SKIP(pp, ':')) {
+    if (SKIP_N(pp, ':')) {
         int id, pkg_min, pkg_max, global_min;
 
         WANT(pp, 0, ITOK_INTEGER);
-        tk = TK(pp, 0);
+        tk = TK_N(pp, 0);
         st->class_id = tk->i; /* so st->snmp_obj_id is also set to tk->i */
 
         if (is_class) {
@@ -1919,131 +2178,134 @@ static void parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
         }
 
         if (is_main_pkg) {
-            check_class_or_snmp_obj_id_range(pp, id, pkg_min, pkg_max);
+            RETHROW(check_class_or_snmp_obj_id_range(pp, id,
+                                                     pkg_min, pkg_max));
         } else {
-            check_class_or_snmp_obj_id_range(pp, id, global_min, 0xFFFF);
+            RETHROW(check_class_or_snmp_obj_id_range(pp, id,
+                                                     global_min, 0xFFFF));
         }
 
         DROP(pp, 1);
 
         /* Parse parent */
-        if (SKIP(pp, ':')) {
+        if (SKIP_N(pp, ':')) {
             iopc_extends_t *xt = iopc_extends_new();
 
-            xt->loc = TK(pp, 0)->loc;
-            parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
-            iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
+            qv_append(iopc_extends, &st->extends, xt);
+            xt->loc = TK_N(pp, 0)->loc;
+            RETHROW(parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name));
+            iopc_loc_merge(&xt->loc, TK_N(pp, 0)->loc);
 
             /* Check if snmpObj parent is Intersec */
             xt->is_snmp_root = strequal(xt->name, "Intersec");
 
-            qv_append(iopc_extends, &st->extends, xt);
-
-            if (SKIP(pp, ',')) {
-                fatal_loc("multiple inheritance is not supported",
-                          TK(pp, 0)->loc);
+            if (SKIP_N(pp, ',')) {
+                throw_loc("multiple inheritance is not supported",
+                          TK_N(pp, 0)->loc);
             }
         } else
         if (iopc_is_snmp_st(st->type)) {
-            fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+            throw_loc("%s `%s` needs a snmpObj parent", TK_N(pp, 0)->loc,
                       iopc_struct_type_to_str(st->type), st->name);
         }
     } else
     if (iopc_is_snmp_st(st->type)) {
-        fatal_loc("%s `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+        throw_loc("%s `%s` needs a snmpObj parent", TK_N(pp, 0)->loc,
                   iopc_struct_type_to_str(st->type), st->name);
     }
+
+    return 0;
 }
 
-static iopc_struct_t *
+static int
 parse_struct_class_union_snmp_stmt(iopc_parser_t *pp,
                                    iopc_struct_type_t type,
                                    bool is_abstract, bool is_local,
-                                   bool is_main_pkg)
+                                   bool is_main_pkg, iopc_struct_t *out)
 {
-    iopc_struct_t *st = iopc_struct_new();
+    out->is_visible = true;
+    out->type = type;
+    out->name = RETHROW_PN(iopc_upper_ident(pp));
+    out->loc = TK_N(pp, 0)->loc;
+    out->is_abstract = is_abstract;
+    out->is_local = is_local;
 
-    st->is_visible = true;
-    st->type = type;
-    st->name = iopc_upper_ident(pp);
-    st->loc = TK(pp, 0)->loc;
-    st->is_abstract = is_abstract;
-    st->is_local = is_local;
-
-    if (iopc_is_class(st->type) || iopc_is_snmp_st(st->type)) {
-        parse_handle_class_snmp(pp, st, is_main_pkg);
+    if (iopc_is_class(out->type) || iopc_is_snmp_st(out->type)) {
+        RETHROW(parse_handle_class_snmp(pp, out, is_main_pkg));
     }
 
-    if (!iopc_is_class(st->type)) {
+    if (!iopc_is_class(out->type)) {
         if (is_abstract) {
-            fatal_loc("only classes can be abstract", TK(pp, 0)->loc);
+            throw_loc("only classes can be abstract", TK_N(pp, 0)->loc);
         }
         if (is_local) {
-            fatal_loc("only classes can be local", TK(pp, 0)->loc);
+            throw_loc("only classes can be local", TK_N(pp, 0)->loc);
         }
     }
 
     EAT(pp, '{');
-    parse_struct(pp, st, ';', '}', false);
+    RETHROW(parse_struct(pp, out, ';', '}', false));
     EAT(pp, '}');
     EAT(pp, ';');
-    return st;
+    return 0;
 }
 
-static
-iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
+static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
+                             qv_t(i32) *values, qv_t(dox_chunk) *chunks,
+                             iopc_enum_t *out)
 {
     t_scope;
-    iopc_enum_t *en = iopc_enum_new();
-    int next_value  = 0;
-    qv_t(i32) values;
+    int64_t next_value = 0;
     lstr_t ns;
     lstr_t prefix = LSTR_NULL;
-    qv_t(dox_chunk) chunks;
 
-    qv_init(dox_chunk, &chunks);
-
-    en->is_visible = true;
-    en->loc = TK(pp, 0)->loc;
+    out->is_visible = true;
+    out->loc = TK_N(pp, 0)->loc;
 
     EAT_KW(pp, "enum");
-    en->name = iopc_upper_ident(pp);
+    out->name = RETHROW_PN(iopc_upper_ident(pp));
     EAT(pp, '{');
 
     t_iopc_attr_check_prefix(attrs, &prefix);
     lstr_ascii_toupper(&prefix);
 
-    ns = t_camelcase_to_c(LSTR(en->name));
+    ns = t_camelcase_to_c(LSTR(out->name));
     lstr_ascii_toupper(&ns);
 
-    if (lstr_equal2(ns, prefix))
+    if (lstr_equal2(ns, prefix)) {
         prefix = LSTR_NULL_V;
+    }
 
-    t_qv_init(i32, &values, 1024);
-
-    while (!CHECK_NOEOF(pp, 0, '}')) {
+    while (!CHECK_NOEOF_N(pp, 0, '}')) {
         iopc_enum_field_t *f = iopc_enum_field_new();
         char *ename;
 
-        check_dox_and_attrs(pp, &chunks, &f->attrs);
+        if (check_dox_and_attrs(pp, chunks, &f->attrs) < 0
+        ||  !(f->name = iopc_aupper_ident(pp)))
+        {
+            goto error;
+        }
 
-        f->name  = iopc_aupper_ident(pp);
-        f->loc   = TK(pp, 0)->loc;
+        f->loc = TK(pp, 0, goto error)->loc;
 
-        ename = asprintf("%*pM_%s", LSTR_FMT_ARG(ns), f->name);
-
-        if (SKIP(pp, '=')) {
-            next_value = parse_constant_integer(pp, '}', NULL);
+        if (SKIP(pp, '=', goto error)) {
+            if (parse_constant_integer(pp, '}', (uint64_t *)&next_value,
+                                       NULL) < 0)
+            {
+                goto error;
+            }
         }
 
         qv_for_each_entry(iopc_attr, attr, &f->attrs) {
             if (attr->desc->id != IOPC_ATTR_GENERIC) {
-                fatal_loc("invalid attribute %s on enum field", f->loc,
+                error_loc("invalid attribute %s on enum field", f->loc,
                           attr->desc->name.s);
+                goto error;
             }
         }
 
         /* handle properly prefixed enums */
+        ename = asprintf("%*pM_%s", LSTR_FMT_ARG(ns), f->name);
         if (prefix.s) {
             uint32_t qpos = qm_put(enums, &_G.enums_forbidden, ename, f, 0);
 
@@ -2055,53 +2317,73 @@ iopc_enum_t *parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs)
 
         /* Checks for name uniqueness */
         if (qm_add(enums, &_G.enums, ename, f)) {
-            fatal_loc("enum field name `%s` is used twice", f->loc, f->name);
+            p_delete(&ename);
+            error_loc("enum field name `%s` is used twice", f->loc, f->name);
+            goto error;
         }
 
         f->value = next_value++;
-        qv_append(iopc_enum_field, &en->values, f);
-        qv_for_each_entry(i32, v, &values) {
-            if (v == f->value)
-                fatal_loc("value %d is used twice", f->loc, f->value);
+        qv_append(iopc_enum_field, &out->values, f);
+        qv_for_each_entry(i32, v, values) {
+            if (v == f->value) {
+                throw_loc("value %d is used twice", f->loc, f->value);
+            }
         }
-        qv_append(i32, &values, f->value);
+        qv_append(i32, values, f->value);
 
-        read_dox_back(pp, &chunks, ',');
-        build_dox_check_all(&chunks, f);
+        RETHROW(read_dox_back(pp, chunks, ','));
+        build_dox_check_all(chunks, f);
 
-        if (SKIP(pp, ','))
+        if (SKIP_N(pp, ',')) {
             continue;
+        }
 
-        fatal_loc("`,` expected on every line", f->loc);
+        throw_loc("`,` expected on every line", f->loc);
+
+      error:
+        iopc_enum_field_delete(&f);
+        return -1;
     }
 
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
-    iopc_loc_merge(&en->loc, TK(pp, 1)->loc);
+    iopc_loc_merge(&out->loc, TK_N(pp, 1)->loc);
 
     WANT(pp, 1, ';');
     DROP(pp, 2);
-    return en;
+    return 0;
 }
 
-static iopc_field_t *
-parse_typedef_stmt(iopc_parser_t *pp)
+static int parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
+                           iopc_enum_t *out)
 {
-    iopc_field_t *f;
+    int res;
+    qv_t(i32) values;
+    qv_t(dox_chunk) chunks;
 
+    qv_inita(i32, &values, 1024);
+    qv_inita(dox_chunk, &chunks, 16);
+
+    res = __parse_enum_stmt(pp, attrs, &values, &chunks, out);
+
+    qv_wipe(i32, &values);
+    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    return res;
+}
+
+static int parse_typedef_stmt(iopc_parser_t *pp, iopc_field_t *out)
+{
     EAT_KW(pp, "typedef");
 
-    f = iopc_field_new();
-    f->loc = TK(pp, 0)->loc;
-    f->is_visible = true;
-    parse_field_type(pp, NULL, f);
+    out->loc = TK_N(pp, 0)->loc;
+    out->is_visible = true;
+    RETHROW(parse_field_type(pp, NULL, out));
 
-    f->name = iopc_upper_ident(pp);
-    if (strchr(f->name, '_')) {
-        fatal_loc("identifer '%s' contains a _", TK(pp, 0)->loc, f->name);
+    out->name = RETHROW_PN(iopc_upper_ident(pp));
+    if (strchr(out->name, '_')) {
+        throw_loc("identifer '%s' contains a _", TK_N(pp, 0)->loc, out->name);
     }
     EAT(pp, ';');
 
-    return f;
+    return 0;
 }
 
 enum {
@@ -2110,9 +2392,9 @@ enum {
     IOP_F_EXN  = 2,
 };
 
-static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
-                                qv_t(dox_chunk) *chunks,
-                                iopc_iface_type_t iface_type)
+static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
+                               qv_t(dox_chunk) *chunks,
+                               iopc_iface_type_t iface_type, bool *res)
 {
     static char const * const type_names[] = { "Args", "Res", "Exn", };
     static char const * const tokens[]     = { "in",   "out", "throw", };
@@ -2122,20 +2404,23 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
     iopc_field_t  **fptr;
     bool is_snmp_iface = iopc_is_snmp_iface(iface_type);
 
-    read_dox_front(pp, chunks);
+    RETHROW(read_dox_front(pp, chunks));
 
-    if (!CHECK_KW(pp, 0, token)) {
-        return false;
+    *res = false;
+
+    if (!CHECK_KW_N(pp, 0, token)) {
+        return 0;
     }
 
-    if (fun->fun_is_async && (what == IOP_F_EXN))
-        fatal_loc("async functions cannot throw", TK(pp, 0)->loc);
+    if (fun->fun_is_async && (what == IOP_F_EXN)) {
+        throw_loc("async functions cannot throw", TK_N(pp, 0)->loc);
+    }
     if (is_snmp_iface && (what == IOP_F_EXN || what == IOP_F_RES)) {
-        fatal_loc("snmpIface cannot out and/or throw", TK(pp, 0)->loc);
+        throw_loc("snmpIface cannot out and/or throw", TK_N(pp, 0)->loc);
     }
 
     DROP(pp, 1);
-    if (SKIP(pp, '(')) {
+    if (SKIP_N(pp, '(')) {
         switch (what) {
           case IOP_F_ARGS:
             sptr = &fun->arg;
@@ -2155,36 +2440,38 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
 
         *sptr = iopc_struct_new();
         (*sptr)->name = asprintf("%s%s", fun->name, type_name);
-        (*sptr)->loc = TK(pp, 0)->loc;
-        parse_struct(pp, *sptr, ',', ')', is_snmp_iface);
+        (*sptr)->loc = TK_N(pp, 0)->loc;
+        RETHROW(parse_struct(pp, *sptr, ',', ')', is_snmp_iface));
         EAT(pp, ')');
-        read_dox_back(pp, chunks, 0);
+        RETHROW(read_dox_back(pp, chunks, 0));
         build_dox_check_all(chunks, *sptr);
     } else                          /* fname in void ... */
-    if (CHECK_KW(pp, 0, "void")) {
+    if (CHECK_KW_N(pp, 0, "void")) {
         if (is_snmp_iface) {
-            fatal_loc("void is not supported by snmpIface RPCs",
-                      TK(pp, 0)->loc);
+            throw_loc("void is not supported by snmpIface RPCs",
+                      TK_N(pp, 0)->loc);
         }
         DROP(pp, 1);
     } else
-    if (is_snmp_iface && SKIP_KW(pp, "null")) {
-        fatal_loc("null is not supported by snmpIface RPCs",
-                  TK(pp, 0)->loc);
+    if (is_snmp_iface && SKIP_KW_N(pp, "null")) {
+        throw_loc("null is not supported by snmpIface RPCs",
+                  TK_N(pp, 0)->loc);
     } else
-    if ((what == IOP_F_RES) && SKIP_KW(pp, "null")) {
+    if ((what == IOP_F_RES) && SKIP_KW_N(pp, "null")) {
         fun->fun_is_async = true;
     } else
     if (is_snmp_iface) {
-        fatal_loc("snmpIface RPC argument must be anonymous. example "
-                  "`in (a, b, c);`", TK(pp, 0)->loc);
+        throw_loc("snmpIface RPC argument must be anonymous. example "
+                  "`in (a, b, c);`", TK_N(pp, 0)->loc);
     } else {                        /* fname in Type ... */
-        iop_type_t type = get_type_kind(TK(pp, 0));
+        iop_type_t type = get_type_kind(TK_N(pp, 0));
         iopc_field_t *f;
 
-        if (type != IOP_T_STRUCT)
-            fatal_loc("a structure (or a union) type was expected here"
-                      " (got %s)", TK(pp, 0)->loc, ident(TK(pp, 0)));
+        if (type != IOP_T_STRUCT) {
+            throw_loc("a structure (or a union) type was expected here"
+                      " (got %s)", TK_N(pp, 0)->loc, ident(TK_N(pp, 0)));
+        }
+
         /* We use a field to store the type of the function argument. */
         switch (what) {
           case IOP_F_ARGS:
@@ -2204,20 +2491,24 @@ static bool parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
         }
 
         f = iopc_field_new();
+        *fptr = f;
+
         f->name = asprintf("%s%s", fun->name, type_name);
-        f->loc = TK(pp, 0)->loc;
+        f->loc = TK_N(pp, 0)->loc;
         f->kind = IOP_T_STRUCT;
 
-        parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
+        RETHROW(parse_struct_type(pp, &f->type_pkg, &f->type_path,
+                                  &f->type_name));
 
-        read_dox_back(pp, chunks, 0);
+        RETHROW(read_dox_back(pp, chunks, 0));
         build_dox_check_all(chunks, f);
 
-        iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
-        *fptr = f;
+        iopc_loc_merge(&f->loc, TK_N(pp, 0)->loc);
     }
+
     qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
-    return true;
+    *res = true;
+    return 0;
 }
 
 static iopc_fun_t *
@@ -2225,19 +2516,26 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
                     qv_t(i32) *tags, int *next_tag,
                     iopc_iface_type_t type)
 {
-    iopc_fun_t *fun = NULL;
+    iopc_fun_t *fun = iopc_fun_new();
     iopc_token_t *tk;
     int tag;
     qv_t(dox_chunk) fun_chunks, arg_chunks;
+    bool res_res;
+    bool exn_res;
 
     qv_init(dox_chunk, &fun_chunks);
-    (check_dox_and_attrs)(pp, &fun_chunks, attrs, IOPC_ATTR_T_RPC);
+    qv_init(dox_chunk, &arg_chunks);
 
-    fun = iopc_fun_new();
-    fun->loc = TK(pp, 0)->loc;
-    if (CHECK(pp, 0, ITOK_INTEGER)) {
-        WANT(pp, 1, ':');
-        tk = TK(pp, 0);
+    if ((check_dox_and_attrs)(pp, &fun_chunks, attrs, IOPC_ATTR_T_RPC) < 0) {
+        goto error;
+    }
+
+    fun->loc = TK(pp, 0, goto error)->loc;
+    if (CHECK(pp, 0, ITOK_INTEGER, goto error)) {
+        if (__want(pp, 1, ':') < 0) {
+            goto error;
+        }
+        tk = TK(pp, 0, goto error);
         fun->tag = tk->i;
         *next_tag = fun->tag + 1;
         DROP(pp, 2);
@@ -2245,97 +2543,119 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
         fun->tag = (*next_tag)++;
     }
     if (fun->tag < 1) {
-        fatal_loc("tag is too small (must be >= 1, got %d)",
-                  TK(pp, 0)->loc, fun->tag);
+        error_loc("tag is too small (must be >= 1, got %d)",
+                  TK(pp, 0, goto error)->loc, fun->tag);
+        goto error;
     }
     if (fun->tag >= 0x8000) {
-        fatal_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                  TK(pp, 0)->loc, fun->tag);
+        error_loc("tag is too large (must be < 0x8000, got 0x%x)",
+                  TK(pp, 0, goto error)->loc, fun->tag);
+        goto error;
     }
 
     qv_splice(iopc_attr, &fun->attrs, fun->attrs.len, 0,
               attrs->tab, attrs->len);
 
-    fun->name = iopc_lower_ident(pp);
-    check_name(fun->name, TK(pp, 0)->loc, &fun->attrs);
-    read_dox_back(pp, &fun_chunks, 0);
-
-    qv_init(dox_chunk, &arg_chunks);
-
-    /* Parse function desc */
-    parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks, type);
-
-    /* XXX we use & to execute both function calls */
-    if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks, type))
-     &  (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks, type)))
+    if (!(fun->name = iopc_lower_ident(pp))
+    ||  check_name(fun->name, TK(pp, 0, goto error)->loc, &fun->attrs) < 0
+    ||  read_dox_back(pp, &fun_chunks, 0) < 0)
     {
-        if (!iopc_is_snmp_iface(type)) {
-            info_loc("function %s may be a candidate for async-ness",
-                     fun->loc, fun->name);
-        }
+        goto error;
     }
 
-    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
+    /* Parse function desc */
+    if (parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks, type,
+                            &res_res) < 0)
+    {
+        goto error;
+    }
+    if (parse_function_desc(pp, IOP_F_RES, fun, &arg_chunks, type,
+                            &res_res) < 0
+    ||  parse_function_desc(pp, IOP_F_EXN, fun, &arg_chunks, type,
+                            &exn_res) < 0)
+    {
+        goto error;
+    }
+    if (res_res && exn_res && !iopc_is_snmp_iface(type)) {
+        info_loc("function %s may be a candidate for async-ness",
+                 fun->loc, fun->name);
+    }
 
-    EAT(pp, ';');
+    if (__eat(pp, ';') < 0) {
+        goto error;
+    }
 
     tag = fun->tag;
     for (int i = 0; i < tags->len; i++) {
-        if (tags->tab[i] == tag)
-            fatal_loc("tag %d is used twice", fun->loc, tag);
+        if (tags->tab[i] == tag) {
+            error_loc("tag %d is used twice", fun->loc, tag);
+            goto error;
+        }
     }
     qv_append(i32, tags, tag);
 
     build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
     if (iopc_is_snmp_iface(type)) {
-        check_snmp_brief(fun->comments, fun->loc, fun->name, "notification");
+        if (check_snmp_brief(fun->comments, fun->loc, fun->name,
+                             "notification") < 0)
+        {
+            goto error;
+        }
     }
 
     qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
+    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
     return fun;
+
+  error:
+    iopc_fun_delete(&fun);
+    qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
+    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
+    return NULL;
 }
 
-static void parse_snmp_iface_parent(iopc_parser_t *pp, iopc_iface_t *iface,
-                                    bool is_main_pkg)
+static int parse_snmp_iface_parent(iopc_parser_t *pp, iopc_iface_t *iface,
+                                   bool is_main_pkg)
 {
    iopc_token_t *tk;
 
     /* Check OID */
-    if (SKIP(pp, ':')) {
+    if (SKIP_N(pp, ':')) {
         WANT(pp, 0, ITOK_INTEGER);
-        tk = TK (pp, 0);
+        tk = TK_N(pp, 0);
 
         iface->oid = tk->i;
 
         if (is_main_pkg) {
-            check_class_or_snmp_obj_id_range(pp, iface->oid,
-                                             SNMP_IFACE_OID_MIN,
-                                             SNMP_IFACE_OID_MAX);
+            RETHROW(check_class_or_snmp_obj_id_range(pp, iface->oid,
+                                                     SNMP_IFACE_OID_MIN,
+                                                     SNMP_IFACE_OID_MAX));
         } else {
-            check_class_or_snmp_obj_id_range(pp, iface->oid,
-                                             0, 0xFFFF);
+            RETHROW(check_class_or_snmp_obj_id_range(pp, iface->oid,
+                                                     0, 0xFFFF));
         }
         DROP(pp, 1);
     }
 
     /* Parse parent */
-    if (SKIP(pp, ':')) {
+    if (SKIP_N(pp, ':')) {
         iopc_extends_t *xt = iopc_extends_new();
-
-        xt->loc = TK(pp, 0)->loc;
-        parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
-        iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
 
         qv_append(iopc_extends, &iface->extends, xt);
 
-        if (SKIP(pp, ',')) {
-            fatal_loc("multiple inheritance is not supported",
-                      TK(pp, 0)->loc);
+        xt->loc = TK_N(pp, 0)->loc;
+        RETHROW(parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name));
+        iopc_loc_merge(&xt->loc, TK_N(pp, 0)->loc);
+
+        if (SKIP_N(pp, ',')) {
+            throw_loc("multiple inheritance is not supported",
+                      TK_N(pp, 0)->loc);
         }
     } else {
-        fatal_loc("snmpIface `%s` needs a snmpObj parent", TK(pp, 0)->loc,
+        throw_loc("snmpIface `%s` needs a snmpObj parent", TK_N(pp, 0)->loc,
                   iface->name);
     }
+    return 0;
 }
 
 static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
@@ -2348,41 +2668,59 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
     int next_tag = 1;
     iopc_iface_t *iface = iopc_iface_new();
 
-    iface->loc = TK(pp, 0)->loc;
-    iface->type = type;
-
-    EAT_KW(pp, name);
-    iface->name = iopc_upper_ident(pp);
-
-    if (iopc_is_snmp_iface(type)) {
-        parse_snmp_iface_parent(pp, iface, is_main_pkg);
-    }
-
-    EAT(pp, '{');
-
     qv_inita(i32, &tags, 1024);
     qv_inita(iopc_attr, &attrs, 16);
 
-    while (!CHECK_NOEOF(pp, 0, '}')) {
+    iface->loc = TK(pp, 0, goto error)->loc;
+    iface->type = type;
+
+    if (__eat_kw(pp, name) < 0
+    ||  !(iface->name = iopc_upper_ident(pp)))
+    {
+        goto error;
+    }
+
+    if (iopc_is_snmp_iface(type)
+    &&  parse_snmp_iface_parent(pp, iface, is_main_pkg) < 0)
+    {
+        goto error;
+    }
+
+    if (__eat(pp, '{') < 0) {
+        goto error;
+    }
+
+    while (!CHECK_NOEOF(pp, 0, '}', goto error)) {
         iopc_fun_t *fun;
 
         fun = parse_function_stmt(pp, &attrs, &tags, &next_tag, iface->type);
         if (!fun) {
-            continue;
+            goto error;
         }
         qv_append(iopc_fun, &iface->funs, fun);
         if (qm_add(iopc_fun, &funs, fun->name, fun)) {
-            fatal_loc("a function `%s` already exists", fun->loc, fun->name);
+            error_loc("a function `%s` already exists", fun->loc, fun->name);
+            goto error;
         }
     }
+
+    iopc_loc_merge(&iface->loc, TK(pp, 1, goto error)->loc);
+    if (__want(pp, 1, ';') < 0) {
+        goto error;
+    }
+    DROP(pp, 2);
+
     qm_wipe(iopc_fun, &funs);
     qv_wipe(i32, &tags);
     qv_wipe(iopc_attr, &attrs);
-
-    iopc_loc_merge(&iface->loc, TK(pp, 1)->loc);
-    WANT(pp, 1, ';');
-    DROP(pp, 2);
     return iface;
+
+  error:
+    qm_wipe(iopc_fun, &funs);
+    qv_wipe(i32, &tags);
+    qv_wipe(iopc_attr, &attrs);
+    iopc_iface_delete(&iface);
+    return NULL;
 }
 
 static iopc_field_t *
@@ -2394,10 +2732,12 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     int tag;
 
     f = iopc_field_new();
-    f->loc = TK(pp, 0)->loc;
-    if (CHECK(pp, 0, ITOK_INTEGER)) {
-        WANT(pp, 1, ':');
-        tk = TK(pp, 0);
+    qv_append(iopc_field, &mod->fields, f);
+    f->loc = TK_P(pp, 0)->loc;
+
+    if (CHECK_P(pp, 0, ITOK_INTEGER)) {
+        WANT_P(pp, 1, ':');
+        tk = TK_P(pp, 0);
         f->tag = tk->i;
         *next_tag = f->tag + 1;
         DROP(pp, 2);
@@ -2405,30 +2745,32 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
         f->tag = (*next_tag)++;
     }
     if (f->tag < 1) {
-        fatal_loc("tag is too small (must be >= 1, got %d)",
-                  TK(pp, 0)->loc, f->tag);
+        throw_loc_p("tag is too small (must be >= 1, got %d)",
+                    TK_P(pp, 0)->loc, f->tag);
     }
     if (f->tag >= 0x8000) {
-        fatal_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                  TK(pp, 0)->loc, f->tag);
+        throw_loc_p("tag is too large (must be < 0x8000, got 0x%x)",
+                    TK_P(pp, 0)->loc, f->tag);
     }
 
-    parse_struct_type(pp, &f->type_pkg, &f->type_path, &f->type_name);
-    f->name = iopc_lower_ident(pp);
+    RETHROW_NP(parse_struct_type(pp, &f->type_pkg, &f->type_path,
+                                 &f->type_name));
+    f->name = RETHROW_P(iopc_lower_ident(pp));
     if (strchr(f->name, '_')) {
-        fatal_loc("identifier '%s' contains a _", TK(pp, 0)->loc, f->name);
+        throw_loc_p("identifier '%s' contains a _",
+                    TK_P(pp, 0)->loc, f->name);
     }
 
-    iopc_loc_merge(&f->loc, TK(pp, 0)->loc);
-    qv_append(iopc_field, &mod->fields, f);
+    iopc_loc_merge(&f->loc, TK_P(pp, 0)->loc);
 
     tag = f->tag;
     if (qm_add(iopc_field, fields, f->name, f)) {
-        fatal_loc("field name `%s` is already in use", f->loc, f->name);
+        throw_loc_p("field name `%s` is already in use", f->loc, f->name);
     }
     for (int i = 0; i < tags->len; i++) {
-        if (tags->tab[i] == tag)
-            fatal_loc("tag %d is used twice", f->loc, tag);
+        if (tags->tab[i] == tag) {
+            throw_loc_p("tag %d is used twice", f->loc, tag);
+        }
     }
     qv_append(i32, tags, tag);
     return f;
@@ -2442,58 +2784,75 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
     iopc_struct_t *mod = iopc_struct_new();
     qv_t(dox_chunk) chunks;
 
-    qv_init(dox_chunk, &chunks);
+    qv_inita(dox_chunk, &chunks, 16);
+    qv_inita(i32, &tags, 1024);
 
-    mod->loc = TK(pp, 0)->loc;
+    mod->loc = TK(pp, 0, goto error)->loc;
 
-    EAT_KW(pp, "module");
-    mod->name = iopc_upper_ident(pp);
+    if (__eat_kw(pp, "module") < 0
+    ||  !(mod->name = iopc_upper_ident(pp)))
+    {
+        goto error;
+    }
 
-    if (SKIP(pp, ':')) {
+    if (SKIP(pp, ':', goto error)) {
         do {
             iopc_extends_t *xt = iopc_extends_new();
 
-            xt->loc  = TK(pp, 0)->loc;
-            parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name);
-            iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
-
             qv_append(iopc_extends, &mod->extends, xt);
-        } while (SKIP(pp, ','));
-        if (CHECK(pp, 0, ';'))
+            xt->loc  = TK(pp, 0, goto error)->loc;
+            if (parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name) < 0) {
+                goto error;
+            }
+            iopc_loc_merge(&xt->loc, TK(pp, 0, goto error)->loc);
+        } while (SKIP(pp, ',', goto error));
+        if (CHECK(pp, 0, ';', goto error)) {
             goto empty_body;
+        }
     }
-    EAT(pp, '{');
+    if (__eat(pp, '{') < 0) {
+        goto error;
+    }
 
-    qv_inita(i32, &tags, 1024);
-    while (!CHECK_NOEOF(pp, 0, '}')) {
+    while (!CHECK_NOEOF(pp, 0, '}', goto error)) {
         iopc_field_t *f;
 
-        read_dox_front(pp, &chunks);
-        f = parse_mod_field_stmt(pp, mod, &fields, &tags, &next_tag);
-        if (f) {
-            read_dox_back(pp, &chunks, ';');
-            build_dox_check_all(&chunks, f);
+        if (read_dox_front(pp, &chunks) < 0
+        ||  !(f = parse_mod_field_stmt(pp, mod, &fields, &tags, &next_tag))
+        ||  read_dox_back(pp, &chunks, ';') < 0)
+        {
+            goto error;
         }
-        EAT(pp, ';');
+        build_dox_check_all(&chunks, f);
+        if (__eat(pp, ';') < 0) {
+            goto error;
+        }
     }
-    qm_wipe(iopc_field, &fields);
-    qv_wipe(i32, &tags);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
     DROP(pp, 1);
 
   empty_body:
-    iopc_loc_merge(&mod->loc, TK(pp, 0)->loc);
-    EAT(pp, ';');
+    iopc_loc_merge(&mod->loc, TK(pp, 0, goto error)->loc);
+    if (__eat(pp, ';') < 0) {
+        goto error;
+    }
+  end:
+    qm_wipe(iopc_field, &fields);
+    qv_wipe(i32, &tags);
+    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
     return mod;
+
+  error:
+    iopc_struct_delete(&mod);
+    goto end;
 }
 
-static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
-static void parse_json_array(iopc_parser_t *pp, sb_t *sb);
+static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
+static int parse_json_array(iopc_parser_t *pp, sb_t *sb);
 
-static void parse_json_value(iopc_parser_t *pp, sb_t *sb)
+static int parse_json_value(iopc_parser_t *pp, sb_t *sb)
 {
     SB_1k(tmp);
-    iopc_token_t *tk = TK(pp, 0);
+    iopc_token_t *tk = TK_N(pp, 0);
 
     switch (tk->token) {
       case ITOK_STRING:
@@ -2515,49 +2874,48 @@ static void parse_json_value(iopc_parser_t *pp, sb_t *sb)
         break;
 
       case ITOK_LBRACE:
-        parse_json_object(pp, sb, false);
-        return;
+        return parse_json_object(pp, sb, false);
 
       case ITOK_LBRACKET:
-        parse_json_array(pp, sb);
-        return;
+        return parse_json_array(pp, sb);
 
       case ITOK_BOOL:
         sb_addf(sb, "%s", tk->i ? "true" : "false");
         break;
 
       case ITOK_IDENT:
-        if (CHECK_KW(pp, 0, "null")) {
+        if (CHECK_KW_N(pp, 0, "null")) {
             sb_adds(sb, "null");
         } else {
-            fatal_loc("invalid identifier when parsing json value", tk->loc);
+            throw_loc("invalid identifier when parsing json value", tk->loc);
         }
         break;
 
       default:
-        fatal_loc("invalid token when parsing json value", tk->loc);
+        throw_loc("invalid token when parsing json value", tk->loc);
         break;
     }
 
     DROP(pp, 1);
+    return 0;
 }
 
-static void parse_json_array(iopc_parser_t *pp, sb_t *sb)
+static int parse_json_array(iopc_parser_t *pp, sb_t *sb)
 {
     EAT(pp, '[');
     sb_addc(sb, '[');
 
-    if (CHECK_NOEOF(pp, 0, ']')) {
+    if (CHECK_NOEOF_N(pp, 0, ']')) {
         goto end;
     }
     for (;;) {
-        parse_json_value(pp, sb);
+        RETHROW(parse_json_value(pp, sb));
 
-        if (!CHECK(pp, 0, ',')) {
+        if (!CHECK_N(pp, 0, ',')) {
             break;
         }
         DROP(pp, 1);
-        if (CHECK_NOEOF(pp, 0, ']')) {
+        if (CHECK_NOEOF_N(pp, 0, ']')) {
             break;
         }
         sb_addc(sb, ',');
@@ -2565,9 +2923,10 @@ static void parse_json_array(iopc_parser_t *pp, sb_t *sb)
   end:
     EAT(pp, ']');
     sb_addc(sb, ']');
+    return 0;
 }
 
-static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel)
+static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel)
 {
     char end = toplevel ? ')' : '}';
 
@@ -2575,32 +2934,32 @@ static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel)
         EAT(pp, '{');
         sb_addc(sb, '{');
     }
-    if (CHECK_NOEOF(pp, 0, end)) {
+    if (CHECK_NOEOF_N(pp, 0, end)) {
         goto end;
     }
     for (;;) {
-        iopc_token_t *tk = TK(pp, 0);
+        iopc_token_t *tk = TK_N(pp, 0);
 
-        if (!CHECK(pp, 0, ITOK_IDENT)) {
+        if (!CHECK_N(pp, 0, ITOK_IDENT)) {
             WANT(pp, 0, ITOK_STRING);
         }
         sb_addf(sb, "\"%*pM\"",  SB_FMT_ARG(&tk->b));
         DROP(pp, 1);
 
-        if (CHECK(pp, 0, '=')) {
+        if (CHECK_N(pp, 0, '=')) {
             DROP(pp, 1);
         } else {
             EAT(pp, ':');
         }
         sb_addc(sb, ':');
 
-        parse_json_value(pp, sb);
+        RETHROW(parse_json_value(pp, sb));
 
-        if (!CHECK(pp, 0, ',')) {
+        if (!CHECK_N(pp, 0, ',')) {
             break;
         }
         DROP(pp, 1);
-        if (CHECK_NOEOF(pp, 0, end)) {
+        if (CHECK_NOEOF_N(pp, 0, end)) {
             break;
         }
         sb_addc(sb, ',');
@@ -2610,37 +2969,38 @@ static void parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel)
         EAT(pp, '}');
         sb_addc(sb, '}');
     }
+    return 0;
 }
 
-static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
-                                 iopc_arg_desc_t *desc)
+static int parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
+                              iopc_arg_desc_t *desc, lstr_t *out)
 {
     SB_1k(sb);
     iopc_arg_t arg;
-    lstr_t new_name;
     iopc_token_t *tk;
 
     assert (IOPC_ATTR_REPEATED_MONO_ARG(attr->desc));
-    if (!expect(desc))
-        return LSTR_NULL_V;
+    if (!expect(desc)) {
+        return -1;
+    }
 
     iopc_arg_init(&arg);
     arg.desc = desc;
-    arg.loc  = TK(pp, 0)->loc;
+    arg.loc  = TK_N(pp, 0)->loc;
 
     WANT(pp, 0, ITOK_GEN_ATTR_NAME);
-    new_name = lstr_dups(TK(pp, 0)->b.data, -1);
+    *out = lstr_dups(TK_N(pp, 0)->b.data, -1);
     DROP(pp, 1);
 
     EAT(pp, ',');
 
-    tk = TK(pp, 0);
+    tk = TK_N(pp, 0);
     arg.type = tk->token;
 
-    if (CHECK(pp, 1, ':') || CHECK(pp, 1, '=')) {
+    if (CHECK_N(pp, 1, ':') || CHECK_N(pp, 1, '=')) {
         arg.type = ITOK_IDENT;
         sb_addc(&sb, '{');
-        parse_json_object(pp, &sb, true);
+        RETHROW(parse_json_object(pp, &sb, true));
         sb_addc(&sb, '}');
         lstr_transfer_sb(&arg.v.s, &sb, false);
         goto append;
@@ -2661,21 +3021,21 @@ static lstr_t parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         break;
 
       default:
-        fatal("unable to parse value for generic argument '%*pM'",
-              LSTR_FMT_ARG(new_name));
+        throw_loc("unable to parse value for generic argument '%*pM'",
+                  TK_N(pp, 0)->loc, LSTR_FMT_ARG(*out));
     }
 
     DROP(pp, 1);
 
   append:
     qv_append(iopc_arg, &attr->args, arg);
-    return new_name;
+    return 0;
 }
 
-static void parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
-                                   iopc_path_t **path, char **name)
+static int parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
+                                  iopc_path_t **path, char **name)
 {
-    pstream_t ps = ps_initstr(TK(pp, 0)->b.data);
+    pstream_t ps = ps_initstr(TK_N(pp, 0)->b.data);
     ctype_desc_t sep;
 
     ctype_desc_build(&sep, ".");
@@ -2684,8 +3044,8 @@ static void parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
         iopc_path_t *path_new = iopc_path_new();
         qv_t(lstr) words;
 
+        path_new->loc = TK_N(pp, 0)->loc;
         qv_init(lstr, &words);
-        path_new->loc = TK(pp, 0)->loc;
 
         /* Split the token */
         ps_split(ps, &sep, 0, &words);
@@ -2695,7 +3055,7 @@ static void parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
             qv_append(str, &path_new->bits, lstr_dup(words.tab[i]).v);
         }
         if (pkg) {
-            *pkg = check_path_exists(pp, path_new);
+            *pkg = RETHROW_PN(check_path_exists(pp, path_new));
         }
 
         *path = path_new;
@@ -2704,19 +3064,20 @@ static void parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
         qv_wipe(lstr, &words);
         DROP(pp, 1);
     } else {
-        parse_struct_type(pp, pkg, path, name);
+        RETHROW(parse_struct_type(pp, pkg, path, name));
     }
+    return 0;
 }
 
-static void parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
-                                iopc_arg_desc_t *desc)
+static int parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
+                               iopc_arg_desc_t *desc)
 {
     iopc_arg_t arg;
 
     iopc_arg_init(&arg);
     arg.desc = desc;
-    arg.loc  = TK(pp, 0)->loc;
-    arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
+    arg.loc  = TK_N(pp, 0)->loc;
+    arg.v.s = lstr_dup(LSTR(TK_N(pp, 0)->b.data));
     e_trace(1, "%s=(id)%s", desc->name.s, arg.v.s.s);
 
     WANT(pp, 0, ITOK_IDENT);
@@ -2726,16 +3087,17 @@ static void parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     do {
         iopc_extends_t *xt = iopc_extends_new();
 
-        xt->loc  = TK(pp, 0)->loc;
-        parse_struct_snmp_from(pp, &xt->pkg, &xt->path, &xt->name);
-        iopc_loc_merge(&xt->loc, TK(pp, 0)->loc);
-
         qv_append(iopc_extends, &attr->snmp_params_from, xt);
-    } while (SKIP(pp, ','));
+        xt->loc = TK_N(pp, 0)->loc;
+        RETHROW(parse_struct_snmp_from(pp, &xt->pkg, &xt->path, &xt->name));
+        iopc_loc_merge(&xt->loc, TK_N(pp, 0)->loc);
+    } while (SKIP_N(pp, ','));
+
+    return 0;
 }
 
-static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
-                           iopc_arg_desc_t *desc)
+static int parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
+                          iopc_arg_desc_t *desc)
 {
     iopc_arg_t arg;
 
@@ -2745,7 +3107,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         bool    found = false;
 
         WANT(pp, 0, ITOK_IDENT);
-        str = LSTR(TK(pp, 0)->b.data);
+        str = LSTR(TK_N(pp, 0)->b.data);
 
         qv_for_each_ptr(iopc_arg_desc, d, &attr->desc->args) {
             if (lstr_equal(&str, &d->name)) {
@@ -2755,7 +3117,7 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
             }
         }
         if (!found) {
-            fatal_loc("incorrect argument name", TK(pp, 0)->loc);
+            throw_loc("incorrect argument name", TK_N(pp, 0)->loc);
         }
         DROP(pp, 1);
         EAT(pp, '=');
@@ -2764,17 +3126,17 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)) {
         qv_for_each_ptr(iopc_arg, a, &attr->args) {
             if (a->desc == desc) {
-                fatal_loc("duplicated argument", TK(pp, 0)->loc);
+                throw_loc("duplicated argument", TK_N(pp, 0)->loc);
             }
         }
     }
 
     iopc_arg_init(&arg);
     arg.desc = desc;
-    arg.loc  = TK(pp, 0)->loc;
+    arg.loc  = TK_N(pp, 0)->loc;
 
     if (desc->type == ITOK_DOUBLE) {
-        if (CHECK(pp, 0, desc->type)) {
+        if (CHECK_N(pp, 0, desc->type)) {
             arg.type = desc->type;
         } else {
             WANT(pp, 0, ITOK_INTEGER);
@@ -2787,73 +3149,77 @@ static void parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
     switch (arg.type) {
       case ITOK_STRING:
-        arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
+        arg.v.s = lstr_dup(LSTR(TK_N(pp, 0)->b.data));
         e_trace(1, "%s=(str)%s", desc->name.s, arg.v.s.s);
         DROP(pp, 1);
         break;
 
       case ITOK_DOUBLE:
-        arg.v.d = TK(pp,0)->d;
+        arg.v.d = TK_N(pp,0)->d;
         e_trace(1, "%s=(double)%f", desc->name.s, arg.v.d);
         DROP(pp, 1);
         break;
 
       case ITOK_IDENT:
-        arg.v.s = lstr_dup(LSTR(TK(pp, 0)->b.data));
+        arg.v.s = lstr_dup(LSTR(TK_N(pp, 0)->b.data));
         e_trace(1, "%s=(id)%s", desc->name.s, arg.v.s.s);
         DROP(pp, 1);
         break;
 
       case ITOK_INTEGER:
       case ITOK_BOOL:
-        arg.v.i64 = parse_constant_integer(pp, ')', NULL);
+        RETHROW(parse_constant_integer(pp, ')', (uint64_t *)&arg.v.i64,
+                                       NULL));
         e_trace(1, "%s=(i64)%jd", desc->name.s, arg.v.i64);
         break;
 
       default:
-        fatal("incorrect type for argument %*pM", LSTR_FMT_ARG(desc->name));
+        throw_error("incorrect type for argument %*pM",
+                    LSTR_FMT_ARG(desc->name));
     }
 
     qv_append(iopc_arg, &attr->args, arg);
-    return;
+    return 0;
 }
 
-static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
+static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
 {
     bool             explicit = false;
     iopc_arg_desc_t *desc = NULL;
     int i = 0;
-    lstr_t new_name = LSTR_NULL;
+
+    *out = LSTR_NULL_V;
 
     iopc_lexer_push_state_attr(pp->ld);
 
-    if (CHECK(pp, 1, '='))
+    if (CHECK_N(pp, 1, '=')) {
         explicit = true;
+    }
 
-    while (!CHECK_NOEOF(pp, 0, ')')) {
+    while (!CHECK_NOEOF_N(pp, 0, ')')) {
         if (!explicit) {
             if (IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)) {
                 desc = &attr->desc->args.tab[0];
             } else
             if (i >= attr->desc->args.len) {
-                fatal_loc("too many arguments", attr->loc);
+                throw_loc("too many arguments", attr->loc);
             } else {
                 desc = &attr->desc->args.tab[i++];
             }
         }
 
         if (attr->desc->id == IOPC_ATTR_GENERIC) {
-            new_name = parse_gen_attr_arg(pp, attr, desc);
+            RETHROW(parse_gen_attr_arg(pp, attr, desc, out));
             WANT(pp, 0, ')');
             break;
         } else
         if (attr->desc->id == IOPC_ATTR_SNMP_PARAMS_FROM) {
-            parse_snmp_attr_arg(pp, attr, desc);
+            RETHROW(parse_snmp_attr_arg(pp, attr, desc));
             WANT(pp, 0, ')');
             break;
         } else {
-            parse_attr_arg(pp, attr, desc);
-            if (CHECK(pp, 0, ')')) {
+            RETHROW(parse_attr_arg(pp, attr, desc));
+            if (CHECK_N(pp, 0, ')')) {
                 break;
             }
             EAT(pp, ',');
@@ -2865,7 +3231,7 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)
     &&  attr->args.len != attr->desc->args.len)
     {
-        fatal_loc("wrong number of arguments", attr->loc);
+        throw_loc("wrong number of arguments", attr->loc);
     }
 
     if (attr->desc->id == IOPC_ATTR_MIN_OCCURS
@@ -2875,7 +3241,7 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
     ||  attr->desc->id == IOPC_ATTR_LENGTH)
     {
         if (!attr->args.tab[0].v.i64) {
-            fatal_loc("zero value invalid for attribute %*pM", attr->loc,
+            throw_loc("zero value invalid for attribute %*pM", attr->loc,
                       LSTR_FMT_ARG(attr->desc->name));
         }
     }
@@ -2883,7 +3249,7 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
     if (attr->desc->id == IOPC_ATTR_CTYPE) {
         if (iopc_g.v4) {
             if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("__t"))) {
-                fatal_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
+                throw_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
                           LSTR_FMT_ARG(attr->args.tab[0].v.s));
             }
         } else {
@@ -2894,7 +3260,7 @@ static lstr_t parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr)
         }
     }
 
-    return new_name;
+    return 0;
 }
 
 static iopc_attr_t *parse_attr(iopc_parser_t *pp)
@@ -2903,48 +3269,63 @@ static iopc_attr_t *parse_attr(iopc_parser_t *pp)
     lstr_t           name;
     int              pos;
 
+    WANT_P(pp, 0, ITOK_ATTR);
+
+    if (!iopc_g.v2) {
+        throw_loc_p("attributes forbidden (use -2 parameter)",
+                    TK_P(pp, 0)->loc);
+    }
+
     attr = iopc_attr_new();
+    attr->loc = TK(pp, 0, goto error)->loc;
 
-    WANT(pp, 0, ITOK_ATTR);
-
-    if (!iopc_g.v2)
-        fatal_loc("attributes forbidden (use -2 parameter)", TK(pp, 0)->loc);
-
-    attr->loc = TK(pp, 0)->loc;
-    name = LSTR(ident(TK(pp, 0)));
+    name = LSTR(ident(TK(pp, 0, goto error)));
     pos = qm_find(attr_desc, &_G.attrs, &name);
     if (pos < 0) {
-        fatal_loc("incorrect attribute name", attr->loc);
+        error_loc("incorrect attribute name", attr->loc);
+        goto error;
     }
     attr->desc = &_G.attrs.values[pos];
     DROP(pp, 1);
-    e_trace(1, "attribute %*pM", LSTR_FMT_ARG(attr->desc->name));
 
     /* Generic attributes */
     if (attr->desc->id == IOPC_ATTR_GENERIC) {
-        assert(attr->desc->args.len == 1);
+        assert (attr->desc->args.len == 1);
 
-        attr->real_name = parse_attr_args(pp, attr);
-
+        if (parse_attr_args(pp, attr, &attr->real_name) < 0
+        ||  !attr->real_name.s)
+        {
+            goto error;
+        }
         return attr;
     }
 
-    if (!SKIP(pp, '(')) {
+    if (!SKIP(pp, '(', goto error)) {
         if (attr->desc->args.len > 0) {
-            fatal_loc("attribute arguments missing", attr->loc);
+            error_loc("attribute arguments missing", attr->loc);
+            goto error;
         }
         return attr;
     }
     if (attr->desc->args.len == 0) {
-        fatal_loc("attribute should not have arguments", attr->loc);
+        error_loc("attribute should not have arguments", attr->loc);
+        goto error;
     }
 
-    parse_attr_args(pp, attr);
+    if (parse_attr_args(pp, attr, &name) < 0) {
+        lstr_wipe(&name);
+        goto error;
+    }
     return attr;
+
+  error:
+    iopc_attr_delete(&attr);
+    return NULL;
 }
 
 
-static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *base)
+static int check_pkg_path(iopc_parser_t *pp, iopc_path_t *path,
+                          const char *base)
 {
     int fd = iopc_lexer_fd(pp->ld);
     struct stat st1, st2;
@@ -2952,22 +3333,28 @@ static void check_pkg_path(iopc_parser_t *pp, iopc_path_t *path, const char *bas
 
     snprintf(buf, sizeof(buf), "%s/%s", base, pretty_path(path));
     path_simplify(buf);
-    if (stat(buf, &st1))
-        fatal_loc("incorrect package name", path->loc);
-    if (fstat(fd, &st2))
-        fatal("fstat error on fd %d", fd);
-    if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
-        fatal_loc("incorrect package name", path->loc);
+    if (stat(buf, &st1)) {
+        throw_loc("incorrect package name", path->loc);
+    }
+    if (fstat(fd, &st2)) {
+        throw_loc("fstat error on fd %d", path->loc, fd);
+    }
+    if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino) {
+        throw_loc("incorrect package name", path->loc);
+    }
+
+    return 0;
 }
 
-static void add_iface(iopc_pkg_t *pkg, iopc_iface_t *iface,
+static int add_iface(iopc_pkg_t *pkg, iopc_iface_t *iface,
                       qm_t(iopc_struct) *mod_inter, const char *obj)
 {
     qv_append(iopc_iface, &pkg->ifaces, iface);
     if (qm_add(iopc_struct, mod_inter, iface->name, (iopc_struct_t *)iface)) {
-        fatal_loc("%s named `%s` already exists", iface->loc,
+        throw_loc("%s named `%s` already exists", iface->loc,
                   obj, iface->name);
     }
+    return 0;
 }
 
 /* Force struct, enum and union to have distinguished name (things qm)*/
@@ -2981,11 +3368,15 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
-    qv_init(dox_chunk, &chunks);
+    qv_inita(iopc_attr, &attrs, 16);
+    qv_inita(dox_chunk, &chunks, 16);
 
-    read_dox_front(pp, &chunks);
-    pkg->name = parse_pkg_stmt(pp);
-    read_dox_back(pp, &chunks, 0);
+    if (read_dox_front(pp, &chunks) < 0
+    ||  !(pkg->name = parse_pkg_stmt(pp))
+    ||  read_dox_back(pp, &chunks, 0) < 0)
+    {
+        goto error;
+    }
     build_dox_check_all(&chunks, pkg);
 
     pkg->file = file;
@@ -2998,58 +3389,78 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         }
         path_simplify(base);
         if (type == IOPC_FILE_FD) {
-            check_pkg_path(pp, pkg->name, base);
+            if (check_pkg_path(pp, pkg->name, base) < 0) {
+                goto error;
+            }
         }
         pp->base = pkg->base = p_strdup(base);
         qm_add(iopc_pkg, &_G.pkgs, pkg->file, pkg);
     }
 
-    while (CHECK_KW(pp, 0, "import")) {
-        qv_append(iopc_import, &pkg->imports, parse_import_stmt(pp));
+    while (CHECK_KW(pp, 0, "import", goto error)) {
+        iopc_import_t *import = parse_import_stmt(pp);
+
+        if (!import) {
+            goto error;
+        }
+        qv_append(iopc_import, &pkg->imports, import);
     }
 
-    qv_inita(iopc_attr, &attrs, 16);
-
-    while (!CHECK(pp, 0, ITOK_EOF)) {
+    while (!CHECK(pp, 0, ITOK_EOF, goto error)) {
         const char *id;
         bool is_abstract = false;
         bool is_local = false;
 
-        if (CHECK(pp, 0, ITOK_VERBATIM_C)) {
-            sb_addsb(&pkg->verbatim_c, &TK(pp, 0)->b);
+        if (CHECK(pp, 0, ITOK_VERBATIM_C, goto error)) {
+            sb_addsb(&pkg->verbatim_c, &TK(pp, 0, goto error)->b);
             DROP(pp, 1);
         }
 
-        check_dox_and_attrs(pp, &chunks, &attrs);
-        if (!attrs.len && CHECK(pp, 0, ITOK_EOF))
+        if (check_dox_and_attrs(pp, &chunks, &attrs) < 0) {
+            goto error;
+        }
+        if (!attrs.len && CHECK(pp, 0, ITOK_EOF, goto error)) {
             break;
+        }
 
-        if (!CHECK(pp, 0, ITOK_IDENT))
-            fatal_loc("expected identifier", TK(pp, 0)->loc);
+        if (!CHECK(pp, 0, ITOK_IDENT, goto error)) {
+            error_loc("expected identifier", TK(pp, 0, goto error)->loc);
+            goto error;
+        }
 
 #define SET_ATTRS_AND_COMMENTS(_o, _t)                       \
         do {                                                 \
             qv_for_each_pos(iopc_attr, pos, &attrs) {        \
                 iopc_attr_t *_attr = attrs.tab[pos];         \
-                check_attr_type_decl(_attr, _t);             \
+                                                             \
+                if (check_attr_type_decl(_attr, _t) < 0) {   \
+                    for (int i = 0; i < pos; i++) {          \
+                        qv_remove(iopc_attr, &attrs, i);     \
+                    }                                        \
+                    goto error;                              \
+                }                                            \
                 qv_append(iopc_attr, &_o->attrs, _attr);     \
             }                                                \
-            read_dox_back(pp, &chunks, 0);                   \
+            if (read_dox_back(pp, &chunks, 0) < 0) {         \
+                goto error;                                  \
+            }                                                \
             build_dox(&chunks, _o, _t);                      \
         } while (0)
 
         for (int i = 0; i < 2; i++) {
-            if (SKIP_KW(pp, "abstract")) {
+            if (SKIP_KW(pp, "abstract", goto error)) {
                 if (is_abstract) {
-                    fatal_loc("repetition of `abstract` keyword",
-                             TK(pp, 0)->loc);
+                    error_loc("repetition of `abstract` keyword",
+                              TK(pp, 0, goto error)->loc);
+                    goto error;
                 }
                 is_abstract = true;
             } else
-            if (SKIP_KW(pp, "local")) {
+            if (SKIP_KW(pp, "local", goto error)) {
                 if (is_local) {
-                    fatal_loc("repetition of `local` keyword",
-                             TK(pp, 0)->loc);
+                    error_loc("repetition of `local` keyword",
+                              TK(pp, 0, goto error)->loc);
+                    goto error;
                 }
                 is_local = true;
             } else {
@@ -3057,24 +3468,33 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             }
         }
 
-        id = ident(TK(pp, 0));
+        id = ident(TK(pp, 0, goto error));
 
 #define PARSE_STRUCT(_id, _type, _attr)  \
         if (strequal(id, _id)) {                                             \
-            iopc_struct_t *st;                                               \
-                                                                             \
-            SKIP_KW(pp, _id);                                                \
-            st = parse_struct_class_union_snmp_stmt(pp, _type, is_abstract,  \
-                                                    is_local, is_main_pkg);  \
-            SET_ATTRS_AND_COMMENTS(st, _attr);                               \
-            if (iopc_is_snmp_tbl(_type)) {                                   \
-                check_snmp_brief(st->comments, st->loc, st->name, _id);      \
-            }                                                                \
+            iopc_struct_t *st = iopc_struct_new();                           \
                                                                              \
             qv_append(iopc_struct, &pkg->structs, st);                       \
+            SKIP_KW(pp, _id, goto error);                                    \
+            if (parse_struct_class_union_snmp_stmt(pp, _type, is_abstract,   \
+                                                   is_local,                 \
+                                                   is_main_pkg, st) < 0)     \
+            {                                                                \
+                goto error;                                                  \
+            }                                                                \
+            SET_ATTRS_AND_COMMENTS(st, _attr);                               \
+            if (iopc_is_snmp_tbl(_type)) {                                   \
+                if (check_snmp_brief(st->comments, st->loc, st->name,        \
+                                     _id) < 0)                               \
+                {                                                            \
+                    goto error;                                              \
+                }                                                            \
+            }                                                                \
+                                                                             \
             if (qm_add(iopc_struct, &things, st->name, st)) {                \
-                fatal_loc("something named `%s` already exists",             \
+                error_loc("something named `%s` already exists",             \
                           st->loc, st->name);                                \
+                goto error;                                                  \
             }                                                                \
             continue;                                                        \
         }
@@ -3088,14 +3508,18 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
 
 
         if (strequal(id, "enum")) {
-            iopc_enum_t *en = parse_enum_stmt(pp, &attrs);
-
-            SET_ATTRS_AND_COMMENTS(en, IOPC_ATTR_T_ENUM);
+            iopc_enum_t *en = iopc_enum_new();
 
             qv_append(iopc_enum, &pkg->enums, en);
+            if (parse_enum_stmt(pp, &attrs, en) < 0) {
+                goto error;
+            }
+            SET_ATTRS_AND_COMMENTS(en, IOPC_ATTR_T_ENUM);
+
             if (qm_add(iopc_struct, &things, en->name, (iopc_struct_t *)en)) {
-                fatal_loc("something named `%s` already exists",
+                error_loc("something named `%s` already exists",
                           en->loc, en->name);
+                goto error;
             }
             continue;
         }
@@ -3104,11 +3528,15 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             iopc_iface_t *iface;
             const char *obj = "interface";
 
-            iface = parse_iface_stmt(pp, IFACE_TYPE_IFACE, obj,
-                                     is_main_pkg);
-
+            if (!(iface = parse_iface_stmt(pp, IFACE_TYPE_IFACE, obj,
+                                           is_main_pkg)))
+            {
+                goto error;
+            }
+            if (add_iface(pkg, iface, &mod_inter, obj) < 0) {
+                goto error;
+            }
             SET_ATTRS_AND_COMMENTS(iface, IOPC_ATTR_T_IFACE);
-            add_iface(pkg, iface, &mod_inter, obj);
             continue;
         }
 
@@ -3116,56 +3544,92 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             iopc_iface_t *iface;
             const char *obj = "snmpIface";
 
-            iface = parse_iface_stmt(pp, IFACE_TYPE_SNMP_IFACE, obj,
-                                     is_main_pkg);
-
+            if (!(iface = parse_iface_stmt(pp, IFACE_TYPE_SNMP_IFACE, obj,
+                                           is_main_pkg)))
+            {
+                goto error;
+            }
+            if (add_iface(pkg, iface, &mod_inter, obj) < 0) {
+                goto error;
+            }
             SET_ATTRS_AND_COMMENTS(iface, IOPC_ATTR_T_SNMP_IFACE);
-            add_iface(pkg, iface, &mod_inter, obj);
             continue;
         }
 
         if (strequal(id, "module")) {
             iopc_struct_t *mod = parse_module_stmt(pp);
 
+            if (!mod) {
+                goto error;
+            }
+            qv_append(iopc_struct, &pkg->modules, mod);
             SET_ATTRS_AND_COMMENTS(mod, IOPC_ATTR_T_MOD);
 
-            qv_append(iopc_struct, &pkg->modules, mod);
             if (qm_add(iopc_struct, &mod_inter, mod->name,
                        (iopc_struct_t *)mod))
             {
-                fatal_loc("something named `%s` already exists",
+                error_loc("something named `%s` already exists",
                           mod->loc, mod->name);
+                goto error;
             }
             continue;
         }
 
         if (strequal(id, "typedef")) {
-            iopc_field_t *tdef = parse_typedef_stmt(pp);
+            iopc_field_t *tdef = iopc_field_new();
 
-            qv_for_each_entry(iopc_attr, attr, &attrs) {
-                check_attr_type_field(attr, tdef, true);
+            qv_append(iopc_field, &pkg->typedefs, tdef);
+
+            if (parse_typedef_stmt(pp, tdef) < 0) {
+                goto error;
+            }
+
+            qv_for_each_pos(iopc_attr, pos, &attrs) {
+                iopc_attr_t *attr = attrs.tab[pos];
+
+                if (check_attr_type_field(attr, tdef, true) < 0) {
+                    for (int i = 0; i < pos; i++) {
+                        qv_remove(iopc_attr, &attrs, i);
+                    }
+                    goto error;
+                }
                 qv_append(iopc_attr, &tdef->attrs, attr);
             }
-            qv_append(iopc_field, &pkg->typedefs, tdef);
             if (qm_add(iopc_struct, &things, tdef->name,
                        (iopc_struct_t *)tdef))
             {
-                fatal_loc("something named `%s` already exists",
+                error_loc("something named `%s` already exists",
                           tdef->loc, tdef->name);
+                goto error;
             }
             continue;
         }
 
-        fatal_loc("unexpected keyword `%s`", TK(pp, 0)->loc, id);
+        error_loc("unexpected keyword `%s`", TK(pp, 0, goto error)->loc, id);
+        goto error;
 #undef SET_ATTRS_AND_COMMENTS
     }
+
+    if (__eat(pp, ITOK_EOF) < 0) {
+        goto error;
+    }
+
     qv_wipe(iopc_attr, &attrs);
     qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
     qm_wipe(iopc_struct, &things);
     qm_wipe(iopc_struct, &mod_inter);
 
-    EAT(pp, ITOK_EOF);
     return pkg;
+
+  error:
+    qv_deep_wipe(iopc_attr, &attrs, iopc_attr_delete);
+    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qm_wipe(iopc_struct, &things);
+    qm_wipe(iopc_struct, &mod_inter);
+
+    qm_del_key(iopc_pkg, &_G.pkgs, pkg->file);
+    iopc_pkg_delete(&pkg);
+    return NULL;
 }
 
 /*-}}}-*/
@@ -3225,8 +3689,13 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
         } else {
             path = p_strdup(file);
         }
-        pp.ld = iopc_lexer_new(path, data, type);
-        pkg = parse_package(&pp, path, type, is_main_pkg);
+
+        if ((pp.ld = iopc_lexer_new(path, data, type))) {
+            pkg = parse_package(&pp, path, type, is_main_pkg);
+        } else {
+            p_delete(&path);
+        }
+
         qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
         iopc_lexer_delete(&pp.ld);
         iop_cfolder_delete(&pp.cfolder);
