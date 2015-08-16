@@ -184,7 +184,8 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
 {
     SB_1k(sb);
     SB_1k(local_err);
-    lstr_t pkgname, pkgpath;
+    const qv_t(log_buffer) *log_buffer;
+    lstr_t pkgname = LSTR_NULL_V, pkgpath = LSTR_NULL_V;
     char so_path[PATH_MAX], path[PATH_MAX], tmppath[PATH_MAX];
     char json_path[PATH_MAX];
     qv_t(str) sources;
@@ -208,8 +209,13 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         return -1;
     }
 
-    /* TODO: check error. */
-    iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath);
+    /* We'll get the error produced by iopc_build by using the log buffers. */
+    log_start_buffering_filter(false, LOG_LEVEL_ERR);
+
+    if (iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath) < 0)
+    {
+        goto iopc_build_error;
+    }
 
     /* move json to outdir */
     path_extend(json_path, outdir, "%*pM.json", LSTR_FMT_ARG(pkgpath));
@@ -236,13 +242,17 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         const char *depfile = env->keys[pos];
         const char *depdata = env->values[pos];
 
-        /* TODO: check error */
-        iopc_build(env, depfile, depdata, tmppath, false, NULL, &deppath);
+        if (iopc_build(env, depfile, depdata, tmppath, false, NULL,
+                       &deppath) < 0)
+        {
+            goto iopc_build_error;
+        }
 
         path_extend(path, tmppath, "%*pM.c", LSTR_FMT_ARG(deppath));
         qv_append(str, &sources, p_strdup(path));
         lstr_wipe(&deppath);
     }
+    log_stop_buffering();
 
     if (do_compile(&sources, so_path, &local_err) < 0) {
         sb_setf(err, "failed to build `%s`: %*pM",
@@ -259,4 +269,11 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
     lstr_wipe(&pkgpath);
     rmdir_r(tmppath, false);
     return ret;
+
+  iopc_build_error:
+    log_buffer = log_stop_buffering();
+    assert (log_buffer->len == 1);
+    sb_set_lstr(err, log_buffer->tab[0].msg);
+    ret = -1;
+    goto end;
 }
