@@ -107,28 +107,30 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
         return -1;                          \
     } while (0)
 
-static inline const char *cwd(void)
+static inline const char *get_path(const char *file)
 {
-    static char buf[BUFSIZ];
+    static char res_path[PATH_MAX];
+    char cwd_path[PATH_MAX];
 
-    if (getcwd(buf, sizeof(buf))) {
-        int len = strlen(buf);
-
-        if (len == sizeof(buf) - 1) {
-            return ".../";
-        }
-        if (buf[len - 1] != '/') {
-            buf[len++] = '/';
-            buf[len] = '\0';
-        }
-        return buf;
+    if (*file == '/') {
+        return file;
     }
-    return ".../";
+
+    if (!expect(getcwd(cwd_path, sizeof(cwd_path)))) {
+        return NULL;
+    }
+
+    if (!expect(path_extend(res_path, cwd_path, "%s", file) >= 0)) {
+        return NULL;
+    }
+
+    return res_path;
 }
 
 #define do_loc_(fmt, level, t, loc, ...) \
-    logger_log(&iopc_g.logger, level, "%s%s:%d:%d: %s: "fmt, cwd(),          \
-               (loc).file, (loc).lmin, (loc).cmin, (t), ##__VA_ARGS__)
+    logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,                   \
+               get_path((loc).file), (loc).lmin, (loc).cmin,                 \
+               (t), ##__VA_ARGS__)
 
 #define do_loc(fmt, level, t, loc, ...)  \
     do {                                                                     \
