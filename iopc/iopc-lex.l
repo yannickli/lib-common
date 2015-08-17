@@ -588,7 +588,7 @@ struct lexdata *iopc_lexer_new(const char *file, const char *data,
     ld->path = file;
 
     if (type == IOPC_FILE_FD) {
-        ld->fd = fopen(file, "rb");
+        ld->fd = fopen(get_full_path(file), "rb");
         if (!ld->fd) {
             print_error("unable to open file `%s` for reading", file);
             p_delete(&ld);

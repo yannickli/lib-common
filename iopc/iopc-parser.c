@@ -3333,7 +3333,7 @@ static int check_pkg_path(iopc_parser_t *pp, iopc_path_t *path,
 
     snprintf(buf, sizeof(buf), "%s/%s", base, pretty_path(path));
     path_simplify(buf);
-    if (stat(buf, &st1)) {
+    if (stat(get_full_path(buf), &st1)) {
         throw_loc("incorrect package name", path->loc);
     }
     if (fstat(fd, &st2)) {

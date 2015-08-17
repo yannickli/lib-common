@@ -113,9 +113,9 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
 }
 
 static int
-iopc_build(const qm_t(iopc_env) *env, const char *iopfile,
-           const char *iopdata, const char *outdir, bool is_main_pkg,
-           lstr_t *pkgname, lstr_t *pkgpath)
+iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
+           const char *iopfile, const char *iopdata, const char *outdir,
+           bool is_main_pkg, lstr_t *pkgname, lstr_t *pkgpath)
 {
     SB_1k(sb);
     iopc_pkg_t *pkg;
@@ -129,6 +129,10 @@ iopc_build(const qm_t(iopc_env) *env, const char *iopfile,
     iopc_g.v2 = true;
     iopc_g.v3 = true;
     iopc_g.v4 = true;
+
+    iopc_g.prefix_dir     = pfxdir;
+    iopc_g.display_prefix = display_pfx;
+
     iopc_do_c_g.resolve_includes = false;
     iopc_do_c_g.no_const = true;
     iopc_do_c_g.iop_compat_header = sb.data;
@@ -179,7 +183,8 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min, uint16_t class_id_max)
     iopc_g.class_id_max = class_id_max;
 }
 
-int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
+int iopc_dso_build(const char *pfxdir, bool display_pfx,
+                   const char *iopfile, const qm_t(iopc_env) *env,
                    const char *outdir, sb_t *err)
 {
     SB_1k(sb);
@@ -191,16 +196,10 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
     qv_t(str) sources;
     int ret = 0;
     const char *filepart = path_filepart(iopfile);
-    struct stat iop_st;
 
     qv_init(str, &sources);
 
     path_extend(so_path, outdir, "%s.so", filepart);
-
-    if (stat(iopfile, &iop_st) < 0) {
-        sb_setf(err, "unable to stat IOP file `%s`: %m", iopfile);
-        return -1;
-    }
 
     path_extend(tmppath, outdir, "%s.%d.XXXXXX", filepart, getpid());
     if (!mkdtemp(tmppath)) {
@@ -212,7 +211,8 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
     /* We'll get the error produced by iopc_build by using the log buffers. */
     log_start_buffering_filter(false, LOG_LEVEL_ERR);
 
-    if (iopc_build(env, iopfile, NULL, tmppath, true, &pkgname, &pkgpath) < 0)
+    if (iopc_build(pfxdir, display_pfx, env, iopfile, NULL, tmppath, true,
+                   &pkgname, &pkgpath) < 0)
     {
         goto iopc_build_error;
     }
@@ -242,8 +242,8 @@ int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
         const char *depfile = env->keys[pos];
         const char *depdata = env->values[pos];
 
-        if (iopc_build(env, depfile, depdata, tmppath, false, NULL,
-                       &deppath) < 0)
+        if (iopc_build(pfxdir, display_pfx, env, depfile, depdata, tmppath,
+                       false, NULL, &deppath) < 0)
         {
             goto iopc_build_error;
         }

@@ -82,6 +82,9 @@ qvector_t(iopc_loc, iopc_loc_t);
 extern struct {
     logger_t logger;
 
+    const char *prefix_dir;
+    bool        display_prefix;
+
     qv_t(iopc_loc) loc_stack;
     int            print_info;
     int            v2;
@@ -107,29 +110,34 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
         return -1;                          \
     } while (0)
 
-static inline const char *get_path(const char *file)
+static inline const char *__get_path(const char *file, bool display_prefix)
 {
     static char res_path[PATH_MAX];
-    char cwd_path[PATH_MAX];
 
-    if (*file == '/') {
+    if (*file == '/' || !display_prefix || !iopc_g.prefix_dir) {
         return file;
     }
 
-    if (!expect(getcwd(cwd_path, sizeof(cwd_path)))) {
-        return NULL;
-    }
-
-    if (!expect(path_extend(res_path, cwd_path, "%s", file) >= 0)) {
+    if (!expect(path_extend(res_path, iopc_g.prefix_dir, "%s", file) >= 0)) {
         return NULL;
     }
 
     return res_path;
 }
 
+static inline const char *get_print_path(const char *file)
+{
+    return __get_path(file, iopc_g.display_prefix);
+}
+
+static inline const char *get_full_path(const char *file)
+{
+    return __get_path(file, true);
+}
+
 #define do_loc_(fmt, level, t, loc, ...) \
     logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,                   \
-               get_path((loc).file), (loc).lmin, (loc).cmin,                 \
+               get_print_path((loc).file), (loc).lmin, (loc).cmin,           \
                (t), ##__VA_ARGS__)
 
 #define do_loc(fmt, level, t, loc, ...)  \
@@ -1045,15 +1053,21 @@ void iopc_dso_set_class_id_range(uint16_t class_id_min,
 
 /** Build an IOP DSO.
  *
- * \param[in] iopfile  the source IOP file
- * \param[in] env      a map of buffered IOP files (dependencies)
- * \param[in] outdir   the directory to store the IOP DSO file
- *                     (outdir/pkgname.so)
- * \param[out] err     buffer filled in case of error
+ * \param[in] pfxdir       prefix directory of the IOP file to compile
+ * \param[in] display_pfx  set to false if only the relative part of the files
+ *                         should be printed in case of error
+ * \param[in] iopfile      the IOP file to compile; this path must be relative
+ *                         to \p pfxdir
+ * \param[in] env          a map of buffered IOP files (dependencies); the paths
+ *                         of these dependencies must be relative to \p pfxdir
+ * \param[in] outdir       the absolute path of the directory to store the IOP DSO
+ *                         file (outdir/pkgname.so)
+ * \param[out] err         buffer filled in case of error
  *
  * \return             0 if ok, -1 if the build failed
  */
-int iopc_dso_build(const char *iopfile, const qm_t(iopc_env) *env,
+int iopc_dso_build(const char *pfxdir, bool display_pfx,
+                   const char *iopfile, const qm_t(iopc_env) *env,
                    const char *outdir, sb_t *err);
 
 #endif

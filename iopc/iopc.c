@@ -207,6 +207,9 @@ int main(int argc, char **argv)
     _G.v2 = _G.v2 || _G.v3 || _G.v4;
     _G.v3 =  _G.v3 || _G.v4;
 
+    _G.prefix_dir     = get_current_dir_name();
+    _G.display_prefix = true;
+
     log_set_handler(&iopc_log_handler);
 
     if (opts.c_outpath && iopc_do_c_g.resolve_includes) {
@@ -274,10 +277,12 @@ int main(int argc, char **argv)
 
     qv_wipe(cstr, &incpath);
     qv_wipe(doit, &doits);
+    p_delete((char **)&_G.prefix_dir);
     return 0;
 
   error:
     qv_wipe(cstr, &incpath);
     qv_wipe(doit, &doits);
+    p_delete((char **)&_G.prefix_dir);
     return -1;
 }
