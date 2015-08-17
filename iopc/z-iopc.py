@@ -25,6 +25,8 @@ import subprocess
 @z.ZGroup
 class IopcTest(z.TestCase):
 
+    # {{{ Helpers
+
     def run_iopc(self, iop, expect_pass, errors, version=1, lang='',
                  class_id_range=''):
         iopc_args = [IOPC, os.path.join(TEST_PATH, iop)]
@@ -120,6 +122,10 @@ class IopcTest(z.TestCase):
                                           pkg + '.iop.' + lang,
                                           pkg + '.ref.' + lang]), 0)
 
+    # }}}
+
+    # {{{ "Circular" tests
+
     def test_circular_type_valid(self):
         f = 'circular_type_valid.iop'
         self.run_iopc_pass(f, 1)
@@ -159,123 +165,8 @@ class IopcTest(z.TestCase):
         self.run_iopc_fail('circular_pkg_b.iop', 'circular dependency')
         self.run_iopc_fail('circular_pkg_c.iop', 'circular dependency')
 
-    def test_attrs_valid(self):
-        f = 'attrs_valid.iop'
-        self.run_iopc_pass(f, 3)
-        self.run_gcc(f)
-
-    def test_attrs_multi_valid(self):
-        f = 'attrs_multi_valid.iop'
-        self.run_iopc_pass(f, 3)
-        self.run_gcc(f)
-        path_base = os.path.join(TEST_PATH,
-                                 'attrs_multi_valid.iop.c')
-        path_ref = os.path.join(TEST_PATH,
-                                'reference_attrs_multi_valid.c')
-        ref_base = open(path_base, "r")
-        ref = open(path_ref, "r")
-        self.assertEqual(ref.read(), ref_base.read())
-
-    def test_attrs_multi_constraints(self):
-        f = 'attrs_multi_constraints.iop'
-        self.run_iopc_pass(f, 3)
-        self.run_gcc(f)
-        path_base = os.path.join(TEST_PATH, 'attrs_multi_constraints.iop.c')
-        path_ref = os.path.join(TEST_PATH,
-                                'reference_attrs_multi_constraints.c')
-        ref_base = open(path_base, "r")
-        ref = open(path_ref, "r")
-        self.assertEqual(ref.read(), ref_base.read())
-
-    def test_attrs_invalid_1(self):
-        self.run_iopc2('attrs_invalid_1.iop', False,
-                       'incorrect attribute name')
-
-    def test_attrs_invalid_2(self):
-        self.run_iopc2('attrs_invalid_2.iop', False,
-                       'attribute ctype does not apply to fields')
-
-    def test_attrs_invalid_3(self):
-        self.run_iopc2('attrs_invalid_3.iop', False,
-                       'attribute ctype does not apply to interface')
-
-    def test_attrs_invalid_4(self):
-        self.run_iopc2('attrs_invalid_4.iop', False,
-                       'attribute private does not apply to required fields')
-
-    def test_attrs_invalid_5(self):
-        self.run_iopc2('attrs_invalid_5.iop', False,
-                       'attribute prefix does not apply to fields')
-
-    def test_attrs_invalid_6(self):
-        self.run_iopc2('attrs_invalid_6.iop', False,
-                       'attribute minOccurs does not apply to fields with '  \
-                       'default value')
-
-    def test_attrs_invalid_7(self):
-        self.run_iopc2('attrs_invalid_7.iop', False,
-                       'attribute maxOccurs does not apply to required '     \
-                       'fields')
-
-    def test_attrs_invalid_8(self):
-        self.run_iopc2('attrs_invalid_8.iop', False,
-                       'unknown field c in MyUnion')
-
-    def test_attrs_invalid_9(self):
-        self.run_iopc2('attrs_invalid_9.iop', False,
-                       'unknown field c in MyUnion')
-
-    def test_attrs_invalid_10(self):
-        self.run_iopc2('attrs_invalid_10.iop', False,
-                       'cannot use both @allow and @disallow '               \
-                       'on the same field')
-
-    def test_attrs_invalid_11(self):
-        self.run_iopc2('attrs_invalid_11.iop', False,
-                       'unknown field c in MyUnion')
-
-    def test_attrs_invalid_12(self):
-        self.run_iopc2('attrs_invalid_12.iop', False,
-                       'unknown field c in MyUnion')
-
-    def test_attrs_invalid_13(self):
-        self.run_iopc2('attrs_invalid_13.iop', False,
-                       'unknown field C in MyEnum')
-
-    def test_attrs_invalid_14(self):
-        self.run_iopc2('attrs_invalid_14.iop', False,
-                       'unknown field C in MyEnum')
-
-    def test_attrs_invalid_15(self):
-        self.run_iopc2('attrs_invalid_15.iop', False,
-                       'invalid default value on enum field: 1')
-
-    def test_attrs_invalid_16(self):
-        self.run_iopc2('attrs_invalid_16.iop', False,
-                       'invalid default value on enum field: 0')
-
-    def test_attrs_invalid_17(self):
-        f = 'attrs_invalid_17.iop'
-        self.run_iopc(f, False,
-                      'all static attributes must be declared first', 4)
-        self.run_iopc(f, True,
-                      'all static attributes must be declared first', 2)
-
-    def test_attrs_invalid_18(self):
-        f = 'attrs_invalid_18.iop'
-        self.run_iopc(f, False,
-                      'error: invalid ctype user_t: missing __t suffix', 4)
-
-    def test_attrs_invalid_enumval(self):
-        self.run_iopc2('attrs_invalid_enumval.iop', False,
-                       'invalid attribute min on enum field')
-
-    def test_tag_static_invalid(self):
-        self.run_iopc2('tag_static_invalid.iop', False,
-                       'tag is not authorized for static class fields')
-
-    def test_default_char_valid(self):
-        self.run_iopc_pass('pkg_d.iop', 1)
+    # }}}
+    # {{{ Enums
 
     def test_prefix_enum(self):
         self.run_iopc_pass('enum1.iop', 2)
@@ -303,10 +194,8 @@ class IopcTest(z.TestCase):
         self.run_iopc('enum_invalid_comma.iop', False,
                       '`,` expected on every line', 2)
 
-    def test_struct_noreorder(self):
-        f = 'struct_noreorder.iop'
-        self.run_iopc2(f, True, None)
-        self.run_gcc(f)
+    # }}}
+    # {{{ SNMP
 
     def test_snmp_struct_obj(self):
         f = 'snmp_obj.iop'
@@ -377,9 +266,16 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass(f, 4)
         self.run_gcc(f)
 
-    def test_attrs_invalid_noreorder(self):
-        self.run_iopc2('attrs_invalid_noreorder.iop', False,
-                       'attribute noReorder does not apply to union')
+    # }}}
+    # {{{ Parsing values
+
+    def test_integer_ext_overflow(self):
+        self.run_iopc('integer_ext_overflow.iop', False,
+                      'integer overflow', 2)
+
+    def test_integer_ext_invalid(self):
+        self.run_iopc('integer_ext_invalid.iop', False,
+                      'invalid integer extension', 2)
 
     def test_integer_ext_valid(self):
         b = 'integer_ext_valid'
@@ -426,40 +322,7 @@ class IopcTest(z.TestCase):
         self.run_iopc2(f, True, None)
         self.run_gcc(f)
 
-    def test_integer_ext_overflow(self):
-        self.run_iopc('integer_ext_overflow.iop', False,
-                      'integer overflow', 2)
-
-    def test_integer_ext_invalid(self):
-        self.run_iopc('integer_ext_invalid.iop', False,
-                      'invalid integer extension', 2)
-
-    def test_same_as(self):
-        self.run_iopc_pass('same_as.iop', 4)
-        self.run_gcc('same_as.iop')
-        self.check_file('same_as.iop.c', wanted = True, string_list = [
-            'same_as__struct1__desc_fields', 'same as same_as.Struct1',
-            'same_as__union1__desc_fields',  'same as same_as.Union1',
-            'same_as__class1__desc_fields',  'same as same_as.Class1',
-            'same_as__interface1__bar_args__desc_fields',
-            'same_as__interface1__bar_res__desc_fields',
-            'same_as__interface1__bar_exn__desc_fields',
-            'same as same_as.Interface1.barArgs',
-            'same as same_as.Interface1.barRes',
-            'same as same_as.Interface1.barExn'])
-        self.check_file('same_as.iop.c', wanted = False, string_list = [
-            'same_as__struct2__desc_fields',
-            'same as same_as.Struct3',
-            'same as same_as.Struct4',
-            'same_as__union2__desc_fields',
-            'same_as__class2__desc_fields',
-            'same_as__interface1__foo_args__desc_fields',
-            'same_as__interface1__foo_res__desc_fields',
-            'same_as__interface1__foo_exn__desc_fields',
-            'same_as__interface2__rpc_args__desc_fields',
-            'same_as__interface2__rpc_res__desc_fields',
-            'same_as__interface2__rpc_exn__desc_fields'])
-
+    # }}}
     # {{{ Inheritance
 
     def test_inheritance_invalid_multiple_inheritance(self):
@@ -592,6 +455,10 @@ class IopcTest(z.TestCase):
                       ' is `local`, both classes need to be'
                       ' in the same package', 3)
 
+    def test_inheritance_tag_static_invalid(self):
+        self.run_iopc2('inheritance_tag_static_invalid.iop', False,
+                       'tag is not authorized for static class fields')
+
     # }}}
     # {{{ Typedef
 
@@ -638,6 +505,124 @@ class IopcTest(z.TestCase):
         self.run_iopc2('typedef_invalid_13.iop', False,
                        'attribute minOccurs does not apply to required '     \
                        'typedefs')
+
+    # }}}
+    # {{{ Attributes
+
+    def test_attrs_valid(self):
+        f = 'attrs_valid.iop'
+        self.run_iopc_pass(f, 3)
+        self.run_gcc(f)
+
+    def test_attrs_multi_valid(self):
+        f = 'attrs_multi_valid.iop'
+        self.run_iopc_pass(f, 3)
+        self.run_gcc(f)
+        path_base = os.path.join(TEST_PATH,
+                                 'attrs_multi_valid.iop.c')
+        path_ref = os.path.join(TEST_PATH,
+                                'reference_attrs_multi_valid.c')
+        ref_base = open(path_base, "r")
+        ref = open(path_ref, "r")
+        self.assertEqual(ref.read(), ref_base.read())
+
+    def test_attrs_multi_constraints(self):
+        f = 'attrs_multi_constraints.iop'
+        self.run_iopc_pass(f, 3)
+        self.run_gcc(f)
+        path_base = os.path.join(TEST_PATH, 'attrs_multi_constraints.iop.c')
+        path_ref = os.path.join(TEST_PATH,
+                                'reference_attrs_multi_constraints.c')
+        ref_base = open(path_base, "r")
+        ref = open(path_ref, "r")
+        self.assertEqual(ref.read(), ref_base.read())
+
+    def test_attrs_invalid_1(self):
+        self.run_iopc2('attrs_invalid_1.iop', False,
+                       'incorrect attribute name')
+
+    def test_attrs_invalid_2(self):
+        self.run_iopc2('attrs_invalid_2.iop', False,
+                       'attribute ctype does not apply to fields')
+
+    def test_attrs_invalid_3(self):
+        self.run_iopc2('attrs_invalid_3.iop', False,
+                       'attribute ctype does not apply to interface')
+
+    def test_attrs_invalid_4(self):
+        self.run_iopc2('attrs_invalid_4.iop', False,
+                       'attribute private does not apply to required fields')
+
+    def test_attrs_invalid_5(self):
+        self.run_iopc2('attrs_invalid_5.iop', False,
+                       'attribute prefix does not apply to fields')
+
+    def test_attrs_invalid_6(self):
+        self.run_iopc2('attrs_invalid_6.iop', False,
+                       'attribute minOccurs does not apply to fields with '  \
+                       'default value')
+
+    def test_attrs_invalid_7(self):
+        self.run_iopc2('attrs_invalid_7.iop', False,
+                       'attribute maxOccurs does not apply to required '     \
+                       'fields')
+
+    def test_attrs_invalid_8(self):
+        self.run_iopc2('attrs_invalid_8.iop', False,
+                       'unknown field c in MyUnion')
+
+    def test_attrs_invalid_9(self):
+        self.run_iopc2('attrs_invalid_9.iop', False,
+                       'unknown field c in MyUnion')
+
+    def test_attrs_invalid_10(self):
+        self.run_iopc2('attrs_invalid_10.iop', False,
+                       'cannot use both @allow and @disallow '               \
+                       'on the same field')
+
+    def test_attrs_invalid_11(self):
+        self.run_iopc2('attrs_invalid_11.iop', False,
+                       'unknown field c in MyUnion')
+
+    def test_attrs_invalid_12(self):
+        self.run_iopc2('attrs_invalid_12.iop', False,
+                       'unknown field c in MyUnion')
+
+    def test_attrs_invalid_13(self):
+        self.run_iopc2('attrs_invalid_13.iop', False,
+                       'unknown field C in MyEnum')
+
+    def test_attrs_invalid_14(self):
+        self.run_iopc2('attrs_invalid_14.iop', False,
+                       'unknown field C in MyEnum')
+
+    def test_attrs_invalid_15(self):
+        self.run_iopc2('attrs_invalid_15.iop', False,
+                       'invalid default value on enum field: 1')
+
+    def test_attrs_invalid_16(self):
+        self.run_iopc2('attrs_invalid_16.iop', False,
+                       'invalid default value on enum field: 0')
+
+    def test_attrs_invalid_17(self):
+        f = 'attrs_invalid_17.iop'
+        self.run_iopc(f, False,
+                      'all static attributes must be declared first', 4)
+        self.run_iopc(f, True,
+                      'all static attributes must be declared first', 2)
+
+    def test_attrs_invalid_18(self):
+        f = 'attrs_invalid_18.iop'
+        self.run_iopc(f, False,
+                      'error: invalid ctype user_t: missing __t suffix', 4)
+
+    def test_attrs_invalid_enumval(self):
+        self.run_iopc2('attrs_invalid_enumval.iop', False,
+                       'invalid attribute min on enum field')
+
+    def test_attrs_invalid_noreorder(self):
+        self.run_iopc2('attrs_invalid_noreorder.iop', False,
+                       'attribute noReorder does not apply to union')
 
     # }}}
     # {{{ Generic attributes
@@ -713,6 +698,7 @@ class IopcTest(z.TestCase):
                       'circular dependency')
 
     # }}}
+    # {{{ Code generation
 
     def test_json(self):
         f = 'tstjson'
@@ -740,6 +726,45 @@ class IopcTest(z.TestCase):
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
         self.check_ref(g + '-t', 'h')
+
+    # }}}
+    # {{{ Various
+
+    def test_default_char_valid(self):
+        self.run_iopc_pass('pkg_d.iop', 1)
+
+    def test_same_as(self):
+        self.run_iopc_pass('same_as.iop', 4)
+        self.run_gcc('same_as.iop')
+        self.check_file('same_as.iop.c', wanted = True, string_list = [
+            'same_as__struct1__desc_fields', 'same as same_as.Struct1',
+            'same_as__union1__desc_fields',  'same as same_as.Union1',
+            'same_as__class1__desc_fields',  'same as same_as.Class1',
+            'same_as__interface1__bar_args__desc_fields',
+            'same_as__interface1__bar_res__desc_fields',
+            'same_as__interface1__bar_exn__desc_fields',
+            'same as same_as.Interface1.barArgs',
+            'same as same_as.Interface1.barRes',
+            'same as same_as.Interface1.barExn'])
+        self.check_file('same_as.iop.c', wanted = False, string_list = [
+            'same_as__struct2__desc_fields',
+            'same as same_as.Struct3',
+            'same as same_as.Struct4',
+            'same_as__union2__desc_fields',
+            'same_as__class2__desc_fields',
+            'same_as__interface1__foo_args__desc_fields',
+            'same_as__interface1__foo_res__desc_fields',
+            'same_as__interface1__foo_exn__desc_fields',
+            'same_as__interface2__rpc_args__desc_fields',
+            'same_as__interface2__rpc_res__desc_fields',
+            'same_as__interface2__rpc_exn__desc_fields'])
+
+    def test_struct_noreorder(self):
+        f = 'struct_noreorder.iop'
+        self.run_iopc2(f, True, None)
+        self.run_gcc(f)
+
+    # }}}
 
 if __name__ == "__main__":
     z.main()
