@@ -764,6 +764,10 @@ class IopcTest(z.TestCase):
         self.run_iopc2(f, True, None)
         self.run_gcc(f)
 
+    def test_unknown_pkg(self):
+        self.run_iopc_fail('unknown_pkg.iop', 'unable to find file '
+                           '`unknown.iop` in the include path')
+
     # }}}
 
 if __name__ == "__main__":
