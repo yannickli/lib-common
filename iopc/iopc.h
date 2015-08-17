@@ -973,7 +973,7 @@ static inline const char *pretty_path_base(iopc_path_t *path) {
 
 /*----- parser & typer -----*/
 
-qm_kptr_t(iopc_env, char, char *, qhash_str_hash, qhash_str_equal);
+qm_kptr_ckey_t(iopc_env, char, char *, qhash_str_hash, qhash_str_equal);
 
 void iopc_parser_initialize(void);
 void iopc_parser_shutdown(void);
