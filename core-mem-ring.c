@@ -99,12 +99,13 @@ static byte *align_for(const void *mem, size_t size)
 static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(ring_blk_t);
+    size_t alloc_target = MIN(100U << 20, 64 * rp_alloc_mean(rp));
     ring_blk_t *blk;
 
     if (blksize < rp->minsize)
         blksize = rp->minsize;
-    if (blksize < 64 * rp_alloc_mean(rp))
-        blksize = 64 * rp_alloc_mean(rp);
+    if (blksize < alloc_target)
+        blksize = alloc_target;
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (blksize > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
