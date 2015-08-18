@@ -33,12 +33,13 @@ __cold
 static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(mem_stack_blk_t);
+    size_t alloc_target = MIN(100U << 20, 64 * sp_alloc_mean(sp));
     mem_stack_blk_t *blk;
 
     if (blksize < sp->minsize)
         blksize = sp->minsize;
-    if (blksize < 64 * sp_alloc_mean(sp))
-        blksize = 64 * sp_alloc_mean(sp);
+    if (blksize < alloc_target)
+        blksize = alloc_target;
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (unlikely(blksize > MEM_ALLOC_MAX))
         e_panic("You cannot allocate that amount of memory");

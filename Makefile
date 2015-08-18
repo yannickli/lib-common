@@ -181,6 +181,7 @@ zchk_SOURCES = zchk.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
+	zchk-mem.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)
