@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2014 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2015 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -106,6 +106,45 @@ Z_GROUP_EXPORT(mem_pool_macros) {
         p_delete(&s);
 
         Z_ASSERT(true, "execution OK");
+    } Z_TEST_END
+} Z_GROUP_END
+
+/*}}}1*/
+/*{{{1 Memstack */
+
+Z_GROUP_EXPORT(core_mem_stack) {
+    Z_TEST(big_alloc_mean, "non regression on #39120") {
+        mem_stack_pool_t sp;
+
+        mem_stack_pool_init(&sp, 0);
+
+        mem_stack_push(&sp);
+
+        /* First big allocation to set a big allocation mean */
+        Z_ASSERT_P(mp_new_raw(&sp.funcs, char, 50 << 20));
+        /* Second big allocation to make the allocator abort */
+        Z_ASSERT_P(mp_new_raw(&sp.funcs, char, 50 << 20));
+
+        mem_stack_pop(&sp);
+        mem_stack_pool_wipe(&sp);
+    } Z_TEST_END
+} Z_GROUP_END
+
+/*}}}1*/
+/*{{{1 Memring */
+
+Z_GROUP_EXPORT(core_mem_ring) {
+    Z_TEST(big_alloc_mean, "non regression on #39120") {
+        mem_pool_t *rp = mem_ring_pool_new(0);
+        const void *rframe = mem_ring_newframe(rp);
+
+        /* First big allocation to set a big allocation mean */
+        Z_ASSERT_P(mp_new_raw(rp, char, 50 << 20));
+        /* Second big allocation to make the allocator abort */
+        Z_ASSERT_P(mp_new_raw(rp, char, 50 << 20));
+
+        mem_ring_release(rframe);
+        mem_ring_pool_delete(&rp);
     } Z_TEST_END
 } Z_GROUP_END
 
