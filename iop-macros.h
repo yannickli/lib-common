@@ -36,7 +36,7 @@
 
 /** Initialize a typed repeated field from a qvector */
 #define IOP_TYPED_ARRAY_TAB(_iop_type, vec)                                  \
-    (IOP_ARRAY_T(_iop_type))IOP_ARRAY_TAB(vec);
+    (IOP_ARRAY_T(_iop_type))IOP_ARRAY_TAB(vec)
 
 /* }}} */
 /* {{{ IOP union helpers */

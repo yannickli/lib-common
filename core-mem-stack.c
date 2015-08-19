@@ -55,12 +55,13 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp,
                                    mem_stack_blk_t *cur, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(mem_stack_blk_t);
+    size_t alloc_target = MIN(100U << 20, ALLOC_MIN * sp_alloc_mean(sp));
     mem_stack_blk_t *blk;
 
     if (blksize < sp->minsize)
         blksize = sp->minsize;
-    if (blksize < ALLOC_MIN * sp_alloc_mean(sp))
-        blksize = ALLOC_MIN * sp_alloc_mean(sp);
+    if (blksize < alloc_target)
+        blksize = alloc_target;
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
     blk->size      = blksize - sizeof(*blk);
