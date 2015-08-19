@@ -1113,6 +1113,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int write_errno = 0;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
+        errno = 0;
         RETHROW(ic_check_msg_hdr(ic, buf->data));
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
         to_read += IC_MSG_HDR_LEN;
@@ -1190,12 +1191,14 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
         if (IC_MSG_HDR_LEN + dlen > buf->len) {
+            errno = 0;
             RETHROW(ic_check_msg_hdr(ic, buf->data));
             to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
         }
 
         starves = true;
+        errno = 0;
         RETHROW(ic_check_msg_hdr_flags(ic, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
             if (fdc < 1 && !fd_overflow) {
