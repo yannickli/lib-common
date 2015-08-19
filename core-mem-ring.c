@@ -95,21 +95,16 @@ static byte *align_for(const void *mem, size_t size)
     return (byte *)(((uintptr_t)mem + bmask) & ~bmask);
 }
 
-/* maximum size of the margin computed from the mean of previous
- * allocations */
-#define MAX_ALLOC_MEAN_MARGIN (100UL << 20) /* 100MB */
-
 static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(ring_blk_t);
+    size_t alloc_target = MIN(100U << 20, 64 * rp_alloc_mean(rp));
     ring_blk_t *blk;
-    size_t alloc_mean_margin;
 
     if (blksize < rp->minsize)
         blksize = rp->minsize;
-    alloc_mean_margin = MIN(64 * rp_alloc_mean(rp), MAX_ALLOC_MEAN_MARGIN);
-    if (blksize < alloc_mean_margin)
-        blksize = alloc_mean_margin;
+    if (blksize < alloc_target)
+        blksize = alloc_target;
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     icheck_alloc(blksize);
     blk = imalloc(blksize, 0, MEM_RAW | MEM_LIBC);
