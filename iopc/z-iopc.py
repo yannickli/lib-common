@@ -431,23 +431,27 @@ class IopcTest(z.TestCase):
                       'invalid integer extension', 2)
 
     def test_same_as(self):
-        self.run_iopc_pass('same_as.iop', 3)
+        self.run_iopc_pass('same_as.iop', 4)
+        self.run_gcc('same_as.iop')
         self.check_file('same_as.iop.c', wanted = True, string_list = [
             'same_as__struct1__desc_fields', 'same as same_as.Struct1',
             'same_as__union1__desc_fields',  'same as same_as.Union1',
             'same_as__class1__desc_fields',  'same as same_as.Class1',
-            'same_as__interface1__rpc_args__desc_fields',
-            'same_as__interface1__rpc_res__desc_fields',
-            'same_as__interface1__rpc_exn__desc_fields',
-            'same as same_as.Interface1.rpcArgs',
-            'same as same_as.Interface1.rpcRes',
-            'same as same_as.Interface1.rpcExn'])
+            'same_as__interface1__bar_args__desc_fields',
+            'same_as__interface1__bar_res__desc_fields',
+            'same_as__interface1__bar_exn__desc_fields',
+            'same as same_as.Interface1.barArgs',
+            'same as same_as.Interface1.barRes',
+            'same as same_as.Interface1.barExn'])
         self.check_file('same_as.iop.c', wanted = False, string_list = [
             'same_as__struct2__desc_fields',
             'same as same_as.Struct3',
             'same as same_as.Struct4',
             'same_as__union2__desc_fields',
             'same_as__class2__desc_fields',
+            'same_as__interface1__foo_args__desc_fields',
+            'same_as__interface1__foo_res__desc_fields',
+            'same_as__interface1__foo_exn__desc_fields',
             'same_as__interface2__rpc_args__desc_fields',
             'same_as__interface2__rpc_res__desc_fields',
             'same_as__interface2__rpc_exn__desc_fields'])

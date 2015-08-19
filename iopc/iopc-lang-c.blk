@@ -1004,11 +1004,6 @@ iopc_iface_dump_tdef_hdr(sb_t *buf, iopc_pkg_t *pkg,
         return;
     }
 
-    qv_sort(iopc_fun)(&iface->funs,
-                      ^int (iopc_fun_t * const *f1, iopc_fun_t * const *f2) {
-        return (*f1)->tag - (*f2)->tag;
-    });
-
     qv_for_each_entry(iopc_fun, fun, &iface->funs) {
         const char *fbase = t_fmt("%s__%s", ibase, pp_to_c(fun->name));
 

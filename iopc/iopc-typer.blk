@@ -1392,7 +1392,15 @@ void iopc_types_fold(iopc_pkg_t *pkg)
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
         iopc_type_fold_one(&h, st);
     }
+
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+
+        qv_sort(iopc_fun)(&iface->funs,
+                          ^int (iopc_fun_t * const *f1,
+                                iopc_fun_t * const *f2) {
+                              return (*f1)->tag - (*f2)->tag;
+                          });
+
         qv_for_each_entry(iopc_fun, fun, &iface->funs) {
             if (fun->arg && fun->arg_is_anonymous) {
                 iopc_type_fold_one(&h, fun->arg);
@@ -1405,6 +1413,7 @@ void iopc_types_fold(iopc_pkg_t *pkg)
             }
         }
     }
+
     qm_wipe(uid, &h);
 }
 

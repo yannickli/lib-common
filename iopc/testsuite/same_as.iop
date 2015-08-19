@@ -13,8 +13,19 @@ class Class1 : 0 { int a; };
 class Class2 : 0 { int a; };
 
 interface Interface1 {
-    rpc in (string input) out (int output) throw (string err);
+2:  foo
+        in    (string input)
+        out   (int output)
+        throw (string err);
+
+1:  bar
+        in    (string input)
+        out   (int output)
+        throw (string err);
 };
 interface Interface2 {
-    rpc in (string input) out (int output) throw (string err);
+    rpc
+        in    (string input)
+        out   (int output)
+        throw (string err);
 };
