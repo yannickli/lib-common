@@ -1172,11 +1172,13 @@ static int ic_check_msg_hdr_flags(const ichannel_t *ic, uint32_t slot,
     if (ic->is_stream && (flags & IC_MSG_HAS_FD)) {
         ic_slot_trace(slot, flags, "invalid flags HAS_FD on stream ic %p",
                       ic);
+        assert (!ic->is_trusted);
         return -1;
     }
     if (flags & ~(IC_MSG_HAS_FD | IC_MSG_HAS_HDR | IC_MSG_IS_TRACED)) {
         ic_slot_trace(slot, flags, "unexpected flags value %x on ic %p",
                       flags, ic);
+        assert (!ic->is_trusted);
         return -1;
     }
     return 0;
@@ -1193,6 +1195,7 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
 
     if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
         /* length is invalid */
+        assert (!ic->is_trusted);
         return -1;
     }
 
@@ -1209,6 +1212,7 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
         /* we are called because the size of header is to large, so this
          * cannot be a valid control message.
          */
+        assert (!ic->is_trusted);
         return -1;
     } else
     if (cmd <= 0) {
@@ -1227,19 +1231,24 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
           case IC_MSG_SERVER_ERROR:
           case IC_MSG_PROXY_ERROR:
             /* no data is expected with those reply codes */
+            assert (!ic->is_trusted);
             return -1;
 
           default:
             /* unkown reply code */
+            assert (!ic->is_trusted);
             return -1;
         }
     } else {
         if (!ic->impl) {
             /* no implementation, so nothing to reply */
+            assert (!ic->is_trusted);
             return -1;
         }
-        /* unimplemented command */
-        RETHROW(qm_find_safe(ic_cbs, ic->impl, cmd));
+        if (!ic->is_trusted) {
+            /* unimplemented command */
+            RETHROW(qm_find_safe(ic_cbs, ic->impl, cmd));
+        }
     }
     return 0;
 }
@@ -1255,6 +1264,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int write_errno = 0;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
+        errno = 0;
         RETHROW(ic_check_msg_hdr(ic, buf->data));
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
         to_read += IC_MSG_HDR_LEN;
@@ -1332,12 +1342,14 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
         if (IC_MSG_HDR_LEN + dlen > buf->len) {
+            errno = 0;
             RETHROW(ic_check_msg_hdr(ic, buf->data));
             to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
         }
 
         starves = true;
+        errno = 0;
         RETHROW(ic_check_msg_hdr_flags(ic, slot, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
             if (fdc < 1 && !fd_overflow) {
