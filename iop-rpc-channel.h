@@ -240,6 +240,7 @@ struct ichannel_t {
     flag_t cancel_guard :  1;
     flag_t queuable     :  1;
     flag_t is_local     :  1;
+    flag_t is_trusted   :  1;   /**< set to true for internal ichannels     */
 
     unsigned nextslot;          /**< next slot id to try                    */
 
