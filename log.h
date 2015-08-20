@@ -92,7 +92,7 @@ enum {
  *
  * That structure bears the name of the logging module and the level it
  * accepts. It can be either allocated (see \ref logger_init, \ref logger_new)
- * or static (see \ref LOGGER_INIT and \ref LOGGER_INIT_SIMPLE).
+ * or static (see \ref LOGGER_INIT).
  *
  * You should not touch the fields of that structure. It is provided only for
  * the sake of inlining.
