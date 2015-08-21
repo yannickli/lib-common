@@ -2059,6 +2059,10 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
 int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
                          const unsigned flags, qv_t(i32) *szs)
 {
+    if (flags & IOP_BPACK_STRICT) {
+        RETHROW(iop_check_constraints_desc(desc, val));
+    }
+
     /* Put the packer flags in first to reuse them when packing */
     qv_append(i32, szs, flags);
 
@@ -2333,12 +2337,16 @@ lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
     byte *data;
     int len;
 
-    if (!v)
+    if (!v) {
         return LSTR_NULL_V;
-
+    }
     qv_inita(i32, &sizes, 1024);
 
-    len  = iop_bpack_size_flags(st, v, flags, &sizes);
+    len = iop_bpack_size_flags(st, v, flags, &sizes);
+    if (len < 0) {
+        qv_wipe(i32, &sizes);
+        return LSTR_NULL_V;
+    }
     data = mp_new_raw(mp, byte, len + 1);
     data[len] = '\0';
 

@@ -321,6 +321,11 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     dst = t_new(byte, len);
     iop_bpack(dst, st, v, szs.tab);
 
+    /* packing with strict flag should give the same result */
+    Z_ASSERT_LSTREQUAL(t_iop_bpack_struct_flags(st, v, flags |
+                                                IOP_BPACK_STRICT),
+                       LSTR_INIT_V((const char *)dst, len));
+
     /* unpacking */
     ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
     Z_ASSERT_N(ret, "IOP unpacking error (%s, %s, %s)",
@@ -378,18 +383,23 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     int len, ret;
     byte *dst;
 
+    /* packing with strict flag should fail */
+    Z_ASSERT_LSTREQUAL(t_iop_bpack_struct_flags(st, v, IOP_BPACK_STRICT),
+                       LSTR_NULL_V);
+    e_trace(1, "%s", iop_get_err());
+
     /* XXX: Use a small t_qv here to force a realloc during (un)packing and
      *      detect possible illegal usage of the t_pool in the (un)packing
      *      functions. */
     t_qv_init(i32, &szs, 2);
 
-    /* packing */
+    /* here packing will work... */
     Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
                "invalid structure size (%s, %s)", st->fullname.s, info);
     dst = t_new(byte, len);
     iop_bpack(dst, st, v, szs.tab);
 
-    /* unpacking */
+    /* and unpacking should fail */
     ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
     Z_ASSERT_NEG(ret, "IOP unpacking unexpected success (%s, %s)",
                  st->fullname.s, info);

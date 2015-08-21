@@ -1141,6 +1141,9 @@ enum iop_bpack_flags {
      * packed. This is good to save bandwidth but dangerous for backward
      * compatibility */
     IOP_BPACK_SKIP_DEFVAL   = (1U << 0),
+    /** With this flag on, packing can fail if the constraints are not
+     * respected. The error message is available with iop_get_err. */
+    IOP_BPACK_STRICT        = (1U << 1),
 };
 
 /** Do some preliminary work to pack an IOP structure into IOP binary format.
@@ -1154,7 +1157,9 @@ enum iop_bpack_flags {
  * \param[out] szs   A qvector of int32 that you have to initialize and give
  *                   after to `iop_bpack`.
  * \return
- *   This function returns the needed buffer size to pack the IOP structure.
+ *   This function returns the needed buffer size to pack the IOP structure,
+ *   or -1 if the IOP_BPACK_STRICT flag was used and a constraint was
+ *   violated.
  */
 __must_check__
 int iop_bpack_size_flags(const iop_struct_t *st, const void *v,
@@ -1205,7 +1210,8 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  * \param[in] v     The IOP structure to pack.
  * \param[in] flags Packer modifiers (see iop_bpack_flags).
  * \return
- *   The buffer containing the packed structure.
+ *   The buffer containing the packed structure, or LSTR_NULL if the
+ *   IOP_BPACK_STRICT flag was used and a constraint was violated.
  */
 lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
                                  const void *v, const unsigned flags);
