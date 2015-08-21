@@ -1401,6 +1401,31 @@ void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb);
 #endif
 
 /* }}} */
+/* {{{ IOP backward compatibility checks */
+
+enum iop_compat_check_flags {
+    IOP_COMPAT_BIN  = (1U << 0),
+    IOP_COMPAT_JSON = (1U << 1),
+    /* TODO: XML */
+    IOP_COMPAT_ALL  = IOP_COMPAT_BIN | IOP_COMPAT_JSON,
+};
+
+/** Checks the backward compatibility of two IOP structures/classes/unions.
+ *
+ * This function checks if \p st2 is backward-compatible with \p st1 regarding
+ * the formats specified in \p flags, that is if any \p st1 packed
+ * structure/class/union can be safely unpacked as a \p st2.
+ *
+ * \p flags are a combination of \ref iop_compat_check_flags.
+ *
+ * \warning in case \p st1 and \p st2 are classes, it is not checking the
+ *          backward compatibility of their children.
+ */
+int iop_struct_check_backward_compat(const iop_struct_t *st1,
+                                     const iop_struct_t *st2,
+                                     unsigned flags, sb_t *err);
+
+/* }}} */
 
 /** Module that handles IOP registration data.
  */

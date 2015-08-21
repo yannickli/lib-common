@@ -35,6 +35,7 @@ typedef enum iop_type_t {
     IOP_T_STRUCT,
     IOP_T_XML,
 } iop_type_t;
+#define IOP_T_max  IOP_T_XML
 
 /*{{{ iop_field_t */
 

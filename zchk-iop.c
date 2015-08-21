@@ -19,6 +19,7 @@
 #include "iop/tstiop.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
+#include "iop/tstiop_backward_compat.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -571,10 +572,10 @@ iop_check_json_unclude_packing(const iop_struct_t *st, const void *val,
     if (exp_err) {
         Z_ASSERT_NEG(res);
         Z_ASSERT(strstr(err.data, exp_err), "unexpected error: %s", err.data);
-        goto end;
-    } else {
-        Z_ASSERT_N(res, "%*pM", SB_FMT_ARG(&err));
+        return 0;
     }
+
+    Z_ASSERT_N(res, "%*pM", SB_FMT_ARG(&err));
 
 #define CHECK_FILE(_st, _file, _exp)  \
     do {                                                                     \
@@ -609,7 +610,67 @@ iop_check_json_unclude_packing(const iop_struct_t *st, const void *val,
     }
 #undef CHECK_FILE
 
-  end:
+    Z_HELPER_END;
+}
+
+static int
+iop_check_struct_backward_compat(const iop_struct_t *st1,
+                                 const iop_struct_t *st2,
+                                 unsigned flags, const char *exp_err,
+                                 const void *obj1)
+{
+    t_scope;
+    SB_1k(err);
+    const char *ctx;
+
+    ctx = t_fmt("check_backward_compat from %*pM to %*pM",
+                LSTR_FMT_ARG(st1->fullname), LSTR_FMT_ARG(st2->fullname));
+
+    if (exp_err) {
+        Z_ASSERT_NEG(iop_struct_check_backward_compat(st1, st2, flags, &err),
+                     "%s should fail", ctx);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), LSTR(exp_err));
+    } else {
+        Z_ASSERT_N(iop_struct_check_backward_compat(st1, st2, flags, &err),
+                   "unexpected failure of %s: %*pM", ctx, SB_FMT_ARG(&err));
+    }
+
+    if (!obj1) {
+        return 0;
+    }
+
+    if (flags & IOP_COMPAT_BIN) {
+        void *obj2 = NULL;
+        lstr_t data = t_iop_bpack_struct(st1, obj1);
+
+        if (exp_err) {
+            Z_ASSERT_NEG(iop_bunpack_ptr(t_pool(), st2, &obj2,
+                                         ps_initlstr(&data), false),
+                         "bunpack should fail when testing %s", ctx);
+        } else {
+            Z_ASSERT_N(iop_bunpack_ptr(t_pool(), st2, (void **)&obj2,
+                                       ps_initlstr(&data), false),
+                       "unexpected bunpack failure when testing %s", ctx);
+        }
+    }
+
+    if (flags & IOP_COMPAT_JSON) {
+        SB_1k(data);
+        void *obj2 = NULL;
+        pstream_t ps;
+
+        iop_sb_jpack(&data, st1, obj1, 0);
+        ps = ps_initsb(&data);
+        if (exp_err) {
+            Z_ASSERT_NEG(t_iop_junpack_ptr_ps(&ps, st2, &obj2, 0, &err),
+                         "junpack should fail when testing %s", ctx);
+        } else {
+            Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st2, &obj2, 0, &err),
+                       "unexpected junpack failure when testing %s: %*pM",
+                       ctx, SB_FMT_ARG(&err));
+        }
+    }
+
     Z_HELPER_END;
 }
 
@@ -5214,6 +5275,308 @@ Z_GROUP_EXPORT(iop)
                                               NULL, &field));
             Z_ASSERT_EQ(test->is_pointed, iop_field_is_pointed(field));
         }
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_struct_check_backward_compat, "test iop_struct_check_backward_compat") { /* {{{ */
+        t_scope;
+        tstiop_backward_compat__basic_union__t  basic_union;
+        tstiop_backward_compat__basic_struct__t basic_struct;
+        tstiop_backward_compat__basic_class__t  basic_class;
+
+        IOP_REGISTER_PACKAGES(&tstiop_backward_compat__pkg);
+
+        basic_union = IOP_UNION(tstiop_backward_compat__basic_union, a, 12);
+
+        iop_init(tstiop_backward_compat__basic_struct, &basic_struct);
+        basic_struct.a = 12;
+        basic_struct.b = LSTR("string");
+
+        iop_init(tstiop_backward_compat__basic_class, &basic_class);
+        basic_class.a = 12;
+        basic_class.b = LSTR("string");
+
+#define T_OK(_type1, _obj1, _type2, _flags)  \
+        do {                                                                 \
+            const iop_struct_t *st1 = &tstiop_backward_compat__##_type1##__s;\
+            const iop_struct_t *st2 = &tstiop_backward_compat__##_type2##__s;\
+            tstiop_backward_compat__##_type1##__t *__obj1 = (_obj1);         \
+                                                                             \
+            Z_HELPER_RUN(iop_check_struct_backward_compat(st1, st2, _flags,  \
+                                                          NULL, __obj1));    \
+        } while (0)
+
+#define T_OK_ALL(_type1, _obj1, _type2)  \
+        do {                                                                 \
+            T_OK(_type1, _obj1, _type2, IOP_COMPAT_BIN);                     \
+            T_OK(_type1, _obj1, _type2, IOP_COMPAT_JSON);                    \
+            T_OK(_type1, NULL,  _type2, IOP_COMPAT_ALL);                     \
+        } while (0)
+
+#define T_KO(_type1, _obj1, _type2, _flags, _err)  \
+        do {                                                                 \
+            const iop_struct_t *st1 = &tstiop_backward_compat__##_type1##__s;\
+            const iop_struct_t *st2 = &tstiop_backward_compat__##_type2##__s;\
+            tstiop_backward_compat__##_type1##__t *__obj1 = (_obj1);         \
+                                                                             \
+            Z_HELPER_RUN(iop_check_struct_backward_compat(st1, st2, _flags,  \
+                                                          _err, __obj1));    \
+        } while (0)
+
+#define T_KO_ALL(_type1, _obj1, _type2, _err)  \
+        do {                                                                 \
+            T_KO(_type1, _obj1, _type2, IOP_COMPAT_BIN,  _err);              \
+            T_KO(_type1, _obj1, _type2, IOP_COMPAT_JSON, _err);              \
+            T_KO(_type1,  NULL, _type2, IOP_COMPAT_ALL,  _err);              \
+        } while (0)
+
+        /* Basic struct to class transitions. */
+        T_KO_ALL(basic_struct, &basic_struct, basic_union,
+                 "was a struct and is now a union");
+        T_KO_ALL(basic_union, &basic_union, basic_struct,
+                 "was a union and is now a struct");
+        T_KO_ALL(basic_struct, &basic_struct, basic_abstract_class,
+                 "was a struct and is now a class");
+
+        T_KO(basic_struct, &basic_struct, basic_class, IOP_COMPAT_BIN,
+             "was a struct and is now a class");
+        T_OK(basic_struct, &basic_struct, basic_class, IOP_COMPAT_JSON);
+
+        T_KO_ALL(basic_class, &basic_class, basic_abstract_class,
+                 "is an abstract class but was not abstract");
+        T_OK(basic_abstract_class, NULL, basic_class, IOP_COMPAT_BIN);
+        T_KO(basic_abstract_class, NULL, basic_class,
+             IOP_COMPAT_JSON, "class fullname changed "
+             "(`tstiop_backward_compat.BasicAbstractClass` != "
+             "`tstiop_backward_compat.BasicClass`)");
+
+        T_OK_ALL(basic_union,          &basic_union,  basic_union);
+        T_OK_ALL(basic_struct,         &basic_struct, basic_struct);
+        T_OK_ALL(basic_class,          &basic_class,  basic_class);
+        T_OK_ALL(basic_abstract_class, NULL,          basic_abstract_class);
+
+        /* A field disappears. */
+        T_OK(basic_struct, &basic_struct, disappeared_field, IOP_COMPAT_BIN);
+        T_KO(basic_struct, &basic_struct, disappeared_field, IOP_COMPAT_JSON,
+             "field `b` does not exist anymore");
+
+        /* A required field was added. */
+        T_KO_ALL(basic_struct, &basic_struct, new_required_field,
+                 "new field `c` must not be required");
+
+        /* Optional/repeated/default value fields added. */
+        T_OK_ALL(basic_struct, &basic_struct, new_opt_field);
+        T_OK_ALL(basic_struct, &basic_struct, new_repeated_field);
+        T_OK_ALL(basic_struct, &basic_struct, new_defval_field);
+
+        /* Renamed field. */
+        T_OK(basic_struct, &basic_struct, renamed_field, IOP_COMPAT_BIN);
+        T_KO(basic_struct, &basic_struct, renamed_field, IOP_COMPAT_JSON,
+             "new field `b2` must not be required");
+
+        /* Field tag changed. */
+        T_OK(basic_struct, &basic_struct, tag_changed_field, IOP_COMPAT_JSON);
+        T_KO(basic_struct, &basic_struct, tag_changed_field, IOP_COMPAT_BIN,
+             "new field `b` must not be required");
+
+        /* Field changed of type in a binary-compatible way. */
+        T_OK(basic_struct, &basic_struct, field_compatible_type_bin,
+             IOP_COMPAT_BIN);
+        T_KO(basic_struct, &basic_struct, field_compatible_type_bin,
+             IOP_COMPAT_JSON, "field `b`: incompatible types");
+
+        /* A field was added in a union. */
+        T_OK_ALL(basic_union, &basic_union, union1);
+        T_KO(basic_union, &basic_union, union2, IOP_COMPAT_BIN,
+             "field with tag 1 (`a`) does not exist anymore");
+        T_KO(basic_union, &basic_union, union2, IOP_COMPAT_JSON,
+             "field `a` does not exist anymore");
+
+        /* Number types changes. */
+        {
+            tstiop_backward_compat__number_struct__t  number_struct;
+            tstiop_backward_compat__number_struct2__t number_struct2;
+
+            iop_init(tstiop_backward_compat__number_struct, &number_struct);
+            number_struct.b   = true;
+            number_struct.i8  = INT8_MAX;
+            number_struct.u8  = UINT8_MAX;
+            number_struct.i16 = INT16_MAX;
+            number_struct.u16 = UINT16_MAX;
+            number_struct.i32 = INT32_MAX;
+            number_struct.u32 = UINT32_MAX;
+            T_OK_ALL(number_struct, &number_struct, number_struct2);
+
+            iop_init(tstiop_backward_compat__number_struct2, &number_struct2);
+            number_struct2.b   = INT8_MAX;
+            number_struct2.i8  = INT16_MAX;
+            number_struct2.u8  = INT16_MAX;
+            number_struct2.i16 = INT32_MAX;
+            number_struct2.u16 = INT32_MAX;
+            number_struct2.i32 = INT64_MAX;
+            number_struct2.u32 = INT64_MAX;
+            T_KO_ALL(number_struct2, &number_struct2, number_struct,
+                     "field `b`: incompatible types");
+        }
+
+        /* Class id change. */
+        T_KO(basic_class, &basic_class, class_id_changed, IOP_COMPAT_BIN,
+             "class id changed (0 != 1)");
+        /* XXX: This is authorized in json, but the test would fail because
+         *      the fullname changes :-(. */
+
+        /* Field repeated <-> not repeated. */
+        {
+            tstiop_backward_compat__field_repeated__t field_repeated;
+            bool a_arr[7] = { true, true, true, true, true, true, true };
+
+            iop_init(tstiop_backward_compat__field_repeated, &field_repeated);
+            field_repeated.a.tab = a_arr;
+            field_repeated.a.len = countof(a_arr);
+
+            /* Not repeated -> repeated. */
+            T_OK(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_BIN);
+            T_KO(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_JSON,
+                 "field `a`: is repeated and was not before");
+
+            /* Repeated -> not repeated. */
+            T_KO_ALL(field_repeated, &field_repeated, basic_struct,
+                     "field `a`: was repeated and is not anymore");
+        }
+
+        /* Field required <-> optional. */
+        {
+            tstiop_backward_compat__field_optional__t field_optional;
+
+            iop_init(tstiop_backward_compat__field_optional, &field_optional);
+            field_optional.a = 12;
+
+            /* Required -> optional. */
+            T_OK_ALL(basic_struct, &basic_struct, field_optional);
+
+            /* Optional -> required. */
+            T_KO_ALL(field_optional, &field_optional, basic_struct,
+                     "field `b`: is required and was not before");
+        }
+
+        /* Field of type struct changed for an incompatible struct. */
+        {
+            tstiop_backward_compat__struct_container1__t struct_container1;
+
+            iop_init(tstiop_backward_compat__struct_container1,
+                     &struct_container1);
+            struct_container1.s = basic_struct;
+
+            T_KO_ALL(struct_container1, &struct_container1, struct_container2,
+                     "field `s`: new field `c` must not be required");
+        }
+
+        /* Infinite recursion in structure inclusion. */
+        {
+            tstiop_backward_compat__infinite_recur1__t recur1_1;
+            tstiop_backward_compat__infinite_recur1__t recur1_2;
+
+            iop_init(tstiop_backward_compat__infinite_recur1, &recur1_1);
+            recur1_1.s = &recur1_2;
+
+            iop_init(tstiop_backward_compat__infinite_recur1, &recur1_2);
+
+            T_OK_ALL(infinite_recur1, &recur1_1, infinite_recur2);
+        }
+
+        /* Enums. */
+        {
+            tstiop_backward_compat__struct_enum1__t enum_1;
+            tstiop_backward_compat__struct_enum2__t enum_2;
+            tstiop_backward_compat__struct_strict_enum1__t strict_enum_1;
+            tstiop_backward_compat__struct_strict_enum2__t strict_enum_2;
+
+            iop_init(tstiop_backward_compat__struct_enum1, &enum_1);
+            enum_1.en = 12;
+
+            iop_init(tstiop_backward_compat__struct_enum2, &enum_2);
+            enum_2.en = ENUM2_VAL1;
+
+            iop_init(tstiop_backward_compat__struct_strict_enum1,
+                     &strict_enum_1);
+            strict_enum_1.en = STRICT_ENUM1_VAL1;
+
+            iop_init(tstiop_backward_compat__struct_strict_enum2,
+                     &strict_enum_2);
+            strict_enum_2.en = STRICT_ENUM2_VAL2;
+
+            /* Test enums are compatible with themselves. */
+            T_OK_ALL(struct_enum1, &enum_1, struct_enum1);
+            T_OK_ALL(struct_enum2, &enum_2, struct_enum2);
+            T_OK_ALL(struct_strict_enum1, &strict_enum_1,
+                     struct_strict_enum1);
+            T_OK_ALL(struct_strict_enum2, &strict_enum_2,
+                     struct_strict_enum2);
+
+            /* Not strict -> strict is always forbidden. */
+            T_KO_ALL(struct_enum1, &enum_1, struct_strict_enum1,
+                     "field `en`: enum is strict and was not before");
+
+            /* A value disappears from a non-strict enum; this is authorized
+             * in binary but forbidden in json. */
+            enum_1.en = ENUM1_VAL2;
+            T_OK(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_BIN);
+            T_KO(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_JSON,
+                 "field `en`: value `VAL2` does not exist anymore");
+
+            /* A value disappears from a strict enum; this is always
+             * forbidden. */
+            T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
+                 IOP_COMPAT_BIN,
+                 "field `en`: numeric value 1 does not exist anymore");
+            T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
+                 IOP_COMPAT_JSON,
+                 "field `en`: value `VAL1` does not exist anymore");
+
+            /* Field conversion from enum to int. */
+            T_OK(struct_enum1, &enum_1, struct_enum3, IOP_COMPAT_BIN);
+            T_KO(struct_enum1, &enum_1, struct_enum3, IOP_COMPAT_JSON,
+                 "field `en`: incompatible types");
+        }
+
+        /* Classes (these tests can only be done in binary and not in json
+         * because class names change). */
+        {
+            tstiop_backward_compat__parent_class1__t parent_class1;
+            tstiop_backward_compat__child_class1__t child_class1;
+
+            iop_init(tstiop_backward_compat__parent_class1, &parent_class1);
+            parent_class1.a = 10;
+
+            iop_init(tstiop_backward_compat__child_class1, &child_class1);
+            child_class1.a = 10;
+            child_class1.b = 20;
+
+            T_KO(child_class1, &child_class1, child_class2, IOP_COMPAT_BIN,
+                 "cannot find class with id 1 in the parents of "
+                 "`tstiop_backward_compat.ChildClass2`");
+
+            T_KO(child_class1, &child_class1, child_class32, IOP_COMPAT_BIN,
+                 "class `tstiop_backward_compat.ChildClass31` was added in "
+                 "the parents with a required field `c`");
+
+            T_OK(child_class1, &child_class1, child_class42, IOP_COMPAT_BIN);
+
+            T_KO(child_class1, &child_class1, child_class52, IOP_COMPAT_BIN,
+                 "parent `tstiop_backward_compat.ParentClass5`: field `a`: "
+                 "incompatible types");
+
+            T_KO(parent_class1, &parent_class1, child_class6, IOP_COMPAT_BIN,
+                 "class `tstiop_backward_compat.ParentClass6` was added in "
+                 "the parents with a required field `b`");
+
+            T_OK(parent_class1, &parent_class1, child_class7, IOP_COMPAT_BIN);
+        }
+
+#undef T_OK
+#undef T_OK_ALL
+#undef T_KO
+#undef T_KO_ALL
+
     } Z_TEST_END;
     /* }}} */
 
