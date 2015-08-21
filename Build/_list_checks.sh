@@ -62,9 +62,12 @@ dump_zf()
                         [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         ;;
                     *)
+                        if [[ "$Z_LIST_SKIP" =~ "C" ]]; then
+                            has_match=y
+                            continue
+                        fi
                         test -x "$f" || continue
                         has_match=y
-                        [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         ;;
                 esac
 
