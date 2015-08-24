@@ -4991,6 +4991,51 @@ Z_GROUP_EXPORT(iop)
         lstr_wipe(&file);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(enum_printf, "test %*pE in format string") { /* {{{ */
+        struct {
+            int v;
+            int flags;
+            lstr_t res;
+        } t[] = {
+#define T(_v, _base, _full)                                                  \
+            { _v, 0,                 LSTR(_base) },                          \
+            { _v, IOP_ENUM_FMT_FULL, LSTR(_full) }
+
+            T(MY_ENUM_D_FOO,     "FOO",     "FOO(0)"),
+            T(1,                 "1",       "<unknown>(1)"),
+            T(MY_ENUM_D_BAR,     "BAR",     "BAR(2)"),
+            T(3,                 "3",       "<unknown>(3)"),
+            T(MY_ENUM_D_FOO_BAR, "FOO_BAR", "FOO_BAR(4)"),
+            T(5,                 "5",       "<unknown>(5)"),
+#undef T
+        };
+
+        carray_for_each_ptr(test, t) {
+            t_scope;
+            lstr_t file;
+            FILE *out;
+            SB_1k(tst_sb);
+            char *path;
+
+            sb_addf(&tst_sb, "%*pE", IOP_ENUM_FMT_ARG_FLAGS(tstiop__my_enum_d,
+                                                            t->v, t->flags));
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&tst_sb), t->res);
+
+            path = t_fmt("%*pM/tst%d", LSTR_FMT_ARG(z_tmpdir_g), t->v);
+            out = fopen(path, "w");
+            Z_ASSERT_EQ(fprintf(out, "%*pE",
+                                IOP_ENUM_FMT_ARG_FLAGS(tstiop__my_enum_d,
+                                                       t->v, t->flags)),
+                        t->res.len);
+            fclose(out);
+
+            Z_ASSERT_N(lstr_init_from_file(&file, path, MAP_SHARED,
+                                           PROT_READ), "%m");
+            Z_ASSERT_LSTREQUAL(file, t->res);
+            lstr_wipe(&file);
+        }
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_set_opt_field, "test iop_set_opt_field function") { /* {{{ */
         tstiop__my_struct_a_opt__t obj;
         const iop_field_t *f;

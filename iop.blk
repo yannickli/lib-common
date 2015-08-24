@@ -3525,7 +3525,7 @@ void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
 }
 
 /* }}} */
-/* {{{ Printf formatter */
+/* {{{ Struct printf formatter %*pS */
 
 static int iop_file_write(void *file, const void *buf, int len)
 {
@@ -3584,13 +3584,41 @@ iop_struct_formatter(int modifier, const void *_sv, size_t flags,
 }
 
 /* }}} */
+/* {{{ Enum printf formatter %*pE */
+
+static ssize_t
+iop_enum_formatter(int modifier, const void *_ev, size_t flags,
+                   FILE *stream, char *buf, size_t buf_len)
+{
+    const struct iop_enum_value *ev = _ev;
+    lstr_t s = iop_enum_to_str_desc(ev->desc, ev->v);
+
+    if (flags & IOP_ENUM_FMT_FULL) {
+        if (!s.s) {
+            return formatter_writef(stream, buf, buf_len, "<unknown>(%d)",
+                                    ev->v);
+        }
+
+        return formatter_writef(stream, buf, buf_len, "%*pM(%d)",
+                                LSTR_FMT_ARG(s), ev->v);
+    }
+
+    if (!s.s) {
+        return formatter_writef(stream, buf, buf_len, "%d", ev->v);
+    }
+
+    return formatter_write(stream, buf, buf_len, s.s, s.len);
+}
+
+/* }}} */
 
 static int iop_initialize(void *arg)
 {
     qm_init(class_id,   &_G.classes_by_id);
     qm_init(class_name, &_G.classes_by_name);
     qm_init(iop_pkg,    &_G.pkgs_by_name);
-    iprintf_register_formatter('S', iop_struct_formatter);
+    iprintf_register_formatter('S', &iop_struct_formatter);
+    iprintf_register_formatter('E', &iop_enum_formatter);
     return 0;
 }
 

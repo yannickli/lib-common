@@ -203,6 +203,13 @@ enum MyEnumC {
     E = 1 << 4,
 };
 
+/* Enum printf formatting with %*pE. */
+enum MyEnumD {
+    FOO = 0,
+    BAR = 2,
+    FOO_BAR = 4,
+};
+
 struct MyStructI {
     int[]       i;
     long[]      l;

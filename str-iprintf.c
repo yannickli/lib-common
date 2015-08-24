@@ -1496,6 +1496,38 @@ void iprintf_register_formatter(int modifier, formatter_f *formatter)
     put_memory_fmt[(unsigned char)modifier] = formatter;
 }
 
+ssize_t formatter_writef(FILE *stream, char *buf, size_t buf_len,
+                         const char *fmt, ...)
+{
+    va_list arg_list;
+    ssize_t n;
+
+    va_start(arg_list, fmt);
+
+    if (stream) {
+        n = vfprintf(stream, fmt, arg_list);
+    } else {
+        n = vsnprintf(buf, buf_len, fmt, arg_list);
+    }
+    va_end(arg_list);
+
+    return n;
+}
+
+ssize_t formatter_write(FILE *stream, char *buf, size_t buf_len,
+                        const char *s, size_t len)
+{
+    if (stream) {
+        if (fwrite(s, 1, len, stream) != len) {
+            return -1;
+        }
+    } else {
+        memcpy(buf, s, MIN(len, buf_len));
+    }
+
+    return len;
+}
+
 Z_GROUP_EXPORT(iprintf) {
     char buffer[128];
 

@@ -1068,6 +1068,47 @@ int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
 int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
                                    lstr_t key, iop_value_t *value);
 
+/** Private intermediary structure for IOP enum formatting. */
+struct iop_enum_value {
+    const iop_enum_t *desc;
+    int v;
+};
+
+/** Flag to use in order to display enums the following way:
+ *  "<litteral value>(<int value>)".
+ *
+ *  Examples: "FOO(0)", "BAR(1)".
+ */
+#define IOP_ENUM_FMT_FULL  (1 << 0)
+
+/** Provide the appropriate arguments to the %*pE modifier.
+ *
+ * '%*pE' can be used in format string in order to print enum values. An
+ * additional flag \ref IOP_ENUM_FMT_FULL can be provided to display both
+ * litteral and integer values.
+ *
+ * \param[in]  pfx    IOP enum descriptor prefix.
+ * \param[in]  _val   The IOP enum value to print.
+ * \param[in]  _flags The IOP enum formatting flags.
+ */
+#define IOP_ENUM_FMT_ARG_FLAGS(pfx, _val, _flags)                            \
+    _flags,                                                                  \
+    &(struct iop_enum_value){                                                \
+        .desc = &pfx##__e,                                                   \
+        .v = ({ pfx##__t _v = (_val); _v; })                                 \
+    }
+
+/** Provide the appropriate arguments to print the litteral form of an enum
+ *  with the %*pE modifier.
+ *
+ * \note If the value has no litteral form, the numeric value will be printed
+ *       instead.
+ *
+ * \param[in]  pfx    IOP enum descriptor prefix.
+ * \param[in]  _val   The IOP enum value to print.
+ */
+#define IOP_ENUM_FMT_ARG(pfx, _v)  IOP_ENUM_FMT_ARG_FLAGS(pfx, _v, 0)
+
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
 

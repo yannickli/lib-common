@@ -118,7 +118,7 @@ static inline char *iasprintf(const char *fmt, ...)
  * \param[out] buf_len  The size of the buffer.
  *
  * \return The size required to format the \p val (not including the trailing
- *         zero).
+ *         zero) or -1 in case of error.
  */
 typedef ssize_t (formatter_f)(int modifier, const void *val, size_t val_len,
                               FILE *stream, char *buf, size_t buf_len);
@@ -127,5 +127,30 @@ typedef ssize_t (formatter_f)(int modifier, const void *val, size_t val_len,
  */
 __attr_nonnull__((2))
 void iprintf_register_formatter(int modifier, formatter_f *formatter);
+
+/* Formatter helpers. */
+
+/** Write data to file or buffer following a given format.
+ *
+ * \param[in] fmt  Input format.
+ *
+ *  \note See \ref formatter_f documentation for other parameters and returned
+ *  values.
+ */
+__attr_printf__(4, 5) __attr_nonnull__((4))
+ssize_t formatter_writef(FILE *stream, char *buf, size_t buf_len,
+                         const char *fmt, ...);
+
+/** Write data to file or buffer.
+ *
+ * \param[in] s    String to write.
+ * \param[in] len  String length.
+ *
+ *  \note See \ref formatter_f documentation for other parameters and returned
+ *  values.
+ */
+ssize_t formatter_write(FILE *stream, char *buf, size_t buf_len,
+                        const char *s, size_t len);
+
 
 #endif /* IS_LIB_COMMON_STR_IPRINTF_H */
