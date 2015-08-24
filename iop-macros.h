@@ -393,7 +393,12 @@
  *
  * \return  a pointer equal to \p o, of the \p pfx type.
  */
-#define iop_obj_vcast(pfx, o)  ((pfx##__t *)iop_obj_cast_debug(pfx, o))
+#define iop_obj_vcast(pfx, o)                                                \
+    ({                                                                       \
+        void *_arg_o = (o); /* check constness with cast to void * */        \
+                                                                             \
+        (pfx##__t *)iop_obj_cast_debug(pfx, (typeof(o))_arg_o);              \
+    })
 
 /** Cast an IOP class object to the wanted type.
  *
@@ -406,7 +411,12 @@
  * This macro will cast \p o to \p pfx if \p o inherits from \p pfx and will
  * return NULL if this is not the case.
  */
-#define iop_obj_dynvcast(pfx, o)  ((pfx##__t *)iop_obj_dyn_cast(pfx, o))
+#define iop_obj_dynvcast(pfx, o)                                             \
+    ({                                                                       \
+        void *_arg_o = (o); /* check constness with cast to void * */        \
+                                                                             \
+        (pfx##__t *)iop_obj_dyn_cast(pfx, (typeof(o))_arg_o);                \
+    })
 
 /** Dynamically cast an IOP class object to the wanted type.
  *

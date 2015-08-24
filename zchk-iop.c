@@ -3049,21 +3049,21 @@ Z_GROUP_EXPORT(iop)
         iop_init(tstiop_inheritance__c1, &c1);
         Z_ASSERT_EQ(IOP_OBJ_CLASS_ID(&c1), 3);
         IOP_OBJ_EXACT_SWITCH(&c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b2, &c1, b2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b2, &c1, b2) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c1, &c1, ok) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c1, &c1, ok) {
             Z_ASSERT_P(ok);
             Z_ASSERT(!matched);
             matched = true;
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_EXACT_DEFAULT() {
@@ -3074,16 +3074,16 @@ Z_GROUP_EXPORT(iop)
 
         matched = false;
         IOP_OBJ_EXACT_SWITCH(&c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b2, &c1, b2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b2, &c1, b2) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_EXACT_DEFAULT() {
@@ -3123,21 +3123,21 @@ Z_GROUP_EXPORT(iop)
 
         matched = false;
         IOP_OBJ_SWITCH(c1, &c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b2, &c1, b2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b2, &c1, b2) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c1, &c1, ok) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c1, &c1, ok) {
             Z_ASSERT_P(ok);
             Z_ASSERT(!matched);
             matched = true;
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_DEFAULT(c1) {
@@ -3172,18 +3172,18 @@ Z_GROUP_EXPORT(iop)
 
         matched = false;
         IOP_OBJ_SWITCH(c1, &c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b2, &c1, b2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b2, &c1, b2) {
             Z_ASSERT(b2);
             Z_ASSERT(!matched);
             matched = true;
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_DEFAULT(c1) {
@@ -3194,15 +3194,15 @@ Z_GROUP_EXPORT(iop)
 
         matched = false;
         IOP_OBJ_SWITCH(c1, &c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__a1, &c1, a1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__a1, &c1, a1) {
             Z_ASSERT(a1);
             Z_ASSERT(!matched);
             matched = true;
           }
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_DEFAULT(c1) {
@@ -3213,10 +3213,10 @@ Z_GROUP_EXPORT(iop)
 
         matched = false;
         IOP_OBJ_SWITCH(c1, &c1) {
-          IOP_OBJ_CASE(tstiop_inheritance__b1, &c1, b1) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__b1, &c1, b1) {
             Z_ASSERT(false);
           }
-          IOP_OBJ_CASE(tstiop_inheritance__c2, &c1, c2) {
+          IOP_OBJ_CASE_CONST(tstiop_inheritance__c2, &c1, c2) {
             Z_ASSERT(false);
           }
           IOP_OBJ_DEFAULT(c1) {
