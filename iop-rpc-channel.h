@@ -894,6 +894,8 @@ void  __ic_bpack(ic_msg_t *, const iop_struct_t *, const void *);
 /** \brief internal do not use directly, or know what you're doing. */
 void  __ic_msg_build(ic_msg_t *, const iop_struct_t *, const void *, bool);
 /** \brief internal do not use directly, or know what you're doing. */
+void  __ic_msg_build_from(ic_msg_t *, const ic_msg_t *);
+/** \brief internal do not use directly, or know what you're doing. */
 void  __ic_query_flags(ichannel_t *, ic_msg_t *, uint32_t flags);
 /** \brief internal do not use directly, or know what you're doing. */
 void  __ic_query(ichannel_t *, ic_msg_t *);
@@ -986,6 +988,25 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
 #define ic_rpc_is_traced(_mod, _if, _rpc)  (false)
 #endif
 
+/** \brief helper to prepare a typed query message.
+ * \param[in]  _msg   the #ic_msg_t to prepare.
+ * \param[in]  _cb    the rpc reply callback to use
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ */
+#define __ic_prepare_msg(_msg, _cb, _mod, _if, _rpc) \
+    ({                                                                      \
+        ic_msg_t *__msgp = (_msg);                                          \
+        void (*__cb)(IOP_RPC_CB_ARGS(_mod, _if, _rpc)) = _cb;               \
+        __msgp->cb = __cb != NULL ? (ic_msg_cb_f *)__cb : &ic_drop_ans_cb;  \
+        __msgp->rpc = IOP_RPC(_mod, _if, _rpc);                             \
+        __msgp->async = __msgp->rpc->async;                                 \
+        __msgp->cmd = IOP_RPC_CMD(_mod, _if, _rpc);                         \
+        __msgp->trace = __msgp->trace || ic_rpc_is_traced(_mod, _if, _rpc); \
+        __msgp;                                                             \
+    })
+
 /** \brief helper to build a typed query message.
  * \param[in]  _ich   the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
@@ -1000,14 +1021,26 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
         const IOP_RPC_T(_mod, _if, _rpc, args) *__v = (v);                  \
         ic_msg_t *__msg = (_msg);                                           \
         const ichannel_t *__ich = (_ich);                                   \
-        void (*__cb)(IOP_RPC_CB_ARGS(_mod, _if, _rpc)) = _cb;               \
-        __msg->cb = __cb != NULL ? (ic_msg_cb_f *)__cb : &ic_drop_ans_cb;   \
-        __msg->rpc = IOP_RPC(_mod, _if, _rpc);                              \
-        __msg->async = __msg->rpc->async;                                   \
-        __msg->cmd = IOP_RPC_CMD(_mod, _if, _rpc);                          \
-        __msg->trace = __msg->trace || ic_rpc_is_traced(_mod, _if, _rpc);   \
+        __ic_prepare_msg(__msg, (_cb), _mod, _if, _rpc);                    \
         __ic_msg_build(__msg, IOP_RPC(_mod, _if, _rpc)->args, __v,          \
                        !ic_is_local(__ich) || __msg->force_pack);           \
+        __msg;                                                              \
+    })
+
+/** \brief helper to build a typed query message by duplicating another.
+ * \param[in]  _msg      the #ic_msg_t to fill.
+ * \param[in]  _msg_src  the #ic_msg_t to duplicate.
+ */
+#define ic_build_query_from(_msg, _msg_src) \
+    ({                                                                      \
+        ic_msg_t *__msg = (_msg), *__msg_src = (_msg_src);                  \
+        __msg->cb         = __msg_src->cb;                                  \
+        __msg->rpc        = __msg_src->rpc;                                 \
+        __msg->async      = __msg_src->async;                               \
+        __msg->cmd        = __msg_src->cmd;                                 \
+        __msg->trace      = __msg_src->trace;                               \
+        __msg->force_pack = true;                                           \
+        __ic_msg_build_from(__msg, __msg_src);                              \
         __msg;                                                              \
     })
 

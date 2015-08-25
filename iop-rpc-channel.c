@@ -1874,6 +1874,15 @@ __ic_msg_build(ic_msg_t *msg, const iop_struct_t *st, const void *arg,
     }
 }
 
+void
+__ic_msg_build_from(ic_msg_t *msg, const ic_msg_t *msg_src)
+{
+    assert (msg_src->force_pack);
+    p_copy((byte *)__ic_get_buf(msg, msg_src->dlen - IC_MSG_HDR_LEN),
+           (byte *)msg_src->data + IC_MSG_HDR_LEN,
+           msg_src->dlen - IC_MSG_HDR_LEN);
+}
+
 static ic_msg_t *
 ic_msg_new_for_reply(ichannel_t **ic, uint64_t slot, int cmd)
 {
