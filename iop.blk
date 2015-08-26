@@ -4277,6 +4277,80 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
     return res;
 }
 
+static lstr_t iop_get_name_from_fullname(lstr_t fullname)
+{
+    pstream_t ps = ps_initlstr(&fullname);
+    pstream_t elem;
+
+    while (ps_get_ps_chr_and_skip(&ps, '.', &elem) >= 0);
+
+    return LSTR_PS_V(&ps);
+}
+
+static const iop_struct_t *
+iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name)
+{
+    for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+        const iop_struct_t *st = *it;
+
+        if (lstr_equal2(iop_get_name_from_fullname(st->fullname), name)) {
+            return st;
+        }
+    }
+
+    return NULL;
+}
+
+int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
+                                  const iop_pkg_t *pkg2,
+                                  unsigned flags, sb_t *err)
+{
+    SB_1k(local_err);
+    qh_t(compat_couple) seen_couples;
+
+    assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
+
+    qh_init(compat_couple, &seen_couples);
+
+    /* Check structs. */
+    for (const iop_struct_t *const *it = pkg1->structs; *it; it++) {
+        const iop_struct_t *st1 = *it;
+        const iop_struct_t *st2;
+        lstr_t name = iop_get_name_from_fullname(st1->fullname);
+        const char *what;
+
+        if (st1->is_union) {
+            what = "union";
+        } else
+        if (iop_struct_is_class(st1)) {
+            what = "class";
+        } else {
+            what = "struct";
+        }
+
+        if (!(st2 = iop_pkg_get_struct_by_name(pkg2, name))) {
+            sb_addf(err, "%s `%*pM` does not exist anymore",
+                    what, LSTR_FMT_ARG(name));
+            goto error;
+        }
+
+        if (__iop_struct_check_backward_compat(st1, st2, flags, &seen_couples,
+                                               &local_err) < 0)
+        {
+            sb_addf(err, "%s `%*pM`: %*pM",
+                    what, LSTR_FMT_ARG(name), SB_FMT_ARG(&local_err));
+            goto error;
+        }
+    }
+
+    qh_wipe(compat_couple, &seen_couples);
+    return 0;
+
+  error:
+    qh_wipe(compat_couple, &seen_couples);
+    return -1;
+}
+
 /* }}} */
 
 static int iop_initialize(void *arg)

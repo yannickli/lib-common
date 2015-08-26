@@ -1425,6 +1425,22 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
                                      const iop_struct_t *st2,
                                      unsigned flags, sb_t *err);
 
+/** Checks the backward compatibility of two IOP packages.
+ *
+ * This function checks if \p pkg1 is backward-compatible with \p pkg2
+ * regarding the formats specified in \p flags, that is if any
+ * packed structure/class/union of \p st1 can be safely unpacked using
+ * structure/class/union defined in \p st2.
+ *
+ * The names of the structures/classes/unions must not change between \p pkg1
+ * and \p pkg2.
+ *
+ * \warning this function does not check the interfaces/RPCs for now.
+ */
+int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
+                                  const iop_pkg_t *pkg2,
+                                  unsigned flags, sb_t *err);
+
 /* }}} */
 
 /** Module that handles IOP registration data.

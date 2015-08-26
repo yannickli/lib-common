@@ -19,7 +19,12 @@
 #include "iop/tstiop.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
+#include "iop/tstiop_licence.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
+#include "iop/tstiop_backward_compat_deleted_struct_1.iop.h"
+#include "iop/tstiop_backward_compat_deleted_struct_2.iop.h"
+#include "iop/tstiop_backward_compat_incompatible_struct_1.iop.h"
+#include "iop/tstiop_backward_compat_incompatible_struct_2.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -5571,6 +5576,62 @@ Z_GROUP_EXPORT(iop)
 
             T_OK(parent_class1, &parent_class1, child_class7, IOP_COMPAT_BIN);
         }
+
+#undef T_OK
+#undef T_OK_ALL
+#undef T_KO
+#undef T_KO_ALL
+
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_pkg_check_backward_compat, "test iop_pkg_check_backward_compat") { /* {{{ */
+        SB_1k(err);
+
+#define T_OK(_pkg1, _pkg2, _flags)  \
+        do {                                                                 \
+            Z_ASSERT_N(iop_pkg_check_backward_compat(&_pkg1##__pkg,          \
+                                                     &_pkg2##__pkg,          \
+                                                     _flags, &err));         \
+        } while (0)
+
+#define T_OK_ALL(_pkg1, _pkg2)  \
+        do {                                                                 \
+            T_OK(_pkg1, _pkg2, IOP_COMPAT_BIN);                              \
+            T_OK(_pkg1, _pkg2, IOP_COMPAT_JSON);                             \
+            T_OK(_pkg1, _pkg2, IOP_COMPAT_ALL);                              \
+        } while (0)
+
+#define T_KO(_pkg1, _pkg2, _flags, _err)  \
+        do {                                                                 \
+            sb_reset(&err);                                                  \
+            Z_ASSERT_NEG(iop_pkg_check_backward_compat(&_pkg1##__pkg,        \
+                                                       &_pkg2##__pkg,        \
+                                                       _flags, &err));       \
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), LSTR(_err));                 \
+        } while (0)
+
+#define T_KO_ALL(_pkg1, _pkg2, _err)  \
+        do {                                                                 \
+            T_KO(_pkg1, _pkg2, IOP_COMPAT_BIN,  _err);                       \
+            T_KO(_pkg1, _pkg2, IOP_COMPAT_JSON, _err);                       \
+            T_KO(_pkg1, _pkg2, IOP_COMPAT_ALL,  _err);                       \
+        } while (0)
+
+        /* Test packages with themselves. */
+        T_OK_ALL(tstiop, tstiop);
+        T_OK_ALL(tstiop_inheritance, tstiop_inheritance);
+        T_OK_ALL(tstiop_licence, tstiop_licence);
+        T_OK_ALL(tstiop_backward_compat, tstiop_backward_compat);
+
+        /* Deleted structure. */
+        T_KO_ALL(tstiop_backward_compat_deleted_struct_1,
+                 tstiop_backward_compat_deleted_struct_2,
+                 "struct `Struct2` does not exist anymore");
+
+        /* Incompatible structure. */
+        T_KO_ALL(tstiop_backward_compat_incompatible_struct_1,
+                 tstiop_backward_compat_incompatible_struct_2,
+                 "struct `Struct1`: new field `b` must not be required");
 
 #undef T_OK
 #undef T_OK_ALL
