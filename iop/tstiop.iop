@@ -67,6 +67,7 @@ class MyClass2 : 2 :MyClass1 {
 class MyClass3 : 3 : MyClass2 {
     int int3;
     bool bool1;
+    string? string1;
 };
 
 
