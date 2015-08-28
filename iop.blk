@@ -1674,26 +1674,38 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
 /* }}} */
 /* {{{ Check constraints before packing */
 
-static __thread sb_t iop_err_g;
+typedef struct iop_err_t {
+    sb_t err;
+    sb_t path;
+    const iop_struct_t *desc;
+} iop_err_t;
+
+static __thread iop_err_t iop_err_g;
 
 __attribute__((constructor))
 static void iop_init_err(void)
 {
-    if (unlikely(iop_err_g.size == 0))
-        sb_init(&iop_err_g);
+    if (unlikely(iop_err_g.err.size == 0)) {
+        p_clear(&iop_err_g, 1);
+        sb_init(&iop_err_g.err);
+        sb_init(&iop_err_g.path);
+    }
 }
 
 static void iop_wipe_err(void)
 {
-    if (iop_err_g.size)
-        sb_wipe(&iop_err_g);
+    if (iop_err_g.err.size) {
+        sb_wipe(&iop_err_g.err);
+        sb_wipe(&iop_err_g.path);
+        iop_err_g.desc = NULL;
+    }
 }
 
 thr_hooks(iop_init_err, iop_wipe_err);
 
 void iop_set_verr(const char *fmt, va_list ap)
 {
-    sb_setvf(&iop_err_g, fmt, ap);
+    sb_setvf(&iop_err_g.err, fmt, ap);
 }
 
 int iop_set_err(const char *fmt, ...)
@@ -1708,30 +1720,72 @@ int iop_set_err(const char *fmt, ...)
 
 int iop_set_err2(const lstr_t *s)
 {
-    sb_set(&iop_err_g, s->s, s->len);
+    sb_set(&iop_err_g.err, s->s, s->len);
     return -1;
 }
 
 void iop_clear_err(void)
 {
-    sb_reset(&iop_err_g);
+    sb_reset(&iop_err_g.err);
+    sb_reset(&iop_err_g.path);
+    iop_err_g.desc = NULL;
+}
+
+static void iop_expand_err(void)
+{
+    if (!iop_err_g.desc) {
+        return;
+    }
+    if (iop_err_g.path.len) {
+        sb_prependf(&iop_err_g.err, "in %s of type %s: ",
+                    iop_err_g.path.data + 1, iop_err_g.desc->fullname.s);
+    } else {
+        sb_prependf(&iop_err_g.err, "in type %s: ",
+                    iop_err_g.desc->fullname.s);
+    }
+    iop_err_g.desc = NULL;
 }
 
 const char *iop_get_err(void)
 {
-    if (iop_err_g.len)
-        return iop_err_g.data;
+    if (iop_err_g.err.len) {
+        iop_expand_err();
+        return iop_err_g.err.data;
+    }
     return NULL;
 }
 
 lstr_t iop_get_err_lstr(void)
 {
-    if (iop_err_g.len)
-        return LSTR_INIT_V(iop_err_g.data, iop_err_g.len);
+    if (iop_err_g.err.len) {
+        iop_expand_err();
+        return LSTR_INIT_V(iop_err_g.err.data, iop_err_g.err.len);
+    }
     return LSTR_NULL_V;
 }
 
-int __iop_check_constraints(const iop_struct_t *desc, const void *val);
+static int
+__iop_check_constraints_struct(const iop_struct_t *desc, const void *val);
+static int
+__iop_check_constraints_class(const iop_struct_t *desc, const void *val);
+
+__cold static void sb_prepend_field(sb_t *sb, const iop_field_t *fdesc, int j)
+{
+    if (fdesc->repeat == IOP_R_REPEATED) {
+        sb_prependf(sb, ".%s[%d]", fdesc->name.s, j);
+    } else {
+        sb_prependf(sb, ".%s", fdesc->name.s);
+    }
+}
+
+static const char *t_fmt_field(const iop_field_t *fdesc, int j)
+{
+    if (fdesc->repeat == IOP_R_REPEATED) {
+        return t_fmt("%s[%d]", fdesc->name.s, j);
+    } else {
+        return fdesc->name.s;
+    }
+}
 
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse)
@@ -1739,7 +1793,11 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
     check_constraints_f check_constraints = NULL;
 
     if ((check_constraints = iop_field_get_constraints_cb(desc, fdesc))) {
-        RETHROW(check_constraints(ptr, n));
+        if (unlikely(check_constraints(ptr, n) < 0)) {
+            iop_err_g.desc = desc;
+            sb_reset(&iop_err_g.path);
+            return -1;
+        }
     }
     switch (fdesc->type) {
       case IOP_T_ENUM:
@@ -1753,9 +1811,17 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                       en_desc->ranges_len, intval) != -1)
                 {
                     continue;
+                } else {
+                    t_scope;
+
+                    iop_err_g.desc = desc;
+                    sb_reset(&iop_err_g.path);
+                    iop_set_err("%d is not a valid value for enum %*pM"
+                                " (field %s)",
+                                intval, LSTR_FMT_ARG(en_desc->fullname),
+                                t_fmt_field(fdesc, j));
+                    return -1;
                 }
-                return iop_set_err("%d is not a valid value for enum %*pM",
-                                   intval, LSTR_FMT_ARG(en_desc->fullname));
             }
         }
         break;
@@ -1788,6 +1854,7 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
         is_class = iop_field_is_class(fdesc);
         is_ref   = iop_field_is_reference(fdesc);
         for (int j = 0; j < n; j++) {
+            int ret;
             const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
 
             if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
@@ -1798,9 +1865,13 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                 v = *(void **)v;
             }
             if (is_class) {
-                RETHROW(iop_check_constraints_desc(fdesc->u1.st_desc, v));
+                ret = __iop_check_constraints_class(fdesc->u1.st_desc, v);
             } else {
-                RETHROW(__iop_check_constraints(fdesc->u1.st_desc, v));
+                ret = __iop_check_constraints_struct(fdesc->u1.st_desc, v);
+            }
+            if (ret < 0) {
+                sb_prepend_field(&iop_err_g.path, fdesc, j);
+                return -1;
             }
         }
         break;
@@ -1810,7 +1881,8 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
     return 0;
 }
 
-int __iop_check_constraints(const iop_struct_t *desc, const void *val)
+static int
+__iop_check_constraints_struct(const iop_struct_t *desc, const void *val)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
@@ -1844,6 +1916,8 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
                 unsigned fdesc_flags = fdesc->flags;
 
                 if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY)) {
+                    iop_err_g.desc = desc;
+                    sb_reset(&iop_err_g.path);
                     iop_set_err("empty array not allowed for field `%*pM`",
                                 LSTR_FMT_ARG(fdesc->name));
                     return -1;
@@ -1863,24 +1937,35 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
     return 0;
 }
 
+static int
+__iop_check_constraints_class(const iop_struct_t *desc, const void *val)
+{
+    desc = *(const iop_struct_t **)val;
+
+    if (unlikely(desc->class_attrs->is_abstract)) {
+        iop_err_g.desc = desc;
+        sb_reset(&iop_err_g.path);
+        return iop_set_err("'%*pM' is an abstract class",
+                           LSTR_FMT_ARG(desc->fullname));
+    }
+
+    do {
+        RETHROW(__iop_check_constraints_struct(desc, val));
+    } while ((desc = desc->class_attrs->parent));
+
+    return 0;
+}
+
 int iop_check_constraints_desc(const iop_struct_t *desc, const void *val)
 {
+    int ret;
+
     if (iop_struct_is_class(desc)) {
-        desc = *(const iop_struct_t **)val;
-
-        if (unlikely(desc->class_attrs->is_abstract)) {
-            return iop_set_err("'%*pM' is an abstract class",
-                               LSTR_FMT_ARG(desc->fullname));
-        }
-
-        do {
-            RETHROW(__iop_check_constraints(desc, val));
-        } while ((desc = desc->class_attrs->parent));
-
-        return 0;
+        ret = __iop_check_constraints_class(desc, val);
     } else {
-        return __iop_check_constraints(desc, val);
+        ret = __iop_check_constraints_struct(desc, val);
     }
+    return ret;
 }
 
 /* }}} */
@@ -2574,6 +2659,7 @@ __get_class_id(pstream_t *ps, iop_wire_type_t wt, uint16_t *class_id)
 }
 
 int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
+                               const iop_struct_t *sdesc,
                                const iop_field_t *fdesc)
 {
     void *ptr = (char *)value + fdesc->data_offs;
@@ -2602,8 +2688,8 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
         }
         do {
             for (int i = 0; i < desc->fields_len; i++) {
-                PS_CHECK(iop_skip_absent_field_desc(mp, ptr,
-                                                    desc->fields + i));
+                RETHROW(iop_skip_absent_field_desc(mp, ptr, desc,
+                                                   desc->fields + i));
             }
         } while (is_class && (desc = desc->class_attrs->parent));
       } return 0;
@@ -2649,6 +2735,8 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
         unsigned fdesc_flags = fdesc->flags;
 
         if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY)) {
+            sb_reset(&iop_err_g.path);
+            iop_err_g.desc = sdesc;
             iop_set_err("empty array not allowed for field `%*pM`",
                         LSTR_FMT_ARG(fdesc->name));
             return -1;
@@ -2779,7 +2867,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "unpacking class %*pM, got change of level tag",
                           LSTR_FMT_ARG(desc->fullname));
             do {
-                PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
+                PS_CHECK(iop_skip_absent_field_desc(mp, value, desc, fdesc));
             } while (++fdesc != end);
             *class_id_wt = wt;
             return 1;
@@ -2789,7 +2877,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "skipping absent field %*pM (tag %u)",
                           LSTR_FMT_ARG(desc->fullname),
                           LSTR_FMT_ARG(fdesc->name), fdesc->tag);
-            PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
+            PS_CHECK(iop_skip_absent_field_desc(mp, value, desc, fdesc));
             if (++fdesc == end) {
                 return 0;
             }
@@ -2864,12 +2952,19 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             data->data = v = mp_imalloc(mp, n * fdesc->size, 8, MEM_RAW);
 
             while (n-- > 1) {
-                PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
+                if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+                    sb_prepend_field(&iop_err_g.path, fdesc,
+                                     data->len - n - 1);
+                    return -1;
+                }
                 PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
                 v  = (char *)v + fdesc->size;
             }
-            PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
+            if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+                sb_prepend_field(&iop_err_g.path, fdesc, 0);
+                return -1;
+            }
             v = data->data;
             n = data->len;
         } else {
@@ -2882,7 +2977,10 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             {
                 v = iop_value_set_here(mp, fdesc, v);
             }
-            PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
+            if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+                sb_prepend_field(&iop_err_g.path, fdesc, 0);
+                return -1;
+            }
             n = 1;
         }
 
@@ -2898,7 +2996,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                       "unpacking struct %*pM, skipping %*pM field",
                       LSTR_FMT_ARG(desc->fullname),
                       LSTR_FMT_ARG(fdesc->name));
-        PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
+        PS_CHECK(iop_skip_absent_field_desc(mp, value, desc, fdesc));
     }
 
     return 0;
@@ -2911,7 +3009,7 @@ unpack_skip_all_fields(mem_pool_t *mp, const iop_struct_t *desc, void *value)
     const iop_field_t *end   = fdesc + desc->fields_len;
 
     for ( ; fdesc < end; fdesc++) {
-        PS_CHECK(iop_skip_absent_field_desc(mp, value, fdesc));
+        PS_CHECK(iop_skip_absent_field_desc(mp, value, desc, fdesc));
     }
     return 0;
 }
@@ -3019,7 +3117,10 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
     e_named_trace(5, "iop/c/unpacker", "unpacking union %*pM field %*pM",
                   LSTR_FMT_ARG(desc->fullname), LSTR_FMT_ARG(fdesc->name));
-    PS_CHECK(unpack_value(mp, wt, fdesc, value, ps, copy));
+    if (unpack_value(mp, wt, fdesc, value, ps, copy) < 0) {
+        sb_prepend_field(&iop_err_g.path, fdesc, 0);
+        return -1;
+    }
     if (unlikely(iop_field_has_constraints(desc, fdesc))) {
         RETHROW(iop_field_check_constraints(desc, fdesc, value, 1, false));
     }
@@ -3032,7 +3133,7 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     assert (!iop_struct_is_class(desc));
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
-    sb_reset(&iop_err_g);
+    iop_clear_err();
     if (desc->is_union) {
         return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
     }
@@ -3044,7 +3145,7 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
 {
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
-    sb_reset(&iop_err_g);
+    iop_clear_err();
 
     if (!iop_struct_is_class(desc)) {
         *value = mp_irealloc(mp, *value, 0, desc->size, 8, MEM_RAW);
@@ -3064,7 +3165,7 @@ int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP union(s) %*pM",
                   LSTR_FMT_ARG(desc->fullname));
-    sb_reset(&iop_err_g);
+    iop_clear_err();
     return (unpack_union(mp, desc, value, ps, copy) < 0) ? -1 : 0;
 }
 

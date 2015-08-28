@@ -261,19 +261,6 @@ struct Repeated {
     string[] s;
 };
 
-union ConstraintU {
-    @nonZero @max(1 << 7)
-    ubyte   u8;
-    @nonZero @max(1 << 15)
-    ushort  u16;
-    @nonZero @max(1 << 31)
-    uint    u32;
-    @nonZero @max(1 << 63)
-    ulong   u64;
-    @nonEmpty @cdata @maxLength(10) @pattern("[^\[\]]*")
-    string  s;
-};
-
 struct ConstraintS {
     @maxOccurs(5) @min(1-(1 << 7))
     byte[]      i8;
@@ -289,6 +276,21 @@ struct ConstraintS {
     bool?       priv;
     @private
     bool        priv2 = true;
+    ConstraintS[] tab;
+};
+
+union ConstraintU {
+    @nonZero @max(1 << 7)
+    ubyte   u8;
+    @nonZero @max(1 << 15)
+    ushort  u16;
+    @nonZero @max(1 << 31)
+    uint    u32;
+    @nonZero @max(1 << 63)
+    ulong   u64;
+    @nonEmpty @cdata @maxLength(10) @pattern("[^\[\]]*")
+    string  s;
+    ConstraintS cs;
 };
 
 struct MyAException {

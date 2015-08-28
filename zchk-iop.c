@@ -375,7 +375,7 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     iop_std_test_struct_flags(st, v, 0, info)
 
 static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
-                                       const char *info)
+                                       const char *info, const char *err)
 {
     t_scope;
     void *res = NULL;
@@ -386,7 +386,7 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     /* packing with strict flag should fail */
     Z_ASSERT_LSTREQUAL(t_iop_bpack_struct_flags(st, v, IOP_BPACK_STRICT),
                        LSTR_NULL_V);
-    e_trace(1, "%s", iop_get_err());
+    Z_ASSERT_STREQUAL(iop_get_err(), err);
 
     /* XXX: Use a small t_qv here to force a realloc during (un)packing and
      *      detect possible illegal usage of the t_pool in the (un)packing
@@ -403,6 +403,7 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
     Z_ASSERT_NEG(ret, "IOP unpacking unexpected success (%s, %s)",
                  st->fullname.s, info);
+    Z_ASSERT_STREQUAL(iop_get_err(), err);
 
     Z_HELPER_END;
 }
@@ -2104,11 +2105,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(iop_check_constraints_desc(st_sl, &sl1));
         Z_ASSERT_N(iop_check_constraints(tstiop__my_struct_l, &sl2));
         Z_ASSERT_NEG(iop_check_constraints_desc(st_sl, &sl3));
-        e_trace(1, "%s", iop_get_err());
 
         Z_HELPER_RUN(iop_std_test_struct(st_sl, &sl1, "sl1"));
         Z_HELPER_RUN(iop_std_test_struct(st_sl, &sl2, "sl2"));
-        Z_HELPER_RUN(iop_std_test_struct_invalid(st_sl, &sl3, "sl3"));
+        Z_HELPER_RUN(iop_std_test_struct_invalid(st_sl, &sl3, "sl3",
+                     "in type tstiop.MyStructL: 10 is not a valid value for "
+                     "enum tstiop.MyEnumB (field b)"));
 
         Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl1, "sl1"));
         Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl2, "sl2"));
@@ -2126,7 +2128,7 @@ Z_GROUP_EXPORT(iop)
         t_scope;
 
         tstiop__constraint_u__t u;
-        tstiop__constraint_s__t s;
+        tstiop__constraint_s__t s, s1, s2;
         tstiop_inheritance__c1__t c;
 
         lstr_t strings[] = {
@@ -2162,70 +2164,119 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_c = iop_dso_find_type(dso,
                                             LSTR("tstiop_inheritance.C1")));
 
-        iop_init_desc(st_u, &u);
-        iop_init_desc(st_s, &s);
-
 #define CHECK_VALID(st, v, info) \
         Z_ASSERT_N(iop_check_constraints_desc((st), (v)));              \
         Z_HELPER_RUN(iop_std_test_struct((st), (v), (info)));           \
         Z_HELPER_RUN(iop_xml_test_struct((st), (v), (info)));           \
         Z_HELPER_RUN(iop_json_test_struct((st), (v), (info)));
 
-#define CHECK_INVALID(st, v, info) \
-        Z_ASSERT_NEG(iop_check_constraints_desc((st), (v)));            \
-        Z_HELPER_RUN(iop_std_test_struct_invalid((st), (v), (info)));   \
-        Z_HELPER_RUN(iop_xml_test_struct_invalid((st), (v), (info)));   \
+#define CHECK_INVALID(st, v, info, err) \
+        Z_ASSERT_NEG(iop_check_constraints_desc((st), (v)));                 \
+        Z_HELPER_RUN(iop_std_test_struct_invalid((st), (v), (info), (err))); \
+        Z_HELPER_RUN(iop_xml_test_struct_invalid((st), (v), (info)));        \
         Z_HELPER_RUN(iop_json_test_struct_invalid((st), (v), (info)));
 
 #define CHECK_UNION(f, size) \
         u = IOP_UNION(tstiop__constraint_u, f, 1L << (size - 1));           \
         CHECK_VALID(st_u, &u, #f);                                          \
         u = IOP_UNION(tstiop__constraint_u, f, 1 + (1L << (size - 1)));     \
-        CHECK_INVALID(st_u, &u, #f "_max");                                 \
+        CHECK_INVALID(st_u, &u, #f "_max",                                  \
+                      t_fmt("in type tstiop.ConstraintU: violation of "     \
+                            "constraint max (%ju) on field %s: val=%ju",    \
+                            1L << (size - 1), #f, 1 + (1L << (size - 1)))); \
         u = IOP_UNION(tstiop__constraint_u, f, 0);                          \
-        CHECK_INVALID(st_u, &u, #f "_zero");                                \
+        CHECK_INVALID(st_u, &u, #f "_zero",                                 \
+                      t_fmt("in type tstiop.ConstraintU: violation of "     \
+                            "constraint nonZero on field %s", #f));         \
 
+        iop_init_desc(st_u, &u);
         CHECK_UNION(u8,   8);
         CHECK_UNION(u16, 16);
         CHECK_UNION(u32, 32);
         CHECK_UNION(u64, 64);
 
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_EMPTY_V);
-        CHECK_INVALID(st_u, &u, "s_empty");
+        CHECK_INVALID(st_u, &u, "s_empty",
+                      "in type tstiop.ConstraintU: violation of constraint "
+                      "nonEmpty on field s");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_NULL_V);
-        CHECK_INVALID(st_u, &u, "s_null");
+        CHECK_INVALID(st_u, &u, "s_null",
+                      "in type tstiop.ConstraintU: violation of constraint "
+                      "nonEmpty on field s");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR("way_too_long"));
-        CHECK_INVALID(st_u, &u, "s_maxlength");
+        CHECK_INVALID(st_u, &u, "s_maxlength",
+                      "in type tstiop.ConstraintU: violation of constraint "
+                      "maxLength (10) on field s: length=12");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR("ab.{}[]"));
-        CHECK_INVALID(st_u, &u, "s_pattern");
+        CHECK_INVALID(st_u, &u, "s_pattern",
+                      "in type tstiop.ConstraintU: violation of constraint "
+                      "pattern ([^\\[\\]]*) on field s: ab.{}[]");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR("ab.{}()"));
         CHECK_VALID(st_u, &u, "s");
 
-        CHECK_INVALID(st_s, &s, "s_minoccurs");
+        iop_init_desc(st_s, &s);
+        CHECK_INVALID(st_s, &s, "s_minoccurs",
+                      "in type tstiop.ConstraintS: empty array not allowed "
+                      "for field `s`");
 
         s.s.tab = bad_strings;
         s.s.len = countof(bad_strings);
-        CHECK_INVALID(st_s, &s, "s_pattern");
+        CHECK_INVALID(st_s, &s, "s_pattern",
+                      "in type tstiop.ConstraintS: violation of constraint "
+                      "pattern ([a-zA-Z0-9_\\-]*) on field s: abcd[]");
 
         s.s.tab = strings;
         s.s.len = 1;
-        CHECK_INVALID(st_s, &s, "s_minoccurs");
+        CHECK_INVALID(st_s, &s, "s_minoccurs",
+                      "in type tstiop.ConstraintS: violation of constraint "
+                      "minOccurs (2) on field s: length=1");
         s.s.len = countof(strings);
-        CHECK_INVALID(st_s, &s, "s_maxoccurs");
+        CHECK_INVALID(st_s, &s, "s_maxoccurs",
+                      "in type tstiop.ConstraintS: violation of constraint "
+                      "maxOccurs (5) on field s: length=6");
         s.s.len = 2;
         CHECK_VALID(st_s, &s, "s");
         s.s.len = 5;
         CHECK_VALID(st_s, &s, "s");
 
-#define CHECK_TAB(_f, _tab) \
-        s._f.tab = _tab;                  \
-        s._f.len = 6;                    \
-        CHECK_INVALID(st_s, &s, "s");   \
-        s._f.len = 5;                    \
-        CHECK_INVALID(st_s, &s, "s");   \
-        s._f.tab[0]++;                   \
-        CHECK_VALID(st_s, &s, "s");     \
+        iop_init_desc(st_s, &s);
+        iop_init_desc(st_s, &s1);
+        iop_init_desc(st_s, &s2);
+        s.s.tab = strings;
+        s.s.len = 5;
+        s.tab.tab = &s1;
+        s.tab.len = 1;
+        s1.s.tab = strings;
+        s1.s.len = 5;
+        s1.tab.tab = &s2;
+        s1.tab.len = 1;
+        s2.s.tab = strings;
+        s2.s.len = 6;
+        CHECK_INVALID(st_s, &s, "s_maxoccurs",
+                      "in tab[0].tab[0] of type tstiop.ConstraintS: violation"
+                      " of constraint maxOccurs (5) on field s: length=6");
 
+        u = IOP_UNION(tstiop__constraint_u, cs, s);
+        CHECK_INVALID(st_u, &u, "s_maxoccurs",
+                "in cs.tab[0].tab[0] of type tstiop.ConstraintS: violation"
+                " of constraint maxOccurs (5) on field s: length=6");
+
+#define CHECK_TAB(_f, _tab)                                                  \
+        s._f.tab = _tab;                                                     \
+        s._f.len = 6;                                                        \
+        CHECK_INVALID(st_s, &s, "s",                                         \
+                      t_fmt("in type tstiop.ConstraintS: violation of "      \
+                            "constraint maxOccurs (5) on field %s: length=6",\
+                            #_f));                                           \
+        s._f.len = 5;                                                        \
+        CHECK_INVALID(st_s, &s, "s",                                         \
+                      t_fmt("in type tstiop.ConstraintS: violation of "      \
+                            "constraint min (%jd) on field %s[0]: val=%jd",  \
+                            (int64_t)_tab[0] + 1, #_f, (int64_t)_tab[0]));   \
+        s._f.tab[0]++;                                                       \
+        CHECK_VALID(st_s, &s, "s");
+
+        s2.s.len = 5;
         CHECK_TAB(i8,   i8tab);
         CHECK_TAB(i16,  i16tab);
         CHECK_TAB(i32,  i32tab);
@@ -2235,10 +2286,14 @@ Z_GROUP_EXPORT(iop)
         iop_init_desc(st_c, &c);
         CHECK_VALID(st_c, &c, "c");
         c.a = 0;
-        CHECK_INVALID(st_c, &c, "c");
+        CHECK_INVALID(st_c, &c, "c",
+                      "in type tstiop_inheritance.A1: violation of constraint"
+                      " nonZero on field a");
         c.a = 2;
         c.c = 0;
-        CHECK_INVALID(st_c, &c, "c");
+        CHECK_INVALID(st_c, &c, "c",
+                      "in type tstiop_inheritance.C1: violation of constraint"
+                      " nonZero on field c");
         c.c = 3;
         CHECK_VALID(st_c, &c, "c");
 
