@@ -153,19 +153,19 @@ void logger_wipe(logger_t *logger)
 
 static void logger_compute_fullname(logger_t *logger)
 {
+    /* The name of a logger must be a non-empty printable string
+     * without any '/' or '!'
+     */
+    assert (memchr(logger->name.s, '/', logger->name.len) == NULL);
+    assert (memchr(logger->name.s, '!', logger->name.len) == NULL);
+    assert (logger->name.len);
+    for (int i = 0; i < logger->name.len; i++) {
+        assert (isprint((unsigned char)logger->name.s[i]));
+    }
+
     if (logger->parent->full_name.len) {
         lstr_t name = logger->name;
         lstr_t full_name;
-
-        /* The name of a logger must be a non-empty printable string
-         * without any '/' or '!'
-         */
-        assert (memchr(logger->name.s, '/', logger->name.len) == NULL);
-        assert (memchr(logger->name.s, '!', logger->name.len) == NULL);
-        assert (logger->name.len);
-        for (int i = 0; i < logger->name.len; i++) {
-            assert (isprint((unsigned char)logger->name.s[i]));
-        }
 
         full_name = lstr_fmt("%*pM/%*pM",
                              LSTR_FMT_ARG(logger->parent->full_name),
