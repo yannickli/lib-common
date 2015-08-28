@@ -2506,26 +2506,44 @@ static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
 static ALWAYS_INLINE
 int iop_patch_int(const iop_field_t *fdesc, void *ptr, int64_t i64)
 {
+#define CHECK_RANGE(_min, _max)  THROW_ERR_IF(i64 < _min || i64 > _max)
+
     switch (fdesc->type) {
-      case IOP_T_I8: case IOP_T_U8:
-        *(int8_t *)ptr  = i64;
+      case IOP_T_I8:
+        CHECK_RANGE(INT8_MIN, INT8_MAX);
+        *(int8_t *)ptr = i64;
         break;
-      case IOP_T_I16: case IOP_T_U16:
+      case IOP_T_U8:
+        CHECK_RANGE(0, UINT8_MAX);
+        *(uint8_t *)ptr  = i64;
+        break;
+      case IOP_T_I16:
+        CHECK_RANGE(INT16_MIN, INT16_MAX);
         *(int16_t *)ptr = i64;
         break;
+      case IOP_T_U16:
+        CHECK_RANGE(0, UINT16_MAX);
+        *(uint16_t *)ptr = i64;
+        break;
       case IOP_T_ENUM:
+      case IOP_T_I32:
+        CHECK_RANGE(INT32_MIN, INT32_MAX);
         *(int32_t *)ptr = i64;
         break;
-      case IOP_T_I32: case IOP_T_U32:
-        *(int32_t *)ptr = i64;
+      case IOP_T_U32:
+        CHECK_RANGE(0, UINT32_MAX);
+        *(uint32_t *)ptr = i64;
         break;
       case IOP_T_I64: case IOP_T_U64:
         *(int64_t *)ptr = i64;
         break;
       case IOP_T_BOOL:
-        *(bool *)ptr    = i64;
+        CHECK_RANGE(0, 1);
+        *(bool *)ptr = i64;
         break;
     }
+
+#undef CHECK_RANGE
     return 0;
 }
 
