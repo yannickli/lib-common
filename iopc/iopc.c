@@ -68,6 +68,7 @@ __attr_printf__(2, 0) static void
 iopc_log_handler(const log_ctx_t *ctx, const char *fmt, va_list va)
 {
     vfprintf(stderr, fmt, va);
+    fputc('\n', stderr);
 }
 
 static void parse_incpath(qv_t(cstr) *ipath, char *spec)
