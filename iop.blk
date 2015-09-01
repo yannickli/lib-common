@@ -1626,6 +1626,7 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v,
         return pack_int64(dst, f->tag, f->tag_len, *(int64_t *)v);
       case IOP_T_BOOL:
         /* bool are mapped to 0 or 1 */
+        assert (*(uint8_t *)v == 0 || *(uint8_t *)v == 1);
         dst    = pack_tag(dst, f->tag, f->tag_len, IOP_WIRE_MASK(INT1));
         /* XXX: cast in uint8_t because casting in bool would have no effect.
          */
