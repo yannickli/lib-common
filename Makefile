@@ -69,7 +69,6 @@ libcommon_SOURCES = \
 	core.iop \
 	core-module.c \
 	qpage.c \
-	qtlsf.c \
 	\
 	el.blk \
 	el-stopper.c \
