@@ -267,6 +267,7 @@ void iop_dso_unregister(iop_dso_t *dso)
         qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
             iop_unregister_packages(&dso->pkg_h.values[pos], 1);
         }
+        qm_clear(iop_pkg, &dso->pkg_h);
         dso->is_registered = false;
     }
 }
