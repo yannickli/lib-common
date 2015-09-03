@@ -69,6 +69,7 @@ libcommon_SOURCES = \
 	core-mem-bench.c \
 	core-types.blk \
 	core-version.c \
+	core-errors.c \
 	core.iop.c \
 	core-module.c \
 	qpage.c \

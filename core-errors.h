@@ -90,9 +90,6 @@ static ALWAYS_INLINE void assert_ignore(bool cond) { }
 #undef  assert
 #define assert(Cond)  ({ if (false) assert_ignore(Cond); (void)0; })
 
-#undef  expect
-#define expect(Cond)  likely(!!(Cond))
-
 #  define e_trace(level, ...)              e_trace_ignore(level, ##__VA_ARGS__)
 #  define e_trace_hex(level, ...)          e_trace_ignore(level, ##__VA_ARGS__)
 #  define e_trace_start(level, ...)        e_trace_ignore(level, ##__VA_ARGS__)
@@ -168,20 +165,29 @@ void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
 #define e_trace_hex(lvl, str, buf, len) \
     e_named_trace_hex(lvl, NULL, str, buf, len)
 
+#endif
+
+void ps_dump_backtrace(int signum, const char *prog, int fd, bool full);
+void ps_write_backtrace(int signum, bool allow_fork);
 
 static ALWAYS_INLINE __must_check__
 bool e_expect(bool cond, const char *expr, const char *file, int line,
               const char *func)
 {
     if (unlikely(!cond)) {
+#ifdef NDEBUG
+        ps_write_backtrace(-1, false);
+        e_error("assertion (%s) failure: %s:%d:%s", expr, file, line, func);
+        return false;
+#else
         __assert_fail(expr, file, line, func);
+#endif
     }
     return true;
 }
 
+#undef  expect
 #define expect(Cond)  \
     e_expect((Cond), TOSTR(Cond), __FILE__, __LINE__, __func__)
-
-#endif
 
 #endif
