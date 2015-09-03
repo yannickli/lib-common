@@ -89,26 +89,38 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
 
 /** Find a generic attribute value for an IOP interface.
  *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
+ *
  * \param[in]  iface The IOP interface definition (__if).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
+                           iop_type_t exp_type, iop_type_t *val_type,
                            iop_value_t *value);
 
 /** Find a generic attribute value for an IOP rpc.
  *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
+ *
  * \param[in]  iface The IOP interface definition (__if).
  * \param[in]  rpc   The IOP rpc definition (__rpc).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
-                         lstr_t key, iop_value_t *value);
+                         lstr_t key, iop_type_t exp_type,
+                         iop_type_t *val_type, iop_value_t *value);
 
 static inline check_constraints_f
 iop_field_get_constraints_cb(const iop_struct_t *desc,
@@ -356,42 +368,62 @@ int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
 
 /** Find a generic attribute value for an IOP structure.
  *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
+ *
  * \param[in]  st    The IOP structure definition (__s).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
+                            iop_type_t exp_type, iop_type_t *val_type,
                             iop_value_t *value);
 
 /** Find a generic attribute value for an IOP field.
  *
+ * If exp_type is >= 0, the type of the generic attribute value will be
+ * checked, and the function will return -1 if the type is not compatible.
+ * If val_type is not NULL, the type of the generic attribute value will be
+ * set (IOP_T_I64, IOP_T_DOUBLE or IOP_T_STRING).
+ *
  * \param[in]  st    The IOP structure definition (__s).
  * \param[in]  field The IOP field definition.
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
-                           lstr_t key, iop_value_t *value);
+                           lstr_t key, iop_type_t exp_type,
+                           iop_type_t *val_type, iop_value_t *value);
 
 /** Find a generic attribute value for an IOP field.
  *
- * Same as iop_field_get_gen_attr but a name for the field is given instead of
- * field definition.
+ * Same as \ref iop_field_get_gen_attr but a name for the field is given
+ * instead of field definition.
+ *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
  *
  * \param[in]  st         The IOP structure definition (__s).
  * \param[in]  field_name The field name.
  * \param[in]  key        The generic attribute key.
+ * \param[in]  exp_type   The expected value type.
+ * \param[out] val_type   The actual value type.
  * \param[out] value      The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 if the field is unknown or
  *         if the generic attribute is not found.
  */
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
-                                   lstr_t key, iop_value_t *value);
+                                   lstr_t key, iop_type_t exp_type,
+                                   iop_type_t *val_type, iop_value_t *value);
 
 /** Find an IOP field description from a iop object.
  *
@@ -716,38 +748,56 @@ int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
 
 /** Find a generic attribute value for an IOP enum.
  *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
+ *
  * \param[in]  ed    The IOP enum definition (__e).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
+                          iop_type_t exp_type, iop_type_t *val_type,
                           iop_value_t *value);
 
 /** Find a generic attribute value for an IOP enum value (integer).
  *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
+ *
  * \param[in]  ed    The IOP enum definition (__e).
  * \param[in]  val   The enum value (integer).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
-                                   lstr_t key, iop_value_t *value);
+int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
+                                   iop_type_t exp_type, iop_type_t *val_type,
+                                   iop_value_t *value);
 
 /** Find a generic attribute value for an IOP enum value (string).
+ *
+ * See \ref iop_field_get_gen_attr for the description of exp_type and
+ * val_type.
  *
  * \param[in]  ed    The IOP enum definition (__e).
  * \param[in]  val   The enum value (string).
  * \param[in]  key   The generic attribute key.
+ * \param[in]  exp_type  The expected value type.
+ * \param[out] val_type  The actual value type.
  * \param[out] value The value to put the result in.
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
-                                   lstr_t key, iop_value_t *value);
+                                   lstr_t key, iop_type_t exp_type,
+                                   iop_type_t *val_type, iop_value_t *value);
 
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
