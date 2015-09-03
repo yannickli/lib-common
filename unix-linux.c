@@ -123,6 +123,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 
     char   path[PATH_MAX];
     int    fd;
+    int saved_errno = errno;
 
     sigaction(signum, &sa, NULL);
     snprintf(path, sizeof(path), "/tmp/%s.%d.%ld.debug",
@@ -132,6 +133,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 
     if (fd >= 0) {
         int main_versions_printed = 0;
+        char buf[256];
 
         for (int i = 0; i < core_versions_nb_g; i++) {
             const core_version_t *version = &core_versions_g[i];
@@ -152,6 +154,9 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
             }
         }
         XWRITE("\n");
+
+        snprintf(buf, sizeof(buf), "\n--- errno: %d\n", saved_errno);
+        XWRITE(buf);
 
         ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
         p_close(&fd);
