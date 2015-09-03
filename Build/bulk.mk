@@ -72,7 +72,7 @@ distclean::
 check:: all
 	$(var/toolsdir)/_run_checks.sh .
 fast-check:: all
-	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
+	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh .
 www-check:: | _generated_hdr
 	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh .
 %.pylint:: %.py
@@ -100,7 +100,7 @@ $(d)check:: $(d)all
 $(d)www-check:: | _generated_hdr
 	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh $(d)
 $(d)fast-check:: $(d)all
-	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh $(d)
+	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$($(d)_CLEANFILES)))

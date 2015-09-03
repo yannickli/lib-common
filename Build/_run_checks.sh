@@ -129,7 +129,7 @@ set_www_env() {
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 export Z_BEHAVE=1
 export Z_HARNESS=1
-export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web}"
+export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web perf}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
 

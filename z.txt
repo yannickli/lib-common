@@ -96,7 +96,15 @@ is totally ignored.
 
 Also, `Z_TAG_SKIP` may contain a space separate list of "tags" (that framework
 are free to implement as they want). Any test tagged with one of those tokens
-is automatically skipped. How the tags are used is totally free.
+is automatically skipped. Some of tags have specific behavior:
+ * perf: performances tests, run in specific environment to be reproducible;
+ * slow: tests to run in nightly builds, and not in each builds;
+ * upgrade: for migration tests between product versions. They are disabled in
+   normal and nightly tests. Currently unused;
+ * web: tests using selenium;
+ * wip: tests are ignored by the buildbot (review and nightly) and when
+   running make check.
+Out of these tags, the choice is completely free.
 
 `Z_MODE` may contain a space-separated list of "modes". Modes can be used by
 tests to alter their behavior. For example, the "fast" mode indicates the test
