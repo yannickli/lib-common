@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* LCOV_EXCL_START */
+
 #include <math.h>
 #include "z.h"
 #include "iop.h"
@@ -5151,3 +5153,5 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
 
 } Z_GROUP_END
+
+/* LCOV_EXCL_STOP */

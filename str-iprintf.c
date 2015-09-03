@@ -1528,6 +1528,10 @@ ssize_t formatter_write(FILE *stream, char *buf, size_t buf_len,
     return len;
 }
 
+/* {{{ Tests */
+
+/* LCOV_EXCL_START */
+
 Z_GROUP_EXPORT(iprintf) {
     char buffer[128];
 
@@ -1582,3 +1586,7 @@ Z_GROUP_EXPORT(iprintf) {
         p_delete(&formatted);
     } Z_TEST_END;
 } Z_GROUP_END
+
+/* LCOV_EXCL_STOP */
+
+/* }}} */
