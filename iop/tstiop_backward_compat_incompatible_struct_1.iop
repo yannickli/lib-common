@@ -16,5 +16,11 @@ package tstiop_backward_compat_incompatible_struct_1;
 struct Struct1 {
     int a;
     /* A mandatory field will be added in
-     * tstiop_backward_compat_incompatible_struct_1.iop. */
+     * tstiop_backward_compat_incompatible_struct_2.iop. */
+};
+
+struct Struct2 {
+    /* Field c will be renamed in
+     * tstiop_backward_compat_incompatible_struct_2.iop. */
+    int c;
 };

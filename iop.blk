@@ -3801,20 +3801,74 @@ static bool qhash_compat_couple_equal(const qhash_t *qh,
 qh_kvec_t(compat_couple, iop_compat_couple_t,
           qhash_hash_compat_couple, qhash_compat_couple_equal);
 
+typedef struct iop_compat_ctx_t {
+    qh_t(compat_couple) seen_couples;
+    sb_t *err;
+    sb_t err_ctx;
+    qv_t(i32) err_ctx_offs;
+} iop_compat_ctx_t;
+
+static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
+{
+    p_clear(ctx, 1);
+    qh_init(compat_couple, &ctx->seen_couples);
+    sb_init(&ctx->err_ctx);
+    qv_init(i32, &ctx->err_ctx_offs);
+    return ctx;
+}
+static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
+{
+    qh_wipe(compat_couple, &ctx->seen_couples);
+    sb_wipe(&ctx->err_ctx);
+    qv_wipe(i32, &ctx->err_ctx_offs);
+}
+
+__attr_printf__(2, 3)
+static void
+iop_compat_push_err_ctx(iop_compat_ctx_t *ctx, const char *fmt, ...)
+{
+    va_list ap;
+
+    qv_append(i32, &ctx->err_ctx_offs, ctx->err_ctx.len);
+
+    va_start(ap, fmt);
+    sb_addvf(&ctx->err_ctx, fmt, ap);
+    va_end(ap);
+}
+
+static void iop_compat_pop_err_ctx(iop_compat_ctx_t *ctx)
+{
+    sb_clip(&ctx->err_ctx, *qv_last(i32, &ctx->err_ctx_offs));
+    qv_remove_last(i32, &ctx->err_ctx_offs);
+}
+
+__attr_printf__(2, 3)
+static void iop_compat_add_err(iop_compat_ctx_t *ctx, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ctx->err->len) {
+        sb_addc(ctx->err, '\n');
+    }
+
+    sb_addsb(ctx->err, &ctx->err_ctx);
+
+    va_start(ap, fmt);
+    sb_addvf(ctx->err, fmt, ap);
+    va_end(ap);
+}
+
 static int
 __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
-                                   unsigned flags,
-                                   qh_t(compat_couple) *seen_couples,
-                                   sb_t *err);
+                                   unsigned flags, iop_compat_ctx_t *ctx);
 
 static int
 __iop_enum_check_backward_compat(const iop_enum_t *en1,
                                  const iop_enum_t *en2,
-                                 unsigned flags,
-                                 qh_t(compat_couple) *seen_couples,
-                                 sb_t *err)
+                                 unsigned flags, iop_compat_ctx_t *ctx)
 {
+    int res = 0;
     iop_compat_couple_t couple = {
         .st1   = en1,
         .st2   = en2,
@@ -3824,7 +3878,7 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
     /* XXX: do not simply test en1 == en2 because it allows to easily write
      *      "compatible" z-tests. */
 
-    if (qh_add(compat_couple, seen_couples, &couple) < 0) {
+    if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
         /* We already checked this couple. */
         return 0;
     }
@@ -3832,14 +3886,14 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
     if (!TST_BIT(&en1->flags, IOP_ENUM_STRICT)
     &&   TST_BIT(&en2->flags, IOP_ENUM_STRICT))
     {
-        sb_adds(err, "enum is strict and was not before");
-        return -1;
+        iop_compat_add_err(ctx, "enum is strict and was not before");
+        res = -1;
     }
 
     if (!(flags & IOP_COMPAT_JSON)
     &&  !(TST_BIT(&en2->flags, IOP_ENUM_STRICT)))
     {
-        return 0;
+        return res;
     }
 
     for (int i = 0; i < en1->enum_len; i++) {
@@ -3847,9 +3901,9 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
         &&  iop_ranges_search(en2->ranges, en2->ranges_len,
                               en1->values[i]) < 0)
         {
-            sb_addf(err, "numeric value %d does not exist anymore",
-                    en1->values[i]);
-            return -1;
+            iop_compat_add_err(ctx, "numeric value %d does not exist anymore",
+                               en1->values[i]);
+            res = -1;
         }
 
         if (flags & IOP_COMPAT_JSON) {
@@ -3857,14 +3911,14 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
 
             iop_enum_from_lstr_desc(en2, en1->names[i], &found);
             if (!found) {
-                sb_addf(err, "value `%*pM` does not exist anymore",
-                        LSTR_FMT_ARG(en1->names[i]));
-                return -1;
+                iop_compat_add_err(ctx, "value `%*pM` does not exist anymore",
+                                   LSTR_FMT_ARG(en1->names[i]));
+                res = -1;
             }
         }
     }
 
-    return 0;
+    return res;
 }
 
 static void
@@ -3922,9 +3976,7 @@ backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
 static int
 iop_field_check_backward_compat(const iop_field_t *f1,
                                 const iop_field_t *f2,
-                                unsigned flags,
-                                qh_t(compat_couple) *seen_couples,
-                                sb_t *err)
+                                unsigned flags, iop_compat_ctx_t *ctx)
 {
     static int first_call = true;
     static uint16_t table_bin[IOP_T_max + 1];
@@ -3939,13 +3991,13 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     if ((flags & IOP_COMPAT_BIN  && !TST_BIT(&table_bin[f1->type], f2->type))
     ||  (flags & IOP_COMPAT_JSON && !TST_BIT(&table_json[f1->type], f2->type)))
     {
-        sb_adds(err, "incompatible types");
+        iop_compat_add_err(ctx, "incompatible types");
         return -1;
     }
 
     /* Check repeated -> non-repeated: always forbidden. */
     if (f1->repeat == IOP_R_REPEATED && f2->repeat != IOP_R_REPEATED) {
-        sb_adds(err, "was repeated and is not anymore");
+        iop_compat_add_err(ctx, "was repeated and is not anymore");
         return -1;
     }
     /* Check non-repeated -> repeated: forbidden in json but supported in
@@ -3953,7 +4005,7 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     if (flags & IOP_COMPAT_JSON
     &&  f1->repeat != IOP_R_REPEATED && f2->repeat == IOP_R_REPEATED)
     {
-        sb_adds(err, "is repeated and was not before");
+        iop_compat_add_err(ctx, "is repeated and was not before");
         return -1;
     }
 
@@ -3961,7 +4013,7 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
     &&  f2->repeat == IOP_R_REQUIRED)
     {
-        sb_adds(err, "is required and was not before");
+        iop_compat_add_err(ctx, "is required and was not before");
         return -1;
     }
 
@@ -3972,13 +4024,13 @@ iop_field_check_backward_compat(const iop_field_t *f1,
         assert (f1->type == f2->type);
         return __iop_struct_check_backward_compat(f1->u1.st_desc,
                                                   f2->u1.st_desc,
-                                                  flags, seen_couples, err);
+                                                  flags, ctx);
 
       case IOP_T_ENUM:
         assert (f1->type == f2->type);
         return __iop_enum_check_backward_compat(f1->u1.en_desc,
                                                 f2->u1.en_desc,
-                                                flags, seen_couples, err);
+                                                flags, ctx);
     }
 
     return 0;
@@ -4025,10 +4077,8 @@ static bool are_all_parents_empty(const iop_struct_t *st)
 
 static int
 check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
-                    unsigned flags, qh_t(compat_couple) *seen_couples,
-                    sb_t *err)
+                    unsigned flags, iop_compat_ctx_t *ctx)
 {
-    SB_1k(local_err);
     const iop_struct_t *st2_2;
     qv_t(iop_struct) parents;
 
@@ -4049,9 +4099,9 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
         }
         st2_2 = get_parents_until_id(st2, class_id, &parents);
         if (class_id && !st2_2) {
-            sb_addf(err,
-                    "cannot find class with id %d in the parents of `%*pM`",
-                    *class_id, LSTR_FMT_ARG(st2->fullname));
+            iop_compat_add_err(ctx, "cannot find class with id %d in the "
+                               "parents of `%*pM`",
+                               *class_id, LSTR_FMT_ARG(st2->fullname));
             goto error;
         }
     } else {
@@ -4064,9 +4114,9 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
         if (class_name && !st2_2
         &&  (!are_all_parents_empty(st1) || !are_all_parents_empty(st2)))
         {
-            sb_addf(err,
-                    "cannot find class `%*pM` in the parents of `%*pM`",
-                    LSTR_FMT_ARG(*class_name), LSTR_FMT_ARG(st2->fullname));
+            iop_compat_add_err(ctx, "cannot find class `%*pM` in the parents "
+                               "of `%*pM`", LSTR_FMT_ARG(*class_name),
+                               LSTR_FMT_ARG(st2->fullname));
             goto error;
         }
     }
@@ -4078,24 +4128,26 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
             const iop_field_t *f = &parent->fields[i];
 
             if (f->repeat == IOP_R_REQUIRED) {
-                sb_addf(err, "class `%*pM` was added in the parents with a "
-                        "required field `%*pM`",
-                        LSTR_FMT_ARG(parent->fullname),
-                        LSTR_FMT_ARG(f->name));
+                iop_compat_add_err(ctx, "class `%*pM` was added in the "
+                                   "parents with a required field `%*pM`",
+                                   LSTR_FMT_ARG(parent->fullname),
+                                   LSTR_FMT_ARG(f->name));
                 goto error;
             }
         }
     }
 
     /* Check upper level. */
-    if (st2_2 && st1->class_attrs->parent
-    &&  __iop_struct_check_backward_compat(st1->class_attrs->parent, st2_2,
-                                           flags, seen_couples,
-                                           &local_err) < 0)
-    {
-        sb_addf(err, "parent `%*pM`: %*pM",
-                LSTR_FMT_ARG(st2_2->fullname), SB_FMT_ARG(&local_err));
-        goto error;
+    if (st2_2 && st1->class_attrs->parent) {
+        iop_compat_push_err_ctx(ctx, "parent `%*pM`: ",
+                                LSTR_FMT_ARG(st2_2->fullname));
+        if (__iop_struct_check_backward_compat(st1->class_attrs->parent,
+                                               st2_2, flags, ctx) < 0)
+        {
+            iop_compat_pop_err_ctx(ctx);
+            goto error;
+        }
+        iop_compat_pop_err_ctx(ctx);
     }
 
     qv_wipe(iop_struct, &parents);
@@ -4109,11 +4161,9 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
 static int
 __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
-                                   unsigned flags,
-                                   qh_t(compat_couple) *seen_couples,
-                                   sb_t *err)
+                                   unsigned flags, iop_compat_ctx_t *ctx)
 {
-    SB_1k(local_err);
+    int res = 0;
     iop_compat_couple_t couple = {
         .st1   = st1,
         .st2   = st2,
@@ -4123,52 +4173,56 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
     /* XXX: do not simply test st1 == st2 because it allows to easily write
      *      "compatible" z-tests. */
 
-    if (qh_add(compat_couple, seen_couples, &couple) < 0) {
+    if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
         /* We already checked this couple. */
         return 0;
     }
 
     /* Check types of the objects. */
     if (st1->is_union && !st2->is_union) {
-        sb_addf(err, "was a union and is now a %s",
-                iop_struct_is_class(st2) ? "class" : "struct");
+        iop_compat_add_err(ctx, "was a union and is now a %s",
+                           iop_struct_is_class(st2) ? "class" : "struct");
         return -1;
     }
     if (!st1->is_union && st2->is_union) {
-        sb_addf(err, "was a %s and is now a union",
-                iop_struct_is_class(st1) ? "class" : "struct");
+        iop_compat_add_err(ctx, "was a %s and is now a union",
+                           iop_struct_is_class(st1) ? "class" : "struct");
         return -1;
     }
 
     if (iop_struct_is_class(st1) && !iop_struct_is_class(st2)) {
-        sb_adds(err, "was a class and is now a struct");
-        return -1;
+        iop_compat_add_err(ctx, "was a class and is now a struct");
+        res = -1;
     }
     if (!iop_struct_is_class(st1) && iop_struct_is_class(st2)) {
         if (!(flags & IOP_COMPAT_JSON) || st2->class_attrs->is_abstract) {
-            sb_adds(err, "was a struct and is now a class");
-            return -1;
+            iop_compat_add_err(ctx, "was a struct and is now a class");
+            res = -1;
         }
     }
 
     if (iop_struct_is_class(st1) && iop_struct_is_class(st2)) {
         if (!st1->class_attrs->is_abstract && st2->class_attrs->is_abstract) {
-            sb_adds(err, "is an abstract class but was not abstract");
-            return -1;
+            iop_compat_add_err(ctx,
+                               "is an abstract class but was not abstract");
+            res = -1;
         }
         if (flags & IOP_COMPAT_BIN
         &&  st1->class_attrs->class_id != st2->class_attrs->class_id)
         {
-            sb_addf(err, "class id changed (%u != %u)",
-                    st1->class_attrs->class_id, st2->class_attrs->class_id);
-            return -1;
+            iop_compat_add_err(ctx, "class id changed (%u != %u)",
+                               st1->class_attrs->class_id,
+                               st2->class_attrs->class_id);
+            res = -1;
         }
         if (flags & IOP_COMPAT_JSON
         &&  !lstr_equal2(st1->fullname, st2->fullname))
         {
-            sb_addf(err, "class fullname changed (`%*pM` != `%*pM`)",
-                    LSTR_FMT_ARG(st1->fullname), LSTR_FMT_ARG(st2->fullname));
-            return -1;
+            iop_compat_add_err(ctx,
+                               "class fullname changed (`%*pM` != `%*pM`)",
+                               LSTR_FMT_ARG(st1->fullname),
+                               LSTR_FMT_ARG(st2->fullname));
+            res = -1;
         }
     }
 
@@ -4176,28 +4230,36 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
     for (int i = 0; i < st2->fields_len; i++) {
         const iop_field_t *f2 = &st2->fields[i];
         const iop_field_t *f1;
+        bool got_err = false;
 
 #define CHECK_NEW_FIELD()                                                    \
         do {                                                                 \
             if (f1) {                                                        \
+                iop_compat_push_err_ctx(ctx, "field `%*pM`: ",               \
+                                        LSTR_FMT_ARG(f2->name));             \
                 if (iop_field_check_backward_compat(f1, f2, flags,           \
-                                                    seen_couples,            \
-                                                    &local_err) < 0)         \
+                                                    ctx) < 0)                \
                 {                                                            \
-                    sb_addf(err, "field `%*pM`: %*pM",                       \
-                            LSTR_FMT_ARG(f2->name), SB_FMT_ARG(&local_err)); \
-                    return -1;                                               \
+                    got_err = true;                                          \
+                    res = -1;                                                \
                 }                                                            \
+                iop_compat_pop_err_ctx(ctx);                                 \
             } else {                                                         \
                 if (!st1->is_union && f2->repeat == IOP_R_REQUIRED) {        \
-                    sb_addf(err, "new field `%*pM` must not be required",    \
-                            LSTR_FMT_ARG(f2->name));                         \
-                    return -1;                                               \
+                    iop_compat_add_err(ctx, "new field `%*pM` must not be "  \
+                                       "required", LSTR_FMT_ARG(f2->name));  \
+                    got_err = true;                                          \
+                    res = -1;                                                \
                 }                                                            \
             }                                                                \
         } while (0)
 
-        if (flags & IOP_COMPAT_BIN) {
+        if (flags & IOP_COMPAT_JSON) {
+            f1 = __iop_field_find_by_name(st1, f2->name);
+            CHECK_NEW_FIELD();
+        }
+
+        if (!got_err && flags & IOP_COMPAT_BIN) {
             int pos;
 
             pos = iop_ranges_search(st1->ranges, st1->ranges_len, f2->tag);
@@ -4208,11 +4270,6 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
             }
             CHECK_NEW_FIELD();
         }
-
-        if (flags & IOP_COMPAT_JSON) {
-            f1 = __iop_field_find_by_name(st1, f2->name);
-            CHECK_NEW_FIELD();
-        }
     }
 
     /* Check that no field disappeared for json backward compat and union
@@ -4221,22 +4278,21 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
         for (int i = 0; i < st1->fields_len; i++) {
             const iop_field_t *f1 = &st1->fields[i];
 
-            if (flags & IOP_COMPAT_BIN) {
-                if (iop_ranges_search(st2->ranges, st2->ranges_len,
-                                      f1->tag) < 0)
-                {
-                    sb_addf(err, "field with tag %d (`%*pM`) does not exist "
-                            "anymore", f1->tag, LSTR_FMT_ARG(f1->name));
-                    return -1;
-                }
-            }
-
-            if (flags & IOP_COMPAT_JSON) {
-                if (!__iop_field_find_by_name(st2, f1->name)) {
-                    sb_addf(err, "field `%*pM` does not exist anymore",
-                            LSTR_FMT_ARG(f1->name));
-                    return -1;
-                }
+            if (flags & IOP_COMPAT_JSON
+            &&  !__iop_field_find_by_name(st2, f1->name))
+            {
+                iop_compat_add_err(ctx,
+                                   "field `%*pM` does not exist anymore",
+                                   LSTR_FMT_ARG(f1->name));
+                res = -1;
+            } else
+            if (flags & IOP_COMPAT_BIN
+            &&  iop_ranges_search(st2->ranges, st2->ranges_len, f1->tag) < 0)
+            {
+                iop_compat_add_err(ctx, "field with tag %d (`%*pM`) does "
+                                   "not exist anymore", f1->tag,
+                                   LSTR_FMT_ARG(f1->name));
+                res = -1;
             }
         }
     }
@@ -4244,21 +4300,19 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
     /* Specific class checks. */
     if (iop_struct_is_class(st1) && iop_struct_is_class(st2)) {
         if (flags & IOP_COMPAT_BIN
-        &&  check_class_parents(st1, st2, IOP_COMPAT_BIN, seen_couples,
-                                err) < 0)
+        &&  check_class_parents(st1, st2, IOP_COMPAT_BIN, ctx) < 0)
         {
-            return -1;
+            res = -1;
         }
         if (flags & IOP_COMPAT_JSON
-        &&  check_class_parents(st1, st2, IOP_COMPAT_JSON, seen_couples,
-                                err) < 0)
+        &&  check_class_parents(st1, st2, IOP_COMPAT_JSON, ctx) < 0)
         {
-            return -1;
+            res = -1;
         }
     }
 
 
-    return 0;
+    return res;
 }
 
 int iop_struct_check_backward_compat(const iop_struct_t *st1,
@@ -4266,14 +4320,16 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
                                      unsigned flags, sb_t *err)
 {
     int res;
-    qh_t(compat_couple) seen_couples;
+    iop_compat_ctx_t ctx;
 
     assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
 
-    qh_init(compat_couple, &seen_couples);
-    res = __iop_struct_check_backward_compat(st1, st2, flags, &seen_couples,
-                                             err);
-    qh_wipe(compat_couple, &seen_couples);
+    iop_compat_ctx_init(&ctx);
+    ctx.err = err;
+
+    res = __iop_struct_check_backward_compat(st1, st2, flags, &ctx);
+
+    iop_compat_ctx_wipe(&ctx);
     return res;
 }
 
@@ -4305,12 +4361,13 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
                                   const iop_pkg_t *pkg2,
                                   unsigned flags, sb_t *err)
 {
-    SB_1k(local_err);
-    qh_t(compat_couple) seen_couples;
+    int res = 0;
+    iop_compat_ctx_t ctx;
 
     assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
 
-    qh_init(compat_couple, &seen_couples);
+    iop_compat_ctx_init(&ctx);
+    ctx.err = err;
 
     /* Check structs. */
     for (const iop_struct_t *const *it = pkg1->structs; *it; it++) {
@@ -4329,26 +4386,22 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
         }
 
         if (!(st2 = iop_pkg_get_struct_by_name(pkg2, name))) {
-            sb_addf(err, "%s `%*pM` does not exist anymore",
-                    what, LSTR_FMT_ARG(name));
-            goto error;
+            iop_compat_add_err(&ctx, "%s `%*pM` does not exist anymore",
+                               what, LSTR_FMT_ARG(name));
+            res = -1;
+            continue;
         }
 
-        if (__iop_struct_check_backward_compat(st1, st2, flags, &seen_couples,
-                                               &local_err) < 0)
-        {
-            sb_addf(err, "%s `%*pM`: %*pM",
-                    what, LSTR_FMT_ARG(name), SB_FMT_ARG(&local_err));
-            goto error;
+        iop_compat_push_err_ctx(&ctx, "%s `%*pM`: ",
+                                what, LSTR_FMT_ARG(name));
+        if (__iop_struct_check_backward_compat(st1, st2, flags, &ctx) < 0) {
+            res = -1;
         }
+        iop_compat_pop_err_ctx(&ctx);
     }
 
-    qh_wipe(compat_couple, &seen_couples);
-    return 0;
-
-  error:
-    qh_wipe(compat_couple, &seen_couples);
-    return -1;
+    iop_compat_ctx_wipe(&ctx);
+    return res;
 }
 
 /* }}} */

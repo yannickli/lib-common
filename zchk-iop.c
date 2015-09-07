@@ -5346,8 +5346,12 @@ Z_GROUP_EXPORT(iop)
              "was a struct and is now a class");
         T_OK(basic_struct, &basic_struct, basic_class, IOP_COMPAT_JSON);
 
-        T_KO_ALL(basic_class, &basic_class, basic_abstract_class,
-                 "is an abstract class but was not abstract");
+        T_KO(basic_class, &basic_class, basic_abstract_class, IOP_COMPAT_BIN,
+             "is an abstract class but was not abstract");
+        T_KO(basic_class, &basic_class, basic_abstract_class, IOP_COMPAT_JSON,
+             "is an abstract class but was not abstract\n"
+             "class fullname changed (`tstiop_backward_compat.BasicClass`"
+             " != `tstiop_backward_compat.BasicAbstractClass`)");
         T_OK(basic_abstract_class, NULL, basic_class, IOP_COMPAT_BIN);
         T_KO(basic_abstract_class, NULL, basic_class,
              IOP_COMPAT_JSON, "class fullname changed "
@@ -5376,7 +5380,8 @@ Z_GROUP_EXPORT(iop)
         /* Renamed field. */
         T_OK(basic_struct, &basic_struct, renamed_field, IOP_COMPAT_BIN);
         T_KO(basic_struct, &basic_struct, renamed_field, IOP_COMPAT_JSON,
-             "new field `b2` must not be required");
+             "new field `b2` must not be required\n"
+             "field `b` does not exist anymore");
 
         /* Field tag changed. */
         T_OK(basic_struct, &basic_struct, tag_changed_field, IOP_COMPAT_JSON);
@@ -5420,7 +5425,13 @@ Z_GROUP_EXPORT(iop)
             number_struct2.i32 = INT64_MAX;
             number_struct2.u32 = INT64_MAX;
             T_KO_ALL(number_struct2, &number_struct2, number_struct,
-                     "field `b`: incompatible types");
+                     "field `b`: incompatible types\n"
+                     "field `i8`: incompatible types\n"
+                     "field `u8`: incompatible types\n"
+                     "field `i16`: incompatible types\n"
+                     "field `u16`: incompatible types\n"
+                     "field `i32`: incompatible types\n"
+                     "field `u32`: incompatible types");
         }
 
         /* Class id change. */
@@ -5628,10 +5639,15 @@ Z_GROUP_EXPORT(iop)
                  tstiop_backward_compat_deleted_struct_2,
                  "struct `Struct2` does not exist anymore");
 
-        /* Incompatible structure. */
-        T_KO_ALL(tstiop_backward_compat_incompatible_struct_1,
-                 tstiop_backward_compat_incompatible_struct_2,
-                 "struct `Struct1`: new field `b` must not be required");
+        /* Incompatible structures. */
+        T_KO(tstiop_backward_compat_incompatible_struct_1,
+             tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_BIN,
+             "struct `Struct1`: new field `b` must not be required");
+        T_KO(tstiop_backward_compat_incompatible_struct_1,
+             tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_JSON,
+             "struct `Struct1`: new field `b` must not be required\n"
+             "struct `Struct2`: new field `d` must not be required\n"
+             "struct `Struct2`: field `c` does not exist anymore");
 
 #undef T_OK
 #undef T_OK_ALL

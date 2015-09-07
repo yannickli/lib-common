@@ -20,3 +20,9 @@ struct Struct1 {
      * tstiop_backward_compat_incompatible_struct_1. */
     int b;
 };
+
+struct Struct2 {
+    /* Field c was renamed into d compared to
+     * tstiop_backward_compat_incompatible_struct_2.iop. */
+    int d;
+};
