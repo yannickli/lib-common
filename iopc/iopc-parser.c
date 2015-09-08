@@ -2421,9 +2421,9 @@ static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
     iopc_field_t  **fptr;
     bool is_snmp_iface = iopc_is_snmp_iface(iface_type);
 
-    RETHROW(read_dox_front(pp, chunks));
-
     *res = false;
+
+    RETHROW(read_dox_front(pp, chunks));
 
     if (!CHECK_KW_N(pp, 0, token)) {
         return 0;
@@ -2593,7 +2593,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     {
         goto error;
     }
-    if (res_res && exn_res && !iopc_is_snmp_iface(type)) {
+    if (!res_res && !exn_res && !iopc_is_snmp_iface(type)) {
         info_loc("function %s may be a candidate for async-ness",
                  fun->loc, fun->name);
     }
