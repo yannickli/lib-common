@@ -1500,7 +1500,7 @@ static iopc_attr_t *parse_attr(iopc_parser_t *pp);
 static int iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
 {
     iopc_attr_t *attr = *attrp;
-    int pos;
+    int pos = 0;
 
     RETHROW(check_attr_multi(attrs, attr, &pos));
 
