@@ -256,6 +256,10 @@ class IopcTest(z.TestCase):
         self.run_iopc('snmp_invalid2.iop', False,
                       'snmp objects cannot be used to define a field type', 4)
 
+    def test_snmp_invalid_index(self):
+        self.run_iopc('snmp_invalid_index.iop', False,
+                      "field 'st1' does not support @snmpIndex attribute", 4)
+
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
         self.run_iopc_pass(f, 4)
