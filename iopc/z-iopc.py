@@ -808,6 +808,11 @@ class IopcTest(z.TestCase):
     def test_unknown_file(self):
         self.run_iopc_fail('unknown_file.iop', 'unable to open file')
 
+    def test_async_candidate(self):
+        self.run_iopc('async_candidate.iop', True,
+                      "function `asyncCandidate` may be a candidate for "
+                      "async-ness", 4)
+
     # }}}
 
 if __name__ == "__main__":
