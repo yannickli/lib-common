@@ -35,6 +35,7 @@ snmpObj Obj : 1 : snmp_intersec_test.Test {
 snmpTbl Tbl : 3 : Obj {
      /** Description.
       */
+    @snmpIndex
 1:   string column1;
 
      /** Description.
