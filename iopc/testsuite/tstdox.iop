@@ -165,24 +165,25 @@ interface MyIfaceA {
         ;
 
     @alias(funE1, funE2)
-    funE in (int a);
+    funE in (int a)
+         out void;
 };
 
 interface MyIfaceB {
-    funA in (int i);
-    funB in (int j);
+    funA in (int i) out void;
+    funB in (int j) out void;
 };
 
 interface MyIfaceC {
     @alias(funA2)
-    funA in (int i);
-    funB in (int j);
+    funA in (int i) out void;
+    funB in (int j) out void;
 };
 
 /// comment for MyIfaceD
 interface MyIfaceD {
-    funA in (int i);
-    funB in (int j);
+    funA in (int i) out void;
+    funB in (int j) out void;
 };
 
 module MyModuleA {

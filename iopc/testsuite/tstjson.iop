@@ -17,7 +17,7 @@ package tstjson;
 
              2nd paragraph
  */
-@ctype(enum_a)
+@ctype(enum_a__t)
 /// 3rd paragraph,
 @prefix(A) /// 3rd paragraph continue here,
   ///            and also here.
@@ -66,7 +66,7 @@ typedef MyUnionA MyUnionInt;
  *           2nd paragraph
  *******************************************
  */
-@ctype(struct_a)
+@ctype(struct_a__t)
 @noReorder
 struct MyStructA {
     @private
@@ -252,7 +252,7 @@ interface MyIfaceA {
               /// comment for funK throw
               throw MyExceptionA;
     @(test:gen5, true)
-    funL      in (int a, int b, int c);
+    funL      in (int a, int b, int c) out void;
     funAsync  in (int type)            out null;
 };
 

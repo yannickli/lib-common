@@ -1,6 +1,6 @@
 package attrs_valid;
 
-@ctype(my_enum_a) @ctype(type = enum_a)
+@ctype(my_enum_a__t) @ctype(type = enum_a__t)
 @prefix(A)
 @strict
 enum MyEnumA {
@@ -9,7 +9,7 @@ enum MyEnumA {
     C = 0x2,
 };
 
-@ctype(type = my_union_a)
+@ctype(type = my_union_a__t)
 union MyUnionA {
     byte    ub;
     @nonEmpty @maxLength(64) @pattern("[^a-zA-Z0-9_\- ]*")
@@ -74,7 +74,7 @@ struct User2 {
     double[]  doubleTab;
 };
 
-@ctype(pkg_a_t)
+@ctype(pkg_a__t)
 struct A {
     MyEnumA a;
 

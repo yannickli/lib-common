@@ -52,6 +52,7 @@ class IopcTest(z.TestCase):
             iopc_args.append('--class-id-range')
             iopc_args.append(class_id_range)
 
+        iopc_args.append('--Wextra')
         iopc_args.append('--check-snmp-table-has-index')
 
         iopc_p = subprocess.Popen(iopc_args, stderr=subprocess.PIPE)
@@ -67,6 +68,7 @@ class IopcTest(z.TestCase):
         else:
             self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s %s"
                             % (iop, context))
+
         if (errors):
             if isinstance(errors, basestring):
                 errors = [errors]
@@ -74,6 +76,9 @@ class IopcTest(z.TestCase):
                 self.assertTrue(output.find(error) >= 0,
                                 "did not find '%s' in '%s' %s" \
                                 % (error, output, context))
+        else:
+            self.assertTrue(len(output) == 0,
+                            "unexpected output: %s" % output)
 
     def run_iopc_pass(self, iop, version, lang='', class_id_range=''):
         self.run_iopc(iop, True, None, version, lang, class_id_range)
@@ -488,12 +493,22 @@ class IopcTest(z.TestCase):
         f  = 'typedef_valid_no_class.iop'
         f1 = 'typedef1.iop'
         f2 = 'typedef2.iop'
-        self.run_iopc2(f, True, None)
+
+        warnings = [
+            "type `MyType` is provided by both `typedef2` and `typedef1`",
+            "type `MyTypeS` is provided by both `typedef2` and `typedef1`",
+            "type `MyTypeU` is provided by both `typedef2` and `typedef1`",
+            "type `MyTypeE` is provided by both `typedef2` and `typedef1`",
+        ]
+
+        self.run_iopc2(f, True, warnings)
         self.run_iopc(f1, True, None)
         self.run_iopc(f2, True, None)
+
         self.run_gcc(f)
         self.run_gcc(f1)
         self.run_gcc(f2)
+
         self.run_iopc('typedef_valid.iop', False,
                       'type `MyType` is provided by both `typedef2` '        \
                       'and `typedef1`', 3)

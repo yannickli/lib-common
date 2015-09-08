@@ -31,7 +31,7 @@ struct MyStruct {
     string a;
     int b;
     /* this will not compile in v3 because it is ambiguous (conflict between
-     * imported typedef1 and typedef2 packages */
+     * imported typedef1 and typedef2 packages) */
     MyType              type;
     typedef1.MyType     type1;
     typedef2.MyType     type2;
