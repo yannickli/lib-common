@@ -690,6 +690,13 @@ static inline bool iop_struct_is_snmp_st(const iop_struct_t *st)
         || TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_TBL);
 }
 
+static inline bool iop_struct_is_snmp_param(const iop_struct_t *st)
+{
+    unsigned st_flags = st->flags;
+
+    return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_PARAM);
+}
+
 static inline bool iop_field_has_snmp_info(const iop_field_t *f)
 {
     unsigned st_flags = f->flags;

@@ -16,6 +16,7 @@ snmpObj A : 81 : snmp_obj.MySnmp {
 snmpTbl B : 1 : A {
      /** Description.
       */
+     @snmpIndex
 1:   string b1;
 
      /** Description.

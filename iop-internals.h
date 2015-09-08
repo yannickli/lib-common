@@ -46,6 +46,7 @@ enum iop_field_flags_t {
     IOP_FIELD_NO_EMPTY_ARRAY,       /**< indicates presence of @minOccurs   */
     IOP_FIELD_IS_REFERENCE,         /**< field points to the value          */
     IOP_FIELD_HAS_SNMP_INFO,
+    IOP_FIELD_IS_SNMP_INDEX,        /**< indicates presence of @snmpIndex   */
 };
 
 /* XXX do not change the field structure because of backward
@@ -334,6 +335,7 @@ enum iop_struct_flags_t {
                                  * have a type field? */
     IOP_STRUCT_IS_SNMP_OBJ,     /**< is it a snmpObj? */
     IOP_STRUCT_IS_SNMP_TBL,     /**< is it a snmpTbl? */
+    IOP_STRUCT_IS_SNMP_PARAM,   /**< does it have @snmpParam? */
 };
 
 /*}}}*/

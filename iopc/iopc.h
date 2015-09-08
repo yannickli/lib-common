@@ -355,6 +355,8 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_GENERIC,
     IOPC_ATTR_DEPRECATED,
     IOPC_ATTR_SNMP_PARAMS_FROM,
+    IOPC_ATTR_SNMP_PARAM,
+    IOPC_ATTR_SNMP_INDEX,
 } iopc_attr_id_t;
 
 /* types on which an attribute can apply */
@@ -634,6 +636,8 @@ typedef struct iopc_field_t {
     /* In case the field is contained by a snmpIface rpc struct', it
      * references another snmpObj field */
     flag_t snmp_is_from_param : 1;
+    /* In case the field is contained by a snmpTbl */
+    flag_t snmp_is_in_tbl : 1;
 
     /** kind of the resolved type */
     iop_type_t kind;
