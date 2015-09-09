@@ -40,7 +40,6 @@ static struct {
 } mib_g = {
 #define _G  mib_g
     .logger = LOGGER_INIT_INHERITS(NULL, "iop2mib"),
-    .output = "MIB.txt",
 };
 
 /* {{{ Helpers */
@@ -748,25 +747,19 @@ MODULE_END()
 
 static popt_t popt_g[] = {
     OPT_FLAG('h', "help",   &_G.help,   "show this help"),
-    OPT_FLAG('o', "output", &_G.output, "define output path"),
+    OPT_STR('o',  "output", &_G.output, "define output path (if not defined, "
+             "the MIB is printed on stdout)"),
     OPT_END(),
 };
 
-__attr_noreturn__
-static void usage(const char *arg0)
-{
-    makeusage(EX_USAGE, arg0, "<command> <output file>", NULL, popt_g);
-}
-
-static void t_mib_parseopt(int argc, char **argv, lstr_t *output)
+static void mib_parseopt(int argc, char **argv)
 {
     const char *arg0 = NEXTARG(argc, argv);
 
     argc = parseopt(argc, argv, popt_g, 0);
-    if (argc != 1 || _G.help) {
-        usage(arg0);
+    if (argc != 0 || _G.help) {
+        makeusage(EX_USAGE, arg0, "", NULL, popt_g);
     }
-    *output = t_lstr_fmt("%s", NEXTARG(argc, argv));
 }
 
 /* }}} */
@@ -799,17 +792,21 @@ static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
 
 int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
 {
-    t_scope;
-    lstr_t path = LSTR_NULL;
     SB_8k(sb);
 
-    t_mib_parseopt(argc, argv, &path);
-
+    mib_parseopt(argc, argv);
     iop_write_mib(&sb, pkgs, revisions);
-    if (sb_write_file(&sb, path.s) < 0) {
-        logger_error(&_G.logger, "couldn't write MIB file");
-        return -1;
+
+    if (_G.output) {
+        if (sb_write_file(&sb, _G.output) < 0) {
+            logger_error(&_G.logger, "couldn't write MIB file `%s`: %m",
+                         _G.output);
+            return -1;
+        }
+    } else {
+        fprintf(stdout, "%*pM", SB_FMT_ARG(&sb));
     }
+
     return 0;
 }
 
