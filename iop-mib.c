@@ -842,44 +842,29 @@ static qv_t(mib_rev) t_z_fill_up_revisions(void)
     return revisions;
 }
 
-static void z_init(sb_t *sb, qv_t(pkg) *pkgs)
+static void z_init(qv_t(pkg) *pkgs)
 {
-    sb_init(sb);
     qv_init(pkg, pkgs);
 }
 
-static void z_wipe(sb_t sb, qv_t(pkg) pkgs)
+static void z_wipe(qv_t(pkg) pkgs)
 {
-    sb_wipe(&sb);
     qv_wipe(pkg, &pkgs);
 }
 
-static int z_check_wanted_file(lstr_t name, sb_t sb)
+static int z_check_wanted_file(lstr_t filename, sb_t *sb)
 {
-    t_scope;
-    char line[PATH_MAX];
-    const char *path = t_fmt(FOLDER"/%*pM", LSTR_FMT_ARG(name));
-    int fd;
-    FILE *f;
+    char path[PATH_MAX];
+    lstr_t file_map;
 
-    fd = openat(z_cmddfd_g, path, O_RDONLY);
-    Z_ASSERT_N(fd, "cannot load reference file `%s`: %m", path);
+    snprintf(path, sizeof(path), "%*pM/" FOLDER "/%*pM",
+             LSTR_FMT_ARG(z_cmddir_g), LSTR_FMT_ARG(filename));
 
-    f = fdopen(fd, "re");
-    if (!f) {
-        p_close(&fd);
-        Z_ASSERT_P(f, "cannot create FILE from fd for path `%s`", path);
-    }
+    Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ, MAP_SHARED));
 
-    /* Check that each line of good file is present into the generated file */
-    while (fgets(line, sizeof(line), f) != NULL) {
-        if (!lstr_contains(LSTR(sb.data), LSTR(line))) {
-            p_fclose(&f);
-            Z_ASSERT(false, "cannot find `%s` in `%s`", sb.data, line);
-        }
-    }
+    Z_ASSERT_LSTREQUAL(file_map, LSTR_SB_V(sb));
 
-    p_fclose(&f);
+    lstr_wipe(&file_map);
     Z_HELPER_END;
 }
 
@@ -887,29 +872,29 @@ Z_GROUP_EXPORT(iop_mib)
 {
     Z_TEST(test_intersec_mib_generated, "compare generated and ref file") {
         t_scope;
-        sb_t sb;
+        SB_8k(sb);
         qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
 
-        z_init(&sb, &pkgs);
+        z_init(&pkgs);
 
         mib_register_pkg(&pkgs, snmp_intersec_test);
         iop_write_mib(&sb, pkgs, revisions);
 
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), sb));
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), &sb));
 
-        z_wipe(sb, pkgs);
+        z_wipe(pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_intersec_mib_smilint, "test intersec mib using smilint") {
         t_scope;
-        sb_t sb;
+        SB_8k(sb);
         qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
         char *path = t_fmt("%*pM/intersec", LSTR_FMT_ARG(z_tmpdir_g));
         lstr_t cmd;
 
-        z_init(&sb, &pkgs);
+        z_init(&pkgs);
 
         mib_register_pkg(&pkgs, snmp_intersec_test);
         iop_write_mib(&sb, pkgs, revisions);
@@ -919,23 +904,23 @@ Z_GROUP_EXPORT(iop_mib)
         cmd = t_lstr_fmt("smilint -s -e -l 6 %s", path);
         Z_ASSERT_ZERO(system(cmd.s));
 
-        z_wipe(sb, pkgs);
+        z_wipe(pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_entire_mib, "test complete mib") {
         t_scope;
-        sb_t sb;
+        SB_8k(sb);
         qv_t(mib_rev) revisions = t_z_fill_up_revisions();
         qv_t(pkg) pkgs;
         char *new_path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
         lstr_t cmd;
 
-        z_init(&sb, &pkgs);
+        z_init(&pkgs);
 
         mib_register_pkg(&pkgs, snmp_test);
 
         iop_write_mib(&sb, pkgs, revisions);
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), sb));
+        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), &sb));
 
         /* Check smilint compliance level 6*/
         sb_write_file(&sb, new_path);
@@ -943,7 +928,7 @@ Z_GROUP_EXPORT(iop_mib)
                          "-p %s %s", FOLDER "REF-INTERSEC-MIB.txt", new_path);
         Z_ASSERT_ZERO(system(cmd.s));
 
-        z_wipe(sb, pkgs);
+        z_wipe(pkgs);
     } Z_TEST_END;
 
     Z_TEST(test_quotes, "check double quotes are replaced by single ones") {
