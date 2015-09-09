@@ -319,6 +319,11 @@ static inline void sb_splice0s(sb_t *sb, int pos, int len, int extralen)
     sb_splicenc(sb, pos, len, extralen, 0);
 }
 
+static inline void sb_prepends(sb_t *sb, const char *s)
+{
+    sb_splice(sb, 0, 0, s, strlen(s));
+}
+
 
 static inline void sb_skip(sb_t *sb, int len)
 {
@@ -381,6 +386,11 @@ static inline void sb_trim_ctype(sb_t *sb, const ctype_desc_t *desc)
 int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
     __leaf __attr_printf__(2, 0);
 int sb_addf(sb_t *sb, const char *fmt, ...)
+    __leaf __attr_printf__(2, 3);
+
+int sb_prependvf(sb_t *sb, const char *fmt, va_list ap)
+    __leaf __attr_printf__(2, 0);
+int sb_prependf(sb_t *sb, const char *fmt, ...)
     __leaf __attr_printf__(2, 3);
 
 /** Appends content to a string buffer, filtering out characters that are not

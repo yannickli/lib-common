@@ -234,6 +234,40 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
     return res;
 }
 
+int sb_prependvf(sb_t *sb, const char *fmt, va_list ap)
+{
+    char buf[BUFSIZ];
+    va_list ap2;
+    int len;
+
+    va_copy(ap2, ap);
+    len = ivsnprintf(buf, BUFSIZ, fmt, ap2);
+    va_end(ap2);
+
+    if (len < BUFSIZ) {
+        sb_splice(sb, 0, 0, buf, len);
+    } else {
+        char *tbuf = p_new(char, len + 1);
+
+        ivsnprintf(tbuf, len + 1, fmt, ap);
+        sb_splice(sb, 0, 0, tbuf, len);
+        p_delete(&tbuf);
+    }
+    return len;
+}
+
+int sb_prependf(sb_t *sb, const char *fmt, ...)
+{
+    int res;
+    va_list args;
+
+    va_start(args, fmt);
+    res = sb_prependvf(sb, fmt, args);
+    va_end(args);
+
+    return res;
+}
+
 static void sb_add_ps_int_fmt(sb_t *out, pstream_t ps, int thousand_sep)
 {
     if (thousand_sep < 0) {

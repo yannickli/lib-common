@@ -29,6 +29,7 @@ static void custom_free(mem_pool_t *m, void *p)
 Z_GROUP_EXPORT(str)
 {
     char    buf[BUFSIZ];
+    char    buf2[BUFSIZ * 2];
     ssize_t res;
 
     Z_TEST(lstr_copyc, "lstr_copyc") {
@@ -65,6 +66,28 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_EQ(len, 3);
         Z_ASSERT_STREQUAL(p, "foo");
         p_delete(&p);
+    } Z_TEST_END;
+
+    Z_TEST(sb_add, "sb_add/sb_prepend") {
+        SB_1k(sb);
+
+        sb_addf(&sb, "%s", "bar");
+        sb_prependf(&sb, "%s", "foo");
+        Z_ASSERT_STREQUAL(sb.data, "foobar");
+
+        sb_reset(&sb);
+        sb_adds(&sb, "bar");
+        sb_prepends(&sb, "foo");
+        Z_ASSERT_STREQUAL(sb.data, "foobar");
+
+        memset(buf2, 'a', sizeof(buf2));
+        for (unsigned i = 0; i <= sizeof(buf2); i++) {
+            sb_reset(&sb);
+            sb_adds(&sb, "bar");
+            sb_prependf(&sb, "%*pM", i, buf2);
+            Z_ASSERT_EQ(sb.len, (int)i + 3);
+            Z_ASSERT_EQ(strlen(sb.data), i + 3);
+        }
     } Z_TEST_END;
 
     Z_TEST(ebcdic, "str: sb_conv_from_ebcdic297") {
