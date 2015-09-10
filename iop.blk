@@ -3380,6 +3380,49 @@ void iop_for_each_registered_classes(iop_for_each_class_b cb)
 /* }}} */
 /* {{{ Snmp manipulation */
 
+int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st)
+{
+    int nb = 0;
+
+    for (int i = 0; i < st->fields_len; i++) {
+        if (iop_field_is_snmp_index(&st->fields[i])) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
+int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st)
+{
+    int nb = 0;
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *field =&st->fields[i];
+
+        if (iop_field_is_snmp_index(field)) {
+            if (field->type == IOP_T_STRING) {
+                /* there is at most 128 sub-identifiers
+                 * (see RFC 2578, section 3.5). */
+                return 128;
+            } else {
+                nb++;
+            }
+        }
+    }
+
+    return MIN(nb, 128);
+}
+
+const iop_snmp_attrs_t *iop_get_snmp_attrs(const iop_field_attrs_t *attrs)
+{
+    for (int i = 0; i < attrs->attrs_len; i++) {
+        if (attrs->attrs[i].type == IOP_FIELD_SNMP_INFO) {
+            return (iop_snmp_attrs_t*)attrs->attrs[i].args->v.p;
+        }
+    }
+    e_panic("all snmpObj fields should have snmp attribute");
+}
+
 const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
                                                     int oid)
 {
@@ -3389,14 +3432,20 @@ const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
         const iop_field_t *field = &st->fields[i];
 
         if (field->tag == oid) {
-            iop_field_attrs_t attrs = st->fields_attrs[i];
+            return iop_get_snmp_attrs(&st->fields_attrs[i]);
+        }
+    }
+    e_panic("no field matches wanted OID");
+}
 
-            for (int j = 0; j < attrs.attrs_len; j++) {
-                if (attrs.attrs[j].type == IOP_FIELD_SNMP_INFO) {
-                    return (iop_snmp_attrs_t *)attrs.attrs[j].args->v.p;
-                }
-            }
-            e_panic("no snmp attrs find for field");
+const iop_field_attrs_t *iop_get_field_attr_match_oid(const iop_struct_t *st,
+                                                      int tag)
+{
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *field = &st->fields[i];
+
+        if (field->tag == tag) {
+            return &st->fields_attrs[i];
         }
     }
     e_panic("no field matches wanted OID");

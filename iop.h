@@ -711,8 +711,24 @@ static inline bool iop_iface_is_snmp_iface(const iop_iface_t *iface)
     return TST_BIT(&st_flags, IOP_IFACE_IS_SNMP_IFACE);
 }
 
-const iop_snmp_attrs_t *iop_get_snmp_attr_match_oid(const iop_struct_t *st,
-                                                    int oid);
+static inline bool iop_field_is_snmp_index(const iop_field_t *field)
+{
+    unsigned st_flags = field->flags;
+
+    return TST_BIT(&st_flags, IOP_FIELD_IS_SNMP_INDEX);
+}
+
+int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st);
+
+/** Get the number of SNMP indexes used by the AgentX layer (cf RFC RFC 2578).
+ */
+int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st);
+
+const iop_snmp_attrs_t *iop_get_snmp_attrs(const iop_field_attrs_t *attrs);
+const iop_snmp_attrs_t *
+iop_get_snmp_attr_match_oid(const iop_struct_t *st, int oid);
+const iop_field_attrs_t *
+iop_get_field_attr_match_oid(const iop_struct_t *st, int tag);
 
 /* }}} */
 /* {{{ IOP class manipulation */

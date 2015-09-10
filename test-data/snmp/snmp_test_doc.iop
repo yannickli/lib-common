@@ -11,9 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-package snmp_test;
+package snmp_test_doc;
 
-enum SomeEnum {
+enum TestDocEnum {
     STATE_ONE,
     STATE_TWO,
     STATE_THREE,
@@ -28,7 +28,7 @@ snmpObj Obj : 1 : snmp_intersec_test.Test {
 
     /** Description.
      */
-2:  SomeEnum b;
+2:  TestDocEnum b;
 };
 
 /** Table.
@@ -36,7 +36,6 @@ snmpObj Obj : 1 : snmp_intersec_test.Test {
 snmpTbl Tbl : 3 : Obj {
      /** Description.
       */
-     @snmpIndex
 1:   string column1;
 
      /** Description.
