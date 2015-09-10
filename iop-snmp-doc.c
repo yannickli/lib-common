@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iop.h"
-#include "iop-snmp-doc.h"
+#include "iop-snmp.h"
+#include "log.h"
 
 #include <sysexits.h>
 #include <lib-common/parseopt.h>
@@ -213,6 +213,8 @@ static void doc_put_alarms_header(sb_t *buf, lstr_t name_full_up)
 static void doc_put_arg_field(sb_t *buf, const iop_field_t *field,
                           const iop_struct_t *parent, uint16_t oid)
 {
+    t_scope;
+
     sb_addf(buf,
             "- <<%*pM, %*pM>> (%*pM): %*pM",
             LSTR_FMT_ARG(field->name),
@@ -226,6 +228,7 @@ static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
                         const iop_rpc_t *rpc,
                         const iop_iface_t *parent)
 {
+    t_scope;
     const iop_struct_t *st = rpc->args;
     lstr_t name = rpc->name;
 
@@ -269,9 +272,10 @@ static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
     }
 }
 
-static void t_doc_put_alarms(sb_t *buf, const iop_pkg_t *pkg)
+static void doc_put_alarms(sb_t *buf, const iop_pkg_t *pkg)
 {
     for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+        t_scope;
         const iop_iface_t *iface = *it;
         lstr_t name_full_up = t_get_name_full_up(pkg->name);
 
@@ -304,8 +308,9 @@ static void doc_put_field_header(sb_t *buf)
             "|Description\n\n");
 }
 
-static void t_doc_put_tbl(sb_t *buf, const iop_struct_t *st)
+static void doc_put_tbl(sb_t *buf, const iop_struct_t *st)
 {
+    t_scope;
     qv_t(u16) oids;
 
     t_qv_init(u16, &oids, 16);
@@ -319,8 +324,9 @@ static void t_doc_put_tbl(sb_t *buf, const iop_struct_t *st)
             LSTR_FMT_ARG(t_struct_get_help(st->st_attrs)));
 }
 
-static void t_doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
+static void doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
 {
+    t_scope;
     const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
     const iop_field_t *field = &st->fields[pos];
     const iop_snmp_attrs_t *snmp_attrs;
@@ -338,7 +344,7 @@ static void t_doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
                 iop_get_field_attr_match_oid(st, snmp_attrs->oid))));
 }
 
-static void t_doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
+static void doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
 {
     int compt = 0;
 
@@ -350,10 +356,12 @@ static void t_doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
         }
 
         if (iop_struct_is_snmp_tbl(desc)) {
-            t_doc_put_tbl(buf, desc);
+            doc_put_tbl(buf, desc);
         }
 
         if (desc->fields_len > 0) {
+            t_scope;
+
             if (compt == 0) {
                 doc_put_field_header(buf);
             }
@@ -369,7 +377,7 @@ static void t_doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
             if (!iop_field_has_snmp_info(&field)) {
                 continue;
             }
-            t_doc_put_field(buf, i, desc);
+            doc_put_field(buf, i, desc);
         }
     }
     if (compt > 0) {
@@ -401,12 +409,12 @@ static void doc_parseopt(int argc, char **argv, lstr_t *output_notif,
 
 /* }}} */
 
-static void t_iop_write_snmp_doc(sb_t *notif_sb, sb_t *object_sb,
-                                 const qv_t(pkg) *pkgs)
+void iop_write_snmp_doc(sb_t *notif_sb, sb_t *object_sb,
+                        const qv_t(pkg) *pkgs)
 {
     qv_for_each_entry(pkg, pkg, pkgs) {
-        t_doc_put_alarms(notif_sb, pkg);
-        t_doc_put_fields(object_sb, pkg);
+        doc_put_alarms(notif_sb, pkg);
+        doc_put_fields(object_sb, pkg);
     }
 }
 
@@ -418,7 +426,7 @@ int iop_snmp_doc(int argc, char **argv, const qv_t(pkg) *pkgs)
     SB_8k(object_sb);
 
     doc_parseopt(argc, argv, &path_notif, &path_object);
-    t_iop_write_snmp_doc(&notif_sb, &object_sb, pkgs);
+    iop_write_snmp_doc(&notif_sb, &object_sb, pkgs);
 
     if (sb_write_file(&notif_sb, path_notif.s) < 0) {
         logger_error(&_G.logger,
@@ -435,56 +443,3 @@ int iop_snmp_doc(int argc, char **argv, const qv_t(pkg) *pkgs)
 
     return 0;
 }
-
-/* {{{ Tests */
-
-/* LCOV_EXCL_START */
-
-#include <lib-common/z.h>
-
-#include "test-data/snmp/snmp_test_doc.iop.h"
-
-static int z_check_wanted_file(lstr_t filename, sb_t *sb)
-{
-    char path[PATH_MAX];
-    lstr_t file_map;
-
-    snprintf(path, sizeof(path), "%*pM/test-data/snmp/docs/%*pM",
-             LSTR_FMT_ARG(z_cmddir_g), LSTR_FMT_ARG(filename));
-
-    sb_write_file(sb, t_fmt("/tmp/%*pM", LSTR_FMT_ARG(filename)));
-
-    Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ, MAP_SHARED));
-
-    Z_ASSERT_LSTREQUAL(file_map, LSTR_SB_V(sb));
-
-    lstr_wipe(&file_map);
-    Z_HELPER_END;
-}
-
-Z_GROUP_EXPORT(iop_snmp_doc)
-{
-    Z_TEST(test_doc, "test generated doc") {
-        t_scope;
-        SB_1k(notifs_sb);
-        SB_1k(objects_sb);
-        qv_t(pkg) pkgs;
-
-        qv_init(pkg, &pkgs);
-
-        doc_register_pkg(&pkgs, snmp_test_doc);
-        t_iop_write_snmp_doc(&notifs_sb, &objects_sb, &pkgs);
-
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("ref-notif.inc.adoc"),
-                                         &notifs_sb));
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("ref-object.inc.adoc"),
-                                         &objects_sb));
-
-        qv_wipe(pkg, &pkgs);
-    } Z_TEST_END;
-
-} Z_GROUP_END;
-
-/* LCOV_EXCL_STOP */
-
-/* }}} */

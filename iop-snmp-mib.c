@@ -11,7 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iop-mib.h"
+#include "iop-snmp.h"
+#include "log.h"
 
 #include <sysexits.h>
 #include <lib-common/parseopt.h>
@@ -764,8 +765,8 @@ static void mib_parseopt(int argc, char **argv)
 
 /* }}} */
 
-static void iop_write_mib(sb_t *sb, const qv_t(pkg) *pkgs,
-                          const qv_t(mib_rev) *revisions)
+void iop_write_mib(sb_t *sb, const qv_t(pkg) *pkgs,
+                   const qv_t(mib_rev) *revisions)
 {
     SB_8k(buffer);
 
@@ -811,137 +812,6 @@ int iop_mib(int argc, char **argv, const qv_t(pkg) *pkgs,
 
     return 0;
 }
-
-/* {{{ Tests */
-
-/* LCOV_EXCL_START */
-
-#include <lib-common/z.h>
-#include "test-data/snmp/snmp_test.iop.h"
-#include "test-data/snmp/snmp_intersec_test.iop.h"
-
-#define FOLDER "test-data/snmp/mibs/"
-
-static qv_t(mib_rev) t_z_fill_up_revisions(void)
-{
-    qv_t(mib_rev) revisions;
-
-    t_qv_init(mib_rev, &revisions, PATH_MAX);
-    mib_register_revision(&revisions, "201003091349Z", "Initial release");
-
-    return revisions;
-}
-
-static void z_init(qv_t(pkg) *pkgs)
-{
-    qv_init(pkg, pkgs);
-}
-
-static void z_wipe(qv_t(pkg) pkgs)
-{
-    qv_wipe(pkg, &pkgs);
-}
-
-static int z_check_wanted_file(lstr_t filename, sb_t *sb)
-{
-    char path[PATH_MAX];
-    lstr_t file_map;
-
-    snprintf(path, sizeof(path), "%*pM/" FOLDER "/%*pM",
-             LSTR_FMT_ARG(z_cmddir_g), LSTR_FMT_ARG(filename));
-
-    Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ, MAP_SHARED));
-
-    Z_ASSERT_LSTREQUAL(file_map, LSTR_SB_V(sb));
-
-    lstr_wipe(&file_map);
-    Z_HELPER_END;
-}
-
-Z_GROUP_EXPORT(iop_mib)
-{
-    Z_TEST(test_intersec_mib_generated, "compare generated and ref file") {
-        t_scope;
-        SB_8k(sb);
-        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
-        qv_t(pkg) pkgs;
-
-        z_init(&pkgs);
-
-        mib_register_pkg(&pkgs, snmp_intersec_test);
-        iop_write_mib(&sb, &pkgs, &revisions);
-
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), &sb));
-
-        z_wipe(pkgs);
-    } Z_TEST_END;
-
-    Z_TEST(test_intersec_mib_smilint, "test intersec mib using smilint") {
-        t_scope;
-        SB_8k(sb);
-        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
-        qv_t(pkg) pkgs;
-        char *path = t_fmt("%*pM/intersec", LSTR_FMT_ARG(z_tmpdir_g));
-        lstr_t cmd;
-
-        z_init(&pkgs);
-
-        mib_register_pkg(&pkgs, snmp_intersec_test);
-        iop_write_mib(&sb, &pkgs, &revisions);
-
-        /* Check smilint compliance level 6*/
-        sb_write_file(&sb, path);
-        cmd = t_lstr_fmt("smilint -s -e -l 6 %s", path);
-        Z_ASSERT_ZERO(system(cmd.s));
-
-        z_wipe(pkgs);
-    } Z_TEST_END;
-
-    Z_TEST(test_entire_mib, "test complete mib") {
-        t_scope;
-        SB_8k(sb);
-        qv_t(mib_rev) revisions = t_z_fill_up_revisions();
-        qv_t(pkg) pkgs;
-        char *new_path = t_fmt("%*pM/tst", LSTR_FMT_ARG(z_tmpdir_g));
-        lstr_t cmd;
-
-        z_init(&pkgs);
-
-        mib_register_pkg(&pkgs, snmp_test);
-
-        iop_write_mib(&sb, &pkgs, &revisions);
-        Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), &sb));
-
-        /* Check smilint compliance level 6*/
-        sb_write_file(&sb, new_path);
-        cmd = t_lstr_fmt("smilint -s -e -l 6 -i notification-not-reversible "
-                         "-p %s %s", FOLDER "REF-INTERSEC-MIB.txt", new_path);
-        Z_ASSERT_ZERO(system(cmd.s));
-
-        z_wipe(pkgs);
-    } Z_TEST_END;
-
-    Z_TEST(test_quotes, "check double quotes are replaced by single ones") {
-        t_scope;
-        lstr_t text = LSTR(" \" = double, \' = single \"between\"\n");
-
-        Z_ASSERT_LSTREQUAL(LSTR(" \' = double, \' = single \'between\'\n"),
-                           t_split_on_str(text, "\"", false));
-    } Z_TEST_END;
-
-    Z_TEST(test_enum, "check double quotes are replaced by single ones") {
-        t_scope;
-        const iop_enum_t *en = &snmp_test__some_enum__e;
-
-        Z_ASSERT_LSTREQUAL(LSTR("INTEGER { stateOne(0), stateTwo(1), "
-                                "stateThree(2), four(3) }"),
-                           t_mib_put_enum(en));
-    } Z_TEST_END;
-} Z_GROUP_END;
-
-/* LCOV_EXCL_STOP */
-
-/* }}} */
 
 #undef LVL1
 #undef LVL2
