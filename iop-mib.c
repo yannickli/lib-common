@@ -196,16 +196,16 @@ static void mib_close_banner(sb_t *buf)
             "\n\n-- vim:syntax=mib\n");
 }
 
-static void mib_get_head(qv_t(pkg) pkgs)
+static void mib_get_head(const qv_t(pkg) *pkgs)
 {
     bool resolved = false;
 
-    if (pkgs.len <= 0) {
+    if (pkgs->len <= 0) {
         logger_fatal(&_G.logger,
                      "a package must be provided to build the MIB");
     }
 
-    qv_for_each_entry(pkg, pkg, &pkgs) {
+    qv_for_each_entry(pkg, pkg, pkgs) {
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -279,9 +279,9 @@ static void mib_put_imports(sb_t *buf)
 /* }}} */
 /* {{{ Identity */
 
-static void mib_put_identity(sb_t *buf, qv_t(mib_rev) revisions)
+static void mib_put_identity(sb_t *buf, const qv_t(mib_rev) *revisions)
 {
-    mib_revision_t *last_update = qv_last(mib_rev, &revisions);
+    mib_revision_t *last_update = qv_last(mib_rev, revisions);
 
     sb_addf(buf, "-- {{{ Identity\n"
             "\n%*pM%s MODULE-IDENTITY\n"
@@ -297,8 +297,8 @@ static void mib_put_identity(sb_t *buf, qv_t(mib_rev) revisions)
             LSTR_FMT_ARG(_G.head), _G.head_is_intersec ? "" : "Identity",
             LSTR_FMT_ARG(last_update->timestamp));
 
-    qv_for_each_pos_rev(mib_rev, pos, &revisions) {
-        mib_revision_t *changmt = &revisions.tab[pos];
+    qv_for_each_pos_rev(mib_rev, pos, revisions) {
+        const mib_revision_t *changmt = &revisions->tab[pos];
 
         sb_addf(buf, LVL1 "REVISION \"%*pM\"\n",
                 LSTR_FMT_ARG(changmt->timestamp));
@@ -352,13 +352,13 @@ static void mib_put_snmp_iface(sb_t *buf, const iop_iface_t *snmp_iface)
             snmp_attrs->oid);
 }
 
-static void mib_put_object_identifier(sb_t *buf, qv_t(pkg) pkgs)
+static void mib_put_object_identifier(sb_t *buf, const qv_t(pkg) *pkgs)
 {
-    if (pkgs.len) {
+    if (pkgs->len) {
         sb_addf(buf, "-- {{{ Top Level Structures\n\n");
     }
 
-    qv_for_each_entry(pkg, pkg, &pkgs) {
+    qv_for_each_entry(pkg, pkg, pkgs) {
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -377,7 +377,7 @@ static void mib_put_object_identifier(sb_t *buf, qv_t(pkg) pkgs)
         }
     }
 
-    if (pkgs.len) {
+    if (pkgs->len) {
         sb_addf(buf, "\n-- }}}\n");
     }
 }
@@ -764,7 +764,8 @@ static void mib_parseopt(int argc, char **argv)
 
 /* }}} */
 
-static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
+static void iop_write_mib(sb_t *sb, const qv_t(pkg) *pkgs,
+                          const qv_t(mib_rev) *revisions)
 {
     SB_8k(buffer);
 
@@ -773,7 +774,7 @@ static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
     mib_get_head(pkgs);
 
     mib_put_object_identifier(&buffer, pkgs);
-    qv_for_each_entry(pkg, pkg, &pkgs) {
+    qv_for_each_entry(pkg, pkg, pkgs) {
         mib_put_fields_and_tbl(&buffer, pkg);
         mib_put_rpcs(&buffer, pkg);
     }
@@ -790,7 +791,8 @@ static void iop_write_mib(sb_t *sb, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
     MODULE_RELEASE(iop_mib);
 }
 
-int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions)
+int iop_mib(int argc, char **argv, const qv_t(pkg) *pkgs,
+            const qv_t(mib_rev) *revisions)
 {
     SB_8k(sb);
 
@@ -867,7 +869,7 @@ Z_GROUP_EXPORT(iop_mib)
         z_init(&pkgs);
 
         mib_register_pkg(&pkgs, snmp_intersec_test);
-        iop_write_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, &pkgs, &revisions);
 
         Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-INTERSEC-MIB.txt"), &sb));
 
@@ -885,7 +887,7 @@ Z_GROUP_EXPORT(iop_mib)
         z_init(&pkgs);
 
         mib_register_pkg(&pkgs, snmp_intersec_test);
-        iop_write_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, &pkgs, &revisions);
 
         /* Check smilint compliance level 6*/
         sb_write_file(&sb, path);
@@ -907,7 +909,7 @@ Z_GROUP_EXPORT(iop_mib)
 
         mib_register_pkg(&pkgs, snmp_test);
 
-        iop_write_mib(&sb, pkgs, revisions);
+        iop_write_mib(&sb, &pkgs, &revisions);
         Z_HELPER_RUN(z_check_wanted_file(LSTR("REF-TEST-MIB.txt"), &sb));
 
         /* Check smilint compliance level 6*/

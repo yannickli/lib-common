@@ -39,7 +39,8 @@ qvector_t(pkg, iop_pkg_t *);
  *                         qv must follow the chronological order, from the
  *                         initial to the last revision.
  */
-int iop_mib(int argc, char **argv, qv_t(pkg) pkgs, qv_t(mib_rev) revisions);
+int iop_mib(int argc, char **argv, const qv_t(pkg) *pkgs,
+            const qv_t(mib_rev) *revisions);
 
 /** Register a package into a qv of packages.
  *

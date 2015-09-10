@@ -26,6 +26,6 @@ qvector_t(pkg, iop_pkg_t *);
  * \param[in]  pkgs        List of the different iop packages that will be
  *                         added to the MIB.
  */
-int iop_snmp_doc(int argc, char **argv, qv_t(pkg) pkgs);
+int iop_snmp_doc(int argc, char **argv, const qv_t(pkg) *pkgs);
 
 #endif /* IS_LIB_COMMON_IOP_SNMP_DOC_H */

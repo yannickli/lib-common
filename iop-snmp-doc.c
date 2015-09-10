@@ -402,15 +402,15 @@ static void doc_parseopt(int argc, char **argv, lstr_t *output_notif,
 /* }}} */
 
 static void t_iop_write_snmp_doc(sb_t *notif_sb, sb_t *object_sb,
-                                 qv_t(pkg) pkgs)
+                                 const qv_t(pkg) *pkgs)
 {
-    qv_for_each_entry(pkg, pkg, &pkgs) {
+    qv_for_each_entry(pkg, pkg, pkgs) {
         t_doc_put_alarms(notif_sb, pkg);
         t_doc_put_fields(object_sb, pkg);
     }
 }
 
-int iop_snmp_doc(int argc, char **argv, qv_t(pkg) pkgs)
+int iop_snmp_doc(int argc, char **argv, const qv_t(pkg) *pkgs)
 {
     lstr_t path_notif = LSTR_NULL;
     lstr_t path_object = LSTR_NULL;
@@ -473,7 +473,7 @@ Z_GROUP_EXPORT(iop_snmp_doc)
         qv_init(pkg, &pkgs);
 
         doc_register_pkg(&pkgs, snmp_test_doc);
-        t_iop_write_snmp_doc(&notifs_sb, &objects_sb, pkgs);
+        t_iop_write_snmp_doc(&notifs_sb, &objects_sb, &pkgs);
 
         Z_HELPER_RUN(z_check_wanted_file(LSTR("ref-notif.inc.adoc"),
                                          &notifs_sb));
