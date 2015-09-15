@@ -3388,6 +3388,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     qv_inita(iopc_attr, &attrs, 16);
     qv_inita(dox_chunk, &chunks, 16);
 
+    pkg->file = file;
+
     if (read_dox_front(pp, &chunks) < 0
     ||  !(pkg->name = parse_pkg_stmt(pp))
     ||  read_dox_back(pp, &chunks, 0) < 0)
@@ -3396,7 +3398,6 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     }
     build_dox_check_all(&chunks, pkg);
 
-    pkg->file = file;
     if (type != IOPC_FILE_STDIN) {
         char base[PATH_MAX];
 

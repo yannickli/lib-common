@@ -63,11 +63,12 @@ class IopcTest(z.TestCase):
 
         if (expect_pass):
             self.assertEqual(iopc_p.returncode, 0,
-                             "unexpected failure on %s %s: %s"
-                             % (iop, context, output))
+                             "unexpected failure (%d) on %s %s: %s"
+                             % (iopc_p.returncode, iop, context, output))
         else:
-            self.assertTrue(iopc_p.returncode > 0, "unexpected pass on %s %s"
-                            % (iop, context))
+            self.assertEqual(iopc_p.returncode, 255,
+                             "unexpected return code %d on %s %s: %s"
+                             % (iopc_p.returncode, iop, context, output))
 
         if (errors):
             if isinstance(errors, basestring):
@@ -804,6 +805,10 @@ class IopcTest(z.TestCase):
     def test_unknown_pkg(self):
         self.run_iopc_fail('unknown_pkg.iop', 'unable to find file '
                            '`unknown.iop` in the include path')
+
+    def test_invalid_pkg_syntax(self):
+        self.run_iopc_fail('invalid_pkg_syntax.iop',
+                           'package expected, but got packag instead')
 
     def test_unknown_file(self):
         self.run_iopc_fail('unknown_file.iop', 'unable to open file')
