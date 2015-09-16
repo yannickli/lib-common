@@ -655,15 +655,95 @@ const char *iop_type_get_string_desc(iop_type_t type)
 /* }}} */
 /* {{{ Generic attributes */
 
+static bool iop_type_is_string(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return true;
+
+      default:
+        return false;
+    }
+}
+
+static int iop_convert_i64(int64_t i64, iop_type_t type, iop_value_t *value)
+{
+#define CHECK_RANGE(_min, _max)  THROW_ERR_IF(i64 < _min || i64 > _max)
+
+    switch (type) {
+      case IOP_T_I8:
+        CHECK_RANGE(INT8_MIN, INT8_MAX);
+        value->i = i64;
+        break;
+      case IOP_T_U8:
+        CHECK_RANGE(0, UINT8_MAX);
+        value->u = i64;
+        break;
+      case IOP_T_I16:
+        CHECK_RANGE(INT16_MIN, INT16_MAX);
+        value->i = i64;
+        break;
+      case IOP_T_U16:
+        CHECK_RANGE(0, UINT16_MAX);
+        value->u = i64;
+        break;
+      case IOP_T_I32:
+        CHECK_RANGE(INT32_MIN, INT32_MAX);
+        value->i = i64;
+        break;
+      case IOP_T_U32:
+        CHECK_RANGE(0, UINT32_MAX);
+        value->u = i64;
+        break;
+      case IOP_T_I64: case IOP_T_U64:
+        value->i = i64;
+        break;
+      case IOP_T_BOOL:
+        CHECK_RANGE(0, 1);
+        value->b = i64;
+        break;
+      case IOP_T_DOUBLE:
+        value->d = i64;
+        break;
+      default:
+        return -1;
+    }
+
+#undef CHECK_RANGE
+    return 0;
+}
+
 #define ATTR_IS_GENERIC(_attr, _what)                                        \
     (_attr->type == IOP_##_what##_GEN_ATTR_S                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_O                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_I                                 \
   || _attr->type == IOP_##_what##_GEN_ATTR_D)
 
-#define __get_gen_attr_value(_attrs, _len, _key, _what, _what_l, _val)     \
+static int iop_convert_value(iop_type_t exp_type, iop_type_t val_type,
+                             iop_value_t *value)
+{
+    switch (val_type) {
+      case IOP_T_STRING:
+        return iop_type_is_string(exp_type) ? 0 : -1;
+
+      case IOP_T_I64:
+        return iop_convert_i64(value->i64, exp_type, value);
+
+      case IOP_T_DOUBLE:
+        return exp_type == IOP_T_DOUBLE ? 0 : -1;
+
+      default:
+        e_panic("iop_type unsupported");
+    }
+}
+
+#define __get_gen_attr_value(_attrs, _len, _key, _what, _what_l,           \
+                             _exp_type, _val_type, _val)                   \
     ({                                                                     \
         int _res = -1;                                                     \
+        iop_type_t _attr_type;                                             \
                                                                            \
         for (int _i = 0; _i < _len; _i++) {                                \
             const iop_##_what_l##_attr_t *_attr = _attrs + _i;             \
@@ -675,28 +755,40 @@ const char *iop_type_get_string_desc(iop_type_t type)
             }                                                              \
                                                                            \
             _res = 0;                                                      \
-                                                                           \
             switch (_attr->type) {                                         \
               case IOP_##_what##_GEN_ATTR_O:                               \
               case IOP_##_what##_GEN_ATTR_S:                               \
                 _val->s = _attr->args[1].v.s;                              \
+                _attr_type = IOP_T_STRING;                                 \
                 break;                                                     \
               case IOP_##_what##_GEN_ATTR_I:                               \
                 _val->i64 = _attr->args[1].v.i64;                          \
+                _attr_type = IOP_T_I64;                                    \
                 break;                                                     \
               case IOP_##_what##_GEN_ATTR_D:                               \
                 _val->d = _attr->args[1].v.d;                              \
+                _attr_type = IOP_T_DOUBLE;                                 \
                 break;                                                     \
               default:                                                     \
-                assert (false);                                            \
+                e_panic("invalid generic attribute type");                 \
             }                                                              \
             break;                                                         \
+        }                                                                  \
+                                                                           \
+        if (_res == 0) {                                                   \
+            if ((int)_exp_type >= 0) {                                     \
+                _res = iop_convert_value(_exp_type, _attr_type, _val);     \
+            }                                                              \
+            if (_val_type) {                                               \
+                *_val_type = _attr_type;                                   \
+            }                                                              \
         }                                                                  \
                                                                            \
         _res;                                                              \
     })
 
 int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
+                            iop_type_t exp_type, iop_type_t *val_type,
                             iop_value_t *value)
 {
     unsigned flags = st->flags;
@@ -705,24 +797,27 @@ int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
         return -1;
     }
     return __get_gen_attr_value(st->st_attrs->attrs, st->st_attrs->attrs_len,
-                                key, STRUCT, struct, value);
+                                key, STRUCT, struct, exp_type, val_type,
+                                value);
 }
 
 int iop_enum_get_gen_attr(const iop_enum_t *en, lstr_t key,
+                          iop_type_t exp_type, iop_type_t *val_type,
                           iop_value_t *value)
 {
     if (!TST_BIT(&en->flags, IOP_ENUM_EXTENDED) || !en->en_attrs) {
         return -1;
     }
     return __get_gen_attr_value(en->en_attrs->attrs, en->en_attrs->attrs_len,
-                                key, ENUM, enum, value);
+                                key, ENUM, enum, exp_type, val_type, value);
 }
 
 static int iop_enum_pos_from_val(const iop_enum_t *e, int val);
 static int iop_enum_pos_from_str(const iop_enum_t *e, const char *s, int len);
 
-int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
-                                   lstr_t key, iop_value_t *value)
+int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
+                                   iop_type_t exp_type, iop_type_t *val_type,
+                                   iop_value_t *value)
 {
     const iop_enum_value_attrs_t *va;
     int pos;
@@ -733,11 +828,12 @@ int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val,
     pos = RETHROW(iop_enum_pos_from_val(ed, val));
     va = &ed->values_attrs[pos];
     return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
-                                enum_value, value);
+                                enum_value, exp_type, val_type, value);
 }
 
 int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
-                                   lstr_t key, iop_value_t *value)
+                                   lstr_t key, iop_type_t exp_type,
+                                   iop_type_t *val_type, iop_value_t *value)
 {
     const iop_enum_value_attrs_t *va;
     int pos;
@@ -748,10 +844,11 @@ int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
     pos = RETHROW(iop_enum_pos_from_str(ed, val.s, val.len));
     va = &ed->values_attrs[pos];
     return __get_gen_attr_value(va->attrs, va->attrs_len, key, ENUM_VALUE,
-                                enum_value, value);
+                                enum_value, exp_type, val_type, value);
 }
 
 int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
+                           iop_type_t exp_type, iop_type_t *val_type,
                            iop_value_t *value)
 {
     if (!TST_BIT(&iface->flags, IOP_IFACE_HAS_ATTRS) || !iface->iface_attrs) {
@@ -759,35 +856,38 @@ int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
     }
     return __get_gen_attr_value(iface->iface_attrs->attrs,
                                 iface->iface_attrs->attrs_len, key, IFACE,
-                                iface, value);
+                                iface, exp_type, val_type, value);
 }
 
 int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
-                         lstr_t key, iop_value_t *value)
+                         lstr_t key, iop_type_t exp_type,
+                         iop_type_t *val_type, iop_value_t *value)
 {
     const iop_rpc_attrs_t *attrs = RETHROW_PN(iop_rpc_get_attrs(iface, rpc));
 
     return __get_gen_attr_value(attrs->attrs, attrs->attrs_len, key, RPC,
-                                rpc, value);
+                                rpc, exp_type, val_type, value);
 }
 
 int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
-                           lstr_t key, iop_value_t *value)
+                           lstr_t key, iop_type_t exp_type,
+                           iop_type_t *val_type, iop_value_t *value)
 {
     const iop_field_attrs_t *attrs = RETHROW_PN(iop_field_get_attrs(st,
                                                                     field));
 
     return __get_gen_attr_value(attrs->attrs, attrs->attrs_len, key, FIELD,
-                                field, value);
+                                field, exp_type, val_type, value);
 }
 
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
-                                   lstr_t key, iop_value_t *value)
+                                   lstr_t key, iop_type_t exp_type,
+                                   iop_type_t *val_type, iop_value_t *value)
 {
     int pos = RETHROW(__iop_field_find_by_name2(st, f_name));
     const iop_field_t *field = st->fields + pos;
 
-    return iop_field_get_gen_attr(st, field, key, value);
+    return iop_field_get_gen_attr(st, field, key, exp_type, val_type, value);
 }
 
 /* }}} */
