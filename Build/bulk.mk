@@ -155,6 +155,28 @@ __setup_buildsys_doc: | __setup_buildsys_trampoline
 
 doc: | __setup_buildsys_doc
 
+www-coverage::
+	$(msg/rm) "$!"
+	$(RM) -rf $!*
+	$(msg/generate) "$!${REPORT_DIR}"
+	mkdir -p $!${REPORT_DIR}
+	$(msg/generate) "$!"
+	cp -a $/* $!
+	find -type d -name "javascript" -not -path '*/\.*' -not -path '*/cache/*' | while read line ; do \
+		$(msg/generate) "instrumented directory: $!$${line}"; \
+		$(RM) -rf $!$${line}; \
+		rand=`date | md5sum | head -c 9` && istanbul instrument --save-baseline --baseline-file $!${REPORT_DIR}/coverage-$${rand}-baseline.json --complete-copy --no-compact -x "**/ext/**" --output $!$${line} $/$${line} ; \
+	done
+	find -type d -name "ext" -not -path '*/\.*' -not -path '*/cache/*' -path '*/javascript/*' | while read line ; do \
+		$(msg/generate) "external lib $!$${line}"; \
+		cp -r $/$${line} $!$${line}; \
+	done
+	server=`find -not -path '*/\.*' -name coverage-server.js` ; node $$server $!${REPORT_DIR} &
+	MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 Z_LIST_SKIP='C' Z_TAG_SKIP='wip upgrade perf' BEHAVE_FLAGS='--tags=web' L=1 check
+	pkill -f coverage-server
+	$(msg/generate) "report in $!${REPORT_DIR}"
+	istanbul report --root $!${REPORT_DIR} --dir $!${REPORT_DIR}
+
 __setup_buildsys_tags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
