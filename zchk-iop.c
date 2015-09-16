@@ -4803,71 +4803,93 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_gen_attrs, "test iop generic attributes") { /* {{{ */
         iop_value_t value;
+        iop_type_t type;
 
         /* enum */
         Z_ASSERT_N(iop_enum_get_gen_attr(&tstiop__my_enum_a__e,
-                                         LSTR("test:gen1"), &value));
+                                         LSTR("test:gen1"), IOP_T_I8, NULL,
+                                         &value));
         Z_ASSERT_EQ(value.i, 1);
+        /* wrong type */
         Z_ASSERT_NEG(iop_enum_get_gen_attr(&tstiop__my_enum_a__e,
-                                           LSTR("test:gen2"), &value));
+                                           LSTR("test:gen1"), IOP_T_STRING,
+                                           &type, &value));
+        Z_ASSERT_EQ(type, (iop_type_t)IOP_T_I64);
+        Z_ASSERT_NEG(iop_enum_get_gen_attr(&tstiop__my_enum_a__e,
+                                           LSTR("test:gen2"), IOP_T_I8, NULL,
+                                           &value));
 
         /* enum values */
-        Z_ASSERT_N(iop_enum_get_gen_attr_from_str(&tstiop__my_enum_a__e,
-                                                  LSTR("A"),
-                                                  LSTR("test:gen2"), &value));
+        Z_ASSERT_N(iop_enum_get_gen_attr_from_str(
+            &tstiop__my_enum_a__e, LSTR("A"), LSTR("test:gen2"), IOP_T_DOUBLE,
+            NULL, &value));
         Z_ASSERT_EQ(value.d, 2.2);
-        Z_ASSERT_N(iop_enum_get_gen_attr_from_str(&tstiop__my_enum_a__e,
-                                                  LSTR("a"),
-                                                  LSTR("test:gen2"), &value));
+        Z_ASSERT_N(iop_enum_get_gen_attr_from_str(
+            &tstiop__my_enum_a__e, LSTR("a"), LSTR("test:gen2"), IOP_T_DOUBLE,
+            NULL, &value));
         Z_ASSERT_EQ(value.d, 2.2);
-        Z_ASSERT_N(iop_enum_get_gen_attr_from_val(&tstiop__my_enum_a__e, 0,
-                                                  LSTR("test:gen2"), &value));
+        Z_ASSERT_N(iop_enum_get_gen_attr_from_val(
+            &tstiop__my_enum_a__e, 0, LSTR("test:gen2"), IOP_T_DOUBLE, NULL,
+            &value));
         Z_ASSERT_EQ(value.d, 2.2);
-
-        Z_ASSERT_NEG(iop_enum_get_gen_attr_from_str(&tstiop__my_enum_a__e,
-                                                    LSTR("b"),
+        /* wrong type */
+        Z_ASSERT_NEG(iop_enum_get_gen_attr_from_val(&tstiop__my_enum_a__e, 0,
                                                     LSTR("test:gen2"),
-                                                    &value));
+                                                    IOP_T_I64, &type, &value));
+        Z_ASSERT_EQ(type, (iop_type_t)IOP_T_DOUBLE);
+
+        Z_ASSERT_NEG(iop_enum_get_gen_attr_from_str(
+            &tstiop__my_enum_a__e, LSTR("b"), LSTR("test:gen2"), IOP_T_I8,
+            NULL, &value));
         Z_ASSERT_NEG(iop_enum_get_gen_attr_from_val(&tstiop__my_enum_a__e, 1,
                                                     LSTR("test:gen2"),
-                                                    &value));
+                                                    IOP_T_I8, NULL, &value));
 
         /* struct */
         Z_ASSERT_N(iop_struct_get_gen_attr(&tstiop__my_struct_a__s,
-                                           LSTR("test:gen3"), &value));
+                                           LSTR("test:gen3"), IOP_T_STRING,
+                                           NULL, &value));
         Z_ASSERT_LSTREQUAL(value.s, LSTR("3"));
+        /* wrong type */
         Z_ASSERT_NEG(iop_struct_get_gen_attr(&tstiop__my_struct_a__s,
-                                             LSTR("test:gen1"), &value));
+                                             LSTR("test:gen3"), IOP_T_I8,
+                                             &type, &value));
+        Z_ASSERT_EQ(type, (iop_type_t)IOP_T_STRING);
+        Z_ASSERT_NEG(iop_struct_get_gen_attr(&tstiop__my_struct_a__s,
+                                             LSTR("test:gen1"), IOP_T_I8,
+                                             NULL, &value));
 
         /* struct field */
-        Z_ASSERT_N(iop_field_by_name_get_gen_attr(&tstiop__my_struct_a__s,
-                                                  LSTR("a"),
-                                                  LSTR("test:gen4"), &value));
+        Z_ASSERT_N(iop_field_by_name_get_gen_attr(
+            &tstiop__my_struct_a__s, LSTR("a"), LSTR("test:gen4"), IOP_T_I16,
+            NULL, &value));
         Z_ASSERT_EQ(value.i, 4);
-        Z_ASSERT_NEG(iop_field_by_name_get_gen_attr(&tstiop__my_struct_a__s,
-                                                    LSTR("a"),
-                                                    LSTR("test:gen1"),
-                                                    &value));
+        Z_ASSERT_NEG(iop_field_by_name_get_gen_attr(
+            &tstiop__my_struct_a__s, LSTR("a"), LSTR("test:gen1"), IOP_T_I32,
+            NULL, &value));
 
         /* iface */
         Z_ASSERT_N(iop_iface_get_gen_attr(&tstiop__my_iface_a__if,
-                                           LSTR("test:gen5"), &value));
+                                          LSTR("test:gen5"), IOP_T_U8, NULL,
+                                          &value));
         Z_ASSERT_EQ(value.i, 5);
         Z_ASSERT_NEG(iop_iface_get_gen_attr(&tstiop__my_iface_a__if,
-                                            LSTR("test:gen1"), &value));
+                                            LSTR("test:gen1"), IOP_T_U16,
+                                            NULL, &value));
 
         /* rpc */
-        Z_ASSERT_N(iop_rpc_get_gen_attr(&tstiop__my_iface_a__if,
-                                        tstiop__my_iface_a__fun_a__rpc,
-                                        LSTR("test:gen6"), &value));
+        Z_ASSERT_N(iop_rpc_get_gen_attr(
+            &tstiop__my_iface_a__if, tstiop__my_iface_a__fun_a__rpc,
+            LSTR("test:gen6"), IOP_T_U32, NULL, &value));
         Z_ASSERT_EQ(value.i, 6);
-        Z_ASSERT_NEG(iop_rpc_get_gen_attr(&tstiop__my_iface_a__if,
-                                          tstiop__my_iface_a__fun_a__rpc,
-                                          LSTR("test:gen1"), &value));
+        Z_ASSERT_NEG(iop_rpc_get_gen_attr(
+            &tstiop__my_iface_a__if, tstiop__my_iface_a__fun_a__rpc,
+            LSTR("test:gen1"), IOP_T_U64, NULL, &value));
 
         /* json object */
         Z_ASSERT_N(iop_struct_get_gen_attr(&tstiop__my_struct_a__s,
-                                           LSTR("test:json"), &value));
+                                           LSTR("test:json"), IOP_T_STRING,
+                                           NULL, &value));
         Z_ASSERT_STREQUAL(value.s.s,
             "{\"field\":{\"f1\":\"val1\",\"f2\":-1.00000000000000000e+02}}");
     } Z_TEST_END
