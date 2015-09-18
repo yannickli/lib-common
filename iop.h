@@ -107,7 +107,8 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
-                           iop_type_t exp_type, iop_type_t *val_type,
+                           iop_type_t exp_type,
+                           iop_type_t * nullable val_type,
                            iop_value_t *value);
 
 /** Find a generic attribute value for an IOP rpc.
@@ -126,7 +127,7 @@ int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
  */
 int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
                          lstr_t key, iop_type_t exp_type,
-                         iop_type_t *val_type, iop_value_t *value);
+                         iop_type_t * nullable val_type, iop_value_t *value);
 
 static inline check_constraints_f
 iop_field_get_constraints_cb(const iop_struct_t *desc,
@@ -524,7 +525,8 @@ int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
-                            iop_type_t exp_type, iop_type_t *val_type,
+                            iop_type_t exp_type,
+                            iop_type_t * nullable val_type,
                             iop_value_t *value);
 
 /** Find a generic attribute value for an IOP field.
@@ -545,7 +547,7 @@ int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
  */
 int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
                            lstr_t key, iop_type_t exp_type,
-                           iop_type_t *val_type, iop_value_t *value);
+                           iop_type_t * nullable val_type, iop_value_t *value);
 
 /** Find a generic attribute value for an IOP field.
  *
@@ -567,7 +569,8 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
  */
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
                                    lstr_t key, iop_type_t exp_type,
-                                   iop_type_t *val_type, iop_value_t *value);
+                                   iop_type_t * nullable val_type,
+                                   iop_value_t *value);
 
 /** Find an IOP field description from a iop object.
  *
@@ -1102,7 +1105,7 @@ int iop_enum_from_lstr_desc(const iop_enum_t *ed, const lstr_t s,
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
-                          iop_type_t exp_type, iop_type_t *val_type,
+                          iop_type_t exp_type, iop_type_t * nullable val_type,
                           iop_value_t *value);
 
 /** Find a generic attribute value for an IOP enum value (integer).
@@ -1120,7 +1123,8 @@ int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
 int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
-                                   iop_type_t exp_type, iop_type_t *val_type,
+                                   iop_type_t exp_type,
+                                   iop_type_t * nullable val_type,
                                    iop_value_t *value);
 
 /** Find a generic attribute value for an IOP enum value (string).
@@ -1139,7 +1143,8 @@ int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
  */
 int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
                                    lstr_t key, iop_type_t exp_type,
-                                   iop_type_t *val_type, iop_value_t *value);
+                                   iop_type_t * nullable val_type,
+                                   iop_value_t *value);
 
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
