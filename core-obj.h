@@ -71,6 +71,8 @@ bool cls_inherits(const void *cls, const void *vptr)
 #define super_call(pfx, o, f, ...)  \
     (pfx##_class()->super->f((void *)obj_ccast(pfx, (o)), ##__VA_ARGS__))
 
+#define class_vcall(cls, f, ...)  cls->f(__VA_ARGS__)
+
 #define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)               \
     typedef struct pfx##_class_t pfx##_class_t;                              \
                                                                              \
