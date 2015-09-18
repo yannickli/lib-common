@@ -11,7 +11,46 @@
 #                                                                        #
 ##########################################################################
 
-include $(var/toolsdir)/bulk-library.mk
+#
+# extension driven rules
+# ~~~~~~~~~~~~~~~~~~~~~~
+#
+#  For a given .tla, the macro ext/rule/tla is called with 4 parameters:
+#  - $1 is the phony radix of the target.
+#  - $2 is the real path to the generated file.
+#  - $3 are the sources, relative to the srcdir.
+#  - $4 is an optional argument to pass "namespaces" (pic for pic .so's).
+#  it generates the rules needed to build source files with this extension.
+#
+#  For a given .tla the macro ext/gen/tla is called with a list of sources and
+#  returns a list of intermediate generated files this extension products.
+#
+#
+# $(eval $(call fun/foreach-ext-rule,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
+#
+define fun/common-depends
+$2: $(1D)/Makefile $(var/toolsdir)/*.mk $(var/toolsdir)/_local_targets.sh
+$2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
+$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1DV)_DEPENDS)
+endef
+
+var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
+define fun/foreach-ext-rule-nogen
+$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
+$2: | $($1_SOURCES)
+$(eval $(call fun/common-depends,$1,$2,$1))
+endef
+
+define fun/foreach-ext-rule
+$(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4)
+$2: | _generated
+endef
+
+include $(var/toolsdir)/rules-backend.mk
+include $(var/toolsdir)/rules-frontend.mk
+include $(var/toolsdir)/rules-misc.mk
+include $(var/cfgdir)/rules.mk
+
 ifeq (0,$(MAKELEVEL))
 -include $!deps.mk
 else

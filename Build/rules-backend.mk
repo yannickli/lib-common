@@ -11,12 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-define fun/common-depends
-$2: $(1D)/Makefile $(var/toolsdir)/*.mk $(var/toolsdir)/_local_targets.sh
-$2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
-$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1DV)_DEPENDS)
-endef
-
 ifeq (,$(NOCOMPRESS))
 
 define fun/obj-compress
@@ -40,20 +34,8 @@ define fun/bin-compress
 endef
 endif
 
-
 #
 # extension driven rules
-# ~~~~~~~~~~~~~~~~~~~~~~
-#
-#  For a given .tla, the macro ext/rule/tla is called with 4 parameters:
-#  - $1 is the phony radix of the target.
-#  - $2 is the real path to the generated file.
-#  - $3 are the sources, relative to the srcdir.
-#  - $4 is an optional argument to pass "namespaces" (pic for pic .so's).
-#  it generates the rules needed to build source files with this extension.
-#
-#  For a given .tla the macro ext/gen/tla is called with a list of sources and
-#  returns a list of intermediate generated files this extension products.
 #
 #[ ld,a,wa ]##########################################################{{{#
 
@@ -180,85 +162,6 @@ $(eval $(call fun/common-depends,$1,$(3:java=class),$3))
 endef
 
 #}}}
-#[ web ]###############################################################{{{#
-# {{{ css
-
-ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
-
-define ext/expand/css
-$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3
-	$(msg/MINIFY.css) $3
-	mkdir -p `dirname "$~$$@"`
-	lessc -M $$< $$@ > $~$$@.d
-	(cat $(var/cfgdir)/head.css && lessc --compress $$<) > $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
--include $~$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)).d
-$2: $(strip $($1_DESTDIR))/$(notdir $(3:css=min.css))
-endef
-
-define ext/rule/css
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/css,$1,$2,$$t,$4))))
-$(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)),$3))
-endef
-
-# }}}
-# {{{ less
-
-ext/gen/less = $(if $(filter %.less,$1),$(strip $($2_DESTDIR))/$(notdir $(1:less=css)) $(call ext/gen/css,$(strip $($2_DESTDIR))/$(notdir $(1:less=css)),$2))
-
-define ext/expand/less
-$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3
-	$(msg/COMPILE.less) $3
-	mkdir -p `dirname "$~$$@"`
-	lessc -M $$< $$@ > $~$$@.d
-	lessc $$< $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
--include $~$(strip $($1_DESTDIR))/$(notdir $(3:less=css)).d
-$2: $(strip $($1_DESTDIR))/$(notdir $(3:less=css))
-endef
-
-define ext/rule/less
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/less,$1,$2,$$t,$4))))
-$(eval $(call ext/rule/css,$1,$2,$(strip $($1_DESTDIR))/$(notdir $(3:less=css)),$4))
-$(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:less=css)),$3))
-endef
-
-# }}}
-# {{{ uglifyjs
-
-ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
-
-define ext/expand/js
-$(3:js=min.js): $3
-	$(msg/MINIFY.js) $3
-	(cat $(var/cfgdir)/head.js && uglifyjs $$<) > $$@
-$2: $(3:js=min.js)
-endef
-
-define ext/rule/js
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4))))
-$(eval $(call fun/common-depends,$1,$(3:js=min.js),$3))
-endef
-
-# }}}
-#}}}
-
--include $(var/cfgdir)/rules.mk
-
-#
-# $(eval $(call fun/foreach-ext-rule,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
-#
-var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
-define fun/foreach-ext-rule-nogen
-$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
-$2: | $($1_SOURCES)
-$(eval $(call fun/common-depends,$1,$2,$1))
-endef
-
-define fun/foreach-ext-rule
-$(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4)
-$2: | _generated
-endef
 
 #
 # main targets (entry points)
@@ -397,44 +300,6 @@ $(eval $(call rule/exe,$1,$2,$3))
 endef
 
 #}}}
-#[ _CSS ]#############################################################{{{#
-
-define rule/css
-$(1DV)www:: $(1DV)$1
-$(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_SOURCES)))
-endef
-
-#}}}
-#[ _JS ]##############################################################{{{#
-
-define rule/js
-$(1DV)www:: $~$1/.mark $(1DV)$1
-$~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
-$~$1/.build: | _generated_hdr
-	mkdir -p $$(dir $$@)
-	cp -r -L -l -f $($1_SOURCES) $$(dir $$@)
-	touch $~$1/.build
-
-$~$1/.mark: $~$1/.build $($1_CONFIG)
-	$(msg/COMPILE.js) $($1_CONFIG)
-	r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
-		|| (cat $~rjs.log; false)
-	touch $~$1/.mark
-
-$($1_MINIFY): $~$1/.mark
-$(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_MINIFY)))
-endef
-
-$(eval $(call fun/common-depends,$1,$~$1/.build,$1))
-#}}}
-#[ _DATAS ]###########################################################{{{#
-
-define rule/datas
-$(1DV)all:: $1
-$(eval $(call fun/foreach-ext-rule,$1,$1,$($1_SOURCES)))
-endef
-
-#}}}
 #[ _JARS ]###########################################################{{{#
 
 define rule/jars
@@ -451,92 +316,6 @@ $1.jar:
 
 $(1DV)clean::
 	$(RM) $1.jar
-endef
-
-#}}}
-#[ _DOCS ]############################################################{{{#
-
-define ext/rule/xml
-$~$1: $(var/docdir)/dblatex/intersec.specs
-$~$1: $(var/docdir)/dblatex/highlight.pl $(var/docdir)/dblatex/asciidoc-dblatex.xsl
-$~$1: $3
-	$(msg/DOC.pdf) $1
-	xmllint --valid $< >/dev/null
-	dblatex -q -r $(var/docdir)/dblatex/highlight.pl \
-		-p $(var/docdir)/dblatex/asciidoc-dblatex.xsl \
-		--param=doc.lot.show=figure,table \
-		$(DBLATEXFLAGS) $($(1DV)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
-		-I $(1D) -T $(var/docdir)/dblatex/intersec.specs $3 -o $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
-endef
-
-define ext/expand/adoc
-ifeq ($(filter %.inc.adoc,$3),)
-$~$1.xml: FL_=$($(1DV)_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
-$~$1.xml: $3 $(3:%.adoc=%-docinfo.xml)
-	$(msg/DOC.adoc) $3
-	asciidoc -b docbook -a docinfo -a toc -a ascii-ids $$(FL_) \
-		-f $(var/cfgdir)/asciidoc.conf -o $$@+ $$<
-	$(MV) $$@+ $$@ && chmod a-w $$@
-else
-$~$1.xml: $3
-endif
-endef
-
-define ext/rule/adoc
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/adoc,$1,$2,$$t,$4))))
-$(eval $(call fun/common-depends,$1,$(3:%=$~%.xml),$3))
-$(eval $(call ext/rule/xml,$1,$2,$(1:%=$~%.xml),$4))
-endef
-
-define ext/expand/sdf
-$~$3.inc.adoc: $3 $~$(patsubst $(var/srcdir)%,%,$(var/platform))/qrrd/sdf2adoc.exe
-	mkdir -p $$(@D)
-	$(msg/DOC.sdf) $3
-	$~$(patsubst $(var/srcdir)%,%,$(var/platform))/qrrd/sdf2adoc.exe -o $$@+ $$<
-	$(MV) $$@+ $$@ && chmod a-w $$@
-	$(FASTCP) $$@ $3.inc.adoc
-$(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
-endef
-
-define ext/rule/sdf
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/sdf,$1,$2,$$t,$4))))
-endef
-
-define ext/expand/txt
-ifeq ($(%-MIB.txt,$3),)
-$~$3.inc.adoc: FL_=$($(1DV)_MIBFLAGS) $($1_MIBFLAGS) $($3_MIBFLAGS)
-$~$3.inc.adoc: $3
-	mkdir -p $$(@D)
-	$(msg/DOC.mib) $3
-	smidump -q -f python -k $$(FL_) -o $$@.py $$<
-	cat $(var/cfgdir)/mib.py >> $$@.py
-
-	python $$@.py > $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
-	$(FASTCP) $$@ $3.inc.adoc
-$(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
-endif
-endef
-
-define ext/rule/txt
-$(eval $(call fun/common-depends,$1,$(3:%=$~%.inc.adoc),$3))
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/txt,$1,$2,$$t,$4))))
-endef
-
-define rule/pdf
-$1: $~$1 FORCE
-	$(FASTCP) $$< $$@
-
-$(eval $(call fun/foreach-ext-rule-nogen,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
-
-$(1DV)clean::
-	$(RM) $1
-endef
-
-define rule/docs
-$(1DV)doc: $1
-$(eval $(call rule/pdf,$1,$2,$3))
 endef
 
 #}}}
