@@ -254,6 +254,7 @@ void iop_dso_register(iop_dso_t *dso)
             e_panic("iop_packages not found when registering DSO");
         }
 
+        qm_clear(iop_pkg, &dso->pkg_h);
         while (*pkgp) {
             iopdso_register_pkg(dso, *pkgp++);
         }
@@ -267,7 +268,6 @@ void iop_dso_unregister(iop_dso_t *dso)
         qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
             iop_unregister_packages(&dso->pkg_h.values[pos], 1);
         }
-        qm_clear(iop_pkg, &dso->pkg_h);
         dso->is_registered = false;
     }
 }
