@@ -248,10 +248,11 @@ etags: | __setup_buildsys_tags
 
 jshint: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
+	$(msg/CHECK.js)
 	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
 	git ls-files -- '*.js' | xargs jshint
 
-www:: jshint
+www:: $(if $(NOCHECK),,jshint)
 
 pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
