@@ -15,7 +15,6 @@
 #
 # extension driven rules
 #
-#[ web ]###############################################################{{{#
 # {{{ css
 
 ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
@@ -76,7 +75,45 @@ $(eval $(call fun/common-depends,$1,$(3:js=min.js),$3))
 endef
 
 # }}}
-#}}}
+# {{{ ts
+
+# ext/expand/ts <PHONY>,<TARGET>,<TS>,<MODULEPATH>
+#
+# Compile the TypeScript file into a javascript object and a declaration
+# file. Files must be generated in dependency order since the compiler
+# validates the imports.
+#
+# This also makes sure the resulting declaration does not keeps the
+# potential /// <reference> attributes in the files, since they are not
+# valid in module declaration files.
+#
+# Produces:
+# - $~$3.d: the dependency file for the typescript module
+# - $~$(3:ts=d.ts): the declaration file for the typescript module
+# - $~$(3:ts=js): the javascript file for the typescript module
+define ext/expand/ts
+$2: $~$(3:ts=js)
+$~$(3:ts=d.ts): $~$(3:ts=js)
+$~$(3:ts=js): $3
+	$(msg/COMPILE.ts) $3
+	NODE_PATH="$~$4/node_modules:$$$$NODE_PATH" tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
+	sed -e 's@///.*<reference.*@@' -i $~$(3:ts=d.ts)
+
+$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
+	mkdir -p "$$(dir $$@)"
+	echo -n "$~$(3:ts=js): " > $$@+
+	NODE_PATH="$4/node_modules:$$$$NODE_PATH" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	mv $$@+ $$@
+
+-include $~$3.d
+endef
+
+# ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>
+define ext/rule/ts
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4))))
+endef
+
+# }}}
 
 #
 # main targets (entry points)
@@ -110,4 +147,26 @@ $(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_MINIFY)))
 endef
 
 $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
+#}}}
+#[ _WWWMODULES ]#######################################################{{{#
+
+# rule/wwwscript <PHONY>,<MODULEPATH>,<BUNDLE>
+define rule/wwwscript
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($1_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
+$(1DV)www:: $2/htdocs/javascript/$3.js
+$~$2/htdocs/javascript/$3.js:
+	$(msg/LINK.js) $3.js
+	mkdir -p $~$2/htdocs/javascript
+	browserify -x underscore -x backbone -x sprintf -d -o $$@ $$(filter %.js %.json,$$^)
+
+$2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
+	$(msg/MINIFY.js) $3.js
+	uglifyjs -c warnings=false -m -o $$@ $$< > /dev/null
+endef
+
+# rule/wwwmodule <MODULE>
+define rule/wwwmodule
+$$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%)))))
+endef
+
 #}}}

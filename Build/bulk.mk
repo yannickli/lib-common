@@ -79,6 +79,7 @@ var/docs       = $(foreach v,$(filter %_DOCS,$(.VARIABLES)),$($v))
 var/jars       = $(foreach v,$(filter %_JARS,$(.VARIABLES)),$($v))
 var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
 var/js         = $(foreach v,$(filter %_JS,$(.VARIABLES)),$($v))
+var/wwwmodules = $(foreach v,$(filter %_WWWMODULES,$(.VARIABLES)),$($v))
 
 ifeq ($(OS),darwin)
 var/sharedlibext = .dylib
@@ -163,6 +164,7 @@ $(foreach p,$(var/docs),$(eval $(call rule/docs,$p)))
 $(foreach p,$(var/jars),$(eval $(call rule/jars,$p)))
 $(foreach p,$(var/css),$(eval $(call rule/css,$p)))
 $(foreach p,$(var/js),$(eval $(call rule/js,$p)))
+$(foreach p,$(var/wwwmodules),$(eval $(call rule/wwwmodule,$p)))
 
 # }}}
 else
@@ -336,6 +338,8 @@ __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
 	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_JARS %_CSS %_JS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
+	$(foreach v,$(filter %_WWWMODULES %_WWWSCRIPTS,$(.VARIABLES)),\
+	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG %_MINIFY,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
