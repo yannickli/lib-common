@@ -2857,7 +2857,7 @@ iop_value_t const *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name)
 
     assert (iop_struct_is_class(desc));
 
-    while (desc) {
+    do {
         const iop_class_attrs_t *cls = desc->class_attrs;
         bool found;
         int pos;
@@ -2879,7 +2879,7 @@ iop_value_t const *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name)
         }
 
         desc = cls->parent;
-    };
+    } while (desc);
 
     return NULL;
 }
