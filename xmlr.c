@@ -138,19 +138,18 @@ static void xmlr_fmt_loc(xml_reader_t xr, sb_t *sb)
 
 int xmlr_fail(xml_reader_t xr, const char *fmt, ...)
 {
+    va_list ap;
+
     sb_reset(&xmlr_err_g);
     xmlr_fmt_loc(xr, &xmlr_err_g);
-    if (fmt) {
-        va_list ap;
 
-        sb_adds(&xmlr_err_g, ": ");
-        va_start(ap, fmt);
-        sb_addvf(&xmlr_err_g, fmt, ap);
-        va_end(ap);
+    sb_adds(&xmlr_err_g, ": ");
+    va_start(ap, fmt);
+    sb_addvf(&xmlr_err_g, fmt, ap);
+    va_end(ap);
 #ifndef NDEBUG
-        e_trace(0, "%s", xmlr_err_g.data);
+    e_trace(0, "%s", xmlr_err_g.data);
 #endif
-    }
     return XMLR_ERROR;
 }
 
