@@ -213,8 +213,8 @@ bool iop_field_is_pointed(const iop_field_t *fdesc);
  *          otherwise.
  */
 int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
-                           nullable const iop_struct_t **found_st,
-                           nullable const iop_field_t  **found_fdesc);
+                           const iop_struct_t ** nullable found_st,
+                           const iop_field_t  ** nullable found_fdesc);
 
 /** Fill a field in an iop structure.
  *
