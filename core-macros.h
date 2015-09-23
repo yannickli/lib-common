@@ -82,9 +82,9 @@
 # define nonnull
 # define null_unspecified
 #else
-# define nullable          __nullable
-# define nonnull           __nonnull
-# define null_unspecified  __null_unspecified
+# define nullable          _Nullable
+# define nonnull           _Nonnull
+# define null_unspecified  _Null_unspecified
 #endif
 
 /*
