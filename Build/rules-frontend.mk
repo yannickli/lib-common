@@ -125,7 +125,7 @@ $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	echo -n "$~$(3:ts=js): " > $$@+
 	NODE_PATH="$4/node_modules:$$$$NODE_PATH" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
-	mv $$@+ $$@
+	$(MV) $$@+ $$@
 
 -include $~$3.d
 endef
@@ -133,6 +133,37 @@ endef
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>
 define ext/rule/ts
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4))))
+endef
+
+# }}}
+# {{{ json
+
+# ext/expand/json <PHONY>,<TARGET>,<JSON>,<MODULEPATH>
+#
+# Wraps the JSON file into a javascript module allowing packaging. This
+# simply adds a export = { json }. This also produces a module declaration
+# file for inclusion of the module in typescript.
+#
+# Produces:
+# - $~$3.js: the JSON wrapped in JavaScript
+# - $~$3.d.ts: the declaration file for use with TypeScript
+define ext/expand/json
+$2: $~$3.js
+$~$3.js: $3
+	mkdir -p "$(dir $~$3)"
+	echo -n "exports = " > $$@+
+	cat $$< >> $$@+
+	$(MV) $$@+ $$@
+
+$~$3.d.ts: $3
+	mkdir -p "$(dir $~$3)"
+	echo "declare var json: any; export = json;" > $$@+
+	$(MV) $$@+ $$@
+endef
+
+# ext/rule/ts <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
+define ext/rule/json
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/json,$1,$2,$$t,$4))))
 endef
 
 # }}}
@@ -183,7 +214,8 @@ $~$2/htdocs/javascript/$3.js:
 
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 	$(msg/MINIFY.js) $3.js
-	uglifyjs -c warnings=false -m -o $$@ $$< > /dev/null
+	uglifyjs -c warnings=false -m -o $~$$@+ $$< > /dev/null
+	$(FASTCP) $~$$@+ $$@
 endef
 
 # rule/wwwmodule <MODULE>
