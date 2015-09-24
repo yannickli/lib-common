@@ -58,20 +58,42 @@ $(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:less=css
 endef
 
 # }}}
-# {{{ uglifyjs
+# {{{ js
 
 ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
 
-define ext/expand/js
+# ext/expand/legacy/js <PHONY>,<GARBAGE>,<JS>
+define ext/expand/legacy/js
 $(3:js=min.js): $3
 	$(msg/MINIFY.js) $3
 	(cat $(var/cfgdir)/head.js && uglifyjs $$<) > $$@
 $2: $(3:js=min.js)
 endef
 
+# ext/expand/js <PHONY>,<TARGET>,<JS>,<MODULEPATH>
+#
+# Copy the js file in the build directory in order to make it available
+# for packaging.
+#
+# Produces:
+# - $~$3: a copy of the source JS file
+define ext/expand/js
+$2: $~$3
+$~$3: $3
+	mkdir -p $(dir $~$3)
+	$(FASTCP) $3 $~$3
+endef
+
+# Two call patterns:
+# - old _JS mode: <PHONY>,<GARBAGE>,<JS>[]
+# - new _WWWSCRIPTS: <PHONY>,<TARGET>,<JS>[],<MODULEPATH>
 define ext/rule/js
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4))))
+ifeq (,$4)
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/legacy/js,$1,$2,$$t))))
 $(eval $(call fun/common-depends,$1,$(3:js=min.js),$3))
+else
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4))))
+endif
 endef
 
 # }}}
