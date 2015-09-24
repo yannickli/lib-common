@@ -70,7 +70,7 @@ $(3:js=min.js): $3
 $2: $(3:js=min.js)
 endef
 
-# ext/expand/js <PHONY>,<TARGET>,<JS>,<MODULEPATH>
+# ext/expand/js <PHONY>,<TARGET>,<JS>,<MODULEPATH>,<NODE_PATH>
 #
 # Copy the js file in the build directory in order to make it available
 # for packaging.
@@ -87,20 +87,20 @@ endef
 
 # Two call patterns:
 # - old _JS mode: <PHONY>,<GARBAGE>,<JS>[]
-# - new _WWWSCRIPTS: <PHONY>,<TARGET>,<JS>[],<MODULEPATH>
+# - new _WWWSCRIPTS: <PHONY>,<TARGET>,<JS>[],<MODULEPATH>,<NODE_PATH>
 define ext/rule/js
 ifeq (,$4)
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/legacy/js,$1,$2,$$t))))
 $(eval $(call fun/common-depends,$1,$(3:js=min.js),$3))
 else
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/js,$1,$2,$$t,$4,$5))))
 endif
 endef
 
 # }}}
 # {{{ ts
 
-# ext/expand/ts <PHONY>,<TARGET>,<TS>,<MODULEPATH>
+# ext/expand/ts <PHONY>,<TARGET>,<TS>,<MODULEPATH>,<NODE_PATH>
 #
 # Compile the TypeScript file into a javascript object and a declaration
 # file. Files must be generated in dependency order since the compiler
@@ -119,27 +119,27 @@ $2: $~$(3:ts=js)
 $~$(3:ts=d.ts): $~$(3:ts=js)
 $~$(3:ts=js): $3
 	$(msg/COMPILE.ts) $3
-	NODE_PATH="$~$4/node_modules:$$$$NODE_PATH" tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
+	NODE_PATH="$~$4/node_modules:$5:$$$$NODE_PATH" tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
 	sed -e 's@///.*<reference.*@@' -i $~$(3:ts=d.ts)
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$4/node_modules:$$$$NODE_PATH" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$4/node_modules:$5:$$$$NODE_PATH" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
 endef
 
-# ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>
+# ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<NODE_PATH>
 define ext/rule/ts
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
 endef
 
 # }}}
 # {{{ json
 
-# ext/expand/json <PHONY>,<TARGET>,<JSON>,<MODULEPATH>
+# ext/expand/json <PHONY>,<TARGET>,<JSON>,<MODULEPATH>,<NODE_PATH>
 #
 # Wraps the JSON file into a javascript module allowing packaging. This
 # simply adds a export = { json }. This also produces a module declaration
@@ -163,9 +163,9 @@ $~$3.d.ts: $3
 	$(MV) $$@+ $$@
 endef
 
-# ext/rule/ts <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
+# ext/rule/ts <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>,<NODE_PATH>
 define ext/rule/json
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/json,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/json,$1,$2,$$t,$4,$5))))
 endef
 
 # }}}
@@ -205,7 +205,7 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 #}}}
 #[ _WWWMODULES ]#######################################################{{{#
 
-# rule/wwwscript <PHONY>,<MODULEPATH>,<BUNDLE>
+# rule/wwwscript <PHONY>,<MODULEPATH>,<BUNDLE>,<NODE_PATH>
 #
 # Builds the javascript bundles associated with a specific module. This is
 # called for every bundle declared in <MODULE>_WWWSCRIPTS and process the list
@@ -220,12 +220,12 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
-$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($1_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($1_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
 $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
-	browserify -x underscore -x backbone -x sprintf -d -o $$@ $$(filter %.js %.json,$$^)
+	NODE_PATH="$4:$$$$NODE_PATH" browserify -x underscore -x backbone -x sprintf -d -o $$@ $$(filter %.js %.json,$$^)
 
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 	$(msg/MINIFY.js) $3.js
@@ -239,7 +239,7 @@ endef
 # sub targets for the module:
 # - <MODULE>_WWWSCRIPTS
 define rule/wwwmodule
-$$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%)))))
+$$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$(call fun/join,:,$(foreach t,$($1_DEPENDS),$~$t/node_modules/:$t/node_modules/))))))
 endef
 
 #}}}

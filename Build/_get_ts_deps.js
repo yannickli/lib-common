@@ -68,6 +68,7 @@
             } else
             if (isJSON && fs.existsSync(searchPath + name)) {
                 addName(searchPath + name + '.d.ts', true);
+                return;
             } else
             if (!isJSON && fs.existsSync(searchPath + name + '.ts')) {
                 addName(searchPath + name + '.d.ts', true);

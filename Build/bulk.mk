@@ -36,13 +36,13 @@ endef
 
 var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
 define fun/foreach-ext-rule-nogen
-$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
+$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4,$5))))
 $2: | $3
 $(eval $(call fun/common-depends,$1,$2,$1))
 endef
 
 define fun/foreach-ext-rule
-$(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4)
+$(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4,$5)
 $2: | _generated
 endef
 
