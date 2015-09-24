@@ -1029,6 +1029,54 @@ static void log_atfork(void)
     _G.pid = getpid();
 }
 
+#ifndef NDEBUG
+
+/** Parse the content of the IS_DEBUG environment variable.
+ *
+ * It is composed of a series of blank separated <specs>:
+ *
+ *  <specs> ::= [<path-pattern>][@<funcname>][+<featurename>][:<level>]
+ */
+static void log_parse_specs(char *p, qv_t(spec) *out)
+{
+    p = (char *)skipspaces(p);
+
+    while (*p) {
+        struct trace_spec_t spec = {
+            .path = NULL,
+            .func = NULL,
+            .name = NULL,
+            .level = INT_MAX,
+        };
+        int len;
+
+        len = strcspn(p, "@+: \t\r\n\v\f");
+        if (len)
+            spec.path = p;
+        p += len;
+        if (*p == '@') {
+            *p++ = '\0';
+            spec.func = p;
+            p += strcspn(p, "+: \t\r\n\v\f");
+        }
+        if (*p == '+') {
+            *p++ = '\0';
+            spec.name = p;
+            p += strcspn(p, ": \t\r\n\v\f");
+        }
+        if (*p == ':') {
+            *p++ = '\0';
+            spec.level = LOG_TRACE + vstrtoip(p, &p);
+            p = vstrnextspace(p);
+        }
+        if (*p)
+            *p++ = '\0';
+
+        qv_append(spec, out, spec);
+    }
+}
+#endif
+
 static int log_initialize(void* args)
 {
     mem_stack_pool_init(&_G.mp_stack, 64 << 10);
@@ -1057,47 +1105,13 @@ static int log_initialize(void* args)
             return 0;
         }
 
-        _G.is_debug = p = p_strdup(skipspaces(p));
+        _G.is_debug = p_strdup(p);
+        log_parse_specs(_G.is_debug, &_G.specs);
 
-        /*
-         * parses blank separated <specs>
-         * <specs> ::= [<path-pattern>][@<funcname>][+<featurename>][:<level>]
-         */
-        while (*p) {
-            struct trace_spec_t spec = {
-                .path = NULL,
-                .func = NULL,
-                .name = NULL,
-                .level = INT_MAX,
-            };
-            int len;
-
-            len = strcspn(p, "@+: \t\r\n\v\f");
-            if (len)
-                spec.path = p;
-            p += len;
-            if (*p == '@') {
-                *p++ = '\0';
-                spec.func = p;
-                p += strcspn(p, "+: \t\r\n\v\f");
+        qv_for_each_ptr(spec, spec, &_G.specs) {
+            if (!spec->func && !spec->path) {
+                logger_set_level(LSTR_OPT(spec->name), spec->level, 0);
             }
-            if (*p == '+') {
-                *p++ = '\0';
-                spec.name = p;
-                p += strcspn(p, ": \t\r\n\v\f");
-            }
-            if (*p == ':') {
-                *p++ = '\0';
-                spec.level = LOG_TRACE + vstrtoip(p, &p);
-                p = vstrnextspace(p);
-            }
-            if (*p)
-                *p++ = '\0';
-
-            if (!spec.func && !spec.path) {
-                logger_set_level(LSTR_OPT(spec.name), spec.level, 0);
-            }
-            qv_append(spec, &_G.specs, spec);
         }
     }
 #endif
@@ -1754,6 +1768,7 @@ Z_GROUP_EXPORT(log) {
         TEST(logger_trace_scope(&l, 3),
              logger_trace_start(&l, 3), logger_end(&l),
              LOG_TRACE + 3, true);
+#undef TEST
 
         logger_wipe(&l);
     } Z_TEST_END;
@@ -1816,6 +1831,70 @@ Z_GROUP_EXPORT(log) {
 
         MODULE_RELEASE(thr);
     } Z_TEST_END;
+
+#ifndef NDEBUG
+    Z_TEST(parse_specs, "test parsing of IS_DEBUG environment variable") {
+        t_scope;
+        qv_t(spec) specs;
+
+        t_qv_init(spec, &specs, 8);
+
+#define TEST(_str, _nb)  \
+        do {                                                                 \
+            qv_clear(spec, &specs);                                          \
+            log_parse_specs(t_strdup(_str), &specs);                         \
+            Z_ASSERT_EQ(specs.len, _nb);                                     \
+        } while (0)
+
+        TEST("   ", 0);
+
+        TEST("log.c", 1);
+        Z_ASSERT_STREQUAL(specs.tab[0].path, "log.c");
+        Z_ASSERT_NULL(specs.tab[0].func);
+        Z_ASSERT_NULL(specs.tab[0].name);
+        Z_ASSERT_EQ(specs.tab[0].level, INT_MAX);
+
+        TEST("@log_parse_specs", 1);
+        Z_ASSERT_NULL(specs.tab[0].path);
+        Z_ASSERT_STREQUAL(specs.tab[0].func, "log_parse_specs");
+        Z_ASSERT_NULL(specs.tab[0].name);
+        Z_ASSERT_EQ(specs.tab[0].level, INT_MAX);
+
+        TEST("+log/tracing", 1);
+        Z_ASSERT_NULL(specs.tab[0].path);
+        Z_ASSERT_NULL(specs.tab[0].func);
+        Z_ASSERT_STREQUAL(specs.tab[0].name, "log/tracing");
+        Z_ASSERT_EQ(specs.tab[0].level, INT_MAX);
+
+        TEST(":5", 1);
+        Z_ASSERT_NULL(specs.tab[0].path);
+        Z_ASSERT_NULL(specs.tab[0].func);
+        Z_ASSERT_NULL(specs.tab[0].name);
+        Z_ASSERT_EQ(specs.tab[0].level, LOG_TRACE + 5);
+
+        /* FIXME: number of parsed specs should be 1 here. */
+        TEST(" log.c@log_parse_specs+log/tracing:5  ", 2);
+        Z_ASSERT_STREQUAL(specs.tab[0].path, "log.c");
+        Z_ASSERT_STREQUAL(specs.tab[0].func, "log_parse_specs");
+        Z_ASSERT_STREQUAL(specs.tab[0].name, "log/tracing");
+        Z_ASSERT_EQ(specs.tab[0].level, LOG_TRACE + 5);
+
+        /* FIXME: the test should pass with a second space between the two
+         * specs. */
+        TEST(" log.c@log_parse_specs+log/tracing:5 log.c", 2);
+        Z_ASSERT_STREQUAL(specs.tab[0].path, "log.c");
+        Z_ASSERT_STREQUAL(specs.tab[0].func, "log_parse_specs");
+        Z_ASSERT_STREQUAL(specs.tab[0].name, "log/tracing");
+        Z_ASSERT_EQ(specs.tab[0].level, LOG_TRACE + 5);
+        Z_ASSERT_STREQUAL(specs.tab[1].path, "log.c");
+        Z_ASSERT_NULL(specs.tab[1].func);
+        Z_ASSERT_NULL(specs.tab[1].name);
+        Z_ASSERT_EQ(specs.tab[1].level, INT_MAX);
+
+#undef TEST
+    } Z_TEST_END;
+#endif
+
 } Z_GROUP_END;
 
 /* }}} */
