@@ -80,6 +80,7 @@ endef
 define ext/expand/js
 $2: $~$3
 $~$3: $3
+	$(msg/COMPILE.json) $3
 	mkdir -p $(dir $~$3)
 	$(FASTCP) $3 $~$3
 endef
@@ -150,6 +151,7 @@ endef
 define ext/expand/json
 $2: $~$3.js
 $~$3.js: $3
+	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	echo -n "exports = " > $$@+
 	cat $$< >> $$@+
@@ -204,6 +206,19 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 #[ _WWWMODULES ]#######################################################{{{#
 
 # rule/wwwscript <PHONY>,<MODULEPATH>,<BUNDLE>
+#
+# Builds the javascript bundles associated with a specific module. This is
+# called for every bundle declared in <MODULE>_WWWSCRIPTS and process the list
+# of sources for that bundle and produce a single javascript file with all
+# of them. The generated file is uglified and compressed.
+#
+# This rule reads the <BUNDLE>_SOURCES variable to retrieve the list of source
+# files. Files can be TypeScript object, JavaScript object (with commonjs module
+# syntax) or JSON files. The _SOURCES content is patched so that paths are read
+# relative to the node_modules/ directory of the module.
+#
+# Produces:
+# - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($1_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
@@ -219,6 +234,10 @@ $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 endef
 
 # rule/wwwmodule <MODULE>
+#
+# Process all the builds associated with a web module. This expands the
+# sub targets for the module:
+# - <MODULE>_WWWSCRIPTS
 define rule/wwwmodule
 $$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%)))))
 endef
