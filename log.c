@@ -1029,8 +1029,6 @@ static void log_atfork(void)
     _G.pid = getpid();
 }
 
-#ifndef NDEBUG
-
 /** Parse the content of the IS_DEBUG environment variable.
  *
  * It is composed of a series of blank separated <specs>:
@@ -1091,10 +1089,11 @@ static void log_parse_specs(char *p, qv_t(spec) *out)
         qv_append(spec, out, spec);
     }
 }
-#endif
 
 static int log_initialize(void* args)
 {
+    char *is_debug = getenv("IS_DEBUG");
+
     mem_stack_pool_init(&_G.mp_stack, 64 << 10);
     qv_init(spec, &_G.specs);
     qv_init(buffer_instance, &_G.vec_buff_stack);
@@ -1113,15 +1112,8 @@ static int log_initialize(void* args)
 
     log_initialize_thread();
 
-#ifndef NDEBUG
-    {
-        char *p = getenv("IS_DEBUG");
-
-        if (!p) {
-            return 0;
-        }
-
-        _G.is_debug = p_strdup(p);
+    if (is_debug) {
+        _G.is_debug = p_strdup(is_debug);
         log_parse_specs(_G.is_debug, &_G.specs);
 
         qv_for_each_ptr(spec, spec, &_G.specs) {
@@ -1130,7 +1122,7 @@ static int log_initialize(void* args)
             }
         }
     }
-#endif
+
     return 0;
 }
 
@@ -1848,7 +1840,6 @@ Z_GROUP_EXPORT(log) {
         MODULE_RELEASE(thr);
     } Z_TEST_END;
 
-#ifndef NDEBUG
     Z_TEST(parse_specs, "test parsing of IS_DEBUG environment variable") {
         t_scope;
         qv_t(spec) specs;
@@ -1906,7 +1897,6 @@ Z_GROUP_EXPORT(log) {
 
 #undef TEST
     } Z_TEST_END;
-#endif
 
 } Z_GROUP_END;
 
