@@ -45,7 +45,9 @@
     function addName(dest, mapToBuild) {
         dest = path.resolve(dest);
 
-        if (mapToBuild && dest.substr(0, basePath.length) === basePath) {
+        if (mapToBuild && dest.substr(0, buildPath.length) !== buildPath
+        &&  dest.substr(0, basePath.length) === basePath)
+        {
             dest = buildPath + dest.substr(basePath.length);
         }
 
@@ -63,7 +65,7 @@
             var searchPath = path.resolve(paths[j]) + '/';
 
             if (fs.existsSync(searchPath + name + '.d.ts')) {
-                addName(searchPath + name + '.d.ts', false);
+                addName(searchPath + name + '.d.ts', true);
                 return;
             } else
             if (isJSON && fs.existsSync(searchPath + name)) {

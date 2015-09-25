@@ -82,7 +82,7 @@ $2: $~$3
 $~$3: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p $(dir $~$3)
-	$(FASTCP) $3 $~$3
+	cp -f $3 $~$3
 endef
 
 # Two call patterns:
@@ -131,9 +131,33 @@ $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 -include $~$3.d
 endef
 
+# ext/expand/d.ts <PHONY>,<TARGET>,<D.TS>,<MODULEPATH>,<NODE_PATH>
+#
+# Copies the declaration file into the build directory and computes its
+# dependences.
+#
+# Produces:
+# - $~$3: a copy of the declaration file
+#   $~$3.d: the depency file for the typescript module
+define ext/expand/d.ts
+$~$3: $3
+	$(msg/COMPILE.json) $3
+	mkdir -p "$(dir $~$3)"
+	cp -f $$< $$@
+
+$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
+	mkdir -p "$$(dir $$@)"
+	echo -n "$~$3: " > $$@+
+	NODE_PATH="$4/node_modules:$5:$$$$NODE_PATH" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	$(MV) $$@+ $$@
+
+-include $~$3.d
+endef
+
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<NODE_PATH>
 define ext/rule/ts
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
+$$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
+$$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4,$5))))
 endef
 
 # }}}
@@ -153,7 +177,7 @@ $2: $~$3.js
 $~$3.js: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
-	echo -n "exports = " > $$@+
+	echo -n "module.exports = " > $$@+
 	cat $$< >> $$@+
 	$(MV) $$@+ $$@
 
@@ -220,17 +244,18 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
-$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($1_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
 $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
-	NODE_PATH="$4:$$$$NODE_PATH" browserify -x underscore -x backbone -x sprintf -d -o $$@ $$(filter %.js %.json,$$^)
+	cd $~$2/node_modules/
+	NODE_PATH="$4:$$$$NODE_PATH" browserify $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@ $$(filter %.js,$$^)
 
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 	$(msg/MINIFY.js) $3.js
-	uglifyjs -c warnings=false -m -o $~$$@+ $$< > /dev/null
-	$(FASTCP) $~$$@+ $$@
+	uglifyjs -c warnings=false -m -o $~$$@+ $$< >
+	$(FASTCP) $$@+ $$@
 endef
 
 # rule/wwwmodule <MODULE>
