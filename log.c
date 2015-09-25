@@ -1039,38 +1039,54 @@ static void log_atfork(void)
  */
 static void log_parse_specs(char *p, qv_t(spec) *out)
 {
-    p = (char *)skipspaces(p);
+    pstream_t ps = ps_initstr(p);
+    ctype_desc_t ctype;
 
-    while (*p) {
+    ps_trim(&ps);
+
+    ctype_desc_build(&ctype, "@+:");
+
+    while (!ps_done(&ps)) {
         struct trace_spec_t spec = {
             .path = NULL,
             .func = NULL,
             .name = NULL,
             .level = INT_MAX,
         };
-        int len;
+        pstream_t spec_ps;
+        int c = '\0';
 
-        len = strcspn(p, "@+: \t\r\n\v\f");
-        if (len)
-            spec.path = p;
-        p += len;
-        if (*p == '@') {
-            *p++ = '\0';
-            spec.func = p;
-            p += strcspn(p, "+: \t\r\n\v\f");
+        spec_ps = ps_get_cspan(&ps, &ctype_isspace);
+        ps_skip_span(&ps, &ctype_isspace);
+
+#define GET_ELEM(_dst)  \
+        do {                                                                 \
+            pstream_t elem = ps_get_cspan(&spec_ps, &ctype);                 \
+                                                                             \
+            if (ps_len(&elem)) {                                             \
+                _dst = elem.s;                                               \
+            }                                                                \
+            c = *spec_ps.s;                                                  \
+            *(char *)spec_ps.s = '\0';                                       \
+            ps_skip(&spec_ps, 1);                                            \
+        } while (0)
+
+        GET_ELEM(spec.path);
+        if (c == '@') {
+            GET_ELEM(spec.func);
         }
-        if (*p == '+') {
-            *p++ = '\0';
-            spec.name = p;
-            p += strcspn(p, ": \t\r\n\v\f");
+        if (c == '+') {
+            GET_ELEM(spec.name);
         }
-        if (*p == ':') {
-            *p++ = '\0';
-            spec.level = LOG_TRACE + vstrtoip(p, &p);
-            p = vstrnextspace(p);
+        if (c == ':') {
+            const char *level = NULL;
+
+            GET_ELEM(level);
+            if (level) {
+                spec.level = LOG_TRACE + atoi(level);
+            }
         }
-        if (*p)
-            *p++ = '\0';
+#undef GET_ELEM
 
         qv_append(spec, out, spec);
     }
@@ -1872,16 +1888,13 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_NULL(specs.tab[0].name);
         Z_ASSERT_EQ(specs.tab[0].level, LOG_TRACE + 5);
 
-        /* FIXME: number of parsed specs should be 1 here. */
-        TEST(" log.c@log_parse_specs+log/tracing:5  ", 2);
+        TEST(" log.c@log_parse_specs+log/tracing:5  ", 1);
         Z_ASSERT_STREQUAL(specs.tab[0].path, "log.c");
         Z_ASSERT_STREQUAL(specs.tab[0].func, "log_parse_specs");
         Z_ASSERT_STREQUAL(specs.tab[0].name, "log/tracing");
         Z_ASSERT_EQ(specs.tab[0].level, LOG_TRACE + 5);
 
-        /* FIXME: the test should pass with a second space between the two
-         * specs. */
-        TEST(" log.c@log_parse_specs+log/tracing:5 log.c", 2);
+        TEST(" log.c@log_parse_specs+log/tracing:5  log.c", 2);
         Z_ASSERT_STREQUAL(specs.tab[0].path, "log.c");
         Z_ASSERT_STREQUAL(specs.tab[0].func, "log_parse_specs");
         Z_ASSERT_STREQUAL(specs.tab[0].name, "log/tracing");
