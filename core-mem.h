@@ -930,6 +930,29 @@ void mem_tool_freelike(const void *mem, size_t len, size_t rz);
 
 #endif
 
+enum mem_consumers {
+    MEM_CONSUMER_FIFO,
+    MEM_CONSUMER_STACK,
+    MEM_CONSUMER_RING,
+    MEM_CONSUMER_QVECTOR,
+    MEM_CONSUMER_QHASH,
+    MEM_CONSUMER_SB,
+
+    MEM_CONSUMER_count,
+};
+
+struct dlist_t;
+
+void mem_consumer_register(enum mem_consumers type,
+                           struct dlist_t *n) __leaf;
+void mem_consumer_unregister(enum mem_consumers type,
+                             struct dlist_t *n) __leaf;
+void mem_consumer_incr(enum mem_consumers type, ssize_t sz) __leaf;
+void mem_consumer_decr(enum mem_consumers type, ssize_t sz) __leaf;
+__attr_notsan__
+int  mem_consumer_print_stats(int (*print_cb)(const char *s, void *priv),
+                              void *priv);
+
 /* }}} */
 
 #endif

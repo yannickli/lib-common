@@ -53,6 +53,7 @@ struct ring_pool_t {
 
     size_t       minsize;
     size_t       ringsize;
+    dlist_t      link;
 
     size_t       alloc_sz;
     uint32_t     alloc_nb;
@@ -111,6 +112,7 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
     blk->start    = blk->area;
     blk->size     = blksize - sizeof(*blk);
     rp->ringsize += blk->size;
+    mem_consumer_incr(MEM_CONSUMER_RING, blk->size);
     if (likely(rp->cblk)) {
         dlist_add_after(&rp->cblk->blist, &blk->blist);
     } else {
@@ -123,6 +125,7 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
 static void blk_destroy(ring_pool_t *rp, ring_blk_t *blk)
 {
     rp->ringsize -= blk->size;
+    mem_consumer_decr(MEM_CONSUMER_RING, blk->size);
     rp->nbpages--;
     dlist_remove(&blk->blist);
     mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
@@ -354,6 +357,7 @@ mem_pool_t *mem_ring_pool_new(int initialsize)
     rp->minsize    = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
     rp->funcs      = pool_funcs;
     rp->alloc_nb   = 1; /* avoid the division by 0 */
+    mem_consumer_register(MEM_CONSUMER_RING, &rp->link);
 
     /* Makes the first frame */
     blk = blk_create(rp, sizeof(frame_t));
@@ -372,6 +376,7 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
             blk_destroy(rp, blk_entry(e));
         }
         blk_destroy(rp, rp->cblk);
+        mem_consumer_unregister(MEM_CONSUMER_RING, &rp->link);
         p_delete(&rp);
         *rpp = NULL;
     }

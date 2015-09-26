@@ -26,8 +26,147 @@
 #endif
 
 #include "core.h"
+#include "thr.h"
+#include "container-dlist.h"
 
 
+/* {{{ Memory consumers */
+
+typedef struct mem_consumer_t {
+    /* List of registered consumers (they aren't mem_consumer_t!) */
+    dlist_t    list;
+    spinlock_t lock;
+} mem_consumer_t;
+
+typedef struct mem_thread_usage_t {
+    ssize_t usage[MEM_CONSUMER_count];
+} mem_thread_usage_t;
+
+static struct {
+    spinlock_t           array_lock;
+    int                  threads_len;
+    mem_thread_usage_t **threads_data;
+    mem_consumer_t       consumers[MEM_CONSUMER_count];
+} mem_consumer_g = {
+#define MC_INIT(type) \
+    [MEM_CONSUMER_##type] = { .list                                          \
+        = DLIST_INIT(mem_consumer_g.consumers[MEM_CONSUMER_##type].list) }
+    .consumers = {
+        MC_INIT(FIFO),
+        MC_INIT(STACK),
+        MC_INIT(RING),
+        MC_INIT(QVECTOR),
+        MC_INIT(QHASH),
+        MC_INIT(SB),
+    },
+};
+
+static __thread mem_thread_usage_t mem_thread_usage_g;
+
+__attribute__((constructor))
+static void mem_thread_register(void)
+{
+    spin_lock(&mem_consumer_g.array_lock);
+    p_realloc(&mem_consumer_g.threads_data, mem_consumer_g.threads_len + 1);
+    mem_consumer_g.threads_data[mem_consumer_g.threads_len] =
+        &mem_thread_usage_g;
+    mem_consumer_g.threads_len++;
+    spin_unlock(&mem_consumer_g.array_lock);
+}
+
+static void mem_thread_unregister(void)
+{
+    spin_lock(&mem_consumer_g.array_lock);
+    for (int i = 0; i < mem_consumer_g.threads_len; i++) {
+        if (mem_consumer_g.threads_data[i] == &mem_thread_usage_g) {
+            p_move(&mem_consumer_g.threads_data[i],
+                   &mem_consumer_g.threads_data[i + 1],
+                   mem_consumer_g.threads_len - i - 1);
+            mem_consumer_g.threads_len--;
+            break;
+        }
+    }
+    if (!mem_consumer_g.threads_len) {
+        p_delete(&mem_consumer_g.threads_data);
+    }
+    spin_unlock(&mem_consumer_g.array_lock);
+}
+thr_hooks(mem_thread_register, mem_thread_unregister);
+
+void mem_consumer_register(enum mem_consumers type, dlist_t *n)
+{
+    spin_lock(&mem_consumer_g.consumers[type].lock);
+    dlist_add_tail(&mem_consumer_g.consumers[type].list, n);
+    spin_unlock(&mem_consumer_g.consumers[type].lock);
+}
+
+void mem_consumer_unregister(enum mem_consumers type, dlist_t *n)
+{
+    spin_lock(&mem_consumer_g.consumers[type].lock);
+    dlist_remove(n);
+    spin_unlock(&mem_consumer_g.consumers[type].lock);
+}
+
+void mem_consumer_incr(enum mem_consumers type, ssize_t sz)
+{
+    mem_thread_usage_g.usage[type] += sz;
+}
+
+void mem_consumer_decr(enum mem_consumers type, ssize_t sz)
+{
+    mem_thread_usage_g.usage[type] -= sz;
+}
+
+static const char *mem_consumer_to_str(enum mem_consumers type)
+{
+    switch (type) {
+      case MEM_CONSUMER_FIFO:
+        return "fifo  pool";
+      case MEM_CONSUMER_STACK:
+        return "stack  pool";
+      case MEM_CONSUMER_RING:
+        return "ring  pool";
+      case MEM_CONSUMER_QVECTOR:
+        return "qvectors";
+      case MEM_CONSUMER_QHASH:
+        return "qhashes";
+      case MEM_CONSUMER_SB:
+        return "str-bufs";
+      default:
+        return "unknown";
+    }
+}
+
+int mem_consumer_print_stats(int (*print_cb)(const char *s, void *priv),
+                             void *priv)
+{
+    size_t usages[MEM_CONSUMER_count];
+    char buf[64];
+
+    p_clear(&usages, 1);
+
+    RETHROW((*print_cb)("approximative memory summary", priv));
+    RETHROW((*print_cb)("===================", priv));
+
+    spin_lock(&mem_consumer_g.array_lock);
+
+    for (int c = 0 ; c < MEM_CONSUMER_count; c++) {
+        ssize_t usage = 0;
+
+        for (int i = 0; i < mem_consumer_g.threads_len; i++) {
+            usage += mem_consumer_g.threads_data[i]->usage[c];
+        }
+        snprintf(buf, sizeof(buf), "  %s: %zdKb",
+                 mem_consumer_to_str(c), usage >> 10);
+        RETHROW((*print_cb)(buf, priv));
+    }
+
+    spin_unlock(&mem_consumer_g.array_lock);
+
+    return 0;
+}
+
+/* }}} */
 /* Libc allocator {{{ */
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
