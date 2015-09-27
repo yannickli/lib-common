@@ -294,6 +294,6 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
-    *allocated = mfp->map_size -= mfp->freepage ? mfp->freepage->size : 0;
+    *allocated = mfp->map_size - (mfp->freepage ? mfp->freepage->size : 0);
     *used      = mfp->occupied;
 }
