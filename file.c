@@ -265,7 +265,7 @@ ssize_t file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
         errno = EBADF;
         return -1;
     }
-    if (unlikely(iovcnt + 1 >= IOV_MAX)) {
+    if (unlikely(iovcnt + 1 > IOV_MAX)) {
         errno = EINVAL;
         return -1;
     }
