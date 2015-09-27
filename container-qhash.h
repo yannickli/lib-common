@@ -1061,7 +1061,7 @@ static inline uint32_t qhash_lstr_hash(const qhash_t *qh, const lstr_t *ls)
 static inline bool
 qhash_lstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
 {
-    return lstr_equal(s1, s2);
+    return lstr_equal(*s1, *s2);
 }
 
 static inline uint32_t

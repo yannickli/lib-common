@@ -329,7 +329,7 @@ bool _z_assert_lstrequal(const char *file, int lno,
     IN_TEST;
     _G.grp.t_asserts++;
 
-    if (!lstr_equal2(lh, rh)) {
+    if (!lstr_equal(lh, rh)) {
         SB_1k(sb);
 
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
@@ -697,7 +697,7 @@ static bool _z_is_step_ignored(lstr_t t)
             if (s.s[g.len] == '.') {
                 lstr_t ss = LSTR_INIT(s.s + g.len + 1, s.len - g.len - 1);
 
-                if (lstr_equal2(ss, t))
+                if (lstr_equal(ss, t))
                     return false;
             }
         }
@@ -889,7 +889,7 @@ static void z_parse_mode(const char *s)
             pstream_t tok  = ps_get_cspan(&ps, &ctype_isspace);
             lstr_t    stok = LSTR_INIT_V(tok.s, ps_len(&tok));
 
-            if (lstr_equal2(LSTR("fast"), stok)) {
+            if (lstr_equal(LSTR("fast"), stok)) {
                 SET_BIT(&z_modes_g, Z_MODE_FAST);
             } else {
                 e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(stok));

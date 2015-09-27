@@ -226,7 +226,7 @@ static void __logger_do_refresh(logger_t *logger)
         assert (logger->defined_level >= LOG_UNDEFINED);
 
         dlist_for_each_entry(sibling, &logger->parent->children, siblings) {
-            assert (!lstr_equal2(sibling->name, logger->name));
+            assert (!lstr_equal(sibling->name, logger->name));
         }
         dlist_add(&logger->parent->children, &logger->siblings);
         dlist_init(&logger->children);
@@ -288,7 +288,7 @@ static logger_t *logger_get_by_name(lstr_t name)
         }
 
         dlist_for_each_entry(child, &logger->children, siblings) {
-            if (lstr_equal2(child->name, LSTR_PS_V(&n))) {
+            if (lstr_equal(child->name, LSTR_PS_V(&n))) {
                 next = child;
                 break;
             }

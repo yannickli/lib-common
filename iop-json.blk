@@ -964,7 +964,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
 
     path_lstr = LSTR(path);
     qv_for_each_entry(lstr, s, &filenames_g) {
-        if (lstr_equal2(s, path_lstr)) {
+        if (lstr_equal(s, path_lstr)) {
             RESTORECTX();
             return JERROR_VARIOUS("infinite recursion detected in includes");
         }
@@ -1499,7 +1499,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     /* We are looping on the fields of a class and we
                      * already found the "_class" field. We have to skip
                      * it when reading it again. */
-                    if (lstr_equal2(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
+                    if (lstr_equal(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
                         skip_field = true;
                         break;
                     }
@@ -1523,7 +1523,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 /* We are looping on the fields of a class, looking for
                  * the "_class" one, which determines the real class type.
                  */
-                if (lstr_equal2(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
+                if (lstr_equal(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
                     found_class_field = true;
                 }
                 skip_field = true;

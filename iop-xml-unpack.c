@@ -377,7 +377,7 @@ get_xfield_by_name(const iop_xfield_t *start, const iop_xfield_t *end,
                    lstr_t name)
 {
     while (start < end) {
-        if (lstr_equal2(start->fdesc->name, name)) {
+        if (lstr_equal(start->fdesc->name, name)) {
             return start;
         }
         start++;

@@ -280,7 +280,7 @@ qhp_max_t(u64_max,    uint64_t, QHP_SCALAR_CMP, QHP_IGNORE);
 qhp_min_t(double_min, double,   QHP_SCALAR_CMP, QHP_IGNORE);
 qhp_max_t(double_max, double,   QHP_SCALAR_CMP, QHP_IGNORE);
 
-#define QHP_LSTR_CMP(a, op, b)  (lstr_cmp((a), (b)) op 0)
+#define QHP_LSTR_CMP(a, op, b)  (lstr_cmp(*(a), *(b)) op 0)
 
 qhp_min_t(lstr_min, lstr_t *, QHP_LSTR_CMP, QHP_IGNORE);
 qhp_max_t(lstr_max, lstr_t *, QHP_LSTR_CMP, QHP_IGNORE);

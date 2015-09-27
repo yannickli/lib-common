@@ -39,7 +39,7 @@ static const iop_struct_t *
 iop_get_struct(const iop_pkg_t *pkg, lstr_t fullname)
 {
     for (const iop_struct_t * const *st = pkg->structs; *st; st++) {
-        if (lstr_equal2(fullname, (*st)->fullname)) {
+        if (lstr_equal(fullname, (*st)->fullname)) {
             return *st;
         }
     }
@@ -47,13 +47,13 @@ iop_get_struct(const iop_pkg_t *pkg, lstr_t fullname)
         for (int i = 0; i < (*iface)->funs_len; i++) {
             const iop_rpc_t *rpc = &(*iface)->funs[i];
 
-            if (lstr_equal2(fullname, rpc->args->fullname)) {
+            if (lstr_equal(fullname, rpc->args->fullname)) {
                 return rpc->args;
             }
-            if (lstr_equal2(fullname, rpc->result->fullname)) {
+            if (lstr_equal(fullname, rpc->result->fullname)) {
                 return rpc->result;
             }
-            if (lstr_equal2(fullname, rpc->exn->fullname)) {
+            if (lstr_equal(fullname, rpc->exn->fullname)) {
                 return rpc->exn;
             }
         }
@@ -278,7 +278,7 @@ find_rpc_in_iface(iop_iface_t const *iface, lstr_t fname)
     for (int i = 0; i < iface->funs_len; i++) {
         iop_rpc_t const *rpc = &iface->funs[i];
 
-        if (lstr_equal2(rpc->name, fname)) {
+        if (lstr_equal(rpc->name, fname)) {
             return rpc;
         }
     }
@@ -291,7 +291,7 @@ find_rpc_in_mod(iop_mod_t const *mod, lstr_t iface, lstr_t fname)
     for (int i = 0; i < mod->ifaces_len; i++) {
         const iop_iface_alias_t *alias = &mod->ifaces[i];
 
-        if (lstr_equal2(alias->name, iface)) {
+        if (lstr_equal(alias->name, iface)) {
             return find_rpc_in_iface(alias->iface, fname);
         }
     }

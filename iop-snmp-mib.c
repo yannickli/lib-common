@@ -241,7 +241,7 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
         if (qh_find(lstr, &_G.objects_identifier, &name) < 0) {
             lstr_t short_name = t_get_short_name(name, true);
 
-            if (resolved && !lstr_equal2(short_name, _G.head)) {
+            if (resolved && !lstr_equal(short_name, _G.head)) {
                 logger_fatal(&_G.logger, "only one snmpObj parent should be "
                              "imported");
             }

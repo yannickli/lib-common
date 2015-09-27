@@ -549,42 +549,35 @@ static inline lstr_t r_lstr_cat(const lstr_t s1, const lstr_t s2)
 
 /** \brief returns "memcmp" ordering of \v s1 and \v s2.
  */
-static ALWAYS_INLINE int lstr_cmp(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE int lstr_cmp(const lstr_t s1, const lstr_t s2)
 {
-    int len = MIN(s1->len, s2->len);
-    return memcmp(s1->s, s2->s, len) ?: CMP(s1->len, s2->len);
+    int len = MIN(s1.len, s2.len);
+    return memcmp(s1.s, s2.s, len) ?: CMP(s1.len, s2.len);
 }
 
 /** \brief returns "memcmp" ordering of lowercase \v s1 and lowercase \v s2.
  */
-static inline int lstr_ascii_icmp(const lstr_t *s1, const lstr_t *s2)
+static inline int lstr_ascii_icmp(const lstr_t s1, const lstr_t s2)
 {
-    int min = MIN(s1->len, s2->len);
+    int min = MIN(s1.len, s2.len);
 
     for (int i = 0; i < min; i++) {
-        int a = tolower((unsigned char)s1->s[i]);
-        int b = tolower((unsigned char)s2->s[i]);
+        int a = tolower((unsigned char)s1.s[i]);
+        int b = tolower((unsigned char)s2.s[i]);
 
         if (a != b) {
             return CMP(a, b);
         }
     }
 
-    return CMP(s1->len, s2->len);
+    return CMP(s1.len, s2.len);
 }
 
 /** \brief returns whether \v s1 and \v s2 contents are equal.
  */
-static ALWAYS_INLINE bool lstr_equal(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE bool lstr_equal(const lstr_t s1, const lstr_t s2)
 {
-    return s1->len == s2->len && memcmp(s1->s, s2->s, s1->len) == 0;
-}
-
-/** \brief returns whether \v s1 and \v s2 contents are equal.
- */
-static ALWAYS_INLINE bool lstr_equal2(const lstr_t s1, const lstr_t s2)
-{
-    return lstr_equal(&s1, &s2);
+    return s1.len == s2.len && memcmp(s1.s, s2.s, s1.len) == 0;
 }
 
 /** \brief returns whether \p s1 and \p s2 contents are case-insentively equal.
@@ -674,73 +667,59 @@ static inline bool lstr_ascii_iendswith(const lstr_t s, const lstr_t p)
 
 /** \brief performs utf8-aware, case-insensitive comparison.
  */
-static ALWAYS_INLINE int lstr_utf8_icmp(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE int lstr_utf8_icmp(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_stricmp(s1->s, s1->len, s2->s, s2->len, false);
+    return utf8_stricmp(s1.s, s1.len, s2.s, s2.len, false);
 }
 
 /** \brief performs utf8-aware, case-sensitive comparison.
  */
-static ALWAYS_INLINE int lstr_utf8_cmp(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE int lstr_utf8_cmp(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_strcmp(s1->s, s1->len, s2->s, s2->len, false);
+    return utf8_strcmp(s1.s, s1.len, s2.s, s2.len, false);
 }
 
 /** \brief performs utf8-aware, case-insensitive equality check.
  */
-static ALWAYS_INLINE bool lstr_utf8_iequal(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE bool lstr_utf8_iequal(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_striequal(s1->s, s1->len, s2->s, s2->len, false);
-}
-
-/** \brief performs utf8-aware, case-insensitive equality check.
- */
-static ALWAYS_INLINE bool lstr_utf8_iequal2(const lstr_t s1, const lstr_t s2)
-{
-    return lstr_utf8_iequal(&s1, &s2);
+    return utf8_striequal(s1.s, s1.len, s2.s, s2.len, false);
 }
 
 /** \brief performs utf8-aware, case-sensitive equality check.
  */
-static ALWAYS_INLINE bool lstr_utf8_equal(const lstr_t *s1, const lstr_t *s2)
+static ALWAYS_INLINE bool lstr_utf8_equal(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_strequal(s1->s, s1->len, s2->s, s2->len, false);
-}
-
-/** \brief performs utf8-aware, case-sensitive equality check.
- */
-static ALWAYS_INLINE bool lstr_utf8_equal2(const lstr_t s1, const lstr_t s2)
-{
-    return lstr_utf8_equal(&s1, &s2);
+    return utf8_strequal(s1.s, s1.len, s2.s, s2.len, false);
 }
 
 /** \brief returns whether \v s starts with \v p, in a case-insensitive
  * utf8-aware way.
  */
 static ALWAYS_INLINE
-int lstr_utf8_istartswith(const lstr_t *s1, const lstr_t *s2)
+int lstr_utf8_istartswith(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_str_istartswith(s1->s, s1->len, s2->s, s2->len);
+    return utf8_str_istartswith(s1.s, s1.len, s2.s, s2.len);
 }
 
 /** \brief returns whether \v s starts with \v p, in a case-sensitive
  * utf8-aware way.
  */
 static ALWAYS_INLINE
-int lstr_utf8_startswith(const lstr_t *s1, const lstr_t *s2)
+int lstr_utf8_startswith(const lstr_t s1, const lstr_t s2)
 {
-    return utf8_str_startswith(s1->s, s1->len, s2->s, s2->len);
+    return utf8_str_startswith(s1.s, s1.len, s2.s, s2.len);
 }
 
 /** \brief returns whether \v s ends with \v p, in a case-insensitive
  * utf8-aware way.
  */
-int lstr_utf8_iendswith(const lstr_t *s1, const lstr_t *s2);
+int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2);
 
 /** \brief returns whether \v s ends with \v p, in a case-sensitive
  * utf8-aware way.
  */
-int lstr_utf8_endswith(const lstr_t *s1, const lstr_t *s2);
+int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2);
 
 /* @func lstr_match_ctype
  * @param[in] s: The string to check.

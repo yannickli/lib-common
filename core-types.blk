@@ -44,7 +44,7 @@ const core_cmp_b(double) core_double_cmp = ^int (const double *a, const double *
     return CMP(*a, *b);
 };
 const core_cmp_b(lstr) core_lstr_cmp = ^int (const lstr_t *a, const lstr_t *b) {
-    return lstr_cmp(a, b);
+    return lstr_cmp(*a, *b);
 };
 const core_cmp_b(str) core_str_cmp = ^int (char * const *a, char * const *b) {
     return strcmp(*a, *b);

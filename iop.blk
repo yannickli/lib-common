@@ -55,7 +55,7 @@ class_name_key_equal(const qhash_t *h, const class_name_key_t *k1,
                    const class_name_key_t *k2)
 {
     return (k1->master == k2->master)
-         && lstr_equal(k1->child_fullname, k2->child_fullname);
+         && lstr_equal(*k1->child_fullname, *k2->child_fullname);
 }
 
 qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
@@ -78,7 +78,7 @@ __iop_field_find_by_name2(const iop_struct_t *desc, const lstr_t name)
     const iop_field_t *field = desc->fields;
 
     for (int i = 0; i < desc->fields_len; i++) {
-        if (lstr_equal2(field->name, name)) {
+        if (lstr_equal(field->name, name)) {
             return i;
         }
         field++;
@@ -749,7 +749,7 @@ static int iop_convert_value(iop_type_t exp_type, iop_type_t val_type,
             const iop_##_what_l##_attr_t *_attr = _attrs + _i;             \
                                                                            \
             if (!ATTR_IS_GENERIC(_attr, _what)                             \
-            ||  !lstr_equal2(_key, _attr->args[0].v.s))                    \
+            ||  !lstr_equal(_key, _attr->args[0].v.s))                     \
             {                                                              \
                 continue;                                                  \
             }                                                              \
@@ -3496,7 +3496,7 @@ iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name)
         const iop_static_field_t **v1 = (const iop_static_field_t **)a;
         const iop_static_field_t **v2 = (const iop_static_field_t **)b;
 
-        return lstr_cmp(&(*v1)->name, &(*v2)->name);
+        return lstr_cmp((*v1)->name, (*v2)->name);
     };
 
     assert (iop_struct_is_class(desc));
@@ -4158,7 +4158,7 @@ get_parents_until_name(const iop_struct_t *st, const lstr_t *name,
                        qv_t(iop_struct) *vec)
 {
     while ((st = st->class_attrs->parent)) {
-        if (name && lstr_equal(&st->fullname, name)) {
+        if (name && lstr_equal(st->fullname, *name)) {
             break;
         }
         qv_append(iop_struct, vec, st);
@@ -4319,7 +4319,7 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
             res = -1;
         }
         if (flags & IOP_COMPAT_JSON
-        &&  !lstr_equal2(st1->fullname, st2->fullname))
+        &&  !lstr_equal(st1->fullname, st2->fullname))
         {
             iop_compat_add_err(ctx,
                                "class fullname changed (`%*pM` != `%*pM`)",
@@ -4452,7 +4452,7 @@ iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name)
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
         const iop_struct_t *st = *it;
 
-        if (lstr_equal2(iop_get_name_from_fullname(st->fullname), name)) {
+        if (lstr_equal(iop_get_name_from_fullname(st->fullname), name)) {
             return st;
         }
     }

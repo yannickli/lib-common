@@ -47,7 +47,7 @@ Z_GROUP_EXPORT(str)
                       " before writing a new value to it");
 
         Z_ASSERT(dst.mem_pool == MEM_STATIC);
-        Z_ASSERT(lstr_equal2(dst, src));
+        Z_ASSERT(lstr_equal(dst, src));
     } Z_TEST_END;
 
     Z_TEST(sb_detach, "sb_detach") {
@@ -286,7 +286,7 @@ Z_GROUP_EXPORT(str)
 #define RUN_UTF8_TEST(Str1, Str2, Val)  \
         ({  lstr_t lstr1 = LSTR(Str1);                                       \
             lstr_t lstr2 = LSTR(Str2);                                       \
-            int cmp  = lstr_utf8_iendswith(&lstr1, &lstr2);                  \
+            int cmp  = lstr_utf8_iendswith(lstr1, lstr2);                    \
                                                                              \
             Z_ASSERT_EQ(cmp, Val,                                            \
                         "lstr_utf8_iendswith(\"%s\", \"%s\") "               \
@@ -352,7 +352,7 @@ Z_GROUP_EXPORT(str)
 #define RUN_UTF8_TEST(Str1, Str2, Val)  \
         ({  lstr_t lstr1 = LSTR(Str1);                                       \
             lstr_t lstr2 = LSTR(Str2);                                       \
-            int cmp  = lstr_utf8_endswith(&lstr1, &lstr2);                   \
+            int cmp  = lstr_utf8_endswith(lstr1, lstr2);                     \
                                                                              \
             Z_ASSERT_EQ(cmp, Val,                                            \
                         "lstr_utf8_endswith(\"%s\", \"%s\") "                \
@@ -1705,9 +1705,9 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(lstr_ascii_icmp, "str: lstr_ascii_icmp") {
-#define T(_str1, _str2, _expected)                                       \
-        Z_ASSERT(lstr_ascii_icmp(&LSTR_IMMED_V(_str1),                   \
-                 &LSTR_IMMED_V(_str2)) _expected)
+#define T(_str1, _str2, _expected)                                           \
+        Z_ASSERT(lstr_ascii_icmp(LSTR_IMMED_V(_str1),  LSTR_IMMED_V(_str2))  \
+                 _expected)
 
         T("a",    "b",     <  0);
         T("b",    "a",     >  0);

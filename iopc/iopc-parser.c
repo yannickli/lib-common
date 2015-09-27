@@ -75,7 +75,7 @@ static bool warn(qv_t(iopc_attr) *attrs, const char *category)
         }
 
         qv_for_each_ptr(iopc_arg, arg, &attr->args) {
-            if (lstr_equal2(arg->v.s, s)) {
+            if (lstr_equal(arg->v.s, s)) {
                 return false;
             }
         }
@@ -564,7 +564,7 @@ check_attr_multi(qv_t(iopc_attr) *attrs, iopc_attr_t *attr, int *pos_out)
         if (a->desc == attr->desc) {
             /* Generic attributes share the same desc */
             if (a->desc->id == IOPC_ATTR_GENERIC) {
-                if (lstr_equal2(a->real_name, attr->real_name)) {
+                if (lstr_equal(a->real_name, attr->real_name)) {
                     throw_loc("generic attribute '%*pM' must be unique for "
                               "each IOP object", attr->loc,
                               LSTR_FMT_ARG(attr->real_name));
@@ -987,7 +987,7 @@ static lstr_t iopc_dox_arg_dir_to_lstr(iopc_dox_arg_dir_t dir)
 static int iopc_dox_check_param_dir(lstr_t dir_name, iopc_dox_arg_dir_t *out)
 {
     for (int i = 0; i < IOPC_DOX_ARG_DIR_count; i++) {
-        if (lstr_equal2(dir_name, iopc_dox_arg_dir_to_lstr(i))) {
+        if (lstr_equal(dir_name, iopc_dox_arg_dir_to_lstr(i))) {
             *out = i;
             return 0;
         }
@@ -1017,12 +1017,12 @@ lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
 static int iopc_dox_check_keyword(lstr_t keyword, int *type)
 {
     for (int i = 0; i < IOPC_DOX_TYPE_count; i++) {
-        if (lstr_equal2(keyword, iopc_dox_type_to_lstr(i))) {
+        if (lstr_equal(keyword, iopc_dox_type_to_lstr(i))) {
             *type = i;
             return 0;
         }
     }
-    if (lstr_equal2(keyword, LSTR("param"))) {
+    if (lstr_equal(keyword, LSTR("param"))) {
         *type = IOPC_DOX_TYPE_PARAM;
         return 0;
     }
@@ -1077,7 +1077,7 @@ iopc_dox_arg_find_in_fun(lstr_t name, iopc_dox_arg_dir_t dir,
             return fun->f##Y;                                                \
         }                                                                    \
         qv_for_each_entry(iopc_field, f, &fun->Y->fields) {                  \
-            if (lstr_equal2(name, LSTR(f->name)))                            \
+            if (lstr_equal(name, LSTR(f->name)))                             \
                 return f;                                                    \
         }                                                                    \
         return NULL;
@@ -1407,7 +1407,7 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
         qv_t(sb) object_paragraphs;
 
         for (int j = i + 1; j < chunk->params_args.len; j++) {
-            if (!lstr_equal2(arg, chunk->params_args.tab[j]))
+            if (!lstr_equal(arg, chunk->params_args.tab[j]))
                 continue;
             throw_loc("doxygen duplicated `%*pM` argument `%*pM`", chunk->loc,
                       LSTR_FMT_ARG(chunk->params.tab[0]), LSTR_FMT_ARG(arg));
@@ -2289,7 +2289,7 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
     ns = t_camelcase_to_c(LSTR(out->name));
     lstr_ascii_toupper(&ns);
 
-    if (lstr_equal2(ns, prefix)) {
+    if (lstr_equal(ns, prefix)) {
         prefix = LSTR_NULL_V;
     }
 
@@ -3127,7 +3127,7 @@ static int parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         str = LSTR(TK_N(pp, 0)->b.data);
 
         qv_for_each_ptr(iopc_arg_desc, d, &attr->desc->args) {
-            if (lstr_equal(&str, &d->name)) {
+            if (lstr_equal(str, d->name)) {
                 desc  = d;
                 found = true;
                 break;

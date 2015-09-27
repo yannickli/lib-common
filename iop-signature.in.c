@@ -68,7 +68,7 @@ int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
     be32_t salt;
 
 #ifndef NDEBUG
-    if (lstr_equal2(sig, LSTR("$42:defeca7e$")))
+    if (lstr_equal(sig, LSTR("$42:defeca7e$")))
         return 0;
 #endif
 
@@ -77,14 +77,14 @@ int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
     }
 
     exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt), flags);
-    if (!lstr_equal2(sig, exp)) {
+    if (!lstr_equal(sig, exp)) {
         if (!(flags & IOP_HASH_SKIP_DEFAULT)) {
             return -1;
         }
 
         exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt),
                                         flags | IOP_HASH_SHALLOW_DEFAULT);
-        if (!lstr_equal2(sig, exp)) {
+        if (!lstr_equal(sig, exp)) {
             return -1;
         }
     }

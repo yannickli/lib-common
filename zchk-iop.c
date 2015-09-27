@@ -3480,7 +3480,7 @@ Z_GROUP_EXPORT(iop)
                                      _v1, _v2) == _res);                     \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1, 0);  \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2, 0);  \
-            Z_ASSERT(lstr_equal2(                                            \
+            Z_ASSERT(lstr_equal(                                             \
                 LSTR_INIT_V((const char *)buf1, sizeof(buf1)),               \
                 LSTR_INIT_V((const char *)buf2, sizeof(buf2))) == _res);     \
             Z_HELPER_RUN(iop_std_test_struct(                                \
