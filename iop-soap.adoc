@@ -146,20 +146,20 @@ say Java-like] descriptive language. Basic XML types are mapped as follows:
 
 [options="header"]
 |===
-| XML Schema        | Intersec notation
-| +byte+            | +byte+
-| +unsignedByte+    | +ubyte+
-| +short+           | +short+
-| +unsignedShort+   | +ushort+
-| +int+             | +int+
-| +unsignedInt+     | +uint+
-| +long+            | +long+
-| +unsignedLong+    | +ulong+
-| +boolean+         | +bool+
+| Intersec notation | Xml schema
+| +byte+            | +intersec.byte+
+| +ubyte+           | +intersec.unsignedByte+
+| +short+           | +intersec.short+
+| +ushort+          | +intersec.unsignedShort+
+| +int+             | +intersec.int+
+| +uint+            | +intersec.unsignedInt+
+| +long+            | +intersec.long+
+| +ulong+           | +intersec.unsignedLong+
+| +bool+            | +boolean+
 | +double+          | +double+
 | +string+          | +string+
-| +base64Binary+    | +bytes+
-| +any+             | +xml+
+| +bytes+           | +base64Binary+
+| +xml+             | +any+
 |===
 
 The XML 'sequence' is mapped to the keyword 'struct', the XML 'choice' to the keyword
@@ -183,7 +183,7 @@ struct MyType {
 ----
 <complexType name="MyType">
     <sequence>
-        <element name="i" type="int"/>
+        <element name="i" type="tns:intersec.int"/>
         <element name="s" type="string"/>
     </sequence>
 </complexType>
@@ -202,9 +202,9 @@ union OtherType {
 ----
 <complexType name="OtherType">
     <choice>
-        <element name="t" type="MyType"/>
+        <element name="t" type="tns:MyType"/>
         <element name="ul"
-                 type="unsignedLong"/>
+                 type="tns:intersec.unsignedLong"/>
     </choice>
 </complexType>
 ----
@@ -263,7 +263,7 @@ int[] array;
 |
 [source,xml]
 ----
-<element name="array" type="int"
+<element name="array" type="tns:intersec.int"
          minOccurs="0" maxOccurs"unbounded" />
 ----
 
