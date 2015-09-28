@@ -162,6 +162,24 @@ _generated: $(3:l=c)
 endef
 
 #}}}
+#[ java ]#############################################################{{{#
+
+# ext/expand/java <PHONY>,<TARGET>,<JAVA>
+define ext/expand/java
+$~$(3:java=class): $3
+	mkdir -p $$(@D)
+	$(msg/COMPILE.java) $3
+	javac -classpath $$($1_CLASSPATH):$(1DV) -d $$(@D) $$<
+
+$2: $~$(3:java=class)
+endef
+
+define ext/rule/java
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/java,$1,$2,$$t))))
+$(eval $(call fun/common-depends,$1,$(3:java=class),$3))
+endef
+
+#}}}
 #[ web ]###############################################################{{{#
 # {{{ css
 
@@ -414,6 +432,25 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 define rule/datas
 $(1DV)all:: $1
 $(eval $(call fun/foreach-ext-rule,$1,$1,$($1_SOURCES)))
+endef
+
+#}}}
+#[ _JARS ]###########################################################{{{#
+
+define rule/jars
+$(1DV)all:: $1.jar
+$(eval $(call fun/foreach-ext-rule,$1,$1.jar,$($1_SOURCES)))
+$1.jar:
+	$(msg/LINK.jar) $$(@R)
+
+    # * Go where the class files are to build the jar file, to avoid jaring the build directory
+	# * Do not add %.class but %*.class, as a compiled java file may generate several class files
+	cd $~$(1DV) && jar cf $$(patsubst $(1DV)%,%,$$@) $$(patsubst $~$(1DV)%.class,%*.class,$$(filter %.class,$$^))
+
+	cp -f $~$1.jar $$@
+
+$(1DV)clean::
+	$(RM) $1.jar
 endef
 
 #}}}
