@@ -158,6 +158,10 @@ EOF
                 echo -Wno-extern-c-compat
             fi
         fi
+        if clang_prereq 3.7; then
+            echo -Wno-nullability-completeness
+            echo -Wno-shift-negative-value
+        fi
     fi
 
     echo -Wchar-subscripts
