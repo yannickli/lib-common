@@ -254,7 +254,7 @@ jshint: | __setup_buildsys_trampoline
 	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
 	git ls-files -- '*.js' | xargs jshint
 
-www:: $(if $(NOCHECK),,jshint)
+www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
 
 pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
@@ -271,6 +271,10 @@ ignore:
 	$(foreach v,$(var/docs),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=$(var/sharedlibext)),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
+
+watch:
+	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile)
+
 endif
 _generated_hdr:
 _generated: _generated_hdr
