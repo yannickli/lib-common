@@ -1049,6 +1049,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     switch (e->cb_type) {
       case IC_CB_NORMAL:
       case IC_CB_WS_SHARED: {
+        bool is_async = e->rpc->async;
         void *value = NULL;
 
         if (t_get_hdr_value_of_query(ic, cmd, slot, flags, data, dlen,
@@ -1062,6 +1063,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         ic->cmd  = cmd;
         if (ic_query_do_pre_hook(ic, query_slot, hdr, e) >= 0) {
             (*e->u.cb.cb)(ic, query_slot, value, hdr);
+            if (is_async) {
+                ic_query_do_post_hook(ic, cmd, query_slot);
+            }
         }
         ic->desc = NULL;
         ic->cmd  = 0;
@@ -1127,6 +1131,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
                 ic->cmd = 0;
                 return;
+            }
+            if (!slot) {
+                ic_query_do_post_hook(ic, cmd, query_slot);
             }
             ic->cmd = 0;
             t_unseal();
