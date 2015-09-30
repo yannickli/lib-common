@@ -15,7 +15,7 @@
 list_in_path() {
     if [ -e "$1/.git" ] && ! [ -L "$1" ]; then
         for f in $(GIT_DIR="$1/.git" git ls-files); do
-            if [ -f "$f" ]; then
+            if [ -f "$1/$f" ]; then
                 echo "    ,   \"$2$f\""
             fi
         done
@@ -32,7 +32,7 @@ watchman watch-project $1
     echo "[ \"trigger\", \"$SRCROOT\", {"
     echo "    \"name\": \"make_watch\","
     echo "    \"command\": [ \"make\", \"P=$PROFILE\", \"NOCHECK=1\", \"-C\","
-    echo "                   \"$SRCSUBDIR\", \"all\", \"www\" ],"
+    echo "                   \"$SRCSUBDIR\", \"full\" ],"
     echo "    \"append_files\": false,"
     echo "    \"stdout\": \">>$TEMP\","
     echo "    \"stderr\": \">>$TEMP\","

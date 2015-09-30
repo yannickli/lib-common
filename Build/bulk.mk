@@ -62,9 +62,9 @@ endif
 endif
 
 doc:
-all check fast-check www-check clean distclean www pylint::
+all full check fast-check www-check clean distclean www pylint::
 FORCE: ;
-.PHONY: all check fast-check www-check clean distclean doc www pylint FORCE
+.PHONY: all full check fast-check www-check clean distclean doc www pylint FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -132,11 +132,13 @@ $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))doc:        $(d)doc
 $(patsubst ./%,%,$(dir $(d:/=)))www::       $(d)www
+$(patsubst ./%,%,$(dir $(d:/=)))full::      $(d)full
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(patsubst ./%,%,$(dir $(d:/=)))pylint::    $(d)pylint
 $(d)all::
 $(d)doc:
 $(d)www::
+$(d)full:: $(d)all $(d)www
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)www-check:: | _generated_hdr
@@ -190,8 +192,8 @@ __setup_buildsys_trampoline: $!deps.mk
 toplevel:
 .PHONY: toplevel
 
-all:: toplevel
-all check fast-check www-check clean distclean www:: | __setup_buildsys_trampoline
+all full:: toplevel
+all full check fast-check www-check clean distclean www:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 __setup_buildsys_doc: | __setup_buildsys_trampoline
