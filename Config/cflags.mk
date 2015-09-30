@@ -25,8 +25,8 @@ ifeq ($(OS),darwin)
 	CXX_BASE := clang++
 else
 ifeq ($(filter %-analyzer,$(CC)),)
-	CC_BASE  := $(shell basename "$(CC)")
-	CXX_BASE := $(shell basename "$(CXX)")
+	CC_BASE  := $(notdir $(CC))
+	CXX_BASE := $(notdir $(CXX))
 else
 	CC_BASE  := clang
 	CXX_BASE := clang++
