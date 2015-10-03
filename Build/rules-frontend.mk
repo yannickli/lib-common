@@ -187,9 +187,43 @@ $~$3.d.ts: $3
 	$(MV) $$@+ $$@
 endef
 
-# ext/rule/ts <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
+# ext/rule/json <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
 define ext/rule/json
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/json,$1,$2,$$t,$4))))
+endef
+
+# }}}
+# {{{ html
+
+# ext/expand/html <PHONY>,<TARGET>,<HTML>,<MODULEPATH>
+#
+# Wraps the HTML file into a javascript module allowing packaging. This
+# simply put the content of the HTML file as a string in the module. This
+# also produces a module declaration file for inclusion of the modue in
+# typescript code.
+#
+# Produces:
+# - $~$3.js: the HTML wrapped in JavaScript
+# - $~$3.d.ts: the declaration file for use with typescript
+define ext/expand/html
+$2: $~$3.js
+$~$3.js: $3
+	$(msg/COMPILE.json) $3
+	mkdir -p "$(dir $~$3)"
+	echo 'module.exports = "" +' > $$@+
+	cat $$< | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^\(.*\)$$$$/"\1\\n" +/' >> $$@+
+	echo '"";' >> $$@+
+	$(MV) $$@+ $$@
+
+$~$3.d.ts: $3
+	mkdir -p "$(dir $~$3)"
+	echo "declare var html: string; export = json;" > $$@+
+	$(MV) $$@+ $$@
+endef
+
+# ext/rule/html <PHONY>,<TARGET>,<HTML>[],<MODULEPATH>
+define ext/rule/html
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/html,$1,$2,$$t,$4))))
 endef
 
 # }}}
@@ -252,7 +286,7 @@ $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@ $$(filter %.js,$$^)
+	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
