@@ -125,7 +125,7 @@ $~$(3:ts=js): $3
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path):$(dir $(shell which tsc))/../lib/js" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
@@ -278,7 +278,7 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
-tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$$$$NODE_PATH
+tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/))
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
