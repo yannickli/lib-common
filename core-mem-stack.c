@@ -74,6 +74,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp,
     mem_bench_update(sp->mem_bench);
     mem_bench_print_csv(sp->mem_bench);
 #endif
+    mem_consumer_incr(MEM_CONSUMER_STACK, blk->size);
 
     return blk;
 }
@@ -92,6 +93,7 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
     }
 #endif
 
+    mem_consumer_decr(MEM_CONSUMER_STACK, blk->size);
     dlist_remove(&blk->blk_list);
     mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
     ifree(blk, MEM_LIBC);
@@ -500,6 +502,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     spin_unlock(&mem_stack_dlist_lock);
 #endif
 
+    mem_consumer_register(MEM_CONSUMER_STACK, &sp->link);
+
     return sp;
 }
 
@@ -566,6 +570,7 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     dlist_for_each_safe(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
+    mem_consumer_unregister(MEM_CONSUMER_STACK, &sp->link);
 }
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
