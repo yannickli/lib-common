@@ -53,6 +53,14 @@
 #include "hash-sha2.h"
 #include "hash-sha4.h"
 
+typedef struct jenkins_ctx {
+    uint32_t hash;
+} jenkins_ctx;
+
+void jenkins_starts(jenkins_ctx *ctx) __leaf;
+void jenkins_update(jenkins_ctx *ctx, const void *input, ssize_t len) __leaf;
+void jenkins_finish(jenkins_ctx *ctx, byte output[4]) __leaf;
+
 #include "hash-iop.h"
 
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len) __leaf;

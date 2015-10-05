@@ -49,6 +49,8 @@ void F(iop_hash)(const struct iop_struct_t *st, const void *v,
 
 #ifndef ONLY_HMAC_SHA256
 
+ATTRS static inline void F(iop_hash_jenkins)(HASH_ARGS(4)) { HASH(jenkins); }
+
 ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
 ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
 
