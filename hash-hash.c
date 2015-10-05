@@ -365,3 +365,34 @@ void murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed, char out[s
 {
     murmur_hash3_x64_128_(key, len, seed, out);
 }
+
+/* {{{ Tests */
+
+/* LCOV_EXCL_START */
+
+#include <lib-common/z.h>
+
+Z_GROUP_EXPORT(hash32) {
+    Z_TEST(jenkins, "jenkins") {
+        lstr_t s = LSTR("hakunamatata");
+
+        Z_ASSERT_EQ(jenkins_hash(s.s, -1), 0xb536a6ee);
+        Z_ASSERT_EQ(jenkins_hash(s.s, s.len), 0xb536a6ee);
+    } Z_TEST_END;
+
+    Z_TEST(murmur_hash3_x86_32, "murmur_hash3_x86_32") {
+        lstr_t s = LSTR("Est-ce que vous voulez etre ma femme ? "
+                        "Et apres on boira un cafe.");
+
+        /* XXX murmur_hash3_x86_32 is aligned on 32bits words, avoid using a
+         * string that fits on 32bits words so the test is complete.
+         */
+        assert (s.len % 4);
+
+        Z_ASSERT_EQ(murmur_hash3_x86_32(s.s, s.len, 0xdeadc0de), 0x7455ebb5u);
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* LCOV_EXCL_STOP */
+
+/* }}} */
