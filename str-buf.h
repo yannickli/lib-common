@@ -131,7 +131,7 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, mem_pool_t *mp)
 
 static inline sb_t *sb_init(sb_t *sb)
 {
-    return sb_init_full(sb, (char *)__sb_slop, 0, 1, &mem_pool_libc);
+    return sb_init_full(sb, (char *)__sb_slop, 0, 1, NULL);
 }
 
 static inline sb_t *mp_sb_init(mem_pool_t *mp, sb_t *sb, int size)
