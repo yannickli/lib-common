@@ -51,6 +51,10 @@ void F(iop_hash)(const struct iop_struct_t *st, const void *v,
 
 ATTRS static inline void F(iop_hash_jenkins)(HASH_ARGS(4)) { HASH(jenkins); }
 
+ATTRS static inline void F(iop_hash_murmur_hash3_x86_32)(HASH_ARGS(4),
+                                                         uint32_t seed)
+{ HASH(murmur_hash3_x86_32, seed); }
+
 ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
 ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
 

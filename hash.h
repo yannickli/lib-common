@@ -61,6 +61,20 @@ void jenkins_starts(jenkins_ctx *ctx) __leaf;
 void jenkins_update(jenkins_ctx *ctx, const void *input, ssize_t len) __leaf;
 void jenkins_finish(jenkins_ctx *ctx, byte output[4]) __leaf;
 
+typedef struct murmur_hash3_x86_32_ctx {
+    uint32_t h1;
+    uint32_t tail;
+    size_t   len;
+    uint8_t  tail_len;
+} murmur_hash3_x86_32_ctx;
+
+void murmur_hash3_x86_32_starts(murmur_hash3_x86_32_ctx *ctx, uint32_t seed)
+    __leaf;
+void murmur_hash3_x86_32_update(murmur_hash3_x86_32_ctx *ctx,
+                                const void *key, size_t len) __leaf;
+void murmur_hash3_x86_32_finish(murmur_hash3_x86_32_ctx *ctx, byte output[4])
+    __leaf;
+
 #include "hash-iop.h"
 
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len) __leaf;
