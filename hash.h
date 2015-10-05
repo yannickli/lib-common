@@ -75,6 +75,8 @@ void murmur_hash3_x86_32_update(murmur_hash3_x86_32_ctx *ctx,
 void murmur_hash3_x86_32_finish(murmur_hash3_x86_32_ctx *ctx, byte output[4])
     __leaf;
 
+#define MEM_HASH32_MURMUR_SEED  0xdeadc0de
+
 #include "hash-iop.h"
 
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len) __leaf;
@@ -101,7 +103,7 @@ static inline uint32_t mem_hash32(const void *data, ssize_t len)
     if (unlikely(len < 0))
         len = strlen((const char *)data);
 #if defined(__x86_64__) || defined(__i386__)
-    return murmur_hash3_x86_32(data, len, 0xdeadc0de);
+    return murmur_hash3_x86_32(data, len, MEM_HASH32_MURMUR_SEED);
 #else
     return jenkins_hash(data, len);
 #endif

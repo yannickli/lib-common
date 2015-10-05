@@ -580,5 +580,48 @@
 #define IOP_OBJ_DEFAULT  IOP_CLASS_DEFAULT
 
 /* }}} */
+/* {{{ Helpers for use of IOPs as key in QH/QM */
+
+#define qhash_iop_hash_fn(name, pfx)    qhash_##name##_##pfx##__hash
+#define qhash_iop_equals_fn(name, pfx)  qhash_##name##_##pfx##__equals
+
+#define QHASH_IOP_FUNCS(name, pfx)                                           \
+    static uint32_t qhash_iop_hash_fn(name, pfx)(const qhash_t *qhash,       \
+                                                 const pfx##__t *key)        \
+    {                                                                        \
+        uint8_t hash[4];                                                     \
+                                                                             \
+        iop_hash32(&pfx##__s, key, hash, 0);                                 \
+                                                                             \
+        return get_unaligned_cpu32(hash);                                    \
+    }                                                                        \
+    static bool                                                              \
+    qhash_iop_equals_fn(name, pfx)(const qhash_t *qhash,                     \
+                                   const pfx##__t *k1, const pfx##__t *k2)   \
+    {                                                                        \
+        return iop_equals(pfx, k1, k2);                                      \
+    }
+
+#define QH_K_IOP_T(type, name, pfx)                                          \
+    QHASH_IOP_FUNCS(name, pfx)                                               \
+    qh_k##type##_t(name, pfx##__t, qhash_iop_hash_fn(name, pfx),             \
+                   qhash_iop_equals_fn(name, pfx))
+
+#define qh_iop_kvec_t(name, pfx)       QH_K_IOP_T(vec, name, pfx)
+#define qh_iop_kptr_t(name, pfx)       QH_K_IOP_T(ptr, name, pfx)
+#define qh_iop_kptr_ckey_t(name, pfx)  QH_K_IOP_T(ptr_ckey, name, pfx)
+
+#define QM_K_IOP_T(type, name, pfx, val_t)                                   \
+    QHASH_IOP_FUNCS(name, pfx)                                               \
+    qm_k##type##_t(name, pfx##__t, val_t, qhash_iop_hash_fn(name, pfx),      \
+                   qhash_iop_equals_fn(name, pfx))
+
+#define qm_iop_kvec_t(name, pfx, val_t)  QM_K_IOP_T(vec, name, pfx, val_t)
+#define qm_iop_kptr_t(name, pfx, val_t)  QM_K_IOP_T(ptr, name, pfx, val_t)
+#define qm_iop_kptr_ckey_t(name, pfx, val_t)                                 \
+    QM_K_IOP_T(ptr_ckey, name, pfx, val_t)
+
+
+/* }}} */
 
 #endif
