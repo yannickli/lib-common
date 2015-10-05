@@ -122,32 +122,50 @@ static inline uint8_t __pstrputuc(char *dst, int32_t c)
 }
 
 /* XXX 0 means invalid utf8 char */
-static inline uint8_t utf8_charlen(const char *s)
+static inline uint8_t utf8_charlen(const char *s, int len)
 {
-    uint8_t len = __utf8_char_len[(unsigned char)*s >> 3];
-    switch (len) {
+    uint8_t charlen = __utf8_char_len[(unsigned char)*s >> 3];
+
+    if (len >= 0 && unlikely(len < charlen)) {
+        return 0;
+    }
+
+    switch (charlen) {
       default: if (unlikely((*++s & 0xc0) != 0x80)) return 0;
       case 3:  if (unlikely((*++s & 0xc0) != 0x80)) return 0;
       case 2:  if (unlikely((*++s & 0xc0) != 0x80)) return 0;
-      case 1:  return len;
-      case 0:  return len;
+      case 1:  return charlen;
+      case 0:  return charlen;
     }
 }
 
-static inline size_t utf8_strnlen(const char *s, size_t len)
+/** Get the number of UTF8 characters contained in a string.
+ *
+ * \return -1 in case of invalid UTF8.
+ */
+static inline ssize_t utf8_strnlen(const char *s, size_t len)
 {
     const char *end = s + len;
 
     len = 0;
     while (s < end) {
-        len++;
+        uint8_t charlen = utf8_charlen(s, end - s);
 
-        s += utf8_charlen(s);
+        if (unlikely(charlen == 0)) {
+            return -1;
+        }
+        len++;
+        s += charlen;
     }
+
     return len;
 }
 
-static inline size_t utf8_strlen(const char *s)
+/** Get the number of UTF8 characters contained in a string.
+ *
+ * \return -1 in case of invalid UTF8.
+ */
+static inline ssize_t utf8_strlen(const char *s)
 {
     return utf8_strnlen(s, strlen(s));
 }
@@ -155,7 +173,7 @@ static inline size_t utf8_strlen(const char *s)
 static inline int utf8_getc_slow(const char *s, const char **out)
 {
     uint32_t ret = 0;
-    uint8_t  len = utf8_charlen(s) - 1;
+    uint8_t  len = utf8_charlen(s, -1) - 1;
 
     switch (len) {
       default: return -1;
@@ -165,16 +183,19 @@ static inline int utf8_getc_slow(const char *s, const char **out)
       case 0:  ret += (unsigned char)*s++;
     }
 
-    if (out)
+    if (out) {
         *out = s;
+    }
+
     return ret - __utf8_offs[len];
 }
 
 static ALWAYS_INLINE int utf8_getc(const char *s, const char **out)
 {
     if ((unsigned char)*s < 0x80) {
-        if (out)
+        if (out) {
             *out = s + 1;
+        }
         return (unsigned char)*s;
     } else {
         return utf8_getc_slow(s, out);
@@ -184,12 +205,14 @@ static ALWAYS_INLINE int utf8_getc(const char *s, const char **out)
 static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
 {
     if (len && (unsigned char)*s < 0x80) {
-        if (out)
+        if (out) {
             *out = s + 1;
+        }
         return (unsigned char)*s;
     }
-    if (unlikely(len < __utf8_char_len[(unsigned char)*s >> 3]))
+    if (unlikely(len < __utf8_char_len[(unsigned char)*s >> 3])) {
         return -1;
+    }
     return utf8_getc_slow(s, out);
 }
 

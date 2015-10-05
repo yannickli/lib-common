@@ -778,6 +778,8 @@ static inline bool lstr_match_ctype(lstr_t s, const ctype_desc_t *d)
 int lstr_dlevenshtein(const lstr_t s1, const lstr_t s2, int max_dist);
 
 /** Retrieve the number of characters of an utf-8 encoded string.
+ *
+ * \return -1 in case of invalid utf-8 characters encountered.
  */
 static inline int lstr_utf8_strlen(lstr_t s)
 {
