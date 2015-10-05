@@ -46,6 +46,9 @@ static void __sb_reset(sb_t *sb, int threshold)
     if (!(mp->mem_pool & MEM_BY_FRAME) && sb->skip + sb->size > threshold) {
         if (ptr != __sb_slop) {
             mp_delete(mp, &ptr);
+            if (!sb->mp) {
+                mem_consumer_decr(MEM_CONSUMER_SB, sb->size);
+            }
         }
         sb_init_full(sb, (char *)__sb_slop, 0, 1, sb->mp);
     } else {
@@ -73,7 +76,7 @@ void sb_wipe(sb_t *sb)
  */
 int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
-    if (orig->mp != sb->mp) {
+    if (mp_ipool(orig->mp) != mp_ipool(sb->mp)) {
         sb_t tmp = *sb;
         int save_errno = errno;
 
@@ -86,6 +89,9 @@ int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
             __sb_fixlen(sb, orig->len);
         }
         mp_ifree(tmp.mp, tmp.data - tmp.skip);
+        if (!tmp.mp) {
+            mem_consumer_decr(MEM_CONSUMER_SB, tmp.size);
+        }
         errno = save_errno;
     } else {
         __sb_fixlen(sb, orig->len);
@@ -121,6 +127,10 @@ void __sb_optimize(sb_t *sb, size_t len)
     buf = mp_new_raw(mp, char, sz);
     p_copy(buf, sb->data, sb->len + 1);
     mp_ifree(mp, sb->data - sb->skip);
+    if (!sb->mp) {
+        mem_consumer_decr(MEM_CONSUMER_SB, sb->size);
+        mem_consumer_incr(MEM_CONSUMER_SB, sz);
+    }
     sb_init_full(sb, buf, sb->len, sz, mp);
 }
 
@@ -152,11 +162,17 @@ void __sb_grow(sb_t *sb, int extra)
     /* TODO: avoid memmove + memcpy in case of a fallback */
     sb_destroy_skip(sb);
     if (sb->data == __sb_slop) {
-        sb->data = mp_new_raw(sb->mp, char, newsz);
+        sb->data = mp_new_raw(mp, char, newsz);
         sb->data[0] = '\0';
+        if (!sb->mp) {
+            mem_consumer_incr(MEM_CONSUMER_SB, newsz);
+        }
     } else {
         sb->data = mp_irealloc_fallback(&sb->mp, sb->data, sb->len + 1, newsz,
                                         1, MEM_RAW);
+        if (!sb->mp) {
+            mem_consumer_incr(MEM_CONSUMER_SB, newsz - sb->size);
+        }
     }
     sb->size = newsz;
 }

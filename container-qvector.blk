@@ -21,6 +21,9 @@ static void __qvector_reset(qvector_t *vec, size_t v_size, size_t threshold)
 
     if (!(mp->mem_pool & MEM_BY_FRAME) && sz * v_size >= threshold) {
         mp_delete(mp, &vec->tab);
+        if (!vec->mp) {
+            mem_consumer_decr(MEM_CONSUMER_QVECTOR, sz * v_size);
+        }
         __qvector_init(vec, NULL, 0, 0, vec->mp);
     } else {
         vec->len = 0;
@@ -54,6 +57,10 @@ void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
     if (newsz < newlen) {
         newsz = newlen;
     }
+    if (!vec->mp) {
+        mem_consumer_incr(MEM_CONSUMER_QVECTOR,
+                          (newsz * v_size) - (vec->size * v_size));
+    }
     vec->tab = mp_irealloc_fallback(&vec->mp, vec->tab, vec->len * v_size,
                                     newsz * v_size, v_align, MEM_RAW);
     vec->size = newsz;
@@ -71,6 +78,9 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
     }
     if ((mp->mem_pool & MEM_BY_FRAME)) {
         return;
+    }
+    if (!vec->mp) {
+        mem_consumer_incr(MEM_CONSUMER_QVECTOR, (size - vec->size) * v_size);
     }
     buf = mpa_new_raw(mp, char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
