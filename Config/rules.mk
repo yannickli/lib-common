@@ -133,8 +133,8 @@ $3.c: $3 $(CLANG) | _generated_hdr
 	$(CLANG) $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 		-x c -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \
 		-MP -MMD -MT $3.c -MF $~$3.d -o /dev/null $3
-	$(CLANG) -cc1 -x c $(CLANGREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
-	$(MV) $$@+ $$@ && chmod a-w $$@
+	$(CLANG) -cc1 -x c $(CLANGREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $~$3.c $$<
+	$(MV) $~$3.c $$@ && chmod a-w $$@
 -include $~$3.d
 endef
 
@@ -157,8 +157,8 @@ $3.cc: $3 $(CLANGXX) | _generated_hdr
 	$(CLANGXX) $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 		-x c++ -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \
 		-MP -MMD -MT $3.cc -MF $~$3.d -o /dev/null $3
-	$(CLANGXX) -cc1 -x c++ $(CLANGXXREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
-	$(MV) $$@+ $$@ && chmod a-w $$@
+	$(CLANGXX) -cc1 -x c++ $(CLANGXXREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $~$3.cc $$<
+	$(MV) $~$3.cc $$@ && chmod a-w $$@
 -include $~$3.d
 endef
 
