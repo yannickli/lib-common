@@ -158,7 +158,10 @@ int mem_consumer_print_stats(int (*print_cb)(const char *s, void *priv),
         }
         snprintf(buf, sizeof(buf), "  %s: %zdKb",
                  mem_consumer_to_str(c), usage >> 10);
-        RETHROW((*print_cb)(buf, priv));
+        if (unlikely((*print_cb)(buf, priv) < 0)) {
+            spin_unlock(&mem_consumer_g.array_lock);
+            return -1;
+        }
     }
 
     spin_unlock(&mem_consumer_g.array_lock);
