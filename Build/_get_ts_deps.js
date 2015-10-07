@@ -59,7 +59,8 @@
 
     desc.importedFiles.forEach(function(ref) {
         var name = ref.fileName;
-        var isJSON = name.length >= 5 && name.substr(name.length - 5) === '.json';
+        var isRaw = name.length >= 5 && (name.substr(name.length - 5) === '.json'
+                                         || name.substr(name.length - 5) === '.html');
 
         for (var j = 0; j < paths.length; j++) {
             var searchPath = path.resolve(paths[j]) + '/';
@@ -68,11 +69,11 @@
                 addName(searchPath + name + '.d.ts', true);
                 return;
             } else
-            if (isJSON && fs.existsSync(searchPath + name)) {
+            if (isRaw && fs.existsSync(searchPath + name)) {
                 addName(searchPath + name + '.d.ts', true);
                 return;
             } else
-            if (!isJSON && fs.existsSync(searchPath + name + '.ts')) {
+            if (!isRaw && fs.existsSync(searchPath + name + '.ts')) {
                 addName(searchPath + name + '.d.ts', true);
                 return;
             }

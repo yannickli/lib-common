@@ -125,7 +125,7 @@ $~$(3:ts=js): $3
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path):$(dir $(shell which tsc))/../lib/js" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
@@ -211,13 +211,13 @@ $~$3.js: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	echo 'module.exports = "" +' > $$@+
-	cat $$< | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^\(.*\)$$$$/"\1\\n" +/' >> $$@+
+	cat $$< | sed -e :a -re 's/<!--.*?-->//g;/<!--/N;//ba' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^\(.*\)$$$$/"\1\\n" +/' >> $$@+
 	echo '"";' >> $$@+
 	$(MV) $$@+ $$@
 
 $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
-	echo "declare var html: string; export = json;" > $$@+
+	echo "declare var html: string; export = html;" > $$@+
 	$(MV) $$@+ $$@
 endef
 
@@ -278,15 +278,16 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
-tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/))
+tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(dir $(shell which tsc))/../lib/js
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
+$~$2/htdocs/javascript/$3.js: $~$2/package.json
 $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@
+	NODE_PATH="$$(tmp/$1/node_path)" browserify -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
@@ -301,6 +302,11 @@ endef
 # sub targets for the module:
 # - <MODULE>_WWWSCRIPTS
 define rule/wwwmodule
+$~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js
+	mkdir -p $~$(1DV)modules/$(1:$(1DV)%=%)/node_modules
+	$(FASTCP) $(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js $~$(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js
+	echo '{ "browserify-shim": "./node_modules/shim.js" }' > $$@
+
 $$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$($1_DEPENDS)))))
 endef
 
