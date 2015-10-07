@@ -21,7 +21,7 @@ static void sb_add_cell(sb_t *out, const struct table_hdr_t *col,
 {
     int len = lstr_utf8_strlen(content);
 
-    if (len == 0) {
+    if (len <= 0) {
         content = col->empty_value;
         len = lstr_utf8_strlen(content);
     }

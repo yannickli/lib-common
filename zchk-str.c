@@ -380,12 +380,23 @@ Z_GROUP_EXPORT(str)
     } Z_TEST_END;
 
     Z_TEST(lstr_utf8_strlen, "str: lstr_utf8_strlen test") {
+        char unterminated[] = { 0xEE, 0x80, 0x80, 0xEE };
+        char invalid[]      = { 0xB0, 0x80, 0x80 };
+
+        /* Valid strings. */
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_NULL_V), 0);
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_EMPTY_V), 0);
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("abcdefgh")), 8);
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("àbçdéfgh")), 8);
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("à")), 1);
         Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("é")), 1);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR("This is a penguin: ")), 20);
+
+        /* Invalid strings. */
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_INIT_V(unterminated,
+                                                 countof(unterminated))), -1);
+        Z_ASSERT_EQ(lstr_utf8_strlen(LSTR_INIT_V(invalid,
+                                                 countof(invalid))), -1);
     } Z_TEST_END;
 
     Z_TEST(lstr_utf8_truncate, "str: lstr_utf8_truncate test") {

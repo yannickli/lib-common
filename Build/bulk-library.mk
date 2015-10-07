@@ -143,15 +143,15 @@ ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 define ext/expand/l
 $(3:l=c): $3
 	$(msg/COMPILE.l) $3
-	flex -R -o $$@+ $$<
+	flex -R -o $~$3.c $$<
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
 	       $(if $(flex_2537),-e 's/^\tint i;/    yy_size_t i;/',) \
 	       -e 's/^int .*get_column.*;//' \
 	       -e 's/^void .*set_column.*;//' \
 	       -e 's/\.c+"$$$$/.c"/g' \
-	       $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
+	       $~$3.c
+	$(MV) $~$3.c $$@ && chmod a-w $$@
 endef
 
 define ext/rule/l
