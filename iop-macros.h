@@ -66,6 +66,9 @@
  *  IOP_UNION_CASE_P(pkg__my_union, my_union, b, b_val_ptr) {
  *      printf("a value is: %u", *b_val_ptr);
  *  }
+ *  IOP_UNION_CASE_V(pkg__my_union, my_union, c) {
+ *      printf("c type handled but value not important");
+ *  }
  * }
  *
  * \param[in] u The union to switch on.
@@ -82,11 +85,13 @@
  * \param[in] field The union field to select.
  * \param[out] val  Pointer on the field value.
  */
+
 #define IOP_UNION_CASE_P(pfx, u, field, val) \
-        break;                                                        \
-      case IOP_UNION_TAG(pfx, field):                                 \
-        { const pfx##__t __attribute__((unused)) *val = u; }          \
-        for (typeof((u)->field) *val = &(u)->field; val; val = NULL)
+        break;                                                          \
+      case IOP_UNION_TAG(pfx, field):                                   \
+        { const pfx##__t __attribute__((unused)) *val = u; }            \
+        for (typeof((u)->field) *val##_2 = &(u)->field, *val = val##_2; \
+             val##_2; val##_2 = NULL)
 
 /** Case giving the field value by value.
  *
@@ -101,9 +106,21 @@
         break;                                                          \
       case IOP_UNION_TAG(pfx, field):                                   \
         { const pfx##__t __attribute__((unused)) *val = u; }            \
-        for (typeof((u)->field) *val##_p = &(u)->field,                 \
-             __attribute__((unused)) val = *val##_p;                    \
+        for (typeof((u)->field) *val##_p = &(u)->field, val = *val##_p; \
              val##_p; val##_p = NULL)
+
+/** Case not giving the field value.
+ *
+ * XXX never use _continue_ inside an IOP_UNION_CASE_V.
+ *
+ * \param[in] pfx   The union prefix (pkg__name).
+ * \param[in] u     The union given to IOP_UNION_SWITCH().
+ * \param[in] field The union field to select.
+ */
+#define IOP_UNION_CASE_V(pfx, u, field)  \
+        break;                                                          \
+      case IOP_UNION_TAG(pfx, field):                                   \
+        { const pfx##__t __attribute__((unused)) *_tmp = u; }
 
 /** Default case. */
 #define IOP_UNION_DEFAULT() \

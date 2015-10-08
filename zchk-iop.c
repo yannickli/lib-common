@@ -962,10 +962,10 @@ Z_GROUP_EXPORT(iop)
               IOP_UNION_CASE(tstiop__my_union_a, &ua, ua, v) {
                 Z_ASSERT_EQ(v, 42);
               }
-              IOP_UNION_CASE_P(tstiop__my_union_a, &ua, ub, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &ua, ub) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
-              IOP_UNION_CASE(tstiop__my_union_a, &ua, us, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &ua, us) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
               IOP_UNION_DEFAULT() {
@@ -987,13 +987,13 @@ Z_GROUP_EXPORT(iop)
             int8_t *ubvp;
 
             IOP_UNION_SWITCH(&ub) {
-              IOP_UNION_CASE(tstiop__my_union_a, &ub, ua, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &ub, ua) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
               IOP_UNION_CASE_P(tstiop__my_union_a, &ub, ub, v) {
                 Z_ASSERT_EQ(*v, 42);
               }
-              IOP_UNION_CASE(tstiop__my_union_a, &ub, us, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &ub, us) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
               IOP_UNION_DEFAULT() {
@@ -1014,10 +1014,10 @@ Z_GROUP_EXPORT(iop)
             lstr_t *usvp;
 
             IOP_UNION_SWITCH(&us) {
-              IOP_UNION_CASE(tstiop__my_union_a, &us, ua, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &us, ua) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
-              IOP_UNION_CASE_P(tstiop__my_union_a, &us, ub, v) {
+              IOP_UNION_CASE_V(tstiop__my_union_a, &us, ub) {
                 Z_ASSERT(false, "shouldn't be reached");
               }
               IOP_UNION_CASE(tstiop__my_union_a, &us, us, v) {
