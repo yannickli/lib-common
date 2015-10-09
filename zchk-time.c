@@ -14,6 +14,23 @@
 #include "datetime.h"
 #include "z.h"
 
+static struct tm z_create_tm(int year, int month, int day, int hour,
+                             int minute, int second)
+{
+    struct tm t = (struct tm) {
+        .tm_year = year - 1900,
+        .tm_mon = month - 1,
+        .tm_mday = day,
+        .tm_hour = hour,
+        .tm_min = minute,
+        .tm_sec = second,
+        .tm_isdst = -1,
+    };
+
+    mktime(&t);
+    return t;
+}
+
 Z_GROUP_EXPORT(time)
 {
     Z_TEST(curminute, "time: localtime_curminute") {
@@ -319,4 +336,66 @@ Z_GROUP_EXPORT(time)
         time_fmt_iso8601_msec(buf, UINT32_MAX, 999);
         Z_ASSERT_EQ(strlen(buf), 24U);
     } Z_TEST_END;
+
+    Z_TEST(nb_leap_years_since_1900, "time: nb_leap_years_since_1900") {
+        Z_ASSERT_EQ(0, nb_leap_years_since_1900(1900));
+        Z_ASSERT_EQ(28, nb_leap_years_since_1900(2015));
+        Z_ASSERT_EQ(29, nb_leap_years_since_1900(2016));
+    } Z_TEST_END;
+
+    Z_TEST(nb_days_since_1900, "time: nb_days_since_1900") {
+        struct tm t;
+
+        t = z_create_tm(1900, 1, 10, 0, 0, 0);
+        Z_ASSERT_EQ(9, tm_nb_days_since_1900(&t));
+
+        t = z_create_tm(1901, 1, 1, 0, 0, 0);
+        Z_ASSERT_EQ(365, tm_nb_days_since_1900(&t));
+
+        t = z_create_tm(2015, 9, 21, 12, 46, 48);
+        Z_ASSERT_EQ(42266, tm_nb_days_since_1900(&t));
+
+        t = z_create_tm(2016, 3, 4, 2, 1, 8);
+        Z_ASSERT_EQ(42431, tm_nb_days_since_1900(&t));
+    } Z_TEST_END;
+
+    Z_TEST(tm_diff_days, "time: tm_diff_days") {
+        struct tm from;
+        struct tm to;
+
+        from = z_create_tm(1900, 1, 1, 8, 12, 51);
+        to   = z_create_tm(1900, 1, 10, 13, 14, 21);
+        Z_ASSERT_EQ(9, tm_diff_days(&from, &to));
+
+        from = z_create_tm(1990, 6, 24, 15, 7, 12);
+        to   = z_create_tm(2000, 2, 15, 4, 8, 10);
+        Z_ASSERT_EQ(3523, tm_diff_days(&from, &to));
+    } Z_TEST_END;
+
+    Z_TEST(tm_diff_hours, "time: tm_diff_hours") {
+        struct tm from;
+        struct tm to;
+
+        from = z_create_tm(1900, 1, 1, 8, 12, 51);
+        to   = z_create_tm(1900, 1, 10, 13, 14, 21);
+        Z_ASSERT_EQ(221, tm_diff_hours(&from, &to));
+
+        from = z_create_tm(1990, 6, 24, 15, 7, 12);
+        to   = z_create_tm(2000, 2, 15, 4, 8, 10);
+        Z_ASSERT_EQ(84541, tm_diff_hours(&from, &to));
+    } Z_TEST_END;
+
+    Z_TEST(tm_diff_minutes, "time: tm_diff_minutes") {
+        struct tm from;
+        struct tm to;
+
+        from = z_create_tm(1900, 1, 1, 8, 12, 51);
+        to   = z_create_tm(1900, 1, 10, 13, 14, 21);
+        Z_ASSERT_EQ(13262, tm_diff_minutes(&from, &to));
+
+        from = z_create_tm(1990, 6, 24, 15, 7, 12);
+        to   = z_create_tm(2000, 2, 15, 4, 8, 10);
+        Z_ASSERT_EQ(5072461, tm_diff_minutes(&from, &to));
+    } Z_TEST_END;
+
 } Z_GROUP_END;

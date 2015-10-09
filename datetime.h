@@ -45,6 +45,22 @@ uint64_t lp_getmsec(void);
 uint64_t lp_getcsec(void);
 
 /***************************************************************************/
+/* miscellaneous                                                           */
+/***************************************************************************/
+
+/** Count the number of leap years since 1900.
+ *
+ * When the provided year is a leap year, it is part of the returned count.
+ * For example, the number of leap years since 1900 for 2016 is 29.
+ */
+static inline int nb_leap_years_since_1900(int year)
+{
+    static const int nb_leap_years_1900 = 460;
+
+    return (year / 4) - (year / 100) + (year / 400) - nb_leap_years_1900;
+}
+
+/***************************************************************************/
 /* time.h wrappers                                                         */
 /***************************************************************************/
 
@@ -158,6 +174,47 @@ struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
  */
 int format_timestamp(const char *fmt, time_t ts, const char *locale,
                      char out[], int out_size)__attr_nonnull__((1));
+
+/** Count the number of days since January 1st, 1900.
+ */
+static inline int tm_nb_days_since_1900(struct tm *t)
+{
+    int nb_days = 365 * t->tm_year + t->tm_yday;
+
+    /* do not consider current year for leap years count since the current
+     * leap year day, if any, is already added by tm_yday.
+     */
+    return nb_days + nb_leap_years_since_1900(t->tm_year + 1900 - 1);
+}
+
+/** Count the number of days between two dates.
+ */
+static inline int tm_diff_days(struct tm *from, struct tm *to)
+{
+    return tm_nb_days_since_1900(to) - tm_nb_days_since_1900(from);
+}
+
+/** Count the number of hours between two dates.
+ *
+ * Daylight saving time and leap seconds are not considered in the count.
+ */
+static inline int tm_diff_hours(struct tm* from, struct tm *to)
+{
+    unsigned long nb_days = tm_diff_days(from, to);
+
+    return nb_days * 24 + (to->tm_hour - from->tm_hour);
+}
+
+/** Count the number of minutes between two dates.
+ *
+ * Daylight saving time and leap seconds are not considered in the count.
+ */
+static inline int tm_diff_minutes(struct tm* from, struct tm *to)
+{
+    unsigned long nb_hours = tm_diff_hours(from, to);
+
+    return nb_hours * 60 + (to->tm_min - from->tm_min);
+}
 
 /***************************************************************************/
 /* iso8601                                                                 */
