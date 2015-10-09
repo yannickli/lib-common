@@ -934,14 +934,14 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
             }
         }
         if (unlikely(ic_slot_is_traced(slot, flags)
-                  && logger_is_traced(&_G.tracing_logger, 1)))
+                  && logger_is_traced(&_G.tracing_logger, 2)))
         {
             SB_1k(sb);
 
             sb_addf(&sb, "[slot:%x]; unpacked header: ",
                     (uint32_t)(slot & IC_MSG_SLOT_MASK));
             ic__hdr__sb_jpack(&sb, *hdr, 0);
-            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+            logger_trace(&_G.tracing_logger, 2, "%*pM", SB_FMT_ARG(&sb));
         }
     }
 
@@ -1764,12 +1764,12 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
         iop_bpack(buf, &ic__hdr__s, msg->hdr, szs.tab);
         iop_bpack(buf + hlen, st, arg, szs.tab + szpos);
 
-        if (unlikely(msg->trace && logger_is_traced(&_G.tracing_logger, 1))) {
+        if (unlikely(msg->trace && logger_is_traced(&_G.tracing_logger, 2))) {
             SB_1k(sb);
 
             sb_addf(&sb, "[msg:%p/slot:%x]; packed header: ", msg, msg->slot);
             ic__hdr__sb_jpack(&sb, msg->hdr, 0);
-            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+            logger_trace(&_G.tracing_logger, 2, "%*pM", SB_FMT_ARG(&sb));
         }
     } else {
         len   = iop_bpack_size_flags(st, arg, IOP_BPACK_SKIP_DEFVAL, &szs);
