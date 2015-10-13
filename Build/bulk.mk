@@ -155,6 +155,8 @@ __setup_buildsys_doc: | __setup_buildsys_trampoline
 
 doc: | __setup_buildsys_doc
 
+REPORT_DIR=coverage
+
 www-coverage::
 	$(msg/rm) "$!"
 	$(RM) -rf $!*
