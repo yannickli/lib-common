@@ -131,7 +131,7 @@ $(3:l=c): $3
 	       $(if $(flex_2537),-e 's/^\tint i;/    yy_size_t i;/',) \
 	       -e 's/^int .*get_column.*;//' \
 	       -e 's/^void .*set_column.*;//' \
-	       -e 's/\.c+"$$$$/.c"/g' \
+	       -e 's!$~$3.c"!$(3:l=c)"!g' \
 	       $~$3.c
 	$(MV) $~$3.c $$@ && chmod a-w $$@
 endef
