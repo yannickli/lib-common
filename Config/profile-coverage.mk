@@ -16,8 +16,6 @@ CFLAGS   += -pg -fprofile-arcs -ftest-coverage
 CXXFLAGS += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS  += -lgcov
 
-REPORT_DIR=coverage
-
 # Partially copied from http://bind10.isc.org/wiki/TestCodeCoverage
 coverage:: __setup_forward
 	lcov --directory $! --base-directory $/ --zerocounters
