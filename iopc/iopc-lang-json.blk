@@ -36,7 +36,7 @@
 #define LINE_START_COLLECTION(_wbuf, _key, _sep)                             \
     do {                                                                     \
         const iopc_write_buf_t *_b = (_wbuf);                                \
-        if (_key) {                                                          \
+        if (_key != NULL) {                                                  \
             IOPC_WRITE_START_LINE(_b, sb_addf, KEY("%s") _sep, _key ?: "");  \
         } else {                                                             \
             IOPC_WRITE_START_LINE(_b, sb_addf, _sep);                        \
