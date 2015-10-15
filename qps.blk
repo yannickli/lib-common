@@ -1305,7 +1305,7 @@ struct qps_meta {
     uint32_t generation; /**< Holds the \p maps.qps generation */
     uint32_t osize;      /**< original size of the compressed data */
     uint32_t csize;      /**< size of the following compressed data */
-    uint32_t psize;      /**< size of the private date */
+    uint32_t psize;      /**< size of the private data */
     uint32_t pcsize;     /**< size of the compressed private data */
     uint8_t  data[];     /**< beginning of the compressed data */
 };
@@ -1463,12 +1463,6 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
         qps->generation = meta->generation + 2;
     }
 
-    u32  = t_new_raw(uint32_t, meta->osize / 4);
-    uend = u32 + meta->osize / 4;
-    if (qps_unlzo_data(meta->data, meta->csize, meta->osize, u32) < 0) {
-        goto err_unmap;
-    }
-
     if (out) {
         void *buf = sb_growlen(out, meta->psize);
 
@@ -1477,6 +1471,16 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
         {
             goto err_unmap;
         }
+    }
+
+    if (meta->osize == 0) {
+        goto ok_unmap;
+    }
+
+    u32  = t_new_raw(uint32_t, meta->osize / 4);
+    uend = u32 + meta->osize / 4;
+    if (qps_unlzo_data(meta->data, meta->csize, meta->osize, u32) < 0) {
+        goto err_unmap;
     }
 
     h_len = DIV_ROUND_UP(u32[0], QPS_HANDLES_COUNT);
@@ -1541,8 +1545,11 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
         qps_map_protect(map, PROT_READ);
         qps_map_bless(qps, map);
     }
-    for (size_t i = 0; i < h_len; i++)
+    for (size_t i = 0; i < h_len; i++) {
         qps->handles[i] = qps_pg_deref(qps, h_u32[i]);
+    }
+
+  ok_unmap:
     x_munmap(meta, meta_size);
 
 #ifdef NDEBUG
@@ -2454,8 +2461,9 @@ qps_t *qps_open(const char *path, sb_t *priv)
     qps->gc_idle = el_idle_register(qps_gc_on_idle, qps);
     el_idle_unregister(&qps->gc_idle);
 
-    if (qps_lock(qps) < 0)
+    if (qps_lock(qps) < 0) {
         goto out_close;
+    }
     if (fstatat(fd, "meta.qps", &st, 0) < 0) {
         logger_error(&_G.logger, "[%p] unable to stat meta.qps: %m", qps);
         goto out_close;
@@ -2466,8 +2474,9 @@ qps_t *qps_open(const char *path, sb_t *priv)
         return qps;
     }
 
-    if (qps_load_meta(qps, priv, false))
+    if (qps_load_meta(qps, priv, false)) {
         goto out_close;
+    }
     logger_trace(&_G.logger, 1, "qps_open() = %p", qps);
     qps_dir_cleanup(qps, qps->generation - 2);
     return qps;
@@ -2572,29 +2581,28 @@ int qps_unlink(const char *path)
  *   - NULL if it failed, errno may be consulted to know why to some extent
  *   - a pointer to the created qps object.
  */
-qps_t *qps_create(const char *path, mode_t mode)
+qps_t *qps_create(const char *path, mode_t mode, const void *data,
+                  size_t dlen)
 {
     qps_t *qps;
     int fd;
+    qv_t(u32) t;
 
     RETHROW_NP(mkdir_p(path, mode));
     fd  = RETHROW_NP(open(path, O_RDONLY));
     qps = qps_new();
     qps->dfd = fd;
-    if (qps_lock(qps) < 0)
-        goto out_close;
-    fd = openat(qps->dfd, "meta.qps", O_CREAT | O_EXCL | O_RDWR, 0444);
-    if (fd < 0) {
-        logger_error(&_G.logger, "[%p] unable to touch meta.qps: %m", qps);
-        goto out_close;
+    if (qps_lock(qps) < 0) {
+        qps_close(&qps);
+        return NULL;
     }
-    p_close(&fd);
+
+    qv_init(u32, &t);
+    x_write_meta(qps, 1, t, data, dlen);
+    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
+    x_fdatasync(qps->dfd);
     logger_trace(&_G.logger, 1, "qps_create() = %p", qps);
     return qps;
-
-  out_close:
-    qps_close(&qps);
-    return NULL;
 }
 
 static void qps_snapshot_bg_done(el_t el, pid_t pid, int status, data_t data)
@@ -2963,6 +2971,9 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
     }
 
     RETHROW(qps_map_meta(qps, &meta, &meta_size));
+    if (meta->osize == 0) {
+        goto end;
+    }
 
     u32  = t_new_raw(uint32_t, meta->osize / 4);
     uend = u32 + meta->osize / 4;
@@ -3015,6 +3026,7 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
         COPY_FILE(buf);
     }
 
+  end:
     /* Step 2: Write meta.qps */
     COPY_FILE("meta.qps");
 #undef COPY_FILE
@@ -3366,7 +3378,7 @@ Z_GROUP_EXPORT(qps)
     } while (0)
 
     Z_TEST(nr_20110105, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 24);
         Z_CHECK_ALLOC_AND_FILL(handle2, 42);
@@ -3381,7 +3393,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20110107_1, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 24);
 
@@ -3398,7 +3410,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20110107_2, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 24);
 
@@ -3416,7 +3428,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20110107_3, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 24);
 
@@ -3435,7 +3447,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20110203, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 120);
         Z_CHECK_ALLOC_AND_FILL(handle2, 120);
@@ -3464,7 +3476,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20110302, "") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 36);
         Z_CHECK_ALLOC_AND_FILL(handle2, 36);
@@ -3477,7 +3489,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20120824_1, "map emptied concurrently to snapshot") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 36);
 
@@ -3491,7 +3503,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20120824_2, "map emptied concurrently to snapshot") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 36);
 
@@ -3505,7 +3517,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20120827_1, "map emptied then reused after snapshot") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 36);
         Z_HELPER_RUN(run_snapshot(qps));
@@ -3520,7 +3532,7 @@ Z_GROUP_EXPORT(qps)
     } Z_TEST_END;
 
     Z_TEST(nr_20120827_2, "map emptied then reused after snapshot") {
-        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755, NULL, 0);
 
         Z_CHECK_ALLOC_AND_FILL(handle1, 36);
         Z_HELPER_RUN(run_snapshot(qps));

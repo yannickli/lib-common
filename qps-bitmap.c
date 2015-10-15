@@ -412,7 +412,7 @@ Z_GROUP_EXPORT(qps_bitmap) {
     if (qps_exists(z_grpdir_g.s)) {
         qps = qps_open(z_grpdir_g.s, NULL);
     } else {
-        qps = qps_create(z_grpdir_g.s, 0755);
+        qps = qps_create(z_grpdir_g.s, 0755, NULL, 0);
     }
     assert (qps);
 

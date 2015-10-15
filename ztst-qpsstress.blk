@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
     _G.path = argv[1];
     qps_unlink(argv[1]);
-    _G.qps = qps_create(argv[1], 0755);
+    _G.qps = qps_create(argv[1], 0755, NULL, 0);
     if (!_G.qps) {
         e_fatal("unable to open qps");
     }

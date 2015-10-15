@@ -268,7 +268,7 @@ int main(int argc, char **argv)
         if (qps == NULL)
             e_fatal("cannot open qps");
     } else {
-        qps = qps_create(argv[1], 0755);
+        qps = qps_create(argv[1], 0755, NULL, 0);
         if (qps == NULL)
             e_fatal("cannot create qps");
     }

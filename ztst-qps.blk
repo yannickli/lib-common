@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     if (qps_exists(path)) {
         qps = qps_open(path, NULL);
     } else {
-        qps = qps_create(path, 0755);
+        qps = qps_create(path, 0755, NULL, 0);
     }
     if (!qps)
         e_fatal("unable to open qps");

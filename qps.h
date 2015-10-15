@@ -301,7 +301,8 @@ struct qps_stats {
     int pages_free;
 };
 
-qps_t    *qps_create(const char *path, mode_t mode);
+qps_t    *qps_create(const char *path, mode_t mode,
+                     const void *data, size_t dlen);
 qps_t    *qps_open(const char *path, sb_t *priv);
 int       __qps_check_consistency(const char *path);
 int       __qps_check_maps(qps_t *qps, bool fatal);
