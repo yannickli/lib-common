@@ -105,8 +105,15 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
     return sock;
 }
 
-int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
-             int flags)
+int connectx(int sock, const sockunion_t *addrs, int cnt, int type,
+             int proto, int flags)
+{
+    return connectx_as(sock, addrs, cnt, NULL, type, proto, flags);
+}
+
+int connectx_as(int sock, const sockunion_t *addrs, int cnt,
+                const sockunion_t * nullable src, int type,
+                int proto, int flags)
 {
     int to_close = -1;
 
@@ -119,6 +126,9 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
 
     if (sock < 0) {
         to_close = sock = RETHROW(socket(addrs->family, type, proto));
+    }
+    if (src && bind(sock, &src->sa, sockunion_len(src)) < 0) {
+        goto error;
     }
 
     if (fd_set_features(sock, flags))

@@ -233,7 +233,7 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --langmap=c:+.blk --langmap=c++:+.blkk \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s, struct/' \
-	    --regex-iop='/^(abstract +)(local +)?class +([a-zA-Z]+)/\3/c, class/' \
+	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c, class/' \
 	    --regex-iop='/^union +([a-zA-Z]+)/\1/u, union/' \
 	    --regex-iop='/^enum +([a-zA-Z]+)/\1/e, enum/' \
 	    --regex-iop='/^typedef +[^;]+ +([a-zA-Z]+) *;/\1/t, typedef/' \

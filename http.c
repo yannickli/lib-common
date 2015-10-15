@@ -2255,7 +2255,7 @@ void httpc_pool_attach(httpc_t *w, httpc_pool_t *pool)
 
 httpc_t *httpc_pool_launch(httpc_pool_t *pool)
 {
-    return httpc_connect(&pool->su, pool->cfg, pool);
+    return httpc_connect_as(&pool->su, pool->su_src, pool->cfg, pool);
 }
 
 httpc_t *httpc_pool_get(httpc_pool_t *pool)
@@ -2268,7 +2268,8 @@ httpc_t *httpc_pool_get(httpc_pool_t *pool)
         {
             return NULL;
         }
-        httpc = RETHROW_P(httpc_connect(&pool->su, pool->cfg, pool));
+        httpc = RETHROW_P(httpc_connect_as(&pool->su, pool->su_src, pool->cfg,
+                                           pool));
         return httpc->busy ? NULL : httpc;
     }
 
@@ -2445,12 +2446,21 @@ static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
     return 0;
 }
 
-httpc_t *httpc_connect(const sockunion_t *su, httpc_cfg_t *cfg, httpc_pool_t *pool)
+httpc_t *httpc_connect(const sockunion_t *su, httpc_cfg_t *cfg,
+                       httpc_pool_t *pool)
+{
+    return httpc_connect_as(su, NULL, cfg, pool);
+}
+
+httpc_t *httpc_connect_as(const sockunion_t *su,
+                          const sockunion_t * nullable su_src,
+                          httpc_cfg_t *cfg, httpc_pool_t *pool)
 {
     httpc_t *w;
     int fd;
 
-    fd = RETHROW_NP(connectx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK));
+    fd = RETHROW_NP(connectx_as(-1, su, 1, su_src, SOCK_STREAM, IPPROTO_TCP,
+                                O_NONBLOCK));
     w  = obj_new_of_class(httpc, cfg->httpc_cls);
     w->cfg         = httpc_cfg_dup(cfg);
     w->ev          = el_unref(el_fd_register(fd, POLLOUT, &httpc_on_connect, w));
