@@ -737,6 +737,9 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
 OBJ_CLASS(httpc, object, HTTPC_FIELDS, HTTPC_METHODS);
 
 httpc_t *httpc_spawn(int fd, httpc_cfg_t *, httpc_pool_t *);
+httpc_t *httpc_connect_as(const sockunion_t *,
+                          const sockunion_t * nullable src_addr,
+                          httpc_cfg_t *, httpc_pool_t *);
 httpc_t *httpc_connect(const sockunion_t *, httpc_cfg_t *, httpc_pool_t *);
 /** gently close an httpc connection.
  *
@@ -750,6 +753,7 @@ struct httpc_pool_t {
     httpc_cfg_t *cfg;
     lstr_t       host;
     sockunion_t  su;
+    sockunion_t *su_src; /* to connect using a specific network interface */
 
     int          len;
     int          max_len;

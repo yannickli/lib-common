@@ -26,6 +26,19 @@ int listenx(int sock, const sockunion_t *, int cnt,
             int type, int proto, int flags);
 int connectx(int sock, const sockunion_t *, int cnt,
              int type, int proto, int flags);
+/** Connect using a specified src
+ *
+ * \param[in]   sock    a file descriptor for the socket, a negative value to
+ *                      create a new socket
+ * \param[in]   src     use specific network interface as source
+ *
+ * \Returns On success, the file descriptor for the socket
+ *          On error, -1 and errno is set appropriately.
+ *
+ */
+int connectx_as(int sock, const sockunion_t *, int cnt,
+                const sockunion_t * nullable src, int type,
+                int proto, int flags);
 int acceptx(int server_fd, int flags);
 int acceptx_get_addr(int server_fd, int flags, sockunion_t *su);
 
