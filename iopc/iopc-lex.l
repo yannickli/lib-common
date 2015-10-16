@@ -564,6 +564,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           yyextra->tk->b_is_char = true;
                           return yyextra->tk;
                         }
+    \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->tk->b, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->tk->b, yytext, yyleng); }
 }
 

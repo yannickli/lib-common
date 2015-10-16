@@ -143,15 +143,15 @@ ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 define ext/expand/l
 $(3:l=c): $3
 	$(msg/COMPILE.l) $3
-	flex -R -o $~$3.c $$<
+	flex -R -o $~$3.c+ $$<
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
 	       $(if $(flex_2537),-e 's/^\tint i;/    yy_size_t i;/',) \
 	       -e 's/^int .*get_column.*;//' \
 	       -e 's/^void .*set_column.*;//' \
-	       -e 's!$~$3.c"!$(3:l=c)"!g' \
-	       $~$3.c
-	$(MV) $~$3.c $$@ && chmod a-w $$@
+	       -e 's!$~$3.c+"!$(3:l=c)"!g' \
+	       $~$3.c+
+	$(MV) $~$3.c+ $$@ && chmod a-w $$@
 endef
 
 define ext/rule/l
@@ -394,7 +394,7 @@ $(1DV)www:: $~$1/.mark $(1DV)$1
 $~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
 $~$1/.build: | _generated_hdr
 	mkdir -p $$(dir $$@)
-	cp -r -L -l -f $($1_SOURCES) $$(dir $$@)
+	rsync --delete -r -k -K -H -A --exclude=".git" $($1_SOURCES) $$(dir $$@)
 	touch $~$1/.build
 
 $~$1/.mark: $~$1/.build $($1_CONFIG)
