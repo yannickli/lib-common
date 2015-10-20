@@ -79,8 +79,11 @@
 
 #if  !__has_feature(nullability)
 # define nullable
+# define _Nullable
 # define nonnull
+# define _Nonnull
 # define null_unspecified
+# define _Null_unspecified
 #else
 # define nullable          _Nullable
 # define nonnull           _Nonnull
