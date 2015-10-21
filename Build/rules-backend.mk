@@ -146,18 +146,25 @@ endef
 #}}}
 #[ java ]#############################################################{{{#
 
-# ext/expand/java <PHONY>,<TARGET>,<JAVA>
+# ext/expand/java <PHONY>,<TARGET>,<JAVA>,<CLASS>
+#
+# To avoid race conditions where several javac commands try to write in
+# the same file, each is directed in its own directory (javatmp/classname),
+# before copying the relevant class files back in the build directory.
 define ext/expand/java
-$~$(3:java=class): $3
-	mkdir -p $$(@D)
+$4: CLASSNAME_=$(basename $(notdir $3))
+$4: $3
+	mkdir -p $$(@D)/javatmp/$$(CLASSNAME_)
 	$(msg/COMPILE.java) $3
-	javac -classpath $$($1_CLASSPATH):$(1DV) -d $$(@D) $$<
+	javac -classpath $$($1_CLASSPATH):$(1DV) -d $$(@D)/javatmp/$$(CLASSNAME_) $$<
+	cp $$(@D)/javatmp/$$(CLASSNAME_)/*.class $$(@D)
 
-$2: $~$(3:java=class)
+$2: $4
 endef
 
 define ext/rule/java
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/java,$1,$2,$$t))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,\
+	$$(call ext/expand/java,$1,$2,$$t,$~$$(t:java=class)))))
 $(eval $(call fun/common-depends,$1,$(3:java=class),$3))
 endef
 
