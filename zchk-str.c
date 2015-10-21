@@ -110,17 +110,17 @@ Z_GROUP_EXPORT(str)
         const char *encoded = "30313233";
         const char *decoded = "0123";
 
-        p_clear(buf, countof(buf));
+        p_clear(&buf, 1);
         res = strconv_hexdecode(buf, sizeof(buf), encoded, -1);
         Z_ASSERT_EQ((size_t)res, strlen(encoded) / 2);
         Z_ASSERT_STREQUAL(buf, decoded);
 
         encoded = "1234567";
-        p_clear(buf, countof(buf));
+        p_clear(&buf, 1);
         Z_ASSERT_NEG(strconv_hexdecode(buf, sizeof(buf), encoded, -1),
                  "str_hexdecode should not accept odd-length strings");
         encoded = "1234567X";
-        p_clear(buf, countof(buf));
+        p_clear(&buf, 1);
         Z_ASSERT_NEG(strconv_hexdecode(buf, sizeof(buf), encoded, -1),
                  "str_hexdecode accepted non hexadecimal string");
     } Z_TEST_END;

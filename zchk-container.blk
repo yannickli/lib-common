@@ -1148,7 +1148,7 @@ Z_GROUP_EXPORT(qhp)
         STATIC_ASSERT (countof(expected)
                     == countof(tab) - countof(to_remove));
 
-        p_clear(nodes, countof(nodes));
+        p_clear(&nodes, 1);
         t_qhp_init(test_heap, &qhp, 1024);
 
         for (int i = 0; i < countof(tab); i++) {
