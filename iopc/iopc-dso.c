@@ -15,7 +15,6 @@
 #include <sys/wait.h>
 
 #include <lib-common/unix.h>
-#include <lib-common/farch.h>
 #include <lib-common/core.h>
 
 #include "iopc.h"
