@@ -246,7 +246,7 @@ $(1DV)www:: $~$1/.mark $(1DV)$1
 $~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
 $~$1/.build: | _generated_hdr
 	mkdir -p $$(dir $$@)
-	rsync --delete -r -k -K -H -A --exclude=".git" $($1_SOURCES) $$(dir $$@)
+	rsync --delete -r -k -K -H --exclude=".git" $($1_SOURCES) $$(dir $$@)
 	touch $~$1/.build
 
 $~$1/.mark: $~$1/.build $($1_CONFIG)

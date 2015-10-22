@@ -62,9 +62,9 @@ endif
 endif
 
 doc:
-all full check fast-check www-check clean distclean www pylint::
+all full check fast-check www-check clean distclean www selenium fast-selenium pylint::
 FORCE: ;
-.PHONY: all full check fast-check www-check clean distclean doc www pylint FORCE
+.PHONY: all full check fast-check www-check clean distclean doc www selenium fast-selenium pylint FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -117,6 +117,10 @@ fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh .
 www-check:: | _generated_hdr
 	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh .
+selenium:: all
+	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh .
+fast-selenium:: all
+	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip upgrade slow' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh .
 %.pylint:: %.py
 	$(msg/CHECK.py) $<
 	pylint $<
@@ -143,6 +147,10 @@ $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)www-check:: | _generated_hdr
 	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh $(d)
+$(d)selenium:: $(d)all
+	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh $(d)
+$(d)fast-selenium:: $(d)all
+	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip upgrade slow' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)fast-check:: $(d)all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
@@ -193,7 +201,7 @@ toplevel:
 .PHONY: toplevel
 
 all full:: toplevel
-all full check fast-check www-check clean distclean www:: | __setup_buildsys_trampoline
+all full check fast-check www-check clean distclean www selenium fast-selenium:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 __setup_buildsys_doc: | __setup_buildsys_trampoline
