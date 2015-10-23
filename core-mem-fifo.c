@@ -52,8 +52,6 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
 
-    dlist_t     link;
-
 #ifdef MEM_BENCH
     /* Instrumentation */
     mem_bench_t  mem_bench;
@@ -98,8 +96,6 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     mem_bench_print_csv(&mfp->mem_bench);
 #endif
 
-    mem_consumer_incr(MEM_CONSUMER_FIFO, mapsize);
-
     return page;
 }
 
@@ -127,7 +123,6 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 
         mfp->nb_pages--;
         mfp->map_size -= page->size + sizeof(mem_page_t);
-        mem_consumer_decr(MEM_CONSUMER_FIFO, page->size + sizeof(mem_page_t));
         mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
         p_delete(pagep);
     }
@@ -418,8 +413,6 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     spin_unlock(&mem_fifo_dlist_lock);
 #endif
 
-    mem_consumer_register(MEM_CONSUMER_FIFO, &mfp->link);
-
     return &mfp->funcs;
 }
 
@@ -457,7 +450,6 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         mfp->owner   = poolp;
         return;
     }
-    mem_consumer_unregister(MEM_CONSUMER_FIFO, &mfp->link);
     p_delete(poolp);
 }
 
