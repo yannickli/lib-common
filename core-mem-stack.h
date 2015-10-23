@@ -121,8 +121,6 @@ typedef struct mem_stack_pool_t {
     mem_stack_frame_t    base;      /*< never */
     uint32_t             minsize;   /*< blk_create */
 
-    dlist_t              link;
-
 #ifdef MEM_BENCH
     /* never mind data : bench */
     struct mem_bench_t  *mem_bench;
