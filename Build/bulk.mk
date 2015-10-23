@@ -64,7 +64,7 @@ fast-check:: all
 
 tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 jshint:
-.PHONY: tags jshint
+.PHONY: tags cscope jshint
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -144,6 +144,16 @@ etags: | __setup_buildsys_trampoline
 		find . -name \*.h -or -name \*.blk                      \
 		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
 			-print0 | xargs -0 etags.emacs -a -l c -
+
+cscope: | __setup_buildsys_trampoline
+	cd $/ && \
+		find . -regextype sed \
+		-regex ".*/[^.]*\.\(c\|cpp\|blk\|blkk\|h\|inc\.c\)$$" \
+		-type f -print \
+		| grep -v "iop-compat.h" \
+		| grep -v "\/compat\/" \
+		| sort > .cscope.files && \
+		cscope -I$/lib-common/compat -I$/ -ub -i.cscope.files -f.cscope.out
 
 jshint: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
