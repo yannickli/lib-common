@@ -56,26 +56,14 @@ static void qhash_resize_start(qhash_t *qh)
         assert (!hdr->mp || !hdr->mp->realloc_fallback);
         qh->keys = mp_irealloc(hdr->mp, qh->keys, hdr->size * qh->k_size,
                                newsize * qh->k_size, 8, MEM_RAW);
-        if (!hdr->mp) {
-            mem_consumer_incr(MEM_CONSUMER_QHASH, (newsize * qh->k_size)
-                              - (hdr->size * qh->k_size));
-        }
         if (qh->v_size) {
             qh->values = mp_irealloc(hdr->mp, qh->values,
                                      hdr->size * qh->v_size,
                                      newsize * qh->v_size, 8, MEM_RAW);
-            if (!hdr->mp) {
-                mem_consumer_incr(MEM_CONSUMER_QHASH, (newsize * qh->v_size)
-                                  - (hdr->size * qh->v_size));
-            }
         }
         if (qh->h_size) {
             qh->hashes = mp_irealloc(hdr->mp, qh->hashes,
                                      hdr->size * 4, newsize * 4, 4, MEM_RAW);
-            if (!hdr->mp) {
-                mem_consumer_incr(MEM_CONSUMER_QHASH, (newsize * 4)
-                                  - (hdr->size * 4));
-            }
         }
     }
     if (hdr->len) {
@@ -83,20 +71,12 @@ static void qhash_resize_start(qhash_t *qh)
         qh->old->len = hdr->size;
     } else {
         mp_delete(hdr->mp, &hdr->bits);
-        if (!hdr->mp) {
-            mem_consumer_decr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                              * BITS_TO_ARRAY_LEN(size_t, 2 * hdr->size));
-        }
     }
     qh->ghosts     = 0;
     hdr->size      = newsize;
     hdr->bits      = mp_new(hdr->mp, size_t,
                             BITS_TO_ARRAY_LEN(size_t, 2 * newsize));
     SET_BIT(hdr->bits, 2 * newsize);
-    if (!hdr->mp) {
-        mem_consumer_incr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                          * BITS_TO_ARRAY_LEN(size_t, 2 * newsize));
-    }
 }
 
 static void qhash_resize_done(qhash_t *qh)
@@ -107,34 +87,18 @@ static void qhash_resize_done(qhash_t *qh)
     if (qh->old->size > size) {
         qh->keys = mp_irealloc(hdr->mp, qh->keys, qh->old->size * qh->k_size,
                                size * qh->k_size, 8, MEM_RAW);
-        if (!hdr->mp) {
-            mem_consumer_incr(MEM_CONSUMER_QHASH, (size * qh->k_size)
-                              - (qh->old->size * qh->k_size));
-        }
         if (qh->v_size) {
             qh->values = mp_irealloc(hdr->mp, qh->values,
                                      qh->old->size * qh->v_size,
                                      size * qh->v_size, 8, MEM_RAW);
-            if (!hdr->mp) {
-                mem_consumer_incr(MEM_CONSUMER_QHASH, (size * qh->v_size)
-                                  - (qh->old->size * qh->v_size));
-            }
         }
         if (qh->h_size) {
             qh->hashes = mp_irealloc(hdr->mp, qh->hashes,
                                      qh->old->size * 4,
                                      size * 4, 4, MEM_RAW);
-            if (!hdr->mp) {
-                mem_consumer_incr(MEM_CONSUMER_QHASH, (size * 4)
-                                  - (qh->old->size * 4));
-            }
         }
     }
 
-    if (!hdr->mp) {
-        mem_consumer_decr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                          * BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size));
-    }
     mp_delete(hdr->mp, &qh->old->bits);
     mp_delete(hdr->mp, &qh->old);
 }
@@ -163,10 +127,6 @@ void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
 void qhash_wipe(qhash_t *qh)
 {
     if (qh->old) {
-        if (!qh->hdr.mp) {
-            mem_consumer_decr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                              * BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size));
-        }
         mp_delete(qh->hdr.mp, &qh->old->bits);
         mp_delete(qh->hdr.mp, &qh->old);
     }
@@ -174,23 +134,12 @@ void qhash_wipe(qhash_t *qh)
     mp_delete(qh->hdr.mp, &qh->values);
     mp_delete(qh->hdr.mp, &qh->hashes);
     mp_delete(qh->hdr.mp, &qh->keys);
-    if (!qh->hdr.mp) {
-        mem_consumer_decr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                          * BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size));
-        mem_consumer_decr(MEM_CONSUMER_QHASH, qh->hdr.size * qh->v_size);
-        mem_consumer_decr(MEM_CONSUMER_QHASH, qh->hdr.size * qh->h_size);
-        mem_consumer_decr(MEM_CONSUMER_QHASH, qh->hdr.size * qh->k_size);
-    }
     qhash_init(qh, 0, 0, false, qh->hdr.mp);
 }
 
 void qhash_clear(qhash_t *qh)
 {
     if (qh->old) {
-        if (!qh->hdr.mp) {
-            mem_consumer_decr(MEM_CONSUMER_QHASH, sizeof(size_t)
-                              * BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size));
-        }
         mp_delete(qh->hdr.mp, &qh->old->bits);
         mp_delete(qh->hdr.mp, &qh->old);
     }

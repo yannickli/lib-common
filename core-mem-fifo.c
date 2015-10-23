@@ -32,7 +32,6 @@ typedef struct mem_block_t {
 
 typedef struct mem_fifo_pool_t {
     mem_pool_t  funcs;
-    dlist_t     link;
     mem_page_t *freepage;
     mem_page_t *current;
     uint32_t    page_size;
@@ -79,7 +78,6 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     mem_tool_disallow_memory(page->area, page->size);
     mfp->nb_pages++;
     mfp->map_size   += mapsize;
-    mem_consumer_incr(MEM_CONSUMER_FIFO, mapsize);
     return page;
 }
 
@@ -101,7 +99,6 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
     if (page) {
         mfp->nb_pages--;
         mfp->map_size -= page->size;
-        mem_consumer_decr(MEM_CONSUMER_FIFO, page->size);
         mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
         munmap(page, page->size + sizeof(mem_page_t));
     }
@@ -290,9 +287,6 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
     mfp->alive     = true;
-
-    mem_consumer_register(MEM_CONSUMER_FIFO, &mfp->link);
-
     return &mfp->funcs;
 }
 
@@ -318,7 +312,6 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         mfp->owner   = poolp;
         return;
     }
-    mem_consumer_unregister(MEM_CONSUMER_FIFO, &mfp->link);
     p_delete(poolp);
 }
 

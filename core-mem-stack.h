@@ -111,7 +111,6 @@ typedef struct mem_stack_pool_t {
 
     uint32_t             alloc_nb;
     size_t               alloc_sz;
-    dlist_t              link;
 
     mem_pool_t           funcs;
 } mem_stack_pool_t;

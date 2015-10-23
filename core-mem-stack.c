@@ -52,7 +52,6 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     blk->start     = blk->area;
     blk->size      = blksize - sizeof(*blk);
     sp->stacksize += blk->size;
-    mem_consumer_incr(MEM_CONSUMER_STACK, blk->size);
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
     sp->nbpages++;
     return blk;
@@ -62,7 +61,6 @@ __cold
 static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
     sp->stacksize -= blk->size;
-    mem_consumer_decr(MEM_CONSUMER_STACK, blk->size);
     sp->nbpages--;
     dlist_remove(&blk->blk_list);
     mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
@@ -260,8 +258,6 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->funcs    = pool_funcs;
     sp->alloc_nb = 1; /* avoid the division by 0 */
 
-    mem_consumer_register(MEM_CONSUMER_STACK, &sp->link);
-
     return sp;
 }
 
@@ -270,7 +266,6 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     dlist_for_each_safe(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
-    mem_consumer_unregister(MEM_CONSUMER_STACK, &sp->link);
 }
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
