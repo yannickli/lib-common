@@ -129,7 +129,7 @@ pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 syntastic:
 jshint:
-.PHONY: tags jshint syntastic
+.PHONY: tags cscope jshint syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -259,6 +259,16 @@ tags: | __setup_buildsys_tags
 etags: TAGSOPTION=-e
 etags: TAGSOUTPUT=TAGS
 etags: | __setup_buildsys_tags
+
+cscope: | __setup_buildsys_trampoline
+	cd $/ && \
+		find . -regextype sed \
+		-regex ".*/[^.]*\.\(c\|cpp\|blk\|blkk\|h\|inc\.c\)$$" \
+		-type f -print \
+		| grep -v "iop-compat.h" \
+		| grep -v "\/compat\/" \
+		| sort > .cscope.files && \
+		cscope -I$/lib-common/compat -I$/ -ub -i.cscope.files -f.cscope.out
 
 jshint: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint

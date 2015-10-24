@@ -175,47 +175,11 @@ case "$OS" in
         pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
         pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
         pkg_config_setvar "openssl" "libssl-dev"     "openssl"
-
-        pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
-        pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
         ;;
 esac
 
 # }}}
-# {{{ libreadline-dev
-
-if test -r /usr/lib/libreadline.so -o /usr/lib64/libreadline.so; then
-    setvar "readline_CFLAGS"
-    setvar "readline_LIBS" "-lreadline"
-else
-    warn "missing libreadline, apt-get install libreadline-dev"
-fi
-
-# }}}
-#{{{ ncurses
-
-if [ "$OS" == "darwin" ]; then
-    setvar "ncurses_LIBS" "-lncurses"
-elif pkg-config ncurses; then
-    setvar "ncurses_CFLAGS" "$(pkg-config --cflags ncurses)"
-    setvar "ncurses_LIBS"   "$(pkg-config --libs ncurses)"
-else
-    if [ -r /usr/include/ncurses.h ] && [ -r /usr/include/menu.h ]; then
-        setvar "ncurses_CFLAGS" " "
-    else
-        warn "ncurses headers are missing (apt-get install libncurses5-dev)"
-    fi
-
-    #libmenu might be used optionally
-    if [ -r /usr/lib/libncurses.so ] && [ -r /usr/lib/libmenu.so ]; then
-        setvar "ncurses_LIBS" "-lncurses"
-    else
-        warn "libncurses.so is missing (apt-get install libncurses5-dev)"
-    fi
-fi
-
-# }}}
-# {{{ Python
+# Python {{{
 
 read_py2ver() {
     pyver="$(python -V 2>&1)"
