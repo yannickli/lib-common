@@ -171,7 +171,11 @@ struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
  * The format of fmt is the one described in strftime manpage.
  * XXX: This function is costly (it may call setlocale twice) and NOT thread
  *      safe if locale != NULL.
+ *
+ * Returns the number of bytes placed in the array out (not including the
+ * terminating null byte) in case of success, -1 in case of error.
  */
+__must_check__
 int format_timestamp(const char *fmt, time_t ts, const char *locale,
                      char out[], int out_size)__attr_nonnull__((1));
 
