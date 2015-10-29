@@ -500,10 +500,16 @@ int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen)
 int log_file_flush(log_file_t *log_file)
 {
     if (log_file->is_file_bin) {
-        return file_bin_flush(log_file->_bin_internal);
+        if (log_file->_bin_internal) {
+            return file_bin_flush(log_file->_bin_internal);
+        }
     } else {
-        return file_flush(log_file->_internal);
+        if (log_file->_internal) {
+            return file_flush(log_file->_internal);
+        }
     }
+
+    return 0;
 }
 
 void log_file_disable_rotation(log_file_t *file)
