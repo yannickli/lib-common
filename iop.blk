@@ -280,11 +280,9 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
     return IOP_FIELD_ERROR;
 }
 
-int iop_value_to_field(void *ptr, const iop_field_t *field,
-                       const iop_value_t *value)
+static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
+                            const iop_value_t *value)
 {
-    ptr = (byte *)ptr + field->data_offs;
-
 #define SET_SCALAR(type, opt, f)                                             \
         if (field->repeat == IOP_R_OPTIONAL) {                               \
             opt *o = ptr;                                                    \
@@ -359,6 +357,30 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
       }
     }
     return -1;
+}
+
+int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
+                                uint32_t pos, const iop_value_t *value)
+{
+    lstr_t data_s;
+    void *data_p;
+
+    if (!expect(field->repeat == IOP_R_REPEATED)) {
+        return -1;
+    }
+
+    data_s = *(lstr_t *)((byte *)ptr + field->data_offs);
+    data_p = (byte *)data_s.data + pos * field->size;
+
+    return iop_value_to_ptr(data_p, field, value);
+}
+
+int iop_value_to_field(void *ptr, const iop_field_t *field,
+                       const iop_value_t *value)
+{
+    ptr = (byte *)ptr + field->data_offs;
+
+    return iop_value_to_ptr(ptr, field, value);
 }
 
 void iop_set_opt_field(void *ptr, const iop_field_t *field)

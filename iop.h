@@ -610,11 +610,21 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
  * \param[in] ptr   The IOP object.
  * \param[in] field The IOP field definition.
  * \param[in] value The value to put the field.
- *
- * \return 0 if the value is found, -1 otherwise.
  */
 int iop_value_to_field(void *ptr, const iop_field_t *field,
                        const iop_value_t *value);
+
+/** Set one of the values of a repeated IOP field of an IOP object.
+ *
+ * \param[in] ptr   The IOP object.
+ * \param[in] field The IOP field definition.
+ * \param[in] pos   The index at which the value \ref value should be set in
+ *                  the repeated field \ref field.
+ * \param[in] value The value to put at the \ref pos'th position in the
+ *                  repeated field \ref field.
+ */
+int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
+                                uint32_t pos, const iop_value_t *value);
 
 /** Set an optional field of an IOP object.
  *
