@@ -2602,7 +2602,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
         }
 
         if (!qps_map_is_pg(map) || qps_map_pg_is_all_free(qps, map)) {
-            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+            munmap(map, QPS_MAP_SIZE);
             goto next;
         }
 
@@ -2618,7 +2618,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                      map->hdr.mapno, generation);
             x_linkat(qps->dfd, src, qps->dfd, dst, 0);
         }
-        madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+        munmap(map, QPS_MAP_SIZE);
 
       next:
         lp_gettv(&end);
@@ -2757,6 +2757,8 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     }
     t.tab[rec_pos] = (t.len - rec_pos) / 2;
 
+    thr_syn_wait(&madvise_syn);
+    thr_syn_wipe(&madvise_syn);
     lp_gettv(&step_madvise);
     pid   = qps_snapshot_bg(qps, data, dlen, t, generation);
     timer = el_timer_register_blk(3600 * 1000, 0, 0, ^(el_t ev){
@@ -2820,8 +2822,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         });
     });
 
-    thr_syn_wait(&madvise_syn);
-    thr_syn_wipe(&madvise_syn);
     lp_gettv(&step_end);
     e_trace(1, "QPS/snapshot: mmaps setup in %jd msec, "
             "forked after %jd msec, "
