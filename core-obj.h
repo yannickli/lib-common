@@ -32,8 +32,11 @@
 bool cls_inherits(const void *cls, const void *vptr)
     __leaf __attribute__((pure));
 
+#define obj_is_a_class(obj, cls) \
+    cls_inherits((obj)->v.as_obj_cls, cls)
+
 #define obj_is_a(obj, pfx)  \
-    cls_inherits((obj)->v.as_obj_cls, pfx##_class())
+    obj_is_a_class(obj, pfx##_class())
 
 #define obj_vfield(o, field)       ((o)->v.ptr->field)
 #define obj_vmethod(o, method)     ((o)->v.ptr->method)
