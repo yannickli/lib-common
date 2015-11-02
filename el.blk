@@ -1507,6 +1507,52 @@ Z_GROUP_EXPORT(el)
 
         el_fs_watch_unregister(&watch);
     } Z_TEST_END;
+
+    Z_TEST(fs_watch_delete, "el: inotify file unregister handling") {
+        t_scope;
+        el_t watch;
+        el_t dummy_watch;
+        int fd;
+        int called = 0;
+        int dummy_called = 0;
+        char *filename  = t_fmt(NULL, "%*pM/blah", LSTR_FMT_ARG(z_grpdir_g));
+        char *dummy = t_fmt(NULL, "%*pM/dummy", LSTR_FMT_ARG(z_grpdir_g));
+
+        /* Create 2 file */
+        fd = open(filename, O_CREAT, 0660);
+        close(fd);
+        fd = open(dummy, O_CREAT, 0660);
+        close(fd);
+
+        /* Add watch descriptors */
+        watch = el_fs_watch_register(filename, IN_ALL_EVENTS, fs_notify,
+                                     &called);
+        dummy_watch = el_fs_watch_register(dummy, IN_ALL_EVENTS, fs_notify,
+                                           &dummy_called);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 0);
+
+        /* Send 3 events */
+        fd = open(filename, O_WRONLY, 0660);
+        write(fd, "coucou", strlen("coucou"));
+        close(fd);
+
+        /* Unregister watch */
+        el_fs_watch_unregister(&watch);
+
+        /* We get a panic here if the watcher removal isn't delayed */
+        el_loop_timeout(100);
+
+        Z_ASSERT_EQ(called, 0);
+
+        unlink(filename);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 0);
+
+        el_fs_watch_unregister(&dummy_watch);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(dummy_called, 0);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
