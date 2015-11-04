@@ -547,6 +547,7 @@ int format_timestamp(const char *fmt, time_t ts, const char *locale,
     struct tm ts_tm;
     const char *lc_time = NULL;
     int len;
+    int ret;
 
     if (strequal(fmt, "%s")) {
         len = snprintf(out, out_size, "%ld", ts);
@@ -557,13 +558,18 @@ int format_timestamp(const char *fmt, time_t ts, const char *locale,
         RETHROW_PN(setlocale(LC_TIME, locale));
     }
 
-    localtime_r(&ts, &ts_tm);
+    if (localtime_r(&ts, &ts_tm) == NULL) {
+        ret = -1;
+        goto end;
+    }
     len = strftime(out, out_size, fmt, &ts_tm);
+    ret = len ?: -1;
 
+  end:
     if (locale) {
         setlocale(LC_TIME, lc_time);
     }
-    return len ?:-1;
+    return ret;
 }
 #if __GNUC_PREREQ(4, 2)
 #pragma GCC diagnostic warning "-Wformat-nonliteral"
