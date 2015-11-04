@@ -110,25 +110,23 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
 {
     struct stat st;
     char file[PATH_MAX];
-    iopc_pkg_t *pkg;
+    const char *pkg_name = pretty_path_dot(path);
 
-    snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
-    path_simplify(file);
-
-    pkg = qm_get_def(iopc_pkg, &_G.pkgs, file, NULL);
-    if (pkg) {
-        return pkg;
-    }
     if (pp->env) {
-        const char *data = qm_get_def_safe(iopc_env, pp->env, file, NULL);
+        const char *data;
 
+        data = qm_get_def_safe(iopc_env, pp->env, pkg_name, NULL);
         if (data) {
             return iopc_parse_file(pp->includes, pp->env, file, data, false);
         }
     }
+
+    snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
+    path_simplify(file);
     if (stat(file, &st) == 0 && S_ISREG(st.st_mode)) {
         return iopc_parse_file(pp->includes, pp->env, file, NULL, false);
     }
+
     return NULL;
 }
 
@@ -1617,6 +1615,11 @@ static iopc_pkg_t *
 check_path_exists(iopc_parser_t *pp, iopc_path_t *path)
 {
     iopc_pkg_t *pkg;
+
+    pkg = qm_get_def(iopc_pkg, &_G.pkgs, pretty_path_dot(path), NULL);
+    if (pkg) {
+        return pkg;
+    }
 
     if (pp->base) {
         if ((pkg = iopc_try_file(pp, pp->base, path))) {
@@ -3412,7 +3415,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             }
         }
         pp->base = pkg->base = p_strdup(base);
-        qm_add(iopc_pkg, &_G.pkgs, pkg->file, pkg);
+        qm_add(iopc_pkg, &_G.pkgs, pretty_path_dot(pkg->name), pkg);
     }
 
     while (CHECK_KW(pp, 0, "import", goto error)) {
@@ -3645,7 +3648,9 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     qm_wipe(iopc_struct, &things);
     qm_wipe(iopc_struct, &mod_inter);
 
-    qm_del_key(iopc_pkg, &_G.pkgs, pkg->file);
+    if (pkg->name) {
+        qm_del_key(iopc_pkg, &_G.pkgs, pretty_path_dot(pkg->name));
+    }
     iopc_pkg_delete(&pkg);
     return NULL;
 }
@@ -3674,7 +3679,6 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
                             const char *file, const char *data,
                             bool is_main_pkg)
 {
-    char tmp[PATH_MAX];
     iopc_pkg_t *pkg = NULL;
     iopc_file_t type;
 
@@ -3685,13 +3689,6 @@ iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
         type = IOPC_FILE_STDIN;
     } else {
         type = IOPC_FILE_FD;
-    }
-
-    if (type != IOPC_FILE_STDIN) {
-        pstrcpy(tmp, sizeof(tmp), file);
-        path_simplify(tmp);
-        file = tmp;
-        pkg = qm_get_def(iopc_pkg, &_G.pkgs, file, NULL);
     }
 
     if (!pkg) {
