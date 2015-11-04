@@ -2667,7 +2667,9 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                 qv_t(u32) t, uint32_t generation)
 {
     pid_t     pid;
+    struct timeval begin, step_fork, step_end;
 
+    lp_gettv(&begin);
     pid = fork();
     if (pid < 0) {
         logger_panic(&_G.logger, "unable to fork snapshotter in the "
@@ -2678,11 +2680,11 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
     }
     _G.in_snapshot_fork = true;
 
+    lp_gettv(&step_fork);
+
     setsid();
     setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
 
-    logger_debug(&_G.tracing_logger, "start snapshotting %d maps",
-                 qps->maps.len);
     for (int i = 0; i < qps->maps.len; i++) {
         struct timeval start, end;
         qps_map_t *map = qps->maps.tab[i];
@@ -2698,7 +2700,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
         }
 
         if (!qps_map_is_pg(map) || qps_map_pg_is_all_free(qps, map)) {
-            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+            munmap(map, QPS_MAP_SIZE);
             goto next;
         }
 
@@ -2714,7 +2716,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                      map->hdr.mapno, generation);
             x_linkat(qps->dfd, src, qps->dfd, dst, 0);
         }
-        madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+        munmap(map, QPS_MAP_SIZE);
 
       next:
         lp_gettv(&end);
@@ -2726,6 +2728,11 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
     x_fdatasync(qps->dfd); // commit all file creations
     x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
     x_fdatasync(qps->dfd); // commit rename
+    lp_gettv(&step_end);
+    logger_debug(&_G.tracing_logger, "snapshotted %d maps in %jd msec "
+                 "(fork: %jd msec)", qps->maps.len,
+                 timeval_diffmsec(&step_end, &begin),
+                 timeval_diffmsec(&step_fork, &begin));
     _exit(0);
 }
 
@@ -2769,6 +2776,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                       void (^notify)(uint32_t))
 {
     t_scope;
+    struct timeval step_madvise, step_end;
     uint32_t  rec_pos;
     qv_t(u32) t;
     thr_syn_t madvise_syn;
@@ -2846,6 +2854,9 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     }
     t.tab[rec_pos] = (t.len - rec_pos) / 2;
 
+    thr_syn_wait(&madvise_syn);
+    thr_syn_wipe(&madvise_syn);
+    lp_gettv(&step_madvise);
     qps->snap_pid = qps_snapshot_bg(qps, data, dlen, t, qps->snap_gen);
     qps->snap_el = el_child_register(qps->snap_pid, &qps_snapshot_bg_done, qps);
     el_unref(qps->snap_el);
@@ -2856,8 +2867,11 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     }, NULL);
     el_unref(qps->snap_timer_el);
 
-    thr_syn_wait(&madvise_syn);
-    thr_syn_wipe(&madvise_syn);
+    lp_gettv(&step_end);
+    logger_trace(&_G.logger, 1, "snapshot: mmaps setup in %jd msec, "
+                 "scheduled in %jd msec",
+                 timeval_diffmsec(&step_madvise, &qps->snap_start),
+                 timeval_diffmsec(&step_end, &qps->snap_start));
     return qps->generation;
 }
 
