@@ -139,6 +139,7 @@ void el_idle_unpark(el_t) __leaf;
 
 /*----- child related -----*/
 pid_t el_child_getpid(el_t) __leaf __attribute__((pure));
+int   el_child_get_status(el_t) __leaf;
 
 /*----- proxy related -----*/
 el_t el_proxy_register_d(el_proxy_f *, data_t) __leaf;
