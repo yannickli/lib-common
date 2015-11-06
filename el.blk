@@ -293,15 +293,14 @@ static data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static void el_child_fire(ev_t **ev, int pid, int status, bool move)
+static void el_child_fire(ev_t **ev, bool move)
 {
     ev_t *e = *ev;
 
-    assert (e->child.pid == pid);
     if (EV_FLAG_HAS(e, IS_BLK)) {
-        e->cb.child_blk(e, pid, status);
+        e->cb.child_blk(e, e->child.pid, e->child.status);
     } else {
-        (*e->cb.child)(e, pid, status, e->priv);
+        (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
     el_destroy(ev, move);
 }
@@ -317,7 +316,7 @@ static void ev_list_process(dlist_t *l)
             continue;
 
           case EV_CHILD:
-            el_child_fire(&ev, ev->child.pid, ev->child.status, true);
+            el_child_fire(&ev, true);
             break;
 
           default:
@@ -523,7 +522,8 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
             /* XXX callback inside el_child_fire may change the qm, so we
              * mustn't use a pointer to the qm's data.
              */
-            el_child_fire(&child, pid, status, false);
+            child->child.status = status;
+            el_child_fire(&child, false);
         }
     }
 }
@@ -592,6 +592,12 @@ pid_t el_child_getpid(el_t ev)
 {
     CHECK_EV_TYPE(ev, EV_CHILD);
     return ev->child.pid;
+}
+
+int el_child_get_status(el_t ev)
+{
+    CHECK_EV_TYPE(ev, EV_CHILD);
+    return ev->child.status;
 }
 
 pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
