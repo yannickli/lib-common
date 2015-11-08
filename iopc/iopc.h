@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   4
 #define IOPC_MINOR   0
-#define IOPC_PATCH   6
+#define IOPC_PATCH   7
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -989,7 +989,7 @@ qm_kptr_ckey_t(iopc_env, char, char *, qhash_str_hash, qhash_str_equal);
 
 void iopc_parser_initialize(void);
 void iopc_parser_shutdown(void);
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
+iopc_pkg_t *iopc_parse_file(qv_t(cstr) *includes,
                             const qm_t(iopc_env) *env, const char *file,
                             const char *data, bool is_main_pkg);
 int iopc_resolve(iopc_pkg_t *pkg);

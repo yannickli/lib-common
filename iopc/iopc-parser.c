@@ -18,7 +18,7 @@ typedef struct iopc_parser_t {
     qv_t(iopc_token) tokens;
     struct lexdata *ld;
 
-    const qv_t(cstr) *includes;
+    qv_t(cstr) *includes;
     const qm_t(iopc_env) *env;
     const char *base;
     iop_cfolder_t *cfolder;
@@ -3416,6 +3416,9 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         }
         pp->base = pkg->base = p_strdup(base);
         qm_add(iopc_pkg, &_G.pkgs, pretty_path_dot(pkg->name), pkg);
+        if (is_main_pkg && pp->includes) {
+            qv_push(cstr, pp->includes, pkg->base);
+        }
     }
 
     while (CHECK_KW(pp, 0, "import", goto error)) {
@@ -3674,7 +3677,7 @@ void iopc_loc_merge(iopc_loc_t *l1, iopc_loc_t l2)
     *l1 = iopc_loc_merge2(*l1, l2);
 }
 
-iopc_pkg_t *iopc_parse_file(const qv_t(cstr) *includes,
+iopc_pkg_t *iopc_parse_file(qv_t(cstr) *includes,
                             const qm_t(iopc_env) *env,
                             const char *file, const char *data,
                             bool is_main_pkg)
