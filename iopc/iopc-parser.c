@@ -112,6 +112,9 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
     char file[PATH_MAX];
     const char *pkg_name = pretty_path_dot(path);
 
+    snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
+    path_simplify(file);
+
     if (pp->env) {
         const char *data;
 
@@ -121,8 +124,6 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
         }
     }
 
-    snprintf(file, sizeof(file), "%s/%s", dir, pretty_path(path));
-    path_simplify(file);
     if (stat(file, &st) == 0 && S_ISREG(st.st_mode)) {
         return iopc_parse_file(pp->includes, pp->env, file, NULL, false);
     }
