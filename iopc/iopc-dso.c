@@ -271,8 +271,18 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
 
   iopc_build_error:
     log_buffer = log_stop_buffering();
-    assert (log_buffer->len == 1);
-    sb_set_lstr(err, log_buffer->tab[0].msg);
+    if (expect(log_buffer->len)) {
+        sb_reset(err);
+        qv_for_each_pos_rev(log_buffer, pos, log_buffer) {
+            if (!err->len) {
+                sb_add_lstr(err, log_buffer->tab[pos].msg);
+            } else {
+                sb_addf(err, ": %*pM", LSTR_FMT_ARG(log_buffer->tab[pos].msg));
+            }
+        }
+    } else {
+        sb_sets(err, "unknown iopc parser error");
+    }
     ret = -1;
     goto end;
 }
