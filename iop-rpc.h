@@ -32,6 +32,8 @@ typedef enum ic_status_t {
     IC_MSG_PROXY_ERROR    = 7,
     IC_MSG_TIMEDOUT       = 8,
     IC_MSG_CANCELED       = 9,
+
+    /* XXX: think to update ic_status_to_string too */
 #define IC_MSG_STREAM_CONTROL   INT32_MIN
 } ic_status_t;
 
@@ -56,6 +58,8 @@ static inline const char * ic_status_to_string(ic_status_t s)
         CASE(UNIMPLEMENTED);
         CASE(SERVER_ERROR);
         CASE(PROXY_ERROR);
+        CASE(TIMEDOUT);
+        CASE(CANCELED);
       default:
         return "UNKNOWN";
     }
