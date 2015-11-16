@@ -2700,7 +2700,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
         }
 
         if (!qps_map_is_pg(map) || qps_map_pg_is_all_free(qps, map)) {
-            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+            munmap(map, QPS_MAP_SIZE);
             goto next;
         }
 
@@ -2716,7 +2716,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                      map->hdr.mapno, generation);
             x_linkat(qps->dfd, src, qps->dfd, dst, 0);
         }
-        madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+        munmap(map, QPS_MAP_SIZE);
 
       next:
         lp_gettv(&end);
@@ -2779,7 +2779,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     struct timeval step_madvise, step_end;
     uint32_t  rec_pos;
     qv_t(u32) t;
-    thr_syn_t madvise_syn;
 
     assert (qps->snapshotting == false);
 
@@ -2809,12 +2808,14 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     rec_pos = t.len;
     qv_append(u32, &t, 0);
 
-    thr_syn_init(&madvise_syn);
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
+        qps_pghdr_t *hdrs;
 
-        if (!map)
+        if (!map) {
             continue;
+        }
+
         assert (QPS_GEN_CMP(qps->snap_gen, >=, map->hdr.generation));
         qps_map_protect(map, PROT_READ);
 
@@ -2839,18 +2840,15 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         qv_append(u32, &t, i | QPS_META_MAP_PAGED);
         qv_append(u32, &t, 0);
 
-        thr_syn_schedule_b(&madvise_syn, ^{
-            qps_pghdr_t  *hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
+        hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
+        for (size_t pg = 1; pg < QPS_MAP_PAGES; pg += hdrs[pg].size) {
+            uint16_t sz = hdrs[pg].size;
 
-            for (size_t pg = 1; pg < QPS_MAP_PAGES; pg += hdrs[pg].size) {
-                uint16_t sz = hdrs[pg].size;
-
-                assert (sz >= 1 && pg + sz <= QPS_MAP_PAGES);
-                if (hdrs[pg].flags & QPS_BLK_FREE) {
-                    madvise(&map[pg], sz * QPS_PAGE_SIZE, MADV_DONTNEED);
-                }
+            assert (sz >= 1 && pg + sz <= QPS_MAP_PAGES);
+            if (hdrs[pg].flags & QPS_BLK_FREE) {
+                madvise(&map[pg], sz * QPS_PAGE_SIZE, MADV_DONTNEED);
             }
-        });
+        }
     }
     t.tab[rec_pos] = (t.len - rec_pos) / 2;
 
@@ -2865,8 +2863,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     }, NULL);
     el_unref(qps->snap_timer_el);
 
-    thr_syn_wait(&madvise_syn);
-    thr_syn_wipe(&madvise_syn);
     lp_gettv(&step_end);
     logger_trace(&_G.logger, 1, "snapshot: mmaps setup in %jd msec, "
                  "scheduled in %jd msec",
