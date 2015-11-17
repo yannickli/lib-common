@@ -546,6 +546,10 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 
     ev->child.pid = pid;
 
+    if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
+        ASSERT("pid is already watched", false);
+    }
+
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
 
@@ -562,10 +566,6 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
     if (unlikely(!hooked)) {
         hooked = true;
         el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
-    }
-
-    if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
-        ASSERT("pid is already watched", false);
     }
 
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
