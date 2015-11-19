@@ -46,6 +46,8 @@ struct rlimit fd_limit_g;
  *
  */
 
+/* {{{ Type declarations */
+
 typedef enum ev_type_t {
     EV_UNUSED,
     EV_BLOCKER,
@@ -148,6 +150,8 @@ qvector_t(ev, ev_t *);
 qhp_min_t(timer, ev_t *, TIMER_CMP, ev_set_qhp_pos);
 qm_k32_t(ev_assoc, ev_t *);
 qm_k64_t(ev, ev_t *);
+
+/* }}} */
 
 static struct {
     volatile uint32_t gotsigs;
@@ -333,7 +337,7 @@ static void ev_list_process(dlist_t *l)
     }
 }
 
-/*----- blockers, before and idle events -----*/
+/* {{{ blockers, before and idle events */
 
 ev_t *el_blocker_register(void)
 {
@@ -431,7 +435,8 @@ static void el_idle_process(uint64_t now)
     }
 }
 
-/*----- signal events -----*/
+/* }}} */
+/* {{{ signal events */
 
 static void el_sighandler(int signum)
 {
@@ -509,7 +514,8 @@ data_t el_signal_unregister(ev_t **evp)
     return (data_t)NULL;
 }
 
-/*----- child events -----*/
+/* }}} */
+/* {{{ child events */
 
 static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
 {
@@ -638,8 +644,9 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
     return pid;
 }
 
+/* }}} */
+/* {{{ timer events */
 
-/*----- timer events -----*/
 /*
  * timers are extremely efficient, and use a binary-min-heap as a base
  * structure.
@@ -836,7 +843,8 @@ bool el_timer_is_repeated(el_t ev)
     return ev->timer.repeat > 0;
 }
 
-/*----- fd events -----*/
+/* }}} */
+/* {{{ fd events */
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 {
@@ -1025,7 +1033,8 @@ static void el_fd_process_fired(void)
     }
 }
 
-/*----- proxies events  -----*/
+/* }}} */
+/* {{{ proxies events */
 
 ev_t *el_proxy_register_d(el_proxy_f *cb, data_t priv)
 {
@@ -1118,8 +1127,9 @@ static void el_loop_proxies(void)
     }
 }
 
+/* }}} */
+/* {{{ fs watch events */
 
-/*----- fs watch  ------*/
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 
@@ -1310,10 +1320,10 @@ const char *el_fs_watch_get_path(el_t el)
     return el->fs_watch.path;
 }
 
-
 #endif
 
-/*----- generic functions  -----*/
+/* }}} */
+/* {{{ generic functions */
 
 el_worker_f *el_set_worker(el_worker_f *worker)
 {
@@ -1476,6 +1486,9 @@ bool el_has_pending_events(void)
         || el_fds_has_pending_events();
 }
 
+/* }}} */
+/* {{{ el blocking summary dumper */
+
 #ifndef NDEBUG
 static lstr_t ev_type_to_str(ev_type_t type)
 {
@@ -1592,6 +1605,8 @@ hook_sigpwr(void)
 #endif
 }
 #endif
+
+/* }}} */
 
 /**\}*/
 /* Module {{{ */
