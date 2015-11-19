@@ -68,6 +68,8 @@ enum ev_flags_t {
 
     EV_FLAG_FD_WATCHED    = (1U <<  8),
     EV_FLAG_FD_FIRED      = (1U <<  9),
+
+    EV_FLAG_FSW_ACTIVE    = (1U <<  8),
 #define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
 #define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
 #define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
@@ -1030,6 +1032,45 @@ static void el_loop_proxies(void)
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 
+static void inotify_shutdown(void)
+{
+    assert (qm_len(ev, &_G.fs_watches) == 0);
+
+    if (_G.inotify_fd == -1) {
+        assert (_G.fs_watch == NULL);
+        return;
+    }
+
+    el_fd_unregister(&_G.fs_watch, true);
+    _G.inotify_fd = -1;
+    qm_wipe(ev, &_G.fs_watches);
+    qm_init(ev, &_G.fs_watches, false);
+}
+
+static el_data_t el_fs_watch_disable(ev_t **evp, bool unregister)
+{
+    if (EV_FLAG_HAS(*evp, FSW_ACTIVE)) {
+        ev_t *ev = *evp;
+
+        if (unregister) {
+            inotify_rm_watch(_G.inotify_fd, ev->fs_watch.wd);
+        } else {
+            e_notice("watched object `%s` disapeared", ev->fs_watch.path);
+        }
+
+        EV_FLAG_RST(ev, FSW_ACTIVE);
+        *evp = NULL;
+        if (!EV_FLAG_HAS(ev, IS_BLK)) {
+            return ev->priv;
+        }
+    } else {
+        /* watcher removed due to file deletion  */
+        p_delete(&(*evp)->fs_watch.path);
+        return el_destroy(evp, false);
+    }
+    return (el_data_t)NULL;
+}
+
 static int inotify_cb(el_t el, int fd, short flags, data_t data)
 {
     byte buf[sizeof(struct inotify_event) + NAME_MAX + 1];
@@ -1077,20 +1118,32 @@ static int inotify_cb(el_t el, int fd, short flags, data_t data)
                 continue;
             }
 
-            if (e->len) {
-                /* XXX We cannot use e->len - 1 as the string length because
-                 *     e->name can be padded by several null bytes
-                 */
-                name = LSTR_STR_V(e->name);
-            }
-
             wel = _G.fs_watches.values[pos];
             assert (wel->fs_watch.wd == e->wd);
-            if (EV_FLAG_HAS(wel, IS_BLK)) {
-                wel->cb.fs_watch_blk(wel, e->mask, e->cookie, name);
-            } else {
-                (*wel->cb.fs_watch)(wel, e->mask, e->cookie, name, wel->priv);
+            if (e->mask & IN_IGNORED) {
+                /* watcher deleted */
+                qm_del_key(ev, &_G.fs_watches, wel->fs_watch.wd);
+                el_fs_watch_disable(&wel, false);
+            } else
+            if (EV_FLAG_HAS(wel, FSW_ACTIVE)) {
+                if (e->len) {
+                    /* XXX We cannot use e->len - 1 as the string length
+                     *     because e->name can be padded by several null bytes
+                     */
+                    name = LSTR_STR_V(e->name);
+                }
+
+                if (EV_FLAG_HAS(wel, IS_BLK)) {
+                    wel->cb.fs_watch_blk(wel, e->mask, e->cookie, name);
+                } else {
+                    (*wel->cb.fs_watch)(wel, e->mask, e->cookie, name,
+                                        wel->priv);
+                }
             }
+        }
+        if (qm_len(ev, &_G.fs_watches) == 0) {
+            inotify_shutdown();
+            return 0;
         }
     }
 }
@@ -1110,21 +1163,6 @@ static void inotify_initialize(void)
     }
 }
 
-static void inotify_shutdown(void)
-{
-    assert (qm_len(ev, &_G.fs_watches) == 0);
-
-    if (_G.inotify_fd == -1) {
-        assert (_G.fs_watch == NULL);
-        return;
-    }
-
-    el_fd_unregister(&_G.fs_watch, true);
-    _G.inotify_fd = -1;
-    qm_wipe(ev, &_G.fs_watches);
-    qm_init(ev, &_G.fs_watches, false);
-}
-
 el_t el_fs_watch_register_d(const char *path, uint32_t flags,
                             el_fs_watch_f *cb, data_t priv)
 {
@@ -1142,6 +1180,7 @@ el_t el_fs_watch_register_d(const char *path, uint32_t flags,
     ev = el_create(EV_FS_WATCH, cb, priv, true);
     ev->fs_watch.path = p_strdup(path);
     ev->fs_watch.wd   = wd;
+    EV_FLAG_SET(ev, FSW_ACTIVE);
     _G.fs_watches.keys[pos] = wd;
     _G.fs_watches.values[pos] = ev;
     return ev;
@@ -1159,13 +1198,7 @@ data_t el_fs_watch_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_FS_WATCH);
-        p_delete(&(*evp)->fs_watch.path);
-        inotify_rm_watch(_G.inotify_fd, (*evp)->fs_watch.wd);
-        qm_del_key(ev, &_G.fs_watches, (*evp)->fs_watch.wd);
-        if (qm_len(ev, &_G.fs_watches) == 0) {
-            inotify_shutdown();
-        }
-        return el_destroy(evp, false);
+        return el_fs_watch_disable(evp, true);
     }
     return (data_t)NULL;
 }
@@ -1682,6 +1715,52 @@ Z_GROUP_EXPORT(el)
         el_fs_watch_unregister(&watch);
     } Z_TEST_END;
 #endif
+
+    Z_TEST(fs_watch_delete, "el: inotify file unregister handling") {
+        t_scope;
+        el_t watch;
+        el_t dummy_watch;
+        int fd;
+        int called = 0;
+        int dummy_called = 0;
+        char *filename  = t_fmt(NULL, "%*pM/blah", LSTR_FMT_ARG(z_grpdir_g));
+        char *dummy = t_fmt(NULL, "%*pM/dummy", LSTR_FMT_ARG(z_grpdir_g));
+
+        /* Create 2 file */
+        fd = open(filename, O_CREAT, 0660);
+        close(fd);
+        fd = open(dummy, O_CREAT, 0660);
+        close(fd);
+
+        /* Add watch descriptors */
+        watch = el_fs_watch_register(filename, IN_ALL_EVENTS, fs_notify,
+                                     &called);
+        dummy_watch = el_fs_watch_register(dummy, IN_ALL_EVENTS, fs_notify,
+                                           &dummy_called);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 0);
+
+        /* Send 3 events */
+        fd = open(filename, O_WRONLY, 0660);
+        Z_ASSERT_N(write(fd, "coucou", strlen("coucou")));
+        close(fd);
+
+        /* Unregister watch */
+        el_fs_watch_unregister(&watch);
+
+        /* We get a panic here if the watcher removal isn't delayed */
+        el_loop_timeout(100);
+
+        Z_ASSERT_EQ(called, 0);
+
+        unlink(filename);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 0);
+
+        el_fs_watch_unregister(&dummy_watch);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(dummy_called, 0);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
