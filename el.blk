@@ -1546,7 +1546,11 @@ static void el_print_state(void)
 
             qv_append(lstr, tab, t_lstr_fmt("%p", ev));
             qv_append(lstr, tab, ev_type_to_str(ev->type));
-            qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
+            if (ev->flags & EV_FLAG_IS_BLK) {
+                qv_append(lstr, tab, LSTR("block"));
+            } else {
+                qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
+            }
             qv_append(lstr, tab, t_lstr_fmt("%p", ev->priv.ptr));
 
             switch (ev->type) {
