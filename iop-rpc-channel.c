@@ -14,6 +14,7 @@
 #include "log.h"
 #include "unix.h"
 #include "iop-rpc.h"
+#include "str-buf-pp.h"
 
 /* IC_MSG_STREAM_CONTROL messages uses the "slot" to encode the command.
  */
@@ -122,6 +123,115 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc)
 #endif
 
 /* }}} */
+/* {{{ State dumper */
+
+static lstr_t ev_priority_to_str(ev_priority_t prio)
+{
+    switch (prio) {
+      case EV_PRIORITY_LOW:    return LSTR("low");
+      case EV_PRIORITY_NORMAL: return LSTR("normal");
+      case EV_PRIORITY_HIGH:   return LSTR("high");
+    }
+    assert (false);
+    return LSTR_NULL_V;
+}
+
+static void ic_print_state(void)
+{
+    t_scope;
+    SB_1k(buf);
+    qv_t(table_hdr) hdr;
+    qv_t(table_data) rows;
+    table_hdr_t hdr_data[] = { {
+            .title = LSTR_IMMED("ICHANNEL"),
+        }, {
+            .title = LSTR_IMMED("ELH"),
+        }, {
+            .title = LSTR_IMMED("KIND"),
+        }, {
+            .title = LSTR_IMMED("ADDRESS"),
+        }, {
+            .title = LSTR_IMMED("FLAGS"),
+        }, {
+            .title = LSTR_IMMED("PRIORITY"),
+        }, {
+            .title = LSTR_IMMED("NEXT SLOT"),
+        }, {
+            .title = LSTR_IMMED("PENDING QUERIES"),
+        }
+    };
+    uint32_t hdr_size = countof(hdr_data);
+
+    qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
+    t_qv_init(table_data, &rows, 200);
+
+    qm_for_each_pos(ic, pos, &_G.ics) {
+        t_SB(flags, 64);
+        ichannel_t *ic = _G.ics.values[pos];
+        qv_t(lstr) *tab = qv_growlen(table_data, &rows, 1);
+        lstr_t addr;
+
+        t_qv_init(lstr, tab, hdr_size);
+
+        qv_append(lstr, tab, t_lstr_fmt("%d / %p", ic->id, ic));
+        qv_append(lstr, tab, t_lstr_fmt("%p", ic->elh));
+
+        if (ic->is_local) {
+            qv_append(lstr, tab, LSTR("local"));
+        } else
+        if (ic->is_spawned) {
+            qv_append(lstr, tab, LSTR("server"));
+        } else {
+            qv_append(lstr, tab, LSTR("client"));
+        }
+
+        if (ic->is_local) {
+            addr = LSTR("-");
+        } else
+        if (ic->is_spawned) {
+            addr = ic_get_client_addr(ic);
+            addr = t_lstr_fmt("peer: %*pM", LSTR_FMT_ARG(addr));
+        } else {
+            addr = t_addr_fmt_lstr(&ic->su);
+        }
+        qv_append(lstr, tab, addr);
+
+#define ADD_FLAG(_field, _str)                                               \
+        do {                                                                 \
+            if (ic->_field) {                                                \
+                if (flags.len) {                                             \
+                    sb_adds(&flags, ", ");                                   \
+                }                                                            \
+                sb_adds(&flags, _str);                                       \
+            }                                                                \
+        } while (0)
+
+        ADD_FLAG(is_trusted,   "trusted");
+        ADD_FLAG(is_closing,   "closing");
+        ADD_FLAG(no_autodel,   "no autodel");
+        ADD_FLAG(is_stream,    "stream");
+        ADD_FLAG(auto_reconn,  "auto reconn");
+        ADD_FLAG(do_el_unref,  "do el_unref");
+        ADD_FLAG(cancel_guard, "cancel guard");
+        ADD_FLAG(queuable,     "queuable");
+        ADD_FLAG(is_wiped,     "wiped");
+        assert (!ic->is_wiped);
+
+        qv_append(lstr, tab, LSTR_SB_V(&flags));
+#undef ADD_FLAG
+
+        qv_append(lstr, tab, ev_priority_to_str(ic->priority));
+        qv_append(lstr, tab, t_lstr_fmt("%u", ic->nextslot));
+        qv_append(lstr, tab, t_lstr_fmt("%d", qm_len(ic_msg, &ic->queries)));
+    }
+
+    sb_adds(&buf, "ichannels summary:\n");
+    sb_add_table(&buf, &hdr, &rows);
+    sb_shrink(&buf, 1);
+    logger_notice(&_G.logger, "%*pM", SB_FMT_ARG(&buf));
+}
+
+/* }}} */
 /* {{{ init/shutdown */
 
 static int ic_initialize(void *arg)
@@ -145,6 +255,7 @@ static int ic_shutdown(void)
 
 MODULE_BEGIN(ic)
     MODULE_DEPENDS_ON(el);
+    MODULE_IMPLEMENTS_VOID(print_state, &ic_print_state);
 MODULE_END()
 
 /* }}}*/
