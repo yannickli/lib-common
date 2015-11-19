@@ -1489,7 +1489,6 @@ bool el_has_pending_events(void)
 /* }}} */
 /* {{{ el blocking summary dumper */
 
-#ifndef NDEBUG
 static lstr_t ev_type_to_str(ev_type_t type)
 {
     switch (type) {
@@ -1507,7 +1506,7 @@ static lstr_t ev_type_to_str(ev_type_t type)
     return LSTR("unknown");
 }
 
-static void el_show_blockers(el_t evh, int signo, data_t priv)
+static void el_print_state(void)
 {
     t_scope;
     qv_t(table_hdr) hdr;
@@ -1595,21 +1594,15 @@ static void el_show_blockers(el_t evh, int signo, data_t priv)
     }
 }
 
-static __attribute__((constructor)) void
-hook_sigpwr(void)
-{
-#if defined(SIGPWR)
-    el_signal_register(SIGPWR, el_show_blockers, NULL);
-#else
-    el_signal_register(SIGINFO, el_show_blockers, NULL);
-#endif
-}
-#endif
-
 /* }}} */
 
 /**\}*/
 /* Module {{{ */
+
+static void el_on_pwr(el_t evh, int signo, data_t priv)
+{
+    MODULE_METHOD_RUN_VOID(print_state);
+}
 
 static int el_initialize(void *arg)
 {
@@ -1643,6 +1636,13 @@ static int el_initialize(void *arg)
     if (!is_fd_open(STDERR_FILENO)) {
         dup2(STDOUT_FILENO, STDERR_FILENO);
     }
+
+#if defined(SIGPWR)
+    el_signal_register(SIGPWR, el_on_pwr, NULL);
+#else
+    el_signal_register(SIGINFO, el_on_pwr, NULL);
+#endif
+
     return 0;
 }
 
@@ -1681,6 +1681,7 @@ static void el_at_fork_on_child(void)
 }
 
 module_t *MODULE(el);
+MODULE_METHOD(VOID, DEPS_BEFORE, print_state);
 
 __attribute__((constructor))
 static void el_module_register(void)
@@ -1692,6 +1693,8 @@ static void el_module_register(void)
                                  NULL, 0);
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
+    module_implement_method(MODULE(el), &print_state_method,
+                            &el_print_state);
     MODULE_REQUIRE(el);
 
     /* Check that the $HOME environment variable is set. */
