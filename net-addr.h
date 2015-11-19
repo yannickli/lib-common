@@ -68,7 +68,7 @@ static inline void sockunion_setport(sockunion_t *su, int port)
     }
 }
 
-/** Convert IPv4 and IPv6 addresses into a string
+/** Convert IPv4 and IPv6 addresses into a string.
  *
  * This function is a helper that call inet_ntop() with appropriate arguments
  * according to "su->family" value.
@@ -116,10 +116,9 @@ uint32_t sockunion_hash(const sockunion_t *su);
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
 int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
 
-/** Convert TCP/IPv4 and TCP/IPv6 into a string
+/** Convert a TCP/IPv4, TCP/IPv6 or UNIX address into a string.
  *
- * String is formatted with the IP address and the TCP port using the
- * following convention:
+ * Examples:
  *
  * IPv4:
  *    x.x.x.x:port
@@ -127,12 +126,15 @@ int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
  * IPv6:
  *    [x:x:x:x:x:x:x:x]:port
  *
+ * UNIX:
+ *    @/var/run/zpf-master.ctl
+ *
  * \param[in]  su    sockunion filled with a network address
  * \param[out] slen  length of the formatted string
  *
  * \return string allocated in t_stack
  */
-char *t_addr_fmt(const sockunion_t *su, int *slen);
+const char *t_addr_fmt(const sockunion_t *su, int *slen);
 static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
 {
     int len;
