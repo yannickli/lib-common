@@ -1534,7 +1534,7 @@ Z_GROUP_EXPORT(el)
 
         /* Send 3 events */
         fd = open(filename, O_WRONLY, 0660);
-        write(fd, "coucou", strlen("coucou"));
+        Z_ASSERT_N(write(fd, "coucou", strlen("coucou")));
         close(fd);
 
         /* Unregister watch */
