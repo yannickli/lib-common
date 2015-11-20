@@ -157,7 +157,7 @@ $4: $3
 	mkdir -p $$(@D)/javatmp/$$(CLASSNAME_)
 	$(msg/COMPILE.java) $3
 	javac -classpath "$$($1_CLASSPATH):$(1DV)" -d $$(@D)/javatmp/$$(CLASSNAME_) $$<
-	cp $$(@D)/javatmp/$$(CLASSNAME_)/*.class $$(@D)
+	cp $$(@D)/javatmp/$$(CLASSNAME_)/$$(CLASSNAME_)*.class $$(@D)
 
 $2: $4
 endef
