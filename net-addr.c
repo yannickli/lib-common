@@ -131,27 +131,58 @@ int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport)
     return ps_done(&ps) ? 0 : -1;
 }
 
-char *t_addr_fmt(const sockunion_t *su, int *slen)
+const char *t_addr_fmt(const sockunion_t *su, int *slen)
 {
-    int   len = MAX(INET_ADDRSTRLEN, 2 + INET6_ADDRSTRLEN) + 1 + 5;
-    char *buf = t_new(char, len);
-    int   pos;
+    char buf[BUFSIZ];
+    size_t pos;
 
-    if (su->family == AF_INET) {
-        inet_ntop(AF_INET, &su->sin.sin_addr.s_addr, buf, len);
+    switch (su->family) {
+      case AF_INET:
+        inet_ntop(AF_INET, &su->sin.sin_addr.s_addr, buf, sizeof(buf));
         pos = strlen(buf);
-    } else {
+        break;
+
+      case AF_INET6:
         buf[0] = '[';
-        inet_ntop(AF_INET6, &su->sin6.sin6_addr.s6_addr, buf + 1, len - 1);
+        inet_ntop(AF_INET6, &su->sin6.sin6_addr.s6_addr,
+                  buf + 1, sizeof(buf) - 1);
         pos = strlen(buf);
         buf[pos++] = ']';
+        break;
+
+      case AF_UNIX: {
+        lstr_t res;
+
+        if (su->sunix.sun_path[0] == '\0') {
+            if (su->sunix.sun_path[1] == '\0') {
+                res = LSTR("unknown unix socket");
+            } else {
+                res = t_lstr_fmt("@%s", su->sunix.sun_path + 1);
+            }
+        } else {
+            res = LSTR(su->sunix.sun_path);
+        }
+        if (slen) {
+            *slen = res.len;
+        }
+        return res.s;
+      }
+
+      default:
+        if (slen) {
+            *slen = 0;
+        }
+        return "";
     }
-    assert (pos < len);
-    pos += snprintf(buf + pos, len - pos, ":%d", sockunion_getport(su));
-    assert (pos <= len);
-    if (slen)
+
+    /* Add port for AF_INET and AF_INET6. */
+    assert (pos < sizeof(buf));
+    pos += snprintf(buf + pos, sizeof(buf) - pos, ":%d",
+                    sockunion_getport(su));
+    if (slen) {
         *slen = pos;
-    return buf;
+    }
+    return t_dupz(buf, pos);
 }
 
 int addr_info(sockunion_t *su, sa_family_t af, pstream_t host, in_port_t port)

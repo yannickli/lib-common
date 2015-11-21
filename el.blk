@@ -16,6 +16,7 @@
 #include "container-qheap.h"
 #include "container-qhash.h"
 #include "datetime.h"
+#include "str-buf-pp.h"
 #include "log.h"
 #include "el.h"
 
@@ -44,6 +45,8 @@ struct rlimit fd_limit_g;
  *   + implement a windows port.
  *
  */
+
+/* {{{ Type declarations */
 
 typedef enum ev_type_t {
     EV_UNUSED,
@@ -147,6 +150,8 @@ qvector_t(ev, ev_t *);
 qhp_min_t(timer, ev_t *, TIMER_CMP, ev_set_qhp_pos);
 qm_k32_t(ev_assoc, ev_t *);
 qm_k64_t(ev, ev_t *);
+
+/* }}} */
 
 static struct {
     volatile uint32_t gotsigs;
@@ -332,7 +337,7 @@ static void ev_list_process(dlist_t *l)
     }
 }
 
-/*----- blockers, before and idle events -----*/
+/* {{{ blockers, before and idle events */
 
 ev_t *el_blocker_register(void)
 {
@@ -430,7 +435,8 @@ static void el_idle_process(uint64_t now)
     }
 }
 
-/*----- signal events -----*/
+/* }}} */
+/* {{{ signal events */
 
 static void el_sighandler(int signum)
 {
@@ -508,7 +514,8 @@ data_t el_signal_unregister(ev_t **evp)
     return (data_t)NULL;
 }
 
-/*----- child events -----*/
+/* }}} */
+/* {{{ child events */
 
 static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
 {
@@ -637,8 +644,9 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
     return pid;
 }
 
+/* }}} */
+/* {{{ timer events */
 
-/*----- timer events -----*/
 /*
  * timers are extremely efficient, and use a binary-min-heap as a base
  * structure.
@@ -835,7 +843,8 @@ bool el_timer_is_repeated(el_t ev)
     return ev->timer.repeat > 0;
 }
 
-/*----- fd events -----*/
+/* }}} */
+/* {{{ fd events */
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 {
@@ -1024,7 +1033,8 @@ static void el_fd_process_fired(void)
     }
 }
 
-/*----- proxies events  -----*/
+/* }}} */
+/* {{{ proxies events */
 
 ev_t *el_proxy_register_d(el_proxy_f *cb, data_t priv)
 {
@@ -1117,8 +1127,9 @@ static void el_loop_proxies(void)
     }
 }
 
+/* }}} */
+/* {{{ fs watch events */
 
-/*----- fs watch  ------*/
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 
@@ -1309,10 +1320,10 @@ const char *el_fs_watch_get_path(el_t el)
     return el->fs_watch.path;
 }
 
-
 #endif
 
-/*----- generic functions  -----*/
+/* }}} */
+/* {{{ generic functions */
 
 el_worker_f *el_set_worker(el_worker_f *worker)
 {
@@ -1475,84 +1486,127 @@ bool el_has_pending_events(void)
         || el_fds_has_pending_events();
 }
 
-#ifndef NDEBUG
-static const char *ev_type_to_str(ev_type_t type)
+/* }}} */
+/* {{{ el blocking summary dumper */
+
+static lstr_t ev_type_to_str(ev_type_t type)
 {
     switch (type) {
-      case EV_UNUSED:   return "unused";
-      case EV_BLOCKER:  return "blocker";
-      case EV_BEFORE:   return "before loop";
-      case EV_SIGNAL:   return "signal";
-      case EV_CHILD:    return "child";
-      case EV_FD:       return "file desc.";
-      case EV_TIMER:    return "timer";
-      case EV_PROXY:    return "proxy";
-      case EV_IDLE:     return "idle";
-      case EV_FS_WATCH: return "fs watch";
+      case EV_UNUSED:   return LSTR("unused");
+      case EV_BLOCKER:  return LSTR("blocker");
+      case EV_BEFORE:   return LSTR("before loop");
+      case EV_SIGNAL:   return LSTR("signal");
+      case EV_CHILD:    return LSTR("child");
+      case EV_FD:       return LSTR("file desc.");
+      case EV_TIMER:    return LSTR("timer");
+      case EV_PROXY:    return LSTR("proxy");
+      case EV_IDLE:     return LSTR("idle");
+      case EV_FS_WATCH: return LSTR("fs watch");
     }
-    return "unknown";
+    return LSTR("unknown");
 }
 
-static void el_show_blockers(el_t evh, int signo, data_t priv)
+static void el_print_state(void)
 {
-    e_trace(0, "el blocking summary");
-    e_trace(0, "===================");
+    t_scope;
+    qv_t(table_hdr) hdr;
+    qv_t(table_data) rows;
+    table_hdr_t hdr_data[] = { {
+            .title = LSTR_IMMED("EV POINTER"),
+        }, {
+            .title = LSTR_IMMED("TYPE"),
+        }, {
+            .title = LSTR_IMMED("CALLBACK"),
+        }, {
+            .title = LSTR_IMMED("DATA"),
+        }, {
+            .title = LSTR_IMMED("DETAILS"),
+            .omit_if_empty = true,
+        }
+    };
+    uint32_t hdr_size = countof(hdr_data);
+
+    qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
+    t_qv_init(table_data, &rows, 200);
 
     for (int i = 0; i < _G.evs_len; i++) {
         int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
 
         for (int j = 0; j < bucket_len; j++) {
+            qv_t(lstr) *tab;
             ev_t *ev = &_G.evs[i][j];
+            lstr_t details = LSTR_NULL_V;
 
-            if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS))
+            if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS)) {
                 continue;
+            }
 
-            e_trace_start(0, "ev %p │ cb %p │ data %p │ type %d %s",
-                          ev, (void *)ev->cb.cb, ev->priv.ptr, ev->type,
-                          ev_type_to_str(ev->type));
+            tab = qv_growlen(table_data, &rows, 1);
+            t_qv_init(lstr, tab, hdr_size);
+
+            qv_append(lstr, tab, t_lstr_fmt("%p", ev));
+            qv_append(lstr, tab, ev_type_to_str(ev->type));
+            if (ev->flags & EV_FLAG_IS_BLK) {
+                qv_append(lstr, tab, LSTR("block"));
+            } else {
+                qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
+            }
+            qv_append(lstr, tab, t_lstr_fmt("%p", ev->priv.ptr));
 
             switch (ev->type) {
               case EV_SIGNAL:
-                e_trace_end(0, ":%d", ev->signo);
+                details = t_lstr_fmt("signal: %d", ev->signo);
                 break;
               case EV_CHILD:
-                e_trace_end(0, ":%d", ev->child.pid);
+                details = t_lstr_fmt("pid: %d", ev->child.pid);
                 break;
               case EV_FD:
-                e_trace_end(0, ":%d (%04x)", ev->fd, ev->events_wanted);
+                details = t_lstr_fmt("fd: %d, events: %04x",
+                                     ev->fd, ev->events_wanted);
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat < 0) {
-                    e_trace_end(0, " one shot @%ju", ev->timer.expiry / 1000);
+                    details = t_lstr_fmt("one shot, expiry: %ju)",
+                                         ev->timer.expiry / 1000);
                 } else {
-                    e_trace_end(0, " repeat:%dms next @%ju", ev->timer.repeat,
-                                ev->timer.expiry / 1000);
+                    details = t_lstr_fmt("repeat: %dms, next: %ju",
+                                         ev->timer.repeat,
+                                         ev->timer.expiry / 1000);
                 }
                 break;
               case EV_PROXY:
-                e_trace_end(0, ":(w:%04x a:%04x)", ev->events_wanted, ev->events_avail);
+                details = t_lstr_fmt("events wanted:%04x, "
+                                     "events available: %04x",
+                                     ev->events_wanted, ev->events_avail);
                 break;
               default:
-                e_trace_end(0, "");
                 break;
             }
+            qv_append(lstr, tab, details);
         }
+    }
+
+    if (rows.len) {
+        SB_1k(buf);
+
+        sb_adds(&buf, "el blocking summary:\n");
+        sb_add_table(&buf, &hdr, &rows);
+        sb_shrink(&buf, 1);
+        logger_notice(&_G.logger, "%*pM", SB_FMT_ARG(&buf));
+    } else {
+        logger_notice(&_G.logger, "no blocking event");
     }
 }
 
-static __attribute__((constructor)) void
-hook_sigpwr(void)
-{
-#if defined(SIGPWR)
-    el_signal_register(SIGPWR, el_show_blockers, NULL);
-#else
-    el_signal_register(SIGINFO, el_show_blockers, NULL);
-#endif
-}
-#endif
+/* }}} */
 
 /**\}*/
 /* Module {{{ */
+
+static void el_on_pwr(el_t evh, int signo, data_t priv)
+{
+    MODULE_METHOD_RUN_VOID(print_state);
+}
 
 static int el_initialize(void *arg)
 {
@@ -1586,6 +1640,13 @@ static int el_initialize(void *arg)
     if (!is_fd_open(STDERR_FILENO)) {
         dup2(STDOUT_FILENO, STDERR_FILENO);
     }
+
+#if defined(SIGPWR)
+    el_signal_register(SIGPWR, el_on_pwr, NULL);
+#else
+    el_signal_register(SIGINFO, el_on_pwr, NULL);
+#endif
+
     return 0;
 }
 
@@ -1624,6 +1685,7 @@ static void el_at_fork_on_child(void)
 }
 
 module_t *MODULE(el);
+MODULE_METHOD(VOID, DEPS_BEFORE, print_state);
 
 __attribute__((constructor))
 static void el_module_register(void)
@@ -1635,6 +1697,8 @@ static void el_module_register(void)
                                  NULL, 0);
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
+    module_implement_method(MODULE(el), &print_state_method,
+                            &el_print_state);
     MODULE_REQUIRE(el);
 
     /* Check that the $HOME environment variable is set. */

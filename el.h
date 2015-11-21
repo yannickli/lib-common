@@ -338,5 +338,12 @@ bool el_has_pending_events(void);
 
 MODULE_DECLARE(el);
 
+/** Print state method.
+ *
+ * This method is called when receiving a SIGPWR signal, so that any module
+ * can print relevant information about its internal state (using loggers).
+ */
+MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, print_state);
+
 /* }}} */
 #endif
