@@ -12,7 +12,6 @@
 ##########################################################################
 
 import logging
-import common
 
 from logging import ERROR, WARNING, WARN, INFO, DEBUG, CRITICAL
 
@@ -37,33 +36,38 @@ class IntersecLogger(logging.Logger):
 
 class IntersecLogHandler(logging.Handler):
     '''subclass logging.Handler:
-         redefine the emit method by calling python binding of common e_log
+         redefine the emit method by calling python binding of our logger
          add two levels
        => in this way, when you use a logger with this handle:
-          "LOGGER.error" called lib-common "e_error" method etc...
+          "LOGGER.error" calls lib-common "logger_error" method etc...
     '''
-    level_map = {
-        DEBUG:    common.LOG_DEBUG,
-        INFO:     common.LOG_INFO,
-        NOTICE:   common.LOG_NOTICE,
-        WARNING:  common.LOG_WARNING,
-        WARN:     common.LOG_WARNING,
-        ERROR:    common.LOG_ERR,
-        CRITICAL: common.LOG_CRIT,
-        PANIC:    common.LOG_PANIC,
-    }
+
+    def __init__(self, name, parent=None, silent=False, common=None):
+        if not common:
+            import common
+        logging.Handler.__init__(self)
+        self.logger = common.Logger(parent, name, silent)
+        self.level_map = {
+            DEBUG:    common.LOG_DEBUG,
+            INFO:     common.LOG_INFO,
+            NOTICE:   common.LOG_NOTICE,
+            WARNING:  common.LOG_WARNING,
+            WARN:     common.LOG_WARNING,
+            ERROR:    common.LOG_ERR,
+            CRITICAL: common.LOG_CRIT,
+            PANIC:    common.LOG_PANIC,
+        }
 
     def emit(self, record):
-        level = self.level_map.get(record.levelno, common.LOG_ERR)
+        level = self.level_map.get(record.levelno)
         msg = self.format(record)
-        common.log(level, msg)
-
-MYHANDLER = IntersecLogHandler()
-LOGGER = IntersecLogger()
-LOGGER.addHandler(MYHANDLER)
+        self.logger.log(level, msg)
 
 #example
 if __name__ == "__main__":
+    MYHANDLER = IntersecLogHandler(name = 'intersec')
+    LOGGER = IntersecLogger()
+    LOGGER.addHandler(MYHANDLER)
     TMP = "arg"
     LOGGER.error("I m an error log")
     LOGGER.warning("I m not an error log, I m a warning log")

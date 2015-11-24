@@ -14,9 +14,9 @@
 #include <Python.h>
 #include "core.h"
 #include "http.h"
-#include "container-qvector.h"
 #include "el.h"
 #include "datetime.h"
+#include "log.h"
 #include "python-common.h"
 #include "core.iop.h"
 
@@ -648,31 +648,26 @@ static PyObject *loop(PyObject *self, PyObject *arg)
 
 /* }}} */
 /* }}} */
-/* {{{ log */
+/* {{{ logger */
 
-static PyObject *python_log(PyObject *self, PyObject *args)
+#define PY_LOG_PANIC  10
+
+typedef struct pylogger_object_t {
+    PyObject_HEAD
+    PyObject *fields;
+    logger_t *logger;
+} pylogger_object_t;
+
+static PyObject *pylogger_log(pylogger_object_t *self, PyObject *args)
 {
-    Py_ssize_t  args_len;
     const char *str = NULL;
     int         log_level;
 
-    if (args == NULL) {
-        e_error("no arguments passed to python log");
-        return Py_BuildValue("i", -1);
-    }
-
-    args_len = PyTuple_Size(args);
-    if (args_len != 2) {
-        e_error("not exactly two arguments passed to python log: %zd",
-               args_len);
-        return Py_BuildValue("i", -2);
-    }
-
     if (!PyArg_ParseTuple(args, "is", &log_level, &str)) {
-        e_error("failed to parse python log arguments");
-        return Py_BuildValue("i", -3);
+        PyErr_Format(PyExc_RuntimeError,
+                     "invalid argument, expect (log_level, message)");
+        return NULL;
     }
-
     switch (log_level) {
       case LOG_CRIT:
       case LOG_ERR:
@@ -680,20 +675,112 @@ static PyObject *python_log(PyObject *self, PyObject *args)
       case LOG_NOTICE:
       case LOG_INFO:
       case LOG_DEBUG:
-        e_log(log_level, "%s", str);
+        logger_log(self->logger, log_level, "%s", str);
         break;
 
-      case 10:
-        e_panic("%s", str);
+      case PY_LOG_PANIC:
+        logger_panic(self->logger, "%s", str);
         break;
 
       default:
-        e_error("this log level is not defined: %d", log_level);
-        return Py_BuildValue("i", -4);
-        break;
+        PyErr_Format(PyExc_RuntimeError, "invalid log level: %d", log_level);
+        return NULL;
     }
 
-    return Py_BuildValue("i", 0);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+pylogger_new(PyTypeObject *type, PyObject *args, PyObject *kw)
+{
+    pylogger_object_t *self;
+
+    self = (pylogger_object_t *)type->tp_alloc(type, 0);
+    return (PyObject *)self;
+}
+
+static int
+pylogger_init(pylogger_object_t *self, PyObject *args, PyObject *kw)
+{
+    t_scope;
+    logger_t *parent_logger = NULL;
+    lstr_t parent = LSTR_NULL;
+    lstr_t name = LSTR_NULL;
+    lstr_t fullname;
+    bool silent = false;
+
+    if (!PyArg_ParseTuple(args, "z#s#|I", &parent.s, &parent.len,
+                          &name.s, &name.len, &silent)) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "invalid arguments, expect (parent, name, [silent])");
+        return -1;
+    }
+
+    if (!name.len) {
+        PyErr_Format(PyExc_RuntimeError, "logger name cannot be empty");
+        return -1;
+    }
+
+    if (parent.len) {
+        parent_logger = logger_get_by_name(parent);
+        if (!parent_logger) {
+            PyErr_Format(PyExc_RuntimeError, "unknown parent logger `%s`",
+                         parent.s);
+            return -1;
+        }
+    }
+    if (parent_logger) {
+        fullname = t_lstr_fmt("%*pM/%*pM",
+                              LSTR_FMT_ARG(parent_logger->full_name),
+                              LSTR_FMT_ARG(name));
+    } else {
+        fullname = name;
+    }
+    if (logger_get_by_name(fullname)) {
+        PyErr_Format(PyExc_RuntimeError, "logger `%s` already exists",
+                     fullname.s);
+        return -1;
+    }
+    self->logger = logger_new(parent_logger, name, LOG_INHERITS,
+                              silent ? LOG_SILENT : 0);
+    return 0;
+}
+
+static void
+pylogger_dealloc(pylogger_object_t *self)
+{
+    logger_delete(&self->logger);
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static PyMethodDef pylogger_methods[] = {
+    {"log", (PyCFunction)pylogger_log, METH_VARARGS,
+        "log(level, message): emit a log using the specified log level"},
+    {NULL, NULL, 0, NULL}
+};
+
+PyDoc_STRVAR(pylogger_doc,
+"The goal of this class is to bind lib-common C logger to python.\n"
+"The class constructor takes 3 arguments:\n"
+"- parent: name of the parent logger, can be None\n"
+"- name: logger name,\n"
+"- silent: optional boolean to create silent logger\n");
+
+PyTypeObject pylogger_class = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name       = "common.Logger",
+    .tp_basicsize  = sizeof(pylogger_object_t),
+    .tp_flags      = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_methods    = pylogger_methods,
+    .tp_dealloc    = (destructor)pylogger_dealloc,
+    .tp_init       = (initproc)pylogger_init,
+    .tp_new        = pylogger_new,
+    .tp_doc        = pylogger_doc
+};
+
+PyTypeObject *pylogger_get_class(void)
+{
+    return &pylogger_class;
 }
 
 /* }}} */
@@ -714,12 +801,6 @@ PyDoc_STRVAR(commonmodule_doc,
 "callback with the server answer.");
 
 static PyMethodDef myModule_methods[] = {
-    {
-        "log",
-        python_log,
-        METH_VARARGS,
-        "python binding to e_log"
-    },
     {
         "http_initialize",
         (PyCFunction)python_http_initialize,
@@ -746,21 +827,32 @@ static PyMethodDef myModule_methods[] = {
     }
 };
 
-static void
-add_module_constant(PyObject *module, const char * constant_name, long value)
+void py_add_module_constant(PyObject *module, const char *constant_name,
+                            long value)
 {
-    PyObject *log_level_value = PyLong_FromLong(value);
-    PyObject_SetAttrString(module, constant_name, log_level_value);
-    Py_XDECREF(log_level_value);
+    PyObject *py_value = PyLong_FromLong(value);
+    PyObject_SetAttrString(module, constant_name, py_value);
+    Py_XDECREF(py_value);
 }
 
-qvector_t(PyMethodDef, PyMethodDef);
+void py_add_log_constants(PyObject *module)
+{
+    py_add_module_constant(module, "LOG_CRIT", LOG_CRIT);
+    py_add_module_constant(module, "LOG_ERR", LOG_ERR);
+    py_add_module_constant(module, "LOG_WARNING", LOG_WARNING);
+    py_add_module_constant(module, "LOG_NOTICE", LOG_NOTICE);
+    py_add_module_constant(module, "LOG_INFO", LOG_INFO);
+    py_add_module_constant(module, "LOG_DEBUG", LOG_DEBUG);
+    py_add_module_constant(module, "LOG_PANIC", PY_LOG_PANIC);
+}
 
 PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
 {
     PyObject *common_module;
     qv_t(PyMethodDef) vec;
     int pos = 0;
+
+    RETHROW_NP(PyType_Ready(&pylogger_class));
 
     qv_init(PyMethodDef, &vec);
     p_copy(qv_growlen(PyMethodDef, &vec, countof(myModule_methods)),
@@ -786,25 +878,21 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
     Py_XINCREF(http_build_part_error);
     PyModule_AddObject(common_module, "buildPartError", http_build_part_error);
 
-    add_module_constant(common_module, "LOG_CRIT", LOG_CRIT);
-    add_module_constant(common_module, "LOG_ERR", LOG_ERR);
-    add_module_constant(common_module, "LOG_WARNING", LOG_WARNING);
-    add_module_constant(common_module, "LOG_NOTICE", LOG_NOTICE);
-    add_module_constant(common_module, "LOG_INFO", LOG_INFO);
-    add_module_constant(common_module, "LOG_DEBUG", LOG_DEBUG);
-    add_module_constant(common_module, "LOG_PANIC", 10l);
+    Py_INCREF(&pylogger_class);
+    PyModule_AddObject(common_module, "Logger", (PyObject *)&pylogger_class);
 
-    add_module_constant(common_module, "HTTP_OK",
-                        PYTHON_HTTP_STATUS_OK);
-    add_module_constant(common_module, "HTTP_ERROR",
-                        PYTHON_HTTP_STATUS_ERROR);
-    add_module_constant(common_module, "HTTP_USERERROR",
-                        PYTHON_HTTP_STATUS_USERERROR);
-    add_module_constant(common_module, "HTTP_BUILD_QUERY_ERROR",
-                        PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR);
+
+    py_add_log_constants(common_module);
+    py_add_module_constant(common_module, "HTTP_OK",
+                           PYTHON_HTTP_STATUS_OK);
+    py_add_module_constant(common_module, "HTTP_ERROR",
+                           PYTHON_HTTP_STATUS_ERROR);
+    py_add_module_constant(common_module, "HTTP_USERERROR",
+                           PYTHON_HTTP_STATUS_USERERROR);
+    py_add_module_constant(common_module, "HTTP_BUILD_QUERY_ERROR",
+                           PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR);
 
     return common_module;
 }
 
 /* }}} */
-

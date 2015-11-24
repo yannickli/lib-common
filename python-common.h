@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include "core.h"
+#include "container-qvector.h"
 
 #if PY_MAJOR_VERSION >= 3
 #define IS_PY3K
@@ -29,7 +30,13 @@
 
 extern PyThreadState *python_state_g;
 
+qvector_t(PyMethodDef, PyMethodDef);
 PyObject *python_common_initialize(const char *name, PyMethodDef methods[]);
+
+void py_add_module_constant(PyObject *module, const char *constant_name,
+                            long value);
+PyTypeObject *pylogger_get_class(void);
+void py_add_log_constants(PyObject *module);
 
 /** Add a PyObject to a sb_t.
  *

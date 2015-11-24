@@ -203,6 +203,7 @@ GENERIC_DELETE(logger_t, logger)
 /* }}} */
 /* Private functions {{{ */
 
+logger_t *logger_get_by_name(lstr_t name);
 void __logger_refresh(logger_t *logger) __leaf __cold;
 
 static ALWAYS_INLINE

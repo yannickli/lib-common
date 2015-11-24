@@ -272,7 +272,7 @@ void __logger_refresh(logger_t *logger)
     spin_unlock(&_G.update_lock);
 }
 
-static logger_t *logger_get_by_name(lstr_t name)
+logger_t *logger_get_by_name(lstr_t name)
 {
     pstream_t ps = ps_initlstr(&name);
     logger_t *logger = &log_g.root_logger;
