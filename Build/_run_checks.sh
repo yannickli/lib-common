@@ -140,12 +140,12 @@ do
 done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
 
-has_core_dump=$(which core_dump)
+coredump=$(which core_dump)
 
 while read -r zd line; do
     t="${zd}${line}"
     say_color info "starting suite $t..."
-    [ -n "$has_core_dump" ] && cores="$(core_dump list)"
+    [ -n "$coredump" ] && cores="$($pybin $coredump list)"
 
     start=$(date '+%s')
     case ./"$t" in
@@ -173,7 +173,7 @@ while read -r zd line; do
             res=$?
             ;;
     esac
-    [ -n "$has_core_dump" ] && core_dump --format z -i "$cores" -r $PWD diff
+    [ -n "$coredump" ] && $pybin $coredump --format z -i "$cores" -r $PWD diff
 
     if [ $res -eq 0 ] ; then
         end=$(date '+%s')
