@@ -51,10 +51,10 @@
  * A WAH does not support efficient random accesses (reading / writing at a
  * specific bit position) because the chunks encode a variable amount of words
  * in a variable amount of memory. However, it efficiently support both
- * sequential reader / writing.
+ * sequential reading / writing.
  *
  * Bitwise operations are also supported but, with the exception of the
- * negation operator,  they are not in place (they always require either a
+ * negation operator, they are not in place (they always require either a
  * brand new bitmap or a copy of one of the operands). Those operations are
  * efficient since they can deal with long runs with a single word read.
  */
@@ -143,6 +143,11 @@ void wah_not(wah_t *map) __leaf;
 
 wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * __restrict dest) __leaf;
 
+/** Get the value of a bit in a WAH.
+ *
+ * \warning this function is really inefficient, and should be used with
+ *          caution (or in tests context).
+ */
 __must_check__ __leaf
 bool wah_get(const wah_t *map, uint64_t pos);
 
