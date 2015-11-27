@@ -103,7 +103,7 @@ libcommon_SOURCES = \
 	iop-xml-wsdl.blk \
 	iop.blk \
 	\
-	iop-rpc-channel.c \
+	iop-rpc-channel.blk \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
 	ic.iop.c \

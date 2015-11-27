@@ -15,6 +15,7 @@
 #include "unix.h"
 #include "iop-rpc.h"
 #include "str-buf-pp.h"
+#include "iop.h"
 
 /* IC_MSG_STREAM_CONTROL messages uses the "slot" to encode the command.
  */
@@ -1128,6 +1129,49 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 #undef QUERY_FMT_ARG
 }
 
+static void ic_report_unimplemented_rpc(int cmd)
+{
+    uint32_t icmd = cmd >> 16 & 0x7fff;
+    uint32_t rcmd = cmd & 0x7fff;
+    SB_1k(sb);
+    __block sb_t *psb = &sb;
+
+    iop_for_each_registered_pkgs(^(const iop_pkg_t *pkg) {
+        for (const iop_mod_t *const *m = pkg->mods; *m; m++) {
+            const iop_mod_t *mod = *m;
+
+            for (int ia = 0; ia < mod->ifaces_len; ia++) {
+                const iop_iface_alias_t *iface_alias = mod->ifaces + ia;
+                const iop_iface_t *iface;
+
+                if (iface_alias->tag != icmd) {
+                    continue;
+                }
+                iface = iface_alias->iface;
+                for (int i = 0; i < iface->funs_len; i++) {
+                    const iop_rpc_t *rpc = &iface->funs[i];
+
+                    if (rpc->tag != rcmd) {
+                        continue;
+                    }
+                    if (psb->len) {
+                        sb_adds(psb, ", ");
+                    } else {
+                        sb_adds(psb, " so potentially ");
+                    }
+                    sb_add_lstr(psb, mod->fullname);
+                    sb_adds(psb, "::");
+                    sb_add_lstr(psb, iface_alias->name);
+                    sb_adds(psb, "::");
+                    sb_add_lstr(psb, rpc->name);
+                }
+            }
+        }
+    });
+    logger_trace(&_G.logger, 0, "received query for unimplemented RPC "
+                 "(%04x:%04x%*pM)", icmd, rcmd, SB_FMT_ARG(&sb));
+}
+
 static ALWAYS_INLINE void
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                       uint32_t flags, const void *data, int dlen,
@@ -1146,8 +1190,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
 
     pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
     if (unlikely(pos < 0)) {
-        logger_trace(&_G.logger, 0, "received query for unimplemented RPC "
-                     "(%04x:%04x)", (cmd >> 16) & 0x7fff, cmd & 0x7fff);
+        if (logger_is_traced(&_G.logger, 0)) {
+            ic_report_unimplemented_rpc(cmd);
+        }
         if (slot) {
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_UNIMPLEMENTED);
         }
