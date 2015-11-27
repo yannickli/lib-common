@@ -362,6 +362,12 @@ int iop_jpack(const iop_struct_t *st, const void *value,
  *
  * The value is the path of the file in which it will be written, which can be
  * either absolute or relative to the main file.
+ *
+ * \warning it is currently not possible to pack the first field of a
+ * structure in a sub-file, because its pointer is the same as the pointer of
+ * the structure itself in the parent object (this is the structure that would
+ * be packed instead). To fix that, we'll need one day to use paths instead of
+ * pointers.
  */
 qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
                qhash_hash_ptr, qhash_ptr_equal);
