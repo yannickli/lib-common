@@ -45,6 +45,10 @@
  * aligned since everything is done at the work level: the header only
  * references a integral number of words of 32 bits.
  *
+ * In memory, the chunks are stored in wah_word_t vectors called buckets.
+ * Each bucket contains \ref bit_wah_g.bits_in_bucket bits of the bitmap,
+ * except the last one that can be partially filled.
+ * This is done like that in order to avoid having too big vectors in memory.
  *
  * \section usage Use cases
  *
@@ -79,18 +83,21 @@ typedef union wah_word_t {
 } wah_word_t;
 qvector_t(wah_word, wah_word_t);
 
+qvector_t(wah_word_vec, qv_t(wah_word));
+
 typedef struct wah_t {
     uint64_t  len;
     uint64_t  active;
 
-    int            previous_run_pos;
-    int            last_run_pos;
+    int previous_run_pos;
+    int last_run_pos;
 
-    /* Do not directly access these fields unless you really know what you are
-     * doing. In most cases, you'll want to use wah_get_data. */
-    qv_t(wah_word) _data;
-    uint32_t       _pending;
-    wah_word_t     _padding[3]; /* Ensure sizeof(wah_t) == 64 */
+    /* WARNING: the following fields should not be accessed directly, unless
+     * you really know what you are doing. In most cases, you'll want to use
+     * wah_get_data. */
+    qv_t(wah_word_vec) _buckets;
+    uint32_t           _pending;
+    wah_word_t         _padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
 
 #define WAH_BIT_IN_WORD  bitsizeof(wah_word_t)
@@ -102,9 +109,10 @@ typedef struct wah_t {
 wah_t *wah_init(wah_t *map) __leaf;
 wah_t *wah_new(void) __leaf;
 void wah_wipe(wah_t *map) __leaf;
+void wah_reset_map(wah_t *map);
 GENERIC_DELETE(wah_t, wah);
 
-wah_t *t_wah_new(int expected_size) __leaf;
+wah_t *t_wah_new(int expected_first_bucket_size) __leaf;
 wah_t *t_wah_dup(const wah_t *src) __leaf;
 void wah_copy(wah_t *map, const wah_t *src) __leaf;
 wah_t *wah_dup(const wah_t *src) __leaf;
@@ -151,18 +159,6 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * __restrict dest) __leaf
 __must_check__ __leaf
 bool wah_get(const wah_t *map, uint64_t pos);
 
-static inline
-void wah_reset_map(wah_t *map)
-{
-    map->len                  = 0;
-    map->active               = 0;
-    map->previous_run_pos     = -1;
-    map->last_run_pos         = 0;
-    qv_clear(wah_word, &map->_data);
-    p_clear(qv_growlen(wah_word, &map->_data, 2), 2);
-    map->_pending             = 0;
-}
-
 /* }}} */
 /* WAH pools {{{ */
 
@@ -182,6 +178,7 @@ typedef enum wah_enum_state_t {
 typedef struct wah_word_enum_t {
     const wah_t     *map;
     wah_enum_state_t state;
+    int              bucket;
     int              pos;
     uint32_t         remain_words;
     uint32_t         current;
