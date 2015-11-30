@@ -307,23 +307,37 @@ void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
 
 void sb_add_filtered(sb_t *sb, lstr_t s, const ctype_desc_t *d)
 {
+    return sb_add_sanitized(sb, s, d, -1);
+}
+
+void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d)
+{
+    return sb_add_sanitized_out(sb, s, d, -1);
+}
+
+void sb_add_sanitized(sb_t *sb, lstr_t s, const ctype_desc_t *d, int c)
+{
     pstream_t w, r = ps_initlstr(&s);
 
     while (!ps_done(&r)) {
         w = ps_get_span(&r, d);
         sb_add(sb, w.s, ps_len(&w));
-        ps_skip_cspan(&r, d);
+        if (ps_skip_cspan(&r, d) > 0 && c > -1) {
+            sb_addc(sb, c);
+        }
     }
 }
 
-void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d)
+void sb_add_sanitized_out(sb_t *sb, lstr_t s, const ctype_desc_t *d, int c)
 {
     pstream_t w, r = ps_initlstr(&s);
 
     while (!ps_done(&r)) {
         w = ps_get_cspan(&r, d);
         sb_add(sb, w.s, ps_len(&w));
-        ps_skip_span(&r, d);
+        if (ps_skip_span(&r, d) > 0 && c > -1) {
+            sb_addc(sb, c);
+        }
     }
 }
 

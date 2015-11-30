@@ -1298,19 +1298,33 @@ Z_GROUP_EXPORT(str)
     Z_TEST(str_span, "str: filtering") {
         SB_1k(sb);
 
-#define T(f, d, from, to) do {                                               \
-        f(&sb, LSTR(from), d);                                               \
+#define T(f, d, c, from, to) do {                                            \
+        f(&sb, LSTR(from), d, c);                                            \
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR(to));                        \
         sb_reset(&sb);                                                       \
     } while (0)
 
-        T(sb_add_filtered, &ctype_isdigit, "1a2b3C4D5e6f7", "1234567");
-        T(sb_add_filtered, &ctype_islower, "1a2b3C4D5e6f7", "abef");
-        T(sb_add_filtered, &ctype_isupper, "1a2b3C4D5e6f7", "CD");
+        T(sb_add_sanitized, &ctype_isdigit, -1, "1a2b3C4D5e6f7", "1234567");
+        T(sb_add_sanitized, &ctype_isdigit, '_', "1a2b3C4D5e6f7",
+          "1_2_3_4_5_6_7");
+        T(sb_add_sanitized, &ctype_islower, -1, "1a2b3C4D5e6f7", "abef");
+        T(sb_add_sanitized, &ctype_islower, '_', "1a2b3C4D5e6f7",
+          "_a_b_e_f_");
+        T(sb_add_sanitized, &ctype_isupper, -1, "1a2b3C4D5e6f7", "CD");
+        T(sb_add_sanitized, &ctype_isupper, '_', "1a2b3C4D5e6f7", "_C_D_");
 
-        T(sb_add_filtered_out, &ctype_isdigit, "1a2b3C4D5e6f7", "abCDef");
-        T(sb_add_filtered_out, &ctype_islower, "1a2b3C4D5e6f7", "123C4D567");
-        T(sb_add_filtered_out, &ctype_isupper, "1a2b3C4D5e6f7", "1a2b345e6f7");
+        T(sb_add_sanitized_out, &ctype_isdigit, -1, "1a2b3C4D5e6f7",
+          "abCDef");
+        T(sb_add_sanitized_out, &ctype_isdigit, '_', "1a2b3C4D5e6f7",
+          "_a_b_C_D_e_f_");
+        T(sb_add_sanitized_out, &ctype_islower, -1, "1a2b3C4D5e6f7",
+          "123C4D567");
+        T(sb_add_sanitized_out, &ctype_islower, '_', "1a2b3C4D5e6f7",
+          "1_2_3C4D5_6_7");
+        T(sb_add_sanitized_out, &ctype_isupper, -1, "1a2b3C4D5e6f7",
+          "1a2b345e6f7");
+        T(sb_add_sanitized_out, &ctype_isupper, '_', "1a2b3C4D5e6f7",
+          "1a2b3_4_5e6f7");
 
 #undef T
     } Z_TEST_END;
