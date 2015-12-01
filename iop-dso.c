@@ -13,6 +13,7 @@
 
 #include <dlfcn.h>
 #include "iop.h"
+#include "iop-priv.h"
 
 static ALWAYS_INLINE
 void iopdso_register_struct(iop_dso_t *dso, iop_struct_t const *st)
@@ -132,16 +133,17 @@ static void iopdso_fix_pkg(const iop_pkg_t *pkg)
     }
 }
 
-static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
+static int iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
+                               iop_env_t *env, sb_t *err)
 {
     if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0) {
-        return;
+        return 0;
     }
     if (dso->use_external_packages) {
         e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
         iopdso_fix_pkg(pkg);
     }
-    iop_register_packages(&pkg, 1);
+    RETHROW(iop_register_packages_env(&pkg, 1, env, err));
     for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
     }
@@ -162,11 +164,12 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
         qm_add(iop_mod, &dso->mod_h, &(*it)->fullname, *it);
     }
     for (const iop_pkg_t *const *it = pkg->deps; *it; it++) {
-        if (dso->use_external_packages && iop_get_pkg((*it)->name)) {
+        if (dso->use_external_packages && iop_get_pkg_env((*it)->name, env)) {
             continue;
         }
-        iopdso_register_pkg(dso, *it);
+        RETHROW(iopdso_register_pkg(dso, *it, env, err));
     }
+    return 0;
 }
 
 static iop_dso_t *iop_dso_init(iop_dso_t *dso)
@@ -196,7 +199,9 @@ static void iop_dso_wipe(iop_dso_t *dso)
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
 
-iop_dso_t *iop_dso_open(const char *path)
+static int iop_dso_register_(iop_dso_t *dso, sb_t *err);
+
+iop_dso_t *iop_dso_open(const char *path, sb_t *err)
 {
     iop_pkg_t       **pkgp;
     void             *handle;
@@ -208,7 +213,7 @@ iop_dso_t *iop_dso_open(const char *path)
 #endif
     handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND);
     if (handle == NULL) {
-        e_error("IOP DSO: unable to dlopen(%s): %s", path, dlerror());
+        sb_setf(err, "unable to dlopen(%s): %s", path, dlerror());
         return NULL;
     }
 
@@ -222,7 +227,7 @@ iop_dso_t *iop_dso_open(const char *path)
 
     pkgp = dlsym(handle, "iop_packages");
     if (pkgp == NULL) {
-        e_error("IOP DSO: unable to find IOP packages in plugin (%s): %s",
+        sb_setf(err, "unable to find IOP packages in plugin (%s): %s",
                 path, dlerror());
         dlclose(handle);
         return NULL;
@@ -234,7 +239,10 @@ iop_dso_t *iop_dso_open(const char *path)
 
     dso->use_external_packages = !!dlsym(handle, "iop_use_external_packages");
 
-    iop_dso_register(dso);
+    if (iop_dso_register_(dso, err) < 0) {
+        iop_dso_delete(&dso);
+        return NULL;
+    }
 
     return dso;
 }
@@ -244,21 +252,37 @@ void iop_dso_close(iop_dso_t **dsop)
     iop_dso_delete(dsop);
 }
 
-void iop_dso_register(iop_dso_t *dso)
+static int iop_dso_register_(iop_dso_t *dso, sb_t *err)
 {
     if (!dso->is_registered) {
+        iop_env_t env;
         iop_pkg_t **pkgp = dlsym(dso->handle, "iop_packages");
 
         if (!pkgp) {
             /* This should not happen because this was checked before. */
-            e_panic("iop_packages not found when registering DSO");
+            e_panic("IOP DSO: iop_packages not found when registering DSO");
         }
 
         qm_clear(iop_pkg, &dso->pkg_h);
+        iop_env_get(&env);
         while (*pkgp) {
-            iopdso_register_pkg(dso, *pkgp++);
+            if (iopdso_register_pkg(dso, *pkgp++, &env, err) < 0) {
+                iop_env_wipe(&env);
+                return -1;
+            }
         }
+        iop_env_set(&env);
         dso->is_registered = true;
+    }
+    return 0;
+}
+
+void iop_dso_register(iop_dso_t *dso)
+{
+    SB_1k(err);
+
+    if (iop_dso_register_(dso, &err) < 0) {
+        e_fatal("IOP DSO: %*pM", SB_FMT_ARG(&err));
     }
 }
 

@@ -13,60 +13,14 @@
 
 #include "arith.h"
 #include "iop.h"
+#include "iop-priv.h"
 #include "iop-helpers.inl.c"
 #include "thr.h"
 #include "sort.h"
 
-/* {{{ Local declarations */
-
-typedef struct class_id_key_t {
-    const iop_struct_t *master;
-    uint16_t            child_id;
-} class_id_key_t;
-
-static inline uint32_t
-class_id_key_hash(const qhash_t *h, const class_id_key_t *key)
-{
-    return mem_hash32(key, offsetof(class_id_key_t, child_id) + 2);
-}
-static inline bool
-class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
-                   const class_id_key_t *k2)
-{
-    return (k1->master == k2->master) && (k1->child_id == k2->child_id);
-}
-
-qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
-          class_id_key_hash, class_id_key_equal);
-
-typedef struct class_name_key_t {
-    const iop_struct_t *master;
-    const lstr_t       *child_fullname;
-} class_name_key_t;
-
-static inline uint32_t
-class_name_key_hash(const qhash_t *h, const class_name_key_t *key)
-{
-    return qhash_hash_ptr(h, key->master)
-         ^ qhash_lstr_hash(h, key->child_fullname);
-}
-static inline bool
-class_name_key_equal(const qhash_t *h, const class_name_key_t *k1,
-                   const class_name_key_t *k2)
-{
-    return (k1->master == k2->master)
-         && lstr_equal(*k1->child_fullname, *k2->child_fullname);
-}
-
-qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
-          class_name_key_hash, class_name_key_equal);
-
-/* }}} */
 
 static struct {
-    qm_t(class_id)   classes_by_id;
-    qm_t(class_name) classes_by_name;
-    qm_t(iop_pkg)    pkgs_by_name;
+    iop_env_t env;
 } iop_g;
 #define _G  iop_g
 
@@ -3503,6 +3457,52 @@ static void iop_signature_initialize(void)
 }
 
 /* }}} */
+/* {{{ IOP context */
+
+static void iop_env_copy(iop_env_t *dst, iop_env_t *src)
+{
+    iop_env_init(dst);
+    qm_for_each_pos(class_id, pos, &src->classes_by_id) {
+        qm_add(class_id, &dst->classes_by_id, &src->classes_by_id.keys[pos],
+               src->classes_by_id.values[pos]);
+    }
+    qm_for_each_pos(class_name, pos, &src->classes_by_name) {
+        qm_add(class_name, &dst->classes_by_name, &src->classes_by_name.keys[pos],
+               src->classes_by_name.values[pos]);
+    }
+    qm_for_each_pos(iop_pkg, pos, &src->pkgs_by_name) {
+        qm_add(iop_pkg, &dst->pkgs_by_name, &src->pkgs_by_name.keys[pos],
+               src->pkgs_by_name.values[pos]);
+    }
+}
+
+void iop_env_set(iop_env_t *env)
+{
+    iop_env_wipe(&_G.env);
+    _G.env = *env;
+}
+
+void iop_env_get(iop_env_t *env)
+{
+    iop_env_copy(env, &_G.env);
+}
+
+iop_env_t *iop_env_init(iop_env_t *env)
+{
+    qm_init(class_id,   &env->classes_by_id);
+    qm_init(class_name, &env->classes_by_name);
+    qm_init(iop_pkg,    &env->pkgs_by_name);
+    return env;
+}
+
+void iop_env_wipe(iop_env_t *env)
+{
+    qm_wipe(class_id,   &env->classes_by_id);
+    qm_wipe(class_name, &env->classes_by_name);
+    qm_wipe(iop_pkg,    &env->pkgs_by_name);
+}
+
+/* }}} */
 /* {{{ Class manipulation */
 
 iop_value_t const *
@@ -3590,7 +3590,7 @@ iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
         key.master = key.master->class_attrs->parent;
     }
 
-    return qm_get_def(class_name, &_G.classes_by_name, &key, NULL);
+    return qm_get_def(class_name, &_G.env.classes_by_name, &key, NULL);
 }
 
 const iop_struct_t *
@@ -3609,13 +3609,13 @@ iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
         key.master = key.master->class_attrs->parent;
     }
 
-    return qm_get_def(class_id, &_G.classes_by_id, &key, NULL);
+    return qm_get_def(class_id, &_G.env.classes_by_id, &key, NULL);
 }
 
 void iop_for_each_registered_classes(iop_for_each_class_b cb)
 {
-    qm_for_each_pos(class_id, pos, &_G.classes_by_id) {
-        cb(_G.classes_by_id.values[pos]);
+    qm_for_each_pos(class_id, pos, &_G.env.classes_by_id) {
+        cb(_G.env.classes_by_id.values[pos]);
     }
 }
 
@@ -3696,7 +3696,8 @@ const iop_field_attrs_t *iop_get_field_attr_match_oid(const iop_struct_t *st,
 /* }}} */
 /* {{{ Packages registration / manipulation */
 
-static void iop_register_class(const iop_struct_t *desc)
+static int iop_register_class(const iop_struct_t *desc, iop_env_t *env,
+                              sb_t *err)
 {
     class_id_key_t key = {
         .master   = desc,
@@ -3709,13 +3710,15 @@ static void iop_register_class(const iop_struct_t *desc)
     }
 
     /* Register in classes_by_id hash table */
-    pos = qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
+    pos = qm_put(class_id, &env->classes_by_id, &key, desc, 0);
     if (pos & QHASH_COLLISION) {
         pos ^= QHASH_COLLISION;
-        if (_G.classes_by_id.values[pos] != desc) {
-            e_fatal("conflicting class id %d: used by both '%*pM' and '%*pM'",
+        if (env->classes_by_id.values[pos] != desc) {
+            sb_setf(err,
+                    "conflicting class id %d: used by both '%*pM' and '%*pM'",
                     desc->class_attrs->class_id, LSTR_FMT_ARG(desc->fullname),
-                    LSTR_FMT_ARG(_G.classes_by_id.values[pos]->fullname));
+                    LSTR_FMT_ARG(env->classes_by_id.values[pos]->fullname));
+            return -1;
         }
     } else {
         class_name_key_t key2 = {
@@ -3729,40 +3732,59 @@ static void iop_register_class(const iop_struct_t *desc)
                       LSTR_FMT_ARG(key.master->fullname), key.master);
 
         /* Register in classes_by_name hash table */
-        if (qm_add(class_name, &_G.classes_by_name, &key2, desc) < 0) {
-            e_fatal("conflicting class name '%*pM' as a child of '%*pM'",
+        if (qm_add(class_name, &env->classes_by_name, &key2, desc) < 0) {
+            sb_setf(err,
+                    "conflicting class name '%*pM' as a child of '%*pM'",
                     LSTR_FMT_ARG(desc->fullname),
                     LSTR_FMT_ARG(key.master->fullname));
+            return -1;
         }
 
         if (desc->class_attrs->parent) {
             /* Register the parent only if the class was not registered
              * yet, because if it is, we are sure the parent is already
              * registered. */
-            iop_register_class(desc->class_attrs->parent);
+            RETHROW(iop_register_class(desc->class_attrs->parent, env, err));
         }
     }
+    return 0;
 }
 
-void iop_register_packages(const iop_pkg_t **pkgs, int len)
+int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
+                              sb_t *err)
 {
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
-        qm_add(iop_pkg, &_G.pkgs_by_name, &pkg->name, pkg);
+        qm_add(iop_pkg, &env->pkgs_by_name, &pkg->name, pkg);
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
             if (iop_struct_is_class(desc)) {
-                iop_register_class(desc);
+                RETHROW(iop_register_class(desc, env, err));
             }
         }
     }
+    return 0;
+}
+
+void iop_register_packages(const iop_pkg_t **pkgs, int len)
+{
+    SB_1k(err);
+
+    if (iop_register_packages_env(pkgs, len, &_G.env, &err) < 0) {
+        e_fatal("%*pM", SB_FMT_ARG(&err));
+    }
+}
+
+const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, iop_env_t *env)
+{
+    return qm_get_def(iop_pkg, &env->pkgs_by_name, &pkgname, NULL);
 }
 
 const iop_pkg_t *iop_get_pkg(lstr_t pkgname)
 {
-    return qm_get_def(iop_pkg, &_G.pkgs_by_name, &pkgname, NULL);
+    return iop_get_pkg_env(pkgname, &_G.env);
 }
 
 static void iop_unregister_class(const iop_struct_t *desc)
@@ -3776,13 +3798,13 @@ static void iop_unregister_class(const iop_struct_t *desc)
         key.master = key.master->class_attrs->parent;
     }
 
-    if (qm_del_key(class_id, &_G.classes_by_id, &key) >= 0) {
+    if (qm_del_key(class_id, &_G.env.classes_by_id, &key) >= 0) {
         class_name_key_t key2 = {
             .master         = key.master,
             .child_fullname = &desc->fullname,
         };
 
-        qm_del_key(class_name, &_G.classes_by_name, &key2);
+        qm_del_key(class_name, &_G.env.classes_by_name, &key2);
 
         if (desc->class_attrs->parent) {
             /* Unregister the parent only if the class was registered,
@@ -3797,7 +3819,7 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
-        qm_del_key(iop_pkg, &_G.pkgs_by_name, &pkg->name);
+        qm_del_key(iop_pkg, &_G.env.pkgs_by_name, &pkg->name);
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -3810,8 +3832,8 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
 
 void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
 {
-    qm_for_each_pos(iop_pkg, pos, &_G.pkgs_by_name) {
-        cb(_G.pkgs_by_name.values[pos]);
+    qm_for_each_pos(iop_pkg, pos, &_G.env.pkgs_by_name) {
+        cb(_G.env.pkgs_by_name.values[pos]);
     }
 }
 
@@ -4533,9 +4555,7 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
 
 static int iop_initialize(void *arg)
 {
-    qm_init(class_id,   &_G.classes_by_id);
-    qm_init(class_name, &_G.classes_by_name);
-    qm_init(iop_pkg,    &_G.pkgs_by_name);
+    iop_env_init(&_G.env);
     iprintf_register_formatter('S', &iop_struct_formatter);
     iprintf_register_formatter('E', &iop_enum_formatter);
     return 0;
@@ -4543,9 +4563,7 @@ static int iop_initialize(void *arg)
 
 static int iop_shutdown(void)
 {
-    qm_wipe(class_id,   &_G.classes_by_id);
-    qm_wipe(class_name, &_G.classes_by_name);
-    qm_wipe(iop_pkg,    &_G.pkgs_by_name);
+    iop_env_wipe(&_G.env);
     return 0;
 }
 

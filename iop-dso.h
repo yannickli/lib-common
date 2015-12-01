@@ -43,7 +43,7 @@ typedef struct iop_dso_t {
 } iop_dso_t;
 
 /** Load a DSO from a file, and register its packages. */
-iop_dso_t *iop_dso_open(const char *path);
+iop_dso_t *iop_dso_open(const char *path, sb_t *err);
 
 static ALWAYS_INLINE iop_dso_t *iop_dso_dup(iop_dso_t *dso)
 {
