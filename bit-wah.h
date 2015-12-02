@@ -121,21 +121,22 @@ wah_t *wah_dup(const wah_t *src) __leaf;
  *
  * This generates read-only wah_t structures
  */
-wah_t *wah_init_from_data(wah_t *wah, const uint32_t *data,
-                          int data_len, bool scan);
-wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan);
-wah_t *wah_new_from_data_lstr(lstr_t data, bool scan);
+wah_t *wah_init_from_data(wah_t *wah, pstream_t data);
+wah_t *wah_new_from_data(pstream_t data);
 
 /** Get the raw data contained in a wah_t.
  *
  * This function must be used to get the data contained by a wah_t, in order
- * to, for example, write it on disk (and then use \ref wah_new_from_data to
- * reload it).
+ * to, for example, write it on disk to persist the wah.
+ *
+ * It returns the vector of buckets contained by the wah. The buckets must be
+ * written one after the other so that it can be reloaded by
+ * \ref wah_new_from_data).
  *
  * \warning a wah must not have pending data if you want this to properly
  *          work; use \ref wah_pad32 to ensure that.
  */
-lstr_t wah_get_data(const wah_t *wah);
+const qv_t(wah_word_vec) *wah_get_data(const wah_t *wah);
 
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;

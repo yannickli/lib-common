@@ -1449,72 +1449,200 @@ bool wah_get(const wah_t *map, uint64_t pos)
 /* }}} */
 /* Open/store existing WAH {{{ */
 
-wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
-                          bool scan)
+typedef struct from_data_ctx_t {
+    wah_t *map;
+
+    pstream_t   data;
+    wah_word_t *tab;
+    uint64_t    pos;
+
+    qv_t(wah_word) *bucket;
+    uint64_t        bucket_len; /* (in represented bits) */
+} from_data_ctx_t;
+
+static void
+from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
 {
-    qv_t(wah_word) bucket;
-    int pos = 0;
+    /* Create a bucket if necessary. */
+    if (!ctx->bucket) {
+        ctx->bucket = wah_create_bucket(ctx->map, 0);
+    }
+
+    /* In any case, we copy all the previous chunks. */
+    qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+              ctx->tab, ctx->pos - 2);
+
+    /* Deal with the run. */
+    if (ctx->bucket_len + head.words * WAH_BIT_IN_WORD > _G.bits_in_bucket) {
+        /* Chunk's run is too big and has to be split. */
+        while (head.words) {
+            wah_header_t to_add = head;
+            uint64_t avail_words;
+
+            ctx->map->previous_run_pos = ctx->map->last_run_pos;
+            ctx->map->last_run_pos     = ctx->bucket->len;
+
+            avail_words = (_G.bits_in_bucket - ctx->bucket_len)
+                        / WAH_BIT_IN_WORD;
+            to_add.words = MIN(head.words, avail_words);
+            qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = to_add });
+
+            ctx->bucket_len += to_add.words * WAH_BIT_IN_WORD;
+            head.words -= to_add.words;
+
+            if (head.words) {
+                /* Close this chunk, and create a new bucket. */
+                qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = 0 });
+                ctx->bucket = wah_create_bucket(ctx->map, 0);
+                ctx->map->previous_run_pos = -1;
+                ctx->map->last_run_pos = -1;
+                ctx->bucket_len = 0;
+            }
+        }
+    } else {
+        /* The run fits, copy it. */
+        qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = head});
+    }
+
+    /* We now have to deal with the uncompressed words. */
+    for (;;) {
+        if (ctx->bucket_len + words * WAH_BIT_IN_WORD > _G.bits_in_bucket) {
+            /* Split them. */
+            uint64_t count;
+
+            count = (_G.bits_in_bucket - ctx->bucket_len) / WAH_BIT_IN_WORD;
+            qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = count });
+            qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+                      &ctx->tab[ctx->pos], count);
+
+            ctx->bucket = wah_create_bucket(ctx->map, 0);
+            ctx->map->previous_run_pos = -1;
+            ctx->map->last_run_pos = 0;
+            ctx->bucket_len = 0;
+            head = (wah_header_t){ .words = 0 };
+            qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = head });
+
+            ctx->pos += count;
+            words    -= count;
+            continue;
+        }
+
+        /* We can safely copy the rest of the uncompressed words. */
+        qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = words });
+        qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+                  &ctx->tab[ctx->pos], words);
+        ctx->bucket_len += words * WAH_BIT_IN_WORD;
+        ctx->pos += words;
+        break;
+    }
+}
+
+wah_t *wah_init_from_data(wah_t *map, pstream_t data)
+{
+    from_data_ctx_t ctx;
 
     p_clear(map, 1);
-    p_clear(&bucket, 1);
 
-    qv_init_static(wah_word, &bucket, (wah_word_t *)data, data_len);
+    THROW_NULL_IF(ps_len(&data) % sizeof(wah_word_t));
+    THROW_NULL_IF(ps_len(&data) < 2 * sizeof(wah_word_t));
+
     map->previous_run_pos = -1;
     map->last_run_pos = -1;
 
-    THROW_NULL_IF(data_len < 2);
-    if (!scan) {
-        return map;
+    p_clear(&ctx, 1);
+    ctx.map  = map;
+    ctx.data = data;
+
+    while (!ps_done(&ctx.data)) {
+        uint64_t size = ps_len(&ctx.data) / sizeof(wah_word_t);
+
+        ctx.tab = (wah_word_t *)ctx.data.p;
+        ctx.pos = 0;
+
+        while (ctx.pos < size - 1) {
+            wah_header_t head  = ctx.tab[ctx.pos++].head;
+            uint64_t     words = ctx.tab[ctx.pos++].count;
+            uint64_t     chunk_len = WAH_BIT_IN_WORD * (head.words + words);
+
+            THROW_NULL_IF(words > size || ctx.pos > size - words);
+
+            if (head.bit) {
+                map->active += WAH_BIT_IN_WORD * head.words;
+            }
+            if (words) {
+                map->active += membitcount(&ctx.tab[ctx.pos],
+                                           words * sizeof(wah_word_t));
+            }
+            map->len += chunk_len;
+
+            if (unlikely(ctx.bucket_len + chunk_len > _G.bits_in_bucket)) {
+                /* This wah do not respect the max length of the buckets. We
+                 * have to split this chunk and create a new bucket. */
+                from_data_split_chunk(&ctx, head, words);
+            } else {
+                ctx.bucket_len += chunk_len;
+                if (ctx.bucket) {
+                    /* We have an opened bucket, add this chunk. */
+                    map->previous_run_pos = map->last_run_pos;
+                    map->last_run_pos     = ctx.bucket->len;
+                    qv_splice(wah_word, ctx.bucket, ctx.bucket->len, 0,
+                              &ctx.tab[ctx.pos - 2], words + 2);
+                } else {
+                    /* No opened bucket, the chunk will be added after. */
+                    map->previous_run_pos = map->last_run_pos;
+                    map->last_run_pos     = ctx.pos - 2;
+                }
+                ctx.pos += words;
+            }
+
+            if (ctx.bucket_len >= _G.bits_in_bucket) {
+                /* The current bucket is full, close it. */
+                assert (ctx.bucket_len == _G.bits_in_bucket);
+                if (!ctx.bucket) {
+                    ctx.bucket = qv_growlen(wah_word_vec, &map->_buckets, 1);
+                    qv_init_static(wah_word, ctx.bucket, ctx.tab, ctx.pos);
+                }
+                ctx.bucket = NULL;
+                ctx.bucket_len = 0;
+                map->previous_run_pos = -1;
+                map->last_run_pos     = -1;
+                goto next;
+            }
+
+            if (ctx.bucket) {
+                goto next;
+            }
+        }
+
+        THROW_NULL_IF(ctx.pos != size);
+        assert (!ctx.bucket);
+        ctx.bucket = qv_growlen(wah_word_vec, &map->_buckets, 1);
+        qv_init_static(wah_word, ctx.bucket, ctx.tab, ctx.pos);
+
+      next:
+        ps_skip(&ctx.data, ctx.pos * sizeof(wah_word_t));
     }
 
-    while (pos < bucket.len - 1) {
-        wah_header_t head  = bucket.tab[pos++].head;
-        uint64_t     words = bucket.tab[pos++].count;
-
-        THROW_NULL_IF(words > (uint32_t)bucket.len
-                    || (uint32_t)pos > bucket.len - words);
-        map->previous_run_pos = map->last_run_pos;
-        map->last_run_pos     = pos - 2;
-        if (head.bit) {
-            map->active += WAH_BIT_IN_WORD * head.words;
-        }
-        if (words) {
-            map->active += membitcount(bucket.tab + pos,
-                                       words * sizeof(wah_word_t));
-        }
-        map->len += WAH_BIT_IN_WORD * (head.words + words);
-        pos += words;
-    }
-    THROW_NULL_IF(pos != bucket.len);
-
-    qv_append(wah_word_vec, &map->_buckets, bucket);
-
+    wah_check_invariant(map);
     return map;
 }
 
-wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan)
+wah_t *wah_new_from_data(pstream_t data)
 {
     wah_t *map = p_new_raw(wah_t, 1);
     wah_t *ret;
 
-    ret = wah_init_from_data(map, data, data_len, scan);
+    ret = wah_init_from_data(map, data);
     if (!ret) {
         wah_delete(&map);
     }
     return ret;
 }
 
-wah_t *wah_new_from_data_lstr(lstr_t data, bool scan)
+const qv_t(wah_word_vec) *wah_get_data(const wah_t *wah)
 {
-    return wah_new_from_data(data.data, data.len / sizeof(wah_word_t), scan);
-}
-
-lstr_t wah_get_data(const wah_t *wah)
-{
-    qv_t(wah_word) *bucket = &wah->_buckets.tab[0];
-
     assert (wah->len % WAH_BIT_IN_WORD == 0);
-    return LSTR_DATA_V(bucket->tab, bucket->len * sizeof(wah_word_t));
+    return &wah->_buckets;
 }
 
 /* }}} */
@@ -1727,7 +1855,8 @@ Z_GROUP_EXPORT(wah)
             0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288) */
         };
 
-        uint64_t      bc;
+        uint64_t bc;
+        pstream_t ps;
 
         wah_init(&map);
         wah_add(&map, data, bitsizeof(data));
@@ -1735,9 +1864,9 @@ Z_GROUP_EXPORT(wah)
 
         Z_ASSERT_EQ(map.len, bitsizeof(data));
 
-        Z_ASSERT_P(wah_init_from_data(&map2,
-                                      (uint32_t *)map._buckets.tab[0].tab,
-                                      map._buckets.tab[0].len, true));
+        ps = ps_init(map._buckets.tab[0].tab,
+                     map._buckets.tab[0].len * sizeof(wah_word_t));
+        Z_ASSERT_P(wah_init_from_data(&map2, ps));
         Z_ASSERT_EQ(map.len, map2.len);
 
         Z_ASSERT_EQ(map.active, bc, "invalid bit count");
@@ -2012,12 +2141,12 @@ Z_GROUP_EXPORT(wah)
         wah_t other;
         wah_t res;
 
-        wah_init_from_data(&src, src_data, countof(src_data), true);
+        wah_init_from_data(&src, ps_init(src_data, sizeof(src_data)));
         src._pending = 0x1ffff;
         src.active   = 8241;
         src.len      = 50001;
 
-        wah_init_from_data(&other, other_data, countof(other_data), true);
+        wah_init_from_data(&other, ps_init(other_data, sizeof(other_data)));
         other._pending = 0x600000;
         other.active  = 12;
         other.len     = 2007;
