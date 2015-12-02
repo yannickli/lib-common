@@ -17,6 +17,13 @@
 
 //#define WAH_CHECK_NORMALIZED  1
 
+static struct {
+    uint64_t bits_in_bucket;
+} bit_wah_g = {
+#define _G  bit_wah_g
+    .bits_in_bucket = 8 * (512ul << 20),
+};
+
 /* Word enumerator {{{ */
 
 static qv_t(wah_word) *wah_word_enum_get_cur_bucket(wah_word_enum_t *en)
@@ -325,6 +332,17 @@ static qv_t(wah_word) *wah_create_bucket(wah_t *map, int size)
     return bucket;
 }
 
+static qv_t(wah_word) *__wah_create_bucket(wah_t *map)
+{
+    qv_t(wah_word) *bucket = wah_create_bucket(map, 2);
+
+    qv_growlen0(wah_word, bucket, 2);
+    map->previous_run_pos = -1;
+    map->last_run_pos     = 0;
+
+    return bucket;
+}
+
 void wah_reset_map(wah_t *map)
 {
     map->len                  = 0;
@@ -521,8 +539,7 @@ void wah_flatten_last_run(wah_t *map)
     wah_check_invariant(map);
 }
 
-static inline
-void wah_push_pending(wah_t *map, uint64_t words)
+static void __wah_push_pending(wah_t *map, uint64_t words)
 {
     const bool is_trivial = map->_pending == UINT32_MAX || map->_pending == 0;
 
@@ -569,9 +586,40 @@ void wah_push_pending(wah_t *map, uint64_t words)
     map->_pending = 0;
 }
 
+static void wah_push_pending(wah_t *map, uint64_t words, uint64_t active)
+{
+    uint32_t pending = map->_pending;
+
+    assert (words > 0);
+    assert (map->len % WAH_BIT_IN_WORD == 0);
+
+    while (words) {
+        uint64_t bucket_len = map->len % _G.bits_in_bucket;
+        uint64_t to_add;
+
+        if (map->len && map->len == map->_buckets.len * _G.bits_in_bucket) {
+            assert (bucket_len == 0);
+            __wah_create_bucket(map);
+        }
+
+        to_add = MIN(words,
+                     (_G.bits_in_bucket - bucket_len) / WAH_BIT_IN_WORD);
+        map->len += to_add * WAH_BIT_IN_WORD;
+        map->_pending = pending;
+        __wah_push_pending(map, to_add);
+        words -= to_add;
+    }
+
+    map->active += active;
+}
+
 void wah_add0s(wah_t *map, uint64_t count)
 {
     uint64_t remain = map->len % WAH_BIT_IN_WORD;
+
+    if (map->len > map->_buckets.len * _G.bits_in_bucket) {
+        __wah_create_bucket(map);
+    }
 
     wah_check_invariant(map);
     if (remain + count < WAH_BIT_IN_WORD) {
@@ -582,10 +630,13 @@ void wah_add0s(wah_t *map, uint64_t count)
     if (remain > 0) {
         count    -= WAH_BIT_IN_WORD - remain;
         map->len += WAH_BIT_IN_WORD - remain;
-        wah_push_pending(map, 1);
+        __wah_push_pending(map, 1);
     }
     if (count >= WAH_BIT_IN_WORD) {
-        wah_push_pending(map, count / WAH_BIT_IN_WORD);
+        uint64_t words = count / WAH_BIT_IN_WORD;
+
+        wah_push_pending(map, words, 0);
+        count -= words * WAH_BIT_IN_WORD;
     }
     map->len += count;
     wah_check_invariant(map);
@@ -604,6 +655,10 @@ void wah_add1s(wah_t *map, uint64_t count)
 {
     uint64_t remain = map->len % WAH_BIT_IN_WORD;
 
+    if (map->len > map->_buckets.len * _G.bits_in_bucket) {
+        __wah_create_bucket(map);
+    }
+
     wah_check_invariant(map);
     if (remain + count < WAH_BIT_IN_WORD) {
         map->_pending |= BITMASK_LT(uint32_t, count) << remain;
@@ -617,11 +672,14 @@ void wah_add1s(wah_t *map, uint64_t count)
         map->len     += WAH_BIT_IN_WORD - remain;
         map->active  += WAH_BIT_IN_WORD - remain;
         count        -= WAH_BIT_IN_WORD - remain;
-        wah_push_pending(map, 1);
+        __wah_push_pending(map, 1);
     }
     if (count >= WAH_BIT_IN_WORD) {
+        uint64_t words = count / WAH_BIT_IN_WORD;
+
         map->_pending = UINT32_MAX;
-        wah_push_pending(map, count / WAH_BIT_IN_WORD);
+        wah_push_pending(map, words, words * WAH_BIT_IN_WORD);
+        count -= words * WAH_BIT_IN_WORD;
     }
     map->_pending = BITMASK_LT(uint32_t, count);
     map->len    += count;
@@ -861,9 +919,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
             uint64_t __run = (Count);                                        \
                                                                              \
             map->_pending  = UINT32_MAX;                                     \
-            map->len     += __run * WAH_BIT_IN_WORD;                         \
-            map->active  += __run * WAH_BIT_IN_WORD;                         \
-            wah_push_pending(map, __run);                                    \
+            wah_push_pending(map, __run, __run * WAH_BIT_IN_WORD);           \
             wah_word_enum_skip(&other_en, __run);                            \
             wah_word_enum_skip(&src_en, __run);                              \
         })
@@ -871,9 +927,8 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
 #define PUSH_0RUN(Count) ({                                                  \
             uint64_t __run = (Count);                                        \
                                                                              \
-            map->_pending  = 0;                                              \
-            map->len     += __run * WAH_BIT_IN_WORD;                         \
-            wah_push_pending(map, __run);                                    \
+            map->_pending = 0;                                               \
+            wah_push_pending(map, __run, 0);                                 \
             wah_word_enum_skip(&src_en, __run);                              \
             wah_word_enum_skip(&other_en, __run);                            \
         })
@@ -888,9 +943,7 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
 
     if (unlikely(!data->current || data->current == UINT32_MAX)) {
         map->_pending  = data->current;
-        map->active  += bitcount32(map->_pending);
-        map->len     += WAH_BIT_IN_WORD;
-        wah_push_pending(map, 1);
+        wah_push_pending(map, 1, bitcount32(map->_pending));
         wah_word_enum_next(data);
         count--;
     }
@@ -987,10 +1040,8 @@ void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
             break;
 
           default:
-            map->len    += WAH_BIT_IN_WORD;
             map->_pending = src_en.current & other_en.current;
-            map->active += bitcount32(map->_pending);
-            wah_push_pending(map, 1);
+            wah_push_pending(map, 1, bitcount32(map->_pending));
             wah_word_enum_next(&src_en);
             wah_word_enum_next(&other_en);
             break;
@@ -1605,6 +1656,12 @@ void wah_debug_print(const wah_t *wah, bool print_content)
 Z_GROUP_EXPORT(wah)
 {
     wah_t map, map1, map2, map3;
+
+    assert (_G.bits_in_bucket % WAH_BIT_IN_WORD == 0);
+
+    /* Have a smaller value of bits_in_bucket for tests to stress the buckets
+     * code. */
+    _G.bits_in_bucket = 10000 * WAH_BIT_IN_WORD;
 
     Z_TEST(simple, "") {
         wah_init(&map);
