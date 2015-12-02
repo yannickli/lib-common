@@ -578,7 +578,7 @@ void mem_ring_release(const void *cookie)
     rp->frames_cnt--;
     rp->nb_frames_release++;
 
-    if (rp->nb_frames_release >= UINT16_MAX) {
+    if (rp->nb_frames_release >= 256) {
         __mem_ring_reset(rp);
     }
 
