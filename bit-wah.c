@@ -1443,7 +1443,8 @@ bool wah_get(const wah_t *map, uint64_t pos)
         return map->_pending & (1 << pos);
     }
 
-    bucket = &map->_buckets.tab[0];
+    bucket = &map->_buckets.tab[pos / _G.bits_in_bucket];
+    pos %= _G.bits_in_bucket;
 
     while (i < bucket->len) {
         wah_header_t head  = bucket->tab[i++].head;
@@ -2258,6 +2259,77 @@ Z_GROUP_EXPORT(wah)
 
         wah_wipe(&map2);
         wah_wipe(&map1);
+    } Z_TEST_END;
+
+    Z_TEST(buckets, "") {
+        SB_1k(sb);
+        uint32_t litteral[] = {
+            0x12345678, 0x12345678, 0x12345678, 0x12345678,
+            0x12345678, 0x00000001,
+        };
+
+        /* Set bits_in_bucket to a low value, and build a with multiple
+         * buckets. */
+        _G.bits_in_bucket = 5 * WAH_BIT_IN_WORD;
+
+        wah_init(&map1);
+        wah_add0s(&map1, 5 * WAH_BIT_IN_WORD);
+        wah_add1s(&map1, 5 * WAH_BIT_IN_WORD);
+        wah_add0s(&map1, 5 * WAH_BIT_IN_WORD);
+
+        wah_add(&map1, litteral, 5 * WAH_BIT_IN_WORD + 2);
+
+#define CHECK_WAH(_nb_buckets, _len)  \
+        do {                                                                 \
+            Z_ASSERT_EQ(map1._buckets.len, _nb_buckets);                     \
+            Z_ASSERT_EQ(map1.len, _len);                                     \
+            Z_ASSERT_EQ(map1.active, 5 * WAH_BIT_IN_WORD +                   \
+                        membitcount(litteral, countof(litteral) * 4));       \
+                                                                             \
+            for (uint64_t i = 0; i < 3 * 5 * WAH_BIT_IN_WORD; i++) {         \
+                if (i >= 5 * WAH_BIT_IN_WORD                                 \
+                &&  i < 2 * 5 * WAH_BIT_IN_WORD)                             \
+                {                                                            \
+                    Z_ASSERT_EQ(wah_get(&map1, i), true);                    \
+                } else {                                                     \
+                    Z_ASSERT_EQ(wah_get(&map1, i), false);                   \
+                }                                                            \
+            }                                                                \
+            for (uint64_t i = 0; i < 5 * WAH_BIT_IN_WORD + 2; i++) {         \
+                Z_ASSERT_EQ(wah_get(&map1, i + 15 * WAH_BIT_IN_WORD),        \
+                            !!TST_BIT(litteral, i));                         \
+            }                                                                \
+        } while (0)
+
+        /* There should be 4 buckets with pending data, so 5 after calling
+         * wah_pad32. */
+        CHECK_WAH(4, 4 * 5 * WAH_BIT_IN_WORD + 2);
+        wah_pad32(&map1);
+        CHECK_WAH(5, (4 * 5 + 1) * WAH_BIT_IN_WORD);
+
+        /* Save the wah in a sb. */
+        qv_for_each_ptr(wah_word_vec, bucket, &map1._buckets) {
+            sb_add(&sb, bucket->tab, bucket->len * sizeof(wah_word_t));
+        }
+        wah_wipe(&map1);
+
+        /* Reload it with the same value of bits_in_bucket, and check all the
+         * buckets are statically loaded. */
+        Z_ASSERT_P(wah_init_from_data(&map1, ps_initsb(&sb)));
+        CHECK_WAH(5, (4 * 5 + 1) * WAH_BIT_IN_WORD);
+        qv_for_each_ptr(wah_word_vec, bucket, &map1._buckets) {
+            Z_ASSERT(bucket->mp == ipool(MEM_STATIC));
+        }
+        wah_wipe(&map1);
+
+        /* Reload it with a lower value of bits_in_bucket; this will stress
+         * the code of wah_init_from_data. */
+        _G.bits_in_bucket = 4 * WAH_BIT_IN_WORD;
+        Z_ASSERT_P(wah_init_from_data(&map1, ps_initsb(&sb)));
+        CHECK_WAH(6, (4 * 5 + 1) * WAH_BIT_IN_WORD);
+        wah_wipe(&map1);
+
+#undef CHECK_WAH
     } Z_TEST_END;
 } Z_GROUP_END;
 
