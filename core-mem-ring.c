@@ -459,6 +459,7 @@ static void __mem_ring_reset(ring_pool_t *rp)
     size_t saved_size;
     size_t max_size;
     ring_blk_t *saved_blk = NULL;
+    frame_t *start = dlist_first_entry(&rp->fhead, frame_t, flist);
 
     if (!mem_pool_is_enabled()) {
         return;
@@ -476,6 +477,11 @@ static void __mem_ring_reset(ring_pool_t *rp)
      */
     dlist_for_each_safe(e, &rp->cblk->blist) {
         ring_blk_t *blk = blk_entry(e);
+
+        /* XXX: do not remove the block which contains the first frame. */
+        if (blk_contains(blk, start)) {
+            continue;
+        }
 
         if (blk->size > saved_size && blk->size < max_size) {
             if (saved_blk) {
@@ -572,7 +578,7 @@ void mem_ring_release(const void *cookie)
     rp->frames_cnt--;
     rp->nb_frames_release++;
 
-    if (rp->nb_frames_release >= UINT16_MAX) {
+    if (rp->nb_frames_release >= 256) {
         __mem_ring_reset(rp);
     }
 
