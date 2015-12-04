@@ -121,8 +121,16 @@ wah_t *wah_dup(const wah_t *src) __leaf;
  *
  * This generates read-only wah_t structures
  */
-wah_t *wah_init_from_data(wah_t *wah, pstream_t data);
-wah_t *wah_new_from_data(pstream_t data);
+wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *wah, pstream_t data);
+static inline wah_t *wah_init_from_data(wah_t *wah, pstream_t data)
+{
+    return mp_wah_init_from_data(NULL, wah, data);
+}
+wah_t *mp_wah_new_from_data(mem_pool_t *mp, pstream_t data);
+static inline wah_t *wah_new_from_data(pstream_t data)
+{
+    return mp_wah_new_from_data(NULL, data);
+}
 
 /** Get the raw data contained in a wah_t.
  *

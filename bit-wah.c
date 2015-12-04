@@ -1559,11 +1559,12 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
     }
 }
 
-wah_t *wah_init_from_data(wah_t *map, pstream_t data)
+wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *map, pstream_t data)
 {
     from_data_ctx_t ctx;
 
     p_clear(map, 1);
+    mp_qv_init(wah_word_vec, mp, &map->_buckets, 0);
 
     THROW_NULL_IF(ps_len(&data) % sizeof(wah_word_t));
     THROW_NULL_IF(ps_len(&data) < 2 * sizeof(wah_word_t));
@@ -1649,12 +1650,12 @@ wah_t *wah_init_from_data(wah_t *map, pstream_t data)
     return map;
 }
 
-wah_t *wah_new_from_data(pstream_t data)
+wah_t *mp_wah_new_from_data(mem_pool_t *mp, pstream_t data)
 {
-    wah_t *map = p_new_raw(wah_t, 1);
+    wah_t *map = mp_new_raw(mp, wah_t, 1);
     wah_t *ret;
 
-    ret = wah_init_from_data(map, data);
+    ret = mp_wah_init_from_data(mp, map, data);
     if (!ret) {
         wah_delete(&map);
     }
@@ -2155,6 +2156,7 @@ Z_GROUP_EXPORT(wah)
     } Z_TEST_END;
 
     Z_TEST(non_reg_and, "") {
+        t_scope;
         uint32_t src_data[]   = { 0x00000519, 0x00000000, 0x80000101, 0x00000000 };
         uint32_t other_data[] = { 0x00000000, 0x00000002, 0x80000010, 0x00000003,
                                   0x0000001d, 0x00000001, 0x00007e00, 0x0000001e,
@@ -2163,12 +2165,14 @@ Z_GROUP_EXPORT(wah)
         wah_t other;
         wah_t res;
 
-        wah_init_from_data(&src, ps_init(src_data, sizeof(src_data)));
+        mp_wah_init_from_data(t_pool(), &src,
+                              ps_init(src_data, sizeof(src_data)));
         src._pending = 0x1ffff;
         src.active   = 8241;
         src.len      = 50001;
 
-        wah_init_from_data(&other, ps_init(other_data, sizeof(other_data)));
+        mp_wah_init_from_data(t_pool(), &other,
+                              ps_init(other_data, sizeof(other_data)));
         other._pending = 0x600000;
         other.active  = 12;
         other.len     = 2007;
@@ -2180,8 +2184,6 @@ Z_GROUP_EXPORT(wah)
         Z_ASSERT_EQ(res.len, 50001u);
         Z_ASSERT_LE(res.active, 12u);
 
-        wah_wipe(&src);
-        wah_wipe(&other);
         wah_wipe(&res);
     } Z_TEST_END;
 
