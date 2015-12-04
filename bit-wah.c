@@ -508,6 +508,9 @@ void wah_check_invariant(const wah_t *map)
     assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2
         ==  last_bucket->len);
     assert (map->len >= map->active);
+    assert (map->len >= _G.bits_in_bucket * (map->_buckets.len - 1));
+    assert (map->len <= _G.bits_in_bucket * map->_buckets.len
+                      + WAH_BIT_IN_WORD);
     wah_check_normalized(map);
 }
 
@@ -824,19 +827,33 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
     return src;
 }
 
-static
-void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
+static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    void *data;
+    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
 
-    wah_flatten_last_run(map);
-    *wah_last_run_count(map) += count / 4;
-
-    data = qv_growlen(wah_word, qv_last(wah_word_vec, &map->_buckets),
-                      count / 4);
-    memcpy(data, src, count);
-    map->len    += count * 8;
     map->active += membitcount(src, count);
+    wah_flatten_last_run(map);
+
+    while (count) {
+        uint64_t bucket_len = map->len % _G.bits_in_bucket;
+        uint64_t to_add;
+
+        if (map->len && map->len == map->_buckets.len * _G.bits_in_bucket) {
+            assert (bucket_len == 0);
+            bucket = __wah_create_bucket(map);
+        }
+
+        to_add = MIN(count / 4,
+                     (_G.bits_in_bucket - bucket_len) / WAH_BIT_IN_WORD);
+
+        *wah_last_run_count(map) += to_add;
+        qv_splice(wah_word, bucket, bucket->len, 0,
+                  (wah_word_t *)src, to_add);
+
+        count    -= to_add * 4;
+        src      += to_add * 4;
+        map->len += to_add * WAH_BIT_IN_WORD;
+    }
 }
 
 static
@@ -955,6 +972,10 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
         wah_word_enum_skip(data, count);
 
         wah_flatten_last_run(map);
+        if (map->len && map->len == map->_buckets.len * _G.bits_in_bucket) {
+            __wah_create_bucket(map);
+        }
+
         *wah_last_run_count(map) += count;
         bucket = qv_last(wah_word_vec, &map->_buckets);
         qv_splice(wah_word, bucket, bucket->len, 0, words, count);
