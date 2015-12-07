@@ -1662,10 +1662,20 @@ wah_t *mp_wah_new_from_data(mem_pool_t *mp, pstream_t data)
     return ret;
 }
 
-const qv_t(wah_word_vec) *wah_get_data(const wah_t *wah)
+const qv_t(wah_word_vec) *wah_get_storage(const wah_t *wah)
 {
     assert (wah->len % WAH_BIT_IN_WORD == 0);
     return &wah->_buckets;
+}
+
+uint64_t wah_get_storage_len(const wah_t *wah)
+{
+    uint64_t res = 0;
+
+    qv_for_each_ptr(wah_word_vec, bucket, &wah->_buckets) {
+        res += bucket->len;
+    }
+    return res;
 }
 
 /* }}} */

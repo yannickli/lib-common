@@ -94,7 +94,7 @@ typedef struct wah_t {
 
     /* WARNING: the following fields should not be accessed directly, unless
      * you really know what you are doing. In most cases, you'll want to use
-     * wah_get_data. */
+     * wah_get_storage. */
     qv_t(wah_word_vec) _buckets;
     uint32_t           _pending;
     wah_word_t         _padding[3]; /* Ensure sizeof(wah_t) == 64 */
@@ -144,7 +144,8 @@ static inline wah_t *wah_new_from_data(pstream_t data)
  * \warning a wah must not have pending data if you want this to properly
  *          work; use \ref wah_pad32 to ensure that.
  */
-const qv_t(wah_word_vec) *wah_get_data(const wah_t *wah);
+const qv_t(wah_word_vec) *wah_get_storage(const wah_t *wah);
+uint64_t wah_get_storage_len(const wah_t *wah);
 
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
