@@ -235,8 +235,10 @@ typedef enum iopc_dox_type_t {
     IOPC_DOX_TYPE_DETAILS,
     IOPC_DOX_TYPE_WARNING,
     IOPC_DOX_TYPE_EXAMPLE,
+    IOPC_DOX_TYPE_SIMPLE = IOPC_DOX_TYPE_EXAMPLE,
 
-    IOPC_DOX_TYPE_count,
+    IOPC_DOX_TYPE_PARAM,
+    IOPC_DOX_TYPE_count
 } iopc_dox_type_t;
 
 lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t);

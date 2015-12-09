@@ -1001,18 +1001,13 @@ lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
       case IOPC_DOX_TYPE_DETAILS: return LSTR("details");
       case IOPC_DOX_TYPE_WARNING: return LSTR("warning");
       case IOPC_DOX_TYPE_EXAMPLE: return LSTR("example");
+      case IOPC_DOX_TYPE_PARAM:   return LSTR("param");
 
       default:
         print_error("invalid doxygen type %d", type);
         return LSTR_NULL_V;
     }
 }
-
-/** XXX: @param[] description in appended to comments of the related
- *       parameter. It is a valid keyword in the input file, but is not put
- *       into output file.
- */
-#define IOPC_DOX_TYPE_PARAM   IOPC_DOX_TYPE_count
 
 static int iopc_dox_check_keyword(lstr_t keyword, int *type)
 {
@@ -1021,10 +1016,6 @@ static int iopc_dox_check_keyword(lstr_t keyword, int *type)
             *type = i;
             return 0;
         }
-    }
-    if (lstr_equal(keyword, LSTR("param"))) {
-        *type = IOPC_DOX_TYPE_PARAM;
-        return 0;
     }
     return -1;
 }

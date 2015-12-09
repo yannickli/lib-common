@@ -619,7 +619,7 @@ iopc_dump_help(sb_t *buf, const char *bname, const char *fname,
     sb_addf(buf, "static const iop_help_t "NAME_HELP_FMT(bname, fname, ext)
                  " = {\n", NAME_HELP_FMT_ARG(bname, fname, ext));
 
-    for (int i = 0; i < IOPC_DOX_TYPE_count; i++) {
+    for (int i = 0; i <= IOPC_DOX_TYPE_SIMPLE; i++) {
         const iopc_dox_t *dox = iopc_dox_find_type(comments, i);
         lstr_t type;
 
