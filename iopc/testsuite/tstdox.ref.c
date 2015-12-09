@@ -871,6 +871,7 @@ static iop_field_t const tstdox__my_iface_a__fun_a_args__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_args__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.in"),
+    .example = LSTR_IMMED("\042aParam\042: 1, \042b\042: { \042fieldA\042: 11, \042fieldB\042: 12, \042fieldC\042: 13 }"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_args__s_attrs[] = {
     {
@@ -952,6 +953,7 @@ static iop_field_t const tstdox__my_iface_a__fun_a_res__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_res__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.out"),
+    .example = LSTR_IMMED("\042c\042: { \042fieldA\042: 11, \042fieldB\042: 12, \042fieldC\042: 13 }, \042d\042: 4"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_res__s_attrs[] = {
     {
@@ -1032,6 +1034,20 @@ static iop_field_t const tstdox__my_iface_a__fun_aa_res__desc_fields[] = {
         .size      = fieldsizeof(tstdox__my_iface_a__fun_aa_res__t, b),
     },
 };
+static const iop_help_t tstdox__my_iface_a__fun_aa_res__s_help = {
+    .example = LSTR_IMMED("\042b\042: 3"),
+};
+static const iop_struct_attr_t tstdox__my_iface_a__fun_aa_res__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_aa_res__s_help } },
+    },
+};
+static const iop_struct_attrs_t tstdox__my_iface_a__fun_aa_res__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = tstdox__my_iface_a__fun_aa_res__s_attrs,
+};
 const iop_struct_t tstdox__my_iface_a__fun_aa_res__s = {
     .fullname   = LSTR_IMMED("tstdox.MyIfaceA.funAaRes"),
     .fields     = tstdox__my_iface_a__fun_aa_res__desc_fields,
@@ -1039,6 +1055,8 @@ const iop_struct_t tstdox__my_iface_a__fun_aa_res__s = {
     .ranges_len = countof(iop__ranges__5) / 2,
     .fields_len = countof(tstdox__my_iface_a__fun_aa_res__desc_fields),
     .size       = sizeof(tstdox__my_iface_a__fun_aa_res__t),
+    .flags      = 1,
+    .st_attrs   = &tstdox__my_iface_a__fun_aa_res__s_desc_attrs,
 };
 
 /* }}} */
@@ -1115,6 +1133,7 @@ const iop_struct_t tstdox__my_iface_a__fun_c_res__s = {
     .ranges_len = countof(iop__ranges__5) / 2,
     .fields_len = countof(tstdox__my_iface_a__fun_aa_res__desc_fields),
     .size       = sizeof(tstdox__my_iface_a__fun_c_res__t),
+    .flags      = 1,
 };
 
 /* }}} */

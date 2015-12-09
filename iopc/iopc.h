@@ -234,6 +234,7 @@ typedef enum iopc_dox_type_t {
     IOPC_DOX_TYPE_BRIEF,
     IOPC_DOX_TYPE_DETAILS,
     IOPC_DOX_TYPE_WARNING,
+    IOPC_DOX_TYPE_EXAMPLE,
 
     IOPC_DOX_TYPE_count,
 } iopc_dox_type_t;

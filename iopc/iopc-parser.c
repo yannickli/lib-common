@@ -1000,6 +1000,7 @@ lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
       case IOPC_DOX_TYPE_BRIEF:   return LSTR("brief");
       case IOPC_DOX_TYPE_DETAILS: return LSTR("details");
       case IOPC_DOX_TYPE_WARNING: return LSTR("warning");
+      case IOPC_DOX_TYPE_EXAMPLE: return LSTR("example");
 
       default:
         print_error("invalid doxygen type %d", type);

@@ -129,12 +129,28 @@ interface MyIfaceA {
      *  @warning warning for funA of MyIfaceA
      */
     funA
-        /// local comment for MyIfaceA.funA.in
+       /** local comment for MyIfaceA.funA.in
+        *
+        *  @example "aParam": 1,
+        *           "b": {
+        *               "fieldA": 11,
+        *               "fieldB": 12,
+        *               "fieldC": 13
+        *           }
+        */
         in (
             int aParam, ///< local comment for MyIfaceA.funA.in.aParam
             /// local comment for MyIfaceA.funA.in.b
             MyStructAa b)
-        /// local comment for MyIfaceA.funA.out
+        /** local comment for MyIfaceA.funA.out
+         *
+         *  @example "c": {
+         *               "fieldA": 11,
+         *               "fieldB": 12,
+         *               "fieldC": 13
+         *           },
+         *           "d": 4
+         */
         out (
              MyStructA c, ///< local comment for MyIfaceA.funA.out.c
              int d)
@@ -144,6 +160,7 @@ interface MyIfaceA {
     funAa
         /// comment for MyIfaceA.funAa.in
         in (int a)
+        /** @example "b": 3 */
         out (int b);
 
     /// comment for MyIfaceA.funB

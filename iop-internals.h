@@ -96,6 +96,7 @@ typedef struct iop_help_t {
     lstr_t brief;
     lstr_t details;
     lstr_t warning;
+    lstr_t example;
 } iop_help_t;
 
 typedef union iop_value_t {
