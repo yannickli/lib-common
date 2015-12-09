@@ -62,6 +62,8 @@ static const char * const avoid_keywords[] = {
     "class", "new", "delete", "explicit",
 };
 
+static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
+
 static bool warn(qv_t(iopc_attr) *attrs, const char *category)
 {
     lstr_t s = LSTR(category);
@@ -1428,6 +1430,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
                       int attr_type, qv_t(iopc_dox) *comments)
 {
     int res = 0;
+    SB(sb, 256);
 
     qv_init(iopc_dox, comments);
 
@@ -1474,8 +1477,29 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             iopc_dox_append_paragraphs(comments, &dox->desc,
                                        &chunk->paragraphs);
         }
+
+        if (type == IOPC_DOX_TYPE_EXAMPLE) {
+            iopc_parser_t pp = {
+                .cfolder  = iop_cfolder_new(),
+                .ld = iopc_lexer_new("example doxygen comment",
+                                     dox->desc.s, IOPC_FILE_BUFFER)
+            };
+
+            sb_reset(&sb);
+            res = parse_json_object(&pp, &sb, true);
+
+            qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
+            iopc_lexer_delete(&pp.ld);
+            iop_cfolder_delete(&pp.cfolder);
+            if (res < 0) {
+                goto end;
+            }
+            lstr_transfer_sb(&dox->desc, &sb, false);
+        }
+
     }
 
+  end:
     qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
     return res;
 }
@@ -2867,7 +2891,6 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
     goto end;
 }
 
-static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
 static int parse_json_array(iopc_parser_t *pp, sb_t *sb);
 
 static int parse_json_value(iopc_parser_t *pp, sb_t *sb)
