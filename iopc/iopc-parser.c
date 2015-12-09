@@ -1439,8 +1439,8 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
         &&  iopc_dox_check_keyword(chunk->keyword, &type) >= 0
         &&  !iopc_dox_type_is_related(type, attr_type))
         {
-            warn_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
-                     LSTR_FMT_ARG(chunk->keyword));
+            throw_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
+                      LSTR_FMT_ARG(chunk->keyword));
             type = -1;
         }
 
