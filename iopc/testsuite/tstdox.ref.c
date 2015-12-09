@@ -818,7 +818,7 @@ const iop_struct_t tstdox__my_class2__s = {
 
 static const iop_help_t tstdox__my_iface_a__fun_a_args__a_param__f_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.in.aParam"),
-    .details = LSTR_IMMED("comment for aParam of funA.in it continues here"),
+    .details = LSTR_IMMED("comment for aParam of funA.in\012                      it continues here"),
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_args__a_param__attrs[] = {
     {

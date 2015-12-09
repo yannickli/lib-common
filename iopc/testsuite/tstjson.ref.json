@@ -2,8 +2,8 @@
 	"name": "tstjson",
 
 	"help": {
-		"brief": "Test json generator. Brief description continues here",
-		"details": "this is a detailed comment for tstjson it continues on the same paragraph\nthis is the 2nd paragraph of the details",
+		"brief": "Test json generator.\n          Brief description continues here",
+		"details": "this is a detailed comment for tstjson\n          it  continues on  the  same  paragraph\n\n          this is the 2nd paragraph of the details",
 		"warning": "this is a warning for tstjon"
 	},
 
@@ -14,7 +14,7 @@
 			"type": "enum",
 			"help": {
 				"brief": "Test auto-brief for MyEnumA.",
-				"details": "Detailed description for MyEnumA.\n2nd paragraph\n3rd paragraph, 3rd paragraph continue here, and also here.",
+				"details": "Detailed description\n    for MyEnumA.\n2nd paragraph\n3rd paragraph, 3rd paragraph continue here, and also here.",
 				"warning": "this is a warning for MyEnumA"
 			},
 			"values": {
@@ -75,6 +75,9 @@
 			"name": "MyEnumC",
 			"fullName": "tstjson.MyEnumC",
 			"type": "enum",
+			"help": {
+				"brief": "comment for MyEnumC."
+			},
 			"genAttrs": {
 				"test:gen1": {
 					"type": "boolean",
@@ -119,7 +122,7 @@
 			"fullName": "tstjson.MyStructA",
 			"type": "struct",
 			"help": {
-				"details": "detailed comment for MyStructA\n2nd paragraph"
+				"details": "detailed comment for MyStructA\n\n          2nd paragraph"
 			},
 			"fields": {
 				"i": {
@@ -524,7 +527,7 @@
 				"a": {
 					"type": "int",
 					"help": {
-						"details": "comment for a of funA.in it continues here"
+						"details": "comment for a of funA.in\n                 it continues here"
 					}
 				},
 				"b": {

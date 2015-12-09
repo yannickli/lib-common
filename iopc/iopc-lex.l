@@ -103,6 +103,10 @@ void lexdox_comment_begin(struct lexdata *ld, const char *text, int len)
     ld->tk = (token_new)(ITOK_DOX_COMMENT, ld);
     ld->tk->dox = dox_tok_new();
 
+    /* strip trailing spaces */
+    while (isspace(text[len - 1])) {
+        len--;
+    }
     ld->tk->dox->is_back = (text[len - 1] == '<');
 
     ld->dox_cur_paragraph = NULL;
@@ -147,6 +151,25 @@ static void debug_dump_dox(const struct lexdata *ld)
 
 static void lexdox_comment_end(const struct lexdata *ld)
 {
+    qv_for_each_ptr(dox_chunk, chunk, &ld->tk->dox->chunks) {
+        /* Strip spaces at the beginning and end of each paragraph to have
+         * clean brief and details paragraphs. Since details is put in its own
+         * paragraph, this won't affect the inner formatting.
+         */
+        qv_for_each_ptr(sb, paragraph, &chunk->paragraphs) {
+            sb_ltrim(paragraph);
+            sb_rtrim(paragraph);
+        }
+        /* Track the first sentence of the first paragraph (== brief). */
+        if (chunk->paragraphs.len) {
+            sb_t *paragraph = &chunk->paragraphs.tab[0];
+            const char *p = memchr(paragraph->data, '.', paragraph->len);
+
+            if (p) {
+                chunk->first_sentence_len = p - paragraph->data + 1;
+            }
+        }
+    }
     debug_dump_dox(ld);
 }
 
@@ -212,11 +235,14 @@ static void lexdox_add_text(struct lexdata *ld, const char *text, int len)
     lexdox_check_params_arg(ld, text, len);
 
     chunk = qv_last(dox_chunk, &ld->tk->dox->chunks);
-    /* when text includes a point it is 1 char len */
-    if (text[0] == '.' && chunk->paragraphs.len == 1
-    &&  !chunk->first_sentence_len)
+    /* check if we are beginning the second paragraph (== details) */
+    if (!chunk->keyword.s && chunk->paragraphs.len == 1 && text[0] == '\n'
+    &&  ld->dox_cur_paragraph
+    &&  ld->dox_cur_paragraph->len > 0
+    &&  ld->dox_cur_paragraph->data[ld->dox_cur_paragraph->len - 1] == '\n')
     {
-        chunk->first_sentence_len = ld->dox_cur_paragraph->len + 1;
+        ld->dox_cur_paragraph = NULL;
+        return;
     }
     sb_add(ld->dox_cur_paragraph, text, len);
     lexdox_update_last_chunk_loc(ld);
@@ -331,14 +357,14 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           sb_set(&tk->b, yytext, yyleng);
                           return tk;
                         }
-    "/*"("*<"|"!""<"?)  {
+    "/*"("*<"|"!""<"?){HS}* {
                           if (!iopc_g.v3) {
                               USER_REJECT;
                           }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_COMMENT);
                         }
-    "/**"/[^"*"]        {
+    "/**"{HS}+|"/**"/[^"*"] {
                           if (!iopc_g.v3) {
                               USER_REJECT;
                           }
@@ -448,15 +474,17 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           BEGIN(INITIAL);
                           return yyextra->tk;
                         }
-    {HS}*{EOL}{HS}*"*"*({HS}*|"*/") {
+    {HS}*{EOL}{HS}*"*"*"*/" {
                           lexdata_newline(yyextra, yyleng);
-                          if (yytext[yyleng - 1] == '/') {
-                              yyless(yyleng - 2);
-                          } else
-                          if (++yyextra->dox_sp_count == 2) {
-                              yyextra->dox_cur_paragraph = NULL;
-                          }
+                          /* reinject the comment end */
+                          yyless(yyleng - 2);
                         }
+    ^{HS}*"*"+{HS}?     { /* skip */ }
+    {EOL}               {
+                          lexdata_newline(yyextra, yyleng);
+                          lexdox_add_text(yyextra, yytext, yyleng);
+                        }
+    {HS}+               { lexdox_add_text(yyextra, yytext, yyleng); }
 }
 
 <DOX_LINE_COMMENT>{
@@ -481,8 +509,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           lexdox_add_paragraph(yyextra);
                         }
     {HS}+               { yyextra->dox_sp_count = 1; }
-    {ID}                |
-    .                   { lexdox_add_text(yyextra, yytext, yyleng); }
+    {ID}|.              { lexdox_add_text(yyextra, yytext, yyleng); }
 }
 
 <DOX_PARAM>{

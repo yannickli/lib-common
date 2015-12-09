@@ -316,7 +316,7 @@
 					"type": "int",
 					"help": {
 						"brief": "local comment for MyIfaceA.funA.in.aParam",
-						"details": "comment for aParam of funA.in it continues here"
+						"details": "comment for aParam of funA.in\n                      it continues here"
 					}
 				},
 				"b": {

@@ -623,8 +623,9 @@ iopc_dump_help(sb_t *buf, const char *bname, const char *fname,
         const iopc_dox_t *dox = iopc_dox_find_type(comments, i);
         lstr_t type;
 
-        if (!dox)
+        if (!dox || !dox->desc.len) {
             continue;
+        }
 
         type = iopc_dox_type_to_lstr(i);
         sb_addf(buf, "    .%*pM = LSTR_IMMED(\"", LSTR_FMT_ARG(type));

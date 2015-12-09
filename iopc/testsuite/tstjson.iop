@@ -40,6 +40,9 @@ enum MyEnumB {
     C,
 }; ///< back comment for MyEnumB
 
+/**
+ * comment for MyEnumC.
+ */
 @(test:gen1, true)
 enum MyEnumC {
     A,
