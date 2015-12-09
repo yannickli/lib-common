@@ -1424,12 +1424,12 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
     return 0;
 }
 
-static qv_t(iopc_dox)
-build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
+static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
+                      int attr_type, qv_t(iopc_dox) *comments)
 {
-    qv_t(iopc_dox) res;
+    int res = 0;
 
-    qv_init(iopc_dox, &res);
+    qv_init(iopc_dox, comments);
 
     qv_for_each_ptr(dox_chunk, chunk, chunks) {
         iopc_dox_t *dox;
@@ -1449,11 +1449,11 @@ build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
             dox_chunk_keyword_merge(chunk);
         }
 
-        if (iopc_dox_check_paragraphs(&res, &chunk->paragraphs) < 0)
+        if (iopc_dox_check_paragraphs(comments, &chunk->paragraphs) < 0)
             continue;
 
         if (type == IOPC_DOX_TYPE_PARAM) {
-            if (build_dox_param(owner, &res, chunk) >= 0)
+            if (build_dox_param(owner, comments, chunk) >= 0)
                 continue;
             dox_chunk_params_merge(chunk);
             dox_chunk_keyword_merge(chunk);
@@ -1461,15 +1461,18 @@ build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
         }
 
         if (type >= 0) {
-            dox = iopc_dox_find_type_or_create(&res, type);
-            iopc_dox_append_paragraphs(&res, &dox->desc, &chunk->paragraphs);
+            dox = iopc_dox_find_type_or_create(comments, type);
+            iopc_dox_append_paragraphs(comments, &dox->desc,
+                                       &chunk->paragraphs);
         } else
-        if (iopc_dox_find_type(&res, IOPC_DOX_TYPE_BRIEF)) {
-            iopc_dox_append_paragraphs_to_details(&res, &chunk->paragraphs);
+        if (iopc_dox_find_type(comments, IOPC_DOX_TYPE_BRIEF)) {
+            iopc_dox_append_paragraphs_to_details(comments,
+                                                  &chunk->paragraphs);
         } else {
-            dox = iopc_dox_add(&res, IOPC_DOX_TYPE_BRIEF);
+            dox = iopc_dox_add(comments, IOPC_DOX_TYPE_BRIEF);
             dox_chunk_autobrief_validate(chunk);
-            iopc_dox_append_paragraphs(&res, &dox->desc, &chunk->paragraphs);
+            iopc_dox_append_paragraphs(comments, &dox->desc,
+                                       &chunk->paragraphs);
         }
     }
 
@@ -1478,13 +1481,16 @@ build_dox_(qv_t(dox_chunk) *chunks, const void *owner, int attr_type)
 }
 
 #define build_dox(_chunks, _owner, _attr_type)                             \
-    do {                                                                   \
-        (_owner)->comments = build_dox_(_chunks, _owner, _attr_type);      \
+    ({                                                                     \
+        int _res = build_dox_(_chunks, _owner, _attr_type,                 \
+                              &(_owner)->comments);                        \
+                                                                           \
         debug_dump_dox((_owner)->comments, (_owner)->name);                \
-    } while (0)
+        _res;                                                              \
+    })
 
 #define build_dox_check_all(_chunks, _owner)  \
-    do { build_dox(_chunks, _owner, -1); } while (0)
+    ({ build_dox(_chunks, _owner, -1); })
 
 static iopc_attr_t *parse_attr(iopc_parser_t *pp);
 
@@ -2095,7 +2101,7 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
 
         f->pos = next_pos++;
         RETHROW(read_dox_back(pp, &chunks, sep));
-        build_dox_check_all(&chunks, f);
+        RETHROW(build_dox_check_all(&chunks, f));
 
         if (iopc_is_snmp_st(st->type)
         &&  check_snmp_brief(f->comments, f->loc, f->name, "field") < 0)
@@ -2345,7 +2351,7 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
         qv_append(i32, values, f->value);
 
         RETHROW(read_dox_back(pp, chunks, ','));
-        build_dox_check_all(chunks, f);
+        RETHROW(build_dox_check_all(chunks, f));
 
         if (SKIP_N(pp, ',')) {
             continue;
@@ -2457,7 +2463,7 @@ static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
         RETHROW(parse_struct(pp, *sptr, ',', ')', is_snmp_iface));
         EAT(pp, ')');
         RETHROW(read_dox_back(pp, chunks, 0));
-        build_dox_check_all(chunks, *sptr);
+        RETHROW(build_dox_check_all(chunks, *sptr));
     } else                          /* fname in void ... */
     if (CHECK_KW_N(pp, 0, "void")) {
         if (is_snmp_iface) {
@@ -2514,7 +2520,7 @@ static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
                                   &f->type_name));
 
         RETHROW(read_dox_back(pp, chunks, 0));
-        build_dox_check_all(chunks, f);
+        RETHROW(build_dox_check_all(chunks, f));
 
         iopc_loc_merge(&f->loc, TK_N(pp, 0)->loc);
     }
@@ -2607,7 +2613,9 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     }
     qv_append(i32, tags, tag);
 
-    build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC);
+    if (build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC) < 0) {
+        goto error;
+    }
     if (iopc_is_snmp_iface(type)) {
         if (check_snmp_brief(fun->comments, fun->loc, fun->name,
                              "notification") < 0)
@@ -2832,11 +2840,11 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
 
         if (read_dox_front(pp, &chunks) < 0
         ||  !(f = parse_mod_field_stmt(pp, mod, &fields, &tags, &next_tag))
-        ||  read_dox_back(pp, &chunks, ';') < 0)
+        ||  read_dox_back(pp, &chunks, ';') < 0
+        ||  build_dox_check_all(&chunks, f) < 0)
         {
             goto error;
         }
-        build_dox_check_all(&chunks, f);
         if (__eat(pp, ';') < 0) {
             goto error;
         }
@@ -3388,11 +3396,11 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
 
     if (read_dox_front(pp, &chunks) < 0
     ||  !(pkg->name = parse_pkg_stmt(pp))
-    ||  read_dox_back(pp, &chunks, 0) < 0)
+    ||  read_dox_back(pp, &chunks, 0) < 0
+    ||  build_dox_check_all(&chunks, pkg) < 0)
     {
         goto error;
     }
-    build_dox_check_all(&chunks, pkg);
 
     if (type != IOPC_FILE_STDIN) {
         char base[PATH_MAX];
@@ -3458,10 +3466,11 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 }                                            \
                 qv_append(iopc_attr, &_o->attrs, _attr);     \
             }                                                \
-            if (read_dox_back(pp, &chunks, 0) < 0) {         \
+            if (read_dox_back(pp, &chunks, 0) < 0            \
+            ||  build_dox(&chunks, _o, _t) < 0)              \
+            {                                                \
                 goto error;                                  \
             }                                                \
-            build_dox(&chunks, _o, _t);                      \
         } while (0)
 
         for (int i = 0; i < 2; i++) {
