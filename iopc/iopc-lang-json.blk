@@ -268,7 +268,11 @@ iopc_dox_dump_json(const iopc_write_buf_t *wbuf,
     qv_for_each_ptr(iopc_dox, dox, comments) {
         lstr_t type = iopc_dox_type_to_lstr(dox->type);
 
-        dump_key_val_string(wbuf, type.s, dox->desc.s);
+        if (dox->type == IOPC_DOX_TYPE_EXAMPLE) {
+            LINE_KEY_VAL_FMT(wbuf, type.s, "%*pM", LSTR_FMT_ARG(dox->desc));
+        } else {
+            dump_key_val_string(wbuf, type.s, dox->desc.s);
+        }
     }
     LINE_END_OBJ(wbuf);
     return 0;

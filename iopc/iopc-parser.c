@@ -1486,7 +1486,9 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             };
 
             sb_reset(&sb);
+            sb_addc(&sb, '{');
             res = parse_json_object(&pp, &sb, true);
+            sb_addc(&sb, '}');
 
             qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
             iopc_lexer_delete(&pp.ld);
