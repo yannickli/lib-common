@@ -500,10 +500,10 @@ static inline void _logger_end_panic(logger_t **logger)
     __logger_scope((Logger), (Level), Mark, Start, End, __LINE__)
 
 #define logger_panic_scope(Logger)                                           \
-    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, logger_end_panic)
+    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, _logger_end_panic)
 
 #define logger_fatal_scope(Logger)                                           \
-    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, logger_end_fatal)
+    _logger_scope((Logger), LOG_CRIT,, __logger_log_start, _logger_end_fatal)
 
 #define logger_error_scope(Logger)                                           \
     _logger_scope((Logger), LOG_ERR, __logger_cold(),                        \
