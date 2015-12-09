@@ -385,9 +385,9 @@ void ic_flush(ichannel_t *ic);
  *     reclaimed in the reply callback.
  *   - \v status is the status of the reply.
  *   - \v res is the value of the callback result when \v status is
- *     #IC_MSG_OK, #NULL else.
+ *     #IC_MSG_OK, and should not be accessed otherwise.
  *   - \v exn is the value of the callback result when \v status is
- *     #IC_MSG_EXN, #NULL else.
+ *     #IC_MSG_EXN, and should not be accessed otherwise.
  */
 #define IOP_RPC_CB_ARGS(_mod, _i, _r) \
     ichannel_t *ic, ic_msg_t *msg, ic_status_t status, \
