@@ -2688,6 +2688,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     qv_t(u32) t;
     el_t      timer;
     pid_t     pid;
+    uint32_t  wait_for;
 
     assert (qps->snapshotting == false);
 
@@ -2761,9 +2762,16 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
     lp_gettv(&step_madvise);
     pid   = qps_snapshot_bg(qps, data, dlen, t, generation);
-    timer = el_timer_register_blk(3600 * 1000, 0, 0, ^(el_t ev){
-        e_fatal("qps: snapshot (generation %x) stuck for more than an hour",
-                generation);
+    /* If the disk write speed is lower than 16 MB/s, there is an issue.
+     * Thus we need less than 16s per 256 MB map, so the max time is
+     * 16 * qps->maps.len secondes.
+     * In order to avoid any regression the max of this value and 1 hour is
+     * used.
+     */
+    wait_for = MAX(3600, qps->maps.len * 16);
+    timer = el_timer_register_blk(wait_for * 1000, 0, 0, ^(el_t ev){
+        e_fatal("qps: snapshot (generation %x) stuck for more than %d sec",
+                generation, wait_for);
     }, NULL);
     lp_gettv(&step_fork);
 
