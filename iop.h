@@ -978,8 +978,9 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
  *
  * \param[in]  _obj  The object to print.
  */
-#define IOP_OBJ_FMT_ARG(_obj)  \
-    IOP_OBJ_FMT_ARG_FLAGS(_obj, IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL)
+#define IOP_OBJ_FMT_ARG(_obj)                                                \
+    IOP_OBJ_FMT_ARG_FLAGS((_obj),                                            \
+                          IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL)
 
 /* }}} */
 /* {{{ IOP constraints handling */
