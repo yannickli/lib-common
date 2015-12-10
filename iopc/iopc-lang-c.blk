@@ -947,6 +947,39 @@ static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
     }
 }
 
+static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
+                                    const iopc_struct_t *st)
+{
+    sb_adds(buf, "/*----- XXX private data, do not use directly -{{{-*/\n");
+    qv_for_each_entry(iopc_field, f, &st->fields) {
+        /* Tag of the field */
+        sb_addf(buf, "#define %s__%s__ft %d\n", tbase,
+                pp_to_c(f->name), f->tag);
+    }
+
+    if (!iopc_g.v4) {
+        goto close_fold;
+    }
+
+    qv_for_each_entry(iopc_attr, attr, &st->attrs) {
+        if (attr->desc->id == IOPC_ATTR_CTYPE) {
+            qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+                lstr_t ctype;
+
+                assert (lstr_endswith(arg->v.s, LSTR("__t")));
+                ctype = LSTR_INIT_V(arg->v.s.s, arg->v.s.len - 3);
+                qv_for_each_entry(iopc_field, f, &st->fields) {
+                    sb_addf(buf, "#define %*pM__%s__ft %d\n",
+                            LSTR_FMT_ARG(ctype), pp_to_c(f->name), f->tag);
+                }
+            }
+        }
+    }
+
+  close_fold:
+    sb_adds(buf, "/*-}}}-*/\n");
+}
+
 static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
                                  iopc_struct_t *st)
 {
@@ -970,13 +1003,8 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
             "IOP_GENERIC(%s);\n",
             tbase, tbase);
 
-    sb_adds(buf, "/*----- XXX private data, do not use directly -{{{-*/\n");
-    qv_for_each_entry(iopc_field, f, &st->fields) {
-        /* Tag of the field */
-        sb_addf(buf, "#define %s__%s__ft %d\n", tbase,
-                pp_to_c(f->name), f->tag);
-    }
-    sb_adds(buf, "/*-}}}-*/\n");
+    iopc_union_dump_tag_cst(buf, tbase, st);
+
     /* Get & copy functions */
     sb_addf(buf, "#define %s__get(u, field)       "
             "IOP_UNION_GET(%s, u, field)\n",
