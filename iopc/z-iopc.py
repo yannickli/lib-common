@@ -753,7 +753,8 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass(f + '.iop', 3)
         self.run_iopc_pass(f + '.iop', 4)
         self.run_gcc(f + '.iop')
-        self.check_ref(g, 'c')
+        for lang in ['json', 'c']:
+            self.check_ref(g, lang)
 
     def test_gen_c(self):
         f = 'tstgen'
