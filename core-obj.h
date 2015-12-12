@@ -72,15 +72,26 @@ bool cls_inherits(const void *cls, const void *vptr)
     (pfx##_class()->f(obj_vcast(pfx, o), ##__VA_ARGS__))
 
 #define super_call(pfx, o, f, ...)  \
-    (pfx##_class()->super->f((void *)obj_ccast(pfx, (o)), ##__VA_ARGS__))
+    (pfx##_class()->super->f(&(o)->super, ##__VA_ARGS__))
 
 #define class_vcall(cls, f, ...)  cls->f(__VA_ARGS__)
 
-#define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)               \
+#define OBJ_MAKE_STRUCT_INHERIT(pfx, superclass, fields)                     \
+    union {                                                                  \
+        superclass##_t super;                                                \
+        struct {                                                             \
+            fields(pfx);                                                     \
+        };                                                                   \
+    }
+
+#define OBJ_MAKE_STRUCT_BASE(pfx, superclass, fields)                        \
+    fields(pfx)
+
+#define OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods, make_struct) \
     typedef struct pfx##_class_t pfx##_class_t;                              \
                                                                              \
     struct pfx##_t {                                                         \
-        fields(pfx);                                                         \
+        make_struct(pfx, superclass, fields);                                \
     };                                                                       \
     struct pfx##_class_t {                                                   \
         const superclass##_class_t *super;                                   \
@@ -95,6 +106,10 @@ bool cls_inherits(const void *cls, const void *vptr)
     static inline const superclass##_class_t *pfx##_super(void) {            \
         return superclass##_class();                                         \
     }
+
+#define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)               \
+    OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods,                  \
+                          OBJ_MAKE_STRUCT_INHERIT)
 
 #define OBJ_CLASS(pfx, superclass, fields, methods)                          \
     typedef struct pfx##_t pfx##_t;                                          \
@@ -156,7 +171,13 @@ bool cls_inherits(const void *cls, const void *vptr)
     void     (*release)(type_t *);                                           \
     bool     (*can_wipe)(type_t *)
 
-OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
+#define OBJ_CLASS(pfx, superclass, fields, methods)                          \
+    typedef struct pfx##_t pfx##_t;                                          \
+    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)
+
+typedef struct object_t object_t;
+OBJ_CLASS_NO_TYPEDEF_(object, object, OBJECT_FIELDS, OBJECT_METHODS,
+                      OBJ_MAKE_STRUCT_BASE)
 
 
 void *obj_init_real(const void *cls, void *o, mem_pool_t *mp);
