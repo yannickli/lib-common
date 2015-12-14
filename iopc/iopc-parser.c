@@ -1771,16 +1771,17 @@ static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
     return NULL;
 }
 
-static iop_type_t get_type_kind(iopc_token_t *tk)
+iop_type_t iop_get_type(lstr_t name)
 {
-    const char *id = ident(tk);
-    int v = iopc_get_token(id, tk->b.len);
+    int v = iopc_get_token_lstr(name);
 
-    if (v == IOPC_TK_unknown)
+    if (v == IOPC_TK_unknown) {
         return IOP_T_STRUCT;
-    for (const char *p = id; *p; p++) {
-        if (isupper((unsigned char)*p))
+    }
+    for (const char *p = name.s; p < name.s + name.len; p++) {
+        if (isupper(*p)) {
             return IOP_T_STRUCT;
+        }
     }
     switch (v) {
       case IOPC_TK_BYTE:   return IOP_T_I8;
@@ -1800,6 +1801,11 @@ static iop_type_t get_type_kind(iopc_token_t *tk)
       default:
         return IOP_T_STRUCT;
     }
+}
+
+static iop_type_t get_type_kind(iopc_token_t *tk)
+{
+    return iop_get_type(LSTR_SB_V(&tk->b));
 }
 
 static int parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,

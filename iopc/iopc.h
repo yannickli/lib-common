@@ -1085,4 +1085,11 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
                    const char *iopfile, const qm_t(iopc_env) *env,
                    const char *outdir, sb_t *err);
 
+/** Get iop type from a type name.
+ *
+ * Note that it's not possible to detect UNION and ENUM from a type name, so
+ * this function returns STRUCT for both.
+ */
+iop_type_t iop_get_type(lstr_t name);
+
 #endif
