@@ -1435,7 +1435,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
     qv_init(iopc_dox, comments);
 
     qv_for_each_ptr(dox_chunk, chunk, chunks) {
-        iopc_dox_t *dox;
+        iopc_dox_t *dox = NULL;
         int type = -1;
 
         if (chunk->keyword.len
