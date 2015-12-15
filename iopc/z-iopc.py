@@ -819,6 +819,10 @@ class IopcTest(z.TestCase):
                       "function `asyncCandidate` may be a candidate for "
                       "async-ness", 4)
 
+    def test_dup_struct(self):
+        self.run_iopc('duplicated_struct.iop', False,
+                      'error: something named `TopupEvent` already exists', 4)
+
     # }}}
 
 if __name__ == "__main__":

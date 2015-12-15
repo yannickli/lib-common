@@ -3490,13 +3490,12 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 iopc_attr_t *_attr = attrs.tab[pos];         \
                                                              \
                 if (check_attr_type_decl(_attr, _t) < 0) {   \
-                    for (int i = 0; i < pos; i++) {          \
-                        qv_remove(iopc_attr, &attrs, i);     \
-                    }                                        \
+                    qv_skip(iopc_attr, &attrs, pos);         \
                     goto error;                              \
                 }                                            \
                 qv_append(iopc_attr, &_o->attrs, _attr);     \
             }                                                \
+            qv_clear(iopc_attr, &attrs);                     \
             if (read_dox_back(pp, &chunks, 0) < 0            \
             ||  build_dox(&chunks, _o, _t) < 0)              \
             {                                                \
@@ -3645,13 +3644,12 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 iopc_attr_t *attr = attrs.tab[pos];
 
                 if (check_attr_type_field(attr, tdef, true) < 0) {
-                    for (int i = 0; i < pos; i++) {
-                        qv_remove(iopc_attr, &attrs, i);
-                    }
+                    qv_skip(iopc_attr, &attrs, pos);
                     goto error;
                 }
                 qv_append(iopc_attr, &tdef->attrs, attr);
             }
+            qv_clear(iopc_attr, &attrs);
             if (qm_add(iopc_struct, &things, tdef->name,
                        (iopc_struct_t *)tdef))
             {
