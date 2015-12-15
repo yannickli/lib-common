@@ -823,6 +823,9 @@ class IopcTest(z.TestCase):
         self.run_iopc('duplicated_struct.iop', False,
                       'error: something named `TopupEvent` already exists', 4)
 
+    def test_empty(self):
+        self.run_iopc_fail('empty.iop', 'error: unexpected end of file')
+
     # }}}
 
 if __name__ == "__main__":

@@ -40,6 +40,10 @@ struct lexdata {
 
 static int lexdata_relpos(struct lexdata *ld, int offs)
 {
+    if (!ld->len) {
+        /* empty file */
+        return ld->pos;
+    }
     if (offs >= 0) {
         assert (offs <= ld->len);
         return ld->pos + offs;
