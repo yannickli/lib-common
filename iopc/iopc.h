@@ -14,9 +14,9 @@
 #ifndef IS_IOP_IOPC_IOPC_H
 #define IS_IOP_IOPC_IOPC_H
 
-#define IOPC_MAJOR   4
+#define IOPC_MAJOR   5
 #define IOPC_MINOR   0
-#define IOPC_PATCH   7
+#define IOPC_PATCH   0
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -91,6 +91,7 @@ extern struct {
     int v2;
     int v3;
     int v4;
+    int v5;
 
     /** Check the presence of an @snmpIndex in each snmpTbl.
      *

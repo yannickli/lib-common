@@ -27,7 +27,7 @@ static const iop_help_t tstdox__my_enum_a__val_a__v_help = {
 };
 static const iop_enum_value_attr_t tstdox__my_enum_a__val_a__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &tstdox__my_enum_a__val_a__v_help } },
     },
 };
@@ -36,13 +36,13 @@ static const iop_help_t tstdox__my_enum_a__val_c__v_help = {
 };
 static const iop_enum_value_attr_t tstdox__my_enum_a__val_c__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &tstdox__my_enum_a__val_c__v_help } },
     },
 };
 static const iop_enum_value_attrs_t tstdox__my_enum_a__e_desc_values_attrs[] = {
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = tstdox__my_enum_a__val_a__v_attrs,
     },
@@ -50,7 +50,7 @@ static const iop_enum_value_attrs_t tstdox__my_enum_a__e_desc_values_attrs[] = {
         .flags     = 0,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = tstdox__my_enum_a__val_c__v_attrs,
     },
@@ -62,12 +62,12 @@ static const iop_help_t tstdox__my_enum_a__e_help = {
 };
 static const iop_enum_attr_t tstdox__my_enum_a__e_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_attr_arg_t[]){ { .v.p = &tstdox__my_enum_a__e_help } },
     },
 };
 static const iop_enum_attrs_t tstdox__my_enum_a__e_desc_attrs = {
-    .flags     = 1,
+    .flags     = 32,
     .attrs_len = 1,
     .attrs     = tstdox__my_enum_a__e_attrs,
 };
@@ -123,12 +123,12 @@ static const iop_help_t tstdox__my_enum_c__e_help = {
 };
 static const iop_enum_attr_t tstdox__my_enum_c__e_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_attr_arg_t[]){ { .v.p = &tstdox__my_enum_c__e_help } },
     },
 };
 static const iop_enum_attrs_t tstdox__my_enum_c__e_desc_attrs = {
-    .flags     = 1,
+    .flags     = 32,
     .attrs_len = 1,
     .attrs     = tstdox__my_enum_c__e_attrs,
 };
@@ -160,7 +160,7 @@ static const iop_help_t tstdox__my_enum_d__val_b__v_help = {
 };
 static const iop_enum_value_attr_t tstdox__my_enum_d__val_b__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &tstdox__my_enum_d__val_b__v_help } },
     },
 };
@@ -169,7 +169,7 @@ static const iop_enum_value_attrs_t tstdox__my_enum_d__e_desc_values_attrs[] = {
         .flags     = 0,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = tstdox__my_enum_d__val_b__v_attrs,
     },
@@ -352,7 +352,7 @@ static const iop_help_t tstdox__my_struct_aa__field_a__f_help = {
 };
 static iop_field_attr_t const tstdox__my_struct_aa__field_a__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_struct_aa__field_a__f_help } },
     },
 };
@@ -361,13 +361,13 @@ static const iop_help_t tstdox__my_struct_aa__field_c__f_help = {
 };
 static iop_field_attr_t const tstdox__my_struct_aa__field_c__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_struct_aa__field_c__f_help } },
     },
 };
 static iop_field_attrs_t const tstdox__my_struct_aa__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_struct_aa__field_a__attrs,
     },
@@ -376,7 +376,7 @@ static iop_field_attrs_t const tstdox__my_struct_aa__desc_fields_attrs[] = {
         .attrs_len         = 0,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_struct_aa__field_c__attrs,
     },
@@ -415,12 +415,12 @@ static const iop_help_t tstdox__my_struct_aa__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_struct_aa__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_struct_aa__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_struct_aa__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_struct_aa__s_attrs,
 };
@@ -444,7 +444,7 @@ static const iop_help_t tstdox__my_struct_ab__field_b__f_help = {
 };
 static iop_field_attr_t const tstdox__my_struct_ab__field_b__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_struct_ab__field_b__f_help } },
     },
 };
@@ -454,7 +454,7 @@ static iop_field_attrs_t const tstdox__my_struct_ab__desc_fields_attrs[] = {
         .attrs_len         = 0,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_struct_ab__field_b__attrs,
     },
@@ -513,12 +513,12 @@ static const iop_help_t tstdox__my_struct_ac__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_struct_ac__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_struct_ac__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_struct_ac__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_struct_ac__s_attrs,
 };
@@ -543,12 +543,12 @@ static const iop_help_t tstdox__my_struct_ba__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_struct_ba__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_struct_ba__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_struct_ba__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_struct_ba__s_attrs,
 };
@@ -590,7 +590,7 @@ static int tstdox__my_struct_bb__i__check(const void *ptr, int n)
 }
 static iop_field_attr_t const tstdox__my_struct_bb__i__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_struct_bb__i__f_help } },
     },
     {
@@ -600,7 +600,7 @@ static iop_field_attr_t const tstdox__my_struct_bb__i__attrs[] = {
 };
 static iop_field_attrs_t const tstdox__my_struct_bb__desc_fields_attrs[] = {
     {
-        .flags             = 2064,
+        .flags             = 262160,
         .attrs_len         = 2,
         .check_constraints = &tstdox__my_struct_bb__i__check,
         .attrs             = tstdox__my_struct_bb__i__attrs,
@@ -653,12 +653,12 @@ static const iop_help_t tstdox__my_class_base__static_field_0__sf_help = {
 };
 static const iop_field_attr_t tstdox__my_class_base__static_field_0__sf_attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_class_base__static_field_0__sf_help } },
     },
 };
 static const iop_field_attrs_t tstdox__my_class_base__static_field_0__sf_desc_attrs = {
-    .flags     = 2048,
+    .flags     = 262144,
     .attrs_len = 1,
     .attrs     = tstdox__my_class_base__static_field_0__sf_attrs,
 };
@@ -747,12 +747,12 @@ static const iop_help_t tstdox__my_class1__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_class1__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_class1__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_class1__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_class1__s_attrs,
 };
@@ -822,7 +822,7 @@ static const iop_help_t tstdox__my_iface_a__fun_a_args__a_param__f_help = {
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_args__a_param__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_args__a_param__f_help } },
     },
 };
@@ -832,18 +832,18 @@ static const iop_help_t tstdox__my_iface_a__fun_a_args__b__f_help = {
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_args__b__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_args__b__f_help } },
     },
 };
 static iop_field_attrs_t const tstdox__my_iface_a__fun_a_args__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_iface_a__fun_a_args__a_param__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_iface_a__fun_a_args__b__attrs,
     },
@@ -871,15 +871,16 @@ static iop_field_t const tstdox__my_iface_a__fun_a_args__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_args__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.in"),
+    .example = LSTR_IMMED("{\042aParam\042:1,\042b\042:{\042fieldA\042:11,\042fieldB\042:12,\042fieldC\042:13}}"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_args__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_args__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_a_args__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_a_args__s_attrs,
 };
@@ -904,7 +905,7 @@ static const iop_help_t tstdox__my_iface_a__fun_a_res__c__f_help = {
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_res__c__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_res__c__f_help } },
     },
 };
@@ -913,18 +914,18 @@ static const iop_help_t tstdox__my_iface_a__fun_a_res__d__f_help = {
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_res__d__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_res__d__f_help } },
     },
 };
 static iop_field_attrs_t const tstdox__my_iface_a__fun_a_res__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_iface_a__fun_a_res__c__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = tstdox__my_iface_a__fun_a_res__d__attrs,
     },
@@ -952,15 +953,16 @@ static iop_field_t const tstdox__my_iface_a__fun_a_res__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_res__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.out"),
+    .example = LSTR_IMMED("{\042c\042:{\042fieldA\042:11,\042fieldB\042:12,\042fieldC\042:13},\042d\042:4}"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_res__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a_res__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_a_res__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_a_res__s_attrs,
 };
@@ -998,12 +1000,12 @@ static const iop_help_t tstdox__my_iface_a__fun_aa_args__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_aa_args__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_aa_args__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_aa_args__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_aa_args__s_attrs,
 };
@@ -1033,15 +1035,16 @@ static iop_field_t const tstdox__my_iface_a__fun_aa_res__desc_fields[] = {
     },
 };
 static const iop_help_t tstdox__my_iface_a__fun_aa_res__s_help = {
+    .example = LSTR_IMMED("{\042b\042:3}"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_aa_res__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_aa_res__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_aa_res__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_aa_res__s_attrs,
 };
@@ -1066,12 +1069,12 @@ static const iop_help_t tstdox__my_iface_a__fun_b_args__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_b_args__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_b_args__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_b_args__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_b_args__s_attrs,
 };
@@ -1143,12 +1146,12 @@ static const iop_help_t tstdox__my_iface_a__fun_d_res__s_help = {
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_d_res__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_d_res__s_help } },
     },
 };
 static const iop_struct_attrs_t tstdox__my_iface_a__fun_d_res__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__fun_d_res__s_attrs,
 };
@@ -1290,11 +1293,11 @@ static const iop_help_t tstdox__my_iface_a__fun_a__rpc_exn_help = {
 };
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_a__attrs[] = {
     {
-        .type = 1,
+        .type = 9,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a__rpc_help } },
     },
     {
-        .type = 4,
+        .type = 12,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_a__rpc_exn_help } },
     },
 };
@@ -1306,21 +1309,21 @@ static const iop_help_t tstdox__my_iface_a__fun_b__rpc_res_help = {
 };
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_b__attrs_na[] = {
     {
-        .type = 1,
+        .type = 9,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_b__rpc_help } },
     },
     {
-        .type = 3,
+        .type = 11,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_b__rpc_res_help } },
     },
 };
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_b__attrs[] = {
     {
-        .type = 1,
+        .type = 9,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_b__rpc_help } },
     },
     {
-        .type = 3,
+        .type = 11,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_b__rpc_res_help } },
     },
     {
@@ -1340,11 +1343,11 @@ static const iop_help_t tstdox__my_iface_a__fun_c__rpc_arg_help = {
 };
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_c__attrs[] = {
     {
-        .type = 1,
+        .type = 9,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_c__rpc_help } },
     },
     {
-        .type = 2,
+        .type = 10,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_c__rpc_arg_help } },
     },
 };
@@ -1353,7 +1356,7 @@ static const iop_help_t tstdox__my_iface_a__fun_d__rpc_help = {
 };
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_d__attrs[] = {
     {
-        .type = 1,
+        .type = 9,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_d__rpc_help } },
     },
 };
@@ -1369,7 +1372,7 @@ static iop_rpc_attr_t const tstdox__my_iface_a__fun_e__attrs[] = {
 };
 static iop_rpc_attrs_t const tstdox__my_iface_a__rpc_desc_attrs[] = {
     {
-        .flags             = 18,
+        .flags             = 4608,
         .attrs_len         = 2,
         .attrs             = tstdox__my_iface_a__fun_a__attrs,
     },
@@ -1377,27 +1380,27 @@ static iop_rpc_attrs_t const tstdox__my_iface_a__rpc_desc_attrs[] = {
         .flags             = 0,
     },
     {
-        .flags             = 11,
+        .flags             = 2561,
         .attrs_len         = 4,
         .attrs             = tstdox__my_iface_a__fun_b__attrs,
     },
     {
-        .flags             = 10,
+        .flags             = 2560,
         .attrs_len         = 2,
         .attrs             = tstdox__my_iface_a__fun_b__attrs_na,
     },
     {
-        .flags             = 10,
+        .flags             = 2560,
         .attrs_len         = 2,
         .attrs             = tstdox__my_iface_a__fun_b__attrs_na,
     },
     {
-        .flags             = 6,
+        .flags             = 1536,
         .attrs_len         = 2,
         .attrs             = tstdox__my_iface_a__fun_c__attrs,
     },
     {
-        .flags             = 2,
+        .flags             = 512,
         .attrs_len         = 1,
         .attrs             = tstdox__my_iface_a__fun_d__attrs,
     },
@@ -1418,12 +1421,12 @@ static const iop_help_t tstdox__my_iface_a__if_help = {
 };
 static const iop_iface_attr_t tstdox__my_iface_a__if_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_iface_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__if_help } },
     },
 };
 static const iop_iface_attrs_t tstdox__my_iface_a__desc_if_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_a__if_attrs,
 };
@@ -1649,12 +1652,12 @@ static const iop_help_t tstdox__my_iface_d__if_help = {
 };
 static const iop_iface_attr_t tstdox__my_iface_d__if_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_iface_attr_arg_t[]){ { .v.p = &tstdox__my_iface_d__if_help } },
     },
 };
 static const iop_iface_attrs_t tstdox__my_iface_d__desc_if_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = tstdox__my_iface_d__if_attrs,
 };
@@ -1691,7 +1694,7 @@ static const iop_help_t tstdox__my_module_a__iface_a__m_if_help = {
 };
 static const iop_mod_iface_attr_t tstdox__my_module_a__iface_a__m_if_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_iface_attr_arg_t[]){ { .v.p = &tstdox__my_module_a__iface_a__m_if_help } },
     },
 };
@@ -1700,13 +1703,13 @@ static const iop_help_t tstdox__my_module_a__iface_c__m_if_help = {
 };
 static const iop_mod_iface_attr_t tstdox__my_module_a__iface_c__m_if_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_iface_attr_arg_t[]){ { .v.p = &tstdox__my_module_a__iface_c__m_if_help } },
     },
 };
 static const iop_mod_iface_attrs_t tstdox__my_module_a__m_desc_if_attrs[] = {
     {
-        .flags     = 1,
+        .flags     = 2,
         .attrs_len = 1,
         .attrs     = tstdox__my_module_a__iface_a__m_if_attrs,
     },
@@ -1714,7 +1717,7 @@ static const iop_mod_iface_attrs_t tstdox__my_module_a__m_desc_if_attrs[] = {
         .flags     = 0,
     },
     {
-        .flags     = 1,
+        .flags     = 2,
         .attrs_len = 1,
         .attrs     = tstdox__my_module_a__iface_c__m_if_attrs,
     },
@@ -1752,12 +1755,12 @@ static const iop_help_t tstdox__my_module_b__m_help = {
 };
 static const iop_mod_attr_t tstdox__my_module_b__m_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_attr_arg_t[]){ { .v.p = &tstdox__my_module_b__m_help } },
     },
 };
 static const iop_mod_attrs_t tstdox__my_module_b__m_desc_attrs = {
-    .flags     = 1,
+    .flags     = 2,
     .attrs_len = 1,
     .attrs     = tstdox__my_module_b__m_attrs,
 };
@@ -1794,7 +1797,7 @@ static const iop_help_t tstdox__my_module_c__iface_a__m_if_help = {
 };
 static const iop_mod_iface_attr_t tstdox__my_module_c__iface_a__m_if_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_iface_attr_arg_t[]){ { .v.p = &tstdox__my_module_c__iface_a__m_if_help } },
     },
 };
@@ -1803,13 +1806,13 @@ static const iop_help_t tstdox__my_module_c__iface_c__m_if_help = {
 };
 static const iop_mod_iface_attr_t tstdox__my_module_c__iface_c__m_if_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_iface_attr_arg_t[]){ { .v.p = &tstdox__my_module_c__iface_c__m_if_help } },
     },
 };
 static const iop_mod_iface_attrs_t tstdox__my_module_c__m_desc_if_attrs[] = {
     {
-        .flags     = 1,
+        .flags     = 2,
         .attrs_len = 1,
         .attrs     = tstdox__my_module_c__iface_a__m_if_attrs,
     },
@@ -1817,7 +1820,7 @@ static const iop_mod_iface_attrs_t tstdox__my_module_c__m_desc_if_attrs[] = {
         .flags     = 0,
     },
     {
-        .flags     = 1,
+        .flags     = 2,
         .attrs_len = 1,
         .attrs     = tstdox__my_module_c__iface_c__m_if_attrs,
     },
@@ -1827,12 +1830,12 @@ static const iop_help_t tstdox__my_module_c__m_help = {
 };
 static const iop_mod_attr_t tstdox__my_module_c__m_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_attr_arg_t[]){ { .v.p = &tstdox__my_module_c__m_help } },
     },
 };
 static const iop_mod_attrs_t tstdox__my_module_c__m_desc_attrs = {
-    .flags     = 1,
+    .flags     = 2,
     .attrs_len = 1,
     .attrs     = tstdox__my_module_c__m_attrs,
 };

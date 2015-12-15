@@ -96,7 +96,10 @@ typedef struct iop_help_t {
     lstr_t brief;
     lstr_t details;
     lstr_t warning;
+    /* the fields below can only be accessed if the associated type is
+     * ...ATTR_HELP_V2 */
     lstr_t example;
+    uint8_t version;
 } iop_help_t;
 
 typedef union iop_value_t {
@@ -133,6 +136,7 @@ typedef enum iop_enum_value_attr_type_t {
     IOP_ENUM_VALUE_GEN_ATTR_I,
     IOP_ENUM_VALUE_GEN_ATTR_D,
     IOP_ENUM_VALUE_GEN_ATTR_O,
+    IOP_ENUM_VALUE_ATTR_HELP_V2,
 } iop_enum_value_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;
@@ -156,6 +160,7 @@ typedef enum iop_enum_attr_type_t {
     IOP_ENUM_GEN_ATTR_I,
     IOP_ENUM_GEN_ATTR_D,
     IOP_ENUM_GEN_ATTR_O,
+    IOP_ENUM_ATTR_HELP_V2,
 } iop_enum_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
@@ -242,6 +247,7 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_GEN_ATTR_O,
     IOP_FIELD_DEPRECATED,
     IOP_FIELD_SNMP_INFO, /**< not a real attribute, used in snmpObj         */
+    IOP_FIELD_ATTR_HELP_V2,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -265,6 +271,7 @@ typedef enum iop_struct_attr_type_t {
     IOP_STRUCT_GEN_ATTR_D,
     IOP_STRUCT_GEN_ATTR_O,
     IOP_STRUCT_DEPRECATED,
+    IOP_STRUCT_ATTR_HELP_V2,
 } iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
@@ -360,6 +367,10 @@ typedef enum iop_rpc_attr_type_t {
     IOP_RPC_GEN_ATTR_I,
     IOP_RPC_GEN_ATTR_D,
     IOP_RPC_GEN_ATTR_O,
+    IOP_RPC_ATTR_HELP_V2,
+    IOP_RPC_ATTR_ARG_HELP_V2,
+    IOP_RPC_ATTR_RES_HELP_V2,
+    IOP_RPC_ATTR_EXN_HELP_V2,
 } iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
@@ -395,6 +406,7 @@ typedef enum iop_iface_attr_type_t {
     IOP_IFACE_GEN_ATTR_D,
     IOP_IFACE_GEN_ATTR_O,
     IOP_IFACE_DEPRECATED,
+    IOP_IFACE_ATTR_HELP_V2,
 } iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
@@ -443,6 +455,7 @@ typedef struct iop_iface_alias_t {
 
 typedef enum iop_mod_iface_attr_type_t {
     IOP_MOD_IFACE_ATTR_HELP,
+    IOP_MOD_IFACE_ATTR_HELP_V2,
 } iop_mod_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_mod_iface_attr_arg_t;
@@ -462,6 +475,7 @@ typedef struct iop_mod_iface_attrs_t {
 
 typedef enum iop_mod_attr_type_t {
     IOP_MOD_ATTR_HELP,
+    IOP_MOD_ATTR_HELP_V2,
 } iop_mod_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_mod_attr_arg_t;

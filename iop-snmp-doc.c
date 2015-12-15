@@ -69,7 +69,9 @@ static lstr_t t_field_get_help(const iop_field_attrs_t *attrs)
     const iop_field_attr_t *attr = attrs->attrs;
 
     for (int i = 0; i < attrs->attrs_len; i++) {
-        if (attr[i].type == IOP_FIELD_ATTR_HELP) {
+        if (attr[i].type == IOP_FIELD_ATTR_HELP
+        ||  attr[i].type == IOP_FIELD_ATTR_HELP_V2)
+        {
             const iop_help_t *help = attr[i].args->v.p;
 
             return t_lstr_cat3(help->brief, help->details,
@@ -84,7 +86,9 @@ static lstr_t t_rpc_get_help(const iop_rpc_attrs_t *attrs)
     const iop_rpc_attr_t *attr = attrs->attrs;
 
     for (int i = 0; i < attrs->attrs_len; i++) {
-        if (attr[i].type == IOP_RPC_ATTR_HELP) {
+        if (attr[i].type == IOP_RPC_ATTR_HELP
+        ||  attr[i].type == IOP_RPC_ATTR_HELP_V2)
+        {
             const iop_help_t *help = attr[i].args->v.p;
 
             return t_lstr_cat3(help->brief, help->details,
@@ -99,7 +103,9 @@ static lstr_t t_struct_get_help(const iop_struct_attrs_t *attrs)
     const iop_struct_attr_t *attr = attrs->attrs;
 
     for (int i = 0; i < attrs->attrs_len; i++) {
-        if (attr[i].type == IOP_STRUCT_ATTR_HELP) {
+        if (attr[i].type == IOP_STRUCT_ATTR_HELP
+        ||  attr[i].type == IOP_STRUCT_ATTR_HELP_V2)
+        {
             const iop_help_t *help = attr[i].args->v.p;
 
             return t_lstr_cat3(help->brief, help->details,

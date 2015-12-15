@@ -38,6 +38,8 @@ class IopcTest(z.TestCase):
             iopc_args.append('--features-v3')
         if version == 4:
             iopc_args.append('--features-v4')
+        if version == 5:
+            iopc_args.append('--features-v5')
 
         # in case of expected success if no language is specified
         # the success must be for all the languages
@@ -130,10 +132,11 @@ class IopcTest(z.TestCase):
                                 % (s, file_name))
         f.close()
 
-    def check_ref(self, pkg, lang):
+    def check_ref(self, pkg, lang, version=""):
         self.assertEqual(subprocess.call(['diff', '-u',
                                           pkg + '.iop.' + lang,
-                                          pkg + '.ref.' + lang]), 0)
+                                          pkg + '.ref' + version +
+                                          "." + lang ]), 0)
 
     # }}}
 
@@ -755,6 +758,11 @@ class IopcTest(z.TestCase):
         self.run_gcc(f + '.iop')
         for lang in ['json', 'c']:
             self.check_ref(g, lang)
+
+        self.run_iopc_pass(f + '.iop', 5)
+        self.run_gcc(f + '.iop')
+        self.check_ref(g, 'json')
+        self.check_ref(g, 'c', '5')
 
     def test_gen_c(self):
         f = 'tstgen'

@@ -627,6 +627,10 @@ iopc_dump_help(sb_t *buf, const char *bname, const char *fname,
             continue;
         }
 
+        if (!iopc_g.v5 && i == IOPC_DOX_TYPE_EXAMPLE) {
+            continue;
+        }
+
         type = iopc_dox_type_to_lstr(i);
         sb_addf(buf, "    .%*pM = LSTR_IMMED(\"", LSTR_FMT_ARG(type));
         write_help_string(buf, dox->desc.s);
@@ -1307,16 +1311,22 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
     sb_addf(buf, "    },\n");
 }
 
+#define ATTR_HELP(_what) \
+    (iopc_g.v5 ? IOP_##_what##_ATTR_HELP_V2 : IOP_##_what##_ATTR_HELP)
+#define RPC_ATTR_HELP(_what) \
+    (iopc_g.v5 ? IOP_RPC_ATTR_##_what##_HELP_V2 : IOP_RPC_ATTR_##_what##_HELP)
+
+
 static void
 iopc_dump_static_field_src(sb_t *buf, iopc_field_t *f, const char *name)
 {
     if (f->comments.len) {
-        iopc_dump_attrs_only_help(buf, IOP_FIELD_ATTR_HELP, "field",
+        iopc_dump_attrs_only_help(buf, ATTR_HELP(FIELD), "field",
                                   name, "", "sf", &f->comments);
 
         sb_addf(buf, "static const iop_field_attrs_t %s__sf_desc_attrs = ",
                 name);
-        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, IOP_FIELD_ATTR_HELP),
+        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, ATTR_HELP(FIELD)),
                             1, name, "", "sf");
     }
 
@@ -1528,7 +1538,7 @@ static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
         bool _res;                                                           \
         int nbr_attrs = _ptr->comments.len > 0 ? 1 : 0;                      \
                                                                              \
-        iopc_dump_help_and_ref(_out, &attrs_body, IOP_##_what##_ATTR_HELP,   \
+        iopc_dump_help_and_ref(_out, &attrs_body, ATTR_HELP(_what),          \
                                _kind, _name, "", _ext, &_ptr->comments);     \
                                                                              \
         qv_for_each_pos(iopc_attr, _pos, &_ptr->attrs) {                     \
@@ -1550,7 +1560,7 @@ static void iopc_dump_gen_attr(sb_t *buf, iopc_attr_t *attr, unsigned type)
             unsigned help_flag;                                              \
                                                                              \
             help_flag = _ptr->comments.len > 0 ? BITMASK_NTH(unsigned,       \
-                                                    IOP_##_what##_ATTR_HELP) \
+                                                    ATTR_HELP(_what))        \
                                                : 0;                          \
             SET_BIT(_flags, _flag);                                          \
                                                                              \
@@ -2112,11 +2122,11 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
     const char *cname = pp_to_c(f->name);
     int type;
 
-    iopc_dump_help_and_ref(buf, &attrs_body, IOP_FIELD_ATTR_HELP, "field",
+    iopc_dump_help_and_ref(buf, &attrs_body, ATTR_HELP(FIELD), "field",
                            tbase, cname, "f", &f->comments);
     if (f->comments.len) {
         attrs->attrs_len++;
-        SET_BIT(&attrs->flags, IOP_FIELD_ATTR_HELP);
+        SET_BIT(&attrs->flags, ATTR_HELP(FIELD));
     }
 
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
@@ -2283,10 +2293,10 @@ iopc_dump_rpc_attrs(sb_t *buf, char *tbase, iopc_fun_t *f, iopc_attrs_t *attrs,
     SB_1k(attrs_body_alias);
     const char *cname = pp_to_c(f->name);
 
-    iopc_dump_help_and_ref(buf, &attrs_body, IOP_RPC_ATTR_HELP, "rpc",
+    iopc_dump_help_and_ref(buf, &attrs_body, ATTR_HELP(RPC), "rpc",
                            tbase, cname, "rpc", &f->comments);
     if (f->comments.len) {
-        SET_BIT(&attrs->flags, IOP_RPC_ATTR_HELP);
+        SET_BIT(&attrs->flags, ATTR_HELP(RPC));
         attrs->attrs_len++;
     }
 
@@ -2295,10 +2305,10 @@ iopc_dump_rpc_attrs(sb_t *buf, char *tbase, iopc_fun_t *f, iopc_attrs_t *attrs,
         if (f->Y##_is_anonymous || !f->f##Y)                                 \
             break;                                                           \
         iopc_dump_help_and_ref(buf, &attrs_body,                             \
-                               IOP_RPC_ATTR_##X##_HELP, "rpc",               \
+                               RPC_ATTR_HELP(X), "rpc",                      \
                                tbase, cname, "rpc_"#Y, &f->f##Y->comments);  \
         if (f->f##Y->comments.len) {                                         \
-            SET_BIT(&attrs->flags, IOP_RPC_ATTR_##X##_HELP);                 \
+            SET_BIT(&attrs->flags, RPC_ATTR_HELP(X));                        \
             attrs->attrs_len++;                                              \
         }                                                                    \
     } while (0)
@@ -2450,9 +2460,9 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         sb_reset(&v_attrs_body);
         if (f->comments.len) {
             iopc_dump_help_and_ref(buf, &v_attrs_body,
-                                   IOP_ENUM_VALUE_ATTR_HELP, "enum_value",
+                                   ATTR_HELP(ENUM_VALUE), "enum_value",
                                    tbase, fname.s, "v", &f->comments);
-            SET_BIT(&v_flags, IOP_ENUM_VALUE_ATTR_HELP);
+            SET_BIT(&v_flags, ATTR_HELP(ENUM_VALUE));
             nb_attrs++;
         }
         qv_for_each_entry(iopc_attr, attr, &f->attrs) {
@@ -3191,11 +3201,11 @@ iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
             int len = !!f->comments.len;
             const char *fname = pp_to_c(f->name);
 
-            iopc_dump_attrs_only_help(buf, IOP_MOD_IFACE_ATTR_HELP,
+            iopc_dump_attrs_only_help(buf, ATTR_HELP(MOD_IFACE),
                 "mod_iface", mbase, fname, "m_if", &f->comments);
 
             iopc_dump_attrs_ref(&help_body,
-                BITMASK_NTH(unsigned, IOP_MOD_IFACE_ATTR_HELP) * len, len,
+                BITMASK_NTH(unsigned, ATTR_HELP(MOD_IFACE)) * len, len,
                 mbase, fname, "m_if");
         }
         sb_addf(buf, "static const iop_mod_iface_attrs_t "
@@ -3204,11 +3214,11 @@ iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
     }
     if (mod->comments.len) {
         SET_BIT(&flags, IOP_MOD_EXTENDED);
-        iopc_dump_attrs_only_help(buf, IOP_MOD_ATTR_HELP, "mod",
+        iopc_dump_attrs_only_help(buf, ATTR_HELP(MOD), "mod",
                                   mbase, "", "m", &mod->comments);
         sb_addf(buf, "static const iop_mod_attrs_t %s__m_desc_attrs = ",
                 mbase);
-        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, IOP_MOD_ATTR_HELP), 1,
+        iopc_dump_attrs_ref(buf, BITMASK_NTH(unsigned, ATTR_HELP(MOD)), 1,
                             mbase, "", "m");
     }
 

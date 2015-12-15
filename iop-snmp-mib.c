@@ -138,7 +138,9 @@ static lstr_t t_get_type_to_lstr(const iop_field_t *field, bool seq,
 #define T_RETURN_HELP(_attr, _type, _name)  \
     do {                                                                     \
         for (int i = 0; i < attrs->attrs_len; i++) {                         \
-            if (_attr[i].type == _type) {                                    \
+            if (_attr[i].type == _type                                       \
+            ||  _attr[i].type == _type##_V2)                                 \
+            {                                                                \
                 const iop_help_t *help = _attr[i].args->v.p;                 \
                 lstr_t descri;                                               \
                                                                              \
