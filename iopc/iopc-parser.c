@@ -1429,7 +1429,6 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
 static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
                       int attr_type, qv_t(iopc_dox) *comments)
 {
-    int res = 0;
     SB(sb, 256);
 
     qv_init(iopc_dox, comments);
@@ -1442,8 +1441,8 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
         &&  iopc_dox_check_keyword(chunk->keyword, &type) >= 0
         &&  !iopc_dox_type_is_related(type, attr_type))
         {
-            throw_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
-                      LSTR_FMT_ARG(chunk->keyword));
+            warn_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
+                     LSTR_FMT_ARG(chunk->keyword));
             type = -1;
         }
 
@@ -1463,6 +1462,10 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             type = -1;
         }
 
+        if (type == IOPC_DOX_TYPE_EXAMPLE && !iopc_g.v4) {
+            type = -1;
+        }
+
         if (type >= 0) {
             dox = iopc_dox_find_type_or_create(comments, type);
             iopc_dox_append_paragraphs(comments, &dox->desc,
@@ -1479,31 +1482,43 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
         }
 
         if (type == IOPC_DOX_TYPE_EXAMPLE) {
+            t_scope;
+            const qv_t(log_buffer) *logs;
+            int res;
+            iopc_loc_t loc = chunk->loc;
+            lstr_t name = t_lstr_fmt("%s[%d-%d]",
+                                     loc.file, loc.lmin, loc.lmax);
             iopc_parser_t pp = {
                 .cfolder  = iop_cfolder_new(),
-                .ld = iopc_lexer_new("example doxygen comment",
-                                     dox->desc.s, IOPC_FILE_BUFFER)
+                .ld = iopc_lexer_new(name.s, dox->desc.s, IOPC_FILE_BUFFER)
             };
+
+            log_start_buffering(false);
 
             sb_reset(&sb);
             sb_addc(&sb, '{');
             res = parse_json_object(&pp, &sb, true);
             sb_addc(&sb, '}');
 
+            logs = log_stop_buffering();
+
             qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
             iopc_lexer_delete(&pp.ld);
             iop_cfolder_delete(&pp.cfolder);
             if (res < 0) {
-                goto end;
+                if (logs->len > 0) {
+                    print_warning("warning: %*pM",
+                                  LSTR_FMT_ARG(logs->tab[0].msg));
+                }
+                sb_setf(&sb, "{}");
             }
             lstr_transfer_sb(&dox->desc, &sb, false);
         }
 
     }
 
-  end:
     qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
-    return res;
+    return 0;
 }
 
 #define build_dox(_chunks, _owner, _attr_type)                             \
