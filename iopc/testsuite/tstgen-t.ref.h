@@ -34,5 +34,6 @@ IOP_CLASS(tstgen__my_class_a);
 typedef tstgen__my_class_a__t my_class_a__t;
 typedef tstgen__my_class_a__array_t my_class_a__array_t;
 #define my_class_a__s  tstgen__my_class_a__s
+#define my_class_a__class_id  0
 
 #endif

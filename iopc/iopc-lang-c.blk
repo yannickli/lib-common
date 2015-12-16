@@ -538,7 +538,7 @@ ctype_define_old_helpers(sb_t *buf, lstr_t pfx, const char *underscore,
 }
 
 static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
-                           iop_type_t type, bool is_class)
+                           iop_type_t type, int class_id)
 {
     assert (type == IOP_T_STRUCT || type == IOP_T_UNION
     ||      type == IOP_T_ENUM);
@@ -566,7 +566,11 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                 }
                 if (!iopc_g.v4) {
                     ctype_define_old_helpers(buf, pfx, underscore, tbase,
-                                             type, is_class);
+                                             type, class_id != -1);
+                } else
+                if (class_id != -1) {
+                    sb_addf(buf, "#define %*pM__class_id  %d\n",
+                            LSTR_FMT_ARG(pfx), class_id);
                 }
 
                 sb_addc(buf, '\n');
@@ -765,7 +769,7 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
             "IOP_ENUM(%s);\n\n",
             tbase, tbase);
 
-    iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, false);
+    iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, -1);
 }
 
 
@@ -925,11 +929,11 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
-        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, true);
+        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, st->class_id);
     } else
     if (!iopc_is_snmp_st(st->type)) {
         sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
-        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, false);
+        iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, -1);
     }
 }
 
@@ -1010,7 +1014,7 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
             "IOP_UNION_GET(%s, u, field)\n",
             tbase, tbase);
 
-    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_UNION, false);
+    iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_UNION, -1);
 }
 
 static int
