@@ -742,6 +742,8 @@ typedef struct iopc_struct_t {
     flag_t     is_snmp_params       : 1;
     /* struct is a snmpIface rpc' struct */
     flag_t     contains_snmp_info : 1;
+    /* C writer */
+    flag_t     c_hdr_written : 1;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;

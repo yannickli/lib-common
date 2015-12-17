@@ -874,8 +874,15 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
         qv_append(iopc_struct, &parents, st);
     } while (st->extends.len && !st->extends.tab[0]->is_snmp_root);
 
+    sb_addnc(buf, 4, ' ');
+    sb_adds(buf, "union {\n");
+    sb_addnc(buf, 8, ' ');
+    sb_addf(buf, "struct %s__%s__t super;\n",
+            pp_under(parents_pkgs.tab[0]->name),
+            pp_to_c(parents.tab[0]->name));
+
     /* Print parent structure */
-    for (ident = 4; ident <= 4 * parents.len; ident += 4) {
+    for (ident = 8; ident <= 4 * parents.len + 4; ident += 4) {
         sb_addnc(buf, ident, ' ');
         sb_adds(buf, "struct {\n");
     }
@@ -894,12 +901,16 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
         sb_adds(buf, "};\n");
     }
 
+    sb_addnc(buf, 4, ' ');
+    sb_adds(buf, "};\n");
+
     qv_wipe(iopc_struct, &parents);
     qv_wipe(iopc_pkg,    &parents_pkgs);
 }
 
-static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
-                                 iopc_struct_t *st, const char *ns)
+static void iopc_struct_dump_hdr(sb_t *buf, const iopc_pkg_t *pkg,
+                                 const char *pkg_name, iopc_struct_t *st,
+                                 const char *ns)
 {
     t_scope;
     const char *tname = pp_to_c(st->name);
@@ -907,9 +918,21 @@ static void iopc_struct_dump_hdr(sb_t *buf, const char *pkg_name,
 
     assert (st->type != STRUCT_TYPE_UNION);
 
+    if (st->c_hdr_written) {
+        return;
+    }
+
+    st->c_hdr_written = true;
     iopc_struct_optimize(st);
 
     if (!iopc_is_snmp_obj(st->type)) {
+        if (iopc_is_class(st->type) && st->extends.len
+        &&  pkg == st->extends.tab[0]->pkg)
+        {
+            iopc_struct_dump_hdr(buf, st->extends.tab[0]->pkg, pkg_name,
+                                 st->extends.tab[0]->st, ns);
+        }
+
         sb_addf(buf, "struct %s__t {\n", tbase);
 
         if (iopc_is_class(st->type)) {
@@ -1105,13 +1128,13 @@ iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
         char *fbase = t_fmt("%s__%s", ibase, pp_to_c(fun->name));
 
         if (fun->arg && fun->arg_is_anonymous) {
-            iopc_struct_dump_hdr(buf, pkg_name, fun->arg, ibase);
+            iopc_struct_dump_hdr(buf, pkg, pkg_name, fun->arg, ibase);
         }
         if (fun->res && fun->res_is_anonymous) {
-            iopc_struct_dump_hdr(buf, pkg_name, fun->res, ibase);
+            iopc_struct_dump_hdr(buf, pkg, pkg_name, fun->res, ibase);
         }
         if (fun->exn && fun->exn_is_anonymous) {
-            iopc_struct_dump_hdr(buf, pkg_name, fun->exn, ibase);
+            iopc_struct_dump_hdr(buf, pkg, pkg_name, fun->exn, ibase);
         }
         sb_addf(buf,
                 "#define %s__rpc__tag    0x%04x\n"
@@ -3521,7 +3544,7 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         if (st->type == STRUCT_TYPE_UNION) {
             iopc_union_dump_hdr(&buf, pkg_name, st);
         } else {
-            iopc_struct_dump_hdr(&buf, pkg_name, st, NULL);
+            iopc_struct_dump_hdr(&buf, pkg, pkg_name, st, NULL);
         }
 
         if (iopc_is_snmp_st(st->type)) {
