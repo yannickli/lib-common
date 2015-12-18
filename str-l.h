@@ -780,6 +780,19 @@ static inline lstr_t lstr_utf8_truncate(lstr_t s, int char_len)
     return LSTR_INIT_V(s.s, pos);
 }
 
+/** Returns whether a string respects a given SQL pattern.
+ *
+ * The matching is case insensitive, and unicode characters are handled
+ * internally to make the matching intuitive (eg 'é' matches with 'e', 'œ'
+ * matches with 'oe', ...).
+ *
+ * \param[in] ps The stream to parse
+ * \param[in] pattern A pattern to match, using the SQL syntax of the "LIKE"
+ *                    operator, (only '_' and '%' are handled).
+ * \return True if \p s respects the pattern, false otherwise.
+ */
+bool lstr_utf8_is_ilike(const lstr_t s, const lstr_t pattern);
+
 /* }}} */
 /* Conversions {{{ */
 

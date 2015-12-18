@@ -1931,6 +1931,75 @@ Z_GROUP_EXPORT(str)
 #undef T_ERR
 
     } Z_TEST_END;
+
+    Z_TEST(lstr_is_like, "Test lstr_is_like") {
+#define MATCH(str, pattern)                                                  \
+        Z_ASSERT(lstr_utf8_is_ilike(LSTR(str), LSTR(pattern)))
+#define NOMATCH(str, pattern)                                                \
+        Z_ASSERT(!lstr_utf8_is_ilike(LSTR(str), LSTR(pattern)))
+
+        /* cases with no special characters */
+        MATCH("", "");
+        MATCH("a", "a");
+        NOMATCH("", "a");
+        NOMATCH("a", "");
+        NOMATCH("a", "b");
+
+        /* matching is case insensitive */
+        MATCH("a", "A");
+        MATCH("AaAa", "aaAA");
+
+        /* '_' pattern */
+        MATCH("a", "_");
+        MATCH("aa", "__");
+
+        NOMATCH("_", "a");
+        NOMATCH("aa", "_");
+        NOMATCH("", "_");
+        NOMATCH("a", "__");
+
+        /* '%' pattern */
+        MATCH("a", "%");
+        MATCH("a", "%%%");
+        MATCH("aaa", "%");
+
+        NOMATCH("%", "a");
+        NOMATCH("aa", "_");
+        NOMATCH("a", "__");
+
+        /* mix and escape */
+        MATCH("a", "%_%");
+        MATCH("%_%", "%_%");
+        MATCH("jose_mourinho", "%e\\_m%");
+        MATCH("%a", "\\%_");
+        MATCH("a_", "a%\\_");
+
+        NOMATCH("abc", "\\_bc");
+        NOMATCH("abc", "a\\_c");
+        NOMATCH("abc", "ab\\_");
+        NOMATCH("abc", "\\%c");
+        NOMATCH("abc", "a\\%c");
+        NOMATCH("abc", "a\\%");
+
+        /* collation stuff */
+        MATCH("œ", "_");
+        MATCH("œ", "oe");
+        MATCH("oe", "œ");
+        NOMATCH("œ", "o_");
+        NOMATCH("œ", "_e");
+        NOMATCH("œ", "o%");
+        NOMATCH("œ", "%e");
+
+        MATCH("é", "e");
+        MATCH("e", "é");
+        MATCH("éœ", "%oe");
+        MATCH("éœ", "e%oe");
+        MATCH("eœ", "é%oé");
+        NOMATCH("éœ", "%e");
+
+#undef NOMATCH
+#undef MATCH
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
