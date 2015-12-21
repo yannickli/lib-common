@@ -2431,8 +2431,15 @@ static int httpc_on_event(el_t evh, int fd, short events, data_t priv)
 static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
 {
     httpc_t *w   = priv.ptr;
-    int      res = socket_connect_status(fd);
+    int      res;
 
+    if (events == EL_EVENTS_NOACT) {
+        obj_vcall(w, disconnect);
+        obj_delete(&w);
+        return -1;
+    }
+
+    res = socket_connect_status(fd);
     if (res > 0) {
         el_fd_set_hook(evh, httpc_on_event);
         httpc_set_mask(w);
@@ -2442,7 +2449,7 @@ static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
         obj_vcall(w, disconnect);
         obj_delete(&w);
     }
-    return 0;
+    return res;
 }
 
 httpc_t *httpc_connect(const sockunion_t *su, httpc_cfg_t *cfg, httpc_pool_t *pool)
