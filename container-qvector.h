@@ -47,7 +47,7 @@ void  qvector_wipe(qvector_t *vec, size_t v_size)
     __leaf;
 void  __qvector_grow(qvector_t *, size_t v_size, size_t v_align, int extra)
     __leaf;
-void  __qvector_optimize(qvector_t *, size_t v_size, size_t size, size_t v_align)
+void  __qvector_optimize(qvector_t *, size_t v_size, size_t v_align, size_t size)
     __leaf;
 void *__qvector_splice(qvector_t *, size_t v_size, size_t v_align,
                        int pos, int len, int dlen)
