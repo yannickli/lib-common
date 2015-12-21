@@ -1756,8 +1756,14 @@ void ic_mark_disconnected(ichannel_t *ic)
 static int ic_connecting(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
-    int res = socket_connect_status(fd);
+    int res;
 
+    if (events == EL_EVENTS_NOACT) {
+        ic_mark_disconnected(ic);
+        return -1;
+    }
+
+    res = socket_connect_status(fd);
     if (res < 0) {
         ic_mark_disconnected(ic);
         return -1;
