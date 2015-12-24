@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_IOP_PRIV_H
 #define IS_LIB_COMMON_IOP_PRIV_H
 
-/* {{{ iop_pkg/class_id/class_name qm declarations */
+/* {{{ class_id/class_name qm declarations */
 
 typedef struct class_id_key_t {
     const iop_struct_t *master;
@@ -65,6 +65,7 @@ typedef struct iop_env_t {
     qm_t(class_id)   classes_by_id;
     qm_t(class_name) classes_by_name;
     qm_t(iop_pkg)    pkgs_by_name;
+    qm_t(iop_enum)   enums_by_fullname;
 } iop_env_t;
 
 iop_env_t *iop_env_init(iop_env_t *env);

@@ -3474,6 +3474,11 @@ static void iop_env_copy(iop_env_t *dst, iop_env_t *src)
         qm_add(iop_pkg, &dst->pkgs_by_name, &src->pkgs_by_name.keys[pos],
                src->pkgs_by_name.values[pos]);
     }
+    qm_for_each_pos(iop_enum, pos, &src->enums_by_fullname) {
+        qm_add(iop_enum, &dst->enums_by_fullname,
+               &src->enums_by_fullname.keys[pos],
+               src->enums_by_fullname.values[pos]);
+    }
 }
 
 void iop_env_set(iop_env_t *env)
@@ -3492,6 +3497,7 @@ iop_env_t *iop_env_init(iop_env_t *env)
     qm_init(class_id,   &env->classes_by_id);
     qm_init(class_name, &env->classes_by_name);
     qm_init(iop_pkg,    &env->pkgs_by_name);
+    qm_init(iop_enum,   &env->enums_by_fullname);
     return env;
 }
 
@@ -3500,6 +3506,7 @@ void iop_env_wipe(iop_env_t *env)
     qm_wipe(class_id,   &env->classes_by_id);
     qm_wipe(class_name, &env->classes_by_name);
     qm_wipe(iop_pkg,    &env->pkgs_by_name);
+    qm_wipe(iop_enum,   &env->enums_by_fullname);
 }
 
 /* }}} */
@@ -3750,6 +3757,7 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
         const iop_pkg_t *pkg = pkgs[i];
         uint32_t pos;
 
+        /* Register the package itself. */
         pos = qm_put(iop_pkg, &env->pkgs_by_name, &pkg->name, pkg, 0);
         if (pos & QHASH_COLLISION) {
             pos ^= QHASH_COLLISION;
@@ -3760,6 +3768,8 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
             }
             continue;
         }
+
+        /* Register its classes. */
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -3767,7 +3777,22 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
                 RETHROW(iop_register_class(desc, env, err));
             }
         }
+
+        /* Register its enums. */
+        for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
+            const iop_enum_t *desc = *it;
+
+            if (qm_add(iop_enum, &env->enums_by_fullname, &desc->fullname,
+                       desc) < 0)
+            {
+                sb_setf(err,
+                        "an enumeration named '%*pM' was already registered",
+                        LSTR_FMT_ARG(desc->name));
+                return -1;
+            }
+        }
     }
+
     return 0;
 }
 
@@ -3788,6 +3813,11 @@ const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, iop_env_t *env)
 const iop_pkg_t *iop_get_pkg(lstr_t pkgname)
 {
     return iop_get_pkg_env(pkgname, &_G.env);
+}
+
+const iop_enum_t *iop_get_enum(lstr_t fullname)
+{
+    return qm_get_def(iop_enum, &_G.env.enums_by_fullname, &fullname, NULL);
 }
 
 static void iop_unregister_class(const iop_struct_t *desc)
@@ -3816,15 +3846,25 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
+        /* Unregister the package itself. */
         if (qm_del_key(iop_pkg, &_G.env.pkgs_by_name, &pkg->name) < 0) {
             continue;
         }
+
+        /* Unregister its classes. */
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
             if (iop_struct_is_class(desc)) {
                 iop_unregister_class(desc);
             }
+        }
+
+        /* Unregister its enums. */
+        for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
+            const iop_enum_t *desc = *it;
+
+            qm_del_key(iop_enum, &_G.env.enums_by_fullname, &desc->fullname);
         }
     }
 }

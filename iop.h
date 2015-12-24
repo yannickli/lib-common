@@ -1018,6 +1018,12 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
 /* }}} */
 /* {{{ IOP enum manipulation */
 
+qm_kvec_t(iop_enum, lstr_t, const iop_enum_t *,
+          qhash_lstr_hash, qhash_lstr_equal);
+
+/** Get an enumeration from its fullname. */
+const iop_enum_t *iop_get_enum(lstr_t fullname);
+
 /** Convert IOP enum integer value to lstr_t representation.
  *
  * This function will return NULL if the integer value doesn't exist in the

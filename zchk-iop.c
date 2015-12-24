@@ -702,6 +702,9 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
 
 Z_GROUP_EXPORT(iop)
 {
+    IOP_REGISTER_PACKAGES(&tstiop__pkg,
+                          &tstiop_inheritance__pkg,
+                          &tstiop_backward_compat__pkg);
 
     Z_TEST(dso_open, "test wether iop_dso_open works and loads stuff") { /* {{{ */
         t_scope;
@@ -1690,8 +1693,6 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_e__t     obj_union;
         tstiop__my_struct_f__t     obj_class;
         tstiop__my_ref_struct__t   obj_ref;
-
-        IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
         /* {{{ Unpacker tests */
 
@@ -3275,8 +3276,6 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__b2__t *b2p;
         uint8_t buf_b2p[20], buf_c2p[20];
 
-        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
-
 #define CHECK_IS_A(_type1, _type2, _res)  \
         do {                                                                 \
             tstiop_inheritance__##_type1##__t obj;                           \
@@ -3433,8 +3432,6 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__c2__t c2_2_1, c2_2_2, c2_2_3;
         tstiop_inheritance__b2__t b2_1, b2_2;
         tstiop_inheritance__class_container__t cc_1, cc_2;
-
-        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
 
         iop_init(tstiop_inheritance__c2, &c2_1_1);
         iop_init(tstiop_inheritance__c2, &c2_1_2);
@@ -3595,8 +3592,6 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__class_container2__t *class_container2 = NULL;
         SB_1k(err);
 
-        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
-
 #define CHECK_OK(_type, _filename)  \
         do {                                                                 \
             Z_ASSERT_N(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename,   \
@@ -3715,8 +3710,6 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__c2__t *c2 = NULL;
         tstiop_inheritance__c3__t *c3 = NULL;
         tstiop_inheritance__a3__t *a3 = NULL;
-
-        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
 
 #define MAP(_filename)  \
         do {                                                                 \
@@ -4898,6 +4891,7 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_enum, "test iop enums") { /* {{{ */
         bool found = false;
+        const iop_enum_t *en;
 
         Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "A", -1, -1),
                     MY_ENUM_A_A);
@@ -4919,6 +4913,10 @@ Z_GROUP_EXPORT(iop)
                     MY_ENUM_A_B);
         Z_ASSERT_EQ(iop_enum_from_lstr(tstiop__my_enum_a, LSTR("c"), &found),
                     MY_ENUM_A_C);
+
+        Z_ASSERT_P(en = iop_get_enum(LSTR("tstiop.MyEnumA")));
+        Z_ASSERT_LSTREQUAL(en->fullname, LSTR("tstiop.MyEnumA"));
+        Z_ASSERT_LSTREQUAL(en->name, LSTR("MyEnumA"));
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_gen_attrs, "test iop generic attributes") { /* {{{ */
@@ -5290,8 +5288,6 @@ Z_GROUP_EXPORT(iop)
         tstiop_backward_compat__basic_union__t  basic_union;
         tstiop_backward_compat__basic_struct__t basic_struct;
         tstiop_backward_compat__basic_class__t  basic_class;
-
-        IOP_REGISTER_PACKAGES(&tstiop_backward_compat__pkg);
 
         basic_union = IOP_UNION(tstiop_backward_compat__basic_union, a, 12);
 
