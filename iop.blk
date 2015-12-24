@@ -3748,8 +3748,18 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
 {
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
+        uint32_t pos;
 
-        qm_add(iop_pkg, &env->pkgs_by_name, &pkg->name, pkg);
+        pos = qm_put(iop_pkg, &env->pkgs_by_name, &pkg->name, pkg, 0);
+        if (pos & QHASH_COLLISION) {
+            pos ^= QHASH_COLLISION;
+            if (env->pkgs_by_name.values[pos] != pkg) {
+                sb_setf(err, "a package named '%*pM' was already registered",
+                        LSTR_FMT_ARG(pkg->name));
+                return -1;
+            }
+            continue;
+        }
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -3806,7 +3816,9 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
     for (int i = 0; i < len; i++) {
         const iop_pkg_t *pkg = pkgs[i];
 
-        qm_del_key(iop_pkg, &_G.env.pkgs_by_name, &pkg->name);
+        if (qm_del_key(iop_pkg, &_G.env.pkgs_by_name, &pkg->name) < 0) {
+            continue;
+        }
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
