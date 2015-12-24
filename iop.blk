@@ -3739,13 +3739,6 @@ static int iop_register_class(const iop_struct_t *desc, iop_env_t *env,
                     LSTR_FMT_ARG(key.master->fullname));
             return -1;
         }
-
-        if (desc->class_attrs->parent) {
-            /* Register the parent only if the class was not registered
-             * yet, because if it is, we are sure the parent is already
-             * registered. */
-            RETHROW(iop_register_class(desc->class_attrs->parent, env, err));
-        }
     }
     return 0;
 }
@@ -3805,12 +3798,6 @@ static void iop_unregister_class(const iop_struct_t *desc)
         };
 
         qm_del_key(class_name, &_G.env.classes_by_name, &key2);
-
-        if (desc->class_attrs->parent) {
-            /* Unregister the parent only if the class was registered,
-             * because if not we are sure the parent won't be. */
-            iop_unregister_class(desc->class_attrs->parent);
-        }
     }
 }
 
