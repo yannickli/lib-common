@@ -27,6 +27,8 @@ static struct {
     int                      nb_pending;
     dlist_t                  pending;
     mem_pool_t              *pool;
+    flag_t                   connection_ready : 1;
+    flag_t                   first_connection : 1;
 
     net_rctl_t               rctl;
 
@@ -400,6 +402,11 @@ static void process_queries(httpc_pool_t *m, httpc_t *w)
             /* no connection ready. */
             break;
         }
+        if (!_G.connection_ready || unlikely(_G.first_connection)) {
+            e_info("connected to %*pM:%d", LSTR_FMT_ARG(_G.url), _G.port);
+            _G.connection_ready = true;
+            _G.first_connection = false;
+        }
 
         dlist_pop(&_G.pending);
         _G.nb_pending--;
@@ -447,6 +454,16 @@ static void python_http_on_term(el_t idx, int signum, el_data_t priv)
 static void net_rtcl_on_ready(net_rctl_t *rctl)
 {
     process_queries(_G.m, NULL);
+}
+
+static void http_on_connect_error(const httpc_t *httpc, int errnum)
+{
+    if (_G.connection_ready || _G.first_connection) {
+        e_error("fail to connect to %*pM:%d: %s",
+                LSTR_FMT_ARG(_G.url), _G.port, strerror(errnum));
+        _G.connection_ready = false;
+        _G.first_connection = false;
+    }
 }
 
 /* }}}*/
@@ -555,11 +572,12 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.password         = LSTR_STR_V(password);
 
     _G.m = httpc_pool_new();
-    _G.m->su       = su;
-    _G.m->on_ready = process_queries;
-    _G.m->host     = lstr_fmt("%s:%d", _G.url.s, _G.port);
-    _G.m->cfg      = cfg;
-    _G.m->max_len  = maxconn;
+    _G.m->su               = su;
+    _G.m->on_ready         = process_queries;
+    _G.m->host             = lstr_fmt("%s:%d", _G.url.s, _G.port);
+    _G.m->cfg              = cfg;
+    _G.m->max_len          = maxconn;
+    _G.m->on_connect_error = http_on_connect_error;
 
     _G.pool = mem_fifo_pool_new(PYTHON_HTTP_POOL_SIZE);
     dlist_init(&_G.pending);
@@ -570,6 +588,8 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     if (unlikely(!(_G.tb_module = PyImport_ImportModule("traceback")))) {
         e_error("unable to import the Python traceback module");
     }
+
+    _G.first_connection = true;
 
     Py_RETURN_TRUE;
 }
