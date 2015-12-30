@@ -2428,14 +2428,26 @@ static int httpc_on_event(el_t evh, int fd, short events, data_t priv)
     return 0;
 }
 
+static void httpc_on_connect_error(httpc_t *w, int errnum)
+{
+    if (w->pool && w->pool->on_connect_error) {
+        (*w->pool->on_connect_error)(w, errnum);
+    } else
+    if (w->on_connect_error) {
+        (*w->on_connect_error)(w, errnum);
+    }
+
+    obj_vcall(w, disconnect);
+    obj_delete(&w);
+}
+
 static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
 {
     httpc_t *w   = priv.ptr;
     int      res;
 
     if (events == EL_EVENTS_NOACT) {
-        obj_vcall(w, disconnect);
-        obj_delete(&w);
+        httpc_on_connect_error(w, ETIMEDOUT);
         return -1;
     }
 
@@ -2446,8 +2458,7 @@ static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
         obj_vcall(w, set_ready, true);
     } else
     if (res < 0) {
-        obj_vcall(w, disconnect);
-        obj_delete(&w);
+        httpc_on_connect_error(w, errno);
     }
     return res;
 }
