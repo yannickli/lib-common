@@ -703,6 +703,18 @@ void         httpc_cfg_from_iop(httpc_cfg_t *cfg,
 void         httpc_cfg_wipe(httpc_cfg_t *cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
 
+struct httpc_t;
+/** On connect error callback.
+ *
+ * HTTP connections use non blocking socket and are asynchronous. In this API
+ * when a connection fails, the connection is marked as disconnected and the
+ * httpc_t is deleted (see httpc_on_connect implementation).
+ * This callback is called when a http connection fails. \ref errnum is the
+ * errno set by the getsockopt system call. EINTR and EINPROGRESS are not
+ * considered as error.
+ */
+typedef void (on_connect_error_f)(const struct httpc_t *httpc, int errnum);
+
 #define HTTPC_FIELDS(pfx) \
     OBJECT_FIELDS(pfx);                                                      \
     httpc_pool_t *pool;                                                      \
@@ -725,8 +737,9 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
     dlist_t       query_list;                                                \
     outbuf_t      ob;                                                        \
                                                                              \
-    void         (*on_query_done)(httpc_t *, const httpc_query_t *,          \
-                                  int status);
+    void              (*on_query_done)(httpc_t *, const httpc_query_t *,     \
+                                      int status);                           \
+    on_connect_error_f *on_connect_error;
 
 #define HTTPC_METHODS(type_t) \
     OBJECT_METHODS(type_t);                  \
@@ -764,6 +777,7 @@ struct httpc_pool_t {
 
     void       (*on_ready)(httpc_pool_t *, httpc_t *);
     void       (*on_busy)(httpc_pool_t *, httpc_t *);
+    on_connect_error_f *on_connect_error;
 };
 
 httpc_pool_t *httpc_pool_init(httpc_pool_t *);
