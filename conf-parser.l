@@ -1,7 +1,7 @@
 %{
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2015 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
