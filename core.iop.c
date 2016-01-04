@@ -257,7 +257,7 @@ static iop_field_attr_t const core__logger_configuration__full_name__attrs[] = {
 };
 static const iop_help_t core__logger_configuration__level__f_help = {
     .brief = LSTR_IMMED("Logging level."),
-    .details = LSTR_IMMED("This will be the logging level for this logger and all inheriting loggers that were not explicitly configured."),
+    .details = LSTR_IMMED("This will be the logging level for this logger and all inheriting\012loggers that were not explicitly configured."),
 };
 static iop_field_attr_t const core__logger_configuration__level__attrs[] = {
     {
@@ -267,7 +267,7 @@ static iop_field_attr_t const core__logger_configuration__level__attrs[] = {
 };
 static const iop_help_t core__logger_configuration__force_all__f_help = {
     .brief = LSTR_IMMED("Force the use of logging level for child loggers."),
-    .details = LSTR_IMMED("If this flag is set, the level of that logger is propagated to all child loggers that were not explicitly configured, even those that were not supposed to inherit from that level."),
+    .details = LSTR_IMMED("If this flag is set, the level of that logger is propagated to all\012child loggers that were not explicitly configured, even those that\012were not supposed to inherit from that level."),
 };
 static iop_field_attr_t const core__logger_configuration__force_all__attrs[] = {
     {
@@ -382,7 +382,7 @@ const iop_struct_t core__logger_configuration__s = {
 
 static const iop_help_t core__log_configuration__root_level__f_help = {
     .brief = LSTR_IMMED("Root logging level."),
-    .details = LSTR_IMMED("This will be the logging level for all the logger inherits from root logging level and that were not configured to another value separately.\012The default configuration is to enable TRACE in development builds, and to enable only DEBUG in release builds."),
+    .details = LSTR_IMMED("This will be the logging level for all the logger inherits from\012root logging level and that were not configured to another value\012separately.\012\012The default configuration is to enable TRACE in development builds,\012and to enable only DEBUG in release builds."),
 };
 static iop_field_attr_t const core__log_configuration__root_level__attrs[] = {
     {
@@ -392,7 +392,7 @@ static iop_field_attr_t const core__log_configuration__root_level__attrs[] = {
 };
 static const iop_help_t core__log_configuration__force_all__f_help = {
     .brief = LSTR_IMMED("Force the use of the root level."),
-    .details = LSTR_IMMED("If this flag is set, the root level is propagated to all logger that were not explicitly configured, even those that were not supposed to inherit from the root level."),
+    .details = LSTR_IMMED("If this flag is set, the root level is propagated to all logger\012that were not explicitly configured, even those that were not\012supposed to inherit from the root level."),
 };
 static iop_field_attr_t const core__log_configuration__force_all__attrs[] = {
     {
@@ -411,7 +411,7 @@ static iop_field_attr_t const core__log_configuration__is_silent__attrs[] = {
 };
 static const iop_help_t core__log_configuration__specific__f_help = {
     .brief = LSTR_IMMED("Independent configuration of specific loggers."),
-    .details = LSTR_IMMED("This can be used to perform a fine-grained configuration of the logging level of specific code modules."),
+    .details = LSTR_IMMED("This can be used to perform a fine-grained configuration of the\012logging level of specific code modules."),
 };
 static iop_field_attr_t const core__log_configuration__specific__attrs[] = {
     {
@@ -541,7 +541,7 @@ static iop_field_attr_t const core__log_file_configuration__max_files__attrs[] =
     },
 };
 static const iop_help_t core__log_file_configuration__total_max_size__f_help = {
-    .brief = LSTR_IMMED("Maximum total size of the log files (in bytes) <= 0 means no limit"),
+    .brief = LSTR_IMMED("Maximum total size of the log files (in bytes)\012<= 0 means no limit"),
 };
 static iop_field_attr_t const core__log_file_configuration__total_max_size__attrs[] = {
     {
@@ -823,7 +823,7 @@ const iop_struct_t core__licence_module__s = {
 
 static const iop_help_t core__licence__expiration_date__f_help = {
     .brief = LSTR_IMMED("Expiration date of the licence."),
-    .details = LSTR_IMMED("After that date the product could be used until\012\134ref expirationHardDate but it will emit errors."),
+    .details = LSTR_IMMED("After that date the product could be used until\012\134ref expirationHardDate\012but it will emit errors."),
 };
 static int core__licence__expiration_date__check(const void *ptr, int n)
 {
@@ -875,7 +875,7 @@ static iop_field_attr_t const core__licence__expiration_date__attrs[] = {
 };
 static const iop_help_t core__licence__expiration_hard_date__f_help = {
     .brief = LSTR_IMMED("Real expiration date of the licence."),
-    .details = LSTR_IMMED("After that date the product will be disabled. If not provided, the default value is\012\134ref expirationDate."),
+    .details = LSTR_IMMED("After that date the product will be disabled.\012If not provided, the default value is\012\134ref expirationDate."),
 };
 static int core__licence__expiration_hard_date__check(const void *ptr, int n)
 {
@@ -966,7 +966,7 @@ static iop_field_attr_t const core__licence__version__attrs[] = {
     },
 };
 static const iop_help_t core__licence__production_use__f_help = {
-    .brief = LSTR_IMMED("If true, the licencee is allowed to use the product for production."),
+    .brief = LSTR_IMMED("If true, the licencee is allowed to use the product for\012production."),
 };
 static iop_field_attr_t const core__licence__production_use__attrs[] = {
     {
@@ -1953,7 +1953,7 @@ static iop_rpc_t const core__log__if_funs[] = {
     },
 };
 static const iop_help_t core__log__if_help = {
-    .brief = LSTR_IMMED("Interface providing the basis for configuring and accessing the logging system."),
+    .brief = LSTR_IMMED("Interface providing the basis for configuring and accessing\012 the logging system."),
 };
 static const iop_iface_attr_t core__log__if_attrs[] = {
     {
