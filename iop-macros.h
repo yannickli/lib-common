@@ -586,8 +586,8 @@
 #define qhash_iop_equals_fn(name, pfx)  qhash_##name##_##pfx##__equals
 
 #define QHASH_IOP_FUNCS(name, pfx)                                           \
-    static uint32_t qhash_iop_hash_fn(name, pfx)(const qhash_t *qhash,       \
-                                                 const pfx##__t *key)        \
+    static inline uint32_t                                                   \
+    qhash_iop_hash_fn(name, pfx)(const qhash_t *qhash, const pfx##__t *key)  \
     {                                                                        \
         uint8_t hash[16];                                                    \
                                                                              \
@@ -595,7 +595,7 @@
                                                                              \
         return *(uint32_t *)hash;                                            \
     }                                                                        \
-    static bool                                                              \
+    static inline bool                                                       \
     qhash_iop_equals_fn(name, pfx)(const qhash_t *qhash,                     \
                                    const pfx##__t *k1, const pfx##__t *k2)   \
     {                                                                        \
