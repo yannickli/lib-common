@@ -3794,7 +3794,7 @@ iop_class_check_parents_are_registered(const iop_struct_t *st,
     return 0;
 }
 
-static int iop_check_registered_classes(iop_env_t *env, sb_t *err)
+int iop_check_registered_classes(iop_env_t *env, sb_t *err)
 {
     /* Check all the parent classes of the registered classes are also
      * registered. */
@@ -3885,7 +3885,7 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
         }
     }
 
-    return iop_check_registered_classes(env, err);
+    return 0;
 }
 
 void iop_register_packages(const iop_pkg_t **pkgs, int len, unsigned flags)

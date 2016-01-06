@@ -272,6 +272,7 @@ static int iop_dso_register_(iop_dso_t *dso, sb_t *err)
                 return -1;
             }
         }
+        RETHROW(iop_check_registered_classes(&env, err));
         iop_env_set(&env);
         dso->is_registered = true;
     }

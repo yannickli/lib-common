@@ -76,6 +76,7 @@ void iop_env_set(iop_env_t *env);
 void iop_env_get(iop_env_t *env);
 
 const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, iop_env_t *env);
+int iop_check_registered_classes(iop_env_t *env, sb_t *err);
 int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
                               unsigned flags, sb_t *err);
 
