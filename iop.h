@@ -1421,6 +1421,10 @@ qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t *,
 
 const iop_pkg_t *iop_get_pkg(lstr_t pkgname);
 
+enum iop_register_packages_flags {
+    IOP_REGPKG_FROM_DSO = (1U << 0),
+};
+
 /** Register a list of packages.
  *
  * Registering a package is necessary if it contains classes; this should be
@@ -1430,7 +1434,7 @@ const iop_pkg_t *iop_get_pkg(lstr_t pkgname);
  *
  * You can use IOP_REGISTER_PACKAGES to avoid the array construction.
  */
-void iop_register_packages(const iop_pkg_t **pkgs, int len);
+void iop_register_packages(const iop_pkg_t **pkgs, int len, unsigned flags);
 
 /** Helper to register a list of packages.
  *
@@ -1440,7 +1444,7 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len);
 #define IOP_REGISTER_PACKAGES(...)  \
     do {                                                                     \
         const iop_pkg_t *__pkgs[] = { __VA_ARGS__ };                         \
-        iop_register_packages(__pkgs, countof(__pkgs));                      \
+        iop_register_packages(__pkgs, countof(__pkgs), 0);                   \
     } while (0)
 
 /** Unregister a list of packages.

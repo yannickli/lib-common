@@ -61,11 +61,13 @@ qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
 /* }}} */
 /* {{{ IOP context */
 
+qm_kvec_t(iop_objs, lstr_t, qv_t(cvoid), qhash_lstr_hash, qhash_lstr_equal);
+
 typedef struct iop_env_t {
     qm_t(class_id)   classes_by_id;
     qm_t(class_name) classes_by_name;
-    qm_t(iop_pkg)    pkgs_by_name;
-    qm_t(iop_enum)   enums_by_fullname;
+    qm_t(iop_objs)   pkgs_by_name;
+    qm_t(iop_objs)   enums_by_fullname;
 } iop_env_t;
 
 iop_env_t *iop_env_init(iop_env_t *env);
@@ -75,7 +77,7 @@ void iop_env_get(iop_env_t *env);
 
 const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, iop_env_t *env);
 int iop_register_packages_env(const iop_pkg_t **pkgs, int len, iop_env_t *env,
-                              sb_t *err);
+                              unsigned flags, sb_t *err);
 
 /* }}} */
 
