@@ -953,7 +953,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
         .st = NULL,                                                          \
         .val = ({                                                            \
             typeof(*_obj) *_fmt_obj = (_obj);                                \
-            __unused__ const iop_struct_t *st = _fmt_obj->__vptr;            \
+            __unused__ const iop_struct_t *__ofa_st = _fmt_obj->__vptr;      \
             _fmt_obj;                                                        \
         })                                                                   \
     }
