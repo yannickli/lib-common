@@ -13,7 +13,7 @@
 
 #include "xmlr.h"
 #include "iop.h"
-#include "iop-helpers.inl.c"
+#include "iop-helpers.in.c"
 
 static __thread qm_t(part) *parts_g;
 

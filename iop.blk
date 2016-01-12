@@ -14,7 +14,7 @@
 #include "arith.h"
 #include "iop.h"
 #include "iop-priv.h"
-#include "iop-helpers.inl.c"
+#include "iop-helpers.in.c"
 #include "thr.h"
 #include "sort.h"
 

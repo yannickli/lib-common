@@ -14,7 +14,7 @@
 #include <math.h>
 #include "unix.h"
 #include "iop.h"
-#include "iop-helpers.inl.c"
+#include "iop-helpers.in.c"
 #include "thr.h"
 
 /* {{{ lexing json */

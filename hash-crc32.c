@@ -32,7 +32,7 @@
  */
 
 #include "hash-crc.h"
-#include "hash-crc32-table.c"
+#include "hash-crc32-table.in.c"
 
 /* Simplistic crc32 calculator, almost compatible with zlib version,
  * except for crc type as uint32_t instead of unsigned long

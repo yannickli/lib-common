@@ -1129,23 +1129,23 @@ void qhat_unload(qhat_t *hat)
 
 #define SIZE                    8
 #define PAGES_PER_FLAT          1
-#include "qps-hat.inc.c"
+#include "qps-hat.in.c"
 
 #define SIZE                    16
 #define PAGES_PER_FLAT          1
-#include "qps-hat.inc.c"
+#include "qps-hat.in.c"
 
 #define SIZE                    32
 #define PAGES_PER_FLAT          1
-#include "qps-hat.inc.c"
+#include "qps-hat.in.c"
 
 #define SIZE                    64
 #define PAGES_PER_FLAT          2
-#include "qps-hat.inc.c"
+#include "qps-hat.in.c"
 
 #define SIZE                    128
 #define PAGES_PER_FLAT          4
-#include "qps-hat.inc.c"
+#include "qps-hat.in.c"
 
 __attribute__((constructor))
 static void qhat_initializes(void)

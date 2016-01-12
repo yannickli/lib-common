@@ -17,7 +17,7 @@
 #define IS_LIB_COMMON_ASN1_WRITER_H
 
 #include "container-qvector.h"
-#include "asn1-helpers-inl.c"
+#include "asn1-helpers.in.c"
 
 /* ASN1 writing API
  * Need an example ? Please read tst-asn1-writer.[hc] .

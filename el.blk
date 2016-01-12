@@ -903,9 +903,9 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 }
 
 #ifdef __linux__
-#  include "el-epoll.c"
+#  include "el-epoll.in.c"
 #elif defined(__APPLE__)
-#  include "el-kqueue.c"
+#  include "el-kqueue.in.c"
 #else
 #  error one has to port el to your OS
 #endif
