@@ -36,7 +36,7 @@ static int F(iop_signature_get_salt)(lstr_t signature, be32_t *salt)
             return e_error("invalid $256 signature (invalid length)");
 #endif
         }
-        if (strconv_hexdecode(salt, sizeof(salt), signature.s + 5, 8) < 0
+        if (strconv_hexdecode(salt, sizeof(*salt), signature.s + 5, 8) < 0
         ||  signature.s[5 + 8] != '$')
         {
 #ifdef NDEBUG
