@@ -517,7 +517,7 @@ static void do_passed(void)
 static void do_failed(void)
 {
     _G.grp.t_failed++;
-    printf("%*d fail %*pM\n # (%ld.%06lds)", _G.grp.n_total_digits,
+    printf("%*d fail %*pM # (%ld.%06lds)\n", _G.grp.n_total_digits,
            _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name), _G.grp.tv_diff.tv_sec,
            _G.grp.tv_diff.tv_usec);
     do_fail_comment();
