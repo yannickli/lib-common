@@ -1285,7 +1285,6 @@ bool el_has_pending_events(void)
         || el_fds_has_pending_events();
 }
 
-#ifndef NDEBUG
 static const char *ev_type_to_str(ev_type_t type)
 {
     switch (type) {
@@ -1305,8 +1304,10 @@ static const char *ev_type_to_str(ev_type_t type)
 
 static void el_show_blockers(el_t evh, int signo, el_data_t priv)
 {
-    e_trace(0, "el blocking summary");
-    e_trace(0, "===================");
+    SB_1k(sb);
+
+    e_notice("el blocking summary");
+    e_notice("===================");
 
     for (int i = 0; i < _G.evs_len; i++) {
         int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
@@ -1317,35 +1318,35 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
             if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS))
                 continue;
 
-            e_trace_start(0, "ev %p │ cb %p │ data %p │ type %d %s",
-                          ev, (void *)ev->cb.cb, ev->priv.ptr, ev->type,
-                          ev_type_to_str(ev->type));
+            sb_setf(&sb, "ev %p │ cb %p │ data %p │ type %d %s", ev,
+                    (void *)ev->cb.cb, ev->priv.ptr, ev->type,
+                    ev_type_to_str(ev->type));
 
             switch (ev->type) {
               case EV_SIGNAL:
-                e_trace_end(0, ":%d", ev->signo);
+                sb_addf(&sb, ":%d", ev->signo);
                 break;
               case EV_CHILD:
-                e_trace_end(0, ":%d", ev->pid);
+                sb_addf(&sb, ":%d", ev->pid);
                 break;
               case EV_FD:
-                e_trace_end(0, ":%d (%04x)", ev->fd, ev->events_wanted);
+                sb_addf(&sb, ":%d (%04x)", ev->fd, ev->events_wanted);
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat < 0) {
-                    e_trace_end(0, " one shot @%ju", ev->timer.expiry / 1000);
+                    sb_addf(&sb, " one shot @%ju", ev->timer.expiry / 1000);
                 } else {
-                    e_trace_end(0, " repeat:%dms next @%ju", ev->timer.repeat,
+                    sb_addf(&sb, " repeat:%dms next @%ju", ev->timer.repeat,
                                 ev->timer.expiry / 1000);
                 }
                 break;
               case EV_PROXY:
-                e_trace_end(0, ":(w:%04x a:%04x)", ev->events_wanted, ev->events_avail);
+                sb_addf(&sb, ":(w:%04x a:%04x)", ev->events_wanted, ev->events_avail);
                 break;
               default:
-                e_trace_end(0, "");
                 break;
             }
+            e_notice("%*pM", SB_FMT_ARG(&sb));
         }
     }
 }
@@ -1355,7 +1356,6 @@ hook_sigpwr(void)
 {
     el_signal_register(SIGPWR, el_show_blockers, NULL);
 }
-#endif
 
 __attribute__((constructor))
 static void el_initialize(void)
