@@ -104,6 +104,10 @@ bool cls_inherits(const void *cls, const void *vptr)
                                                                              \
     __unused__                                                               \
     static inline const superclass##_class_t *pfx##_super(void) {            \
+        /* XXX This assert checks for field order: the fields of the super   \
+         *     class should always be placed first.                          \
+         */                                                                  \
+        STATIC_ASSERT(offsetof(pfx##_t, v) == 0);                            \
         return superclass##_class();                                         \
     }
 
