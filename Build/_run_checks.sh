@@ -73,11 +73,13 @@ fi
 if [ "${OS}" == "darwin" ]; then
     tmp=$(mktemp -t tmp)
     tmp2=$(mktemp -t tmp)
+    corelist=$(mktemp -t tmp)
 else
     tmp=$(mktemp)
     tmp2=$(mktemp)
+    corelist=$(mktemp)
 fi
-trap "rm $tmp $tmp2" 0
+trap "rm $tmp $tmp2 $corelist" 0
 
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 export Z_BEHAVE=1
@@ -98,7 +100,7 @@ coredump=$(which core_dump)
 while read -r zd line; do
     t="${zd}${line}"
     say_color info "starting suite $t..."
-    [ -n "$coredump" ] && cores="$($pybin $coredump list)"
+    [ -n "$coredump" ] && $pybin $coredump list > $corelist
 
     start=$(date '+%s')
     case ./"$t" in
@@ -121,7 +123,7 @@ while read -r zd line; do
             res=$?
             ;;
     esac
-    [ -n "$coredump" ] && $pybin $coredump --format z -i "$cores" -r $PWD diff
+    [ -n "$coredump" ] && $pybin $coredump --format z -i @$corelist -r $PWD diff
 
     if [ $res -eq 0 ] ; then
         end=$(date '+%s')
