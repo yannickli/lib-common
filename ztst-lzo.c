@@ -55,11 +55,10 @@ static int do_self_test(void)
     ssize_t ilen, clen, olen;
     byte dict[LZO_BUF_MEM_SIZE];
 
-    ha_srand();
     for (int i = 0;; i++) {
         t_scope;
 
-        ilen = (ha_rand() % (64 << 10));
+        ilen = rand_range(0, (64 << 10) - 1);
         ibuf  = t_new_raw(char, ilen + 1);
         obuf = t_new_raw(char, ilen);
 

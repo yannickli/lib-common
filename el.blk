@@ -1610,12 +1610,6 @@ static void el_on_pwr(el_t evh, int signo, data_t priv)
 
 static int el_initialize(void *arg)
 {
-    struct timeval tm;
-
-    gettimeofday(&tm, NULL);
-    srand(tm.tv_sec + tm.tv_usec + getpid());
-    ha_srand();
-
     if (getrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
         e_panic(E_UNIXERR("getrlimit"));
     if (fd_limit_g.rlim_cur < fd_limit_g.rlim_max

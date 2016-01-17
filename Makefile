@@ -61,7 +61,7 @@ libcommon_SOURCES = \
 	\
 	core-bithacks.c \
 	core-obj.c \
-	core-havege.c \
+	core-rand.c \
 	core-mem.c \
 	core-mem-fifo.c \
 	core-mem-ring.c \

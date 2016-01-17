@@ -303,7 +303,7 @@ size_t strrand(char dest[], size_t dest_size, lstr_t alphabet)
     THROW_ERR_IF(alphabet.len <= 0);
 
     for (; p < last; p++) {
-        *p = *(alphabet.s + ha_rand_range(0, alphabet.len - 1));
+        *p = *(alphabet.s + rand_range(0, alphabet.len - 1));
     }
 
     *p = '\0';

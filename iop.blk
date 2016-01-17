@@ -3447,13 +3447,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
                                unsigned flags)
 {
-    return t_iop_sign_salt_sha256(st, v, ha_rand(), flags);
-}
-
-__attribute__((constructor))
-static void iop_signature_initialize(void)
-{
-    ha_srand();
+    return t_iop_sign_salt_sha256(st, v, rand32(), flags);
 }
 
 /* }}} */

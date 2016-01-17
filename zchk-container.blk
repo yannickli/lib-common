@@ -696,10 +696,10 @@ static _Bool qv_sort_tst(void)
 static void build_sorted_uniq_vec(qv_t(u32) *vec)
 {
 #define N  1024
-    int size = ha_rand_range(0, N);
+    int size = rand_range(0, N);
 
     for (int i = 0; i < size; i++) {
-        qv_append(u32, vec, ha_rand_range(0, 4 * N));
+        qv_append(u32, vec, rand_range(0, 4 * N));
     }
     dsort32(vec->tab, vec->len);
     vec->len = uniq32(vec->tab, vec->len);
