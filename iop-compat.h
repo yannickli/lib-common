@@ -62,6 +62,7 @@ typedef struct lstr_t {
 
 #define LSTR_INIT(s_, len_)     { { (s_) }, (len_), 0 }
 #define LSTR_IMMED(str)         LSTR_INIT(""str, sizeof(str) - 1)
+#define LSTR_FMT_ARG(s_)        (s_).len, (s_).s
 
 /* core-types.h */
 #define OPT_OF(type_t)     struct { type_t v; bool has_field; }

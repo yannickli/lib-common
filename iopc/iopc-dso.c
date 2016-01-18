@@ -224,6 +224,8 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
         return -1;
     }
 
+    qv_append(str, &sources, asprintf("-I%s", tmppath));
+
     path_extend(path, tmppath, "%*pM.c",  LSTR_FMT_ARG(pkgpath));
     qv_append(str, &sources, p_strdup(path));
 
