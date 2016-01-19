@@ -397,6 +397,7 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
 
 static int iop_check_retro_compat_roptimized(lstr_t path)
 {
+    t_scope;
     tstiop__repeated__t sr;
     const iop_struct_t *st;
 
