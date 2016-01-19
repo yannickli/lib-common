@@ -698,6 +698,7 @@ ASN1_SEQUENCE_DESC_END(desc);
 Z_GROUP_EXPORT(asn1_open_type)
 {
     Z_TEST(open_type, "asn1: open type") {
+        t_scope;
         uint8_t buf[256];
         int len;
         pstream_t ps;
