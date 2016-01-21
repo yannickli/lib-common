@@ -312,7 +312,7 @@ static ALWAYS_INLINE
 void frame_unregister(frame_t *frame)
 {
     dlist_remove(&frame->flist);
-    mem_tool_disallow_memory(frame, sizeof(frame));
+    mem_tool_disallow_memory(frame, sizeof(frame_t));
 }
 
 static ALWAYS_INLINE

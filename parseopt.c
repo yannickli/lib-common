@@ -254,7 +254,7 @@ int parseopt(int argc, char **argv, popt_t *opts, int flags)
         RETHROW(parse_long_opt(&optst, arg + 2, opts));
     }
 
-    memmove(argv + n, optst.argv, optst.argc * sizeof(argv));
+    memmove(argv + n, optst.argv, optst.argc * sizeof(*argv));
     return n + optst.argc;
 }
 

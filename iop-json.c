@@ -1322,7 +1322,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     do {                                                                     \
         size_t _count = BITS_TO_ARRAY_LEN(uint32_t, _len);                   \
                                                                              \
-        if (unlikely(_len > bitsizeof(seen))) {                              \
+        if (unlikely(_len > bitsizeof(seen_buf))) {                          \
             seen = seen_alloc = p_new(uint32_t, _count);                     \
         } else {                                                             \
             p_clear(seen, _count);                                           \
