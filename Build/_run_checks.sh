@@ -170,6 +170,10 @@ while read -r zd line; do
             res=$?
             cd - &>/dev/null
             ;;
+        */check_php)
+            $pybin $(which check_php) "$zd"
+            res=$?
+            ;;
         *)
             ./$t
             res=$?

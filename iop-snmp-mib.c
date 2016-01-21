@@ -241,13 +241,16 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
 
     qv_for_each_entry(lstr, name, &_G.objects_identifier_parent) {
         if (qh_find(lstr, &_G.objects_identifier, &name) < 0) {
+            t_scope;
             lstr_t short_name = t_get_short_name(name, true);
 
-            if (resolved && !lstr_equal(short_name, _G.head)) {
-                logger_fatal(&_G.logger, "only one snmpObj parent should be "
-                             "imported");
+            if (!lstr_equal(short_name, _G.head)) {
+                if (resolved) {
+                    logger_fatal(&_G.logger, "only one snmpObj parent should "
+                                 "be imported");
+                }
+                lstr_copy(&_G.head, short_name);
             }
-            _G.head = short_name;
             resolved = true;
         }
     }
