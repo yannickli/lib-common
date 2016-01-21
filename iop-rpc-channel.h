@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_IOP_RPC_CHANNEL_H
 
+#include <lib-common/container-htlist.h>
+
 #if 0
 #define IC_DEBUG_REPLIES
 #endif
