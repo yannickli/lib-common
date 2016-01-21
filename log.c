@@ -78,7 +78,9 @@ static struct {
     qv_t(buffer_instance) vec_buff_stack;
     mem_stack_pool_t mp_stack;
     int nb_buffer_started;
-    flag_t use_handler: 1;
+
+    flag_t use_handler   : 1;
+    flag_t log_timestamp : 1;
 } log_g = {
 #define _G  log_g
     .root_logger = {
@@ -746,6 +748,16 @@ static int log_make_fancy_prefix(const char *progname, int pid,
     return MIN(len, 63);
 }
 
+static void log_add_timestamp(sb_t *sb)
+{
+    if (_G.log_timestamp) {
+        struct timeval tv;
+
+        lp_gettv(&tv);
+        sb_addf(sb, "%ld.%02ld ", tv.tv_sec, tv.tv_usec / 10000);
+    }
+}
+
 __attr_printf__(2, 0)
 static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
                                      va_list va)
@@ -770,9 +782,9 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
                        max_len - sb->len);
         sb_splice(sb, 0, 0, escapes, len);
         sb_adds(sb, " \e[0m\r");
-    }
 
-    if (ctx->level >= LOG_TRACE) {
+        log_add_timestamp(sb);
+
         sb_adds(sb, "\e[33m");
         if (strlen(ctx->func) < 17) {
             sb_addf(sb, "%*s: ", 17, ctx->func);
@@ -780,6 +792,7 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
             sb_addf(sb, "%*pM...: ", 14, ctx->func);
         }
     } else {
+        log_add_timestamp(sb);
         if (ctx->prog_name == program_invocation_short_name) {
             sb_add(sb, _G.fancy_prefix, _G.fancy_len);
         } else {
@@ -848,6 +861,7 @@ static void log_stderr_raw_handler(const log_ctx_t *ctx, const char *fmt,
         return;
     }
 
+    log_add_timestamp(sb);
     sb_addf(sb, "%s[%d]: ", ctx->prog_name, ctx->pid);
     if (ctx->level >= LOG_TRACE && ctx->func) {
         sb_addf(sb, "%s:%d:%s: ", ctx->file, ctx->line, ctx->func);
@@ -1102,7 +1116,7 @@ static void log_parse_specs(char *p, qv_t(spec) *out)
 
 static int log_initialize(void* args)
 {
-    char *is_debug = getenv("IS_DEBUG");
+    char *env;
 
     mem_stack_pool_init(&_G.mp_stack, 64 << 10);
     qv_init(spec, &_G.specs);
@@ -1122,8 +1136,8 @@ static int log_initialize(void* args)
 
     log_initialize_thread();
 
-    if (is_debug) {
-        _G.is_debug = p_strdup(is_debug);
+    if ((env = getenv("IS_DEBUG"))) {
+        _G.is_debug = p_strdup(env);
         log_parse_specs(_G.is_debug, &_G.specs);
 
         qv_for_each_ptr(spec, spec, &_G.specs) {
@@ -1131,6 +1145,10 @@ static int log_initialize(void* args)
                 logger_set_level(LSTR_OPT(spec->name), spec->level, 0);
             }
         }
+    }
+
+    if ((env = getenv("IS_LOG_TIMESTAMP"))) {
+        _G.log_timestamp = *env && atoi(env) > 0;
     }
 
     return 0;
