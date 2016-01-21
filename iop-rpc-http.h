@@ -15,6 +15,7 @@
 #  error "you must include <lib-common/iop-rpc.h> instead"
 #else
 #define IS_LIB_COMMON_IOP_RPC_HTTP_H
+#ifndef __cplusplus
 
 /**************************************************************************/
 /* HTTP Queries                                                           */
@@ -497,4 +498,5 @@ void __ichttp_err_ctx_set(lstr_t err_ctx);
 /** clear the error context */
 void __ichttp_err_ctx_clear(void);
 
+#endif
 #endif

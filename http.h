@@ -13,6 +13,7 @@
 
 #ifndef IS_LIB_INET_HTTP_H
 #define IS_LIB_INET_HTTP_H
+#ifndef __cplusplus
 
 #include "zlib-wrapper.h"
 #include "el.h"
@@ -926,4 +927,5 @@ static inline void httpc_query_hdrs_adds(httpc_query_t *q, const char *hdr)
     httpc_query_hdrs_add(q, LSTR(hdr));
 }
 
+#endif
 #endif

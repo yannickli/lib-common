@@ -79,13 +79,14 @@ static inline const char * ic_status_to_string(ic_status_t s)
 static inline const iop_rpc_t *
 __ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
 {
+#ifndef __cplusplus
     if (ic_slot_is_http(slot)) {
         ichttp_query_t *iq = ichttp_slot_to_query(slot);
 
         return iq->cbe->fun;
-    } else {
-        return ic->desc;
     }
+#endif
+    return ic->desc;
 }
 
 /** \brief get the “command” of the currently unpacked RPC.
@@ -97,13 +98,14 @@ __ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
 static inline int
 __ic_get_current_rpc_cmd(const ichannel_t *ic, uint64_t slot)
 {
+#ifndef __cplusplus
     if (ic_slot_is_http(slot)) {
         ichttp_query_t *iq = ichttp_slot_to_query(slot);
 
         return iq->cbe->cmd;
-    } else {
-        return ic->cmd;
     }
+#endif
+    return ic->cmd;
 }
 
 #endif
