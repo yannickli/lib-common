@@ -297,11 +297,14 @@ ignore:
 watch:
 	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile)
 
+check-untracked:
+	check-for-untracked-files.sh
+
 endif
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
-.PHONY: _generated_hdr _generated
+.PHONY: _generated_hdr _generated check-untracked
 # }}}
 ##########################################################################
 # {{{ target exports from the build system
