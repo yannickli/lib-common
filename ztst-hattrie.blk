@@ -52,6 +52,7 @@ static void (print_time_diff)(const char *str, struct rusage *tstart,
     (print_time_diff)(str, tstart, tend, NULL, NULL, count)
 
 #define RUN_TEST(Name, Count, Code) do {                                     \
+        t_scope;                                                             \
         struct rusage  start, end;                                           \
         struct timeval tstart, tend;                                         \
                                                                              \

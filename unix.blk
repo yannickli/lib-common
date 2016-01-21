@@ -420,7 +420,7 @@ typedef struct st_file_t {
 
 static inline uint32_t st_file_hash(const qhash_t *qh, const st_file_t *f)
 {
-    return mem_hash32(f, sizeof(f));
+    return mem_hash32(f, sizeof(*f));
 }
 
 static inline bool
