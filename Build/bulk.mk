@@ -183,11 +183,14 @@ ignore:
 	$(foreach v,$(var/docs),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
+
+check-untracked:
+
 endif
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
-.PHONY: _generated_hdr _generated
+.PHONY: _generated_hdr _generated check-untracked
 # }}}
 ##########################################################################
 # {{{ target exports from the build system
