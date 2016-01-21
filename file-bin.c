@@ -163,7 +163,7 @@ int file_bin_refresh(file_bin_t *file)
 {
     struct stat st;
     void *new_map;
-    bool parse_header;
+    bool parse_header = false;
 
     assert (file->read_mode);
 

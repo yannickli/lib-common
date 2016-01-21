@@ -61,6 +61,9 @@ dump_zf()
                         has_match=y
                         [[ "$Z_LIST_SKIP" =~ "C" ]] && continue
                         ;;
+                    */check_php)
+                        has_match=y
+                        ;;
                     *)
                         test -x "$f" || continue
                         has_match=y
