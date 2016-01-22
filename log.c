@@ -468,6 +468,15 @@ const qv_t(log_buffer) *log_stop_buffering(void)
     return &buffer_instance->vec_buffer;
 }
 
+static __attr_printf__(2, 0)
+void logger_vsyslog(int level, const char *fmt, va_list va)
+{
+    SB_1k(sb);
+
+    sb_addvf(&sb, fmt, va);
+    syslog(LOG_USER | level, "%s", sb.data);
+}
+
 static __attr_printf__(3, 0)
 void logger_putv(const log_ctx_t *ctx, bool do_log,
                  const char *fmt, va_list va)
@@ -479,7 +488,7 @@ void logger_putv(const log_ctx_t *ctx, bool do_log,
 
         syslog_is_critical = true;
         va_copy(cpy, va);
-        vsyslog(LOG_USER | ctx->level, fmt, cpy);
+        logger_vsyslog(ctx->level, fmt, cpy);
         va_end(cpy);
     }
 
@@ -639,7 +648,7 @@ void __logger_exit(logger_t *logger, const char *file, const char *func,
 
     va_start(va, fmt);
     logger_vlog(logger, LOG_ERR, NULL, -1, file, func, line, fmt, va);
-    vsyslog(LOG_USER | LOG_ERR, fmt, va);
+    logger_vsyslog(LOG_ERR, fmt, va);
     va_end(va);
 
     _exit(0);
