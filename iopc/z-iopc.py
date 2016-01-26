@@ -107,7 +107,17 @@ class IopcTest(z.TestCase):
 
     def run_gcc(self, iop):
         gcc_args = ['gcc', '-c', '-o', '/dev/null', '-std=gnu99',
-                    '-O', '-Wall', '-Werror',
+                    '-O', '-Wall', '-Werror', '-Wextra',
+                    '-Wno-error=deprecated-declarations',
+                    '-Wchar-subscripts', '-Wshadow',
+                    '-Wwrite-strings', '-Wsign-compare', '-Wunused',
+                    '-Wno-unused-parameter', '-Wuninitialized', '-Winit-self',
+                    '-Wpointer-arith', '-Wredundant-decls',
+                    '-Wformat-nonliteral', '-Wno-format-y2k',
+                    '-Wmissing-format-attribute', '-Wstrict-prototypes',
+                    '-Wmissing-prototypes', '-Wmissing-declarations',
+                    '-Wnested-externs', '-Wdeclaration-after-statement',
+                    '-Wno-format-zero-length', '-Wno-uninitialized',
                     '-D_GNU_SOURCE',
                     '-I' + os.path.join(SELF_PATH, '../lib-common/compat'),
                     '-I' + os.path.join(SELF_PATH, '..'),

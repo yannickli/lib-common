@@ -871,6 +871,7 @@ static iop_field_t const tstdox__my_iface_a__fun_a_args__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_args__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.in"),
+    .details = LSTR_NULL,
     .example = LSTR_IMMED("{\042aParam\042:1,\042b\042:{\042fieldA\042:11,\042fieldB\042:12,\042fieldC\042:13}}"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_args__s_attrs[] = {
@@ -953,6 +954,7 @@ static iop_field_t const tstdox__my_iface_a__fun_a_res__desc_fields[] = {
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_res__s_help = {
     .brief = LSTR_IMMED("local comment for MyIfaceA.funA.out"),
+    .details = LSTR_NULL,
     .example = LSTR_IMMED("{\042c\042:{\042fieldA\042:11,\042fieldB\042:12,\042fieldC\042:13},\042d\042:4}"),
 };
 static const iop_struct_attr_t tstdox__my_iface_a__fun_a_res__s_attrs[] = {
