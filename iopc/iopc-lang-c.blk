@@ -3686,3 +3686,24 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     iopc_put_range_cleanup();
     return res;
 }
+
+/* {{{ Module */
+
+static int iopc_lang_c_initialize(void *arg)
+{
+    qm_init_cached(rg, &range_h_g);
+
+    return 0;
+}
+
+static int iopc_lang_c_shutdown(void)
+{
+    qm_deep_wipe(rg, &range_h_g, lstr_wipe, IGNORE);
+
+    return 0;
+}
+
+MODULE_BEGIN(iopc_lang_c)
+MODULE_END()
+
+/* }}} */

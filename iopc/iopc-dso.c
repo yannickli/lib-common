@@ -288,3 +288,21 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
     ret = -1;
     goto end;
 }
+
+/* {{{ Module */
+
+static int iopc_dso_initialize(void *arg)
+{
+    return 0;
+}
+
+static int iopc_dso_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(iopc_dso)
+    MODULE_DEPENDS_ON(iopc_lang_c);
+MODULE_END()
+
+/* }}} */
