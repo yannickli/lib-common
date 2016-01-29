@@ -45,16 +45,20 @@
  * aligned since everything is done at the work level: the header only
  * references a integral number of words of 32 bits.
  *
+ * In memory, the chunks are stored in wah_word_t vectors called buckets.
+ * Each bucket contains \ref bit_wah_g.bits_in_bucket bits of the bitmap,
+ * except the last one that can be partially filled.
+ * This is done like that in order to avoid having too big vectors in memory.
  *
  * \section usage Use cases
  *
  * A WAH does not support efficient random accesses (reading / writing at a
  * specific bit position) because the chunks encode a variable amount of words
  * in a variable amount of memory. However, it efficiently support both
- * sequential reader / writing.
+ * sequential reading / writing.
  *
  * Bitwise operations are also supported but, with the exception of the
- * negation operator,  they are not in place (they always require either a
+ * negation operator, they are not in place (they always require either a
  * brand new bitmap or a copy of one of the operands). Those operations are
  * efficient since they can deal with long runs with a single word read.
  */
@@ -79,18 +83,21 @@ typedef union wah_word_t {
 } wah_word_t;
 qvector_t(wah_word, wah_word_t);
 
+qvector_t(wah_word_vec, qv_t(wah_word));
+
 typedef struct wah_t {
     uint64_t  len;
     uint64_t  active;
 
-    int            previous_run_pos;
-    int            last_run_pos;
+    int previous_run_pos;
+    int last_run_pos;
 
-    /* Do not directly access these fields unless you really know what you are
-     * doing. In most cases, you'll want to use wah_get_data. */
-    qv_t(wah_word) _data;
-    uint32_t       _pending;
-    wah_word_t     _padding[3]; /* Ensure sizeof(wah_t) == 64 */
+    /* WARNING: the following fields should not be accessed directly, unless
+     * you really know what you are doing. In most cases, you'll want to use
+     * wah_get_storage. */
+    qv_t(wah_word_vec) _buckets;
+    uint32_t           _pending;
+    wah_word_t         _padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
 
 #define WAH_BIT_IN_WORD  bitsizeof(wah_word_t)
@@ -102,9 +109,10 @@ typedef struct wah_t {
 wah_t *wah_init(wah_t *map) __leaf;
 wah_t *wah_new(void) __leaf;
 void wah_wipe(wah_t *map) __leaf;
+void wah_reset_map(wah_t *map);
 GENERIC_DELETE(wah_t, wah);
 
-wah_t *t_wah_new(int expected_size) __leaf;
+wah_t *t_wah_new(int expected_first_bucket_size) __leaf;
 wah_t *t_wah_dup(const wah_t *src) __leaf;
 void wah_copy(wah_t *map, const wah_t *src) __leaf;
 wah_t *wah_dup(const wah_t *src) __leaf;
@@ -113,21 +121,31 @@ wah_t *wah_dup(const wah_t *src) __leaf;
  *
  * This generates read-only wah_t structures
  */
-wah_t *wah_init_from_data(wah_t *wah, const uint32_t *data,
-                          int data_len, bool scan);
-wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan);
-wah_t *wah_new_from_data_lstr(lstr_t data, bool scan);
+wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *wah, pstream_t data);
+static inline wah_t *wah_init_from_data(wah_t *wah, pstream_t data)
+{
+    return mp_wah_init_from_data(NULL, wah, data);
+}
+wah_t *mp_wah_new_from_data(mem_pool_t *mp, pstream_t data);
+static inline wah_t *wah_new_from_data(pstream_t data)
+{
+    return mp_wah_new_from_data(NULL, data);
+}
 
 /** Get the raw data contained in a wah_t.
  *
  * This function must be used to get the data contained by a wah_t, in order
- * to, for example, write it on disk (and then use \ref wah_new_from_data to
- * reload it).
+ * to, for example, write it on disk to persist the wah.
+ *
+ * It returns the vector of buckets contained by the wah. The buckets must be
+ * written one after the other so that it can be reloaded by
+ * \ref wah_new_from_data).
  *
  * \warning a wah must not have pending data if you want this to properly
  *          work; use \ref wah_pad32 to ensure that.
  */
-lstr_t wah_get_data(const wah_t *wah);
+const qv_t(wah_word_vec) *wah_get_storage(const wah_t *wah);
+uint64_t wah_get_storage_len(const wah_t *wah);
 
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
@@ -143,20 +161,13 @@ void wah_not(wah_t *map) __leaf;
 
 wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * __restrict dest) __leaf;
 
+/** Get the value of a bit in a WAH.
+ *
+ * \warning this function is really inefficient, and should be used with
+ *          caution (or in tests context).
+ */
 __must_check__ __leaf
 bool wah_get(const wah_t *map, uint64_t pos);
-
-static inline
-void wah_reset_map(wah_t *map)
-{
-    map->len                  = 0;
-    map->active               = 0;
-    map->previous_run_pos     = -1;
-    map->last_run_pos         = 0;
-    qv_clear(wah_word, &map->_data);
-    p_clear(qv_growlen(wah_word, &map->_data, 2), 2);
-    map->_pending             = 0;
-}
 
 /* }}} */
 /* WAH pools {{{ */
@@ -177,6 +188,7 @@ typedef enum wah_enum_state_t {
 typedef struct wah_word_enum_t {
     const wah_t     *map;
     wah_enum_state_t state;
+    int              bucket;
     int              pos;
     uint32_t         remain_words;
     uint32_t         current;
