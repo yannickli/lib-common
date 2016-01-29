@@ -13,6 +13,17 @@
 
 #include "asn1.h"
 #include "z.h"
+#include "thr.h"
+
+static void asn1_wipe(void)
+{
+    qv_deep_wipe(asn1_desc, &asn1_descs_g.descs, asn1_desc_delete);
+    qv_deep_wipe(asn1_choice_desc, &asn1_descs_g.choice_descs,
+                 asn1_choice_desc_delete);
+}
+thr_hooks(NULL, asn1_wipe);
+
+__thread struct asn1_descs_t asn1_descs_g;
 
 /*----- COMMON -{{{- */
 #ifndef NDEBUG

@@ -410,12 +410,33 @@ static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
 
 GENERIC_NEW(asn1_desc_t, asn1_desc);
 
+static inline void asn1_desc_wipe(asn1_desc_t *desc)
+{
+    qv_wipe(asn1_field, &desc->vec);
+    qv_wipe(u16, &desc->opt_fields);
+}
+GENERIC_DELETE(asn1_desc_t, asn1_desc);
+
 typedef struct asn1_choice_desc_t {
     asn1_desc_t desc;
     uint8_t     choice_table[256];
 } asn1_choice_desc_t;
 
 GENERIC_NEW_INIT(asn1_choice_desc_t, asn1_choice_desc);
+
+static inline void asn1_choice_desc_wipe(asn1_choice_desc_t *desc)
+{
+    asn1_desc_wipe(&desc->desc);
+}
+GENERIC_DELETE(asn1_choice_desc_t, asn1_choice_desc);
+
+qvector_t(asn1_desc, asn1_desc_t *);
+qvector_t(asn1_choice_desc, asn1_choice_desc_t *);
+struct asn1_descs_t {
+    qv_t(asn1_desc) descs;
+    qv_t(asn1_choice_desc) choice_descs;
+};
+extern __thread struct asn1_descs_t asn1_descs_g;
 
 int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
                     qv_t(i32) *stack);

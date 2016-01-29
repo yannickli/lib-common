@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_ASN1_MACROS_H
 
+#include <lib-common/container-qvector.h>
+
 #define ASN1_OBJ_TYPE(type)  ASN1_OBJ_TYPE_##type
 #define ASN1_OBJ_MODE(mode)  ASN1_OBJ_MODE_##mode
 
@@ -69,7 +71,7 @@
 #define ASN1_DESC_BEGIN(desc, pfx) \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
-        static asn1_desc_t *desc = NULL;                                     \
+        static __thread asn1_desc_t *desc;                                   \
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = asn1_desc_new();                                          \
@@ -82,6 +84,7 @@
             }                                                                \
                                                                              \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
+            qv_append(asn1_desc, &asn1_descs_g.descs, desc);                 \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -93,6 +96,7 @@
 
 #define ASN1_SEQUENCE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
+            qv_append(asn1_desc, &asn1_descs_g.descs, desc);                 \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -101,10 +105,13 @@
 #define __ASN1_CHOICE_DESC_BEGIN(desc, pfx) \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
-        static asn1_desc_t *desc;                                            \
+        static __thread asn1_desc_t *desc;                                   \
                                                                              \
         if (unlikely(!desc)) {                                               \
-            desc = &asn1_choice_desc_new()->desc;                            \
+            asn1_choice_desc_t *__choice_desc;                               \
+                                                                             \
+            __choice_desc = asn1_choice_desc_new();                          \
+            desc = &__choice_desc->desc;                                     \
             desc->type = ASN1_CSTD_TYPE_CHOICE;                              \
             desc->size = sizeof(pfx##_t);
 
@@ -128,6 +135,8 @@
             desc->choice_info.max = desc->vec.len - 2;                       \
             asn1_int_info_update(&desc->choice_info);                        \
             asn1_build_choice_table((asn1_choice_desc_t *)desc);             \
+            qv_append(asn1_choice_desc, &asn1_descs_g.choice_descs,          \
+                      __choice_desc);                                        \
         }                                                                    \
                                                                              \
         return desc;                                                         \

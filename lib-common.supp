@@ -24,55 +24,6 @@
     fun:sp_reserve
 }
 
-# ASN.1
-{
-    lib-common/asn1/desc
-    Memcheck:Leak
-    fun:malloc
-    ...
-    fun:qv_asn1_field_growlen
-    ...
-}
-
-{
-    lib-common/asn1/desc
-    Memcheck:Leak
-    fun:malloc
-    ...
-    fun:qvector_growlen
-    ...
-    fun:asn1_reg_field
-    ...
-}
-
-{
-    lib-common/asn1/desc
-    Memcheck:Leak
-    fun:malloc
-    ...
-    fun:asn1_desc_new
-    ...
-}
-
-{
-    lib-common/asn1/desc
-    Memcheck:Leak
-    fun:calloc
-    ...
-    fun:asn1_choice_desc_new
-    ...
-}
-
-# ASN.1 TCAP
-{
-    lib-common/asn1/desc
-    Memcheck:Leak
-    fun:*alloc
-    ...
-    fun:asn1_tc*_*_desc
-    ...
-}
-
 # see https://support.intersec.com/issues/3694
 {
     lib-common/pthread-hook/dlsym_leak
