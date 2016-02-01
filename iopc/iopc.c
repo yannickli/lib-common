@@ -202,6 +202,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    MODULE_REQUIRE(iopc);
+
     qv_init(cstr, &incpath);
     qv_init(doit, &doits);
 
@@ -280,12 +282,14 @@ int main(int argc, char **argv)
         }
     }
 
+    MODULE_RELEASE(iopc);
     qv_wipe(cstr, &incpath);
     qv_wipe(doit, &doits);
     p_delete((char **)&_G.prefix_dir);
     return 0;
 
   error:
+    MODULE_RELEASE(iopc);
     qv_wipe(cstr, &incpath);
     qv_wipe(doit, &doits);
     p_delete((char **)&_G.prefix_dir);

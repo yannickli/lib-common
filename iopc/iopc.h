@@ -1097,5 +1097,6 @@ iop_type_t iop_get_type(lstr_t name);
 
 MODULE_DECLARE(iopc_dso);
 MODULE_DECLARE(iopc_lang_c);
+MODULE_DECLARE(iopc);
 
 #endif

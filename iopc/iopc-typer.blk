@@ -1624,3 +1624,25 @@ void iopc_get_depends(iopc_pkg_t *pkg,
     iopc_depends_uniquify(t_deps);
     iopc_depends_uniquify(i_deps);
 }
+
+/* {{{ Module */
+
+static int iopc_initialize(void *arg)
+{
+    qv_init(iopc_loc, &iopc_g.loc_stack);
+
+    return 0;
+}
+
+static int iopc_shutdown(void)
+{
+    qv_wipe(iopc_loc, &iopc_g.loc_stack);
+
+    return 0;
+}
+
+MODULE_BEGIN(iopc)
+    MODULE_DEPENDS_ON(iopc_lang_c);
+MODULE_END()
+
+/* }}} */

@@ -302,7 +302,7 @@ static int iopc_dso_shutdown(void)
 }
 
 MODULE_BEGIN(iopc_dso)
-    MODULE_DEPENDS_ON(iopc_lang_c);
+    MODULE_DEPENDS_ON(iopc);
 MODULE_END()
 
 /* }}} */
