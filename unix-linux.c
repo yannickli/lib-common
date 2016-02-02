@@ -28,6 +28,7 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
     char  buf[256];
     void *arr[256];
     int   bt, n;
+    int   bkp_errno = errno;
 
     n = snprintf(buf, sizeof(buf), "---> %s[%d] %s\n\n",
                  prog, getpid(), sys_siglist[signum]);
@@ -38,8 +39,15 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
     backtrace_symbols_fd(arr, bt, fd);
 
     if (full) {
-        int maps_fd = open("/proc/self/smaps", O_RDONLY);
+        int maps_fd;
 
+        n = snprintf(buf, sizeof(buf), "\n--- Status:\n\nErrno: %s (%d)\n\n",
+                     strerror(bkp_errno), bkp_errno);
+        if (xwrite(fd, buf, n) < 0) {
+            return;
+        }
+
+        maps_fd = open("/proc/self/smaps", O_RDONLY);
         if (maps_fd != -1) {
             XWRITE("\n--- Memory maps:\n\n");
             for (;;) {
@@ -122,6 +130,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 
     char   path[PATH_MAX];
     int    fd;
+    int    bkp_errno = errno;
 
     sigaction(signum, &sa, NULL);
     snprintf(path, sizeof(path), "/tmp/%s.%d.%ld.debug",
@@ -152,6 +161,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
         }
         XWRITE("\n");
 
+        errno = bkp_errno;
         ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
         p_close(&fd);
 
@@ -162,9 +172,11 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
         ps_print_file(path, "lsof -p %d", getpid());
     }
 #ifndef NDEBUG
+    errno = bkp_errno;
     ps_dump_backtrace(signum, program_invocation_short_name,
                       STDERR_FILENO, false);
 #endif
+    errno = bkp_errno;
     raise(signum);
 }
 #undef XWRITE
