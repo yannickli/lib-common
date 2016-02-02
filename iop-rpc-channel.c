@@ -1326,7 +1326,14 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         if (!ic->is_stream) {
             __sb_fixlen(buf, buf->len + res);
             ic_parse_cmsg(ic, &msgh, &fdc, &fdv);
-            fd_overflow = msgh.msg_flags & MSG_CTRUNC; /* see #664 */
+
+            /* XXX fd_overflow is set when the kernel decided that it cannot
+             * transfer some ancillary data. In our case, this means we didn't
+             * properly receive the expected file descriptor, probably because
+             * there is no file descriptor available anymore on our side of
+             * the channel.
+             */
+            fd_overflow = msgh.msg_flags & MSG_CTRUNC;
         }
     }
 
@@ -1352,8 +1359,9 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         errno = 0;
         RETHROW(ic_check_msg_hdr_flags(ic, slot, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
-            if (fdc < 1 && !fd_overflow) {
-                return -1; /* see #664 */
+            if (fdc < 1) {
+                assert (fd_overflow);
+                return -1;
             } else {
                 ic->current_fd = NEXTARG(fdc, fdv);
             }
