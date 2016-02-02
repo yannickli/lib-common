@@ -139,9 +139,11 @@ void ps_write_backtrace(int signum, bool allow_fork)
         }
         XWRITE("\n");
 
-        snprintf(buf, sizeof(buf), "\n--- errno: %d\n", saved_errno);
+        snprintf(buf, sizeof(buf), "\n--- errno: %s (%d)\n",
+                 strerror(saved_errno), saved_errno);
         XWRITE(buf);
 
+        errno = saved_errno;
         ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
         p_close(&fd);
 
@@ -156,9 +158,11 @@ void ps_write_backtrace(int signum, bool allow_fork)
         }
     }
 #ifndef NDEBUG
+    errno = saved_errno;
     ps_dump_backtrace(signum, program_invocation_short_name,
                       STDERR_FILENO, false);
 #endif
+    errno = saved_errno;
 }
 
 #undef XWRITE
