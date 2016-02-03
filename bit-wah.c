@@ -2291,7 +2291,7 @@ Z_GROUP_EXPORT(wah)
 
     Z_TEST(buckets, "") {
         SB_1k(sb);
-        uint32_t litteral[] = {
+        uint32_t literal[] = {
             0x12345678, 0x12345678, 0x12345678, 0x12345678,
             0x12345678, 0x00000001,
         };
@@ -2305,14 +2305,14 @@ Z_GROUP_EXPORT(wah)
         wah_add1s(&map1, 5 * WAH_BIT_IN_WORD);
         wah_add0s(&map1, 5 * WAH_BIT_IN_WORD);
 
-        wah_add(&map1, litteral, 5 * WAH_BIT_IN_WORD + 2);
+        wah_add(&map1, literal, 5 * WAH_BIT_IN_WORD + 2);
 
 #define CHECK_WAH(_nb_buckets, _len)  \
         do {                                                                 \
             Z_ASSERT_EQ(map1._buckets.len, _nb_buckets);                     \
             Z_ASSERT_EQ(map1.len, _len);                                     \
             Z_ASSERT_EQ(map1.active, 5 * WAH_BIT_IN_WORD +                   \
-                        membitcount(litteral, countof(litteral) * 4));       \
+                        membitcount(literal, countof(literal) * 4));         \
                                                                              \
             for (uint64_t i = 0; i < 3 * 5 * WAH_BIT_IN_WORD; i++) {         \
                 if (i >= 5 * WAH_BIT_IN_WORD                                 \
@@ -2325,7 +2325,7 @@ Z_GROUP_EXPORT(wah)
             }                                                                \
             for (uint64_t i = 0; i < 5 * WAH_BIT_IN_WORD + 2; i++) {         \
                 Z_ASSERT_EQ(wah_get(&map1, i + 15 * WAH_BIT_IN_WORD),        \
-                            !!TST_BIT(litteral, i));                         \
+                            !!TST_BIT(literal, i));                          \
             }                                                                \
         } while (0)
 
