@@ -831,8 +831,8 @@ static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 {
     qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
 
-    map->active += membitcount(src, count);
     wah_flatten_last_run(map);
+    map->active += membitcount(src, count);
 
     while (count) {
         uint64_t bucket_len = map->len % _G.bits_in_bucket;
@@ -1810,6 +1810,7 @@ void wah_debug_print(const wah_t *wah, bool print_content)
 }
 
 /* }}} */
+
 /* Tests {{{ */
 
 #include "z.h"
@@ -2162,6 +2163,21 @@ Z_GROUP_EXPORT(wah)
                 Z_ASSERT(!wah_get(&map, i));
             }
         }
+        wah_wipe(&map);
+    } Z_TEST_END;
+
+    Z_TEST(redmine_42990, "") {
+        uint32_t literal[] = { 0xff7fff7f, 0xffffffff, 0xf7fffdeb };
+
+        wah_init(&map);
+
+        /* This triggered an assert without the patch for #42990. */
+        wah_add(&map, literal, 3 * WAH_BIT_IN_WORD);
+
+        for (uint64_t i = 0; i < 3 * WAH_BIT_IN_WORD; i++) {
+            Z_ASSERT_EQ(wah_get(&map, i), !!TST_BIT(literal, i));
+        }
+
         wah_wipe(&map);
     } Z_TEST_END;
 
