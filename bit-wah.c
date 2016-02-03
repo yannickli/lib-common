@@ -831,8 +831,8 @@ static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 {
     qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
 
-    map->active += membitcount(src, count);
     wah_flatten_last_run(map);
+    map->active += membitcount(src, count);
 
     while (count) {
         uint64_t bucket_len = map->len % _G.bits_in_bucket;
@@ -1810,6 +1810,7 @@ void wah_debug_print(const wah_t *wah, bool print_content)
 }
 
 /* }}} */
+
 /* Tests {{{ */
 
 #include "z.h"
@@ -2165,6 +2166,21 @@ Z_GROUP_EXPORT(wah)
         wah_wipe(&map);
     } Z_TEST_END;
 
+    Z_TEST(redmine_42990, "") {
+        uint32_t literal[] = { 0xff7fff7f, 0xffffffff, 0xf7fffdeb };
+
+        wah_init(&map);
+
+        /* This triggered an assert without the patch for #42990. */
+        wah_add(&map, literal, 3 * WAH_BIT_IN_WORD);
+
+        for (uint64_t i = 0; i < 3 * WAH_BIT_IN_WORD; i++) {
+            Z_ASSERT_EQ(wah_get(&map, i), !!TST_BIT(literal, i));
+        }
+
+        wah_wipe(&map);
+    } Z_TEST_END;
+
     Z_TEST(non_reg_and, "") {
         t_scope;
         uint32_t src_data[]   = { 0x00000519, 0x00000000, 0x80000101, 0x00000000 };
@@ -2275,7 +2291,7 @@ Z_GROUP_EXPORT(wah)
 
     Z_TEST(buckets, "") {
         SB_1k(sb);
-        uint32_t litteral[] = {
+        uint32_t literal[] = {
             0x12345678, 0x12345678, 0x12345678, 0x12345678,
             0x12345678, 0x00000001,
         };
@@ -2289,14 +2305,14 @@ Z_GROUP_EXPORT(wah)
         wah_add1s(&map1, 5 * WAH_BIT_IN_WORD);
         wah_add0s(&map1, 5 * WAH_BIT_IN_WORD);
 
-        wah_add(&map1, litteral, 5 * WAH_BIT_IN_WORD + 2);
+        wah_add(&map1, literal, 5 * WAH_BIT_IN_WORD + 2);
 
 #define CHECK_WAH(_nb_buckets, _len)  \
         do {                                                                 \
             Z_ASSERT_EQ(map1._buckets.len, _nb_buckets);                     \
             Z_ASSERT_EQ(map1.len, _len);                                     \
             Z_ASSERT_EQ(map1.active, 5 * WAH_BIT_IN_WORD +                   \
-                        membitcount(litteral, countof(litteral) * 4));       \
+                        membitcount(literal, countof(literal) * 4));         \
                                                                              \
             for (uint64_t i = 0; i < 3 * 5 * WAH_BIT_IN_WORD; i++) {         \
                 if (i >= 5 * WAH_BIT_IN_WORD                                 \
@@ -2309,7 +2325,7 @@ Z_GROUP_EXPORT(wah)
             }                                                                \
             for (uint64_t i = 0; i < 5 * WAH_BIT_IN_WORD + 2; i++) {         \
                 Z_ASSERT_EQ(wah_get(&map1, i + 15 * WAH_BIT_IN_WORD),        \
-                            !!TST_BIT(litteral, i));                         \
+                            !!TST_BIT(literal, i));                          \
             }                                                                \
         } while (0)
 
