@@ -392,6 +392,12 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
         iop_msort_desc(&pfx##__s, (void *)__vec, (len), (params), (err));    \
     })
 
+/** Flags for IOP filter. */
+enum iop_filter_flags {
+    /** Perform a SQL-like pattern matching for strings. */
+    IOP_FILTER_SQL_LIKE = (1U << 0),
+};
+
 /** Filter a vector of IOP based on a given field or subfield of reference.
  *  It takes an array of IOP objets and an array of values, and filters out
  *  the objects whose field value is not in the values array.
@@ -411,10 +417,12 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
  *                            one because no check is done inside the
  *                            function.
  *  \param[in] values_len     Length of the array of allowed values.
+ *  \param[in] flags          A combination of enum iop_filter_flags.
  *  \param[out] err           In case of error, the error description.
  */
 int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-               void * const *allowed_values, int values_len, sb_t *err);
+               void * const *allowed_values, int values_len, unsigned flags,
+               sb_t *err);
 
 /** Duplicate an IOP structure.
  *

@@ -1593,6 +1593,36 @@ static cmp_f const iop_cmp_rev_funs[] = {
 };
 
 /*}}}*/
+/* {{{ equality functions */
+
+/* Equality functions must return 0 if values are equal and another value of
+ * values are different. */
+
+static int iop_string_sql_like(const void *s1, const void *s2)
+{
+    return lstr_utf8_is_ilike(*(const lstr_t *)s1,
+                              *(const lstr_t *)s2) ? 0 : -1;
+}
+
+static cmp_f const iop_equal_funs_sql_like[] = {
+    [IOP_T_I8]          = &cmp_i8,
+    [IOP_T_U8]          = &cmp_u8,
+    [IOP_T_I16]         = &cmp_i16,
+    [IOP_T_U16]         = &cmp_u16,
+    [IOP_T_ENUM]        = &cmp_i32,
+    [IOP_T_I32]         = &cmp_i32,
+    [IOP_T_U32]         = &cmp_u32,
+    [IOP_T_I64]         = &cmp_i64,
+    [IOP_T_U64]         = &cmp_u64,
+    [IOP_T_BOOL]        = &cmp_bool,
+    [IOP_T_DOUBLE]      = &cmp_double,
+    [IOP_T_UNION]       = &cmp_u16,
+    [IOP_T_STRING]      = &iop_string_sql_like,
+    [IOP_T_XML]         = &cmp_lstr_iutf8,
+    [IOP_T_DATA]        = &cmp_lstr_iutf8,
+};
+
+/*}}}*/
 
 typedef struct iop_sort_priv_t {
     field_path_t fp;
@@ -1603,8 +1633,10 @@ typedef struct iop_sort_priv_t {
 qvector_t(iop_sort_p, iop_sort_priv_t);
 
 static int
-t_prepare_field(const iop_struct_t *st, lstr_t field_path, int flags,
-                field_path_t *fp, cmp_f *cmp, sb_t *err)
+t_prepare_field(const iop_struct_t *st, lstr_t field_path, field_path_t *fp,
+                int cmp_flags, cmp_f * nullable cmp,
+                int filter_flags, cmp_f * nullable equal,
+                sb_t *err)
 {
     field_path_init(fp);
     t_qv_init(field_step, &fp->steps, 16);
@@ -1627,11 +1659,22 @@ t_prepare_field(const iop_struct_t *st, lstr_t field_path, int flags,
         return -1;
     }
 
-    if (flags & IOP_SORT_REVERSE) {
-        *cmp = iop_cmp_rev_funs[fp->fdesc->type];
-    } else {
-        *cmp = iop_cmp_funs[fp->fdesc->type];
+    if (cmp) {
+        if (cmp_flags & IOP_SORT_REVERSE) {
+            *cmp = iop_cmp_rev_funs[fp->fdesc->type];
+        } else {
+            *cmp = iop_cmp_funs[fp->fdesc->type];
+        }
     }
+
+    if (equal) {
+        if (filter_flags & IOP_FILTER_SQL_LIKE) {
+            *equal = iop_equal_funs_sql_like[fp->fdesc->type];
+        } else {
+            *equal = iop_cmp_funs[fp->fdesc->type];
+        }
+    }
+
     return 0;
 }
 
@@ -1663,8 +1706,8 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
         iop_sort_t *sort = &params->tab[pos];
 
         priv->flags = sort->flags;
-        RETHROW(t_prepare_field(st, sort->field_path, sort->flags,
-                                &priv->fp, &priv->cmp, err));
+        RETHROW(t_prepare_field(st, sort->field_path, &priv->fp,
+                                sort->flags, &priv->cmp, 0, NULL, err));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
@@ -1701,18 +1744,20 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
 }
 
 int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-               void * const *allowed_values, int values_len, sb_t *err)
+               void * const *allowed_values, int values_len, unsigned flags,
+               sb_t *err)
 {
     t_scope;
     bool is_pointer = iop_struct_is_class(st);
     field_path_t fp;
-    cmp_f cmp;
+    cmp_f equal;
     byte *vec_read = vec;
     byte *vec_write = vec;
     byte *vec_start = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
 
-    RETHROW(t_prepare_field(st, field_path, 0, &fp, &cmp, err));
+    RETHROW(t_prepare_field(st, field_path, &fp, 0, NULL, flags, &equal,
+                            err));
 
     for (int i = 0; i < *len; i++) {
         bool is_valid = false;
@@ -1723,7 +1768,7 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
         d = iop_get_fieldp(tmp, &fp);
         for (int j = 0; d && j < values_len; j++) {
             /* TODO: sort allowed_values and use a bisection to compare. */
-            if (cmp(d, allowed_values[j]) == 0) {
+            if (equal(d, allowed_values[j]) == 0) {
                 is_valid = true;
                 break;
             }

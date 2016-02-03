@@ -2799,7 +2799,7 @@ Z_GROUP_EXPORT(iop)
 #define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
         Z_ASSERT_ZERO(iop_filter(&tstiop__my_struct_g__s, original.tab,      \
                                  &original.len, LSTR(_field), allowed,       \
-                                 _allowed_len, NULL));                       \
+                                 _allowed_len, 0, NULL));                    \
         Z_ASSERT_EQ(_result_len, original.len);                              \
     } while (0)
 
@@ -2887,7 +2887,7 @@ Z_GROUP_EXPORT(iop)
 #define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
         Z_ASSERT_ZERO(iop_filter(&tstiop__my_class2__s, vec.tab,             \
                                  &vec.len, LSTR(_field), allowed,            \
-                                 _allowed_len, NULL));                       \
+                                 _allowed_len, IOP_FILTER_SQL_LIKE, NULL));  \
         Z_ASSERT_EQ(_result_len, vec.len);                                   \
     } while (0)
 
@@ -2910,6 +2910,59 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[2]);
 
 #undef ADD_PARAM
+#undef FILTER_AND_CHECK_LEN
+
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_filter_strings, "test IOP filtering on string values") { /* {{{ */
+        t_scope;
+        tstiop__my_struct_g__t first;
+        tstiop__my_struct_g__t second;
+        tstiop__my_struct_g__t third;
+        qv_t(my_struct_g) original;
+        lstr_t filter;
+        void **allowed = t_new_raw(void *, 1);
+
+        t_qv_init(my_struct_g, &original, 3);
+
+        iop_init(tstiop__my_struct_g, &first);
+        iop_init(tstiop__my_struct_g, &second);
+        iop_init(tstiop__my_struct_g, &third);
+        first.j = LSTR("toto");
+        second.j = LSTR("titi");
+        third.j = LSTR("tutu");
+
+        *allowed = &filter;
+
+#define FILTER_AND_CHECK_LEN(_field, _flags, _result_len)  do {              \
+        original.tab[0] = first;                                             \
+        original.tab[1] = second;                                            \
+        original.tab[2] = third;                                             \
+        original.len = 3;                                                    \
+        Z_ASSERT_ZERO(iop_filter(&tstiop__my_struct_g__s, original.tab,      \
+                                 &original.len, LSTR(_field), allowed, 1,    \
+                                 _flags, NULL));                             \
+        Z_ASSERT_EQ(_result_len, original.len);                              \
+    } while (0)
+
+        /* Simple filters */
+        filter = LSTR("none");
+        FILTER_AND_CHECK_LEN("j", 0, 0);
+        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 0);
+
+        filter = LSTR("titi");
+        FILTER_AND_CHECK_LEN("j", 0, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
+
+        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
+
+        /* SQL patterns. */
+        filter = LSTR("to%");
+        FILTER_AND_CHECK_LEN("j", 0, 0);
+        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
+
 #undef FILTER_AND_CHECK_LEN
 
     } Z_TEST_END;
