@@ -99,7 +99,11 @@ static int check_name(const char *name, iopc_loc_t loc,
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
             if (strequal(name, avoid_keywords[i])) {
-                warn_loc("%s is a keyword in some languages", loc, name);
+                if (iopc_g.v5) {
+                    throw_loc("%s is a keyword in some languages", loc, name);
+                } else {
+                    warn_loc("%s is a keyword in some languages", loc, name);
+                }
             }
         }
     }
