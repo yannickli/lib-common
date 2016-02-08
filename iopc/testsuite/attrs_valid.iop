@@ -40,7 +40,6 @@ struct User {
     @nonEmpty @maxLength(64)
     bytes       datas;
 
-    @nowarn(bytes)
     byte[]      data;
 
     @disallow(us1) @disallow(us2)
@@ -62,7 +61,6 @@ struct User2 {
     @cdata
     string  login;
     MyEnumA a;
-    @nowarn(bytes)
     byte[]  data;
 
     @minOccurs(5) @maxOccurs(10)
