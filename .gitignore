@@ -3,6 +3,9 @@
 *.pyo
 *.pyc
 
+.tags
+.syntastic*
+
 /Upgrading.html
 /conf-parser.c
 /core-version.c
