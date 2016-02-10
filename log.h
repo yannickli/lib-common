@@ -148,7 +148,7 @@ typedef struct logger_t {
  * \param[in] Parent    The parent logger (NULL if parent is the root logger)
  * \param[in] Name      The name of the logger
  * \param[in] LogLevel  The maximum log level activated by default for that
- *                      logger. (can be LOG_INHERITS).
+ *                      logger (can be \ref LOG_INHERITS).
  */
 #define LOGGER_INIT(Parent, Name, LogLevel)  {                               \
         .is_static     = true,                                               \
@@ -192,10 +192,20 @@ typedef struct logger_t {
 #define LOGGER_INIT_SILENT_INHERITS(Parent, Name)                            \
     LOGGER_INIT_SILENT(Parent, Name, LOG_INHERITS)
 
-logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
-                      int default_level, unsigned level_flags) __leaf;
-logger_t *logger_new(logger_t *parent, lstr_t name, int default_level,
-                     unsigned level_flags) __leaf;
+/** Initialize a logger.
+ *
+ * \param[in]  parent  the parent logger (NULL if parent is the root logger).
+ * \param[in]  name  the name of the logger. Note that it can be allocated the
+ *                   way you want, this lstr will be dup'ed.
+ * \param[in]  default_level  the maximum log level activated by default for
+ *                            that logger (can be \ref LOG_INHERITS).
+ * \param[in]  level_flags  the flags to use (ie. \ref LOG_SILENT or 0).
+ */
+logger_t *logger_init(logger_t *logger, logger_t *nullable parent,
+                      lstr_t name, int default_level,
+                      unsigned level_flags) __leaf;
+logger_t *logger_new(logger_t *nullable parent, lstr_t name,
+                     int default_level, unsigned level_flags) __leaf;
 
 void logger_wipe(logger_t *logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
