@@ -107,6 +107,36 @@ static __thread struct {
 
 __thread log_thr_ml_t log_thr_ml_g;
 
+/* Helpers {{{ */
+
+lstr_t t_logger_sanitize_name(const lstr_t name)
+{
+    t_SB_1k(normalized);
+    uint32_t used_characters;
+
+    sb_normalize_utf8(&normalized, name.s, name.len, false);
+    used_characters = 0;
+
+    for (int i = 0; i < normalized.len; i++) {
+        int c = normalized.data[i];
+
+        if (isprint(c) && c != '!' && c != '/' && !isspace(c)) {
+            normalized.data[used_characters] = c;
+            used_characters++;
+        }
+
+    }
+
+    sb_shrink(&normalized, normalized.len - used_characters);
+
+    if (!normalized.len || !isalnum(normalized.data[0])) {
+        return LSTR_NULL_V;
+    }
+
+    return LSTR_SB_V(&normalized);
+}
+
+/* }}} */
 /* Configuration {{{ */
 
 logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
@@ -1935,6 +1965,35 @@ Z_GROUP_EXPORT(log) {
         Z_ASSERT_EQ(specs.tab[1].level, INT_MAX);
 
 #undef TEST
+    } Z_TEST_END;
+
+    Z_TEST(sanitize_names, "check name sanitizer") {
+        t_scope;
+
+#define TEST(_str, _nstr)                                                    \
+        do {                                                                 \
+            lstr_t _orig = t_lstr_fmt(_str);                                 \
+            lstr_t _dest = t_lstr_fmt(_nstr);                                \
+            Z_ASSERT_LSTREQUAL(_dest, t_logger_sanitize_name(_orig));        \
+        } while (0)
+
+#define TEST_NULL(_str)                                                      \
+        do {                                                                 \
+            lstr_t _orig = t_lstr_fmt(_str);                                 \
+            Z_ASSERT_LSTREQUAL(LSTR_EMPTY_V, t_logger_sanitize_name(_orig)); \
+        } while (0)
+
+        TEST("remove all spaces", "removeallspaces");
+        TEST("remove/this!", "removethis");
+        TEST("!!/ //4!/ !", "4");
+        TEST(" A} ", "A}");
+        TEST_NULL("!!/");
+        TEST_NULL("");
+        TEST_NULL(" !/ ");
+        TEST_NULL("} toto");
+#undef TEST
+#undef TEST_NULL
+
     } Z_TEST_END;
 
 } Z_GROUP_END;

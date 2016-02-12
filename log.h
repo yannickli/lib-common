@@ -686,6 +686,19 @@ void log_start_buffering(bool use_handler);
 const qv_t(log_buffer) *log_stop_buffering(void);
 
 /* }}} */
+/* Log helpers {{{ */
+
+/** Remove characters not accepted in logger names.
+ *
+ * This function returns LSTR_NULL_V in case the logger does not match the
+ * specification (starting with alphanumeric character, not null).
+ *
+ * \param[in] name string that should be checked in order to remove not
+ *                 accepted characters in logger name
+ */
+lstr_t t_logger_sanitize_name(const lstr_t name);
+
+/* }}} */
 /** \} */
 
 #endif
