@@ -16,4 +16,4 @@ CXX=clang++
 include $(var/cfgdir)/profile-debug.mk
 CNOPICFLAGS += -fsanitize=address -fno-omit-frame-pointer
 CXXNOPICFLAGS += -fsanitize=address -fno-omit-frame-pointer
-LDNOPICFLAGS += -fsanitize=address
+LDNOPICFLAGS += -fsanitize=address -lstdc++
