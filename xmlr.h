@@ -28,7 +28,7 @@ enum xmlr_error {
 };
 
 #define XMLR_CHECK(expr, on_err) \
-    ({ int __xres = (expr); if (unlikely(__xres < 0)) on_err; __xres; })
+    ({ int __xres = (expr); if (unlikely(__xres < 0)) { on_err; } __xres; })
 
 /* \brief Initiates the parser with the content in the buffer.
  *
