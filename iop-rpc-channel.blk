@@ -1075,10 +1075,22 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
         if (unlikely((*hdr)->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
             ic__simple_hdr__t *shdr = &(*hdr)->simple;
 
-            if (shdr->payload < 0)
+            if (shdr->payload < 0) {
                 shdr->payload = dlen;
+            }
+
             if (!shdr->host.len) {
                 shdr->host = ic_get_client_addr(ic);
+            } else {
+                sockunion_t out;
+                pstream_t host;
+                in_port_t port;
+
+                if (addr_parse(ps_initlstr(&shdr->host), &host, &port, 0) < 0
+                ||  addr_info(&out, AF_UNSPEC, host, port) < 0)
+                {
+                    shdr->host = LSTR_NULL_V;
+                }
             }
         }
         if (unlikely(ic_slot_is_traced(slot, flags)
