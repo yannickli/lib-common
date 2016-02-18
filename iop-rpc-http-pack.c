@@ -110,7 +110,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     http_code_t code;
     size_t oblen;
 
-    ic_query_do_post_hook(NULL, cmd, slot);
+    ic_query_do_post_hook(NULL, cmd, slot, st, v);
     gzenc = httpd_qinfo_accept_enc_get(q->qinfo);
 
     if (cmd == IC_MSG_OK) {
@@ -221,7 +221,7 @@ void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
 
-    ic_query_do_post_hook(NULL, err, slot);
+    ic_query_do_post_hook(NULL, err, slot, NULL, NULL);
 
     switch (err) {
       case IC_MSG_OK:

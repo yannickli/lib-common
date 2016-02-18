@@ -63,7 +63,9 @@ typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
 typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t,
                              const ic__hdr__t *, data_t);
 typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t,
-                              ic_hook_ctx_t *, data_t);
+                              ic_hook_ctx_t *, data_t,
+                              const iop_struct_t * nullable,
+                              const void * nullable);
 typedef int (ic_creds_f)(ichannel_t *, const ic_creds_t *creds);
 typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
@@ -564,7 +566,9 @@ void ic_mark_disconnected(ichannel_t *ic);
  *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *,
+ *                 const iop_struct_t * nullable, const void * nullable)</tt>
+ *    see #ic_query_do_post_hook about how to use the last two arguments.
  * \param[in]  _pre_arg   argument we want to pass to pre_hook
  * \param[in]  _post_arg  argument we want to pass to post_hook
  */
@@ -653,7 +657,9 @@ void ic_mark_disconnected(ichannel_t *ic);
  *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *,
+ *                 const iop_struct_t * nullable, const void * nullable)</tt>
+ *    see #ic_query_do_post_hook about how to use the last two arguments.
  * \param[in]  _pre_arg   argument we want to pass to pre_hook
  * \param[in]  _post_arg  argument we want to pass to post_hook
  */
@@ -748,7 +754,9 @@ void ic_mark_disconnected(ichannel_t *ic);
  *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *,
+ *                 const iop_struct_t * nullable, const void * nullable)</tt>
+ *    see #ic_query_do_post_hook about how to use the last two arguments.
  * \param[in]  _pre_arg   argument we want to pass to pre_hook
  * \param[in]  _post_arg  argument we want to pass to post_hook
  */
@@ -832,7 +840,9 @@ void ic_mark_disconnected(ichannel_t *ic);
  *    <tt>void (*)(ichannel_t *, uint64_t, const ic__hdr__t *, void *)</tt>
  * \param[in]  _post_cb
  *    the post_hook callback. Its type should be:
- *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *)</tt>
+ *    <tt>void (*)(ichannel_t *, ic_status_t, ic_hook_ctx_t *, void *,
+ *                 const iop_struct_t * nullable, const void * nullable)</tt>
+ *    see #ic_query_do_post_hook about how to use the last two arguments.
  * \param[in]  _pre_arg   argument we want to pass to pre_hook
  * \param[in]  _post_arg  argument we want to pass to post_hook
  */
@@ -938,13 +948,22 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 int
 ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
                      const ic__hdr__t *hdr, const ic_cb_entry_t *e);
+
 /** \brief helper to get and execute the post hook of the query.
  *
  * \param[in]  ic      the #ichannel_t to send the query to.
  * \param[in]  status  the received answer status parameter.
  * \param[in]  slot    the slot of the received query.
+ * \param[in]  st      the type of the result value.
+ * \param[in]  value   the result value of the query.
+ *
+ * \p st and \p value are only set if status is IC_MSG_OK or IC_MSG_EXN, the
+ * query is not proxified and the query has been replied with #ic_reply or
+ * #ic_throw.
  */
-void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
+void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot,
+                           const iop_struct_t * nullable st,
+                           const void * nullable value);
 #ifndef NDEBUG
 bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
 

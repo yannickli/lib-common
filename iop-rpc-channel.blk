@@ -413,7 +413,8 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
     return 0;
 }
 
-void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot)
+void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot,
+                           const iop_struct_t *st, const void *value)
 {
     ic_hook_ctx_t *ctx = ic_hook_ctx_get(slot);
 
@@ -421,7 +422,7 @@ void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot)
         return;
     }
     if (ctx->post_hook) {
-        (*ctx->post_hook)(ic, status, ctx, ctx->post_hook_args);
+        (*ctx->post_hook)(ic, status, ctx, ctx->post_hook_args, st, value);
     }
     ic_hook_ctx_delete(&ctx);
 
@@ -459,7 +460,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
     if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
 
-        ic_query_do_post_hook(ic, cmd, slot);
+        ic_query_do_post_hook(ic, cmd, slot, NULL, NULL);
         ic_msg_init_for_reply(ic, tmp, slot, cmd);
         if (unpacked_msg && (likely(cmd == IC_MSG_OK) || cmd == IC_MSG_EXN)) {
             const iop_struct_t *st;
@@ -529,7 +530,7 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
         const void *data = buf->data + IC_MSG_HDR_LEN;
         int dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
-        ic_query_do_post_hook(ic, cmd, slot);
+        ic_query_do_post_hook(ic, cmd, slot, NULL, NULL);
         ic_msg_init_for_reply(ic, tmp, slot, cmd);
         if (ic_is_local(pxy_ic) && !get_unaligned_cpu32(buf->data)) {
             const ic_msg_t *msg_org = data;
@@ -1233,7 +1234,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (ic_query_do_pre_hook(ic, query_slot, hdr, e) >= 0) {
             (*e->u.cb.cb)(ic, query_slot, value, hdr);
             if (is_async) {
-                ic_query_do_post_hook(ic, cmd, query_slot);
+                ic_query_do_post_hook(ic, cmd, query_slot, NULL, NULL);
             }
         }
         ic->desc = NULL;
@@ -1302,7 +1303,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 return;
             }
             if (!slot) {
-                ic_query_do_post_hook(ic, cmd, query_slot);
+                ic_query_do_post_hook(ic, cmd, query_slot, NULL, NULL);
             }
             ic->cmd = 0;
             t_unseal();
@@ -2124,7 +2125,7 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
         return 0;
     }
 
-    ic_query_do_post_hook(ic, cmd, slot);
+    ic_query_do_post_hook(ic, cmd, slot, st, arg);
 
     msg = ic_msg_new_for_reply(&ic, slot, cmd);
     if (!msg)
@@ -2170,7 +2171,7 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
         }
     }
 
-    ic_query_do_post_hook(ic, err, slot);
+    ic_query_do_post_hook(ic, err, slot, NULL, NULL);
 
     msg = ic_msg_new_for_reply(&ic, slot, err);
     if (!msg)
