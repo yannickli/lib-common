@@ -154,6 +154,18 @@ addr_info_str(sockunion_t *su, const char *host, int port, int af)
     return addr_info(su, af, ps_initstr(host), port);
 }
 
+/** Build addr filter from a subnetwork.
+ *
+ * A subnetwork is identified by its CIDR notation, e.g. 192.168.0.1/24 or
+ * fe80::202:b3ff:fe1e:8329/32, or by a single IP address, 192.168.0.12 or
+ * ff09::1234:abcd.
+ *
+ * \param[in]  subnet the subnetwork.
+ * \param[out] filter resulting filter.
+ * \return -1 in case of error, 0 otherwise.
+ */
+int addr_filter_build(lstr_t subnet, addr_filter_t *filter);
+
 int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer);
 
 static inline int

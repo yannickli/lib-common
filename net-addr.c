@@ -218,6 +218,77 @@ int addr_info(sockunion_t *su, sa_family_t af, pstream_t host, in_port_t port)
     return cur ? 0 : -1;
 }
 
+int addr_filter_build(lstr_t subnet, addr_filter_t *filter)
+{
+    t_scope;
+    pstream_t ps = ps_initlstr(&subnet);
+    pstream_t ip = ps_init(NULL, 0);
+    int maxmask = 32;
+    struct addrinfo *ai = NULL;
+    struct addrinfo hint = {
+        .ai_flags = AI_NUMERICHOST,
+        .ai_family = AF_UNSPEC,
+    };
+
+    if (ps_get_ps_chr_and_skip(&ps, '/', &ip) < 0) {
+        SWAP(pstream_t, ip, ps);
+    }
+
+    RETHROW(getaddrinfo(t_dupz(ip.s, ps_len(&ip)), NULL, &hint, &ai));
+
+    p_clear(filter, 1);
+    filter->family = ai->ai_family;
+    if (filter->family == AF_INET) {
+        filter->u.v4.addr =
+            ((struct sockaddr_in*)(ai->ai_addr))->sin_addr.s_addr;
+    } else
+    if (filter->family == AF_INET6) {
+        filter->u.v6.addr = ((struct sockaddr_in6*)ai->ai_addr)->sin6_addr;
+        maxmask = 128;
+    } else {
+        freeaddrinfo(ai);
+        return -1;
+    }
+
+    freeaddrinfo(ai);
+
+    if (!ps_done(&ps)) {
+        int mask;
+
+        errno = 0;
+        mask = ps_geti(&ps);
+
+        THROW_ERR_IF(errno != 0 || !ps_done(&ps) || mask < 0
+                  || mask > maxmask);
+
+#define NET_U32_MASK(_mask)  htonl(BITMASK_GE(uint64_t, 32 - (_mask)))
+#define NET_U32_MASK_BOUNDED(_mask)  NET_U32_MASK(MAX(MIN((_mask), 32), 0))
+
+        if (filter->family == AF_INET) {
+            filter->u.v4.mask = NET_U32_MASK(mask);
+        } else {
+            filter->u.v6.mask.s6_addr32[0] = NET_U32_MASK_BOUNDED(mask);
+            filter->u.v6.mask.s6_addr32[1] = NET_U32_MASK_BOUNDED(mask - 32);
+            filter->u.v6.mask.s6_addr32[2] = NET_U32_MASK_BOUNDED(mask - 64);
+            filter->u.v6.mask.s6_addr32[3] = NET_U32_MASK_BOUNDED(mask - 96);
+        }
+
+#undef NET_U32_MASK_BOUNDED
+#undef NET_U32_MASK
+    } else {
+        if (filter->family == AF_INET) {
+            filter->u.v4.mask = UINT32_MAX;
+        } else {
+            filter->u.v6.mask.s6_addr32[0] = UINT32_MAX;
+            filter->u.v6.mask.s6_addr32[1] = UINT32_MAX;
+            filter->u.v6.mask.s6_addr32[2] = UINT32_MAX;
+            filter->u.v6.mask.s6_addr32[3] = UINT32_MAX;
+        }
+    }
+
+    return 0;
+}
+
 int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
 {
     if (peer->family != filter->family)
@@ -258,11 +329,31 @@ Z_GROUP_EXPORT(net_addr)
 #define NET_ADDR_IPV6  "1:1:1:1:1:1:1:1"
 #define NET_ADDR_PORT  4242
 
-    lstr_t ipv4 = LSTR_IMMED(NET_ADDR_IPV4);
-    lstr_t ipv6 = LSTR_IMMED(NET_ADDR_IPV6);
-    lstr_t tcp_ipv4 = LSTR_IMMED(NET_ADDR_IPV4 ":" TOSTR(NET_ADDR_PORT));
-    lstr_t tcp_ipv6 = LSTR_IMMED("[" NET_ADDR_IPV6 "]:" TOSTR(NET_ADDR_PORT));
+    lstr_t ipv4 = LSTR(NET_ADDR_IPV4);
+    lstr_t ipv6 = LSTR(NET_ADDR_IPV6);
+    lstr_t tcp_ipv4 = LSTR(NET_ADDR_IPV4 ":" TOSTR(NET_ADDR_PORT));
+    lstr_t tcp_ipv6 = LSTR("[" NET_ADDR_IPV6 "]:" TOSTR(NET_ADDR_PORT));
     sockunion_t su;
+    addr_filter_t filter;
+    char buf[INET6_ADDRSTRLEN];
+
+#define CHECK_FILTER(_res, _cidr, _addr, _mask)                              \
+    do {                                                                     \
+        Z_ASSERT_N(addr_filter_build(LSTR(_cidr), &filter));                 \
+        Z_ASSERT_EQ((_res), addr_filter_matches(&filter, &su));              \
+                                                                             \
+        if (filter.family == AF_INET) {                                      \
+            inet_ntop(AF_INET, &filter.u.v4.addr, buf, sizeof(buf));         \
+            Z_ASSERT_LSTREQUAL(LSTR(buf), LSTR(_addr));                      \
+            inet_ntop(AF_INET, &filter.u.v4.mask, buf, sizeof(buf));         \
+            Z_ASSERT_LSTREQUAL(LSTR(buf), LSTR(_mask));                      \
+        } else {                                                             \
+            inet_ntop(AF_INET6, &filter.u.v6.addr, buf, sizeof(buf));        \
+            Z_ASSERT_LSTREQUAL(LSTR(buf), LSTR(_addr));                      \
+            inet_ntop(AF_INET6, &filter.u.v6.mask, buf, sizeof(buf));        \
+            Z_ASSERT_LSTREQUAL(LSTR(buf), LSTR(_mask));                      \
+        }                                                                    \
+    } while (0)
 
     Z_TEST(ipv4, "IPv4") {
         Z_ASSERT_N(addr_info(&su, AF_INET, ps_initlstr(&ipv4),
@@ -270,6 +361,15 @@ Z_GROUP_EXPORT(net_addr)
         Z_ASSERT_LSTREQUAL(ipv4, t_sockunion_gethost_lstr(&su));
         Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
         Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv4);
+
+        CHECK_FILTER(0, "1.1.1.2/25", "1.1.1.2", "255.255.255.128");
+        CHECK_FILTER(-1, "1.1.1.130/25", "1.1.1.130", "255.255.255.128");
+        CHECK_FILTER(-1, "192.168.0.1/16", "192.168.0.1", "255.255.0.0");
+        CHECK_FILTER(-1, "1.1.1.3/32", "1.1.1.3", "255.255.255.255");
+        CHECK_FILTER(0, "2.2.2.2/0", "2.2.2.2", "0.0.0.0");
+        CHECK_FILTER(0, "1.1.1.1", "1.1.1.1", "255.255.255.255");
+        CHECK_FILTER(-1, "1.1.1.4", "1.1.1.4", "255.255.255.255");
+
     } Z_TEST_END;
 
     Z_TEST(ipv6, "IPv6") {
@@ -278,9 +378,25 @@ Z_GROUP_EXPORT(net_addr)
         Z_ASSERT_LSTREQUAL(ipv6, t_sockunion_gethost_lstr(&su));
         Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
         Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv6);
+
+        CHECK_FILTER(0, "1:1:1:1:1:1:1:2/65", "1:1:1:1:1:1:1:2",
+                     "ffff:ffff:ffff:ffff:8000::");
+        CHECK_FILTER(-1, "1:1:1:1:abcd:1:1:2/65", "1:1:1:1:abcd:1:1:2",
+                     "ffff:ffff:ffff:ffff:8000::");
+        CHECK_FILTER(-1, "fe80::202:b3ff:fe1e:8329/32",
+                     "fe80::202:b3ff:fe1e:8329", "ffff:ffff::");
+        CHECK_FILTER(-1, "1:1:1:1:1:1:1:3/128", "1:1:1:1:1:1:1:3",
+                     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+        CHECK_FILTER(0, "2:2:2:2:2:2:2:2/0", "2:2:2:2:2:2:2:2", "::");
+        CHECK_FILTER(0, "1:1:1:1:1:1:1:1", "1:1:1:1:1:1:1:1",
+                     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+        CHECK_FILTER(-1, "1:1:1:1:1:1:1:3", "1:1:1:1:1:1:1:3",
+                     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
     } Z_TEST_END;
 
+#undef CHECK_FILTER
 #undef NET_ADDR_PORT
 #undef NET_ADDR_IPV6
 #undef NET_ADDR_IPV4
+
 } Z_GROUP_END;
