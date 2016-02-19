@@ -266,11 +266,17 @@ int addr_filter_build(lstr_t subnet, addr_filter_t *filter)
 
         if (filter->family == AF_INET) {
             filter->u.v4.mask = NET_U32_MASK(mask);
+            filter->u.v4.addr &= filter->u.v4.mask;
         } else {
             filter->u.v6.mask.s6_addr32[0] = NET_U32_MASK_BOUNDED(mask);
             filter->u.v6.mask.s6_addr32[1] = NET_U32_MASK_BOUNDED(mask - 32);
             filter->u.v6.mask.s6_addr32[2] = NET_U32_MASK_BOUNDED(mask - 64);
             filter->u.v6.mask.s6_addr32[3] = NET_U32_MASK_BOUNDED(mask - 96);
+
+            filter->u.v6.addr.s6_addr32[0] &= filter->u.v6.mask.s6_addr32[0];
+            filter->u.v6.addr.s6_addr32[1] &= filter->u.v6.mask.s6_addr32[1];
+            filter->u.v6.addr.s6_addr32[2] &= filter->u.v6.mask.s6_addr32[2];
+            filter->u.v6.addr.s6_addr32[3] &= filter->u.v6.mask.s6_addr32[3];
         }
 
 #undef NET_U32_MASK_BOUNDED
@@ -299,8 +305,7 @@ int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
 
     if (filter->family == AF_INET) {
         if (filter->u.v4.addr
-        && ((filter->u.v4.addr & filter->u.v4.mask)
-            != (peer->sin.sin_addr.s_addr & filter->u.v4.mask)))
+        != (peer->sin.sin_addr.s_addr & filter->u.v4.mask))
         {
             return -1;
         }
@@ -310,10 +315,10 @@ int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
 #endif
         /* filter->family == AF_INET6 */
         for (int i = 3; i >= 0; i--) {
-            if ((filter->u.v6.addr.s6_addr32[i]
-                 & filter->u.v6.mask.s6_addr32[i])
+            if (filter->u.v6.addr.s6_addr32[i]
             != (peer->sin6.sin6_addr.s6_addr32[i]
-                  & filter->u.v6.mask.s6_addr32[i])) {
+                  & filter->u.v6.mask.s6_addr32[i]))
+            {
                 return -1;
             }
         }
@@ -362,11 +367,11 @@ Z_GROUP_EXPORT(net_addr)
         Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
         Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv4);
 
-        CHECK_FILTER(0, "1.1.1.2/25", "1.1.1.2", "255.255.255.128");
-        CHECK_FILTER(-1, "1.1.1.130/25", "1.1.1.130", "255.255.255.128");
-        CHECK_FILTER(-1, "192.168.0.1/16", "192.168.0.1", "255.255.0.0");
+        CHECK_FILTER(0, "1.1.1.2/25", "1.1.1.0", "255.255.255.128");
+        CHECK_FILTER(-1, "1.1.1.130/25", "1.1.1.128", "255.255.255.128");
+        CHECK_FILTER(-1, "192.168.0.1/16", "192.168.0.0", "255.255.0.0");
         CHECK_FILTER(-1, "1.1.1.3/32", "1.1.1.3", "255.255.255.255");
-        CHECK_FILTER(0, "2.2.2.2/0", "2.2.2.2", "0.0.0.0");
+        CHECK_FILTER(0, "2.2.2.2/0", "0.0.0.0", "0.0.0.0");
         CHECK_FILTER(0, "1.1.1.1", "1.1.1.1", "255.255.255.255");
         CHECK_FILTER(-1, "1.1.1.4", "1.1.1.4", "255.255.255.255");
 
@@ -379,15 +384,15 @@ Z_GROUP_EXPORT(net_addr)
         Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
         Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv6);
 
-        CHECK_FILTER(0, "1:1:1:1:1:1:1:2/65", "1:1:1:1:1:1:1:2",
+        CHECK_FILTER(0, "1:1:1:1:1:1:1:2/65", "1:1:1:1::",
                      "ffff:ffff:ffff:ffff:8000::");
-        CHECK_FILTER(-1, "1:1:1:1:abcd:1:1:2/65", "1:1:1:1:abcd:1:1:2",
+        CHECK_FILTER(-1, "1:1:1:1:abcd:1:1:2/65", "1:1:1:1:8000::",
                      "ffff:ffff:ffff:ffff:8000::");
         CHECK_FILTER(-1, "fe80::202:b3ff:fe1e:8329/32",
-                     "fe80::202:b3ff:fe1e:8329", "ffff:ffff::");
+                     "fe80::", "ffff:ffff::");
         CHECK_FILTER(-1, "1:1:1:1:1:1:1:3/128", "1:1:1:1:1:1:1:3",
                      "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-        CHECK_FILTER(0, "2:2:2:2:2:2:2:2/0", "2:2:2:2:2:2:2:2", "::");
+        CHECK_FILTER(0, "2:2:2:2:2:2:2:2/0", "::", "::");
         CHECK_FILTER(0, "1:1:1:1:1:1:1:1", "1:1:1:1:1:1:1:1",
                      "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
         CHECK_FILTER(-1, "1:1:1:1:1:1:1:3", "1:1:1:1:1:1:1:3",
