@@ -1169,17 +1169,15 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 void qps_enospc(const char *what)
 {
     if (_G.in_snapshot_fork) {
-        logger_error(&_G.logger, "snapshotter-child: unexpected I/O error "
+        logger_fatal(&_G.logger, "snapshotter-child: unexpected I/O error "
                      "(%s:%m)", what);
-        _exit(QPS_EX_ENOSPC);
     }
 
     if (strequal(what, "mmap")) {
-        logger_error(&_G.logger, "unexpected error (%s:%m)", what);
+        logger_fatal(&_G.logger, "unexpected error (%s:%m)", what);
     } else {
-        logger_error(&_G.logger, "unexpected I/O error (%s:%m)", what);
+        logger_fatal(&_G.logger, "unexpected I/O error (%s:%m)", what);
     }
-    exit(QPS_EX_ENOSPC);
 }
 
 static void qps_on_segfault(int signum, siginfo_t *si, void *uc)
@@ -1202,8 +1200,7 @@ static void qps_on_segfault(int signum, siginfo_t *si, void *uc)
 
 #ifdef OS_LINUX
         if (signum == SIGBUS && (pos >= 0 || map == qps->gc_map)) {
-            logger_error(&_G.logger, "caught SIGBUS: disk is full");
-            _exit(QPS_EX_ENOSPC);
+            logger_fatal(&_G.logger, "caught SIGBUS: disk is full");
         }
 #endif
 

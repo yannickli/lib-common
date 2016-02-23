@@ -19,7 +19,6 @@
 #include "thr.h"
 #include "el.h"
 
-#define QPS_EX_ENOSPC   EX_IOERR
 __attribute__((noreturn))
 extern void qps_enospc(const char *what);
 
