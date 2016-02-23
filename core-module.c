@@ -423,41 +423,33 @@ const char *module_get_name(const module_t *module)
     return module->name.s;
 }
 
-/**  - __attribute__((destructor))
- *      static void _module_shutdown(void)
- *   -  static int module_hard_shutdown(void)
- *
- *  When exiting, shutdown the modules that are still open
- *  The order of the loop is important
- */
-static int module_hard_shutdown(void)
+static void module_hard_shutdown(void)
 {
-    int error = 0;
-
-    /* Shuting down modules that was not released */
-    qm_for_each_pos(module, position, &_G.modules){
-        module_t *module = _G.modules.values[position];
+    /* Shutdown manually required modules that were not released. */
+    qm_for_each_pos(module, pos, &_G.modules) {
+        module_t *module = _G.modules.values[pos];
 
         if (module->state == MANU_REQ) {
-            while (module->manu_req_count
-            && (module->state & FAIL_SHUT) != FAIL_SHUT)
-            {
-                error--;
-                logger_trace(&_G.logger, 1, "%*pM was not released "
-                             "(forcing release)", LSTR_FMT_ARG(module->name));
+            bool warned = false;
+
+            while (module->manu_req_count && !(module->state & FAIL_SHUT)) {
+                if (!warned) {
+                    logger_trace(&_G.logger, 1,
+                                 "%*pM was not released, forcing release",
+                                 LSTR_FMT_ARG(module->name));
+                    warned = true;
+                }
                 module_release(module);
             }
         }
     }
 
+    /* All modules should be shutdown now. */
+    qm_for_each_pos(module, pos, &_G.modules) {
+        module_t *module = _G.modules.values[pos];
 
-    /* Shuting down automatic modules that might be still open */
-    qm_for_each_pos(module, position, &_G.modules) {
-        module_t *module = _G.modules.values[position];
-
-        assert (module->state != AUTO_REQ && module->state != MANU_REQ);
+        assert (module->state == REGISTERED || module->state & FAIL_SHUT);
     }
-    return error;
 }
 
 extern bool syslog_is_critical;
