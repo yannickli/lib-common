@@ -391,8 +391,9 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
 
         if (likely(pos >= 0)) {
             ev_t *e = _G.childs.values[pos];
+
             (*e->cb.child)(e, pid, status, e->priv);
-            el_destroy(&_G.childs.values[pos], false);
+            el_destroy(&e, false);
         }
     }
 }
