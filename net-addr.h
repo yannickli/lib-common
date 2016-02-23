@@ -112,6 +112,14 @@ static inline socklen_t sockunion_len(const sockunion_t *su)
 __attribute__((pure))
 uint32_t sockunion_hash(const sockunion_t *su);
 
+/* This helper allows to iterate on an array of sockunion_t where each 'su'
+ * can have different lengths (e.g. by mixing IPv4 and IPv6).
+ */
+#define sockunion_for_each(su, sus, len)                                     \
+    for (typeof(sus) su = (sus), __su_start = su, __su_broken = su + (len);  \
+         __su_broken-- != __su_start;                                        \
+         su = (typeof(sus))((byte *)su + sockunion_len(su)))
+
 /* -1 as defport means port is mandatory */
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
 int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);

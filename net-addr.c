@@ -398,6 +398,41 @@ Z_GROUP_EXPORT(net_addr)
         CHECK_FILTER(-1, "1:1:1:1:1:1:1:3", "1:1:1:1:1:1:1:3",
                      "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
     } Z_TEST_END;
+    Z_TEST(sockunion_for_each, "sockunion_for_each") {
+        t_scope;
+        lstr_t ip = LSTR("127.0.0.1:1337");
+        sockunion_t *sus = t_new_raw(sockunion_t, 2);
+        size_t len = 0;
+        int idx = 0;
+
+        addr_resolve("IPv4", tcp_ipv4, &su);
+        len = sockunion_len(&su);
+        memcpy((byte *)sus, &su, len);
+        addr_resolve("IPv6", tcp_ipv6, &su);
+        memcpy((byte *)sus + len, &su, sockunion_len(&su));
+        len += sockunion_len(&su);
+        addr_resolve("IP", ip, &su);
+        memcpy((byte *)sus + len, &su, sockunion_len(&su));
+
+        sockunion_for_each(sock, sus, 3) {
+            switch (idx) {
+              case 0:
+                Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(sock), tcp_ipv4);
+                break;
+              case 1:
+                Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(sock), tcp_ipv6);
+                break;
+              case 2:
+                Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(sock), ip);
+                break;
+              default:
+                Z_ASSERT(false);
+                break;
+            }
+            idx++;
+        }
+        Z_ASSERT_EQ(idx, 3);
+    } Z_TEST_END;
 
 #undef CHECK_FILTER
 #undef NET_ADDR_PORT
