@@ -33,7 +33,7 @@ enum asn1_tag_class {
 
 /* Tag for constructed values. */
 #define ASN1_MK_TAG_C(class, value) \
-    ASN1_TAG_CONSTRUCTED(ASN1_MK_TAG(class, value) | (1 << 5))
+    ASN1_TAG_CONSTRUCTED(ASN1_MK_TAG(class, value))
 
 /* Tag list on :
  * http://www.obj-sys.com/asn1tutorial/node124.html */
