@@ -2770,6 +2770,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
             goto error;
         }
         qv_append(iopc_fun, &iface->funs, fun);
+        fun->pos = iface->funs.len;
         if (qm_add(iopc_fun, &funs, fun->name, fun)) {
             error_loc("a function `%s` already exists", fun->loc, fun->name);
             goto error;

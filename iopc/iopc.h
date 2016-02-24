@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   5
 #define IOPC_MINOR   0
-#define IOPC_PATCH   0
+#define IOPC_PATCH   1
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -848,6 +848,7 @@ qvector_t(iopc_enum, iopc_enum_t *);
 typedef struct iopc_fun_t {
     iopc_loc_t loc;
     int        tag;
+    int        pos; /* To sort funs by order of appearance in iface. */
     char      *name;
 
     flag_t arg_is_anonymous : 1;

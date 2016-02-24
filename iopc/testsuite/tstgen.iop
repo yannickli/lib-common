@@ -34,5 +34,7 @@ interface MyIfaceA {
     @(test:gen5, 20.005)
     @(test:gen6, true)
     @(test:gen7, "gen7")
-    funA in (int a) out void;
+2:  funA in (int a) out void;
+
+1:  funB out null;
 };

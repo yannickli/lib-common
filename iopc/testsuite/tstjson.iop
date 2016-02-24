@@ -218,26 +218,26 @@ interface MyIfaceA {
      *
      *  @warning warning for funA of MyIfaceA
      */
-    funA      in (int a, MyStructA b)  out (MyUnionA c, int d);
-    funb                               out (int a, byte b);
-    funC      in MyStructA             out MyStructB;
+1:  funA      in (int a, MyStructA b)  out (MyUnionA c, int d);
+2:  funb                               out (int a, byte b);
+4:  funC      in MyStructA             out MyStructB;
 
-    funD
+3:  funD
         /** front... */
         out MyStructA /**< and back comment for res of funD */
         ;
 
-    funE      in void                  out (int? a);
-    funF      in (@minOccurs(1) @maxOccurs(10) int[] a, int? b)
+10: funE      in void                  out (int? a);
+5:  funF      in (@minOccurs(1) @maxOccurs(10) int[] a, int? b)
               /** comment for funF out */
               out MyStructB;
 
     /// front...
-    funG /**< and back comment for funG */ out void;
+6:  funG /**< and back comment for funG */ out void;
 
-    funH      in void                  out void;
-    funI      in MyUnionA              out void;
-    funJ
+7:  funH      in void                  out void;
+8:  funI      in MyUnionA              out void;
+9:  funJ
         /// @brief comment for funJ.in,
         in MyStructA ///< back comment for funJ.in
         /// \brief comment for funJ.out
@@ -250,13 +250,13 @@ interface MyIfaceA {
         throw (int err /*!< comment for funJ throw err */);
 
     /// @param[throw] throws an exception of type MyExceptionA
-    funK      in MyStructA
+11: funK      in MyStructA
               out (int a, int b)
               /// comment for funK throw
               throw MyExceptionA;
     @(test:gen5, true)
-    funL      in (int a, int b, int c) out void;
-    funAsync  in (int type)            out null;
+12: funL      in (int a, int b, int c) out void;
+13: funAsync  in (int type)            out null;
 };
 
 interface MyIfaceB {

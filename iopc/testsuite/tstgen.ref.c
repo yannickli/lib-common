@@ -246,8 +246,16 @@ const iop_struct_t tstgen__my_iface_a__fun_a_args__s = {
 /* }}} */
 static iop_rpc_t const tstgen__my_iface_a__if_funs[] = {
     {
-        .name      = LSTR_IMMED("funA"),
+        .name      = LSTR_IMMED("funB"),
         .tag       = 1,
+        .args      = &iop__void__s,
+        .result    = &iop__void__s,
+        .exn       = &iop__void__s,
+        .async     = true,
+    },
+    {
+        .name      = LSTR_IMMED("funA"),
+        .tag       = 2,
         .args      = &tstgen__my_iface_a__fun_a_args__s,
         .result    = &iop__void__s,
         .exn       = &iop__void__s,
@@ -268,6 +276,9 @@ static iop_rpc_attr_t const tstgen__my_iface_a__fun_a__attrs[] = {
     },
 };
 static iop_rpc_attrs_t const tstgen__my_iface_a__rpc_desc_attrs[] = {
+    {
+        .flags             = 0,
+    },
     {
         .flags             = 224,
         .attrs_len         = 3,

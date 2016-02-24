@@ -3587,6 +3587,11 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     }
     sb_adds(&buf, "\n");
     qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+        qv_sort(iopc_fun)(&iface->funs,
+                          ^int (iopc_fun_t * const *f1,
+                                iopc_fun_t * const *f2) {
+            return (*f1)->tag - (*f2)->tag;
+        });
         iopc_iface_dump_tdef_hdr(&buf, pkg, pkg_name, iface);
     }
     sb_adds(&buf, "\n");
