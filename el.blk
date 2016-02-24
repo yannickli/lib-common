@@ -309,7 +309,7 @@ static void el_child_fire(ev_t **ev, bool move)
     } else {
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
-    el_destroy(ev, move);
+    el_destroy(&e, move);
 }
 
 static void ev_list_process(dlist_t *l)
