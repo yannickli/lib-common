@@ -399,22 +399,18 @@ Z_GROUP_EXPORT(net_addr)
                      "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
     } Z_TEST_END;
     Z_TEST(sockunion_for_each, "sockunion_for_each") {
-        t_scope;
         lstr_t ip = LSTR("127.0.0.1:1337");
-        sockunion_t *sus = t_new_raw(sockunion_t, 2);
-        size_t len = 0;
+        SB_1k(sus_buf);
         int idx = 0;
 
         addr_resolve("IPv4", tcp_ipv4, &su);
-        len = sockunion_len(&su);
-        memcpy((byte *)sus, &su, len);
+        sb_add(&sus_buf, &su, sockunion_len(&su));
         addr_resolve("IPv6", tcp_ipv6, &su);
-        memcpy((byte *)sus + len, &su, sockunion_len(&su));
-        len += sockunion_len(&su);
+        sb_add(&sus_buf, &su, sockunion_len(&su));
         addr_resolve("IP", ip, &su);
-        memcpy((byte *)sus + len, &su, sockunion_len(&su));
+        sb_add(&sus_buf, &su, sockunion_len(&su));
 
-        sockunion_for_each(sock, sus, 3) {
+        sockunion_for_each(sock, (sockunion_t *)sus_buf.data, 3) {
             switch (idx) {
               case 0:
                 Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(sock), tcp_ipv4);
