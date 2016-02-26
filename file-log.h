@@ -33,6 +33,9 @@ enum log_file_flags {
     LOG_FILE_COMPRESS  = (1U << 1), /* Use gzip on results */
     LOG_FILE_UTCSTAMP  = (1U << 2),
     LOG_FILE_NOSYMLINK = (1U << 3),
+
+    /* Force a rotation when opening the log_file_t. */
+    LOG_FILE_FORCE_ROTATE = (1U << 4),
 };
 
 enum log_file_event {

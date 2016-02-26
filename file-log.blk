@@ -236,8 +236,6 @@ static void log_file_find_last_date(log_file_t *log_file)
     char buf[PATH_MAX];
     glob_t globbuf;
 
-    log_file->open_date = time(NULL);
-
     snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
              log_file->prefix, log_file->ext);
     if (!glob(buf, 0, NULL, &globbuf) && globbuf.gl_pathc) {
@@ -317,7 +315,12 @@ log_file_create_from_iop(const char *nametpl,
 int log_file_open(log_file_t *log_file, bool use_file_bin)
 {
     log_file->is_file_bin = use_file_bin;
-    log_file_find_last_date(log_file);
+    log_file->open_date = time(NULL);
+
+    if (!(log_file->flags & LOG_FILE_FORCE_ROTATE)) {
+        log_file_find_last_date(log_file);
+    }
+
     log_file_open_new(log_file, log_file->open_date);
     if (!log_file->_internal) {
         e_trace(1, "could not open first log file");
