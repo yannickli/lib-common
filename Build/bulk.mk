@@ -146,7 +146,7 @@ $(d)full:: $(d)all $(d)www
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)www-check:: | _generated_hdr
-	Z_LIST_SKIP="C" $(var/toolsdir)/_run_checks.sh $(d)
+	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh $(d)
 $(d)selenium:: $(d)all
 	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)fast-selenium:: $(d)all
