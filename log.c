@@ -590,12 +590,7 @@ void logger_do_fatal(void)
     if (psinfo_get_tracer_pid(0) > 0) {
         abort();
     }
-#ifdef __has_asan
-    /* Avoid having ASAN leak reports when calling logger_fatal. */
     _exit(127);
-#else
-    exit(127);
-#endif
 }
 
 int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
@@ -964,12 +959,7 @@ int e_fatal(const char *fmt, ...)
     if (psinfo_get_tracer_pid(0) > 0) {
         abort();
     }
-#ifdef __has_asan
-    /* Avoid having ASAN leak reports when calling e_fatal. */
     _exit(127);
-#else
-    exit(127);
-#endif
 }
 
 #define E_FUNCTION(Name, Level)                                              \
