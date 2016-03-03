@@ -1959,10 +1959,28 @@ static int do_indent(iop_jpack_writecb_f *writecb, void *priv, int lvl)
             res += __res;                                                  \
         }                                                                  \
     } while (0)
-#define PUTU(i)  \
-    WRITE(ibuf, sprintf(ibuf, "%llu", (unsigned long long)i))
-#define PUTD(i)  \
-    WRITE(ibuf, sprintf(ibuf, "%lld", (long long)i))
+#define PUTU(u)                                                            \
+    do {                                                                   \
+        uint64_t __u = (u);                                                \
+                                                                           \
+        if (!(flags & IOP_JPACK_UNSAFE_INTEGERS) && __u >= 1ull << 53) {   \
+            WRITE(ibuf, sprintf(ibuf, "\"%ju\"", __u));                    \
+        } else {                                                           \
+            WRITE(ibuf, sprintf(ibuf, "%ju", __u));                        \
+        }                                                                  \
+    } while (0)
+#define PUTD(i)                                                            \
+    do {                                                                   \
+        int64_t __i = (i);                                                 \
+                                                                           \
+        if (!(flags & IOP_JPACK_UNSAFE_INTEGERS)                           \
+        &&  (__i >= 1ll << 53 || __i <= -(1ll << 53)))                     \
+        {                                                                  \
+            WRITE(ibuf, sprintf(ibuf, "\"%jd\"", __i));                    \
+        } else {                                                           \
+            WRITE(ibuf, sprintf(ibuf, "%jd", __i));                        \
+        }                                                                  \
+    } while (0)
 
 /* ints:   sign, 20 digits, and NUL -> 22
  * double: sign, digit, dot, 17 digits, e, sign, up to 3 digits NUL -> 25

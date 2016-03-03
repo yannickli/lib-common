@@ -320,14 +320,34 @@ int  iop_jlex_write_error_buf(iop_json_lex_t *ll, char *buf, int len);
 
 /** JSon packer custom flags */
 enum iop_jpack_flags {
-    /** obsolete, kept for backward compatibility. */
+    /** Obsolete, kept for backward compatibility.
+     */
     IOP_JPACK_STRICT        = (1U << 0),
-    /** generate compact JSon (no indentation, no spaces, …) */
+
+    /** Generate compact JSON.
+     *
+     * Omit cosmetic whitespaces such as indentations and spaces after colons.
+     */
     IOP_JPACK_COMPACT = (1U << 1),
-    /** do not append '\n' when done */
+
+    /** Do not append '\n' when done.
+     */
     IOP_JPACK_NO_TRAILING_EOL = (1U << 2),
-    /** skip PRIVATE fields */
+
+    /** Don't pack private fields.
+     *
+     * Use this flag when packing objects on a public interface. This will
+     * omit private fields from the generated JSON.
+     */
     IOP_JPACK_SKIP_PRIVATE  = (1U << 3),
+
+    /** Write big integers as integers.
+     *
+     * By default, the packer writes integers that cannot be safely unpacked
+     * in Javascript as strings instead of integers. With this flag set, the
+     * packer will always pack integers as integers.
+     */
+    IOP_JPACK_UNSAFE_INTEGERS = (1U << 4),
 };
 
 typedef int (iop_jpack_writecb_f)(void *priv, const void *buf, int len);

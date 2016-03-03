@@ -1622,11 +1622,10 @@ Z_GROUP_EXPORT(iop)
             .a = OPT(42),
         };
 
-
         iop_dso_t *dso;
 
 
-        const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
+        const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sn, *st_sa_opt;
         const iop_struct_t *st_cls2;
 
         /* }}} */
@@ -1637,6 +1636,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR("tstiop.MyStructF")));
         Z_ASSERT_P(st_si = iop_dso_find_type(dso, LSTR("tstiop.MyStructI")));
         Z_ASSERT_P(st_sk = iop_dso_find_type(dso, LSTR("tstiop.MyStructK")));
+        Z_ASSERT_P(st_sn = iop_dso_find_type(dso, LSTR("tstiop.MyStructN")));
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
@@ -1684,6 +1684,35 @@ Z_GROUP_EXPORT(iop)
                           "No such file or directory");
 
         iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(json_big_integer, "test JSON packing with big integers") { /* {{{ */
+        SB_1k(sb);
+        tstiop__my_struct_n__t sn = {
+            .u = 9223372036854775808ull,
+            .i = -4611686018427387904ll
+        };
+
+        const char json_sn_bigint[] =
+            "{\n"
+            "\t\"u\": 9223372036854775808,\n"
+            "\t\"i\": -4611686018427387904\n"
+            "}\n";
+
+        const char json_sn_strint[] =
+            "{\n"
+            "\t\"u\": \"9223372036854775808\",\n"
+            "\t\"i\": \"-4611686018427387904\"\n"
+            "}\n";
+
+        Z_ASSERT_N(iop_jpack(&tstiop__my_struct_n__s, &sn, iop_sb_write,
+                             &sb, IOP_JPACK_UNSAFE_INTEGERS));
+        Z_ASSERT_STREQUAL(sb.data, json_sn_bigint);
+
+        sb_reset(&sb);
+        Z_ASSERT_N(iop_jpack(&tstiop__my_struct_n__s, &sn, iop_sb_write,
+                             &sb, 0));
+        Z_ASSERT_STREQUAL(sb.data, json_sn_strint);
     } Z_TEST_END
     /* }}} */
     Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */

@@ -239,6 +239,11 @@ struct MyStructM {
     MyStructK   k;
 };
 
+struct MyStructN {
+    ulong u;
+    long i;
+};
+
 %C{
     qvector_t(my_struct_a, tstiop__my_struct_a__t);
     qvector_t(my_struct_a_opt, tstiop__my_struct_a_opt__t);
