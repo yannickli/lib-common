@@ -289,7 +289,7 @@ static bool ps_is_like(pstream_t ps, pstream_t pattern)
             }
             c2 = __ps_getc(&ps);
             if (c2 >= 0xC2) {
-                c2 = ps_utf8_complete(c2, &ps);
+                ps_utf8_complete(c2, &ps);
             }
             continue;
         }

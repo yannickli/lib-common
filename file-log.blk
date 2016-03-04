@@ -169,8 +169,11 @@ static void log_check_invariants(log_file_t *log_file)
                     }
                 }
                 fv  += i + 1;
-                sts += i + 1;
                 fc  -= i + 1;
+                /* the assignment to sts is unused, but kept to keep the
+                 * invariant between fv, sts and fc */
+                sts += i + 1;
+                IGNORE(sts);
                 break;
             }
         }

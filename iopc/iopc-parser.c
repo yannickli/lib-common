@@ -1837,7 +1837,7 @@ static int parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
         *path = RETHROW_PN(parse_path_aux(pp, type_pkg));
         EAT(pp, '.');
         WANT(pp, 0, ITOK_IDENT);
-        tk = TK_N(pp, 0);
+        TK_N(pp, 0);
     }
     *name = RETHROW_PN(iopc_upper_ident(pp));
     return 0;

@@ -51,7 +51,7 @@ Z_GROUP_EXPORT(mem_pool_macros) {
 
         p = t_dup(t->tab, 256);
         s = t_dupz("toto", 4);
-        s = t_strdup(s);
+        IGNORE(t_strdup(s));
 
         Z_ASSERT(true, "execution OK");
     } Z_TEST_END
@@ -81,7 +81,7 @@ Z_GROUP_EXPORT(mem_pool_macros) {
 
         p = r_dup(t->tab, 256);
         s = r_dupz("toto", 4);
-        s = r_strdup(s);
+        IGNORE(r_strdup(s));
 
         r_release(frame);
 

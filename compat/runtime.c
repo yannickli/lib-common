@@ -644,6 +644,7 @@ const char *_Block_dump(const void *block) {
             cp += sprintf(cp, "descriptor->dispose helper: %p\n", (void *)(uintptr_t)dp->dispose);
         }
     }
+    (void) cp;
     return buffer;
 }
 
@@ -659,6 +660,7 @@ const char *_Block_byref_dump(struct Block_byref *src) {
         cp += sprintf(cp, "  copy helper: %p\n", (void *)(uintptr_t)src->byref_keep);
         cp += sprintf(cp, "  dispose helper: %p\n", (void *)(uintptr_t)src->byref_destroy);
     }
+    (void) cp;
     return buffer;
 }
 

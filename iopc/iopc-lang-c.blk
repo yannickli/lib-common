@@ -147,6 +147,8 @@ static void iopc_struct_optimize(iopc_struct_t *st)
                  st->loc, st->name, orig_size, size,
                  orig_size - size, opt_size);
     }
+#else
+    IGNORE(orig_size);
 #endif
 }
 

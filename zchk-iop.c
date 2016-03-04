@@ -4724,7 +4724,6 @@ Z_GROUP_EXPORT(iop)
             sb.b.tab = t_new(int, sb.b.len);
 
             value.i = 42;
-            st = &tstiop__my_struct_b__s;
             out = ((byte *)&sb.b.tab[1]) - field->data_offs;
             Z_ASSERT_N(iop_value_to_field(out, field, &value));
             Z_ASSERT_EQ(sb.b.tab[1], 42);

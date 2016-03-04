@@ -336,9 +336,8 @@ static int notify_shutdown(module_t *module, module_t *dependence)
 __attr_nonnull__((1))
 static int module_shutdown(module_t *module)
 {
-    int shut_self, shut_dependent;
-
-    shut_self = shut_dependent = 1;
+    int shut_dependent = 1;
+    int shut_self;
 
     assert (module->state == MANU_REQ || module->state == AUTO_REQ);
 
