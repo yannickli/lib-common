@@ -103,6 +103,8 @@ static int cf_reduce(qv_t(cf_elem) *stack)
     CF_WANT(stack->len >= 2);
     cf_stack_pop(stack, &eright);
     CF_WANT(eright.type == CF_ELEM_NUMBER);
+
+    CF_WANT(stack->len >= 1);
     cf_stack_pop(stack, &op);
     CF_WANT(op.type == CF_ELEM_OP);
 
@@ -120,6 +122,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
     switch (op.op) {
         /* Arithmetic operations */
       case CF_OP_ADD:
+        assert (!unary);
         res.num       = eleft.num + eright.num;
         res.is_signed = eleft.is_signed || eright.is_signed;
 
@@ -154,6 +157,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         }
         break;
       case CF_OP_MUL:
+        assert (!unary);
         res.is_signed = eleft.is_signed ^ eright.is_signed;
         if (eleft.is_signed || eright.is_signed) {
             res.num = SIGNED(eleft.num) * SIGNED(eright.num);
@@ -162,6 +166,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         }
         break;
       case CF_OP_DIV:
+        assert (!unary);
         if (!eright.num) {
             return e_error("invalid division by 0");
         }
@@ -179,6 +184,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         }
         break;
       case CF_OP_MOD:
+        assert (!unary);
         res.is_signed = eleft.is_signed ^ eright.is_signed;
         if (eleft.is_signed || eright.is_signed) {
             res.num = SIGNED(eleft.num) % SIGNED(eright.num);
@@ -187,6 +193,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         }
         break;
       case CF_OP_EXP:
+        assert (!unary);
         /* Negative exponent are forbidden */
         if (eright.is_signed && SIGNED(eright.num) < 0)
             return CF_ERR(INVALID, "negative expressions are forbidden when"
@@ -209,21 +216,26 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         /* XXX when a logical expression is used, the result is considered as
          * an unsigned expression */
       case CF_OP_XOR:
+        assert (!unary);
         res.num = eleft.num ^ eright.num;
         break;
       case CF_OP_AND:
+        assert (!unary);
         res.num = eleft.num & eright.num;
         break;
       case CF_OP_OR:
+        assert (!unary);
         res.num = eleft.num | eright.num;
         break;
       case CF_OP_NOT:
         res.num = ~eright.num;
         break;
       case CF_OP_LSHIFT:
+        assert (!unary);
         res.num = eleft.num << eright.num;
         break;
       case CF_OP_RSHIFT:
+        assert (!unary);
         res.num = eleft.num >> eright.num;
         break;
       default:
