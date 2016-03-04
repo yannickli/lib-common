@@ -764,7 +764,7 @@ Z_GROUP_EXPORT(xmlr)
                           "    <child3 attr=\"autoclosing\" />          "
                           "    <child4><!--empty-->  </child4>          "
                           " </root>");
-        lstr_t val;
+        lstr_t val = LSTR_NULL;
 
         xmlr_setup(&xmlr_g, xml.s, xml.len);
         Z_ASSERT_EQ(xmlr_node_open_s(xmlr_g, "root"), 1);
