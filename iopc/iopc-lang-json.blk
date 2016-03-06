@@ -88,10 +88,26 @@
 #define LINE_CKEY_VAL_CSTR(_wbuf, _key, _val)  \
     IOPC_WRITE_START_LINE_CSTR(_wbuf, KEY(_key) QUOTE(_val) SEP)
 
-#define LINE_CKEY_SGN_INT(_wbuf, _key, N, J,_val)                    \
-    do {                                                             \
-        uint##N##_t _u = (_val);                                     \
-        LINE_CKEY_VAL_FMT(_wbuf, _key, "%"J"d", *(int##N##_t *)&_u); \
+#define LINE_CKEY_INT(_wbuf, _key, _val)                                     \
+    do {                                                                     \
+        int64_t _i = (_val);                                                 \
+                                                                             \
+        if (_i >= 1ll << 53 || _i <= -(1ll << 53)) {                         \
+            LINE_CKEY_VAL_FMT(_wbuf, _key, "\"%jd\"", _i);                   \
+        } else {                                                             \
+            LINE_CKEY_VAL_FMT(_wbuf, _key, "%jd", _i);                       \
+        }                                                                    \
+    } while (0)
+
+#define LINE_CKEY_UINT(_wbuf, _key, _val)                                    \
+    do {                                                                     \
+        uint64_t _u = (_val);                                                \
+                                                                             \
+        if (_u >= 1ull << 53) {                                              \
+            LINE_CKEY_VAL_FMT(_wbuf, _key, "\"%ju\"", _u);                   \
+        } else {                                                             \
+            LINE_CKEY_VAL_FMT(_wbuf, _key, "%ju", _u);                       \
+        }                                                                    \
     } while (0)
 
 #define XT_FMT           QUOTE("%s.%s")
@@ -217,7 +233,7 @@ static void dump_gen_attr(const iopc_write_buf_t *wbuf, iopc_attr_t *attr)
         break;
       case ITOK_INTEGER:
         LINE_CKEY_VAL_CSTR(wbuf, "type", "int");
-        LINE_CKEY_SGN_INT(wbuf, "value", 64, "l", attr->args.tab[0].v.i64);
+        LINE_CKEY_INT(wbuf, "value", attr->args.tab[0].v.i64);
         break;
       case ITOK_BOOL:
         LINE_CKEY_VAL_CSTR(wbuf, "type", "boolean");
@@ -390,21 +406,21 @@ static void dump_defval(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
 #define DEF  "default"
 
     switch (f->kind) {
-#define CASE_IOP_T_INT(N, J)                                               \
-      case IOP_T_U##N:                                                     \
-        LINE_CKEY_VAL_FMT(wbuf, DEF, "%"J"u", (uint##N##_t)f->defval.u64); \
-        break;                                                             \
-      case IOP_T_I##N:                                                     \
-        LINE_CKEY_SGN_INT(wbuf, DEF, N, J, f->defval.u64);                 \
+#define CASE_IOP_T_INT(N)                                                    \
+      case IOP_T_U##N:                                                       \
+        LINE_CKEY_UINT(wbuf, DEF, f->defval.u64);                            \
+        break;                                                               \
+      case IOP_T_I##N:                                                       \
+        LINE_CKEY_INT(wbuf, DEF, (int##N##_t)f->defval.u64);                 \
         break;
 
-      CASE_IOP_T_INT(8, "")
-      CASE_IOP_T_INT(16, "")
-      CASE_IOP_T_INT(32, "")
-      CASE_IOP_T_INT(64, "j")
+      CASE_IOP_T_INT(8)
+      CASE_IOP_T_INT(16)
+      CASE_IOP_T_INT(32)
+      CASE_IOP_T_INT(64)
 
       case IOP_T_ENUM:
-        LINE_CKEY_SGN_INT(wbuf, DEF, 32, "", f->defval.u64);
+        LINE_CKEY_INT(wbuf, DEF, f->defval.u64);
         break;
 
       case IOP_T_BOOL:
