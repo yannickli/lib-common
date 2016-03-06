@@ -860,7 +860,18 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                 goto integer;
             }
             errno = 0;
-            ll->u.i = strtoll(ll->b.data, &q, 0);
+            switch (fdesc->type) {
+              case IOP_T_U8:
+              case IOP_T_U16:
+              case IOP_T_U32:
+              case IOP_T_U64:
+                ll->u.i = strtoull(ll->b.data, &q, 0);
+                break;
+
+              default:
+                ll->u.i = strtoll(ll->b.data, &q, 0);
+                break;
+            }
             if (errno || q != (const char *)ll->b.data + ll->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto integer;
