@@ -1233,6 +1233,7 @@ Z_GROUP_EXPORT(iop)
 
         const char json_si_p1[] = "{l = [ -0x7fffffffffffffff + (-1) ]; };" ;
         const char json_si_p2[] = "{u = [  0xffffffffffffffff +   0  ]; };" ;
+        const char json_si_p3[] = "{u = [ \"9223372036854775808\" ]; };" ;
 
         const char json_si_n1[] = "{l = [ -0x7fffffffffffffff + (-2) ]; };" ;
         const char json_si_n2[] = "{u = [  0xffffffffffffffff +   1  ]; };" ;
@@ -1331,6 +1332,8 @@ Z_GROUP_EXPORT(iop)
                                           "json_si_p1"));
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p2, true,
                                           "json_si_p2"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p3, true,
+                                          "json_si_p3"));
 
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n1, false,
                                           "json_si_n1"));
