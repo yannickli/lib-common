@@ -1080,7 +1080,18 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                 goto integer;
             }
             errno = 0;
-            ll->ctx->u.i = strtoll(ll->ctx->b.data, &q, 0);
+            switch (fdesc->type) {
+              case IOP_T_U8:
+              case IOP_T_U16:
+              case IOP_T_U32:
+              case IOP_T_U64:
+                ll->ctx->u.i = strtoull(ll->ctx->b.data, &q, 0);
+                break;
+
+              default:
+                ll->ctx->u.i = strtoll(ll->ctx->b.data, &q, 0);
+                break;
+            }
             if (errno || q != (const char *)ll->ctx->b.data + ll->ctx->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto integer;
