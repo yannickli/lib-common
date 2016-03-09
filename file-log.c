@@ -137,19 +137,18 @@ static void log_check_invariants(log_file_t *log_file)
         struct stat st;
 
         for (int i = fc; i-- > 0; ) {
+            if ((log_file->flags & LOG_FILE_COMPRESS)
+            &&  !strequal(path_extnul(fv[i]), ".gz"))
+            {
+                /* XXX: uncompressed files must be compressed so skip it
+                 * while accounting totalsize */
+                continue;
+            }
             if (lstat(fv[i], &st) == 0 && S_ISREG(st.st_mode))
                 totalsize -= st.st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
-                    if (log_file->flags & LOG_FILE_COMPRESS) {
-                        if (strequal(path_extnul(fv[j]), ".gz")) {
-                            log_delete_file(log_file, fv[j]);
-                        } else {
-                            break;
-                        }
-                    } else {
-                        log_delete_file(log_file, fv[j]);
-                    }
+                    log_delete_file(log_file, fv[j]);
                 }
                 fv += i + 1;
                 fc -= i + 1;
