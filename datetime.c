@@ -722,6 +722,78 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
     return buf;
 }
 
+time_split_t split_time_interval(uint64_t seconds)
+{
+    time_split_t res;
+
+    p_clear(&res, 1);
+
+    res.years = seconds / (3600 * 24 * 365);
+    seconds %= (3600 * 24 * 365);
+
+    res.weeks = seconds / (3600 * 24 * 7);
+    seconds %= (3600 * 24 * 7);
+
+    res.days = seconds / (3600 * 24);
+    seconds %= (3600 * 24);
+
+    res.hours = seconds / 3600;
+    seconds %= 3600;
+
+    res.minutes = seconds / 60;
+    seconds %= 60;
+
+    res.seconds = seconds;
+
+    return res;
+}
+
+#define ADD_FIELD(field, str)                                                \
+    do {                                                                     \
+        if (split.field) {                                                   \
+            if (sb.len) {                                                    \
+                sb_adds(&sb, ", ");                                          \
+            }                                                                \
+            sb_addf(&sb, "%d " str, split.field);                            \
+            if (split.field > 1) {                                           \
+                sb_addc(&sb, 's');                                           \
+            }                                                                \
+        }                                                                    \
+    } while (0)
+
+lstr_t t_get_time_split_lstr_en(uint64_t seconds)
+{
+    t_SB_1k(sb);
+
+    time_split_t split = split_time_interval(seconds);
+
+    ADD_FIELD(years,   "year");
+    ADD_FIELD(weeks,   "week");
+    ADD_FIELD(days,    "day");
+    ADD_FIELD(hours,   "hour");
+    ADD_FIELD(minutes, "minute");
+    ADD_FIELD(seconds, "second");
+
+    return LSTR_SB_V(&sb);
+}
+
+lstr_t t_get_time_split_lstr_fr(uint64_t seconds)
+{
+    t_SB_1k(sb);
+
+    time_split_t split = split_time_interval(seconds);
+
+    ADD_FIELD(years,   "année");
+    ADD_FIELD(weeks,   "semaine");
+    ADD_FIELD(days,    "jour");
+    ADD_FIELD(hours,   "heure");
+    ADD_FIELD(minutes, "minute");
+    ADD_FIELD(seconds, "seconde");
+
+    return LSTR_SB_V(&sb);
+}
+
+#undef ADD_FIELD
 
 /***************************************************************************/
 /* low precision time() and gettimeofday() replacements                    */

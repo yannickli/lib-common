@@ -221,6 +221,38 @@ static inline int tm_diff_minutes(struct tm* from, struct tm *to)
 }
 
 /***************************************************************************/
+/* Time amount splitting and formatting                                    */
+/***************************************************************************/
+
+typedef struct time_split_t {
+    int seconds;
+    int minutes;
+    int hours;
+    int days;
+    int weeks;
+    int years;
+} time_split_t;
+
+/** Split a number of seconds into years, weeks, days, hours, minutes and
+ *  seconds.
+ */
+time_split_t split_time_interval(uint64_t seconds);
+
+/** Print a human readable string in english from a number of seconds.
+ *
+ *  Print (in english) a string representing the number of years, weeks,
+ *  days, hours, minutes and seconds contained in a number of seconds.
+ */
+lstr_t t_get_time_split_lstr_en(uint64_t seconds);
+
+/** Print a human readable string in french from a number of seconds.
+ *
+ *  Print (in french) a string representing the number of years, weeks,
+ *  days, hours, minutes and seconds contained in a number of seconds.
+ */
+lstr_t t_get_time_split_lstr_fr(uint64_t seconds);
+
+/***************************************************************************/
 /* iso8601                                                                 */
 /***************************************************************************/
 

@@ -398,4 +398,67 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_EQ(5072461, tm_diff_minutes(&from, &to));
     } Z_TEST_END;
 
-} Z_GROUP_END;
+    Z_TEST(split, "Splitting and formatting") {
+        t_scope;
+
+        time_t input;
+        lstr_t res_lstr;
+        time_split_t res_st;
+
+        /* 2 billion seconds = 63 years, 21 weeks, 6 days, 3 hours,
+         * 33 minutes, 20 seconds */
+        input = 2000000000;
+
+        res_st = split_time_interval(input);
+
+        Z_ASSERT_EQ(res_st.years,   63);
+        Z_ASSERT_EQ(res_st.weeks,   21);
+        Z_ASSERT_EQ(res_st.days,     6);
+        Z_ASSERT_EQ(res_st.hours,    3);
+        Z_ASSERT_EQ(res_st.minutes, 33);
+        Z_ASSERT_EQ(res_st.seconds, 20);
+
+        res_lstr = t_get_time_split_lstr_en(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years, 21 weeks, 6 days, "
+                                          "3 hours, 33 minutes, 20 seconds"));
+        res_lstr = t_get_time_split_lstr_fr(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines, 6 jours, "
+                                          "3 heures, 33 minutes, "
+                                          "20 secondes"));
+
+        /* One hour */
+        input = 3600;
+
+        res_st = split_time_interval(input);
+
+        Z_ASSERT_EQ(res_st.years,   0);
+        Z_ASSERT_EQ(res_st.weeks,   0);
+        Z_ASSERT_EQ(res_st.days,    0);
+        Z_ASSERT_EQ(res_st.hours,   1);
+        Z_ASSERT_EQ(res_st.minutes, 0);
+        Z_ASSERT_EQ(res_st.seconds, 0);
+
+        res_lstr = t_get_time_split_lstr_en(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 hour"));
+        res_lstr = t_get_time_split_lstr_fr(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 heure"));
+
+        /* One day, deux hours, 30 seconds */
+        input = 3600 * 26 + 30;
+
+        res_st = split_time_interval(input);
+
+        Z_ASSERT_EQ(res_st.years,   0);
+        Z_ASSERT_EQ(res_st.weeks,   0);
+        Z_ASSERT_EQ(res_st.days,    1);
+        Z_ASSERT_EQ(res_st.hours,   2);
+        Z_ASSERT_EQ(res_st.minutes, 0);
+        Z_ASSERT_EQ(res_st.seconds, 30);
+
+        res_lstr = t_get_time_split_lstr_en(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 day, 2 hours, 30 seconds"));
+        res_lstr = t_get_time_split_lstr_fr(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 jour, 2 heures, 30 secondes"));
+
+    } Z_TEST_END;
+} Z_GROUP_END
