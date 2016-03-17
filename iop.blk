@@ -2984,7 +2984,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *end   = desc->fields + desc->fields_len;
     iop_wire_type_t wt = 0;
-    uint32_t tag;
+    uint32_t tag = 1;
 
     while (!ps_done(ps)) {
         uint32_t n = 1;
