@@ -202,6 +202,7 @@ zchk_SOURCES = zchk.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
+	zchk-file-log.c \
 	$liop/tstiop.a \
 	$llibcommon.wa \
 	$ltime-lp-simple.a
