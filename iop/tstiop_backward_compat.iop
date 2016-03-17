@@ -288,3 +288,21 @@ class ChildClass7 : 1 : ParentClass7 {
 };
 
 /* }}} */
+/* {{{ Removed fields in class hierarchy */
+
+class ParentClassA {
+    int a = 1;
+};
+
+class ChildClassA : 100 : ParentClassA {
+    int b = 0;
+};
+
+class ParentClassB {
+    int a = 1;
+};
+
+class ChildClassB : 100 : ParentClassB {
+};
+
+/* }}} */

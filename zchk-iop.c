@@ -5344,6 +5344,7 @@ Z_GROUP_EXPORT(iop)
         tstiop_backward_compat__basic_union__t  basic_union;
         tstiop_backward_compat__basic_struct__t basic_struct;
         tstiop_backward_compat__basic_class__t  basic_class;
+        tstiop_backward_compat__parent_class_a__t *parent_class;
 
         basic_union = IOP_UNION(tstiop_backward_compat__basic_union, a, 12);
 
@@ -5642,6 +5643,12 @@ Z_GROUP_EXPORT(iop)
 
             T_OK(parent_class1, &parent_class1, child_class7, IOP_COMPAT_BIN);
         }
+
+        /* Last optional field disappears. */
+        parent_class =
+            iop_obj_vcast(tstiop_backward_compat__parent_class_a,
+                          t_iop_new(tstiop_backward_compat__child_class_a));
+        T_OK(parent_class_a, parent_class, parent_class_b, IOP_COMPAT_BIN);
 
 #undef T_OK
 #undef T_OK_ALL
