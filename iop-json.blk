@@ -457,8 +457,16 @@ static int iop_json_lex_enum(iop_json_lex_t *ll, int terminator,
     s = LSTR_INIT_V(PS->s, len);
 
     ll->ctx->u.i = iop_enum_from_lstr_desc(fdesc->u1.en_desc, s, &found);
-    if (!found)
-        return JERROR_WARG(IOP_JERR_ENUM_VALUE, len);
+    if (!found) {
+        const char *q;
+
+        errno = 0;
+        ll->ctx->u.i = strtoull(s.s, &q, 0);
+
+        if (errno || q != end) {
+            return JERROR_WARG(IOP_JERR_ENUM_VALUE, len);
+        }
+    }
 
     SKIP(len + 1);
     return IOP_JSON_INTEGER;
