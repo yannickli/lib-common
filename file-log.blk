@@ -165,18 +165,17 @@ static void log_check_invariants(log_file_t *log_file)
         int64_t totalsize = (int64_t)log_file->max_total_size << 20;
 
         for (int i = fc; i-- > 0; ) {
+            if ((log_file->flags & LOG_FILE_COMPRESS)
+            &&  !strequal(path_extnul(fv[i]), ".gz"))
+            {
+                /* XXX: uncompressed files must be compressed so skip it
+                 * while accounting totalsize */
+                continue;
+            }
             totalsize -= sts[i].st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
-                    if (log_file->flags & LOG_FILE_COMPRESS) {
-                        if (strequal(path_extnul(fv[j]), ".gz")) {
-                            log_delete_file(log_file, fv[j], sts[j].st_size);
-                        } else {
-                            break;
-                        }
-                    } else {
-                        log_delete_file(log_file, fv[j], sts[j].st_size);
-                    }
+                    log_delete_file(log_file, fv[j], sts[j].st_size);
                 }
                 fv  += i + 1;
                 sts += i + 1;
