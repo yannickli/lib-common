@@ -219,6 +219,7 @@ zchk_SOURCES = zchk.c \
 	zchk-snmp.c \
 	zchk-time.c \
 	zchk-unix.c \
+	zchk-file-log.c \
 	zchk-module.c \
 	zchk-mem.c \
 	zchk-iop-ressources.c \
