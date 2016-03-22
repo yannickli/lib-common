@@ -2083,6 +2083,14 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
                 msg->force_dup = unlikely(ic->queries.values[pos]->force_dup);
             }
         }
+        if (unlikely(msg->trace && logger_is_traced(&_G.tracing_logger, 1))) {
+            SB_1k(sb);
+
+            sb_addf(&sb, "[msg:%p/slot:%x]; locally reply %*pM: ",
+                    msg, msg->slot, LSTR_FMT_ARG(st->fullname));
+            iop_sb_jpack(&sb, st, arg, 0);
+            logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
+        }
     }
     msg->fd = fd;
     __ic_msg_build(msg, st, arg, !ic_is_local(ic) || msg->force_pack);
