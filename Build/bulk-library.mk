@@ -147,6 +147,7 @@ $(3:l=c): $3
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
 	       $(if $(flex_2537),-e 's/^\tint i;/    yy_size_t i;/',) \
+	       -e 's/(int) (yyg->yy_n_chars + number_to_move)/(yy_size_t) (yyg->yy_n_chars + number_to_move)/' \
 	       -e 's/^int .*get_column.*;//' \
 	       -e 's/^void .*set_column.*;//' \
 	       -e 's/\.c+"$$$$/.c"/g' \
