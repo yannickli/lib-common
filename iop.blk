@@ -2796,10 +2796,10 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     bool is_class = iop_struct_is_class(desc);
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *end   = desc->fields + desc->fields_len;
-    iop_wire_type_t wt;
-    uint32_t tag;
+    iop_wire_type_t wt = 0;
+    uint32_t tag = 1;
 
-    while (fdesc < end && !ps_done(ps)) {
+    while (!ps_done(ps)) {
         uint32_t n = 1;
         void *v;
 
@@ -2811,12 +2811,17 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             e_named_trace(5, "iop/c/unpacker",
                           "unpacking class %*pM, got change of level tag",
                           LSTR_FMT_ARG(desc->fullname));
-            do {
+            while (fdesc < end) {
                 PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
-            } while (++fdesc != end);
+                fdesc++;
+            }
             *class_id_wt = wt;
             return 1;
         }
+        if (fdesc >= end) {
+            goto end;
+        }
+
         while (unlikely(tag > fdesc->tag)) {
             e_named_trace(5, "iop/c/unpacker", "unpacking struct %*pM, "
                           "skipping absent field %*pM (tag %u)",
@@ -2824,7 +2829,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           LSTR_FMT_ARG(fdesc->name), fdesc->tag);
             PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
             if (++fdesc == end) {
-                return 0;
+                goto end;
             }
         }
         if (unlikely(tag < fdesc->tag)) {
@@ -2926,6 +2931,27 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         fdesc++;
     }
 
+  end:
+    /* consume tags that no longer exists */
+    while (!ps_done(ps)
+    &&     (desc->fields_len == 0
+        ||  tag > desc->fields[desc->fields_len - 1].tag))
+    {
+        e_named_trace(5, "iop/c/unpacker",
+                      "unpacking struct %*pM, skipping unknown tag %u",
+                      LSTR_FMT_ARG(desc->fullname), tag);
+        PS_CHECK(iop_skip_field(ps, wt));
+        if (ps_done(ps)) {
+            break;
+        }
+        PS_CHECK(__get_tag_wt(ps, &tag, &wt));
+        if (tag == 0) {
+            *class_id_wt = wt;
+            break;
+        }
+    }
+
+    /* consume fields that are not set */
     for (; fdesc < end; fdesc++) {
         e_named_trace(5, "iop/c/unpacker",
                       "unpacking struct %*pM, skipping %*pM field",
@@ -2934,7 +2960,8 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
     }
 
-    return 0;
+    /* return 1 if change of level tag has been found */
+    return (tag == 0) ? 1 : 0;
 }
 
 static inline int
@@ -3069,7 +3096,7 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     if (desc->is_union) {
         return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
     }
-    return unpack_struct(mp, desc, value, &ps, copy, NULL);
+    return unpack_struct(mp, desc, value, &ps, copy, NULL) < 0 ? -1 : 0;
 }
 
 int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
