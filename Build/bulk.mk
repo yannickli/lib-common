@@ -132,6 +132,7 @@ tags: | __setup_buildsys_trampoline
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
 	cd $/ && ctags -o .tags --recurse=yes --totals=yes --links=no \
 	    --c-kinds=+p --c++-kinds=+p --fields=+iaS --extra=+q \
+	    -I 'qv_t qm_t qh_t IOP_RPC_IMPL IOP_RPC_CB' \
 	    --langmap=c:+.blk --langmap=c++:+.blkk \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct[ ]*([a-zA-Z]+)/\1/s, struct/' \
