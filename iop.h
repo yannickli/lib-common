@@ -1317,6 +1317,9 @@ static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
  * This function cannot be used to unpack a class; use `iop_bunpack_ptr`
  * instead.
  *
+ * \warning If needed, iop_bunpack will allocate memory for each field. So if
+ * the mem pool is not frame based, you may end up with a memory leak.
+ *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination structure.
@@ -1345,6 +1348,9 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
  * This function MUST be used to unpack a class instead of `iop_bunpack`,
  * because the size of a class is not known before unpacking it (this could be
  * a child).
+ *
+ * \warning If needed, iop_bunpack will allocate memory for each field. So if
+ * the mem pool is not frame based, you may end up with a memory leak.
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed;
  *                  will be used at least to allocate the destination

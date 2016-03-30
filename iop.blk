@@ -3290,6 +3290,7 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 pstream_t ps, bool copy)
 {
     assert (!iop_struct_is_class(desc));
+    assert (mp && mp->mem_pool & MEM_BY_FRAME);
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
     iop_clear_err();
@@ -3310,6 +3311,7 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
         *value = mp_irealloc(mp, *value, 0, desc->size, 8, MEM_RAW);
         return iop_bunpack(mp, desc, *value, ps, copy);
     }
+    assert (mp && mp->mem_pool & MEM_BY_FRAME);
 
     return unpack_class(mp, desc, value, &ps, copy);
 }
