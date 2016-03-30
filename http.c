@@ -2531,26 +2531,19 @@ void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
     if (w->cfg->use_proxy) {
         ob_addf(ob, "%*pM http://%*pM", LSTR_FMT_ARG(http_method_str[m]),
                 LSTR_FMT_ARG(host));
-        if (httpc_encode_url) {
-            ob_add_urlencode(ob, uri.s, uri.len);
-        } else {
-            ob_add(ob, uri.s, uri.len);
-        }
-        ob_adds(ob, " HTTP/1.1\r\n");
     } else {
         /* TODO: this function does not support absolute path */
         assert (!lstr_startswith(uri, LSTR_IMMED_V("http://"))
              && !lstr_startswith(uri, LSTR_IMMED_V("https://")));
         ob_add(ob, http_method_str[m].s, http_method_str[m].len);
         ob_adds(ob, " ");
-        if (httpc_encode_url) {
-            ob_add_urlencode(ob, uri.s, uri.len);
-        } else {
-            ob_add(ob, uri.s, uri.len);
-        }
-        ob_addf(ob, " HTTP/1.1\r\n"
-                "Host: %*pM\r\n", LSTR_FMT_ARG(host));
     }
+    if (httpc_encode_url) {
+        ob_add_urlencode(ob, uri.s, uri.len);
+    } else {
+        ob_add(ob, uri.s, uri.len);
+    }
+    ob_addf(ob, " HTTP/1.1\r\n" "Host: %*pM\r\n", LSTR_FMT_ARG(host));
     http_update_date_cache(&date_cache_g, lp_getsec());
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
     ob_adds(ob, "Accept-Encoding: identity, gzip, deflate\r\n");
