@@ -100,19 +100,12 @@ static void xmlr_fmt_loc(xml_reader_t xr, sb_t *sb)
 {
     xmlNodePtr n[32];
     int nlen = 0;
-    int col, lno;
 
     n[0] = xmlTextReaderCurrentNode(xr);
     for (; n[nlen] && nlen + 1 < countof(n); nlen++) {
         n[nlen + 1] = n[nlen]->parent;
     }
-    lno = xmlTextReaderGetParserLineNumber(xr);
-    col = xmlTextReaderGetParserColumnNumber(xr);
-    if (lno && col) {
-        sb_addf(sb, "%d:%d", lno, col);
-    } else {
-        sb_addf(sb, "pos %ld", xmlTextReaderByteConsumed(xr));
-    }
+    sb_addf(sb, "%ld", xmlGetLineNo(n[0]));
     if (nlen) {
         if (nlen == countof(n) && n[nlen - 1]->parent) {
             sb_adds(sb, ": near ...");
