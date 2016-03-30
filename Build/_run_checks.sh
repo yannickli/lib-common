@@ -132,13 +132,19 @@ set_www_env() {
 export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web}"
+export Z_TAG_OR="${Z_TAG_OR:-}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
+
+for TAG_OR in ${Z_TAG_OR[@]}
+do
+    COMA_SEPARATED_TAGS=",$TAG_OR$COMA_SEPARATED_TAGS"
+done
 
 TAGS=($Z_TAG_SKIP)
 for TAG in ${TAGS[@]}
 do
-     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG"
+     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG$COMA_SEPARATED_TAGS"
 done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
 
