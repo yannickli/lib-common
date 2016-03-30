@@ -2055,23 +2055,15 @@ void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
 
     if (w->cfg->use_proxy) {
         ob_addf(ob, "%shttp://%s", methods[m], host);
-        if (httpc_encode_url) {
-            ob_adds_urlencode(ob, uri);
-        } else {
-            ob_adds(ob, uri);
-        }
-        ob_adds_urlencode(ob, uri);
-        ob_adds(ob, " HTTP/1.1\r\n");
     } else {
         ob_adds(ob, methods[m]);
-        if (httpc_encode_url) {
-            ob_adds_urlencode(ob, uri);
-        } else {
-            ob_adds(ob, uri);
-        }
-        ob_addf(ob, " HTTP/1.1\r\n"
-                "Host: %s\r\n", host);
     }
+    if (httpc_encode_url) {
+        ob_adds_urlencode(ob, uri);
+    } else {
+        ob_adds(ob, uri);
+    }
+    ob_addf(ob, " HTTP/1.1\r\n" "Host: %s\r\n", host);
     http_update_date_cache(&date_cache_g, lp_getsec());
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
     if (w->connection_close)
