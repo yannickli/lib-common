@@ -374,50 +374,50 @@ typedef enum iopc_attr_id_t {
 /* types on which an attribute can apply */
 typedef enum iopc_attr_type_t {
     /* fields */
-    IOPC_ATTR_T_INT,
-    IOPC_ATTR_T_BOOL,
-    IOPC_ATTR_T_DOUBLE,
-    IOPC_ATTR_T_STRING,
-    IOPC_ATTR_T_DATA,
-    IOPC_ATTR_T_XML,
+    IOPC_ATTR_T_INT = 1 << 0,
+    IOPC_ATTR_T_BOOL = 1 << 1,
+    IOPC_ATTR_T_DOUBLE = 1 << 2,
+    IOPC_ATTR_T_STRING = 1 << 3,
+    IOPC_ATTR_T_DATA = 1 << 4,
+    IOPC_ATTR_T_XML = 1 << 5,
     /* fields or declarations */
-    IOPC_ATTR_T_ENUM,
-    IOPC_ATTR_T_UNION,
-    IOPC_ATTR_T_STRUCT,
+    IOPC_ATTR_T_ENUM = 1 << 6,
+    IOPC_ATTR_T_UNION = 1 << 7,
+    IOPC_ATTR_T_STRUCT = 1 << 8,
+#define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, 8)
     /* declarations */
-    IOPC_ATTR_T_RPC,
-    IOPC_ATTR_T_IFACE,
-    IOPC_ATTR_T_MOD,
+    IOPC_ATTR_T_RPC = 1 << 10,
+    IOPC_ATTR_T_IFACE = 1 << 11,
+    IOPC_ATTR_T_MOD = 1 << 12,
+#define IOPC_ATTR_T_ALL         BITMASK_LE(int64_t, 12)
     /* snmp */
-    IOPC_ATTR_T_SNMP_OBJ,
-    IOPC_ATTR_T_SNMP_IFACE,
-    IOPC_ATTR_T_SNMP_TBL,
+    IOPC_ATTR_T_SNMP_OBJ = 1 << 13,
+    IOPC_ATTR_T_SNMP_IFACE = 1 << 14,
+    IOPC_ATTR_T_SNMP_TBL = 1 << 15,
 } iopc_attr_type_t;
 
-#define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, IOPC_ATTR_T_STRUCT)
-#define IOPC_ATTR_T_ALL         BITMASK_LE(int64_t, IOPC_ATTR_T_MOD)
 
 typedef enum iopc_attr_flag_t {
     /* attribute can apply to required fields */
-    IOPC_ATTR_F_FIELD_REQUIRED,
+    IOPC_ATTR_F_FIELD_REQUIRED = 1 << 0,
     /* attribute can apply to field with default value */
-    IOPC_ATTR_F_FIELD_DEFVAL,
+    IOPC_ATTR_F_FIELD_DEFVAL = 1 << 1,
     /* attribute can apply to optional fields */
-    IOPC_ATTR_F_FIELD_OPTIONAL,
+    IOPC_ATTR_F_FIELD_OPTIONAL = 1 << 2,
     /* attribute can apply to repeated fields */
-    IOPC_ATTR_F_FIELD_REPEATED,
+    IOPC_ATTR_F_FIELD_REPEATED = 1 << 3,
+#define IOPC_ATTR_F_FIELD_ALL  BITMASK_LE(int64_t, 3)
+#define IOPC_ATTR_F_FIELD_ALL_BUT_REQUIRED                \
+    (IOPC_ATTR_F_FIELD_ALL & ~IOPC_ATTR_F_FIELD_REQUIRED)
+
     /* attribute can apply to declarations */
-    IOPC_ATTR_F_DECL,
+    IOPC_ATTR_F_DECL = 1 << 4,
     /* attribute can be used more than once */
-    IOPC_ATTR_F_MULTI,
+    IOPC_ATTR_F_MULTI = 1 << 5,
     /* attribute will generate a check in iop_check_constraints */
-    IOPC_ATTR_F_CONSTRAINT,
+    IOPC_ATTR_F_CONSTRAINT = 1 << 6,
 } iopc_attr_flag_t;
 
-#define IOPC_ATTR_F_FIELD_ALL BITMASK_LE(int64_t, IOPC_ATTR_F_FIELD_REPEATED)
-#define IOPC_ATTR_F_FIELD_ALL_BUT_REQUIRED                \
-    (IOPC_ATTR_F_FIELD_ALL                                \
-     & ~BITMASK_NTH(int64_t, IOPC_ATTR_F_FIELD_REQUIRED))
 
 typedef struct iopc_arg_desc_t {
     lstr_t          name;
@@ -448,7 +448,7 @@ typedef struct iopc_attr_desc_t {
 #define IOPC_ATTR_REPEATED_MONO_ARG(desc)  \
     ({                                                                       \
         const iopc_attr_desc_t *__desc = (desc);                             \
-        __desc->args.len == 1 && TST_BIT(&__desc->flags, IOPC_ATTR_F_MULTI); \
+        __desc->args.len == 1 && (__desc->flags & IOPC_ATTR_F_MULTI);        \
     })
 
 static inline iopc_attr_desc_t *iopc_attr_desc_init(iopc_attr_desc_t *d) {

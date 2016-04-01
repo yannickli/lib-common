@@ -166,13 +166,13 @@ static const char *type_to_str(iopc_attr_type_t type)
 
 static int check_attr_type_decl(iopc_attr_t *attr, iopc_attr_type_t type)
 {
-    if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_DECL)) {
+    if (!(attr->desc->flags & IOPC_ATTR_F_DECL)) {
         throw_loc("attribute %*pM does not apply to declarations",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name));
     }
 
-    if (!TST_BIT(&attr->desc->types, type)) {
+    if (!(attr->desc->types & type)) {
         throw_loc("attribute %*pM does not apply to %s",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name),
@@ -213,14 +213,14 @@ static int check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
 
     switch (f->repeat) {
       case IOP_R_REQUIRED:
-        if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REQUIRED)) {
+        if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_REQUIRED)) {
             throw_loc("attribute %*pM does not apply to required %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
 
       case IOP_R_DEFVAL:
-        if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_DEFVAL)) {
+        if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_DEFVAL)) {
             throw_loc("attribute %*pM does not apply to %s "
                       "with default value", attr->loc,
                       LSTR_FMT_ARG(attr->desc->name), tstr);
@@ -228,21 +228,21 @@ static int check_attr_type_field(iopc_attr_t *attr, iopc_field_t *f,
         break;
 
       case IOP_R_OPTIONAL:
-        if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_OPTIONAL)) {
+        if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_OPTIONAL)) {
             throw_loc("attribute %*pM does not apply to optional %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
 
       case IOP_R_REPEATED:
-        if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REPEATED)) {
+        if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_REPEATED)) {
             throw_loc("attribute %*pM does not apply to repeated %s",
                       attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
         }
         break;
     }
 
-    if (!TST_BIT(&attr->desc->types, type)) {
+    if (!(attr->desc->types & type)) {
         throw_loc("attribute %*pM does not apply to %s",
                   attr->loc,
                   LSTR_FMT_ARG(attr->desc->name),
@@ -277,7 +277,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
     }
 
     qv_for_each_entry(iopc_attr, attr, &f->attrs) {
-        if (!TST_BIT(&attr->desc->types, type)) {
+        if (!(attr->desc->types & type)) {
             throw_loc("attribute %*pM does not apply to %s",
                       attr->loc,
                       LSTR_FMT_ARG(attr->desc->name),
@@ -286,14 +286,14 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
 
         switch (f->repeat) {
           case IOP_R_REQUIRED:
-            if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REQUIRED)) {
+            if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_REQUIRED)) {
                 throw_loc("attribute %*pM does not apply to required %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
             break;
 
           case IOP_R_DEFVAL:
-            if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_DEFVAL)) {
+            if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_DEFVAL)) {
                 throw_loc("attribute %*pM does not apply to %s "
                           "with default value",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
@@ -301,14 +301,14 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
             break;
 
           case IOP_R_OPTIONAL:
-            if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_OPTIONAL)) {
+            if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_OPTIONAL)) {
                 throw_loc("attribute %*pM does not apply to optional %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
             break;
 
           case IOP_R_REPEATED:
-            if (!TST_BIT(&attr->desc->flags, IOPC_ATTR_F_FIELD_REPEATED)) {
+            if (!(attr->desc->flags & IOPC_ATTR_F_FIELD_REPEATED)) {
                 throw_loc("attribute %*pM does not apply to repeated %s",
                           attr->loc, LSTR_FMT_ARG(attr->desc->name), tstr);
             }
@@ -399,104 +399,104 @@ static void init_attributes(void)
     })
 
     d = add_attr(IOPC_ATTR_CTYPE, "ctype");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRUCT);
-    SET_BIT(&d->types, IOPC_ATTR_T_UNION);
-    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_STRUCT;
+    d->types |= IOPC_ATTR_T_UNION;
+    d->types |= IOPC_ATTR_T_ENUM;
     ADD_ATTR_ARG(d, "type", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_NOWARN, "nowarn");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->flags |= IOPC_ATTR_F_MULTI;
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "value", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_PREFIX, "prefix");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_ENUM;
     ADD_ATTR_ARG(d, "name", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_STRICT, "strict");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_ENUM;
 
     d = add_attr(IOPC_ATTR_MIN, "min");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_INT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_DOUBLE);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_INT;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_DOUBLE;
     ADD_ATTR_ARG(d, "value", ITOK_DOUBLE);
 
     d = add_attr(IOPC_ATTR_MAX, "max");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_INT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_DOUBLE);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_INT;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_DOUBLE;
     ADD_ATTR_ARG(d, "value", ITOK_DOUBLE);
 
     d = add_attr(IOPC_ATTR_MIN_LENGTH, "minLength");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_DATA);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_STRING;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_DATA;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_MAX_LENGTH, "maxLength");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_DATA);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_STRING;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_DATA;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_LENGTH, "length");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
-    SET_BIT(&d->types, IOPC_ATTR_T_DATA);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_STRING;
+    d->types |= IOPC_ATTR_T_DATA;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_MIN_OCCURS, "minOccurs");
-    SET_BIT(&d->flags, IOPC_ATTR_F_FIELD_REPEATED);
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
+    d->flags |= IOPC_ATTR_F_FIELD_REPEATED;
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->flags |= IOPC_ATTR_F_MULTI;
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_MAX_OCCURS, "maxOccurs");
-    SET_BIT(&d->flags, IOPC_ATTR_F_FIELD_REPEATED);
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
+    d->flags |= IOPC_ATTR_F_FIELD_REPEATED;
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->flags |= IOPC_ATTR_F_MULTI;
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "value", ITOK_INTEGER);
 
     d = add_attr(IOPC_ATTR_CDATA, "cdata");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
+    d->types |= IOPC_ATTR_T_STRING;
 
     d = add_attr(IOPC_ATTR_NON_EMPTY, "nonEmpty");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
-    SET_BIT(&d->types, IOPC_ATTR_T_DATA);
-    SET_BIT(&d->types, IOPC_ATTR_T_XML);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_STRING;
+    d->types |= IOPC_ATTR_T_DATA;
+    d->types |= IOPC_ATTR_T_XML;
 
     d = add_attr(IOPC_ATTR_NON_ZERO, "nonZero");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_INT);
-    SET_BIT(&d->types, IOPC_ATTR_T_DOUBLE);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_INT;
+    d->types |= IOPC_ATTR_T_DOUBLE;
 
     d = add_attr(IOPC_ATTR_PATTERN, "pattern");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRING);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->types |= IOPC_ATTR_T_STRING;
     ADD_ATTR_ARG(d, "value", ITOK_STRING);
 
     d = add_attr(IOPC_ATTR_PRIVATE, "private");
@@ -504,55 +504,55 @@ static void init_attributes(void)
     d->types |= IOPC_ATTR_T_ALL;
 
     d = add_attr(IOPC_ATTR_ALIAS, "alias");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_RPC);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_RPC;
     ADD_ATTR_ARG(d, "name", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_NO_REORDER, "noReorder");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_STRUCT);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_STRUCT;
 
     d = add_attr(IOPC_ATTR_ALLOW, "allow");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_UNION);
-    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_UNION;
+    d->types |= IOPC_ATTR_T_ENUM;
     ADD_ATTR_ARG(d, "field", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_DISALLOW, "disallow");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_CONSTRAINT);
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->types, IOPC_ATTR_T_UNION);
-    SET_BIT(&d->types, IOPC_ATTR_T_ENUM);
+    d->flags |= IOPC_ATTR_F_CONSTRAINT;
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->types |= IOPC_ATTR_T_UNION;
+    d->types |= IOPC_ATTR_T_ENUM;
     ADD_ATTR_ARG(d, "field", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_GENERIC, "generic");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->flags |= IOPC_ATTR_F_DECL;
     d->types |= IOPC_ATTR_T_ALL;
     ADD_ATTR_ARG(d, "", ITOK_STRING);
 
     d = add_attr(IOPC_ATTR_DEPRECATED, "deprecated");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     d->types |= IOPC_ATTR_T_ALL;
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_TBL);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_SNMP_IFACE;
+    d->types |= IOPC_ATTR_T_SNMP_OBJ;
+    d->types |= IOPC_ATTR_T_SNMP_TBL;
 
     d = add_attr(IOPC_ATTR_SNMP_PARAMS_FROM, "snmpParamsFrom");
-    SET_BIT(&d->flags, IOPC_ATTR_F_MULTI);
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_IFACE);
+    d->flags |= IOPC_ATTR_F_MULTI;
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_SNMP_IFACE;
     ADD_ATTR_ARG(d, "param", ITOK_IDENT);
 
     d = add_attr(IOPC_ATTR_SNMP_PARAM, "snmpParam");
-    SET_BIT(&d->flags, IOPC_ATTR_F_DECL);
-    SET_BIT(&d->types, IOPC_ATTR_T_SNMP_OBJ);
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_SNMP_OBJ;
 
     d = add_attr(IOPC_ATTR_SNMP_INDEX, "snmpIndex");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
@@ -578,7 +578,7 @@ check_attr_multi(qv_t(iopc_attr) *attrs, iopc_attr_t *attr, int *pos_out)
                 return 0;
             }
 
-            if (TST_BIT(&attr->desc->flags, IOPC_ATTR_F_MULTI)) {
+            if ((attr->desc->flags & IOPC_ATTR_F_MULTI)) {
                 *pos_out = pos;
                 return 0;
             } else {

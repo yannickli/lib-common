@@ -2595,8 +2595,9 @@ static bool
 iopc_has_constraints(qv_t(iopc_attr) *attrs)
 {
     qv_for_each_entry(iopc_attr, attr, attrs) {
-        if (TST_BIT(&attr->desc->flags, IOPC_ATTR_F_CONSTRAINT))
+        if ((attr->desc->flags & IOPC_ATTR_F_CONSTRAINT)) {
             return true;
+        }
     }
     return false;
 }
