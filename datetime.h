@@ -256,6 +256,43 @@ lstr_t t_get_time_split_lstr_fr(uint64_t seconds);
 /* iso8601                                                                 */
 /***************************************************************************/
 
+#define ISO8601_BASE_FMT          "%04d-%02d-%02dT%02d:%02d:%02d"
+#define ISO8601_BASE_FMT_ARG(tm)                                             \
+    (tm)->tm_year + 1900,                                                    \
+    (tm)->tm_mon + 1,                                                        \
+    (tm)->tm_mday,                                                           \
+    (tm)->tm_hour,                                                           \
+    (tm)->tm_min,                                                            \
+    (tm)->tm_sec
+
+#define ISO8601_BASE_MSEC_FMT                ISO8601_BASE_FMT ".%03d"
+#define ISO8601_BASE_MSEC_FMT_ARG(tm, msec)  ISO8601_BASE_FMT_ARG(tm), (msec)
+
+#define ISO8601_GMT_FMT          ISO8601_BASE_FMT "Z"
+#define ISO8601_GMT_FMT_ARG(tm)  ISO8601_BASE_FMT_ARG(tm)
+
+#define ISO8601_GMT_MSEC_FMT                                                 \
+    ISO8601_BASE_MSEC_FMT "Z"
+#define ISO8601_GMT_MSEC_FMT_ARG(tm, msec)                                   \
+    ISO8601_BASE_MSEC_FMT_ARG(tm, msec)
+
+#define ISO8601_TZ_FMT                                                       \
+    ISO8601_BASE_FMT "%+03d:%02d"
+#define ISO8601_TZ_FMT_ARG(tm, delta_h, delta_m)                             \
+    ISO8601_BASE_FMT_ARG(tm), (delta_h), (delta_m)
+
+#define ISO8601_TZ_MSEC_FMT                                                  \
+    ISO8601_BASE_MSEC_FMT "%+03d:%02d"
+#define ISO8601_TZ_MSEC_FMT_ARG(tm, msec, delta_h, delta_m)                  \
+    ISO8601_BASE_MSEC_FMT_ARG(tm, msec), (delta_h), (delta_m)
+
+static inline void
+time_get_gmt_delta(const struct tm *tm, int *delta_h, int *delta_m)
+{
+    *delta_h = tm->tm_gmtoff / 3600;
+    *delta_m = labs(tm->tm_gmtoff - *delta_h * 3600) / 60;
+}
+
 /* XXX: Array parameter qualifiers are not supported in C++98. */
 #ifndef __cplusplus
 
@@ -267,9 +304,7 @@ static inline void time_fmt_iso8601(char buf[static 21], time_t t)
     if (!gmtime_r(&t, &tm)) {
         e_panic("invalid timestamp: %jd", t);
     }
-    len = snprintf(buf, 21, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                   tm.tm_hour, tm.tm_min, tm.tm_sec);
+    len = snprintf(buf, 21, ISO8601_GMT_FMT, ISO8601_GMT_FMT_ARG(&tm));
     if (len >= 21) {
         e_panic("invalid timestamp: %jd", t);
     }
@@ -288,13 +323,10 @@ static inline void time_fmt_localtime_iso8601(char buf[static 26], time_t t,
     int delta_h, delta_m;
 
     time_get_localtime(&t, &tm, tz);
+    time_get_gmt_delta(&tm, &delta_h, &delta_m);
 
-    delta_h = tm.tm_gmtoff / 3600;
-    delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
-
-    len = snprintf(buf, 26, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
-                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                   tm.tm_hour, tm.tm_min, tm.tm_sec, delta_h, delta_m);
+    len = snprintf(buf, 26, ISO8601_TZ_FMT,
+                   ISO8601_TZ_FMT_ARG(&tm, delta_h, delta_m));
     if (len >= 26) {
         e_panic("invalid timestamp: %jd", t);
     }
@@ -315,9 +347,8 @@ static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t,
     if (!gmtime_r(&t, &tm)) {
         e_panic("invalid timestamp: %jd", t);
     }
-    len = snprintf(buf, 25, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
-                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                   tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+    len = snprintf(buf, 25, ISO8601_GMT_MSEC_FMT,
+                   ISO8601_GMT_MSEC_FMT_ARG(&tm, msec));
     if (len >= 25) {
         e_panic("invalid timestamp: %jd", t);
     }
@@ -337,13 +368,10 @@ void time_fmt_localtime_iso8601_msec(char buf[static 30], time_t t,
     int delta_h, delta_m;
 
     time_get_localtime(&t, &tm, tz);
+    time_get_gmt_delta(&tm, &delta_h, &delta_m);
 
-    delta_h = tm.tm_gmtoff / 3600;
-    delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
-
-    len = snprintf(buf, 30, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d",
-                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                   tm.tm_hour, tm.tm_min, tm.tm_sec, msec, delta_h, delta_m);
+    len = snprintf(buf, 30, ISO8601_TZ_MSEC_FMT,
+                   ISO8601_TZ_MSEC_FMT_ARG(&tm, msec, delta_h, delta_m));
     if (len >= 30) {
         e_panic("invalid timestamp: %jd", t);
     }
