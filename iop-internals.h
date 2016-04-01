@@ -302,7 +302,8 @@ typedef struct iop_class_attrs_t {
     const iop_static_field_t **static_fields; /**< NULL if there are none   */
     uint8_t                    static_fields_len;
     uint8_t                    is_abstract : 1;
-    uint8_t                    padding     : 7;
+    uint8_t                    is_private  : 1;
+    uint8_t                    padding     : 6;
     uint16_t                   class_id;
 } iop_class_attrs_t;
 
