@@ -664,6 +664,12 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
             return;
         }
         LINE_CKEY_VAL_BOOL(wbuf, "isAbstract", st->is_abstract);
+        qv_for_each_entry(iopc_attr, attr, &st->attrs) {
+            if (attr->desc->id == IOPC_ATTR_PRIVATE) {
+                LINE_CKEY_VAL_BOOL(wbuf, "private", true);
+                break;
+            }
+        }
         break;
       case STRUCT_TYPE_SNMP_OBJ:
         LINE_CKEY_VAL_CSTR(wbuf, "type", "snmpObj");

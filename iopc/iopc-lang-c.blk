@@ -2602,6 +2602,17 @@ iopc_has_constraints(qv_t(iopc_attr) *attrs)
     return false;
 }
 
+static bool
+iopc_is_private(const qv_t(iopc_attr) *attrs)
+{
+    qv_for_each_entry(iopc_attr, attr, attrs) {
+        if (attr->desc->id == IOPC_ATTR_PRIVATE) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void
 iopc_struct_check_constraints(iopc_struct_t *st)
 {
@@ -2898,6 +2909,9 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                 }                                                            \
                 if (st->is_abstract) {                                       \
                     sb_adds(buf, "    .is_abstract       = true,\n");        \
+                }                                                            \
+                if (iopc_is_private(&st->attrs)) {                           \
+                    sb_adds(buf, "    .is_private        = true,\n");        \
                 }                                                            \
                 sb_addf(buf,                                                 \
                         "    .class_id          = %d,\n", st->class_id);     \

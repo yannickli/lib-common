@@ -172,15 +172,26 @@ static int check_attr_type_decl(iopc_attr_t *attr, iopc_attr_type_t type)
 {
     if (!(attr->desc->flags & IOPC_ATTR_F_DECL)) {
         throw_loc("attribute %*pM does not apply to declarations",
-                  attr->loc,
-                  LSTR_FMT_ARG(attr->desc->name));
+                  attr->loc, LSTR_FMT_ARG(attr->desc->name));
     }
 
     if (!(attr->desc->types & type)) {
         throw_loc("attribute %*pM does not apply to %s",
-                  attr->loc,
-                  LSTR_FMT_ARG(attr->desc->name),
+                  attr->loc, LSTR_FMT_ARG(attr->desc->name),
                   type_to_str(type));
+    }
+
+    switch (attr->desc->id) {
+      case IOPC_ATTR_PRIVATE:
+        if (!(type & IOPC_ATTR_T_CLASS)) {
+            throw_loc("attribute %*pM does not apply to %s",
+                      attr->loc, LSTR_FMT_ARG(attr->desc->name),
+                      type_to_str(type));
+        }
+        break;
+
+      default:
+        break;
     }
 
     return 0;
@@ -505,6 +516,9 @@ static void init_attributes(void)
 
     d = add_attr(IOPC_ATTR_PRIVATE, "private");
     d->flags |= IOPC_ATTR_F_FIELD_ALL_BUT_REQUIRED;
+    if (iopc_g.v5) {
+        d->flags |= IOPC_ATTR_F_DECL;
+    }
     d->types |= IOPC_ATTR_T_ALL;
 
     d = add_attr(IOPC_ATTR_ALIAS, "alias");

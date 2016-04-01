@@ -565,6 +565,17 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass(f, 3)
         self.run_gcc(f)
 
+    def test_attrs_valid_v5(self):
+        f = 'attrs_valid_v5'
+        self.run_iopc_pass(f + '.iop', 5, 'C,json')
+        self.run_gcc(f + '.iop')
+        g = os.path.join(TEST_PATH, f)
+        for lang in ['json', 'c']:
+            self.check_ref(g, lang)
+
+        self.run_iopc(f + '.iop', False,
+                      "attribute private does not apply to declarations", 4)
+
     def test_attrs_multi_valid(self):
         f = 'attrs_multi_valid.iop'
         self.run_iopc_pass(f, 3)
@@ -674,6 +685,21 @@ class IopcTest(z.TestCase):
     def test_attrs_invalid_noreorder(self):
         self.run_iopc2('attrs_invalid_noreorder.iop', False,
                        'attribute noReorder does not apply to union')
+
+    def test_attrs_invalid_private_struct(self):
+        f = 'attrs_invalid_private_struct.iop'
+        self.run_iopc(f, False,
+                      'attribute private does not apply to struct', 5)
+
+    def test_attrs_invalid_private_union(self):
+        f = 'attrs_invalid_private_union.iop'
+        self.run_iopc(f, False,
+                      'attribute private does not apply to union', 5)
+
+    def test_attrs_invalid_private_enum(self):
+        f = 'attrs_invalid_private_enum.iop'
+        self.run_iopc(f, False,
+                      'attribute private does not apply to enum', 5)
 
     # }}}
     # {{{ Generic attributes
