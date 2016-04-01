@@ -139,7 +139,7 @@ iopc_try_file(iopc_parser_t *pp, const char *dir, iopc_path_t *path)
 
 /* ----- attributes {{{*/
 
-static const char *type_to_str(iopc_attr_type_t type)
+static const char *type_to_str(unsigned type)
 {
     switch (type) {
       case IOPC_ATTR_T_INT:     return "integer";
@@ -157,6 +157,10 @@ static const char *type_to_str(iopc_attr_type_t type)
       case IOPC_ATTR_T_SNMP_IFACE:  return "snmpIface";
       case IOPC_ATTR_T_SNMP_OBJ:    return "snmpObj";
       case IOPC_ATTR_T_SNMP_TBL:    return "snmpTbl";
+
+      case IOPC_ATTR_T_CLASS:
+      case IOPC_ATTR_T_CLASS | IOPC_ATTR_T_STRUCT:
+        return "class";
 
       default:
         print_error("invalid type %d", type);
@@ -3576,7 +3580,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         }
 
         PARSE_STRUCT("struct", STRUCT_TYPE_STRUCT, IOPC_ATTR_T_STRUCT);
-        PARSE_STRUCT("class",  STRUCT_TYPE_CLASS,  IOPC_ATTR_T_STRUCT);
+        PARSE_STRUCT("class",  STRUCT_TYPE_CLASS,
+                     IOPC_ATTR_T_STRUCT | IOPC_ATTR_T_CLASS);
         PARSE_STRUCT("snmpObj", STRUCT_TYPE_SNMP_OBJ, IOPC_ATTR_T_SNMP_OBJ);
         PARSE_STRUCT("snmpTbl", STRUCT_TYPE_SNMP_TBL, IOPC_ATTR_T_SNMP_TBL);
         PARSE_STRUCT("union",  STRUCT_TYPE_UNION,  IOPC_ATTR_T_UNION);

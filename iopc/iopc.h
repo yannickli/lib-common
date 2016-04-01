@@ -384,7 +384,8 @@ typedef enum iopc_attr_type_t {
     IOPC_ATTR_T_ENUM = 1 << 6,
     IOPC_ATTR_T_UNION = 1 << 7,
     IOPC_ATTR_T_STRUCT = 1 << 8,
-#define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, 8)
+    IOPC_ATTR_T_CLASS = 1 << 9,
+#define IOPC_ATTR_T_ALL_FIELDS  BITMASK_LE(int64_t, 9)
     /* declarations */
     IOPC_ATTR_T_RPC = 1 << 10,
     IOPC_ATTR_T_IFACE = 1 << 11,
