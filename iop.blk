@@ -3049,6 +3049,17 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                       LSTR_FMT_ARG(desc->fullname),
                       LSTR_FMT_ARG(fdesc->name), tag);
 
+        if (fdesc && flags & IOP_UNPACK_FORBID_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
+                iop_set_err("field `%*pM` of struct `%*pM` is private",
+                            LSTR_FMT_ARG(fdesc->name),
+                            LSTR_FMT_ARG(desc->fullname));
+                return -1;
+            }
+        }
+
         if (wt == IOP_WIRE_REPEAT) {
             PS_CHECK(get_uint32(ps, 4, &n));
             PS_WANT(n >= 1);
