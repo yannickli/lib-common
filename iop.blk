@@ -2901,15 +2901,15 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
 
 static int
 unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-              pstream_t *ps, bool copy, iop_wire_type_t *class_id_wt);
+              pstream_t *ps, unsigned flags, iop_wire_type_t *class_id_wt);
 static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
-                        void **value, pstream_t *ps, bool copy);
+                        void **value, pstream_t *ps, unsigned flags);
 static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                        pstream_t *ps, bool copy);
+                        pstream_t *ps, unsigned flags);
 
 static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
                         const iop_field_t *fdesc, void *v,
-                        pstream_t *ps, bool copy)
+                        pstream_t *ps, unsigned flags)
 {
     uint32_t u32 = 0;
     pstream_t ps_tmp;
@@ -2937,19 +2937,20 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
           case IOP_T_STRING:
           case IOP_T_DATA:
           case IOP_T_XML:
-            *(lstr_t *)v = LSTR_INIT_V((copy ? mp_dup(mp, ps->s, u32)
+            *(lstr_t *)v = LSTR_INIT_V(((flags & IOP_UNPACK_COPY_STRINGS)
+                                        ? mp_dup(mp, ps->s, u32)
                                         : ps->p), u32 - 1);
             return __ps_skip(ps, u32);
           case IOP_T_UNION:
             ps_tmp = __ps_get_ps(ps, u32);
-            return unpack_union(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
+            return unpack_union(mp, fdesc->u1.st_desc, v, &ps_tmp, flags);
           case IOP_T_STRUCT:
             ps_tmp = __ps_get_ps(ps, u32);
             if (iop_field_is_class(fdesc)) {
                 *(void **)v = NULL;
-                return unpack_class(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
+                return unpack_class(mp, fdesc->u1.st_desc, v, &ps_tmp, flags);
             } else {
-                return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, copy,
+                return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, flags,
                                      NULL);
             }
         }
@@ -2994,7 +2995,7 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
  */
 static int
 unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-              pstream_t *ps, bool copy, iop_wire_type_t *class_id_wt)
+              pstream_t *ps, unsigned flags, iop_wire_type_t *class_id_wt)
 {
     bool is_class = iop_struct_is_class(desc);
     const iop_field_t *fdesc = desc->fields;
@@ -3085,8 +3086,9 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
                 if (fdesc->size == 1) {
                     data->len = len;
-                    data->data = (copy ? mp_dup(mp, ps->s, len)
-                                       : (void *)ps->p);
+                    data->data = ((flags & IOP_UNPACK_COPY_STRINGS)
+                                  ? mp_dup(mp, ps->s, len)
+                                  : (void *)ps->p);
                 } else {
                     assert (fdesc->size == 2);
                     PS_WANT(len % 2 == 0);
@@ -3105,7 +3107,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             data->data = v = mp_imalloc(mp, n * fdesc->size, 8, MEM_RAW);
 
             while (n-- > 1) {
-                if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+                if (unpack_value(mp, wt, fdesc, v, ps, flags) < 0) {
                     sb_prepend_field(&iop_err_g.path, fdesc,
                                      data->len - n - 1);
                     return -1;
@@ -3114,7 +3116,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
                 v  = (char *)v + fdesc->size;
             }
-            if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+            if (unpack_value(mp, wt, fdesc, v, ps, flags) < 0) {
                 sb_prepend_field(&iop_err_g.path, fdesc, 0);
                 return -1;
             }
@@ -3130,7 +3132,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             {
                 v = iop_value_set_here(mp, fdesc, v);
             }
-            if (unpack_value(mp, wt, fdesc, v, ps, copy) < 0) {
+            if (unpack_value(mp, wt, fdesc, v, ps, flags) < 0) {
                 sb_prepend_field(&iop_err_g.path, fdesc, 0);
                 return -1;
             }
@@ -3190,7 +3192,7 @@ unpack_skip_all_fields(mem_pool_t *mp, const iop_struct_t *desc, void *value)
 }
 
 static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
-                        void **value, pstream_t *ps, bool copy)
+                        void **value, pstream_t *ps, unsigned flags)
 {
     const iop_struct_t *real_desc;
     iop_wire_type_t wt;
@@ -3233,7 +3235,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
         uint16_t class_id = 0;
         int res;
 
-        PS_CHECK((res = unpack_struct(mp, real_desc, *value, ps, copy, &wt)));
+        PS_CHECK((res = unpack_struct(mp, real_desc, *value, ps, flags, &wt)));
 
         if (!(real_desc = real_desc->class_attrs->parent)) {
             return 0;
@@ -3268,7 +3270,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
 /* note: returns 0 on success, -1 on error and 1 if the pstream hasn't been
  * fully consumed. */
 static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                        pstream_t *ps, bool copy)
+                        pstream_t *ps, unsigned flags)
 {
     const iop_field_t *fdesc = desc->fields;
 
@@ -3292,7 +3294,7 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
     e_named_trace(5, "iop/c/unpacker", "unpacking union %*pM field %*pM",
                   LSTR_FMT_ARG(desc->fullname), LSTR_FMT_ARG(fdesc->name));
-    if (unpack_value(mp, wt, fdesc, value, ps, copy) < 0) {
+    if (unpack_value(mp, wt, fdesc, value, ps, flags) < 0) {
         sb_prepend_field(&iop_err_g.path, fdesc, 0);
         return -1;
     }
@@ -3302,8 +3304,8 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     return ps_done(ps) ? 0 : 1;
 }
 
-int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                pstream_t ps, bool copy)
+int iop_bunpack_flags(mem_pool_t *mp, const iop_struct_t *desc, void *value,
+                      pstream_t ps, unsigned flags)
 {
     assert (!iop_struct_is_class(desc));
     assert (mp && mp->mem_pool & MEM_BY_FRAME);
@@ -3311,13 +3313,13 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                   LSTR_FMT_ARG(desc->fullname));
     iop_clear_err();
     if (desc->is_union) {
-        return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
+        return unpack_union(mp, desc, value, &ps, flags) ? -1 : 0;
     }
-    return unpack_struct(mp, desc, value, &ps, copy, NULL) < 0 ? -1 : 0;
+    return unpack_struct(mp, desc, value, &ps, flags, NULL) < 0 ? -1 : 0;
 }
 
-int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
-                    pstream_t ps, bool copy)
+int iop_bunpack_ptr_flags(mem_pool_t *mp, const iop_struct_t *desc,
+                          void **value, pstream_t ps, unsigned flags)
 {
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
@@ -3325,25 +3327,25 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
 
     if (!iop_struct_is_class(desc)) {
         *value = mp_irealloc(mp, *value, 0, desc->size, 8, MEM_RAW);
-        return iop_bunpack(mp, desc, *value, ps, copy);
+        return iop_bunpack_flags(mp, desc, *value, ps, flags);
     }
     assert (mp && mp->mem_pool & MEM_BY_FRAME);
 
-    return unpack_class(mp, desc, value, &ps, copy);
+    return unpack_class(mp, desc, value, &ps, flags);
 }
 
 /* XXX: this function can unpack only union because the struct can't be
  * delimited in a stream.
  * */
-int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                pstream_t *ps, bool copy)
+int iop_bunpack_multi_flags(mem_pool_t *mp, const iop_struct_t *desc,
+                            void *value, pstream_t *ps, unsigned flags)
 {
     assert(desc->is_union);
 
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP union(s) %*pM",
                   LSTR_FMT_ARG(desc->fullname));
     iop_clear_err();
-    return (unpack_union(mp, desc, value, ps, copy) < 0) ? -1 : 0;
+    return (unpack_union(mp, desc, value, ps, flags) < 0) ? -1 : 0;
 }
 
 /* XXX this function doesn't check the IOP content and trust what it reads

@@ -1313,6 +1313,28 @@ static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
     return t_iop_bpack_struct_flags(st, v, 0);
 }
 
+/** Flags for IOP (un)packers. */
+enum iop_unpack_flags {
+    /** Allow the unpacker to skip unknown fields.
+     *
+     * This flag applies to the json and xml packers.
+     */
+    IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
+
+    /** Make the unpacker reject private fields.
+     *
+     * This flag applies to the binary, json and xml packers.
+     */
+    IOP_UNPACK_FORBID_PRIVATE = (1U << 1),
+
+    /** With this flag, packing will copy strings instead of making them
+     * point to the packed value when possible.
+     *
+     * This flag applies to the binary unpacker.
+     */
+    IOP_UNPACK_COPY_STRINGS    = (1U << 2),
+};
+
 /** Unpack a packed IOP structure.
  *
  * This function unpacks a packed IOP structure from a pstream_t. It unpacks
@@ -1329,13 +1351,20 @@ static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination structure.
  * \param[in] ps    The pstream_t containing the packed IOP structure.
- * \param[in] copy  Tell to the unpack whether complex type must be duplicated
- *                  or not (for example string could be pointers on the
- *                  pstream_t or duplicated).
+ * \param[in] flags A combination of \ref iop_unpack_flags to alter the
+ *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st, void *value,
-                pstream_t ps, bool copy);
+int iop_bunpack_flags(mem_pool_t *mp, const iop_struct_t *st, void *value,
+                      pstream_t ps, unsigned flags);
+
+__must_check__
+static inline int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st,
+                              void *value, pstream_t ps, bool copy)
+{
+    return iop_bunpack_flags(mp, st, value, ps,
+                             copy ? IOP_UNPACK_COPY_STRINGS : 0);
+}
 
 /** Unpack a packed IOP structure using the t_pool().
  */
@@ -1364,13 +1393,20 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
  * \param[in] value Double pointer on the destination structure.
  *                  If *value is not NULL, it is reallocated.
  * \param[in] ps    The pstream_t containing the packed IOP object.
- * \param[in] copy  Tell to the unpack whether complex type must be duplicated
- *                  or not (for example string could be pointers on the
- *                  pstream_t or duplicated).
+ * \param[in] flags A combination of \ref iop_unpack_flags to alter the
+ *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st, void **value,
-                    pstream_t ps, bool copy);
+int iop_bunpack_ptr_flags(mem_pool_t *mp, const iop_struct_t *st,
+                          void **value, pstream_t ps, unsigned flags);
+
+__must_check__
+static inline int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st,
+                                  void **value, pstream_t ps, bool copy)
+{
+    return iop_bunpack_ptr_flags(mp, st, value, ps,
+                                 copy ? IOP_UNPACK_COPY_STRINGS : 0);
+}
 
 /** Unpack a packed IOP union.
  *
@@ -1382,13 +1418,20 @@ int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st, void **value,
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination unpacked IOP union.
  * \param[in] ps    The pstream_t containing the packed IOP union.
- * \param[in] copy  Tell to the unpack whether complex type must be duplicated
- *                  or not (for example string could be pointers on the
- *                  pstream_t or duplicated).
+ * \param[in] flags A combination of \ref iop_unpack_flags to alter the
+ *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
-                      pstream_t *ps, bool copy);
+int iop_bunpack_multi_flags(mem_pool_t *mp, const iop_struct_t *st,
+                            void *value, pstream_t *ps, unsigned flags);
+
+__must_check__
+static inline int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st,
+                                    void *value, pstream_t *ps, bool copy)
+{
+    return iop_bunpack_multi_flags(mp, st, value, ps,
+                                   copy ? IOP_UNPACK_COPY_STRINGS : 0);
+}
 
 /** Unpack a packed IOP union using the t_pool().
  */
@@ -1422,15 +1465,6 @@ int iop_bskip(const iop_struct_t *st, pstream_t *ps);
  * Returns -1 if there is something really wrong.
  */
 ssize_t iop_get_field_len(pstream_t ps);
-
-
-/** Flags for IOP (un)packers. */
-enum iop_unpack_flags {
-    /* Allow the unpacker to skip unknown fields */
-    IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
-    /* Make the unpacker reject private fields */
-    IOP_UNPACK_FORBID_PRIVATE = (1U << 1),
-};
 
 /* }}} */
 /* {{{ IOP packages registration / manipulation */
