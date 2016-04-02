@@ -1223,9 +1223,14 @@ enum iop_bpack_flags {
      * packed. This is good to save bandwidth but dangerous for backward
      * compatibility */
     IOP_BPACK_SKIP_DEFVAL   = (1U << 0),
+
     /** With this flag on, packing can fail if the constraints are not
      * respected. The error message is available with iop_get_err. */
     IOP_BPACK_STRICT        = (1U << 1),
+
+    /** With this flag on, packing will omit private fields.
+     */
+    IOP_BPACK_SKIP_PRIVATE  = (1U << 2),
 };
 
 /** Do some preliminary work to pack an IOP structure into IOP binary format.
