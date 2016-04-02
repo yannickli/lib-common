@@ -245,6 +245,9 @@ struct ichannel_t {
     flag_t queuable     :  1;
     flag_t is_local     :  1;
     flag_t is_trusted   :  1;   /**< set to true for internal ichannels     */
+    flag_t is_public    :  1;   /**< setting this flag to true causses private
+                                     fields to be omitted on outgoing messages
+                                     and forbidden on incoming messages. */
 
     unsigned nextslot;          /**< next slot id to try                    */
 
