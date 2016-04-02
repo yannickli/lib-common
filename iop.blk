@@ -2261,6 +2261,12 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
              "packing of abstract class '%*pM' is forbidden",
              LSTR_FMT_ARG(desc->fullname));
 
+    /* If this assert fails, you are exporting private classes through
+     * a public interface... this is BAD!
+     */
+    assert (!desc->class_attrs->is_private
+            || !(flags & IOP_BPACK_SKIP_PRIVATE));
+
     do {
         int szs_pos = szs->len;
 
@@ -3233,6 +3239,14 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
                       "unpacking a class of type %*pM, real type %*pM",
                       LSTR_FMT_ARG(desc->fullname),
                       LSTR_FMT_ARG(real_desc->fullname));
+    }
+
+    if (flags & IOP_UNPACK_FORBID_PRIVATE
+    &&  real_desc->class_attrs->is_private)
+    {
+        iop_set_err("class `%*pM` is private",
+                    LSTR_FMT_ARG(real_desc->fullname));
+        return -1;
     }
 
     PS_WANT(!real_desc->class_attrs->is_abstract);

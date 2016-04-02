@@ -60,6 +60,12 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
     if (is_class) {
         const iop_struct_t *real_desc = *(const iop_struct_t **)v;
 
+        /* If this assert fails, you are exporting private classes through
+         * a public interface... this is BAD!
+         */
+        assert (!real_desc->class_attrs->is_private
+                || !(flags & IOP_XPACK_SKIP_PRIVATE));
+
         /* The "n" namespace is used here because it's the one used in
          * ichttp_serialize_soap. */
         sb_addf(sb, " xsi:type=\"n:%*pM\">",

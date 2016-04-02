@@ -1420,6 +1420,14 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     if ((*real_desc)->class_attrs->is_abstract) {
         return RJERROR_EXP("a non-abstract class");
     }
+
+    if (ll->flags & IOP_UNPACK_FORBID_PRIVATE
+    &&  (*real_desc)->class_attrs->is_private)
+    {
+        return RJERROR_EXP_FMT("a non-private child of `%*pM`",
+                               LSTR_FMT_ARG(desc->fullname));
+    }
+
     desc_it = *real_desc;
     while (desc_it && desc_it != desc) {
         nb_fields += desc_it->fields_len;
@@ -2276,6 +2284,12 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         e_assert(panic, !real_desc->class_attrs->is_abstract,
                  "packing of abstract class '%*pM' is forbidden",
                  LSTR_FMT_ARG(real_desc->fullname));
+
+        /* If this assert fails, you are exporting private classes through
+         * a public interface... this is BAD!
+         */
+        assert (!real_desc->class_attrs->is_private
+                || !(flags & IOP_JPACK_SKIP_PRIVATE));
 
         /* Write type of class */
         INDENT();

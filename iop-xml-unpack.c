@@ -541,6 +541,7 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
                 return xmlr_fail(xr, "type attribute not found (mandatory "
                                  "for abstract classes)");
             }
+
             /* If type attribute is not present, consider we are unpacking a
              * class of the expected type. */
             real_desc = desc;
@@ -557,15 +558,23 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         }
     }
 
+
     if (real_desc->class_attrs->is_abstract) {
         return xmlr_fail(xr, "class `%*pM' is an abstract class",
+                         LSTR_FMT_ARG(real_desc->fullname));
+    }
+
+  build_parents:
+    if (flags & IOP_UNPACK_FORBID_PRIVATE
+    &&  real_desc->class_attrs->is_private)
+    {
+        return xmlr_fail(xr, "class `%*pM` is private",
                          LSTR_FMT_ARG(real_desc->fullname));
     }
 
     /* The fields will be present in the order "master -> children", not
      * "children -> master", so build a qvector of the parents.
      * Also check this the types are compatible. */
-  build_parents:
     qv_inita(iop_struct, &parents, 8);
     desc_it = real_desc;
     do {
