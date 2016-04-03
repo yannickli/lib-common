@@ -2037,6 +2037,28 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(private, "test private attribute with binary packing") { /* {{{ */
+        t_scope;
+        void *out;
+        tstiop_inheritance__c5__t c5;
+        lstr_t bpacked;
+        qv_t(i32) szs;
+
+        iop_init(tstiop_inheritance__c5, &c5);
+        bpacked = t_iop_bpack_struct(&tstiop_inheritance__c5__s, &c5);
+        Z_ASSERT(bpacked.s);
+
+        t_qv_init(i32, &szs, 16);
+        Z_ASSERT_NEG(iop_bunpack_ptr_flags(t_pool(), &tstiop_inheritance__c5__s,
+                                           &out, ps_initlstr(&bpacked),
+                                           IOP_UNPACK_FORBID_PRIVATE));
+        Z_ASSERT(strstr(iop_get_err(),
+                        "class `tstiop_inheritance.C5` is private"),
+                 "%s", iop_get_err());
+        Z_ASSERT_N(iop_bunpack_ptr_flags(t_pool(), &tstiop_inheritance__c5__s,
+                                         &out, ps_initlstr(&bpacked), 0));
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(equals, "test iop_equals()") { /* {{{ */
         t_scope;
 
@@ -3674,6 +3696,7 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__b2__t *b2 = NULL;
         tstiop_inheritance__a3__t *a3 = NULL;
         tstiop_inheritance__b4__t *b4 = NULL;
+        tstiop_inheritance__c5__t *c5 = NULL;
         tstiop_inheritance__class_container__t  *class_container  = NULL;
         tstiop_inheritance__class_container2__t *class_container2 = NULL;
         SB_1k(err);
@@ -3734,54 +3757,63 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->a2, -479);
         Z_ASSERT_EQ(c1->b,  false);
         Z_ASSERT_EQ(c1->c,  (uint32_t)478);
-#undef CHECK_OK
 
-#define CHECK_FAIL(_type, _filename, _err)  \
+#define CHECK_FAIL(_type, _filename, _flags, _err)  \
         do {                                                                 \
             sb_reset(&err);                                                  \
             Z_ASSERT_NEG(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename, \
                 LSTR_FMT_ARG(z_cmddir_g)), &tstiop_inheritance__##_type##__s,\
-                (void **)&_type, 0, &err));                                  \
-            Z_ASSERT(strstr(err.data, _err));                                \
+                (void **)&_type, _flags, &err));                             \
+            Z_ASSERT(strstr(err.data, _err), "%s", err.data);                \
         } while (0)
 
         /* Test that when the "_class" is missing, the expected type is the
          * wanted one */
-        CHECK_FAIL(b2, "tstiop_inheritance_invalid1.json",
+        CHECK_FAIL(b2, "tstiop_inheritance_invalid1.json", 0,
                    "expected field of struct tstiop_inheritance.B2, got "
                    "`\"c\"'");
 
         /* Test that the "_class" field is mandatory for abstract classes */
-        CHECK_FAIL(a3, "tstiop_inheritance_invalid1.json",
+        CHECK_FAIL(a3, "tstiop_inheritance_invalid1.json", 0,
                    "expected `_class' field, got `}'");
 
         /* Test with an unknown "_class" */
-        CHECK_FAIL(c1, "tstiop_inheritance_invalid2.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid2.json", 0,
                    "expected a child of `tstiop_inheritance.C1'");
 
         /* Test with an incompatible "_class" */
-        CHECK_FAIL(c1, "tstiop_inheritance_invalid3.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid3.json", 0,
                    "expected a child of `tstiop_inheritance.C1'");
 
         /* Test with a missing mandatory field */
-        CHECK_FAIL(c1, "tstiop_inheritance_invalid4.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid4.json", 0,
                    "member `tstiop_inheritance.A1:a2' is missing");
-        CHECK_FAIL(class_container, "tstiop_inheritance_invalid5.json",
+        CHECK_FAIL(class_container, "tstiop_inheritance_invalid5.json", 0,
                    "member `tstiop_inheritance.ClassContainer:a1' is missing");
-        CHECK_FAIL(class_container, "tstiop_inheritance_invalid6.json",
+        CHECK_FAIL(class_container, "tstiop_inheritance_invalid6.json", 0,
                    "member `tstiop_inheritance.ClassContainer:a1' is missing");
 
         /* Unpacking of abstract classes is forbidden */
-        CHECK_FAIL(a3, "tstiop_inheritance_invalid7.json",
+        CHECK_FAIL(a3, "tstiop_inheritance_invalid7.json", 0,
                    "expected a non-abstract class");
 
         /* Check that missing mandatory class fields, for classes having only
          * optional fields, is KO if this class is abstract (while it's ok if
          * it's not abstract, cf. test above).
          */
-        CHECK_FAIL(class_container2, "tstiop_inheritance_invalid8.json",
+        CHECK_FAIL(class_container2, "tstiop_inheritance_invalid8.json", 0,
                    "member `tstiop_inheritance.ClassContainer2:a3' is "
                    "missing");
+
+        /* Check that private classes cannot be unpacked if ask so.
+         */
+        CHECK_OK(c5, "tstiop_inheritance_invalid9.json");
+        Z_ASSERT(c5->__vptr == &tstiop_inheritance__c5__s);
+        CHECK_FAIL(c5, "tstiop_inheritance_invalid9.json",
+                   IOP_UNPACK_FORBID_PRIVATE,
+                   "a non-private child of `tstiop_inheritance.C5`");
+
+#undef CHECK_OK
 #undef CHECK_FAIL
     } Z_TEST_END
     /* }}} */
@@ -3796,6 +3828,7 @@ Z_GROUP_EXPORT(iop)
         tstiop_inheritance__c2__t *c2 = NULL;
         tstiop_inheritance__c3__t *c3 = NULL;
         tstiop_inheritance__a3__t *a3 = NULL;
+        tstiop_inheritance__c5__t *c5 = NULL;
 
 #define MAP(_filename)  \
         do {                                                                 \
@@ -3816,14 +3849,14 @@ Z_GROUP_EXPORT(iop)
             lstr_wipe(&file);                                                \
         } while (0)
 
-#define UNPACK_FAIL(_filename, _type, _err)  \
+#define UNPACK_FAIL(_filename, _type, _flags, _err)  \
         do {                                                                 \
             MAP(_filename);                                                  \
             Z_ASSERT_N(xmlr_setup(&xmlr_g, file.s, file.len));               \
-            Z_ASSERT_NEG(t_iop_xunpack_ptr(xmlr_g,                           \
+            Z_ASSERT_NEG(t_iop_xunpack_ptr_flags(xmlr_g,                     \
                                 &tstiop_inheritance__##_type##__s,           \
-                                (void **)&_type));                           \
-            Z_ASSERT(strstr(xmlr_get_err(), _err));                          \
+                                (void **)&_type, _flags));                   \
+            Z_ASSERT(strstr(xmlr_get_err(), _err), "%s", xmlr_get_err());    \
             lstr_wipe(&file);                                                \
         } while (0)
 
@@ -3851,33 +3884,42 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c3->c, 6);
 
         /* Test with fields in bad order */
-        UNPACK_FAIL("tstiop_inheritance_invalid1.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid1.xml", c2, 0,
                     "near /root/a: unknown tag <a>");
-        UNPACK_FAIL("tstiop_inheritance_invalid2.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid2.xml", c2, 0,
                     "near /root/b: missing mandatory tag <a2>");
 
         /* Test with an unknown field */
-        UNPACK_FAIL("tstiop_inheritance_invalid3.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid3.xml", c2, 0,
                     "near /root/toto: unknown tag <toto>");
 
         /* Test with a missing mandatory field */
-        UNPACK_FAIL("tstiop_inheritance_invalid4.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid4.xml", c2, 0,
                     "near /root: missing mandatory tag <a2>");
 
         /* Test with an unknown/incompatible class */
-        UNPACK_FAIL("tstiop_inheritance_invalid5.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid5.xml", c2, 0,
                     "near /root: class `tstiop_inheritance.Toto' not found");
-        UNPACK_FAIL("tstiop_inheritance_invalid6.xml", c2,
+        UNPACK_FAIL("tstiop_inheritance_invalid6.xml", c2, 0,
                     "near /root: class `tstiop_inheritance.C1' is not a "
                     "child of `tstiop_inheritance.C2'");
-        UNPACK_FAIL("tstiop_inheritance_invalid7.xml", a3,
+        UNPACK_FAIL("tstiop_inheritance_invalid7.xml", a3, 0,
                     "near /root: class `tstiop_inheritance.A3' is an "
                     "abstract class");
 
         /* 'xsi:type' is mandatory for abstract classes */
-        UNPACK_FAIL("tstiop_inheritance_invalid8.xml", a3,
+        UNPACK_FAIL("tstiop_inheritance_invalid8.xml", a3, 0,
                     "near /root: type attribute not found (mandatory for "
                     "abstract classes)");
+
+        /* Check that private classes cannot be unpacked if ask so.
+         */
+        UNPACK_OK("tstiop_inheritance_invalid9.xml", c5);
+        Z_ASSERT(c5->__vptr == &tstiop_inheritance__c5__s);
+        UNPACK_FAIL("tstiop_inheritance_invalid9.xml", c5,
+                   IOP_UNPACK_FORBID_PRIVATE,
+                   "class `tstiop_inheritance.C5` is private");
+
 #undef UNPACK_OK
 #undef UNPACK_FAIL
 #undef MAP

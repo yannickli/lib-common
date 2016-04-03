@@ -20,6 +20,8 @@ tstiop_SOURCES = tstiop.iop tstiop_inheritance.iop tstiop_licence.iop        \
                  tstiop_backward_compat_deleted_struct_2.iop                 \
                  tstiop_backward_compat_incompatible_struct_1.iop            \
                  tstiop_backward_compat_incompatible_struct_2.iop
+tstiop_inheritance.iop_IOPVER=-5
+
 endif
 
 include ../Build/base.mk

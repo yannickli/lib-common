@@ -18,8 +18,8 @@ package tstiop_inheritance;
 /*  +- A1 ---+           A2         A3 (abstract)
  *  |        |           |          |
  *  B1   +- B2 -+     +- B3 -+      B4
- *       |      |     |      |
- *       C1     C2   C3      C4
+ *       |      |     |      |      |
+ *       C1     C2   C3      C4     C5 (private)
  *       |
  *       D1
  */
@@ -96,6 +96,10 @@ abstract class A3 {
 class B4 : 1 : A3 {
     static int staticInt = 4;
     int b4 = 1;
+};
+
+@private
+class C5 : 2 : B4 {
 };
 
 /* --------------------------------- */
