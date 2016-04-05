@@ -7,6 +7,7 @@
 #endif
 
 #include "tstgen.iop.h"
+#include "pkg_a.iop.h"
 
 /* Enum tstgen.MyEnumA {{{ */
 
@@ -122,6 +123,14 @@ static iop_field_attrs_t const tstgen__my_struct_a__desc_fields_attrs[] = {
         .attrs_len         = 2,
         .attrs             = tstgen__my_struct_a__d1__attrs,
     },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
 };
 static iop_field_t const tstgen__my_struct_a__desc_fields[] = {
     {
@@ -152,10 +161,30 @@ static iop_field_t const tstgen__my_struct_a__desc_fields[] = {
         .u1        = { .defval_d = 1.00000000000000000e+02 },
         .size      = fieldsizeof(tstgen__my_struct_a__t, d1),
     },
+    {
+        .name      = LSTR_IMMED("weakRef1"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(tstgen__my_struct_a__t, weak_ref1),
+        .size      = sizeof(pkg_a__a__t),
+        .u1        = { .st_desc = &pkg_a__a__s },
+    },
+    {
+        .name      = LSTR_IMMED("weakRef2"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(tstgen__my_struct_a__t, weak_ref2),
+        .size      = sizeof(pkg_a__a__t),
+        .u1        = { .st_desc = &pkg_a__a__s },
+    },
 };
 static int const iop__ranges__2[] = {
     0, 1,
-    3,
+    5,
 };
 static const iop_struct_attr_t tstgen__my_struct_a__s_attrs[] = {
     {

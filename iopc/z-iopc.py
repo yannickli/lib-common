@@ -806,6 +806,7 @@ class IopcTest(z.TestCase):
         subprocess.call(['rm', '-f', g + '.iop.c'])
         self.run_iopc_pass(f + '.iop', 3)
         self.run_iopc_pass(f + '.iop', 4)
+        self.run_iopc_pass('pkg_a.iop', 4)
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
         self.check_ref(g + '-t', 'h')

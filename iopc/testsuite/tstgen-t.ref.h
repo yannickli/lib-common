@@ -4,6 +4,8 @@
 
 #include "tstgen-tdef.iop.h"
 
+#include "pkg_a-tdef.iop.h"
+
 extern iop_enum_t const tstgen__my_enum_a__e;
 IOP_ENUM(tstgen__my_enum_a);
 
@@ -15,6 +17,8 @@ struct tstgen__my_struct_a__t {
     int32_t  i;
     int32_t  j;
     double   d1;
+    struct pkg_a__a__t *weak_ref1;
+    struct pkg_a__a__t *weak_ref2;
 };
 extern iop_struct_t const tstgen__my_struct_a__s;
 IOP_GENERIC(tstgen__my_struct_a);

@@ -23,6 +23,8 @@ struct MyStructA {
     @(test:d1, 1.0e-2)
     @(test:d2, 1.0E+2)
     double d1 = 1.0e2;
+    pkg_a.A? weakRef1;
+    pkg_a.A? weakRef2;
 };
 
 @ctype(my_class_a__t)

@@ -1553,19 +1553,14 @@ get_ifaces_t_depends(iopc_pkg_t *pkg, qv_t(iopc_pkg) *t_deps,
 
 void iopc_depends_uniquify(qv_t(iopc_pkg) *deps)
 {
-    int w = 0, r = 0;
-
-    qv_sort(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1, iopc_pkg_t * const *p2) {
+    qv_sort(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1,
+                                  iopc_pkg_t * const *p2) {
         return CMP((intptr_t)*p1, (intptr_t)*p2);
     });
-    while (r < deps->len) {
-        iopc_pkg_t *m = deps->tab[r++];
-
-        deps->tab[w++] = m;
-        while (r < deps->len && deps->tab[r] == m)
-            r++;
-    }
-    deps->len = w;
+    qv_uniq(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1,
+                                  iopc_pkg_t * const *p2) {
+        return CMP((intptr_t)*p1, (intptr_t)*p2);
+    });
 
     /* XXX sort packages by name to sort in the same way on each computer */
     qv_sort(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1, iopc_pkg_t * const *p2) {
@@ -1623,6 +1618,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
     }
     iopc_depends_uniquify(t_deps);
     iopc_depends_uniquify(i_deps);
+    iopc_depends_uniquify(t_weak_deps);
 }
 
 /* {{{ Module */
