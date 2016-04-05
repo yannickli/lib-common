@@ -226,8 +226,35 @@ static void F(qhash_resize_do)(qhash_t *qh, qhash_hdr_t *old __F_PROTO)
         qhash_resize_done(qh);
 }
 
+void F(qhash_seal)(qhash_t *qh __F_PROTO)
+{
+#ifndef NDEBUG
+    e_assert(panic, qh->ghosts != UINT32_MAX, "hash table already sealed");
+#endif
+
+    /* Complete any pending resize. */
+    while (qh->old) {
+        F(qhash_resize_do)(qh, qh->old __F_ARGS);
+    }
+
+    /* Check for the need for a new resize. */
+    if (qh->ghosts || qhash_should_resize(qh)) {
+        qhash_resize_start(qh);
+        while (qh->old) {
+            F(qhash_resize_do)(qh, qh->old __F_ARGS);
+        }
+    }
+
+    qh->ghosts = UINT32_MAX;
+}
+
 int32_t F(qhash_get)(qhash_t *qh, uint32_t h, const key_t k __F_PROTO)
 {
+#ifndef NDEBUG
+    e_assert(panic, qh->ghosts != UINT32_MAX,
+             "unsafe find operation performed on a sealed hash table");
+#endif
+
     if (unlikely(qh->old != NULL)) {
         F(qhash_move_walk)(qh, qh->old, h __F_ARGS);
         F(qhash_resize_do)(qh, qh->old __F_ARGS);
@@ -248,15 +275,15 @@ int32_t F(qhash_safe_get)(const qhash_t *qh, uint32_t h, const key_t k __F_PROTO
 
 uint32_t F(__qhash_put)(qhash_t *qh, uint32_t h, const key_t k, uint32_t flags __F_PROTO)
 {
-    qhash_hdr_t *hdr = &qh->hdr;
     uint64_t pos, collision;
 
-    if (likely(qh->old == NULL)) {
-        if (unlikely((uint64_t)(hdr->len + qh->ghosts) * 3 >= (uint64_t)hdr->size * 2)
-        ||  unlikely(hdr->size > qh->minsize && hdr->len < hdr->size / 16))
-        {
-            qhash_resize_start(qh);
-        }
+#ifndef NDEBUG
+    e_assert(panic, qh->ghosts != UINT32_MAX,
+             "insert operation performed on a sealed hash table");
+#endif
+
+    if (qhash_should_resize(qh)) {
+        qhash_resize_start(qh);
     }
 
     if (unlikely(qh->old != NULL)) {

@@ -105,6 +105,8 @@ void qhash_clear(qhash_t *qh)
     __leaf;
 void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
     __leaf;
+void qhash_unseal(qhash_t *qh)
+    __leaf;
 void qhash_wipe(qhash_t *qh)
     __leaf;
 
@@ -131,6 +133,11 @@ static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
 {
     qhash_hdr_t *hdr = &qh->hdr;
     qhash_hdr_t *old = qh->old;
+
+#ifndef NDEBUG
+    e_assert(panic, qh->ghosts != UINT32_MAX,
+             "delete operation performed on a sealed hash table");
+#endif
 
     if (likely(qhash_slot_is_set(hdr, pos))) {
         qhash_slot_inv_flags(hdr->bits, pos);
@@ -174,6 +181,7 @@ int32_t  qhash_get32(qhash_t *qh, uint32_t h, uint32_t k)
     __leaf;
 uint32_t __qhash_put32(qhash_t *qh, uint32_t h, uint32_t k, uint32_t flags)
     __leaf;
+void qhash_seal32(qhash_t *qh);
 
 int32_t  qhash_safe_get64(const qhash_t *qh, uint32_t h, uint64_t k)
     __leaf;
@@ -181,6 +189,7 @@ int32_t  qhash_get64(qhash_t *qh, uint32_t h, uint64_t k)
     __leaf;
 uint32_t __qhash_put64(qhash_t *qh, uint32_t h, uint64_t k, uint32_t flags)
     __leaf;
+void qhash_seal64(qhash_t *qh);
 
 int32_t  qhash_safe_get_ptr(const qhash_t *qh, uint32_t h, const void *k,
                             qhash_khash_f *hf, qhash_kequ_f *equ);
@@ -189,6 +198,7 @@ int32_t  qhash_get_ptr(qhash_t *qh, uint32_t h, const void *k,
 uint32_t __qhash_put_ptr(qhash_t *qh, uint32_t h, const void *k,
                          uint32_t flags, qhash_khash_f *hf,
                          qhash_kequ_f *equ);
+void qhash_seal_ptr(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 int32_t  qhash_safe_get_vec(const qhash_t *qh, uint32_t h, const void *k,
                             qhash_khash_f *hf, qhash_kequ_f *equ);
@@ -197,6 +207,7 @@ int32_t  qhash_get_vec(qhash_t *qh, uint32_t h, const void *k,
 uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
                          uint32_t flags, qhash_khash_f *hf,
                          qhash_kequ_f *equ);
+void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 /* }}} */
 /*----- base macros to define QH's and QM's -{{{-*/
@@ -270,7 +281,13 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return qhash_safe_get##sfx(&qh->qh, h, key);                         \
     }
 
-#define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, iseqK) \
+#define __QH_SEAL(sfx, pfx, name)                                            \
+    __unused__                                                               \
+    static inline void pfx##_seal(pfx##_t *qh) {                             \
+        return qhash_seal##sfx(&qh->qh);                                     \
+    }                                                                        \
+
+#define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, iseqK)              \
     __unused__                                                               \
     static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
@@ -303,6 +320,15 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         return qhash_safe_get##sfx(&qh->qh, h, key,                          \
                                    (qhash_khash_f *)hf, (qhash_kequ_f *)ef); \
+    }
+
+#define __QH_SEAL2(sfx, pfx, name, ckey_t, key_t, hashK, iseqK)              \
+    __unused__                                                               \
+    static inline void pfx##_seal(pfx##_t *qh) {                             \
+        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
+        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
+        return qhash_seal##sfx(&qh->qh,                                      \
+                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);     \
     }
 
 /* }}} */
@@ -339,6 +365,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QH_IKEY(sfx, pfx, name, key_t)  \
     __QH_BASE(sfx, pfx, name, key_t, void, 0);                               \
     __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
+    __QH_SEAL(sfx, pfx, name);                                               \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
@@ -355,6 +382,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QH_PKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, key_t *, void, 0);                            \
     __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
+    __QH_SEAL2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
@@ -374,6 +402,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QH_VKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, key_t, void, 0);                              \
     __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
+    __QH_SEAL2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
@@ -489,6 +518,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QM_IKEY(sfx, pfx, name, key_t, val_t)  \
     __QH_BASE(sfx, pfx, name, key_t, val_t, sizeof(val_t));                  \
     __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
+    __QH_SEAL(sfx, pfx, name);                                               \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
@@ -515,6 +545,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QM_PKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, key_t *, val_t, sizeof(val_t));               \
     __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
+    __QH_SEAL2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
@@ -545,6 +576,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define __QM_VKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, key_t, val_t, sizeof(val_t));                 \
     __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
+    __QH_SEAL2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
     __unused__                                                               \
     static inline uint32_t                                                   \
     pfx##_reserve_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) {     \
@@ -724,6 +756,11 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
+/** \see qm_seal */
+#define qh_seal(name, qh)                   qh_##name##_seal(qh)
+#define qh_unseal(name, _qh)                                                 \
+    ({  qh_t(name) *__qh = (_qh);                                            \
+        qhash_unseal(&__qh->qh); })
 #define qh_wipe(name, qh)                   qh_##name##_wipe(qh)
 #define qh_clear(name, qh)                  qh_##name##_clear(qh)
 #define qh_find(name, qh, key)              qh_##name##_find(qh, key)
@@ -864,6 +901,22 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)
 #define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
+
+/** Force the compactness of the hash table, complete any unfinished resize
+ * operation and forbid further modifications.
+ *
+ * This is an optional operation which is mainly designed for big hash tables
+ * that will stay unmodified for a long time.
+ *
+ * The main advantage is that it gets rid of the old version of the table if
+ * there is a running resize, freeing some memory. Depending on the dataset,
+ * this may also reduce the CPU usage.
+ */
+#define qm_seal(name, qh)                   qm_##name##_seal(qh)
+#define qm_unseal(name, qh)                                                  \
+    ({  qm_t(name) *__qh = (_qh);                                            \
+        qhash_unseal(&__qh->qh); })
+
 #define qm_wipe(name, qh)                   qm_##name##_wipe(qh)
 #define qm_clear(name, qh)                  qm_##name##_clear(qh)
 #define qm_find(name, qh, key)              qm_##name##_find(qh, key)

@@ -40,6 +40,33 @@ static uint32_t qhash_get_size(uint64_t targetsize)
     return prime_list[b];
 }
 
+static bool qhash_should_resize(const qhash_t *qh)
+{
+    const qhash_hdr_t *hdr = &qh->hdr;
+
+    THROW_FALSE_IF(qh->old != NULL);
+
+    if (unlikely((uint64_t)(hdr->len + qh->ghosts) * 3 >=
+                 (uint64_t)hdr->size * 2))
+    {
+        return true;
+    }
+
+    if (unlikely(hdr->size > qh->minsize && hdr->len < hdr->size / 16)) {
+        return true;
+    }
+
+    return false;
+}
+
+void qhash_unseal(qhash_t *qh)
+{
+    if (expect(qh->ghosts == UINT32_MAX)) {
+        assert (!qh->old);
+        qh->ghosts = 0;
+    }
+}
+
 static void qhash_resize_start(qhash_t *qh)
 {
     qhash_hdr_t *hdr = &qh->hdr;
@@ -139,6 +166,11 @@ void qhash_wipe(qhash_t *qh)
 
 void qhash_clear(qhash_t *qh)
 {
+#ifndef NDEBUG
+    e_assert(panic, qh->ghosts != UINT32_MAX,
+             "tried to clear a sealed hash table");
+#endif
+
     if (qh->old) {
         mp_delete(qh->hdr.mp, &qh->old->bits);
         mp_delete(qh->hdr.mp, &qh->old);
