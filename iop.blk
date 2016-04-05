@@ -3672,7 +3672,7 @@ iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
         key.master = key.master->class_attrs->parent;
     }
 
-    return qm_get_def(class_name, &_G.env.classes_by_name, &key, NULL);
+    return qm_get_def_safe(class_name, &_G.env.classes_by_name, &key, NULL);
 }
 
 const iop_struct_t *
@@ -3691,7 +3691,7 @@ iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
         key.master = key.master->class_attrs->parent;
     }
 
-    return qm_get_def(class_id, &_G.env.classes_by_id, &key, NULL);
+    return qm_get_def_safe(class_id, &_G.env.classes_by_id, &key, NULL);
 }
 
 void iop_for_each_registered_classes(iop_for_each_class_b cb)
@@ -3828,7 +3828,7 @@ static int iop_register_class(const iop_struct_t *desc, iop_env_t *env,
 static int
 iop_class_check_parents_are_registered(const iop_struct_t *st,
                                        const iop_struct_t *master,
-                                       iop_env_t *env,
+                                       const iop_env_t *env,
                                        qh_t(cptr) *registered,
                                        sb_t *err)
 {
@@ -3851,7 +3851,7 @@ iop_class_check_parents_are_registered(const iop_struct_t *st,
             return 0;
         }
 
-        if (qm_find(class_id, &env->classes_by_id, &key) < 0) {
+        if (qm_find_safe(class_id, &env->classes_by_id, &key) < 0) {
             sb_setf(err, "class `%*pM` is not registered while its child "
                     "class `%*pM` is", LSTR_FMT_ARG(st->fullname),
                     LSTR_FMT_ARG(child->fullname));
@@ -3862,7 +3862,7 @@ iop_class_check_parents_are_registered(const iop_struct_t *st,
     return 0;
 }
 
-int iop_check_registered_classes(iop_env_t *env, sb_t *err)
+int iop_check_registered_classes(const iop_env_t *env, sb_t *err)
 {
     /* Check all the parent classes of the registered classes are also
      * registered. */
@@ -3965,9 +3965,9 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len, unsigned flags)
     }
 }
 
-static const void *iop_get_obj(qm_t(iop_objs) *qm, lstr_t name)
+static const void *iop_get_obj(const qm_t(iop_objs) *qm, lstr_t name)
 {
-    int32_t pos = qm_find(iop_objs, qm, &name);
+    int32_t pos = qm_find_safe(iop_objs, qm, &name);
     qv_t(cvoid) *vec;
 
     THROW_NULL_IF(pos < 0);
@@ -3975,7 +3975,7 @@ static const void *iop_get_obj(qm_t(iop_objs) *qm, lstr_t name)
     return vec->len ? vec->tab[0] : NULL;
 }
 
-const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, iop_env_t *env)
+const iop_pkg_t *iop_get_pkg_env(lstr_t pkgname, const iop_env_t *env)
 {
     return iop_get_obj(&env->pkgs_by_name, pkgname);
 }
