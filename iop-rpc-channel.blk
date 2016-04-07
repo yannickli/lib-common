@@ -899,7 +899,7 @@ ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
         switch (cmsg->cmsg_type) {
           case SCM_RIGHTS:
             *fdcp = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
-            *fdvp = acast(int, &CMSG_DATA(cmsg));
+            *fdvp = acast(int, CMSG_DATA(cmsg));
             break;
         }
     }
