@@ -133,6 +133,7 @@ void qhash_clear(qhash_t *qh)
         SET_BIT(qh->hdr.bits, 2 * size);
     }
     qh->hdr.len = 0;
+    qh->ghosts = 0;
 }
 
 uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
