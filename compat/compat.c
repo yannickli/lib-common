@@ -137,6 +137,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
 #include <errno.h>
 
 #include <stdlib.h>
+#include <fcntl.h>
 #ifdef __is_need_posix_fallocate
 int posix_fallocate(int fd, off_t offset, off_t len)
 {

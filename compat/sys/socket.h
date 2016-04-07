@@ -11,14 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef _UINT64_T
-#define _UINT64_T
+#ifndef IS_COMPAT_SYS_SOCKET_H
+#define IS_COMPAT_SYS_SOCKET_H
 
-#ifndef _UINTMAX_T
-# include <_types/_uintmax_t.h>
+#include_next <sys/socket.h>
+
+#ifdef __APPLE__
+#define s6_addr32  __u6_addr.__u6_addr32
 #endif
-
-typedef uintmax_t uint64_t;
-_Static_assert(sizeof(uint64_t) == 8, "invalid uint64_t");
 
 #endif

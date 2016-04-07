@@ -19,9 +19,6 @@
 
 #define MAP_ANONYMOUS  MAP_ANON
 
-extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
-                    int __flags);
-
 #elif defined(__MINGW) || defined(__MINGW32__)
 #include <unistd.h>
 #  define MAP_FAILED      ((void *) -1)

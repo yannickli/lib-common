@@ -11,14 +11,25 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef _UINT64_T
-#define _UINT64_T
+#ifndef IS_COMPAT_STRING_H
+#define IS_COMPAT_STRING_H
 
-#ifndef _UINTMAX_T
-# include <_types/_uintmax_t.h>
+#include_next <string.h>
+
+#ifdef __APPLE__
+
+/* Contrary to GNU's version that returns the haystack pointer in case the
+ * needle is empty, OS X version (while explicitly stating this function is a
+ * GNU extension...) returns NULL in that case. Ensure we rely on a
+ * consistent behavior for the function.
+ */
+#define memmem(a, a_len, b, b_len)  ({                                       \
+        const void *__a = (a);                                               \
+        size_t __b_len = (b_len);                                            \
+                                                                             \
+        __b_len ? (memmem)(__a, (a_len), (b), __b_len) : (void *)__a;        \
+    })
+
 #endif
-
-typedef uintmax_t uint64_t;
-_Static_assert(sizeof(uint64_t) == 8, "invalid uint64_t");
 
 #endif

@@ -11,14 +11,22 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef _UINT64_T
-#define _UINT64_T
+#ifndef IS_COMPAT_ASSERT_H
+#define IS_COMPAT_ASSERT_H
 
-#ifndef _UINTMAX_T
-# include <_types/_uintmax_t.h>
+#include_next <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#ifdef __APPLE__
+static inline void __assert_fail(const char *expr, const char *file,
+                                 int line, const char *func)
+{
+    fprintf(stderr, "assertion failure at %s (%s:%d): %s", func, file, line,
+            expr);
+    abort();
+}
 #endif
 
-typedef uintmax_t uint64_t;
-_Static_assert(sizeof(uint64_t) == 8, "invalid uint64_t");
-
 #endif
+

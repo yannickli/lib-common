@@ -93,122 +93,10 @@ static inline int fcntl (int __fd, int __cmd, ...)
 
 #elif defined(__APPLE__)
 
-#include <sys/syslimits.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-
-#define AT_FDCWD      -100
 #define O_DIRECT      0x200000
-#define AT_REMOVEDIR  1
 
 ssize_t fd_get_path(int fd, char buf[], size_t buf_len);
 
-static int get_path_at(int dirfd, const char *pathname,
-                       char buf[], size_t buf_len)
-{
-    if (*pathname == '/') {
-        buf[0] = '\0';
-        pathname++;
-    } else
-    if (dirfd == AT_FDCWD) {
-        getcwd(buf, buf_len);
-    } else {
-        if (fd_get_path(dirfd, buf, buf_len) < 0) {
-            return -1;
-        }
-    }
-
-    if (strlcat(buf, "/", buf_len) > buf_len) {
-        errno = ENAMETOOLONG;
-        return -1;
-    }
-    if (strlcat(buf, pathname, buf_len) > buf_len) {
-        errno = ENAMETOOLONG;
-        return -1;
-    }
-
-    return 0;
-}
-
-static inline
-int openat(int dirfd, const char *pathname, int flags, ...)
-{
-    int mode = 0;
-    char path[PATH_MAX];
-
-    if (get_path_at(dirfd, pathname, path, PATH_MAX) < 0) {
-        return -1;
-    }
-
-    if (flags & O_CREAT) {
-        va_list arg;
-
-        va_start(arg, flags);
-        mode = va_arg(arg, int);
-        va_end(arg);
-    }
-    return open(path, flags, mode);
-}
-
-static inline
-int unlinkat(int dirfd, const char *pathname, int flags)
-{
-    char path[PATH_MAX];
-
-    if (get_path_at(dirfd, pathname, path, PATH_MAX) < 0) {
-        return -1;
-    }
-    if (flags & AT_REMOVEDIR) {
-        return rmdir(path);
-    } else {
-        return unlink(path);
-    }
-}
-
-static inline
-int renameat(int olddirfd, const char *oldpath,
-             int newdirfd, const char *newpath)
-{
-    char oldp[PATH_MAX];
-    char newp[PATH_MAX];
-
-    if (get_path_at(olddirfd, oldpath, oldp, PATH_MAX) < 0
-    ||  get_path_at(newdirfd, newpath, newp, PATH_MAX) < 0)
-    {
-        return -1;
-    }
-    return rename(oldp, newp);
-}
-
-static inline
-int linkat(int olddirfd, const char *oldpath,
-           int newdirfd, const char *newpath, int flags)
-{
-    char oldp[PATH_MAX];
-    char newp[PATH_MAX];
-
-    if (get_path_at(olddirfd, oldpath, oldp, PATH_MAX) < 0
-    ||  get_path_at(newdirfd, newpath, newp, PATH_MAX) < 0)
-    {
-        return -1;
-    }
-    return link(oldp, newp);
-}
-
-static inline
-int mkdirat(int dirfd, const char *pathname, mode_t mode)
-{
-    char path[PATH_MAX];
-
-    if (get_path_at(dirfd, pathname, path, PATH_MAX) < 0) {
-        return -1;
-    }
-    return mkdir(path, mode);
-}
 
 #endif
 
@@ -219,7 +107,9 @@ int posix_fallocate(int fd, off_t offset, off_t len);
 #endif
 
 #ifndef __USE_ATFILE
+# ifndef AT_SYMLINK_NOFOLLOW
 #  define AT_SYMLINK_NOFOLLOW  0x100  /* Do not follow symbolic links. */
+# endif
 #endif
 
 #endif /* !IS_COMPAT_FCNTL_H */

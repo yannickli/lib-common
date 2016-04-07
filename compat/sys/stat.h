@@ -22,4 +22,10 @@ int fstatat(int dirfd, const char *pathname, struct stat *buf,
             int flags);
 #endif
 
+#ifdef __APPLE__
+#define st_atimensec  st_atimespec.tv_nsec
+#define st_mtimensec  st_mtimespec.tv_nsec
+#define st_ctimensec  st_ctimespec.tv_nsec
+#endif
+
 #endif /* !IS_COMPAT_SYS_STAT_H */

@@ -16,30 +16,7 @@
 
 #include_next <dirent.h>
 
-#if defined(__APPLE__)
-
-#include <sys/syslimits.h>
-#include <fcntl.h>
-
-static inline
-DIR *fdopendir(int dirfd)
-{
-    char path[PATH_MAX];
-    DIR *dir;
-
-    if (fd_get_path(dirfd, path, PATH_MAX) < 0) {
-        return NULL;
-    }
-    dir = opendir(path);
-    if (dir == NULL) {
-        return NULL;
-    }
-    close(dir->__dd_fd);
-    dir->__dd_fd = dirfd;
-    return dir;
-}
-
-#elif !defined(__GLIBC__)
+#if !defined(__GLIBC__) && !defined(__APPLE__)
 #define __is_need_dirfd
 int dirfd(DIR *dir);
 

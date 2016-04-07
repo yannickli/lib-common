@@ -310,9 +310,6 @@ int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
             return -1;
         }
     } else {
-#ifndef s6_addr32
-#define s6_addr32  __u6_addr.__u6_addr32
-#endif
         /* filter->family == AF_INET6 */
         for (int i = 3; i >= 0; i--) {
             if (filter->u.v6.addr.s6_addr32[i]

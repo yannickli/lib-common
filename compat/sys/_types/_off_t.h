@@ -11,14 +11,14 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef _UINT64_T
-#define _UINT64_T
+#ifndef _OFF_T
+#define _OFF_T
 
-#ifndef _UINTMAX_T
-# include <_types/_uintmax_t.h>
+#ifndef _SSIZE_T
+#include <sys/_types/_ssize_t.h>
 #endif
 
-typedef uintmax_t uint64_t;
-_Static_assert(sizeof(uint64_t) == 8, "invalid uint64_t");
+typedef ssize_t off_t;
+_Static_assert(sizeof(__darwin_off_t) == sizeof(off_t), "invalid off_t");
 
 #endif
