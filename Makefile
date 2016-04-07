@@ -32,7 +32,7 @@ core-version.c: scripts/version.sh FORCE
 	$< rcsid libcommon > $!$@+
 	$(call fun/update-if-changed,$!$@+,$@)
 
-_CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS)
+_CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS) $(valgrind_CFLAGS)
 _CFLAGS += $(if $(LIBCOMMON_REPOSITORY),-DLIBCOMMON_REPOSITORY)
 _LIBS    = -lz -lrt -ldl -lpthread
 _IOPCLASSRANGE = 1-499

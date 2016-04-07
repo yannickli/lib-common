@@ -12,8 +12,8 @@
 /**************************************************************************/
 
 #ifndef NDEBUG
-#  include <valgrind/valgrind.h>
-#  include <valgrind/memcheck.h>
+#  include <valgrind.h>
+#  include <memcheck.h>
 #else
 #  define VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(...) ((void)0)
 #  define VALGRIND_CREATE_MEMPOOL(...)           ((void)0)

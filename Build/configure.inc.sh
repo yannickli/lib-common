@@ -179,6 +179,8 @@ case "$OS" in
         ;;
 esac
 
+pkg_config_setvar "valgrind" "valgrind" "valgrind"
+
 # }}}
 # Python {{{
 

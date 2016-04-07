@@ -93,7 +93,7 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
     /* XXX valgrind does not support loading dso built with -g3, it fails with
      * "Warning: DWARF2 reader: Badly formed extended line op encountered"
      */
-    if (RUNNING_ON_VALGRIND) {
+    if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
         qv_append(cstr, &args, "-g");
     } else {
         qv_append(cstr, &args, "-g3");

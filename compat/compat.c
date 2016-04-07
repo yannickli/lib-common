@@ -195,3 +195,23 @@ int fstatat(int dir_fd, const char *pathname, struct stat *buf,
     return ret;
 }
 #endif
+
+#include <sys/mman.h>
+#ifdef __is_need_mremap_diverted
+#include <valgrind.h>
+#include <memcheck.h>
+
+void *
+mremap_diverted(void *old_address, size_t old_size, size_t new_size, int flags)
+{
+    void *mres;
+    mres = (mremap)(old_address, old_size, new_size, flags);
+
+    if (mres != MAP_FAILED) {
+        (void)VALGRIND_MAKE_MEM_NOACCESS(old_address, old_size);
+        (void)VALGRIND_MAKE_MEM_DEFINED(mres, new_size);
+    }
+
+    return mres;
+}
+#endif
