@@ -31,7 +31,9 @@ static struct {
     mem_pool_t *mp;
     qm_t(ic)    ics;
     qm_t(ic_hook_ctx) hook_ctxs;
+
     qv_t(lstr) traced_names;
+    qh_t(u32)  traced_cmds;
 
     /* Hook flow */
     ic_hook_ctx_t   *ic_hook_ctx;
@@ -120,6 +122,43 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc)
     }
 
     return false;
+}
+
+/* This function can return false positives, because several RPCs can have the
+ * same cmd... */
+static _Bool ic_cmd_is_traced(int cmd)
+{
+    static bool first_call = true;
+
+    if (unlikely(first_call)) {
+        /* XXX: The filling of _G.traced_cmds is done lazily because when
+         * ic_initialize is called, the IOP packages were likely not
+         * registered yet. */
+        iop_for_each_registered_pkgs(^(const iop_pkg_t *pkg) {
+            for (const iop_mod_t *const *m = pkg->mods; *m; m++) {
+                const iop_mod_t *mod = *m;
+
+                for (int ia = 0; ia < mod->ifaces_len; ia++) {
+                    const iop_iface_alias_t *iface_alias = mod->ifaces + ia;
+                    const iop_iface_t *iface = iface_alias->iface;
+
+                    iface = iface_alias->iface;
+                    for (int i = 0; i < iface->funs_len; i++) {
+                        const iop_rpc_t *rpc = &iface->funs[i];
+
+                        if (__ic_rpc_is_traced(iface, rpc)) {
+                            uint32_t rcmd = iface_alias->tag << 16 | rpc->tag;
+
+                            qh_add(u32, &_G.traced_cmds, rcmd);
+                        }
+                    }
+                }
+            }
+        });
+        first_call = false;
+    }
+
+    return qh_find(u32, &_G.traced_cmds, cmd & 0x7fff7fff) >= 0;
 }
 #endif
 
@@ -241,6 +280,7 @@ static int ic_initialize(void *arg)
     qm_init(ic, &_G.ics);
     qm_init(ic_hook_ctx, &_G.hook_ctxs);
     qv_init(lstr, &_G.traced_names);
+    qh_init(u32, &_G.traced_cmds);
     ic_read_tracing();
     return 0;
 }
@@ -248,6 +288,7 @@ static int ic_initialize(void *arg)
 static int ic_shutdown(void)
 {
     qv_deep_wipe(lstr, &_G.traced_names, lstr_wipe);
+    qh_wipe(u32, &_G.traced_cmds);
     qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
     qm_wipe(ic, &_G.ics);
     mem_fifo_pool_delete(&_G.mp);
@@ -1197,7 +1238,7 @@ static void ic_report_unimplemented_rpc(int cmd)
 static ALWAYS_INLINE void
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                       uint32_t flags, const void *data, int dlen,
-                      const ic_msg_t *unpacked_msg)
+                      const ic_msg_t * nullable unpacked_msg)
 {
     t_scope;
     const ic_cb_entry_t *e;
@@ -1207,7 +1248,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     ichannel_t *pxy;
     ic__hdr__t *pxy_hdr = NULL;
     bool take_pxy_hdr = false;
-    uint64_t query_slot = MAKE64(ic->id, slot | flags);
+    uint64_t query_slot;
     int pos;
 
     pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
@@ -1223,6 +1264,14 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     e = ic->impl->values + pos;
     st = e->rpc ? e->rpc->args : NULL;
 
+#ifndef NDEBUG
+    /* Flag as traced incoming queries that are not traced but should be in
+     * our process. */
+    if (!ic_slot_is_traced(slot, flags) && unlikely(ic_cmd_is_traced(cmd))) {
+        flags |= IC_MSG_IS_TRACED;
+    }
+#endif
+    query_slot = MAKE64(ic->id, slot | flags);
     ic_slot_trace(slot, flags, "received traced query");
 
     switch (e->cb_type) {
