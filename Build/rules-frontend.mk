@@ -124,7 +124,7 @@ $~$(3:ts=js): $3
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
-	echo -n "$~$(3:ts=js): " > $$@+
+	/bin/echo -n "$~$(3:ts=js): " > $$@+
 	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
@@ -147,7 +147,7 @@ $~$3: $3
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
-	echo -n "$~$3: " > $$@+
+	/bin/echo -n "$~$3: " > $$@+
 	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
@@ -177,7 +177,7 @@ $2: $~$3.js
 $~$3.js: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
-	echo -n "module.exports = " > $$@+
+	/bin/echo -n "module.exports = " > $$@+
 	cat $$< >> $$@+
 	$(MV) $$@+ $$@
 

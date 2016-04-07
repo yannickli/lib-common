@@ -15,7 +15,12 @@
 set -o pipefail
 
 where="$1"
-libcommondir=$(dirname "$(dirname "$(readlink -f "$0")")")
+if which greadlink &> /dev/null; then
+    readlink=greadlink
+else
+    readlink=readlink
+fi
+libcommondir=$(dirname "$(dirname "$($readlink -f "$0")")")
 shift
 BEHAVE_FLAGS="${BEHAVE_FLAGS:-}"
 
@@ -88,7 +93,7 @@ trap "rm $tmp $tmp2 $corelist" 0
 set_www_env() {
     case "$Z_TAG_SKIP" in *web*) return 0;; esac
 
-    productdir=$(readlink -e "$1")
+    productdir=$($readlink -e "$1")
     htdocs="$productdir"/www/htdocs/
     htdocs_target="all"
 

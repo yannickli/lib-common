@@ -34,6 +34,26 @@ define fun/bin-compress
 endef
 endif
 
+ifeq ($(OS),darwin)
+# fun/lib-link <OBJS>,<LIBS>
+fun/lib-link = \
+	$(addprefix -Wl$(var/comma)-force_load$(var/comma),$(filter %.wa,$1)) \
+	$(filter %.a,$1) \
+	$(filter-out -lrt,$2)
+
+# fun/soname <NAME>,<VERSION>
+fun/soname =
+else
+# fun/lib-link <OBJS>,<LIBS>
+fun/lib-link = \
+	-Wl,--whole-archive $(filter %.wa,$1) \
+	-Wl,--no-whole-archive $(filter %.a,$1) \
+	$2
+
+# fun/soname <NAME>,<VERSION>
+fun/soname = -Wl,-soname,$1$(if $2,.$2)
+endif
+
 #
 # extension driven rules
 #
@@ -202,105 +222,56 @@ endef
 #}}}
 #[ _SHARED_LIBRARIES ]################################################{{{#
 
-ifeq ($(OS),darwin)
 define rule/sharedlib
 tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),$$(word 1,$$($1_SOVERSION)))
-tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
+tmp/$1/build := $$(if $$(tmp/$1/sover),.$$(tmp/$1/sover))$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
 
-$(1DV)all:: $1$(var/sharedlibext)
-$1$(var/sharedlibext): $~$1$(var/sharedlibext)$$(tmp/$1/build) FORCE
+$(1DV)all:: $1.so
+$1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(NOLINK),:,chmod a-wx $$< && $(FASTCP) $$< $/$$@$$(tmp/$1/build))
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
 
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1$(var/sharedlibext)$$(tmp/$1/build),$$($1_SOURCES),.pic))
-$~$1$(var/sharedlibext)$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
-$~$1$(var/sharedlibext)$$(tmp/$1/build):
+$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
+$~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
+$~$1.so$$(tmp/$1/build): _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
+$~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,ld -o $$@ -arch x86_64 $$(filter %.o %.oo %.ld %.a,$$^)    \
-	    $$(addprefix -force_load ,$$(filter %.wa,$$^))              \
-	    -dylib -macosx_version_min 10.8                             \
-	    -lc $$(if $$(filter clang++,$$(_L)),-lstdc++)                \
-	    $(filter-out -lrt,$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)))
-	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1$(var/sharedlibext)))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-
-$(1DV)clean::
-	$(RM) $1$(var/sharedlibext)*
-endef
-else
-define rule/sharedlib
-tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),.$$(word 1,$$($1_SOVERSION)))
-tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
-
-$(1DV)all:: $1$(var/sharedlibext)
-$1$(var/sharedlibext): $~$1$(var/sharedlibext)$$(tmp/$1/build) FORCE
-	$$(if $$(NOLINK),:,chmod a-wx $$< && $(FASTCP) $$< $/$$@$$(tmp/$1/build))
-	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
-	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
-
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1$(var/sharedlibext)$$(tmp/$1/build),$$($1_SOURCES),.pic))
-$~$1$(var/sharedlibext)$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
-$~$1$(var/sharedlibext)$$(tmp/$1/build):
-	$(msg/LINK.c) $$(@R)
+	-$(RM) $$@
 	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.oo,$$^) \
-	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
-	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
-	    -Wl,--whole-archive $$(filter %.wa,$$^) \
-	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
-		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS) \
-	    -Wl,-soname,$(1F)$(var/sharedlibext)$$(tmp/$1/sover))
-	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1$(var/sharedlibext)))
+	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) $$(LDSHAREDFLAGS) \
+	    $$(call fun/lib-link,$$^,$$(_LIBS)) \
+	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
+	    $(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
+	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
 $(1DV)clean::
-	$(RM) $1$(var/sharedlibext)*
+	$(RM) $1.so*
 endef
-endif
 
 #}}}
 #[ _PROGRAMS ]########################################################{{{#
 
-ifeq ($(OS),darwin)
-define rule/exe
-$1$(EXEEXT): $~$1.exe FORCE
-	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
-
-$(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES),$4))
-$~$1.exe:
-	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,ld -o $$@ $$(filter %.o %.oo %.ld %.a,$$^)    \
-	    $$(addprefix -force_load ,$$(filter %.wa,$$^))              \
-	    -e main -macosx_version_min 10.8                             \
-	    -lc $$(if $$(filter clang++,$$(_L)),-lstdc++)                \
-	    $(filter-out -lrt,$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-$(1DV)clean::
-	$(RM) $1$(EXEEXT)
-endef
-else
 define rule/exe
 $1$(EXEEXT): $~$1.exe FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES),$4))
 $~$1.exe: _L=$(or $($1_LINKER),$(CC))
+$~$1.exe: _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
-	    -o $$@ $$(filter %.o %.oo %.ld,$$^) \
+	    -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
-	    -Wl,--whole-archive $$(filter %.wa,$$^) \
-	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
-		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS))
+		$$(call fun/lib-link,$$^,$$(_LIBS)) \
+		$$(if $$(filter clang++,$$(_L)),-lstdc++))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
-endif
 
 define rule/program
 $(1DV)all:: $1$(EXEEXT)

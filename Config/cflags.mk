@@ -11,9 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-ifneq ($(OS),darwin)
-LDFLAGS := -Wl,--as-needed
-endif
 ifeq (,$(NOCOMPRESS))
 ifneq (,$(shell ld --help | grep compress-debug-sections))
     LDFLAGS += -Wl,--compress-debug-sections=zlib
@@ -23,6 +20,8 @@ endif
 ifeq ($(OS),darwin)
 	CC_BASE  := clang
 	CXX_BASE := clang++
+	LDFLAGS  := -Wl,-arch,x86_64 -Wl,-macosx_version_min,10.11.0
+	LDSHAREDFLAGS := -Wl,-undefined,dynamic_lookup
 else
 ifeq ($(filter %-analyzer,$(CC)),)
 	CC_BASE  := $(notdir $(CC))
@@ -40,30 +39,30 @@ CXX_FULL := $(shell which "$(CXX)")
 
 $!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
 	$(RM) $@
-	echo -n "CLANGFLAGS := "                      >  $@+
+	/bin/echo -n "CLANGFLAGS := "                      >  $@+
 	$(var/cfgdir)/cflags.sh "clang"               >> $@+
 	echo                                          >> $@+
-	echo -n "CLANGXXFLAGS := "                    >> $@+
+	/bin/echo -n "CLANGXXFLAGS := "                    >> $@+
 	$(var/cfgdir)/cflags.sh "clang++"             >> $@+
 	echo                                          >> $@+
-	echo -n "CLANGREWRITEFLAGS := "               >> $@+
+	/bin/echo -n "CLANGREWRITEFLAGS := "               >> $@+
 	$(var/cfgdir)/cflags.sh "clang" "rewrite"     >> $@+
 	echo                                          >> $@+
-	echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
+	/bin/echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
 	$(var/cfgdir)/cflags.sh "clang++" "rewrite"   >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
 $!cc-$(CC_BASE)-flags.mk: $(CC_FULL) $(var/cfgdir)/cflags.sh
 	$(RM) $@
-	echo -n "CFLAGS := "                          >  $@+
+	/bin/echo -n "CFLAGS := "                          >  $@+
 	$(var/cfgdir)/cflags.sh "$(CC)"               >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
 $!cxx-$(CXX_BASE)-flags.mk: $(CXX_FULL) $(var/cfgdir)/cflags.sh
 	$(RM) $@
-	echo -n "CXXFLAGS := "                        >  $@+
+	/bin/echo -n "CXXFLAGS := "                        >  $@+
 	$(var/cfgdir)/cflags.sh "$(CXX)"              >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@

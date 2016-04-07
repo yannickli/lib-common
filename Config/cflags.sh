@@ -2,7 +2,11 @@
 
 cc="$1"
 version=$("$cc" -dumpversion)
-clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
+if [ "$OS" = "darwin" ]; then
+    clang_version="3.7.0"
+else
+    clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
+fi
 
 prereq() {
     want="$1"
@@ -34,6 +38,9 @@ gcc_prereq()
 
 is_clang()
 {
+    if [ "$OS" = "darwin" ]; then
+        return 0
+    fi
     case "$cc" in
         clang*|*c*-analyzer) return 0;;
         *) return 1;;

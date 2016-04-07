@@ -28,7 +28,7 @@ static inline void *mempcpy(void *dst, const void *src, size_t n) {
 
 static inline void *memrchr(const void *s, int c, size_t n)
 {
-    const uint8_t *start = s;
+    const uint8_t *start = (const uint8_t *)s;
     const uint8_t *end   = start + n;
 
     while (end > start) {

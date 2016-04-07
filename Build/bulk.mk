@@ -81,12 +81,6 @@ var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
 var/js         = $(foreach v,$(filter %_JS,$(.VARIABLES)),$($v))
 var/wwwmodules = $(foreach v,$(filter %_WWWMODULES,$(.VARIABLES)),$($v))
 
-ifeq ($(OS),darwin)
-var/sharedlibext = .dylib
-else
-var/sharedlibext = .so
-endif
-
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
@@ -107,7 +101,7 @@ distclean::
 	$(call fun/expand-if2,$(RM),$(var/jars))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
-	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=$(var/sharedlibext)*))
+	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
 	$(msg/rm) "build system"
 	$(RM) -r $~
@@ -293,7 +287,7 @@ ignore:
 	$(foreach v,$(var/datas),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/docs),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
-	$(foreach v,$(var/sharedlibs:=$(var/sharedlibext)),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
+	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
 
 watch:
 	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile)
@@ -314,7 +308,7 @@ ifeq (,$(findstring p,$(MAKEFLAGS)))
 $(sort $(var/generated) $(var/datas)) \
 $(var/docs)                   \
 $(var/programs:=$(EXEEXT))    \
-$(var/sharedlibs:=$(var/sharedlibext))        \
+$(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
 $(var/staticlibs:=.pic.a)     \
 $(var/staticlibs:=.wa)        \

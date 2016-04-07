@@ -49,7 +49,7 @@
 #endif
 
 #ifdef OS_APPLE
-# define SO_FILEEXT  ".dylib"
+# define SO_FILEEXT  ".so"
 #endif
 
 #ifndef SO_FILEEXT
