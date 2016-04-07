@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = libcommon python time-lp-simple
+none_LIBRARIES = libcommon python
 python_SHARED_LIBRARIES += common
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
@@ -178,11 +178,6 @@ libcommon_SOURCES = \
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
-# time-lp-simple.a still needs to be generated because submodules are
-# linking to it, when these submodules will be updated this line should
-# be removed
-time-lp-simple_SOURCES = time-lp-simple.c
-
 python_SOURCES = python-common.c
 python_CFLAGS = $(python2_CFLAGS) -Wno-strict-aliasing
 python_LIBS = $(python2_LIBS)
@@ -249,19 +244,19 @@ ztst-httpd_SOURCES = \
 ztst-httpd_LIBS = $(libxml2_LIBS)
 endif
 
-ztst-tpl_SOURCES = ztst-tpl.c libcommon.a time-lp-simple.a
+ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 
-ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a time-lp-simple.a
+ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a
 
 ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
-ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a time-lp-simple.a
+ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
 
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
-ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a time-lp-simple.a
+ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 
-ztst-lzo_SOURCES = ztst-lzo.c libcommon.a time-lp-simple.a
+ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
 
-ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a time-lp-simple.a
+ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \

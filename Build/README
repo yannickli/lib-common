@@ -20,8 +20,7 @@ Makefiles are standard Makefiles in which you can define variables as you
 could do in any Makefile:
 +
 ----------------------------------
-libs = libcommon.a \
-       time-lp-simple.a
+libs = libcommon.a
 ----------------------------------
 
 By default, variables are file local and can only be used in the current
