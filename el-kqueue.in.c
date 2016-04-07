@@ -28,6 +28,11 @@ static struct {
     .kq = -1
 };
 
+static void el_fd_at_fork(void)
+{
+    kqueue_g.kq = -1;
+}
+
 static void el_fd_initialize(void)
 {
     if (unlikely(kqueue_g.kq == -1)) {
@@ -158,11 +163,6 @@ static void el_loop_fds(int timeout)
     int res;
     struct timeval now;
     ev_priority_t prio = EV_PRIORITY_LOW;
-
-    struct timespec ts = {
-        .tv_sec  = timeout / 1000,
-        .tv_nsec = (timeout % 1000) * 1000
-    };
 
     el_loop_fds_poll(timeout);
 

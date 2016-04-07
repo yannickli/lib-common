@@ -788,7 +788,7 @@ static void log_add_timestamp(sb_t *sb)
         struct timeval tv;
 
         lp_gettv(&tv);
-        sb_addf(sb, "%ld.%02ld ", tv.tv_sec, tv.tv_usec / 10000);
+        sb_addf(sb, "%ld.%02ld ", tv.tv_sec, (long)tv.tv_usec / 10000);
     }
 }
 

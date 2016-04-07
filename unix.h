@@ -148,7 +148,7 @@ typedef struct linux_dirent_t {
 typedef struct dirent linux_dirent_t;
 
 #define D_TYPE(ld)  ((ld)->d_type)
-#define D_SET_TYPE(ld, type) ((ld)->type = type
+#define D_SET_TYPE(ld, type) ((ld)->d_type = type)
 
 #endif
 

@@ -20,6 +20,10 @@
 #include "log.h"
 #include "el.h"
 
+#ifdef __APPLE__
+# include <crt_externs.h>
+#endif
+
 static pthread_mutex_t big_lock_g;
 static bool use_big_lock_g = false;
 struct rlimit fd_limit_g;
@@ -626,7 +630,11 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
         if (envp) {
             /* XXX we cannot use execvpe which appeared in glibc 2.11 since
              * centos 5 only has gblic 2.5 */
+#ifdef __APPLE__
+            *_NSGetEnviron() = (char **)envp;
+#else
             environ = (char **)envp;
+#endif
         }
         execvp(file, (char **)argv);
         logger_fatal(&_G.logger, "unable to execute `%s`: %m", file);
@@ -1574,11 +1582,13 @@ static int writeall(el_t el, int fd, short ev, data_t priv)
     return 0;
 }
 
+#ifdef HAVE_SYS_INOTIFY_H
 static void fs_notify(el_t el, uint32_t event, uint32_t cookie,
                       lstr_t name, data_t data)
 {
     (*(int *)data.ptr)++;
 }
+#endif
 
 static int z_spawn_child(void)
 {
@@ -1721,11 +1731,6 @@ Z_GROUP_EXPORT(el)
 
         el_fs_watch_unregister(&watch);
     } Z_TEST_END;
-#endif
-
-    Z_TEST(spawn_child, "el: spawn child") {
-        Z_HELPER_RUN(z_spawn_child());
-    } Z_TEST_END;
 
     Z_TEST(fs_watch_delete, "el: inotify file unregister handling") {
         t_scope;
@@ -1771,6 +1776,11 @@ Z_GROUP_EXPORT(el)
         el_fs_watch_unregister(&dummy_watch);
         el_loop_timeout(100);
         Z_ASSERT_EQ(dummy_called, 0);
+    } Z_TEST_END;
+#endif
+
+    Z_TEST(spawn_child, "el: spawn child") {
+        Z_HELPER_RUN(z_spawn_child());
     } Z_TEST_END;
 } Z_GROUP_END;
 

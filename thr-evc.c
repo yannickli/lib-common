@@ -156,7 +156,7 @@ void thr_ec_wipe(thr_evc_t *ec)
 static void thr_ec_wait_cleanup(void *arg)
 {
     thr_evc_t *ec = arg;
-    atomic_sub(&ec->waiters, 1);
+    atomic_fetch_sub(&ec->waiters, 1);
 }
 
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
@@ -184,7 +184,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
         ts.tv_nsec = (usec % 1000000) * 1000;
     }
 
-    atomic_add(&ec->waiters, 1);
+    atomic_fetch_add(&ec->waiters, 1);
     pthread_cleanup_push(&thr_ec_wait_cleanup, ec);
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &canceltype);
 
@@ -210,10 +210,9 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
-    atomic_add(&ec->key, 1);
+    atomic_fetch_add(&ec->key, 1);
 
-    if (atomic_get_and_add(&ec->waiters, 0)) {
-        mb();
+    if (atomic_fetch_add(&ec->waiters, 0)) {
         if (count == INT_MAX) {
             pthread_cond_broadcast(&ec->cond);
         } else {

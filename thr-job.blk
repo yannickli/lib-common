@@ -894,7 +894,11 @@ static int thr_initialize(void *arg)
          * thread in 7 micro-seconds while a pipe wake up the main thread in
          * 11 micro-seconds)
          */
+#ifdef __linux__
         _G.efd = eventfd(0, O_NONBLOCK | O_CLOEXEC);
+#else
+        _G.efd = -1;
+#endif
         if (_G.efd >= 0) {
             _G.eventel = el_fd_register(_G.efd, POLLIN, &thr_event, NULL);
             _G.use_eventfd = true;

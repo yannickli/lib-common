@@ -24,8 +24,11 @@ int bindx(int sock, const sockunion_t *, int cnt,
           int type, int proto, int flags);
 int listenx(int sock, const sockunion_t *, int cnt,
             int type, int proto, int flags);
-int connectx(int sock, const sockunion_t *, int cnt,
-             int type, int proto, int flags);
+int isconnectx(int sock, const sockunion_t *, int cnt,
+               int type, int proto, int flags);
+#define connectx(sock, su, cnt, type, proto, flags)  \
+    isconnectx((sock), (su), (cnt), (type), (proto), (flags))
+
 /** Connect using a specified src
  *
  * \param[in]   sock    a file descriptor for the socket, a negative value to

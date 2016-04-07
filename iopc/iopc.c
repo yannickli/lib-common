@@ -214,7 +214,7 @@ int main(int argc, char **argv)
     _G.v3 |= _G.v4;
     _G.v2 |= _G.v3;
 
-    _G.prefix_dir     = get_current_dir_name();
+    _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
     _G.display_prefix = true;
 
     log_set_handler(&iopc_log_handler);

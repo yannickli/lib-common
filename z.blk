@@ -518,7 +518,7 @@ static void do_skip(void)
     _G.grp.t_skipped++;
     printf("%*d skip %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
            _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec,
+           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
            LSTR_FMT_ARG(_G.grp.t_skip_reason));
     fflush(stdout);
 }
@@ -528,7 +528,8 @@ static void do_passed(void)
     _G.grp.t_passed++;
     printf("%*d pass %*pM\t# (%ld.%06lds) %d assertions\n",
            _G.grp.n_total_digits, _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec, _G.grp.t_asserts);
+           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
+           _G.grp.t_asserts);
     fflush(stdout);
 }
 
@@ -537,7 +538,7 @@ static void do_failed(void)
     _G.grp.t_failed++;
     printf("%*d fail %*pM # (%ld.%06lds)\n", _G.grp.n_total_digits,
            _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name), _G.grp.tv_diff.tv_sec,
-           _G.grp.tv_diff.tv_usec);
+           (long)_G.grp.tv_diff.tv_usec);
     do_fail_comment();
 }
 
@@ -546,7 +547,7 @@ static void do_todo_passed(void)
     _G.grp.t_todo_passed++;
     printf("%*d todo-pass %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
            _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),  _G.grp.tv_diff.tv_sec,
-           _G.grp.tv_diff.tv_usec, LSTR_FMT_ARG(_G.grp.t_todo_reason));
+           (long)_G.grp.tv_diff.tv_usec, LSTR_FMT_ARG(_G.grp.t_todo_reason));
 }
 
 static void do_todo_failed(void)
@@ -554,7 +555,7 @@ static void do_todo_failed(void)
     _G.grp.t_todo_failed++;
     printf("%*d todo-fail %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
            _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, _G.grp.tv_diff.tv_usec,
+           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
            LSTR_FMT_ARG(_G.grp.t_todo_reason));
     do_fail_comment();
 }

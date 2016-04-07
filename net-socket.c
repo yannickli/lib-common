@@ -105,8 +105,8 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
     return sock;
 }
 
-int connectx(int sock, const sockunion_t *addrs, int cnt, int type,
-             int proto, int flags)
+int isconnectx(int sock, const sockunion_t *addrs, int cnt, int type,
+               int proto, int flags)
 {
     return connectx_as(sock, addrs, cnt, NULL, type, proto, flags);
 }

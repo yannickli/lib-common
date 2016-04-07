@@ -1127,7 +1127,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
         return NULL;
     }
     if (fstat(fd, &st) < 0 || st.st_size != QPS_MAP_SIZE) {
-        logger_error(&_G.logger, "[%p:%s] invalid size %#zx", qps, buf,
+        logger_error(&_G.logger, "[%p:%s] invalid size %#jx", qps, buf,
                      st.st_size);
         goto err_close;
     }

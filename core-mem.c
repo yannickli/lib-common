@@ -336,8 +336,6 @@ extern const char libcommon_git_revision[];
 __attribute__((constructor))
 static void core_versions_initialize(void)
 {
-    int cache_line_size = 0;
-
     core_push_version(false, "lib-common", LIB_COMMON_VERSION,
                       libcommon_git_revision);
 
@@ -347,10 +345,27 @@ static void core_versions_initialize(void)
     }
 
     /* check cache line */
-    cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
-    if (cache_line_size && cache_line_size != CACHE_LINE_SIZE) {
-        e_panic("Cache line is different from defined CACHELINE");
+#ifdef __APPLE__
+    {
+        size_t cache_line_size = 0;
+        size_t sizeof_line_size = sizeof(cache_line_size);
+
+        sysctlbyname("hw.cachelinesize", &cache_line_size, &sizeof_line_size,
+                     0, 0);
+
+        if (cache_line_size && cache_line_size != CACHE_LINE_SIZE) {
+            e_panic("Cache line is different from defined CACHELINE");
+        }
     }
+#else
+    {
+        int cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+
+        if (cache_line_size && cache_line_size != CACHE_LINE_SIZE) {
+            e_panic("Cache line is different from defined CACHELINE");
+        }
+    }
+#endif
 }
 
 /*}}} */

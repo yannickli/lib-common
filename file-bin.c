@@ -176,11 +176,20 @@ int file_bin_refresh(file_bin_t *file)
         return 0;
     }
 
+    assert (file->map || file->length == 0);
+#ifdef __linux__
     if (file->map) {
         new_map = mremap(file->map, file->length, st.st_size, MREMAP_MAYMOVE);
+    }
+#else
+    if (file->map) {
+        munmap(file->map, file->length);
+        file->map = NULL;
+        new_map = NULL;
+    }
+#endif
 
-    } else {
-        assert (file->length == 0);
+    if (!file->map) {
         parse_header = true;
         new_map = mmap(NULL, st.st_size, PROT_READ,
                        MAP_SHARED, fileno(file->f), 0);
@@ -380,7 +389,7 @@ static int _file_bin_get_next_record(file_bin_t *file, lstr_t *rec)
 
         if (tmp_size != check_slot_hdr - file->cur) {
             logger_error(&_G.logger, "buggy slot header in file '%*pM', "
-                         "expected %ld, got %u, jumping to next slot",
+                         "expected %jd, got %u, jumping to next slot",
                          LSTR_FMT_ARG(file->path), check_slot_hdr - file->cur,
                          tmp_size);
             goto error;
@@ -546,7 +555,8 @@ int file_bin_truncate(file_bin_t *file, off_t pos)
 
     if (xftruncate(fileno(file->f), pos) < 0) {
         return logger_error(&_G.logger, "cannot truncate file '%*pM' at pos "
-                            "%jd: %m", LSTR_FMT_ARG(file->path), pos);
+                            "%jd: %m", LSTR_FMT_ARG(file->path),
+                            (int64_t)pos);
     }
 
     file->cur = MIN(file->cur, pos);

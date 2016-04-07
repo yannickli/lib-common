@@ -895,11 +895,11 @@ parse_constant_integer(iopc_parser_t *pp, int paren, uint64_t *res,
                                         tk->i_is_signed) < 0)
             {
                 if (tk->i_is_signed) {
-                    throw_loc("error when feeding the constant folder with `%"
-                              PRIi64"'", tk->loc, (int64_t)tk->i);
+                    throw_loc("error when feeding the constant folder with "
+                              "`%jd'", tk->loc, tk->i);
                 } else {
-                    throw_loc("error when feeding the constant folder with `%"
-                              PRIu64"'", tk->loc, tk->i);
+                    throw_loc("error when feeding the constant folder with "
+                              "`%ju'", tk->loc, tk->i);
                 }
             }
             break;
