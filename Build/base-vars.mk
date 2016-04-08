@@ -141,6 +141,11 @@ endif
 #
 FASTCP := ln -f
 MV     := mv -f
+INSTALL=$(shell which ginstall)
+ifeq ($(INSTALL),)
+	INSTALL=install
+endif
+
 
 ##########################################################################
 # Load our build profile
