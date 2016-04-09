@@ -21,6 +21,7 @@ IOPC = os.path.join(SELF_PATH, 'iopc')
 
 import z
 import subprocess
+import platform
 
 @z.ZGroup
 class IopcTest(z.TestCase):
@@ -123,6 +124,9 @@ class IopcTest(z.TestCase):
                     '-I' + os.path.join(SELF_PATH, '../lib-common/compat'),
                     '-I' + os.path.join(SELF_PATH, '..'),
                     os.path.join(TEST_PATH, iop + '.c') ]
+        if platform.system() == 'Darwin':
+            gcc_args.append('-Wno-nullability-completeness')
+
         gcc_p = subprocess.Popen(gcc_args)
         self.assertIsNotNone(gcc_p)
         gcc_p.wait()
