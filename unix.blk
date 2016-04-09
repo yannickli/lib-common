@@ -411,8 +411,6 @@ static int list_dir_set_dirent_type(const char *path, unsigned flags,
     return 0;
 }
 
-#if defined(__linux__)
-
 typedef struct st_file_t {
     dev_t st_dev;
     ino_t st_ino;
@@ -432,6 +430,52 @@ st_file_equal(const qhash_t *qh, const st_file_t *f1, const st_file_t *f2)
 qh_kvec_t(st_file, st_file_t, st_file_hash, st_file_equal);
 
 static int __list_dir(const char *path, unsigned flags,
+                      qh_t(st_file) *files_seen, on_file_b on_file);
+
+static int list_dir_on_entry(const char *path, unsigned flags,
+                             qh_t(st_file) *files_seen, linux_dirent_t *de,
+                             int *total, on_file_b on_file)
+{
+    int res;
+    struct stat stat_buf;
+
+    if (list_dir_set_dirent_type(path, flags, &stat_buf, de) < 0) {
+        return 0;
+    }
+
+    if (flags & LIST_DIR_FOLLOW_SYMLINK) {
+        st_file_t st_file;
+
+        p_clear(&st_file, 1);
+        st_file.st_dev = stat_buf.st_dev;
+        st_file.st_ino = stat_buf.st_ino;
+
+        if (qh_add(st_file, files_seen, &st_file) < 0) {
+            /* This file was already seen, skip it. */
+            return 0;
+        }
+    }
+
+    if (D_TYPE(de) == DT_DIR && (flags & LIST_DIR_RECUR)) {
+        res = __list_dir(path, flags, files_seen, on_file);
+        if (res < 0) {
+            return -1;
+        }
+        *total += res;
+    }
+
+    (*total)++;
+    if (on_file) {
+        res = on_file(path, de);
+        if (res < 0) {
+            return -1;
+        }
+    }
+    return 0;
+}
+#if defined(__linux__)
+
+static int __list_dir(const char *path, unsigned flags,
                       qh_t(st_file) *files_seen, on_file_b on_file)
 {
 #define LIST_DIR_BUF_SIZE   1024 * 1024 * 5
@@ -446,7 +490,6 @@ static int __list_dir(const char *path, unsigned flags,
         for (int i = 0; i < nread;) {
             linux_dirent_t *de = (linux_dirent_t *)(buf + i);
             char tmp_path[PATH_MAX];
-            struct stat stat_buf;
 
             i += de->d_reclen;
 
@@ -455,40 +498,11 @@ static int __list_dir(const char *path, unsigned flags,
             }
 
             snprintf(tmp_path, sizeof(tmp_path), "%s/%s", path, de->d_name);
-            if (list_dir_set_dirent_type(tmp_path, flags, &stat_buf, de) < 0)
-            {
-                continue;
-            }
+            tmp_res = list_dir_on_entry(tmp_path, flags, files_seen,
+                                        de, &total, on_file);
 
-            if (flags & LIST_DIR_FOLLOW_SYMLINK) {
-                st_file_t st_file;
-
-                p_clear(&st_file, 1);
-                st_file.st_dev = stat_buf.st_dev;
-                st_file.st_ino = stat_buf.st_ino;
-
-                if (qh_add(st_file, files_seen, &st_file) < 0) {
-                    /* This file was already seen, skip it. */
-                    continue;
-                }
-            }
-
-            if (D_TYPE(de) == DT_DIR && (flags & LIST_DIR_RECUR)) {
-                tmp_res = __list_dir(tmp_path, flags, files_seen, on_file);
-                if (tmp_res < 0) {
-                    goto error;
-                }
-
-                total += tmp_res;
-            }
-
-            total++;
-
-            if (on_file) {
-                tmp_res = on_file(path, de);
-                if (tmp_res < 0) {
-                    goto error;
-                }
+            if (tmp_res < 0) {
+                goto error;
             }
         }
     }
@@ -505,6 +519,43 @@ static int __list_dir(const char *path, unsigned flags,
 #undef LIST_DIR_BUF_SIZE
 }
 
+#else
+
+static int __list_dir(const char *path, unsigned flags,
+                      qh_t(st_file) *files_seen, on_file_b on_file)
+{
+    DIR *dir = RETHROW_PN(opendir(path));
+    struct dirent *dirent = p_new_extra(struct dirent, PATH_MAX);
+    struct dirent *de;
+    int res = 0;
+    int total = 0;
+
+    while ((res = readdir_r(dir, dirent, &de)) == 0 && de != NULL) {
+        lstr_t name = LSTR_INIT(de->d_name, de->d_namlen);
+        char tmp_path[PATH_MAX];
+
+        if (lstr_equal(name, LSTR(".")) || lstr_equal(name, LSTR(".."))) {
+            continue;
+        }
+
+        snprintf(tmp_path, sizeof(tmp_path), "%s/%*pM",
+                 path, LSTR_FMT_ARG(name));
+
+        res = list_dir_on_entry(tmp_path, flags, files_seen, de,
+                                &total, on_file);
+
+        if (res < 0) {
+            break;
+        }
+    }
+
+    p_delete(&dirent);
+    closedir(dir);
+    return res < 0 ? -1 : total;
+}
+
+#endif
+
 int list_dir(const char *path, unsigned flags, on_file_b on_file)
 {
     int res;
@@ -516,50 +567,6 @@ int list_dir(const char *path, unsigned flags, on_file_b on_file)
 
     return res;
 }
-
-#else
-
-int list_dir(const char *path, unsigned flags, on_file_b on_file)
-{
-    DIR *dir = RETHROW_PN(opendir(path));
-    struct dirent *dirent = p_new_extra(struct dirent, PATH_MAX);
-    struct dirent *de;
-    int res = 0;
-    int total = 0;
-
-    while ((res = readdir_r(dir, dirent, &de)) == 0 && de != NULL) {
-        int len;
-        char tmp_path[PATH_MAX];
-        struct stat stat_buf;
-
-        len = snprintf(tmp_path, sizeof(tmp_path), "%s/%*pM",
-                       path, de->d_namlen, de->d_name);
-        if (list_dir_set_dirent_type(tmp_path, flags, &stat_buf, de) < 0) {
-            break;
-        }
-        if (D_TYPE(de) == DT_DIR && (flags & LIST_DIR_RECUR)) {
-            res = list_dir(tmp_path, flags, on_file);
-            if (res < 0) {
-                break;
-            }
-            total += res;
-        }
-
-        total++;
-        if (on_file) {
-            res = on_file(path, de);
-            if (res < 0) {
-                break;
-            }
-        }
-    }
-
-    p_delete(&dirent);
-    closedir(dir);
-    return res < 0 ? -1 : total;
-}
-
-#endif
 
 /*}}} */
 
