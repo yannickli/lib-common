@@ -1750,7 +1750,7 @@ static void fs_notify(el_t el, uint32_t event, uint32_t cookie,
     (*(int *)data.ptr)++;
 }
 
-static _Bool z_spawn_child(void)
+static int z_spawn_child(void)
 {
     pid_t pid;
     const char *argv[] = { "ls", "-l", NULL };
@@ -1765,17 +1765,17 @@ static _Bool z_spawn_child(void)
         done = true;
     }, NULL);
 
-    if (pid < 0) {
-        return false;
-    }
+    Z_ASSERT_N(pid);
 
     for (int i = 0; i < 10; i++) {
         el_loop_timeout(500);
         if (done) {
-            return true;
+            return 0;
         }
     }
-    return false;
+    Z_ASSERT(false, "timeout");
+
+    Z_HELPER_END;
 }
 
 Z_GROUP_EXPORT(el)
@@ -1894,7 +1894,7 @@ Z_GROUP_EXPORT(el)
 #endif
 
     Z_TEST(spawn_child, "el: spawn child") {
-        Z_ASSERT(z_spawn_child());
+        Z_HELPER_RUN(z_spawn_child());
     } Z_TEST_END;
 
     Z_TEST(fs_watch_delete, "el: inotify file unregister handling") {
