@@ -60,6 +60,14 @@ static inline int nb_leap_years_since_1900(int year)
     return (year / 4) - (year / 100) + (year / 400) - nb_leap_years_1900;
 }
 
+/** Check if a year is a leap year.
+ */
+static inline bool year_is_leap_year(int year)
+{
+    return ((year % 4) == 0 && (year % 100) != 0)
+        || (year % 400) == 0;
+}
+
 /***************************************************************************/
 /* time.h wrappers                                                         */
 /***************************************************************************/
