@@ -71,11 +71,15 @@ Z_GROUP_EXPORT(file_log)
             glob_t globbuf;
             char buf[PATH_MAX];
             char **fv;
-            int fc;
+            int fc, ret;
             struct stat st;
 
             snprintf(buf, sizeof(buf), "%s_????????_??????.log.gz", path.s);
-            Z_ASSERT_EQ(glob(buf, GLOB_BRACE, NULL, &globbuf), 0);
+            ret = glob(buf, GLOB_BRACE, NULL, &globbuf);
+            if (ret == GLOB_NOMATCH) {
+                continue;
+            }
+            Z_ASSERT_EQ(ret, 0);
 
             fv = globbuf.gl_pathv;
             fc = globbuf.gl_pathc;
