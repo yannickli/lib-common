@@ -725,6 +725,7 @@ static uint64_t get_clock(bool lowres)
     }
     t *= mach_conv_g.info.numer;
     t /= mach_conv_g.info.denom;
+    t /= 1000000;
     return _G.lp_clk = t;
 }
 

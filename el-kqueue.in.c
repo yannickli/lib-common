@@ -136,7 +136,7 @@ static void el_loop_fds_poll(int timeout)
     el_bl_unlock();
     timeout = el_signal_has_pending_events() ? 0 : timeout;
     ts.tv_sec = timeout / 1000;
-    ts.tv_nsec = (timeout % 1000) * 1000;
+    ts.tv_nsec = (timeout % 1000) * 1000000;
     errno = 0;
     kqueue_g.pending = kevent(kqueue_g.kq, kqueue_g.chlist.tab,
                               kqueue_g.chlist.len,
@@ -160,25 +160,35 @@ static bool el_fds_has_pending_events(void)
 
 static void el_loop_fds(int timeout)
 {
-    int res;
-    struct timeval now;
     ev_priority_t prio = EV_PRIORITY_LOW;
+    int res, res2;
+    uint64_t before, now;
 
-    el_loop_fds_poll(timeout);
-
-    if (_G.timers.len) {
-        el_timer_process(get_clock(false));
+    if (kqueue_g.pending == 0) {
+        before = get_clock(false);
+        el_loop_fds_poll(timeout);
+        now    = get_clock(false);
+        if (now - before > 100) {
+            dlist_splice_tail(&_G.idle, &_G.idle_parked);
+        }
+    } else {
+        now = get_clock(false);
     }
 
-    lp_gettv(&now);
-    res = kqueue_g.pending;
-    while (--kqueue_g.pending >= 0) {
-        struct kevent ke = kqueue_g.events.tab[kqueue_g.pending];
+    res = res2 = kqueue_g.pending;
+    kqueue_g.pending = 0;
+
+    _G.has_run = false;
+    el_timer_process(now);
+
+    while (res-- > 0) {
+        struct kevent ke = kqueue_g.events.tab[res];
         ev_t *ev = ke.udata;
         short events = 0;
 
-        if (unlikely(ev->type != EV_FD))
+        if (unlikely(ev->type != EV_FD)) {
             continue;
+        }
 
         if (ke.filter == EVFILT_READ) {
             events = POLLIN;
@@ -200,8 +210,8 @@ static void el_loop_fds(int timeout)
     if (prio == EV_PRIORITY_HIGH) {
         return;
     }
-    while (--res >= 0) {
-        struct kevent ke = kqueue_g.events.tab[res];
+    while (res2-- > 0) {
+        struct kevent ke = kqueue_g.events.tab[res2];
         ev_t *ev = ke.udata;
         short events = 0;
 
