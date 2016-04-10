@@ -1049,7 +1049,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     len = 3;
                     goto has_string_len;
                 }
-                if (!finite(fpvalue)) {
+                if (!isfinite(fpvalue)) {
                     if (fpvalue < 0) {
                         lp  = "-Inf";
                         len = 4;
