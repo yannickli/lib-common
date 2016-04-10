@@ -152,7 +152,6 @@ void thr_ec_wipe(thr_evc_t *ec)
     pthread_mutex_destroy(&ec->mutex);
 }
 
-
 static void thr_ec_wait_cleanup(void *arg)
 {
     thr_evc_t *ec = arg;
@@ -162,7 +161,6 @@ static void thr_ec_wait_cleanup(void *arg)
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 {
     struct timespec ts;
-    struct timeval tv;
     int canceltype;
 
     if (thr_ec_get(ec) != key) {
@@ -176,11 +174,12 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
     }
 
     if (timeout > 0) {
-        int usec;
+        uint64_t usec;
+        struct timeval tv;
 
         lp_gettv(&tv);
-        usec = tv.tv_usec + (timeout % 1000) * 1000;
-        ts.tv_sec  = tv.tv_sec + timeout / 1000 + usec / 1000000;
+        usec = tv.tv_usec + timeout * 1000;
+        ts.tv_sec  = tv.tv_sec + usec / 1000000;
         ts.tv_nsec = (usec % 1000000) * 1000;
     }
 
@@ -210,6 +209,8 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
+    pthread_mutex_lock(&ec->mutex);
+
     atomic_fetch_add(&ec->key, 1);
 
     if (atomic_fetch_add(&ec->waiters, 0)) {
@@ -221,6 +222,7 @@ void thr_ec_signal_n(thr_evc_t *ec, int count)
             }
         }
     }
+    pthread_mutex_unlock(&ec->mutex);
 }
 
 #endif
