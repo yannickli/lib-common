@@ -964,6 +964,31 @@ Z_GROUP_EXPORT(iop)
                            t_iop_type_to_c(LSTR("foo.bar.baz_baz.qux")));
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(c_to_camelcase, "test C name to IOP camelcase") { /* {{{ */
+        t_scope;
+
+        Z_ASSERT_LSTREQUAL(LSTR("foo"), t_c_to_camelcase(LSTR("foo"), false));
+        Z_ASSERT_LSTREQUAL(LSTR("FooBar123LongName456"),
+                           t_c_to_camelcase(LSTR("foo_bar_123_long_name456"),
+                                            true));
+        Z_ASSERT_LSTREQUAL(LSTR("fBa42"),
+                           t_c_to_camelcase(t_camelcase_to_c(LSTR("fBa42")),
+                                            false));
+        Z_ASSERT_LSTREQUAL(LSTR("a_b_c"),
+                           t_camelcase_to_c(t_c_to_camelcase(LSTR("a_b_c"),
+                                                             true)));
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V,
+                           t_c_to_camelcase(LSTR("_foo"), false));
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V,
+                           t_c_to_camelcase(LSTR("bar_"), true));
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V,
+                           t_c_to_camelcase(LSTR("foo__bar"), false));
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V,
+                           t_c_to_camelcase(LSTR("foo-bar"), false));
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V,
+                           t_c_to_camelcase(LSTR("foo_Bar"), false));
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(unions, "test IOP union helpers") { /* {{{ */
         t_scope;
 

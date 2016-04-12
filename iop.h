@@ -55,6 +55,17 @@ lstr_t t_camelcase_to_c(lstr_t name);
 /** Convert an IOP type name (pkg.CamelCase) to C underscored naming */
 lstr_t t_iop_type_to_c(lstr_t fullname);
 
+/** Convert an identifier from C underscored naming to CamelCase naming.
+ *
+ * \param[in] name The name to convert.
+ * \param[in] is_first_upper Specify wether the output should start with an
+ *                           upper case character, otherwise a lower case
+ *                           character is emitted.
+ * \return LSTR_NULL in case of error, the CamelCase/camelCase string
+ *         otherwise.
+ */
+lstr_t t_c_to_camelcase(lstr_t name, bool is_first_upper);
+
 /* }}} */
 /* {{{ IOP attributes and constraints */
 
