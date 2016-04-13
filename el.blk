@@ -155,7 +155,6 @@ qm_k64_t(ev, ev_t *);
 
 static struct {
     volatile uint32_t gotsigs;
-    int       inotify_fd;     /* fd for inotify                             */
     int       active;         /* number of ev_t keeping the el_loop running */
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
@@ -172,8 +171,6 @@ static struct {
     qv_t(ev)  cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
     qm_t(ev)  fd_act;         /* el_t's timers to el_t fds map              */
-    qm_t(ev)  fs_watches;     /* el_t's for fs watch events                 */
-    el_t      fs_watch;       /* inotify el_t                               */
     el_worker_f *worker;      /* worker callback                            */
     uint64_t     worker_end;  /* worker end time                            */
 
@@ -205,8 +202,6 @@ static struct {
     .fired          = DLIST_INIT(_G.fired),
     .childs         = QM_INIT(ev_assoc, _G.childs),
     .fd_act         = QM_INIT(ev, _G.fd_act),
-    .fs_watches     = QM_INIT(ev, _G.fs_watches),
-    .inotify_fd     = -1,
     .logger         = LOGGER_INIT_INHERITS(NULL, "el"),
     .tracing_logger = LOGGER_INIT_SILENT_INHERITS(&_G.logger, "tracing"),
 };
@@ -1125,162 +1120,21 @@ static void el_loop_proxies(void)
 /* }}} */
 /* {{{ fs watch events */
 
-#ifdef HAVE_SYS_INOTIFY_H
-#include <sys/inotify.h>
-
-static void inotify_shutdown(void)
+static void el_fs_watch_fire(el_t el, uint32_t event, uint32_t cookie,
+                             lstr_t name)
 {
-    assert (qm_len(ev, &_G.fs_watches) == 0);
-
-    if (_G.inotify_fd == -1) {
-        assert (_G.fs_watch == NULL);
-        return;
-    }
-
-    el_fd_unregister(&_G.fs_watch, true);
-    _G.inotify_fd = -1;
-    qm_wipe(ev, &_G.fs_watches);
-    qm_init(ev, &_G.fs_watches, false);
-}
-
-static el_data_t el_fs_watch_disable(ev_t **evp, bool unregister)
-{
-    if (EV_FLAG_HAS(*evp, FSW_ACTIVE)) {
-        ev_t *ev = *evp;
-
-        if (unregister) {
-            inotify_rm_watch(_G.inotify_fd, ev->fs_watch.wd);
-        } else {
-            e_notice("watched object `%s` disapeared", ev->fs_watch.path);
-        }
-
-        EV_FLAG_RST(ev, FSW_ACTIVE);
-        *evp = NULL;
-        if (!EV_FLAG_HAS(ev, IS_BLK)) {
-            return ev->priv;
-        }
+    if (EV_FLAG_HAS(el, IS_BLK)) {
+        el->cb.fs_watch_blk(el, event, cookie, name);
     } else {
-        /* watcher removed due to file deletion  */
-        p_delete(&(*evp)->fs_watch.path);
-        return el_destroy(evp, false);
-    }
-    return (el_data_t)NULL;
-}
-
-static int inotify_cb(el_t el, int fd, short flags, data_t data)
-{
-    byte buf[sizeof(struct inotify_event) + NAME_MAX + 1];
-
-    assert (el == _G.fs_watch);
-    assert (fd == _G.inotify_fd);
-
-    if (!(flags & POLLIN)) {
-        return 0;
-    }
-
-    for (;;) {
-        byte *next = buf;
-        int   ret  = read(fd, buf, sizeof(buf));
-
-        if (ret < 0 && errno == EAGAIN) {
-            return 0;
-        }
-        RETHROW(ret);
-
-        while (ret > 0) {
-            struct inotify_event *e = (struct inotify_event *)next;
-            int len = ROUND_UP(sizeof(struct inotify_event) + e->len, sizeof(void *));
-            int pos;
-            el_t wel;
-            lstr_t name = LSTR_NULL;
-
-            next += len;
-            ret  -= len;
-            assert (ret >= 0);
-
-            /* Process event */
-            pos = qm_find(ev, &_G.fs_watches, e->wd);
-            if (pos < 0) {
-                if (e->mask & IN_Q_OVERFLOW) {
-                    e_fatal("overflow of the inotify queue. Two many events "
-                            "occured in a short amount of time. You should "
-                            "consider increasing the value of "
-                            "/proc/sys/fs/inotify/max_queued_events");
-                } else
-                if (!(e->mask & IN_IGNORED)) {
-                    e_panic("received inotify event for an unknown watch "
-                            "descriptor %d", e->wd);
-                }
-                continue;
-            }
-
-            wel = _G.fs_watches.values[pos];
-            assert (wel->fs_watch.wd == e->wd);
-            if (e->mask & IN_IGNORED) {
-                /* watcher deleted */
-                qm_del_key(ev, &_G.fs_watches, wel->fs_watch.wd);
-                el_fs_watch_disable(&wel, false);
-            } else
-            if (EV_FLAG_HAS(wel, FSW_ACTIVE)) {
-                if (e->len) {
-                    /* XXX We cannot use e->len - 1 as the string length
-                     *     because e->name can be padded by several null bytes
-                     */
-                    name = LSTR(e->name);
-                }
-
-                if (EV_FLAG_HAS(wel, IS_BLK)) {
-                    wel->cb.fs_watch_blk(wel, e->mask, e->cookie, name);
-                } else {
-                    (*wel->cb.fs_watch)(wel, e->mask, e->cookie, name,
-                                        wel->priv);
-                }
-            }
-        }
-        if (qm_len(ev, &_G.fs_watches) == 0) {
-            inotify_shutdown();
-            return 0;
-        }
+        (*el->cb.fs_watch)(el, event, cookie, name, el->priv);
     }
 }
 
-static void inotify_initialize(void)
-{
-    if (unlikely(_G.inotify_fd == -1)) {
-        assert (_G.fs_watch == NULL);
-
-        _G.inotify_fd = inotify_init();
-        if (_G.inotify_fd < 0)
-            e_panic(E_UNIXERR("inotify_init"));
-        fd_set_features(_G.inotify_fd, O_NONBLOCK | O_CLOEXEC);
-
-        _G.fs_watch = el_fd_register(_G.inotify_fd, POLLIN, inotify_cb, NULL);
-        _G.fs_watch = el_unref(_G.fs_watch);
-    }
-}
-
-el_t el_fs_watch_register_d(const char *path, uint32_t flags,
-                            el_fs_watch_f *cb, data_t priv)
-{
-    int pos;
-    ev_t *ev;
-    int  wd;
-
-    inotify_initialize();
-    wd = RETHROW_NP(inotify_add_watch(_G.inotify_fd, path, flags));
-    pos = qm_put(ev, &_G.fs_watches, wd, NULL, 0);
-    if (pos & QHASH_COLLISION) {
-        e_panic("you tried to add several watches on %s", path);
-    }
-
-    ev = el_create(EV_FS_WATCH, cb, priv, true);
-    ev->fs_watch.path = p_strdup(path);
-    ev->fs_watch.wd   = wd;
-    EV_FLAG_SET(ev, FSW_ACTIVE);
-    _G.fs_watches.keys[pos] = wd;
-    _G.fs_watches.values[pos] = ev;
-    return ev;
-}
+#ifdef __linux__
+#  include "el-inotify.in.c"
+#else
+#  error one has to port el to your OS
+#endif
 
 el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
                               el_fs_watch_b blk, block_t wipe)
@@ -1290,32 +1144,11 @@ el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
     return el_blk_register(el, blk, wipe);
 }
 
-data_t el_fs_watch_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_FS_WATCH);
-        return el_fs_watch_disable(evp, true);
-    }
-    return (data_t)NULL;
-}
-
-int el_fs_watch_change(el_t el, uint32_t flags)
-{
-    int wd;
-
-    CHECK_EV_TYPE(el, EV_FS_WATCH);
-    wd = RETHROW(inotify_add_watch(_G.inotify_fd, el->fs_watch.path, flags));
-    assert (wd == el->fs_watch.wd);
-    return 0;
-}
-
 const char *el_fs_watch_get_path(el_t el)
 {
     CHECK_EV_TYPE(el, EV_FS_WATCH);
     return el->fs_watch.path;
 }
-
-#endif
 
 /* }}} */
 /* {{{ generic functions */
@@ -1658,10 +1491,7 @@ static int el_shutdown(void)
         qm_wipe(ev, &_G.fd_act);
         qm_init(ev, &_G.fd_act);
     }
-    if (qm_len(ev, &_G.fs_watches) == 0) {
-        qm_wipe(ev, &_G.fs_watches);
-        qm_init(ev, &_G.fs_watches);
-    }
+    el_fs_watch_shutdown();
 
     qv_wipe(ev, &_G.cache);
     qv_init(ev, &_G.cache);
