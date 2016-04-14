@@ -20,7 +20,7 @@ endif
 ifeq ($(OS),darwin)
 	CC_BASE  := clang
 	CXX_BASE := clang++
-	LDFLAGS  := -Wl,-arch,x86_64 -Wl,-macosx_version_min,10.11.0
+	LDFLAGS  := -Wl,-arch,x86_64 -Wl,-macosx_version_min,10.11.0 -framework CoreServices
 	LDSHAREDFLAGS := -Wl,-undefined,dynamic_lookup
 else
 ifeq ($(filter %-analyzer,$(CC)),)

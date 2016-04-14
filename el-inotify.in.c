@@ -43,7 +43,7 @@ static el_data_t el_fs_watch_disable(ev_t **evp, bool unregister)
         ev_t *ev = *evp;
 
         if (unregister) {
-            inotify_rm_watch(inotify_g.fd, ev->fs_watch.wd);
+            inotify_rm_watch(inotify_g.fd, ev->fs_watch.ctx.u32);
         } else {
             e_notice("watched object `%s` disapeared", ev->fs_watch.path);
         }
@@ -109,10 +109,10 @@ static int inotify_cb(el_t el, int fd, short flags, data_t data)
             }
 
             wel = inotify_g.watches.values[pos];
-            assert (wel->fs_watch.wd == e->wd);
+            assert ((int)wel->fs_watch.ctx.u32 == e->wd);
             if (e->mask & IN_IGNORED) {
                 /* watcher deleted */
-                qm_del_key(ev, &inotify_g.watches, wel->fs_watch.wd);
+                qm_del_key(ev, &inotify_g.watches, wel->fs_watch.ctx.u32);
                 el_fs_watch_disable(&wel, false);
             } else
             if (EV_FLAG_HAS(wel, FSW_ACTIVE)) {
@@ -164,7 +164,7 @@ el_t el_fs_watch_register_d(const char *path, uint32_t flags,
 
     ev = el_create(EV_FS_WATCH, cb, priv, true);
     ev->fs_watch.path = p_strdup(path);
-    ev->fs_watch.wd   = wd;
+    ev->fs_watch.ctx.u32 = wd;
     EV_FLAG_SET(ev, FSW_ACTIVE);
     inotify_g.watches.keys[pos] = wd;
     inotify_g.watches.values[pos] = ev;
@@ -186,7 +186,7 @@ int el_fs_watch_change(el_t el, uint32_t flags)
 
     CHECK_EV_TYPE(el, EV_FS_WATCH);
     wd = RETHROW(inotify_add_watch(inotify_g.fd, el->fs_watch.path, flags));
-    assert (wd == el->fs_watch.wd);
+    assert (wd == (int)el->fs_watch.ctx.u32);
     return 0;
 }
 

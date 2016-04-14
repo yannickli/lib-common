@@ -137,7 +137,7 @@ typedef struct ev_t {
         } timer;                /* EV_TIMER */
         struct {
             char *path;
-            int   wd;
+            data_t ctx;
         } fs_watch;             /* EV_FS_WATCH */
     };
 } ev_t;
@@ -1140,9 +1140,11 @@ static void el_fs_watch_fire(el_t el, uint32_t event, uint32_t cookie,
 }
 
 #ifdef __linux__
-#  include "el-inotify.in.c"
+# include "el-inotify.in.c"
+#elif defined(__APPLE__)
+# include "el-fsevents.in.c"
 #else
-#  error one has to port el to your OS
+# error one has to port el to your OS
 #endif
 
 el_t el_fs_watch_register_blk(const char *path, uint32_t flags,

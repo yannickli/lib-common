@@ -44,8 +44,31 @@
 # endif
 #endif
 #define POLLINOUT  (POLLIN | POLLOUT)
+
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
+#else
+#define IN_ACCESS         0x00001
+#define IN_ATTRIB         0x00002
+#define IN_CLOSE_WRITE    0x00004
+#define IN_CLOSE_NOWRITE  0x00008
+#define IN_CREATE         0x00010
+#define IN_DELETE         0x00020
+#define IN_DELETE_SELF    0x00040
+#define IN_MODIFY         0x00080
+#define IN_MOVE_SELF      0x00100
+#define IN_MOVED_FROM     0x00200
+#define IN_MOVED_TO       0x00400
+#define IN_OPEN           0x00800
+
+#define IN_IGNORED        0x01000
+#define IN_ISDIR          0x02000
+#define IN_Q_OVERFLOW     0x04000
+#define IN_UNMOUNT        0x08000
+#define IN_ONLYDIR        0x10000
+
+#define IN_MOVE   (IN_MOVED_FROM | IN_MOVED_TO)
+#define IN_CLOSE  (IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)
 #endif
 
 
@@ -208,7 +231,6 @@ ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
 int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
 
 
-#ifdef HAVE_SYS_INOTIFY_H
 /**
  * \defgroup el_fs_watch FS activity notifications
  * \{
@@ -235,7 +257,6 @@ int el_fs_watch_change(el_t el, uint32_t flags);
 const char *el_fs_watch_get_path(el_t el);
 
 /** \} */
-#endif
 
 /**
  * \defgroup el_timers Event Loop timers
