@@ -294,7 +294,7 @@ static int int64_ndigits(long long lh, long long rh)
 static int int64_nxdigits(long long lh, long long rh)
 {
     /* computes max number of significant octets */
-    int nocts = DIV_ROUND_UP(bsr64(lh | rh | 1), 8);
+    int nocts = DIV_ROUND_UP(bsr64(lh | rh | 1) + 1, 8);
 
     /* returns 2 for 1-2 octets, 4 for 3-4, 8 for 5-8, and 16 else */
     return 2 * (bsr32(nocts) + 1);
