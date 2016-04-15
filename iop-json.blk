@@ -1309,9 +1309,13 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            if (iop_field_find_by_name(desc, LSTR_SB_V(&ll->ctx->b), NULL,
-                                       &fdesc) < 0)
-            {
+            t_scope;
+            lstr_t name = LSTR_SB_V(&ll->ctx->b);
+
+            if (ll->flags & IOP_UNPACK_USE_C_CASE) {
+                name = t_c_to_camelcase(name, false);
+            }
+            if (iop_field_find_by_name(desc, name, NULL, &fdesc) < 0) {
                 return RJERROR_EXP("a valid union member name");
             }
         }
@@ -1520,19 +1524,23 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 break;
             }
             if (real_desc) {
+                t_scope;
                 int ifield;
+                lstr_t name = LSTR_SB_V(&ll->ctx->b);
 
                 if (is_class) {
                     /* We are looping on the fields of a class and we
                      * already found the "_class" field. We have to skip
                      * it when reading it again. */
-                    if (lstr_equal(LSTR_SB_V(&ll->ctx->b), LSTR("_class"))) {
+                    if (lstr_equal(name, LSTR("_class"))) {
                         skip_field = true;
                         break;
                     }
                 }
-                ifield = iop_field_find_by_name(real_desc,
-                                                LSTR_SB_V(&ll->ctx->b), &desc,
+                if (ll->flags & IOP_UNPACK_USE_C_CASE) {
+                    name = t_c_to_camelcase(name, false);
+                }
+                ifield = iop_field_find_by_name(real_desc, name, &desc,
                                                 &fdesc);
                 if (fdesc) {
                     if (TST_BIT(seen, ifield)) {

@@ -270,7 +270,7 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json,
 }
 
 static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
-                                bool valid, const char *info)
+                                int flags, bool valid, const char *info)
 {
     t_scope;
     iop_json_lex_t jll;
@@ -285,7 +285,7 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
     t_sb_init(&sb, 10);
 
     iop_jlex_init(t_pool(), &jll);
-    jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
+    jll.flags = flags;
 
     ps = ps_initstr(json);
     iop_jlex_attach(&jll, &ps);
@@ -1651,8 +1651,10 @@ Z_GROUP_EXPORT(iop)
 
 
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sn, *st_sa_opt;
-        const iop_struct_t *st_cls2;
+        const iop_struct_t *st_cls2, *st_sg, *st_uc;
 
+        const char json_sg_p1[] = "{ \"c_of_g\": 42 }";
+        const char json_uc_p1[] = "{ d_of_c: 3.141592653589793238462643383 }";
         /* }}} */
 
         dso = Z_DSO_OPEN();
@@ -1664,6 +1666,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sn = iop_dso_find_type(dso, LSTR("tstiop.MyStructN")));
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR("tstiop.MyStructAOpt")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
+        Z_ASSERT_P(st_uc = iop_dso_find_type(dso, LSTR("tstiop.MyUnionC")));
 
         iop_init_desc(st_cls2, &cls2);
         cls2.int1 = 1;
@@ -1689,17 +1693,33 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_json_test_json(st_sa_opt, json_sa_opt,
                                         &json_sa_opt_res, "json_sa_opt"));
 
-        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1, true,
-                                          "json_si_p1"));
-        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p2, true,
-                                          "json_si_p2"));
-        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p3, true,
-                                          "json_si_p3"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          true, "json_si_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p2,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          true, "json_si_p2"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p3,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          true, "json_si_p3"));
 
-        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n1, false,
-                                          "json_si_n1"));
-        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n2, false,
-                                          "json_si_n2"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n1,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          false, "json_si_n1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n2,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          false, "json_si_n2"));
+
+        Z_HELPER_RUN(iop_json_test_unpack(st_sg, json_sg_p1, 0, false,
+                                          "json_sg_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_sg, json_sg_p1,
+                                          IOP_UNPACK_USE_C_CASE, true,
+                                          "json_sg_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_uc, json_uc_p1, 0, false,
+                                          "json_uc_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_uc, json_uc_p1,
+                                          IOP_UNPACK_USE_C_CASE, true,
+                                          "json_uc_p1"));
 
         /* Test iop_jpack_file failure */
         Z_ASSERT_NEG(iop_jpack_file("/path/to/unknown/dir.json", st_sk,
@@ -2251,10 +2271,12 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl2, "sl2"));
         Z_HELPER_RUN(iop_xml_test_struct_invalid(st_sl, &sl3, "sl3"));
 
-        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_p1, true,
-                                          "json_sl_p1"));
-        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_n1, false,
-                                          "json_sl_n1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_p1,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          true, "json_sl_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_n1,
+                                          IOP_UNPACK_IGNORE_UNKNOWN,
+                                          false, "json_sl_n1"));
 
         iop_dso_close(&dso);
     } Z_TEST_END

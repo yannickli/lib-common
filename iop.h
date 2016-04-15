@@ -1344,6 +1344,13 @@ enum iop_unpack_flags {
      * This flag applies to the binary unpacker.
      */
     IOP_UNPACK_COPY_STRINGS    = (1U << 2),
+
+    /** With this flag set, the unpacker will expect the fields names to be
+     * in C case instead of camelCase.
+     *
+     * This flag applies to the json unpacker.
+     */
+    IOP_UNPACK_USE_C_CASE = (1U << 3),
 };
 
 /** Unpack a packed IOP structure.
