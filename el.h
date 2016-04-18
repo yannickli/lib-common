@@ -205,7 +205,14 @@ void el_fd_set_hook(el_t, el_fd_f *)
     __leaf;
 data_t el_fd_unregister(el_t *, bool do_close);
 
+typedef enum ev_fd_loop_flags_t {
+    EV_FDLOOP_HANDLE_SIGNALS = 1 << 0,
+    EV_FDLOOP_HANDLE_TIMERS  = 1 << 1,
+} ev_fd_loop_flags_t;
+
 int   el_fd_loop(el_t, int timeout);
+int   el_fds_loop(el_t *els, int el_count, int timeout, unsigned flags);
+
 short el_fd_get_mask(el_t) __leaf __attribute__((pure));
 short el_fd_set_mask(el_t, short events) __leaf;
 int   el_fd_get_fd(el_t) __leaf __attribute__((pure));
