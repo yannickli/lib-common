@@ -11,10 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef HAVE_NETINET_SCTP_H
+# error cannot compile without netinet/sctp.h
+#endif
+
 #include "net.h"
-
-#if defined(HAVE_NETINET_SCTP_H)
-
 #include "unix.h"
 
 int sctp_enable_events(int sd, int flags)
@@ -292,4 +293,3 @@ void sctp_dump_notif(char *buf, int len)
         break;
     }
 }
-#endif

@@ -48,6 +48,10 @@ setvar() {
     echo "$v" "=" "$@" >> "$out"
 }
 
+setvardef() {
+    setvar $*
+    echo "CFLAGS += -D$1=$2" >> "$out"
+}
 
 file_exists() {
     test -e "$1" -a -r "$1"
@@ -217,6 +221,17 @@ fi
 
 if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
     warn "python headers are missing, apt-get install python-dev"
+fi
+
+# }}}
+# {{{ libsctp-dev
+
+if test -r /usr/include/netinet/sctp.h; then
+    setvardef "HAVE_NETINET_SCTP_H" "1"
+else
+    if ! [ "$OS" = "darwin" ]; then
+        warn "missing libsctp, apt-get install libsctp-dev"
+    fi
 fi
 
 # }}}
