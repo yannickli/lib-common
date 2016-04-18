@@ -61,8 +61,8 @@ else
     }
 fi
 
-
-for bin in "python2.7" "python2.6"; do
+PYTHON_BINARIES=${PYTHON_BINARIES:-"python2.7 python2.6"}
+for bin in $PYTHON_BINARIES; do
     if $bin -V &> /dev/null ; then
         pybin="$bin"
         break
@@ -70,7 +70,7 @@ for bin in "python2.7" "python2.6"; do
 done
 
 if [ -z "$pybin" ] ; then
-    say_color error "python 2.6 or 2.7 required to run tests"
+    say_color error "python 2.6 or greater is required to run tests"
     exit 1
 fi
 
