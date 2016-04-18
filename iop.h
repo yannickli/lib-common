@@ -729,7 +729,7 @@ struct iop_struct_value {
  */
 #define IOP_ST_FMT_ARG(pfx, _val)                                            \
     IOP_ST_FMT_ARG_FLAGS(pfx, _val,                                          \
-                         IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL)
+                         IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
 /* }}} */
 /* {{{ IOP snmp manipulation */
@@ -999,7 +999,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
  */
 #define IOP_OBJ_FMT_ARG(_obj)                                                \
     IOP_OBJ_FMT_ARG_FLAGS((_obj),                                            \
-                          IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL)
+                          IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
 /* }}} */
 /* {{{ IOP constraints handling */

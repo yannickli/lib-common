@@ -306,6 +306,27 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
     Z_HELPER_END;
 }
 
+static int iop_json_test_pack(const iop_struct_t *st, const void *value,
+                              unsigned flags, bool must_be_equal,
+                              const char *expected)
+{
+    t_scope;
+    t_SB_1k(sb);
+    void *unpacked = NULL;
+    pstream_t ps;
+
+    Z_ASSERT_N(iop_sb_jpack(&sb, st, value, flags));
+    Z_ASSERT_STREQUAL(sb.data, expected);
+
+    ps = ps_initsb(&sb);
+    Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st, &unpacked, 0, NULL));
+    if (must_be_equal) {
+        Z_ASSERT(iop_equals_desc(st, value, unpacked));
+    }
+
+    Z_HELPER_END;
+}
+
 static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                                      const unsigned flags, const char *info)
 {
@@ -1731,6 +1752,52 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_STREQUAL(err.data, "cannot open output file "
                           "`/path/to/unknown/dir.json`: "
                           "No such file or directory");
+
+        /* Test packer flags. */
+        {
+            tstiop__struct_jpack_flags__t st_jpack;
+            unsigned flags = IOP_JPACK_NO_WHITESPACES
+                           | IOP_JPACK_NO_TRAILING_EOL;
+
+            iop_init(tstiop__struct_jpack_flags, &st_jpack);
+
+#define TST_FLAGS(_flags, _must_be_equal, _exp)  \
+            Z_HELPER_RUN(iop_json_test_pack(&tstiop__struct_jpack_flags__s,  \
+                                            &st_jpack, _flags,               \
+                                            _must_be_equal, _exp))
+
+            TST_FLAGS(0, true,
+                      "{\n"
+                      "\t\"def\": 1,\n"
+                      "\t\"rep\": [  ]\n"
+                      "}\n");
+            TST_FLAGS(IOP_JPACK_NO_WHITESPACES, true,
+                      "{\"def\":1,\"rep\":[]}\n");
+            TST_FLAGS(flags, true,
+                      "{\"def\":1,\"rep\":[]}");
+
+            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true,
+                      "{\"rep\":[]}");
+            st_jpack.def = 2;
+            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true,
+                      "{\"def\":2,\"rep\":[]}");
+            st_jpack.def = 1;
+
+            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true,
+                      "{\"def\":1}");
+            st_jpack.rep.tab = &st_jpack.def;
+            st_jpack.rep.len = 1;
+            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true,
+                      "{\"def\":1,\"rep\":[1]}");
+            st_jpack.rep.len = 0;
+
+            OPT_SET(st_jpack.priv, 12);
+            TST_FLAGS(flags, true,
+                      "{\"priv\":12,\"def\":1,\"rep\":[]}");
+            TST_FLAGS(flags | IOP_JPACK_SKIP_PRIVATE, false,
+                      "{\"def\":1,\"rep\":[]}");
+#undef TST_FLAGS
+        }
 
         iop_dso_close(&dso);
     } Z_TEST_END
@@ -5241,7 +5308,7 @@ Z_GROUP_EXPORT(iop)
         obj.bool1 = true;
 
         iop_sb_jpack(&ref, &tstiop__my_class3__s, &obj,
-                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+                     IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
 
         sb_addf(&tst_sb, "%*pS", IOP_OBJ_FMT_ARG(&obj));
         Z_ASSERT_EQ(tst_sb.len, ref.len);
@@ -5287,7 +5354,7 @@ Z_GROUP_EXPORT(iop)
         st.cls2 = &cls2;
 
         iop_sb_jpack(&ref, &tstiop__my_struct_a__s, &st,
-                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+                     IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
 
         sb_addf(&tst_sb, "%*pS", IOP_ST_FMT_ARG(tstiop__my_struct_a, &st));
         Z_ASSERT_EQ(tst_sb.len, ref.len);

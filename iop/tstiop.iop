@@ -349,6 +349,13 @@ union MyRefUnion {
     MyReferencedUnion&   u;
 };
 
+struct StructJpackFlags {
+    @private int? priv;
+    int? opt;
+    int def = 1;
+    int[] rep;
+};
+
 /* Interfaces */
 
 @(test:gen5, 5)

@@ -322,13 +322,13 @@ int  iop_jlex_write_error_buf(iop_json_lex_t *ll, char *buf, int len);
 enum iop_jpack_flags {
     /** Obsolete, kept for backward compatibility.
      */
-    IOP_JPACK_STRICT        = (1U << 0),
+    IOP_JPACK_STRICT = (1U << 0),
 
     /** Generate compact JSON.
      *
      * Omit cosmetic whitespaces such as indentations and spaces after colons.
      */
-    IOP_JPACK_COMPACT = (1U << 1),
+    IOP_JPACK_NO_WHITESPACES = (1U << 1),
 
     /** Do not append '\n' when done.
      */
@@ -348,6 +348,20 @@ enum iop_jpack_flags {
      * packer will always pack integers as integers.
      */
     IOP_JPACK_UNSAFE_INTEGERS = (1U << 4),
+
+    /** Skip fields having their default value.
+     *
+     * This is good to make the JSon more compact, but is dangerous if a
+     * default value changes.
+     */
+    IOP_JPACK_SKIP_DEFAULT = (1U << 5),
+
+    /** Skip empty repeated fields. */
+    IOP_JPACK_SKIP_EMPTY_ARRAYS = (1U << 6),
+
+    /** Produce the smallest possible json. */
+    IOP_JPACK_MINIMAL = IOP_JPACK_NO_WHITESPACES | IOP_JPACK_SKIP_DEFAULT
+                      | IOP_JPACK_SKIP_EMPTY_ARRAYS,
 };
 
 typedef int (iop_jpack_writecb_f)(void *priv, const void *buf, int len);

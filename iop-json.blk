@@ -2126,7 +2126,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     int tmp_res;
 
     const iop_field_t *fdesc, *fend;
-    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
+    const bool with_indent = !(flags & IOP_JPACK_NO_WHITESPACES);
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, value);
@@ -2143,12 +2143,24 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
         if (flags & IOP_JPACK_SKIP_PRIVATE) {
             const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
-            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE))
+
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
                 continue;
+            }
         }
+
         ptr = get_n_and_ptr(fdesc, value, &n);
-        if (!n && !repeated)
+        if (!n && !repeated) {
             continue;
+        }
+        if ((flags & IOP_JPACK_SKIP_DEFAULT) && fdesc->repeat == IOP_R_DEFVAL
+        &&  iop_field_is_defval(fdesc, ptr, true))
+        {
+            continue;
+        }
+        if ((flags & IOP_JPACK_SKIP_EMPTY_ARRAYS) && !n && repeated) {
+            continue;
+        }
 
         if (*first) {
             *first = false;
@@ -2283,7 +2295,7 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 {
     int res = 0;
     bool first = true;
-    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
+    const bool with_indent = !(flags & IOP_JPACK_NO_WHITESPACES);
 
     if (desc->is_union) {
         IPUTS("{ ", "{");

@@ -383,10 +383,10 @@ bool _z_assert_iopequal(const char *file, int lno,
                 file, lno, lhs, rhs);
         sb_addf(&sb, " %s:\n  ", lhs);
         iop_sb_jpack(&sb, st, lh,
-                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+                     IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
         sb_addf(&sb, "\n %s:\n  ", rhs);
         iop_sb_jpack(&sb, st, rh,
-                     IOP_JPACK_COMPACT | IOP_JPACK_NO_TRAILING_EOL);
+                     IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
         sb_adds(&sb, "\n");
         _z_add_extra(sb, fmt);
         lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);

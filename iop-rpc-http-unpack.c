@@ -341,7 +341,7 @@ httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
     cb->schema         = schema;
     cb->mod            = mod->ifaces;
     cb->query_max_size = szmax;
-    cb->jpack_flags    = IOP_JPACK_COMPACT;
+    cb->jpack_flags    = IOP_JPACK_NO_WHITESPACES;
     cb->xpack_flags    = IOP_XPACK_LITERAL_ENUMS;
     qm_init_cached(ichttp_cbs, &cb->impl);
     return cb;

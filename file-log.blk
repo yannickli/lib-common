@@ -306,7 +306,7 @@ log_file_create_from_iop(const char *nametpl,
         SB_1k(sb);
 
         iop_sb_jpack(&sb, &core__log_file_configuration__s, conf,
-                     IOP_JPACK_COMPACT);
+                     IOP_JPACK_NO_WHITESPACES);
         e_named_trace(1, "file-log", "opening %s, flags %x, json %*pM",
                       nametpl, flags, SB_FMT_ARG(&sb));
     }
