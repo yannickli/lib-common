@@ -239,6 +239,37 @@ int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
 
 
 /**
+ * \defgroup el_wake Waking up event loop from another thread.
+ * \{
+ */
+
+/** Register a waker.
+ *
+ * A waker is an event loop object that get manually triggered. One can call
+ * el_wake_fire() from another thread in order to wake up an event loop
+ * waiting on the waker.
+ *
+ * This is a low level primitive provided in order to build higher-level
+ * infrastructure. Look at \ref thr_queue and \ref thr_queue_main_g before
+ * using a waker by hand.
+ */
+el_t el_wake_register_d(el_cb_f *, data_t);
+#ifdef __has_blocks
+el_t el_wake_register_blk(el_cb_b, block_t);
+#endif
+static inline el_t el_wake_register(el_cb_f *cb, void *ptr)
+{
+    return el_wake_register_d(cb, (data_t){ ptr });
+}
+
+void el_wake_fire(el_t);
+
+data_t el_wake_unregister(el_t *);
+
+
+/** \} */
+
+/**
  * \defgroup el_fs_watch FS activity notifications
  * \{
  */
