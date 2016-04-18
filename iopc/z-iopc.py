@@ -73,9 +73,10 @@ class IopcTest(z.TestCase):
                              % (iopc_p.returncode, iop, context, output))
 
         if (errors):
-            if isinstance(errors, basestring):
+            if isinstance(errors, str):
                 errors = [errors]
             for error in errors:
+                output = str(output)
                 self.assertTrue(output.find(error) >= 0,
                                 "did not find '%s' in '%s' %s" \
                                 % (error, output, context))
@@ -128,19 +129,16 @@ class IopcTest(z.TestCase):
         self.assertEqual(gcc_p.returncode, 0)
 
     def check_file(self, file_name, string_list, wanted = True):
-        f = open(os.path.join(TEST_PATH, file_name))
-        self.assertIsNotNone(f)
-        content = f.read()
+        with open(os.path.join(TEST_PATH, file_name)) as f:
+            content = f.read()
+
         for s in string_list:
             if wanted:
                 self.assertTrue(content.find(s) >= 0,
-                                "did not find '%s' in '%s'" \
-                                % (s, file_name))
+                                "did not find '%s' in '%s'" % (s, file_name))
             else:
                 self.assertTrue(content.find(s) < 0,
-                                "found '%s' in '%s'" \
-                                % (s, file_name))
-        f.close()
+                                "found '%s' in '%s'" % (s, file_name))
 
     def check_ref(self, pkg, lang, version=""):
         self.assertEqual(subprocess.call(['diff', '-u',
@@ -584,9 +582,9 @@ class IopcTest(z.TestCase):
                                  'attrs_multi_valid.iop.c')
         path_ref = os.path.join(TEST_PATH,
                                 'reference_attrs_multi_valid.c')
-        ref_base = open(path_base, "r")
-        ref = open(path_ref, "r")
-        self.assertEqual(ref.read(), ref_base.read())
+        with open(path_base, "r") as ref_base:
+            with open(path_ref, "r") as ref:
+                self.assertEqual(ref.read(), ref_base.read())
 
     def test_attrs_multi_constraints(self):
         f = 'attrs_multi_constraints.iop'
@@ -595,9 +593,9 @@ class IopcTest(z.TestCase):
         path_base = os.path.join(TEST_PATH, 'attrs_multi_constraints.iop.c')
         path_ref = os.path.join(TEST_PATH,
                                 'reference_attrs_multi_constraints.c')
-        ref_base = open(path_base, "r")
-        ref = open(path_ref, "r")
-        self.assertEqual(ref.read(), ref_base.read())
+        with open(path_base, "r") as ref_base:
+            with open(path_ref, "r") as ref:
+                self.assertEqual(ref.read(), ref_base.read())
 
     def test_attrs_invalid_1(self):
         self.run_iopc2('attrs_invalid_1.iop', False,
