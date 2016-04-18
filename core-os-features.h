@@ -29,11 +29,6 @@
 #  error "we don't know about your OS"
 #endif
 
-/* <netinet/sctp.h> availability */
-#if defined(OS_LINUX) /* || defined(__sun) */
-#  define HAVE_NETINET_SCTP_H
-#endif
-
 /* <sys/poll.h> availability */
 #ifndef OS_WINDOWS
 # ifndef HAVE_SYS_POLL_H
