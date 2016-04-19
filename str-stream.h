@@ -267,6 +267,9 @@ static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
 static inline int ps_skipstr(pstream_t *ps, const char *s) {
     return ps_skipdata(ps, s, strlen(s));
 }
+static inline int ps_skiplstr(pstream_t *ps, lstr_t s) {
+    return ps_skipdata(ps, s.data, s.len);
+}
 static inline int ps_skip_uptochr(pstream_t *ps, int c) {
     const void *p = memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p) : -1;
