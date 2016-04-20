@@ -467,6 +467,27 @@ Z_GROUP_EXPORT(qhash)
 
         r_release(r_getframe());
     } Z_TEST_END
+
+    Z_TEST(qm_get_const_keys,
+           "qm: check the API; const key pointer for getter/hash functions") {
+        t_scope;
+        qm_t(test_ptr) qm_;
+        qm_t(test_ptr) *qm = &qm_;
+        const qm_t(test_ptr) *const_qm = &qm_;
+        const void *const_ptr = NULL;
+
+        t_qm_init(test_ptr, qm, 0);
+        qm_add(test_ptr, qm, NULL, 1);
+
+        qm_hash    (test_ptr, qm,       const_ptr);
+        qm_get     (test_ptr, qm,       const_ptr);
+        qm_get_safe(test_ptr, const_qm, const_ptr);
+        qm_get_def (test_ptr, qm,       const_ptr, 0);
+
+        qm_find    (test_ptr, qm,       const_ptr);
+
+        Z_ASSERT(true);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/
