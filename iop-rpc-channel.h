@@ -237,7 +237,8 @@ struct ichannel_t {
     flag_t is_closing   :  1;
     flag_t is_spawned   :  1;   /**< auto delete if true                    */
     flag_t no_autodel   :  1;   /**< disable autodelete feature             */
-    flag_t is_stream    :  1;   /**< true if socket is SOCK_STREAMed        */
+    flag_t is_seqpacket :  1;   /**< true if socket is SOCK_SEQPACKET       */
+    flag_t is_unix      :  1;   /**< true if socket is a Unix socket        */
     flag_t auto_reconn  :  1;
     flag_t do_el_unref  :  1;
     flag_t is_wiped     :  1;
@@ -248,6 +249,7 @@ struct ichannel_t {
     flag_t is_public    :  1;   /**< setting this flag to true causses private
                                      fields to be omitted on outgoing messages
                                      and forbidden on incoming messages. */
+    flag_t fd_overflow  :  1;
 
     unsigned nextslot;          /**< next slot id to try                    */
 
@@ -282,9 +284,9 @@ struct ichannel_t {
     int          pending;
 
     /* Buffers */
+    qv_t(i32)    fds;
     qv_t(iovec)  iov;
     int          iov_total_len;
-    int          wpos;
     sb_t         rbuf;
 
     lstr_t       peer_address;

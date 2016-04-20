@@ -249,7 +249,8 @@ static void ic_print_state(void)
         ADD_FLAG(is_trusted,   "trusted");
         ADD_FLAG(is_closing,   "closing");
         ADD_FLAG(no_autodel,   "no autodel");
-        ADD_FLAG(is_stream,    "stream");
+        ADD_FLAG(is_seqpacket, "seqpacket");
+        ADD_FLAG(is_unix,      "unix");
         ADD_FLAG(auto_reconn,  "auto reconn");
         ADD_FLAG(do_el_unref,  "do el_unref");
         ADD_FLAG(cancel_guard, "cancel guard");
@@ -647,6 +648,7 @@ static void ic_cancel_all(ichannel_t *ic)
         ic_msg_delete(&msg);
     }
     qm_wipe(ic_msg, &h);
+    qv_deep_clear(i32, &ic->fds, p_close);
 
     /* if that crashes, one of the IC_MSG_ABORT callback reenqueues directly in
      * that ichannel_t which is forbidden, fix the code
@@ -710,10 +712,6 @@ static void ic_msg_filter_on_bye(ichannel_t *ic)
     htlist_move(&l, &ic->msg_list);
     ic->last_normal_prio_msg = NULL;
 
-    if (!ic->is_stream && ic->wpos) {
-        ic_add_msg_tail(ic, htlist_pop_entry(&l, ic_msg_t, msg_link));
-    }
-
     while (!htlist_is_empty(&l)) {
         ic_msg_t *msg = htlist_pop_entry(&l, ic_msg_t, msg_link);
 
@@ -725,11 +723,20 @@ static void ic_msg_filter_on_bye(ichannel_t *ic)
     }
 }
 
-static int ic_write_stream(ichannel_t *ic, int fd)
+static int ic_write(ichannel_t *ic, int fd)
 {
+#define IC_MAX_FD  32
+    char buf[CMSG_SPACE(sizeof(int[IC_MAX_FD]))]
+        __attribute__((aligned(alignof(struct cmsghdr))));
     bool timer_restarted = false;
 
     do {
+        struct cmsghdr *hdr = (struct cmsghdr *)buf;
+        int *fdv = (int *)CMSG_DATA(hdr);
+        int fdc = 0;
+        struct msghdr msgh = { .msg_name = NULL };
+        ssize_t res;
+
         while (!htlist_is_empty(&ic->msg_list) && ic->iov_total_len < IC_PKT_MAX) {
             ic_msg_t *msg = ic_pop_msg(ic);
 
@@ -738,158 +745,102 @@ static int ic_write_stream(ichannel_t *ic, int fd)
                 continue;
             }
 
+            if (unlikely(fdc == IC_MAX_FD && msg->fd >= 0)) {
+                break;
+            }
+
             ic_msg_trace(msg, "putting %d bytes in out vector", msg->dlen);
             htlist_add_tail(&ic->iov_list, &msg->msg_link);
-            qv_append(iovec, &ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
+
+            if (ic->is_seqpacket && ic->iov_total_len + msg->dlen > IC_PKT_MAX)
+            {
+                size_t to_send = IC_PKT_MAX - ic->iov_total_len;
+                size_t remain = msg->dlen;
+
+                while (remain) {
+                    qv_append(iovec, &ic->iov,
+                              MAKE_IOVEC((char *)msg->data + msg->dlen - remain,
+                                         to_send));
+                    remain -= to_send;
+                    to_send = MIN(IC_PKT_MAX, remain);
+                }
+            } else {
+                qv_append(iovec, &ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
+            }
             ic->iov_total_len += msg->dlen;
+
+            if (msg->fd >= 0) {
+                fdv[fdc++] = msg->fd;
+                msg->fd = -1;
+            }
         }
 
-        if (ic->iov_total_len) {
-            ssize_t res = writev(fd, ic->iov.tab, MIN(ic->iov.len, IOV_MAX));
-            int killed;
+        if (!ic->iov_total_len) {
+            break;
+        }
 
-            if (res < 0)
-                return ERR_RW_RETRIABLE(errno) ? 0 : -1;
-            if (ic->timer && !timer_restarted) {
-                el_timer_restart(ic->timer, 0);
-                timer_restarted = true;
+        if (fdc > 0) {
+            hdr->cmsg_len = (char *)(fdv + fdc) - buf;
+            hdr->cmsg_level = SOL_SOCKET;
+            hdr->cmsg_type = SCM_RIGHTS;
+            msgh.msg_control = hdr;
+            msgh.msg_controllen = hdr->cmsg_len;
+        } else {
+            msgh.msg_control = NULL;
+            msgh.msg_controllen = 0;
+        }
+        msgh.msg_iov = ic->iov.tab;
+        msgh.msg_iovlen = ic->iov.len;
+        if (ic->is_seqpacket && ic->iov_total_len > IC_PKT_MAX) {
+            size_t total = ic->iov_total_len;
+
+            while (total > IC_PKT_MAX) {
+                msgh.msg_iovlen--;
+                total -= msgh.msg_iov[msgh.msg_iovlen].iov_len;
             }
-            killed = iovec_vector_kill_first(&ic->iov, res);
-            ic->iov_total_len -= res;
+        }
+        msgh.msg_iovlen = MIN(msgh.msg_iovlen, IOV_MAX);
 
-            while (killed-- > 0) {
-                ic_msg_t *tmp = htlist_pop_entry(&ic->iov_list, ic_msg_t, msg_link);
+        res = sendmsg(fd, &msgh, 0);
 
-                ic_msg_trace(tmp, "written on socket");
-                if (tmp->cmd <= 0 || tmp->slot == 0) {
-                    ic_msg_delete(&tmp);
+        if (res < 0) {
+            return ERR_RW_RETRIABLE(errno) ? 0 : -1;
+        }
+        if (ic->timer && !timer_restarted) {
+            el_timer_restart(ic->timer, 0);
+            timer_restarted = true;
+        }
+        iovec_vector_kill_first(&ic->iov, res);
+        ic->iov_total_len -= res;
+
+        while (!htlist_is_empty(&ic->iov_list)) {
+            ic_msg_t *tmp = htlist_first_entry(&ic->iov_list, ic_msg_t, msg_link);
+
+            if (ic->iov.len != 0) {
+                const struct iovec *iov = &ic->iov.tab[0];
+                const char *msg_end = (char *)tmp->data + tmp->dlen;
+                const char *iov_end = (char *)iov->iov_base + iov->iov_len;
+
+                if (msg_end == iov_end) {
+                    /* The message is not fully sent */
+                    break;
                 }
             }
+
+            htlist_pop(&ic->iov_list);
+            ic_msg_trace(tmp, "written on socket");
+            if (tmp->cmd <= 0 || tmp->slot == 0) {
+                ic_msg_delete(&tmp);
+            }
         }
+        assert (htlist_is_empty(&ic->iov_list) || ic->iov_total_len);
     } while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list));
 
     el_fd_set_mask(ic->elh, POLLIN);
     return 1;
 }
 
-#ifndef CMSG_ALIGN
-# define CMSG_ALIGN(l)  CMSG_LEN(l)
-#endif
-
-static void ic_prepare_cmsg(ichannel_t *ic, struct msghdr *msgh,
-                            void *cbuf, int clen, int fdc, int *fdv)
-{
-    struct cmsghdr *cmsg;
-
-    msgh->msg_control    = cbuf;
-    msgh->msg_controllen = clen;
-
-    cmsg = CMSG_FIRSTHDR(msgh);
-    if (fdc) {
-        cmsg->cmsg_level = SOL_SOCKET;
-        cmsg->cmsg_type  = SCM_RIGHTS;
-        cmsg->cmsg_len   = CMSG_LEN(sizeof(int) * fdc);
-        memcpy(CMSG_DATA(cmsg), fdv, sizeof(int) * fdc);
-
-        /* XXX: Erase padding to avoid Valgrind warning */
-        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
-            p_clear(CMSG_DATA(cmsg) + sizeof(int) * fdc,
-                    CMSG_ALIGN(cmsg->cmsg_len) - sizeof(int) * fdc);
-        }
-        cmsg = (struct cmsghdr *)((char *)cmsg + CMSG_ALIGN(cmsg->cmsg_len));
-    }
-
-    msgh->msg_controllen = (char *)cmsg - (char *)cbuf;
-}
-
-static int ic_write_seq(ichannel_t *ic, int fd)
-{
-    bool timer_restarted = false;
-    int  fdv[32];
-    struct iovec iov[IOV_MAX];
-    int fdc = 0, size = 0, wpos = ic->wpos;
-    struct msghdr msgh = { .msg_iov = iov, };
-#define iovc  msgh.msg_iovlen
-
-    while (!htlist_is_empty(&ic->msg_list)) {
-        size_t to_drop = 0;
-
-        htlist_for_each(it, &ic->msg_list) {
-            ic_msg_t *msg = htlist_entry(it, ic_msg_t, msg_link);
-
-            if (msg->canceled) {
-                to_drop++;
-                continue;
-            }
-
-            if (unlikely(fdc == countof(fdv) && msg->fd >= 0))
-                break;
-
-            if (unlikely(size + msg->dlen - wpos > IC_PKT_MAX)) {
-                int avail = IC_PKT_MAX - size;
-
-                iov[iovc++] = (struct iovec){
-                    .iov_base = (char *)msg->data + wpos,
-                    .iov_len  = avail,
-                };
-                wpos += avail;
-                break;
-            }
-
-            iov[iovc++] = (struct iovec){
-                .iov_base = (char *)msg->data + wpos,
-                .iov_len  = msg->dlen - wpos,
-            };
-            size += msg->dlen - wpos;
-            wpos  = 0;
-            if (msg->fd >= 0)
-                fdv[fdc++] = msg->fd;
-            to_drop++;
-
-            ic_msg_trace(msg, "putting in out vector");
-
-            if (unlikely(iovc >= countof(iov) - 1) || unlikely(size >= IC_PKT_MAX))
-                break;
-        }
-
-        if (likely(iovc)) {
-            char cbuf[CMSG_SPACE(sizeof(int) * countof(fdv)) +
-                      CMSG_SPACE(sizeof(struct ucred))];
-
-            ic_prepare_cmsg(ic, &msgh, cbuf, sizeof(cbuf), fdc, fdv);
-            if (sendmsg(fd, &msgh, 0) < 0)
-                return ERR_RW_RETRIABLE(errno) ? 0 : -1;
-
-            if (ic->timer && !timer_restarted) {
-                el_timer_restart(ic->timer, 0);
-                timer_restarted = true;
-            }
-        }
-
-        size = fdc = iovc = 0;
-        ic->wpos = wpos;
-        while (to_drop-- > 0) {
-            ic_msg_t *tmp = ic_pop_msg(ic);
-
-            if (tmp->canceled) {
-                ic_msg_take_and_delete(tmp);
-                continue;
-            }
-
-            ic_msg_trace(tmp, "written on socket");
-            if (tmp->cmd <= 0 || tmp->slot == 0) {
-                ic_msg_delete(&tmp);
-            }
-        }
-#undef iovc
-    }
-    el_fd_set_mask(ic->elh, POLLIN);
-    return 1;
-}
-
-
-static void
-ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
+static void ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh)
 {
     struct cmsghdr *cmsg;
 
@@ -897,10 +848,12 @@ ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
         if (cmsg->cmsg_level != SOL_SOCKET)
             continue;
         switch (cmsg->cmsg_type) {
-          case SCM_RIGHTS:
-            *fdcp = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
-            *fdvp = acast(int, CMSG_DATA(cmsg));
-            break;
+          case SCM_RIGHTS: {
+            int fd_count = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
+            int *fds = acast(int, CMSG_DATA(cmsg));
+
+            p_copy(qv_growlen(i32, &ic->fds, fd_count), fds, fd_count);
+          } break;
         }
     }
 }
@@ -1439,7 +1392,7 @@ static int ic_check_msg_hdr_flags(const ichannel_t *ic, uint32_t slot,
                                   int flags)
 {
     flags &= ~IC_MSG_SLOT_MASK;
-    if (ic->is_stream && (flags & IC_MSG_HAS_FD)) {
+    if (!ic->is_unix && (flags & IC_MSG_HAS_FD)) {
         ic_slot_trace(slot, flags, "invalid flags HAS_FD on stream ic %p",
                       ic);
         assert (!ic->is_trusted);
@@ -1528,8 +1481,6 @@ static int ic_check_msg_hdr(const ichannel_t *ic, const void *data)
 static int ic_read(ichannel_t *ic, short events, int sock)
 {
     sb_t *buf = &ic->rbuf;
-    int *fdv, fdc;
-    bool fd_overflow = false;
     ssize_t seqpkt_at_least = IC_PKT_MAX;
     int to_read = IC_PKT_MAX;
     bool starves = false;
@@ -1558,7 +1509,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         ssize_t res;
 
         to_read = MAX(to_read, IC_PKT_MAX);
-        if (ic->is_stream) {
+        if (!ic->is_unix) {
             res = sb_read(buf, sock, to_read);
             starves = sb_avail(buf) == 0;
         } else {
@@ -1567,6 +1518,8 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                 .iov_len  = to_read,
             };
             res = recvmsg(sock, &msgh, 0);
+        }
+        if (ic->is_seqpacket) {
             seqpkt_at_least -= res;
         }
 
@@ -1593,11 +1546,10 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             }
         }
 
-        fdv = NULL;
-        fdc = 0;
-        if (!ic->is_stream) {
+        if (ic->is_unix) {
             __sb_fixlen(buf, buf->len + res);
-            ic_parse_cmsg(ic, &msgh, &fdc, &fdv);
+            ic_parse_cmsg(ic, &msgh);
+
 
             /* XXX fd_overflow is set when the kernel decided that it cannot
              * transfer some ancillary data. In our case, this means we didn't
@@ -1605,7 +1557,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
              * there is no file descriptor available anymore on our side of
              * the channel.
              */
-            fd_overflow = msgh.msg_flags & MSG_CTRUNC;
+            ic->fd_overflow |= !!(msgh.msg_flags & MSG_CTRUNC);
         }
     }
 
@@ -1631,11 +1583,12 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         errno = 0;
         RETHROW(ic_check_msg_hdr_flags(ic, slot, flags));
         if (unlikely(flags & IC_MSG_HAS_FD)) {
-            if (fdc < 1) {
-                assert (fd_overflow);
+            if (ic->fds.len < 1) {
+                assert (ic->fd_overflow);
                 return -1;
             } else {
-                ic->current_fd = NEXTARG(fdc, fdv);
+                ic->current_fd = ic->fds.tab[0];
+                qv_pop(i32, &ic->fds);
             }
             if (unlikely(ic->current_fd < 0)) {
                 logger_warning(&_G.logger, "file descriptor table overflow");
@@ -1647,9 +1600,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             ic->is_closing |= slot == IC_SC_BYE;
         } else
         if (cmd <= 0) {
-            if (ic_read_process_answer(ic, cmd, slot, data, dlen, NULL) < 0) {
-                goto close_and_error_out;
-            }
+            RETHROW(ic_read_process_answer(ic, cmd, slot, data, dlen, NULL));
         } else {
             /* deal with queries */
             ic_update_pending(ic, slot);
@@ -1678,8 +1629,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         sb_skip(buf, IC_MSG_HDR_LEN + dlen);
 
         if (events & POLLOUT) {
-            int ret = ic->is_stream ? ic_write_stream(ic, sock)
-                                    : ic_write_seq(ic, sock);
+            int ret = ic_write(ic, sock);
 
             if (ret <= 0) {
                 /* Stop writing */
@@ -1693,28 +1643,22 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             }
         }
     }
-    if (expect(fdc == 0)) {
-        if (buf->len < IC_MSG_HDR_LEN) {
-            to_read = IC_MSG_HDR_LEN;
-        }
-        if (!ic->is_stream && seqpkt_at_least > 0) {
-            goto again;
-        }
-        if (ic->is_stream && !starves) {
-            goto again;
-        }
-        if (write_errno) {
-            errno = write_errno;
-            return -1;
-        }
-        return 0;
+
+    if (buf->len < IC_MSG_HDR_LEN) {
+        to_read = IC_MSG_HDR_LEN;
     }
 
-    errno = 0;
-close_and_error_out:
-    while (fdc > 1)
-        close(NEXTARG(fdc, fdv));
-    return -1;
+    if (ic->is_seqpacket && seqpkt_at_least > 0) {
+        goto again;
+    }
+    if (!ic->is_seqpacket && !starves) {
+        goto again;
+    }
+    if (write_errno) {
+        errno = write_errno;
+        return -1;
+    }
+    return 0;
 }
 
 static void ic_reconnect(el_t ev, data_t priv)
@@ -1756,7 +1700,7 @@ void ic_disconnect(ichannel_t *ic)
         ic_choose_id(ic);
         qv_clear(iovec, &ic->iov);
         ic->is_closing = false;
-        ic->wpos = 0;
+        ic->fd_overflow = false;
         ic->iov_total_len = 0;
         sb_reset(&ic->rbuf);
     }
@@ -1781,6 +1725,7 @@ void ic_wipe(ichannel_t *ic)
 #endif
     qv_wipe(iovec, &ic->iov);
     sb_wipe(&ic->rbuf);
+    qv_wipe(i32, &ic->fds);
     p_close(&ic->current_fd);
     lstr_wipe(&ic->peer_address);
     ic->is_wiped   = true;
@@ -1790,8 +1735,9 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
-    if (events == EL_EVENTS_NOACT)
+    if (events == EL_EVENTS_NOACT) {
         goto close;
+    }
 
     if ((events & POLLIN) && ic_read(ic, events, fd)) {
         if (errno) {
@@ -1805,14 +1751,15 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
     if (!ic->elh) {
         return 0;
     }
-    if ((ic->is_stream ? ic_write_stream(ic, fd) : ic_write_seq(ic, fd)) < 0) {
+    if (ic_write(ic, fd) < 0) {
         if (errno) {
             logger_trace(&_G.logger, 1, "ic_write error: %m");
         }
         goto close;
     }
-    if (ic->is_closing && ic_is_empty(ic))
+    if (ic->is_closing && ic_is_empty(ic)) {
         goto close;
+    }
     return 0;
 
 close:
@@ -1914,24 +1861,12 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 
 static void __ic_flush(ichannel_t *ic, int fd)
 {
-    if (ic->is_stream) {
-        while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list)) {
-            if (ic_write_stream(ic, fd) < 0)
-                goto close;
+    if (ic_write(ic, fd) < 0) {
+        if (ic->is_spawned && !ic->no_autodel) {
+            ic_delete(&ic);
+        } else {
+            ic_mark_disconnected(ic);
         }
-    } else {
-        while (!htlist_is_empty(&ic->msg_list)) {
-            if (ic_write_seq(ic, fd) < 0)
-                goto close;
-        }
-    }
-    return;
-
-close:
-    if (ic->is_spawned && !ic->no_autodel) {
-        ic_delete(&ic);
-    } else {
-        ic_mark_disconnected(ic);
     }
 }
 
@@ -2335,7 +2270,7 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
     ic->queuable = true;
     el_fd_set_hook(ic->elh, ic_event);
     ic->on_event(ic, IC_EVT_CONNECTED);
-    if (ic->on_creds && !ic->is_stream) {
+    if (ic->on_creds && ic->is_unix) {
         ic_creds_t creds;
 #if defined(OS_LINUX)
         struct ucred ucred;
@@ -2446,14 +2381,19 @@ static int __ic_connect(ichannel_t *ic, int flags)
     assert (!ic->elh);
 
     ic->is_spawned = false;
-    ic->is_stream  = ic->su.family != AF_UNIX;
+    ic->is_unix = ic->su.family == AF_UNIX;
 
     if (ic->su.family == AF_UNIX) {
         flags &= ~O_NONBLOCK;
+#ifdef __APPLE__
+        type   = SOCK_STREAM;
+#else
         type   = SOCK_SEQPACKET;
+#endif
     } else {
         type   = SOCK_STREAM;
     }
+    ic->is_seqpacket = type == SOCK_SEQPACKET;
 
     sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
     if (sock < 0) {
@@ -2515,24 +2455,31 @@ int ic_connect_blocking(ichannel_t *ic)
 void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
 {
     int type = 0;
-    socklen_t len = sizeof(type);
+    sockunion_t su;
+    socklen_t len = sizeof(su);
 
-    assert (!ic_is_local(ic));
-    if (unlikely(ic_is_local(ic)))
+    if (!expect(!ic_is_local(ic))) {
         return;
-
-    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len)) {
-        logger_panic(&_G.logger, E_UNIXERR("getsockopt"));
     }
-    assert (type == SOCK_STREAM || type == SOCK_SEQPACKET);
 
     ic->is_spawned = true;
-    ic->is_stream  = type == SOCK_STREAM;
     ic->on_creds   = creds_fn;
 
     ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
     (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
+
+    if (getsockname(fd, &su.sa, &len) < 0) {
+        logger_panic(&_G.logger, E_UNIXERR("getsockname"));
+    }
+    ic->is_unix = su.family == AF_UNIX;
+
+    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len)) {
+        logger_panic(&_G.logger, E_UNIXERR("getsockopt"));
+    }
+    assert (type == SOCK_STREAM || type == SOCK_SEQPACKET);
+    ic->is_seqpacket = type == SOCK_SEQPACKET;
+
     if (ic->do_el_unref) {
         el_unref(ic->elh);
     }
@@ -2557,9 +2504,14 @@ static int ic_accept(el_t ev, int fd, short events, data_t priv)
 el_t ic_listento(const sockunion_t *su, int type, int proto,
                  int (*on_accept)(el_t ev, int fd))
 {
-    int sock = listenx(-1, su, 1, type, proto, O_NONBLOCK);
-    if (sock < 0)
-        return NULL;
+    int sock;
+
+#ifdef __APPLE__
+    if (type == SOCK_SEQPACKET) {
+        type = SOCK_STREAM;
+    }
+#endif
+    sock = RETHROW_NP(listenx(-1, su, 1, type, proto, O_NONBLOCK));
     return el_unref(el_fd_register(sock, POLLIN, &ic_accept,
                                    (void *)on_accept));
 }
