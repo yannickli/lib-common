@@ -192,7 +192,7 @@ static void z_shutdown(void)
 /* }}} */
 /* skipping, marking as todo {{{ */
 
-bool _z_step_check_flags(int unused, ...)
+bool _z_step_is_skipped(int unused, ...)
 {
     const char *s;
     va_list ap;
