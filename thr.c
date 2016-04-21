@@ -40,6 +40,7 @@ static struct {
 
 void thr_detach(void)
 {
+    pthread_setspecific(_G.key, NULL);
     dlist_for_each(it, &thr_hooks_g.exit_cbs) {
         (container_of(it, struct thr_ctor, link)->cb)();
     }
@@ -47,7 +48,6 @@ void thr_detach(void)
 
 static void thr_hooks_at_exit(void *unused)
 {
-    pthread_setspecific(_G.key, NULL);
     thr_detach();
 }
 
@@ -77,10 +77,13 @@ static void *thr_hooks_wrapper(void *data)
 {
     void *(*fn)(void *) = ((void **)data)[0];
     void   *arg         = ((void **)data)[1];
+    void   *ret;
 
     p_delete(&data);
     thr_attach();
-    return fn(arg);
+    ret = fn(arg);
+    thr_detach();
+    return ret;
 }
 
 int thr_create(pthread_t *restrict thread,
