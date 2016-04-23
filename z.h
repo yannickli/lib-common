@@ -139,7 +139,7 @@ bool _z_group_process(void);
 void _z_group_done(void);
 
 int  _z_step_run(const char *name);
-bool _z_step_check_flags(int unused, ...) __attribute__((sentinel));
+bool _z_step_is_skipped(int unused, ...) __attribute__((sentinel));
 void _z_step_skip(const char *reason, ...) __attr_printf__(1, 2);
 void _z_step_todo(const char *reason, ...) __attr_printf__(1, 2);
 void _z_step_report(void);
@@ -238,7 +238,7 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
         {
 
 #define Z_TEST_FLAGS(...) \
-    ({ if (_z_step_check_flags(0, ##__VA_ARGS__, NULL)) goto _z_step_end; })
+    ({ if (_z_step_is_skipped(0, ##__VA_ARGS__, NULL)) goto _z_step_end; })
 
 #define Z_TEST_END \
         }                                                                 \

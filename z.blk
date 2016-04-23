@@ -72,6 +72,7 @@ static struct {
     qv_t(z_blk)   blks;
 
     qh_t(lstr)    tag_skip;
+    qh_t(lstr)    tag_or;
 
     /* Command-line options. */
     lstr_t      arg0;
@@ -82,9 +83,11 @@ static struct {
     const char *tmp_dir;
     const char *opt_tag_skip;
     const char *opt_mode;
+    const char *opt_tag_or;
 } z_ctx_g = {
 #define _G  z_ctx_g
     .tag_skip = QH_INIT(lstr, _G.tag_skip),
+    .tag_or = QH_INIT(lstr, _G.tag_or),
 };
 
 static popt_t z_opts_g[] = {
@@ -109,6 +112,10 @@ static popt_t z_opts_g[] = {
     OPT_STR('s', "z-tag-skip", &_G.opt_tag_skip,
             "specify the list of Z tags to skip, separated by spaces. It can "
             "also be specified using the Z_TAG_SKIP environment variable."),
+    OPT_STR('s', "z-tag-or", &_G.opt_tag_or,
+            "specify the list of Z tags, separated by spaces, to run the test "
+            "even if it is marked with a tag that is in the skip list. It can "
+            "also be specified using the Z_TAG_OR environment variable."),
     OPT_STR('m', "z-mode", &_G.opt_mode,
             "specify the list of Z modes to apply, separated by spaces. It "
             "can also be specified using the Z_MODE environment variable. "
@@ -171,6 +178,7 @@ static void z_shutdown(void)
     qv_wipe(z_cbs, &_G.cbs);
     qv_wipe(lstr, &_G.only);
     qh_wipe(lstr, &_G.tag_skip);
+    qh_wipe(lstr, &_G.tag_or);
     lstr_wipe(&_G.arg0);
     p_delete(&_G.wd);
     p_close(&z_tmpdfd_g);
@@ -184,13 +192,23 @@ static void z_shutdown(void)
 /* }}} */
 /* skipping, marking as todo {{{ */
 
-bool _z_step_check_flags(int unused, ...)
+bool _z_step_is_skipped(int unused, ...)
 {
     const char *s;
     va_list ap;
     bool hit = false;
 
     IN_TEST;
+
+    va_start(ap, unused);
+    while ((s = va_arg(ap, const char *))) {
+        lstr_t t = LSTR(s);
+
+        if (qh_find(lstr, &_G.tag_or, &t) >= 0) {
+            return false;
+        }
+    }
+    va_end(ap);
 
     va_start(ap, unused);
     while (!hit && (s = va_arg(ap, const char *))) {
@@ -864,7 +882,7 @@ void _z_step_report(void)
 /* }}} */
 /* public helpers {{{ */
 
-static void z_parse_tag_skip(const char *s)
+static void z_parse_tag(const char *s, qh_t(lstr) *list)
 {
     if (s) {
         pstream_t ps = ps_initstr(s);
@@ -873,10 +891,20 @@ static void z_parse_tag_skip(const char *s)
         while (!ps_done(&ps)) {
             pstream_t tok = ps_get_cspan(&ps, &ctype_isspace);
 
-            qh_add(lstr, &_G.tag_skip, &LSTR_INIT_V(tok.s, ps_len(&tok)));
+            qh_add(lstr, list, &LSTR_INIT_V(tok.s, ps_len(&tok)));
             ps_skipspaces(&ps);
         }
     }
+}
+
+static void z_parse_tag_or(const char *s)
+{
+    z_parse_tag(s, &_G.tag_or);
+}
+
+static void z_parse_tag_skip(const char *s)
+{
+    z_parse_tag(s, &_G.tag_skip);
 }
 
 static void z_parse_mode(const char *s)
@@ -922,6 +950,10 @@ int z_setup(int argc, char **argv)
     /* Parse tags to skip. */
     z_parse_tag_skip(getenv("Z_TAG_SKIP"));
     z_parse_tag_skip(_G.opt_tag_skip);
+
+    /* Parse tags to run even if normally skipped. */
+    z_parse_tag_or(getenv("Z_TAG_OR"));
+    z_parse_tag_or(_G.opt_tag_or);
 
     /* Parse modes. */
     z_parse_mode(getenv("Z_MODE"));
