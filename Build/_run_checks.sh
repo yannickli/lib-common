@@ -61,8 +61,8 @@ else
     }
 fi
 
-
-for bin in "python2.7" "python2.6"; do
+PYTHON_BINARIES=${PYTHON_BINARIES:-"python2.7 python2.6"}
+for bin in $PYTHON_BINARIES; do
     if $bin -V &> /dev/null ; then
         pybin="$bin"
         break
@@ -70,7 +70,7 @@ for bin in "python2.7" "python2.6"; do
 done
 
 if [ -z "$pybin" ] ; then
-    say_color error "python 2.6 or 2.7 required to run tests"
+    say_color error "python 2.6 or greater is required to run tests"
     exit 1
 fi
 
@@ -132,13 +132,19 @@ set_www_env() {
 export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web perf}"
+export Z_TAG_OR="${Z_TAG_OR:-}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
+
+for TAG_OR in ${Z_TAG_OR[@]}
+do
+    COMA_SEPARATED_TAGS=",$TAG_OR$COMA_SEPARATED_TAGS"
+done
 
 TAGS=($Z_TAG_SKIP)
 for TAG in ${TAGS[@]}
 do
-     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG"
+     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG$COMA_SEPARATED_TAGS"
 done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
 

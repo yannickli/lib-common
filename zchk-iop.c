@@ -2039,7 +2039,7 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(private, "test private attribute with binary packing") { /* {{{ */
         t_scope;
-        void *out;
+        void *out = NULL;
         tstiop_inheritance__c5__t c5;
         lstr_t bpacked;
         qv_t(i32) szs;
