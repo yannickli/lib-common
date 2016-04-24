@@ -102,6 +102,11 @@
 # define __attr_nonnull__(l)    __attribute__((__nonnull__ l))
 # define __attr_printf__(a, b)  __attribute__((format(printf, a, b),__nonnull__(a)))
 # define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b),__nonnull__(a)))
+# define __attr_deprecated__    __attribute__((deprecated))
+
+#ifndef __attribute_deprecated__
+# define __attribute_deprecated__  __attr_deprecated__
+#endif
 #endif
 
 #ifdef __GNUC__
