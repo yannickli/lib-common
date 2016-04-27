@@ -343,3 +343,76 @@ int path_extend(char buf[static PATH_MAX],  const char *prefix,
 
     return pos;
 }
+
+static int path_simplified_absolute(const char *path,
+                                    bool keep_trailing_slash,
+                                    char buf[static PATH_MAX])
+{
+    if (path[0] == '/') {
+        THROW_ERR_IF(pstrcpy(buf, PATH_MAX, path) >= PATH_MAX);
+    } else {
+        char cwd[PATH_MAX];
+
+        RETHROW_PN(getcwd(cwd, sizeof(cwd)));
+        RETHROW(path_extend(buf, cwd, "%s", path));
+    }
+
+    return path_simplify2(buf, keep_trailing_slash);
+}
+
+int path_relative_to(char buf[static PATH_MAX], const char *from,
+                     const char *to)
+{
+    char simpl_from[PATH_MAX];
+    char simpl_to[PATH_MAX];
+    const char *rem_from = NULL;
+    const char *rem_to = NULL;
+    const char *ptr_from = simpl_from;
+    const char *ptr_to = simpl_to;
+    int buf_len = PATH_MAX;
+    int dir_len = 0;
+    int cpy_len;
+
+    RETHROW(path_simplified_absolute(from, true, simpl_from));
+    RETHROW(path_simplified_absolute(to, false, simpl_to));
+
+    while (*ptr_to && *ptr_from) {
+        if (*ptr_from != *ptr_to) {
+            break;
+        }
+
+        if (*ptr_from == '/') {
+            rem_from = ptr_from;
+            rem_to = ptr_to;
+        }
+
+        ptr_from++;
+        ptr_to++;
+    }
+
+    assert (rem_from);
+    assert (rem_to);
+
+    /* 'from' and 'to' does not refer the same file/directory */
+    if (ptr_to[0] != '\0'
+    || (ptr_from[0] != '\0' && (ptr_from[0] != '/' || ptr_from[1] != '\0')))
+    {
+#define BACK_DIR  "../"
+#define BACK_DIR_LEN  ((int)strlen(BACK_DIR))
+
+        while ((rem_from = strchr(rem_from + 1, '/'))) {
+            THROW_ERR_IF(buf_len <= BACK_DIR_LEN);
+            buf = mempcpy(buf, BACK_DIR, BACK_DIR_LEN);
+            buf_len -= BACK_DIR_LEN;
+            dir_len += BACK_DIR_LEN;
+        }
+
+#undef BACK_DIR_LEN
+#undef BACK_DIR
+    }
+
+    cpy_len = pstrcpy(buf, buf_len, rem_to + 1);
+    THROW_ERR_IF(buf_len <= cpy_len);
+
+    return dir_len + cpy_len;
+}

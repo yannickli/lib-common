@@ -551,6 +551,40 @@ Z_GROUP_EXPORT(str)
 
     } Z_TEST_END;
 
+    Z_TEST(path_relative_to, "path relative to") {
+        char old_cwd[PATH_MAX];
+
+#define T(_from, _to, _expected)                                             \
+    do {                                                                     \
+        char _path[PATH_MAX];                                                \
+        int _len = path_relative_to(_path, (_from), (_to));                  \
+                                                                             \
+        Z_ASSERT_N(_len);                                                    \
+        Z_ASSERT_STREQUAL(_path, (_expected));                               \
+        Z_ASSERT_EQ((int)strlen(_expected), _len);                           \
+    } while (0)
+
+        T("/a/b/c/d", "/a/b/e/f", "../e/f");
+        T("/a/b/c/d/", "/a/b/e/f", "../../e/f");
+        T("a/b/c", "d/e/", "../../d/e");
+        T("a/b/c/", "a/b/c", "c");
+        T("a/b/c/", "a/b/c/", "c");
+        T("a/b/c", "a/b/c/", "c");
+        T("toto/tata", "toto/titi", "titi");
+        T("/aa/bb/..//cc", "/aa/bb/./dd", "bb/dd");
+        T("/qq/ss/dd", "/ww/xx/cc", "../../ww/xx/cc");
+
+        Z_ASSERT_P(getcwd(old_cwd, sizeof(old_cwd)));
+        Z_ASSERT_N(chdir("/tmp"));
+
+        T("/tmp/a/b/c", "a/d/e", "../d/e");
+        T("a/b/c", "/tmp/a/d/e", "../d/e");
+
+        Z_ASSERT_N(chdir(old_cwd));
+
+#undef T
+    } Z_TEST_END;
+
     Z_TEST(strstart, "str: strstart") {
         static const char *week =
             "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";

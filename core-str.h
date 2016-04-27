@@ -156,6 +156,33 @@ __attribute__((format(printf, 3, 4)))
 int path_extend(char buf[static PATH_MAX], const char *prefix,
                 const char *fmt, ...);
 
+/** Create a relative path from one path to another path.
+ *
+ * \p from and \p to can be absolute or relative paths from the current
+ * working directory.
+ * If \p from ends with a '/', it is treated as a directory and the created
+ * relative path startpoint is within the directory.
+ *
+ * Examples:
+ *  - The relative path from "/a/b/c/d" to "/a/b/e/f" is "../e/f".
+ *  - The relative path from "/a/b/c/d/" to "/a/b/e/f" is "../../e/f".
+ *  - The relative path from "a/b/c" to "d/e/" is "../../d/e".
+ *  - The relative path from "a/b/c/" to "a/b/c" is "c".
+ *  - The relative path from "/a/b/c" to "d/e" is "../d/e" with the current
+ *    working directory set to "/a".
+ *
+ * \param[out] buf  buffer where the path will be written.
+ * \param[in]  len  length of the buffer.
+ * \param[in]  from the path that defines the startpoint of the relative path.
+ * \param[in]  to   the path that defines the endpoint of the relative path.
+ *
+ * \return -1 if the length of the absolute path of \p from or \p to, or the
+ *         length of the resulting path exceed PATH_MAX.
+ *         Length of the resulting path otherwise.
+ */
+int path_relative_to(char buf[static PATH_MAX], const char *from,
+                     const char *to);
+
 #endif
 
 /* }}} */
