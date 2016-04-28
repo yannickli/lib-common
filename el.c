@@ -589,10 +589,6 @@ static uint64_t get_clock(bool lowres)
     return _G.lp_clk = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
 
-/* XXX: if we reschedule in more than half a second, don't care about
-        the high precision */
-#define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
-
 ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
@@ -606,7 +602,7 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_
     } else {
         ev->timer.repeat = -next;
     }
-    ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
+    ev->timer.expiry = (uint64_t)next + get_clock(false);
     el_timer_heapinsert(ev);
     return ev;
 }
@@ -619,7 +615,7 @@ void el_timer_set_hook(el_t ev, el_cb_f *cb)
 
 static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 {
-    ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
+    ev->timer.expiry = (uint64_t)restart + get_clock(false);
     EV_FLAG_SET(ev, TIMER_UPDATED);
     el_timer_heapfix(ev);
 }
