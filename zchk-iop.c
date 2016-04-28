@@ -15,6 +15,7 @@
 
 #include <math.h>
 #include "core.h"
+#include "unix.h"
 #include "z.h"
 #include "iop.h"
 #include "iop/tstiop.iop.h"
@@ -585,7 +586,7 @@ typedef struct z_json_sub_file_t {
 qvector_t(z_json_sub_file, z_json_sub_file_t);
 
 static int
-iop_check_json_unclude_packing(const iop_struct_t *st, const void *val,
+iop_check_json_include_packing(const iop_struct_t *st, const void *val,
                                const qm_t(iop_jpack_sub_file) *sub_files,
                                const qv_t(z_json_sub_file) *z_sub_files,
                                const char *exp_err)
@@ -1842,6 +1843,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_e__t     obj_union;
         tstiop__my_struct_f__t     obj_class;
         tstiop__my_ref_struct__t   obj_ref;
+        tstiop__my_struct_c__t     obj_recursion;
 
         /* {{{ Unpacker tests */
 
@@ -1907,6 +1909,7 @@ Z_GROUP_EXPORT(iop)
         T_OK(tstiop__my_struct_e,     &obj_union,        "union");
         T_OK(tstiop__my_struct_f,     &obj_class,        "class");
         T_OK(tstiop__my_ref_struct,   &obj_ref,          "ref");
+        T_OK(tstiop__my_struct_c,     &obj_recursion,    "recursion");
 #undef T_OK
 
         /* }}} */
@@ -1932,7 +1935,7 @@ Z_GROUP_EXPORT(iop)
         } while (0)
 
 #define T(_type, _val, _exp_err)  \
-        Z_HELPER_RUN(iop_check_json_unclude_packing(&_type##__s, _val,       \
+        Z_HELPER_RUN(iop_check_json_include_packing(&_type##__s, _val,       \
                                                     &sub_files,              \
                                                     &z_sub_files, _exp_err))
 
@@ -1988,6 +1991,16 @@ Z_GROUP_EXPORT(iop)
         ADD_SUB_FILE(&tstiop__my_referenced_struct__s, obj_ref.s, "s.json");
         ADD_SUB_FILE(&tstiop__my_referenced_union__s,  obj_ref.u, "u.json");
         T_OK(tstiop__my_ref_struct, &obj_ref);
+
+        /* Recursive */
+        CLEAR_SUB_FILES();
+        Z_ASSERT_N(mkdir_p(t_fmt("%*pM/b1", LSTR_FMT_ARG(z_tmpdir_g)), 0755));
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b, "b1/b.json");
+
+        Z_ASSERT_N(mkdir_p(t_fmt("%*pM/b2", LSTR_FMT_ARG(z_tmpdir_g)), 0755));
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b->b,
+                     "b2/b.json");
+        T_OK(tstiop__my_struct_c, &obj_recursion);
 
 #undef T
 #undef T_OK
