@@ -2270,6 +2270,10 @@ httpc_t *httpc_pool_get(httpc_pool_t *pool)
         }
         httpc = RETHROW_P(httpc_connect_as(&pool->su, pool->su_src, pool->cfg,
                                            pool));
+        /* As we are establishing the connection, busy will be true until it
+         * is connected. Thus, we will always return NULL here unless you
+         * force this flag to false in the on_busy callback for some specific
+         * reasons. */
         return httpc->busy ? NULL : httpc;
     }
 
