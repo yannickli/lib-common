@@ -878,6 +878,7 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 
 /*-}}}-*/
 /* {{{ unpacking json way */
+/* {{{ subfiles */
 
 /** Stack of names of parsed files when using junpack_file helpers.
  *
@@ -886,12 +887,84 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
  */
 static __thread qv_t(lstr) filenames_g;
 
-static void filenames_wipe(void)
+/** Stack of fields when using junpack_file helpers.
+ *
+ * The fields are stored in a stack in order to create the iop paths of the
+ * included subfiles.
+ */
+typedef struct iop_junpack_field_path_t {
+    bool is_index;
+    union {
+        int index;
+        lstr_t field;
+    };
+} iop_junpack_field_path_t;
+
+qvector_t(iop_junpack_field_path, iop_junpack_field_path_t);
+
+static __thread qv_t(iop_junpack_subfile) *subfiles_g;
+static __thread qv_t(iop_junpack_field_path) field_paths_g;
+
+static void add_field_path_field(lstr_t field)
+{
+    if (subfiles_g) {
+        iop_junpack_field_path_t val;
+
+        p_clear(&val, 1);
+        val.is_index = false;
+        val.field = field;
+        qv_append(iop_junpack_field_path, &field_paths_g, val);
+    }
+}
+
+static void add_field_path_index(int index)
+{
+    if (subfiles_g) {
+        iop_junpack_field_path_t val;
+
+        p_clear(&val, 1);
+        val.is_index = true;
+        val.index = index;
+        qv_append(iop_junpack_field_path, &field_paths_g, val);
+    }
+}
+
+static void remove_last_field_path(void)
+{
+    if (subfiles_g) {
+        qv_remove_last(iop_junpack_field_path, &field_paths_g);
+    }
+}
+
+static lstr_t t_create_current_field_path(void)
+{
+    t_SB_1k(buf);
+    bool is_first_field = true;
+
+    qv_for_each_ptr(iop_junpack_field_path, val, &field_paths_g) {
+        if (val->is_index) {
+            sb_addf(&buf, "[%d]", val->index);
+        } else {
+            if (!is_first_field) {
+                sb_addc(&buf, '.');
+            } else {
+                is_first_field = false;
+            }
+            sb_add_lstr(&buf, val->field);
+        }
+    }
+
+    return lstr_init_(buf.data, buf.len, MEM_STACK);
+}
+
+/* }}} */
+
+static void thr_globals_wipe(void)
 {
     qv_deep_wipe(lstr, &filenames_g, lstr_wipe);
+    qv_wipe(iop_junpack_field_path, &field_paths_g);
 }
-thr_hooks(NULL, filenames_wipe);
-
+thr_hooks(NULL, thr_globals_wipe);
 
 static int unpack_arr(iop_json_lex_t *, const iop_field_t *, void *);
 static int unpack_union(iop_json_lex_t *, const iop_struct_t *, void *, bool);
@@ -985,6 +1058,24 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         }
     }
 
+    if (subfiles_g) {
+        char relative_path[PATH_MAX];
+        iop_junpack_subfile_t subfile;
+        int len;
+
+        assert (filenames_g.len);
+        len = path_relative_to(relative_path, filenames_g.tab[0].s, path);
+        if (len < 0) {
+            return JERROR_VARIOUS("cannot get relative path of `%*pM`",
+                                  SB_FMT_ARG(&ll->ctx->b));
+        }
+
+        p_clear(&subfile, 1);
+        subfile.file_path = t_lstr_dups(relative_path, len);
+        subfile.iop_path = t_create_current_field_path();
+        qv_append(iop_junpack_subfile, subfiles_g, subfile);
+    }
+
     switch (fdesc->type) {
       case IOP_T_STRING: case IOP_T_DATA: case IOP_T_XML: {
         sb_t content;
@@ -1005,10 +1096,10 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         if (iop_field_is_class(fdesc)) {
             *(void **)value = NULL;
             res = t_iop_junpack_ptr_file(path, fdesc->u1.st_desc, value,
-                                         ll->flags, &err);
+                                         ll->flags, NULL, &err);
         } else {
             res = t_iop_junpack_file(path, fdesc->u1.st_desc, value,
-                                     ll->flags, &err);
+                                     ll->flags, NULL, &err);
         }
 
         if (res < 0) {
@@ -1264,7 +1355,9 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
                                         size * fdesc->size, 8, 0);
             }
             ptr = (void *)((char *)arr->data + arr->len * fdesc->size);
+            add_field_path_index(arr->len);
             PS_CHECK(unpack_val(ll, fdesc, ptr, true));
+            remove_last_field_path();
             arr->len++;
         } else {
             PS_CHECK(skip_val(ll, true));
@@ -1332,7 +1425,9 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
             *((uint16_t *)value) = fdesc->tag;
             value = (char *)value + fdesc->data_offs;
 
+            add_field_path_field(fdesc->name);
             PS_CHECK(unpack_val(ll, fdesc, value, false));
+            remove_last_field_path();
 
             if (unlikely(iop_field_has_constraints(desc, fdesc))) {
                 int ret = iop_field_check_constraints(desc, fdesc, value, 1,
@@ -1361,7 +1456,9 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
                 value = iop_value_set_here(ll->mp, fdesc, value);
             }
 
+            add_field_path_field(fdesc->name);
             PS_CHECK(unpack_union(ll, fdesc->u1.st_desc, value, true));
+            remove_last_field_path();
         } else {
             PS_CHECK(unpack_union(ll, NULL, NULL, true));
         }
@@ -1632,7 +1729,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             {
                 return RJERROR_EXP("a member with a scalar type");
             }
+            add_field_path_field(fdesc->name);
             PS_CHECK(unpack_val(ll, fdesc, ptr, false));
+            remove_last_field_path();
 
             if (unlikely(iop_field_has_constraints(desc, fdesc))) {
                 int ret;
@@ -1803,9 +1902,10 @@ int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
     return iop_junpack(ll, st, *out, single_value);
 }
 
-#define CREATE_JUNPACK_PS(_fun, _data_type, _fun_to_call)  \
+#define CREATE_JUNPACK_PS(_fun, _data_type, _fun_to_call)                    \
 static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
-                const char *filename, _data_type v, int flags, sb_t *errb)   \
+                const char *filename, _data_type v, int flags,               \
+                qv_t(iop_junpack_subfile) *subfiles, sb_t *errb)             \
 {                                                                            \
     char path[PATH_MAX];                                                     \
     iop_json_lex_t  jll;                                                     \
@@ -1819,6 +1919,10 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
         path_expand(path, sizeof(path), filename);                           \
         qv_append(lstr, &filenames_g, LSTR(path));                           \
     }                                                                        \
+    if (subfiles) {                                                          \
+        assert (filename);                                                   \
+        subfiles_g = subfiles;                                               \
+    }                                                                        \
                                                                              \
     if ((res = _fun_to_call(&jll, desc, v, true)) < 0) {                     \
         if (errb) {                                                          \
@@ -1828,6 +1932,10 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
                                                                              \
     if (filename) {                                                          \
         qv_remove_last(lstr, &filenames_g);                                  \
+    }                                                                        \
+    if (subfiles) {                                                          \
+        subfiles_g = NULL;                                                   \
+        qv_clear(iop_junpack_field_path, &field_paths_g);                    \
     }                                                                        \
     iop_jlex_wipe(&jll);                                                     \
                                                                              \
@@ -1841,18 +1949,18 @@ CREATE_JUNPACK_PS(__t_iop_junpack_ptr_ps, void **, iop_junpack_ptr)
 int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
                      int flags, sb_t *errb)
 {
-    return __t_iop_junpack_ps(ps, st, NULL, out, flags, errb);
+    return __t_iop_junpack_ps(ps, st, NULL, out, flags, NULL, errb);
 }
 
 int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
                          int flags, sb_t *errb)
 {
-    return __t_iop_junpack_ptr_ps(ps, st, NULL, out, flags, errb);
+    return __t_iop_junpack_ptr_ps(ps, st, NULL, out, flags, NULL, errb);
 }
 
-#define CREATE_JUNPACK_FILE(_fun, _data_type, _fun_to_call)  \
+#define CREATE_JUNPACK_FILE(_fun, _data_type, _fun_to_call)                  \
 int _fun(const char *filename, const iop_struct_t *st, _data_type out,       \
-         int flags, sb_t *errb)                                              \
+         int flags, qv_t(iop_junpack_subfile) *subfiles, sb_t *errb)         \
 {                                                                            \
     int res;                                                                 \
     pstream_t ps;                                                            \
@@ -1867,7 +1975,7 @@ int _fun(const char *filename, const iop_struct_t *st, _data_type out,       \
     }                                                                        \
                                                                              \
     ps = ps_initlstr(&file);                                                 \
-    res = _fun_to_call(&ps, st, filename, out, flags, errb);                 \
+    res = _fun_to_call(&ps, st, filename, out, flags, subfiles, errb);       \
                                                                              \
  end:                                                                        \
     lstr_wipe(&file);                                                        \

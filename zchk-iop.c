@@ -263,7 +263,7 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json,
     sb_reset(&sb);
     Z_ASSERT_N(iop_jpack_file(path, st, res, 0, &sb),
                "%*pM", SB_FMT_ARG(&sb));
-    Z_ASSERT_N(t_iop_junpack_ptr_file(path, st, &res, 0, &sb),
+    Z_ASSERT_N(t_iop_junpack_ptr_file(path, st, &res, 0, NULL, &sb),
                "%*pM", SB_FMT_ARG(&sb));
     Z_ASSERT_IOPEQUAL_DESC(st, res, expected);
 
@@ -616,7 +616,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
         void *_val = NULL;                                                   \
                                                                              \
         path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_tmpdir_g), _file);            \
-        Z_ASSERT_N(t_iop_junpack_ptr_file(path, _st, &_val, 0, &err),        \
+        Z_ASSERT_N(t_iop_junpack_ptr_file(path, _st, &_val, 0, NULL, &err),  \
                    "cannot unpack `%s`: %*pM", path, SB_FMT_ARG(&err));      \
         Z_ASSERT_IOPEQUAL_DESC(_st, _val, _exp);                             \
     } while (0)
@@ -1856,7 +1856,7 @@ Z_GROUP_EXPORT(iop)
             _path = t_fmt("%*pM/iop/tstiop_file_inclusion_invalid-" _file    \
                           ".json", LSTR_FMT_ARG(z_cmddir_g));                \
             Z_ASSERT_NEG(t_iop_junpack_file(_path, &_type##__s, &_obj, 0,    \
-                                            &err));                          \
+                                            NULL, &err));                    \
             Z_ASSERT(strstr(err.data, _exp), "unexpected error: %s",         \
                      err.data);                                              \
             sb_reset(&err);                                                  \
@@ -1885,31 +1885,98 @@ Z_GROUP_EXPORT(iop)
              "infinite recursion detected in includes");
 #undef T_KO
 
-#define T_OK(_type, _res, _file)  \
+#define T_OK(_type, _res, _file, ...)                                        \
         do {                                                                 \
             _type##__t _exp;                                                 \
             const char *_path;                                               \
+            qv_t(iop_junpack_subfile) _subfiles;                             \
+            iop_junpack_subfile_t _subfiles_exp[] = { __VA_ARGS__ };         \
+            int _subfiles_nb = countof(_subfiles_exp);                       \
                                                                              \
+            t_qv_init(iop_junpack_subfile, &_subfiles, _subfiles_nb);        \
             _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file ".json",   \
                           LSTR_FMT_ARG(z_cmddir_g));                         \
-            Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, _res, 0, &err),\
+            Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, _res, 0,       \
+                                          &_subfiles, &err),                 \
                        "cannot unpack `%s`: %*pM", _path, SB_FMT_ARG(&err)); \
                                                                              \
             _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file            \
                           "-exp.json", LSTR_FMT_ARG(z_cmddir_g));            \
             Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, &_exp, 0,      \
-                                          &err),                             \
+                                          NULL, &err),                       \
                        "cannot unpack `%s`: %*pM", _path, SB_FMT_ARG(&err)); \
             Z_ASSERT_IOPEQUAL(_type, _res, &_exp);                           \
+            Z_ASSERT_EQ(_subfiles_nb, _subfiles.len);                        \
+            for (int i = 0; i < _subfiles_nb; i++) {                         \
+                Z_ASSERT_LSTREQUAL(_subfiles_exp[i].file_path,               \
+                                   _subfiles.tab[i].file_path);              \
+                Z_ASSERT_LSTREQUAL(_subfiles_exp[i].iop_path,                \
+                                   _subfiles.tab[i].iop_path);               \
+            }                                                                \
         } while (0)
 
-        T_OK(tstiop__my_struct_a_opt, &obj_basic_string, "basic-string");
-        T_OK(tstiop__my_struct_f,     &obj_string_array, "string-array");
-        T_OK(tstiop__my_struct_c,     &obj_struct,       "struct");
-        T_OK(tstiop__my_struct_e,     &obj_union,        "union");
-        T_OK(tstiop__my_struct_f,     &obj_class,        "class");
-        T_OK(tstiop__my_ref_struct,   &obj_ref,          "ref");
-        T_OK(tstiop__my_struct_c,     &obj_recursion,    "recursion");
+        T_OK(tstiop__my_struct_a_opt, &obj_basic_string, "basic-string", {
+            .file_path = LSTR("json-includes/string.txt"),
+            .iop_path = LSTR("j"),
+        });
+
+        T_OK(tstiop__my_struct_f, &obj_string_array, "string-array", {
+            .file_path = LSTR("json-includes/string.txt"),
+            .iop_path = LSTR("a[0]"),
+        }, {
+            .file_path = LSTR("json-includes/string2.txt"),
+            .iop_path = LSTR("a[2]"),
+        }, {
+            .file_path = LSTR("json-includes/string.txt"),
+            .iop_path = LSTR("b[1]"),
+        });
+
+        T_OK(tstiop__my_struct_c, &obj_struct, "struct", {
+            .file_path = LSTR("json-includes/MyStructC-1.json"),
+            .iop_path = LSTR("b"),
+        }, {
+            .file_path = LSTR("json-includes/MyStructC-2.json"),
+            .iop_path = LSTR("b.b"),
+        }, {
+            .file_path = LSTR("json-includes/MyStructC-2.json"),
+            .iop_path = LSTR("c[1]"),
+        });
+
+        T_OK(tstiop__my_struct_e, &obj_union, "union", {
+            .file_path = LSTR("json-includes/MyUnionA.json"),
+            .iop_path = LSTR("b"),
+        });
+
+        T_OK(tstiop__my_struct_f, &obj_class, "class", {
+            .file_path = LSTR("json-includes/MyClass1.json"),
+            .iop_path = LSTR("e[0]"),
+        }, {
+            .file_path = LSTR("json-includes/string.txt"),
+            .iop_path = LSTR("e[0].string1"),
+        }, {
+            .file_path = LSTR("json-includes/MyClass1.json"),
+            .iop_path = LSTR("f"),
+        }, {
+            .file_path = LSTR("json-includes/string.txt"),
+            .iop_path = LSTR("f.string1"),
+        });
+
+        T_OK(tstiop__my_ref_struct, &obj_ref, "ref", {
+            .file_path = LSTR("json-includes/MyReferencedStruct.json"),
+            .iop_path = LSTR("s"),
+        }, {
+            .file_path = LSTR("json-includes/MyReferencedUnion.json"),
+            .iop_path = LSTR("u"),
+        });
+
+        T_OK(tstiop__my_struct_c, &obj_recursion, "recursion", {
+            .file_path = LSTR("json-includes/MyStructC-recur-3.json"),
+            .iop_path = LSTR("b"),
+        }, {
+            .file_path = LSTR("json-includes/MyStructC-recur-4.json"),
+            .iop_path = LSTR("b.b"),
+        });
+
 #undef T_OK
 
         /* }}} */
@@ -3845,7 +3912,8 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename,   \
                                                     LSTR_FMT_ARG(z_cmddir_g)),\
                                               &tstiop_inheritance__##_type##__s,\
-                                              (void **)&_type, 0, &err),     \
+                                              (void **)&_type, 0, NULL,      \
+                                              &err),                         \
                        "junpack failed: %s", err.data);                      \
         } while (0)
 
@@ -3902,7 +3970,7 @@ Z_GROUP_EXPORT(iop)
             sb_reset(&err);                                                  \
             Z_ASSERT_NEG(t_iop_junpack_ptr_file(t_fmt("%*pM/iop/" _filename, \
                 LSTR_FMT_ARG(z_cmddir_g)), &tstiop_inheritance__##_type##__s,\
-                (void **)&_type, _flags, &err));                             \
+                (void **)&_type, _flags, NULL, &err));                       \
             Z_ASSERT(strstr(err.data, _err), "%s", err.data);                \
         } while (0)
 

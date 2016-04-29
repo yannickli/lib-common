@@ -259,6 +259,17 @@ __must_check__
 int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
                          int flags, sb_t * nullable errb);
 
+/** Sub-file unpacked with the include feature. */
+typedef struct iop_junpack_subfile_t {
+    /** Relative path to the root unpacked json. */
+    lstr_t file_path;
+
+    /** IOP path from the root unpacked object */
+    lstr_t iop_path;
+} iop_junpack_subfile_t;
+
+qvector_t(iop_junpack_subfile, iop_junpack_subfile_t);
+
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
  * This function read a file containing an IOP-JSon structure and set the
@@ -274,6 +285,7 @@ int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
  * \param[in]  st       The IOP structure description.
  * \param[out] out      Pointer on the IOP structure to write.
  * \param[in]  flags    Unpacker flags to use (see iop_jlex_set_flags).
+ * \param[out] subfiles List of subfiles unpacked.
  * \param[out] errb     NULL or the buffer to use to write textual error.
  *
  * \return
@@ -282,7 +294,9 @@ int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
  */
 __must_check__
 int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
-                       void *out, int flags, sb_t * nullable errb);
+                       void *out, int flags,
+                       qv_t(iop_junpack_subfile) * nullable subfiles,
+                       sb_t * nullable errb);
 
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
@@ -298,7 +312,9 @@ int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
  */
 __must_check__
 int t_iop_junpack_ptr_file(const char *filename, const iop_struct_t *st,
-                           void **out, int flags, sb_t * nullable errb);
+                           void **out, int flags,
+                           qv_t(iop_junpack_subfile) * nullable subfiles,
+                           sb_t * nullable errb);
 
 /** Print a textual error after iop_junpack() failure.
  *
