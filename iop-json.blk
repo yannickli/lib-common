@@ -1309,11 +1309,16 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            t_scope;
             lstr_t name = LSTR_SB_V(&ll->ctx->b);
+            sb_t camelcase_name;
 
             if (ll->flags & IOP_UNPACK_USE_C_CASE) {
-                name = t_c_to_camelcase(name, false);
+                sb_inita(&camelcase_name, name.len);
+
+                if (c_to_camelcase(name, false, &camelcase_name) < 0) {
+                    return RJERROR_EXP("a valid union member name");
+                }
+                name = LSTR_SB_V(&camelcase_name);
             }
             if (iop_field_find_by_name(desc, name, NULL, &fdesc) < 0) {
                 return RJERROR_EXP("a valid union member name");
@@ -1472,6 +1477,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     uint32_t *seen       = seen_buf;
     const iop_struct_t *real_desc = desc;
     bool is_class = false;
+    SB_1k(camelcase_name);
 
     pstream_t ctx_ps;
     int       ctx_line = 0, ctx_col = 0;
@@ -1524,7 +1530,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 break;
             }
             if (real_desc) {
-                t_scope;
                 int ifield;
                 lstr_t name = LSTR_SB_V(&ll->ctx->b);
 
@@ -1538,7 +1543,13 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     }
                 }
                 if (ll->flags & IOP_UNPACK_USE_C_CASE) {
-                    name = t_c_to_camelcase(name, false);
+                    sb_reset(&camelcase_name);
+
+                    if (c_to_camelcase(name, false, &camelcase_name) < 0) {
+                        return RJERROR_EXP_FMT("field of struct %s",
+                                               real_desc->fullname.s);
+                    }
+                    name = LSTR_SB_V(&camelcase_name);
                 }
                 ifield = iop_field_find_by_name(real_desc, name, &desc,
                                                 &fdesc);

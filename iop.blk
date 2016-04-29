@@ -546,13 +546,13 @@ lstr_t t_iop_type_to_c(lstr_t name)
     return lstr_init_(buf.data, buf.len, MEM_STACK);
 }
 
-lstr_t t_c_to_camelcase(lstr_t s, bool is_first_upper)
+int c_to_camelcase(lstr_t s, bool is_first_upper, sb_t *out)
 {
-    t_SB(buf, s.len);
     pstream_t ps = ps_initlstr(&s);
 
-    THROW_IF(lstr_endswithc(s, '_'), LSTR_NULL_V);
+    THROW_ERR_IF(lstr_endswithc(s, '_'));
 
+    sb_reset(out);
     while (!ps_done(&ps)) {
         pstream_t token;
         pstream_t token2;
@@ -563,26 +563,27 @@ lstr_t t_c_to_camelcase(lstr_t s, bool is_first_upper)
         }
 
         /* Validate token */
-        THROW_IF(ps_len(&token) == 0, LSTR_NULL_V);
+        THROW_ERR_IF(ps_len(&token) == 0);
 
         token2 = ps_get_span(&token, &ctype_isalnum);
-        THROW_IF(ps_len(&token) > 0, LSTR_NULL_V);
+        THROW_ERR_IF(ps_len(&token) > 0);
 
         token = ps_get_cspan(&token2, &ctype_isupper);
-        THROW_IF(ps_len(&token2) > 0, LSTR_NULL_V);
+        THROW_ERR_IF(ps_len(&token2) > 0);
 
-        /* if the string needs no modification, return it */
-        if (!is_first_upper && !buf.len && ps_done(&ps)) {
-            return s;
+        /* fast path if the string needs no modification */
+        if (!is_first_upper && !out->len && ps_done(&ps)) {
+            sb_set_lstr(out, s);
+            return 0;
         }
 
         /* Transform token */
-        if (is_first_upper || buf.len) {
-            sb_addc(&buf, toupper(ps_getc(&token)));
+        if (is_first_upper || out->len) {
+            sb_addc(out, toupper(ps_getc(&token)));
         }
-        sb_add(&buf, token.s, ps_len(&token));
+        sb_add(out, token.s, ps_len(&token));
     }
-    return lstr_init_(buf.data, buf.len, MEM_STACK);
+    return 0;
 }
 
 bool iop_type_is_scalar(iop_type_t type)

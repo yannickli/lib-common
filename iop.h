@@ -61,10 +61,10 @@ lstr_t t_iop_type_to_c(lstr_t fullname);
  * \param[in] is_first_upper Specify wether the output should start with an
  *                           upper case character, otherwise a lower case
  *                           character is emitted.
- * \return LSTR_NULL in case of error, the CamelCase/camelCase string
- *         otherwise.
+ * \param[out] out The string receiving the camelCase/CamelCase result.
+ * \return 0 in case of success -1 in case of error.
  */
-lstr_t t_c_to_camelcase(lstr_t name, bool is_first_upper);
+int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t *out);
 
 /* }}} */
 /* {{{ IOP attributes and constraints */
