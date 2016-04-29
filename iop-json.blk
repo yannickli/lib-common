@@ -991,11 +991,6 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
             *(void **)value = NULL;
             res = t_iop_junpack_ptr_file(path, fdesc->u1.st_desc, value,
                                          ll->flags, &err);
-        } else
-        if (fdesc->repeat == IOP_R_OPTIONAL) {
-            *(void **)value = NULL;
-            res = t_iop_junpack_ptr_file(path, fdesc->u1.st_desc, &value,
-                                         ll->flags, &err);
         } else {
             res = t_iop_junpack_file(path, fdesc->u1.st_desc, value,
                                      ll->flags, &err);
