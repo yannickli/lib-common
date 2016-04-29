@@ -674,11 +674,6 @@ static bool el_timer_has_pending_events(void)
     return ev->timer.expiry <= now;
 }
 
-
-/* XXX: if we reschedule in more than half a second, don't care about
-        the high precision */
-#define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
-
 ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
@@ -692,7 +687,7 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t p
     } else {
         ev->timer.repeat = -next;
     }
-    ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
+    ev->timer.expiry = (uint64_t)next + get_clock(false);
     qhp_insert(timer, &_G.timers, ev);
     return ev;
 }
@@ -712,7 +707,7 @@ void el_timer_set_hook(el_t ev, el_cb_f *cb)
 
 static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 {
-    ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
+    ev->timer.expiry = (uint64_t)restart + get_clock(false);
     EV_FLAG_SET(ev, TIMER_UPDATED);
     qhp_fixup(timer, &_G.timers, ev->timer.heappos);
 }
