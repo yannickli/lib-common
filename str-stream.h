@@ -551,6 +551,10 @@ static inline const char *ps_gets(pstream_t *ps, int * nullable len) {
     return res;
 }
 
+/* this function returns a lstr containing the characters of the ps until the
+ * next '\0' and returns LSTR_NULL_V iff the pstream isn't null-terminated
+ * XXX if you want to get the whole pstream, you should use LSTR_PS_V instead
+ */
 static inline lstr_t ps_get_lstr(pstream_t *ps) {
     int len = 0;
     const char *s = ps_gets(ps, &len);
