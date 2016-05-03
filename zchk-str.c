@@ -2000,6 +2000,39 @@ Z_GROUP_EXPORT(str)
 #undef NOMATCH
 #undef MATCH
     } Z_TEST_END;
+
+    Z_TEST(ps_get_str, "ps: ps_gets") {
+        lstr_t lstr_zero_terminated = LSTR_IMMED("foo\0baar\0");
+        pstream_t ps_zero_terminated = ps_initlstr(&lstr_zero_terminated);
+        lstr_t lstr_not_zero_term = LSTR_IMMED("foobar");
+        pstream_t ps_not_zero_term = ps_initlstr(&lstr_not_zero_term);
+        int len;
+
+        Z_ASSERT_STREQUAL(ps_gets(&ps_zero_terminated, &len), "foo");
+        Z_ASSERT_EQ(len, 3);
+        Z_ASSERT_STREQUAL(ps_gets(&ps_zero_terminated, &len), "baar");
+        Z_ASSERT_EQ(len, 4);
+        Z_ASSERT(ps_done(&ps_zero_terminated));
+        Z_ASSERT_NULL(ps_gets(&ps_zero_terminated, NULL));
+
+        Z_ASSERT_NULL(ps_gets(&ps_not_zero_term, NULL));
+    } Z_TEST_END;
+
+    Z_TEST(ps_get_lstr, "ps: ps_get_lstr") {
+        lstr_t lstr_zero_terminated = LSTR_IMMED("foo\0baar\0");
+        pstream_t ps_zero_terminated = ps_initlstr(&lstr_zero_terminated);
+        lstr_t lstr_not_zero_term = LSTR_IMMED("foobar");
+        pstream_t ps_not_zero_term = ps_initlstr(&lstr_not_zero_term);
+
+        Z_ASSERT_LSTREQUAL(ps_get_lstr(&ps_zero_terminated),
+                           LSTR_IMMED_V("foo"));
+        Z_ASSERT_LSTREQUAL(ps_get_lstr(&ps_zero_terminated),
+                           LSTR_IMMED_V("baar"));
+        Z_ASSERT(ps_done(&ps_zero_terminated));
+        Z_ASSERT_LSTREQUAL(ps_get_lstr(&ps_zero_terminated), LSTR_NULL_V);
+
+        Z_ASSERT_LSTREQUAL(ps_get_lstr(&ps_not_zero_term), LSTR_NULL_V);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
