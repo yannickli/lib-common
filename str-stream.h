@@ -539,7 +539,7 @@ static inline int ps_hexdecode(pstream_t *ps) {
     return res;
 }
 
-static inline const char *ps_gets(pstream_t *ps, int *len) {
+static inline const char *ps_gets(pstream_t *ps, int * nullable len) {
     const char *end = (const char *)memchr(ps->s, '\0', ps_len(ps));
     const char *res = ps->s;
 
