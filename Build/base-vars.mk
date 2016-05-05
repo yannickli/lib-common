@@ -141,9 +141,9 @@ endif
 #
 FASTCP := ln -f
 MV     := mv -f
-INSTALL=$(shell which ginstall)
+INSTALL := $(shell which ginstall 2> /dev/null)
 ifeq ($(INSTALL),)
-	INSTALL=install
+	INSTALL := install
 endif
 
 
