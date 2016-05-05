@@ -432,7 +432,7 @@ qh_kvec_t(st_file, st_file_t, st_file_hash, st_file_equal);
 static int __list_dir(const char *path, unsigned flags,
                       qh_t(st_file) *files_seen, on_file_b on_file);
 
-static int list_dir_on_entry(const char *path, unsigned flags,
+static int list_dir_on_entry(const char *base, const char *path, unsigned flags,
                              qh_t(st_file) *files_seen, linux_dirent_t *de,
                              int *total, on_file_b on_file)
 {
@@ -466,7 +466,7 @@ static int list_dir_on_entry(const char *path, unsigned flags,
 
     (*total)++;
     if (on_file) {
-        res = on_file(path, de);
+        res = on_file(base, de);
         if (res < 0) {
             return -1;
         }
@@ -498,7 +498,7 @@ static int __list_dir(const char *path, unsigned flags,
             }
 
             snprintf(tmp_path, sizeof(tmp_path), "%s/%s", path, de->d_name);
-            tmp_res = list_dir_on_entry(tmp_path, flags, files_seen,
+            tmp_res = list_dir_on_entry(path, tmp_path, flags, files_seen,
                                         de, &total, on_file);
 
             if (tmp_res < 0) {
@@ -541,7 +541,7 @@ static int __list_dir(const char *path, unsigned flags,
         snprintf(tmp_path, sizeof(tmp_path), "%s/%*pM",
                  path, LSTR_FMT_ARG(name));
 
-        res = list_dir_on_entry(tmp_path, flags, files_seen, de,
+        res = list_dir_on_entry(path, tmp_path, flags, files_seen, de,
                                 &total, on_file);
 
         if (res < 0) {
