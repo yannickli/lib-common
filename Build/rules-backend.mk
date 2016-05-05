@@ -231,7 +231,7 @@ $(1DV)all:: $1.so
 $1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(NOLINK),:,chmod a-wx $$< && $(FASTCP) $$< $/$$@$$(tmp/$1/build))
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
-	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
+	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F).$$(tmp/$1/sover))
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
 $~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
