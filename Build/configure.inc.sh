@@ -49,8 +49,8 @@ setvar() {
 }
 
 setvardef() {
-    setvar $*
-    echo "CFLAGS += -D$1=$2" >> "$out"
+    setenv $*
+    echo "CFLAGSBASE += -D$1=$2" >> "$out"
 }
 
 file_exists() {

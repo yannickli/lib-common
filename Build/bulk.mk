@@ -369,7 +369,7 @@ __dump_targets:
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\
 			echo '$.$(vv) += $(call fun/exportvars,$(CURDIR),$($(vv)))';))
-	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH,$(filter-out MAKE%,$(.VARIABLES))),\
+	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %CFLAGSBASE %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
