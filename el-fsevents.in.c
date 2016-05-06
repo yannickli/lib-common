@@ -113,7 +113,21 @@ static void el_fs_events_cb(ConstFSEventStreamRef streamRef,
         }
 #endif
         if (flags & kFSEventStreamEventFlagItemIsFile) {
-            el_fs_watch_fire(el, 0, 0, LSTR(paths[i]));
+            lstr_t path = LSTR(paths[i] + strlen(el->fs_watch.path) + 1);
+            struct stat st;
+            bool path_exists = stat(paths[i], &st) >= 0;
+            uint32_t notifs = 0;
+
+            if (flags & kFSEventStreamEventFlagItemRenamed) {
+                notifs |= path_exists ? IN_MOVED_TO : IN_MOVED_FROM;
+            } else
+            if (flags & kFSEventStreamEventFlagItemCreated) {
+                notifs |= IN_CREATE;
+            } else
+            if (flags & kFSEventStreamEventFlagItemRemoved) {
+                notifs |= IN_DELETE;
+            }
+            el_fs_watch_fire(el, notifs, 0, path);
         }
     }
 }
