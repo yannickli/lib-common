@@ -393,12 +393,23 @@ free_n(page_run_t *run, page_desc_t *blk, size_t npages, uint32_t seg)
     spin_unlock(&_G.lock);
 
     if (bsz == run->npages) {
+#ifdef __linux__
         madvise(run->mem_pages, bsz * QPAGE_SIZE, MADV_DONTNEED);
+#else
+        mmap(run->mem_pages, bsz * QPAGE_SIZE, PROT_READ | PROT_WRITE,
+             MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0);
+#endif
         blk_set_clean(run->pages, bsz);
         mem_tool_disallow_memory(run->mem_pages, bsz * QPAGE_SIZE);
     } else
     if (npages > QDB_MADVISE_THRESHOLD) {
+#ifdef __linux__
         madvise(run->mem_pages + blkno, npages * QPAGE_SIZE, MADV_DONTNEED);
+#else
+        mmap(run->mem_pages + blkno, npages * QPAGE_SIZE,
+             PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_FIXED,
+             -1, 0);
+#endif
         blk_set_clean(run->pages + blkno, npages);
         mem_tool_disallow_memory(run->mem_pages + blkno, npages * QPAGE_SIZE);
     } else {
