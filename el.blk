@@ -50,6 +50,9 @@ struct rlimit fd_limit_g;
  *
  */
 
+/* Arbitrary set default timeout to 59 seconds */
+#define EL_LOOP_TIMEOUT  (59000)
+
 /* {{{ Type declarations */
 
 typedef enum ev_type_t {
@@ -133,6 +136,7 @@ typedef struct ev_t {
         } child;                /* EV_CHILD */
         struct {
             uint64_t expiry;
+            int      tolerance;
             int      repeat;
             int      heappos;
         } timer;                /* EV_TIMER */
@@ -148,8 +152,13 @@ typedef struct ev_t {
     };
 } ev_t;
 
+#define TIMER_TOLERATED_EXPIRY(ev)  ({                                       \
+        const ev_t *__tte_ev = (ev);                                         \
+        __tte_ev->timer.expiry + __tte_ev->timer.tolerance;                  \
+    })
+
 #define TIMER_CMP(ev1, op, ev2)  \
-    ((ev1)->timer.expiry op (ev2)->timer.expiry)
+    TIMER_TOLERATED_EXPIRY(ev1) op TIMER_TOLERATED_EXPIRY(ev2)
 
 static ALWAYS_INLINE void ev_set_qhp_pos(ev_t *ev, int pos)
 {
@@ -679,8 +688,9 @@ static void el_timer_process(uint64_t until)
         ev_t *ev = qhp_first(timer, &_G.timers);
 
         ASSERT("should be a timer", ev->type == EV_TIMER);
-        if (ev->timer.expiry > until)
+        if (ev->timer.expiry > until) {
             return;
+        }
 
         EV_FLAG_RST(ev, TIMER_UPDATED);
         if (EV_FLAG_HAS(ev, IS_BLK)) {
@@ -691,8 +701,9 @@ static void el_timer_process(uint64_t until)
         _G.has_run = true;
 
         /* ev has been unregistered in (*cb) */
-        if (ev->type == EV_UNUSED)
+        if (ev->type == EV_UNUSED) {
             continue;
+        }
 
         if (ev->timer.repeat > 0) {
             ev->timer.expiry += ev->timer.repeat;
@@ -781,19 +792,46 @@ static bool el_timer_has_pending_events(void)
     return ev->timer.expiry <= now;
 }
 
+static void el_timer_compute_tolerance(ev_t *ev)
+{
+    int repeat = ev->timer.repeat;
+
+    if (repeat < 0) {
+        repeat = -repeat;
+    }
+
+    /* XXX: we consider that timer rescheduled in more than half a second
+     *      don't care about high resolution.
+     */
+    if (!EV_FLAG_HAS(ev, TIMER_LOWRES) && repeat < 500) {
+        ev->timer.tolerance = 0;
+        return;
+    }
+
+    /* Low-resolution timer allow a shift of up to 10% of the timer duration.
+     * That shift is actually capped at EL_LOOP_TIMEOUT since this is the
+     * duration of an event loop in case of inactivity.
+     */
+    ev->timer.tolerance = repeat / 10;
+}
+
 ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
-    if (flags & EL_TIMER_NOMISS)
+    if (flags & EL_TIMER_NOMISS) {
         EV_FLAG_SET(ev, TIMER_NOMISS);
-    if (flags & EL_TIMER_LOWRES)
+    }
+    if (flags & EL_TIMER_LOWRES) {
         EV_FLAG_SET(ev, TIMER_LOWRES);
+    }
+    ev->timer.tolerance = 0;
     if (repeat > 0) {
         ev->timer.repeat = repeat;
     } else {
         ev->timer.repeat = -next;
     }
+    el_timer_compute_tolerance(ev);
     ev->timer.expiry = (uint64_t)next + get_clock(false);
     qhp_insert(timer, &_G.timers, ev);
     return ev;
@@ -823,10 +861,12 @@ void el_timer_restart(ev_t *ev, int restart)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
     ASSERT("timer isn't a oneshot timer", ev->timer.repeat <= 0);
+
     if (restart <= 0) {
         restart = -ev->timer.repeat;
     } else {
         ev->timer.repeat = -restart;
+        el_timer_compute_tolerance(ev);
     }
     el_timer_restart_fast(ev, restart);
 }
@@ -1341,9 +1381,10 @@ void el_loop_timeout(int timeout)
 
     el_timer_process(clk);
     if (!qhp_is_empty(timer, &_G.timers)) {
-        uint64_t nxt = qhp_first(timer, &_G.timers)->timer.expiry;
-        if (nxt < (uint64_t)timeout + clk)
+        uint64_t nxt = TIMER_TOLERATED_EXPIRY(qhp_first(timer, &_G.timers));
+        if (nxt < (uint64_t)timeout + clk) {
             timeout = nxt - clk;
+        }
     }
     if (unlikely(_G.unloop))
         return;
@@ -1424,7 +1465,7 @@ void el_cond_signal(pthread_cond_t *cond)
 void el_loop(void)
 {
     while (likely(_G.active) && likely(!_G.unloop)) {
-        el_loop_timeout(59000); /* arbitrary: 59 seconds */
+        el_loop_timeout(EL_LOOP_TIMEOUT); /* arbitrary: 59 seconds */
     }
     _G.unloop = false;
 }
@@ -1522,12 +1563,18 @@ static void el_print_state(void)
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat < 0) {
-                    details = t_lstr_fmt("one shot, expiry: %ju)",
-                                         ev->timer.expiry / 1000);
+                    details = t_lstr_fmt("one shot, expiry: %ju.%03ju, "
+                                         "tolerance: %ums",
+                                         ev->timer.expiry / 1000,
+                                         ev->timer.expiry % 1000,
+                                         ev->timer.tolerance);
                 } else {
-                    details = t_lstr_fmt("repeat: %dms, next: %ju",
+                    details = t_lstr_fmt("repeat: %dms, next: %ju.%03ju, "
+                                         "tolerance: %ums",
                                          ev->timer.repeat,
-                                         ev->timer.expiry / 1000);
+                                         ev->timer.expiry / 1000,
+                                         ev->timer.expiry % 1000,
+                                         ev->timer.tolerance);
                 }
                 break;
               case EV_PROXY:
