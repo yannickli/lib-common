@@ -290,6 +290,7 @@ bool qhat_check_consistency_(qhat_t *hat, bool check_content)
 
 bool qhat_check_consistency(qhat_t *hat)
 {
+    qps_hptr_deref(hat->qps, &hat->root_cache);
     return qhat_check_consistency_(hat, true);
 }
 
