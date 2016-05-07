@@ -525,12 +525,15 @@ static int __list_dir(const char *path, unsigned flags,
                       qh_t(st_file) *files_seen, on_file_b on_file)
 {
     DIR *dir = RETHROW_PN(opendir(path));
-    struct dirent *dirent = p_new_extra(struct dirent, PATH_MAX);
+    struct {
+        struct dirent dirent;
+        char buf[PATH_MAX];
+    } dirent;
     struct dirent *de;
     int res = 0;
     int total = 0;
 
-    while ((res = readdir_r(dir, dirent, &de)) == 0 && de != NULL) {
+    while ((res = readdir_r(dir, &dirent.dirent, &de)) == 0 && de != NULL) {
         lstr_t name = LSTR_INIT(de->d_name, de->d_namlen);
         char tmp_path[PATH_MAX];
 
@@ -549,7 +552,6 @@ static int __list_dir(const char *path, unsigned flags,
         }
     }
 
-    p_delete(&dirent);
     closedir(dir);
     return res < 0 ? -1 : total;
 }
