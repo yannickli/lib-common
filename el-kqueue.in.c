@@ -165,14 +165,14 @@ static void el_loop_fds(int timeout)
     uint64_t before, now;
 
     if (kqueue_g.pending == 0) {
-        before = get_clock(false);
+        before = get_clock();
         el_loop_fds_poll(timeout);
-        now    = get_clock(false);
+        now    = get_clock();
         if (now - before > 100) {
             dlist_splice_tail(&_G.idle, &_G.idle_parked);
         }
     } else {
-        now = get_clock(false);
+        now = get_clock();
     }
 
     res = res2 = kqueue_g.pending;

@@ -178,7 +178,6 @@ static struct {
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
     bool      worker_running; /* true if the worker is currently running    */
-    uint64_t  lp_clk;         /* low precision monotonic clock              */
 
     dlist_t   idle;           /* ev_t to run when we're "idle"              */
     dlist_t   idle_parked;    /* list to hide idle hooks for a while        */
@@ -728,12 +727,9 @@ static struct {
     bool inited;
 } mach_conv_g;
 
-static uint64_t get_clock(bool lowres)
+static uint64_t get_clock(void)
 {
     uint64_t t;
-
-    if (qhp_len(timer, &_G.timers) > 1 && lowres && likely(_G.lp_clk))
-        return _G.lp_clk;
 
     t = mach_absolute_time();
     if (unlikely(!mach_conv_g.inited)) {
@@ -743,18 +739,15 @@ static uint64_t get_clock(bool lowres)
     t *= mach_conv_g.info.numer;
     t /= mach_conv_g.info.denom;
     t /= 1000000;
-    return _G.lp_clk = t;
+    return t;
 }
 
 #else
 
-static uint64_t get_clock(bool lowres)
+static uint64_t get_clock(void)
 {
     struct timespec ts;
     int res;
-
-    if (qhp_len(timer, &_G.timers) > 1 && lowres && likely(_G.lp_clk))
-        return _G.lp_clk;
 
 #if   defined(CLOCK_MONOTONIC) /* POSIX   */
     res = clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -764,7 +757,7 @@ static uint64_t get_clock(bool lowres)
 #   error you need to find out how to get a monotonic clock for your system
 #endif
     assert (res == 0);
-    return _G.lp_clk = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
+    return 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
 
 #endif
@@ -775,7 +768,7 @@ static bool el_timer_has_pending_events(void)
     uint64_t now = 0;
 
     if (!qhp_is_empty(timer, &_G.timers) || _G.worker_running) {
-        now = get_clock(false);
+        now = get_clock();
     }
 
     if (_G.worker_running) {
@@ -832,7 +825,7 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t p
         ev->timer.repeat = -next;
     }
     el_timer_compute_tolerance(ev);
-    ev->timer.expiry = (uint64_t)next + get_clock(false);
+    ev->timer.expiry = (uint64_t)next + get_clock();
     qhp_insert(timer, &_G.timers, ev);
     return ev;
 }
@@ -852,7 +845,7 @@ void el_timer_set_hook(el_t ev, el_cb_f *cb)
 
 static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 {
-    ev->timer.expiry = (uint64_t)restart + get_clock(false);
+    ev->timer.expiry = (uint64_t)restart + get_clock();
     EV_FLAG_SET(ev, TIMER_UPDATED);
     qhp_fixup(timer, &_G.timers, ev->timer.heappos);
 }
@@ -1065,7 +1058,7 @@ int el_fds_loop(ev_t **evs, int count, int timeout, unsigned flags)
     res = poll(pfd, count, timeout);
     if (flags & EV_FDLOOP_HANDLE_TIMERS) {
         if (!qhp_is_empty(timer, &_G.timers)) {
-            el_timer_process(get_clock(false));
+            el_timer_process(get_clock());
         }
     }
     if (flags & EV_FDLOOP_HANDLE_SIGNALS) {
@@ -1377,7 +1370,7 @@ data_t el_set_priv(ev_t *ev, data_t priv)
 
 void el_loop_timeout(int timeout)
 {
-    uint64_t clk = get_clock(false);
+    uint64_t clk = get_clock();
 
     el_timer_process(clk);
     if (!qhp_is_empty(timer, &_G.timers)) {
@@ -1399,12 +1392,12 @@ void el_loop_timeout(int timeout)
         uint64_t start, end;
         int diff;
 
-        start = get_clock(false);
+        start = get_clock();
         _G.worker_running = true;
         _G.worker_end     = start + timeout;
         (*_G.worker)(timeout);
         _G.worker_running = false;;
-        end = get_clock(false);
+        end = get_clock();
 
         diff = end - start;
         if (diff > timeout + 100) {
