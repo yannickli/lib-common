@@ -310,21 +310,7 @@ int       qps_unlink(const char *path);
 void      qps_close(qps_t **qps);
 void      qps_get_usage(const qps_t *qps, struct qps_stats *);
 
-/** Register a snapshot callback.
- * This must be called just before qps_snapshot, never after.
- */
-static inline void qps_snapshot_register_job(qps_t *qps, thr_job_t *job)
-{
-    thr_syn_schedule(&qps->snap_syn, job);
-}
 #ifdef __has_blocks
-/** Register a snapshot block.
- * This must be called just before qps_snapshot, never after.
- */
-static inline void qps_snapshot_register_job_blk(qps_t *qps, block_t blk)
-{
-    thr_syn_schedule_b(&qps->snap_syn, blk);
-}
 uint32_t  qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                        void (BLOCK_CARET notify)(uint32_t gen));
 #endif
