@@ -94,6 +94,21 @@ typedef struct iop_json_lex_t {
     iop_json_lex_ctx_t *ctx;
 } iop_json_lex_t;
 
+/** Sub-file (un)packed with the include feature. */
+typedef struct iop_json_subfile_t {
+    /** Path to the (un)packed json.
+     *
+     * On unpack, the returned path is relative to the main file.
+     * On pack, the path can be either absolute or relative to the main file.
+     */
+    lstr_t file_path;
+
+    /** IOP path from the main (un)packed object. */
+    lstr_t iop_path;
+} iop_json_subfile_t;
+
+qvector_t(iop_json_subfile, iop_json_subfile_t);
+
 /* }}} */
 /* {{{ Parsing JSon */
 
@@ -259,17 +274,6 @@ __must_check__
 int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
                          int flags, sb_t * nullable errb);
 
-/** Sub-file unpacked with the include feature. */
-typedef struct iop_junpack_subfile_t {
-    /** Relative path to the root unpacked json. */
-    lstr_t file_path;
-
-    /** IOP path from the root unpacked object */
-    lstr_t iop_path;
-} iop_junpack_subfile_t;
-
-qvector_t(iop_junpack_subfile, iop_junpack_subfile_t);
-
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
  * This function read a file containing an IOP-JSon structure and set the
@@ -285,7 +289,7 @@ qvector_t(iop_junpack_subfile, iop_junpack_subfile_t);
  * \param[in]  st       The IOP structure description.
  * \param[out] out      Pointer on the IOP structure to write.
  * \param[in]  flags    Unpacker flags to use (see iop_jlex_set_flags).
- * \param[out] subfiles List of subfiles unpacked.
+ * \param[out] subfiles List of unpacked subfiles.
  * \param[out] errb     NULL or the buffer to use to write textual error.
  *
  * \return
@@ -295,7 +299,7 @@ qvector_t(iop_junpack_subfile, iop_junpack_subfile_t);
 __must_check__
 int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
                        void *out, int flags,
-                       qv_t(iop_junpack_subfile) * nullable subfiles,
+                       qv_t(iop_json_subfile) * nullable subfiles,
                        sb_t * nullable errb);
 
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
@@ -313,7 +317,7 @@ int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
 __must_check__
 int t_iop_junpack_ptr_file(const char *filename, const iop_struct_t *st,
                            void **out, int flags,
-                           qv_t(iop_junpack_subfile) * nullable subfiles,
+                           qv_t(iop_json_subfile) * nullable subfiles,
                            sb_t * nullable errb);
 
 /** Print a textual error after iop_junpack() failure.
@@ -395,33 +399,6 @@ typedef int (iop_jpack_writecb_f)(void *priv, const void *buf, int len);
 int iop_jpack(const iop_struct_t *st, const void *value,
               iop_jpack_writecb_f *writecb, void *priv, unsigned flags);
 
-
-/** Sub-file parameters to use with \ref __iop_jpack_file.
- *
- * \ref __iop_jpack_file supports to pack sub-objects in dedicated files using
- * the include feature, using this configuration structure.
- *
- * To achieve that, one must create and fill a hash table of this kind, and
- * give it as argument to \ref __iop_jpack_file.
- *
- * The key is a pointer on a sub-object to pack in a dedicated file.
- * For string (and XML or data) fields, it must be a pointer on the associated
- * lstr_t.
- * For unions/struct/classes, it must be a pointer on the object.
- * The given sub-object can be in an array.
- *
- * The value is the path of the file in which it will be written, which can be
- * either absolute or relative to the main file.
- *
- * \warning it is currently not possible to pack the first field of a
- * structure in a sub-file, because its pointer is the same as the pointer of
- * the structure itself in the parent object (this is the structure that would
- * be packed instead). To fix that, we'll need one day to use paths instead of
- * pointers.
- */
-qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
-               qhash_hash_ptr, qhash_ptr_equal);
-
 /** Serialize an IOP C structure in an IOP-JSon file.
  *
  * This function packs an IOP structure into (strict) JSon format and writes
@@ -437,7 +414,7 @@ qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
  * \param[in]  st         IOP structure description.
  * \param[in]  value      Pointer on the IOP structure to pack.
  * \param[in]  flags      Packer flags bitfield (see iop_jpack_flags).
- * \param[in]  sub_files  If set, this is the list of IOP objects that must be
+ * \param[in]  subfiles   If set, this is the list of IOP objects that must be
  *                        written in separate files using @include.
  * \param[out] err        Buffer filled in case of error.
  * \param[out] err        NULL or the buffer to use to write textual error.
@@ -445,7 +422,7 @@ qm_kptr_ckey_t(iop_jpack_sub_file, void, const char *,
 int __iop_jpack_file(const char *filename, unsigned file_flags,
                      mode_t file_mode, const iop_struct_t *st,
                      const void *value, unsigned flags,
-                     const qm_t(iop_jpack_sub_file) * nullable sub_files,
+                     const qv_t(iop_json_subfile) * nullable subfiles,
                      sb_t * nullable err);
 
 static inline int

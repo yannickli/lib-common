@@ -587,7 +587,7 @@ qvector_t(z_json_sub_file, z_json_sub_file_t);
 
 static int
 iop_check_json_include_packing(const iop_struct_t *st, const void *val,
-                               const qm_t(iop_jpack_sub_file) *sub_files,
+                               const qv_t(iop_json_subfile) *sub_files,
                                const qv_t(z_json_sub_file) *z_sub_files,
                                const char *exp_err)
 {
@@ -1835,8 +1835,8 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */
         t_scope;
         SB_1k(err);
-        qm_t(iop_jpack_sub_file) sub_files;
-        qv_t(z_json_sub_file)    z_sub_files;
+        qv_t(iop_json_subfile) sub_files;
+        qv_t(z_json_sub_file)  z_sub_files;
         tstiop__my_struct_a_opt__t obj_basic_string;
         tstiop__my_struct_f__t     obj_string_array;
         tstiop__my_struct_c__t     obj_struct;
@@ -1844,6 +1844,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_f__t     obj_class;
         tstiop__my_ref_struct__t   obj_ref;
         tstiop__my_struct_c__t     obj_recursion;
+        tstiop__my_struct_m__t     obj_first_field;
 
         /* {{{ Unpacker tests */
 
@@ -1889,11 +1890,11 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             _type##__t _exp;                                                 \
             const char *_path;                                               \
-            qv_t(iop_junpack_subfile) _subfiles;                             \
-            iop_junpack_subfile_t _subfiles_exp[] = { __VA_ARGS__ };         \
+            qv_t(iop_json_subfile) _subfiles;                                \
+            iop_json_subfile_t _subfiles_exp[] = { __VA_ARGS__ };            \
             int _subfiles_nb = countof(_subfiles_exp);                       \
                                                                              \
-            t_qv_init(iop_junpack_subfile, &_subfiles, _subfiles_nb);        \
+            t_qv_init(iop_json_subfile, &_subfiles, _subfiles_nb);           \
             _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file ".json",   \
                           LSTR_FMT_ARG(z_cmddir_g));                         \
             Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, _res, 0,       \
@@ -1977,28 +1978,39 @@ Z_GROUP_EXPORT(iop)
             .iop_path = LSTR("b.b"),
         });
 
+        T_OK(tstiop__my_struct_m, &obj_first_field, "first_field", {
+            .file_path = LSTR("json-includes/MyStructK.json"),
+            .iop_path = LSTR("k"),
+        }, {
+            .file_path = LSTR("json-includes/MyStructJ.json"),
+            .iop_path = LSTR("k.j"),
+        });
+
 #undef T_OK
 
         /* }}} */
         /* {{{ Packer tests */
 
-        t_qm_init(iop_jpack_sub_file, &sub_files,   16);
-        t_qv_init(z_json_sub_file,    &z_sub_files, 16);
+        t_qv_init(iop_json_subfile, &sub_files,   16);
+        t_qv_init(z_json_sub_file,  &z_sub_files, 16);
 
 #define CLEAR_SUB_FILES()  \
         do {                                                                 \
-            qm_clear(iop_jpack_sub_file, &sub_files);                        \
-            qv_clear(z_json_sub_file,    &z_sub_files);                      \
+            qv_clear(iop_json_subfile, &sub_files);                          \
+            qv_clear(z_json_sub_file,  &z_sub_files);                        \
         } while (0)
 
-#define ADD_SUB_FILE(_st, _val, _path)  \
+#define ADD_SUB_FILE(_st, _val, _iop_path, _file_path)  \
         do {                                                                 \
-            qm_add(iop_jpack_sub_file, &sub_files, _val, _path);             \
+            qv_append(iop_json_subfile, &sub_files, ((iop_json_subfile_t) {  \
+                .iop_path = LSTR(_iop_path),                                 \
+                .file_path = LSTR(_file_path),                               \
+            }));                                                             \
             qv_append(z_json_sub_file, &z_sub_files, ((z_json_sub_file_t) {  \
-                .st   = _st,                                                 \
-                .val  = _val,                                                \
-                .path = _path,                                               \
-            }));                                                              \
+                .st   = (_st),                                               \
+                .val  = (_val),                                              \
+                .path = (_file_path),                                        \
+            }));                                                             \
         } while (0)
 
 #define T(_type, _val, _exp_err)  \
@@ -2011,13 +2023,14 @@ Z_GROUP_EXPORT(iop)
 
         /* Basic failure cases */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(NULL, &obj_basic_string.j, "/path/to/unknown/file.txt");
+        ADD_SUB_FILE(NULL, &obj_basic_string.j, "j",
+                     "/path/to/unknown/file.txt");
         T_KO(tstiop__my_struct_a_opt, &obj_basic_string,
              "cannot write `/path/to/unknown/file.txt`: "
              "No such file or directory");
 
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b,
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b",
                      "/path/to/unknown/file.json");
         T_KO(tstiop__my_struct_c, &obj_struct,
              "cannot open output file `/path/to/unknown/file.json`: "
@@ -2025,49 +2038,62 @@ Z_GROUP_EXPORT(iop)
 
         /* Basic string */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(NULL, &obj_basic_string.j, "j\"quote.txt");
+        ADD_SUB_FILE(NULL, &obj_basic_string.j, "j", "j\"quote.txt");
         T_OK(tstiop__my_struct_a_opt, &obj_basic_string);
 
         /* String array */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a0.txt");
-        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a2.txt");
-        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a[0]", "a0.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a[2]", "a2.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b[1]", "b1.txt");
         T_OK(tstiop__my_struct_f, &obj_string_array);
 
         /* Struct */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b.json");
-        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1],
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b", "b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1], "c[1]",
                      "c1.json");
         T_OK(tstiop__my_struct_c, &obj_struct);
 
         /* Union */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(&tstiop__my_union_a__s, &obj_union.b, "b.json");
+        ADD_SUB_FILE(&tstiop__my_union_a__s, &obj_union.b, "b", "b.json");
         T_OK(tstiop__my_struct_e, &obj_union);
 
         /* Class */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(&tstiop__my_class1__s, obj_class.e.tab[0], "e0.json");
-        ADD_SUB_FILE(&tstiop__my_class1__s, obj_class.f,        "f.json");
+        ADD_SUB_FILE(&tstiop__my_class1__s, obj_class.e.tab[0], "e[0]",
+                     "e0.json");
+        ADD_SUB_FILE(&tstiop__my_class1__s, obj_class.f, "f",
+                     "f.json");
         T_OK(tstiop__my_struct_f, &obj_class);
 
         /* Reference */
         CLEAR_SUB_FILES();
-        ADD_SUB_FILE(&tstiop__my_referenced_struct__s, obj_ref.s, "s.json");
-        ADD_SUB_FILE(&tstiop__my_referenced_union__s,  obj_ref.u, "u.json");
+        ADD_SUB_FILE(&tstiop__my_referenced_struct__s, obj_ref.s, "s",
+                     "s.json");
+        ADD_SUB_FILE(&tstiop__my_referenced_union__s,  obj_ref.u, "u",
+                     "u.json");
         T_OK(tstiop__my_ref_struct, &obj_ref);
 
         /* Recursive */
         CLEAR_SUB_FILES();
         Z_ASSERT_N(mkdir_p(t_fmt("%*pM/b1", LSTR_FMT_ARG(z_tmpdir_g)), 0755));
-        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b, "b1/b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b, "b",
+                     "b1/b.json");
 
         Z_ASSERT_N(mkdir_p(t_fmt("%*pM/b2", LSTR_FMT_ARG(z_tmpdir_g)), 0755));
-        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b->b,
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_recursion.b->b, "b.b",
                      "b2/b.json");
         T_OK(tstiop__my_struct_c, &obj_recursion);
+
+        /* First field */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_struct_k__s, &obj_first_field.k, "k",
+                     "k.json");
+        ADD_SUB_FILE(&tstiop__my_struct_j__s, &obj_first_field.k.j, "k.j",
+                     "j.json");
+        T_OK(tstiop__my_struct_m, &obj_first_field);
 
 #undef T
 #undef T_OK
