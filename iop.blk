@@ -142,6 +142,9 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
 
         RETHROW_NP(iop_field_find_by_name(st, LSTR_PS_V(&s), NULL,
                                           &iop_field));
+        if (st->is_union && *(int16_t *)ptr != iop_field->tag) {
+            return NULL;
+        }
         ptr = (const byte *)ptr + iop_field->data_offs;
 
         if (array_index >= 0) {
