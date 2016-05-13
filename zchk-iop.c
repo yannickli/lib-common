@@ -4295,6 +4295,8 @@ Z_GROUP_EXPORT(iop)
                                     LSTR("c.a"), NULL));
         Z_ASSERT_NULL(iop_get_field(&struct_f, &tstiop__my_struct_f__s,
                                     LSTR("e[0].int2"), NULL));
+        Z_ASSERT_NULL(iop_get_field(&f_d_vals[0], &tstiop__my_union_a__s,
+                                    LSTR("ub"), NULL));
 
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("a"), &out);
@@ -4810,6 +4812,7 @@ Z_GROUP_EXPORT(iop)
             iop_init(tstiop__my_class2, &cls2);
             cls2.int1 = 12;
             struct_a.cls2 = &cls2;
+            struct_a.l = IOP_UNION(tstiop__my_union_a, ua, 69);
             st = &tstiop__my_struct_a__s;
 
             value.i = 42;
