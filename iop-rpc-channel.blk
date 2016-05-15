@@ -814,14 +814,16 @@ static int ic_write(ichannel_t *ic, int fd)
         ic->iov_total_len -= res;
 
         while (!htlist_is_empty(&ic->iov_list)) {
-            ic_msg_t *tmp = htlist_first_entry(&ic->iov_list, ic_msg_t, msg_link);
+            ic_msg_t *tmp;
 
+            tmp = htlist_first_entry(&ic->iov_list, ic_msg_t, msg_link);
             if (ic->iov.len != 0) {
                 const struct iovec *iov = &ic->iov.tab[0];
                 const char *msg_end = (char *)tmp->data + tmp->dlen;
                 const char *iov_end = (char *)iov->iov_base + iov->iov_len;
 
-                if (msg_end == iov_end) {
+                if (iov_end >= (const char *)tmp->data && iov_end <= msg_end)
+                {
                     /* The message is not fully sent */
                     break;
                 }
