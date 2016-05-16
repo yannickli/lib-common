@@ -162,7 +162,7 @@ static int file_bin_parse_header(lstr_t path, void *data, size_t len,
 int file_bin_refresh(file_bin_t *file)
 {
     struct stat st;
-    void *new_map;
+    void *new_map = NULL;
     bool parse_header = false;
 
     assert (file->read_mode);
