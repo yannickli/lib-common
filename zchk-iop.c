@@ -5533,6 +5533,25 @@ Z_GROUP_EXPORT(iop)
         }
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(union_printf, "test %*pU in format string for IOP union types") { /* {{{ */
+        t_scope;
+        tstiop__my_union_c__t uc;
+
+        uc = IOP_UNION(tstiop__my_union_c, i_of_c, 42);
+        Z_ASSERT_STREQUAL(t_fmt("%*pU",
+                                IOP_UNION_FMT_ARG(tstiop__my_union_c, &uc)),
+                          "iOfC");
+        uc = IOP_UNION(tstiop__my_union_c, d_of_c, 0.1);
+        Z_ASSERT_STREQUAL(t_fmt("%*pU",
+                                IOP_UNION_FMT_ARG(tstiop__my_union_c, &uc)),
+                          "dOfC");
+
+        p_clear(&uc, 1);
+        Z_ASSERT_STREQUAL(t_fmt("%*pU",
+                                IOP_UNION_FMT_ARG(tstiop__my_union_c, &uc)),
+                          "<unknown>(0)");
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_set_opt_field, "test iop_set_opt_field function") { /* {{{ */
         tstiop__my_struct_a_opt__t obj;
         const iop_field_t *f;

@@ -4242,6 +4242,28 @@ iop_enum_formatter(int modifier, const void *_ev, size_t flags,
 }
 
 /* }}} */
+/* {{{ Union type formatter */
+
+static ssize_t
+iop_union_type_formatter(int modifier, const void *_desc, size_t iop_tag,
+                         FILE *stream, char *buf, size_t buf_len)
+{
+    const iop_struct_t *desc = _desc;
+    lstr_t type_s;
+    int pos;
+
+    pos = iop_ranges_search(desc->ranges, desc->ranges_len, iop_tag);
+    if (unlikely(pos < 0)) {
+        return formatter_writef(stream, buf, buf_len, "<unknown>(%zd)",
+                                iop_tag);
+    }
+
+    type_s = desc->fields[pos].name;
+
+    return formatter_write(stream, buf, buf_len, type_s.s, type_s.len);
+}
+
+/* }}} */
 /* {{{ Backward compatibility checks */
 
 typedef struct iop_compat_couple_t {
@@ -4876,6 +4898,7 @@ static int iop_initialize(void *arg)
     iop_env_init(&_G.env);
     iprintf_register_formatter('S', &iop_struct_formatter);
     iprintf_register_formatter('E', &iop_enum_formatter);
+    iprintf_register_formatter('U', &iop_union_type_formatter);
     return 0;
 }
 

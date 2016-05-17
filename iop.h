@@ -731,6 +731,17 @@ struct iop_struct_value {
     IOP_ST_FMT_ARG_FLAGS(pfx, _val,                                          \
                          IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
+/** Provide the appropriate arguments to the %*pU modifier.
+ *
+ * '%*pU' can be used in format string in order to print the selected field
+ * type of the union given as an argument.
+ *
+ * \param[in]  pfx    IOP union descriptor prefix.
+ * \param[in]  _val   The IOP union to print.
+ */
+#define IOP_UNION_FMT_ARG(pfx, val)                                          \
+    ({ const pfx##__t *__val = (val); __val->iop_tag; }), &pfx##__s
+
 /* }}} */
 /* {{{ IOP snmp manipulation */
 
