@@ -199,7 +199,8 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
 	    --exclude="*.exe" --exclude="*.js" --exclude="*.blk.c" --exclude="*.blkk.cc" \
-	    --exclude="*.swf" --exclude="*.ini" --exclude="*fake.c" --exclude="compat.c"
+	    --exclude="*.swf" --exclude="*.ini" --exclude="*fake.c" --exclude="compat.c" \
+	    --exclude="js/v8"
 
 tags: TAGSOPTION=
 tags: TAGSOUTPUT=.tags
