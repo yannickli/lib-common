@@ -76,28 +76,29 @@ bool cls_inherits(const void *cls, const void *vptr)
 
 #define class_vcall(cls, f, ...)  cls->f(__VA_ARGS__)
 
-#define OBJ_MAKE_STRUCT_INHERIT(pfx, superclass, fields)                     \
+#define OBJ_MAKE_STRUCT_INHERIT(pfx, superclass, fields, ...)                \
     union {                                                                  \
         superclass##_t super;                                                \
         struct {                                                             \
-            fields(pfx);                                                     \
+            fields(pfx, ##__VA_ARGS__);                                      \
         };                                                                   \
     }
 
-#define OBJ_MAKE_STRUCT_BASE(pfx, superclass, fields)                        \
-    fields(pfx)
+#define OBJ_MAKE_STRUCT_BASE(pfx, superclass, fields, ...)                   \
+    fields(pfx, ##__VA_ARGS__)
 
-#define OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods, make_struct) \
+#define OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods, make_struct, \
+                              ...)                                           \
     typedef struct pfx##_class_t pfx##_class_t;                              \
                                                                              \
     struct pfx##_t {                                                         \
-        make_struct(pfx, superclass, fields);                                \
+        make_struct(pfx, superclass, fields, ##__VA_ARGS__);                 \
     };                                                                       \
     struct pfx##_class_t {                                                   \
         const superclass##_class_t *super;                                   \
         const char *type_name;                                               \
         size_t      type_size;                                               \
-        methods(pfx##_t);                                                    \
+        methods(pfx##_t, ##__VA_ARGS__);                                     \
     };                                                                       \
                                                                              \
     const pfx##_class_t *pfx##_class(void) __leaf;                           \
@@ -111,13 +112,13 @@ bool cls_inherits(const void *cls, const void *vptr)
         return superclass##_class();                                         \
     }
 
-#define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)               \
+#define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods, ...)          \
     OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods,                  \
-                          OBJ_MAKE_STRUCT_INHERIT)
+                          OBJ_MAKE_STRUCT_INHERIT, ##__VA_ARGS__)
 
-#define OBJ_CLASS(pfx, superclass, fields, methods)                          \
+#define OBJ_CLASS(pfx, superclass, fields, methods, ...)                     \
     typedef struct pfx##_t pfx##_t;                                          \
-    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)
+    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods, ##__VA_ARGS__)
 
 #define OBJ_VTABLE(pfx) \
     typedef _Atomic(pfx##_class_t *) pfx##_atomic_ptrclass_t;                \
@@ -175,9 +176,9 @@ bool cls_inherits(const void *cls, const void *vptr)
     void     (*release)(type_t *);                                           \
     bool     (*can_wipe)(type_t *)
 
-#define OBJ_CLASS(pfx, superclass, fields, methods)                          \
+#define OBJ_CLASS(pfx, superclass, fields, methods, ...)                     \
     typedef struct pfx##_t pfx##_t;                                          \
-    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)
+    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods, ##__VA_ARGS__)
 
 typedef struct object_t object_t;
 OBJ_CLASS_NO_TYPEDEF_(object, object, OBJECT_FIELDS, OBJECT_METHODS,
