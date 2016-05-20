@@ -233,7 +233,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         size_t size, max_size;                                               \
                                                                              \
         max_size = qh->hdr.size;                                             \
-        size = sizeof(*qh);                                                  \
+        size = 0;                                                            \
         if (qh->old) {                                                       \
             max_size = MAX(qh->hdr.size, qh->old->size);                     \
             size += sizeof(qhash_hdr_t);                                     \

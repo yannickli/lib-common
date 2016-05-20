@@ -121,7 +121,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     __unused__                                                               \
     static inline size_t pfx##_memory_footprint(const pfx##_t *qhh)          \
     {                                                                        \
-        size_t size = sizeof(*qhh);                                          \
+        size_t size = 0;                                                     \
                                                                              \
         for (int it = 0; it < countof(qhh->buckets); it++) {                 \
             size += hpfx##_memory_footprint(&qhh->buckets[it].qm);           \
