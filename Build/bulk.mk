@@ -233,7 +233,9 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	cd $/ && ctags $(TAGSOPTION) -o $(TAGSOUTPUT) --recurse=yes --totals=yes --links=no \
 	    --c-kinds=+p --c++-kinds=+p --fields=+liaS --extra=+q \
 	    -I 'qv_t qm_t qh_t IOP_RPC_IMPL IOP_RPC_CB' \
-	    --langmap=c:+.blk --langmap=c++:+.blkk \
+	    --langmap=c:+.blk --langmap=c:+.h --langmap=c++:+.blkk \
+	    --regex-c='/^OBJ_CLASS(_NO_TYPEDEF)?\(+([^,]+),/\2_t/o, cclass/' \
+	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/x, cmethod/' \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s, struct/' \
 	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c, class/' \
@@ -245,7 +247,8 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
 	    --exclude="*.exe" --exclude="*.js" --exclude="*.blk.c" --exclude="*.blkk.cc" \
-	    --exclude="*.swf" --exclude="*.ini" --exclude="*fake.c" --exclude="compat.c"
+	    --exclude="*.swf" --exclude="*.ini" --exclude="*fake.c" --exclude="compat.c" \
+	    --exclude="js/v8"
 
 tags: TAGSOPTION=
 tags: TAGSOUTPUT=.tags
