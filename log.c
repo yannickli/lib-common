@@ -171,7 +171,7 @@ static void logger_wipe_child(logger_t *logger)
     if (!dlist_is_empty(&logger->children) && logger->children.next) {
         logger_t *child;
 
-        dlist_for_each_entry_safe(child, &logger->children, siblings) {
+        dlist_for_each_entry(child, &logger->children, siblings) {
             if (child->is_static) {
                 logger_wipe_child(child);
             } else {

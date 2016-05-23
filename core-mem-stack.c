@@ -108,7 +108,7 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t alignment,
     sp->mem_bench->alloc.nb_slow_path++;
 #endif
 
-    dlist_for_each_entry_safe_continue(cur, blk, &sp->blk_list, blk_list) {
+    dlist_for_each_entry_continue(cur, blk, &sp->blk_list, blk_list) {
         size_t needed_size = size;
         uint8_t *aligned_area;
 
@@ -424,7 +424,7 @@ const void *mem_stack_pop_libc(mem_stack_pool_t *sp)
 
     sp->stack = mem_stack_prev(frame);
 
-    dlist_for_each_entry_safe_continue(frame->blk, blk, &sp->blk_list,
+    dlist_for_each_entry_continue(frame->blk, blk, &sp->blk_list,
                                        blk_list) {
         uint8_t *ptr = (uint8_t *)(blk + 1) - blk->size;
 
@@ -525,7 +525,7 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
     saved_size = RESET_MIN * sp_alloc_mean(sp);
     max_size   = RESET_MAX * sp_alloc_mean(sp);
 
-    dlist_for_each_safe(e, &sp->blk_list) {
+    dlist_for_each(e, &sp->blk_list) {
         mem_stack_blk_t *blk = blk_entry(e);
 
         if (blk->size > saved_size && blk->size < max_size) {
@@ -563,7 +563,7 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 
     frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
 
-    dlist_for_each_safe(e, &sp->blk_list) {
+    dlist_for_each(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
 }
@@ -656,7 +656,7 @@ void mem_stack_pools_print_stats(void) {
     }
 
     spin_lock(&mem_stack_dlist_lock);
-    dlist_for_each_safe(n, &mem_stack_pool_list) {
+    dlist_for_each(n, &mem_stack_pool_list) {
         mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);
         mem_bench_print_human(mp->mem_bench, MEM_BENCH_PRINT_CURRENT);
     }

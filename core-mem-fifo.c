@@ -488,7 +488,7 @@ void mem_fifo_pools_print_stats(void) {
     }
 
     spin_lock(&mem_fifo_dlist_lock);
-    dlist_for_each_safe(n, &mem_fifo_pool_list) {
+    dlist_for_each(n, &mem_fifo_pool_list) {
         mem_fifo_pool_t *mfp = container_of(n, mem_fifo_pool_t, pool_list);
         mem_bench_print_human(&mfp->mem_bench, MEM_BENCH_PRINT_CURRENT);
     }

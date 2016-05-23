@@ -407,7 +407,7 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
             return;
         }
 
-        dlist_for_each_safe(e, &rp->cblk->blist) {
+        dlist_for_each(e, &rp->cblk->blist) {
             blk_destroy(rp, blk_entry(e));
         }
         blk_destroy(rp, rp->cblk);
@@ -475,7 +475,7 @@ static void __mem_ring_reset(ring_pool_t *rp)
     /* Keep the current block plus the one with more adapted size
      * regarding the mean allocation size.
      */
-    dlist_for_each_safe(e, &rp->cblk->blist) {
+    dlist_for_each(e, &rp->cblk->blist) {
         ring_blk_t *blk = blk_entry(e);
 
         /* XXX: do not remove the block which contains the first frame. */
@@ -681,7 +681,7 @@ void mem_ring_dump(const mem_pool_t *_rp)
 
     if (rp->cblk) {
         bytes += rp->cblk->size;
-        dlist_for_each_safe(e, &rp->cblk->blist) {
+        dlist_for_each(e, &rp->cblk->blist) {
             ring_blk_t *blk = blk_entry(e);
             bytes += blk->size;
         }
@@ -709,7 +709,7 @@ void mem_ring_dump(const mem_pool_t *_rp)
         printf("--   slack: size=%zd\n",
                (const byte *)frame - frame->blk->area);
     }
-    dlist_for_each_safe(e, &rp->fhead) {
+    dlist_for_each(e, &rp->fhead) {
         frame = container_of(e, frame_t, flist);
 
         printf("--   frame %d at %p: size=%zd%s\n",

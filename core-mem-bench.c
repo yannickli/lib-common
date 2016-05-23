@@ -183,7 +183,7 @@ static int mem_bench_shutdown(void)
     mem_bench_t *sp;
 
     spin_lock(&mem_bench_leak_lock_g);
-    dlist_for_each_entry_safe(sp, &mem_bench_leak_list_g, bench_list) {
+    dlist_for_each_entry(sp, &mem_bench_leak_list_g, bench_list) {
         spin_unlock(&mem_bench_leak_lock_g);
 
         mem_bench_partial_wipe(sp);

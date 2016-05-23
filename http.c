@@ -940,7 +940,7 @@ static void httpd_flush_answered(httpd_t *w)
 {
     httpd_query_t *q;
 
-    dlist_for_each_entry_safe(q, &w->query_list, query_link) {
+    dlist_for_each_entry(q, &w->query_list, query_link) {
         if (q->own_ob) {
             ob_merge_delete(&w->ob, &q->ob);
             q->own_ob = false;
@@ -1409,7 +1409,7 @@ static void httpd_wipe(httpd_t *w)
     if (w->on_status) {
         va_list va;
 
-        dlist_for_each_safe (it, &w->query_list) {
+        dlist_for_each(it, &w->query_list) {
             httpd_notify_status(w, dlist_entry(it, httpd_query_t, query_link),
                               HTTPD_QUERY_STATUS_CANCEL, "Query cancelled", va);
         }
@@ -1421,7 +1421,7 @@ static void httpd_wipe(httpd_t *w)
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
     http_zlib_wipe(w);
-    dlist_for_each_safe(it, &w->query_list) {
+    dlist_for_each(it, &w->query_list) {
         httpd_query_detach(dlist_entry(it, httpd_query_t, query_link));
     }
     w->cfg->nb_conns--;
@@ -1778,7 +1778,7 @@ void httpd_unlisten(el_t *ev)
     if (*ev) {
         httpd_cfg_t *cfg = el_fd_unregister(ev, true).ptr;
 
-        dlist_for_each_safe(it, &cfg->httpd_list) {
+        dlist_for_each(it, &cfg->httpd_list) {
             httpd_close_gently(dlist_entry(it, httpd_t, httpd_link));
         }
         httpd_cfg_delete(&cfg);
@@ -2038,7 +2038,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         w->max_queries = 0;
         if (!w->busy)
             obj_vcall(w, set_busy);
-        dlist_for_each_entry_safe_continue(q, q, &w->query_list, query_link) {
+        dlist_for_each_entry_continue(q, q, &w->query_list, query_link) {
             httpc_query_abort(q);
         }
         ob_wipe(&w->ob);
@@ -2202,7 +2202,7 @@ void httpc_pool_close_clients(httpc_pool_t *pool)
 
     dlist_splice(&lst, &pool->busy_list);
     dlist_splice(&lst, &pool->ready_list);
-    dlist_for_each_safe(it, &lst) {
+    dlist_for_each(it, &lst) {
         obj_release(dlist_entry(it, httpc_t, pool_link));
     }
 }
@@ -2213,7 +2213,7 @@ void httpc_pool_wipe(httpc_pool_t *pool, bool wipe_conns)
 
     dlist_splice(&l, &pool->busy_list);
     dlist_splice(&l, &pool->ready_list);
-    dlist_for_each_safe(it, &l) {
+    dlist_for_each(it, &l) {
         if (wipe_conns) {
             obj_release(dlist_entry(it, httpc_t, pool_link));
         } else {
@@ -2305,7 +2305,7 @@ static void httpc_disconnect(httpc_t *w)
 {
     httpc_pool_detach(w);
     el_fd_unregister(&w->ev, true);
-    dlist_for_each_safe(it, &w->query_list) {
+    dlist_for_each(it, &w->query_list) {
         httpc_query_abort(dlist_entry(it, httpc_query_t, query_link));
     }
 }
