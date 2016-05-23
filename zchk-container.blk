@@ -36,33 +36,33 @@ Z_GROUP_EXPORT(qhash)
         QH(test, h, false);
         uint32_t min_size;
 
-        Z_ASSERT_EQ(qh_memory_footprint(test,& h), sizeof(h));
+        Z_ASSERT_ZERO(qh_memory_footprint(test,& h));
 
         for (int i = 0; i < 100; i++) {
             qh_add(test, &h, i);
         }
-        min_size = h.hdr.size * ( h.k_size + h.v_size);
+        min_size = h.hdr.size * (h.k_size + h.v_size);
         Z_ASSERT_GT(qh_memory_footprint(test,& h), min_size);
 
         qh_wipe(test, &h);
 
-        Z_ASSERT_EQ(qh_memory_footprint(test,& h), sizeof(h));
+        Z_ASSERT_ZERO(qh_memory_footprint(test, &h));
     } Z_TEST_END;
 
     Z_TEST(size_qm , "qm: count size") {
         QM_CACHED(test, h);
         uint32_t min_size;
 
-        Z_ASSERT_EQ(qm_memory_footprint(test,& h), sizeof(h));
+        Z_ASSERT_ZERO(qm_memory_footprint(test,& h));
 
         for (int i = 0; i < 8; i++) {
             qm_add(test, &h, i, i);
         }
-        min_size = h.hdr.size * ( h.k_size + h.v_size);
+        min_size = h.hdr.size * (h.k_size + h.v_size);
         Z_ASSERT_GT(qm_memory_footprint(test,& h), min_size);
 
         qm_wipe(test, &h);
-        Z_ASSERT_EQ(qm_memory_footprint(test,& h), sizeof(h));
+        Z_ASSERT_ZERO(qm_memory_footprint(test, &h));
 
     } Z_TEST_END;
 
