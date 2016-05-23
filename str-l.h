@@ -359,14 +359,14 @@ static inline lstr_t lstr_dup(const lstr_t s)
  */
 static inline void lstr_copys(lstr_t *dst, const char *s, int len)
 {
-    return mp_lstr_copys(NULL, dst, s, len);
+    mp_lstr_copys(NULL, dst, s, len);
 }
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
 static inline void lstr_copy(lstr_t *dst, const lstr_t src)
 {
-    return mp_lstr_copy(NULL, dst, src);
+    mp_lstr_copy(NULL, dst, src);
 }
 
 /** \brief force lstr to be heap-allocated.
@@ -376,7 +376,7 @@ static inline void lstr_copy(lstr_t *dst, const lstr_t src)
  */
 static inline void lstr_persists(lstr_t *s)
 {
-    return mp_lstr_persists(NULL, s);
+    mp_lstr_persists(NULL, s);
 }
 
 /** \brief duplicates \p v on the heap and reverse its content.
