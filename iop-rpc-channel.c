@@ -753,7 +753,7 @@ ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
 
 static int
 t_get_value_of_st(const iop_struct_t *, const ic_msg_t *unpacked_msg,
-                  pstream_t, void **value);
+                  pstream_t, void **value, bool do_copy);
 
 static ALWAYS_INLINE int
 ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
@@ -823,7 +823,9 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         void *value = NULL;
         pstream_t ps = tmp->raw_res;
 
-        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, &value) < 0)) {
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, &value,
+                                       false) < 0))
+        {
             if (tmp->trace) {
                 const char *err = iop_get_err();
 
@@ -907,7 +909,7 @@ static inline void ic_update_pending(ichannel_t *ic, uint32_t slot)
 
 static int
 t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
-                   ic__hdr__t **hdr)
+                   ic__hdr__t **hdr, bool do_copy)
 {
     if (unpacked_msg) {
         RETHROW(ic__hdr__check((ic__hdr__t *)unpacked_msg->hdr));
@@ -918,14 +920,14 @@ t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
         }
     } else {
         *hdr = t_new_raw(ic__hdr__t, 1);
-        RETHROW(t_ic__hdr__bunpack_multi(*hdr, ps, false));
+        RETHROW(t_ic__hdr__bunpack_multi(*hdr, ps, do_copy));
     }
     return 0;
 }
 
 static int
 t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
-                  pstream_t ps, void **value)
+                  pstream_t ps, void **value, bool do_copy)
 {
     if (unpacked_msg) {
         RETHROW(iop_check_constraints(st, unpacked_msg->data));
@@ -935,7 +937,7 @@ t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
             *value = unpacked_msg->data;
         }
     } else {
-        RETHROW(iop_bunpack_ptr(t_pool(), st, value, ps, false));
+        RETHROW(iop_bunpack_ptr(t_pool(), st, value, ps, do_copy));
     }
     return 0;
 }
@@ -948,12 +950,20 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
                          int *packed_hdr_len, ic__hdr__t **hdr, void **value)
 {
     pstream_t ps = ps_init(data, dlen);
+    bool do_copy = false;
 
 #define QUERY_FMT      "query %04x:%04x, type %s: "
 #define QUERY_FMT_ARG  (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s
 
+    if (ic_is_local(ic) && !unpacked_msg) {
+        /* IOP payload comes from a volatile ic_msg_t that will be destroy
+         * with ic_reply(), thus we need to duplicate strings */
+        do_copy = true;
+    }
+
     if (unlikely(flags & IC_MSG_HAS_HDR)) {
-        if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
+        if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr, do_copy) < 0))
+        {
             logger_warning(&_G.logger, QUERY_FMT "invalid header encoding",
                            QUERY_FMT_ARG);
             return -1;
@@ -985,7 +995,9 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
     }
 
     if (value) {
-        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value
+                                       , do_copy) < 0))
+        {
             const char *err = iop_get_err();
 
             if (err) {
