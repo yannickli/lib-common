@@ -1067,6 +1067,12 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 #define QUERY_FMT      "query %04x:%04x, type %s: "
 #define QUERY_FMT_ARG  (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s
 
+    if (ic_is_local(ic) && !unpacked_msg) {
+        /* IOP payload comes from a volatile ic_msg_t that will be destroy
+         * with ic_reply(), thus we need to duplicate strings */
+        unpack_flags |= IOP_UNPACK_COPY_STRINGS;
+    }
+
     if (unlikely(flags & IC_MSG_HAS_HDR)) {
         if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps,
                                         unpack_flags, hdr) < 0))
