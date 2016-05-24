@@ -234,6 +234,8 @@ get_union_field(const iop_struct_t *desc, const void *val)
     const iop_field_t *f = desc->fields;
     int ifield;
 
+    assert (f->repeat == IOP_R_REQUIRED);
+    assert (desc->is_union);
     ifield = iop_ranges_search(desc->ranges, desc->ranges_len, utag);
     assert(ifield >= 0);
 

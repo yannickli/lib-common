@@ -2591,7 +2591,6 @@ pack_union(void *dst, const iop_struct_t *desc, const void *v,
            const unsigned flags, const int **szsp)
 {
     const iop_field_t *f = get_union_field(desc, v);
-    assert(f->repeat == IOP_R_REQUIRED);
 
     return pack_value(dst, f, (char *)v + f->data_offs, flags, szsp);
 }
