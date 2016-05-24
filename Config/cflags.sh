@@ -225,6 +225,9 @@ EOF
     echo -Wmissing-format-attribute
     # barf if we change constness
     #echo -Wcast-qual
+    if gcc_prereq 6.0; then
+        echo -Wno-shift-negative-value
+    fi
 
     if is_cpp; then
         if test "$2" != "rewrite"; then
@@ -237,7 +240,9 @@ EOF
         else
             echo -Wno-shadow
         fi
-        if gcc_prereq 4.9; then
+        if gcc_prereq 6.0; then
+            echo -Wno-c++11-compat
+        elif gcc_prereq 4.9; then
             echo -Wno-extern-c-compat
         fi
     else
