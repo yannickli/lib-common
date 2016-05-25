@@ -218,9 +218,26 @@ __must_check__ ssize_t xpwrite(int fd, const void *data, ssize_t dlen, off_t off
 __must_check__ int xftruncate(int fd, off_t offs);
 __must_check__ int xread(int fd, void *data, ssize_t dlen);
 __must_check__ int xpread(int fd, void *data, ssize_t dlen, off_t offset);
+
 bool is_fd_open(int fd);
-/* FIXME: Find a better name. */
-int close_fds_higher_than(int fd);
+
+/** Close all open file descriptors strictly higher than \p fd_min and
+ *  not in \p to_keep.
+ *
+ * Set \p fd_min to a negative value to have to lower limit.
+ * If provided, \p to_keep will be sorted and uniq'ed.
+ */
+void close_fds(int fd_min, qv_t(u32) * nullable to_keep);
+
+/** Unix (non-linux) implementation of close_fds. */
+void close_fds_unix(int fd_min, qv_t(u32) * nullable to_keep);
+
+/** Close all open file descriptors strictly higher than \p fd_min. */
+static inline void close_fds_higher_than(int fd_min)
+{
+    return close_fds(fd_min, NULL);
+}
+
 bool is_fancy_fd(int fd);
 void term_get_size(int *cols, int *rows);
 

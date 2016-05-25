@@ -21,6 +21,7 @@
 #include <dirent.h>
 #include "unix.h"
 #include "datetime.h"
+#include "sort.h"
 
 /* {{{ psinfo_get */
 
@@ -405,39 +406,42 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
 }
 
 /* }}} */
-/* {{{ close_fds_higher_than */
+/* {{{ close_fds */
 
-int close_fds_higher_than(int fd)
+void close_fds(int fd_min, qv_t(u32) * nullable to_keep)
 {
-    DIR *proc_fds;
+    DIR *proc_fds = opendir("/proc/self/fd");
     struct dirent *entry;
     const char *p;
-    int n, my_fd;
+    int opendir_fd;
 
-    proc_fds = opendir("/proc/self/fd");
-    if (proc_fds) {
-        /* XXX: opendir opens a fd. Do not close it while using it */
-        my_fd = dirfd(proc_fds);
-        while ((entry = readdir(proc_fds)) != NULL) {
-            n = strtol(entry->d_name, &p, 10);
-            if (!*p && n > fd && n != my_fd) {
-                close(n);
-            }
-        }
-        closedir(proc_fds);
-    } else {
+    if (!proc_fds) {
         /* Fall back to unix.c implementation */
-        int maxfd = sysconf(_SC_OPEN_MAX);
+        close_fds_unix(fd_min, to_keep);
+        return;
+    }
 
-        if (maxfd == -1) {
-            /* Highly unlikely sysconf failure: default to 1024 */
-            maxfd = 1024;
+    if (to_keep) {
+        dsort32(to_keep->tab, to_keep->len);
+        to_keep->len = uniq32(to_keep->tab, to_keep->len);
+    }
+
+    /* XXX: opendir opens a fd. Do not close it while using it */
+    opendir_fd = dirfd(proc_fds);
+    while ((entry = readdir(proc_fds)) != NULL) {
+        int fd = strtol(entry->d_name, &p, 10);
+
+        if (*p || fd == opendir_fd) {
+            continue;
         }
-        while (++fd < maxfd) {
-            close(fd);
+        if (fd > fd_min
+        &&  (!to_keep
+          || !contains32(fd, to_keep->tab, to_keep->len)))
+        {
+            p_close(&fd);
         }
     }
-    return 0;
+    closedir(proc_fds);
 }
 
 /* }}} */

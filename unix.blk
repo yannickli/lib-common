@@ -19,8 +19,9 @@
 #include "unix.h"
 #include "datetime.h"
 #include "container.h"
-#include "z.h"
+#include "sort.h"
 #include "thr.h"
+#include "z.h"
 
 /** Create a subdirectory path as mkdir -p.
  *
@@ -882,19 +883,34 @@ ssize_t fd_get_path(int fd, char buf[], size_t buf_len)
     return path_len;
 }
 
-
-#ifndef __linux__
-int close_fds_higher_than(int fd)
+void close_fds_unix(int fd_min, qv_t(u32) * nullable to_keep)
 {
     int maxfd = sysconf(_SC_OPEN_MAX);
 
-    if (maxfd == -1)
-        maxfd = 1024;
-
-    while (++fd < maxfd) {
-        close(fd);
+    if (to_keep) {
+        dsort32(to_keep->tab, to_keep->len);
+        to_keep->len = uniq32(to_keep->tab, to_keep->len);
     }
-    return 0;
+
+    if (maxfd == -1) {
+        maxfd = 1024;
+    }
+
+    for (int fd = fd_min + 1; fd < maxfd; fd++) {
+        if (!to_keep
+        ||  !contains32(fd, to_keep->tab, to_keep->len))
+        {
+            int to_close = fd;
+
+            p_close(&to_close);
+        }
+    }
+}
+
+#ifndef __linux__
+void close_fds(int fd_min, qv_t(u32) * nullable to_keep)
+{
+    close_fds_unix(fd_min, to_keep);
 }
 #endif
 
