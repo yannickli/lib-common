@@ -121,8 +121,8 @@ interface MyIfaceA {
      *
      *  @param[out]  c       comment for c of funA.out
      *
-     *  @param[out]  d       comment for d of funA.out
-     *  @param[out]  d       2nd parapraph for d of funA.out
+     *  @param[out]  d       comment for \ref d of funA.out
+     *  @param[out]  d       2nd paragraph for \p d of funA.out
      *
      *  @param[throw]        comment for funA.throw
      *
@@ -181,6 +181,10 @@ interface MyIfaceA {
         out (int b) /**< and back comment for res of funD */
         ;
 
+    /** Comment for funE
+     *
+     * \param[in] a It is a \p comment for \ref a
+     */
     @alias(funE1, funE2)
     funE in (int a)
          out void;

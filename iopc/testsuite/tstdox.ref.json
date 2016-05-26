@@ -347,7 +347,7 @@
 				"d": {
 					"type": "int",
 					"help": {
-						"details": "comment for d of funA.out\n2nd parapraph for d of funA.out"
+						"details": "comment for \\ref d of funA.out\n2nd paragraph for \\p d of funA.out"
 					}
 				}
 			}
@@ -420,7 +420,10 @@
 			"type": "struct",
 			"fields": {
 				"a": {
-					"type": "int"
+					"type": "int",
+					"help": {
+						"details": "It is a \\p comment for \\ref a"
+					}
 				}
 			}
 		},
@@ -539,6 +542,9 @@
 					"out": "tstdox.MyIfaceA.funDRes"
 				},
 				"funE": {
+					"help": {
+						"brief": "Comment for funE"
+					},
 					"in": "tstdox.MyIfaceA.funEArgs"
 				}
 			}

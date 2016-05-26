@@ -1033,11 +1033,13 @@ lstr_t iopc_dox_type_to_lstr(iopc_dox_type_t type)
     }
 }
 
-static int iopc_dox_check_keyword(lstr_t keyword, int *type)
+static int iopc_dox_check_keyword(lstr_t keyword, int * nullable type)
 {
     for (int i = 0; i < IOPC_DOX_TYPE_count; i++) {
         if (lstr_equal(keyword, iopc_dox_type_to_lstr(i))) {
-            *type = i;
+            if (type) {
+                *type = i;
+            }
             return 0;
         }
     }
@@ -1137,36 +1139,6 @@ static void dox_chunk_autobrief_validate(dox_chunk_t *chunk)
     }
 }
 
-static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
-{
-    qv_for_each_entry(lstr, param, &eaten->params) {
-        qv_append(lstr, &eating->params, param);
-    }
-    qv_for_each_entry(lstr, arg, &eaten->params_args) {
-        qv_append(lstr, &eating->params_args, arg);
-    }
-
-    if (eating->paragraphs.len <= 1) {
-        eating->paragraph0_args_len += eaten->paragraph0_args_len;
-    }
-    if (eating->paragraphs.len && eaten->paragraphs.len) {
-        sb_addc(qv_last(sb, &eating->paragraphs), ' ');
-        sb_addsb(qv_last(sb, &eating->paragraphs), &eaten->paragraphs.tab[0]);
-        sb_wipe(&eaten->paragraphs.tab[0]);
-        qv_skip(sb, &eaten->paragraphs, 1);
-    }
-    qv_for_each_entry(sb, paragraph, &eaten->paragraphs) {
-        qv_append(sb, &eating->paragraphs, paragraph);
-    }
-
-    iopc_loc_merge(&eating->loc, eaten->loc);
-
-    lstr_wipe(&eaten->keyword);
-    qv_wipe(lstr, &eaten->params);
-    qv_wipe(lstr, &eaten->params_args);
-    qv_wipe(sb, &eaten->paragraphs);
-}
-
 static void dox_chunk_push_sb(dox_chunk_t *chunk, sb_t sb)
 {
     if (chunk->paragraphs.len) {
@@ -1198,8 +1170,10 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
 {
     sb_t sb;
 
-    if (!chunk->params.len)
+    if (!chunk->params.len) {
+        qv_deep_clear(lstr, &chunk->params_args, lstr_wipe);
         return;
+    }
 
     sb_init(&sb);
 
@@ -1215,6 +1189,41 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
     qv_deep_wipe(lstr, &chunk->params, lstr_wipe);
     qv_deep_wipe(lstr, &chunk->params_args, lstr_wipe);
     chunk->paragraph0_args_len = 0;
+}
+
+static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
+{
+    if (eaten->keyword.len > 0) {
+        dox_chunk_keyword_merge(eaten);
+        dox_chunk_params_merge(eaten);
+    } else {
+        qv_for_each_entry(lstr, param, &eaten->params) {
+            qv_append(lstr, &eating->params, param);
+        }
+        qv_for_each_entry(lstr, arg, &eaten->params_args) {
+            qv_append(lstr, &eating->params_args, arg);
+        }
+        if (eating->paragraphs.len <= 1) {
+            eating->paragraph0_args_len += eaten->paragraph0_args_len;
+        }
+    }
+
+    if (eating->paragraphs.len && eaten->paragraphs.len) {
+        sb_addc(qv_last(sb, &eating->paragraphs), ' ');
+        sb_addsb(qv_last(sb, &eating->paragraphs), &eaten->paragraphs.tab[0]);
+        sb_wipe(&eaten->paragraphs.tab[0]);
+        qv_skip(sb, &eaten->paragraphs, 1);
+    }
+    qv_for_each_entry(sb, paragraph, &eaten->paragraphs) {
+        qv_append(sb, &eating->paragraphs, paragraph);
+    }
+
+    iopc_loc_merge(&eating->loc, eaten->loc);
+
+    lstr_wipe(&eaten->keyword);
+    qv_wipe(lstr, &eaten->params);
+    qv_wipe(lstr, &eaten->params_args);
+    qv_wipe(sb, &eaten->paragraphs);
 }
 
 static int
@@ -1252,14 +1261,36 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
     }
 
     qv_for_each_ptr(dox_chunk, chunk, &dox->chunks) {
-        /* this test is intented for first chunk of the current token */
-        if (!chunk->keyword.len && chunks->len
-        &&  chunk->loc.lmin - qv_last(dox_chunk, chunks)->loc.lmax < 2)
-        {
-            dox_chunk_merge(qv_last(dox_chunk, chunks), chunk);
-        } else {
-            qv_append(dox_chunk, chunks, *chunk);
+        bool force_merge = false;
+        dox_chunk_t *last;
+
+        if (chunks->len == 0) {
+            goto append;
         }
+        last = qv_last(dox_chunk, chunks);
+
+        /* force merge if the chunk has a unknown keyword while the previous
+         * one has a known keyword, so that syntax like:
+         *  "\brief a \p b" or "\param[in] a  The \p ref" works.
+         */
+        if (chunk->keyword.len > 0
+        &&  iopc_dox_check_keyword(chunk->keyword, NULL) < 0
+        &&  last->keyword.len > 0
+        &&  iopc_dox_check_keyword(last->keyword, NULL) >= 0)
+        {
+            force_merge = true;
+        }
+
+        /* this test is intended for first chunk of the current token */
+        if (force_merge
+        ||  (!chunk->keyword.len && chunk->loc.lmin - last->loc.lmax < 2))
+        {
+            dox_chunk_merge(last, chunk);
+            continue;
+        }
+
+      append:
+        qv_append(dox_chunk, chunks, *chunk);
     }
     (DROP)(pp, 1, tk_offset);
     *res = true;

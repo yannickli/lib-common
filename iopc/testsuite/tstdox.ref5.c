@@ -911,7 +911,7 @@ static iop_field_attr_t const tstdox__my_iface_a__fun_a_res__c__attrs[] = {
     },
 };
 static const iop_help_t tstdox__my_iface_a__fun_a_res__d__f_help = {
-    .details = LSTR_IMMED("comment for d of funA.out\0122nd parapraph for d of funA.out"),
+    .details = LSTR_IMMED("comment for \134ref d of funA.out\0122nd paragraph for \134p d of funA.out"),
 };
 static iop_field_attr_t const tstdox__my_iface_a__fun_a_res__d__attrs[] = {
     {
@@ -1171,38 +1171,66 @@ const iop_struct_t tstdox__my_iface_a__fun_d_res__s = {
 /* }}} */
 /* Structure tstdox.MyIfaceA.funEArgs {{{ */
 
-/* same as tstdox.MyIfaceA.funAaArgs */
-
+static const iop_help_t tstdox__my_iface_a__fun_e_args__a__f_help = {
+    .details = LSTR_IMMED("It is a \134p comment for \134ref a"),
+};
+static iop_field_attr_t const tstdox__my_iface_a__fun_e_args__a__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_e_args__a__f_help } },
+    },
+};
+static iop_field_attrs_t const tstdox__my_iface_a__fun_e_args__desc_fields_attrs[] = {
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = tstdox__my_iface_a__fun_e_args__a__attrs,
+    },
+};
+static iop_field_t const tstdox__my_iface_a__fun_e_args__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("a"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_I32,
+        .data_offs = offsetof(tstdox__my_iface_a__fun_e_args__t, a),
+        .size      = fieldsizeof(tstdox__my_iface_a__fun_e_args__t, a),
+    },
+};
 const iop_struct_t tstdox__my_iface_a__fun_e_args__s = {
     .fullname   = LSTR_IMMED("tstdox.MyIfaceA.funEArgs"),
-    .fields     = tstdox__my_iface_a__fun_aa_args__desc_fields,
+    .fields     = tstdox__my_iface_a__fun_e_args__desc_fields,
     .ranges     = iop__ranges__5,
     .ranges_len = countof(iop__ranges__5) / 2,
-    .fields_len = countof(tstdox__my_iface_a__fun_aa_args__desc_fields),
+    .fields_len = countof(tstdox__my_iface_a__fun_e_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_a__fun_e_args__t),
     .flags      = 1,
+    .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_e1_args__s = {
     .fullname   = LSTR_IMMED("tstdox.MyIfaceA.funE1Args"),
-    .fields     = tstdox__my_iface_a__fun_aa_args__desc_fields,
+    .fields     = tstdox__my_iface_a__fun_e_args__desc_fields,
     .ranges     = iop__ranges__5,
     .ranges_len = countof(iop__ranges__5) / 2,
-    .fields_len = countof(tstdox__my_iface_a__fun_aa_args__desc_fields),
+    .fields_len = countof(tstdox__my_iface_a__fun_e_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_a__fun_e_args__t),
     .flags      = 1,
+    .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_e2_args__s = {
     .fullname   = LSTR_IMMED("tstdox.MyIfaceA.funE2Args"),
-    .fields     = tstdox__my_iface_a__fun_aa_args__desc_fields,
+    .fields     = tstdox__my_iface_a__fun_e_args__desc_fields,
     .ranges     = iop__ranges__5,
     .ranges_len = countof(iop__ranges__5) / 2,
-    .fields_len = countof(tstdox__my_iface_a__fun_aa_args__desc_fields),
+    .fields_len = countof(tstdox__my_iface_a__fun_e_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_a__fun_e_args__t),
     .flags      = 1,
+    .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
 
 /* }}} */
@@ -1362,7 +1390,20 @@ static iop_rpc_attr_t const tstdox__my_iface_a__fun_d__attrs[] = {
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_d__rpc_help } },
     },
 };
+static const iop_help_t tstdox__my_iface_a__fun_e__rpc_help = {
+    .brief = LSTR_IMMED("Comment for funE"),
+};
+static iop_rpc_attr_t const tstdox__my_iface_a__fun_e__attrs_na[] = {
+    {
+        .type = 9,
+        .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_e__rpc_help } },
+    },
+};
 static iop_rpc_attr_t const tstdox__my_iface_a__fun_e__attrs[] = {
+    {
+        .type = 9,
+        .args = (iop_rpc_attr_arg_t[]){ { .v.p = &tstdox__my_iface_a__fun_e__rpc_help } },
+    },
     {
         .type = 0,
         .args = (iop_rpc_attr_arg_t[]){ { .v.p = (void*)&tstdox__my_iface_a__if_funs[8] } },
@@ -1407,15 +1448,19 @@ static iop_rpc_attrs_t const tstdox__my_iface_a__rpc_desc_attrs[] = {
         .attrs             = tstdox__my_iface_a__fun_d__attrs,
     },
     {
-        .flags             = 1,
-        .attrs_len         = 2,
+        .flags             = 513,
+        .attrs_len         = 3,
         .attrs             = tstdox__my_iface_a__fun_e__attrs,
     },
     {
-        .flags             = 0,
+        .flags             = 512,
+        .attrs_len         = 1,
+        .attrs             = tstdox__my_iface_a__fun_e__attrs_na,
     },
     {
-        .flags             = 0,
+        .flags             = 512,
+        .attrs_len         = 1,
+        .attrs             = tstdox__my_iface_a__fun_e__attrs_na,
     },
 };
 static const iop_help_t tstdox__my_iface_a__if_help = {
