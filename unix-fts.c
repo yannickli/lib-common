@@ -25,34 +25,52 @@ int rmdir_r(const char *dir, bool only_content)
     int res = 0;
 
     fts = fts_open(argv, FTS_NOSTAT | FTS_PHYSICAL | FTS_NOCHDIR, NULL);
-    if (!fts)
+    if (!fts) {
         return -1;
+    }
 
     while ((ent = fts_read(fts)) != NULL) {
-        if (ent->fts_level <= 0)
+        if (ent->fts_level <= 0) {
             continue;
+        }
         switch (ent->fts_info) {
           case FTS_D:
             break;
           case FTS_DC:
+            res = -1;
+            /* There is no really appropriate errno for this error, so choose
+             * the generic EIO one, and print an error. */
+            errno = EIO;
+            e_error("rmdir_r: cycle detected with directory `%s` while "
+                    "removing `%s`", ent->fts_accpath, dir);
+            goto end;
           case FTS_DNR:
           case FTS_ERR:
             res = -1;
-            break;
+            errno = ent->fts_errno;
+            goto end;
           case FTS_DP:
-            if (rmdir(ent->fts_accpath))
+            if (rmdir(ent->fts_accpath) < 0) {
                 res = -1;
+                goto end;
+            }
             break;
           default:
-            if (unlink(ent->fts_accpath))
+            if (unlink(ent->fts_accpath)) {
                 res = -1;
+                goto end;
+            }
             break;
         }
     }
-    fts_close(fts);
 
-    if (!only_content && rmdir(dir))
+
+    if (!only_content && rmdir(dir) < 0) {
         res = -1;
+    }
+
+  end:
+    PROTECT_ERRNO(fts_close(fts));
     return res;
 }
 
