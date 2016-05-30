@@ -128,7 +128,7 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             }
 
             if (iop_field_is_class(iop_field)) {
-                st = (iop_struct_t *)*(const void **)ptr;
+                st = *(const iop_struct_t **)ptr;
             } else {
                 st = iop_field->u1.st_desc;
             }
