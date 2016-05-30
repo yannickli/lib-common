@@ -1446,7 +1446,8 @@ static inline int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st,
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination unpacked IOP union.
- * \param[in] ps    The pstream_t containing the packed IOP union.
+ * \param[in] ps    The pstream_t containing the packed IOP union. In case of
+ *                  unpacking failure, it is left untouched.
  * \param[in] flags A combination of \ref iop_unpack_flags to alter the
  *                  behavior of the unpacker.
  */

@@ -3396,12 +3396,19 @@ int iop_bunpack_ptr_flags(mem_pool_t *mp, const iop_struct_t *desc,
 int iop_bunpack_multi_flags(mem_pool_t *mp, const iop_struct_t *desc,
                             void *value, pstream_t *ps, unsigned flags)
 {
+    pstream_t ps_save = *ps;
+
     assert(desc->is_union);
 
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP union(s) %*pM",
                   LSTR_FMT_ARG(desc->fullname));
     iop_clear_err();
-    return (unpack_union(mp, desc, value, ps, flags) < 0) ? -1 : 0;
+    if (unpack_union(mp, desc, value, ps, flags) < 0) {
+        *ps = ps_save;
+        return -1;
+    }
+
+    return 0;
 }
 
 /* XXX this function doesn't check the IOP content and trust what it reads
