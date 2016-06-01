@@ -125,7 +125,7 @@ $~$(3:ts=js): $3
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	/bin/echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
@@ -148,7 +148,7 @@ $~$3: $3
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
 	/bin/echo -n "$~$3: " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" nodejs $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
