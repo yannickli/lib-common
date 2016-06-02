@@ -933,12 +933,9 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
                 break;
               case IOP_T_STRING:
               case IOP_T_XML:
-                *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
-                break;
               case IOP_T_DATA:
-                ((lstr_t *)ptr)->len      = fdesc->u0.defval_len;
-                ((lstr_t *)ptr)->data     = (void *)fdesc->u1.defval_data;
-                ((lstr_t *)ptr)->mem_pool = 0;
+                *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
+                                             fdesc->u0.defval_len);
                 break;
               default:
                 e_panic("unsupported");
@@ -1159,23 +1156,18 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                     dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
                 }
             }
-        } else
-        if (fdesc->type == IOP_T_STRING || fdesc->type == IOP_T_XML) {
+        } else {
+            assert (fdesc->type == IOP_T_STRING || fdesc->type == IOP_T_XML
+                ||  fdesc->type == IOP_T_DATA);
+
             for (int j = 0; j < n; j++) {
                 lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
 
                 /* We have to fix the lstr_t mem_pool manually because some
                  * naughty programmers could have played with it */
-                IOP_FIELD(lstr_t, wp, j).s = (const char *)dst;
+                IOP_FIELD(lstr_t, wp, j).data = dst;
                 IOP_FIELD(lstr_t, wp, j).mem_pool = MEM_STATIC;
                 dst = realign(mempcpyz(dst, orig->s, orig->len));
-            }
-        } else {
-            for (int j = 0; j < n; j++) {
-                lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
-
-                IOP_FIELD(lstr_t, wp, j).data = dst;
-                dst = realign(mempcpyz(dst, orig->data, orig->len));
             }
         }
     }
@@ -2731,12 +2723,9 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
             break;
           case IOP_T_STRING:
           case IOP_T_XML:
-            *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
-            break;
           case IOP_T_DATA:
-            ((lstr_t *)ptr)->len      = fdesc->u0.defval_len;
-            ((lstr_t *)ptr)->data     = (void *)fdesc->u1.defval_data;
-            ((lstr_t *)ptr)->mem_pool = MEM_STATIC;
+            *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
+                                         fdesc->u0.defval_len);
             break;
           default:
             return -1;
