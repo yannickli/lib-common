@@ -47,7 +47,7 @@ else
 # fun/lib-link <OBJS>,<LIBS>
 fun/lib-link = \
 	$(addprefix -Wl$(var/comma)--version-script$(var/comma),$(filter %.ld,$1)) \
-	-Wl,--whole-archive $(filter %.wa,$1) \
+	-Wl,--as-needed -Wl,--whole-archive $(filter %.wa,$1) \
 	-Wl,--no-whole-archive $(filter %.a,$1) \
 	$2
 
