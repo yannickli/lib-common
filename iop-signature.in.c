@@ -11,6 +11,16 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* XXX Make this file syntastic-compatible. */
+#ifndef F
+#  include "iop.h"
+#  define F(x)  x
+#endif
+
+#ifndef ATTRS
+#  define ATTRS
+#endif
+
 ATTRS
 static lstr_t F(t_iop_sign_salt_sha256)(const iop_struct_t *st, const void *v,
                                         uint32_t salt, unsigned flags)
