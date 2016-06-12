@@ -218,6 +218,7 @@ zchk_SOURCES = zchk.c \
 	zchk-iop.c \
 	zchk-iop-rpc.c \
 	zchk-licence.c \
+	zchk-log.c \
 	zchk-mem.c \
 	zchk-str.c \
 	zchk-snmp.c \

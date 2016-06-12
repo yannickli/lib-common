@@ -211,7 +211,7 @@ void logger_wipe(logger_t *logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
 
 /* }}} */
-/* Private functions {{{ */
+/* Private stuff {{{ */
 
 logger_t *logger_get_by_name(lstr_t name);
 void __logger_refresh(logger_t *logger) __leaf __cold;
@@ -242,6 +242,16 @@ void __logger_cold(void)
 {
     /* This function is just a marker for error cases */
 }
+
+typedef struct log_trace_spec_t {
+    const char *path;
+    const char *func;
+    const char *name;
+    int level;
+} log_trace_spec_t;
+qvector_t(spec, log_trace_spec_t);
+
+void log_parse_specs(char *p, qv_t(spec) *out);
 
 /* }}} */
 /* Simple logging {{{ */
