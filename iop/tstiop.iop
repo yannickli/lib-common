@@ -356,6 +356,57 @@ struct StructJpackFlags {
     int[] rep;
 };
 
+/* {{{ zchk iop.iop_for_each_field */
+
+struct MiniStruct {
+    int a;
+};
+
+struct TabStruct {
+    MiniStruct[] tab;
+};
+
+union AOrB {
+    MiniStruct a;
+    int b;
+};
+
+struct Void {
+};
+
+class Ancestor {
+    string name;
+};
+
+class GrandPa : 1 : Ancestor {
+};
+
+class Daddy : 2 : GrandPa {
+    bool? b;
+};
+
+struct ObjContainer {
+    Ancestor obj;
+};
+
+struct ZIopForEach {
+    Void voidStruct1;
+    int integer;
+    uint? optUint1;
+    ulong[] ulongTab;
+    uint? optUint2;
+    MiniStruct miniStruct;
+    ulong[] emptyTab;
+    TabStruct& refTabStruct;
+    AOrB? optUnion1;
+    Void voidStruct2;
+    AOrB? optUnion2;
+    Ancestor ancestor;
+    Ancestor[] objTab;
+};
+
+/* }}} */
+
 /* Interfaces */
 
 @(test:gen5, 5)

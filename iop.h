@@ -249,6 +249,43 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
 int iop_ranges_search(int const *ranges, int ranges_len, int tag);
 
 /* }}} */
+/* {{{ IOP Introspection: iop_for_each_field() */
+
+#ifdef __has_blocks
+
+#define IOP_FIELD_SKIP  1
+
+/** Callback for function 'iop_for_each_field'.
+ *
+ * \param[in] st_desc  Description of the current struct/union/class.
+ * \param[in] fdesc    Description of the current field.
+ * \param[in] st_ptr   Pointer on the structure.
+ *
+ * \return A negative value to stop the exploration,
+ *         IOP_FIELD_SKIP to avoid exploring current non-scalar field
+ *         0 otherwise.
+ */
+typedef int
+(BLOCK_CARET iop_for_each_field_cb_b)(const iop_struct_t *st_desc,
+                                      const iop_field_t *fdesc, void *st_ptr);
+
+/** Explore an IOP struct/class/union recursively and call a block for each
+ *  field.
+ *
+ *  \param[in] st_desc  Description of the struct/union/class to explore.
+ *                      Can be left NULL for IOP classes.
+ *  \param[in] st_ptr   Pointer on the struct/union/class to explore.
+ *  \param[in] cb       See documentation for type 'iop_for_each_field_cb_b'.
+ *
+ *  \return A negative value (the one returned by the callback) if the
+ *          exploration was interrupted, 0 otherwise.
+ */
+int iop_for_each_field(const iop_struct_t * nullable st_desc, void *st_ptr,
+                       iop_for_each_field_cb_b cb);
+
+#endif
+
+/* }}} */
 /* {{{ IOP structures manipulation */
 
 /** Initialize an IOP structure with the correct default values.

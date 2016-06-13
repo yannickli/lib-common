@@ -3569,6 +3569,117 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 }
 
 /* }}} */
+/* {{{ Introspection - iop_for_each_field() */
+
+static int on_field(const iop_struct_t *st_desc, const iop_field_t *fdesc,
+                    void *st_ptr, iop_for_each_field_cb_b cb);
+static int for_each_field(const iop_struct_t *st_desc, void *st_ptr,
+                          iop_for_each_field_cb_b cb);
+
+static int for_each_st_field(const iop_struct_t *st_desc, void *st_ptr,
+                             iop_for_each_field_cb_b cb)
+{
+    const iop_field_t *field = st_desc->fields;
+
+    for (int i = 0; i < st_desc->fields_len; i++) {
+        RETHROW(on_field(st_desc, field++, st_ptr, cb));
+    }
+
+    return 0;
+}
+
+
+static int
+for_each_repeated_field(const iop_field_t *fdesc, void *fptr,
+                        iop_for_each_field_cb_b cb)
+{
+    bool field_is_pointed = iop_field_is_pointed(fdesc);
+    size_t fsize;
+
+    if (field_is_pointed) {
+        fsize = sizeof(void *);
+    } else {
+        fsize = fdesc->size;
+    }
+
+    for (iop_array_i8_t array = *(iop_array_i8_t *)fptr; array.len--;
+         array.tab += fsize)
+    {
+        fptr = field_is_pointed ? *(void **)array.tab : array.tab;
+        RETHROW(for_each_field(fdesc->u1.st_desc, fptr, cb));
+    }
+
+    return 0;
+}
+
+static int on_field(const iop_struct_t *st_desc, const iop_field_t *fdesc,
+                    void *st_ptr, iop_for_each_field_cb_b cb)
+{
+    void *fptr;
+    int res = cb(st_desc, fdesc, st_ptr);
+
+    RETHROW(res);
+
+    if (res == IOP_FIELD_SKIP || iop_type_is_scalar(fdesc->type)) {
+        return 0;
+    }
+
+    fptr = (byte *)st_ptr + fdesc->data_offs;
+
+    if (fdesc->repeat == IOP_R_REPEATED) {
+        return for_each_repeated_field(fdesc, fptr, cb);
+    }
+
+    if (iop_field_is_pointed(fdesc)) {
+        fptr = *(void **)fptr;
+        if (!fptr) {
+            assert (fdesc->repeat == IOP_R_OPTIONAL);
+            return 0;
+        }
+    }
+
+    return for_each_field(fdesc->u1.st_desc, fptr, cb);
+}
+
+static int for_each_class_field(const iop_struct_t *st_desc, void *v,
+                                iop_for_each_field_cb_b cb)
+{
+    if (st_desc->class_attrs->parent) {
+        RETHROW(for_each_class_field(st_desc->class_attrs->parent, v, cb));
+    }
+
+    return for_each_st_field(st_desc, v, cb);
+}
+
+static int for_each_field(const iop_struct_t *st_desc, void *st_ptr,
+                          iop_for_each_field_cb_b cb)
+{
+    if (st_desc->is_union) {
+        const iop_field_t *field = get_union_field(st_desc, st_ptr);
+
+        return on_field(st_desc, field, st_ptr, cb);
+    }
+
+    if (iop_struct_is_class(st_desc)) {
+        return for_each_class_field(*(const iop_struct_t **)st_ptr,
+                                    st_ptr, cb);
+    }
+
+    return for_each_st_field(st_desc, st_ptr, cb);
+}
+
+int iop_for_each_field(const iop_struct_t * nullable st_desc, void *st_ptr,
+                       iop_for_each_field_cb_b cb)
+{
+    if (!st_desc) {
+        st_desc = *(const iop_struct_t **)st_ptr;
+        assert (iop_struct_is_class(st_desc));
+    }
+
+    return for_each_field(st_desc, st_ptr, cb);
+}
+
+/* }}} */
 /* {{{ Signature */
 
 #define ATTRS

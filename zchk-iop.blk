@@ -1,0 +1,138 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+/* LCOV_EXCL_START */
+
+#include "z.h"
+#include "iop.h"
+#include "iop/tstiop.iop.h"
+
+/* {{{ Helpers */
+
+/* {{{ iop.iop_for_each_field */
+
+struct z_iop_for_each_step {
+    const iop_struct_t *st_desc;
+    const void *st_ptr;
+    const char *fname;
+};
+
+qvector_t(z_iop_for_each_step, struct z_iop_for_each_step);
+
+static void
+_z_append_step(qv_t(z_iop_for_each_step) *vec, const iop_struct_t *st_desc,
+               const void *st_ptr, const char *fname)
+{
+    struct z_iop_for_each_step *step;
+
+    step = qv_growlen(z_iop_for_each_step, vec, 1);
+    step->st_desc = st_desc;
+    step->st_ptr = st_ptr;
+    step->fname = fname;
+}
+
+#define z_append_step(vec, st_pfx, st_ptr, fname)                            \
+    _z_append_step((vec), &st_pfx##__s, (st_ptr), (fname))
+
+static int
+z_check_iop_for_each_step(const struct z_iop_for_each_step *step,
+                          const iop_struct_t *st_desc, void *st_ptr,
+                          lstr_t fname)
+{
+    Z_ASSERT(st_desc == step->st_desc,
+             "wrong st_dest, got %*pM, expected %*pM",
+             LSTR_FMT_ARG(st_desc->fullname),
+             LSTR_FMT_ARG(step->st_desc->fullname));
+    Z_ASSERT(st_ptr == step->st_ptr, "wrong st_ptr, expected %p, got %p",
+             st_ptr, step->st_ptr);
+    Z_ASSERT_LSTREQUAL(fname, LSTR(step->fname), "wrong field");
+    Z_HELPER_END;
+}
+
+static int
+z_iop_for_each_step(const qv_t(z_iop_for_each_step) *steps,
+                    const iop_struct_t *_st_desc, void *_st_ptr, int *count)
+{
+    return iop_for_each_field(_st_desc, _st_ptr,
+    ^int (const iop_struct_t *st_desc, const iop_field_t *fdesc, void *st_ptr)
+    {
+        int pos = (*count)++;
+
+        Z_ASSERT_LT(pos, steps->len, "unexpected step");
+        Z_HELPER_RUN(z_check_iop_for_each_step(&steps->tab[pos], st_desc,
+                                               st_ptr, fdesc->name));
+        Z_HELPER_END;
+    });
+}
+
+static int z_test_iop_for_each_field(void)
+{
+    t_scope;
+    SB_1k(errb);
+    tstiop__z_iop_for_each__t *z_struct = NULL;
+    int count = 0;
+    qv_t(z_iop_for_each_step) steps;
+
+    Z_ASSERT_N(t_iop_junpack_ptr_file("samples/z-iop-for-each.json",
+                                      &tstiop__z_iop_for_each__s,
+                                      (void **)&z_struct, 0, NULL, &errb),
+               "failed to read JSON file: %*pM", SB_FMT_ARG(&errb));
+
+    t_qv_init(z_iop_for_each_step, &steps, 128);
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "voidStruct1");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "integer");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "optUint1");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "ulongTab");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "optUint2");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "miniStruct");
+    z_append_step(&steps, tstiop__mini_struct, &z_struct->mini_struct, "a");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "emptyTab");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "refTabStruct");
+    z_append_step(&steps, tstiop__tab_struct, z_struct->ref_tab_struct,
+                  "tab");
+    tab_for_each_ptr(ptr, &z_struct->ref_tab_struct->tab) {
+        z_append_step(&steps, tstiop__mini_struct, ptr, "a");
+    }
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "optUnion1");
+    z_append_step(&steps, tstiop__a_or_b, z_struct->opt_union1, "b");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "voidStruct2");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "optUnion2");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "ancestor");
+    z_append_step(&steps, tstiop__ancestor, z_struct->ancestor, "name");
+    z_append_step(&steps, tstiop__daddy, z_struct->ancestor, "b");
+    z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "objTab");
+    tab_for_each_entry(ptr, &z_struct->obj_tab) {
+        z_append_step(&steps, tstiop__ancestor, ptr, "name");
+    }
+
+    Z_HELPER_RUN(z_iop_for_each_step(&steps, &tstiop__z_iop_for_each__s,
+                                     z_struct, &count));
+
+    Z_ASSERT_EQ(count, 24);
+    Z_HELPER_END;
+}
+
+/* }}} */
+
+/* }}} */
+
+Z_GROUP_EXPORT(iop_blk) {
+    IOP_REGISTER_PACKAGES(&tstiop__pkg);
+
+    Z_TEST(iop_for_each_field, "test iop_for_each_field") { /* {{{ */
+        Z_HELPER_RUN(z_test_iop_for_each_field());
+    } Z_TEST_END
+    /* }}} */
+} Z_GROUP_END;
+
+/* LCOV_EXCL_STOP */
