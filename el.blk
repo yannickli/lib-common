@@ -171,6 +171,7 @@ qm_k64_t(ev, ev_t *);
 static struct {
     volatile uint32_t gotsigs;
     int       active;         /* number of ev_t keeping the el_loop running */
+    int       used;           /* number of ev_t currently used              */
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
     bool      worker_running; /* true if the worker is currently running    */
@@ -189,22 +190,16 @@ static struct {
     uint64_t     worker_end;  /* worker end time                            */
 
     /*----- allocation stuff -----*/
-#define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
-    ev_t   evs_initial[1 << EV_ALLOC_FACTOR];
-    ev_t  *evs_alloc_next, *evs_alloc_end;
-    ev_t  *evs[32 - EV_ALLOC_FACTOR];
-    int    evs_len;
+#define EV_ALLOC_FACTOR     10   /* basic segment is 1024 events            */
+#define EVS_NB_MAX_BUCKETS  (32 - EV_ALLOC_FACTOR)
+    qv_t(ev) buckets;
+    ev_t    *evs_alloc_next, *evs_alloc_end;
     dlist_t evs_free;
     dlist_t evs_gc;
     logger_t logger;
     logger_t tracing_logger;
 } el_g = {
 #define _G el_g
-    .evs[0]         = _G.evs_initial,
-    .evs_len        = 1,
-    .evs_alloc_next = &_G.evs_initial[0],
-    .evs_alloc_end  = &_G.evs_initial[countof(_G.evs_initial)],
-
     .idle           = DLIST_INIT(_G.idle),
     .idle_parked    = DLIST_INIT(_G.idle_parked),
     .before         = DLIST_INIT(_G.before),
@@ -248,12 +243,13 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
 
     if (unlikely(dlist_is_empty(&_G.evs_free))) {
         if (unlikely(_G.evs_alloc_next >= _G.evs_alloc_end)) {
-            int   bucket_len = 1 << (_G.evs_len++ + EV_ALLOC_FACTOR);
+            int   bucket_len = 1 << (_G.buckets.len + EV_ALLOC_FACTOR);
             ev_t *bucket     = p_new(ev_t, bucket_len);
 
-            if (unlikely(_G.evs_len > countof(_G.evs)))
+            qv_append(ev, &_G.buckets, bucket);
+            if (unlikely(_G.buckets.len > EVS_NB_MAX_BUCKETS)) {
                 e_panic(E_PREFIX("insane amount of events"));
-            _G.evs[_G.evs_len - 1] = bucket;
+            }
             _G.evs_alloc_next = bucket;
             _G.evs_alloc_end  = bucket + bucket_len;
         }
@@ -268,6 +264,7 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
         .cb.cb  = cb,
     };
     res->priv = priv;
+    _G.used++;
 
     return ref ? el_ref(res) : res;
 }
@@ -306,6 +303,7 @@ static data_t el_destroy(ev_t **evp, bool move)
     ev->type  = EV_UNUSED;
     ev->flags = 0;
     *evp = NULL;
+    _G.used--;
     return ev->priv;
 }
 
@@ -1520,12 +1518,13 @@ static void el_print_state(void)
     qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
     t_qv_init(table_data, &rows, 200);
 
-    for (int i = 0; i < _G.evs_len; i++) {
+    qv_for_each_pos(ev, i, &_G.buckets) {
+        ev_t *bucket = _G.buckets.tab[i];
         int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
 
         for (int j = 0; j < bucket_len; j++) {
             qv_t(lstr) *tab;
-            ev_t *ev = &_G.evs[i][j];
+            ev_t *ev = &bucket[j];
             lstr_t details = LSTR_NULL_V;
 
             if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS)) {
@@ -1607,19 +1606,22 @@ static void el_on_pwr(el_t evh, int signo, data_t priv)
 
 static int el_initialize(void *arg)
 {
-    if (getrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
+    if (getrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0) {
         e_panic(E_UNIXERR("getrlimit"));
+    }
     if (fd_limit_g.rlim_cur < fd_limit_g.rlim_max
     &&  fd_limit_g.rlim_max != RLIM_INFINITY)
     {
         fd_limit_g.rlim_cur = fd_limit_g.rlim_max;
-        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
+        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0) {
             e_error(E_UNIXERR("setrlimit"));
+        }
     } else
     if (fd_limit_g.rlim_max == RLIM_INFINITY && fd_limit_g.rlim_cur < 8192) {
         fd_limit_g.rlim_cur = 8192;
-        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0)
+        if (setrlimit(RLIMIT_NOFILE, &fd_limit_g) < 0) {
             e_error(E_UNIXERR("setrlimit"));
+        }
     }
 
     if (!is_fd_open(STDIN_FILENO)) {
@@ -1664,6 +1666,15 @@ static int el_shutdown(void)
 
     qv_wipe(ev, &_G.cache);
     qv_init(ev, &_G.cache);
+
+    if (_G.used) {
+        /* TODO: warn about events still in use. */
+    } else {
+        qv_deep_wipe(ev, &_G.buckets, p_delete);
+        qv_init(ev, &_G.buckets);
+        _G.evs_alloc_next = _G.evs_alloc_end = NULL;
+    }
+
     return 0;
 }
 
