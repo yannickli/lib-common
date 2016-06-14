@@ -13,6 +13,7 @@
 
 #include <glob.h>
 
+#include "el.h"
 #include "file-log.h"
 #include "z.h"
 
@@ -83,12 +84,14 @@ Z_GROUP_EXPORT(file_log)
 
             fv = globbuf.gl_pathv;
             fc = globbuf.gl_pathc;
-            waiting = false;
-            for (int i = 0;  i < fc; i++) {
-                fv[i][strlen(fv[i]) - 3] = '\0';
-                if (stat(fv[i], &st) == 0) {
-                    waiting = true;
-                    break;
+            if (fc == NB_FILES - 1) {
+                waiting = false;
+                for (int i = 0;  i < fc; i++) {
+                    fv[i][strlen(fv[i]) - 3] = '\0';
+                    if (stat(fv[i], &st) == 0) {
+                        waiting = true;
+                        break;
+                    }
                 }
             }
             globfree(&globbuf);
@@ -105,6 +108,9 @@ Z_GROUP_EXPORT(file_log)
 
         /* last file may be reused */
         Z_ASSERT_GE(_G.events[LOG_FILE_DELETE], NB_FILES - 1);
+
+        /* Properly wait for gzip children termination. */
+        el_loop();
     } Z_TEST_END;
 #undef RANDOM_DATA_SIZE
 #undef NB_FILES
