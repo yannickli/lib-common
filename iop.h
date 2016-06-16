@@ -283,6 +283,28 @@ typedef int
 int iop_for_each_field(const iop_struct_t * nullable st_desc, void *st_ptr,
                        iop_for_each_field_cb_b cb);
 
+/** Callback for function 'iop_for_each_st'.
+ *
+ * \param[in] st_desc  Description of the current struct/union/class.
+ * \param[in] st_ptr   Pointer on the structure.
+ *
+ * \return A negative value to stop the exploration,
+ *         IOP_FIELD_SKIP to avoid exploring the fields of current
+ *         struct/union/class.
+ */
+typedef int
+(BLOCK_CARET iop_for_each_st_cb_b)(const iop_struct_t *st_desc, void *st_ptr);
+
+/** Explore an IOP struct/union/class recursively and call a block for each
+ *  struct/union/class.
+ *
+ *  Same as iop_for_each_field() but the callback will be called for each
+ *  struct/union/class contained in the input IOP including itself, not for
+ *  scalar fields.
+ */
+int iop_for_each_st(const iop_struct_t * nullable st_desc, void *st_ptr,
+                    iop_for_each_st_cb_b cb);
+
 #endif
 
 /* }}} */

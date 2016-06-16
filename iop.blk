@@ -3573,8 +3573,8 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 
 /* XXX Intermediary function because the block rewriter don't dig included C
  *     files. */
-static int call_cb(const iop_struct_t *st_desc, void *st_ptr,
-                   const iop_field_t *fdesc, iop_for_each_field_cb_b cb)
+static int call_field_cb(const iop_struct_t *st_desc, void *st_ptr,
+                         const iop_field_t *fdesc, iop_for_each_field_cb_b cb)
 {
     return cb(st_desc, fdesc, st_ptr);
 }
@@ -3583,7 +3583,20 @@ static int call_cb(const iop_struct_t *st_desc, void *st_ptr,
 #define F_PROTO   iop_for_each_field_cb_b cb
 #define F_ARGS    cb
 #define F(x)      x##_blk
-#define ON_FIELD  call_cb
+#define ON_FIELD  call_field_cb
+#include "iop-for-each.in.c"
+
+static int call_st_cb(const iop_struct_t *st_desc, void *st_ptr,
+                      iop_for_each_st_cb_b cb)
+{
+    return cb(st_desc, st_ptr);
+}
+
+#define F_NAME     iop_for_each_st
+#define F_PROTO    iop_for_each_st_cb_b cb
+#define F_ARGS     cb
+#define F(x)       x##_st_blk
+#define ON_STRUCT  call_st_cb
 #include "iop-for-each.in.c"
 
 /* }}} */

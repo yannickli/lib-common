@@ -18,9 +18,15 @@
 #  define F(x)  x
 #  define F_NAME  __unused__ static default_func
 #  define ON_FIELD  default_on_field
+#  define ON_STRUCT  default_on_struct
 
 static int default_on_field(const iop_struct_t *st, void *st_ptr,
                             const iop_field_t *field)
+{
+    return 0;
+}
+
+static int default_on_struct(const iop_struct_t *st, void *st_ptr)
 {
     return 0;
 }
@@ -33,6 +39,19 @@ static int default_on_field(const iop_struct_t *st, void *st_ptr,
 #else
 #  define  __F_PROTO
 #  define  __F_ARGS
+#endif
+
+#ifdef ON_STRUCT
+#  define __ON_STRUCT(st_desc, st_ptr)                                       \
+    do {                                                                     \
+        int res = RETHROW(ON_STRUCT(st_desc, st_ptr __F_ARGS));              \
+                                                                             \
+        if (res == IOP_FIELD_SKIP) {                                         \
+            return 0;                                                        \
+        }                                                                    \
+    } while (0)
+#else
+#  define __ON_STRUCT(...)
 #endif
 
 static int F(on_field)(const iop_struct_t *st_desc, const iop_field_t *fdesc,
@@ -126,15 +145,20 @@ static int F(for_each_class_field)(const iop_struct_t *st_desc, void *v
 static int F(for_each_field)(const iop_struct_t *st_desc, void *st_ptr
                              __F_PROTO)
 {
+    if (iop_struct_is_class(st_desc)) {
+        st_desc = *(const iop_struct_t **)st_ptr;
+
+        __ON_STRUCT(st_desc, st_ptr);
+
+        return F(for_each_class_field)(st_desc, st_ptr __F_ARGS);
+    }
+
+    __ON_STRUCT(st_desc, st_ptr);
+
     if (st_desc->is_union) {
         const iop_field_t *field = get_union_field(st_desc, st_ptr);
 
         return F(on_field)(st_desc, field, st_ptr __F_ARGS);
-    }
-
-    if (iop_struct_is_class(st_desc)) {
-        return F(for_each_class_field)(*(const iop_struct_t **)st_ptr,
-                                    st_ptr __F_ARGS);
     }
 
     return F(for_each_st_field)(st_desc, st_ptr __F_ARGS);
@@ -151,6 +175,8 @@ int F_NAME(const iop_struct_t * nullable st_desc, void *st_ptr
     return F(for_each_field)(st_desc, st_ptr __F_ARGS);
 }
 
+#undef __ON_STRUCT
+#undef ON_STRUCT
 #undef ON_FIELD
 #undef F
 #undef F_ARGS
