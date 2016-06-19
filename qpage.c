@@ -88,10 +88,11 @@ typedef struct page_run_t {
 } page_run_t;
 
 static struct {
-    size_t          bits[BITS_TO_ARRAY_LEN(size_t, CLASSES)];
-    page_desc_t    *blks[CLASSES];
-    qv_t(pgd)       segs;
-    spinlock_t      lock;
+#define BITS_LEN  BITS_TO_ARRAY_LEN(size_t, CLASSES)
+    size_t       *bits; /* array of BITS_LEN elements. */
+    page_desc_t **blks; /* array of CLASSES elements. */
+    qv_t(pgd)     segs;
+    spinlock_t    lock;
 } qpages_g;
 #define _G  qpages_g
 
@@ -141,7 +142,7 @@ static ALWAYS_INLINE page_desc_t *find_suitable_block(uint32_t *class)
             return _G.blks[*class];
         }
         mask = (size_t)-1;
-    } while (++vec < countof(_G.bits));
+    } while (++vec < BITS_LEN);
 
     return NULL;
 }
@@ -644,6 +645,8 @@ void *qpage_dup_n(const void *ptr, size_t n, uint32_t *seg)
 static int qpage_initialize(void *arg)
 {
     p_clear(&_G, 1);
+    _G.bits = p_new(size_t, BITS_LEN);
+    _G.blks = p_new(page_desc_t *, CLASSES);
     return 0;
 }
 
@@ -653,6 +656,8 @@ static int qpage_shutdown(void)
         free(run_of(_G.segs.tab[i], 0));
     }
     qv_wipe(pgd, &_G.segs);
+    p_delete(&_G.bits);
+    p_delete(&_G.blks);
     return 0;
 }
 
