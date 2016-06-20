@@ -607,6 +607,44 @@ bool iop_field_is_pointed(const iop_field_t *fdesc)
     return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
 }
 
+static void *iop_get_opt_field(iop_type_t type, void *data)
+{
+    switch (type) {
+      case IOP_T_I8:
+      case IOP_T_U8:
+        return OPT_GET((opt_u8_t *)data);
+      case IOP_T_I16:
+      case IOP_T_U16:
+        return OPT_GET((opt_u16_t *)data);
+      case IOP_T_ENUM:
+      case IOP_T_I32:
+      case IOP_T_U32:
+        return OPT_GET((opt_u32_t *)data);
+      case IOP_T_I64:
+      case IOP_T_U64:
+        return OPT_GET((opt_u64_t *)data);
+      case IOP_T_BOOL:
+        return OPT_GET((opt_bool_t *)data);
+      case IOP_T_DOUBLE:
+        return OPT_GET((opt_double_t *)data);
+      case IOP_T_STRING:
+      case IOP_T_XML:
+      case IOP_T_DATA:
+        return ((lstr_t *)data)->s ? data : NULL;
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+        return *(void **)data;
+    }
+
+    assert (false);
+    return NULL;
+}
+
+static const void *iop_get_opt_field_const(iop_type_t type, const void *data)
+{
+    return iop_get_opt_field(type, (void *)data);
+}
+
 /* }}} */
 /* {{{ Iop type string description */
 
@@ -1471,32 +1509,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
         return data;
     }
 
-    switch (fdesc->type) {
-      case IOP_T_I8:
-      case IOP_T_U8:
-        return OPT_GET((const opt_u8_t *)data);
-      case IOP_T_I16:
-      case IOP_T_U16:
-        return OPT_GET((const opt_u16_t *)data);
-      case IOP_T_ENUM:
-      case IOP_T_I32:
-      case IOP_T_U32:
-        return OPT_GET((const opt_u32_t *)data);
-      case IOP_T_I64:
-      case IOP_T_U64:
-        return OPT_GET((const opt_u64_t *)data);
-      case IOP_T_BOOL:
-        return OPT_GET((const opt_bool_t *)data);
-      case IOP_T_DOUBLE:
-        return OPT_GET((const opt_double_t *)data);
-      case IOP_T_STRING:
-      case IOP_T_XML:
-      case IOP_T_DATA:
-        return ((const lstr_t *)data)->s ? data : NULL;
-      default:
-        assert (false);
-        return NULL;
-    }
+    return iop_get_opt_field_const(fdesc->type, data);
 }
 
 /* }}} */
