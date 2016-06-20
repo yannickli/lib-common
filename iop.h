@@ -320,7 +320,7 @@ int iop_for_each_st(const iop_struct_t * nullable st_desc, void *st_ptr,
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the IOP structure to initialize.
  */
-void  iop_init_desc(const iop_struct_t *st, void *value);
+void iop_init_desc(const iop_struct_t *st, void *value);
 
 #define iop_init(pfx, value)  ({                                             \
         pfx##__t *__v = (value);                                             \
