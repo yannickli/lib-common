@@ -679,6 +679,44 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
 const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
                                  lstr_t path, const void ** nullable out_ptr);
 
+/** Get the value(s) associated to a given IOP field.
+ *
+ * Efficient IOP field value getter that allows to abstract the fact that the
+ * field is mandatory, optional, repeated, is a scalar, is a class, is a
+ * reference, etc.
+ *
+ * Purpose: simplify tasks based on IOP introspection, for example systematic
+ * treatments to apply to all fields of a given type.
+ *
+ * ┏━━━━━━━━━━━┯━━━━━━━━━━━━━━┳━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━┓
+ * ┃ repeat    │ type         ┃ len    │ is_array_of_pointers ┃
+ * ┣━━━━━━━━━━━┿━━━━━━━━━━━━━━╋━━━━━━━━┿━━━━━━━━━━━━━━━━━━━━━━┫
+ * ┃ MANDATORY │ *            ┃ 1      │ false                ┃
+ * ┃ DEFAULT   │ *            ┃ 1      │ false                ┃
+ * ┃ OPTIONAL  │ *            ┃ 0 or 1 │ false                ┃
+ * ┃ REPEATED  │ struct/union ┃ N      │ false                ┃
+ * ┃           │ class        ┃ N      │ true                 ┃
+ * ┗━━━━━━━━━━━┷━━━━━━━━━━━━━━┻━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━┛
+ *
+ * \param[in]  fdesc    Field description.
+ *
+ * \param[in]  st_ptr   Pointer on the struct containing the field.
+ *
+ * \param[out] values   Pointer on the value or the array of values. Can be an
+ *                      simple array or an array of pointers depending on the
+ *                      value in \p is_array_of_pointers. There is no memory
+ *                      allocation, it points directly in the IOP data given
+ *                      with \p st_ptr.
+ *
+ * \param[out] len      Number of values in the array (can be zero).
+ *
+ * \param[out] is_array_of_pointers  Indicates that the output array \p values
+ *                                   is an array of pointers.
+ */
+void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
+                          void **values, int *len,
+                          bool * nullable is_array_of_pointers);
+
 /** Return code for iop_value_from_field. */
 typedef enum iop_value_from_field_res_t {
     IOP_FIELD_NOT_SET = -2,

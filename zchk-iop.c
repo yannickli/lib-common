@@ -34,6 +34,33 @@
 
 /* {{{ IOP testing helpers */
 
+/* {{{ iop_get_field_values() */
+
+static int
+z_iop_get_field_values_check(const iop_struct_t *st_desc, void *st_ptr,
+                             const char *fpath, const void *exp_values,
+                             int exp_len, bool exp_is_array_of_pointers)
+{
+    const iop_field_t *fdesc;
+    void *values;
+    int len;
+    bool is_array_of_pointers;
+
+    fdesc = iop_get_field(st_ptr, st_desc, LSTR(fpath), NULL);
+    Z_ASSERT_P(fdesc, "call to 'iop_get_field()' failed");
+    iop_get_field_values(fdesc, st_ptr, &values, &len,
+                         &is_array_of_pointers);
+    Z_ASSERT(values == exp_values, "pointers differ, got %p, expected %p",
+             values, exp_values);
+    Z_ASSERT_EQ(len, exp_len, "lengths differ");
+    Z_ASSERT_EQ(is_array_of_pointers, exp_is_array_of_pointers,
+                "values differ for `is_array_of_pointers'");
+    Z_HELPER_END;
+}
+
+/* }}} */
+/* {{{ Other helpers (waiting proper folds). */
+
 static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info)
 {
     t_scope;
@@ -728,6 +755,8 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
     })
 
 #define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true)
+
+/* }}} */
 
 /* }}} */
 
@@ -4774,6 +4803,46 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
         Z_ASSERT_EQ(*(int *)out, f_e_cls3.int3);
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(iop_get_field_values, "test iop_get_field_values function") { /* {{{ */
+        t_scope;
+        tstiop__z_iop_get_field_values__t z_struct;
+
+        iop_init(tstiop__z_iop_get_field_values, &z_struct);
+#define TEST(field_path, exp_ptr, exp_len, exp_is_array_of_pointers)         \
+        Z_HELPER_RUN(z_iop_get_field_values_check(                           \
+                &tstiop__z_iop_get_field_values__s, &z_struct, (field_path), \
+                (exp_ptr), (exp_len), (exp_is_array_of_pointers)));
+
+        TEST("integer", &z_struct.integer, 1, false);
+        TEST("integerTab", z_struct.integer_tab.tab, 0, false);
+        TEST("optInteger", NULL, 0, false);
+        OPT_SET(z_struct.opt_integer, 666);
+        TEST("optInteger", &z_struct.opt_integer.v, 1, false);
+
+        TEST("st", &z_struct.st, 1, false);
+        TEST("optSt", z_struct.opt_st, 0, false);
+        z_struct.opt_st = t_iop_new(tstiop__simple_struct);
+        TEST("optSt", z_struct.opt_st, 1, false);
+        z_struct.st_ref = t_iop_new(tstiop__simple_struct);
+        TEST("stRef", z_struct.st_ref, 1, false);
+        TEST("stTab", z_struct.st_tab.tab, 0, false);
+        z_struct.st_tab.tab = t_new(tstiop__simple_struct__t, 42);
+        z_struct.st_tab.len = 42;
+        TEST("stTab", z_struct.st_tab.tab, 42, false);
+
+        z_struct.obj = t_iop_new(tstiop__simple_class);
+        TEST("obj", z_struct.obj, 1, false);
+        TEST("optObj", z_struct.opt_obj, 0, false);
+        z_struct.opt_obj = t_iop_new(tstiop__simple_class);
+        TEST("optObj", z_struct.opt_obj, 1, false);
+        TEST("objTab", z_struct.obj_tab.tab, 0, true);
+        z_struct.obj_tab.tab = t_new(tstiop__simple_class__t *, 1);
+        z_struct.obj_tab.len = 1;
+        TEST("objTab", z_struct.obj_tab.tab, 1, true);
+
+#undef TEST
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_value_from_field, "test iop_value_from_field") { /* {{{ */

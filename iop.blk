@@ -645,6 +645,49 @@ static const void *iop_get_opt_field_const(iop_type_t type, const void *data)
     return iop_get_opt_field(type, (void *)data);
 }
 
+void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
+                          void **values, int *len,
+                          bool * nullable is_array_of_pointers)
+{
+    void *fptr = (byte *)st_ptr + fdesc->data_offs;
+
+    if (fdesc->repeat == IOP_R_REPEATED) {
+        iop_array_i8_t *array = fptr;
+
+        *values = array->tab;
+        *len = array->len;
+        if (is_array_of_pointers) {
+            *is_array_of_pointers = iop_field_is_class(fdesc);
+        }
+
+        return;
+    }
+
+    if (is_array_of_pointers) {
+        /* For non-repeated fields, we will always apply the indirection. */
+        *is_array_of_pointers = false;
+    }
+
+    if (fdesc->repeat == IOP_R_OPTIONAL) {
+        fptr = iop_get_opt_field(fdesc->type, fptr);
+        if (!fptr) {
+            /* The optional field is absent. */
+            *len = 0;
+            *values = NULL;
+            return;
+        }
+
+        *values = fptr;
+    } else
+    if (iop_field_is_pointed(fdesc)) {
+        *values = *(void **)fptr;
+    } else {
+        *values = fptr;
+    }
+
+    *len = 1;
+}
+
 /* }}} */
 /* {{{ Iop type string description */
 

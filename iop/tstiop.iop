@@ -406,6 +406,30 @@ struct ZIopForEach {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_get_field_values */
+
+struct SimpleStruct {
+    string a;
+};
+
+class SimpleClass {
+    string b;
+};
+
+struct ZIopGetFieldValues {
+    int integer;
+    int[] integerTab;
+    int? optInteger;
+    SimpleStruct st;
+    SimpleStruct? optSt;
+    SimpleStruct& stRef;
+    SimpleStruct[] stTab;
+    SimpleClass obj;
+    SimpleClass? optObj;
+    SimpleClass[] objTab;
+};
+
+/* }}} */
 
 /* Interfaces */
 
