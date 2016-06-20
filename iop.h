@@ -677,7 +677,7 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
  * \return The iop field description if found, NULL otherwise.
  */
 const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
-                                 lstr_t path, const void **out_ptr);
+                                 lstr_t path, const void ** nullable out_ptr);
 
 /** Return code for iop_value_from_field. */
 typedef enum iop_value_from_field_res_t {
