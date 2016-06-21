@@ -242,6 +242,7 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --regex-iop='/^union +([a-zA-Z]+)/\1/u, union/' \
 	    --regex-iop='/^enum +([a-zA-Z]+)/\1/e, enum/' \
 	    --regex-iop='/^typedef +[^;]+ +([a-zA-Z]+) *;/\1/t, typedef/' \
+	    --regex-iop='/^\@ctype\(+([a-zA-Z_]+)\)/\1/t, ctype/' \
 	    --regex-iop='/^interface +([a-zA-Z]+)/\1/n, interface/' \
 	    --exclude=".build*" --exclude="Build" --exclude="Config" \
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
