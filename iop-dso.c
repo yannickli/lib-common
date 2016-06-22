@@ -143,7 +143,7 @@ static int iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
         iopdso_fix_pkg(pkg);
     }
-    RETHROW(iop_register_packages_env(&pkg, 1, env, IOP_REGPKG_FROM_DSO,
+    RETHROW(iop_register_packages_env(&pkg, 1, dso, env, IOP_REGPKG_FROM_DSO,
                                       err));
     for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
