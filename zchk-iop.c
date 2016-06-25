@@ -18,6 +18,7 @@
 #include "unix.h"
 #include "z.h"
 #include "iop.h"
+#include "iop-priv.h"
 #include "iop/tstiop.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
@@ -762,9 +763,19 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(ressources_int.tab[0], z_ressources_int_1);
         Z_ASSERT_EQ(ressources_int.tab[1], z_ressources_int_2);
 
+        /* Test iop_dso_get_from_pkg */
+        qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
+            const iop_pkg_t *pkg = dso->pkg_h.values[pos];
+
+            Z_ASSERT(iop_dso_get_from_pkg(pkg) == dso);
+        }
+
         /* Play with register/unregister */
         iop_dso_unregister(dso);
         iop_dso_unregister(dso);
+        qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
+            Z_ASSERT_NULL(iop_dso_get_from_pkg(dso->pkg_h.values[pos]));
+        }
         iop_dso_register(dso);
         iop_dso_register(dso);
 

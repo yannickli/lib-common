@@ -36,6 +36,12 @@ typedef struct iop_dso_t {
     qm_t(iop_iface)  iface_h;
     qm_t(iop_mod)    mod_h;
 
+    /* Hash table of other iop_dso_t used by this one (in case of fixups). */
+    qh_t(ptr) depends_on;
+    /* Hash table of other iop_dso_t which need this one (in case of
+     * fixups). */
+    qh_t(ptr) needed_by;
+
     flag_t use_external_packages : 1;
     flag_t is_registered         : 1;
 } iop_dso_t;
