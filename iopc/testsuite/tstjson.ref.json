@@ -13,7 +13,7 @@
 			"fullName": "tstjson.MyEnumA",
 			"type": "enum",
 			"help": {
-				"brief": "Test auto-brief for MyEnumA.",
+				"brief": "Test auto-brief for MyEnumA",
 				"details": "Detailed description\n    for MyEnumA.\n2nd paragraph\n3rd paragraph, 3rd paragraph continue here, and also here.",
 				"warning": "this is a warning for MyEnumA"
 			},
@@ -76,7 +76,7 @@
 			"fullName": "tstjson.MyEnumC",
 			"type": "enum",
 			"help": {
-				"brief": "comment for MyEnumC."
+				"brief": "comment for MyEnumC"
 			},
 			"genAttrs": {
 				"test:gen1": {
@@ -105,7 +105,7 @@
 				"i": {
 					"type": "int",
 					"help": {
-						"brief": "comment for i of MyUnionA.",
+						"brief": "comment for i of MyUnionA",
 						"details": "detailed comment for i of MyUnionA."
 					}
 				},
@@ -147,7 +147,7 @@
 				"u3": {
 					"type": "tstjson.MyUnionA",
 					"help": {
-						"brief": "Special union.",
+						"brief": "Special union",
 						"details": "\\p s;"
 					},
 					"constraints": {

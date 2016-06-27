@@ -139,10 +139,9 @@ dump_name(const iopc_write_buf_t *wbuf, const char *pkg_name,
     LINE_CKEY_VAL_FMT(wbuf, "fullName", QUOTE("%s.%s"), pkg_name, name);
 }
 
-static void write_string(const iopc_write_buf_t *wbuf, const char *s)
+static void write_ps(const iopc_write_buf_t *wbuf, pstream_t ps)
 {
-    const char *prev = s;
-    pstream_t ps = ps_initstr(s);
+    const char *prev = ps.s;
 
     sb_addc(wbuf->buf, '"');
     while (!ps_done(&ps)) {
@@ -204,12 +203,31 @@ static void write_string(const iopc_write_buf_t *wbuf, const char *s)
     sb_addc(wbuf->buf, '"');
 }
 
+static void write_lstr(const iopc_write_buf_t *wbuf, const lstr_t *s)
+{
+    write_ps(wbuf, ps_initlstr(s));
+}
+
+static void write_string(const iopc_write_buf_t *wbuf, const char *s)
+{
+    write_ps(wbuf, ps_initstr(s));
+}
+
 static void
 dump_key_val_string(const iopc_write_buf_t *wbuf, const char* key,
                     const char *s)
 {
     START_LINE_KEY(wbuf, key);
     write_string(wbuf, s);
+    sep(wbuf);
+}
+
+static void
+dump_key_val_lstr(const iopc_write_buf_t *wbuf, const char* key,
+                  const lstr_t *s)
+{
+    START_LINE_KEY(wbuf, key);
+    write_lstr(wbuf, s);
     sep(wbuf);
 }
 
@@ -288,10 +306,24 @@ iopc_dox_dump_json(const iopc_write_buf_t *wbuf,
             continue;
         }
 
-        if (dox->type == IOPC_DOX_TYPE_EXAMPLE) {
+        switch (dox->type) {
+            lstr_t brief;
+
+          case IOPC_DOX_TYPE_EXAMPLE:
             LINE_KEY_VAL_FMT(wbuf, type.s, "%*pM", LSTR_FMT_ARG(dox->desc));
-        } else {
+            break;
+
+          case IOPC_DOX_TYPE_BRIEF:
+            brief = dox->desc;
+            if (brief.len > 0 && brief.s[brief.len - 1] == '.') {
+                brief.len--;
+            }
+            dump_key_val_lstr(wbuf, type.s, &brief);
+            break;
+
+          default:
             dump_key_val_string(wbuf, type.s, dox->desc.s);
+            break;
         }
     }
     LINE_END_OBJ(wbuf);

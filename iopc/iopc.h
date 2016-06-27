@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   5
 #define IOPC_MINOR   0
-#define IOPC_PATCH   3
+#define IOPC_PATCH   4
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
