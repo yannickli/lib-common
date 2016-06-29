@@ -236,6 +236,8 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --langmap=c:+.blk --langmap=c:+.h --langmap=c++:+.blkk \
 	    --regex-c='/^OBJ_CLASS(_NO_TYPEDEF)?\(+([^,]+),/\2_t/o, cclass/' \
 	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/x, cmethod/' \
+	    --regex-c='/^qvector_t\(+([a-zA-Z_]+)\,/\1/t, qvector/' \
+	    --regex-c='/^q[hm]_k.*_t\(+([a-zA-Z_]+)/\1/t, qhash/' \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s, struct/' \
 	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c, class/' \
