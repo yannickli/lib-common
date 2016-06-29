@@ -668,14 +668,21 @@ __SB_DEFINE_ADDS_ERR(unb64);
 
 /** Append the CSV-escaped version of the string in the given sb.
  *
- * If the input string does not contain any '\n', '\t', '"' or ';', it is
+ * If the input string does not contain any '\n', '\t', '"' or \p sep, it is
  * appended as-is.
  *
  * Otherwise, it is double-quoted, and the double-quotes of the content of the
  * string (and only them) are escaped with double-quotes.
  */
-void sb_add_csvescape(sb_t *sb, const void *data, int len);
-__SB_DEFINE_ADDS(csvescape);
+void sb_add_csvescape(sb_t *sb, int sep, const void *data, int len);
+static inline void sb_adds_csvescape(sb_t *sb, int sep, const char *s)
+{
+    sb_add_csvescape(sb, sep, s, strlen(s));
+}
+static inline void sb_add_lstr_csvescape(sb_t *sb, int sep, lstr_t s)
+{
+    sb_add_csvescape(sb, sep, s.s, s.len);
+}
 
 /** Append the Punycode-encoded string corresponding to the input code points
  *  in the given sb.

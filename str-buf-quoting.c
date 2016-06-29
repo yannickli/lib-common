@@ -834,17 +834,14 @@ error:
     return __sb_rewind_adds(sb, &orig);
 }
 
-void sb_add_csvescape(sb_t *sb, const void *data, int len)
+void sb_add_csvescape(sb_t *sb, int sep, const void *data, int len)
 {
-    static bool first_call = true;
     static ctype_desc_t ctype_needs_escape;
     pstream_t ps = ps_init(data, len);
     pstream_t cspan;
 
-    if (unlikely(first_call)) {
-        ctype_desc_build(&ctype_needs_escape, "\"\n\r;");
-        first_call = false;
-    }
+    ctype_desc_build(&ctype_needs_escape, "\"\n\r");
+    SET_BIT(ctype_needs_escape.tab, sep);
 
     cspan = ps_get_cspan(&ps, &ctype_needs_escape);
     if (ps_done(&ps)) {
