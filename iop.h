@@ -629,6 +629,21 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
                            lstr_t key, iop_type_t exp_type,
                            iop_type_t * nullable val_type, iop_value_t *value);
 
+/** Get boolean generic attribute value for an IOP field.
+ *
+ * \param[in]  st    The IOP structure definition.
+ * \param[in]  field The IOP field definition.
+ * \param[in]  key   The generic attribute key.
+ * \param[in]  def   Default value returned if the attribute \p key did not
+ *                   match.
+ *
+ * \return \p def if the generic attribute is not found and the attribute
+ *            value otherwise.
+ */
+bool iop_field_get_bool_gen_attr(const iop_struct_t *st,
+                                 const iop_field_t *field, lstr_t key,
+                                 bool def);
+
 /** Find a generic attribute value for an IOP field.
  *
  * Same as \ref iop_field_get_gen_attr but a name for the field is given

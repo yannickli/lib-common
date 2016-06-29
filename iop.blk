@@ -877,6 +877,20 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
                                 field, exp_type, val_type, value);
 }
 
+bool iop_field_get_bool_gen_attr(const iop_struct_t *st,
+                                 const iop_field_t *field, lstr_t key,
+                                 bool def)
+{
+    iop_value_t value;
+
+    if (iop_field_get_gen_attr(st, field, key, IOP_T_BOOL, NULL, &value) < 0)
+    {
+        return def;
+    }
+
+    return value.b;
+}
+
 int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t f_name,
                                    lstr_t key, iop_type_t exp_type,
                                    iop_type_t *val_type, iop_value_t *value)
