@@ -74,7 +74,7 @@ tmp=$(mktemp)
 tmp2=$(mktemp)
 trap "rm $tmp $tmp2" 0
 
-"$(dirname "$0")"/_list_checks.sh "$where" | (
+"$(dirname "$0")"/_list_checks.py "$where" | (
 export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade}"
@@ -88,7 +88,8 @@ do
 done
 export BEHAVE_FLAGS=$BEHAVE_FLAGS
 
-while read t; do
+while read -r zd line; do
+    t="${zd}${line}"
     say_color info "starting suite $t..."
 
     start=$(date '+%s')
