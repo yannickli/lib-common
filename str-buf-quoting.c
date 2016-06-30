@@ -57,8 +57,10 @@ static unsigned char const __decode_base64[256] = {
 static byte const __str_encode_flags[256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
 #define QP  1
-#define XP  2
-    REPEAT16(0), REPEAT16(0),
+#define XP  2       /* Obviously, means "non XML printable char". */
+    XP,    XP,    XP,    XP,    XP,    XP,    XP,    XP,
+    XP,    0,     0,     XP,    XP,    0,     XP,    XP,     /* \n \t \r */
+    REPEAT16(XP),
     0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,  /* "&' */
     QP,    QP,    QP,    QP,    QP,    QP,    0,     QP,     /* . */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
@@ -367,8 +369,7 @@ void sb_add_xmlescape(sb_t *sb, const void *data, int len)
               case '\'': sb_adds(sb, "&#39;"); break;
               case '"':  sb_adds(sb, "&#34;"); break;
               default:
-                 /* should not be triggered */
-                 sb_addf(sb, "&#%d;", *p);
+                 /* Invalid XML1.0 characters, we skip this one. */
                  break;
             }
             p++;
