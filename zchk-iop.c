@@ -709,12 +709,17 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
     Z_HELPER_END;
 }
 
-#define _Z_DSO_OPEN(_dso_path)                                               \
+#define _Z_DSO_OPEN(_dso_path, in_cmddir)                                    \
     ({                                                                       \
         t_scope;                                                             \
         SB_1k(_err);                                                         \
-        lstr_t _path = t_lstr_cat(z_cmddir_g, LSTR(_dso_path));              \
-        iop_dso_t *_dso = iop_dso_open(_path.s, &_err);                      \
+        lstr_t _path = LSTR(_dso_path);                                      \
+        iop_dso_t *_dso;                                                     \
+                                                                             \
+        if (in_cmddir) {                                                     \
+            _path = t_lstr_cat(z_cmddir_g, _path);                           \
+        }                                                                    \
+        _dso = iop_dso_open(_path.s, &_err);                                 \
         if (_dso == NULL) {                                                  \
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",  \
                    SB_FMT_ARG(&_err));                                       \
@@ -722,7 +727,7 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
         _dso;                                                                \
     })
 
-#define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT)
+#define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true)
 
 /* }}} */
 
@@ -6066,8 +6071,8 @@ Z_GROUP_EXPORT(iop)
         const iop_field_t *field;
 
         IOP_UNREGISTER_PACKAGES(&tstiop__pkg);
-        dso1 = _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT);
-        dso2 = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT);
+        dso1 = _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true);
+        dso2 = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT, true);
 
         struct1 = iop_dso_find_type(dso1, LSTR("tstiop.MyStructA"));
 
@@ -6088,6 +6093,34 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso2);
 
         IOP_REGISTER_PACKAGES(&tstiop__pkg);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_dso_fixup_bad_dep, "test bug in fixup") { /* {{{ */
+        /* test that loading the same dso twice will not induce dependencies
+         * between the two dsos */
+        t_scope;
+        iop_dso_t *dso1;
+        iop_dso_t *dso2;
+        const char *newpath;
+        const char *sofile = "zchk-tstiop2-plugin" SO_FILEEXT;
+
+        /* build one dso, remove file */
+        newpath = t_fmt("%*pM/1_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);
+        Z_ASSERT_N(filecopy(sofile, newpath));
+        dso1 = _Z_DSO_OPEN(newpath, false);
+        Z_ASSERT_N(unlink(newpath));
+
+        /* build the second one, remove file */
+        newpath = t_fmt("%*pM/2_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);
+        Z_ASSERT_N(filecopy(sofile, newpath));
+        dso2 = _Z_DSO_OPEN(newpath, false);
+        Z_ASSERT_N(unlink(newpath));
+
+        /* the two files must be independent. If they are not, closing the
+         * first one will cause the second one to be reloaded, which will fail
+         * as the file no longer exists */
+        iop_dso_close(&dso1);
+        iop_dso_close(&dso2);
     } Z_TEST_END;
     /* }}} */
 

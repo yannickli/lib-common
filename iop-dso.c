@@ -63,7 +63,8 @@ iop_get_struct(const iop_pkg_t *pkg, lstr_t fullname)
     return NULL;
 }
 
-static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st)
+static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
+                                  const iop_pkg_t *own_pkg)
 {
     const iop_struct_t *fix;
     lstr_t pkgname = iop_pkgname_from_fullname((*st)->fullname);
@@ -78,6 +79,11 @@ static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st)
             return;
         }
     }
+
+    if (lstr_equal(pkg->name, own_pkg->name)) {
+        return;
+    }
+
     fix = iop_get_struct(pkg, (*st)->fullname);
     if (!fix) {
         e_error("IOP DSO: did not find struct %s in memory",
@@ -97,7 +103,8 @@ static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st)
     }
 }
 
-static void iopdso_fix_class_parent(iop_dso_t *dso, const iop_struct_t *desc)
+static void iopdso_fix_class_parent(iop_dso_t *dso, const iop_struct_t *desc,
+                                    const iop_pkg_t *own_pkg)
 {
     iop_class_attrs_t *class_attrs;
 
@@ -106,7 +113,7 @@ static void iopdso_fix_class_parent(iop_dso_t *dso, const iop_struct_t *desc)
     }
     class_attrs = (iop_class_attrs_t *)desc->class_attrs;
     while (class_attrs->parent) {
-        iopdso_fix_struct_ref(dso, &class_attrs->parent);
+        iopdso_fix_struct_ref(dso, &class_attrs->parent, own_pkg);
         desc = class_attrs->parent;
         class_attrs = (iop_class_attrs_t *)desc->class_attrs;
     }
@@ -117,14 +124,14 @@ static void iopdso_fix_pkg(iop_dso_t *dso, const iop_pkg_t *pkg)
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
         const iop_struct_t *desc = *it;
 
-        iopdso_fix_struct_ref(dso, &desc);
-        iopdso_fix_class_parent(dso, desc);
+        iopdso_fix_struct_ref(dso, &desc, pkg);
+        iopdso_fix_class_parent(dso, desc, pkg);
 
         for (int i = 0; i < desc->fields_len; i++) {
             iop_field_t *f = (iop_field_t *)&desc->fields[i];
 
             if (f->type == IOP_T_STRUCT || f->type == IOP_T_UNION) {
-                iopdso_fix_struct_ref(dso, &f->u1.st_desc);
+                iopdso_fix_struct_ref(dso, &f->u1.st_desc, pkg);
             }
         }
     }
@@ -132,9 +139,9 @@ static void iopdso_fix_pkg(iop_dso_t *dso, const iop_pkg_t *pkg)
         for (int i = 0; i < (*it)->funs_len; i++) {
             iop_rpc_t *rpc = (iop_rpc_t *)&(*it)->funs[i];
 
-            iopdso_fix_struct_ref(dso, &rpc->args);
-            iopdso_fix_struct_ref(dso, &rpc->result);
-            iopdso_fix_struct_ref(dso, &rpc->exn);
+            iopdso_fix_struct_ref(dso, &rpc->args, pkg);
+            iopdso_fix_struct_ref(dso, &rpc->result, pkg);
+            iopdso_fix_struct_ref(dso, &rpc->exn, pkg);
         }
     }
 }
