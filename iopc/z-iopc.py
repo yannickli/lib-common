@@ -784,8 +784,12 @@ class IopcTest(z.TestCase):
         g = os.path.join(TEST_PATH, f)
         for lang in ['json', 'C,json', 'json,C']:
             subprocess.call(['rm', '-f', g + '.iop.json'])
-            self.run_iopc_pass(f + '.iop', 3, lang)
+            self.run_iopc_pass(f + '.iop', 5, lang)
             self.check_ref(g, 'json')
+
+            subprocess.call(['rm', '-f', g + '.iop.json'])
+            self.run_iopc_pass(f + '.iop', 3, lang)
+            self.check_ref(g, 'json', "3")
 
     def test_dox_c(self):
         f = 'tstdox'
