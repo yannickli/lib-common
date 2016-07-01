@@ -20,6 +20,7 @@
 #include "iop.h"
 #include "iop-priv.h"
 #include "iop/tstiop.iop.h"
+#include "iop/tstiop2.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
 #include "iop/tstiop_licence.iop.h"
@@ -708,12 +709,11 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
     Z_HELPER_END;
 }
 
-#define Z_DSO_OPEN()                                                         \
+#define _Z_DSO_OPEN(_dso_path)                                               \
     ({                                                                       \
         t_scope;                                                             \
         SB_1k(_err);                                                         \
-        lstr_t _path =                                                       \
-            t_lstr_cat(z_cmddir_g, LSTR("zchk-tstiop-plugin" SO_FILEEXT));   \
+        lstr_t _path = t_lstr_cat(z_cmddir_g, LSTR(_dso_path));              \
         iop_dso_t *_dso = iop_dso_open(_path.s, &_err);                      \
         if (_dso == NULL) {                                                  \
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",  \
@@ -721,6 +721,8 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
         }                                                                    \
         _dso;                                                                \
     })
+
+#define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT)
 
 /* }}} */
 
@@ -6053,6 +6055,39 @@ Z_GROUP_EXPORT(iop)
 #undef T_KO
 #undef T_KO_ALL
 
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_dso_fixup, "test fixup between DSOs") { /* {{{ */
+        iop_dso_t *dso1;
+        iop_dso_t *dso2;
+        const iop_struct_t *struct1;
+        const iop_struct_t *struct2;
+        const iop_struct_t *saved_field_st;
+        const iop_field_t *field;
+
+        IOP_UNREGISTER_PACKAGES(&tstiop__pkg);
+        dso1 = _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT);
+        dso2 = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT);
+
+        struct1 = iop_dso_find_type(dso1, LSTR("tstiop.MyStructA"));
+
+        struct2 = iop_dso_find_type(dso2, LSTR("tstiop2.MyStruct"));
+        Z_ASSERT_N(iop_field_find_by_name(struct2, LSTR("a"), NULL, &field));
+
+        /* the two pointers to "tstiop.MyStructA" must be the same */
+        Z_ASSERT_LSTREQUAL(struct1->fullname, field->u1.st_desc->fullname);
+        Z_ASSERT(struct1 == field->u1.st_desc);
+        saved_field_st = field->u1.st_desc;
+
+        iop_dso_close(&dso1);
+
+        /* the fixup has been undone for dso2 */
+        struct2 = iop_dso_find_type(dso2, LSTR("tstiop2.MyStruct"));
+        Z_ASSERT(saved_field_st != field->u1.st_desc);
+
+        iop_dso_close(&dso2);
+
+        IOP_REGISTER_PACKAGES(&tstiop__pkg);
     } Z_TEST_END;
     /* }}} */
 

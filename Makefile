@@ -18,7 +18,8 @@ test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-sp
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
 ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
-none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin core-iop-plugin
+none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
+none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
 endif
 
@@ -236,6 +237,7 @@ zchk_SOURCES = zchk.c \
 	\
 	$liop-snmp.a \
 	$liop/tstiop.a \
+	$liop/tstiop2.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
 zchk_LDFLAGS = -rdynamic
@@ -245,6 +247,14 @@ zchk-tstiop-plugin_SOURCES = \
 	$liop/tstiop.a
 ifneq ($(OS),darwin)
 zchk-tstiop-plugin_LDFLAGS = -Wl,-z,defs
+endif
+
+zchk-tstiop2-plugin_SOURCES = \
+	$liop/tstiop2-plugin.c \
+	$liop/tstiop.a \
+	$liop/tstiop2.a
+ifneq ($(OS),darwin)
+zchk-tstiop2-plugin_LDFLAGS = -Wl,-z,defs
 endif
 
 ztst-httpd_SOURCES = \

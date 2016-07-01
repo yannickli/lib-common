@@ -16,6 +16,7 @@
 /zchk
 /zchk-iop-plugin.so
 /zchk-tstiop-plugin.so
+/zchk-tstiop2-plugin.so
 /zchk-iop-plugin.dylib
 /zchk-tstiop-plugin.dylib
 /zgcd-bench

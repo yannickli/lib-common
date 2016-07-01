@@ -12,10 +12,10 @@
 ##########################################################################
 
 ifeq (,$(TOOLS_REPOSITORY))
-examples_LIBRARIES = tstiop
+examples_LIBRARIES = tstiop tstiop2
 
 tstiop_SOURCES = tstiop.iop tstiop_inheritance.iop tstiop_licence.iop        \
-                 tstiop_backward_compat.iop                                  \
+                 tstiop2.iop tstiop_backward_compat.iop                      \
                  tstiop_backward_compat_deleted_struct_1.iop                 \
                  tstiop_backward_compat_deleted_struct_2.iop                 \
                  tstiop_backward_compat_incompatible_struct_1.iop            \
