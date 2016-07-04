@@ -717,6 +717,11 @@ void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
                           void **values, int *len,
                           bool * nullable is_array_of_pointers);
 
+/** Read-only version of iop_get_field_values(). */
+void iop_get_field_values_const(const iop_field_t *fdesc, const void *st_ptr,
+                                const void **values, int *len,
+                                bool * nullable is_array_of_pointers);
+
 /** Return code for iop_value_from_field. */
 typedef enum iop_value_from_field_res_t {
     IOP_FIELD_NOT_SET = -2,

@@ -37,19 +37,19 @@
 /* {{{ iop_get_field_values() */
 
 static int
-z_iop_get_field_values_check(const iop_struct_t *st_desc, void *st_ptr,
+z_iop_get_field_values_check(const iop_struct_t *st_desc, const void *st_ptr,
                              const char *fpath, const void *exp_values,
                              int exp_len, bool exp_is_array_of_pointers)
 {
     const iop_field_t *fdesc;
-    void *values;
+    const void *values;
     int len;
     bool is_array_of_pointers;
 
     fdesc = iop_get_field(st_ptr, st_desc, LSTR(fpath), NULL);
     Z_ASSERT_P(fdesc, "call to 'iop_get_field()' failed");
-    iop_get_field_values(fdesc, st_ptr, &values, &len,
-                         &is_array_of_pointers);
+    iop_get_field_values_const(fdesc, st_ptr, &values, &len,
+                               &is_array_of_pointers);
     Z_ASSERT(values == exp_values, "pointers differ, got %p, expected %p",
              values, exp_values);
     Z_ASSERT_EQ(len, exp_len, "lengths differ");

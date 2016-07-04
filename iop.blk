@@ -688,6 +688,14 @@ void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
     *len = 1;
 }
 
+void iop_get_field_values_const(const iop_field_t *fdesc, const void *st_ptr,
+                                const void **values, int *len,
+                                bool * nullable is_array_of_pointers)
+{
+    iop_get_field_values(fdesc, (void *)st_ptr, (void **)values, len,
+                         is_array_of_pointers);
+}
+
 /* }}} */
 /* {{{ Iop type string description */
 
