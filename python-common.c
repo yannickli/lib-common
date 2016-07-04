@@ -539,7 +539,7 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
                         "failed to hex decode httpc cfg");
         return NULL;
     }
-    if (t_iop_bunpack(&cfg_lstr, core, httpc_cfg, &iop_cfg) < 0) {
+    if (t_iop_bunpack(&cfg_lstr, core__httpc_cfg, &iop_cfg) < 0) {
         PyErr_SetString(http_initialize_error, "failed to unpack httpc cfg");
         return NULL;
     }

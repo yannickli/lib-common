@@ -239,34 +239,33 @@
  * This version of `iop_bpack` allows to pack an IOP structure in one
  * operation and uses the t_pool() to allocate the resulting buffer.
  *
- * \param[in] _pkg   The IOP structure package name.
- * \param[in] _type  The IOP structure type name.
+ * \param[in] _pfx   Prefix of the IOP structure.
  * \param[in] _flags Packer modifiers (see iop_bpack_flags).
  * \return
  *   The buffer containing the packed structure.
  */
-#define t_iop_bpack_flags(_pkg, _type, _val, _flags)                     \
+#define t_iop_bpack_flags(_pfx, _val, _flags)                            \
     ({                                                                   \
-        const _pkg##__##_type##__t *_tval = (_val);                      \
+        const _pfx##__t *_tval = (_val);                                 \
         \
-        t_iop_bpack_struct_flags(&_pkg##__##_type##__s, _tval, _flags);  \
+        t_iop_bpack_struct_flags(&_pfx##__s, _tval, _flags);             \
     })
+
 
 /** Pack an IOP structure into IOP binary format using the t_pool().
  *
  * This version of `iop_bpack` allows to pack an IOP structure in one
  * operation and uses the t_pool() to allocate the resulting buffer.
  *
- * \param[in] _pkg   The IOP structure package name.
- * \param[in] _type  The IOP structure type name.
+ * \param[in] _pfx  Prefix of the IOP structure.
  * \return
  *   The buffer containing the packed structure.
  */
-#define t_iop_bpack(_pkg, _type, _val)                     \
+#define t_iop_bpack(_pfx, _val)                            \
     ({                                                     \
-        const _pkg##__##_type##__t *_tval = (_val);        \
+        const _pfx##__t *_tval = (_val);                   \
         \
-        t_iop_bpack_struct(&_pkg##__##_type##__s, _tval);  \
+        t_iop_bpack_struct(&_pfx##__s, _tval);             \
     })
 
 /** Unpack an IOP structure from IOP binary format using the t_pool().
@@ -278,17 +277,16 @@
  *
  * \param[in]  _str  The lstr_t “compatible” variable containing the packed
  *                   object.
- * \param[in]  _pkg  The IOP structure package name.
- * \param[in]  _type The IOP structure type name.
+ * \param[in]  _pfx  Prefix of the IOP structure.
  * \param[out] _valp Pointer on the structure to use for unpacking.
  */
-#define t_iop_bunpack(_str, _pkg, _type, _valp)                          \
+#define t_iop_bunpack(_str, _pfx, _valp)                                 \
     ({                                                                   \
-        _pkg##__##_type##__t *_tval = (_valp);                           \
+        _pfx##__t *_tval = (_valp);                                      \
         typeof(_str) _str2 = (_str);                                     \
         pstream_t _ps = ps_init(_str2->s, _str2->len);                   \
         \
-        t_iop_bunpack_ps(&_pkg##__##_type##__s, _tval, _ps, false);      \
+        t_iop_bunpack_ps(&_pfx##__s, _tval, _ps, false);                 \
     })
 
 /** Unpack an IOP structure from IOP binary format using the t_pool().
@@ -300,17 +298,16 @@
  *
  * \param[in]  _str  The lstr_t “compatible” variable containing the packed
  *                   object.
- * \param[in]  _pkg  The IOP structure package name.
- * \param[in]  _type The IOP structure type name.
+ * \param[in]  _pfx  Prefix of the IOP structure.
  * \param[out] _valp Pointer on the structure to use for unpacking.
  */
-#define t_iop_bunpack_dup(_str, _pkg, _type, _valp)                     \
+#define t_iop_bunpack_dup(_str, _pfx, _valp)                            \
     ({                                                                  \
-        _pkg##__##_type##__t *_tval = (_valp);                          \
+        _pfx##__t *_tval = (_valp);                                     \
         typeof(_str) _str2 = (_str);                                    \
         pstream_t _ps = ps_init(_str2->s, _str2->len);                  \
         \
-        t_iop_bunpack_ps(&_pkg##__##_type##__s, _tval, _ps, true);      \
+        t_iop_bunpack_ps(&_pfx##__s, _tval, _ps, true);                 \
     })
 
 /* }}} */
