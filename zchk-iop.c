@@ -6172,16 +6172,17 @@ Z_GROUP_EXPORT(iop)
         iop_dso_t *dso2;
         const char *newpath;
         const char *sofile = "zchk-tstiop2-plugin" SO_FILEEXT;
+        const char *sopath = t_fmt("%s%s", z_cmddir_g.s, sofile);
 
         /* build one dso, remove file */
         newpath = t_fmt("%*pM/1_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);
-        Z_ASSERT_N(filecopy(sofile, newpath));
+        Z_ASSERT_N(filecopy(sopath, newpath), "%s -> %s: %m", sopath, newpath);
         dso1 = _Z_DSO_OPEN(newpath, false);
         Z_ASSERT_N(unlink(newpath));
 
         /* build the second one, remove file */
         newpath = t_fmt("%*pM/2_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);
-        Z_ASSERT_N(filecopy(sofile, newpath));
+        Z_ASSERT_N(filecopy(sopath, newpath));
         dso2 = _Z_DSO_OPEN(newpath, false);
         Z_ASSERT_N(unlink(newpath));
 
