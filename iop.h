@@ -469,8 +469,10 @@ enum iop_filter_flags {
 };
 
 /** Filter a vector of IOP based on a given field or subfield of reference.
+ *
  *  It takes an array of IOP objets and an array of values, and filters out
  *  the objects whose field value is not in the values array.
+ *
  *  \param[in] st             The IOP structure definition (__s).
  *  \param[in/out] vec        Array of objects to filter. If st is a class,
  *                            this must be an array of pointers on the
@@ -493,6 +495,16 @@ enum iop_filter_flags {
 int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
                void * const *allowed_values, int values_len, unsigned flags,
                sb_t *err);
+
+/** Filter a vector of IOP based on the presence of a given optional field or
+ *  subfield.
+ *
+ * Same as \ref iop_filter but for optional fields only. It does not take an
+ * array of value, but a parameter \p is_set telling if the fields must be set
+ * or not to be kept.
+ */
+int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
+                   lstr_t field_path, bool is_set, sb_t *err);
 
 /** Duplicate an IOP structure.
  *

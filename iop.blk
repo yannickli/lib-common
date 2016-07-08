@@ -1556,7 +1556,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
         return (const uint16_t *)data;
     }
 
-    if (fdesc->repeat != IOP_R_OPTIONAL) {
+    if (fdesc->repeat != IOP_R_OPTIONAL || fdesc->type == IOP_T_STRUCT) {
         return data;
     }
 
@@ -1727,7 +1727,7 @@ static int
 t_prepare_field(const iop_struct_t *st, lstr_t field_path, field_path_t *fp,
                 int cmp_flags, cmp_f * nullable cmp,
                 int filter_flags, cmp_f * nullable equal,
-                sb_t *err)
+                bool allow_structs, sb_t *err)
 {
     field_path_init(fp);
     t_qv_init(field_step, &fp->steps, 16);
@@ -1742,7 +1742,8 @@ t_prepare_field(const iop_struct_t *st, lstr_t field_path, field_path_t *fp,
         }
         return -1;
     }
-    if (fp->fdesc->type == IOP_T_STRUCT) {
+
+    if (!allow_structs && fp->fdesc->type == IOP_T_STRUCT) {
         if (err) {
             sb_addf(err, "cannot compare on sub-structure `%*pM'",
                     LSTR_FMT_ARG(field_path));
@@ -1798,7 +1799,8 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
 
         priv->flags = sort->flags;
         RETHROW(t_prepare_field(st, sort->field_path, &priv->fp,
-                                sort->flags, &priv->cmp, 0, NULL, err));
+                                sort->flags, &priv->cmp, 0, NULL, false,
+                                err));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
@@ -1834,9 +1836,10 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
     return iop_msort_desc(st, vec, len, &params, err);
 }
 
-int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-               void * const *allowed_values, int values_len, unsigned flags,
-               sb_t *err)
+static int
+__iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
+             void * const *allowed_values, int values_len,
+             opt_bool_t is_set, unsigned flags, sb_t *err)
 {
     t_scope;
     bool is_pointer = iop_struct_is_class(st);
@@ -1848,31 +1851,51 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
 
     RETHROW(t_prepare_field(st, field_path, &fp, 0, NULL, flags, &equal,
-                            err));
+                            OPT_ISSET(is_set), err));
+
+    if (OPT_ISSET(is_set) && fp.fdesc->repeat != IOP_R_OPTIONAL) {
+        if (err) {
+            sb_addf(err,
+                    "field `%*pM' in the structure `%*pM' is not optional",
+                    LSTR_FMT_ARG(field_path),
+                    LSTR_FMT_ARG(st->fullname));
+        }
+        return -1;
+    }
 
     for (int i = 0; i < *len; i++) {
-        bool is_valid = false;
         const void *d;
         const void *tmp;
 
         tmp = is_pointer ? *(void **)vec_read : vec_read;
         d = iop_get_fieldp(tmp, &fp);
+
+        if (OPT_ISSET(is_set)) {
+            assert (!values_len);
+            if (!!d == OPT_VAL(is_set)) {
+                goto next;
+            }
+            goto filter_out;
+        }
+
         for (int j = 0; d && j < values_len; j++) {
             /* TODO: sort allowed_values and use a bisection to compare. */
             if (equal(d, allowed_values[j]) == 0) {
-                is_valid = true;
-                break;
+                goto next;
             }
         }
-        if (!is_valid) {
-            if (vec_start != vec_read && vec_write != vec_read) {
-                p_move(vec_write, vec_start, vec_read - vec_start);
-            }
-            vec_write += vec_read - vec_start;
-            vec_start = vec_read + elem_size;
+
+      filter_out:
+        if (vec_start != vec_read && vec_write != vec_read) {
+            p_move(vec_write, vec_start, vec_read - vec_start);
         }
+        vec_write += vec_read - vec_start;
+        vec_start = vec_read + elem_size;
+
+      next:
         vec_read += elem_size;
     }
+
     if (vec_start != vec_read && vec_write != vec_read) {
         p_move(vec_write, vec_start, vec_read - vec_start);
         vec_write += vec_read - vec_start;
@@ -1880,6 +1903,21 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     *len = (vec_write - (byte *)vec) / elem_size;
 
     return 0;
+}
+
+int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
+               void * const *allowed_values, int values_len, unsigned flags,
+               sb_t *err)
+{
+    return __iop_filter(st, vec, len, field_path, allowed_values, values_len,
+                        (opt_bool_t)OPT_NONE, flags, err);
+}
+
+int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
+                   lstr_t field_path, bool is_set, sb_t *err)
+{
+    return __iop_filter(st, vec, len, field_path, NULL, 0,
+                        (opt_bool_t)OPT(is_set), 0, err);
 }
 
 /* }}} */

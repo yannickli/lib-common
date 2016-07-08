@@ -3296,6 +3296,64 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_filter_opt, "test IOP filtering on optional fields") { /* {{{ */
+        t_scope;
+        SB_1k(err);
+        tstiop__my_struct_a_opt__t first;
+        tstiop__my_struct_a_opt__t second;
+        tstiop__my_struct_a_opt__t third;
+        qv_t(my_struct_a_opt) original;
+
+        t_qv_init(my_struct_a_opt, &original, 3);
+
+        iop_init(tstiop__my_struct_a_opt, &first);
+        iop_init(tstiop__my_struct_a_opt, &second);
+        iop_init(tstiop__my_struct_a_opt, &third);
+
+#define FILTER_AND_CHECK_LEN(_field, _must_be_set, _result_len)  do {        \
+        original.tab[0] = first;                                             \
+        original.tab[1] = second;                                            \
+        original.tab[2] = third;                                             \
+        original.len = 3;                                                    \
+        Z_ASSERT_ZERO(iop_filter_opt(&tstiop__my_struct_a_opt__s,            \
+                                     original.tab, &original.len,            \
+                                     LSTR(_field), _must_be_set, &err),      \
+                                     "%*pM", SB_FMT_ARG(&err));              \
+        Z_ASSERT_EQ(_result_len, original.len);                              \
+    } while (0)
+
+        /* Test filter on optional string. */
+        second.j = LSTR("present");
+        FILTER_AND_CHECK_LEN("j", true,  1);
+        FILTER_AND_CHECK_LEN("j", false, 2);
+
+        /* Test filter on optional integer. */
+        OPT_SET(first.a, 1);
+        OPT_SET(third.a, 2);
+        FILTER_AND_CHECK_LEN("a", true,  2);
+        FILTER_AND_CHECK_LEN("a", false, 1);
+
+        /* Test filter on optional union. */
+        third.l  = t_iop_new(tstiop__my_union_a);
+        *third.l = IOP_UNION(tstiop__my_union_a, ua, 1);
+        FILTER_AND_CHECK_LEN("l", true,   1);
+        FILTER_AND_CHECK_LEN("l", false,  2);
+
+        /* Test filter on optional struct. */
+        first.o  = t_iop_new(tstiop__my_struct_b);
+        second.o = first.o;
+        FILTER_AND_CHECK_LEN("o", true,   2);
+        FILTER_AND_CHECK_LEN("o", false,  1);
+
+        /* Test filter on optional class. */
+        third.cls2 = t_iop_new(tstiop__my_class2);
+        FILTER_AND_CHECK_LEN("cls2", true,   1);
+        FILTER_AND_CHECK_LEN("cls2", false,  2);
+
+#undef FILTER_AND_CHECK_LEN
+
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
         lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
