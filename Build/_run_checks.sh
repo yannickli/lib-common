@@ -81,7 +81,7 @@ else
 fi
 trap "rm $tmp $tmp2 $corelist" 0
 
-"$(dirname "$0")"/_list_checks.sh "$where" | (
+"$(dirname "$0")"/_list_checks.py "$where" | (
 export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade}"
