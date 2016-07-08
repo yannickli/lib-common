@@ -1724,63 +1724,19 @@ typedef struct iop_sort_priv_t {
 qvector_t(iop_sort_p, iop_sort_priv_t);
 
 static int
-t_prepare_field(const iop_struct_t *st, lstr_t field_path, field_path_t *fp,
-                int cmp_flags, cmp_f * nullable cmp,
-                int filter_flags, cmp_f * nullable equal,
-                bool allow_structs, sb_t *err)
-{
-    field_path_init(fp);
-    t_qv_init(field_step, &fp->steps, 16);
-    RETHROW(t_iop_compile_field_path(st, field_path, fp, err));
-
-    if (fp->fdesc == NULL) {
-        if (err) {
-            sb_addf(err, "no description for field `%*pM' "
-                    "in the structure `%*pM'",
-                    LSTR_FMT_ARG(field_path),
-                    LSTR_FMT_ARG(st->fullname));
-        }
-        return -1;
-    }
-
-    if (!allow_structs && fp->fdesc->type == IOP_T_STRUCT) {
-        if (err) {
-            sb_addf(err, "cannot compare on sub-structure `%*pM'",
-                    LSTR_FMT_ARG(field_path));
-        }
-        return -1;
-    }
-
-    if (cmp) {
-        if (cmp_flags & IOP_SORT_REVERSE) {
-            *cmp = iop_cmp_rev_funs[fp->fdesc->type];
-        } else {
-            *cmp = iop_cmp_funs[fp->fdesc->type];
-        }
-    }
-
-    if (equal) {
-        if (filter_flags & IOP_FILTER_SQL_LIKE) {
-            *equal = iop_equal_funs_sql_like[fp->fdesc->type];
-        } else {
-            *equal = iop_cmp_funs[fp->fdesc->type];
-        }
-    }
-
-    return 0;
-}
-
-static
-int compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
+compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
 {
     d1 = iop_get_fieldp(d1, &priv->fp);
     d2 = iop_get_fieldp(d2, &priv->fp);
-    if (d1 == d2)
+    if (d1 == d2) {
         return 0;
-    if (d1 == NULL)
+    }
+    if (!d1) {
         return (priv->flags & IOP_SORT_NULL_FIRST) ? -1 : 1;
-    if (d2 == NULL)
+    }
+    if (!d2) {
         return (priv->flags & IOP_SORT_NULL_FIRST) ? 1 : -1;
+    }
     return priv->cmp(d1, d2);
 }
 
@@ -1793,14 +1749,31 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
 
     t_qv_init(iop_sort_p, &sorts, params->len);
     qv_growlen(iop_sort_p, &sorts, params->len);
+
     qv_for_each_pos(iop_sort, pos, params) {
         iop_sort_priv_t *priv = &sorts.tab[pos];
         iop_sort_t *sort = &params->tab[pos];
 
+        field_path_init(&priv->fp);
+        t_qv_init(field_step, &priv->fp.steps, 16);
+        RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp,
+                                         err));
+
+        if (priv->fp.fdesc->type == IOP_T_STRUCT) {
+            if (err) {
+                sb_addf(err, "cannot sort on sub-structure `%*pM'",
+                        LSTR_FMT_ARG(sort->field_path));
+            }
+            return -1;
+        }
+
+        if (sort->flags & IOP_SORT_REVERSE) {
+            priv->cmp = iop_cmp_rev_funs[priv->fp.fdesc->type];
+        } else {
+            priv->cmp = iop_cmp_funs[priv->fp.fdesc->type];
+        }
+
         priv->flags = sort->flags;
-        RETHROW(t_prepare_field(st, sort->field_path, &priv->fp,
-                                sort->flags, &priv->cmp, 0, NULL, false,
-                                err));
     }
 
     __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
@@ -1850,8 +1823,17 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     byte *vec_start = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
 
-    RETHROW(t_prepare_field(st, field_path, &fp, 0, NULL, flags, &equal,
-                            OPT_ISSET(is_set), err));
+    field_path_init(&fp);
+    t_qv_init(field_step, &fp.steps, 16);
+    RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
+
+    if (!OPT_ISSET(is_set) && fp.fdesc->type == IOP_T_STRUCT) {
+        if (err) {
+            sb_addf(err, "cannot filter on sub-structure `%*pM'",
+                    LSTR_FMT_ARG(field_path));
+        }
+        return -1;
+    }
 
     if (OPT_ISSET(is_set) && fp.fdesc->repeat != IOP_R_OPTIONAL) {
         if (err) {
@@ -1861,6 +1843,12 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
                     LSTR_FMT_ARG(st->fullname));
         }
         return -1;
+    }
+
+    if (flags & IOP_FILTER_SQL_LIKE) {
+        equal = iop_equal_funs_sql_like[fp.fdesc->type];
+    } else {
+        equal = iop_cmp_funs[fp.fdesc->type];
     }
 
     for (int i = 0; i < *len; i++) {
@@ -1878,10 +1866,12 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
             goto filter_out;
         }
 
-        for (int j = 0; d && j < values_len; j++) {
-            /* TODO: sort allowed_values and use a bisection to compare. */
-            if (equal(d, allowed_values[j]) == 0) {
-                goto next;
+        if (d) {
+            for (int j = 0; j < values_len; j++) {
+                /* TODO: sort allowed_values and use a bisection. */
+                if (equal(d, allowed_values[j]) == 0) {
+                    goto next;
+                }
             }
         }
 
