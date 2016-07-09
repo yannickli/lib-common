@@ -1539,7 +1539,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
         if (step->is_union) {
             /* Check if the selected member of the union is the one we want
              * (the one specified in field_path), and if not this object is
-             * considered as NULL in the sort */
+             * considered as NULL in the sort/filter. */
             if (*(const uint16_t *)data != step->union_tag) {
                 return NULL;
             }
@@ -1551,12 +1551,15 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
 
     data = ((const byte *)data) + qv_last(field_step, steps)->offset;
 
-    /* XXX we sort union based on the union tag */
-    if (fdesc->type == IOP_T_UNION) {
-        return (const uint16_t *)data;
+    if (fdesc->repeat == IOP_R_REPEATED) {
+        int len = ((iop_array_i8_t *)data)->len;
+
+        return len ? data : NULL;
     }
 
-    if (fdesc->repeat != IOP_R_OPTIONAL || fdesc->type == IOP_T_STRUCT) {
+    if (fdesc->type == IOP_T_UNION
+    ||  fdesc->repeat != IOP_R_OPTIONAL || fdesc->type == IOP_T_STRUCT)
+    {
         return data;
     }
 
@@ -1611,7 +1614,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             return -1;
         }
 
-        if (fdesc->repeat == IOP_R_REPEATED) {
+        if (fdesc->repeat == IOP_R_REPEATED && !ps_done(&field_path_ps)) {
             /* XXX we could also sort the repeated fields based on their
              * number of elements
              */
@@ -1660,7 +1663,7 @@ static cmp_f const iop_cmp_funs[] = {
     [IOP_T_U64]         = &cmp_u64,
     [IOP_T_BOOL]        = &cmp_bool,
     [IOP_T_DOUBLE]      = &cmp_double,
-    [IOP_T_UNION]       = &cmp_u16,
+    [IOP_T_UNION]       = &cmp_u16, /* XXX: we compare the union tag. */
     [IOP_T_STRING]      = &cmp_lstr_iutf8,
     [IOP_T_XML]         = &cmp_lstr_iutf8,
     [IOP_T_DATA]        = &cmp_lstr_iutf8,
@@ -1677,7 +1680,7 @@ static cmp_f const iop_cmp_rev_funs[] = {
     [IOP_T_U64]         = &cmp_rev_u64,
     [IOP_T_BOOL]        = &cmp_rev_bool,
     [IOP_T_DOUBLE]      = &cmp_rev_double,
-    [IOP_T_UNION]       = &cmp_rev_u16,
+    [IOP_T_UNION]       = &cmp_rev_u16, /* XXX: we compare the union tag. */
     [IOP_T_STRING]      = &cmp_rev_lstr_iutf8,
     [IOP_T_XML]         = &cmp_rev_lstr_iutf8,
     [IOP_T_DATA]        = &cmp_rev_lstr_iutf8,
@@ -1761,7 +1764,14 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
 
         if (priv->fp.fdesc->type == IOP_T_STRUCT) {
             if (err) {
-                sb_addf(err, "cannot sort on sub-structure `%*pM'",
+                sb_addf(err, "cannot sort on sub-structure field `%*pM'",
+                        LSTR_FMT_ARG(sort->field_path));
+            }
+            return -1;
+        }
+        if (priv->fp.fdesc->repeat == IOP_R_REPEATED) {
+            if (err) {
+                sb_addf(err, "cannot sort on repeated field `%*pM'",
                         LSTR_FMT_ARG(sort->field_path));
             }
             return -1;
@@ -1827,22 +1837,32 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     t_qv_init(field_step, &fp.steps, 16);
     RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
 
-    if (!OPT_ISSET(is_set) && fp.fdesc->type == IOP_T_STRUCT) {
-        if (err) {
-            sb_addf(err, "cannot filter on sub-structure `%*pM'",
-                    LSTR_FMT_ARG(field_path));
+    if (OPT_ISSET(is_set)) {
+        if (fp.fdesc->repeat != IOP_R_OPTIONAL
+        &&  fp.fdesc->repeat != IOP_R_REPEATED)
+        {
+            if (err) {
+                sb_addf(err, "field `%*pM' in the structure `%*pM' is "
+                        "neither optional nor repeated",
+                        LSTR_FMT_ARG(field_path), LSTR_FMT_ARG(st->fullname));
+            }
+            return -1;
         }
-        return -1;
-    }
-
-    if (OPT_ISSET(is_set) && fp.fdesc->repeat != IOP_R_OPTIONAL) {
-        if (err) {
-            sb_addf(err,
-                    "field `%*pM' in the structure `%*pM' is not optional",
-                    LSTR_FMT_ARG(field_path),
-                    LSTR_FMT_ARG(st->fullname));
+    } else {
+        if (fp.fdesc->type == IOP_T_STRUCT) {
+            if (err) {
+                sb_addf(err, "cannot filter on sub-structure `%*pM'",
+                        LSTR_FMT_ARG(field_path));
+            }
+            return -1;
         }
-        return -1;
+        if (fp.fdesc->repeat == IOP_R_REPEATED) {
+            if (err) {
+                sb_addf(err, "cannot filter on repeated field `%*pM'",
+                        LSTR_FMT_ARG(field_path));
+            }
+            return -1;
+        }
     }
 
     if (flags & IOP_FILTER_SQL_LIKE) {

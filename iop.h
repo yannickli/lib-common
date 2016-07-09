@@ -496,12 +496,13 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
                void * const *allowed_values, int values_len, unsigned flags,
                sb_t *err);
 
-/** Filter a vector of IOP based on the presence of a given optional field or
- *  subfield.
+/** Filter a vector of IOP based on the presence of a given optional or
+ *  repeated field or subfield.
  *
- * Same as \ref iop_filter but for optional fields only. It does not take an
- * array of value, but a parameter \p is_set telling if the fields must be set
- * or not to be kept.
+ * Same as \ref iop_filter but for optional or repeated fields only. It does
+ * not take an array of value, but a parameter \p is_set telling if the fields
+ * must be set (for optional fields) or non-empty (for repeated fields) to be
+ * kept.
  */
 int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
                    lstr_t field_path, bool is_set, sb_t *err);

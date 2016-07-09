@@ -3350,6 +3350,12 @@ Z_GROUP_EXPORT(iop)
         FILTER_AND_CHECK_LEN("cls2", true,   1);
         FILTER_AND_CHECK_LEN("cls2", false,  2);
 
+        /* Test filter on a repeated field. */
+        second.u.tab = t_new(int, 1);
+        second.u.len = 1;
+        FILTER_AND_CHECK_LEN("u", true,   1);
+        FILTER_AND_CHECK_LEN("u", false,  2);
+
 #undef FILTER_AND_CHECK_LEN
 
     } Z_TEST_END;
