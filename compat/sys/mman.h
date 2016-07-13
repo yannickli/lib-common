@@ -19,6 +19,10 @@
 
 #define MAP_ANONYMOUS  MAP_ANON
 
+#ifndef MADV_DONTFORK
+# define MADV_DONTFORK 0
+#endif
+
 #elif defined(__MINGW) || defined(__MINGW32__)
 #include <unistd.h>
 #  define MAP_FAILED      ((void *) -1)
