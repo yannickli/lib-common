@@ -756,6 +756,31 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
 
 #define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true)
 
+static int z_check_static_field_type(const iop_struct_t *st,
+                                     lstr_t name, iop_type_t type,
+                                     const char *type_name)
+{
+    const iop_static_field_t *static_field = NULL;
+
+    Z_ASSERT(iop_struct_is_class(st));
+
+    for (int i = 0; i < st->class_attrs->static_fields_len; i++) {
+        const iop_static_field_t *sf = st->class_attrs->static_fields[i];
+
+        if (lstr_equal(name, sf->name)) {
+            static_field = sf;
+            break;
+        }
+    }
+
+    Z_ASSERT_P(static_field, "static field `%*pM` not found in class `%*pM`",
+               LSTR_FMT_ARG(name), LSTR_FMT_ARG(st->fullname));
+    Z_ASSERT_EQ((int)type, iop_class_static_field_type(st, static_field),
+                "expected type `%s`", type_name);
+
+    Z_HELPER_END;
+}
+
 /* }}} */
 
 /* }}} */
@@ -3811,6 +3836,23 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_LSTREQUAL(cvar->s, LSTR("a1"));
             Z_ASSERT_NULL(iop_get_class_cvar_cst(&b1, "staticStr"));
         }
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_static_types, "test static class members types") { /* {{{ */
+#define CHECK_STATIC_TYPE(_cls_type, _field_name, _field_type)               \
+    Z_HELPER_RUN(z_check_static_field_type(&_cls_type##__s,                  \
+                                           LSTR(_field_name), (_field_type), \
+                                           #_field_type))
+
+    CHECK_STATIC_TYPE(tstiop_inheritance__a1, "staticStr",    IOP_T_STRING);
+    CHECK_STATIC_TYPE(tstiop_inheritance__a1, "staticEnum",   IOP_T_I64);
+    CHECK_STATIC_TYPE(tstiop_inheritance__b1, "staticInt",    IOP_T_I64);
+    CHECK_STATIC_TYPE(tstiop_inheritance__b2, "staticBool",   IOP_T_BOOL);
+    CHECK_STATIC_TYPE(tstiop_inheritance__c2, "staticStr",    IOP_T_STRING);
+    CHECK_STATIC_TYPE(tstiop_inheritance__b3, "staticDouble", IOP_T_DOUBLE);
+    CHECK_STATIC_TYPE(tstiop_inheritance__c4, "staticInt",    IOP_T_U64);
+
+#undef CHECK_STATIC_TYPE
     } Z_TEST_END
     /* }}} */
     Z_TEST(inheritance_equals, "test iop_equals/hash with inheritance") { /* {{{ */
