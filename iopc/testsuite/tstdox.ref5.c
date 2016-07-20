@@ -665,6 +665,7 @@ static const iop_field_attrs_t tstdox__my_class_base__static_field_0__sf_desc_at
 static const iop_static_field_t tstdox__my_class_base__static_field_0 = {
     .name  = LSTR_IMMED("val"),
     .value = { .i = 10 },
+    .type  = IOP_T_I64,
     .attrs = &tstdox__my_class_base__static_field_0__sf_desc_attrs,
 };
 static const iop_static_field_t *tstdox__my_class_base__static_fields[] = {
@@ -687,7 +688,7 @@ const iop_struct_t tstdox__my_class_base__s = {
     .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(tstdox__my_class_base__desc_fields),
     .size       = sizeof(tstdox__my_class_base__t),
-    .flags      = 5,
+    .flags      = 13,
     .is_union   = false,
     .st_attrs   = NULL,
     .fields_attrs = NULL,
@@ -705,10 +706,12 @@ static iop_field_t const tstdox__my_class_a__desc_fields[] = {
 static const iop_static_field_t tstdox__my_class_a__static_field_0 = {
     .name  = LSTR_IMMED("name"),
     .value = { .s = LSTR_IMMED("MyClassA") },
+    .type  = IOP_T_STRING,
 };
 static const iop_static_field_t tstdox__my_class_a__static_field_1 = {
     .name  = LSTR_IMMED("val"),
     .value = { .i = 100 },
+    .type  = IOP_T_I64,
 };
 static const iop_static_field_t *tstdox__my_class_a__static_fields[] = {
     &tstdox__my_class_a__static_field_0,
@@ -728,7 +731,7 @@ const iop_struct_t tstdox__my_class_a__s = {
     .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(tstdox__my_class_a__desc_fields),
     .size       = sizeof(tstdox__my_class_a__t),
-    .flags      = 5,
+    .flags      = 13,
     .is_union   = false,
     .st_attrs   = NULL,
     .fields_attrs = NULL,
@@ -767,7 +770,7 @@ const iop_struct_t tstdox__my_class1__s = {
     .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(tstdox__my_class1__desc_fields),
     .size       = sizeof(tstdox__my_class1__t),
-    .flags      = 5,
+    .flags      = 13,
     .is_union   = false,
     .st_attrs   = &tstdox__my_class1__s_desc_attrs,
     .fields_attrs = NULL,
@@ -785,6 +788,7 @@ static iop_field_t const tstdox__my_class2__desc_fields[] = {
 static const iop_static_field_t tstdox__my_class2__static_field_0 = {
     .name  = LSTR_IMMED("fieldA"),
     .value = { .i = 1 },
+    .type  = IOP_T_I64,
 };
 static const iop_static_field_t *tstdox__my_class2__static_fields[] = {
     &tstdox__my_class2__static_field_0,
@@ -803,7 +807,7 @@ const iop_struct_t tstdox__my_class2__s = {
     .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(tstdox__my_class2__desc_fields),
     .size       = sizeof(tstdox__my_class2__t),
-    .flags      = 5,
+    .flags      = 13,
     .is_union   = false,
     .st_attrs   = NULL,
     .fields_attrs = NULL,

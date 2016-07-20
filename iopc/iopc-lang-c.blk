@@ -1391,6 +1391,8 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
 static void
 iopc_dump_static_field_src(sb_t *buf, iopc_field_t *f, const char *name)
 {
+    lstr_t type;
+
     if (has_comments(&f->comments)) {
         iopc_dump_attrs_only_help(buf, ATTR_HELP(FIELD), "field",
                                   name, "", "sf", &f->comments);
@@ -1413,15 +1415,18 @@ iopc_dump_static_field_src(sb_t *buf, iopc_field_t *f, const char *name)
       case IOP_T_U32:
       case IOP_T_U64:
         sb_addf(buf, "{ .u = %ju },\n", f->defval.u64);
+        type = LSTR("IOP_T_U64");
         break;
 
       case IOP_T_DOUBLE:
         sb_addf(buf, "{ .d = %.17e },\n", f->defval.d);
+        type = LSTR("IOP_T_DOUBLE");
         break;
 
       case IOP_T_BOOL:
         sb_addf(buf, "{ .b = %s },\n",
                 f->defval.u64 ? "true" : "false");
+        type = LSTR("IOP_T_BOOL");
         break;
 
       case IOP_T_STRING:
@@ -1430,11 +1435,16 @@ iopc_dump_static_field_src(sb_t *buf, iopc_field_t *f, const char *name)
         sb_adds(buf, "{ .s = LSTR_IMMED(\"");
         defval_escape(buf, f->defval.ptr);
         sb_adds(buf, "\") },\n");
+        type = LSTR("IOP_T_STRING");
         break;
 
       default:
         sb_addf(buf, "{ .i = %jd },\n", f->defval.u64);
+        type = LSTR("IOP_T_I64");
         break;
+    }
+    if (iopc_g.v4) {
+        sb_addf(buf, "    .type  = %*pM,\n", LSTR_FMT_ARG(type));
     }
 
     if (has_comments(&f->comments)) {
@@ -2856,6 +2866,10 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         if (iopc_is_class(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
             SET_BIT(&st->flags, IOP_STRUCT_IS_CLASS);
+
+            if (iopc_g.v4) {
+                SET_BIT(&st->flags, IOP_STRUCT_STATIC_HAS_TYPE);
+            }
         } else
         if (iopc_is_snmp_obj(st->type)) {
             SET_BIT(&st->flags, IOP_STRUCT_EXTENDED);
