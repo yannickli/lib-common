@@ -2574,25 +2574,46 @@ void httpc_bufferize(httpc_query_t *q, unsigned maxsize)
 }
 
 void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
-                       lstr_t host, lstr_t uri, bool httpc_encode_url)
+                             lstr_t host, lstr_t uri, bool httpc_encode_url)
 {
     httpc_t  *w  = q->owner;
     outbuf_t *ob = &w->ob;
+    int encode_at = 0;
 
     assert (!q->hdrs_started && !q->hdrs_done);
 
+    ob_add(ob, http_method_str[m].s, http_method_str[m].len);
+    ob_adds(ob, " ");
     if (w->cfg->use_proxy) {
-        ob_addf(ob, "%*pM http://%*pM", LSTR_FMT_ARG(http_method_str[m]),
-                LSTR_FMT_ARG(host));
+        const char *s;
+
+        if (lstr_ascii_istartswith(uri, LSTR("http://"))) {
+            uri.s   += 7;
+            uri.len -= 7;
+            ob_add(ob, "http://", 7);
+            s = memchr(uri.s, '/', uri.len);
+            encode_at = (s) ? s - uri.s : uri.len;
+        } else
+        if (lstr_ascii_istartswith(uri, LSTR("https://"))) {
+            uri.s   += 8;
+            uri.len -= 8;
+            ob_add(ob, "https://", 8);
+            s = memchr(uri.s, '/', uri.len);
+            encode_at = (s) ? s - uri.s : uri.len;
+        } else {
+            /* Path must be made absolute for HTTP 1.0 proxies */
+            ob_addf(ob, "http://%*pM", LSTR_FMT_ARG(host));
+            if (unlikely(!uri.len || uri.s[0] != '/')) {
+                ob_adds(ob, "/");
+            }
+        }
     } else {
-        /* TODO: this function does not support absolute path */
         assert (!lstr_startswith(uri, LSTR("http://"))
              && !lstr_startswith(uri, LSTR("https://")));
-        ob_add(ob, http_method_str[m].s, http_method_str[m].len);
-        ob_adds(ob, " ");
     }
     if (httpc_encode_url) {
-        ob_add_urlencode(ob, uri.s, uri.len);
+        ob_add(ob, uri.s, encode_at);
+        ob_add_urlencode(ob, uri.s + encode_at, uri.len - encode_at);
     } else {
         ob_add(ob, uri.s, uri.len);
     }
@@ -2692,6 +2713,7 @@ static el_t zel_client_g;
 static httpc_cfg_t zcfg_g;
 static httpc_status_t zstatus_g;
 static httpc_t *zhttpc_g;
+static sb_t zquery_sb_g;
 
 static int z_reply_100(el_t el, int fd, short mask, data_t data)
 {
@@ -2700,6 +2722,18 @@ static int z_reply_100(el_t el, int fd, short mask, data_t data)
     if (sb_read(&buf, fd, 1000) > 0) {
         char reply[] = "HTTP/1.1 100 Continue\r\n\r\n"
                        "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n"
+                       "Coucou";
+
+        IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
+    }
+    return 0;
+}
+
+static int z_reply_keep(el_t el, int fd, short mask, data_t data)
+{
+    sb_reset(&zquery_sb_g);
+    if (sb_read(&zquery_sb_g, fd, BUFSIZ) > 0) {
+        char reply[] = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n"
                        "Coucou";
 
         IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
@@ -2787,7 +2821,13 @@ static void z_query_on_done(httpc_query_t *q, httpc_status_t status)
     zstatus_g = status;
 }
 
-static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
+enum z_query_flags {
+    Z_QUERY_USE_PROXY = (1 << 0),
+};
+
+static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t),
+                         enum z_query_flags flags, lstr_t host, lstr_t uri)
+{
     sockunion_t su;
     int server;
 
@@ -2795,6 +2835,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     has_reply_g = false;
     code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
     sb_init(&body_g);
+    sb_init(&zquery_sb_g);
 
     Z_ASSERT_N(addr_resolve("test", LSTR("127.0.0.1:1"), &su));
     sockunion_setport(&su, 0);
@@ -2807,6 +2848,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
 
     httpc_cfg_init(&zcfg_g);
     zcfg_g.refcnt++;
+    zcfg_g.use_proxy = (flags & Z_QUERY_USE_PROXY);
     zhttpc_g = httpc_connect(&su, &zcfg_g, NULL);
     Z_ASSERT_P(zhttpc_g);
 
@@ -2817,8 +2859,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t)) {
     zquery_g.on_done = &z_query_on_done;
 
     httpc_query_attach(&zquery_g, zhttpc_g);
-    httpc_query_start(&zquery_g, HTTP_METHOD_GET, LSTR("localhost"),
-                      LSTR("/"));
+    httpc_query_start(&zquery_g, HTTP_METHOD_GET, host, uri);
     httpc_query_hdrs_done(&zquery_g, 0, false);
     httpc_query_done(&zquery_g);
 
@@ -2835,11 +2876,13 @@ static void z_query_cleanup(void) {
     el_fd_unregister(&zel_client_g, true);
     el_loop_timeout(10);
     sb_wipe(&body_g);
+    sb_wipe(&zquery_sb_g);
 }
 
 Z_GROUP_EXPORT(httpc) {
     Z_TEST(unexpected_100_continue, "test behavior when receiving 100") {
-        Z_HELPER_RUN(z_query_setup(&z_reply_100));
+        Z_HELPER_RUN(z_query_setup(&z_reply_100, 0,
+                                   LSTR("localhost"), LSTR("/")));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
@@ -2848,7 +2891,8 @@ Z_GROUP_EXPORT(httpc) {
     } Z_TEST_END;
 
     Z_TEST(gzip_with_zero_length, "test Content-Encoding: gzip with Content-Length: 0") {
-        Z_HELPER_RUN(z_query_setup(&z_reply_gzip_empty));
+        Z_HELPER_RUN(z_query_setup(&z_reply_gzip_empty, 0,
+                                   LSTR("localhost"), LSTR("/")));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_ACCEPTED , code_g);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR(""));
@@ -2857,7 +2901,8 @@ Z_GROUP_EXPORT(httpc) {
     } Z_TEST_END;
 
     Z_TEST(close_with_no_content_length, "test close without Content-Length") {
-        Z_HELPER_RUN(z_query_setup(&z_reply_close_without_content_length));
+        Z_HELPER_RUN(z_query_setup(&z_reply_close_without_content_length, 0,
+                                   LSTR("localhost"), LSTR("/")));
 
         Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
         Z_ASSERT_EQ(body_g.len, 8192 * 4096  + 4);
@@ -2867,6 +2912,61 @@ Z_GROUP_EXPORT(httpc) {
             Z_ASSERT_EQ(body_g.data[i], 'a' + ((i / 8192) % 26));
         }
 
+        z_query_cleanup();
+    } Z_TEST_END;
+
+    Z_TEST(url_host_and_uri, "test hosts and URIs") {
+        /* Normal usage, target separate host and URI */
+        Z_HELPER_RUN(z_query_setup(&z_reply_keep, 0,
+                                   LSTR("localhost"), LSTR("/coucou")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
+        Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
+            LSTR("GET /coucou HTTP/1.1\r\n"
+                 "Host: localhost\r\n")));
+        z_query_cleanup();
+
+        /* Proxy that target separate host and URI, URI must be transform to
+         * absolute */
+        Z_HELPER_RUN(z_query_setup(&z_reply_keep, Z_QUERY_USE_PROXY,
+                                   LSTR("localhost"), LSTR("/coucou")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
+        Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
+            LSTR("GET http://localhost/coucou HTTP/1.1\r\n"
+                 "Host: localhost\r\n")));
+        z_query_cleanup();
+
+        /* same thing without leading / */
+        Z_HELPER_RUN(z_query_setup(&z_reply_keep, Z_QUERY_USE_PROXY,
+                                   LSTR("localhost"), LSTR("coucou")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
+        Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
+            LSTR("GET http://localhost/coucou HTTP/1.1\r\n"
+                 "Host: localhost\r\n")));
+        z_query_cleanup();
+
+        /* Proxy with absolute HTTP URL */
+        Z_HELPER_RUN(z_query_setup(&z_reply_keep, Z_QUERY_USE_PROXY,
+                                   LSTR("localhost"),
+                                   LSTR("http://localhost:80/coucou")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
+        Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
+            LSTR("GET http://localhost:80/coucou HTTP/1.1\r\n"
+                 "Host: localhost\r\n")));
+        z_query_cleanup();
+
+        /* Same thing with HTTPS */
+        Z_HELPER_RUN(z_query_setup(&z_reply_keep, Z_QUERY_USE_PROXY,
+                                   LSTR("localhost"),
+                                   LSTR("https://localhost:443/coucou")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&body_g), LSTR("Coucou"));
+        Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
+            LSTR("GET https://localhost:443/coucou HTTP/1.1\r\n"
+                 "Host: localhost\r\n")));
         z_query_cleanup();
     } Z_TEST_END;
 } Z_GROUP_END;
