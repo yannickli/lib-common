@@ -36,6 +36,8 @@ GROUPS = [
     ("C",      re.compile(r".*\.py"),        IS_FILE),
     ("C",      re.compile(r".+"),            IS_EXEC)  # default case
 ]
+RE_TAGS = re.compile(r"@([A-Za-z0-9_]+)")
+Z_TAG_SKIP = set(os.getenv("Z_TAG_SKIP", "").split())
 
 
 def dump_zfile(zfile, skipped_groups):
@@ -43,19 +45,23 @@ def dump_zfile(zfile, skipped_groups):
 
     for num, line in enumerate(open(zfile, 'r')):
         line = line.strip()
-        test = os.path.join(folder, line)
+        test = line.split()[0]
+        test_path = os.path.join(folder, test)
 
         if line.startswith('#'):
             continue
 
+        if set(RE_TAGS.findall(line)) & Z_TAG_SKIP:
+            continue
+
         for group, regex, check in GROUPS:
-            if group not in skipped_groups and regex.match(test):
+            if group not in skipped_groups and regex.match(test_path):
                 err = None
 
-                if check and not check(test):
+                if check and not check(test_path):
                     err = "%s:%d: no match for %s" % (zfile, num + 1, line)
 
-                yield (folder, line, err)
+                yield (folder, test, err)
                 break
 
 
