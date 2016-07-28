@@ -514,7 +514,7 @@ const iop_struct_t core__log_configuration__s = {
 /* Class core.LogFileConfiguration {{{ */
 
 static const iop_help_t core__log_file_configuration__max_size__f_help = {
-    .brief = LSTR_IMMED("Log file max size before rotation (in bytes)"),
+    .brief = LSTR_IMMED("Log file max size before rotation (in bytes)."),
 };
 static iop_field_attr_t const core__log_file_configuration__max_size__attrs[] = {
     {
@@ -523,7 +523,7 @@ static iop_field_attr_t const core__log_file_configuration__max_size__attrs[] = 
     },
 };
 static const iop_help_t core__log_file_configuration__max_time__f_help = {
-    .brief = LSTR_IMMED("Log file max age before rotation (in seconds)"),
+    .brief = LSTR_IMMED("Log file max age before rotation (in seconds)."),
 };
 static iop_field_attr_t const core__log_file_configuration__max_time__attrs[] = {
     {
@@ -532,7 +532,8 @@ static iop_field_attr_t const core__log_file_configuration__max_time__attrs[] = 
     },
 };
 static const iop_help_t core__log_file_configuration__max_files__f_help = {
-    .brief = LSTR_IMMED("Maximum number of log files - <= 0 means no limit"),
+    .brief = LSTR_IMMED("Maximum number of log files."),
+    .details = LSTR_IMMED("<= 0 means no limit."),
 };
 static iop_field_attr_t const core__log_file_configuration__max_files__attrs[] = {
     {
@@ -541,7 +542,8 @@ static iop_field_attr_t const core__log_file_configuration__max_files__attrs[] =
     },
 };
 static const iop_help_t core__log_file_configuration__total_max_size__f_help = {
-    .brief = LSTR_IMMED("Maximum total size of the log files (in bytes)\012<= 0 means no limit"),
+    .brief = LSTR_IMMED("Maximum total size of the log files (in bytes)."),
+    .details = LSTR_IMMED("<= 0 means no limit."),
 };
 static iop_field_attr_t const core__log_file_configuration__total_max_size__attrs[] = {
     {
@@ -550,7 +552,7 @@ static iop_field_attr_t const core__log_file_configuration__total_max_size__attr
     },
 };
 static const iop_help_t core__log_file_configuration__compress__f_help = {
-    .brief = LSTR_IMMED("Activate log file compression"),
+    .brief = LSTR_IMMED("Activate log file compression."),
 };
 static iop_field_attr_t const core__log_file_configuration__compress__attrs[] = {
     {
@@ -643,7 +645,7 @@ static int const iop__ranges__4[] = {
 };
 static const iop_help_t core__log_file_configuration__s_help = {
     .brief = LSTR_IMMED("Configuration of a log_file_t."),
-    .details = LSTR_IMMED("This class defines how a log_file_t is opened."),
+    .details = LSTR_IMMED("This class defines how a log file is opened, rotates, expires and is\012compressed."),
 };
 static const iop_struct_attr_t core__log_file_configuration__s_attrs[] = {
     {
