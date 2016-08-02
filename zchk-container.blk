@@ -35,7 +35,7 @@ Z_GROUP_EXPORT(qhash)
 {
     Z_TEST(qh_seal, "qh: seal") {
         t_scope;
-        QH(u32, qh, false);
+        QH(u32, qh);
         uint32_t *tab;
         uint32_t *w;
         int len = 514;
@@ -79,7 +79,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(size_qh, "qh: count size") {
-        QH(test, h, false);
+        QH(test, h);
         uint32_t min_size;
 
         Z_ASSERT_ZERO(qh_memory_footprint(test,& h));
@@ -113,7 +113,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(insertion, "qhash: insertion") {
-        QH(test, h, false);
+        QH(test, h);
         uint64_t bits[2] = { 0, 0 };
 
         for (int i = 0; i < 128; i++) {
@@ -135,7 +135,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(collision, "qhash: collision") {
-        QH(test, h, false);
+        QH(test, h);
 
         for (int i = 0; i < 128; i++) {
             qh_add(test, &h, i);
@@ -149,7 +149,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(self , "qhash: self search") {
-        QH(test, h, false);
+        QH(test, h);
 
         for (int i = 0; i < 128; i++) {
             qh_add(test, &h, i);
@@ -171,7 +171,7 @@ Z_GROUP_EXPORT(qhash)
         const char *t1 = "test1";
         const char *t2 = "test2";
         int32_t pos;
-        QH(test_str, h, false);
+        QH(test_str, h);
 
         qh_add(test_str, &h, t1);
         qh_add(test_str, &h, t2);
@@ -208,7 +208,7 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 
     Z_TEST(qh_hash , "qhash: qh_hash/qh_del_key_h") {
-        QH(test, h, false);
+        QH(test, h);
 
         for (int i = 0; i < 128; i++) {
             qh_add(test, &h, i);

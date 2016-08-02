@@ -695,10 +695,9 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *
  * \see qh_init
  */
-#define QH_INIT(name, var, ...) \
+#define QH_INIT(name, var)                      \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
-        .h_size = sizeof(#__VA_ARGS__) == 5,    \
     } }
 
 /** Static QH initializer with hash caching.
@@ -715,11 +714,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *
  * \see qm_init
  */
-#define QM_INIT(name, var, ...) \
+#define QM_INIT(name, var)                      \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
         .v_size = sizeof((var).values[0]),      \
-        .h_size = sizeof(#__VA_ARGS__) == 5,    \
     } }
 
 /** Static QM initializer with hash caching.
@@ -733,9 +731,9 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
         .h_size = true,                         \
     } }
 
-#define QH(name, var, ...)  qh_t(name) var = QH_INIT(name, var, ##__VA_ARGS__)
+#define QH(name, var)  qh_t(name) var = QH_INIT(name, var)
 #define QH_CACHED(name, var)  qh_t(name) var = QH_INIT_CACHED(name, var)
-#define QM(name, var, ...)  qm_t(name) var = QM_INIT(name, var, ##__VA_ARGS__)
+#define QM(name, var)  qm_t(name) var = QM_INIT(name, var)
 #define QM_CACHED(name, var)  qm_t(name) var = QM_INIT_CACHED(name, var)
 
 /*
@@ -761,11 +759,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  * \param[in] qh   A pointer to the hash set to initialize.
  *
  */
-#define qh_init(name, qh, ...)  do {                                         \
-        bool chahes[] = { false, ##__VA_ARGS__ };                            \
-        STATIC_ASSERT(countof(chahes) <= 2);                                 \
-        qh_##name##_init(qh, chahes[countof(chahes) - 1], NULL);             \
-    } while (0)
+#define qh_init(name, qh)  qh_##name##_init(qh, false, NULL)
 
 /** Initialize a Hash-Set with hash caching.
  *
@@ -923,11 +917,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *
  * \note You can also use the static initializer \ref QM_INIT
  */
-#define qm_init(name, qh, ...)  do {                                         \
-        bool chahes[] = { false, ##__VA_ARGS__ };                            \
-        STATIC_ASSERT(countof(chahes) <= 2);                                 \
-        qm_##name##_init(qh, chahes[countof(chahes) - 1], NULL);             \
-    } while (0)
+#define qm_init(name, qh)  qm_##name##_init(qh, false, NULL)
 
 /** Initialize a hash-map with hash caching.
  *

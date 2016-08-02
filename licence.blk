@@ -398,7 +398,7 @@ int licence_check_modules(const core__licence__t *licence)
      * field `name` in child classes of core.LicenceModule.
      */
     if (unlikely(first_call)) {
-        QH(lstr, static_names, false);
+        QH(lstr, static_names);
         qh_t(lstr) *static_names_p = &static_names;
 
         first_call = false;

@@ -50,7 +50,7 @@ static struct {
     .tracing_logger = LOGGER_INIT_SILENT_INHERITS(&_G.logger, "tracing")
 };
 
-const QM(ic_cbs, ic_no_impl, false);
+const QM(ic_cbs, ic_no_impl);
 
 /*----- messages stuff -----*/
 
