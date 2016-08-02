@@ -36,19 +36,6 @@ typedef enum iop_wire_type_t {
 
 qvector_t(iop_struct, const iop_struct_t *);
 
-static inline uint32_t
-qhash_iop_struct_hash(const qhash_t *h, const iop_struct_t *st)
-{
-    return qhash_hash_ptr(h, st);
-}
-
-static inline bool qhash_iop_struct_equal(const qhash_t *h,
-                                          const iop_struct_t *st1,
-                                          const iop_struct_t *st2)
-{
-    return st1 == st2;
-}
-
 /** Convert an IOP identifier from CamelCase naming to C underscored naming */
 lstr_t t_camelcase_to_c(lstr_t name);
 
