@@ -826,12 +826,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 /** \see qm_put */
 #define qh_put(name, qh, key, fl)           qh_##name##_put(qh, key, fl)
 #define qh_put_h(name, qh, h, key, fl)      qh_##name##_put_h(qh, h, key, fl)
-#define __qh_put(name, qh, key, fl)         qh_put(name, (qh), (key), (fl))
-#define __qh_put_h(name, qh, h, key, fl)    qh_put_h(name, (qh), (h), (key), (fl))
-/** \see __qm_add */
+/** \see qm_add */
 #define qh_add(name, qh, key)               qh_##name##_add(qh, key)
 #define qh_add_h(name, qh, h, key)          qh_##name##_add_h(qh, h, key)
-/** \see __qm_replace */
+/** \see qm_replace */
 #define qh_replace(name, qh, key)           qh_##name##_replace(qh, key)
 #define qh_replace_h(name, qh, h, key)      qh_##name##_replace_h(qh, h, key)
 #define qh_del_at(name, qh, pos)            qh_##name##_del_at(qh, pos)
@@ -1064,13 +1062,9 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 #define qm_reserve(name, qh, key, fl)      qm_##name##_reserve(qh, key, fl)
 #define qm_reserve_h(name, qh, h, key, fl) qm_##name##_reserve_h(qh, h, key, fl)
-#define __qm_reserve(name, qh, key, fl)      qm_reserve(name, (qh), (key), (fl))
-#define __qm_reserve_h(name, qh, h, key, fl) qm_reserve_h(name, (qh), (h), (key), (fl))
 
 #define qm_put(name, qh, key, v, fl)      qm_##name##_put(qh, key, v, fl)
 #define qm_put_h(name, qh, h, key, v, fl) qm_##name##_put_h(qh, h, key, v, fl)
-#define __qm_put(name, qh, key, v, fl)      qm_put(name, (qh), (key), (v), (fl))
-#define __qm_put_h(name, qh, h, key, v, fl) qm_put_h(name, (qh), (h), (key), (v), (fl))
 
 /** Adds a new key/value pair into the qmap.
  *

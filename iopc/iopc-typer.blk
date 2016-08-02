@@ -759,7 +759,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
             iopc_struct_t *st2 = ids->values[slot];
             uint32_t pos;
 
-            pos = __qm_put(id_class, &parent_st->children_by_id,
+            pos = qm_put(id_class, &parent_st->children_by_id,
                            st2->class_id, st2, 0);
             if (pos & QHASH_COLLISION) {
                 parent_st =
@@ -1443,7 +1443,7 @@ static lstr_t iopc_struct_sig(iopc_struct_t *st)
 static void iopc_type_fold_one(qm_t(uid) *h, iopc_struct_t *st)
 {
     lstr_t s = iopc_struct_sig(st);
-    int pos = __qm_put(uid, h, &s, st, 0);
+    int pos = qm_put(uid, h, &s, st, 0);
     iopc_struct_t *st2;
 
     if (pos & QHASH_COLLISION) {

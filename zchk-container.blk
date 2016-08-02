@@ -338,7 +338,7 @@ Z_GROUP_EXPORT(qhash)
             pos = qm_reserve(type, &h, (key), 0);                            \
             Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                          \
             h.values[pos] = 3u;                                              \
-            pos = __qm_reserve(type, &h, (key), 0);                          \
+            pos = qm_reserve(type, &h, (key), 0);                          \
             Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                          \
             Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 3u);               \
             pos = qm_reserve(type, &h, (key), QHASH_OVERWRITE);              \
