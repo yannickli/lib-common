@@ -28,6 +28,8 @@ qh_kptr_ckey_t(test_str, char, qhash_str_hash, qhash_str_equal);
 
 qm_kvec_t(test_lstr, lstr_t, uint32_t, qhash_lstr_hash, qhash_lstr_equal);
 qm_kptr_t(test_ptr,  void,   uint32_t, qhash_hash_ptr,  qhash_ptr_equal);
+qm_khptr_t(test_hptr,  void,   uint32_t);
+qm_khptr_ckey_t(test_hcptr,  void,   uint32_t);
 
 Z_GROUP_EXPORT(qhash)
 {
