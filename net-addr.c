@@ -32,10 +32,8 @@ bool sockunion_equal(const sockunion_t *a1, const sockunion_t *a2)
         return !memcmp(a1->sin6.sin6_addr.s6_addr, a2->sin6.sin6_addr.s6_addr,
                        sizeof(a2->sin6.sin6_addr.s6_addr));
 
-#ifndef OS_WINDOWS
       case AF_UNIX:
         return !strcmp(a1->sunix.sun_path, a2->sunix.sun_path);
-#endif
 
       default:
         e_panic("unknown kind of sockaddr: %d", a1->family);
@@ -58,10 +56,8 @@ uint32_t sockunion_hash(const sockunion_t *su)
         return u32 ^ mem_hash32(su->sin6.sin6_addr.s6_addr,
                                 sizeof(su->sin6.sin6_addr.s6_addr));
 
-#ifndef OS_WINDOWS
       case AF_UNIX:
         return mem_hash32(&su->sunix, sockunion_len(su));
-#endif
 
       default:
         e_panic("unknown kind of sockaddr: %d", su->family);

@@ -603,11 +603,7 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
     const char *p;
 
     if (!fmt) {
-#ifdef OS_WINDOWS
-        fmt = "real %rms, %h cycles";
-#else
         fmt = "real %rms, proc %pms, user %ums, sys %sms, %h cycles";
-#endif
     }
 
     for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {
@@ -657,11 +653,7 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
     const char *unit;
 
     if (!fmt) {
-#ifdef OS_WINDOWS
-        fmt = "real: %r\nproc cycles: %h";
-#else
         fmt = "%n samples\nreal: %r\nproc: %p\nuser: %u\nsys : %s\nproc cycles: %h";
-#endif
     }
 
     for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {

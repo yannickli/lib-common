@@ -16,7 +16,7 @@
 
 #include_next <stdio.h>
 
-#if defined(__GLIBC__) || defined(__CYGWIN__)
+#if defined(__GLIBC__)
 /* Wrap glibc specific unlocked API with obnoxious macros */
 #  define ISPUTC(c, f)          putc_unlocked(c, f)
 #  define ISFWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)

@@ -14,12 +14,8 @@
 #ifndef IS_LIB_COMMON_TIME_H
 #define IS_LIB_COMMON_TIME_H
 
-#ifndef OS_WINDOWS
 #include <sys/resource.h>
 #define PROCTIMER_USE_RUSAGE  0
-#else
-#define PROCTIMER_USE_RUSAGE  0
-#endif
 
 #include "core.h"
 

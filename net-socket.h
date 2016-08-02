@@ -16,9 +16,7 @@
 #else
 #define IS_LIB_COMMON_NET_SOCKET_H
 
-#ifndef OS_WINDOWS
 int socketpairx(int d, int type, int protocol, int flags, int sv[2]);
-#endif
 
 int bindx(int sock, const sockunion_t *, int cnt,
           int type, int proto, int flags);

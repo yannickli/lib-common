@@ -26,12 +26,8 @@
 #   define sctp_adaptation_layer_event   sctp_adaption_layer_event
 # endif
 #endif
-#ifdef OS_WINDOWS
-# include <winsock2.h>
-#else
-# include <sys/socket.h>
-# include <sys/un.h>
-#endif
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "net-addr.h"
 #include "net-socket.h"

@@ -35,9 +35,7 @@ typedef union sockunion_t {
     struct sockaddr_storage ss;
     struct sockaddr_in      sin;
     struct sockaddr_in6     sin6;
-#ifndef OS_WINDOWS
     struct sockaddr_un      sunix;
-#endif
     struct sockaddr         sa;
 #ifdef OS_APPLE
     struct {

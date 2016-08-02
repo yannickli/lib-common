@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "z.h"
-#ifndef OS_WINDOWS
 #include <net/if.h>
 #ifdef OS_LINUX
 #include <net/if_arp.h>
@@ -31,25 +30,6 @@
 #include "hash.h"
 #include "property.h"
 #include "core.iop.h"
-
-#if defined(__CYGWIN__)
-struct if_nameindex {
-    int if_index;
-    char if_name[32];
-};
-#define ARPHRD_ETHER  0
-ATTRS
-static struct if_nameindex *if_nameindex(void) {
-    struct if_nameindex *p = calloc(sizeof(struct if_nameindex), 2);
-    strcpy(p->if_name, "eth0");
-    return p;
-}
-
-ATTRS
-static void if_freenameindex(struct if_nameindex *p) {
-    free(p);
-}
-#endif
 
 ATTRS
 static int F(get_mac_addr)(int s, const struct if_nameindex *iface,
@@ -96,10 +76,6 @@ static
 #endif
 bool F(is_my_mac_addr)(const char *addr)
 {
-#ifdef __sun
-    /* TODO PORT */
-    return true;
-#else
     bool found = false;
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
@@ -153,7 +129,6 @@ bool F(is_my_mac_addr)(const char *addr)
     close(s);
     if_freenameindex(iflist);
     return found;
-#endif
 }
 
 ATTRS
@@ -262,4 +237,3 @@ int F(licence_check_iop_host)(const core__licence__t *licence)
 }
 
 /* }}} */
-#endif

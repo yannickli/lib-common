@@ -16,12 +16,6 @@
 #define ALT_FUNC  isnprintf
 #endif
 
-#ifdef __CYGWIN__
-#define TEST_ALT_NUMBERS  0
-#else
-#define TEST_ALT_NUMBERS  1
-#endif
-
 typedef struct {
     int line;
     long value;
@@ -5055,7 +5049,6 @@ sprint_int_type sprint_ints[] = {
     { __LINE__,  0x00000000,  "",               "%#.0x" },
     { __LINE__,  0x00000000,  "0",              "%#.0o" },
 
-#if TEST_ALT_NUMBERS
     { __LINE__,  0x00000000,  "0",              "%Id" },
     { __LINE__,  0x0000000a,  "10",             "%Id" },
     { __LINE__,  0x000000d2,  "210",            "%Id" },
@@ -5065,7 +5058,6 @@ sprint_int_type sprint_ints[] = {
     { __LINE__,  0x0063d76a,  "6543210",        "%Id" },
     { __LINE__,  0x048ff4ea,  "76543210",       "%Id" },
     { __LINE__,  0x343efcea,  "876543210",      "%Id" },
-#endif
 
     { 0, 0, NULL, NULL },
 };

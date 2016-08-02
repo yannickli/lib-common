@@ -19,10 +19,6 @@
 /*---------------- Guess the OS ----------------*/
 #if defined(__linux__)
 #  define OS_LINUX
-#elif defined(__sun)
-#  define OS_SOLARIS
-#elif defined(__MINGW) || defined(__MINGW32__)
-#  define OS_WINDOWS
 #elif defined(__APPLE__)
 #  define OS_APPLE
 #else
@@ -30,10 +26,8 @@
 #endif
 
 /* <sys/poll.h> availability */
-#ifndef OS_WINDOWS
-# ifndef HAVE_SYS_POLL_H
-#  define HAVE_SYS_POLL_H
-# endif
+#ifndef HAVE_SYS_POLL_H
+# define HAVE_SYS_POLL_H
 #endif
 
 /* <sys/inotify.h> availability */

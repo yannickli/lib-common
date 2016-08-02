@@ -155,9 +155,6 @@ if test -n "$profile" -a -d /opt/intersec/${profile}; then
     export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 else
     export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)"
-    if test "$(uname -s)" = "SunOS"; then
-        export PKG_CONFIG_LIBDIR="/opt/csw/lib/pkgconfig:${PKG_CONFIG_LIBDIR}"
-    fi
 fi
 
 # {{{ tools

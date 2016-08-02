@@ -26,12 +26,6 @@
 #ifndef isblank
 #  if defined(__GLIBC__) && defined(__isctype) && defined(_ISbit)
 #    define isblank(c)      __isctype((c), _ISblank)
-#  elif defined(__MINGW) || defined(__MINGW32__)
-#    if  (__MINGW32_MAJOR_VERSION < 3 || \
-         (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12))
-/* OG: we should really have our own char type macros */
-static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
-#    endif
 #  endif
 #endif
 

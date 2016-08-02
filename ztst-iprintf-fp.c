@@ -13,10 +13,6 @@ typedef struct {
     const char *format_string;
 } sprint_double_type;
 
-#if defined(__CYGWIN__)
-#define X(line, value, res, format)
-#endif
-
 #ifndef X
 #define X(line, value, res, format)  { line, value, res, format },
 #endif

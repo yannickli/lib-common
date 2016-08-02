@@ -17,7 +17,7 @@
 static int sock_reuseaddr(int sock)
 {
     int v = 1;
-    /* XXX the char * cast is needed for mingcc */
+
     return setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&v, sizeof(v));
 }
 

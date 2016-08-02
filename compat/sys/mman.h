@@ -14,56 +14,14 @@
 #ifndef IS_COMPAT_SYS_MMAN_H
 #define IS_COMPAT_SYS_MMAN_H
 
-#if defined(__APPLE__)
 #  include_next <sys/mman.h>
 
+#if defined(__APPLE__)
 #define MAP_ANONYMOUS  MAP_ANON
 
 #ifndef MADV_DONTFORK
 # define MADV_DONTFORK 0
 #endif
-
-#elif defined(__MINGW) || defined(__MINGW32__)
-#include <unistd.h>
-#  define MAP_FAILED      ((void *) -1)
-extern void *mmap(void *__addr, size_t __len, int __prot,
-                  int __flags, int __fd, off_t __offset);
-extern int munmap(void *__addr, size_t __len);
-extern int msync(void *__addr, size_t __len, int __flags);
-extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
-                    int __flags);
-
-/* Flags to `msync'.  */
-#  define MS_ASYNC        1               /* Sync memory asynchronously.  */
-#  define MS_SYNC         4               /* Synchronous memory sync.  */
-#  define MS_INVALIDATE   2               /* Invalidate the caches.  */
-
-#  define PROT_READ       0x1             /* Page can be read.  */
-#  define PROT_WRITE      0x2             /* Page can be written.  */
-#  define PROT_EXEC       0x4             /* Page can be executed.  */
-#  define PROT_NONE       0x0             /* Page can not be accessed.  */
-
-#  define MAP_SHARED      0x01            /* Share changes.  */
-#  define MAP_PRIVATE     0x02            /* Changes are private.  */
-#  define MAP_FIXED       0x10            /* Interpret addr exactly.  */
-#  define MAP_ANONYMOUS   0x20            /* Don't use a file.  */
-#else
-#  include_next <sys/mman.h>
-
-#ifndef NDEBUG
-/* Fix mremap when using valgrind
- * @see: https://bugs.kde.org/show_bug.cgi?id=204484
- */
-#define __is_need_mremap_diverted
-void *mremap_diverted(void *old_address, size_t old_size, size_t new_size,
-                      int flags);
-#define mremap(...) mremap_diverted(__VA_ARGS__)
-#endif
-
-#ifdef __sun
-extern int madvise(void *, size_t, int);
-#endif
-
 #endif
 
 #endif

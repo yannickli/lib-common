@@ -14,7 +14,7 @@
 #include <sys/wait.h>
 #include "unix.h"
 
-#if defined(__sun) || defined(__APPLE__)
+#if defined(__APPLE__)
 
 int psinfo_get(pid_t pid, sb_t *output)
 {

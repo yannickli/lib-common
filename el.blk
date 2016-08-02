@@ -44,10 +44,6 @@ struct rlimit fd_limit_g;
  *     Have a way to detect timewarps, and avoid clock_gettime so that we can
  *     drop -lrt.
  *
- * - fd things:
- *   + implement a solaris port using event ports (see what libev does).
- *   + implement a windows port.
- *
  */
 
 /* Arbitrary set default timeout to 59 seconds */
@@ -751,8 +747,6 @@ static uint64_t get_clock(void)
 
 #if   defined(CLOCK_MONOTONIC) /* POSIX   */
     res = clock_gettime(CLOCK_MONOTONIC, &ts);
-#elif defined(CLOCK_HIGHRES)   /* Solaris */
-    res = clock_gettime(CLOCK_HIGHRES, &ts);
 #else
 #   error you need to find out how to get a monotonic clock for your system
 #endif

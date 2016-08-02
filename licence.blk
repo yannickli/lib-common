@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "z.h"
-#ifndef OS_WINDOWS
 #include <net/if.h>
 #ifdef OS_LINUX
 #include <net/if_arp.h>
@@ -44,11 +43,6 @@ int trace_override;
 
 int list_my_macs(char *dst, size_t size)
 {
-#ifdef __sun
-    /* TODO PORT */
-    pstrcpy(dst, size, "00:00:00:00:00:00");
-    return true;
-#else
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
     int s = -1;
@@ -84,7 +78,6 @@ int list_my_macs(char *dst, size_t size)
     close(s);
     if_freenameindex(iflist);
     return ret;
-#endif
 }
 
 static int property_cmp(property_t * const *a, property_t * const *b)
@@ -569,4 +562,3 @@ Z_GROUP_EXPORT(licence)
 } Z_GROUP_END
 
 /* }}} */
-#endif
