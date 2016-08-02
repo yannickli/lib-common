@@ -239,10 +239,3 @@ if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
 fi
 
 # }}}
-# {{{ flex
-
-case "$(flex --version)" in
-    "flex 2.5.37")
-        setenv flex_2537 1
-        ;;
-esac
