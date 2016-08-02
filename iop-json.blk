@@ -2005,8 +2005,7 @@ CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, __t_iop_junpack_ptr_ps)
 /* {{{ jpack */
 
 qm_kvec_t(iop_jpack_paths, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
-qm_kptr_ckey_t(iop_jpack_sub_files, void, qm_t(iop_jpack_paths),
-               qhash_hash_ptr, qhash_ptr_equal);
+qm_khptr_ckey_t(iop_jpack_sub_files, void, qm_t(iop_jpack_paths));
 
 typedef struct jpack_file_ctx_t {
     sb_t *err;

@@ -19,9 +19,7 @@
 
 qvector_t(iop_type, const iop_struct_t *);
 qvector_t(iop_enum, const iop_enum_t *);
-qh_kptr_ckey_t(iop_type, iop_struct_t,
-               qhash_iop_struct_hash, qhash_iop_struct_equal);
-
+qh_khptr_ckey_t(iop_type, iop_struct_t);
 
 typedef struct wsdlpp_t {
     qh_t(xwsdl_impl) *impl;

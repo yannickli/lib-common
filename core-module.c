@@ -20,20 +20,7 @@
 /* {{{ Type definition */
 /* {{{ methods */
 
-static inline uint32_t module_method_hash(const qhash_t *h,
-                                          const module_method_t *m)
-{
-    return qhash_hash_ptr(h, m);
-}
-static inline bool module_method_equal(const qhash_t *h,
-                                       const module_method_t *m1,
-                                       const module_method_t *m2)
-{
-    return qhash_ptr_equal(h, m1, m2);
-}
-qm_kptr_ckey_t(methods, module_method_t, void *,
-               module_method_hash, module_method_equal);
-
+qm_khptr_ckey_t(methods, module_method_t, void *);
 qvector_t(methods_cb, void *);
 
 typedef struct module_method_impl_t {
@@ -49,8 +36,7 @@ static module_method_impl_t *module_method_wipe(module_method_impl_t *method)
 }
 GENERIC_DELETE(module_method_impl_t, module_method);
 
-qm_kptr_ckey_t(methods_impl, module_method_t, module_method_impl_t *,
-               module_method_hash, module_method_equal);
+qm_khptr_ckey_t(methods_impl, module_method_t, module_method_impl_t *);
 static void module_build_method_all_cb(void);
 
 /* }}} */
@@ -101,9 +87,7 @@ GENERIC_DELETE(module_t, module);
 
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
-
-qm_kptr_t(module_arg, void, void *, qhash_hash_ptr, qhash_ptr_equal);
-
+qm_khptr_t(module_arg, void, void *);
 qm_kvec_t(module_dep, lstr_t, qh_t(ptr), qhash_lstr_hash, qhash_lstr_equal);
 
 /* }}} */

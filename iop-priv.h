@@ -62,21 +62,7 @@ qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
 /* {{{ IOP context */
 
 qm_kvec_t(iop_objs, lstr_t, qv_t(cvoid), qhash_lstr_hash, qhash_lstr_equal);
-
-static inline uint32_t qhash_pkg_hash(const qhash_t *qh, const iop_pkg_t *pkg)
-{
-    return qhash_hash_ptr(qh, (const void *)pkg);
-}
-
-static inline bool
-qhash_pkg_equal(const qhash_t *qh,
-                const iop_pkg_t *pkg1, const iop_pkg_t *pkg2)
-{
-    return pkg1 == pkg2;
-}
-
-qm_kptr_ckey_t(iop_dsos, iop_pkg_t, iop_dso_t *,
-               qhash_pkg_hash, qhash_pkg_equal);
+qm_khptr_ckey_t(iop_dsos, iop_pkg_t, iop_dso_t *);
 
 typedef struct iop_env_t {
     qm_t(class_id)   classes_by_id;
