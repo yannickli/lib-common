@@ -243,7 +243,12 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     }
 
     if (likely(pxy)) {
-        ic_msg_t *msg = ic_msg_new(sizeof(uint64_t));
+        ic_msg_t *msg;
+
+        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
+            return;
+        }
+        msg = ic_msg_new(sizeof(uint64_t));
 
         if ((!ps_len(&login) || force_pxy_hdr) && pxy_hdr) {
             /* XXX on simple header we write the payload size of the HTTP query */
@@ -262,9 +267,6 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         msg->cmd = cbe->cmd;
         msg->rpc = cbe->fun;
         msg->async = cbe->fun->async;
-        if (ic_query_do_pre_hook(NULL, slot, &hdr, e) < 0) {
-            return;
-        }
 
         if (!msg->async) {
             msg->cb = IC_PROXY_MAGIC_CB;
