@@ -1692,7 +1692,7 @@ Z_GROUP_EXPORT(iop)
             ;
 
         const char json_si_p1[] = "{l = [ -0x7fffffffffffffff + (-1) ]; };" ;
-        const char json_si_p2[] = "{u = [  0xffffffffffffffff +   0  ]; };" ;
+        const char json_si_p2[] = "{u =    0xffffffffffffffff +   0   ; };" ;
         const char json_si_p3[] = "{u = [ \"9223372036854775808\" ]; };" ;
 
         const char json_si_n1[] = "{l = [ -0x7fffffffffffffff + (-2) ]; };" ;
@@ -5962,8 +5962,7 @@ Z_GROUP_EXPORT(iop)
 
             /* Not repeated -> repeated. */
             T_OK(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_BIN);
-            T_KO(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_JSON,
-                 "field `a`: is repeated and was not before");
+            T_OK(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_JSON);
 
             /* Repeated -> not repeated. */
             T_KO_ALL(field_repeated, &field_repeated, basic_struct,
