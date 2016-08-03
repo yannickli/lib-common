@@ -310,6 +310,8 @@ translations:
 
 check-translations: translations
 
+www:: $(if $(NOCHECK),,check-translations)
+
 endif
 _generated_hdr:
 _generated: _generated_hdr
