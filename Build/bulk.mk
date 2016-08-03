@@ -301,14 +301,20 @@ ignore:
 watch:
 	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile)
 
-check-untracked:
+check-translations check-untracked:
 	check-for-untracked-files.sh
+
+translations:
+	$(MAKEPARALLEL) -C $/www/po xgettext
+	$(MAKEPARALLEL) -C $/www/po merge
+
+check-translations: translations
 
 endif
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
-.PHONY: _generated_hdr _generated check-untracked
+.PHONY: _generated_hdr _generated check-untracked check-translations
 # }}}
 ##########################################################################
 # {{{ target exports from the build system
