@@ -4647,17 +4647,10 @@ iop_field_check_backward_compat(const iop_field_t *f1,
         return -1;
     }
 
-    /* Check repeated -> non-repeated: always forbidden. */
+    /* Check repeated -> non-repeated: always forbidden.
+     * (non-repeated -> repeated is always supported) */
     if (f1->repeat == IOP_R_REPEATED && f2->repeat != IOP_R_REPEATED) {
         iop_compat_add_err(ctx, "was repeated and is not anymore");
-        return -1;
-    }
-    /* Check non-repeated -> repeated: forbidden in json but supported in
-     * binary. */
-    if (flags & IOP_COMPAT_JSON
-    &&  f1->repeat != IOP_R_REPEATED && f2->repeat == IOP_R_REPEATED)
-    {
-        iop_compat_add_err(ctx, "is repeated and was not before");
         return -1;
     }
 
