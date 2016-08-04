@@ -301,7 +301,7 @@ ignore:
 watch:
 	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile)
 
-check-translations check-untracked:
+check-untracked:
 	check-for-untracked-files.sh
 
 translations:
@@ -309,6 +309,8 @@ translations:
 	$(MAKEPARALLEL) -C $/www/po merge
 
 check-translations: translations
+	git status --porcelain $/www/po
+	test -z "$(shell git status --porcelain $/www/po)"
 
 www:: $(if $(NOCHECK),,check-translations)
 
