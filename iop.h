@@ -270,6 +270,17 @@ typedef int
 int iop_for_each_field(const iop_struct_t * nullable st_desc, void *st_ptr,
                        iop_for_each_field_cb_b cb);
 
+/** Const version for 'iop_for_each_field_cb_b'. */
+typedef int
+(BLOCK_CARET iop_for_each_field_const_cb_b)(const iop_struct_t *st_desc,
+                                            const iop_field_t *fdesc,
+                                            const void *st_ptr);
+
+/** Const version of 'iop_for_each_field'. */
+int iop_for_each_field_const(const iop_struct_t * nullable st_desc,
+                             const void *st_ptr,
+                             iop_for_each_field_const_cb_b cb);
+
 /** Callback for function 'iop_for_each_st'.
  *
  * \param[in] st_desc  Description of the current struct/union/class.
@@ -291,6 +302,15 @@ typedef int
  */
 int iop_for_each_st(const iop_struct_t * nullable st_desc, void *st_ptr,
                     iop_for_each_st_cb_b cb);
+
+/** Const version for 'iop_for_each_st_cb_b'. */
+typedef int
+(BLOCK_CARET iop_for_each_st_const_cb_b)(const iop_struct_t *st_desc,
+                                         const void *st_ptr);
+
+/** Const version of 'iop_for_each_st'. */
+int iop_for_each_st_const(const iop_struct_t * nullable st_desc,
+                          const void *st_ptr, iop_for_each_st_const_cb_b cb);
 
 #endif
 

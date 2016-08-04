@@ -41,6 +41,10 @@ static int default_on_struct(const iop_struct_t *st, void *st_ptr)
 #  define  __F_ARGS
 #endif
 
+#ifndef MODIFIER
+#  define MODIFIER
+#endif
+
 #ifdef ON_STRUCT
 #  define __ON_STRUCT(st_desc, st_ptr)                                       \
     do {                                                                     \
@@ -164,15 +168,15 @@ static int F(for_each_field)(const iop_struct_t *st_desc, void *st_ptr
     return F(for_each_st_field)(st_desc, st_ptr __F_ARGS);
 }
 
-int F_NAME(const iop_struct_t * nullable st_desc, void *st_ptr
-                       __F_PROTO)
+int F_NAME(const iop_struct_t * nullable st_desc, MODIFIER void *st_ptr
+           __F_PROTO)
 {
     if (!st_desc) {
         st_desc = *(const iop_struct_t **)st_ptr;
         assert (iop_struct_is_class(st_desc));
     }
 
-    return F(for_each_field)(st_desc, st_ptr __F_ARGS);
+    return F(for_each_field)(st_desc, (void *)st_ptr __F_ARGS);
 }
 
 #undef __ON_STRUCT
@@ -182,3 +186,4 @@ int F_NAME(const iop_struct_t * nullable st_desc, void *st_ptr
 #undef F_ARGS
 #undef F_PROTO
 #undef F_NAME
+#undef MODIFIER

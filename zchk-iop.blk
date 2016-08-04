@@ -46,7 +46,7 @@ _z_append_step(qv_t(z_iop_for_each_step) *vec, const iop_struct_t *st_desc,
 
 static int
 z_check_iop_for_each_step(const struct z_iop_for_each_step *step,
-                          const iop_struct_t *st_desc, void *st_ptr,
+                          const iop_struct_t *st_desc, const void *st_ptr,
                           lstr_t fname)
 {
     Z_ASSERT(st_desc == step->st_desc,
@@ -61,10 +61,12 @@ z_check_iop_for_each_step(const struct z_iop_for_each_step *step,
 
 static int
 z_iop_for_each_step(const qv_t(z_iop_for_each_step) *steps,
-                    const iop_struct_t *_st_desc, void *_st_ptr, int *count)
+                    const iop_struct_t *_st_desc, const void *_st_ptr,
+                    int *count)
 {
-    return iop_for_each_field(_st_desc, _st_ptr,
-    ^int (const iop_struct_t *st_desc, const iop_field_t *fdesc, void *st_ptr)
+    return iop_for_each_field_const(_st_desc, _st_ptr,
+    ^int (const iop_struct_t *st_desc, const iop_field_t *fdesc,
+          const void *st_ptr)
     {
         int pos = (*count)++;
 
@@ -124,7 +126,7 @@ z_test_iop_for_each_field(const tstiop__z_iop_for_each__t *z_struct)
     }
 
     Z_HELPER_RUN(z_iop_for_each_step(&steps, &tstiop__z_iop_for_each__s,
-                                     (void *)z_struct, &count));
+                                     z_struct, &count));
 
     Z_ASSERT_EQ(count, 24);
     Z_HELPER_END;
@@ -135,8 +137,9 @@ z_test_iop_for_each_st(const tstiop__z_iop_for_each__t *z_struct)
 {
     __block int pos = 0;
 
-    return iop_for_each_st(&tstiop__z_iop_for_each__s, (void *)z_struct,
-                           ^int (const iop_struct_t *st_desc, void *st_ptr) {
+    return iop_for_each_st_const(&tstiop__z_iop_for_each__s, z_struct,
+                                 ^int (const iop_struct_t *st_desc,
+                                       const void *st_ptr) {
         t_scope;
         SB_1k(sb);
         const char *structs[] = {
