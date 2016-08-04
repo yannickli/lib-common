@@ -301,11 +301,21 @@ watch:
 check-untracked:
 	check-for-untracked-files.sh
 
+translations:
+	$(MAKEPARALLEL) -C $/www/po xgettext
+	$(MAKEPARALLEL) -C $/www/po merge
+
+check-translations: translations
+	git status --porcelain $/www/po
+	test -z "$(shell git status --porcelain $/www/po)"
+
+www:: $(if $(NOCHECK),,check-translations)
+
 endif
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
-.PHONY: _generated_hdr _generated check-untracked
+.PHONY: _generated_hdr _generated check-untracked check-translations
 # }}}
 ##########################################################################
 # {{{ target exports from the build system
