@@ -189,6 +189,9 @@ static struct {
     el_worker_f *worker;      /* worker callback                            */
     uint64_t     worker_end;  /* worker end time                            */
 
+    el_t el_on_pwr;
+    el_t el_sigchld_hook;
+
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR     10   /* basic segment is 1024 events            */
 #define EVS_NB_MAX_BUCKETS  (32 - EV_ALLOC_FACTOR)
@@ -560,7 +563,6 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
 
 ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 {
-    static bool hooked;
     sigset_t set;
     sigset_t prev;
     int status;
@@ -586,9 +588,9 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
         return ev_add(&_G.before, ev);;
     }
 
-    if (unlikely(!hooked)) {
-        hooked = true;
-        el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
+    if (unlikely(!_G.el_sigchld_hook)) {
+        _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook,
+                                                NULL);
     }
 
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
@@ -1635,9 +1637,9 @@ static int el_initialize(void *arg)
     }
 
 #if defined(SIGPWR)
-    el_signal_register(SIGPWR, el_on_pwr, NULL);
+    _G.el_on_pwr = el_signal_register(SIGPWR, el_on_pwr, NULL);
 #else
-    el_signal_register(SIGINFO, el_on_pwr, NULL);
+    _G.el_on_pwr = el_signal_register(SIGINFO, el_on_pwr, NULL);
 #endif
 
     return 0;
@@ -1645,11 +1647,13 @@ static int el_initialize(void *arg)
 
 static int el_shutdown(void)
 {
+    el_signal_unregister(&_G.el_on_pwr);
+    el_signal_unregister(&_G.el_sigchld_hook);
+
     /* Wipe all containers in order to remove traces in valgrind, however
      * ensure they remain valid in case some other destructor perform el
      * registrations/unregistrations.
      */
-
     if (_G.timers.len == 0) {
         qhp_wipe(timer, &_G.timers);
         qhp_init(timer, &_G.timers);
