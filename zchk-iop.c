@@ -4764,8 +4764,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
         Z_ASSERT(out_st == &tstiop__my_struct_b__s);
-        Z_ASSERT_EQ(OPT_ISSET(*(opt_i32_t *)out), OPT_ISSET(struct_b.a));
-        Z_ASSERT_EQ(OPT_VAL(*(opt_i32_t *)out), OPT_VAL(struct_b.a));
+        Z_ASSERT(OPT_ISSET(*(opt_i32_t *)out));
+        Z_ASSERT_OPT_EQ(*(opt_i32_t *)out, struct_b.a);
 
         Z_ASSERT_NULL(iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                     LSTR("a.b"), NULL, NULL));

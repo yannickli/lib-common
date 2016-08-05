@@ -353,6 +353,16 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
         }                                                                 \
     })
 
+#define Z_ASSERT_OPT_EQ(lhs, rhs, ...)                                    \
+    ({  bool _z_res = OPT_EQUAL(lhs, rhs);                                \
+        if (_z_assert(__FILE__, __LINE__, #lhs " == " #rhs, _z_res,       \
+                      ""__VA_ARGS__))                                     \
+        {                                                                 \
+            goto _z_step_end;                                             \
+        }                                                                 \
+        assert (_z_res);                                                  \
+    })
+
 /****************************************************************************/
 /* Z helpers                                                                */
 /****************************************************************************/

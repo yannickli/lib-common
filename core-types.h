@@ -153,6 +153,22 @@ typedef opt_bool_t         opt__Bool_t;
         }                                                  \
     } while (0)
 
+/** Get whether 2 optional fields are equal are not.
+ *
+ * Optional fields are equal if:
+ * - they are both unset;
+ * - or, they are both set and their values are equal.
+ * Otherwise optional fields are different.
+ */
+#define OPT_EQUAL(v, w)                                                      \
+    ({                                                                       \
+        typeof(v) _v = (v);                                                  \
+        typeof(w) _w = (w);                                                  \
+                                                                             \
+        (OPT_ISSET(_v) == OPT_ISSET(_w)                                      \
+         && (!OPT_ISSET(_v) || OPT_VAL(_v) == OPT_VAL(_w)));                 \
+    })
+
 /* 1}}} */
 /* Data Baton {{{ */
 
