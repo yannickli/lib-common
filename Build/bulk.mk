@@ -312,8 +312,6 @@ check-translations: translations
 	git status --porcelain $/www/po
 	test -z "$(shell git status --porcelain $/www/po)"
 
-www:: $(if $(NOCHECK),,check-translations)
-
 endif
 _generated_hdr:
 _generated: _generated_hdr
