@@ -224,6 +224,24 @@ static struct {
 #define CHECK_EV_TYPE(ev, typ) \
     ASSERT("incorrect type", (ev)->type == typ)
 
+static const char *ev_type_to_str(ev_type_t type)
+{
+    switch (type) {
+      case EV_UNUSED:   return "unused";
+      case EV_BLOCKER:  return "blocker";
+      case EV_BEFORE:   return "before loop";
+      case EV_SIGNAL:   return "signal";
+      case EV_CHILD:    return "child";
+      case EV_FD:       return "file desc.";
+      case EV_TIMER:    return "timer";
+      case EV_PROXY:    return "proxy";
+      case EV_IDLE:     return "idle";
+      case EV_FS_WATCH: return "fs watch";
+      case EV_WAKE:     return "wake";
+    }
+    return "unknown";
+}
+
 static ev_t *ev_add(dlist_t *l, ev_t *ev)
 {
     dlist_add(l, &ev->ev_list);
@@ -267,8 +285,12 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
         .cb.cb  = cb,
     };
     res->priv = priv;
-    _G.used++;
 
+    logger_trace(&_G.logger, 2, "creating event %p (%s)",
+                 res, ev_type_to_str(res->type));
+    assert (MODULE_IS_LOADED(el) || MODULE_IS_INITIALIZING(el));
+
+    _G.used++;
     return ref ? el_ref(res) : res;
 }
 
@@ -285,6 +307,10 @@ static ev_t *el_blk_register(ev_t *ev, void *cb, block_t wipe)
 static data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
+
+    logger_trace(&_G.logger, 2, "destroying event %p (%s)",
+                 ev, ev_type_to_str(ev->type));
+    assert (MODULE_IS_LOADED(el) || MODULE_IS_SHUTTING_DOWN(el));
 
     if (EV_FLAG_HAS(ev, IS_BLK)) {
         block_t wipe = ev->wipe;
@@ -1479,24 +1505,6 @@ bool el_has_pending_events(void)
 /* }}} */
 /* {{{ el blocking summary dumper */
 
-static lstr_t ev_type_to_str(ev_type_t type)
-{
-    switch (type) {
-      case EV_UNUSED:   return LSTR("unused");
-      case EV_BLOCKER:  return LSTR("blocker");
-      case EV_BEFORE:   return LSTR("before loop");
-      case EV_SIGNAL:   return LSTR("signal");
-      case EV_CHILD:    return LSTR("child");
-      case EV_FD:       return LSTR("file desc.");
-      case EV_TIMER:    return LSTR("timer");
-      case EV_PROXY:    return LSTR("proxy");
-      case EV_IDLE:     return LSTR("idle");
-      case EV_FS_WATCH: return LSTR("fs watch");
-      case EV_WAKE:     return LSTR("wake");
-    }
-    return LSTR("unknown");
-}
-
 static int el_get_state(sb_t *sb, bool only_blocking)
 {
     t_scope;
@@ -1540,7 +1548,7 @@ static int el_get_state(sb_t *sb, bool only_blocking)
             t_qv_init(lstr, tab, hdr_size);
 
             qv_append(lstr, tab, t_lstr_fmt("%p", ev));
-            qv_append(lstr, tab, ev_type_to_str(ev->type));
+            qv_append(lstr, tab, LSTR(ev_type_to_str(ev->type)));
             if (ev->flags & EV_FLAG_IS_BLK) {
                 qv_append(lstr, tab, LSTR("block"));
             } else {
