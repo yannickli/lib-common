@@ -1497,7 +1497,7 @@ static lstr_t ev_type_to_str(ev_type_t type)
     return LSTR("unknown");
 }
 
-static void el_print_state(void)
+static int el_get_state(sb_t *sb, bool only_blocking)
 {
     t_scope;
     qv_t(table_hdr) hdr;
@@ -1529,7 +1529,10 @@ static void el_print_state(void)
             ev_t *ev = &bucket[j];
             lstr_t details = LSTR_NULL_V;
 
-            if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS)) {
+            if (ev->type == EV_UNUSED) {
+                continue;
+            }
+            if (only_blocking && !EV_FLAG_HAS(ev, REFS)) {
                 continue;
             }
 
@@ -1584,13 +1587,20 @@ static void el_print_state(void)
         }
     }
 
-    if (rows.len) {
-        SB_1k(buf);
+    sb_add_table(sb, &hdr, &rows);
+    sb_shrink(sb, 1);
 
-        sb_adds(&buf, "el blocking summary:\n");
-        sb_add_table(&buf, &hdr, &rows);
-        sb_shrink(&buf, 1);
-        logger_notice(&_G.logger, "%*pM", SB_FMT_ARG(&buf));
+    return rows.len;
+}
+
+static void el_print_state(void)
+{
+    SB_1k(buf);
+    int nb_blocking = el_get_state(&buf, true);
+
+    if (nb_blocking) {
+        logger_notice(&_G.logger, "el blocking summary:\n%*pM",
+                      SB_FMT_ARG(&buf));
     } else {
         logger_notice(&_G.logger, "no blocking event");
     }
@@ -1672,7 +1682,16 @@ static int el_shutdown(void)
     qv_init(ev, &_G.cache);
 
     if (_G.used) {
-        /* TODO: warn about events still in use. */
+        if (logger_is_traced(&_G.logger, 1)) {
+            SB_1k(buf);
+            int nb_used = el_get_state(&buf, false);
+
+            logger_trace(&_G.logger, 1, "%d events are leaked:\n%*pM",
+                         nb_used, SB_FMT_ARG(&buf));
+            assert (nb_used == _G.used);
+        } else {
+            logger_trace(&_G.logger, 0, "%d events are leaked", _G.used);
+        }
     } else {
         qv_deep_wipe(ev, &_G.buckets, p_delete);
         qv_init(ev, &_G.buckets);
