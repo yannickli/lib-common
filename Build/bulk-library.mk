@@ -145,8 +145,7 @@ $(3:l=c): $3
 	$(msg/COMPILE.l) $3
 	flex -R -o $$@+ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
-	       -e '1s/^/#pragma GCC diagnostic ignored "-Wsign-compare"\n/' \
-	       -e '1s/^/#pragma GCC diagnostic ignored "-Wunknown-pragmas"\n/' \
+	       -e '1s/^/#if defined __clang__ || ((__GNUC__ << 16) + __GNUC_MINOR__ >= (4 << 16) +2)\n#pragma GCC diagnostic ignored "-Wsign-compare"\n#endif\n/' \
 	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
 	       -e 's/(int) (yyg->yy_n_chars + number_to_move)/(yy_size_t) (yyg->yy_n_chars + number_to_move)/' \
 	       -e 's/^int .*get_column.*;//' \
