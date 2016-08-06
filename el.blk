@@ -1495,11 +1495,27 @@ data_t el_unregister(ev_t **evp)
 /* }}} */
 /* {{{ el blocking summary dumper */
 
+static void el_for_each(void (^on_ev)(ev_t *))
+{
+    qv_for_each_pos(ev, i, &_G.buckets) {
+        ev_t *bucket = _G.buckets.tab[i];
+        int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
+
+        for (int j = 0; j < bucket_len; j++) {
+            ev_t *ev = &bucket[j];
+
+            if (ev->type != EV_UNUSED) {
+                on_ev(ev);
+            }
+        }
+    }
+}
+
 static int el_get_state(sb_t *sb, bool only_blocking)
 {
     t_scope;
     qv_t(table_hdr) hdr;
-    qv_t(table_data) rows;
+    qv_t(table_data) *rows = t_qv_new(table_data, 200);
     table_hdr_t hdr_data[] = { {
             .title = LSTR_IMMED("EV POINTER"),
         }, {
@@ -1516,81 +1532,71 @@ static int el_get_state(sb_t *sb, bool only_blocking)
     uint32_t hdr_size = countof(hdr_data);
 
     qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
-    t_qv_init(table_data, &rows, 200);
 
-    qv_for_each_pos(ev, i, &_G.buckets) {
-        ev_t *bucket = _G.buckets.tab[i];
-        int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
+    el_for_each(^(ev_t *ev) {
+        qv_t(lstr) *tab;
+        lstr_t details = LSTR_NULL;
 
-        for (int j = 0; j < bucket_len; j++) {
-            qv_t(lstr) *tab;
-            ev_t *ev = &bucket[j];
-            lstr_t details = LSTR_NULL_V;
-
-            if (ev->type == EV_UNUSED) {
-                continue;
-            }
-            if (only_blocking && !EV_FLAG_HAS(ev, REFS)) {
-                continue;
-            }
-
-            tab = qv_growlen(table_data, &rows, 1);
-            t_qv_init(lstr, tab, hdr_size);
-
-            qv_append(lstr, tab, t_lstr_fmt("%p", ev));
-            qv_append(lstr, tab, LSTR(ev_type_to_str(ev->type)));
-            if (ev->flags & EV_FLAG_IS_BLK) {
-                qv_append(lstr, tab, LSTR("block"));
-            } else {
-                qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
-            }
-            qv_append(lstr, tab, t_lstr_fmt("%p", ev->priv.ptr));
-
-            switch (ev->type) {
-              case EV_SIGNAL:
-                details = t_lstr_fmt("signal: %d", ev->signo);
-                break;
-              case EV_CHILD:
-                details = t_lstr_fmt("pid: %d", ev->child.pid);
-                break;
-              case EV_FD:
-                details = t_lstr_fmt("fd: %d%s, events: %04x",
-                                     ev->fd.fd,
-                                     ev->fd.owned ? " (owned)" : "",
-                                     ev->events_wanted);
-                break;
-              case EV_TIMER:
-                if (ev->timer.repeat < 0) {
-                    details = t_lstr_fmt("one shot, expiry: %ju.%03ju, "
-                                         "tolerance: %ums",
-                                         ev->timer.expiry / 1000,
-                                         ev->timer.expiry % 1000,
-                                         ev->timer.tolerance);
-                } else {
-                    details = t_lstr_fmt("repeat: %dms, next: %ju.%03ju, "
-                                         "tolerance: %ums",
-                                         ev->timer.repeat,
-                                         ev->timer.expiry / 1000,
-                                         ev->timer.expiry % 1000,
-                                         ev->timer.tolerance);
-                }
-                break;
-              case EV_PROXY:
-                details = t_lstr_fmt("events wanted:%04x, "
-                                     "events available: %04x",
-                                     ev->events_wanted, ev->events_avail);
-                break;
-              default:
-                break;
-            }
-            qv_append(lstr, tab, details);
+        if (only_blocking && !EV_FLAG_HAS(ev, REFS)) {
+            return;
         }
-    }
 
-    sb_add_table(sb, &hdr, &rows);
+        tab = qv_growlen(table_data, rows, 1);
+        t_qv_init(lstr, tab, hdr_size);
+
+        qv_append(lstr, tab, t_lstr_fmt("%p", ev));
+        qv_append(lstr, tab, LSTR(ev_type_to_str(ev->type)));
+        if (ev->flags & EV_FLAG_IS_BLK) {
+            qv_append(lstr, tab, LSTR("block"));
+        } else {
+            qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
+        }
+        qv_append(lstr, tab, t_lstr_fmt("%p", ev->priv.ptr));
+
+        switch (ev->type) {
+          case EV_SIGNAL:
+            details = t_lstr_fmt("signal: %d", ev->signo);
+            break;
+          case EV_CHILD:
+            details = t_lstr_fmt("pid: %d", ev->child.pid);
+            break;
+          case EV_FD:
+            details = t_lstr_fmt("fd: %d%s, events: %04x",
+                                 ev->fd.fd,
+                                 ev->fd.owned ? " (owned)" : "",
+                                 ev->events_wanted);
+            break;
+          case EV_TIMER:
+            if (ev->timer.repeat < 0) {
+                details = t_lstr_fmt("one shot, expiry: %ju.%03ju, "
+                                     "tolerance: %ums",
+                                     ev->timer.expiry / 1000,
+                                     ev->timer.expiry % 1000,
+                                     ev->timer.tolerance);
+            } else {
+                details = t_lstr_fmt("repeat: %dms, next: %ju.%03ju, "
+                                     "tolerance: %ums",
+                                     ev->timer.repeat,
+                                     ev->timer.expiry / 1000,
+                                     ev->timer.expiry % 1000,
+                                     ev->timer.tolerance);
+            }
+            break;
+          case EV_PROXY:
+            details = t_lstr_fmt("events wanted:%04x, "
+                                 "events available: %04x",
+                                 ev->events_wanted, ev->events_avail);
+            break;
+          default:
+            break;
+        }
+        qv_append(lstr, tab, details);
+    });
+
+    sb_add_table(sb, &hdr, rows);
     sb_shrink(sb, 1);
 
-    return rows.len;
+    return rows->len;
 }
 
 static void el_print_state(void)
@@ -1681,6 +1687,15 @@ static int el_shutdown(void)
     qv_wipe(ev, &_G.cache);
     qv_init(ev, &_G.cache);
 
+    /* Automatically destroy SIGNAL events (we don't want write boring code to
+     * make it ourselves). */
+    el_for_each(^(ev_t *ev) {
+        if (!EV_FLAG_HAS(ev, REFS) && ev->type == EV_SIGNAL) {
+            el_unregister(&ev);
+        }
+    });
+
+    /* Check for leaked events. */
     if (_G.used) {
         if (logger_is_traced(&_G.logger, 1)) {
             SB_1k(buf);
