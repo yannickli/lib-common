@@ -214,7 +214,7 @@ static void exiop_on_term(el_t idx, int signum, data_t priv)
         ic_bye(&_G.remote_ic);
 
     /* Make event loop to stop */
-    el_blocker_unregister(&_G.blocker);
+    el_unregister(&_G.blocker);
 
     _G.is_closing = true;
 }

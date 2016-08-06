@@ -45,9 +45,10 @@ void el_stopper_register(void)
     stopper_g.stopper = el_signal_register(SIGINT, &stopper_handler, NULL);
     el_unref(stopper_g.stopper);
 }
-void el_stopper_unregister(void)
+__unused__
+static void el_stopper_unregister(void)
 {
-    el_signal_unregister(&stopper_g.stopper);
+    el_unregister(&stopper_g.stopper);
 }
 
 bool el_stopper_is_waiting(void)

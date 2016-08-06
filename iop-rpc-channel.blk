@@ -364,7 +364,7 @@ void ic_msg_delete(ic_msg_t **msgp)
         mp_delete(_G.mp, &msg->data);
     }
 
-    el_timer_unregister(&msg->timeout_timer);
+    el_unregister(&msg->timeout_timer);
     mp_delete(_G.mp, msgp);
 }
 
@@ -1677,7 +1677,7 @@ static void ic_reconnect(el_t ev, data_t priv)
      * timer. This code ensure the watch_activity timer is properly
      * unregistered and that it will not be leaked in the event-loop.
      */
-    el_timer_unregister(&ic->timer);
+    el_unregister(&ic->timer);
     if (ic_connect(ic) < 0) {
         ic->timer = el_timer_register(ic->retry_delay, 0, 0, ic_reconnect,
                                       ic);
@@ -1690,7 +1690,7 @@ void ic_disconnect(ichannel_t *ic)
     ic->queuable = false;
 
     if (ic->elh) {
-        el_fd_unregister(&ic->elh);
+        el_unregister(&ic->elh);
         ic_cancel_all(ic);
 #ifdef IC_DEBUG_REPLIES
         qh_wipe(ic_replies, &ic->dbg_replies);
@@ -1698,8 +1698,8 @@ void ic_disconnect(ichannel_t *ic)
 #endif
         ic->on_event(ic, IC_EVT_DISCONNECTED);
     }
-    el_timer_unregister(&ic->timer);
-    el_timer_unregister(&ic->wa_soft_timer);
+    el_unregister(&ic->timer);
+    el_unregister(&ic->wa_soft_timer);
     ic_drop_id(ic);
 
     if (!ic->is_closing && ic->is_spawned && !ic->no_autodel) {
@@ -2229,8 +2229,8 @@ void ic_bye(ichannel_t *ic)
     if (ic->elh) {
         ic_sc_do(ic, IC_SC_BYE);
     } else {
-        el_timer_unregister(&ic->timer);
-        el_timer_unregister(&ic->wa_soft_timer);
+        el_unregister(&ic->timer);
+        el_unregister(&ic->wa_soft_timer);
     }
     ic->is_closing  = true;
     ic->auto_reconn = false;
@@ -2343,7 +2343,7 @@ static void ic_watch_act_soft(el_t ev, data_t priv)
     ichannel_t *ic = priv.ptr;
 
     ic->on_event(ic, IC_EVT_NOACT);
-    el_timer_unregister(&ic->wa_soft_timer);
+    el_unregister(&ic->wa_soft_timer);
 }
 
 static void ic_watch_act_nop(el_t ev, data_t priv)
@@ -2360,8 +2360,8 @@ static void __ic_watch_activity(ichannel_t *ic)
         return;
 
     el_fd_watch_activity(ic->elh, POLLIN, wa);
-    el_timer_unregister(&ic->timer);
-    el_timer_unregister(&ic->wa_soft_timer);
+    el_unregister(&ic->timer);
+    el_unregister(&ic->wa_soft_timer);
 
     if (ic->wa_soft > 0) {
         if (wa > 0) {

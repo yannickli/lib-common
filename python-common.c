@@ -443,7 +443,7 @@ static void python_http_on_done(httpc_query_t *_q, httpc_status_t status)
 
 static void python_http_on_term(el_t idx, int signum, el_data_t priv)
 {
-    el_blocker_unregister(&_G.blocker);
+    el_unregister(&_G.blocker);
 }
 
 static void net_rtcl_on_ready(net_rctl_t *rctl)

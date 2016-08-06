@@ -40,7 +40,7 @@ static popt_t popts[] = {
 
 static void on_term(el_t ev, int signo, data_t priv)
 {
-    el_blocker_unregister(&_G.blocker);
+    el_unregister(&_G.blocker);
 }
 
 static void f_cb(IOP_RPC_IMPL_ARGS(tstiop__t, iface, f))

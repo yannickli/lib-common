@@ -400,23 +400,6 @@ void el_before_set_hook(el_t ev, el_cb_f *cb)
     ev->cb.cb = cb;
 }
 
-void el_blocker_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        el_destroy(evp, false);
-    }
-}
-
-data_t el_before_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp, true);
-    }
-    return (data_t)NULL;
-}
-
 ev_t *el_idle_register_d(el_cb_f *cb, data_t priv)
 {
     return ev_add(&_G.idle, el_create(EV_IDLE, cb, priv, false));
@@ -432,15 +415,6 @@ void el_idle_set_hook(el_t ev, el_cb_f *cb)
     CHECK_EV_TYPE(ev, EV_IDLE);
     assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.cb = cb;
-}
-
-data_t el_idle_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_IDLE);
-        return el_destroy(evp, true);
-    }
-    return (data_t)NULL;
 }
 
 void el_idle_unpark(ev_t *ev)
@@ -551,15 +525,6 @@ ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
     return el_blk_register(el_signal_register(signo, NULL, NULL), blk, wipe);
 }
 
-data_t el_signal_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        return el_destroy(evp, true);
-    }
-    return (data_t)NULL;
-}
-
 /* }}} */
 /* {{{ child events */
 
@@ -631,7 +596,7 @@ ev_t *el_child_register_blk(pid_t pid, el_child_b blk, block_t wipe)
     return el_blk_register(el_child_register(pid, NULL, NULL), blk, wipe);
 }
 
-data_t el_child_unregister(ev_t **evp)
+static data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_CHILD);
@@ -709,6 +674,16 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
  * Adding/Updating/... a timer is pseudo linear O(log(n)) in the number of
  * timers.
  */
+
+static data_t el_timer_unregister(ev_t **evp)
+{
+    if (unlikely(!*evp))
+        return (data_t)NULL;
+
+    qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
+
+    return el_destroy(evp, false);
+}
 
 static void el_timer_process(uint64_t until)
 {
@@ -892,16 +867,6 @@ void el_timer_restart(ev_t *ev, int restart)
         el_timer_compute_tolerance(ev);
     }
     el_timer_restart_fast(ev, restart);
-}
-
-data_t el_timer_unregister(ev_t **evp)
-{
-    if (unlikely(!*evp))
-        return (data_t)NULL;
-
-    qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
-
-    return el_destroy(evp, false);
 }
 
 bool el_timer_is_repeated(el_t ev)
@@ -1153,15 +1118,6 @@ void el_proxy_set_hook(el_t ev, el_proxy_f *cb)
     ev->cb.prox = cb;
 }
 
-data_t el_proxy_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_PROXY);
-        return el_destroy(evp, true);
-    }
-    return (data_t)NULL;
-}
-
 static void el_proxy_change_ready(ev_t *ev, bool was_ready)
 {
     dlist_move(was_ready ? &_G.proxy : &_G.proxy_ready, &ev->ev_list);
@@ -1287,7 +1243,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
     return el;
 }
 
-data_t el_wake_unregister(el_t *el)
+static data_t el_wake_unregister(el_t *el)
 {
     if (*el) {
         el_fd_unregister(&(*el)->wake.read_fd);
@@ -1507,6 +1463,35 @@ bool el_has_pending_events(void)
         || el_fds_has_pending_events();
 }
 
+data_t el_unregister(ev_t **evp)
+{
+    data_t res = (data_t)NULL;
+
+    if (*evp) {
+        switch ((*evp)->type) {
+          case EV_BLOCKER:
+            return el_destroy(evp, false);
+
+          case EV_BEFORE:
+          case EV_SIGNAL:
+          case EV_PROXY:
+          case EV_IDLE:
+            return el_destroy(evp, true);
+
+          case EV_CHILD:    return el_child_unregister(evp);
+          case EV_FD:       return el_fd_unregister(evp);
+          case EV_TIMER:    return el_timer_unregister(evp);
+          case EV_FS_WATCH: return el_fs_watch_unregister(evp);
+          case EV_WAKE:     return el_wake_unregister(evp);
+
+          case EV_UNUSED:
+            break;
+        }
+    }
+
+    return res;
+}
+
 /* }}} */
 /* {{{ el blocking summary dumper */
 
@@ -1672,8 +1657,8 @@ static int el_initialize(void *arg)
 
 static int el_shutdown(void)
 {
-    el_signal_unregister(&_G.el_on_pwr);
-    el_signal_unregister(&_G.el_sigchld_hook);
+    el_unregister(&_G.el_on_pwr);
+    el_unregister(&_G.el_sigchld_hook);
 
     /* Wipe all containers in order to remove traces in valgrind, however
      * ensure they remain valid in case some other destructor perform el

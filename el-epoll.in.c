@@ -85,7 +85,7 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
-data_t el_fd_unregister(ev_t **evp)
+static data_t el_fd_unregister(ev_t **evp)
 {
     if (*evp) {
         ev_t *ev = *evp;

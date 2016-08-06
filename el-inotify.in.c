@@ -172,7 +172,7 @@ el_t el_fs_watch_register_d(const char *path, uint32_t flags,
     return ev;
 }
 
-data_t el_fs_watch_unregister(ev_t **evp)
+static data_t el_fs_watch_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_FS_WATCH);

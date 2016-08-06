@@ -1417,7 +1417,7 @@ static void httpd_wipe(httpd_t *w)
     if (w->on_disconnect) {
         (*w->on_disconnect)(w);
     }
-    el_fd_unregister(&w->ev);
+    el_unregister(&w->ev);
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
     http_zlib_wipe(w);
@@ -1776,7 +1776,7 @@ el_t httpd_listen(sockunion_t *su, httpd_cfg_t *cfg)
 void httpd_unlisten(el_t *ev)
 {
     if (*ev) {
-        httpd_cfg_t *cfg = el_fd_unregister(ev).ptr;
+        httpd_cfg_t *cfg = el_unregister(ev).ptr;
 
         dlist_for_each(it, &cfg->httpd_list) {
             httpd_close_gently(dlist_entry(it, httpd_t, httpd_link));
@@ -2305,7 +2305,7 @@ static void httpc_wipe(httpc_t *w)
 static void httpc_disconnect(httpc_t *w)
 {
     httpc_pool_detach(w);
-    el_fd_unregister(&w->ev);
+    el_unregister(&w->ev);
     dlist_for_each(it, &w->query_list) {
         httpc_query_abort(dlist_entry(it, httpc_query_t, query_link));
     }
@@ -2790,7 +2790,7 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
                 len -= res;
             }
         }
-        el_fd_unregister(&zel_client_g);
+        el_unregister(&zel_client_g);
     }
     return 0;
 }
@@ -2875,8 +2875,8 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t),
 
 static void z_query_cleanup(void) {
     httpc_query_wipe(&zquery_g);
-    el_fd_unregister(&zel_server_g);
-    el_fd_unregister(&zel_client_g);
+    el_unregister(&zel_server_g);
+    el_unregister(&zel_client_g);
     el_loop_timeout(10);
     sb_wipe(&body_g);
     sb_wipe(&zquery_sb_g);

@@ -790,8 +790,8 @@ bool thr_job_reload_at_fork(bool enabled)
 __attr_notsan__
 static void thr_wipe(void)
 {
-    el_before_unregister(&_G.before);
-    el_wake_unregister(&_G.wakeel);
+    el_unregister(&_G.before);
+    el_unregister(&_G.wakeel);
     p_delete(&_G.threads);
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
@@ -1078,7 +1078,7 @@ static int z_wake_up(void)
         }
 
         thr_queue_b(thr_queue_main_g, ^{
-            el_blocker_unregister(&z_wake_up_g.blocker);
+            el_unregister(&z_wake_up_g.blocker);
         });
     });
     while (z_wake_up_g.blocker) {

@@ -151,11 +151,8 @@ void el_idle_set_hook(el_t, el_cb_f *) __leaf;
 void el_signal_set_hook(el_t, el_signal_f *) __leaf;
 void el_child_set_hook(el_t, el_child_f *) __leaf;
 
-data_t el_before_unregister(el_t *);
-data_t el_idle_unregister(el_t *);
-data_t el_signal_unregister(el_t *);
-data_t el_child_unregister(el_t *);
-void      el_blocker_unregister(el_t *);
+/** Unregister an event whatever its type. */
+data_t el_unregister(el_t *);
 
 /*----- idle related -----*/
 void el_idle_unpark(el_t) __leaf;
@@ -173,7 +170,6 @@ static inline el_t el_proxy_register(el_proxy_f *f, void *ptr) {
     return el_proxy_register_d(f, (data_t){ ptr });
 }
 void el_proxy_set_hook(el_t, el_proxy_f *) __leaf;
-data_t el_proxy_unregister(el_t *);
 short el_proxy_set_event(el_t, short mask) __leaf;
 short el_proxy_clr_event(el_t, short mask) __leaf;
 short el_proxy_set_mask(el_t, short mask) __leaf;
@@ -181,7 +177,6 @@ short el_proxy_set_mask(el_t, short mask) __leaf;
 /*----- stopper API -----*/
 void el_stopper_register(void) __leaf;
 bool el_stopper_is_waiting(void) __leaf;
-void el_stopper_unregister(void) __leaf;
 
 /*----- fd related -----*/
 extern struct rlimit fd_limit_g;
@@ -205,7 +200,6 @@ static inline el_t el_fd_register(int fd, bool own_fd, short events,
 }
 void el_fd_set_hook(el_t, el_fd_f *)
     __leaf;
-data_t el_fd_unregister(el_t *);
 
 typedef enum ev_fd_loop_flags_t {
     EV_FDLOOP_HANDLE_SIGNALS = 1 << 0,
@@ -266,9 +260,6 @@ static inline el_t el_wake_register(el_cb_f *cb, void *ptr)
 
 void el_wake_fire(el_t);
 
-data_t el_wake_unregister(el_t *);
-
-
 /** \} */
 
 /**
@@ -289,8 +280,6 @@ static inline el_t el_fs_watch_register(const char *path, uint32_t flags,
 {
     return el_fs_watch_register_d(path, flags, f, (data_t){ ptr });
 }
-
-data_t el_fs_watch_unregister(el_t *);
 
 int el_fs_watch_change(el_t el, uint32_t flags);
 
@@ -350,13 +339,7 @@ bool el_timer_is_repeated(el_t ev) __leaf __attribute__((pure));
  */
 void el_timer_restart(el_t, int next) __leaf;
 void el_timer_set_hook(el_t, el_cb_f *) __leaf;
-/** \brief unregisters (and cancels) a timer given its index.
- *
- * \param[in]  el      the timer handler descriptor to cancel.
- * \return the private previously registered with the handler.
- *
- */
-data_t el_timer_unregister(el_t *);
+
 /**\}*/
 
 el_t el_ref(el_t) __leaf;

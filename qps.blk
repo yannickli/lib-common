@@ -2459,7 +2459,7 @@ qps_t *qps_open(const char *path, sb_t *priv)
     qps = qps_new();
     qps->dfd = fd;
     qps->gc_idle = el_idle_register(qps_gc_on_idle, qps);
-    el_idle_unregister(&qps->gc_idle);
+    el_unregister(&qps->gc_idle);
 
     if (qps_lock(qps) < 0) {
         goto out_close;
@@ -2621,7 +2621,7 @@ static void qps_snapshot_bg_done(el_t el, pid_t pid, int status, data_t data)
         thr_queue_b(thr_queue_main_g, ^{
             struct timeval end;
 
-            el_timer_unregister(&qps->snap_timer_el);
+            el_unregister(&qps->snap_timer_el);
             logger_trace(&_G.tracing_logger, 1, "snapshot commited and "
                          "notified");
 
@@ -2917,7 +2917,7 @@ void qps_snapshot_wait(qps_t *qps)
                 }
                 first = false;
             }
-            el_child_unregister(&qps->snap_el);
+            el_unregister(&qps->snap_el);
             qps_snapshot_bg_done(NULL, qps->snap_pid, status,
                                  (data_t){ .ptr = qps });
         }
@@ -3044,7 +3044,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
 
     if (qps) {
         logger_trace(&_G.logger, 2, "qps_closing(%p)", qps);
-        el_idle_unregister(&qps->gc_idle);
+        el_unregister(&qps->gc_idle);
         qps_gc_disable(qps);
         thr_syn_wait(&qps->gc_syn);
         qps_snapshot_wait(qps);
