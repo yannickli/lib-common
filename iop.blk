@@ -74,7 +74,8 @@ int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
 }
 
 const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
-                                 lstr_t path, const void ** nullable out_ptr)
+                                 lstr_t path, const void ** nullable out_ptr,
+                                 const iop_struct_t ** nullable out_st)
 {
     pstream_t ps = ps_initlstr(&path);
     const iop_field_t *iop_field = NULL;
@@ -102,7 +103,7 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             THROW_NULL_IF(!ps_done(&as));
         }
 
-        RETHROW_NP(iop_field_find_by_name(st, LSTR_PS_V(&s), NULL,
+        RETHROW_NP(iop_field_find_by_name(st, LSTR_PS_V(&s), out_st,
                                           &iop_field));
         if (st->is_union && *(int16_t *)ptr != iop_field->tag) {
             return NULL;

@@ -672,12 +672,15 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
  * \param[in]  ptr      The IOP object.
  * \param[in]  st       The iop_struct_t describing the object.
  * \param[in]  path     The path to the field (separate members with a '.').
- * \param[out] out      A pointer to the final IOP object.
+ * \param[out] out_ptr  A pointer to the final IOP object.
+ * \param[out] out_st   Descriptor of the structure that contains
+ *                      the returned field.
  *
  * \return The iop field description if found, NULL otherwise.
  */
 const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
-                                 lstr_t path, const void ** nullable out_ptr);
+                                 lstr_t path, const void ** nullable out_ptr,
+                                 const iop_struct_t ** nullable out_st);
 
 /** Get the value(s) associated to a given IOP field.
  *
