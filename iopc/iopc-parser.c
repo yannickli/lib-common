@@ -3113,6 +3113,12 @@ static int parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     *out = lstr_dups(TK_N(pp, 0)->b.data, -1);
     DROP(pp, 1);
 
+    if (!CHECK_N(pp, 0, ',')) {
+        /* Consider @(name) as an empty JSON */
+        arg.type = ITOK_IDENT;
+        arg.v.s = LSTR("{}");
+        goto append;
+    }
     EAT(pp, ',');
 
     tk = TK_N(pp, 0);

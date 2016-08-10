@@ -6,6 +6,7 @@ typedef double Price;
 
 @(scenario:label, en = "Voice call",
                   fr = "Appel téléphonique")
+@(empty:attr)
 class VoiceEvent {
     @(scenario:label, en = "Duration", fr = "Durée")
     @(scenario:type, integer = { size = "INT32",
@@ -21,6 +22,7 @@ class DataEvent {
                       fr = "Bande passante")
     @(scenario:type, integer = { size = "INT32",
                                  format = "TIME" })
+    @(empty:attr)
     int length;
     Price price;
 };

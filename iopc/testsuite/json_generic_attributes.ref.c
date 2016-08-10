@@ -71,10 +71,14 @@ static const iop_struct_attr_t json_generic_attributes__voice_event__s_attrs[] =
         .type = 4,
         .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Voice call\",\"fr\":\"Appel téléphonique\"}") } },
     },
+    {
+        .type = 4,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("empty:attr") }, {.v.s = LSTR_IMMED("{}") } },
+    },
 };
 static const iop_struct_attrs_t json_generic_attributes__voice_event__s_desc_attrs = {
     .flags     = 0,
-    .attrs_len = 1,
+    .attrs_len = 2,
     .attrs     = json_generic_attributes__voice_event__s_attrs,
 };
 static const iop_class_attrs_t json_generic_attributes__voice_event__class_s = {
@@ -108,6 +112,10 @@ static iop_field_attr_t const json_generic_attributes__data_event__length__attrs
         .type = 15,
         .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("scenario:type") }, {.v.s = LSTR_IMMED("{\"integer\":{\"size\":\"INT32\",\"format\":\"TIME\"}}") } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("empty:attr") }, {.v.s = LSTR_IMMED("{}") } },
+    },
 };
 static iop_field_attr_t const json_generic_attributes__data_event__price__attrs[] = {
     {
@@ -122,7 +130,7 @@ static iop_field_attr_t const json_generic_attributes__data_event__price__attrs[
 static iop_field_attrs_t const json_generic_attributes__data_event__desc_fields_attrs[] = {
     {
         .flags             = 32768,
-        .attrs_len         = 2,
+        .attrs_len         = 3,
         .attrs             = json_generic_attributes__data_event__length__attrs,
     },
     {

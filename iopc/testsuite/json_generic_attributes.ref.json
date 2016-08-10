@@ -11,6 +11,10 @@
 				"scenario:label": {
 					"type": "object",
 					"value": {"en":"Voice call","fr":"Appel téléphonique"}
+				},
+				"empty:attr": {
+					"type": "object",
+					"value": {}
 				}
 			},
 			"fields": {
@@ -64,6 +68,10 @@
 						"scenario:type": {
 							"type": "object",
 							"value": {"integer":{"size":"INT32","format":"TIME"}}
+						},
+						"empty:attr": {
+							"type": "object",
+							"value": {}
 						}
 					}
 				},
