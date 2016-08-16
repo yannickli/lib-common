@@ -26,7 +26,7 @@ git_describe() {
 }
 
 git_rcsid() {
-    revision=$(git_describe | tr -d 'n')
+    revision=$(git_describe)
     cat <<EOF
 char const $1_id[] =
     "\$Intersec: $1 $revision \$";
