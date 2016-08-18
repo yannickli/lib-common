@@ -5,23 +5,7 @@ The platform globally conforms to 'HTTP/1.1' as defined in <<HTTP_1.1>> and to
 
 ==== HTTP/1.1 conformance ====
 
-Platform 'HTTP/1.1' support as a server is complete, including features like
-`Expect: 100- continue' or pipelining. Though, unlike what the <<HTTP_1.1>>
-standard mandates, the server doesn't support 'HTTP/0.9' requests. It is
-to be noted that whereas 'HTTP/1.0' is supported, due to its lack of support
-for pipelining and chunked encoding, using 'HTTP/1.0' may yield bad overall
-performance.
-
-Our HTTP interfaces support:
-
--  Pipelining.
--  Garbage collecting of unused connections (after a configurable delay);
--  Automatic recycling of connections after a configurable amount of requests;
--  Basic HTTP Authentication (no Digest support
-footnote:[Digest HTTP Authentication makes life harder for clients wishing to
-use pipelining, hence is not implemented.  If additional security is needed,
-using an HTTPS-enabled reverse proxy is suggested.]);
--  Content encodings (identity, gzip and deflate).
+include::http-conformance.adoc[]
 
 ==== SOAP conformance ====
 
@@ -41,18 +25,7 @@ queries/responses not to be multi-part.
 
 === Interfaces constraints ===
 
-==== Size of application queries ====
-
-For performance reasons, queries must stay below a 2 MB limit.
-The platform will ignore requests with larger query sizes.
-
-==== Size of responses towards applications ====
-
-To find a fair trade-off between the responses size, network latencies and
-batch processing, we will try to limit its responses to 10 MB. This limit is
-a fuzzy one though, as it may decide to limit the significant part of a payload
-to 10 MB, and add some additional wrapping XML tags. The additional payload
-should always be under a few kilobytes though.
+include::iop-interfaces-constraints.adoc[]
 
 === Intersec Web services use of XML Schema ===
 
