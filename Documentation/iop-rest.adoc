@@ -1,0 +1,17 @@
+=== Standards conformance ===
+
+The platform globally follows the REST principles and conforms to 'HTTP/1.1'
+as defined in <<HTTP_1.1>> and to JSONfootnote:[http://www.json.org/[]] format.
+
+==== HTTP/1.1 conformance ====
+
+include::http-conformance.adoc[]
+
+==== JSON conformance ====
+
+include::json-conformance.adoc[]
+
+=== Interfaces constraints ===
+
+include::iop-interfaces-constraints.adoc[]
+
