@@ -782,8 +782,8 @@ Z_GROUP_EXPORT(qhp)
 /*{{{1 Red-Black Tree */
 
 typedef struct {
-    rb_node_t link;
     int       v;
+    rb_node_t link;
 } rb_test_t;
 GENERIC_FUNCTIONS(rb_test_t, rb_test);
 
