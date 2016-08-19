@@ -39,16 +39,15 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     iop_json_lex_t jll;
     int res = 0;
     SB_8k(buf);
-    void *v;
 
-    v = t_new_raw(char, st->size);
+    *vout = NULL;
     iop_jlex_init(t_pool(), &jll);
     ps = ps_initsb(&iq->payload);
     iop_jlex_attach(&jll, &ps);
 
     jll.flags = tcb->unpack_flags;
 
-    if (iop_junpack(&jll, st, v, true)) {
+    if (iop_junpack_ptr(&jll, st, vout, true)) {
         sb_reset(&buf);
         iop_jlex_write_error(&jll, &buf);
 
@@ -59,7 +58,6 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
         goto end;
     }
     iop_jlex_detach(&jll);
-    *vout = v;
 
   end:
     iop_jlex_wipe(&jll);
