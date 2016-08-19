@@ -136,7 +136,7 @@ rb_node_t *__rb_prev(rb_node_t *) __leaf;
     __unused__                                                               \
     static ALWAYS_INLINE entry_t *rb_##n##_entry(rb_node_t *node)            \
     {                                                                        \
-        return container_of(node, entry_t, link);                            \
+        return (node) ? container_of(node, entry_t, link) : NULL;            \
     }
 
 #define __RBTREE_LOOKUP(n, entry_t, key_t, link, get_key, compare)           \
