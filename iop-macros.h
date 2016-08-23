@@ -559,7 +559,8 @@
  */
 #define IOP_CLASS_SWITCH(name, cls)  \
     for (const iop_struct_t *__##name##_st = cls,                            \
-                            *__##name##_next_st = cls;                       \
+                            *__##name##_next_st = cls,                       \
+                            *__##name##_missing_switch_default = NULL;       \
          __##name##_st == __##name##_next_st;                                \
          __##name##_st = __##name##_st->class_attrs->parent)                 \
         switch (__##name##_st->class_attrs->class_id)
@@ -596,6 +597,7 @@
 #define IOP_CLASS_DEFAULT(name)  \
         break;                                                               \
       default:                                                               \
+        IGNORE(__##name##_missing_switch_default);                           \
         if (__##name##_next_st->class_attrs->parent) {                       \
             __##name##_next_st = __##name##_next_st->class_attrs->parent;    \
             continue;                                                        \
