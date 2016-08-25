@@ -44,6 +44,7 @@ static int do_call(char * const argv[], sb_t *err)
     }
 
     if (pid == 0) {
+        setpgid(0, 0);
         execvp(argv[0], argv);
         logger_fatal(&_G.logger, "unable to run %s: %m", argv[0]);
     }
