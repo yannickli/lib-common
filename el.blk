@@ -468,9 +468,16 @@ static void el_signal_process(void)
         ev_t *ev = _G.cache.tab[i];
         int signo = ev->signo;
 
-        if (unlikely(ev->type == EV_UNUSED))
+        if (unlikely(ev->type == EV_UNUSED)) {
             continue;
+        }
+
         if (gotsigs & (1 << signo)) {
+            if (signo == SIGTERM || signo == SIGINT || signo == SIGQUIT
+            ||  signo == SIGUSR2)
+            {
+                module_on_term(signo);
+            }
             if (EV_FLAG_HAS(ev, IS_BLK)) {
                 ev->cb.signal_blk(ev, signo);
             } else {
