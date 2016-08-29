@@ -241,7 +241,7 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --regex-c='/^MODULE_BEGIN\(+([a-zA-Z_]+)/\1/m, module/' \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s, struct/' \
-	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c, class/' \
+	    --regex-iop='/^(local +)?(abstract +)?(local +)?class +([a-zA-Z]+)/\4/c, class/' \
 	    --regex-iop='/^union +([a-zA-Z]+)/\1/u, union/' \
 	    --regex-iop='/^enum +([a-zA-Z]+)/\1/e, enum/' \
 	    --regex-iop='/^typedef +[^;]+ +([a-zA-Z]+) *;/\1/t, typedef/' \
