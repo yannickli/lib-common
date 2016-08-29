@@ -155,7 +155,7 @@ static int iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         return 0;
     }
     if (dso->use_external_packages) {
-        e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
+        e_trace(1, "fixup package `%*pM` (%p)", LSTR_FMT_ARG(pkg->name), pkg);
         iopdso_fix_pkg(dso, pkg);
     }
     RETHROW(iop_register_packages_env(&pkg, 1, dso, env, IOP_REGPKG_FROM_DSO,
@@ -206,6 +206,8 @@ static iop_dso_t *iop_dso_init(iop_dso_t *dso)
 static void iop_dso_wipe(iop_dso_t *dso)
 {
     SB_1k(err);
+
+    e_trace(1, "close dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
     /* Delete references of this DSO in depends_on. */
     qh_for_each_pos(ptr, pos, &dso->depends_on) {
@@ -299,6 +301,8 @@ iop_dso_t *iop_dso_open(const char *path, sb_t *err)
 
     dso->path = lstr_dups(path, -1);
 
+    e_trace(1, "open dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
+
     if (iop_dso_open_(dso, err) < 0) {
         iop_dso_delete(&dso);
         return NULL;
@@ -312,6 +316,8 @@ static int iop_dso_reopen(iop_dso_t *dso, sb_t *err)
     lstr_t path = LSTR_NULL_V;
 
     lstr_transfer(&path, &dso->path);
+
+    e_trace(1, "reopen dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
     iop_dso_wipe(dso);
     iop_dso_init(dso);
