@@ -72,10 +72,12 @@ static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
 
     pkg = iop_get_pkg(pkgname);
     if (!pkg) {
-        pkgname = iop_pkgname_from_fullname(pkgname);
-        pkg = iop_get_pkg(pkgname);
+        lstr_t pkgname2 = iop_pkgname_from_fullname(pkgname);
+
+        pkg = iop_get_pkg(pkgname2);
         if (!pkg) {
-            e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
+            e_trace(4, "cannot find package `%*pM` in current environment",
+                    LSTR_FMT_ARG(pkgname));
             return;
         }
     }
@@ -111,11 +113,10 @@ static void iopdso_fix_class_parent(iop_dso_t *dso, const iop_struct_t *desc,
     if (!iop_struct_is_class(desc)) {
         return;
     }
+
     class_attrs = (iop_class_attrs_t *)desc->class_attrs;
-    while (class_attrs->parent) {
+    if (class_attrs->parent) {
         iopdso_fix_struct_ref(dso, &class_attrs->parent, own_pkg);
-        desc = class_attrs->parent;
-        class_attrs = (iop_class_attrs_t *)desc->class_attrs;
     }
 }
 
@@ -153,7 +154,7 @@ static int iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg,
         return 0;
     }
     if (dso->use_external_packages) {
-        e_trace(1, "fixup package `%*pM`", LSTR_FMT_ARG(pkg->name));
+        e_trace(1, "fixup package `%*pM` (%p)", LSTR_FMT_ARG(pkg->name), pkg);
         iopdso_fix_pkg(dso, pkg);
     }
     RETHROW(iop_register_packages_env(&pkg, 1, dso, env, IOP_REGPKG_FROM_DSO,
@@ -204,6 +205,8 @@ static iop_dso_t *iop_dso_init(iop_dso_t *dso)
 static void iop_dso_wipe(iop_dso_t *dso)
 {
     SB_1k(err);
+
+    e_trace(1, "close dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
     /* Delete references of this DSO in depends_on. */
     qh_for_each_pos(ptr, pos, &dso->depends_on) {
@@ -297,6 +300,8 @@ iop_dso_t *iop_dso_open(const char *path, sb_t *err)
 
     dso->path = lstr_dups(path, -1);
 
+    e_trace(1, "open dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
+
     if (iop_dso_open_(dso, err) < 0) {
         iop_dso_delete(&dso);
         return NULL;
@@ -310,6 +315,8 @@ static int iop_dso_reopen(iop_dso_t *dso, sb_t *err)
     lstr_t path = LSTR_NULL_V;
 
     lstr_transfer(&path, &dso->path);
+
+    e_trace(1, "reopen dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
     iop_dso_wipe(dso);
     iop_dso_init(dso);

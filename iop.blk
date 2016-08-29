@@ -4032,9 +4032,9 @@ static int iop_register_class(const iop_struct_t *desc, iop_env_t *env,
             .child_fullname = &desc->fullname,
         };
 
-        e_named_trace(5, "iop/package_registration",
-                      "registering class '%*pM' as a child of '%*pM' (%p)",
-                      LSTR_FMT_ARG(desc->fullname),
+        e_named_trace(5, "iop/package_registration", "registering class "
+                      "'%*pM' (%p) as a child of '%*pM' (%p)",
+                      LSTR_FMT_ARG(desc->fullname), desc,
                       LSTR_FMT_ARG(key.master->fullname), key.master);
 
         /* Register in classes_by_name hash table */
