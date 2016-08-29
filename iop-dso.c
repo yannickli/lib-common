@@ -72,10 +72,12 @@ static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
 
     pkg = iop_get_pkg(pkgname);
     if (!pkg) {
-        pkgname = iop_pkgname_from_fullname(pkgname);
-        pkg = iop_get_pkg(pkgname);
+        lstr_t pkgname2 = iop_pkgname_from_fullname(pkgname);
+
+        pkg = iop_get_pkg(pkgname2);
         if (!pkg) {
-            e_trace(3, "no package `%*pM`", LSTR_FMT_ARG(pkgname));
+            e_trace(4, "cannot find package `%*pM` in current environment",
+                    LSTR_FMT_ARG(pkgname));
             return;
         }
     }
