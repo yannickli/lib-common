@@ -174,10 +174,6 @@ short el_proxy_set_event(el_t, short mask) __leaf;
 short el_proxy_clr_event(el_t, short mask) __leaf;
 short el_proxy_set_mask(el_t, short mask) __leaf;
 
-/*----- stopper API -----*/
-void el_stopper_register(void) __leaf;
-bool el_stopper_is_waiting(void) __leaf;
-
 /*----- fd related -----*/
 extern struct rlimit fd_limit_g;
 

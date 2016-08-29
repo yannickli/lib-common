@@ -77,7 +77,6 @@ libcommon_SOURCES = \
 	qpage.c \
 	\
 	el.blk \
-	el-stopper.c \
 	\
 	file.c \
 	file-log.blk \
