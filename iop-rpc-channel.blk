@@ -1690,7 +1690,7 @@ void ic_disconnect(ichannel_t *ic)
     ic->queuable = false;
 
     if (ic->elh) {
-        el_fd_unregister(&ic->elh, true);
+        el_fd_unregister(&ic->elh);
         ic_cancel_all(ic);
 #ifdef IC_DEBUG_REPLIES
         qh_wipe(ic_replies, &ic->dbg_replies);
@@ -2408,10 +2408,10 @@ static int __ic_connect(ichannel_t *ic, int flags)
         return -1;
     }
     if (flags & O_NONBLOCK) {
-        ic->elh = el_fd_register(sock, POLLOUT, &ic_connecting, ic);
+        ic->elh = el_fd_register(sock, true, POLLOUT, &ic_connecting, ic);
         ic->queuable = true;
     } else {
-        ic->elh = el_fd_register(sock, POLLINOUT, &ic_event, ic);
+        ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_event, ic);
         if (ic_mark_connected(ic, sock)) {
             ic_mark_disconnected(ic);
             return -1;
@@ -2473,7 +2473,7 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     ic->is_spawned = true;
     ic->on_creds   = creds_fn;
 
-    ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
+    ic->elh = el_fd_register(fd, true, POLLIN, &ic_event, ic);
     (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
 
@@ -2520,7 +2520,7 @@ el_t ic_listento(const sockunion_t *su, int type, int proto,
     }
 #endif
     sock = RETHROW_NP(listenx(-1, su, 1, type, proto, O_NONBLOCK));
-    return el_unref(el_fd_register(sock, POLLIN, &ic_accept,
+    return el_unref(el_fd_register(sock, true, POLLIN, &ic_accept,
                                    (void *)on_accept));
 }
 

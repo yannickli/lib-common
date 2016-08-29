@@ -192,18 +192,20 @@ typedef enum ev_priority_t {
     EV_PRIORITY_HIGH   = 2
 } ev_priority_t;
 
-el_t el_fd_register_d(int fd, short events, el_fd_f *, data_t)
+el_t el_fd_register_d(int fd, bool own_fd, short events, el_fd_f *, data_t)
     __leaf;
 #ifdef __has_blocks
-el_t el_fd_register_blk(int fd, short events, el_fd_b, block_t)
+el_t el_fd_register_blk(int fd, bool own_fd, short events, el_fd_b, block_t)
     __leaf;
 #endif
-static inline el_t el_fd_register(int fd, short events, el_fd_f *f, void *ptr) {
-    return el_fd_register_d(fd, events, f, (data_t){ ptr });
+static inline el_t el_fd_register(int fd, bool own_fd, short events,
+                                  el_fd_f *f, void *ptr)
+{
+    return el_fd_register_d(fd, own_fd, events, f, (data_t){ ptr });
 }
 void el_fd_set_hook(el_t, el_fd_f *)
     __leaf;
-data_t el_fd_unregister(el_t *, bool do_close);
+data_t el_fd_unregister(el_t *);
 
 typedef enum ev_fd_loop_flags_t {
     EV_FDLOOP_HANDLE_SIGNALS = 1 << 0,

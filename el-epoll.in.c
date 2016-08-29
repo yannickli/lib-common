@@ -43,7 +43,8 @@ static void el_fd_initialize(void)
     }
 }
 
-el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
+el_t el_fd_register_d(int fd, bool own_fd, short events, el_fd_f *cb,
+                      data_t priv)
 {
     ev_t *ev = el_create(EV_FD, cb, priv, true);
     struct epoll_event event = {
@@ -52,7 +53,8 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
     };
 
     el_fd_initialize();
-    ev->fd = fd;
+    ev->fd.fd = fd;
+    ev->fd.owned = own_fd;
     ev->generation = el_epoll_g.generation;
     ev->events_wanted = events;
     ev->priority = EV_PRIORITY_NORMAL;
@@ -75,23 +77,25 @@ short el_fd_set_mask(ev_t *ev, short events)
             .data.ptr = ev,
             .events   = ev->events_wanted = events,
         };
-        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd, &event)))
+        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd.fd,
+                               &event))) {
             e_panic(E_UNIXERR("epoll_ctl"));
+        }
     }
     return old;
 }
 
-data_t el_fd_unregister(ev_t **evp, bool do_close)
+data_t el_fd_unregister(ev_t **evp)
 {
     if (*evp) {
         ev_t *ev = *evp;
 
         CHECK_EV_TYPE(ev, EV_FD);
         if (el_epoll_g.generation == ev->generation) {
-            epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd, NULL);
+            epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd.fd, NULL);
         }
-        if (likely(do_close)) {
-            close(ev->fd);
+        if (likely(ev->fd.owned)) {
+            close(ev->fd.fd);
         }
         if (EV_FLAG_HAS(ev, FD_WATCHED)) {
             el_fd_act_timer_unregister(ev->priv.ptr);

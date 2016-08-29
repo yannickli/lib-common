@@ -1417,7 +1417,7 @@ static void httpd_wipe(httpd_t *w)
     if (w->on_disconnect) {
         (*w->on_disconnect)(w);
     }
-    el_fd_unregister(&w->ev, true);
+    el_fd_unregister(&w->ev);
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
     http_zlib_wipe(w);
@@ -1769,14 +1769,14 @@ el_t httpd_listen(sockunion_t *su, httpd_cfg_t *cfg)
 
     if (fd < 0)
         return NULL;
-    return el_unref(el_fd_register(fd, POLLIN, httpd_on_accept,
+    return el_unref(el_fd_register(fd, true, POLLIN, httpd_on_accept,
                                    httpd_cfg_dup(cfg)));
 }
 
 void httpd_unlisten(el_t *ev)
 {
     if (*ev) {
-        httpd_cfg_t *cfg = el_fd_unregister(ev, true).ptr;
+        httpd_cfg_t *cfg = el_fd_unregister(ev).ptr;
 
         dlist_for_each(it, &cfg->httpd_list) {
             httpd_close_gently(dlist_entry(it, httpd_t, httpd_link));
@@ -1791,7 +1791,8 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
 
     cfg->nb_conns++;
     w->cfg         = httpd_cfg_dup(cfg);
-    w->ev          = el_unref(el_fd_register(fd, POLLIN, &httpd_on_event, w));
+    w->ev          = el_unref(el_fd_register(fd, true, POLLIN,
+                                             &httpd_on_event, w));
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     dlist_add_tail(&cfg->httpd_list, &w->httpd_link);
@@ -2304,7 +2305,7 @@ static void httpc_wipe(httpc_t *w)
 static void httpc_disconnect(httpc_t *w)
 {
     httpc_pool_detach(w);
-    el_fd_unregister(&w->ev, true);
+    el_fd_unregister(&w->ev);
     dlist_for_each(it, &w->query_list) {
         httpc_query_abort(dlist_entry(it, httpc_query_t, query_link));
     }
@@ -2485,7 +2486,8 @@ httpc_t *httpc_connect_as(const sockunion_t *su,
                                 O_NONBLOCK));
     w  = obj_new_of_class(httpc, cfg->httpc_cls);
     w->cfg         = httpc_cfg_dup(cfg);
-    w->ev          = el_unref(el_fd_register(fd, POLLOUT, &httpc_on_connect, w));
+    w->ev          = el_unref(el_fd_register(fd, true, POLLOUT,
+                                             &httpc_on_connect, w));
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     w->busy        = true;
@@ -2499,7 +2501,8 @@ httpc_t *httpc_spawn(int fd, httpc_cfg_t *cfg, httpc_pool_t *pool)
     httpc_t *w = obj_new_of_class(httpc, cfg->httpc_cls);
 
     w->cfg         = httpc_cfg_dup(cfg);
-    w->ev          = el_unref(el_fd_register(fd, POLLIN, &httpc_on_event, w));
+    w->ev          = el_unref(el_fd_register(fd, true, POLLIN,
+                                             &httpc_on_event, w));
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     httpc_set_mask(w);
@@ -2787,7 +2790,7 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
                 len -= res;
             }
         }
-        el_fd_unregister(&zel_client_g, true);
+        el_fd_unregister(&zel_client_g);
     }
     return 0;
 }
@@ -2798,7 +2801,7 @@ static int z_accept(el_t el, int fd, short mask, data_t data)
     int client = acceptx(fd, 0);
 
     if (client >= 0) {
-        zel_client_g = el_fd_register(client, POLLIN, query_cb, NULL);
+        zel_client_g = el_fd_register(client, true, POLLIN, query_cb, NULL);
     }
     return 0;
 }
@@ -2842,7 +2845,7 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t),
 
     server = listenx(-1, &su, 1, SOCK_STREAM, IPPROTO_TCP, 0);
     Z_ASSERT_N(server);
-    zel_server_g = el_fd_register(server, POLLIN, &z_accept, query_cb);
+    zel_server_g = el_fd_register(server, true, POLLIN, &z_accept, query_cb);
 
     sockunion_setport(&su, getsockport(server, AF_INET));
 
@@ -2872,8 +2875,8 @@ static int z_query_setup(int (* query_cb)(el_t, int, short, el_data_t),
 
 static void z_query_cleanup(void) {
     httpc_query_wipe(&zquery_g);
-    el_fd_unregister(&zel_server_g, true);
-    el_fd_unregister(&zel_client_g, true);
+    el_fd_unregister(&zel_server_g);
+    el_fd_unregister(&zel_client_g);
     el_loop_timeout(10);
     sb_wipe(&body_g);
     sb_wipe(&zquery_sb_g);

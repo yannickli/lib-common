@@ -125,7 +125,10 @@ typedef struct ev_t {
 
     dlist_t ev_list;            /* EV_BEFORE, EV_SIGNAL, EV_PROXY, EV_FD */
     union {
-        int     fd;             /* EV_FD */
+        struct {                /* EV_FD */
+            int     fd;
+            bool    owned;
+        } fd;
         struct {
             pid_t   pid;
             int     status;
@@ -926,7 +929,7 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
-    const int fd = ev->fd;
+    const int fd = ev->fd.fd;
 
     if (EV_IS_TRACED(ev)) {
         e_trace(0, "e-fdv(%p): got event %s%s (%04x)", ev,
@@ -994,9 +997,11 @@ ev_priority_t (el_fd_set_priority)(ev_t *ev, ev_priority_t priority)
     return p;
 }
 
-ev_t *el_fd_register_blk(int fd, short events, el_fd_b blk, block_t wipe)
+ev_t *el_fd_register_blk(int fd, bool own_fd, short events, el_fd_b blk,
+                         block_t wipe)
 {
-    return el_blk_register(el_fd_register(fd, events, NULL, NULL), blk, wipe);
+    return el_blk_register(el_fd_register(fd, own_fd, events, NULL, NULL),
+                           blk, wipe);
 }
 
 void el_fd_set_hook(el_t ev, el_fd_f *cb)
@@ -1016,7 +1021,7 @@ int el_fd_get_fd(ev_t *ev)
 {
     if (likely(ev)) {
         CHECK_EV_TYPE(ev, EV_FD);
-        return ev->fd;
+        return ev->fd.fd;
     }
     return -1;
 }
@@ -1077,7 +1082,7 @@ int el_fds_loop(ev_t **evs, int count, int timeout, unsigned flags)
             has_fired = true;
         }
         pfd[i] = (struct pollfd){
-            .fd = ev->fd,
+            .fd = ev->fd.fd,
             .events = ev->events_wanted
         };
     }
@@ -1261,7 +1266,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
 #endif
 
     if (el->wake.write_fd >= 0) {
-        el->wake.read_fd = el_fd_register(el->wake.write_fd, POLLIN,
+        el->wake.read_fd = el_fd_register(el->wake.write_fd, true, POLLIN,
                                           &el_wake_on_event, el);
         el->wake.use_eventfd = true;
     } else {
@@ -1275,7 +1280,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
         fd_set_features(fd[0], O_NONBLOCK | O_CLOEXEC);
         fd_set_features(fd[1], O_NONBLOCK | O_CLOEXEC);
         el->wake.write_fd = fd[1];
-        el->wake.read_fd = el_fd_register(fd[0], POLLIN,
+        el->wake.read_fd = el_fd_register(fd[0], true, POLLIN,
                                           &el_wake_on_event, el);
     }
     el_unref(el->wake.read_fd);
@@ -1285,7 +1290,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
 data_t el_wake_unregister(el_t *el)
 {
     if (*el) {
-        el_fd_unregister(&(*el)->wake.read_fd, true);
+        el_fd_unregister(&(*el)->wake.read_fd);
         if (!(*el)->wake.use_eventfd) {
             p_close(&(*el)->wake.write_fd);
         }
@@ -1564,8 +1569,10 @@ static int el_get_state(sb_t *sb, bool only_blocking)
                 details = t_lstr_fmt("pid: %d", ev->child.pid);
                 break;
               case EV_FD:
-                details = t_lstr_fmt("fd: %d, events: %04x",
-                                     ev->fd, ev->events_wanted);
+                details = t_lstr_fmt("fd: %d%s, events: %04x",
+                                     ev->fd.fd,
+                                     ev->fd.owned ? " (owned)" : "",
+                                     ev->events_wanted);
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat < 0) {
@@ -1833,8 +1840,10 @@ Z_GROUP_EXPORT(el)
 
             socketpairx(AF_UNIX, SOCK_STREAM, 0, O_NONBLOCK, fds);
 
-            els[2 * i] = el_fd_register(fds[0], POLLIN, &readall, &calls[i]);
-            els[2 * i + 1] = el_fd_register(fds[1], POLLOUT, &writeall, &calls[i]);
+            els[2 * i]     = el_fd_register(fds[0], true, POLLIN, &readall,
+                                        &calls[i]);
+            els[2 * i + 1] = el_fd_register(fds[1], true, POLLOUT, &writeall,
+                                            &calls[i]);
         }
 
         el_loop_timeout(100);
@@ -1890,7 +1899,7 @@ Z_GROUP_EXPORT(el)
         Z_ASSERT_EQ(12, calls[2].calls);
 
         for (int i = 0; i < 6; i++) {
-            el_fd_unregister(&els[i], true);
+            el_fd_unregister(&els[i]);
         }
     } Z_TEST_END;
 

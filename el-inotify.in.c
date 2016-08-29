@@ -31,7 +31,7 @@ static void inotify_shutdown(void)
         return;
     }
 
-    el_fd_unregister(&inotify_g.el, true);
+    el_fd_unregister(&inotify_g.el);
     inotify_g.fd = -1;
     qm_wipe(ev, &inotify_g.watches);
     qm_init(ev, &inotify_g.watches);
@@ -143,7 +143,8 @@ static void inotify_initialize(void)
             e_panic(E_UNIXERR("inotify_init"));
         fd_set_features(inotify_g.fd, O_NONBLOCK | O_CLOEXEC);
 
-        inotify_g.el = el_fd_register(inotify_g.fd, POLLIN, inotify_cb, NULL);
+        inotify_g.el = el_fd_register(inotify_g.fd, true, POLLIN, inotify_cb,
+                                      NULL);
         inotify_g.el = el_unref(inotify_g.el);
     }
 }
