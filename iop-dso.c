@@ -113,11 +113,10 @@ static void iopdso_fix_class_parent(iop_dso_t *dso, const iop_struct_t *desc,
     if (!iop_struct_is_class(desc)) {
         return;
     }
+
     class_attrs = (iop_class_attrs_t *)desc->class_attrs;
-    while (class_attrs->parent) {
+    if (class_attrs->parent) {
         iopdso_fix_struct_ref(dso, &class_attrs->parent, own_pkg);
-        desc = class_attrs->parent;
-        class_attrs = (iop_class_attrs_t *)desc->class_attrs;
     }
 }
 
