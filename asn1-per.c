@@ -95,25 +95,29 @@ static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
 
 /* Fully constrained integer - d_max < 65536 */
 static ALWAYS_INLINE void
-aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen)
+aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
 {
     bb_push_mark(bb);
 
-    if (!blen)
-        goto end;
-
-    if (blen < 8) {
-        bb_be_add_bits(bb, u16, blen);
+    if (!blen) {
         goto end;
     }
 
-    if (blen == 8) {
+    if (blen == 8 && d_max == 255) {
+        /* "The one-octet case". */
         write_u8_aligned(bb, u16);
+        goto end;
+    }
+
+    if (blen <= 8) {
+        /* "The bit-field case". */
+        bb_be_add_bits(bb, u16, blen);
         goto end;
     }
 
     assert (blen <= 16);
 
+    /* "The two-octet case". */
     write_u16_aligned(bb, u16);
     /* FALLTHROUGH */
 
@@ -174,12 +178,12 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
 
     if (info && info->constrained) {
         if (info->max_blen <= 16) {
-            aper_write_u16_m(bb, v, info->max_blen);
+            aper_write_u16_m(bb, v, info->max_blen, info->d_max);
             return;
-        } else {
-            olen = u64_olen(v);
-            aper_write_u16_m(bb, olen, info->max_olen_blen);
         }
+
+        olen = u64_olen(v);
+        aper_write_u16_m(bb, olen - 1, info->max_olen_blen, info->d_max);
     } else {
         olen = u64_olen(v);
         aper_write_ulen(bb, olen);
@@ -216,7 +220,7 @@ aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max)
 
         if (d_max < (1 << 16)) {
             /* TODO pre-process u16_blen(d_max) */
-            aper_write_u16_m(bb, d, u16_blen(d_max));
+            aper_write_u16_m(bb, d, u16_blen(d_max), d_max);
             return 0;
         }
     }
@@ -702,12 +706,25 @@ void aper_set_decode_log_level(int level)
 /* Helpers {{{ */
 
 static ALWAYS_INLINE int
-aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
+aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
 {
     uint64_t res;
     assert (blen); /* u16 is given by constraints */
 
-    if (blen < 8) {
+    if (blen == 8 && d_max == 255) {
+        /* "The one-octet case". */
+        *u16 = 0;
+        if (__read_u8_aligned(bs, (uint8_t *)u16) < 0) {
+            e_info("cannot read contrained integer: end of input "
+                   "(expected at least one aligned octet)");
+            return -1;
+        }
+
+        return 0;
+    }
+
+    if (blen <= 8) {
+        /* "The bit-field case". */
         if (bs_be_get_bits(bs, blen, &res) < 0) {
             e_info("not enough bits to read constrained integer "
                    "(got %zd, need %zd)", bs_len(bs), blen);
@@ -718,14 +735,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
         return 0;
     }
 
-    if (blen == 8) {
-        *u16 = 0;
-        if (__read_u8_aligned(bs, (uint8_t *)u16) < 0) {
-            e_info("cannot read contrained integer: end of input "
-                   "(expected at least one aligned octet)");
-            return -1;
-        }
-    } else
+    /* "The two-octet case". */
     if (__read_u16_aligned(bs, u16) < 0) {
         e_info("cannot read constrained integer: end of input "
                "(expected at least two aligned octet left)");
@@ -803,7 +813,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
                 return 0;
             }
 
-            if (aper_read_u16_m(bs, info->max_blen, &u16) < 0) {
+            if (aper_read_u16_m(bs, info->max_blen, &u16, info->d_max) < 0) {
                 e_info("cannot read constrained whole number");
                 return -1;
             }
@@ -814,12 +824,14 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         } else {
             uint16_t u16;
 
-            if (aper_read_u16_m(bs, info->max_olen_blen, &u16) < 0) {
+            if (aper_read_u16_m(bs, info->max_olen_blen, &u16,
+                                info->d_max) < 0)
+            {
                 e_info("cannot read constrained whole number length");
                 return -1;
             }
 
-            olen = u16;
+            olen = u16 + 1;
         }
     } else {
         if (aper_read_ulen(bs, &olen) < 0) {
@@ -878,7 +890,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
 static int
 aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
 {
-    size_t   d_max = l_max - l_min;
+    size_t d_max = l_max - l_min;
 
     if (d_max < (1 << 16)) {
         uint16_t d;
@@ -889,7 +901,7 @@ aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
             return 0;
         }
 
-        if (aper_read_u16_m(bs, u16_blen(d_max), &d) < 0) {
+        if (aper_read_u16_m(bs, u16_blen(d_max), &d, d_max) < 0) {
             e_info("cannot read constrained length");
             return -1;
         }
@@ -1536,24 +1548,30 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         BB_1k(bb);
 
         struct {
-            size_t d, d_max;
+            size_t d, d_max, skip;
             const char *s;
         } t[] = {
-            {     0,     0,  "" },
-            {   0xe,    57,  ".001110" },
-            {  0x8d,   255,  ".10001101" },
-            { 0xabd, 33000,  ".00001010.10111101" },
+            {     0,     0,  0, "" },
+            {   0xe,    57,  0, ".001110" },
+            {  0x8d,   255,  0, ".10001101" },
+            {  0x8d,   254,  1, ".01000110.1" },
+            {  0x8d,   255,  1, ".00000000.10001101" },
+            { 0xabd, 33000,  0, ".00001010.10111101" },
         };
 
         for (int i = 0; i < countof(t); i++) {
             bb_reset(&bb);
+            bb_add0s(&bb, t[i].skip);
+
             len = u64_blen(t[i].d_max);
-            aper_write_u16_m(&bb, t[i].d, u64_blen(t[i].d_max));
+            aper_write_u16_m(&bb, t[i].d, u64_blen(t[i].d_max), t[i].d_max);
             bs = bs_init_bb(&bb);
             if (len) {
                 uint16_t u16 = t[i].d - 1;
 
-                Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16), "[i:%d]", i);
+                Z_ASSERT_N(bs_skip(&bs, t[i].skip));
+                Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16, t[i].d_max),
+                           "[i:%d]", i);
                 Z_ASSERT_EQ(u16, t[i].d, "[i:%d] len=%zu", i, len);
             }
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
@@ -1565,19 +1583,23 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         BB_1k(bb);
 
         struct {
-            size_t l, l_min, l_max;
+            size_t l, l_min, l_max, skip;
             const char *s;
         } t[] = {
-            { 15,    15,           15, "" },
-            { 7,      3,           18, ".0100" },
-            { 15,     0, ASN1_MAX_LEN, ".00001111" },
-            { 0x1b34, 0, ASN1_MAX_LEN, ".10011011.00110100" },
+            { 15,    15,           15, 0, "" },
+            { 7,      3,           18, 0, ".0100" },
+            { 15,     0, ASN1_MAX_LEN, 0, ".00001111" },
+            { 0x1b34, 0, ASN1_MAX_LEN, 0, ".10011011.00110100" },
+            { 32,     1,          160, 1, ".00001111.1" },
         };
 
         for (int i = 0; i < countof(t); i++) {
             bb_reset(&bb);
+            bb_add0s(&bb, t[i].skip);
+
             aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max);
             bs = bs_init_bb(&bb);
+            Z_ASSERT_N(bs_skip(&bs, t[i].skip));
             Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),
                        "[i:%d]", i);
             Z_ASSERT_EQ(len, t[i].l, "[i:%d]", i);
@@ -1659,8 +1681,9 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { -3,    &fc1, ".010" },
             { -1,    &fc1, ".100" },
             { -1,    NULL, ".00000001.11111111" },
-            { 45,    &fc2, ".01000000.00101101" },
-            { 128,   &fc2, ".01000000.10000000" },
+            { 45,    &fc2, ".00000000.00101101" },
+            { 128,   &fc2, ".00000000.10000000" },
+            { 256,   &fc2, ".01000000.00000001.00000000" },
             { 666,   &fc3, "" },
             { 5,     &ext, ".0101" },
             { 8,     &ext, ".10000000.00000001.00001000" },
@@ -1779,6 +1802,13 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             .ext_max  = SIZE_MAX,
         };
 
+        asn1_cnt_info_t ext3 = { /* Extended */
+            .min      = 1,
+            .max      = 160,
+            .extended = true,
+            .ext_max  = SIZE_MAX,
+        };
+
         struct {
             const char      *bs;
             asn1_cnt_info_t *info;
@@ -1793,6 +1823,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { "011",      &ext1, true,  ".10000000.00000011.011" },
             { "11",       &ext2, true,  ".011" },
             { "011",      &ext2, true,  ".10000000.00000011.011" },
+            { "00",       &ext3, true,  ".00000000.100" },
         };
 
         for (int i = 0; i < countof(t); i++) {
