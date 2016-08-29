@@ -153,6 +153,14 @@ typedef opt_bool_t         opt__Bool_t;
         }                                                  \
     } while (0)
 
+/** Copy `src` in `dst`. */
+#define OPT_COPY(dst, src)                                                   \
+    do {                                                                     \
+        typeof(src) *_src = &(src);                                          \
+                                                                             \
+        OPT_SET_IF((dst), OPT_ISSET(*_src), OPT_VAL(*_src));                 \
+    } while (0)
+
 /** Get whether 2 optional fields are equal are not.
  *
  * Optional fields are equal if:

@@ -93,7 +93,7 @@ Z_GROUP_EXPORT(bit_stream)
     bit_stream_t n;
     byte data[128];
 
-    /* Multiple of 64 in the range 
+    /* Multiple of 64 in the range
         0 64 128 192 256
         320 384 448 512
         576 640 704 768
@@ -641,6 +641,28 @@ Z_GROUP_EXPORT(bit_stream)
 
         Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 0, 163);
+    } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ OPT */
+
+    Z_TEST(opt, "opt") {
+        opt_u32_t src, dst;
+
+        OPT_SET(src, 8008);
+        OPT_COPY(dst, src);
+
+        Z_ASSERT(OPT_ISSET(dst));
+        Z_ASSERT_EQ(OPT_VAL(dst), 8008U);
+
+        Z_ASSERT_OPT_EQ(src, dst);
+
+        OPT_CLR(src);
+        OPT_COPY(dst, src);
+
+        Z_ASSERT(!OPT_ISSET(dst));
+
+        Z_ASSERT_OPT_EQ(src, dst);
     } Z_TEST_END;
 
     /* }}} */
