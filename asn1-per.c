@@ -1559,7 +1559,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { 0xabd, 33000,  0, ".00001010.10111101" },
         };
 
-        carray_for_each_pos(i, t) {
+        for (int i = 0; i < countof(t); i++) {
             bb_reset(&bb);
             bb_add0s(&bb, t[i].skip);
 
