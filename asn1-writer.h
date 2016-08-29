@@ -252,9 +252,10 @@ typedef struct asn1_int_info_t {
     int64_t       max; /* XXX INT64_MAX if infinity */
 
     /* Pre-processed information */
-    flag_t        constrained;   /* XXX means fully constrained        */
-    uint16_t      max_blen;      /* XXX needed only if constrained     */
-    uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16  */
+    flag_t        constrained;   /* XXX means fully constrained          */
+    uint16_t      max_blen;      /* XXX needed only if fully constrained */
+    uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16    */
+    size_t        d_max;         /* XXX needed only if fully constrained */
 
     /* Extensions */
     flag_t        extended;
@@ -265,8 +266,6 @@ typedef struct asn1_int_info_t {
 static inline void
 asn1_int_info_update(asn1_int_info_t *info)
 {
-    int64_t d_max;
-
     if (!info)
         return;
 
@@ -278,11 +277,11 @@ asn1_int_info_update(asn1_int_info_t *info)
 
     info->constrained = true;
 
-    d_max = info->max - info->min;
-    info->max_blen = u64_blen(d_max);
+    info->d_max = info->max - info->min;
+    info->max_blen = u64_blen(info->d_max);
 
     if (info->max_blen > 16) {
-        info->max_olen_blen = u64_blen(u64_olen(d_max) - 1);
+        info->max_olen_blen = u64_blen(u64_olen(info->d_max) - 1);
     }
 }
 
