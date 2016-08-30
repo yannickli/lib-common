@@ -307,6 +307,14 @@ static ev_t *el_blk_register(ev_t *ev, void *cb, block_t wipe)
     return ev;
 }
 
+static void __el_unref(ev_t *ev)
+{
+    if (EV_FLAG_HAS(ev, REFS)) {
+        _G.active--;
+        EV_FLAG_RST(ev, REFS);
+    }
+}
+
 static data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
@@ -326,7 +334,7 @@ static data_t el_destroy(ev_t **evp, bool move)
         EV_FLAG_RST(ev, IS_BLK);
         ev->priv = (data_t)NULL;
     }
-    el_unref(ev);
+    __el_unref(ev);
     if (move) {
         dlist_move(&_G.evs_gc, &ev->ev_list);
     } else {
@@ -1339,10 +1347,8 @@ el_t el_ref(ev_t *ev)
 el_t el_unref(ev_t *ev)
 {
     CHECK_EV(ev);
-    if (EV_FLAG_HAS(ev, REFS)) {
-        _G.active--;
-        EV_FLAG_RST(ev, REFS);
-    }
+    ASSERT("unref a FS_WATCH is forbidden", ev->type != EV_FS_WATCH);
+    __el_unref(ev);
     return ev;
 }
 

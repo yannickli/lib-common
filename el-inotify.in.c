@@ -145,7 +145,6 @@ static void inotify_initialize(void)
 
         inotify_g.el = el_fd_register(inotify_g.fd, true, POLLIN, inotify_cb,
                                       NULL);
-        inotify_g.el = el_unref(inotify_g.el);
     }
 }
 

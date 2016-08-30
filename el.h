@@ -338,8 +338,17 @@ void el_timer_set_hook(el_t, el_cb_f *) __leaf;
 
 /**\}*/
 
-el_t el_ref(el_t) __leaf;
+/** Un-reference an event.
+ *
+ * An unref'ed event does not block the event loop.
+ *
+ * \warning this is forbidden for FS_WATCH events.
+ */
 el_t el_unref(el_t) __leaf;
+
+/** Reference an event. */
+el_t el_ref(el_t) __leaf;
+
 #ifndef NDEBUG
 bool el_set_trace(el_t, bool trace) __leaf;
 #else
