@@ -187,6 +187,8 @@ static void ic_print_state(void)
         }, {
             .title = LSTR_IMMED("ELH"),
         }, {
+            .title = LSTR_IMMED("CALLBACK"),
+        }, {
             .title = LSTR_IMMED("KIND"),
         }, {
             .title = LSTR_IMMED("ADDRESS"),
@@ -215,6 +217,7 @@ static void ic_print_state(void)
 
         qv_append(lstr, tab, t_lstr_fmt("%d / %p", ic->id, ic));
         qv_append(lstr, tab, t_lstr_fmt("%p", ic->elh));
+        qv_append(lstr, tab, t_lstr_fmt("%p", ic->on_event));
 
         if (ic->is_local) {
             qv_append(lstr, tab, LSTR("local"));
