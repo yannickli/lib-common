@@ -176,10 +176,9 @@ static lstr_t ev_priority_to_str(ev_priority_t prio)
     return LSTR_NULL_V;
 }
 
-static void ic_print_state(void)
+static void ic_get_state(sb_t *buf)
 {
     t_scope;
-    SB_1k(buf);
     qv_t(table_hdr) hdr;
     qv_t(table_data) rows;
     table_hdr_t hdr_data[] = { {
@@ -269,10 +268,16 @@ static void ic_print_state(void)
         qv_append(lstr, tab, t_lstr_fmt("%d", qm_len(ic_msg, &ic->queries)));
     }
 
-    sb_adds(&buf, "ichannels summary:\n");
-    sb_add_table(&buf, &hdr, &rows);
-    sb_shrink(&buf, 1);
-    logger_notice(&_G.logger, "%*pM", SB_FMT_ARG(&buf));
+    sb_add_table(buf, &hdr, &rows);
+    sb_shrink(buf, 1);
+}
+
+static void ic_print_state(void)
+{
+    SB_1k(buf);
+
+    ic_get_state(&buf);
+    logger_notice(&_G.logger, "ichannels summary:\n%*pM", SB_FMT_ARG(&buf));
 }
 
 /* }}} */
@@ -291,6 +296,19 @@ static int ic_initialize(void *arg)
 
 static int ic_shutdown(void)
 {
+    if (qm_len(ic, &_G.ics)) {
+        if (logger_is_traced(&_G.logger, 1)) {
+            SB_1k(buf);
+
+            ic_get_state(&buf);
+            logger_trace(&_G.logger, 1, "%d ichannels are leaked:\n%*pM",
+                         qm_len(ic, &_G.ics), SB_FMT_ARG(&buf));
+        } else {
+            logger_trace(&_G.logger, 0, "%d ichannels are leaked",
+                         qm_len(ic, &_G.ics));
+        }
+    }
+
     qv_deep_wipe(lstr, &_G.traced_names, lstr_wipe);
     qh_wipe(u32, &_G.traced_cmds);
     qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
