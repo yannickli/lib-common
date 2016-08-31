@@ -65,8 +65,7 @@ static void sb_add_cell(sb_t *out, const struct table_hdr_t *col,
 void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
                   const qv_t(table_data) *data)
 {
-    t_scope;
-    int *col_sizes = t_new_raw(int, hdr->len);
+    int *col_sizes = p_alloca(int, hdr->len);
     int row_size = 0;
     int col_count = 0;
 
@@ -147,7 +146,7 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
 Z_GROUP_EXPORT(str_buf_pp) {
     Z_TEST(add_table, "sb_add_table") {
         t_scope;
-        SB_1k(sb);
+        t_SB_1k(sb);
         qv_t(table_hdr) hdr;
         qv_t(lstr) *row;
         qv_t(table_data) data;
