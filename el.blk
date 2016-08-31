@@ -1519,9 +1519,11 @@ static void el_for_each(void (^on_ev)(ev_t *))
 
 static int el_get_state(sb_t *sb, bool only_blocking)
 {
-    t_scope;
+    /* XXX: do not use the t_stack here, since it could be called from
+     *      el_shutdown, where the t_stack can be destroyed. */
+    int res;
     qv_t(table_hdr) hdr;
-    qv_t(table_data) *rows = t_qv_new(table_data, 200);
+    qv_t(table_data) *rows = qv_new(table_data);
     table_hdr_t hdr_data[] = { {
             .title = LSTR_IMMED("EV POINTER"),
         }, {
@@ -1548,50 +1550,51 @@ static int el_get_state(sb_t *sb, bool only_blocking)
         }
 
         tab = qv_growlen(table_data, rows, 1);
-        t_qv_init(lstr, tab, hdr_size);
+        qv_init(lstr, tab);
+        qv_grow(lstr, tab, hdr_size);
 
-        qv_append(lstr, tab, t_lstr_fmt("%p", ev));
+        qv_append(lstr, tab, lstr_fmt("%p", ev));
         qv_append(lstr, tab, LSTR(ev_type_to_str(ev->type)));
         if (ev->flags & EV_FLAG_IS_BLK) {
             qv_append(lstr, tab, LSTR("block"));
         } else {
-            qv_append(lstr, tab, t_lstr_fmt("%p", (void *)ev->cb.cb));
+            qv_append(lstr, tab, lstr_fmt("%p", (void *)ev->cb.cb));
         }
-        qv_append(lstr, tab, t_lstr_fmt("%p", ev->priv.ptr));
+        qv_append(lstr, tab, lstr_fmt("%p", ev->priv.ptr));
 
         switch (ev->type) {
           case EV_SIGNAL:
-            details = t_lstr_fmt("signal: %d", ev->signo);
+            details = lstr_fmt("signal: %d", ev->signo);
             break;
           case EV_CHILD:
-            details = t_lstr_fmt("pid: %d", ev->child.pid);
+            details = lstr_fmt("pid: %d", ev->child.pid);
             break;
           case EV_FD:
-            details = t_lstr_fmt("fd: %d%s, events: %04x",
-                                 ev->fd.fd,
-                                 ev->fd.owned ? " (owned)" : "",
-                                 ev->events_wanted);
+            details = lstr_fmt("fd: %d%s, events: %04x",
+                               ev->fd.fd,
+                               ev->fd.owned ? " (owned)" : "",
+                               ev->events_wanted);
             break;
           case EV_TIMER:
             if (ev->timer.repeat < 0) {
-                details = t_lstr_fmt("one shot, expiry: %ju.%03ju, "
-                                     "tolerance: %ums",
-                                     ev->timer.expiry / 1000,
-                                     ev->timer.expiry % 1000,
-                                     ev->timer.tolerance);
+                details = lstr_fmt("one shot, expiry: %ju.%03ju, "
+                                   "tolerance: %ums",
+                                   ev->timer.expiry / 1000,
+                                   ev->timer.expiry % 1000,
+                                   ev->timer.tolerance);
             } else {
-                details = t_lstr_fmt("repeat: %dms, next: %ju.%03ju, "
-                                     "tolerance: %ums",
-                                     ev->timer.repeat,
-                                     ev->timer.expiry / 1000,
-                                     ev->timer.expiry % 1000,
-                                     ev->timer.tolerance);
+                details = lstr_fmt("repeat: %dms, next: %ju.%03ju, "
+                                   "tolerance: %ums",
+                                   ev->timer.repeat,
+                                   ev->timer.expiry / 1000,
+                                   ev->timer.expiry % 1000,
+                                   ev->timer.tolerance);
             }
             break;
           case EV_PROXY:
-            details = t_lstr_fmt("events wanted:%04x, "
-                                 "events available: %04x",
-                                 ev->events_wanted, ev->events_avail);
+            details = lstr_fmt("events wanted:%04x, "
+                               "events available: %04x",
+                               ev->events_wanted, ev->events_avail);
             break;
           default:
             break;
@@ -1601,8 +1604,14 @@ static int el_get_state(sb_t *sb, bool only_blocking)
 
     sb_add_table(sb, &hdr, rows);
     sb_shrink(sb, 1);
+    res = rows->len;
 
-    return rows->len;
+    qv_for_each_ptr(table_data, tab, rows) {
+        qv_deep_wipe(lstr, tab, lstr_wipe);
+    }
+    qv_delete(table_data, &rows);
+
+    return res;
 }
 
 static void el_print_state(void)
