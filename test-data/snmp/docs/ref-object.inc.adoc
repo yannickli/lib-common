@@ -1,4 +1,4 @@
-[cols="<20strong,20d,10d,40d",options="header"]
+[cols="<20strong,20d,10d,40asciidoc",options="header"]
 |===
 |Object
 |OID
@@ -16,6 +16,14 @@
 |32436.2.1.2
 |enum
 |description.
+
+Possible values:
+
+- STATE_ONE (0)
+- STATE_TWO (1)
+- STATE_THREE (2)
+- FOUR (3)
+
 
 |[[Tbl]]Tbl
 |32436.2.1.3

@@ -311,7 +311,7 @@ static void doc_put_alarms(sb_t *buf, const iop_pkg_t *pkg)
 static void doc_put_field_header(sb_t *buf)
 {
     sb_adds(buf,
-            "[cols=\"<20strong,20d,10d,40d\",options=\"header\"]\n"
+            "[cols=\"<20strong,20d,10d,40asciidoc\",options=\"header\"]\n"
             "|===\n"
             "|Object\n"
             "|OID\n"
@@ -361,6 +361,17 @@ static void doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
             LSTR_FMT_ARG(oid),
             iop_type_get_string_desc(field->type),
             LSTR_FMT_ARG(help));
+
+    if (field->type == IOP_T_ENUM) {
+        const iop_enum_t *en = field->u1.en_desc;
+
+        sb_adds(buf, "Possible values:\n\n");
+        for (int i = 0; i < en->enum_len; i++) {
+            sb_addf(buf, "- %*pM (%d)\n",
+                    LSTR_FMT_ARG(en->names[i]), en->values[i]);
+        }
+        sb_adds(buf, "\n\n");
+    }
 }
 
 static void doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
