@@ -220,14 +220,16 @@ static void doc_put_arg_field(sb_t *buf, const iop_field_t *field,
                           const iop_struct_t *parent, uint16_t oid)
 {
     t_scope;
+    lstr_t oid_str = t_field_build_oid(field, parent);
+    lstr_t help;
+
+    help = t_field_get_help_without_dot(
+               iop_get_field_attr_match_oid(parent, oid));
 
     sb_addf(buf,
             "- <<%*pM, %*pM>> (%*pM): %*pM",
-            LSTR_FMT_ARG(field->name),
-            LSTR_FMT_ARG(field->name),
-            LSTR_FMT_ARG(t_field_build_oid(field, parent)),
-            LSTR_FMT_ARG(t_field_get_help_without_dot(
-                iop_get_field_attr_match_oid(parent, oid))));
+            LSTR_FMT_ARG(field->name), LSTR_FMT_ARG(field->name),
+            LSTR_FMT_ARG(oid_str), LSTR_FMT_ARG(help));
 }
 
 static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
@@ -237,6 +239,9 @@ static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
     t_scope;
     const iop_struct_t *st = rpc->args;
     lstr_t name = rpc->name;
+    lstr_t camelcase = t_split_camelcase_word(name);
+    lstr_t oid_str = t_notif_build_oid(st, parent);
+    lstr_t help = t_rpc_get_help(&parent->rpc_attrs[tag]);
 
     sb_addf(buf,
             "| ALM-%*pM-%u |\n"
@@ -244,9 +249,8 @@ static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
             "\n%*pM +\n"
             "\n*Parameters*\n\n",
             LSTR_FMT_ARG(iface_name), st->snmp_attrs->oid,
-            LSTR_FMT_ARG(t_split_camelcase_word(name)),
-            LSTR_FMT_ARG(t_notif_build_oid(st, parent)),
-            LSTR_FMT_ARG(t_rpc_get_help(&parent->rpc_attrs[tag])));
+            LSTR_FMT_ARG(camelcase), LSTR_FMT_ARG(oid_str),
+            LSTR_FMT_ARG(help));
 
     if (st->fields_len == 0) {
         sb_adds(buf, "*No parameter*\n");
@@ -318,16 +322,20 @@ static void doc_put_tbl(sb_t *buf, const iop_struct_t *st)
 {
     t_scope;
     qv_t(u16) oids;
+    lstr_t shortname = t_get_short_name(st->fullname);
+    lstr_t help = t_struct_get_help(st->st_attrs);
+    lstr_t oid;
 
     t_qv_init(u16, &oids, 16);
+    oid = t_struct_build_oid(oids, st);
+
     sb_addf(buf,
             "|[[%*pM]]%*pM\n"
             "|32436%*pM\n"
             "|%*pM\n\n",
-            LSTR_FMT_ARG(t_get_short_name(st->fullname)),
-            LSTR_FMT_ARG(t_get_short_name(st->fullname)),
-            LSTR_FMT_ARG(t_struct_build_oid(oids, st)),
-            LSTR_FMT_ARG(t_struct_get_help(st->st_attrs)));
+            LSTR_FMT_ARG(shortname), LSTR_FMT_ARG(shortname),
+            LSTR_FMT_ARG(oid),
+            LSTR_FMT_ARG(help));
 }
 
 static void doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
@@ -335,19 +343,20 @@ static void doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
     t_scope;
     const iop_field_attrs_t field_attrs = st->fields_attrs[pos];
     const iop_field_t *field = &st->fields[pos];
-    const iop_snmp_attrs_t *snmp_attrs;
+    const iop_snmp_attrs_t *snmp_attrs = doc_field_get_snmp_attr(field_attrs);
+    lstr_t oid = t_field_build_oid(field, st);
+    lstr_t help;
 
-    snmp_attrs = doc_field_get_snmp_attr(field_attrs);
+    help = t_field_get_help_without_dot(
+               iop_get_field_attr_match_oid(st, snmp_attrs->oid));
 
     sb_addf(buf,
             "|[[%*pM]]%*pM\n"
             "|32436%*pM\n"
             "|%*pM.\n\n",
-            LSTR_FMT_ARG(field->name),
-            LSTR_FMT_ARG(field->name),
-            LSTR_FMT_ARG(t_field_build_oid(field, st)),
-            LSTR_FMT_ARG(t_field_get_help_without_dot(
-                iop_get_field_attr_match_oid(st, snmp_attrs->oid))));
+            LSTR_FMT_ARG(field->name), LSTR_FMT_ARG(field->name),
+            LSTR_FMT_ARG(oid),
+            LSTR_FMT_ARG(help));
 }
 
 static void doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
@@ -367,13 +376,13 @@ static void doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
 
         if (desc->fields_len > 0) {
             t_scope;
+            lstr_t short_name = t_get_short_name(desc->fullname);
 
             if (compt == 0) {
                 doc_put_field_header(buf);
             }
             compt++;
-            sb_addf(buf, "3+^s|*%*pM*\n\n",
-                    LSTR_FMT_ARG(t_get_short_name(desc->fullname)));
+            sb_addf(buf, "3+^s|*%*pM*\n\n", LSTR_FMT_ARG(short_name));
         }
 
         /* deal with snmp fields */
