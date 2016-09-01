@@ -311,10 +311,11 @@ static void doc_put_alarms(sb_t *buf, const iop_pkg_t *pkg)
 static void doc_put_field_header(sb_t *buf)
 {
     sb_adds(buf,
-            "\n[cols=\"<20strong,20d,45d\",options=\"header\"]\n"
+            "[cols=\"<20strong,20d,10d,40d\",options=\"header\"]\n"
             "|===\n"
             "|Object\n"
             "|OID\n"
+            "|Type\n"
             "|Description\n\n");
 }
 
@@ -332,6 +333,7 @@ static void doc_put_tbl(sb_t *buf, const iop_struct_t *st)
     sb_addf(buf,
             "|[[%*pM]]%*pM\n"
             "|32436%*pM\n"
+            "|table\n"
             "|%*pM\n\n",
             LSTR_FMT_ARG(shortname), LSTR_FMT_ARG(shortname),
             LSTR_FMT_ARG(oid),
@@ -353,9 +355,11 @@ static void doc_put_field(sb_t *buf, int pos, const iop_struct_t *st)
     sb_addf(buf,
             "|[[%*pM]]%*pM\n"
             "|32436%*pM\n"
+            "|%s\n"
             "|%*pM.\n\n",
             LSTR_FMT_ARG(field->name), LSTR_FMT_ARG(field->name),
             LSTR_FMT_ARG(oid),
+            iop_type_get_string_desc(field->type),
             LSTR_FMT_ARG(help));
 }
 
@@ -382,7 +386,7 @@ static void doc_put_fields(sb_t *buf, const iop_pkg_t *pkg)
                 doc_put_field_header(buf);
             }
             compt++;
-            sb_addf(buf, "3+^s|*%*pM*\n\n", LSTR_FMT_ARG(short_name));
+            sb_addf(buf, "4+^s|*%*pM*\n\n", LSTR_FMT_ARG(short_name));
         }
 
         /* deal with snmp fields */
