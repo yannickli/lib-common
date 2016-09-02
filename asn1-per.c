@@ -555,7 +555,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
 
     enum_field = &desc->vec.tab[0];
 
-    index = *GET_DATA_P(st, enum_field, int);
+    index = __asn1_get_int(st, enum_field);
     choice_field = &desc->vec.tab[index];
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
@@ -1423,7 +1423,8 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
 
     enum_field = &desc->vec.tab[0];
     choice_field = &desc->vec.tab[index + 1];   /* XXX Indexes start from 0 */
-    *GET_PTR(st, enum_field, int) = index + 1;  /* Write enum value         */
+    __asn1_set_int(st, enum_field, index + 1);  /* Write enum value         */
+
     v = t_alloc_if_pointed(choice_field, st);
 
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));

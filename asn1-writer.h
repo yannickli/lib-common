@@ -444,5 +444,7 @@ int asn1_skip_field(pstream_t *ps);
 /* Private */
 const void *asn1_opt_field(const void *field, enum obj_type type);
 void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field);
+int __asn1_get_int(const void *st, const asn1_field_t *desc);
+void __asn1_set_int(void *st, const asn1_field_t *desc, int v);
 
 #endif /* IS_LIB_SIGTRAN_ASN1_WRITER_H */
