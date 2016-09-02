@@ -1519,6 +1519,7 @@ qvector_t(field_step, field_step_t);
 typedef struct field_path_t {
     qv_t(field_step)    steps;
     const iop_field_t  *fdesc;
+    flag_t is_typename : 1;
 } field_path_t;
 GENERIC_FUNCTIONS(field_path_t, field_path);
 
@@ -1551,6 +1552,12 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
     }
 
     data = ((const byte *)data) + qv_last(field_step, steps)->offset;
+
+    if (field_path->is_typename) {
+        const iop_struct_t *st = *(const void **)data;
+
+        return &st->fullname;
+    }
 
     if (fdesc->repeat == IOP_R_REPEATED) {
         int len = ((iop_array_i8_t *)data)->len;
@@ -1601,6 +1608,23 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
                         LSTR_FMT_ARG(field_path_s));
             }
             return -1;
+        }
+
+        if (ps_strequal(&fname, "_class")) {
+            if (!ps_done(&field_path_ps)) {
+                if (err) {
+                    sb_adds(err, "cannot fetch subfield of a typename");
+                }
+                return -1;
+            }
+            if (!iop_struct_is_class(it)) {
+                if (err) {
+                    sb_adds(err, "cannot fetch typename of a non-class object");
+                }
+                return -1;
+            }
+            fp->is_typename = true;
+            break;
         }
 
         if (iop_field_find_by_name(it, LSTR_PS_V(&fname), NULL,
@@ -1757,31 +1781,37 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
     qv_for_each_pos(iop_sort, pos, params) {
         iop_sort_priv_t *priv = &sorts.tab[pos];
         iop_sort_t *sort = &params->tab[pos];
+        iop_type_t type;
 
         field_path_init(&priv->fp);
         t_qv_init(field_step, &priv->fp.steps, 16);
         RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp,
                                          err));
 
-        if (priv->fp.fdesc->type == IOP_T_STRUCT) {
-            if (err) {
-                sb_addf(err, "cannot sort on sub-structure field `%*pM'",
-                        LSTR_FMT_ARG(sort->field_path));
+        if (priv->fp.is_typename) {
+            type = IOP_T_STRING;
+        } else {
+            if (priv->fp.fdesc->type == IOP_T_STRUCT) {
+                if (err) {
+                    sb_addf(err, "cannot sort on sub-structure field `%*pM'",
+                            LSTR_FMT_ARG(sort->field_path));
+                }
+                return -1;
             }
-            return -1;
-        }
-        if (priv->fp.fdesc->repeat == IOP_R_REPEATED) {
-            if (err) {
-                sb_addf(err, "cannot sort on repeated field `%*pM'",
-                        LSTR_FMT_ARG(sort->field_path));
+            if (priv->fp.fdesc->repeat == IOP_R_REPEATED) {
+                if (err) {
+                    sb_addf(err, "cannot sort on repeated field `%*pM'",
+                            LSTR_FMT_ARG(sort->field_path));
+                }
+                return -1;
             }
-            return -1;
+            type = priv->fp.fdesc->type;
         }
 
         if (sort->flags & IOP_SORT_REVERSE) {
-            priv->cmp = iop_cmp_rev_funs[priv->fp.fdesc->type];
+            priv->cmp = iop_cmp_rev_funs[type];
         } else {
-            priv->cmp = iop_cmp_funs[priv->fp.fdesc->type];
+            priv->cmp = iop_cmp_funs[type];
         }
 
         priv->flags = sort->flags;
@@ -1833,13 +1863,15 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     byte *vec_write = vec;
     byte *vec_start = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
+    iop_type_t type;
 
     field_path_init(&fp);
     t_qv_init(field_step, &fp.steps, 16);
     RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
 
     if (OPT_ISSET(is_set)) {
-        if (fp.fdesc->repeat != IOP_R_OPTIONAL
+        if (!fp.is_typename
+        &&  fp.fdesc->repeat != IOP_R_OPTIONAL
         &&  fp.fdesc->repeat != IOP_R_REPEATED)
         {
             if (err) {
@@ -1849,7 +1881,9 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
             }
             return -1;
         }
-    } else {
+        type = fp.fdesc->type;
+    } else
+    if (!fp.is_typename) {
         if (fp.fdesc->type == IOP_T_STRUCT) {
             if (err) {
                 sb_addf(err, "cannot filter on sub-structure `%*pM'",
@@ -1864,12 +1898,15 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
             }
             return -1;
         }
+        type = fp.fdesc->type;
+    } else {
+        type = IOP_T_STRING;
     }
 
     if (flags & IOP_FILTER_SQL_LIKE) {
-        equal = iop_equal_funs_sql_like[fp.fdesc->type];
+        equal = iop_equal_funs_sql_like[type];
     } else {
-        equal = iop_cmp_funs[fp.fdesc->type];
+        equal = iop_cmp_funs[type];
     }
 
     for (int i = 0; i < *len; i++) {

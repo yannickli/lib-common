@@ -2721,21 +2721,24 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_b__t b1, b2;
         tstiop__my_struct_m__t m;
         tstiop__my_class2__t cls2;
+        tstiop__my_class3__t cls3;
         qv_t(my_struct_m)  mvec;
         qv_t(my_class2) cls2_vec;
 
         qv_init(my_struct_a, &vec);
         iop_init(tstiop__my_struct_a, &a);
         iop_init(tstiop__my_class2, &cls2);
+        iop_init(tstiop__my_class3, &cls3);
 
         un[0] = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.e = 1;
         a.j = LSTR("xyz");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.lr = &un[0];
-        cls2.int1 = 10;
-        cls2.int2 = 100;
-        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
+        cls3.int1 = 10;
+        cls3.int2 = 100;
+        cls3.int3 = 1000;
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls3.super);
         qv_append(my_struct_a, &vec, a);
 
         un[1] = IOP_UNION(tstiop__my_union_a, ub, 23);
@@ -2753,9 +2756,10 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("Jkl");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.lr = &un[2];
-        cls2.int1 = 13;
-        cls2.int2 = 98;
-        a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
+        cls3.int1 = 13;
+        cls3.int2 = 98;
+        cls3.int3 = 1000;
+        a.cls2 = t_iop_dup(tstiop__my_class2, &cls3.super);
         qv_append(my_struct_a, &vec, a);
 
         un[3] = IOP_UNION(tstiop__my_union_a, ua, 666);
@@ -2903,6 +2907,19 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[3].cls2->int2, 98);
         Z_ASSERT_EQ(vec.tab[4].cls2->int2, 100);
 
+        /* sort on class name */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("cls2._class"), 0));
+        Z_ASSERT_LSTREQUAL(vec.tab[0].cls2->__vptr->fullname,
+                           LSTR("tstiop.MyClass2"));
+        Z_ASSERT_LSTREQUAL(vec.tab[1].cls2->__vptr->fullname,
+                           LSTR("tstiop.MyClass2"));
+        Z_ASSERT_LSTREQUAL(vec.tab[2].cls2->__vptr->fullname,
+                           LSTR("tstiop.MyClass2"));
+        Z_ASSERT_LSTREQUAL(vec.tab[3].cls2->__vptr->fullname,
+                           LSTR("tstiop.MyClass3"));
+        Z_ASSERT_LSTREQUAL(vec.tab[4].cls2->__vptr->fullname,
+                           LSTR("tstiop.MyClass3"));
+
         /* error: empty field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
@@ -2911,6 +2928,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("bar"), 0));
         /* error: htab is a repeated field */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("htab"), 0));
+        /* error: get class of non-class */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("_class"), 0));
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("lr._class"), 0));
+        /* error: get subfield of class */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("cls2._class.int2"), 0));
 
         qv_wipe(my_struct_a, &vec);
 #undef TST_SORT_VEC
@@ -3210,6 +3232,7 @@ Z_GROUP_EXPORT(iop)
         qv_t(my_class2) original;
         qv_t(my_class2) vec;
         void **allowed = t_new_raw(void *, 3);
+        lstr_t class_name;
 
         t_qv_init(my_class2, &original, 3);
         original.tab[0] = t_new_raw(tstiop__my_class2__t, 1);
@@ -3262,6 +3285,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
         Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[1], vec.tab[1]);
         Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[2]);
+
+        class_name = LSTR("tstiop.MyClass3");
+        *allowed = &class_name;
+        FILTER_AND_CHECK_LEN("_class", 1, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[0]);
 
 #undef ADD_PARAM
 #undef FILTER_AND_CHECK_LEN
