@@ -206,8 +206,15 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
 #define asn1_enum_reg_extension()  \
             info->extended = true;
 
-#define asn1_reg_extension(desc)  \
-            desc->extended = true;
+/* XXX This macro must be called at the same place the "..." extension marker
+ * is set in the abstract syntax of the choice. The fields before the
+ * extension marker are the fields from the extension root, the one after
+ * (if any) are the extended fields.
+ */
+#define asn1_reg_extension(desc)                                             \
+            assert (!desc->extended);                                        \
+            desc->extended = true;                                           \
+            desc->ext_pos = desc->vec.len;
 
 static inline void
 asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)

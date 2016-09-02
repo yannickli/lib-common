@@ -344,6 +344,16 @@ union MyRefUnion {
     MyReferencedUnion&   u;
 };
 
+/* {{{ zchk asn1_aper.extended_choice */
+
+union Asn1ExtChoice {
+    int i;
+    string extS;
+    int extI;
+};
+
+/* }}} */
+
 /* Interfaces */
 
 @(test:gen5, 5)

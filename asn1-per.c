@@ -546,29 +546,42 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     const asn1_field_t *enum_field;
     int index;
     const void *v;
-
-    /* Put extension bit */
-    if (desc->extended) {
-        e_trace(5, "choice is extended");
-        bb_be_add_bit(bb, false);
-    }
+    bool extension_present = false;
+    BB_1k(ext_bits);
 
     assert (desc->vec.len > 1);
 
     enum_field = &desc->vec.tab[0];
 
     index = __asn1_get_int(st, enum_field);
+    if (index < 1) {
+        return e_error("wrong choice initialization");
+    }
+    e_trace(5, "index = %d", index);
     choice_field = &desc->vec.tab[index];
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
-    if (index < 1) {
-        return e_error("wrong choice initialization");
+    /* Put extension bit */
+    if (desc->extended) {
+        e_trace(5, "choice is extended");
+
+        if ((extension_present = index >= desc->ext_pos)) {
+            e_trace(5, "extension is present");
+        } else {
+            e_trace(5, "extension is not present");
+        }
+
+        bb_be_add_bit(bb, extension_present);
     }
 
     bb_push_mark(bb);
 
-    /* XXX Indexes start from 0 */
-    aper_write_number(bb, index - 1, &desc->choice_info);
+    if (extension_present) {
+        aper_write_nsnnwn(bb, index - desc->ext_pos);
+    } else {
+        /* XXX Indexes start from 0 */
+        aper_write_number(bb, index - 1, &desc->choice_info);
+    }
 
     e_trace_be_bb_tail(5, bb, "CHOICE index");
     bb_pop_mark(bb);
@@ -576,9 +589,22 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     v = GET_DATA_P(st, choice_field, uint8_t);
     assert (v);
 
-    if (aper_encode_field(bb, v, choice_field) < 0) {
+    if (aper_encode_field(extension_present ? &ext_bits : bb, v,
+                          choice_field) < 0)
+    {
         return e_error("failed to encode choice element %s:%s",
                        choice_field->oc_t_name, choice_field->name);
+    }
+
+    if (extension_present) {
+        sb_t ext_bytes;
+
+        sb_init(&ext_bytes);
+        bb_transfer_to_sb(&ext_bits, &ext_bytes);
+        if (aper_encode_data(bb, LSTR_SB_V(&ext_bytes), NULL) < 0) {
+            e_info("cannot encode choice extension field-list");
+            return -1;
+        }
     }
 
     return 0;
@@ -1386,37 +1412,58 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     uint64_t             u64;
     size_t               index;
     void                *v;
+    bool extension_present = false;
+    bit_stream_t ext_bits;
 
     if (desc->extended) {
-        flag_t extension_present;
-
         if (bs_done(bs)) {
             e_info("cannot read extension bit: end of input");
             return -1;
         }
 
         extension_present = __bs_be_get_bit(bs);
-
         if (extension_present) {
-            e_info("extension are not supported in choices");
-            return -1;
+            e_trace(5, "extension present");
+        } else {
+            e_trace(5, "extension not present");
         }
-
-        e_trace(5, "extension not present");
     } else {
         e_trace(5, "choice is not extended");
     }
 
-    if (aper_read_number(bs, &desc->choice_info, &u64) < 0) {
-        e_info("cannot read choice index");
-        return -1;
-    }
+    if (extension_present) {
+        lstr_t ext_bytes;
 
-    index = u64;
+        if (aper_read_nsnnwn(bs, &index)) {
+            e_info("cannot read choice extension index");
+            return -1;
+        }
+
+        if (t_aper_decode_ostring(bs, NULL, false, &ext_bytes) < 0) {
+            e_info("cannot read extension field-list");
+            return -1;
+        }
+
+        if (index + desc->ext_pos >= (size_t)desc->vec.len) {
+            e_info("unknown choice extension (index = %zd)", index);
+            return -1;
+        }
+
+        index += desc->ext_pos;
+        ext_bits = bs_init(ext_bytes.data, 0, ext_bytes.len * 8);
+        bs = &ext_bits;
+    } else {
+        if (aper_read_number(bs, &desc->choice_info, &u64) < 0) {
+            e_info("cannot read choice index");
+            return -1;
+        }
+
+        index = u64 + 1;
+    }
 
     e_trace(5, "decoded choice index (index = %zd)", index);
 
-    if ((int)index + 1 >= desc->vec.len) {
+    if ((int)index >= desc->vec.len) {
         e_info("the choice index read is not compatible with the "
                "description: either the data is invalid or the description "
                "incomplete");
@@ -1424,9 +1471,8 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     }
 
     enum_field = &desc->vec.tab[0];
-    choice_field = &desc->vec.tab[index + 1];   /* XXX Indexes start from 0 */
-    __asn1_set_int(st, enum_field, index + 1);  /* Write enum value         */
-
+    choice_field = &desc->vec.tab[index];   /* XXX Indexes start from 0 */
+    __asn1_set_int(st, enum_field, index);  /* Write enum value         */
     v = t_alloc_if_pointed(choice_field, st);
 
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
