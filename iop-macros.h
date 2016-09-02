@@ -326,7 +326,7 @@
  * \param[in] _mod  RPC module name.
  * \param[in] _if   RPC interface name.
  * \param[in] _rpc  RPC name.
- * \param[in] what  `arg`, `res` or `exn`.
+ * \param[in] what  `args`, `res` or `exn`.
  */
 #define IOP_RPC_T(_mod, _if, _rpc, what)  _mod##__##_if(_rpc##_##what##__t)
 
