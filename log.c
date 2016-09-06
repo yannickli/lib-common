@@ -1191,20 +1191,24 @@ static int log_shutdown(void)
 }
 
 __attribute__((constructor))
-static void log_module_register(void)
+void log_module_register(void)
 {
-    static module_t *log_module;
+    static module_t *log_module = NULL;
+    const char *__deps[] = { "iop" };
+
+    if (log_module) {
+        return;
+    }
 
     thr_hooks_register();
     iop_module_register();
     log_module = module_register(LSTR("log"), &log_module,
-                                 &log_initialize, &log_shutdown, NULL, 0);
+                                 &log_initialize, &log_shutdown,
+                                 __deps, countof(__deps));
     module_add_dep(log_module, LSTR("log"),  LSTR("thr_hooks"),
                    &MODULE(thr_hooks));
     module_implement_method(log_module, &at_fork_on_child_method,
                             &log_atfork);
-    MODULE_REQUIRE(log);
-    MODULE_REQUIRE(iop);
 
 #ifdef MEM_BENCH
     mem_bench_require();

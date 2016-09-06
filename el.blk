@@ -1743,10 +1743,13 @@ __attribute__((constructor))
 static void el_module_register(void)
 {
     const char *env_home = getenv("HOME");
+    const char *__deps[] = { "log" };
+
+    log_module_register();
 
     MODULE(el) = module_register(LSTR("el"), &MODULE(el),
                                  &el_initialize, &el_shutdown,
-                                 NULL, 0);
+                                 __deps, countof(__deps));
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
     module_implement_method(MODULE(el), &print_state_method,
