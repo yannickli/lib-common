@@ -52,8 +52,8 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
     };
 
     el_fd_initialize();
-    ev->fd = fd;
-    ev->generation = el_epoll_g.generation;
+    ev->fd.fd = fd;
+    ev->fd.generation = el_epoll_g.generation;
     ev->events_wanted = events;
     ev->priority = EV_PRIORITY_NORMAL;
     if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_ADD, fd, &event)))
@@ -70,12 +70,12 @@ short el_fd_set_mask(ev_t *ev, short events)
                 events & POLLIN ? "IN" : "", events & POLLOUT ? "OUT" : "");
     }
     CHECK_EV_TYPE(ev, EV_FD);
-    if (old != events && likely(ev->generation == el_epoll_g.generation)) {
+    if (old != events && likely(ev->fd.generation == el_epoll_g.generation)) {
         struct epoll_event event = {
             .data.ptr = ev,
             .events   = ev->events_wanted = events,
         };
-        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd, &event)))
+        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd.fd, &event)))
             e_panic(E_UNIXERR("epoll_ctl"));
     }
     return old;
@@ -87,11 +87,11 @@ data_t el_fd_unregister(ev_t **evp, bool do_close)
         ev_t *ev = *evp;
 
         CHECK_EV_TYPE(ev, EV_FD);
-        if (el_epoll_g.generation == ev->generation) {
-            epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd, NULL);
+        if (el_epoll_g.generation == ev->fd.generation) {
+            epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd.fd, NULL);
         }
         if (likely(do_close)) {
-            close(ev->fd);
+            close(ev->fd.fd);
         }
         if (EV_FLAG_HAS(ev, FD_WATCHED)) {
             el_fd_act_timer_unregister(ev->priv.ptr);
