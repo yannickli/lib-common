@@ -2916,6 +2916,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         }
         PS_CHECK(__get_tag_wt(ps, &tag, &wt));
         if (tag == 0) {
+            PS_WANT(is_class);
             *class_id_wt = wt;
             break;
         }
