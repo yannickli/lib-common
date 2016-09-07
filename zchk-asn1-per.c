@@ -13,6 +13,8 @@
 
 #include "asn1-per.h"
 #include "z.h"
+#include "iop.h"
+#include "iop/tstiop.iop.h"
 
 typedef struct {
     uint16_t iop_tag;
@@ -24,6 +26,15 @@ typedef struct {
 static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, choice1);
     asn1_reg_scalar(desc, choice1, i, 0);
     asn1_set_int_min_max(desc, 2, 15);
+ASN1_CHOICE_DESC_END(desc);
+
+static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
+    asn1_reg_scalar(desc, tstiop__asn1_ext_choice_, i, 0);
+    asn1_set_int_min_max(desc, 42, 666);
+    asn1_reg_extension(desc);
+    asn1_reg_string(desc, tstiop__asn1_ext_choice_, ext_s, 1);
+    asn1_reg_scalar(desc, tstiop__asn1_ext_choice_, ext_i, 2);
+    asn1_set_int_min_max(desc, 666, 1234567);
 ASN1_CHOICE_DESC_END(desc);
 
 Z_GROUP_EXPORT(asn1_aper) {
@@ -49,6 +60,34 @@ Z_GROUP_EXPORT(asn1_aper) {
 
             Z_ASSERT_EQ(in.iop_tag, out.iop_tag);
             Z_ASSERT_EQ(in.i, out.i);
+        }
+    } Z_TEST_END;
+
+    Z_TEST(extended_choice, "extended choice") {
+        struct {
+            tstiop__asn1_ext_choice__t in;
+            lstr_t aper_bytes;
+        } tests[3];
+
+        tstiop__asn1_ext_choice__t out;
+        SB_1k(buf);
+        pstream_t ps;
+
+        tests[0].in = IOP_UNION(tstiop__asn1_ext_choice, i, 192);
+        tests[0].aper_bytes = LSTR_IMMED_V("\x00\x00\x96");
+        tests[1].in = IOP_UNION(tstiop__asn1_ext_choice, ext_s, LSTR("test"));
+        tests[1].aper_bytes = LSTR_IMMED_V("\x80\x05\x04\x74\x65\x73\x74");
+        tests[2].in = IOP_UNION(tstiop__asn1_ext_choice, ext_i, 667);
+        tests[2].aper_bytes = LSTR_IMMED_V("\x81\x02\x00\x01");
+
+        carray_for_each_ptr(t, tests) {
+            sb_reset(&buf);
+            Z_ASSERT_N(aper_encode(&buf, tstiop__asn1_ext_choice_, &t->in));
+            Z_ASSERT_LSTREQUAL(t->aper_bytes, LSTR_SB_V(&buf));
+            ps = ps_initsb(&buf);
+            Z_ASSERT_N(t_aper_decode(&ps, tstiop__asn1_ext_choice_, false,
+                                     &out));
+            Z_ASSERT_IOPEQUAL(tstiop__asn1_ext_choice, &t->in, &out);
         }
     } Z_TEST_END;
 } Z_GROUP_END
