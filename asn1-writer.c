@@ -457,7 +457,7 @@ static int asn1_pack_sequence_size(const void *st,
     return len;
 }
 
-static int __asn1_get_int(const void *st, const asn1_field_t *desc)
+int __asn1_get_int(const void *st, const asn1_field_t *desc)
 {
     switch (desc->type) {
 #define CASE(type)                             \
@@ -870,7 +870,7 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
     }
 }
 
-static void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
+void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
 {
     switch (desc->type) {
 #define CASE(type)                             \
