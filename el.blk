@@ -91,10 +91,7 @@ enum ev_flags_t {
 
 typedef struct ev_t {
     uint8_t   type;             /* ev_type_t */
-    union {
-        uint8_t   signo;        /* EV_SIGNAL */
-        uint8_t   generation;   /* EV_FD */
-    };
+    uint8_t   generation;
     uint16_t  flags     : 14;
     uint16_t  priority  : 2;
     union {
@@ -128,6 +125,7 @@ typedef struct ev_t {
         struct {                /* EV_FD */
             int     fd;
             bool    owned;
+            uint8_t generation;
         } fd;
         struct {
             pid_t   pid;
@@ -148,6 +146,7 @@ typedef struct ev_t {
             int  write_fd;
             bool use_eventfd;
         } wake;                 /* EV_WAKE */
+        uint8_t   signo;        /* EV_SIGNAL */
     };
 } ev_t;
 
@@ -251,14 +250,19 @@ static ev_t *ev_add(dlist_t *l, ev_t *ev)
     return ev;
 }
 
-static void ev_cache_list(dlist_t *l)
+__must_check__
+static uint8_t ev_cache_list(dlist_t *l)
 {
+    static uint8_t generation = 1;
     ev_t *ev;
 
+    generation += 2;
     qv_clear(ev, &_G.cache);
     dlist_for_each_entry(ev, l, ev_list) {
+        ev->generation = generation;
         qv_append(ev, &_G.cache, ev);
     }
+    return generation;
 }
 
 static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
@@ -340,6 +344,7 @@ static data_t el_destroy(ev_t **evp, bool move)
     } else {
         dlist_add(&_G.evs_gc, &ev->ev_list);
     }
+    ev->generation = 0;
     ev->type  = EV_UNUSED;
     ev->flags = 0;
     *evp = NULL;
@@ -357,31 +362,6 @@ static void el_child_fire(ev_t **ev, bool move)
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
     el_destroy(&e, move);
-}
-
-static void ev_list_process(dlist_t *l)
-{
-    ev_cache_list(l);
-    for (int i = 0; i < _G.cache.len; i++) {
-        ev_t *ev = _G.cache.tab[i];
-
-        switch (ev->type) {
-          case EV_UNUSED:
-            continue;
-
-          case EV_CHILD:
-            el_child_fire(&ev, true);
-            break;
-
-          default:
-            if (EV_FLAG_HAS(ev, IS_BLK)) {
-                ev->cb.cb_blk(ev);
-            } else {
-                (*ev->cb.cb)(ev, ev->priv);
-            }
-            break;
-        }
-    }
 }
 
 /* {{{ blockers, before and idle events */
@@ -406,6 +386,26 @@ void el_before_set_hook(el_t ev, el_cb_f *cb)
     CHECK_EV_TYPE(ev, EV_BEFORE);
     assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.cb = cb;
+}
+
+static void el_before_process(void)
+{
+    uint8_t generation;
+
+    generation = ev_cache_list(&_G.before);
+
+    qv_for_each_entry(ev, ev, &_G.cache) {
+        if (ev->generation != generation) {
+            continue;
+        }
+
+        CHECK_EV_TYPE(ev, EV_BEFORE);
+        if (EV_FLAG_HAS(ev, IS_BLK)) {
+            ev->cb.cb_blk(ev);
+        } else {
+            (*ev->cb.cb)(ev, ev->priv);
+        }
+    }
 }
 
 ev_t *el_idle_register_d(el_cb_f *cb, data_t priv)
@@ -438,15 +438,17 @@ static void el_idle_process(uint64_t now)
     if (now - last_run > 10 * 60 * 1000)
         dlist_splice_tail(&_G.idle, &_G.idle_parked);
     if (!_G.has_run) {
-        ev_cache_list(&_G.idle);
+        uint32_t generation = ev_cache_list(&_G.idle);
+
         dlist_splice(&_G.idle_parked, &_G.idle);
         last_run = now;
 
-        for (int i = 0; i < _G.cache.len; i++) {
-            ev_t *ev = _G.cache.tab[i];
-
-            if (unlikely(ev->type == EV_UNUSED))
+        qv_for_each_entry(ev, ev, &_G.cache) {
+            if (ev->generation != generation) {
                 continue;
+            }
+
+            CHECK_EV_TYPE(ev, EV_IDLE);
             if (EV_FLAG_HAS(ev, IS_BLK)) {
                 ev->cb.cb_blk(ev);
             } else {
@@ -466,6 +468,7 @@ static void el_sighandler(int signum)
 
 static void el_signal_process(void)
 {
+    uint8_t generation;
     uint32_t gotsigs = _G.gotsigs;
     struct timeval now;
 
@@ -475,15 +478,17 @@ static void el_signal_process(void)
     _G.gotsigs &= ~gotsigs;
     lp_gettv(&now);
 
-    ev_cache_list(&_G.sigs);
-    for (int i = 0; i < _G.cache.len; i++) {
-        ev_t *ev = _G.cache.tab[i];
-        int signo = ev->signo;
+    generation = ev_cache_list(&_G.sigs);
+    qv_for_each_entry(ev, ev, &_G.cache) {
+        int signo;
 
-        if (unlikely(ev->type == EV_UNUSED)) {
+        if (ev->generation != generation) {
             continue;
         }
 
+        CHECK_EV_TYPE(ev, EV_SIGNAL);
+
+        signo = ev->signo;
         if (gotsigs & (1 << signo)) {
             if (signo == SIGTERM || signo == SIGINT || signo == SIGQUIT
             ||  signo == SIGUSR2)
@@ -1092,16 +1097,24 @@ int el_fd_loop(ev_t *ev, int timeout)
 
 static void el_fd_process_fired(void)
 {
+    uint8_t generation;
+
     if (dlist_is_empty(&_G.fired)) {
         return;
     }
 
-    ev_cache_list(&_G.fired);
+    generation = ev_cache_list(&_G.fired);
+
     dlist_init(&_G.fired);
     qv_for_each_entry(ev, ev, &_G.cache) {
         EV_FLAG_RST(ev, FD_FIRED);
     }
     qv_for_each_entry(ev, ev, &_G.cache) {
+        if (ev->generation != generation) {
+            continue;
+        }
+
+        CHECK_EV_TYPE(ev, EV_FD);
         el_fd_fire(ev, POLLIN);
     }
 }
@@ -1173,13 +1186,17 @@ short el_proxy_set_mask(ev_t *ev, short mask)
 
 static void el_loop_proxies(void)
 {
-    ev_cache_list(&_G.proxy_ready);
-    for (int i = 0; i < _G.cache.len; i++) {
-        ev_t *ev    = _G.cache.tab[i];
-        int   avail = ev->events_avail;
+    uint8_t generation = ev_cache_list(&_G.proxy_ready);
 
-        if (unlikely(ev->type == EV_UNUSED))
+    qv_for_each_entry(ev, ev, &_G.cache) {
+        int avail;
+
+        if (ev->generation != generation) {
             continue;
+        }
+
+        CHECK_EV_TYPE(ev, EV_PROXY);
+        avail = ev->events_avail;
         if (likely(avail & ev->events_wanted)) {
             if (EV_FLAG_HAS(ev, IS_BLK)) {
                 ev->cb.proxy_blk(ev, avail);
@@ -1375,7 +1392,7 @@ void el_loop_timeout(int timeout)
     }
     if (unlikely(_G.unloop))
         return;
-    ev_list_process(&_G.before);
+    el_before_process();
     el_idle_process(clk);
     if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle)
     ||  !dlist_is_empty(&_G.fired))
