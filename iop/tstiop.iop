@@ -431,6 +431,15 @@ struct ZIopGetFieldValues {
 };
 
 /* }}} */
+/* {{{ zchk asn1_aper.extended_choice */
+
+union Asn1ExtChoice {
+    int i;
+    string extS;
+    int extI;
+};
+
+/* }}} */
 
 /* Interfaces */
 
