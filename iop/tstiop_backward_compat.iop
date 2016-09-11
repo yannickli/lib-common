@@ -306,3 +306,36 @@ class ChildClassB : 100 : ParentClassB {
 };
 
 /* }}} */
+/* {{{ New mandatory fields of type struct */
+
+struct OptionalStruct {
+    bool? a;
+    string[] b;
+    int c = 12;
+};
+
+struct OptionalStruct2 {
+    OptionalStruct a;
+};
+
+/* A mandatory field whose type is an "optional" struct was added. This is
+ * backward compatible. */
+struct NewMandatoryFieldOptional {
+    bool a;
+    string b;
+    OptionalStruct2 c;
+};
+
+struct NonOptionalStruct {
+    int a;
+};
+
+/* A mandatory field whose type is a "non-optional" struct was added. This is
+ * not backward compatible. */
+struct NewMandatoryFieldNonOptional {
+    bool a;
+    string b;
+    NonOptionalStruct c;
+};
+
+/* }}} */

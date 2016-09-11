@@ -4253,6 +4253,7 @@ qh_kvec_t(compat_couple, iop_compat_couple_t,
 
 typedef struct iop_compat_ctx_t {
     qh_t(compat_couple) seen_couples;
+    qh_t(cptr)          seen_opt_st;
     sb_t *err;
     sb_t err_ctx;
     qv_t(i32) err_ctx_offs;
@@ -4262,6 +4263,7 @@ static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
 {
     p_clear(ctx, 1);
     qh_init(compat_couple, &ctx->seen_couples);
+    qh_init(cptr, &ctx->seen_opt_st);
     sb_init(&ctx->err_ctx);
     qv_init(i32, &ctx->err_ctx_offs);
     return ctx;
@@ -4269,6 +4271,7 @@ static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
 static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
 {
     qh_wipe(compat_couple, &ctx->seen_couples);
+    qh_wipe(cptr, &ctx->seen_opt_st);
     sb_wipe(&ctx->err_ctx);
     qv_wipe(i32, &ctx->err_ctx_offs);
 }
@@ -4608,6 +4611,36 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
     return -1;
 }
 
+static bool
+iop_struct_is_optional(const iop_struct_t *st, iop_compat_ctx_t *ctx)
+{
+    if (qh_find(cptr, &ctx->seen_opt_st, st) >= 0) {
+        return true;
+    }
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *f = &st->fields[i];
+
+        if (f->repeat != IOP_R_REQUIRED) {
+            continue;
+        }
+        if (f->type != IOP_T_STRUCT
+        ||  !iop_struct_is_optional(f->u1.st_desc, ctx))
+        {
+            return false;
+        }
+    }
+
+    if (iop_struct_is_class(st) && st->class_attrs->parent
+    &&  !iop_struct_is_optional(st->class_attrs->parent, ctx))
+    {
+        return false;
+    }
+
+    qh_add(cptr, &ctx->seen_opt_st, st);
+    return true;
+}
+
 static int
 __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
@@ -4694,13 +4727,15 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
                     res = -1;                                                \
                 }                                                            \
                 iop_compat_pop_err_ctx(ctx);                                 \
-            } else {                                                         \
-                if (!st1->is_union && f2->repeat == IOP_R_REQUIRED) {        \
-                    iop_compat_add_err(ctx, "new field `%*pM` must not be "  \
-                                       "required", LSTR_FMT_ARG(f2->name));  \
-                    got_err = true;                                          \
-                    res = -1;                                                \
-                }                                                            \
+            } else                                                           \
+            if (!st1->is_union && f2->repeat == IOP_R_REQUIRED               \
+            &&  (f2->type != IOP_T_STRUCT                                    \
+              || !iop_struct_is_optional(f2->u1.st_desc, ctx)))              \
+            {                                                                \
+                iop_compat_add_err(ctx, "new field `%*pM` must not be "      \
+                                   "required", LSTR_FMT_ARG(f2->name));      \
+                got_err = true;                                              \
+                res = -1;                                                    \
             }                                                                \
         } while (0)
 

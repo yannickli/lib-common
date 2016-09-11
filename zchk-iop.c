@@ -5753,6 +5753,17 @@ Z_GROUP_EXPORT(iop)
                           t_iop_new(tstiop_backward_compat__child_class_a));
         T_OK(parent_class_a, parent_class, parent_class_b, IOP_COMPAT_BIN);
 
+        /* Adding a non-optional field whose type is an "optional" struct
+         * is backward compatible. */
+        T_OK_ALL(basic_struct, &basic_struct,
+                 new_mandatory_field_optional);
+
+        /* Adding a non-optional field whose type is a "non-optional" struct
+         * is not backward compatible. */
+        T_KO_ALL(basic_struct, &basic_struct,
+                 new_mandatory_field_non_optional,
+                 "new field `c` must not be required");
+
 #undef T_OK
 #undef T_OK_ALL
 #undef T_KO
