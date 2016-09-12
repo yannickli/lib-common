@@ -38,6 +38,7 @@
 /ztst-qpsstress
 /ztst-sort
 /ztst-tpl
+/dso-compatibility-check
 
 /common.so
 /core-iop-plugin.so

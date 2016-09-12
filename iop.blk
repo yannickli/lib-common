@@ -4901,13 +4901,13 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
 
         if (!(st2 = iop_pkg_get_struct_by_name(pkg2, name))) {
             iop_compat_add_err(&ctx, "%s `%*pM` does not exist anymore",
-                               what, LSTR_FMT_ARG(name));
+                               what, LSTR_FMT_ARG(st1->fullname));
             res = -1;
             continue;
         }
 
         iop_compat_push_err_ctx(&ctx, "%s `%*pM`: ",
-                                what, LSTR_FMT_ARG(name));
+                                what, LSTR_FMT_ARG(st1->fullname));
         if (__iop_struct_check_backward_compat(st1, st2, flags, &ctx) < 0) {
             res = -1;
         }

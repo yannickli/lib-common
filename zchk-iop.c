@@ -5818,17 +5818,22 @@ Z_GROUP_EXPORT(iop)
         /* Deleted structure. */
         T_KO_ALL(tstiop_backward_compat_deleted_struct_1,
                  tstiop_backward_compat_deleted_struct_2,
-                 "struct `Struct2` does not exist anymore");
+                 "struct `tstiop_backward_compat_deleted_struct_1.Struct2` "
+                 "does not exist anymore");
 
         /* Incompatible structures. */
         T_KO(tstiop_backward_compat_incompatible_struct_1,
              tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_BIN,
-             "struct `Struct1`: new field `b` must not be required");
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`: "
+             "new field `b` must not be required");
         T_KO(tstiop_backward_compat_incompatible_struct_1,
              tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_JSON,
-             "struct `Struct1`: new field `b` must not be required\n"
-             "struct `Struct2`: new field `d` must not be required\n"
-             "struct `Struct2`: field `c` does not exist anymore");
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`: "
+             "new field `b` must not be required\n"
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`: "
+             "new field `d` must not be required\n"
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`: "
+             "field `c` does not exist anymore");
 
 #undef T_OK
 #undef T_OK_ALL

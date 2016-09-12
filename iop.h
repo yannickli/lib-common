@@ -1556,7 +1556,7 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
 
 /** Checks the backward compatibility of two IOP packages.
  *
- * This function checks if \p pkg1 is backward-compatible with \p pkg2
+ * This function checks if \p pkg2 is backward-compatible with \p pkg1
  * regarding the formats specified in \p flags, that is if any
  * packed structure/class/union of \p st1 can be safely unpacked using
  * structure/class/union defined in \p st2.
