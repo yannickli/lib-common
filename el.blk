@@ -399,6 +399,13 @@ static void el_before_process(void)
             continue;
         }
 
+        if (unlikely(ev->type == EV_CHILD)) {
+            /* XXX: this can happen when registering a child which is already
+             *      dead, cf. el_child_register_d. */
+            el_child_fire(&ev, true);
+            continue;
+        }
+
         CHECK_EV_TYPE(ev, EV_BEFORE);
         if (EV_FLAG_HAS(ev, IS_BLK)) {
             ev->cb.cb_blk(ev);
