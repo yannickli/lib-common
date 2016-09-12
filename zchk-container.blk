@@ -490,6 +490,34 @@ Z_GROUP_EXPORT(qhash)
 
         Z_ASSERT(true);
     } Z_TEST_END
+
+    Z_TEST(qh_delete, "qh: check deletion, deep deletion") {
+        qh_t(ptr) *qh;
+
+        qh = qh_new(ptr, 0);
+        qh_add(ptr, qh, NULL);
+        qh_delete(ptr, &qh);
+        Z_ASSERT(qh == NULL);
+
+        qh = qh_new(ptr, 0);
+        qh_add(ptr, qh, p_new(int, 1));
+        qh_deep_delete(ptr, &qh, p_delete);
+        Z_ASSERT(qh == NULL);
+    } Z_TEST_END
+
+    Z_TEST(qm_delete, "qm: check deletion, deep deletion") {
+        qm_t(test_ptr) *qm;
+
+        qm = qm_new(test_ptr, 0);
+        qm_add(test_ptr, qm, NULL, 42);
+        qm_delete(test_ptr, &qm);
+        Z_ASSERT(qm == NULL);
+
+        qm = qm_new(test_ptr, 0);
+        qm_add(test_ptr, qm, p_new(int, 1), 42);
+        qm_deep_delete(test_ptr, &qm, p_delete, IGNORE);
+        Z_ASSERT(qm == NULL);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/

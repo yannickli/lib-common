@@ -803,6 +803,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
         mem_pool_t *__mp = (mp);                                             \
         mp_qh_init(name, __mp, mp_new_raw(__mp, qh_t(name), 1), (sz));       \
     })
+#define qh_new(name, sz)    mp_qh_new(name, NULL, (sz))
 #define t_qh_new(name, sz)  mp_qh_new(name, t_pool(), (sz))
 #define r_qh_new(name, sz)  mp_qh_new(name, r_pool(), (sz))
 
@@ -850,6 +851,15 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
        if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
 
+#define qh_delete(name, h)                                                   \
+    do {                                                                     \
+        qh_t(name) **__h = (h);                                              \
+        if (likely(*__h)) {                                                  \
+            qh_wipe(name, *__h);                                             \
+            p_delete(__h);                                                   \
+        }                                                                    \
+    } while (0)
+
 #define qh_deep_clear(name, h, wipe)                                     \
     do {                                                                 \
         qh_t(name) *__h = (h);                                           \
@@ -867,6 +877,16 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
         }                                                                \
         qh_wipe(name, __h);                                              \
     } while (0)
+
+#define qh_deep_delete(name, h, wipe)                                        \
+    do {                                                                     \
+        qh_t(name) **___h = (h);                                             \
+        if (likely(*___h)) {                                                 \
+            qh_deep_wipe(name, *___h, wipe);                                 \
+            p_delete(___h);                                                  \
+        }                                                                    \
+    } while (0)
+
 #define qh_wipe_at(name, qh, pos, wipe)  \
     do {                                                                 \
         qh_t(name) *__h = (qh);                                          \
@@ -942,6 +962,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
         mem_pool_t *__mp = (mp);                                             \
         mp_qm_init(name, __mp, mp_new_raw(__mp, qm_t(name), 1), (sz));       \
     })
+#define qm_new(name, sz)    mp_qm_new(name, NULL, (sz))
 #define t_qm_new(name, sz)  mp_qm_new(name, t_pool(), (sz))
 #define r_qm_new(name, sz)  mp_qm_new(name, r_pool(), (sz))
 
@@ -1001,6 +1022,24 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
             v_wipe(&(__h)->values[__pos]);                               \
         }                                                                \
         qm_wipe(name, __h);                                              \
+    } while (0)
+
+#define qm_delete(name, h)                                                   \
+    do {                                                                     \
+        qm_t(name) **___h = (h);                                             \
+        if (likely(*___h)) {                                                 \
+            qm_wipe(name, *___h);                                            \
+            p_delete(___h);                                                  \
+        }                                                                    \
+    } while (0)
+
+#define qm_deep_delete(name, h, k_wipe, v_wipe)                              \
+    do {                                                                     \
+        qm_t(name) **___h = (h);                                             \
+        if (likely(*___h)) {                                                 \
+            qm_deep_wipe(name, *___h, k_wipe, v_wipe);                       \
+            p_delete(___h);                                                  \
+        }                                                                    \
     } while (0)
 
 /** Find-reserve slot to insert {key,v} pair.
