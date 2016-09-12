@@ -4642,6 +4642,41 @@ iop_struct_is_optional(const iop_struct_t *st, iop_compat_ctx_t *ctx)
 }
 
 static int
+__backward_compat_check_new_field(const iop_struct_t *st1,
+                                  const iop_field_t *f1,
+                                  const iop_field_t *f2,
+                                  unsigned flags, iop_compat_ctx_t *ctx)
+{
+    if (f1) {
+        int res = 0;
+
+        iop_compat_push_err_ctx(ctx, "field `%*pM`: ",
+                                LSTR_FMT_ARG(f2->name));
+        if (iop_field_check_backward_compat(f1, f2, flags,
+                                            ctx) < 0)
+        {
+            res = -1;
+        }
+        iop_compat_pop_err_ctx(ctx);
+        return res;
+    }
+
+    if (st1->is_union || f2->repeat != IOP_R_REQUIRED) {
+        return 0;
+    }
+
+    if (f2->type == IOP_T_STRUCT
+    &&  iop_struct_is_optional(f2->u1.st_desc, ctx))
+    {
+        return 0;
+    }
+
+    iop_compat_add_err(ctx, "new field `%*pM` must not be required",
+                       LSTR_FMT_ARG(f2->name));
+    return -1;
+}
+
+static int
 __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
                                    unsigned flags, iop_compat_ctx_t *ctx)
@@ -4717,23 +4752,9 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
 
 #define CHECK_NEW_FIELD()                                                    \
         do {                                                                 \
-            if (f1) {                                                        \
-                iop_compat_push_err_ctx(ctx, "field `%*pM`: ",               \
-                                        LSTR_FMT_ARG(f2->name));             \
-                if (iop_field_check_backward_compat(f1, f2, flags,           \
-                                                    ctx) < 0)                \
-                {                                                            \
-                    got_err = true;                                          \
-                    res = -1;                                                \
-                }                                                            \
-                iop_compat_pop_err_ctx(ctx);                                 \
-            } else                                                           \
-            if (!st1->is_union && f2->repeat == IOP_R_REQUIRED               \
-            &&  (f2->type != IOP_T_STRUCT                                    \
-              || !iop_struct_is_optional(f2->u1.st_desc, ctx)))              \
+            if (__backward_compat_check_new_field(st1, f1, f2, flags,        \
+                                                  ctx) < 0)                  \
             {                                                                \
-                iop_compat_add_err(ctx, "new field `%*pM` must not be "      \
-                                   "required", LSTR_FMT_ARG(f2->name));      \
                 got_err = true;                                              \
                 res = -1;                                                    \
             }                                                                \
