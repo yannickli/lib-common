@@ -5444,6 +5444,7 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_struct_check_backward_compat, "test iop_struct_check_backward_compat") { /* {{{ */
         t_scope;
+        const char *err;
         tstiop_backward_compat__basic_union__t  basic_union;
         tstiop_backward_compat__basic_struct__t basic_struct;
         tstiop_backward_compat__basic_class__t  basic_class;
@@ -5760,9 +5761,13 @@ Z_GROUP_EXPORT(iop)
 
         /* Adding a non-optional field whose type is a "non-optional" struct
          * is not backward compatible. */
+        err = "new field `c` must not be required";
         T_KO_ALL(basic_struct, &basic_struct,
-                 new_mandatory_field_non_optional,
-                 "new field `c` must not be required");
+                 new_mandatory_field_non_optional, err);
+        T_KO_ALL(basic_struct, &basic_struct,
+                 new_mandatory_field_non_optional2, err);
+        T_KO_ALL(basic_struct, &basic_struct,
+                 new_mandatory_field_non_optional3, err);
 
 #undef T_OK
 #undef T_OK_ALL

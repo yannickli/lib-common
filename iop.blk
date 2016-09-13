@@ -4612,8 +4612,15 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
 }
 
 static bool
-iop_struct_is_optional(const iop_struct_t *st, iop_compat_ctx_t *ctx)
+iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
+                       iop_compat_ctx_t *ctx)
 {
+    if (forbid_abstract && iop_struct_is_class(st)
+    &&  st->class_attrs->is_abstract)
+    {
+        return false;
+    }
+
     if (qh_find(cptr, &ctx->seen_opt_st, st) >= 0) {
         return true;
     }
@@ -4625,14 +4632,14 @@ iop_struct_is_optional(const iop_struct_t *st, iop_compat_ctx_t *ctx)
             continue;
         }
         if (f->type != IOP_T_STRUCT
-        ||  !iop_struct_is_optional(f->u1.st_desc, ctx))
+        ||  !iop_struct_is_optional(f->u1.st_desc, true, ctx))
         {
             return false;
         }
     }
 
     if (iop_struct_is_class(st) && st->class_attrs->parent
-    &&  !iop_struct_is_optional(st->class_attrs->parent, ctx))
+    &&  !iop_struct_is_optional(st->class_attrs->parent, false, ctx))
     {
         return false;
     }
@@ -4666,13 +4673,14 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
     }
 
     if (f2->type == IOP_T_STRUCT
-    &&  iop_struct_is_optional(f2->u1.st_desc, ctx))
+    &&  iop_struct_is_optional(f2->u1.st_desc, true, ctx))
     {
         return 0;
     }
 
     iop_compat_add_err(ctx, "new field `%*pM` must not be required",
                        LSTR_FMT_ARG(f2->name));
+
     return -1;
 }
 

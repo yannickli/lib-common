@@ -308,14 +308,17 @@ class ChildClassB : 100 : ParentClassB {
 /* }}} */
 /* {{{ New mandatory fields of type struct */
 
-struct OptionalStruct {
+abstract class AbstractClass1 {
     bool? a;
     string[] b;
+};
+
+class OptionalClass2 : 2 : AbstractClass1 {
     int c = 12;
 };
 
 struct OptionalStruct2 {
-    OptionalStruct a;
+    OptionalClass2 a;
 };
 
 /* A mandatory field whose type is an "optional" struct was added. This is
@@ -326,7 +329,7 @@ struct NewMandatoryFieldOptional {
     OptionalStruct2 c;
 };
 
-struct NonOptionalStruct {
+struct NonOptionalStruct1 {
     int a;
 };
 
@@ -335,7 +338,25 @@ struct NonOptionalStruct {
 struct NewMandatoryFieldNonOptional {
     bool a;
     string b;
-    NonOptionalStruct c;
+    NonOptionalStruct1 c;
+};
+
+/* A mandatory field whose type is a "non-optional" class (because abstract)
+ * was added. This is not backward compatible. */
+struct NewMandatoryFieldNonOptional2 {
+    bool a;
+    string b;
+    AbstractClass1 c;
+};
+
+struct NonOptionalStruct2 {
+    AbstractClass1 a;
+};
+
+struct NewMandatoryFieldNonOptional3 {
+    bool a;
+    string b;
+    NonOptionalStruct2 c;
 };
 
 /* }}} */
