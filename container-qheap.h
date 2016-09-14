@@ -243,14 +243,14 @@
 #define qhp_remove(n, heap, pos)        qhp_##n##_remove(heap, pos)
 #define qhp_take_first(n, heap)         qhp_remove(n, heap, 0)
 
+#define QHP_CHECK_TYPE(n, heap)                                              \
+    ({ const qhp_t(n) *__heap = (heap); __heap; })
+
 /* Getters */
-#define qhp_len(n, heap)       ({  ASSERT_COMPATIBLE(qhp_t(n) *, heap);   \
-                                    (heap)->len; })
-#define qhp_is_empty(n, heap)  ({  ASSERT_COMPATIBLE(qhp_t(n) *, heap);   \
-                                    !(heap)->len; })
-#define qhp_get(n, heap, pos)  ({  ASSERT_COMPATIBLE(qhp_t(n) *, heap);   \
-                                    (heap)->tab[pos]; })
-#define qhp_first(n, heap)     qhp_get(n, heap, 0)
+#define qhp_len(n, heap)         QHP_CHECK_TYPE(n, (heap))->len
+#define qhp_is_empty(n, heap)    (!qhp_len(n, (heap)))
+#define qhp_get(n, heap, pos)    QHP_CHECK_TYPE(n, (heap))->tab[(pos)]
+#define qhp_first(n, heap)       qhp_get(n, (heap), 0)
 
 /* XXX In qhp_for_each_pos, when using a function that modifies heap
  *     content, user must absolutly break the loop.

@@ -1232,6 +1232,24 @@ Z_GROUP_EXPORT(qhp)
         }
     } Z_TEST_END
 
+    Z_TEST(getters, "qhp: inline getters helpers") {
+        qhp_t(i32_min)  qhp;
+        int32_t          tab[] = { 1, 2 };
+
+        qhp_inita(i32_min, &qhp, countof(tab));
+        carray_for_each_entry(i, tab) {
+            qhp_insert(i32_min, &qhp, i);
+        }
+
+        Z_ASSERT_EQ(qhp_len(i32_min, &qhp), 2);
+        Z_ASSERT(!qhp_is_empty(i32_min, &qhp));
+        Z_ASSERT_EQ(qhp_get(i32_min, &qhp, 0), 1);
+        Z_ASSERT_EQ(qhp_first(i32_min, &qhp), 1);
+        qhp_first(i32_min, &qhp) = 42;
+        qhp_fixup_first(i32_min, &qhp);
+        Z_ASSERT_EQ(qhp_first(i32_min, &qhp), 2);
+    } Z_TEST_END;
+
     Z_TEST(remove, "qhp: remove") {
         t_scope;
         qhp_t(test_heap) qhp;
