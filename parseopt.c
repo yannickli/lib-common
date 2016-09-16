@@ -247,7 +247,8 @@ int parseopt(int argc, char **argv, popt_t *opts, int flags)
         }
 
         if (!arg[2]) { /* "--" */
-            optst.argc--, optst.argv++;
+            optst.argc--;
+            optst.argv++;
             break;
         }
 

@@ -39,7 +39,7 @@ Z_GROUP_EXPORT(str)
 
         to_free_g = dst.s;
 
-        mem_pool_libc.free = &custom_free,
+        mem_pool_libc.free = &custom_free;
         lstr_copyc(&dst, src);
         mem_pool_libc.free = libc_free;
 

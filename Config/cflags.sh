@@ -185,6 +185,11 @@ EOF
             echo -Wno-nullability-completeness
             echo -Wno-shift-negative-value
         fi
+        if clang_prereq 3.9; then
+            echo -Wcomma
+            echo -Wfloat-overflow-conversion
+            echo -Wfloat-zero-conversion
+        fi
     fi
 
     echo -Wchar-subscripts

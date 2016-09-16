@@ -3441,12 +3441,16 @@ static size_t path_count_atoms(const char *s)
 {
     size_t n = 0;
 
-    if (*s == 0)
+    if (*s == 0) {
         return 0;
-    if (*s == '/')
+    }
+    if (*s == '/') {
         s++;
-    while ((s = strchr(s, '/')))
-        n++, s++;
+    }
+    while ((s = strchr(s, '/'))) {
+        n++;
+        s++;
+    }
     return n + 1;
 }
 

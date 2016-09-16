@@ -2446,10 +2446,14 @@ Z_GROUP_EXPORT(iop)
             iop_init_desc(st_sr, &sr_b);
             Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
-            sr_a.s.tab = strs, sr_a.s.len = countof(strs);
-            sr_b.s.tab = strs, sr_b.s.len = countof(strs);
-            sr_a.u8.tab = uints, sr_a.u8.len = countof(uints);
-            sr_b.u8.tab = uints, sr_b.u8.len = countof(uints);
+            sr_a.s.tab = strs;
+            sr_a.s.len = countof(strs);
+            sr_b.s.tab = strs;
+            sr_b.s.len = countof(strs);
+            sr_a.u8.tab = uints;
+            sr_a.u8.len = countof(uints);
+            sr_b.u8.tab = uints;
+            sr_b.u8.len = countof(uints);
             Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
 
             sr_b.s.len--;

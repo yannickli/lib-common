@@ -1431,8 +1431,8 @@ static void httpd_wipe(httpd_t *w)
 }
 
 OBJ_VTABLE(httpd)
-    httpd.init = httpd_init,
-    httpd.wipe = httpd_wipe,
+    httpd.init = httpd_init;
+    httpd.wipe = httpd_wipe;
 OBJ_VTABLE_END()
 
 void httpd_close_gently(httpd_t *w)

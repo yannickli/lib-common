@@ -1222,11 +1222,12 @@ static void par_qsort(thr_syn_t *syn, uint32_t *a, size_t n, bool use_blocks)
              * regular and returns != 0 on identical arguments, all bets
              * are off and this code may crash.
              */
-            while (++i, comp_gt(&qsop2, i))  /* find GE in left part */
+            while (comp_gt(&qsop2, ++i)) {  /* find GE in left part */
                 continue;
-
-            while (--j, comp_gt(j, &qsop2))  /* find LE in right part */
+            }
+            while (comp_gt(--j, &qsop2)) {  /* find LE in right part */
                 continue;
+            }
 
             if (i < j) {
                 swap(i, j);        /* swap if needed */
