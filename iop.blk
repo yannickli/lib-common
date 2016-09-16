@@ -4481,6 +4481,10 @@ iop_field_check_backward_compat(const iop_field_t *f1,
 
       case IOP_T_ENUM:
         assert (f1->type == f2->type);
+        if (!f1->u1.en_desc || !f2->u1.en_desc) {
+            /* This happens for SNMP traps using an enumeration... */
+            return 0;
+        }
         return __iop_enum_check_backward_compat(f1->u1.en_desc,
                                                 f2->u1.en_desc,
                                                 flags, ctx);
@@ -4847,6 +4851,106 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
     return res;
 }
 
+static int
+__iop_rpc_check_backward_compat(const iop_rpc_t *rpc1,
+                                const iop_rpc_t *rpc2,
+                                unsigned flags, iop_compat_ctx_t *ctx)
+{
+    int res = 0;
+
+#define CHECK_RPC(_what)  \
+    do {                                                                     \
+        iop_compat_push_err_ctx(ctx, "RPC `%*pM` " TOSTR(_what) ": ",        \
+                                LSTR_FMT_ARG(rpc1->name));                   \
+        if (__iop_struct_check_backward_compat(rpc1->_what, rpc2->_what,     \
+                                               flags, ctx) < 0)              \
+        {                                                                    \
+            res = -1;                                                        \
+        }                                                                    \
+        iop_compat_pop_err_ctx(ctx);                                         \
+    } while (0)
+
+    CHECK_RPC(args);
+
+    if (rpc1->async && !rpc2->async) {
+        iop_compat_add_err(ctx, "RPC `%*pM` was async and is not anymore",
+                           LSTR_FMT_ARG(rpc1->name));
+        return -1;
+    }
+    if (!rpc1->async && rpc2->async) {
+        iop_compat_add_err(ctx, "RPC `%*pM` is async but was not before",
+                           LSTR_FMT_ARG(rpc1->name));
+        return -1;
+    }
+
+    CHECK_RPC(result);
+    CHECK_RPC(exn);
+#undef CHECK_RPC
+
+    return res;
+}
+
+static const iop_rpc_t *
+__iop_iface_get_rpc_by_name(const iop_iface_t *iface, lstr_t name)
+{
+    for (int i = 0; i < iface->funs_len; i++) {
+        if (lstr_equal(iface->funs[i].name, name)) {
+            return &iface->funs[i];
+        }
+    }
+
+    return NULL;
+}
+
+static int
+__iop_iface_check_backward_compat(const iop_iface_t *if1,
+                                  const iop_iface_t *if2,
+                                  unsigned flags, iop_compat_ctx_t *ctx)
+{
+    int res = 0;
+
+    /* XXX: do not simply test if1 == if2 because it allows to easily write
+     *      "compatible" z-tests. */
+
+    for (int i = 0; i < if1->funs_len; i++) {
+        const iop_rpc_t *fun1 = &if1->funs[i];
+        const iop_rpc_t *fun2;
+
+        if (flags & IOP_COMPAT_JSON) {
+            if ((fun2 = __iop_iface_get_rpc_by_name(if2, fun1->name))) {
+                if (__iop_rpc_check_backward_compat(fun1, fun2, flags,
+                                                    ctx) < 0)
+                {
+                    res = -1;
+                    continue;
+                }
+            } else {
+                iop_compat_add_err(ctx, "RPC `%*pM` does not exist anymore",
+                                   LSTR_FMT_ARG(fun1->name));
+                res = -1;
+                continue;
+            }
+        }
+
+        if (flags & IOP_COMPAT_BIN) {
+            if ((fun2 = iop_iface_find_rpc(if2, fun1->tag))) {
+                if (__iop_rpc_check_backward_compat(fun1, fun2, flags,
+                                                    ctx) < 0)
+                {
+                    res = -1;
+                }
+            } else {
+                iop_compat_add_err(ctx, "RPC with tag %d (`%*pM`) does not "
+                                   "exist anymore",
+                                   fun1->tag, LSTR_FMT_ARG(fun1->name));
+                res = -1;
+            }
+        }
+    }
+
+    return res;
+}
+
 static lstr_t iop_get_name_from_fullname(lstr_t fullname)
 {
     pstream_t ps = ps_initlstr(&fullname);
@@ -4865,6 +4969,20 @@ iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name)
 
         if (lstr_equal(iop_get_name_from_fullname(st->fullname), name)) {
             return st;
+        }
+    }
+
+    return NULL;
+}
+
+static const iop_iface_t *
+iop_pkg_get_iface_by_name(const iop_pkg_t *pkg, lstr_t name)
+{
+    for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
+        const iop_iface_t *iface = *it;
+
+        if (lstr_equal(iop_get_name_from_fullname(iface->fullname), name)) {
+            return iface;
         }
     }
 
@@ -4909,6 +5027,27 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
         iop_compat_push_err_ctx(&ctx, "%s `%*pM`: ",
                                 what, LSTR_FMT_ARG(st1->fullname));
         if (__iop_struct_check_backward_compat(st1, st2, flags, &ctx) < 0) {
+            res = -1;
+        }
+        iop_compat_pop_err_ctx(&ctx);
+    }
+
+    /* Check interfaces. */
+    for (const iop_iface_t *const *it = pkg1->ifaces; *it; it++) {
+        const iop_iface_t *if1 = *it;
+        const iop_iface_t *if2;
+        lstr_t name = iop_get_name_from_fullname(if1->fullname);
+
+        if (!(if2 = iop_pkg_get_iface_by_name(pkg2, name))) {
+            iop_compat_add_err(&ctx, "interface `%*pM` does not exist anymore",
+                               LSTR_FMT_ARG(if1->fullname));
+            res = -1;
+            continue;
+        }
+
+        iop_compat_push_err_ctx(&ctx, "interface `%*pM`: ",
+                                LSTR_FMT_ARG(if1->fullname));
+        if (__iop_iface_check_backward_compat(if1, if2, flags, &ctx) < 0) {
             res = -1;
         }
         iop_compat_pop_err_ctx(&ctx);

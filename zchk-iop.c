@@ -27,6 +27,10 @@
 #include "iop/tstiop_backward_compat_deleted_struct_2.iop.h"
 #include "iop/tstiop_backward_compat_incompatible_struct_1.iop.h"
 #include "iop/tstiop_backward_compat_incompatible_struct_2.iop.h"
+#include "iop/tstiop_backward_compat_iface.iop.h"
+#include "iop/tstiop_backward_compat_iface_deleted.iop.h"
+#include "iop/tstiop_backward_compat_iface_deleted_rpc.iop.h"
+#include "iop/tstiop_backward_compat_iface_incompatible_rpc.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -5814,6 +5818,7 @@ Z_GROUP_EXPORT(iop)
         T_OK_ALL(tstiop_inheritance, tstiop_inheritance);
         T_OK_ALL(tstiop_licence, tstiop_licence);
         T_OK_ALL(tstiop_backward_compat, tstiop_backward_compat);
+        T_OK_ALL(tstiop_backward_compat_iface, tstiop_backward_compat_iface);
 
         /* Deleted structure. */
         T_KO_ALL(tstiop_backward_compat_deleted_struct_1,
@@ -5834,6 +5839,31 @@ Z_GROUP_EXPORT(iop)
              "new field `d` must not be required\n"
              "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`: "
              "field `c` does not exist anymore");
+
+        /* Deleted interface. */
+        T_KO_ALL(tstiop_backward_compat_iface,
+                 tstiop_backward_compat_iface_deleted,
+                 "interface `tstiop_backward_compat_iface.Iface` does not "
+                 "exist anymore");
+
+        /* Deleted RPC. */
+#define PREFIX  "interface `tstiop_backward_compat_iface.Iface`: "
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc, IOP_COMPAT_BIN,
+             PREFIX "RPC with tag 2 (`rpc2`) does not exist anymore");
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc, IOP_COMPAT_JSON,
+             PREFIX "RPC `rpc2` does not exist anymore");
+
+        /* Incompatible RPC changes. */
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_incompatible_rpc, IOP_COMPAT_JSON,
+             PREFIX "RPC `rpc1` args: new field `c` must not be required\n"
+             PREFIX "RPC `rpc1` args: field `b` does not exist anymore\n"
+             PREFIX "RPC `rpc1` result: field `res`: incompatible types\n"
+             PREFIX "RPC `rpc1` exn: field `desc` does not exist anymore\n"
+             PREFIX "RPC `rpc2` was async and is not anymore");
+#undef PREFIX
 
 #undef T_OK
 #undef T_OK_ALL
