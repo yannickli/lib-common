@@ -23,7 +23,10 @@ tstiop_SOURCES = tstiop.iop tstiop_inheritance.iop tstiop_licence.iop        \
                  tstiop_backward_compat_iface.iop                            \
                  tstiop_backward_compat_iface_deleted.iop                    \
                  tstiop_backward_compat_iface_deleted_rpc.iop                \
-                 tstiop_backward_compat_iface_incompatible_rpc.iop
+                 tstiop_backward_compat_iface_incompatible_rpc.iop           \
+                 tstiop_backward_compat_mod.iop                              \
+                 tstiop_backward_compat_mod_deleted.iop                      \
+                 tstiop_backward_compat_mod_deleted_if.iop
 tstiop_inheritance.iop_IOPVER=-5
 
 endif

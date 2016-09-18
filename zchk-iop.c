@@ -31,6 +31,9 @@
 #include "iop/tstiop_backward_compat_iface_deleted.iop.h"
 #include "iop/tstiop_backward_compat_iface_deleted_rpc.iop.h"
 #include "iop/tstiop_backward_compat_iface_incompatible_rpc.iop.h"
+#include "iop/tstiop_backward_compat_mod.iop.h"
+#include "iop/tstiop_backward_compat_mod_deleted.iop.h"
+#include "iop/tstiop_backward_compat_mod_deleted_if.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -5819,6 +5822,7 @@ Z_GROUP_EXPORT(iop)
         T_OK_ALL(tstiop_licence, tstiop_licence);
         T_OK_ALL(tstiop_backward_compat, tstiop_backward_compat);
         T_OK_ALL(tstiop_backward_compat_iface, tstiop_backward_compat_iface);
+        T_OK_ALL(tstiop_backward_compat_mod, tstiop_backward_compat_mod);
 
         /* Deleted structure. */
         T_KO_ALL(tstiop_backward_compat_deleted_struct_1,
@@ -5863,6 +5867,22 @@ Z_GROUP_EXPORT(iop)
              PREFIX "RPC `rpc1` result: field `res`: incompatible types\n"
              PREFIX "RPC `rpc1` exn: field `desc` does not exist anymore\n"
              PREFIX "RPC `rpc2` was async and is not anymore");
+#undef PREFIX
+
+        /* Deleted module. */
+        T_KO_ALL(tstiop_backward_compat_mod,
+                 tstiop_backward_compat_mod_deleted,
+                 "module `tstiop_backward_compat_mod.Module` does not exist "
+                 "anymore");
+
+        /* Deleted interface in a module. */
+#define PREFIX  "module `tstiop_backward_compat_mod.Module`: "
+        T_KO(tstiop_backward_compat_mod,
+             tstiop_backward_compat_mod_deleted_if, IOP_COMPAT_JSON,
+             PREFIX "interface `iface2` does not exist anymore");
+        T_KO(tstiop_backward_compat_mod,
+             tstiop_backward_compat_mod_deleted_if, IOP_COMPAT_BIN,
+             PREFIX "interface with tag 2 (`iface2`) does not exist anymore");
 #undef PREFIX
 
 #undef T_OK
