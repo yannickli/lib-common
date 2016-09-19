@@ -26,6 +26,7 @@ endif
 _IOPJSONPATH = $ljson
 
 bench_PROGRAMS += zgcd-bench
+dso_TOOLS_PROGRAMS = dso-compatibility-check
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -304,5 +305,9 @@ zgcd-bench_SOURCES = \
 ztst-mem-bench_SOURCES = \
 	ztst-mem-bench.c \
 	$llibcommon.a
+
+dso-compatibility-check_SOURCES = \
+    dso-compatibility-check.c \
+    $llibcommon.a
 
 include Build/base.mk

@@ -360,3 +360,23 @@ struct NewMandatoryFieldNonOptional3 {
 };
 
 /* }}} */
+
+/* {{{ SNMP objects (to check it is compatible with itself). */
+
+snmpObj BackwardSnmp : 1 : Intersec {
+};
+
+@snmpParam
+snmpObj BackwardSnmpParams : 81 : BackwardSnmp {
+    /** Fake brief. */
+1:  Enum1 enum1;
+};
+
+@snmpParamsFrom(BackwardSnmpParams)
+snmpIface BackwardSnmpNotifications : 80 : BackwardSnmp {
+    /** Fake brief. */
+1:   fakeTrap
+         in (enum1);
+};
+
+/* }}} */
