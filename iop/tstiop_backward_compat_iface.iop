@@ -1,0 +1,25 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+package tstiop_backward_compat_iface;
+
+interface Iface {
+1:  rpc1
+        in    (int a, double[] b)
+        out   (int res)
+        throw (string desc);
+
+2:  rpc2
+        in    (string arg)
+        out   null;
+};
