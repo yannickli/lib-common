@@ -382,6 +382,9 @@ void el_unloop(void) __leaf;
 void el_loop_timeout(int msecs);
 bool el_has_pending_events(void);
 
+/** Have we received a termination signal? */
+bool el_is_terminating(void);
+
 /**\}*/
 /* Module {{{ */
 

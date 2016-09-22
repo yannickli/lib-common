@@ -175,8 +175,6 @@ static struct {
     int       active;         /* number of ev_t keeping the el_loop running */
     int       used;           /* number of ev_t currently used              */
     uint8_t   unloop;         /* @see el_unloop()                           */
-    uint8_t   has_run;        /* true if we did something during a loop     */
-    bool      worker_running; /* true if the worker is currently running    */
 
     dlist_t   idle;           /* ev_t to run when we're "idle"              */
     dlist_t   idle_parked;    /* list to hide idle hooks for a while        */
@@ -193,6 +191,10 @@ static struct {
 
     el_t el_on_pwr;
     el_t el_sigchld_hook;
+
+    flag_t has_run        : 1; /* true if we did something during a loop    */
+    flag_t worker_running : 1; /* true if the worker is currently running   */
+    flag_t terminating    : 1; /* have we received a termination signal?    */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR     10   /* basic segment is 1024 events            */
@@ -500,6 +502,7 @@ static void el_signal_process(void)
             if (signo == SIGTERM || signo == SIGINT || signo == SIGQUIT
             ||  signo == SIGUSR2)
             {
+                _G.terminating = true;
                 module_on_term(signo);
             }
             if (EV_FLAG_HAS(ev, IS_BLK)) {
@@ -1491,6 +1494,11 @@ bool el_has_pending_events(void)
     return el_signal_has_pending_events()
         || el_timer_has_pending_events()
         || el_fds_has_pending_events();
+}
+
+bool el_is_terminating(void)
+{
+    return _G.terminating;
 }
 
 data_t el_unregister(ev_t **evp)
