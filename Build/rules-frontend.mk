@@ -66,7 +66,9 @@ ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
 define ext/expand/legacy/js
 $(3:js=min.js): $3
 	$(msg/MINIFY.js) $3
-	(cat $(var/cfgdir)/head.js && uglifyjs $$<) > $$@
+	uglifyjs -o $$@+ $$<
+	(cat $(var/cfgdir)/head.js && cat $$@+) > $$@
+	$(RM) $$@+
 $2: $(3:js=min.js)
 endef
 
