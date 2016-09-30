@@ -1281,10 +1281,32 @@ const iop_struct_t core__signed_licence__s = {
 static const iop_help_t core__httpd_cfg__bind_addr__f_help = {
     .brief = LSTR_IMMED("Address (host:port) to listen on"),
 };
+static int core__httpd_cfg__bind_addr__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        if (val.len == 0) {
+            if (n > 1) {
+                iop_set_err("violation of constraint %s on field %s[%d]",
+                            "nonEmpty", "bindAddr", j);
+            } else {
+                iop_set_err("violation of constraint %s on field %s",
+                            "nonEmpty", "bindAddr");
+            }
+            return -1;
+        }
+    }
+    return 0;
+}
 static iop_field_attr_t const core__httpd_cfg__bind_addr__attrs[] = {
     {
         .type = 11,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__bind_addr__f_help } },
+    },
+    {
+        .type = 13,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("cfg:addr") }, { .v.i64 = 1UL } },
     },
 };
 static const iop_help_t core__httpd_cfg__outbuf_max_size__f_help = {
@@ -1361,8 +1383,9 @@ static iop_field_attr_t const core__httpd_cfg__header_size_max__attrs[] = {
 };
 static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
-        .attrs_len         = 1,
+        .flags             = 10272,
+        .attrs_len         = 2,
+        .check_constraints = &core__httpd_cfg__bind_addr__check,
         .attrs             = core__httpd_cfg__bind_addr__attrs,
     },
     {
@@ -1414,6 +1437,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .repeat    = IOP_R_REQUIRED,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(core__httpd_cfg__t, bind_addr),
+        .flags     = 1,
         .size      = fieldsizeof(core__httpd_cfg__t, bind_addr),
     },
     {
@@ -1504,7 +1528,7 @@ const iop_struct_t core__httpd_cfg__s = {
     .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(core__httpd_cfg__desc_fields),
     .size       = sizeof(core__httpd_cfg__t),
-    .flags      = 1,
+    .flags      = 3,
     .fields_attrs = core__httpd_cfg__desc_fields_attrs,
 };
 
