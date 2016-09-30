@@ -57,7 +57,14 @@ static popt_t options[] = {
     OPT_FLAG('2', "features-v2",  &_G.v2,          "use iopc v2 features"),
     OPT_FLAG('3', "features-v3",  &_G.v3,          "use iopc v3 features"),
     OPT_FLAG('4', "features-v4",  &_G.v4,          "use iopc v4 features"),
-    /* XXX this currently only impacts example doxygen tag */
+
+    /* List of pending changes in v5:
+     * - handling of \example doxygen tag (7e8bec96f68).
+     * - trigger errors (and not warnings) when "avoid keywords" are
+     *   used (ad5bf3fda).
+     * - support @private attribute on classes (fa2055549).
+     * - remove trailing '.' in briefs (54f5dc6b).
+     */
     OPT_FLAG('5', "features-v5",  &_G.v5,
              "use iopc v5 features (in progress)"),
 
