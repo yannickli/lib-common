@@ -877,6 +877,12 @@ class IopcTest(z.TestCase):
     def test_empty(self):
         self.run_iopc_fail('empty.iop', 'error: unexpected end of file')
 
+    def test_deprecated_v5(self):
+        self.run_iopc('typedef_valid.iop', False,
+                      'error: `import` feature is deprecated', 5)
+        self.run_iopc('attrs_valid.iop', False,
+                      'error: verbatim C feature deprecated', 5)
+
     # }}}
 
 if __name__ == "__main__":

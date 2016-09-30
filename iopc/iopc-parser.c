@@ -1796,6 +1796,13 @@ static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
     iopc_token_t *tk;
 
     import->loc  = TK(pp, 0, goto error)->loc;
+
+    if (iopc_g.v5) {
+        error_loc("`import` feature is deprecated",
+                  TK(pp, 0, goto error)->loc);
+        goto error;
+    }
+
     if (__eat_kw(pp, "import") < 0
     ||  !(import->path = parse_path_aux(pp, &import->pkg)))
     {
@@ -3543,6 +3550,11 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         bool is_local = false;
 
         if (CHECK(pp, 0, ITOK_VERBATIM_C, goto error)) {
+            if (iopc_g.v5) {
+                error_loc("verbatim C feature deprecated",
+                          TK(pp, 0, goto error)->loc);
+                goto error;
+            }
             sb_addsb(&pkg->verbatim_c, &TK(pp, 0, goto error)->b);
             DROP(pp, 1);
         }

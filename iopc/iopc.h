@@ -64,7 +64,7 @@ typedef enum iopc_tok_type_t {
     ITOK_STRING,
     ITOK_COMMENT,
     ITOK_DOX_COMMENT,
-    ITOK_VERBATIM_C,
+    ITOK_VERBATIM_C, /* deprecated in v5 */
     ITOK_ATTR,
     ITOK_GEN_ATTR_NAME,
 } iopc_tok_type_t;
