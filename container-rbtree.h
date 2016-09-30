@@ -127,7 +127,7 @@ rb_node_t *__rb_prev(rb_node_t *) __leaf;
     /* This is the exact same structure for all instance, but keep it here   \
      * for type-safety.                                                      \
      */                                                                      \
-    typedef struct {                                                         \
+    typedef struct rb_t(n) {                                                 \
        struct rb_node_t *root;                                               \
     } rb_t(n);                                                               \
     typedef entry_t rb_##n##_entry_t;                                        \
