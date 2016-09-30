@@ -353,15 +353,39 @@ static inline int ps_get_ps(pstream_t *ps, size_t len, pstream_t *out) {
     return 0;
 }
 
-static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out) {
+static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out)
+{
     const void *p = memchr(ps->s, c, ps_len(ps));
+
     PS_WANT(p);
     *out = __ps_get_ps_upto(ps, p);
     return 0;
 }
 
-static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out) {
+static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out)
+{
     const void *p = memchr(ps->s, c, ps_len(ps));
+
+    PS_WANT(p);
+    *out = __ps_get_ps_upto(ps, p);
+    __ps_skip(ps, 1);
+    return 0;
+}
+
+static inline int ps_get_ps_lastchr(pstream_t *ps, int c, pstream_t *out)
+{
+    const void *p = memrchr(ps->p, c, ps_len(ps));
+
+    PS_WANT(p);
+    *out = __ps_get_ps_upto(ps, p);
+    return 0;
+}
+
+static inline int
+ps_get_ps_lastchr_and_skip(pstream_t *ps, int c, pstream_t *out)
+{
+    const void *p = memrchr(ps->p, c, ps_len(ps));
+
     PS_WANT(p);
     *out = __ps_get_ps_upto(ps, p);
     __ps_skip(ps, 1);
