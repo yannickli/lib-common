@@ -64,6 +64,7 @@ static popt_t options[] = {
      *   used (ad5bf3fda).
      * - support @private attribute on classes (fa2055549).
      * - remove trailing '.' in briefs (54f5dc6b).
+     * - deprecate 'import' and '%C{' features (b8b9c529d).
      */
     OPT_FLAG('5', "features-v5",  &_G.v5,
              "use iopc v5 features (in progress)"),
