@@ -599,7 +599,7 @@ bool _z_group_process(void)
             return false;
         return _z_group_run();
       case Z_CHILD_DIE:
-        if (!_G.grp.n_total == 0)
+        if (_G.grp.n_total)
             do_summary();
         return _z_group_exit();
       default:
