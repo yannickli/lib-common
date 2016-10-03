@@ -2371,6 +2371,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_a_opt__t sa_opt_a, sa_opt_b;
         tstiop__my_union_a__t ua_a, ua_b;
         tstiop__repeated__t sr_a, sr_b;
+        tstiop__void__t v_a, v_b;
 
         iop_dso_t *dso;
         const iop_struct_t *st_sg, *st_sa_opt, *st_ua, *st_sr;
@@ -2467,6 +2468,16 @@ Z_GROUP_EXPORT(iop)
             sr_b.u8.tab = uints2;
             Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
         }
+
+        /* An empty struct has only one representation, so iop_equals should
+         * always return true. */
+        iop_init(tstiop__void, &v_a);
+        iop_init(tstiop__void, &v_b);
+        Z_ASSERT(iop_equals(tstiop__void, NULL, NULL));
+        Z_ASSERT(iop_equals(tstiop__void, NULL, &v_a));
+        Z_ASSERT(iop_equals(tstiop__void, &v_a, NULL));
+        Z_ASSERT(iop_equals(tstiop__void, &v_a, &v_b));
+
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
