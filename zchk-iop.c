@@ -1746,20 +1746,20 @@ Z_GROUP_EXPORT(iop)
             },
         };
 
-        const char json_sa_opt[] = "{ a: 42, o: null }";
-
         tstiop__my_struct_a_opt__t json_sa_opt_res = {
             .a = OPT(42),
         };
 
-        iop_dso_t *dso;
+        tstiop__void__t iop_void = {};
 
+        iop_dso_t *dso;
 
         const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sn, *st_sa_opt;
         const iop_struct_t *st_cls2, *st_sg, *st_uc;
 
         const char json_sg_p1[] = "{ \"c_of_g\": 42 }";
         const char json_uc_p1[] = "{ d_of_c: 3.141592653589793238462643383 }";
+
         /* }}} */
 
         dso = Z_DSO_OPEN();
@@ -1795,7 +1795,12 @@ Z_GROUP_EXPORT(iop)
                                         "json_si"));
         Z_HELPER_RUN(iop_json_test_json(st_sk, json_sk,  &json_sk_res,
                                         "json_sk"));
-        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, json_sa_opt,
+
+        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, "{ a:42, o: null }",
+                                        &json_sa_opt_res, "json_sa_opt"));
+
+        json_sa_opt_res.v = &iop_void;
+        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, "{ a:42, o: null, v: {} }",
                                         &json_sa_opt_res, "json_sa_opt"));
 
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1,

@@ -30,6 +30,9 @@ struct HashV2 {
     string s;
 };
 
+struct Void {
+};
+
 @(test:gen1, 1)
 enum MyEnumA {
     @(test:gen2, 2.2)
@@ -129,6 +132,7 @@ struct MyStructAOpt {
     int? s;
     int? t;
     int[] u;
+    Void? v;
 };
 
 struct MyStructB {
@@ -370,9 +374,6 @@ struct TabStruct {
 union AOrB {
     MiniStruct a;
     int b;
-};
-
-struct Void {
 };
 
 class Ancestor {
