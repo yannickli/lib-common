@@ -219,7 +219,9 @@ static void *rp_alloc(mem_pool_t *_rp, size_t size, size_t alignment,
         e_panic("mem_pool_ring does not support alignments greater than 16");
     }
 
-    THROW_NULL_IF(size == 0);
+    if (unlikely((size == 0))) {
+        return MEM_EMPTY_ALLOC;
+    }
 
     spin_lock(&rp->lock);
     res = rp_reserve(rp, size, &rp->cblk);
@@ -248,9 +250,12 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
         e_panic("mem_pool_ring does not support alignments greater than 16");
     }
 
-
     if (unlikely(oldsize == MEM_UNKNOWN)) {
         e_panic("ring pools do not support reallocs with unknown old size");
+    }
+
+    if (unlikely(mem == MEM_EMPTY_ALLOC)) {
+        mem = NULL;
     }
 
     if (oldsize >= size) {

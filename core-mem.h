@@ -205,8 +205,9 @@ typedef unsigned __bitwise__ mem_flags_t;
  * 1 << 30 is 1 Gig, we check that the user hasn't made any mistake with
  * roundings and so on.
  */
-#define MEM_ALLOC_MAX  (1ull << 30)
-#define MEM_UNKNOWN    ((size_t)-1)
+#define MEM_ALLOC_MAX    (1ull << 30)
+#define MEM_UNKNOWN      ((size_t)-1)
+#define MEM_EMPTY_ALLOC  ((void *)0x1000)
 
 /*
  * mem_flags_t modify the ialloc functions behaviours.
