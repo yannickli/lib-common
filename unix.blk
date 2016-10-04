@@ -522,12 +522,11 @@ int list_dir(const char *path, unsigned flags, on_file_b on_file)
 int list_dir(const char *path, unsigned flags, on_file_b on_file)
 {
     DIR *dir = RETHROW_PN(opendir(path));
-    struct dirent *dirent = p_new_extra(struct dirent, PATH_MAX);
     struct dirent *de;
     int res = 0;
     int total = 0;
 
-    while ((res = readdir_r(dir, dirent, &de)) == 0 && de != NULL) {
+    while ((de = readdir(dir))) {
         int len;
         char tmp_path[PATH_MAX];
         struct stat stat_buf;
