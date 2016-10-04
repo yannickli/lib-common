@@ -98,7 +98,6 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
                                          const struct stat *st, bool head)
 {
     DIR *dir = fdopendir(dfd);
-    struct dirent *de;
     outbuf_t *ob;
 
     if (!dir) {
@@ -111,13 +110,12 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
     ob_adds(ob, "Content-Type: text/html\r\n");
     httpd_reply_hdrs_done(q, -1, false);
     if (!head) {
-        t_scope;
+        struct dirent *de;
 
         ob_adds(ob, "<html><body><h1>Index</h1>");
 
         rewinddir(dir);
-        de = t_new_extra(struct dirent, fpathconf(dfd, _PC_NAME_MAX) + 1);
-        while (readdir_r(dir, de, &de) == 0 && de) {
+        while ((de = readdir(dir))) {
             struct stat tmp;
 
             if (de->d_name[0] == '.')
