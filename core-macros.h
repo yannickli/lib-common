@@ -568,6 +568,8 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define strncpy(...)  NEVER_USE_strncpy(__VA_ARGS__)
 #undef strncat
 #define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
+#undef readdir_r
+#define readdir_r(...)  NEVER_USE_readdir_r(__VA_ARGS__)
 
 /* }}} */
 /** \} */

@@ -14,7 +14,6 @@
 /* holds the linux-dependent implementations for unix.h functions */
 
 #include <sys/syscall.h>
-#include <dirent.h>
 #include <sys/wait.h>
 #include "unix.h"
 #include "datetime.h"
