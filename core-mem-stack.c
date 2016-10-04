@@ -213,7 +213,9 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
     proctimer_start(&ptimer);
 #endif
 
-    THROW_NULL_IF(size == 0);
+    if (unlikely((size == 0))) {
+        return MEM_EMPTY_ALLOC;
+    }
 
 #ifndef NDEBUG
     if (unlikely(frame == &sp->base))
@@ -274,6 +276,10 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
     proctimer_t ptimer;
     proctimer_start(&ptimer);
 #endif
+
+    if (unlikely(mem == MEM_EMPTY_ALLOC)) {
+        mem = NULL;
+    }
 
 #ifndef NDEBUG
     if (frame->prev & 1)

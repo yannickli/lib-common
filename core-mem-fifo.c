@@ -150,6 +150,10 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, size_t alignment,
         e_panic("mem_fifo_pool does not support alignments greater than 8");
     }
 
+    if (unlikely(size == 0)) {
+        return MEM_EMPTY_ALLOC;
+    }
+
     page = mfp->current;
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
@@ -210,8 +214,9 @@ static void mfp_free(mem_pool_t *_mfp, void *mem)
     proctimer_start(&ptimer);
 #endif
 
-    if (!mem)
+    if (!mem || unlikely(mem == MEM_EMPTY_ALLOC)) {
         return;
+    }
 
     blk  = container_of(mem, mem_block_t, area);
     mem_tool_allow_memory(blk, sizeof(*blk), true);
@@ -312,7 +317,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
         return NULL;
     }
 
-    if (!mem) {
+    if (!mem || unlikely(mem == MEM_EMPTY_ALLOC)) {
         return mfp_alloc(_mfp, size, alignment, flags);
     }
 

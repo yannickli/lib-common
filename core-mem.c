@@ -35,6 +35,10 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
 {
     void *res;
 
+    if (unlikely(size == 0)) {
+        return MEM_EMPTY_ALLOC;
+    }
+
     if (alignment <= 8) {
         if (flags & MEM_RAW) {
             res = malloc(size);
@@ -67,6 +71,10 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
 {
     byte *res = NULL;
 
+    if (unlikely(mem == MEM_EMPTY_ALLOC)) {
+        mem = NULL;
+    }
+
     if (alignment > 8 && mem == NULL) {
         return libc_malloc(m, size, alignment, flags);
     }
@@ -94,7 +102,9 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
 
 static void libc_free(mem_pool_t *m, void *p)
 {
-    free(p);
+    if (likely(p != MEM_EMPTY_ALLOC)) {
+        free(p);
+    }
 }
 
 mem_pool_t mem_pool_libc = {
@@ -158,15 +168,26 @@ void icheck_alloc(size_t size)
 void *__mp_imalloc(mem_pool_t *mp, size_t size, size_t alignment,
                    mem_flags_t flags)
 {
+    void *res;
+
     icheck_alloc(size);
     mp = mp ?: &mem_pool_libc;
     alignment = mem_bit_align(mp, alignment);
-    return (*mp->malloc)(mp, size, alignment, flags);
+
+    res = (*mp->malloc)(mp, size, alignment, flags);
+
+    if (unlikely(size == 0)) {
+        assert (res == MEM_EMPTY_ALLOC);
+    }
+
+    return res;
 }
 
 void *__mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
                     size_t alignment, mem_flags_t flags)
 {
+    void *res;
+
     icheck_alloc(size);
     mp = mp ?: &mem_pool_libc;
 
@@ -180,7 +201,13 @@ void *__mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
             &&  "reallocation must have the same alignment as allocation");
     }
 
-    return (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
+    res = (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
+
+    if (unlikely(size == 0)) {
+        assert (res == MEM_EMPTY_ALLOC);
+    }
+
+    return res;
 }
 
 void mp_ifree(mem_pool_t *mp, void *mem)
