@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "datetime.h"
-#include <dirent.h>
 #include "http.h"
 
 static void mime_put_http_ctype(outbuf_t *ob, const char *path)
