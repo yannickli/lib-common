@@ -304,16 +304,14 @@ uintptr_t mem_align_ptr(uintptr_t ptr, size_t align)
     return ROUND_UP_2EXP(ptr, align);
 }
 
-static ALWAYS_INLINE void icheck_alloc(size_t size)
+static ALWAYS_INLINE void icheck_alloc_constant(size_t size)
 {
     if (__builtin_constant_p(size) && size > MEM_ALLOC_MAX) {
         __imalloc_too_large();
-    } else
-    if (size > MEM_ALLOC_MAX) {
-        e_panic("you cannot allocate that amount of memory: %zu (max %llu)",
-                size, MEM_ALLOC_MAX);
     }
 }
+
+void icheck_alloc(size_t size);
 
 #ifndef alignof
 # define alignof(type)  __alignof__(type)
@@ -337,87 +335,47 @@ static ALWAYS_INLINE void icheck_alloc(size_t size)
  */
 
 __attribute__((malloc, warn_unused_result))
+void *__mp_imalloc(mem_pool_t *mp, size_t size, size_t alignment,
+                   mem_flags_t flags);
+
+__attribute__((malloc, warn_unused_result))
 static ALWAYS_INLINE void *mp_imalloc(mem_pool_t *mp, size_t size,
                                       size_t alignment, mem_flags_t flags)
 {
-    icheck_alloc(size);
-    mp = mp ?: &mem_pool_libc;
-    alignment = mem_bit_align(mp, alignment);
-    return (*mp->malloc)(mp, size, alignment, flags);
+    icheck_alloc_constant(size);
+    return __mp_imalloc(mp, size, alignment, flags);
 }
+
+__attribute__((warn_unused_result))
+void *__mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
+                    size_t alignment, mem_flags_t flags);
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE
 void *mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
                   size_t alignment, mem_flags_t flags)
 {
-    icheck_alloc(size);
-    mp = mp ?: &mem_pool_libc;
-
-    if (!mem) {
-        return mp_imalloc(mp, size, alignment, flags);
-    }
-
-    alignment = mem_bit_align(mp, alignment);
-    if (!(flags & MEM_UNALIGN_OK)) {
-        assert ((uintptr_t)mem == mem_align_ptr((uintptr_t)mem, alignment)
-                && "reallocation must have the same alignment as allocation");
-    }
-    return (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
+    icheck_alloc_constant(size);
+    return __mp_irealloc(mp, mem, oldsize, size, alignment, flags);
 }
 
-static ALWAYS_INLINE
-void mp_ifree(mem_pool_t *mp, void *mem)
-{
-    mp = mp ?: &mem_pool_libc;
-    return (*mp->free)(mp, mem);
-}
+void mp_ifree(mem_pool_t *mp, void *mem);
+
+__attribute__((warn_unused_result))
+void *__mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
+                             size_t size, size_t alignment,
+                             mem_flags_t flags);
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE
 void *mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
                            size_t size, size_t alignment, mem_flags_t flags)
 {
-    mem_pool_t *mp = *pmp;
-
-    assert (oldsize != MEM_UNKNOWN);
-    icheck_alloc(size);
-    mp = mp ?: &mem_pool_libc;
-
-    if (mp->realloc_fallback && size > oldsize) {
-        void *out;
-
-        mp  = mp->realloc_fallback;
-        out = mp_imalloc(mp, size, alignment, flags);
-        if (oldsize != MEM_UNKNOWN) {
-            memcpy(out, mem, oldsize);
-        }
-        mp_ifree(*pmp, mem);
-        *pmp = mp;
-        return out;
-    } else {
-        return mp_irealloc(mp, mem, oldsize, size, alignment, flags);
-    }
+    icheck_alloc_constant(size);
+    return __mp_irealloc_fallback(pmp, mem, oldsize, size, alignment, flags);
 }
 
-static ALWAYS_INLINE
-mem_pool_t *ipool(mem_flags_t flags)
-{
-    switch (flags & MEM_POOL_MASK) {
-      case MEM_LIBC:
-        return &mem_pool_libc;
-
-      case MEM_STACK:
-        return t_pool();
-
-      case MEM_STATIC:
-        return &mem_pool_static;
-
-      default:
-        e_panic("pool memory cannot be used with imalloc familly");
-        return NULL;
-    }
-}
+mem_pool_t *ipool(mem_flags_t flags);
 
 static ALWAYS_INLINE
 mem_pool_t *mp_ipool(mem_pool_t *mp)
