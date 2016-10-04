@@ -1180,8 +1180,6 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
     struct dirent *de;
     DIR           *dir = NULL;
 
-    t_scope;
-
     dir = fdopendir(dup(qps->dfd));
     if (!dir) {
         e_error("QPS(%p): unable to fdopendir: %m", qps);
@@ -1189,8 +1187,7 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
     }
 
     rewinddir(dir);
-    de = t_new_extra(struct dirent, fpathconf(qps->dfd, _PC_NAME_MAX) + 1);
-    while (readdir_r(dir, de, &de) == 0 && de) {
+    while ((de = readdir(dir))) {
         const char *s   = de->d_name;
         const char *ext = path_extnul(s);
 
@@ -2382,7 +2379,6 @@ bool qps_exists(const char *path)
  */
 int qps_unlink(const char *path)
 {
-    t_scope;
     struct dirent *de;
     int res = 0, fd;
     DIR *dir;
@@ -2396,8 +2392,7 @@ int qps_unlink(const char *path)
     }
 
     rewinddir(dir);
-    de = t_new_extra(struct dirent, fpathconf(fd, _PC_NAME_MAX) + 1);
-    while (readdir_r(dir, de, &de) == 0 && de) {
+    while ((de = readdir(dir))) {
         const char *s = de->d_name;
         const char *e = path_extnul(s);
 
