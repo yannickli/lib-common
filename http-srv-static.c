@@ -99,7 +99,6 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
                                          const struct stat *st, bool head)
 {
     DIR *dir = fdopendir(dfd);
-    struct dirent *de;
     outbuf_t *ob;
 
     if (!dir) {
@@ -112,14 +111,14 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
     ob_adds(ob, "Content-Type: text/html\r\n");
     httpd_reply_hdrs_done(q, -1, true);
     if (!head) {
+        struct dirent *de;
+
         httpd_reply_chunk_start(q, ob);
 
         ob_adds(ob, "<html><body><h1>Index</h1>");
 
         rewinddir(dir);
-        t_push();
-        de = t_new_extra(struct dirent, fpathconf(dfd, _PC_NAME_MAX) + 1);
-        while (readdir_r(dir, de, &de) == 0 && de) {
+        while ((de = readdir(dir))) {
             struct stat tmp;
 
             if (de->d_name[0] == '.')
@@ -133,7 +132,6 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
                 ob_addf(ob, "<a href=\"%s\">%s</a><br>", de->d_name, de->d_name);
             }
         }
-        t_pop();
         closedir(dir);
 
         ob_adds(ob, "</body></html>");
