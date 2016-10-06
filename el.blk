@@ -586,6 +586,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 
     ev_t *ev = el_create(EV_CHILD, cb, priv, true);
 
+    assert (pid > 0);
     ev->child.pid = pid;
 
     if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
