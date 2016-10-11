@@ -41,6 +41,8 @@ class IopcTest(z.TestCase):
             iopc_args.append('--features-v4')
         if version == 5:
             iopc_args.append('--features-v5')
+        if version == 6:
+            iopc_args.append('--features-v6')
 
         # in case of expected success if no language is specified
         # the success must be for all the languages
@@ -877,11 +879,11 @@ class IopcTest(z.TestCase):
     def test_empty(self):
         self.run_iopc_fail('empty.iop', 'error: unexpected end of file')
 
-    def test_deprecated_v5(self):
+    def test_deprecated(self):
         self.run_iopc('typedef_valid.iop', False,
                       'error: `import` feature is deprecated', 5)
         self.run_iopc('attrs_valid.iop', False,
-                      'error: verbatim C feature deprecated', 5)
+                      'error: verbatim C feature deprecated', 6)
 
     # }}}
 

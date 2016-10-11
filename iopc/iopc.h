@@ -64,7 +64,7 @@ typedef enum iopc_tok_type_t {
     ITOK_STRING,
     ITOK_COMMENT,
     ITOK_DOX_COMMENT,
-    ITOK_VERBATIM_C, /* deprecated in v5 */
+    ITOK_VERBATIM_C, /* deprecated in v6 */
     ITOK_ATTR,
     ITOK_GEN_ATTR_NAME,
 } iopc_tok_type_t;
@@ -92,6 +92,7 @@ extern struct {
     int v3;
     int v4;
     int v5;
+    int v6;
 
     /** Check the presence of an @snmpIndex in each snmpTbl.
      *

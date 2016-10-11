@@ -3550,7 +3550,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         bool is_local = false;
 
         if (CHECK(pp, 0, ITOK_VERBATIM_C, goto error)) {
-            if (iopc_g.v5) {
+            if (iopc_g.v6) {
                 error_loc("verbatim C feature deprecated",
                           TK(pp, 0, goto error)->loc);
                 goto error;

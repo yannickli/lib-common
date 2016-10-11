@@ -64,10 +64,16 @@ static popt_t options[] = {
      *   used (ad5bf3fda).
      * - support @private attribute on classes (fa2055549).
      * - remove trailing '.' in briefs (54f5dc6b).
-     * - deprecate 'import' and '%C{' features (b8b9c529d).
+     * - deprecate 'import' feature (b8b9c529d).
      */
     OPT_FLAG('5', "features-v5",  &_G.v5,
              "use iopc v5 features (in progress)"),
+
+    /* List of pending changes in v6:
+     * - deprecate '%C{' features (b8b9c529d).
+     */
+    OPT_FLAG('6', "features-v6",  &_G.v6,
+             "use iopc v6 features (in progress)"),
 
     OPT_GROUP("C backend options"),
     OPT_FLAG(0,   "c-resolve-includes",
@@ -218,6 +224,7 @@ int main(int argc, char **argv)
     opts.c_outpath    = opts.c_outpath ?: opts.outpath;
     opts.json_outpath = opts.json_outpath ?: opts.outpath;
 
+    _G.v5 |= _G.v6;
     _G.v4 |= _G.v5;
     _G.v3 |= _G.v4;
     _G.v2 |= _G.v3;
