@@ -470,9 +470,114 @@ static void el_idle_process(uint64_t now)
 /* }}} */
 /* {{{ signal events */
 
-static void el_sighandler(int signum)
+static const char *si_code_to_str(int signum, int si_code)
+{
+#define CASE(_code)  case _code: return TOSTR(_code)
+
+    switch (signum) {
+      case SIGILL:
+        switch (si_code) {
+          CASE(ILL_ILLOPC);
+          CASE(ILL_ILLOPN);
+          CASE(ILL_ILLADR);
+          CASE(ILL_ILLTRP);
+          CASE(ILL_PRVOPC);
+          CASE(ILL_PRVREG);
+          CASE(ILL_COPROC);
+          CASE(ILL_BADSTK);
+        }
+        break;
+
+      case SIGFPE:
+        switch (si_code) {
+          CASE(FPE_INTDIV);
+          CASE(FPE_INTOVF);
+          CASE(FPE_FLTDIV);
+          CASE(FPE_FLTOVF);
+          CASE(FPE_FLTUND);
+          CASE(FPE_FLTRES);
+          CASE(FPE_FLTINV);
+          CASE(FPE_FLTSUB);
+        }
+        break;
+
+      case SIGSEGV:
+        switch (si_code) {
+          CASE(SEGV_MAPERR);
+          CASE(SEGV_ACCERR);
+        }
+        break;
+
+      case SIGBUS:
+        switch (si_code) {
+          CASE(BUS_ADRALN);
+          CASE(BUS_ADRERR);
+          CASE(BUS_OBJERR);
+#ifdef BUS_MCEERR_AR
+          CASE(BUS_MCEERR_AR);
+#endif
+#ifdef BUS_MCEERR_AO
+          CASE(BUS_MCEERR_AO);
+#endif
+        }
+        break;
+
+      case SIGTRAP:
+        switch (si_code) {
+          CASE(TRAP_BRKPT);
+          CASE(TRAP_TRACE);
+        }
+        break;
+
+      case SIGCHLD:
+        switch (si_code) {
+          CASE(CLD_EXITED);
+          CASE(CLD_KILLED);
+          CASE(CLD_DUMPED);
+          CASE(CLD_TRAPPED);
+          CASE(CLD_STOPPED);
+          CASE(CLD_CONTINUED);
+        }
+        break;
+
+      case SIGPOLL:
+        switch (si_code) {
+          CASE(POLL_IN);
+          CASE(POLL_OUT);
+          CASE(POLL_MSG);
+          CASE(POLL_ERR);
+          CASE(POLL_PRI);
+          CASE(POLL_HUP);
+        }
+        break;
+
+      default:
+        switch (si_code) {
+          CASE(SI_USER);
+          CASE(SI_KERNEL);
+          CASE(SI_QUEUE);
+          CASE(SI_TIMER);
+          CASE(SI_MESGQ);
+          CASE(SI_ASYNCIO);
+          CASE(SI_SIGIO);
+          CASE(SI_TKILL);
+        }
+        break;
+    }
+#undef CASE
+
+    return "unknown";
+}
+
+static void el_sighandler(int signum, siginfo_t *siginfo, void *ctx)
 {
     _G.gotsigs |= (1 << signum);
+
+    /* Refer to 'man 2 sigaction' for the meaning of the codes. */
+    logger_trace(&_G.logger, 1,
+                 "received signal %d from PID %d, UID %d (code %s)",
+                 signum, siginfo->si_pid, siginfo->si_uid,
+                 si_code_to_str(signum, siginfo->si_code));
 }
 
 static void el_signal_process(void)
@@ -533,9 +638,9 @@ ev_t *el_signal_register_d(int signo, el_signal_f *cb, data_t priv)
     ev_t *ev;
 
     p_clear(&sa, 1);
-    sa.sa_handler = el_sighandler;
+    sa.sa_sigaction = el_sighandler;
     sigfillset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
+    sa.sa_flags = SA_RESTART | SA_SIGINFO;
     sigaction(signo, &sa, NULL);
 
     ev = el_create(EV_SIGNAL, cb, priv, false);
