@@ -2422,6 +2422,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
     } else {
         type   = SOCK_STREAM;
     }
+    if (!ic->is_unix && type == SOCK_STREAM) {
+        flags |= FD_FEAT_TCP_NODELAY;
+    }
     ic->is_seqpacket = type == SOCK_SEQPACKET;
 
     sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
@@ -2509,6 +2512,9 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     assert (type == SOCK_STREAM || type == SOCK_SEQPACKET);
     ic->is_seqpacket = type == SOCK_SEQPACKET;
 
+    if (!ic->is_unix && type == SOCK_STREAM) {
+        fd_set_features(fd, FD_FEAT_TCP_NODELAY);
+    }
     if (ic->do_el_unref) {
         el_unref(ic->elh);
     }
