@@ -195,8 +195,10 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
 {
     t_scope;
     const char *real_path;
+    bool existed;
 
     real_path = t_build_real_path(log_file, date);
+    existed = access(real_path, R_OK) == 0;
 
     log_file->open_date = date;
 
@@ -205,21 +207,18 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
                                                   1 << 20, false);
         log_file->total_size += log_file->_bin_internal->cur;
     } else {
-        log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE |
-                                        FILE_EXCL, 0644);
-        if (log_file->_internal) {
-            log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
-        } else {
-            if (errno == EEXIST) {
-                log_file->_internal = file_open(real_path, FILE_WRONLY, 0644);
-            }
-            if (!log_file->_internal
-            ||  file_seek(log_file->_internal, 0, SEEK_END) == (off_t)-1)
-            {
-                logger_error(&logger_g, "could not open log file `%s`: %m",
-                             real_path);
-            }
+        log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE,
+                                        0644);
+        if (!log_file->_internal
+        ||  file_seek(log_file->_internal, 0, SEEK_END) == (off_t)-1)
+        {
+            logger_error(&logger_g, "could not open log file `%s`: %m",
+                         real_path);
         }
+    }
+
+    if (!existed && log_file->_internal) {
+        log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
     }
 
     if (!(log_file->flags & LOG_FILE_NOSYMLINK)) {
