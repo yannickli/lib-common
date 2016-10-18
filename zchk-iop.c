@@ -5329,8 +5329,8 @@ Z_GROUP_EXPORT(iop)
                         t->res.len);
             fclose(out);
 
-            Z_ASSERT_N(lstr_init_from_file(&file, path, MAP_SHARED,
-                                           PROT_READ), "%m");
+            Z_ASSERT_N(lstr_init_from_file(&file, path, PROT_READ,
+                                           MAP_SHARED), "%m");
             Z_ASSERT_LSTREQUAL(file, t->res);
             lstr_wipe(&file);
         }
