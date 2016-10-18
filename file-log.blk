@@ -205,7 +205,12 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
     if (log_file->is_file_bin) {
         log_file->_bin_internal = file_bin_create(LSTR(real_path),
                                                   1 << 20, false);
-        log_file->total_size += log_file->_bin_internal->cur;
+        if (log_file->_internal) {
+            log_file->total_size += log_file->_bin_internal->cur;
+        } else {
+            logger_error(&logger_g, "could not open log file `%s`: %m",
+                         real_path);
+        }
     } else {
         log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE,
                                         0644);
