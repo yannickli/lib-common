@@ -827,6 +827,8 @@ static void el_timer_process(uint64_t until)
             return;
         }
 
+        logger_trace(&_G.logger, 3, "trigger timer %p", ev);
+
         EV_FLAG_RST(ev, TIMER_UPDATED);
         if (EV_FLAG_HAS(ev, IS_BLK)) {
             ev->cb.cb_blk(ev);
@@ -942,7 +944,8 @@ static void el_timer_compute_tolerance(ev_t *ev)
     ev->timer.tolerance = repeat / 10;
 }
 
-ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t priv)
+ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb,
+                          data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -952,7 +955,6 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t p
     if (flags & EL_TIMER_LOWRES) {
         EV_FLAG_SET(ev, TIMER_LOWRES);
     }
-    ev->timer.tolerance = 0;
     if (repeat > 0) {
         ev->timer.repeat = repeat;
     } else {
@@ -961,6 +963,23 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, data_t p
     el_timer_compute_tolerance(ev);
     ev->timer.expiry = (uint64_t)next + get_clock();
     qhp_insert(timer, &_G.timers, ev);
+
+    if (logger_is_traced(&_G.logger, 2)) {
+        logger_trace_scope(&_G.logger, 2);
+        bool one_shot = ev->timer.repeat < 0;
+
+        logger_cont("register %stimer on event %p ",
+                    one_shot ? "one shot " : "", ev);
+        logger_cont("(next: %dms, ", next);
+        if (!one_shot) {
+            logger_cont("expiry: %ju.%03ju, ",
+                        ev->timer.expiry / 1000,
+                        ev->timer.expiry % 1000);
+        }
+        logger_cont("tolerance: %ums, ", ev->timer.tolerance);
+        logger_cont("cb: %p)", (void *)ev->cb.cb);
+    }
+
     return ev;
 }
 
@@ -982,6 +1001,12 @@ static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
     ev->timer.expiry = (uint64_t)restart + get_clock();
     EV_FLAG_SET(ev, TIMER_UPDATED);
     qhp_fixup(timer, &_G.timers, ev->timer.heappos);
+
+    logger_trace(&_G.logger, 3,
+                 "restart timer %p (restart: %jums, expiry: %ju.%03ju)",
+                 ev, restart,
+                 ev->timer.expiry / 1000,
+                 ev->timer.expiry % 1000);
 }
 
 void el_timer_restart(ev_t *ev, int restart)
