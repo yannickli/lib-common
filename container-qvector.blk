@@ -294,9 +294,10 @@ bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
     return __qvector_find(vec, v_size, elt, sorted, cmp) != -1;
 }
 
-void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
+void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp,
+                    qvector_del_b nullable del)
 {
-    vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp, NULL);
+    vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp, del);
 }
 
 void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,

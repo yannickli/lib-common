@@ -771,8 +771,8 @@ static void build_sorted_uniq_vec(qv_t(u32) *vec)
 #undef N
 }
 
-/* XXX: qv_diff/deep_extend performed in a separate function as block
- *  rewriting inside Z_GROUP_EXPORT breaks compilation */
+/* XXX: qv_diff/deep_extend/uniq performed in a separate function as block
+ * rewriting inside Z_GROUP_EXPORT breaks compilation */
 static void do_qv_diff(qv_t(u32) *vec1, qv_t(u32) *vec2,
                        qv_t(u32) *add, qv_t(u32) *del, qv_t(u32) *inter)
 {
@@ -781,12 +781,23 @@ static void do_qv_diff(qv_t(u32) *vec1, qv_t(u32) *vec2,
                      return CMP(*v1, *v2);
                  });
 }
+
 static void do_qv_deep_extend(qv_t(str) *vec1, qv_t(str) *vec2)
 {
     qv_deep_extend(str)(vec1, vec2,
                         ^void (char **dst, char * const *src) {
                             *dst = p_strdup(*src);
                         });
+}
+
+static void do_qv_uniq(qv_t(u32) *uniqued_vec, qv_t(u32) *duplicated_vec)
+{
+    qv_uniq(u32)(uniqued_vec, ^int (const uint32_t *a, const uint32_t *b) {
+        return CMP(*a, *b);
+    },
+    ^void (uint32_t *v) {
+        qv_append(u32, duplicated_vec, *v);
+    });
 }
 
 static _Bool qv_search_tst(void)
@@ -1125,6 +1136,31 @@ Z_GROUP_EXPORT(qvector)
         qv_init_static(u32, &vec, cttab, countof(tab));
         Z_ASSERT(vec.tab == cttab);
         Z_ASSERT_EQ(vec.len, countof(tab));
+    } Z_TEST_END
+
+    Z_TEST(qv_deep_uniq, "qvector: qv_uniq()") {
+        t_scope;
+        const uint32_t sorted[] = { 1, 1, 3, 4, 6, 6, 6, 42, 7777, 7777 };
+        const uint32_t uniqued[] = { 1, 3, 4, 6, 42, 7777 };
+        const uint32_t duplicated[] = { 1, 6, 6, 7777 };
+        qv_t(u32) static_vec;
+        qv_t(u32) uniqued_vec;
+        qv_t(u32) duplicated_vec;
+
+        /* Init */
+        qv_init_static(u32, &static_vec, sorted, countof(sorted));
+        t_qv_init(u32, &uniqued_vec, static_vec.len);
+        qv_extend(u32, &uniqued_vec, &static_vec);
+        t_qv_init(u32, &duplicated_vec, countof(duplicated));
+
+        /* Uniq vec */
+        do_qv_uniq(&uniqued_vec, &duplicated_vec);
+
+        /* Test resulting vectors */
+        Z_ASSERT_EQUAL(uniqued_vec.tab, uniqued_vec.len, uniqued,
+                       countof(uniqued));
+        Z_ASSERT_EQUAL(duplicated_vec.tab, duplicated_vec.len, duplicated,
+                       countof(duplicated));
     } Z_TEST_END
 } Z_GROUP_END;
 
