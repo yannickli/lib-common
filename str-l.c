@@ -117,6 +117,223 @@ void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
     }
 }
 
+int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, true));
+    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, true));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}
+
+int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, false));
+    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, false));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}
+
+/* {{{ Base helpers */
+
+void mp_lstr_copy_(mem_pool_t *mp, lstr_t *dst, const void *s, int len)
+{
+    mp = mp ?: &mem_pool_libc;
+    if (dst->mem_pool == (mp->mem_pool & MEM_POOL_MASK)) {
+        mp_delete(mp, &dst->v);
+    } else
+    if (dst->mem_pool == MEM_MMAP) {
+        (lstr_munmap)(dst);
+    } else {
+        ifree(dst->v, dst->mem_pool);
+    }
+    if (s == NULL) {
+        *dst = lstr_init_(NULL, 0, MEM_STATIC);
+    } else {
+        *dst = lstr_init_(s, len, mp->mem_pool & MEM_POOL_MASK);
+    }
+}
+
+void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
+{
+    if (s) {
+        if (len < 0) {
+            len = strlen(s);
+        }
+        mp = mp ?: &mem_pool_libc;
+        mp_lstr_copy_(mp, dst, mp_dupz(mp, s, len), len);
+    } else {
+        mp_lstr_copy_(&mem_pool_static, dst, NULL, 0);
+    }
+}
+
+void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
+{
+    if (src.s) {
+        mp = mp ?: &mem_pool_libc;
+        mp_lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len);
+    } else {
+        mp_lstr_copy_(&mem_pool_static, dst, NULL, 0);
+    }
+}
+
+lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
+{
+    if (!s) {
+        return LSTR_NULL_V;
+    }
+    if (len < 0) {
+        len = strlen(s);
+    }
+    return mp_lstr_init(mp, mp_dupz(mp, s, len), len);
+}
+
+lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
+{
+    if (!s.s) {
+        return LSTR_NULL_V;
+    }
+    return mp_lstr_init(mp, mp_dupz(mp, s.s, s.len), s.len);
+}
+
+void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
+{
+    mp = mp ?: &mem_pool_libc;
+    if (s->mem_pool != MEM_LIBC
+    &&  s->mem_pool != (mp->mem_pool & MEM_POOL_MASK))
+    {
+        s->s        = (char *)mp_dupz(mp, s->s, s->len);
+        s->mem_pool = mp->mem_pool & MEM_POOL_MASK;
+    }
+}
+
+lstr_t mp_lstr_dup_ascii_reversed(mem_pool_t *mp, const lstr_t v)
+{
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = mp_new_raw(mp, char, v.len + 1);
+
+    for (int i = 0; i < v.len; i++) {
+        str[i] = v.s[v.len - i - 1];
+    }
+    str[v.len] = '\0';
+
+    return mp_lstr_init(mp, str, v.len);
+}
+
+lstr_t mp_lstr_dup_utf8_reversed(mem_pool_t *mp, const lstr_t v)
+{
+    int prev_off = 0;
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = mp_new_raw(mp, char, v.len + 1);
+    while (prev_off < v.len) {
+        int off = prev_off;
+        int c = utf8_ngetc_at(v.s, v.len, &off);
+
+        if (unlikely(c < 0)) {
+            return LSTR_NULL_V;
+        }
+        memcpy(str + v.len - off, v.s + prev_off, off - prev_off);
+        prev_off = off;
+    }
+    return mp_lstr_init(mp, str, v.len);
+}
+
+lstr_t mp_lstr_cat(mem_pool_t *mp, const lstr_t s1, const lstr_t s2)
+{
+    int    len;
+    lstr_t res;
+    void  *s;
+
+    if (unlikely(!s1.s && !s2.s)) {
+        return LSTR_NULL_V;
+    }
+
+    len = s1.len + s2.len;
+    res = mp_lstr_init(mp, mp_new_raw(mp, char, len + 1), len);
+    s = (void *)res.v;
+    s = mempcpy(s, s1.s, s1.len);
+    mempcpyz(s, s2.s, s2.len);
+    return res;
+}
+
+lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
+                    const lstr_t s3)
+{
+    int    len;
+    lstr_t res;
+    void  *s;
+
+    if (unlikely(!s1.s && !s2.s && !s3.s)) {
+        return LSTR_NULL_V;
+    }
+
+    len = s1.len + s2.len + s3.len;
+    res = mp_lstr_init(mp, mp_new_raw(mp, char, len + 1), len);
+    s = (void *)res.v;
+    s = mempcpy(s, s1.s, s1.len);
+    s = mempcpy(s, s2.s, s2.len);
+    mempcpyz(s, s3.s, s3.len);
+    return res;
+}
+
+/* }}} */
+/* {{{ Comparisons */
+
+int lstr_ascii_icmp(const lstr_t s1, const lstr_t s2)
+{
+    int min = MIN(s1.len, s2.len);
+
+    for (int i = 0; i < min; i++) {
+        int a = tolower((unsigned char)s1.s[i]);
+        int b = tolower((unsigned char)s2.s[i]);
+
+        if (a != b) {
+            return CMP(a, b);
+        }
+    }
+
+    return CMP(s1.len, s2.len);
+}
+
+bool lstr_ascii_iequal(const lstr_t s1, const lstr_t s2)
+{
+    if (s1.len != s2.len) {
+        return false;
+    }
+    for (int i = 0; i < s1.len; i++) {
+        if (tolower((unsigned char)s1.s[i]) != tolower((unsigned char)s2.s[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool lstr_match_ctype(lstr_t s, const ctype_desc_t *d)
+{
+    for (int i = 0; i < s.len; i++) {
+        if (!ctype_desc_contains(d, (unsigned char)s.s[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int lstr_dlevenshtein(const lstr_t cs1, const lstr_t cs2, int max_dist)
 {
     t_scope;
@@ -181,28 +398,174 @@ int lstr_dlevenshtein(const lstr_t cs1, const lstr_t cs2, int max_dist)
     return cur[s2.len];
 }
 
-int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
+lstr_t lstr_utf8_truncate(lstr_t s, int char_len)
 {
-    SB_1k(sb1);
-    SB_1k(sb2);
+    int pos = 0;
 
-    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, true));
-    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, true));
-
-    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+    while (char_len > 0 && pos < s.len) {
+        if (utf8_ngetc_at(s.s, s.len, &pos) < 0) {
+            return LSTR_NULL_V;
+        }
+        char_len--;
+    }
+    return LSTR_INIT_V(s.s, pos);
 }
 
-int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
+/* }}} */
+/* {{{ Conversions */
+
+void lstr_ascii_tolower(lstr_t *s)
 {
-    SB_1k(sb1);
-    SB_1k(sb2);
-
-    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, false));
-    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, false));
-
-    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+    for (int i = 0; i < s->len; i++) {
+        s->v[i] = tolower((unsigned char)s->v[i]);
+    }
 }
 
+void lstr_ascii_toupper(lstr_t *s)
+{
+    for (int i = 0; i < s->len; i++) {
+        s->v[i] = toupper((unsigned char)s->v[i]);
+    }
+}
+
+void lstr_ascii_reverse(lstr_t *s)
+{
+    for (int i = 0; i < s->len / 2; i++) {
+        SWAP(char, s->v[i], s->v[s->len - i - 1]);
+    }
+}
+
+int lstr_to_int(lstr_t lstr, int *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_rtrim(lstr);
+
+    errno = 0;
+    *out = memtoip(lstr.s, lstr.len, &endp);
+
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+int lstr_to_int64(lstr_t lstr, int64_t *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_rtrim(lstr);
+
+    errno = 0;
+    *out = memtollp(lstr.s, lstr.len, &endp);
+
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+int lstr_to_uint64(lstr_t lstr, uint64_t *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_trim(lstr);
+
+    errno = 0;
+    *out = memtoullp(lstr.s, lstr.len, &endp);
+
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+int lstr_to_uint(lstr_t lstr, uint32_t *out)
+{
+    uint64_t u64;
+
+    RETHROW(lstr_to_uint64(lstr, &u64));
+
+    if (u64 > UINT32_MAX) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    *out = u64;
+    return 0;
+}
+
+int lstr_to_double(lstr_t lstr, double *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr = lstr_rtrim(lstr);
+
+    errno = 0;
+    *out = memtod(lstr.s, lstr.len, &endp);
+
+    THROW_ERR_IF(errno);
+    if (endp != (const byte *)lstr.s + lstr.len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+lstr_t t_lstr_hexdecode(lstr_t lstr)
+{
+    char *s;
+    int len;
+
+    len = lstr.len / 2;
+    s   = t_new_raw(char, len + 1);
+
+    if (strconv_hexdecode(s, len, lstr.s, lstr.len) < 0) {
+        return LSTR_NULL_V;
+    }
+
+    s[len] = '\0';
+    return LSTR_INIT_V(s, len);
+}
+
+lstr_t t_lstr_hexencode(lstr_t lstr)
+{
+    char *s;
+    int len;
+
+    len = lstr.len * 2;
+    s   = t_new_raw(char, len + 1);
+
+    if (strconv_hexencode(s, len + 1, lstr.s, lstr.len) < 0) {
+        return LSTR_NULL_V;
+    }
+
+    return LSTR_INIT_V(s, len);
+}
+
+/* }}} */
 /* {{{ SQL LIKE pattern matching */
 
 /* XXX: This is copied from QDB, so that other daemons can use the
