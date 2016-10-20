@@ -296,7 +296,7 @@ bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
 
 void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
 {
-    vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp);
+    vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp, NULL);
 }
 
 void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
