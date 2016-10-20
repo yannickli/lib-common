@@ -14,82 +14,7 @@
 #include "unix.h"
 #include "core.h"
 
-int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
-{
-    struct stat st;
-
-    if (unlikely(fstat(fd, &st)) < 0) {
-        return -2;
-    }
-
-    if (st.st_size <= 0) {
-        SB_8k(sb);
-
-        if (sb_read_fd(&sb, fd) < 0) {
-            return -3;
-        }
-
-        *dst = LSTR_EMPTY_V;
-        if (sb.len == 0) {
-            return 0;
-        }
-        lstr_transfer_sb(dst, &sb, false);
-        return 0;
-    }
-
-    if (st.st_size == 0) {
-        *dst = LSTR_EMPTY_V;
-        return 0;
-    }
-
-    if (st.st_size > INT_MAX) {
-        errno = ERANGE;
-        return -3;
-    }
-
-    *dst = lstr_init_(mmap(NULL, st.st_size, prot, flags, fd, 0),
-                      st.st_size, MEM_MMAP);
-
-    if (dst->v == MAP_FAILED) {
-        *dst = LSTR_NULL_V;
-        return -3;
-    }
-    return 0;
-
-}
-
-int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
-{
-    int fd_flags = 0;
-    int fd = -1;
-    int ret = 0;
-
-    if (flags & MAP_ANONYMOUS) {
-        assert (false);
-        errno = EINVAL;
-        return -1;
-    }
-    if (prot & PROT_READ) {
-        if (prot & PROT_WRITE) {
-            fd_flags = O_RDWR;
-        } else {
-            fd_flags = O_RDONLY;
-        }
-    } else
-    if (prot & PROT_WRITE) {
-        fd_flags = O_WRONLY;
-    } else {
-        assert (false);
-        *dst = LSTR_NULL_V;
-        errno = EINVAL;
-        return -1;
-    }
-
-    fd = RETHROW(open(path, fd_flags));
-    ret = lstr_init_from_fd(dst, fd, prot, flags);
-    PROTECT_ERRNO(p_close(&fd));
-    return ret;
-}
+/* {{{ Base helpers */
 
 void (lstr_munmap)(lstr_t *dst)
 {
@@ -97,49 +22,6 @@ void (lstr_munmap)(lstr_t *dst)
         e_panic("bad munmap: %m");
     }
 }
-
-void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
-{
-    if (keep_pool) {
-        mem_pool_t *mp = mp_ipool(sb->mp);
-
-        if ((mp_ipool(mp)->mem_pool & MEM_BY_FRAME)) {
-            if (sb->skip) {
-                memmove(sb->data - sb->skip, sb->data, sb->len + 1);
-            }
-        }
-        mp_lstr_copy_(mp, dst, sb->data, sb->len);
-        sb_init(sb);
-    } else {
-        lstr_wipe(dst);
-        dst->v = sb_detach(sb, &dst->len);
-        dst->mem_pool = MEM_LIBC;
-    }
-}
-
-int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
-{
-    SB_1k(sb1);
-    SB_1k(sb2);
-
-    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, true));
-    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, true));
-
-    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
-}
-
-int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
-{
-    SB_1k(sb1);
-    SB_1k(sb2);
-
-    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, false));
-    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, false));
-
-    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
-}
-
-/* {{{ Base helpers */
 
 void mp_lstr_copy_(mem_pool_t *mp, lstr_t *dst, const void *s, int len)
 {
@@ -290,6 +172,128 @@ lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
     mempcpyz(s, s3.s, s3.len);
     return res;
 }
+
+int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, true));
+    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, true));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}
+
+int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
+{
+    SB_1k(sb1);
+    SB_1k(sb2);
+
+    RETHROW(sb_normalize_utf8(&sb1, s1.s, s1.len, false));
+    RETHROW(sb_normalize_utf8(&sb2, s2.s, s2.len, false));
+
+    return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
+}
+
+int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
+{
+    struct stat st;
+
+    if (unlikely(fstat(fd, &st)) < 0) {
+        return -2;
+    }
+
+    if (st.st_size <= 0) {
+        SB_8k(sb);
+
+        if (sb_read_fd(&sb, fd) < 0) {
+            return -3;
+        }
+
+        *dst = LSTR_EMPTY_V;
+        if (sb.len == 0) {
+            return 0;
+        }
+        lstr_transfer_sb(dst, &sb, false);
+        return 0;
+    }
+
+    if (st.st_size == 0) {
+        *dst = LSTR_EMPTY_V;
+        return 0;
+    }
+
+    if (st.st_size > INT_MAX) {
+        errno = ERANGE;
+        return -3;
+    }
+
+    *dst = lstr_init_(mmap(NULL, st.st_size, prot, flags, fd, 0),
+                      st.st_size, MEM_MMAP);
+
+    if (dst->v == MAP_FAILED) {
+        *dst = LSTR_NULL_V;
+        return -3;
+    }
+    return 0;
+
+}
+
+int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
+{
+    int fd_flags = 0;
+    int fd = -1;
+    int ret = 0;
+
+    if (flags & MAP_ANONYMOUS) {
+        assert (false);
+        errno = EINVAL;
+        return -1;
+    }
+    if (prot & PROT_READ) {
+        if (prot & PROT_WRITE) {
+            fd_flags = O_RDWR;
+        } else {
+            fd_flags = O_RDONLY;
+        }
+    } else
+    if (prot & PROT_WRITE) {
+        fd_flags = O_WRONLY;
+    } else {
+        assert (false);
+        *dst = LSTR_NULL_V;
+        errno = EINVAL;
+        return -1;
+    }
+
+    fd = RETHROW(open(path, fd_flags));
+    ret = lstr_init_from_fd(dst, fd, prot, flags);
+    PROTECT_ERRNO(p_close(&fd));
+    return ret;
+}
+
+/* }}} */
+/* {{{ Transfer & static pool */
+
+void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
+{
+    if (keep_pool) {
+        mem_pool_t *mp = mp_ipool(sb->mp);
+
+        if ((mp_ipool(mp)->mem_pool & MEM_BY_FRAME)) {
+            if (sb->skip) {
+                memmove(sb->data - sb->skip, sb->data, sb->len + 1);
+            }
+        }
+        mp_lstr_copy_(mp, dst, sb->data, sb->len);
+        sb_init(sb);
+    } else {
+        lstr_wipe(dst);
+        dst->v = sb_detach(sb, &dst->len);
+        dst->mem_pool = MEM_LIBC;
+    }
+}
+
 
 /* }}} */
 /* {{{ Comparisons */
