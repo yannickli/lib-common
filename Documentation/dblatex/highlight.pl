@@ -40,6 +40,7 @@ while (<$fin>) {
         # Dump source-highlight output
         # FIXME: source-highlight will break the special characters already
         # encoded by latex (unicode & co).
+        $lang =~ s/{?([^\}]*)}?/$1/;
         my $res = `source-highlight -i highlight-source.tmp -s '$lang' -f latexcolor`;
 
         # Remove spurious comments and empty line at end of source (which
