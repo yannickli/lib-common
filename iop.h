@@ -56,8 +56,24 @@ int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t *out);
 /* }}} */
 /* {{{ IOP attributes and constraints */
 
-int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
-                                *fdesc, const void *ptr, int n, bool recurse);
+/** Checks the constraints associated to a given field.
+ *
+ * \param[in] desc     Struct descriptor.
+ * \param[in] fdesc    Field descriptor.
+ * \param[in] values   Pointer on the field value to check.
+ * \param[in] len      Number of values to check (the field can be repeated).
+ * \param[in] recurse  If set, subfields should be tested too (only apply to
+ *                     struct/class/union fields).
+ *
+ * \note The values for parameters \ref values and \ref len can easily be
+ *       obtained with function \ref iop_get_field_values.
+ *
+ * \return -1 in case of constraints violation in the field, in that case, the
+ *         error message can be retrieved with \ref iop_get_err.
+ */
+int iop_field_check_constraints(const iop_struct_t *desc,
+                                const iop_field_t *fdesc,
+                                const void *values, int len, bool recurse);
 
 static inline
 const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
