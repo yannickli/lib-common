@@ -264,7 +264,7 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem, size_t oldsize,
             rp->pos = (byte *)mem + size;
         }
         mem_tool_disallow_memory((byte *)mem + size, oldsize - size);
-        return size ? mem : NULL;
+        return size ? mem : MEM_EMPTY_ALLOC;
     }
 
     if (mem != NULL && mem == rp->last
