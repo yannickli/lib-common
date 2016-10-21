@@ -941,7 +941,7 @@ static void el_timer_compute_tolerance(ev_t *ev)
      * That shift is actually capped at EL_LOOP_TIMEOUT since this is the
      * duration of an event loop in case of inactivity.
      */
-    ev->timer.tolerance = repeat / 10;
+    ev->timer.tolerance = MIN(repeat / 10, EL_LOOP_TIMEOUT);
 }
 
 ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb,

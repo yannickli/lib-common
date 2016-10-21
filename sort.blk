@@ -46,19 +46,36 @@
 
 #define t(ptr, p)  (((byte *)(ptr)) + (size * (p)))
 
-size_t uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp, void *arg)
+size_t uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp,
+            void *cmp_arg, del_r_t * nullable del, void *del_arg)
 {
     for (size_t i = 1; i < nmemb; i++) {
-        if (unlikely(cmp(t(data, i), t(data, i - 1), arg) == 0)) {
+        if (unlikely(cmp(t(data, i), t(data, i - 1), cmp_arg) == 0)) {
             void *end = t(data, nmemb);
             void *w   = t(data, i);
             void *r   = t(data, i + 1);
 
+            if (del) {
+                del(w, del_arg);
+            }
+
             for (;;) {
-                while (r < end && cmp(r, t(w, -1), arg) == 0)
+                void *s = r;
+
+                while (r < end && cmp(r, t(w, -1), cmp_arg) == 0) {
                     r = t(r, 1);
-                if (r == end)
+                }
+
+                if (del) {
+                    for (; s < r; s = t(s, 1)) {
+                        del(s, del_arg);
+                    }
+                }
+
+                if (r == end) {
                     break;
+                }
+
                 memcpy(w, r, size);
                 w = t(w, 1);
                 r = t(r, 1);
@@ -120,12 +137,23 @@ bool contains(const void *what, const void *data, size_t size, size_t nmemb,
 static int cmp_blk(const void *a, const void *b, void *arg)
 {
     cmp_b cmp = arg;
+
     return cmp(a, b);
 }
 
-size_t uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp)
+static void del_blk(void *v, void *arg)
 {
-    return uniq(data, size, nmemb, &cmp_blk, cmp);
+    del_b del = arg;
+
+    del(v);
+}
+
+size_t uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp,
+                del_b nullable del)
+{
+    del_r_t *del_cb = del ? &del_blk : NULL;
+
+    return uniq(data, size, nmemb, &cmp_blk, cmp, del_cb, del);
 }
 
 size_t bisect_blk(const void *what, const void *data, size_t size,
@@ -152,8 +180,22 @@ static int u64_cmp(const void *a, const void *b, void *arg)
     return CMP(*ua, *ub);
 }
 
+typedef struct u64_del_t {
+    uint64_t *tab;
+    int       len;
+} u64_del_t;
+
+static void u64_del(void *v, void *arg)
+{
+    uint64_t *uv = v;
+    u64_del_t *del = arg;
+
+    del->tab[del->len++] = *uv;
+}
+
 Z_GROUP_EXPORT(sort) {
-    const uint64_t vals64[] = { 8, 8, 1, 2, 4, 12, 5, 3, 7, 10, 1, 4, 5 };
+    const uint64_t vals64[] =
+        { 8, 8, 1, 2, 4, 4, 12, 5, 3, 7, 10, 1, 4, 1, 12, 12 };
     const uint64_t sorted64[countof(vals64) + 1][countof(vals64)] = {
         {  },
         { 8 },
@@ -161,21 +203,25 @@ Z_GROUP_EXPORT(sort) {
         { 1, 8, 8 },
         { 1, 2, 8, 8 },
         { 1, 2, 4, 8, 8 },
-        { 1, 2, 4, 8, 8, 12 },
-        { 1, 2, 4, 5, 8, 8, 12 },
-        { 1, 2, 3, 4, 5, 8, 8, 12 },
-        { 1, 2, 3, 4, 5, 7, 8, 8, 12 },
-        { 1, 2, 3, 4, 5, 7, 8, 8, 10, 12 },
-        { 1, 1, 2, 3, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 2, 4, 4, 8, 8 },
+        { 1, 2, 4, 4, 8, 8, 12 },
+        { 1, 2, 4, 4, 5, 8, 8, 12 },
+        { 1, 2, 3, 4, 4, 5, 8, 8, 12 },
+        { 1, 2, 3, 4, 4, 5, 7, 8, 8, 12 },
+        { 1, 2, 3, 4, 4, 5, 7, 8, 8, 10, 12 },
         { 1, 1, 2, 3, 4, 4, 5, 7, 8, 8, 10, 12 },
-        { 1, 1, 2, 3, 4, 4, 5, 5, 7, 8, 8, 10, 12 }
+        { 1, 1, 2, 3, 4, 4, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 1, 1, 2, 3, 4, 4, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 1, 1, 2, 3, 4, 4, 4, 5, 7, 8, 8, 10, 12, 12 },
+        { 1, 1, 1, 2, 3, 4, 4, 4, 5, 7, 8, 8, 10, 12, 12, 12 }
     };
     const uint64_t uniqed64[countof(vals64) + 1][countof(vals64) + 1] = {
-        { 0 },
+        { 0,  },
         { 1, 8 },
         { 1, 8 },
         { 2, 1, 8 },
         { 3, 1, 2, 8 },
+        { 4, 1, 2, 4, 8 },
         { 4, 1, 2, 4, 8 },
         { 5, 1, 2, 4, 8, 12 },
         { 6, 1, 2, 4, 5, 8, 12 },
@@ -184,7 +230,28 @@ Z_GROUP_EXPORT(sort) {
         { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
         { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
         { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
         { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 }
+    };
+    const uint64_t deleted64[countof(vals64) + 1][countof(vals64) + 1] = {
+        { 0 },
+        { 0 },
+        { 1, 8 },
+        { 1, 8 },
+        { 1, 8 },
+        { 1, 8 },
+        { 2, 4, 8 },
+        { 2, 4, 8 },
+        { 2, 4, 8,},
+        { 2, 4, 8 },
+        { 2, 4, 8 },
+        { 2, 4, 8 },
+        { 3, 1, 4, 8 },
+        { 4, 1, 4, 4, 8 },
+        { 5, 1, 1, 4, 4, 8 },
+        { 6, 1, 1, 4, 4, 8, 12 },
+        { 7, 1, 1, 4, 4, 8, 12, 12 }
     };
 
     Z_TEST(64, "optimized 64") {
@@ -377,13 +444,20 @@ Z_GROUP_EXPORT(sort) {
     Z_TEST(generic, "generic implementation") {
         for (int i = 0; i < countof(vals64); i++) {
             uint64_t v[countof(vals64)];
+            uint64_t d[countof(vals64)];
             size_t   len = 0;
+            u64_del_t del = {
+                .tab = d,
+                .len = 0,
+            };
 
             p_copy(v, vals64, countof(vals64));
             dsort64(v, i);
             Z_ASSERT_EQUAL(sorted64[i], i, v, i);
-            len = uniq(v, 8, i, &u64_cmp, NULL);
+            len = uniq(v, 8, i, &u64_cmp, NULL, &u64_del, &del);
             Z_ASSERT_EQUAL(&uniqed64[i][1], uniqed64[i][0], v, len);
+            Z_ASSERT_EQUAL(&deleted64[i][1], deleted64[i][0], del.tab,
+                           del.len);
 
             for (uint64_t j = 0; j < 15; j++) {
                 bool   found;

@@ -47,8 +47,10 @@
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);
+typedef void (del_r_t)(void *v, void *arg);
 
-size_t  uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp, void *arg);
+size_t  uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp,
+             void *cmp_arg, del_r_t * nullable del, void *del_arg);
 size_t  bisect(const void *what, const void *data, size_t size,
                size_t nmemb, bool *found, cmp_r_t *cmp, void *arg);
 bool    contains(const void *what, const void *data, size_t size,
@@ -56,8 +58,10 @@ bool    contains(const void *what, const void *data, size_t size,
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET cmp_b)(const void *a, const void *b);
+typedef void (BLOCK_CARET del_b)(void *v);
 
-size_t  uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp);
+size_t  uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp,
+                 del_b nullable del);
 size_t  bisect_blk(const void *what, const void *data, size_t size,
                    size_t nmemb, bool *found, cmp_b cmp);
 bool    contains_blk(const void *what, const void *data, size_t size,

@@ -1560,7 +1560,7 @@ void iopc_depends_uniquify(qv_t(iopc_pkg) *deps)
     qv_uniq(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1,
                                   iopc_pkg_t * const *p2) {
         return CMP((intptr_t)*p1, (intptr_t)*p2);
-    });
+    }, NULL);
 
     /* XXX sort packages by name to sort in the same way on each computer */
     qv_sort(iopc_pkg)(deps, ^int (iopc_pkg_t * const *p1, iopc_pkg_t * const *p2) {

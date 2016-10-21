@@ -27,6 +27,7 @@ typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET qvector_cmp_b)(const void *, const void *);
+typedef void (BLOCK_CARET qvector_del_b)(void *);
 typedef void (BLOCK_CARET qvector_cpy_b)(void *, const void *);
 #endif
 
@@ -80,7 +81,8 @@ int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
                    bool sorted, qvector_cmp_b cmp);
 bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
                         bool sorted, qvector_cmp_b cmp);
-void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp);
+void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp,
+                    qvector_del_b nullable del);
 void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
                            size_t v_size, size_t v_align,
                            qvector_cpy_b cpy_f);
@@ -181,6 +183,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
     CORE_CMP_TYPE(pfx, val_t);                                              \
+    typedef void (BLOCK_CARET pfx##_del_b)(val_t *v);                       \
     typedef void (BLOCK_CARET pfx##_cpy_b)(val_t *a,  cval_t *b);           \
                                                                             \
     __unused__                                                              \
@@ -198,8 +201,10 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp) {                        \
-        __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
+    void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp, pfx##_del_b nullable del)\
+    {                                                                       \
+        __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp,         \
+                       (qvector_del_b)del);                                 \
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
@@ -411,6 +416,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
  */
 #define qv_sort(n)                          qv_##n##_sort
 #define qv_cmp_b(n)                         qv_##n##_cmp_b
+#define qv_del_b(n)                         qv_##n##_del_b
 
 #define qv_deep_extend(n)                   qv_##n##_deep_extend
 #define qv_cpy_b(n)                         qv_##n##_cpy_b
@@ -554,6 +560,8 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
  *
  * \param[in,out]   vec the vector to filter
  * \param[in]       cmp comparison callback for the elements of the vector.
+ * \param[in]       del deletion callback for the removed elements of the
+ *                      vector. Can be NULL.
  */
 #define qv_uniq(n)                          qv_##n##_uniq
 
