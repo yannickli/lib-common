@@ -236,7 +236,6 @@ int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
         return -3;
     }
     return 0;
-
 }
 
 int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)

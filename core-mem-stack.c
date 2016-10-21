@@ -311,7 +311,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         } else {
             mem_tool_disallow_memory(res + asked, -sizediff);
             if (!asked) {
-                res = NULL;
+                res = MEM_EMPTY_ALLOC;
             }
         }
 
@@ -340,7 +340,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
         mem_bench_update(sp->mem_bench);
 #endif
 
-        return asked ? res : NULL;
+        return asked ? res : MEM_EMPTY_ALLOC;
     }
 
     res = sp_alloc(_sp, asked, alignment, flags | MEM_RAW);
