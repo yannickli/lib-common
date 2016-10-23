@@ -117,14 +117,15 @@ iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
            const char *iopfile, const char *iopdata, const char *outdir,
            bool is_main_pkg, lstr_t *pkgname, lstr_t *pkgpath)
 {
+    t_scope;
     SB_1k(sb);
     iopc_pkg_t *pkg;
-    const farch_entry_t *farch;
+    lstr_t farch;
 
-    farch = farch_get(iopc_farch, "../iop-compat.h");
-    sb_adds(&sb, farch->data);
-    farch = farch_get(iopc_farch, "../iop-internals.h");
-    sb_adds(&sb, farch->data);
+    farch = t_farch_get_uncompressed(iopc_farch, "../iop-compat.h");
+    sb_add_lstr(&sb, farch);
+    farch = t_farch_get_uncompressed(iopc_farch, "../iop-internals.h");
+    sb_add_lstr(&sb, farch);
 
     iopc_g.v2 = true;
     iopc_g.v3 = true;

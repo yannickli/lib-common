@@ -79,6 +79,7 @@ libcommon_SOURCES = \
 	\
 	el.blk \
 	\
+	farch.c \
 	file.c \
 	file-log.blk \
 	file-bin.c \

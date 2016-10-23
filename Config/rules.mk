@@ -46,10 +46,10 @@ ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 define ext/expand/fc
 $~$3.c.dep: $3
 	$(msg/generate) $3
-	farchc -d $~$3.c.dep -o $3.c $$<
+	farchc -c -d $~$3.c.dep -o $3.c $$<
 $3.c: $3
 	$(msg/generate) $3
-	farchc -d $~$3.c.dep -o $3.c $$<
+	farchc -c -d $~$3.c.dep -o $3.c $$<
 -include $~$3.c.dep
 endef
 
