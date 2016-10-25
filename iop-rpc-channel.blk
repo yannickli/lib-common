@@ -142,7 +142,6 @@ static _Bool ic_cmd_is_traced(int cmd)
                     const iop_iface_alias_t *iface_alias = mod->ifaces + ia;
                     const iop_iface_t *iface = iface_alias->iface;
 
-                    iface = iface_alias->iface;
                     for (int i = 0; i < iface->funs_len; i++) {
                         const iop_rpc_t *rpc = &iface->funs[i];
 
