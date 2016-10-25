@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     argc = parseopt(argc, argv, popt, 0);
 
-    if (_G.help || !_G.old_dso || !_G.new_dso) {
+    if (argc != 0 || _G.help || !_G.old_dso || !_G.new_dso) {
         makeusage(EX_USAGE, arg0, "", usage, popt);
     }
 

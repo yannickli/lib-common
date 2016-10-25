@@ -6488,6 +6488,7 @@ Z_GROUP_EXPORT(iop)
 
         /* the fixup has been undone for dso2 */
         struct2 = iop_dso_find_type(dso2, LSTR("tstiop2.MyStruct"));
+        Z_ASSERT_N(iop_field_find_by_name(struct2, LSTR("a"), NULL, &field));
         Z_ASSERT(saved_field_st != field->u1.st_desc);
 
         iop_dso_close(&dso2);
