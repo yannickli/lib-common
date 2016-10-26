@@ -3824,6 +3824,12 @@ Z_GROUP_EXPORT(iop)
                      == (_res ? (void *)&obj : NULL));                       \
             Z_ASSERT(iop_obj_dynccast(tstiop_inheritance__##_type2, &obj)    \
                      == (_res ? (const void *)&obj : NULL));                 \
+            if (_res) {                                                      \
+                Z_ASSERT(iop_obj_vcast(tstiop_inheritance__##_type2, &obj)   \
+                         == (void *)&obj);                                   \
+                Z_ASSERT(iop_obj_ccast(tstiop_inheritance__##_type2, &obj)   \
+                         == (const void *)&obj);                             \
+            }                                                                \
         } while (0)
 
         CHECK_IS_A(a1, a1, true);
