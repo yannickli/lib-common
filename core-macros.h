@@ -501,6 +501,10 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
       cast(type_t *, cast(char *, (obj)) - offsetof(type_t, member))
 #endif
 
+/** Gets rid of the 'const' modifier of the pointer but keeps the type check.
+ */
+#define unconst_cast(type_t, p)  ({ const type_t *__p = (p); (type_t *)__p; })
+
 /* }}} */
 /* {{{ Loops */
 

@@ -671,6 +671,8 @@ Z_GROUP_EXPORT(bit_stream)
 /* {{{ core-macros.h */
 
 Z_GROUP_EXPORT(core_macros) {
+    /* {{{ carray_loops */
+
     Z_TEST(carray_loops, "C array loop helpers") {
         int i = 0;
         lstr_t strs[] = {
@@ -700,6 +702,19 @@ Z_GROUP_EXPORT(core_macros) {
             s = NULL;
         }
     } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ unconst */
+
+    Z_TEST(unconst_cast, "unconst_cast") {
+        const int i = 5;
+        int *p;
+
+        p = unconst_cast(int, &i);
+        Z_ASSERT(p == &i);
+    } Z_TEST_END;
+
+    /* }}} */
 } Z_GROUP_END;
 
 /* }}} */
