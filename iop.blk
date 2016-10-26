@@ -1295,7 +1295,7 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
 }
 
 void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
-                         const void *v, size_t *psz)
+                         const void *v, size_t * nullable psz)
 {
     bool is_class;
     size_t sz;
@@ -1329,7 +1329,7 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
 }
 
 void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-                         const void *v, size_t *psz)
+                         const void *v, size_t * nullable psz)
 {
     bool is_class;
     size_t sz;

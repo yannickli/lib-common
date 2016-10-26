@@ -543,7 +543,7 @@ int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
 void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
-                         const void *v, size_t *sz);
+                         const void *v, size_t * nullable sz);
 
 #define mp_iop_dup_sz(mp, pfx, v, sz)  ({                                    \
         const pfx##__t *_id_v = (v);                                         \
@@ -573,7 +573,7 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
 void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-                         const void *v, size_t *sz);
+                         const void *v, size_t * nullable sz);
 
 #define mp_iop_copy_sz(mp, pfx, outp, v, sz)  do {                           \
         pfx##__t **__outp = (outp);                                          \
