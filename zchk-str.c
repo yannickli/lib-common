@@ -32,6 +32,14 @@ Z_GROUP_EXPORT(str)
     char    buf2[BUFSIZ * 2];
     ssize_t res;
 
+    Z_TEST(lstr_equal, "lstr_equal") {
+        Z_ASSERT_LSTREQUAL(LSTR_EMPTY_V, LSTR_EMPTY_V);
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V, LSTR_NULL_V);
+        Z_ASSERT_LSTREQUAL(LSTR("toto"), LSTR("toto"));
+        Z_ASSERT(!lstr_equal(LSTR_EMPTY_V, LSTR_NULL_V));
+        Z_ASSERT(!lstr_equal(LSTR(""), LSTR("toto")));
+    } Z_TEST_END;
+
     Z_TEST(lstr_copyc, "lstr_copyc") {
         lstr_t dst = lstr_dup(LSTR("a string"));
         lstr_t src = LSTR("an other string");
@@ -401,32 +409,33 @@ Z_GROUP_EXPORT(str)
 
     Z_TEST(lstr_utf8_truncate, "str: lstr_utf8_truncate test") {
         char data[9] = { 'a', 'b', 'c', 0xff, 'e', 0xff, 'g', 'h', '\0' };
+        lstr_t lstr_null = LSTR_NULL_V;
 
 #define RUN_TEST(str, count, out) \
-        Z_ASSERT_LSTREQUAL(lstr_utf8_truncate(LSTR(str), count), LSTR(out))
+        Z_ASSERT_LSTREQUAL(lstr_utf8_truncate(LSTR(str), count), out)
 
-        RUN_TEST("abcdefgh", 9, "abcdefgh");
-        RUN_TEST("abcdefgh", 8, "abcdefgh");
-        RUN_TEST("abcdefgh", 7, "abcdefg");
-        RUN_TEST("abcdefgh", 0, "");
+        RUN_TEST("abcdefgh", 9, LSTR("abcdefgh"));
+        RUN_TEST("abcdefgh", 8, LSTR("abcdefgh"));
+        RUN_TEST("abcdefgh", 7, LSTR("abcdefg"));
+        RUN_TEST("abcdefgh", 0, LSTR(""));
 
-        RUN_TEST("àbçdéfgh", 9, "àbçdéfgh");
-        RUN_TEST("àbçdéfgh", 8, "àbçdéfgh");
-        RUN_TEST("àbçdéfgh", 7, "àbçdéfg");
-        RUN_TEST("àbçdéfgh", 5, "àbçdé");
-        RUN_TEST("àbçdéfgh", 4, "àbçd");
-        RUN_TEST("àbçdéfgh", 3, "àbç");
-        RUN_TEST("àbçdéfgh", 2, "àb");
-        RUN_TEST("àbçdéfgh", 1, "à");
-        RUN_TEST("àbçdéfgh", 0, "");
+        RUN_TEST("àbçdéfgh", 9, LSTR("àbçdéfgh"));
+        RUN_TEST("àbçdéfgh", 8, LSTR("àbçdéfgh"));
+        RUN_TEST("àbçdéfgh", 7, LSTR("àbçdéfg"));
+        RUN_TEST("àbçdéfgh", 5, LSTR("àbçdé"));
+        RUN_TEST("àbçdéfgh", 4, LSTR("àbçd"));
+        RUN_TEST("àbçdéfgh", 3, LSTR("àbç"));
+        RUN_TEST("àbçdéfgh", 2, LSTR("àb"));
+        RUN_TEST("àbçdéfgh", 1, LSTR("à"));
+        RUN_TEST("àbçdéfgh", 0, LSTR(""));
 
-        RUN_TEST(data, 9, "");
-        RUN_TEST(data, 8, "");
-        RUN_TEST(data, 7, "");
-        RUN_TEST(data, 6, "");
-        RUN_TEST(data, 5, "");
-        RUN_TEST(data, 4, "");
-        RUN_TEST(data, 3, "abc");
+        RUN_TEST(data, 9, lstr_null);
+        RUN_TEST(data, 8, lstr_null);
+        RUN_TEST(data, 7, lstr_null);
+        RUN_TEST(data, 6, lstr_null);
+        RUN_TEST(data, 5, lstr_null);
+        RUN_TEST(data, 4, lstr_null);
+        RUN_TEST(data, 3, LSTR("abc"));
 #undef RUN_TEST
     } Z_TEST_END;
 

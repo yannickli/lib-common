@@ -765,7 +765,7 @@ Z_GROUP_EXPORT(log) {
 #define TEST_NULL(_str)                                                      \
         do {                                                                 \
             lstr_t _orig = t_lstr_fmt(_str);                                 \
-            Z_ASSERT_LSTREQUAL(LSTR_EMPTY_V, t_logger_sanitize_name(_orig)); \
+            Z_ASSERT_LSTREQUAL(LSTR_NULL_V, t_logger_sanitize_name(_orig));  \
         } while (0)
 
         TEST("remove all spaces", "removeallspaces");

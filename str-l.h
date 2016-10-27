@@ -419,7 +419,8 @@ int lstr_ascii_icmp(const lstr_t s1, const lstr_t s2);
 /** Returns whether \v s1 and \v s2 contents are equal. */
 static ALWAYS_INLINE bool lstr_equal(const lstr_t s1, const lstr_t s2)
 {
-    return s1.len == s2.len && memcmp(s1.s, s2.s, s1.len) == 0;
+    return !!s1.s == !!s2.s && s1.len == s2.len
+        && memcmp(s1.s, s2.s, s1.len) == 0;
 }
 
 /** Returns whether \p s1 and \p s2 contents are case-insentively equal.
