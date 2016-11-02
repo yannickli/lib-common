@@ -1384,6 +1384,232 @@ void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
 /* }}} */
 /* {{{ Comparing values */
 
+__cold static void
+sb_prepend_field(sb_t *sb, const iop_field_t *fdesc, int j);
+
+static int iop_first_diff(const iop_struct_t *st,
+                          const void *v1, const void *v2,
+                          sb_t *field_path, sb_t *diff_desc);
+
+static bool iop_value_equals(iop_type_t type, const void *v1, const void *v2)
+{
+    switch (type) {
+      case IOP_T_BOOL:
+        return *(const bool *)v1 == *(const bool *)v2;
+
+      case IOP_T_U8:
+      case IOP_T_I8:
+        return *(const int8_t *)v1 == *(const int8_t *)v2;
+
+      case IOP_T_U16:
+      case IOP_T_I16:
+        return *(const int16_t *)v1 == *(const int16_t *)v2;
+
+      case IOP_T_U32:
+      case IOP_T_I32:
+      case IOP_T_ENUM:
+        return *(const int32_t *)v1 == *(const int32_t *)v2;
+
+      case IOP_T_U64:
+      case IOP_T_I64:
+        return *(const int64_t *)v1 == *(const int64_t *)v2;
+
+      case IOP_T_DOUBLE:
+        return *(const double *)v1 == *(const double *)v2;
+
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return lstr_equal(*(const lstr_t *)v1, *(const lstr_t *)v2);
+
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        e_panic("not supported");
+    }
+
+    return false;
+}
+
+static void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
+{
+    switch (type) {
+      case IOP_T_BOOL:
+        sb_sets(buf, *(const bool *)v ? "true" : "false");
+        break;
+
+#define CASE_NUMBER(type, fmt, type_t)                                       \
+      case type:                                                             \
+        sb_addf(buf, fmt, *(const type_t *)v);                               \
+        break;
+
+      CASE_NUMBER(IOP_T_U8, "%u", uint8_t);
+      CASE_NUMBER(IOP_T_I8, "%d", int8_t);
+      CASE_NUMBER(IOP_T_U16, "%u", uint16_t);
+      CASE_NUMBER(IOP_T_I16, "%d", int16_t);
+      CASE_NUMBER(IOP_T_U32, "%u", uint32_t);
+      CASE_NUMBER(IOP_T_I32, "%d", int32_t);
+      CASE_NUMBER(IOP_T_ENUM, "%d", int32_t);
+      CASE_NUMBER(IOP_T_U64, "%ju", uint64_t);
+      CASE_NUMBER(IOP_T_I64, "%jd", int64_t);
+      CASE_NUMBER(IOP_T_DOUBLE, "%f", double);
+
+#undef CASE_NUMBER
+
+      case IOP_T_STRING:
+      case IOP_T_XML:
+        sb_add_lstr(buf, *(const lstr_t *)v);
+        break;
+
+      case IOP_T_DATA: {
+        lstr_t data = *(const lstr_t *)v;
+
+        sb_add_hex(buf, data.data, data.len);
+      } break;
+
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        e_panic("not supported");
+    }
+}
+
+/* Returns -1 if no diff found, 0 otherwise. */
+static int __iop_first_diff(const iop_struct_t *st,
+                            const void *v1, const void *v2,
+                            sb_t *field_path, sb_t *diff_desc)
+{
+    const iop_field_t *fdesc;
+    int i = 0;
+    const iop_field_t *end;
+
+    if (st->is_union) {
+        if (*(uint16_t *)v1 != *(uint16_t *)v2) {
+            sb_setf(diff_desc, "union field differs (`%*pU` vs `%*pU`)",
+                    *(uint16_t *)v1, st, *(uint16_t *)v2, st);
+            return -1;
+        }
+
+        fdesc = get_union_field(st, v1);
+        end   = fdesc + 1;
+    } else {
+        fdesc = st->fields;
+        end   = fdesc + st->fields_len;
+    }
+
+    for (; fdesc < end; fdesc++) {
+        const void *r1;
+        const void *r2;
+        int len1;
+        int len2;
+        bool is_array_of_pointers;
+
+        iop_get_field_values_const(fdesc, v1, &r1, &len1,
+                                   &is_array_of_pointers);
+        iop_get_field_values_const(fdesc, v2, &r2, &len2, NULL);
+
+        if (len1 != len2) {
+            if (fdesc->repeat == IOP_R_REPEATED) {
+                sb_setf(diff_desc, "array length differs (%d vs %d)",
+                        len1, len2);
+            } else {
+                sb_setf(diff_desc,
+                        "field presence differs (field absent on %s value)",
+                        len1 ? "second" : "first");
+            }
+            goto print_field;
+        }
+
+        if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+            /* We need to recurse to compare structures & unions. */
+            for (i = 0; i < len1; i++) {
+                const void *t1, *t2;
+
+                t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
+                t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+
+                if (is_array_of_pointers) {
+                    t1  = *(void **)t1;
+                    t2  = *(void **)t2;
+                }
+
+                if (iop_first_diff(fdesc->u1.st_desc, t1, t2,
+                                        field_path, diff_desc) >= 0)
+                {
+                    goto print_field;
+                }
+            }
+        } else {
+            for (i = 0; i < len1; i++) {
+                const void *t1, *t2;
+
+                t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
+                t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+
+                if (!iop_value_equals(fdesc->type, t1, t2)) {
+                    sb_sets(diff_desc, "value differs (`");
+                    iop_value_print(fdesc->type, t1, diff_desc);
+                    sb_adds(diff_desc, "` vs `");
+                    iop_value_print(fdesc->type, t2, diff_desc);
+                    sb_adds(diff_desc, "`)");
+
+                    goto print_field;
+                }
+            }
+        }
+    }
+
+    return -1;
+
+  print_field:
+    sb_prepend_field(field_path, fdesc, i);
+    return 0;
+}
+
+static int iop_first_diff(const iop_struct_t *st,
+                          const void *v1, const void *v2,
+                          sb_t *field_path, sb_t *diff_desc)
+{
+    THROW_ERR_IF(v1 == v2);
+
+    if (iop_struct_is_class(st)) {
+        const iop_struct_t *st2 = *(const iop_struct_t **)v2;
+
+        st = *(const iop_struct_t **)v1;
+        if (st != st2) {
+            sb_setf(diff_desc, "class type differs (%*pM vs %*pM)",
+                    LSTR_FMT_ARG(st->fullname),
+                    LSTR_FMT_ARG(st2->fullname));
+            return 0;
+        }
+
+        do {
+            if (__iop_first_diff(st, v1, v2, field_path, diff_desc) >= 0) {
+                return 0;
+            }
+        } while ((st = st->class_attrs->parent));
+
+        return -1;
+    }
+
+    return __iop_first_diff(st, v1, v2, field_path, diff_desc);
+}
+
+int iop_first_diff_desc(const iop_struct_t *st,
+                        const void *v1, const void *v2, sb_t *diff_desc)
+{
+    SB_1k(field_path);
+
+    sb_reset_reverse(&field_path);
+    RETHROW(iop_first_diff(st, v1, v2, &field_path, diff_desc));
+
+    if (field_path.len) {
+        assert (field_path.data[0] == '.');
+        sb_skip(&field_path, 1);
+        sb_prependf(diff_desc, "field `%*pM`: ", SB_FMT_ARG(&field_path));
+    }
+
+    return 0;
+}
+
 static bool
 __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 {

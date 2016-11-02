@@ -423,6 +423,33 @@ struct ZIopGetFieldValues {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_first_diff_desc */
+
+@ctype(z_first_diff_c0__t)
+abstract class FirstDiffC0 {
+};
+
+@ctype(z_first_diff_c1__t)
+class FirstDiffC1 : 1 : FirstDiffC0 {
+    int i;
+};
+
+@ctype(z_first_diff_c2__t)
+class FirstDiffC2 : 2 : FirstDiffC0 {
+    long z = 51;
+};
+
+@ctype(z_first_diff_st__t)
+struct FirstDiffSt {
+    int i;
+    string s;
+    int? optI;
+    string? optS;
+    int[] tab;
+    FirstDiffC0? o;
+};
+
+/* }}} */
 /* {{{ zchk asn1_aper.extended_choice */
 
 union Asn1ExtChoice {

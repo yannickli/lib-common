@@ -6499,6 +6499,73 @@ Z_GROUP_EXPORT(iop)
                                      (void **)&c_ptr, ps_initsb(&sb), false));
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_first_diff_desc, "test iop_first_diff_desc()") { /* {{{ */
+        SB_1k(diff_desc);
+        z_first_diff_st__t d1;
+        z_first_diff_st__t d2;
+        z_first_diff_c1__t c1;
+        z_first_diff_c2__t c2;
+        int tab1[] = { 1, 2, 3 };
+        int tab2[] = { 1 };
+        int tab3[] = { 1, 3, 3 };
+
+        iop_init(z_first_diff_st, &d1);
+        d1.i = 42;
+        d1.s = LSTR("toto");
+
+        d2 = d1;
+
+        Z_ASSERT_NEG(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                         &diff_desc), "diff_desc: %*pM",
+                     SB_FMT_ARG(&diff_desc));
+        d2.i = 41;
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data,
+                          "field `i`: value differs (`42` vs `41`)");
+
+        d2 = d1;
+        OPT_SET(d1.opt_i, 666);
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data,
+                          "field `optI`: field presence differs "
+                          "(field absent on second value)");
+        d2 = d1;
+        d1.tab = (iop_array_i32_t)IOP_ARRAY(tab1, countof(tab1));
+        d2 = d1;
+        Z_ASSERT_NEG(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                         &diff_desc), "diff_desc: %*pM",
+                     SB_FMT_ARG(&diff_desc));
+
+        d2.tab = (iop_array_i32_t)IOP_ARRAY(tab2, countof(tab2));
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data,
+                          "field `tab[0]`: array length differs (3 vs 1)");
+
+        d2.tab = (iop_array_i32_t)IOP_ARRAY(tab3, countof(tab3));
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data,
+                          "field `tab[1]`: value differs (`2` vs `3`)");
+
+        iop_init(z_first_diff_c1, &c1);
+        iop_init(z_first_diff_c2, &c2);
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_c0__s, &c1, &c2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data, "class type differs "
+                          "(tstiop.FirstDiffC1 vs tstiop.FirstDiffC2)");
+
+        d2 = d1;
+        d1.o = iop_obj_vcast(z_first_diff_c0, &c1);
+        d2.o = iop_obj_vcast(z_first_diff_c0, &c2);
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data, "field `o`: class type differs "
+                          "(tstiop.FirstDiffC1 vs tstiop.FirstDiffC2)");
+    } Z_TEST_END;
+    /* }}} */
 } Z_GROUP_END
 
 /* LCOV_EXCL_STOP */

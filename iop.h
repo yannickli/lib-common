@@ -403,6 +403,16 @@ bool  iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2);
         iop_equals_desc(&pfx##__s, (const void *)__v1, (const void *)__v2);  \
     })
 
+/** Print a description of the first difference between two IOP structures.
+ *
+ * Mainly designed for testing: give additional information when two IOP
+ * structures differ when they are not supposed to.
+ *
+ * \return -1 if the IOP structs are equal.
+ */
+int iop_first_diff_desc(const iop_struct_t *st,
+                        const void *v1, const void *v2, sb_t *diff_desc);
+
 /** Flags for IOP sorter. */
 enum iop_sort_flags {
     /* Perform a reversed sort */
