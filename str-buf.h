@@ -388,6 +388,24 @@ int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
 int sb_addf(sb_t *sb, const char *fmt, ...)
     __leaf __attr_printf__(2, 3);
 
+/** Reset and optimize a string buffer for sb_prepend().
+ *
+ * Purpose: put the string buffer in a state in which a "sb_prepend" of length
+ * "len" triggers only a memmove of size "len" instead of moving the whole
+ * buffer first.
+ *
+ * \note This optimization won't last after first "sb_add" or first realloc of
+ * the sb.
+ */
+static inline void sb_reset_reverse(sb_t *sb)
+{
+    sb_reset(sb);
+    sb->data += sb->size - 1;
+    sb->skip = sb->size - 1;
+    /* XXX Keep one byte for '\0'. */
+    sb->size = 1;
+}
+
 int sb_prependvf(sb_t *sb, const char *fmt, va_list ap)
     __leaf __attr_printf__(2, 0);
 int sb_prependf(sb_t *sb, const char *fmt, ...)
