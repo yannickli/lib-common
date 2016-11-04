@@ -644,6 +644,11 @@ Z_GROUP_EXPORT(bit_stream)
     } Z_TEST_END;
 
     /* }}} */
+} Z_GROUP_END;
+
+/* {{{ core-macros.h */
+
+Z_GROUP_EXPORT(core_macros) {
     /* {{{ OPT */
 
     Z_TEST(opt, "opt") {
@@ -666,11 +671,6 @@ Z_GROUP_EXPORT(bit_stream)
     } Z_TEST_END;
 
     /* }}} */
-} Z_GROUP_END;
-
-/* {{{ core-macros.h */
-
-Z_GROUP_EXPORT(core_macros) {
     /* {{{ carray_loops */
 
     Z_TEST(carray_loops, "C array loop helpers") {
