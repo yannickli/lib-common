@@ -57,6 +57,14 @@
  * - sb.data[sb.len] == '\0'
  * - sb.data - sb.skip is a pointer handled by mp_new/mp_delete for the pool
  *   sb.mp.
+ *
+ *                │←─ sb->size ──────────────────────→│
+ * │←─ sb->skip ─→│←─ sb->len ─→│    │←─ sb_avail() ─→│
+ * ┌──────────────┬─────────────┬────┬────────────────┐
+ * │  skip area   │    data     │'\0'│ available room │
+ * └──────────────┴─────────────┴────┴────────────────┘
+ *                ↑             ↑
+ *            sb->data       sb_end()
  */
 typedef struct sb_t {
     char *data;
