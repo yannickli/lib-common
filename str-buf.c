@@ -161,25 +161,34 @@ void __sb_grow(sb_t *sb, int extra)
     sb->size = newsz;
 }
 
-char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
+char *__sb_splice(sb_t *sb, int pos, int rm_len, int insert_len)
 {
-    assert (pos >= 0 && len >= 0 && dlen >= 0);
-    assert (pos <= sb->len && pos + len <= sb->len);
+    assert (pos >= 0 && rm_len >= 0 && insert_len >= 0);
+    assert (pos <= sb->len && pos + rm_len <= sb->len);
 
-    if (len >= dlen) {
-        p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
-        __sb_fixlen(sb, sb->len + dlen - len);
+    if (rm_len >= insert_len) {
+        /* More data to suppress than to insert, move the tail of the buffer
+         * to the left. */
+        p_move2(sb->data, pos + insert_len, pos + rm_len,
+                sb->len - pos - rm_len);
+        __sb_fixlen(sb, sb->len + insert_len - rm_len);
     } else
-    if (len + sb->skip >= dlen) {
-        sb->skip -= dlen - len;
-        sb->data -= dlen - len;
-        sb->size += dlen - len;
-        sb->len  += dlen - len;
-        p_move2(sb->data, 0, dlen - len, pos);
+    if (rm_len + sb->skip >= insert_len) {
+        /* The skip area is at least as large as the data to insert
+         * (substracted from the data to remove), move the head of the buffer
+         * to the left, in the skip area. */
+        sb->skip -= insert_len - rm_len;
+        sb->data -= insert_len - rm_len;
+        sb->size += insert_len - rm_len;
+        sb->len  += insert_len - rm_len;
+        p_move2(sb->data, 0, insert_len - rm_len, pos);
     } else {
-        sb_grow(sb, dlen - len);
-        p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
-        __sb_fixlen(sb, sb->len + dlen - len);
+        /* Default case: move the tail of the buffer to the right to leave
+         * some room for the data to insert. */
+        sb_grow(sb, insert_len - rm_len);
+        p_move2(sb->data, pos + insert_len, pos + rm_len,
+                sb->len - pos - rm_len);
+        __sb_fixlen(sb, sb->len + insert_len - rm_len);
     }
     sb_optimize(sb, 0);
     return sb->data + pos;

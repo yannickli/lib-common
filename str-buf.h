@@ -281,30 +281,43 @@ static inline void sb_add_lstr(sb_t *sb, lstr_t s)
     sb_add(sb, s.s, s.len);
 }
 
-/* data == NULL means: please fill with raw data.  */
-char *__sb_splice(sb_t *sb, int pos, int len, int dlen);
+/* Prepare the string buffer for deletion of length "rm_len" followed by an
+ * insertion of length "insert_len" at position "pos". */
+char *__sb_splice(sb_t *sb, int pos, int rm_len, int insert_len);
+
+/** Deletes and inserts data at a given position in a string buffer.
+ *
+ * \param[in, out] sb      The string buffer to modify.
+ * \param[in]      pos     Position used for deletion and insertion.
+ * \param[in]      rm_len  Number of bytes to remove.
+ * \param[in]      data    Data to insert.
+ * \param[in]      dlen    Length of the data to insert.
+ */
 static inline char *
-sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
+sb_splice(sb_t *sb, int pos, int rm_len, const void *data, int dlen)
 {
     char *res;
 
-    assert (pos >= 0 && len >= 0 && dlen >= 0);
-    assert ((unsigned)pos <= (unsigned)sb->len && (unsigned)pos + (unsigned)len <= (unsigned)sb->len);
+    assert (pos >= 0 && rm_len >= 0 && dlen >= 0);
+    assert ((unsigned)pos <= (unsigned)sb->len);
+    assert ((unsigned)pos + (unsigned)rm_len <= (unsigned)sb->len);
+
 #ifndef __cplusplus
     if (__builtin_constant_p(dlen)) {
-        if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
-            p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
-            __sb_fixlen(sb, sb->len + dlen - len);
+        if (dlen == 0 || (__builtin_constant_p(rm_len) && rm_len >= dlen)) {
+            p_move2(sb->data, pos + dlen, pos + rm_len,
+                    sb->len - pos - rm_len);
+            __sb_fixlen(sb, sb->len + dlen - rm_len);
             return sb->data + pos;
         }
     }
-    if (__builtin_constant_p(len) && len == 0 && pos == sb->len) {
+    if (__builtin_constant_p(rm_len) && rm_len == 0 && pos == sb->len) {
         res = sb_growlen(sb, dlen);
     } else {
-        res = __sb_splice(sb, pos, len, dlen);
+        res = __sb_splice(sb, pos, rm_len, dlen);
     }
 #else
-    res = __sb_splice(sb, pos, len, dlen);
+    res = __sb_splice(sb, pos, rm_len, dlen);
 #endif
     return data ? (char *)memcpy(res, data, dlen) : res;
 }
