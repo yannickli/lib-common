@@ -379,5 +379,6 @@ void z_register_group(z_cb_f cb);
 void z_register_blkgroup(struct z_blkgrp const *);
 #endif
 int  z_run(void);
+bool z_is_list_mode_on(void);
 
 #endif

@@ -1055,6 +1055,11 @@ static void our_mkdtemp(const char *ns, lstr_t *out, int *dfd)
     e_panic("unable to setup %sdir: %m", ns);
 }
 
+bool z_is_list_mode_on(void)
+{
+    return !!_G.opt_list;
+}
+
 int z_run(void)
 {
     char path[PATH_MAX];
