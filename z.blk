@@ -383,9 +383,7 @@ bool _z_assert_iopequal(const char *file, int lno,
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
                 file, lno, lhs, rhs);
         iop_first_diff_desc(st, lh, rh, &diff_desc);
-        /* TODO improve diff desc */
-        sb_skip(&diff_desc, 1);
-        sb_addf(&sb, " field %*pM\n", SB_FMT_ARG(&diff_desc));
+        sb_addf(&sb, " %*pM\n", SB_FMT_ARG(&diff_desc));
         sb_addf(&sb, " %s:\n  ", lhs);
         iop_sb_jpack(&sb, st, lh,
                      IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
