@@ -6124,6 +6124,38 @@ Z_GROUP_EXPORT(iop)
             T_OK(parent_class1, &parent_class1, child_class7, IOP_COMPAT_BIN);
         }
 
+        /* Ignore backward incompatibilities */
+        {
+            /* Json backward incompatibilities ignored */
+            T_OK(basic_struct, NULL,
+                 new_required_field_json_ignored,
+                 IOP_COMPAT_JSON);
+
+            T_KO(basic_struct, &basic_struct,
+                 new_required_field_json_ignored,
+                 IOP_COMPAT_BIN, "new field `c` must not be required");
+
+            T_KO(basic_struct, &basic_struct,
+                 new_required_field_json_ignored,
+                 IOP_COMPAT_ALL, "new field `c` must not be required");
+
+            /* Bin backward incompatibilities ignored */
+            T_OK(basic_struct, NULL,
+                 new_required_field_bin_ignored,
+                 IOP_COMPAT_BIN);
+
+            T_KO(basic_struct, &basic_struct,
+                 new_required_field_bin_ignored,
+                 IOP_COMPAT_JSON, "new field `c` must not be required");
+
+            T_KO(basic_struct, &basic_struct,
+                 new_required_field_bin_ignored,
+                 IOP_COMPAT_ALL, "new field `c` must not be required");
+
+            /* Json/Bin backward incompatibilities ignored */
+            T_OK_ALL(basic_struct, NULL, new_required_field_ignored);
+        }
+
         /* Last optional field disappears. */
         parent_class =
             iop_obj_vcast(tstiop_backward_compat__parent_class_a,
