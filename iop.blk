@@ -4688,6 +4688,35 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
     return -1;
 }
 
+static unsigned iop_struct_compat_ignored(const iop_struct_t *new_st,
+                                          unsigned flags)
+{
+    iop_value_t gen_attr_val;
+
+    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignore"),
+                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
+    &&  gen_attr_val.b)
+    {
+        return 0;
+    }
+
+    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignoreJson"),
+                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
+    &&  gen_attr_val.b)
+    {
+        flags &= ~IOP_COMPAT_JSON;
+    }
+
+    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignoreBin"),
+                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
+    &&  gen_attr_val.b)
+    {
+        flags &= ~IOP_COMPAT_BIN;
+    }
+
+    return flags;
+}
+
 static int
 __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
@@ -4705,6 +4734,12 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
 
     if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
         /* We already checked this couple. */
+        return 0;
+    }
+
+    /* Ignore checks when the generic attribute 'ignore' is set. */
+    flags = iop_struct_compat_ignored(st2, flags);
+    if (!flags) {
         return 0;
     }
 

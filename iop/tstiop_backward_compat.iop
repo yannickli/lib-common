@@ -380,3 +380,29 @@ snmpIface BackwardSnmpNotifications : 80 : BackwardSnmp {
 };
 
 /* }}} */
+/* {{{ Generic attribute ignore Json/Bin checks. */
+
+/* A required field was added compared to BasicStruct. Backward compatibility
+ * checks are bypassed. */
+@(compat:ignoreJson, true)
+struct NewRequiredFieldJsonIgnored {
+    bool a;
+    string b;
+    double c;
+};
+
+@(compat:ignoreBin, true)
+struct NewRequiredFieldBinIgnored {
+    bool a;
+    string b;
+    double c;
+};
+
+@(compat:ignore, true)
+struct NewRequiredFieldIgnored {
+    bool a;
+    string b;
+    double c;
+};
+
+/* }}} */
