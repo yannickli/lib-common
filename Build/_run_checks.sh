@@ -151,7 +151,7 @@ for TAG in ${TAGS[@]}
 do
      BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG$COMA_SEPARATED_TAGS"
 done
-export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
+export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary --no-capture-stderr"
 
 coredump=$(which core_dump)
 
