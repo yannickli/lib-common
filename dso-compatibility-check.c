@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
 {
     iop_dso_t *dso;
     iop_dso_t *dso_old;
+    iop_compat_ctx_t *ctx;
     unsigned flags;
     SB_1k(err);
     lstr_t mode;
@@ -99,6 +100,7 @@ int main(int argc, char *argv[])
 
     dso = open_dso(_G.new_dso);
     dso_old = open_dso(_G.old_dso);
+    ctx = iop_compat_ctx_new();
 
     qm_for_each_pos(iop_pkg, pos, &dso_old->pkg_h) {
         const iop_pkg_t *pkg_old = dso_old->pkg_h.values[pos];
@@ -112,12 +114,15 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (iop_pkg_check_backward_compat(pkg_old, pkg, flags, &err) < 0) {
+        if (iop_pkg_check_backward_compat_ctx(pkg_old, pkg, ctx,
+                                              flags, &err) < 0)
+        {
             fprintf(stderr, "%*pM\n", SB_FMT_ARG(&err));
             sb_reset(&err);
         }
     }
 
+    iop_compat_ctx_delete(&ctx);
     iop_dso_close(&dso);
     iop_dso_close(&dso_old);
 
