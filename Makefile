@@ -85,7 +85,7 @@ libcommon_SOURCES = \
 	core-types.blk \
 	core-version.c \
 	core-errors.c \
-	core.iop.c \
+	core.iop \
 	core-module.c \
 	qpage.c \
 	core.swift \
@@ -126,7 +126,7 @@ libcommon_SOURCES = \
 	iop-rpc-channel.blk \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
-	ic.iop.c \
+	ic.iop \
 	ic.iop.swift \
 	\
 	log.c \
