@@ -5639,6 +5639,17 @@ Z_GROUP_EXPORT(iop)
             /* Optional -> required. */
             T_KO_ALL(field_optional, &field_optional, basic_struct,
                      "field `b`: is required and was not before");
+
+            /* Optional -> required, optional structure */
+            {
+                tstiop_backward_compat__opt_field_opt_struct__t opt_field;
+
+                iop_init(tstiop_backward_compat__opt_field_opt_struct,
+                         &opt_field);
+
+                T_OK_ALL(opt_field_opt_struct, &opt_field,
+                         mandatory_field_opt_struct);
+            }
         }
 
         /* Field of type struct changed for an incompatible struct. */
