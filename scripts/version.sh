@@ -12,9 +12,10 @@
 #                                                                        #
 ##########################################################################
 
+dirty=$(git diff-files --quiet && git diff-index --cached --quiet HEAD -- || echo "-dirty")
+
 git_describe() {
     match="$1"
-    dirty=$(git diff-files --quiet && git diff-index --cached --quiet HEAD -- || echo "-dirty")
     # the first-parent option is only available since git 1.8
     parent=$(git describe -h 2>&1 | grep 'first-parent' | awk '{ print $1; }')
 
@@ -27,10 +28,12 @@ git_describe() {
 
 git_rcsid() {
     revision=$(git_describe)
+    sha1="$(git rev-parse HEAD)${dirty}"
     cat <<EOF
 char const $1_id[] =
     "\$Intersec: $1 $revision \$";
 char const $1_git_revision[] = "$revision";
+char const $1_git_sha1[] = "$sha1";
 EOF
 }
 

@@ -360,6 +360,17 @@ struct NewMandatoryFieldNonOptional3 {
 };
 
 /* }}} */
+/* {{{ Optional -> Required of optional structure */
+
+struct OptFieldOptStruct {
+    OptionalStruct2? a;
+};
+
+struct MandatoryFieldOptStruct {
+    OptionalStruct2 a;
+};
+
+/* }}} */
 
 /* {{{ SNMP objects (to check it is compatible with itself). */
 

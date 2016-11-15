@@ -4922,6 +4922,10 @@ backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
     }
 }
 
+static bool
+iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
+                       iop_compat_ctx_t *ctx);
+
 static int
 iop_field_check_backward_compat(const iop_field_t *f1,
                                 const iop_field_t *f2,
@@ -4951,9 +4955,12 @@ iop_field_check_backward_compat(const iop_field_t *f1,
         return -1;
     }
 
-    /* Check non-required -> required: always forbidden. */
+    /* Check non-required -> required:
+     * forbidden iff it isn't an optional struct. */
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
-    &&  f2->repeat == IOP_R_REQUIRED)
+    &&  f2->repeat == IOP_R_REQUIRED
+    &&  (f2->type != IOP_T_STRUCT
+         || !iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
     {
         iop_compat_add_err(ctx, "is required and was not before");
         return -1;
