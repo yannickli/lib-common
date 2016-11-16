@@ -244,17 +244,54 @@ time_split_t split_time_interval(uint64_t seconds);
 
 /** Print a human readable string in english from a number of seconds.
  *
- *  Print (in english) a string representing the number of years, weeks,
- *  days, hours, minutes and seconds contained in a number of seconds.
+ *  Print (in english) a string representing the number of years, weeks, days,
+ *  hours, minutes and seconds contained in a number of seconds.
+ *
+ *  \param[in] seconds   duration
+ *  \param[in] precision maximum number of precision items we want to print
+ *
+ *  All fields are printed when \p precision < 0. If \p precision is set to 0,
+ *  the most-significant field will be printed.  Otherwise (\p precision > 0),
+ *  the function appends extra components.
+ *
+ *  E.g. if the most significant component is "hour", and \p precision is 1,
+ *  it prints "hour" and "minutes"; if \p precision is 2, it prints "hour",
+ *  "minutes" and "seconds".
  */
-lstr_t t_get_time_split_lstr_en(uint64_t seconds);
+lstr_t t_get_time_split_p_lstr_en(uint64_t seconds, int precision);
+
+/** Print a human readable string in english from a number of seconds.
+ *
+ *  Print (in english) a string representing the number of years, weeks, days,
+ *  hours, minutes and seconds contained in a number of seconds.
+ *
+ *  \see t_get_time_split_lstr_en
+ */
+static inline
+lstr_t t_get_time_split_lstr_en(uint64_t seconds)
+{
+    return t_get_time_split_p_lstr_en(seconds, -1);
+}
 
 /** Print a human readable string in french from a number of seconds.
  *
- *  Print (in french) a string representing the number of years, weeks,
- *  days, hours, minutes and seconds contained in a number of seconds.
+ *  \param[in] precision maximum number of precision items we want to print
+ *  \see t_get_time_split_lstr_en
  */
-lstr_t t_get_time_split_lstr_fr(uint64_t seconds);
+lstr_t t_get_time_split_p_lstr_fr(uint64_t seconds, int precision);
+
+/** Print a human readable string in french from a number of seconds.
+ *
+ *  Print (in french) a string representing the number of years, weeks, days,
+ *  hours, minutes and seconds contained in a number of seconds.
+ *
+ *  \see t_get_time_split_lstr_en
+ */
+static inline
+lstr_t t_get_time_split_lstr_fr(uint64_t seconds)
+{
+    return t_get_time_split_p_lstr_fr(seconds, -1);
+}
 
 /***************************************************************************/
 /* iso8601                                                                 */

@@ -751,9 +751,12 @@ time_split_t split_time_interval(uint64_t seconds)
                 sb_addc(&sb, 's');                                           \
             }                                                                \
         }                                                                    \
+        if (sb.len && precision-- == 0) {                                    \
+            return LSTR_SB_V(&sb);                                           \
+        }                                                                    \
     } while (0)
 
-lstr_t t_get_time_split_lstr_en(uint64_t seconds)
+lstr_t t_get_time_split_p_lstr_en(uint64_t seconds, int precision)
 {
     t_SB_1k(sb);
 
@@ -769,7 +772,7 @@ lstr_t t_get_time_split_lstr_en(uint64_t seconds)
     return LSTR_SB_V(&sb);
 }
 
-lstr_t t_get_time_split_lstr_fr(uint64_t seconds)
+lstr_t t_get_time_split_p_lstr_fr(uint64_t seconds, int precision)
 {
     t_SB_1k(sb);
 
