@@ -1735,6 +1735,16 @@ enum iop_compat_check_flags {
     IOP_COMPAT_ALL  = IOP_COMPAT_BIN | IOP_COMPAT_JSON,
 };
 
+/** IOP backward compatibility context.
+ *
+ * A context contains checker metadata. Among other things it allows the
+ * checker to skip structs that have been already verified.
+ */
+typedef struct iop_compat_ctx_t iop_compat_ctx_t;
+
+iop_compat_ctx_t *iop_compat_ctx_new(void);
+void iop_compat_ctx_delete(iop_compat_ctx_t **ctx);
+
 /** Checks the backward compatibility of two IOP structures/classes/unions.
  *
  * This function checks if \p st2 is backward-compatible with \p st1 regarding
@@ -1765,6 +1775,19 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
 int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
                                   const iop_pkg_t *pkg2,
                                   unsigned flags, sb_t *err);
+
+/** Checks the backward compatibility of two IOP packages with provided
+ * context.
+ *
+ * \see iop_pkg_check_backward_compat
+ *
+ * This function introduce a way to provide an external compatibility context
+ * \p ctx allowing backward compatibility checks between multiple packages.
+ */
+int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
+                                      const iop_pkg_t *pkg2,
+                                      iop_compat_ctx_t *ctx,
+                                      unsigned flags, sb_t *err);
 
 /* }}} */
 

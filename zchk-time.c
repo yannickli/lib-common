@@ -442,6 +442,32 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines, 6 jours, "
                                           "3 heures, 33 minutes, "
                                           "20 secondes"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 0);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 1);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years, 21 weeks"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 2);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years, 21 weeks, 6 days"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 3);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years, 21 weeks, 6 days, "
+                                          "3 hours"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 42);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 years, 21 weeks, 6 days, "
+                                          "3 hours, 33 minutes, "
+                                          "20 seconds"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 0);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 1);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 2);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines, 6 jours"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 3);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines, "
+                                          "6 jours, 3 heures"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 42);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("63 années, 21 semaines, "
+                                          "6 jours, 3 heures, 33 minutes, "
+                                          "20 secondes"));
 
         /* One hour */
         input = 3600;
@@ -458,6 +484,12 @@ Z_GROUP_EXPORT(time)
         res_lstr = t_get_time_split_lstr_en(input);
         Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 hour"));
         res_lstr = t_get_time_split_lstr_fr(input);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 heure"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 0);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 hour"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 2);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 hour"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 2);
         Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 heure"));
 
         /* One day, deux hours, 30 seconds */
@@ -476,6 +508,14 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 day, 2 hours, 30 seconds"));
         res_lstr = t_get_time_split_lstr_fr(input);
         Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 jour, 2 heures, 30 secondes"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 0);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 day"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 0);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 jour"));
+        res_lstr = t_get_time_split_p_lstr_en(input, 1);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 day, 2 hours"));
+        res_lstr = t_get_time_split_p_lstr_fr(input, 1);
+        Z_ASSERT_LSTREQUAL(res_lstr, LSTR("1 jour, 2 heures"));
 
     } Z_TEST_END;
 } Z_GROUP_END
