@@ -84,6 +84,8 @@ static popt_t options[] = {
              "add nullability attributes to exported C types"),
     OPT_FLAG(0,   "c-unions-use-enums", &iopc_do_c_g.unions_use_enums,
              "use an enum for selected field in unions instead of an int"),
+    OPT_FLAG(0,   "c-export-symbols", &iopc_do_c_g.export_symbols,
+             "publicly export C symbols"),
     OPT_END(),
 };
 
@@ -236,6 +238,7 @@ int main(int argc, char **argv)
     _G.v2 |= _G.v3;
 
     iopc_do_c_g.export_nullability |= _G.v6;
+    iopc_do_c_g.export_symbols |= _G.v6;
 
     _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
     _G.display_prefix = true;

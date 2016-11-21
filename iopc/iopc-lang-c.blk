@@ -22,6 +22,7 @@ struct iopc_do_c_globs iopc_do_c_g;
 #define CONST     _G.no_const ? "" : "const "
 #define NULLABLE  (_G.export_nullability ? "nullable " : "")
 #define NONNULL   (_G.export_nullability ? "nonnull " : "")
+#define EXTERN    (_G.export_symbols ? "EXPORT" : "extern")
 
 static const char *pp_under(iopc_path_t *path)
 {
@@ -793,10 +794,10 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
     char *tbase = t_fmt("%s__%s", pkg_name, tname);
 
     sb_addf(buf,
-            "extern iop_enum_t const %s__e;\n"
-            "extern iop_enum_t const * const %s %s__ep;\n"
+            "%s iop_enum_t const %s__e;\n"
+            "%s iop_enum_t const * const %s %s__ep;\n"
             "IOP_ENUM(%s);\n\n",
-            tbase, NONNULL, tbase, tbase);
+            EXTERN, tbase, EXTERN, NONNULL, tbase, tbase);
 
     iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, -1);
 }
@@ -977,9 +978,9 @@ static void iopc_struct_dump_hdr(sb_t *buf, const iopc_pkg_t *pkg,
 
         sb_adds(buf, "};\n");
     }
-    sb_addf(buf, "extern iop_struct_t const %s__s;\n", tbase);
-    sb_addf(buf, "extern iop_struct_t const * const %s %s__sp;\n",
-            NONNULL, tbase);
+    sb_addf(buf, "%s iop_struct_t const %s__s;\n", EXTERN, tbase);
+    sb_addf(buf, "%s iop_struct_t const * const %s %s__sp;\n",
+            EXTERN, NONNULL, tbase);
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
@@ -999,7 +1000,8 @@ static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
     const char *fname = pp_to_c(field->name);
     char *tbase = t_fmt("%s__%s__%s", pkg_name, tname, fname);
 
-    sb_addf(buf, "extern iop_snmp_attrs_t const %s__snmp_attrs__s;\n", tbase);
+    sb_addf(buf, "%s iop_snmp_attrs_t const %s__snmp_attrs__s;\n",
+            EXTERN, tbase);
     if (iopc_is_snmp_tbl(st->type)) {
         sb_addf(buf, "#define %s__oid  %d\n\n", tbase, field->tag);
     }
@@ -1074,10 +1076,10 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
     }
     sb_addf(buf, "    };\n"
             "};\n"
-            "extern iop_struct_t const %s__s;\n"
-            "extern iop_struct_t const * const %s %s__sp;\n"
+            "%s iop_struct_t const %s__s;\n"
+            "%s iop_struct_t const * const %s %s__sp;\n"
             "IOP_GENERIC(%s);\n",
-            tbase, NONNULL, tbase, tbase);
+            EXTERN, tbase, EXTERN, NONNULL, tbase, tbase);
 
     /* Get & copy functions */
     sb_addf(buf, "#define %s__get(u, field)       "
@@ -1190,9 +1192,9 @@ iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
                 fbase, fun->tag, fbase, fun->fun_is_async, fbase, ibase, j);
         j += 1 + iopc_fun_n_aliases(fun);
     }
-    sb_addf(buf, "extern iop_iface_t const %s__if;\n", ibase);
-    sb_addf(buf, "extern iop_iface_t const * const %s %s__ifp;\n\n",
-            NONNULL, ibase);
+    sb_addf(buf, "%s iop_iface_t const %s__if;\n", EXTERN, ibase);
+    sb_addf(buf, "%s iop_iface_t const * const %s %s__ifp;\n\n",
+            EXTERN, NONNULL, ibase);
 }
 
 static void
@@ -1226,9 +1228,9 @@ iopc_module_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
                 mbase, pp_to_c(f->name), mbase, i);
     }
     sb_addf(buf,
-            "extern iop_mod_t const %s__mod;\n"
-            "extern iop_mod_t const * const %s %s__modp;\n"
-            "\n", mbase, NONNULL, mbase);
+            "%s iop_mod_t const %s__mod;\n"
+            "%s iop_mod_t const * const %s %s__modp;\n"
+            "\n", EXTERN, mbase, EXTERN, NONNULL, mbase);
 }
 
 static void
@@ -1250,10 +1252,11 @@ iopc_pkg_dump_hdr(sb_t *buf, iopc_pkg_t *pkg, const char *pkg_name)
     sb_addf(buf,
             "\n"
             "/*----- package %s -----*/\n"
-            "extern iop_pkg_t const %s__pkg;\n"
-            "extern iop_pkg_t const * const %s %s__pkgp;\n"
+            "%s iop_pkg_t const %s__pkg;\n"
+            "%s iop_pkg_t const * const %s %s__pkgp;\n"
             "\n",
-            pretty_path_dot(pkg->name), pkg_name, NONNULL, pkg_name);
+            pretty_path_dot(pkg->name), EXTERN, pkg_name, EXTERN,  NONNULL,
+            pkg_name);
 }
 
 static char const * const repeats[] = {

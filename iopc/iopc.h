@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   5
 #define IOPC_MINOR   0
-#define IOPC_PATCH   8
+#define IOPC_PATCH   9
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -1056,6 +1056,10 @@ extern struct iopc_do_c_globs {
     int resolve_includes;
     int export_nullability;
     int unions_use_enums;
+
+    /** Export C symbols for access through dynamic linker / dlsym.
+     */
+    int export_symbols;
 
     const char *data_c_type;
     /** remove const on all objects that may contain a pointer to an
