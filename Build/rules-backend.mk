@@ -243,7 +243,7 @@ $~$1.so$$(tmp/$1/build):
 	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) $$(LDSHAREDFLAGS) \
 	    $$(call fun/lib-link,$$^,$$(_LIBS)) \
 	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
+	    $$(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
