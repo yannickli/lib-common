@@ -1681,56 +1681,14 @@ uint64_t wah_get_storage_len(const wah_t *wah)
 /* }}} */
 /* Pool {{{ */
 
-static __thread struct {
-    wah_t    *pool[16];
-    int       count;
-} pool_g;
-
-__attribute__((constructor))
-static void wah_pool_initialize(void)
-{
-}
-
-static void wah_pool_shutdown(void)
-{
-    for (int i = 0; i < pool_g.count; i++) {
-        wah_delete(&pool_g.pool[i]);
-    }
-}
-thr_hooks(wah_pool_initialize, wah_pool_shutdown);
-
-
 wah_t *wah_pool_acquire(void)
 {
-    if (pool_g.count == 0) {
-        return wah_new();
-    }
-    return pool_g.pool[--pool_g.count];
+    return wah_new();
 }
 
 void wah_pool_release(wah_t **pmap)
 {
-    wah_t *map = *pmap;
-    mem_pool_t *mp;
-
-    if (!map) {
-        return;
-    }
-    if (map->_buckets.len) {
-        mp = map->_buckets.tab[0].mp;
-    } else {
-        mp = map->_buckets.mp;
-    }
-    if (pool_g.count == countof(pool_g.pool)
-    ||  mp_ipool(mp) != &mem_pool_libc)
-    {
-        wah_delete(pmap);
-        return;
-    }
-
-    wah_reset_map(map);
-    pool_g.pool[pool_g.count++] = map;
-    *pmap = NULL;
+    wah_delete(pmap);
 }
 
 /* }}} */

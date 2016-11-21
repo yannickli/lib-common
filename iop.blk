@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "arith.h"
+#include "core.h"
 #include "iop.h"
 #include "iop-priv.h"
 #include "iop-helpers.in.c"
@@ -4747,13 +4748,13 @@ static bool qhash_compat_couple_equal(const qhash_t *qh,
 qh_kvec_t(compat_couple, iop_compat_couple_t,
           qhash_hash_compat_couple, qhash_compat_couple_equal);
 
-typedef struct iop_compat_ctx_t {
+struct iop_compat_ctx_t {
     qh_t(compat_couple) seen_couples;
     qh_t(cptr)          seen_opt_st;
     sb_t *err;
     sb_t err_ctx;
     qv_t(i32) err_ctx_offs;
-} iop_compat_ctx_t;
+};
 
 static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
 {
@@ -4771,6 +4772,8 @@ static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
     sb_wipe(&ctx->err_ctx);
     qv_wipe(i32, &ctx->err_ctx_offs);
 }
+DO_NEW(iop_compat_ctx_t, iop_compat_ctx);
+DO_DELETE(iop_compat_ctx_t, iop_compat_ctx);
 
 __attr_printf__(2, 3)
 static void
@@ -5561,17 +5564,16 @@ BUILD_GET_BY_NAME(iop_pkg_get_mod_by_name,    iop_mod_t,    mods)
 
 #undef BUILD_GET_BY_NAME
 
-int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
-                                  const iop_pkg_t *pkg2,
-                                  unsigned flags, sb_t *err)
+int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
+                                      const iop_pkg_t *pkg2,
+                                      iop_compat_ctx_t *ctx,
+                                      unsigned flags, sb_t *err)
 {
     int res = 0;
-    iop_compat_ctx_t ctx;
 
     assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
 
-    iop_compat_ctx_init(&ctx);
-    ctx.err = err;
+    ctx->err = err;
 
     /* Check structs. */
     for (const iop_struct_t *const *it = pkg1->structs; *it; it++) {
@@ -5590,18 +5592,18 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
         }
 
         if (!(st2 = iop_pkg_get_struct_by_name(pkg2, name))) {
-            iop_compat_add_err(&ctx, "%s `%*pM` does not exist anymore",
+            iop_compat_add_err(ctx, "%s `%*pM` does not exist anymore",
                                what, LSTR_FMT_ARG(st1->fullname));
             res = -1;
             continue;
         }
 
-        iop_compat_push_err_ctx(&ctx, "%s `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "%s `%*pM`: ",
                                 what, LSTR_FMT_ARG(st1->fullname));
-        if (__iop_struct_check_backward_compat(st1, st2, flags, &ctx) < 0) {
+        if (__iop_struct_check_backward_compat(st1, st2, flags, ctx) < 0) {
             res = -1;
         }
-        iop_compat_pop_err_ctx(&ctx);
+        iop_compat_pop_err_ctx(ctx);
     }
 
     /* Check interfaces. */
@@ -5611,19 +5613,19 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
         lstr_t name = iop_get_name_from_fullname(if1->fullname);
 
         if (!(if2 = iop_pkg_get_iface_by_name(pkg2, name))) {
-            iop_compat_add_err(&ctx,
+            iop_compat_add_err(ctx,
                                "interface `%*pM` does not exist anymore",
                                LSTR_FMT_ARG(if1->fullname));
             res = -1;
             continue;
         }
 
-        iop_compat_push_err_ctx(&ctx, "interface `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "interface `%*pM`: ",
                                 LSTR_FMT_ARG(if1->fullname));
-        if (__iop_iface_check_backward_compat(if1, if2, flags, &ctx) < 0) {
+        if (__iop_iface_check_backward_compat(if1, if2, flags, ctx) < 0) {
             res = -1;
         }
-        iop_compat_pop_err_ctx(&ctx);
+        iop_compat_pop_err_ctx(ctx);
     }
 
     /* Check modules. */
@@ -5633,21 +5635,36 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
         lstr_t name = iop_get_name_from_fullname(mod1->fullname);
 
         if (!(mod2 = iop_pkg_get_mod_by_name(pkg2, name))) {
-            iop_compat_add_err(&ctx, "module `%*pM` does not exist anymore",
+            iop_compat_add_err(ctx, "module `%*pM` does not exist anymore",
                                LSTR_FMT_ARG(mod1->fullname));
             res = -1;
             continue;
         }
 
-        iop_compat_push_err_ctx(&ctx, "module `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "module `%*pM`: ",
                                 LSTR_FMT_ARG(mod1->fullname));
-        if (__iop_mod_check_backward_compat(mod1, mod2, flags, &ctx) < 0) {
+        if (__iop_mod_check_backward_compat(mod1, mod2, flags, ctx) < 0) {
             res = -1;
         }
-        iop_compat_pop_err_ctx(&ctx);
+        iop_compat_pop_err_ctx(ctx);
     }
 
+    return res;
+}
+
+int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
+                                  const iop_pkg_t *pkg2,
+                                  unsigned flags, sb_t *err)
+{
+    int res;
+    iop_compat_ctx_t ctx;
+
+    iop_compat_ctx_init(&ctx);
+
+    res = iop_pkg_check_backward_compat_ctx(pkg1, pkg2, &ctx, flags, err);
+
     iop_compat_ctx_wipe(&ctx);
+
     return res;
 }
 
