@@ -31,7 +31,7 @@
 define fun/common-depends
 $2: $(1D)/Makefile $(var/toolsdir)/*.mk $(var/toolsdir)/_local_targets.sh
 $2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
-$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1DV)_DEPENDS)
+$2: | $(foreach s,$3,$($s_DEPENDS)) $($(1DV)_DEPENDS)
 endef
 
 var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))

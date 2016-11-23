@@ -72,6 +72,10 @@ define ext/rule/wa
 $2: $(patsubst %.wa,$~%$4.wa,$3)
 endef
 
+define ext/rule/so
+$2: $3
+endef
+
 #}}}
 #[ c ]################################################################{{{#
 
@@ -241,7 +245,7 @@ $~$1.so$$(tmp/$1/build):
 	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) $$(LDSHAREDFLAGS) \
-	    $$(call fun/lib-link,$$^,$$(_LIBS)) \
+	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^) \
 	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
 	    $$(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
@@ -266,7 +270,7 @@ $~$1.exe:
 	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
-		$$(call fun/lib-link,$$^,$$(_LIBS)) \
+		$$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^) \
 		$$(if $$(filter clang++,$$(_L)),-lstdc++))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1DV)clean::
