@@ -2717,7 +2717,7 @@ static inline int get_uint32(pstream_t *ps, int ilen, uint32_t *u32)
  * XXX: an iop_range helps doing run-length encoded binary search. We know
  * that IOPs tags are mostly contiguous, hence we encode "full" runs of tags
  * this way:
- *   [ offset0, start_tag0, offset1, ..., start_tag_n, offset_n]
+ *   [ offset0, start_tag0, offset1, ..., offset_n, start_tag_n, offset_end]
  *
  * This means that the offset0-th up to the offset1-th values described by
  * this iop_range take values contiguously from the range:
