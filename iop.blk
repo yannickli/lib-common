@@ -4757,12 +4757,6 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
         return 0;
     }
 
-    /* Ignore checks when the generic attribute 'ignore' is set. */
-    flags = iop_struct_compat_ignored(st2, flags);
-    if (!flags) {
-        return 0;
-    }
-
     /* Check types of the objects. */
     if (st1->is_union && !st2->is_union) {
         iop_compat_add_err(ctx, "was a union and is now a %s",
@@ -4896,6 +4890,11 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
     iop_compat_ctx_t ctx;
 
     assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
+
+    flags = iop_struct_compat_ignored(st2, flags);
+    if (!flags) {
+        return 0;
+    }
 
     iop_compat_ctx_init(&ctx);
     ctx.err = err;
@@ -5102,6 +5101,7 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
         const iop_struct_t *st2;
         lstr_t name = iop_get_name_from_fullname(st1->fullname);
         const char *what;
+        unsigned st_flags;
 
         if (st1->is_union) {
             what = "union";
@@ -5121,7 +5121,9 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
 
         iop_compat_push_err_ctx(ctx, "%s `%*pM`: ",
                                 what, LSTR_FMT_ARG(st1->fullname));
-        if (__iop_struct_check_backward_compat(st1, st2, flags, ctx) < 0) {
+        if ((st_flags = iop_struct_compat_ignored(st2, flags))
+        &&  __iop_struct_check_backward_compat(st1, st2, st_flags, ctx) < 0)
+        {
             res = -1;
         }
         iop_compat_pop_err_ctx(ctx);

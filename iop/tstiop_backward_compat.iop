@@ -416,4 +416,36 @@ struct NewRequiredFieldIgnored {
     double c;
 };
 
+/* -------------------------------------------------- */
+/* Ignored struct/classes */
+/* -------------------------------------------------- */
+
+/* Nested structures and classes must be checked when the root structure
+ * located in the package is not flagged as ignored. The following structs are
+ * checked against StructContainer1 which contains a BasicStruct. Replacing
+ * the nested structure with NewRequiredField will usually throw an
+ * incompatibility error. */
+
+/* This struct is ignored, thus no checks must be done. */
+@(compat:ignore, true)
+struct RootStructIgnored {
+    NewRequiredField s;
+};
+
+@(compat:ignoreJson, true)
+struct RootStructJsonIgnored {
+    NewRequiredField s;
+};
+
+@(compat:ignoreBin, true)
+struct RootStructBinIgnored {
+    NewRequiredField s;
+};
+
+/* This root struct is not ignored, thus backward compatibility checks are not
+ * bypassed. */
+struct RootStruct {
+    NewRequiredFieldIgnored s;
+};
+
 /* }}} */

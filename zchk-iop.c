@@ -5768,6 +5768,8 @@ Z_GROUP_EXPORT(iop)
 
         /* Ignore backward incompatibilities */
         {
+            tstiop_backward_compat__struct_container1__t struct_container1;
+
             /* Json backward incompatibilities ignored */
             T_OK(basic_struct, NULL,
                  new_required_field_json_ignored,
@@ -5796,6 +5798,25 @@ Z_GROUP_EXPORT(iop)
 
             /* Json/Bin backward incompatibilities ignored */
             T_OK_ALL(basic_struct, NULL, new_required_field_ignored);
+
+            /* Nested ignored struct: must throw errors unless the root
+             * struct is flagged as ignored. */
+
+            iop_init(tstiop_backward_compat__struct_container1,
+                     &struct_container1);
+            struct_container1.s = basic_struct;
+
+            T_OK(struct_container1, NULL,
+                 root_struct_json_ignored, IOP_COMPAT_JSON);
+
+            T_OK(struct_container1, NULL,
+                 root_struct_bin_ignored, IOP_COMPAT_BIN);
+
+            T_OK_ALL(struct_container1, NULL, root_struct_ignored);
+
+            T_KO_ALL(struct_container1, &struct_container1,
+                     root_struct,
+                     "field `s`: new field `c` must not be required");
         }
 
         /* Last optional field disappears. */
