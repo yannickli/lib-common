@@ -4670,12 +4670,22 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
 {
     if (f1) {
         int res = 0;
+        SB(name_fmt, 128);
 
-        iop_compat_push_err_ctx(ctx, "field `%*pM`: ",
-                                LSTR_FMT_ARG(f2->name));
-        if (iop_field_check_backward_compat(f1, f2, flags,
-                                            ctx) < 0)
-        {
+        if (!lstr_equal(f1->name, f2->name)) {
+            sb_addf(&name_fmt, "`%*pM` -> `%*pM`", LSTR_FMT_ARG(f1->name),
+                    LSTR_FMT_ARG(f2->name));
+        } else
+        if (f1->tag != f2->tag) {
+            sb_addf(&name_fmt, "`%*pM` %hu -> %hu", LSTR_FMT_ARG(f2->name),
+                    f1->tag, f2->tag);
+        } else {
+            sb_addf(&name_fmt, "`%*pM`", LSTR_FMT_ARG(f2->name));
+        }
+
+        iop_compat_push_err_ctx(ctx, "field %*pM: ", SB_FMT_ARG(&name_fmt));
+
+        if (iop_field_check_backward_compat(f1, f2, flags, ctx) < 0) {
             res = -1;
         }
         iop_compat_pop_err_ctx(ctx);
