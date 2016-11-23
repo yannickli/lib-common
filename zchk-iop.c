@@ -5555,6 +5555,14 @@ Z_GROUP_EXPORT(iop)
         T_KO(basic_struct, &basic_struct, tag_changed_field, IOP_COMPAT_BIN,
              "new field `b` must not be required");
 
+        T_KO(basic_struct, &basic_struct, renamed_and_tag_changed_field,
+             IOP_COMPAT_ALL,
+             "field `b` (1): name and tag lookups mismatch: "
+             "`b` (2) != `a` (1)\n"
+             "field `a` (2): name and tag lookups mismatch: "
+             "`a` (1) != `b` (2)"
+             );
+
         /* Field changed of type in a binary-compatible way. */
         T_OK(basic_struct, &basic_struct, field_compatible_type_bin,
              IOP_COMPAT_BIN);

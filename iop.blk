@@ -4808,10 +4808,18 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
     /* Check fields of st2. */
     for (int i = 0; i < st2->fields_len; i++) {
         const iop_field_t *f2 = &st2->fields[i];
-        const iop_field_t *f1;
+        const iop_field_t *f1_name;
+        const iop_field_t *f1_tag = NULL;
         bool got_err = false;
+        int pos;
 
-#define CHECK_NEW_FIELD()                                                    \
+        f1_name = __iop_field_find_by_name(st1, f2->name);
+        pos = iop_ranges_search(st1->ranges, st1->ranges_len, f2->tag);
+        if (pos >= 0) {
+            f1_tag = &st1->fields[pos];
+        }
+
+#define CHECK_NEW_FIELD(f1, flags)                                           \
         do {                                                                 \
             if (__backward_compat_check_new_field(st1, f1, f2, flags,        \
                                                   ctx) < 0)                  \
@@ -4821,23 +4829,34 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
             }                                                                \
         } while (0)
 
-        if (flags & IOP_COMPAT_JSON) {
-            f1 = __iop_field_find_by_name(st1, f2->name);
-            CHECK_NEW_FIELD();
-        }
-
-        if (!got_err && flags & IOP_COMPAT_BIN) {
-            int pos;
-
-            pos = iop_ranges_search(st1->ranges, st1->ranges_len, f2->tag);
-            if (pos >= 0) {
-                f1 = &st1->fields[pos];
+        if (flags == IOP_COMPAT_JSON) {
+            CHECK_NEW_FIELD(f1_name, IOP_COMPAT_JSON);
+        } else
+        if (flags == IOP_COMPAT_BIN) {
+            CHECK_NEW_FIELD(f1_tag, IOP_COMPAT_BIN);
+        } else {
+            assert (flags == IOP_COMPAT_ALL);
+            if (f1_name && f1_tag) {
+                if (f1_name == f1_tag) {
+                    CHECK_NEW_FIELD(f1_name, IOP_COMPAT_ALL);
+                } else {
+                    iop_compat_add_err(ctx,
+                        "field `%*pM` (%d): name and tag lookups mismatch: "
+                        "`%*pM` (%d) != `%*pM` (%d)",
+                        LSTR_FMT_ARG(f2->name), f2->tag,
+                        LSTR_FMT_ARG(f1_name->name), f1_name->tag,
+                        LSTR_FMT_ARG(f1_tag->name), f1_tag->tag);
+                    res = -1;
+                }
             } else {
-                f1 = NULL;
+                CHECK_NEW_FIELD(f1_name, IOP_COMPAT_JSON);
+                if (!got_err) {
+                    CHECK_NEW_FIELD(f1_tag, IOP_COMPAT_BIN);
+                }
             }
-            CHECK_NEW_FIELD();
         }
     }
+#undef CHECK_NEW_FIELD
 
     /* Check that no field disappeared for json backward compat and union
      * case. */

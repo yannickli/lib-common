@@ -85,6 +85,13 @@ struct TagChangedField {
 3:  string b;
 };
 
+/* Fields were exchanged and a type modified (string to int) leading to
+ * a structure that has nothing in common with BasicStruct. */
+struct RenamedAndTagChangedField {
+    bool b;
+    int a;
+};
+
 /* A field is added compated to BasicUnion. */
 union Union1 {
     bool a;
