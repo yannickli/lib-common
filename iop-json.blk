@@ -1363,8 +1363,11 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
     int size = 0;
     void *ptr;
 
-    if (arr)
+    if (arr) {
         p_clear(arr, 1);
+    } else {
+        assert (!fdesc);
+    }
 
     for (;;) {
         if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == ']') {
@@ -2242,6 +2245,7 @@ static int write_field(const iop_struct_t *st, const void *value,
         /* This field shoud be packed inline. */
         return do_inline();
     }
+    assert (file_ctx);
 
     /* This field should be written in a dedicated file.
      * Get include full path. */

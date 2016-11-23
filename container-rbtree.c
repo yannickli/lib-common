@@ -182,6 +182,7 @@ rb_del_fix_color(rb_node_t **root, rb_node_t *p, rb_node_t *z)
                 rb_rotate_left(root, p);
                 w = p->right;
             }
+            assert (w);
             if (rb_is_black(w->left) && rb_is_black(w->right)) {
                 rb_set_red(w);
                 z = p;
@@ -207,6 +208,7 @@ rb_del_fix_color(rb_node_t **root, rb_node_t *p, rb_node_t *z)
                 rb_rotate_right(root, p);
                 w = p->left;
             }
+            assert (w);
             if (rb_is_black(w->left) && rb_is_black(w->right)) {
                 rb_set_red(w);
                 z = p;

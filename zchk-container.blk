@@ -1509,6 +1509,7 @@ Z_GROUP_EXPORT(htlist)
                                      node)->id, 1);
         Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
                                        node)->id, 2);
+        assert (!htlist_is_empty(&list));
         Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
                                       node)->id, 3);
         /* List =  3 */
@@ -1516,6 +1517,7 @@ Z_GROUP_EXPORT(htlist)
                                      node)->id, 2);
         Z_ASSERT_EQ(htlist_first_entry(&list, htlist_test_node_t,
                                        node)->id, 3);
+        assert (!htlist_is_empty(&list));
         Z_ASSERT_EQ(htlist_last_entry(&list, htlist_test_node_t,
                                       node)->id, 3);
         /* List =  2 --> 3 */

@@ -2095,6 +2095,7 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     field_path_init(&fp);
     t_qv_init(field_step, &fp.steps, 16);
     RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
+    assert (fp.is_typename || fp.fdesc);
 
     if (OPT_ISSET(is_set)) {
         if (!fp.is_typename

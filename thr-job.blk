@@ -251,7 +251,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
 /* }}} */
 /* atomic dequeue {{{ */
 
-static bool job_run(thr_job_t *job, thr_syn_t *syn)
+static bool job_run(thr_job_t * nonnull job, thr_syn_t *syn)
 {
 #ifdef __has_thr_acc
     unsigned long start = hardclock();
