@@ -2175,6 +2175,7 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
         p_move(vec_write, vec_start, vec_read - vec_start);
         vec_write += vec_read - vec_start;
     }
+    assert (elem_size > 0);
     *len = (vec_write - (byte *)vec) / elem_size;
 
     return 0;

@@ -58,6 +58,7 @@ static void (print_time_diff)(const char *str, struct rusage *tstart,
                                                                              \
         gettimeofday(&tstart, NULL);                                         \
         getrusage(RUSAGE_SELF, &start);                                      \
+        assert (Count >= 100);                                               \
         (Code);                                                              \
         getrusage(RUSAGE_SELF, &end);                                        \
         gettimeofday(&tend, NULL);                                           \
