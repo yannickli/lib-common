@@ -5501,6 +5501,11 @@ Z_GROUP_EXPORT(iop)
             T_KO(_type1,  NULL, _type2, IOP_COMPAT_ALL,  _err);              \
         } while (0)
 
+#define INDENT_LVL1  "\n  | "
+#define INDENT_LVL2  "\n  |   | "
+#define INDENT_LVL3  "\n  |   |   | "
+#define INDENT_LVL4  "\n  |   |   |   | "
+
         /* Basic struct to class transitions. */
         T_KO_ALL(basic_struct, &basic_struct, basic_union,
                  "was a struct and is now a union");
@@ -5567,7 +5572,7 @@ Z_GROUP_EXPORT(iop)
         T_OK(basic_struct, &basic_struct, field_compatible_type_bin,
              IOP_COMPAT_BIN);
         T_KO(basic_struct, &basic_struct, field_compatible_type_bin,
-             IOP_COMPAT_JSON, "field `b`: incompatible types");
+             IOP_COMPAT_JSON, "field `b`:" INDENT_LVL1 "incompatible types");
 
         /* A field was added in a union. */
         T_OK_ALL(basic_union, &basic_union, union1);
@@ -5600,13 +5605,13 @@ Z_GROUP_EXPORT(iop)
             number_struct2.i32 = INT64_MAX;
             number_struct2.u32 = INT64_MAX;
             T_KO_ALL(number_struct2, &number_struct2, number_struct,
-                     "field `b`: incompatible types\n"
-                     "field `i8`: incompatible types\n"
-                     "field `u8`: incompatible types\n"
-                     "field `i16`: incompatible types\n"
-                     "field `u16`: incompatible types\n"
-                     "field `i32`: incompatible types\n"
-                     "field `u32`: incompatible types");
+                     "field `b`:"   INDENT_LVL1 "incompatible types\n"
+                     "field `i8`:"  INDENT_LVL1 "incompatible types\n"
+                     "field `u8`:"  INDENT_LVL1 "incompatible types\n"
+                     "field `i16`:" INDENT_LVL1 "incompatible types\n"
+                     "field `u16`:" INDENT_LVL1 "incompatible types\n"
+                     "field `i32`:" INDENT_LVL1 "incompatible types\n"
+                     "field `u32`:" INDENT_LVL1 "incompatible types");
         }
 
         /* Class id change. */
@@ -5627,11 +5632,12 @@ Z_GROUP_EXPORT(iop)
             /* Not repeated -> repeated. */
             T_OK(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_BIN);
             T_KO(basic_struct, &basic_struct, field_repeated, IOP_COMPAT_JSON,
-                 "field `a`: is repeated and was not before");
+                 "field `a`:" INDENT_LVL1 "is repeated and was not before");
 
             /* Repeated -> not repeated. */
             T_KO_ALL(field_repeated, &field_repeated, basic_struct,
-                     "field `a`: was repeated and is not anymore");
+                     "field `a`:"
+                     INDENT_LVL1 "was repeated and is not anymore");
         }
 
         /* Field required <-> optional. */
@@ -5646,7 +5652,8 @@ Z_GROUP_EXPORT(iop)
 
             /* Optional -> required. */
             T_KO_ALL(field_optional, &field_optional, basic_struct,
-                     "field `b`: is required and was not before");
+                     "field `b`:"
+                     INDENT_LVL1 "is required and was not before");
 
             /* Optional -> required, optional structure */
             {
@@ -5669,7 +5676,8 @@ Z_GROUP_EXPORT(iop)
             struct_container1.s = basic_struct;
 
             T_KO_ALL(struct_container1, &struct_container1, struct_container2,
-                     "field `s`: new field `c` must not be required");
+                     "field `s`:"
+                     INDENT_LVL1 "new field `c` must not be required");
         }
 
         /* Infinite recursion in structure inclusion. */
@@ -5716,28 +5724,32 @@ Z_GROUP_EXPORT(iop)
 
             /* Not strict -> strict is always forbidden. */
             T_KO_ALL(struct_enum1, &enum_1, struct_strict_enum1,
-                     "field `en`: enum is strict and was not before");
+                     "field `en`:"
+                     INDENT_LVL1 "enum is strict and was not before");
 
             /* A value disappears from a non-strict enum; this is authorized
              * in binary but forbidden in json. */
             enum_1.en = ENUM1_VAL2;
             T_OK(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_BIN);
             T_KO(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_JSON,
-                 "field `en`: value `VAL2` does not exist anymore");
+                 "field `en`:"
+                 INDENT_LVL1 "value `VAL2` does not exist anymore");
 
             /* A value disappears from a strict enum; this is always
              * forbidden. */
             T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
                  IOP_COMPAT_BIN,
-                 "field `en`: numeric value 1 does not exist anymore");
+                 "field `en`:"
+                 INDENT_LVL1 "numeric value 1 does not exist anymore");
             T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
                  IOP_COMPAT_JSON,
-                 "field `en`: value `VAL1` does not exist anymore");
+                 "field `en`:"
+                 INDENT_LVL1 "value `VAL1` does not exist anymore");
 
             /* Field conversion from enum to int. */
             T_OK(struct_enum1, &enum_1, struct_enum3, IOP_COMPAT_BIN);
             T_KO(struct_enum1, &enum_1, struct_enum3, IOP_COMPAT_JSON,
-                 "field `en`: incompatible types");
+                 "field `en`:" INDENT_LVL1 "incompatible types");
         }
 
         /* Classes (these tests can only be done in binary and not in json
@@ -5764,8 +5776,9 @@ Z_GROUP_EXPORT(iop)
             T_OK(child_class1, &child_class1, child_class42, IOP_COMPAT_BIN);
 
             T_KO(child_class1, &child_class1, child_class52, IOP_COMPAT_BIN,
-                 "parent `tstiop_backward_compat.ParentClass5`: field `a`: "
-                 "incompatible types");
+                 "parent `tstiop_backward_compat.ParentClass5`:"
+                 INDENT_LVL1 "field `a`:"
+                 INDENT_LVL2 "incompatible types");
 
             T_KO(parent_class1, &parent_class1, child_class6, IOP_COMPAT_BIN,
                  "class `tstiop_backward_compat.ParentClass6` was added in "
@@ -5824,7 +5837,8 @@ Z_GROUP_EXPORT(iop)
 
             T_KO_ALL(struct_container1, &struct_container1,
                      root_struct,
-                     "field `s`: new field `c` must not be required");
+                     "field `s`:"
+                     INDENT_LVL1 "new field `c` must not be required");
         }
 
         /* Last optional field disappears. */
@@ -5899,56 +5913,82 @@ Z_GROUP_EXPORT(iop)
         /* Deleted structure. */
         T_KO_ALL(tstiop_backward_compat_deleted_struct_1,
                  tstiop_backward_compat_deleted_struct_2,
+                 "pkg `tstiop_backward_compat_deleted_struct_2`:"
+                 INDENT_LVL1
                  "struct `tstiop_backward_compat_deleted_struct_1.Struct2` "
                  "does not exist anymore");
 
         /* Incompatible structures. */
         T_KO(tstiop_backward_compat_incompatible_struct_1,
              tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_BIN,
-             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`: "
+             "pkg `tstiop_backward_compat_incompatible_struct_2`:"
+             INDENT_LVL1
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`:"
+             INDENT_LVL2
              "new field `b` must not be required");
         T_KO(tstiop_backward_compat_incompatible_struct_1,
              tstiop_backward_compat_incompatible_struct_2, IOP_COMPAT_JSON,
-             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`: "
-             "new field `b` must not be required\n"
-             "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`: "
-             "new field `d` must not be required\n"
-             "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`: "
+             "pkg `tstiop_backward_compat_incompatible_struct_2`:"
+             INDENT_LVL1
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct1`:"
+             INDENT_LVL2
+             "new field `b` must not be required"
+             INDENT_LVL1
+             "struct `tstiop_backward_compat_incompatible_struct_1.Struct2`:"
+             INDENT_LVL2
+             "new field `d` must not be required"
+             INDENT_LVL2
              "field `c` does not exist anymore");
 
         /* Deleted interface. */
         T_KO_ALL(tstiop_backward_compat_iface,
                  tstiop_backward_compat_iface_deleted,
+                 "pkg `tstiop_backward_compat_iface_deleted`:"
+                 INDENT_LVL1
                  "interface `tstiop_backward_compat_iface.Iface` does not "
                  "exist anymore");
 
-        /* Deleted RPC. */
-#define PREFIX  "interface `tstiop_backward_compat_iface.Iface`: "
+       /* Deleted RPC. */
+ #define PREFIX  "pkg `tstiop_backward_compat_iface_deleted_rpc`:"           \
+                 INDENT_LVL1                                                 \
+                 "interface `tstiop_backward_compat_iface.Iface`:"           \
+                 INDENT_LVL2
         T_KO(tstiop_backward_compat_iface,
              tstiop_backward_compat_iface_deleted_rpc, IOP_COMPAT_BIN,
              PREFIX "RPC with tag 2 (`rpc2`) does not exist anymore");
         T_KO(tstiop_backward_compat_iface,
              tstiop_backward_compat_iface_deleted_rpc, IOP_COMPAT_JSON,
              PREFIX "RPC `rpc2` does not exist anymore");
+#undef PREFIX
 
         /* Incompatible RPC changes. */
         T_KO(tstiop_backward_compat_iface,
              tstiop_backward_compat_iface_incompatible_rpc, IOP_COMPAT_JSON,
-             PREFIX "RPC `rpc1` args: new field `c` must not be required\n"
-             PREFIX "RPC `rpc1` args: field `b` does not exist anymore\n"
-             PREFIX "RPC `rpc1` result: field `res`: incompatible types\n"
-             PREFIX "RPC `rpc1` exn: field `desc` does not exist anymore\n"
-             PREFIX "RPC `rpc2` was async and is not anymore");
-#undef PREFIX
+             "pkg `tstiop_backward_compat_iface_incompatible_rpc`:"
+             INDENT_LVL1 "interface `tstiop_backward_compat_iface.Iface`:"
+             INDENT_LVL2 "RPC `rpc1` args:"
+             INDENT_LVL3 "new field `c` must not be required"
+             INDENT_LVL3 "field `b` does not exist anymore"
+             INDENT_LVL2 "RPC `rpc1` result:"
+             INDENT_LVL3 "field `res`:"
+             INDENT_LVL4 "incompatible types"
+             INDENT_LVL2 "RPC `rpc1` exn:"
+             INDENT_LVL3 "field `desc` does not exist anymore"
+             INDENT_LVL2 "RPC `rpc2` was async and is not anymore");
 
         /* Deleted module. */
         T_KO_ALL(tstiop_backward_compat_mod,
                  tstiop_backward_compat_mod_deleted,
+                 "pkg `tstiop_backward_compat_mod_deleted`:"
+                 INDENT_LVL1
                  "module `tstiop_backward_compat_mod.Module` does not exist "
                  "anymore");
 
         /* Deleted interface in a module. */
-#define PREFIX  "module `tstiop_backward_compat_mod.Module`: "
+ #define PREFIX  "pkg `tstiop_backward_compat_mod_deleted_if`:"              \
+                 INDENT_LVL1                                                 \
+                 "module `tstiop_backward_compat_mod.Module`:"               \
+                 INDENT_LVL2
         T_KO(tstiop_backward_compat_mod,
              tstiop_backward_compat_mod_deleted_if, IOP_COMPAT_JSON,
              PREFIX "interface `iface2` does not exist anymore");

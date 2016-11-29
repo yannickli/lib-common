@@ -4258,6 +4258,7 @@ struct iop_compat_ctx_t {
     sb_t *err;
     sb_t err_ctx;
     qv_t(i32) err_ctx_offs;
+    int indent_lvl;
 };
 
 static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
@@ -4279,6 +4280,13 @@ static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
 DO_NEW(iop_compat_ctx_t, iop_compat_ctx);
 DO_DELETE(iop_compat_ctx_t, iop_compat_ctx);
 
+static void iop_compat_make_indent(sb_t *sb, int indent_lvl)
+{
+    for (int i = 0; i < indent_lvl; i++) {
+        sb_adds(sb, "  | ");
+    }
+}
+
 __attr_printf__(2, 3)
 static void
 iop_compat_push_err_ctx(iop_compat_ctx_t *ctx, const char *fmt, ...)
@@ -4287,15 +4295,23 @@ iop_compat_push_err_ctx(iop_compat_ctx_t *ctx, const char *fmt, ...)
 
     qv_append(i32, &ctx->err_ctx_offs, ctx->err_ctx.len);
 
+    iop_compat_make_indent(&ctx->err_ctx, ctx->indent_lvl);
     va_start(ap, fmt);
     sb_addvf(&ctx->err_ctx, fmt, ap);
     va_end(ap);
+    sb_addc(&ctx->err_ctx, '\n');
+
+    ctx->indent_lvl++;
 }
 
 static void iop_compat_pop_err_ctx(iop_compat_ctx_t *ctx)
 {
-    sb_clip(&ctx->err_ctx, *qv_last(i32, &ctx->err_ctx_offs));
-    qv_remove_last(i32, &ctx->err_ctx_offs);
+    ctx->indent_lvl--;
+    assert (ctx->indent_lvl >= 0);
+    if (ctx->err_ctx_offs.len > 0) {
+        sb_clip(&ctx->err_ctx, *qv_last(i32, &ctx->err_ctx_offs));
+        qv_remove_last(i32, &ctx->err_ctx_offs);
+    }
 }
 
 __attr_printf__(2, 3)
@@ -4303,11 +4319,15 @@ static void iop_compat_add_err(iop_compat_ctx_t *ctx, const char *fmt, ...)
 {
     va_list ap;
 
-    if (ctx->err->len) {
+    if (ctx->err->len > 0) {
         sb_addc(ctx->err, '\n');
     }
 
     sb_addsb(ctx->err, &ctx->err_ctx);
+    sb_reset(&ctx->err_ctx);
+    qv_clear(i32, &ctx->err_ctx_offs);
+
+    iop_compat_make_indent(ctx->err, ctx->indent_lvl);
 
     va_start(ap, fmt);
     sb_addvf(ctx->err, fmt, ap);
@@ -4571,7 +4591,7 @@ check_class_parent(const iop_struct_t *st1,
 {
     int res = 0;
 
-    iop_compat_push_err_ctx(ctx, "parent `%*pM`: ",
+    iop_compat_push_err_ctx(ctx, "parent `%*pM`:",
                             LSTR_FMT_ARG(parent->fullname));
     res = __iop_struct_check_backward_compat(st1->class_attrs->parent,
                                              parent, flags, ctx);
@@ -4725,7 +4745,7 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
             sb_addf(&name_fmt, "`%*pM`", LSTR_FMT_ARG(f2->name));
         }
 
-        iop_compat_push_err_ctx(ctx, "field %*pM: ", SB_FMT_ARG(&name_fmt));
+        iop_compat_push_err_ctx(ctx, "field %*pM:", SB_FMT_ARG(&name_fmt));
 
         if (iop_field_check_backward_compat(f1, f2, flags, ctx) < 0) {
             res = -1;
@@ -4967,7 +4987,7 @@ __iop_rpc_check_backward_compat(const iop_rpc_t *rpc1,
 
 #define CHECK_RPC(_what)  \
     do {                                                                     \
-        iop_compat_push_err_ctx(ctx, "RPC `%*pM` " TOSTR(_what) ": ",        \
+        iop_compat_push_err_ctx(ctx, "RPC `%*pM` " TOSTR(_what) ":",         \
                                 LSTR_FMT_ARG(rpc1->name));                   \
         if (__iop_struct_check_backward_compat(rpc1->_what, rpc2->_what,     \
                                                flags, ctx) < 0)              \
@@ -5148,6 +5168,8 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
 
     ctx->err = err;
 
+    iop_compat_push_err_ctx(ctx, "pkg `%*pM`:", LSTR_FMT_ARG(pkg2->name));
+
     /* Check structs. */
     for (const iop_struct_t *const *it = pkg1->structs; *it; it++) {
         const iop_struct_t *st1 = *it;
@@ -5172,7 +5194,7 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
             continue;
         }
 
-        iop_compat_push_err_ctx(ctx, "%s `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "%s `%*pM`:",
                                 what, LSTR_FMT_ARG(st1->fullname));
         if ((st_flags = iop_struct_compat_ignored(st2, flags))
         &&  __iop_struct_check_backward_compat(st1, st2, st_flags, ctx) < 0)
@@ -5196,7 +5218,7 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
             continue;
         }
 
-        iop_compat_push_err_ctx(ctx, "interface `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "interface `%*pM`:",
                                 LSTR_FMT_ARG(if1->fullname));
         if (__iop_iface_check_backward_compat(if1, if2, flags, ctx) < 0) {
             res = -1;
@@ -5217,13 +5239,15 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
             continue;
         }
 
-        iop_compat_push_err_ctx(ctx, "module `%*pM`: ",
+        iop_compat_push_err_ctx(ctx, "module `%*pM`:",
                                 LSTR_FMT_ARG(mod1->fullname));
         if (__iop_mod_check_backward_compat(mod1, mod2, flags, ctx) < 0) {
             res = -1;
         }
         iop_compat_pop_err_ctx(ctx);
     }
+
+    iop_compat_pop_err_ctx(ctx);
 
     return res;
 }
