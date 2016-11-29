@@ -2667,6 +2667,9 @@ Z_GROUP_EXPORT(iop)
         /* Re-cast it in C2, and check fields equality */
         c2p = iop_obj_vcast(tstiop_inheritance__c2, b2p);
         Z_ASSERT(iop_equals(&tstiop_inheritance__b2__s, b2p, &c2));
+        /* ensure Z_ASSERT_IOPEQUAL is used */
+        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p,
+                          iop_obj_vcast(tstiop_inheritance__b2, &c2));
         Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__c2__s, c2p,
                                          "c2p"));
         Z_ASSERT_EQ(c2p->a, 22222);
