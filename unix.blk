@@ -14,12 +14,16 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
+#include <netinet/tcp.h>
 #include <termios.h>
 #include <sys/wait.h>
+
 #include "unix.h"
 #include "datetime.h"
 #include "container.h"
 #include "sort.h"
+#include "net.h"
 #include "thr.h"
 #include "z.h"
 
@@ -762,6 +766,10 @@ void term_get_size(int *cols, int *rows)
 
 int fd_set_features(int fd, int flags)
 {
+    STATIC_ASSERT(FD_FEAT_NONBLOCK != FD_FEAT_TCP_NODELAY);
+    STATIC_ASSERT(FD_FEAT_DIRECT   != FD_FEAT_TCP_NODELAY);
+    STATIC_ASSERT(FD_FEAT_CLOEXEC  != FD_FEAT_TCP_NODELAY);
+
     if (flags & (O_NONBLOCK | O_DIRECT)) {
         int res;
 
@@ -775,18 +783,31 @@ int fd_set_features(int fd, int flags)
 #endif
 
         res = fcntl(fd, F_GETFL);
-        if (res < 0)
+        if (res < 0) {
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFL, res | (flags & (O_NONBLOCK | O_DIRECT))))
-            return e_error("fcntl failed: %m");
+        }
+        if (fcntl(fd, F_SETFL, res | (flags & (O_NONBLOCK | O_DIRECT)))) {
+          return e_error("fcntl failed: %m");
+        }
     }
     if (flags & O_CLOEXEC) {
         int res = fcntl(fd, F_GETFD);
-        if (res < 0)
+        if (res < 0) {
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFD, res | FD_CLOEXEC))
+        }
+        if (fcntl(fd, F_SETFD, res | FD_CLOEXEC)) {
             return e_error("fcntl failed: %m");
+        }
     }
+
+    if (flags & FD_FEAT_TCP_NODELAY) {
+        int v = 1;
+
+        if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &v, sizeof(int)) < 0) {
+            return e_error("setsockopt failed to set TCP_NODELAY: %m");
+        }
+    }
+
     return 0;
 }
 
@@ -805,18 +826,32 @@ int fd_unset_features(int fd, int flags)
 #endif
 
         res = fcntl(fd, F_GETFL);
-        if (res < 0)
+        if (res < 0) {
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFL, res & ~(flags & (O_NONBLOCK | O_DIRECT))))
+        }
+        if (fcntl(fd, F_SETFL, res & ~(flags & (O_NONBLOCK | O_DIRECT)))) {
             return e_error("fcntl failed: %m");
+        }
     }
     if (flags & O_CLOEXEC) {
         int res = fcntl(fd, F_GETFD);
-        if (res < 0)
+        if (res < 0) {
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFD, res & ~FD_CLOEXEC))
+        }
+        if (fcntl(fd, F_SETFD, res & ~FD_CLOEXEC)) {
             return e_error("fcntl failed: %m");
+        }
     }
+
+    if (flags & FD_FEAT_TCP_NODELAY) {
+        int v = 0;
+
+        if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &v, sizeof(int)) < 0) {
+            return e_error("setsockopt failed to unset TCP_NODELAY: %m");
+        }
+    }
+
+
     return 0;
 }
 

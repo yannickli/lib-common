@@ -241,6 +241,13 @@ static inline void close_fds_higher_than(int fd_min)
 bool is_fancy_fd(int fd);
 void term_get_size(int *cols, int *rows);
 
+typedef enum {
+    FD_FEAT_TCP_NODELAY = 1 << 0,
+
+    FD_FEAT_NONBLOCK = O_NONBLOCK,
+    FD_FEAT_DIRECT   = O_DIRECT,
+    FD_FEAT_CLOEXEC  = O_CLOEXEC,
+} fd_features_flags_t;
 int fd_set_features(int fd, int flags);
 int fd_unset_features(int fd, int flags);
 
