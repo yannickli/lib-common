@@ -4542,55 +4542,13 @@ static bool are_all_parents_empty(const iop_struct_t *st)
     return true;
 }
 
+/* Check that none of the classes added as parents contain a required
+ * field. */
 static int
-check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
-                    unsigned flags, iop_compat_ctx_t *ctx)
+check_parent_required_fields(const qv_t(iop_struct) *parents,
+                             iop_compat_ctx_t *ctx)
 {
-    const iop_struct_t *st2_2;
-    qv_t(iop_struct) parents;
-
-    assert (flags == IOP_COMPAT_BIN || flags == IOP_COMPAT_JSON);
-
-    if (!st1->class_attrs->parent && !st2->class_attrs->parent) {
-        return 0;
-    }
-
-    qv_init(iop_struct, &parents);
-
-    /* Get the classes added in the parents between 'st2' and 'st1'. */
-    if (flags == IOP_COMPAT_BIN) {
-        const uint16_t *class_id = NULL;
-
-        if (st1->class_attrs->parent) {
-            class_id = &st1->class_attrs->parent->class_attrs->class_id;
-        }
-        st2_2 = get_parents_until_id(st2, class_id, &parents);
-        if (class_id && !st2_2) {
-            iop_compat_add_err(ctx, "cannot find class with id %d in the "
-                               "parents of `%*pM`",
-                               *class_id, LSTR_FMT_ARG(st2->fullname));
-            goto error;
-        }
-    } else {
-        const lstr_t *class_name = NULL;
-
-        if (st1->class_attrs->parent) {
-            class_name = &st1->class_attrs->parent->fullname;
-        }
-        st2_2 = get_parents_until_name(st2, class_name, &parents);
-        if (class_name && !st2_2
-        &&  (!are_all_parents_empty(st1) || !are_all_parents_empty(st2)))
-        {
-            iop_compat_add_err(ctx, "cannot find class `%*pM` in the parents "
-                               "of `%*pM`", LSTR_FMT_ARG(*class_name),
-                               LSTR_FMT_ARG(st2->fullname));
-            goto error;
-        }
-    }
-
-    /* Check that none of the classes added in the parents contain a required
-     * field. */
-    qv_for_each_entry(iop_struct, parent, &parents) {
+    qv_for_each_entry(iop_struct, parent, parents) {
         for (int i = 0; i < parent->fields_len; i++) {
             const iop_field_t *f = &parent->fields[i];
 
@@ -4599,30 +4557,114 @@ check_class_parents(const iop_struct_t *st1, const iop_struct_t *st2,
                                    "parents with a required field `%*pM`",
                                    LSTR_FMT_ARG(parent->fullname),
                                    LSTR_FMT_ARG(f->name));
-                goto error;
+                return -1;
             }
+        }
+    }
+    return 0;
+}
+
+static int
+check_class_parent(const iop_struct_t *st1,
+                    const iop_struct_t *parent,
+                    unsigned flags, iop_compat_ctx_t *ctx)
+{
+    int res = 0;
+
+    iop_compat_push_err_ctx(ctx, "parent `%*pM`: ",
+                            LSTR_FMT_ARG(parent->fullname));
+    res = __iop_struct_check_backward_compat(st1->class_attrs->parent,
+                                             parent, flags, ctx);
+    iop_compat_pop_err_ctx(ctx);
+
+    return res;
+}
+
+static int
+check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
+                    unsigned flags, iop_compat_ctx_t *ctx)
+{
+    const iop_struct_t *st2_parent_bin = NULL;
+    const iop_struct_t *st2_parent_json = NULL;
+    qv_t(iop_struct) parents;
+    int res = 0;
+
+    if (!st1->class_attrs->parent && !st2->class_attrs->parent) {
+        return 0;
+    }
+
+    qv_init(iop_struct, &parents);
+
+    /* Get the classes added in the parents between 'st2' and 'st1'. */
+    if (flags & IOP_COMPAT_BIN) {
+        const uint16_t *class_id = NULL;
+
+        if (st1->class_attrs->parent) {
+            class_id = &st1->class_attrs->parent->class_attrs->class_id;
+        }
+        st2_parent_bin = get_parents_until_id(st2, class_id, &parents);
+        if (class_id && !st2_parent_bin) {
+            iop_compat_add_err(ctx, "cannot find class with id %d in the "
+                               "parents of `%*pM`",
+                               *class_id, LSTR_FMT_ARG(st2->fullname));
+            res = -1;
+        }
+
+        if (res >= 0 && check_parent_required_fields(&parents, ctx) < 0) {
+            res = -1;
+        }
+
+        qv_clear(iop_struct, &parents);
+    }
+
+    if (flags & IOP_COMPAT_JSON) {
+        const lstr_t *class_name = NULL;
+
+        if (st1->class_attrs->parent) {
+            class_name = &st1->class_attrs->parent->fullname;
+        }
+        st2_parent_json = get_parents_until_name(st2, class_name, &parents);
+        if (class_name && !st2_parent_json
+        &&  (!are_all_parents_empty(st1) || !are_all_parents_empty(st2)))
+        {
+            iop_compat_add_err(ctx, "cannot find class `%*pM` in the parents "
+                               "of `%*pM`", LSTR_FMT_ARG(*class_name),
+                               LSTR_FMT_ARG(st2->fullname));
+            res = -1;
+        }
+
+        if (res >= 0 && check_parent_required_fields(&parents, ctx) < 0) {
+            res = -1;
         }
     }
 
     /* Check upper level. */
-    if (st2_2 && st1->class_attrs->parent) {
-        iop_compat_push_err_ctx(ctx, "parent `%*pM`: ",
-                                LSTR_FMT_ARG(st2_2->fullname));
-        if (__iop_struct_check_backward_compat(st1->class_attrs->parent,
-                                               st2_2, flags, ctx) < 0)
-        {
-            iop_compat_pop_err_ctx(ctx);
-            goto error;
+    if ((st2_parent_bin || st2_parent_json)
+    &&  st1->class_attrs->parent)
+    {
+        if (st2_parent_bin == st2_parent_json) {
+            if (check_class_parent(st1, st2_parent_bin, flags, ctx) < 0) {
+                res = -1;
+            }
+        } else {
+            if (st2_parent_bin
+            &&  check_class_parent(st1, st2_parent_bin,
+                                   IOP_COMPAT_BIN, ctx) < 0)
+            {
+                res = -1;
+            }
+
+            if (st2_parent_json
+            &&  check_class_parent(st1, st2_parent_json,
+                                   IOP_COMPAT_JSON, ctx) < 0)
+            {
+                res = -1;
+            }
         }
-        iop_compat_pop_err_ctx(ctx);
     }
 
     qv_wipe(iop_struct, &parents);
-    return 0;
-
-  error:
-    qv_wipe(iop_struct, &parents);
-    return -1;
+    return res;
 }
 
 static bool
@@ -4884,19 +4926,11 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
     }
 
     /* Specific class checks. */
-    if (iop_struct_is_class(st1) && iop_struct_is_class(st2)) {
-        if (flags & IOP_COMPAT_BIN
-        &&  check_class_parents(st1, st2, IOP_COMPAT_BIN, ctx) < 0)
-        {
+    if (iop_struct_is_class(st1) && iop_struct_is_class(st2)
+    &&  check_parent_classes(st1, st2, flags, ctx) < 0)
+    {
             res = -1;
-        }
-        if (flags & IOP_COMPAT_JSON
-        &&  check_class_parents(st1, st2, IOP_COMPAT_JSON, ctx) < 0)
-        {
-            res = -1;
-        }
     }
-
 
     return res;
 }
