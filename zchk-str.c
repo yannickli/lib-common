@@ -96,6 +96,16 @@ Z_GROUP_EXPORT(str)
             Z_ASSERT_EQ(sb.len, (int)i + 3);
             Z_ASSERT_EQ(strlen(sb.data), i + 3);
         }
+
+        sb_reset(&sb);
+        sb_adds(&sb, "zo meu");
+        sb_prepend_lstr(&sb, LSTR("ga bu "));
+        Z_ASSERT_STREQUAL(sb.data, "ga bu zo meu");
+
+        sb_reset(&sb);
+        sb_adds(&sb, "ol");
+        sb_prependc(&sb, 'l');
+        Z_ASSERT_STREQUAL(sb.data, "lol");
     } Z_TEST_END;
 
     Z_TEST(ebcdic, "str: sb_conv_from_ebcdic297") {

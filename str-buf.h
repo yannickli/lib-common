@@ -345,6 +345,15 @@ static inline void sb_prepends(sb_t *sb, const char *s)
     sb_splice(sb, 0, 0, s, strlen(s));
 }
 
+static inline void sb_prepend_lstr(sb_t *sb, lstr_t s)
+{
+    sb_splice(sb, 0, 0, s.s, s.len);
+}
+
+static inline void sb_prependc(sb_t *sb, unsigned char c)
+{
+    sb_splice(sb, 0, 0, &c, 1);
+}
 
 static inline void sb_skip(sb_t *sb, int len)
 {
