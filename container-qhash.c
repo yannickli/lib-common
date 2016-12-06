@@ -245,6 +245,26 @@ uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
     }
 }
 
+size_t qhash_memory_footprint(const qhash_t *qh)
+{
+    size_t size, max_size;
+
+    max_size = qh->hdr.size;
+    size = 0;
+    if (qh->old) {
+        max_size = MAX(qh->hdr.size, qh->old->size);
+        size += sizeof(qhash_hdr_t);
+        size += sizeof(size_t) * BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size);
+    }
+    size += sizeof(size_t) * BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size);
+    size += max_size * (qh->k_size + qh->v_size);
+    if (qh->h_size) {
+        size += max_size * 4;
+    }
+
+    return size;
+}
+
 #define F(x)               x##32
 #define key_t              uint32_t
 #define getK(qh, pos)      (((key_t *)(qh)->keys)[pos])

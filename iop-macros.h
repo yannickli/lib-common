@@ -22,7 +22,7 @@
 #define IOP_ARRAY_T(type)  type##__array_t
 
 /** Initialize a repeated field */
-#define IOP_ARRAY(_data, _len)  { .tab = (_data), .len = (_len) }
+#define IOP_ARRAY(_data, _len)  { .tab = (_data), .len = (_len), .flags = 0 }
 
 /** Initialize a typed repeated field */
 #define IOP_TYPED_ARRAY(_iop_type, _data, _len)                              \

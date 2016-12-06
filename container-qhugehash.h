@@ -77,7 +77,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 
 #define __QHH_FOREACH_BUCKET(it, qhh, do_it, ...)  do {                      \
         for (int it = 0; it < countof(qhh->buckets); it++) {                 \
-            do_it(&qhh->buckets[it].qm, ##__VA_ARGS__);                      \
+            do_it(&qhh->buckets[it].qm.qh, ##__VA_ARGS__);                   \
         }                                                                    \
     } while (0)
 
@@ -124,7 +124,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         size_t size = 0;                                                     \
                                                                              \
         for (int it = 0; it < countof(qhh->buckets); it++) {                 \
-            size += hpfx##_memory_footprint(&qhh->buckets[it].qm);           \
+            size += qhash_memory_footprint(&qhh->buckets[it].qm.qh);         \
         }                                                                    \
         return size;                                                         \
     }                                                                        \
@@ -132,13 +132,13 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     __unused__                                                               \
     static inline void pfx##_wipe(pfx##_t *qhh)                              \
     {                                                                        \
-        __QHH_FOREACH_BUCKET(i, qhh, hpfx##_wipe);                           \
+        __QHH_FOREACH_BUCKET(i, qhh, qhash_wipe);                            \
     }                                                                        \
                                                                              \
     __unused__                                                               \
     static inline void pfx##_clear(pfx##_t *qhh)                             \
     {                                                                        \
-        __QHH_FOREACH_BUCKET(i, qhh, hpfx##_clear);                          \
+        __QHH_FOREACH_BUCKET(i, qhh, qhash_clear);                           \
         qhh->hdr.len = 0;                                                    \
     }                                                                        \
                                                                              \
@@ -158,10 +158,10 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline void pfx##_del_at(pfx##_t *qhh, uint64_t pos)              \
     {                                                                        \
         hpfx##_t *bucket = &__QHH_BUCKET(qhh, pos)->qm;                      \
-        uint32_t  old_len = hpfx##_len(bucket);                              \
+        uint32_t  old_len = bucket->qh.hdr.len;                              \
                                                                              \
-        hpfx##_del_at(bucket, __QHH_POS(qhh, pos));                          \
-        qhh->hdr.len -= old_len - hpfx##_len(bucket);                        \
+        qhash_del_at(&bucket->qh, __QHH_POS(qhh, pos));                      \
+        qhh->hdr.len -= old_len - bucket->qh.hdr.len;                        \
     }                                                                        \
                                                                              \
     __unused__                                                               \
@@ -226,7 +226,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid  = h % countof(qhh->buckets);                           \
         uint64_t pos;                                                        \
                                                                              \
-        pos = RETHROW(hpfx##_find_h(&qhh->buckets[bid].qm, h, key));         \
+        pos = RETHROW(hpfx##_find_int(&qhh->buckets[bid].qm, &h, key));      \
         pos |= (bid << 32);                                                  \
         return pos;                                                          \
     }                                                                        \
@@ -244,7 +244,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid  = h % countof(qhh->buckets);                           \
         uint64_t pos;                                                        \
                                                                              \
-        pos = RETHROW(hpfx##_find_safe_h(&qhh->buckets[bid].qm, h, key));    \
+        pos = RETHROW(hpfx##_find_safe_int(&qhh->buckets[bid].qm, &h, key)); \
         pos |= (bid << 32);                                                  \
         return pos;                                                          \
     }                                                                        \
@@ -266,7 +266,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = hpfx##_put_h(&qhh->buckets[bid].qm, h, key, fl);              \
+        pos  = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, fl);           \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
@@ -284,12 +284,12 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key)       \
     {                                                                        \
         uint64_t bid = h % countof(qhh->buckets);                            \
-        int ret = hpfx##_add_h(&qhh->buckets[bid].qm, h, key);               \
+        int ret = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, 0);         \
                                                                              \
-        if (ret >= 0) {                                                      \
+        if (!(ret & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
-        return ret;                                                          \
+        return ret >> 31;                                                    \
     }                                                                        \
     __unused__                                                               \
     static inline int pfx##_add(pfx##_t *qhh, key_t key)                     \
@@ -301,12 +301,13 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline int pfx##_replace_h(pfx##_t *qhh, uint32_t h, key_t key)   \
     {                                                                        \
         uint64_t bid = h % countof(qhh->buckets);                            \
-        int ret =  hpfx##_replace_h(&qhh->buckets[bid].qm, h, key);          \
+        int ret;                                                             \
                                                                              \
-        if (ret >= 0) {                                                      \
+        ret = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, QHASH_OVERWRITE);\
+        if (!(ret & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
-        return ret;                                                          \
+        return ret >> 31;                                                    \
     }                                                                        \
     __unused__                                                               \
     static inline int pfx##_replace(pfx##_t *qhh, key_t key)                 \
@@ -362,7 +363,10 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = hpfx##_put_h(&qhh->buckets[bid].qm, h, key, v, fl);           \
+        pos  = hpfx##_reserve_int(&qhh->buckets[bid].qm, &h, key, fl);       \
+        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
+            qhh->buckets[bid].qm.values[pos & ~QHASH_COLLISION] = v;         \
+        }                                                                    \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
@@ -383,7 +387,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = hpfx##_reserve_h(&qhh->buckets[bid].qm, h, key, fl);          \
+        pos  = hpfx##_reserve_int(&qhh->buckets[bid].qm, &h, key, fl);       \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
@@ -401,13 +405,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key,       \
                                   val_t v)                                   \
     {                                                                        \
-        uint64_t bid = h % countof(qhh->buckets);                            \
-        int ret = hpfx##_add_h(&qhh->buckets[bid].qm, h, key, v);            \
-                                                                             \
-        if (ret >= 0) {                                                      \
-            qhh->hdr.len++;                                                  \
-        }                                                                    \
-        return ret;                                                          \
+        return (int)pfx##_put_h(qhh, h, key, v, 0) >> 31;                    \
     }                                                                        \
     __unused__                                                               \
     static inline int pfx##_add(pfx##_t *qhh, key_t key, val_t v)            \
@@ -419,13 +417,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline int pfx##_replace_h(pfx##_t *qhh, uint32_t h, key_t key,   \
                                       val_t v)                               \
     {                                                                        \
-        uint64_t bid = h % countof(qhh->buckets);                            \
-        int ret =  hpfx##_replace_h(&qhh->buckets[bid].qm, h, key, v);       \
-                                                                             \
-        if (ret >= 0) {                                                      \
-            qhh->hdr.len++;                                                  \
-        }                                                                    \
-        return ret;                                                          \
+        return (int)pfx##_put_h(qhh, h, key, v, QHASH_OVERWRITE) >> 31;      \
     }                                                                        \
     __unused__                                                               \
     static inline int pfx##_replace(pfx##_t *qhh, key_t key, val_t v)        \
