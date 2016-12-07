@@ -42,7 +42,7 @@ qvector_t(pkg, const iop_pkg_t *);
             .timestamp = LSTR(_timestamp),                                   \
             .description = LSTR(_description),                               \
         };                                                                   \
-        qv_append(mib_rev, _vec, _rev);                                      \
+        qv_append(_vec, _rev);                                      \
     })
 
 /** Generate a MIB into a sb_t.

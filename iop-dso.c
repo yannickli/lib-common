@@ -372,9 +372,9 @@ void iop_dso_unregister(iop_dso_t *dso)
         t_scope;
         qv_t(cvoid) vec;
 
-        t_qv_init(cvoid, &vec, qm_len(iop_pkg, &dso->pkg_h));
+        t_qv_init(&vec, qm_len(iop_pkg, &dso->pkg_h));
         qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
-            qv_append(cvoid, &vec, dso->pkg_h.values[pos]);
+            qv_append(&vec, dso->pkg_h.values[pos]);
         }
         iop_unregister_packages((const iop_pkg_t **)vec.tab, vec.len);
         dso->is_registered = false;

@@ -1947,9 +1947,9 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
 
-        qv_wipe(u32, &e1.values);
-        qv_wipe(u32, &e2.values);
-        qv_wipe(u32, &e3.values);
+        qv_wipe(&e1.values);
+        qv_wipe(&e2.values);
+        qv_wipe(&e3.values);
     } Z_TEST_END;
 } Z_GROUP_END
 

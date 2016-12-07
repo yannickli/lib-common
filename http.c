@@ -1064,10 +1064,10 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     lp_gettv(&now);
     q->query_sec  = now.tv_sec;
     q->query_usec = now.tv_usec;
-    t_qv_init(qhdr, &hdrs, 64);
+    t_qv_init(&hdrs, 64);
 
     while (!ps_done(&buf)) {
-        http_qhdr_t *qhdr = qv_growlen(qhdr, &hdrs, 1);
+        http_qhdr_t *qhdr = qv_growlen(&hdrs, 1);
 
         /* TODO: normalize, make "lists" */
         qhdr->key = ps_get_cspan(&buf, &http_non_token);
@@ -1097,7 +1097,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
           case HTTP_WKHDR_HOST:
             if (ps_len(&req.host) == 0)
                 req.host = qhdr->val;
-            qv_shrink(qhdr, &hdrs, 1);
+            qv_shrink(&hdrs, 1);
             break;
 
           case HTTP_WKHDR_EXPECT:
@@ -1139,7 +1139,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
               case HTTP_TK_GZIP:
               case HTTP_TK_X_GZIP:
                 http_zlib_inflate_init(w);
-                qv_shrink(qhdr, &hdrs, 1);
+                qv_shrink(&hdrs, 1);
                 break;
               default:
                 http_zlib_reset(w);
@@ -1916,10 +1916,10 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
     buf = __ps_get_ps_upto(ps, p + 2);
     __ps_skip_upto(ps, p + 4);
-    t_qv_init(qhdr, &hdrs, 64);
+    t_qv_init(&hdrs, 64);
 
     while (!ps_done(&buf)) {
-        http_qhdr_t *qhdr = qv_growlen(qhdr, &hdrs, 1);
+        http_qhdr_t *qhdr = qv_growlen(&hdrs, 1);
 
         /* TODO: normalize, make "lists" */
         qhdr->key = ps_get_cspan(&buf, &http_non_token);
@@ -1971,7 +1971,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
               case HTTP_TK_GZIP:
               case HTTP_TK_X_GZIP:
                 http_zlib_inflate_init(w);
-                qv_shrink(qhdr, &hdrs, 1);
+                qv_shrink(&hdrs, 1);
                 break;
               default:
                 http_zlib_reset(w);

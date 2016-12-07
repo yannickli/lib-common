@@ -1353,7 +1353,7 @@ static void qhat_get_qps_nodes(qhat_t *hat, qhat_node_t node,
         };
         qhat_get_dispatch_nodes(hat, memory, QHAT_COUNT, roots);
     }
-    qv_append(qps_pg, &roots->pages, node.page);
+    qv_append(&roots->pages, node.page);
 }
 
 
@@ -1378,7 +1378,7 @@ void qhat_get_qps_roots(qhat_t *hat, qps_roots_t *roots)
     root.nodes = hat->root->nodes;
     qhat_get_dispatch_nodes(hat, root, hat->desc->root_node_count, roots);
 
-    qv_append(qps_handle, &roots->handles, hat->root_cache.handle);
+    qv_append(&roots->handles, hat->root_cache.handle);
 
     if (hat->root->is_nullable) {
         qps_bitmap_get_qps_roots(&hat->bitmap, roots);

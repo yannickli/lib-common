@@ -526,8 +526,8 @@ GENERIC_NEW_INIT(qps_roots_t, qps_roots);
 static inline
 void qps_roots_wipe(qps_roots_t *roots)
 {
-    qv_wipe(qps_handle, &roots->handles);
-    qv_wipe(qps_pg,     &roots->pages);
+    qv_wipe(&roots->handles);
+    qv_wipe(&roots->pages);
 }
 GENERIC_DELETE(qps_roots_t, qps_roots);
 

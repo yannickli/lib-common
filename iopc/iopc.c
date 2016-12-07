@@ -94,13 +94,13 @@ static void parse_incpath(qv_t(cstr) *ipath, char *spec)
         return;
     for (;;) {
         if (!*spec) {
-            qv_append(cstr, ipath, ".");
+            qv_append(ipath, ".");
             return;
         }
         if (*spec == ':') {
-            qv_append(cstr, ipath, ".");
+            qv_append(ipath, ".");
         } else {
-            qv_append(cstr, ipath, spec);
+            qv_append(ipath, spec);
             spec = strchr(spec, ':');
             if (!spec)
                 break;
@@ -111,7 +111,7 @@ static void parse_incpath(qv_t(cstr) *ipath, char *spec)
         struct stat st;
 
         if (stat(ipath->tab[i], &st) || !S_ISDIR(st.st_mode)) {
-            qv_remove(cstr, ipath, i);
+            qv_remove(ipath, i);
         }
     }
 }
@@ -153,7 +153,7 @@ static int build_doit_table(qv_t(doit) *doits)
     if (!opts.lang) {
         opts.lang = "c";
     }
-    qv_inita(lstr, &langs, 2);
+    qv_inita(&langs, 2);
     ctype_desc_build(&sep, ",");
     ps_split(ps_initstr(opts.lang), &sep, 0, &langs);
 
@@ -183,14 +183,14 @@ static int build_doit_table(qv_t(doit) *doits)
                 goto error;
             }
         }
-        qv_append(doit, doits, doit);
+        qv_append(doits, doit);
     }
 
-    qv_wipe(lstr, &langs);
+    qv_wipe(&langs);
     return 0;
 
   error:
-    qv_wipe(lstr, &langs);
+    qv_wipe(&langs);
     return -1;
 }
 
@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 
     MODULE_REQUIRE(iopc);
 
-    qv_init(cstr, &incpath);
-    qv_init(doit, &doits);
+    qv_init(&incpath);
+    qv_init(&doits);
 
     opts.c_outpath    = opts.c_outpath ?: opts.outpath;
     opts.json_outpath = opts.json_outpath ?: opts.outpath;
@@ -298,15 +298,15 @@ int main(int argc, char **argv)
     }
 
     MODULE_RELEASE(iopc);
-    qv_wipe(cstr, &incpath);
-    qv_wipe(doit, &doits);
+    qv_wipe(&incpath);
+    qv_wipe(&doits);
     p_delete((char **)&_G.prefix_dir);
     return 0;
 
   error:
     MODULE_RELEASE(iopc);
-    qv_wipe(cstr, &incpath);
-    qv_wipe(doit, &doits);
+    qv_wipe(&incpath);
+    qv_wipe(&doits);
     p_delete((char **)&_G.prefix_dir);
     return -1;
 }

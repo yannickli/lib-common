@@ -117,13 +117,13 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint64_t pos __F_PROTO)
     uint8_t  cycle_v[v_size];
     bool     has_loop = false;
 
-    qv_inita(u32, &moves, 1024);
+    qv_inita(&moves, 1024);
 
     do {
         key_t    k = getK(qh, pos);
         uint32_t h = hashK(qh, pos, k);
 
-        qv_append(u32, &moves, pos);
+        qv_append(&moves, pos);
         qhash_slot_inv_flags(old->bits, pos);
         F(qhash_put_ll)(qh, NULL, false, h, k, &pos __F_ARGS);
 
@@ -177,7 +177,7 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint64_t pos __F_PROTO)
     }
 
     qh->hdr.len -= moves.len;
-    qv_wipe(u32, &moves);
+    qv_wipe(&moves);
 }
 
 static void

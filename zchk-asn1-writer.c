@@ -301,10 +301,10 @@ static int serialize_test_0(uint8_t *dst, const test_0_t *t0)
     int32_t length;
     qv_t(i32) stack;
 
-    qv_init(i32, &stack);
+    qv_init(&stack);
     length = RETHROW(asn1_pack_size_(t0, asn1_test_0_desc(), &stack));
     asn1_pack_(dst, t0, asn1_test_0_desc(), &stack);
-    qv_wipe(i32, &stack);
+    qv_wipe(&stack);
     return length;
 }
 
@@ -313,10 +313,10 @@ static int serialize_test_1(uint8_t *dst, const test_1_t *t1)
     int32_t length;
     qv_t(i32) stack;
 
-    qv_init(i32, &stack);
+    qv_init(&stack);
     length = RETHROW(asn1_pack_size_(t1, asn1_test_1_desc(), &stack));
     asn1_pack_(dst, t1, asn1_test_1_desc(), &stack);
-    qv_wipe(i32, &stack);
+    qv_wipe(&stack);
     return length;
 }
 
@@ -325,10 +325,10 @@ static int serialize_test_2(uint8_t *dst, const test_2_t *t2)
     int32_t length;
     qv_t(i32) stack;
 
-    qv_init(i32, &stack);
+    qv_init(&stack);
     length = RETHROW(asn1_pack_size_(t2, asn1_test_2_desc(), &stack));
     asn1_pack_(dst, t2, asn1_test_2_desc(), &stack);
-    qv_wipe(i32, &stack);
+    qv_wipe(&stack);
     return length;
 }
 
@@ -337,10 +337,10 @@ static int serialize_test_3(uint8_t *dst, const test_3_t *t3)
     int32_t length;
     qv_t(i32) stack;
 
-    qv_init(i32, &stack);
+    qv_init(&stack);
     length = RETHROW(asn1_pack_size(test_3, t3, &stack));
     asn1_pack(test_3, dst, t3, &stack);
-    qv_wipe(i32, &stack);
+    qv_wipe(&stack);
     return length;
 }
 
@@ -437,7 +437,7 @@ Z_GROUP_EXPORT(asn1_ber)
     size_t    len;
     pstream_t ps;
 
-    qv_inita(i32, &stack, 1024);
+    qv_inita(&stack, 1024);
 
     Z_TEST(dec_len32, "asn1: ber_decode_len32") {
         const byte dec0[] = { 0x80 | 0x3, 0xfa, 0x56, 0x09 };
@@ -882,7 +882,7 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT(ps_done(&ps));
     } Z_TEST_END;
 
-    qv_wipe(i32, &stack);
+    qv_wipe(&stack);
 } Z_GROUP_END
 
 typedef struct open_type_t {
@@ -912,7 +912,7 @@ Z_GROUP_EXPORT(asn1_open_type)
         };
 
         ps = ps_init(want_ot, countof(want_ot));
-        qv_inita(i32, &stack, 1024);
+        qv_inita(&stack, 1024);
 
         Z_ASSERT_N(asn1_unpack(open_type, &ps, t_pool(), &ot, false));
         len = asn1_pack_size(open_type, &ot, &stack);

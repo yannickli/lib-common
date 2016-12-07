@@ -304,7 +304,7 @@ void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip)
 
 wah_t *wah_init(wah_t *map)
 {
-    qv_init(wah_word_vec, &map->_buckets);
+    qv_init(&map->_buckets);
     wah_reset_map(map);
     return map;
 }
@@ -312,9 +312,7 @@ DO_NEW(wah_t, wah);
 
 void wah_wipe(wah_t *map)
 {
-#define BUCKET_WIPE(_qv)  qv_wipe(wah_word, _qv)
-    qv_deep_wipe(wah_word_vec, &map->_buckets, BUCKET_WIPE);
-#undef BUCKET_WIPE
+    qv_deep_wipe(&map->_buckets, qv_wipe);
 }
 
 static qv_t(wah_word) *wah_create_bucket(wah_t *map, int size)
@@ -322,12 +320,12 @@ static qv_t(wah_word) *wah_create_bucket(wah_t *map, int size)
     qv_t(wah_word) *bucket;
 
     if (map->_buckets.len > 0) {
-        bucket = qv_last(wah_word_vec, &map->_buckets);
-        qv_optimize(wah_word, bucket, 0, 0);
+        bucket = qv_last(&map->_buckets);
+        qv_optimize(bucket, 0, 0);
     }
 
-    bucket = qv_growlen(wah_word_vec, &map->_buckets, 1);
-    mp_qv_init(wah_word, map->_buckets.mp, bucket, size);
+    bucket = qv_growlen(&map->_buckets, 1);
+    mp_qv_init(map->_buckets.mp, bucket, size);
 
     return bucket;
 }
@@ -336,7 +334,7 @@ static qv_t(wah_word) *__wah_create_bucket(wah_t *map)
 {
     qv_t(wah_word) *bucket = wah_create_bucket(map, 2);
 
-    qv_growlen0(wah_word, bucket, 2);
+    qv_growlen0(bucket, 2);
     map->previous_run_pos = -1;
     map->last_run_pos     = 0;
 
@@ -355,13 +353,13 @@ void wah_reset_map(wah_t *map)
         wah_create_bucket(map, 0);
     }
 
-    qv_clear(wah_word, &map->_buckets.tab[0]);
-    qv_growlen0(wah_word, &map->_buckets.tab[0], 2);
+    qv_clear(&map->_buckets.tab[0]);
+    qv_growlen0(&map->_buckets.tab[0], 2);
 
     for (int pos = 1; pos < map->_buckets.len; pos++) {
-        qv_wipe(wah_word, &map->_buckets.tab[pos]);
+        qv_wipe(&map->_buckets.tab[pos]);
     }
-    qv_clip(wah_word_vec, &map->_buckets, 1);
+    qv_clip(&map->_buckets, 1);
 }
 
 /* WAH copy requires an initialized wah as target
@@ -375,8 +373,8 @@ void wah_copy(wah_t *map, const wah_t *src)
 
     /* Wipe buckets which are not needed anymore. */
     for (int pos = map->_buckets.len; pos-- > src->_buckets.len; ) {
-        qv_wipe(wah_word, &map->_buckets.tab[pos]);
-        qv_remove(wah_word_vec, &map->_buckets, pos);
+        qv_wipe(&map->_buckets.tab[pos]);
+        qv_remove(&map->_buckets, pos);
     }
 
     /* Create new buckets. */
@@ -389,7 +387,7 @@ void wah_copy(wah_t *map, const wah_t *src)
         const qv_t(wah_word) *src_bucket = &src->_buckets.tab[pos];
         qv_t(wah_word) *dst_bucket = &map->_buckets.tab[pos];
 
-        qv_splice(wah_word, dst_bucket, 0, dst_bucket->len,
+        qv_splice(dst_bucket, 0, dst_bucket->len,
                   src_bucket->tab, src_bucket->len);
     }
 }
@@ -406,7 +404,7 @@ wah_t *t_wah_new(int expected_first_bucket_size)
 {
     wah_t *map = t_new(wah_t, 1);
 
-    t_qv_init(wah_word_vec, &map->_buckets, 1);
+    t_qv_init(&map->_buckets, 1);
     wah_create_bucket(map, expected_first_bucket_size);
 
     wah_reset_map(map);
@@ -417,7 +415,7 @@ wah_t *t_wah_dup(const wah_t *src)
 {
     wah_t *map = t_new(wah_t, 1);
 
-    t_qv_init(wah_word_vec, &map->_buckets, src->_buckets.len);
+    t_qv_init(&map->_buckets, src->_buckets.len);
     wah_copy(map, src);
     return map;
 }
@@ -428,7 +426,7 @@ wah_t *t_wah_dup(const wah_t *src)
 static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(const wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     return &bucket->tab[map->last_run_pos].head;
@@ -437,7 +435,7 @@ wah_header_t *wah_last_run_header(const wah_t *map)
 static ALWAYS_INLINE
 uint32_t *wah_last_run_count(const wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     return &bucket->tab[map->last_run_pos + 1].count;
@@ -446,23 +444,23 @@ uint32_t *wah_last_run_count(const wah_t *map)
 static ALWAYS_INLINE
 void wah_append_header(wah_t *map, wah_header_t head)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
     wah_word_t word;
 
     word.head = head;
-    qv_append(wah_word, bucket, word);
+    qv_append(bucket, word);
     word.count = 0;
-    qv_append(wah_word, bucket, word);
+    qv_append(bucket, word);
 }
 
 static ALWAYS_INLINE
 void wah_append_literal(wah_t *map, uint32_t val)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
     wah_word_t word;
 
     word.literal = val;
-    qv_append(wah_word, bucket, word);
+    qv_append(bucket, word);
 }
 
 static
@@ -498,7 +496,7 @@ void wah_check_normalized(const wah_t *map)
 static ALWAYS_INLINE
 void wah_check_invariant(const wah_t *map)
 {
-    qv_t(wah_word) *last_bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *last_bucket = qv_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     assert (map->previous_run_pos >= -1);
@@ -518,7 +516,7 @@ void wah_check_invariant(const wah_t *map)
 static inline
 void wah_flatten_last_run(wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
     wah_header_t *head;
 
     head = wah_last_run_header(map);
@@ -554,7 +552,7 @@ static void __wah_push_pending(wah_t *map, uint64_t words)
             words--;
         }
     } else {
-        qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+        qv_t(wah_word) *bucket = qv_last(&map->_buckets);
         wah_header_t *head = wah_last_run_header(map);
 
         if (*wah_last_run_count(map) == 0
@@ -829,7 +827,7 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 
 static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    qv_t(wah_word) *bucket = qv_last(wah_word_vec, &map->_buckets);
+    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
 
     wah_flatten_last_run(map);
     map->active += membitcount(src, count);
@@ -847,7 +845,7 @@ static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
                      (_G.bits_in_bucket - bucket_len) / WAH_BIT_IN_WORD);
 
         *wah_last_run_count(map) += to_add;
-        qv_splice(wah_word, bucket, bucket->len, 0,
+        qv_splice(bucket, bucket->len, 0,
                   (wah_word_t *)src, to_add);
 
         count    -= to_add * 4;
@@ -977,8 +975,8 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
         }
 
         *wah_last_run_count(map) += count;
-        bucket = qv_last(wah_word_vec, &map->_buckets);
-        qv_splice(wah_word, bucket, bucket->len, 0, words, count);
+        bucket = qv_last(&map->_buckets);
+        qv_splice(bucket, bucket->len, 0, words, count);
         if (data->reverse) {
             for (int i = bucket->len - count; i < bucket->len; i++) {
                 bucket->tab[i].literal = ~bucket->tab[i].literal;
@@ -1186,7 +1184,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         wah_reset_map(dest);
     }
 
-    t_qv_init(wah_word_enum, &enums, len);
+    t_qv_init(&enums, len);
     for (int i = 0; i < len; i++) {
         wah_word_enum_t *en = t_new_raw(wah_word_enum_t, 1);
 
@@ -1196,7 +1194,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         wah_check_invariant(src[i]);
         *en = wah_word_enum_start(src[i], false);
         if (en->state != WAH_ENUM_END) {
-            qv_append(wah_word_enum, &enums, en);
+            qv_append(&enums, en);
         }
     }
     max_act = MIN(exp_len, max_act);
@@ -1491,7 +1489,7 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
     }
 
     /* In any case, we copy all the previous chunks. */
-    qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+    qv_splice(ctx->bucket, ctx->bucket->len, 0,
               ctx->tab, ctx->pos - 2);
 
     /* Deal with the run. */
@@ -1507,14 +1505,14 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
             avail_words = (_G.bits_in_bucket - ctx->bucket_len)
                         / WAH_BIT_IN_WORD;
             to_add.words = MIN(head.words, avail_words);
-            qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = to_add });
+            qv_append(ctx->bucket, (wah_word_t){ .head = to_add });
 
             ctx->bucket_len += to_add.words * WAH_BIT_IN_WORD;
             head.words -= to_add.words;
 
             if (head.words) {
                 /* Close this chunk, and create a new bucket. */
-                qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = 0 });
+                qv_append(ctx->bucket, (wah_word_t){ .count = 0 });
                 ctx->bucket = wah_create_bucket(ctx->map, 0);
                 ctx->map->previous_run_pos = -1;
                 ctx->map->last_run_pos = -1;
@@ -1523,7 +1521,7 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
         }
     } else {
         /* The run fits, copy it. */
-        qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = head});
+        qv_append(ctx->bucket, (wah_word_t){ .head = head});
     }
 
     /* We now have to deal with the uncompressed words. */
@@ -1533,8 +1531,8 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
             uint64_t count;
 
             count = (_G.bits_in_bucket - ctx->bucket_len) / WAH_BIT_IN_WORD;
-            qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = count });
-            qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+            qv_append(ctx->bucket, (wah_word_t){ .count = count });
+            qv_splice(ctx->bucket, ctx->bucket->len, 0,
                       &ctx->tab[ctx->pos], count);
 
             ctx->bucket = wah_create_bucket(ctx->map, 0);
@@ -1542,7 +1540,7 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
             ctx->map->last_run_pos = 0;
             ctx->bucket_len = 0;
             head = (wah_header_t){ .words = 0 };
-            qv_append(wah_word, ctx->bucket, (wah_word_t){ .head = head });
+            qv_append(ctx->bucket, (wah_word_t){ .head = head });
 
             ctx->pos += count;
             words    -= count;
@@ -1550,8 +1548,8 @@ from_data_split_chunk(from_data_ctx_t *ctx, wah_header_t head, uint64_t words)
         }
 
         /* We can safely copy the rest of the uncompressed words. */
-        qv_append(wah_word, ctx->bucket, (wah_word_t){ .count = words });
-        qv_splice(wah_word, ctx->bucket, ctx->bucket->len, 0,
+        qv_append(ctx->bucket, (wah_word_t){ .count = words });
+        qv_splice(ctx->bucket, ctx->bucket->len, 0,
                   &ctx->tab[ctx->pos], words);
         ctx->bucket_len += words * WAH_BIT_IN_WORD;
         ctx->pos += words;
@@ -1564,7 +1562,7 @@ wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *map, pstream_t data)
     from_data_ctx_t ctx;
 
     p_clear(map, 1);
-    mp_qv_init(wah_word_vec, mp, &map->_buckets, 0);
+    mp_qv_init(mp, &map->_buckets, 0);
 
     THROW_NULL_IF(ps_len(&data) % sizeof(wah_word_t));
     THROW_NULL_IF(ps_len(&data) < 2 * sizeof(wah_word_t));
@@ -1608,7 +1606,7 @@ wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *map, pstream_t data)
                     /* We have an opened bucket, add this chunk. */
                     map->previous_run_pos = map->last_run_pos;
                     map->last_run_pos     = ctx.bucket->len;
-                    qv_splice(wah_word, ctx.bucket, ctx.bucket->len, 0,
+                    qv_splice(ctx.bucket, ctx.bucket->len, 0,
                               &ctx.tab[ctx.pos - 2], words + 2);
                 } else {
                     /* No opened bucket, the chunk will be added after. */
@@ -1622,8 +1620,8 @@ wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *map, pstream_t data)
                 /* The current bucket is full, close it. */
                 assert (ctx.bucket_len == _G.bits_in_bucket);
                 if (!ctx.bucket) {
-                    ctx.bucket = qv_growlen(wah_word_vec, &map->_buckets, 1);
-                    qv_init_static(wah_word, ctx.bucket, ctx.tab, ctx.pos);
+                    ctx.bucket = qv_growlen(&map->_buckets, 1);
+                    qv_init_static(ctx.bucket, ctx.tab, ctx.pos);
                 }
                 ctx.bucket = NULL;
                 ctx.bucket_len = 0;
@@ -1639,8 +1637,8 @@ wah_t *mp_wah_init_from_data(mem_pool_t *mp, wah_t *map, pstream_t data)
 
         THROW_NULL_IF(ctx.pos != size);
         assert (!ctx.bucket);
-        ctx.bucket = qv_growlen(wah_word_vec, &map->_buckets, 1);
-        qv_init_static(wah_word, ctx.bucket, ctx.tab, ctx.pos);
+        ctx.bucket = qv_growlen(&map->_buckets, 1);
+        qv_init_static(ctx.bucket, ctx.tab, ctx.pos);
 
       next:
         ps_skip(&ctx.data, ctx.pos * sizeof(wah_word_t));

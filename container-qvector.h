@@ -241,17 +241,6 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #endif
 
 #define __QVECTOR_BASE_FUNCTIONS(pfx, cval_t, val_t) \
-    __unused__                                                              \
-    static inline void pfx##_wipe(pfx##_t *vec) {                           \
-        qvector_wipe(&vec->qv, sizeof(val_t));                              \
-    }                                                                       \
-    __unused__                                                              \
-    static inline void pfx##_delete(pfx##_t **vec) {                        \
-        if (likely(*vec)) {                                                 \
-            qvector_wipe(&(*vec)->qv, sizeof(val_t));                       \
-            p_delete(vec);                                                  \
-        }                                                                   \
-    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
@@ -280,71 +269,75 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     qvector_funcs_t(n, val_t);
 
 #define qv_t(n)                             qv_##n##_t
-#define __qv_typeof(n)                      fieldtypeof(qv_t(n), tab[0])
-#define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
-#define __qv_align(n)                       alignof(__qv_typeof(n))
-#define __qv_init(n, vec, b, bl, bs, mp)                                     \
-    ({  qv_t(n) *__vec = (vec);                                              \
+#define __qv_typeof(vec)                    typeof((vec)->tab[0])
+#define __qv_sz(vec)                        sizeof((vec)->tab[0])
+#define __qv_align(vec)                     alignof((vec)->tab[0])
+#define __qv_init(vec, b, bl, bs, mp)                                        \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
         __qvector_init(&__vec->qv, (b), (bl), (bs), ipool(mp));              \
         __vec;                                                               \
     })
-#define qv_init_static(n, vec, _tab, _len)                                   \
+#define qv_init_static(vec, _tab, _len)                                      \
     ({  size_t __len = (_len);                                               \
-        qv_t(n) *__vec = (vec);                                              \
-        __qv_typeof(n) const * const __tab = (_tab);                         \
+        typeof(*(vec)) *__vec = (vec);                                       \
+        __qv_typeof(vec) const * const __tab = (_tab);                       \
         __qvector_init(&__vec->qv, (void *)__tab, __len, __len,              \
                        &mem_pool_static);                                    \
         __vec; })
-#define qv_inita(n, vec, size)                                               \
-    ({  size_t __size = (size), _sz = __size * __qv_sz(n);                   \
-        qv_t(n) *__vec = (vec);                                              \
+#define qv_inita(vec, size)                                                  \
+    ({  size_t __size = (size), _sz = __size * __qv_sz(vec);                 \
+        typeof(*(vec)) *__vec = (vec);                                       \
         __qvector_init(&__vec->qv, alloca(_sz), 0, __size,                   \
                        &mem_pool_static);                                    \
         __vec; })
-#define mp_qv_init(n, mp, vec, size)                                         \
+#define mp_qv_init(mp, vec, size)                                            \
     ({  size_t __size = (size);                                              \
         mem_pool_t *_mp = (mp);                                              \
-        qv_t(n) *__vec = (vec);                                              \
-        __qvector_init(&__vec->qv, mp_new_raw(_mp, __qv_typeof(n), __size),  \
+        typeof(*(vec)) *__vec = (vec);                                       \
+        __qvector_init(&__vec->qv, mp_new_raw(_mp, __qv_typeof(vec), __size),\
                        0, __size, _mp);                                      \
         __vec; })
 
-#define t_qv_init(n, vec, size)  mp_qv_init(n, t_pool(), (vec), (size))
-#define r_qv_init(n, vec, size)  mp_qv_init(n, r_pool(), (vec), (size))
+#define t_qv_init(vec, size)  mp_qv_init(t_pool(), (vec), (size))
+#define r_qv_init(vec, size)  mp_qv_init(r_pool(), (vec), (size))
 
-#define qv_init(n, vec)                                                      \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        p_clear(__vec, 1);                                                   \
+#define qv_init(vec)                                                         \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
+        p_clear(&__vec->qv, 1);                                              \
     })
 
-#define qv_clear(n, vec)                                                     \
-    ({  qv_t(n) *__qc_vec = (vec);                                           \
-        qvector_reset(&__qc_vec->qv, __qv_sz(n)); })
-#define qv_deep_clear(n, vec, wipe)                                          \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        qv_for_each_pos_safe(n, __i, __vec) {                                \
+#define qv_clear(vec)                                                        \
+    ({  typeof(*(vec)) *__qc_vec = (vec);                                    \
+        qvector_reset(&__qc_vec->qv, __qv_sz(vec)); })
+#define qv_deep_clear(vec, wipe)                                             \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
+        tab_for_each_pos_safe(__i, __vec) {                                  \
             wipe(&__vec->tab[__i]);                                          \
         }                                                                    \
-        qv_clear(n, __vec); })
+        qv_clear(__vec); })
 
-#define qv_fn(n, fname)  qv_##n##_##fname
-
-#define qv_wipe(n, vec)  qv_##n##_wipe(vec)
-#define qv_deep_wipe(n, vec, wipe)                                           \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        qv_for_each_pos_safe(n, __i, __vec) {                                \
+#define qv_wipe(vec)  qvector_wipe(&(vec)->qv, __qv_sz(vec))
+#define qv_deep_wipe(vec, wipe)                                              \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
+        tab_for_each_pos_safe(__i, __vec) {                                  \
             wipe(&__vec->tab[__i]);                                          \
         }                                                                    \
-        qv_wipe(n, __vec); })
+        qv_wipe(__vec); })
 
-#define qv_delete(n, vec)  qv_##n##_delete(vec)
-#define qv_deep_delete(n, vecp, wipe)                                        \
-    ({  qv_t(n) **__vecp = (vecp);                                           \
+#define qv_delete(vec)  do {                                                 \
+        typeof(**(vec)) **__pvec = (vec);                                    \
+        if (*__pvec) {                                                       \
+            qv_wipe(*__pvec);                                                \
+            p_delete(__pvec);                                                \
+        }                                                                    \
+    } while (0)
+#define qv_deep_delete(vecp, wipe)                                           \
+    ({  typeof(**(vecp)) **__vecp = (vecp);                                  \
         if (likely(*__vecp)) {                                               \
-            qv_for_each_pos_safe(n, __i, *__vecp) {                          \
+            tab_for_each_pos_safe(__i, *__vecp) {                            \
                 wipe(&(*__vecp)->tab[__i]);                                  \
             }                                                                \
-            qv_delete(n, __vecp);                                            \
+            qv_delete(__vecp);                                               \
         } })
 
 #define qv_new(n)  p_new(qv_t(n), 1)
@@ -352,7 +345,7 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define mp_qv_new(n, mp, sz)                                                 \
     ({                                                                       \
         mem_pool_t *__mp = (mp);                                             \
-        mp_qv_init(n, __mp, mp_new_raw(__mp, qv_t(n), 1), (sz));             \
+        mp_qv_init(__mp, mp_new_raw(__mp, qv_t(n), 1), (sz));                \
     })
 #define t_qv_new(n, sz)  mp_qv_new(n, t_pool(), (sz))
 #define r_qv_new(n, sz)  mp_qv_new(n, r_pool(), (sz))
@@ -368,23 +361,23 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_deep_extend(n)                   qv_##n##_deep_extend
 #define qv_cpy_b(n)                         qv_##n##_cpy_b
 #endif
-#define qv_qsort(n, vec, cmp)                                                \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        int (*__cb)(__qv_typeof(n) const *, __qv_typeof(n) const *)          \
+#define qv_qsort(vec, cmp)                                                   \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
+        int (*__cb)(__qv_typeof(vec) const *, __qv_typeof(vec) const *)      \
             = (cmp);                                                         \
-        qsort(__vec->qv.tab, __vec->qv.len, __qv_sz(n),                      \
+        qsort(__vec->qv.tab, __vec->qv.len, __qv_sz(vec),                    \
               (int (*)(const void *, const void *))__cb);                    \
     })
 
-#define qv_last(n, vec)                     ({ const qv_t(n) *__vec = (vec); \
-                                               assert (__vec->len > 0);      \
-                                               __vec->tab + __vec->len - 1; })
+#define qv_last(vec)                                                         \
+    ({  typeof(*(vec)) const *__vec = (vec);                                 \
+        assert (__vec->len > 0);                                             \
+        __vec->tab + __vec->len - 1; })
 
-#define __qv_splice(n, vec, pos, rm_len, inserted_len)                       \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        (__qv_typeof(n) *)__qvector_splice(&__vec->qv, __qv_sz(n),           \
-                                           __qv_align(n), (pos), (rm_len),   \
-                                           (inserted_len)); })
+#define __qv_splice(vec, pos, rm_len, inserted_len)                          \
+    ({ (__qv_typeof(vec) *)__qvector_splice(&(vec)->qv, __qv_sz(vec),       \
+                                            __qv_align(vec), (pos), (rm_len),\
+                                            (inserted_len)); })
 
 /** At a given position, remove N elements then insert M extra elements.
  *
@@ -398,93 +391,87 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
  *
  *  \return Pointer to vec->tab[pos].
  */
-#define qv_splice(n, vec, pos, rm_len, inserted_values, inserted_len)        \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        __qv_typeof(n) const *__vals = (inserted_values);                    \
-        (__qv_typeof(n) *)qvector_splice(&__vec->qv, __qv_sz(n),             \
-                                         __qv_align(n), (pos), (rm_len),     \
-                                         (__vals), (inserted_len)); })
-#define qv_optimize(n, vec, r1, r2)                                          \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        qvector_optimize(&__vec->qv, __qv_sz(n), __qv_align(n), (r1), (r2)); \
-    })
+#define qv_splice(vec, pos, rm_len, inserted_values, inserted_len)           \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
+        __qv_typeof(vec) const *__vals = (inserted_values);                  \
+        (__qv_typeof(vec) *)qvector_splice(&__vec->qv, __qv_sz(vec),         \
+                                           __qv_align(vec), (pos), (rm_len), \
+                                           (__vals), (inserted_len)); })
+#define qv_optimize(vec, r1, r2)                                             \
+    qvector_optimize(&(vec)->qv, __qv_sz(vec), __qv_align(vec), (r1), (r2))
 
-#define qv_grow(n, vec, extra)                                               \
-    ({  qv_t(n) *__qg_vec = (vec);                                           \
-        (__qv_typeof(n) *)qvector_grow(&__qg_vec->qv, __qv_sz(n),            \
-                                       __qv_align(n), (extra)); })
-#define qv_growlen(n, vec, extra)                                            \
-    ({  qv_t(n) *__qgl_vec = (vec);                                          \
-        (__qv_typeof(n) *)qvector_growlen(&__qgl_vec->qv, __qv_sz(n),        \
-                                          __qv_align(n), (extra)); })
+#define qv_grow(vec, extra)                                                  \
+    ({ (__qv_typeof(vec) *)qvector_grow(&(vec)->qv, __qv_sz(vec),            \
+                                        __qv_align(vec), (extra)); })
+#define qv_growlen(vec, extra)                                               \
+    ({ (__qv_typeof(vec) *)qvector_growlen(&(vec)->qv, __qv_sz(vec),         \
+                                           __qv_align(vec), (extra)); })
 
-#define qv_grow0(n, vec, extra)                                              \
+#define qv_grow0(vec, extra)                                                 \
     ({                                                                       \
         int __extra = extra;                                                 \
-        typeof((vec)->tab) __res = qv_grow(n, vec, __extra);                 \
+        typeof((vec)->tab) __res = qv_grow(vec, __extra);                    \
                                                                              \
         p_clear(__res, __extra);                                             \
         __res;                                                               \
     })
 
-#define qv_growlen0(n, vec, extra)                                           \
+#define qv_growlen0(vec, extra)                                              \
     ({                                                                       \
         int __extra = extra;                                                 \
-        typeof((vec)->tab) __res = qv_growlen(n, vec, __extra);              \
+        typeof((vec)->tab) __res = qv_growlen(vec, __extra);                 \
                                                                              \
         p_clear(__res, __extra);                                             \
         __res;                                                               \
     })
 
 /** \brief keep only the first len elements */
-#define qv_clip(n, vec, _len)                                                \
-    ({  qv_t(n) *__vec = (vec);                                              \
-        __vec->len = (_len); })
+#define qv_clip(vec, _len)  ((vec)->qv.len = (_len))
 /** \brief shrink the vector length by len */
-#define qv_shrink(n, vec, _len)                                              \
-    ({  qv_t(n) *__vec = (vec);                                              \
+#define qv_shrink(vec, _len)                                                 \
+    ({  typeof(*(vec)) *__vec = (vec);                                       \
         int __len = (_len);                                                  \
         assert (0 <= __len && __len <= __vec->len);                          \
         __vec->len -= __len; })
 /** \brief skip the first len elements */
-#define qv_skip(n, vec, len)    (void)__qv_splice(n, vec, 0, len, 0)
+#define qv_skip(vec, len)    (void)__qv_splice(vec, 0, len, 0)
 
 /** \brief remove the element at position i */
-#define qv_remove(n, vec, i)    (void)__qv_splice(n, vec, i, 1, 0)
+#define qv_remove(vec, i)    (void)__qv_splice(vec, i, 1, 0)
 /** \brief remove the last element */
-#define qv_remove_last(n, vec)  (void)__qv_splice(n, vec, (vec)->len - 1, 1, 0)
+#define qv_remove_last(vec)  (void)__qv_splice(vec, (vec)->len - 1, 1, 0)
 /** \brief remove the first element */
-#define qv_pop(n, vec)          (void)__qv_splice(n, vec, 0, 1, 0)
+#define qv_pop(vec)          (void)__qv_splice(vec, 0, 1, 0)
 
-#define qv_insert(n, vec, i, v)                                     \
-    ({                                                              \
-        typeof(*(vec)->tab) __v = (v);                              \
-        *__qv_splice(n, vec, i, 0, 1) = __v;                        \
+#define qv_insert(vec, i, v)                                                 \
+    ({                                                                       \
+        typeof(*(vec)->tab) __v = (v);                                       \
+        *__qv_splice(vec, i, 0, 1) = __v;                                    \
     })
-#define qv_append(n, vec, v)                                        \
-    ({                                                              \
-        typeof(*(vec)->tab) __v = (v);                              \
-        *qv_growlen(n, vec, 1) = (__v);                             \
+#define qv_append(vec, v)                                                    \
+    ({                                                                       \
+        typeof(*(vec)->tab) __v = (v);                                       \
+        *qv_growlen(vec, 1) = (__v);                                         \
     })
-#define qv_push(n, vec, v)                  qv_insert(n, vec, 0, (v))
-#define qv_insertp(n, vec, i, v)            qv_insert(n, vec, i, *(v))
-#define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
-#define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
+#define qv_push(vec, v)                  qv_insert(vec, 0, (v))
+#define qv_insertp(vec, i, v)            qv_insert(vec, i, *(v))
+#define qv_appendp(vec, v)               qv_append(vec, *(v))
+#define qv_pushp(vec, v)                 qv_push(vec, *(v))
 
-#define qv_extend(n, vec, _tab)                                              \
+#define qv_extend(vec, _tab)                                                 \
     ({                                                                       \
         typeof(_tab) __tab = (_tab);                                         \
         int __len = __tab->len;                                              \
-        typeof(*(vec)->tab) *__w = qv_growlen(n, (vec), __len);              \
+        typeof(*(vec)->tab) *__w = qv_growlen((vec), __len);                 \
                                                                              \
         p_copy(__w, __tab->tab, __len);                                      \
     })
 
-#define qv_copy(n, vec_out, vec_in)                                          \
-    ({  qv_t(n) *__vec_out = (vec_out);                                      \
-        const qv_t(n) *__vec_in = (vec_in);                                  \
+#define qv_copy(vec_out, vec_in)                                             \
+    ({  typeof(*(vec_out)) *__vec_out = (vec_out);                           \
+        typeof(*(vec_out)) const *__vec_in = (vec_in);                       \
         __vec_out->len = 0;                                                  \
-        p_copy(qv_growlen(n, __vec_out, __vec_in->len), __vec_in->tab,       \
+        p_copy(qv_growlen(__vec_out, __vec_in->len), __vec_in->tab,          \
                __vec_in->len);                                               \
         __vec_out;                                                           \
     })

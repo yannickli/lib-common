@@ -82,7 +82,7 @@ pkg_provides_fields_for_param(iopc_pkg_t *pkg, iopc_field_t *field,
             xt->st = st;
 
             field->field_origin = f;
-            qv_append(iopc_extends, &field->parents, xt);
+            qv_append(&field->parents, xt);
 
             return true;
         }
@@ -430,7 +430,7 @@ static int iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
          * contains a constraints and we can't recurse in this context, so
          * we schedule the type resolution for later. */
         if (!fpkg->t_resolved) {
-            qv_append(iopc_pkg, &_G.resolve_list, fpkg);
+            qv_append(&_G.resolve_list, fpkg);
         }
         return 0;
     }
@@ -653,7 +653,7 @@ static int iopc_module_check_extends(iopc_struct_t *mod, iopc_extends_t *xt)
                           pretty_path_dot(xt->pkg->name), xt->name, f->tag);
             }
         }
-        qv_append(iopc_field, &mod->fields, iopc_field_dup(f2));
+        qv_append(&mod->fields, iopc_field_dup(f2));
     }
     return 0;
 }
@@ -666,7 +666,7 @@ static int iopc_struct_check_circular_dep(iopc_pkg_t *pkg, iopc_struct_t *st)
     }
     if (st->resolving) {
         throw_loc("circular dependency",
-                  *qv_last(iopc_loc, &iopc_g.loc_stack));
+                  *qv_last(&iopc_g.loc_stack));
     }
 
     st->resolving = true;
@@ -710,7 +710,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     type = iopc_struct_type_to_str(st->type);
 
     if (parent_st->resolving_inheritance) {
-        throw_loc("circular dependency", *qv_last(iopc_loc, &iopc_g.loc_stack));
+        throw_loc("circular dependency", *qv_last(&iopc_g.loc_stack));
     }
 
     /* Check field names unicity */
@@ -843,7 +843,7 @@ static int iopc_t_resolve(iopc_pkg_t *pkg)
     }
     if (pkg->t_resolving) {
         throw_loc("circular dependency",
-                  *qv_last(iopc_loc, &iopc_g.loc_stack));
+                  *qv_last(&iopc_g.loc_stack));
     }
 
     pkg->t_resolving = true;
@@ -905,7 +905,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
     }
     if (pkg->i_resolving) {
         throw_loc("circular dependency",
-                  *qv_last(iopc_loc, &iopc_g.loc_stack));
+                  *qv_last(&iopc_g.loc_stack));
     }
 
     pkg->i_resolving = true;
@@ -1250,7 +1250,7 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
             RETHROW(iopc_resolve(rpkg));
         }
     }
-    qv_wipe(iopc_pkg, &_G.resolve_list);
+    qv_wipe(&_G.resolve_list);
 
     /* Count static fields having a default value */
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
@@ -1407,8 +1407,8 @@ static lstr_t iopc_struct_sig(iopc_struct_t *st)
         iopc_dump_attrs_sig(&sb, &st->attrs);
 
         /* Dump fields */
-        t_qv_init(iopc_field, &tab, st->fields.len);
-        qv_splice(iopc_field, &tab, 0, 0, st->fields.tab, st->fields.len);
+        t_qv_init(&tab, st->fields.len);
+        qv_splice(&tab, 0, 0, st->fields.tab, st->fields.len);
         qv_sort(iopc_field)(&tab,
             ^int (iopc_field_t * const *f1, iopc_field_t * const *f2)
         {
@@ -1417,9 +1417,9 @@ static lstr_t iopc_struct_sig(iopc_struct_t *st)
         iopc_dump_fields_sig(&sb, &tab);
 
         /* Dump static fields, even abstract ones, because of comments */
-        t_qv_init(iopc_field, &tab, st->static_fields.len);
+        t_qv_init(&tab, st->static_fields.len);
         qv_for_each_entry(iopc_field, field, &st->static_fields) {
-            qv_append(iopc_field, &tab, field);
+            qv_append(&tab, field);
         }
         qv_sort(iopc_field)(&tab,
             ^int (iopc_field_t * const *f1, iopc_field_t * const *f2)
@@ -1493,7 +1493,7 @@ static void
 iopc_add_depends(iopc_pkg_t *ref, iopc_pkg_t *pkg, qv_t(iopc_pkg) *deps)
 {
     if (pkg && pkg != ref)
-        qv_append(iopc_pkg, deps, pkg);
+        qv_append(deps, pkg);
 }
 
 static void
@@ -1625,14 +1625,14 @@ void iopc_get_depends(iopc_pkg_t *pkg,
 
 static int iopc_initialize(void *arg)
 {
-    qv_init(iopc_loc, &iopc_g.loc_stack);
+    qv_init(&iopc_g.loc_stack);
 
     return 0;
 }
 
 static int iopc_shutdown(void)
 {
-    qv_wipe(iopc_loc, &iopc_g.loc_stack);
+    qv_wipe(&iopc_g.loc_stack);
 
     return 0;
 }

@@ -55,18 +55,18 @@ static int ps_get_csv_quoted_field(mem_pool_t *mp, pstream_t *ps, int quote,
             sb_add(&sb, part.s, ps_len(&part) + 1);
         } else
         if (sb.len == 0) {
-            qv_append(lstr, fields, LSTR_PS_V(&part));
+            qv_append(fields, LSTR_PS_V(&part));
             return 0;
         } else {
             sb_add(&sb, part.s, ps_len(&part));
 
             if (mp) {
-                qv_append(lstr, fields, mp_lstr_dups(mp, sb.data, sb.len));
+                qv_append(fields, mp_lstr_dups(mp, sb.data, sb.len));
             } else {
                 lstr_t dst = LSTR_NULL;
 
                 lstr_transfer_sb(&dst, &sb, false);
-                qv_append(lstr, fields, dst);
+                qv_append(fields, dst);
             }
             return 0;
         }
@@ -95,7 +95,7 @@ int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
 
     for (;;) {
         if (ps_done(ps)) {
-            qv_append(lstr, fields, LSTR_NULL_V);
+            qv_append(fields, LSTR_NULL_V);
             *out_line = ps_initptr(out.s, ps->s);
             return 0;
         } else
@@ -105,9 +105,9 @@ int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
             pstream_t field = ps_get_cspan(ps, &cdesc);
 
             if (!ps_len(&field)) {
-                qv_append(lstr, fields, LSTR_NULL_V);
+                qv_append(fields, LSTR_NULL_V);
             } else {
-                qv_append(lstr, fields, LSTR_PS_V(&field));
+                qv_append(fields, LSTR_PS_V(&field));
             }
         }
 
@@ -142,7 +142,7 @@ void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
     while (!ps_done(&ps)) {
         pstream_t n = ps_get_cspan(&ps, sep);
 
-        qv_append(lstr, res, LSTR_PS_V(&n));
+        qv_append(res, LSTR_PS_V(&n));
         if (flags & PS_SPLIT_SKIP_EMPTY) {
             ps_skip_span(&ps, sep);
         } else {

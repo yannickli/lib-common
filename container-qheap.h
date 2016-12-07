@@ -148,7 +148,7 @@
     static inline int qhp_##n##_insert(qhp_t(n) *heap, type_t node)           \
     {                                                                         \
         set_pos(node, heap->len);                                             \
-        qv_append(qhp_##n, heap, node);                                       \
+        qv_append(heap, node);                                       \
                                                                               \
         return __qhp_up(n, heap, heap->len - 1);                              \
     }                                                                         \
@@ -178,11 +178,11 @@
                                                                               \
         node = heap->tab[pos];                                                \
         if (pos == heap->len - 1) {                                           \
-            qv_shrink(qhp_##n, heap, 1);                                      \
+            qv_shrink(heap, 1);                                      \
         } else {                                                              \
-            type_t last =  *qv_last(qhp_##n, heap);                           \
+            type_t last =  *qv_last(heap);                           \
                                                                               \
-            qv_shrink(qhp_##n, heap, 1);                                      \
+            qv_shrink(heap, 1);                                      \
             __qhp_##n##_set(heap, pos, last);                                 \
             qhp_fixup(n, heap, pos);                                          \
         }                                                                     \
@@ -224,13 +224,13 @@
     qhp_full_t(name, type_t, false, cmp, set_pos)
 
 /* Setup */
-#define qhp_init(n, heap)              qv_init(qhp_##n, heap)
-#define qhp_inita(n, heap, len)        qv_inita(qhp_##n, heap, len)
-#define t_qhp_init(n, heap, len)       t_qv_init(qhp_##n, heap, len)
-#define qhp_wipe(n, heap)              qv_wipe(qhp_##n, heap)
-#define qhp_deep_wipe(n, heap, wipe)   qv_deep_wipe(qhp_##n, heap, wipe)
-#define qhp_clear(n, heap)             qv_clear(qhp_##n, heap)
-#define qhp_deep_clear(n, heap, wipe)  qv_deep_clear(qhp_##n, heap, wipe)
+#define qhp_init(n, heap)              qv_init(heap)
+#define qhp_inita(n, heap, len)        qv_inita(heap, len)
+#define t_qhp_init(n, heap, len)       t_qv_init(heap, len)
+#define qhp_wipe(n, heap)              qv_wipe(heap)
+#define qhp_deep_wipe(n, heap, wipe)   qv_deep_wipe(heap, wipe)
+#define qhp_clear(n, heap)             qv_clear(heap)
+#define qhp_deep_clear(n, heap, wipe)  qv_deep_clear(heap, wipe)
 
 /* Low-level update functions */
 #define __qhp_up(n, heap, pos)          __qhp_##n##_up(heap, pos)

@@ -73,41 +73,41 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
     t_scope;
     qv_t(cstr) args;
 
-    t_qv_init(cstr, &args, 20);
+    t_qv_init(&args, 20);
 
-    qv_append(cstr, &args, "cc");
+    qv_append(&args, "cc");
 
-    qv_append(cstr, &args, "-std=gnu99");
-    qv_append(cstr, &args, "-shared");
-    qv_append(cstr, &args, "-fPIC");
+    qv_append(&args, "-std=gnu99");
+    qv_append(&args, "-shared");
+    qv_append(&args, "-fPIC");
 
-    qv_append(cstr, &args, "-Wall");
-    qv_append(cstr, &args, "-Werror");
-    qv_append(cstr, &args, "-Wextra");
-    qv_append(cstr, &args, "-Wno-unused-parameter");
+    qv_append(&args, "-Wall");
+    qv_append(&args, "-Werror");
+    qv_append(&args, "-Wextra");
+    qv_append(&args, "-Wno-unused-parameter");
 
 #ifdef NDEBUG
-    qv_append(cstr, &args, "-s");                       /* strip DSO        */
-    qv_append(cstr, &args, "-O3");
+    qv_append(&args, "-s");                       /* strip DSO        */
+    qv_append(&args, "-O3");
 #else
-    qv_append(cstr, &args, "-O0");
+    qv_append(&args, "-O0");
     /* XXX valgrind does not support loading dso built with -g3, it fails with
      * "Warning: DWARF2 reader: Badly formed extended line op encountered"
      */
     if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
-        qv_append(cstr, &args, "-g");
+        qv_append(&args, "-g");
     } else {
-        qv_append(cstr, &args, "-g3");
+        qv_append(&args, "-g3");
     }
 #endif
-    qv_append(cstr, &args, "-fno-strict-aliasing");
+    qv_append(&args, "-fno-strict-aliasing");
 
-    qv_append(cstr, &args, "-o");
-    qv_append(cstr, &args, out);                        /* DSO output       */
+    qv_append(&args, "-o");
+    qv_append(&args, out);                        /* DSO output       */
     qv_for_each_entry(str, s, in) {
-        qv_append(cstr, &args, s);
+        qv_append(&args, s);
     }
-    qv_append(cstr, &args, NULL);
+    qv_append(&args, NULL);
 
     return do_call((char * const *)args.tab, err);
 }
@@ -198,7 +198,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
     int ret = 0;
     const char *filepart = path_filepart(iopfile);
 
-    qv_init(str, &sources);
+    qv_init(&sources);
 
     path_extend(so_path, outdir, "%s.so", filepart);
 
@@ -226,10 +226,10 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
         return -1;
     }
 
-    qv_append(str, &sources, asprintf("-I%s", tmppath));
+    qv_append(&sources, asprintf("-I%s", tmppath));
 
     path_extend(path, tmppath, "%*pM.c",  LSTR_FMT_ARG(pkgpath));
-    qv_append(str, &sources, p_strdup(path));
+    qv_append(&sources, p_strdup(path));
 
     sb_addf(&sb, "#include \"%*pM.h\"\n", LSTR_FMT_ARG(pkgpath));
     sb_adds(&sb, "IOP_EXPORT_PACKAGES_COMMON;\n");
@@ -238,7 +238,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
 
     path_extend(path, tmppath, "%*pM-iop-plugin.c", LSTR_FMT_ARG(pkgname));
     sb_write_file(&sb, path);
-    qv_append(str, &sources, p_strdup(path));
+    qv_append(&sources, p_strdup(path));
 
     qm_for_each_pos(iopc_env, pos, env) {
         lstr_t deppath;
@@ -252,7 +252,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
         }
 
         path_extend(path, tmppath, "%*pM.c", LSTR_FMT_ARG(deppath));
-        qv_append(str, &sources, p_strdup(path));
+        qv_append(&sources, p_strdup(path));
         lstr_wipe(&deppath);
     }
     log_stop_buffering();
@@ -267,7 +267,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
                  so_path, iopfile);
 
   end:
-    qv_deep_wipe(str, &sources, p_delete);
+    qv_deep_wipe(&sources, p_delete);
     lstr_wipe(&pkgname);
     lstr_wipe(&pkgpath);
     rmdir_r(tmppath, false);

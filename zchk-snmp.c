@@ -26,7 +26,7 @@ static qv_t(mib_rev) t_z_fill_up_revisions(void)
 {
     qv_t(mib_rev) revisions;
 
-    t_qv_init(mib_rev, &revisions, PATH_MAX);
+    t_qv_init(&revisions, PATH_MAX);
     mib_register_revision(&revisions, "201003091349Z", "Initial release");
 
     return revisions;
@@ -34,12 +34,12 @@ static qv_t(mib_rev) t_z_fill_up_revisions(void)
 
 static void z_init(qv_t(pkg) *pkgs)
 {
-    qv_init(pkg, pkgs);
+    qv_init(pkgs);
 }
 
 static void z_wipe(qv_t(pkg) pkgs)
 {
-    qv_wipe(pkg, &pkgs);
+    qv_wipe(&pkgs);
 }
 
 static int z_check_wanted_file(const char *filename, sb_t *sb)
@@ -69,7 +69,7 @@ Z_GROUP_EXPORT(iop_snmp_mib)
 
         z_init(&pkgs);
 
-        qv_append(pkg, &pkgs, &snmp_intersec_test__pkg);
+        qv_append(&pkgs, &snmp_intersec_test__pkg);
         iop_write_mib(&sb, &pkgs, &revisions);
 
         Z_HELPER_RUN(z_check_wanted_file(ref_file, &sb));
@@ -87,7 +87,7 @@ Z_GROUP_EXPORT(iop_snmp_mib)
 
         z_init(&pkgs);
 
-        qv_append(pkg, &pkgs, &snmp_intersec_test__pkg);
+        qv_append(&pkgs, &snmp_intersec_test__pkg);
         iop_write_mib(&sb, &pkgs, &revisions);
 
         /* Check smilint compliance level 6 */
@@ -109,7 +109,7 @@ Z_GROUP_EXPORT(iop_snmp_mib)
 
         z_init(&pkgs);
 
-        qv_append(pkg, &pkgs, &snmp_test__pkg);
+        qv_append(&pkgs, &snmp_test__pkg);
 
         iop_write_mib(&sb, &pkgs, &revisions);
         Z_HELPER_RUN(z_check_wanted_file(ref_file, &sb));
@@ -139,15 +139,15 @@ Z_GROUP_EXPORT(iop_snmp_doc)
         SB_1k(objects_sb);
         qv_t(pkg) pkgs;
 
-        qv_init(pkg, &pkgs);
+        qv_init(&pkgs);
 
-        qv_append(pkg, &pkgs, &snmp_test_doc__pkg);
+        qv_append(&pkgs, &snmp_test_doc__pkg);
         iop_write_snmp_doc(&notifs_sb, &objects_sb, &pkgs);
 
         Z_HELPER_RUN(z_check_wanted_file(ref_notif_file, &notifs_sb));
         Z_HELPER_RUN(z_check_wanted_file(ref_obj_file, &objects_sb));
 
-        qv_wipe(pkg, &pkgs);
+        qv_wipe(&pkgs);
     } Z_TEST_END;
 
 } Z_GROUP_END;

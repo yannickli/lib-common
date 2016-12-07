@@ -325,7 +325,7 @@ typedef struct asn1_enum_info_t {
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
 {
     p_clear(e, 1);
-    qv_init(u32, &e->values);
+    qv_init(&e->values);
 
     return e;
 }
@@ -400,8 +400,8 @@ typedef struct asn1_desc_t {
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
 {
     p_clear(desc, 1);
-    qv_init(asn1_field, &desc->vec);
-    qv_init(u16, &desc->opt_fields);
+    qv_init(&desc->vec);
+    qv_init(&desc->opt_fields);
     asn1_int_info_init(&desc->choice_info);
 
     return desc;
@@ -411,8 +411,8 @@ GENERIC_NEW(asn1_desc_t, asn1_desc);
 
 static inline void asn1_desc_wipe(asn1_desc_t *desc)
 {
-    qv_wipe(asn1_field, &desc->vec);
-    qv_wipe(u16, &desc->opt_fields);
+    qv_wipe(&desc->vec);
+    qv_wipe(&desc->opt_fields);
 }
 GENERIC_DELETE(asn1_desc_t, asn1_desc);
 

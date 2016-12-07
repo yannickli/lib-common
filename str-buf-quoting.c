@@ -1353,7 +1353,7 @@ static inline int idna_nameprep(qv_t(u32) *code_points, int c, unsigned flags)
     /* To lower (approximately corresponds to mapping table B.2) */
     c = unicode_tolower(c);
 
-    qv_append(u32, code_points, c);
+    qv_append(code_points, c);
     return 0;
 }
 
@@ -1373,7 +1373,7 @@ int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
        __res;                                                                \
     })
 
-    qv_inita(u32, &code_points, src_len);
+    qv_inita(&code_points, src_len);
 
     while (pos < src_len) {
         int c = IDNA_RETHROW(utf8_ngetc_at(src, src_len, &pos));
@@ -1389,7 +1389,7 @@ int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
                         goto error;
                     }
                 }
-                qv_append(u32, &code_points, c);
+                qv_append(&code_points, c);
             } else {
                 is_ascii = false;
                 IDNA_RETHROW(idna_nameprep(&code_points, c, flags));
@@ -1408,7 +1408,7 @@ int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
         label_size    = 0;
         is_ascii = true;
         nb_labels++;
-        qv_clear(u32, &code_points);
+        qv_clear(&code_points);
     }
 
     /* Encode last label */
@@ -1419,12 +1419,12 @@ int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
      *      implementation of NAMEPREP becomes fully complient one day (it
      *      could increase the number of code points), so keep it to be safe.
      */
-    qv_wipe(u32, &code_points);
+    qv_wipe(&code_points);
 
     return ++nb_labels >= 2 ? nb_labels : -1;
 
   error:
-    qv_wipe(u32, &code_points);
+    qv_wipe(&code_points);
     return -1;
 #undef IDNA_RETHROW
 }

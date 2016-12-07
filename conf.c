@@ -16,13 +16,13 @@
 
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
-    qv_init(props, &section->vals);
+    qv_init(&section->vals);
     return section;
 }
 static void conf_section_wipe(conf_section_t *section)
 {
     p_delete(&section->name);
-    qv_deep_wipe(props, &section->vals, property_delete);
+    qv_deep_wipe(&section->vals, property_delete);
 }
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
@@ -30,7 +30,7 @@ GENERIC_DELETE(conf_section_t, conf_section);
 GENERIC_NEW_INIT(conf_t, conf);
 static void conf_wipe(conf_t *conf)
 {
-    qv_deep_wipe(conf_section, conf, conf_section_delete);
+    qv_deep_wipe(conf, conf_section_delete);
 }
 DO_DELETE(conf_t, conf);
 
@@ -46,7 +46,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
       case CFG_PARSE_SECTION:
         sect = conf_section_new();
         sect->name = p_dupz(v, vlen);
-        qv_append(conf_section, conf, sect);
+        qv_append(conf, sect);
         return 0;
 
       case CFG_PARSE_SECTION_ID:
@@ -57,7 +57,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         sect = conf->tab[conf->len - 1];
         prop = property_new();
         prop->name = p_dupz(v, vlen);
-        qv_append(props, &sect->vals, prop);
+        qv_append(&sect->vals, prop);
         return 0;
 
       case CFG_PARSE_VALUE:
@@ -139,7 +139,7 @@ static void section_add_var(conf_section_t *section,
     property_t *prop = property_new();
     prop->name  = p_dupz(variable, variable_len);
     prop->value = p_dupz(value, value_len);
-    qv_append(props, &section->vals, prop);
+    qv_append(&section->vals, prop);
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -359,7 +359,7 @@ const char *conf_put(conf_t *conf, const char *section,
                     return prop->value = p_dupz(value, value_len);
                 } else {
                     /* delete value */
-                    qv_remove(props, &s->vals, j);
+                    qv_remove(&s->vals, j);
                     property_delete(&prop);
                     return NULL;
                 }
@@ -375,7 +375,7 @@ const char *conf_put(conf_t *conf, const char *section,
         /* add variable in new section */
         s = conf_section_new();
         s->name = p_strdup(section);
-        qv_append(conf_section, conf, s);
+        qv_append(conf, s);
         section_add_var(s, var, var_len, value, value_len);
         return s->vals.tab[0]->value;
     }

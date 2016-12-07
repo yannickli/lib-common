@@ -57,7 +57,7 @@ void IOP_RPC_IMPL(core__core, log, list_loggers)
     t_scope;
     qv_t(logger_conf) confs;
 
-    t_qv_init(logger_conf, &confs, 1024);
+    t_qv_init(&confs, 1024);
 
     logger_get_all_configurations(arg->prefix, &confs);
 

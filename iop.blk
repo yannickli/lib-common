@@ -535,7 +535,7 @@ lstr_t t_iop_type_to_c(lstr_t name)
     pstream_t ps = ps_initlstr(&name);
     ctype_desc_t dot;
 
-    t_qv_init(lstr, &parts, 3);
+    t_qv_init(&parts, 3);
     ctype_desc_build(&dot, ".");
     ps_split(ps, &dot, 0, &parts);
     if (!parts.len) {
@@ -1778,7 +1778,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
         }
     }
 
-    data = ((const byte *)data) + qv_last(field_step, steps)->offset;
+    data = ((const byte *)data) + qv_last(steps)->offset;
 
     if (field_path->is_typename) {
         const iop_struct_t *st = *(const void **)data;
@@ -1819,7 +1819,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         }
         return -1;
     }
-    step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+    step = field_step_init(qv_growlen(&fp->steps, 1));
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
 
@@ -1881,7 +1881,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         if (it->is_union) {
             step->is_union = true;
             step->union_tag = fdesc->tag;
-            step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+            step = field_step_init(qv_growlen(&fp->steps, 1));
         }
 
         step->offset += fdesc->data_offs;
@@ -1889,7 +1889,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             it = fdesc->u1.st_desc;
 
             if (iop_field_is_pointed(fdesc)) {
-                step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+                step = field_step_init(qv_growlen(&fp->steps, 1));
             }
         }
     }
@@ -2002,8 +2002,8 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
     bool is_class = iop_struct_is_class(st);
     qv_t(iop_sort_p) sorts;
 
-    t_qv_init(iop_sort_p, &sorts, params->len);
-    qv_growlen(iop_sort_p, &sorts, params->len);
+    t_qv_init(&sorts, params->len);
+    qv_growlen(&sorts, params->len);
 
     qv_for_each_pos(iop_sort, pos, params) {
         iop_sort_priv_t *priv = &sorts.tab[pos];
@@ -2011,7 +2011,7 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
         iop_type_t type;
 
         field_path_init(&priv->fp);
-        t_qv_init(field_step, &priv->fp.steps, 16);
+        t_qv_init(&priv->fp.steps, 16);
         RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp,
                                          err));
 
@@ -2073,7 +2073,7 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
         .flags = flags,
     };
 
-    qv_init_static(iop_sort, &params, &param, 1);
+    qv_init_static(&params, &param, 1);
     return iop_msort_desc(st, vec, len, &params, err);
 }
 
@@ -2093,7 +2093,7 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     iop_type_t type;
 
     field_path_init(&fp);
-    t_qv_init(field_step, &fp.steps, 16);
+    t_qv_init(&fp.steps, 16);
     RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
     assert (fp.is_typename || fp.fdesc);
 
@@ -2628,7 +2628,7 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
                 const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 int32_t offs = szs->len, i32;
 
-                qv_growlen(i32, szs, 1);
+                qv_growlen(szs, 1);
 
                 if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
                     /* Non-optional class fields have to be dereferenced
@@ -2676,7 +2676,7 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
     do {
         int szs_pos = szs->len;
 
-        qv_growlen(i32, szs, 1);
+        qv_growlen(szs, 1);
         level_size = __iop_bpack_size(desc, val, flags, szs);
         szs->tab[szs_pos] = level_size;
         size += level_size;
@@ -2698,7 +2698,7 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
     }
 
     /* Put the packer flags in first to reuse them when packing */
-    qv_append(i32, szs, flags);
+    qv_append(szs, flags);
 
     if (iop_struct_is_class(desc)) {
         return __iop_bpack_size_class(desc, val, flags, szs);
@@ -2984,18 +2984,18 @@ lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
     if (!v) {
         return LSTR_NULL_V;
     }
-    qv_inita(i32, &sizes, 1024);
+    qv_inita(&sizes, 1024);
 
     len = iop_bpack_size_flags(st, v, flags, &sizes);
     if (len < 0) {
-        qv_wipe(i32, &sizes);
+        qv_wipe(&sizes);
         return LSTR_NULL_V;
     }
     data = mp_new_raw(mp, byte, len + 1);
     data[len] = '\0';
 
     iop_bpack(data, st, v, sizes.tab);
-    qv_wipe(i32, &sizes);
+    qv_wipe(&sizes);
     return mp_lstr_init(mp, data, len);
 }
 
@@ -4063,8 +4063,8 @@ static void iop_env_copy(iop_env_t *dst, iop_env_t *src)
             qv_t(cvoid) vec;                                                 \
             lstr_t pkg_name = lstr_dup(src->_qm.keys[pos]);                  \
                                                                              \
-            qv_init(cvoid, &vec);                                            \
-            qv_copy(cvoid, &vec, &src->_qm.values[pos]);                     \
+            qv_init(&vec);                                            \
+            qv_copy(&vec, &src->_qm.values[pos]);                     \
             qm_add(iop_objs, &dst->_qm, &pkg_name, vec);                     \
         }                                                                    \
     } while (0)
@@ -4100,8 +4100,8 @@ void iop_env_wipe(iop_env_t *env)
     qm_wipe(class_id,      &env->classes_by_id);
     qm_wipe(class_name,    &env->classes_by_name);
     qm_wipe(iop_dsos,      &env->dsos_by_pkg);
-    qm_deep_wipe(iop_objs, &env->pkgs_by_name,      lstr_wipe, qv_cvoid_wipe);
-    qm_deep_wipe(iop_objs, &env->enums_by_fullname, lstr_wipe, qv_cvoid_wipe);
+    qm_deep_wipe(iop_objs, &env->pkgs_by_name,  lstr_wipe, qv_wipe);
+    qm_deep_wipe(iop_objs, &env->enums_by_fullname, lstr_wipe, qv_wipe);
 }
 
 /* }}} */
@@ -4414,7 +4414,7 @@ iop_register_obj_by_name(qm_t(iop_objs) *qm, const void *obj, lstr_t name,
         pos ^= QHASH_COLLISION;
     } else {
         qm->keys[pos] = lstr_dup(name);
-        qv_init(cvoid, &qm->values[pos]);
+        qv_init(&qm->values[pos]);
     }
     obj_vec = &qm->values[pos];
     qv_for_each_entry(cvoid, _obj, obj_vec) {
@@ -4425,7 +4425,7 @@ iop_register_obj_by_name(qm_t(iop_objs) *qm, const void *obj, lstr_t name,
     if (obj_vec->len && !(flags & IOP_REGPKG_FROM_DSO)) {
         return -1;
     }
-    qv_append(cvoid, obj_vec, obj);
+    qv_append(obj_vec, obj);
     return 1;
 }
 
@@ -4557,14 +4557,14 @@ iop_unregister_obj(qm_t(iop_objs) *qm, const void *obj, lstr_t name)
         const void *obj2 = vec->tab[pos2];
 
         if (obj2 == obj) {
-            qv_remove(cvoid, vec, pos2);
+            qv_remove(vec, pos2);
             found = true;
             break;
         }
     }
 
     if (!vec->len) {
-        qv_wipe(cvoid, vec);
+        qv_wipe(vec);
         lstr_wipe(&qm->keys[pos]);
         qm_del_at(iop_objs, qm, pos);
     }
@@ -4765,7 +4765,7 @@ static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
     qh_init(compat_couple, &ctx->seen_couples);
     qh_init(cptr, &ctx->seen_opt_st);
     sb_init(&ctx->err_ctx);
-    qv_init(i32, &ctx->err_ctx_offs);
+    qv_init(&ctx->err_ctx_offs);
     return ctx;
 }
 static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
@@ -4773,7 +4773,7 @@ static void iop_compat_ctx_wipe(iop_compat_ctx_t *ctx)
     qh_wipe(compat_couple, &ctx->seen_couples);
     qh_wipe(cptr, &ctx->seen_opt_st);
     sb_wipe(&ctx->err_ctx);
-    qv_wipe(i32, &ctx->err_ctx_offs);
+    qv_wipe(&ctx->err_ctx_offs);
 }
 DO_NEW(iop_compat_ctx_t, iop_compat_ctx);
 DO_DELETE(iop_compat_ctx_t, iop_compat_ctx);
@@ -4791,7 +4791,7 @@ iop_compat_push_err_ctx(iop_compat_ctx_t *ctx, const char *fmt, ...)
 {
     va_list ap;
 
-    qv_append(i32, &ctx->err_ctx_offs, ctx->err_ctx.len);
+    qv_append(&ctx->err_ctx_offs, ctx->err_ctx.len);
 
     iop_compat_make_indent(&ctx->err_ctx, ctx->indent_lvl);
     va_start(ap, fmt);
@@ -4807,8 +4807,8 @@ static void iop_compat_pop_err_ctx(iop_compat_ctx_t *ctx)
     ctx->indent_lvl--;
     assert (ctx->indent_lvl >= 0);
     if (ctx->err_ctx_offs.len > 0) {
-        sb_clip(&ctx->err_ctx, *qv_last(i32, &ctx->err_ctx_offs));
-        qv_remove_last(i32, &ctx->err_ctx_offs);
+        sb_clip(&ctx->err_ctx, *qv_last(&ctx->err_ctx_offs));
+        qv_remove_last(&ctx->err_ctx_offs);
     }
 }
 
@@ -4823,7 +4823,7 @@ static void iop_compat_add_err(iop_compat_ctx_t *ctx, const char *fmt, ...)
 
     sb_addsb(ctx->err, &ctx->err_ctx);
     sb_reset(&ctx->err_ctx);
-    qv_clear(i32, &ctx->err_ctx_offs);
+    qv_clear(&ctx->err_ctx_offs);
 
     iop_compat_make_indent(ctx->err, ctx->indent_lvl);
 
@@ -5022,7 +5022,7 @@ get_parents_until_id(const iop_struct_t *st, const uint16_t *class_id,
         if (class_id && st->class_attrs->class_id == *class_id) {
             break;
         }
-        qv_append(iop_struct, vec, st);
+        qv_append(vec, st);
     }
 
     return st;
@@ -5036,7 +5036,7 @@ get_parents_until_name(const iop_struct_t *st, const lstr_t *name,
         if (name && lstr_equal(st->fullname, *name)) {
             break;
         }
-        qv_append(iop_struct, vec, st);
+        qv_append(vec, st);
     }
 
     return st;
@@ -5104,7 +5104,7 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
         return 0;
     }
 
-    qv_init(iop_struct, &parents);
+    qv_init(&parents);
 
     /* Get the classes added in the parents between 'st2' and 'st1'. */
     if (flags & IOP_COMPAT_BIN) {
@@ -5125,7 +5125,7 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
             res = -1;
         }
 
-        qv_clear(iop_struct, &parents);
+        qv_clear(&parents);
     }
 
     if (flags & IOP_COMPAT_JSON) {
@@ -5174,7 +5174,7 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
         }
     }
 
-    qv_wipe(iop_struct, &parents);
+    qv_wipe(&parents);
     return res;
 }
 

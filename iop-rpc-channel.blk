@@ -101,7 +101,7 @@ static void ic_read_tracing(void)
             ps = ps_init(NULL, 0);
         }
 
-        qv_append(lstr, &_G.traced_names, LSTR_PS_V(&n));
+        qv_append(&_G.traced_names, LSTR_PS_V(&n));
     }
 #endif
 }
@@ -202,28 +202,28 @@ static void ic_get_state(sb_t *buf)
     };
     uint32_t hdr_size = countof(hdr_data);
 
-    qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
-    t_qv_init(table_data, &rows, 200);
+    qv_init_static(&hdr, hdr_data, hdr_size);
+    t_qv_init(&rows, 200);
 
     qm_for_each_pos(ic, pos, &_G.ics) {
         t_SB(flags, 64);
         ichannel_t *ic = _G.ics.values[pos];
-        qv_t(lstr) *tab = qv_growlen(table_data, &rows, 1);
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
         lstr_t addr;
 
-        t_qv_init(lstr, tab, hdr_size);
+        t_qv_init(tab, hdr_size);
 
-        qv_append(lstr, tab, t_lstr_fmt("%d / %p", ic->id, ic));
-        qv_append(lstr, tab, t_lstr_fmt("%p", ic->elh));
-        qv_append(lstr, tab, t_lstr_fmt("%p", ic->on_event));
+        qv_append(tab, t_lstr_fmt("%d / %p", ic->id, ic));
+        qv_append(tab, t_lstr_fmt("%p", ic->elh));
+        qv_append(tab, t_lstr_fmt("%p", ic->on_event));
 
         if (ic->is_local) {
-            qv_append(lstr, tab, LSTR("local"));
+            qv_append(tab, LSTR("local"));
         } else
         if (ic->is_spawned) {
-            qv_append(lstr, tab, LSTR("server"));
+            qv_append(tab, LSTR("server"));
         } else {
-            qv_append(lstr, tab, LSTR("client"));
+            qv_append(tab, LSTR("client"));
         }
 
         if (ic->is_local) {
@@ -235,7 +235,7 @@ static void ic_get_state(sb_t *buf)
         } else {
             addr = t_addr_fmt_lstr(&ic->su);
         }
-        qv_append(lstr, tab, addr);
+        qv_append(tab, addr);
 
 #define ADD_FLAG(_field, _str)                                               \
         do {                                                                 \
@@ -259,12 +259,12 @@ static void ic_get_state(sb_t *buf)
         ADD_FLAG(is_wiped,     "wiped");
         assert (!ic->is_wiped);
 
-        qv_append(lstr, tab, LSTR_SB_V(&flags));
+        qv_append(tab, LSTR_SB_V(&flags));
 #undef ADD_FLAG
 
-        qv_append(lstr, tab, ev_priority_to_str(ic->priority));
-        qv_append(lstr, tab, t_lstr_fmt("%u", ic->nextslot));
-        qv_append(lstr, tab, t_lstr_fmt("%d", qm_len(ic_msg, &ic->queries)));
+        qv_append(tab, ev_priority_to_str(ic->priority));
+        qv_append(tab, t_lstr_fmt("%u", ic->nextslot));
+        qv_append(tab, t_lstr_fmt("%d", qm_len(ic_msg, &ic->queries)));
     }
 
     sb_add_table(buf, &hdr, &rows);
@@ -287,7 +287,7 @@ static int ic_initialize(void *arg)
     _G.mp = mem_fifo_pool_new(1 << 20);
     qm_init(ic, &_G.ics);
     qm_init(ic_hook_ctx, &_G.hook_ctxs);
-    qv_init(lstr, &_G.traced_names);
+    qv_init(&_G.traced_names);
     qh_init(u32, &_G.traced_cmds);
     ic_read_tracing();
     return 0;
@@ -308,7 +308,7 @@ static int ic_shutdown(void)
         }
     }
 
-    qv_deep_wipe(lstr, &_G.traced_names, lstr_wipe);
+    qv_deep_wipe(&_G.traced_names, lstr_wipe);
     qh_wipe(u32, &_G.traced_cmds);
     qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
     qm_wipe(ic, &_G.ics);
@@ -668,7 +668,7 @@ static void ic_cancel_all(ichannel_t *ic)
         ic_msg_delete(&msg);
     }
     qm_wipe(ic_msg, &h);
-    qv_deep_clear(i32, &ic->fds, p_close);
+    qv_deep_clear(&ic->fds, p_close);
 
     /* if that crashes, one of the IC_MSG_ABORT callback reenqueues directly in
      * that ichannel_t which is forbidden, fix the code
@@ -778,14 +778,14 @@ static int ic_write(ichannel_t *ic, int fd)
                 size_t remain = msg->dlen;
 
                 while (remain) {
-                    qv_append(iovec, &ic->iov,
+                    qv_append(&ic->iov,
                               MAKE_IOVEC((char *)msg->data + msg->dlen - remain,
                                          to_send));
                     remain -= to_send;
                     to_send = MIN(IC_PKT_MAX, remain);
                 }
             } else {
-                qv_append(iovec, &ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
+                qv_append(&ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
             }
             ic->iov_total_len += msg->dlen;
 
@@ -874,7 +874,7 @@ static void ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh)
             int fd_count = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
             int *fds = acast(int, CMSG_DATA(cmsg));
 
-            p_copy(qv_growlen(i32, &ic->fds, fd_count), fds, fd_count);
+            p_copy(qv_growlen(&ic->fds, fd_count), fds, fd_count);
           } break;
         }
     }
@@ -1385,11 +1385,11 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 dlen -= hlen;
 
                 /* Pack the given header in proxyfied request */
-                qv_inita(i32, &szs, 128);
+                qv_inita(&szs, 128);
                 hlen = iop_bpack_size(&ic__hdr__s, pxy_hdr, &szs);
                 buf = __ic_get_buf(tmp, hlen + dlen);
                 iop_bpack(buf, &ic__hdr__s, pxy_hdr, szs.tab);
-                qv_wipe(i32, &szs);
+                qv_wipe(&szs);
                 memcpy(buf + hlen, data, dlen);
             } else {
                 memcpy(__ic_get_buf(tmp, dlen), data, dlen);
@@ -1616,7 +1616,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                 return -1;
             } else {
                 ic->current_fd = ic->fds.tab[0];
-                qv_pop(i32, &ic->fds);
+                qv_pop(&ic->fds);
             }
             if (unlikely(ic->current_fd < 0)) {
                 logger_warning(&_G.logger, "file descriptor table overflow");
@@ -1726,7 +1726,7 @@ void ic_disconnect(ichannel_t *ic)
         ic_delete(&ic);
     } else {
         ic_choose_id(ic);
-        qv_clear(iovec, &ic->iov);
+        qv_clear(&ic->iov);
         ic->is_closing = false;
         ic->fd_overflow = false;
         ic->iov_total_len = 0;
@@ -1751,9 +1751,9 @@ void ic_wipe(ichannel_t *ic)
 #ifdef IC_DEBUG_REPLIES
     qh_init(ic_replies, &ic->dbg_replies);
 #endif
-    qv_wipe(iovec, &ic->iov);
+    qv_wipe(&ic->iov);
     sb_wipe(&ic->rbuf);
-    qv_wipe(i32, &ic->fds);
+    qv_wipe(&ic->fds);
     p_close(&ic->current_fd);
     lstr_wipe(&ic->peer_address);
     ic->is_wiped   = true;
@@ -2034,7 +2034,7 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
         bpack_flags = IOP_BPACK_SKIP_PRIVATE;
     }
 
-    qv_inita(i32, &szs, 1024);
+    qv_inita(&szs, 1024);
     if (msg->hdr) {
         int hlen, szpos;
 
@@ -2074,7 +2074,7 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
         logger_trace(&_G.tracing_logger, 1, "%*pM", SB_FMT_ARG(&sb));
     }
 
-    qv_wipe(i32, &szs);
+    qv_wipe(&szs);
 }
 
 void

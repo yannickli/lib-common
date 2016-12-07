@@ -774,9 +774,9 @@ static _Bool qv_sort_tst(void)
     qv_t(u32) tab;
 
 #define N  128
-    qv_inita(u32, &tab, N);
+    qv_inita(&tab, N);
     for (int i = 0; i < N; i++)
-        qv_append(u32, &tab, rand());
+        qv_append(&tab, rand());
     qv_sort(u32)(&tab, ^int (const uint32_t *v1, const uint32_t *v2) {
         return CMP(*v1, *v2);
     });
@@ -794,7 +794,7 @@ static void build_sorted_uniq_vec(qv_t(u32) *vec)
     int size = rand_range(0, N);
 
     for (int i = 0; i < size; i++) {
-        qv_append(u32, vec, rand_range(0, 4 * N));
+        qv_append(vec, rand_range(0, 4 * N));
     }
     dsort32(vec->tab, vec->len);
     vec->len = uniq32(vec->tab, vec->len);
@@ -826,7 +826,7 @@ static void do_qv_uniq(qv_t(u32) *uniqued_vec, qv_t(u32) *duplicated_vec)
         return CMP(*a, *b);
     },
     ^void (uint32_t *v) {
-        qv_append(u32, duplicated_vec, *v);
+        qv_append(duplicated_vec, *v);
     });
 }
 
@@ -840,9 +840,9 @@ static _Bool qv_search_tst(void)
         return CMP(*a, *b);
     };
 
-    t_qv_init(i32, &vec, N);
+    t_qv_init(&vec, N);
     for (int i = 0; i < N; i++)
-        qv_append(i32, &vec, 1 + i * 2);
+        qv_append(&vec, 1 + i * 2);
 
     for (int i = -2; i < 2 * N + 2; i++) {
         bool found_bisect = false;
@@ -886,7 +886,7 @@ Z_GROUP_EXPORT(qvector)
         int it;
         qv_t(u32) vec;
 
-        t_qv_init(u32, &vec, countof(table));
+        t_qv_init(&vec, countof(table));
         it = 0;
         qv_for_each_pos(u32, pos, &vec) {
             it++;
@@ -908,7 +908,7 @@ Z_GROUP_EXPORT(qvector)
         }
         Z_ASSERT_ZERO(it);
 
-        qv_splice(u32, &vec, 0, 0, table, countof(table));
+        qv_splice(&vec, 0, 0, table, countof(table));
 
         qv_for_each_pos(u32, pos, &vec) {
             Z_ASSERT_EQ(pos, it);
@@ -941,12 +941,12 @@ Z_GROUP_EXPORT(qvector)
         uint32_t table[] = { 8, 9, 1, 2, 5 };
         qv_t(u32) vec;
 
-        t_qv_init(u32, &vec, countof(table));
+        t_qv_init(&vec, countof(table));
 
         for (int i = 0; i <= countof(table); i++) {
-            qv_clear(u32, &vec);
-            qv_splice(u32, &vec, 0, 0, table, countof(table));
-            qv_clip(u32, &vec, i);
+            qv_clear(&vec);
+            qv_splice(&vec, 0, 0, table, countof(table));
+            qv_clip(&vec, i);
             Z_ASSERT_EQ(vec.len, i);
             qv_for_each_pos(u32, pos, &vec) {
                 Z_ASSERT_EQ(vec.tab[pos], table[pos]);
@@ -954,9 +954,9 @@ Z_GROUP_EXPORT(qvector)
         }
 
         for (int i = 0; i <= countof(table); i++) {
-            qv_clear(u32, &vec);
-            qv_splice(u32, &vec, 0, 0, table, countof(table));
-            qv_shrink(u32, &vec, i);
+            qv_clear(&vec);
+            qv_splice(&vec, 0, 0, table, countof(table));
+            qv_shrink(&vec, i);
             Z_ASSERT_EQ(vec.len, countof(table) - i);
             qv_for_each_pos(u32, pos, &vec) {
                 Z_ASSERT_EQ(vec.tab[pos], table[pos]);
@@ -964,9 +964,9 @@ Z_GROUP_EXPORT(qvector)
         }
 
         for (int i = 0; i <= countof(table); i++) {
-            qv_clear(u32, &vec);
-            qv_splice(u32, &vec, 0, 0, table, countof(table));
-            qv_skip(u32, &vec, i);
+            qv_clear(&vec);
+            qv_splice(&vec, 0, 0, table, countof(table));
+            qv_skip(&vec, i);
             Z_ASSERT_EQ(vec.len, countof(table) - i);
             qv_for_each_pos(u32, pos, &vec) {
                 Z_ASSERT_EQ(vec.tab[pos], table[i + pos]);
@@ -984,11 +984,11 @@ Z_GROUP_EXPORT(qvector)
         t_scope;
         qv_t(u32) vec1, vec2, add, del, inter;
 
-        t_qv_init(u32, &vec1,  N);
-        t_qv_init(u32, &vec2,  N);
-        t_qv_init(u32, &add,   N);
-        t_qv_init(u32, &del,   N);
-        t_qv_init(u32, &inter, N);
+        t_qv_init(&vec1,  N);
+        t_qv_init(&vec2,  N);
+        t_qv_init(&add,   N);
+        t_qv_init(&del,   N);
+        t_qv_init(&inter, N);
 
         build_sorted_uniq_vec(&vec1);
         build_sorted_uniq_vec(&vec2);
@@ -1042,14 +1042,14 @@ Z_GROUP_EXPORT(qvector)
         int res = 0;
         int awaiting_res = 0;
 
-        t_qv_init(i32, &vec2, N);
-        t_qv_init(i32, &vec1, N);
+        t_qv_init(&vec2, N);
+        t_qv_init(&vec1, N);
         for (int i = 0; i < N; i++) {
-            qv_append(i32, &vec1, i);
-            qv_append(i32, &vec2, N + i);
+            qv_append(&vec1, i);
+            qv_append(&vec2, N + i);
             awaiting_res += 2 * i + N;
         }
-        qv_extend(i32, &vec1, &vec2);
+        qv_extend(&vec1, &vec2);
 
         Z_ASSERT_EQ(vec1.len, 2 * N);
         qv_for_each_pos(i32, pos, &vec1) {
@@ -1061,13 +1061,13 @@ Z_GROUP_EXPORT(qvector)
         Z_ASSERT_EQ(res, awaiting_res);
 
         /* Extending self. */
-        t_qv_init(i32, &vec1, 100);
+        t_qv_init(&vec1, 100);
         for (int i = 0; i < (1 << 10); i++) {
-            qv_append(i32, &vec1, i);
+            qv_append(&vec1, i);
         }
 
         for (int i = 0; i < 10; i++) {
-            qv_extend(i32, &vec1, &vec1);
+            qv_extend(&vec1, &vec1);
         }
 
         Z_ASSERT_EQ(vec1.len, (1 << 20));
@@ -1085,12 +1085,12 @@ Z_GROUP_EXPORT(qvector)
         qv_t(str) vec1;
         qv_t(str) vec2;
 
-        qv_init(str, &vec1);
-        qv_init(str, &vec2);
-        qv_growlen(str, &vec1, 3);
+        qv_init(&vec1);
+        qv_init(&vec2);
+        qv_growlen(&vec1, 3);
         for (int i = 0; i < 3; i++) {
             vec1.tab[i] = p_strdup(palindrome[i]);
-            qv_append(str, &vec2, palindrome[i]);
+            qv_append(&vec2, palindrome[i]);
         }
 
         do_qv_deep_extend(&vec1, &vec2);
@@ -1116,15 +1116,15 @@ Z_GROUP_EXPORT(qvector)
                 Z_ASSERT_EQ(tmp1, vec1.tab[i - 3][len]);
             }
         }
-        qv_deep_wipe(str, &vec1, p_delete);
-        qv_wipe(str, &vec2);
+        qv_deep_wipe(&vec1, p_delete);
+        qv_wipe(&vec2);
     } Z_TEST_END;
 
     Z_TEST(mp_qv_init, "qvector: mp_qv_init leak") {
         qv_t(str) vec;
 
-        mp_qv_init(str, NULL, &vec, 0);
-        qv_deep_wipe(str, &vec, p_delete);
+        mp_qv_init(NULL, &vec, 0);
+        qv_deep_wipe(&vec, p_delete);
 
         Z_ASSERT(true);
     } Z_TEST_END;
@@ -1151,19 +1151,19 @@ Z_GROUP_EXPORT(qvector)
         uint32_t *ttab = t_dup(tab, countof(tab));
         const uint32_t *cttab = ttab;
 
-        qv_init_static(u32, &vec, tab, countof(tab));
+        qv_init_static(&vec, tab, countof(tab));
         Z_ASSERT(vec.tab == tab);
         Z_ASSERT_EQ(vec.len, countof(tab));
 
-        qv_init_static(u32, &vec, ctab, countof(ctab));
+        qv_init_static(&vec, ctab, countof(ctab));
         Z_ASSERT(vec.tab == ctab);
         Z_ASSERT_EQ(vec.len, countof(ctab));
 
-        qv_init_static(u32, &vec, ttab, countof(tab));
+        qv_init_static(&vec, ttab, countof(tab));
         Z_ASSERT(vec.tab == ttab);
         Z_ASSERT_EQ(vec.len, countof(tab));
 
-        qv_init_static(u32, &vec, cttab, countof(tab));
+        qv_init_static(&vec, cttab, countof(tab));
         Z_ASSERT(vec.tab == cttab);
         Z_ASSERT_EQ(vec.len, countof(tab));
     } Z_TEST_END
@@ -1178,10 +1178,10 @@ Z_GROUP_EXPORT(qvector)
         qv_t(u32) duplicated_vec;
 
         /* Init */
-        qv_init_static(u32, &static_vec, sorted, countof(sorted));
-        t_qv_init(u32, &uniqued_vec, static_vec.len);
-        qv_extend(u32, &uniqued_vec, &static_vec);
-        t_qv_init(u32, &duplicated_vec, countof(duplicated));
+        qv_init_static(&static_vec, sorted, countof(sorted));
+        t_qv_init(&uniqued_vec, static_vec.len);
+        qv_extend(&uniqued_vec, &static_vec);
+        t_qv_init(&duplicated_vec, countof(duplicated));
 
         /* Uniq vec */
         do_qv_uniq(&uniqued_vec, &duplicated_vec);

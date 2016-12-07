@@ -161,12 +161,12 @@ static inline const char *get_full_path(const char *file)
 
 #define t_push_loc(loc, ...)  \
     do {                                                                     \
-        qv_append(iopc_loc, &iopc_g.loc_stack, loc);                         \
-        qv_last(iopc_loc, &iopc_g.loc_stack)->comment = t_fmt(__VA_ARGS__);  \
+        qv_append(&iopc_g.loc_stack, loc);                         \
+        qv_last(&iopc_g.loc_stack)->comment = t_fmt(__VA_ARGS__);  \
     } while (0)
 
-#define pop_loc()          qv_shrink(iopc_loc, &iopc_g.loc_stack, 1)
-#define clear_loc()        qv_clear(iopc_loc,  &iopc_g.loc_stack)
+#define pop_loc()          qv_shrink(&iopc_g.loc_stack, 1)
+#define clear_loc()        qv_clear(&iopc_g.loc_stack)
 
 #define info_loc(fmt, loc, ...)   \
     do {                                                                     \
@@ -210,9 +210,9 @@ GENERIC_INIT(dox_chunk_t, dox_chunk);
 static inline void dox_chunk_wipe(dox_chunk_t *p)
 {
     lstr_wipe(&p->keyword);
-    qv_deep_wipe(lstr, &p->params, lstr_wipe);
-    qv_deep_wipe(lstr, &p->params_args, lstr_wipe);
-    qv_deep_wipe(sb, &p->paragraphs, sb_wipe);
+    qv_deep_wipe(&p->params, lstr_wipe);
+    qv_deep_wipe(&p->params_args, lstr_wipe);
+    qv_deep_wipe(&p->paragraphs, sb_wipe);
 }
 
 qvector_t(dox_chunk, dox_chunk_t);
@@ -225,7 +225,7 @@ static inline void dox_tok_wipe(dox_tok_t *p) {
     /* XXX: don't deep_wipe chunks when wiping dox_tok
      *      elements of chunks will be used after deletion of the token
      */
-    qv_wipe(dox_chunk, &p->chunks);
+    qv_wipe(&p->chunks);
 }
 GENERIC_NEW_INIT(dox_tok_t, dox_tok);
 GENERIC_DELETE(dox_tok_t, dox_tok);
@@ -313,13 +313,13 @@ typedef struct iopc_path_t {
 } iopc_path_t;
 static inline iopc_path_t *iopc_path_init(iopc_path_t *path) {
     p_clear(path, 1);
-    qv_init(str, &path->bits);
+    qv_init(&path->bits);
     return path;
 }
 static inline void iopc_path_wipe(iopc_path_t *path) {
     p_delete(&path->pretty_dot);
     p_delete(&path->pretty_slash);
-    qv_deep_wipe(str, &path->bits, p_delete);
+    qv_deep_wipe(&path->bits, p_delete);
 }
 DO_REFCNT(iopc_path_t, iopc_path);
 qvector_t(iopc_path, iopc_path_t *);
@@ -455,12 +455,12 @@ typedef struct iopc_attr_desc_t {
 
 static inline iopc_attr_desc_t *iopc_attr_desc_init(iopc_attr_desc_t *d) {
     p_clear(d, 1);
-    qv_init(iopc_arg_desc, &d->args);
+    qv_init(&d->args);
     return d;
 }
 static inline void iopc_attr_desc_wipe(iopc_attr_desc_t *d) {
     lstr_wipe(&d->name);
-    qv_deep_wipe(iopc_arg_desc, &d->args, iopc_arg_desc_wipe);
+    qv_deep_wipe(&d->args, iopc_arg_desc_wipe);
 }
 GENERIC_NEW(iopc_attr_desc_t, iopc_attr_desc);
 GENERIC_DELETE(iopc_attr_desc_t, iopc_attr_desc);
@@ -543,14 +543,14 @@ typedef struct iopc_attr_t {
 
 static inline iopc_attr_t *iopc_attr_init(iopc_attr_t *a) {
     p_clear(a, 1);
-    qv_init(iopc_arg, &a->args);
-    qv_init(iopc_extends, &a->snmp_params_from);
+    qv_init(&a->args);
+    qv_init(&a->snmp_params_from);
     return a;
 }
 static inline void iopc_attr_wipe(iopc_attr_t *a) {
     lstr_wipe(&a->real_name);
-    qv_deep_wipe(iopc_arg, &a->args, iopc_arg_wipe);
-    qv_deep_wipe(iopc_extends, &a->snmp_params_from, iopc_extends_delete);
+    qv_deep_wipe(&a->args, iopc_arg_wipe);
+    qv_deep_wipe(&a->snmp_params_from, iopc_extends_delete);
 }
 DO_REFCNT(iopc_attr_t, iopc_attr);
 qvector_t(iopc_attr, iopc_attr_t *);
@@ -681,9 +681,9 @@ typedef struct iopc_field_t {
 static inline iopc_field_t *iopc_field_init(iopc_field_t *field) {
     p_clear(field, 1);
     field->type = STRUCT_TYPE_TYPEDEF;
-    qv_init(iopc_attr, &field->attrs);
-    qv_init(iopc_dox, &field->comments);
-    qv_init(iopc_extends, &field->parents);
+    qv_init(&field->attrs);
+    qv_init(&field->comments);
+    qv_init(&field->parents);
     return field;
 }
 static inline void iopc_field_wipe(iopc_field_t *field) {
@@ -691,12 +691,12 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     p_delete(&field->type_name);
     p_delete(&field->pp_type);
     iopc_path_delete(&field->type_path);
-    qv_deep_wipe(iopc_attr, &field->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &field->comments, iopc_dox_wipe);
+    qv_deep_wipe(&field->attrs, iopc_attr_delete);
+    qv_deep_wipe(&field->comments, iopc_dox_wipe);
     if (field->defval_type == IOPC_DEFVAL_STRING) {
         p_delete(&field->defval.ptr);
     }
-    qv_deep_wipe(iopc_extends, &field->parents, iopc_extends_delete);
+    qv_deep_wipe(&field->parents, iopc_extends_delete);
 }
 DO_REFCNT(iopc_field_t, iopc_field);
 qvector_t(iopc_field, iopc_field_t *);
@@ -769,22 +769,22 @@ typedef struct iopc_struct_t {
 } iopc_struct_t;
 static inline iopc_struct_t *iopc_struct_init(iopc_struct_t *st) {
     p_clear(st, 1);
-    qv_init(iopc_field, &st->fields);
-    qv_init(iopc_field, &st->static_fields);
-    qv_init(iopc_extends, &st->extends);
-    qv_init(iopc_attr, &st->attrs);
-    qv_init(iopc_dox, &st->comments);
+    qv_init(&st->fields);
+    qv_init(&st->static_fields);
+    qv_init(&st->extends);
+    qv_init(&st->attrs);
+    qv_init(&st->comments);
     qm_init(id_class, &st->children_by_id);
     return st;
 }
 static inline void iopc_struct_delete(iopc_struct_t **);
 static inline void iopc_iface_delete(struct iopc_iface_t **);
 static inline void iopc_struct_wipe(iopc_struct_t *st) {
-    qv_deep_wipe(iopc_extends, &st->extends, iopc_extends_delete);
-    qv_deep_wipe(iopc_field, &st->fields, iopc_field_delete);
-    qv_deep_wipe(iopc_field, &st->static_fields, iopc_field_delete);
-    qv_deep_wipe(iopc_attr, &st->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &st->comments, iopc_dox_wipe);
+    qv_deep_wipe(&st->extends, iopc_extends_delete);
+    qv_deep_wipe(&st->fields, iopc_field_delete);
+    qv_deep_wipe(&st->static_fields, iopc_field_delete);
+    qv_deep_wipe(&st->attrs, iopc_attr_delete);
+    qv_deep_wipe(&st->comments, iopc_dox_wipe);
     p_delete(&st->name);
     lstr_wipe(&st->sig);
     qm_wipe(id_class, &st->children_by_id);
@@ -809,14 +809,14 @@ typedef struct iopc_enum_field_t {
 } iopc_enum_field_t;
 static inline iopc_enum_field_t *iopc_enum_field_init(iopc_enum_field_t *e) {
     p_clear(e, 1);
-    qv_init(iopc_attr, &e->attrs);
-    qv_init(iopc_dox, &e->comments);
+    qv_init(&e->attrs);
+    qv_init(&e->comments);
     return e;
 }
 static inline void iopc_enum_field_wipe(iopc_enum_field_t *e) {
     p_delete(&e->name);
-    qv_deep_wipe(iopc_attr, &e->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &e->comments, iopc_dox_wipe);
+    qv_deep_wipe(&e->attrs, iopc_attr_delete);
+    qv_deep_wipe(&e->comments, iopc_dox_wipe);
 }
 GENERIC_NEW(iopc_enum_field_t, iopc_enum_field);
 GENERIC_DELETE(iopc_enum_field_t, iopc_enum_field);
@@ -832,15 +832,15 @@ typedef struct iopc_enum_t {
 } iopc_enum_t;
 static inline iopc_enum_t *iopc_enum_init(iopc_enum_t *e) {
     p_clear(e, 1);
-    qv_init(iopc_enum_field, &e->values);
-    qv_init(iopc_attr, &e->attrs);
-    qv_init(iopc_dox, &e->comments);
+    qv_init(&e->values);
+    qv_init(&e->attrs);
+    qv_init(&e->comments);
     return e;
 }
 static inline void iopc_enum_wipe(iopc_enum_t *e) {
-    qv_deep_wipe(iopc_enum_field, &e->values, iopc_enum_field_delete);
-    qv_deep_wipe(iopc_attr, &e->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &e->comments, iopc_dox_wipe);
+    qv_deep_wipe(&e->values, iopc_enum_field_delete);
+    qv_deep_wipe(&e->attrs, iopc_attr_delete);
+    qv_deep_wipe(&e->comments, iopc_dox_wipe);
     p_delete(&e->name);
 }
 GENERIC_NEW(iopc_enum_t, iopc_enum);
@@ -875,8 +875,8 @@ typedef struct iopc_fun_t {
 } iopc_fun_t;
 static inline iopc_fun_t *iopc_fun_init(iopc_fun_t *fun) {
     p_clear(fun, 1);
-    qv_init(iopc_attr, &fun->attrs);
-    qv_init(iopc_dox, &fun->comments);
+    qv_init(&fun->attrs);
+    qv_init(&fun->comments);
     return fun;
 }
 static inline void iopc_fun_wipe(iopc_fun_t *fun) {
@@ -891,8 +891,8 @@ static inline void iopc_fun_wipe(iopc_fun_t *fun) {
     DELETE(exn);
 #undef DELETE
     p_delete(&fun->name);
-    qv_deep_wipe(iopc_attr, &fun->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &fun->comments, iopc_dox_wipe);
+    qv_deep_wipe(&fun->attrs, iopc_attr_delete);
+    qv_deep_wipe(&fun->comments, iopc_dox_wipe);
 }
 GENERIC_NEW(iopc_fun_t, iopc_fun);
 GENERIC_DELETE(iopc_fun_t, iopc_fun);
@@ -916,17 +916,17 @@ typedef struct iopc_iface_t {
 } iopc_iface_t;
 static inline iopc_iface_t *iopc_iface_init(iopc_iface_t *iface) {
     p_clear(iface, 1);
-    qv_init(iopc_fun, &iface->funs);
-    qv_init(iopc_attr, &iface->attrs);
-    qv_init(iopc_dox, &iface->comments);
-    qv_init(iopc_extends, &iface->extends);
+    qv_init(&iface->funs);
+    qv_init(&iface->attrs);
+    qv_init(&iface->comments);
+    qv_init(&iface->extends);
     return iface;
 }
 static inline void iopc_iface_wipe(iopc_iface_t *iface) {
-    qv_deep_wipe(iopc_fun, &iface->funs, iopc_fun_delete);
-    qv_deep_wipe(iopc_attr, &iface->attrs, iopc_attr_delete);
-    qv_deep_wipe(iopc_dox, &iface->comments, iopc_dox_wipe);
-    qv_deep_wipe(iopc_extends, &iface->extends, iopc_extends_delete);
+    qv_deep_wipe(&iface->funs, iopc_fun_delete);
+    qv_deep_wipe(&iface->attrs, iopc_attr_delete);
+    qv_deep_wipe(&iface->comments, iopc_dox_wipe);
+    qv_deep_wipe(&iface->extends, iopc_extends_delete);
     p_delete(&iface->name);
 }
 GENERIC_NEW(iopc_iface_t, iopc_iface);
@@ -955,24 +955,24 @@ struct iopc_pkg_t {
 static inline iopc_pkg_t *iopc_pkg_init(iopc_pkg_t *pkg) {
     p_clear(pkg, 1);
     sb_init(&pkg->verbatim_c);
-    qv_init(iopc_import, &pkg->imports);
-    qv_init(iopc_enum, &pkg->enums);
-    qv_init(iopc_struct, &pkg->structs);
-    qv_init(iopc_struct, &pkg->modules);
-    qv_init(iopc_iface, &pkg->ifaces);
-    qv_init(iopc_field, &pkg->typedefs);
-    qv_init(iopc_dox, &pkg->comments);
+    qv_init(&pkg->imports);
+    qv_init(&pkg->enums);
+    qv_init(&pkg->structs);
+    qv_init(&pkg->modules);
+    qv_init(&pkg->ifaces);
+    qv_init(&pkg->typedefs);
+    qv_init(&pkg->comments);
     return pkg;
 }
 static inline void iopc_pkg_wipe(iopc_pkg_t *pkg) {
     sb_wipe(&pkg->verbatim_c);
-    qv_deep_wipe(iopc_iface, &pkg->ifaces, iopc_iface_delete);
-    qv_deep_wipe(iopc_struct, &pkg->structs, iopc_struct_delete);
-    qv_deep_wipe(iopc_struct, &pkg->modules, iopc_struct_delete);
-    qv_deep_wipe(iopc_enum, &pkg->enums, iopc_enum_delete);
-    qv_deep_wipe(iopc_import, &pkg->imports, iopc_import_delete);
-    qv_deep_wipe(iopc_field, &pkg->typedefs, iopc_field_delete);
-    qv_deep_wipe(iopc_dox, &pkg->comments, iopc_dox_wipe);
+    qv_deep_wipe(&pkg->ifaces, iopc_iface_delete);
+    qv_deep_wipe(&pkg->structs, iopc_struct_delete);
+    qv_deep_wipe(&pkg->modules, iopc_struct_delete);
+    qv_deep_wipe(&pkg->enums, iopc_enum_delete);
+    qv_deep_wipe(&pkg->imports, iopc_import_delete);
+    qv_deep_wipe(&pkg->typedefs, iopc_field_delete);
+    qv_deep_wipe(&pkg->comments, iopc_dox_wipe);
     iopc_path_delete(&pkg->name);
     p_delete(&pkg->file);
     p_delete(&pkg->base);

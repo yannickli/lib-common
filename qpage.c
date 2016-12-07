@@ -344,7 +344,7 @@ static NEVER_INLINE int create_arena(size_t npages)
     run->mem_pages = pgs;
     run->npages    = npages;
     run->segment   = _G.segs.len;
-    qv_append(pgd, &_G.segs, run->pages);
+    qv_append(&_G.segs, run->pages);
     for (uint32_t i = 0; i <= npages; i++) {
         run->pages[i].blkno = i;
     }
@@ -655,7 +655,7 @@ static int qpage_shutdown(void)
     for (int i = 0; i < _G.segs.len; i++) {
         free(run_of(_G.segs.tab[i], 0));
     }
-    qv_wipe(pgd, &_G.segs);
+    qv_wipe(&_G.segs);
     p_delete(&_G.bits);
     p_delete(&_G.blks);
     return 0;

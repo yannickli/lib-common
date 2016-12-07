@@ -1481,7 +1481,7 @@ Z_GROUP_EXPORT(str)
     Z_TEST(ps_split, "str-stream: ps_split") {
         qv_t(lstr) arr;
 
-        qv_init(lstr, &arr);
+        qv_init(&arr);
 
 #define T(str1, str2, str3, sep, seps) \
         TST_MAIN(NULL, str1, str2, str3, sep, seps, 0)
@@ -1499,7 +1499,7 @@ Z_GROUP_EXPORT(str)
                 ps = ps_initstr(str1 sep str2 sep str3);                     \
             }                                                                \
             ctype_desc_build(&desc, seps);                                   \
-            qv_deep_clear(lstr, &arr, lstr_wipe);                            \
+            qv_deep_clear(&arr, lstr_wipe);                            \
             ps_split(ps, &desc, flags, &arr);                                \
             Z_ASSERT_EQ(arr.len, 3);                                         \
             Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str1));                      \
@@ -1515,7 +1515,7 @@ Z_GROUP_EXPORT(str)
         T("secret1", "secret2", "secret3", ",", " ,;");
         T("secret1", "secret2", "secret3", ";", " ,;");
 
-        qv_deep_wipe(lstr, &arr, lstr_wipe);
+        qv_deep_wipe(&arr, lstr_wipe);
 
         T_SKIP("//123//abc/!%*", "123", "abc", "!%*", "/");
         T_SKIP("$123$$$abc$!%*", "123", "abc", "!%*", "$");
@@ -1528,7 +1528,7 @@ Z_GROUP_EXPORT(str)
         T_SKIP("secret1;;,,secret2; ;secret3;;", "secret1", "secret2",
                "secret3", " ,;");
 
-        qv_deep_wipe(lstr, &arr, lstr_wipe);
+        qv_deep_wipe(&arr, lstr_wipe);
 #undef T
 #undef TST_MAIN
 #undef T_SKIP
@@ -2097,19 +2097,19 @@ Z_GROUP_EXPORT(str)
         qv_t(lstr) fields;                                                   \
         pstream_t str = ps_initstr(_str);                                    \
                                                                              \
-        qv_init(lstr, &fields)
+        qv_init(&fields)
 
 
 #define CSV_TEST_END()                                                       \
-        qv_deep_wipe(lstr, &fields, lstr_wipe)
+        qv_deep_wipe(&fields, lstr_wipe)
 
 #define CSV_TEST_GET_ROW(out_line)                                           \
-    qv_deep_clear(lstr, &fields, lstr_wipe);                                 \
+    qv_deep_clear(&fields, lstr_wipe);                                 \
     Z_ASSERT_N(ps_get_csv_line(NULL, &str, separator,                        \
                                quoting_character, &fields, out_line))
 
 #define CSV_TEST_FAIL_ROW() \
-    qv_deep_clear(lstr, &fields, lstr_wipe);                                 \
+    qv_deep_clear(&fields, lstr_wipe);                                 \
     Z_ASSERT_NEG(ps_get_csv_line(NULL, &str, separator, quoting_character,   \
                                  &fields, NULL))
 

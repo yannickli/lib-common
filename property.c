@@ -59,7 +59,7 @@ int props_from_fmtv1_cstr(const char *buf, qv_t(props) *props)
 #if 0   // XXX: NULL triggers Segfaults in user code :(
         prop->value = vlen ? p_dupz(v, vlen) : NULL;
 #endif
-        qv_append(props, props, prop);
+        qv_append(props, prop);
 
         pos = end + 1 - buf;
     }

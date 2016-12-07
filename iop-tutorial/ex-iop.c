@@ -153,7 +153,7 @@ static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
     if (evt == IC_EVT_CONNECTED) {
         e_notice("client %p connected", ic);
 
-        qv_append(ichannel, &_G.clients, ic);
+        qv_append(&_G.clients, ic);
 
     } else
     if (evt == IC_EVT_DISCONNECTED) {
@@ -162,7 +162,7 @@ static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
         /* delete client from vector */
         qv_for_each_pos(ichannel, i, &_G.clients) {
             if (_G.clients.tab[i] == ic) {
-                qv_remove(ichannel, &_G.clients, i);
+                qv_remove(&_G.clients, i);
                 break;
             }
         }
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
     if (_G.opt_client)
         ic_wipe(&_G.remote_ic);
 
-    qv_wipe(ichannel, &_G.clients);
+    qv_wipe(&_G.clients);
 
     MODULE_RELEASE(ic);
     return 0;

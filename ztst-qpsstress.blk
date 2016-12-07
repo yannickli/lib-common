@@ -45,10 +45,10 @@ static void qalloc(void)
     g = qps_sizeof(_G.qps, ptr);
     e_info("alloc h=%d, size=%zu, got=%zu", h, s, g);
     if (_G.free_list.len == 0) {
-        qv_append(i32, &_G.handles, h);
+        qv_append(&_G.handles, h);
     } else {
-        int pos = *qv_last(i32, &_G.free_list);
-        qv_shrink(i32, &_G.free_list, 1);
+        int pos = *qv_last(&_G.free_list);
+        qv_shrink(&_G.free_list, 1);
         _G.handles.tab[pos] = h;
     }
 }
@@ -108,15 +108,15 @@ static void qdealloc(void)
     find_handle(&h, &pos);
     qps_free(_G.qps, h);
     _G.handles.tab[pos] = -1;
-    qv_append(i32, &_G.free_list, pos);
+    qv_append(&_G.free_list, pos);
     e_info("dealloc h=%d", h);
 }
 
 static void qsnapshot(void)
 {
-    qv_splice(i32, &_G.snap_handles, 0, _G.snap_handles.len,
+    qv_splice(&_G.snap_handles, 0, _G.snap_handles.len,
               _G.handles.tab, _G.handles.len);
-    qv_splice(i32, &_G.snap_free_list, 0, _G.snap_free_list.len,
+    qv_splice(&_G.snap_free_list, 0, _G.snap_free_list.len,
               _G.free_list.tab, _G.free_list.len);
     qps_snapshot(_G.qps, NULL, 0, ^(uint32_t gen) {
         qps_gc_enable(_G.qps);
@@ -132,9 +132,9 @@ static void qsnapshot_wait(void)
 
 static void qreopen(void)
 {
-    qv_splice(i32, &_G.handles, 0, _G.handles.len,
+    qv_splice(&_G.handles, 0, _G.handles.len,
               _G.snap_handles.tab, _G.snap_handles.len);
-    qv_splice(i32, &_G.free_list, 0, _G.free_list.len,
+    qv_splice(&_G.free_list, 0, _G.free_list.len,
               _G.snap_free_list.tab, _G.snap_free_list.len);
     qps_close(&_G.qps);
     _G.qps = qps_open(_G.path, NULL);
@@ -146,12 +146,12 @@ static void check_qps(void)
 {
     static qps_roots_t roots;
 
-    qv_clear(qps_handle, &roots.handles);
-    qv_clear(qps_pg, &roots.pages);
+    qv_clear(&roots.handles);
+    qv_clear(&roots.pages);
 
     qv_for_each_pos (i32, pos, &_G.handles) {
         if (_G.handles.tab[pos] < 0) {
-            qv_append(qps_handle, &roots.handles, _G.handles.tab[pos]);
+            qv_append(&roots.handles, _G.handles.tab[pos]);
         }
     }
 

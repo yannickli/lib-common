@@ -422,7 +422,7 @@ iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st,
             if (qh_add(iop_type, type_idx, field->u1.st_desc))
                 continue;
 
-            qv_append(iop_enum, enums, field->u1.en_desc);
+            qv_append(enums, field->u1.en_desc);
         }
     }
 
@@ -431,7 +431,7 @@ iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st,
                              types, enums);
     }
 
-    qv_append(iop_type, types, st);
+    qv_append(types, st);
 }
 
 typedef void (^iop_rpc_loop_body_b)(const iop_iface_alias_t *, const iop_rpc_t *);
@@ -489,8 +489,8 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
     iop_rpc_loop_body_b scan_types, dump_alias;
 
     qh_init(iop_type,  &h);
-    qv_inita(iop_type, &a, 1024);
-    qv_inita(iop_enum, &b, 1024);
+    qv_inita(&a, 1024);
+    qv_inita(&b, 1024);
 
     scan_types = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
         const iop_struct_t *st;
@@ -623,8 +623,8 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
 
     xmlpp_closentag(&wpp->pp, 2);
 
-    qv_wipe(iop_type, &a);
-    qv_wipe(iop_enum, &b);
+    qv_wipe(&a);
+    qv_wipe(&b);
     qh_wipe(iop_type, &h);
 }
 

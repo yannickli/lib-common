@@ -502,7 +502,7 @@ qv_append_struct_xfields(qv_t(iop_xfield) *fields, const iop_struct_t *desc)
 
     while (fdesc != end) {
         xfield.fdesc = fdesc++;
-        qv_append(iop_xfield, fields, xfield);
+        qv_append(fields, xfield);
     }
 }
 
@@ -512,7 +512,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 {
     qv_t(iop_xfield) fields;
 
-    qv_inita(iop_xfield, &fields, desc->fields_len);
+    qv_inita(&fields, desc->fields_len);
     qv_append_struct_xfields(&fields, desc);
 
     return __xunpack_struct(xr, mp, value, flags, &fields);
@@ -575,10 +575,10 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     /* The fields will be present in the order "master -> children", not
      * "children -> master", so build a qvector of the parents.
      * Also check this the types are compatible. */
-    qv_inita(iop_struct, &parents, 8);
+    qv_inita(&parents, 8);
     desc_it = real_desc;
     do {
-        qv_append(iop_struct, &parents, desc_it);
+        qv_append(&parents, desc_it);
         if (desc_it == desc) {
             found_desc = true;
         }
@@ -587,7 +587,7 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         xmlr_fail(xr, "class `%*pM' is not a child of `%*pM'",
                   LSTR_FMT_ARG(real_desc->fullname),
                   LSTR_FMT_ARG(desc->fullname));
-        qv_wipe(iop_struct, &parents);
+        qv_wipe(&parents);
         return -1;
     }
 
@@ -598,15 +598,15 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     *(const iop_struct_t **)(*value) = real_desc;
 
     /* Build fields vector, and unpack fields */
-    qv_inita(iop_xfield, &fields, 32);
+    qv_inita(&fields, 32);
     for (int pos = parents.len; pos-- > 0; ) {
         qv_append_struct_xfields(&fields, parents.tab[pos]);
     }
-    qv_wipe(iop_struct, &parents);
+    qv_wipe(&parents);
 
     res = __xunpack_struct(xr, mp, *value, flags, &fields);
 
-    qv_wipe(iop_xfield, &fields);
+    qv_wipe(&fields);
     return res;
 }
 

@@ -384,7 +384,7 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     /* XXX: Use a small t_qv here to force a realloc during (un)packing and
      *      detect possible illegal usage of the t_pool in the (un)packing
      *      functions. */
-    t_qv_init(i32, &szs, 2);
+    t_qv_init(&szs, 2);
 
     /* packing */
     Z_ASSERT_N((len = iop_bpack_size_flags(st, v, flags, &szs)),
@@ -462,7 +462,7 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     /* XXX: Use a small t_qv here to force a realloc during (un)packing and
      *      detect possible illegal usage of the t_pool in the (un)packing
      *      functions. */
-    t_qv_init(i32, &szs, 2);
+    t_qv_init(&szs, 2);
 
     /* here packing will work... */
     Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
@@ -821,17 +821,17 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));
         Z_ASSERT(st != &ic__simple_hdr__s);
 
-        t_qv_init(cstr, &ressources_str, 0);
+        t_qv_init(&ressources_str, 0);
         iop_dso_for_each_ressource(dso, str, ressource) {
-            qv_append(cstr, &ressources_str, *ressource);
+            qv_append(&ressources_str, *ressource);
         }
         Z_ASSERT_EQ(ressources_str.len, 2, "loading ressources failed");
         Z_ASSERT_ZERO(strcmp(ressources_str.tab[0], z_ressource_str_a));
         Z_ASSERT_ZERO(strcmp(ressources_str.tab[1], z_ressource_str_b));
 
-        t_qv_init(i32, &ressources_int, 0);
+        t_qv_init(&ressources_int, 0);
         iop_dso_for_each_ressource(dso, int, ressource) {
-            qv_append(i32, &ressources_int, *ressource);
+            qv_append(&ressources_int, *ressource);
         }
         Z_ASSERT_EQ(ressources_int.len, 2, "loading ressources failed");
         Z_ASSERT_EQ(ressources_int.tab[0], z_ressources_int_1);
@@ -1984,7 +1984,7 @@ Z_GROUP_EXPORT(iop)
             iop_json_subfile_t _subfiles_exp[] = { __VA_ARGS__ };            \
             int _subfiles_nb = countof(_subfiles_exp);                       \
                                                                              \
-            t_qv_init(iop_json_subfile, &_subfiles, _subfiles_nb);           \
+            t_qv_init(&_subfiles, _subfiles_nb);           \
             _path = t_fmt("%*pM/iop/tstiop_file_inclusion_" _file ".json",   \
                           LSTR_FMT_ARG(z_cmddir_g));                         \
             Z_ASSERT_N(t_iop_junpack_file(_path, &_type##__s, _res, 0,       \
@@ -2081,22 +2081,22 @@ Z_GROUP_EXPORT(iop)
         /* }}} */
         /* {{{ Packer tests */
 
-        t_qv_init(iop_json_subfile, &sub_files,   16);
-        t_qv_init(z_json_sub_file,  &z_sub_files, 16);
+        t_qv_init(&sub_files,   16);
+        t_qv_init(&z_sub_files, 16);
 
 #define CLEAR_SUB_FILES()  \
         do {                                                                 \
-            qv_clear(iop_json_subfile, &sub_files);                          \
-            qv_clear(z_json_sub_file,  &z_sub_files);                        \
+            qv_clear(&sub_files);                          \
+            qv_clear(&z_sub_files);                        \
         } while (0)
 
 #define ADD_SUB_FILE(_st, _val, _iop_path, _file_path)  \
         do {                                                                 \
-            qv_append(iop_json_subfile, &sub_files, ((iop_json_subfile_t) {  \
+            qv_append(&sub_files, ((iop_json_subfile_t) {  \
                 .iop_path = LSTR(_iop_path),                                 \
                 .file_path = LSTR(_file_path),                               \
             }));                                                             \
-            qv_append(z_json_sub_file, &z_sub_files, ((z_json_sub_file_t) {  \
+            qv_append(&z_sub_files, ((z_json_sub_file_t) {  \
                 .st   = (_st),                                               \
                 .val  = (_val),                                              \
                 .path = (_file_path),                                        \
@@ -2309,7 +2309,7 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR("tstiop.MyStructG")));
 
-        t_qv_init(i32, &szs, 1024);
+        t_qv_init(&szs, 1024);
 
         /* test with all the default values */
         iop_init_desc(st_sg, &sg);
@@ -2364,7 +2364,7 @@ Z_GROUP_EXPORT(iop)
         bpacked = t_iop_bpack_struct(&tstiop_inheritance__c5__s, &c5);
         Z_ASSERT(bpacked.s);
 
-        t_qv_init(i32, &szs, 16);
+        t_qv_init(&szs, 16);
         Z_ASSERT_NEG(iop_bunpack_ptr_flags(t_pool(), &tstiop_inheritance__c5__s,
                                            &out, ps_initlstr(&bpacked),
                                            IOP_UNPACK_FORBID_PRIVATE));
@@ -2758,7 +2758,7 @@ Z_GROUP_EXPORT(iop)
         qv_t(my_struct_m)  mvec;
         qv_t(my_class2) cls2_vec;
 
-        qv_init(my_struct_a, &vec);
+        qv_init(&vec);
         iop_init(tstiop__my_struct_a, &a);
         iop_init(tstiop__my_class2, &cls2);
         iop_init(tstiop__my_class3, &cls3);
@@ -2772,7 +2772,7 @@ Z_GROUP_EXPORT(iop)
         cls3.int2 = 100;
         cls3.int3 = 1000;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls3.super);
-        qv_append(my_struct_a, &vec, a);
+        qv_append(&vec, a);
 
         un[1] = IOP_UNION(tstiop__my_union_a, ub, 23);
         a.e = 2;
@@ -2782,7 +2782,7 @@ Z_GROUP_EXPORT(iop)
         cls2.int1 = 15;
         cls2.int2 = 95;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
-        qv_append(my_struct_a, &vec, a);
+        qv_append(&vec, a);
 
         un[2] = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.e = 3;
@@ -2793,7 +2793,7 @@ Z_GROUP_EXPORT(iop)
         cls3.int2 = 98;
         cls3.int3 = 1000;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls3.super);
-        qv_append(my_struct_a, &vec, a);
+        qv_append(&vec, a);
 
         un[3] = IOP_UNION(tstiop__my_union_a, ua, 666);
         a.e = 3;
@@ -2803,7 +2803,7 @@ Z_GROUP_EXPORT(iop)
         cls2.int1 = 14;
         cls2.int2 = 96;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
-        qv_append(my_struct_a, &vec, a);
+        qv_append(&vec, a);
 
         un[4] = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.e = 3;
@@ -2813,7 +2813,7 @@ Z_GROUP_EXPORT(iop)
         cls2.int1 = 16;
         cls2.int2 = 97;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
-        qv_append(my_struct_a, &vec, a);
+        qv_append(&vec, a);
 
 #define TST_SORT_VEC(p, f)  \
         iop_sort(tstiop__my_struct_a, vec.tab, vec.len, p, f, NULL)
@@ -2967,36 +2967,36 @@ Z_GROUP_EXPORT(iop)
         /* error: get subfield of class */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("cls2._class.int2"), 0));
 
-        qv_wipe(my_struct_a, &vec);
+        qv_wipe(&vec);
 #undef TST_SORT_VEC
 
-        qv_init(my_struct_a_opt, &vec2);
+        qv_init(&vec2);
         iop_init(tstiop__my_struct_a_opt, &a2);
 
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
         OPT_SET(a2.a, 42);
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
         OPT_SET(a2.a, 43);
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
         OPT_CLR(a2.a);
         a2.j = LSTR("abc");
         a2.l = &IOP_UNION(tstiop__my_union_a, ua, 222);
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
         a2.j = LSTR("def");
         a2.l = &IOP_UNION(tstiop__my_union_a, ub, 222);
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
         a2.l = &IOP_UNION(tstiop__my_union_a, us, LSTR("xyz"));
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
 
         iop_init(tstiop__my_struct_b, &b1);
         OPT_SET(b1.a, 42);
         a2.o = &b1;
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
 
         iop_init(tstiop__my_struct_b, &b2);
         OPT_SET(b2.a, 72);
         a2.o = &b2;
-        qv_append(my_struct_a_opt, &vec2, a2);
+        qv_append(&vec2, a2);
 
 #define TST_SORT_VEC(p, f)  \
         iop_sort(tstiop__my_struct_a_opt, vec2.tab, vec2.len, p, f, NULL)
@@ -3028,21 +3028,21 @@ Z_GROUP_EXPORT(iop)
         /* error: cannot sort on struct */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("o"), 0));
 
-        qv_wipe(my_struct_a_opt, &vec2);
+        qv_wipe(&vec2);
 #undef TST_SORT_VEC
 
-        qv_init(my_struct_m, &mvec);
+        qv_init(&mvec);
         iop_init(tstiop__my_struct_m, &m);
 
         m.k.j.cval = 5;
         m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 55);
-        qv_append(my_struct_m, &mvec, m);
+        qv_append(&mvec, m);
         m.k.j.cval = 4;
         m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 44);
-        qv_append(my_struct_m, &mvec, m);
+        qv_append(&mvec, m);
         m.k.j.cval = 3;
         m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 33);
-        qv_append(my_struct_m, &mvec, m);
+        qv_append(&mvec, m);
 
 #define TST_SORT_VEC(p, f)  \
         iop_sort(tstiop__my_struct_m, mvec.tab, mvec.len, p, f, NULL)
@@ -3060,22 +3060,22 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(mvec.tab[1].k.j.b.bval, 44);
         Z_ASSERT_EQ(mvec.tab[2].k.j.b.bval, 55);
 
-        qv_wipe(my_struct_m, &mvec);
+        qv_wipe(&mvec);
 #undef TST_SORT_VEC
 
-        t_qv_init(my_class2, &cls2_vec, 3);
+        t_qv_init(&cls2_vec, 3);
 
         cls2.int1 = 3;
         cls2.int2 = 4;
-        qv_append(my_class2, &cls2_vec,
+        qv_append(&cls2_vec,
                   t_iop_dup(tstiop__my_class2, &cls2));
         cls2.int1 = 2;
         cls2.int2 = 5;
-        qv_append(my_class2, &cls2_vec,
+        qv_append(&cls2_vec,
                   t_iop_dup(tstiop__my_class2, &cls2));
         cls2.int1 = 1;
         cls2.int2 = 6;
-        qv_append(my_class2, &cls2_vec,
+        qv_append(&cls2_vec,
                   t_iop_dup(tstiop__my_class2, &cls2));
 
 #define TST_SORT_VEC(p, f)  \
@@ -3100,11 +3100,11 @@ Z_GROUP_EXPORT(iop)
         qv_t(my_struct_a) sorted;
         qv_t(iop_sort) params;
 
-        t_qv_init(my_struct_a, &original, 3);
-        t_qv_init(my_struct_a, &sorted, 3);
-        t_qv_init(iop_sort, &params, 2);
+        t_qv_init(&original, 3);
+        t_qv_init(&sorted, 3);
+        t_qv_init(&params, 2);
 
-        qv_growlen(my_struct_a, &original, 3);
+        qv_growlen(&original, 3);
         iop_init(tstiop__my_struct_a, &original.tab[0]);
         iop_init(tstiop__my_struct_a, &original.tab[1]);
         iop_init(tstiop__my_struct_a, &original.tab[2]);
@@ -3123,7 +3123,7 @@ Z_GROUP_EXPORT(iop)
 
 
 #define ADD_PARAM(_field, _flags)  do {                                      \
-        qv_append(iop_sort, &params, ((iop_sort_t){                          \
+        qv_append(&params, ((iop_sort_t){                          \
             .field_path = LSTR(_field),                                      \
             .flags = _flags,                                                 \
         }));                                                                 \
@@ -3144,25 +3144,25 @@ Z_GROUP_EXPORT(iop)
     } while (0)
 
         /* Simple sort */
-        qv_copy(my_struct_a, &sorted, &original);
-        qv_clear(iop_sort, &params);
+        qv_copy(&sorted, &original);
+        qv_clear(&params);
         ADD_PARAM("a", IOP_SORT_REVERSE);
         SORT_AND_CHECK(2, 1, 0);
 
         /* Double sort */
-        qv_clear(iop_sort, &params);
+        qv_clear(&params);
         ADD_PARAM("b", 0);
         ADD_PARAM("d", 0);
         SORT_AND_CHECK(1, 0, 2);
 
         /* Double sort reverse on first */
-        qv_clear(iop_sort, &params);
+        qv_clear(&params);
         ADD_PARAM("b", IOP_SORT_REVERSE);
         ADD_PARAM("d", 0);
         SORT_AND_CHECK(2, 1, 0);
 
         /* Double sort reverse on last */
-        qv_clear(iop_sort, &params);
+        qv_clear(&params);
         ADD_PARAM("b", 0);
         ADD_PARAM("d", IOP_SORT_REVERSE);
         SORT_AND_CHECK(0, 1, 2);
@@ -3180,7 +3180,7 @@ Z_GROUP_EXPORT(iop)
         qv_t(my_struct_g) original;
         void **allowed = t_new_raw(void *, 3);
 
-        t_qv_init(my_struct_g, &original, 3);
+        t_qv_init(&original, 3);
 
         iop_init(tstiop__my_struct_g, &first);
         iop_init(tstiop__my_struct_g, &second);
@@ -3219,8 +3219,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &third);
 
         /* Filter on several values */
-        qv_clear(my_struct_g, &original);
-        t_qv_init(my_struct_g, &original, 3);
+        qv_clear(&original);
+        t_qv_init(&original, 3);
         original.tab[0] = first;
         original.tab[1] = second;
         original.tab[2] = third;
@@ -3233,8 +3233,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[2], &third);
 
         /* Filter with no match */
-        qv_clear(my_struct_g, &original);
-        t_qv_init(my_struct_g, &original, 3);
+        qv_clear(&original);
+        t_qv_init(&original, 3);
         original.tab[0] = first;
         original.tab[1] = second;
         original.tab[2] = third;
@@ -3244,8 +3244,8 @@ Z_GROUP_EXPORT(iop)
         FILTER_AND_CHECK_LEN("a", 1, 0);
 
         /* Filter excluding tip */
-        qv_clear(my_struct_g, &original);
-        t_qv_init(my_struct_g, &original, 3);
+        qv_clear(&original);
+        t_qv_init(&original, 3);
         original.tab[0] = first;
         original.tab[1] = second;
         original.tab[2] = third;
@@ -3267,7 +3267,7 @@ Z_GROUP_EXPORT(iop)
         void **allowed = t_new_raw(void *, 3);
         lstr_t class_name;
 
-        t_qv_init(my_class2, &original, 3);
+        t_qv_init(&original, 3);
         original.tab[0] = t_new_raw(tstiop__my_class2__t, 1);
         original.tab[1] = t_new_raw(tstiop__my_class2__t, 1);
         original.tab[2] =
@@ -3283,7 +3283,7 @@ Z_GROUP_EXPORT(iop)
         original.tab[2]->int2 = 1;
         original.len = 3;
 
-        t_qv_init(my_class2, &vec, 3);
+        t_qv_init(&vec, 3);
         vec.tab[0] = t_iop_dup(tstiop__my_class2, original.tab[0]);
         vec.tab[1] = t_iop_dup(tstiop__my_class2, original.tab[1]);
         vec.tab[2] = t_iop_dup(tstiop__my_class2, original.tab[2]);
@@ -3338,7 +3338,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t filter;
         void **allowed = t_new_raw(void *, 1);
 
-        t_qv_init(my_struct_g, &original, 3);
+        t_qv_init(&original, 3);
 
         iop_init(tstiop__my_struct_g, &first);
         iop_init(tstiop__my_struct_g, &second);
@@ -3390,7 +3390,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_a_opt__t third;
         qv_t(my_struct_a_opt) original;
 
-        t_qv_init(my_struct_a_opt, &original, 3);
+        t_qv_init(&original, 3);
 
         iop_init(tstiop__my_struct_a_opt, &first);
         iop_init(tstiop__my_struct_a_opt, &second);
@@ -4511,7 +4511,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR("tstiop.MyStructA")));
         Z_ASSERT_P(st_cls2 = iop_dso_find_type(dso, LSTR("tstiop.MyClass2")));
 
-        t_qv_init(i32, &szs, 1024);
+        t_qv_init(&szs, 1024);
         iop_init_desc(st_cls2, &cls2);
 
         /* packing */
@@ -5384,14 +5384,14 @@ Z_GROUP_EXPORT(iop)
         void *v, *vtest;
         pstream_t ps;
 
-        qv_init(iop_field_info, &fields_info);
-        qv_init(lstr, &fields_name);
+        qv_init(&fields_info);
+        qv_init(&fields_name);
 
 #define POLULATE_FIELDSINFO(_type, _name, _repeated)                 \
         info.type = _type;                                           \
         info.name = _name;                                           \
         info.repeat = _repeated;                                     \
-        qv_append(iop_field_info, &fields_info, info)
+        qv_append(&fields_info, info)
 
         POLULATE_FIELDSINFO(IOP_T_I8,     LSTR("f0"), IOP_R_REQUIRED);
         POLULATE_FIELDSINFO(IOP_T_I16,    LSTR("f1"), IOP_R_REQUIRED);
@@ -5541,8 +5541,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(iop_equals_desc(st, v, vtest));
 
         /* clear */
-        qv_wipe(iop_field_info, &fields_info);
-        qv_wipe(lstr, &fields_name);
+        qv_wipe(&fields_info);
+        qv_wipe(&fields_name);
         p_delete(&st);
     } Z_TEST_END
     /* }}} */
