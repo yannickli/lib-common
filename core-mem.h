@@ -60,7 +60,8 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
     return (char *)dst + 1;
 }
 
-#define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
+#define p_clear(p, count)                                                    \
+    ({ (typeof(*(p)) *)memset((p), 0, sizeof(*(p)) * (count)); })
 
 #define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
@@ -841,8 +842,7 @@ void r_pool_destroy(void) __leaf;
 #define DO_INIT(type, prefix) \
     __attr_nonnull__((1))                                   \
     type *prefix##_init(type *var) {                        \
-        p_clear(var, 1);                                    \
-        return var;                                         \
+        return p_clear(var, 1);                             \
     }
 #define DO_NEW(type, prefix) \
     __attribute__((malloc)) type *prefix##_new(void) {      \
