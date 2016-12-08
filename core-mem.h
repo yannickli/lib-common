@@ -835,8 +835,10 @@ void r_pool_destroy(void) __leaf;
 #define p_alloca_raw(type_t, count)                                          \
     ((type_t *)alloca(sizeof(type_t) * (count)))
 
-#define p_alloca(type, count)                                                \
-    ((type *)memset(alloca(sizeof(type) * (count)), 0, sizeof(type) * (count)))
+#define p_alloca(type_t, count)                                              \
+    ({  size_t __count = (count);                                            \
+        p_clear(p_alloca_raw(type_t, __count), __count);                     \
+    })
 
 /* }}} */
 /* }}} */
