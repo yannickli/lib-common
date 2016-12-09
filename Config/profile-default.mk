@@ -21,7 +21,10 @@ ifndef SPARSE
 endif
 CFLAGS += -fno-omit-frame-pointer -fvisibility=hidden
 CXXFLAGS += -fno-omit-frame-pointer -fvisibility=hidden
-LDFLAGS += -rdynamic
+ifneq ($(OS),darwin)
+LDFLAGS += -Xlinker -export-dynamic
+endif
+SWIFTFLAGS += -g -O
 
 clang-analyzer: __setup_forward
 	MAKELEVEL=0 scan-build --use-analyzer $(shell which clang) --use-cc $(shell which clang) --use-c++ $(shell which clang++) $(MAKE)

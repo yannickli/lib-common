@@ -106,6 +106,28 @@ check_iopc() {
     setenv "IOPVER" "-5"
 }
 
+check_swift() {
+    SWIFT_VER=3.0.1
+
+    if ! which "swiftc" >/dev/null 2>&1; then
+        log "disabling swift support"
+        return
+    fi
+
+    case "$OS" in
+        darwin)
+            CUR_VER="$(swiftc -v 2>&1 | grep 'Apple Swift version' | cut -d ' ' -f 4 | sed 's/-dev/.0/')"
+            ;;
+        *)
+            CUR_VER="$(swiftc -v 2>&1 | grep 'Swift version' | cut -d ' ' -f 3 | sed 's/-dev/.0/')"
+            ;;
+    esac
+    if ! prereq "$SWIFT_VER" "$CUR_VER"; then
+        warn "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
+    fi
+    setenv "SWIFTC" "$(which swiftc)"
+}
+
 __check_python_mod() {
     mod="$1"
     msg="$2"
@@ -162,6 +184,7 @@ fi
 for tool in clang clang++ flex gperf xsltproc; do
     check_tool $tool $tool
 done
+check_swift
 
 # }}}
 # {{{ pkg-config packages

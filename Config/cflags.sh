@@ -1,12 +1,28 @@
 #!/bin/sh -e
 
 cc="$1"
+
+case "$cc" in
+    swiftc)
+        swift_version="$("$cc" --version | grep 'Swift version' | cut -d ' ' -f 3)"
+        cc="clang"
+        case "$swift_version" in
+            3.0.*)
+                clang_version="3.7.0"
+                ;;
+            *)
+                ;;
+        esac
+        ;;
+    *)
+        if [ "$OS" = "darwin" ]; then
+            clang_version="3.7.0"
+        else
+            clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
+        fi
+        ;;
+esac
 version=$("$cc" -dumpversion)
-if [ "$OS" = "darwin" ]; then
-    clang_version="3.7.0"
-else
-    clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
-fi
 
 prereq() {
     want="$1"
@@ -42,7 +58,7 @@ is_clang()
         return 0
     fi
     case "$cc" in
-        clang*|*c*-analyzer) return 0;;
+        swift|clang*|*c*-analyzer) return 0;;
         *) return 1;;
     esac
 }

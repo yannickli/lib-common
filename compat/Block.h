@@ -62,7 +62,7 @@ static inline void *Block_copy(const void *blk)
 #define Block_copy(...) ((__typeof(__VA_ARGS__))_Block_copy((const void *)(__VA_ARGS__)))
 #endif
 
-#define Block_release(...) _Block_release((const void *)(__VA_ARGS__))
+#define Block_release(...) _Block_release((__bridge const void *)(__VA_ARGS__))
 
 
 #endif

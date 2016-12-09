@@ -90,6 +90,12 @@
 # define null_unspecified  _Null_unspecified
 #endif
 
+#if  !__has_feature(objc_arc)
+# define __bridge
+# define __bridge_transfer
+# define __bridge_retain
+#endif
+
 #ifdef __cplusplus
 #define restrict
 #endif

@@ -13,15 +13,15 @@
 
 ifeq (,$(NOCOMPRESS))
 ifneq (,$(shell ld --help | grep compress-debug-sections))
-    LDFLAGS += -Wl,--compress-debug-sections=zlib
+    LDFLAGS += -Xlinker --compress-debug-sections=zlib
 endif
 endif
 
 ifeq ($(OS),darwin)
 	CC_BASE  := clang
 	CXX_BASE := clang++
-	LDFLAGS  := -Wl,-arch,x86_64 -Wl,-macosx_version_min,10.12.0 -framework CoreServices
-	LDSHAREDFLAGS := -Wl,-undefined,dynamic_lookup
+	LDFLAGS  := -Xlinker -arch -Xlinker x86_64 -Xlinker -macosx_version_min -Xlinker 10.12.0 -framework CoreServices
+	LDSHAREDFLAGS := -Xlinker -undefined -Xlinker dynamic_lookup
 else
 ifeq ($(filter %-analyzer,$(CC)),)
 	CC_BASE  := $(notdir $(CC))
@@ -50,6 +50,9 @@ $!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
 	echo                                          >> $@+
 	/bin/echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
 	$(var/cfgdir)/cflags.sh "clang++" "rewrite"   >> $@+
+	echo                                          >> $@+
+	/bin/echo -n "CLANGSWIFTFLAGS := "            >> $@+
+	$(var/cfgdir)/cflags.sh "swiftc"              >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
@@ -88,11 +91,13 @@ CLANGXXFLAGS        += $(CFLAGSBASE)
 CLANGXXREWRITEFLAGS += $(CFLAGSBASE)
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
+CLANGSWIFTFLAGS     += $(CFLAGSBASE)
 else
 CLANGFLAGS          = $(CFLAGS)
 CLANGREWRITEFLAGS   = $(CFLAGS)
 CLANGXXFLAGS        = $(CXXFLAGS)
 CLANGXXREWRITEFLAGS = $(CXXFLAGS)
+CLANGSWIFTFLAGS     = $(CFLAGS)
 endif
 
 ifeq ($(NOASSERT),1)

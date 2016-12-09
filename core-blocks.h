@@ -31,13 +31,13 @@
 #ifdef __has_blocks
 static inline void block_run(void * nonnull blk_)
 {
-    block_t blk = (block_t)blk_;
+    block_t blk = (__bridge block_t)blk_;
     blk();
 }
 
 static inline void block_run_and_release(void * nonnull blk_)
 {
-    block_t blk = (block_t)blk_;
+    block_t blk = (__bridge block_t)blk_;
     blk();
     Block_release(blk);
 }
