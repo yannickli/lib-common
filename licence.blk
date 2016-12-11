@@ -115,7 +115,7 @@ int licence_do_signature(const conf_t *conf, char dst[65])
     qv_init(&tosign);
     qv_copy(&tosign, &s->vals);
 
-    qv_for_each_pos_safe(props, i, &tosign) {
+    tab_for_each_pos_safe(i, &tosign) {
         property_t *prop = tosign.tab[i];
 
         for (const char **bl = blacklisted; *bl; bl++) {

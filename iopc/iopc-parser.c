@@ -71,12 +71,12 @@ static bool warn(qv_t(iopc_attr) *attrs, const char *category)
     if (!attrs)
         return true;
 
-    qv_for_each_entry(iopc_attr, attr, attrs) {
+    tab_for_each_entry(attr, attrs) {
         if (attr->desc->id != IOPC_ATTR_NOWARN) {
             continue;
         }
 
-        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+        tab_for_each_ptr(arg, &attr->args) {
             if (lstr_equal(arg->v.s, s)) {
                 return false;
             }
@@ -291,7 +291,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
       default:              type = IOPC_ATTR_T_INT; break;
     }
 
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         if (!(attr->desc->types & type)) {
             throw_loc("attribute %*pM does not apply to %s",
                       attr->loc,
@@ -345,11 +345,11 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                           "field", attr->loc);
             }
 
-            qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+            tab_for_each_ptr(arg, &attr->args) {
                 bool found = false;
 
                 if (type == IOPC_ATTR_T_UNION) {
-                    qv_for_each_entry(iopc_field, uf, &f->union_def->fields) {
+                    tab_for_each_entry(uf, &f->union_def->fields) {
                         if (strequal(uf->name, arg->v.s.s)) {
                             found = true;
                             break;
@@ -357,7 +357,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                     }
                 } else
                 if (type == IOPC_ATTR_T_ENUM) {
-                    qv_for_each_entry(iopc_enum_field, ef,
+                    tab_for_each_entry(ef,
                                       &f->enum_def->values)
                     {
                         if (strequal(ef->name, arg->v.s.s)) {
@@ -581,7 +581,7 @@ static void init_attributes(void)
 static int
 check_attr_multi(qv_t(iopc_attr) *attrs, iopc_attr_t *attr, int *pos_out)
 {
-    qv_for_each_pos(iopc_attr, pos, attrs) {
+    tab_for_each_pos(pos, attrs) {
         iopc_attr_t *a = attrs->tab[pos];
 
         if (a->desc == attr->desc) {
@@ -614,7 +614,7 @@ int
 iopc_attr_check(const qv_t(iopc_attr) *attrs, iopc_attr_id_t attr_id,
                 const qv_t(iopc_arg) **out)
 {
-    qv_for_each_entry(iopc_attr, e, attrs) {
+    tab_for_each_entry(e, attrs) {
         if (e->desc->id == attr_id) {
             if (out) {
                 *out = &e->args;
@@ -970,7 +970,7 @@ static void debug_dump_dox(qv_t(iopc_dox) comments, const char *name)
 
     e_trace(DEBUG_LVL, "BUILT DOX COMMENTS for %s", name);
 
-    qv_for_each_ptr(iopc_dox, dox, &comments) {
+    tab_for_each_ptr(dox, &comments) {
         lstr_t type = iopc_dox_type_to_lstr(dox->type);
 
         e_trace(DEBUG_LVL, "type: %*pM", LSTR_FMT_ARG(type));
@@ -1049,7 +1049,7 @@ static int iopc_dox_check_keyword(lstr_t keyword, int * nullable type)
 iopc_dox_t *
 iopc_dox_find_type(const qv_t(iopc_dox) *comments, iopc_dox_type_t type)
 {
-    qv_for_each_ptr(iopc_dox, p, comments) {
+    tab_for_each_ptr(p, comments) {
         if (p->type == type)
             return p;
     }
@@ -1093,7 +1093,7 @@ iopc_dox_arg_find_in_fun(lstr_t name, iopc_dox_arg_dir_t dir,
                 return NULL;                                                 \
             return fun->f##Y;                                                \
         }                                                                    \
-        qv_for_each_entry(iopc_field, f, &fun->Y->fields) {                  \
+        tab_for_each_entry(f, &fun->Y->fields) {                  \
             if (lstr_equal(name, LSTR(f->name)))                             \
                 return f;                                                    \
         }                                                                    \
@@ -1178,7 +1178,7 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
     sb_init(&sb);
 
     sb_addc(&sb, '[');
-    qv_for_each_ptr(lstr, s, &chunk->params) {
+    tab_for_each_ptr(s, &chunk->params) {
         sb_add_lstr(&sb, *s);
         if (s != qv_last(&chunk->params))
             sb_adds(&sb, ", ");
@@ -1197,10 +1197,10 @@ static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
         dox_chunk_keyword_merge(eaten);
         dox_chunk_params_merge(eaten);
     } else {
-        qv_for_each_entry(lstr, param, &eaten->params) {
+        tab_for_each_entry(param, &eaten->params) {
             qv_append(&eating->params, param);
         }
-        qv_for_each_entry(lstr, arg, &eaten->params_args) {
+        tab_for_each_entry(arg, &eaten->params_args) {
             qv_append(&eating->params_args, arg);
         }
         if (eating->paragraphs.len <= 1) {
@@ -1214,7 +1214,7 @@ static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
         sb_wipe(&eaten->paragraphs.tab[0]);
         qv_skip(&eaten->paragraphs, 1);
     }
-    qv_for_each_entry(sb, paragraph, &eaten->paragraphs) {
+    tab_for_each_entry(paragraph, &eaten->paragraphs) {
         qv_append(&eating->paragraphs, paragraph);
     }
 
@@ -1260,7 +1260,7 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         qv_insert(&dox->chunks, 0, chunk);
     }
 
-    qv_for_each_ptr(dox_chunk, chunk, &dox->chunks) {
+    tab_for_each_ptr(chunk, &dox->chunks) {
         bool force_merge = false;
         dox_chunk_t *last;
 
@@ -1334,7 +1334,7 @@ void iopc_dox_desc_append_paragraphs(lstr_t *desc, const qv_t(sb) *paragraphs)
 
     sb_inita(&text, 1024);
     sb_add_lstr(&text, *desc);
-    qv_for_each_ptr(sb, paragraph, paragraphs) {
+    tab_for_each_ptr(paragraph, paragraphs) {
         if (text.len && paragraph->len) {
             sb_addc(&text, '\n');
         }
@@ -1446,7 +1446,7 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
     if (iopc_dox_check_paragraphs(res, &chunk->paragraphs) < 0)
         return 0;
 
-    qv_for_each_pos(lstr, i, &chunk->params_args) {
+    tab_for_each_pos(i, &chunk->params_args) {
         lstr_t arg = chunk->params_args.tab[i];
         iopc_field_t *arg_field;
         qv_t(sb) arg_paragraphs;
@@ -1486,7 +1486,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
 
     qv_init(comments);
 
-    qv_for_each_ptr(dox_chunk, chunk, chunks) {
+    tab_for_each_ptr(chunk, chunks) {
         iopc_dox_t *dox = NULL;
         int type = -1;
 
@@ -1598,7 +1598,7 @@ static int iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
     if (pos < 0 || attr->desc->args.len != 1) {
         qv_append(attrs, attr);
     } else {
-        qv_for_each_entry(iopc_arg, arg, &attr->args) {
+        tab_for_each_entry(arg, &attr->args) {
             *qv_growlen(&attrs->tab[pos]->args, 1) =
                 iopc_arg_dup(&arg);
         }
@@ -1720,7 +1720,7 @@ check_path_exists(iopc_parser_t *pp, iopc_path_t *path)
         }
     }
     if (pp->includes) {
-        qv_for_each_entry(cstr, include, pp->includes) {
+        tab_for_each_entry(include, pp->includes) {
             if ((pkg = iopc_try_file(pp, include, path))) {
                 return pkg;
             }
@@ -2091,7 +2091,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
      * example for check_attr_type_field()), your code should be below this
      * line. */
 
-    qv_for_each_pos(iopc_attr, pos, attrs) {
+    tab_for_each_pos(pos, attrs) {
         iopc_attr_t *attr = attrs->tab[pos];
 
         if (check_attr_type_field(attr, f, false) < 0) {
@@ -2122,7 +2122,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     }
     qv_append(&st->fields, f);
 
-    qv_for_each_entry(i32, t, tags) {
+    tab_for_each_entry(t, tags) {
         if (t == tag) {
             error_loc("tag %d is used twice", f->loc, tag);
             goto error;
@@ -2139,7 +2139,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
 static int check_snmp_brief(qv_t(iopc_dox) comments, iopc_loc_t loc,
                             char *name, const char *type)
 {
-    qv_for_each_pos(iopc_dox, pos, &comments) {
+    tab_for_each_pos(pos, &comments) {
         if (comments.tab[pos].type == IOPC_DOX_TYPE_BRIEF) {
             return 0;
         }
@@ -2152,8 +2152,8 @@ static int check_snmp_tbl_has_index(iopc_struct_t *st)
 {
     bool has_index = false;
 
-    qv_for_each_entry(iopc_field, field, &st->fields) {
-        qv_for_each_entry(iopc_attr, attr, &field->attrs) {
+    tab_for_each_entry(field, &st->fields) {
+        tab_for_each_entry(attr, &field->attrs) {
             if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
                 has_index = true;
             }
@@ -2422,7 +2422,7 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
             }
         }
 
-        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        tab_for_each_entry(attr, &f->attrs) {
             if (attr->desc->id != IOPC_ATTR_GENERIC) {
                 error_loc("invalid attribute %s on enum field", f->loc,
                           attr->desc->name.s);
@@ -2450,7 +2450,7 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
 
         f->value = next_value++;
         qv_append(&out->values, f);
-        qv_for_each_entry(i32, v, values) {
+        tab_for_each_entry(v, values) {
             if (v == f->value) {
                 throw_loc("value %d is used twice", f->loc, f->value);
             }
@@ -3243,7 +3243,7 @@ static int parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
         WANT(pp, 0, ITOK_IDENT);
         str = LSTR(TK_N(pp, 0)->b.data);
 
-        qv_for_each_ptr(iopc_arg_desc, d, &attr->desc->args) {
+        tab_for_each_ptr(d, &attr->desc->args) {
             if (lstr_equal(str, d->name)) {
                 desc  = d;
                 found = true;
@@ -3258,7 +3258,7 @@ static int parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     }
 
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)) {
-        qv_for_each_ptr(iopc_arg, a, &attr->args) {
+        tab_for_each_ptr(a, &attr->args) {
             if (a->desc == desc) {
                 throw_loc("duplicated argument", TK_N(pp, 0)->loc);
             }
@@ -3573,7 +3573,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
 
 #define SET_ATTRS_AND_COMMENTS(_o, _t)                       \
         do {                                                 \
-            qv_for_each_pos(iopc_attr, pos, &attrs) {        \
+            tab_for_each_pos(pos, &attrs) {        \
                 iopc_attr_t *_attr = attrs.tab[pos];         \
                                                              \
                 if (check_attr_type_decl(_attr, _t) < 0) {   \
@@ -3728,7 +3728,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 goto error;
             }
 
-            qv_for_each_pos(iopc_attr, pos, &attrs) {
+            tab_for_each_pos(pos, &attrs) {
                 iopc_attr_t *attr = attrs.tab[pos];
 
                 if (check_attr_type_field(attr, tdef, true) < 0) {

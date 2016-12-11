@@ -1551,7 +1551,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
 #ifdef NDEBUG
     if (ro) {
 #endif
-    qv_for_each_pos (qpsm, pos, &qps->maps) {
+    tab_for_each_pos (pos, &qps->maps) {
         qps_map_t *m = qps->maps.tab[pos];
         int ret;
 
@@ -1700,7 +1700,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     qps_m_check_maps(qps);
 
     qv_init(&maps);
-    qv_for_each_pos(qpsm, i, &qps->maps) {
+    tab_for_each_pos(i, &qps->maps) {
         qps_map_t  *map = qps->maps.tab[i];
         qps_gcmap_t m   = { .map = map };
 
@@ -3046,7 +3046,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
         thr_syn_wipe(&qps->gc_syn);
         thr_syn_wipe(&qps->snap_syn);
 
-        qv_for_each_pos(qpsm, i, &qps->maps) {
+        tab_for_each_pos(i, &qps->maps) {
             qps_map_t *map = qps->maps.tab[i];
             char buf[32];
 
@@ -3059,7 +3059,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
                 x_munmap(map, QPS_MAP_SIZE);
             }
         }
-        qv_for_each_pos(qpsm, i, &qps->omaps) {
+        tab_for_each_pos(i, &qps->omaps) {
             x_munmap(qps->omaps.tab[i], QPS_MAP_SIZE);
         }
         p_close(&qps->dfd);
@@ -3107,7 +3107,7 @@ static void qps_get_roots(qps_t *qps, qps_roots_t *roots)
 {
     int handle_pages = DIV_ROUND_UP(qps->handles_max, QPS_HANDLES_COUNT);
 
-    qv_for_each_pos (qpsm, p, &qps->maps) {
+    tab_for_each_pos (p, &qps->maps) {
         qps_map_t *map = qps->maps.tab[p];
 
         if (!map || !qps_map_is_pg(map)) {
@@ -3190,7 +3190,7 @@ bool qps_check_leaks(qps_t *qps, qps_roots_t *roots)
 
     /* Check leak in handles */
     pos = 0;
-    qv_for_each_pos (qps_handle, act_pos, &actual_roots.handles) {
+    tab_for_each_pos (act_pos, &actual_roots.handles) {
         qps_handle_t h = actual_roots.handles.tab[act_pos];
 
         while (pos < roots->handles.len && roots->handles.tab[pos] < h) {
@@ -3209,7 +3209,7 @@ bool qps_check_leaks(qps_t *qps, qps_roots_t *roots)
 
     /* Check leak in pages */
     pos = 0;
-    qv_for_each_pos (qps_pg, act_pos, &actual_roots.pages) {
+    tab_for_each_pos (act_pos, &actual_roots.pages) {
         qps_pg_t pg = actual_roots.pages.tab[act_pos];
 
         while (pos < roots->pages.len && roots->pages.tab[pos] < pg) {

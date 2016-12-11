@@ -246,7 +246,7 @@ void module_require(module_t *module, module_t *required_by)
 
     module_build_method_all_cb();
 
-    qv_for_each_entry(lstr, dep, &module->dependent_of) {
+    tab_for_each_entry(dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
     }
 
@@ -289,7 +289,7 @@ static int notify_shutdown(module_t *module, module_t *dependence)
                  ": %d pending dependencies", LSTR_FMT_ARG(dependence->name),
                  LSTR_FMT_ARG(module->name), module->required_by.len);
 
-    qv_for_each_pos(module, pos, &module->required_by) {
+    tab_for_each_pos(pos, &module->required_by) {
         if (module->required_by.tab[pos] == dependence) {
             qv_remove(&module->required_by, pos);
             break;
@@ -340,7 +340,7 @@ static int module_shutdown(module_t *module)
 
     module_build_method_all_cb();
 
-    qv_for_each_entry(lstr, dep, &module->dependent_of) {
+    tab_for_each_entry(dep, &module->dependent_of) {
         int shut;
 
         shut = notify_shutdown(qm_get(module, &_G.modules, &dep), module);
@@ -498,20 +498,20 @@ void module_run_method(const module_method_t *method, data_t arg)
 
     switch (method->type) {
       case METHOD_VOID:
-        qv_for_each_entry(methods_cb, cb, &m->callbacks) {
+        tab_for_each_entry(cb, &m->callbacks) {
             ((void (*)(void))cb)();
         }
         break;
 
       case METHOD_INT:
-        qv_for_each_entry(methods_cb, cb, &m->callbacks) {
+        tab_for_each_entry(cb, &m->callbacks) {
             ((void (*)(int))cb)(arg.u32);
         }
         break;
 
       case METHOD_PTR:
       case METHOD_GENERIC:
-        qv_for_each_entry(methods_cb, cb, &m->callbacks) {
+        tab_for_each_entry(cb, &m->callbacks) {
             ((void (*)(data_t))cb)(arg);
         }
         break;
@@ -541,7 +541,7 @@ static void rec_module_run_method(module_t *module,
     }
 
     if (method->params->order == MODULE_DEPS_AFTER) {
-        qv_for_each_entry(module, dep, &module->required_by) {
+        tab_for_each_entry(dep, &module->required_by) {
             if (module_is_loaded(dep)) {
                 rec_module_run_method(dep, method, already_run);
             }
@@ -549,7 +549,7 @@ static void rec_module_run_method(module_t *module,
         module_add_method(module, method, already_run);
     }
 
-    qv_for_each_entry(lstr, dep, &module->dependent_of) {
+    tab_for_each_entry(dep, &module->dependent_of) {
         rec_module_run_method(qm_get(module, &_G.modules, &dep), method,
                               already_run);
     }
@@ -664,7 +664,7 @@ void module_register_at_fork(void)
  */
 static void add_dependencies_to_qh(module_t *m, qh_t(lstr) *qh)
 {
-    qv_for_each_entry(lstr, e, &m->dependent_of) {
+    tab_for_each_entry(e, &m->dependent_of) {
         if (qh_add(lstr, qh, &e) >= 0) {
             module_t *mod;
             int pos = qm_find(module, &_G.modules, &e);
@@ -712,7 +712,7 @@ void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies)
 
         sb_addf(modules, "%*pM;%d\n", LSTR_FMT_ARG(module->name),
                 module_is_loaded(module) ? 1 : 0);
-        qv_for_each_entry(lstr, dep_name, &module->dependent_of) {
+        tab_for_each_entry(dep_name, &module->dependent_of) {
             sb_addf(dependencies, "%*pM;%*pM\n", LSTR_FMT_ARG(module->name),
                     LSTR_FMT_ARG(dep_name));
         }

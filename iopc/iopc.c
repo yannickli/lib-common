@@ -157,7 +157,7 @@ static int build_doit_table(qv_t(doit) *doits)
     ctype_desc_build(&sep, ",");
     ps_split(ps_initstr(opts.lang), &sep, 0, &langs);
 
-    qv_for_each_entry(lstr, lang, &langs) {
+    tab_for_each_entry(lang, &langs) {
         struct doit doit;
 
         if (lstr_ascii_iequal(lang, LSTR("c"))) {
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
 
         iopc_types_fold(pkg);
 
-        qv_for_each_ptr(doit, doit, &doits) {
+        tab_for_each_ptr(doit, &doits) {
             if ((*doit->cb)(pkg, doit->outpath, &deps) < 0) {
                 iopc_parser_shutdown();
                 goto error;

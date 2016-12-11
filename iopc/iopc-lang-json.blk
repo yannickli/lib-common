@@ -273,7 +273,7 @@ static void dump_gen_attrs(const iopc_write_buf_t *wbuf,
 {
     bool has_gen_attr = false;
 
-    qv_for_each_entry(iopc_attr, attr, attrs) {
+    tab_for_each_entry(attr, attrs) {
         if (attr->desc->id != IOPC_ATTR_GENERIC)
             continue;
 
@@ -299,7 +299,7 @@ iopc_dox_dump_json(const iopc_write_buf_t *wbuf,
         return -1;
 
     LINE_START_OBJ_KEY(wbuf, key);
-    qv_for_each_ptr(iopc_dox, dox, comments) {
+    tab_for_each_ptr(dox, comments) {
         lstr_t type = iopc_dox_type_to_lstr(dox->type);
 
         if (!dox->desc.len) {
@@ -355,7 +355,7 @@ iopc_enum_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
     dump_gen_attrs(wbuf, &en->attrs);
 
     LINE_START_OBJ_CKEY(wbuf, "values");
-    qv_for_each_entry(iopc_enum_field, f, &en->values) {
+    tab_for_each_entry(f, &en->values) {
         LINE_START_OBJ_KEY(wbuf, f->name);
         LINE_KEY_VAL_FMT(wbuf, "value", "%d", f->value);
         dump_gen_attrs(wbuf, &f->attrs);
@@ -368,7 +368,7 @@ iopc_enum_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
     if (help_values) {
         LINE_START_OBJ_CKEY(wbuf, "valuesHelp");
-        qv_for_each_entry(iopc_enum_field, f, &en->values) {
+        tab_for_each_entry(f, &en->values) {
             (iopc_dox_dump_json)(wbuf, &f->comments, f->name);
         }
         LINE_END_OBJ(wbuf);
@@ -491,7 +491,7 @@ dump_constraint_multi_token(const iopc_write_buf_t *wbuf, const char *key,
                             const iopc_field_t *f, const iopc_attr_t *attr)
 {
     LINE_START_ARRAY(wbuf, key);
-    qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+    tab_for_each_ptr(arg, &attr->args) {
         write_string(wbuf, arg->v.s.s);
         sep(wbuf);
     }
@@ -601,7 +601,7 @@ dump_field_constraints(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
 {
     bool has_constraint = false;
 
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         if (is_dummy_constraint(attr)) {
             continue;
         }
@@ -622,7 +622,7 @@ dump_field_constraints(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
 static
 void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 {
-    qv_for_each_entry(iopc_field, f, fields) {
+    tab_for_each_entry(f, fields) {
         bool private = false;
 
         LINE_START_OBJ_KEY(wbuf, f->name);
@@ -642,7 +642,7 @@ void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
         }
 
         iopc_dox_dump_json(wbuf, f);
-        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        tab_for_each_entry(attr, &f->attrs) {
             if (attr->desc->id == IOPC_ATTR_PRIVATE) {
                 private = true;
             }
@@ -696,7 +696,7 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
             return;
         }
         LINE_CKEY_VAL_BOOL(wbuf, "isAbstract", st->is_abstract);
-        qv_for_each_entry(iopc_attr, attr, &st->attrs) {
+        tab_for_each_entry(attr, &st->attrs) {
             if (attr->desc->id == IOPC_ATTR_PRIVATE) {
                 LINE_CKEY_VAL_BOOL(wbuf, "private", true);
                 break;
@@ -775,7 +775,7 @@ iopc_iface_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
     dump_gen_attrs(wbuf, &iface->attrs);
 
     LINE_START_OBJ_CKEY(wbuf, "rpcs");
-    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+    tab_for_each_entry(fun, &iface->funs) {
         LINE_START_OBJ_KEY(wbuf, fun->name);
         iopc_dox_dump_json(wbuf, fun);
 
@@ -827,9 +827,9 @@ iopc_module_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
     if (mod->extends.len) {
         LINE_START_ARRAY(wbuf, "parent");
     }
-    qv_for_each_entry(iopc_extends, xt, &mod->extends) {
+    tab_for_each_entry(xt, &mod->extends) {
         IOPC_WRITE_START_LINE(wbuf, sb_addf, XT_FMT SEP, XT_FMT_ARG(xt));
-        qv_for_each_entry(iopc_field, f, &xt->st->fields) {
+        tab_for_each_entry(f, &xt->st->fields) {
             qh_add(u32, &base_tags, f->tag);
         }
     }
@@ -838,7 +838,7 @@ iopc_module_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 
     LINE_START_OBJ_CKEY(wbuf, "interfaces");
 
-    qv_for_each_entry(iopc_field, f, &mod->fields) {
+    tab_for_each_entry(f, &mod->fields) {
         if (qh_find(u32, &base_tags, f->tag) >= 0)
             continue;
 
@@ -877,7 +877,7 @@ int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
 
 #define DUMP_PKG_ITEMS_TYPE(_item, _type)                                    \
     do {                                                                     \
-        qv_for_each_entry(iopc_##_type, e, &pkg->_item##s) {                 \
+        tab_for_each_entry(e, &pkg->_item##s) {                 \
             LINE_START_OBJ(&wbuf);                                           \
             iopc_##_item##_dump_json(&wbuf, pkg_name, e);                    \
             LINE_END_OBJ(&wbuf);                                             \
@@ -893,19 +893,19 @@ int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
     DUMP_PKG_ITEMS(enum);
     DUMP_PKG_ITEMS(struct); /* structs, unions and classes */
 
-    qv_for_each_entry(iopc_field, tdef, &pkg->typedefs) {
+    tab_for_each_entry(tdef, &pkg->typedefs) {
         LINE_START_OBJ(&wbuf);
         iopc_typedef_dump_json(&wbuf, pkg_name, tdef);
         LINE_END_OBJ(&wbuf);
     }
 
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
         qv_sort(iopc_fun)(&iface->funs,
                           ^int (iopc_fun_t * const *f1,
                                 iopc_fun_t * const *f2) {
             return (*f1)->pos - (*f2)->pos;
         });
-        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        tab_for_each_entry(fun, &iface->funs) {
             t_scope;
             const char *fbase = t_fmt("%s.%s", pkg_name, iface->name);
 

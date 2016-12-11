@@ -104,7 +104,7 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
 
     qv_append(&args, "-o");
     qv_append(&args, out);                        /* DSO output       */
-    qv_for_each_entry(str, s, in) {
+    tab_for_each_entry(s, in) {
         qv_append(&args, s);
     }
     qv_append(&args, NULL);
@@ -277,7 +277,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
     log_buffer = log_stop_buffering();
     if (expect(log_buffer->len)) {
         sb_reset(err);
-        qv_for_each_pos_rev(log_buffer, pos, log_buffer) {
+        tab_for_each_pos_rev(pos, log_buffer) {
             if (!err->len) {
                 sb_add_lstr(err, log_buffer->tab[pos].msg);
             } else {

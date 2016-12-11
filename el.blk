@@ -396,7 +396,7 @@ static void el_before_process(void)
 
     generation = ev_cache_list(&_G.before);
 
-    qv_for_each_entry(ev, ev, &_G.cache) {
+    tab_for_each_entry(ev, &_G.cache) {
         if (ev->generation != generation) {
             continue;
         }
@@ -452,7 +452,7 @@ static void el_idle_process(uint64_t now)
         dlist_splice(&_G.idle_parked, &_G.idle);
         last_run = now;
 
-        qv_for_each_entry(ev, ev, &_G.cache) {
+        tab_for_each_entry(ev, &_G.cache) {
             if (ev->generation != generation) {
                 continue;
             }
@@ -593,7 +593,7 @@ static void el_signal_process(void)
     lp_gettv(&now);
 
     generation = ev_cache_list(&_G.sigs);
-    qv_for_each_entry(ev, ev, &_G.cache) {
+    tab_for_each_entry(ev, &_G.cache) {
         int signo;
 
         if (ev->generation != generation) {
@@ -1247,10 +1247,10 @@ static void el_fd_process_fired(void)
     generation = ev_cache_list(&_G.fired);
 
     dlist_init(&_G.fired);
-    qv_for_each_entry(ev, ev, &_G.cache) {
+    tab_for_each_entry(ev, &_G.cache) {
         EV_FLAG_RST(ev, FD_FIRED);
     }
-    qv_for_each_entry(ev, ev, &_G.cache) {
+    tab_for_each_entry(ev, &_G.cache) {
         if (ev->generation != generation) {
             continue;
         }
@@ -1329,7 +1329,7 @@ static void el_loop_proxies(void)
 {
     uint8_t generation = ev_cache_list(&_G.proxy_ready);
 
-    qv_for_each_entry(ev, ev, &_G.cache) {
+    tab_for_each_entry(ev, &_G.cache) {
         int avail;
 
         if (ev->generation != generation) {
@@ -1666,7 +1666,7 @@ data_t el_unregister(ev_t **evp)
 
 static void el_for_each(void (^on_ev)(ev_t *))
 {
-    qv_for_each_pos(ev, i, &_G.buckets) {
+    tab_for_each_pos(i, &_G.buckets) {
         ev_t *bucket = _G.buckets.tab[i];
         int bucket_len = 1 << (i + EV_ALLOC_FACTOR);
 
@@ -1769,7 +1769,7 @@ static int el_get_state(sb_t *sb, bool only_blocking)
     sb_shrink(sb, 1);
     res = rows->len;
 
-    qv_for_each_ptr(table_data, tab, rows) {
+    tab_for_each_ptr(tab, rows) {
         qv_deep_wipe(tab, lstr_wipe);
     }
     qv_delete(&rows);

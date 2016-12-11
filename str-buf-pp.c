@@ -70,14 +70,14 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
     int col_count = 0;
 
     /* Compute the size of the columns */
-    qv_for_each_pos(table_hdr, pos, hdr) {
+    tab_for_each_pos(pos, hdr) {
         int *col = &col_sizes[pos];
         bool has_value = false;
 
         *col = MAX(hdr->tab[pos].min_width,
                    lstr_utf8_strlen(hdr->tab[pos].title));
 
-        qv_for_each_ptr(table_data, row, data) {
+        tab_for_each_ptr(row, data) {
             if (row->len <= pos) {
                 *col = MAX(*col, lstr_utf8_strlen(hdr->tab[pos].empty_value));
             } else {
@@ -104,7 +104,7 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
     sb_grow(out, row_size * (data->len + 1));
 
     /* Write the header */
-    qv_for_each_pos(table_hdr, pos, hdr) {
+    tab_for_each_pos(pos, hdr) {
         if (col_sizes[pos] == 0) {
             continue;
         }
@@ -117,8 +117,8 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
     sb_addc(out, '\n');
 
     /* Write the content */
-    qv_for_each_ptr(table_data, row, data) {
-        qv_for_each_pos(table_hdr, pos, hdr) {
+    tab_for_each_ptr(row, data) {
+        tab_for_each_pos(pos, hdr) {
             lstr_t content = LSTR_NULL;
 
             if (col_sizes[pos] == 0) {

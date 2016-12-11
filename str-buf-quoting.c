@@ -1090,7 +1090,7 @@ static int idna_label_to_ascii(sb_t *sb, const char *label, int label_size,
 
         /* Perform the last NAMEPREP operations on ASCII characters (which
          * were not performed in idna_nameprep). */
-        qv_for_each_ptr(u32, c, code_points) {
+        tab_for_each_ptr(c, code_points) {
             if (isascii(*c)) {
                 *c = unicode_tolower(*c);
             } else {
@@ -1103,7 +1103,7 @@ static int idna_label_to_ascii(sb_t *sb, const char *label, int label_size,
              * code points are actually ASCII ones. This can happen if
              * NAMEPREP filtered all the non-ASCII characters. In that case,
              * just output the code points without encoding them. */
-            qv_for_each_entry(u32, c, code_points) {
+            tab_for_each_entry(c, code_points) {
                 sb_addc(sb, c);
             }
         } else {

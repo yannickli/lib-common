@@ -79,7 +79,7 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
         return LSTR_EMPTY_V;
     }
 
-    qv_for_each_pos(lstr, i, &parts) {
+    tab_for_each_pos(i, &parts) {
         if (enums) {
             for (int j = i != 0; j < parts.tab[i].len; j++) {
                 parts.tab[i].v[j] = tolower(parts.tab[i].v[j]);
@@ -208,7 +208,7 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
                      "a package must be provided to build the MIB");
     }
 
-    qv_for_each_entry(pkg, pkg, pkgs) {
+    tab_for_each_entry(pkg, pkgs) {
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -239,7 +239,7 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
         }
     }
 
-    qv_for_each_entry(lstr, name, &_G.objects_identifier_parent) {
+    tab_for_each_entry(name, &_G.objects_identifier_parent) {
         if (qh_find(lstr, &_G.objects_identifier, &name) < 0) {
             t_scope;
             lstr_t short_name = t_get_short_name(name, true);
@@ -303,7 +303,7 @@ static void mib_put_identity(sb_t *buf, const qv_t(mib_rev) *revisions)
             LSTR_FMT_ARG(_G.head), _G.head_is_intersec ? "" : "Identity",
             LSTR_FMT_ARG(last_update->timestamp));
 
-    qv_for_each_pos_rev(mib_rev, pos, revisions) {
+    tab_for_each_pos_rev(pos, revisions) {
         const mib_revision_t *changmt = &revisions->tab[pos];
 
         sb_addf(buf, LVL1 "REVISION \"%*pM\"\n",
@@ -364,7 +364,7 @@ static void mib_put_object_identifier(sb_t *buf, const qv_t(pkg) *pkgs)
         sb_addf(buf, "-- {{{ Top Level Structures\n\n");
     }
 
-    qv_for_each_entry(pkg, pkg, pkgs) {
+    tab_for_each_entry(pkg, pkgs) {
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
 
@@ -669,7 +669,7 @@ static void mib_put_objects_conformance(sb_t *buf)
             "\n%*pMConformanceObject OBJECT-GROUP\n"
             LVL1 "OBJECTS { ", LSTR_FMT_ARG(_G.head));
 
-    qv_for_each_pos(lstr, pos, &_G.conformance_objects) {
+    tab_for_each_pos(pos, &_G.conformance_objects) {
         sb_addf(buf, "%s%*pM", pos == 0 ? "": "  "LVL3,
                 LSTR_FMT_ARG(_G.conformance_objects.tab[pos]));
         if (pos < _G.conformance_objects.len - 1) {
@@ -690,7 +690,7 @@ static void mib_put_notifs_conformance(sb_t *buf)
             "\n%*pMConformanceNotification NOTIFICATION-GROUP\n"
             LVL1 "NOTIFICATIONS { ", LSTR_FMT_ARG(_G.head));
 
-    qv_for_each_pos(lstr, pos, &_G.conformance_notifs) {
+    tab_for_each_pos(pos, &_G.conformance_notifs) {
         sb_addf(buf, "%s%*pM", pos == 0 ? "": LVL5,
                 LSTR_FMT_ARG(_G.conformance_notifs.tab[pos]));
         if (pos < _G.conformance_notifs.len - 1) {
@@ -780,7 +780,7 @@ void iop_write_mib(sb_t *sb, const qv_t(pkg) *pkgs,
     mib_get_head(pkgs);
 
     mib_put_object_identifier(&buffer, pkgs);
-    qv_for_each_entry(pkg, pkg, pkgs) {
+    tab_for_each_entry(pkg, pkgs) {
         mib_put_fields_and_tbl(&buffer, pkg);
         mib_put_rpcs(&buffer, pkg);
     }

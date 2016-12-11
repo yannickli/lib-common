@@ -20,7 +20,7 @@ static struct {
 
 static iopc_struct_t *pkg_find_module(iopc_pkg_t *pkg, const char *name)
 {
-    qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
+    tab_for_each_entry(mod, &pkg->modules) {
         if (strequal(mod->name, name)) {
             return mod;
         }
@@ -31,7 +31,7 @@ static iopc_struct_t *pkg_find_module(iopc_pkg_t *pkg, const char *name)
 static bool
 pkg_provides_iface(iopc_pkg_t *pkg, const char *type, bool visible)
 {
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
         if ((iface->is_visible || !visible) && strequal(iface->name, type))
             return true;
     }
@@ -42,7 +42,7 @@ static int
 pkg_provides_struct(iopc_pkg_t *pkg, const char *type, bool visible,
                     bool checking_field, iopc_struct_t **out)
 {
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         if ((st->is_visible || !visible) && strequal(st->name, type)) {
             if (checking_field && iopc_is_snmp_st(st->type)) {
                 throw_loc("snmp objects cannot be used to define a field "
@@ -61,11 +61,11 @@ static bool
 pkg_provides_fields_for_param(iopc_pkg_t *pkg, iopc_field_t *field,
                               const char *snmp_obj, const char *name)
 {
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         if (!strequal(st->name, snmp_obj)) {
             continue;
         }
-        qv_for_each_entry(iopc_field, f, &st->fields) {
+        tab_for_each_entry(f, &st->fields) {
             iopc_extends_t *xt;
 
             if (!strequal(f->name, name)) {
@@ -93,7 +93,7 @@ pkg_provides_fields_for_param(iopc_pkg_t *pkg, iopc_field_t *field,
 static iopc_enum_t *
 pkg_provides_enum(iopc_pkg_t *pkg, const char *type, bool visible)
 {
-    qv_for_each_entry(iopc_enum, en, &pkg->enums) {
+    tab_for_each_entry(en, &pkg->enums) {
         if ((en->is_visible || !visible) && strequal(en->name, type))
             return en;
     }
@@ -103,7 +103,7 @@ pkg_provides_enum(iopc_pkg_t *pkg, const char *type, bool visible)
 static iopc_field_t *
 pkg_provides_typedef(iopc_pkg_t *pkg, const char *type, bool visible)
 {
-    qv_for_each_entry(iopc_field, tdef, &pkg->typedefs) {
+    tab_for_each_entry(tdef, &pkg->typedefs) {
         if ((tdef->is_visible || !visible) && strequal(tdef->name, type))
             return tdef;
     }
@@ -129,7 +129,7 @@ iopc_ifaces_find_n_check(iopc_pkg_t *pkg, iopc_field_t *iface)
         iface->type_pkg = t_pkg = pkg;
     }
 
-    qv_for_each_pos_safe(iopc_import, i, &pkg->imports) {
+    tab_for_each_pos_safe(i, &pkg->imports) {
         iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
 
         if (!pkg_provides_iface(ipkg, iface->type_name, true))
@@ -174,7 +174,7 @@ iopc_modules_find_n_check(iopc_pkg_t *pkg, iopc_extends_t *xt)
         xt->pkg = t_pkg = pkg;
     }
 
-    qv_for_each_pos_safe(iopc_import, i, &pkg->imports) {
+    tab_for_each_pos_safe(i, &pkg->imports) {
         iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
         iopc_struct_t *st;
 
@@ -230,7 +230,7 @@ iopc_apply_typedef(const iopc_field_t *tdef, iopc_field_t *f, bool f_is_tdef)
     }
 
     RETHROW(iopc_check_field_attributes(f, f_is_tdef));
-    qv_for_each_entry(iopc_attr, e, &tdef->attrs) {
+    tab_for_each_entry(e, &tdef->attrs) {
         iopc_attr_t *attr = iopc_attr_dup(e);
 
         RETHROW(iopc_field_add_attr(f, &attr, f_is_tdef));
@@ -326,7 +326,7 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
     RETHROW(iopc_find_type_in_pkg(pkg, f, original_name, false, f_is_tdef,
                                   &found));
 
-    qv_for_each_pos_safe(iopc_import, i, &pkg->imports) {
+    tab_for_each_pos_safe(i, &pkg->imports) {
         iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
         bool resolved = !(f->kind == IOP_T_STRUCT && !f->struct_def);
 
@@ -378,7 +378,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg);
 
 static int iopc_check_snmp_field_kind(iopc_field_t *f)
 {
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
             if (f->kind != IOP_T_U32 && f->kind != IOP_T_STRING) {
                 throw_loc("a snmp index should be declared with the 'uint' "
@@ -509,11 +509,11 @@ static int resolve_snmp_iface_field(iopc_iface_t *iface, iopc_field_t *field)
                   field->loc);
     }
 
-    qv_for_each_entry(iopc_attr, attr, &iface->attrs) {
+    tab_for_each_entry(attr, &iface->attrs) {
         if (attr->desc->id != IOPC_ATTR_SNMP_PARAMS_FROM) {
             continue;
         }
-        qv_for_each_entry(iopc_extends, from, &attr->snmp_params_from) {
+        tab_for_each_entry(from, &attr->snmp_params_from) {
             found = pkg_provides_fields_for_param(from->pkg, field,
                                                   from->name, field->name);
             if (found && resolved) {
@@ -560,7 +560,7 @@ static int iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
     }
 
     /* Resolve fields */
-    qv_for_each_entry(iopc_field, f, &st->fields) {
+    tab_for_each_entry(f, &st->fields) {
         RETHROW(iopc_field_resolve(pkg, f, st));
         if (iopc_is_snmp_st(st->type)) {
             RETHROW(iopc_check_snmp_field_kind(f));
@@ -579,7 +579,7 @@ static int iopc_struct_resolve(iopc_pkg_t *pkg, iopc_struct_t *st)
     }
 
     /* Resolve static fields */
-    qv_for_each_entry(iopc_field, f, &st->static_fields) {
+    tab_for_each_entry(f, &st->static_fields) {
         RETHROW(iopc_field_resolve(pkg, f, st));
     }
 
@@ -603,11 +603,11 @@ static int iopc_snmp_iface_resolve(iopc_pkg_t *pkg, iopc_iface_t *iface)
                                           "snmpIface", "inheritance"));
 
     /* Check params from */
-    qv_for_each_entry(iopc_attr, attr, &iface->attrs) {
+    tab_for_each_entry(attr, &iface->attrs) {
         if (attr->desc->id != IOPC_ATTR_SNMP_PARAMS_FROM) {
             continue;
         }
-        qv_for_each_pos(iopc_extends, pos, &attr->snmp_params_from) {
+        tab_for_each_pos(pos, &attr->snmp_params_from) {
             iopc_extends_t *xt_param = attr->snmp_params_from.tab[pos];
 
             RETHROW(resolve_pkg_parent_and_params(xt_param, pkg,
@@ -619,12 +619,12 @@ static int iopc_snmp_iface_resolve(iopc_pkg_t *pkg, iopc_iface_t *iface)
     }
 
     /* Resolve rpcs in funs */
-    qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+    tab_for_each_entry(fun, &iface->funs) {
         if (!fun->arg) {
             continue;
         }
         fun->arg->contains_snmp_info = true;
-        qv_for_each_entry(iopc_field, field, &fun->arg->fields) {
+        tab_for_each_entry(field, &fun->arg->fields) {
             if (!resolved) {
                 throw_loc("snmpIface should have an attribute snmpParamsFrom",
                           iface->loc);
@@ -638,8 +638,8 @@ static int iopc_snmp_iface_resolve(iopc_pkg_t *pkg, iopc_iface_t *iface)
 
 static int iopc_module_check_extends(iopc_struct_t *mod, iopc_extends_t *xt)
 {
-    qv_for_each_entry(iopc_field, f2, &xt->st->fields) {
-        qv_for_each_entry(iopc_field, f, &mod->fields) {
+    tab_for_each_entry(f2, &xt->st->fields) {
+        tab_for_each_entry(f, &mod->fields) {
             if (strequal(f->name, f2->name)) {
                 throw_loc("module %s cannot extend %s.%s, "
                           "both define an interface %s",
@@ -670,7 +670,7 @@ static int iopc_struct_check_circular_dep(iopc_pkg_t *pkg, iopc_struct_t *st)
     }
 
     st->resolving = true;
-    qv_for_each_entry(iopc_field, field, &st->fields) {
+    tab_for_each_entry(field, &st->fields) {
         if (pkg != field->type_pkg
         ||  (field->kind != IOP_T_STRUCT && field->kind != IOP_T_UNION)
         ||  field->repeat == IOP_R_OPTIONAL
@@ -714,7 +714,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     }
 
     /* Check field names unicity */
-    qv_for_each_entry(iopc_field, field, &parent_st->fields) {
+    tab_for_each_entry(field, &parent_st->fields) {
         uint32_t pos = qm_put(field_struct, fields, field->name, parent_st, 0);
 
         if (pos & QHASH_COLLISION) {
@@ -729,8 +729,8 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     if (parent_st == st) {
         goto check_ids;
     }
-    qv_for_each_entry(iopc_field, master_field, &parent_st->static_fields) {
-        qv_for_each_entry(iopc_field, field, &st->static_fields) {
+    tab_for_each_entry(master_field, &parent_st->static_fields) {
+        tab_for_each_entry(field, &st->static_fields) {
             if (strequal(master_field->name, field->name)) {
                 if (!field->defval_type) {
                     clear_loc();
@@ -812,13 +812,13 @@ static int iopc_struct_check_abstract_static_fields(const iopc_struct_t *st)
     }
 
     qh_init_cached(str, &fields_seen);
-    qv_for_each_entry(iopc_field, field, &st->static_fields) {
+    tab_for_each_entry(field, &st->static_fields) {
         assert (field->defval_type);
         qh_add(str, &fields_seen, field->name);
     }
 
     do {
-        qv_for_each_entry(iopc_field, field, &it_st->static_fields) {
+        tab_for_each_entry(field, &it_st->static_fields) {
             if (field->defval_type) {
                 qh_add(str, &fields_seen, field->name);
             } else
@@ -847,13 +847,13 @@ static int iopc_t_resolve(iopc_pkg_t *pkg)
     }
 
     pkg->t_resolving = true;
-    qv_for_each_entry(iopc_field, tdef, &pkg->typedefs) {
+    tab_for_each_entry(tdef, &pkg->typedefs) {
         RETHROW(iopc_field_resolve(pkg, tdef, NULL));
     }
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         RETHROW(iopc_struct_resolve(pkg, st));
     }
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
         if (iopc_is_snmp_iface(iface->type)) {
             RETHROW(iopc_snmp_iface_resolve(pkg, iface));
         }
@@ -862,12 +862,12 @@ static int iopc_t_resolve(iopc_pkg_t *pkg)
     pkg->t_resolving = false;
     pkg->t_resolved = true;
 
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         RETHROW(iopc_struct_check_circular_dep(pkg, st));
     }
 
     /* Check inheritance */
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         qm_t(field_struct) fields;
         qm_t(id_class) ids;
 
@@ -909,8 +909,8 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
     }
 
     pkg->i_resolving = true;
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
-        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
+        tab_for_each_entry(fun, &iface->funs) {
             if (fun->arg) {
                 if (fun->arg_is_anonymous) {
                     RETHROW(iopc_struct_resolve(pkg, fun->arg));
@@ -937,8 +937,8 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
             }
         }
     }
-    qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
-        qv_for_each_entry(iopc_field, iface, &mod->fields) {
+    tab_for_each_entry(mod, &pkg->modules) {
+        tab_for_each_entry(iface, &mod->fields) {
             iopc_ifaces_find_n_check(pkg, iface);
             if (pkg == iface->type_pkg) {
                 continue;
@@ -952,7 +952,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
                 pop_loc();
             }
         }
-        qv_for_each_entry(iopc_extends, xt, &mod->extends) {
+        tab_for_each_entry(xt, &mod->extends) {
             iopc_modules_find_n_check(pkg, xt);
             if (xt->pkg != pkg) {
                 t_scope;
@@ -969,7 +969,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
             RETHROW(iopc_module_check_extends(mod, xt));
         }
     }
-    qv_for_each_entry(iopc_import, ipkg, &pkg->imports) {
+    tab_for_each_entry(ipkg, &pkg->imports) {
         if (!ipkg->used) {
             warn_loc("import not used", ipkg->loc);
         }
@@ -989,7 +989,7 @@ int iopc_resolve(iopc_pkg_t *pkg)
 
 static int enum_get_value(iopc_enum_t *en, const char *name)
 {
-    qv_for_each_entry(iopc_enum_field, elem, &en->values) {
+    tab_for_each_entry(elem, &en->values) {
         if (strequal(elem->name, name)) {
             return elem->value;
         }
@@ -1001,7 +1001,7 @@ static int check_defval_enum_allow(iopc_field_t *f, iopc_attr_t *attr)
 {
     int64_t i64 = f->defval.u64;
 
-    qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+    tab_for_each_ptr(arg, &attr->args) {
         if (enum_get_value(f->enum_def, arg->v.s.s) == i64) {
             if (attr->desc->id == IOPC_ATTR_ALLOW) {
                 return 0;
@@ -1081,7 +1081,7 @@ static int check_defval_int(iopc_field_t *f)
     if (f->kind == IOP_T_ENUM) {
         bool strict = false;
 
-        qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+        tab_for_each_entry(attr, &f->attrs) {
             if (attr->desc->id == IOPC_ATTR_ALLOW
             ||  attr->desc->id == IOPC_ATTR_DISALLOW)
             {
@@ -1089,7 +1089,7 @@ static int check_defval_int(iopc_field_t *f)
             }
         }
 
-        qv_for_each_entry(iopc_attr, attr, &f->enum_def->attrs) {
+        tab_for_each_entry(attr, &f->enum_def->attrs) {
             if (attr->desc->id == IOPC_ATTR_STRICT) {
                 strict = true;
                 break;
@@ -1098,7 +1098,7 @@ static int check_defval_int(iopc_field_t *f)
         if (!strict) {
             return 0;
         }
-        qv_for_each_entry(iopc_enum_field, value, &f->enum_def->values) {
+        tab_for_each_entry(value, &f->enum_def->values) {
             if (value->value == i64) {
                 return 0;
             }
@@ -1107,7 +1107,7 @@ static int check_defval_int(iopc_field_t *f)
                   i64);
         return 0;
     }
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         int64_t val;
 
         switch (attr->desc->id) {
@@ -1160,7 +1160,7 @@ static int check_defval_double(iopc_field_t *f)
         f->defval.d = f->defval.u64;
     }
 
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         double val;
 
         switch (attr->desc->id) {
@@ -1203,7 +1203,7 @@ static int check_defval_string(iopc_field_t *f)
     }
     len = strlen(f->defval.ptr);
 
-    qv_for_each_entry(iopc_attr, attr, &f->attrs) {
+    tab_for_each_entry(attr, &f->attrs) {
         int64_t val;
 
         switch (attr->desc->id) {
@@ -1243,7 +1243,7 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
     /* XXX: do not use qv_for_each_ptr/entry here, entries get appended to
      * the vector while it is consumed.
      */
-    qv_for_each_pos(iopc_pkg, pos, &_G.resolve_list) {
+    tab_for_each_pos(pos, &_G.resolve_list) {
         iopc_pkg_t *rpkg = _G.resolve_list.tab[pos];
 
         if (!rpkg->t_resolved) {
@@ -1253,10 +1253,10 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
     qv_wipe(&_G.resolve_list);
 
     /* Count static fields having a default value */
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         if (st->type == STRUCT_TYPE_CLASS && st->is_abstract) {
             st->nb_real_static_fields = 0;
-            qv_for_each_entry(iopc_field, f, &st->static_fields) {
+            tab_for_each_entry(f, &st->static_fields) {
                 if (f->defval_type) {
                     st->nb_real_static_fields++;
                 }
@@ -1264,7 +1264,7 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
         } else {
             st->nb_real_static_fields = st->static_fields.len;
         }
-        qv_for_each_entry(iopc_field, f, &st->fields) {
+        tab_for_each_entry(f, &st->fields) {
             if (f->is_ref) {
                 if (f->repeat != IOP_R_REQUIRED) {
                     throw_loc("only mandatory fields can be references",
@@ -1310,9 +1310,9 @@ static void iopc_dump_attrs_sig(sb_t *sb, qv_t(iopc_attr) *attrs)
 {
     assert (attrs->len < 255);
     sb_addc(sb, attrs->len); /*< start of attributes */
-    qv_for_each_entry(iopc_attr, attr, attrs) {
+    tab_for_each_entry(attr, attrs) {
         sb_addc(sb, attr->desc->id);
-        qv_for_each_ptr(iopc_arg, arg, &attr->args) {
+        tab_for_each_ptr(arg, &attr->args) {
             put_unaligned_le64(sb_growlen(sb, 8), (intptr_t)arg->desc);
             switch (arg->type) {
               case ITOK_STRING:
@@ -1337,7 +1337,7 @@ static void iopc_dump_attrs_sig(sb_t *sb, qv_t(iopc_attr) *attrs)
 static void iopc_dump_comments_sig(sb_t *sb, const qv_t(iopc_dox) *comments)
 {
     sb_addc(sb, comments->len);
-    qv_for_each_ptr(iopc_dox, dox, comments) {
+    tab_for_each_ptr(dox, comments) {
         sb_addc(sb, '@');
         sb_add_lstr(sb, iopc_dox_type_to_lstr(dox->type));
         sb_addc(sb, '\t');
@@ -1347,7 +1347,7 @@ static void iopc_dump_comments_sig(sb_t *sb, const qv_t(iopc_dox) *comments)
 
 static void iopc_dump_fields_sig(sb_t *sb, qv_t(iopc_field) *fields)
 {
-    qv_for_each_entry(iopc_field, f, fields) {
+    tab_for_each_entry(f, fields) {
         put_unaligned_le16(sb_growlen(sb, 2), f->tag);
         put_unaligned_le16(sb_growlen(sb, 2), f->kind);
         put_unaligned_le16(sb_growlen(sb, 2), f->repeat);
@@ -1418,7 +1418,7 @@ static lstr_t iopc_struct_sig(iopc_struct_t *st)
 
         /* Dump static fields, even abstract ones, because of comments */
         t_qv_init(&tab, st->static_fields.len);
-        qv_for_each_entry(iopc_field, field, &st->static_fields) {
+        tab_for_each_entry(field, &st->static_fields) {
             qv_append(&tab, field);
         }
         qv_sort(iopc_field)(&tab,
@@ -1461,11 +1461,11 @@ void iopc_types_fold(iopc_pkg_t *pkg)
 {
     qm_t(uid) h = QM_INIT_CACHED(uid, h);
 
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         iopc_type_fold_one(&h, st);
     }
 
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
 
         qv_sort(iopc_fun)(&iface->funs,
                           ^int (iopc_fun_t * const *f1,
@@ -1473,7 +1473,7 @@ void iopc_types_fold(iopc_pkg_t *pkg)
                               return (*f1)->tag - (*f2)->tag;
                           });
 
-        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        tab_for_each_entry(fun, &iface->funs) {
             if (fun->arg && fun->arg_is_anonymous) {
                 iopc_type_fold_one(&h, fun->arg);
             }
@@ -1499,7 +1499,7 @@ iopc_add_depends(iopc_pkg_t *ref, iopc_pkg_t *pkg, qv_t(iopc_pkg) *deps)
 static void
 get_structs_depends(iopc_pkg_t *pkg, qv_t(iopc_pkg) *deps, iopc_struct_t *st)
 {
-    qv_for_each_entry(iopc_field, field, &st->fields) {
+    tab_for_each_entry(field, &st->fields) {
         iopc_add_depends(pkg, field->type_pkg, deps);
     }
 }
@@ -1524,7 +1524,7 @@ static void
 get_structs_t_depends(iopc_pkg_t *pkg, qv_t(iopc_pkg) *t_deps,
                       qv_t(iopc_pkg) *t_weak_deps, iopc_struct_t *st)
 {
-    qv_for_each_entry(iopc_field, field, &st->fields) {
+    tab_for_each_entry(field, &st->fields) {
         if (field_is_pointer(field)) {
             iopc_add_depends(pkg, field->type_pkg, t_weak_deps);
         } else {
@@ -1573,15 +1573,15 @@ void iopc_get_depends(iopc_pkg_t *pkg,
                       qv_t(iopc_pkg) *t_weak_deps,
                       qv_t(iopc_pkg) *i_deps)
 {
-    qv_for_each_entry(iopc_struct, st, &pkg->structs) {
+    tab_for_each_entry(st, &pkg->structs) {
         get_structs_t_depends(pkg, t_deps, t_weak_deps, st);
     }
 
-    qv_for_each_entry(iopc_iface, iface, &pkg->ifaces) {
+    tab_for_each_entry(iface, &pkg->ifaces) {
         /* Check inheritance dependencies of snmpIface */
         get_ifaces_t_depends(pkg, t_deps, iface);
 
-        qv_for_each_entry(iopc_fun, fun, &iface->funs) {
+        tab_for_each_entry(fun, &iface->funs) {
             if (fun->arg) {
                 if (fun->arg_is_anonymous) {
                     get_structs_depends(pkg, i_deps, fun->arg);
@@ -1591,7 +1591,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
                 if (iopc_is_snmp_iface(iface->type)) {
                     /* If snmpIface add dependencies necessary for the fun
                      * fields */
-                    qv_for_each_entry(iopc_field, field, &fun->arg->fields) {
+                    tab_for_each_entry(field, &fun->arg->fields) {
                         iopc_add_depends(pkg, field->parents.tab[0]->pkg,
                                          t_deps);
                     }
@@ -1613,7 +1613,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
             }
         }
     }
-    qv_for_each_entry(iopc_struct, mod, &pkg->modules) {
+    tab_for_each_entry(mod, &pkg->modules) {
         get_structs_depends(pkg, i_deps, mod);
     }
     iopc_depends_uniquify(t_deps);

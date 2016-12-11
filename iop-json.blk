@@ -922,7 +922,7 @@ t_get_current_field_path(qv_t(iop_json_field_path) *field_paths)
     t_SB_1k(buf);
     bool is_first_field = true;
 
-    qv_for_each_ptr(iop_json_field_path, val, field_paths) {
+    tab_for_each_ptr(val, field_paths) {
         if (val->is_index) {
             sb_addf(&buf, "[%d]", val->index);
         } else {
@@ -1066,7 +1066,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
     }
 
     path_lstr = LSTR(path);
-    qv_for_each_entry(lstr, s, &filenames_g) {
+    tab_for_each_entry(s, &filenames_g) {
         if (lstr_equal(s, path_lstr)) {
             RESTORECTX();
             return JERROR_VARIOUS("infinite recursion detected in includes");
@@ -2642,7 +2642,7 @@ static int init_jpack_sub_files(const iop_struct_t *st, const void *value,
 {
     qm_init(iop_jpack_sub_files, &ctx->sub_files);
 
-    qv_for_each_ptr(iop_json_subfile, subfile, subfiles) {
+    tab_for_each_ptr(subfile, subfiles) {
         const iop_field_t *fdesc;
         const void *ptr;
         int pos;
@@ -2724,7 +2724,7 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
 
     if (res < 0) {
         IGNORE(unlink(filename));
-        qv_for_each_entry(str, file, &ctx.created_sub_files) {
+        tab_for_each_entry(file, &ctx.created_sub_files) {
             IGNORE(unlink(file));
         }
     }

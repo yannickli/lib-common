@@ -399,7 +399,7 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
         return mp_dup(mp, &iop__void__s, 1);
     }
 
-    qv_for_each_ptr(iop_field_info, field_info, fields_info) {
+    tab_for_each_ptr(field_info, fields_info) {
         names_len += field_info->name.len;
     }
 
@@ -415,7 +415,7 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
 
     /* fields */
     field = (iop_field_t *)st->fields;
-    qv_for_each_ptr(iop_field_info, field_info, fields_info) {
+    tab_for_each_ptr(field_info, fields_info) {
         unsigned field_size = 1;
         int field_align = 1;
         iop_type_t type = field_info->type;
@@ -2005,7 +2005,7 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
     t_qv_init(&sorts, params->len);
     qv_growlen(&sorts, params->len);
 
-    qv_for_each_pos(iop_sort, pos, params) {
+    tab_for_each_pos(pos, params) {
         iop_sort_priv_t *priv = &sorts.tab[pos];
         iop_sort_t *sort = &params->tab[pos];
         iop_type_t type;
@@ -2051,7 +2051,7 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
                 d2 = *(void **)d2;
             }
 
-            qv_for_each_ptr(iop_sort_p, sort, &sorts) {
+            tab_for_each_ptr(sort, &sorts) {
                 int ret = compare_field(d1, d2, sort);
 
                 if (ret) {
@@ -4417,7 +4417,7 @@ iop_register_obj_by_name(qm_t(iop_objs) *qm, const void *obj, lstr_t name,
         qv_init(&qm->values[pos]);
     }
     obj_vec = &qm->values[pos];
-    qv_for_each_entry(cvoid, _obj, obj_vec) {
+    tab_for_each_entry(_obj, obj_vec) {
         if (_obj == obj) {
             return 0;
         }
@@ -4553,7 +4553,7 @@ iop_unregister_obj(qm_t(iop_objs) *qm, const void *obj, lstr_t name)
     qv_t(cvoid) *vec = &qm->values[pos];
     bool found = false;
 
-    qv_for_each_pos(cvoid, pos2, vec) {
+    tab_for_each_pos(pos2, vec) {
         const void *obj2 = vec->tab[pos2];
 
         if (obj2 == obj) {
@@ -4611,7 +4611,7 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
 void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
 {
     qm_for_each_pos(iop_objs, pos, &_G.env.pkgs_by_name) {
-        qv_for_each_entry(cvoid, pkg, &_G.env.pkgs_by_name.values[pos]) {
+        tab_for_each_entry(pkg, &_G.env.pkgs_by_name.values[pos]) {
             cb(pkg);
         }
     }
@@ -5059,7 +5059,7 @@ static int
 check_parent_required_fields(const qv_t(iop_struct) *parents,
                              iop_compat_ctx_t *ctx)
 {
-    qv_for_each_entry(iop_struct, parent, parents) {
+    tab_for_each_entry(parent, parents) {
         for (int i = 0; i < parent->fields_len; i++) {
             const iop_field_t *f = &parent->fields[i];
 

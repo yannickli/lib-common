@@ -161,7 +161,7 @@ static lstr_t t_struct_build_oid(qv_t(u16) oids,
         qv_append(&oids, snmp_obj->snmp_attrs->oid);
     } while ((snmp_obj = snmp_obj->snmp_attrs->parent));
 
-    qv_for_each_pos_rev(u16, pos, &oids) {
+    tab_for_each_pos_rev(pos, &oids) {
         sb_addf(&sb, ".%d", oids.tab[pos]);
     }
     return LSTR_SB_V(&sb);
@@ -442,7 +442,7 @@ static void doc_parseopt(int argc, char **argv, lstr_t *output_notif,
 void iop_write_snmp_doc(sb_t *notif_sb, sb_t *object_sb,
                         const qv_t(pkg) *pkgs)
 {
-    qv_for_each_entry(pkg, pkg, pkgs) {
+    tab_for_each_entry(pkg, pkgs) {
         doc_put_alarms(notif_sb, pkg);
         doc_put_fields(object_sb, pkg);
     }

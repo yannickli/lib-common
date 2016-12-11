@@ -47,7 +47,7 @@ static int z_check_file_bin_records(file_bin_t *file, lstr_t path,
 
     Z_ASSERT_EQ(results.len, exp_nb);
 
-    qv_for_each_pos(lstr, pos, &results) {
+    tab_for_each_pos(pos, &results) {
         lstr_t entry = results.tab[pos];
         test_struct_t *test_ptr = entry.data;
 

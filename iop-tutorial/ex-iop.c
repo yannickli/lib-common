@@ -133,7 +133,7 @@ static void IOP_RPC_IMPL(exiop__hello_mod, hello_interface, send)
     ic_reply(ic, slot, exiop__hello_mod, hello_interface, send, .res = 1);
 
     /* send message to clients */
-    qv_for_each_entry(ichannel, ic_client, &_G.clients) {
+    tab_for_each_entry(ic_client, &_G.clients) {
         ic_msg_t *msg;
 
         if (ic == ic_client) {
@@ -160,7 +160,7 @@ static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
         e_warning("client %p disconnected", ic);
 
         /* delete client from vector */
-        qv_for_each_pos(ichannel, i, &_G.clients) {
+        tab_for_each_pos(i, &_G.clients) {
             if (_G.clients.tab[i] == ic) {
                 qv_remove(&_G.clients, i);
                 break;

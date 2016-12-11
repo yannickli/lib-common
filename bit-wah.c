@@ -383,7 +383,7 @@ void wah_copy(wah_t *map, const wah_t *src)
     }
 
     /* Copy buckets. */
-    qv_for_each_pos(wah_word_vec, pos, &src->_buckets) {
+    tab_for_each_pos(pos, &src->_buckets) {
         const qv_t(wah_word) *src_bucket = &src->_buckets.tab[pos];
         qv_t(wah_word) *dst_bucket = &map->_buckets.tab[pos];
 
@@ -469,7 +469,7 @@ void wah_check_normalized(const wah_t *map)
 #ifdef WAH_CHECK_NORMALIZED
     uint32_t prev_word = 0xcafebabe;
 
-    qv_for_each_ptr(wah_word_vec, bucket, &map->_buckets) {
+    tab_for_each_ptr(bucket, &map->_buckets) {
         int pos = 0;
 
         while (pos < bucket->len) {
@@ -500,7 +500,7 @@ void wah_check_invariant(const wah_t *map)
 
     assert (map->last_run_pos >= 0);
     assert (map->previous_run_pos >= -1);
-    qv_for_each_ptr(wah_word_vec, bucket, &map->_buckets) {
+    tab_for_each_ptr(bucket, &map->_buckets) {
         assert (bucket->len >= 2);
     }
     assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2
@@ -1208,7 +1208,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         const uint64_t __amount = (amount);                                  \
         const bool __skip_first = (skip_first);                              \
                                                                              \
-        qv_for_each_pos_safe(wah_word_enum, pos, &enums) {                   \
+        tab_for_each_pos_safe(pos, &enums) {                   \
             wah_word_enum_t *en = enums.tab[pos];                            \
                                                                              \
             if (!__skip_first || en != first) {                              \
@@ -1232,7 +1232,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         wah_word_enum_t *first = NULL;
         wah_word_enum_t *second = NULL;
 
-        qv_for_each_entry(wah_word_enum, e, &enums) {
+        tab_for_each_entry(e, &enums) {
             uint64_t w = wah_word_enum_weight(e);
 
             if (w > first_weight || !first) {
@@ -1273,7 +1273,7 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         }
 
         p_clear(&buffer_flags, 1);
-        qv_for_each_pos_safe(wah_word_enum, pos, &enums) {
+        tab_for_each_pos_safe(pos, &enums) {
             uint32_t     remain  = countof(buffer);
             uint32_t     en_bits = 0;
             wah_word_enum_t *en = enums.tab[pos];
@@ -1404,7 +1404,7 @@ void wah_not(wah_t *map)
 {
     wah_check_invariant(map);
 
-    qv_for_each_ptr(wah_word_vec, bucket, &map->_buckets) {
+    tab_for_each_ptr(bucket, &map->_buckets) {
         uint32_t pos = 0;
 
         while (pos < (uint32_t)bucket->len) {
@@ -1670,7 +1670,7 @@ uint64_t wah_get_storage_len(const wah_t *wah)
 {
     uint64_t res = 0;
 
-    qv_for_each_ptr(wah_word_vec, bucket, &wah->_buckets) {
+    tab_for_each_ptr(bucket, &wah->_buckets) {
         res += bucket->len;
     }
     return res;
@@ -2292,7 +2292,7 @@ Z_GROUP_EXPORT(wah)
         CHECK_WAH(5, (4 * 5 + 1) * WAH_BIT_IN_WORD);
 
         /* Save the wah in a sb. */
-        qv_for_each_ptr(wah_word_vec, bucket, &map1._buckets) {
+        tab_for_each_ptr(bucket, &map1._buckets) {
             sb_add(&sb, bucket->tab, bucket->len * sizeof(wah_word_t));
         }
         wah_wipe(&map1);
@@ -2301,7 +2301,7 @@ Z_GROUP_EXPORT(wah)
          * buckets are statically loaded. */
         Z_ASSERT_P(wah_init_from_data(&map1, ps_initsb(&sb)));
         CHECK_WAH(5, (4 * 5 + 1) * WAH_BIT_IN_WORD);
-        qv_for_each_ptr(wah_word_vec, bucket, &map1._buckets) {
+        tab_for_each_ptr(bucket, &map1._buckets) {
             Z_ASSERT(bucket->mp == ipool(MEM_STATIC));
         }
         wah_wipe(&map1);

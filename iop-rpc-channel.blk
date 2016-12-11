@@ -113,7 +113,7 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc)
     lstr_t rpc_name = t_lstr_fmt("%*pM.%*pM", LSTR_FMT_ARG(iface->fullname),
                                  LSTR_FMT_ARG(rpc->name));
 
-    qv_for_each_entry(lstr, name, &_G.traced_names) {
+    tab_for_each_entry(name, &_G.traced_names) {
         if (lstr_equal(rpc_name, name)
         ||  lstr_equal(iface->fullname, name))
         {

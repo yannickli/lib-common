@@ -95,7 +95,7 @@
 /* TODO optimize */
 static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
 {
-    qv_for_each_pos(u32, pos, &e->values) {
+    tab_for_each_pos(pos, &e->values) {
         if (e->values.tab[pos] == val) {
             return pos;
         }

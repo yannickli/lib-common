@@ -1161,7 +1161,7 @@ static int log_initialize(void* args)
         _G.is_debug = p_strdup(env);
         log_parse_specs(_G.is_debug, &_G.specs);
 
-        qv_for_each_ptr(spec, spec, &_G.specs) {
+        tab_for_each_ptr(spec, &_G.specs) {
             if (!spec->func && !spec->path) {
                 logger_set_level(LSTR_OPT(spec->name), spec->level, 0);
             }

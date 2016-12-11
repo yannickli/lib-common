@@ -497,7 +497,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
     bb_push_mark(bb);
 
     /* Encode optional fields bit-map */
-    qv_for_each_pos(u16, pos, &desc->opt_fields) {
+    tab_for_each_pos(pos, &desc->opt_fields) {
         uint16_t            field_pos = desc->opt_fields.tab[pos];
         const asn1_field_t *field     = &desc->vec.tab[field_pos];
         const void         *opt       = GET_DATA_P(st, field, uint8_t);

@@ -171,7 +171,7 @@ void z_blkgrp_wipe(struct z_blkgrp *g, bool delete_tests)
 __attribute__((destructor))
 static void z_shutdown(void)
 {
-    qv_for_each_pos(z_blk, i, &_G.blks) {
+    tab_for_each_pos(i, &_G.blks) {
         z_blkgrp_wipe(&_G.blks.tab[i], true);
     }
     qv_wipe(&_G.blks);
@@ -1089,12 +1089,12 @@ int z_run(void)
     }
 
     _G.res = 0;
-    qv_for_each_pos(z_cbs, i, &_G.cbs) {
+    tab_for_each_pos(i, &_G.cbs) {
         if (_G.stopping)
             break;
         _G.cbs.tab[i]();
     }
-    qv_for_each_pos(z_blk, i, &_G.blks) {
+    tab_for_each_pos(i, &_G.blks) {
         if (_G.stopping)
             break;
         _z_blkgrp_process(&_G.blks.tab[i]);

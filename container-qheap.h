@@ -255,7 +255,7 @@
 /* XXX In qhp_for_each_pos, when using a function that modifies heap
  *     content, user must absolutly break the loop.
  */
-#define qhp_for_each_pos(n, pos, heap)  qv_for_each_pos(qhp_##n, pos, heap)
+#define qhp_for_each_pos(n, pos, heap)  tab_for_each_pos(pos, heap)
 
 #define QHP_SCALAR_CMP(a, op, b)  ((a) op (b))
 #define QHP_IGNORE(...)

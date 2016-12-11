@@ -668,7 +668,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
     CHECK_FILE(st, "main.json", val);
 
     /* Check sub-files. */
-    qv_for_each_ptr(z_json_sub_file, sub_file, z_sub_files) {
+    tab_for_each_ptr(sub_file, z_sub_files) {
         if (sub_file->st) {
             CHECK_FILE(sub_file->st, sub_file->path, sub_file->val);
         } else {

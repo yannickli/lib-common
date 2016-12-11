@@ -129,19 +129,19 @@ static void debug_dump_dox(const struct lexdata *ld)
     e_trace(DEBUG_LVL, "DOX COMMENT, is_back: %d, file: %s",
             ld->tk->dox->is_back, ld->path);
 
-    qv_for_each_ptr(dox_chunk, chunk, &ld->tk->dox->chunks) {
+    tab_for_each_ptr(chunk, &ld->tk->dox->chunks) {
         e_trace(DEBUG_LVL, "chunk, lmin: %d, lmax: %d, "
                 "keyword: %*pM, paragraph0_args_len: %d "
                 "first_sentence_len: %d", chunk->loc.lmin, chunk->loc.lmax,
                 LSTR_FMT_ARG(chunk->keyword), chunk->paragraph0_args_len,
                 chunk->first_sentence_len);
-        qv_for_each_entry(lstr, param, &chunk->params) {
+        tab_for_each_entry(param, &chunk->params) {
             e_trace(DEBUG_LVL, "param: %*pM", LSTR_FMT_ARG(param));
         }
-        qv_for_each_entry(lstr, arg, &chunk->params_args) {
+        tab_for_each_entry(arg, &chunk->params_args) {
             e_trace(DEBUG_LVL, "params_arg: %*pM", LSTR_FMT_ARG(arg));
         }
-        qv_for_each_ptr(sb, paragraph, &chunk->paragraphs) {
+        tab_for_each_ptr(paragraph, &chunk->paragraphs) {
             e_trace(DEBUG_LVL, "paragraph: %*pM", SB_FMT_ARG(paragraph));
         }
     }
@@ -151,12 +151,12 @@ static void debug_dump_dox(const struct lexdata *ld)
 
 static void lexdox_comment_end(const struct lexdata *ld)
 {
-    qv_for_each_ptr(dox_chunk, chunk, &ld->tk->dox->chunks) {
+    tab_for_each_ptr(chunk, &ld->tk->dox->chunks) {
         /* Strip spaces at the beginning and end of each paragraph to have
          * clean brief and details paragraphs. Since details is put in its own
          * paragraph, this won't affect the inner formatting.
          */
-        qv_for_each_ptr(sb, paragraph, &chunk->paragraphs) {
+        tab_for_each_ptr(paragraph, &chunk->paragraphs) {
             sb_ltrim(paragraph);
             sb_rtrim(paragraph);
         }
@@ -530,7 +530,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           dox_chunk_t *chunk = qv_last(chunks);
 
                           lexdox_add_text(yyextra, "[", 1);
-                          qv_for_each_ptr(lstr, s, &chunk->params) {
+                          tab_for_each_ptr(s, &chunk->params) {
                               lexdox_add_text(yyextra, s->s, s->len);
                               if (s != qv_last(&chunk->params))
                                   lexdox_add_text(yyextra, ", ", 2);

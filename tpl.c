@@ -58,7 +58,7 @@ static void tpl_wipe(tpl_t *n)
     if (n->op == TPL_OP_BLOB)
         sb_wipe(&n->u.blob);
     if (n->op & TPL_OP_BLOCK) {
-        qv_for_each_pos_safe(tpl, pos, &n->u.blocks) {
+        tab_for_each_pos_safe(pos, &n->u.blocks) {
             tpl_delete(&n->u.blocks.tab[pos]);
         }
         qv_wipe(&n->u.blocks);
