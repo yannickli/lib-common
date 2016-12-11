@@ -208,6 +208,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
                          uint32_t flags, qhash_khash_f *hf,
                          qhash_kequ_f *equ);
 void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
+size_t qhash_memory_footprint(const qhash_t *qh);
 
 /* }}} */
 /*----- base macros to define QH's and QM's -{{{-*/
@@ -224,66 +225,21 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
         qhash_init(&qh->qh, sizeof(key_t), _v_size, chahes, mp);             \
     }                                                                        \
     __unused__                                                               \
-    static inline void pfx##_wipe(pfx##_t *qh) {                             \
-        qhash_wipe(&qh->qh);                                                 \
-    }                                                                        \
-    __unused__                                                               \
-    static inline void pfx##_clear(pfx##_t *qh) {                            \
-        qhash_clear(&qh->qh);                                                \
-    }                                                                        \
-    __unused__                                                               \
-    static inline void pfx##_del_at(pfx##_t *qh, uint32_t pos) {             \
-        qhash_del_at(&qh->qh, pos);                                          \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int32_t pfx##_len(const pfx##_t *qh) {                     \
-        return qh->qh.hdr.len;                                               \
-    }                                                                        \
-    __unused__                                                               \
-    static inline size_t pfx##_memory_footprint(const pfx##_t *qh) {         \
-        size_t size, max_size;                                               \
-                                                                             \
-        max_size = qh->hdr.size;                                             \
-        size = 0;                                                            \
-        if (qh->old) {                                                       \
-            max_size = MAX(qh->hdr.size, qh->old->size);                     \
-            size += sizeof(qhash_hdr_t);                                     \
-            size += sizeof(size_t) *                                         \
-                    BITS_TO_ARRAY_LEN(size_t, 2 * qh->old->size);            \
-        }                                                                    \
-        size += sizeof(size_t) * BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size);\
-        size += max_size * (qh->k_size + qh->v_size);                        \
-        if (qh->h_size) {                                                    \
-            size += max_size * 4;                                            \
-        }                                                                    \
-                                                                             \
-        return size;                                                         \
-    }                                                                        \
-    __unused__                                                               \
-    static inline uint32_t pfx##_hash(pfx##_t *qh, ckey_t key) {             \
+    static inline uint32_t pfx##_hash(const pfx##_t *qh, ckey_t key) {       \
         return hashK(&qh->qh, castK(key));                                   \
     }
 
 #define __QH_FIND(sfx, pfx, name, ckey_t, key_t, hashK, castK) \
     __unused__                                                               \
-    static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
-        return qhash_get##sfx(&qh->qh, hashK(&qh->qh, castK(key)),           \
-                              castK(key));                                   \
-    }                                                                        \
-    __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
+    pfx##_find_int(pfx##_t *qh, const uint32_t *ph, ckey_t key) {            \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_get##sfx(&qh->qh, h, castK(key));                       \
     }                                                                        \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
-        return qhash_safe_get##sfx(&qh->qh, hashK(&qh->qh, castK(key)),      \
-                                   castK(key));                              \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int32_t                                                    \
-    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
+    pfx##_find_safe_int(const pfx##_t *qh, const uint32_t *ph, ckey_t key) { \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_safe_get##sfx(&qh->qh, h, castK(key));                  \
     }
 
@@ -295,35 +251,20 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 #define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, castK, iseqK)       \
     __unused__                                                               \
-    static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
+    static inline int32_t                                                    \
+    pfx##_find_int(pfx##_t *qh, const uint32_t *ph, ckey_t key) {            \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
-        uint32_t h = (*hf)(&qh->qh, castK(key));                             \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_get##sfx(&qh->qh, h, castK(key),                        \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
+    pfx##_find_safe_int(const pfx##_t *qh, const uint32_t *ph, ckey_t key) { \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
-        return qhash_get##sfx(&qh->qh, h, castK(key),                        \
-                              (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int32_t                                                    \
-    pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
-        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
-        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
-        uint32_t h = (*hf)(&qh->qh, castK(key));                             \
-        return qhash_safe_get##sfx(&qh->qh, h, castK(key),                   \
-                              (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int32_t                                                    \
-    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
-        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
-        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_safe_get##sfx(&qh->qh, h, castK(key),                   \
                                    (qhash_khash_f *)hf, (qhash_kequ_f *)ef); \
     }
@@ -340,30 +281,6 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 /* }}} */
 /*----- macros to define QH's -{{{-*/
 
-#define __QH_ADD(sfx, pfx, name, key_t, hashK, castK) \
-    __unused__                                                               \
-    static inline uint32_t                                                   \
-    pfx##_put(pfx##_t *qh, key_t key, uint32_t fl) {                         \
-        return pfx##_put_h(qh, hashK(&qh->qh, castK(key)), key, fl);         \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_add_h(pfx##_t *qh, uint32_t h, key_t key)        \
-    {                                                                        \
-        return (int)pfx##_put_h(qh, h, key, 0) >> 31;                        \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_add(pfx##_t *qh, key_t key) {                    \
-        return pfx##_add_h(qh, hashK(&qh->qh, castK(key)), key);             \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_replace_h(pfx##_t *qh, uint32_t h, key_t key) {  \
-        return (int)pfx##_put_h(qh, h, key, QHASH_OVERWRITE) >> 31;          \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_replace(pfx##_t *qh, key_t key) {                \
-        return pfx##_replace_h(qh, hashK(&qh->qh, castK(key)), key);         \
-    }
-
 #define CASTK_ID(key)  (key)
 #define CASTK_UPTR(key)  ((uintptr_t)(key))
 
@@ -376,15 +293,15 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h, key_t key, uint32_t fl) {           \
+    pfx##_put_int(pfx##_t *qh, const uint32_t *ph, key_t key, uint32_t fl) { \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put##sfx(&qh->qh, h, key, fl);                \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __QH_ADD(sfx, pfx, name, key_t, qhash_hash_u##sfx, CASTK_ID)
+    }
 
 #define __QH_HPKEY(pfx, name, ckey_t, key_t)                                 \
     __QH_BASE(64, pfx, name, ckey_t *, key_t *, void, 0, qhash_hash_u64,     \
@@ -394,15 +311,15 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {          \
+    pfx##_put_int(pfx##_t *qh, const uint32_t *ph, key_t *key, uint32_t fl) {\
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put64(&qh->qh, h, CASTK_UPTR(key), fl);       \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __QH_ADD(64, pfx, name, key_t *, qhash_hash_u64, CASTK_UPTR)
+    }
 
 #define __QH_PKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, ckey_t *, key_t *, void, 0, hashK, CASTK_ID); \
@@ -411,9 +328,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {          \
+    pfx##_put_int(pfx##_t *qh, const uint32_t *ph, key_t *key, uint32_t fl) {\
         uint32_t (*hf)(const qhash_t *, ckey_t *) = &hashK;                  \
         bool     (*ef)(const qhash_t *, ckey_t *, ckey_t *) = &iseqK;        \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
                                                                              \
@@ -421,8 +339,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __QH_ADD(_ptr, pfx, name, key_t *, hashK, CASTK_ID)
+    }
 
 #define __QH_VKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, ckey_t *, key_t, void, 0, hashK, CASTK_ID);   \
@@ -431,9 +348,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) {         \
+    pfx##_put_int(pfx##_t *qh, const uint32_t *ph, ckey_t *key, uint32_t fl) {\
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
         bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) =  &iseqK;         \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
                                        (qhash_khash_f *)hf,                  \
                                        (qhash_kequ_f *)ef);                  \
@@ -442,101 +360,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
             qh->keys[pos & ~QHASH_COLLISION] = *key;                         \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __QH_ADD(_vec, pfx, name, ckey_t *, hashK, CASTK_ID)
+    }
 
 /* }}} */
 /*----- macros to define QM's -{{{-*/
-
-#define __QM_ADD(sfx, pfx, name, key_t, val_t, hashK, castK)                 \
-    __unused__                                                               \
-    static inline uint32_t                                                   \
-    pfx##_reserve(pfx##_t *qh, key_t key, uint32_t fl) {                     \
-        return pfx##_reserve_h(qh, hashK(&qh->qh, castK(key)), key, fl);     \
-    }                                                                        \
-    __unused__                                                               \
-    static inline uint32_t                                                   \
-    pfx##_put(pfx##_t *qh, key_t key, val_t v, uint32_t fl) {                \
-        return pfx##_put_h(qh, hashK(&qh->qh, castK(key)), key, v, fl);      \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int                                                        \
-    pfx##_add_h(pfx##_t *qh, uint32_t h, key_t key, val_t v) {               \
-        return (int)pfx##_put_h(qh, h, key, v, 0) >> 31;                     \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_add(pfx##_t *qh, key_t key, val_t v) {           \
-        return pfx##_add_h(qh, hashK(&qh->qh, castK(key)), key, v);          \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int                                                        \
-    pfx##_replace_h(pfx##_t *qh, uint32_t h, key_t key, val_t v) {           \
-        return (int)pfx##_put_h(qh, h, key, v, QHASH_OVERWRITE) >> 31;       \
-    }                                                                        \
-    __unused__                                                               \
-    static inline int pfx##_replace(pfx##_t *qh, key_t key, val_t v)         \
-    {                                                                        \
-        return pfx##_replace_h(qh, hashK(&qh->qh, castK(key)), key, v);      \
-    }
-
-#define __QM_FIND(sfx, pfx, name, ckey_t, val_t, hashK) \
-    __unused__                                                               \
-    static inline val_t pfx##_get(pfx##_t *qh, ckey_t key)                   \
-    {                                                                        \
-        int pos = pfx##_find(qh, key);                                       \
-        assert (pos >= 0);                                                   \
-        return qh->values[pos];                                              \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_h(pfx##_t *qh, uint32_t h, ckey_t key)     \
-    {                                                                        \
-        int pos = pfx##_find_h(qh, h, key);                                  \
-        assert (pos >= 0);                                                   \
-        return qh->values[pos];                                              \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_safe(const pfx##_t *qh, ckey_t key)        \
-    {                                                                        \
-        int pos = pfx##_find_safe(qh, key);                                  \
-        assert (pos >= 0);                                                   \
-        return qh->values[pos];                                              \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_safe_h(const pfx##_t *qh, uint32_t h,      \
-                                         ckey_t key)                         \
-    {                                                                        \
-        int pos = pfx##_find_safe_h(qh, h, key);                             \
-        assert (pos >= 0);                                                   \
-        return qh->values[pos];                                              \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_def(pfx##_t *qh, ckey_t key, val_t def)    \
-    {                                                                        \
-        int pos = pfx##_find(qh, key);                                       \
-        return pos >= 0 ? qh->values[pos] : def;                             \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_def_h(pfx##_t *qh, uint32_t h,             \
-                                        ckey_t key, val_t def)               \
-    {                                                                        \
-        int pos = pfx##_find_h(qh, h, key);                                  \
-        return pos >= 0 ? qh->values[pos] : def;                             \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_def_safe(const pfx##_t *qh, ckey_t key,    \
-                                           val_t def)                        \
-    {                                                                        \
-        int pos = pfx##_find_safe(qh, key);                                  \
-        return pos >= 0 ? qh->values[pos] : def;                             \
-    }                                                                        \
-    __unused__                                                               \
-    static inline val_t pfx##_get_def_safe_h(const pfx##_t *qh, uint32_t h,  \
-                                             ckey_t key, val_t def)          \
-    {                                                                        \
-        int pos = pfx##_find_safe_h(qh, h, key);                             \
-        return pos >= 0 ? qh->values[pos] : def;                             \
-    }
-
 
 #define __QM_IKEY(sfx, pfx, name, key_t, val_t)  \
     __QH_BASE(sfx, pfx, name, key_t const, key_t, val_t, sizeof(val_t),      \
@@ -547,26 +374,16 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_h(pfx##_t *qh, uint32_t h, key_t key, uint32_t fl) {       \
+    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t key, uint32_t fl)\
+    {                                                                        \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put##sfx(&qh->qh, h, key, fl);                \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h,                                     \
-                    key_t key, val_t v, uint32_t fl) {                       \
-        uint32_t pos = pfx##_reserve_h(qh, h, key, fl);                      \
-                                                                             \
-        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->values[pos & ~QHASH_COLLISION] = v;                          \
-        }                                                                    \
-        return pos;                                                          \
-    }                                                                        \
-    __QM_ADD(sfx, pfx, name, key_t, val_t, qhash_hash_u##sfx, CASTK_ID);     \
-    __QM_FIND(sfx, pfx, name, key_t const, val_t, qhash_hash_u##sfx)
+    }
 
 #define __QM_HPKEY(pfx, name, ckey_t, key_t, val_t)                          \
     __QH_BASE(64, pfx, name, ckey_t *, key_t *, val_t, sizeof(val_t),        \
@@ -576,25 +393,17 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {      \
+    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t *key,           \
+                      uint32_t fl)                                           \
+    {                                                                        \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put64(&qh->qh, h, CASTK_UPTR(key), fl);       \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, val_t v, uint32_t fl) { \
-        uint32_t pos = pfx##_reserve_h(qh, h, key, fl);                      \
-                                                                             \
-        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->values[pos & ~QHASH_COLLISION] = v;                          \
-        }                                                                    \
-        return pos;                                                          \
-    }                                                                        \
-    __QM_ADD(64, pfx, name, key_t *, val_t, qhash_hash_u64, CASTK_UPTR);     \
-    __QM_FIND(sfx, pfx, name, ckey_t *, val_t, qhash_hash_u64)
+    }
 
 #define __QM_PKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, ckey_t *, key_t *, val_t, sizeof(val_t),      \
@@ -604,9 +413,12 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {      \
+    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t *key,           \
+                      uint32_t fl)                                           \
+    {                                                                        \
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
         bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
                                                                              \
@@ -614,20 +426,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __unused__                                                               \
-    static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h,                                     \
-                    key_t *key, val_t v, uint32_t fl) {                      \
-        uint32_t pos = pfx##_reserve_h(qh, h, key, fl);                      \
-                                                                             \
-        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->values[pos & ~QHASH_COLLISION] = v;                          \
-        }                                                                    \
-        return pos;                                                          \
-    }                                                                        \
-    __QM_ADD(_ptr, pfx, name, key_t *, val_t, hashK, CASTK_ID);              \
-    __QM_FIND(_ptr, pfx, name, ckey_t *, val_t, hashK)
+    }
 
 #define __QM_VKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, ckey_t *, key_t, val_t, sizeof(val_t), hashK, \
@@ -636,9 +435,12 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
     __QH_SEAL2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) {     \
+    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, ckey_t *key,          \
+                      uint32_t fl)                                           \
+    {                                                                        \
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
         bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
+        uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
                                        (qhash_khash_f *)hf,                  \
                                        (qhash_kequ_f *)ef);                  \
@@ -647,20 +449,7 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
             qh->keys[pos & ~QHASH_COLLISION] = *key;                         \
         }                                                                    \
         return pos;                                                          \
-    }                                                                        \
-    __unused__                                                               \
-    static inline uint32_t                                                   \
-    pfx##_put_h(pfx##_t *qh, uint32_t h,                                     \
-                ckey_t *key, val_t v, uint32_t fl) {                         \
-        uint32_t pos = pfx##_reserve_h(qh, h, key, fl);                      \
-                                                                             \
-        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->values[pos & ~QHASH_COLLISION] = v;                          \
-        }                                                                    \
-        return pos;                                                          \
-    }                                                                        \
-    __QM_ADD(_vec, pfx, name, ckey_t *, val_t, hashK, CASTK_ID);             \
-    __QM_FIND(_vec, pfx, name, ckey_t *, val_t, hashK)
+    }
 
 /* }}} */
 
@@ -809,8 +598,12 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 #define qh_fn(name, fname)                  qh_##name##_##fname
 
-#define qh_len(name, qh)                    qh_##name##_len(qh)
-#define qh_memory_footprint(name, qh)       qh_##name##_memory_footprint(qh)
+#define qh_len(name, _qh)                                                    \
+    ({  const qh_t(name) *__qh = (_qh);                                      \
+        (int32_t)__qh->qh.hdr.len; })
+#define qh_memory_footprint(name, _qh)                                       \
+    ({  const qh_t(name) *__qh = (_qh);                                      \
+        qhash_memory_footprint(&__qh->qh); })
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 /** \see qm_seal */
@@ -818,38 +611,63 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 #define qh_unseal(name, _qh)                                                 \
     ({  qh_t(name) *__qh = (_qh);                                            \
         qhash_unseal(&__qh->qh); })
-#define qh_wipe(name, qh)                   qh_##name##_wipe(qh)
-#define qh_clear(name, qh)                  qh_##name##_clear(qh)
-#define qh_find(name, qh, key)              qh_##name##_find(qh, key)
-#define qh_find_h(name, qh, h, key)         qh_##name##_find_h(qh, h, key)
-#define qh_find_safe(name, qh, key)         qh_##name##_find_safe(qh, key)
-#define qh_find_safe_h(name, qh, h, key)    qh_##name##_find_safe_h(qh, h, key)
+#define qh_wipe(name, _qh)                                                   \
+    ({  qh_t(name) *__qh = (_qh);                                            \
+        qhash_wipe(&__qh->qh); })
+#define qh_clear(name, _qh)                                                  \
+    ({  qh_t(name) *__qh = (_qh);                                            \
+        qhash_clear(&__qh->qh); })
+#define qh_find(name, _qh, _key)                                             \
+    qh_##name##_find_int((_qh), NULL, (_key))
+#define qh_find_h(name, _qh, h, _key)                                        \
+    ({  uint32_t __h = (h);                                                  \
+        qh_##name##_find_int((_qh), &__h, (_key));                           \
+    })
+#define qh_find_safe(name, _qh, _key)                                        \
+    qh_##name##_find_safe_int((_qh), NULL, (_key))
+#define qh_find_safe_h(name, _qh, h, _key)                                   \
+    ({  uint32_t __h = (h);                                                  \
+        qh_##name##_find_safe_int((_qh), &__h, (_key));                      \
+    })
 /** \see qm_put */
-#define qh_put(name, qh, key, fl)           qh_##name##_put(qh, key, fl)
-#define qh_put_h(name, qh, h, key, fl)      qh_##name##_put_h(qh, h, key, fl)
+#define qh_put(name, qh, key, fl)                                            \
+    qh_##name##_put_int((qh), NULL, (key), (fl))
+#define qh_put_h(name, qh, h, key, fl)                                       \
+    ({  uint32_t __h = (h);                                                  \
+        qh_##name##_put_int((qh), &__h, (key), (fl)); })
 /** \see qm_add */
-#define qh_add(name, qh, key)               qh_##name##_add(qh, key)
-#define qh_add_h(name, qh, h, key)          qh_##name##_add_h(qh, h, key)
+#define qh_add(name, qh, key)                                                \
+    ({ (int)qh_put(name, (qh), (key), 0) >> 31; })
+#define qh_add_h(name, qh, h, key)                                           \
+    ({ (int)qh_put_h(name, (qh), (h), (key), 0) >> 31; })
 /** \see qm_replace */
-#define qh_replace(name, qh, key)           qh_##name##_replace(qh, key)
-#define qh_replace_h(name, qh, h, key)      qh_##name##_replace_h(qh, h, key)
-#define qh_del_at(name, qh, pos)            qh_##name##_del_at(qh, pos)
-#define qh_del_key(name, qh, key)  \
-    ({ int32_t __pos = qh_find(name, qh, key);                           \
-       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
-       __pos; })
-#define qh_del_key_h(name, qh, h, key)  \
-    ({ int32_t __pos = qh_find_h(name, qh, h, key);                      \
-       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
-       __pos; })
-#define qh_del_key_safe(name, qh, key)  \
-    ({ int32_t __pos = qh_find_safe(name, qh, key);                      \
-       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
-       __pos; })
-#define qh_del_key_safe_h(name, qh, h, key)  \
-    ({ int32_t __pos = qh_find_safe_h(name, qh, h, key);                 \
-       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
-       __pos; })
+#define qh_replace(name, qh, key)                                            \
+    ({ (int)qh_put(name, (qh), (key), QHASH_OVERWRITE) >> 31; })
+#define qh_replace_h(name, qh, h, key)                                       \
+    ({ (int)qh_put_h(name, (qh), (h), (key), QHASH_OVERWRITE) >> 31; })
+#define qh_del_at(name, _qh, pos)                                            \
+    ({  qh_t(name) *__qh = (_qh);                                            \
+        qhash_del_at(&__qh->qh, (pos)); })
+#define qh_del_key(name, _qh, key)                                           \
+    ({  qh_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qh_find(name, __dk_qh, key);                         \
+        if (likely(__pos >= 0)) qh_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qh_del_key_h(name, _qh, h, key)                                      \
+    ({  qh_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qh_find_h(name, __dk_qh, h, key);                    \
+        if (likely(__pos >= 0)) qh_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qh_del_key_safe(name, _qh, key)                                      \
+    ({  qh_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qh_find_safe(name, __dk_qh, key);                    \
+        if (likely(__pos >= 0)) qh_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qh_del_key_safe_h(name, _qh, h, key)                                 \
+    ({  qh_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qh_find_safe_h(name, __dk_qh, h, key);               \
+        if (likely(__pos >= 0)) qh_del_at(name, __dk_qh, __pos);             \
+        __pos; })
 
 #define qh_delete(name, h)                                                   \
     do {                                                                     \
@@ -968,8 +786,12 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
 
 #define qm_fn(name, fname)                  qm_##name##_##fname
 
-#define qm_len(name, qh)                    qm_##name##_len(qh)
-#define qm_memory_footprint(name, qh)       qm_##name##_memory_footprint(qh)
+#define qm_len(name, _qh)                                                    \
+    ({  const qm_t(name) *__qh = (_qh);                                      \
+        (int32_t)__qh->qh.hdr.len; })
+#define qm_memory_footprint(name, _qh)                                       \
+    ({  const qm_t(name) *__qh = (_qh);                                      \
+        qhash_memory_footprint(&__qh->qh); })
 #define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 
@@ -988,21 +810,72 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
     ({  qm_t(name) *__qh = (_qh);                                            \
         qhash_unseal(&__qh->qh); })
 
-#define qm_wipe(name, qh)                   qm_##name##_wipe(qh)
-#define qm_clear(name, qh)                  qm_##name##_clear(qh)
-#define qm_find(name, qh, key)              qm_##name##_find(qh, key)
-#define qm_find_h(name, qh, h, key)         qm_##name##_find_h(qh, h, key)
-#define qm_find_safe(name, qh, key)         qm_##name##_find_safe(qh, key)
-#define qm_find_safe_h(name, qh, h, key)    qm_##name##_find_safe_h(qh, h, key)
-#define qm_get(name, qh, key)               qm_##name##_get(qh, key)
-#define qm_get_h(name, qh, h, key)          qm_##name##_get_h(qh, h, key)
-#define qm_get_safe(name, qh, key)          qm_##name##_get_safe(qh, key)
-#define qm_get_safe_h(name, qh, h, key)     qm_##name##_get_safe_h(qh, h, key)
-#define qm_get_def(name, qh, key, def)      qm_##name##_get_def(qh, key, def)
-#define qm_get_def_h(name, qh, h, key, def) qm_##name##_get_def_h(qh, h, key, def)
-#define qm_get_def_safe(name, qh, key, def) qm_##name##_get_def_safe(qh, key, def)
-#define qm_get_def_safe_h(name, qh, h, key, def)  \
-    qm_##name##_get_def_safe_h(qh, h, key, def)
+#define qm_wipe(name, _qh)                                                   \
+    ({  qm_t(name) *__qh = (_qh);                                            \
+        qhash_wipe(&__qh->qh); })
+#define qm_clear(name, _qh)                                                  \
+    ({  qm_t(name) *__qh = (_qh);                                            \
+        qhash_clear(&__qh->qh); })
+#define qm_find(name, _qh, _key)                                             \
+    qm_##name##_find_int((_qh), NULL, (_key))
+#define qm_find_h(name, qh, h, key)                                          \
+    ({  uint32_t __h = (h);                                                  \
+        qm_##name##_find_int((qh), &__h, (key));                             \
+    })
+#define qm_find_safe(name, _qh, _key)                                        \
+    qm_##name##_find_safe_int((_qh), NULL, (_key))
+#define qm_find_safe_h(name, qh, h, key)                                     \
+    ({  uint32_t __h = (h);                                                  \
+        qm_##name##_find_safe_int((qh), &__h, (key));                        \
+    })
+#define qm_get(name, _qh, key)                                               \
+    ({  qm_t(name) *__gqh = (_qh);                                           \
+        int __ghp_pos = qm_find(name, __gqh, (key));                         \
+        assert (__ghp_pos >= 0);                                             \
+        __gqh->values[__ghp_pos];                                            \
+    })
+#define qm_get_h(name, _qh, h, key)                                          \
+    ({  qm_t(name) *__gqh = (_qh);                                           \
+        int __ghp_pos = qm_find_h(name, __gqh, (h), (key));                  \
+        assert (__ghp_pos >= 0);                                             \
+        __gqh->values[__ghp_pos];                                            \
+    })
+#define qm_get_safe(name, _qh, key)                                          \
+    ({  const qm_t(name) *__gqh = (_qh);                                     \
+        int __ghp_pos = qm_find_safe(name, __gqh, (key));                    \
+        assert (__ghp_pos >= 0);                                             \
+        __gqh->values[__ghp_pos];                                            \
+    })
+#define qm_get_safe_h(name, _qh, h, key)                                     \
+    ({  const qm_t(name) *__gqh = (_qh);                                     \
+        int __ghp_pos = qm_find_safe_h(name, __gqh, (h), (key));             \
+        assert (__ghp_pos >= 0);                                             \
+        __gqh->values[__ghp_pos];                                            \
+    })
+#define qm_get_def(name, _qh, key, def)                                      \
+    ({  qm_t(name) *__gqh = (_qh);                                           \
+        typeof(__gqh->values[0]) __def = (def);                              \
+        int __ghp_pos = qm_find(name, __gqh, (key));                         \
+        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
+    })
+#define qm_get_def_h(name, _qh, h, key, def)                                 \
+    ({  qm_t(name) *__gqh = (_qh);                                           \
+        typeof(__gqh->values[0]) __def = (def);                              \
+        int __ghp_pos = qm_find_h(name, __gqh, (h), (key));                  \
+        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
+    })
+#define qm_get_def_safe(name, _qh, key, def)                                 \
+    ({  const qm_t(name) *__gqh = (_qh);                                     \
+        typeof(__gqh->values[0]) __def = (def);                              \
+        int __ghp_pos = qm_find_safe(name, __gqh, (key));                    \
+        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
+    })
+#define qm_get_def_safe_h(name, _qh, h, key, def)                            \
+    ({  const qm_t(name) *__gqh = (_qh);                                     \
+        typeof(__gqh->values[0]) __def = (def);                              \
+        int __ghp_pos = qm_find_safe_h(name, __gqh, (h), (key));             \
+        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
+    })
 
 #define qm_deep_clear(name, h, k_wipe, v_wipe)                           \
     do {                                                                 \
@@ -1099,11 +972,32 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *   significant bit.
  */
 
-#define qm_reserve(name, qh, key, fl)      qm_##name##_reserve(qh, key, fl)
-#define qm_reserve_h(name, qh, h, key, fl) qm_##name##_reserve_h(qh, h, key, fl)
+#define qm_reserve(name, qh, key, fl)                                        \
+    qm_##name##_reserve_int((qh), NULL, (key), (fl))
+#define qm_reserve_h(name, qh, h, key, fl)                                   \
+    ({  uint32_t __h = (h);                                                  \
+        qm_##name##_reserve_int((qh), &__h, (key), (fl)); })
 
-#define qm_put(name, qh, key, v, fl)      qm_##name##_put(qh, key, v, fl)
-#define qm_put_h(name, qh, h, key, v, fl) qm_##name##_put_h(qh, h, key, v, fl)
+#define qm_put(name, qh, key, v, fl)                                         \
+    ({  qm_t(name) *__qmp_qh = (qh);                                         \
+        typeof(__qmp_qh->values[0]) __v = (v);                               \
+        uint32_t __fl = (fl);                                                \
+        uint32_t __qmp_pos = qm_reserve(name, __qmp_qh, (key), __fl);        \
+        if ((__fl & QHASH_OVERWRITE) || !(__qmp_pos & QHASH_COLLISION)) {    \
+            __qmp_qh->values[__qmp_pos & ~ QHASH_COLLISION] = __v;           \
+        }                                                                    \
+        __qmp_pos;                                                           \
+    })
+#define qm_put_h(name, qh, h, key, v, fl)                                    \
+    ({  qm_t(name) *__qmp_qh = (qh);                                         \
+        typeof(__qmp_qh->values[0]) __v = (v);                               \
+        uint32_t __fl = (fl);                                                \
+        uint32_t __qmp_pos = qm_reserve_h(name, __qmp_qh, (h), (key), __fl); \
+        if ((__fl & QHASH_OVERWRITE) || !(__qmp_pos & QHASH_COLLISION)) {    \
+            __qmp_qh->values[__qmp_pos & ~ QHASH_COLLISION] = __v;           \
+        }                                                                    \
+        __qmp_pos;                                                           \
+    })
 
 /** Adds a new key/value pair into the qmap.
  *
@@ -1117,8 +1011,10 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *
  * @return     0 if inserted in the qmap, -1 if insertion fails.
  */
-#define qm_add(name, qh, key, v)            qm_##name##_add(qh, key, v)
-#define qm_add_h(name, qh, h, key, v)       qm_##name##_add_h(qh, h, key, v)
+#define qm_add(name, qh, key, v)                                             \
+    ({ (int)qm_put(name, (qh), (key), (v), 0) >> 31; })
+#define qm_add_h(name, qh, h, key, v)                                        \
+    ({ (int)qm_put_h(name, (qh), (h), (key), (v), 0) >> 31; })
 
 /** Replaces value for a given key the qmap.
  *
@@ -1132,25 +1028,33 @@ void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
  *
  * @return     0 if it's an insertion, -1 if it's a replace.
  */
-#define qm_replace(name, qh, key, v)        qm_##name##_replace(qh, key, v)
-#define qm_replace_h(name, qh, h, key, v)   qm_##name##_replace_h(qh, h, key, v)
-#define qm_del_at(name, qh, pos)            qm_##name##_del_at(qh, pos)
-#define qm_del_key(name, qh, key)  \
-    ({ int32_t __pos = qm_find(name, qh, key);                           \
-       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
-       __pos; })
-#define qm_del_key_h(name, qh, h, key)  \
-    ({ int32_t __pos = qm_find_h(name, qh, h, key);                      \
-       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
-       __pos; })
-#define qm_del_key_safe(name, qh, key)  \
-    ({ int32_t __pos = qm_find_safe(name, qh, key);                      \
-       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
-       __pos; })
-#define qm_del_key_safe_h(name, qh, h, key)  \
-    ({ int32_t __pos = qm_find_safe_h(name, qh, h, key);                 \
-       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
-       __pos; })
+#define qm_replace(name, qh, key, v)                                         \
+    ({ (int)qm_put(name, (qh), (key), (v), QHASH_OVERWRITE) >> 31; })
+#define qm_replace_h(name, qh, h, key, v)                                    \
+    ({ (int)qm_put_h(name, (qh), (h), (key), (v), QHASH_OVERWRITE) >> 31; })
+#define qm_del_at(name, _qh, pos)                                            \
+    ({  qm_t(name) *__qh = (_qh);                                            \
+        qhash_del_at(&__qh->qh, (pos)); })
+#define qm_del_key(name, _qh, key)                                           \
+    ({  qm_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qm_find(name, __dk_qh, key);                         \
+        if (likely(__pos >= 0)) qm_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qm_del_key_h(name, _qh, h, key)                                      \
+    ({  qm_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qm_find_h(name, __dk_qh, (h), key);                  \
+        if (likely(__pos >= 0)) qm_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qm_del_key_safe(name, _qh, key)                                      \
+    ({  qm_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qm_find_safe(name, __dk_qh, key);                    \
+        if (likely(__pos >= 0)) qm_del_at(name, __dk_qh, __pos);             \
+        __pos; })
+#define qm_del_key_safe_h(name, _qh, h, key)                                 \
+    ({  qm_t(name) *__dk_qh = (_qh);                                         \
+        int32_t __pos = qm_find_safe_h(name, __dk_qh, h, key);               \
+        if (likely(__pos >= 0)) qm_del_at(name, __dk_qh, __pos);             \
+        __pos; })
 #define qm_wipe_at(name, qh, pos, k_wipe, v_wipe)  \
     do {                                                                 \
         qm_t(name) *__h = (qh);                                          \
