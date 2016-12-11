@@ -158,7 +158,7 @@ static lstr_t t_struct_build_oid(qv_t(u16) oids,
             iop_struct_is_snmp_tbl(snmp_obj));
 
     do {
-        qv_append(u16, &oids, snmp_obj->snmp_attrs->oid);
+        qv_append(&oids, snmp_obj->snmp_attrs->oid);
     } while ((snmp_obj = snmp_obj->snmp_attrs->parent));
 
     qv_for_each_pos_rev(u16, pos, &oids) {
@@ -172,9 +172,9 @@ static lstr_t t_notif_build_oid(const iop_struct_t *notif,
 {
     qv_t(u16) oids;
 
-    t_qv_init(u16, &oids, 16);
-    qv_append(u16, &oids, notif->snmp_attrs->oid);
-    qv_append(u16, &oids, parent->snmp_iface_attrs->oid);
+    t_qv_init(&oids, 16);
+    qv_append(&oids, notif->snmp_attrs->oid);
+    qv_append(&oids, parent->snmp_iface_attrs->oid);
 
     return t_struct_build_oid(oids, parent->snmp_iface_attrs->parent);
 }
@@ -184,8 +184,8 @@ static lstr_t t_field_build_oid(const iop_field_t *field,
 {
     qv_t(u16) oids;
 
-    t_qv_init(u16, &oids, 16);
-    qv_append(u16, &oids, field->tag);
+    t_qv_init(&oids, 16);
+    qv_append(&oids, field->tag);
 
     return t_struct_build_oid(oids, parent);
 }
@@ -327,7 +327,7 @@ static void doc_put_tbl(sb_t *buf, const iop_struct_t *st)
     lstr_t help = t_struct_get_help(st->st_attrs);
     lstr_t oid;
 
-    t_qv_init(u16, &oids, 16);
+    t_qv_init(&oids, 16);
     oid = t_struct_build_oid(oids, st);
 
     sb_addf(buf,

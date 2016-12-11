@@ -266,7 +266,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid = h % countof(qhh->buckets);                            \
         uint64_t pos;                                                        \
                                                                              \
-        pos  = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, fl);           \
+        pos  = hpfx##_reserve_int(&qhh->buckets[bid].qm, &h, key, fl);       \
         if (!(pos & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \
@@ -284,7 +284,7 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     static inline int pfx##_add_h(pfx##_t *qhh, uint32_t h, key_t key)       \
     {                                                                        \
         uint64_t bid = h % countof(qhh->buckets);                            \
-        int ret = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, 0);         \
+        int ret = hpfx##_reserve_int(&qhh->buckets[bid].qm, &h, key, 0);     \
                                                                              \
         if (!(ret & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
@@ -303,7 +303,8 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
         uint64_t bid = h % countof(qhh->buckets);                            \
         int ret;                                                             \
                                                                              \
-        ret = hpfx##_put_int(&qhh->buckets[bid].qm, &h, key, QHASH_OVERWRITE);\
+        ret = hpfx##_reserve_int(&qhh->buckets[bid].qm, &h, key,             \
+                                 QHASH_OVERWRITE);                           \
         if (!(ret & QHASH_COLLISION)) {                                      \
             qhh->hdr.len++;                                                  \
         }                                                                    \

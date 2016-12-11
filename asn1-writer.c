@@ -17,9 +17,8 @@
 
 static void asn1_wipe(void)
 {
-    qv_deep_wipe(asn1_desc, &asn1_descs_g.descs, asn1_desc_delete);
-    qv_deep_wipe(asn1_choice_desc, &asn1_descs_g.choice_descs,
-                 asn1_choice_desc_delete);
+    qv_deep_wipe(&asn1_descs_g.descs, asn1_desc_delete);
+    qv_deep_wipe(&asn1_descs_g.choice_descs, asn1_choice_desc_delete);
 }
 thr_hooks(NULL, asn1_wipe);
 
@@ -309,44 +308,44 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
 
     switch (spec->type) {
       case ASN1_OBJ_TYPE(bool): case ASN1_OBJ_TYPE(int8_t):
-        qv_append(i32, stack, data_size = 1);
+        qv_append(stack, data_size = 1);
         break;
       case ASN1_OBJ_TYPE(uint8_t):
         data_size = asn1_int32_size(*(const uint8_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(int16_t):
         data_size = asn1_int32_size(*(const int16_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(uint16_t):
         data_size = asn1_int32_size(*(const uint16_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(int32_t):
         data_size = asn1_int32_size(*(const int32_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(enum):
         data_size = asn1_int32_size(*(const int *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(uint32_t):
         data_size = asn1_uint32_size(*(const uint32_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(int64_t):
         data_size = asn1_int64_size(*(const int64_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(uint64_t):
         data_size = asn1_uint64_size(*(const uint64_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
         data_size = 0;
-        qv_append(i32, stack, 0);
+        qv_append(stack, 0);
         break;
       case ASN1_OBJ_TYPE(lstr_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):
@@ -356,13 +355,13 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         }
         assert (((lstr_t *)dt)->data);
         data_size = ((lstr_t *)dt)->len;
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         /* IF ASSERT: user maybe forgot to declare field as optional */
         assert (((asn1_bit_string_t *)dt)->data);
         data_size = asn1_bit_string_size((asn1_bit_string_t *)dt);
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(SEQUENCE): case ASN1_OBJ_TYPE(CHOICE):
       case ASN1_OBJ_TYPE(UNTAGGED_CHOICE):
@@ -370,7 +369,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
              * any contained field length, so we must keep a space in the
              * stack. */
             size_t len_pos = stack->len;
-            qv_append(i32, stack, 0);
+            qv_append(stack, 0);
             RETHROW(data_size = asn1_pack_size_rec(dt, spec->u.comp, stack));
             stack->tab[len_pos] = data_size;
         }
@@ -378,7 +377,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
       case ASN1_OBJ_TYPE(asn1_ext_t):
         {
             size_t len_pos = stack->len;
-            qv_append(i32, stack, 0);
+            qv_append(stack, 0);
             RETHROW(data_size = asn1_pack_size_rec(
                                     ((const asn1_ext_t *)dt)->data,
                                     ((const asn1_ext_t *)dt)->desc,
@@ -388,7 +387,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         break;
       case ASN1_OBJ_TYPE(OPAQUE):
         RETHROW(data_size = (*spec->u.opaque.pack_size)(dt));
-        qv_append(i32, stack, data_size);
+        qv_append(stack, data_size);
         break;
       case ASN1_OBJ_TYPE(SKIP):
       default:
@@ -748,13 +747,13 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
     }
 
     if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
-        qv_append(u16, &desc->opt_fields, desc->vec.len);
+        qv_append(&desc->opt_fields, desc->vec.len);
     }
 
     /* TODO same thing with extensions */
 
     asn1_field_init_info(field);
-    qv_append(asn1_field, &desc->vec, *field);
+    qv_append(&desc->vec, *field);
 }
 
 static void asn1_choice_desc_set_field(asn1_choice_desc_t *desc,

@@ -259,10 +259,10 @@ static uint8_t ev_cache_list(dlist_t *l)
     ev_t *ev;
 
     generation += 2;
-    qv_clear(ev, &_G.cache);
+    qv_clear(&_G.cache);
     dlist_for_each_entry(ev, l, ev_list) {
         ev->generation = generation;
-        qv_append(ev, &_G.cache, ev);
+        qv_append(&_G.cache, ev);
     }
     return generation;
 }
@@ -276,7 +276,7 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
             int   bucket_len = 1 << (_G.buckets.len + EV_ALLOC_FACTOR);
             ev_t *bucket     = p_new(ev_t, bucket_len);
 
-            qv_append(ev, &_G.buckets, bucket);
+            qv_append(&_G.buckets, bucket);
             if (unlikely(_G.buckets.len > EVS_NB_MAX_BUCKETS)) {
                 e_panic(E_PREFIX("insane amount of events"));
             }
@@ -1702,7 +1702,7 @@ static int el_get_state(sb_t *sb, bool only_blocking)
     };
     uint32_t hdr_size = countof(hdr_data);
 
-    qv_init_static(table_hdr, &hdr, hdr_data, hdr_size);
+    qv_init_static(&hdr, hdr_data, hdr_size);
 
     el_for_each(^(ev_t *ev) {
         qv_t(lstr) *tab;
@@ -1712,18 +1712,18 @@ static int el_get_state(sb_t *sb, bool only_blocking)
             return;
         }
 
-        tab = qv_growlen(table_data, rows, 1);
-        qv_init(lstr, tab);
-        qv_grow(lstr, tab, hdr_size);
+        tab = qv_growlen(rows, 1);
+        qv_init(tab);
+        qv_grow(tab, hdr_size);
 
-        qv_append(lstr, tab, lstr_fmt("%p", ev));
-        qv_append(lstr, tab, LSTR(ev_type_to_str(ev->type)));
+        qv_append(tab, lstr_fmt("%p", ev));
+        qv_append(tab, LSTR(ev_type_to_str(ev->type)));
         if (ev->flags & EV_FLAG_IS_BLK) {
-            qv_append(lstr, tab, LSTR("block"));
+            qv_append(tab, LSTR("block"));
         } else {
-            qv_append(lstr, tab, lstr_fmt("%p", (void *)ev->cb.cb));
+            qv_append(tab, lstr_fmt("%p", (void *)ev->cb.cb));
         }
-        qv_append(lstr, tab, lstr_fmt("%p", ev->priv.ptr));
+        qv_append(tab, lstr_fmt("%p", ev->priv.ptr));
 
         switch (ev->type) {
           case EV_SIGNAL:
@@ -1762,7 +1762,7 @@ static int el_get_state(sb_t *sb, bool only_blocking)
           default:
             break;
         }
-        qv_append(lstr, tab, details);
+        qv_append(tab, details);
     });
 
     sb_add_table(sb, &hdr, rows);
@@ -1770,9 +1770,9 @@ static int el_get_state(sb_t *sb, bool only_blocking)
     res = rows->len;
 
     qv_for_each_ptr(table_data, tab, rows) {
-        qv_deep_wipe(lstr, tab, lstr_wipe);
+        qv_deep_wipe(tab, lstr_wipe);
     }
-    qv_delete(table_data, &rows);
+    qv_delete(&rows);
 
     return res;
 }
@@ -1862,8 +1862,8 @@ static int el_shutdown(void)
     }
     el_fs_watch_shutdown();
 
-    qv_wipe(ev, &_G.cache);
-    qv_init(ev, &_G.cache);
+    qv_wipe(&_G.cache);
+    qv_init(&_G.cache);
 
     /* Automatically destroy SIGNAL events (we don't want write boring code to
      * make it ourselves). */
@@ -1886,8 +1886,8 @@ static int el_shutdown(void)
             logger_trace(&_G.logger, 0, "%d events are leaked", _G.used);
         }
     } else {
-        qv_deep_wipe(ev, &_G.buckets, p_delete);
-        qv_init(ev, &_G.buckets);
+        qv_deep_wipe(&_G.buckets, p_delete);
+        qv_init(&_G.buckets);
         _G.evs_alloc_next = _G.evs_alloc_end = NULL;
     }
 

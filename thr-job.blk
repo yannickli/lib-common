@@ -1496,7 +1496,7 @@ static void run_job(thr_job_t *j, thr_syn_t *syn)
             assert (queue_steal_g.last_acked == rci->seqid);
             p_delete(&rci->data);
             p_delete(&rci);
-            qv_skip(rci, &queue_steal_g.ci_ring, 1);
+            qv_skip(&queue_steal_g.ci_ring, 1);
         }
     });
 }
@@ -1643,7 +1643,7 @@ Z_GROUP_EXPORT(thrjobs) {
             rci->data  = p_new(byte, 16 << 10);
             rci->seqid = seqid++;
 
-            qv_append(rci, &queue_steal_g.ci_ring, rci);
+            qv_append(&queue_steal_g.ci_ring, rci);
 
             if (mpsc_queue_push(&queue_steal_g.mpsc, &rci->node)) {
                 thr_schedule(&job);

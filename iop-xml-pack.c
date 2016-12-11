@@ -203,16 +203,16 @@ static void xpack_class(sb_t *sb, const iop_struct_t *desc, const void *v,
     /* We want to write the fields in the order "master -> children", and
      * not "children -> master", so first build a qvector of the parents.
      */
-    qv_inita(iop_struct, &parents, 8);
+    qv_inita(&parents, 8);
     do {
-        qv_append(iop_struct, &parents, real_desc);
+        qv_append(&parents, real_desc);
     } while ((real_desc = real_desc->class_attrs->parent));
 
     /* Write fields of different levels */
     for (int pos = parents.len; pos-- > 0; ) {
         xpack_struct(sb, parents.tab[pos], v, flags);
     }
-    qv_wipe(iop_struct, &parents);
+    qv_wipe(&parents);
 }
 
 static void

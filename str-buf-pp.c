@@ -159,16 +159,16 @@ Z_GROUP_EXPORT(str_buf_pp) {
             }
         };
 
-        qv_init_static(table_hdr, &hdr, hdr_data, countof(hdr_data));
-        t_qv_init(table_data, &data, 2);
-        row = qv_growlen(table_data, &data, 1);
-        t_qv_init(lstr, row, countof(hdr_data));
-        qv_append(lstr, row, LSTR("col A - rôw 1"));
-        qv_append(lstr, row, LSTR("col B - row 1"));
-        row = qv_growlen(table_data, &data, 1);
-        t_qv_init(lstr, row, countof(hdr_data));
-        qv_append(lstr, row, LSTR("col A - row 2"));
-        qv_append(lstr, row, LSTR("çôl B - row 2"));
+        qv_init_static(&hdr, hdr_data, countof(hdr_data));
+        t_qv_init(&data, 2);
+        row = qv_growlen(&data, 1);
+        t_qv_init(row, countof(hdr_data));
+        qv_append(row, LSTR("col A - rôw 1"));
+        qv_append(row, LSTR("col B - row 1"));
+        row = qv_growlen(&data, 1);
+        t_qv_init(row, countof(hdr_data));
+        qv_append(row, LSTR("col A - row 2"));
+        qv_append(row, LSTR("çôl B - row 2"));
 
         sb_reset(&sb);
         sb_add_table(&sb, &hdr, &data);

@@ -410,7 +410,7 @@ static void init_attributes(void)
         iopc_arg_desc_init(&arg);                               \
         arg.name = LSTR(_s);                                    \
         arg.type = _tok;                                        \
-        qv_append(iopc_arg_desc, &_d->args, arg);               \
+        qv_append(&_d->args, arg);               \
     })
 
     d = add_attr(IOPC_ATTR_CTYPE, "ctype");
@@ -649,7 +649,7 @@ static int __tk(iopc_parser_t *pp, int i, iopc_token_t **out_tk)
             assert (tks->len && tks->tab[tks->len - 1]->token == ITOK_EOF);
             tk = iopc_token_dup(tks->tab[tks->len - 1]);
         }
-        qv_append(iopc_token, tks, tk);
+        qv_append(tks, tk);
     }
     *out_tk = tks->tab[i];
     return 0;
@@ -674,7 +674,7 @@ static void DROP(iopc_parser_t *pp, int len, int offset)
     for (int i = 0; i < len; i++) {
         iopc_token_delete(tks->tab + offset + i);
     }
-    qv_splice(iopc_token, tks, offset, len, NULL, 0);
+    qv_splice(tks, offset, len, NULL, 0);
 }
 #define DROP(_pp, _len)  ((DROP)(_pp, _len, 0))
 
@@ -1059,7 +1059,7 @@ iopc_dox_find_type(const qv_t(iopc_dox) *comments, iopc_dox_type_t type)
 static iopc_dox_t *
 iopc_dox_add(qv_t(iopc_dox) *comments, iopc_dox_type_t type)
 {
-    iopc_dox_t *res = iopc_dox_init(qv_growlen(iopc_dox, comments, 1));
+    iopc_dox_t *res = iopc_dox_init(qv_growlen(comments, 1));
     res->type = type;
     return res;
 }
@@ -1134,7 +1134,7 @@ static void dox_chunk_autobrief_validate(dox_chunk_t *chunk)
 
         sb_clip(&chunk->paragraphs.tab[0], chunk->first_sentence_len);
 
-        qv_insert(sb, &chunk->paragraphs, 1, paragraph0_end);
+        qv_insert(&chunk->paragraphs, 1, paragraph0_end);
         chunk->first_sentence_len = 0;
     }
 }
@@ -1148,7 +1148,7 @@ static void dox_chunk_push_sb(dox_chunk_t *chunk, sb_t sb)
         sb_wipe(&chunk->paragraphs.tab[0]);
         chunk->paragraphs.tab[0] = sb;
     } else {
-        qv_append(sb, &chunk->paragraphs, sb);
+        qv_append(&chunk->paragraphs, sb);
     }
 }
 
@@ -1171,7 +1171,7 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
     sb_t sb;
 
     if (!chunk->params.len) {
-        qv_deep_clear(lstr, &chunk->params_args, lstr_wipe);
+        qv_deep_clear(&chunk->params_args, lstr_wipe);
         return;
     }
 
@@ -1180,14 +1180,14 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
     sb_addc(&sb, '[');
     qv_for_each_ptr(lstr, s, &chunk->params) {
         sb_add_lstr(&sb, *s);
-        if (s != qv_last(lstr, &chunk->params))
+        if (s != qv_last(&chunk->params))
             sb_adds(&sb, ", ");
     }
     sb_addc(&sb, ']');
     dox_chunk_push_sb(chunk, sb);
 
-    qv_deep_wipe(lstr, &chunk->params, lstr_wipe);
-    qv_deep_wipe(lstr, &chunk->params_args, lstr_wipe);
+    qv_deep_wipe(&chunk->params, lstr_wipe);
+    qv_deep_wipe(&chunk->params_args, lstr_wipe);
     chunk->paragraph0_args_len = 0;
 }
 
@@ -1198,10 +1198,10 @@ static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
         dox_chunk_params_merge(eaten);
     } else {
         qv_for_each_entry(lstr, param, &eaten->params) {
-            qv_append(lstr, &eating->params, param);
+            qv_append(&eating->params, param);
         }
         qv_for_each_entry(lstr, arg, &eaten->params_args) {
-            qv_append(lstr, &eating->params_args, arg);
+            qv_append(&eating->params_args, arg);
         }
         if (eating->paragraphs.len <= 1) {
             eating->paragraph0_args_len += eaten->paragraph0_args_len;
@@ -1209,21 +1209,21 @@ static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
     }
 
     if (eating->paragraphs.len && eaten->paragraphs.len) {
-        sb_addc(qv_last(sb, &eating->paragraphs), ' ');
-        sb_addsb(qv_last(sb, &eating->paragraphs), &eaten->paragraphs.tab[0]);
+        sb_addc(qv_last(&eating->paragraphs), ' ');
+        sb_addsb(qv_last(&eating->paragraphs), &eaten->paragraphs.tab[0]);
         sb_wipe(&eaten->paragraphs.tab[0]);
-        qv_skip(sb, &eaten->paragraphs, 1);
+        qv_skip(&eaten->paragraphs, 1);
     }
     qv_for_each_entry(sb, paragraph, &eaten->paragraphs) {
-        qv_append(sb, &eating->paragraphs, paragraph);
+        qv_append(&eating->paragraphs, paragraph);
     }
 
     iopc_loc_merge(&eating->loc, eaten->loc);
 
     lstr_wipe(&eaten->keyword);
-    qv_wipe(lstr, &eaten->params);
-    qv_wipe(lstr, &eaten->params_args);
-    qv_wipe(sb, &eaten->paragraphs);
+    qv_wipe(&eaten->params);
+    qv_wipe(&eaten->params_args);
+    qv_wipe(&eaten->paragraphs);
 }
 
 static int
@@ -1254,10 +1254,10 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
 
         dox->is_back = false;
         dox_chunk_init(&chunk);
-        sb_addc(sb_init(qv_growlen(sb, &chunk.paragraphs, 1)), '<');
+        sb_addc(sb_init(qv_growlen(&chunk.paragraphs, 1)), '<');
         chunk.loc = tk->loc;
         chunk.loc.lmax = chunk.loc.lmin;
-        qv_insert(dox_chunk, &dox->chunks, 0, chunk);
+        qv_insert(&dox->chunks, 0, chunk);
     }
 
     qv_for_each_ptr(dox_chunk, chunk, &dox->chunks) {
@@ -1267,7 +1267,7 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         if (chunks->len == 0) {
             goto append;
         }
-        last = qv_last(dox_chunk, chunks);
+        last = qv_last(chunks);
 
         /* force merge if the chunk has a unknown keyword while the previous
          * one has a known keyword, so that syntax like:
@@ -1290,7 +1290,7 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         }
 
       append:
-        qv_append(dox_chunk, chunks, *chunk);
+        qv_append(chunks, *chunk);
     }
     (DROP)(pp, 1, tk_offset);
     *res = true;
@@ -1362,10 +1362,10 @@ iopc_dox_split_paragraphs(const qv_t(sb) *paragraphs,
                           qv_t(sb) *first, qv_t(sb) *others)
 {
     if (first)
-        qv_init_static(sb, first, paragraphs->tab, 1);
+        qv_init_static(first, paragraphs->tab, 1);
 
     if (others)
-        qv_init_static(sb, others, paragraphs->tab + 1, paragraphs->len - 1);
+        qv_init_static(others, paragraphs->tab + 1, paragraphs->len - 1);
 }
 
 static void
@@ -1435,8 +1435,8 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
     if (TEST_ANONYMOUS(IN, arg) || TEST_ANONYMOUS(OUT, res)
     ||  TEST_ANONYMOUS(THROW, exn))
     {
-        qv_deep_wipe(lstr, &chunk->params_args, lstr_wipe);
-        qv_append(lstr, &chunk->params_args, LSTR_EMPTY_V);
+        qv_deep_wipe(&chunk->params_args, lstr_wipe);
+        qv_append(&chunk->params_args, LSTR_EMPTY_V);
         chunk->paragraph0_args_len = 0;
     }
 #undef TEST_ANONYMOUS
@@ -1484,7 +1484,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
 {
     SB(sb, 256);
 
-    qv_init(iopc_dox, comments);
+    qv_init(comments);
 
     qv_for_each_ptr(dox_chunk, chunk, chunks) {
         iopc_dox_t *dox = NULL;
@@ -1555,7 +1555,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
 
             logs = log_stop_buffering();
 
-            qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
+            qv_deep_wipe(&pp.tokens, iopc_token_delete);
             iopc_lexer_delete(&pp.ld);
             iop_cfolder_delete(&pp.cfolder);
             if (res < 0) {
@@ -1570,7 +1570,7 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
 
     }
 
-    qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
+    qv_deep_clear(chunks, dox_chunk_wipe);
     return 0;
 }
 
@@ -1596,10 +1596,10 @@ static int iopc_add_attr(qv_t(iopc_attr) *attrs, iopc_attr_t **attrp)
     RETHROW(check_attr_multi(attrs, attr, &pos));
 
     if (pos < 0 || attr->desc->args.len != 1) {
-        qv_append(iopc_attr, attrs, attr);
+        qv_append(attrs, attr);
     } else {
         qv_for_each_entry(iopc_arg, arg, &attr->args) {
-            *qv_growlen(iopc_arg, &attrs->tab[pos]->args, 1) =
+            *qv_growlen(&attrs->tab[pos]->args, 1) =
                 iopc_arg_dup(&arg);
         }
         iopc_attr_delete(attrp);
@@ -1619,8 +1619,8 @@ static int
 check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
                     qv_t(iopc_attr) *attrs, int attr_type)
 {
-    qv_clear(iopc_attr, attrs);
-    qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
+    qv_clear(attrs);
+    qv_deep_clear(chunks, dox_chunk_wipe);
 
     for (;;) {
         if (CHECK_N(pp, 0, ITOK_ATTR)) {
@@ -1741,7 +1741,7 @@ static iopc_path_t *parse_path_aux(iopc_parser_t *pp, iopc_pkg_t **modp)
     if (!(lowered = iopc_lower_ident(pp))) {
         goto error;
     }
-    qv_append(str, &path->bits, lowered);
+    qv_append(&path->bits, lowered);
 
     while (CHECK(pp, 0, '.',        goto error)
     &&     CHECK(pp, 1, ITOK_IDENT, goto error))
@@ -1751,7 +1751,7 @@ static iopc_path_t *parse_path_aux(iopc_parser_t *pp, iopc_pkg_t **modp)
         if (!islower((unsigned char)ident(tk1)[0])) {
             break;
         }
-        qv_append(str, &path->bits, dup_ident(tk1));
+        qv_append(&path->bits, dup_ident(tk1));
         iopc_loc_merge(&path->loc, tk1->loc);
         DROP(pp, 2);
     }
@@ -2100,7 +2100,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
             }
             goto error;
         }
-        qv_append(iopc_attr, &f->attrs, attr);
+        qv_append(&f->attrs, attr);
     }
 
     /* Looks for blacklisted keyword (after attribute has been parsed) */
@@ -2117,10 +2117,10 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     }
 
     if (f->is_static) {
-        qv_append(iopc_field, &st->static_fields, f);
+        qv_append(&st->static_fields, f);
         return f;
     }
-    qv_append(iopc_field, &st->fields, f);
+    qv_append(&st->fields, f);
 
     qv_for_each_entry(i32, t, tags) {
         if (t == tag) {
@@ -2128,7 +2128,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
             goto error;
         }
     }
-    qv_append(i32, tags, tag);
+    qv_append(tags, tag);
     return f;
 
   error:
@@ -2180,9 +2180,9 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
-    qv_inita(i32, &tags, 1024);
-    qv_inita(iopc_attr, &attrs, 16);
-    qv_init(dox_chunk, &chunks);
+    qv_inita(&tags, 1024);
+    qv_inita(&attrs, 16);
+    qv_init(&chunks);
 
     while (!CHECK_NOEOF(pp, 0, paren, goto error)) {
         iopc_field_t *f;
@@ -2234,9 +2234,9 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
 
   end:
     qm_wipe(iopc_field, &fields);
-    qv_wipe(i32, &tags);
-    qv_wipe(iopc_attr, &attrs);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_wipe(&tags);
+    qv_wipe(&attrs);
+    qv_deep_wipe(&chunks, dox_chunk_wipe);
     return res;
 
   error:
@@ -2317,7 +2317,7 @@ static int parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
         if (SKIP_N(pp, ':')) {
             iopc_extends_t *xt = iopc_extends_new();
 
-            qv_append(iopc_extends, &st->extends, xt);
+            qv_append(&st->extends, xt);
             xt->loc = TK_N(pp, 0)->loc;
             RETHROW(parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name));
             iopc_loc_merge(&xt->loc, TK_N(pp, 0)->loc);
@@ -2449,13 +2449,13 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
         }
 
         f->value = next_value++;
-        qv_append(iopc_enum_field, &out->values, f);
+        qv_append(&out->values, f);
         qv_for_each_entry(i32, v, values) {
             if (v == f->value) {
                 throw_loc("value %d is used twice", f->loc, f->value);
             }
         }
-        qv_append(i32, values, f->value);
+        qv_append(values, f->value);
 
         RETHROW(read_dox_back(pp, chunks, ','));
         RETHROW(build_dox_check_all(chunks, f));
@@ -2485,13 +2485,13 @@ static int parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
     qv_t(i32) values;
     qv_t(dox_chunk) chunks;
 
-    qv_inita(i32, &values, 1024);
-    qv_inita(dox_chunk, &chunks, 16);
+    qv_inita(&values, 1024);
+    qv_inita(&chunks, 16);
 
     res = __parse_enum_stmt(pp, attrs, &values, &chunks, out);
 
-    qv_wipe(i32, &values);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_wipe(&values);
+    qv_deep_wipe(&chunks, dox_chunk_wipe);
     return res;
 }
 
@@ -2632,7 +2632,7 @@ static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
         iopc_loc_merge(&f->loc, TK_N(pp, 0)->loc);
     }
 
-    qv_deep_clear(dox_chunk, chunks, dox_chunk_wipe);
+    qv_deep_clear(chunks, dox_chunk_wipe);
     *res = true;
     return 0;
 }
@@ -2649,8 +2649,8 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     bool res_res;
     bool exn_res;
 
-    qv_init(dox_chunk, &fun_chunks);
-    qv_init(dox_chunk, &arg_chunks);
+    qv_init(&fun_chunks);
+    qv_init(&arg_chunks);
 
     if ((check_dox_and_attrs)(pp, &fun_chunks, attrs, IOPC_ATTR_T_RPC) < 0) {
         goto error;
@@ -2679,7 +2679,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
         goto error;
     }
 
-    qv_splice(iopc_attr, &fun->attrs, fun->attrs.len, 0,
+    qv_splice(&fun->attrs, fun->attrs.len, 0,
               attrs->tab, attrs->len);
 
     if (!(fun->name = iopc_lower_ident(pp))
@@ -2718,7 +2718,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
             goto error;
         }
     }
-    qv_append(i32, tags, tag);
+    qv_append(tags, tag);
 
     if (build_dox(&fun_chunks, fun, IOPC_ATTR_T_RPC) < 0) {
         goto error;
@@ -2731,14 +2731,14 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
         }
     }
 
-    qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
-    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
+    qv_deep_wipe(&fun_chunks, dox_chunk_wipe);
+    qv_deep_wipe(&arg_chunks, dox_chunk_wipe);
     return fun;
 
   error:
     iopc_fun_delete(&fun);
-    qv_deep_wipe(dox_chunk, &fun_chunks, dox_chunk_wipe);
-    qv_deep_wipe(dox_chunk, &arg_chunks, dox_chunk_wipe);
+    qv_deep_wipe(&fun_chunks, dox_chunk_wipe);
+    qv_deep_wipe(&arg_chunks, dox_chunk_wipe);
     return NULL;
 }
 
@@ -2769,7 +2769,7 @@ static int parse_snmp_iface_parent(iopc_parser_t *pp, iopc_iface_t *iface,
     if (SKIP_N(pp, ':')) {
         iopc_extends_t *xt = iopc_extends_new();
 
-        qv_append(iopc_extends, &iface->extends, xt);
+        qv_append(&iface->extends, xt);
 
         xt->loc = TK_N(pp, 0)->loc;
         RETHROW(parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name));
@@ -2796,8 +2796,8 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
     int next_tag = 1;
     iopc_iface_t *iface = iopc_iface_new();
 
-    qv_inita(i32, &tags, 1024);
-    qv_inita(iopc_attr, &attrs, 16);
+    qv_inita(&tags, 1024);
+    qv_inita(&attrs, 16);
 
     iface->loc = TK(pp, 0, goto error)->loc;
     iface->type = type;
@@ -2825,7 +2825,7 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
         if (!fun) {
             goto error;
         }
-        qv_append(iopc_fun, &iface->funs, fun);
+        qv_append(&iface->funs, fun);
         fun->pos = iface->funs.len;
         if (qm_add(iopc_fun, &funs, fun->name, fun)) {
             error_loc("a function `%s` already exists", fun->loc, fun->name);
@@ -2840,14 +2840,14 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
     DROP(pp, 2);
 
     qm_wipe(iopc_fun, &funs);
-    qv_wipe(i32, &tags);
-    qv_wipe(iopc_attr, &attrs);
+    qv_wipe(&tags);
+    qv_wipe(&attrs);
     return iface;
 
   error:
     qm_wipe(iopc_fun, &funs);
-    qv_wipe(i32, &tags);
-    qv_wipe(iopc_attr, &attrs);
+    qv_wipe(&tags);
+    qv_wipe(&attrs);
     iopc_iface_delete(&iface);
     return NULL;
 }
@@ -2861,7 +2861,7 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     int tag;
 
     f = iopc_field_new();
-    qv_append(iopc_field, &mod->fields, f);
+    qv_append(&mod->fields, f);
     f->loc = TK_P(pp, 0)->loc;
 
     if (CHECK_P(pp, 0, ITOK_INTEGER)) {
@@ -2901,7 +2901,7 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
             throw_loc_p("tag %d is used twice", f->loc, tag);
         }
     }
-    qv_append(i32, tags, tag);
+    qv_append(tags, tag);
     return f;
 }
 
@@ -2913,8 +2913,8 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
     iopc_struct_t *mod = iopc_struct_new();
     qv_t(dox_chunk) chunks;
 
-    qv_inita(dox_chunk, &chunks, 16);
-    qv_inita(i32, &tags, 1024);
+    qv_inita(&chunks, 16);
+    qv_inita(&tags, 1024);
 
     mod->loc = TK(pp, 0, goto error)->loc;
 
@@ -2928,7 +2928,7 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
         do {
             iopc_extends_t *xt = iopc_extends_new();
 
-            qv_append(iopc_extends, &mod->extends, xt);
+            qv_append(&mod->extends, xt);
             xt->loc  = TK(pp, 0, goto error)->loc;
             if (parse_struct_type(pp, &xt->pkg, &xt->path, &xt->name) < 0) {
                 goto error;
@@ -2966,8 +2966,8 @@ static iopc_struct_t *parse_module_stmt(iopc_parser_t *pp)
     }
   end:
     qm_wipe(iopc_field, &fields);
-    qv_wipe(i32, &tags);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_wipe(&tags);
+    qv_deep_wipe(&chunks, dox_chunk_wipe);
     return mod;
 
   error:
@@ -3162,7 +3162,7 @@ static int parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     DROP(pp, 1);
 
   append:
-    qv_append(iopc_arg, &attr->args, arg);
+    qv_append(&attr->args, arg);
     return 0;
 }
 
@@ -3179,14 +3179,14 @@ static int parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
         qv_t(lstr) words;
 
         path_new->loc = TK_N(pp, 0)->loc;
-        qv_init(lstr, &words);
+        qv_init(&words);
 
         /* Split the token */
         ps_split(ps, &sep, 0, &words);
 
         /* Get the path */
         for (int i = 0; i < words.len - 1; i++) {
-            qv_append(str, &path_new->bits, lstr_dup(words.tab[i]).v);
+            qv_append(&path_new->bits, lstr_dup(words.tab[i]).v);
         }
         if (pkg) {
             *pkg = RETHROW_PN(check_path_exists(pp, path_new));
@@ -3195,7 +3195,7 @@ static int parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
         *path = path_new;
         *name = lstr_dup(words.tab[words.len - 1]).v;
 
-        qv_wipe(lstr, &words);
+        qv_wipe(&words);
         DROP(pp, 1);
     } else {
         RETHROW(parse_struct_type(pp, pkg, path, name));
@@ -3216,12 +3216,12 @@ static int parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
 
     WANT(pp, 0, ITOK_IDENT);
     arg.type = ITOK_IDENT;
-    qv_append(iopc_arg, &attr->args, arg);
+    qv_append(&attr->args, arg);
 
     do {
         iopc_extends_t *xt = iopc_extends_new();
 
-        qv_append(iopc_extends, &attr->snmp_params_from, xt);
+        qv_append(&attr->snmp_params_from, xt);
         xt->loc = TK_N(pp, 0)->loc;
         RETHROW(parse_struct_snmp_from(pp, &xt->pkg, &xt->path, &xt->name));
         iopc_loc_merge(&xt->loc, TK_N(pp, 0)->loc);
@@ -3312,7 +3312,7 @@ static int parse_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
                     LSTR_FMT_ARG(desc->name));
     }
 
-    qv_append(iopc_arg, &attr->args, arg);
+    qv_append(&attr->args, arg);
     return 0;
 }
 
@@ -3483,7 +3483,7 @@ static int check_pkg_path(iopc_parser_t *pp, iopc_path_t *path,
 static int add_iface(iopc_pkg_t *pkg, iopc_iface_t *iface,
                       qm_t(iopc_struct) *mod_inter, const char *obj)
 {
-    qv_append(iopc_iface, &pkg->ifaces, iface);
+    qv_append(&pkg->ifaces, iface);
     if (qm_add(iopc_struct, mod_inter, iface->name, (iopc_struct_t *)iface)) {
         throw_loc("%s named `%s` already exists", iface->loc,
                   obj, iface->name);
@@ -3502,8 +3502,8 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
     qv_t(iopc_attr) attrs;
     qv_t(dox_chunk) chunks;
 
-    qv_inita(iopc_attr, &attrs, 16);
-    qv_inita(dox_chunk, &chunks, 16);
+    qv_inita(&attrs, 16);
+    qv_inita(&chunks, 16);
 
     pkg->file = file;
 
@@ -3531,7 +3531,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         pp->base = pkg->base = p_strdup(base);
         qm_add(iopc_pkg, &_G.pkgs, pretty_path_dot(pkg->name), pkg);
         if (is_main_pkg && pp->includes) {
-            qv_push(cstr, pp->includes, pkg->base);
+            qv_push(pp->includes, pkg->base);
         }
     }
 
@@ -3541,7 +3541,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         if (!import) {
             goto error;
         }
-        qv_append(iopc_import, &pkg->imports, import);
+        qv_append(&pkg->imports, import);
     }
 
     while (!CHECK(pp, 0, ITOK_EOF, goto error)) {
@@ -3577,12 +3577,12 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 iopc_attr_t *_attr = attrs.tab[pos];         \
                                                              \
                 if (check_attr_type_decl(_attr, _t) < 0) {   \
-                    qv_skip(iopc_attr, &attrs, pos);         \
+                    qv_skip(&attrs, pos);         \
                     goto error;                              \
                 }                                            \
-                qv_append(iopc_attr, &_o->attrs, _attr);     \
+                qv_append(&_o->attrs, _attr);     \
             }                                                \
-            qv_clear(iopc_attr, &attrs);                     \
+            qv_clear(&attrs);                     \
             if (read_dox_back(pp, &chunks, 0) < 0            \
             ||  build_dox(&chunks, _o, _t) < 0)              \
             {                                                \
@@ -3617,7 +3617,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         if (strequal(id, _id)) {                                             \
             iopc_struct_t *st = iopc_struct_new();                           \
                                                                              \
-            qv_append(iopc_struct, &pkg->structs, st);                       \
+            qv_append(&pkg->structs, st);                       \
             SKIP_KW(pp, _id, goto error);                                    \
             if (parse_struct_class_union_snmp_stmt(pp, _type, is_abstract,   \
                                                    is_local,                 \
@@ -3654,7 +3654,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         if (strequal(id, "enum")) {
             iopc_enum_t *en = iopc_enum_new();
 
-            qv_append(iopc_enum, &pkg->enums, en);
+            qv_append(&pkg->enums, en);
             if (parse_enum_stmt(pp, &attrs, en) < 0) {
                 goto error;
             }
@@ -3706,7 +3706,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
             if (!mod) {
                 goto error;
             }
-            qv_append(iopc_struct, &pkg->modules, mod);
+            qv_append(&pkg->modules, mod);
             SET_ATTRS_AND_COMMENTS(mod, IOPC_ATTR_T_MOD);
 
             if (qm_add(iopc_struct, &mod_inter, mod->name,
@@ -3722,7 +3722,7 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         if (strequal(id, "typedef")) {
             iopc_field_t *tdef = iopc_field_new();
 
-            qv_append(iopc_field, &pkg->typedefs, tdef);
+            qv_append(&pkg->typedefs, tdef);
 
             if (parse_typedef_stmt(pp, tdef) < 0) {
                 goto error;
@@ -3732,12 +3732,12 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
                 iopc_attr_t *attr = attrs.tab[pos];
 
                 if (check_attr_type_field(attr, tdef, true) < 0) {
-                    qv_skip(iopc_attr, &attrs, pos);
+                    qv_skip(&attrs, pos);
                     goto error;
                 }
-                qv_append(iopc_attr, &tdef->attrs, attr);
+                qv_append(&tdef->attrs, attr);
             }
-            qv_clear(iopc_attr, &attrs);
+            qv_clear(&attrs);
             if (qm_add(iopc_struct, &things, tdef->name,
                        (iopc_struct_t *)tdef))
             {
@@ -3757,16 +3757,16 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         goto error;
     }
 
-    qv_wipe(iopc_attr, &attrs);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_wipe(&attrs);
+    qv_deep_wipe(&chunks, dox_chunk_wipe);
     qm_wipe(iopc_struct, &things);
     qm_wipe(iopc_struct, &mod_inter);
 
     return pkg;
 
   error:
-    qv_deep_wipe(iopc_attr, &attrs, iopc_attr_delete);
-    qv_deep_wipe(dox_chunk, &chunks, dox_chunk_wipe);
+    qv_deep_wipe(&attrs, iopc_attr_delete);
+    qv_deep_wipe(&chunks, dox_chunk_wipe);
     qm_wipe(iopc_struct, &things);
     qm_wipe(iopc_struct, &mod_inter);
 
@@ -3833,7 +3833,7 @@ iopc_pkg_t *iopc_parse_file(qv_t(cstr) *includes,
             p_delete(&path);
         }
 
-        qv_deep_wipe(iopc_token, &pp.tokens, iopc_token_delete);
+        qv_deep_wipe(&pp.tokens, iopc_token_delete);
         iopc_lexer_delete(&pp.ld);
         iop_cfolder_delete(&pp.cfolder);
     }

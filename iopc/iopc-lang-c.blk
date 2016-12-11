@@ -31,7 +31,7 @@ static const char *pp_under(iopc_path_t *path)
         sb_addf(&buf, "%s__", bit);
     }
     sb_shrink(&buf, 2);
-    qv_append(str, &pp_g, res = sb_detach(&buf, NULL));
+    qv_append(&pp_g, res = sb_detach(&buf, NULL));
     return res;
 }
 
@@ -40,7 +40,7 @@ static const char *pp_to_c(const char *s)
     t_scope;
     lstr_t str = lstr_dup(t_camelcase_to_c(LSTR(s)));
 
-    qv_append(str, &pp_g, str.v);
+    qv_append(&pp_g, str.v);
     return str.v;
 }
 
@@ -882,12 +882,12 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
 
     /* Get parents list; last element of vector will be the master class, and
      * the first one the nearest parent. */
-    qv_init(iopc_struct, &parents);
-    qv_init(iopc_pkg,    &parents_pkgs);
+    qv_init(&parents);
+    qv_init(&parents_pkgs);
     do {
-        qv_append(iopc_pkg, &parents_pkgs, st->extends.tab[0]->pkg);
+        qv_append(&parents_pkgs, st->extends.tab[0]->pkg);
         st = st->extends.tab[0]->st;
-        qv_append(iopc_struct, &parents, st);
+        qv_append(&parents, st);
     } while (st->extends.len && !st->extends.tab[0]->is_snmp_root);
 
     sb_addnc(buf, 4, ' ');
@@ -920,8 +920,8 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
     sb_addnc(buf, 4, ' ');
     sb_adds(buf, "};\n");
 
-    qv_wipe(iopc_struct, &parents);
-    qv_wipe(iopc_pkg,    &parents_pkgs);
+    qv_wipe(&parents);
+    qv_wipe(&parents_pkgs);
 }
 
 static void iopc_struct_dump_hdr(sb_t *buf, const iopc_pkg_t *pkg,
@@ -2502,17 +2502,17 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             "\n"
             "};\n");
 
-    t_qv_init(i32, &t, 1024);
+    t_qv_init(&t, 1024);
     for (int i = 0, last_enum = 0; i < en->values.len; i++) {
         iopc_enum_field_t *f = en->values.tab[i];
 
         if (!i || ++last_enum != f->value) {
-            qv_append(i32, &t, i);
-            qv_append(i32, &t, f->value);
+            qv_append(&t, i);
+            qv_append(&t, f->value);
             last_enum = f->value;
         }
     }
-    qv_append(i32, &t, en->values.len);
+    qv_append(&t, en->values.len);
     range = iopc_put_range(buf, &t);
 
     sb_addf(buf,
@@ -2784,7 +2784,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
         as_base = tbase;
 
-        qv_init(iopc_attrs, &fields_attrs);
+        qv_init(&fields_attrs);
 
         /* generate <tbase>__<field>__snmp_attrs__s for fields of snmpIface
          * rpcs */
@@ -2825,7 +2825,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             if (attrs.checkf_name.len || attrs.flags) {
                 st->has_fields_attrs = true;
             }
-            qv_append(iopc_attrs, &fields_attrs, attrs);
+            qv_append(&fields_attrs, attrs);
         }
 
         /* generate <tbase>__desc_fields_attrs */
@@ -2851,7 +2851,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         sb_adds(buf,
                 "};\n");
 
-        qv_deep_wipe(iopc_attrs, &fields_attrs, iopc_attrs_wipe);
+        qv_deep_wipe(&fields_attrs, iopc_attrs_wipe);
 
         iopc_struct_check_constraints(st);
         if (st->has_constraints) {
@@ -2889,16 +2889,16 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
 
-    t_qv_init(i32, &t, 1024);
+    t_qv_init(&t, 1024);
     qv_for_each_pos(iopc_field, i, &st->fields) {
         iopc_field_t *f = st->fields.tab[i];
         if (++last_tag != f->tag) {
-            qv_append(i32, &t, i);
-            qv_append(i32, &t, f->tag);
+            qv_append(&t, i);
+            qv_append(&t, f->tag);
             last_tag = f->tag;
         }
     }
-    qv_append(i32, &t, st->fields.len);
+    qv_append(&t, st->fields.len);
     range = iopc_put_range(buf, &t);
 
     has_attrs = DUMP_ATTRS(STRUCT, buf, st, tbase, "struct", "s", "s_desc",
@@ -3017,14 +3017,14 @@ static inline void
 t_iopc_get_aliases(iopc_fun_t *fun, qv_t(lstr) *aliases, const char *suffix)
 {
     /* build a vector of aliases of this RPC */
-    qv_deep_clear(lstr, aliases, lstr_wipe);
+    qv_deep_clear(aliases, lstr_wipe);
     qv_for_each_entry(iopc_attr, attr, &fun->attrs) {
         if (attr->desc->id == IOPC_ATTR_ALIAS) {
             qv_for_each_entry(iopc_arg, arg, &attr->args) {
                 lstr_t alias = t_lstr_fmt("%*pM%s", LSTR_FMT_ARG(arg.v.s),
                                           suffix);
 
-                qv_append(lstr, aliases, alias);
+                qv_append(aliases, alias);
             }
         }
     }
@@ -3108,7 +3108,7 @@ iopc_iface_dump_rpc_attrs(sb_t *buf, iopc_iface_t *iface, char * ibase)
     qv_t(iopc_attrs) rpc_attrs;
     bool dump_attrs = false;
 
-    qv_init(iopc_attrs, &rpc_attrs);
+    qv_init(&rpc_attrs);
     qv_for_each_entry(iopc_fun, f, &iface->funs) {
         iopc_attrs_t attrs;
 
@@ -3117,7 +3117,7 @@ iopc_iface_dump_rpc_attrs(sb_t *buf, iopc_iface_t *iface, char * ibase)
         iopc_dump_rpc_attrs(buf, ibase, f, &attrs, &n_func_and_alias);
         if (attrs.attrs_len)
             dump_attrs = true;
-        qv_append(iopc_attrs, &rpc_attrs, attrs);
+        qv_append(&rpc_attrs, attrs);
     }
 
     if (dump_attrs) {
@@ -3152,7 +3152,7 @@ iopc_iface_dump_rpc_attrs(sb_t *buf, iopc_iface_t *iface, char * ibase)
         }
         sb_adds(buf, "};\n");
     }
-    qv_deep_wipe(iopc_attrs, &rpc_attrs, iopc_attrs_wipe);
+    qv_deep_wipe(&rpc_attrs, iopc_attrs_wipe);
 }
 
 static int
@@ -3164,7 +3164,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     char *ibase = t_fmt("%s__%s", pkg_name, iname);
     qv_t(lstr) aliases;
 
-    t_qv_init(lstr, &aliases, 16);
+    t_qv_init(&aliases, 16);
     sb_addf(buf, "/* Interface %s.%s {""{{ */\n",
             pretty_path_dot(pkg->name), iface->name);
 
@@ -3354,9 +3354,9 @@ iopc_pkg_dump_src(sb_t *buf, iopc_pkg_t *pkg,
     t_scope;
     qv_t(iopc_pkg) deps;
 
-    t_qv_init(iopc_pkg, &deps, 1024);
-    qv_splice(iopc_pkg, &deps, deps.len, 0, t_deps->tab, t_deps->len);
-    qv_splice(iopc_pkg, &deps, deps.len, 0, i_deps->tab, i_deps->len);
+    t_qv_init(&deps, 1024);
+    qv_splice(&deps, deps.len, 0, t_deps->tab, t_deps->len);
+    qv_splice(&deps, deps.len, 0, i_deps->tab, i_deps->len);
     iopc_depends_uniquify(&deps);
 
     sb_addf(buf,
@@ -3521,10 +3521,10 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     _G.data_c_type = iopc_g.v3 ? "lstr_t " : "iop_data_t ";
 
     /*----- prepare stuff -----*/
-    qv_init(str, &pp_g);
-    qv_inita(iopc_pkg, &t_deps, 1024);
-    qv_inita(iopc_pkg, &t_weak_deps, 1024);
-    qv_inita(iopc_pkg, &i_deps, 1024);
+    qv_init(&pp_g);
+    qv_inita(&t_deps, 1024);
+    qv_inita(&t_weak_deps, 1024);
+    qv_inita(&i_deps, 1024);
 
     pkg_name = pp_under(pkg->name);
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps);
@@ -3719,10 +3719,10 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 
     /*----- collect memory -----*/
   end:
-    qv_wipe(iopc_pkg, &t_deps);
-    qv_wipe(iopc_pkg, &t_weak_deps);
-    qv_wipe(iopc_pkg, &i_deps);
-    qv_deep_wipe(str, &pp_g, p_delete);
+    qv_wipe(&t_deps);
+    qv_wipe(&t_weak_deps);
+    qv_wipe(&i_deps);
+    qv_deep_wipe(&pp_g, p_delete);
     iopc_put_range_cleanup();
     return res;
 }

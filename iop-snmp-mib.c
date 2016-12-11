@@ -72,7 +72,7 @@ static lstr_t t_split_on_str(lstr_t name, const char *letter, bool enums)
     pstream_t ps = ps_initlstr(&word);
     ctype_desc_t dot;
 
-    t_qv_init(lstr, &parts, 80);
+    t_qv_init(&parts, 80);
     ctype_desc_build(&dot, letter);
     ps_split(ps, &dot, 0, &parts);
     if (!parts.len) {
@@ -220,7 +220,7 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
                              LSTR_FMT_ARG(desc->fullname));
             }
             if (desc->snmp_attrs->parent) {
-                qv_append(lstr, &_G.objects_identifier_parent,
+                qv_append(&_G.objects_identifier_parent,
                           desc->snmp_attrs->parent->fullname);
             }
         }
@@ -234,7 +234,7 @@ static void mib_get_head(const qv_t(pkg) *pkgs)
                 logger_fatal(&_G.logger, "name `%*pM` already exists",
                              LSTR_FMT_ARG(iface->fullname));
             }
-            qv_append(lstr, &_G.objects_identifier_parent,
+            qv_append(&_G.objects_identifier_parent,
                       iface->snmp_iface_attrs->parent->fullname);
         }
     }
@@ -287,7 +287,7 @@ static void mib_put_imports(sb_t *buf)
 
 static void mib_put_identity(sb_t *buf, const qv_t(mib_rev) *revisions)
 {
-    mib_revision_t *last_update = qv_last(mib_rev, revisions);
+    mib_revision_t *last_update = qv_last(revisions);
 
     sb_addf(buf, "-- {{{ Identity\n"
             "\n%*pM%s MODULE-IDENTITY\n"
@@ -517,7 +517,7 @@ static void mib_put_field(sb_t *buf, lstr_t name, int pos,
                      "conflicting field name `%*pM`", LSTR_FMT_ARG(name));
     }
     if (!is_index) {
-        qv_append(lstr, &_G.conformance_objects, name);
+        qv_append(&_G.conformance_objects, name);
     }
 }
 
@@ -613,7 +613,7 @@ static void mib_put_rpc(sb_t *buf, int pos, const iop_rpc_t *rpc,
                      "conflicting notification name `%*pM`",
                      LSTR_FMT_ARG(rpc->name));
     }
-    qv_append(lstr, &_G.conformance_notifs, rpc->name);
+    qv_append(&_G.conformance_notifs, rpc->name);
 }
 
 static void mib_put_rpcs(sb_t *buf, const iop_pkg_t *pkg)
@@ -725,10 +725,10 @@ static int iop_mib_initialize(void *arg)
 {
     qh_init(lstr, &_G.unicity_conformance_objects);
     qh_init(lstr, &_G.unicity_conformance_notifs);
-    qv_init(lstr, &_G.conformance_objects);
-    qv_init(lstr, &_G.conformance_notifs);
+    qv_init(&_G.conformance_objects);
+    qv_init(&_G.conformance_notifs);
     qh_init(lstr, &_G.objects_identifier);
-    qv_init(lstr, &_G.objects_identifier_parent);
+    qv_init(&_G.objects_identifier_parent);
     return 0;
 }
 
@@ -736,10 +736,10 @@ static int iop_mib_shutdown(void)
 {
     qh_wipe(lstr, &_G.unicity_conformance_objects);
     qh_wipe(lstr, &_G.unicity_conformance_notifs);
-    qv_wipe(lstr, &_G.conformance_objects);
-    qv_wipe(lstr, &_G.conformance_notifs);
+    qv_wipe(&_G.conformance_objects);
+    qv_wipe(&_G.conformance_notifs);
     qh_wipe(lstr, &_G.objects_identifier);
-    qv_wipe(lstr, &_G.objects_identifier_parent);
+    qv_wipe(&_G.objects_identifier_parent);
     lstr_wipe(&_G.head);
     _G.head_is_intersec = false;
     return 0;

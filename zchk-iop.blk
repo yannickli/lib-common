@@ -35,7 +35,7 @@ _z_append_step(qv_t(z_iop_for_each_step) *vec, const iop_struct_t *st_desc,
 {
     struct z_iop_for_each_step *step;
 
-    step = qv_growlen(z_iop_for_each_step, vec, 1);
+    step = qv_growlen(vec, 1);
     step->st_desc = st_desc;
     step->st_ptr = st_ptr;
     step->fname = fname;
@@ -98,7 +98,7 @@ z_test_iop_for_each_field(const tstiop__z_iop_for_each__t *z_struct)
     int count = 0;
     qv_t(z_iop_for_each_step) steps;
 
-    t_qv_init(z_iop_for_each_step, &steps, 128);
+    t_qv_init(&steps, 128);
     z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "voidStruct1");
     z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "integer");
     z_append_step(&steps, tstiop__z_iop_for_each, z_struct, "optUint1");

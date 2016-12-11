@@ -84,7 +84,7 @@
             }                                                                \
                                                                              \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
-            qv_append(asn1_desc, &asn1_descs_g.descs, desc);                 \
+            qv_append(&asn1_descs_g.descs, desc);                 \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -96,7 +96,7 @@
 
 #define ASN1_SEQUENCE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
-            qv_append(asn1_desc, &asn1_descs_g.descs, desc);                 \
+            qv_append(&asn1_descs_g.descs, desc);                 \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -136,7 +136,7 @@
                                                     : desc->vec.len) - 2;    \
             asn1_int_info_update(&desc->choice_info);                        \
             asn1_build_choice_table((asn1_choice_desc_t *)desc);             \
-            qv_append(asn1_choice_desc, &asn1_descs_g.choice_descs,          \
+            qv_append(&asn1_descs_g.choice_descs,          \
                       __choice_desc);                                        \
         }                                                                    \
                                                                              \

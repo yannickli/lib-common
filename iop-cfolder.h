@@ -64,7 +64,7 @@ typedef struct iop_cfolder_t {
 
 static inline void iop_cfolder_wipe(iop_cfolder_t *folder)
 {
-    qv_wipe(cf_elem, &folder->stack);
+    qv_wipe(&folder->stack);
 }
 GENERIC_DELETE(iop_cfolder_t, iop_cfolder);
 

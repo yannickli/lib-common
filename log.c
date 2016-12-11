@@ -402,7 +402,7 @@ get_configurations_recursive(logger_t *logger, lstr_t prefix,
         conf.force_all = logger->level_flags & LOG_FORCED;
         conf.is_silent = logger->level_flags & LOG_SILENT;
 
-        qv_append(logger_conf, res, conf);
+        qv_append(res, conf);
 
         /* all children will have the same prefix. No need to check it
          * anymore, we set it to null */
@@ -436,16 +436,16 @@ GENERIC_INIT(buffer_instance_t, buffer_instance);
 
 static void buffer_instance_wipe(buffer_instance_t *buffer_instance)
 {
-    qv_wipe(log_buffer, &buffer_instance->vec_buffer);
+    qv_wipe(&buffer_instance->vec_buffer);
 }
 
 static void free_last_buffer(void)
 {
     if (_G.vec_buff_stack.len > _G.nb_buffer_started) {
         assert (_G.vec_buff_stack.len == _G.nb_buffer_started + 1);
-        buffer_instance_wipe(qv_last(buffer_instance,
+        buffer_instance_wipe(qv_last(
                                      &_G.vec_buff_stack));
-        qv_remove(buffer_instance, &_G.vec_buff_stack,
+        qv_remove(&_G.vec_buff_stack,
                   _G.vec_buff_stack.len - 1);
         mem_stack_pop(&_G.mp_stack);
     }
@@ -463,7 +463,7 @@ void log_start_buffering_filter(bool use_handler, int log_level)
         }
     }
     free_last_buffer();
-    buffer_instance = qv_growlen(buffer_instance, &_G.vec_buff_stack, 1);
+    buffer_instance = qv_growlen(&_G.vec_buff_stack, 1);
 
     buffer_instance_init(buffer_instance);
     buffer_instance->use_handler = use_handler;
@@ -486,7 +486,7 @@ const qv_t(log_buffer) *log_stop_buffering(void)
         return NULL;
     }
     free_last_buffer();
-    buffer_instance = qv_last(buffer_instance, &_G.vec_buff_stack);
+    buffer_instance = qv_last(&_G.vec_buff_stack);
     _G.nb_buffer_started--;
 
     return &buffer_instance->vec_buffer;
@@ -546,7 +546,7 @@ void logger_putv(const log_ctx_t *ctx, bool do_log,
         buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
         vsnprintf(buffer, size_fmt, fmt, va);
 
-        log_save = qv_growlen(log_buffer, vec_buffer, 1);
+        log_save = qv_growlen(vec_buffer, 1);
         log_save->ctx = *ctx;
         log_save->msg = LSTR_INIT_V(buffer, size_fmt - 1);
     }
@@ -1131,7 +1131,7 @@ void log_parse_specs(char *p, qv_t(spec) *out)
         }
 #undef GET_ELEM
 
-        qv_append(spec, out, spec);
+        qv_append(out, spec);
     }
 }
 
@@ -1140,8 +1140,8 @@ static int log_initialize(void* args)
     char *env;
 
     mem_stack_pool_init(&_G.mp_stack, 64 << 10);
-    qv_init(spec, &_G.specs);
-    qv_init(buffer_instance, &_G.vec_buff_stack);
+    qv_init(&_G.specs);
+    qv_init(&_G.vec_buff_stack);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     _G.pid   = getpid();
     log_stderr_handler_g = &log_stderr_raw_handler;
@@ -1177,7 +1177,7 @@ static int log_initialize(void* args)
 
 static int log_shutdown(void)
 {
-    qv_deep_wipe(buffer_instance, &_G.vec_buff_stack,
+    qv_deep_wipe(&_G.vec_buff_stack,
                  buffer_instance_wipe);
     if (_G.vec_buff_stack.len > 0) {
         mem_stack_pop(&_G.mp_stack);
@@ -1185,7 +1185,7 @@ static int log_shutdown(void)
     mem_stack_pool_wipe(&_G.mp_stack);
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
-    qv_wipe(spec, &_G.specs);
+    qv_wipe(&_G.specs);
     p_delete(&_G.is_debug);
     return 0;
 }

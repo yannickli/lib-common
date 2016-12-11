@@ -432,7 +432,7 @@ int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
 
     assert (file->read_mode);
 
-    t_qv_init(lstr, &tmp, count);
+    t_qv_init(&tmp, count);
 
     do {
         prev_slot = slot_off;
@@ -446,15 +446,15 @@ int t_file_bin_get_last_records(file_bin_t *file, int count, qv_t(lstr) *out)
             if (!res.s) {
                 break;
             }
-            qv_append(lstr, &tmp, t_lstr_dup(res));
+            qv_append(&tmp, t_lstr_dup(res));
         }
 
-        qv_grow(lstr, out, tmp.len);
+        qv_grow(out, tmp.len);
         for (int pos = tmp.len; pos-- > 0 && count > 0; count--) {
-            qv_append(lstr, out, tmp.tab[pos]);
+            qv_append(out, tmp.tab[pos]);
         }
 
-        qv_clear(lstr, &tmp);
+        qv_clear(&tmp);
     } while (count > 0 && slot_off > HEADER_SIZE(file));
 
     file->cur = save_cur;

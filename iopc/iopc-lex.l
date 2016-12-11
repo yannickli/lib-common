@@ -118,7 +118,7 @@ void lexdox_comment_begin(struct lexdata *ld, const char *text, int len)
 static void lexdox_update_last_chunk_loc(const struct lexdata *ld)
 {
     if (ld->tk->dox->chunks.len) {
-        qv_last(dox_chunk, &ld->tk->dox->chunks)->loc.lmax = ld->lno;
+        qv_last(&ld->tk->dox->chunks)->loc.lmax = ld->lno;
     }
 }
 
@@ -176,7 +176,7 @@ static void lexdox_comment_end(const struct lexdata *ld)
 static dox_chunk_t *lexdox_add_chunk(struct lexdata *ld)
 {
     qv_t(dox_chunk) *chunks = &ld->tk->dox->chunks;
-    dox_chunk_t *res = dox_chunk_init(qv_growlen(dox_chunk, chunks, 1));
+    dox_chunk_t *res = dox_chunk_init(qv_growlen(chunks, 1));
 
     lexdata_read_loc(ld, &res->loc);
     ld->dox_cur_paragraph = NULL;
@@ -193,24 +193,24 @@ static void lexdox_add_paragraph(struct lexdata *ld)
     if (!chunks->len)
         lexdox_add_chunk(ld);
 
-    paragraphs = &qv_last(dox_chunk, chunks)->paragraphs;
+    paragraphs = &qv_last(chunks)->paragraphs;
     if (paragraphs->len) {
         ld->dox_scan_params_args_counter = 0;
     }
-    ld->dox_cur_paragraph = sb_init(qv_growlen(sb, paragraphs, 1));
+    ld->dox_cur_paragraph = sb_init(qv_growlen(paragraphs, 1));
     ld->dox_sp_count = 0;
 }
 
 static
 void lexdox_check_params_arg(struct lexdata *ld, const char *text, int len)
 {
-    dox_chunk_t *chunk = qv_last(dox_chunk, &ld->tk->dox->chunks);
+    dox_chunk_t *chunk = qv_last(&ld->tk->dox->chunks);
 
     if (chunk->paragraphs.len != 1)
         return;
 
     if (isalpha(text[0]) && --ld->dox_scan_params_args_counter > 0) {
-        qv_append(lstr, &chunk->params_args, lstr_dups(text, len));
+        qv_append(&chunk->params_args, lstr_dups(text, len));
         chunk->paragraph0_args_len = chunk->paragraphs.tab[0].len + len;
     } else
     if (text[0] == ',' && ld->dox_scan_params_args_counter >= 1) {
@@ -234,7 +234,7 @@ static void lexdox_add_text(struct lexdata *ld, const char *text, int len)
     }
     lexdox_check_params_arg(ld, text, len);
 
-    chunk = qv_last(dox_chunk, &ld->tk->dox->chunks);
+    chunk = qv_last(&ld->tk->dox->chunks);
     /* check if we are beginning the second paragraph (== details) */
     if (!chunk->keyword.s && chunk->paragraphs.len == 1 && text[0] == '\n'
     &&  ld->dox_cur_paragraph
@@ -516,7 +516,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     ","|{HS}+           /* skip */
     [a-zA-Z]+           {
                           qv_t(dox_chunk) *chunks = &yyextra->tk->dox->chunks;
-                          qv_append(lstr, &qv_last(dox_chunk, chunks)->params,
+                          qv_append(&qv_last(chunks)->params,
                                     lstr_dups(yytext, yyleng));
                         }
     "]"{HS}*            {
@@ -527,12 +527,12 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     <<EOF>>             { ERROR("unterminated doxygen param"); }
     .|^","|","{HS}*","  {
                           qv_t(dox_chunk) *chunks = &yyextra->tk->dox->chunks;
-                          dox_chunk_t *chunk = qv_last(dox_chunk, chunks);
+                          dox_chunk_t *chunk = qv_last(chunks);
 
                           lexdox_add_text(yyextra, "[", 1);
                           qv_for_each_ptr(lstr, s, &chunk->params) {
                               lexdox_add_text(yyextra, s->s, s->len);
-                              if (s != qv_last(lstr, &chunk->params))
+                              if (s != qv_last(&chunk->params))
                                   lexdox_add_text(yyextra, ", ", 2);
                           }
                           if (yytext[0] == ',') {
@@ -540,8 +540,8 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           } else {
                               lexdox_add_text(yyextra, yytext, yyleng);
                           }
-                          qv_deep_wipe(lstr, &chunk->params, lstr_wipe);
-                          qv_deep_wipe(lstr, &chunk->params_args, lstr_wipe);
+                          qv_deep_wipe(&chunk->params, lstr_wipe);
+                          qv_deep_wipe(&chunk->params_args, lstr_wipe);
                           chunk->paragraph0_args_len = 0;
 
                           WARN("doxygen param syntax error");

@@ -874,12 +874,12 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
 
     RETHROW_NP(PyType_Ready(&pylogger_class));
 
-    qv_init(PyMethodDef, &vec);
-    p_copy(qv_growlen(PyMethodDef, &vec, countof(myModule_methods)),
+    qv_init(&vec);
+    p_copy(qv_growlen(&vec, countof(myModule_methods)),
            myModule_methods, countof(myModule_methods));
 
     do {
-        qv_append(PyMethodDef, &vec, methods[pos]);
+        qv_append(&vec, methods[pos]);
     } while (methods[pos++].ml_name != NULL);
 
     common_module = Py_InitModule3(name, vec.tab, commonmodule_doc);

@@ -731,17 +731,17 @@ qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no, bool quarantine)
     qps->maps.tab[no] = NULL;
     pos = qps_smaps_find(&qps->smaps, map, true);
     if (pos >= 0)
-        qv_remove(qpsm, &qps->smaps, pos);
-    qv_append(qpsm, &qps->omaps, map);
+        qv_remove(&qps->smaps, pos);
+    qv_append(&qps->omaps, map);
 
     /* quarantine the map id until the next snapshot */
     if (quarantine) {
-        qv_append(u32, &qps->no_blocked, no);
+        qv_append(&qps->no_blocked, no);
     } else {
         pos = bisect32(no, qps->no_free.tab, qps->no_free.len, NULL);
 
         assert (pos == qps->no_free.len || qps->no_free.tab[pos] != no);
-        qv_insert(u32, &qps->no_free, pos, no);
+        qv_insert(&qps->no_free, pos, no);
     }
 
     /* keep the address around */
@@ -753,7 +753,7 @@ static void qps_unquarantine_nos(qps_t *qps)
 {
     char buf[32];
 
-    qv_splice(u32, &qps->no_free, qps->no_free.len, 0,
+    qv_splice(&qps->no_free, qps->no_free.len, 0,
               qps->no_blocked.tab, qps->no_blocked.len);
     dsort32(qps->no_free.tab, qps->no_free.len);
 
@@ -763,7 +763,7 @@ static void qps_unquarantine_nos(qps_t *qps)
          logger_trace(&_G.logger, 1, "unlinkat(%s)", buf);
          unlinkat(qps->dfd, buf, 0);
     }
-    qv_clear(u32, &qps->no_blocked);
+    qv_clear(&qps->no_blocked);
 }
 
 /** Maps a file of size QPS_MAP_SIZE.
@@ -795,8 +795,8 @@ static void *qps_map_fd(qps_t *qps, int fd, void *at)
         where = at;
     } else
     if (qps->omaps.len) {
-        where = *qv_last(qpsm, &qps->omaps);
-        qv_shrink(qpsm, &qps->omaps, 1);
+        where = *qv_last(&qps->omaps);
+        qv_shrink(&qps->omaps, 1);
     } else {
         uint8_t *map, *fix;
 
@@ -827,7 +827,7 @@ static void qps_alloc_hdrs(qps_t *qps, int olen, int no)
 
     if (no >= qps->maps.len) {
         int extra = no + 1 - qps->maps.len;
-        p_clear(qv_growlen(qpsm, &qps->maps, extra), extra);
+        p_clear(qv_growlen(&qps->maps, extra), extra);
     }
     if (olen <= no) {
         p_realloc0(&qps->hdrs, o + 1, n + 1);
@@ -861,8 +861,8 @@ static uint32_t qps_map_find_no(qps_t *qps)
     int no = qps->maps.len;
 
     if (qps->no_free.len) {
-        no = *qv_last(u32, &qps->no_free);
-        qv_shrink(u32, &qps->no_free, 1);
+        no = *qv_last(&qps->no_free);
+        qv_shrink(&qps->no_free, 1);
     }
 
     qps_alloc_hdrs(qps, qps->maps.len, no);
@@ -888,7 +888,7 @@ static qps_map_t *qps_map_create_raw(qps_t *qps, uint32_t no, const char *sig)
 static void qps_map_bless(qps_t *qps, qps_map_t *map)
 {
     qps->maps.tab[map->hdr.mapno] = map;
-    qv_insert(qpsm, &qps->smaps, qps_smaps_find(&qps->smaps, map, false), map);
+    qv_insert(&qps->smaps, qps_smaps_find(&qps->smaps, map, false), map);
 }
 
 /** QPS map creation helper.
@@ -1501,7 +1501,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
             goto err_unmap;
         }
         for (uint32_t i = qps->maps.len; i < no; i++)
-            qv_append(u32, &qps->no_free, i);
+            qv_append(&qps->no_free, i);
 
         qps_alloc_hdrs(qps, qps->maps.len, no);
         if (u32[0] & QPS_META_MAP_TLSF) {
@@ -1672,7 +1672,7 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
     qps_m_blk_insert(qps, dst, (uint8_t *)dst_end - dst->data);
 
     logger_trace(&_G.tracing_logger, 1, "gc compaction done on %p", qps);
-    qv_wipe(qps_gcmap, &maps);
+    qv_wipe(&maps);
     assert (!qps->snapshotting);
     atomic_fetch_sub(&qps->gc_state, 2);
     return 0;
@@ -1699,7 +1699,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     logger_trace(&_G.tracing_logger, 1, "start gc on %p", qps);
     qps_m_check_maps(qps);
 
-    qv_init(qps_gcmap, &maps);
+    qv_init(&maps);
     qv_for_each_pos(qpsm, i, &qps->maps) {
         qps_map_t  *map = qps->maps.tab[i];
         qps_gcmap_t m   = { .map = map };
@@ -1726,7 +1726,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
             continue;
         allocated   += m.allocated;
         disk_usage  += m.disk_usage;
-        qv_append(qps_gcmap, &maps, m);
+        qv_append(&maps, m);
     }
 
     if (maps.len == 0) {
@@ -1762,7 +1762,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
   end:
     logger_trace(&_G.tracing_logger, 1, "cancelled gc on %p", qps);
   end_no_trace:
-    qv_wipe(qps_gcmap, &maps);
+    qv_wipe(&maps);
     atomic_fetch_sub(&qps->gc_state, 2);
     qps_m_check_maps(qps);
 }
@@ -2591,7 +2591,7 @@ qps_t *qps_create(const char *path, mode_t mode, const void *data,
         return NULL;
     }
 
-    qv_init(u32, &t);
+    qv_init(&t);
     x_write_meta(qps, 1, t, data, dlen);
     x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
     x_fdatasync(qps->dfd);
@@ -2790,13 +2790,13 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     qps->snap_notify = Block_copy(notify);
 
     logger_trace(&_G.logger, 1, "qps_snapshot(%p)", qps);
-    t_qv_init(u32, &t, 1024);
+    t_qv_init(&t, 1024);
     p_clear(&qps->m, 1);
 
     {
         uint32_t  h_max = qps->handles_max;
         uint32_t  h_len = DIV_ROUND_UP(h_max, QPS_HANDLES_COUNT);
-        uint32_t *hdata = qv_growlen(u32, &t, 2 + h_len);
+        uint32_t *hdata = qv_growlen(&t, 2 + h_len);
 
         hdata[0] = h_max;
         hdata[1] = qps->handles_freelist;
@@ -2806,7 +2806,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         }
     }
     rec_pos = t.len;
-    qv_append(u32, &t, 0);
+    qv_append(&t, 0);
 
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
@@ -2826,8 +2826,8 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             }
 
             if (map->hdr.remaining) {
-                qv_append(u32, &t, i | QPS_META_MAP_TLSF);
-                qv_append(u32, &t, map->hdr.remaining);
+                qv_append(&t, i | QPS_META_MAP_TLSF);
+                qv_append(&t, map->hdr.remaining);
             }
             continue;
         }
@@ -2837,8 +2837,8 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             continue;
         }
 
-        qv_append(u32, &t, i | QPS_META_MAP_PAGED);
-        qv_append(u32, &t, 0);
+        qv_append(&t, i | QPS_META_MAP_PAGED);
+        qv_append(&t, 0);
 
         hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
         for (size_t pg = 1; pg < QPS_MAP_PAGES; pg += hdrs[pg].size) {
@@ -3063,11 +3063,11 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
             x_munmap(qps->omaps.tab[i], QPS_MAP_SIZE);
         }
         p_close(&qps->dfd);
-        qv_wipe(qpsm, &qps->maps);
-        qv_wipe(qpsm, &qps->smaps);
-        qv_wipe(qpsm, &qps->omaps);
-        qv_wipe(u32, &qps->no_free);
-        qv_wipe(u32, &qps->no_blocked);
+        qv_wipe(&qps->maps);
+        qv_wipe(&qps->smaps);
+        qv_wipe(&qps->omaps);
+        qv_wipe(&qps->no_free);
+        qv_wipe(&qps->no_blocked);
         p_delete(&qps->handles);
         p_delete(&qps->hdrs);
         dlist_remove(&qps->qps_link);
@@ -3132,7 +3132,7 @@ static void qps_get_roots(qps_t *qps, qps_roots_t *roots)
                 }
 
                 if (!is_handle_page) {
-                    qv_append(qps_pg, &roots->pages, blk);
+                    qv_append(&roots->pages, blk);
                 }
             }
             pg += sz;
@@ -3143,7 +3143,7 @@ static void qps_get_roots(qps_t *qps, qps_roots_t *roots)
         qps_ptr_t *ptr = qps_handle_slot(qps, i);
 
         if (ptr->pgno != 0) {
-            qv_append(qps_handle, &roots->handles, i);
+            qv_append(&roots->handles, i);
         }
     }
     qps_roots_sort(roots);

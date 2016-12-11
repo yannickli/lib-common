@@ -82,7 +82,7 @@ static bool cf_op_is_rassoc(iop_cfolder_op_t op, bool unary)
 /* Stack abstraction */
 static void cf_stack_push(qv_t(cf_elem) *stack, iop_cfolder_elem_t elem)
 {
-    qv_append(cf_elem, stack, elem);
+    qv_append(stack, elem);
 }
 static int cf_stack_pop(qv_t(cf_elem) *stack, iop_cfolder_elem_t *elem)
 {
@@ -90,7 +90,7 @@ static int cf_stack_pop(qv_t(cf_elem) *stack, iop_cfolder_elem_t *elem)
         return CF_ERR_INVALID;
     if (elem)
         *elem = stack->tab[stack->len - 1];
-    qv_remove(cf_elem, stack, stack->len - 1);
+    qv_remove(stack, stack->len - 1);
     return 0;
 }
 

@@ -1460,7 +1460,7 @@ iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
  * int len;
  * byte *data;
  *
- * qv_inita(i32, &sizes, 1024);
+ * qv_inita(&sizes, 1024);
  *
  * len  = iop_bpack_size(&foo__bar__s, obj, &sizes);
  * data = p_new_raw(byte, len);

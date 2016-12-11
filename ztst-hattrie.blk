@@ -172,9 +172,9 @@ static void run_rand_test(qps_t *qps, bool is_nullable, uint32_t count,
     qh_t(u32) h = QH_INIT(u32, h);
     qv_t(u32) data;
     qv_t(u32) cpy;
-    qv_init(u32, &data);
-    qv_init(u32, &cpy);
-    qv_grow(u32, &data, count);
+    qv_init(&data);
+    qv_init(&cpy);
+    qv_grow(&data, count);
 
     srand(0);
     for (uint32_t i = 0; i < count; i++) {
@@ -182,9 +182,9 @@ static void run_rand_test(qps_t *qps, bool is_nullable, uint32_t count,
         while (qh_add(u32, &h, val)) {
             val = sel_rand();
         }
-        qv_append(u32, &data, val);
+        qv_append(&data, val);
     }
-    qv_splice(u32, &cpy, 0, 0, data.tab, data.len);
+    qv_splice(&cpy, 0, 0, data.tab, data.len);
     qh_wipe(u32, &h);
 
     qhat_init(&trie, qps, htrie);
@@ -240,8 +240,8 @@ static void run_rand_test(qps_t *qps, bool is_nullable, uint32_t count,
         }
     }));
 
-    qv_wipe(u32, &data);
-    qv_wipe(u32, &cpy);
+    qv_wipe(&data);
+    qv_wipe(&cpy);
     qhat_destroy(&trie);
 }
 

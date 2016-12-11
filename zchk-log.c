@@ -172,7 +172,7 @@ Z_GROUP_EXPORT(log) {
         logger_get_level(&c);
         logger_get_level(&d);
 
-        t_qv_init(logger_conf, &confs, 10);
+        t_qv_init(&confs, 10);
 
         logger_get_all_configurations(LSTR("ztest_log_conf"), &confs);
 
@@ -698,11 +698,11 @@ Z_GROUP_EXPORT(log) {
         t_scope;
         qv_t(spec) specs;
 
-        t_qv_init(spec, &specs, 8);
+        t_qv_init(&specs, 8);
 
 #define TEST(_str, _nb)  \
         do {                                                                 \
-            qv_clear(spec, &specs);                                          \
+            qv_clear(&specs);                                          \
             log_parse_specs(t_strdup(_str), &specs);                         \
             Z_ASSERT_EQ(specs.len, _nb);                                     \
         } while (0)

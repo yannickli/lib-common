@@ -31,7 +31,7 @@ typedef struct module_method_impl_t {
 GENERIC_NEW_INIT(module_method_impl_t, module_method);
 static module_method_impl_t *module_method_wipe(module_method_impl_t *method)
 {
-    qv_wipe(methods_cb, &method->callbacks);
+    qv_wipe(&method->callbacks);
     return method;
 }
 GENERIC_DELETE(module_method_impl_t, module_method);
@@ -79,8 +79,8 @@ GENERIC_NEW(module_t, module);
 static void module_wipe(module_t *module)
 {
     lstr_wipe(&(module->name));
-    qv_deep_wipe(lstr, &module->dependent_of, lstr_wipe);
-    qv_wipe(module, &module->required_by);
+    qv_deep_wipe(&module->dependent_of, lstr_wipe);
+    qv_wipe(&module->required_by);
     qm_wipe(methods, &module->methods);
 }
 GENERIC_DELETE(module_t, module);
@@ -122,7 +122,7 @@ set_require_type(module_t *module, module_t *required_by)
         module->state = MANU_REQ;
         module->manu_req_count++;
     } else {
-        qv_append(module, &module->required_by, required_by);
+        qv_append(&module->required_by, required_by);
         if (module->state != MANU_REQ)
             module->state = AUTO_REQ;
     }
@@ -157,7 +157,7 @@ module_t *module_register(lstr_t name, module_t **module,
     new_module->destructor = destructor;
 
     for (int i = 0; i < nb_dependencies; i++) {
-        qv_append(lstr, &new_module->dependent_of, LSTR(dependencies[i]));
+        qv_append(&new_module->dependent_of, LSTR(dependencies[i]));
     }
 
     qm_pos = qm_del_key(module_dep, &_G.module_dep_resolve, &name);
@@ -166,7 +166,7 @@ module_t *module_register(lstr_t name, module_t **module,
 
         modules_dep = &_G.module_dep_resolve.values[qm_pos];
         qh_for_each_pos(ptr, qh_pos, modules_dep) {
-            qv_append(lstr, &new_module->dependent_of,
+            qv_append(&new_module->dependent_of,
                       ((module_t *)modules_dep->keys[qh_pos])->name);
         }
         qh_wipe(ptr, modules_dep);
@@ -205,7 +205,7 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
     }
 
     assert (module->state == REGISTERED);
-    qv_append(lstr, &module->dependent_of, dep);
+    qv_append(&module->dependent_of, dep);
 }
 
 void module_require(module_t *module, module_t *required_by)
@@ -291,7 +291,7 @@ static int notify_shutdown(module_t *module, module_t *dependence)
 
     qv_for_each_pos(module, pos, &module->required_by) {
         if (module->required_by.tab[pos] == dependence) {
-            qv_remove(module, &module->required_by, pos);
+            qv_remove(&module->required_by, pos);
             break;
         }
     }
@@ -525,7 +525,7 @@ module_add_method(module_t *module, module_method_impl_t *method,
     void *cb = qm_get_def(methods, &module->methods, method->params, NULL);
 
     if (cb) {
-        qv_append(methods_cb, &method->callbacks, cb);
+        qv_append(&method->callbacks, cb);
     }
 }
 
@@ -563,7 +563,7 @@ static void module_build_method_cb(module_method_impl_t *method)
 {
     qh_t(ptr) already_run;
 
-    qv_clear(methods_cb, &method->callbacks);
+    qv_clear(&method->callbacks);
 
     qh_init(ptr, &already_run);
     /* First pass: run the method from all manual required modules. */

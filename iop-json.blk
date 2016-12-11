@@ -902,7 +902,7 @@ static void add_field_path_field(lstr_t field,
     p_clear(&val, 1);
     val.is_index = false;
     val.field = field;
-    qv_append(iop_json_field_path, field_paths, val);
+    qv_append(field_paths, val);
 }
 
 static void add_field_path_index(int index,
@@ -913,7 +913,7 @@ static void add_field_path_index(int index,
     p_clear(&val, 1);
     val.is_index = true;
     val.index = index;
-    qv_append(iop_json_field_path, field_paths, val);
+    qv_append(field_paths, val);
 }
 
 static lstr_t
@@ -968,14 +968,14 @@ static void iop_junpack_add_field_path_index(int index)
 static void iop_junpack_remove_last_field_path(void)
 {
     if (subfiles_g) {
-        qv_remove_last(iop_json_field_path, &field_paths_g);
+        qv_remove_last(&field_paths_g);
     }
 }
 
 static void thr_globals_wipe(void)
 {
-    qv_deep_wipe(lstr, &filenames_g, lstr_wipe);
-    qv_wipe(iop_json_field_path, &field_paths_g);
+    qv_deep_wipe(&filenames_g, lstr_wipe);
+    qv_wipe(&field_paths_g);
 }
 thr_hooks(NULL, thr_globals_wipe);
 
@@ -1059,7 +1059,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         return 0;
     }
 
-    path_dirname(prefix, sizeof(prefix), qv_last(lstr, &filenames_g)->s);
+    path_dirname(prefix, sizeof(prefix), qv_last(&filenames_g)->s);
     if (path_extend(path, prefix, "%*pM", SB_FMT_ARG(&ll->ctx->b)) < 0) {
         return JERROR_VARIOUS("cannot get fullpath of `%*pM`",
                               SB_FMT_ARG(&ll->ctx->b));
@@ -1088,7 +1088,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         p_clear(&subfile, 1);
         subfile.file_path = t_lstr_dups(relative_path, len);
         subfile.iop_path = t_get_current_field_path(&field_paths_g);
-        qv_append(iop_json_subfile, subfiles_g, subfile);
+        qv_append(subfiles_g, subfile);
     }
 
     switch (fdesc->type) {
@@ -1944,7 +1944,7 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
                                                                              \
     if (filename) {                                                          \
         path_expand(path, sizeof(path), filename);                           \
-        qv_append(lstr, &filenames_g, LSTR(path));                           \
+        qv_append(&filenames_g, LSTR(path));                           \
     }                                                                        \
     if (subfiles) {                                                          \
         assert (filename);                                                   \
@@ -1958,11 +1958,11 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
     }                                                                        \
                                                                              \
     if (filename) {                                                          \
-        qv_remove_last(lstr, &filenames_g);                                  \
+        qv_remove_last(&filenames_g);                                  \
     }                                                                        \
     if (subfiles) {                                                          \
         subfiles_g = NULL;                                                   \
-        qv_clear(iop_json_field_path, &field_paths_g);                       \
+        qv_clear(&field_paths_g);                       \
     }                                                                        \
     iop_jlex_wipe(&jll);                                                     \
                                                                              \
@@ -2290,7 +2290,7 @@ static int write_field(const iop_struct_t *st, const void *value,
     PUTS(")");
 
     /* Remember include file as a created file. */
-    qv_append(str, &file_ctx->created_sub_files, p_strdup(fullpath));
+    qv_append(&file_ctx->created_sub_files, p_strdup(fullpath));
 
     return res;
 }
@@ -2476,7 +2476,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 abort();
             }
             if (file_ctx && file_ctx->has_sub_files && repeated) {
-                qv_remove_last(iop_json_field_path, &file_ctx->field_paths);
+                qv_remove_last(&file_ctx->field_paths);
             }
         }
         if (repeated) {
@@ -2484,7 +2484,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         }
 
         if (file_ctx && file_ctx->has_sub_files && n) {
-            qv_remove_last(iop_json_field_path, &file_ctx->field_paths);
+            qv_remove_last(&file_ctx->field_paths);
         }
     }
 
@@ -2532,9 +2532,9 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         /* We want to write the fields in the order "master -> children", and
          * not "children -> master", so first build a qvector of the parents.
          */
-        qv_inita(iop_struct, &parents, 8);
+        qv_inita(&parents, 8);
         do {
-            qv_append(iop_struct, &parents, real_desc);
+            qv_append(&parents, real_desc);
         } while ((real_desc = real_desc->class_attrs->parent));
 
         /* Write fields of different levels */
@@ -2542,7 +2542,7 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
             res += RETHROW(__pack_txt(parents.tab[pos], value, lvl, writecb,
                                       priv, flags, file_ctx, &first));
         }
-        qv_wipe(iop_struct, &parents);
+        qv_wipe(&parents);
 
     } else {
         res += RETHROW(__pack_txt(desc, value, lvl, writecb, priv, flags,
@@ -2735,8 +2735,8 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
 #undef wipe
      }
 
-    qv_deep_wipe(str, &ctx.created_sub_files, p_delete);
-    qv_wipe(iop_json_field_path, &ctx.field_paths);
+    qv_deep_wipe(&ctx.created_sub_files, p_delete);
+    qv_wipe(&ctx.field_paths);
     return res;
 }
 

@@ -109,7 +109,7 @@ static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
     assert (e->values.len <= 255);
     assert (asn1_enum_pos(e, val) < 0);
 
-    qv_append(u32, &e->values, val);
+    qv_append(&e->values, val);
 
     if (e->values.len > 1) {
         e->blen = bsr8(e->values.len - 1) + 1;

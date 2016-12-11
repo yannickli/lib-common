@@ -389,16 +389,16 @@ void qps_bitmap_get_qps_roots(qps_bitmap_t *map, qps_roots_t *roots)
         if (map->root->roots[i] == 0) {
             continue;
         }
-        qv_append(qps_pg, &roots->pages, map->root->roots[i]);
+        qv_append(&roots->pages, map->root->roots[i]);
         dispatch = qps_pg_deref(map->qps, map->root->roots[i]);
         for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
             if ((*dispatch)[j].node == 0) {
                 continue;
             }
-            qv_append(qps_pg, &roots->pages, (*dispatch)[j].node);
+            qv_append(&roots->pages, (*dispatch)[j].node);
         }
     }
-    qv_append(qps_handle, &roots->handles, map->root_cache.handle);
+    qv_append(&roots->handles, map->root_cache.handle);
 }
 
 /* }}} */

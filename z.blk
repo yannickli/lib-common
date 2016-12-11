@@ -174,9 +174,9 @@ static void z_shutdown(void)
     qv_for_each_pos(z_blk, i, &_G.blks) {
         z_blkgrp_wipe(&_G.blks.tab[i], true);
     }
-    qv_wipe(z_blk, &_G.blks);
-    qv_wipe(z_cbs, &_G.cbs);
-    qv_wipe(lstr, &_G.only);
+    qv_wipe(&_G.blks);
+    qv_wipe(&_G.cbs);
+    qv_wipe(&_G.only);
     qh_wipe(lstr, &_G.tag_skip);
     qh_wipe(lstr, &_G.tag_or);
     lstr_wipe(&_G.arg0);
@@ -976,7 +976,7 @@ int z_setup(int argc, char **argv)
 
     /* Specific tests to run. */
     for (int i = 0; i < argc; i++) {
-        qv_append(lstr, &_G.only, LSTR(argv[i]));
+        qv_append(&_G.only, LSTR(argv[i]));
     }
 
     return 1;
@@ -984,7 +984,7 @@ int z_setup(int argc, char **argv)
 
 void z_register_group(void (*cb)(void))
 {
-    qv_append(z_cbs, &_G.cbs, cb);
+    qv_append(&_G.cbs, cb);
 }
 
 void z_register_exports(const char *prefix)
@@ -997,7 +997,7 @@ void z_register_exports(const char *prefix)
 
 void z_register_blkgroup(struct z_blkgrp const *g)
 {
-    struct z_blkgrp *t = qv_growlen(z_blk, &_G.blks, 1);
+    struct z_blkgrp *t = qv_growlen(&_G.blks, 1);
 
     _z_check_test_name(g->name, "group");
 

@@ -34,7 +34,7 @@ static int z_check_file_bin_records(file_bin_t *file, lstr_t path,
     bool do_close = false;
     qv_t(lstr) results;
 
-    t_qv_init(lstr, &results, exp_nb);
+    t_qv_init(&results, exp_nb);
 
     if (file) {
         Z_ASSERT_ZERO(file_bin_refresh(file));
