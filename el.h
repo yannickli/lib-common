@@ -27,7 +27,7 @@
 
 #include "core.h"
 #ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
+#include <poll.h>
 #else
 # define POLLIN      0x0001    /* There is data to read        */
 # define POLLPRI     0x0002    /* There is urgent data to read */

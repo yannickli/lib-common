@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include "ztst-swiftc.h"
+#include "el.h"
+#include "unix.h"
 
 MODULE_SWIFT(swift_from_c, 12, swiftc, 6)
 
@@ -30,9 +32,30 @@ static int c_from_swift_shutdown(void)
 MODULE_BEGIN(c_from_swift)
 MODULE_END()
 
+static void on_term(el_t ev, int signo, el_data_t arg)
+{
+}
+
 int main(void)
 {
+    struct sigaction sa = {
+        .sa_flags   = SA_RESTART,
+        .sa_handler = SIG_IGN,
+    };
+
+    sigaction(SIGHUP,  &sa, NULL);
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGPIPE, &sa, NULL);
+    sigaction(SIGALRM, &sa, NULL);
+
+    el_signal_register(SIGTERM, on_term, NULL);
+    el_signal_register(SIGINT,  on_term, NULL);
+    el_signal_register(SIGQUIT, on_term, NULL);
+
+    ps_install_panic_sighandlers();
+
     MODULE_REQUIRE(swift_from_c);
+    el_loop();
     MODULE_RELEASE(swift_from_c);
     return 0;
 }

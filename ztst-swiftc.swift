@@ -13,9 +13,21 @@
 
 import libcommon
 
+var cron: el_t? = nil
+
+func cronCb(el: el_t, _: data_t) {
+    print(#function)
+}
+
 func swiftFromCInitialize(ptr: UnsafeMutableRawPointer?) -> Int32 {
+    cron = el_timer_register(1000, 1000, 0, cronCb, nil)
     print(#function)
     return 0
+}
+
+func swiftFromCOnTerm(signo: Int32) {
+    print("\(#function) with signo \(signo)")
+    el_unregister(&cron)
 }
 
 func swiftFromCShutdown() -> Int32 {
@@ -28,5 +40,6 @@ let swift_from_c = ({ () -> Module in
                      initialize: swiftFromCInitialize,
                      shutdown: swiftFromCShutdown)
     mod.depends(on: c_from_swift_module_ptr, named: "c_from_swift")
+    mod.implements(method: on_term_method_ptr, with: swiftFromCOnTerm)
     return mod
 })()

@@ -3,6 +3,10 @@ module libcommon {
         header "core.h"
     }
 
+    module el [extern_c] {
+        header "el.h"
+    }
+
     requires tls
 }
 

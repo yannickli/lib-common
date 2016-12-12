@@ -114,6 +114,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define HAS_OPT(OPT)     (yyextra->opts & CFG_PARSE_##OPT)
 
 #define YY_EXTRA_TYPE  struct lexdata *
+#undef ECHO
 #define ECHO
 
 #define yyrtrim() \

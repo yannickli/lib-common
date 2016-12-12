@@ -63,6 +63,8 @@
 #include <sys/user.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
+#include <termios.h>
+#undef ECHO
 #include <time.h>
 #include <unistd.h>
 #include <sched.h>
