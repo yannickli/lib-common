@@ -1,0 +1,7 @@
+module libcommon {
+    module core [extern_c] {
+        header "core.h"
+    }
+
+    requires tls
+}

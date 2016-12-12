@@ -22,24 +22,35 @@
  * tests and sets the presence of every characters by modifying
  * a single bit
  */
-typedef struct ctype_desc_t {
+typedef struct __swift_name__("CType") ctype_desc_t {
     uint32_t tab[256 / 32];
 } ctype_desc_t;
 
+__swift_name__("CType.isAlnum")
 extern ctype_desc_t const ctype_isalnum;
+__swift_name__("CType.isAlpha")
 extern ctype_desc_t const ctype_isalpha;
+__swift_name__("CType.isLower")
 extern ctype_desc_t const ctype_islower;
+__swift_name__("CType.isUpper")
 extern ctype_desc_t const ctype_isupper;
+__swift_name__("CType.isDigit")
 extern ctype_desc_t const ctype_isdigit;
+__swift_name__("CType.isSpace")
 extern ctype_desc_t const ctype_isspace;
+__swift_name__("CType.isHexDigit")
 extern ctype_desc_t const ctype_ishexdigit;
+__swift_name__("CType.isBinDigit")
 extern ctype_desc_t const ctype_isbindigit;
+__swift_name__("CType.isWordPart")
 extern ctype_desc_t const ctype_iswordpart;
+__swift_name__("CType.isCVar")
 extern ctype_desc_t const ctype_iscvar;
 
 /* @func ctype_desc_reset
  * @param[in] d
  */
+__swift_name__("CType.reset(self:)")
 static inline void ctype_desc_reset(ctype_desc_t * nonnull d)
 {
     p_clear(d, 1);
@@ -50,6 +61,7 @@ static inline void ctype_desc_reset(ctype_desc_t * nonnull d)
  * @param[in] toks string of characters containing a token at every
  *                 characters.
  */
+__swift_name__("CType.buildFromCString(self:_:)")
 static inline void ctype_desc_build(ctype_desc_t * nonnull d,
                                     const char * nonnull toks)
 {
@@ -60,6 +72,7 @@ static inline void ctype_desc_build(ctype_desc_t * nonnull d,
     }
 }
 
+__swift_name__("CType.buildFromBuffer(self:_:count:)")
 static inline void
 ctype_desc_build2(ctype_desc_t * nonnull d, const char * nonnull toks,
                   int len)
@@ -81,6 +94,7 @@ ctype_desc_build2(ctype_desc_t * nonnull d, const char * nonnull toks,
  * @brief This function checks if a byte is set on in a ctype_desc
  *        structure
  */
+__swift_name__("CType.contains(self:_:)")
 static inline bool ctype_desc_contains(const ctype_desc_t * nonnull d, byte b)
 {
     return TST_BIT(d->tab, b);
@@ -92,6 +106,7 @@ static inline bool ctype_desc_contains(const ctype_desc_t * nonnull d, byte b)
  * param[inout] dout
  * TODO binary operation on memory instead of a stupid bit per bit operating
  */
+__swift_name__("CType.combine(self:_:_:)")
 static inline void
 ctype_desc_combine(ctype_desc_t * nonnull dst,
                    const ctype_desc_t * nonnull d1,
@@ -105,6 +120,7 @@ ctype_desc_combine(ctype_desc_t * nonnull dst,
 /* @func ctype_desc_invert
  * param[inout] d
  */
+__swift_name__("CType.invert(self:)")
 static inline void ctype_desc_invert(ctype_desc_t * nonnull d)
 {
     for (int i = 0 ; i < countof(d->tab) ; i++)

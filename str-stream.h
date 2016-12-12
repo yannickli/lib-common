@@ -60,7 +60,7 @@
  *
  */
 
-typedef struct pstream_t {
+typedef struct __swift_name__("PStream") pstream_t {
     union {
         const void * nullable p;
         const char * nullable s;

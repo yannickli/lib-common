@@ -24,7 +24,7 @@
  * It remembers wether the string has been allocated through p_new, t_new, a
  * pool or is static.
  */
-typedef struct lstr_t {
+typedef struct __swift_name__("LString") lstr_t {
     union {
         const char * nullable s;
         char       * nullable v;
@@ -72,6 +72,7 @@ typedef struct lstr_t {
 /* }}} */
 /* Base helpers {{{ */
 
+__swift_name__("LString.init(_:count:flags:)")
 static ALWAYS_INLINE lstr_t lstr_init_(const void * nullable s, int len,
                                        unsigned flags)
 {

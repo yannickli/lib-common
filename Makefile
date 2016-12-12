@@ -21,6 +21,9 @@ none_LIBRARIES += iop-snmp
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
+ifneq (,$(SWIFTC))
+test_PROGRAMS += ztst-swift
+endif
 endif
 
 _IOPJSONPATH = $ljson
@@ -152,6 +155,7 @@ libcommon_SOURCES = \
 	str-outbuf.c \
 	str-path.c \
 	str-stream.c \
+	str.swift \
 	\
 	thr.c \
 	thr-evc.c \
@@ -183,6 +187,7 @@ libcommon_SOURCES = \
 	ssl.c \
 	\
 	z.blk
+libcommon_SWIFTMIXED = 1
 
 ifneq ($(HAVE_NETINET_SCTP_H),)
 libcommon_SOURCES += net-sctp.c
@@ -303,5 +308,11 @@ ztst-mem-bench_SOURCES = \
 dso-compatibility-check_SOURCES = \
     dso-compatibility-check.c \
     $llibcommon.a
+
+ztst-swift_SOURCES = \
+	ztst-swift.swift \
+	$llibcommon.a
+ztst-swift_SWIFTMODULE = ztst_swift
+ztst-swift_SWIFTMAIN = 1
 
 include Build/base.mk
