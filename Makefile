@@ -22,7 +22,7 @@ none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
 ifneq (,$(SWIFTC))
-test_PROGRAMS += ztst-swift
+test_PROGRAMS += ztst-swift ztst-swiftc
 endif
 endif
 
@@ -86,6 +86,7 @@ libcommon_SOURCES = \
 	core.iop.c \
 	core-module.c \
 	qpage.c \
+	core.swift \
 	\
 	el.blk \
 	\
@@ -314,5 +315,12 @@ ztst-swift_SOURCES = \
 	$llibcommon.a
 ztst-swift_SWIFTMODULE = ztst_swift
 ztst-swift_SWIFTMAIN = 1
+
+ztst-swiftc_SOURCES = \
+	ztst-swiftc.c \
+	ztst-swiftc.swift \
+	$llibcommon.a
+ztst-swiftc_SWIFTMODULE = swiftc
+ztst-swiftc_SWIFTMIXED = 1
 
 include Build/base.mk

@@ -23,3 +23,19 @@ extension StringBuffer : CustomStringConvertible {
         }
     }
 }
+
+public extension String {
+    /// Calls a closure with a view of the string UTF8 representation as a `LString`.
+    ///
+    /// - Parameter body: A closure with a LString parameter that points to the
+    ///  UTF8 representation of the string. If `body` has a return value, it is
+    ///  used as the return value of `withLString(_:)` method. The argument is
+    ///  valid only for the duration of the closure's execution.
+    ///
+    /// - Returns: The return value of the `body` closure parameter
+    public func withLString<Result>(_ body: (LString) throws -> Result) rethrows -> Result {
+        return try self.utf8CString.withUnsafeBufferPointer { ptr in
+            return try body(LString(ptr.baseAddress, count: Int32(ptr.count - 1), flags: 0))
+        }
+    }
+}

@@ -5,3 +5,7 @@ module libcommon {
 
     requires tls
 }
+
+module swiftc {
+    header "ztst-swiftc.h"
+}
