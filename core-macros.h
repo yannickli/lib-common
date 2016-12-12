@@ -96,6 +96,12 @@
 # define __bridge_retain
 #endif
 
+#if  !__has_feature(generalized_swift_name)
+# define __swift_name__(name)
+#else
+# define __swift_name__(name)  __attribute__((swift_name(name)))
+#endif
+
 #ifdef __cplusplus
 #define restrict
 #endif
