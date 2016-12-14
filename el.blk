@@ -380,7 +380,7 @@ ev_t *el_before_register_d(el_cb_f *cb, data_t priv)
 
 ev_t *el_before_register_blk(el_cb_b blk, block_t wipe)
 {
-    return el_blk_register(el_before_register(NULL, NULL), blk, wipe);
+    return el_blk_register(el_before_register((void *)-1, NULL), blk, wipe);
 }
 
 void el_before_set_hook(el_t ev, el_cb_f *cb)
@@ -424,7 +424,7 @@ ev_t *el_idle_register_d(el_cb_f *cb, data_t priv)
 
 ev_t *el_idle_register_blk(el_cb_b blk, block_t wipe)
 {
-    return el_blk_register(el_idle_register(NULL, NULL), blk, wipe);
+    return el_blk_register(el_idle_register((void *)-1, NULL), blk, wipe);
 }
 
 void el_idle_set_hook(el_t ev, el_cb_f *cb)
@@ -650,7 +650,8 @@ ev_t *el_signal_register_d(int signo, el_signal_f *cb, data_t priv)
 
 ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
 {
-    return el_blk_register(el_signal_register(signo, NULL, NULL), blk, wipe);
+    return el_blk_register(el_signal_register(signo, (void *)-1, NULL), blk,
+                           wipe);
 }
 
 /* }}} */
@@ -722,7 +723,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 
 ev_t *el_child_register_blk(pid_t pid, el_child_b blk, block_t wipe)
 {
-    return el_blk_register(el_child_register(pid, NULL, NULL), blk, wipe);
+    return el_blk_register(el_child_register(pid, (void *)-1, NULL), blk, wipe);
 }
 
 static data_t el_child_unregister(ev_t **evp)
@@ -985,7 +986,8 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb,
 
 ev_t *el_timer_register_blk(int next, int repeat, int flags, el_cb_b blk, block_t wipe)
 {
-    return el_blk_register(el_timer_register(next, repeat, flags, NULL, NULL),
+    return el_blk_register(el_timer_register(next, repeat, flags, (void *)-1,
+                                             NULL),
                            blk, wipe);
 }
 
@@ -1119,7 +1121,8 @@ ev_priority_t (el_fd_set_priority)(ev_t *ev, ev_priority_t priority)
 ev_t *el_fd_register_blk(int fd, bool own_fd, short events, el_fd_b blk,
                          block_t wipe)
 {
-    return el_blk_register(el_fd_register(fd, own_fd, events, NULL, NULL),
+    return el_blk_register(el_fd_register(fd, own_fd, events, (void *)-1,
+                                          NULL),
                            blk, wipe);
 }
 
@@ -1270,7 +1273,7 @@ ev_t *el_proxy_register_d(el_proxy_f *cb, data_t priv)
 
 ev_t *el_proxy_register_blk(el_proxy_b blk, block_t wipe)
 {
-    return el_blk_register(el_proxy_register(NULL, NULL), blk, wipe);
+    return el_blk_register(el_proxy_register((void *)-1, NULL), blk, wipe);
 }
 
 void el_proxy_set_hook(el_t ev, el_proxy_f *cb)
@@ -1453,7 +1456,7 @@ static void el_fs_watch_fire(el_t el, uint32_t event, uint32_t cookie,
 el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
                               el_fs_watch_b blk, block_t wipe)
 {
-    el_t el = RETHROW_P(el_fs_watch_register(path, flags, NULL, NULL));
+    el_t el = RETHROW_P(el_fs_watch_register(path, flags, (void *)-1, NULL));
 
     return el_blk_register(el, blk, wipe);
 }
