@@ -613,7 +613,8 @@
 
 #define QHASH_IOP_FUNCS(name, pfx)                                           \
     static inline uint32_t                                                   \
-    qhash_iop_hash_fn(name, pfx)(const qhash_t *qhash, const pfx##__t *key)  \
+    qhash_iop_hash_fn(name, pfx)(const qhash_t * nullable qhash,             \
+                                 const pfx##__t * nonnull key)               \
     {                                                                        \
         uint8_t hash[4];                                                     \
                                                                              \
@@ -622,8 +623,9 @@
         return get_unaligned_cpu32(hash);                                    \
     }                                                                        \
     static inline bool                                                       \
-    qhash_iop_equals_fn(name, pfx)(const qhash_t *qhash,                     \
-                                   const pfx##__t *k1, const pfx##__t *k2)   \
+    qhash_iop_equals_fn(name, pfx)(const qhash_t * nullable qhash,           \
+                                   const pfx##__t * nonnull k1,              \
+                                   const pfx##__t * nonnull k2)              \
     {                                                                        \
         return iop_equals(pfx, k1, k2);                                      \
     }

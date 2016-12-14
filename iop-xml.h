@@ -41,8 +41,9 @@
  * \param[in] flags  Bitfield of flags to use (see iop_unpack_flags in iop.h).
  */
 __must_check__
-int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
-                      void *out, int flags);
+int iop_xunpack_flags(void * nonnull xp, mem_pool_t * nonnull mp,
+                      const iop_struct_t * nonnull st, void * nonnull out,
+                      int flags);
 
 /** Convert IOP-XML to an IOP C structure.
  *
@@ -55,15 +56,17 @@ int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
  *
  */
 __must_check__
-int iop_xunpack_ptr_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
-                          void **out, int flags);
+int iop_xunpack_ptr_flags(void * nonnull xp, mem_pool_t * nonnull mp,
+                          const iop_struct_t * nonnull st,
+                          void * nullable * nonnull out, int flags);
 
 /** Convert IOP-XML to an IOP C structure.
  *
  * This function just call iop_xunpack_flags() with flags set to 0.
  */
 __must_check__ static inline int
-iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *st, void *out)
+iop_xunpack(void * nonnull xp, mem_pool_t * nonnull mp,
+            const iop_struct_t * nonnull st, void * nonnull out)
 {
     return iop_xunpack_flags(xp, mp, st, out, 0);
 }
@@ -73,7 +76,9 @@ iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *st, void *out)
  * This function just call iop_xunpack_ptr_flags() with flags set to 0.
  */
 __must_check__ static inline int
-iop_xunpack_ptr(void *xp, mem_pool_t *mp, const iop_struct_t *st, void **out)
+iop_xunpack_ptr(void * nonnull xp, mem_pool_t * nonnull mp,
+                const iop_struct_t * nonnull st,
+                void * nullable * nonnull out)
 {
     return iop_xunpack_ptr_flags(xp, mp, st, out, 0);
 }
@@ -98,8 +103,10 @@ qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
  * \param[in] parts  Hashtable to retrieve XML parts.
  */
 __must_check__
-int iop_xunpack_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
-                      void *out, int flags, qm_t(part) *parts);
+int iop_xunpack_parts(void * nonnull xp, mem_pool_t * nonnull mp,
+                      const iop_struct_t * nonnull st,
+                      void * nonnull out, int flags,
+                      qm_t(part) * nonnull parts);
 
 /** Convert IOP-XML to an IOP C structure with XML parts support.
  *
@@ -111,51 +118,57 @@ int iop_xunpack_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
  * unpacking it (this could be a child).
  */
 __must_check__
-int iop_xunpack_ptr_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
-                          void **out, int flags, qm_t(part) *parts);
+int iop_xunpack_ptr_parts(void * nonnull xp, mem_pool_t * nonnull mp,
+                          const iop_struct_t * nonnull st,
+                          void * nullable * nonnull out, int flags,
+                          qm_t(part) * nonnull parts);
 
 
 /** iop_xunpack_flags() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack_flags(void *xp, const iop_struct_t *st, void *out, int flags)
+t_iop_xunpack_flags(void * nonnull xp, const iop_struct_t * nonnull st,
+                    void * nonnull out, int flags)
 {
     return iop_xunpack_flags(xp, t_pool(), st, out, flags);
 }
 
 /** iop_xunpack() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack(void *xp, const iop_struct_t *st, void *out)
+t_iop_xunpack(void * nonnull xp, const iop_struct_t * nonnull st,
+              void * nonnull out)
 {
     return iop_xunpack(xp, t_pool(), st, out);
 }
 
 /** iop_xunpack_parts() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack_parts(void *xp, const iop_struct_t *st, void *out, int flags,
-                    qm_t(part) *parts)
+t_iop_xunpack_parts(void * nonnull xp, const iop_struct_t * nonnull st,
+                    void * nonnull out, int flags, qm_t(part) * nonnull parts)
 {
     return iop_xunpack_parts(xp, t_pool(), st, out, flags, parts);
 }
 
 /** iop_xunpack_ptr_flags() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack_ptr_flags(void *xp, const iop_struct_t *st, void **out,
-                        int flags)
+t_iop_xunpack_ptr_flags(void * nonnull xp, const iop_struct_t * nonnull st,
+                        void * nullable * nonnull out, int flags)
 {
     return iop_xunpack_ptr_flags(xp, t_pool(), st, out, flags);
 }
 
 /** iop_xunpack_ptr() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack_ptr(void *xp, const iop_struct_t *st, void **out)
+t_iop_xunpack_ptr(void * nonnull xp, const iop_struct_t * nonnull st,
+                  void * nullable * nonnull out)
 {
     return iop_xunpack_ptr(xp, t_pool(), st, out);
 }
 
 /** iop_xunpack_ptr_parts() using the t_pool() */
 __must_check__ static inline int
-t_iop_xunpack_ptr_parts(void *xp, const iop_struct_t *st, void **out,
-                        int flags, qm_t(part) *parts)
+t_iop_xunpack_ptr_parts(void * nonnull xp, const iop_struct_t * nonnull st,
+                        void * nullable * nonnull out, int flags,
+                        qm_t(part) * nonnull parts)
 {
     return iop_xunpack_ptr_parts(xp, t_pool(), st, out, flags, parts);
 }
@@ -186,15 +199,15 @@ enum iop_xpack_flags {
  * \param[in]  flags       Bitfield of iop_pack_flags.
  *
  */
-void iop_xpack_flags(sb_t *sb, const iop_struct_t *st, const void *v,
-                     unsigned flags);
+void iop_xpack_flags(sb_t * nonnull sb, const iop_struct_t * nonnull st,
+                     const void * nonnull v, unsigned flags);
 
 /** Convert an IOP C structure to IOP-XML.
  *
  * simpler interface for iop_xpack_flags
  */
-void iop_xpack(sb_t *sb, const iop_struct_t *st, const void *v, bool verbose,
-               bool with_enums);
+void iop_xpack(sb_t * nonnull sb, const iop_struct_t * nonnull st,
+               const void * nonnull v, bool verbose, bool with_enums);
 
 
 /** RPC set for WSDL generation */
@@ -211,9 +224,9 @@ qh_k32_t(xwsdl_impl);
  * \param[in]  with_auth   Add SOAP authentication headers.
  * \param[in]  with_enums  Dump enums literal representations in WSDL.
  */
-void iop_xwsdl(sb_t *sb, const iop_mod_t *mod, qh_t(xwsdl_impl) *impl,
-               const char *ns, const char *addr, bool with_auth,
-               bool with_enums);
+void iop_xwsdl(sb_t * nonnull sb, const iop_mod_t * nonnull mod,
+               qh_t(xwsdl_impl) * nullable impl, const char * nonnull ns,
+               const char * nonnull addr, bool with_auth, bool with_enums);
 
 /** Register a module RPC in a RPC set.
  *

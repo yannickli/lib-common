@@ -2325,7 +2325,7 @@ static const char *t_fmt_field(const iop_field_t *fdesc, int j)
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse)
 {
-    check_constraints_f check_constraints = NULL;
+    check_constraints_f *check_constraints = NULL;
 
     if ((check_constraints = iop_field_get_constraints_cb(desc, fdesc))) {
         if (unlikely(check_constraints(ptr, n) < 0)) {

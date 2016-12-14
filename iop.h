@@ -16,6 +16,11 @@
 
 #include "container-qhash.h"
 #include "container-qvector.h"
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #include "iop-cfolder.h"
 #include "iop-internals.h"
 
@@ -34,7 +39,7 @@ typedef enum iop_wire_type_t {
 
 /* {{{ IOP various useful typedefs and functions */
 
-qvector_t(iop_struct, const iop_struct_t *);
+qvector_t(iop_struct, const iop_struct_t * nonnull);
 
 /** Convert an IOP identifier from CamelCase naming to C underscored naming */
 lstr_t t_camelcase_to_c(lstr_t name);
@@ -51,7 +56,7 @@ lstr_t t_iop_type_to_c(lstr_t fullname);
  * \param[out] out The string receiving the camelCase/CamelCase result.
  * \return 0 in case of success -1 in case of error.
  */
-int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t *out);
+int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t * nonnull out);
 
 /* }}} */
 /* {{{ IOP attributes and constraints */
@@ -71,13 +76,15 @@ int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t *out);
  * \return -1 in case of constraints violation in the field, in that case, the
  *         error message can be retrieved with \ref iop_get_err.
  */
-int iop_field_check_constraints(const iop_struct_t *desc,
-                                const iop_field_t *fdesc,
-                                const void *values, int len, bool recurse);
+int iop_field_check_constraints(const iop_struct_t * nonnull desc,
+                                const iop_field_t * nonnull fdesc,
+                                const void * nonnull values, int len,
+                                bool recurse);
 
 static inline
-const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
-                                             const iop_field_t *fdesc)
+const iop_field_attrs_t * nullable
+iop_field_get_attrs(const iop_struct_t * nonnull desc,
+                    const iop_field_t * nonnull fdesc)
 {
     unsigned desc_flags = desc->flags;
 
@@ -93,8 +100,9 @@ const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
 }
 
 static inline
-const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
-                                         const iop_rpc_t *fdesc)
+const iop_rpc_attrs_t * nullable
+iop_rpc_get_attrs(const iop_iface_t * nonnull desc,
+                  const iop_rpc_t * nonnull fdesc)
 {
     unsigned desc_flags = desc->flags;
 
@@ -120,10 +128,10 @@ const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
+int iop_iface_get_gen_attr(const iop_iface_t * nonnull iface, lstr_t key,
                            iop_type_t exp_type,
                            iop_type_t * nullable val_type,
-                           iop_value_t *value);
+                           iop_value_t * nonnull value);
 
 /** Find a generic attribute value for an IOP rpc.
  *
@@ -139,13 +147,15 @@ int iop_iface_get_gen_attr(const iop_iface_t *iface, lstr_t key,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_rpc_get_gen_attr(const iop_iface_t *iface, const iop_rpc_t *rpc,
+int iop_rpc_get_gen_attr(const iop_iface_t * nonnull iface,
+                         const iop_rpc_t * nonnull rpc,
                          lstr_t key, iop_type_t exp_type,
-                         iop_type_t * nullable val_type, iop_value_t *value);
+                         iop_type_t * nullable val_type,
+                         iop_value_t * nonnull value);
 
-static inline check_constraints_f
-iop_field_get_constraints_cb(const iop_struct_t *desc,
-                             const iop_field_t *fdesc)
+static inline check_constraints_f * nullable
+iop_field_get_constraints_cb(const iop_struct_t * nonnull desc,
+                             const iop_field_t * nonnull fdesc)
 {
     unsigned fdesc_flags = fdesc->flags;
 
@@ -158,8 +168,8 @@ iop_field_get_constraints_cb(const iop_struct_t *desc,
 }
 
 static inline
-bool iop_field_has_constraints(const iop_struct_t *desc,
-                               const iop_field_t *fdesc)
+bool iop_field_has_constraints(const iop_struct_t * nonnull desc,
+                               const iop_field_t * nonnull fdesc)
 {
     if (iop_field_get_constraints_cb(desc, fdesc))
         return true;
@@ -171,9 +181,12 @@ bool iop_field_has_constraints(const iop_struct_t *desc,
 /*}}}*/
 /* {{{ IOP introspection */
 
-const iop_iface_t *iop_mod_find_iface(const iop_mod_t *mod, uint32_t tag);
-const iop_rpc_t   *iop_iface_find_rpc(const iop_iface_t *iface, uint32_t tag);
-const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
+const iop_iface_t * nullable
+iop_mod_find_iface(const iop_mod_t * nonnull mod, uint32_t tag);
+const iop_rpc_t * nullable
+iop_iface_find_rpc(const iop_iface_t * nonnull iface, uint32_t tag);
+const iop_rpc_t * nullable
+iop_mod_find_rpc(const iop_mod_t * nonnull mod, uint32_t cmd);
 
 /** Get the string description of an iop type.
  *
@@ -181,7 +194,7 @@ const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
  *
  * \return the string description.
  */
-const char *iop_type_get_string_desc(iop_type_t type);
+const char * nonnull iop_type_get_string_desc(iop_type_t type);
 
 /** Return whether the IOP type is scalar or not.
  *
@@ -193,7 +206,7 @@ const char *iop_type_get_string_desc(iop_type_t type);
  */
 bool iop_type_is_scalar(iop_type_t type);
 
-static inline bool iop_field_is_reference(const iop_field_t *fdesc)
+static inline bool iop_field_is_reference(const iop_field_t * nonnull fdesc)
 {
     unsigned fdesc_flags = fdesc->flags;
 
@@ -208,7 +221,7 @@ static inline bool iop_field_is_reference(const iop_field_t *fdesc)
  * \note For repeated fields, the function returns true if the elements of the
  *       associated array are pointers.
  */
-bool iop_field_is_pointed(const iop_field_t *fdesc);
+bool iop_field_is_pointed(const iop_field_t * nonnull fdesc);
 
 /** Get an iop_field from its name.
  *
@@ -226,9 +239,9 @@ bool iop_field_is_pointed(const iop_field_t *fdesc);
  * \return  index of the field in a structure if the field is found, -1
  *          otherwise.
  */
-int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
-                           const iop_struct_t ** nullable found_st,
-                           const iop_field_t  ** nullable found_fdesc);
+int iop_field_find_by_name(const iop_struct_t * nonnull st, const lstr_t name,
+                           const iop_struct_t * nullable * nullable found_st,
+                           const iop_field_t * nullable * nullable found_fdesc);
 
 /** Fill a field in an iop structure.
  *
@@ -245,11 +258,11 @@ int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
  * \return  0 if the field was filled, -1 otherwise.
  */
 __must_check__
-int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
-                               const iop_struct_t *sdesc,
-                               const iop_field_t *fdesc);
+int iop_skip_absent_field_desc(mem_pool_t * nonnull mp, void * nonnull value,
+                               const iop_struct_t * nonnull sdesc,
+                               const iop_field_t * nonnull fdesc);
 
-int iop_ranges_search(int const *ranges, int ranges_len, int tag);
+int iop_ranges_search(int const * nonnull ranges, int ranges_len, int tag);
 
 /* }}} */
 /* {{{ IOP Introspection: iop_for_each_field() */
@@ -269,8 +282,9 @@ int iop_ranges_search(int const *ranges, int ranges_len, int tag);
  *         0 otherwise.
  */
 typedef int
-(BLOCK_CARET iop_for_each_field_cb_b)(const iop_struct_t *st_desc,
-                                      const iop_field_t *fdesc, void *st_ptr);
+(BLOCK_CARET iop_for_each_field_cb_b)(const iop_struct_t * nonnull st_desc,
+                                      const iop_field_t * nonnull fdesc,
+                                      void * nonnull st_ptr);
 
 /** Explore an IOP struct/class/union recursively and call a block for each
  *  field.
@@ -283,19 +297,20 @@ typedef int
  *  \return A negative value (the one returned by the callback) if the
  *          exploration was interrupted, 0 otherwise.
  */
-int iop_for_each_field(const iop_struct_t * nullable st_desc, void *st_ptr,
-                       iop_for_each_field_cb_b cb);
+int iop_for_each_field(const iop_struct_t * nullable st_desc,
+                       void * nonnull st_ptr,
+                       iop_for_each_field_cb_b nonnull cb);
 
 /** Const version for 'iop_for_each_field_cb_b'. */
 typedef int
-(BLOCK_CARET iop_for_each_field_const_cb_b)(const iop_struct_t *st_desc,
-                                            const iop_field_t *fdesc,
-                                            const void *st_ptr);
+(BLOCK_CARET iop_for_each_field_const_cb_b)(const iop_struct_t * nonnull st_desc,
+                                            const iop_field_t * nonnull fdesc,
+                                            const void * nonnull st_ptr);
 
 /** Const version of 'iop_for_each_field'. */
 int iop_for_each_field_const(const iop_struct_t * nullable st_desc,
-                             const void *st_ptr,
-                             iop_for_each_field_const_cb_b cb);
+                             const void * nonnull st_ptr,
+                             iop_for_each_field_const_cb_b nonnull cb);
 
 /** Callback for function 'iop_for_each_st'.
  *
@@ -307,7 +322,8 @@ int iop_for_each_field_const(const iop_struct_t * nullable st_desc,
  *         struct/union/class.
  */
 typedef int
-(BLOCK_CARET iop_for_each_st_cb_b)(const iop_struct_t *st_desc, void *st_ptr);
+(BLOCK_CARET iop_for_each_st_cb_b)(const iop_struct_t * nonnull st_desc,
+                                   void * nonnull st_ptr);
 
 /** Explore an IOP struct/union/class recursively and call a block for each
  *  struct/union/class.
@@ -316,17 +332,19 @@ typedef int
  *  struct/union/class contained in the input IOP including itself, not for
  *  scalar fields.
  */
-int iop_for_each_st(const iop_struct_t * nullable st_desc, void *st_ptr,
-                    iop_for_each_st_cb_b cb);
+int iop_for_each_st(const iop_struct_t * nullable st_desc,
+                    void * nonnull st_ptr,
+                    iop_for_each_st_cb_b nonnull cb);
 
 /** Const version for 'iop_for_each_st_cb_b'. */
 typedef int
-(BLOCK_CARET iop_for_each_st_const_cb_b)(const iop_struct_t *st_desc,
-                                         const void *st_ptr);
+(BLOCK_CARET iop_for_each_st_const_cb_b)(const iop_struct_t * nonnull st_desc,
+                                         const void * nonnull st_ptr);
 
 /** Const version of 'iop_for_each_st'. */
 int iop_for_each_st_const(const iop_struct_t * nullable st_desc,
-                          const void *st_ptr, iop_for_each_st_const_cb_b cb);
+                          const void * nonnull st_ptr,
+                          iop_for_each_st_const_cb_b nonnull cb);
 
 #endif
 
@@ -343,7 +361,7 @@ int iop_for_each_st_const(const iop_struct_t * nullable st_desc,
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the IOP structure to initialize.
  */
-void iop_init_desc(const iop_struct_t *st, void *value);
+void iop_init_desc(const iop_struct_t * nonnull st, void * nonnull value);
 
 #define iop_init(pfx, value)  ({                                             \
         pfx##__t *__v = (value);                                             \
@@ -360,20 +378,21 @@ void iop_init_desc(const iop_struct_t *st, void *value);
  * \param[in] st  The IOP structure definition (__s).
  */
 __attribute__((malloc, warn_unused_result))
-void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st);
+void * nonnull mp_iop_new_desc(mem_pool_t *nullable mp,
+                               const iop_struct_t * nonnull st);
 
 __attribute__((malloc, warn_unused_result))
-static inline void *iop_new_desc(const iop_struct_t *st)
+static inline void * nonnull iop_new_desc(const iop_struct_t * nonnull st)
 {
     return mp_iop_new_desc(NULL, st);
 }
 __attribute__((malloc, warn_unused_result))
-static inline void *t_iop_new_desc(const iop_struct_t *st)
+static inline void * nonnull t_iop_new_desc(const iop_struct_t * nonnull st)
 {
     return mp_iop_new_desc(t_pool(), st);
 }
 __attribute__((malloc, warn_unused_result))
-static inline void *r_iop_new_desc(const iop_struct_t *st)
+static inline void * nonnull r_iop_new_desc(const iop_struct_t * nonnull st)
 {
     return mp_iop_new_desc(r_pool(), st);
 }
@@ -394,7 +413,9 @@ static inline void *r_iop_new_desc(const iop_struct_t *st)
  * \param[in] v1  Pointer on the IOP structure to be compared.
  * \param[in] v2  Pointer on the IOP structure to be compared with.
  */
-bool  iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2);
+bool  iop_equals_desc(const iop_struct_t * nonnull st,
+                      const void * nullable v1,
+                      const void * nullable v2);
 
 #define iop_equals(pfx, v1, v2)  ({                                          \
         const pfx##__t *__v1 = (v1);                                         \
@@ -410,8 +431,9 @@ bool  iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2);
  *
  * \return -1 if the IOP structs are equal.
  */
-int iop_first_diff_desc(const iop_struct_t *st,
-                        const void *v1, const void *v2, sb_t *diff_desc);
+int iop_first_diff_desc(const iop_struct_t * nonnull st,
+                        const void * nonnull v1, const void * nonnull v2,
+                        sb_t * nonnull diff_desc);
 
 /** Flags for IOP sorter. */
 enum iop_sort_flags {
@@ -443,8 +465,8 @@ enum iop_sort_flags {
  *                         iop_sort_flags)
  *  \param[out] err        In case of error, the error description.
  */
-int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
-                  lstr_t field_path, int flags, sb_t *err);
+int iop_sort_desc(const iop_struct_t * nonnull st, void * nonnull vec,
+                  int len, lstr_t field_path, int flags, sb_t * nullable err);
 
 #define iop_sort(pfx, vec, len, field_path, flags, err)  ({                  \
         pfx##__t *__vec = (vec);                                             \
@@ -480,8 +502,9 @@ qvector_t(iop_sort, iop_sort_t);
  *                         \see iop_sort for field path syntax and flags desc.
  *  \param[out] err        In case of error, the error description.
  */
-int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
-                   const qv_t(iop_sort) *params, sb_t *err);
+int iop_msort_desc(const iop_struct_t * nonnull st, void * nonnull vec,
+                   int len, const qv_t(iop_sort) * nonnull params,
+                   sb_t * nullable err);
 
 #define iop_msort(pfx, vec, len, params, err)  ({                            \
         pfx##__t *__vec = (vec);                                             \
@@ -525,9 +548,10 @@ enum iop_filter_flags {
  *  \param[in] flags          A combination of enum iop_filter_flags.
  *  \param[out] err           In case of error, the error description.
  */
-int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-               void * const *allowed_values, int values_len, unsigned flags,
-               sb_t *err);
+int iop_filter(const iop_struct_t * nonnull st, void * nonnull vec,
+               int * nonnull len, lstr_t field_path,
+               void * const nonnull * nonnull allowed_values, int values_len,
+               unsigned flags, sb_t * nullable err);
 
 /** Filter a vector of IOP based on the presence of a given optional or
  *  repeated field or subfield.
@@ -537,8 +561,9 @@ int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
  * must be set (for optional fields) or non-empty (for repeated fields) to be
  * kept.
  */
-int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
-                   lstr_t field_path, bool is_set, sb_t *err);
+int iop_filter_opt(const iop_struct_t * nonnull st, void * nonnull vec,
+                   int * nonnull len, lstr_t field_path, bool is_set,
+                   sb_t * nullable err);
 
 /** Duplicate an IOP structure.
  *
@@ -552,8 +577,10 @@ int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
  * \param[in] v  The IOP structure to duplicate.
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
-                         const void *v, size_t * nullable sz);
+void * nullable mp_iop_dup_desc_sz(mem_pool_t * nullable mp,
+                                   const iop_struct_t * nonnull st,
+                                   const void * nullable v,
+                                   size_t * nullable sz);
 
 #define mp_iop_dup_sz(mp, pfx, v, sz)  ({                                    \
         const pfx##__t *_id_v = (v);                                         \
@@ -582,8 +609,10 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
  * \param[in] v    The IOP structure to copy.
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-                         const void *v, size_t * nullable sz);
+void mp_iop_copy_desc_sz(mem_pool_t * nullable mp,
+                         const iop_struct_t * nonnull st,
+                         void * nullable * nonnull outp,
+                         const void * nullable v, size_t * nullable sz);
 
 #define mp_iop_copy_sz(mp, pfx, outp, v, sz)  do {                           \
         pfx##__t **__outp = (outp);                                          \
@@ -609,7 +638,8 @@ void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
  *                  IOP_OBJ_DEEP_COPY: if set, data of v is duplicated
  */
 #define IOP_OBJ_DEEP_COPY  (1 << 0)
-void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags);
+void mp_iop_obj_copy(mem_pool_t * nullable mp, void * nonnull out,
+                     const void * nonnull v, unsigned flags);
 
 /** Generate a signature of an IOP structure.
  *
@@ -620,8 +650,8 @@ void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags);
  * \param[in] flags  Flags modifying the hashing algorithm. The same flags
  *                   must be used when computing and checking the signature.
  */
-lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
-                               unsigned flags);
+lstr_t t_iop_compute_signature(const iop_struct_t * nonnull st,
+                               const void * nonnull v, unsigned flags);
 
 /** Check the signature of an IOP structure.
  *
@@ -634,7 +664,8 @@ lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
  *                   must be used when computing and checking the signature.
  */
 __must_check__
-int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
+int iop_check_signature(const iop_struct_t * nonnull st,
+                        const void * nonnull v, lstr_t sig,
                         unsigned flags);
 
 /** Find a generic attribute value for an IOP structure.
@@ -650,10 +681,10 @@ int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
+int iop_struct_get_gen_attr(const iop_struct_t * nonnull st, lstr_t key,
                             iop_type_t exp_type,
                             iop_type_t * nullable val_type,
-                            iop_value_t *value);
+                            iop_value_t * nonnull value);
 
 /** Find a generic attribute value for an IOP field.
  *
@@ -671,9 +702,11 @@ int iop_struct_get_gen_attr(const iop_struct_t *st, lstr_t key,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
+int iop_field_get_gen_attr(const iop_struct_t * nonnull st,
+                           const iop_field_t * nonnull field,
                            lstr_t key, iop_type_t exp_type,
-                           iop_type_t * nullable val_type, iop_value_t *value);
+                           iop_type_t * nullable val_type,
+                           iop_value_t * nonnull value);
 
 /** Get boolean generic attribute value for an IOP field.
  *
@@ -686,8 +719,8 @@ int iop_field_get_gen_attr(const iop_struct_t *st, const iop_field_t *field,
  * \return \p def if the generic attribute is not found and the attribute
  *            value otherwise.
  */
-bool iop_field_get_bool_gen_attr(const iop_struct_t *st,
-                                 const iop_field_t *field, lstr_t key,
+bool iop_field_get_bool_gen_attr(const iop_struct_t * nonnull st,
+                                 const iop_field_t * nonnull field, lstr_t key,
                                  bool def);
 
 /** Find a generic attribute value for an IOP field.
@@ -708,10 +741,11 @@ bool iop_field_get_bool_gen_attr(const iop_struct_t *st,
  * \return 0 if the generic attribute is found, -1 if the field is unknown or
  *         if the generic attribute is not found.
  */
-int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
+int iop_field_by_name_get_gen_attr(const iop_struct_t * nonnull st,
+                                   lstr_t field_name,
                                    lstr_t key, iop_type_t exp_type,
                                    iop_type_t * nullable val_type,
-                                   iop_value_t *value);
+                                   iop_value_t * nonnull value);
 
 /** Find an IOP field description from a iop object.
  *
@@ -724,9 +758,10 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t *st, lstr_t field_name,
  *
  * \return The iop field description if found, NULL otherwise.
  */
-const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
-                                 lstr_t path, const void ** nullable out_ptr,
-                                 const iop_struct_t ** nullable out_st);
+const iop_field_t * nullable
+iop_get_field(const void * nullable ptr, const iop_struct_t * nonnull st,
+              lstr_t path, const void * nullable * nullable out_ptr,
+              const iop_struct_t * nullable * nullable out_st);
 
 /** Get the value(s) associated to a given IOP field.
  *
@@ -762,13 +797,16 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
  * \param[out] is_array_of_pointers  Indicates that the output array \p values
  *                                   is an array of pointers.
  */
-void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
-                          void **values, int *len,
+void iop_get_field_values(const iop_field_t * nonnull fdesc,
+                          void * nonnull st_ptr,
+                          void * nullable * nonnull values, int * nonnull len,
                           bool * nullable is_array_of_pointers);
 
 /** Read-only version of iop_get_field_values(). */
-void iop_get_field_values_const(const iop_field_t *fdesc, const void *st_ptr,
-                                const void **values, int *len,
+void iop_get_field_values_const(const iop_field_t * nonnull fdesc,
+                                const void * nonnull st_ptr,
+                                const void * nullable * nonnull values,
+                                int * nonnull len,
                                 bool * nullable is_array_of_pointers);
 
 /** Return code for iop_value_from_field. */
@@ -787,8 +825,9 @@ typedef enum iop_value_from_field_res_t {
  * \return \ref iop_value_from_field_res_t.
  */
 iop_value_from_field_res_t
-iop_value_from_field(const void *ptr, const iop_field_t *field,
-                     iop_value_t *value);
+iop_value_from_field(const void * nonnull ptr,
+                     const iop_field_t * nonnull field,
+                     iop_value_t * nonnull value);
 
 /** Set a field of an IOP object from an IOP value and an IOP field.
  *
@@ -796,8 +835,8 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
  * \param[in] field The IOP field definition.
  * \param[in] value The value to put the field.
  */
-int iop_value_to_field(void *ptr, const iop_field_t *field,
-                       const iop_value_t *value);
+int iop_value_to_field(void * nonnull ptr, const iop_field_t * nonnull field,
+                       const iop_value_t * nonnull value);
 
 /** Set one of the values of a repeated IOP field of an IOP object.
  *
@@ -808,8 +847,10 @@ int iop_value_to_field(void *ptr, const iop_field_t *field,
  * \param[in] value The value to put at the \ref pos'th position in the
  *                  repeated field \ref field.
  */
-int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
-                                uint32_t pos, const iop_value_t *value);
+int iop_value_to_repeated_field(void * nonnull ptr,
+                                const iop_field_t * nonnull field,
+                                uint32_t pos,
+                                const iop_value_t * nonnull value);
 
 /** Set an optional field of an IOP object.
  *
@@ -824,7 +865,7 @@ int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
  * \param[in] ptr   The IOP object.
  * \param[in] field The IOP field definition.
  */
-void iop_set_opt_field(void *ptr, const iop_field_t *field);
+void iop_set_opt_field(void * nonnull ptr, const iop_field_t * nonnull field);
 
 /** Used for iop_type_vector_to_iop_struct function.
  */
@@ -833,8 +874,8 @@ typedef struct iop_field_info_t {
     iop_type_t   type;
     iop_repeat_t repeat;
     union {
-        const iop_struct_t *st_desc;
-        const iop_enum_t   *en_desc;
+        const iop_struct_t * nonnull st_desc;
+        const iop_enum_t   * nonnull en_desc;
     } u1;
 } iop_field_info_t;
 
@@ -849,9 +890,9 @@ qvector_t(iop_field_info, iop_field_info_t);
  *
  * \return the IOP struct.
 */
-iop_struct_t *
-iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
-                              const qv_t(iop_field_info) *fields_info);
+iop_struct_t * nonnull
+iop_type_vector_to_iop_struct(mem_pool_t * nullable mp, lstr_t fullname,
+                              const qv_t(iop_field_info) * nonnull fields_info);
 
 
 /** Private intermediary structure for IOP struct/union formatting. */
@@ -859,9 +900,9 @@ struct iop_struct_value {
     /* Struct/union description, can be null only when the element is an
      * object.
      */
-    const iop_struct_t *st;
+    const iop_struct_t * nullable st;
 
-    const void *val;
+    const void * nonnull val;
 };
 
 /** Provide the appropriate arguments to the %*pS modifier.
@@ -911,21 +952,21 @@ struct iop_struct_value {
 /* }}} */
 /* {{{ IOP snmp manipulation */
 
-static inline bool iop_struct_is_snmp_obj(const iop_struct_t *st)
+static inline bool iop_struct_is_snmp_obj(const iop_struct_t * nonnull st)
 {
     unsigned st_flags = st->flags;
 
     return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_OBJ);
 }
 
-static inline bool iop_struct_is_snmp_tbl(const iop_struct_t *st)
+static inline bool iop_struct_is_snmp_tbl(const iop_struct_t * nonnull st)
 {
     unsigned st_flags = st->flags;
 
     return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_TBL);
 }
 
-static inline bool iop_struct_is_snmp_st(const iop_struct_t *st)
+static inline bool iop_struct_is_snmp_st(const iop_struct_t * nonnull st)
 {
     unsigned st_flags = st->flags;
 
@@ -933,57 +974,58 @@ static inline bool iop_struct_is_snmp_st(const iop_struct_t *st)
         || TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_TBL);
 }
 
-static inline bool iop_struct_is_snmp_param(const iop_struct_t *st)
+static inline bool iop_struct_is_snmp_param(const iop_struct_t * nonnull st)
 {
     unsigned st_flags = st->flags;
 
     return TST_BIT(&st_flags, IOP_STRUCT_IS_SNMP_PARAM);
 }
 
-static inline bool iop_field_has_snmp_info(const iop_field_t *f)
+static inline bool iop_field_has_snmp_info(const iop_field_t * nonnull f)
 {
     unsigned st_flags = f->flags;
 
     return TST_BIT(&st_flags, IOP_FIELD_HAS_SNMP_INFO);
 }
 
-static inline bool iop_iface_is_snmp_iface(const iop_iface_t *iface)
+static inline bool iop_iface_is_snmp_iface(const iop_iface_t * nonnull iface)
 {
     unsigned st_flags = iface->flags;
 
     return TST_BIT(&st_flags, IOP_IFACE_IS_SNMP_IFACE);
 }
 
-static inline bool iop_field_is_snmp_index(const iop_field_t *field)
+static inline bool iop_field_is_snmp_index(const iop_field_t * nonnull field)
 {
     unsigned st_flags = field->flags;
 
     return TST_BIT(&st_flags, IOP_FIELD_IS_SNMP_INDEX);
 }
 
-int iop_struct_get_nb_snmp_indexes(const iop_struct_t *st);
+int iop_struct_get_nb_snmp_indexes(const iop_struct_t * nonnull st);
 
 /** Get the number of SNMP indexes used by the AgentX layer (cf RFC RFC 2578).
  */
-int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t *st);
+int iop_struct_get_nb_snmp_smiv2_indexes(const iop_struct_t * nonnull st);
 
-const iop_snmp_attrs_t *iop_get_snmp_attrs(const iop_field_attrs_t *attrs);
-const iop_snmp_attrs_t *
-iop_get_snmp_attr_match_oid(const iop_struct_t *st, int oid);
-const iop_field_attrs_t *
-iop_get_field_attr_match_oid(const iop_struct_t *st, int tag);
+const iop_snmp_attrs_t * nonnull
+iop_get_snmp_attrs(const iop_field_attrs_t * nonnull attrs);
+const iop_snmp_attrs_t * nonnull
+iop_get_snmp_attr_match_oid(const iop_struct_t * nonnull st, int oid);
+const iop_field_attrs_t * nonnull
+iop_get_field_attr_match_oid(const iop_struct_t * nonnull st, int tag);
 
 /* }}} */
 /* {{{ IOP class manipulation */
 
-static inline bool iop_struct_is_class(const iop_struct_t *st)
+static inline bool iop_struct_is_class(const iop_struct_t * nonnull st)
 {
     unsigned st_flags = st->flags;
 
     return TST_BIT(&st_flags, IOP_STRUCT_IS_CLASS);
 }
 
-static inline bool iop_field_is_class(const iop_field_t *f)
+static inline bool iop_field_is_class(const iop_field_t * nonnull f)
 {
     if (f->type != IOP_T_STRUCT) {
         return false;
@@ -1006,7 +1048,8 @@ static inline bool iop_field_is_class(const iop_field_t *f)
  * \param[in]  name  Name of the wanted class variable.
  */
 __attr_nonnull__((1))
-const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
+const iop_value_t * nullable
+iop_get_cvar(const void * nonnull obj, lstr_t name);
 
 #define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR(name))
 
@@ -1015,21 +1058,23 @@ const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
  * Same as iop_get_cvar, but directly takes a class descriptor.
  */
 __attr_nonnull__((1))
-const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
+const iop_value_t * nullable
+iop_get_cvar_desc(const iop_struct_t * nonnull desc, lstr_t name);
 
 #define iop_get_cvar_desc_cst(desc, name)  \
     iop_get_cvar_desc(desc, LSTR(name))
 
 /* The following variants of iop_get_cvar do not recurse on parents */
 __attr_nonnull__((1))
-const iop_value_t *iop_get_class_cvar(const void *obj, lstr_t name);
+const iop_value_t * nullable
+iop_get_class_cvar(const void * nonnull obj, lstr_t name);
 
 #define iop_get_class_cvar_cst(obj, name)  \
     iop_get_class_cvar(obj, LSTR(name))
 
 __attr_nonnull__((1))
-const iop_value_t *
-iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name);
+const iop_value_t * nullable
+iop_get_class_cvar_desc(const iop_struct_t * nonnull desc, lstr_t name);
 
 #define iop_get_class_cvar_desc_cst(desc, name)  \
     iop_get_class_cvar_desc(desc, LSTR(name))
@@ -1042,7 +1087,8 @@ iop_get_class_cvar_desc(const iop_struct_t *desc, lstr_t name);
  * \return  true if and only if the type of static fields can be read
  */
 __attr_nonnull__((1))
-static inline bool iop_class_static_fields_have_type(const iop_struct_t *desc)
+static inline bool
+iop_class_static_fields_have_type(const iop_struct_t * nonnull desc)
 {
     unsigned flags = desc->flags;
     return TST_BIT(&flags, IOP_STRUCT_STATIC_HAS_TYPE);
@@ -1059,8 +1105,8 @@ static inline bool iop_class_static_fields_have_type(const iop_struct_t *desc)
  */
 __attr_nonnull__((1, 2))
 static inline int
-iop_class_static_field_type(const iop_struct_t *desc,
-                            const iop_static_field_t *f)
+iop_class_static_field_type(const iop_struct_t * nonnull desc,
+                            const iop_static_field_t * nonnull f)
 {
     THROW_ERR_UNLESS(iop_class_static_fields_have_type(desc));
     return f->type;
@@ -1074,7 +1120,8 @@ iop_class_static_field_type(const iop_struct_t *desc,
  * \return  true if \p cls1 is equal to \p cls2, or has \p cls2 in its parents
  */
 __attr_nonnull__((1, 2))
-bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
+bool iop_class_is_a(const iop_struct_t * nonnull cls1,
+                    const iop_struct_t * nonnull cls2);
 
 /** Checks if an object is of a given class or has it in its parents.
  *
@@ -1088,7 +1135,8 @@ bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
  *          its parents.
  */
 __attr_nonnull__((1, 2)) static inline bool
-iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
+iop_obj_is_a_desc(const void * nonnull obj,
+                  const iop_struct_t * nonnull desc)
 {
     return iop_class_is_a(*(const iop_struct_t **)obj, desc);
 }
@@ -1105,27 +1153,28 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
  * The wanted class must have the same master class than the given class
  * descriptor.
  */
-__attr_nonnull__((1)) const iop_struct_t *
-iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname);
+__attr_nonnull__((1)) const iop_struct_t * nullable
+iop_get_class_by_fullname(const iop_struct_t * nonnull st, lstr_t fullname);
 
 /** Get the descriptor of a class from its id.
  *
  * Manipulating class ids should be reserved to some very specific use-cases,
  * so before using this function, be SURE that you really need it.
  */
-const iop_struct_t *
-iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id);
+const iop_struct_t * nullable
+iop_get_class_by_id(const iop_struct_t * nonnull st, uint16_t class_id);
 
 #ifdef __has_blocks
-typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t *);
+typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t * nonnull);
 
 /** Loop on all the classes registered by `iop_register_packages`.
  */
-void iop_for_each_registered_classes(iop_for_each_class_b cb);
+void iop_for_each_registered_classes(iop_for_each_class_b nonnull cb);
 #endif
 
-const iop_field_t *
-_iop_class_get_next_field(const iop_struct_t **st, int *it);
+const iop_field_t * nullable
+_iop_class_get_next_field(const iop_struct_t * nonnull * nonnull st,
+                          int * nonnull it);
 
 /** Loop on all fields of a class and its parents.
  *
@@ -1186,7 +1235,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it);
  * When a structure constraints checking fails, the error description is
  * accessible in a static buffer, accessible with this function.
  */
-const char *iop_get_err(void) __cold;
+const char * nullable iop_get_err(void) __cold;
 
 /** Same as iop_get_err() but returns a lstr_t. */
 lstr_t iop_get_err_lstr(void) __cold;
@@ -1203,7 +1252,8 @@ lstr_t iop_get_err_lstr(void) __cold;
  * \param[in] desc  IOP structure description.
  * \param[in] val   Pointer on the IOP structure to check constraints.
  */
-int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
+int iop_check_constraints_desc(const iop_struct_t * nonnull desc,
+                               const void * nonnull val);
 
 #define iop_check_constraints(pfx, val)  ({                                  \
         const pfx##__t *__v = (val);                                         \
@@ -1214,11 +1264,11 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val);
 /* }}} */
 /* {{{ IOP enum manipulation */
 
-qm_kvec_t(iop_enum, lstr_t, const iop_enum_t *,
+qm_kvec_t(iop_enum, lstr_t, const iop_enum_t * nonnull,
           qhash_lstr_hash, qhash_lstr_equal);
 
 /** Get an enumeration from its fullname. */
-const iop_enum_t *iop_get_enum(lstr_t fullname);
+const iop_enum_t * nullable iop_get_enum(lstr_t fullname);
 
 /** Convert IOP enum integer value to lstr_t representation.
  *
@@ -1230,7 +1280,7 @@ const iop_enum_t *iop_get_enum(lstr_t fullname);
  * \param[in] ed The IOP enum definition (__e).
  * \param[in] v  Integer value to look for.
  */
-static inline lstr_t iop_enum_to_str_desc(const iop_enum_t *ed, int v)
+static inline lstr_t iop_enum_to_str_desc(const iop_enum_t * nonnull ed, int v)
 {
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
     return unlikely(res < 0) ? LSTR_NULL_V : ed->names[res];
@@ -1261,7 +1311,8 @@ static inline lstr_t iop_enum_to_str_desc(const iop_enum_t *ed, int v)
  * \param[in] len String length (or -1 if unknown).
  * \param[in] err Value to return in case of conversion error.
  */
-int iop_enum_from_str_desc(const iop_enum_t *ed, const char *s, int len,
+int iop_enum_from_str_desc(const iop_enum_t * nonnull ed,
+                           const char * nonnull s, int len,
                            int err);
 
 #define iop_enum_from_str(pfx, s, len, err)  \
@@ -1280,8 +1331,9 @@ int iop_enum_from_str_desc(const iop_enum_t *ed, const char *s, int len,
  * \param[in]  len   String length (or -1 if unknown).
  * \param[out] found Will be set to false upon failure, true otherwise.
  */
-int iop_enum_from_str2_desc(const iop_enum_t *ed, const char *s, int len,
-                            bool *found);
+int iop_enum_from_str2_desc(const iop_enum_t * nonnull ed,
+                            const char * nonnull s, int len,
+                            bool * nonnull found);
 
 #define iop_enum_from_str2(pfx, s, len, found)  \
     iop_enum_from_str2_desc(&pfx##__e, (s), (len), (found))
@@ -1299,8 +1351,8 @@ int iop_enum_from_str2_desc(const iop_enum_t *ed, const char *s, int len,
  * \param[in]  len   String length (or -1 if unknown).
  * \param[out] found Will be set to false upon failure, true otherwise.
  */
-int iop_enum_from_lstr_desc(const iop_enum_t *ed, const lstr_t s,
-                            bool *found);
+int iop_enum_from_lstr_desc(const iop_enum_t * nonnull ed,
+                            const lstr_t s, bool * nonnull found);
 
 #define iop_enum_from_lstr(pfx, s, found)  \
     iop_enum_from_lstr_desc(&pfx##__e, (s), (found))
@@ -1319,9 +1371,9 @@ int iop_enum_from_lstr_desc(const iop_enum_t *ed, const lstr_t s,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
+int iop_enum_get_gen_attr(const iop_enum_t * nonnull ed, lstr_t key,
                           iop_type_t exp_type, iop_type_t * nullable val_type,
-                          iop_value_t *value);
+                          iop_value_t * nonnull value);
 
 /** Find a generic attribute value for an IOP enum value (integer).
  *
@@ -1337,10 +1389,10 @@ int iop_enum_get_gen_attr(const iop_enum_t *ed, lstr_t key,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
-                                   iop_type_t exp_type,
+int iop_enum_get_gen_attr_from_val(const iop_enum_t * nonnull ed, int val,
+                                   lstr_t key, iop_type_t exp_type,
                                    iop_type_t * nullable val_type,
-                                   iop_value_t *value);
+                                   iop_value_t * nonnull value);
 
 /** Find a generic attribute value for an IOP enum value (string).
  *
@@ -1356,14 +1408,14 @@ int iop_enum_get_gen_attr_from_val(const iop_enum_t *ed, int val, lstr_t key,
  *
  * \return 0 if the generic attribute is found, -1 otherwise.
  */
-int iop_enum_get_gen_attr_from_str(const iop_enum_t *ed, lstr_t val,
+int iop_enum_get_gen_attr_from_str(const iop_enum_t * nonnull ed, lstr_t val,
                                    lstr_t key, iop_type_t exp_type,
                                    iop_type_t * nullable val_type,
-                                   iop_value_t *value);
+                                   iop_value_t * nonnull value);
 
 /** Private intermediary structure for IOP enum formatting. */
 struct iop_enum_value {
-    const iop_enum_t *desc;
+    const iop_enum_t * nonnull desc;
     int v;
 };
 
@@ -1437,12 +1489,14 @@ enum iop_bpack_flags {
  *   violated.
  */
 __must_check__
-int iop_bpack_size_flags(const iop_struct_t *st, const void *v,
-                         unsigned flags, qv_t(i32) *szs);
+int iop_bpack_size_flags(const iop_struct_t * nonnull st,
+                         const void * nonnull v,
+                         unsigned flags, qv_t(i32) * nonnull szs);
 
 __must_check__
 static inline int
-iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
+iop_bpack_size(const iop_struct_t * nonnull st, const void * nonnull v,
+               qv_t(i32) * nonnull szs)
 {
     return iop_bpack_size_flags(st, v, 0, szs);
 }
@@ -1473,8 +1527,8 @@ iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
  * \param[in] szs The data of the qvector given to the `iop_bpack_size`
  *                function.
  */
-void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
-               const int *szs);
+void iop_bpack(void * nonnull dst, const iop_struct_t * nonnull st,
+               const void * nonnull v, const int * nonnull szs);
 
 /** Pack an IOP structure into IOP binary format using a specific mempool.
  *
@@ -1488,15 +1542,18 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  *   The buffer containing the packed structure, or LSTR_NULL if the
  *   IOP_BPACK_STRICT flag was used and a constraint was violated.
  */
-lstr_t mp_iop_bpack_struct_flags(mem_pool_t *mp, const iop_struct_t *st,
-                                 const void *v, const unsigned flags);
+lstr_t mp_iop_bpack_struct_flags(mem_pool_t * nullable mp,
+                                 const iop_struct_t * nonnull st,
+                                 const void * nonnull v, const unsigned flags);
 
 /** Pack an IOP structure into IOP binary format using the t_pool().
  */
-lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
+lstr_t t_iop_bpack_struct_flags(const iop_struct_t * nonnull st,
+                                const void * nonnull v,
                                 const unsigned flags);
 
-static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
+static inline lstr_t t_iop_bpack_struct(const iop_struct_t * nonnull st,
+                                        const void * nonnull v)
 {
     return t_iop_bpack_struct_flags(st, v, 0);
 }
@@ -1550,12 +1607,15 @@ enum iop_unpack_flags {
  *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack_flags(mem_pool_t *mp, const iop_struct_t *st, void *value,
+int iop_bunpack_flags(mem_pool_t * nonnull mp,
+                      const iop_struct_t * nonnull st,
+                      void * nonnull value,
                       pstream_t ps, unsigned flags);
 
 __must_check__
-static inline int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st,
-                              void *value, pstream_t ps, bool copy)
+static inline int iop_bunpack(mem_pool_t * nonnull mp,
+                              const iop_struct_t * nonnull st,
+                              void * nonnull value, pstream_t ps, bool copy)
 {
     return iop_bunpack_flags(mp, st, value, ps,
                              copy ? IOP_UNPACK_COPY_STRINGS : 0);
@@ -1564,7 +1624,8 @@ static inline int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st,
 /** Unpack a packed IOP structure using the t_pool().
  */
 __must_check__ static inline int
-t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
+t_iop_bunpack_ps(const iop_struct_t * nonnull st, void * nonnull value,
+                 pstream_t ps, bool copy)
 {
     return iop_bunpack(t_pool(), st, value, ps, copy);
 }
@@ -1592,12 +1653,16 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
  *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack_ptr_flags(mem_pool_t *mp, const iop_struct_t *st,
-                          void **value, pstream_t ps, unsigned flags);
+int iop_bunpack_ptr_flags(mem_pool_t * nonnull mp,
+                          const iop_struct_t * nonnull st,
+                          void * nullable * nonnull value, pstream_t ps,
+                          unsigned flags);
 
 __must_check__
-static inline int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st,
-                                  void **value, pstream_t ps, bool copy)
+static inline int iop_bunpack_ptr(mem_pool_t * nonnull mp,
+                                  const iop_struct_t * nonnull st,
+                                  void * nullable * nonnull value,
+                                  pstream_t ps, bool copy)
 {
     return iop_bunpack_ptr_flags(mp, st, value, ps,
                                  copy ? IOP_UNPACK_COPY_STRINGS : 0);
@@ -1618,12 +1683,16 @@ static inline int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st,
  *                  behavior of the unpacker.
  */
 __must_check__
-int iop_bunpack_multi_flags(mem_pool_t *mp, const iop_struct_t *st,
-                            void *value, pstream_t *ps, unsigned flags);
+int iop_bunpack_multi_flags(mem_pool_t * nonnull mp,
+                            const iop_struct_t * nonnull st,
+                            void * nonnull value, pstream_t * nonnull ps,
+                            unsigned flags);
 
 __must_check__
-static inline int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st,
-                                    void *value, pstream_t *ps, bool copy)
+static inline int iop_bunpack_multi(mem_pool_t * nonnull mp,
+                                    const iop_struct_t * nonnull st,
+                                    void * nonnull value,
+                                    pstream_t * nonnull ps, bool copy)
 {
     return iop_bunpack_multi_flags(mp, st, value, ps,
                                    copy ? IOP_UNPACK_COPY_STRINGS : 0);
@@ -1632,8 +1701,8 @@ static inline int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st,
 /** Unpack a packed IOP union using the t_pool().
  */
 __must_check__ static inline int
-t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
-                    bool copy)
+t_iop_bunpack_multi(const iop_struct_t * nonnull st, void * nonnull value,
+                    pstream_t * nonnull ps, bool copy)
 {
     return iop_bunpack_multi(t_pool(), st, value, ps, copy);
 }
@@ -1648,7 +1717,7 @@ t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
  * \param[in] ps    The pstream_t containing the packed IOP union.
  */
 __must_check__
-int iop_bskip(const iop_struct_t *st, pstream_t *ps);
+int iop_bskip(const iop_struct_t * nonnull st, pstream_t * nonnull ps);
 
 /** returns the length of the field examining the first octets only.
  *
@@ -1665,10 +1734,10 @@ ssize_t iop_get_field_len(pstream_t ps);
 /* }}} */
 /* {{{ IOP packages registration / manipulation */
 
-qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t *,
+qm_kvec_t(iop_pkg, lstr_t, const iop_pkg_t * nonnull,
           qhash_lstr_hash, qhash_lstr_equal);
 
-const iop_pkg_t *iop_get_pkg(lstr_t pkgname);
+const iop_pkg_t * nullable iop_get_pkg(lstr_t pkgname);
 
 enum iop_register_packages_flags {
     IOP_REGPKG_FROM_DSO = (1U << 0),
@@ -1683,7 +1752,8 @@ enum iop_register_packages_flags {
  *
  * You can use IOP_REGISTER_PACKAGES to avoid the array construction.
  */
-void iop_register_packages(const iop_pkg_t **pkgs, int len, unsigned flags);
+void iop_register_packages(const iop_pkg_t * nonnull * nonnull pkgs, int len,
+                           unsigned flags);
 
 /** Helper to register a list of packages.
  *
@@ -1704,7 +1774,8 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len, unsigned flags);
  *
  * You can use IOP_UNREGISTER_PACKAGES to avoid the array construction.
  */
-void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
+void iop_unregister_packages(const iop_pkg_t * nonnull * nonnull pkgs,
+                             int len);
 
 /** Helper to unregister a list of packages.
  *
@@ -1718,11 +1789,11 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
     } while (0)
 
 #ifdef __has_blocks
-typedef void (BLOCK_CARET iop_for_each_pkg_b)(const iop_pkg_t *);
+typedef void (BLOCK_CARET iop_for_each_pkg_b)(const iop_pkg_t * nonnull);
 
 /** Loop on all the pkg registered by `iop_register_packages`.
  */
-void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb);
+void iop_for_each_registered_pkgs(iop_for_each_pkg_b nonnull cb);
 #endif
 
 /* }}} */
@@ -1742,8 +1813,8 @@ enum iop_compat_check_flags {
  */
 typedef struct iop_compat_ctx_t iop_compat_ctx_t;
 
-iop_compat_ctx_t *iop_compat_ctx_new(void);
-void iop_compat_ctx_delete(iop_compat_ctx_t **ctx);
+iop_compat_ctx_t * nonnull iop_compat_ctx_new(void);
+void iop_compat_ctx_delete(iop_compat_ctx_t * nullable * nonnull ctx);
 
 /** Checks the backward compatibility of two IOP structures/classes/unions.
  *
@@ -1756,9 +1827,9 @@ void iop_compat_ctx_delete(iop_compat_ctx_t **ctx);
  * \warning in case \p st1 and \p st2 are classes, it is not checking the
  *          backward compatibility of their children.
  */
-int iop_struct_check_backward_compat(const iop_struct_t *st1,
-                                     const iop_struct_t *st2,
-                                     unsigned flags, sb_t *err);
+int iop_struct_check_backward_compat(const iop_struct_t * nonnull st1,
+                                     const iop_struct_t * nonnull st2,
+                                     unsigned flags, sb_t * nonnull err);
 
 /** Checks the backward compatibility of two IOP packages.
  *
@@ -1772,9 +1843,9 @@ int iop_struct_check_backward_compat(const iop_struct_t *st1,
  *
  * \warning this function does not check the interfaces/RPCs for now.
  */
-int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
-                                  const iop_pkg_t *pkg2,
-                                  unsigned flags, sb_t *err);
+int iop_pkg_check_backward_compat(const iop_pkg_t * nonnull pkg1,
+                                  const iop_pkg_t * nonnull pkg2,
+                                  unsigned flags, sb_t * nonnull err);
 
 /** Checks the backward compatibility of two IOP packages with provided
  * context.
@@ -1784,10 +1855,10 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
  * This function introduce a way to provide an external compatibility context
  * \p ctx allowing backward compatibility checks between multiple packages.
  */
-int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
-                                      const iop_pkg_t *pkg2,
-                                      iop_compat_ctx_t *ctx,
-                                      unsigned flags, sb_t *err);
+int iop_pkg_check_backward_compat_ctx(const iop_pkg_t * nonnull pkg1,
+                                      const iop_pkg_t * nonnull pkg2,
+                                      iop_compat_ctx_t * nonnull ctx,
+                                      unsigned flags, sb_t * nonnull err);
 
 /* }}} */
 
@@ -1801,5 +1872,9 @@ void iop_module_register(void);
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

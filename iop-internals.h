@@ -79,11 +79,11 @@ typedef struct iop_field_t {
      *   en_desc     holds a pointer to the enum desc for IOP_T_ENUM
      */
     union {
-        const void         *defval_data;
+        const void         * nonnull defval_data;
         uint64_t            defval_u64;
         double              defval_d;
-        const iop_struct_t *st_desc;
-        const iop_enum_t   *en_desc;
+        const iop_struct_t * nonnull st_desc;
+        const iop_enum_t   * nonnull en_desc;
     } u1;
 } iop_field_t;
 
@@ -112,8 +112,8 @@ typedef union iop_value_t {
     double      d;
     lstr_t      s;
     bool        b;
-    const void *p;
-    void       *v;
+    const void * nullable p;
+    void       * nullable v;
 } iop_value_t;
 
 /* For each iop object, an enum *_attr_type_t is declared which contains the
@@ -143,7 +143,7 @@ typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;
 
 typedef struct iop_enum_value_attr_t {
     iop_enum_value_attr_type_t       type;
-    const iop_enum_value_attr_arg_t *args;
+    const iop_enum_value_attr_arg_t * nonnull args;
 } iop_enum_value_attr_t;
 
 typedef struct iop_enum_value_attrs_t {
@@ -151,7 +151,7 @@ typedef struct iop_enum_value_attrs_t {
     uint16_t                     attrs_len;
     uint8_t                      version;   /**< version 0 */
     uint8_t                      padding;
-    const iop_enum_value_attr_t *attrs;
+    const iop_enum_value_attr_t * nonnull attrs;
 } iop_enum_value_attrs_t;
 
 typedef enum iop_enum_attr_type_t {
@@ -167,7 +167,7 @@ typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
 
 typedef struct iop_enum_attr_t {
     iop_enum_attr_type_t       type;
-    const iop_enum_attr_arg_t *args;
+    const iop_enum_attr_arg_t * nonnull args;
 } iop_enum_attr_t;
 
 typedef struct iop_enum_attrs_t {
@@ -175,7 +175,7 @@ typedef struct iop_enum_attrs_t {
     uint16_t               attrs_len;
     uint8_t                version;   /**< version 0 */
     uint8_t                padding;
-    const iop_enum_attr_t *attrs;
+    const iop_enum_attr_t * nonnull attrs;
 } iop_enum_attrs_t;
 
 /*
@@ -204,16 +204,16 @@ typedef struct iop_enum_attrs_t {
 struct iop_enum_t {
     const lstr_t                  name;
     const lstr_t                  fullname;
-    const lstr_t                 *names;
-    const int                    *values;
-    const int                    *ranges;
+    const lstr_t                 * nonnull names;
+    const int                    * nonnull values;
+    const int                    * nonnull ranges;
     uint16_t                      enum_len;
     uint16_t                      flags; /**< bitfield of iop_enum_flags_t */
     int                           ranges_len;
     /* XXX do not dereference the following 2 members without checking
      * TST_BIT(this->flags, IOP_ENUM_EXTENDED) first */
-    const iop_enum_attrs_t       *en_attrs;
-    const iop_enum_value_attrs_t *values_attrs;
+    const iop_enum_attrs_t       * nullable en_attrs;
+    const iop_enum_value_attrs_t * nullable values_attrs;
 };
 
 enum iop_enum_flags_t {
@@ -224,7 +224,7 @@ enum iop_enum_flags_t {
 /*}}}*/
 /*{{{ iop_struct_t */
 
-typedef int (*check_constraints_f)(const void *ptr, int n);
+typedef int (check_constraints_f)(const void * nonnull ptr, int n);
 
 typedef iop_generic_attr_arg_t iop_field_attr_arg_t;
 
@@ -252,16 +252,16 @@ typedef enum iop_field_attr_type_t {
 
 typedef struct iop_field_attr_t {
     iop_field_attr_type_t        type;
-    const iop_field_attr_arg_t  *args;
+    const iop_field_attr_arg_t  * nonnull args;
 } iop_field_attr_t;
 
 typedef struct iop_field_attrs_t {
-    check_constraints_f      check_constraints;
+    check_constraints_f     * nullable check_constraints;
     unsigned                 flags;  /**< bitfield of iop_field_attr_type_t */
     uint16_t                 attrs_len;
     uint8_t                  version;   /**< version 0 */
     uint8_t                  padding;
-    const iop_field_attr_t  *attrs;
+    const iop_field_attr_t  * nonnull attrs;
 } iop_field_attrs_t;
 
 typedef enum iop_struct_attr_type_t {
@@ -278,7 +278,7 @@ typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
 
 typedef struct iop_struct_attr_t {
     iop_struct_attr_type_t       type;
-    const iop_struct_attr_arg_t *args;
+    const iop_struct_attr_arg_t * nonnull args;
 } iop_struct_attr_t;
 
 typedef struct iop_struct_attrs_t {
@@ -286,20 +286,22 @@ typedef struct iop_struct_attrs_t {
     uint16_t                 attrs_len;
     uint8_t                  version;   /**< version 0 */
     uint8_t                  padding;
-    const iop_struct_attr_t *attrs;
+    const iop_struct_attr_t * nonnull attrs;
 } iop_struct_attrs_t;
 
 typedef struct iop_static_field_t {
     lstr_t                   name;
     iop_value_t              value;
-    const iop_field_attrs_t *attrs; /**< NULL if there are none */
+    const iop_field_attrs_t * nullable attrs; /**< NULL if there are none */
     uint16_t                 type;
 } iop_static_field_t;
 
 /* Class attributes */
 typedef struct iop_class_attrs_t {
-    const iop_struct_t        *parent; /**< NULL for "master" classes       */
-    const iop_static_field_t **static_fields; /**< NULL if there are none   */
+    /** NULL for "master" classes       */
+    const iop_struct_t        * nullable parent;
+    /** NULL if there are none   */
+    const iop_static_field_t * nonnull * nullable static_fields;
     uint8_t                    static_fields_len;
     uint8_t                    is_abstract : 1;
     uint8_t                    is_private  : 1;
@@ -309,15 +311,15 @@ typedef struct iop_class_attrs_t {
 
 /* Snmp attributes */
 typedef struct iop_snmp_attrs_t {
-    const iop_struct_t *parent; /**< NULL if parent is Intersec             */
+    const iop_struct_t * nullable parent; /**< NULL if parent is Intersec   */
     uint16_t            oid;
     uint16_t            type;   /**< iop_type_t                             */
 } iop_snmp_attrs_t;
 
 struct iop_struct_t {
     const lstr_t        fullname;
-    const iop_field_t  *fields;
-    const int          *ranges;
+    const iop_field_t  * nonnull fields;
+    const int          * nonnull ranges;
     uint16_t            ranges_len;
     uint16_t            fields_len;
     uint16_t            size;           /**< sizeof(type);                  */
@@ -325,15 +327,15 @@ struct iop_struct_t {
     unsigned            is_union :  1;  /**< struct or union ?              */
     /* XXX do not dereference the following members without checking
      * TST_BIT(this->flags, IOP_STRUCT_EXTENDED) first */
-    const iop_struct_attrs_t *st_attrs;
-    const iop_field_attrs_t  *fields_attrs;
+    const iop_struct_attrs_t * nullable st_attrs;
+    const iop_field_attrs_t  * nullable fields_attrs;
     union {
         /* XXX do not dereference the following members without checking
          * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
-        const iop_class_attrs_t *class_attrs;
+        const iop_class_attrs_t * nullable class_attrs;
         /* XXX do not dereference the following members without checking
          * TST_BIT(this->flags, IOP_STRUCT_IS_SNMP_OBJ) first */
-        const iop_snmp_attrs_t *snmp_attrs;
+        const iop_snmp_attrs_t * nullable snmp_attrs;
     };
 };
 
@@ -376,7 +378,7 @@ typedef enum iop_rpc_attr_type_t {
 
 typedef struct iop_rpc_attr_t {
     iop_rpc_attr_type_t type;
-    const iop_rpc_attr_arg_t *args;
+    const iop_rpc_attr_arg_t * nonnull args;
 } iop_rpc_attr_t;
 
 typedef struct iop_rpc_attrs_t {
@@ -384,14 +386,14 @@ typedef struct iop_rpc_attrs_t {
     uint16_t                 attrs_len;
     uint8_t                  version;   /**< version 0 */
     uint8_t                  padding;
-    const iop_rpc_attr_t    *attrs;
+    const iop_rpc_attr_t    * nonnull attrs;
 } iop_rpc_attrs_t;
 
 typedef struct iop_rpc_t {
     const lstr_t        name;
-    const iop_struct_t *args;
-    const iop_struct_t *result;
-    const iop_struct_t *exn;
+    const iop_struct_t * nullable args;
+    const iop_struct_t * nullable result;
+    const iop_struct_t * nullable exn;
     uint32_t            tag;
     unsigned            async : 1;
     unsigned            flags : 31; /**< bitfield of iop_rpc_flags_t */
@@ -414,7 +416,7 @@ typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
 
 typedef struct iop_iface_attr_t {
     iop_iface_attr_type_t       type;
-    const iop_iface_attr_arg_t *args;
+    const iop_iface_attr_arg_t * nonnull args;
 } iop_iface_attr_t;
 
 typedef struct iop_iface_attrs_t {
@@ -422,21 +424,21 @@ typedef struct iop_iface_attrs_t {
     uint16_t                attrs_len;
     uint8_t                 version;   /**< version 0 */
     uint8_t                 padding;
-    const iop_iface_attr_t *attrs;
+    const iop_iface_attr_t * nonnull attrs;
 } iop_iface_attrs_t;
 
 typedef struct iop_iface_t {
     const lstr_t             fullname;
-    const iop_rpc_t         *funs;
+    const iop_rpc_t         * nonnull funs;
     uint16_t                 funs_len;
     uint16_t                 flags; /**< bitfield of iop_iface_flags_t */
-    const iop_rpc_attrs_t   *rpc_attrs;
+    const iop_rpc_attrs_t   * nullable rpc_attrs;
     /** check TST_BIT(flags, IOP_IFACE_HAS_ATTRS)
      *  before accessing iface_attrs */
-    const iop_iface_attrs_t *iface_attrs;
+    const iop_iface_attrs_t * nullable iface_attrs;
     /** check TST_BIT(flags, IOP_IFACE_IS_SNMP_IFACE)
      *  before accessing iface_attrs */
-    const iop_snmp_attrs_t  *snmp_iface_attrs;
+    const iop_snmp_attrs_t  * nullable snmp_iface_attrs;
 } iop_iface_t;
 
 enum iop_iface_flags_t {
@@ -449,7 +451,7 @@ enum iop_iface_flags_t {
 /*{{{ iop_mod_t */
 
 typedef struct iop_iface_alias_t {
-    const iop_iface_t  *iface;
+    const iop_iface_t  * nonnull iface;
     const lstr_t        name;
     uint32_t            tag;
 } iop_iface_alias_t;
@@ -463,7 +465,7 @@ typedef iop_generic_attr_arg_t iop_mod_iface_attr_arg_t;
 
 typedef struct iop_mod_iface_attr_t {
     iop_mod_iface_attr_type_t       type;
-    const iop_mod_iface_attr_arg_t *args;
+    const iop_mod_iface_attr_arg_t * nonnull args;
 } iop_mod_iface_attr_t;
 
 typedef struct iop_mod_iface_attrs_t {
@@ -471,7 +473,7 @@ typedef struct iop_mod_iface_attrs_t {
     uint16_t                attrs_len;
     uint8_t                 version;   /**< version 0 */
     uint8_t                 padding;
-    const iop_mod_iface_attr_t *attrs;
+    const iop_mod_iface_attr_t * nonnull attrs;
 } iop_mod_iface_attrs_t;
 
 typedef enum iop_mod_attr_type_t {
@@ -483,7 +485,7 @@ typedef iop_generic_attr_arg_t iop_mod_attr_arg_t;
 
 typedef struct iop_mod_attr_t {
     iop_mod_attr_type_t       type;
-    const iop_mod_attr_arg_t *args;
+    const iop_mod_attr_arg_t * nonnull args;
 } iop_mod_attr_t;
 
 typedef struct iop_mod_attrs_t {
@@ -491,7 +493,7 @@ typedef struct iop_mod_attrs_t {
     uint16_t              attrs_len;
     uint8_t               version;   /**< version 0 */
     uint8_t               padding;
-    const iop_mod_attr_t *attrs;
+    const iop_mod_attr_t * nonnull attrs;
 } iop_mod_attrs_t;
 
 enum iop_mod_flags_t {
@@ -500,13 +502,13 @@ enum iop_mod_flags_t {
 
 typedef struct iop_mod_t {
     const lstr_t fullname;
-    const iop_iface_alias_t *ifaces;
+    const iop_iface_alias_t * nullable ifaces;
     uint16_t ifaces_len;
     uint16_t flags; /**< bitfield of iop_mod_flags_t */
     /** check TST_BIT(flags, IOP_MOD_EXTENDED)
      *  before accessing mod_attrs and ifaces_attrs */
-    const iop_mod_attrs_t       *mod_attrs;
-    const iop_mod_iface_attrs_t *ifaces_attrs;
+    const iop_mod_attrs_t       * nullable mod_attrs;
+    const iop_mod_iface_attrs_t * nullable ifaces_attrs;
 } iop_mod_t;
 
 /*}}}*/
@@ -515,11 +517,11 @@ typedef struct iop_mod_t {
 typedef struct iop_pkg_t iop_pkg_t;
 struct iop_pkg_t {
     const lstr_t               name;
-    iop_enum_t   const *const *enums;
-    iop_struct_t const *const *structs;
-    iop_iface_t  const *const *ifaces;
-    iop_mod_t    const *const *mods;
-    iop_pkg_t    const *const *deps;
+    iop_enum_t   const *const nonnull * nonnull enums;
+    iop_struct_t const *const nonnull * nonnull structs;
+    iop_iface_t  const *const nonnull * nonnull ifaces;
+    iop_mod_t    const *const nonnull * nonnull mods;
+    iop_pkg_t    const *const nonnull * nonnull deps;
 };
 
 /*}}}*/
@@ -527,7 +529,7 @@ struct iop_pkg_t {
 
 #define IOP_ARRAY_OF(type_t)                     \
     struct {                                     \
-        type_t *tab;                             \
+        type_t * nullable tab;                   \
         int32_t len;                             \
         unsigned flags;                          \
     }
@@ -554,10 +556,10 @@ extern iop_struct_t const iop__void__s;
 /*{{{ IOP constraints */
 
 __attr_printf__(1, 2)
-int         iop_set_err(const char *fmt, ...) __cold;
+int         iop_set_err(const char * nonnull fmt, ...) __cold;
 __attr_printf__(1, 0)
-void        iop_set_verr(const char *fmt, va_list ap) __cold ;
-int         iop_set_err2(const lstr_t *s) __cold;
+void        iop_set_verr(const char * nonnull fmt, va_list ap) __cold ;
+int         iop_set_err2(const lstr_t * nonnull s) __cold;
 void        iop_clear_err(void);
 
 /*}}}*/
@@ -566,12 +568,12 @@ void        iop_clear_err(void);
 typedef struct iop_dso_vt_t {
     size_t  vt_size;
     __attr_printf__(1, 0)
-    void  (*iop_set_verr)(const char *fmt, va_list ap);
+    void  (*nullable iop_set_verr)(const char * nonnull fmt, va_list ap);
 } iop_dso_vt_t;
 
 #define IOP_EXPORT_PACKAGES(...) \
-    EXPORT iop_pkg_t const *const iop_packages[];   \
-    iop_pkg_t const *const iop_packages[] = { __VA_ARGS__, NULL }
+    EXPORT iop_pkg_t const * nullable const iop_packages[];   \
+    iop_pkg_t const * const iop_packages[] = { __VA_ARGS__, NULL }
 
 #define IOP_USE_EXTERNAL_PACKAGES \
     EXPORT bool iop_use_external_packages;  \
@@ -593,7 +595,7 @@ typedef struct iop_dso_vt_t {
     };                                                                  \
                                                                         \
     __attr_printf__(1, 2)                                               \
-    int iop_set_err(const char *fmt, ...) {                             \
+    int iop_set_err(const char * nonnull fmt, ...) {                    \
         va_list ap;                                                     \
                                                                         \
         va_start(ap, fmt);                                              \
@@ -612,7 +614,7 @@ typedef struct iop_dso_vt_t {
     typedef type iop_dso_ressource_t(category)
 
 #define IOP_DSO_EXPORT_RESSOURCES(category, ...)                \
-    EXPORT const iop_dso_ressource_t(category) *const           \
+    EXPORT const iop_dso_ressource_t(category) * nullable const \
         iop_dso_ressources_##category[];                        \
     const iop_dso_ressource_t(category) *const                  \
         iop_dso_ressources_##category[] = { __VA_ARGS__, NULL }
