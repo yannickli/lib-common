@@ -16,6 +16,10 @@
 
 #include "hash.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 /*
  * QHashes: Real Time hash tables
  *
@@ -63,31 +67,33 @@
  *     qh->old->len.
  */
 typedef struct qhash_hdr_t {
-    size_t     *bits;
+    size_t     * nonnull bits;
     uint32_t    len;
     uint32_t    size;
-    mem_pool_t *mp;
+    mem_pool_t * nullable mp;
 } qhash_hdr_t;
 
-#define STRUCT_QHASH_T(key_t, val_t) \
-    struct {                                 \
-        qhash_hdr_t  hdr;                    \
-        qhash_hdr_t *old;                    \
-        key_t       *keys;                   \
-        val_t       *values;                 \
-        uint32_t    *hashes;                 \
-        uint32_t     ghosts;                 \
-        uint8_t      h_size;                 \
-        uint8_t      k_size;                 \
-        uint16_t     v_size;                 \
-        uint32_t     minsize;                \
+#define STRUCT_QHASH_T(key_t, val_t)                                         \
+    struct {                                                                 \
+        qhash_hdr_t  hdr;                                                    \
+        qhash_hdr_t * nullable old;                                          \
+        key_t       * nullable keys;                                         \
+        val_t       * nullable values;                                       \
+        uint32_t    * nullable hashes;                                       \
+        uint32_t     ghosts;                                                 \
+        uint8_t      h_size;                                                 \
+        uint8_t      k_size;                                                 \
+        uint16_t     v_size;                                                 \
+        uint32_t     minsize;                                                \
     }
 
 /* uint8_t allow us to use pointer arith on ->{values,vec} */
 typedef STRUCT_QHASH_T(uint8_t, uint8_t) qhash_t;
 
-typedef uint32_t (qhash_khash_f)(const qhash_t *, const void *);
-typedef bool     (qhash_kequ_f)(const qhash_t *, const void *, const void *);
+typedef uint32_t (qhash_khash_f)(const qhash_t * nullable,
+                                 const void * nullable);
+typedef bool     (qhash_kequ_f)(const qhash_t * nullable,
+                                const void * nullable, const void * nullable);
 
 
 /****************************************************************************/
@@ -96,32 +102,34 @@ typedef bool     (qhash_kequ_f)(const qhash_t *, const void *, const void *);
 
 /* helper functions, module functions {{{ */
 
-uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
+uint32_t qhash_scan(const qhash_t * nonnull qh, uint32_t pos)
     __leaf;
-void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh,
-                mem_pool_t *mp)
+void qhash_init(qhash_t * nonnull qh, uint16_t k_size, uint16_t v_size, bool doh,
+                mem_pool_t * nullable mp)
     __leaf;
-void qhash_clear(qhash_t *qh)
+void qhash_clear(qhash_t * nonnull qh)
     __leaf;
-void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
+void qhash_set_minsize(qhash_t * nonnull qh, uint32_t minsize)
     __leaf;
-void qhash_unseal(qhash_t *qh)
+void qhash_unseal(qhash_t * nonnull qh)
     __leaf;
-void qhash_wipe(qhash_t *qh)
+void qhash_wipe(qhash_t * nonnull qh)
     __leaf;
 
-static inline void qhash_slot_inv_flags(size_t *bits, uint32_t pos)
+static inline void qhash_slot_inv_flags(size_t * nonnull bits, uint32_t pos)
 {
     size_t off = (2 * pos) % bitsizeof(size_t);
 
     bits[2 * pos / bitsizeof(size_t)] ^= (size_t)3 << off;
 }
-static inline size_t qhash_slot_get_flags(const size_t *bits, uint32_t pos)
+static inline size_t qhash_slot_get_flags(const size_t * nonnull bits,
+                                          uint32_t pos)
 {
     size_t off = (2 * pos) % bitsizeof(size_t);
     return (bits[2 * pos / bitsizeof(size_t)] >> off) & (size_t)3;
 }
-static inline size_t qhash_slot_is_set(const qhash_hdr_t *hdr, uint32_t pos)
+static inline size_t qhash_slot_is_set(const qhash_hdr_t * nonnull hdr,
+                                       uint32_t pos)
 {
     if (unlikely(pos >= hdr->size)) {
         return 0;
@@ -129,7 +137,7 @@ static inline size_t qhash_slot_is_set(const qhash_hdr_t *hdr, uint32_t pos)
     return TST_BIT(hdr->bits, 2 * pos);
 }
 
-static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
+static inline void qhash_del_at(qhash_t * nonnull qh, uint32_t pos)
 {
     qhash_hdr_t *hdr = &qh->hdr;
     qhash_hdr_t *old = qh->old;
@@ -151,16 +159,17 @@ static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
     }
 }
 
-static inline uint32_t qhash_hash_u32(const qhash_t *qh, uint32_t u32)
+static inline uint32_t qhash_hash_u32(const qhash_t * nullable qh, uint32_t u32)
 {
     return u32;
 }
-static inline uint32_t qhash_hash_u64(const qhash_t *qh, uint64_t u64)
+static inline uint32_t qhash_hash_u64(const qhash_t * nullable qh, uint64_t u64)
 {
     return u64_hash32(u64);
 }
 
-static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
+static inline uint32_t qhash_hash_ptr(const qhash_t * nullable qh,
+                                      const void * nullable ptr)
 {
     if (sizeof(void *) == 4)
         return (uintptr_t)ptr;
@@ -175,40 +184,54 @@ static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
 #define qhash_for_each_pos(i, qh)       __qhash_for_each(i, qh, (void)0)
 
 
-int32_t  qhash_safe_get32(const qhash_t *qh, uint32_t h, uint32_t k)
+int32_t  qhash_safe_get32(const qhash_t * nonnull qh, uint32_t h, uint32_t k)
     __leaf;
-int32_t  qhash_get32(qhash_t *qh, uint32_t h, uint32_t k)
+int32_t  qhash_get32(qhash_t * nonnull qh, uint32_t h, uint32_t k)
     __leaf;
-uint32_t __qhash_put32(qhash_t *qh, uint32_t h, uint32_t k, uint32_t flags)
+uint32_t __qhash_put32(qhash_t * nonnull qh, uint32_t h, uint32_t k,
+                       uint32_t flags)
     __leaf;
-void qhash_seal32(qhash_t *qh);
+void qhash_seal32(qhash_t * nonnull qh);
 
-int32_t  qhash_safe_get64(const qhash_t *qh, uint32_t h, uint64_t k)
+int32_t  qhash_safe_get64(const qhash_t * nonnull qh, uint32_t h, uint64_t k)
     __leaf;
-int32_t  qhash_get64(qhash_t *qh, uint32_t h, uint64_t k)
+int32_t  qhash_get64(qhash_t * nonnull qh, uint32_t h, uint64_t k)
     __leaf;
-uint32_t __qhash_put64(qhash_t *qh, uint32_t h, uint64_t k, uint32_t flags)
+uint32_t __qhash_put64(qhash_t * nonnull qh, uint32_t h, uint64_t k,
+                       uint32_t flags)
     __leaf;
-void qhash_seal64(qhash_t *qh);
+void qhash_seal64(qhash_t * nonnull qh);
 
-int32_t  qhash_safe_get_ptr(const qhash_t *qh, uint32_t h, const void *k,
-                            qhash_khash_f *hf, qhash_kequ_f *equ);
-int32_t  qhash_get_ptr(qhash_t *qh, uint32_t h, const void *k,
-                       qhash_khash_f *hf, qhash_kequ_f *equ);
-uint32_t __qhash_put_ptr(qhash_t *qh, uint32_t h, const void *k,
-                         uint32_t flags, qhash_khash_f *hf,
-                         qhash_kequ_f *equ);
-void qhash_seal_ptr(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
+int32_t  qhash_safe_get_ptr(const qhash_t * nonnull qh, uint32_t h,
+                            const void * nullable k,
+                            qhash_khash_f * nonnull hf,
+                            qhash_kequ_f * nonnull equ);
+int32_t  qhash_get_ptr(qhash_t * nonnull qh, uint32_t h,
+                       const void * nullable k,
+                       qhash_khash_f * nonnull hf,
+                       qhash_kequ_f * nonnull equ);
+uint32_t __qhash_put_ptr(qhash_t * nonnull qh, uint32_t h,
+                         const void * nullable k,
+                         uint32_t flags, qhash_khash_f * nonnull hf,
+                         qhash_kequ_f * nonnull equ);
+void qhash_seal_ptr(qhash_t * nonnull qh, qhash_khash_f * nonnull hf,
+                    qhash_kequ_f * nonnull equ);
 
-int32_t  qhash_safe_get_vec(const qhash_t *qh, uint32_t h, const void *k,
-                            qhash_khash_f *hf, qhash_kequ_f *equ);
-int32_t  qhash_get_vec(qhash_t *qh, uint32_t h, const void *k,
-                       qhash_khash_f *hf, qhash_kequ_f *equ);
-uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
-                         uint32_t flags, qhash_khash_f *hf,
-                         qhash_kequ_f *equ);
-void qhash_seal_vec(qhash_t *qh, qhash_khash_f *hf, qhash_kequ_f *equ);
-size_t qhash_memory_footprint(const qhash_t *qh);
+int32_t  qhash_safe_get_vec(const qhash_t * nonnull qh, uint32_t h,
+                            const void * nullable k,
+                            qhash_khash_f * nonnull hf,
+                            qhash_kequ_f * nonnull equ);
+int32_t  qhash_get_vec(qhash_t * nonnull qh, uint32_t h,
+                       const void * nullable k,
+                       qhash_khash_f * nonnull hf,
+                       qhash_kequ_f * nonnull equ);
+uint32_t __qhash_put_vec(qhash_t * nonnull qh, uint32_t h,
+                         const void * nullable k, uint32_t flags,
+                         qhash_khash_f * nonnull hf,
+                         qhash_kequ_f * nonnull equ);
+void qhash_seal_vec(qhash_t * nonnull qh, qhash_khash_f * nonnull hf,
+                    qhash_kequ_f * nonnull equ);
+size_t qhash_memory_footprint(const qhash_t * nonnull qh);
 
 /* }}} */
 /*----- base macros to define QH's and QM's -{{{-*/
@@ -223,37 +246,47 @@ size_t qhash_memory_footprint(const qhash_t *qh);
     } pfx##_t;                                                               \
                                                                              \
     __unused__                                                               \
-    static inline void pfx##_init(pfx##_t *qh, bool chahes, mem_pool_t *mp) {\
+    static inline void pfx##_init(pfx##_t * nonnull qh, bool chahes,         \
+                                  mem_pool_t * nullable mp)                  \
+    {                                                                        \
         STATIC_ASSERT(sizeof(key_t) < 256);                                  \
         qhash_init(&qh->qh, sizeof(key_t), _v_size, chahes, mp);             \
     }                                                                        \
     __unused__                                                               \
-    static inline uint32_t pfx##_hash(const pfx##_t *qh, ckey_t key) {       \
+    static inline uint32_t pfx##_hash(const pfx##_t * nonnull qh, ckey_t key)\
+    {                                                                        \
         return hashK(&qh->qh, castK(key));                                   \
     }
 
 #define __QH_FIND(sfx, pfx, name, ckey_t, key_t, hashK, castK)               \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_int(pfx##_t *qh, const uint32_t *ph, ckey_t key) {            \
+    pfx##_find_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,       \
+                   ckey_t key)                                               \
+    {                                                                        \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_get##sfx(&qh->qh, h, castK(key));                       \
     }                                                                        \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_safe_int(const pfx##_t *qh, const uint32_t *ph, ckey_t key) { \
+    pfx##_find_safe_int(const pfx##_t * nonnull qh,                          \
+                        const uint32_t * nullable ph, ckey_t key)            \
+    {                                                                        \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         return qhash_safe_get##sfx(&qh->qh, h, castK(key));                  \
     }                                                                        \
     __unused__                                                               \
-    static inline void pfx##_seal(pfx##_t *qh) {                             \
+    static inline void pfx##_seal(pfx##_t * nonnull qh)                      \
+    {                                                                        \
         return qhash_seal##sfx(&qh->qh);                                     \
     }
 
 #define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, castK, iseqK)       \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_int(pfx##_t *qh, const uint32_t *ph, ckey_t key) {            \
+    pfx##_find_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,       \
+                   ckey_t key)                                               \
+    {                                                                        \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
@@ -262,7 +295,9 @@ size_t qhash_memory_footprint(const qhash_t *qh);
     }                                                                        \
     __unused__                                                               \
     static inline int32_t                                                    \
-    pfx##_find_safe_int(const pfx##_t *qh, const uint32_t *ph, ckey_t key) { \
+    pfx##_find_safe_int(const pfx##_t * nonnull qh,                          \
+                        const uint32_t * nullable ph, ckey_t key)            \
+    {                                                                        \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
@@ -270,7 +305,8 @@ size_t qhash_memory_footprint(const qhash_t *qh);
                                    (qhash_khash_f *)hf, (qhash_kequ_f *)ef); \
     }                                                                        \
     __unused__                                                               \
-    static inline void pfx##_seal(pfx##_t *qh) {                             \
+    static inline void pfx##_seal(pfx##_t * nonnull qh)                      \
+    {                                                                        \
         uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
         bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         return qhash_seal##sfx(&qh->qh,                                      \
@@ -285,7 +321,8 @@ size_t qhash_memory_footprint(const qhash_t *qh);
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t key, uint32_t fl)\
+    pfx##_reserve_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,    \
+                      key_t key, uint32_t fl)                                \
     {                                                                        \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put##sfx(&qh->qh, h, key, fl);                \
@@ -297,14 +334,15 @@ size_t qhash_memory_footprint(const qhash_t *qh);
     }
 
 #define __QH_HPKEY(pfx, name, ckey_t, key_t, val_t, v_size)                  \
-    __QH_BASE(64, pfx, name, ckey_t *, key_t *, val_t, v_size,               \
+    __QH_BASE(64, pfx, name, ckey_t * nullable, key_t * nullable, val_t,     \
+              v_size, qhash_hash_u64, CASTK_UPTR);                           \
+    __QH_FIND(64, pfx, name, ckey_t * nullable, key_t * nullable,            \
               qhash_hash_u64, CASTK_UPTR);                                   \
-    __QH_FIND(64, pfx, name, ckey_t *, key_t *, qhash_hash_u64, CASTK_UPTR); \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t *key,           \
-                      uint32_t fl)                                           \
+    pfx##_reserve_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,    \
+                      key_t * nullable key, uint32_t fl)                     \
     {                                                                        \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put64(&qh->qh, h, CASTK_UPTR(key), fl);       \
@@ -316,17 +354,19 @@ size_t qhash_memory_footprint(const qhash_t *qh);
     }
 
 #define __QH_PKEY(pfx, name, ckey_t, key_t, val_t, v_size, hashK, iseqK)     \
-    __QH_BASE(_ptr, pfx, name, ckey_t *, key_t *, val_t, v_size,             \
-              hashK, CASTK_ID);                                              \
-    __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, CASTK_ID, iseqK);  \
+    __QH_BASE(_ptr, pfx, name, ckey_t * nullable, key_t * nullable, val_t,   \
+              v_size, hashK, CASTK_ID);                                      \
+    __QH_FIND2(_ptr, pfx, name, ckey_t * nullable, key_t * nullable, hashK,  \
+               CASTK_ID, iseqK);                                             \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, key_t *key,           \
-                      uint32_t fl)                                           \
+    pfx##_reserve_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,    \
+                      key_t * nullable key, uint32_t fl)                     \
     {                                                                        \
-        uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
-        bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
+        uint32_t (*hf)(const qhash_t * nullable, ckey_t * nullable) = &hashK;\
+        bool     (*ef)(const qhash_t * nullable, ckey_t * nullable,          \
+                       ckey_t * nullable) = &iseqK;                          \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
@@ -338,17 +378,19 @@ size_t qhash_memory_footprint(const qhash_t *qh);
     }
 
 #define __QH_VKEY(pfx, name, ckey_t, key_t, val_t, v_size, hashK, iseqK)     \
-    __QH_BASE(_vec, pfx, name, ckey_t *, key_t, val_t, v_size, hashK,        \
-              CASTK_ID);                                                     \
-    __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, CASTK_ID,  iseqK); \
+    __QH_BASE(_vec, pfx, name, ckey_t * nonnull, key_t, val_t, v_size,       \
+              hashK, CASTK_ID);                                              \
+    __QH_FIND2(_vec, pfx, name, ckey_t * nonnull, key_t * nonnull, hashK,    \
+               CASTK_ID,  iseqK);                                            \
                                                                              \
     __unused__                                                               \
     static inline uint32_t                                                   \
-    pfx##_reserve_int(pfx##_t *qh, const uint32_t *ph, ckey_t *key,          \
-                      uint32_t fl)                                           \
+    pfx##_reserve_int(pfx##_t * nonnull qh, const uint32_t * nullable ph,    \
+                      ckey_t * nullable key, uint32_t fl)                    \
     {                                                                        \
-        uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
-        bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
+        uint32_t (*hf)(const qhash_t * nullable, ckey_t * nonnull) = &hashK; \
+        bool     (*ef)(const qhash_t * nullable, ckey_t * nonnull,           \
+                       ckey_t * nonnull) = &iseqK;                           \
         uint32_t h = ph ? *ph : pfx##_hash(qh, key);                         \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
                                        (qhash_khash_f *)hf,                  \
@@ -1007,30 +1049,34 @@ size_t qhash_memory_footprint(const qhash_t *qh);
        qm_wipe_at(name, qh, _pos, k_wipe, v_wipe);                       \
        _pos; })
 
-static inline uint32_t qhash_str_hash(const qhash_t *qh, const char *s)
+static inline uint32_t qhash_str_hash(const qhash_t * nullable qh,
+                                      const char * nonnull s)
 {
     return mem_hash32(s, -1);
 }
 
 static inline bool
-qhash_str_equal(const qhash_t *qh, const char *s1, const char *s2)
+qhash_str_equal(const qhash_t * nullable qh, const char * nonnull s1,
+                const char * nonnull s2)
 {
     return strequal(s1, s2);
 }
 
-static inline uint32_t qhash_lstr_hash(const qhash_t *qh, const lstr_t *ls)
+static inline uint32_t qhash_lstr_hash(const qhash_t * nullable qh,
+                                       const lstr_t * nonnull ls)
 {
     return mem_hash32(ls->s, ls->len);
 }
 
 static inline bool
-qhash_lstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
+qhash_lstr_equal(const qhash_t * nullable qh, const lstr_t * nonnull s1,
+                 const lstr_t * nonnull s2)
 {
     return lstr_equal(*s1, *s2);
 }
 
 static inline uint32_t
-qhash_lstr_ascii_ihash(const qhash_t *qh, const lstr_t *ls)
+qhash_lstr_ascii_ihash(const qhash_t * nullable qh, const lstr_t * nonnull ls)
 {
     t_scope;
     lstr_t tmp = t_lstr_dup(*ls);
@@ -1040,13 +1086,15 @@ qhash_lstr_ascii_ihash(const qhash_t *qh, const lstr_t *ls)
 }
 
 static inline bool
-qhash_lstr_ascii_iequal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
+qhash_lstr_ascii_iequal(const qhash_t * nullable qh,
+                        const lstr_t * nonnull s1, const lstr_t * nonnull s2)
 {
     return lstr_ascii_iequal(*s1, *s2);
 }
 
 static inline bool
-qhash_ptr_equal(const qhash_t *qh, const void *ptr1, const void *ptr2)
+qhash_ptr_equal(const qhash_t * nullable qh, const void * nonnull ptr1,
+                const void * nonnull ptr2)
 {
     return ptr1 == ptr2;
 }
@@ -1059,5 +1107,9 @@ qh_khptr_t(ptr, void);
 
 qh_kptr_ckey_t(cstr, char, qhash_str_hash, qhash_str_equal);
 qh_khptr_ckey_t(cptr, void);
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif
