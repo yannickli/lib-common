@@ -16,9 +16,13 @@
 
 #include "core.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 typedef struct farch_entry_t {
-    const char *name;
-    const void *data;
+    const char * nonnull name;
+    const void * nonnull data;
     int compressed_size;
     int size;
 } farch_entry_t;
@@ -30,8 +34,8 @@ typedef struct farch_entry_t {
  * \return  a pointer on the farch entry (compressed) if found,
  *          NULL otherwise.
  */
-const farch_entry_t *farch_get_entry(const farch_entry_t files[],
-                                     const char *name);
+const farch_entry_t * nullable farch_get_entry(const farch_entry_t files[],
+                                               const char * nonnull name);
 
 /** Get the uncompressed content of a farch entry.
  *
@@ -42,16 +46,16 @@ const farch_entry_t *farch_get_entry(const farch_entry_t files[],
  *          LSTR_NULL otherwise.
  */
 lstr_t t_farch_get_uncompressed(const farch_entry_t files[],
-                                const char *name);
+                                const char * nonnull name);
 
 /** Uncompress a farch entry. */
-lstr_t t_farch_uncompress(const farch_entry_t *entry);
+lstr_t t_farch_uncompress(const farch_entry_t * nonnull entry);
 
 /** Uncompress a farch entry, and make the data persistent.
  *
  * The persisted data will be freed when the farch module is released.
  */
-lstr_t farch_uncompress_persist(const farch_entry_t *entry);
+lstr_t farch_uncompress_persist(const farch_entry_t * nonnull entry);
 
 
 /** Farch module.
@@ -59,5 +63,9 @@ lstr_t farch_uncompress_persist(const farch_entry_t *entry);
  * Using it is necessary only if \ref t_farch_uncompress_persist is used.
  */
 MODULE_DECLARE(farch);
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif /* IS_LIB_COMMON_FARCH_H */
