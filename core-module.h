@@ -146,7 +146,7 @@ typedef struct module_method_t {
  * \param[in] arg Argument passed to the methods.
  */
 __attr_nonnull__((1))
-void module_run_method(const module_method_t *method, data_t arg);
+void module_run_method(const module_method_t * nonnull method, data_t arg);
 
 /* }}} */
 /* {{{ Module creation */
@@ -159,7 +159,7 @@ void module_run_method(const module_method_t *method, data_t arg);
  *
  * This macro declares a module variable.
  */
-#define MODULE_DECLARE(name)  extern module_t *MODULE(name)
+#define MODULE_DECLARE(name)  extern module_t * nullable MODULE(name)
 
 /** Begin the definition of a module.
  *
@@ -279,17 +279,20 @@ void module_run_method(const module_method_t *method, data_t arg);
  *  \return the newly registered module in case of success.
  */
 __leaf
-module_t *module_register(lstr_t name, module_t **module,
-                          int (*constructor)(void *),
-                          int (*destructor)(void),
-                          const char *dependencies[], int nb_dependencies);
+module_t * nullable
+module_register(lstr_t name, module_t * nullable * nonnull module,
+                int (*nonnull constructor)(void * nullable),
+                int (*nonnull destructor)(void),
+                const char * nonnull dependencies[],
+                int nb_dependencies);
 
-void module_add_dep(module_t *mod, lstr_t name, lstr_t dep,
-                    module_t **dep_ptr);
+void module_add_dep(module_t * nonnull mod, lstr_t name, lstr_t dep,
+                    module_t * nullable * nonnull dep_ptr);
 
 __attr_nonnull__((1, 2, 3))
-void module_implement_method(module_t *mod, const module_method_t *method,
-                             void *cb);
+void module_implement_method(module_t * nonnull mod,
+                             const module_method_t * nonnull method,
+                             void * nonnull cb);
 
 /* }}} */
 /* }}} */
@@ -353,7 +356,7 @@ void module_implement_method(module_t *mod, const module_method_t *method,
 /** Retreives the name of a module.
  */
 __attr_nonnull__((1))
-const char *module_get_name(const module_t *mod);
+const char * nonnull module_get_name(const module_t * nonnull mod);
 
 /* {{{ Low-level API */
 
@@ -370,25 +373,26 @@ const char *module_get_name(const module_t *mod);
  *                          it can be NULL if \p mod has no parent module
  */
 __attr_nonnull__((1))
-void module_require(module_t *mod, module_t *required_by);
+void module_require(module_t * nonnull mod, module_t * nullable required_by);
 
 __attr_nonnull__((1))
-void module_release(module_t *mod);
+void module_release(module_t * nonnull mod);
 
 __attr_nonnull__((1))
-void module_provide(module_t **mod, void *argument);
+void module_provide(module_t * nullable * nonnull mod,
+                    void * nullable argument);
 
 /** true if module is loaded. (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))
-bool module_is_loaded(const module_t *mod);
+bool module_is_loaded(const module_t * nonnull mod);
 
 /** true if module is currently loading. */
 __attr_nonnull__((1))
-bool module_is_initializing(const module_t *mod);
+bool module_is_initializing(const module_t * nonnull mod);
 
 /** true if module is currently shutting down. */
 __attr_nonnull__((1))
-bool module_is_shutting_down(const module_t *mod);
+bool module_is_shutting_down(const module_t * nonnull mod);
 
 /** Fetch the module hierarchy.
  *
@@ -405,7 +409,8 @@ bool module_is_shutting_down(const module_t *mod);
  *                          dest  represents the name of the one of the
  *                          dependencies of nodes.
  */
-void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies);
+void module_debug_dump_hierarchy(sb_t * nonnull modules,
+                                 sb_t * nonnull dependencies);
 
 /** Destroy all modules.
  *
@@ -464,8 +469,8 @@ void module_register_at_fork(void);
  *                         returned.
  */
 __must_check__
-int module_check_no_dependencies(module_t *tab[], int len,
-                                 lstr_t *collision);
+int module_check_no_dependencies(module_t * nonnull tab[], int len,
+                                 lstr_t * nonnull collision);
 
 /* }}} */
 

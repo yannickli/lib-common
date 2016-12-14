@@ -122,8 +122,8 @@ void mem_bench_update(mem_bench_t *sp)
     }
 }
 
-static void mem_bench_print_func_human(mem_bench_t *sp,
-                                       mem_bench_func_t *spf,
+static void mem_bench_print_func_human(const mem_bench_t *sp,
+                                       const mem_bench_func_t *spf,
                                        const char* prefix)
 {
     assert (sp->logger);
@@ -134,10 +134,11 @@ static void mem_bench_print_func_human(mem_bench_t *sp,
                  100 * spf->nb_slow_path / MAX(1, spf->nb_calls),
                  (10000 * spf->nb_slow_path / MAX(1, spf->nb_calls)) % 100);
     logger_debug(sp->logger, "%s/timer             : %s",
-                 prefix, proctimerstat_report(&spf->timer_stat, "%h"));
+                 prefix,
+                 proctimerstat_report((proctimerstat_t *)&spf->timer_stat, "%h"));
 }
 
-void mem_bench_print_human(mem_bench_t *sp, int flags)
+void mem_bench_print_human(const mem_bench_t *sp, int flags)
 {
     if (!sp->logger) {
         return;

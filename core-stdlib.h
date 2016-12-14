@@ -55,21 +55,22 @@ void __uuid_fmt(char buf[static UUID_HEX_LEN], uuid_t uuid);
 #else
 void __uuid_fmt(char buf[], uuid_t uuid);
 #endif
-void sb_add_uuid(struct sb_t *sb, uuid_t uuid);
+void sb_add_uuid(struct sb_t * nonnull sb, uuid_t uuid);
 
 
 /*----- versions -----*/
 
 typedef struct core_version_t {
     bool        is_main_version; /* Main versions are printed first */
-    const char *name;
-    const char *version;
-    const char *git_revision;
+    const char * nonnull name;
+    const char * nonnull version;
+    const char * nonnull git_revision;
 } core_version_t;
 extern core_version_t core_versions_g[8];
 extern int core_versions_nb_g;
 
-void core_push_version(bool is_main_version, const char *name,
-                       const char *version, const char *git_revision);
+void core_push_version(bool is_main_version, const char * nonnull name,
+                       const char * nonnull version,
+                       const char * nonnull git_revision);
 
 #endif

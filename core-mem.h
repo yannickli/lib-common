@@ -22,11 +22,13 @@
 /**************************************************************************/
 
 #ifndef __USE_GNU
-static inline void *mempcpy(void *dst, const void *src, size_t n) {
+static inline void *mempcpy(void * nonnull restrict dst,
+                            const void * nonnull restrict src, size_t n)
+{
     return (void *)((byte *)memcpy(dst, src, n) + n);
 }
 
-static inline void *memrchr(const void *s, int c, size_t n)
+static inline void *memrchr(const void * nonnull s, int c, size_t n)
 {
     const uint8_t *start = (const uint8_t *)s;
     const uint8_t *end   = start + n;
@@ -41,7 +43,7 @@ static inline void *memrchr(const void *s, int c, size_t n)
 }
 
 static inline
-char *strchrnul(const char *s, int c)
+char *strchrnul(const char * nonnull s, int c)
 {
     while ((unsigned char)*s != c && (unsigned char)*s != '\0') {
         s++;
@@ -50,11 +52,17 @@ char *strchrnul(const char *s, int c)
 }
 #endif
 
-static inline void *memcpyz(void *dst, const void *src, size_t n) {
+static inline void * nonnull memcpyz(void * nonnull restrict dst,
+                                     const void * nonnull restrict src,
+                                     size_t n)
+{
     *(char *)mempcpy(dst, src, n) = '\0';
     return dst;
 }
-static inline void *mempcpyz(void *dst, const void *src, size_t n) {
+static inline void * nonnull mempcpyz(void * nonnull restrict dst,
+                                      const void * nonnull restrict src,
+                                      size_t n)
+{
     dst = mempcpy(dst, src, n);
     *(char *)dst = '\0';
     return (char *)dst + 1;
@@ -106,7 +114,8 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
  *
  * @return <code>n</code>
  */
-size_t pstrcpymem(char *dest, ssize_t size, const void *src, size_t n)
+size_t pstrcpymem(char * nonnull restrict dest, ssize_t size,
+                  const void * nonnull restrict src, size_t n)
     __leaf;
 
 /** Copies the string pointed to by <code>src</code> to the buffer
@@ -137,7 +146,8 @@ size_t pstrcpymem(char *dest, ssize_t size, const void *src, size_t n)
  */
 __attr_nonnull__((1, 3))
 static ALWAYS_INLINE
-size_t pstrcpy(char *dest, ssize_t size, const char *src)
+size_t pstrcpy(char * nonnull restrict dest, ssize_t size,
+               const char * nonnull restrict src)
 {
     return pstrcpymem(dest, size, src, strlen(src));
 }
@@ -156,7 +166,8 @@ size_t pstrcpy(char *dest, ssize_t size, const char *src)
  */
 __attr_nonnull__((1, 3))
 static ALWAYS_INLINE
-size_t pstrcpylen(char *dest, ssize_t size, const char *src, size_t n)
+size_t pstrcpylen(char * nonnull restrict dest, ssize_t size,
+                  const char * nonnull restrict src, size_t n)
 {
     return pstrcpymem(dest, size, src, strnlen(src, n));
 }
@@ -177,7 +188,8 @@ size_t pstrcpylen(char *dest, ssize_t size, const char *src, size_t n)
  */
 __attr_nonnull__((1, 3))
 static inline size_t
-pstrcat(char *dest, ssize_t size, const char *src)
+pstrcat(char * nonnull restrict dest, ssize_t size,
+        const char * nonnull restrict src)
 {
     size_t dlen = size > 0 ? strnlen(dest, size) : 0;
     return dlen + pstrcpy(dest + dlen, size - dlen, src);
@@ -257,13 +269,15 @@ enum mem_pools_t {
 typedef struct mem_pool_t {
     mem_flags_t mem_pool;
     uint32_t    min_alignment;
-    struct mem_pool_t *realloc_fallback;
+    struct mem_pool_t * nullable realloc_fallback;
 
     /* DO NOT USE DIRECTLY, use mp_imalloc/mp_irealloc/mp_ifree instead */
-    void *(*malloc) (struct mem_pool_t *, size_t, size_t, mem_flags_t);
-    void *(*realloc)(struct mem_pool_t *, void *, size_t, size_t, size_t,
-                     mem_flags_t);
-    void  (*free)   (struct mem_pool_t *, void *);
+    void * nonnull (* nonnull malloc)(struct mem_pool_t * nonnull, size_t,
+                                      size_t, mem_flags_t);
+    void * nonnull (* nonnull realloc)(struct mem_pool_t * nonnull,
+                                       void * nullable, size_t, size_t,
+                                       size_t, mem_flags_t);
+    void  (* nonnull free)(struct mem_pool_t * nonnull, void * nullable);
 } mem_pool_t;
 
 
@@ -275,7 +289,7 @@ typedef struct mem_pool_t {
 extern mem_pool_t mem_pool_libc;
 extern mem_pool_t mem_pool_cl_aligned;
 extern mem_pool_t mem_pool_static;
-static ALWAYS_INLINE mem_pool_t *t_pool(void);
+static ALWAYS_INLINE mem_pool_t * nonnull t_pool(void);
 
 #if __GNUC_PREREQ(4, 3) || __has_attribute(error)
 __attribute__((error("you cannot allocate that much memory")))
@@ -293,7 +307,7 @@ extern void __imalloc_too_large(void);
 #define PAGE_SIZE   ((uintptr_t) 1 << PAGE_SIZE_SHIFT)
 
 static ALWAYS_INLINE
-size_t mem_bit_align(const mem_pool_t *mp, size_t alignment)
+size_t mem_bit_align(const mem_pool_t * nonnull mp, size_t alignment)
 {
     assert (bitcountsz(alignment) <= 1);
     return (alignment ? MAX(mp->min_alignment, alignment)
@@ -337,99 +351,110 @@ void icheck_alloc(size_t size);
  */
 
 __attribute__((malloc, warn_unused_result))
-void *__mp_imalloc(mem_pool_t *mp, size_t size, size_t alignment,
-                   mem_flags_t flags);
+void * nonnull __mp_imalloc(mem_pool_t * nullable mp, size_t size,
+                            size_t alignment, mem_flags_t flags);
 
 __attribute__((malloc, warn_unused_result))
-static ALWAYS_INLINE void *mp_imalloc(mem_pool_t *mp, size_t size,
-                                      size_t alignment, mem_flags_t flags)
+static ALWAYS_INLINE void * nonnull
+mp_imalloc(mem_pool_t * null_unspecified mp, size_t size, size_t alignment,
+           mem_flags_t flags)
 {
     icheck_alloc_constant(size);
     return __mp_imalloc(mp, size, alignment, flags);
 }
 
 __attribute__((warn_unused_result))
-void *__mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
-                    size_t alignment, mem_flags_t flags);
+void * nonnull __mp_irealloc(mem_pool_t * nullable mp, void * nullable mem,
+                             size_t oldsize, size_t size, size_t alignment,
+                             mem_flags_t flags);
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE
-void *mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
-                  size_t alignment, mem_flags_t flags)
+void * nonnull mp_irealloc(mem_pool_t * nullable mp, void * nullable mem,
+                           size_t oldsize, size_t size, size_t alignment,
+                           mem_flags_t flags)
 {
     icheck_alloc_constant(size);
     return __mp_irealloc(mp, mem, oldsize, size, alignment, flags);
 }
 
-void mp_ifree(mem_pool_t *mp, void *mem);
+void mp_ifree(mem_pool_t * nullable mp, void * nullable mem);
 
 __attribute__((warn_unused_result))
-void *__mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
-                             size_t size, size_t alignment,
-                             mem_flags_t flags);
+void * nonnull __mp_irealloc_fallback(mem_pool_t * nullable * nonnull pmp,
+                                      void * nullable mem, size_t oldsize,
+                                      size_t size, size_t alignment,
+                                      mem_flags_t flags);
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE
-void *mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
-                           size_t size, size_t alignment, mem_flags_t flags)
+void * nonnull mp_irealloc_fallback(mem_pool_t * nullable * nonnull pmp,
+                                    void * nullable mem, size_t oldsize,
+                                    size_t size, size_t alignment,
+                                    mem_flags_t flags)
 {
     icheck_alloc_constant(size);
     return __mp_irealloc_fallback(pmp, mem, oldsize, size, alignment, flags);
 }
 
-mem_pool_t *ipool(mem_flags_t flags);
+mem_pool_t * nonnull ipool(mem_flags_t flags);
 
 static ALWAYS_INLINE
-mem_pool_t *mp_ipool(mem_pool_t *mp)
+mem_pool_t * nonnull mp_ipool(mem_pool_t * nullable mp)
 {
     return mp ?: &mem_pool_libc;
 }
 
 __attribute__((warn_unused_result, malloc))
 static ALWAYS_INLINE
-void *imalloc(size_t size, size_t alignment, mem_flags_t flags)
+void * nonnull imalloc(size_t size, size_t alignment, mem_flags_t flags)
 {
     return mp_imalloc(ipool(flags), size, alignment, flags);
 }
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE
-void *irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
-               mem_flags_t flags)
+void * nonnull irealloc(void * nullable mem, size_t oldsize, size_t size,
+                        size_t alignment, mem_flags_t flags)
 {
     return mp_irealloc(ipool(flags), mem, oldsize, size, alignment, flags);
 }
 
 static ALWAYS_INLINE
-void ifree(void *mem, mem_flags_t flags)
+void ifree(void * nullable mem, mem_flags_t flags)
 {
     return mp_ifree(ipool(flags), mem);
 }
 
 __attribute__((malloc, warn_unused_result))
-static inline void *mp_idup(mem_pool_t *mp, const void *src, size_t size,
-                            size_t alignment)
+static inline void * nonnull
+mp_idup(mem_pool_t * nullable mp, const void * nonnull src, size_t size,
+        size_t alignment)
 {
     return memcpy(mp_imalloc(mp, size, alignment, MEM_RAW), src, size);
 }
 
 __attribute__((malloc, warn_unused_result))
-static inline void *mp_dupz(mem_pool_t *mp, const void *src, size_t len)
+static inline void * nonnull
+mp_dupz(mem_pool_t * nullable mp, const void * nonnull src, size_t len)
 {
     void *res = mp_imalloc(mp, len + 1, 1, MEM_RAW);
     return memcpyz(res, src, len);
 }
 
 __attribute__((malloc, warn_unused_result))
-static inline char *mp_strdup(mem_pool_t *mp, const char *src)
+static inline char * nonnull
+mp_strdup(mem_pool_t * nullable mp, const char * nonnull src)
 {
     return (char *)mp_idup(mp, src, strlen(src) + 1, 1);
 }
 
-char *mp_fmt(mem_pool_t *mp, int *lenp, const char *fmt, ...)
+char * nonnull mp_fmt(mem_pool_t * nullable mp, int * nullable lenp,
+                      const char * nonnull fmt, ...)
     __leaf __attr_printf__(3, 4);
 
-char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
+char * nonnull mp_vfmt(mem_pool_t * nullable mp, int * nullable lenp,
+                       const char * nonnull fmt, va_list va)
     __leaf __attr_printf__(3, 0);
 
 /* Generic Helpers */
@@ -634,7 +659,7 @@ char *mp_vfmt(mem_pool_t *mp, int *lenp, const char *fmt, va_list va)
 #define p_delete(pp)  mp_delete(&mem_pool_libc, (pp))
 
 #ifndef __cplusplus
-static inline void (p_delete)(void **p)
+static inline void (p_delete)(void * nullable * nonnull p)
 {
     p_delete(p);
 }
@@ -643,14 +668,15 @@ static inline void (p_delete)(void **p)
 /* }}} */
 /* Mem-fifo Pool {{{ */
 
-mem_pool_t *mem_fifo_pool_new(int page_size_hint)
+mem_pool_t * nonnull mem_fifo_pool_new(int page_size_hint)
     __leaf __attribute__((malloc));
-void mem_fifo_pool_delete(mem_pool_t **poolp)
+void mem_fifo_pool_delete(mem_pool_t * nullable * nonnull poolp)
     __leaf;
-void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
+void mem_fifo_pool_stats(mem_pool_t * nonnull mp, ssize_t * nonnull allocated,
+                         ssize_t * nonnull used)
     __leaf;
 
-void mem_fifo_pool_print_stats(mem_pool_t *mp);
+void mem_fifo_pool_print_stats(mem_pool_t * nonnull mp);
 void mem_fifo_pools_print_stats(void);
 
 /* }}} */
@@ -666,13 +692,14 @@ void mem_fifo_pools_print_stats(void);
  *
  * \param[initialsize]  First memory block size.
  */
-mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
+mem_pool_t * nonnull __mem_ring_pool_new(int initialsize,
+                                         const char * nonnull file, int line)
     __leaf __attribute__((malloc));
 
 #define mem_ring_pool_new(is)  __mem_ring_pool_new(is, __FILE__, __LINE__)
 
 /** Delete the given memory ring-pool */
-void mem_ring_pool_delete(mem_pool_t **) __leaf;
+void mem_ring_pool_delete(mem_pool_t * nullable * nonnull) __leaf;
 
 /** Force clean the ring pool from empty memory blocks.
  *
@@ -688,7 +715,7 @@ void mem_ring_pool_delete(mem_pool_t **) __leaf;
  * releases, using this function to force it means that you have a clear
  * understanding of what you are doing.
  */
-void mem_ring_reset(mem_pool_t *) __leaf;
+void mem_ring_reset(mem_pool_t * nonnull) __leaf;
 
 /** Create a new frame of memory in the ring.
  *
@@ -698,10 +725,10 @@ void mem_ring_reset(mem_pool_t *) __leaf;
  *
  * \return Frame cookie (needed to release the frame later).
  */
-const void *mem_ring_newframe(mem_pool_t *) __leaf;
+const void * nonnull mem_ring_newframe(mem_pool_t * nonnull) __leaf;
 
 /** Get the active frame cookie. */
-const void *mem_ring_getframe(mem_pool_t *) __leaf;
+const void * nonnull mem_ring_getframe(mem_pool_t * nonnull) __leaf;
 
 /** Seal the active frame.
  *
@@ -711,21 +738,21 @@ const void *mem_ring_getframe(mem_pool_t *) __leaf;
  *
  * \return Frame cookie (needed to release the frame later).
  */
-const void *mem_ring_seal(mem_pool_t *) __leaf;
+const void * nonnull mem_ring_seal(mem_pool_t * nonnull) __leaf;
 
 /** Release the frame identified by the given cookie.
  *
  * This function will free an existing frame using the given cookie. Be
  * careful that the cookie will be invalidated after the frame release.
  */
-void mem_ring_release(const void *cookie) __leaf;
+void mem_ring_release(const void * nonnull cookie) __leaf;
 
 /** Seal the ring-pool and return a checkpoint.
  *
  * The returned check point will allow you to restore later the ring-pool at
  * this current state.
  */
-const void *mem_ring_checkpoint(mem_pool_t *) __leaf;
+const void * nonnull mem_ring_checkpoint(mem_pool_t * nonnull) __leaf;
 
 
 /** Rewind the ring-pool at a given checkpoint.
@@ -739,16 +766,16 @@ const void *mem_ring_checkpoint(mem_pool_t *) __leaf;
  *
  * The checkpoint cannot be reused after this call.
  */
-void mem_ring_rewind(mem_pool_t *, const void *ckpoint) __leaf;
+void mem_ring_rewind(mem_pool_t * nonnull, const void * nonnull ckpoint) __leaf;
 
 /** Dump the ring structure on stdout (debug) */
-void mem_ring_dump(const mem_pool_t *) __leaf;
+void mem_ring_dump(const mem_pool_t * nonnull) __leaf;
 
 /** Get the malloc'd size of the memory pool. */
-size_t mem_ring_memory_footprint(const mem_pool_t *) __leaf;
+size_t mem_ring_memory_footprint(const mem_pool_t * nonnull) __leaf;
 
 /** Just like the t_pool() we have the corresponding r_pool() */
-mem_pool_t *r_pool(void) __leaf;
+mem_pool_t * nonnull r_pool(void) __leaf;
 
 /** Destroy the r_pool() */
 void r_pool_destroy(void) __leaf;
@@ -844,33 +871,33 @@ void r_pool_destroy(void) __leaf;
 /* }}} */
 /* Structure allocation helpers {{{ */
 
-#define DO_INIT(type, prefix) \
-    __attr_nonnull__((1))                                   \
-    type *prefix##_init(type *var) {                        \
-        return p_clear(var, 1);                             \
+#define DO_INIT(type, prefix)                                                \
+    __attr_nonnull__((1))                                                    \
+    type * nonnull prefix##_init(type * nonnull var) {                       \
+        return p_clear(var, 1);                                              \
     }
 #define DO_NEW(type, prefix) \
-    __attribute__((malloc)) type *prefix##_new(void) {      \
-        return prefix##_init(p_new_raw(type, 1));           \
+    __attribute__((malloc)) type * nonnull prefix##_new(void) {              \
+        return prefix##_init(p_new_raw(type, 1));                            \
     }
 #define DO_NEW0(type, prefix) \
-    __attribute__((malloc)) type *prefix##_new(void) {      \
-        return p_new(type, 1);                              \
+    __attribute__((malloc)) type * nonnull prefix##_new(void) {              \
+        return p_new(type, 1);                                               \
     }
 
-#define DO_WIPE(type, prefix) \
-    __attr_nonnull__((1)) void prefix##_wipe(type *var) { }
+#define DO_WIPE(type, prefix)                                                \
+    __attr_nonnull__((1)) void prefix##_wipe(type * nonnull var) { }
 
 #define DO_DELETE(type, prefix) \
-    __attr_nonnull__((1))                                                   \
-    void prefix##_delete(type **varp) {                                     \
-        type * const var = *varp;                                           \
-                                                                            \
-        if (var) {                                                          \
-            prefix##_wipe(var);                                             \
-            assert (likely(var == *varp) && "pointer corruption detected"); \
-            p_delete(varp);                                                 \
-        }                                                                   \
+    __attr_nonnull__((1))                                                    \
+    void prefix##_delete(type * nullable * nonnull varp) {                   \
+        type * const var = *varp;                                            \
+                                                                             \
+        if (var) {                                                           \
+            prefix##_wipe(var);                                              \
+            assert (likely(var == *varp) && "pointer corruption detected");  \
+            p_delete(varp);                                                  \
+        }                                                                    \
     }
 
 
@@ -895,21 +922,21 @@ void r_pool_destroy(void) __leaf;
     GENERIC_WIPE_DELETE(type, prefix)
 
 
-#define DO_MP_NEW(mp, type, prefix)                     \
-    __attribute__((malloc)) type * prefix##_new(void) { \
-        return prefix##_init(mp_new_raw(mp, type, 1));  \
+#define DO_MP_NEW(mp, type, prefix)                                          \
+    __attribute__((malloc)) type * nonnull prefix##_new(void) {              \
+        return prefix##_init(mp_new_raw(mp, type, 1));                       \
     }
-#define DO_MP_NEW0(mp, type, prefix)                    \
-    __attribute__((malloc)) type * prefix##_new(void) { \
-        return mp_new(mp, type, 1);                     \
+#define DO_MP_NEW0(mp, type, prefix)                                         \
+    __attribute__((malloc)) type * nonnull prefix##_new(void) {              \
+        return mp_new(mp, type, 1);                                          \
     }
 
-#define DO_MP_DELETE(mp, type, prefix)   \
-    void prefix##_delete(type **var) {   \
-        if (*(var)) {                    \
-            prefix##_wipe(*var);         \
-            mp_delete(mp, var);          \
-        }                                \
+#define DO_MP_DELETE(mp, type, prefix)                                       \
+    void prefix##_delete(type * nullable * nonnull var) {                    \
+        if (*(var)) {                                                        \
+            prefix##_wipe(*var);                                             \
+            mp_delete(mp, var);                                              \
+        }                                                                    \
     }
 
 #define GENERIC_MP_NEW(mp, type, prefix)      \
@@ -953,20 +980,21 @@ __leaf __attribute__((const))
 bool mem_tool_is_running(unsigned tools);
 
 __leaf
-void mem_tool_allow_memory(const void *mem, size_t len, bool defined);
+void mem_tool_allow_memory(const void * nonnull mem, size_t len, bool defined);
 
 __leaf
-void mem_tool_allow_memory_if_addressable(const void *mem, size_t len,
-                                          bool defined);
+void mem_tool_allow_memory_if_addressable(const void * nonnull mem,
+                                          size_t len, bool defined);
 
 __leaf
-void mem_tool_disallow_memory(const void *mem, size_t len);
+void mem_tool_disallow_memory(const void * nonnull mem, size_t len);
 
 __leaf
-void mem_tool_malloclike(const void *mem, size_t len, size_t rz, bool zeroed);
+void mem_tool_malloclike(const void * nonnull mem, size_t len, size_t rz,
+                         bool zeroed);
 
 __leaf
-void mem_tool_freelike(const void *mem, size_t len, size_t rz);
+void mem_tool_freelike(const void * nullable mem, size_t len, size_t rz);
 
 #else
 

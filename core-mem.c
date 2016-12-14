@@ -256,7 +256,6 @@ mem_pool_t *ipool(mem_flags_t flags)
 
       default:
         e_panic("pool memory cannot be used with imalloc familly");
-        return NULL;
     }
 }
 

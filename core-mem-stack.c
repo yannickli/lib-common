@@ -642,14 +642,14 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
 }
 #endif
 
-void mem_stack_pool_print_stats(mem_pool_t *mp) {
+void mem_stack_pool_print_stats(const mem_pool_t *mp) {
 #ifdef MEM_BENCH
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
         return;
     }
 
-    mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
+    const mem_stack_pool_t *sp = container_of(mp, mem_stack_pool_t, funcs);
     mem_bench_print_human(sp->mem_bench, MEM_BENCH_PRINT_CURRENT);
 #endif
 }

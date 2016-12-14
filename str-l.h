@@ -26,9 +26,9 @@
  */
 typedef struct lstr_t {
     union {
-        const char *s;
-        char       *v;
-        void       *data;
+        const char * nullable s;
+        char       * nullable v;
+        void       * nullable data;
     };
     int     len;
     flag_t  mem_pool : 3;
@@ -72,13 +72,14 @@ typedef struct lstr_t {
 /* }}} */
 /* Base helpers {{{ */
 
-static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
+static ALWAYS_INLINE lstr_t lstr_init_(const void * nullable s, int len,
+                                       unsigned flags)
 {
     return (lstr_t){ { (const char *)s }, len, flags };
 }
 
 static ALWAYS_INLINE
-lstr_t mp_lstr_init(mem_pool_t *mp, const void *s, int len)
+lstr_t mp_lstr_init(mem_pool_t * nullable mp, const void * nullable s, int len)
 {
     mp = mp ?: &mem_pool_libc;
     return lstr_init_(s, len, mp->mem_pool & MEM_POOL_MASK);
@@ -88,41 +89,45 @@ lstr_t mp_lstr_init(mem_pool_t *mp, const void *s, int len)
  *
  * The function takes the prot and the flags to be passed to the mmap call.
  */
-int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags);
+int lstr_init_from_file(lstr_t * nonnull dst, const char * nonnull path,
+                        int prot, int flags);
 
 /** Initialize a lstr_t from the content of a file pointed by a fd.
  */
-int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags);
+int lstr_init_from_fd(lstr_t * nonnull dst, int fd, int prot, int flags);
 
 /** lstr_wipe helper.
  */
-void lstr_munmap(lstr_t *dst);
+void lstr_munmap(lstr_t * nonnull dst);
 #define lstr_munmap(...)  lstr_munmap_DO_NOT_CALL_DIRECTLY(__VA_ARGS__)
 
 
 /** lstr_copy_* helper. */
-void mp_lstr_copy_(mem_pool_t *mp, lstr_t *dst, const void *s, int len);
+void mp_lstr_copy_(mem_pool_t * nullable mp, lstr_t * nonnull dst,
+                   const void * nullable s, int len);
 
 /** Sets \p dst to a new \p mp allocated lstr from its arguments. */
-void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len);
+void mp_lstr_copys(mem_pool_t * nullable mp, lstr_t * nonnull dst,
+                   const char * nullable s, int len);
 
 /** Sets \p dst to a new \p mp allocated lstr from its arguments. */
-void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src);
+void mp_lstr_copy(mem_pool_t * nullable mp, lstr_t * nonnull dst,
+                  const lstr_t src);
 
 /** Returns new \p mp allocated lstr from its arguments. */
-lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len);
+lstr_t mp_lstr_dups(mem_pool_t * nullable mp, const char * nonnull s, int len);
 
 /** Returns new \p mp allocated lstr from its arguments. */
-lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s);
+lstr_t mp_lstr_dup(mem_pool_t * nullable mp, const lstr_t s);
 
 /** Ensure \p s is \p mp or heap allocated. */
-void mp_lstr_persists(mem_pool_t *mp, lstr_t *s);
+void mp_lstr_persists(mem_pool_t * nullable mp, lstr_t * nonnull s);
 
 /** Duplicates \p v on the t_stack and reverse its content.
  *
  * This function is not unicode-aware.
  */
-lstr_t mp_lstr_dup_ascii_reversed(mem_pool_t *mp, const lstr_t v);
+lstr_t mp_lstr_dup_ascii_reversed(mem_pool_t * nullable mp, const lstr_t v);
 
 /** Duplicates \p v on the mem_pool and reverse its content.
  *
@@ -133,13 +138,13 @@ lstr_t mp_lstr_dup_ascii_reversed(mem_pool_t *mp, const lstr_t v);
  *
  * In case of error, LSTR_NULL_V is returned.
  */
-lstr_t mp_lstr_dup_utf8_reversed(mem_pool_t *mp, const lstr_t v);
+lstr_t mp_lstr_dup_utf8_reversed(mem_pool_t * nullable mp, const lstr_t v);
 
 /** Concatenates its argument to form a new lstr on the mem pool. */
-lstr_t mp_lstr_cat(mem_pool_t *mp, const lstr_t s1, const lstr_t s2);
+lstr_t mp_lstr_cat(mem_pool_t * nullable mp, const lstr_t s1, const lstr_t s2);
 
 /** Concatenates its argument to form a new lstr on the mem pool. */
-lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
+lstr_t mp_lstr_cat3(mem_pool_t * nullable mp, const lstr_t s1, const lstr_t s2,
                     const lstr_t s3);
 
 /** Wipe a lstr_t (frees memory if needed).
@@ -147,7 +152,7 @@ lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
  * This flavour assumes that the passed memory pool is the one to deallocate
  * from if the lstr_t is known as beeing allocated in a pool.
  */
-static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
+static inline void mp_lstr_wipe(mem_pool_t * nullable mp, lstr_t * nonnull s)
 {
     mp_lstr_copy_(mp, s, NULL, 0);
 }
@@ -157,7 +162,7 @@ static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
 
 /** \brief copies \v src into \dst tranferring memory ownership to \v dst.
  */
-static inline void lstr_transfer(lstr_t *dst, lstr_t *src)
+static inline void lstr_transfer(lstr_t * nonnull dst, lstr_t * nonnull src)
 {
     mp_lstr_copy_(ipool(src->mem_pool), dst, src->s, src->len);
     src->mem_pool = MEM_STATIC;
@@ -174,11 +179,12 @@ struct sb_t;
  * on the heap (\ref sb_detach). If \p keep_pool is true, the memory will be
  * transfered as-is including the allocation pool.
  */
-void lstr_transfer_sb(lstr_t *dst, struct sb_t *sb, bool keep_pool);
+void lstr_transfer_sb(lstr_t * nonnull dst, struct sb_t * nonnull sb,
+                      bool keep_pool);
 
 /** \brief copies a constant of \v s into \v dst.
  */
-static inline void lstr_copyc(lstr_t *dst, const lstr_t s)
+static inline void lstr_copyc(lstr_t * nonnull dst, const lstr_t s)
 {
     mp_lstr_copy_(&mem_pool_static, dst, s.s, s.len);
 }
@@ -195,14 +201,14 @@ static inline lstr_t lstr_dupc(const lstr_t s)
 
 /** \brief wipe a lstr_t (frees memory if needed).
  */
-static inline void lstr_wipe(lstr_t *s)
+static inline void lstr_wipe(lstr_t * nonnull s)
 {
     return mp_lstr_wipe(NULL, s);
 }
 
 /** \brief returns new libc allocated lstr from its arguments.
  */
-static inline lstr_t lstr_dups(const char *s, int len)
+static inline lstr_t lstr_dups(const char * nullable s, int len)
 {
     return mp_lstr_dups(NULL, s, len);
 }
@@ -216,14 +222,15 @@ static inline lstr_t lstr_dup(const lstr_t s)
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
-static inline void lstr_copys(lstr_t *dst, const char *s, int len)
+static inline void lstr_copys(lstr_t * nonnull dst, const char * nullable s,
+                              int len)
 {
     mp_lstr_copys(NULL, dst, s, len);
 }
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
-static inline void lstr_copy(lstr_t *dst, const lstr_t src)
+static inline void lstr_copy(lstr_t * nonnull dst, const lstr_t src)
 {
     mp_lstr_copy(NULL, dst, src);
 }
@@ -233,7 +240,7 @@ static inline void lstr_copy(lstr_t *dst, const lstr_t src)
  * This function ensure the lstr_t is allocated on the heap and thus is
  * guaranteed to be persistent.
  */
-static inline void lstr_persists(lstr_t *s)
+static inline void lstr_persists(lstr_t * nonnull s)
 {
     mp_lstr_persists(NULL, s);
 }
@@ -288,21 +295,22 @@ static inline lstr_t t_lstr_dup(const lstr_t s)
 
 /** \brief returns a duplicated lstr from the mem stack.
  */
-static inline lstr_t t_lstr_dups(const char *s, int len)
+static inline lstr_t t_lstr_dups(const char * nullable s, int len)
 {
     return mp_lstr_dups(t_pool(), s, len);
 }
 
 /** \brief sets \v dst to a mem stack allocated copy of its arguments.
  */
-static inline void t_lstr_copys(lstr_t *dst, const char *s, int len)
+static inline void t_lstr_copys(lstr_t * nonnull dst, const char * nullable s,
+                                int len)
 {
     return mp_lstr_copys(t_pool(), dst, s, len);
 }
 
 /** \brief sets \v dst to a mem stack allocated copy of its arguments.
  */
-static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
+static inline void t_lstr_copy(lstr_t * nonnull dst, const lstr_t s)
 {
     return mp_lstr_copy(t_pool(), dst, s);
 }
@@ -312,7 +320,7 @@ static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
  * This function ensure the lstr_t is allocated on the t_stack and thus is
  * guaranteed to be persistent.
  */
-static inline void t_lstr_persists(lstr_t *s)
+static inline void t_lstr_persists(lstr_t * nonnull s)
 {
     return mp_lstr_persists(t_pool(), s);
 }
@@ -550,7 +558,7 @@ int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2);
 int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2);
 
 /** Checks if the input string has only characters in the given ctype. */
-bool lstr_match_ctype(lstr_t s, const ctype_desc_t *d);
+bool lstr_match_ctype(lstr_t s, const ctype_desc_t * nonnull d);
 
 /** Returns the Damerau–Levenshtein distance between two strings.
  *
@@ -603,19 +611,19 @@ bool lstr_utf8_is_ilike(const lstr_t s, const lstr_t pattern);
  *
  * Works only with ascii strings.
  */
-void lstr_ascii_tolower(lstr_t *s);
+void lstr_ascii_tolower(lstr_t * nonnull s);
 
 /** Upper case the given lstr.
  *
  * Works only with ascii strings.
  */
-void lstr_ascii_toupper(lstr_t *s);
+void lstr_ascii_toupper(lstr_t * nonnull s);
 
 /** In-place reversing of the lstr.
  *
  * This function is not unicode aware.
  */
-void lstr_ascii_reverse(lstr_t *s);
+void lstr_ascii_reverse(lstr_t * nonnull s);
 
 /** Convert a lstr into an int.
  *
@@ -627,7 +635,7 @@ void lstr_ascii_reverse(lstr_t *s);
  *  \retval  0   success
  *  \retval -1   failure (errno set)
  */
-int lstr_to_int(lstr_t lstr, int *out);
+int lstr_to_int(lstr_t lstr, int * nonnull out);
 
 /** Convert a lstr into an int64.
  *
@@ -639,7 +647,7 @@ int lstr_to_int(lstr_t lstr, int *out);
  *  \retval  0   success
  *  \retval -1   failure (errno set)
  */
-int lstr_to_int64(lstr_t lstr, int64_t *out);
+int lstr_to_int64(lstr_t lstr, int64_t * nonnull out);
 
 /** Convert a lstr into an uint64.
  *
@@ -654,7 +662,7 @@ int lstr_to_int64(lstr_t lstr, int64_t *out);
  *  \retval  0   success
  *  \retval -1   failure (errno set)
  */
-int lstr_to_uint64(lstr_t lstr, uint64_t *out);
+int lstr_to_uint64(lstr_t lstr, uint64_t * nonnull out);
 
 /** Convert a lstr into an uint32.
  *
@@ -669,7 +677,7 @@ int lstr_to_uint64(lstr_t lstr, uint64_t *out);
  *  \retval  0   success
  *  \retval -1   failure (errno set)
  */
-int lstr_to_uint(lstr_t lstr, uint32_t *out);
+int lstr_to_uint(lstr_t lstr, uint32_t * nonnull out);
 
 /** Convert a lstr into a double.
  *
@@ -681,7 +689,7 @@ int lstr_to_uint(lstr_t lstr, uint32_t *out);
  *  \retval  0   success
  *  \retval -1   failure (errno set)
  */
-int lstr_to_double(lstr_t lstr, double *out);
+int lstr_to_double(lstr_t lstr, double * nonnull out);
 
 /** Decode a hexadecimal lstr
  *
@@ -706,19 +714,19 @@ lstr_t t_lstr_hexencode(lstr_t lstr);
 /* }}} */
 /* Format {{{ */
 
-#define lstr_fmt(fmt, ...) \
-    ({ const char *__s = asprintf(fmt, ##__VA_ARGS__); \
+#define lstr_fmt(fmt, ...)                                                   \
+    ({ const char *__s = asprintf(fmt, ##__VA_ARGS__);                       \
        lstr_init_(__s, strlen(__s), MEM_LIBC); })
 
-#define mp_lstr_fmt(mp, fmt, ...) \
-    ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__); \
+#define mp_lstr_fmt(mp, fmt, ...)                                            \
+    ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__);  \
        mp_lstr_init((mp), __s, __len); })
 
 #define t_lstr_fmt(fmt, ...)  mp_lstr_fmt(t_pool(), fmt, ##__VA_ARGS__)
 
 
-#define lstr_vfmt(fmt, va) \
-    ({ const char *__s = vasprintf(fmt, va); \
+#define lstr_vfmt(fmt, va)                                                   \
+    ({ const char *__s = vasprintf(fmt, va);                                 \
        lstr_init_(__s, strlen(__s), MEM_LIBC); })
 
 #define mp_lstr_vfmt(mp, fmt, va) \

@@ -31,7 +31,7 @@ typedef int spinlock_t;
 
 #define REFCNT_NEW(type, pfx)                                             \
     __unused__                                                            \
-    static inline type *pfx##_new(void) {                                 \
+    static inline type * nonnull pfx##_new(void) {                        \
         type *res = pfx##_init(p_new_raw(type, 1));                       \
         res->refcnt = 1;                                                  \
         return res;                                                       \
@@ -39,14 +39,14 @@ typedef int spinlock_t;
 
 #define REFCNT_DUP(type, pfx)                                             \
     __unused__                                                            \
-    static inline type *pfx##_dup(type *t) {                              \
+    static inline type * nonnull pfx##_dup(type * nonnull t) {            \
         t->refcnt++;                                                      \
         return t;                                                         \
     }
 
 #define REFCNT_DELETE(type, pfx)                                          \
     __unused__                                                            \
-    static inline void pfx##_delete(type **tp) {                          \
+    static inline void pfx##_delete(type * nullable * nonnull tp) {       \
         if (*tp) {                                                        \
             if (--(*tp)->refcnt > 0) {                                    \
                 *tp = NULL;                                               \
@@ -69,19 +69,19 @@ typedef int spinlock_t;
     } type;                                                               \
                                                                           \
     __unused__                                                            \
-    static inline type *tpfx##_new(void) {                                \
+    static inline type * nonnull tpfx##_new(void) {                       \
         type *res = p_new_raw(type, 1);                                   \
         spfx##_init(&res->v);                                             \
         res->refcnt = 1;                                                  \
         return res;                                                       \
     }                                                                     \
     __unused__                                                            \
-    static inline type *tpfx##_dup(type *t) {                             \
+    static inline type * nonnull tpfx##_dup(type * nonnull t) {           \
         t->refcnt++;                                                      \
         return t;                                                         \
     }                                                                     \
     __unused__                                                            \
-    static inline void tpfx##_delete(type **tp) {                         \
+    static inline void tpfx##_delete(type * nullable * nonnull tp) {      \
         if (*tp) {                                                        \
             if (--(*tp)->refcnt > 0) {                                    \
                 *tp = NULL;                                               \
@@ -183,7 +183,7 @@ typedef opt_bool_t         opt__Bool_t;
 /** Type to pass as a generic context.
  */
 typedef union data_t {
-    void    *ptr;
+    void    * nullable ptr;
     uint32_t u32;
     uint64_t u64;
 } data_t;
@@ -197,11 +197,12 @@ typedef union data_t {
 #define CORE_CMP_TYPE(pfx, val_t) __CORE_CMP_TYPE(pfx, val_t const)
 
 #define __CORE_CMP_TYPE(pfx, cval_t)                                         \
-    typedef int (BLOCK_CARET core_cmp_b(pfx))(cval_t *a, cval_t *b)
+    typedef int (BLOCK_CARET core_cmp_b(pfx))(cval_t * nonnull a,            \
+                                              cval_t * nonnull b)
 
 #define CORE_CMP_BLOCK(pfx, val_t)                                           \
     CORE_CMP_TYPE(pfx, val_t);                                               \
-    extern const core_cmp_b(pfx) core_##pfx##_cmp
+    extern const core_cmp_b(pfx) nonnull core_##pfx##_cmp
 
 struct lstr_t;
 
@@ -215,8 +216,8 @@ CORE_CMP_BLOCK(i64, int64_t);
 CORE_CMP_BLOCK(u64, uint64_t);
 CORE_CMP_BLOCK(double, double);
 CORE_CMP_BLOCK(lstr, struct lstr_t);
-CORE_CMP_BLOCK(str, char *);
-CORE_CMP_BLOCK(cstr, const char *);
+CORE_CMP_BLOCK(str, char * nonnull);
+CORE_CMP_BLOCK(cstr, const char * nonnull);
 
 #endif
 

@@ -64,7 +64,7 @@ static inline int hexdigit(int x)
         return i < 16 ? i : -1;
     }
 }
-static inline int hexdecode(const char *str)
+static inline int hexdecode(const char * nonnull str)
 {
     int h = hexdigit(str[0]);
 
@@ -72,9 +72,11 @@ static inline int hexdecode(const char *str)
 }
 
 /* XXX: dest will not be NUL terminated in strconv_hexdecode*/
-int strconv_hexdecode(void *dest, int size, const char *src, int len)
+int strconv_hexdecode(void * nonnull dest, int size,
+                      const char * nonnull src, int len)
     __leaf;
-int strconv_hexencode(char *dest, int size, const void *src, int len)
+int strconv_hexencode(char * nonnull dest, int size,
+                      const void * nonnull src, int len)
     __leaf;
 
 /****************************************************************************/
@@ -93,7 +95,7 @@ static inline int unicode_tolower(int c)
             __str_unicode_lower[c] : c;
 }
 
-static inline uint8_t __pstrputuc(char *dst, int32_t c)
+static inline uint8_t __pstrputuc(char * nonnull dst, int32_t c)
 {
     uint8_t len;
 
@@ -122,7 +124,7 @@ static inline uint8_t __pstrputuc(char *dst, int32_t c)
 }
 
 /* XXX 0 means invalid utf8 char */
-static inline uint8_t utf8_charlen(const char *s, int len)
+static inline uint8_t utf8_charlen(const char * nonnull s, int len)
 {
     uint8_t charlen = __utf8_char_len[(unsigned char)*s >> 3];
 
@@ -143,7 +145,7 @@ static inline uint8_t utf8_charlen(const char *s, int len)
  *
  * \return -1 in case of invalid UTF8.
  */
-static inline ssize_t utf8_strnlen(const char *s, size_t len)
+static inline ssize_t utf8_strnlen(const char * nonnull s, size_t len)
 {
     const char *end = s + len;
 
@@ -165,12 +167,13 @@ static inline ssize_t utf8_strnlen(const char *s, size_t len)
  *
  * \return -1 in case of invalid UTF8.
  */
-static inline ssize_t utf8_strlen(const char *s)
+static inline ssize_t utf8_strlen(const char * nonnull s)
 {
     return utf8_strnlen(s, strlen(s));
 }
 
-static inline int utf8_getc_slow(const char *s, const char **out)
+static inline int utf8_getc_slow(const char * nonnull s,
+                                 const char * nullable * nullable out)
 {
     uint32_t ret = 0;
     uint8_t  len = utf8_charlen(s, -1) - 1;
@@ -190,7 +193,8 @@ static inline int utf8_getc_slow(const char *s, const char **out)
     return ret - __utf8_offs[len];
 }
 
-static ALWAYS_INLINE int utf8_getc(const char *s, const char **out)
+static ALWAYS_INLINE int utf8_getc(const char * nonnull s,
+                                   const char * nullable * nullable out)
 {
     if ((unsigned char)*s < 0x80) {
         if (out) {
@@ -202,7 +206,8 @@ static ALWAYS_INLINE int utf8_getc(const char *s, const char **out)
     }
 }
 
-static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
+static ALWAYS_INLINE int utf8_ngetc(const char * nonnull s, int len,
+                                    const char * nullable * nullable out)
 {
     if (len && (unsigned char)*s < 0x80) {
         if (out) {
@@ -216,7 +221,8 @@ static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
     return utf8_getc_slow(s, out);
 }
 
-static ALWAYS_INLINE int utf8_ngetc_at(const char *s, int len, int *offp)
+static ALWAYS_INLINE int utf8_ngetc_at(const char * nonnull s, int len,
+                                       int * nonnull offp)
 {
     int off = *offp;
     const char *out = NULL;
@@ -233,11 +239,12 @@ static ALWAYS_INLINE int utf8_ngetc_at(const char *s, int len, int *offp)
     return res;
 }
 
-static inline int utf8_vgetc(char *s, char **out)
+static inline int utf8_vgetc(char * nonnull s, char * nullable * nullable out)
 {
     return utf8_getc(s, (const char **)out);
 }
-static inline const char *utf8_skip_valid(const char *s, const char *end)
+static inline const char * nonnull utf8_skip_valid(const char * nonnull s,
+                                                   const char * nonnull end)
 {
     while (s < end) {
         if (utf8_ngetc(s, end - s, &s) < 0)
@@ -250,36 +257,36 @@ static inline const char *utf8_skip_valid(const char *s, const char *end)
  *
  * \param[in] strip trailing spaces are ignored for comparison.
  */
-int utf8_stricmp(const char *str1, int len1,
-                 const char *str2, int len2, bool strip) __leaf;
+int utf8_stricmp(const char * nonnull str1, int len1,
+                 const char * nonnull str2, int len2, bool strip) __leaf;
 
 /** Return utf8 case-senstive collating comparison as -1, 0 or 1.
  *
  * \param[in] strip trailing spaces are ignored for comparison.
  */
-int utf8_strcmp(const char *str1, int len1,
-                const char *str2, int len2, bool strip) __leaf;
+int utf8_strcmp(const char * nonnull str1, int len1,
+                const char * nonnull str2, int len2, bool strip) __leaf;
 
 /** Return whether \p str1 starts with \p str2 utf8 case-insensitive way.
  */
-int utf8_str_istartswith(const char *str1, int len1,
-                         const char *str2, int len2);
+int utf8_str_istartswith(const char * nonnull str1, int len1,
+                         const char * nonnull str2, int len2);
 
 /** Return whether \p str1 starts with \p str2 utf8 case-sensitive way.
  */
-int utf8_str_startswith(const char *str1, int len1,
-                        const char *str2, int len2);
+int utf8_str_startswith(const char * nonnull str1, int len1,
+                        const char * nonnull str2, int len2);
 
 static inline
-bool utf8_striequal(const char *str1, int len1,
-                    const char *str2, int len2, bool strip)
+bool utf8_striequal(const char * nonnull str1, int len1,
+                    const char * nonnull str2, int len2, bool strip)
 {
     return utf8_stricmp(str1, len1, str2, len2, strip) == 0;
 }
 
 static inline
-bool utf8_strequal(const char *str1, int len1,
-                   const char *str2, int len2, bool strip)
+bool utf8_strequal(const char * nonnull str1, int len1,
+                   const char * nonnull str2, int len2, bool strip)
 {
     return utf8_strcmp(str1, len1, str2, len2, strip) == 0;
 }
