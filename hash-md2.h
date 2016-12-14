@@ -26,7 +26,7 @@ extern "C" {
  *
  * \param ctx      context to be initialized
  */
-void md2_starts(md2_ctx *ctx) __leaf;
+void md2_starts(md2_ctx * nonnull ctx) __leaf;
 
 /**
  * \brief          MD2 process buffer
@@ -35,7 +35,8 @@ void md2_starts(md2_ctx *ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md2_update(md2_ctx *ctx, const void *input, int ilen) __leaf;
+void md2_update(md2_ctx * nonnull ctx, const void * nonnull input, int ilen)
+    __leaf;
 
 /**
  * \brief          MD2 final digest
@@ -43,7 +44,7 @@ void md2_update(md2_ctx *ctx, const void *input, int ilen) __leaf;
  * \param ctx      MD2 context
  * \param output   MD2 checksum result
  */
-void md2_finish(md2_ctx *ctx, byte output[16]) __leaf;
+void md2_finish(md2_ctx * nonnull ctx, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD2(input buffer)
@@ -52,7 +53,7 @@ void md2_finish(md2_ctx *ctx, byte output[16]) __leaf;
  * \param ilen     length of the input data
  * \param output   MD2 checksum result
  */
-void md2(const void *input, int ilen, byte output[16]) __leaf;
+void md2(const void * nonnull input, int ilen, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD2(file contents)
@@ -63,7 +64,7 @@ void md2(const void *input, int ilen, byte output[16]) __leaf;
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md2_file(char *path, byte output[16]) __leaf;
+int md2_file(char * nonnull path, byte output[16]) __leaf;
 
 /**
  * \brief          MD2 HMAC context setup
@@ -72,7 +73,8 @@ int md2_file(char *path, byte output[16]) __leaf;
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
  */
-void md2_hmac_starts(md2_ctx *ctx, const void *key, int keylen)
+void md2_hmac_starts(md2_ctx * nonnull ctx, const void * nonnull key,
+                     int keylen)
     __leaf;
 
 /**
@@ -82,7 +84,8 @@ void md2_hmac_starts(md2_ctx *ctx, const void *key, int keylen)
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md2_hmac_update(md2_ctx *ctx, const void *input, int ilen)
+void md2_hmac_update(md2_ctx * nonnull ctx, const void * nonnull input,
+                     int ilen)
     __leaf;
 
 /**
@@ -91,7 +94,7 @@ void md2_hmac_update(md2_ctx *ctx, const void *input, int ilen)
  * \param ctx      HMAC context
  * \param output   MD2 HMAC checksum result
  */
-void md2_hmac_finish(md2_ctx *ctx, byte output[16]) __leaf;
+void md2_hmac_finish(md2_ctx * nonnull ctx, byte output[16]) __leaf;
 
 /**
  * \brief          Output = HMAC-MD2(hmac key, input buffer)
@@ -102,7 +105,8 @@ void md2_hmac_finish(md2_ctx *ctx, byte output[16]) __leaf;
  * \param ilen     length of the input data
  * \param output   HMAC-MD2 result
  */
-void md2_hmac(const void *key, int keylen, const void *input, int ilen,
+void md2_hmac(const void * nonnull key, int keylen,
+              const void * nonnull input, int ilen,
               byte output[16]) __leaf;
 
 #ifdef __cplusplus

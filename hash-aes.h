@@ -12,7 +12,7 @@
  */
 typedef struct {
     int nr;                /*!<  number of rounds  */
-    uint32_t *rk;          /*!<  AES round keys    */
+    uint32_t * nonnull rk; /*!<  AES round keys    */
     uint32_t buf[68];      /*!<  unaligned data    */
 } aes_ctx;
 
@@ -27,8 +27,8 @@ extern "C" {
  * \param key      encryption key
  * \param keysize  must be 128, 192 or 256
  */
-void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize)
-    __leaf;
+void aes_setkey_enc(aes_ctx * nonnull ctx, const byte * nonnull key,
+                    int keysize) __leaf;
 
 /**
  * \brief          AES key schedule (decryption)
@@ -37,8 +37,8 @@ void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize)
  * \param key      decryption key
  * \param keysize  must be 128, 192 or 256
  */
-void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize)
-    __leaf;
+void aes_setkey_dec(aes_ctx * nonnull ctx, const byte * nonnull key,
+                    int keysize) __leaf;
 
 /**
  * \brief          AES-ECB block encryption/decryption
@@ -48,7 +48,7 @@ void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize)
  * \param input    16-byte input block
  * \param output   16-byte output block
  */
-void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
+void aes_crypt_ecb(aes_ctx * nonnull ctx, int mode, const byte input[16],
                    byte output[16]) __leaf;
 
 /**
@@ -61,9 +61,9 @@ void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
  * \param input    buffer holding the input data
  * \param output   buffer holding the output data
  */
-void aes_crypt_cbc(aes_ctx *ctx, int mode, int length,
-                   byte iv[16], const byte *input, byte *output)
-    __leaf;
+void aes_crypt_cbc(aes_ctx * nonnull ctx, int mode, int length,
+                   byte iv[16], const byte * nonnull input,
+                   byte * nonnull output) __leaf;
 
 /**
  * \brief          AES-CFB buffer encryption/decryption
@@ -76,9 +76,9 @@ void aes_crypt_cbc(aes_ctx *ctx, int mode, int length,
  * \param input    buffer holding the input data
  * \param output   buffer holding the output data
  */
-void aes_crypt_cfb(aes_ctx *ctx, int mode, int length,
-                   int *iv_off, byte iv[16], const byte *input, byte *output)
-    __leaf;
+void aes_crypt_cfb(aes_ctx * nonnull ctx, int mode, int length,
+                   int * nonnull iv_off, byte iv[16],
+                   const byte * nonnull input, byte * nonnull output) __leaf;
 
 #ifdef __cplusplus
 }

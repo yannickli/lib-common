@@ -25,7 +25,7 @@ extern "C" {
  *
  * \param ctx      context to be initialized
  */
-void md4_starts(md4_ctx *ctx) __leaf;
+void md4_starts(md4_ctx * nonnull ctx) __leaf;
 
 /**
  * \brief          MD4 process buffer
@@ -34,7 +34,8 @@ void md4_starts(md4_ctx *ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md4_update(md4_ctx *ctx, const void *input, int ilen) __leaf;
+void md4_update(md4_ctx * nonnull ctx, const void * nonnull input, int ilen)
+    __leaf;
 
 /**
  * \brief          MD4 final digest
@@ -42,7 +43,7 @@ void md4_update(md4_ctx *ctx, const void *input, int ilen) __leaf;
  * \param ctx      MD4 context
  * \param output   MD4 checksum result
  */
-void md4_finish(md4_ctx *ctx, byte output[16]) __leaf;
+void md4_finish(md4_ctx * nonnull ctx, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD4(input buffer)
@@ -51,7 +52,7 @@ void md4_finish(md4_ctx *ctx, byte output[16]) __leaf;
  * \param ilen     length of the input data
  * \param output   MD4 checksum result
  */
-void md4(const void *input, int ilen, byte output[16]) __leaf;
+void md4(const void * nonnull input, int ilen, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD4(file contents)
@@ -62,7 +63,7 @@ void md4(const void *input, int ilen, byte output[16]) __leaf;
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md4_file(char *path, byte output[16]) __leaf;
+int md4_file(char * nonnull path, byte output[16]) __leaf;
 
 /**
  * \brief          MD4 HMAC context setup
@@ -71,7 +72,8 @@ int md4_file(char *path, byte output[16]) __leaf;
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
  */
-void md4_hmac_starts(md4_ctx *ctx, const void *key, int keylen)
+void md4_hmac_starts(md4_ctx * nonnull ctx, const void * nonnull key,
+                     int keylen)
     __leaf;
 
 /**
@@ -81,7 +83,8 @@ void md4_hmac_starts(md4_ctx *ctx, const void *key, int keylen)
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md4_hmac_update(md4_ctx *ctx, const void *input, int ilen)
+void md4_hmac_update(md4_ctx * nonnull ctx, const void * nonnull input,
+                     int ilen)
     __leaf;
 
 /**
@@ -90,7 +93,7 @@ void md4_hmac_update(md4_ctx *ctx, const void *input, int ilen)
  * \param ctx      HMAC context
  * \param output   MD4 HMAC checksum result
  */
-void md4_hmac_finish(md4_ctx *ctx, byte output[16])
+void md4_hmac_finish(md4_ctx * nonnull ctx, byte output[16])
     __leaf;
 
 /**
@@ -102,7 +105,8 @@ void md4_hmac_finish(md4_ctx *ctx, byte output[16])
  * \param ilen     length of the input data
  * \param output   HMAC-MD4 result
  */
-void md4_hmac(const void *key, int keylen, const void *input, int ilen,
+void md4_hmac(const void * nonnull key, int keylen,
+              const void * nonnull input, int ilen,
               byte output[16]) __leaf;
 
 #ifdef __cplusplus

@@ -30,7 +30,7 @@ extern "C" {
  * \param ctx      context to be initialized
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_starts(sha2_ctx *ctx, int is224) __leaf;
+void sha2_starts(sha2_ctx * nonnull ctx, int is224) __leaf;
 
 /**
  * \brief          SHA-256 process buffer
@@ -39,7 +39,8 @@ void sha2_starts(sha2_ctx *ctx, int is224) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_update(sha2_ctx *ctx, const void *input, int ilen) __leaf;
+void sha2_update(sha2_ctx * nonnull ctx, const void * nonnull input, int ilen)
+    __leaf;
 
 /**
  * \brief          SHA-256 final digest
@@ -47,7 +48,7 @@ void sha2_update(sha2_ctx *ctx, const void *input, int ilen) __leaf;
  * \param ctx      SHA-256 context
  * \param output   SHA-224/256 checksum result
  */
-void sha2_finish(sha2_ctx *ctx, byte output[32]) __leaf;
+void sha2_finish(sha2_ctx * nonnull ctx, byte output[32]) __leaf;
 
 /**
  * \brief          SHA-256 final digest
@@ -55,7 +56,7 @@ void sha2_finish(sha2_ctx *ctx, byte output[32]) __leaf;
  * \param ctx      SHA-256 context
  * \param output   SHA-224/256 checksum result
  */
-void sha2_finish_hex(sha2_ctx *ctx, char output[65]) __leaf;
+void sha2_finish_hex(sha2_ctx * nonnull ctx, char output[65]) __leaf;
 
 /**
  * \brief          Output = SHA-256(input buffer)
@@ -65,8 +66,8 @@ void sha2_finish_hex(sha2_ctx *ctx, char output[65]) __leaf;
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2(const void *input, int ilen,
-          byte output[32], int is224) __leaf;
+void sha2(const void * nonnull input, int ilen, byte output[32], int is224)
+    __leaf;
 
 /**
  * \brief          Output = SHA-256(input buffer)
@@ -76,7 +77,7 @@ void sha2(const void *input, int ilen,
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hex(const void *input, int ilen, char output[65], int is224)
+void sha2_hex(const void * nonnull input, int ilen, char output[65], int is224)
     __leaf;
 
 /**
@@ -89,7 +90,7 @@ void sha2_hex(const void *input, int ilen, char output[65], int is224)
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int sha2_file(const char *path, byte output[32], int is224) __leaf;
+int sha2_file(const char * nonnull path, byte output[32], int is224) __leaf;
 
 /**
  * \brief          SHA-256 HMAC context setup
@@ -99,8 +100,8 @@ int sha2_file(const char *path, byte output[32], int is224) __leaf;
  * \param keylen   length of the HMAC key
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hmac_starts(sha2_ctx *ctx, const void *key, int keylen,
-                      int is224) __leaf;
+void sha2_hmac_starts(sha2_ctx * nonnull ctx, const void * nonnull key,
+                      int keylen, int is224) __leaf;
 
 /**
  * \brief          SHA-256 HMAC process buffer
@@ -109,7 +110,8 @@ void sha2_hmac_starts(sha2_ctx *ctx, const void *key, int keylen,
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen)
+void sha2_hmac_update(sha2_ctx * nonnull ctx, const void * nonnull input,
+                      int ilen)
     __leaf;
 
 /**
@@ -118,7 +120,7 @@ void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen)
  * \param ctx      HMAC context
  * \param output   SHA-224/256 HMAC checksum result
  */
-void sha2_hmac_finish(sha2_ctx *ctx, byte output[32])
+void sha2_hmac_finish(sha2_ctx * nonnull ctx, byte output[32])
     __leaf;
 
 /**
@@ -131,7 +133,8 @@ void sha2_hmac_finish(sha2_ctx *ctx, byte output[32])
  * \param output   HMAC-SHA-224/256 result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
+void sha2_hmac(const void * nonnull key, int keylen,
+               const void * nonnull input, int ilen,
                byte output[32], int is224) __leaf;
 
 #define SHA256_CRYPT_SALT_LEN_MAX    16
@@ -152,8 +155,9 @@ void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
  *                 rounds <= 0.
  * \param output   the SHA256-Crypt result
  */
-void sha2_crypt(const void *input, size_t ilen, const void *salt, size_t slen,
-                uint32_t rounds, sb_t *output);
+void sha2_crypt(const void * nonnull input, size_t ilen,
+                const void * nonnull salt, size_t slen,
+                uint32_t rounds, sb_t * nonnull output);
 
 /**
  * \brief          Parse a SHA256-Crypt result
@@ -167,8 +171,8 @@ void sha2_crypt(const void *input, size_t ilen, const void *salt, size_t slen,
  *                 NULL if useless.
  * \return         0 if successful, -1 if the hash has a bad format.
  */
-int sha2_crypt_parse(lstr_t input, int *rounds, pstream_t *salt,
-                     pstream_t *hash);
+int sha2_crypt_parse(lstr_t input, int * nullable rounds,
+                     pstream_t * nullable salt, pstream_t * nullable hash);
 
 #ifdef __cplusplus
 }
