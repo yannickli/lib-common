@@ -67,6 +67,15 @@ Z_GROUP_EXPORT(str)
         p_delete(&p);
     } Z_TEST_END;
 
+    Z_TEST(sb_add_urlencode, "sb_add_urlencode") {
+        SB_1k(sb);
+        lstr_t raw = LSTR("test32@localhost-#!$;*");
+
+        sb_add_urlencode(&sb, raw.s, raw.len);
+        Z_ASSERT_LSTREQUAL(LSTR("test32%40localhost-%23%21%24%3B%2A"),
+                           LSTR_SB_V(&sb));
+    } Z_TEST_END;
+
     Z_TEST(ebcdic, "str: sb_conv_from_ebcdic297") {
         static char const ebcdic[] = {
 #include "samples/ebcdic.sample.bin"
