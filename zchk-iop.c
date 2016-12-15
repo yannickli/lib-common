@@ -5746,7 +5746,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(fprintf(out, "%*pS", IOP_OBJ_FMT_ARG(&obj)), ref.len);
         fclose(out);
 
-        Z_ASSERT_N(lstr_init_from_file(&file, path, MAP_SHARED, PROT_READ),
+        Z_ASSERT_N(lstr_init_from_file(&file, path, PROT_READ, MAP_SHARED),
                    "%m");
         Z_ASSERT_LSTREQUAL(file, LSTR_SB_V(&ref));
         lstr_wipe(&file);
