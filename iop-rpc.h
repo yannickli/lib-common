@@ -21,6 +21,11 @@
 #include "http.h"
 #include "ic.iop.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 typedef enum ic_status_t {
     IC_MSG_OK             = 0,
     IC_MSG_EXN            = 1,
@@ -46,7 +51,7 @@ static ALWAYS_INLINE bool ic_slot_is_http(uint64_t slot) {
     return (slot & IC_SLOT_FOREIGN_MASK) == IC_SLOT_FOREIGN_HTTP;
 }
 
-static inline const char * ic_status_to_string(ic_status_t s)
+static inline const char * nonnull ic_status_to_string(ic_status_t s)
 {
 #define CASE(st)  case IC_MSG_##st: return #st;
     switch (s) {
@@ -76,8 +81,8 @@ static inline const char * ic_status_to_string(ic_status_t s)
  * unpacked RPC. You are allowed to call it only inside of the callback of
  * a RPC implementation.
  */
-static inline const iop_rpc_t *
-__ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
+static inline const iop_rpc_t * nonnull
+__ic_get_current_rpc_desc(const ichannel_t * nullable ic, uint64_t slot)
 {
 #ifndef __cplusplus
     if (ic_slot_is_http(slot)) {
@@ -96,7 +101,7 @@ __ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
  * callback of a RPC implementation.
  */
 static inline int
-__ic_get_current_rpc_cmd(const ichannel_t *ic, uint64_t slot)
+__ic_get_current_rpc_cmd(const ichannel_t * nullable ic, uint64_t slot)
 {
 #ifndef __cplusplus
     if (ic_slot_is_http(slot)) {
@@ -107,5 +112,9 @@ __ic_get_current_rpc_cmd(const ichannel_t *ic, uint64_t slot)
 #endif
     return ic->cmd;
 }
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

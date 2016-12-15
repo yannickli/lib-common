@@ -216,7 +216,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         if (ic_query_do_pre_hook(NULL, slot, hdr, e) < 0) {
             return;
         }
-        (*e->u.cb.cb)(NULL, slot, value, hdr);
+        (*e->u.iws_cb.cb)(NULL, slot, value, hdr);
         if (cbe->fun->async)
             httpd_reply_202accepted(q);
 
