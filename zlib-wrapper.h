@@ -18,6 +18,10 @@
 #include "core.h"
 #include "str-outbuf.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 /** Add compressed data in the string buffer.
  *
  * Takes the chunk of data pointed by @p data and @p dlen and add it
@@ -32,10 +36,14 @@
  * @return amount of data written in the stream or a negative zlib error in
  * case of error.
  */
-ssize_t sb_add_compressed(sb_t *out, const void *data, size_t dlen,
-                          int level, bool do_gzip);
+ssize_t sb_add_compressed(sb_t * nonnull out, const void * nonnull data,
+                          size_t dlen, int level, bool do_gzip);
 
 #define ob_add_compressed(ob, data, dlen, level, do_gzip)  \
     OB_WRAP(sb_add_compressed, ob, data, dlen, level, do_gzip)
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif
