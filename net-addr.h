@@ -47,9 +47,10 @@ typedef union sockunion_t {
 #endif
 } sockunion_t;
 
-bool sockunion_equal(const sockunion_t *, const sockunion_t *);
+bool sockunion_equal(const sockunion_t * nonnull,
+                     const sockunion_t * nonnull);
 
-static inline int sockunion_getport(const sockunion_t *su)
+static inline int sockunion_getport(const sockunion_t * nonnull su)
 {
     switch (su->family) {
       case AF_INET:  return ntohs(su->sin.sin_port);
@@ -57,7 +58,7 @@ static inline int sockunion_getport(const sockunion_t *su)
       default:       return 0;
     }
 }
-static inline void sockunion_setport(sockunion_t *su, int port)
+static inline void sockunion_setport(sockunion_t * nonnull su, int port)
 {
     switch (su->family) {
       case AF_INET:  su->sin.sin_port   = ntohs(port); break;
@@ -76,7 +77,8 @@ static inline void sockunion_setport(sockunion_t *su, int port)
  * \return length of string written in "buf"
  * \retval -1 on error
  */
-int sockunion_gethost(const sockunion_t *su, char *buf, int size);
+int sockunion_gethost(const sockunion_t * nonnull su, char * nonnull buf,
+                      int size);
 
 /** Convert IPv4 and IPv6 addresses into a string.
  *
@@ -88,9 +90,9 @@ int sockunion_gethost(const sockunion_t *su, char *buf, int size);
  * \return network address as a lstr_t
  * \return LSTR_NULL_V on error
  */
-lstr_t t_sockunion_gethost_lstr(const sockunion_t *su);
+lstr_t t_sockunion_gethost_lstr(const sockunion_t * nonnull su);
 
-static inline socklen_t sockunion_len(const sockunion_t *su)
+static inline socklen_t sockunion_len(const sockunion_t * nonnull su)
 {
     switch (su->family) {
       case AF_INET:
@@ -108,7 +110,7 @@ static inline socklen_t sockunion_len(const sockunion_t *su)
     }
 }
 __attribute__((pure))
-uint32_t sockunion_hash(const sockunion_t *su);
+uint32_t sockunion_hash(const sockunion_t * nonnull su);
 
 /* This helper allows to iterate on an array of sockunion_t where each 'su'
  * can have different lengths (e.g. by mixing IPv4 and IPv6).
@@ -119,8 +121,9 @@ uint32_t sockunion_hash(const sockunion_t *su);
          su = (typeof(sus))((byte *)su + sockunion_len(su)))
 
 /* -1 as defport means port is mandatory */
-int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
-int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
+int addr_parse(pstream_t ps, pstream_t * nonnull host,
+               in_port_t * nonnull port, int defport);
+int addr_info(sockunion_t * nonnull, sa_family_t, pstream_t host, in_port_t);
 
 /** Convert a TCP/IPv4, TCP/IPv6 or UNIX address into a string.
  *
@@ -140,8 +143,9 @@ int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
  *
  * \return string allocated in t_stack
  */
-const char *t_addr_fmt(const sockunion_t *su, int *slen);
-static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
+const char * nonnull t_addr_fmt(const sockunion_t * nonnull su,
+                                int * nullable slen);
+static inline lstr_t t_addr_fmt_lstr(const sockunion_t * nonnull su)
 {
     int len;
     const char *s = t_addr_fmt(su, &len);
@@ -149,13 +153,15 @@ static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
 }
 
 static inline int
-addr_parse_str(const char *s, pstream_t *host, in_port_t *port, int defport)
+addr_parse_str(const char * nonnull s, pstream_t * nonnull host,
+               in_port_t * nonnull port, int defport)
 {
     return addr_parse(ps_initstr(s), host, port, defport);
 }
 
 static inline int
-addr_info_str(sockunion_t *su, const char *host, int port, int af)
+addr_info_str(sockunion_t * nonnull su, const char * nonnull host, int port,
+              int af)
 {
     return addr_info(su, af, ps_initstr(host), port);
 }
@@ -170,12 +176,13 @@ addr_info_str(sockunion_t *su, const char *host, int port, int af)
  * \param[out] filter resulting filter.
  * \return -1 in case of error, 0 otherwise.
  */
-int addr_filter_build(lstr_t subnet, addr_filter_t *filter);
+int addr_filter_build(lstr_t subnet, addr_filter_t * nonnull filter);
 
-int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer);
+int addr_filter_matches(const addr_filter_t * nonnull filter,
+                        const sockunion_t * nonnull peer);
 
-static inline int
-addr_resolve(const char *what, const lstr_t s, sockunion_t *out)
+static inline int addr_resolve(const char * nonnull what, const lstr_t s,
+                               sockunion_t * nonnull out)
 {
     pstream_t host;
     in_port_t port;

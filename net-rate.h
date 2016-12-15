@@ -23,26 +23,26 @@ typedef struct net_rctl_t {
     unsigned     remains;
     uint16_t     slot;
     bool         is_blk;
-    struct ev_t *cron;
+    struct ev_t * nonnull cron;
     union {
-        void       (*on_ready)(struct net_rctl_t *);
+        void (*nonnull on_ready)(struct net_rctl_t * nonnull);
 #ifdef __has_blocks
-        block_t      blk;
+        block_t nonnull blk;
 #endif
     };
 } net_rctl_t;
 
-static ALWAYS_INLINE bool net_rctl_can_fire(net_rctl_t *rctl)
+static ALWAYS_INLINE bool net_rctl_can_fire(net_rctl_t * nonnull rctl)
 {
     return rctl->remains != 0;
 }
 
-static ALWAYS_INLINE void __net_rctl_fire(net_rctl_t *rctl)
+static ALWAYS_INLINE void __net_rctl_fire(net_rctl_t * nonnull rctl)
 {
     rctl->remains--;
 }
 
-static ALWAYS_INLINE bool net_rctl_fire(net_rctl_t *rctl)
+static ALWAYS_INLINE bool net_rctl_fire(net_rctl_t * nonnull rctl)
 {
     if (net_rctl_can_fire(rctl)) {
         __net_rctl_fire(rctl);
@@ -51,13 +51,15 @@ static ALWAYS_INLINE bool net_rctl_fire(net_rctl_t *rctl)
     return false;
 }
 
-void net_rctl_init(net_rctl_t *rctl, int rate, void (*cb)(net_rctl_t *));
+void net_rctl_init(net_rctl_t * nonnull rctl, int rate,
+                   void (*nonnull cb)(net_rctl_t * nonnull));
 #ifdef __has_blocks
-void net_rctl_init_blk(net_rctl_t *rctl, int rate, block_t blk);
+void net_rctl_init_blk(net_rctl_t * nonnull rctl, int rate,
+                       block_t nonnull blk);
 #endif
 
-void net_rctl_start(net_rctl_t *rctl);
-void net_rctl_stop(net_rctl_t *rctl);
-void net_rctl_wipe(net_rctl_t *rctl);
+void net_rctl_start(net_rctl_t * nonnull rctl);
+void net_rctl_stop(net_rctl_t * nonnull rctl);
+void net_rctl_wipe(net_rctl_t * nonnull rctl);
 
 #endif
