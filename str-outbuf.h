@@ -17,6 +17,10 @@
 #include "core.h"
 #include "container-htlist.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 /****************************************************************************/
 /* Outbuf                                                                   */
 /****************************************************************************/
@@ -28,9 +32,9 @@ typedef struct outbuf_t {
     htlist_t chunks_list;
 } outbuf_t;
 
-void ob_check_invariants(outbuf_t *ob) __leaf;
+void ob_check_invariants(outbuf_t * nonnull ob) __leaf;
 
-static inline outbuf_t *ob_init(outbuf_t *ob)
+static inline outbuf_t * nonnull ob_init(outbuf_t * nonnull ob)
 {
     ob->length      = 0;
     ob->sb_trailing = 0;
@@ -41,19 +45,20 @@ static inline outbuf_t *ob_init(outbuf_t *ob)
 #define ob_inita(ob, sb_size) \
     ({ ob_init(ob); sb_inita(&ob->sb, sb_size); })
 
-void ob_wipe(outbuf_t *ob) __leaf;
+void ob_wipe(outbuf_t * nonnull ob) __leaf;
 GENERIC_NEW(outbuf_t, ob);
 GENERIC_DELETE(outbuf_t, ob);
-void ob_merge(outbuf_t *dst, outbuf_t *src) __leaf;
-void ob_merge_wipe(outbuf_t *dst, outbuf_t *src) __leaf;
-void ob_merge_delete(outbuf_t *dst, outbuf_t **src) __leaf;
-static inline bool ob_is_empty(const outbuf_t *ob)
+void ob_merge(outbuf_t * nonnull dst, outbuf_t * nonnull src) __leaf;
+void ob_merge_wipe(outbuf_t * nonnull dst, outbuf_t * nonnull src) __leaf;
+void ob_merge_delete(outbuf_t * nonnull dst,
+                     outbuf_t * nullable * nonnull src) __leaf;
+static inline bool ob_is_empty(const outbuf_t * nonnull ob)
 {
     return ob->length == 0;
 }
 
-int ob_write(outbuf_t *ob, int fd) __leaf;
-int ob_xread(outbuf_t *ob, int fd, int size) __leaf;
+int ob_write(outbuf_t * nonnull ob, int fd) __leaf;
+int ob_xread(outbuf_t * nonnull ob, int fd, int size) __leaf;
 
 
 /****************************************************************************/
@@ -75,15 +80,16 @@ typedef struct outbuf_chunk_t {
     int       sb_leading;
     int       on_wipe;
     union {
-        const void    *p;
-        const uint8_t *b;
-        void          *vp;
+        const void    * nonnull p;
+        const uint8_t * nonnull b;
+        void          * nonnull vp;
     } u;
 } outbuf_chunk_t;
-void ob_chunk_wipe(outbuf_chunk_t *obc) __leaf;
+void ob_chunk_wipe(outbuf_chunk_t * nonnull obc) __leaf;
 GENERIC_DELETE(outbuf_chunk_t, ob_chunk);
 
-static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
+static inline void ob_add_chunk(outbuf_t * nonnull ob,
+                                outbuf_chunk_t * nonnull obc)
 {
     htlist_add_tail(&ob->chunks_list, &obc->chunks_link);
     ob->length += (obc->length - obc->offset);
@@ -91,13 +97,14 @@ static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
     ob->sb_trailing = 0;
 }
 
-static inline sb_t *outbuf_sb_start(outbuf_t *ob, int *oldlen)
+static inline sb_t * nonnull outbuf_sb_start(outbuf_t * nonnull ob,
+                                             int * nonnull oldlen)
 {
     *oldlen = ob->sb.len;
     return &ob->sb;
 }
 
-static inline void outbuf_sb_end(outbuf_t *ob, int oldlen)
+static inline void outbuf_sb_end(outbuf_t * nonnull ob, int oldlen)
 {
     ob->sb_trailing += ob->sb.len - oldlen;
     ob->length      += ob->sb.len - oldlen;
@@ -122,7 +129,7 @@ static inline void outbuf_sb_end(outbuf_t *ob, int oldlen)
 #define ob_adds_urlencode(ob, s)    OB_WRAP(sb_adds_urlencode, ob, s)
 
 /* XXX: invalidated as sonn as the outbuf is consumed ! */
-static inline int ob_reserve(outbuf_t *ob, unsigned len)
+static inline int ob_reserve(outbuf_t * nonnull ob, unsigned len)
 {
     int res = ob->sb.len;
 
@@ -133,7 +140,8 @@ static inline int ob_reserve(outbuf_t *ob, unsigned len)
 }
 
 static inline
-void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool is_const)
+void ob_add_memchunk(outbuf_t * nonnull ob, const void * nonnull ptr,
+                     int len, bool is_const)
 {
     if (len <= OUTBUF_CHUNK_MIN_SIZE) {
         ob_add(ob, ptr, len);
@@ -150,7 +158,8 @@ void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool is_const)
     }
 }
 
-static inline void ob_add_memmap(outbuf_t *ob, void *map, int len)
+static inline void ob_add_memmap(outbuf_t * nonnull ob, void * nonnull map,
+                                 int len)
 {
     if (len <= OUTBUF_CHUNK_MIN_SIZE) {
         ob_add(ob, map, len);
@@ -165,6 +174,11 @@ static inline void ob_add_memmap(outbuf_t *ob, void *map, int len)
     }
 }
 
-int ob_add_file(outbuf_t *ob, const char *file, int size) __leaf;
+int ob_add_file(outbuf_t * nonnull ob, const char * nonnull file, int size)
+    __leaf;
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif
