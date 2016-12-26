@@ -746,6 +746,7 @@ static int ic_write(ichannel_t *ic, int fd)
             }
 
             if (unlikely(fdc == IC_MAX_FD && msg->fd >= 0)) {
+                htlist_add(&ic->msg_list, &msg->msg_link);
                 break;
             }
 
