@@ -289,7 +289,7 @@ typedef struct __swift_name__("MemoryPool") mem_pool_t {
  */
 __swift_name__("MemoryPool.libC")
 extern mem_pool_t mem_pool_libc;
-__swift_name__("MemoryPool.libCCacheLineALigned")
+__swift_name__("MemoryPool.libCAligned")
 extern mem_pool_t mem_pool_cl_aligned;
 __swift_name__("MemoryPool.static")
 extern mem_pool_t mem_pool_static;

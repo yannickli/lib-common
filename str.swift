@@ -38,4 +38,15 @@ public extension String {
             return try body(LString(ptr.baseAddress, count: Int32(ptr.count - 1), flags: 0))
         }
     }
+
+    /// Duplicates the UTF8 representation of the string on the t_stack as a `LString`.
+    ///
+    /// The requested memory is automatically freed when exited the nearest `t_scope`.
+    ///
+    /// - warning: This must be called within an active `t_scope`
+    public func duplicated(on allocator: Allocator) -> LString {
+        return withLString {
+            return mp_lstr_dup(allocator.pool, $0)
+        }
+    }
 }
