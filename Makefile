@@ -71,6 +71,7 @@ libcommon_SOURCES = \
 	container-qvector.blk \
 	container-rbtree.c \
 	container-ring.c \
+	container.swift \
 	\
 	core-bithacks.c \
 	core-obj.c \

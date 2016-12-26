@@ -7,6 +7,10 @@ module libcommon {
         header "el.h"
     }
 
+    module container [extern_c] {
+        header "container-qvector.h"
+    }
+
     requires tls
 }
 

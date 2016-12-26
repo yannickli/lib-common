@@ -43,3 +43,9 @@ let swift_from_c = ({ () -> Module in
     mod.implements(method: on_term_method_ptr, with: swiftFromCOnTerm)
     return mod
 })()
+
+func useVector(qv: UnsafeMutablePointer<qv_u64_t>) {
+    for val in qv.pointee {
+        print(val)
+    }
+}

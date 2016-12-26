@@ -18,3 +18,21 @@ var superBuffer = StringBuffer()
 superBuffer.addString("Hello world!")
 print(superBuffer)
 superBuffer.wipe()
+
+print("QVector")
+var qv : qv_u64_t = [ 0, 1, 2, 3, 4, 5 ]
+for v in qv {
+    print(v)
+}
+qv.wipe()
+
+tScope {
+    (frame) in
+
+    let qv = qv_u64_t(on: frame, withElements: 0, 1, 2, 3, 4, 5)
+    for v in qv {
+        print(v)
+    }
+    print(qv)
+    debugPrint(qv)
+}
