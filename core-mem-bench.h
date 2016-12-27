@@ -114,7 +114,7 @@ void mem_bench_print_csv(mem_bench_t *sp);
  *
  * \param[in] flags Flag controlling printed informations.
  */
-void mem_bench_print_human(mem_bench_t *sp, int flags);
+void mem_bench_print_human(const mem_bench_t *sp, int flags);
 
 /** Flag for print_human : print current allocation status. */
 #define MEM_BENCH_PRINT_CURRENT  1

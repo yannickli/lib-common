@@ -40,7 +40,7 @@ extern ctype_desc_t const ctype_iscvar;
 /* @func ctype_desc_reset
  * @param[in] d
  */
-static inline void ctype_desc_reset(ctype_desc_t *d)
+static inline void ctype_desc_reset(ctype_desc_t * nonnull d)
 {
     p_clear(d, 1);
 }
@@ -50,7 +50,8 @@ static inline void ctype_desc_reset(ctype_desc_t *d)
  * @param[in] toks string of characters containing a token at every
  *                 characters.
  */
-static inline void ctype_desc_build(ctype_desc_t *d, const char *toks)
+static inline void ctype_desc_build(ctype_desc_t * nonnull d,
+                                    const char * nonnull toks)
 {
     ctype_desc_reset(d);
     while (*toks) {
@@ -60,7 +61,8 @@ static inline void ctype_desc_build(ctype_desc_t *d, const char *toks)
 }
 
 static inline void
-ctype_desc_build2(ctype_desc_t *d, const char *toks, int len)
+ctype_desc_build2(ctype_desc_t * nonnull d, const char * nonnull toks,
+                  int len)
 {
     ctype_desc_reset(d);
     for (int i = 0; i < len; i++) {
@@ -79,7 +81,7 @@ ctype_desc_build2(ctype_desc_t *d, const char *toks, int len)
  * @brief This function checks if a byte is set on in a ctype_desc
  *        structure
  */
-static inline bool ctype_desc_contains(const ctype_desc_t *d, byte b)
+static inline bool ctype_desc_contains(const ctype_desc_t * nonnull d, byte b)
 {
     return TST_BIT(d->tab, b);
 }
@@ -91,8 +93,9 @@ static inline bool ctype_desc_contains(const ctype_desc_t *d, byte b)
  * TODO binary operation on memory instead of a stupid bit per bit operating
  */
 static inline void
-ctype_desc_combine(ctype_desc_t *dst,
-                   const ctype_desc_t *d1, const ctype_desc_t *d2)
+ctype_desc_combine(ctype_desc_t * nonnull dst,
+                   const ctype_desc_t * nonnull d1,
+                   const ctype_desc_t * nonnull d2)
 {
     for (int i = 0; i < countof(d1->tab); i++) {
         dst->tab[i] = d1->tab[i] | d2->tab[i];
@@ -102,7 +105,7 @@ ctype_desc_combine(ctype_desc_t *dst,
 /* @func ctype_desc_invert
  * param[inout] d
  */
-static inline void ctype_desc_invert(ctype_desc_t *d)
+static inline void ctype_desc_invert(ctype_desc_t * nonnull d)
 {
     for (int i = 0 ; i < countof(d->tab) ; i++)
         d->tab[i] = ~(d->tab[i]);

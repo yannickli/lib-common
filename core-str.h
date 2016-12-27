@@ -18,115 +18,147 @@
 
 /* Simple helpers {{{ */
 
-const char *skipspaces(const char *s)  __attr_nonnull__((1));
+const char * nonnull skipspaces(const char * nonnull s)
+    __attr_nonnull__((1));
+
 __attr_nonnull__((1))
-static inline char *vskipspaces(char *s) {
+static inline char * nonnull vskipspaces(char * nonnull s)
+{
     return (char*)skipspaces(s);
 }
 
-const char *strnextspace(const char *s)  __attr_nonnull__((1));
+const char * nonnull strnextspace(const char * nonnull s)
+    __attr_nonnull__((1));
 __attr_nonnull__((1))
-static inline char *vstrnextspace(char *s) {
+static inline char * nonnull vstrnextspace(char * nonnull s)
+{
     return (char*)strnextspace(s);
 }
 
-const char *skipblanks(const char *s)  __attr_nonnull__((1));
+const char * nonnull skipblanks(const char * nonnull s)
+    __attr_nonnull__((1));
 __attr_nonnull__((1))
-static inline char *vskipblanks(char *s) {
+static inline char * nonnull vskipblanks(char * nonnull s)
+{
     return (char*)skipblanks(s);
 }
 
 /* Trim spaces at end of string, return pointer to '\0' */
-char *strrtrim(char *str);
+char * nullable strrtrim(char * nullable str);
 
-int strstart(const char *str, const char *p, const char **pp);
-static inline int vstrstart(char *str, const char *p, char **pp) {
+int strstart(const char * nullable str, const char * nonnull p,
+             const char * nullable * nullable pp);
+static inline int vstrstart(char * nullable str, const char * nonnull p,
+                            char * nullable * nullable pp)
+{
     return strstart(str, p, (const char **)pp);
 }
 
-int stristart(const char *str, const char *p, const char **pp);
-static inline int vstristart(char *str, const char *p, char **pp) {
+int stristart(const char * nullable str, const char * nonnull p,
+              const char * nullable * nullable pp);
+static inline int vstristart(char * nullable str, const char * nonnull p,
+                             char * nullable * nullable pp)
+{
     return stristart(str, p, (const char **)pp);
 }
 
-const char *stristrn(const char *haystack, const char *needle, size_t nlen)
+const char * nullable stristrn(const char * nonnull haystack,
+                               const char * nonnull needle, size_t nlen)
           __attr_nonnull__((1, 2));
 
 __attr_nonnull__((1, 2))
-static inline char *
-vstristrn(char *haystack, const char *needle, size_t nlen) {
+static inline char * nullable
+vstristrn(char * nonnull haystack, const char * nonnull needle, size_t nlen)
+{
     return (char *)stristrn(haystack, needle, nlen);
 }
 
 __attr_nonnull__((1, 2))
-static inline const char *
-stristr(const char *haystack, const char *needle) {
+static inline const char * nullable
+stristr(const char * nonnull haystack, const char * nonnull needle)
+{
     return stristrn(haystack, needle, strlen(needle));
 }
 
 __attr_nonnull__((1, 2))
-static inline char *vstristr(char *haystack, const char *needle) {
+static inline char * nullable
+vstristr(char * nonnull haystack, const char * nonnull needle)
+{
     return (char *)stristr(haystack, needle);
 }
 
 /* Implement inline using strcmp, unless strcmp is hopelessly fucked up */
 __attr_nonnull__((1, 2))
-static inline bool strequal(const char *str1, const char *str2) {
+static inline bool strequal(const char * nonnull str1,
+                            const char * nonnull str2)
+{
     return !strcmp(str1, str2);
 }
 
 /* find a word in a list of words separated by sep.
  */
-bool strfind(const char *keytable, const char *str, int sep);
+bool strfind(const char * nonnull keytable, const char * nonnull str, int sep);
 
-int buffer_increment(char *buf, int len);
-int buffer_increment_hex(char *buf, int len);
-ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
+int buffer_increment(char * nullable buf, int len);
+int buffer_increment_hex(char * nullable buf, int len);
+ssize_t pstrrand(char * nonnull dest, ssize_t size, int offset, ssize_t len);
 size_t strrand(char dest[], size_t dest_size, lstr_t alphabet);
 
 /* Return the number of occurences replaced */
 /* OG: need more general API */
-int str_replace(const char search, const char replace, char *subject);
+int str_replace(const char search, const char replace,
+                char * nonnull subject);
 
 /* }}} */
 /* Path helpers {{{ */
 
 /*----- simple file name splits -----*/
 
-ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
+ssize_t path_dirpart(char * nonnull dir, ssize_t size,
+                     const char * nonnull filename)
     __leaf;
 
-__attr_nonnull__() const char *path_filepart(const char *filename);
-__attr_nonnull__() static inline char *vpath_filepart(char *path)
+__attr_nonnull__()
+    const char * nonnull path_filepart(const char * nonnull filename);
+__attr_nonnull__()
+static inline char * nonnull vpath_filepart(char * nonnull path)
 {
     return (char*)path_filepart(path);
 }
 
-__attr_nonnull__() const char *path_extnul(const char *filename);
-__attr_nonnull__() static inline char *vpath_extnul(char *path)
+__attr_nonnull__()
+const char * nonnull path_extnul(const char * nonnull filename);
+__attr_nonnull__()
+static inline char * nonnull vpath_extnul(char * nonnull path)
 {
     return (char*)path_extnul(path);
 }
-const char *path_ext(const char *filename);
-static inline char *vpath_ext(char *path)
+const char * nonnull path_ext(const char * nonnull filename);
+static inline char * nonnull vpath_ext(char * nonnull path)
 {
     return (char*)path_ext(path);
 }
 
 /*----- libgen like functions -----*/
 
-int path_dirname(char *buf, int len, const char *path) __leaf;
-int path_basename(char *buf, int len, const char *path) __leaf;
+int path_dirname(char * nonnull buf, int len, const char * nonnull path)
+    __leaf;
+int path_basename(char * nonnull buf, int len, const char * nonnull path)
+    __leaf;
 
 /*----- path manipulations -----*/
 
-int path_join(char *buf, int len, const char *path) __leaf;
-int path_simplify2(char *path, bool keep_trailing_slash) __leaf;
+int path_join(char * nonnull buf, int len, const char * nonnull path)
+    __leaf;
+int path_simplify2(char * nonnull path, bool keep_trailing_slash) __leaf;
 #define path_simplify(path)   path_simplify2(path, false)
-int path_canonify(char *buf, int len, const char *path) __leaf;
-char *path_expand(char *buf, int len, const char *path) __leaf;
+int path_canonify(char * nonnull buf, int len, const char * nonnull path)
+    __leaf;
+char * nullable path_expand(char * nonnull buf, int len,
+                            const char * nonnull path)
+    __leaf;
 
-bool path_is_safe(const char *path) __leaf;
+bool path_is_safe(const char * nonnull path) __leaf;
 
 #ifndef __cplusplus
 
@@ -150,11 +182,11 @@ bool path_is_safe(const char *path) __leaf;
  *            length of the resulting path otherwise.
  */
 __attribute__((format(printf, 3, 0)))
-int path_va_extend(char buf[static PATH_MAX], const char *prefix,
-                   const char *fmt, va_list args);
+int path_va_extend(char buf[static PATH_MAX], const char * nonnull prefix,
+                   const char * nonnull fmt, va_list args);
 __attribute__((format(printf, 3, 4)))
-int path_extend(char buf[static PATH_MAX], const char *prefix,
-                const char *fmt, ...);
+int path_extend(char buf[static PATH_MAX], const char * nonnull prefix,
+                const char * nonnull fmt, ...);
 
 /** Create a relative path from one path to another path.
  *
@@ -180,8 +212,8 @@ int path_extend(char buf[static PATH_MAX], const char *prefix,
  *         length of the resulting path exceed PATH_MAX.
  *         Length of the resulting path otherwise.
  */
-int path_relative_to(char buf[static PATH_MAX], const char *from,
-                     const char *to);
+int path_relative_to(char buf[static PATH_MAX], const char * nonnull from,
+                     const char * nonnull to);
 
 #endif
 

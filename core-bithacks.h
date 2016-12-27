@@ -41,7 +41,8 @@ static inline size_t bsrsz(size_t   u) { return DO_SZ(bsr)(u); }
  *
  * \see bsf.
  */
-ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse);
+ssize_t bsr(const void * nonnull data, size_t start_bit, size_t len,
+            bool reverse);
 
 /* XXX bit scan forward, only defined for u != 0
  * bsf32(0xf10) == 4 because first bit set from the "right" is 2^4
@@ -63,7 +64,8 @@ static inline size_t bsfsz(size_t   u) { return DO_SZ(bsf)(u); }
  * \return -1 if no 1 (or 0 if \p reverse was set) was found, else the offset
  *         of the first bit of the given value relative to start_bit.
  */
-ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse);
+ssize_t bsf(const void * nonnull data, size_t start_bit, size_t len,
+            bool reverse);
 
 #define __SIGN_EXTEND_HELPER(T, x, bits)  (((T)(x) << (bits)) >> (bits))
 #define sign_extend(x, bits) \
@@ -145,6 +147,6 @@ static inline uint8_t bitcountsz(size_t n) {
     return DO_SZ(bitcount)(n);
 }
 
-extern size_t (*membitcount)(const void *ptr, size_t n);
+extern size_t (*nonnull membitcount)(const void * nonnull ptr, size_t n);
 
 #endif

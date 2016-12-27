@@ -25,22 +25,22 @@ typedef struct ichttp_cb_t {
     int              refcnt;
     int32_t          cmd;
     ic_cb_entry_t    e;
-    const iop_rpc_t *fun;
+    const iop_rpc_t * nonnull fun;
     lstr_t           name;
     lstr_t           name_uri;
     lstr_t           name_res;
     lstr_t           name_exn;
 } ichttp_cb_t;
 GENERIC_INIT(ichttp_cb_t, ichttp_cb);
-void ichttp_cb_wipe(ichttp_cb_t *rpc);
+void ichttp_cb_wipe(ichttp_cb_t * nonnull rpc);
 DO_REFCNT(ichttp_cb_t, ichttp_cb);
 
-#define ICHTTP_QUERY_FIELDS(pfx) \
-    HTTPD_QUERY_FIELDS(pfx);     \
-    ichttp_cb_t *cbe;            \
-    ic__hdr__t *ic_hdr;          \
-    size_t iop_res_size;         \
-    bool   json;                 \
+#define ICHTTP_QUERY_FIELDS(pfx)                                             \
+    HTTPD_QUERY_FIELDS(pfx);                                                 \
+    ichttp_cb_t * nonnull cbe;                                               \
+    ic__hdr__t * nullable ic_hdr;                                            \
+    size_t iop_res_size;                                                     \
+    bool   json;                                                             \
     bool   iop_answered
 
 #define ICHTTP_QUERY_METHODS(type_t) \
@@ -54,23 +54,23 @@ OBJ_CLASS(ichttp_query, httpd_query,
 /* HTTP Triggers                                                          */
 /**************************************************************************/
 
-qm_kvec_t(ichttp_cbs, lstr_t, ichttp_cb_t *,
+qm_kvec_t(ichttp_cbs, lstr_t, ichttp_cb_t * nonnull,
           qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct httpd_trigger__ic_t {
     httpd_trigger_t          cb;
     unsigned                 query_max_size;
-    const char              *schema;
-    const char              *auth_kind;
-    const iop_iface_alias_t *mod;
+    const char              * nonnull schema;
+    const char              * nullable auth_kind;
+    const iop_iface_alias_t * nonnull mod;
     qm_t(ichttp_cbs)         impl;
     unsigned                 xpack_flags;
     unsigned                 jpack_flags;
     unsigned                 unpack_flags;
 
-    void (*on_reply)(const struct httpd_trigger__ic_t *,
-                     const ichttp_query_t *, size_t res_size,
-                     http_code_t res_code);
+    void (* nonnull on_reply)(const struct httpd_trigger__ic_t * nonnull,
+                              const ichttp_query_t * nonnull, size_t res_size,
+                              http_code_t res_code);
 } httpd_trigger__ic_t;
 
 /* compat for qrrd */
@@ -82,13 +82,15 @@ typedef struct httpd_trigger__ic_t {
 /* APIs                                                                   */
 /**************************************************************************/
 
-httpd_trigger__ic_t *
-httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
+httpd_trigger__ic_t * nonnull
+httpd_trigger__ic_new(const iop_mod_t * nonnull mod,
+                      const char * nonnull schema,
                       unsigned szmax);
 
 /* helper for public interface: reject private fields in queries, and skip
  * private fields in answers */
-static inline void httpd_trigger__ic_set_public(httpd_trigger__ic_t *tcb)
+static inline
+void httpd_trigger__ic_set_public(httpd_trigger__ic_t * nonnull tcb)
 {
     tcb->unpack_flags |= IOP_UNPACK_FORBID_PRIVATE;
     tcb->xpack_flags  |= IOP_XPACK_SKIP_PRIVATE;
@@ -96,46 +98,54 @@ static inline void httpd_trigger__ic_set_public(httpd_trigger__ic_t *tcb)
 }
 
 /** \brief internal do not use directly, or know what you're doing. */
-static inline ichttp_query_t *ichttp_slot_to_query(uint64_t slot)
+static inline ichttp_query_t * nonnull ichttp_slot_to_query(uint64_t slot)
 {
     assert (ic_slot_is_http(slot));
     return (ichttp_query_t *)((uintptr_t)slot << 2);
 }
 
 /** \brief internal do not use directly, or know what you're doing. */
-static inline uint64_t ichttp_query_to_slot(ichttp_query_t *iq)
+static inline uint64_t ichttp_query_to_slot(ichttp_query_t * nonnull iq)
 {
     return IC_SLOT_FOREIGN_HTTP | ((uintptr_t)iq >> 2);
 }
 
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *, const void *);
+void __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t * nonnull,
+                    const void * nonnull);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen);
+void __ichttp_proxify(uint64_t slot, int cmd, const void * nonnull data,
+                      int dlen);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str);
+void __ichttp_reply_err(uint64_t slot, int err,
+                        const lstr_t * nullable err_str);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err);
+void __ichttp_reply_soap_err(uint64_t slot, bool serverfault,
+                             const lstr_t * nullable err);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_forward_reply(ichannel_t *pxy_ic, uint64_t slot, int cmd,
-                            const void *res, const void *exn);
+void __ichttp_forward_reply(ichannel_t * nullable pxy_ic, uint64_t slot,
+                            int cmd, const void * nullable res,
+                            const void * nullable exn);
 
 #define __ichttp_reply_soap_err_cst(slot, serverfault, err) \
     __ichttp_reply_soap_err(slot, serverfault, &LSTR_IMMED_V(err))
 
 /** \brief internal do not use directly, or know what you're doing. */
-int __t_ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
-                                    void **value, bool *soap);
+int __t_ichttp_query_on_done_stage1(httpd_query_t * nonnull q,
+                                    ichttp_cb_t * nullable * nonnull cbe,
+                                    void * nullable * nonnull value,
+                                    bool * nonnull soap);
 /** \brief internal do not use directly, or know what you're doing. */
-void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
-                                     void *value);
+void __t_ichttp_query_on_done_stage2(httpd_query_t * nonnull q,
+                                     ichttp_cb_t * nonnull cbe,
+                                     void * nullable value);
 
 /** \brief internal do not use directly, or know what you're doing. */
-ichttp_cb_t *
-__ichttp_register(httpd_trigger__ic_t *tcb,
-                  const iop_iface_alias_t *alias,
-                  const iop_rpc_t *fun, int32_t cmd,
-                  const ic_cb_entry_t *entry);
+ichttp_cb_t * nonnull
+__ichttp_register(httpd_trigger__ic_t * nonnull tcb,
+                  const iop_iface_alias_t * nonnull alias,
+                  const iop_rpc_t * nonnull fun, int32_t cmd,
+                  const ic_cb_entry_t * nonnull entry);
 
 /** \brief internal do not use directly, or know what you're doing. */
 #define ___ichttp_register(tcb, _mod, _if, _rpc, _cb)                        \

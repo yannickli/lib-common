@@ -95,10 +95,10 @@ typedef struct mem_stack_frame_t mem_stack_frame_t;
 
 struct mem_stack_frame_t {
     uintptr_t        prev;
-    mem_stack_blk_t *blk;
-    uint8_t         *pos;
-    uint8_t         *end;
-    uint8_t         *last;
+    mem_stack_blk_t * nonnull blk;
+    uint8_t         * nullable pos;
+    uint8_t         * nullable end;
+    uint8_t         * nullable last;
 };
 
 /* all fields are annotated like this [offset (size) : usage] */
@@ -113,7 +113,7 @@ typedef struct mem_stack_pool_t {
     /* hot data : align on cache boundary */
     __attribute__((aligned(64)))
 #endif
-    mem_stack_frame_t   *stack;     /*<  0  (8) : everywhere */
+    mem_stack_frame_t   * nonnull stack;     /*<  0  (8) : everywhere */
     size_t               alloc_sz;  /*<  8  (8) : alloc */
     uint32_t             alloc_nb;  /*< 16  (4) : alloc */
     uint32_t             nbpops;    /*< 20  (4) : pop */
@@ -136,15 +136,14 @@ typedef struct mem_stack_pool_t {
 #endif
 } mem_stack_pool_t;
 
-mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize)
-    __leaf;
-void              mem_stack_pool_reset(mem_stack_pool_t *)
-    __leaf;
-void              mem_stack_pool_wipe(mem_stack_pool_t *)
-    __leaf;
+mem_stack_pool_t * nonnull
+mem_stack_pool_init(mem_stack_pool_t * nonnull, int initialsize) __leaf;
+void mem_stack_pool_reset(mem_stack_pool_t * nonnull) __leaf;
+void mem_stack_pool_wipe(mem_stack_pool_t * nonnull) __leaf;
 
 #ifndef NDEBUG
-void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to);
+void mem_stack_protect(mem_stack_pool_t * nonnull sp,
+                       const mem_stack_frame_t * nonnull up_to);
 /*
  * sealing a stack frame ensures that people wanting to allocate in that stack
  * use a mem_stack_push/mem_stack_pop or a t_scope first.
@@ -161,23 +160,26 @@ void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to);
 #  define mem_stack_protect(sp, end)  ((void)0)
 #endif
 
-static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
+static ALWAYS_INLINE
+bool mem_stack_is_at_top(const mem_stack_pool_t * nonnull sp)
 {
     return sp->stack == &sp->base;
 }
 
-const void *mem_stack_push(mem_stack_pool_t *) __leaf;
+const void * nonnull mem_stack_push(mem_stack_pool_t * nonnull) __leaf;
 #ifndef NDEBUG
-const void *mem_stack_pop_libc(mem_stack_pool_t *);
+const void * nonnull mem_stack_pop_libc(mem_stack_pool_t * nonnull);
 #endif
 
 #ifdef MEM_BENCH
-void mem_stack_bench_pop(mem_stack_pool_t *, mem_stack_frame_t *);
+void mem_stack_bench_pop(mem_stack_pool_t * nonnull,
+                         mem_stack_frame_t * nonnull);
 #endif
-void mem_stack_pool_print_stats(mem_pool_t *);
+void mem_stack_pool_print_stats(const mem_pool_t * nonnull);
 void mem_stack_pools_print_stats(void);
 
-static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
+static ALWAYS_INLINE
+const void * nonnull mem_stack_pop(mem_stack_pool_t * nonnull sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
@@ -203,7 +205,7 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 
 extern __thread mem_stack_pool_t t_pool_g;
 
-static ALWAYS_INLINE mem_pool_t *t_pool(void)
+static ALWAYS_INLINE mem_pool_t * nonnull t_pool(void)
 {
     return &t_pool_g.funcs;
 }
@@ -299,7 +301,8 @@ static ALWAYS_INLINE mem_pool_t *t_pool(void)
  *         // ...
  *     }
  */
-static ALWAYS_INLINE void t_scope_cleanup(const void **unused)
+static ALWAYS_INLINE
+void t_scope_cleanup(const void * nonnull * nonnull unused)
 {
 #ifndef NDEBUG
     if (unlikely(*unused != mem_stack_pop(&t_pool_g)))
@@ -321,8 +324,8 @@ class TScope {
     inline ~TScope() { mem_stack_pop(&t_pool_g); };
   private:
     DISALLOW_COPY_AND_ASSIGN(TScope);
-    void* operator new(size_t);
-    void  operator delete(void *, size_t);
+    void*  null_unspecified operator new(size_t);
+    void  operator delete(void * null_unspecified , size_t);
 };
 #define t_scope__(n)  \
     TScope t_scope_because_cpp_sucks_donkeys_##n

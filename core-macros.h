@@ -90,6 +90,10 @@
 # define null_unspecified  _Null_unspecified
 #endif
 
+#ifdef __cplusplus
+#define restrict
+#endif
+
 /*
  * __attr_unused__             => unused vars
  * __attr_noreturn__           => functions that perform abord()/exit()

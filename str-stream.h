@@ -62,14 +62,14 @@
 
 typedef struct pstream_t {
     union {
-        const void *p;
-        const char *s;
-        const byte *b;
+        const void * nullable p;
+        const char * nullable s;
+        const byte * nullable b;
     };
     union {
-        const void *p_end;
-        const char *s_end;
-        const byte *b_end;
+        const void * nullable p_end;
+        const char * nullable s_end;
+        const byte * nullable b_end;
     };
 } pstream_t;
 
@@ -99,36 +99,48 @@ typedef struct pstream_t {
 #define PS_CHECK(c)  RETHROW(c)
 #endif
 
-static inline pstream_t ps_initptr(const void *s, const void *p) {
+static inline pstream_t ps_initptr(const void * nullable s,
+                                   const void * nullable p)
+{
     return (pstream_t){ { s }, { p } };
 }
-static inline pstream_t ps_init(const void *s, size_t len) {
+static inline pstream_t ps_init(const void * nullable s, size_t len)
+{
     return ps_initptr(s, (const byte *)s + len);
 }
-static inline pstream_t ps_initstr(const char *s) {
+static inline pstream_t ps_initstr(const char * nonnull s)
+{
     return ps_initptr(s, s + strlen(s));
 }
-static inline pstream_t ps_initlstr(const lstr_t *s) {
+static inline pstream_t ps_initlstr(const lstr_t * nonnull s)
+{
     return ps_init(s->s, s->len);
 }
-static inline pstream_t ps_initsb(const sb_t *sb) {
+static inline pstream_t ps_initsb(const sb_t * nonnull sb)
+{
     return ps_init(sb->data, sb->len);
 }
 
-static inline size_t ps_len(const pstream_t *ps) {
+static inline size_t ps_len(const pstream_t * nonnull ps)
+{
     return ps->s_end - ps->s;
 }
-static inline const void *ps_end(const pstream_t *ps) {
+static inline const void * nullable ps_end(const pstream_t * nonnull ps)
+{
     return ps->p_end;
 }
 
-static inline bool ps_done(const pstream_t *ps) {
+static inline bool ps_done(const pstream_t * nonnull ps)
+{
     return ps->p >= ps->p_end;
 }
-static inline bool ps_has(const pstream_t *ps, size_t len) {
+static inline bool ps_has(const pstream_t * nonnull ps, size_t len)
+{
     return (ps_done(ps) && len == 0) || (size_t)(ps->s_end - ps->s) >= len;
 }
-static inline bool ps_contains(const pstream_t *ps, const void *p) {
+static inline bool ps_contains(const pstream_t * nonnull ps,
+                               const void * nonnull p)
+{
     return p >= ps->p && p <= ps->p_end;
 }
 
@@ -142,42 +154,49 @@ static inline int ps_cmp(pstream_t ps1, pstream_t ps2)
     return memcmp(ps1.b, ps2.b, len) ?: CMP(ps_len(&ps1), ps_len(&ps2));
 }
 
-static inline bool ps_startswith(const pstream_t *ps, const void *data, size_t len)
+static inline bool ps_startswith(const pstream_t * nonnull ps,
+                                 const void * nonnull data, size_t len)
 {
     return ps_len(ps) >= len && !memcmp(ps->p, data, len);
 }
-static inline bool ps_startswithstr(const pstream_t *ps, const char *s)
+static inline bool ps_startswithstr(const pstream_t * nonnull ps,
+                                    const char * nonnull s)
 {
     return ps_startswith(ps, s, strlen(s));
 }
-static inline bool ps_startswithlstr(const pstream_t *ps, lstr_t s)
+static inline bool ps_startswithlstr(const pstream_t * nonnull ps, lstr_t s)
 {
     return ps_startswith(ps, s.s, s.len);
 }
 
-static inline bool ps_endswith(const pstream_t *ps, const void *data,
-                               size_t len)
+static inline bool ps_endswith(const pstream_t * nonnull ps,
+                               const void * nonnull data, size_t len)
 {
     return ps_len(ps) >= len && !memcmp(ps->b_end - len, data, len);
 }
-static inline bool ps_endswithstr(const pstream_t *ps, const char *s)
+static inline bool ps_endswithstr(const pstream_t * nonnull ps,
+                                  const char * nonnull s)
 {
     return ps_endswith(ps, s, strlen(s));
 }
-static inline bool ps_endswithlstr(const pstream_t *ps, lstr_t s)
+static inline bool ps_endswithlstr(const pstream_t * nonnull ps, lstr_t s)
 {
     return ps_endswith(ps, s.s, s.len);
 }
 
-static inline bool ps_memequal(const pstream_t *ps, const void *data, size_t len)
+static inline bool ps_memequal(const pstream_t * nonnull ps,
+                               const void * nonnull data, size_t len)
 {
     return ps_len(ps) == len && !memcmp(ps->p, data, len);
 }
-static inline bool ps_strequal(const pstream_t *ps, const char *s) {
+static inline bool ps_strequal(const pstream_t * nonnull ps,
+                               const char * nonnull s)
+{
     return ps_memequal(ps, s, strlen(s));
 }
 
-static inline bool ps_memcaseequal(const pstream_t *ps, const char *s, size_t len)
+static inline bool ps_memcaseequal(const pstream_t * nonnull ps,
+                                   const char * nonnull s, size_t len)
 {
     if (ps_len(ps) != len) {
         return false;
@@ -190,7 +209,8 @@ static inline bool ps_memcaseequal(const pstream_t *ps, const char *s, size_t le
     return true;
 }
 
-static inline bool ps_strcaseequal(const pstream_t *ps, const char *s)
+static inline bool ps_strcaseequal(const pstream_t * nonnull ps,
+                                   const char * nonnull s)
 {
     return ps_memcaseequal(ps, s, strlen(s));
 }
@@ -200,86 +220,109 @@ static inline bool ps_strcaseequal(const pstream_t *ps, const char *s)
 /* skipping/trimming helpers                                                */
 /****************************************************************************/
 
-static inline int __ps_skip(pstream_t *ps, size_t len) {
+static inline int __ps_skip(pstream_t * nonnull ps, size_t len)
+{
     assert (ps_has(ps, len));
     ps->s += len;
     return 0;
 }
-static inline int ps_skip(pstream_t *ps, size_t len) {
+static inline int ps_skip(pstream_t * nonnull ps, size_t len)
+{
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_skip(ps, len);
 }
-static inline int __ps_skip_upto(pstream_t *ps, const void *p) {
+static inline int __ps_skip_upto(pstream_t * nonnull ps,
+                                 const void * nonnull p)
+{
     assert (ps_contains(ps, p));
     ps->p = p;
     return 0;
 }
-static inline int ps_skip_upto(pstream_t *ps, const void *p) {
+static inline int ps_skip_upto(pstream_t * nonnull ps,
+                               const void * nonnull p)
+{
     PS_WANT(ps_contains(ps, p));
     return __ps_skip_upto(ps, p);
 }
 
-static inline int __ps_shrink(pstream_t *ps, size_t len) {
+static inline int __ps_shrink(pstream_t * nonnull ps, size_t len)
+{
     assert (ps_has(ps, len));
     ps->s_end -= len;
     return 0;
 }
-static inline int ps_shrink(pstream_t *ps, size_t len) {
+static inline int ps_shrink(pstream_t * nonnull ps, size_t len)
+{
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_shrink(ps, len);
 }
 
-static inline int __ps_clip(pstream_t *ps, size_t len) {
+static inline int __ps_clip(pstream_t * nonnull ps, size_t len)
+{
     assert (ps_has(ps, len));
     ps->s_end = ps->s + len;
     return 0;
 }
-static inline int ps_clip(pstream_t *ps, size_t len) {
+static inline int ps_clip(pstream_t * nonnull ps, size_t len)
+{
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_clip(ps, len);
 }
-static inline int __ps_clip_at(pstream_t *ps, const void *p) {
+static inline int __ps_clip_at(pstream_t * nonnull ps,
+                               const void * nullable p)
+{
     assert (ps_contains(ps, p));
     ps->p_end = p;
     return 0;
 }
-static inline int ps_clip_at(pstream_t *ps, const void *p) {
+static inline int ps_clip_at(pstream_t * nonnull ps, const void * nonnull p)
+{
     return unlikely(!ps_contains(ps, p)) ? -1 : __ps_clip_at(ps, p);
 }
-static inline int ps_clip_atchr(pstream_t *ps, int c) {
+static inline int ps_clip_atchr(pstream_t * nonnull ps, int c)
+{
     const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_clip_at(ps, p) : -1;
 }
-static inline int ps_clip_afterchr(pstream_t *ps, int c) {
+static inline int ps_clip_afterchr(pstream_t * nonnull ps, int c)
+{
     const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_clip_at(ps, p + 1) : -1;
 }
-static inline int ps_clip_atlastchr(pstream_t *ps, int c) {
+static inline int ps_clip_atlastchr(pstream_t * nonnull ps, int c)
+{
     const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_clip_at(ps, p) : -1;
 }
-static inline int ps_clip_afterlastchr(pstream_t *ps, int c) {
+static inline int ps_clip_afterlastchr(pstream_t * nonnull ps, int c)
+{
     const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_clip_at(ps, p + 1) : -1;
 }
 
-static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
+static inline int ps_skipdata(pstream_t * nonnull ps,
+                              const void * nonnull data, size_t len)
+{
     PS_WANT(ps_startswith(ps, data, len));
     return __ps_skip(ps, len);
 }
-static inline int ps_skipstr(pstream_t *ps, const char *s) {
+static inline int ps_skipstr(pstream_t * nonnull ps, const char * nonnull s)
+{
     return ps_skipdata(ps, s, strlen(s));
 }
-static inline int ps_skiplstr(pstream_t *ps, lstr_t s) {
+static inline int ps_skiplstr(pstream_t * nonnull ps, lstr_t s)
+{
     return ps_skipdata(ps, s.data, s.len);
 }
-static inline int ps_skip_uptochr(pstream_t *ps, int c) {
+static inline int ps_skip_uptochr(pstream_t * nonnull ps, int c)
+{
     const void *p = memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p) : -1;
 }
-static inline int ps_skip_afterchr(pstream_t *ps, int c) {
+static inline int ps_skip_afterchr(pstream_t * nonnull ps, int c)
+{
     const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
 }
 
-static inline int ps_skip_afterlastchr(pstream_t *ps, int c)
+static inline int ps_skip_afterlastchr(pstream_t * nonnull ps, int c)
 {
     const char *p = (const char *)memrchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
@@ -289,12 +332,14 @@ static inline int ps_skip_afterlastchr(pstream_t *ps, int c)
  * \return -1 if the word cannot be found
  */
 static inline
-int ps_skip_upto_data(pstream_t *ps, const void *data, size_t len)
+int ps_skip_upto_data(pstream_t * nonnull ps, const void * nonnull data,
+                      size_t len)
 {
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     return __ps_skip_upto(ps, mem);
 }
-static inline int ps_skip_upto_str(pstream_t *ps, const char *s)
+static inline int ps_skip_upto_str(pstream_t * nonnull ps,
+                                   const char * nonnull s)
 {
     return ps_skip_upto_data(ps, s, strlen(s));
 }
@@ -303,12 +348,14 @@ static inline int ps_skip_upto_str(pstream_t *ps, const char *s)
  * \return -1 if the word cannot be found
  */
 static inline
-int ps_skip_after_data(pstream_t *ps, const void *data, size_t len)
+int ps_skip_after_data(pstream_t * nonnull ps, const void * nonnull data,
+                       size_t len)
 {
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     return __ps_skip_upto(ps, (char *)mem + len);
 }
-static inline int ps_skip_after_str(pstream_t *ps, const char *s)
+static inline int ps_skip_after_str(pstream_t * nonnull ps,
+                                    const char * nonnull s)
 {
     return ps_skip_after_data(ps, s, strlen(s));
 }
@@ -321,39 +368,53 @@ static inline int ps_skip_after_str(pstream_t *ps, const char *s)
  * get means it reduces the size of the "parent" (skip or shrink)
  *
  */
-static inline pstream_t __ps_extract_after(const pstream_t *ps, const void *p) {
+static inline pstream_t __ps_extract_after(const pstream_t * nonnull ps,
+                                           const void * nonnull p)
+{
     assert (ps_contains(ps, p));
     return ps_initptr(p, ps->p_end);
 }
-static inline int ps_extract_after(pstream_t *ps, const void *p, pstream_t *out) {
+static inline int ps_extract_after(pstream_t * nonnull ps,
+                                   const void * nonnull p,
+                                   pstream_t * nonnull out)
+{
     PS_WANT(ps_contains(ps, p));
     *out = __ps_extract_after(ps, p);
     return 0;
 }
 
-static inline pstream_t __ps_get_ps_upto(pstream_t *ps, const void *p) {
+static inline pstream_t __ps_get_ps_upto(pstream_t * nonnull ps,
+                                         const void * nonnull p)
+{
     const void *old = ps->p;
     assert (ps_contains(ps, p));
     return ps_initptr(old, ps->p = p);
 }
-static inline int ps_get_ps_upto(pstream_t *ps, const void *p, pstream_t *out) {
+static inline int ps_get_ps_upto(pstream_t * nonnull ps,
+                                 const void * nonnull p,
+                                 pstream_t * nonnull out)
+{
     PS_WANT(ps_contains(ps, p));
     *out = __ps_get_ps_upto(ps, p);
     return 0;
 }
 
-static inline pstream_t __ps_get_ps(pstream_t *ps, size_t len) {
+static inline pstream_t __ps_get_ps(pstream_t * nonnull ps, size_t len)
+{
     const void *old = ps->b;
     assert (ps_has(ps, len));
     return ps_initptr(old, ps->b += len);
 }
-static inline int ps_get_ps(pstream_t *ps, size_t len, pstream_t *out) {
+static inline int ps_get_ps(pstream_t * nonnull ps, size_t len,
+                            pstream_t * nonnull out)
+{
     PS_WANT(ps_has(ps, len));
     *out = __ps_get_ps(ps, len);
     return 0;
 }
 
-static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out)
+static inline int ps_get_ps_chr(pstream_t * nonnull ps, int c,
+                                pstream_t * nonnull out)
 {
     const void *p = memchr(ps->s, c, ps_len(ps));
 
@@ -362,7 +423,8 @@ static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out)
     return 0;
 }
 
-static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out)
+static inline int ps_get_ps_chr_and_skip(pstream_t * nonnull ps, int c,
+                                         pstream_t * nonnull out)
 {
     const void *p = memchr(ps->s, c, ps_len(ps));
 
@@ -372,7 +434,8 @@ static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out)
     return 0;
 }
 
-static inline int ps_get_ps_lastchr(pstream_t *ps, int c, pstream_t *out)
+static inline int ps_get_ps_lastchr(pstream_t * nonnull ps, int c,
+                                    pstream_t * nonnull out)
 {
     const void *p = memrchr(ps->p, c, ps_len(ps));
 
@@ -382,7 +445,8 @@ static inline int ps_get_ps_lastchr(pstream_t *ps, int c, pstream_t *out)
 }
 
 static inline int
-ps_get_ps_lastchr_and_skip(pstream_t *ps, int c, pstream_t *out)
+ps_get_ps_lastchr_and_skip(pstream_t * nonnull ps, int c,
+                           pstream_t * nonnull out)
 {
     const void *p = memrchr(ps->p, c, ps_len(ps));
 
@@ -397,14 +461,16 @@ ps_get_ps_lastchr_and_skip(pstream_t *ps, int c, pstream_t *out)
  * \return -1 if the word cannot be found
  */
 static inline int
-ps_get_ps_upto_data(pstream_t *ps, const void *d, size_t len, pstream_t *out)
+ps_get_ps_upto_data(pstream_t * nonnull ps, const void * nonnull d,
+                    size_t len, pstream_t * nonnull out)
 {
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), d, len));
     *out = __ps_get_ps_upto(ps, mem);
     return 0;
 }
 static inline int
-ps_get_ps_upto_str(pstream_t *ps, const char *s, pstream_t *out)
+ps_get_ps_upto_str(pstream_t * nonnull ps, const char * nonnull s,
+                   pstream_t * nonnull out)
 {
     return ps_get_ps_upto_data(ps, s, strlen(s), out);
 }
@@ -413,8 +479,9 @@ ps_get_ps_upto_str(pstream_t *ps, const char *s, pstream_t *out)
  * \return -1 if the word cannot be found
  */
 static inline int
-ps_get_ps_upto_data_and_skip(pstream_t *ps,
-                             const void *data, size_t len, pstream_t *out)
+ps_get_ps_upto_data_and_skip(pstream_t * nonnull ps,
+                             const void * nonnull data,
+                             size_t len, pstream_t * nonnull out)
 {
     void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     *out = __ps_get_ps_upto(ps, mem);
@@ -422,7 +489,8 @@ ps_get_ps_upto_data_and_skip(pstream_t *ps,
     return 0;
 }
 static inline int
-ps_get_ps_upto_str_and_skip(pstream_t *ps, const char *s, pstream_t *out)
+ps_get_ps_upto_str_and_skip(pstream_t * nonnull ps, const char * nonnull s,
+                            pstream_t * nonnull out)
 {
     return ps_get_ps_upto_data_and_skip(ps, s, strlen(s), out);
 }
@@ -431,7 +499,8 @@ ps_get_ps_upto_str_and_skip(pstream_t *ps, const char *s, pstream_t *out)
 /* copying helpers                                                          */
 /****************************************************************************/
 
-int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
+int ps_copyv(pstream_t * nonnull ps, struct iovec * nonnull iov,
+             size_t * nonnull iov_len, int * nullable flags)
     __leaf __attr_nonnull__((1, 2, 3));
 
 
@@ -439,15 +508,17 @@ int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
 /* string parsing helpers                                                   */
 /****************************************************************************/
 
-static inline int ps_geti(pstream_t *ps) {
+static inline int ps_geti(pstream_t * nonnull ps)
+{
     return memtoip(ps->b, ps_len(ps), &ps->b);
 }
 
-static inline int64_t ps_getlli(pstream_t *ps) {
+static inline int64_t ps_getlli(pstream_t * nonnull ps)
+{
     return memtollp(ps->b, ps_len(ps), &ps->b);
 }
 
-static inline int64_t ps_get_ll_ext(pstream_t *ps, int base)
+static inline int64_t ps_get_ll_ext(pstream_t * nonnull ps, int base)
 {
     int64_t res;
 
@@ -462,7 +533,7 @@ static inline int64_t ps_get_ll_ext(pstream_t *ps, int base)
  * If the pstream begins with a minus sign (white spaces are skipped), the
  * function fails and errno is set to ERANGE.
  */
-static inline uint64_t ps_get_ull_ext(pstream_t *ps, int base)
+static inline uint64_t ps_get_ull_ext(pstream_t * nonnull ps, int base)
 {
     uint64_t res;
 
@@ -470,11 +541,11 @@ static inline uint64_t ps_get_ull_ext(pstream_t *ps, int base)
     return res;
 }
 
-static inline double ps_getd(pstream_t *ps) {
+static inline double ps_getd(pstream_t * nonnull ps) {
     return memtod(ps->b, ps_len(ps), &ps->b);
 }
 
-static inline int __ps_skipc(pstream_t *ps, int c)
+static inline int __ps_skipc(pstream_t * nonnull ps, int c)
 {
     assert (ps_has(ps, 1));
     if (*ps->b == c) {
@@ -484,13 +555,13 @@ static inline int __ps_skipc(pstream_t *ps, int c)
     return -1;
 }
 
-static inline int ps_skipc(pstream_t *ps, int c)
+static inline int ps_skipc(pstream_t * nonnull ps, int c)
 {
     PS_WANT(ps_has(ps, 1));
     return __ps_skipc(ps, c);
 }
 
-static inline int __ps_shrinkc(pstream_t *ps, int c)
+static inline int __ps_shrinkc(pstream_t * nonnull ps, int c)
 {
     assert (ps_has(ps, 1));
     if (*(ps->b_end - 1) == c) {
@@ -500,45 +571,53 @@ static inline int __ps_shrinkc(pstream_t *ps, int c)
     return -1;
 }
 
-static inline int ps_shrinkc(pstream_t *ps, int c)
+static inline int ps_shrinkc(pstream_t * nonnull ps, int c)
 {
     PS_WANT(ps_has(ps, 1));
     return __ps_shrinkc(ps, c);
 }
 
-static inline int __ps_getc(pstream_t *ps) {
+static inline int __ps_getc(pstream_t * nonnull ps)
+{
     int c = *ps->b;
     __ps_skip(ps, 1);
     return c;
 }
 
-static inline int ps_getc(pstream_t *ps) {
+static inline int ps_getc(pstream_t * nonnull ps)
+{
     if (unlikely(!ps_has(ps, 1)))
         return EOF;
     return __ps_getc(ps);
 }
 
-static inline int ps_peekc(pstream_t ps) {
+static inline int ps_peekc(pstream_t ps)
+{
     return ps_getc(&ps);
 }
 
-static inline int ps_getuc(pstream_t *ps) {
+static inline int ps_getuc(pstream_t * nonnull ps)
+{
     return utf8_ngetc(ps->s, ps_len(ps), &ps->s);
 }
 
-static inline int ps_peekuc(pstream_t ps) {
+static inline int ps_peekuc(pstream_t ps)
+{
     return ps_getuc(&ps);
 }
 
-static inline int __ps_hexdigit(pstream_t *ps) {
+static inline int __ps_hexdigit(pstream_t * nonnull ps)
+{
     return hexdigit(__ps_getc(ps));
 }
-static inline int ps_hexdigit(pstream_t *ps) {
+static inline int ps_hexdigit(pstream_t * nonnull ps)
+{
     PS_WANT(ps_has(ps, 1));
     return __ps_hexdigit(ps);
 }
 
-static inline int ps_hex16(pstream_t *ps, int len, uint16_t *res)
+static inline int ps_hex16(pstream_t * nonnull ps, int len,
+                           uint16_t * nonnull res)
 {
     const byte *b = ps->b;
 
@@ -555,7 +634,8 @@ static inline int ps_hex16(pstream_t *ps, int len, uint16_t *res)
     return __ps_skip(ps, len);
 }
 
-static inline int ps_hexdecode(pstream_t *ps) {
+static inline int ps_hexdecode(pstream_t * nonnull ps)
+{
     int res;
     PS_WANT(ps_has(ps, 2));
     res = hexdecode(ps->s);
@@ -563,7 +643,9 @@ static inline int ps_hexdecode(pstream_t *ps) {
     return res;
 }
 
-static inline const char *ps_gets(pstream_t *ps, int * nullable len) {
+static inline const char * nullable ps_gets(pstream_t * nonnull ps,
+                                            int * nullable len)
+{
     const char *end = (const char *)memchr(ps->s, '\0', ps_len(ps));
     const char *res = ps->s;
 
@@ -579,13 +661,15 @@ static inline const char *ps_gets(pstream_t *ps, int * nullable len) {
  * next '\0' and returns LSTR_NULL_V iff the pstream isn't null-terminated
  * XXX if you want to get the whole pstream, you should use LSTR_PS_V instead
  */
-static inline lstr_t ps_get_lstr(pstream_t *ps) {
+static inline lstr_t ps_get_lstr(pstream_t * nonnull ps)
+{
     int len = 0;
     const char *s = ps_gets(ps, &len);
     return LSTR_INIT_V(s, len);
 }
 
-static inline int ps_skipcasedata(pstream_t *ps, const char *s, int len)
+static inline int ps_skipcasedata(pstream_t * nonnull ps,
+                                  const char * nonnull s, int len)
 {
     PS_WANT(ps_has(ps, len));
     for (int i = 0; i < len; i++)
@@ -593,12 +677,14 @@ static inline int ps_skipcasedata(pstream_t *ps, const char *s, int len)
     return __ps_skip(ps, len);
 }
 
-static inline int ps_skipcasestr(pstream_t *ps, const char *s)
+static inline int ps_skipcasestr(pstream_t * nonnull ps,
+                                 const char * nonnull s)
 {
     return ps_skipcasedata(ps, s, strlen(s));
 }
 
-static inline size_t ps_skip_span(pstream_t *ps, const ctype_desc_t *d)
+static inline size_t ps_skip_span(pstream_t * nonnull ps,
+                                  const ctype_desc_t * nonnull d)
 {
     size_t l = 0;
 
@@ -608,7 +694,8 @@ static inline size_t ps_skip_span(pstream_t *ps, const ctype_desc_t *d)
     return l;
 }
 
-static inline size_t ps_skip_cspan(pstream_t *ps, const ctype_desc_t *d)
+static inline size_t ps_skip_cspan(pstream_t * nonnull ps,
+                                   const ctype_desc_t * nonnull d)
 {
     size_t l = 0;
 
@@ -624,7 +711,8 @@ static inline size_t ps_skip_cspan(pstream_t *ps, const ctype_desc_t *d)
  * @return a sub pstream spanning on the first characters
  *         contained by d
  */
-static inline pstream_t ps_get_span(pstream_t *ps, const ctype_desc_t *d)
+static inline pstream_t ps_get_span(pstream_t * nonnull ps,
+                                    const ctype_desc_t * nonnull d)
 {
     const byte *b = ps->b;
 
@@ -639,7 +727,8 @@ static inline pstream_t ps_get_span(pstream_t *ps, const ctype_desc_t *d)
  * @return a sub pstream spanning on the first characters
  *         not contained by d
  */
-static inline pstream_t ps_get_cspan(pstream_t *ps, const ctype_desc_t *d)
+static inline pstream_t ps_get_cspan(pstream_t * nonnull ps,
+                                     const ctype_desc_t * nonnull d)
 {
     const byte *b = ps->b;
 
@@ -655,7 +744,8 @@ static inline pstream_t ps_get_cspan(pstream_t *ps, const ctype_desc_t *d)
  * \return true if ps contains at least one character from d, false otherwise.
  */
 static inline bool
-ps_has_char_in_ctype(const pstream_t *ps, const ctype_desc_t *d)
+ps_has_char_in_ctype(const pstream_t * nonnull ps,
+                     const ctype_desc_t * nonnull d)
 {
     for (const byte *b = ps->b; b < ps->b_end; b++) {
         if (ctype_desc_contains(d, *b)) {
@@ -665,19 +755,20 @@ ps_has_char_in_ctype(const pstream_t *ps, const ctype_desc_t *d)
     return false;
 }
 
-static inline pstream_t ps_get_tok(pstream_t *ps, const ctype_desc_t *d)
+static inline pstream_t ps_get_tok(pstream_t * nonnull ps,
+                                   const ctype_desc_t * nonnull d)
 {
     pstream_t out = ps_get_cspan(ps, d);
     ps_skip_span(ps, d);
     return out;
 }
 
-static inline size_t ps_ltrim(pstream_t *ps)
+static inline size_t ps_ltrim(pstream_t * nonnull ps)
 {
     return ps_skip_span(ps, &ctype_isspace);
 }
 #define ps_skipspaces ps_ltrim
-static inline size_t ps_rtrim(pstream_t *ps)
+static inline size_t ps_rtrim(pstream_t * nonnull ps)
 {
     const uint8_t *end = ps->b_end;
     size_t res;
@@ -688,7 +779,7 @@ static inline size_t ps_rtrim(pstream_t *ps)
     ps->b_end = end;
     return res;
 }
-static inline size_t ps_trim(pstream_t *ps)
+static inline size_t ps_trim(pstream_t * nonnull ps)
 {
     return ps_ltrim(ps) + ps_rtrim(ps);
 }
@@ -726,8 +817,9 @@ union qv_lstr_t;
  * \return -1 if the content of the pstream does not starts with a valid CSV
  *            record.
  */
-int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
-                    union qv_lstr_t *fields, pstream_t *out_line);
+int ps_get_csv_line(mem_pool_t * nullable mp, pstream_t * nonnull ps, int sep,
+                    int quote, union qv_lstr_t * nonnull fields,
+                    pstream_t * nullable out_line);
 
 enum {
     PS_SPLIT_SKIP_EMPTY = 1 << 0
@@ -747,8 +839,8 @@ enum {
  * \param flags Some flags (see the enum declaration above)
  * \param res A vector that get filled with the content of the ps.
  */
-void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
-              union qv_lstr_t *res);
+void ps_split(pstream_t ps, const ctype_desc_t * nonnull sep, unsigned flags,
+              union qv_lstr_t * nonnull res);
 
 /****************************************************************************/
 /* binary parsing helpers                                                   */
@@ -761,17 +853,21 @@ void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
  * results will be completely absurd.
  */
 
-static inline bool ps_aligned(const pstream_t *ps, size_t align) {
+static inline bool ps_aligned(const pstream_t * nonnull ps, size_t align)
+{
     return ((uintptr_t)ps->p & (align - 1)) == 0;
 }
 #define ps_aligned2(ps)   ps_aligned(ps, 2)
 #define ps_aligned4(ps)   ps_aligned(ps, 4)
 #define ps_aligned8(ps)   ps_aligned(ps, 8)
 
-static inline int __ps_align(pstream_t *ps, uintptr_t align) {
+static inline int __ps_align(pstream_t * nonnull ps, uintptr_t align)
+{
     return __ps_skip_upto(ps, (const void *)ROUND_UP((uintptr_t)ps->b, align));
 }
-static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align) {
+static inline const void * nonnull
+__ps_get_block(pstream_t * nonnull ps, size_t len, size_t align)
+{
     const void *p = ps->p;
     __ps_skip(ps, (len + align - 1) & ~(align - 1));
     return p;
@@ -781,12 +877,15 @@ static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align
 #define __ps_get_type4(ps, type_t)  ((type_t *)__ps_get_block(ps, sizeof(type_t), 4))
 #define __ps_get_type8(ps, type_t)  ((type_t *)__ps_get_block(ps, sizeof(type_t), 8))
 
-static inline int ps_align(pstream_t *ps, uintptr_t align) {
+static inline int ps_align(pstream_t * nonnull ps, uintptr_t align)
+{
     const void *p = (const void *)ROUND_UP((uintptr_t)ps->b, align);
     PS_WANT(p <= ps->p_end);
     return __ps_skip_upto(ps, p);
 }
-static inline const void *ps_get_block(pstream_t *ps, size_t len, size_t align) {
+static inline const void * nullable
+ps_get_block(pstream_t * nonnull ps, size_t len, size_t align)
+{
     return unlikely(!ps_has(ps, len)) ? NULL : __ps_get_block(ps, len, align);
 }
 #define ps_get_type(ps,  type_t)    ((type_t *)ps_get_block(ps, sizeof(type_t), 1))
@@ -801,7 +900,7 @@ static inline const void *ps_get_block(pstream_t *ps, size_t len, size_t align) 
 
 #define PS_FMT_ARG(ps)  (int)ps_len(ps), (ps)->s
 
-static inline void sb_add_ps(sb_t *sb, pstream_t ps)
+static inline void sb_add_ps(sb_t * nonnull sb, pstream_t ps)
 {
     sb_add(sb, ps.s, ps_len(&ps));
 }

@@ -29,9 +29,17 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #include "net-addr.h"
 #include "net-socket.h"
 #include "net-sctp.h"
 #include "net-rate.h"
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

@@ -16,6 +16,10 @@
 
 #include "core.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #include "arith-endianess.h"
 #include "arith-cmp.h"
 #include "arith-float.h"
@@ -40,5 +44,9 @@ unsigned gcd_stein(unsigned a, unsigned b);
 uint32_t get_multiples_nb_in_range(uint32_t n, uint32_t min, uint32_t max);
 
 extern uint64_t const powerof10[16];
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

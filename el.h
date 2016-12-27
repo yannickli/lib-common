@@ -71,6 +71,9 @@
 #define IN_CLOSE  (IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)
 #endif
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
 
 typedef struct ev_t *el_t;
 
@@ -79,29 +82,32 @@ typedef struct ev_t *el_t;
  */
 typedef data_t el_data_t;
 
-typedef void (el_cb_f)(el_t, data_t);
-typedef void (el_signal_f)(el_t, int, data_t);
-typedef void (el_child_f)(el_t, pid_t, int, data_t);
-typedef int  (el_fd_f)(el_t, int, short, data_t);
-typedef void (el_proxy_f)(el_t, short, data_t);
-typedef void (el_fs_watch_f)(el_t, uint32_t mask, uint32_t cookie,
+typedef void (el_cb_f)(el_t nonnull, data_t);
+typedef void (el_signal_f)(el_t nonnull, int, data_t);
+typedef void (el_child_f)(el_t nonnull, pid_t, int, data_t);
+typedef int  (el_fd_f)(el_t nonnull, int, short, data_t);
+typedef void (el_proxy_f)(el_t nonnull, short, data_t);
+typedef void (el_fs_watch_f)(el_t nonnull, uint32_t mask, uint32_t cookie,
                              lstr_t name, data_t);
 typedef void (el_worker_f)(int timeout);
 
 #ifdef __has_blocks
-typedef void (BLOCK_CARET el_cb_b)(el_t);
-typedef void (BLOCK_CARET el_signal_b)(el_t, int);
-typedef void (BLOCK_CARET el_child_b)(el_t, pid_t, int);
-typedef int  (BLOCK_CARET el_fd_b)(el_t, int, short);
-typedef void (BLOCK_CARET el_proxy_b)(el_t, short);
-typedef void (BLOCK_CARET el_fs_watch_b)(el_t, uint32_t, uint32_t, lstr_t);
+typedef void (BLOCK_CARET el_cb_b)(el_t nonnull);
+typedef void (BLOCK_CARET el_signal_b)(el_t nonnull, int);
+typedef void (BLOCK_CARET el_child_b)(el_t nonnull, pid_t, int);
+typedef int  (BLOCK_CARET el_fd_b)(el_t nonnull, int, short);
+typedef void (BLOCK_CARET el_proxy_b)(el_t nonnull, short);
+typedef void (BLOCK_CARET el_fs_watch_b)(el_t nonnull, uint32_t, uint32_t,
+                                         lstr_t);
 #endif
 
-el_t el_blocker_register(void) __leaf;
-el_t el_before_register_d(el_cb_f *, data_t) __leaf;
-el_t el_idle_register_d(el_cb_f, data_t) __leaf;
-el_t el_signal_register_d(int signo, el_signal_f *, data_t) __leaf;
-el_t el_child_register_d(pid_t pid, el_child_f *, data_t) __leaf;
+el_t nonnull el_blocker_register(void) __leaf;
+el_t nonnull el_before_register_d(el_cb_f * nonnull, data_t) __leaf;
+el_t nonnull el_idle_register_d(el_cb_f * nonnull, data_t) __leaf;
+el_t nonnull el_signal_register_d(int signo, el_signal_f * nonnull, data_t)
+    __leaf;
+el_t nonnull el_child_register_d(pid_t pid, el_child_f * nonnull, data_t)
+    __leaf;
 
 #ifdef __has_blocks
 /* The block based API takes a block version of the callback and a second
@@ -113,10 +119,14 @@ el_t el_child_register_d(pid_t pid, el_child_f *, data_t) __leaf;
  * blocks.
  */
 
-el_t el_before_register_blk(el_cb_b, block_t wipe) __leaf;
-el_t el_idle_register_blk(el_cb_b, block_t wipe) __leaf;
-el_t el_signal_register_blk(int signo, el_signal_b, block_t) __leaf;
-el_t el_child_register_blk(pid_t pid, el_child_b, block_t) __leaf;
+el_t nonnull el_before_register_blk(el_cb_b nonnull, block_t nullable wipe)
+    __leaf;
+el_t nonnull el_idle_register_blk(el_cb_b nonnull, block_t nullable wipe)
+    __leaf;
+el_t nonnull el_signal_register_blk(int signo, el_signal_b nonnull,
+                                    block_t nullable) __leaf;
+el_t nonnull el_child_register_blk(pid_t pid, el_child_b nonnull,
+                                   block_t nullable) __leaf;
 
 /** Run a command in the background.
  *
@@ -129,50 +139,61 @@ el_t el_child_register_blk(pid_t pid, el_child_b, block_t) __leaf;
  *
  * \return the pid
  */
-pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
-                     block_t child, el_child_b blk, block_t wipe);
+pid_t el_spawn_child(const char * nonnull file, const char * nullable argv[],
+                     const char * nullable envp[], block_t nullable child,
+                     el_child_b nonnull blk, block_t nullable wipe);
 #endif
 
-static inline el_t el_before_register(el_cb_f *f, void *ptr) {
+static inline el_t nonnull
+el_before_register(el_cb_f * nonnull f, void * nullable ptr)
+{
     return el_before_register_d(f, (data_t){ ptr });
 }
-static inline el_t el_idle_register(el_cb_f *f, void *ptr) {
+static inline el_t nonnull
+el_idle_register(el_cb_f * nonnull f, void * nullable ptr)
+{
     return el_idle_register_d(f, (data_t){ ptr });
 }
-static inline el_t el_signal_register(int signo, el_signal_f *f, void *ptr) {
+static inline el_t nonnull
+el_signal_register(int signo, el_signal_f * nonnull f, void * nullable ptr)
+{
     return el_signal_register_d(signo, f, (data_t){ ptr });
 }
-static inline el_t el_child_register(pid_t pid, el_child_f *f, void *ptr) {
+static inline el_t nonnull
+el_child_register(pid_t pid, el_child_f * nonnull f, void * nullable ptr)
+{
     return el_child_register_d(pid, f, (data_t){ ptr });
 }
 
-void el_before_set_hook(el_t, el_cb_f *) __leaf;
-void el_idle_set_hook(el_t, el_cb_f *) __leaf;
-void el_signal_set_hook(el_t, el_signal_f *) __leaf;
-void el_child_set_hook(el_t, el_child_f *) __leaf;
+void el_before_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
+void el_idle_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
+void el_signal_set_hook(el_t nonnull, el_signal_f * nonnull) __leaf;
+void el_child_set_hook(el_t nonnull, el_child_f * nonnull) __leaf;
 
 /** Unregister an event whatever its type. */
-data_t el_unregister(el_t *);
+data_t el_unregister(el_t nullable * nonnull);
 
 /*----- idle related -----*/
-void el_idle_unpark(el_t) __leaf;
+void el_idle_unpark(el_t nonnull) __leaf;
 
 /*----- child related -----*/
-pid_t el_child_getpid(el_t) __leaf __attribute__((pure));
-int   el_child_get_status(el_t) __leaf;
+pid_t el_child_getpid(el_t nonnull) __leaf __attribute__((pure));
+int   el_child_get_status(el_t nonnull) __leaf;
 
 /*----- proxy related -----*/
-el_t el_proxy_register_d(el_proxy_f *, data_t) __leaf;
+el_t nonnull el_proxy_register_d(el_proxy_f * nonnull, data_t) __leaf;
 #ifdef __has_blocks
-el_t el_proxy_register_blk(el_proxy_b, block_t) __leaf;
+el_t nonnull el_proxy_register_blk(el_proxy_b nonnull, block_t nullable) __leaf;
 #endif
-static inline el_t el_proxy_register(el_proxy_f *f, void *ptr) {
+static inline el_t nonnull
+el_proxy_register(el_proxy_f * nonnull f, void * nullable ptr)
+{
     return el_proxy_register_d(f, (data_t){ ptr });
 }
-void el_proxy_set_hook(el_t, el_proxy_f *) __leaf;
-short el_proxy_set_event(el_t, short mask) __leaf;
-short el_proxy_clr_event(el_t, short mask) __leaf;
-short el_proxy_set_mask(el_t, short mask) __leaf;
+void el_proxy_set_hook(el_t nonnull, el_proxy_f * nonnull) __leaf;
+short el_proxy_set_event(el_t nonnull, short mask) __leaf;
+short el_proxy_clr_event(el_t nonnull, short mask) __leaf;
+short el_proxy_set_mask(el_t nonnull, short mask) __leaf;
 
 /*----- fd related -----*/
 extern struct rlimit fd_limit_g;
@@ -183,18 +204,21 @@ typedef enum ev_priority_t {
     EV_PRIORITY_HIGH   = 2
 } ev_priority_t;
 
-el_t el_fd_register_d(int fd, bool own_fd, short events, el_fd_f *, data_t)
+el_t nonnull el_fd_register_d(int fd, bool own_fd, short events,
+                              el_fd_f * nonnull, data_t)
     __leaf;
 #ifdef __has_blocks
-el_t el_fd_register_blk(int fd, bool own_fd, short events, el_fd_b, block_t)
+el_t nonnull el_fd_register_blk(int fd, bool own_fd, short events,
+                                el_fd_b nonnull, block_t nullable)
     __leaf;
 #endif
-static inline el_t el_fd_register(int fd, bool own_fd, short events,
-                                  el_fd_f *f, void *ptr)
+static inline el_t nonnull
+el_fd_register(int fd, bool own_fd, short events, el_fd_f * nonnull f,
+               void * nullable ptr)
 {
     return el_fd_register_d(fd, own_fd, events, f, (data_t){ ptr });
 }
-void el_fd_set_hook(el_t, el_fd_f *)
+void el_fd_set_hook(el_t nonnull, el_fd_f * nonnull)
     __leaf;
 
 typedef enum ev_fd_loop_flags_t {
@@ -202,15 +226,16 @@ typedef enum ev_fd_loop_flags_t {
     EV_FDLOOP_HANDLE_TIMERS  = 1 << 1,
 } ev_fd_loop_flags_t;
 
-int   el_fd_loop(el_t, int timeout);
-int   el_fds_loop(el_t *els, int el_count, int timeout, unsigned flags);
+int   el_fd_loop(el_t nonnull, int timeout);
+int   el_fds_loop(el_t nonnull * nonnull els, int el_count, int timeout,
+                  unsigned flags);
 
-short el_fd_get_mask(el_t) __leaf __attribute__((pure));
-short el_fd_set_mask(el_t, short events) __leaf;
-int   el_fd_get_fd(el_t) __leaf __attribute__((pure));
-void  el_fd_mark_fired(el_t) __leaf;
+short el_fd_get_mask(el_t nonnull) __leaf __attribute__((pure));
+short el_fd_set_mask(el_t nonnull, short events) __leaf;
+int   el_fd_get_fd(el_t nonnull) __leaf __attribute__((pure));
+void  el_fd_mark_fired(el_t nonnull) __leaf;
 
-ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
+ev_priority_t el_fd_set_priority(el_t nonnull, ev_priority_t priority);
 #define el_fd_set_priority(el, prio)  \
     (el_fd_set_priority)((el), EV_PRIORITY_##prio)
 
@@ -227,7 +252,7 @@ ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
  *      descriptor el_t, then this is a no-op.
  */
 #define EL_EVENTS_NOACT  ((short)-1)
-int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
+int   el_fd_watch_activity(el_t nonnull, short mask, int timeout) __leaf;
 
 
 /**
@@ -245,16 +270,17 @@ int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
  * infrastructure. Look at \ref thr_queue and \ref thr_queue_main_g before
  * using a waker by hand.
  */
-el_t el_wake_register_d(el_cb_f *, data_t);
+el_t nullable el_wake_register_d(el_cb_f * nonnull, data_t);
 #ifdef __has_blocks
-el_t el_wake_register_blk(el_cb_b, block_t);
+el_t nullable el_wake_register_blk(el_cb_b nonnull, block_t nullable);
 #endif
-static inline el_t el_wake_register(el_cb_f *cb, void *ptr)
+static inline el_t nullable
+el_wake_register(el_cb_f * nonnull cb, void * nullable ptr)
 {
     return el_wake_register_d(cb, (data_t){ ptr });
 }
 
-void el_wake_fire(el_t);
+void el_wake_fire(el_t nonnull);
 
 /** \} */
 
@@ -267,19 +293,23 @@ void el_wake_fire(el_t);
  *
  *  \warning you must not add more that one watch for a given path.
  */
-el_t el_fs_watch_register_d(const char *, uint32_t, el_fs_watch_f *, data_t);
+el_t nullable el_fs_watch_register_d(const char * nonnull, uint32_t,
+                                     el_fs_watch_f * nonnull, data_t);
 #ifdef __has_blocks
-el_t el_fs_watch_register_blk(const char *, uint32_t, el_fs_watch_b, block_t);
+el_t nullable el_fs_watch_register_blk(const char * nonnull, uint32_t,
+                                       el_fs_watch_b nonnull,
+                                       block_t nullable);
 #endif
-static inline el_t el_fs_watch_register(const char *path, uint32_t flags,
-                                        el_fs_watch_f *f, void *ptr)
+static inline el_t nullable
+el_fs_watch_register(const char * nonnull path, uint32_t flags,
+                     el_fs_watch_f * nonnull f, void * nullable ptr)
 {
     return el_fs_watch_register_d(path, flags, f, (data_t){ ptr });
 }
 
-int el_fs_watch_change(el_t el, uint32_t flags);
+int el_fs_watch_change(el_t nonnull el, uint32_t flags);
 
-const char *el_fs_watch_get_path(el_t el);
+const char * nonnull el_fs_watch_get_path(el_t nonnull el);
 
 /** \} */
 
@@ -312,18 +342,21 @@ enum {
  * \param[in]  priv    private data.
  * \return the timer handler descriptor.
  */
-el_t el_timer_register_d(int next, int repeat, int flags, el_cb_f *, data_t)
+el_t nonnull el_timer_register_d(int next, int repeat, int flags,
+                                 el_cb_f * nonnull, data_t)
     __leaf;
 #ifdef __has_blocks
-el_t el_timer_register_blk(int next, int repeat, int flags, el_cb_b, block_t)
+el_t nonnull el_timer_register_blk(int next, int repeat, int flags,
+                                   el_cb_b nonnull, block_t nullable)
     __leaf;
 #endif
-static inline
-el_t el_timer_register(int next, int repeat, int flags, el_cb_f *f, void *ptr)
+static inline el_t nonnull
+el_timer_register(int next, int repeat, int flags, el_cb_f * nonnull f,
+                  void * nullable ptr)
 {
     return el_timer_register_d(next, repeat, flags, f, (data_t){ ptr });
 }
-bool el_timer_is_repeated(el_t ev) __leaf __attribute__((pure));
+bool el_timer_is_repeated(el_t nonnull ev) __leaf __attribute__((pure));
 
 /** \brief restart a single shot timer.
  *
@@ -333,8 +366,8 @@ bool el_timer_is_repeated(el_t ev) __leaf __attribute__((pure));
  * \param[in]  next    relative time in ms at wich the timers will fire. If
  *                     it's negative, the previous relative value is reused.
  */
-void el_timer_restart(el_t, int next) __leaf;
-void el_timer_set_hook(el_t, el_cb_f *) __leaf;
+void el_timer_restart(el_t nonnull, int next) __leaf;
+void el_timer_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
 
 /**\}*/
 
@@ -344,17 +377,17 @@ void el_timer_set_hook(el_t, el_cb_f *) __leaf;
  *
  * \warning this is forbidden for FS_WATCH events.
  */
-el_t el_unref(el_t) __leaf;
+el_t nonnull el_unref(el_t nonnull) __leaf;
 
 /** Reference an event. */
-el_t el_ref(el_t) __leaf;
+el_t nonnull el_ref(el_t nonnull) __leaf;
 
 #ifndef NDEBUG
-bool el_set_trace(el_t, bool trace) __leaf;
+bool el_set_trace(el_t nonnull, bool trace) __leaf;
 #else
 #define el_set_trace(ev, trace)
 #endif
-data_t el_set_priv(el_t, data_t) __leaf;
+data_t el_set_priv(el_t nonnull, data_t) __leaf;
 
 void el_bl_use(void) __leaf;
 void el_bl_lock(void);
@@ -372,10 +405,10 @@ void el_bl_unlock(void);
  * \param[in] worker The new worker (NULL to unset the current worker)
  * \return The previous worker (NULL if there were no worker)
  */
-el_worker_f *el_set_worker(el_worker_f *worker);
+el_worker_f * nullable el_set_worker(el_worker_f * nullable worker);
 
-void el_cond_wait(pthread_cond_t *);
-void el_cond_signal(pthread_cond_t *) __leaf;
+void el_cond_wait(pthread_cond_t * nonnull);
+void el_cond_signal(pthread_cond_t * nonnull) __leaf;
 
 void el_loop(void);
 void el_unloop(void) __leaf;
@@ -398,4 +431,9 @@ MODULE_DECLARE(el);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, print_state);
 
 /* }}} */
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
+
 #endif

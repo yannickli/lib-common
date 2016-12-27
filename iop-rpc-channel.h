@@ -59,16 +59,17 @@ typedef struct ic_creds_t {
     int   pid;
 } ic_creds_t;
 
-typedef void (ic_hook_f)(ichannel_t *, ic_event_t evt);
-typedef void (ic_pre_hook_f)(ichannel_t *, uint64_t,
-                             const ic__hdr__t *, data_t);
-typedef void (ic_post_hook_f)(ichannel_t *, ic_status_t,
-                              ic_hook_ctx_t *, data_t,
+typedef void (ic_hook_f)(ichannel_t * nonnull, ic_event_t evt);
+typedef void (ic_pre_hook_f)(ichannel_t * nullable, uint64_t,
+                             const ic__hdr__t * nullable, data_t);
+typedef void (ic_post_hook_f)(ichannel_t * nullable, ic_status_t,
+                              ic_hook_ctx_t * nonnull, data_t,
                               const iop_struct_t * nullable,
                               const void * nullable);
-typedef int (ic_creds_f)(ichannel_t *, const ic_creds_t *creds);
-typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
-                           ic_status_t, void *, void *);
+typedef int (ic_creds_f)(ichannel_t * nonnull,
+                         const ic_creds_t * nonnull creds);
+typedef void (ic_msg_cb_f)(ichannel_t * nonnull, ic_msg_t * nonnull,
+                           ic_status_t, void * nullable, void * nullable);
 
 struct ic_msg_t {
     htnode_t      msg_link;        /**< private field used by ichannel_t */
@@ -90,19 +91,19 @@ struct ic_msg_t {
     uint32_t slot;                 /**< automatically filled by ic_query/reply
                                         */
     uint32_t timeout;              /**< max lifetime of the query */
-    ichannel_t *ic;                /**< the ichannel_t used for the query */
-    el_t     timeout_timer;
+    ichannel_t * nullable ic;      /**< the ichannel_t used for the query */
+    el_t nullable timeout_timer;
     unsigned dlen;
-    void    *data;
+    void    * nullable data;
     pstream_t raw_res;
 
     /* user provided fields */
-    const iop_rpc_t  *rpc;
-    const ic__hdr__t *hdr;
-    ic_msg_cb_f      *cb;
+    const iop_rpc_t  * nullable rpc;
+    const ic__hdr__t * nullable hdr;
+    ic_msg_cb_f      * nullable cb;
     byte              priv[];
 };
-ic_msg_t *ic_msg_new(int len);
+ic_msg_t * nonnull ic_msg_new(int len);
 #define ic_msg_p(_t, _v)                                                     \
     ({                                                                       \
         ic_msg_t *_msg = ic_msg_new(sizeof(_t));                             \
@@ -111,9 +112,10 @@ ic_msg_t *ic_msg_new(int len);
     })
 #define ic_msg(_t, ...)  ic_msg_p(_t, (&(_t){ __VA_ARGS__ }))
 
-ic_msg_t *ic_msg_new_fd(int fd, int len);
-ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr);
-void ic_msg_delete(ic_msg_t **);
+ic_msg_t * nonnull ic_msg_new_fd(int fd, int len);
+ic_msg_t * nonnull ic_msg_proxy_new(int fd, uint64_t slot,
+                                    const ic__hdr__t * nullable hdr);
+void ic_msg_delete(ic_msg_t * nullable * nonnull);
 
 /** Cancel an ic message.
  *
@@ -122,7 +124,7 @@ void ic_msg_delete(ic_msg_t **);
  *
  * \param[in]  msg the message to cancel.
  */
-void ic_msg_cancel(ic_msg_t *msg);
+void ic_msg_cancel(ic_msg_t * nonnull msg);
 
 /** Set a timeout for ic_msg_t.
  *
@@ -138,7 +140,8 @@ void ic_msg_cancel(ic_msg_t *msg);
  *
  * \return the ic_msg_t with the timeout set.
  */
-ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout);
+ic_msg_t * nonnull ic_msg_set_timeout(ic_msg_t * nonnull msg,
+                                      uint32_t timeout);
 
 /** Set a priority for ic_msg_t.
  *
@@ -153,22 +156,23 @@ ic_msg_t *ic_msg_set_timeout(ic_msg_t *msg, uint32_t timeout);
  *
  * \return the ic_msg_t with the priority set.
  */
-ic_msg_t *ic_msg_set_priority(ic_msg_t *msg, ev_priority_t priority);
+ic_msg_t * nonnull ic_msg_set_priority(ic_msg_t * nonnull msg,
+                                       ev_priority_t priority);
 
-qm_k32_t(ic_msg, ic_msg_t *);
+qm_k32_t(ic_msg, ic_msg_t * nonnull);
 
 struct ic_hook_ctx_t {
     uint64_t         slot;
-    ic_post_hook_f  *post_hook;
-    const iop_rpc_t *rpc;
+    ic_post_hook_f  * nullable post_hook;
+    const iop_rpc_t * nonnull rpc;
     data_t           post_hook_args;
     byte             data[];  /* data to pass through RPC workflow */
 };
 
-int ic_hook_ctx_save(ic_hook_ctx_t *ctx);
-ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra);
-ic_hook_ctx_t *ic_hook_ctx_get(uint64_t slot);
-void ic_hook_ctx_delete(ic_hook_ctx_t **pctx);
+int ic_hook_ctx_save(ic_hook_ctx_t * nonnull ctx);
+ic_hook_ctx_t * nonnull ic_hook_ctx_new(uint64_t slot, ssize_t extra);
+ic_hook_ctx_t * nullable ic_hook_ctx_get(uint64_t slot);
+void ic_hook_ctx_delete(ic_hook_ctx_t * nullable * nonnull pctx);
 
 enum ic_cb_entry_type {
     IC_CB_NORMAL,
@@ -179,8 +183,8 @@ enum ic_cb_entry_type {
 };
 
 typedef struct ic_dynproxy_t {
-    ichannel_t *ic;
-    ic__hdr__t *hdr;
+    ichannel_t * nullable ic;
+    ic__hdr__t * nullable hdr;
 } ic_dynproxy_t;
 
 /** Callback to fetch a dynamic proxy (pair of ichannel + header).
@@ -188,7 +192,8 @@ typedef struct ic_dynproxy_t {
  * This function is allowed to return an header allocated on the t_pool() just
  * like a t_ function.
  */
-typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t *hdr, void *priv);
+typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t * nullable hdr,
+                                      void * nullable priv);
 
 #define IC_DYNPROXY_NULL    ((ic_dynproxy_t){ .ic = NULL })
 #define IC_DYNPROXY(_ic)    ((ic_dynproxy_t){ .ic = (_ic) })
@@ -197,34 +202,36 @@ typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t *hdr, void *priv);
 
 typedef struct ic_cb_entry_t {
     int cb_type;
-    const iop_rpc_t *rpc;
+    const iop_rpc_t * nonnull rpc;
 
-    ic_pre_hook_f  *pre_hook;
-    ic_post_hook_f *post_hook;
+    ic_pre_hook_f  * nullable pre_hook;
+    ic_post_hook_f * nullable post_hook;
     data_t          pre_hook_args;
     data_t          post_hook_args;
     union {
         struct {
-            void (*cb)(ichannel_t *, uint64_t, void *, const ic__hdr__t *);
+            void (* nonnull cb)(ichannel_t * nonnull, uint64_t,
+                                void * nullable, const ic__hdr__t * nullable);
         } cb;
 
         struct {
-            ichannel_t *ic_p;
-            ic__hdr__t *hdr_p;
+            ichannel_t * nonnull ic_p;
+            ic__hdr__t * nullable hdr_p;
         } proxy_p;
 
         struct {
-            ichannel_t **ic_pp;
-            ic__hdr__t **hdr_pp;
+            ichannel_t * nullable * nonnull ic_pp;
+            ic__hdr__t * nullable * nullable hdr_pp;
         } proxy_pp;
 
         struct {
-            ic_dynproxy_f *get_ic;
-            void *priv;
+            ic_dynproxy_f * nonnull get_ic;
+            void * nullable priv;
         } dynproxy;
 
         struct {
-            void (*cb)(void *, uint64_t, void *, const ic__hdr__t *);
+            void (* nonnull cb)(void * nullable, uint64_t, void * nullable,
+                                const ic__hdr__t * nullable);
         } iws_cb;
     } u;
 } ic_cb_entry_t;
@@ -253,32 +260,37 @@ struct ichannel_t {
 
     unsigned nextslot;          /**< next slot id to try                    */
 
-    el_t              elh;
-    el_t              timer;
-    ichannel_t      **owner;    /**< content set to NULL on deletion        */
-    void             *priv;     /**< user private data                      */
-    void             *peer;     /**< user field to identify the peer        */
-    const iop_rpc_t  *desc;     /**< desc of the current unpacked RPC       */
+    el_t              nullable elh;
+    el_t              nullable timer;
+    ichannel_t      * nullable * nullable owner;
+                                /**< content set to NULL on deletion        */
+    void             * nullable priv;
+                                /**< user private data                      */
+    void             * nullable peer;
+                                /**< user field to identify the peer        */
+    const iop_rpc_t  * nullable desc;
+                                /**< desc of the current unpacked RPC       */
     int               cmd;      /**< cmd of the current unpacked structure  */
     ev_priority_t     priority; /**< priority of the channel                */
 
-    el_t wa_soft_timer;
+    el_t nullable wa_soft_timer;
     int  wa_soft;             /**< to be notified when no activity          */
     int  wa_hard;             /**< to close the connection when no activity */
 
     int          protocol;     /**< transport layer protocol (0 = default) */
     int          retry_delay;  /**< delay before a reconnection attempt (ms) */
     sockunion_t  su;
-    const qm_t(ic_cbs) *impl;
-    ic_hook_f   *on_event;
-    ic_creds_f  *on_creds;
-    void        (*on_wipe)(ichannel_t *ic);
+    const qm_t(ic_cbs) * nullable impl;
+    ic_hook_f   * nullable on_event;
+    ic_creds_f  * nullable on_creds;
+    void        (* nullable on_wipe)(ichannel_t * nonnull ic);
 
     /* private */
     qm_t(ic_msg) queries;      /**< hash of queries waiting for an answer  */
     htlist_t     iov_list;     /**< list of messages to send, in iov       */
     htlist_t     msg_list;     /**< list of messages to send               */
-    htnode_t    *last_normal_prio_msg;  /**< last message of msg_list having
+    htnode_t    * nullable last_normal_prio_msg;
+                               /**< last message of msg_list having
                                              the priority NORMAL */
     int          current_fd;   /**< used to store the current fd           */
     int          pending;
@@ -298,31 +310,31 @@ struct ichannel_t {
 #endif
 };
 
-void ic_drop_ans_cb(ichannel_t *, ic_msg_t *,
-                    ic_status_t, void *, void *);
+void ic_drop_ans_cb(ichannel_t * nonnull, ic_msg_t * nonnull,
+                    ic_status_t, void * nullable, void * nullable);
 
 MODULE_DECLARE(ic);
 
 /*----- ichannel handling -----*/
 
-static inline bool ic_is_local(const ichannel_t *ic) {
+static inline bool ic_is_local(const ichannel_t * nonnull ic) {
     return ic->is_local;
 }
 
-static inline void ic_set_local(ichannel_t *ic) {
+static inline void ic_set_local(ichannel_t * nonnull ic) {
     ic->is_local = true;
     ic->peer_address = LSTR("127.0.0.1");
 }
 
-static inline int ic_get_fd(ichannel_t *ic) {
+static inline int ic_get_fd(ichannel_t * nonnull ic) {
     int res = ic->current_fd;
     ic->current_fd = -1;
     return res;
 }
-static inline int ic_queue_len(ichannel_t *ic) {
+static inline int ic_queue_len(ichannel_t * nonnull ic) {
     return qm_len(ic_msg, &ic->queries);
 }
-static inline bool ic_is_empty(ichannel_t *ic) {
+static inline bool ic_is_empty(ichannel_t * nonnull ic) {
     return htlist_is_empty(&ic->msg_list)
         && htlist_is_empty(&ic->iov_list)
         && ic_queue_len(ic) == 0
@@ -331,7 +343,7 @@ static inline bool ic_is_empty(ichannel_t *ic) {
 
 /* XXX be carefull, this function do not mean that the ichannel is actually
  * connected, just that you are allowed to queue some queries */
-static inline bool ic_is_ready(const ichannel_t *ic) {
+static inline bool ic_is_ready(const ichannel_t * nonnull ic) {
     return (ic_is_local(ic) && ic->impl)
         || (ic->elh && ic->queuable && !ic->is_closing);
 }
@@ -357,16 +369,17 @@ static inline bool ic_slot_is_async(uint64_t slot) {
  * In general, this function should be called with the same arguments on both
  * client and server side.
  */
-void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard);
+void ic_watch_activity(ichannel_t * nonnull ic, int timeout_soft,
+                       int timeout_hard);
 
-ev_priority_t ic_set_priority(ichannel_t *ic, ev_priority_t prio);
-ichannel_t *ic_get_by_id(uint32_t id);
-ichannel_t *ic_init(ichannel_t *);
-void ic_wipe(ichannel_t *);
+ev_priority_t ic_set_priority(ichannel_t * nonnull ic, ev_priority_t prio);
+ichannel_t * nullable ic_get_by_id(uint32_t id);
+ichannel_t * nonnull ic_init(ichannel_t * nonnull);
+void ic_wipe(ichannel_t * nonnull);
 GENERIC_NEW(ichannel_t, ic);
 
 __attr_nonnull__((1))
-static inline void ic_delete(ichannel_t **icp)
+static inline void ic_delete(ichannel_t * nullable * nonnull icp)
 {
     ichannel_t *ic = *icp;
 
@@ -379,17 +392,18 @@ static inline void ic_delete(ichannel_t **icp)
     }
 }
 
-int  ic_connect(ichannel_t *);
-int  ic_connect_blocking(ichannel_t *ic);
-void ic_disconnect(ichannel_t *ic);
-void ic_spawn(ichannel_t *, int fd, ic_creds_f *fn);
-void ic_bye(ichannel_t *);
-void ic_nop(ichannel_t *);
+int  ic_connect(ichannel_t * nonnull);
+int  ic_connect_blocking(ichannel_t * nonnull ic);
+void ic_disconnect(ichannel_t * nonnull ic);
+void ic_spawn(ichannel_t * nonnull, int fd, ic_creds_f * nullable fn);
+void ic_bye(ichannel_t * nonnull);
+void ic_nop(ichannel_t * nonnull);
 
-el_t ic_listento(const sockunion_t *su, int type, int proto,
-                 int (*on_accept)(el_t ev, int fd));
-void ic_flush(ichannel_t *ic);
-lstr_t ic_get_client_addr(ichannel_t *ic);
+el_t nullable
+ic_listento(const sockunion_t * nonnull su, int type, int proto,
+            int (*nonnull on_accept)(el_t nonnull ev, int fd));
+void ic_flush(ichannel_t * nonnull ic);
+lstr_t ic_get_client_addr(ichannel_t * nonnull ic);
 
 /** Mark an ichannel_t as disconnected.
  *
@@ -400,7 +414,7 @@ lstr_t ic_get_client_addr(ichannel_t *ic);
  *
  * \param[in]  ic The ichannel_t to mark as disconnected.
  */
-void ic_mark_disconnected(ichannel_t *ic);
+void ic_mark_disconnected(ichannel_t * nonnull ic);
 
 /*----- rpc handling / registering -----*/
 
@@ -445,9 +459,10 @@ void ic_mark_disconnected(ichannel_t *ic);
  *     implementation callback if needed.
  *   - \v hdr the IC query header (if any).
  */
-#define IOP_RPC_IMPL_ARGS(_mod, _i, _r) \
-    ichannel_t *ic, uint64_t slot, IOP_RPC_T(_mod, _i, _r, args) *arg,       \
-    const ic__hdr__t *hdr
+#define IOP_RPC_IMPL_ARGS(_mod, _i, _r)                                      \
+    ichannel_t * nonnull ic, uint64_t slot,                                  \
+    IOP_RPC_T(_mod, _i, _r, args) * nullable arg,                            \
+    const ic__hdr__t * nullable hdr
 
 /** \brief builds the typed argument list of the reply callback of an rpc.
  *
@@ -499,10 +514,10 @@ void ic_mark_disconnected(ichannel_t *ic);
  *   - \v exn is the value of the callback result when \v status is
  *     #IC_MSG_EXN, and should not be accessed otherwise.
  */
-#define IOP_RPC_CB_ARGS(_mod, _i, _r) \
-    ichannel_t *ic, ic_msg_t *msg, ic_status_t status, \
-    IOP_RPC_T(_mod, _i, _r, res) *res,                 \
-    IOP_RPC_T(_mod, _i, _r, exn) *exn
+#define IOP_RPC_CB_ARGS(_mod, _i, _r)                                        \
+    ichannel_t * nonnull ic, ic_msg_t * nonnull msg, ic_status_t status,     \
+    IOP_RPC_T(_mod, _i, _r, res) * nullable res,                             \
+    IOP_RPC_T(_mod, _i, _r, exn) * nullable exn
 
 /* some useful macros to define IOP rpcs and callbacks */
 
@@ -905,23 +920,25 @@ void ic_mark_disconnected(ichannel_t *ic);
 /*----- message handling -----*/
 
 /** \brief internal do not use directly, or know what you're doing. */
-void *__ic_get_buf(ic_msg_t *msg, int len);
+void * nonnull __ic_get_buf(ic_msg_t * nonnull msg, int len);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_bpack(ic_msg_t *, const iop_struct_t *, const void *);
+void  __ic_bpack(ic_msg_t * nonnull, const iop_struct_t * nonnull,
+                 const void * nonnull);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_msg_build(ic_msg_t *, const iop_struct_t *, const void *, bool);
+void  __ic_msg_build(ic_msg_t * nonnull, const iop_struct_t * nonnull,
+                     const void * nonnull, bool);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_msg_build_from(ic_msg_t *, const ic_msg_t *);
+void  __ic_msg_build_from(ic_msg_t * nonnull, const ic_msg_t * nonnull);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_query_flags(ichannel_t *, ic_msg_t *, uint32_t flags);
+void  __ic_query_flags(ichannel_t * nonnull, ic_msg_t * nonnull, uint32_t flags);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_query(ichannel_t *, ic_msg_t *);
+void  __ic_query(ichannel_t * nonnull, ic_msg_t * nonnull);
 /** \brief internal do not use directly, or know what you're doing. */
-void  __ic_query_sync(ichannel_t *, ic_msg_t *);
+void  __ic_query_sync(ichannel_t * nonnull, ic_msg_t * nonnull);
 
 /** \brief internal do not use directly, or know what you're doing. */
-size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
-                  const iop_struct_t *, const void *);
+size_t __ic_reply(ichannel_t * nullable, uint64_t slot, int cmd, int fd,
+                  const iop_struct_t * nonnull, const void * nonnull);
 
 /** \brief reply to a given rpc with an error.
  *
@@ -939,7 +956,7 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
  * \param[in] err
  *   the error status to use, should NOT be #IC_MSG_OK nor #IC_MSG_EXN.
  */
-void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
+void ic_reply_err(ichannel_t * nullable ic, uint64_t slot, int err);
 
 /** \brief helper to set ctx and execute the pre hook of the query.
  *
@@ -951,8 +968,9 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * return -1 if the pre_hook has replied to the query, 0 otherwise.
  */
 int
-ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
-                     const ic__hdr__t *hdr, const ic_cb_entry_t *e);
+ic_query_do_pre_hook(ichannel_t * nullable ic, uint64_t slot,
+                     const ic__hdr__t * nullable hdr,
+                     const ic_cb_entry_t * nonnull e);
 
 /** \brief helper to get and execute the post hook of the query.
  *
@@ -966,11 +984,13 @@ ic_query_do_pre_hook(ichannel_t *ic, uint64_t slot,
  * query is not proxified and the query has been replied with #ic_reply or
  * #ic_throw.
  */
-void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot,
-                           const iop_struct_t * nullable st,
+void ic_query_do_post_hook(ichannel_t * nullable ic, ic_status_t status,
+                           uint64_t slot, const iop_struct_t * nullable st,
                            const void * nullable value);
+
 #ifndef NDEBUG
-bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
+bool __ic_rpc_is_traced(const iop_iface_t * nonnull iface,
+                        const iop_rpc_t * nonnull rpc);
 
 /** Check if the given RPC is traced.
  *
@@ -1419,8 +1439,9 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
  * \param[in]  res    the received answer result parameter.
  * \param[in]  exn    the received answer exception parameter.
  */
-void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
-                           int cmd, const void *res, const void *exn);
+void __ic_forward_reply_to(ichannel_t * nonnull ic, uint64_t slot,
+                           int cmd, const void * nullable res,
+                           const void * nullable exn);
 
 
 /** \brief Manually reply to a message with an error code.
@@ -1433,7 +1454,8 @@ void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
  * \param[in]  msg    the message that get replied.
  * \param[in]  status the reply status.
  */
-void __ic_msg_reply_err(ichannel_t *ic, ic_msg_t *msg, ic_status_t status);
+void __ic_msg_reply_err(ichannel_t * nullable ic, ic_msg_t * nonnull msg,
+                        ic_status_t status);
 
 /* Compatibility aliases */
 #define ic_reply_throw_p(...)  ic_throw_p(__VA_ARGS__)

@@ -29,7 +29,7 @@
  * \brief Objects and Virtual Tables in C (header)
  */
 
-bool cls_inherits(const void *cls, const void *vptr)
+bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
     __leaf __attribute__((pure));
 
 #define obj_is_a_class(obj, cls) \
@@ -95,16 +95,16 @@ bool cls_inherits(const void *cls, const void *vptr)
         make_struct(pfx, superclass, fields, ##__VA_ARGS__);                 \
     };                                                                       \
     struct pfx##_class_t {                                                   \
-        const superclass##_class_t *super;                                   \
-        const char *type_name;                                               \
+        const superclass##_class_t * nonnull super;                          \
+        const char * nonnull type_name;                                      \
         size_t      type_size;                                               \
         methods(pfx##_t, ##__VA_ARGS__);                                     \
     };                                                                       \
                                                                              \
-    const pfx##_class_t *pfx##_class(void) __leaf;                           \
+    const pfx##_class_t * nonnull pfx##_class(void) __leaf;                  \
                                                                              \
     __unused__                                                               \
-    static inline const superclass##_class_t *pfx##_super(void) {            \
+    static inline const superclass##_class_t * nonnull pfx##_super(void) {   \
         /* XXX This assert checks for field order: the fields of the super   \
          *     class should always be placed first.                          \
          */                                                                  \
@@ -161,20 +161,21 @@ bool cls_inherits(const void *cls, const void *vptr)
 
 #define OBJECT_FIELDS(pfx) \
     union {                                                                  \
-        const object_class_t *as_obj_cls;                                    \
-        const pfx##_class_t  *ptr;                                           \
+        const object_class_t * nonnull as_obj_cls;                           \
+        const pfx##_class_t  * nonnull ptr;                                  \
     } v;                                                                     \
-    mem_pool_t *mp;                                                          \
+    mem_pool_t * nullable mp;                                                \
     ssize_t refcnt
 
 #define OBJECT_METHODS(type_t) \
-    type_t  *(*init)(type_t *);                                              \
-    void     (*wipe)(type_t *);                                              \
-    uint32_t (*hash)(const type_t *);                                        \
-    bool     (*equal)(const type_t *, const type_t *);                       \
-    type_t  *(*retain)(type_t *);                                            \
-    void     (*release)(type_t *);                                           \
-    bool     (*can_wipe)(type_t *)
+    type_t  * nonnull (*nonnull init)(type_t * nonnull);                     \
+    void     (*nonnull wipe)(type_t * nonnull);                              \
+    uint32_t (*nonnull hash)(const type_t * nonnull);                        \
+    bool     (*nonnull equal)(const type_t * nonnull,                        \
+                              const type_t * nonnull);                       \
+    type_t  * nonnull (*nonnull retain)(type_t * nonnull);                   \
+    void     (*nonnull release)(type_t * nonnull);                           \
+    bool     (*nonnull can_wipe)(type_t * nonnull)
 
 #define OBJ_CLASS(pfx, superclass, fields, methods, ...)                     \
     typedef struct pfx##_t pfx##_t;                                          \
@@ -185,8 +186,9 @@ OBJ_CLASS_NO_TYPEDEF_(object, object, OBJECT_FIELDS, OBJECT_METHODS,
                       OBJ_MAKE_STRUCT_BASE)
 
 
-void *obj_init_real(const void *cls, void *o, mem_pool_t *mp);
-void obj_wipe_real(object_t *o);
+void * nonnull obj_init_real(const void * nonnull cls, void * nonnull o,
+                             mem_pool_t * nonnull mp);
+void obj_wipe_real(object_t * nonnull o);
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
 #define obj_mp_new_of_class(mp, pfx, cls)  ({                                \

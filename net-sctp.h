@@ -32,19 +32,19 @@ enum sctp_events {
 #  define SCTP_SOCKOPT_CONNECTX SCTP_SOCKOPT_CONNECTX_OLD
 #endif
 #define sctp_connectx  sctp_connectx_old
-int sctp_connectx_old(int fd, struct sockaddr *addrs, int count);
+int sctp_connectx_old(int fd, struct sockaddr * nonnull addrs, int count);
 
 int sctp_enable_events(int fd, int flags);
 
-ssize_t sctp_sendv(int sd, const struct iovec *iov, int iovlen,
-                   const struct sctp_sndrcvinfo *sinfo, int flags);
-int sctp_addr_len(const sockunion_t *addrs, int count);
+ssize_t sctp_sendv(int sd, const struct iovec * nullable iov, int iovlen,
+                   const struct sctp_sndrcvinfo * nonnull sinfo, int flags);
+int sctp_addr_len(const sockunion_t * nonnull addrs, int count);
 int sctp_close_assoc(int fd, int assoc_id);
 #ifndef __cplusplus
 int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
-                  struct sockaddr *addrs, int addr_size);
+                  struct sockaddr * nonnull addrs, int addr_size);
 #endif
 
-void sctp_dump_notif(char *buf, int len);
+void sctp_dump_notif(char * nonnull buf, int len);
 
 #endif

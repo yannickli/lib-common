@@ -18,11 +18,11 @@
 
 int socketpairx(int d, int type, int protocol, int flags, int sv[2]);
 
-int bindx(int sock, const sockunion_t *, int cnt,
+int bindx(int sock, const sockunion_t * nonnull, int cnt,
           int type, int proto, int flags);
-int listenx(int sock, const sockunion_t *, int cnt,
+int listenx(int sock, const sockunion_t * nonnull, int cnt,
             int type, int proto, int flags);
-int isconnectx(int sock, const sockunion_t *, int cnt,
+int isconnectx(int sock, const sockunion_t * nonnull, int cnt,
                int type, int proto, int flags);
 #define connectx(sock, su, cnt, type, proto, flags)  \
     isconnectx((sock), (su), (cnt), (type), (proto), (flags))
@@ -37,11 +37,11 @@ int isconnectx(int sock, const sockunion_t *, int cnt,
  *          On error, -1 and errno is set appropriately.
  *
  */
-int connectx_as(int sock, const sockunion_t *, int cnt,
+int connectx_as(int sock, const sockunion_t * nonnull, int cnt,
                 const sockunion_t * nullable src, int type,
                 int proto, int flags);
 int acceptx(int server_fd, int flags);
-int acceptx_get_addr(int server_fd, int flags, sockunion_t *su);
+int acceptx_get_addr(int server_fd, int flags, sockunion_t * nullable su);
 
 int getsockport(int sock, sa_family_t family);
 int getpeerport(int sock, sa_family_t family);

@@ -66,13 +66,15 @@
  *                ↑             ↑
  *            sb->data       sb_end()
  */
+
 typedef struct sb_t {
-    char *data;
+    char * nonnull data;
     int len, size, skip;
-    mem_pool_t *mp;
+    mem_pool_t * nullable mp;
 #ifdef __cplusplus
     inline sb_t();
-    inline sb_t(void *buf, int len, int size, mem_pool_t *mp);
+    inline sb_t(void * nonnull buf, int len, int size,
+                mem_pool_t * nullable mp);
     inline ~sb_t();
 
   private:
@@ -89,7 +91,7 @@ extern const char __sb_slop[1];
 /* Initialization                                                         */
 /**************************************************************************/
 
-static inline void sb_set_trailing0(sb_t *sb)
+static inline void sb_set_trailing0(sb_t * nonnull sb)
 {
     if (sb->data != __sb_slop) {
         sb->data[sb->len] = '\0';
@@ -98,8 +100,9 @@ static inline void sb_set_trailing0(sb_t *sb)
     }
 }
 
-static inline sb_t *
-sb_init_full(sb_t *sb, void *buf, int blen, int bsize, mem_pool_t *mp)
+static inline sb_t * nonnull
+sb_init_full(sb_t * nonnull sb, void * nonnull buf, int blen, int bsize,
+             mem_pool_t * nullable mp)
 {
     assert (blen < bsize);
     sb->data = cast(char *, buf);
@@ -137,28 +140,29 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, mem_pool_t *mp)
 #define SB_1k(name)    SB(name, 1 << 10)
 #define SB_8k(name)    SB(name, 8 << 10)
 
-static inline sb_t *sb_init(sb_t *sb)
+static inline sb_t * nonnull sb_init(sb_t * nonnull sb)
 {
     return sb_init_full(sb, (char *)__sb_slop, 0, 1, &mem_pool_libc);
 }
 
-static inline sb_t *mp_sb_init(mem_pool_t *mp, sb_t *sb, int size)
+static inline sb_t * nonnull mp_sb_init(mem_pool_t * nullable mp,
+                                        sb_t * nonnull sb, int size)
 {
     return sb_init_full(sb, mp_new_raw(mp, char, size), 0, size, mp);
 }
 
-static inline sb_t *t_sb_init(sb_t *sb, int size)
+static inline sb_t * nonnull t_sb_init(sb_t * nonnull sb, int size)
 {
     return mp_sb_init(t_pool(), sb, size);
 }
 
-static inline sb_t *r_sb_init(sb_t *sb, int size)
+static inline sb_t * nonnull r_sb_init(sb_t * nonnull sb, int size)
 {
     return mp_sb_init(r_pool(), sb, size);
 }
 
-void sb_reset(sb_t *sb) __leaf;
-void sb_wipe(sb_t *sb) __leaf;
+void sb_reset(sb_t * nonnull sb) __leaf;
+void sb_wipe(sb_t * nonnull sb) __leaf;
 
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
@@ -171,8 +175,8 @@ sb_t::sb_t() :
     mp(NULL)
 {
 }
-sb_t::sb_t(void *buf, int len_, int size_, mem_pool_t *mp_) :
-    data(static_cast<char *>(buf)),
+sb_t::sb_t(void * nonnull buf, int len_, int size_, mem_pool_t * nullable mp_)
+    : data(static_cast<char *>(buf)),
     len(len_),
     size(size_),
     skip(0),
@@ -188,14 +192,15 @@ sb_t::~sb_t() { sb_wipe(this); }
 /* str/mem-functions wrappers                                             */
 /**************************************************************************/
 
-static inline int sb_cmp(const sb_t *sb1, const sb_t *sb2)
+static inline int sb_cmp(const sb_t * nonnull sb1, const sb_t * nonnull sb2)
 {
     int len = MIN(sb1->len, sb2->len);
     int res = memcmp(sb1->data, sb2->data, len);
     return res ? res : sb1->len - sb2->len;
 }
 
-int sb_search(const sb_t *sb, int pos, const void *what, int wlen)
+int sb_search(const sb_t * nonnull sb, int pos,
+              const void * nonnull what, int wlen)
     __leaf;
 
 
@@ -203,27 +208,27 @@ int sb_search(const sb_t *sb, int pos, const void *what, int wlen)
 /* buffer raw manipulations                                               */
 /**************************************************************************/
 
-static inline char *sb_end(sb_t *sb)
+static inline char * nonnull sb_end(const sb_t * nonnull sb)
 {
     return sb->data + sb->len;
 }
-static inline int sb_avail(sb_t *sb)
+static inline int sb_avail(const sb_t * nonnull sb)
 {
     return sb->size - sb->len - 1;
 }
 
-char *sb_detach(sb_t *sb, int *len) __leaf;
+char * nonnull sb_detach(sb_t * nonnull sb, int * nullable len) __leaf;
 
-int  __sb_rewind_adds(sb_t *sb, const sb_t *orig) __leaf;
-void __sb_grow(sb_t *sb, int extra) __leaf;
-void __sb_optimize(sb_t *sb, size_t len) __leaf;
-static inline void __sb_fixlen(sb_t *sb, int len)
+int  __sb_rewind_adds(sb_t * nonnull sb, const sb_t * nonnull orig) __leaf;
+void __sb_grow(sb_t * nonnull sb, int extra) __leaf;
+void __sb_optimize(sb_t * nonnull sb, size_t len) __leaf;
+static inline void __sb_fixlen(sb_t * nonnull sb, int len)
 {
     sb->len = len;
     sb_set_trailing0(sb);
 }
 
-static inline void sb_optimize(sb_t *sb, size_t extra)
+static inline void sb_optimize(sb_t * nonnull sb, size_t extra)
 {
     size_t size = sb->size + sb->skip;
     size_t len  = sb->len + 1;
@@ -232,7 +237,7 @@ static inline void sb_optimize(sb_t *sb, size_t extra)
         __sb_optimize(sb, len + extra);
 }
 
-static inline char *sb_grow(sb_t *sb, int extra)
+static inline char * nonnull sb_grow(sb_t * nonnull sb, int extra)
 {
     if (sb->len + extra >= sb->size) {
         __sb_grow(sb, extra);
@@ -241,7 +246,7 @@ static inline char *sb_grow(sb_t *sb, int extra)
     }
     return sb_end(sb);
 }
-static inline char *sb_growlen(sb_t *sb, int extra)
+static inline char * nonnull sb_growlen(sb_t * nonnull sb, int extra)
 {
     if (sb->len + extra >= sb->size)
         __sb_grow(sb, extra);
@@ -253,45 +258,45 @@ static inline char *sb_growlen(sb_t *sb, int extra)
 /* splicing                                                               */
 /**************************************************************************/
 
-static inline void sb_add(sb_t *sb, const void *data, int dlen)
+static inline void sb_add(sb_t * nonnull sb, const void * nonnull data,
+                          int dlen)
 {
     memcpy(sb_growlen(sb, dlen), data, dlen);
 }
-static inline void sb_addsb(sb_t *sb, const sb_t *sb2)
+static inline void sb_addsb(sb_t * nonnull sb, const sb_t * nonnull sb2)
 {
     sb_add(sb, sb2->data, sb2->len);
 }
-static inline void sb_addc(sb_t *sb, unsigned char c)
+static inline void sb_addc(sb_t * nonnull sb, unsigned char c)
 {
     sb_add(sb, &c, 1);
 }
-static inline void sb_adduc(sb_t *sb, int c)
+static inline void sb_adduc(sb_t * nonnull sb, int c)
 {
     int len = __pstrputuc(sb_grow(sb, 4), c);
     __sb_fixlen(sb, sb->len + len);
 }
-static inline void sb_addnc(sb_t *sb, int extralen, unsigned char c)
+static inline void sb_addnc(sb_t * nonnull sb, int extralen, unsigned char c)
 {
     memset(sb_growlen(sb, extralen), c, extralen);
 }
-static inline void sb_add0s(sb_t *sb, int extralen)
+static inline void sb_add0s(sb_t * nonnull sb, int extralen)
 {
     sb_addnc(sb, extralen, 0);
 }
-
-static inline void sb_adds(sb_t *sb, const char *s)
+static inline void sb_adds(sb_t * nonnull sb, const char * nonnull s)
 {
     sb_add(sb, s, strlen(s));
 }
-
-static inline void sb_add_lstr(sb_t *sb, lstr_t s)
+static inline void sb_add_lstr(sb_t * nonnull sb, lstr_t s)
 {
     sb_add(sb, s.s, s.len);
 }
 
 /* Prepare the string buffer for deletion of length "rm_len" followed by an
  * insertion of length "insert_len" at position "pos". */
-char *__sb_splice(sb_t *sb, int pos, int rm_len, int insert_len);
+char * nonnull
+__sb_splice(sb_t * nonnull sb, int pos, int rm_len, int insert_len);
 
 /** Deletes and inserts data at a given position in a string buffer.
  *
@@ -301,8 +306,9 @@ char *__sb_splice(sb_t *sb, int pos, int rm_len, int insert_len);
  * \param[in]      data    Data to insert.
  * \param[in]      dlen    Length of the data to insert.
  */
-static inline char *
-sb_splice(sb_t *sb, int pos, int rm_len, const void *data, int dlen)
+static inline char * nonnull
+sb_splice(sb_t * nonnull sb, int pos, int rm_len, const void * nullable data,
+          int dlen)
 {
     char *res;
 
@@ -331,31 +337,27 @@ sb_splice(sb_t *sb, int pos, int rm_len, const void *data, int dlen)
 }
 
 static inline void
-sb_splicenc(sb_t *sb, int pos, int len, int extralen, unsigned char c)
+sb_splicenc(sb_t * nonnull sb, int pos, int len, int extralen, unsigned char c)
 {
     memset(sb_splice(sb, pos, len, NULL, extralen), c, extralen);
 }
-static inline void sb_splice0s(sb_t *sb, int pos, int len, int extralen)
+static inline void sb_splice0s(sb_t * nonnull sb, int pos, int len, int extralen)
 {
     sb_splicenc(sb, pos, len, extralen, 0);
 }
-
-static inline void sb_prepends(sb_t *sb, const char *s)
+static inline void sb_prepends(sb_t * nonnull sb, const char * nonnull s)
 {
     sb_splice(sb, 0, 0, s, strlen(s));
 }
-
-static inline void sb_prepend_lstr(sb_t *sb, lstr_t s)
+static inline void sb_prepend_lstr(sb_t * nonnull sb, lstr_t s)
 {
     sb_splice(sb, 0, 0, s.s, s.len);
 }
-
-static inline void sb_prependc(sb_t *sb, unsigned char c)
+static inline void sb_prependc(sb_t * nonnull sb, unsigned char c)
 {
     sb_splice(sb, 0, 0, &c, 1);
 }
-
-static inline void sb_skip(sb_t *sb, int len)
+static inline void sb_skip(sb_t * nonnull sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
     if ((sb->len -= len)) {
@@ -366,27 +368,28 @@ static inline void sb_skip(sb_t *sb, int len)
         sb_reset(sb);
     }
 }
-static inline void sb_skip_upto(sb_t *sb, const void *where)
+static inline void sb_skip_upto(sb_t * nonnull sb, const void * nonnull where)
 {
     sb_skip(sb, (const char *)where - sb->data);
 }
 
-static inline void sb_clip(sb_t *sb, int len)
+static inline void sb_clip(sb_t * nonnull sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
     __sb_fixlen(sb, len);
 }
-static inline void sb_shrink(sb_t *sb, int len)
+static inline void sb_shrink(sb_t * nonnull sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
     __sb_fixlen(sb, sb->len - len);
 }
-static inline void sb_shrink_upto(sb_t *sb, const void *where)
+static inline void sb_shrink_upto(sb_t * nonnull sb, const void * nonnull where)
 {
     sb_clip(sb, (const char *)where - sb->data);
 }
 
-static inline void sb_ltrim_ctype(sb_t *sb, const ctype_desc_t *desc)
+static inline void sb_ltrim_ctype(sb_t * nonnull sb,
+                                  const ctype_desc_t * nonnull desc)
 {
     const char *p = sb->data, *end = p + sb->len;
 
@@ -396,7 +399,8 @@ static inline void sb_ltrim_ctype(sb_t *sb, const ctype_desc_t *desc)
 }
 #define sb_ltrim(sb)  sb_ltrim_ctype(sb, &ctype_isspace)
 
-static inline void sb_rtrim_ctype(sb_t *sb, const ctype_desc_t *desc)
+static inline void sb_rtrim_ctype(sb_t * nonnull sb,
+                                  const ctype_desc_t * nonnull desc)
 {
     const char *p = sb->data, *end = p + sb->len;
 
@@ -406,16 +410,17 @@ static inline void sb_rtrim_ctype(sb_t *sb, const ctype_desc_t *desc)
 }
 #define sb_rtrim(sb)  sb_rtrim_ctype(sb, &ctype_isspace)
 
-static inline void sb_trim_ctype(sb_t *sb, const ctype_desc_t *desc)
+static inline void sb_trim_ctype(sb_t * nonnull sb,
+                                 const ctype_desc_t * nonnull desc)
 {
     sb_ltrim_ctype(sb, desc);
     sb_rtrim_ctype(sb, desc);
 }
 #define sb_trim(sb)  sb_trim_ctype(sb, &ctype_isspace)
 
-int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
+int sb_addvf(sb_t * nonnull sb, const char * nonnull fmt, va_list ap)
     __leaf __attr_printf__(2, 0);
-int sb_addf(sb_t *sb, const char *fmt, ...)
+int sb_addf(sb_t * nonnull sb, const char * nonnull fmt, ...)
     __leaf __attr_printf__(2, 3);
 
 /** Reset and optimize a string buffer for sb_prepend().
@@ -427,7 +432,7 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
  * \note This optimization won't last after first "sb_add" or first realloc of
  * the sb.
  */
-static inline void sb_reset_reverse(sb_t *sb)
+static inline void sb_reset_reverse(sb_t * nonnull sb)
 {
     sb_reset(sb);
     sb->data += sb->size - 1;
@@ -436,9 +441,9 @@ static inline void sb_reset_reverse(sb_t *sb)
     sb->size = 1;
 }
 
-int sb_prependvf(sb_t *sb, const char *fmt, va_list ap)
+int sb_prependvf(sb_t * nonnull sb, const char * nonnull fmt, va_list ap)
     __leaf __attr_printf__(2, 0);
-int sb_prependf(sb_t *sb, const char *fmt, ...)
+int sb_prependf(sb_t * nonnull sb, const char * nonnull fmt, ...)
     __leaf __attr_printf__(2, 3);
 
 /** Appends content to a string buffer, filtering out characters that are not
@@ -450,7 +455,8 @@ int sb_prependf(sb_t *sb, const char *fmt, ...)
  * \param[in]    s  String to be filtered and added
  * \param[in]    d  Character set
  */
-void sb_add_filtered(sb_t *sb, lstr_t s, const ctype_desc_t *d);
+void sb_add_filtered(sb_t * nonnull sb, lstr_t s,
+                     const ctype_desc_t * nonnull d);
 
 /** Appends content to a string buffer, filtering out characters that are part
  *  of a given character set.
@@ -461,7 +467,8 @@ void sb_add_filtered(sb_t *sb, lstr_t s, const ctype_desc_t *d);
  * \param[in]    s  String to be filtered and added
  * \param[in]    d  Character set
  */
-void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d);
+void sb_add_filtered_out(sb_t * nonnull sb, lstr_t s,
+                         const ctype_desc_t * nonnull d);
 
 /** Appends content to a string buffer, replacing characters that are not
  *  part of a given character set with another character.
@@ -473,7 +480,8 @@ void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d);
  * \param[in]    c  Character to add to the buffer in place of substrings
  *                  that are replaced. -1 to simply ignore those substrings.
  */
-void sb_add_sanitized(sb_t *sb, lstr_t s, const ctype_desc_t *d, int c);
+void sb_add_sanitized(sb_t * nonnull sb, lstr_t s,
+                      const ctype_desc_t * nonnull d, int c);
 
 /** Appends content to a string buffer, replacing characters that are part of
  *  a given character set with another character.
@@ -485,27 +493,29 @@ void sb_add_sanitized(sb_t *sb, lstr_t s, const ctype_desc_t *d, int c);
  * \param[in]    c  Character to add to the buffer in place of substrings
  *                  that are replaced. -1 to simply ignore those substrings.
  */
-void sb_add_sanitized_out(sb_t *sb, lstr_t s, const ctype_desc_t *d, int c);
+void sb_add_sanitized_out(sb_t * nonnull sb, lstr_t s,
+                          const ctype_desc_t * nonnull d, int c);
 
 #define sb_setvf(sb, fmt, ap) \
     ({ sb_t *__b = (sb); sb_reset(__b); sb_addvf(__b, fmt, ap); })
 #define sb_setf(sb, fmt, ...) \
     ({ sb_t *__b = (sb); sb_reset(__b); sb_addf(__b, fmt, ##__VA_ARGS__); })
 
-static inline void sb_set(sb_t *sb, const void *data, int dlen)
+static inline void sb_set(sb_t * nonnull sb, const void * nonnull data,
+                          int dlen)
 {
     sb->len = 0;
     sb_add(sb, data, dlen);
 }
-static inline void sb_setsb(sb_t *sb, const sb_t *sb2)
+static inline void sb_setsb(sb_t * nonnull sb, const sb_t * nonnull sb2)
 {
     sb_set(sb, sb2->data, sb2->len);
 }
-static inline void sb_sets(sb_t *sb, const char *s)
+static inline void sb_sets(sb_t * nonnull sb, const char * nonnull s)
 {
     sb_set(sb, s, strlen(s));
 }
-static inline void sb_set_lstr(sb_t *sb, lstr_t s)
+static inline void sb_set_lstr(sb_t * nonnull sb, lstr_t s)
 {
     sb_set(sb, s.s, s.len);
 }
@@ -518,7 +528,7 @@ static inline void sb_set_lstr(sb_t *sb, lstr_t s)
  * \param[in]    thousand_sep Character used as thousand separator. Use -1 for
  *                            none.
  */
-void sb_add_uint_fmt(sb_t *sb, uint64_t val, int thousand_sep);
+void sb_add_uint_fmt(sb_t * nonnull sb, uint64_t val, int thousand_sep);
 
 /** Appends a pretty-formated integer to a string buffer with a thousand
  *  separator.
@@ -528,7 +538,7 @@ void sb_add_uint_fmt(sb_t *sb, uint64_t val, int thousand_sep);
  * \param[in]    thousand_sep Character used as thousand separator. Use -1 for
  *                            none.
  */
-void sb_add_int_fmt(sb_t *sb, int64_t val, int thousand_sep);
+void sb_add_int_fmt(sb_t * nonnull sb, int64_t val, int thousand_sep);
 
 /** Appends a pretty-formated number to a string buffer.
  *
@@ -555,7 +565,7 @@ void sb_add_int_fmt(sb_t *sb, int64_t val, int thousand_sep);
  * \param[in]    thousand_sep    Character used as thousand separator for
  *                               integer part. Use -1 for none.
  */
-void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
+void sb_add_double_fmt(sb_t * nonnull sb, double val, uint8_t nb_max_decimals,
                        int dec_sep, int thousand_sep);
 
 /** Appends a pretty-formatted duration to a string buffer.
@@ -569,7 +579,7 @@ void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
  * \param[in]    ms       The duration, in milliseconds.
  * \param[in]    print_ms Whether to print the milliseconds or not.
  */
-void _sb_add_duration_ms(sb_t *sb, uint64_t ms, bool print_ms);
+void _sb_add_duration_ms(sb_t * nonnull sb, uint64_t ms, bool print_ms);
 #define sb_add_duration_s(sb, s)  \
     _sb_add_duration_ms((sb), (s) * 1000ULL, false)
 #define sb_add_duration_ms(sb, ms)  _sb_add_duration_ms((sb), (ms), true)
@@ -608,16 +618,19 @@ struct sockaddr;
  *   0 if at EOF
  *   >0 the number of octets read
  */
-int sb_getline(sb_t *sb, FILE *f) __leaf;
-int sb_fread(sb_t *sb, int size, int nmemb, FILE *f) __leaf;
-int sb_read_fd(sb_t *sb, int fd) __leaf;
-int sb_read_file(sb_t *sb, const char *filename) __leaf;
-int sb_write_file(const sb_t *sb, const char *filename) __leaf;
+int sb_getline(sb_t * nonnull sb, FILE * nonnull f) __leaf;
+int sb_fread(sb_t * nonnull sb, int size, int nmemb,
+             FILE * nonnull f) __leaf;
+int sb_read_fd(sb_t * nonnull sb, int fd) __leaf;
+int sb_read_file(sb_t * nonnull sb, const char * nonnull filename) __leaf;
+int sb_write_file(const sb_t * nonnull sb,
+                  const char * nonnull filename) __leaf;
 
-int sb_read(sb_t *sb, int fd, int hint) __leaf;
-int sb_recv(sb_t *sb, int fd, int hint, int flags) __leaf;
-int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
-                struct sockaddr *addr, socklen_t *alen) __leaf;
+int sb_read(sb_t * nonnull sb, int fd, int hint) __leaf;
+int sb_recv(sb_t * nonnull sb, int fd, int hint, int flags) __leaf;
+int sb_recvfrom(sb_t * nonnull sb, int fd, int hint, int flags,
+                struct sockaddr * nullable addr, socklen_t * nullable alen)
+    __leaf;
 
 
 /**************************************************************************/
@@ -625,32 +638,40 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
 /**************************************************************************/
 
 #define __SB_DEFINE_ADDS(sfx)                                                \
-    static inline void sb_adds_##sfx(sb_t *sb, const char *s) {              \
+    static inline void sb_adds_##sfx(sb_t * nonnull sb,                      \
+                                     const char * nonnull s)                 \
+    {                                                                        \
         sb_add_##sfx(sb, s, strlen(s));                                      \
     }                                                                        \
-    static inline void sb_add_lstr_##sfx(sb_t *sb, lstr_t s) {               \
+    static inline void sb_add_lstr_##sfx(sb_t * nonnull sb, lstr_t s) {      \
         sb_add_##sfx(sb, s.s, s.len);                                        \
     }
 #define __SB_DEFINE_ADDS_ERR(sfx) \
-    static inline int sb_adds_##sfx(sb_t *sb, const char *s) {               \
+    static inline int sb_adds_##sfx(sb_t * nonnull sb,                       \
+                                    const char * nonnull s)                  \
+    {                                                                        \
         return sb_add_##sfx(sb, s, strlen(s));                               \
     }                                                                        \
-    static inline int sb_add_lstr_##sfx(sb_t *sb, lstr_t s) {                \
+    static inline int sb_add_lstr_##sfx(sb_t * nonnull sb, lstr_t s) {       \
         return sb_add_##sfx(sb, s.s, s.len);                                 \
     }
 
 
-void sb_add_slashes(sb_t *sb, const void *data, int len,
-                    const char *toesc, const char *esc) __leaf;
+void sb_add_slashes(sb_t * nonnull sb, const void * nonnull data, int len,
+                    const char * nonnull toesc,
+                    const char * nonnull esc) __leaf;
 static inline void
-sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
+sb_adds_slashes(sb_t * nonnull sb, const char * nonnull s,
+                const char * nonnull toesc, const char * nonnull esc)
 {
     sb_add_slashes(sb, s, strlen(s), toesc, esc);
 }
-void sb_add_unslashes(sb_t *sb, const void *data, int len,
-                      const char *tounesc, const char *unesc) __leaf;
+void sb_add_unslashes(sb_t * nonnull sb, const void * nonnull data, int len,
+                      const char * nonnull tounesc,
+                      const char * nonnull unesc) __leaf;
 static inline void
-sb_adds_unslashes(sb_t *sb, const char *s, const char *tounesc, const char *unesc)
+sb_adds_unslashes(sb_t * nonnull sb, const char * nonnull s,
+                  const char * nonnull tounesc, const char * nonnull unesc)
 {
     sb_add_unslashes(sb, s, strlen(s), tounesc, unesc);
 }
@@ -662,31 +683,39 @@ sb_adds_unslashes(sb_t *sb, const char *s, const char *tounesc, const char *unes
  * <code>${VAR_NAME}</code> or <code>$VAR_NAME</code>. Literal <code>$</code>
  * or <code>\</code> must be escaped using backslashes.
  */
-int sb_add_expandenv(sb_t *sb, const void *data, int len) __leaf;
+int sb_add_expandenv(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
 __SB_DEFINE_ADDS_ERR(expandenv);
 
-void sb_add_unquoted(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_unquoted(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
 __SB_DEFINE_ADDS(unquoted);
 
-void sb_add_urlencode(sb_t *sb, const void *data, int len) __leaf;
-void sb_add_urldecode(sb_t *sb, const void *data, int len) __leaf;
-void sb_urldecode(sb_t *sb) __leaf;
+void sb_add_urlencode(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
+void sb_add_urldecode(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
+void sb_urldecode(sb_t * nonnull sb) __leaf;
 __SB_DEFINE_ADDS(urlencode);
 __SB_DEFINE_ADDS(urldecode);
 
-void sb_add_hex(sb_t *sb, const void *data, int len) __leaf;
-int  sb_add_unhex(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_hex(sb_t * nonnull sb, const void * nonnull data, int len) __leaf;
+int  sb_add_unhex(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
 __SB_DEFINE_ADDS(hex);
 __SB_DEFINE_ADDS_ERR(unhex);
 
 /* this all assumes utf8 data ! */
-void sb_add_xmlescape(sb_t *sb, const void *data, int len) __leaf;
-int  sb_add_xmlunescape(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_xmlescape(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
+int  sb_add_xmlunescape(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
 __SB_DEFINE_ADDS(xmlescape);
 __SB_DEFINE_ADDS_ERR(xmlunescape);
 
-void sb_add_qpe(sb_t *sb, const void *data, int len) __leaf;
-void sb_add_unqpe(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_qpe(sb_t * nonnull sb, const void * nonnull data, int len) __leaf;
+void sb_add_unqpe(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
 __SB_DEFINE_ADDS(qpe);
 __SB_DEFINE_ADDS(unqpe);
 
@@ -697,18 +726,19 @@ typedef struct sb_b64_ctx_t {
     byte  trail_len;
 } sb_b64_ctx_t;
 
-void sb_add_b64_start(sb_t *sb, int len, int width, sb_b64_ctx_t *ctx)
-    __leaf;
-void sb_add_b64_update(sb_t *sb, const void *src0, int len, sb_b64_ctx_t *ctx)
-    __leaf;
-void sb_add_b64_finish(sb_t *sb, sb_b64_ctx_t *ctx)
+void sb_add_b64_start(sb_t * nonnull sb, int len, int width,
+                      sb_b64_ctx_t * nonnull ctx) __leaf;
+void sb_add_b64_update(sb_t * nonnull sb, const void * nonnull src0, int len,
+                       sb_b64_ctx_t * nonnull ctx) __leaf;
+void sb_add_b64_finish(sb_t * nonnull sb, sb_b64_ctx_t * nonnull ctx)
     __leaf;
 
-void sb_add_b64(sb_t *sb, const void *data, int len, int width)
+void sb_add_b64(sb_t * nonnull sb, const void * nonnull data,
+                int len, int width) __leaf;
+int  sb_add_unb64(sb_t * nonnull sb, const void * nonnull data, int len)
     __leaf;
-int  sb_add_unb64(sb_t *sb, const void *data, int len)
-    __leaf;
-static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
+static inline void sb_adds_b64(sb_t * nonnull sb, const char * nonnull s,
+                               int width)
 {
     sb_add_b64(sb, s, strlen(s), width);
 }
@@ -722,12 +752,14 @@ __SB_DEFINE_ADDS_ERR(unb64);
  * Otherwise, it is double-quoted, and the double-quotes of the content of the
  * string (and only them) are escaped with double-quotes.
  */
-void sb_add_csvescape(sb_t *sb, int sep, const void *data, int len);
-static inline void sb_adds_csvescape(sb_t *sb, int sep, const char *s)
+void sb_add_csvescape(sb_t * nonnull sb, int sep, const void * nonnull data,
+                      int len) __leaf;
+static inline void sb_adds_csvescape(sb_t * nonnull sb, int sep,
+                                     const char * nonnull s)
 {
     sb_add_csvescape(sb, sep, s, strlen(s));
 }
-static inline void sb_add_lstr_csvescape(sb_t *sb, int sep, lstr_t s)
+static inline void sb_add_lstr_csvescape(sb_t * nonnull sb, int sep, lstr_t s)
 {
     sb_add_csvescape(sb, sep, s.s, s.len);
 }
@@ -742,8 +774,9 @@ static inline void sb_add_lstr_csvescape(sb_t *sb, int sep, lstr_t s)
  * \param[in]  code_points  array of the input code points.
  * \param[in]  nbcode_points  number of input code points.
  */
-int sb_add_punycode_vec(sb_t *sb, const uint32_t *code_points,
-                        int nb_code_points);
+int sb_add_punycode_vec(sb_t * nonnull sb,
+                        const uint32_t * nonnull code_points,
+                        int nb_code_points) __leaf;
 
 /** Append the Punycode-encoded string corresponding to the input UFT8 string.
  *
@@ -754,7 +787,8 @@ int sb_add_punycode_vec(sb_t *sb, const uint32_t *code_points,
  * \param[in]  src  input UTF8 string to encode.
  * \param[in]  src_len  length (in bytes) of the input UTF8 string.
  */
-int sb_add_punycode_str(sb_t *sb, const char *src, int src_len);
+int sb_add_punycode_str(sb_t * nonnull sb, const char * nonnull src,
+                        int src_len) __leaf;
 
 
 enum idna_flags_t {
@@ -776,33 +810,33 @@ enum idna_flags_t {
  *
  * \return  the (positive) number of encoded labels on success, -1 on failure.
  */
-int sb_add_idna_domain_name(sb_t *sb, const char *src, int src_len,
-                            unsigned flags);
+int sb_add_idna_domain_name(sb_t * nonnull sb, const char * nonnull src,
+                            int src_len, unsigned flags);
 
 /**************************************************************************/
 /* charset conversions (when implicit, charset is utf8)                   */
 /**************************************************************************/
 
-void sb_conv_from_latin1(sb_t *sb, const void *s, int len)
+void sb_conv_from_latin1(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
-void sb_conv_from_latin9(sb_t *sb, const void *s, int len)
+void sb_conv_from_latin9(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
-int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep)
-    __leaf;
-int  sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len)
-    __leaf;
+int  sb_conv_to_latin1(sb_t * nonnull sb, const void * nonnull s,
+                       int len, int rep) __leaf;
+int  sb_conv_from_ebcdic297(sb_t * nonnull dst, const char * nonnull src,
+                            int len) __leaf;
 
 /* ucs2 */
-int  sb_conv_to_ucs2le(sb_t *sb, const void *s, int len)
+int  sb_conv_to_ucs2le(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
-int  sb_conv_to_ucs2be(sb_t *sb, const void *s, int len)
+int  sb_conv_to_ucs2be(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
-int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *s, int len)
+int  sb_conv_to_ucs2be_hex(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
-int  sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen)
-    __leaf;
-int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
-    __leaf;
+int  sb_conv_from_ucs2be_hex(sb_t * nonnull sb, const void * nonnull s,
+                             int slen) __leaf;
+int  sb_conv_from_ucs2le_hex(sb_t * nonnull sb, const void * nonnull s,
+                             int slen) __leaf;
 
 typedef enum gsm_conv_plan_t {
     /* use only default gsm7 alphabet */
@@ -814,21 +848,23 @@ typedef enum gsm_conv_plan_t {
 } gsm_conv_plan_t;
 #define GSM_LATIN1_PLAN GSM_EXTENSION_PLAN
 
-int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan)
-    __leaf;
-static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
+int  sb_conv_from_gsm_plan(sb_t * nullable sb, const void * nullable src,
+                           int len, int plan) __leaf;
+static inline int sb_conv_from_gsm(sb_t * nullable sb,
+                                   const void * nullable src, int len)
+{
     return sb_conv_from_gsm_plan(sb, src, len, GSM_EXTENSION_PLAN);
 }
 
-int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len)
+int  sb_conv_from_gsm_hex(sb_t * nullable sb, const void * nullable src,
+                          int len) __leaf;
+bool sb_conv_to_gsm_isok(const void * nonnull data, int len,
+                         gsm_conv_plan_t plan) __leaf;
+void sb_conv_to_gsm(sb_t * nonnull sb, const void * nonnull src, int len)
     __leaf;
-bool sb_conv_to_gsm_isok(const void *data, int len, gsm_conv_plan_t plan)
+void sb_conv_to_gsm_hex(sb_t * nonnull sb, const void * nonnull src, int len)
     __leaf;
-void sb_conv_to_gsm(sb_t *sb, const void *src, int len)
-    __leaf;
-void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len)
-    __leaf;
-void sb_conv_to_cimd(sb_t *sb, const void *src, int len)
+void sb_conv_to_cimd(sb_t * nonnull sb, const void * nonnull src, int len)
     __leaf;
 
 /* packed gsm */
@@ -836,21 +872,23 @@ int  gsm7_charlen(int c)
     __leaf;
 int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
     __leaf;
-int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8,
-                     int unknown, gsm_conv_plan_t plan, int max_len) __leaf;
-int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen)
-    __leaf;
+int  sb_conv_to_gsm7(sb_t * nonnull sb, int gsm_start,
+                     const char * nonnull utf8, int unknown,
+                     gsm_conv_plan_t plan, int max_len) __leaf;
+int  sb_conv_from_gsm7(sb_t * nonnull sb, const void * nonnull src,
+                       int gsmlen, int udhlen) __leaf;
 int gsm7_to_unicode(uint8_t u8, int unknown)
     __leaf;
 
 /* normalisation */
-int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci) __leaf;
+int sb_normalize_utf8(sb_t * nonnull sb, const char * nonnull s, int len,
+                      bool ci) __leaf;
 
 /** append to \p sb the string describe by \p s with a lower case */
-int sb_add_utf8_tolower(sb_t *sb, const char *s, int len);
+int sb_add_utf8_tolower(sb_t * nonnull sb, const char * nonnull s, int len);
 
 /** append to \p sb the string describe by \p s with an upper case */
-int sb_add_utf8_toupper(sb_t *sb, const char *s, int len);
+int sb_add_utf8_toupper(sb_t * nonnull sb, const char * nonnull s, int len);
 
 /**************************************************************************/
 /* misc helpers                                                           */

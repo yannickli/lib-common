@@ -16,6 +16,10 @@
 
 #include "container-qvector.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #ifndef O_CLOEXEC
 # ifdef OS_LINUX
 #  define O_CLOEXEC	02000000	/* set close_on_exec */
@@ -40,8 +44,9 @@
 /* process related                                                          */
 /****************************************************************************/
 
-int  pid_get_starttime(pid_t pid, struct timeval *tv);
-void ps_panic_sighandler(int signum, siginfo_t *si, void *addr);
+int  pid_get_starttime(pid_t pid, struct timeval * nonnull tv);
+void ps_panic_sighandler(int signum, siginfo_t * nullable si,
+                         void * nullable addr);
 void ps_install_panic_sighandlers(void);
 void ps_dump_core_of_current_thread(void);
 
@@ -60,16 +65,16 @@ void ps_dump_core_of_current_thread(void);
 #define DIRECT_TRUNCATE(Val)   ((Val) & BITMASK_GE(typeof(Val), DIRECT_BITS))
 #define DIRECT_IS_ALIGNED(Val) (DIRECT_REMAIN(Val) == 0)
 
-int mkdir_p(const char *dir, mode_t mode);
-int mkdirat_p(int dfd, const char *dir, mode_t mode);
-int rmdir_r(const char *dir, bool only_content);
-int rmdirat_r(int dfd, const char *dir, bool only_content);
+int mkdir_p(const char * nonnull dir, mode_t mode);
+int mkdirat_p(int dfd, const char * nonnull dir, mode_t mode);
+int rmdir_r(const char * nonnull dir, bool only_content);
+int rmdirat_r(int dfd, const char * nonnull dir, bool only_content);
 
-int get_mtime(const char *filename, time_t *t);
+int get_mtime(const char * nonnull filename, time_t * nonnull t);
 
-off_t filecopy(const char *pathin, const char *pathout);
-off_t filecopyat(int dfd_src, const char* name_src,
-                 int dfd_dst, const char* name_dst);
+off_t filecopy(const char * nonnull pathin, const char * nonnull pathout);
+off_t filecopyat(int dfd_src, const char * nonnull name_src,
+                 int dfd_dst, const char * nonnull name_dst);
 
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 int p_unlockf(int fd, off_t start, off_t len);
@@ -108,7 +113,7 @@ typedef struct dir_lock_t {
  *
  * Use unlockdir() to unlock a directory locked with unlock().
  */
-int lockdir(int dfd, dir_lock_t *dlock);
+int lockdir(int dfd, dir_lock_t * nonnull dlock);
 
 /** Unlock a directory
  * \param  dlock  directory lock
@@ -119,7 +124,7 @@ int lockdir(int dfd, dir_lock_t *dlock);
  *
  * To be safe, this function resets the file descriptors to -1.
  */
-void unlockdir(dir_lock_t *dlock);
+void unlockdir(dir_lock_t * nonnull dlock);
 
 int tmpfd(void);
 void devnull_dup(int fd);
@@ -153,8 +158,8 @@ typedef struct dirent linux_dirent_t;
 #endif
 
 #ifdef __has_blocks
-typedef int (BLOCK_CARET on_file_b)(const char *dir,
-                                    const linux_dirent_t *de);
+typedef int (BLOCK_CARET on_file_b)(const char * nonnull dir,
+                                    const linux_dirent_t * nonnull de);
 
 enum list_dir_flags_t {
     /** List subdirectories recursively. */
@@ -181,7 +186,8 @@ enum list_dir_flags_t {
  * The function returns the result of the processing function if it fails.
  *
  */
-int list_dir(const char *path, unsigned flags, on_file_b on_file);
+int list_dir(const char * nonnull path, unsigned flags,
+             on_file_b nullable on_file);
 #endif
 
 /****************************************************************************/
@@ -199,7 +205,7 @@ int list_dir(const char *path, unsigned flags, on_file_b on_file);
 
 qvector_t(iovec, struct iovec);
 
-static inline size_t iovec_len(const struct iovec *iov, int iovlen)
+static inline size_t iovec_len(const struct iovec * nonnull iov, int iovlen)
 {
     size_t res = 0;
     for (int i = 0; i < iovlen; i++) {
@@ -208,16 +214,21 @@ static inline size_t iovec_len(const struct iovec *iov, int iovlen)
     return res;
 }
 
-int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len);
+int iovec_vector_kill_first(qv_t(iovec) * nonnull iovs, ssize_t len);
 
 
-__must_check__ ssize_t xwrite_file(const char *file, const void *data, ssize_t dlen);
-__must_check__ ssize_t xwrite(int fd, const void *data, ssize_t dlen);
-__must_check__ ssize_t xwritev(int fd, struct iovec *iov, int iovcnt);
-__must_check__ ssize_t xpwrite(int fd, const void *data, ssize_t dlen, off_t offset);
+__must_check__ ssize_t xwrite_file(const char * nonnull file,
+                                   const void * nonnull data, ssize_t dlen);
+__must_check__ ssize_t xwrite(int fd, const void * nonnull data,
+                              ssize_t dlen);
+__must_check__ ssize_t xwritev(int fd, struct iovec * nonnull iov,
+                               int iovcnt);
+__must_check__ ssize_t xpwrite(int fd, const void * nonnull data,
+                               ssize_t dlen, off_t offset);
 __must_check__ int xftruncate(int fd, off_t offs);
-__must_check__ int xread(int fd, void *data, ssize_t dlen);
-__must_check__ int xpread(int fd, void *data, ssize_t dlen, off_t offset);
+__must_check__ int xread(int fd, void * nonnull data, ssize_t dlen);
+__must_check__ int xpread(int fd, void * nonnull data, ssize_t dlen,
+                          off_t offset);
 
 bool is_fd_open(int fd);
 
@@ -239,7 +250,7 @@ static inline void close_fds_higher_than(int fd_min)
 }
 
 bool is_fancy_fd(int fd);
-void term_get_size(int *cols, int *rows);
+void term_get_size(int * nonnull cols, int * nonnull rows);
 
 typedef enum {
     FD_FEAT_TCP_NODELAY = 1 << 0,
@@ -274,7 +285,7 @@ int eventfd(int initialvalue, int flags);
 ssize_t fd_get_path(int fd, char buf[], size_t buf_len);
 
 __attr_nonnull__((1))
-static inline int p_fclose(FILE **fpp) {
+static inline int p_fclose(FILE * nullable * nonnull fpp) {
     FILE *fp = *fpp;
 
     *fpp = NULL;
@@ -282,7 +293,7 @@ static inline int p_fclose(FILE **fpp) {
 }
 
 __attr_nonnull__((1))
-static inline int p_closedir(DIR **dirp) {
+static inline int p_closedir(DIR * nullable * nonnull dirp) {
     DIR *dir = *dirp;
 
     *dirp = NULL;
@@ -290,7 +301,7 @@ static inline int p_closedir(DIR **dirp) {
 }
 
 __attr_nonnull__((1))
-static inline int p_close(int *hdp) {
+static inline int p_close(int * nonnull hdp) {
     int hd = *hdp;
     *hdp = -1;
     if (hd < 0)
@@ -312,7 +323,7 @@ static inline void getopt_init(void) {
 }
 
 /* if pid <= 0, retrieve infos for the current process */
-int psinfo_get(pid_t pid, sb_t *output);
+int psinfo_get(pid_t pid, sb_t * nonnull output);
 
 /** \brief Get PID of a traced process
  *
@@ -357,5 +368,9 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 
     return -1;
 }
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif /* IS_LIB_COMMON_UNIX_H */

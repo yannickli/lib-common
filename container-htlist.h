@@ -16,6 +16,10 @@
 
 #include "core.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 /* An implementation of anchor-based htlists.
  *
  * Htlists are basically single-linked lists with head and tail pointers.
@@ -65,24 +69,24 @@
  */
 
 typedef struct htnode_t {
-    struct htnode_t *next;
+    struct htnode_t * nullable next;
 } htnode_t;
 
 typedef struct htlist_t {
-    htnode_t *head;
-    htnode_t *tail;
+    htnode_t * nullable head;
+    htnode_t * nullable tail;
 } htlist_t;
 GENERIC_INIT(htlist_t, htlist);
 
 #define HTLIST(name)       htlist_t name = HTLIST_INIT(name)
 #define HTLIST_INIT(name)  { .tail = NULL }
 
-static inline bool htlist_is_empty(const htlist_t *l)
+static inline bool htlist_is_empty(const htlist_t * nonnull l)
 {
     return l->tail == NULL;
 }
 
-static inline void htlist_add(htlist_t *l, htnode_t *n)
+static inline void htlist_add(htlist_t * nonnull l, htnode_t * nonnull n)
 {
     n->next = l->head;
     l->head = n;
@@ -91,7 +95,7 @@ static inline void htlist_add(htlist_t *l, htnode_t *n)
     }
 }
 
-static inline void htlist_add_tail(htlist_t *l, htnode_t *n)
+static inline void htlist_add_tail(htlist_t * nonnull l, htnode_t * nonnull n)
 {
     if (htlist_is_empty(l)) {
         htlist_add(l, n);
@@ -105,7 +109,8 @@ static inline void htlist_add_tail(htlist_t *l, htnode_t *n)
 /* Adding a node after another one. If prev is NULL, the new_node will be
  * added to the head */
 static inline void
-htlist_add_after(htlist_t *l, htnode_t *prev, htnode_t *new_node)
+htlist_add_after(htlist_t * nonnull l, htnode_t * nullable prev,
+                 htnode_t * nonnull new_node)
 {
     if (!prev) {
         return htlist_add(l, new_node);
@@ -119,7 +124,7 @@ htlist_add_after(htlist_t *l, htnode_t *prev, htnode_t *new_node)
     }
 }
 
-static inline htnode_t *htlist_pop(htlist_t *l)
+static inline htnode_t * nonnull htlist_pop(htlist_t * nonnull l)
 {
     htnode_t *res = l->head;
 
@@ -132,7 +137,8 @@ static inline htnode_t *htlist_pop(htlist_t *l)
     return res;
 }
 
-static inline void htlist_splice(htlist_t *dst, htlist_t *src)
+static inline void htlist_splice(htlist_t * nonnull dst,
+                                 htlist_t * nonnull src)
 {
     if (!htlist_is_empty(src)) {
         src->tail->next = dst->head;
@@ -144,14 +150,16 @@ static inline void htlist_splice(htlist_t *dst, htlist_t *src)
     }
 }
 
-static inline void htlist_move(htlist_t *dst, htlist_t *src)
+static inline void htlist_move(htlist_t * nonnull dst,
+                               htlist_t * nonnull src)
 {
     htlist_init(dst);
     htlist_splice(dst, src);
     htlist_init(src);
 }
 
-static inline void htlist_splice_tail(htlist_t *dst, htlist_t *src)
+static inline void htlist_splice_tail(htlist_t * nonnull dst,
+                                      htlist_t * nonnull src)
 {
     if (!htlist_is_empty(src)) {
         src->tail->next = dst->tail->next;
@@ -210,5 +218,9 @@ static inline void htlist_splice_tail(htlist_t *dst, htlist_t *src)
         _ptr->head = NULL;                                                   \
         _ptr->tail = _ptr->head;                                             \
     } while (0)
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

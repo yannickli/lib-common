@@ -17,6 +17,10 @@
 #include "core.h"
 #include "arith.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #define SHA1_DIGEST_SIZE    (160 / 8)
 #define SHA224_DIGEST_SIZE  (224 / 8)
 #define SHA256_DIGEST_SIZE  (256 / 8)
@@ -57,9 +61,10 @@ typedef struct jenkins_ctx {
     uint32_t hash;
 } jenkins_ctx;
 
-void jenkins_starts(jenkins_ctx *ctx) __leaf;
-void jenkins_update(jenkins_ctx *ctx, const void *input, ssize_t len) __leaf;
-void jenkins_finish(jenkins_ctx *ctx, byte output[4]) __leaf;
+void jenkins_starts(jenkins_ctx * nonnull ctx) __leaf;
+void jenkins_update(jenkins_ctx * nonnull ctx, const void * nonnull input,
+                    ssize_t len) __leaf;
+void jenkins_finish(jenkins_ctx * nonnull ctx, byte output[4]) __leaf;
 
 typedef struct murmur_hash3_x86_32_ctx {
     uint32_t h1;
@@ -68,22 +73,22 @@ typedef struct murmur_hash3_x86_32_ctx {
     uint8_t  tail_len;
 } murmur_hash3_x86_32_ctx;
 
-void murmur_hash3_x86_32_starts(murmur_hash3_x86_32_ctx *ctx, uint32_t seed)
-    __leaf;
-void murmur_hash3_x86_32_update(murmur_hash3_x86_32_ctx *ctx,
-                                const void *key, size_t len) __leaf;
-void murmur_hash3_x86_32_finish(murmur_hash3_x86_32_ctx *ctx, byte output[4])
-    __leaf;
+void murmur_hash3_x86_32_starts(murmur_hash3_x86_32_ctx * nonnull ctx,
+                                uint32_t seed) __leaf;
+void murmur_hash3_x86_32_update(murmur_hash3_x86_32_ctx * nonnull ctx,
+                                const void * nonnull key, size_t len) __leaf;
+void murmur_hash3_x86_32_finish(murmur_hash3_x86_32_ctx * nonnull ctx,
+                                byte output[4]) __leaf;
 
 #define MEM_HASH32_MURMUR_SEED  0xdeadc0de
 
 #include "hash-iop.h"
 
-uint32_t icrc32(uint32_t crc, const void *data, ssize_t len) __leaf;
-uint64_t icrc64(uint64_t crc, const void *data, ssize_t len) __leaf;
+uint32_t icrc32(uint32_t crc, const void * nonnull data, ssize_t len) __leaf;
+uint64_t icrc64(uint64_t crc, const void * nonnull data, ssize_t len) __leaf;
 
-uint32_t hsieh_hash(const void *s, ssize_t len) __leaf;
-uint32_t jenkins_hash(const void *s, ssize_t len) __leaf;
+uint32_t hsieh_hash(const void * nonnull s, ssize_t len) __leaf;
+uint32_t jenkins_hash(const void * nonnull s, ssize_t len) __leaf;
 
 #ifdef __cplusplus
 #define murmur_128bits_buf char out[]
@@ -91,14 +96,14 @@ uint32_t jenkins_hash(const void *s, ssize_t len) __leaf;
 #define murmur_128bits_buf char out[static 16]
 #endif
 
-uint32_t murmur_hash3_x86_32 (const void *key, size_t len, uint32_t seed)
-    __leaf;
-void     murmur_hash3_x86_128(const void *key, size_t len, uint32_t seed,
-                              murmur_128bits_buf) __leaf;
-void     murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed,
-                              murmur_128bits_buf) __leaf;
+uint32_t murmur_hash3_x86_32(const void * nonnull key, size_t len,
+                             uint32_t seed) __leaf;
+void     murmur_hash3_x86_128(const void * nonnull key, size_t len,
+                              uint32_t seed, murmur_128bits_buf) __leaf;
+void     murmur_hash3_x64_128(const void * nonnull key, size_t len,
+                              uint32_t seed, murmur_128bits_buf) __leaf;
 
-static inline uint32_t mem_hash32(const void *data, ssize_t len)
+static inline uint32_t mem_hash32(const void * nonnull data, ssize_t len)
 {
     if (unlikely(len < 0))
         len = strlen((const char *)data);
@@ -113,5 +118,9 @@ static inline uint32_t u64_hash32(uint64_t u64)
 {
     return (uint32_t)(u64) ^ (uint32_t)(u64 >> 32);
 }
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

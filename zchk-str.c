@@ -1493,7 +1493,7 @@ Z_GROUP_EXPORT(str)
         qv_init(&arr);
 
 #define T(str1, str2, str3, sep, seps) \
-        TST_MAIN(NULL, str1, str2, str3, sep, seps, 0)
+        TST_MAIN(str1, str1, str2, str3, sep, seps, 0)
 
 #define T_SKIP(str_main, str1, str2, str3, seps) \
         TST_MAIN(str_main, str1, str2, str3, "\0", seps, PS_SPLIT_SKIP_EMPTY)

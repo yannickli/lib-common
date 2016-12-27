@@ -74,6 +74,11 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "core-os-features.h"
 #include "core-macros.h"
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -99,5 +104,9 @@ extern "C" {
 #include "str-stream.h"
 #include "core-str.h"
 #include "core-module.h"
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #endif

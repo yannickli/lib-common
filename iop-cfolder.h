@@ -62,7 +62,7 @@ typedef struct iop_cfolder_t {
     int           paren_cnt;
 } iop_cfolder_t;
 
-static inline void iop_cfolder_wipe(iop_cfolder_t *folder)
+static inline void iop_cfolder_wipe(iop_cfolder_t * nonnull folder)
 {
     qv_wipe(&folder->stack);
 }
@@ -70,15 +70,17 @@ GENERIC_DELETE(iop_cfolder_t, iop_cfolder);
 
 GENERIC_NEW_INIT(iop_cfolder_t, iop_cfolder);
 
-static inline bool iop_cfolder_empty(iop_cfolder_t *cfolder)
+static inline bool iop_cfolder_empty(iop_cfolder_t * nonnull cfolder)
 {
     return (cfolder->stack.len == 0 && cfolder->paren_cnt == 0);
 }
 
-iop_cfolder_err_t iop_cfolder_feed_number(iop_cfolder_t *, uint64_t,
+iop_cfolder_err_t iop_cfolder_feed_number(iop_cfolder_t * nonnull , uint64_t,
                                           bool is_signed);
-iop_cfolder_err_t iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
+iop_cfolder_err_t iop_cfolder_feed_operator(iop_cfolder_t * nonnull,
+                                            iop_cfolder_op_t);
 iop_cfolder_err_t
-iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res, bool *is_signed);
+iop_cfolder_get_result(iop_cfolder_t * nonnull, uint64_t * nonnull res,
+                       bool * nullable is_signed);
 
 #endif

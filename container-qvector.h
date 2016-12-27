@@ -16,24 +16,29 @@
 
 #include "core.h"
 
-#define STRUCT_QVECTOR_T(val_t) \
-    struct {                         \
-        val_t *tab;                  \
-        mem_pool_t *mp;              \
-        int len, size;               \
+#if __has_feature(nullability)
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
+
+#define STRUCT_QVECTOR_T(val_t)                                              \
+    struct {                                                                 \
+        val_t * nullable tab;                                                \
+        mem_pool_t * nullable mp;                                            \
+        int len, size;                                                       \
     }
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
-typedef int (BLOCK_CARET qvector_cmp_b)(const void *, const void *);
-typedef void (BLOCK_CARET qvector_del_b)(void *);
-typedef void (BLOCK_CARET qvector_cpy_b)(void *, const void *);
+typedef int (BLOCK_CARET qvector_cmp_b)(const void * nonnull,
+                                        const void * nonnull);
+typedef void (BLOCK_CARET qvector_del_b)(void * nonnull);
+typedef void (BLOCK_CARET qvector_cpy_b)(void * nonnull, const void * nonnull);
 #endif
 
-static inline qvector_t *
-__qvector_init(qvector_t *vec, void *buf, int blen, int bsize,
-               mem_pool_t *mp)
+static inline qvector_t * nonnull
+__qvector_init(qvector_t * nonnull vec, void * nullable buf, int blen,
+               int bsize, mem_pool_t * nullable mp)
 {
     *vec = (qvector_t){
         cast(uint8_t *, buf),
@@ -44,24 +49,29 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize,
     return vec;
 }
 
-void  qvector_reset(qvector_t *vec, size_t v_size)
+void  qvector_reset(qvector_t * nonnull vec, size_t v_size)
     __leaf;
-void  qvector_wipe(qvector_t *vec, size_t v_size)
+void  qvector_wipe(qvector_t * nonnull vec, size_t v_size)
     __leaf;
-void  __qvector_grow(qvector_t *, size_t v_size, size_t v_align, int extra)
+void  __qvector_grow(qvector_t * nonnull , size_t v_size, size_t v_align,
+                     int extra)
     __leaf;
-void  __qvector_optimize(qvector_t *, size_t v_size, size_t v_align, size_t size)
+void  __qvector_optimize(qvector_t * nonnull, size_t v_size, size_t v_align,
+                         size_t size)
     __leaf;
-void *__qvector_splice(qvector_t *, size_t v_size, size_t v_align,
-                       int pos, int rm_len, int inserted_len)
+void * nonnull __qvector_splice(qvector_t * nonnull, size_t v_size,
+                                size_t v_align, int pos, int rm_len,
+                                int inserted_len)
     __leaf;
 #ifdef __has_blocks
-void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp);
-void __qv_sort64(void *a, size_t n, qvector_cmp_b cmp);
-void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp);
+void __qv_sort32(void * nonnull a, size_t n, qvector_cmp_b nonnull cmp);
+void __qv_sort64(void * nonnull a, size_t n, qvector_cmp_b nonnull cmp);
+void __qv_sort(void * nonnull a, size_t v_size, size_t n,
+               qvector_cmp_b nonnull cmp);
 
 static ALWAYS_INLINE void
-__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
+__qvector_sort(qvector_t * nonnull vec, size_t v_size,
+               qvector_cmp_b nonnull cmp)
 {
     if (v_size == 8) {
         __qv_sort64(vec->tab, vec->len, cmp);
@@ -72,20 +82,27 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
         __qv_sort(vec->tab, v_size, vec->len, cmp);
     }
 }
-void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *add, qvector_t *del, qvector_t *inter,
-                    size_t v_size, size_t v_align, qvector_cmp_b cmp);
-int  __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
-                      bool *found, qvector_cmp_b cmp);
-int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
-                   bool sorted, qvector_cmp_b cmp);
-bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
-                        bool sorted, qvector_cmp_b cmp);
-void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp,
+void __qvector_diff(const qvector_t * nonnull vec1,
+                    const qvector_t * nonnull vec2,
+                    qvector_t * nullable add, qvector_t * nullable del,
+                    qvector_t * nullable inter, size_t v_size, size_t v_align,
+                    qvector_cmp_b nonnull cmp);
+int  __qvector_bisect(const qvector_t * nonnull vec, size_t v_size, 
+                      const void * nonnull elt, bool * nullable found,
+                      qvector_cmp_b nonnull cmp);
+int __qvector_find(const qvector_t * nonnull vec, size_t v_size,
+                   const void * nonnull elt, bool sorted,
+                   qvector_cmp_b nonnull cmp);
+bool __qvector_contains(const qvector_t * nonnull vec, size_t v_size,
+                        const void * nonnull elt,
+                        bool sorted, qvector_cmp_b nonnull cmp);
+void __qvector_uniq(qvector_t * nonnull vec, size_t v_size,
+                    qvector_cmp_b nonnull cmp,
                     qvector_del_b nullable del);
-void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
+void __qvector_deep_extend(qvector_t * nonnull vec_dst,
+                           const qvector_t * nonnull vec_src,
                            size_t v_size, size_t v_align,
-                           qvector_cpy_b cpy_f);
+                           qvector_cpy_b nonnull cpy_f);
 #endif
 
 /** \brief optimize vector for space.
@@ -102,7 +119,7 @@ void __qvector_deep_extend(qvector_t *vec_dst, const qvector_t *vec_src,
  * allocation to have no waste.
  */
 static inline void
-qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
+qvector_optimize(qvector_t * nonnull vec, size_t v_size, size_t v_align,
                  size_t ratio, size_t extra_ratio)
 {
     size_t cur_waste = vec->size - vec->len;
@@ -113,7 +130,8 @@ qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
 }
 
 static inline
-void *qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
+void * nonnull qvector_grow(qvector_t * nonnull vec, size_t v_size,
+                            size_t v_align, int extra)
 {
     ssize_t size = vec->len + extra;
 
@@ -129,7 +147,8 @@ void *qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 }
 
 static inline
-void *qvector_growlen(qvector_t *vec, size_t v_size, size_t v_align, int extra)
+void * nonnull qvector_growlen(qvector_t * nonnull vec, size_t v_size,
+                               size_t v_align, int extra)
 {
     void *res;
 
@@ -140,9 +159,9 @@ void *qvector_growlen(qvector_t *vec, size_t v_size, size_t v_align, int extra)
     return res;
 }
 
-static inline void *
-qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
-               int pos, int rm_len, const void *inserted_values,
+static inline void * nonnull
+qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
+               int pos, int rm_len, const void * nullable inserted_values,
                int inserted_len)
 {
     void *res;
@@ -181,19 +200,23 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     } pfx##_t;
 
 #ifdef __has_blocks
-#define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
+#define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)                           \
     CORE_CMP_TYPE(pfx, val_t);                                              \
-    typedef void (BLOCK_CARET pfx##_del_b)(val_t *v);                       \
-    typedef void (BLOCK_CARET pfx##_cpy_b)(val_t *a,  cval_t *b);           \
+    typedef void (BLOCK_CARET pfx##_del_b)(val_t * nonnull v);              \
+    typedef void (BLOCK_CARET pfx##_cpy_b)(val_t * nonnull a,               \
+                                           cval_t * nonnull b);             \
                                                                             \
     __unused__                                                              \
-    static inline void pfx##_sort(pfx##_t *vec, pfx##_cmp_b cmp) {          \
+    static inline void pfx##_sort(pfx##_t * nonnull vec,                    \
+                                  pfx##_cmp_b nonnull cmp)                  \
+    {                                                                       \
         __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
     __unused__                                                              \
     static inline void                                                      \
-    pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2,                    \
-               pfx##_t *add, pfx##_t *del, pfx##_t *inter, pfx##_cmp_b cmp) \
+    pfx##_diff(const pfx##_t * nonnull vec1, const pfx##_t * nonnull vec2,  \
+               pfx##_t * nullable add, pfx##_t * nullable del,              \
+               pfx##_t * nullable inter, pfx##_cmp_b nonnull cmp)           \
     {                                                                       \
         __qvector_diff(&vec1->qv, &vec2->qv, add ? &add->qv : NULL,         \
                        del ? &del->qv : NULL, inter ? &inter->qv : NULL,    \
@@ -201,38 +224,42 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp, pfx##_del_b nullable del)\
+    void pfx##_uniq(pfx##_t * nonnull vec, pfx##_cmp_b nonnull cmp,         \
+                    pfx##_del_b nullable del)                               \
     {                                                                       \
         __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp,         \
                        (qvector_del_b)del);                                 \
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    int pfx##_bisect(const pfx##_t *vec, cval_t v, bool *found,             \
-                     pfx##_cmp_b cmp)                                       \
+    int pfx##_bisect(const pfx##_t * nonnull vec, cval_t v,                 \
+                     bool * nullable found, pfx##_cmp_b nonnull cmp)        \
     {                                                                       \
         return __qvector_bisect(&vec->qv, sizeof(val_t), &v, found,         \
                                 (qvector_cmp_b)cmp);                        \
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    int pfx##_find(const pfx##_t *vec, cval_t v, bool sorted,               \
-                   pfx##_cmp_b cmp)                                         \
+    int pfx##_find(const pfx##_t * nonnull vec, cval_t v, bool sorted,      \
+                   pfx##_cmp_b nonnull cmp)                                 \
     {                                                                       \
         return __qvector_find(&vec->qv, sizeof(val_t), &v, sorted,          \
                               (qvector_cmp_b)cmp);                          \
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    bool pfx##_contains(const pfx##_t *vec, cval_t v, bool sorted,          \
-                        pfx##_cmp_b cmp) {                                  \
+    bool pfx##_contains(const pfx##_t * nonnull vec, cval_t v, bool sorted, \
+                        pfx##_cmp_b nonnull cmp)                            \
+    {                                                                       \
         return __qvector_contains(&vec->qv, sizeof(val_t), &v, sorted,      \
                                   (qvector_cmp_b)cmp);                      \
     }                                                                       \
     __unused__                                                              \
     static inline                                                           \
-    void pfx##_deep_extend(pfx##_t *vec_dst, pfx##_t *vec_src,              \
-                           pfx##_cpy_b cpy_f) {                             \
+    void pfx##_deep_extend(pfx##_t * nonnull vec_dst,                       \
+                           pfx##_t * nonnull vec_src,                       \
+                           pfx##_cpy_b nonnull cpy_f)                       \
+    {                                                                       \
         __qvector_deep_extend(&vec_dst->qv, &vec_src->qv, sizeof(val_t),    \
                               alignof(val_t), (qvector_cpy_b)cpy_f);        \
     }
@@ -570,15 +597,15 @@ qvector_t(i32,    int32_t);
 qvector_t(u32,    uint32_t);
 qvector_t(i64,    int64_t);
 qvector_t(u64,    uint64_t);
-qvector_t(void,   void *);
+qvector_t(void,   void * nullable);
 qvector_t(double, double);
-qvector_t(str,    char *);
+qvector_t(str,    char * nullable);
 qvector_t(lstr,   lstr_t);
 qvector_t(pstream, pstream_t);
 
-qvector_t(cvoid, const void *);
-qvector_t(cstr,  const char *);
-qvector_t(sbp,   sb_t *);
+qvector_t(cvoid, const void * nullable);
+qvector_t(cstr,  const char * nullable);
+qvector_t(sbp,   sb_t * nullable);
 
 /* Built-in comparison blocks for common types */
 #ifdef __has_blocks
@@ -600,6 +627,10 @@ qvector_t(sbp,   sb_t *);
 #define qv_u32_cmp  NEVER_USE_qv_u32_cmp
 #define qv_u64_cmp  NEVER_USE_qv_u64_cmp
 
+#endif
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
 #endif
 
 #endif

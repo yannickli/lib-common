@@ -16,25 +16,29 @@
 #else
 #define IS_LIB_COMMON_STR_IPRINTF_H
 
-int iprintf(const char *format, ...)
-        __leaf __attr_printf__(1, 2)  __attr_nonnull__((1));
-int ifprintf(FILE *stream, const char *format, ...)
-        __leaf __attr_printf__(2, 3)  __attr_nonnull__((2));
-int isnprintf(char *str, size_t size, const char *format, ...)
-        __leaf __attr_printf__(3, 4)  __attr_nonnull__((3));
-int ivprintf(const char *format, va_list arglist)
-        __leaf __attr_printf__(1, 0)  __attr_nonnull__((1));
-int ivfprintf(FILE *stream, const char *format, va_list arglist)
-        __leaf __attr_printf__(2, 0)  __attr_nonnull__((2));
-int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
-        __leaf __attr_printf__(3, 0)  __attr_nonnull__((3));
-int ifputs_hex(FILE *stream, const void *buf, int len)
+int iprintf(const char * nonnull format, ...)
+        __leaf __attr_printf__(1, 2);
+int ifprintf(FILE * nonnull stream, const char * nonnull format, ...)
+        __leaf __attr_printf__(2, 3);
+int isnprintf(char * nullable str, size_t size,
+              const char * nonnull format, ...)
+        __leaf __attr_printf__(3, 4);
+int ivprintf(const char * nonnull format, va_list arglist)
+        __leaf __attr_printf__(1, 0);
+int ivfprintf(FILE * nonnull stream, const char * nonnull format,
+              va_list arglist)
+        __leaf __attr_printf__(2, 0);
+int ivsnprintf(char * nullable str, size_t size, const char * nonnull format,
+               va_list arglist)
+        __leaf __attr_printf__(3, 0);
+int ifputs_hex(FILE * nonnull stream, const void * nonnull buf, int len)
         __leaf __attr_nonnull__((2));
 
-int isprintf(char *str, const char *format, ...)
-        __leaf __attr_printf__(2, 3)  __attr_nonnull__((2));
-int ivsprintf(char *str, const char *format, va_list arglist)
-        __leaf __attr_printf__(2, 0)  __attr_nonnull__((2));
+int isprintf(char * nullable str, const char * nonnull format, ...)
+        __leaf __attr_printf__(2, 3);
+int ivsprintf(char * nullable str, const char * nonnull format,
+              va_list arglist)
+        __leaf __attr_printf__(2, 0);
 
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #undef sprintf
@@ -59,8 +63,8 @@ int ivsprintf(char *str, const char *format, va_list arglist)
 #define vasprintf(...)  ivasprintf(__VA_ARGS__)
 #endif
 
-__attr_printf__(1, 0)  __attr_nonnull__((1))
-static inline char *ivasprintf(const char *fmt, va_list ap)
+__attr_printf__(1, 0)
+static inline char * nonnull ivasprintf(const char * nonnull fmt, va_list ap)
 
 {
     char buf[BUFSIZ], *s;
@@ -78,8 +82,8 @@ static inline char *ivasprintf(const char *fmt, va_list ap)
     return s;
 }
 
-__attr_printf__(1, 2)  __attr_nonnull__((1))
-static inline char *iasprintf(const char *fmt, ...)
+__attr_printf__(1, 2)
+static inline char * nonnull iasprintf(const char * nonnull fmt, ...)
 {
     char *s;
     va_list ap;
@@ -120,13 +124,14 @@ static inline char *iasprintf(const char *fmt, ...)
  * \return The size required to format the \p val (not including the trailing
  *         zero) or -1 in case of error.
  */
-typedef ssize_t (formatter_f)(int modifier, const void *val, size_t val_len,
-                              FILE *stream, char *buf, size_t buf_len);
+typedef ssize_t
+(formatter_f)(int modifier, const void * null_unspecified val, size_t val_len,
+              FILE * nullable stream, char * nullable buf, size_t buf_len);
 
 /** Register a formatter for the provided modifier.
  */
 __attr_nonnull__((2))
-void iprintf_register_formatter(int modifier, formatter_f *formatter);
+void iprintf_register_formatter(int modifier, formatter_f * nonnull formatter);
 
 /* Formatter helpers. */
 
@@ -138,8 +143,9 @@ void iprintf_register_formatter(int modifier, formatter_f *formatter);
  *  values.
  */
 __attr_printf__(4, 5) __attr_nonnull__((4))
-ssize_t formatter_writef(FILE *stream, char *buf, size_t buf_len,
-                         const char *fmt, ...);
+ssize_t formatter_writef(FILE * nullable stream,
+                         char * nullable buf, size_t buf_len,
+                         const char * nonnull fmt, ...);
 
 /** Write data to file or buffer.
  *
@@ -149,8 +155,9 @@ ssize_t formatter_writef(FILE *stream, char *buf, size_t buf_len,
  *  \note See \ref formatter_f documentation for other parameters and returned
  *  values.
  */
-ssize_t formatter_write(FILE *stream, char *buf, size_t buf_len,
-                        const char *s, size_t len);
+ssize_t formatter_write(FILE * nullable stream,
+                        char * nullable buf, size_t buf_len,
+                        const char * nonnull s, size_t len);
 
 
 #endif /* IS_LIB_COMMON_STR_IPRINTF_H */

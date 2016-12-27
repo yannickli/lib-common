@@ -18,8 +18,10 @@
 
 #include <syslog.h>
 
-typedef void (e_handler_f)(int, const char *, va_list) __attr_printf__(2, 0);
-typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
+typedef void (e_handler_f)(int, const char * nonnull, va_list)
+    __attr_printf__(2, 0);
+typedef int (error_f)(const char * nonnull, ...)
+    __attr_printf__(1, 2);
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
@@ -27,26 +29,26 @@ typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
 #define E_UNIXERR(funcname)  funcname ": %m"
 
 /* These functions are meant to correspond to the syslog levels.  */
-int e_fatal(const char *, ...)
+int e_fatal(const char * nonnull, ...)
     __leaf __attr_noreturn__ __cold __attr_printf__(1, 2);
-int e_panic(const char *, ...)
+int e_panic(const char * nonnull, ...)
     __leaf __attr_noreturn__ __cold __attr_printf__(1, 2);
-int e_error(const char *, ...)
+int e_error(const char * nonnull, ...)
     __leaf __cold __attr_printf__(1, 2);
-int e_warning(const char *, ...)
+int e_warning(const char * nonnull, ...)
     __leaf __cold __attr_printf__(1, 2);
-int e_notice(const char *, ...)
+int e_notice(const char * nonnull, ...)
     __leaf __attr_printf__(1, 2);
-int e_info(const char *, ...)
+int e_info(const char * nonnull, ...)
     __leaf __attr_printf__(1, 2);
-int e_debug(const char *, ...)
+int e_debug(const char * nonnull, ...)
     __leaf __attr_printf__(1, 2);
 
-int e_log(int priority, const char *fmt, ...)
+int e_log(int priority, const char * nonnull fmt, ...)
     __leaf __attribute__((format(printf, 2, 3)));
 
 void e_init_stderr(void) __leaf;
-void e_set_handler(e_handler_f *handler) __leaf;
+void e_set_handler(e_handler_f * nonnull handler) __leaf;
 
 /** This macro provides assertions that remain activated in production builds.
  *
@@ -112,8 +114,9 @@ static ALWAYS_INLINE void assert_ignore(bool cond) { }
 void e_set_verbosity(int max_debug_level) __leaf;
 void e_incr_verbosity(void) __leaf;
 
-int  e_is_traced_(int level, const char *fname, const char *func,
-                  const char *name) __leaf;
+int  e_is_traced_(int level, const char * nonnull fname,
+                  const char * nonnull func, const char * nullable name)
+    __leaf;
 
 #define e_name_is_traced(lvl, name) \
     ({                                                                       \
@@ -133,8 +136,9 @@ int  e_is_traced_(int level, const char *fname, const char *func,
     })
 #define e_is_traced(lvl)  e_name_is_traced(lvl, NULL)
 
-void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
-                  const char *name, const char *fmt, ...)
+void e_trace_put_(int lvl, const char * nonnull fname, int lno,
+                  const char * nonnull func, const char * nullable name,
+                  const char * nonnull fmt, ...)
                   __leaf __attr_printf__(6, 7) __cold;
 
 #define e_named_trace_start(lvl, name, fmt, ...) \
@@ -167,12 +171,13 @@ void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
 
 #endif
 
-void ps_dump_backtrace(int signum, const char *prog, int fd, bool full);
+void ps_dump_backtrace(int signum, const char * nonnull prog, int fd,
+                       bool full);
 void ps_write_backtrace(int signum, bool allow_fork);
 
 static ALWAYS_INLINE __must_check__
-bool e_expect(bool cond, const char *expr, const char *file, int line,
-              const char *func)
+bool e_expect(bool cond, const char * nonnull expr, const char * nonnull file,
+              int line, const char * nonnull func)
 {
     if (unlikely(!cond)) {
 #ifdef NDEBUG

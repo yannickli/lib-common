@@ -156,31 +156,35 @@ static inline double bits_to_double_be(le64_t x) {
 #endif
 }
 
-static inline void *put_unaligned_float_le(void *p, float x) {
+static inline void * nonnull put_unaligned_float_le(void * nonnull p, float x)
+{
     return put_unaligned(p, float_bits_le(x));
 }
-static inline void *put_unaligned_double_le(void *p, double x) {
+static inline void * nonnull put_unaligned_double_le(void * nonnull p, double x)
+{
     return put_unaligned(p, double_bits_le(x));
 }
 
-static inline void *put_unaligned_float_be(void *p, float x) {
+static inline void * nonnull put_unaligned_float_be(void * nonnull p, float x)
+{
     return put_unaligned(p, float_bits_be(x));
 }
-static inline void *put_unaligned_double_be(void *p, double x) {
+static inline void * nonnull put_unaligned_double_be(void * nonnull p, double x)
+{
     return put_unaligned(p, double_bits_be(x));
 }
 
-static inline float get_unaligned_float_le(const void *p) {
+static inline float get_unaligned_float_le(const void * nonnull p) {
     return bits_to_float_(get_unaligned_le32(p));
 }
-static inline double get_unaligned_double_le(const void *p) {
+static inline double get_unaligned_double_le(const void * nonnull p) {
     return bits_to_double_(get_unaligned_le64(p));
 }
 
-static inline float get_unaligned_float_be(const void *p) {
+static inline float get_unaligned_float_be(const void * nonnull p) {
     return bits_to_float_(get_unaligned_be32(p));
 }
-static inline double get_unaligned_double_be(const void *p) {
+static inline double get_unaligned_double_be(const void * nonnull p) {
     return bits_to_double_(get_unaligned_be64(p));
 }
 

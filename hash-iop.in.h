@@ -15,35 +15,37 @@ ATTRS
 #ifdef ALL_STATIC
 static
 #endif
-void F(iop_hash)(const struct iop_struct_t *st, const void *v,
-                 iop_hash_f hfun, void *ctx, unsigned flags);
+void F(iop_hash)(const struct iop_struct_t * nonnull st,
+                 const void * nonnull v, iop_hash_f * nonnull hfun,
+                 void * nonnull ctx, unsigned flags);
 
 #define HASH(pfx, ...)  \
     ({  pfx##_ctx ctx;                                                       \
         F(pfx##_starts)(&ctx, ##__VA_ARGS__);                                \
-        F(iop_hash)(st, v, (iop_hash_f)F(pfx##_update), (void *)&ctx, flags);\
+        F(iop_hash)(st, v, (iop_hash_f *)&F(pfx##_update), (void *)&ctx,     \
+                    flags);                                                  \
         F(pfx##_finish)(&ctx, buf); })
 
 #define HMAC(pfx, ...)  \
     ({  pfx##_ctx ctx;                                                       \
         F(pfx##_hmac_starts)(&ctx, k.s, k.len, ##__VA_ARGS__);               \
-        F(iop_hash)(st, v, (iop_hash_f)F(pfx##_hmac_update), (void *)&ctx,   \
+        F(iop_hash)(st, v, (iop_hash_f *)&F(pfx##_hmac_update), (void *)&ctx,\
                     flags);                                                  \
         F(pfx##_hmac_finish)(&ctx, buf); })
 
 #ifdef __cplusplus
-#define HASH_ARGS(sz)  \
-    const struct iop_struct_t *st, const void *v, uint8_t buf[sz],           \
-    unsigned flags
+#define HASH_ARGS(sz)                                                        \
+    const struct iop_struct_t * nonnull st, const void * nonnull v,          \
+    uint8_t buf[sz], unsigned flags
 #define HMAC_ARGS(sz)  \
-    const struct iop_struct_t *st, const void *v, lstr_t k, uint8_t buf[sz], \
-    unsigned flags
+    const struct iop_struct_t * nonnull st, const void * nonnull v, lstr_t k,\
+    uint8_t buf[sz], unsigned flags
 #else
 #define HASH_ARGS(sz)  \
-    const struct iop_struct_t *st, const void *v, uint8_t buf[static sz],    \
-    unsigned flags
+    const struct iop_struct_t * nonnull st, const void * nonnull v,          \
+    uint8_t buf[static sz], unsigned flags
 #define HMAC_ARGS(sz)  \
-    const struct iop_struct_t *st, const void *v, lstr_t k,                  \
+    const struct iop_struct_t * nonnull st, const void * nonnull v, lstr_t k,\
     uint8_t buf[static sz], unsigned flags
 #endif
 
