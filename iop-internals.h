@@ -14,6 +14,18 @@
 #ifndef IS_LIB_COMMON_IOP_INTERNALS_H
 #define IS_LIB_COMMON_IOP_INTERNALS_H
 
+#ifndef nullable
+#define nullable
+#endif
+
+#ifndef nonnull
+#define nonnull
+#endif
+
+#ifndef null_unspecified
+#define null_unspecified
+#endif
+
 typedef enum iop_repeat_t {
     IOP_R_REQUIRED,
     IOP_R_DEFVAL,
