@@ -22,13 +22,14 @@
 /**************************************************************************/
 
 #ifndef __USE_GNU
-static inline void *mempcpy(void * nonnull restrict dst,
-                            const void * nonnull restrict src, size_t n)
+static inline void * nonnull mempcpy(void * nonnull restrict dst,
+                                     const void * nonnull restrict src,
+                                     size_t n)
 {
     return (void *)((byte *)memcpy(dst, src, n) + n);
 }
 
-static inline void *memrchr(const void * nonnull s, int c, size_t n)
+static inline void * nullable memrchr(const void * nonnull s, int c, size_t n)
 {
     const uint8_t *start = (const uint8_t *)s;
     const uint8_t *end   = start + n;
@@ -43,7 +44,7 @@ static inline void *memrchr(const void * nonnull s, int c, size_t n)
 }
 
 static inline
-char *strchrnul(const char * nonnull s, int c)
+char * nonnull strchrnul(const char * nonnull s, int c)
 {
     while ((unsigned char)*s != c && (unsigned char)*s != '\0') {
         s++;
