@@ -535,7 +535,7 @@ static int __list_dir(const char *path, unsigned flags,
     int total = 0;
 
     while ((de = readdir(dir))) {
-        int len;
+        lstr_t name = LSTR_INIT(de->d_name, de->d_namlen);
         char tmp_path[PATH_MAX];
 
         if (lstr_equal(name, LSTR(".")) || lstr_equal(name, LSTR(".."))) {

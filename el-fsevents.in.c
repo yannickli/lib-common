@@ -181,7 +181,7 @@ int el_fs_watch_change(el_t el, uint32_t flags)
     return 0;
 }
 
-data_t el_fs_watch_unregister(el_t *elp)
+static data_t el_fs_watch_unregister(el_t *elp)
 {
     if (*elp) {
         FSEventStreamRef stream = (*elp)->fs_watch.ctx.ptr;

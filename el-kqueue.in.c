@@ -55,7 +55,8 @@ static void el_fd_kqueue_register(int fd, int filter, int flags,
     qv_append(&kqueue_g.chlist, ke);
 }
 
-el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
+el_t el_fd_register_d(int fd, bool own_fd, short events, el_fd_f *cb,
+                      data_t priv)
 {
     ev_t *ev = el_create(EV_FD, cb, priv, true);
 
@@ -65,7 +66,8 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, data_t priv)
     if (events & POLLOUT) {
         el_fd_kqueue_register(fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, ev);
     }
-    ev->fd = fd;
+    ev->fd.fd = fd;
+    ev->fd.owned = own_fd;
     ev->events_wanted = events;
     ev->priority = EV_PRIORITY_NORMAL;
     return ev;
@@ -83,17 +85,17 @@ short el_fd_set_mask(ev_t *ev, short events)
     if (old != events) {
         if ((old & POLLIN) != (events & POLLIN)) {
             if (events & POLLIN) {
-                el_fd_kqueue_register(ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, ev);
+                el_fd_kqueue_register(ev->fd.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, ev);
             } else {
-                el_fd_kqueue_register(ev->fd, EVFILT_READ, EV_DELETE, 0, ev);
+                el_fd_kqueue_register(ev->fd.fd, EVFILT_READ, EV_DELETE, 0, ev);
             }
         }
 
         if ((old & POLLOUT) != (events & POLLOUT)) {
             if (events & POLLOUT) {
-                el_fd_kqueue_register(ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, ev);
+                el_fd_kqueue_register(ev->fd.fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, ev);
             } else {
-                el_fd_kqueue_register(ev->fd, EVFILT_WRITE, EV_DELETE, 0, ev);
+                el_fd_kqueue_register(ev->fd.fd, EVFILT_WRITE, EV_DELETE, 0, ev);
             }
         }
         ev->events_wanted = events;
@@ -101,15 +103,15 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
-data_t el_fd_unregister(ev_t **evp, bool do_close)
+static data_t el_fd_unregister(ev_t **evp)
 {
     if (*evp) {
         ev_t *ev = *evp;
 
         CHECK_EV_TYPE(ev, EV_FD);
         el_fd_set_mask(ev, 0);
-        if (likely(do_close)) {
-            close(ev->fd);
+        if (likely(ev->fd.owned)) {
+            close(ev->fd.fd);
         }
         if (EV_FLAG_HAS(ev, FD_WATCHED)) {
             el_fd_act_timer_unregister(ev->priv.ptr);

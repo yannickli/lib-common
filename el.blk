@@ -540,6 +540,7 @@ static const char *si_code_to_str(int signum, int si_code)
         }
         break;
 
+#ifdef SIGPOLL
       case SIGPOLL:
         switch (si_code) {
           CASE(POLL_IN);
@@ -550,17 +551,24 @@ static const char *si_code_to_str(int signum, int si_code)
           CASE(POLL_HUP);
         }
         break;
+#endif
 
       default:
         switch (si_code) {
           CASE(SI_USER);
+#ifdef SI_KERNEL
           CASE(SI_KERNEL);
+#endif
           CASE(SI_QUEUE);
           CASE(SI_TIMER);
           CASE(SI_MESGQ);
           CASE(SI_ASYNCIO);
+#ifdef SI_SIGIO
           CASE(SI_SIGIO);
+#endif
+#ifdef SI_TKILL
           CASE(SI_TKILL);
+#endif
         }
         break;
     }
