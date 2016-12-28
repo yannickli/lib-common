@@ -9,6 +9,7 @@ module libcommon {
 
     module container [extern_c] {
         header "container-qvector.h"
+        header "container-qhash.h"
     }
 
     requires tls

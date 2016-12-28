@@ -36,3 +36,21 @@ tScope {
     print(qv)
     debugPrint(qv)
 }
+
+print("QSet")
+var qh : qh_u32_t = [ 1, 2, 18, 100 ]
+for v in qh {
+    print(v)
+}
+qh.wipe()
+
+tScope {
+    (frame) in
+
+    let qh = qh_u32_t(on: frame, withElements: 1, 2, 18, 100)
+    for v in qh {
+        print(v)
+    }
+    print(qh)
+    debugPrint(qh)
+}

@@ -222,3 +222,480 @@ extension qv_cstr_t : QVector { }
 extension qv_sbp_t : QVector { }
 
 /* }}} */
+/* {{{ QHash */
+
+/// Used to access the members in an instance of a `QHash` (`QSet` or `QMap`)
+public struct QHashIndex : Comparable {
+    let pos : UInt32
+
+    init(pos: UInt32) {
+        self.pos = pos
+    }
+
+    init?(pos: Int32) {
+        if pos < 0 {
+            return nil
+        }
+        self.init(pos: UInt32(pos))
+    }
+
+    public static func ==(_ a: QHashIndex, _ b: QHashIndex) -> Bool {
+        return a.pos == b.pos
+    }
+
+    public static func <(_ a: QHashIndex, _ b: QHashIndex) -> Bool {
+        return a.pos < b.pos
+    }
+
+    static func from(reservation res: UInt32) -> (pos: QHashIndex, collision: Bool) {
+        if res & QHASH_COLLISION != 0 {
+            return (pos: QHashIndex(pos: res & ~QHASH_COLLISION), collision: true)
+        } else {
+            return (pos: QHashIndex(pos: res), collision: false)
+        }
+    }
+
+    static var endIndex = QHashIndex(pos: UInt32.max)
+}
+
+/// Base protocol for types built from C'container-qhash
+public protocol QHash : Collection,
+                        CustomStringConvertible,
+                        CustomDebugStringConvertible
+{
+    /// Type for keys in the QHash
+    associatedtype Key
+    typealias Index = QHashIndex
+
+    var qh : qhash_t { get set }
+    init(qh: qhash_t)
+
+    /// Retrieve the index for `key`
+    ///
+    /// This function allows elements to be moved in order
+    /// to optimize further lookups.
+    mutating func find(key: Key) -> QHashIndex?
+
+    /// Retrieve the index for `key`
+    func findSafe(key: Key) -> QHashIndex?
+
+    /// Allocates a slot in the `QHash` to store the value associated
+    /// with `key`
+    ///
+    /// - Parameter key: the key to insert in the hash table.
+    ///
+    /// - Parameter overwrite: if true and `key` is already present in the
+    ///  hash table, the key is replaced with the new one.
+    ///
+    /// - Returns: the position where the key will be in the table, as well
+    ///  as a flag indicating wether a collision occurred.
+    mutating func reserve(key: Key, overwrite: Bool) -> (pos: QHashIndex, collision: Bool)
+}
+
+/* Implements Collection */
+extension QHash {
+    public var startIndex : QHashIndex {
+        if qh.hdr.len != 0 {
+            return self.index(after: QHashIndex(pos: 0))
+        } else {
+            return .endIndex
+        }
+    }
+
+    public var endIndex : QHashIndex {
+        return .endIndex
+    }
+
+    public func index(after pos: QHashIndex) -> QHashIndex {
+        var qh = self.qh
+        let nextPos = qhash_scan(&qh, pos.pos + 1)
+
+        return QHashIndex(pos: nextPos)
+    }
+
+    public mutating func wipe() {
+        qhash_wipe(&qh)
+    }
+}
+
+/* Implements Custom*StringConvertible */
+extension QHash {
+    internal func _makeDescription(isDebug: Bool) -> String {
+        var result = isDebug ? "QHash([" : "["
+        var first = true
+        for item in self {
+            if first {
+                first = false
+            } else {
+                result += ", "
+            }
+            debugPrint(item, terminator: "", to: &result)
+        }
+        result += isDebug ? "])" : "]"
+        return result
+    }
+
+    /// A textual representation of the array and its elements.
+    public var description: String {
+        return _makeDescription(isDebug: false)
+    }
+
+    /// A textual representation of the array and its elements, suitable for
+    /// debugging.
+    public var debugDescription: String {
+        return _makeDescription(isDebug: true)
+    }
+}
+
+/// Protocol for tables where the key is the value to hash.
+///
+/// This protocol provides a specialized interface for hash tables whose
+/// key type is the direct base for the hash, such as integers or hashed
+/// pointers (that is pointers for which the address is the key, not the
+/// pointed content).
+public protocol QHashSimple : QHash {
+    associatedtype Key
+    typealias FKey = Key
+    typealias CKey = Key
+
+    /* C functions */
+    mutating func _find(hash: UnsafePointer<UInt32>?, key: Key) -> Int32
+    func _findSafe(hash: UnsafePointer<UInt32>?, key: Key) -> Int32
+    mutating func _reserve(hash: UnsafePointer<UInt32>?, key: Key, flags: UInt32) -> UInt32
+}
+
+extension QHashSimple {
+    public mutating func find(key: Key) -> QHashIndex? {
+        return QHashIndex(pos: self._find(hash: nil, key: key))
+    }
+
+    public func findSafe(key: Key) -> QHashIndex? {
+        return QHashIndex(pos: self._findSafe(hash: nil, key: key))
+    }
+
+    public mutating func reserve(key: Key, overwrite: Bool = true) -> (pos: QHashIndex, collision: Bool) {
+        return QHashIndex.from(reservation: self._reserve(hash: nil, key: key, flags: overwrite ?  QHASH_OVERWRITE : 0))
+    }
+}
+
+/// Protocol for tables where keys are complex types stored by value.
+public protocol QHashVec : QHash {
+    associatedtype Key
+
+    /* C functions */
+    mutating func _find(hash: UnsafePointer<UInt32>?, key: UnsafePointer<Key>) -> Int32
+    func _findSafe(hash: UnsafePointer<UInt32>?, key: UnsafePointer<Key>) -> Int32
+    mutating func _reserve(hash: UnsafePointer<UInt32>?, key: UnsafePointer<Key>, flags: UInt32) -> UInt32
+}
+
+extension QHashVec {
+    public mutating func find(key: Key) -> QHashIndex? {
+        var key = key
+
+        return QHashIndex(pos: self._find(hash: nil, key: &key))
+    }
+
+    public func findSafe(key: Key) -> QHashIndex? {
+        var key = key
+
+        return QHashIndex(pos: self._findSafe(hash: nil, key: &key))
+    }
+
+    public mutating func reserve(key: Key, overwrite: Bool = true) -> (pos: QHashIndex, collision: Bool) {
+        var key = key
+        let res = self._reserve(hash: nil, key: &key, flags: overwrite ? QHASH_OVERWRITE : 0)
+
+        return QHashIndex.from(reservation: res)
+    }
+}
+
+/// Protocol for tables where keys are complex types stored by reference.
+public protocol QHashPtr : QHash {
+    associatedtype Pointee
+
+    mutating func _find(hash: UnsafePointer<UInt32>?, key: UnsafePointer<Pointee>?) -> Int32
+    func _findSafe(hash: UnsafePointer<UInt32>?, key: UnsafePointer<Pointee>?) -> Int32
+    mutating func _reserve(hash: UnsafePointer<UInt32>?, key: UnsafeMutablePointer<Pointee>?, flags: UInt32) -> UInt32
+}
+
+extension QHashPtr {
+    public mutating func find(key: UnsafeMutablePointer<Pointee>?) -> QHashIndex? {
+        return QHashIndex(pos: self._find(hash: nil, key: key))
+    }
+
+    public mutating func find(key: UnsafePointer<Pointee>?) -> QHashIndex? {
+        return QHashIndex(pos: self._find(hash: nil, key: key))
+    }
+
+    public func findSafe(key: UnsafeMutablePointer<Pointee>?) -> QHashIndex? {
+        return QHashIndex(pos: self._findSafe(hash: nil, key: key))
+    }
+
+    public func findSafe(key: UnsafePointer<Pointee>?) -> QHashIndex? {
+        return QHashIndex(pos: self._findSafe(hash: nil, key: key))
+    }
+
+    public mutating func reserve(key: UnsafeMutablePointer<Pointee>?, overwrite: Bool = true) -> (pos: QHashIndex, collision: Bool) {
+        let res = self._reserve(hash: nil, key: key, flags: overwrite ?  QHASH_OVERWRITE : 0)
+
+        return QHashIndex.from(reservation: res)
+    }
+}
+
+/// Protocol for tables where key are void * pointers.
+public protocol QHashVoid : QHash {
+    mutating func _find(hash: UnsafePointer<UInt32>?, key: UnsafeRawPointer?) -> Int32
+    func _findSafe(hash: UnsafePointer<UInt32>?, key: UnsafeRawPointer?) -> Int32
+    mutating func _reserve(hash: UnsafePointer<UInt32>?, key: UnsafeMutableRawPointer?, flags: UInt32) -> UInt32
+}
+
+extension QHashVoid {
+    public mutating func find(key: UnsafeMutableRawPointer?) -> QHashIndex? {
+        return QHashIndex(pos: self._find(hash: nil, key: key))
+    }
+
+    public mutating func find(key: UnsafeRawPointer?) -> QHashIndex? {
+        return QHashIndex(pos: self._find(hash: nil, key: key))
+    }
+
+    public func findSafe(key: UnsafeMutableRawPointer?) -> QHashIndex? {
+        return QHashIndex(pos: self._findSafe(hash: nil, key: key))
+    }
+
+    public func findSafe(key: UnsafeRawPointer?) -> QHashIndex? {
+        return QHashIndex(pos: self._findSafe(hash: nil, key: key))
+    }
+
+    public mutating func reserve(key: UnsafeMutableRawPointer?, overwrite: Bool = true) -> (pos: QHashIndex, collision: Bool) {
+        let res = self._reserve(hash: nil, key: key, flags: overwrite ?  QHASH_OVERWRITE : 0)
+
+        return QHashIndex.from(reservation: res)
+    }
+}
+
+/* }}} */
+/* {{{ QSet */
+
+/// An unordered collection of unique elements mapped on C's `qh_t()` types.
+public protocol QSet : QHash, ExpressibleByArrayLiteral {
+}
+
+extension QSet {
+    public init(on allocator: Allocator, withCapacity size: Int) {
+        var qh = qhash_t();
+
+        qhash_init(&qh, UInt16(MemoryLayout<Key>.stride), 0, false, allocator.pool)
+        qhash_set_minsize(&qh, UInt32(size))
+        self.init(qh: qh)
+    }
+
+    public init(on allocator: Allocator, withElements newElements: Key...) {
+        self.init(on: allocator, withCapacity: newElements.count)
+        for elm in newElements {
+            let _ = self.reserve(key: elm, overwrite: true)
+        }
+    }
+
+    public init(arrayLiteral newElements: Key...) {
+        self.init(on: StandardAllocator.malloc, withCapacity: newElements.count)
+        for elm in newElements {
+            let _ = self.reserve(key: elm, overwrite: true)
+        }
+    }
+
+    public func index(of key: Key) -> QHashIndex? {
+        return self.findSafe(key: key)
+    }
+
+    public func contains(_ key: Key) -> Bool {
+        return self.index(of: key) != nil
+    }
+
+    public func element(at pos: QHashIndex) -> Key {
+        let size = Int(qh.hdr.size)
+        let keys = qh.keys!
+
+        return keys.withMemoryRebound(to: Key.self, capacity: size) { $0[Int(pos.pos)] }
+    }
+
+    public mutating func remove(at pos: QHashIndex) -> Key {
+        let elm = self.element(at: pos)
+
+        qhash_del_at(&qh, pos.pos)
+        return elm
+    }
+
+    public mutating func remove(_ key: Key) -> Key? {
+        guard let pos = self.index(of: key) else {
+            return nil
+        }
+        return self.remove(at: pos)
+    }
+
+    public subscript(pos: QHashIndex) -> Key {
+        get {
+            return self.element(at: pos)
+        }
+
+        set(newValue) {
+            let size = Int(qh.hdr.size)
+            let keys = qh.keys!
+
+            keys.withMemoryRebound(to: Key.self, capacity: size) {
+                $0[Int(pos.pos)] = newValue
+            }
+        }
+    }
+}
+
+protocol QSetSimple : QSet, QHashSimple { }
+protocol QSetVec : QSet, QHashVec { }
+protocol QSetPtr : QSet, QHashPtr { }
+protocol QSetVoid : QSet, QHashVoid { }
+
+extension qh_u32_t : QSetSimple { }
+extension qh_u64_t : QSetSimple { }
+extension qh_lstr_t : QSetVec { }
+extension qh_str_t : QSetPtr { }
+extension qh_cstr_t : QSetSimple { }
+extension qh_ptr_t : QSetVoid { }
+extension qh_cptr_t : QSetSimple { }
+
+/* }}} */
+/* {{{ QMap */
+
+/// A unordered Key-Value map based on C's `qm_t()` types.
+public protocol QMap : QHash, ExpressibleByDictionaryLiteral {
+    associatedtype Value
+    typealias Element = (key: Key, value: Value)
+}
+
+extension QMap {
+    public init(on allocator: Allocator, withCapacity size: Int) {
+        var qh = qhash_t();
+
+        qhash_init(&qh, UInt16(MemoryLayout<Key>.stride),
+                   UInt16(MemoryLayout<Value>.stride), false, allocator.pool)
+        qhash_set_minsize(&qh, UInt32(size))
+        self.init(qh: qh)
+    }
+
+    public init(on allocator: Allocator, withElements newElements: (Key, Value)...) {
+        self.init(on: allocator, withCapacity: newElements.count)
+        for elm in newElements {
+            self[self.reserve(key: elm.0, overwrite: true).pos] = elm
+        }
+    }
+
+    public init(dictionaryLiteral newElements: (Key, Value)...) {
+        self.init(on: StandardAllocator.malloc, withCapacity: newElements.count)
+        for elm in newElements {
+            self[self.reserve(key: elm.0, overwrite: true).pos] = elm
+        }
+    }
+
+    public func index(forKey key: Key) -> QHashIndex? {
+        return self.findSafe(key: key)
+    }
+
+    public func contains(key: Key) -> Bool {
+        return self.index(forKey: key) != nil
+    }
+
+    public func element(at pos: QHashIndex) -> (key: Key, value: Value) {
+        let size = Int(qh.hdr.size)
+
+        let keys = qh.keys!
+        let key = keys.withMemoryRebound(to: Key.self, capacity: size) { $0[Int(pos.pos)] }
+
+        let values = qh.values!
+        let value = values.withMemoryRebound(to: Value.self, capacity: size) { $0[Int(pos.pos)] }
+
+        return (key: key, value: value)
+    }
+
+    public mutating func remove(at pos: QHashIndex) -> (key: Key, value: Value) {
+        let elm = self.element(at: pos)
+
+        qhash_del_at(&qh, pos.pos)
+        return elm
+    }
+
+    public mutating func remove(key: Key) -> (key: Key, value: Value)? {
+        guard let pos = self.index(forKey: key) else {
+            return nil
+        }
+        return self.remove(at: pos)
+    }
+
+    public subscript(pos: QHashIndex) -> (key: Key, value: Value) {
+        get {
+            return self.element(at: pos)
+        }
+
+        set {
+            let (key, value) = newValue
+            let size = Int(qh.hdr.size)
+
+            let keys = qh.keys!
+            keys.withMemoryRebound(to: Key.self, capacity: size) {
+                $0[Int(pos.pos)] = key
+            }
+
+            let values = qh.values!
+            values.withMemoryRebound(to: Value.self, capacity: size) {
+                $0[Int(pos.pos)] = value
+            }
+        }
+    }
+
+    public subscript(key: Key) -> Value? {
+        get {
+            guard let pos = self.findSafe(key: key) else {
+                return nil
+            }
+
+            let size = Int(qh.hdr.size)
+            let values = qh.values!
+            return values.withMemoryRebound(to: Value.self, capacity: size) { $0[Int(pos.pos)] }
+        }
+
+        set {
+            if let newValue = newValue {
+                self[self.reserve(key: key, overwrite: true).pos] = (key: key, value: newValue)
+            } else {
+                _ = self.remove(key: key)
+            }
+        }
+    }
+}
+
+extension QMap where Value : Equatable {
+    public func index(of elm: (Key, Value)) -> QHashIndex? {
+        guard let pos = self.findSafe(key: elm.0) else {
+            return nil
+        }
+        if self[pos].1 != elm.1 {
+            return nil
+        }
+        return pos
+    }
+
+    public func contains(_ elm: (Key, Value)) -> Bool {
+        return self.index(of: elm) != nil
+    }
+
+    public mutating func remove(_ elm: (Key, Value)) -> (key: Key, value: Value)? {
+        guard let pos = self.index(of: elm) else {
+            return nil
+        }
+        return self.remove(at: pos)
+    }
+}
+
+public protocol QMapSimple : QMap, QHashSimple { }
+public protocol QMapVec : QMap, QHashVec { }
+public protocol QMapPtr : QMap, QHashPtr { }
+public protocol QMapVoid : QMap, QHashVoid { }
+
+/* }}} */
