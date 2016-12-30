@@ -19,7 +19,9 @@ static qv_t(str) pp_g;
 struct iopc_do_c_globs iopc_do_c_g;
 #define _G  iopc_do_c_g
 
-#define CONST  _G.no_const ? "" : "const"
+#define CONST     _G.no_const ? "" : "const "
+#define NULLABLE  (_G.export_nullability ? "nullable " : "")
+#define NONNULL   (_G.export_nullability ? "nonnull " : "")
 
 static const char *pp_under(iopc_path_t *path)
 {
@@ -374,8 +376,8 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
             return;
           default:
             sb_addnc(sb, indent, ' ');
-            sb_addf(sb, "struct %s__%s__t *%s;\n", pp_under(f->type_path),
-                    pp_to_c(f->type_name), pp_to_c(f->name));
+            sb_addf(sb, "struct %s__%s__t *%s%s;\n", pp_under(f->type_path),
+                    pp_to_c(f->type_name), NULLABLE, pp_to_c(f->name));
             return;
         }
         break;
@@ -402,9 +404,10 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
             return;
           default:
             sb_addnc(sb, indent, ' ');
-            sb_addf(sb, "struct %s__%s__t%s%s;\n", pp_under(f->type_path),
+            sb_addf(sb, "struct %s__%s__t%s%s%s;\n", pp_under(f->type_path),
                     pp_to_c(f->type_name),
                     type_is_class || f->is_ref ? " *" : " ",
+                    type_is_class || f->is_ref ? NONNULL : "",
                     pp_to_c(f->name));
             return;
         }
@@ -799,8 +802,9 @@ iopc_struct_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_struct_t *st,
 
     sb_addf(buf,
             "typedef struct %s__t %s__t;\n"
-            "typedef IOP_ARRAY_OF(%s__t%s) %s__array_t;\n\n",
+            "typedef IOP_ARRAY_OF(%s__t%s%s) %s__array_t;\n\n",
             tbase, tbase, tbase, iopc_is_class(st->type) ? " *" : "",
+            iopc_is_class(st->type) ? NONNULL : "",
             tbase);
 }
 
@@ -876,7 +880,7 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
     int ident;
 
     if (!st->extends.len || st->extends.tab[0]->is_snmp_root) {
-        sb_adds(buf, "    const iop_struct_t *__vptr;\n");
+        sb_addf(buf, "    const iop_struct_t *%s__vptr;\n", NONNULL);
         return;
     }
 
@@ -903,7 +907,7 @@ static void iopc_struct_dump_hdr_class(sb_t *buf, iopc_struct_t *st)
         sb_adds(buf, "struct {\n");
     }
     sb_addnc(buf, ident, ' ');
-    sb_adds(buf, "const iop_struct_t *__vptr;\n");
+    sb_addf(buf, "const iop_struct_t *%s__vptr;\n", NONNULL);
 
     tab_for_each_pos_safe(pos, &parents) {
         st = parents.tab[pos];
@@ -2085,7 +2089,7 @@ iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
                      bool is_rpc, bool is_iface, iop_type_t kind)
 {
     sb_addf(buf,
-            "%s iop_snmp_attrs_t %s__snmp_attrs__s "
+            "%siop_snmp_attrs_t %s__snmp_attrs__s "
             "= {\n", CONST, tbase);
     if (!xt_is_snmp_root && !is_rpc) {
         sb_addf(buf,
@@ -2772,7 +2776,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (!iopc_g.v2) {
         as_base = tbase;
         /* only generate <tbase>__desc_fields */
-        sb_addf(buf, "static iop_field_t %s %s__desc_fields[] = {\n", CONST,
+        sb_addf(buf, "static iop_field_t %s%s__desc_fields[] = {\n", CONST,
                 tbase);
         for (int i = 0; i < st->fields.len; i++) {
             iopc_dump_field_src(buf, st, tbase, st->fields.tab[i], NULL);
@@ -2842,7 +2846,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
 
         /* generate <tbase>__desc_fields */
-        sb_addf(buf, "static iop_field_t %s %s__desc_fields[] = {\n", CONST,
+        sb_addf(buf, "static iop_field_t %s%s__desc_fields[] = {\n", CONST,
                 tbase);
         tab_for_each_pos(i, &st->fields) {
             iopc_dump_field_src(buf, st, tbase, st->fields.tab[i],
@@ -2908,7 +2912,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         do {                                                                 \
             if (iopc_is_class(st->type)) {                                   \
                 sb_addf(buf,                                                 \
-                        "static %s iop_class_attrs_t %s__class_s = {\n",     \
+                        "static %siop_class_attrs_t %s__class_s = {\n",      \
                         CONST, _tbase);                                      \
                 if (st->extends.len) {                                       \
                     sb_addf(buf, "    .parent            = &%s__%s__s,\n",   \
@@ -3215,7 +3219,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
 
-    sb_addf(buf, "static iop_rpc_t %s %s__if_funs[] = {\n", CONST, ibase);
+    sb_addf(buf, "static iop_rpc_t %s%s__if_funs[] = {\n", CONST, ibase);
     tab_for_each_entry(f, &iface->funs) {
         iopc_register_fun(buf, ibase, f, NULL);
         t_iopc_get_aliases(f, &aliases, "");
@@ -3581,6 +3585,14 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     tab_for_each_entry(dep, &t_deps) {
         IOPC_DO_C_RETHROW(put_include(&buf, "-t.iop.h", dep, pkg));
     }
+    if (iopc_do_c_g.export_nullability) {
+        sb_adds(&buf,
+                "#if __has_feature(nullability)\n"
+                "#pragma GCC diagnostic push\n"
+                "#pragma GCC diagnostic error \"-Wnullability-completeness\"\n"
+                "#endif\n\n");
+    }
+
     if (t_deps.len || t_weak_deps.len) {
         sb_adds(&buf, "\n");
     }
@@ -3601,6 +3613,14 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             }
         }
     }
+
+    if (iopc_do_c_g.export_nullability) {
+        sb_adds(&buf,
+                "#if __has_feature(nullability)\n"
+                "#pragma GCC diagnostic pop\n"
+                "#endif\n\n");
+    }
+
     sb_adds(&buf, "#endif\n");
 
     strcpy(path + strlen(path) - strlen("-tdef.iop.h"), "-t.iop.h");

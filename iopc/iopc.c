@@ -76,8 +76,10 @@ static popt_t options[] = {
              "use iopc v6 features (in progress)"),
 
     OPT_GROUP("C backend options"),
-    OPT_FLAG(0,   "c-resolve-includes",
-             &iopc_do_c_g.resolve_includes,       "try to generate relative includes"),
+    OPT_FLAG(0,   "c-resolve-includes", &iopc_do_c_g.resolve_includes,
+             "try to generate relative includes"),
+    OPT_FLAG(0,   "c-export-nullability", &iopc_do_c_g.export_nullability,
+             "add nullability attributes to exported C types"),
     OPT_END(),
 };
 
@@ -228,6 +230,8 @@ int main(int argc, char **argv)
     _G.v4 |= _G.v5;
     _G.v3 |= _G.v4;
     _G.v2 |= _G.v3;
+
+    iopc_do_c_g.export_nullability |= _G.v6;
 
     _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
     _G.display_prefix = true;

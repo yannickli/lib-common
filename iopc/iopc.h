@@ -1054,6 +1054,8 @@ int iopc_write_file(const sb_t *buf, const char *path);
 
 extern struct iopc_do_c_globs {
     int resolve_includes;
+    int export_nullability;
+
     const char *data_c_type;
     /** remove const on all objects that may contain a pointer to an
      * iop_struct_t */
