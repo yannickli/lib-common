@@ -19,7 +19,8 @@ public protocol QVector : RandomAccessCollection,
                           MutableCollection,
                           ExpressibleByArrayLiteral,
                           CustomStringConvertible,
-                          CustomDebugStringConvertible
+                          CustomDebugStringConvertible,
+                          Wipeable
 {
     associatedtype Element
     typealias Index = Int32
@@ -45,10 +46,6 @@ extension QVector {
     public init(on allocator: Allocator, withElements newElements: Element...) {
         self.init(on: allocator, withCapacity: Int32(newElements.count))
         self.append(contentOf: newElements)
-    }
-
-    public mutating func wipe() {
-        qvector_wipe(&self.qv, MemoryLayout<Element>.stride)
     }
 }
 
@@ -175,7 +172,7 @@ extension QVector {
     }
 }
 
-/* Implements Custom*StringConvertible */
+/* Implements Custom*StringConvertible protocol */
 extension QVector {
     internal func _makeDescription(isDebug: Bool) -> String {
         var result = isDebug ? "QVector([" : "["
@@ -201,6 +198,13 @@ extension QVector {
     /// debugging.
     public var debugDescription: String {
         return _makeDescription(isDebug: true)
+    }
+}
+
+/* Implements Wipeable protocol */
+extension QVector {
+    public mutating func wipe() {
+        qvector_wipe(&self.qv, MemoryLayout<Element>.stride)
     }
 }
 
@@ -261,7 +265,8 @@ public struct QHashIndex : Comparable {
 /// Base protocol for types built from C'container-qhash
 public protocol QHash : Collection,
                         CustomStringConvertible,
-                        CustomDebugStringConvertible
+                        CustomDebugStringConvertible,
+                        Wipeable
 {
     /// Type for keys in the QHash
     associatedtype Key
@@ -312,13 +317,9 @@ extension QHash {
 
         return QHashIndex(pos: nextPos)
     }
-
-    public mutating func wipe() {
-        qhash_wipe(&qh)
-    }
 }
 
-/* Implements Custom*StringConvertible */
+/* Implements Custom*StringConvertible protocol */
 extension QHash {
     internal func _makeDescription(isDebug: Bool) -> String {
         var result = isDebug ? "QHash([" : "["
@@ -344,6 +345,13 @@ extension QHash {
     /// debugging.
     public var debugDescription: String {
         return _makeDescription(isDebug: true)
+    }
+}
+
+/* Implements Wipeable protocol */
+extension QHash {
+    public mutating func wipe() {
+        qhash_wipe(&qh)
     }
 }
 

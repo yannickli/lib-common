@@ -282,3 +282,46 @@ public func tScope<Result>(_ body: (FrameBasedAllocator) throws -> Result) rethr
 }
 
 /* }}} */
+/* {{{ Memory management */
+
+/// A type that has a `wipe()` method for deinitialization.
+public protocol Wipeable {
+    /// Deinit the object by wiping out all the associated ressources.
+    mutating func wipe()
+}
+
+/// Wrapper class around a `Wipeable` object.
+///
+/// That class wraps a wipeable object, ensuring that object will be
+/// be wiped when the class is deinitialized.
+public class AutoWipe<Wrapped: Wipeable> {
+    public var wrapped: Wrapped
+
+    public init(_ obj: Wrapped) {
+        self.wrapped = obj
+    }
+
+    deinit {
+        self.wrapped.wipe()
+    }
+}
+
+extension AutoWipe : CustomStringConvertible {
+    public var description : String {
+        var res = ""
+
+        print(self.wrapped, terminator: "", to: &res)
+        return res
+    }
+}
+
+extension AutoWipe : CustomDebugStringConvertible {
+    public var debugDescription : String {
+        var res = ""
+
+        debugPrint(self.wrapped, terminator: "", to: &res)
+        return res
+    }
+}
+
+/* }}} */

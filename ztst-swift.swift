@@ -20,11 +20,14 @@ print(superBuffer)
 superBuffer.wipe()
 
 print("QVector")
-var qv : qv_u64_t = [ 0, 1, 2, 3, 4, 5 ]
-for v in qv {
-    print(v)
+func qv() {
+    let qv : AutoWipe<qv_u64_t> = AutoWipe([ 0, 1, 2, 3, 4, 5 ])
+    for v in qv.wrapped {
+        print(v)
+    }
+    print(qv)
 }
-qv.wipe()
+qv()
 
 tScope {
     (frame) in
@@ -38,11 +41,13 @@ tScope {
 }
 
 print("QSet")
-var qh : qh_u32_t = [ 1, 2, 18, 100 ]
-for v in qh {
-    print(v)
+func qh() {
+    let qh : AutoWipe<qh_u32_t> = AutoWipe([ 1, 2, 18, 100 ])
+    for v in qh.wrapped {
+        print(v)
+    }
 }
-qh.wipe()
+qh()
 
 tScope {
     (frame) in
