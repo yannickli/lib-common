@@ -102,6 +102,12 @@
 # define __swift_name__(name)  __attribute__((swift_name(name)))
 #endif
 
+#if __has_feature(attribute_availability_swift)
+# define __swift_unavailable__(msg)  __attribute__((availability(swift, unavailable, message=msg)))
+#else
+# define __swift_unavailable__(msg)
+#endif
+
 #ifdef __cplusplus
 #define restrict
 #endif

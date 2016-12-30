@@ -79,6 +79,8 @@
 #endif
 #endif
 
+#define __no_swift__  __swift_unavailable__("use block-based API instead")
+
 typedef struct ev_t *el_t;
 
 /* XXX el_data_t is deprecated and will be removed in a future version
@@ -86,13 +88,20 @@ typedef struct ev_t *el_t;
  */
 typedef data_t el_data_t;
 
+__no_swift__
 typedef void (el_cb_f)(el_t nonnull, data_t);
+__no_swift__
 typedef void (el_signal_f)(el_t nonnull, int, data_t);
+__no_swift__
 typedef void (el_child_f)(el_t nonnull, pid_t, int, data_t);
+__no_swift__
 typedef int  (el_fd_f)(el_t nonnull, int, short, data_t);
+__no_swift__
 typedef void (el_proxy_f)(el_t nonnull, short, data_t);
+__no_swift__
 typedef void (el_fs_watch_f)(el_t nonnull, uint32_t mask, uint32_t cookie,
                              lstr_t name, data_t);
+__no_swift__
 typedef void (el_worker_f)(int timeout);
 
 #ifdef __has_blocks
@@ -106,12 +115,14 @@ typedef void (BLOCK_CARET el_fs_watch_b)(el_t nonnull, uint32_t, uint32_t,
 #endif
 
 el_t nonnull el_blocker_register(void) __leaf;
-el_t nonnull el_before_register_d(el_cb_f * nonnull, data_t) __leaf;
-el_t nonnull el_idle_register_d(el_cb_f * nonnull, data_t) __leaf;
+el_t nonnull el_before_register_d(el_cb_f * nonnull, data_t)
+    __leaf __no_swift__;
+el_t nonnull el_idle_register_d(el_cb_f * nonnull, data_t)
+    __leaf __no_swift__;
 el_t nonnull el_signal_register_d(int signo, el_signal_f * nonnull, data_t)
-    __leaf;
+    __leaf __no_swift__;
 el_t nonnull el_child_register_d(pid_t pid, el_child_f * nonnull, data_t)
-    __leaf;
+    __leaf __no_swift__;
 
 #ifdef __has_blocks
 /* The block based API takes a block version of the callback and a second
@@ -148,31 +159,33 @@ pid_t el_spawn_child(const char * nonnull file, const char * nullable argv[],
                      el_child_b nonnull blk, block_t nullable wipe);
 #endif
 
-static inline el_t nonnull
+static inline __no_swift__ el_t nonnull
 el_before_register(el_cb_f * nonnull f, void * nullable ptr)
 {
     return el_before_register_d(f, (data_t){ ptr });
 }
-static inline el_t nonnull
+static inline __no_swift__ el_t nonnull
 el_idle_register(el_cb_f * nonnull f, void * nullable ptr)
 {
     return el_idle_register_d(f, (data_t){ ptr });
 }
-static inline el_t nonnull
+static inline __no_swift__  el_t nonnull
 el_signal_register(int signo, el_signal_f * nonnull f, void * nullable ptr)
 {
     return el_signal_register_d(signo, f, (data_t){ ptr });
 }
-static inline el_t nonnull
+static inline __no_swift__  el_t nonnull
 el_child_register(pid_t pid, el_child_f * nonnull f, void * nullable ptr)
 {
     return el_child_register_d(pid, f, (data_t){ ptr });
 }
 
-void el_before_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
-void el_idle_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
-void el_signal_set_hook(el_t nonnull, el_signal_f * nonnull) __leaf;
-void el_child_set_hook(el_t nonnull, el_child_f * nonnull) __leaf;
+void el_before_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf __no_swift__;
+void el_idle_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf __no_swift__;
+void el_signal_set_hook(el_t nonnull, el_signal_f * nonnull)
+    __leaf __no_swift__;
+void el_child_set_hook(el_t nonnull, el_child_f * nonnull)
+    __leaf __no_swift__;
 
 /** Unregister an event whatever its type. */
 data_t el_unregister(el_t nullable * nonnull);
@@ -185,16 +198,18 @@ pid_t el_child_getpid(el_t nonnull) __leaf __attribute__((pure));
 int   el_child_get_status(el_t nonnull) __leaf;
 
 /*----- proxy related -----*/
-el_t nonnull el_proxy_register_d(el_proxy_f * nonnull, data_t) __leaf;
+el_t nonnull el_proxy_register_d(el_proxy_f * nonnull, data_t)
+    __leaf __no_swift__;
 #ifdef __has_blocks
 el_t nonnull el_proxy_register_blk(el_proxy_b nonnull, block_t nullable) __leaf;
 #endif
-static inline el_t nonnull
+static inline __no_swift__ el_t nonnull
 el_proxy_register(el_proxy_f * nonnull f, void * nullable ptr)
 {
     return el_proxy_register_d(f, (data_t){ ptr });
 }
-void el_proxy_set_hook(el_t nonnull, el_proxy_f * nonnull) __leaf;
+void el_proxy_set_hook(el_t nonnull, el_proxy_f * nonnull)
+    __leaf __no_swift__;
 short el_proxy_set_event(el_t nonnull, short mask) __leaf;
 short el_proxy_clr_event(el_t nonnull, short mask) __leaf;
 short el_proxy_set_mask(el_t nonnull, short mask) __leaf;
@@ -210,20 +225,20 @@ typedef enum ev_priority_t {
 
 el_t nonnull el_fd_register_d(int fd, bool own_fd, short events,
                               el_fd_f * nonnull, data_t)
-    __leaf;
+    __leaf __no_swift__;
 #ifdef __has_blocks
 el_t nonnull el_fd_register_blk(int fd, bool own_fd, short events,
                                 el_fd_b nonnull, block_t nullable)
     __leaf;
 #endif
-static inline el_t nonnull
+static inline __no_swift__ el_t nonnull
 el_fd_register(int fd, bool own_fd, short events, el_fd_f * nonnull f,
                void * nullable ptr)
 {
     return el_fd_register_d(fd, own_fd, events, f, (data_t){ ptr });
 }
 void el_fd_set_hook(el_t nonnull, el_fd_f * nonnull)
-    __leaf;
+    __leaf __no_swift__;
 
 typedef enum ev_fd_loop_flags_t {
     EV_FDLOOP_HANDLE_SIGNALS = 1 << 0,
@@ -274,11 +289,12 @@ int   el_fd_watch_activity(el_t nonnull, short mask, int timeout) __leaf;
  * infrastructure. Look at \ref thr_queue and \ref thr_queue_main_g before
  * using a waker by hand.
  */
-el_t nullable el_wake_register_d(el_cb_f * nonnull, data_t);
+el_t nullable el_wake_register_d(el_cb_f * nonnull, data_t)
+    __leaf __no_swift__;
 #ifdef __has_blocks
 el_t nullable el_wake_register_blk(el_cb_b nonnull, block_t nullable);
 #endif
-static inline el_t nullable
+static inline __no_swift__ el_t nullable
 el_wake_register(el_cb_f * nonnull cb, void * nullable ptr)
 {
     return el_wake_register_d(cb, (data_t){ ptr });
@@ -298,13 +314,14 @@ void el_wake_fire(el_t nonnull);
  *  \warning you must not add more that one watch for a given path.
  */
 el_t nullable el_fs_watch_register_d(const char * nonnull, uint32_t,
-                                     el_fs_watch_f * nonnull, data_t);
+                                     el_fs_watch_f * nonnull, data_t)
+    __leaf __no_swift__;
 #ifdef __has_blocks
 el_t nullable el_fs_watch_register_blk(const char * nonnull, uint32_t,
                                        el_fs_watch_b nonnull,
                                        block_t nullable);
 #endif
-static inline el_t nullable
+static inline __no_swift__ el_t nullable
 el_fs_watch_register(const char * nonnull path, uint32_t flags,
                      el_fs_watch_f * nonnull f, void * nullable ptr)
 {
@@ -348,13 +365,13 @@ enum {
  */
 el_t nonnull el_timer_register_d(int next, int repeat, int flags,
                                  el_cb_f * nonnull, data_t)
-    __leaf;
+    __leaf __no_swift__;
 #ifdef __has_blocks
 el_t nonnull el_timer_register_blk(int next, int repeat, int flags,
                                    el_cb_b nonnull, block_t nullable)
     __leaf;
 #endif
-static inline el_t nonnull
+static inline __no_swift__ el_t nonnull
 el_timer_register(int next, int repeat, int flags, el_cb_f * nonnull f,
                   void * nullable ptr)
 {
@@ -371,7 +388,7 @@ bool el_timer_is_repeated(el_t nonnull ev) __leaf __attribute__((pure));
  *                     it's negative, the previous relative value is reused.
  */
 void el_timer_restart(el_t nonnull, int next) __leaf;
-void el_timer_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf;
+void el_timer_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf __no_swift__;
 
 /**\}*/
 
@@ -391,7 +408,7 @@ bool el_set_trace(el_t nonnull, bool trace) __leaf;
 #else
 #define el_set_trace(ev, trace)
 #endif
-data_t el_set_priv(el_t nonnull, data_t) __leaf;
+data_t el_set_priv(el_t nonnull, data_t) __leaf __no_swift__;
 
 void el_bl_use(void) __leaf;
 void el_bl_lock(void);
@@ -409,7 +426,8 @@ void el_bl_unlock(void);
  * \param[in] worker The new worker (NULL to unset the current worker)
  * \return The previous worker (NULL if there were no worker)
  */
-el_worker_f * nullable el_set_worker(el_worker_f * nullable worker);
+el_worker_f * nullable el_set_worker(el_worker_f * nullable worker)
+    __leaf __no_swift__;
 
 void el_cond_wait(pthread_cond_t * nonnull);
 void el_cond_signal(pthread_cond_t * nonnull) __leaf;
@@ -435,6 +453,8 @@ MODULE_DECLARE(el);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, print_state);
 
 /* }}} */
+
+#undef __no_swift__
 
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop

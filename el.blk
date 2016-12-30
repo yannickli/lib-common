@@ -1423,6 +1423,13 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
     return el;
 }
 
+el_t el_wake_register_blk(el_cb_b blk, block_t wipe)
+{
+    el_t el = RETHROW_P(el_wake_register((void *)-1, NULL));
+
+    return el_blk_register(el, blk, wipe);
+}
+
 static data_t el_wake_unregister(el_t *el)
 {
     if (*el) {

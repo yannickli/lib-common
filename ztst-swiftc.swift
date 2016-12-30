@@ -13,21 +13,30 @@
 
 import libcommon
 
-var cron: el_t? = nil
+class Toto {
+    var i = 0
 
-func cronCb(el: el_t, _: data_t) {
-    print(#function)
+    deinit {
+        print("wiping toto")
+    }
 }
 
+var cron: El? = nil
+
 func swiftFromCInitialize(ptr: UnsafeMutableRawPointer?) -> Int32 {
-    cron = el_timer_register(1000, 1000, 0, cronCb, nil)
+    let toto = Toto()
+
+    cron = El.schedule(in: 1000, repeatEvery: 1000) { _ in
+        print("\(#function): \(toto.i)")
+        toto.i += 1
+    }
     print(#function)
     return 0
 }
 
 func swiftFromCOnTerm(signo: Int32) {
     print("\(#function) with signo \(signo)")
-    el_unregister(&cron)
+    cron = nil
 }
 
 func swiftFromCShutdown() -> Int32 {

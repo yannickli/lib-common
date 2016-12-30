@@ -90,6 +90,7 @@ libcommon_SOURCES = \
 	core.swift \
 	\
 	el.blk \
+	el.swift \
 	\
 	farch.c \
 	file.c \

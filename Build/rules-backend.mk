@@ -208,7 +208,7 @@ swift/$2/map  := $~$$(swift/$2/mod)$$(swift/$2/ns)-map.json
 
 $2: $$(swift/$2/objs)
 
-$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | awk '{ print $$$$2 }'),$~$$m.swiftmodule) | _generated
+$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foundation' | grep -v 'Swift' | grep -v 'Glibc' | awk '{ print $$$$2 }'),$~$$m.swiftmodule) | _generated
 	echo '{ $$(foreach s,$3,"$$s": { "object": "$$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT).o,$$s)", "swiftmodule": "$$(patsubst %.swift,$~%~partial$4.swiftmodule,$$s)" },) }' > $$@
 
 $$(swift/$2/objs): $$(swift/$2/map) $3
