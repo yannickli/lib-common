@@ -25,6 +25,8 @@ import Glibc
 ///
 /// The list of waited condition is build by registering event loop handlers.
 public class El {
+    public typealias Priority = ev_priority_t
+
     let el : el_t
 
     init(_ el: el_t) {
@@ -87,6 +89,8 @@ public class El {
 
     /// Handler waiting for event on a file-descriptor.
     public class Fd : El {
+        public typealias LoopFlags = ev_fd_loop_flags_t
+
         /// Wait for activity on a single file-descriptor.
         ///
         /// Wait for activity on a single file-descriptor and exits when either
@@ -101,8 +105,8 @@ public class El {
         ///  timers or signals.
         ///
         /// - Returns: true if the handler triggered an event.
-        public func loop(timeout: Int32, flags: UInt32 = 0) -> Bool {
-            return el_fd_loop(el, timeout, flags) > 0
+        public func loop(timeout: Int32, flags: LoopFlags = []) -> Bool {
+            return el_fd_loop(el, timeout, flags.rawValue) > 0
         }
 
         /// Wait for activity on a collection of file-descriptor handler.
@@ -121,12 +125,12 @@ public class El {
         ///  timers or signals.
         ///
         /// - Returns: true if a handler triggered an event.
-        public static func loop<C: Collection>(_ els: C, timeout: Int32, flags: UInt32) -> Bool
+        public static func loop<C: Collection>(_ els: C, timeout: Int32, flags: LoopFlags = []) -> Bool
             where C.Iterator.Element: Fd {
             var els: [el_t] = els.map { $0.el }
 
             return els.withUnsafeMutableBufferPointer {
-                return el_fds_loop($0.baseAddress!, Int32(els.count), timeout, flags) > -1
+                return el_fds_loop($0.baseAddress!, Int32(els.count), timeout, flags.rawValue) > -1
             }
         }
 
@@ -151,11 +155,11 @@ public class El {
         /// A file-descriptor can have one of the thread priorities: low, normal or high.
         /// in a single loop of the event loop, if several file-descriptor have pending
         /// events, then only the ones with the higher priority will be handled.
-        public var priority : ev_priority_t {
+        public var priority : Priority {
             get {
-                let priority = el_fd_set_priority(el, EV_PRIORITY_NORMAL)
+                let priority = el_fd_set_priority(el, .normal)
 
-                if priority != EV_PRIORITY_NORMAL {
+                if priority != .normal {
                     el_fd_set_priority(el, priority)
                 }
                 return priority
@@ -201,6 +205,8 @@ public class El {
 
     /// Handler managing a singleshort or repeated timer.
     public class Timer : El {
+        public typealias Flags = el_timer_flags_t
+
         /// Indicates whether the timer is repeated.
         public var isRepeated : Bool {
             return el_timer_is_repeated(el)
@@ -281,8 +287,8 @@ extension El {
     ///   the timer is a single shot timer.
     ///
     /// - Paramter flags: flags applied on the timer.
-    public static func schedule(in next: Int32, repeatEvery: Int32 = 0, flags: Int32 = 0, _ cb: @escaping el_cb_b) -> Timer {
-        return Timer(el_timer_register_blk(next, repeatEvery, flags, cb, nil))
+    public static func schedule(in next: Int32, repeatEvery: Int32 = 0, flags: Timer.Flags = [], _ cb: @escaping el_cb_b) -> Timer {
+        return Timer(el_timer_register_blk(next, repeatEvery, Int32(flags.rawValue), cb, nil))
     }
 }
 

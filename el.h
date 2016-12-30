@@ -217,11 +217,11 @@ short el_proxy_set_mask(el_t nonnull, short mask) __leaf;
 /*----- fd related -----*/
 extern struct rlimit fd_limit_g;
 
-typedef enum ev_priority_t {
-    EV_PRIORITY_LOW    = 0,
-    EV_PRIORITY_NORMAL = 1,
-    EV_PRIORITY_HIGH   = 2
-} ev_priority_t;
+ SWIFT_ENUM(ev_priority_t) {
+    EV_PRIORITY_LOW __swift_name__("low") = 0,
+    EV_PRIORITY_NORMAL __swift_name__("normal") = 1,
+    EV_PRIORITY_HIGH __swift_name__("high") = 2
+};
 
 el_t nonnull el_fd_register_d(int fd, bool own_fd, short events,
                               el_fd_f * nonnull, data_t)
@@ -240,10 +240,10 @@ el_fd_register(int fd, bool own_fd, short events, el_fd_f * nonnull f,
 void el_fd_set_hook(el_t nonnull, el_fd_f * nonnull)
     __leaf __no_swift__;
 
-typedef enum ev_fd_loop_flags_t {
-    EV_FDLOOP_HANDLE_SIGNALS = 1 << 0,
-    EV_FDLOOP_HANDLE_TIMERS  = 1 << 1,
-} ev_fd_loop_flags_t;
+SWIFT_OPTIONS(ev_fd_loop_flags_t) {
+    EV_FDLOOP_HANDLE_SIGNALS __swift_name__("handleSignals") = 1 << 0,
+    EV_FDLOOP_HANDLE_TIMERS __swift_name__("handleTimers") = 1 << 1,
+};
 
 int   el_fd_loop(el_t nonnull, int timeout, unsigned flags);
 int   el_fds_loop(el_t nonnull * nonnull els, int el_count, int timeout,
@@ -339,9 +339,9 @@ const char * nonnull el_fs_watch_get_path(el_t nonnull el);
  * \{
  */
 
-enum {
-    EL_TIMER_NOMISS = (1 << 0),
-    EL_TIMER_LOWRES = (1 << 1),
+SWIFT_OPTIONS(el_timer_flags_t) {
+    EL_TIMER_NOMISS __swift_name__("noMiss") = (1 << 0),
+    EL_TIMER_LOWRES __swift_name__("lowRes") = (1 << 1),
 };
 
 
