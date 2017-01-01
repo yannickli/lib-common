@@ -17,7 +17,11 @@
 #include "hash.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 /*
@@ -1109,7 +1113,7 @@ qh_kptr_ckey_t(cstr, char, qhash_str_hash, qhash_str_equal);
 qh_khptr_ckey_t(cptr, void);
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

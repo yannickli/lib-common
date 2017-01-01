@@ -18,7 +18,11 @@
 #include "container-qvector.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 #include "iop-cfolder.h"
@@ -1883,7 +1887,7 @@ void iop_module_register(void);
 #include "iop-dso.h"
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

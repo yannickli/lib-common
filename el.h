@@ -72,7 +72,11 @@
 #endif
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 typedef struct ev_t *el_t;
@@ -433,7 +437,7 @@ MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, print_state);
 /* }}} */
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

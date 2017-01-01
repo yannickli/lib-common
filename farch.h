@@ -17,7 +17,11 @@
 #include "core.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 typedef struct farch_entry_t {
@@ -65,7 +69,7 @@ lstr_t farch_uncompress_persist(const farch_entry_t * nonnull entry);
 MODULE_DECLARE(farch);
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif /* IS_LIB_COMMON_FARCH_H */

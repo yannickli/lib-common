@@ -18,7 +18,11 @@
 #include "container-htlist.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 /****************************************************************************/
@@ -178,7 +182,7 @@ int ob_add_file(outbuf_t * nonnull ob, const char * nonnull file, int size)
     __leaf;
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

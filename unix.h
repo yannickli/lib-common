@@ -17,7 +17,11 @@
 #include "container-qvector.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 #ifndef O_CLOEXEC
@@ -370,7 +374,7 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 }
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif /* IS_LIB_COMMON_UNIX_H */

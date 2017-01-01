@@ -18,7 +18,11 @@
 #include "arith.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 #define SHA1_DIGEST_SIZE    (160 / 8)
@@ -120,7 +124,7 @@ static inline uint32_t u64_hash32(uint64_t u64)
 }
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

@@ -17,7 +17,11 @@
 #include "core.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 #include "arith-endianess.h"
@@ -46,7 +50,7 @@ uint32_t get_multiples_nb_in_range(uint32_t n, uint32_t min, uint32_t max);
 extern uint64_t const powerof10[16];
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif

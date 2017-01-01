@@ -19,7 +19,11 @@
 #include "str-outbuf.h"
 
 #if __has_feature(nullability)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 /** Add compressed data in the string buffer.
@@ -43,7 +47,7 @@ ssize_t sb_add_compressed(sb_t * nonnull out, const void * nonnull data,
     OB_WRAP(sb_add_compressed, ob, data, dlen, level, do_gzip)
 
 #if __has_feature(nullability)
-#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic pop
 #endif
 
 #endif
