@@ -757,9 +757,11 @@ static int ic_write(ichannel_t *ic, int fd)
         int fdc = 0;
         struct msghdr msgh = { .msg_name = NULL };
         ssize_t res;
+        ic_msg_t *msg;
+        ic_msg_t *last_fd_msg = NULL;
 
         while (!htlist_is_empty(&ic->msg_list) && ic->iov_total_len < IC_PKT_MAX) {
-            ic_msg_t *msg = ic_pop_msg(ic);
+            msg = ic_pop_msg(ic);
 
             if (msg->canceled) {
                 ic_msg_take_and_delete(msg);
@@ -767,6 +769,7 @@ static int ic_write(ichannel_t *ic, int fd)
             }
 
             if (unlikely(fdc == IC_MAX_FD && msg->fd >= 0)) {
+                htlist_add(&ic->msg_list, &msg->msg_link);
                 break;
             }
 
@@ -792,7 +795,7 @@ static int ic_write(ichannel_t *ic, int fd)
 
             if (msg->fd >= 0) {
                 fdv[fdc++] = msg->fd;
-                msg->fd = -1;
+                last_fd_msg = msg;
             }
         }
 
@@ -835,15 +838,24 @@ static int ic_write(ichannel_t *ic, int fd)
         ic->iov_total_len -= res;
 
         while (!htlist_is_empty(&ic->iov_list)) {
-            ic_msg_t *tmp;
+            msg = htlist_first_entry(&ic->iov_list, ic_msg_t, msg_link);
 
-            tmp = htlist_first_entry(&ic->iov_list, ic_msg_t, msg_link);
+            if (msg->fd >= 0) {
+                close(msg->fd);
+                msg->fd = -1;
+                ic_msg_trace(msg, "fd sent");
+
+                if (msg == last_fd_msg) {
+                    last_fd_msg = NULL;
+                }
+            }
+
             if (ic->iov.len != 0) {
                 const struct iovec *iov = &ic->iov.tab[0];
-                const char *msg_end = (char *)tmp->data + tmp->dlen;
+                const char *msg_end = (char *)msg->data + msg->dlen;
                 const char *iov_end = (char *)iov->iov_base + iov->iov_len;
 
-                if (iov_end >= (const char *)tmp->data && iov_end <= msg_end)
+                if (iov_end >= (const char *)msg->data && iov_end <= msg_end)
                 {
                     /* The message is not fully sent */
                     break;
@@ -851,11 +863,26 @@ static int ic_write(ichannel_t *ic, int fd)
             }
 
             htlist_pop(&ic->iov_list);
-            ic_msg_trace(tmp, "written on socket");
-            if (tmp->cmd <= 0 || tmp->slot == 0) {
-                ic_msg_delete(&tmp);
+            ic_msg_trace(msg, "written on socket");
+            if (msg->cmd <= 0 || msg->slot == 0) {
+                ic_msg_delete(&msg);
             }
         }
+
+        if (last_fd_msg) {
+            htlist_for_each_entry(msg, &ic->iov_list, msg_link) {
+                if (msg->fd >= 0) {
+                    close(msg->fd);
+                    msg->fd = -1;
+                    ic_msg_trace(msg, "fd sent");
+
+                    if (msg == last_fd_msg) {
+                        break;
+                    }
+                }
+            }
+        }
+
         assert (htlist_is_empty(&ic->iov_list) || ic->iov_total_len);
     } while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list));
 
