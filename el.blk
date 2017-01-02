@@ -714,6 +714,9 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 
     if (waitpid(pid, &status, WNOHANG) > 0) {
         /* The process is already dead */
+        if (qm_del_key(ev_assoc, &_G.childs, ev->child.pid) < 0) {
+            ASSERT("event not found", false);
+        }
         ev->child.status = status;
 
         pthread_sigmask(SIG_SETMASK, &prev, NULL);
