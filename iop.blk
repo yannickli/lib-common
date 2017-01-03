@@ -609,7 +609,7 @@ bool iop_field_is_pointed(const iop_field_t *fdesc)
     return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
 }
 
-static void *iop_get_opt_field(iop_type_t type, void *data)
+void *iop_get_opt_field(iop_type_t type, void *data)
 {
     switch (type) {
       case IOP_T_I8:
