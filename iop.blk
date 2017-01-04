@@ -2002,6 +2002,10 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
     bool is_class = iop_struct_is_class(st);
     qv_t(iop_sort_p) sorts;
 
+    if (unlikely(params->len == 0)) {
+        return 0;
+    }
+
     t_qv_init(&sorts, params->len);
     qv_growlen(&sorts, params->len);
 
