@@ -1245,9 +1245,9 @@ int el_fds_loop(ev_t **evs, int count, int timeout, unsigned flags)
     return has_fired ? 1 : 0;
 }
 
-int el_fd_loop(ev_t *ev, int timeout)
+int el_fd_loop(ev_t *ev, int timeout, unsigned flags)
 {
-    return el_fds_loop(&ev, 1, timeout, EV_FDLOOP_HANDLE_TIMERS);
+    return el_fds_loop(&ev, 1, timeout, flags);
 }
 
 static void el_fd_process_fired(void)

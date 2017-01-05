@@ -2783,7 +2783,7 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
                     if (res < 0 && !ERR_RW_RETRIABLE(errno)) {
                         e_panic("write error: %m");
                     }
-                    el_fd_loop(zhttpc_g->ev, 10);
+                    el_fd_loop(zhttpc_g->ev, 10, EV_FDLOOP_HANDLE_TIMERS);
                     continue;
                 }
                 ptr += res;

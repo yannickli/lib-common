@@ -226,7 +226,7 @@ typedef enum ev_fd_loop_flags_t {
     EV_FDLOOP_HANDLE_TIMERS  = 1 << 1,
 } ev_fd_loop_flags_t;
 
-int   el_fd_loop(el_t nonnull, int timeout);
+int   el_fd_loop(el_t nonnull, int timeout, unsigned flags);
 int   el_fds_loop(el_t nonnull * nonnull els, int el_count, int timeout,
                   unsigned flags);
 
