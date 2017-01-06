@@ -9,12 +9,12 @@
 #pragma GCC diagnostic error "-Wnullability-completeness"
 #endif
 
-extern iop_enum_t const core__log_level__e;
-extern iop_enum_t const * const nonnull  core__log_level__ep;
+EXPORT iop_enum_t const core__log_level__e;
+EXPORT iop_enum_t const * const nonnull  core__log_level__ep;
 IOP_ENUM(core__log_level);
 
-extern iop_enum_t const core__iop_http_method__e;
-extern iop_enum_t const * const nonnull  core__iop_http_method__ep;
+EXPORT iop_enum_t const core__iop_http_method__e;
+EXPORT iop_enum_t const * const nonnull  core__iop_http_method__ep;
 IOP_ENUM(core__iop_http_method);
 
 struct core__logger_configuration__t {
@@ -23,8 +23,8 @@ struct core__logger_configuration__t {
     bool     force_all;
     bool     is_silent;
 };
-extern iop_struct_t const core__logger_configuration__s;
-extern iop_struct_t const * const nonnull  core__logger_configuration__sp;
+EXPORT iop_struct_t const core__logger_configuration__s;
+EXPORT iop_struct_t const * const nonnull  core__logger_configuration__sp;
 IOP_GENERIC(core__logger_configuration);
 
 struct core__log_configuration__t {
@@ -33,8 +33,8 @@ struct core__log_configuration__t {
     bool     is_silent;
     core__logger_configuration__array_t specific;
 };
-extern iop_struct_t const core__log_configuration__s;
-extern iop_struct_t const * const nonnull  core__log_configuration__sp;
+EXPORT iop_struct_t const core__log_configuration__s;
+EXPORT iop_struct_t const * const nonnull  core__log_configuration__sp;
 IOP_GENERIC(core__log_configuration);
 
 struct core__log_file_configuration__t {
@@ -45,8 +45,8 @@ struct core__log_file_configuration__t {
     int64_t  total_max_size;
     bool     compress;
 };
-extern iop_struct_t const core__log_file_configuration__s;
-extern iop_struct_t const * const nonnull  core__log_file_configuration__sp;
+EXPORT iop_struct_t const core__log_file_configuration__s;
+EXPORT iop_struct_t const * const nonnull  core__log_file_configuration__sp;
 IOP_CLASS(core__log_file_configuration);
 
 #define core__log_file_configuration__class_id  0
@@ -56,8 +56,8 @@ struct core__licence_module__t {
     lstr_t           expiration_date;
     uint32_t expiration_warning_delay;
 };
-extern iop_struct_t const core__licence_module__s;
-extern iop_struct_t const * const nonnull  core__licence_module__sp;
+EXPORT iop_struct_t const core__licence_module__s;
+EXPORT iop_struct_t const * const nonnull  core__licence_module__sp;
 IOP_CLASS(core__licence_module);
 
 #define core__licence_module__class_id  0
@@ -82,8 +82,8 @@ struct core__licence__t {
 #endif
     core__licence_module__array_t modules;
 };
-extern iop_struct_t const core__licence__s;
-extern iop_struct_t const * const nonnull  core__licence__sp;
+EXPORT iop_struct_t const core__licence__s;
+EXPORT iop_struct_t const * const nonnull  core__licence__sp;
 IOP_CLASS(core__licence);
 
 #define core__licence__class_id  0
@@ -92,8 +92,8 @@ struct core__signed_licence__t {
     struct core__licence__t *nonnull licence;
     lstr_t   signature;
 };
-extern iop_struct_t const core__signed_licence__s;
-extern iop_struct_t const * const nonnull  core__signed_licence__sp;
+EXPORT iop_struct_t const core__signed_licence__s;
+EXPORT iop_struct_t const * const nonnull  core__signed_licence__sp;
 IOP_GENERIC(core__signed_licence);
 
 struct core__httpd_cfg__t {
@@ -107,8 +107,8 @@ struct core__httpd_cfg__t {
     uint32_t header_line_max;
     uint32_t header_size_max;
 };
-extern iop_struct_t const core__httpd_cfg__s;
-extern iop_struct_t const * const nonnull  core__httpd_cfg__sp;
+EXPORT iop_struct_t const core__httpd_cfg__s;
+EXPORT iop_struct_t const * const nonnull  core__httpd_cfg__sp;
 IOP_GENERIC(core__httpd_cfg);
 
 struct core__httpc_cfg__t {
@@ -119,8 +119,8 @@ struct core__httpc_cfg__t {
     uint32_t header_line_max;
     uint32_t header_size_max;
 };
-extern iop_struct_t const core__httpc_cfg__s;
-extern iop_struct_t const * const nonnull  core__httpc_cfg__sp;
+EXPORT iop_struct_t const core__httpc_cfg__s;
+EXPORT iop_struct_t const * const nonnull  core__httpc_cfg__sp;
 IOP_GENERIC(core__httpc_cfg);
 
 #if __has_feature(nullability)

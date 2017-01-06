@@ -2018,7 +2018,7 @@ const iop_iface_t core__log__if = {
     .flags      = 2,
     .iface_attrs  = &core__log__desc_if_attrs,
 };
-const iop_iface_t const * const core__log__ifp = &core__log__if;
+const iop_iface_t * const core__log__ifp = &core__log__if;
 
 /* }}} */
 /* Module core.Core {{{ */
