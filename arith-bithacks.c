@@ -354,8 +354,11 @@ static size_t membitcount_c(const void *ptr, size_t n)
 }
 
 #if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
+#pragma push_macro("__leaf")
+#undef __leaf
 #include <cpuid.h>
 #include <x86intrin.h>
+#pragma pop_macro("__leaf")
 
 __attribute__((target("popcnt")))
 static size_t membitcount_popcnt(const void *ptr, size_t n)
