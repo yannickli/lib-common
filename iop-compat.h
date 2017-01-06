@@ -49,6 +49,12 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 # define __cold
 # define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
 
+#define nullable
+#define nonnull
+#define null_unspecified
+#define SWIFT_ENUM(_name)     typedef enum _name _name; enum _name
+#define __swift_name__(...)
+
 /* str-l.h */
 typedef struct lstr_t {
     union {

@@ -350,27 +350,27 @@ int  iop_jlex_write_error_buf(iop_json_lex_t * nonnull ll,
 /* {{{ Generating JSon */
 
 /** JSon packer custom flags */
-enum iop_jpack_flags {
+SWIFT_OPTIONS(iop_jpack_flags) {
     /** Obsolete, kept for backward compatibility.
      */
-    IOP_JPACK_STRICT = (1U << 0),
+    IOP_JPACK_STRICT __swift_name__("strict") = (1U << 0),
 
     /** Generate compact JSON.
      *
      * Omit cosmetic whitespaces such as indentations and spaces after colons.
      */
-    IOP_JPACK_NO_WHITESPACES = (1U << 1),
+    IOP_JPACK_NO_WHITESPACES __swift_name__("noWhitespaces") = (1U << 1),
 
     /** Do not append '\n' when done.
      */
-    IOP_JPACK_NO_TRAILING_EOL = (1U << 2),
+    IOP_JPACK_NO_TRAILING_EOL __swift_name__("noTrailingEOL") = (1U << 2),
 
     /** Don't pack private fields.
      *
      * Use this flag when packing objects on a public interface. This will
      * omit private fields from the generated JSON.
      */
-    IOP_JPACK_SKIP_PRIVATE  = (1U << 3),
+    IOP_JPACK_SKIP_PRIVATE __swift_name__("skipPrivate") = (1U << 3),
 
     /** Write big integers as integers.
      *
@@ -378,21 +378,22 @@ enum iop_jpack_flags {
      * in Javascript as strings instead of integers. With this flag set, the
      * packer will always pack integers as integers.
      */
-    IOP_JPACK_UNSAFE_INTEGERS = (1U << 4),
+    IOP_JPACK_UNSAFE_INTEGERS __swift_name__("unsafeIntegers") = (1U << 4),
 
     /** Skip fields having their default value.
      *
      * This is good to make the JSon more compact, but is dangerous if a
      * default value changes.
      */
-    IOP_JPACK_SKIP_DEFAULT = (1U << 5),
+    IOP_JPACK_SKIP_DEFAULT __swift_name__("skipDefault") = (1U << 5),
 
     /** Skip empty repeated fields. */
-    IOP_JPACK_SKIP_EMPTY_ARRAYS = (1U << 6),
+    IOP_JPACK_SKIP_EMPTY_ARRAYS __swift_name__("skipEmptyArrays") = (1U << 6),
 
     /** Produce the smallest possible json. */
-    IOP_JPACK_MINIMAL = IOP_JPACK_NO_WHITESPACES | IOP_JPACK_SKIP_DEFAULT
-                      | IOP_JPACK_SKIP_EMPTY_ARRAYS,
+    IOP_JPACK_MINIMAL __swift_name__("minimal") = IOP_JPACK_NO_WHITESPACES
+                                                | IOP_JPACK_SKIP_DEFAULT
+                                                | IOP_JPACK_SKIP_EMPTY_ARRAYS,
 };
 
 typedef int (iop_jpack_writecb_f)(void * nonnull priv,

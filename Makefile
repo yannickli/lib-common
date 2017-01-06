@@ -118,6 +118,7 @@ libcommon_SOURCES = \
 	iop-xml-unpack.c \
 	iop-xml-wsdl.blk \
 	iop.blk \
+	iop.swift \
 	\
 	iop-rpc-channel.blk \
 	iop-rpc-http-pack.c \

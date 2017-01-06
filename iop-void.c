@@ -18,3 +18,4 @@ iop_struct_t const iop__void__s = {
     .fields_len = 0,
     .size       = 0,
 };
+iop_struct_t const * const iop__void__sp = &iop__void__s;

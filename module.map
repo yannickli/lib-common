@@ -12,6 +12,12 @@ module libcommon {
         header "container-qhash.h"
     }
 
+    module iop [extern_c] {
+        header "iop.h"
+        header "core.iop.h"
+        header "ic.iop.h"
+    }
+
     requires tls
 }
 
