@@ -204,17 +204,11 @@ ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
-ifneq ($(OS),darwin)
-core-iop-plugin_LDFLAGS = -Wl,-z,defs
-endif
 
 zchk-iop-plugin_SOURCES =  \
     ic.iop                                                               \
     zchk-iop-plugin.c                                                    \
     zchk-iop-ressources.c
-ifneq ($(OS),darwin)
-zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
-endif
 
 iop-snmp_SOURCES =  \
 	iop-snmp-doc.c \
@@ -247,7 +241,6 @@ zchk_SOURCES = zchk.c \
 	\
 	$liop-snmp.a \
 	$liop/tstiop.a \
-	$liop/tstiop2.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
 zchk_LDFLAGS = -rdynamic
@@ -255,17 +248,10 @@ zchk_LDFLAGS = -rdynamic
 zchk-tstiop-plugin_SOURCES = \
 	$liop/tstiop-plugin.c \
 	$liop/tstiop.a
-ifneq ($(OS),darwin)
-zchk-tstiop-plugin_LDFLAGS = -Wl,-z,defs
-endif
 
 zchk-tstiop2-plugin_SOURCES = \
 	$liop/tstiop2-plugin.c \
-	$liop/tstiop.a \
 	$liop/tstiop2.a
-ifneq ($(OS),darwin)
-zchk-tstiop2-plugin_LDFLAGS = -Wl,-z,defs
-endif
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \

@@ -16,7 +16,6 @@ examples_LIBRARIES = tstiop tstiop2
 
 tstiop_SOURCES =  \
     tstiop.iop                                                               \
-    tstiop2.iop                                                              \
     tstiop_inheritance.iop                                                   \
     tstiop_licence.iop                                                       \
     tstiop_backward_compat.iop                                               \
@@ -37,6 +36,8 @@ tstiop_SOURCES =  \
     tstiop_backward_compat_mod_deleted.iop                                   \
     tstiop_backward_compat_mod_deleted_if.iop
 tstiop_inheritance.iop_IOPVER=-5
+
+tstiop2_SOURCES = tstiop2.iop
 
 endif
 

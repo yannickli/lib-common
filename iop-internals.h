@@ -588,8 +588,10 @@ typedef struct iop_dso_vt_t {
     iop_pkg_t const * const iop_packages[] = { __VA_ARGS__, NULL }
 
 #define IOP_USE_EXTERNAL_PACKAGES \
-    EXPORT bool iop_use_external_packages;  \
-    bool iop_use_external_packages = true;
+    EXPORT bool iop_use_external_packages;                                   \
+    bool iop_use_external_packages = true;                                   \
+    EXPORT bool iop_dont_replace_fix_pkg;                                    \
+    bool iop_dont_replace_fix_pkg = true;
 
 #define IOP_EXPORT_PACKAGES_VTABLE \
     EXPORT iop_dso_vt_t iop_vtable;                                     \

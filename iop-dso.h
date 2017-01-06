@@ -44,6 +44,7 @@ typedef struct iop_dso_t {
 
     flag_t use_external_packages : 1;
     flag_t is_registered         : 1;
+    flag_t dont_replace_fix_pkg  : 1;
 } iop_dso_t;
 
 /** Load a DSO from a file, and register its packages. */

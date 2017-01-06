@@ -6586,38 +6586,23 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(iop_dso_fixup, "test fixup between DSOs") { /* {{{ */
-        iop_dso_t *dso1;
-        iop_dso_t *dso2;
-        const iop_struct_t *struct1;
-        const iop_struct_t *struct2;
-        const iop_struct_t *saved_field_st;
+    Z_TEST(iop_dso_fixup, "test fixup for external DSOs") { /* {{{ */
+        iop_dso_t *dso;
+        const iop_struct_t *my_struct;
         const iop_field_t *field;
 
-        IOP_UNREGISTER_PACKAGES(&tstiop__pkg);
-        dso1 = _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true);
-        dso2 = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT, true);
+        dso = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT, true);
 
-        struct1 = iop_dso_find_type(dso1, LSTR("tstiop.MyStructA"));
-
-        struct2 = iop_dso_find_type(dso2, LSTR("tstiop2.MyStruct"));
-        Z_ASSERT_N(iop_field_find_by_name(struct2, LSTR("a"), NULL, &field));
+        my_struct = iop_dso_find_type(dso, LSTR("tstiop2.MyStruct"));
+        Z_ASSERT_N(iop_field_find_by_name(my_struct, LSTR("a"), NULL,
+                                          &field));
 
         /* the two pointers to "tstiop.MyStructA" must be the same */
-        Z_ASSERT_LSTREQUAL(struct1->fullname, field->u1.st_desc->fullname);
-        Z_ASSERT(struct1 == field->u1.st_desc);
-        saved_field_st = field->u1.st_desc;
+        Z_ASSERT_LSTREQUAL(tstiop__my_struct_a__s.fullname,
+                           field->u1.st_desc->fullname);
+        Z_ASSERT(&tstiop__my_struct_a__s == field->u1.st_desc);
 
-        iop_dso_close(&dso1);
-
-        /* the fixup has been undone for dso2 */
-        struct2 = iop_dso_find_type(dso2, LSTR("tstiop2.MyStruct"));
-        Z_ASSERT_N(iop_field_find_by_name(struct2, LSTR("a"), NULL, &field));
-        Z_ASSERT(saved_field_st != field->u1.st_desc);
-
-        iop_dso_close(&dso2);
-
-        IOP_REGISTER_PACKAGES(&tstiop__pkg);
+        iop_dso_close(&dso);
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_dso_fixup_bad_dep, "test bug in fixup") { /* {{{ */
