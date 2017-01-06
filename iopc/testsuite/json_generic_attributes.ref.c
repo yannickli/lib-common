@@ -99,6 +99,7 @@ const iop_struct_t json_generic_attributes__voice_event__s = {
         .class_attrs  = &json_generic_attributes__voice_event__class_s,
     }
 };
+iop_struct_t const * const json_generic_attributes__voice_event__sp = &json_generic_attributes__voice_event__s;
 
 /* }}} */
 /* Class json_generic_attributes.DataEvent {{{ */
@@ -188,6 +189,7 @@ const iop_struct_t json_generic_attributes__data_event__s = {
         .class_attrs  = &json_generic_attributes__data_event__class_s,
     }
 };
+iop_struct_t const * const json_generic_attributes__data_event__sp = &json_generic_attributes__data_event__s;
 
 /* }}} */
 /* Structure json_generic_attributes.Test {{{ */
@@ -218,6 +220,7 @@ const iop_struct_t json_generic_attributes__test__s = {
     .flags      = 1,
     .st_attrs   = &json_generic_attributes__test__s_desc_attrs,
 };
+iop_struct_t const * const json_generic_attributes__test__sp = &json_generic_attributes__test__s;
 
 /* }}} */
 /* Package json_generic_attributes {{{ */
@@ -253,6 +256,7 @@ iop_pkg_t const json_generic_attributes__pkg = {
     .ifaces  = json_generic_attributes__ifaces,
     .mods    = json_generic_attributes__mods,
 };
+iop_pkg_t const * const json_generic_attributes__pkgp = &json_generic_attributes__pkg;
 
 /* }}} */
 

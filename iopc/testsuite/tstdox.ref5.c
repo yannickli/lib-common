@@ -83,6 +83,7 @@ iop_enum_t const tstdox__my_enum_a__e = {
     .en_attrs     = &tstdox__my_enum_a__e_desc_attrs,
     .values_attrs = tstdox__my_enum_a__e_desc_values_attrs,
 };
+iop_enum_t const * const tstdox__my_enum_a__ep = &tstdox__my_enum_a__e;
 
 /* }}} */
 /* Enum tstdox.MyEnumB {{{ */
@@ -104,6 +105,7 @@ iop_enum_t const tstdox__my_enum_b__e = {
     .ranges_len   = countof(iop__ranges__1) / 2,
     .enum_len     = 3,
 };
+iop_enum_t const * const tstdox__my_enum_b__ep = &tstdox__my_enum_b__e;
 
 /* }}} */
 /* Enum tstdox.MyEnumC {{{ */
@@ -143,6 +145,7 @@ iop_enum_t const tstdox__my_enum_c__e = {
     .flags        = 3,
     .en_attrs     = &tstdox__my_enum_c__e_desc_attrs,
 };
+iop_enum_t const * const tstdox__my_enum_c__ep = &tstdox__my_enum_c__e;
 
 /* }}} */
 /* Enum tstdox.MyEnumD {{{ */
@@ -188,6 +191,7 @@ iop_enum_t const tstdox__my_enum_d__e = {
     .flags        = 1,
     .values_attrs = tstdox__my_enum_d__e_desc_values_attrs,
 };
+iop_enum_t const * const tstdox__my_enum_d__ep = &tstdox__my_enum_d__e;
 
 /* }}} */
 /* Structure tstdox.MyStructA {{{ */
@@ -233,6 +237,7 @@ const iop_struct_t tstdox__my_struct_a__s = {
     .fields_len = countof(tstdox__my_struct_a__desc_fields),
     .size       = sizeof(tstdox__my_struct_a__t),
 };
+iop_struct_t const * const tstdox__my_struct_a__sp = &tstdox__my_struct_a__s;
 
 /* }}} */
 /* Structure tstdox.MyStructB {{{ */
@@ -308,6 +313,7 @@ const iop_struct_t tstdox__my_struct_b__s = {
     .flags      = 3,
     .fields_attrs = tstdox__my_struct_b__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_b__sp = &tstdox__my_struct_b__s;
 
 /* }}} */
 /* Structure tstdox.CDataTest {{{ */
@@ -343,6 +349,7 @@ const iop_struct_t tstdox__c_data_test__s = {
     .flags      = 1,
     .fields_attrs = tstdox__c_data_test__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__c_data_test__sp = &tstdox__c_data_test__s;
 
 /* }}} */
 /* Structure tstdox.MyStructAa {{{ */
@@ -435,6 +442,7 @@ const iop_struct_t tstdox__my_struct_aa__s = {
     .st_attrs   = &tstdox__my_struct_aa__s_desc_attrs,
     .fields_attrs = tstdox__my_struct_aa__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_aa__sp = &tstdox__my_struct_aa__s;
 
 /* }}} */
 /* Structure tstdox.MyStructAb {{{ */
@@ -502,6 +510,7 @@ const iop_struct_t tstdox__my_struct_ab__s = {
     .flags      = 1,
     .fields_attrs = tstdox__my_struct_ab__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_ab__sp = &tstdox__my_struct_ab__s;
 
 /* }}} */
 /* Structure tstdox.MyStructAc {{{ */
@@ -532,6 +541,7 @@ const iop_struct_t tstdox__my_struct_ac__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_struct_ac__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_ac__sp = &tstdox__my_struct_ac__s;
 
 /* }}} */
 /* Structure tstdox.MyStructBa {{{ */
@@ -563,6 +573,7 @@ const iop_struct_t tstdox__my_struct_ba__s = {
     .st_attrs   = &tstdox__my_struct_ba__s_desc_attrs,
     .fields_attrs = tstdox__my_struct_b__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_ba__sp = &tstdox__my_struct_ba__s;
 
 /* }}} */
 /* Structure tstdox.MyStructBb {{{ */
@@ -641,6 +652,7 @@ const iop_struct_t tstdox__my_struct_bb__s = {
     .flags      = 3,
     .fields_attrs = tstdox__my_struct_bb__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_struct_bb__sp = &tstdox__my_struct_bb__s;
 
 /* }}} */
 /* Class tstdox.MyClassBase {{{ */
@@ -696,6 +708,7 @@ const iop_struct_t tstdox__my_class_base__s = {
         .class_attrs  = &tstdox__my_class_base__class_s,
     }
 };
+iop_struct_t const * const tstdox__my_class_base__sp = &tstdox__my_class_base__s;
 
 /* }}} */
 /* Class tstdox.MyClassA {{{ */
@@ -739,6 +752,7 @@ const iop_struct_t tstdox__my_class_a__s = {
         .class_attrs  = &tstdox__my_class_a__class_s,
     }
 };
+iop_struct_t const * const tstdox__my_class_a__sp = &tstdox__my_class_a__s;
 
 /* }}} */
 /* Class tstdox.MyClass1 {{{ */
@@ -778,6 +792,7 @@ const iop_struct_t tstdox__my_class1__s = {
         .class_attrs  = &tstdox__my_class1__class_s,
     }
 };
+iop_struct_t const * const tstdox__my_class1__sp = &tstdox__my_class1__s;
 
 /* }}} */
 /* Class tstdox.MyClass2 {{{ */
@@ -815,6 +830,7 @@ const iop_struct_t tstdox__my_class2__s = {
         .class_attrs  = &tstdox__my_class2__class_s,
     }
 };
+iop_struct_t const * const tstdox__my_class2__sp = &tstdox__my_class2__s;
 
 /* }}} */
 /* Interface tstdox.MyIfaceA {{{ */
@@ -900,6 +916,7 @@ const iop_struct_t tstdox__my_iface_a__fun_a_args__s = {
     .st_attrs   = &tstdox__my_iface_a__fun_a_args__s_desc_attrs,
     .fields_attrs = tstdox__my_iface_a__fun_a_args__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_a_args__sp = &tstdox__my_iface_a__fun_a_args__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceA.funARes {{{ */
@@ -983,6 +1000,7 @@ const iop_struct_t tstdox__my_iface_a__fun_a_res__s = {
     .st_attrs   = &tstdox__my_iface_a__fun_a_res__s_desc_attrs,
     .fields_attrs = tstdox__my_iface_a__fun_a_res__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_a_res__sp = &tstdox__my_iface_a__fun_a_res__s;
 
 /* }}} */
 #define tstdox__my_iface_a__fun_a_exn__desc_fields  tstdox__my_struct_ac__desc_fields
@@ -1025,6 +1043,7 @@ const iop_struct_t tstdox__my_iface_a__fun_aa_args__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_aa_args__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_aa_args__sp = &tstdox__my_iface_a__fun_aa_args__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceA.funAaRes {{{ */
@@ -1064,6 +1083,7 @@ const iop_struct_t tstdox__my_iface_a__fun_aa_res__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_aa_res__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_aa_res__sp = &tstdox__my_iface_a__fun_aa_res__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceA.funBArgs {{{ */
@@ -1094,6 +1114,7 @@ const iop_struct_t tstdox__my_iface_a__fun_b_args__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_b_args__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_b_args__sp = &tstdox__my_iface_a__fun_b_args__s;
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_bal1_args__s = {
@@ -1106,6 +1127,7 @@ const iop_struct_t tstdox__my_iface_a__fun_bal1_args__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_b_args__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_bal1_args__sp = &tstdox__my_iface_a__fun_bal1_args__s;
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_bal2_args__s = {
@@ -1118,6 +1140,7 @@ const iop_struct_t tstdox__my_iface_a__fun_bal2_args__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_b_args__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_bal2_args__sp = &tstdox__my_iface_a__fun_bal2_args__s;
 
 /* }}} */
 #define tstdox__my_iface_a__fun_b_res__desc_fields  tstdox__my_struct_a__desc_fields
@@ -1141,6 +1164,7 @@ const iop_struct_t tstdox__my_iface_a__fun_c_res__s = {
     .size       = sizeof(tstdox__my_iface_a__fun_c_res__t),
     .flags      = 1,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_c_res__sp = &tstdox__my_iface_a__fun_c_res__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceA.funDRes {{{ */
@@ -1171,6 +1195,7 @@ const iop_struct_t tstdox__my_iface_a__fun_d_res__s = {
     .flags      = 1,
     .st_attrs   = &tstdox__my_iface_a__fun_d_res__s_desc_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_d_res__sp = &tstdox__my_iface_a__fun_d_res__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceA.funEArgs {{{ */
@@ -1212,6 +1237,7 @@ const iop_struct_t tstdox__my_iface_a__fun_e_args__s = {
     .flags      = 1,
     .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_e_args__sp = &tstdox__my_iface_a__fun_e_args__s;
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_e1_args__s = {
@@ -1224,6 +1250,7 @@ const iop_struct_t tstdox__my_iface_a__fun_e1_args__s = {
     .flags      = 1,
     .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_e1_args__sp = &tstdox__my_iface_a__fun_e1_args__s;
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_a__fun_e2_args__s = {
@@ -1236,6 +1263,7 @@ const iop_struct_t tstdox__my_iface_a__fun_e2_args__s = {
     .flags      = 1,
     .fields_attrs = tstdox__my_iface_a__fun_e_args__desc_fields_attrs,
 };
+iop_struct_t const * const tstdox__my_iface_a__fun_e2_args__sp = &tstdox__my_iface_a__fun_e2_args__s;
 
 /* }}} */
 static iop_rpc_t const tstdox__my_iface_a__if_funs[] = {
@@ -1489,6 +1517,7 @@ const iop_iface_t tstdox__my_iface_a__if = {
     .rpc_attrs  = tstdox__my_iface_a__rpc_desc_attrs,
     .iface_attrs  = &tstdox__my_iface_a__desc_if_attrs,
 };
+const iop_iface_t const * const tstdox__my_iface_a__ifp = &tstdox__my_iface_a__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceB {{{ */
@@ -1513,6 +1542,7 @@ const iop_struct_t tstdox__my_iface_b__fun_a_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_a_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_b__fun_a_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_b__fun_a_args__sp = &tstdox__my_iface_b__fun_a_args__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceB.funBArgs {{{ */
@@ -1536,6 +1566,7 @@ const iop_struct_t tstdox__my_iface_b__fun_b_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_b_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_b__fun_b_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_b__fun_b_args__sp = &tstdox__my_iface_b__fun_b_args__s;
 
 /* }}} */
 static iop_rpc_t const tstdox__my_iface_b__if_funs[] = {
@@ -1559,6 +1590,7 @@ const iop_iface_t tstdox__my_iface_b__if = {
     .funs       = tstdox__my_iface_b__if_funs,
     .funs_len   = countof(tstdox__my_iface_b__if_funs),
 };
+const iop_iface_t const * const tstdox__my_iface_b__ifp = &tstdox__my_iface_b__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceC {{{ */
@@ -1574,6 +1606,7 @@ const iop_struct_t tstdox__my_iface_c__fun_a_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_a_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_c__fun_a_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_c__fun_a_args__sp = &tstdox__my_iface_c__fun_a_args__s;
 
 /* }}} */
 const iop_struct_t tstdox__my_iface_c__fun_a2_args__s = {
@@ -1584,6 +1617,7 @@ const iop_struct_t tstdox__my_iface_c__fun_a2_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_a_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_c__fun_a_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_c__fun_a2_args__sp = &tstdox__my_iface_c__fun_a2_args__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceC.funBArgs {{{ */
@@ -1598,6 +1632,7 @@ const iop_struct_t tstdox__my_iface_c__fun_b_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_b_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_c__fun_b_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_c__fun_b_args__sp = &tstdox__my_iface_c__fun_b_args__s;
 
 /* }}} */
 static iop_rpc_t const tstdox__my_iface_c__if_funs[] = {
@@ -1651,6 +1686,7 @@ const iop_iface_t tstdox__my_iface_c__if = {
     .flags      = 1,
     .rpc_attrs  = tstdox__my_iface_c__rpc_desc_attrs,
 };
+const iop_iface_t const * const tstdox__my_iface_c__ifp = &tstdox__my_iface_c__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceD {{{ */
@@ -1666,6 +1702,7 @@ const iop_struct_t tstdox__my_iface_d__fun_a_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_a_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_d__fun_a_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_d__fun_a_args__sp = &tstdox__my_iface_d__fun_a_args__s;
 
 /* }}} */
 /* Structure tstdox.MyIfaceD.funBArgs {{{ */
@@ -1680,6 +1717,7 @@ const iop_struct_t tstdox__my_iface_d__fun_b_args__s = {
     .fields_len = countof(tstdox__my_iface_b__fun_b_args__desc_fields),
     .size       = sizeof(tstdox__my_iface_d__fun_b_args__t),
 };
+iop_struct_t const * const tstdox__my_iface_d__fun_b_args__sp = &tstdox__my_iface_d__fun_b_args__s;
 
 /* }}} */
 static iop_rpc_t const tstdox__my_iface_d__if_funs[] = {
@@ -1719,6 +1757,7 @@ const iop_iface_t tstdox__my_iface_d__if = {
     .flags      = 2,
     .iface_attrs  = &tstdox__my_iface_d__desc_if_attrs,
 };
+const iop_iface_t const * const tstdox__my_iface_d__ifp = &tstdox__my_iface_d__if;
 
 /* }}} */
 /* Module tstdox.MyModuleA {{{ */
@@ -1780,6 +1819,7 @@ iop_mod_t const tstdox__my_module_a__mod = {
     .flags      = 1,
     .ifaces_attrs = tstdox__my_module_a__m_desc_if_attrs,
 };
+iop_mod_t const * const tstdox__my_module_a__modp = &tstdox__my_module_a__mod;
 
 /* }}} */
 /* Module tstdox.MyModuleB {{{ */
@@ -1822,6 +1862,7 @@ iop_mod_t const tstdox__my_module_b__mod = {
     .flags      = 1,
     .mod_attrs  = &tstdox__my_module_b__m_desc_attrs,
 };
+iop_mod_t const * const tstdox__my_module_b__modp = &tstdox__my_module_b__mod;
 
 /* }}} */
 /* Module tstdox.MyModuleC {{{ */
@@ -1898,6 +1939,7 @@ iop_mod_t const tstdox__my_module_c__mod = {
     .mod_attrs  = &tstdox__my_module_c__m_desc_attrs,
     .ifaces_attrs = tstdox__my_module_c__m_desc_if_attrs,
 };
+iop_mod_t const * const tstdox__my_module_c__modp = &tstdox__my_module_c__mod;
 
 /* }}} */
 /* Module tstdox.MyModuleD {{{ */
@@ -1924,6 +1966,7 @@ iop_mod_t const tstdox__my_module_d__mod = {
     .ifaces     = tstdox__my_module_d__aliases,
     .ifaces_len = countof(tstdox__my_module_d__aliases),
 };
+iop_mod_t const * const tstdox__my_module_d__modp = &tstdox__my_module_d__mod;
 
 /* }}} */
 /* Package tstdox {{{ */
@@ -1980,6 +2023,7 @@ iop_pkg_t const tstdox__pkg = {
     .ifaces  = tstdox__ifaces,
     .mods    = tstdox__mods,
 };
+iop_pkg_t const * const tstdox__pkgp = &tstdox__pkg;
 
 /* }}} */
 

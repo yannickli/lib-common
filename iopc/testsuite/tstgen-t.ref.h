@@ -7,6 +7,7 @@
 #include "pkg_a-tdef.iop.h"
 
 extern iop_enum_t const tstgen__my_enum_a__e;
+extern iop_enum_t const * const  tstgen__my_enum_a__ep;
 IOP_ENUM(tstgen__my_enum_a);
 
 typedef tstgen__my_enum_a__t my_enum_a__t;
@@ -21,6 +22,7 @@ struct tstgen__my_struct_a__t {
     struct pkg_a__a__t *weak_ref2;
 };
 extern iop_struct_t const tstgen__my_struct_a__s;
+extern iop_struct_t const * const  tstgen__my_struct_a__sp;
 IOP_GENERIC(tstgen__my_struct_a);
 
 typedef tstgen__my_struct_a__t my_struct_a__t;
@@ -31,6 +33,7 @@ struct tstgen__my_class_a__t {
     const iop_struct_t *__vptr;
 };
 extern iop_struct_t const tstgen__my_class_a__s;
+extern iop_struct_t const * const  tstgen__my_class_a__sp;
 IOP_CLASS(tstgen__my_class_a);
 
 #define tstgen__my_class_a__class_id  0

@@ -88,6 +88,7 @@ iop_enum_t const tstgen__my_enum_a__e = {
     .en_attrs     = &tstgen__my_enum_a__e_desc_attrs,
     .values_attrs = tstgen__my_enum_a__e_desc_values_attrs,
 };
+iop_enum_t const * const tstgen__my_enum_a__ep = &tstgen__my_enum_a__e;
 
 /* }}} */
 /* Structure tstgen.MyStructA {{{ */
@@ -216,6 +217,7 @@ const iop_struct_t tstgen__my_struct_a__s = {
     .st_attrs   = &tstgen__my_struct_a__s_desc_attrs,
     .fields_attrs = tstgen__my_struct_a__desc_fields_attrs,
 };
+iop_struct_t const * const tstgen__my_struct_a__sp = &tstgen__my_struct_a__s;
 
 /* }}} */
 /* Class tstgen.MyClassA {{{ */
@@ -243,6 +245,7 @@ const iop_struct_t tstgen__my_class_a__s = {
         .class_attrs  = &tstgen__my_class_a__class_s,
     }
 };
+iop_struct_t const * const tstgen__my_class_a__sp = &tstgen__my_class_a__s;
 
 /* }}} */
 /* Interface tstgen.MyIfaceA {{{ */
@@ -271,6 +274,7 @@ const iop_struct_t tstgen__my_iface_a__fun_a_args__s = {
     .fields_len = countof(tstgen__my_iface_a__fun_a_args__desc_fields),
     .size       = sizeof(tstgen__my_iface_a__fun_a_args__t),
 };
+iop_struct_t const * const tstgen__my_iface_a__fun_a_args__sp = &tstgen__my_iface_a__fun_a_args__s;
 
 /* }}} */
 static iop_rpc_t const tstgen__my_iface_a__if_funs[] = {
@@ -333,6 +337,7 @@ const iop_iface_t tstgen__my_iface_a__if = {
     .rpc_attrs  = tstgen__my_iface_a__rpc_desc_attrs,
     .iface_attrs  = &tstgen__my_iface_a__desc_if_attrs,
 };
+const iop_iface_t const * const tstgen__my_iface_a__ifp = &tstgen__my_iface_a__if;
 
 /* }}} */
 /* Package tstgen {{{ */
@@ -369,6 +374,7 @@ iop_pkg_t const tstgen__pkg = {
     .ifaces  = tstgen__ifaces,
     .mods    = tstgen__mods,
 };
+iop_pkg_t const * const tstgen__pkgp = &tstgen__pkg;
 
 /* }}} */
 

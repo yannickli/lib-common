@@ -34,6 +34,7 @@ const iop_struct_t attrs_valid_v5__toto__s = {
         .class_attrs  = &attrs_valid_v5__toto__class_s,
     }
 };
+iop_struct_t const * const attrs_valid_v5__toto__sp = &attrs_valid_v5__toto__s;
 
 /* }}} */
 /* Package attrs_valid_v5 {{{ */
@@ -67,6 +68,7 @@ iop_pkg_t const attrs_valid_v5__pkg = {
     .ifaces  = attrs_valid_v5__ifaces,
     .mods    = attrs_valid_v5__mods,
 };
+iop_pkg_t const * const attrs_valid_v5__pkgp = &attrs_valid_v5__pkg;
 
 /* }}} */
 

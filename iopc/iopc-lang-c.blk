@@ -785,8 +785,9 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
 
     sb_addf(buf,
             "extern iop_enum_t const %s__e;\n"
+            "extern iop_enum_t const * const %s %s__ep;\n"
             "IOP_ENUM(%s);\n\n",
-            tbase, tbase);
+            tbase, NONNULL, tbase, tbase);
 
     iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, -1);
 }
@@ -967,8 +968,9 @@ static void iopc_struct_dump_hdr(sb_t *buf, const iopc_pkg_t *pkg,
 
         sb_adds(buf, "};\n");
     }
-    sb_addf(buf, "extern iop_struct_t const %s__s;\n",
-            tbase);
+    sb_addf(buf, "extern iop_struct_t const %s__s;\n", tbase);
+    sb_addf(buf, "extern iop_struct_t const * const %s %s__sp;\n",
+            NONNULL, tbase);
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
@@ -1047,8 +1049,9 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
     sb_addf(buf, "    };\n"
             "};\n"
             "extern iop_struct_t const %s__s;\n"
+            "extern iop_struct_t const * const %s %s__sp;\n"
             "IOP_GENERIC(%s);\n",
-            tbase, tbase);
+            tbase, NONNULL, tbase, tbase);
 
     iopc_union_dump_tag_cst(buf, tbase, st);
 
@@ -1163,7 +1166,9 @@ iopc_iface_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
                 fbase, fun->tag, fbase, fun->fun_is_async, fbase, ibase, j);
         j += 1 + iopc_fun_n_aliases(fun);
     }
-    sb_addf(buf, "extern iop_iface_t const %s__if;\n\n", ibase);
+    sb_addf(buf, "extern iop_iface_t const %s__if;\n", ibase);
+    sb_addf(buf, "extern iop_iface_t const * const %s %s__ifp;\n\n",
+            NONNULL, ibase);
 }
 
 static void
@@ -1198,7 +1203,8 @@ iopc_module_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
     }
     sb_addf(buf,
             "extern iop_mod_t const %s__mod;\n"
-            "\n", mbase);
+            "extern iop_mod_t const * const %s %s__modp;\n"
+            "\n", mbase, NONNULL, mbase);
 }
 
 static void
@@ -1221,8 +1227,9 @@ iopc_pkg_dump_hdr(sb_t *buf, iopc_pkg_t *pkg, const char *pkg_name)
             "\n"
             "/*----- package %s -----*/\n"
             "extern iop_pkg_t const %s__pkg;\n"
+            "extern iop_pkg_t const * const %s %s__pkgp;\n"
             "\n",
-            pretty_path_dot(pkg->name), pkg_name);
+            pretty_path_dot(pkg->name), pkg_name, NONNULL, pkg_name);
 }
 
 static char const * const repeats[] = {
@@ -2599,10 +2606,11 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (values_have_attributes) {
         sb_addf(buf, "    .values_attrs = %s__e_desc_values_attrs,\n", tbase);
     }
-    sb_adds(buf,
+    sb_addf(buf,
             "};\n"
+            "iop_enum_t const * const %s__ep = &%s__e;\n"
             "\n"
-            "/* }""}} */\n");
+            "/* }""}} */\n", tbase, tbase);
 }
 
 static bool
@@ -2961,6 +2969,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             RETHROW(iopc_put_struct_fields(buf, st, tbase, has_attrs,        \
                                            as_base));                        \
             sb_adds(buf, "};\n");                                            \
+            sb_addf(buf, "iop_struct_t const * const %s__sp = &%s__s;\n",    \
+                    _tbase, _tbase);                                         \
                                                                              \
             sb_adds(buf, "\n/* }""}} */\n");                                 \
         } while (0)
@@ -3260,7 +3270,9 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     if (TST_BIT(&iface->flags, IOP_IFACE_IS_SNMP_IFACE)) {
         sb_addf(buf, "    .snmp_iface_attrs = &%s__snmp_attrs__s,\n", ibase);
     }
-    sb_adds(buf, "};\n\n");
+    sb_adds(buf, "};\n");
+    sb_addf(buf, "const iop_iface_t const * const %s__ifp = &%s__if;\n\n",
+            ibase, ibase);
     sb_adds(buf, "/* }""}} */\n");
 
     return 0;
@@ -3345,8 +3357,9 @@ iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
             "    .ifaces_attrs = %s__m_desc_if_attrs,\n", mbase);
     }
     sb_addf(buf,
-            "};\n\n"
-            "/* }""}} */\n");
+            "};\n"
+            "iop_mod_t const * const %s__modp = &%s__mod;\n\n"
+            "/* }""}} */\n", mbase, mbase);
 }
 
 static void
@@ -3420,10 +3433,12 @@ iopc_pkg_dump_src(sb_t *buf, iopc_pkg_t *pkg,
             "    .ifaces  = %s__ifaces,\n"
             "    .mods    = %s__mods,\n"
             "};\n"
+            "iop_pkg_t const * const %s__pkgp = &%s__pkg;\n"
             "\n"
             "/* }""}} */\n",
             pkg_name, pretty_path_dot(pkg->name),
-            pkg_name, pkg_name, pkg_name, pkg_name, pkg_name);
+            pkg_name, pkg_name, pkg_name, pkg_name, pkg_name,
+            pkg_name, pkg_name);
 }
 
 #define RO_WARN \
