@@ -71,6 +71,7 @@ static popt_t options[] = {
 
     /* List of pending changes in v6:
      * - deprecate '%C{' features (b8b9c529d).
+     * - unions use enum for iop_tag instead of int (#50352 / I87e09b3aef349)
      */
     OPT_FLAG('6', "features-v6",  &_G.v6,
              "use iopc v6 features (in progress)"),
@@ -80,6 +81,8 @@ static popt_t options[] = {
              "try to generate relative includes"),
     OPT_FLAG(0,   "c-export-nullability", &iopc_do_c_g.export_nullability,
              "add nullability attributes to exported C types"),
+    OPT_FLAG(0,   "c-unions-use-enums", &iopc_do_c_g.unions_use_enums,
+             "use an enum for selected field in unions instead of an int"),
     OPT_END(),
 };
 

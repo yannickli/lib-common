@@ -52,6 +52,9 @@
 /* }}} */
 /* {{{ IOP union helpers */
 
+/** Union tag  type */
+#define IOP_UNION_TAG_T(pfx) pfx##__tag_t
+
 /** Get the tag value of a union field. */
 #define IOP_UNION_TAG(pfx, field) pfx##__##field##__ft
 

@@ -29,7 +29,7 @@ class IopcTest(z.TestCase):
     # {{{ Helpers
 
     def run_iopc(self, iop, expect_pass, errors, version=1, lang='',
-                 class_id_range=''):
+                 class_id_range='', additional_args=None):
         iopc_args = [IOPC, os.path.join(TEST_PATH, iop)]
 
         # enable features of v2, v3 and v4
@@ -59,6 +59,9 @@ class IopcTest(z.TestCase):
 
         iopc_args.append('--Wextra')
         iopc_args.append('--check-snmp-table-has-index')
+
+        if additional_args:
+            iopc_args.extend(additional_args)
 
         iopc_p = subprocess.Popen(iopc_args, stderr=subprocess.PIPE)
         self.assertIsNotNone(iopc_p)
@@ -109,7 +112,7 @@ class IopcTest(z.TestCase):
         self.run_iopc(iop, False, 'use -3 param', 2, lang, class_id_range)
         self.run_iopc(iop, expect_pass, errors, 3, lang, class_id_range)
 
-    def run_gcc(self, iop):
+    def run_gcc(self, iop, expect_pass=True):
         gcc_args = ['gcc', '-c', '-o', '/dev/null', '-std=gnu99',
                     '-O', '-Wall', '-Werror', '-Wextra',
                     '-Wno-error=deprecated-declarations',
@@ -132,7 +135,10 @@ class IopcTest(z.TestCase):
         gcc_p = subprocess.Popen(gcc_args)
         self.assertIsNotNone(gcc_p)
         gcc_p.wait()
-        self.assertEqual(gcc_p.returncode, 0)
+        if expect_pass:
+            self.assertEqual(gcc_p.returncode, 0)
+        else:
+            self.assertNotEqual(gcc_p.returncode, 0)
 
     def check_file(self, file_name, string_list, wanted = True):
         with open(os.path.join(TEST_PATH, file_name)) as f:
@@ -818,6 +824,25 @@ class IopcTest(z.TestCase):
         self.run_gcc(f + '.iop')
         self.check_ref(g, 'c')
         self.check_ref(g + '-t', 'h')
+
+    @z.ZFlags('redmine_50352')
+    def test_unions_use_enums(self):
+        f1 = ('typedef1.iop', 'unions_use_enums')
+        f2 = ('attrs_valid.iop', 'unions_use_enums_ctype')
+        # this invalid case used to work
+        self.run_iopc_pass(f1[0], 4)
+        self.run_gcc(f1[1], expect_pass=True)
+        # fails now with option --c-unions-use-enums
+        self.run_iopc(f1[0], True, None, version=4,
+                      additional_args=['--c-unions-use-enums'])
+        self.run_gcc(f1[1], expect_pass=False)
+        # fails too with option --release-v6
+        self.run_iopc_pass(f1[0], 6)
+        self.run_gcc(f1[1], expect_pass=False)
+        # all field definitions for a ctyped union still work
+        self.run_iopc(f2[0], True, None, version=4,
+                      additional_args=['--c-unions-use-enums'])
+        self.run_gcc(f2[1], expect_pass=True)
 
     # }}}
     # {{{ Various
