@@ -103,7 +103,7 @@ check_iopc() {
         warn "iopc version $IOPC_VER required, update your tools"
     fi
     setenv "IOPC" "$(which iopc)"
-    setenv "IOPVER" "-4"
+    setenv "IOPVER" "-5"
 }
 
 __check_python_mod() {

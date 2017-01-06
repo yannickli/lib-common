@@ -35,7 +35,7 @@ static const iop_help_t core__log_level__default__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__default__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__default__v_help } },
     },
 };
@@ -44,7 +44,7 @@ static const iop_help_t core__log_level__inherits__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__inherits__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__inherits__v_help } },
     },
 };
@@ -53,7 +53,7 @@ static const iop_help_t core__log_level__emerg__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__emerg__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__emerg__v_help } },
     },
 };
@@ -62,7 +62,7 @@ static const iop_help_t core__log_level__alert__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__alert__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__alert__v_help } },
     },
 };
@@ -71,7 +71,7 @@ static const iop_help_t core__log_level__crit__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__crit__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__crit__v_help } },
     },
 };
@@ -80,7 +80,7 @@ static const iop_help_t core__log_level__err__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__err__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__err__v_help } },
     },
 };
@@ -89,7 +89,7 @@ static const iop_help_t core__log_level__warning__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__warning__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__warning__v_help } },
     },
 };
@@ -98,7 +98,7 @@ static const iop_help_t core__log_level__notice__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__notice__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__notice__v_help } },
     },
 };
@@ -107,7 +107,7 @@ static const iop_help_t core__log_level__info__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__info__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__info__v_help } },
     },
 };
@@ -116,7 +116,7 @@ static const iop_help_t core__log_level__debug__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__debug__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__debug__v_help } },
     },
 };
@@ -125,63 +125,63 @@ static const iop_help_t core__log_level__trace__v_help = {
 };
 static const iop_enum_value_attr_t core__log_level__trace__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__trace__v_help } },
     },
 };
 static const iop_enum_value_attrs_t core__log_level__e_desc_values_attrs[] = {
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__default__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__inherits__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__emerg__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__alert__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__crit__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__err__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__warning__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__notice__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__info__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__debug__v_attrs,
     },
     {
-        .flags     = 1,
+        .flags     = 32,
         .attrs_len = 1,
         .attrs     = core__log_level__trace__v_attrs,
     },
@@ -191,12 +191,12 @@ static const iop_help_t core__log_level__e_help = {
 };
 static const iop_enum_attr_t core__log_level__e_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_attr_arg_t[]){ { .v.p = &core__log_level__e_help } },
     },
 };
 static const iop_enum_attrs_t core__log_level__e_desc_attrs = {
-    .flags     = 1,
+    .flags     = 32,
     .attrs_len = 1,
     .attrs     = core__log_level__e_attrs,
 };
@@ -251,7 +251,7 @@ static const iop_help_t core__logger_configuration__full_name__f_help = {
 };
 static iop_field_attr_t const core__logger_configuration__full_name__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__full_name__f_help } },
     },
 };
@@ -261,7 +261,7 @@ static const iop_help_t core__logger_configuration__level__f_help = {
 };
 static iop_field_attr_t const core__logger_configuration__level__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__level__f_help } },
     },
 };
@@ -271,7 +271,7 @@ static const iop_help_t core__logger_configuration__force_all__f_help = {
 };
 static iop_field_attr_t const core__logger_configuration__force_all__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__force_all__f_help } },
     },
 };
@@ -280,28 +280,28 @@ static const iop_help_t core__logger_configuration__is_silent__f_help = {
 };
 static iop_field_attr_t const core__logger_configuration__is_silent__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__is_silent__f_help } },
     },
 };
 static iop_field_attrs_t const core__logger_configuration__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__logger_configuration__full_name__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__logger_configuration__level__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__logger_configuration__force_all__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__logger_configuration__is_silent__attrs,
     },
@@ -356,12 +356,12 @@ static const iop_help_t core__logger_configuration__s_help = {
 };
 static const iop_struct_attr_t core__logger_configuration__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__logger_configuration__s_help } },
     },
 };
 static const iop_struct_attrs_t core__logger_configuration__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__logger_configuration__s_attrs,
 };
@@ -386,7 +386,7 @@ static const iop_help_t core__log_configuration__root_level__f_help = {
 };
 static iop_field_attr_t const core__log_configuration__root_level__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__root_level__f_help } },
     },
 };
@@ -396,7 +396,7 @@ static const iop_help_t core__log_configuration__force_all__f_help = {
 };
 static iop_field_attr_t const core__log_configuration__force_all__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__force_all__f_help } },
     },
 };
@@ -405,7 +405,7 @@ static const iop_help_t core__log_configuration__is_silent__f_help = {
 };
 static iop_field_attr_t const core__log_configuration__is_silent__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__is_silent__f_help } },
     },
 };
@@ -415,28 +415,28 @@ static const iop_help_t core__log_configuration__specific__f_help = {
 };
 static iop_field_attr_t const core__log_configuration__specific__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__specific__f_help } },
     },
 };
 static iop_field_attrs_t const core__log_configuration__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_configuration__root_level__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_configuration__force_all__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_configuration__is_silent__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_configuration__specific__attrs,
     },
@@ -489,12 +489,12 @@ static const iop_help_t core__log_configuration__s_help = {
 };
 static const iop_struct_attr_t core__log_configuration__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__log_configuration__s_help } },
     },
 };
 static const iop_struct_attrs_t core__log_configuration__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__log_configuration__s_attrs,
 };
@@ -518,7 +518,7 @@ static const iop_help_t core__log_file_configuration__max_size__f_help = {
 };
 static iop_field_attr_t const core__log_file_configuration__max_size__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_size__f_help } },
     },
 };
@@ -527,7 +527,7 @@ static const iop_help_t core__log_file_configuration__max_time__f_help = {
 };
 static iop_field_attr_t const core__log_file_configuration__max_time__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_time__f_help } },
     },
 };
@@ -537,7 +537,7 @@ static const iop_help_t core__log_file_configuration__max_files__f_help = {
 };
 static iop_field_attr_t const core__log_file_configuration__max_files__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_files__f_help } },
     },
 };
@@ -547,7 +547,7 @@ static const iop_help_t core__log_file_configuration__total_max_size__f_help = {
 };
 static iop_field_attr_t const core__log_file_configuration__total_max_size__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__total_max_size__f_help } },
     },
 };
@@ -556,33 +556,33 @@ static const iop_help_t core__log_file_configuration__compress__f_help = {
 };
 static iop_field_attr_t const core__log_file_configuration__compress__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__compress__f_help } },
     },
 };
 static iop_field_attrs_t const core__log_file_configuration__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_file_configuration__max_size__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_file_configuration__max_time__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_file_configuration__max_files__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_file_configuration__total_max_size__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__log_file_configuration__compress__attrs,
     },
@@ -649,12 +649,12 @@ static const iop_help_t core__log_file_configuration__s_help = {
 };
 static const iop_struct_attr_t core__log_file_configuration__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__log_file_configuration__s_help } },
     },
 };
 static const iop_struct_attrs_t core__log_file_configuration__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__log_file_configuration__s_attrs,
 };
@@ -712,7 +712,7 @@ static int core__licence_module__expiration_date__check(const void *ptr, int n)
 }
 static iop_field_attr_t const core__licence_module__expiration_date__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence_module__expiration_date__f_help } },
     },
     {
@@ -738,7 +738,7 @@ static const iop_help_t core__licence_module__expiration_warning_delay__f_help =
 };
 static iop_field_attr_t const core__licence_module__expiration_warning_delay__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence_module__expiration_warning_delay__f_help } },
     },
     {
@@ -748,13 +748,13 @@ static iop_field_attr_t const core__licence_module__expiration_warning_delay__at
 };
 static iop_field_attrs_t const core__licence_module__desc_fields_attrs[] = {
     {
-        .flags             = 35712,
+        .flags             = 295808,
         .attrs_len         = 5,
         .check_constraints = &core__licence_module__expiration_date__check,
         .attrs             = core__licence_module__expiration_date__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence_module__expiration_warning_delay__attrs,
     },
@@ -791,12 +791,12 @@ static const iop_help_t core__licence_module__s_help = {
 };
 static const iop_struct_attr_t core__licence_module__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__licence_module__s_help } },
     },
 };
 static const iop_struct_attrs_t core__licence_module__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__licence_module__s_attrs,
 };
@@ -855,7 +855,7 @@ static int core__licence__expiration_date__check(const void *ptr, int n)
 }
 static iop_field_attr_t const core__licence__expiration_date__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expiration_date__f_help } },
     },
     {
@@ -907,7 +907,7 @@ static int core__licence__expiration_hard_date__check(const void *ptr, int n)
 }
 static iop_field_attr_t const core__licence__expiration_hard_date__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expiration_hard_date__f_help } },
     },
     {
@@ -933,7 +933,7 @@ static const iop_help_t core__licence__expiration_warning_delay__f_help = {
 };
 static iop_field_attr_t const core__licence__expiration_warning_delay__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expiration_warning_delay__f_help } },
     },
     {
@@ -946,7 +946,7 @@ static const iop_help_t core__licence__registered_to__f_help = {
 };
 static iop_field_attr_t const core__licence__registered_to__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__registered_to__f_help } },
     },
     {
@@ -959,7 +959,7 @@ static const iop_help_t core__licence__version__f_help = {
 };
 static iop_field_attr_t const core__licence__version__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__version__f_help } },
     },
     {
@@ -972,7 +972,7 @@ static const iop_help_t core__licence__production_use__f_help = {
 };
 static iop_field_attr_t const core__licence__production_use__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__production_use__f_help } },
     },
     {
@@ -985,7 +985,7 @@ static const iop_help_t core__licence__cpu_signatures__f_help = {
 };
 static iop_field_attr_t const core__licence__cpu_signatures__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__cpu_signatures__f_help } },
     },
     {
@@ -998,7 +998,7 @@ static const iop_help_t core__licence__mac_addresses__f_help = {
 };
 static iop_field_attr_t const core__licence__mac_addresses__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__mac_addresses__f_help } },
     },
     {
@@ -1011,7 +1011,7 @@ static const iop_help_t core__licence__modules__f_help = {
 };
 static iop_field_attr_t const core__licence__modules__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__modules__f_help } },
     },
     {
@@ -1021,49 +1021,49 @@ static iop_field_attr_t const core__licence__modules__attrs[] = {
 };
 static iop_field_attrs_t const core__licence__desc_fields_attrs[] = {
     {
-        .flags             = 35712,
+        .flags             = 295808,
         .attrs_len         = 5,
         .check_constraints = &core__licence__expiration_date__check,
         .attrs             = core__licence__expiration_date__attrs,
     },
     {
-        .flags             = 35712,
+        .flags             = 295808,
         .attrs_len         = 5,
         .check_constraints = &core__licence__expiration_hard_date__check,
         .attrs             = core__licence__expiration_hard_date__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__expiration_warning_delay__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__registered_to__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__version__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__production_use__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__cpu_signatures__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__mac_addresses__attrs,
     },
     {
-        .flags             = 34816,
+        .flags             = 294912,
         .attrs_len         = 2,
         .attrs             = core__licence__modules__attrs,
     },
@@ -1167,12 +1167,12 @@ static const iop_help_t core__licence__s_help = {
 };
 static const iop_struct_attr_t core__licence__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__licence__s_help } },
     },
 };
 static const iop_struct_attrs_t core__licence__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__licence__s_attrs,
 };
@@ -1203,7 +1203,7 @@ static const iop_help_t core__signed_licence__licence__f_help = {
 };
 static iop_field_attr_t const core__signed_licence__licence__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__licence__f_help } },
     },
 };
@@ -1212,18 +1212,18 @@ static const iop_help_t core__signed_licence__signature__f_help = {
 };
 static iop_field_attr_t const core__signed_licence__signature__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__signature__f_help } },
     },
 };
 static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__signed_licence__licence__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__signed_licence__signature__attrs,
     },
@@ -1254,12 +1254,12 @@ static const iop_help_t core__signed_licence__s_help = {
 };
 static const iop_struct_attr_t core__signed_licence__s_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__signed_licence__s_help } },
     },
 };
 static const iop_struct_attrs_t core__signed_licence__s_desc_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__signed_licence__s_attrs,
 };
@@ -1301,7 +1301,7 @@ static int core__httpd_cfg__bind_addr__check(const void *ptr, int n)
 }
 static iop_field_attr_t const core__httpd_cfg__bind_addr__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__bind_addr__f_help } },
     },
     {
@@ -1314,7 +1314,7 @@ static const iop_help_t core__httpd_cfg__outbuf_max_size__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__outbuf_max_size__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__outbuf_max_size__f_help } },
     },
 };
@@ -1323,7 +1323,7 @@ static const iop_help_t core__httpd_cfg__pipeline_depth__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__pipeline_depth__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__pipeline_depth__f_help } },
     },
 };
@@ -1332,7 +1332,7 @@ static const iop_help_t core__httpd_cfg__noact_delay__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__noact_delay__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__noact_delay__f_help } },
     },
 };
@@ -1341,7 +1341,7 @@ static const iop_help_t core__httpd_cfg__max_queries__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__max_queries__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__max_queries__f_help } },
     },
 };
@@ -1350,7 +1350,7 @@ static const iop_help_t core__httpd_cfg__max_conns_in__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__max_conns_in__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__max_conns_in__f_help } },
     },
 };
@@ -1359,7 +1359,7 @@ static const iop_help_t core__httpd_cfg__on_data_threshold__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__on_data_threshold__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__on_data_threshold__f_help } },
     },
 };
@@ -1368,7 +1368,7 @@ static const iop_help_t core__httpd_cfg__header_line_max__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__header_line_max__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_line_max__f_help } },
     },
 };
@@ -1377,54 +1377,54 @@ static const iop_help_t core__httpd_cfg__header_size_max__f_help = {
 };
 static iop_field_attr_t const core__httpd_cfg__header_size_max__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_size_max__f_help } },
     },
 };
 static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
     {
-        .flags             = 10272,
+        .flags             = 270368,
         .attrs_len         = 2,
         .check_constraints = &core__httpd_cfg__bind_addr__check,
         .attrs             = core__httpd_cfg__bind_addr__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__outbuf_max_size__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__pipeline_depth__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__noact_delay__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__max_queries__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__max_conns_in__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__on_data_threshold__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__header_line_max__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__header_size_max__attrs,
     },
@@ -1540,7 +1540,7 @@ static const iop_help_t core__httpc_cfg__pipeline_depth__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__pipeline_depth__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__pipeline_depth__f_help } },
     },
 };
@@ -1549,7 +1549,7 @@ static const iop_help_t core__httpc_cfg__noact_delay__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__noact_delay__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__noact_delay__f_help } },
     },
 };
@@ -1558,7 +1558,7 @@ static const iop_help_t core__httpc_cfg__max_queries__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__max_queries__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__max_queries__f_help } },
     },
 };
@@ -1567,7 +1567,7 @@ static const iop_help_t core__httpc_cfg__on_data_threshold__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__on_data_threshold__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__on_data_threshold__f_help } },
     },
 };
@@ -1576,7 +1576,7 @@ static const iop_help_t core__httpc_cfg__header_line_max__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__header_line_max__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__header_line_max__f_help } },
     },
 };
@@ -1585,38 +1585,38 @@ static const iop_help_t core__httpc_cfg__header_size_max__f_help = {
 };
 static iop_field_attr_t const core__httpc_cfg__header_size_max__attrs[] = {
     {
-        .type = 11,
+        .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__header_size_max__f_help } },
     },
 };
 static iop_field_attrs_t const core__httpc_cfg__desc_fields_attrs[] = {
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__pipeline_depth__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__noact_delay__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__max_queries__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__on_data_threshold__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__header_line_max__attrs,
     },
     {
-        .flags             = 2048,
+        .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__header_size_max__attrs,
     },
@@ -1983,12 +1983,12 @@ static const iop_help_t core__log__if_help = {
 };
 static const iop_iface_attr_t core__log__if_attrs[] = {
     {
-        .type = 0,
+        .type = 6,
         .args = (iop_iface_attr_arg_t[]){ { .v.p = &core__log__if_help } },
     },
 };
 static const iop_iface_attrs_t core__log__desc_if_attrs = {
-    .flags     = 1,
+    .flags     = 64,
     .attrs_len = 1,
     .attrs     = core__log__if_attrs,
 };
@@ -2015,12 +2015,12 @@ static const iop_help_t core__core__m_help = {
 };
 static const iop_mod_attr_t core__core__m_attrs[] = {
     {
-        .type = 0,
+        .type = 1,
         .args = (iop_mod_attr_arg_t[]){ { .v.p = &core__core__m_help } },
     },
 };
 static const iop_mod_attrs_t core__core__m_desc_attrs = {
-    .flags     = 1,
+    .flags     = 2,
     .attrs_len = 1,
     .attrs     = core__core__m_attrs,
 };
