@@ -420,13 +420,13 @@ static inline void sb_clip(sb_t * nonnull sb, int len)
     assert (len >= 0 && len <= sb->len);
     __sb_fixlen(sb, len);
 }
-__swift_name__("StringBuffer.shrinkCount(self:_:)")
+__swift_name__("StringBuffer.shrink(self:_:)")
 static inline void sb_shrink(sb_t * nonnull sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
     __sb_fixlen(sb, sb->len - len);
 }
-__swift_name__("StringBuffer.shrinkUpTo(self:_:)")
+__swift_name__("StringBuffer.shrink(self:upTo:)")
 static inline void sb_shrink_upto(sb_t * nonnull sb, const void * nonnull where)
 {
     sb_clip(sb, (const char *)where - sb->data);

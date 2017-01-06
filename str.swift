@@ -24,6 +24,30 @@ extension StringBuffer : CustomStringConvertible {
     }
 }
 
+extension StringBuffer : Wipeable { }
+
+extension LString : Wipeable { }
+extension LString : Collection {
+    public typealias Element = Int8
+    public typealias Index = Int
+
+    public var startIndex : Int {
+        return 0
+    }
+
+    public var endIndex : Int {
+        return Int(self.len)
+    }
+
+    public subscript(pos: Int) -> Int8 {
+        return self.data![pos]
+    }
+
+    public func index(after pos: Int) -> Int {
+        return pos + 1
+    }
+}
+
 public extension String {
     /// Calls a closure with a view of the string UTF8 representation as a `LString`.
     ///
@@ -36,6 +60,24 @@ public extension String {
     public func withLString<Result>(_ body: (LString) throws -> Result) rethrows -> Result {
         return try self.utf8CString.withUnsafeBufferPointer { ptr in
             return try body(LString(ptr.baseAddress, count: Int32(ptr.count - 1), flags: 0))
+        }
+    }
+
+    /// Create a new optional string from the content of a `LString`.
+    ///
+    /// The content of the LString is imported as a C string. The constructor returns
+    /// `nil` if the received string is a `LSTR_NULL`.
+    public init?(_ str: LString) {
+        if str.data == nil {
+            return nil
+        }
+
+        if str.len == 0 {
+            self.init()
+        } else {
+            var arr = Array(str)
+            arr.append(0)
+            self.init(cString: arr)
         }
     }
 
