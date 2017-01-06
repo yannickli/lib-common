@@ -214,8 +214,6 @@ elif [ -f "$ruby_hdrdir/ruby.h" ]; then
     # Ruby >= 1.8
     setvar "ruby_CFLAGS" "-I$ruby_hdrdir -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_18"
     setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
-else
-    warn "ruby headers are missing, apt-get install ruby-dev"
 fi
 
 # }}}
