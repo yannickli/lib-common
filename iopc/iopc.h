@@ -1067,10 +1067,17 @@ extern struct iopc_do_c_globs {
     bool no_const;
     /** use iop compat header in memory instead of lib-common/iop.h */
     const char *iop_compat_header;
+
+    /** Generate swift compatible types.
+     *
+     * This supposes the swift helpers are available for enumerations.
+     */
+    bool include_swift_support;
 } iopc_do_c_g;
 
 int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 
 /*----- IOPC DSO -----*/
 

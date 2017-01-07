@@ -749,10 +749,32 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
     lstr_t ns = t_enum_get_prefix(en);
     int min = INT_MAX;
     int max = INT_MIN;
+    bool swift_enum = false;
+    SB_1k(swift_name);
 
-    sb_addf(buf, "typedef enum %s__t {\n", tbase);
+    if (_G.include_swift_support) {
+        tab_for_each_entry(attr, &en->attrs) {
+            if (attr->desc->id == IOPC_ATTR_STRICT) {
+                swift_enum = true;
+                break;
+            }
+        }
+    }
+
+    if (swift_enum) {
+        sb_addf(buf, "SWIFT_ENUM(%s__t) {\n", tbase);
+    } else {
+        sb_addf(buf, "typedef enum %s__t {\n", tbase);
+    }
     tab_for_each_entry(f, &en->values) {
         sb_addf(buf, "    %*pM_%s", LSTR_FMT_ARG(ns), f->name);
+        if (swift_enum) {
+            lstr_t name = t_lstr_dups(f->name, -1);
+
+            lstr_ascii_tolower(&name);
+            c_to_camelcase(name, false, &swift_name);
+            sb_addf(buf, " __swift_name__(\"%s\")", swift_name.data);
+        }
         if (f->value == next_value++) {
             sb_adds(buf, ",\n");
         } else {
@@ -764,10 +786,14 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
         if (f->value < min)
             min = f->value;
     }
+    if (swift_enum) {
+        sb_adds(buf, "};\n");
+    } else {
+        sb_addf(buf, "} %s__t;\n", tbase);
+    }
     sb_addf(buf,
-            "} %s__t;\n"
             "typedef IOP_ARRAY_OF(enum %s__t) %s__array_t;\n",
-            tbase, tbase, tbase);
+            tbase, tbase);
     sb_addf(buf,
             "#ifdef OPT_OF\n"
             "typedef OPT_OF(enum %s__t) %s__opt_t;\n"

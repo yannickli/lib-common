@@ -24,6 +24,7 @@ static struct {
     const char *outpath;
     const char *json_outpath;
     const char *c_outpath;
+    const char *swift_outpath;
     const char *depends;
     const char *class_id_range;
 } opts;
@@ -43,10 +44,6 @@ static popt_t options[] = {
     OPT_GROUP(""),
     OPT_STR('I',  "include-path", &opts.incpath,  "include path"),
     OPT_STR('o',  "output-path",  &opts.outpath,  "base of the compiled hierarchy"),
-    OPT_STR(0,    "json-output-path", &opts.json_outpath,
-            "base of the compiled hierarchy for JSON files"),
-    OPT_STR(0,    "c-output-path", &opts.c_outpath,
-            "base of the compiled hierarchy for C files"),
     OPT_STR('d',  "depends",      &opts.depends,  "dump Makefile depends"),
     OPT_STR('l',  "language",     &opts.lang,     "output language (C)"),
     OPT_STR(0,  "class-id-range", &opts.class_id_range,
@@ -86,6 +83,16 @@ static popt_t options[] = {
              "use an enum for selected field in unions instead of an int"),
     OPT_FLAG(0,   "c-export-symbols", &iopc_do_c_g.export_symbols,
              "publicly export C symbols"),
+    OPT_STR(0,    "c-output-path", &opts.c_outpath,
+            "base of the compiled hierarchy for C files"),
+
+    OPT_GROUP("JSON backend options"),
+    OPT_STR(0,    "json-output-path", &opts.json_outpath,
+            "base of the compiled hierarchy for JSON files"),
+
+    OPT_GROUP("Swift backend options"),
+    OPT_STR(0,    "swift-output-path", &opts.swift_outpath,
+            "base of the compiled hierarchy for swift files"),
     OPT_END(),
 };
 
@@ -156,6 +163,8 @@ static int build_doit_table(qv_t(doit) *doits)
 {
     qv_t(lstr) langs;
     ctype_desc_t sep;
+    bool has_swift;
+    bool has_c;
 
     /* default languages */
     if (!opts.lang) {
@@ -169,6 +178,7 @@ static int build_doit_table(qv_t(doit) *doits)
         struct doit doit;
 
         if (lstr_ascii_iequal(lang, LSTR("c"))) {
+            has_c = true;
             doit = (struct doit){
                 .cb = &iopc_do_c,
                 .outpath = opts.c_outpath
@@ -178,6 +188,14 @@ static int build_doit_table(qv_t(doit) *doits)
             doit = (struct doit){
                 .cb = &iopc_do_json,
                 .outpath = opts.json_outpath
+            };
+        } else
+        if (lstr_ascii_iequal(lang, LSTR("swift"))) {
+            has_swift = true;
+            iopc_do_c_g.include_swift_support = true;
+            doit = (struct doit){
+                .cb = &iopc_do_swift,
+                .outpath = opts.swift_outpath
             };
         } else {
             print_error("unsupported language `%*pM`", LSTR_FMT_ARG(lang));
@@ -192,6 +210,11 @@ static int build_doit_table(qv_t(doit) *doits)
             }
         }
         qv_append(doits, doit);
+    }
+
+    if (has_swift && !has_c) {
+        print_error("Swift backend requires C backend");
+        goto error;
     }
 
     qv_wipe(&langs);
@@ -238,6 +261,7 @@ int main(int argc, char **argv)
     _G.v2 |= _G.v3;
 
     iopc_do_c_g.export_nullability |= _G.v6;
+    iopc_do_c_g.export_nullability |= iopc_do_c_g.include_swift_support;
     iopc_do_c_g.export_symbols |= _G.v6;
 
     _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);

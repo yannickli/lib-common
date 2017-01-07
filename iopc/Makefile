@@ -33,6 +33,7 @@ libiopc_SOURCES = \
     iopc-write.c              \
     \
     iopc-lang-c.blk           \
-    iopc-lang-json.blk
+    iopc-lang-json.blk        \
+    iopc-lang-swift.c
 
 include ../Build/base.mk
