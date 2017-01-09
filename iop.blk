@@ -4770,33 +4770,50 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
     return -1;
 }
 
-static unsigned iop_struct_compat_ignored(const iop_struct_t *new_st,
-                                          unsigned flags)
+static unsigned
+iop_generic_compat_ignored(unsigned flags,
+                           int (^get_gen_attr)(lstr_t, iop_value_t *))
 {
-    iop_value_t gen_attr_val;
+    iop_value_t val;
 
-    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignore"),
-                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
-    &&  gen_attr_val.b)
-    {
+    if (get_gen_attr(LSTR("compat:ignore"), &val) >= 0 && val.b) {
         return 0;
     }
-
-    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignoreJson"),
-                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
-    &&  gen_attr_val.b)
-    {
+    if (get_gen_attr(LSTR("compat:ignoreJson"), &val) >= 0 && val.b) {
         flags &= ~IOP_COMPAT_JSON;
     }
-
-    if (iop_struct_get_gen_attr(new_st, LSTR("compat:ignoreBin"),
-                                IOP_T_BOOL, NULL, &gen_attr_val) >= 0
-    &&  gen_attr_val.b)
-    {
+    if (get_gen_attr(LSTR("compat:ignoreBin"), &val) >= 0 && val.b) {
         flags &= ~IOP_COMPAT_BIN;
     }
 
     return flags;
+}
+
+static unsigned
+iop_struct_compat_ignored(const iop_struct_t *new_st, unsigned flags)
+{
+    return iop_generic_compat_ignored(flags,
+                                      ^int (lstr_t attr, iop_value_t *val) {
+        return iop_struct_get_gen_attr(new_st, attr, IOP_T_BOOL, NULL, val);
+    });
+}
+
+static unsigned iop_rpc_compat_ignored(const iop_iface_t *iface,
+                                       const iop_rpc_t *rpc, unsigned flags)
+{
+    return iop_generic_compat_ignored(flags,
+                                      ^int (lstr_t attr, iop_value_t *val) {
+        return iop_rpc_get_gen_attr(iface, rpc, attr, IOP_T_BOOL, NULL, val);
+    });
+}
+
+static unsigned
+iop_iface_compat_ignored(const iop_iface_t *iface, unsigned flags)
+{
+    return iop_generic_compat_ignored(flags,
+                                      ^int (lstr_t attr, iop_value_t *val) {
+        return iop_iface_get_gen_attr(iface, attr, IOP_T_BOOL, NULL, val);
+    });
 }
 
 static int
@@ -5045,8 +5062,11 @@ __iop_iface_check_backward_compat(const iop_iface_t *if1,
 
         if (flags & IOP_COMPAT_JSON) {
             if ((fun2 = __iop_iface_get_rpc_by_name(if2, fun1->name))) {
-                if (__iop_rpc_check_backward_compat(fun1, fun2, flags,
-                                                    ctx) < 0)
+                unsigned rpc_flags;
+
+                if ((rpc_flags = iop_rpc_compat_ignored(if2, fun2, flags))
+                &&  __iop_rpc_check_backward_compat(fun1, fun2,
+                                                    rpc_flags, ctx) < 0)
                 {
                     res = -1;
                     continue;
@@ -5061,8 +5081,11 @@ __iop_iface_check_backward_compat(const iop_iface_t *if1,
 
         if (flags & IOP_COMPAT_BIN) {
             if ((fun2 = iop_iface_find_rpc(if2, fun1->tag))) {
-                if (__iop_rpc_check_backward_compat(fun1, fun2, flags,
-                                                    ctx) < 0)
+                unsigned rpc_flags;
+
+                if ((rpc_flags = iop_rpc_compat_ignored(if2, fun2, flags))
+                &&  __iop_rpc_check_backward_compat(fun1, fun2,
+                                                    rpc_flags, ctx) < 0)
                 {
                     res = -1;
                 }
@@ -5209,6 +5232,7 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
         const iop_iface_t *if1 = *it;
         const iop_iface_t *if2;
         lstr_t name = iop_get_name_from_fullname(if1->fullname);
+        unsigned if_flags;
 
         if (!(if2 = iop_pkg_get_iface_by_name(pkg2, name))) {
             iop_compat_add_err(ctx,
@@ -5220,7 +5244,9 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
 
         iop_compat_push_err_ctx(ctx, "interface `%*pM`:",
                                 LSTR_FMT_ARG(if1->fullname));
-        if (__iop_iface_check_backward_compat(if1, if2, flags, ctx) < 0) {
+        if ((if_flags = iop_iface_compat_ignored(if2, flags))
+        &&  __iop_iface_check_backward_compat(if1, if2, if_flags, ctx) < 0)
+        {
             res = -1;
         }
         iop_compat_pop_err_ctx(ctx);
