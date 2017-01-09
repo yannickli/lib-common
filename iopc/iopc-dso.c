@@ -115,7 +115,8 @@ static int do_compile(const qv_t(str) *in, const char *out, sb_t *err)
 static int
 iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
            const char *iopfile, const char *iopdata, const char *outdir,
-           bool is_main_pkg, lstr_t *pkgname, lstr_t *pkgpath)
+           bool is_main_pkg, lstr_t * nullable pkgname,
+           lstr_t * nullable pkgpath)
 {
     t_scope;
     SB_1k(sb);
@@ -241,19 +242,14 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
     qv_append(&sources, p_strdup(path));
 
     qm_for_each_pos(iopc_env, pos, env) {
-        lstr_t deppath;
         const char *depfile = env->keys[pos];
         const char *depdata = env->values[pos];
 
         if (iopc_build(pfxdir, display_pfx, env, depfile, depdata, tmppath,
-                       false, NULL, &deppath) < 0)
+                       false, NULL, NULL) < 0)
         {
             goto iopc_build_error;
         }
-
-        path_extend(path, tmppath, "%*pM.c", LSTR_FMT_ARG(deppath));
-        qv_append(&sources, p_strdup(path));
-        lstr_wipe(&deppath);
     }
     log_stop_buffering();
 
