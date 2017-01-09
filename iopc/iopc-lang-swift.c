@@ -40,6 +40,24 @@ static lstr_t t_enum_get_prefix(iopc_enum_t *en)
     return ns;
 }
 
+static void iopc_dump_string_literal(sb_t *buf, const char *str)
+{
+    int len = strlen(str);
+    int pos = 0;
+    int c;
+
+    while ((c = utf8_ngetc_at(str, len, &pos)) >= 0) {
+        if (c < 128) {
+            if (c == '\\' || c == '"') {
+                sb_addc(buf, '\\');
+            }
+            sb_addc(buf, c);
+        } else {
+            sb_addf(buf, "\\u{%x}", c);
+        }
+    }
+}
+
 static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
                                  const char *pkg_name)
 {
@@ -87,6 +105,567 @@ static void iopc_dump_enums(sb_t *buf, const iopc_pkg_t *pkg,
     }
 }
 
+static void iopc_dump_field_basetype(sb_t *buf, const iopc_field_t *field)
+{
+    switch (field->kind) {
+      case IOP_T_I8: sb_adds(buf, "Int8"); break;
+      case IOP_T_U8: sb_adds(buf, "UInt8"); break;
+      case IOP_T_I16: sb_adds(buf, "Int16"); break;
+      case IOP_T_U16: sb_adds(buf, "UInt16"); break;
+      case IOP_T_I32: sb_adds(buf, "Int32"); break;
+      case IOP_T_U32: sb_adds(buf, "UInt32"); break;
+      case IOP_T_I64: sb_adds(buf, "Int64"); break;
+      case IOP_T_U64: sb_adds(buf, "UInt64"); break;
+      case IOP_T_BOOL: sb_adds(buf, "Bool"); break;
+      case IOP_T_DOUBLE: sb_adds(buf, "Double"); break;
+
+      case IOP_T_STRING: case IOP_T_XML:
+        sb_adds(buf, "String");
+        break;
+
+      case IOP_T_DATA:
+        sb_adds(buf, "[Int8]");
+        break;
+
+      case IOP_T_STRUCT: case IOP_T_UNION: case IOP_T_ENUM:
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_adds(buf, field->type_name);
+        break;
+    }
+}
+
+static void iopc_dump_field_type(sb_t *buf, const iopc_field_t *field)
+{
+    if (field->repeat == IOP_R_REPEATED) {
+        sb_addc(buf, '[');
+    }
+
+    iopc_dump_field_basetype(buf, field);
+
+    if (field->repeat == IOP_R_REPEATED) {
+        sb_addc(buf, ']');
+    } else
+    if (field->repeat == IOP_R_OPTIONAL) {
+        sb_addc(buf, '?');
+    }
+}
+
+static void iopc_dump_field_defval(sb_t *buf, const iopc_field_t *field)
+{
+    SB_1k(tmp);
+
+    switch (field->repeat) {
+      case IOP_R_REQUIRED:
+        /* TODO: for structures that support a constructor without any
+         * argument, provide a default value for that structure.
+         */
+        break;
+
+      case IOP_R_OPTIONAL:
+        sb_adds(buf, " = nil");
+        break;
+
+      case IOP_R_REPEATED:
+        sb_adds(buf, " = []");
+        break;
+
+      case IOP_R_DEFVAL:
+        switch (field->kind) {
+          case IOP_T_ENUM: {
+            bool has_named_value = false;
+            bool is_strict = false;
+
+            tab_for_each_entry(attr, &field->enum_def->attrs) {
+                if (attr->desc->id == IOPC_ATTR_STRICT) {
+                    is_strict = true;
+                    break;
+                }
+            }
+            sb_adds(buf, " = ");
+            if (is_strict) {
+                tab_for_each_entry(v, &field->enum_def->values) {
+                    if ((uint64_t)v->value == field->defval.u64) {
+                        lstr_t value_name = t_lstr_dups(v->name, -1);
+
+                        lstr_ascii_tolower(&value_name);
+                        c_to_camelcase(value_name, false, &tmp);
+                        sb_addf(buf, ".%s", tmp.data);
+                        has_named_value = true;
+                        break;
+                    }
+                }
+            }
+            if (!has_named_value) {
+                iopc_dump_field_basetype(buf, field);
+                sb_addf(buf, "(rawValue: %jd)", field->defval.u64);
+                if (is_strict) {
+                    sb_addc(buf, '!');
+                }
+            }
+          } break;
+          case IOP_T_I8 ... IOP_T_U64:
+            if (field->defval_is_signed) {
+                sb_addf(buf, " = %jd", field->defval.u64);
+            } else {
+                sb_addf(buf, " = %ju", field->defval.u64);
+            }
+            break;
+          case IOP_T_BOOL:
+            sb_addf(buf, " = %s", field->defval.u64 ? "true" : "false");
+            break;
+          case IOP_T_DOUBLE:
+            sb_addf(buf, " = "DOUBLE_FMT, field->defval.d);
+            break;
+          case IOP_T_STRING:
+          case IOP_T_XML:
+            /* Perform an octal escaping */
+            sb_adds(buf, " = \"");
+            iopc_dump_string_literal(buf, field->defval.ptr);
+            sb_addc(buf, '"');
+            break;
+
+          case IOP_T_DATA: {
+            const char *data = field->defval.ptr;
+
+            sb_adds(buf, " = [ ");
+            while (*data) {
+                sb_addf(buf, "%d", *data);
+                data++;
+                if (*data) {
+                    sb_adds(buf, ", ");
+                }
+            }
+            sb_adds(buf, " ]");
+          } break;
+
+          case IOP_T_UNION: case IOP_T_STRUCT:
+            assert (false);
+            break;
+        }
+        break;
+    }
+}
+
+static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
+                                            const iopc_field_t *field,
+                                            const char *source,
+                                            const char *action)
+{
+    switch (field->kind) {
+      case IOP_T_I8...IOP_T_DOUBLE:
+        sb_addf(buf, "%s        %s %s", indent, action, source);
+        break;
+
+      case IOP_T_STRING: case IOP_T_XML:
+        sb_addf(buf, "%s        %s String(%s) ?? \"\"",
+                indent, action, source);
+        break;
+
+      case IOP_T_DATA:
+        sb_addf(buf, "%s        %s Array(%s)", indent, action, source);
+        break;
+
+      case IOP_T_UNION: case IOP_T_STRUCT:
+        if (field->kind == IOP_T_STRUCT
+        &&  iopc_is_class(field->struct_def->type))
+        {
+            sb_addf(buf, "%s        %s try ", indent, action);
+            iopc_dump_field_basetype(buf, field);
+            sb_addf(buf, ".make(UnsafeRawPointer(%s)!)", source);
+        } else
+        if (field->is_ref) {
+            sb_addf(buf, "%s        %s try ", indent, action);
+            iopc_dump_field_basetype(buf, field);
+            sb_addf(buf, "(UnsafeRawPointer(%s)!)", source);
+        } else {
+            sb_addf(buf,
+                    "\n"
+                    "%s        var %s = %s\n"
+                    "%s        %s try ",
+                    indent, field->name, source,
+                    indent, action);
+            iopc_dump_field_basetype(buf, field);
+            sb_addf(buf, "(&%s)\n%s        ",
+                    field->name, indent);
+        }
+    }
+}
+
+static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
+                                            const iopc_field_t *field)
+{
+    t_scope;
+    lstr_t c_field_name = t_camelcase_to_c(LSTR(field->name));
+
+    switch (field->repeat) {
+      case IOP_R_REQUIRED:
+      case IOP_R_DEFVAL:
+        iopc_dump_struct_value_importer(buf, indent, field,
+                                        t_fmt("data.%*pM",
+                                              LSTR_FMT_ARG(c_field_name)),
+                                        t_fmt("self.%s =", field->name));
+        sb_addc(buf, '\n');
+        break;
+
+      case IOP_R_OPTIONAL:
+        switch (field->kind) {
+          case IOP_T_I8...IOP_T_DOUBLE:
+            sb_addf(buf, "%s        self.%s = data.%*pM.value\n",
+                    indent, field->name, LSTR_FMT_ARG(c_field_name));
+            break;
+
+          case IOP_T_STRING: case IOP_T_XML:
+            sb_addf(buf, "%s         self.%s = String(data.%*pM)\n",
+                    indent, field->name, LSTR_FMT_ARG(c_field_name));
+            break;
+
+          case IOP_T_DATA:
+            sb_addf(buf,
+                    "%s        if data.%*pM.data != nil {\n"
+                    "%s            ",
+                    indent, LSTR_FMT_ARG(c_field_name), indent);
+            iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent), field,
+                                        t_fmt("data.%*pM",
+                                              LSTR_FMT_ARG(c_field_name)),
+                                        t_fmt("self.%s =", field->name));
+            sb_addf(buf, "\n%s        }\n", indent);
+            break;
+
+          case IOP_T_UNION: case IOP_T_STRUCT:
+            sb_addf(buf,
+                    "%s        if let %s = data.%*pM {\n"
+                    "%s            ",
+                    indent, field->name, LSTR_FMT_ARG(c_field_name), indent);
+            iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent),
+                                            field, field->name,
+                                            t_fmt("self.%s =", field->name));
+            sb_addf(buf, "\n%s         }\n", indent);
+            break;
+        }
+        break;
+
+      case IOP_R_REPEATED:
+        switch (field->kind) {
+          case IOP_T_I8...IOP_T_DOUBLE:
+            sb_addf(buf, "%s        self.%s = Array(data.%*pM)\n", indent,
+                    field->name, LSTR_FMT_ARG(c_field_name));
+            break;
+
+          default:
+            sb_addf(buf, "%s        self.%s = %sdata.%*pM.map {",
+                    indent, field->name,
+                    field->kind == IOP_T_UNION || field->kind == IOP_T_STRUCT ? "try ": "",
+                    LSTR_FMT_ARG(c_field_name));
+            iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent),
+                                            field, "$0", "return");
+            sb_adds(buf, "}\n");
+            break;
+        }
+    }
+}
+
+static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
+                                            const iopc_field_t *field)
+{
+    t_scope;
+    lstr_t c_field_name = t_camelcase_to_c(LSTR(field->name));
+    bool type_is_class = false;
+
+    if (field->kind == IOP_T_STRUCT
+    && field->struct_def->type == STRUCT_TYPE_CLASS)
+    {
+        type_is_class = true;
+    }
+
+    switch (field->repeat) {
+      case IOP_R_REQUIRED:
+      case IOP_R_DEFVAL:
+        switch (field->kind) {
+          case IOP_T_I8...IOP_T_DOUBLE:
+            sb_addf(buf, "%s        data.pointee.%*pM = self.%s\n",
+                    indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
+
+          case IOP_T_DATA:
+            sb_addf(buf, "%s        data.pointee.%*pM = LString(self.%s.duplicated(on: allocator), "
+                    "count: Int32(self.%s.count), flags: 0)\n", indent,
+                    LSTR_FMT_ARG(c_field_name), field->name, field->name);
+            break;
+
+          case IOP_T_STRING: case IOP_T_XML:
+            sb_addf(buf, "%s         data.pointee.%*pM = self.%s.duplicated(on: allocator)\n",
+                    indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
+
+          case IOP_T_UNION: case IOP_T_STRUCT: {
+            const char *field_pkg_name;
+            lstr_t field_name;
+
+            field_pkg_name = t_pp_under(field->type_pkg->name);
+            field_name = t_camelcase_to_c(LSTR(field->type_name));
+            sb_addf(buf, "%s        data.pointee.%*pM = self.%s.duplicated(on: allocator)"
+                    ".bindMemory(to: %s__%*pM__t.self, capacity: 1)",
+                    indent, LSTR_FMT_ARG(c_field_name), field->name,
+                    field_pkg_name, LSTR_FMT_ARG(field_name));
+            if (!field->is_ref && !type_is_class) {
+                sb_adds(buf, ".pointee");
+            }
+            sb_addc(buf, '\n');
+          } break;
+        }
+        break;
+
+      case IOP_R_OPTIONAL:
+        switch (field->kind) {
+          case IOP_T_I8...IOP_T_DOUBLE:
+            sb_addf(buf, "%s        data.pointee.%*pM = .from(self.%s)\n",
+                    indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
+
+          case IOP_T_DATA:
+            sb_addf(buf,
+                    "%s        if let %s = self.%s {\n"
+                    "%s            data.pointee.%*pM = LString(%s.duplicated(on: allocator), count: Int32(%s.count), flags: 0)\n"
+                    "%s        }\n",
+                    indent, field->name, field->name, indent,
+                    LSTR_FMT_ARG(c_field_name), field->name, field->name,
+                    indent);
+            break;
+
+          case IOP_T_STRING: case IOP_T_XML:
+            sb_addf(buf,
+                    "%s        if let %s = self.%s {\n"
+                    "%s            data.pointee.%*pM = %s.duplicated(on: allocator)\n"
+                    "%s        }\n",
+                    indent, field->name, field->name, indent,
+                    LSTR_FMT_ARG(c_field_name), field->name, indent);
+            break;
+
+          case IOP_T_UNION: case IOP_T_STRUCT: {
+            const char *field_pkg_name;
+            lstr_t field_name;
+
+            field_pkg_name = t_pp_under(field->type_pkg->name);
+            field_name = t_camelcase_to_c(LSTR(field->type_name));
+            sb_addf(buf,
+                    "%s        if let %s = self.%s {\n"
+                    "%s            data.pointee.%*pM = %s.duplicated(on: allocator)"
+                    ".bindMemory(to: %s__%*pM__t.self, capacity: 1)\n"
+                    "%s        }\n",
+                    indent, field->name, field->name, indent,
+                    LSTR_FMT_ARG(c_field_name), field->name, field_pkg_name,
+                    LSTR_FMT_ARG(field_name), indent);
+          } break;
+        }
+        break;
+
+      case IOP_R_REPEATED:
+        sb_addf(buf, "%s        data.pointee.%*pM = .init(self.%s, on: allocator)\n",
+                indent, LSTR_FMT_ARG(c_field_name), field->name);
+        break;
+    }
+}
+
+static bool iopc_struct_includes(const iopc_struct_t *in_st,
+                                 const iopc_struct_t *st,
+                                 qh_t(cptr) *visited)
+{
+    if (qh_add(cptr, visited, in_st) < 0) {
+        return false;
+    }
+    tab_for_each_entry(field, &in_st->fields) {
+        if ((field->kind == IOP_T_STRUCT || field->kind == IOP_T_UNION)
+        &&  !iopc_is_class(field->struct_def->type)
+        &&  field->repeat != IOP_R_REPEATED)
+        {
+            if (field->struct_def == st) {
+                return true;
+            }
+            if (iopc_struct_includes(field->struct_def, st, visited)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool iopc_struct_is_recursive(const iopc_struct_t *st)
+{
+    qh_t(cptr) visited;
+    bool res;
+
+    qh_init(cptr, &visited);
+    res = iopc_struct_includes(st, st, &visited);
+    qh_wipe(cptr, &visited);
+    return res;
+}
+
+static void iopc_dump_struct(sb_t *buf, const char *indent,
+                             const iopc_struct_t *st,
+                             const char *pkg_name, const char *st_name)
+{
+    t_scope;
+    lstr_t c_name;
+    bool is_root_class = true;
+    qv_t(iopc_struct) parents;
+    const iopc_struct_t *parent;
+    bool first = true;
+    bool is_struct = true;
+
+    if (!st_name) {
+        st_name = st->name;
+    }
+
+    c_name = t_camelcase_to_c(LSTR(st->name));
+    c_name = t_lstr_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(c_name));
+
+    if (iopc_is_class(st->type)) {
+        sb_addf(buf, "%s%s class %s : ", indent,
+                st->is_local ? "public" : "open", st_name);
+        if (st->extends.len) {
+            const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
+
+            parent = st->extends.tab[0]->st;
+            is_root_class = false;
+            tab_for_each_entry(tok, &parent_pkg->name->bits) {
+                sb_addf(buf, "%s.", tok);
+            }
+            sb_addf(buf, "%s {\n", parent->name);
+        } else {
+            sb_adds(buf, "IopClass {\n");
+        }
+        is_struct = false;
+    } else {
+        is_struct = !iopc_struct_is_recursive(st);
+        sb_addf(buf, "%spublic %s %s : IopStruct {\n", indent,
+                is_struct ? "struct" : "final class", st_name);
+    }
+
+    /* Generate descriptor */
+    if (is_struct) {
+        sb_addf(buf, "%s    public static let descriptor = %*pM__sp\n\n",
+                indent, LSTR_FMT_ARG(c_name));
+    } else {
+        sb_addf(buf,
+                "%s    %svar descriptor : UnsafePointer<iop_struct_t> {\n"
+                "%s        return %*pM__sp\n"
+                "%s    }\n\n",
+                indent, iopc_is_class(st->type) ? "open override class "
+                                                : "public static ",
+                indent, LSTR_FMT_ARG(c_name), indent);
+    }
+
+    /* Generate field list */
+    tab_for_each_entry(field, &st->fields) {
+        sb_addf(buf, "%s    public var %s : ", indent, field->name);
+        iopc_dump_field_type(buf, field);
+        sb_addc(buf, '\n');
+    }
+    sb_addc(buf, '\n');
+
+    /* Generate field constructor */
+    qv_init(&parents);
+    qv_append(&parents, (iopc_struct_t *)st);
+    parent = st;
+    while (parent->extends.len) {
+        parent = parent->extends.tab[0]->st;
+        qv_append(&parents, (iopc_struct_t *)parent);
+    }
+    sb_addf(buf, "%s    public %sinit(", indent,
+            st->fields.len == 0 && iopc_is_class(st->type) ? "override " : "");
+    tab_for_each_pos_rev(pos, &parents) {
+        tab_for_each_entry(field, &parents.tab[pos]->fields) {
+            if (!first) {
+                sb_addf(buf, ",\n"
+                        "%s                ",
+                        indent);
+            }
+            first = false;
+            sb_addf(buf, "%s: ", field->name);
+            iopc_dump_field_type(buf, field);
+            iopc_dump_field_defval(buf, field);
+        }
+    }
+    sb_adds(buf, ") {\n");
+    tab_for_each_entry(field, &st->fields) {
+        sb_addf(buf, "%s        self.%s = %s\n", indent, field->name,
+                field->name);
+    }
+    if (iopc_is_class(st->type)) {
+        sb_addf(buf, "%s        super.init(", indent);
+        first = true;
+        tab_for_each_pos_rev(pos, &parents) {
+            if (pos == 0) {
+                break;
+            }
+            tab_for_each_entry(field, &parents.tab[pos]->fields) {
+                if (!first) {
+                    sb_addf(buf, ",\n"
+                            "%s               ",
+                            indent);
+                }
+                first = false;
+                sb_addf(buf, "%s: %s", field->name, field->name);
+            }
+        }
+        sb_adds(buf, ")\n");
+    }
+    sb_addf(buf, "%s    }\n\n", indent);
+
+    /* Generate C interface */
+    sb_addf(buf, "%s     public %sinit(_ c: UnsafeRawPointer) throws {\n",
+            indent, iopc_is_class(st->type) ? "required " : "");
+    if (st->fields.len) {
+        sb_addf(buf,
+                "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1).pointee\n",
+                indent, LSTR_FMT_ARG(c_name));
+        tab_for_each_entry(field, &st->fields) {
+            iopc_dump_struct_field_importer(buf, indent, field);
+        }
+    }
+    if (iopc_is_class(st->type)) {
+        sb_addf(buf, "%s        try super.init(c)\n", indent);
+    }
+    sb_addf(buf,
+            "%s    }\n\n"
+            "%s    %sfunc fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {\n",
+            indent, indent,
+            iopc_is_class(st->type) ? "open override " : "public ");
+    if (st->fields.len) {
+        sb_addf(buf,
+                "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1)\n",
+                indent, LSTR_FMT_ARG(c_name));
+        tab_for_each_entry(field, &st->fields) {
+            iopc_dump_struct_field_exporter(buf, indent, field);
+        }
+    }
+    if (!is_root_class) {
+        sb_addf(buf, "%s        super.fill(c, on: allocator)\n", indent);
+    }
+    sb_addf(buf,
+            "%s    }\n"
+            "%s}\n\n",
+            indent, indent);
+}
+
+static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
+                              const char *pkg_name)
+{
+    tab_for_each_entry(st, &pkg->structs) {
+        switch (st->type) {
+          case STRUCT_TYPE_STRUCT:
+          case STRUCT_TYPE_CLASS:
+            iopc_dump_struct(buf, "    ", st, pkg_name, NULL);
+            break;
+
+          default:
+            break;
+        }
+    }
+}
+
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     t_scope;
@@ -122,6 +701,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 
     /* Generate types */
     iopc_dump_enums(&buf, pkg, pkg_name);
+    iopc_dump_structs(&buf, pkg, pkg_name);
 
     sb_addf(&buf,
             "    public static let classes : [IopClass.Type] = []\n"
