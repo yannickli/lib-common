@@ -562,7 +562,7 @@ typedef IOP_ARRAY_OF(lstr_t) iop_array_lstr_t;
 /*{{{ iop__void__t */
 
 typedef struct iop__void__t { } iop__void__t;
-extern iop_struct_t const iop__void__s;
+EXPORT iop_struct_t const iop__void__s;
 
 /*}}}*/
 /*{{{ IOP constraints */

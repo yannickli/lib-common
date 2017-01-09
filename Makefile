@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = libcommon python
+none_LIBRARIES = libcommon libcommon-iop python
 python_SHARED_LIBRARIES += common
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
@@ -39,7 +39,14 @@ _CFLAGS += $(if $(LIBCOMMON_REPOSITORY),-DLIBCOMMON_REPOSITORY)
 _LIBS    = -lz -lrt -ldl -lpthread
 _IOPCLASSRANGE = 1-499
 
+ioplibs = \
+	core.iop.c \
+	ic.iop.c \
+	iop-void.c
+
 libcommon_SOURCES = \
+	$(ioplibs) \
+	\
 	licence.blk \
 	parseopt.c \
 	\
@@ -182,6 +189,8 @@ libcommon_SOURCES += net-sctp.c
 endif
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
+
+libcommon-iop_SOURCES = $(ioplibs)
 
 python_SOURCES = python-common.c
 python_CFLAGS = $(python2_CFLAGS) -Wno-strict-aliasing
