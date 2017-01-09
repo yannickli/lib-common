@@ -1075,6 +1075,10 @@ extern struct iopc_do_c_globs {
     bool include_swift_support;
 } iopc_do_c_g;
 
+extern struct iopc_do_swift_globs {
+    const char *imported_modules;
+} iopc_do_swift_g;
+
 int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);

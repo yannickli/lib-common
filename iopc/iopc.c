@@ -93,6 +93,8 @@ static popt_t options[] = {
     OPT_GROUP("Swift backend options"),
     OPT_STR(0,    "swift-output-path", &opts.swift_outpath,
             "base of the compiled hierarchy for swift files"),
+    OPT_STR(0,    "swift-import-modules", &iopc_do_swift_g.imported_modules,
+            "comma-separated list of modules to import in swift files"),
     OPT_END(),
 };
 
