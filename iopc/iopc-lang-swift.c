@@ -650,6 +650,146 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             indent, indent);
 }
 
+static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
+{
+    bool type_is_class = false;
+
+    if (field->kind == IOP_T_STRUCT
+    && field->struct_def->type == STRUCT_TYPE_CLASS)
+    {
+        type_is_class = true;
+    }
+
+    sb_addf(buf, "              case %d:\n", field->tag);
+    switch (field->kind) {
+      case IOP_T_I8...IOP_T_DOUBLE:
+        sb_addf(buf, "                self = .%s(data.bindMemory(to: ",
+                field->name);
+        iopc_dump_field_basetype(buf, field);
+        sb_adds(buf, ".self, capacity: 1).pointee)\n");
+        break;
+
+      case IOP_T_DATA:
+        sb_addf(buf, "                self = .%s(Array(data.bindMemory(to: LString.self, capacity: 1).pointee))\n",
+                field->name);
+        break;
+
+      case IOP_T_STRING: case IOP_T_XML:
+        sb_addf(buf, "                self = .%s(String("
+                "data.bindMemory(to: LString.self, capacity: 1).pointee) ?? \"\")\n",
+                field->name);
+        break;
+
+      case IOP_T_UNION: case IOP_T_STRUCT:
+        sb_addf(buf, "                self = .%s(try ", field->name);
+        iopc_dump_field_basetype(buf, field);
+        sb_adds(buf, "(data");
+        if (type_is_class || field->is_ref) {
+            sb_adds(buf, ".bindMemory(to: UnsafeRawPointer.self, capacity: 1).pointee");
+        }
+        sb_adds(buf, "))\n");
+        break;
+    }
+}
+
+static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
+{
+    bool type_is_class = false;
+
+    if (field->kind == IOP_T_STRUCT
+    && field->struct_def->type == STRUCT_TYPE_CLASS)
+    {
+        type_is_class = true;
+    }
+
+    sb_addf(buf,
+            "              case .%s(let %s):\n"
+            "                tag[0] = %d\n",
+            field->name, field->name, field->tag);
+
+    switch (field->kind) {
+      case IOP_T_I8...IOP_T_DOUBLE:
+        sb_adds(buf, "                data.bindMemory(to: ");
+        iopc_dump_field_basetype(buf, field);
+        sb_addf(buf, ".self, capacity: 1).pointee = %s\n", field->name);
+        break;
+
+      case IOP_T_DATA:
+        sb_addf(buf,
+                "                data.bindMemory(to: LString.self, capacity: 1).pointee"
+                " = LString(%s.duplicated(on: allocator), count: Int32(%s.count), flags: 0)\n",
+                field->name, field->name);
+        break;
+
+      case IOP_T_STRING: case IOP_T_XML:
+        sb_addf(buf,
+                "                data.bindMemory(to: LString.self, capacity: 1).pointee"
+                " = %s.duplicated(on: allocator)\n", field->name);
+        break;
+
+      case IOP_T_UNION: case IOP_T_STRUCT:
+        if (type_is_class || field->is_ref) {
+            sb_addf(buf,
+                   "                data.bindMemory(to: UnsafeMutableRawPointer.self, "
+                   "capacity: 1).pointee = %s.duplicated(on: allocator)\n", field->name);
+        } else {
+            sb_addf(buf, "                %s.fill(data, on: allocator)\n", field->name);
+        }
+        break;
+    }
+}
+
+static void iopc_dump_union(sb_t *buf,
+                            const iopc_struct_t *st, const char *pkg_name)
+{
+    t_scope;
+    lstr_t c_name = t_camelcase_to_c(LSTR(st->name));
+
+    c_name = t_lstr_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(c_name));
+
+    sb_addf(buf, "    public %senum %s : IopUnion {\n",
+            iopc_struct_is_recursive(st) ? "indirect " : "",
+            st->name);
+
+    /* Generate descriptor */
+    sb_addf(buf, "        public static let descriptor =  %*pM__sp\n\n",
+            LSTR_FMT_ARG(c_name));
+
+    /* Generate case list */
+    tab_for_each_entry(field, &st->fields) {
+        sb_addf(buf, "        case %s(", field->name);
+        iopc_dump_field_type(buf, field);
+        sb_adds(buf, ")\n");
+    }
+    sb_addc(buf, '\n');
+
+    /* Generate C interface */
+    sb_adds(buf,
+            "        public init(_ c: UnsafeRawPointer) throws {\n"
+            "            let (tag, data) = type(of: self)._explode(c)\n"
+            "            switch tag {\n");
+    tab_for_each_entry(field, &st->fields) {
+        iopc_dump_union_field_importer(buf, field);
+    }
+
+    sb_adds(buf,
+            "              default:\n"
+            "                throw IopImportError.invalidUnionTag(type(of: self).descriptor, tag)\n"
+            "            }\n"
+            "        }\n\n"
+            "        public func fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {\n"
+            "            let (tag, data) = type(of: self)._explode(c)\n"
+            "            switch self {\n");
+    tab_for_each_entry(field, &st->fields) {
+        iopc_dump_union_field_exporter(buf, field);
+    }
+    sb_adds(buf,
+            "            }\n"
+            "        }\n");
+
+    sb_adds(buf, "    }\n\n");
+}
+
 static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
                               const char *pkg_name)
 {
@@ -658,6 +798,10 @@ static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
           case STRUCT_TYPE_STRUCT:
           case STRUCT_TYPE_CLASS:
             iopc_dump_struct(buf, "    ", st, pkg_name, NULL);
+            break;
+
+          case STRUCT_TYPE_UNION:
+            iopc_dump_union(buf, st, pkg_name);
             break;
 
           default:
