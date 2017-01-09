@@ -74,6 +74,19 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
     }
 }
 
+static void iopc_dump_enums(sb_t *buf, const iopc_pkg_t *pkg,
+                            const char *pkg_name)
+{
+    t_scope;
+
+    tab_for_each_entry(en, &pkg->enums) {
+        lstr_t name = t_camelcase_to_c(LSTR(en->name));
+
+        sb_addf(buf, "    public typealias %s = %s__%*pM__t\n\n",
+                en->name, pkg_name, LSTR_FMT_ARG(name));
+    }
+}
+
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     t_scope;
@@ -108,6 +121,8 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
             *qv_last(&pkg->name->bits));
 
     /* Generate types */
+    iopc_dump_enums(&buf, pkg, pkg_name);
+
     sb_addf(&buf,
             "    public static let classes : [IopClass.Type] = []\n"
             "}\n");
