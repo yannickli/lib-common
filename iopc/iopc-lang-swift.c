@@ -51,7 +51,7 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
         sb_addf(buf,
                 "extension %s__%*pM__array_t : Iop%sArray { }\n\n",
                 pkg_name, LSTR_FMT_ARG(name),
-                iopc_is_class(st->type) ? "Class" : "Struct");
+                iopc_is_class(st->type) ? "Class" : "ComplexType");
     }
 
     tab_for_each_entry(en, &pkg->enums) {
@@ -92,8 +92,28 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     iopc_dump_extensions(&buf, pkg, pkg_name);
 
     /* Generate Swift package */
+    if (pkg->name->bits.len > 1) {
+        sb_addf(&buf, "public extension ");
+        tab_for_each_pos(pos, &pkg->name->bits) {
+            if (pos != pkg->name->bits.len - 1) {
+                if (pos != 0) {
+                    sb_addc(&buf, '.');
+                }
+                sb_adds(&buf, pkg->name->bits.tab[pos]);
+            }
+        }
+        sb_adds(&buf, "{\n");
+    }
+    sb_addf(&buf, "public enum %s : IopPackage {\n",
+            *qv_last(&pkg->name->bits));
 
     /* Generate types */
+    sb_addf(&buf,
+            "    public static let classes : [IopClass.Type] = []\n"
+            "}\n");
+    if (pkg->name->bits.len > 1) {
+        sb_adds(&buf, "}\n");
+    }
 
     return iopc_write_file(&buf, path);
 }
