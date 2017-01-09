@@ -513,6 +513,7 @@ class IopcTest(z.TestCase):
     # }}}
     # {{{ Typedef
 
+    @z.ZFlags('redmine_50352')
     def test_typedef_valid(self):
         f  = 'typedef_valid_no_class.iop'
         f1 = 'typedef1.iop'
@@ -539,7 +540,9 @@ class IopcTest(z.TestCase):
         self.run_iopc('typedef_valid.iop', False,
                       'type `MyType` is provided by both `typedef2` '        \
                       'and `typedef1`', 4)
+        self.run_iopc('invalid_union_empty.iop', True, None, 5)
 
+    @z.ZFlags('redmine_50352')
     def test_typedef_invalid(self):
         self.run_iopc('typedef_invalid_1.iop', False,
                       'unable to find any pkg providing type `MyStruct`')
@@ -566,6 +569,8 @@ class IopcTest(z.TestCase):
         self.run_iopc2('typedef_invalid_13.iop', False,
                        'attribute minOccurs does not apply to required '     \
                        'typedefs')
+        self.run_iopc('invalid_union_empty.iop', False,
+                      'a union must contain at least one field', 6)
 
     # }}}
     # {{{ Attributes

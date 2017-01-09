@@ -72,6 +72,7 @@ static popt_t options[] = {
     /* List of pending changes in v6:
      * - deprecate '%C{' features (b8b9c529d).
      * - unions use enum for iop_tag instead of int (#50352 / I87e09b3aef349)
+     * - unions cannot be empty (#50352 / I5c9bc521e3ce)
      */
     OPT_FLAG('6', "features-v6",  &_G.v6,
              "use iopc v6 features (in progress)"),

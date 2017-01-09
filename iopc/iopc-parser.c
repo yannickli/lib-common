@@ -2224,6 +2224,14 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         }
     }
 
+    if (iopc_g.v6 && st->type == STRUCT_TYPE_UNION
+    &&  qm_len(iopc_field, &fields) == 0)
+    {
+        error_loc("a union must contain at least one field",
+                  TK(pp, 0, goto error)->loc);
+        goto error;
+    }
+
     if (iopc_g.check_snmp_table_has_index && iopc_is_snmp_tbl(st->type)
     &&  check_snmp_tbl_has_index(st) < 0)
     {
