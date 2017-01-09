@@ -279,7 +279,7 @@ static int iop_dso_open_(iop_dso_t *dso, sb_t *err)
 #ifndef RTLD_DEEPBIND
 # define RTLD_DEEPBIND  0
 #endif
-    handle = dlopen(dso->path.s, RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND);
+    handle = dlopen(dso->path.s, RTLD_LAZY | RTLD_GLOBAL | RTLD_DEEPBIND);
     if (handle == NULL) {
         sb_setf(err, "unable to dlopen(%*pM): %s",
                 LSTR_FMT_ARG(dso->path), dlerror());
