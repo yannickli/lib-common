@@ -89,6 +89,7 @@ libcommon_SOURCES = \
 	qpage.c \
 	core.swift \
 	promise.swift \
+	core.iop.swift \
 	\
 	el.blk \
 	el.swift \
@@ -125,6 +126,7 @@ libcommon_SOURCES = \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
 	ic.iop.c \
+	ic.iop.swift \
 	\
 	log.c \
 	log-iop.c \

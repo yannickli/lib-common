@@ -325,10 +325,6 @@ public struct IopVoid : IopComplexType {
     }
 }
 
-public enum ic {
-    public typealias Hdr = IopVoid
-}
-
 /* }}} */
 /* Union {{{ */
 
