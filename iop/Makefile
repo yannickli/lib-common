@@ -16,6 +16,7 @@ examples_LIBRARIES = tstiop tstiop2
 
 tstiop_SOURCES =  \
     tstiop.iop                                                               \
+    tstiop.iop.swift                                                         \
     tstiop_inheritance.iop                                                   \
     tstiop_licence.iop                                                       \
     tstiop_backward_compat.iop                                               \
@@ -36,6 +37,8 @@ tstiop_SOURCES =  \
     tstiop_backward_compat_mod_deleted.iop                                   \
     tstiop_backward_compat_mod_deleted_if.iop
 tstiop_inheritance.iop_IOPVER=-5
+tstiop_SWIFTMIXED = 1
+tstiop_SWIFTDEPS = libcommon
 
 tstiop2_SOURCES = tstiop2.iop
 
