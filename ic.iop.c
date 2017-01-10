@@ -31,6 +31,7 @@ iop_enum_t const ic__ic_priority__e = {
     .ranges_len   = countof(iop__ranges__1) / 2,
     .enum_len     = 3,
 };
+iop_enum_t const * const ic__ic_priority__ep = &ic__ic_priority__e;
 
 /* }}} */
 /* Structure ic.Tracer {{{ */
@@ -67,6 +68,7 @@ const iop_struct_t ic__tracer__s = {
     .fields_len = countof(ic__tracer__desc_fields),
     .size       = sizeof(ic__tracer__t),
 };
+iop_struct_t const * const ic__tracer__sp = &ic__tracer__s;
 
 /* }}} */
 /* Structure ic.SimpleHdr {{{ */
@@ -140,6 +142,7 @@ const iop_struct_t ic__simple_hdr__s = {
     .fields_len = countof(ic__simple_hdr__desc_fields),
     .size       = sizeof(ic__simple_hdr__t),
 };
+iop_struct_t const * const ic__simple_hdr__sp = &ic__simple_hdr__s;
 
 /* }}} */
 /* Class ic.Route {{{ */
@@ -168,6 +171,7 @@ const iop_struct_t ic__route__s = {
         .class_attrs  = &ic__route__class_s,
     }
 };
+iop_struct_t const * const ic__route__sp = &ic__route__s;
 
 /* }}} */
 /* Structure ic.RoutingHdr {{{ */
@@ -236,6 +240,7 @@ const iop_struct_t ic__routing_hdr__s = {
     .fields_len = countof(ic__routing_hdr__desc_fields),
     .size       = sizeof(ic__routing_hdr__t),
 };
+iop_struct_t const * const ic__routing_hdr__sp = &ic__routing_hdr__s;
 
 /* }}} */
 /* Union ic.Hdr {{{ */
@@ -271,6 +276,7 @@ const iop_struct_t ic__hdr__s = {
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
 };
+iop_struct_t const * const ic__hdr__sp = &ic__hdr__s;
 
 /* }}} */
 /* Package ic {{{ */
@@ -309,6 +315,7 @@ iop_pkg_t const ic__pkg = {
     .ifaces  = ic__ifaces,
     .mods    = ic__mods,
 };
+iop_pkg_t const * const ic__pkgp = &ic__pkg;
 
 /* }}} */
 

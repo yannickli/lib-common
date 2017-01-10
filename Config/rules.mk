@@ -76,7 +76,7 @@ $~$3.dep: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPV
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) $$(IOPVER_) --c-resolve-includes --Wextra --check-snmp-table-has-index -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
+	$(IOPC) $$(IOPVER_) --c-export-nullability --c-resolve-includes --Wextra --check-snmp-table-has-index -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
 		--json-output-path $$(IOPJSONPATH_) $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) $$<
 $3.c: IOPINCPATH_=$l $(var/platform)/lib-inet $(var/platform)/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $3.c: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) $(1DV))
@@ -85,7 +85,7 @@ $3.c: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPVER))
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) $$(IOPVER_) --c-resolve-includes --Wextra --check-snmp-table-has-index -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
+	$(IOPC) $$(IOPVER_) --c-export-nullability --c-resolve-includes --Wextra --check-snmp-table-has-index -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
 		--json-output-path $$(IOPJSONPATH_) $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) $$<
 -include $~$3.dep
 endef

@@ -18,6 +18,11 @@ typedef enum core__log_level__t {
     LOG_LEVEL_DEFAULT = -2,
 } core__log_level__t;
 typedef IOP_ARRAY_OF(enum core__log_level__t) core__log_level__array_t;
+#ifdef OPT_OF
+typedef OPT_OF(enum core__log_level__t) core__log_level__opt_t;
+#else
+typedef IOP_OPT_OF(enum core__log_level__t) core__log_level__opt_t;
+#endif
 #define LOG_LEVEL_count 11
 #define LOG_LEVEL_min   -2
 #define LOG_LEVEL_max   8
@@ -33,6 +38,11 @@ typedef enum core__iop_http_method__t {
     IOP_HTTP_METHOD_CONNECT,
 } core__iop_http_method__t;
 typedef IOP_ARRAY_OF(enum core__iop_http_method__t) core__iop_http_method__array_t;
+#ifdef OPT_OF
+typedef OPT_OF(enum core__iop_http_method__t) core__iop_http_method__opt_t;
+#else
+typedef IOP_OPT_OF(enum core__iop_http_method__t) core__iop_http_method__opt_t;
+#endif
 #define IOP_HTTP_METHOD_count 8
 #define IOP_HTTP_METHOD_min   0
 #define IOP_HTTP_METHOD_max   7
@@ -44,13 +54,13 @@ typedef struct core__log_configuration__t core__log_configuration__t;
 typedef IOP_ARRAY_OF(core__log_configuration__t) core__log_configuration__array_t;
 
 typedef struct core__log_file_configuration__t core__log_file_configuration__t;
-typedef IOP_ARRAY_OF(core__log_file_configuration__t *) core__log_file_configuration__array_t;
+typedef IOP_ARRAY_OF(core__log_file_configuration__t *nonnull ) core__log_file_configuration__array_t;
 
 typedef struct core__licence_module__t core__licence_module__t;
-typedef IOP_ARRAY_OF(core__licence_module__t *) core__licence_module__array_t;
+typedef IOP_ARRAY_OF(core__licence_module__t *nonnull ) core__licence_module__array_t;
 
 typedef struct core__licence__t core__licence__t;
-typedef IOP_ARRAY_OF(core__licence__t *) core__licence__array_t;
+typedef IOP_ARRAY_OF(core__licence__t *nonnull ) core__licence__array_t;
 
 typedef struct core__signed_licence__t core__signed_licence__t;
 typedef IOP_ARRAY_OF(core__signed_licence__t) core__signed_licence__array_t;

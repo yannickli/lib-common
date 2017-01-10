@@ -8,5 +8,6 @@
 
 /*----- package ic -----*/
 extern iop_pkg_t const ic__pkg;
+extern iop_pkg_t const * const nonnull  ic__pkgp;
 
 #endif

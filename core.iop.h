@@ -45,12 +45,14 @@ struct core__log__set_root_level_args__t {
     bool     is_silent;
 };
 extern iop_struct_t const core__log__set_root_level_args__s;
+extern iop_struct_t const * const nonnull  core__log__set_root_level_args__sp;
 IOP_GENERIC(core__log__set_root_level_args);
 
 struct core__log__set_root_level_res__t {
     core__log_level__t level;
 };
 extern iop_struct_t const core__log__set_root_level_res__s;
+extern iop_struct_t const * const nonnull  core__log__set_root_level_res__sp;
 IOP_GENERIC(core__log__set_root_level_res);
 
 #define core__log__set_root_level__rpc__tag    0x0001
@@ -61,6 +63,7 @@ struct core__log__reset_root_level_res__t {
     core__log_level__t level;
 };
 extern iop_struct_t const core__log__reset_root_level_res__s;
+extern iop_struct_t const * const nonnull  core__log__reset_root_level_res__sp;
 IOP_GENERIC(core__log__reset_root_level_res);
 
 #define core__log__reset_root_level__rpc__tag    0x0002
@@ -74,12 +77,14 @@ struct core__log__set_logger_level_args__t {
     bool     is_silent;
 };
 extern iop_struct_t const core__log__set_logger_level_args__s;
+extern iop_struct_t const * const nonnull  core__log__set_logger_level_args__sp;
 IOP_GENERIC(core__log__set_logger_level_args);
 
 struct core__log__set_logger_level_res__t {
     core__log_level__t level;
 };
 extern iop_struct_t const core__log__set_logger_level_res__s;
+extern iop_struct_t const * const nonnull  core__log__set_logger_level_res__sp;
 IOP_GENERIC(core__log__set_logger_level_res);
 
 #define core__log__set_logger_level__rpc__tag    0x0003
@@ -90,12 +95,14 @@ struct core__log__reset_logger_level_args__t {
     lstr_t   full_name;
 };
 extern iop_struct_t const core__log__reset_logger_level_args__s;
+extern iop_struct_t const * const nonnull  core__log__reset_logger_level_args__sp;
 IOP_GENERIC(core__log__reset_logger_level_args);
 
 struct core__log__reset_logger_level_res__t {
     core__log_level__t level;
 };
 extern iop_struct_t const core__log__reset_logger_level_res__s;
+extern iop_struct_t const * const nonnull  core__log__reset_logger_level_res__sp;
 IOP_GENERIC(core__log__reset_logger_level_res);
 
 #define core__log__reset_logger_level__rpc__tag    0x0004
@@ -106,12 +113,14 @@ struct core__log__list_loggers_args__t {
     lstr_t           prefix;
 };
 extern iop_struct_t const core__log__list_loggers_args__s;
+extern iop_struct_t const * const nonnull  core__log__list_loggers_args__sp;
 IOP_GENERIC(core__log__list_loggers_args);
 
 struct core__log__list_loggers_res__t {
     core__logger_configuration__array_t loggers;
 };
 extern iop_struct_t const core__log__list_loggers_res__s;
+extern iop_struct_t const * const nonnull  core__log__list_loggers_res__sp;
 IOP_GENERIC(core__log__list_loggers_res);
 
 #define core__log__list_loggers__rpc__tag    0x0005
@@ -119,6 +128,7 @@ IOP_GENERIC(core__log__list_loggers_res);
 #define core__log__list_loggers__rpc         (core__log__if.funs + 4)
 
 extern iop_iface_t const core__log__if;
+extern iop_iface_t const * const nonnull  core__log__ifp;
 
 
 /*----- module core.Core -----*/
@@ -127,9 +137,11 @@ extern iop_iface_t const core__log__if;
 #define core__core__log__alias  (core__core__mod.ifaces + 0)
 
 extern iop_mod_t const core__core__mod;
+extern iop_mod_t const * const nonnull  core__core__modp;
 
 
 /*----- package core -----*/
 extern iop_pkg_t const core__pkg;
+extern iop_pkg_t const * const nonnull  core__pkgp;
 
 #endif

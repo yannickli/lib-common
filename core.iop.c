@@ -212,6 +212,7 @@ iop_enum_t const core__log_level__e = {
     .en_attrs     = &core__log_level__e_desc_attrs,
     .values_attrs = core__log_level__e_desc_values_attrs,
 };
+iop_enum_t const * const core__log_level__ep = &core__log_level__e;
 
 /* }}} */
 /* Enum core.IopHttpMethod {{{ */
@@ -242,6 +243,7 @@ iop_enum_t const core__iop_http_method__e = {
     .ranges_len   = countof(iop__ranges__2) / 2,
     .enum_len     = 8,
 };
+iop_enum_t const * const core__iop_http_method__ep = &core__iop_http_method__e;
 
 /* }}} */
 /* Structure core.LoggerConfiguration {{{ */
@@ -376,6 +378,7 @@ const iop_struct_t core__logger_configuration__s = {
     .st_attrs   = &core__logger_configuration__s_desc_attrs,
     .fields_attrs = core__logger_configuration__desc_fields_attrs,
 };
+iop_struct_t const * const core__logger_configuration__sp = &core__logger_configuration__s;
 
 /* }}} */
 /* Structure core.LogConfiguration {{{ */
@@ -509,6 +512,7 @@ const iop_struct_t core__log_configuration__s = {
     .st_attrs   = &core__log_configuration__s_desc_attrs,
     .fields_attrs = core__log_configuration__desc_fields_attrs,
 };
+iop_struct_t const * const core__log_configuration__sp = &core__log_configuration__s;
 
 /* }}} */
 /* Class core.LogFileConfiguration {{{ */
@@ -676,6 +680,7 @@ const iop_struct_t core__log_file_configuration__s = {
         .class_attrs  = &core__log_file_configuration__class_s,
     }
 };
+iop_struct_t const * const core__log_file_configuration__sp = &core__log_file_configuration__s;
 
 /* }}} */
 /* Class core.LicenceModule {{{ */
@@ -819,6 +824,7 @@ const iop_struct_t core__licence_module__s = {
         .class_attrs  = &core__licence_module__class_s,
     }
 };
+iop_struct_t const * const core__licence_module__sp = &core__licence_module__s;
 
 /* }}} */
 /* Class core.Licence {{{ */
@@ -1194,6 +1200,7 @@ const iop_struct_t core__licence__s = {
         .class_attrs  = &core__licence__class_s,
     }
 };
+iop_struct_t const * const core__licence__sp = &core__licence__s;
 
 /* }}} */
 /* Structure core.SignedLicence {{{ */
@@ -1274,6 +1281,7 @@ const iop_struct_t core__signed_licence__s = {
     .st_attrs   = &core__signed_licence__s_desc_attrs,
     .fields_attrs = core__signed_licence__desc_fields_attrs,
 };
+iop_struct_t const * const core__signed_licence__sp = &core__signed_licence__s;
 
 /* }}} */
 /* Structure core.HttpdCfg {{{ */
@@ -1531,6 +1539,7 @@ const iop_struct_t core__httpd_cfg__s = {
     .flags      = 3,
     .fields_attrs = core__httpd_cfg__desc_fields_attrs,
 };
+iop_struct_t const * const core__httpd_cfg__sp = &core__httpd_cfg__s;
 
 /* }}} */
 /* Structure core.HttpcCfg {{{ */
@@ -1697,6 +1706,7 @@ const iop_struct_t core__httpc_cfg__s = {
     .flags      = 1,
     .fields_attrs = core__httpc_cfg__desc_fields_attrs,
 };
+iop_struct_t const * const core__httpc_cfg__sp = &core__httpc_cfg__s;
 
 /* }}} */
 /* Interface core.Log {{{ */
@@ -1746,6 +1756,7 @@ const iop_struct_t core__log__set_root_level_args__s = {
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
     .size       = sizeof(core__log__set_root_level_args__t),
 };
+iop_struct_t const * const core__log__set_root_level_args__sp = &core__log__set_root_level_args__s;
 
 /* }}} */
 /* Structure core.Log.setRootLevelRes {{{ */
@@ -1774,6 +1785,7 @@ const iop_struct_t core__log__set_root_level_res__s = {
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__set_root_level_res__t),
 };
+iop_struct_t const * const core__log__set_root_level_res__sp = &core__log__set_root_level_res__s;
 
 /* }}} */
 /* Structure core.Log.resetRootLevelRes {{{ */
@@ -1788,6 +1800,7 @@ const iop_struct_t core__log__reset_root_level_res__s = {
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__reset_root_level_res__t),
 };
+iop_struct_t const * const core__log__reset_root_level_res__sp = &core__log__reset_root_level_res__s;
 
 /* }}} */
 /* Structure core.Log.setLoggerLevelArgs {{{ */
@@ -1841,6 +1854,7 @@ const iop_struct_t core__log__set_logger_level_args__s = {
     .fields_len = countof(core__log__set_logger_level_args__desc_fields),
     .size       = sizeof(core__log__set_logger_level_args__t),
 };
+iop_struct_t const * const core__log__set_logger_level_args__sp = &core__log__set_logger_level_args__s;
 
 /* }}} */
 /* Structure core.Log.setLoggerLevelRes {{{ */
@@ -1855,6 +1869,7 @@ const iop_struct_t core__log__set_logger_level_res__s = {
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__set_logger_level_res__t),
 };
+iop_struct_t const * const core__log__set_logger_level_res__sp = &core__log__set_logger_level_res__s;
 
 /* }}} */
 /* Structure core.Log.resetLoggerLevelArgs {{{ */
@@ -1878,6 +1893,7 @@ const iop_struct_t core__log__reset_logger_level_args__s = {
     .fields_len = countof(core__log__reset_logger_level_args__desc_fields),
     .size       = sizeof(core__log__reset_logger_level_args__t),
 };
+iop_struct_t const * const core__log__reset_logger_level_args__sp = &core__log__reset_logger_level_args__s;
 
 /* }}} */
 /* Structure core.Log.resetLoggerLevelRes {{{ */
@@ -1892,6 +1908,7 @@ const iop_struct_t core__log__reset_logger_level_res__s = {
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__reset_logger_level_res__t),
 };
+iop_struct_t const * const core__log__reset_logger_level_res__sp = &core__log__reset_logger_level_res__s;
 
 /* }}} */
 /* Structure core.Log.listLoggersArgs {{{ */
@@ -1915,6 +1932,7 @@ const iop_struct_t core__log__list_loggers_args__s = {
     .fields_len = countof(core__log__list_loggers_args__desc_fields),
     .size       = sizeof(core__log__list_loggers_args__t),
 };
+iop_struct_t const * const core__log__list_loggers_args__sp = &core__log__list_loggers_args__s;
 
 /* }}} */
 /* Structure core.Log.listLoggersRes {{{ */
@@ -1939,6 +1957,7 @@ const iop_struct_t core__log__list_loggers_res__s = {
     .fields_len = countof(core__log__list_loggers_res__desc_fields),
     .size       = sizeof(core__log__list_loggers_res__t),
 };
+iop_struct_t const * const core__log__list_loggers_res__sp = &core__log__list_loggers_res__s;
 
 /* }}} */
 static iop_rpc_t const core__log__if_funs[] = {
@@ -1999,6 +2018,7 @@ const iop_iface_t core__log__if = {
     .flags      = 2,
     .iface_attrs  = &core__log__desc_if_attrs,
 };
+const iop_iface_t const * const core__log__ifp = &core__log__if;
 
 /* }}} */
 /* Module core.Core {{{ */
@@ -2031,6 +2051,7 @@ iop_mod_t const core__core__mod = {
     .flags      = 1,
     .mod_attrs  = &core__core__m_desc_attrs,
 };
+iop_mod_t const * const core__core__modp = &core__core__mod;
 
 /* }}} */
 /* Package core {{{ */
@@ -2075,6 +2096,7 @@ iop_pkg_t const core__pkg = {
     .ifaces  = core__ifaces,
     .mods    = core__mods,
 };
+iop_pkg_t const * const core__pkgp = &core__pkg;
 
 /* }}} */
 
