@@ -12,6 +12,7 @@ IOP_ENUM(tstgen__my_enum_a);
 
 typedef tstgen__my_enum_a__t my_enum_a__t;
 typedef tstgen__my_enum_a__array_t my_enum_a__array_t;
+typedef tstgen__my_enum_a__opt_t my_enum_a__opt_t;
 #define my_enum_a__e  tstgen__my_enum_a__e
 
 struct tstgen__my_struct_a__t {

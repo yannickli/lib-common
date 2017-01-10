@@ -343,7 +343,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
               default:                                          break;
               case IOP_T_ENUM:
                 sb_addnc(sb, indent, ' ');
-                sb_addf(sb, "IOP_OPT_OF(%s__%s__t)  %s;\n",
+                sb_addf(sb, "%s__%s__opt_t  %s;\n",
                         pp_under(f->type_path), pp_to_c(f->type_name),
                         pp_to_c(f->name));
                 return;
@@ -370,7 +370,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
           case IOP_T_DATA:   type = _G.data_c_type;    break;
           case IOP_T_ENUM:
             sb_addnc(sb, indent, ' ');
-            sb_addf(sb, "OPT_OF(%s__%s__t)  %s;\n",
+            sb_addf(sb, "%s__%s__opt_t  %s;\n",
                     pp_under(f->type_path), pp_to_c(f->type_name),
                     pp_to_c(f->name));
             return;
@@ -566,6 +566,8 @@ static void iopc_gen_ctype(sb_t *buf, qv_t(iopc_attr) *attrs, char *tbase,
                             LSTR_FMT_ARG(pfx), underscore, tbase);
                 } else
                 if (type == IOP_T_ENUM) {
+                    sb_addf(buf, "typedef %s__opt_t %*pM%sopt_t;\n",
+                            tbase, LSTR_FMT_ARG(pfx), underscore);
                     sb_addf(buf, "#define %*pM%se  %s__e\n",
                             LSTR_FMT_ARG(pfx), underscore, tbase);
                 }
@@ -765,6 +767,13 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
             "} %s__t;\n"
             "typedef IOP_ARRAY_OF(enum %s__t) %s__array_t;\n",
             tbase, tbase, tbase);
+    sb_addf(buf,
+            "#ifdef OPT_OF\n"
+            "typedef OPT_OF(enum %s__t) %s__opt_t;\n"
+            "#else\n"
+            "typedef IOP_OPT_OF(enum %s__t) %s__opt_t;\n"
+            "#endif\n",
+            tbase, tbase, tbase, tbase);
     if (iopc_g.v2) {
         sb_addf(buf,
                 "#define %*pM_count %d\n"
