@@ -572,25 +572,20 @@ static void module_build_method_cb(module_method_impl_t *method)
 
         if (module->state == MANU_REQ && module->required_by.len == 0) {
             rec_module_run_method(module, method, &already_run);
-        }
-    }
+        } else
+        if (module->state == INITIALIZING) {
+            /* *This happens when a module runs a method during its
+             * initialization since the state of the module is set only when
+             * it is completely initialized.
+             */
+            assert (_G.in_initialization);
+            tab_for_each_entry(dep, &module->dependent_of) {
+                module_t *module_dep = qm_get(module, &_G.modules, &dep);
 
-    if (!_G.in_initialization) {
-        qh_wipe(ptr, &already_run);
-        return;
-    }
-
-    /* Second pass: run the method on auto required modules that might not
-     * have been run on the first pass.
-     * This can happen when you have a module that run its method during its
-     * initialization since the state of the module is set only when it is
-     * completly initialized.
-     */
-    qm_for_each_pos(module, position, &_G.modules) {
-        module_t *module = _G.modules.values[position];
-
-        if (module->state == AUTO_REQ) {
-            rec_module_run_method(module, method, &already_run);
+                if (module_is_loaded(module_dep)) {
+                    rec_module_run_method(module_dep, method, &already_run);
+                }
+            }
         }
     }
 
