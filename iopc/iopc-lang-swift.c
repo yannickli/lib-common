@@ -505,8 +505,29 @@ static bool iopc_struct_is_recursive(const iopc_struct_t *st)
     return res;
 }
 
+static bool iopc_class_is_final(const iopc_pkg_t *pkg,
+                                const iopc_struct_t *st)
+{
+    if (!st->is_local) {
+        return false;
+    }
+
+    tab_for_each_entry(other, &pkg->structs) {
+        if (other == st) {
+            continue;
+        }
+
+        tab_for_each_entry(ext, &other->extends) {
+            if (ext->st == st) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static void iopc_dump_struct(sb_t *buf, const char *indent,
-                             const iopc_struct_t *st,
+                             const iopc_pkg_t *pkg, const iopc_struct_t *st,
                              const char *pkg_name, const char *st_name)
 {
     t_scope;
@@ -525,8 +546,9 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     c_name = t_lstr_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(c_name));
 
     if (iopc_is_class(st->type)) {
-        sb_addf(buf, "%s%s class %s : ", indent,
-                st->is_local ? "public" : "open", st_name);
+        sb_addf(buf, "%s%s %sclass %s : ",
+                indent, st->is_local ? "public" : "open",
+                iopc_class_is_final(pkg, st) ? "final " : "", st_name);
         if (st->extends.len) {
             const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
 
@@ -558,6 +580,13 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 indent, iopc_is_class(st->type) ? "open override class "
                                                 : "public static ",
                 indent, LSTR_FMT_ARG(c_name), indent);
+    }
+    if (iopc_is_class(st->type)) {
+        sb_addf(buf,
+                "%s    open override class var isAbstract : Bool {\n"
+                "%s        return %s\n"
+                "%s    }\n\n",
+                indent, indent, st->is_abstract ? "true" : "false", indent);
     }
 
     /* Generate field list */
@@ -800,7 +829,7 @@ static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
         switch (st->type) {
           case STRUCT_TYPE_STRUCT:
           case STRUCT_TYPE_CLASS:
-            iopc_dump_struct(buf, "    ", st, pkg_name, NULL);
+            iopc_dump_struct(buf, "    ", pkg, st, pkg_name, NULL);
             break;
 
           case STRUCT_TYPE_UNION:
@@ -813,7 +842,8 @@ static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
     }
 }
 
-static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
+static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
+                          const iopc_fun_t *rpc, int pos,
                           const char *pkg_name)
 {
     t_scope;
@@ -823,7 +853,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
     sb_addf(buf, "        public enum %s : IopRPC {\n", st_name);
     if (rpc->arg) {
         if (rpc->arg_is_anonymous) {
-            iopc_dump_struct(buf, "            ", rpc->arg, pkg_name,
+            iopc_dump_struct(buf, "            ", pkg, rpc->arg, pkg_name,
                              "Argument");
         } else {
             sb_adds(buf, "            public typealias Argument = ");
@@ -833,7 +863,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
     }
     if (rpc->res) {
         if (rpc->res_is_anonymous) {
-            iopc_dump_struct(buf, "            ", rpc->res, pkg_name,
+            iopc_dump_struct(buf, "            ", pkg, rpc->res, pkg_name,
                              "Response");
         } else {
             sb_adds(buf, "            public typealias Response = ");
@@ -843,7 +873,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
     }
     if (rpc->exn) {
         if (rpc->exn_is_anonymous) {
-            iopc_dump_struct(buf, "            ", rpc->exn, pkg_name,
+            iopc_dump_struct(buf, "            ", pkg, rpc->exn, pkg_name,
                              "Exception");
         } else {
             sb_adds(buf, "            public typealias Exception = ");
@@ -864,8 +894,8 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
     /* Generate functions */
 }
 
-static void iopc_dump_iface(sb_t *buf, const iopc_iface_t *iface,
-                            const char *pkg_name)
+static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
+                            const iopc_iface_t *iface, const char *pkg_name)
 {
     t_scope;
     lstr_t iname = t_camelcase_to_c(LSTR(iface->name));
@@ -875,7 +905,7 @@ static void iopc_dump_iface(sb_t *buf, const iopc_iface_t *iface,
             iface->name);
 
     tab_for_each_pos(pos, &iface->funs) {
-        iopc_dump_rpc(buf, iface->funs.tab[pos], pos, ibase);
+        iopc_dump_rpc(buf, pkg, iface->funs.tab[pos], pos, ibase);
     }
     sb_adds(buf,
             "\n"
@@ -890,7 +920,7 @@ static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
     tab_for_each_entry(iface, &pkg->ifaces) {
         switch (iface->type) {
           case IFACE_TYPE_IFACE:
-            iopc_dump_iface(buf, iface, pkg_name);
+            iopc_dump_iface(buf, pkg, iface, pkg_name);
             break;
 
           default:
