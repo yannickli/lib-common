@@ -813,6 +813,92 @@ static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
     }
 }
 
+static void iopc_dump_rpc(sb_t *buf, const iopc_fun_t *rpc, int pos,
+                          const char *pkg_name)
+{
+    t_scope;
+    const char *st_name = t_fmt("%c%s", toupper(rpc->name[0]), rpc->name + 1);
+
+    /* Generate RPC Descriptor */
+    sb_addf(buf, "        public enum %s : IopRPC {\n", st_name);
+    if (rpc->arg) {
+        if (rpc->arg_is_anonymous) {
+            iopc_dump_struct(buf, "            ", rpc->arg, pkg_name,
+                             "Argument");
+        } else {
+            sb_adds(buf, "            public typealias Argument = ");
+            iopc_dump_field_basetype(buf, rpc->farg);
+            sb_addc(buf, '\n');
+        }
+    }
+    if (rpc->res) {
+        if (rpc->res_is_anonymous) {
+            iopc_dump_struct(buf, "            ", rpc->res, pkg_name,
+                             "Response");
+        } else {
+            sb_adds(buf, "            public typealias Response = ");
+            iopc_dump_field_basetype(buf, rpc->fres);
+            sb_addc(buf, '\n');
+        }
+    }
+    if (rpc->exn) {
+        if (rpc->exn_is_anonymous) {
+            iopc_dump_struct(buf, "            ", rpc->exn, pkg_name,
+                             "Exception");
+        } else {
+            sb_adds(buf, "            public typealias Exception = ");
+            iopc_dump_field_basetype(buf, rpc->fexn);
+            sb_addc(buf, '\n');
+        }
+    }
+    if (rpc->fun_is_async) {
+        sb_addf(buf, "            public typealias ReturnType = Void\n\n");
+    }
+
+    sb_addf(buf,
+            "            public static let descriptor = %s__if.funs.advanced(by: %d)\n"
+            "            public static let tag = %d\n"
+            "        }\n",
+            pkg_name, pos, rpc->tag);
+
+    /* Generate functions */
+}
+
+static void iopc_dump_iface(sb_t *buf, const iopc_iface_t *iface,
+                            const char *pkg_name)
+{
+    t_scope;
+    lstr_t iname = t_camelcase_to_c(LSTR(iface->name));
+    const char *ibase = t_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(iname));
+
+    sb_addf(buf, "    public struct %s : IopInterface {\n",
+            iface->name);
+
+    tab_for_each_pos(pos, &iface->funs) {
+        iopc_dump_rpc(buf, iface->funs.tab[pos], pos, ibase);
+    }
+    sb_adds(buf,
+            "\n"
+            "        public let _tag : Int\n"
+            "        public let _channel : IopChannel\n"
+            "    }\n\n");
+}
+
+static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
+                             const char *pkg_name)
+{
+    tab_for_each_entry(iface, &pkg->ifaces) {
+        switch (iface->type) {
+          case IFACE_TYPE_IFACE:
+            iopc_dump_iface(buf, iface, pkg_name);
+            break;
+
+          default:
+            break;
+        }
+    }
+}
+
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     t_scope;
@@ -864,6 +950,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     /* Generate types */
     iopc_dump_enums(&buf, pkg, pkg_name);
     iopc_dump_structs(&buf, pkg, pkg_name);
+    iopc_dump_ifaces(&buf, pkg, pkg_name);
 
     sb_addf(&buf,
             "    public static let classes : [IopClass.Type] = []\n"
