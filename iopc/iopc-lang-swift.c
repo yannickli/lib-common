@@ -155,15 +155,49 @@ static void iopc_dump_field_type(sb_t *buf, const iopc_field_t *field)
     }
 }
 
+static bool iopc_field_has_default_value(const iopc_field_t *field);
+static bool iopc_struct_has_void_initializer(const iopc_struct_t *st,
+                                             bool allow_abstract)
+{
+    if (!allow_abstract && (iopc_is_class(st->type) && st->is_abstract)) {
+        return false;
+    }
+
+    tab_for_each_entry(field, &st->fields) {
+        if (!iopc_field_has_default_value(field)) {
+            return false;
+        }
+    }
+
+    if (st->extends.len) {
+        return iopc_struct_has_void_initializer(st->extends.tab[0]->st, true);
+    }
+    return true;
+}
+
+static bool iopc_field_has_default_value(const iopc_field_t *field)
+{
+    if (field->repeat != IOP_R_REQUIRED) {
+        return true;
+    }
+
+    if (field->kind == IOP_T_STRUCT) {
+        return iopc_struct_has_void_initializer(field->struct_def, false);
+    }
+    return false;
+}
+
 static void iopc_dump_field_defval(sb_t *buf, const iopc_field_t *field)
 {
     SB_1k(tmp);
 
     switch (field->repeat) {
       case IOP_R_REQUIRED:
-        /* TODO: for structures that support a constructor without any
-         * argument, provide a default value for that structure.
-         */
+        if (iopc_field_has_default_value(field)) {
+            sb_adds(buf, " = ");
+            iopc_dump_field_basetype(buf, field);
+            sb_adds(buf, "()");
+        }
         break;
 
       case IOP_R_OPTIONAL:
