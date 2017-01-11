@@ -926,6 +926,80 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
             pkg_name, pos, rpc->tag);
 
     /* Generate functions */
+    if (rpc->arg) {
+        const iopc_struct_t *st;
+
+        st = rpc->arg_is_anonymous ? rpc->arg : rpc->farg->struct_def;
+        sb_addf(buf,
+                "        public func %s(_ args: %s.Argument) -> %s.ReturnType {\n"
+                "            return self._query(rpc: %s.self, args: args)\n"
+                "        }\n",
+                rpc->name, st_name, st_name, st_name);
+        if (st->type == STRUCT_TYPE_UNION) {
+            tab_for_each_entry(field, &st->fields) {
+                sb_addf(buf, "        public func %s(%s: ",
+                        rpc->name, field->name);
+                iopc_dump_field_type(buf, field);
+                sb_addf(buf, ") -> %s.ReturnType {\n"
+                        "            return self.%s(.%s(%s))\n"
+                        "        }\n",
+                        st_name, rpc->name, field->name, field->name);
+            }
+            sb_addc(buf, '\n');
+        } else
+        if (!iopc_is_class(rpc->arg->type)
+        ||  iopc_class_is_final(pkg, rpc->arg))
+        {
+            const iopc_struct_t *parent;
+            qv_t(iopc_struct) parents;
+            bool first = true;
+
+            parent = st;
+            qv_init(&parents);
+            qv_append(&parents, (iopc_struct_t *)parent);
+            while (parent->extends.len) {
+                parent = parent->extends.tab[0]->st;
+                qv_append(&parents, (iopc_struct_t *)parent);
+            }
+
+            sb_addf(buf, "        public func %s(", rpc->name);
+            tab_for_each_pos_rev(p, &parents) {
+                tab_for_each_entry(field, &parents.tab[p]->fields) {
+                    if (!first) {
+                        sb_adds(buf, ",\n");
+                        sb_addnc(buf, 21 + strlen(rpc->name), ' ');
+                    }
+                    first = false;
+                    sb_addf(buf, "%s: ", field->name);
+                    iopc_dump_field_type(buf, field);
+                    iopc_dump_field_defval(buf, field);
+                }
+            }
+            sb_addf(buf, ") -> %s.ReturnType {\n"
+                    "            return self.%s(%s.Argument(",
+                    st_name, rpc->name, st_name);
+            first = true;
+            tab_for_each_pos_rev(p, &parents) {
+                tab_for_each_entry(field, &parents.tab[p]->fields) {
+                    if (!first) {
+                        sb_adds(buf, ",\n");
+                        sb_addnc(buf, 35 + 2 * strlen(rpc->name), ' ');
+                    }
+                    first = false;
+                    sb_addf(buf, "%s: %s", field->name, field->name);
+                }
+            }
+            sb_adds(buf, "))\n"
+                    "        }\n\n");
+            qv_wipe(&parents);
+        }
+    } else {
+        sb_addf(buf,
+                "        public func %s() -> %s.ReturnType {\n"
+                "            return self._query(rpc: %s.self, args: IopVoid())\n"
+                "        }\n\n",
+                rpc->name, st_name, st_name);
+    }
 }
 
 static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
