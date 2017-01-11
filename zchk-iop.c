@@ -32,7 +32,12 @@
 #include "iop/tstiop_backward_compat_iface.iop.h"
 #include "iop/tstiop_backward_compat_iface_deleted.iop.h"
 #include "iop/tstiop_backward_compat_iface_deleted_rpc.iop.h"
+#include "iop/tstiop_backward_compat_iface_deleted_rpc_ignored.iop.h"
+#include "iop/tstiop_backward_compat_iface_deleted_rpc_ignored_bin.iop.h"
+#include "iop/tstiop_backward_compat_iface_deleted_rpc_ignored_json.iop.h"
 #include "iop/tstiop_backward_compat_iface_incompatible_rpc.iop.h"
+#include "iop/tstiop_backward_compat_iface_incompatible_rpc_ignored.iop.h"
+#include "iop/tstiop_backward_compat_iface_incompatible_rpc_ignored_binjson.iop.h"
 #include "iop/tstiop_backward_compat_mod.iop.h"
 #include "iop/tstiop_backward_compat_mod_deleted.iop.h"
 #include "iop/tstiop_backward_compat_mod_deleted_if.iop.h"
@@ -6330,6 +6335,30 @@ Z_GROUP_EXPORT(iop)
              PREFIX "RPC `rpc2` does not exist anymore");
 #undef PREFIX
 
+        /* test @(compat:ignore) on Interface */
+        T_OK_ALL(tstiop_backward_compat_iface,
+                 tstiop_backward_compat_iface_deleted_rpc_ignored);
+        /* test @(compat:ignoreJson) on Interface */
+        T_OK(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc_ignored_json,
+             IOP_COMPAT_JSON);
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc_ignored_json,
+             IOP_COMPAT_BIN,
+             "pkg `tstiop_backward_compat_iface_deleted_rpc_ignored_json`:"
+             INDENT_LVL1 "interface `tstiop_backward_compat_iface.Iface`:"
+             INDENT_LVL2 "RPC with tag 2 (`rpc2`) does not exist anymore");
+        /* test @(compat:ignoreBin) on Interface */
+        T_OK(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc_ignored_bin,
+             IOP_COMPAT_BIN);
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_deleted_rpc_ignored_bin,
+             IOP_COMPAT_JSON,
+             "pkg `tstiop_backward_compat_iface_deleted_rpc_ignored_bin`:"
+             INDENT_LVL1 "interface `tstiop_backward_compat_iface.Iface`:"
+             INDENT_LVL2 "RPC `rpc2` does not exist anymore");
+
         /* Incompatible RPC changes. */
         T_KO(tstiop_backward_compat_iface,
              tstiop_backward_compat_iface_incompatible_rpc, IOP_COMPAT_JSON,
@@ -6343,6 +6372,32 @@ Z_GROUP_EXPORT(iop)
              INDENT_LVL4 "incompatible types"
              INDENT_LVL2 "RPC `rpc1` exn:"
              INDENT_LVL3 "field `desc` does not exist anymore"
+             INDENT_LVL2 "RPC `rpc2` was async and is not anymore");
+        /* test @(compat:ignore) on RPC */
+        T_OK_ALL(tstiop_backward_compat_iface,
+                 tstiop_backward_compat_iface_incompatible_rpc_ignored);
+        /* test @(compat:ignoreJson) on RPC */
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_incompatible_rpc_ignored_binjson,
+             IOP_COMPAT_JSON,
+             "pkg `tstiop_backward_compat_iface_"
+             "incompatible_rpc_ignored_binjson`:"
+             INDENT_LVL1 "interface `tstiop_backward_compat_iface.Iface`:"
+             INDENT_LVL2 "RPC `rpc1` args:"
+             INDENT_LVL3 "new field `c` must not be required"
+             INDENT_LVL3 "field `b` does not exist anymore"
+             INDENT_LVL2 "RPC `rpc1` result:"
+             INDENT_LVL3 "field `res`:"
+             INDENT_LVL4 "incompatible types"
+             INDENT_LVL2 "RPC `rpc1` exn:"
+             INDENT_LVL3 "field `desc` does not exist anymore");
+        /* test @(compat:ignoreBin) on RPC */
+        T_KO(tstiop_backward_compat_iface,
+             tstiop_backward_compat_iface_incompatible_rpc_ignored_binjson,
+             IOP_COMPAT_BIN,
+             "pkg `tstiop_backward_compat_iface_"
+             "incompatible_rpc_ignored_binjson`:"
+             INDENT_LVL1 "interface `tstiop_backward_compat_iface.Iface`:"
              INDENT_LVL2 "RPC `rpc2` was async and is not anymore");
 
         /* Deleted module. */
