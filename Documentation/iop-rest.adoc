@@ -78,7 +78,7 @@ struct MyType {
 };
 ----
 |
-[source,json]
+[source,python]
 ----
 {
     "i": 3,
@@ -99,15 +99,15 @@ class Child : 1 : Father {
 };
 ----
 |
-[source,json]
+[source,python]
 ----
-∕* A father object */
+/* A father object */
 {
     "_class": "Father",
     "i": 3,
     "s": "myString"
 }
-∕* A child object */
+/* A child object */
 {
     "_class": "Child",
     "i": 3,
@@ -125,7 +125,7 @@ union OtherType {
 };
 ----
 |
-[source,json]
+[source,python]
 ----
 /* The first member is set. */
 {
@@ -151,7 +151,7 @@ struct MyType {
 };
 ----
 |
-[source,json]
+[source,python]
 ----
 {
     "e": "VALUE_1"
