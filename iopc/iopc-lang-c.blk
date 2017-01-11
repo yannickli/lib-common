@@ -3280,7 +3280,7 @@ iopc_iface_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         sb_addf(buf, "    .snmp_iface_attrs = &%s__snmp_attrs__s,\n", ibase);
     }
     sb_adds(buf, "};\n");
-    sb_addf(buf, "const iop_iface_t const * const %s__ifp = &%s__if;\n\n",
+    sb_addf(buf, "const iop_iface_t * const %s__ifp = &%s__if;\n\n",
             ibase, ibase);
     sb_adds(buf, "/* }""}} */\n");
 

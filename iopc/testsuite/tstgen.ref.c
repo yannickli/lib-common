@@ -337,7 +337,7 @@ const iop_iface_t tstgen__my_iface_a__if = {
     .rpc_attrs  = tstgen__my_iface_a__rpc_desc_attrs,
     .iface_attrs  = &tstgen__my_iface_a__desc_if_attrs,
 };
-const iop_iface_t const * const tstgen__my_iface_a__ifp = &tstgen__my_iface_a__if;
+const iop_iface_t * const tstgen__my_iface_a__ifp = &tstgen__my_iface_a__if;
 
 /* }}} */
 /* Package tstgen {{{ */

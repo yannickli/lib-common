@@ -1498,7 +1498,7 @@ const iop_iface_t tstdox__my_iface_a__if = {
     .rpc_attrs  = tstdox__my_iface_a__rpc_desc_attrs,
     .iface_attrs  = &tstdox__my_iface_a__desc_if_attrs,
 };
-const iop_iface_t const * const tstdox__my_iface_a__ifp = &tstdox__my_iface_a__if;
+const iop_iface_t * const tstdox__my_iface_a__ifp = &tstdox__my_iface_a__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceB {{{ */
@@ -1571,7 +1571,7 @@ const iop_iface_t tstdox__my_iface_b__if = {
     .funs       = tstdox__my_iface_b__if_funs,
     .funs_len   = countof(tstdox__my_iface_b__if_funs),
 };
-const iop_iface_t const * const tstdox__my_iface_b__ifp = &tstdox__my_iface_b__if;
+const iop_iface_t * const tstdox__my_iface_b__ifp = &tstdox__my_iface_b__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceC {{{ */
@@ -1667,7 +1667,7 @@ const iop_iface_t tstdox__my_iface_c__if = {
     .flags      = 1,
     .rpc_attrs  = tstdox__my_iface_c__rpc_desc_attrs,
 };
-const iop_iface_t const * const tstdox__my_iface_c__ifp = &tstdox__my_iface_c__if;
+const iop_iface_t * const tstdox__my_iface_c__ifp = &tstdox__my_iface_c__if;
 
 /* }}} */
 /* Interface tstdox.MyIfaceD {{{ */
@@ -1738,7 +1738,7 @@ const iop_iface_t tstdox__my_iface_d__if = {
     .flags      = 2,
     .iface_attrs  = &tstdox__my_iface_d__desc_if_attrs,
 };
-const iop_iface_t const * const tstdox__my_iface_d__ifp = &tstdox__my_iface_d__if;
+const iop_iface_t * const tstdox__my_iface_d__ifp = &tstdox__my_iface_d__if;
 
 /* }}} */
 /* Module tstdox.MyModuleA {{{ */
