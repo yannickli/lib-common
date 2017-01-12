@@ -70,7 +70,7 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
         lstr_t name = t_camelcase_to_c(LSTR(st->name));
 
         sb_addf(buf,
-                "extension %s__%*pM__array_t : Iop%sArray { }\n\n",
+                "extension %s__%*pM__array_t : libcommon.Iop%sArray { }\n\n",
                 pkg_name, LSTR_FMT_ARG(name),
                 iopc_is_class(st->type) ? "Class" : "ComplexType");
     }
@@ -80,14 +80,14 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
         lstr_t c_prefix = t_enum_get_prefix(en);
 
         sb_addf(buf,
-                "extension %s__%*pM__t : IopEnum {\n"
+                "extension %s__%*pM__t : libcommon.IopEnum {\n"
                 "    public static let descriptor = %s__%*pM__ep\n"
-                "    public static let min : Int32 = %*pM_min\n"
-                "    public static let max : Int32 = %*pM_max\n"
-                "    public static let count : Int32 = %*pM_count\n"
+                "    public static let min : Swift.Int32 = %*pM_min\n"
+                "    public static let max : Swift.Int32 = %*pM_max\n"
+                "    public static let count : Swift.Int32 = %*pM_count\n"
                 "}\n"
-                "extension %s__%*pM__array_t : IopSimpleArray { }\n"
-                "extension %s__%*pM__opt_t : IopOptional { }\n\n",
+                "extension %s__%*pM__array_t : libcommon.IopSimpleArray { }\n"
+                "extension %s__%*pM__opt_t : libcommon.IopOptional { }\n\n",
                 pkg_name, LSTR_FMT_ARG(name), pkg_name, LSTR_FMT_ARG(name),
                 LSTR_FMT_ARG(c_prefix), LSTR_FMT_ARG(c_prefix),
                 LSTR_FMT_ARG(c_prefix),
@@ -111,23 +111,23 @@ static void iopc_dump_enums(sb_t *buf, const iopc_pkg_t *pkg,
 static void iopc_dump_field_basetype(sb_t *buf, const iopc_field_t *field)
 {
     switch (field->kind) {
-      case IOP_T_I8: sb_adds(buf, "Int8"); break;
-      case IOP_T_U8: sb_adds(buf, "UInt8"); break;
-      case IOP_T_I16: sb_adds(buf, "Int16"); break;
-      case IOP_T_U16: sb_adds(buf, "UInt16"); break;
-      case IOP_T_I32: sb_adds(buf, "Int32"); break;
-      case IOP_T_U32: sb_adds(buf, "UInt32"); break;
-      case IOP_T_I64: sb_adds(buf, "Int64"); break;
-      case IOP_T_U64: sb_adds(buf, "UInt64"); break;
-      case IOP_T_BOOL: sb_adds(buf, "Bool"); break;
-      case IOP_T_DOUBLE: sb_adds(buf, "Double"); break;
+      case IOP_T_I8: sb_adds(buf, "Swift.Int8"); break;
+      case IOP_T_U8: sb_adds(buf, "Swift.UInt8"); break;
+      case IOP_T_I16: sb_adds(buf, "Swift.Int16"); break;
+      case IOP_T_U16: sb_adds(buf, "Swift.UInt16"); break;
+      case IOP_T_I32: sb_adds(buf, "Swift.Int32"); break;
+      case IOP_T_U32: sb_adds(buf, "Swift.UInt32"); break;
+      case IOP_T_I64: sb_adds(buf, "Swift.Int64"); break;
+      case IOP_T_U64: sb_adds(buf, "Swift.UInt64"); break;
+      case IOP_T_BOOL: sb_adds(buf, "Swift.Bool"); break;
+      case IOP_T_DOUBLE: sb_adds(buf, "Swift.Double"); break;
 
       case IOP_T_STRING: case IOP_T_XML:
-        sb_adds(buf, "String");
+        sb_adds(buf, "Swift.String");
         break;
 
       case IOP_T_DATA:
-        sb_adds(buf, "[Int8]");
+        sb_adds(buf, "[Swift.Int8]");
         break;
 
       case IOP_T_STRUCT: case IOP_T_UNION: case IOP_T_ENUM:
@@ -296,12 +296,12 @@ static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
         break;
 
       case IOP_T_STRING: case IOP_T_XML:
-        sb_addf(buf, "%s        %s String(%s) ?? \"\"",
+        sb_addf(buf, "%s        %s Swift.String(%s) ?? \"\"",
                 indent, action, source);
         break;
 
       case IOP_T_DATA:
-        sb_addf(buf, "%s        %s Array(%s)", indent, action, source);
+        sb_addf(buf, "%s        %s Swift.Array(%s)", indent, action, source);
         break;
 
       case IOP_T_UNION: case IOP_T_STRUCT:
@@ -310,12 +310,12 @@ static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
         {
             sb_addf(buf, "%s        %s try ", indent, action);
             iopc_dump_field_basetype(buf, field);
-            sb_addf(buf, ".make(UnsafeRawPointer(%s)!)", source);
+            sb_addf(buf, ".make(Swift.UnsafeRawPointer(%s)!)", source);
         } else
         if (field->is_ref) {
             sb_addf(buf, "%s        %s try ", indent, action);
             iopc_dump_field_basetype(buf, field);
-            sb_addf(buf, "(UnsafeRawPointer(%s)!)", source);
+            sb_addf(buf, "(Swift.UnsafeRawPointer(%s)!)", source);
         } else {
             sb_addf(buf,
                     "\n"
@@ -354,7 +354,7 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
             break;
 
           case IOP_T_STRING: case IOP_T_XML:
-            sb_addf(buf, "%s         self.%s = String(data.%*pM)\n",
+            sb_addf(buf, "%s         self.%s = Swift.String(data.%*pM)\n",
                     indent, field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
@@ -386,7 +386,7 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_REPEATED:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        self.%s = Array(data.%*pM)\n", indent,
+            sb_addf(buf, "%s        self.%s = Swift.Array(data.%*pM)\n", indent,
                     field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
@@ -426,7 +426,7 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
             break;
 
           case IOP_T_DATA:
-            sb_addf(buf, "%s        data.pointee.%*pM = LString(self.%s.duplicated(on: allocator), "
+            sb_addf(buf, "%s        data.pointee.%*pM = libcommon.LString(self.%s.duplicated(on: allocator), "
                     "count: Int32(self.%s.count), flags: 0)\n", indent,
                     LSTR_FMT_ARG(c_field_name), field->name, field->name);
             break;
@@ -464,7 +464,7 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
           case IOP_T_DATA:
             sb_addf(buf,
                     "%s        if let %s = self.%s {\n"
-                    "%s            data.pointee.%*pM = LString(%s.duplicated(on: allocator), count: Int32(%s.count), flags: 0)\n"
+                    "%s            data.pointee.%*pM = libcommon.LString(%s.duplicated(on: allocator), count: Swift.Int32(%s.count), flags: 0)\n"
                     "%s        }\n",
                     indent, field->name, field->name, indent,
                     LSTR_FMT_ARG(c_field_name), field->name, field->name,
@@ -593,12 +593,12 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             }
             sb_addf(buf, "%s {\n", parent->name);
         } else {
-            sb_adds(buf, "IopClass {\n");
+            sb_adds(buf, "libcommon.IopClass {\n");
         }
         is_struct = false;
     } else {
         is_struct = !iopc_struct_is_recursive(st);
-        sb_addf(buf, "%spublic %s %s : IopStruct {\n", indent,
+        sb_addf(buf, "%spublic %s %s : libcommon.IopStruct {\n", indent,
                 is_struct ? "struct" : "final class", st_name);
     }
 
@@ -608,7 +608,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 indent, LSTR_FMT_ARG(c_name));
     } else {
         sb_addf(buf,
-                "%s    %svar descriptor : UnsafePointer<iop_struct_t> {\n"
+                "%s    %svar descriptor : Swift.UnsafePointer<iop_struct_t> {\n"
                 "%s        return %*pM__sp\n"
                 "%s    }\n\n",
                 indent, iopc_is_class(st->type) ? "open override class "
@@ -617,7 +617,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     }
     if (iopc_is_class(st->type)) {
         sb_addf(buf,
-                "%s    open override class var isAbstract : Bool {\n"
+                "%s    open override class var isAbstract : Swift.Bool {\n"
                 "%s        return %s\n"
                 "%s    }\n\n",
                 indent, indent, st->is_abstract ? "true" : "false", indent);
@@ -681,7 +681,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     sb_addf(buf, "%s    }\n\n", indent);
 
     /* Generate C interface */
-    sb_addf(buf, "%s     public %sinit(_ c: UnsafeRawPointer) throws {\n",
+    sb_addf(buf, "%s     public %sinit(_ c: Swift.UnsafeRawPointer) throws {\n",
             indent, iopc_is_class(st->type) ? "required " : "");
     if (st->fields.len) {
         sb_addf(buf,
@@ -696,7 +696,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     }
     sb_addf(buf,
             "%s    }\n\n"
-            "%s    %sfunc fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {\n",
+            "%s    %sfunc fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {\n",
             indent, indent,
             iopc_is_class(st->type) ? "open override " : "public ");
     if (st->fields.len) {
@@ -736,12 +736,12 @@ static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
         break;
 
       case IOP_T_DATA:
-        sb_addf(buf, "                self = .%s(Array(data.bindMemory(to: LString.self, capacity: 1).pointee))\n",
+        sb_addf(buf, "                self = .%s(Swift.Array(data.bindMemory(to: libcommon.LString.self, capacity: 1).pointee))\n",
                 field->name);
         break;
 
       case IOP_T_STRING: case IOP_T_XML:
-        sb_addf(buf, "                self = .%s(String("
+        sb_addf(buf, "                self = .%s(Swift.String("
                 "data.bindMemory(to: LString.self, capacity: 1).pointee) ?? \"\")\n",
                 field->name);
         break;
@@ -751,7 +751,7 @@ static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
         iopc_dump_field_basetype(buf, field);
         sb_adds(buf, "(data");
         if (type_is_class || field->is_ref) {
-            sb_adds(buf, ".bindMemory(to: UnsafeRawPointer.self, capacity: 1).pointee");
+            sb_adds(buf, ".bindMemory(to: Swift.UnsafeRawPointer.self, capacity: 1).pointee");
         }
         sb_adds(buf, "))\n");
         break;
@@ -783,20 +783,20 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
       case IOP_T_DATA:
         sb_addf(buf,
                 "                data.bindMemory(to: LString.self, capacity: 1).pointee"
-                " = LString(%s.duplicated(on: allocator), count: Int32(%s.count), flags: 0)\n",
+                " = LString(%s.duplicated(on: allocator), count: Swift.Int32(%s.count), flags: 0)\n",
                 field->name, field->name);
         break;
 
       case IOP_T_STRING: case IOP_T_XML:
         sb_addf(buf,
-                "                data.bindMemory(to: LString.self, capacity: 1).pointee"
+                "                data.bindMemory(to: libcommon.LString.self, capacity: 1).pointee"
                 " = %s.duplicated(on: allocator)\n", field->name);
         break;
 
       case IOP_T_UNION: case IOP_T_STRUCT:
         if (type_is_class || field->is_ref) {
             sb_addf(buf,
-                   "                data.bindMemory(to: UnsafeMutableRawPointer.self, "
+                   "                data.bindMemory(to: Swift.UnsafeMutableRawPointer.self, "
                    "capacity: 1).pointee = %s.duplicated(on: allocator)\n", field->name);
         } else {
             sb_addf(buf, "                %s.fill(data, on: allocator)\n", field->name);
@@ -813,7 +813,7 @@ static void iopc_dump_union(sb_t *buf,
 
     c_name = t_lstr_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(c_name));
 
-    sb_addf(buf, "    public %senum %s : IopUnion {\n",
+    sb_addf(buf, "    public %senum %s : libcommon.IopUnion {\n",
             iopc_struct_is_recursive(st) ? "indirect " : "",
             st->name);
 
@@ -831,7 +831,7 @@ static void iopc_dump_union(sb_t *buf,
 
     /* Generate C interface */
     sb_adds(buf,
-            "        public init(_ c: UnsafeRawPointer) throws {\n"
+            "        public init(_ c: Swift.UnsafeRawPointer) throws {\n"
             "            let (tag, data) = type(of: self)._explode(c)\n"
             "            switch tag {\n");
     tab_for_each_entry(field, &st->fields) {
@@ -840,10 +840,10 @@ static void iopc_dump_union(sb_t *buf,
 
     sb_adds(buf,
             "              default:\n"
-            "                throw IopImportError.invalidUnionTag(type(of: self).descriptor, tag)\n"
+            "                throw libcommon.IopImportError.invalidUnionTag(type(of: self).descriptor, tag)\n"
             "            }\n"
             "        }\n\n"
-            "        public func fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {\n"
+            "        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {\n"
             "            let (tag, data) = type(of: self)._explode(c)\n"
             "            switch self {\n");
     tab_for_each_entry(field, &st->fields) {
@@ -884,7 +884,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
     const char *st_name = t_fmt("%c%s", toupper(rpc->name[0]), rpc->name + 1);
 
     /* Generate RPC Descriptor */
-    sb_addf(buf, "        public enum %s : IopRPC {\n", st_name);
+    sb_addf(buf, "        public enum %s : libcommon.IopRPC {\n", st_name);
     if (rpc->arg) {
         if (rpc->arg_is_anonymous) {
             iopc_dump_struct(buf, "            ", pkg, rpc->arg, pkg_name,
@@ -916,7 +916,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
     if (rpc->fun_is_async) {
-        sb_addf(buf, "            public typealias ReturnType = Void\n\n");
+        sb_addf(buf, "            public typealias ReturnType = Swift.Void\n\n");
     }
 
     sb_addf(buf,
@@ -996,7 +996,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
     } else {
         sb_addf(buf,
                 "        public func %s() -> %s.ReturnType {\n"
-                "            return self._query(rpc: %s.self, args: IopVoid())\n"
+                "            return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
                 "        }\n\n",
                 rpc->name, st_name, st_name);
     }
@@ -1009,7 +1009,7 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
     lstr_t iname = t_camelcase_to_c(LSTR(iface->name));
     const char *ibase = t_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(iname));
 
-    sb_addf(buf, "    public struct %s : IopInterface {\n",
+    sb_addf(buf, "    public struct %s : libcommon.IopInterface {\n",
             iface->name);
 
     tab_for_each_pos(pos, &iface->funs) {
@@ -1017,8 +1017,8 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
     }
     sb_adds(buf,
             "\n"
-            "        public let _tag : Int\n"
-            "        public let _channel : IopChannel\n"
+            "        public let _tag : Swift.Int\n"
+            "        public let _channel : libcommon.IopChannel\n"
             "    }\n\n");
 }
 
@@ -1082,7 +1082,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         }
         sb_adds(&buf, "{\n");
     }
-    sb_addf(&buf, "public enum %s : IopPackage {\n",
+    sb_addf(&buf, "public enum %s : libcommon.IopPackage {\n",
             *qv_last(&pkg->name->bits));
 
     /* Generate types */
@@ -1091,7 +1091,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     iopc_dump_ifaces(&buf, pkg, pkg_name);
 
     sb_addf(&buf,
-            "    public static let classes : [IopClass.Type] = []\n"
+            "    public static let classes : [libcommon.IopClass.Type] = []\n"
             "}\n");
     if (pkg->name->bits.len > 1) {
         sb_adds(&buf, "}\n");
