@@ -1173,9 +1173,24 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     iopc_dump_ifaces(&buf, pkg, pkg_name);
     iopc_dump_modules_impl(&buf, pkg, pkg_name);
 
-    sb_addf(&buf,
-            "    public static let classes : [libcommon.IopClass.Type] = []\n"
-            "}\n");
+    /* Define registries */
+    {
+        bool first = true;
+
+        sb_adds(&buf, "    public static let classes : [libcommon.IopClass.Type] = [ ");
+        tab_for_each_entry(st, &pkg->structs) {
+            if (iopc_is_class(st->type)) {
+                if (!first) {
+                    sb_adds(&buf, ", ");
+                }
+                first = false;
+                sb_addf(&buf, "%s.self", st->name);
+            }
+        }
+        sb_adds(&buf, " ]\n");
+    }
+
+    sb_adds(&buf, "}\n");
     if (pkg->name->bits.len > 1) {
         sb_adds(&buf, "}\n");
     }
