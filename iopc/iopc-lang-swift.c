@@ -884,45 +884,45 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
     const char *st_name = t_fmt("%c%s", toupper(rpc->name[0]), rpc->name + 1);
 
     /* Generate RPC Descriptor */
-    sb_addf(buf, "        public enum %s : libcommon.IopRPC {\n", st_name);
+    sb_addf(buf, "            public enum %s : libcommon.IopRPC {\n", st_name);
     if (rpc->arg) {
         if (rpc->arg_is_anonymous) {
-            iopc_dump_struct(buf, "            ", pkg, rpc->arg, pkg_name,
+            iopc_dump_struct(buf, "                ", pkg, rpc->arg, pkg_name,
                              "Argument");
         } else {
-            sb_adds(buf, "            public typealias Argument = ");
+            sb_adds(buf, "                public typealias Argument = ");
             iopc_dump_field_basetype(buf, rpc->farg);
             sb_addc(buf, '\n');
         }
     }
     if (rpc->res) {
         if (rpc->res_is_anonymous) {
-            iopc_dump_struct(buf, "            ", pkg, rpc->res, pkg_name,
+            iopc_dump_struct(buf, "                ", pkg, rpc->res, pkg_name,
                              "Response");
         } else {
-            sb_adds(buf, "            public typealias Response = ");
+            sb_adds(buf, "                public typealias Response = ");
             iopc_dump_field_basetype(buf, rpc->fres);
             sb_addc(buf, '\n');
         }
     }
     if (rpc->exn) {
         if (rpc->exn_is_anonymous) {
-            iopc_dump_struct(buf, "            ", pkg, rpc->exn, pkg_name,
+            iopc_dump_struct(buf, "                ", pkg, rpc->exn, pkg_name,
                              "Exception");
         } else {
-            sb_adds(buf, "            public typealias Exception = ");
+            sb_adds(buf, "                public typealias Exception = ");
             iopc_dump_field_basetype(buf, rpc->fexn);
             sb_addc(buf, '\n');
         }
     }
     if (rpc->fun_is_async) {
-        sb_addf(buf, "            public typealias ReturnType = Swift.Void\n\n");
+        sb_addf(buf, "                public typealias ReturnType = Swift.Void\n\n");
     }
 
     sb_addf(buf,
-            "            public static let descriptor = %s__if.funs.advanced(by: %d)\n"
-            "            public static let tag = %d\n"
-            "        }\n",
+            "                public static let descriptor = %s__if.funs.advanced(by: %d)\n"
+            "                public static let tag = %d\n"
+            "            }\n",
             pkg_name, pos, rpc->tag);
 
     /* Generate functions */
@@ -931,9 +931,9 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
 
         st = rpc->arg_is_anonymous ? rpc->arg : rpc->farg->struct_def;
         sb_addf(buf,
-                "        public func %s(_ args: %s.Argument) -> %s.ReturnType {\n"
-                "            return self._query(rpc: %s.self, args: args)\n"
-                "        }\n",
+                "            public func %s(_ args: %s.Argument) -> %s.ReturnType {\n"
+                "                return self._query(rpc: %s.self, args: args)\n"
+                "            }\n",
                 rpc->name, st_name, st_name, st_name);
         if (st->type == STRUCT_TYPE_UNION) {
             tab_for_each_entry(field, &st->fields) {
@@ -941,8 +941,8 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                         rpc->name, field->name);
                 iopc_dump_field_type(buf, field);
                 sb_addf(buf, ") -> %s.ReturnType {\n"
-                        "            return self.%s(.%s(%s))\n"
-                        "        }\n",
+                        "                return self.%s(.%s(%s))\n"
+                        "            }\n",
                         st_name, rpc->name, field->name, field->name);
             }
             sb_addc(buf, '\n');
@@ -962,12 +962,12 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 qv_append(&parents, (iopc_struct_t *)parent);
             }
 
-            sb_addf(buf, "        public func %s(", rpc->name);
+            sb_addf(buf, "            public func %s(", rpc->name);
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
                     if (!first) {
                         sb_adds(buf, ",\n");
-                        sb_addnc(buf, 21 + strlen(rpc->name), ' ');
+                        sb_addnc(buf, 25 + strlen(rpc->name), ' ');
                     }
                     first = false;
                     sb_addf(buf, "%s: ", field->name);
@@ -976,28 +976,28 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 }
             }
             sb_addf(buf, ") -> %s.ReturnType {\n"
-                    "            return self.%s(%s.Argument(",
+                    "                return self.%s(%s.Argument(",
                     st_name, rpc->name, st_name);
             first = true;
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
                     if (!first) {
                         sb_adds(buf, ",\n");
-                        sb_addnc(buf, 35 + 2 * strlen(rpc->name), ' ');
+                        sb_addnc(buf, 39 + 2 * strlen(rpc->name), ' ');
                     }
                     first = false;
                     sb_addf(buf, "%s: %s", field->name, field->name);
                 }
             }
             sb_adds(buf, "))\n"
-                    "        }\n\n");
+                    "            }\n\n");
             qv_wipe(&parents);
         }
     } else {
         sb_addf(buf,
-                "        public func %s() -> %s.ReturnType {\n"
-                "            return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
-                "        }\n\n",
+                "            public func %s() -> %s.ReturnType {\n"
+                "                return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
+                "            }\n\n",
                 rpc->name, st_name, st_name);
     }
 }
@@ -1009,7 +1009,7 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
     lstr_t iname = t_camelcase_to_c(LSTR(iface->name));
     const char *ibase = t_fmt("%s__%*pM", pkg_name, LSTR_FMT_ARG(iname));
 
-    sb_addf(buf, "    public struct %s : libcommon.IopInterface {\n",
+    sb_addf(buf, "        public struct %s : libcommon.IopInterface {\n",
             iface->name);
 
     tab_for_each_pos(pos, &iface->funs) {
@@ -1017,14 +1017,19 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
     }
     sb_adds(buf,
             "\n"
-            "        public let _tag : Swift.Int\n"
-            "        public let _channel : libcommon.IopChannel\n"
-            "    }\n\n");
+            "            public let _tag : Swift.Int\n"
+            "            public let _channel : libcommon.IopChannel\n"
+            "            public init(channel: libcommon.IopChannel, tag: Swift.Int) {\n"
+            "                self._channel = channel\n"
+            "                self._tag = tag\n"
+            "            }\n"
+            "        }\n\n");
 }
 
 static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
                              const char *pkg_name)
 {
+    sb_adds(buf, "    public enum interfaces {\n");
     tab_for_each_entry(iface, &pkg->ifaces) {
         switch (iface->type) {
           case IFACE_TYPE_IFACE:
@@ -1035,6 +1040,82 @@ static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
             break;
         }
     }
+    sb_adds(buf, "    }\n");
+}
+
+static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
+                             const char *pkg_name)
+{
+    sb_addf(buf, "public protocol %s__modules__%s : ", pkg_name, mod->name);
+
+    if (mod->extends.len) {
+        bool first = true;
+
+        tab_for_each_entry(parent, &mod->extends) {
+            if (!first) {
+                sb_adds(buf, ", ");
+            }
+            first = false;
+            sb_adds(buf, t_pp_under(parent->pkg->name));
+            sb_addf(buf, "__modules__%s", parent->st->name);
+        }
+        sb_adds(buf, " {\n");
+    } else {
+        sb_adds(buf, "libcommon.IopModule {\n");
+    }
+
+    tab_for_each_entry(field, &mod->fields) {
+        sb_addf(buf, "    var %s : ", field->name);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%c%s { get }\n",
+                toupper(*field->type_name), field->type_name + 1);
+    }
+    sb_adds(buf, "}\n");
+
+    sb_addf(buf, "public extension %s__modules__%s {\n", pkg_name, mod->name);
+    tab_for_each_entry(field, &mod->fields) {
+        sb_addf(buf, "    public var %s : ", field->name);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%c%s {\n"
+                "        return ",
+                toupper(*field->type_name), field->type_name + 1);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%c%s(channel: self.channel, tag: %d)\n"
+                "    }\n", toupper(*field->type_name), field->type_name + 1,
+                field->tag);
+    }
+    sb_adds(buf, "}\n\n");
+}
+
+static void iopc_dump_modules(sb_t *buf, const iopc_pkg_t *pkg,
+                              const char *pkg_name)
+{
+    tab_for_each_entry(mod, &pkg->modules) {
+        iopc_dump_module(buf, mod, pkg_name);
+    }
+}
+
+static void iopc_dump_modules_impl(sb_t *buf, const iopc_pkg_t *pkg,
+                                      const char *pkg_name)
+{
+    sb_adds(buf, "    public enum modules {\n");
+    tab_for_each_entry(mod, &pkg->modules) {
+        sb_addf(buf,
+                "        public struct %s : %s__modules__%s {\n"
+                "            public let channel : libcommon.IopChannel\n"
+                "            public init(channel: libcommon.IopChannel) {\n"
+                "                self.channel = channel\n"
+                "            }\n"
+                "        }\n",
+                mod->name, pkg_name, mod->name);
+    }
+    sb_adds(buf, "    }\n");
 }
 
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
@@ -1068,6 +1149,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 
     /* Generate C types extensions */
     iopc_dump_extensions(&buf, pkg, pkg_name);
+    iopc_dump_modules(&buf, pkg, pkg_name);
 
     /* Generate Swift package */
     if (pkg->name->bits.len > 1) {
@@ -1089,6 +1171,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     iopc_dump_enums(&buf, pkg, pkg_name);
     iopc_dump_structs(&buf, pkg, pkg_name);
     iopc_dump_ifaces(&buf, pkg, pkg_name);
+    iopc_dump_modules_impl(&buf, pkg, pkg_name);
 
     sb_addf(&buf,
             "    public static let classes : [libcommon.IopClass.Type] = []\n"
