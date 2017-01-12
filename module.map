@@ -14,6 +14,7 @@ module libcommon {
 
     module iop [extern_c] {
         header "iop.h"
+        header "iop-rpc.h"
         header "core.iop.h"
         header "ic.iop.h"
     }

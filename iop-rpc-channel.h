@@ -29,12 +29,14 @@ typedef struct ichannel_t    ichannel_t;
 typedef struct ic_msg_t      ic_msg_t;
 typedef struct ic_hook_ctx_t ic_hook_ctx_t;
 
-typedef enum ic_event_t {
-    IC_EVT_CONNECTED,
-    IC_EVT_DISCONNECTED,
-    IC_EVT_ACT,   /* used to notify of first activity when using soft wa */
-    IC_EVT_NOACT, /* used to notify no activity when using soft wa       */
-} ic_event_t;
+SWIFT_ENUM(ic_event_t) {
+    IC_EVT_CONNECTED __swift_name__("connected"),
+    IC_EVT_DISCONNECTED __swift_name__("disconnected"),
+    /* used to notify of first activity when using soft wa */
+    IC_EVT_ACT __swift_name__("activity"),
+    /* used to notify no activity when using soft wa       */
+    IC_EVT_NOACT __swift_name__("noActivity"),
+};
 
 
 #define IC_MSG_HDR_LEN             12
@@ -70,6 +72,10 @@ typedef int (ic_creds_f)(ichannel_t * nonnull,
                          const ic_creds_t * nonnull creds);
 typedef void (ic_msg_cb_f)(ichannel_t * nonnull, ic_msg_t * nonnull,
                            ic_status_t, void * nullable, void * nullable);
+#ifdef __has_blocks
+typedef void (BLOCK_CARET ic_msg_cb_b)(ichannel_t * nonnull, ic_status_t,
+                                       void * nullable, void * nullable);
+#endif
 
 struct ic_msg_t {
     htnode_t      msg_link;        /**< private field used by ichannel_t */
@@ -112,6 +118,9 @@ ic_msg_t * nonnull ic_msg_new(int len);
     })
 #define ic_msg(_t, ...)  ic_msg_p(_t, (&(_t){ __VA_ARGS__ }))
 
+#ifdef __has_blocks
+ic_msg_t * nonnull ic_msg_new_blk(ic_msg_cb_b nonnull blk);
+#endif
 ic_msg_t * nonnull ic_msg_new_fd(int fd, int len);
 ic_msg_t * nonnull ic_msg_proxy_new(int fd, uint64_t slot,
                                     const ic__hdr__t * nullable hdr);
