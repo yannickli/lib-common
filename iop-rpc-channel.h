@@ -174,8 +174,9 @@ ic_hook_ctx_t * nonnull ic_hook_ctx_new(uint64_t slot, ssize_t extra);
 ic_hook_ctx_t * nullable ic_hook_ctx_get(uint64_t slot);
 void ic_hook_ctx_delete(ic_hook_ctx_t * nullable * nonnull pctx);
 
-enum ic_cb_entry_type {
+SWIFT_ENUM(ic_cb_entry_type_t) {
     IC_CB_NORMAL,
+    IC_CB_NORMAL_BLK,
     IC_CB_PROXY_P,
     IC_CB_PROXY_PP,
     IC_CB_DYNAMIC_PROXY,
@@ -201,7 +202,7 @@ typedef ic_dynproxy_t (ic_dynproxy_f)(ic__hdr__t * nullable hdr,
     ((ic_dynproxy_t){ .ic = (_ic), .hdr = (_hdr) })
 
 typedef struct ic_cb_entry_t {
-    int cb_type;
+    ic_cb_entry_type_t cb_type;
     const iop_rpc_t * nonnull rpc;
 
     ic_pre_hook_f  * nullable pre_hook;
@@ -213,6 +214,14 @@ typedef struct ic_cb_entry_t {
             void (* nonnull cb)(ichannel_t * nonnull, uint64_t,
                                 void * nullable, const ic__hdr__t * nullable);
         } cb;
+
+#ifdef __has_blocks
+        struct {
+            void (BLOCK_CARET nonnull cb)(ichannel_t * nonnull, uint64_t,
+                                          void * nullable,
+                                          const ic__hdr__t * nullable);
+        } blk;
+#endif
 
         struct {
             ichannel_t * nonnull ic_p;
@@ -233,6 +242,14 @@ typedef struct ic_cb_entry_t {
             void (* nonnull cb)(void * nullable, uint64_t, void * nullable,
                                 const ic__hdr__t * nullable);
         } iws_cb;
+
+#ifdef __has_blocks
+        struct {
+            void (BLOCK_CARET nonnull cb)(ichannel_t * nullable, uint64_t,
+                                          void * nullable,
+                                          const ic__hdr__t * nullable);
+        } iws_blk;
+#endif
     } u;
 } ic_cb_entry_t;
 qm_k32_t(ic_cbs, ic_cb_entry_t);
