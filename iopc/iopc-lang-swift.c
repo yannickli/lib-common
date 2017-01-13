@@ -681,7 +681,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     sb_addf(buf, "%s    }\n\n", indent);
 
     /* Generate C interface */
-    sb_addf(buf, "%s     public %sinit(_ c: Swift.UnsafeRawPointer) throws {\n",
+    sb_addf(buf, "%s    public %sinit(_ c: Swift.UnsafeRawPointer) throws {\n",
             indent, iopc_is_class(st->type) ? "required " : "");
     if (st->fields.len) {
         sb_addf(buf,
@@ -876,15 +876,12 @@ static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
     }
 }
 
-static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
-                          const iopc_fun_t *rpc, int pos,
-                          const char *pkg_name)
+static void iopc_dump_rpc_desc(sb_t *buf, const iopc_pkg_t *pkg,
+                               const iopc_fun_t *rpc, int pos,
+                               const char *pkg_name)
 {
-    t_scope;
-    const char *st_name = t_fmt("%c%s", toupper(rpc->name[0]), rpc->name + 1);
-
-    /* Generate RPC Descriptor */
-    sb_addf(buf, "            public enum %s : libcommon.IopRPC {\n", st_name);
+    sb_addf(buf, "            public enum %c%s : libcommon.IopRPC {\n",
+            toupper(*rpc->name), rpc->name + 1);
     if (rpc->arg) {
         if (rpc->arg_is_anonymous) {
             iopc_dump_struct(buf, "                ", pkg, rpc->arg, pkg_name,
@@ -922,8 +919,21 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
     sb_addf(buf,
             "                public static let descriptor = %s__if.funs.advanced(by: %d)\n"
             "                public static let tag = %d\n"
-            "            }\n",
-            pkg_name, pos, rpc->tag);
+            "            }\n"
+            "            public var %s : (Int, %c%s.Type) {\n"
+            "                return ((self._tag << 16) + %c%s.tag, %c%s.self)\n"
+            "            }\n\n",
+            pkg_name, pos, rpc->tag, rpc->name, toupper(*rpc->name),
+            rpc->name + 1, toupper(*rpc->name), rpc->name + 1,
+            toupper(*rpc->name), rpc->name + 1);
+}
+
+static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
+                               const iopc_fun_t *rpc, int pos,
+                               const char *pkg_name)
+{
+    t_scope;
+    const char *rpc_desc = t_fmt("%c%s", toupper(*rpc->name), rpc->name + 1);
 
     /* Generate functions */
     if (rpc->arg) {
@@ -931,19 +941,19 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
 
         st = rpc->arg_is_anonymous ? rpc->arg : rpc->farg->struct_def;
         sb_addf(buf,
-                "            public func %s(_ args: %s.Argument) -> %s.ReturnType {\n"
-                "                return self._query(rpc: %s.self, args: args)\n"
-                "            }\n",
-                rpc->name, st_name, st_name, st_name);
+                "                public func %s(_ args: %s.Argument) -> %s.ReturnType {\n"
+                "                    return self._query(rpc: %s.self, args: args)\n"
+                "                }\n",
+                rpc->name, rpc_desc, rpc_desc, rpc_desc);
         if (st->type == STRUCT_TYPE_UNION) {
             tab_for_each_entry(field, &st->fields) {
-                sb_addf(buf, "        public func %s(%s: ",
+                sb_addf(buf, "            public func %s(%s: ",
                         rpc->name, field->name);
                 iopc_dump_field_type(buf, field);
                 sb_addf(buf, ") -> %s.ReturnType {\n"
-                        "                return self.%s(.%s(%s))\n"
-                        "            }\n",
-                        st_name, rpc->name, field->name, field->name);
+                        "                    return self.%s(.%s(%s))\n"
+                        "                }\n",
+                        rpc_desc, rpc->name, field->name, field->name);
             }
             sb_addc(buf, '\n');
         } else
@@ -962,7 +972,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 qv_append(&parents, (iopc_struct_t *)parent);
             }
 
-            sb_addf(buf, "            public func %s(", rpc->name);
+            sb_addf(buf, "                public func %s(", rpc->name);
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
                     if (!first) {
@@ -976,8 +986,8 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 }
             }
             sb_addf(buf, ") -> %s.ReturnType {\n"
-                    "                return self.%s(%s.Argument(",
-                    st_name, rpc->name, st_name);
+                    "                    return self.%s(%s.Argument(",
+                    rpc_desc, rpc->name, rpc_desc);
             first = true;
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
@@ -990,15 +1000,15 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 }
             }
             sb_adds(buf, "))\n"
-                    "            }\n\n");
+                    "                }\n\n");
             qv_wipe(&parents);
         }
     } else {
         sb_addf(buf,
-                "            public func %s() -> %s.ReturnType {\n"
-                "                return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
-                "            }\n\n",
-                rpc->name, st_name, st_name);
+                "                public func %s() -> %s.ReturnType {\n"
+                "                    return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
+                "                }\n\n",
+                rpc->name, rpc_desc, rpc_desc);
     }
 }
 
@@ -1013,14 +1023,23 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
             iface->name);
 
     tab_for_each_pos(pos, &iface->funs) {
-        iopc_dump_rpc(buf, pkg, iface->funs.tab[pos], pos, ibase);
+        iopc_dump_rpc_desc(buf, pkg, iface->funs.tab[pos], pos, ibase);
+    }
+    sb_adds(buf, "            public struct Impl : libcommon.IopInterfaceImpl {\n");
+    tab_for_each_pos(pos, &iface->funs) {
+        iopc_dump_rpc_call(buf, pkg, iface->funs.tab[pos], pos, ibase);
     }
     sb_adds(buf,
             "\n"
+            "                public let _tag : Swift.Int\n"
+            "                public let _channel : libcommon.IopChannel\n"
+            "                public init(channel: libcommon.IopChannel, tag: Swift.Int) {\n"
+            "                    self._channel = channel\n"
+            "                    self._tag = tag\n"
+            "                }\n"
+            "            }\n\n"
             "            public let _tag : Swift.Int\n"
-            "            public let _channel : libcommon.IopChannel\n"
-            "            public init(channel: libcommon.IopChannel, tag: Swift.Int) {\n"
-            "                self._channel = channel\n"
+            "            public init(tag: Swift.Int) {\n"
             "                self._tag = tag\n"
             "            }\n"
             "        }\n\n");
@@ -1069,8 +1088,13 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
-        sb_addf(buf, "interfaces.%c%s { get }\n",
-                toupper(*field->type_name), field->type_name + 1);
+        sb_addf(buf, "interfaces.%s.Impl { get }\n", field->type_name);
+
+        sb_addf(buf, "    static var %s : ", field->name);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%s { get }\n", field->type_name);
     }
     sb_adds(buf, "}\n");
 
@@ -1080,15 +1104,27 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
-        sb_addf(buf, "interfaces.%c%s {\n"
+        sb_addf(buf, "interfaces.%s.Impl {\n"
                 "        return ",
-                toupper(*field->type_name), field->type_name + 1);
+                field->type_name);
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
-        sb_addf(buf, "interfaces.%c%s(channel: self.channel, tag: %d)\n"
-                "    }\n", toupper(*field->type_name), field->type_name + 1,
-                field->tag);
+        sb_addf(buf, "interfaces.%s.Impl(channel: self.channel, tag: %d)\n"
+                "    }\n", field->type_name, field->tag);
+
+        sb_addf(buf, "    public static var %s : ", field->name);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%s {\n"
+                "        return ",
+                field->type_name);
+        tab_for_each_entry(tok, &field->type_path->bits) {
+            sb_addf(buf, "%s.", tok);
+        }
+        sb_addf(buf, "interfaces.%s(tag: %d)\n"
+                "    }\n", field->type_name, field->tag);
     }
     sb_adds(buf, "}\n\n");
 }
