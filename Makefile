@@ -88,6 +88,7 @@ libcommon_SOURCES = \
 	core-module.c \
 	qpage.c \
 	core.swift \
+	promise.swift \
 	\
 	el.blk \
 	el.swift \
