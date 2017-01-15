@@ -1,4 +1,5 @@
 /ex-iop
+/ex-iop-swift
 /*.iop.c
 /*.iop.h
 /*.iop.json

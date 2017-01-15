@@ -13,14 +13,33 @@
 
 ifeq (,$(TOOLS_REPOSITORY))
 examples_PROGRAMS = ex-iop
+examples_LIBRARIES = iop
+ifneq (,$(SWIFTC))
+examples_PROGRAMS += ex-iop-swift
+endif
 
 _LIBS = -lm -lz -lrt -ldl -lpthread
 
+iop_SOURCES = \
+	exiop.iop \
+	exiop.iop.swift
+iop_SWIFTMODULE = IopTutorial
+iop_SWIFTDEPS = libcommon
+iop_SWIFTMIXED = 1
+
 ex-iop_SOURCES = \
 	ex-iop.c \
-	exiop.iop \
 	\
+	iop.a \
 	$llibcommon.a
+
+ex-iop-swift_SOURCES = \
+	ex-iop.swift \
+	\
+	iop.a \
+	$llibcommon.a
+ex-iop-swift_SWIFTMAIN = 1
+ex-iop-swift_SWIFTMODULE = ex_iop
 
 endif
 
