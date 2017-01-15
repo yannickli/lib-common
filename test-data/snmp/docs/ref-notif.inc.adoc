@@ -8,6 +8,8 @@
 
 Description ex: "some notif". +
 
+*Severity:* major.
+
 *Parameters*
 
 - <<a, a>> (.2.1.1): description, ex: "some string";
@@ -16,6 +18,8 @@ Description ex: "some notif". +
 *Notif Responsive* (.2.1.4.2) +
 
 Description. +
+
+*Severity:* -.
 
 *Parameters*
 
