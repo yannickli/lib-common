@@ -230,6 +230,20 @@ static void doc_put_arg_field(sb_t *buf, const iop_field_t *field,
                 iop_get_field_attr_match_oid(parent, oid))));
 }
 
+static lstr_t doc_rpc_get_severity(const iop_iface_t *iface,
+                                   const iop_rpc_t *rpc)
+{
+    iop_value_t val;
+
+    if (iop_rpc_get_gen_attr(iface, rpc, LSTR("snmp:severity"), IOP_T_STRING,
+                             NULL, &val) >= 0)
+    {
+        return val.s;
+    } else {
+        return LSTR("-");
+    }
+}
+
 static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
                         const iop_rpc_t *rpc,
                         const iop_iface_t *parent)
@@ -237,16 +251,21 @@ static void doc_put_rpc(sb_t *buf, int tag, lstr_t iface_name,
     t_scope;
     const iop_struct_t *st = rpc->args;
     lstr_t name = rpc->name;
+    lstr_t camelcase = t_split_camelcase_word(name);
+    lstr_t oid_str = t_notif_build_oid(st, parent);
+    lstr_t help = t_rpc_get_help(&parent->rpc_attrs[tag]);
+    lstr_t severity = doc_rpc_get_severity(parent, rpc);
 
     sb_addf(buf,
             "| ALM-%*pM-%u |\n"
             "*%*pM* (%*pM) +\n"
             "\n%*pM +\n"
+            "\n*Severity:* %*pM.\n"
             "\n*Parameters*\n\n",
             LSTR_FMT_ARG(iface_name), st->snmp_attrs->oid,
-            LSTR_FMT_ARG(t_split_camelcase_word(name)),
-            LSTR_FMT_ARG(t_notif_build_oid(st, parent)),
-            LSTR_FMT_ARG(t_rpc_get_help(&parent->rpc_attrs[tag])));
+            LSTR_FMT_ARG(camelcase), LSTR_FMT_ARG(oid_str),
+            LSTR_FMT_ARG(help),
+            LSTR_FMT_ARG(severity));
 
     if (st->fields_len == 0) {
         sb_adds(buf, "*No parameter*\n");
