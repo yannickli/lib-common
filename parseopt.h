@@ -16,6 +16,14 @@
 
 #include "core.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
+#endif
+
 enum popt_kind {
     OPTION_END,
     OPTION_FLAG,
@@ -34,10 +42,10 @@ enum popt_options {
 typedef struct popt_t {
     enum popt_kind kind;
     int shrt;
-    const char *lng;
-    void *value;
+    const char * nullable lng;
+    void * nullable value;
     intptr_t init;
-    const char *help;
+    const char * nullable help;
     size_t int_vsize;
 } popt_t;
 
@@ -57,11 +65,17 @@ typedef struct popt_t {
                                  (void *)(name), (intptr_t)(f),              \
                                  "show version information", 0 }
 
-int parseopt(int argc, char **argv, popt_t *opts, int flags);
+int parseopt(int argc, char * nullable * nonnull argv,
+             popt_t * nonnull opts, int flags);
 __attribute__((noreturn))
-void makeusage(int ret, const char *arg0, const char *usage,
-               const char * const text[], popt_t *opts);
+void makeusage(int ret, const char * nonnull arg0, const char * nonnull usage,
+               const char * nullable const text[], popt_t * nonnull opts);
 __attribute__((noreturn))
-void makeversion(int ret, const char *name, const char *(*get_version)(void));
+void makeversion(int ret, const char * nullable name,
+                 const char * nonnull (* nullable get_version)(void));
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

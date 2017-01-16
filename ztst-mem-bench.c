@@ -336,7 +336,7 @@ int main(int argc, char **argv)
     if (argc != 0 || settings.help
     || (!settings.test_stack && !settings.test_fifo))
     {
-        makeusage(0, arg0, NULL, NULL, popts);
+        makeusage(0, arg0, "", NULL, popts);
     }
 
     if (settings.test_stack) {
