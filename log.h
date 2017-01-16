@@ -19,6 +19,14 @@
 #include "core.iop.h"
 #include "iop-rpc.h"
 
+#if __has_feature(nullability)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#if defined(__clang__) && __clang_major__ >= 4
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
+#endif
+
 /** \defgroup log Logging facility.
  * \ingroup log
  * \brief Logging Facility.
@@ -135,7 +143,7 @@ typedef struct logger_t {
 
     lstr_t name;
     lstr_t full_name;
-    struct logger_t *parent;
+    struct logger_t * nullable parent;
     dlist_t children;
     dlist_t siblings;
 } logger_t;
@@ -201,23 +209,24 @@ typedef struct logger_t {
  *                            that logger (can be \ref LOG_INHERITS).
  * \param[in]  level_flags  the flags to use (ie. \ref LOG_SILENT or 0).
  */
-logger_t *logger_init(logger_t *logger, logger_t *nullable parent,
-                      lstr_t name, int default_level,
-                      unsigned level_flags) __leaf;
-logger_t *logger_new(logger_t *nullable parent, lstr_t name,
-                     int default_level, unsigned level_flags) __leaf;
+logger_t * nonnull logger_init(logger_t * nonnull logger,
+                               logger_t *nullable parent,
+                               lstr_t name, int default_level,
+                               unsigned level_flags) __leaf;
+logger_t * nonnull logger_new(logger_t *nullable parent, lstr_t name,
+                              int default_level, unsigned level_flags) __leaf;
 
-void logger_wipe(logger_t *logger) __leaf;
+void logger_wipe(logger_t * nonnull logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
 
 /* }}} */
 /* Private stuff {{{ */
 
-logger_t *logger_get_by_name(lstr_t name);
-void __logger_refresh(logger_t *logger) __leaf __cold;
+logger_t * nullable logger_get_by_name(lstr_t name);
+void __logger_refresh(logger_t * nonnull logger) __leaf __cold;
 
 static ALWAYS_INLINE
-int logger_get_level(logger_t *logger)
+int logger_get_level(logger_t * nonnull logger)
 {
     if (atomic_load_explicit(&logger->conf_gen, memory_order_acquire)
         != log_conf_gen_g)
@@ -232,7 +241,7 @@ int logger_get_level(logger_t *logger)
 }
 
 static ALWAYS_INLINE
-bool logger_has_level(logger_t *logger, int level)
+bool logger_has_level(logger_t * nonnull logger, int level)
 {
     return logger_get_level(logger) >= level;
 }
@@ -244,14 +253,14 @@ void __logger_cold(void)
 }
 
 typedef struct log_trace_spec_t {
-    const char *path;
-    const char *func;
-    const char *name;
+    const char * nullable path;
+    const char * nullable func;
+    const char * nullable name;
     int level;
 } log_trace_spec_t;
 qvector_t(spec, log_trace_spec_t);
 
-void log_parse_specs(char *p, qv_t(spec) *out);
+void log_parse_specs(char * nonnull p, qv_t(spec) * nonnull out);
 
 void log_module_register(void);
 
@@ -259,26 +268,31 @@ void log_module_register(void);
 /* Simple logging {{{ */
 
 __attr_printf__(8, 0)
-int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
-                const char *file, const char *func, int line,
-                const char *fmt, va_list va);
+int logger_vlog(logger_t * nonnull logger, int level,
+                const char * nullable prog, int pid,
+                const char * nullable file, const char * nullable func,
+                int line, const char * nonnull fmt, va_list va);
 
 __attr_printf__(8, 9)
-int __logger_log(logger_t *logger, int level, const char *prog, int pid,
-                 const char *file, const char *func, int line,
-                 const char *fmt, ...);
+int __logger_log(logger_t * nonnull logger, int level,
+                 const char * nullable prog, int pid,
+                 const char * nonnull file, const char * nonnull func,
+                 int line, const char * nonnull fmt, ...);
 
 __attr_printf__(5, 6) __attr_noreturn__ __cold
-void __logger_panic(logger_t *logger, const char *file, const char *func,
-                    int line, const char *fmt, ...);
+void __logger_panic(logger_t * nonnull logger, const char * nonnull file,
+                    const char * nonnull func, int line,
+                    const char * nonnull fmt, ...);
 
 __attr_printf__(5, 6) __attr_noreturn__ __cold
-void __logger_fatal(logger_t *logger, const char *file, const char *func,
-                    int line, const char *fmt, ...);
+void __logger_fatal(logger_t * nonnull logger, const char * nonnull file,
+                    const char * nonnull func, int line,
+                    const char * nonnull fmt, ...);
 
 __attr_printf__(5, 6) __attr_noreturn__ __cold
-void __logger_exit(logger_t *logger, const char *file, const char *func,
-                   int line, const char *fmt, ...);
+void __logger_exit(logger_t * nonnull logger, const char * nonnull file,
+                   const char * nonnull func, int line,
+                   const char * nonnull fmt, ...);
 
 #define logger_panic(Logger, Fmt, ...)                                       \
     __logger_panic((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
@@ -323,8 +337,9 @@ void __logger_exit(logger_t *logger, const char *file, const char *func,
 
 #ifndef NDEBUG
 
-int __logger_is_traced(logger_t *logger, int level, const char *file,
-                       const char *func, const char *name);
+int __logger_is_traced(logger_t * nonnull logger, int level,
+                       const char * nonnull file, const char * nonnull func,
+                       const char * nullable name);
 
 #define logger_is_traced(Logger, Level)  ({                                  \
         static int8_t __traced;                                              \
@@ -380,20 +395,22 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 /* Multi-line logging {{{ */
 
 typedef struct log_thr_ml_t {
-    logger_t *logger;
+    logger_t * nullable logger;
     bool activated;
 } log_thr_ml_t;
 
 extern __thread log_thr_ml_t log_thr_ml_g;
 
-void __logger_start(logger_t *logger, int level, const char *prog, int pid,
-                    const char *file, const char *func, int line);
+void __logger_start(logger_t * nonnull logger, int level,
+                    const char * nullable prog, int pid,
+                    const char * nonnull file,
+                    const char * nonnull func, int line);
 
 __attr_printf__(1, 2)
-void __logger_cont(const char *fmt, ...);
+void __logger_cont(const char * nonnull fmt, ...);
 
 __attr_printf__(1, 0)
-void __logger_vcont(const char *fmt, va_list va);
+void __logger_vcont(const char * nonnull fmt, va_list va);
 
 void __logger_end(void);
 
@@ -455,7 +472,7 @@ void __logger_end_panic(void);
 #define logger_trace_start(Logger, Level)                                    \
     __logger_trace_start((Logger), (Level),)
 
-static inline void logger_end(logger_t *logger)
+static inline void logger_end(logger_t * nonnull logger)
 {
     assert (logger == log_thr_ml_g.logger);
 
@@ -466,31 +483,31 @@ static inline void logger_end(logger_t *logger)
     log_thr_ml_g.activated = false;
 }
 
-static inline void _logger_end(logger_t **logger)
+static inline void _logger_end(logger_t * nonnull * nonnull logger)
 {
     logger_end(*logger);
 }
 
-static inline void logger_end_fatal(logger_t *logger)
+static inline void logger_end_fatal(logger_t * nonnull logger)
 {
     assert (logger == log_thr_ml_g.logger);
 
     __logger_end_fatal();
 }
 
-static inline void _logger_end_fatal(logger_t **logger)
+static inline void _logger_end_fatal(logger_t * nonnull * nonnull logger)
 {
     logger_end_fatal(*logger);
 }
 
-static inline void logger_end_panic(logger_t *logger)
+static inline void logger_end_panic(logger_t * nonnull logger)
 {
     assert (logger == log_thr_ml_g.logger);
 
     __logger_end_panic();
 }
 
-static inline void _logger_end_panic(logger_t **logger)
+static inline void _logger_end_panic(logger_t * nonnull * nonnull logger)
 {
     logger_end_panic(*logger);
 }
@@ -573,7 +590,7 @@ int logger_reset_level(lstr_t name) __leaf;
 
 /** Set the configuration of the logging system.
  */
-void logger_configure(const core__log_configuration__t *conf);
+void logger_configure(const core__log_configuration__t * nonnull conf);
 
 /** IOP configuration interface.
  */
@@ -595,7 +612,8 @@ qvector_t(logger_conf, core__logger_configuration__t);
  *                   LSTR_NULL_V can be used to avoid filtering.
  * \param[out] confs The vector holding the information about each logger.
  */
-void logger_get_all_configurations(lstr_t prefix, qv_t(logger_conf) *confs);
+void logger_get_all_configurations(lstr_t prefix,
+                                   qv_t(logger_conf) * nonnull confs);
 
 void IOP_RPC_IMPL(core__core, log, list_loggers);
 
@@ -606,25 +624,26 @@ typedef struct log_ctx_t {
     int    level;
     lstr_t logger_name;
 
-    const char *file;
-    const char *func;
+    const char * nonnull file;
+    const char * nonnull func;
     int line;
 
     int pid;
-    const char *prog_name;
+    const char * nonnull prog_name;
 
     flag_t is_silent :  1;
     flag_t padding   : 31;
 } log_ctx_t;
 
-typedef void (log_handler_f)(const log_ctx_t *ctx, const char *fmt, va_list va)
+typedef void (log_handler_f)(const log_ctx_t * nonnull ctx,
+                             const char * nonnull fmt, va_list va)
     __attr_printf__(2, 0);
 
 /** Default log handler.
  *
  * That log handler prints on stderr.
  */
-extern log_handler_f *log_stderr_handler_g;
+extern log_handler_f * nonnull log_stderr_handler_g;
 
 /** Default log handler tee fd.
  *
@@ -636,7 +655,7 @@ extern int log_stderr_handler_teefd_g;
  *
  * This also returns the previous handler.
  */
-log_handler_f *log_set_handler(log_handler_f *handler);
+log_handler_f * nonnull log_set_handler(log_handler_f * nonnull handler);
 
 /* }}} */
 /* Log buffer {{{ */
@@ -695,7 +714,7 @@ void log_start_buffering(bool use_handler);
  * \return the list of the logs that were emitted since the last call to
  * log_start_buffering, in the order or emission.
  */
-const qv_t(log_buffer) *log_stop_buffering(void);
+const qv_t(log_buffer) * nullable log_stop_buffering(void);
 
 /* }}} */
 /* Log helpers {{{ */
@@ -712,5 +731,9 @@ lstr_t t_logger_sanitize_name(const lstr_t name);
 
 /* }}} */
 /** \} */
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic pop
+#endif
 
 #endif
