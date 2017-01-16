@@ -131,7 +131,7 @@ enum {
  * You should not touch the fields of that structure. It is provided only for
  * the sake of inlining.
  */
-typedef struct logger_t {
+typedef struct __swift_name__("Logger") logger_t {
     atomic_uint conf_gen;
     flag_t   is_static : 1;
 
@@ -216,6 +216,7 @@ logger_t * nonnull logger_init(logger_t * nonnull logger,
 logger_t * nonnull logger_new(logger_t *nullable parent, lstr_t name,
                               int default_level, unsigned level_flags) __leaf;
 
+__swift_name__("Logger.wipe(self:)")
 void logger_wipe(logger_t * nonnull logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
 
@@ -279,16 +280,28 @@ int __logger_log(logger_t * nonnull logger, int level,
                  const char * nonnull file, const char * nonnull func,
                  int line, const char * nonnull fmt, ...);
 
+__attr_printf__(5, 0) __attr_noreturn__ __cold
+void __logger_vpanic(logger_t * nonnull logger, const char * nonnull file,
+                     const char * nonnull func, int line,
+                     const char * nonnull fmt, va_list va);
 __attr_printf__(5, 6) __attr_noreturn__ __cold
 void __logger_panic(logger_t * nonnull logger, const char * nonnull file,
                     const char * nonnull func, int line,
                     const char * nonnull fmt, ...);
 
+__attr_printf__(5, 0) __attr_noreturn__ __cold
+void __logger_vfatal(logger_t * nonnull logger, const char * nonnull file,
+                     const char * nonnull func, int line,
+                     const char * nonnull fmt, va_list va);
 __attr_printf__(5, 6) __attr_noreturn__ __cold
 void __logger_fatal(logger_t * nonnull logger, const char * nonnull file,
                     const char * nonnull func, int line,
                     const char * nonnull fmt, ...);
 
+__attr_printf__(5, 0) __attr_noreturn__ __cold
+void __logger_vexit(logger_t * nonnull logger, const char * nonnull file,
+                    const char * nonnull func, int line,
+                    const char * nonnull fmt, va_list va);
 __attr_printf__(5, 6) __attr_noreturn__ __cold
 void __logger_exit(logger_t * nonnull logger, const char * nonnull file,
                    const char * nonnull func, int line,

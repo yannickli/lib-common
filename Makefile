@@ -131,6 +131,7 @@ libcommon_SOURCES = \
 	\
 	log.c \
 	log-iop.c \
+	log.swift \
 	\
 	net-addr.c \
 	net-rate.blk \

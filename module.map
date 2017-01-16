@@ -4,6 +4,11 @@ module libcommon {
         export *
     }
 
+    module log [extern_c] {
+        header "log.h"
+        export *
+    }
+
     module el [extern_c] {
         header "el.h"
         export *
