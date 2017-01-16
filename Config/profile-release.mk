@@ -15,4 +15,4 @@ NOASSERT ?= 1
 include $(var/cfgdir)/cflags.mk
 CFLAGS += -fvisibility=hidden
 CXXFLAGS += -fvisibility=hidden
-LDFLAGS += -Wl,-x
+LDFLAGS += -Wl,-x -rdynamic
