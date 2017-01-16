@@ -52,6 +52,7 @@ libcommon_SOURCES = \
 	\
 	licence.blk \
 	parseopt.c \
+	parseopt.swift \
 	\
 	arith-int.c \
 	arith-float.c \

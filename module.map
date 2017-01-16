@@ -23,6 +23,11 @@ module libcommon {
         export *
     }
 
+    module parseopt [extern_c] {
+        header "parseopt.h"
+        export *
+    }
+
     requires tls
 }
 
