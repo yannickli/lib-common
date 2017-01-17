@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -67,8 +67,8 @@ typedef struct ssl_ctx_t {
     const EVP_CIPHER  *type;
     const EVP_MD      *md;
 
-    EVP_CIPHER_CTX     encrypt;
-    EVP_CIPHER_CTX     decrypt;
+    EVP_CIPHER_CTX     *encrypt;
+    EVP_CIPHER_CTX     *decrypt;
 
     enum ssl_ctx_state encrypt_state;
     enum ssl_ctx_state decrypt_state;
