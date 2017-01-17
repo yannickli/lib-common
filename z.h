@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -303,9 +303,12 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
                ""__VA_ARGS__))                                            \
             goto _z_step_end; })
 
-#define Z_ASSERT_IOPEQUAL(st, lhs, rhs, ...) \
-    ({  if (_z_assert_iopequal(__FILE__, __LINE__, &st##__s,              \
-                               #lhs, lhs, #rhs, rhs, ""__VA_ARGS__))      \
+#define Z_ASSERT_IOPEQUAL(st, _lhs, _rhs, ...) \
+    ({  const st##__t *lhs = _lhs;                                        \
+        const st##__t *rhs = _rhs;                                        \
+                                                                          \
+        if (_z_assert_iopequal(__FILE__, __LINE__, &st##__s,              \
+                               #_lhs, lhs, #_rhs, rhs, ""__VA_ARGS__))    \
         {                                                                 \
             goto _z_step_end;                                             \
         }                                                                 \
