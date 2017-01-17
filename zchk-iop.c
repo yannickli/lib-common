@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -3196,7 +3196,7 @@ Z_GROUP_EXPORT(iop)
 
         /* Cast it in B2, and change some values */
         b2p = iop_obj_vcast(tstiop_inheritance__b2, &c2);
-        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2);
+        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2.super);
         Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__b2__s, b2p,
                                          "b2p"));
         Z_ASSERT_EQ(b2p->a, 11111);
@@ -3206,7 +3206,7 @@ Z_GROUP_EXPORT(iop)
 
         /* Re-cast it in C2, and check fields equality */
         c2p = iop_obj_vcast(tstiop_inheritance__c2, b2p);
-        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2);
+        Z_ASSERT_IOPEQUAL(tstiop_inheritance__b2, b2p, &c2.super);
         Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__c2__s, c2p,
                                          "c2p"));
         Z_ASSERT_EQ(c2p->a, 22222);

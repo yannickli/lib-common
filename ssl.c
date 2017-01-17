@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -52,8 +52,8 @@ static ssl_ctx_t *ssl_ctx_init(ssl_ctx_t *ctx)
 {
     p_clear(ctx, 1);
 
-    EVP_CIPHER_CTX_init(&ctx->encrypt);
-    EVP_CIPHER_CTX_init(&ctx->decrypt);
+    ctx->encrypt = EVP_CIPHER_CTX_new();
+    ctx->decrypt = EVP_CIPHER_CTX_new();
 
     return ctx;
 }
@@ -82,8 +82,8 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
     }
 #endif
 
-    EVP_CIPHER_CTX_cleanup(&ctx->encrypt);
-    EVP_CIPHER_CTX_cleanup(&ctx->decrypt);
+    EVP_CIPHER_CTX_free(ctx->encrypt);
+    EVP_CIPHER_CTX_free(ctx->decrypt);
 }
 
 static int ssl_ctx_configure(ssl_ctx_t *ctx, const lstr_t key,
@@ -104,7 +104,7 @@ static int ssl_ctx_configure(ssl_ctx_t *ctx, const lstr_t key,
                    ivbuf);
 
     if (do_encrypt) {
-        if (unlikely(!EVP_EncryptInit_ex(&ctx->encrypt, ctx->type, NULL,
+        if (unlikely(!EVP_EncryptInit_ex(ctx->encrypt, ctx->type, NULL,
                                          keybuf, ivbuf)))
         {
             return ssl_set_error("encrypt context initialization failure");
@@ -113,7 +113,7 @@ static int ssl_ctx_configure(ssl_ctx_t *ctx, const lstr_t key,
     }
 
     if (do_decrypt) {
-        if (unlikely(!EVP_DecryptInit_ex(&ctx->decrypt, ctx->type, NULL,
+        if (unlikely(!EVP_DecryptInit_ex(ctx->decrypt, ctx->type, NULL,
                                          keybuf, ivbuf)))
         {
             return ssl_set_error("decrypt context initialization failure");
@@ -240,7 +240,7 @@ const char *ssl_get_error(void)
 
 int ssl_encrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-    int clen = data.len + EVP_CIPHER_CTX_block_size(&ctx->encrypt) + 1;
+    int clen = data.len + EVP_CIPHER_CTX_block_size(ctx->encrypt) + 1;
 
     assert (ctx->encrypt_state == SSL_CTX_INIT
         ||  ctx->encrypt_state == SSL_CTX_UPDATE);
@@ -252,7 +252,7 @@ int ssl_encrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
         return 0;
     }
 
-    if (unlikely(!EVP_EncryptUpdate(&ctx->encrypt,
+    if (unlikely(!EVP_EncryptUpdate(ctx->encrypt,
                                     (unsigned char *)sb_grow(out, clen),
                                     &clen, (unsigned char *)data.s,
                                     data.len)))
@@ -274,7 +274,7 @@ int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out)
 
     assert (ctx->encrypt_state == SSL_CTX_UPDATE);
 
-    if (unlikely(!EVP_EncryptFinal_ex(&ctx->encrypt,
+    if (unlikely(!EVP_EncryptFinal_ex(ctx->encrypt,
                                       (unsigned char *)sb_end(out), &outlen)))
     {
         ctx->encrypt_state = SSL_CTX_NONE;
@@ -298,7 +298,7 @@ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     }
 
     if (ctx->encrypt_state == SSL_CTX_FINISH) {
-        if (unlikely(!EVP_EncryptInit_ex(&ctx->encrypt, NULL, NULL, NULL,
+        if (unlikely(!EVP_EncryptInit_ex(ctx->encrypt, NULL, NULL, NULL,
                                          NULL)))
         {
             ctx->encrypt_state = SSL_CTX_NONE;
@@ -330,12 +330,12 @@ int ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
 
 int ssl_decrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-    int clen = data.len + EVP_CIPHER_CTX_block_size(&ctx->decrypt) + 1;
+    int clen = data.len + EVP_CIPHER_CTX_block_size(ctx->decrypt) + 1;
 
     assert (ctx->decrypt_state == SSL_CTX_INIT
         ||  ctx->decrypt_state == SSL_CTX_UPDATE);
 
-    if (unlikely(!EVP_DecryptUpdate(&ctx->decrypt,
+    if (unlikely(!EVP_DecryptUpdate(ctx->decrypt,
                                     (unsigned char *)sb_grow(out, clen),
                                     &clen, (unsigned char *)data.s,
                                     data.len)))
@@ -357,7 +357,7 @@ int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out)
 
     assert (ctx->decrypt_state == SSL_CTX_UPDATE);
 
-    if (unlikely(!EVP_DecryptFinal_ex(&ctx->decrypt,
+    if (unlikely(!EVP_DecryptFinal_ex(ctx->decrypt,
                                       (unsigned char *)sb_end(out), &outlen)))
     {
         ctx->decrypt_state = SSL_CTX_NONE;
@@ -381,7 +381,7 @@ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     }
 
     if (ctx->decrypt_state == SSL_CTX_FINISH) {
-        if (unlikely(!EVP_DecryptInit_ex(&ctx->decrypt, NULL, NULL, NULL,
+        if (unlikely(!EVP_DecryptInit_ex(ctx->decrypt, NULL, NULL, NULL,
                                          NULL)))
         {
             ctx->decrypt_state = SSL_CTX_NONE;
