@@ -3341,6 +3341,7 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
 
       case IOP_WIRE_BLK4:
         PS_CHECK(get_uint32(ps, 4, &u32));
+        /* FALLTHROUGH */
 
       read_blk:
         PS_WANT((1 << fdesc->type) & IOP_BLK_OK);
