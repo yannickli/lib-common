@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -235,7 +235,10 @@ static size_t count_non_zero64_naive(const uint64_t u64[], size_t n)
 }
 
 #if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
+#pragma push_macro("__leaf")
+#undef __leaf
 #include <cpuid.h>
+#pragma pop_macro("__leaf")
 
 __attribute__((target("sse4.1")))
 static size_t count_non_zero64_sse41(const uint64_t u64[], size_t n)
