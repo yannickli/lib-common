@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2016 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -407,8 +407,11 @@ static size_t membitcount_c(const void *ptr, size_t n)
 }
 
 #if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
+#pragma push_macro("__leaf")
+#undef __leaf
 #include <cpuid.h>
 #include <x86intrin.h>
+#pragma pop_macro("__leaf")
 
 __attribute__((target("popcnt")))
 static size_t membitcount_popcnt(const void *ptr, size_t n)
