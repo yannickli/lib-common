@@ -106,13 +106,6 @@ check_iopc() {
     setenv "IOPVER" "-5"
 }
 
-check_iopy() {
-    IOPY_VER=3.2.4
-    if ! prereq "$IOPY_VER" "$("$python2_bin" -c "import iopy; print(iopy.__version__)")"; then
-        warn "iopy version $IOPY_VER required, update your tools"
-    fi
-}
-
 __check_python_mod() {
     mod="$1"
     msg="$2"
@@ -249,8 +242,6 @@ fi
 if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
     warn "python headers are missing, apt-get install python-dev"
 fi
-
-check_iopy
 
 # }}}
 # {{{ libsctp-dev
