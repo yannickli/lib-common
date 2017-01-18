@@ -335,6 +335,7 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
 #define qv_init(vec)                                                         \
     ({  typeof(*(vec)) *__vec = (vec);                                       \
         p_clear(&__vec->qv, 1);                                              \
+        __vec;                                                               \
     })
 
 #define qv_clear(vec)                                                        \
