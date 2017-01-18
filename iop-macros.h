@@ -316,6 +316,13 @@
 /* }}} */
 /* {{{ RPC helpers */
 
+/** Get an IOP interface structure definition.
+ *
+ * \param[in] _mod  RPC module name.
+ * \param[in] _if   RPC interface name.
+ */
+#define IOP_IFACE(_mod, _if)              _mod##__##_if(ifp)
+
 /** Get an RPC structure definition.
  *
  * \param[in] _mod  RPC module name.
