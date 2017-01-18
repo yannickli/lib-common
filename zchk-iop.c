@@ -5645,6 +5645,98 @@ Z_GROUP_EXPORT(iop)
                      INDENT_LVL1 "was repeated and is not anymore");
         }
 
+        /* Fields repeated, different types */
+        {
+#define T_REP_INIT(_type) \
+            do {                                                             \
+                iop_init(tstiop_backward_compat__##_type##_repeated,         \
+                         &(_type##_rep));                                    \
+                _type##_rep.el.tab = _type##_arr;                            \
+                _type##_rep.el.len = countof(_type##_arr);                   \
+            } while(0)
+
+#define T_REP_BIN_KO(_type, _type2) \
+            do {                                                             \
+                T_OK(_type##_repeated, &(_type##_rep), _type2##_repeated,    \
+                     IOP_COMPAT_JSON);                                       \
+                T_KO(_type##_repeated, &(_type##_rep), _type2##_repeated,    \
+                     IOP_COMPAT_BIN,                                         \
+                     "field `el`:" INDENT_LVL1 "incompatible types");        \
+            } while(0)
+
+#define T_REP_OK_ALL(_type, _type2) \
+            do {                                                             \
+                T_OK_ALL(_type##_repeated, &(_type##_rep),                   \
+                         _type2##_repeated);                                 \
+            } while(0)
+
+            tstiop_backward_compat__bool_repeated__t bool_rep;
+            tstiop_backward_compat__byte_repeated__t byte_rep;
+            tstiop_backward_compat__ubyte_repeated__t ubyte_rep;
+            tstiop_backward_compat__short_repeated__t short_rep;
+            tstiop_backward_compat__ushort_repeated__t ushort_rep;
+            tstiop_backward_compat__int_repeated__t int_rep;
+            tstiop_backward_compat__uint_repeated__t uint_rep;
+
+            bool bool_arr[7] = {true, true, true, true, true, true, true};
+            int8_t byte_arr[7]     = {1, 2, 3, 4, 5, 6, 7};
+            uint8_t ubyte_arr[7]   = {1, 2, 3, 4, 5, 6, 7};
+            int16_t short_arr[7]   = {1, 2, 3, 4, 5, 6, 7};
+            uint16_t ushort_arr[7] = {1, 2, 3, 4, 5, 6, 7};
+            int32_t int_arr[7]     = {1, 2, 3, 4, 5, 6, 7};
+            uint32_t uint_arr[7]   = {1, 2, 3, 4, 5, 6, 7};
+
+            T_REP_INIT(bool);
+            T_REP_OK_ALL(bool, byte);
+            T_REP_OK_ALL(bool, ubyte);
+            T_REP_BIN_KO(bool, short);
+            T_REP_BIN_KO(bool, ushort);
+            T_REP_BIN_KO(bool, int);
+            T_REP_BIN_KO(bool, uint);
+            T_REP_BIN_KO(bool, long);
+            T_REP_BIN_KO(bool, ulong);
+
+            T_REP_INIT(byte);
+            T_REP_BIN_KO(byte, short);
+            T_REP_BIN_KO(byte, ushort);
+            T_REP_BIN_KO(byte, int);
+            T_REP_BIN_KO(byte, uint);
+            T_REP_BIN_KO(byte, long);
+            T_REP_BIN_KO(byte, ulong);
+
+            T_REP_INIT(ubyte);
+            T_REP_BIN_KO(ubyte, short);
+            T_REP_BIN_KO(ubyte, ushort);
+            T_REP_BIN_KO(ubyte, int);
+            T_REP_BIN_KO(ubyte, uint);
+            T_REP_BIN_KO(ubyte, long);
+            T_REP_BIN_KO(ubyte, ulong);
+
+            T_REP_INIT(short);
+            T_REP_BIN_KO(short, int);
+            T_REP_BIN_KO(short, uint);
+            T_REP_BIN_KO(short, long);
+            T_REP_BIN_KO(short, ulong);
+
+            T_REP_INIT(ushort);
+            T_REP_BIN_KO(ushort, int);
+            T_REP_BIN_KO(ushort, uint);
+            T_REP_BIN_KO(ushort, long);
+            T_REP_BIN_KO(ushort, ulong);
+
+            T_REP_INIT(int);
+            T_REP_OK_ALL(int, long);
+            T_REP_OK_ALL(int, ulong);
+
+            T_REP_INIT(uint);
+            T_REP_OK_ALL(uint, long);
+            T_REP_OK_ALL(uint, ulong);
+
+#undef T_REP_INIT
+#undef T_REP_OK_ALL
+#undef T_REP_BIN_KO
+        }
+
         /* Field required <-> optional. */
         {
             tstiop_backward_compat__field_optional__t field_optional;

@@ -146,6 +146,48 @@ struct NumberStruct2 {
     long   u32;
 };
 
+/* Change the type of repeated scalars
+ * (from RepeatedScalarStructFrom to RepeatedScalarStructTo)
+ *
+ * Small repeated scalars (1 or 2 bytes) are packed without tag
+ * or length, so they cannot be unpacked to a bigger scalar type.
+ * Trying to do so should raise a backward compatibility error */
+struct BoolRepeated {
+    bool[] el;
+};
+
+struct ByteRepeated {
+    byte[] el;
+};
+
+struct UbyteRepeated {
+    ubyte[] el;
+};
+
+struct ShortRepeated {
+    short[] el;
+};
+
+struct UshortRepeated {
+    ushort[] el;
+};
+
+struct IntRepeated {
+    int[] el;
+};
+
+struct UintRepeated {
+    uint[] el;
+};
+
+struct LongRepeated {
+    long[] el;
+};
+
+struct UlongRepeated {
+    ulong[] el;
+};
+
 /* }}} */
 /* {{{ Class id changed */
 

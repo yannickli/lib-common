@@ -4399,7 +4399,8 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
 
 static void
 backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
-                             uint16_t table_json[IOP_T_max + 1])
+                             uint16_t table_json[IOP_T_max + 1],
+                             uint16_t table_bin_r[IOP_T_max + 1])
 {
     STATIC_ASSERT (IOP_T_max <= bitsizeof(uint16_t));
 
@@ -4442,10 +4443,20 @@ backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
     table_json[IOP_T_DATA]   = 1U << IOP_T_DATA;
     table_json[IOP_T_XML]    = 1U << IOP_T_XML;
 
+    /* build repeated table for binary format due to special array packing
+     * (cf : IOP_REPEATED_OPTIMIZE_OK) */
+    p_copy(table_bin_r, table_bin, IOP_T_max + 1);
+    table_bin_r[IOP_T_U16]  = TO_BIT(U16);
+    table_bin_r[IOP_T_I16]  = TO_BIT(I16);
+    table_bin_r[IOP_T_U8]   = TO_BIT(U8);
+    table_bin_r[IOP_T_I8]   = TO_BIT(I8);
+    table_bin_r[IOP_T_BOOL] = TO_BIT(U8) | TO_BIT(I8) | TO_BIT(BOOL);
+
     /* Check that no type was forgotten. */
     for (int i = 0; i < IOP_T_max; i++) {
         assert (table_bin[i]  != 0);
         assert (table_json[i] != 0);
+        assert (table_bin_r[i] != 0);
     }
 }
 
@@ -4461,18 +4472,32 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     static int first_call = true;
     static uint16_t table_bin[IOP_T_max + 1];
     static uint16_t table_json[IOP_T_max + 1];
+    static uint16_t table_bin_r[IOP_T_max + 1];
 
     if (unlikely(first_call)) {
         first_call = false;
-        backward_compat_build_tables(table_bin, table_json);
+        backward_compat_build_tables(table_bin, table_json, table_bin_r);
     }
 
     /* Check type transition. */
-    if ((flags & IOP_COMPAT_BIN  && !TST_BIT(&table_bin[f1->type], f2->type))
-    ||  (flags & IOP_COMPAT_JSON && !TST_BIT(&table_json[f1->type], f2->type)))
-    {
-        iop_compat_add_err(ctx, "incompatible types");
-        return -1;
+    if (f1->repeat == IOP_R_REPEATED && f2->repeat == IOP_R_REPEATED) {
+        if ((flags & IOP_COMPAT_BIN
+             && !TST_BIT(&table_bin_r[f1->type], f2->type))
+        ||  (flags & IOP_COMPAT_JSON
+             && !TST_BIT(&table_json[f1->type], f2->type)))
+        {
+            iop_compat_add_err(ctx, "incompatible types");
+            return -1;
+        }
+    } else {
+        if ((flags & IOP_COMPAT_BIN
+             && !TST_BIT(&table_bin[f1->type], f2->type))
+        ||  (flags & IOP_COMPAT_JSON
+             && !TST_BIT(&table_json[f1->type], f2->type)))
+        {
+            iop_compat_add_err(ctx, "incompatible types");
+            return -1;
+        }
     }
 
     /* Check repeated -> non-repeated: always forbidden. */
