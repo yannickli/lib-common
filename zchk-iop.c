@@ -507,7 +507,7 @@ static int iop_check_retro_compat_roptimized(lstr_t path)
     iop_dso_t *dso;
     unsigned seed = (unsigned)time(NULL);
 
-    if ((dso = iop_dso_open(path.s, &err)) == NULL) {
+    if ((dso = iop_dso_open(path.s, LM_ID_BASE, &err)) == NULL) {
         Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",
                SB_FMT_ARG(&err));
     }
@@ -604,7 +604,7 @@ static int iop_check_retro_compat_copy_inv_tab(lstr_t path)
     iop_dso_t *dso;
     const iop_struct_t *st_sb;
 
-    if ((dso = iop_dso_open(path.s, &err)) == NULL) {
+    if ((dso = iop_dso_open(path.s, LM_ID_BASE, &err)) == NULL) {
         Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",
                SB_FMT_ARG(&err));
     }
@@ -764,7 +764,7 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
         if (in_cmddir) {                                                     \
             _path = t_lstr_cat(z_cmddir_g, _path);                           \
         }                                                                    \
-        _dso = iop_dso_open(_path.s, &_err);                                 \
+        _dso = iop_dso_open(_path.s, LM_ID_BASE, &_err);                     \
         if (_dso == NULL) {                                                  \
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",  \
                    SB_FMT_ARG(&_err));                                       \
@@ -820,7 +820,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR("zchk-iop-plugin"SO_FILEEXT));
 
-        Z_ASSERT(dso = iop_dso_open(path.s, &err));
+        Z_ASSERT(dso = iop_dso_open(path.s, LM_ID_BASE, &err));
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h, &LSTR_IMMED_V("ic.Hdr")));
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));

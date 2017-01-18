@@ -30,7 +30,7 @@ static iop_dso_t *open_dso(const char *dso_path)
     SB_1k(err);
     iop_dso_t *dso;
 
-    dso = iop_dso_open(dso_path, &err);
+    dso = iop_dso_open(dso_path, LM_ID_BASE, &err);
     if (dso == NULL) {
         e_fatal("unable to load `%s` (%*pM)\n", dso_path,
                 SB_FMT_ARG(&err));

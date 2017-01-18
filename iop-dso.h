@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_IOP_DSO_H
 
+#include <dlfcn.h>
+
 #include "farch.h"
 
 qm_kvec_t(iop_struct, lstr_t, const iop_struct_t * nonnull,
@@ -29,6 +31,7 @@ typedef struct iop_dso_t {
     int              refcnt;
     void            * nonnull handle;
     lstr_t           path;
+    Lmid_t           lmid;
 
     qm_t(iop_pkg)    pkg_h;
     qm_t(iop_enum)   enum_h;
@@ -47,9 +50,25 @@ typedef struct iop_dso_t {
     flag_t dont_replace_fix_pkg  : 1;
 } iop_dso_t;
 
-/** Load a DSO from a file, and register its packages. */
+/** Load a DSO from a file, and register its packages.
+ *
+ * The DSO is opened with dlmopen(3) with the following flags:
+ *  - RTLD_LAZY | RTLD_GLOBAL | RTLD_DEEPBIND when lmid is LM_ID_BASE. This is
+ *    equivalent of calling dlopen(3) with the same flags.
+ *  - RTLD_LAZY | RTLD_DEEPBIND when lmid is LM_ID_NEWLM or an already
+ *    existing namespace.
+ *
+ * Due to a bug in glibc < 2.24, we are not able to call dlmopen(3) with
+ * RTLD_GLOBAL. This means that the DSO creating a new namespace must contain
+ * all the symbols needed by the other DSOs that will use that namespace.
+ * See http://man7.org/linux/man-pages/man3/dlopen.3.html#BUGS
+ *
+ * \param[in]  path  path to the DSO.
+ * \param[in]  lmid  lmid argument passed to dlmopen(3).
+ * \param[out] err   error description in case of error.
+ */
 iop_dso_t * nullable iop_dso_open(const char * nonnull path,
-                                  sb_t * nonnull err);
+                                  Lmid_t lmid, sb_t * nonnull err);
 
 static ALWAYS_INLINE iop_dso_t * nonnull iop_dso_dup(iop_dso_t * nonnull dso)
 {
