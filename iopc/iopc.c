@@ -55,7 +55,7 @@ static popt_t options[] = {
     OPT_FLAG('3', "features-v3",  &_G.v3,          "use iopc v3 features"),
     OPT_FLAG('4', "features-v4",  &_G.v4,          "use iopc v4 features"),
 
-    /* List of pending changes in v5:
+    /* List of changes in v5:
      * - handling of \example doxygen tag (7e8bec96f68).
      * - trigger errors (and not warnings) when "avoid keywords" are
      *   used (ad5bf3fda).
@@ -70,6 +70,8 @@ static popt_t options[] = {
      * - deprecate '%C{' features (b8b9c529d).
      * - unions use enum for iop_tag instead of int (#50352 / I87e09b3aef349)
      * - unions cannot be empty (#50352 / I5c9bc521e3ce)
+     * - export nullability attributes on pointed types (Idfab7cb64ae16)
+     * - export symbols (Ic430d3e80e12f3)
      */
     OPT_FLAG('6', "features-v6",  &_G.v6,
              "use iopc v6 features (in progress)"),
