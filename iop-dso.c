@@ -68,6 +68,7 @@ static int iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
     const iop_struct_t *fix;
     lstr_t pkgname = iop_pkgname_from_fullname((*st)->fullname);
     const iop_pkg_t *pkg;
+    iop_dso_t *dep;
 
     pkg = iop_get_pkg(pkgname);
     if (!pkg) {
@@ -92,8 +93,6 @@ static int iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
         return 0;
     }
     if (fix != *st) {
-        iop_dso_t *dep;
-
         if (dso->dont_replace_fix_pkg) {
             sb_setf(err, "package `%*pM` is already defined when loading IOP "
                     "DSO `%*pM`", LSTR_FMT_ARG((*st)->fullname),
@@ -103,14 +102,15 @@ static int iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
 
         /* XXX: Kept for backward compatibility.
          * To be deleted once all clients will have a product >= 2017.1. */
-        dep = iop_dso_get_from_pkg(pkg);
         e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname),
                 *st, fix);
         *st = fix;
-        if (dep) {
-            qh_add(ptr, &dso->depends_on, dep);
-            qh_add(ptr, &dep->needed_by,  dso);
-        }
+    }
+
+    dep = iop_dso_get_from_pkg(pkg);
+    if (dep && dep != dso) {
+        qh_add(ptr, &dso->depends_on, dep);
+        qh_add(ptr, &dep->needed_by,  dso);
     }
 
     return 0;
