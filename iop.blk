@@ -4339,23 +4339,46 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    const iop_struct_t *st2,
                                    unsigned flags, iop_compat_ctx_t *ctx);
 
+/* Add compat couple into the hash table. A special handler is needed as flags
+ * must be added individually. Flags that need to be checked are returned. */
+static unsigned
+iop_compat_mark_couple(const void *st1, const void *st2,
+                       unsigned flags, iop_compat_ctx_t *ctx)
+{
+    iop_compat_couple_t couple = {
+        .st1   = st1,
+        .st2   = st2,
+    };
+    unsigned chk_flags = flags;
+
+    for (unsigned i = 0; flags && i < bitsizeof(flags); i++) {
+        if (!TST_BIT(&flags, i)) {
+            continue;
+        }
+
+        couple.flags = 1 << i;
+        if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
+            /* Couple already checked with this flag. */
+            RST_BIT(&chk_flags, i);
+        }
+        RST_BIT(&flags, i);
+    }
+
+    return chk_flags;
+}
+
 static int
 __iop_enum_check_backward_compat(const iop_enum_t *en1,
                                  const iop_enum_t *en2,
                                  unsigned flags, iop_compat_ctx_t *ctx)
 {
     int res = 0;
-    iop_compat_couple_t couple = {
-        .st1   = en1,
-        .st2   = en2,
-        .flags = flags,
-    };
 
     /* XXX: do not simply test en1 == en2 because it allows to easily write
      *      "compatible" z-tests. */
 
-    if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
-        /* We already checked this couple. */
+    if (!(flags = iop_compat_mark_couple(en1, en2, flags, ctx))) {
+        /* No checks to be done. */
         return 0;
     }
 
@@ -4847,17 +4870,12 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
                                    unsigned flags, iop_compat_ctx_t *ctx)
 {
     int res = 0;
-    iop_compat_couple_t couple = {
-        .st1   = st1,
-        .st2   = st2,
-        .flags = flags,
-    };
 
     /* XXX: do not simply test st1 == st2 because it allows to easily write
      *      "compatible" z-tests. */
 
-    if (qh_add(compat_couple, &ctx->seen_couples, &couple) < 0) {
-        /* We already checked this couple. */
+    if (!(flags = iop_compat_mark_couple(st1, st2, flags, ctx))) {
+        /* No checks to be done. */
         return 0;
     }
 
