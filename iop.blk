@@ -295,8 +295,15 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
       case IOP_T_DOUBLE:
         SET_SCALAR(double, opt_double_t, d);
         return 0;
-
 #undef SET_SCALAR
+
+      case IOP_T_VOID:
+        if (field->repeat == IOP_R_OPTIONAL) {
+            *(bool *)ptr = true;
+        }
+        e_trace(3, "ignored value_t for void field (field %d:%*pM)",
+                field->tag, LSTR_FMT_ARG(field->name));
+        return 0;
 
       case IOP_T_STRING:
       case IOP_T_XML:
@@ -384,7 +391,7 @@ void iop_set_opt_field(void *ptr, const iop_field_t *field)
         break;
 
       case IOP_T_VOID:
-        /* TODO: #8536 */
+        *(bool *)ptr = true;
         break;
     }
 }
@@ -616,45 +623,55 @@ bool iop_field_is_pointed(const iop_field_t *fdesc)
     return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
 }
 
-void *iop_get_opt_field(iop_type_t type, void *data)
+bool iop_opt_field_is_set(iop_type_t type, void *data, void **value)
 {
     switch (type) {
       case IOP_T_I8:
       case IOP_T_U8:
-        return OPT_GET((opt_u8_t *)data);
+        *value = OPT_GET((opt_u8_t *)data);
+        break;
       case IOP_T_I16:
       case IOP_T_U16:
-        return OPT_GET((opt_u16_t *)data);
+        *value = OPT_GET((opt_u16_t *)data);
+        break;
       case IOP_T_ENUM:
       case IOP_T_I32:
       case IOP_T_U32:
-        return OPT_GET((opt_u32_t *)data);
+        *value = OPT_GET((opt_u32_t *)data);
+        break;
       case IOP_T_I64:
       case IOP_T_U64:
-        return OPT_GET((opt_u64_t *)data);
+        *value = OPT_GET((opt_u64_t *)data);
+        break;
       case IOP_T_BOOL:
-        return OPT_GET((opt_bool_t *)data);
+        *value = OPT_GET((opt_bool_t *)data);
+        break;
       case IOP_T_DOUBLE:
-        return OPT_GET((opt_double_t *)data);
+        *value = OPT_GET((opt_double_t *)data);
+        break;
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
-        return ((lstr_t *)data)->s ? data : NULL;
+        *value = ((lstr_t *)data)->s ? data : NULL;
+        break;
       case IOP_T_STRUCT:
       case IOP_T_UNION:
-        return *(void **)data;
-      case IOP_T_VOID:
-        /* TODO: #8536 */
+        *value = *(void **)data;
         break;
-    }
+      case IOP_T_VOID: {
+        bool res = *(bool *)data;
 
-    assert (false);
-    return NULL;
+        *value = NULL;
+        return res;
+      }
+    }
+    return *value != NULL;
 }
 
-static const void *iop_get_opt_field_const(iop_type_t type, const void *data)
+static bool iop_opt_field_is_set_const(iop_type_t type, const void *data,
+                                       const void **value)
 {
-    return iop_get_opt_field(type, (void *)data);
+    return iop_opt_field_is_set(type, (void *)data, (void **)value);
 }
 
 void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
@@ -681,15 +698,18 @@ void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
     }
 
     if (fdesc->repeat == IOP_R_OPTIONAL) {
-        fptr = iop_get_opt_field(fdesc->type, fptr);
-        if (!fptr) {
+        if (!iop_opt_field_is_set(fdesc->type, fptr, &fptr)) {
             /* The optional field is absent. */
             *len = 0;
             *values = NULL;
             return;
         }
-
         *values = fptr;
+    } else
+    if (fdesc->type == IOP_T_VOID) {
+        *values = NULL;
+        *len = 0;
+        return;
     } else
     if (iop_field_is_pointed(fdesc)) {
         *values = *(void **)fptr;
@@ -1523,7 +1543,9 @@ static bool iop_value_equals(iop_type_t type, const void *v1, const void *v2)
       case IOP_T_XML:
         return lstr_equal(*(const lstr_t *)v1, *(const lstr_t *)v2);
 
-      case IOP_T_VOID: /* TODO: #8536 */
+      case IOP_T_VOID:
+        return true;
+
       case IOP_T_UNION:
       case IOP_T_STRUCT:
         e_panic("not supported");
@@ -1568,7 +1590,10 @@ static void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
         sb_add_hex(buf, data.data, data.len);
       } break;
 
-      case IOP_T_VOID: /* TODO: #8536 */
+      case IOP_T_VOID:
+        sb_sets(buf, "void");
+        break;
+
       case IOP_T_UNION:
       case IOP_T_STRUCT:
         e_panic("not supported");
@@ -1791,6 +1816,10 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                 }
             }
         } else
+        if (fdesc->type == IOP_T_VOID) {
+            /* Two void fields are always equal if present. */
+            continue;
+        } else
         if ((1 << fdesc->type) & IOP_BLK_OK) {
             /* Blocks (string & co) must be compared one by one */
             for (int i = 0; i < n; i++) {
@@ -1904,7 +1933,10 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
         return data;
     }
 
-    return iop_get_opt_field_const(fdesc->type, data);
+    if (!iop_opt_field_is_set_const(fdesc->type, data, &data) || !data) {
+        return NULL;
+    }
+    return data;
 }
 
 /* }}} */
@@ -2716,6 +2748,15 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
           case IOP_T_BOOL:
             len += n;
             break;
+          case IOP_T_VOID:
+            if (desc->is_union || fdesc->repeat == IOP_R_OPTIONAL) {
+                assert (n == 1);
+                len += 1;
+            } else {
+                /* mandatory void in structs are not packed, remove tag_len */
+                len -= (1 + fdesc->tag_len);
+            }
+            break;
           case IOP_T_DOUBLE:
             len += n * 8;
             break;
@@ -2828,8 +2869,8 @@ static uint8_t *pack_union(void *dst, const iop_struct_t *, const void *,
                            const unsigned, const int **);
 
 static uint8_t *
-pack_value(uint8_t *dst, const iop_field_t *f, const void *v,
-           const unsigned flags, const int **szsp)
+pack_value(uint8_t *dst, const iop_struct_t *desc, const iop_field_t *f,
+           const void *v, const unsigned flags, const int **szsp)
 {
     uint32_t len;
 
@@ -2859,6 +2900,14 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v,
         /* XXX: cast in uint8_t because casting in bool would have no effect.
          */
         *dst++ = !!*(uint8_t *)v;
+        return dst;
+      case IOP_T_VOID:
+        /* Do not pack required void in structs */
+        if (desc->is_union || f->repeat != IOP_R_REQUIRED) {
+            /* void types do not contain any value, but the wire format
+             * requires we send at least one byte of data with the tag. */
+            return pack_len(dst, f->tag, f->tag_len, 0);
+        }
         return dst;
       case IOP_T_DOUBLE:
         dst = pack_tag(dst, f->tag, f->tag_len, IOP_WIRE_MASK(QUAD));
@@ -2964,7 +3013,6 @@ pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
             v = (char *)v + f->size;
         } while (--n > 0);
         return dst;
-
       default:
         e_panic("should not happen");
     }
@@ -3027,7 +3075,7 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
             }
         }
 
-        dst = pack_value(dst, f, ptr, flags, szsp);
+        dst = pack_value(dst, desc, f, ptr, flags, szsp);
     }
     return dst;
 }
@@ -3065,7 +3113,7 @@ pack_union(void *dst, const iop_struct_t *desc, const void *v,
 {
     const iop_field_t *f = get_union_field(desc, v);
 
-    return pack_value(dst, f, (char *)v + f->data_offs, flags, szsp);
+    return pack_value(dst, desc, f, (char *)v + f->data_offs, flags, szsp);
 }
 
 void iop_bpack(void *dst, const iop_struct_t *desc, const void *v,
@@ -3341,6 +3389,11 @@ int iop_patch_int(const iop_field_t *fdesc, void *ptr, int64_t i64)
         CHECK_RANGE(0, 1);
         *(bool *)ptr = i64;
         break;
+      case IOP_T_VOID:
+        /* Never write a void field into a struct, it does not exist */
+        e_named_trace(3, "iop/c/unpacker", "dropped value (0x%jx) into void "
+                      "field `%*pM`", i64, LSTR_FMT_ARG(fdesc->name));
+        break;
     }
 
 #undef CHECK_RANGE
@@ -3393,6 +3446,11 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
       case IOP_R_REQUIRED: {
         const iop_struct_t *desc = fdesc->u1.st_desc;
         bool is_class;
+
+        /* A required void field can be skipped */
+        if (fdesc->type == IOP_T_VOID) {
+            return 0;
+        }
 
         /* For a required field, only structs can be absents, be careful that
          * union must be present */
@@ -3448,6 +3506,9 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
             *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
                                          fdesc->u0.defval_len);
             break;
+          case IOP_T_VOID:
+            assert (false);
+            return -1;
           default:
             return -1;
         }
@@ -3506,7 +3567,7 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
         /* FALLTHROUGH */
 
       read_blk:
-        PS_WANT((1 << fdesc->type) & IOP_BLK_OK);
+        PS_WANT((1 << fdesc->type) & IOP_BLK_OK || fdesc->type == IOP_T_VOID);
         PS_WANT(ps_has(ps, u32));
         switch (fdesc->type) {
           case IOP_T_STRING:
@@ -3528,6 +3589,14 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
                 return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, flags,
                                      NULL);
             }
+          case IOP_T_VOID:
+            /* do not write anything into void */
+            if (u32 > 0) {
+                e_named_trace(3, "iop/c/unpacker", "dropped block (%u bytes) "
+                              "into void field `%*pM`", u32,
+                              LSTR_FMT_ARG(fdesc->name));
+            }
+            return __ps_skip(ps, u32);
         }
         return -1;
 

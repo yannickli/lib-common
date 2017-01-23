@@ -58,6 +58,13 @@
 /** Get the tag value of a union field. */
 #define IOP_UNION_TAG(pfx, field) pfx##__##field##__ft
 
+/** Get the tag value of a union void field.
+ *
+ * This will not work with non-void field, so we can prevent the use of
+ * IOP_UNION_VOID() and IOP_UNION_SET_V() with non-void fields.
+ */
+#define IOP_UNION_TAG_VOID(pfx, field) pfx##__##field##__empty_ft
+
 /** Allow to make a switch on a union depending on the field chosen.
  *
  * Example:
@@ -130,6 +137,16 @@
         break;              \
       default: (void)0;
 
+/** Check if a union field is selected.
+ *
+ * \param[in] pfx   The union prefix (pkg__name).
+ * \param[in] u     The union object.
+ * \param[in] field The union field to check.
+ */
+#define IOP_UNION_IS(pfx, u, field) \
+    ({ pfx##__t *_tmp = u;                                                   \
+       _tmp->iop_tag == IOP_UNION_TAG(pfx, field); })
+
 /** Extract a value from a union.
  *
  * \param[in] pfx   The union prefix (pkg__name).
@@ -159,6 +176,18 @@
        &_tmp->field;                                                     \
     })
 
+/** Select a void union field.
+ *
+ * \param[in]    pfx   The union prefix (pkg__name).
+ * \param[inout] u     The union object.
+ * \param[in]    field The union field to select.
+ */
+#define IOP_UNION_SET_V(pfx, u, field)  \
+    do {                                                                     \
+        pfx##__t *_tmp = u;                                                  \
+        _tmp->iop_tag = IOP_UNION_TAG_VOID(pfx, field);                      \
+    } while(0)
+
 /** Extract a value from a union by copying it.
  *
  * \param[out] dst   The variable to put the field value into.
@@ -186,6 +215,14 @@
 #define IOP_UNION_CST(pfx, field, val) \
     { IOP_UNION_TAG(pfx, field), { .field = val } }
 
+/** Make an immediate IOP union with no value.
+ *
+ * \param[in]  pfx   The union prefix (pkg__name).
+ * \param[in]  field The field to select.
+ */
+#define IOP_UNION_VOID_CST(pfx, field) \
+    { IOP_UNION_TAG_VOID(pfx, field) }
+
 /** Make an immediate IOP union.
  *
  * \param[in]  pfx   The union prefix (pkg__name).
@@ -203,6 +240,14 @@
  */
 #define IOP_UNION(pfx, field, val) \
     (pfx##__t){ IOP_UNION_TAG(pfx, field), { .field = val } }
+
+/** Make an IOP union with no value.
+ *
+ * \param[in]  pfx   The union prefix (pkg__name).
+ * \param[in]  field The field to select.
+ */
+#define IOP_UNION_VOID(pfx, field) \
+    (pfx##__t){ IOP_UNION_TAG_VOID(pfx, field) }
 
 /** Make an IOP union.
  *

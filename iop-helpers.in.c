@@ -22,7 +22,7 @@
 #define IOP_LONG_TAG(n)          ((1 << 5) - 3 + (n))
 
 #define TO_BIT(type)  (1 << (IOP_T_##type))
-#define IOP_INT_OK    0x3ff
+#define IOP_INT_OK    0x103ff
 #define IOP_QUAD_OK   (TO_BIT(I64) | TO_BIT(U64) | TO_BIT(DOUBLE))
 #define IOP_BLK_OK    (TO_BIT(STRING) | TO_BIT(DATA) | TO_BIT(STRUCT) \
                        | TO_BIT(UNION) | TO_BIT(XML))
@@ -66,6 +66,8 @@ static inline bool iop_value_has(const iop_field_t *f, const void *v)
         return ((opt_bool_t *)v)->has_field != 0;
       case IOP_T_DOUBLE:
         return ((opt_double_t *)v)->has_field != 0;
+      case IOP_T_VOID:
+        return *(bool *)v;
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
@@ -122,6 +124,9 @@ void *iop_value_set_here(mem_pool_t *mp, const iop_field_t *f, void *v)
       case IOP_T_DOUBLE:
         ((opt_double_t *)v)->has_field = true;
         return v;
+      case IOP_T_VOID:
+        *(bool *)v = true;
+        return v;
       case IOP_T_STRING:
       case IOP_T_DATA:
       case IOP_T_XML:
@@ -151,6 +156,9 @@ static inline void iop_value_set_absent(const iop_field_t *f, void *v)
         return;
       case IOP_T_DOUBLE:
         ((opt_double_t *)v)->has_field = false;
+        return;
+      case IOP_T_VOID:
+        *(bool *)v = false;
         return;
       case IOP_T_STRING:
       case IOP_T_DATA:

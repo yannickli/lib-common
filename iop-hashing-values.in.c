@@ -129,8 +129,10 @@ F(iop_hash_opt)(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
       case IOP_T_DOUBLE:
         iop_hash_update_dbl(ctx, ((opt_double_t *)v)->v);
         break;
-      default:
-        e_panic("should not happen");
+      case IOP_T_VOID:
+        b = true;
+        F(iop_hash_update)(ctx, &b, 1);
+        break;
     }
 }
 
@@ -295,8 +297,8 @@ F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
                 F(iop_hash_update)(ctx, s->data, s->len);
             }
             break;
-          default:
-            e_panic("should not happen");
+          case IOP_T_VOID:
+            break;
         }
     }
 }

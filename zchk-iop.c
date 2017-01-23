@@ -41,6 +41,7 @@
 #include "iop/tstiop_backward_compat_mod.iop.h"
 #include "iop/tstiop_backward_compat_mod_deleted.iop.h"
 #include "iop/tstiop_backward_compat_mod_deleted_if.iop.h"
+#include "iop/tstiop_void_type.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -5054,6 +5055,11 @@ Z_GROUP_EXPORT(iop)
         z_struct.obj_tab.len = 1;
         TEST("objTab", z_struct.obj_tab.tab, 1, true);
 
+        TEST("v", NULL, 0, false);
+        TEST("optVoid", NULL, 0, false);
+        z_struct.opt_void = true;
+        TEST("optVoid", NULL, 1, false);
+
 #undef TEST
     } Z_TEST_END
     /* }}} */
@@ -6865,6 +6871,148 @@ Z_GROUP_EXPORT(iop)
         ret = iop_xunpack(xmlr_g, t_pool(), &tstiop__my_union_b__s, &dst);
         Z_ASSERT_EQ(ret, 0);
         Z_ASSERT_EQ(src.iop_tag, dst.iop_tag);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_void_union, "test iop void in union") { /* {{{ */
+        t_scope;
+        tstiop_void_type__void_alone__t s;
+        lstr_t data;
+        int ret;
+        tstiop_void_type__void_alone__t dest;
+
+        iop_init(tstiop_void_type__void_alone, &s);
+
+        /* pack with field "other" selected */
+        s = IOP_UNION(tstiop_void_type__void_alone, other, 0x55);
+        data = t_iop_bpack_struct(&tstiop_void_type__void_alone__s, &s);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("\x82\x55"), data);
+
+        /* check iop_copy for other field */
+        iop_std_test_struct(&tstiop_void_type__void_alone__s, &s,
+                                  "Union void (unselected)");
+
+        /* pack with void field */
+        IOP_UNION_SET_V(tstiop_void_type__void_alone, &s, field);
+        data = t_iop_bpack_struct(&tstiop_void_type__void_alone__s, &s);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("\x01\x00"), data);
+
+        /* check unpacking void field */
+        ret = iop_bunpack(t_pool(), &tstiop_void_type__void_alone__s,
+                          &dest, ps_initlstr(&data), false);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT(IOP_UNION_IS(tstiop_void_type__void_alone, &s, field));
+
+        /* check iop_copy for void field */
+        iop_std_test_struct(&tstiop_void_type__void_alone__s, &s,
+                                  "Union void (selected)");
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_void_optional, "test iop void, optional") {/* {{{ */
+        t_scope;
+        tstiop_void_type__void_optional__t s;
+        tstiop_void_type__void_optional__t dest;
+        lstr_t data;
+        int ret;
+        byte buf1[20], buf2[20];
+
+        iop_init(tstiop_void_type__void_optional, &s);
+
+        /* pack with optional void enabled */
+        s.field = true;
+        data = t_iop_bpack_struct(&tstiop_void_type__void_optional__s, &s);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("\x01\x00"), data);
+
+        /* unpack enabled optional void */
+        ret = iop_bunpack(t_pool(), &tstiop_void_type__void_optional__s,
+                          &dest, ps_initlstr(&data), false);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(dest.field, true);
+
+        /* check iop_copy */
+        iop_std_test_struct(&tstiop_void_type__void_optional__s, &s,
+                                  "Optional void (enabled)");
+
+        /* pack with optional void disabled */
+        s.field = false;
+        data = t_iop_bpack_struct(&tstiop_void_type__void_optional__s, &s);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V(""), data);
+
+        /* unpack disabled optional void */
+        ret = iop_bunpack(t_pool(), &tstiop_void_type__void_optional__s,
+                          &dest, ps_initlstr(&data), false);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(dest.field, false);
+
+        /* check iop_copy */
+        iop_std_test_struct(&tstiop_void_type__void_optional__s, &s,
+                                  "Optional void (disabled)");
+
+        /* check hash different for set/unset optional void */
+        iop_hash_sha1(&tstiop_void_type__void_optional__s, &s, buf1, 0);
+        s.field = true;
+        iop_hash_sha1(&tstiop_void_type__void_optional__s, &s, buf2, 0);
+        Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)),
+                 "Hashes should be different");
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_void_required, "test iop void, required") { /* {{{ */
+        t_scope;
+        int8_t data1[5] = {0, 1, 2, 3, 4};
+        int32_t data2[5] = {0, 1, 2, 3, 4};
+        tstiop_void_type__void_required__t s;
+        tstiop_void_type__int_to_void__t s_int;
+        tstiop_void_type__array_to_void__t s_array;
+        tstiop_void_type__struct_to_void__t s_struct;
+        tstiop_void_type__small_array_to_void__t s_small_array;
+        tstiop_void_type__double_to_void__t s_double;
+        lstr_t packed;
+
+        /* pack required void (skipped) */
+        iop_init(tstiop_void_type__void_required, &s);
+        packed = t_iop_bpack_struct(&tstiop_void_type__void_required__s, &s);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V(""), packed);
+
+        /* check iop_copy */
+        iop_std_test_struct(&tstiop_void_type__void_required__s, &s,
+                                  "Required void");
+
+#define T_UNPACK_TO_VOID(type) \
+        do {                                                                 \
+            lstr_t data;                                                     \
+            data = t_iop_bpack_struct(                                       \
+                &tstiop_void_type__##type##_to_void__s, &s_##type);          \
+            Z_ASSERT_EQ(iop_bunpack(t_pool(),                                \
+                                    &tstiop_void_type__void_required__s,     \
+                                    &s, ps_initlstr(&data), false), 0);      \
+        } while(0)
+
+        /* unpack integer wire type into void */
+        iop_init(tstiop_void_type__int_to_void, &s_int);
+        s_int.field = 0x42;
+        T_UNPACK_TO_VOID(int);
+
+        /* unpack repeated wire type into void */
+        iop_init(tstiop_void_type__array_to_void, &s_array);
+        s_array.field.tab = data2;
+        s_array.field.len = 5;
+        T_UNPACK_TO_VOID(array);
+
+        /* unpack blk wire type (struct) to void */
+        iop_init(tstiop_void_type__struct_to_void, &s_struct);
+        s_struct.field.field = 0x55;
+        T_UNPACK_TO_VOID(struct);
+
+        /* unpack blk wire type (byte array) to void */
+        iop_init(tstiop_void_type__small_array_to_void, &s_small_array);
+        s_small_array.field.tab = data1;
+        s_small_array.field.len = 5;
+        T_UNPACK_TO_VOID(small_array);
+
+        /* unpack quad wire type (double) to void */
+        iop_init(tstiop_void_type__double_to_void, &s_double);
+        s_double.field = 1.0;
+        T_UNPACK_TO_VOID(double);
+#undef T_UNPACK_TO_VOID
     } Z_TEST_END;
     /* }}} */
 } Z_GROUP_END

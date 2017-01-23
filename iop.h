@@ -755,14 +755,19 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t * nonnull st,
                                    iop_type_t * nullable val_type,
                                    iop_value_t * nonnull value);
 
-/** Get a pointer to the field value of an optional field.
+/** Get a pointer to the field value of an optional field (if it exists).
+ *
+ * The return value is useful to distinguish the case where the option
+ * is set, but there is no data for it (optional void field).
  *
  * \param[in] type The type of the field.
  * \param[in] data A pointer to the optional field.
+ * \param[out] value The value to put the result in.
  *
- * \return a pointer to the field value or NULL if not set.
+ * \return true if the option is set, false otherwise.
  */
-void * nullable iop_get_opt_field(iop_type_t type, void * nonnull data);
+bool iop_opt_field_is_set(iop_type_t type, void * nonnull data,
+                          void * nullable * nonnull value);
 
 /** Find an IOP field description from a iop object.
  *

@@ -35,7 +35,8 @@ tstiop_SOURCES =  \
     tstiop_backward_compat_iface_incompatible_rpc_ignored_binjson.iop        \
     tstiop_backward_compat_mod.iop                                           \
     tstiop_backward_compat_mod_deleted.iop                                   \
-    tstiop_backward_compat_mod_deleted_if.iop
+    tstiop_backward_compat_mod_deleted_if.iop                                \
+    tstiop_void_type.iop
 tstiop_inheritance.iop_IOPVER=-5
 tstiop_SWIFTMIXED = 1
 tstiop_SWIFTDEPS = libcommon

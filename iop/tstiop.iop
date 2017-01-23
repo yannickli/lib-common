@@ -413,6 +413,8 @@ struct ZIopGetFieldValues {
     int integer;
     int[] integerTab;
     int? optInteger;
+    void v;
+    void? optVoid;
     SimpleStruct st;
     SimpleStruct? optSt;
     SimpleStruct& stRef;
