@@ -826,6 +826,18 @@ static data_t el_timer_unregister(ev_t **evp)
     return el_destroy(evp, false);
 }
 
+static int el_timer_next_expiration(int timeout, uint64_t clk)
+{
+    if (!qhp_is_empty(timer, &_G.timers)) {
+        uint64_t nxt = TIMER_TOLERATED_EXPIRY(qhp_first(timer, &_G.timers));
+
+        if (nxt < (uint64_t)timeout + clk) {
+            return MAX(0, (int)(nxt - clk));
+        }
+    }
+    return timeout;
+}
+
 static void el_timer_process(uint64_t until)
 {
     struct timeval tv;
@@ -1546,14 +1558,9 @@ void el_loop_timeout(int timeout)
     uint64_t clk = get_clock();
 
     el_timer_process(clk);
-    if (!qhp_is_empty(timer, &_G.timers)) {
-        uint64_t nxt = TIMER_TOLERATED_EXPIRY(qhp_first(timer, &_G.timers));
-        if (nxt < (uint64_t)timeout + clk) {
-            timeout = nxt - clk;
-        }
-    }
-    if (unlikely(_G.unloop))
+    if (unlikely(_G.unloop)) {
         return;
+    }
     el_before_process();
     el_idle_process(clk);
     if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle)
@@ -1566,6 +1573,7 @@ void el_loop_timeout(int timeout)
         int diff;
 
         start = get_clock();
+        timeout = el_timer_next_expiration(timeout, start);
         _G.worker_running = true;
         _G.worker_end     = start + timeout;
         (*_G.worker)(timeout);
@@ -1582,10 +1590,11 @@ void el_loop_timeout(int timeout)
                     diff, timeout);
         }
         timeout = MAX(0, timeout - diff);
+        clk = end;
     }
 
     el_fd_process_fired();
-    el_loop_fds(timeout);
+    el_loop_fds(el_timer_next_expiration(timeout, clk));
     el_loop_proxies();
     el_signal_process();
     dlist_splice(&_G.evs_free, &_G.evs_gc);
