@@ -1046,6 +1046,7 @@ static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
         }
         sb_addf(buf, "} %s__tag_t;\n", tbase);
     } else {
+        sb_addf(buf, "typedef uint16_t %s__tag_t;\n", tbase);
         tab_for_each_entry(f, &st->fields) {
             /* Tag of the field */
             sb_addf(buf, "#define %s__%s__ft %d\n", tbase,
@@ -1064,6 +1065,8 @@ static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
 
                 assert (lstr_endswith(arg->v.s, LSTR("__t")));
                 ctype = LSTR_INIT_V(arg->v.s.s, arg->v.s.len - 3);
+                sb_addf(buf, "typedef %s__tag_t %*pM__tag_t;\n", tbase,
+                        LSTR_FMT_ARG(ctype));
                 tab_for_each_entry(f, &st->fields) {
                     sb_addf(buf, "#define %*pM__%s__ft %s__%s__ft\n",
                             LSTR_FMT_ARG(ctype), pp_to_c(f->name),
