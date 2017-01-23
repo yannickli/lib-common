@@ -311,6 +311,9 @@ iop_type_to_error_str(iop_type_t type)
         return "a union";
       case IOP_T_STRUCT:
         return "a structure";
+      case IOP_T_VOID:
+        /* TODO: #8536 */
+        break;
     }
     return NULL;
 }

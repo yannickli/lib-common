@@ -678,6 +678,9 @@ typedef struct iopc_field_t {
     struct iopc_field_t *field_origin; /* the reference field */
     qv_t(iopc_extends) parents;
 } iopc_field_t;
+static inline bool iopc_struct_is_field_ignored(const iopc_field_t *field) {
+    return field->kind == IOP_T_VOID && field->repeat == IOP_R_REQUIRED;
+}
 static inline iopc_field_t *iopc_field_init(iopc_field_t *field) {
     p_clear(field, 1);
     field->type = STRUCT_TYPE_TYPEDEF;

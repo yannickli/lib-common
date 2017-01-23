@@ -121,6 +121,7 @@ static void iopc_dump_field_basetype(sb_t *buf, const iopc_field_t *field)
       case IOP_T_U64: sb_adds(buf, "Swift.UInt64"); break;
       case IOP_T_BOOL: sb_adds(buf, "Swift.Bool"); break;
       case IOP_T_DOUBLE: sb_adds(buf, "Swift.Double"); break;
+      case IOP_T_VOID: sb_adds(buf, "libcommon.IopVoid"); break;
 
       case IOP_T_STRING: case IOP_T_XML:
         sb_adds(buf, "Swift.String");
@@ -181,10 +182,16 @@ static bool iopc_field_has_default_value(const iopc_field_t *field)
         return true;
     }
 
-    if (field->kind == IOP_T_STRUCT) {
+    switch (field->kind) {
+      case IOP_T_STRUCT:
         return iopc_struct_has_void_initializer(field->struct_def, false);
+
+      case IOP_T_VOID:
+        return true;
+
+      default:
+        return false;
     }
-    return false;
 }
 
 static void iopc_dump_field_defval(sb_t *buf, const iopc_field_t *field)
@@ -277,7 +284,9 @@ static void iopc_dump_field_defval(sb_t *buf, const iopc_field_t *field)
             sb_adds(buf, " ]");
           } break;
 
-          case IOP_T_UNION: case IOP_T_STRUCT:
+          case IOP_T_UNION:
+          case IOP_T_STRUCT:
+          case IOP_T_VOID:
             assert (false);
             break;
         }
@@ -327,6 +336,9 @@ static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
             sb_addf(buf, "(&%s)\n%s        ",
                     field->name, indent);
         }
+
+      case IOP_T_VOID:
+        break;
     }
 }
 
@@ -380,6 +392,14 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
                                             t_fmt("self.%s =", field->name));
             sb_addf(buf, "\n%s         }\n", indent);
             break;
+
+          case IOP_T_VOID:
+            sb_addf(buf,
+                    "%s        if data.%*pM {\n"
+                    "%s            self.%s = libcommon.IopVoid()\n"
+                    "%s        }\n", indent, LSTR_FMT_ARG(c_field_name),
+                    indent, field->name, indent);
+            break;
         }
         break;
 
@@ -418,6 +438,11 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
 
     switch (field->repeat) {
       case IOP_R_REQUIRED:
+        if (field->kind == IOP_T_VOID) {
+            break;
+        }
+        /* FALLTHROUGH */
+
       case IOP_R_DEFVAL:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
@@ -451,6 +476,10 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
             }
             sb_addc(buf, '\n');
           } break;
+
+          case IOP_T_VOID:
+            assert (false);
+            break;
         }
         break;
 
@@ -495,6 +524,12 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
                     LSTR_FMT_ARG(c_field_name), field->name, field_pkg_name,
                     LSTR_FMT_ARG(field_name), indent);
           } break;
+
+          case IOP_T_VOID:
+            sb_addf(buf,
+                    "%s        data.pointee.%*pM = self.%s != nil\n",
+                    indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
         }
         break;
 
@@ -625,9 +660,11 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
 
     /* Generate field list */
     tab_for_each_entry(field, &st->fields) {
-        sb_addf(buf, "%s    public var %s : ", indent, field->name);
-        iopc_dump_field_type(buf, field);
-        sb_addc(buf, '\n');
+        if (!iopc_struct_is_field_ignored(field)) {
+            sb_addf(buf, "%s    public var %s : ", indent, field->name);
+            iopc_dump_field_type(buf, field);
+            sb_addc(buf, '\n');
+        }
     }
     sb_addc(buf, '\n');
 
@@ -643,6 +680,9 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             st->fields.len == 0 && iopc_is_class(st->type) ? "override " : "");
     tab_for_each_pos_rev(pos, &parents) {
         tab_for_each_entry(field, &parents.tab[pos]->fields) {
+            if (iopc_struct_is_field_ignored(field)) {
+                continue;
+            }
             if (!first) {
                 sb_addf(buf, ",\n"
                         "%s                ",
@@ -656,8 +696,10 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     }
     sb_adds(buf, ") {\n");
     tab_for_each_entry(field, &st->fields) {
-        sb_addf(buf, "%s        self.%s = %s\n", indent, field->name,
-                field->name);
+        if (!iopc_struct_is_field_ignored(field)) {
+            sb_addf(buf, "%s        self.%s = %s\n", indent, field->name,
+                    field->name);
+        }
     }
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "%s        super.init(", indent);
@@ -667,13 +709,15 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 break;
             }
             tab_for_each_entry(field, &parents.tab[pos]->fields) {
-                if (!first) {
-                    sb_addf(buf, ",\n"
-                            "%s               ",
-                            indent);
+                if (!iopc_struct_is_field_ignored(field)) {
+                    if (!first) {
+                        sb_addf(buf, ",\n"
+                                "%s               ",
+                                indent);
+                    }
+                    first = false;
+                    sb_addf(buf, "%s: %s", field->name, field->name);
                 }
-                first = false;
-                sb_addf(buf, "%s: %s", field->name, field->name);
             }
         }
         sb_adds(buf, ")\n");
@@ -688,7 +732,9 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1).pointee\n",
                 indent, LSTR_FMT_ARG(c_name));
         tab_for_each_entry(field, &st->fields) {
-            iopc_dump_struct_field_importer(buf, indent, field);
+            if (!iopc_struct_is_field_ignored(field)) {
+                iopc_dump_struct_field_importer(buf, indent, field);
+            }
         }
     }
     if (iopc_is_class(st->type)) {
@@ -704,7 +750,9 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1)\n",
                 indent, LSTR_FMT_ARG(c_name));
         tab_for_each_entry(field, &st->fields) {
-            iopc_dump_struct_field_exporter(buf, indent, field);
+            if (!iopc_struct_is_field_ignored(field)) {
+                iopc_dump_struct_field_exporter(buf, indent, field);
+            }
         }
     }
     if (!is_root_class) {
@@ -757,6 +805,10 @@ static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
         }
         sb_adds(buf, "))\n");
         break;
+
+      case IOP_T_VOID:
+        sb_addf(buf, "                self = .%s\n", field->name);
+        break;
     }
 }
 
@@ -770,10 +822,14 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
         type_is_class = true;
     }
 
+    sb_addf(buf, "              case .%s", field->name);
+    if (field->kind != IOP_T_VOID) {
+        sb_addf(buf, "(let %s)", field->name);
+    }
     sb_addf(buf,
-            "              case .%s(let %s):\n"
+            ":\n"
             "                tag[0] = %d\n",
-            field->name, field->name, field->tag);
+            field->tag);
 
     switch (field->kind) {
       case IOP_T_I8...IOP_T_DOUBLE:
@@ -804,6 +860,9 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
             sb_addf(buf, "                %s.fill(data, on: allocator)\n", field->name);
         }
         break;
+
+      case IOP_T_VOID:
+        break;
     }
 }
 
@@ -825,9 +884,13 @@ static void iopc_dump_union(sb_t *buf,
 
     /* Generate case list */
     tab_for_each_entry(field, &st->fields) {
-        sb_addf(buf, "        case %s(", field->name);
-        iopc_dump_field_type(buf, field);
-        sb_adds(buf, ")\n");
+        sb_addf(buf, "        case %s", field->name);
+        if (field->kind != IOP_T_VOID) {
+            sb_addc(buf, '(');
+            iopc_dump_field_type(buf, field);
+            sb_addc(buf, ')');
+        }
+        sb_addc(buf, '\n');
     }
     sb_addc(buf, '\n');
 
@@ -952,10 +1015,16 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                 sb_addf(buf, "            public func %s(%s: ",
                         rpc->name, field->name);
                 iopc_dump_field_type(buf, field);
+
                 sb_addf(buf, ") -> %s.ReturnType {\n"
-                        "                    return self.%s(.%s(%s))\n"
-                        "                }\n",
-                        rpc_desc, rpc->name, field->name, field->name);
+                        "                    return self.%s(.%s",
+                        rpc_desc, rpc->name, field->name);
+                if (field->kind != IOP_T_VOID) {
+                    sb_addf(buf, "(%s)", field->name);
+                }
+                sb_addf(buf, ")\n"
+                        "                }\n");
+
             }
             sb_addc(buf, '\n');
         } else
@@ -993,12 +1062,14 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
             first = true;
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
-                    if (!first) {
-                        sb_adds(buf, ",\n");
-                        sb_addnc(buf, 39 + 2 * strlen(rpc->name), ' ');
+                    if (!iopc_struct_is_field_ignored(field)) {
+                        if (!first) {
+                            sb_adds(buf, ",\n");
+                            sb_addnc(buf, 39 + 2 * strlen(rpc->name), ' ');
+                        }
+                        first = false;
+                        sb_addf(buf, "%s: %s", field->name, field->name);
                     }
-                    first = false;
-                    sb_addf(buf, "%s: %s", field->name, field->name);
                 }
             }
             sb_adds(buf, "))\n"

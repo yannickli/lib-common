@@ -38,8 +38,9 @@ SWIFT_ENUM(iop_type_t) {
     IOP_T_UNION __swift_name__("union"),
     IOP_T_STRUCT __swift_name__("struct"),
     IOP_T_XML __swift_name__("xml"),
+    IOP_T_VOID __swift_name__("void"),
 };
-#define IOP_T_max  IOP_T_XML
+#define IOP_T_max  IOP_T_VOID
 
 /*{{{ iop_field_t */
 

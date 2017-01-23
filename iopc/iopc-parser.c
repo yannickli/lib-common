@@ -1873,6 +1873,7 @@ iop_type_t iop_get_type(lstr_t name)
       case IOPC_TK_DOUBLE: return IOP_T_DOUBLE;
       case IOPC_TK_STRING: return IOP_T_STRING;
       case IOPC_TK_XML:    return IOP_T_XML;
+      case IOPC_TK_VOID:   return IOP_T_VOID;
       default:
         return IOP_T_STRUCT;
     }
@@ -1940,6 +1941,9 @@ static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
             throw_loc("repeated static members are forbidden", f->loc);
         }
         WANT(pp, 1, ']');
+        if (f->kind == IOP_T_VOID) {
+            throw_loc("repeated void types are forbidden", f->loc);
+        }
         f->repeat = IOP_R_REPEATED;
         DROP(pp, 2);
         break;
@@ -1993,7 +1997,7 @@ static int parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
 static iopc_field_t *
 parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
                  qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag,
-                 int paren, bool is_snmp_iface)
+                 int paren, bool is_snmp_iface, bool is_rpc_arg)
 {
     iopc_loc_t    name_loc;
     iopc_field_t *f = NULL;
@@ -2050,6 +2054,13 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         if (parse_field_type(pp, st, f) < 0) {
             goto error;
         }
+        if (is_rpc_arg && f->kind == IOP_T_VOID
+        &&  f->repeat == IOP_R_REQUIRED)
+        {
+            error_loc("required void types are forbidden for rpc arguments",
+                      TK(pp, 0, goto error)->loc);
+            goto error;
+        }
     }
 
     if (__want(pp, 0, ITOK_IDENT) < 0) {
@@ -2073,6 +2084,10 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
     if (CHECK(pp, 0, '=', goto error)) {
         if (st->type == STRUCT_TYPE_UNION) {
             error_loc("default values are forbidden in union types", f->loc);
+            goto error;
+        }
+        if (f->kind == IOP_T_VOID) {
+            error_loc("default values are forbidden for void types", f->loc);
             goto error;
         }
         if (parse_field_defval(pp, f, paren) < 0) {
@@ -2169,7 +2184,7 @@ static int check_snmp_tbl_has_index(iopc_struct_t *st)
 }
 
 static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
-                        int paren, bool is_snmp_iface)
+                        int paren, bool is_snmp_iface, bool is_rpc_arg)
 {
     int res = 0;
     qm_t(iopc_field) fields = QM_INIT_CACHED(field, fields);
@@ -2189,7 +2204,7 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
 
         if (check_dox_and_attrs(pp, &chunks, &attrs) < 0
         ||  !(f = parse_field_stmt(pp, st, &attrs, &fields, &tags, &next_tag,
-                                   paren, is_snmp_iface)))
+                                   paren, is_snmp_iface, is_rpc_arg)))
         {
             goto error;
         }
@@ -2378,7 +2393,7 @@ parse_struct_class_union_snmp_stmt(iopc_parser_t *pp,
     }
 
     EAT(pp, '{');
-    RETHROW(parse_struct(pp, out, ';', '}', false));
+    RETHROW(parse_struct(pp, out, ';', '}', false, false));
     EAT(pp, '}');
     EAT(pp, ';');
     return 0;
@@ -2575,7 +2590,7 @@ static int parse_function_desc(iopc_parser_t *pp, int what, iopc_fun_t *fun,
         *sptr = iopc_struct_new();
         (*sptr)->name = asprintf("%s%s", fun->name, type_name);
         (*sptr)->loc = TK_N(pp, 0)->loc;
-        RETHROW(parse_struct(pp, *sptr, ',', ')', is_snmp_iface));
+        RETHROW(parse_struct(pp, *sptr, ',', ')', is_snmp_iface, true));
         EAT(pp, ')');
         RETHROW(read_dox_back(pp, chunks, 0));
         RETHROW(build_dox_check_all(chunks, *sptr));

@@ -577,6 +577,25 @@ class IopcTest(z.TestCase):
         self.run_iopc('invalid_union_empty.iop', False,
                       'a union must contain at least one field', 6)
 
+    @z.ZFlags('redmine_8536')
+    def test_void_types(self):
+        self.run_iopc_pass('void_in_union.iop', 6, lang="C,json,swift")
+        self.run_gcc('void_in_union.iop')
+        self.run_iopc_pass('void_mandatory_in_struct.iop', 6,
+                           lang="C,json,swift")
+        self.run_gcc('void_mandatory_in_struct.iop')
+        self.run_iopc_pass('void_optional_in_struct.iop', 6,
+                           lang="C,json,swift")
+        self.run_gcc('void_optional_in_struct.iop')
+        self.run_iopc('invalid_void_repeated.iop', False,
+                      'repeated void types are forbidden', 6)
+        self.run_iopc('invalid_void_default.iop', False,
+                      'default values are forbidden for void types', 6)
+        self.run_iopc_pass('void_opt_rpc_arg.iop', 6, lang="C,json,swift")
+        self.run_iopc('invalid_void_req_rpc_arg.iop', False,
+                      'required void types are forbidden for rpc arguments',
+                      6)
+
     # }}}
     # {{{ Attributes
 

@@ -161,6 +161,10 @@ static void iopc_field_compute_size(iopc_field_t *f)
         return;
     if (f->repeat == IOP_R_OPTIONAL || f->is_ref) {
         switch (f->kind) {
+          case IOP_T_VOID:
+            f->align = alignof(bool);
+            f->size = sizeof(bool);
+            break;
           case IOP_T_BOOL:
             f->align = alignof(opt_bool_t);
             f->size  = sizeof(opt_bool_t);
@@ -211,6 +215,10 @@ static void iopc_field_compute_size(iopc_field_t *f)
         return;
     } else
     switch (f->kind) {
+      case IOP_T_VOID:
+        f->align = alignof(bool);
+        f->size = 0;
+        break;
       case IOP_T_BOOL:
         f->align = alignof(bool);
         f->size  = sizeof(bool);
@@ -319,6 +327,10 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
             type     = "iop_array_lstr_t   ";
             old_type = "IOP_ARRAY_OF(iop_data_t) ";
             break;
+          case IOP_T_VOID:
+            /* Repeated void are forbidden in the parser. */
+            assert (false);
+            break;
           default:
             sb_addnc(sb, indent, ' ');
             sb_addf(sb, "%s__%s__array_t %s;\n",
@@ -340,6 +352,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
               case IOP_T_U64:    type = "iop_opt_u64_t    ";    break;
               case IOP_T_I64:    type = "iop_opt_i64_t    ";    break;
               case IOP_T_BOOL:   type = "iop_opt_bool_t   ";    break;
+              case IOP_T_VOID:   type = "bool             ";    break;
               case IOP_T_DOUBLE: type = "iop_opt_double_t ";    break;
               default:                                          break;
               case IOP_T_ENUM:
@@ -365,6 +378,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
           case IOP_T_U64:    type = "opt_u64_t        ";    break;
           case IOP_T_I64:    type = "opt_i64_t        ";    break;
           case IOP_T_BOOL:   type = "opt_bool_t       ";    break;
+          case IOP_T_VOID:   type = "bool             ";    break;
           case IOP_T_DOUBLE: type = "opt_double_t     ";    break;
           case IOP_T_STRING: type = "lstr_t           ";    break;
           case IOP_T_XML:    type = "lstr_t           ";    break;
@@ -394,6 +408,9 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
           case IOP_T_U64:    type = "uint64_t ";   break;
           case IOP_T_I64:    type = "int64_t  ";   break;
           case IOP_T_BOOL:   type = "bool     ";   break;
+          case IOP_T_VOID:
+             /* void type is not present in struct or union */
+            return;
           case IOP_T_DOUBLE: type = "double   ";   break;
           case IOP_T_STRING: type = "lstr_t   ";   break;
           case IOP_T_DATA:   type = _G.data_c_type; break;
@@ -1308,6 +1325,7 @@ static char const * const types[] = {
     ITEM(XML),
     ITEM(UNION),
     ITEM(STRUCT),
+    ITEM(VOID),
 #undef ITEM
 };
 
@@ -1349,9 +1367,11 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             repeats[f->repeat], types[kind]);
 
     if (!iopc_is_snmp_obj(st->type)) {
-        sb_addf(buf,
-                "        .data_offs = offsetof(%s__t, %s),\n",
-                tbase, cname);
+        if (!iopc_struct_is_field_ignored(f)) {
+            sb_addf(buf,
+                    "        .data_offs = offsetof(%s__t, %s),\n",
+                    tbase, cname);
+        }
     }
 
     if (f->is_ref) {
@@ -1431,14 +1451,20 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
                 f->struct_def->type == STRUCT_TYPE_CLASS ? " *" : "",
                 pp_under(f->type_path), pp_to_c(f->type_name));
     } else if (f->repeat == IOP_R_REPEATED) {
-        sb_addf(buf,
-                "        .size      = fieldsizeof(%s__t, %s.tab[0]),\n",
-                tbase, cname);
+        /* void arrays only have a length, no data */
+        if (f->kind != IOP_T_VOID) {
+            sb_addf(buf,
+                    "        .size      = fieldsizeof(%s__t, %s.tab[0]),\n",
+                    tbase, cname);
+        }
     } else
     if (!iopc_is_snmp_st(st->type)) {
-        sb_addf(buf,
-                "        .size      = fieldsizeof(%s__t, %s),\n",
-                tbase, cname);
+        /* required void fields are never physically present */
+        if (!iopc_struct_is_field_ignored(f)) {
+            sb_addf(buf,
+                    "        .size      = fieldsizeof(%s__t, %s),\n",
+                    tbase, cname);
+        }
     }
     if (f->kind == IOP_T_ENUM) {
         sb_addf(buf,

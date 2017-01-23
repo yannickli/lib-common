@@ -382,6 +382,10 @@ void iop_set_opt_field(void *ptr, const iop_field_t *field)
       case IOP_T_UNION: case IOP_T_STRUCT:
         e_panic("unions/structs are not supported in iop_set_opt_field");
         break;
+
+      case IOP_T_VOID:
+        /* TODO: #8536 */
+        break;
     }
 }
 
@@ -639,6 +643,9 @@ void *iop_get_opt_field(iop_type_t type, void *data)
       case IOP_T_STRUCT:
       case IOP_T_UNION:
         return *(void **)data;
+      case IOP_T_VOID:
+        /* TODO: #8536 */
+        break;
     }
 
     assert (false);
@@ -739,6 +746,8 @@ const char *iop_type_get_string_desc(iop_type_t type)
         return "struct";
       case IOP_T_XML:
         return "xml";
+      case IOP_T_VOID:
+        return "void";
     }
     e_panic("iop_type unsupported");
 }
@@ -784,6 +793,7 @@ iop_value_t iop_type_to_max(iop_type_t type)
       case IOP_T_XML:
       case IOP_T_STRUCT:
       case IOP_T_UNION:
+      case IOP_T_VOID:
         e_panic("iop_type unsupported");
     }
 
@@ -823,6 +833,7 @@ iop_value_t iop_type_to_min(iop_type_t type)
       case IOP_T_XML:
       case IOP_T_STRUCT:
       case IOP_T_UNION:
+      case IOP_T_VOID:
         e_panic("iop_type unsupported");
     }
 
@@ -1512,6 +1523,7 @@ static bool iop_value_equals(iop_type_t type, const void *v1, const void *v2)
       case IOP_T_XML:
         return lstr_equal(*(const lstr_t *)v1, *(const lstr_t *)v2);
 
+      case IOP_T_VOID: /* TODO: #8536 */
       case IOP_T_UNION:
       case IOP_T_STRUCT:
         e_panic("not supported");
@@ -1556,6 +1568,7 @@ static void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
         sb_add_hex(buf, data.data, data.len);
       } break;
 
+      case IOP_T_VOID: /* TODO: #8536 */
       case IOP_T_UNION:
       case IOP_T_STRUCT:
         e_panic("not supported");
@@ -5073,11 +5086,11 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
 }
 
 static void
-backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
-                             uint16_t table_json[IOP_T_max + 1],
-                             uint16_t table_bin_r[IOP_T_max + 1])
+backward_compat_build_tables(uint32_t table_bin[IOP_T_max + 1],
+                             uint32_t table_json[IOP_T_max + 1],
+                             uint32_t table_bin_r[IOP_T_max + 1])
 {
-    STATIC_ASSERT (IOP_T_max <= bitsizeof(uint16_t));
+    STATIC_ASSERT (IOP_T_max <= bitsizeof(uint32_t));
 
     /* Build authorized binary types transition table. */
     table_bin[IOP_T_UNION]  = 1U << IOP_T_UNION;
@@ -5110,6 +5123,8 @@ backward_compat_build_tables(uint16_t table_bin[IOP_T_max + 1],
     table_bin[IOP_T_XML]    = table_bin[IOP_T_STRING];
 
     table_bin[IOP_T_ENUM]   = 1U << IOP_T_ENUM | table_bin[IOP_T_I32];
+    /* TODO: better backward compat for void */
+    table_bin[IOP_T_VOID]   = 1U << IOP_T_VOID;
 
     /* Build authorized json types transition table. */
     p_copy(table_json, table_bin, IOP_T_max + 1);
@@ -5145,9 +5160,9 @@ iop_field_check_backward_compat(const iop_field_t *f1,
                                 unsigned flags, iop_compat_ctx_t *ctx)
 {
     static int first_call = true;
-    static uint16_t table_bin[IOP_T_max + 1];
-    static uint16_t table_json[IOP_T_max + 1];
-    static uint16_t table_bin_r[IOP_T_max + 1];
+    static uint32_t table_bin[IOP_T_max + 1];
+    static uint32_t table_json[IOP_T_max + 1];
+    static uint32_t table_bin_r[IOP_T_max + 1];
 
     if (unlikely(first_call)) {
         first_call = false;

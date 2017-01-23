@@ -424,6 +424,7 @@ void dump_field_type(const iopc_write_buf_t *wbuf, const char *type_label,
       case IOP_T_U64:    type = "ulong";   break;
       case IOP_T_I64:    type = "long";    break;
       case IOP_T_BOOL:   type = "boolean"; break;
+      case IOP_T_VOID:   type = "void";    break;
       case IOP_T_DOUBLE: type = "number";  break;
       case IOP_T_STRING: type = "string";  break;
       case IOP_T_DATA:   type = "data";    break;

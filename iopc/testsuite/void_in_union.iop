@@ -1,0 +1,7 @@
+package void_in_union;
+
+
+union A {
+    /* This should result in a union with no field, but a defined iop_tag */
+    void f;
+};
