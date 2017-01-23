@@ -312,8 +312,7 @@ iop_type_to_error_str(iop_type_t type)
       case IOP_T_STRUCT:
         return "a structure";
       case IOP_T_VOID:
-        /* TODO: #8536 */
-        break;
+        return "a void field";
     }
     return NULL;
 }
@@ -1140,6 +1139,12 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
 static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                       void *value, bool in_arr)
 {
+    if (fdesc->type == IOP_T_VOID) {
+        e_named_trace(3, "iop/json/unpacker", "dropped value into void field "
+                      "`%*pM`", LSTR_FMT_ARG(fdesc->name));
+        return skip_val(ll, in_arr);
+    }
+
     if (!in_arr && fdesc->repeat == IOP_R_REPEATED) {
         if (PS_CHECK(iop_json_lex_peek(ll, NULL)) == '[') {
             iop_json_lex(ll, NULL);
@@ -1359,6 +1364,14 @@ do_double:
     }
 }
 
+/** Unpack a JSON array into a C array.
+ *
+ * \param[in] ll      the lexer.
+ * \param[in] fdesc   a descriptor of the repeated element. Must be set to
+ * NULL if value is NULL, in which case the array will be skipped.
+ * \param[out] value  memory to write to. Can be set to NULL iff fdesc is
+ * NULL, in order to skip the array content.
+ */
 static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
                       void *value)
 {
@@ -1585,7 +1598,15 @@ static ALWAYS_INLINE void seen_free(uint32_t **ptr)
         free(*ptr);
 }
 
-/* If the prefixed argument is set to true, the function assumes that it has
+/** Unpack a json struct into a C struct.
+ *
+ * \param[in] ll        the lexer.
+ * \param[in] desc      a descriptor of the output structure. Must be NULL if
+ * value is NULL, which will skip all the fields (as we don't know the output
+ * structure layout).
+ * \param[out] value    a pointer to the structure to fill. Can be NULL iff
+ * desc is NULL.
+ * \param[in] prefixed  if set to true, the function assumes that it has
  * to parse a value with the prefix syntax:
  *      @member value {
  *          ...
@@ -1650,6 +1671,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           case IOP_JSON_IDENT:
           case IOP_JSON_STRING:
             if (!desc) {
+                /* skip the field (fdesc will be null in next step) */
                 break;
             }
             if (real_desc) {
@@ -1741,8 +1763,11 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == IOP_JSON_IDENT)
                 {
                     /* In case of optional field, the member value could be
-                     * null, which is equivalent to an absent member */
-                    if (DO_IN_CTX(peeked, IS_NULL())) {
+                     * null, which is equivalent to an absent member, except
+                     * for a void type, where the "set" value is null */
+                    if (DO_IN_CTX(peeked, IS_NULL())
+                    &&  fdesc->type != IOP_T_VOID)
+                    {
                         iop_value_set_absent(fdesc, ptr);
                         /* consume the “null” token */
                         iop_json_lex(ll, NULL);
@@ -2351,6 +2376,11 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         if ((flags & IOP_JPACK_SKIP_EMPTY_ARRAYS) && !n && repeated) {
             continue;
         }
+        if (!desc->is_union && fdesc->type == IOP_T_VOID
+        &&  fdesc->repeat == IOP_R_REQUIRED)
+        {
+            continue;
+        }
 
         if (*first) {
             *first = false;
@@ -2474,6 +2504,10 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 res += RETHROW(tmp_res);
 
               } break;
+
+              case IOP_T_VOID:
+                PUTS("null");
+                break;
 
               default:
                 abort();

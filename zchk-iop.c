@@ -6905,6 +6905,14 @@ Z_GROUP_EXPORT(iop)
         /* check iop_copy for void field */
         iop_std_test_struct(&tstiop_void_type__void_alone__s, &s,
                                   "Union void (selected)");
+
+        /* test JSON */
+        iop_json_test_json(&tstiop_void_type__void_alone__s,
+                           "{ \"field\": null }\n", &s, "");
+
+        s = IOP_UNION(tstiop_void_type__void_alone, other, 0x55);
+        iop_json_test_json(&tstiop_void_type__void_alone__s,
+                           "{ \"other\": 85 }\n", &s, "");
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_void_optional, "test iop void, optional") {/* {{{ */
@@ -6953,6 +6961,14 @@ Z_GROUP_EXPORT(iop)
         iop_hash_sha1(&tstiop_void_type__void_optional__s, &s, buf2, 0);
         Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)),
                  "Hashes should be different");
+
+        /* test JSON */
+        s.field = true;
+        iop_json_test_json(&tstiop_void_type__void_optional__s,
+                           "{ \"field\": null }\n", &s, "");
+        s.field = false;
+        iop_json_test_json(&tstiop_void_type__void_optional__s,
+                           "{ }\n", &s, "");
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_void_required, "test iop void, required") { /* {{{ */
@@ -7013,6 +7029,18 @@ Z_GROUP_EXPORT(iop)
         s_double.field = 1.0;
         T_UNPACK_TO_VOID(double);
 #undef T_UNPACK_TO_VOID
+
+        /* test JSON */
+        iop_json_test_unpack(&tstiop_void_type__void_required__s,
+                             "{ field: 1 }", 0, true, "int to void");
+        iop_json_test_unpack(&tstiop_void_type__void_required__s,
+                             "{ field: [0, 1, 2] }", 0, true,
+                             "array to void");
+        iop_json_test_unpack(&tstiop_void_type__void_required__s,
+                             "{ field: { a: 1, b: 2 } }", 0, true,
+                             "struct to void");
+        iop_json_test_pack(&tstiop_void_type__void_required__s, &s,
+                           0, true, "{\n}\n");
     } Z_TEST_END;
     /* }}} */
 } Z_GROUP_END
