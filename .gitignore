@@ -36,6 +36,8 @@
 /ztst-qpsstress
 /ztst-sort
 /ztst-tpl
+/ztst-swift
+/ztst-swiftc
 /dso-compatibility-check
 
 /common.so
@@ -51,3 +53,4 @@ mem.fifo.data.*
 
 test-data/snmp/*.iop.h
 test-data/snmp/*.iop.c
+test-data/snmp/*.iop.swift

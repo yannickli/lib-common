@@ -11,11 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iop.h"
+#ifndef IS_LIBCOMMON_SWIFTC
+#define IS_LIBCOMMON_SWIFTC
 
-iop_struct_t const iop__void__s = {
-    .fullname   = LSTR_IMMED("Void"),
-    .fields_len = 0,
-    .size       = 0,
-};
-iop_struct_t const * const iop__void__sp = &iop__void__s;
+#include "core.h"
+
+MODULE_DECLARE(c_from_swift);
+MODULE_DECLARE(swift_from_c);
+
+#endif

@@ -146,7 +146,7 @@ module_t *module_register(lstr_t name, module_t **module,
 
     new_module = module_new();
     new_module->state = REGISTERED;
-    new_module->name = lstr_dupc(name);
+    new_module->name = lstr_dup(name);
     new_module->manu_req_count = 0;
     if ((arg_pos = qm_find(module_arg, &_G.modules_arg, module)) >= 0) {
         new_module->constructor_argument = _G.modules_arg.values[arg_pos];
@@ -167,7 +167,7 @@ module_t *module_register(lstr_t name, module_t **module,
         modules_dep = &_G.module_dep_resolve.values[qm_pos];
         qh_for_each_pos(ptr, qh_pos, modules_dep) {
             qv_append(&new_module->dependent_of,
-                      ((module_t *)modules_dep->keys[qh_pos])->name);
+                      lstr_dupc(((module_t *)modules_dep->keys[qh_pos])->name));
         }
         qh_wipe(ptr, modules_dep);
     }
@@ -197,6 +197,7 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
 
             dep_modules = &_G.module_dep_resolve.values[pos];
         } else {
+            _G.module_dep_resolve.keys[pos] = lstr_dup(name);
             dep_modules = &_G.module_dep_resolve.values[pos];
             qh_init(ptr, dep_modules);
         }
@@ -205,7 +206,7 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
     }
 
     assert (module->state == REGISTERED);
-    qv_append(&module->dependent_of, dep);
+    qv_append(&module->dependent_of, lstr_dup(dep));
 }
 
 void module_require(module_t *module, module_t *required_by)
@@ -455,7 +456,7 @@ static void _module_shutdown(void)
     qm_deep_wipe(methods_impl, &_G.methods, IGNORE, module_method_delete);
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     qm_wipe(module_arg, &_G.modules_arg);
-    qm_deep_wipe(module_dep, &_G.module_dep_resolve, IGNORE,
+    qm_deep_wipe(module_dep, &_G.module_dep_resolve, lstr_wipe,
                  module_dep_qh_wipe);
     logger_wipe(&_G.logger);
     _G.is_shutdown = true;

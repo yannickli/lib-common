@@ -21,6 +21,8 @@
 /** Opaque type that defines a module.
  */
 typedef struct module_t module_t;
+typedef module_t *module_ptr_t;
+typedef module_t * nullable *module_ptr_ptr_t;
 
 /** Describe the evaluation order of the method.
  */
@@ -63,7 +65,8 @@ typedef struct module_method_t {
  * \param[in] name name of the method.
  */
 #define MODULE_METHOD_DECLARE(Type, Order, name)  \
-    extern const module_method_t name##_method
+    extern const module_method_t name##_method;                              \
+    extern const module_method_t * const nonnull name##_method_ptr
 
 /** Define a new method.
  *
@@ -78,7 +81,8 @@ typedef struct module_method_t {
     const module_method_t name##_method = {                                  \
         .type  = METHOD_##Type,                                              \
         .order = MODULE_##Order,                                             \
-    }
+    };                                                                       \
+    const module_method_t * const name##_method_ptr = &name##_method
 
 /** Run a void method.
  *
@@ -154,12 +158,15 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 /** Pointer to the module of the given name.
  */
 #define MODULE(name)  name##_module
+#define MODULE_PTR(name)  name##_module_ptr
 
 /** Declare a module.
  *
  * This macro declares a module variable.
  */
-#define MODULE_DECLARE(name)  extern module_t * nullable MODULE(name)
+#define MODULE_DECLARE(name)                                                 \
+    extern module_t * nullable MODULE(name);                                 \
+    extern module_t * nullable * const nonnull MODULE_PTR(name)
 
 /** Begin the definition of a module.
  *
@@ -178,6 +185,7 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 #define MODULE_BEGIN(name)                                                   \
     __attr_section("intersec", "module")                                     \
     module_t *MODULE(name);                                                  \
+    module_t ** const MODULE_PTR(name) = &MODULE(name);                      \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
@@ -212,6 +220,34 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 #define MODULE_NEEDED_BY(need)  \
     module_add_dep(MODULE(need), LSTR(#need), __name, &__mod)
 
+/** Register a module defined in Swift.
+ *
+ * Modules defined in swift have to be declared and defined in both C and
+ * Swift in order to be usable. The C part needs only to contain the
+ * MODULE_DECLARE(name) and the MODULE_SWIFT(name, swift_file), while the
+ * Swift code mustinclude a constructor in the form of the following code:
+ *
+ *  let {module_name} : Module.Constructor = { (name, module) in
+ *      Module.register(name: name, module: module, initialize: initialize,
+ *                      shutdown: shutdown)
+ *  }
+ */
+#define MODULE_SWIFT(name, name_len, swift_file, swift_file_len)             \
+    __attr_section("intersec", "module")                                     \
+    module_t *MODULE(name);                                                  \
+    module_t ** const MODULE_PTR(name) = &MODULE(name);                      \
+                                                                             \
+    void _TF##swift_file_len##swift_file##au##name_len##name##C9libcommon6Module(void);\
+                                                                             \
+    static __attribute__((constructor))                                      \
+    void __##name##_module_register(void)                                    \
+    {                                                                        \
+        STATIC_ASSERT(name_len == sizeof(#name) - 1);                        \
+        STATIC_ASSERT(swift_file_len == sizeof(#swift_file) - 1);            \
+                                                                             \
+        _TF##swift_file_len##swift_file##au##name_len##name##C9libcommon6Module();\
+    }
+
 /* {{{ Method */
 
 /** Declare the implementation of the method \p hook.
@@ -222,11 +258,8 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  *
  * This macro can only be used if the method has a void prototype.
  */
-#define MODULE_IMPLEMENTS_VOID(hook, cb)  do {                               \
-        void (*__hook_cb)(void) = cb;                                        \
-        assert (hook##_method.type == METHOD_VOID);                          \
-        module_implement_method(__mod, &hook##_method, (void *)__hook_cb);   \
-    } while (0)
+#define MODULE_IMPLEMENTS_VOID(hook, cb)                                     \
+    module_implement_method_void(__mod, &hook##_method, (cb))
 
 /** Declare the implementation of the method \p hook.
  *
@@ -235,9 +268,9 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  * This macro can only be used if the method takes a pointer as argument.
  */
 #define MODULE_IMPLEMENTS_PTR(Type, hook, cb)  do {                          \
-        void (*__hook_cb)(Type *ptr) = cb;                                   \
-        assert (hook##_method.type == METHOD_PTR);                           \
-        module_implement_method(__mod, &hook##_method, (void *)__hook_cb);   \
+        void (*__hook_cb)(Type *ptr) = (cb);                                 \
+        module_implement_method_ptr(__mod, &hook##_method,                   \
+                                    (void (*)(void *))__hook_cb);            \
     } while (0)
 
 /** Declare the implementation of the method \p hook.
@@ -246,11 +279,8 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  *
  * This macro can only be used if the method takes an integer as argument.
  */
-#define MODULE_IMPLEMENTS_INT(hook, cb)  do {                                \
-        void (*__hook_cb)(int) = cb;                                         \
-        assert (hook##_method.type == METHOD_INT);                           \
-        module_implement_method(__mod, &hook##_method, (void *)__hook_cb);   \
-    } while (0)
+#define MODULE_IMPLEMENTS_INT(hook, cb)                                      \
+    module_implement_method_int(__mod, &hook##_method, (cb))
 
 /** Declare the implementation of the method \p hook.
  *
@@ -258,11 +288,8 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  *
  * This macro can only be used if the method takes a \ref data_t as argument.
  */
-#define MODULE_IMPLEMENTS(hook, cb)  do {                                    \
-        void (*__hook_cb)(data_t) = cb;                                      \
-        assert (hook##_method.type == METHOD_GENERIC);                       \
-        module_implement_method(__mod, &hook##_method, __hook_cb);           \
-    } while (0)
+#define MODULE_IMPLEMENTS(hook, cb)                                          \
+    module_implement_method_generic(__mod, &hook##_method, (cb))
 
 /* }}} */
 /* {{{ Low-level API */
@@ -287,12 +314,52 @@ module_register(lstr_t name, module_t * nullable * nonnull module,
                 int nb_dependencies);
 
 void module_add_dep(module_t * nonnull mod, lstr_t name, lstr_t dep,
-                    module_t * nullable * nonnull dep_ptr);
+                    module_ptr_ptr_t nonnull dep_ptr);
 
 __attr_nonnull__((1, 2, 3))
 void module_implement_method(module_t * nonnull mod,
                              const module_method_t * nonnull method,
                              void * nonnull cb);
+
+__attr_nonnull__((1, 2, 3))
+static inline
+void module_implement_method_void(module_t * nonnull mod,
+                                  const module_method_t * nonnull method,
+                                  void (*nonnull cb)(void))
+{
+    assert (method->type == METHOD_VOID);
+    module_implement_method(mod, method, (void *)cb);
+}
+
+__attr_nonnull__((1, 2, 3))
+static inline
+void module_implement_method_int(module_t * nonnull mod,
+                                 const module_method_t * nonnull method,
+                                 void (*nonnull cb)(int))
+{
+    assert (method->type == METHOD_INT);
+    module_implement_method(mod, method, (void *)cb);
+}
+
+__attr_nonnull__((1, 2, 3))
+static inline
+void module_implement_method_generic(module_t * nonnull mod,
+                                     const module_method_t * nonnull method,
+                                     void (*nonnull cb)(data_t))
+{
+    assert (method->type == METHOD_GENERIC);
+    module_implement_method(mod, method, (void *)cb);
+}
+
+__attr_nonnull__((1, 2, 3))
+static inline
+void module_implement_method_ptr(module_t * nonnull mod,
+                                 const module_method_t * nonnull method,
+                                 void (*nonnull cb)(void * nullable))
+{
+    assert (method->type == METHOD_PTR);
+    module_implement_method(mod, method, (void *)cb);
+}
 
 /* }}} */
 /* }}} */

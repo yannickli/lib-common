@@ -633,16 +633,32 @@ int __logger_log(logger_t *logger, int level, const char *prog, int pid,
     return res;
 }
 
+void __logger_vpanic(logger_t *logger, const char *file, const char *func,
+                     int line, const char *fmt, va_list va)
+{
+    __logger_refresh(logger);
+
+    logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
+    abort();
+}
+
 void __logger_panic(logger_t *logger, const char *file, const char *func,
                     int line, const char *fmt, ...)
 {
     va_list va;
 
+    va_start(va, fmt);
+    __logger_vpanic(logger, file, func, line, fmt, va);
+}
+
+void __logger_vfatal(logger_t *logger, const char *file, const char *func,
+                    int line, const char *fmt, va_list va)
+{
     __logger_refresh(logger);
 
-    va_start(va, fmt);
     logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
-    abort();
+
+    logger_do_fatal();
 }
 
 void __logger_fatal(logger_t *logger, const char *file, const char *func,
@@ -650,12 +666,22 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 {
     va_list va;
 
+    va_start(va, fmt);
+    __logger_vfatal(logger, file, func, line, fmt, va);
+}
+
+void __logger_vexit(logger_t *logger, const char *file, const char *func,
+                    int line, const char *fmt, va_list va)
+{
+    va_list vc;
+
     __logger_refresh(logger);
 
-    va_start(va, fmt);
-    logger_vlog(logger, LOG_CRIT, NULL, -1, file, func, line, fmt, va);
+    va_copy(vc, va);
+    logger_vlog(logger, LOG_ERR, NULL, -1, file, func, line, fmt, va);
+    logger_vsyslog(LOG_ERR, fmt, vc);
 
-    logger_do_fatal();
+    _exit(0);
 }
 
 void __logger_exit(logger_t *logger, const char *file, const char *func,
@@ -663,14 +689,8 @@ void __logger_exit(logger_t *logger, const char *file, const char *func,
 {
     va_list va;
 
-    __logger_refresh(logger);
-
     va_start(va, fmt);
-    logger_vlog(logger, LOG_ERR, NULL, -1, file, func, line, fmt, va);
-    logger_vsyslog(LOG_ERR, fmt, va);
-    va_end(va);
-
-    _exit(0);
+    __logger_vexit(logger, file, func, line, fmt, va);
 }
 
 #ifndef NDEBUG

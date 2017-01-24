@@ -98,12 +98,34 @@ prereq() {
 }
 
 check_iopc() {
-    IOPC_VER=5.0.9
+    IOPC_VER=5.0.10
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
         warn "iopc version $IOPC_VER required, update your tools"
     fi
     setenv "IOPC" "$(which iopc)"
     setenv "IOPVER" "-5"
+}
+
+check_swift() {
+    SWIFT_VER=3.0.1
+
+    if ! which "swiftc" >/dev/null 2>&1; then
+        log "disabling swift support"
+        return
+    fi
+
+    case "$OS" in
+        darwin)
+            CUR_VER="$(swiftc -v 2>&1 | grep 'Apple Swift version' | cut -d ' ' -f 4 | sed 's/-dev/.0/')"
+            ;;
+        *)
+            CUR_VER="$(swiftc -v 2>&1 | grep 'Swift version' | cut -d ' ' -f 3 | sed 's/-dev/.0/')"
+            ;;
+    esac
+    if ! prereq "$SWIFT_VER" "$CUR_VER"; then
+        warn "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
+    fi
+    setenv "SWIFTC" "$(which swiftc)"
 }
 
 __check_python_mod() {
@@ -162,6 +184,7 @@ fi
 for tool in clang clang++ flex gperf xsltproc; do
     check_tool $tool $tool
 done
+check_swift
 
 # }}}
 # {{{ pkg-config packages

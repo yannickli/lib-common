@@ -288,6 +288,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 #define YY_DECL        static iopc_token_t *yylex(yyscan_t yyscanner)
 #define YY_EXTRA_TYPE  struct lexdata *
+#undef ECHO
 #define ECHO
 
 #define yyrtrim() \

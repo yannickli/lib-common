@@ -385,12 +385,12 @@ __dump_targets:
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_WWWMODULES %_WWWSCRIPTS,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG %_MINIFY,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG %_MINIFY %_SWIFTMAIN,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\
 			echo '$.$(vv) += $(call fun/exportvars,$(CURDIR),$($(vv)))';))
-	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %CFLAGSBASE %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH,$(filter-out MAKE%,$(.VARIABLES))),\
+	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %CFLAGSBASE %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH %_SWIFTMODULE %_SWIFTMIXED %_SWIFTDEPS,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'

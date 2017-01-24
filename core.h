@@ -62,9 +62,9 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/uio.h>
-#ifdef __APPLE__
-# include <sys/socket.h>
-#endif
+#include <sys/socket.h>
+#include <termios.h>
+#undef ECHO
 #include <time.h>
 #include <unistd.h>
 #include <sched.h>

@@ -26,7 +26,7 @@
 #pragma GCC diagnostic error "-Wnullability-completeness"
 #endif
 
-typedef enum ic_status_t {
+SWIFT_ENUM(ic_status_t) {
     IC_MSG_OK             = 0,
     IC_MSG_EXN            = 1,
     IC_MSG_RETRY          = 2,
@@ -40,7 +40,7 @@ typedef enum ic_status_t {
 
     /* XXX: think to update ic_status_to_string too */
 #define IC_MSG_STREAM_CONTROL   INT32_MIN
-} ic_status_t;
+};
 
 #define IC_SLOT_ERROR           (~UINT64_C(0))
 #define IC_SLOT_FOREIGN_MASK    BITMASK_GE(uint64_t, 62)
