@@ -78,8 +78,7 @@ $~$3.dep: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPV
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) $$(IOPVER_) --c-export-symbols --c-export-nullability --c-resolve-includes --c-unions-use-enums \
-	    --Wextra --check-snmp-table-has-index -l c,json$(if $(SWIFTC),$(var/comma)swift) \
+	$(IOPC) $$(IOPVER_) $(IOPFLAGS) -l c,json$(if $(SWIFTC),$(var/comma)swift) \
 	    -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) --json-output-path $$(IOPJSONPATH_) \
 	    $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) \
 	    $(if $(SWIFTC),$$(if $$(IOPSWIFTDEPS_),--swift-import-modules $$(IOPSWIFTDEPS_))) $$<
@@ -91,8 +90,7 @@ $3.c: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPVER))
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) $$(IOPVER_) --c-export-symbols --c-export-nullability --c-resolve-includes --c-unions-use-enums \
-	    --Wextra --check-snmp-table-has-index -l c,json$(if $(SWIFTC),$(var/comma)swift) \
+	$(IOPC) $$(IOPVER_) $(IOPFLAGS) -l c,json$(if $(SWIFTC),$(var/comma)swift) \
 	    -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) --json-output-path $$(IOPJSONPATH_) \
 	    $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) \
 	    $(if $(SWIFTC),$$(if $$(IOPSWIFTDEPS_),--swift-import-modules $$(IOPSWIFTDEPS_))) $$<
