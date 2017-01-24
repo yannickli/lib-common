@@ -3230,13 +3230,10 @@ static int qps_initialize(void *sighandler)
         .sa_flags     = SA_SIGINFO,
     };
 
-    _G.sighandler = sighandler;
     sigfillset(&act.sa_mask);
     sigaction(SIGSEGV, &act, &prev);
     sigaction(SIGBUS, &act, NULL);
-#ifdef __has_asan
     _G.sighandler = prev.sa_sigaction;
-#endif
     return 0;
 }
 
@@ -3273,7 +3270,6 @@ Z_GROUP_EXPORT(qps)
     const char S[] = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQSRT";
     qps_handle_t handle1, handle2, handle3;
 
-    MODULE_PROVIDE(qps, &ps_panic_sighandler);
     MODULE_REQUIRE(qps);
 
 #define Z_CHECK_ALLOC(handle, size)  ({                                      \
