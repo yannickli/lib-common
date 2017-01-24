@@ -54,11 +54,13 @@ EXPORT iop_struct_t const * const nonnull  ic__routing_hdr__sp;
 IOP_GENERIC(ic__routing_hdr);
 
 /*----- XXX private data, do not use directly -{{{-*/
-#define ic__hdr__simple__ft 1
-#define ic__hdr__routing__ft 2
+typedef enum ic__hdr__tag_t {
+    ic__hdr__simple__ft = 1,
+    ic__hdr__routing__ft = 2,
+} ic__hdr__tag_t;
 /*-}}}-*/
 struct ic__hdr__t {
-    uint16_t iop_tag;
+    ic__hdr__tag_t iop_tag;
     union {
         struct ic__simple_hdr__t simple;
         struct ic__routing_hdr__t routing;
