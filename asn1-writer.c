@@ -453,6 +453,7 @@ static int asn1_pack_choice_size(const void *st, const asn1_desc_t *desc,
     assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
 
     choice = *GET_DATA_P(st, enum_spec, int);
+    assert (choice > 0 && choice < desc->vec.len);
     choice_spec = &desc->vec.tab[choice];
 
     RETHROW(asn1_pack_field_size(st, choice_spec, stack, &len));
@@ -651,6 +652,7 @@ static uint8_t *asn1_pack_choice(uint8_t *dst, const void *st,
     assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
 
     choice = *GET_DATA_P(st, enum_spec, int);
+    assert (choice > 0 && choice < desc->vec.len);
     choice_spec = &desc->vec.tab[choice];
 
     e_trace_desc(1, "serializing", desc, choice, depth);
