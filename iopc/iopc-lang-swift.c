@@ -714,6 +714,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             "%s    }\n"
             "%s}\n\n",
             indent, indent);
+
+    qv_wipe(&parents);
 }
 
 static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
