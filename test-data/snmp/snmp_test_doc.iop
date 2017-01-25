@@ -52,6 +52,7 @@ snmpTbl Tbl : 3 : Obj {
 snmpIface Iface : 4 : Obj {
     /** Description ex: "some notif".
      */
+    @(snmp:severity, "major")
 1:  notifUnresponsive
         in (a, b);
 
