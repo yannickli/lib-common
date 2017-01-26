@@ -133,6 +133,7 @@ typedef struct ev_t {
         struct {
             pid_t   pid;
             int     status;
+            bool    has_exited;
         } child;                /* EV_CHILD */
         struct {
             uint64_t expiry;
@@ -583,6 +584,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
     ev_t *ev = el_create(EV_CHILD, cb, priv, true);
 
     ev->child.pid = pid;
+    ev->child.has_exited = false;
 
     if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
         ASSERT("pid is already watched", false);
@@ -599,6 +601,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
             ASSERT("event not found", false);
         }
         ev->child.status = status;
+        ev->child.has_exited = true;
 
         pthread_sigmask(SIG_SETMASK, &prev, NULL);
         return ev_add(&_G.before, ev);;
@@ -622,8 +625,11 @@ data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_CHILD);
-        if (qm_del_key(ev_assoc, &_G.childs, (*evp)->child.pid) < 0)
-            ASSERT("event not found", false);
+        if (qm_del_key(ev_assoc, &_G.childs, (*evp)->child.pid) < 0) {
+            if (!(*evp)->child.has_exited) {
+                ASSERT("event not found", false);
+            }
+        }
         return el_destroy(evp, false);
     }
     return (data_t)NULL;
