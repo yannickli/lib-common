@@ -241,8 +241,8 @@ enum httpd_query_status {
     sb_t               ibuf;                                                 \
     z_stream           zs;                                                   \
                                                                              \
-    flag_t             connection_close   : 1;                               \
-    flag_t             compressed         : 1;                               \
+    bool               connection_close   : 1;                               \
+    bool               compressed         : 1;                               \
     uint8_t            state;                                                \
     uint16_t           queries;                                              \
     uint16_t           queries_done;                                         \
@@ -492,22 +492,22 @@ struct httpd_qinfo_t {
     dlist_t             query_link;                                          \
                                                                              \
     /* User flags    */                                                      \
-    flag_t              traced        : 1;                                   \
+    bool                traced        : 1;                                   \
                                                                              \
     /* Input related */                                                      \
-    flag_t              expect100cont : 1;                                   \
-    flag_t              parsed        : 1;                                   \
+    bool                expect100cont : 1;                                   \
+    bool                parsed        : 1;                                   \
                                                                              \
     /* Output related */                                                     \
-    flag_t              own_ob        : 1;                                   \
-    flag_t              hdrs_started  : 1;                                   \
-    flag_t              hdrs_done     : 1;                                   \
-    flag_t              chunk_started : 1;                                   \
-    flag_t              clength_hack  : 1;                                   \
-    flag_t              answered      : 1;                                   \
-    flag_t              chunked       : 1;                                   \
-    flag_t              conn_close    : 1;                                   \
-    flag_t              status_sent   : 1;                                   \
+    bool                own_ob        : 1;                                   \
+    bool                hdrs_started  : 1;                                   \
+    bool                hdrs_done     : 1;                                   \
+    bool                chunk_started : 1;                                   \
+    bool                clength_hack  : 1;                                   \
+    bool                answered      : 1;                                   \
+    bool                chunked       : 1;                                   \
+    bool                conn_close    : 1;                                   \
+    bool                status_sent   : 1;                                   \
                                                                              \
     uint16_t            answer_code;                                         \
     uint16_t            http_version;                                        \
@@ -714,7 +714,7 @@ typedef struct httpc_query_t httpc_query_t;
 typedef struct httpc_cfg_t {
     int          refcnt;
 
-    flag_t       use_proxy : 1;
+    bool         use_proxy : 1;
     uint16_t     pipeline_depth;
     unsigned     noact_delay;
     unsigned     max_queries;
@@ -755,9 +755,9 @@ typedef void (on_connect_error_f)(const struct httpc_t * nonnull httpc,
     sb_t          ibuf;                                                      \
     z_stream      zs;                                                        \
                                                                              \
-    flag_t        connection_close : 1;                                      \
-    flag_t        busy             : 1;                                      \
-    flag_t        compressed       : 1;                                      \
+    bool          connection_close : 1;                                      \
+    bool          busy             : 1;                                      \
+    bool          compressed       : 1;                                      \
     uint8_t       state;                                                     \
     uint16_t      queries;                                                   \
     int           chunk_length;                                              \
@@ -869,13 +869,13 @@ struct httpc_query_t {
 
     int            chunk_hdr_offs;
     int            chunk_prev_length;
-    flag_t         hdrs_started  : 1;
-    flag_t         hdrs_done     : 1;
-    flag_t         chunked       : 1;
-    flag_t         chunk_started : 1;
-    flag_t         clength_hack  : 1;
-    flag_t         query_done    : 1;
-    flag_t         expect100cont : 1;
+    bool           hdrs_started  : 1;
+    bool           hdrs_done     : 1;
+    bool           chunked       : 1;
+    bool           chunk_started : 1;
+    bool           clength_hack  : 1;
+    bool           query_done    : 1;
+    bool           expect100cont : 1;
 
     void (*nullable on_100cont)(httpc_query_t * nonnull q);
     int (*nullable on_hdrs)(httpc_query_t * nonnull q);

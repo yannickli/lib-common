@@ -56,7 +56,7 @@ typedef int (tpl_apply_f)(struct tpl_t *, sb_t *, struct tpl_t **, int nb);
 
 qvector_t(tpl, struct tpl_t *);
 typedef struct tpl_t {
-    flag_t is_const :  1; /* if the subtree has TPL_OP_VARs in it */
+    bool is_const   :  1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       :  7;
     unsigned refcnt : 24;
     union {

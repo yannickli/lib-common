@@ -17,9 +17,9 @@
 #include "container-qvector.h"
 
 typedef struct xmlpp_t {
-    flag_t can_do_attr : 1;
-    flag_t was_a_tag   : 1;
-    flag_t nospace     : 1;
+    bool can_do_attr : 1;
+    bool was_a_tag   : 1;
+    bool nospace     : 1;
     sb_t  *buf;
     qv_t(lstr) stack;
 } xmlpp_t;

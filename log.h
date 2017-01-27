@@ -133,7 +133,7 @@ enum {
  */
 typedef struct __swift_name__("Logger") logger_t {
     atomic_uint conf_gen;
-    flag_t   is_static : 1;
+    bool is_static : 1;
 
     int level;
     int defined_level;
@@ -644,8 +644,8 @@ typedef struct log_ctx_t {
     int pid;
     const char * nonnull prog_name;
 
-    flag_t is_silent :  1;
-    flag_t padding   : 31;
+    bool is_silent :  1;
+    unsigned padding : 31;
 } log_ctx_t;
 
 typedef void (log_handler_f)(const log_ctx_t * nonnull ctx,

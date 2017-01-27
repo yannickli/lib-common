@@ -31,7 +31,7 @@ typedef struct asn1_ext_t {
     const struct asn1_desc_t  *desc;      /* Meta-data. */
 
     /* Unpacking */
-    flag_t                     has_value;  /* For OPTIONAL ext fields only */
+    bool                       has_value;  /* For OPTIONAL ext fields only */
     pstream_t                  value;      /* ASN.1 frame */
 } asn1_ext_t;
 
@@ -252,13 +252,13 @@ typedef struct asn1_int_info_t {
     int64_t       max; /* XXX INT64_MAX if infinity */
 
     /* Pre-processed information */
-    flag_t        constrained;   /* XXX means fully constrained          */
+    bool          constrained;   /* XXX means fully constrained          */
     uint16_t      max_blen;      /* XXX needed only if fully constrained */
     uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16    */
     size_t        d_max;         /* XXX needed only if fully constrained */
 
     /* Extensions */
-    flag_t        extended;
+    bool          extended;
     int64_t       ext_min; /* XXX INT64_MIN if minus infinity */
     int64_t       ext_max; /* XXX INT64_MAX if infinity */
 } asn1_int_info_t;
@@ -301,7 +301,7 @@ typedef struct asn1_cnt_info_t {
     size_t        min;
     size_t        max; /* XXX SIZE_MAX if infinity */
 
-    flag_t        extended;
+    bool          extended;
     size_t        ext_min;
     size_t        ext_max; /* XXX SIZE_MAX if infinity */
 } asn1_cnt_info_t;
@@ -319,7 +319,7 @@ typedef struct asn1_enum_info_t {
     qv_t(u32)     values;  /* XXX Enumeration values in canonical order */
     size_t        blen;
 
-    flag_t        extended;
+    bool          extended;
 } asn1_enum_info_t;
 
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
@@ -345,7 +345,7 @@ typedef struct {
     uint32_t        tag;       /* TODO use uint8_t */
     uint8_t         tag_len;   /* TODO remove      */
     enum obj_mode   mode      : 7;
-    flag_t          pointed   : 1;
+    bool            pointed   : 1;
 
     uint16_t        offset;
     enum obj_type   type;
@@ -365,7 +365,7 @@ typedef struct {
 
     /* Only for open type fields */
     /* XXX eg. type is <...>.&<...> */
-    flag_t                      is_open_type;
+    bool                        is_open_type;
     size_t                      open_type_buf_len;
 } asn1_field_t;
 
@@ -386,14 +386,14 @@ typedef struct asn1_desc_t {
     enum asn1_cstd_type   type;
 
     /* TODO add SEQUENCE OF into constructed type enum */
-    flag_t                is_seq_of;
+    bool                  is_seq_of;
 
     /* XXX CHOICE only */
     asn1_int_info_t       choice_info;
 
     /* PER information */
     qv_t(u16)             opt_fields;
-    flag_t                extended;
+    bool                  extended;
     uint16_t              ext_pos;
 } asn1_desc_t;
 

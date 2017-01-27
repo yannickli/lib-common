@@ -14,7 +14,7 @@
 #include "conf.h"
 
 struct parse_state {
-    flag_t seen_section : 1;
+    bool seen_section : 1;
     int arraylvl;
 };
 

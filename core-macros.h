@@ -496,7 +496,6 @@ typedef uint16_t __bitwise__ be16_t;
 #define MAKE64(hi, lo)  (((uint64_t)(uint32_t)(hi) << 32) | (uint32_t)(lo))
 
 typedef unsigned char byte;
-typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #define fieldsizeof(type_t, m)  sizeof(cast(type_t *, 0)->m)
 #define fieldtypeof(type_t, m)  typeof(cast(type_t *, 0)->m)

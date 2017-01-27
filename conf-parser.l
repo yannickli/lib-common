@@ -16,7 +16,7 @@
 #include "unix.h"
 
 struct lexdata {
-    flag_t seen_section : 1;
+    bool  seen_section : 1;
     int   arraylvl;    /* number of openings of arrays seen          */
     int   context;     /* state we just left, used by <STRING> state */
     int   lno, lstart; /* line no 1-based, position of the last \n   */

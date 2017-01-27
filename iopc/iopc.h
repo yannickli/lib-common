@@ -219,7 +219,7 @@ qvector_t(dox_chunk, dox_chunk_t);
 
 typedef struct dox_tok_t {
     qv_t(dox_chunk) chunks;
-    flag_t is_back : 1;
+    bool is_back : 1;
 } dox_tok_t;
 static inline void dox_tok_wipe(dox_tok_t *p) {
     /* XXX: don't deep_wipe chunks when wiping dox_tok
@@ -332,7 +332,7 @@ typedef struct iopc_import_t {
     iopc_path_t *path;
     iopc_pkg_t *pkg;
     char *type;
-    flag_t used : 1;
+    bool used : 1;
 } iopc_import_t;
 GENERIC_NEW_INIT(iopc_import_t, iopc_import);
 static inline void iopc_import_wipe(iopc_import_t *import) {
@@ -516,7 +516,7 @@ GENERIC_DELETE(iopc_arg_t, iopc_arg);
 qvector_t(iopc_arg, iopc_arg_t);
 
 typedef struct iopc_extends_t {
-    flag_t     is_snmp_root : 1;
+    bool       is_snmp_root : 1;
     iopc_loc_t loc;
     iopc_path_t *path;
     iopc_pkg_t  *pkg;
@@ -642,16 +642,16 @@ typedef struct iopc_field_t {
         void *ptr;
     } defval;
     iopc_defval_t defval_type;
-    flag_t defval_is_signed : 1;
-    flag_t is_visible : 1;
-    flag_t resolving  : 1;
-    flag_t is_static  : 1;
-    flag_t is_ref     : 1;
+    bool defval_is_signed : 1;
+    bool is_visible : 1;
+    bool resolving  : 1;
+    bool is_static  : 1;
+    bool is_ref     : 1;
     /* In case the field is contained by a snmpIface rpc struct', it
      * references another snmpObj field */
-    flag_t snmp_is_from_param : 1;
+    bool snmp_is_from_param : 1;
     /* In case the field is contained by a snmpTbl */
-    flag_t snmp_is_in_tbl : 1;
+    bool snmp_is_in_tbl : 1;
 
     /** kind of the resolved type */
     iop_type_t kind;
@@ -729,23 +729,23 @@ typedef struct iopc_struct_t {
     uint8_t    align;
     iopc_struct_type_t type;
     iopc_loc_t loc;
-    flag_t     is_visible : 1;
-    flag_t     optimized : 1;
-    flag_t     resolving : 1;
-    flag_t     resolved  : 1;
-    flag_t     resolving_inheritance : 1;
-    flag_t     resolved_inheritance  : 1;
-    flag_t     checked_constraints  : 1;
-    flag_t     has_constraints      : 1;
-    flag_t     has_fields_attrs     : 1;    /**< st.fields_attrs existence  */
-    flag_t     is_abstract          : 1;
-    flag_t     is_local             : 1;
+    bool       is_visible : 1;
+    bool       optimized : 1;
+    bool       resolving : 1;
+    bool       resolved  : 1;
+    bool       resolving_inheritance : 1;
+    bool       resolved_inheritance  : 1;
+    bool       checked_constraints  : 1;
+    bool       has_constraints      : 1;
+    bool       has_fields_attrs     : 1;    /**< st.fields_attrs existence  */
+    bool       is_abstract          : 1;
+    bool       is_local             : 1;
     /* struct has snmpParams attribute */
-    flag_t     is_snmp_params       : 1;
+    bool       is_snmp_params       : 1;
     /* struct is a snmpIface rpc' struct */
-    flag_t     contains_snmp_info : 1;
+    bool       contains_snmp_info : 1;
     /* C writer */
-    flag_t     c_hdr_written : 1;
+    bool       c_hdr_written : 1;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;
@@ -823,7 +823,7 @@ GENERIC_DELETE(iopc_enum_field_t, iopc_enum_field);
 qvector_t(iopc_enum_field, iopc_enum_field_t *);
 
 typedef struct iopc_enum_t {
-    flag_t     is_visible : 1;
+    bool       is_visible : 1;
     iopc_loc_t loc;
     char *name;
     qv_t(iopc_enum_field) values;
@@ -853,10 +853,10 @@ typedef struct iopc_fun_t {
     int        pos; /* To sort funs by order of appearance in iface. */
     char      *name;
 
-    flag_t arg_is_anonymous : 1;
-    flag_t res_is_anonymous : 1;
-    flag_t exn_is_anonymous : 1;
-    flag_t fun_is_async     : 1;
+    bool arg_is_anonymous : 1;
+    bool res_is_anonymous : 1;
+    bool exn_is_anonymous : 1;
+    bool fun_is_async     : 1;
     union {
         iopc_struct_t *arg;
         iopc_field_t  *farg; /* When we reference an existing structure */
@@ -900,7 +900,7 @@ qvector_t(iopc_fun, iopc_fun_t *);
 qm_kptr_t(iopc_fun, char, iopc_fun_t *, qhash_str_hash, qhash_str_equal);
 
 typedef struct iopc_iface_t {
-    flag_t     is_visible : 1;
+    bool       is_visible : 1;
     iopc_loc_t loc;
     unsigned   flags;
 
@@ -934,10 +934,10 @@ GENERIC_DELETE(iopc_iface_t, iopc_iface);
 qvector_t(iopc_iface, iopc_iface_t *);
 
 struct iopc_pkg_t {
-    flag_t t_resolving : 1;
-    flag_t i_resolving : 1;
-    flag_t t_resolved  : 1;
-    flag_t i_resolved  : 1;
+    bool t_resolving : 1;
+    bool i_resolving : 1;
+    bool t_resolved  : 1;
+    bool i_resolved  : 1;
 
     char        *file;
     char        *base;

@@ -33,7 +33,7 @@ struct lexdata {
     sb_t  *dox_cur_paragraph;
     int    dox_sp_count;
     int    dox_scan_params_args_counter;
-    flag_t dox_inline_comment : 1;
+    bool   dox_inline_comment : 1;
 };
 
 /* helpers {{{ */

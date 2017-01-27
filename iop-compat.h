@@ -27,7 +27,6 @@
 #include <stdlib.h>
 
 /* core-macros.h */
-typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #define __must_be_array(a) \
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
@@ -62,8 +61,8 @@ typedef struct lstr_t {
         char       *v;
         void       *data;
     };
-    int     len;
-    flag_t  mem_pool : 3;
+    int len;
+    unsigned mem_pool;
 } lstr_t;
 
 #define LSTR_INIT(s_, len_)     { { (s_) }, (len_), 0 }

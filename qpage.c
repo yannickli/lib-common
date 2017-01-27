@@ -67,7 +67,7 @@ typedef struct qpage_t {
 } qpage_t;
 
 typedef struct page_desc_t {
-    flag_t   dirty : 1;    /* only makes sense if the block is free */
+    bool     dirty : 1;    /* only makes sense if the block is free */
     uint32_t flags : 31;
     uint32_t blkno;
 

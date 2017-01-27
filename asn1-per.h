@@ -120,7 +120,7 @@ static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
 
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc);
 int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
-                       flag_t copy, void *st);
+                       bool copy, void *st);
 
 #define aper_encode(sb, pfx, st)  \
     ({                                                                       \

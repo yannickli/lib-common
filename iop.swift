@@ -704,9 +704,9 @@ public extension IopInterfaceImpl {
 
         msg.pointee.cb = ic_drop_ans_cb
         msg.pointee.rpc = RPC.descriptor
-        msg.pointee.async = 1
+        msg.pointee.async = true
         msg.pointee.cmd = Int32((self._tag << 16) + RPC.tag)
-        msg.pointee.trace = 0
+        msg.pointee.trace = false
         self._channel.query(msg: msg, args: args)
     }
 
@@ -745,9 +745,9 @@ public extension IopInterfaceImpl {
             }
 
             msg.pointee.rpc = RPC.descriptor
-            msg.pointee.async = 0
+            msg.pointee.async = false
             msg.pointee.cmd = Int32((self._tag << 16) + RPC.tag)
-            msg.pointee.trace = 0
+            msg.pointee.trace = false
             self._channel.query(msg: msg, args: args)
         }
     }
@@ -1113,7 +1113,7 @@ extension IChannelBase : IopChannel {
 
         args.withC {
             __ic_msg_build(msg, T.descriptor, $0,
-                self.ic?.pointee.is_local == 0 || msg.pointee.force_pack != 0)
+                self.ic?.pointee.is_local == false || msg.pointee.force_pack)
         }
         __ic_query(ic, msg)
     }

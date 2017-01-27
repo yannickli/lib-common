@@ -35,7 +35,7 @@ qm_kvec_t(level, lstr_t, struct level, qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct buffer_instance_t {
     qv_t(log_buffer) vec_buffer;
-    flag_t use_handler : 1;
+    bool use_handler : 1;
     int buffer_log_level;
 } buffer_instance_t;
 
@@ -71,8 +71,8 @@ static struct {
     mem_stack_pool_t mp_stack;
     int nb_buffer_started;
 
-    flag_t use_handler   : 1;
-    flag_t log_timestamp : 1;
+    bool use_handler   : 1;
+    bool log_timestamp : 1;
 } log_g = {
 #define _G  log_g
     .root_logger = {

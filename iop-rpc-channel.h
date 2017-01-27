@@ -80,17 +80,17 @@ typedef void (BLOCK_CARET ic_msg_cb_b)(ichannel_t * nonnull, ic_status_t,
 struct ic_msg_t {
     htnode_t      msg_link;        /**< private field used by ichannel_t */
     int           fd         : 24; /**< the fd to send */
-    flag_t        async      :  1; /**< whether the RPC is async */
-    flag_t        raw        :  1; /**< whether the answer should be decoded
+    bool          async      :  1; /**< whether the RPC is async */
+    bool          raw        :  1; /**< whether the answer should be decoded
                                         or not. */
-    flag_t        force_pack :  1; /**< if set then msg is packed even if it
+    bool          force_pack :  1; /**< if set then msg is packed even if it
                                         is used with a local ic */
-    flag_t        force_dup  :  1; /**< if set when ic is local and force_pack
+    bool          force_dup  :  1; /**< if set when ic is local and force_pack
                                         is false then hdr and arg are
                                         duplicated before being used in rpc
                                         implementation */
-    flag_t        trace      :  1; /**< Activate tracing for this message. */
-    flag_t        canceled   :  1; /**< Is the query canceled ? */
+    bool          trace      :  1; /**< Activate tracing for this message. */
+    bool          canceled   :  1; /**< Is the query canceled ? */
     ev_priority_t priority   :  2; /**< Priority of the message. */
     int32_t  cmd;                  /**< automatically filled by ic_query/reply
                                         */
@@ -267,22 +267,22 @@ extern qm_t(ic_cbs) const ic_no_impl;
 struct ichannel_t {
     uint32_t id;
 
-    flag_t is_closing   :  1;
-    flag_t is_spawned   :  1;   /**< auto delete if true                    */
-    flag_t no_autodel   :  1;   /**< disable autodelete feature             */
-    flag_t is_seqpacket :  1;   /**< true if socket is SOCK_SEQPACKET       */
-    flag_t is_unix      :  1;   /**< true if socket is a Unix socket        */
-    flag_t auto_reconn  :  1;
-    flag_t do_el_unref  :  1;
-    flag_t is_wiped     :  1;
-    flag_t cancel_guard :  1;
-    flag_t queuable     :  1;
-    flag_t is_local     :  1;
-    flag_t is_trusted   :  1;   /**< set to true for internal ichannels     */
-    flag_t is_public    :  1;   /**< setting this flag to true causses private
-                                     fields to be omitted on outgoing messages
-                                     and forbidden on incoming messages. */
-    flag_t fd_overflow  :  1;
+    bool is_closing   :  1;
+    bool is_spawned   :  1;   /**< auto delete if true                    */
+    bool no_autodel   :  1;   /**< disable autodelete feature             */
+    bool is_seqpacket :  1;   /**< true if socket is SOCK_SEQPACKET       */
+    bool is_unix      :  1;   /**< true if socket is a Unix socket        */
+    bool auto_reconn  :  1;
+    bool do_el_unref  :  1;
+    bool is_wiped     :  1;
+    bool cancel_guard :  1;
+    bool queuable     :  1;
+    bool is_local     :  1;
+    bool is_trusted   :  1;   /**< set to true for internal ichannels     */
+    bool is_public    :  1;   /**< setting this flag to true causses private
+                                   fields to be omitted on outgoing messages
+                                   and forbidden on incoming messages. */
+    bool fd_overflow  :  1;
 
     unsigned nextslot;          /**< next slot id to try                    */
 

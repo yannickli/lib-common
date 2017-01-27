@@ -74,8 +74,8 @@ typedef struct log_file_t {
     char     ext[8];
 
     /* Flags. */
-    flag_t disable_rotation : 1;
-    flag_t is_file_bin      : 1;
+    bool disable_rotation : 1;
+    bool is_file_bin      : 1;
 
     /* Event callback */
     log_file_cb_f *on_event;

@@ -68,7 +68,7 @@ struct ring_pool_t {
     uint32_t     frames_cnt;
     uint32_t     nb_frames_release;
 
-    flag_t       alive : 1;
+    bool         alive : 1;
 
     mem_pool_t   funcs;
 };

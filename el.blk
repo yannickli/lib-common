@@ -193,9 +193,9 @@ static struct {
     el_t el_on_pwr;
     el_t el_sigchld_hook;
 
-    flag_t has_run        : 1; /* true if we did something during a loop    */
-    flag_t worker_running : 1; /* true if the worker is currently running   */
-    flag_t terminating    : 1; /* have we received a termination signal?    */
+    bool  has_run        : 1; /* true if we did something during a loop    */
+    bool  worker_running : 1; /* true if the worker is currently running   */
+    bool  terminating    : 1; /* have we received a termination signal?    */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR     10   /* basic segment is 1024 events            */

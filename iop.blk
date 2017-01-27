@@ -1737,7 +1737,7 @@ bool iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2)
 typedef struct field_step_t {
     uint16_t offset;
     uint16_t union_tag;
-    flag_t   is_union   : 1;
+    bool     is_union   : 1;
 } field_step_t;
 GENERIC_INIT(field_step_t, field_step);
 
@@ -1746,7 +1746,7 @@ qvector_t(field_step, field_step_t);
 typedef struct field_path_t {
     qv_t(field_step)    steps;
     const iop_field_t  *fdesc;
-    flag_t is_typename : 1;
+    bool is_typename : 1;
 } field_path_t;
 GENERIC_FUNCTIONS(field_path_t, field_path);
 

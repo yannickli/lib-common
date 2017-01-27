@@ -30,8 +30,8 @@ typedef struct __swift_name__("LString") lstr_t {
         char       * nullable v;
         void       * nullable data;
     };
-    int     len;
-    flag_t  mem_pool : 3;
+    int len;
+    unsigned mem_pool;
 } lstr_t;
 
 /* Static initializers {{{ */

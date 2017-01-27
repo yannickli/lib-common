@@ -29,7 +29,7 @@ extension Logger : Wipeable {
         self.init()
         assert (name.hasPointerRepresentation)
 
-        self.is_static = 1
+        self.is_static = true
         self.parent = parent
         self.name = name.utf8Start.withMemoryRebound(to: Int8.self, capacity: name.utf8CodeUnitCount) {
             (ptr: UnsafePointer<Int8>) -> LString in

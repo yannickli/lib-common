@@ -27,8 +27,8 @@ static struct {
     int                      nb_pending;
     dlist_t                  pending;
     mem_pool_t              *pool;
-    flag_t                   connection_ready : 1;
-    flag_t                   first_connection : 1;
+    bool                     connection_ready : 1;
+    bool                     first_connection : 1;
 
     net_rctl_t               rctl;
 

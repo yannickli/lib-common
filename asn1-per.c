@@ -1121,7 +1121,7 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 
 static int
 t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                      flag_t copy, lstr_t *os)
+                      bool copy, lstr_t *os)
 {
     size_t    len;
     pstream_t ps;
@@ -1174,7 +1174,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
 static int
 t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                   flag_t copy, lstr_t *data)
+                   bool copy, lstr_t *data)
 {
     lstr_t os;
 
@@ -1187,7 +1187,7 @@ t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
 static int
 t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                      flag_t copy, bit_stream_t *str)
+                      bool copy, bit_stream_t *str)
 {
     size_t len;
 
@@ -1243,11 +1243,11 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
 static int
 t_aper_decode_constructed(bit_stream_t *bs, const asn1_desc_t *desc,
-                          const asn1_field_t *field, flag_t copy, void *st);
+                          const asn1_field_t *field, bool copy, void *st);
 
 static int
 t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
-                  flag_t copy, void *v)
+                    bool copy, void *v)
 {
     switch (field->type) {
       case ASN1_OBJ_TYPE(bool):
@@ -1310,7 +1310,7 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
 
 static int
 t_aper_decode_field(bit_stream_t *bs, const asn1_field_t *field,
-                    flag_t copy, void *v)
+                    bool copy, void *v)
 {
     if (field->is_open_type) {
         lstr_t        os;
@@ -1340,12 +1340,12 @@ static void *t_alloc_if_pointed(const asn1_field_t *field, void *st)
 
 static int
 t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
-                       flag_t copy, void *st)
+                       bool copy, void *st)
 {
     bit_stream_t opt_bitmap;
 
     if (desc->extended) {
-        flag_t extension_present;
+        unsigned extension_present;
 
         if (bs_done(bs)) {
             e_info("cannot read extension bit: end of input");
@@ -1404,7 +1404,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
 }
 
 static int
-t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
+t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, bool copy,
                      void *st)
 {
     const asn1_field_t  *choice_field;
@@ -1491,7 +1491,7 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
 
 static int
 t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
-                     flag_t copy, void *st)
+                     bool copy, void *st)
 {
     size_t elem_cnt;
     const asn1_field_t *repeated_field;
@@ -1542,7 +1542,7 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
 /* TODO get it cleaner */
 static int
 t_aper_decode_constructed(bit_stream_t *bs, const asn1_desc_t *desc,
-                          const asn1_field_t *field, flag_t copy, void *st)
+                          const asn1_field_t *field, bool copy, void *st)
 {
     if (desc->is_seq_of) {
         assert (field);
@@ -1567,7 +1567,7 @@ t_aper_decode_constructed(bit_stream_t *bs, const asn1_desc_t *desc,
 }
 
 int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
-                       flag_t copy, void *st)
+                       bool copy, void *st)
 {
     bit_stream_t bs = bs_init_ps(ps, 0);
 

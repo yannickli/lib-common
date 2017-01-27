@@ -127,8 +127,8 @@ typedef struct qhat_root_t {
 
     /* Trie description */
     uint32_t    value_len;
-    flag_t      is_nullable : 1;
-    flag_t      do_stats : 1;
+    bool        is_nullable : 1;
+    bool        do_stats : 1;
     qhat_node_t nodes[QHAT_ROOTS];
 
     /* Statistics */

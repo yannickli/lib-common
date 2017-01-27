@@ -46,8 +46,8 @@ typedef struct iop_cfolder_elem_t {
 #define CF_ELEM_NUMBER         1
 #define CF_ELEM_OP             2
     unsigned             type;
-    flag_t               unary     : 1;
-    flag_t               is_signed : 1;
+    bool                 unary     : 1;
+    bool                 is_signed : 1;
     union {
         uint64_t         num;
         iop_cfolder_op_t op;
