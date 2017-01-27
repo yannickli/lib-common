@@ -87,19 +87,19 @@ extern struct {
 
     qv_t(iopc_loc) loc_stack;
 
-    int print_info;
-    int v2;
-    int v3;
-    int v4;
-    int v5;
-    int v6;
+    bool print_info;
+    bool v2;
+    bool v3;
+    bool v4;
+    bool v5;
+    bool v6;
 
     /** Check the presence of an @snmpIndex in each snmpTbl.
      *
      * This flag exists because the @snmpIndex attribute did not exist before
      * 3c446cb6bd293 and is now mandatory.
      */
-    int check_snmp_table_has_index;
+    bool check_snmp_table_has_index;
 
     int class_id_min;
     int class_id_max;
@@ -1053,13 +1053,13 @@ int iopc_write_file(const sb_t *buf, const char *path);
 /*----- language backends -----*/
 
 extern struct iopc_do_c_globs {
-    int resolve_includes;
-    int export_nullability;
-    int unions_use_enums;
+    bool resolve_includes;
+    bool export_nullability;
+    bool unions_use_enums;
 
     /** Export C symbols for access through dynamic linker / dlsym.
      */
-    int export_symbols;
+    bool export_symbols;
 
     const char *data_c_type;
     /** remove const on all objects that may contain a pointer to an

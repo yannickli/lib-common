@@ -76,10 +76,10 @@ static struct {
 
     /* Command-line options. */
     lstr_t      arg0;
-    int         opt_help;
-    int         opt_list;
-    int         abort_on_fail;
-    int         do_fork;
+    bool        opt_help;
+    bool        opt_list;
+    bool        abort_on_fail;
+    bool        do_fork;
     const char *tmp_dir;
     const char *opt_tag_skip;
     const char *opt_mode;

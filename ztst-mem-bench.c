@@ -21,17 +21,16 @@
  */
 
 static struct {
-    int help;
-    int verbose;
-    int test_stack;
-    int test_fifo;
-    int worst_case;
+    bool help;
+    bool test_stack;
+    bool test_fifo;
+    bool worst_case;
     int num_allocs;
     int max_allocated;
     int max_alloc_size;
     int max_depth;
     int num_tries;
-    int compare;
+    bool compare;
 } settings = {
     .num_allocs = 1 << 20,
     .max_allocated = 10000,

@@ -26,10 +26,10 @@ static struct {
 
     qm_t(ic_cbs) ic_impl;  /*< implementations table */
 
-    int opt_help;
-    int opt_version;
-    int opt_client;
-    int opt_server;
+    bool opt_help;
+    bool opt_version;
+    bool opt_client;
+    bool opt_server;
 
     qv_t(ichannel) clients;
 } exiop_g = {

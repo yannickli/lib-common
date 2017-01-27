@@ -92,11 +92,7 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
       case OPTION_FLAG:
         if (!(flags & FLAG_SHORT) && st->p)
             return opterror(opt, "takes no value", flags);
-        if (flags & FLAG_UNSET) {
-            *(int *)opt->value = 0;
-        } else {
-            (*(int *)opt->value)++;
-        }
+        put_int_value(opt, !(flags & FLAG_UNSET));
         return 0;
 
       case OPTION_STR:

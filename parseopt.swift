@@ -88,13 +88,13 @@ public class CommandLineOption {
     }
 
     /// Defines a boolean switch.
-    public final class Flag : Parameter<Bool, Int32> {
-        public init(name: Swift.String, short: UnicodeScalar?, help: Swift.String, defaultValue: Bool = false) {
-            super.init(name: name, short: short, help: help, defaultValue: defaultValue ? 1 : 0)
+    public final class Flag : Parameter<Bool, Bool> {
+        public override init(name: Swift.String, short: UnicodeScalar?, help: Swift.String, defaultValue: Bool = false) {
+            super.init(name: name, short: short, help: help, defaultValue: defaultValue)
         }
 
         override var kind : popt_kind { return .flag }
-        public override var value : Bool { return valueStorage != 0 }
+        public override var value : Bool { return valueStorage }
     }
 
     /// Defines a string parameter.

@@ -49,7 +49,8 @@ typedef struct popt_t {
     size_t int_vsize;
 } popt_t;
 
-#define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h), 0 }
+#define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h),         \
+                                 sizeof(*(v)) }
 #define OPT_STR(s, l, v, h)    { OPTION_STR, (s), (l), (v), 0, (h), 0 }
 #define OPT_INT(s, l, v, h)    { OPTION_INT, (s), (l), (v), 0, (h),          \
                                  sizeof(*(v)) }

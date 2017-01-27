@@ -16,7 +16,7 @@
 #include <sysexits.h>
 
 static struct compat_g {
-    int help;
+    bool help;
     const char *new_dso;
     const char *old_dso;
     const char *mode;

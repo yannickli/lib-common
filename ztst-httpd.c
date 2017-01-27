@@ -18,9 +18,9 @@
 #include "iop/tstiop.iop.h"
 
 static struct {
-    int   port;
+    bool  port;
     int   help;
-    int   wsdl;
+    bool  wsdl;
 
     el_t  httpd;
     el_t  blocker;

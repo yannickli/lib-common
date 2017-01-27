@@ -18,7 +18,7 @@
 extern const char libcommon_git_revision[];
 
 static struct {
-    int help, version, git_revision, wall;
+    bool help, version, git_revision, wall;
     char *incpath;
     const char *lang;
     const char *outpath;
