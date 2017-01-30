@@ -585,13 +585,11 @@ static void el_signal_process(void)
 {
     uint8_t generation;
     uint32_t gotsigs = _G.gotsigs;
-    struct timeval now;
 
     if (!gotsigs)
         return;
 
     _G.gotsigs &= ~gotsigs;
-    lp_gettv(&now);
 
     generation = ev_cache_list(&_G.sigs);
     qv_for_each_entry(ev, ev, &_G.cache) {
@@ -825,9 +823,6 @@ static data_t el_timer_unregister(ev_t **evp)
 
 static void el_timer_process(uint64_t until)
 {
-    struct timeval tv;
-
-    lp_gettv(&tv);
     while (!qhp_is_empty(timer, &_G.timers)) {
         ev_t *ev = qhp_first(timer, &_G.timers);
 
