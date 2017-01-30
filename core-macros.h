@@ -574,6 +574,11 @@ typedef unsigned char byte;
 #define tab_for_each_pos_safe(pos, vec)                                      \
     tab_for_each_pos_rev(pos, vec)
 
+#define tab_last(vec)                                                        \
+    ({  typeof(*(vec)) const *__vec = (vec);                                 \
+        assert (__vec->len > 0);                                             \
+        __vec->tab + __vec->len - 1; })
+
 /* Standard loops for C arrays (ex: int values[] = { 1, 2, 3 }) */
 
 #define carray_for_each_pos(pos, array)                                      \

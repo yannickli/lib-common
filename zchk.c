@@ -704,6 +704,22 @@ Z_GROUP_EXPORT(core_macros) {
     } Z_TEST_END;
 
     /* }}} */
+    /* {{{ tab_last */
+
+    Z_TEST(tab_last, "tab_last") {
+        int ints[] = { 1, 2, 3, 4 };
+        struct {
+            int *tab;
+            int len;
+        } tab = {
+            .tab = ints,
+            .len = countof(ints),
+        };
+
+        Z_ASSERT_EQ(*tab_last(&tab), 4);
+    } Z_TEST_END;
+
+    /* }}} */
     /* {{{ unconst */
 
     Z_TEST(unconst_cast, "unconst_cast") {
