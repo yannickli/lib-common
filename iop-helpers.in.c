@@ -230,12 +230,13 @@ pack_int64(uint8_t *dst, uint32_t tag, uint32_t taglen, int64_t i)
 static ALWAYS_INLINE const iop_field_t *
 get_union_field(const iop_struct_t *desc, const void *val)
 {
-    uint16_t utag = *(uint16_t *)val;
+    int utag;
     const iop_field_t *f = desc->fields;
     int ifield;
 
     assert (f->repeat == IOP_R_REQUIRED);
     assert (desc->is_union);
+    utag = RETHROW_NP(iop_union_get_tag(desc, val));
     ifield = iop_ranges_search(desc->ranges, desc->ranges_len, utag);
     assert(ifield >= 0);
 

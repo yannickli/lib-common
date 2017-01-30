@@ -18,6 +18,7 @@
 #include "iop-helpers.in.c"
 #include "thr.h"
 #include "sort.h"
+#include "ic-t.iop.h"
 
 
 static struct {
@@ -1483,9 +1484,11 @@ static int __iop_first_diff(const iop_struct_t *st,
     const iop_field_t *end;
 
     if (st->is_union) {
-        if (*(uint16_t *)v1 != *(uint16_t *)v2) {
+        int tag_v1 = RETHROW(iop_union_get_tag(st, v1));
+        int tag_v2 = RETHROW(iop_union_get_tag(st, v2));
+        if (tag_v1 != tag_v2) {
             sb_setf(diff_desc, "union field differs (`%*pU` vs `%*pU`)",
-                    *(uint16_t *)v1, st, *(uint16_t *)v2, st);
+                    (uint16_t)tag_v1, st, (uint16_t)tag_v2, st);
             return -1;
         }
 
@@ -1618,7 +1621,9 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
     const iop_field_t *end;
 
     if (st->is_union) {
-        if (*(uint16_t *)v1 != *(uint16_t *)v2)
+        int tag_v1 = RETHROW(iop_union_get_tag(st, v1));
+        int tag_v2 = RETHROW(iop_union_get_tag(st, v2));
+        if (tag_v1 != tag_v2)
             return false;
         fdesc = get_union_field(st, v1);
         end   = fdesc + 1;
@@ -3012,6 +3017,62 @@ lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
 /* }}} */
 /* {{{ Unpacking */
 
+static int iop_union_get_data_offset(const iop_struct_t *nonnull desc)
+{
+    int size = desc->size;
+
+    assert (desc->is_union);
+
+    for (int i = 0; i < desc->fields_len; i++) {
+        uint16_t offs = desc->fields[i].data_offs;
+
+        if (offs) {
+            return offs;
+        }
+    }
+
+    return size;
+}
+
+void iop_union_set_tag(const iop_struct_t *nonnull desc, int value,
+                       void *nonnull st)
+{
+    switch (iop_union_get_data_offset(desc)) {
+      case 1:
+        *(uint8_t *)st = (uint8_t)value;
+        break;
+      case 2:
+        *(uint16_t *)st = (uint16_t)value;
+        break;
+      case 4:
+      case 8:
+        *(uint32_t *)st = (uint32_t)value;
+        break;
+      default:
+        assert (false);
+    }
+}
+
+int iop_union_get_tag(const iop_struct_t *nonnull desc,
+                      const void *nonnull st)
+{
+    switch (iop_union_get_data_offset(desc)) {
+      case 1:
+        return *(uint8_t *)st;
+      case 2:
+      case 4:
+      case 8:
+        if (unlikely(sizeof(ic__hdr__tag_t) == 1)) {
+            return *(uint8_t *)st;
+        } else {
+            return *(uint16_t *)st;
+        }
+      default:
+        assert (false);
+        return -1;
+    }
+}
+
 static inline int get_uint32(pstream_t *ps, int ilen, uint32_t *u32)
 {
     switch (ilen) {
@@ -3722,7 +3783,7 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     fdesc += ifield;
 
     /* Write the selected field */
-    *((uint16_t *)value) = fdesc->tag;
+    iop_union_set_tag(desc, fdesc->tag, value);
     value = (char *)value + fdesc->data_offs;
 
     e_named_trace(5, "iop/c/unpacker", "unpacking union %*pM field %*pM",

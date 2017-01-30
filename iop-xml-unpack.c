@@ -624,7 +624,7 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
 
     /* Write the selected tag */
-    *((uint16_t *)value) = fdesc->tag;
+    iop_union_set_tag(desc, fdesc->tag, value);
     value = (char *)value + fdesc->data_offs;
 
     if (iop_field_is_reference(fdesc)) {

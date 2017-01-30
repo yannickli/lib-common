@@ -1744,6 +1744,35 @@ int iop_bskip(const iop_struct_t * nonnull st, pstream_t * nonnull ps);
  */
 ssize_t iop_get_field_len(pstream_t ps);
 
+/** Write a union tag into a struct.
+  *
+  * Starting with --c-unions-use-enums, iop_tag field in unions struct can now
+  * have a different size than uint16_t (8 or 32 bits).
+  *
+  * Write this iop_tag in a safe and backward compatible way by checking the
+  * offsets of union fields.
+  *
+  * \param[in] desc  The IOP structure definition (__s).
+  * \param[in] value The union iop_tag to write.
+  * \param[out] st   A pointer to the IOP structure (union only) to fill.
+  */
+void iop_union_set_tag(const iop_struct_t *nonnull desc, int value,
+                       void *nonnull st);
+
+/** Read a union tag from a struct.
+ *
+ * Read the iop_tag (undetermined size) into an int, based on the offset of
+ * the union fields.
+ *
+ * \param[in] desc The IOP structure definition (__s).
+ * \param[in] st   A pointer to the IOP structure (union only) to read.
+ *
+ * Returns a positive integer (0-uint16_max) on success.
+ * Returns -1 if something wrong happened.
+ */
+int iop_union_get_tag(const iop_struct_t *nonnull desc,
+                      const void *nonnull st);
+
 /* }}} */
 /* {{{ IOP packages registration / manipulation */
 

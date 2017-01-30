@@ -6811,6 +6811,57 @@ Z_GROUP_EXPORT(iop)
                           "(tstiop.FirstDiffC1 vs tstiop.FirstDiffC2)");
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_nonreg_ioptag_union_unpack, "test iop_tag is correctly set "
+           "when unpacking (i32 vs u16)") {
+        tstiop__my_union_b__t dst;
+        tstiop__my_union_b__t src;
+        int32_t *i;
+        int ret;
+        lstr_t data;
+        pstream_t json1 = ps_initstr("{ bval: 1234 }");
+        pstream_t json2 = ps_initstr("{ a.ua: 1234 }");
+        SB_1k(sb);
+        t_scope;
+
+        iop_init(tstiop__my_union_b, &src);
+        i = IOP_UNION_SET(tstiop__my_union_b, &src, bval);
+        *i = 1234;
+        data = t_iop_bpack_struct_flags(&tstiop__my_union_b__s, &src, 0);
+
+        /* bunpack to struct (set to 0xFF) */
+        memset(&dst, 0xFF, sizeof(tstiop__my_union_b__t));
+        ret = iop_bunpack(t_pool(), &tstiop__my_union_b__s,
+                          &dst, ps_initlstr(&data), false);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(src.iop_tag, dst.iop_tag);
+
+        /* unpack json union with format ":" */
+        memset(&dst, 0xFF, sizeof(tstiop__my_union_b__t));
+        ret = t_iop_junpack_ps(&json1, &tstiop__my_union_b__s, &dst, 0, NULL);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(dst.iop_tag, (IOP_UNION_TAG_T(tstiop__my_union_b))
+                    IOP_UNION_TAG(tstiop__my_union_b, bval));
+
+        /* unpack json union with format "." */
+        memset(&dst, 0xFF, sizeof(tstiop__my_union_b__t));
+        ret = t_iop_junpack_ps(&json2, &tstiop__my_union_b__s, &dst, 0, NULL);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(dst.iop_tag, (IOP_UNION_TAG_T(tstiop__my_union_b))
+                    IOP_UNION_TAG(tstiop__my_union_b, a));
+        Z_ASSERT_EQ(dst.a.iop_tag, (IOP_UNION_TAG_T(tstiop__my_union_a))
+                    IOP_UNION_TAG(tstiop__my_union_a, ua));
+
+        /* pack/unpack xml */
+        sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+        iop_xpack(&sb, &tstiop__my_union_b__s, &src, false, false);
+        sb_adds(&sb, "</root>");
+        memset(&dst, 0xFF, sizeof(tstiop__my_union_b__t));
+        Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+        ret = iop_xunpack(xmlr_g, t_pool(), &tstiop__my_union_b__s, &dst);
+        Z_ASSERT_EQ(ret, 0);
+        Z_ASSERT_EQ(src.iop_tag, dst.iop_tag);
+    } Z_TEST_END;
 } Z_GROUP_END
 
 /* LCOV_EXCL_STOP */
