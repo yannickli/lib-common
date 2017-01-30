@@ -734,14 +734,10 @@ static __thread struct {
 
 __attribute__((weak)) const char *lp_getsec_str(void)
 {
-    return lp_time_g.sec_str;
-}
+    struct timeval tv;
 
-__attribute__((weak)) time_t lp_getsec(void)
-{
-    if (unlikely(!lp_time_g.sec))
-        return time(NULL);
-    return lp_time_g.sec;
+    lp_gettv(&tv);
+    return lp_time_g.sec_str;
 }
 
 __attribute__((weak)) void lp_gettv(struct timeval *tv)
