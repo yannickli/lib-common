@@ -407,9 +407,9 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
         __vec->tab + __vec->len - 1; })
 
 #define __qv_splice(vec, pos, rm_len, inserted_len)                          \
-    ({ (__qv_typeof(vec) *)__qvector_splice(&(vec)->qv, __qv_sz(vec),       \
-                                            __qv_align(vec), (pos), (rm_len),\
-                                            (inserted_len)); })
+    ({ (__qv_typeof(vec) *)__qvector_splice(&(vec)->qv, __qv_sz(vec),        \
+                                            __qv_align(vec), (pos),          \
+                                            (rm_len), (inserted_len)); })
 
 /** At a given position, remove N elements then insert M extra elements.
  *
