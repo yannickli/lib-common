@@ -156,7 +156,6 @@ static bool el_fds_has_pending_events(void)
 static void el_loop_fds(int timeout)
 {
     int res;
-    struct timeval now;
     ev_priority_t prio = EV_PRIORITY_LOW;
 
     struct timespec ts = {
@@ -170,7 +169,6 @@ static void el_loop_fds(int timeout)
         el_timer_process(get_clock(false));
     }
 
-    lp_gettv(&now);
     res = kqueue_g.pending;
     while (--kqueue_g.pending >= 0) {
         struct kevent ke = kqueue_g.events.tab[kqueue_g.pending];
