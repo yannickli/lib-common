@@ -579,6 +579,18 @@ typedef unsigned char byte;
         assert (__vec->len > 0);                                             \
         __vec->tab + __vec->len - 1; })
 
+#define tab_swap(vec, pos1, pos2)                                            \
+    do {                                                                     \
+        typeof(*(vec)) *__vec = (vec);                                       \
+        typeof(pos1) __pos1 = (pos1);                                        \
+        typeof(pos2) __pos2 = (pos2);                                        \
+                                                                             \
+        assert (__pos1 < __vec->len);                                        \
+        assert (__pos2 < __vec->len);                                        \
+                                                                             \
+        SWAP(typeof(*__vec->tab), __vec->tab[__pos1], __vec->tab[__pos2]);   \
+    } while (0)
+
 /* Standard loops for C arrays (ex: int values[] = { 1, 2, 3 }) */
 
 #define carray_for_each_pos(pos, array)                                      \

@@ -720,6 +720,26 @@ Z_GROUP_EXPORT(core_macros) {
     } Z_TEST_END;
 
     /* }}} */
+    /* {{{ tab_swap */
+
+    Z_TEST(tab_swap, "tab_swap") {
+        int ints[] = { 1, 2, 3, 4 };
+        struct {
+            int *tab;
+            int len;
+        } tab = {
+            .tab = ints,
+            .len = countof(ints),
+        };
+
+        tab_swap(&tab, 1, 2);
+        Z_ASSERT_EQ(ints[0], 1);
+        Z_ASSERT_EQ(ints[1], 3);
+        Z_ASSERT_EQ(ints[2], 2);
+        Z_ASSERT_EQ(ints[3], 4);
+    } Z_TEST_END;
+
+    /* }}} */
     /* {{{ unconst */
 
     Z_TEST(unconst_cast, "unconst_cast") {
