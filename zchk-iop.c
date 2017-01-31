@@ -6811,8 +6811,7 @@ Z_GROUP_EXPORT(iop)
                           "(tstiop.FirstDiffC1 vs tstiop.FirstDiffC2)");
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(iop_nonreg_ioptag_union_unpack, "test iop_tag is correctly set "
-           "when unpacking (i32 vs u16)") {
+    Z_TEST(iop_nonreg_ioptag_union_unpack, "test iop_tag all bytes set (i32 vs u16)") { /* {{{ */
         tstiop__my_union_b__t dst;
         tstiop__my_union_b__t src;
         int32_t *i;
@@ -6862,6 +6861,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(ret, 0);
         Z_ASSERT_EQ(src.iop_tag, dst.iop_tag);
     } Z_TEST_END;
+    /* }}} */
 } Z_GROUP_END
 
 /* LCOV_EXCL_STOP */
