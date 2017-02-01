@@ -40,6 +40,7 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         [IOP_T_XML]    = LSTR_IMMED(">"),
         [IOP_T_UNION]  = LSTR_IMMED(">"),
         [IOP_T_STRUCT] = LSTR_IMMED(">"),
+        [IOP_T_VOID]   = LSTR_IMMED(" xsi:nil=\"true\">"),
     };
     const lstr_t *s;
     const iop_field_attrs_t *attrs;
@@ -71,8 +72,9 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         sb_addf(sb, " xsi:type=\"n:%*pM\">",
                 LSTR_FMT_ARG(real_desc->fullname));
     } else
-    if ((flags & IOP_XPACK_VERBOSE)
-    &&  !((flags & IOP_XPACK_LITERAL_ENUMS) && f->type == IOP_T_ENUM))
+    if (((flags & IOP_XPACK_VERBOSE)
+        && !((flags & IOP_XPACK_LITERAL_ENUMS) && f->type == IOP_T_ENUM))
+    ||  f->type == IOP_T_VOID)
     {
         sb_add(sb, types[f->type].s, types[f->type].len);
     } else {
@@ -142,8 +144,9 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
       case IOP_T_UNION:
         xpack_union(sb, f->u1.st_desc, v, flags);
         break;
+      case IOP_T_VOID:
+        break;
       case IOP_T_STRUCT:
-      default:
         if (is_class) {
             xpack_class(sb, f->u1.st_desc, v, flags);
         } else {
@@ -184,7 +187,9 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
         }
 
         while (len-- > 0) {
-            xpack_value(sb, desc, f, ptr, flags);
+            if (!(f->type == IOP_T_VOID && f->repeat == IOP_R_REQUIRED)) {
+                xpack_value(sb, desc, f, ptr, flags);
+            }
             ptr = (const char *)ptr + f->size;
         }
     }

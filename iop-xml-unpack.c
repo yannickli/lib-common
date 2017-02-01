@@ -221,6 +221,18 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         } else {
             return xunpack_struct(xr, mp, fdesc->u1.st_desc, v, flags);
         }
+      case IOP_T_VOID: {
+        int i = 0;
+
+        do {
+            i++;
+            xmlr_next_sibling(xr);
+        } while (xmlr_node_is(xr, fdesc->name.s, fdesc->name.len));
+
+        e_named_trace(3, "iop/xml/unpacker", "dropped %d value(s) into void "
+                      "field `%*pM`", i, LSTR_FMT_ARG(fdesc->name));
+        break;
+      }
 
 #undef CHECK_RANGE
       default:

@@ -6879,6 +6879,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t data;
         int ret;
         tstiop_void_type__void_alone__t dest;
+        SB(buff, 100);
 
         iop_init(tstiop_void_type__void_alone, &s);
 
@@ -6913,6 +6914,28 @@ Z_GROUP_EXPORT(iop)
         s = IOP_UNION(tstiop_void_type__void_alone, other, 0x55);
         iop_json_test_json(&tstiop_void_type__void_alone__s,
                            "{ \"other\": 85 }\n", &s, "");
+
+        /* test XML */
+        IOP_UNION_SET_V(tstiop_void_type__void_alone, &s, field);
+        iop_xpack(&buff, &tstiop_void_type__void_alone__s, &s, false,
+                  false);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("<field xsi:nil=\"true\"></field>"),
+                           LSTR_SB_V(&buff));
+
+        sb_reset(&buff);
+        s = IOP_UNION(tstiop_void_type__void_alone, other, 0x55);
+        iop_xpack(&buff, &tstiop_void_type__void_alone__s, &s, false,
+                  false);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("<other>85</other>"),
+                           LSTR_SB_V(&buff));
+
+        iop_xml_test_struct(&tstiop_void_type__void_alone__s, &s, "va");
+
+        /* test WSDL */
+        sb_reset(&buff);
+        iop_xwsdl(&buff, tstiop_void_type__void_alone_mod__modp, NULL,
+                  "http://example.com/tstiop",
+                  "http://localhost:1080/iop/", false, true);
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_void_optional, "test iop void, optional") {/* {{{ */
@@ -6922,6 +6945,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t data;
         int ret;
         byte buf1[20], buf2[20];
+        SB(buff, 100);
 
         iop_init(tstiop_void_type__void_optional, &s);
 
@@ -6956,6 +6980,7 @@ Z_GROUP_EXPORT(iop)
                                   "Optional void (disabled)");
 
         /* check hash different for set/unset optional void */
+        s.field = false;
         iop_hash_sha1(&tstiop_void_type__void_optional__s, &s, buf1, 0);
         s.field = true;
         iop_hash_sha1(&tstiop_void_type__void_optional__s, &s, buf2, 0);
@@ -6969,6 +6994,27 @@ Z_GROUP_EXPORT(iop)
         s.field = false;
         iop_json_test_json(&tstiop_void_type__void_optional__s,
                            "{ }\n", &s, "");
+
+        /* test XML */
+        s.field = true;
+        iop_xpack(&buff, &tstiop_void_type__void_optional__s, &s, false,
+                  false);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("<field xsi:nil=\"true\"></field>"),
+                           LSTR_SB_V(&buff));
+        iop_xml_test_struct(&tstiop_void_type__void_optional__s, &s, "va");
+
+        sb_reset(&buff);
+        s.field = false;
+        iop_xpack(&buff, &tstiop_void_type__void_optional__s, &s, false,
+                  false);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V(""), LSTR_SB_V(&buff));
+        iop_xml_test_struct(&tstiop_void_type__void_optional__s, &s, "va");
+
+        /* test WSDL */
+        sb_reset(&buff);
+        iop_xwsdl(&buff, tstiop_void_type__void_optional_mod__modp, NULL,
+                  "http://example.com/tstiop",
+                  "http://localhost:1080/iop/", false, true);
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_void_required, "test iop void, required") { /* {{{ */
@@ -6982,6 +7028,7 @@ Z_GROUP_EXPORT(iop)
         tstiop_void_type__small_array_to_void__t s_small_array;
         tstiop_void_type__double_to_void__t s_double;
         lstr_t packed;
+        SB(buff, 10);
 
         /* pack required void (skipped) */
         iop_init(tstiop_void_type__void_required, &s);
@@ -7041,6 +7088,42 @@ Z_GROUP_EXPORT(iop)
                              "struct to void");
         iop_json_test_pack(&tstiop_void_type__void_required__s, &s,
                            0, true, "{\n}\n");
+
+        /* test XML pack required void */
+        iop_xpack(&buff, &tstiop_void_type__void_required__s, &s, false,
+                  false);
+        Z_ASSERT_LSTREQUAL(LSTR_IMMED_V(""), LSTR_SB_V(&buff));
+
+        /* test XML unpack to void */
+#define T_XUNPACK_TO_VOID(type) \
+        do {                                                                 \
+            SB(sb, 10);                                                      \
+            int ret;                                                         \
+            void *res = NULL;                                                \
+            sb_adds(&sb,                                                     \
+                    "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "  \
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""\
+                    ">");                                                    \
+            iop_xpack(&sb, &tstiop_void_type__##type##_to_void__s, &s_##type,\
+                      false, false);                                         \
+            sb_adds(&sb, "</root>");                                         \
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));                \
+            ret = iop_xunpack_ptr(xmlr_g, t_pool(),                          \
+                                  &tstiop_void_type__void_required__s, &res);\
+            Z_ASSERT_EQ(ret, 0);                                             \
+        } while(0)
+
+        T_XUNPACK_TO_VOID(int);
+        T_XUNPACK_TO_VOID(struct);
+        T_XUNPACK_TO_VOID(double);
+        T_XUNPACK_TO_VOID(array);
+#undef T_XUNPACK_TO_VOID
+
+        /* test WSDL */
+        sb_reset(&buff);
+        iop_xwsdl(&buff, tstiop_void_type__void_required_mod__modp, NULL,
+                  "http://example.com/tstiop",
+                  "http://localhost:1080/iop/", false, true);
     } Z_TEST_END;
     /* }}} */
 } Z_GROUP_END

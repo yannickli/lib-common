@@ -248,6 +248,7 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
         [IOP_T_DOUBLE] = "double",
         [IOP_T_STRING] = "string",
         [IOP_T_DATA]   = "base64Binary",
+        [IOP_T_VOID]   = "anyType",
     };
 
     const iop_field_attrs_t *attrs = iop_field_get_attrs(st, f);
@@ -349,8 +350,16 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
           case IOP_R_REPEATED:
             iop_xwsdl_put_occurs(wpp, st, f);
             break;
+          case IOP_R_REQUIRED:
+            if (f->type == IOP_T_VOID && !st->is_union) {
+                xmlpp_putattr(&wpp->pp, "minOccurs", "0");
+            }
           default:
             break;
+        }
+
+        if (f->type == IOP_T_VOID) {
+            xmlpp_putattr(&wpp->pp, "nillable", "true");
         }
 
         if ((1 << f->type) & IOP_STRUCTS_OK) {

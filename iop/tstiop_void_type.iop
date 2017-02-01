@@ -27,3 +27,33 @@ struct VoidRequired {
 struct VoidOptional {
     void? field;
 };
+
+interface VoidAloneIf {
+    f
+        in (VoidAlone v)
+        out void;
+};
+
+interface VoidRequiredIf {
+    f
+        in (VoidRequired v)
+        out void;
+};
+
+interface VoidOptionalIf {
+    f
+        in (VoidOptional v)
+        out void;
+};
+
+module VoidAloneMod {
+    VoidAloneIf vi;
+};
+
+module VoidRequiredMod {
+    VoidRequiredIf vi;
+};
+
+module VoidOptionalMod {
+    VoidOptionalIf vi;
+};
