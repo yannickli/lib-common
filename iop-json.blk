@@ -1068,7 +1068,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         return 0;
     }
 
-    path_dirname(prefix, sizeof(prefix), qv_last(&filenames_g)->s);
+    path_dirname(prefix, sizeof(prefix), tab_last(&filenames_g)->s);
     if (path_extend(path, prefix, "%*pM", SB_FMT_ARG(&ll->ctx->b)) < 0) {
         return JERROR_VARIOUS("cannot get fullpath of `%*pM`",
                               SB_FMT_ARG(&ll->ctx->b));
@@ -1088,7 +1088,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         int len;
 
         if (relative_dirs_g.len) {
-            basedir = *qv_last(&relative_dirs_g);
+            basedir = *tab_last(&relative_dirs_g);
         } else {
             basedir = LSTR_EMPTY_V;
         }

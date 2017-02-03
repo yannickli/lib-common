@@ -1184,8 +1184,9 @@ static void dox_chunk_params_merge(dox_chunk_t *chunk)
     sb_addc(&sb, '[');
     tab_for_each_ptr(s, &chunk->params) {
         sb_add_lstr(&sb, *s);
-        if (s != qv_last(&chunk->params))
+        if (s != tab_last(&chunk->params)) {
             sb_adds(&sb, ", ");
+        }
     }
     sb_addc(&sb, ']');
     dox_chunk_push_sb(chunk, sb);
@@ -1213,8 +1214,8 @@ static void dox_chunk_merge(dox_chunk_t *eating, dox_chunk_t *eaten)
     }
 
     if (eating->paragraphs.len && eaten->paragraphs.len) {
-        sb_addc(qv_last(&eating->paragraphs), ' ');
-        sb_addsb(qv_last(&eating->paragraphs), &eaten->paragraphs.tab[0]);
+        sb_addc(tab_last(&eating->paragraphs), ' ');
+        sb_addsb(tab_last(&eating->paragraphs), &eaten->paragraphs.tab[0]);
         sb_wipe(&eaten->paragraphs.tab[0]);
         qv_skip(&eaten->paragraphs, 1);
     }
@@ -1271,7 +1272,7 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         if (chunks->len == 0) {
             goto append;
         }
-        last = qv_last(chunks);
+        last = tab_last(chunks);
 
         /* force merge if the chunk has a unknown keyword while the previous
          * one has a known keyword, so that syntax like:

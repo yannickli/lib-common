@@ -118,7 +118,7 @@ void lexdox_comment_begin(struct lexdata *ld, const char *text, int len)
 static void lexdox_update_last_chunk_loc(const struct lexdata *ld)
 {
     if (ld->tk->dox->chunks.len) {
-        qv_last(&ld->tk->dox->chunks)->loc.lmax = ld->lno;
+        tab_last(&ld->tk->dox->chunks)->loc.lmax = ld->lno;
     }
 }
 
@@ -193,7 +193,7 @@ static void lexdox_add_paragraph(struct lexdata *ld)
     if (!chunks->len)
         lexdox_add_chunk(ld);
 
-    paragraphs = &qv_last(chunks)->paragraphs;
+    paragraphs = &tab_last(chunks)->paragraphs;
     if (paragraphs->len) {
         ld->dox_scan_params_args_counter = 0;
     }
@@ -204,7 +204,7 @@ static void lexdox_add_paragraph(struct lexdata *ld)
 static
 void lexdox_check_params_arg(struct lexdata *ld, const char *text, int len)
 {
-    dox_chunk_t *chunk = qv_last(&ld->tk->dox->chunks);
+    dox_chunk_t *chunk = tab_last(&ld->tk->dox->chunks);
 
     if (chunk->paragraphs.len != 1)
         return;
@@ -234,7 +234,7 @@ static void lexdox_add_text(struct lexdata *ld, const char *text, int len)
     }
     lexdox_check_params_arg(ld, text, len);
 
-    chunk = qv_last(&ld->tk->dox->chunks);
+    chunk = tab_last(&ld->tk->dox->chunks);
     /* check if we are beginning the second paragraph (== details) */
     if (!chunk->keyword.s && chunk->paragraphs.len == 1 && text[0] == '\n'
     &&  ld->dox_cur_paragraph
@@ -517,7 +517,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     ","|{HS}+           /* skip */
     [a-zA-Z]+           {
                           qv_t(dox_chunk) *chunks = &yyextra->tk->dox->chunks;
-                          qv_append(&qv_last(chunks)->params,
+                          qv_append(&tab_last(chunks)->params,
                                     lstr_dups(yytext, yyleng));
                         }
     "]"{HS}*            {
@@ -528,12 +528,12 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     <<EOF>>             { ERROR("unterminated doxygen param"); }
     .|^","|","{HS}*","  {
                           qv_t(dox_chunk) *chunks = &yyextra->tk->dox->chunks;
-                          dox_chunk_t *chunk = qv_last(chunks);
+                          dox_chunk_t *chunk = tab_last(chunks);
 
                           lexdox_add_text(yyextra, "[", 1);
                           tab_for_each_ptr(s, &chunk->params) {
                               lexdox_add_text(yyextra, s->s, s->len);
-                              if (s != qv_last(&chunk->params))
+                              if (s != tab_last(&chunk->params))
                                   lexdox_add_text(yyextra, ", ", 2);
                           }
                           if (yytext[0] == ',') {

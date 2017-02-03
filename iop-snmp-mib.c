@@ -287,7 +287,7 @@ static void mib_put_imports(sb_t *buf)
 
 static void mib_put_identity(sb_t *buf, const qv_t(mib_rev) *revisions)
 {
-    mib_revision_t *last_update = qv_last(revisions);
+    mib_revision_t *last_update = tab_last(revisions);
 
     sb_addf(buf, "-- {{{ Identity\n"
             "\n%*pM%s MODULE-IDENTITY\n"

@@ -60,7 +60,7 @@ void xmlpp_closetag(xmlpp_t *pp)
         return;
     }
 
-    tag = *qv_last(&pp->stack);
+    tag = *tab_last(&pp->stack);
     qv_shrink(&pp->stack, 1);
     if (pp->can_do_attr) {
         sb_shrink(pp->buf, 1);

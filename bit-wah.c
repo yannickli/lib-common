@@ -320,7 +320,7 @@ static qv_t(wah_word) *wah_create_bucket(wah_t *map, int size)
     qv_t(wah_word) *bucket;
 
     if (map->_buckets.len > 0) {
-        bucket = qv_last(&map->_buckets);
+        bucket = tab_last(&map->_buckets);
         qv_optimize(bucket, 0, 0);
     }
 
@@ -426,7 +426,7 @@ wah_t *t_wah_dup(const wah_t *src)
 static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(const wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     return &bucket->tab[map->last_run_pos].head;
@@ -435,7 +435,7 @@ wah_header_t *wah_last_run_header(const wah_t *map)
 static ALWAYS_INLINE
 uint32_t *wah_last_run_count(const wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     return &bucket->tab[map->last_run_pos + 1].count;
@@ -444,7 +444,7 @@ uint32_t *wah_last_run_count(const wah_t *map)
 static ALWAYS_INLINE
 void wah_append_header(wah_t *map, wah_header_t head)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
     wah_word_t word;
 
     word.head = head;
@@ -456,7 +456,7 @@ void wah_append_header(wah_t *map, wah_header_t head)
 static ALWAYS_INLINE
 void wah_append_literal(wah_t *map, uint32_t val)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
     wah_word_t word;
 
     word.literal = val;
@@ -496,7 +496,7 @@ void wah_check_normalized(const wah_t *map)
 static ALWAYS_INLINE
 void wah_check_invariant(const wah_t *map)
 {
-    qv_t(wah_word) *last_bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *last_bucket = tab_last(&map->_buckets);
 
     assert (map->last_run_pos >= 0);
     assert (map->previous_run_pos >= -1);
@@ -516,7 +516,7 @@ void wah_check_invariant(const wah_t *map)
 static inline
 void wah_flatten_last_run(wah_t *map)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
     wah_header_t *head;
 
     head = wah_last_run_header(map);
@@ -552,7 +552,7 @@ static void __wah_push_pending(wah_t *map, uint64_t words)
             words--;
         }
     } else {
-        qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+        qv_t(wah_word) *bucket = tab_last(&map->_buckets);
         wah_header_t *head = wah_last_run_header(map);
 
         if (*wah_last_run_count(map) == 0
@@ -827,7 +827,7 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 
 static void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    qv_t(wah_word) *bucket = qv_last(&map->_buckets);
+    qv_t(wah_word) *bucket = tab_last(&map->_buckets);
 
     wah_flatten_last_run(map);
     map->active += membitcount(src, count);
@@ -975,7 +975,7 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
         }
 
         *wah_last_run_count(map) += count;
-        bucket = qv_last(&map->_buckets);
+        bucket = tab_last(&map->_buckets);
         qv_splice(bucket, bucket->len, 0, words, count);
         if (data->reverse) {
             for (int i = bucket->len - count; i < bucket->len; i++) {

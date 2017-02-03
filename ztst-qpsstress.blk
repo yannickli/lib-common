@@ -47,7 +47,7 @@ static void qalloc(void)
     if (_G.free_list.len == 0) {
         qv_append(&_G.handles, h);
     } else {
-        int pos = *qv_last(&_G.free_list);
+        int pos = *tab_last(&_G.free_list);
         qv_shrink(&_G.free_list, 1);
         _G.handles.tab[pos] = h;
     }

@@ -1460,7 +1460,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     t_scope;
     const char *pkg_name = t_pp_under(pkg->name);
-    const char *curr_pkg_name = *qv_last(&pkg->name->bits);
+    const char *curr_pkg_name = *tab_last(&pkg->name->bits);
     char path[PATH_MAX];
     SB(buf, 32 << 10);
 

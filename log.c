@@ -445,8 +445,7 @@ static void free_last_buffer(void)
 {
     if (_G.vec_buff_stack.len > _G.nb_buffer_started) {
         assert (_G.vec_buff_stack.len == _G.nb_buffer_started + 1);
-        buffer_instance_wipe(qv_last(
-                                     &_G.vec_buff_stack));
+        buffer_instance_wipe(tab_last(&_G.vec_buff_stack));
         qv_remove(&_G.vec_buff_stack,
                   _G.vec_buff_stack.len - 1);
         mem_stack_pop(&_G.mp_stack);
@@ -488,7 +487,7 @@ const qv_t(log_buffer) *log_stop_buffering(void)
         return NULL;
     }
     free_last_buffer();
-    buffer_instance = qv_last(&_G.vec_buff_stack);
+    buffer_instance = tab_last(&_G.vec_buff_stack);
     _G.nb_buffer_started--;
 
     return &buffer_instance->vec_buffer;

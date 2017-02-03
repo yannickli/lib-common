@@ -795,7 +795,7 @@ static void *qps_map_fd(qps_t *qps, int fd, void *at)
         where = at;
     } else
     if (qps->omaps.len) {
-        where = *qv_last(&qps->omaps);
+        where = *tab_last(&qps->omaps);
         qv_shrink(&qps->omaps, 1);
     } else {
         uint8_t *map, *fix;
@@ -861,7 +861,7 @@ static uint32_t qps_map_find_no(qps_t *qps)
     int no = qps->maps.len;
 
     if (qps->no_free.len) {
-        no = *qv_last(&qps->no_free);
+        no = *tab_last(&qps->no_free);
         qv_shrink(&qps->no_free, 1);
     }
 

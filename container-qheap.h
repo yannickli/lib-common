@@ -180,7 +180,7 @@
         if (pos == heap->len - 1) {                                           \
             qv_shrink(heap, 1);                                      \
         } else {                                                              \
-            type_t last =  *qv_last(heap);                           \
+            type_t last =  *tab_last(heap);                          \
                                                                               \
             qv_shrink(heap, 1);                                      \
             __qhp_##n##_set(heap, pos, last);                                 \

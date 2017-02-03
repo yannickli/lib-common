@@ -1955,7 +1955,7 @@ static int iop_get_fieldp(const void *data, const field_path_t *field_path,
         }
     }
 
-    data = ((const byte *)data) + qv_last(steps)->offset;
+    data = ((const byte *)data) + tab_last(steps)->offset;
 
     if (field_path->is_typename) {
         const iop_struct_t *st = *(const void **)data;
@@ -5509,7 +5509,7 @@ static void iop_compat_pop_err_ctx(iop_compat_ctx_t *ctx)
     ctx->indent_lvl--;
     assert (ctx->indent_lvl >= 0);
     if (ctx->err_ctx_offs.len > 0) {
-        sb_clip(&ctx->err_ctx, *qv_last(&ctx->err_ctx_offs));
+        sb_clip(&ctx->err_ctx, *tab_last(&ctx->err_ctx_offs));
         qv_remove_last(&ctx->err_ctx_offs);
     }
 }

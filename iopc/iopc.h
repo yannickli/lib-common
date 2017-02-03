@@ -161,8 +161,8 @@ static inline const char *get_full_path(const char *file)
 
 #define t_push_loc(loc, ...)  \
     do {                                                                     \
-        qv_append(&iopc_g.loc_stack, loc);                         \
-        qv_last(&iopc_g.loc_stack)->comment = t_fmt(__VA_ARGS__);  \
+        qv_append(&iopc_g.loc_stack, loc);                                   \
+        tab_last(&iopc_g.loc_stack)->comment = t_fmt(__VA_ARGS__);           \
     } while (0)
 
 #define pop_loc()          qv_shrink(&iopc_g.loc_stack, 1)

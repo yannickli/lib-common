@@ -666,7 +666,7 @@ static int iopc_struct_check_circular_dep(iopc_pkg_t *pkg, iopc_struct_t *st)
     }
     if (st->resolving) {
         throw_loc("circular dependency",
-                  *qv_last(&iopc_g.loc_stack));
+                  *tab_last(&iopc_g.loc_stack));
     }
 
     st->resolving = true;
@@ -710,7 +710,7 @@ iopc_struct_check_inheritance(iopc_struct_t *st, iopc_struct_t *parent_st,
     type = iopc_struct_type_to_str(st->type);
 
     if (parent_st->resolving_inheritance) {
-        throw_loc("circular dependency", *qv_last(&iopc_g.loc_stack));
+        throw_loc("circular dependency", *tab_last(&iopc_g.loc_stack));
     }
 
     /* Check field names unicity */
@@ -843,7 +843,7 @@ static int iopc_t_resolve(iopc_pkg_t *pkg)
     }
     if (pkg->t_resolving) {
         throw_loc("circular dependency",
-                  *qv_last(&iopc_g.loc_stack));
+                  *tab_last(&iopc_g.loc_stack));
     }
 
     pkg->t_resolving = true;
@@ -905,7 +905,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
     }
     if (pkg->i_resolving) {
         throw_loc("circular dependency",
-                  *qv_last(&iopc_g.loc_stack));
+                  *tab_last(&iopc_g.loc_stack));
     }
 
     pkg->i_resolving = true;
