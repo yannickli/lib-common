@@ -200,6 +200,13 @@
 # define unlikely(expr)   (expr)
 #endif
 
+#define  if_assign(var, expr)                                                \
+    for (typeof(*expr) *var = (expr), *__##var##guard = (void *)-1;          \
+         __##var##guard; __##var##guard = NULL)                              \
+        if (var)
+
+#define while_assign(var, expr)                                              \
+    for (typeof(*expr) *var = (expr); var; var = (expr))
 
 /** \def STATIC_ASSERT
  * \brief Check a condition at build time.
