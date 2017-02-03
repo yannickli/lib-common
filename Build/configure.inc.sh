@@ -104,7 +104,7 @@ check_iopc() {
     fi
     setenv "IOPC" "$(which iopc)"
     setenv "IOPVER" "-5"
-    setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index"
+    setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index --c-unions-use-enums"
 }
 
 check_swift() {
