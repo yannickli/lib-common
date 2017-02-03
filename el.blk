@@ -134,8 +134,8 @@ typedef struct ev_t {
         } child;                /* EV_CHILD */
         struct {
             uint64_t expiry;
+            int64_t  repeat;
             int      tolerance;
-            int      repeat;
             int      heappos;
         } timer;                /* EV_TIMER */
         struct {
@@ -948,7 +948,7 @@ static bool el_timer_has_pending_events(void)
 
 static void el_timer_compute_tolerance(ev_t *ev)
 {
-    int repeat = ev->timer.repeat;
+    int64_t repeat = ev->timer.repeat;
 
     if (repeat < 0) {
         repeat = -repeat;
@@ -969,8 +969,8 @@ static void el_timer_compute_tolerance(ev_t *ev)
     ev->timer.tolerance = MIN(repeat / 10, EL_LOOP_TIMEOUT);
 }
 
-ev_t *el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
-                          el_cb_f *cb, data_t priv)
+ev_t *el_timer_register_d(int64_t next, int64_t repeat,
+                          ev_timer_flags_t flags, el_cb_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -995,7 +995,7 @@ ev_t *el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
 
         logger_cont("register %stimer on event %p ",
                     one_shot ? "one shot " : "", ev);
-        logger_cont("(next: %dms, ", next);
+        logger_cont("(next: %jdms, ", next);
         if (!one_shot) {
             logger_cont("expiry: %ju.%03ju, ",
                         ev->timer.expiry / 1000,
@@ -1008,8 +1008,8 @@ ev_t *el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
     return ev;
 }
 
-ev_t *el_timer_register_blk(int next, int repeat, ev_timer_flags_t flags,
-                            el_cb_b blk, block_t wipe)
+ev_t *el_timer_register_blk(int64_t next, int64_t repeat,
+                            ev_timer_flags_t flags, el_cb_b blk, block_t wipe)
 {
     return el_blk_register(el_timer_register(next, repeat, flags, (void *)-1,
                                              NULL),
@@ -1036,7 +1036,7 @@ static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
                  ev->timer.expiry % 1000);
 }
 
-void el_timer_restart(ev_t *ev, int restart)
+void el_timer_restart(ev_t *ev, int64_t restart)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
     ASSERT("timer isn't a oneshot timer", ev->timer.repeat <= 0);
@@ -1778,7 +1778,7 @@ static int el_get_state(sb_t *sb, bool only_blocking)
                                    ev->timer.expiry % 1000,
                                    ev->timer.tolerance);
             } else {
-                details = lstr_fmt("repeat: %dms, next: %ju.%03ju, "
+                details = lstr_fmt("repeat: %jdms, next: %ju.%03ju, "
                                    "tolerance: %ums",
                                    ev->timer.repeat,
                                    ev->timer.expiry / 1000,

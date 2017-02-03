@@ -213,7 +213,7 @@ public class El {
         }
 
         /// Rearm the timer to fire in `timeout` milliseconds.
-        public func restart(next timeout: Int32) {
+        public func restart(next timeout: Int64) {
             el_timer_restart(el, timeout)
         }
     }
@@ -287,7 +287,7 @@ extension El {
     ///   the timer is a single shot timer.
     ///
     /// - Paramter flags: flags applied on the timer.
-    public static func schedule(in next: Int32, repeatEvery: Int32 = 0, flags: Timer.Flags = [], _ cb: @escaping el_cb_b) -> Timer {
+    public static func schedule(in next: Int64, repeatEvery: Int64 = 0, flags: Timer.Flags = [], _ cb: @escaping el_cb_b) -> Timer {
         return Timer(el_timer_register_blk(next, repeatEvery, flags, cb, nil))
     }
 }

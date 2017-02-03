@@ -363,17 +363,18 @@ SWIFT_OPTIONS(ev_timer_flags_t) {
  * \param[in]  priv    private data.
  * \return the timer handler descriptor.
  */
-el_t nonnull el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
+el_t nonnull el_timer_register_d(int64_t next, int64_t repeat,
+                                 ev_timer_flags_t flags,
                                  el_cb_f * nonnull, data_t)
     __leaf __no_swift__;
 #ifdef __has_blocks
-el_t nonnull el_timer_register_blk(int next, int repeat,
+el_t nonnull el_timer_register_blk(int64_t next, int64_t repeat,
                                    ev_timer_flags_t flags,
                                    el_cb_b nonnull, block_t nullable)
     __leaf;
 #endif
 static inline __no_swift__ el_t nonnull
-el_timer_register(int next, int repeat, ev_timer_flags_t flags,
+el_timer_register(int64_t next, int64_t repeat, ev_timer_flags_t flags,
                   el_cb_f * nonnull f, void * nullable ptr)
 {
     return el_timer_register_d(next, repeat, flags, f, (data_t){ ptr });
@@ -388,7 +389,7 @@ bool el_timer_is_repeated(el_t nonnull ev) __leaf __attribute__((pure));
  * \param[in]  next    relative time in ms at wich the timers will fire. If
  *                     it's negative, the previous relative value is reused.
  */
-void el_timer_restart(el_t nonnull, int next) __leaf;
+void el_timer_restart(el_t nonnull, int64_t next) __leaf;
 void el_timer_set_hook(el_t nonnull, el_cb_f * nonnull) __leaf __no_swift__;
 
 /**\}*/
