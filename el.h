@@ -245,9 +245,9 @@ SWIFT_OPTIONS(ev_fd_loop_flags_t) {
     EV_FDLOOP_HANDLE_TIMERS __swift_name__("handleTimers") = 1 << 1,
 };
 
-int   el_fd_loop(el_t nonnull, int timeout, unsigned flags);
+int   el_fd_loop(el_t nonnull, int timeout, ev_fd_loop_flags_t flags);
 int   el_fds_loop(el_t nonnull * nonnull els, int el_count, int timeout,
-                  unsigned flags);
+                  ev_fd_loop_flags_t flags);
 
 short el_fd_get_mask(el_t nonnull) __leaf __attribute__((pure));
 short el_fd_set_mask(el_t nonnull, short events) __leaf;
@@ -339,7 +339,7 @@ const char * nonnull el_fs_watch_get_path(el_t nonnull el);
  * \{
  */
 
-SWIFT_OPTIONS(el_timer_flags_t) {
+SWIFT_OPTIONS(ev_timer_flags_t) {
     EL_TIMER_NOMISS __swift_name__("noMiss") = (1 << 0),
     EL_TIMER_LOWRES __swift_name__("lowRes") = (1 << 1),
 };
@@ -363,17 +363,18 @@ SWIFT_OPTIONS(el_timer_flags_t) {
  * \param[in]  priv    private data.
  * \return the timer handler descriptor.
  */
-el_t nonnull el_timer_register_d(int next, int repeat, int flags,
+el_t nonnull el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
                                  el_cb_f * nonnull, data_t)
     __leaf __no_swift__;
 #ifdef __has_blocks
-el_t nonnull el_timer_register_blk(int next, int repeat, int flags,
+el_t nonnull el_timer_register_blk(int next, int repeat,
+                                   ev_timer_flags_t flags,
                                    el_cb_b nonnull, block_t nullable)
     __leaf;
 #endif
 static inline __no_swift__ el_t nonnull
-el_timer_register(int next, int repeat, int flags, el_cb_f * nonnull f,
-                  void * nullable ptr)
+el_timer_register(int next, int repeat, ev_timer_flags_t flags,
+                  el_cb_f * nonnull f, void * nullable ptr)
 {
     return el_timer_register_d(next, repeat, flags, f, (data_t){ ptr });
 }

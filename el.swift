@@ -106,7 +106,7 @@ public class El {
         ///
         /// - Returns: true if the handler triggered an event.
         public func loop(timeout: Int32, flags: LoopFlags = []) -> Bool {
-            return el_fd_loop(el, timeout, flags.rawValue) > 0
+            return el_fd_loop(el, timeout, flags) > 0
         }
 
         /// Wait for activity on a collection of file-descriptor handler.
@@ -130,7 +130,7 @@ public class El {
             var els: [el_t] = els.map { $0.el }
 
             return els.withUnsafeMutableBufferPointer {
-                return el_fds_loop($0.baseAddress!, Int32(els.count), timeout, flags.rawValue) > -1
+                return el_fds_loop($0.baseAddress!, Int32(els.count), timeout, flags) > -1
             }
         }
 
@@ -205,7 +205,7 @@ public class El {
 
     /// Handler managing a singleshort or repeated timer.
     public class Timer : El {
-        public typealias Flags = el_timer_flags_t
+        public typealias Flags = ev_timer_flags_t
 
         /// Indicates whether the timer is repeated.
         public var isRepeated : Bool {
@@ -288,7 +288,7 @@ extension El {
     ///
     /// - Paramter flags: flags applied on the timer.
     public static func schedule(in next: Int32, repeatEvery: Int32 = 0, flags: Timer.Flags = [], _ cb: @escaping el_cb_b) -> Timer {
-        return Timer(el_timer_register_blk(next, repeatEvery, Int32(flags.rawValue), cb, nil))
+        return Timer(el_timer_register_blk(next, repeatEvery, flags, cb, nil))
     }
 }
 

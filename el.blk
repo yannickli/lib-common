@@ -969,8 +969,8 @@ static void el_timer_compute_tolerance(ev_t *ev)
     ev->timer.tolerance = MIN(repeat / 10, EL_LOOP_TIMEOUT);
 }
 
-ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb,
-                          data_t priv)
+ev_t *el_timer_register_d(int next, int repeat, ev_timer_flags_t flags,
+                          el_cb_f *cb, data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -1008,7 +1008,8 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb,
     return ev;
 }
 
-ev_t *el_timer_register_blk(int next, int repeat, int flags, el_cb_b blk, block_t wipe)
+ev_t *el_timer_register_blk(int next, int repeat, ev_timer_flags_t flags,
+                            el_cb_b blk, block_t wipe)
 {
     return el_blk_register(el_timer_register(next, repeat, flags, (void *)-1,
                                              NULL),
