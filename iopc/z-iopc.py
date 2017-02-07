@@ -721,6 +721,34 @@ class IopcTest(z.TestCase):
         self.run_iopc(f, False,
                       'attribute private does not apply to enum', 5)
 
+    def test_attrs_invalid_max_1(self):
+        f = 'attrs_invalid_max_1.iop'
+        self.run_iopc(f, False,
+                      'attribute max is larger than maximum value of '
+                      'type ubyte (256 > 255)', 5)
+
+    def test_attrs_invalid_max_2(self):
+        f = 'attrs_invalid_max_2.iop'
+        self.run_iopc(f, False,
+                      'attribute max is larger than maximum value of '
+                      'type int (2147483648 > 2147483647)', 5)
+
+    def test_attrs_valid_max_1(self):
+        f = 'attrs_valid_max_1.iop'
+        self.run_iopc(f, True, "", 5)
+
+    def test_attrs_invalid_min_1(self):
+        f = 'attrs_invalid_min_1.iop'
+        self.run_iopc(f, False,
+                      'attribute min is lower than minimum value of '
+                      'type int (-4294967296 < -2147483648)', 5)
+
+    def test_attrs_invalid_min_2(self):
+        f = 'attrs_invalid_min_2.iop'
+        self.run_iopc(f, False,
+                      'attribute min is larger than maximum value of '
+                      'type ubyte (256 > 255)', 5)
+
     # }}}
     # {{{ Generic attributes
 

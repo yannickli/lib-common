@@ -51,6 +51,10 @@ lstr_t t_camelcase_to_c(lstr_t name);
 /** Convert an IOP type name (pkg.CamelCase) to C underscored naming */
 lstr_t t_iop_type_to_c(lstr_t fullname);
 
+/** Returns the maximum/minimum possible value of an iop_type_t */
+iop_value_t iop_type_to_max(iop_type_t type);
+iop_value_t iop_type_to_min(iop_type_t type);
+
 /** Convert an identifier from C underscored naming to CamelCase naming.
  *
  * \param[in] name The name to convert.

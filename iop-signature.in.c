@@ -74,7 +74,7 @@ int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
                            unsigned flags)
 {
     t_scope;
-    lstr_t exp;
+    lstr_t expected;
     be32_t salt;
 
 #ifndef NDEBUG
@@ -86,15 +86,15 @@ int F(iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
         return -1;
     }
 
-    exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt), flags);
-    if (!lstr_equal(sig, exp)) {
+    expected = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt), flags);
+    if (!lstr_equal(sig, expected)) {
         if (!(flags & IOP_HASH_SKIP_DEFAULT)) {
             return -1;
         }
 
-        exp = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt),
+        expected = F(t_iop_sign_salt_sha256)(st, v, be_to_cpu32(salt),
                                         flags | IOP_HASH_SHALLOW_DEFAULT);
-        if (!lstr_equal(sig, exp)) {
+        if (!lstr_equal(sig, expected)) {
             return -1;
         }
     }

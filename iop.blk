@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <float.h>
+#include <math.h>
 #include "arith.h"
 #include "core.h"
 #include "iop.h"
@@ -739,6 +741,92 @@ const char *iop_type_get_string_desc(iop_type_t type)
         return "xml";
     }
     e_panic("iop_type unsupported");
+}
+
+iop_value_t iop_type_to_max(iop_type_t type)
+{
+    iop_value_t value;
+
+    switch (type) {
+      case IOP_T_BOOL:
+        value.u64 = true;
+        break;
+      case IOP_T_DOUBLE:
+        value.d = INFINITY;
+        break;
+      case IOP_T_I8:
+        value.i64 = INT8_MAX;
+        break;
+      case IOP_T_I16:
+        value.i64 = INT16_MAX;
+        break;
+      case IOP_T_ENUM:
+      case IOP_T_I32:
+        value.i64 = INT32_MAX;
+        break;
+      case IOP_T_I64:
+        value.i64 = INT64_MAX;
+        break;
+      case IOP_T_U8:
+        value.u64 = UINT8_MAX;
+        break;
+      case IOP_T_U16:
+        value.u64 = UINT16_MAX;
+        break;
+      case IOP_T_U32:
+        value.u64 = UINT32_MAX;
+        break;
+      case IOP_T_U64:
+        value.u64 = UINT64_MAX;
+        break;
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+        e_panic("iop_type unsupported");
+    }
+
+    return value;
+}
+
+iop_value_t iop_type_to_min(iop_type_t type)
+{
+    iop_value_t value;
+
+    switch (type) {
+      case IOP_T_DOUBLE:
+        value.d = -INFINITY;
+        break;
+      case IOP_T_I8:
+        value.i64 = INT8_MIN;
+        break;
+      case IOP_T_I16:
+        value.i64 = INT16_MIN;
+        break;
+      case IOP_T_ENUM:
+      case IOP_T_I32:
+        value.i64 = INT32_MIN;
+        break;
+      case IOP_T_I64:
+        value.i64 = INT64_MIN;
+        break;
+      case IOP_T_BOOL:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+        value.u64 = 0;
+        break;
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+        e_panic("iop_type unsupported");
+    }
+
+    return value;
 }
 
 /* }}} */

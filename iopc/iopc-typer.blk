@@ -1033,52 +1033,15 @@ static int check_defval_int(iopc_field_t *f)
         throw_loc("invalid default value on unsigned integer field: %jd",
                   f->loc, i64);
     }
-    switch (f->kind) {
-      case IOP_T_BOOL:
-        if (u64 > 1) {
-            throw_loc("invalid default value on bool field: %jd", f->loc,
-                      i64);
-        }
-        break;
-      case IOP_T_U8:
-        if (u64 > UINT8_MAX) {
-            throw_loc("invalid default value on ubyte field: %ju", f->loc,
-                      u64);
-        }
-        break;
-      case IOP_T_I8:
-        if (i64 < INT8_MIN || i64 > INT8_MAX) {
-            throw_loc("invalid default value on byte field: %jd", f->loc,
-                      i64);
-        }
-        break;
-      case IOP_T_U16:
-        if (u64 > UINT16_MAX) {
-            throw_loc("invalid default value on ushort field: %ju", f->loc,
-                      u64);
-        }
-        break;
-      case IOP_T_I16:
-        if (i64 < INT16_MIN || i64 > INT16_MAX) {
-            throw_loc("invalid default value on short field: %jd", f->loc,
-                      i64);
-        }
-        break;
-      case IOP_T_U32:
-        if (u64 > UINT32_MAX) {
-            throw_loc("invalid default value on uint field: %ju", f->loc,
-                      u64);
-        }
-        break;
-      case IOP_T_ENUM:
-      case IOP_T_I32:
-        if (i64 < INT32_MIN || i64 > INT32_MAX) {
-            throw_loc("invalid default value on int field: %jd", f->loc, i64);
-        }
-        break;
-      default:
-        break;
+    if (is_signed && i64 > iop_type_to_max(f->kind).i64) {
+        throw_loc("invalid default value on %s field: %jd",
+                  f->loc, iop_type_get_string_desc(f->kind),  i64);
+    } else
+    if (!is_signed && u64 > iop_type_to_max(f->kind).u64) {
+        throw_loc("invalid default value on %s field: %ju",
+                  f->loc, iop_type_get_string_desc(f->kind),  u64);
     }
+
     if (f->kind == IOP_T_ENUM) {
         bool strict = false;
 
@@ -1237,6 +1200,50 @@ static int check_defval_string(iopc_field_t *f)
     return 0;
 }
 
+/* Checks the attributes values. Doesn't work for values larger than
+ * UINT64_MAX */
+static int check_attr(const iopc_field_t *f)
+{
+    bool is_signed;
+    int64_t i64;
+    uint64_t u64;
+
+    tab_for_each_entry(attr, &f->attrs) {
+        if (attr->desc->id != IOPC_ATTR_MAX
+        &&  attr->desc->id != IOPC_ATTR_MIN)
+        {
+            continue;
+        }
+        i64 = IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]);
+        u64 = IOPC_ATTR_GET_ARG_V(uint64_t, &attr->args.tab[0]);
+        RETHROW(iopc_field_get_signed(f, &is_signed));
+        if (f->kind == IOP_T_DOUBLE) {
+            /* Double types have no constraints on their min/max */
+            continue;
+        }
+        if ((is_signed && i64 < iop_type_to_min(f->kind).i64)
+        ||  (!is_signed && i64 < 0 && f->kind != IOP_T_U64))
+        {
+            throw_loc("attribute %*pM is lower than minimum value of "
+                      "type %s (%ld < %ld)",
+                      f->loc, LSTR_FMT_ARG(attr->desc->name),
+                      iop_type_get_string_desc(f->kind), i64,
+                      iop_type_to_min(f->kind).i64);
+        }
+        if ((is_signed && i64 > iop_type_to_max(f->kind).i64)
+        ||  (!is_signed && u64 > iop_type_to_max(f->kind).u64))
+        {
+            throw_loc("attribute %*pM is larger than maximum value of "
+                      "type %s (%lu > %lu)",
+                      f->loc, LSTR_FMT_ARG(attr->desc->name),
+                      iop_type_get_string_desc(f->kind), u64,
+                      iop_type_to_max(f->kind).u64);
+        }
+    }
+
+    return 0;
+}
+
 int iopc_resolve_second_pass(iopc_pkg_t *pkg)
 {
     /* second pass: resolving of weak deps */
@@ -1278,6 +1285,9 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
                               "or unions", f->loc);
                 }
             }
+
+            RETHROW(check_attr(f));
+
             if (f->repeat == IOP_R_DEFVAL) {
                 switch (f->kind) {
                   case IOP_T_ENUM:
