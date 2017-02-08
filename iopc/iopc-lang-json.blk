@@ -378,21 +378,25 @@ iopc_enum_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
 /*}}} */
 /*{{{ structs, unions and classes */
 
-static void
+static int
 write_field_scalar_attr(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
                         const iopc_attr_t *attr)
 {
+    bool is_signed;
+
+    RETHROW(iopc_field_get_signed(f, &is_signed));
     if (f->kind == IOP_T_DOUBLE) {
         sb_addf(wbuf->buf, DOUBLE_FMT,
                 IOPC_ATTR_GET_ARG_V(double, &attr->args.tab[0]));
     } else
-    if (iopc_field_is_signed(f)) {
+    if (is_signed) {
         sb_addf(wbuf->buf, "%jd",
                 IOPC_ATTR_GET_ARG_V(int64_t, &attr->args.tab[0]));
     } else {
         sb_addf(wbuf->buf, "%ju",
                 IOPC_ATTR_GET_ARG_V(uint64_t, &attr->args.tab[0]));
     }
+    return 0;
 }
 
 static void
@@ -477,13 +481,14 @@ static void dump_defval(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
 #undef DEF
 }
 
-static void
+static int
 dump_constraint_field_scalar(const iopc_write_buf_t *wbuf, const char *key,
                              const iopc_field_t *f, const iopc_attr_t *attr)
 {
     START_LINE_KEY(wbuf, key);
-    write_field_scalar_attr(wbuf, f, attr);
+    RETHROW(write_field_scalar_attr(wbuf, f, attr));
     sep(wbuf);
+    return 0;
 }
 
 static void
@@ -515,16 +520,16 @@ static bool is_dummy_constraint(const iopc_attr_t *attr)
     }
 }
 
-static void
+static int
 dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
                 const iopc_attr_t *attr)
 {
     switch (attr->desc->id) {
       case IOPC_ATTR_MIN:
-        dump_constraint_field_scalar(wbuf, "min", f, attr);
+        RETHROW(dump_constraint_field_scalar(wbuf, "min", f, attr));
         break;
       case IOPC_ATTR_MAX:
-        dump_constraint_field_scalar(wbuf, "max", f, attr);
+        RETHROW(dump_constraint_field_scalar(wbuf, "max", f, attr));
         break;
 
       case IOPC_ATTR_MIN_OCCURS:
@@ -594,9 +599,10 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
       default:
         print_error("unsupported constraint %d", attr->desc->id);
     }
+    return 0;
 }
 
-static void
+static int
 dump_field_constraints(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
 {
     bool has_constraint = false;
@@ -611,16 +617,18 @@ dump_field_constraints(const iopc_write_buf_t *wbuf, const iopc_field_t *f)
             LINE_START_OBJ_CKEY(wbuf, "constraints");
         }
 
-        dump_constraint(wbuf, f, attr);
+        RETHROW(dump_constraint(wbuf, f, attr));
     }
 
     if (has_constraint) {
         LINE_END_OBJ(wbuf);
     }
+
+    return 0;
 }
 
 static
-void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
+int dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 {
     tab_for_each_entry(f, fields) {
         bool private = false;
@@ -648,7 +656,7 @@ void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
             }
         }
 
-        dump_field_constraints(wbuf, f);
+        RETHROW(dump_field_constraints(wbuf, f));
         dump_gen_attrs(wbuf, &f->attrs);
 
         if (private) {
@@ -657,20 +665,23 @@ void dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 
         LINE_END_OBJ(wbuf);
     }
+
+    return 0;
 }
 
-static void
+static int
 iopc_typedef_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                        const iopc_field_t *tdef)
 {
     dump_name(wbuf, pkg_name, tdef->name);
     LINE_CKEY_VAL_CSTR(wbuf, "type", "typedef");
     dump_field_type(wbuf, "typedef", tdef);
-    dump_field_constraints(wbuf, tdef);
+    RETHROW(dump_field_constraints(wbuf, tdef));
     dump_gen_attrs(wbuf, &tdef->attrs);
+    return 0;
 }
 
-static void
+static int
 iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                       iopc_struct_t *st)
 {
@@ -693,7 +704,7 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
             print_error("multiple class inheritance is not allowed: %s.%s",
                         pkg_name, st->name);
             assert (false);
-            return;
+            return -1;
         }
         LINE_CKEY_VAL_BOOL(wbuf, "isAbstract", st->is_abstract);
         tab_for_each_entry(attr, &st->attrs) {
@@ -717,7 +728,7 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
       default:
         print_error("unsupported struct type: %d", st->type);
         assert (false);
-        return;
+        return -1;
     }
 
     iopc_dox_dump_json(wbuf, st);
@@ -729,7 +740,7 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                                   iopc_field_t * const *f2) {
             return (*f1)->pos - (*f2)->pos;
         });
-        dump_fields(wbuf, &st->static_fields);
+        RETHROW(dump_fields(wbuf, &st->static_fields));
         LINE_END_OBJ(wbuf);
     }
 
@@ -740,8 +751,9 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
                                            iopc_field_t * const *f2) {
         return (*f1)->pos - (*f2)->pos;
     });
-    dump_fields(wbuf, &st->fields);
+    RETHROW(dump_fields(wbuf, &st->fields));
     LINE_END_OBJ(wbuf);
+    return 0;
 }
 
 /*}}} */
@@ -895,7 +907,7 @@ int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
 
     tab_for_each_entry(tdef, &pkg->typedefs) {
         LINE_START_OBJ(&wbuf);
-        iopc_typedef_dump_json(&wbuf, pkg_name, tdef);
+        RETHROW(iopc_typedef_dump_json(&wbuf, pkg_name, tdef));
         LINE_END_OBJ(&wbuf);
     }
 
@@ -913,7 +925,7 @@ int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *deps)
             do {                                                            \
                 if (fun->what && fun->what##_is_anonymous) {                \
                     LINE_START_OBJ(&wbuf);                                  \
-                    iopc_struct_dump_json(&wbuf, fbase, fun->what);         \
+                    RETHROW(iopc_struct_dump_json(&wbuf, fbase, fun->what));\
                     LINE_END_OBJ(&wbuf);                                    \
                 }                                                           \
             } while (0)

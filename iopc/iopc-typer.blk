@@ -1020,10 +1020,11 @@ static int check_defval_enum_allow(iopc_field_t *f, iopc_attr_t *attr)
 
 static int check_defval_int(iopc_field_t *f)
 {
-    bool is_signed = iopc_field_is_signed(f);
+    bool is_signed;
     uint64_t u64 = f->defval.u64;
-    int64_t  i64 = f->defval.u64;
+    int64_t i64 = f->defval.u64;
 
+    RETHROW(iopc_field_get_signed(f, &is_signed));
     if (f->defval_type != IOPC_DEFVAL_INTEGER) {
         throw_loc("invalid default value on integer field (wrong type)",
                   f->loc);

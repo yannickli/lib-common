@@ -1566,7 +1566,7 @@ iopc_struct_dump_static_fields_src(sb_t *buf, iopc_struct_t *st,
     sb_adds(buf, "};\n\n");
 }
 
-bool iopc_field_is_signed(const iopc_field_t *f)
+int iopc_field_get_signed(const iopc_field_t *f, bool *is_signed)
 {
     switch (f->kind) {
       case IOP_T_I8:
@@ -1574,18 +1574,21 @@ bool iopc_field_is_signed(const iopc_field_t *f)
       case IOP_T_I32:
       case IOP_T_I64:
       case IOP_T_ENUM:
-        return true;
-
+      case IOP_T_DOUBLE:
+        *is_signed = true;
+        break;
       case IOP_T_U8:
       case IOP_T_U16:
       case IOP_T_U32:
       case IOP_T_U64:
       case IOP_T_BOOL:
-        return false;
-
+        *is_signed = false;
+        break;
       default:
-        throw_error("expected integer type, got %d", f->kind);
+        throw_error("expected numerical type, got %d", f->kind);
     }
+
+    return 0;
 }
 
 #define LVL1 "    "
@@ -2052,9 +2055,10 @@ static double merge_double(iopc_attr_t *attr) {
     return ret;
 }
 
-static void
+static int
 iopc_dump_minmax(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
 {
+    bool is_signed;
 
 #define GEN_TEST(fmt1, fmt2, type) \
     do {                                                                     \
@@ -2082,13 +2086,14 @@ iopc_dump_minmax(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
                 LSTR_FMT_ARG(attr->desc->name), v, f->name);                 \
     } while (0)
 
+    RETHROW(iopc_field_get_signed(f, &is_signed));
     assert (iopc_g.v2);
     if (f->kind == IOP_T_DOUBLE) {
         double v = merge_double(attr);
 
         GEN_TEST("%.17e", "%%.17e", "double");
     } else
-    if (iopc_field_is_signed(f)) {
+    if (is_signed) {
         int64_t v = merge_int64(attr);
 
         GEN_TEST("%jdLL", "%%jd", "int64_t");
@@ -2098,6 +2103,7 @@ iopc_dump_minmax(sb_t *sb, int cmp, iopc_attr_t *attr, iopc_field_t *f)
         GEN_TEST("%juULL", "%%ju", "uint64_t");
     }
 #undef GEN_TEST
+    return 0;
 }
 
 static void
@@ -2168,10 +2174,11 @@ iopc_dump_snmp_attrs(sb_t *buf, iopc_struct_t *st, const iopc_pkg_t *pkg,
     sb_addf(buf, "};\n");
 }
 
-static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
+static int iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                                  sb_t *sb, iopc_attrs_t *attrs,
                                  const iopc_field_t *f)
 {
+    bool is_signed;
     SB_1k(pattern);
 
     SET_BIT(&attrs->flags, type);
@@ -2210,6 +2217,7 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
 
       case IOPC_ATTR_MIN:
       case IOPC_ATTR_MAX:
+        RETHROW(iopc_field_get_signed(f, &is_signed));
         if (f->kind == IOP_T_DOUBLE) {
             sb_addf(sb,
                     LVL1 "{\n"
@@ -2218,7 +2226,7 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
                     LVL1 "},\n",
                     type, merge_double(attr));
         } else
-        if (iopc_field_is_signed(f)) {
+        if (is_signed) {
             sb_addf(sb,
                     LVL1 "{\n"
                     LVL1 "    .type = %d,\n"
@@ -2244,6 +2252,7 @@ static void iopc_dump_field_attr(iopc_attr_t *attr, unsigned type,
     }
 
     sb_wipe(&pattern);
+    return 0;
 }
 
 static void
@@ -2285,33 +2294,33 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
 
           case IOPC_ATTR_MIN_OCCURS:
             iopc_dump_minmax_occurs(&checkf_body, '<', attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MIN_OCCURS, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MIN_OCCURS,
+                                         &attrs_body, attrs, f));
             break;
           case IOPC_ATTR_MAX_OCCURS:
             iopc_dump_minmax_occurs(&checkf_body, '>', attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MAX_OCCURS, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MAX_OCCURS,
+                                         &attrs_body, attrs, f));
             break;
 
           case IOPC_ATTR_MIN_LENGTH:
             iopc_dump_minmax_length(&checkf_loopbody, "<", attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH,
+                                         &attrs_body, attrs, f));
             break;
 
           case IOPC_ATTR_MAX_LENGTH:
             iopc_dump_minmax_length(&checkf_loopbody, ">", attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH,
+                                         &attrs_body, attrs, f));
             break;
 
           case IOPC_ATTR_LENGTH:
             iopc_dump_minmax_length(&checkf_loopbody, "!=", attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH, &attrs_body,
-                                 attrs, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MIN_LENGTH,
+                                         &attrs_body, attrs, f));
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MAX_LENGTH,
+                                         &attrs_body, attrs, f));
             break;
 
           case IOPC_ATTR_PATTERN:
@@ -2319,17 +2328,19 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
                 throw_error("unsupported pattern: %*pM",
                             LSTR_FMT_ARG(attr->args.tab[0].v.s));
             }
-            iopc_dump_field_attr(attr, IOP_FIELD_PATTERN, &attrs_body,
-                                 attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_PATTERN, &attrs_body,
+                                 attrs, f));
             break;
 
           case IOPC_ATTR_MIN:
-            iopc_dump_minmax(&checkf_loopbody, '<', attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MIN, &attrs_body, attrs, f);
+            RETHROW(iopc_dump_minmax(&checkf_loopbody, '<', attr, f));
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MIN, &attrs_body,
+                                         attrs, f));
             break;
           case IOPC_ATTR_MAX:
-            iopc_dump_minmax(&checkf_loopbody, '>', attr, f);
-            iopc_dump_field_attr(attr, IOP_FIELD_MAX, &attrs_body, attrs, f);
+            RETHROW(iopc_dump_minmax(&checkf_loopbody, '>', attr, f));
+            RETHROW(iopc_dump_field_attr(attr, IOP_FIELD_MAX, &attrs_body,
+                                         attrs, f));
             break;
           case IOPC_ATTR_NON_EMPTY:
             iopc_dump_non_empty(&checkf_loopbody, attr, f);
@@ -2350,7 +2361,7 @@ iopc_dump_field_attrs(sb_t *buf, iopc_struct_t *st, const char *tbase,
 
           case IOPC_ATTR_GENERIC:
             type = TK_TYPE_TO_GEN_TYPE(FIELD, attr->args.tab[0].type);
-            iopc_dump_field_attr(attr, type, &attrs_body, attrs, f);
+            RETHROW(iopc_dump_field_attr(attr, type, &attrs_body, attrs, f));
             break;
 
           case IOPC_ATTR_DEPRECATED:

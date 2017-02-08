@@ -1013,7 +1013,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
 
 /*----- utilities -----*/
 
-bool iopc_field_is_signed(const iopc_field_t *);
+int iopc_field_get_signed(const iopc_field_t *f, bool *is_signed);
 
 /*----- writing output files -----*/
 
