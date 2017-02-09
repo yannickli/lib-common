@@ -113,6 +113,7 @@ class IopcTest(z.TestCase):
         self.run_iopc(iop, expect_pass, errors, 3, lang, class_id_range)
 
     def run_gcc(self, iop, expect_pass=True):
+        iop_c = iop + '.c'
         gcc_args = ['gcc', '-c', '-o', '/dev/null', '-std=gnu99',
                     '-O', '-Wall', '-Werror', '-Wextra',
                     '-Wno-error=deprecated-declarations',
@@ -128,15 +129,19 @@ class IopcTest(z.TestCase):
                     '-D_GNU_SOURCE',
                     '-I' + os.path.join(SELF_PATH, '../lib-common/compat'),
                     '-I' + os.path.join(SELF_PATH, '..'),
-                    os.path.join(TEST_PATH, iop + '.c') ]
+                    os.path.join(TEST_PATH, iop_c) ]
         if platform.system() == 'Darwin':
             gcc_args.append('-Wno-nullability-completeness')
 
-        gcc_p = subprocess.Popen(gcc_args)
+        gcc_p = subprocess.Popen(gcc_args, stderr=subprocess.PIPE)
         self.assertIsNotNone(gcc_p)
-        gcc_p.wait()
+        _, err = gcc_p.communicate()
+
         if expect_pass:
-            self.assertEqual(gcc_p.returncode, 0)
+            self.assertEqual(gcc_p.returncode, 0,
+                             "unexpected failure (%d) on %s when executing:\n"
+                             "%s:\n%s" % (gcc_p.returncode, iop_c,
+                                          ' '.join(gcc_args), err))
         else:
             self.assertNotEqual(gcc_p.returncode, 0)
 
