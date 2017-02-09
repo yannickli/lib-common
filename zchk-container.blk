@@ -76,6 +76,52 @@ Z_GROUP_EXPORT(qhash)
         qh_wipe(u32, &qh);
     } Z_TEST_END;
 
+    Z_TEST(qm_seal, "qm: seal") {
+        t_scope;
+        QM(test, qm);
+        uint32_t *tab;
+        uint32_t *w;
+        int len = 514;
+        size_t footprint;
+
+        qm_init(test, &qm);
+
+        for (int i = 0; i < len; i++) {
+            qm_add(test, &qm, i, i);
+        }
+
+        Z_ASSERT_P(qm.old, "no resize started");
+        qm_seal(test, &qm);
+        Z_ASSERT(!qm.old, "qm_seal() has not completed the resize");
+
+        Z_ASSERT_EQ(qm_len(test, &qm), len,
+                    "ouch, qm_seal() changed the table length");
+
+        tab = t_new_raw(uint32_t, len);
+        w = tab;
+        qm_for_each_pos(test, pos, &qm) {
+            *w++ = qm.keys[pos];
+        }
+        dsort32(tab, len);
+        for (int i = 0; i < len; i++) {
+            Z_ASSERT_EQ((int)tab[i], i, "%d is missing from the table", i);
+        }
+        footprint = qm_memory_footprint(test, &qm);
+        qm_unseal(test, &qm);
+        qm_clear(test, &qm);
+        Z_ASSERT_EQ(qm_memory_footprint(test, &qm), footprint,
+                    "at the time the test is written, qm_clear() "
+                    "is not supposed to change the memory footprint");
+        qm_seal(test, &qm);
+        Z_ASSERT_LT(qm_memory_footprint(test, &qm), footprint,
+                    "in that case, qm_seal() "
+                    "is supposed to reduce the memory footprint");
+        Z_ASSERT(!qm.old, "we still have an unfinished resize");
+
+        qm_wipe(test, &qm);
+    } Z_TEST_END;
+
+
     Z_TEST(size_qh, "qh: count size") {
         QH(test, h, false);
         uint32_t min_size;
