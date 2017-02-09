@@ -775,7 +775,7 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
  * this may also reduce the CPU usage.
  */
 #define qm_seal(name, qh)                   qm_##name##_seal(qh)
-#define qm_unseal(name, qh)                                                  \
+#define qm_unseal(name, _qh)                                                 \
     ({  qm_t(name) *__qh = (_qh);                                            \
         qhash_unseal(&__qh->qh); })
 
