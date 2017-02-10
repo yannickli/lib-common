@@ -99,7 +99,7 @@ data_t el_fd_unregister(ev_t **evp, bool do_close)
         if (EV_FLAG_HAS(ev, FD_FIRED)) {
             dlist_remove(&ev->ev_list);
         }
-        return el_destroy(evp, false);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }

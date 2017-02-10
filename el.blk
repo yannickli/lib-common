@@ -279,6 +279,7 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
         .cb.cb  = cb,
     };
     res->priv = priv;
+    dlist_init(&res->ev_list);
 
     return ref ? el_ref(res) : res;
 }
@@ -293,7 +294,7 @@ static ev_t *el_blk_register(ev_t *ev, void *cb, block_t wipe)
     return ev;
 }
 
-static data_t el_destroy(ev_t **evp, bool move)
+static data_t el_destroy(ev_t **evp)
 {
     ev_t *ev = *evp;
 
@@ -309,11 +310,7 @@ static data_t el_destroy(ev_t **evp, bool move)
         ev->priv = (data_t)NULL;
     }
     el_unref(ev);
-    if (move) {
-        dlist_move(&_G.evs_gc, &ev->ev_list);
-    } else {
-        dlist_add(&_G.evs_gc, &ev->ev_list);
-    }
+    dlist_move(&_G.evs_gc, &ev->ev_list);
     ev->generation = 0;
     ev->type  = EV_UNUSED;
     ev->flags = 0;
@@ -321,7 +318,7 @@ static data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static void el_child_fire(ev_t **ev, bool move)
+static void el_child_fire(ev_t **ev)
 {
     ev_t *e = *ev;
 
@@ -330,7 +327,7 @@ static void el_child_fire(ev_t **ev, bool move)
     } else {
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
-    el_destroy(&e, move);
+    el_destroy(&e);
 }
 
 /* {{{ blockers, before and idle events */
@@ -361,7 +358,7 @@ void el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        el_destroy(evp, false);
+        el_destroy(evp);
     }
 }
 
@@ -369,7 +366,7 @@ data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp, true);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -385,10 +382,16 @@ static void el_before_process(void)
             continue;
         }
 
+        if (ev->type == EV_UNUSED) {
+            /* ev has been unregistered by a previous ev on the list.
+             */
+            continue;
+        }
+
         if (unlikely(ev->type == EV_CHILD)) {
             /* XXX: this can happen when registering a child which is already
              *      dead, cf. el_child_register_d. */
-            el_child_fire(&ev, true);
+            el_child_fire(&ev);
             continue;
         }
 
@@ -422,7 +425,7 @@ data_t el_idle_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_IDLE);
-        return el_destroy(evp, true);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -537,7 +540,7 @@ data_t el_signal_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        return el_destroy(evp, true);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -560,7 +563,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
              * mustn't use a pointer to the qm's data.
              */
             child->child.status = status;
-            el_child_fire(&child, false);
+            el_child_fire(&child);
         }
     }
 }
@@ -628,7 +631,7 @@ data_t el_child_unregister(ev_t **evp)
                 ASSERT("event not found", false);
             }
         }
-        return el_destroy(evp, false);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -891,7 +894,7 @@ data_t el_timer_unregister(ev_t **evp)
 
     qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
 
-    return el_destroy(evp, false);
+    return el_destroy(evp);
 }
 
 bool el_timer_is_repeated(el_t ev)
@@ -1153,7 +1156,7 @@ data_t el_proxy_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_PROXY);
-        return el_destroy(evp, true);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -1273,7 +1276,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
         int fd[2] = { -1, -1 };
 
         if (pipe(fd) < 0) {
-            el_destroy(&el, true);
+            el_destroy(&el);
             return NULL;
         }
 
@@ -1294,7 +1297,7 @@ data_t el_wake_unregister(el_t *el)
         if (!(*el)->wake.use_eventfd) {
             p_close(&(*el)->wake.write_fd);
         }
-        return el_destroy(el, false);
+        return el_destroy(el);
     }
     return (data_t){ NULL };
 }

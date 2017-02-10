@@ -196,7 +196,7 @@ data_t el_fs_watch_unregister(el_t *elp)
         }
 
         p_delete(&(*elp)->fs_watch.path);
-        return el_destroy(elp, false);
+        return el_destroy(elp);
     }
     return (data_t)NULL;
 }
