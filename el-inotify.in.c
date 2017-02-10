@@ -56,7 +56,7 @@ static el_data_t el_fs_watch_disable(ev_t **evp, bool unregister)
     } else {
         /* watcher removed due to file deletion  */
         p_delete(&(*evp)->fs_watch.path);
-        return el_destroy(evp, false);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }

@@ -295,6 +295,7 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
         .cb.cb  = cb,
     };
     res->priv = priv;
+    dlist_init(&res->ev_list);
 
     logger_trace(&_G.logger, 2, "creating event %p (%s)",
                  res, ev_type_to_str(res->type));
@@ -322,7 +323,7 @@ static void __el_unref(ev_t *ev)
     }
 }
 
-static data_t el_destroy(ev_t **evp, bool move)
+static data_t el_destroy(ev_t **evp)
 {
     ev_t *ev = *evp;
 
@@ -342,11 +343,7 @@ static data_t el_destroy(ev_t **evp, bool move)
         ev->priv = (data_t)NULL;
     }
     __el_unref(ev);
-    if (move) {
-        dlist_move(&_G.evs_gc, &ev->ev_list);
-    } else {
-        dlist_add(&_G.evs_gc, &ev->ev_list);
-    }
+    dlist_move(&_G.evs_gc, &ev->ev_list);
     ev->generation = 0;
     ev->type  = EV_UNUSED;
     ev->flags = 0;
@@ -355,7 +352,7 @@ static data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static void el_child_fire(ev_t **ev, bool move)
+static void el_child_fire(ev_t **ev)
 {
     ev_t *e = *ev;
 
@@ -364,7 +361,7 @@ static void el_child_fire(ev_t **ev, bool move)
     } else {
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
-    el_destroy(&e, move);
+    el_destroy(&e);
 }
 
 /* {{{ blockers, before and idle events */
@@ -402,10 +399,16 @@ static void el_before_process(void)
             continue;
         }
 
+        if (ev->type == EV_UNUSED) {
+            /* ev has been unregistered by a previous ev on the list.
+             */
+            continue;
+        }
+
         if (unlikely(ev->type == EV_CHILD)) {
             /* XXX: this can happen when registering a child which is already
              *      dead, cf. el_child_register_d. */
-            el_child_fire(&ev, true);
+            el_child_fire(&ev);
             continue;
         }
 
@@ -670,7 +673,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
              * mustn't use a pointer to the qm's data.
              */
             child->child.status = status;
-            el_child_fire(&child, false);
+            el_child_fire(&child);
         }
     }
 }
@@ -738,7 +741,7 @@ static data_t el_child_unregister(ev_t **evp)
                 ASSERT("event not found", false);
             }
         }
-        return el_destroy(evp, false);
+        return el_destroy(evp);
     }
     return (data_t)NULL;
 }
@@ -818,7 +821,7 @@ static data_t el_timer_unregister(ev_t **evp)
 
     qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
 
-    return el_destroy(evp, false);
+    return el_destroy(evp);
 }
 
 static void el_timer_process(uint64_t until)
@@ -1399,7 +1402,7 @@ el_t el_wake_register_d(el_cb_f *cb, data_t priv)
         int fd[2] = { -1, -1 };
 
         if (pipe(fd) < 0) {
-            el_destroy(&el, true);
+            el_destroy(&el);
             return NULL;
         }
 
@@ -1420,7 +1423,7 @@ static data_t el_wake_unregister(el_t *el)
         if (!(*el)->wake.use_eventfd) {
             p_close(&(*el)->wake.write_fd);
         }
-        return el_destroy(el, false);
+        return el_destroy(el);
     }
     return (data_t){ NULL };
 }
@@ -1643,13 +1646,13 @@ data_t el_unregister(ev_t **evp)
     if (*evp) {
         switch ((*evp)->type) {
           case EV_BLOCKER:
-            return el_destroy(evp, false);
+            return el_destroy(evp);
 
           case EV_BEFORE:
           case EV_SIGNAL:
           case EV_PROXY:
           case EV_IDLE:
-            return el_destroy(evp, true);
+            return el_destroy(evp);
 
           case EV_CHILD:    return el_child_unregister(evp);
           case EV_FD:       return el_fd_unregister(evp);
