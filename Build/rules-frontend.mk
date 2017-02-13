@@ -285,11 +285,14 @@ tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js: $~$2/package.json
+$~$2/htdocs/javascript/$3.js: _FLAGS=$($(1DV)$3_FLAGS)
 $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" browserify -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --no-bundle-external -o $$@
+	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) -o $$@
+	# change browserify starting function by our own function
+	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
