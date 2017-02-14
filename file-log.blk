@@ -22,6 +22,67 @@
 
 static logger_t logger_g = LOGGER_INIT(NULL, "file-log", LOG_INHERITS);
 
+/* {{{ log_file_t functions */
+
+log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
+{
+    const char *ext = path_ext(nametpl);
+    int len = strlen(nametpl);
+
+    p_clear(log_file, 1);
+    log_file->flags = flags;
+
+    if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
+        logger_panic(&logger_g, "path format too long");
+    }
+    if (ext) {
+        pstrcpy(log_file->ext, sizeof(log_file->ext), ext + 1);
+        len -= strlen(ext);
+    } else {
+        pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
+    }
+    pstrcpymem(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
+
+    qh_init(u64, &log_file->files_being_compressed);
+    log_file->refcnt = 1;
+
+    return log_file;
+}
+
+log_file_t *log_file_new(const char *nametpl, int flags)
+{
+    return log_file_init(p_new_raw(log_file_t, 1), nametpl, flags);
+}
+
+static void log_file_wipe(log_file_t *log_file)
+{
+    qh_wipe(u64, &log_file->files_being_compressed);
+}
+
+REFCNT_DUP(log_file_t, log_file);
+REFCNT_DELETE(log_file_t, log_file);
+
+/* }}} */
+/* {{{ Background compression context. */
+
+typedef struct bgcompr_ctx_t {
+    log_file_t *log_file;
+    lstr_t      path;
+    time_t      ts;
+} bgcompr_ctx_t;
+
+GENERIC_NEW_INIT(bgcompr_ctx_t, bgcompr_ctx);
+
+static void bgcompr_ctx_wipe(bgcompr_ctx_t *ctx)
+{
+    lstr_wipe(&ctx->path);
+    log_file_delete(&ctx->log_file);
+}
+GENERIC_DELETE(bgcompr_ctx_t, bgcompr_ctx);
+
+/* }}} */
+/* {{{ */
+
 /* log file names should depend on rotation scheme: slower rotation
  * scheme should shorten log filename so reopening it yields the same
  * file
@@ -39,37 +100,56 @@ static const char *t_build_real_path(log_file_t *log_file, time_t date)
                  log_file->prefix, LOG_FILE_DATE_FMT_ARG(tm), log_file->ext);
 }
 
+#define GZIP_ERROR  "background compression of log file `%*pM` failed: "
+
 static void
 log_file_bgcompress_check(el_t ev, pid_t pid, int st, data_t priv)
 {
-    char *path = priv.ptr;
+    bgcompr_ctx_t *ctx = priv.ptr;
 
     if (!WIFEXITED(st)) {
-        logger_error(&logger_g, "background compression of log file `%s` "
-                     "failed: gzip killed with signal %d (%s)",
-                     path, WTERMSIG(st), sys_siglist[WTERMSIG(st)]);
+        logger_error(&logger_g, GZIP_ERROR "gzip killed with signal %d (%s)",
+                     LSTR_FMT_ARG(ctx->path), WTERMSIG(st),
+                     sys_siglist[WTERMSIG(st)]);
     } else
     if (WEXITSTATUS(st) != 0) {
-        logger_error(&logger_g, "background compression of log file `%s` "
-                     "failed: gzip exited with status %d",
-                     path, WEXITSTATUS(st));
+        logger_error(&logger_g, GZIP_ERROR "gzip exited with status %d",
+                     LSTR_FMT_ARG(ctx->path), WEXITSTATUS(st));
     }
 
-    p_delete(&path);
+    /* Unlocking the file once the compression done. */
+    qh_del_key(u64, &ctx->log_file->files_being_compressed, ctx->ts);
+    bgcompr_ctx_delete(&ctx);
 }
 
-static void log_file_bgcompress(const char *path)
+static void log_file_bgcompress(log_file_t *log_file, const char *path)
 {
-    pid_t pid;
+    bgcompr_ctx_t *ctx;
+    pid_t          pid;
+    time_t         ts;
+
+    if (log_file_get_file_stamp(log_file, path, &ts) < 0) {
+        return;
+    }
+
+    if (qh_add(u64, &log_file->files_being_compressed, ts) < 0) {
+        /* File is already being compressed. */
+        return;
+    }
+
+    ctx = bgcompr_ctx_new();
+    ctx->log_file = log_file_dup(log_file);
+    ctx->path = lstr_dups(path, -1);
+    ctx->ts = ts;
 
     pid = fork();
     if (pid < 0) {
         logger_error(&logger_g, "unable to fork gzip in the background, %m");
+        bgcompr_ctx_delete(&ctx);
         return;
     }
     if (pid > 0) {
-        el_unref(el_child_register(pid, log_file_bgcompress_check,
-                                   p_strdup(path)));
+        el_unref(el_child_register(pid, log_file_bgcompress_check, ctx));
     } else {
         setsid();
         setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
@@ -101,6 +181,15 @@ static void log_file_call_cb(log_file_t *l, enum log_file_event evt,
 static void log_delete_file(log_file_t *log_file, const char *path,
                             off_t size)
 {
+    time_t ts;
+
+    log_file_get_file_stamp(log_file, path, &ts);
+    if (qh_find(u64, &log_file->files_being_compressed, ts) >= 0) {
+        /* The file is being compressed, we prevent its deletion for the
+         * current rotation. */
+        return;
+    }
+
     if (unlink(path) < 0) {
         logger_error(&logger_g, "cannot delete log file `%s`: %m", path);
     } else {
@@ -184,7 +273,7 @@ static void log_check_invariants(log_file_t *log_file)
     if (log_file->flags & LOG_FILE_COMPRESS) {
         for (int i = 0; i < fc - 1; i++) {
             if (!strequal(path_extnul(fv[i]), ".gz")) {
-                log_file_bgcompress(fv[i]);
+                log_file_bgcompress(log_file, fv[i]);
             }
         }
     }
@@ -256,32 +345,6 @@ static void log_file_find_last_date(log_file_t *log_file)
     globfree(&globbuf);
 }
 
-log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
-{
-    const char *ext = path_ext(nametpl);
-    int len = strlen(nametpl);
-
-    p_clear(log_file, 1);
-    log_file->flags = flags;
-
-    if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
-        logger_panic(&logger_g, "path format too long");
-    }
-    if (ext) {
-        pstrcpy(log_file->ext, sizeof(log_file->ext), ext + 1);
-        len -= strlen(ext);
-    } else {
-        pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
-    }
-    pstrcpymem(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
-    return log_file;
-}
-
-log_file_t *log_file_new(const char *nametpl, int flags)
-{
-    return log_file_init(p_new_raw(log_file_t, 1), nametpl, flags);
-}
-
 log_file_t *
 log_file_create_from_iop(const char *nametpl,
                          const core__log_file_configuration__t *conf,
@@ -348,7 +411,7 @@ int log_file_close(log_file_t **lfp)
             res = file_close(&log_file->_internal);
         }
         log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
-        p_delete(lfp);
+        log_file_delete(lfp);
     }
     return res;
 }
@@ -563,7 +626,7 @@ int log_file_get_file_stamp(const log_file_t *file, const char *path,
 
 
     if (strlen(path) < prefix_len + strlen("YYYYMMDD_hhmmss")) {
-        return -1;
+        goto error;
     }
     d = (const byte *)path + prefix_len + 1;
 
@@ -573,7 +636,7 @@ int log_file_get_file_stamp(const log_file_t *file, const char *path,
     tm.tm_mon  = memtoip(d, 2, &d) - 1;
     tm.tm_mday = memtoip(d, 2, &d);
     if (*d++ != '_') {
-        return -1;
+        goto error;
     }
     tm.tm_hour = memtoip(d, 2, &d);
     tm.tm_min  = memtoip(d, 2, &d);
@@ -585,4 +648,13 @@ int log_file_get_file_stamp(const log_file_t *file, const char *path,
     }
 
     return 0;
+
+  error:
+    logger_error(&logger_g, "failed to get the timestamp of file `%s`", path);
+    *out = 0;
+    assert (false);
+
+    return -1;
 }
+
+/* }}} */
