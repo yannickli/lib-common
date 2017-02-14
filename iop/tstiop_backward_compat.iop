@@ -420,7 +420,18 @@ struct MandatoryFieldOptStruct {
 };
 
 /* }}} */
+/* {{{ optional struct added in parent class */
 
+class ChildOptA : 1 {
+};
+
+class NewParentOpt {
+    OptFieldOptStruct optStruct;
+};
+class ChildOptB : 1 : NewParentOpt {
+};
+
+/* }}} */
 /* {{{ SNMP objects (to check it is compatible with itself). */
 
 snmpObj BackwardSnmp : 1 : Intersec {

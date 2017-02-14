@@ -6486,6 +6486,11 @@ Z_GROUP_EXPORT(iop)
         T_KO_ALL(basic_struct, &basic_struct,
                  new_mandatory_field_non_optional3, err);
 
+        /* A required struct but with all optional fields is optional. If
+         * added in a new parent class, it is backward compatible for the
+         * child. */
+        T_OK(child_opt_a, NULL, child_opt_b, IOP_COMPAT_BIN);
+
 #undef T_OK
 #undef T_OK_ALL
 #undef T_KO
