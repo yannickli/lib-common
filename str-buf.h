@@ -711,6 +711,9 @@ int sb_read_file(sb_t * nonnull sb, const char * nonnull filename) __leaf;
 __swift_name__("StringBuffer.writeToFile(self:_:)")
 int sb_write_file(const sb_t * nonnull sb,
                   const char * nonnull filename) __leaf;
+__swift_name__("StringBuffer.appendToFile(self:_:)")
+int sb_append_to_file(const sb_t * nonnull sb,
+                      const char * nonnull filename) __leaf;
 
 __swift_name__("StringBuffer.read(self:_:sizeHint:)")
 int sb_read(sb_t * nonnull sb, int fd, int hint) __leaf;

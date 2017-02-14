@@ -223,6 +223,9 @@ int iovec_vector_kill_first(qv_t(iovec) * nonnull iovs, ssize_t len);
 
 __must_check__ ssize_t xwrite_file(const char * nonnull file,
                                    const void * nonnull data, ssize_t dlen);
+__must_check__ ssize_t xappend_to_file(const char * nonnull file,
+                                       const void * nonnull data,
+                                       ssize_t dlen);
 __must_check__ ssize_t xwrite(int fd, const void * nonnull data,
                               ssize_t dlen);
 __must_check__ ssize_t xwritev(int fd, struct iovec * nonnull iov,

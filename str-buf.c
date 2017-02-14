@@ -546,6 +546,11 @@ int sb_write_file(const sb_t *sb, const char *filename)
     return xwrite_file(filename, sb->data, sb->len);
 }
 
+int sb_append_to_file(const sb_t *sb, const char *filename)
+{
+    return xappend_to_file(filename, sb->data, sb->len);
+}
+
 /**************************************************************************/
 /* fd and sockets                                                         */
 /**************************************************************************/

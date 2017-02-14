@@ -439,4 +439,23 @@ Z_GROUP_EXPORT(file)
 
         lstr_wipe(&out_map);
     } Z_TEST_END;
+
+    Z_TEST(xappend_to_file, "xappend_to_file") {
+        t_scope;
+        const char *appending_file;
+        const char *str1 = "toto";
+        const char *str2 = "titi";
+        SB_1k(res);
+        SB_1k(fcontent);
+
+        appending_file = t_fmt("%*pM/appending",  LSTR_FMT_ARG(z_tmpdir_g));
+
+        Z_ASSERT_N(xappend_to_file(appending_file, str1, strlen(str1)));
+        Z_ASSERT_N(xappend_to_file(appending_file, str2, strlen(str2)));
+
+        sb_addf(&res, "%s%s", str1, str2);
+        Z_ASSERT_N(sb_read_file(&fcontent, appending_file));
+
+        Z_ASSERT_STREQUAL(fcontent.data, res.data);
+    } Z_TEST_END;
 } Z_GROUP_END
