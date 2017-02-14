@@ -5109,7 +5109,10 @@ check_parent_required_fields(const qv_t(iop_struct) *parents,
         for (int i = 0; i < parent->fields_len; i++) {
             const iop_field_t *f = &parent->fields[i];
 
-            if (f->repeat == IOP_R_REQUIRED) {
+            if (f->repeat == IOP_R_REQUIRED
+            &&  (f->type != IOP_T_STRUCT
+              || !iop_struct_is_optional(f->u1.st_desc, true, ctx)))
+            {
                 iop_compat_add_err(ctx, "class `%*pM` was added in the "
                                    "parents with a required field `%*pM`",
                                    LSTR_FMT_ARG(parent->fullname),

@@ -170,6 +170,7 @@ module_t *module_register(lstr_t name, module_t **module,
                       ((module_t *)modules_dep->keys[qh_pos])->name);
         }
         qh_wipe(ptr, modules_dep);
+        lstr_wipe(&_G.module_dep_resolve.keys[qm_pos]);
     }
 
     _G.modules.keys[pos] = &new_module->name;
