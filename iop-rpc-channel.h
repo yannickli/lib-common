@@ -226,9 +226,9 @@ typedef struct ic_cb_entry_t {
 
 #ifdef __has_blocks
         struct {
-            void (BLOCK_CARET nonnull cb)(ichannel_t * nonnull, uint64_t,
-                                          void * nullable,
-                                          const ic__hdr__t * nullable);
+            void (BLOCK_CARET nonnull __unsafe_unretained cb)
+                (ichannel_t * nonnull, uint64_t, void * nullable,
+                 const ic__hdr__t * nullable);
         } blk;
 #endif
 
@@ -254,9 +254,9 @@ typedef struct ic_cb_entry_t {
 
 #ifdef __has_blocks
         struct {
-            void (BLOCK_CARET nonnull cb)(ichannel_t * nullable, uint64_t,
-                                          void * nullable,
-                                          const ic__hdr__t * nullable);
+            void (BLOCK_CARET __unsafe_unretained nonnull cb)
+                (ichannel_t * nullable, uint64_t, void * nullable,
+                 const ic__hdr__t * nullable);
         } iws_blk;
 #endif
     } u;

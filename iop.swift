@@ -11,7 +11,15 @@
 /*                                                                        */
 /**************************************************************************/
 
+#if os(Linux)
 import Glibc
+
+private let SOCK_STREAM = Int32(Glibc.SOCK_STREAM.rawValue)
+#else
+import Darwin
+
+private let SOCK_STREAM = Darwin.SOCK_STREAM
+#endif
 
 /* Utilities {{{ */
 
@@ -1179,7 +1187,7 @@ public final class IChannel<Module: IopModule> : IChannelBase {
     public static func listen(to address: String, onEvent: @escaping OnEvent) throws -> El.Fd {
         var su = try resolve(address: address)
 
-        let sock = listenx(-1, &su, 1, Int32(SOCK_STREAM.rawValue), Int32(IPPROTO_TCP), O_NONBLOCK)
+        let sock = listenx(-1, &su, 1, SOCK_STREAM, Int32(IPPROTO_TCP), O_NONBLOCK)
         if sock < 0 {
             throw ChannelError.listenError
         }

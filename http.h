@@ -23,6 +23,9 @@
 #if __has_feature(nullability)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
+#if __has_warning("-Wnullability-completeness-on-arrays")
+#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
+#endif
 #endif
 
 typedef enum http_method_t {

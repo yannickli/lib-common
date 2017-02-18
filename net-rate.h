@@ -27,7 +27,7 @@ typedef struct net_rctl_t {
     union {
         void (*nonnull on_ready)(struct net_rctl_t * nonnull);
 #ifdef __has_blocks
-        block_t nonnull blk;
+        block_t __unsafe_unretained nonnull blk;
 #endif
     };
 } net_rctl_t;

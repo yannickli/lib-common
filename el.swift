@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-import Glibc
-
 /// Event loop handler.
 ///
 /// The event loop is the heart of a process. It waits for conditions that
