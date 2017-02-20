@@ -11,39 +11,38 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_NET_H
-#define IS_LIB_COMMON_NET_H
+#ifndef IS_LIBCOMMON_COMPAT_DLFCN_H
+#define IS_LIBCOMMON_COMPAT_DLFCN_H
 
-#include "core.h"
+#include_next <dlfcn.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#ifdef HAVE_NETINET_SCTP_H
-# include <netinet/sctp.h>
-# ifdef SCTP_ADAPTION_LAYER
-    /* see http://www1.ietf.org/mail-archive/web/tsvwg/current/msg05971.html */
-#   define SCTP_ADAPTATION_LAYER         SCTP_ADAPTION_LAYER
-#   define sctp_adaptation_layer_event   sctp_adaption_layer_event
-# endif
-#endif
-#include <sys/socket.h>
-#include <sys/un.h>
+#ifdef __APPLE__
+typedef enum {
+    LM_ID_BASE,
+    LM_ID_NEWLM,
+} Lmid_t;
 
-#if __has_feature(nullability)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic error "-Wnullability-completeness"
-#if __has_warning("-Wnullability-completeness-on-arrays")
-#pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
-#endif
-#endif
+static inline void *dlmopen(Lmid_t lmid, const char *filename, int flags)
+{
+    if (lmid == LM_ID_BASE) {
+        flags |= RTLD_GLOBAL;
+    } else {
+        flags |= RTLD_LOCAL;
+    }
+    return dlopen(filename, flags);
+}
 
-#include "net-addr.h"
-#include "net-socket.h"
-#include "net-sctp.h"
-#include "net-rate.h"
+typedef enum {
+    RTLD_DI_LMID,
+} Linfo_t;
 
-#if __has_feature(nullability)
-#pragma GCC diagnostic pop
+static inline int dlinfo(void *handle, Linfo_t request, void *info)
+{
+    if (request == RTLD_DI_LMID) {
+        *(Lmid_t *)info = LM_ID_BASE;
+    }
+    return 0;
+}
 #endif
 
 #endif

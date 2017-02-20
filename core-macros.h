@@ -33,6 +33,9 @@
 #ifndef __has_attribute
 # define __has_attribute(x)  0
 #endif
+#ifndef __has_warning
+# define __has_warning(x)  0
+#endif
 
 /* {{{ GNU extension wrappers */
 
@@ -94,6 +97,7 @@
 # define __bridge
 # define __bridge_transfer
 # define __bridge_retain
+# define __unsafe_unretained
 #endif
 
 #if  !__has_feature(generalized_swift_name)

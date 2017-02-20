@@ -19,7 +19,7 @@
 #if __has_feature(nullability)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wnullability-completeness"
-#if defined(__clang__) && __clang_major__ >= 4
+#if __has_warning("-Wnullability-completeness-on-arrays")
 #pragma GCC diagnostic ignored "-Wnullability-completeness-on-arrays"
 #endif
 #endif

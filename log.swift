@@ -11,7 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
+#if os(Linux)
 import Glibc
+#else
+import Darwin
+#endif
 
 extension Logger : Wipeable {
     /// Build a new static logger.

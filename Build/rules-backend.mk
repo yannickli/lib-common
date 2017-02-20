@@ -208,7 +208,7 @@ swift/$2/map  := $~$$(swift/$2/mod)$$(swift/$2/ns)-map.json
 
 $2: $$(swift/$2/objs)
 
-$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foundation' | grep -v 'Swift' | grep -v 'Glibc' | awk '{ print $$$$2 }'),$~$$m.swiftmodule) | _generated
+$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foundation' | grep -v 'Swift' | grep -v 'Glibc' | grep -v 'Darwin' | awk '{ print $$$$2 }'),$~$$m.swiftmodule) | _generated
 	echo '{ $$(foreach s,$3,"$$s": { "object": "$$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT).o,$$s)", "swiftmodule": "$$(patsubst %.swift,$~%~partial$4.swiftmodule,$$s)" },) }' > $$@
 
 $$(swift/$2/objs): $$(swift/$2/map) $3
@@ -276,6 +276,22 @@ $1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F).$$(tmp/$1/sover))
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
+ifeq ($(OS),darwin)
+$~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(SWIFTC))
+$~$1.so$$(tmp/$1/build): _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
+$~$1.so$$(tmp/$1/build):
+	$(msg/LINK.c) $$(@R)
+	-$(RM) $$@
+	$$(if $$(NOLINK),:,$$(_L) $(addprefix,-Xcc $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS)) \
+	    -emit-library -o $$@ \
+	    $$(filter %.o %.oo,$$^) \
+	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) $$(LDSHAREDFLAGS) \
+	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^) \
+	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
+	    $$(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
+	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
+	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
+else
 $~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
 $~$1.so$$(tmp/$1/build): _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
 $~$1.so$$(tmp/$1/build):
@@ -294,6 +310,7 @@ $~$1.so$$(tmp/$1/build):
 	    @$~$1.so.autolink $(SWIFTBASE)/x86_64/swift_end.o)
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
+endif
 
 $(1DV)clean::
 	$(RM) $1.so*
@@ -307,6 +324,17 @@ $1$(EXEEXT): $~$1.exe FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES)))
+ifeq ($(OS),darwin)
+$~$1.exe: _L=$(or $($1_LINKER),$(SWIFTC))
+$~$1.exe: _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
+$~$1.exe:
+	$(msg/LINK.c) $$(@R)
+	$$(if $$(NOLINK),:,$$(_L) $(addprefix,-Xcc ,$(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS)) -o $$@ \
+	    $$(filter %.o %.oo,$$^) \
+	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^))
+	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
+else
 $~$1.exe: _L=$(or $($1_LINKER),$(CC))
 $~$1.exe: _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
 $~$1.exe:
@@ -320,6 +348,7 @@ $~$1.exe:
 	    $$(if $(SWIFTC),-Xlinker -rpath -Xlinker $(SWIFTBASE) -L $(SWIFTBASE) \
 	    @$~$1.exe.autolink $(SWIFTBASE)/x86_64/swift_end.o)
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
+endif
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
