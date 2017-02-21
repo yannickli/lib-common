@@ -5,7 +5,7 @@ The platform globally conforms to 'HTTP/1.1' as defined in <<HTTP_1.1>> and to
 
 ==== HTTP/1.1 conformance ====
 
-include::Documentation/http-conformance.adoc[]
+include::http-conformance.adoc[]
 
 ==== SOAP conformance ====
 
@@ -25,7 +25,7 @@ queries/responses not to be multi-part.
 
 === Interfaces constraints ===
 
-include::Documentation/iop-interfaces-constraints.adoc[]
+include::iop-interfaces-constraints.adoc[]
 
 === Intersec Web services use of XML Schema ===
 
