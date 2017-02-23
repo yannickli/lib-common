@@ -581,6 +581,13 @@ class IopcTest(z.TestCase):
     def test_void_types(self):
         self.run_iopc_pass('void_in_union.iop', 6, lang="C,json,swift")
         self.run_gcc('void_in_union.iop')
+
+        # void tags have a defined value to make IOP_UNION_SET_V safe
+        self.run_iopc_pass('void_in_union.iop', 6, lang="C")
+        self.run_gcc('void_in_union_field_def')
+        self.run_iopc_pass('void_in_union.iop', 5, lang="C")
+        self.run_gcc('void_in_union_field_def')
+
         self.run_iopc_pass('void_mandatory_in_struct.iop', 6,
                            lang="C,json,swift")
         self.run_gcc('void_mandatory_in_struct.iop')

@@ -1,7 +1,8 @@
 package void_in_union;
 
 
+@ctype(void_set_safe__t)
 union A {
-    /* This should result in a union with no field, but a defined iop_tag */
-    void f;
+    void v;
+    int i;
 };

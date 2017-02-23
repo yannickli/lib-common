@@ -1053,6 +1053,12 @@ static void iopc_snmp_field_dump_hdr(sb_t *buf, const char *pkg_name,
 static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
                                     const iopc_struct_t *st)
 {
+#define VOID_TAG_ALIAS(buf, f, tbase, name)  \
+    if (f->kind == IOP_T_VOID && f->repeat == IOP_R_REQUIRED) {              \
+        sb_addf(buf, "#define %*pM__%s__empty_ft  %*pM__%s__ft\n",           \
+                LSTR_FMT_ARG(tbase), name, LSTR_FMT_ARG(tbase), name);       \
+    }
+
     sb_adds(buf, "/*----- XXX private data, do not use directly -{{{-*/\n");
     if (_G.unions_use_enums || iopc_g.v6) {
         sb_addf(buf, "typedef enum %s__tag_t {\n", tbase);
@@ -1060,6 +1066,7 @@ static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
             /* Tag of the field (enum) */
             sb_addf(buf, "    %s__%s__ft = %d,\n", tbase, pp_to_c(f->name),
                     f->tag);
+            VOID_TAG_ALIAS(buf, f, LSTR(tbase), pp_to_c(f->name));
         }
         sb_addf(buf, "} %s__tag_t;\n", tbase);
     } else {
@@ -1068,6 +1075,7 @@ static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
             /* Tag of the field */
             sb_addf(buf, "#define %s__%s__ft %d\n", tbase,
                     pp_to_c(f->name), f->tag);
+            VOID_TAG_ALIAS(buf, f, LSTR(tbase), pp_to_c(f->name));
         }
     }
 
@@ -1088,10 +1096,12 @@ static void iopc_union_dump_tag_cst(sb_t *buf, const char *tbase,
                     sb_addf(buf, "#define %*pM__%s__ft %s__%s__ft\n",
                             LSTR_FMT_ARG(ctype), pp_to_c(f->name),
                             tbase, pp_to_c(f->name));
+                    VOID_TAG_ALIAS(buf, f, ctype, pp_to_c(f->name));
                 }
             }
         }
     }
+#undef VOID_ALIAS
 
   close_fold:
     sb_adds(buf, "/*-}}}-*/\n");
