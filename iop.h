@@ -277,22 +277,45 @@ int iop_ranges_search(int const * nonnull ranges, int ranges_len, int tag);
 
 #ifdef __has_blocks
 
+/** Anonymous type for IOP field stack. */
+typedef struct iop_field_stack_t iop_field_stack_t;
+
+/** Print an IOP field stack as a path.
+ *
+ * Field paths printed with this function will look like 'foo.bar[42].param'.
+ */
+void sb_add_iop_field_stack(sb_t *nonnull buf,
+                            const iop_field_stack_t *nonnull fstack);
+
+/** Write the result of 'sb_add_iop_field_stack' in a t-allocated lstring. */
+lstr_t t_iop_field_stack_to_lstr(const iop_field_stack_t *nonnull fstack);
+
 #define IOP_FIELD_SKIP  1
 
 /** Callback for function 'iop_for_each_field'.
  *
- * \param[in] st_desc  Description of the current struct/union/class.
- * \param[in] fdesc    Description of the current field.
- * \param[in] st_ptr   Pointer on the structure.
+ * \param[in]     st_desc  Description of the current struct/union/class.
+ *
+ * \param[in]     fdesc    Description of the current field.
+ *
+ * \param[in,out] st_ptr   Pointer on the structure.
+ *
+ * \param[in]     stack    Data structure containing the context of the
+ *                         currently explored field starting from the root
+ *                         IOP struct/union/class. Its only use for now is
+ *                         allowing to print the path to the field (example:
+ *                         "a.b[0].c[42]").
  *
  * \return A negative value to stop the exploration,
- *         IOP_FIELD_SKIP to avoid exploring current non-scalar field
- *         0 otherwise.
+ *         IOP_FIELD_SKIP to avoid exploring current field (no effect if the
+ *         field is not a struct/union/class), 0 otherwise.
  */
 typedef int
-(BLOCK_CARET iop_for_each_field_cb_b)(const iop_struct_t * nonnull st_desc,
-                                      const iop_field_t * nonnull fdesc,
-                                      void * nonnull st_ptr);
+(BLOCK_CARET iop_for_each_field_cb_b)
+    (const iop_struct_t *nonnull st_desc,
+     const iop_field_t *nonnull fdesc,
+     void *nonnull st_ptr,
+     const iop_field_stack_t *nonnull stack);
 
 /** Explore an IOP struct/class/union recursively and call a block for each
  *  field.
@@ -305,33 +328,75 @@ typedef int
  *  \return A negative value (the one returned by the callback) if the
  *          exploration was interrupted, 0 otherwise.
  */
-int iop_for_each_field(const iop_struct_t * nullable st_desc,
-                       void * nonnull st_ptr,
+int iop_for_each_field(const iop_struct_t *nullable st_desc,
+                       void *nonnull st_ptr,
                        iop_for_each_field_cb_b nonnull cb);
 
 /** Const version for 'iop_for_each_field_cb_b'. */
 typedef int
-(BLOCK_CARET iop_for_each_field_const_cb_b)(const iop_struct_t * nonnull st_desc,
-                                            const iop_field_t * nonnull fdesc,
-                                            const void * nonnull st_ptr);
+(BLOCK_CARET iop_for_each_field_const_cb_b)
+    (const iop_struct_t *nonnull st_desc,
+     const iop_field_t *nonnull fdesc,
+     const void *nonnull st_ptr,
+     const iop_field_stack_t *nonnull stack);
 
-/** Const version of 'iop_for_each_field'. */
-int iop_for_each_field_const(const iop_struct_t * nullable st_desc,
-                             const void * nonnull st_ptr,
-                             iop_for_each_field_const_cb_b nonnull cb);
+/** Const version for 'iop_for_each_field'. */
+int iop_for_each_field_const(
+    const iop_struct_t *nullable st_desc,
+    const void *nonnull st_ptr,
+    iop_for_each_field_const_cb_b nonnull cb);
+
+/** Callback for function 'iop_for_each_field_fast'.
+ *
+ * Same as 'iop_for_each_field_cb_b' without the parameter 'stack'.
+ */
+typedef int
+(BLOCK_CARET iop_for_each_field_fast_cb_b)(
+    const iop_struct_t * nonnull st_desc,
+    const iop_field_t * nonnull fdesc,
+    void * nonnull st_ptr);
+
+/** Fast version of 'iop_for_each_field'.
+ *
+ * This version doesn't maintain the context of exploration with the data
+ * structure carried by 'iop_field_stack_t'. Should be used when this data
+ * structure is not needed.
+ *
+ * Using this version instead of 'iop_for_each_field' brings an estimate gain
+ * of 33% in CPU time.
+ */
+int iop_for_each_field_fast(const iop_struct_t * nullable st_desc,
+                            void * nonnull st_ptr,
+                            iop_for_each_field_fast_cb_b nonnull cb);
+
+/** Const version for 'iop_for_each_field_fast_cb_b'. */
+typedef int
+(BLOCK_CARET iop_for_each_field_const_fast_cb_b)(
+    const iop_struct_t * nonnull st_desc,
+    const iop_field_t * nonnull fdesc,
+    const void * nonnull st_ptr);
+
+/** Const version of 'iop_for_each_field_fast'. */
+int iop_for_each_field_const_fast(
+    const iop_struct_t * nullable st_desc,
+    const void * nonnull st_ptr,
+    iop_for_each_field_const_fast_cb_b nonnull cb);
 
 /** Callback for function 'iop_for_each_st'.
  *
- * \param[in] st_desc  Description of the current struct/union/class.
- * \param[in] st_ptr   Pointer on the structure.
+ * \param[in]     st_desc  Description of the current struct/union/class.
+ * \param[in,out] st_ptr   Pointer on the structure.
+ * \param[in]     stack    Context for the field containing the current
+ *                         struct/union/class.
  *
  * \return A negative value to stop the exploration,
  *         IOP_FIELD_SKIP to avoid exploring the fields of current
  *         struct/union/class.
  */
 typedef int
-(BLOCK_CARET iop_for_each_st_cb_b)(const iop_struct_t * nonnull st_desc,
-                                   void * nonnull st_ptr);
+(BLOCK_CARET iop_for_each_st_cb_b)(const iop_struct_t *nonnull st_desc,
+                                   void *nonnull st_ptr,
+                                   const iop_field_stack_t *nonnull stack);
 
 /** Explore an IOP struct/union/class recursively and call a block for each
  *  struct/union/class.
@@ -346,13 +411,42 @@ int iop_for_each_st(const iop_struct_t * nullable st_desc,
 
 /** Const version for 'iop_for_each_st_cb_b'. */
 typedef int
-(BLOCK_CARET iop_for_each_st_const_cb_b)(const iop_struct_t * nonnull st_desc,
-                                         const void * nonnull st_ptr);
+(BLOCK_CARET iop_for_each_st_const_cb_b)(
+    const iop_struct_t *nonnull st_desc,
+    const void *nonnull st_ptr,
+    const iop_field_stack_t *nonnull stack);
 
-/** Const version of 'iop_for_each_st'. */
-int iop_for_each_st_const(const iop_struct_t * nullable st_desc,
-                          const void * nonnull st_ptr,
+/** Const version for 'iop_for_each_st'. */
+int iop_for_each_st_const(const iop_struct_t *nullable st_desc,
+                          const void *nonnull st_ptr,
                           iop_for_each_st_const_cb_b nonnull cb);
+
+/** Callback for function 'iop_for_each_st_fast'.
+ *
+ * Same as 'iop_for_each_st_cb_b' without the parameter 'stack'.
+ */
+typedef int
+(BLOCK_CARET iop_for_each_st_fast_cb_b)(const iop_struct_t *nonnull st_desc,
+                                        void *nonnull st_ptr);
+
+/** Fast version of 'iop_for_each_st'.
+ *
+ * See 'iop_for_each_field_fast'.
+ */
+int iop_for_each_st_fast(const iop_struct_t *nullable st_desc,
+                         void *nonnull st_ptr,
+                         iop_for_each_st_fast_cb_b nonnull cb);
+
+/** Const version for 'iop_for_each_st_fast_cb_b'. */
+typedef int
+(BLOCK_CARET iop_for_each_st_const_fast_cb_b)(
+    const iop_struct_t * nonnull st_desc,
+    const void * nonnull st_ptr);
+
+/** Const version of 'iop_for_each_st_fast'. */
+int iop_for_each_st_const_fast(const iop_struct_t *nullable st_desc,
+                               const void *nonnull st_ptr,
+                               iop_for_each_st_const_fast_cb_b nonnull cb);
 
 #endif
 

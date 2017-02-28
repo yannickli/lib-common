@@ -64,7 +64,7 @@ z_iop_for_each_step(const qv_t(z_iop_for_each_step) *steps,
                     const iop_struct_t *_st_desc, const void *_st_ptr,
                     int *count)
 {
-    return iop_for_each_field_const(_st_desc, _st_ptr,
+    return iop_for_each_field_const_fast(_st_desc, _st_ptr,
     ^int (const iop_struct_t *st_desc, const iop_field_t *fdesc,
           const void *st_ptr)
     {
@@ -137,9 +137,9 @@ z_test_iop_for_each_st(const tstiop__z_iop_for_each__t *z_struct)
 {
     __block int pos = 0;
 
-    return iop_for_each_st_const(&tstiop__z_iop_for_each__s, z_struct,
-                                 ^int (const iop_struct_t *st_desc,
-                                       const void *st_ptr) {
+    return iop_for_each_st_const_fast(&tstiop__z_iop_for_each__s, z_struct,
+                                      ^int (const iop_struct_t *st_desc,
+                                            const void *st_ptr) {
         t_scope;
         SB_1k(sb);
         const char *structs[] = {
@@ -167,6 +167,131 @@ z_test_iop_for_each_st(const tstiop__z_iop_for_each__t *z_struct)
         Z_HELPER_END;
     });
 }
+
+static int z_assert_qv_lstr_equal(const qv_t(lstr) *v1, const qv_t(lstr) *v2)
+{
+    Z_ASSERT_EQ(v1->len, v2->len, "length differs");
+    tab_for_each_pos(pos, v1) {
+        Z_ASSERT_LSTREQUAL(v1->tab[pos], v2->tab[pos],
+                           "difference on element #%d", pos);
+    }
+
+    Z_HELPER_END;
+}
+
+/* Checks that the content of a qv_t(lstr) is the same as the one of a given
+ * file (blank lines excluded).
+ */
+static int z_assert_qv_lstr_same_as_file(const qv_t(lstr) *vec,
+                                         const char *file_path)
+{
+    t_scope;
+    qv_t(lstr) lines;
+    lstr_t file_content;
+    pstream_t file_ps;
+    ctype_desc_t ctype_is_linebreak;
+
+    ctype_desc_build(&ctype_is_linebreak, "\n\r");
+
+    Z_ASSERT_N(lstr_init_from_file(&file_content, file_path,
+                                   PROT_READ, MAP_SHARED),
+               "failed to read file `%s`", file_path);
+    file_ps = ps_initlstr(&file_content);
+
+    t_qv_init(&lines, vec->len);
+    ps_split(file_ps, &ctype_is_linebreak, PS_SPLIT_SKIP_EMPTY, &lines);
+
+    Z_ASSERT_EQ(lines.len, vec->len,
+                "number of lines mismatch from file `%s`", file_path);
+
+    tab_for_each_pos(line, &lines) {
+        Z_ASSERT_LSTREQUAL(vec->tab[line], lines.tab[line],
+                           "got diff at `%s:%d`", file_path, line);
+    }
+
+    lstr_wipe(&file_content);
+
+    Z_HELPER_END;
+}
+
+static int t_z_print_field_paths(const iop_struct_t *st_desc,
+                                 const void *st_ptr, qv_t(lstr) *paths)
+{
+    SB_1k(_buf);
+    sb_t *buf = &_buf;
+    qv_t(lstr) _paths_non_const;
+    qv_t(lstr) *paths_non_const = &_paths_non_const;
+
+    qv_clear(paths);
+    t_qv_init(paths_non_const, 128);
+
+    iop_for_each_field_const(st_desc, st_ptr,
+    ^int (const iop_struct_t *nonnull _st_desc,
+          const iop_field_t *nonnull fdesc,
+          const void *nonnull _st_ptr,
+          const iop_field_stack_t *nonnull stack) {
+        sb_reset(buf);
+        sb_add_iop_field_stack(buf, stack);
+        qv_append(paths, t_lstr_dup(LSTR_SB_V(buf)));
+
+        return 0;
+    });
+
+    iop_for_each_field(st_desc, (void *)st_ptr,
+    ^int (const iop_struct_t *nonnull _st_desc,
+          const iop_field_t *nonnull fdesc,
+          void *nonnull _st_ptr,
+          const iop_field_stack_t *nonnull stack) {
+        qv_append(paths_non_const, t_iop_field_stack_to_lstr(stack));
+
+        return 0;
+    });
+
+    Z_HELPER_RUN(z_assert_qv_lstr_equal(paths, paths_non_const),
+                 "results differs between const and non-const version of "
+                 "'iop_for_each_field'");
+
+    Z_HELPER_END;
+}
+
+static int t_z_print_st_paths(const iop_struct_t *st_desc,
+                              const void *st_ptr, qv_t(lstr) *paths)
+{
+    SB_1k(_buf);
+    sb_t *buf = &_buf;
+    qv_t(lstr) _paths_non_const;
+    qv_t(lstr) *paths_non_const = &_paths_non_const;
+
+    t_qv_init(paths_non_const, 128);
+    qv_clear(paths);
+
+    iop_for_each_st_const(st_desc, st_ptr,
+    ^int (const iop_struct_t *nonnull _st_desc,
+          const void *nonnull _st_ptr,
+          const iop_field_stack_t *nonnull stack) {
+        sb_reset(buf);
+        sb_add_iop_field_stack(buf, stack);
+        qv_append(paths, t_lstr_dup(LSTR_SB_V(buf)));
+
+        return 0;
+    });
+
+    iop_for_each_st(st_desc, (void *)st_ptr,
+    ^int (const iop_struct_t *nonnull _st_desc,
+          void *nonnull _st_ptr,
+          const iop_field_stack_t *nonnull stack) {
+        qv_append(paths_non_const, t_iop_field_stack_to_lstr(stack));
+
+        return 0;
+    });
+
+    Z_HELPER_RUN(z_assert_qv_lstr_equal(paths, paths_non_const),
+                 "results differs between const and non-const version of "
+                 "'iop_for_each_st'");
+
+    Z_HELPER_END;
+}
+
 /* }}} */
 
 /* }}} */
@@ -174,15 +299,31 @@ z_test_iop_for_each_st(const tstiop__z_iop_for_each__t *z_struct)
 Z_GROUP_EXPORT(iop_blk) {
     IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
-    Z_TEST(iop_for_each, "test iop_for_each") { /* {{{ */
+    Z_TEST(iop_for_each_field, "test iop_for_each_field") { /* {{{ */
         t_scope;
         tstiop__z_iop_for_each__t *z_struct;
+        qv_t(lstr) paths;
+        const char *paths_file_path;
 
         Z_HELPER_RUN(t_z_load_iop_for_each_json(&z_struct));
         Z_HELPER_RUN(z_test_iop_for_each_field(z_struct),
                      "iop_for_each_field");
         Z_HELPER_RUN(z_test_iop_for_each_st(z_struct),
                      "iop_for_each_st");
+
+        t_qv_init(&paths, 128);
+
+        paths_file_path = t_fmt("%*pMsamples/z-iop-for-each-field-paths.txt",
+                                LSTR_FMT_ARG(z_cmddir_g));
+        Z_HELPER_RUN(t_z_print_field_paths(&tstiop__z_iop_for_each__s,
+                                           z_struct, &paths));
+        Z_HELPER_RUN(z_assert_qv_lstr_same_as_file(&paths, paths_file_path));
+
+        paths_file_path = t_fmt("%*pMsamples/z-iop-for-each-st-paths.txt",
+                                LSTR_FMT_ARG(z_cmddir_g));
+        Z_HELPER_RUN(t_z_print_st_paths(&tstiop__z_iop_for_each__s,
+                                        z_struct, &paths));
+        Z_HELPER_RUN(z_assert_qv_lstr_same_as_file(&paths, paths_file_path));
     } Z_TEST_END
     /* }}} */
 } Z_GROUP_END;

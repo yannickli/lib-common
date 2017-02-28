@@ -13,6 +13,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <lib-common/container-htlist.h>
 #include "arith.h"
 #include "core.h"
 #include "iop.h"
@@ -4199,62 +4200,350 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 /* }}} */
 /* {{{ Introspection - iop_for_each_field() */
 
+/* {{{ Stack management */
+
+typedef struct field_stack_el_t {
+    htnode_t link;
+    const iop_struct_t *st_desc;
+    const iop_field_t *f;
+    const void *st_ptr;
+    int index;
+} field_stack_el_t;
+
+struct iop_field_stack_t {
+    htlist_t flist;
+};
+
+static inline iop_field_stack_t *
+iop_field_stack_init(iop_field_stack_t *fstack)
+{
+    p_clear(fstack, 1);
+    htlist_init(&fstack->flist);
+
+    return fstack;
+}
+
+static field_stack_el_t *field_stack_el_init(field_stack_el_t *el)
+{
+    p_clear(el, 1);
+    el->index = -1;
+
+    return el;
+}
+
+static void field_path_print_rec(sb_t *sb, const field_stack_el_t *el)
+{
+    if (el->link.next) {
+        field_stack_el_t *e;
+
+        e = htlist_entry(el->link.next, field_stack_el_t, link);
+        field_path_print_rec(sb, e);
+        sb_addc(sb, '.');
+    }
+
+    sb_add_lstr(sb, el->f->name);
+    if (el->index >= 0) {
+        sb_addf(sb, "[%d]", el->index);
+    }
+}
+
+void sb_add_iop_field_stack(sb_t *nonnull buf,
+                           const iop_field_stack_t *nonnull fstack)
+{
+    field_stack_el_t *el;
+
+    el = htlist_first_entry(&fstack->flist, field_stack_el_t, link);
+    if (el) {
+        field_path_print_rec(buf, el);
+    } else {
+        sb_adds(buf, "<root>");
+    }
+}
+
+lstr_t t_iop_field_stack_to_lstr(const iop_field_stack_t *nonnull fstack)
+{
+    SB_1k(buf);
+
+    sb_add_iop_field_stack(&buf, fstack);
+
+    return t_lstr_dup(LSTR_SB_V(&buf));
+}
+
+static void iop_field_stack_fill_head(iop_field_stack_t *fstack,
+                                      const iop_struct_t *st_desc,
+                                      const void *st_ptr,
+                                      const iop_field_t *fdesc)
+{
+    field_stack_el_t *el;
+
+    el = htlist_first_entry(&fstack->flist, field_stack_el_t, link);
+    el->st_desc = st_desc;
+    el->st_ptr = st_ptr;
+    el->f = fdesc;
+}
+
+static int on_field_cb(const iop_struct_t *st_desc, void *st_ptr,
+                       const iop_field_t *fdesc,
+                       iop_field_stack_t *fstack,
+                       iop_for_each_field_cb_b nonnull cb)
+{
+    iop_field_stack_fill_head(fstack, st_desc, st_ptr, fdesc);
+
+    return cb(st_desc, fdesc, st_ptr, fstack);
+}
+
+#define F_LOCAL_WSTACK                                                       \
+    field_stack_el_t _stack_el;                                              \
+                                                                             \
+    field_stack_el_init(&_stack_el);                                         \
+    htlist_add(&fstack->flist, &_stack_el.link)
+
+#define SET_INDEX_WSTACK(_index)                                             \
+    htlist_first_entry(&fstack->flist, field_stack_el_t,                     \
+                       link)->index = _index
+
+#define ON_FIELD_DONE_WSTACK()  htlist_pop(&fstack->flist)
+
+/* }}} */
+/* {{{ iop_for_each_field() */
+
+#define F_STATIC
+#define F_NAME         _iop_for_each_field
+#define F_PROTO                                                              \
+    iop_field_stack_t *nonnull fstack,                                       \
+    iop_for_each_field_cb_b nonnull cb
+#define F_ARGS         fstack, cb
+#define F_LOCAL        F_LOCAL_WSTACK
+
+#define F(x)              x##_with_stack
+#define ON_FIELD          on_field_cb
+#define ON_FIELD_DONE()   ON_FIELD_DONE_WSTACK()
+#define SET_INDEX(index)  SET_INDEX_WSTACK(index)
+#include "iop-for-each.in.c"
+
+int iop_for_each_field(const iop_struct_t *nullable st_desc,
+                       void *nonnull st_ptr,
+                       iop_for_each_field_cb_b nonnull cb)
+{
+    iop_field_stack_t fstack;
+
+    iop_field_stack_init(&fstack);
+
+    return _iop_for_each_field(st_desc, st_ptr, &fstack, cb);
+}
+
+/* }}} */
+/* {{{ iop_for_each_field_const() */
+
+static int on_field_const_cb(
+    const iop_struct_t *st_desc, const void *st_ptr,
+    const iop_field_t *fdesc, iop_field_stack_t *fstack,
+    iop_for_each_field_const_cb_b nonnull cb)
+{
+    iop_field_stack_fill_head(fstack, st_desc, st_ptr, fdesc);
+
+    return cb(st_desc, fdesc, st_ptr, fstack);
+}
+
+#define F_STATIC
+#define F_NAME         _iop_for_each_field_const
+#define F_PROTO                                                              \
+    iop_field_stack_t *nonnull fstack,                                       \
+    iop_for_each_field_const_cb_b nonnull cb
+#define F_ARGS         fstack, cb
+#define F_LOCAL        F_LOCAL_WSTACK
+#define MODIFIER       const
+
+#define F(x)              x##_const_with_stack
+#define ON_FIELD          on_field_const_cb
+#define ON_FIELD_DONE()   ON_FIELD_DONE_WSTACK()
+#define SET_INDEX(index)  SET_INDEX_WSTACK(index)
+#include "iop-for-each.in.c"
+
+int iop_for_each_field_const(
+    const iop_struct_t *nullable st_desc,
+    const void *nonnull st_ptr,
+    iop_for_each_field_const_cb_b nonnull cb)
+{
+    iop_field_stack_t fstack;
+
+    iop_field_stack_init(&fstack);
+
+    return _iop_for_each_field_const(st_desc, st_ptr, &fstack, cb);
+}
+
+/* }}} */
+/* {{{ iop_for_each_field_fast() */
+
 /* XXX Intermediary function because the block rewriter don't dig included C
  *     files. */
-static int call_field_cb(const iop_struct_t *st_desc, void *st_ptr,
-                         const iop_field_t *fdesc, iop_for_each_field_cb_b cb)
+static int call_field_fast_cb(const iop_struct_t *st_desc, void *st_ptr,
+                              const iop_field_t *fdesc,
+                              iop_for_each_field_fast_cb_b cb)
 {
     return cb(st_desc, fdesc, st_ptr);
 }
 
-#define F_NAME    iop_for_each_field
-#define F_PROTO   iop_for_each_field_cb_b cb
+#define F_NAME    iop_for_each_field_fast
+#define F_PROTO   iop_for_each_field_fast_cb_b cb
 #define F_ARGS    cb
-#define F(x)      x##_blk
-#define ON_FIELD  call_field_cb
+#define F(x)      x##_blk_fast
+#define ON_FIELD  call_field_fast_cb
 #include "iop-for-each.in.c"
 
-static int call_field_const_cb(const iop_struct_t *st_desc,
-                               const void *st_ptr, const iop_field_t *fdesc,
-                               iop_for_each_field_const_cb_b cb)
+/* }}} */
+/* {{{ iop_for_each_field_const_fast() */
+
+static int call_field_const_fast_cb(const iop_struct_t *st_desc,
+                                    const void *st_ptr,
+                                    const iop_field_t *fdesc,
+                                    iop_for_each_field_const_fast_cb_b cb)
 {
     return cb(st_desc, fdesc, st_ptr);
 }
 
-#define F_NAME    iop_for_each_field_const
-#define F_PROTO   iop_for_each_field_const_cb_b cb
+#define F_NAME    iop_for_each_field_const_fast
+#define F_PROTO   iop_for_each_field_const_fast_cb_b cb
 #define F_ARGS    cb
-#define F(x)      x##_blk_const
+#define F(x)      x##_blk_const_fast
 #define MODIFIER  const
-#define ON_FIELD  call_field_const_cb
+#define ON_FIELD  call_field_const_fast_cb
 #include "iop-for-each.in.c"
+
+/* }}} */
+/* {{{ iop_for_each_st() */
+
+static int on_field_st_cb(const iop_struct_t *st_desc, void *st_ptr,
+                          const iop_field_t *fdesc,
+                          iop_field_stack_t *fstack,
+                          iop_for_each_st_cb_b nonnull cb)
+{
+    iop_field_stack_fill_head(fstack, st_desc, st_ptr, fdesc);
+
+    return 0;
+}
 
 static int call_st_cb(const iop_struct_t *st_desc, void *st_ptr,
-                      iop_for_each_st_cb_b cb)
+                      iop_field_stack_t *fstack, iop_for_each_st_cb_b cb)
 {
-    return cb(st_desc, st_ptr);
+    return cb(st_desc, st_ptr, fstack);
 }
 
-#define F_NAME     iop_for_each_st
-#define F_PROTO    iop_for_each_st_cb_b cb
-#define F_ARGS     cb
+#define F_STATIC
+#define F_NAME     _iop_for_each_st
+#define F_PROTO                                                              \
+    iop_field_stack_t *fstack,                                               \
+    iop_for_each_st_cb_b cb
+#define F_ARGS     fstack, cb
 #define F(x)       x##_st_blk
 #define ON_STRUCT  call_st_cb
+#define F_LOCAL    F_LOCAL_WSTACK
+
+#define ON_FIELD          on_field_st_cb
+#define ON_FIELD_DONE()   ON_FIELD_DONE_WSTACK()
+#define SET_INDEX(index)  SET_INDEX_WSTACK(index)
+
 #include "iop-for-each.in.c"
 
-static int call_st_const_cb(const iop_struct_t *st_desc, void *st_ptr,
-                            iop_for_each_st_const_cb_b cb)
+int iop_for_each_st(const iop_struct_t *nullable st_desc,
+                    void *nonnull st_ptr,
+                    iop_for_each_st_cb_b nonnull cb)
+{
+    iop_field_stack_t fstack;
+
+    iop_field_stack_init(&fstack);
+
+    return _iop_for_each_st(st_desc, st_ptr, &fstack, cb);
+}
+
+/* }}} */
+/* {{{ iop_for_each_st_const() */
+
+static int on_field_st_const_cb(const iop_struct_t *nonnull st_desc,
+                                const void *nonnull st_ptr,
+                                const iop_field_t *nonnull fdesc,
+                                iop_field_stack_t *nonnull fstack,
+                                iop_for_each_st_const_cb_b nonnull cb)
+{
+    iop_field_stack_fill_head(fstack, st_desc, st_ptr, fdesc);
+
+    return 0;
+}
+
+static int call_st_const_cb(const iop_struct_t *st_desc,
+                            const void *st_ptr,
+                            iop_field_stack_t *fstack,
+                            const iop_for_each_st_const_cb_b cb)
+{
+    return cb(st_desc, st_ptr, fstack);
+}
+
+#define F_STATIC
+#define F_NAME     _iop_for_each_st_const
+#define F_PROTO                                                              \
+    iop_field_stack_t *fstack,                                               \
+    iop_for_each_st_const_cb_b cb
+#define F_ARGS     fstack, cb
+#define F(x)       x##_st_const_blk
+#define ON_STRUCT  call_st_const_cb
+#define F_LOCAL    F_LOCAL_WSTACK
+#define MODIFIER   const
+
+#define ON_FIELD          on_field_st_const_cb
+#define ON_FIELD_DONE()   ON_FIELD_DONE_WSTACK()
+#define SET_INDEX(index)  SET_INDEX_WSTACK(index)
+
+#include "iop-for-each.in.c"
+
+int iop_for_each_st_const(const iop_struct_t *nullable st_desc,
+                          const void *nonnull st_ptr,
+                          iop_for_each_st_const_cb_b nonnull cb)
+{
+    iop_field_stack_t fstack;
+
+    iop_field_stack_init(&fstack);
+
+    return _iop_for_each_st_const(st_desc, st_ptr, &fstack, cb);
+}
+
+/* }}} */
+/* {{{ iop_for_each_st_fast() */
+
+static int call_st_cb_fast(const iop_struct_t *st_desc, void *st_ptr,
+                           iop_for_each_st_fast_cb_b cb)
 {
     return cb(st_desc, st_ptr);
 }
 
-#define F_NAME     iop_for_each_st_const
-#define F_PROTO    iop_for_each_st_const_cb_b cb
+#define F_NAME     iop_for_each_st_fast
+#define F_PROTO    iop_for_each_st_fast_cb_b cb
 #define F_ARGS     cb
-#define F(x)       x##_st_const_blk
-#define MODIFIER   const
-#define ON_STRUCT  call_st_const_cb
+#define F(x)       x##_st_blk_fast
+#define ON_STRUCT  call_st_cb_fast
 #include "iop-for-each.in.c"
+
+/* }}} */
+/* {{{ iop_for_each_st_const_fast() */
+
+static int call_st_const_fast_cb(const iop_struct_t *st_desc, void *st_ptr,
+                                 iop_for_each_st_const_fast_cb_b cb)
+{
+    return cb(st_desc, st_ptr);
+}
+
+#define F_NAME     iop_for_each_st_const_fast
+#define F_PROTO    iop_for_each_st_const_fast_cb_b cb
+#define F_ARGS     cb
+#define F(x)       x##_st_const_fast_blk
+#define MODIFIER   const
+#define ON_STRUCT  call_st_const_fast_cb
+#include "iop-for-each.in.c"
+
+/* }}} */
+
+#undef F_LOCAL_WSTACK
+#undef ON_FIELD_DONE_WSTACK
+#undef SET_INDEX_WSTACK
 
 /* }}} */
 /* {{{ Signature */
