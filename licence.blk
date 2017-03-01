@@ -431,20 +431,9 @@ int licence_check_modules(const core__licence__t *licence)
 }
 
 int licence_check_iop(const core__signed_licence__t *signed_licence,
-                      const iop_struct_t *licence_st, lstr_t version,
-                      unsigned flags)
+                      lstr_t version, unsigned flags)
 {
     const core__licence__t *licence = signed_licence->licence;
-
-    if (!iop_obj_is_a_desc(licence, licence_st)) {
-#ifdef NDEBUG
-        e_fatal("wrong licence type");
-#else
-        e_fatal("wrong licence type, expected %*pM, got %*pM",
-                LSTR_FMT_ARG(licence_st->fullname),
-                LSTR_FMT_ARG(licence->__vptr->fullname));
-#endif
-    }
 
     RETHROW(iop_check_signature(&core__licence__s, licence,
                                 signed_licence->signature, flags));

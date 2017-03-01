@@ -58,16 +58,13 @@ typedef enum licence_expiry_t {
 /** Check an IOP Licence.
  *
  * \param[in] licence     The signed licence structure.
- * \param[in] licence_st  The class the licence is expected to be a child of
- *                        (should be a descendant of core__licence__t).
  * \param[in] version     The version of the product we're running on,
  *                        LSTR_NULL if the version should not be checked.
  * \param[in] flags       Flags to use to compute the signature.
  */
 __must_check__
 int licence_check_iop(const struct core__signed_licence__t *licence,
-                      const iop_struct_t *licence_st, lstr_t version,
-                      unsigned flags);
+                      lstr_t version, unsigned flags);
 
 /** Check the expiration of an IOP Licence.
  *
