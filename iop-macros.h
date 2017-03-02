@@ -144,7 +144,7 @@
  * \param[in] field The union field to check.
  */
 #define IOP_UNION_IS(pfx, u, field) \
-    ({ pfx##__t *_tmp = u;                                                   \
+    ({ const pfx##__t *_tmp = u;                                             \
        _tmp->iop_tag == IOP_UNION_TAG(pfx, field); })
 
 /** Extract a value from a union.
@@ -221,7 +221,7 @@
  * \param[in]  field The field to select.
  */
 #define IOP_UNION_VOID_CST(pfx, field) \
-    { IOP_UNION_TAG_VOID(pfx, field) }
+    { IOP_UNION_TAG_VOID(pfx, field), {} }
 
 /** Make an immediate IOP union.
  *
@@ -247,7 +247,7 @@
  * \param[in]  field The field to select.
  */
 #define IOP_UNION_VOID(pfx, field) \
-    (pfx##__t){ IOP_UNION_TAG_VOID(pfx, field) }
+    (pfx##__t){ IOP_UNION_TAG_VOID(pfx, field), {} }
 
 /** Make an IOP union.
  *
