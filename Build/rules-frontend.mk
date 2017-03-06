@@ -293,6 +293,9 @@ $~$2/htdocs/javascript/$3.js:
 	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) -o $$@
 	# change browserify starting function by our own function
 	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
+	# build list of all files included in bundle (needed for r.js)
+	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
+	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
