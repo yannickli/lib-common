@@ -581,9 +581,19 @@ static const char *si_code_to_str(int signum, int si_code)
     return "unknown";
 }
 
+static bool signal_is_terminating(int signo)
+{
+    return signo == SIGTERM || signo == SIGINT || signo == SIGQUIT
+        || signo == SIGUSR2;
+}
+
 static void el_sighandler(int signum, siginfo_t *siginfo, void *ctx)
 {
     _G.gotsigs |= (1 << signum);
+
+    if (signal_is_terminating(signum)) {
+        _G.terminating = true;
+    }
 
     /* Refer to 'man 2 sigaction' for the meaning of the codes. */
     logger_trace(&_G.logger, 1,
@@ -614,10 +624,7 @@ static void el_signal_process(void)
 
         signo = ev->signo;
         if (gotsigs & (1 << signo)) {
-            if (signo == SIGTERM || signo == SIGINT || signo == SIGQUIT
-            ||  signo == SIGUSR2)
-            {
-                _G.terminating = true;
+            if (signal_is_terminating(signo)) {
                 module_on_term(signo);
             }
             if (EV_FLAG_HAS(ev, IS_BLK)) {
