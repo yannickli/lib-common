@@ -446,11 +446,13 @@ static void el_sighandler(int signum)
 static void el_signal_process(void)
 {
     uint32_t gotsigs = _G.gotsigs;
+    struct timeval now;
 
     if (!gotsigs)
         return;
 
     _G.gotsigs &= ~gotsigs;
+    lp_gettv(&now);
 
     ev_cache_list(&_G.sigs);
     for (int i = 0; i < _G.cache.len; i++) {
@@ -661,6 +663,9 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
 
 static void el_timer_process(uint64_t until)
 {
+    struct timeval tv;
+
+    lp_gettv(&tv);
     while (!qhp_is_empty(timer, &_G.timers)) {
         ev_t *ev = qhp_first(timer, &_G.timers);
 

@@ -39,15 +39,10 @@ unsigned long hardclock(void);
 /***************************************************************************/
 
 const char *lp_getsec_str(void);
+time_t lp_getsec(void);
 void lp_gettv(struct timeval *);
 uint64_t lp_getmsec(void);
 uint64_t lp_getcsec(void);
-
-/* Helper kept for backward compatibility. Should be removed one day. */
-static inline time_t lp_getsec(void)
-{
-    return time(NULL);
-}
 
 /***************************************************************************/
 /* time.h wrappers                                                         */
