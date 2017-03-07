@@ -290,7 +290,7 @@ $~$2/htdocs/javascript/$3.js:
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) -o $$@
+	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --debug | exorcist $$@.map > $$@
 	# change browserify starting function by our own function
 	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
 	# build list of all files included in bundle (needed for r.js)
@@ -300,7 +300,7 @@ $~$2/htdocs/javascript/$3.js:
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 	$(msg/MINIFY.js) $3.js
-	uglifyjs -c warnings=false -m -o $~$$@+ $$<
+	uglifyjs -c warnings=false -m -o $~$$@+ $$< $$$$([ -f $$<.map ] && echo "--in-source-map $$<.map --source-map $$@.map --source-map-url $3.js.map")
 	$(FASTCP) $~$$@+ $$@
 endef
 
