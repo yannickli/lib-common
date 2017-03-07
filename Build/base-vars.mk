@@ -36,6 +36,7 @@ var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
 ~             := .build-$(var/profile)-$(var/hostname)/
 l             := $(var/libcommon)/
 p             := $(var/platform)
+var/wwwtool   := $/node_modules/.bin/
 export var/hostname
 
 var/verbose   := $(V)$(VERBOSE)
@@ -79,6 +80,7 @@ col/bg_default  := 48
 
 msg/generate    := $(msg/color) '0;$(col/yellow)'  " GEN"
 msg/depends     := $(msg/color) '0;$(col/yellow)'  " DEP"
+msg/npm         := $(msg/color) '0;$(col/yellow)'  " NPM"
 msg/CHECK.c     := $(msg/color) '0;$(col/green)'   ".CC "
 msg/CHECK.C     := $(msg/color) '0;$(col/green)'   ".CXX"
 msg/CHECK.py    := $(msg/color) '0;$(col/green)'   ".PY "

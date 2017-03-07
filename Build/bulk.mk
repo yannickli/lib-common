@@ -277,11 +277,10 @@ cscope: | __setup_buildsys_trampoline
 		| sort > .cscope.files && \
 		cscope -I$/lib-common/compat -I$/ -ub -i.cscope.files -f.cscope.out
 
-jshint: | __setup_buildsys_trampoline
+jshint: | __setup_buildsys_trampoline _npm_tools
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
 	$(msg/CHECK.js)
-	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
-	git ls-files -- '*.js' | xargs jshint
+	git ls-files -- '*.js' | xargs $(var/wwwtool)jshint
 
 www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
 
@@ -319,10 +318,17 @@ check-translations: translations
 www:: $(if $(NOCHECK),,check-translations)
 
 endif
+$/$~package.json: $/package.json
+	$(msg/npm) ""
+	cd $/ && npm install --silent > /dev/null
+	cp $< $@
+
+_npm_tools: $/$~package.json
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
-.PHONY: _generated_hdr _generated check-untracked translations check-translations
+.PHONY: _generated_hdr _generated check-untracked translations check-translations _npm_tools
+
 # }}}
 ##########################################################################
 # {{{ target exports from the build system

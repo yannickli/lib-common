@@ -20,11 +20,11 @@
 ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
 
 define ext/expand/css
-$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3
+$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3 | _npm_tools
 	$(msg/MINIFY.css) $3
 	mkdir -p `dirname "$~$$@"`
-	lessc -M $$< $$@ > $~$$@.d
-	(cat $(var/cfgdir)/head.css && lessc --compress $$<) > $$@+
+	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
+	(cat $(var/cfgdir)/head.css && $(var/wwwtool)lessc --compress $$<) > $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 -include $~$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)).d
 $2: $(strip $($1_DESTDIR))/$(notdir $(3:css=min.css))
@@ -41,11 +41,11 @@ endef
 ext/gen/less = $(if $(filter %.less,$1),$(strip $($2_DESTDIR))/$(notdir $(1:less=css)) $(call ext/gen/css,$(strip $($2_DESTDIR))/$(notdir $(1:less=css)),$2))
 
 define ext/expand/less
-$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3
+$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3 | _npm_tools
 	$(msg/COMPILE.less) $3
 	mkdir -p `dirname "$~$$@"`
-	lessc -M $$< $$@ > $~$$@.d
-	lessc $$< $$@+
+	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
+	$(var/wwwtool)lessc $$< $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 -include $~$(strip $($1_DESTDIR))/$(notdir $(3:less=css)).d
 $2: $(strip $($1_DESTDIR))/$(notdir $(3:less=css))
@@ -64,9 +64,9 @@ ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
 
 # ext/expand/legacy/js <PHONY>,<GARBAGE>,<JS>
 define ext/expand/legacy/js
-$(3:js=min.js): $3
+$(3:js=min.js): $3 | _npm_tools
 	$(msg/MINIFY.js) $3
-	uglifyjs -o $$@+ $$<
+	$(var/wwwtool)uglifyjs -o $$@+ $$<
 	(cat $(var/cfgdir)/head.js && cat $$@+) > $$@
 	$(RM) $$@+
 $2: $(3:js=min.js)
@@ -119,9 +119,9 @@ endef
 define ext/expand/ts
 $2: $~$(3:ts=js)
 $~$(3:ts=d.ts): $~$(3:ts=js)
-$~$(3:ts=js): $3
+$~$(3:ts=js): $3 | _npm_tools
 	$(msg/COMPILE.ts) $3
-	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
+	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
 	sed -e 's@///.*<reference.*@@' -i $~$(3:ts=d.ts)
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
@@ -251,9 +251,9 @@ $~$1/.build: | _generated_hdr
 	rsync --delete -r -k -K -H --exclude=".git" $($1_SOURCES) $$(dir $$@)
 	touch $~$1/.build
 
-$~$1/.mark: $~$1/.build $($1_CONFIG)
+$~$1/.mark: $~$1/.build $($1_CONFIG) | _npm_tools
 	$(msg/COMPILE.js) $($1_CONFIG)
-	r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
+	$(var/wwwtool)r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
 		|| (cat $~rjs.log; false)
 	touch $~$1/.mark
 
@@ -280,17 +280,17 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/<BUNDLE>.js
 define rule/wwwscript
-tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(dir $(shell which tsc))/../lib/js
+tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(var/wwwtool)../tsc/lib/js
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js: $~$2/package.json
 $~$2/htdocs/javascript/$3.js: _FLAGS=$($(1DV)$3_FLAGS)
-$~$2/htdocs/javascript/$3.js:
+$~$2/htdocs/javascript/$3.js: | _npm_tools
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --debug | exorcist $$@.map > $$@
+	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --debug | $(var/wwwtool)exorcist $$@.map > $$@
 	# change browserify starting function by our own function
 	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
 	# build list of all files included in bundle (needed for r.js)
@@ -298,9 +298,9 @@ $~$2/htdocs/javascript/$3.js:
 	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
-$2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
+$2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js | _npm_tools
 	$(msg/MINIFY.js) $3.js
-	uglifyjs -c warnings=false -m -o $~$$@+ $$< $$$$([ -f $$<.map ] && echo "--in-source-map $$<.map --source-map $$@.map --source-map-url $3.js.map")
+	$(var/wwtool)uglifyjs -c warnings=false -m -o $~$$@+ $$< $$$$([ -f $$<.map ] && echo "--in-source-map $$<.map --source-map $$@.map --source-map-url $3.js.map")
 	$(FASTCP) $~$$@+ $$@
 endef
 
