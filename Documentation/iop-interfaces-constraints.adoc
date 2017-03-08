@@ -5,8 +5,9 @@ The platform will ignore requests with larger query sizes.
 
 ==== Size of responses towards applications ====
 
-To find a fair trade-off between the responses size, network latencies and
-batch processing, we will limit the responses useful payload to 10 MB.
-Some additional data could be associated to the payload depending on
-the encoding (JSON or XML). Thus the overall responses could be slightly
-over 10 MB from a few kilobytes.
+So that our products find a fair trade-off between the responses size, network
+latencies and batch processing, applications should perform queries that limit
+the responses useful payload to 10 MB.
+
+There is no strict check about it, but this is a good practice that should
+be respected.

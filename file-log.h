@@ -80,6 +80,10 @@ typedef struct log_file_t {
     /* Event callback */
     log_file_cb_f *on_event;
     void          *priv_cb;
+
+    /* Internal usage. */
+    qh_t(u64) files_being_compressed;
+    int refcnt;
 } log_file_t;
 
 log_file_t *log_file_init(log_file_t *, const char *nametpl, int flags);
