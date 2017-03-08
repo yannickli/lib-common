@@ -17,10 +17,12 @@
 #
 # {{{ css
 
+$(var/wwwtool)lessc: _npm_tools
+
 ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
 
 define ext/expand/css
-$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3 $(var/wwwtool)lessc | _npm_tools
+$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3 $(var/wwwtool)lessc
 	$(msg/MINIFY.css) $3
 	mkdir -p `dirname "$~$$@"`
 	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
@@ -41,7 +43,7 @@ endef
 ext/gen/less = $(if $(filter %.less,$1),$(strip $($2_DESTDIR))/$(notdir $(1:less=css)) $(call ext/gen/css,$(strip $($2_DESTDIR))/$(notdir $(1:less=css)),$2))
 
 define ext/expand/less
-$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3 $(var/wwwtool)lessc | _npm_tools
+$(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3 $(var/wwwtool)lessc
 	$(msg/COMPILE.less) $3
 	mkdir -p `dirname "$~$$@"`
 	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
