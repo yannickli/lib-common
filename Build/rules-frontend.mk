@@ -245,7 +245,7 @@ endef
 
 define rule/js
 $(1DV)www:: $~$1/.mark $(1DV)$1
-$~$1/.build: $(foreach e,$($1_SOURCES),$e $(wildcard $e/**/*.js) $(wildcard $e/**/*.json))
+$~$1/.build: $(foreach e,$($1_SOURCES),$e $(shell find $e -type f -name '*.js' -or -name '*.json' -or -name '*.html' -not -name '* *'))
 $~$1/.build: | _generated_hdr
 	mkdir -p $$(dir $$@)
 	rsync --delete -r -k -K -H --exclude=".git" $($1_SOURCES) $$(dir $$@)
@@ -257,7 +257,7 @@ $~$1/.mark: $~$1/.build $($1_CONFIG)
 		|| (cat $~rjs.log; false)
 	touch $~$1/.mark
 
-$($1_MINIFY): $~$1/.mark
+$(foreach e,$($1_MINIFY),$(e:js=min.js)): $~$1/.mark
 $(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_MINIFY)))
 endef
 
