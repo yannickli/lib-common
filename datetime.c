@@ -14,6 +14,7 @@
 #include <locale.h>
 
 #include "datetime.h"
+#include "thr.h"
 
 /*
  *  Portable interface to the CPU cycle counter
@@ -806,16 +807,29 @@ static __thread struct {
 
 __attribute__((weak)) const char *lp_getsec_str(void)
 {
-    struct timeval tv;
-
-    lp_gettv(&tv);
     return lp_time_g.sec_str;
+}
+
+__attribute__((weak)) time_t lp_getsec(void)
+{
+    if (unlikely(!lp_time_g.sec || thr_id() != 0)) {
+        /* XXX: in the main thead, lp_gettv is called at the beginning of the
+         *      event loop, so we have the guarantee the cached values are "up
+         *      to date". This is not a guarantee we have in the other
+         *      threads, so call lp_gettv to refresh the cache.
+         */
+        struct timeval tv;
+
+        lp_gettv(&tv);
+        return tv.tv_sec;
+    }
+    return lp_time_g.sec;
 }
 
 __attribute__((weak)) void lp_gettv(struct timeval *tv)
 {
     gettimeofday(tv, NULL);
-    if (lp_time_g.sec != tv->tv_sec) {
+    if (unlikely(lp_time_g.sec != tv->tv_sec)) {
         lp_time_g.sec = tv->tv_sec;
         (sprintf)(lp_time_g.sec_str, "%lld", (long long)lp_time_g.sec);
     }
