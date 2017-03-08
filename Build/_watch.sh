@@ -26,8 +26,11 @@ TEMP="$(mktemp)"
 SRCROOT="$1"
 SRCSUBDIR="$2"
 PROFILE="$3"
+BUILDPATH="$4"
 
-watchman watch-project $1
+WATCHMAN="watchman -U $BUILDPATH/watchman.sock --statefile=$BUILDPATH/watchman.state"
+
+$WATCHMAN watch-project $1
 (
     echo "[ \"trigger\", \"$SRCROOT\", {"
     echo "    \"name\": \"make_watch\","
@@ -40,7 +43,6 @@ watchman watch-project $1
     echo "        [ \".gitignore\""
 
     list_in_path $SRCROOT
-    list_in_path $SRCROOT/platform platform/
     list_in_path $SRCROOT/lib-common lib-common/
     list_in_path $SRCROOT/platform/lib-common platform/lib-common/
 
@@ -48,7 +50,7 @@ watchman watch-project $1
     echo "       \"wholename\""
     echo "    ]"
     echo "} ]"
-) | watchman -j
+) | $WATCHMAN -j
 
-trap "watchman trigger-del $SRCROOT make_watch" INT TERM 0
+trap "$WATCHMAN trigger-del $SRCROOT make_watch" INT TERM 0
 tail -f $TEMP
