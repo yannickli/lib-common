@@ -98,13 +98,13 @@ prereq() {
 }
 
 check_iopc() {
-    IOPC_VER=5.0.13
+    IOPC_VER=5.0.14
     if ! prereq "$IOPC_VER" "$(iopc --version)"; then
         warn "iopc version $IOPC_VER required, update your tools"
     fi
     setenv "IOPC" "$(which iopc)"
     setenv "IOPVER" "-5"
-    setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index --c-unions-use-enums"
+    setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index --c-unions-use-enums --c-minimal-includes"
 }
 
 check_swift() {

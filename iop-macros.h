@@ -16,40 +16,6 @@
 #else
 #define IS_LIB_COMMON_IOP_MACROS_H
 
-/* {{{ IOP array initializers (repeated fields) */
-
-/** Type of the IOP array defined for the given IOP type */
-#define IOP_ARRAY_T(type)  type##__array_t
-
-/** Initialize a repeated field */
-#define IOP_ARRAY(_data, _len)  { .tab = (_data), .len = (_len), .flags = 0 }
-
-/** Initialize a typed repeated field */
-#define IOP_TYPED_ARRAY(_iop_type, _data, _len)                              \
-    (IOP_ARRAY_T(_iop_type))IOP_ARRAY(_data, _len)
-
-/** Initialize an empty repeated field */
-#define IOP_ARRAY_EMPTY         IOP_ARRAY(NULL, 0)
-
-/** Initialize a repeated field from a qvector */
-#define IOP_ARRAY_TAB(vec)      IOP_ARRAY((vec)->tab, (vec)->len)
-
-/** Initialize a typed repeated field from a qvector */
-#define IOP_TYPED_ARRAY_TAB(_iop_type, vec)                                  \
-    (IOP_ARRAY_T(_iop_type))IOP_ARRAY_TAB(vec)
-
-/** Duplicate a repeated field (the array is copied shallowly) */
-#define IOP_ARRAY_DUP(mp, array)                                             \
-    ({                                                                       \
-        typeof(array) _dup_array = (array);                                  \
-                                                                             \
-        _dup_array.tab = mp_dup(mp, _dup_array.tab, _dup_array.len);         \
-        _dup_array;                                                          \
-    })
-
-#define T_IOP_ARRAY_DUP(array)  IOP_ARRAY_DUP(t_pool(), array)
-
-/* }}} */
 /* {{{ IOP union helpers */
 
 /** Union tag  type */

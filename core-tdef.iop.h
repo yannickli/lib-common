@@ -2,7 +2,8 @@
 #ifndef IOP_HEADER_GUARD_core_TYPEDEFS_H
 #define IOP_HEADER_GUARD_core_TYPEDEFS_H
 
-#include <lib-common/iop.h>
+#include <lib-common/core.h>
+#include <lib-common/iop-internals.h>
 
 typedef enum core__log_level__t {
     LOG_LEVEL_EMERG,

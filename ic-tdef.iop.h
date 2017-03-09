@@ -2,7 +2,8 @@
 #ifndef IOP_HEADER_GUARD_ic_TYPEDEFS_H
 #define IOP_HEADER_GUARD_ic_TYPEDEFS_H
 
-#include <lib-common/iop.h>
+#include <lib-common/core.h>
+#include <lib-common/iop-internals.h>
 
 typedef enum ic__ic_priority__t {
     IC_PRIORITY_LOW,

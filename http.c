@@ -17,6 +17,7 @@
 #include "http.h"
 #include "httptokens.h"
 
+#include "iop.h"
 #include "core.iop.h"
 
 /*

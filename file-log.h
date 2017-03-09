@@ -17,6 +17,7 @@
 #include "file-bin.h"
 #include "file.h"
 #include "core.iop.h"
+#include "container-qhash.h"
 
 /* This module provides auto rotating log files: log files are rotated
  * automatically depending on file size or data, or both.
