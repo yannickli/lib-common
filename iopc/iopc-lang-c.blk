@@ -838,9 +838,14 @@ iopc_enum_dump_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
 
     sb_addf(buf,
             "%s iop_enum_t const %s__e;\n"
-            "%s iop_enum_t const * const %s %s__ep;\n"
-            "IOP_ENUM(%s);\n\n",
-            EXTERN, tbase, EXTERN, NONNULL, tbase, tbase);
+            "%s iop_enum_t const * const %s %s__ep;\n",
+            EXTERN, tbase, EXTERN, NONNULL, tbase);
+
+    if (!iopc_g.v5) {
+        sb_addf(buf, "IOP_ENUM(%s);\n", tbase);
+    }
+
+    sb_addc(buf, '\n');
 
     iopc_gen_ctype(buf, &en->attrs, tbase, IOP_T_ENUM, -1);
 }
@@ -1025,12 +1030,16 @@ static void iopc_struct_dump_hdr(sb_t *buf, const iopc_pkg_t *pkg,
     sb_addf(buf, "%s iop_struct_t const * const %s %s__sp;\n",
             EXTERN, NONNULL, tbase);
     if (iopc_is_class(st->type)) {
-        sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
+        if (!iopc_g.v5) {
+            sb_addf(buf, "IOP_CLASS(%s);\n\n", tbase);
+        }
         sb_addf(buf, "#define %s__class_id  %d\n\n", tbase, st->class_id);
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, st->class_id);
     } else
     if (!iopc_is_snmp_st(st->type)) {
-        sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
+        if (!iopc_g.v5) {
+            sb_addf(buf, "IOP_GENERIC(%s);\n\n", tbase);
+        }
         iopc_gen_ctype(buf, &st->attrs, tbase, IOP_T_STRUCT, -1);
     }
 }
@@ -1133,9 +1142,11 @@ static void iopc_union_dump_hdr(sb_t *buf, const char *pkg_name,
     sb_addf(buf, "    };\n"
             "};\n"
             "%s iop_struct_t const %s__s;\n"
-            "%s iop_struct_t const * const %s %s__sp;\n"
-            "IOP_GENERIC(%s);\n",
-            EXTERN, tbase, EXTERN, NONNULL, tbase, tbase);
+            "%s iop_struct_t const * const %s %s__sp;\n",
+            EXTERN, tbase, EXTERN, NONNULL, tbase);
+    if (!iopc_g.v5) {
+        sb_addf(buf, "IOP_GENERIC(%s);\n", tbase);
+    }
 
     /* Get & copy functions */
     sb_addf(buf, "#define %s__get(u, field)       "
