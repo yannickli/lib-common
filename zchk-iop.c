@@ -1987,7 +1987,7 @@ Z_GROUP_EXPORT(iop)
             _type##__t _exp;                                                 \
             const char *_path;                                               \
             qv_t(iop_json_subfile) _subfiles;                                \
-            iop_json_subfile_t _subfiles_exp[] = { __VA_ARGS__ };            \
+            iop_json_subfile__t _subfiles_exp[] = { __VA_ARGS__ };           \
             int _subfiles_nb = countof(_subfiles_exp);                       \
                                                                              \
             t_qv_init(&_subfiles, _subfiles_nb);           \
@@ -2098,7 +2098,7 @@ Z_GROUP_EXPORT(iop)
 
 #define ADD_SUB_FILE(_st, _val, _iop_path, _file_path)  \
         do {                                                                 \
-            qv_append(&sub_files, ((iop_json_subfile_t) {  \
+            qv_append(&sub_files, ((iop_json_subfile__t) {                   \
                 .iop_path = LSTR(_iop_path),                                 \
                 .file_path = LSTR(_file_path),                               \
             }));                                                             \

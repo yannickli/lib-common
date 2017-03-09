@@ -17,6 +17,7 @@
 #define IS_LIB_COMMON_IOP_JSON_H
 
 #include "file.h"
+#include "core.iop.h"
 
 /* {{{ Private API and definitions */
 
@@ -94,20 +95,7 @@ typedef struct iop_json_lex_t {
     iop_json_lex_ctx_t * nullable ctx;
 } iop_json_lex_t;
 
-/** Sub-file (un)packed with the include feature. */
-typedef struct iop_json_subfile_t {
-    /** Path to the (un)packed json.
-     *
-     * On unpack, the returned path is relative to the main file.
-     * On pack, the path can be either absolute or relative to the main file.
-     */
-    lstr_t file_path;
-
-    /** IOP path from the main (un)packed object. */
-    lstr_t iop_path;
-} iop_json_subfile_t;
-
-qvector_t(iop_json_subfile, iop_json_subfile_t);
+qvector_t(iop_json_subfile, iop_json_subfile__t);
 
 /* }}} */
 /* {{{ Parsing JSon */

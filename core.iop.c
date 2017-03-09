@@ -1709,6 +1709,88 @@ const iop_struct_t core__httpc_cfg__s = {
 iop_struct_t const * const core__httpc_cfg__sp = &core__httpc_cfg__s;
 
 /* }}} */
+/* Structure core.IopJsonSubfile {{{ */
+
+static const iop_help_t core__iop_json_subfile__file_path__f_help = {
+    .brief = LSTR_IMMED("Path to the (un)packed json."),
+    .details = LSTR_IMMED("On unpack, the returned path is relative to the main file.\012On pack, the path can be either absolute or relative to the main file."),
+};
+static iop_field_attr_t const core__iop_json_subfile__file_path__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__iop_json_subfile__file_path__f_help } },
+    },
+};
+static const iop_help_t core__iop_json_subfile__iop_path__f_help = {
+    .brief = LSTR_IMMED("IOP path from the main (un)packed object."),
+};
+static iop_field_attr_t const core__iop_json_subfile__iop_path__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__iop_json_subfile__iop_path__f_help } },
+    },
+};
+static iop_field_attrs_t const core__iop_json_subfile__desc_fields_attrs[] = {
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__iop_json_subfile__file_path__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__iop_json_subfile__iop_path__attrs,
+    },
+};
+static iop_field_t const core__iop_json_subfile__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("filePath"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__iop_json_subfile__t, file_path),
+        .size      = fieldsizeof(core__iop_json_subfile__t, file_path),
+    },
+    {
+        .name      = LSTR_IMMED("iopPath"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__iop_json_subfile__t, iop_path),
+        .size      = fieldsizeof(core__iop_json_subfile__t, iop_path),
+    },
+};
+static const iop_help_t core__iop_json_subfile__s_help = {
+    .brief = LSTR_IMMED("Sub-file (un)packed with the IOP-Json"),
+    .details = LSTR_IMMED("\134include feature."),
+};
+static const iop_struct_attr_t core__iop_json_subfile__s_attrs[] = {
+    {
+        .type = 6,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__iop_json_subfile__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__iop_json_subfile__s_desc_attrs = {
+    .flags     = 64,
+    .attrs_len = 1,
+    .attrs     = core__iop_json_subfile__s_attrs,
+};
+const iop_struct_t core__iop_json_subfile__s = {
+    .fullname   = LSTR_IMMED("core.IopJsonSubfile"),
+    .fields     = core__iop_json_subfile__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(core__iop_json_subfile__desc_fields),
+    .size       = sizeof(core__iop_json_subfile__t),
+    .flags      = 1,
+    .st_attrs   = &core__iop_json_subfile__s_desc_attrs,
+    .fields_attrs = core__iop_json_subfile__desc_fields_attrs,
+};
+iop_struct_t const * const core__iop_json_subfile__sp = &core__iop_json_subfile__s;
+
+/* }}} */
 /* Interface core.Log {{{ */
 /* Structure core.Log.setRootLevelArgs {{{ */
 
@@ -2075,6 +2157,7 @@ static const iop_struct_t *const core__structs[] = {
     &core__signed_licence__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,
+    &core__iop_json_subfile__s,
     NULL,
 };
 

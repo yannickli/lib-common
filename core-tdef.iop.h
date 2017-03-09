@@ -72,4 +72,7 @@ typedef IOP_ARRAY_OF(core__httpd_cfg__t) core__httpd_cfg__array_t;
 typedef struct core__httpc_cfg__t core__httpc_cfg__t;
 typedef IOP_ARRAY_OF(core__httpc_cfg__t) core__httpc_cfg__array_t;
 
+typedef struct core__iop_json_subfile__t core__iop_json_subfile__t;
+typedef IOP_ARRAY_OF(core__iop_json_subfile__t) core__iop_json_subfile__array_t;
+
 #endif

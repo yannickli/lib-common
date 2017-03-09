@@ -1077,7 +1077,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
 
     if (subfiles_g) {
         char relative_path[PATH_MAX];
-        iop_json_subfile_t subfile;
+        iop_json_subfile__t subfile;
         int len;
 
         assert (filenames_g.len);

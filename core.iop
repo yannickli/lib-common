@@ -322,6 +322,19 @@ enum IopHttpMethod {
     CONNECT = 7,
 };
 
+/** Sub-file (un)packed with the IOP-Json @include feature. */
+@ctype(iop_json_subfile__t)
+struct IopJsonSubfile {
+    /** Path to the (un)packed json.
+     *
+     * On unpack, the returned path is relative to the main file.
+     * On pack, the path can be either absolute or relative to the main file.
+     */
+    string filePath;
+
+    /** IOP path from the main (un)packed object. */
+    string iopPath;
+};
 
 /** Module exporting interfaces provided by lib-common.
  */

@@ -105,6 +105,16 @@ struct core__httpc_cfg__t {
 };
 EXPORT iop_struct_t const core__httpc_cfg__s;
 EXPORT iop_struct_t const * const nonnull  core__httpc_cfg__sp;
+struct core__iop_json_subfile__t {
+    lstr_t   file_path;
+    lstr_t   iop_path;
+};
+EXPORT iop_struct_t const core__iop_json_subfile__s;
+EXPORT iop_struct_t const * const nonnull  core__iop_json_subfile__sp;
+typedef core__iop_json_subfile__t iop_json_subfile__t;
+typedef core__iop_json_subfile__array_t iop_json_subfile__array_t;
+#define iop_json_subfile__s  core__iop_json_subfile__s
+
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop
 #endif
