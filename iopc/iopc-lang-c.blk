@@ -3675,9 +3675,16 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         sb_adds(&buf, iopc_do_c_g.iop_compat_header);
         sb_addc(&buf, '\n');
     } else {
-        sb_adds(&buf,
-                "#include <lib-common/iop.h>\n"
-                "\n");
+        if (iopc_do_c_g.minimal_includes) {
+            sb_adds(&buf,
+                    "#include <lib-common/core.h>\n"
+                    "#include <lib-common/iop-internals.h>\n"
+                    "\n");
+        } else {
+            sb_adds(&buf,
+                    "#include <lib-common/iop.h>\n"
+                    "\n");
+        }
     }
 
     tab_for_each_entry(en, &pkg->enums) {

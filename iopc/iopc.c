@@ -72,6 +72,7 @@ static popt_t options[] = {
      * - unions cannot be empty (#50352 / I5c9bc521e3ce)
      * - export nullability attributes on pointed types (Idfab7cb64ae16)
      * - export symbols (Ic430d3e80e12f3)
+     * - minimal imports (Iad8aaaafb)
      */
     OPT_FLAG('6', "features-v6",  &_G.v6,
              "use iopc v6 features (in progress)"),
@@ -85,6 +86,8 @@ static popt_t options[] = {
              "use an enum for selected field in unions instead of an int"),
     OPT_FLAG(0,   "c-export-symbols", &iopc_do_c_g.export_symbols,
              "publicly export C symbols"),
+    OPT_FLAG(0,   "c-minimal-includes", &iopc_do_c_g.minimal_includes,
+             "include core.h/iop-internals.h instead of iop.h"),
     OPT_STR(0,    "c-output-path", &opts.c_outpath,
             "base of the compiled hierarchy for C files"),
 
@@ -267,6 +270,7 @@ int main(int argc, char **argv)
     iopc_do_c_g.export_nullability |= _G.v6;
     iopc_do_c_g.export_nullability |= iopc_do_c_g.include_swift_support;
     iopc_do_c_g.export_symbols |= _G.v6;
+    iopc_do_c_g.minimal_includes |= _G.v6;
 
     _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
     _G.display_prefix = true;

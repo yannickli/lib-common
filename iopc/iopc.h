@@ -16,7 +16,7 @@
 
 #define IOPC_MAJOR   5
 #define IOPC_MINOR   0
-#define IOPC_PATCH   13
+#define IOPC_PATCH   14
 
 #define SNMP_OBJ_OID_MIN 1
 #define SNMP_OBJ_OID_MAX 0xFFFF
@@ -1064,11 +1064,18 @@ extern struct iopc_do_c_globs {
      */
     bool export_symbols;
 
+    /** Include core.h/iop-internals.h instead of iop.h.
+     */
+    bool minimal_includes;
+
     const char *data_c_type;
     /** remove const on all objects that may contain a pointer to an
      * iop_struct_t */
     bool no_const;
-    /** use iop compat header in memory instead of lib-common/iop.h */
+
+    /** Use iop compat header in memory instead of lib-common/core.h +
+     *  lib-common/iop-internals.h
+     */
     const char *iop_compat_header;
 
     /** Generate swift compatible types.
