@@ -4321,6 +4321,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NULL(iop_get_field(&f_d_vals[0], &tstiop__my_union_a__s,
                                     LSTR("ub"), NULL));
 
+        Z_ASSERT_P(iop_get_field(&f_e_cls3, &tstiop__my_class3__s,
+                                 LSTR("int3"), NULL));
+        Z_ASSERT_P(iop_get_field(&f_e_cls3.super, &tstiop__my_class2__s,
+                                 LSTR("int3"), NULL));
+
         iop_field = iop_get_field(&struct_a, &tstiop__my_struct_a__s,
                                   LSTR("a"), &out);
         Z_ASSERT_P(iop_field);
@@ -4542,10 +4547,10 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(*(int *)out, f_e_cls3.int2);
 
         iop_field = iop_get_field(&struct_f, &tstiop__my_struct_f__s,
-                                  LSTR("e[2].int3"), &out);
+                                  LSTR("e[2].bool1"), &out);
         Z_ASSERT_P(iop_field);
         Z_ASSERT_P(out);
-        Z_ASSERT_EQ(*(int *)out, f_e_cls3.int3);
+        Z_ASSERT(out == &f_e_cls3.bool1);
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_value_from_field, "test iop_value_from_field") { /* {{{ */
