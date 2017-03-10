@@ -257,6 +257,7 @@ $~$1/.mark: $~$1/.build $($1_CONFIG)
 		|| (cat $~rjs.log; false)
 	touch $~$1/.mark
 
+$($1_MINIFY): $~$1/.mark
 $(foreach e,$($1_MINIFY),$(e:js=min.js)): $~$1/.mark
 $(eval $(call fun/foreach-ext-rule-nogen,$1,$(1DV)$1,$($1_MINIFY)))
 endef
