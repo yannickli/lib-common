@@ -23,6 +23,16 @@ $(var/wwwtool)r.js: _npm_tools
 $(var/wwwtool)browserify: _npm_tools
 $(var/wwwtool)exorcist: _npm_tools
 
+$/$~package-installed.json: $/package.json
+	$(msg/npm) ""
+	cd $(dir $<) && npm install --silent > /dev/null
+	cp $< $@
+
+$/$~%package-installed.json: $/%package.json
+	$(msg/npm) "$(patsubst $/%/package.json,%,$<)"
+	cd $(dir $<) && npm install --silent > /dev/null
+	cp $< $@
+
 # }}}
 
 

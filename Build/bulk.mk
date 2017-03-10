@@ -318,12 +318,7 @@ check-translations: translations
 www:: $(if $(NOCHECK),,check-translations)
 
 endif
-$/$~package.json: $/package.json
-	$(msg/npm) ""
-	cd $/ && npm install --silent > /dev/null
-	cp $< $@
-
-_npm_tools: $/$~package.json
+_npm_tools: $/$~package-installed.json
 _generated_hdr:
 _generated: _generated_hdr
 	$(msg/echo) ' ... generating sources done'
