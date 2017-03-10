@@ -1931,6 +1931,7 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */
         t_scope;
         SB_1k(err);
+        const char *exp_err;
         qv_t(iop_json_subfile) sub_files;
         qv_t(z_json_sub_file)  z_sub_files;
         tstiop__my_struct_a_opt__t obj_basic_string;
@@ -2121,16 +2122,14 @@ Z_GROUP_EXPORT(iop)
         CLEAR_SUB_FILES();
         ADD_SUB_FILE(NULL, &obj_basic_string.j, "j",
                      "/path/to/unknown/file.txt");
-        T_KO(tstiop__my_struct_a_opt, &obj_basic_string,
-             "cannot write `/path/to/unknown/file.txt`: "
-             "No such file or directory");
+        exp_err = "cannot create directory `/path/to/unknown`: "
+                  "Permission denied";
+        T_KO(tstiop__my_struct_a_opt, &obj_basic_string, exp_err);
 
         CLEAR_SUB_FILES();
         ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b",
                      "/path/to/unknown/file.json");
-        T_KO(tstiop__my_struct_c, &obj_struct,
-             "cannot open output file `/path/to/unknown/file.json`: "
-             "No such file or directory");
+        T_KO(tstiop__my_struct_c, &obj_struct, exp_err);
 
         /* Basic string */
         CLEAR_SUB_FILES();

@@ -2058,6 +2058,7 @@ typedef struct jpack_file_ctx_t {
     bool                      has_sub_files;
     qm_t(iop_jpack_sub_files) sub_files;
     qv_t(str)                 created_sub_files;
+    qv_t(str)                 created_sub_dirs;
     const char               *recursive_file_path;
     qv_t(iop_json_field_path) field_paths;
 } jpack_file_ctx_t;
@@ -2261,9 +2262,11 @@ static int write_field(const iop_struct_t *st, const void *value,
                        int (^do_inline)(void),
                        int (^do_include)(const char *path))
 {
+    int ret;
     int res = 0;
     lstr_t sub_file_path;
     char fullpath[PATH_MAX];
+    char fullpath_dir[PATH_MAX];
     char relative_path[PATH_MAX];
     const char *prev_recursive_file_path;
 
@@ -2305,20 +2308,33 @@ static int write_field(const iop_struct_t *st, const void *value,
     prev_recursive_file_path = file_ctx->recursive_file_path;
     file_ctx->recursive_file_path = fullpath;
 
+    /* Ensure directory for subfile exists. */
+    path_dirname(fullpath_dir, sizeof(fullpath_dir), fullpath);
+    ret = mkdir_p(fullpath_dir, 0755);
+    if (ret < 0) {
+        if (file_ctx->err) {
+            sb_addf(file_ctx->err, "cannot create directory `%s`: %m",
+                    fullpath_dir);
+        }
+        return -1;
+    }
+    if (ret == 1) {
+        qv_append(&file_ctx->created_sub_dirs, p_strdup(fullpath_dir));
+    }
+
     /* Write include file. */
     if (do_include(fullpath) < 0) {
         return -1;
     }
-
     file_ctx->recursive_file_path = prev_recursive_file_path;
+
+    /* Remember include file as a created file. */
+    qv_append(&file_ctx->created_sub_files, p_strdup(fullpath));
 
     /* Write include in original path. */
     PUTS("@include(");
     res += RETHROW(write_string(sub_file_path, IOP_T_STRING, writecb, priv));
     PUTS(")");
-
-    /* Remember include file as a created file. */
-    qv_append(&file_ctx->created_sub_files, p_strdup(fullpath));
 
     return res;
 }
@@ -2764,6 +2780,9 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
         tab_for_each_entry(file, &ctx.created_sub_files) {
             IGNORE(unlink(file));
         }
+        tab_for_each_entry(dir, &ctx.created_sub_dirs) {
+            IGNORE(rmdir_r(dir, false));
+        }
     }
 
     if (ctx.has_sub_files) {
@@ -2773,6 +2792,7 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
      }
 
     qv_deep_wipe(&ctx.created_sub_files, p_delete);
+    qv_deep_wipe(&ctx.created_sub_dirs,  p_delete);
     qv_wipe(&ctx.field_paths);
     return res;
 }
