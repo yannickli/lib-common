@@ -104,6 +104,9 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             THROW_NULL_IF(!ps_done(&as));
         }
 
+        if (iop_struct_is_class(st)) {
+            st = *(const iop_struct_t **)ptr;
+        }
         RETHROW_NP(iop_field_find_by_name(st, LSTR_PS_V(&s), out_st,
                                           &iop_field));
         if (st->is_union && *(int16_t *)ptr != iop_field->tag) {
@@ -128,12 +131,7 @@ const iop_field_t *iop_get_field(const void *ptr, const iop_struct_t *st,
             if (!ps_done(&ps) && iop_field_is_pointed(iop_field)) {
                 ptr = *(const void **)ptr;
             }
-
-            if (iop_field_is_class(iop_field)) {
-                st = *(const iop_struct_t **)ptr;
-            } else {
-                st = iop_field->u1.st_desc;
-            }
+            st = iop_field->u1.st_desc;
             break;
           default:
             THROW_NULL_IF(!ps_done(&ps));
