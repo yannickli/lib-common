@@ -11,13 +11,25 @@
 #                                                                        #
 ##########################################################################
 
+#
+# tools
+#
+# {{{ tools
+
+$(var/wwwtool)lessc: _npm_tools
+$(var/wwwtool)uglifyjs: _npm_tools
+$(var/wwwtool)tsc: _npm_tools
+$(var/wwwtool)r.js: _npm_tools
+$(var/wwwtool)browserify: _npm_tools
+$(var/wwwtool)exorcist: _npm_tools
+
+# }}}
+
 
 #
 # extension driven rules
 #
 # {{{ css
-
-$(var/wwwtool)lessc: _npm_tools
 
 ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
 
@@ -66,7 +78,7 @@ ext/gen/js = $(call fun/patsubst-filt,%.js,%.min.js,$1)
 
 # ext/expand/legacy/js <PHONY>,<GARBAGE>,<JS>
 define ext/expand/legacy/js
-$(3:js=min.js): $3 | _npm_tools
+$(3:js=min.js): $3 $(var/wwwtool)uglifyjs
 	$(msg/MINIFY.js) $3
 	$(var/wwwtool)uglifyjs -o $$@+ $$<
 	(cat $(var/cfgdir)/head.js && cat $$@+) > $$@
@@ -121,7 +133,7 @@ endef
 define ext/expand/ts
 $2: $~$(3:ts=js)
 $~$(3:ts=d.ts): $~$(3:ts=js)
-$~$(3:ts=js): $3 | _npm_tools
+$~$(3:ts=js): $3 $(var/wwwtool)tsc
 	$(msg/COMPILE.ts) $3
 	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
 	sed -e 's@///.*<reference.*@@' -i $~$(3:ts=d.ts)
@@ -253,7 +265,7 @@ $~$1/.build: | _generated_hdr
 	rsync --delete -r -k -K -H -L --exclude=".git" $($1_SOURCES) $$(dir $$@)
 	touch $~$1/.build
 
-$~$1/.mark: $~$1/.build $($1_CONFIG) | _npm_tools
+$~$1/.mark: $~$1/.build $($1_CONFIG) $(var/wwwtool)r.js
 	$(msg/COMPILE.js) $($1_CONFIG)
 	$(var/wwwtool)r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
 		|| (cat $~rjs.log; false)
@@ -294,7 +306,7 @@ $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js: $~$2/package.json
 $~$2/htdocs/javascript/$3.js: _FLAGS=$($(1DV)$3_FLAGS)
 $~$2/htdocs/javascript/$3.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%))
-$~$2/htdocs/javascript/$3.js: | _npm_tools
+$~$2/htdocs/javascript/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exorcist
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
 	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify \
@@ -310,7 +322,7 @@ $~$2/htdocs/javascript/$3.js: | _npm_tools
 	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
-$2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js | _npm_tools
+$2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js
 	$(FASTCP) $$< $$@
 	([ -f $$<.map ] && $(FASTCP) $$<.map $$@.map) || true
 endef
