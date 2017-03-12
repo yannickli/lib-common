@@ -520,9 +520,7 @@ void module_run_method(const module_method_t *method, data_t arg)
     }
 }
 
-static void
-module_add_method(module_t *module, module_method_impl_t *method,
-                  qh_t(ptr) *already_run)
+static void module_add_method(module_t *module, module_method_impl_t *method)
 {
     void *cb = qm_get_def(methods, &module->methods, method->params, NULL);
 
@@ -548,7 +546,7 @@ static void rec_module_run_method(module_t *module,
                 rec_module_run_method(dep, method, already_run);
             }
         }
-        module_add_method(module, method, already_run);
+        module_add_method(module, method);
     }
 
     tab_for_each_entry(dep, &module->dependent_of) {
@@ -557,7 +555,7 @@ static void rec_module_run_method(module_t *module,
     }
 
     if (method->params->order == MODULE_DEPS_BEFORE) {
-        module_add_method(module, method, already_run);
+        module_add_method(module, method);
     }
 }
 
