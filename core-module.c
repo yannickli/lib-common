@@ -103,7 +103,9 @@ static struct module_g {
 
     /* Keep track if we are currently initializing a module */
     int in_initialization;
-    bool is_shutdown;
+
+    bool is_shutdown   : 1;
+    bool methods_dirty : 1;
 } module_g = {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
@@ -246,7 +248,7 @@ void module_require(module_t *module, module_t *required_by)
     logger_trace(&_G.logger, 1, "requiring `%*pM` dependencies",
                  LSTR_FMT_ARG(module->name));
 
-    module_method_register_all_cb();
+    _G.methods_dirty = true;
 
     tab_for_each_entry(dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
@@ -257,7 +259,7 @@ void module_require(module_t *module, module_t *required_by)
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
         set_require_type(module, required_by);
-        module_method_register_all_cb();
+        _G.methods_dirty = true;
         _G.in_initialization--;
         return;
     }
@@ -340,7 +342,7 @@ static int module_shutdown(module_t *module)
         module->state = FAIL_SHUT;
     }
 
-    module_method_register_all_cb();
+    _G.methods_dirty = true;
 
     tab_for_each_entry(dep, &module->dependent_of) {
         int shut;
@@ -492,6 +494,10 @@ void module_run_method(const module_method_t *method, data_t arg)
 {
     module_method_impl_t *m;
 
+    if (unlikely(_G.methods_dirty)) {
+        module_method_register_all_cb();
+    }
+
     m = qm_get_def(methods_impl, &_G.methods, method, NULL);
     if (!m) {
         /* method not implemented */
@@ -596,6 +602,7 @@ static void module_method_register_all_cb(void)
 
         module_method_register_cb(m);
     }
+    _G.methods_dirty = false;
 }
 
 MODULE_METHOD(INT, DEPS_BEFORE, on_term);
