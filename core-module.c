@@ -37,7 +37,7 @@ static module_method_impl_t *module_method_wipe(module_method_impl_t *method)
 GENERIC_DELETE(module_method_impl_t, module_method);
 
 qm_khptr_ckey_t(methods_impl, module_method_t, module_method_impl_t *);
-static void module_build_method_all_cb(void);
+static void module_method_register_all_cb(void);
 
 /* }}} */
 /* {{{ modules */
@@ -246,7 +246,7 @@ void module_require(module_t *module, module_t *required_by)
     logger_trace(&_G.logger, 1, "requiring `%*pM` dependencies",
                  LSTR_FMT_ARG(module->name));
 
-    module_build_method_all_cb();
+    module_method_register_all_cb();
 
     tab_for_each_entry(dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
@@ -257,7 +257,7 @@ void module_require(module_t *module, module_t *required_by)
 
     if ((*module->constructor)(module->constructor_argument) >= 0) {
         set_require_type(module, required_by);
-        module_build_method_all_cb();
+        module_method_register_all_cb();
         _G.in_initialization--;
         return;
     }
@@ -340,7 +340,7 @@ static int module_shutdown(module_t *module)
         module->state = FAIL_SHUT;
     }
 
-    module_build_method_all_cb();
+    module_method_register_all_cb();
 
     tab_for_each_entry(dep, &module->dependent_of) {
         int shut;
@@ -529,11 +529,11 @@ static void module_add_method(module_t *module, module_method_impl_t *method)
     }
 }
 
-static void rec_module_run_method(module_t *module,
-                                  module_method_impl_t *method,
-                                  qh_t(ptr) *already_run)
+static void module_register_method(module_t *module,
+                                   module_method_impl_t *method,
+                                   qh_t(ptr) *already_registered)
 {
-    int pos = qh_put(ptr, already_run, module, 0);
+    int pos = qh_put(ptr, already_registered, module, 0);
 
     assert (module_is_loaded(module));
     if (pos & QHASH_COLLISION) {
@@ -543,15 +543,15 @@ static void rec_module_run_method(module_t *module,
     if (method->params->order == MODULE_DEPS_AFTER) {
         tab_for_each_entry(dep, &module->required_by) {
             if (module_is_loaded(dep)) {
-                rec_module_run_method(dep, method, already_run);
+                module_register_method(dep, method, already_registered);
             }
         }
         module_add_method(module, method);
     }
 
     tab_for_each_entry(dep, &module->dependent_of) {
-        rec_module_run_method(qm_get(module, &_G.modules, &dep), method,
-                              already_run);
+        module_register_method(qm_get(module, &_G.modules, &dep), method,
+                               already_registered);
     }
 
     if (method->params->order == MODULE_DEPS_BEFORE) {
@@ -559,45 +559,42 @@ static void rec_module_run_method(module_t *module,
     }
 }
 
-static void module_build_method_cb(module_method_impl_t *method)
+static void module_method_register_cb(module_method_impl_t *method)
 {
-    qh_t(ptr) already_run;
+    qh_t(ptr) already_registered;
 
     qv_clear(&method->callbacks);
 
-    qh_init(ptr, &already_run);
-    /* First pass: run the method from all manual required modules. */
+    qh_init(ptr, &already_registered);
+
     qm_for_each_pos(module, position, &_G.modules) {
         module_t *module = _G.modules.values[position];
 
         if (module->state == MANU_REQ && module->required_by.len == 0) {
-            rec_module_run_method(module, method, &already_run);
+            module_register_method(module, method, &already_registered);
         } else
         if (module->state == INITIALIZING) {
-            /* *This happens when a module runs a method during its
-             * initialization since the state of the module is set only when
-             * it is completely initialized.
-             */
             assert (_G.in_initialization);
             tab_for_each_entry(dep, &module->dependent_of) {
                 module_t *module_dep = qm_get(module, &_G.modules, &dep);
 
                 if (module_is_loaded(module_dep)) {
-                    rec_module_run_method(module_dep, method, &already_run);
+                    module_register_method(module_dep, method,
+                                           &already_registered);
                 }
             }
         }
     }
 
-    qh_wipe(ptr, &already_run);
+    qh_wipe(ptr, &already_registered);
 }
 
-static void module_build_method_all_cb(void)
+static void module_method_register_all_cb(void)
 {
     qm_for_each_pos(methods_impl, pos, &_G.methods) {
         module_method_impl_t *m = _G.methods.values[pos];
 
-        module_build_method_cb(m);
+        module_method_register_cb(m);
     }
 }
 
