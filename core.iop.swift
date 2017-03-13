@@ -15,6 +15,8 @@ extension core__httpd_cfg__array_t : libcommon.IopComplexTypeArray { }
 
 extension core__httpc_cfg__array_t : libcommon.IopComplexTypeArray { }
 
+extension core__iop_json_subfile__array_t : libcommon.IopComplexTypeArray { }
+
 extension core__log_level__t : libcommon.IopEnum {
     public static let descriptor = core__log_level__ep
     public static let min : Swift.Int32 = LOG_LEVEL_min
@@ -404,6 +406,31 @@ public enum core : libcommon.IopPackage {
             data.pointee.on_data_threshold = self.onDataThreshold
             data.pointee.header_line_max = self.headerLineMax
             data.pointee.header_size_max = self.headerSizeMax
+        }
+    }
+
+    public struct IopJsonSubfile : libcommon.IopStruct {
+        public static let descriptor = core__iop_json_subfile__sp
+
+        public var filePath : Swift.String
+        public var iopPath : Swift.String
+
+        public init(filePath: Swift.String,
+                    iopPath: Swift.String) {
+            self.filePath = filePath
+            self.iopPath = iopPath
+        }
+
+        public init(_ c: Swift.UnsafeRawPointer) throws {
+            let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1).pointee
+            self.filePath = Swift.String(data.file_path) ?? ""
+            self.iopPath = Swift.String(data.iop_path) ?? ""
+        }
+
+        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+            let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1)
+             data.pointee.file_path = self.filePath.duplicated(on: allocator)
+             data.pointee.iop_path = self.iopPath.duplicated(on: allocator)
         }
     }
 
