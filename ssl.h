@@ -374,6 +374,39 @@ int rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
 __must_check__
 int rsa_verif_finish(rsa_verif_t * nonnull * nonnull ctx);
 
+/** Generate a RSA signature of an IOP structure with a private key.
+ *
+ * This function computes a signature from the IOP structure using the
+ * provided private key. The public key associated with the private key is
+ * required in order to check the signature.
+ *
+ * \param[in] st     IOP structure description.
+ * \param[in] v      IOP structure to sign.
+ * \param[in] priv_key The private key, in PEM format.
+ * \param[in] flags  Flags modifying the hashing algorithm. The same flags
+ *                   must be used when computing and checking the signature.
+ */
+lstr_t t_iop_compute_rsa_signature(const iop_struct_t * nonnull st,
+                                   const void * nonnull v, lstr_t priv_key,
+                                   unsigned flags);
+
+/** Check the RSA signature of an IOP structure with a public key.
+ *
+ * This function checks the signature of an IOP structure that way signed
+ * using the private key associated to the \p pub_key public key.
+ *
+ * \param[in] st     IOP structure description.
+ * \param[in] v      IOP structure to check.
+ * \param[in] pub_key The public key, in PEM format.
+ * \param[in] sig    Excepted signature.
+ * \param[in] flags  Flags modifying the hashing algorithm. The same flags
+ *                   must be used when computing and checking the signature.
+ */
+__must_check__
+int iop_check_rsa_signature(const iop_struct_t * nonnull st,
+                            const void * nonnull v, lstr_t pub_key,
+                            lstr_t sig, unsigned flags);
+
 #endif
 
 /* }}} */

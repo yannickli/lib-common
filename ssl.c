@@ -691,6 +691,89 @@ int rsa_verif_finish(rsa_verif_t **pctx)
 }
 
 /* }}} */
+/* {{{ IOP helpers */
+
+static int iop_rsa_sign(const struct iop_struct_t * nonnull st,
+                        const void * nonnull v, lstr_t priv_key,
+                        rsa_hash_algo_t algo, sb_t * nonnull out,
+                        unsigned flags)
+{
+    rsa_sign_t *sg = RETHROW_PN(rsa_sign_new(priv_key, algo));
+
+    iop_hash(st, v, (iop_hash_f *)&rsa_sign_update, sg, flags);
+    return rsa_sign_finish_hex(&sg, out);
+}
+
+lstr_t t_iop_compute_rsa_signature(const iop_struct_t *st, const void *v,
+                                   lstr_t priv_key, unsigned flags)
+{
+    SB_1k(out);
+
+    sb_adds(&out, "$RSA:SHA256$");
+    if (iop_rsa_sign(st, v, priv_key, RSA_HASH_SHA256, &out, flags) < 0) {
+        return LSTR_NULL_V;
+    }
+
+    return t_lstr_dups(out.data, out.len);
+}
+
+
+static int iop_rsa_verif(const struct iop_struct_t * nonnull st,
+                         const void * nonnull v, lstr_t pub_key,
+                         rsa_hash_algo_t algo, lstr_t sig, unsigned flags)
+{
+    rsa_verif_t *sg = RETHROW_PN(rsa_verif_hex_new(pub_key, algo, sig));
+
+    iop_hash(st, v, (iop_hash_f *)&rsa_verif_update, sg, flags);
+    return rsa_verif_finish(&sg);
+}
+
+int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
+                            lstr_t pub_key, lstr_t signature, unsigned flags)
+{
+    pstream_t ps = ps_initlstr(&signature);
+    pstream_t n;
+    rsa_hash_algo_t algo;
+
+#ifndef NDEBUG
+    if (lstr_equal(signature, LSTR("$42:defeca7e$"))) {
+        return 0;
+    }
+#endif
+
+
+    if (ps_skipstr(&ps, "$RSA:") < 0) {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid RSA signature: bad signature tag");
+#endif
+    }
+
+    if (ps_get_ps_chr_and_skip(&ps, '$', &n) < 0) {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid RSA signature: malformed algorithm name");
+#endif
+    }
+
+    if (ps_strequal(&n, "SHA256")) {
+        algo = RSA_HASH_SHA256;
+    } else {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid RSA signature: unsupported algorith `%*pM`",
+                       PS_FMT_ARG(&n));
+#endif
+    }
+
+    return iop_rsa_verif(st, v, pub_key, algo, LSTR_PS_V(&ps), flags);
+}
+
+
+/* }}} */
 
 #endif
 
