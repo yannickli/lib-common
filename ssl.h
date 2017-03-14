@@ -98,6 +98,8 @@
 # define SSL_HAVE_EVP_PKEY
 #endif
 
+/* Encryption {{{ */
+
 enum ssl_ctx_state {
     SSL_CTX_NONE,
     SSL_CTX_INIT,
@@ -331,7 +333,51 @@ ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     return 0;
 }
 
+/* }}} */
+/* {{{ Signature */
 
+#ifdef SSL_HAVE_EVP_PKEY
+
+typedef enum rsa_hash_algo_t {
+    RSA_HASH_SHA256,
+} rsa_hash_algo_t;
+
+typedef struct rsa_sign_t rsa_sign_t;
+
+rsa_sign_t * nullable rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo);
+
+__must_check__
+int rsa_sign_update(rsa_sign_t * nonnull ctx, const void * nonnull input,
+                    int ilen);
+
+__must_check__
+int rsa_sign_finish(rsa_sign_t * nonnull * nonnull ctx, sb_t *out);
+
+__must_check__
+int rsa_sign_finish_hex(rsa_sign_t * nonnull * nonnull ctx, sb_t *out);
+
+
+typedef struct rsa_verif_t rsa_verif_t;
+
+__must_check__
+rsa_verif_t * nullable rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
+                                     lstr_t bin_sig);
+
+__must_check__
+rsa_verif_t * nullable rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
+                                         lstr_t hex_sig);
+
+__must_check__
+int rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
+                     int ilen);
+
+__must_check__
+int rsa_verif_finish(rsa_verif_t * nonnull * nonnull ctx);
+
+#endif
+
+/* }}} */
+/* {{{ Licence */
 /* ---- misc SSL usages for others modules ---- */
 
 /**
@@ -344,6 +390,7 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
  */
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
+/* }}} */
 /* Module {{{ */
 
 MODULE_DECLARE(ssl);

@@ -488,6 +488,213 @@ int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
 /* }}} */
 /* }}} */
+/* {{{ Signature */
+
+#ifdef SSL_HAVE_EVP_PKEY
+
+typedef struct rsa_ctx_t {
+    BIO *keybio;
+    EVP_PKEY *key;
+    EVP_MD_CTX *digest;
+} rsa_ctx_t;
+
+static void rsa_ctx_wipe(rsa_ctx_t *sg)
+{
+    if (sg->digest) {
+        EVP_MD_CTX_destroy(sg->digest);
+    }
+    if (sg->key) {
+        EVP_PKEY_free(sg->key);
+    }
+    if (sg->keybio) {
+        BIO_free(sg->keybio);
+    }
+}
+
+static const EVP_MD *from_rsa_algo(rsa_hash_algo_t algo)
+{
+    switch (algo) {
+      case RSA_HASH_SHA256:
+        return EVP_sha256();
+
+      default:
+        e_panic("unsupported algorithm");
+    }
+}
+
+/* {{{ Signature */
+
+struct rsa_sign_t {
+    rsa_ctx_t ctx;
+};
+
+static void rsa_sign_wipe(rsa_sign_t *sg)
+{
+    rsa_ctx_wipe(&sg->ctx);
+}
+
+GENERIC_DELETE(rsa_sign_t, rsa_sign);
+
+rsa_sign_t *rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo)
+{
+    rsa_sign_t *sg;
+
+    sg = p_new(rsa_sign_t, 1);
+    sg->ctx.keybio = BIO_new_mem_buf(priv_key.v, priv_key.len);
+    if (!sg->ctx.keybio) {
+        goto error;
+    }
+
+    /* TODO add callback to read passphrase */
+    sg->ctx.key = PEM_read_bio_PrivateKey(sg->ctx.keybio, NULL, NULL, NULL);
+    if (!sg->ctx.key) {
+        goto error;
+    }
+
+    sg->ctx.digest = EVP_MD_CTX_create();
+    if (!sg->ctx.digest) {
+        goto error;
+    }
+
+    if (EVP_DigestSignInit(sg->ctx.digest, NULL, from_rsa_algo(algo),
+                           NULL, sg->ctx.key) <= 0)
+    {
+        goto error;
+    }
+
+    return sg;
+
+  error:
+    rsa_sign_delete(&sg);
+    return NULL;
+}
+
+int rsa_sign_update(rsa_sign_t *ctx, const void *input, int ilen)
+{
+    if (EVP_DigestSignUpdate(ctx->ctx.digest, input, ilen) <= 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int rsa_sign_finish(rsa_sign_t **pctx, sb_t *out)
+{
+    size_t len;
+    rsa_sign_t *ctx = *pctx;
+
+    if (EVP_DigestSignFinal(ctx->ctx.digest, NULL, &len) <= 0) {
+        rsa_sign_delete(pctx);
+        return -1;
+    }
+
+    sb_grow(out, len);
+    if (EVP_DigestSignFinal(ctx->ctx.digest, (byte *)sb_end(out), &len) <= 0) {
+        rsa_sign_delete(pctx);
+        return -1;
+    }
+
+    __sb_fixlen(out, out->len + len);
+    rsa_sign_delete(pctx);
+    return 0;
+}
+
+int rsa_sign_finish_hex(rsa_sign_t **pctx, sb_t *out)
+{
+    SB_1k(bin);
+
+    RETHROW(rsa_sign_finish(pctx, &bin));
+    sb_add_hex(out, bin.data, bin.len);
+    return 0;
+}
+
+/* }}} */
+/* {{{ Verification */
+
+struct rsa_verif_t {
+    rsa_ctx_t ctx;
+    lstr_t sig;
+};
+
+static void rsa_verif_wipe(rsa_verif_t *sg)
+{
+    rsa_ctx_wipe(&sg->ctx);
+    lstr_wipe(&sg->sig);
+}
+
+GENERIC_DELETE(rsa_verif_t, rsa_verif);
+
+rsa_verif_t *rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
+                           lstr_t bin_sig)
+{
+    rsa_verif_t *sg;
+
+    sg = p_new(rsa_verif_t, 1);
+    sg->ctx.keybio = BIO_new_mem_buf(pub_key.v, pub_key.len);
+    if (!sg->ctx.keybio) {
+        goto error;
+    }
+
+    /* TODO add callback to read passphrase */
+    sg->ctx.key = PEM_read_bio_PUBKEY(sg->ctx.keybio, NULL, NULL, NULL);
+    if (!sg->ctx.key) {
+        goto error;
+    }
+
+    sg->ctx.digest = EVP_MD_CTX_create();
+    if (!sg->ctx.digest) {
+        goto error;
+    }
+
+    if (EVP_DigestVerifyInit(sg->ctx.digest, NULL, from_rsa_algo(algo),
+                             NULL, sg->ctx.key) <= 0)
+    {
+        goto error;
+    }
+
+    sg->sig = lstr_dup(bin_sig);
+    return sg;
+
+  error:
+    rsa_verif_delete(&sg);
+    return NULL;
+}
+
+rsa_verif_t *rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
+                               lstr_t hex_sig)
+{
+    SB_1k(bin);
+
+    RETHROW_NP(sb_add_unhex(&bin, hex_sig.s, hex_sig.len));
+    return rsa_verif_new(pub_key, algo, LSTR_SB_V(&bin));
+}
+
+int rsa_verif_update(rsa_verif_t *ctx, const void *input, int ilen)
+{
+    if (EVP_DigestVerifyUpdate(ctx->ctx.digest, input, ilen) <= 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int rsa_verif_finish(rsa_verif_t **pctx)
+{
+    int res;
+    rsa_verif_t *ctx = *pctx;
+
+    res = EVP_DigestVerifyFinal(ctx->ctx.digest, ctx->sig.data, ctx->sig.len);
+    rsa_verif_delete(pctx);
+
+    if (res > 0) {
+        return 1;
+    }
+    return -1;
+}
+
+/* }}} */
+
+#endif
+
+/* }}} */
 /* {{{ Licensing module */
 
 char *licence_compute_encryption_key(const char *signature, const char *key)
