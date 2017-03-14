@@ -264,7 +264,7 @@ static void ic_get_state(sb_t *buf)
 
         qv_append(tab, ev_priority_to_str(ic->priority));
         qv_append(tab, t_lstr_fmt("%u", ic->nextslot));
-        qv_append(tab, t_lstr_fmt("%d", qm_len(ic_msg, &ic->queries)));
+        qv_append(tab, t_lstr_fmt("%d", ic_queue_len(ic)));
     }
 
     sb_add_table(buf, &hdr, &rows);
@@ -720,7 +720,17 @@ static void ic_drop_id(ichannel_t *ic)
 static ic_msg_t *ic_query_take(ichannel_t *ic, uint32_t slot)
 {
     int32_t pos = qm_del_key(ic_msg, &ic->queries, slot);
-    return pos < 0 ? NULL : ic->queries.values[pos];
+
+    if (pos < 0) {
+        return NULL;
+    } else {
+        ic_msg_t *msg = ic->queries.values[pos];
+
+        if (!msg->canceled) {
+            ic->queue_len--;
+        }
+        return msg;
+    }
 }
 
 static void ic_msg_take_and_delete(ic_msg_t *msg)
@@ -1962,10 +1972,12 @@ void ic_flush(ichannel_t *ic)
 
 void ic_msg_cancel(ic_msg_t *msg)
 {
+    assert (!msg->canceled);
     if (expect(!msg->async)) {
         __ic_msg_reply_err(msg->ic, msg, IC_MSG_CANCELED);
     }
     msg->canceled = true;
+    msg->ic->queue_len--;
 }
 
 static void ic_msg_on_timeout(el_t ev, el_data_t data)
@@ -1979,6 +1991,7 @@ static void ic_msg_on_timeout(el_t ev, el_data_t data)
 
     msg->timeout_timer = NULL;
     msg->canceled = true;
+    msg->ic->queue_len--;
 
     while (!htlist_is_empty(queue)
     &&    (htlist_first_entry(queue, ic_msg_t, msg_link)->canceled))
@@ -2021,7 +2034,8 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
                 return;
             }
             msg->slot = ic->nextslot;
-        } while (qm_add(ic_msg, &ic->queries, msg->slot, msg));
+        } while (qm_add(ic_msg, &ic->queries, msg->slot, msg) < 0);
+        ic->queue_len++;
     }
     if (ic_is_local(ic)) {
         const void *data;

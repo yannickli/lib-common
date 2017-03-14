@@ -318,8 +318,9 @@ struct ichannel_t {
     htnode_t    * nullable last_normal_prio_msg;
                                /**< last message of msg_list having
                                              the priority NORMAL */
-    int          current_fd;   /**< used to store the current fd           */
-    int          pending;
+    int current_fd; /**< used to store the current fd                       */
+    int pending;    /**< number of pending queries (for peak warning)       */
+    int queue_len;  /**< length of the query queue, without canceled        */
 
     /* Buffers */
     qv_t(i32)    fds;
@@ -358,7 +359,7 @@ static inline int ic_get_fd(ichannel_t * nonnull ic) {
     return res;
 }
 static inline int ic_queue_len(ichannel_t * nonnull ic) {
-    return qm_len(ic_msg, &ic->queries);
+    return ic->queue_len;
 }
 static inline bool ic_is_empty(ichannel_t * nonnull ic) {
     return htlist_is_empty(&ic->msg_list)
