@@ -49,14 +49,15 @@ Z_GROUP_EXPORT(licence)
         Z_LOAD_LICENCE("samples/licence-iop-sig-ko.cf");
         Z_ASSERT_NEG(licence_check_iop(&lic, LSTR("1.0"), flags));
 
+        /* Licence expired. */
         Z_LOAD_LICENCE("samples/licence-iop-exp-ko.cf");
         Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
                                        lic.signature, flags));
-        Z_ASSERT_NEG(licence_check_iop(&lic, LSTR("1.0"), flags));
+        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+                    LICENCE_HARD_EXPIRED);
 
         /* Invalid expiration date : "02-aaa-2012" */
         Z_LOAD_LICENCE("samples/licence-iop-exp-invalid.cf");
-        Z_ASSERT_NEG(licence_check_iop(&lic, LSTR("1.0"), flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_INVALID_EXPIRATION);
 
@@ -64,7 +65,6 @@ Z_GROUP_EXPORT(licence)
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                      &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, LSTR("1.0"), flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_INVALID_EXPIRATION);
 
@@ -86,7 +86,6 @@ Z_GROUP_EXPORT(licence)
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                    &lic.licence->expiration_hard_date);
-        Z_ASSERT_NEG(licence_check_iop(&lic, LSTR("1.0"), flags));
         Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
                     LICENCE_HARD_EXPIRED);
 

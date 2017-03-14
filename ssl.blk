@@ -874,7 +874,6 @@ int licence_check_rsa(const struct core__signed_licence__t *signed_licence,
     RETHROW(iop_check_rsa_signature(&core__licence__s, licence, pub_key,
                                     signed_licence->signature, flags,
                                     pass_cb));
-    RETHROW(licence_check_iop_expiry(licence));
     RETHROW(licence_check_iop_host_rsa(licence));
     RETHROW(licence_check_modules(licence));
     return 0;

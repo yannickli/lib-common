@@ -442,6 +442,9 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 /** Check an IOP Licence signed using a RSA key.
  *
+ * \warning this function won't check the licence expiry: use
+ *          \ref licence_check_iop_expiry for that.
+ *
  * \param[in] licence     The signed licence structure.
  * \param[in] version     The version of the product we're running on,
  *                        LSTR_NULL if the version should not be checked.

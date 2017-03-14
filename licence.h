@@ -57,6 +57,9 @@ typedef enum licence_expiry_t {
 
 /** Check an IOP Licence.
  *
+ * \warning this function won't check the licence expiry: use
+ *          \ref licence_check_iop_expiry for that.
+ *
  * \param[in] licence     The signed licence structure.
  * \param[in] version     The version of the product we're running on,
  *                        LSTR_NULL if the version should not be checked.

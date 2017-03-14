@@ -437,9 +437,9 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 
     RETHROW(iop_check_signature(&core__licence__s, licence,
                                 signed_licence->signature, flags));
-    RETHROW(licence_check_iop_expiry(licence));
     RETHROW(licence_check_iop_host(licence));
     RETHROW(licence_check_modules(licence));
+
     return 0;
 }
 
