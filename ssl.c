@@ -901,47 +901,25 @@ Z_GROUP_EXPORT(ssl)
          * $ echo 'secret pioupiou23' > a
          * $ openssl pkeyutl -encrypt -pubin -inkey pub.pem -in a -hexdump
          */
-        const lstr_t priv  = LSTR_IMMED(
-          "-----BEGIN PRIVATE KEY-----\n"
-          "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCpwkBnUq70MGZL\n"
-          "qlcm5AhAeEQ+jiicYOSJCN2c/rGCx+wwtcYO1tTQ3kR1/pM/stoJsWQgy7XVyu4d\n"
-          "x0PhaTn6lCnnxaqSH8vE7kyZS/r1Lsrdy9J+MA28mikdTA5qq7L0fgDN52NwXY9Y\n"
-          "hXxM+2VEdoU1S9gQ3ORf72kXHIEl4o3dqL4JywXfki+euo/PZ3axFk8YABmZboL3\n"
-          "LVNsCiRTGw+O2kXjzCenlp2KRJQAEUOu9FClwHdC3gGsPF4t/OU6VmhACxYWTxup\n"
-          "kLBFRJhtLrade/6w9YafCb8Ml7jTqPQ+Coe5jPDzyg7aC3MVMbjl+AdKdMAMBHy9\n"
-          "BY7pQreVAgMBAAECggEAeHXwT6FbpsnFfUHl0CIWPPFas+0aokUbRqZ049fTzNLj\n"
-          "JnmGjrchkwl2GSjKAnR+xkwLmj4TzR7QM29YGtcZnlePGPmqHUDUzuyujEVfUqae\n"
-          "rB7bQlIFHWVjcXer70PhnB7hoTrl1DF/67flSZdG9/sGcZhdPTISGIWB1DWU63Ud\n"
-          "exdTqfuVNzrw4mKYiL+Oekgs6jaAwP6edbjtpLfwKQiL7kjMDZ8OLef2d4c6yHIQ\n"
-          "Cby2ZoFho6yd3UjSKWxEREMzXPy6H5Ai9qSF6oNSBGVT+dxAl1NvXtHGk8reDYMa\n"
-          "6XSoQj/r2XYsgqhbxFtZRknckgnkTZgtrkFn93XDgQKBgQDU8Nwzymh4ZgZCCb7p\n"
-          "7Z0JDa0n0/TALxccvb0Bxuvkf32HgIw4dOVF5GJyiOCp/1FivpXTk4fLsOHANmde\n"
-          "FPme+nvOufl75l1aREnNRfWsfUNeiQQmCLXqszgHteZA4hY8Hibj9vJw5QtEoBv6\n"
-          "ZkU9BHDJ5G6Y/tiO+vvwB8gWtQKBgQDMFgUWJmW7uh3qEAdfpQGj2EZtmSmaj9Dg\n"
-          "W228M/sKmHOYobgRN9vj0k7hcqLqJHAZxXz6ktSybzXSX9CLZ+vohw5DoEKRFhZC\n"
-          "ofV+0i8sMMqScM3ckWR4hLxdzkKdMUM6UhWPA13GwkoIm4IqhFUl/eeaE9+jog/2\n"
-          "ghfxXubJYQKBgQCuzIGWqiMUInwknadwlDOCiQ2JUj7pvD42w7Jx0P83dUhwgR+a\n"
-          "AKtsskv2RVJXelUuv9Bx+/tPRAYtKPu1iXZYALq9OoEIKlSbks8aiMFhNPqmkccs\n"
-          "CZ576V6nRbSbsnwaIY4/OCpQblTPorcU1/siWZDUyoXXZewTgwhpQ5oGuQKBgB8v\n"
-          "JivSRi0/LR78wAOvVObSP0Cz7JV/cC04CzZ8wtlFnjQuUc/ftyvCkOcF+zrHwpFN\n"
-          "ieFH2lRBhfnVRipnALcRG+7daA5/T3ty/+4W87pO4kUqE2qmlLGNprK2t5sJUfpx\n"
-          "XHXzz7p1KZbTHDqe6dvaRi9W5g88zi+ehUYOeDlBAoGAMU9h9A20PvuvH8y4lcyQ\n"
-          "yXoTAIGUwMBZJ82WOMFq4xeyxo/i4XvKu9pWBNn1MArbjCJBwJ3BIqAwH7zF2Oz7\n"
-          "c2kW/t1JmfPUYzW+Xq4XL4fy2sDBgw0tVdAiMViAQODuLrUeyVuku7F5hshID/Z2\n"
-          "DmdLLTHk5H9Q6pZChKFO3c4=\n"
-          "-----END PRIVATE KEY-----\n");
-        const lstr_t pub  = LSTR_IMMED(
-          "-----BEGIN PUBLIC KEY-----\n"
-          "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqcJAZ1Ku9DBmS6pXJuQI\n"
-          "QHhEPo4onGDkiQjdnP6xgsfsMLXGDtbU0N5Edf6TP7LaCbFkIMu11cruHcdD4Wk5\n"
-          "+pQp58Wqkh/LxO5MmUv69S7K3cvSfjANvJopHUwOaquy9H4AzedjcF2PWIV8TPtl\n"
-          "RHaFNUvYENzkX+9pFxyBJeKN3ai+CcsF35IvnrqPz2d2sRZPGAAZmW6C9y1TbAok\n"
-          "UxsPjtpF48wnp5adikSUABFDrvRQpcB3Qt4BrDxeLfzlOlZoQAsWFk8bqZCwRUSY\n"
-          "bS62nXv+sPWGnwm/DJe406j0PgqHuYzw88oO2gtzFTG45fgHSnTADAR8vQWO6UK3\n"
-          "lQIDAQAB\n"
-          "-----END PUBLIC KEY-----\n");
+        SB_1k(priv);
+        SB_1k(pub);
         const lstr_t text = LSTR_IMMED("secret pioupiou23\n");
         const lstr_t text_garbage = LSTR_IMMED("bonjour openssl!\n");
+
+        {
+            t_scope;
+
+            if (sb_read_file(&priv, t_fmt("%*pM/test-data/keys/priv.pem",
+                                          LSTR_FMT_ARG(z_cmddir_g))) < 0)
+            {
+                e_fatal("cannot read private key");
+            }
+            if (sb_read_file(&pub, t_fmt("%*pM/test-data/keys/pub.pem",
+                                         LSTR_FMT_ARG(z_cmddir_g))) < 0)
+            {
+                e_fatal("cannot read public key");
+            }
+        }
 
 /* {{{ PKEY for RSA without padding */
 
@@ -973,16 +951,16 @@ Z_GROUP_EXPORT(ssl)
         /* We need a secret with fixed size 256: we use a truncated priv key
          * as data */
         assert (priv.len >= 256);
-        text_fixed = LSTR_INIT_V(priv.s, 256);
+        text_fixed = LSTR_INIT_V(priv.data, 256);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, pub));
+        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
         Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_encrypt,
                                                  RSA_NO_PADDING), 0);
         Z_ASSERT_N(ssl_encrypt(&ctx, text_fixed, &sb_encrypted));
         Z_ASSERT_LSTREQUAL(text_encrypted, LSTR_SB_V(&sb_encrypted));
         ssl_ctx_wipe(&ctx);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, priv, LSTR_EMPTY_V));
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv), LSTR_EMPTY_V));
         Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_decrypt,
                                                  RSA_NO_PADDING), 0);
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
@@ -1018,12 +996,13 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NULL(ssl_ctx_init_pkey_pub(&ctx, LSTR_EMPTY_V));
         Z_ASSERT_NULL(ssl_ctx_init_pkey_priv(&ctx, LSTR_EMPTY_V,
                                              LSTR_EMPTY_V));
-        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, pub));
+        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb_encrypted));
         Z_ASSERT_NEG(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         ssl_ctx_wipe(&ctx);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, priv, LSTR_EMPTY_V));
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         Z_ASSERT_LSTREQUAL(text, LSTR_SB_V(&sb_clear));
         sb_reset(&sb_clear);
@@ -1037,7 +1016,8 @@ Z_GROUP_EXPORT(ssl)
 
         sb_reset(&sb_encrypted);
         sb_reset(&sb_clear);
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, priv, LSTR_EMPTY_V));
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb_encrypted));
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         Z_ASSERT_LSTREQUAL(text, LSTR_SB_V(&sb_clear));
@@ -1070,13 +1050,14 @@ Z_GROUP_EXPORT(ssl)
         SB_1k(sb_encrypted);
         SB_1k(sb_clear);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, pub));
+        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
         Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_encrypt,
                                                  RSA_PKCS1_OAEP_PADDING), 0);
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb_encrypted));
         ssl_ctx_wipe(&ctx);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, priv, LSTR_EMPTY_V));
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
         Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_decrypt,
                                                  RSA_PKCS1_OAEP_PADDING), 0);
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
