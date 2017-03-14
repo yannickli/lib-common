@@ -5159,46 +5159,31 @@ backward_compat_build_tables(uint32_t table_bin[IOP_T_max + 1],
 {
     STATIC_ASSERT (IOP_T_max <= bitsizeof(uint32_t));
 
+    /* A type is always compatible with void and itself. */
+    for (int i = 0; i <= IOP_T_max; i++) {
+        table_bin[i] = TO_BIT(VOID) | 1U << i;
+    }
+
     /* Build authorized binary types transition table. */
-    table_bin[IOP_T_UNION]  = 1U << IOP_T_UNION;
-    table_bin[IOP_T_STRUCT] = 1U << IOP_T_STRUCT;
-    table_bin[IOP_T_DOUBLE] = 1U << IOP_T_DOUBLE;
-    table_bin[IOP_T_U64]    = 1U << IOP_T_U64;
-    table_bin[IOP_T_I64]    = 1U << IOP_T_I64;
+    table_bin[IOP_T_U32]    |= TO_BIT(U64)          | TO_BIT(I64);
+    table_bin[IOP_T_I32]    |= TO_BIT(U64)          | TO_BIT(I64);
+    table_bin[IOP_T_U16]    |= table_bin[IOP_T_U32] | table_bin[IOP_T_I32];
+    table_bin[IOP_T_I16]    |= table_bin[IOP_T_U32] | table_bin[IOP_T_I32];
+    table_bin[IOP_T_U8]     |= table_bin[IOP_T_U16] | table_bin[IOP_T_I16];
+    table_bin[IOP_T_I8]     |= table_bin[IOP_T_U16] | table_bin[IOP_T_I16];
+    table_bin[IOP_T_BOOL]   |= table_bin[IOP_T_U8]  | table_bin[IOP_T_I8];
+    table_bin[IOP_T_ENUM]   |= table_bin[IOP_T_I32];
 
-    table_bin[IOP_T_U32] = 1U << IOP_T_U32 | 1U << IOP_T_U64
-                         | 1U << IOP_T_I64;
-    table_bin[IOP_T_I32] = 1U << IOP_T_I32 | 1U << IOP_T_U64
-                         | 1U << IOP_T_I64;
-
-    table_bin[IOP_T_U16] = 1U << IOP_T_U16
-                         | table_bin[IOP_T_U32] | table_bin[IOP_T_I32];
-    table_bin[IOP_T_I16] = 1U << IOP_T_I16
-                         | table_bin[IOP_T_U32] | table_bin[IOP_T_I32];
-
-    table_bin[IOP_T_U8] = 1U << IOP_T_U8
-                        | table_bin[IOP_T_U16] | table_bin[IOP_T_I16];
-    table_bin[IOP_T_I8] = 1U << IOP_T_I8
-                        | table_bin[IOP_T_U16] | table_bin[IOP_T_I16];
-
-    table_bin[IOP_T_BOOL] = 1U << IOP_T_BOOL
-                          | table_bin[IOP_T_U8] | table_bin[IOP_T_I8];
-
-    table_bin[IOP_T_STRING] = 1U << IOP_T_STRING | 1U << IOP_T_DATA
-                            | 1U << IOP_T_XML;
+    table_bin[IOP_T_STRING] |= TO_BIT(DATA)         | TO_BIT(XML);
     table_bin[IOP_T_DATA]   = table_bin[IOP_T_STRING];
     table_bin[IOP_T_XML]    = table_bin[IOP_T_STRING];
 
-    table_bin[IOP_T_ENUM]   = 1U << IOP_T_ENUM | table_bin[IOP_T_I32];
-    /* TODO: better backward compat for void */
-    table_bin[IOP_T_VOID]   = 1U << IOP_T_VOID;
-
     /* Build authorized json types transition table. */
     p_copy(table_json, table_bin, IOP_T_max + 1);
-    table_json[IOP_T_ENUM]   = 1U << IOP_T_ENUM;
-    table_json[IOP_T_STRING] = 1U << IOP_T_STRING;
-    table_json[IOP_T_DATA]   = 1U << IOP_T_DATA;
-    table_json[IOP_T_XML]    = 1U << IOP_T_XML;
+    table_json[IOP_T_ENUM]   = TO_BIT(ENUM)   | TO_BIT(VOID);
+    table_json[IOP_T_STRING] = TO_BIT(STRING) | TO_BIT(VOID);
+    table_json[IOP_T_DATA]   = TO_BIT(DATA)   | TO_BIT(VOID);
+    table_json[IOP_T_XML]    = TO_BIT(XML)    | TO_BIT(VOID);
 
     /* build repeated table for binary format due to special array packing
      * (cf : IOP_REPEATED_OPTIMIZE_OK) */
@@ -5208,13 +5193,6 @@ backward_compat_build_tables(uint32_t table_bin[IOP_T_max + 1],
     table_bin_r[IOP_T_U8]   = TO_BIT(U8);
     table_bin_r[IOP_T_I8]   = TO_BIT(I8);
     table_bin_r[IOP_T_BOOL] = TO_BIT(U8) | TO_BIT(I8) | TO_BIT(BOOL);
-
-    /* Check that no type was forgotten. */
-    for (int i = 0; i < IOP_T_max; i++) {
-        assert (table_bin[i]  != 0);
-        assert (table_json[i] != 0);
-        assert (table_bin_r[i] != 0);
-    }
 }
 
 static bool
@@ -5257,9 +5235,12 @@ iop_field_check_backward_compat(const iop_field_t *f1,
         }
     }
 
-    /* Check repeated -> non-repeated: always forbidden.
+    /* Check repeated -> non-repeated: always forbidden
+     * (except when replacing with non-repeated void)
      * (non-repeated -> repeated is always supported) */
-    if (f1->repeat == IOP_R_REPEATED && f2->repeat != IOP_R_REPEATED) {
+    if (f1->repeat == IOP_R_REPEATED && f2->repeat != IOP_R_REPEATED
+    &&  f2->type != IOP_T_VOID)
+    {
         iop_compat_add_err(ctx, "was repeated and is not anymore");
         return -1;
     }

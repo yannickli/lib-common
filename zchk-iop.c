@@ -6180,6 +6180,9 @@ Z_GROUP_EXPORT(iop)
             T_KO_ALL(field_repeated, &field_repeated, basic_struct,
                      "field `a`:"
                      INDENT_LVL1 "was repeated and is not anymore");
+
+            /* Repeated -> not repeated void. */
+            T_OK_ALL(field_repeated, &field_repeated, field_void);
         }
 
         /* Fields repeated, different types */
