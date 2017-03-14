@@ -20,6 +20,8 @@
 #include "python-common.h"
 #include "core.iop.h"
 
+qvector_t(el, el_t);
+
 static struct {
     struct ev_t             *blocker;
     httpc_pool_t            *m;
@@ -45,6 +47,9 @@ static struct {
     PyObject                *cb_parse_answer;
 
     PyObject                *tb_module;
+
+    python_el_cfg_t          py_el_cfg;
+    qv_t(el)                 py_els;
 } python_http_g;
 #define _G  python_http_g
 
@@ -922,5 +927,126 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
 
     return common_module;
 }
+
+/* }}} */
+/* {{{ Python Event loop */
+
+static void py_el_wipe(el_t *el)
+{
+    data_t data = el_unregister(el);
+    PyObject *py_handler = data.ptr;
+
+    Py_DECREF(py_handler);
+}
+
+static void py_el_on_cb_exception(el_t el)
+{
+    if (_G.py_el_cfg.on_cb_exception) {
+        (*_G.py_el_cfg.on_cb_exception)(el);
+    }
+}
+
+static int py_register_fd_cb(el_t el, int fd, short ev, data_t priv)
+{
+    PyObject *py_handler = priv.ptr;
+    PyObject *res;
+
+    res = PyObject_CallObject(py_handler, NULL);
+    if (res) {
+        Py_DECREF(res);
+    } else {
+        py_el_on_cb_exception(el);
+    }
+    return 0;
+}
+
+PyDoc_STRVAR(py_register_el_fd_doc,
+    "Register a file descriptor in the event loop.\n"
+    "\n"
+    "Arguments:\n"
+    "    fd: file descriptor to register.\n"
+    "    eventmask: bitmask describing the type of events you want to \n"
+    "check for. See poll(2) and the select Python module for a description \n"
+    "of each event type.\n"
+    "    handler: must be a callable Object. Called when a event is \n"
+    "received.\n"
+    "\n"
+    "Example:\n"
+    "class ResponseProcessor(BaseHTTPRequestHandler):\n"
+    "    def do_GET(self):\n"
+    "        self.send_response(200)\n"
+    "        self.end_headers()\n"
+    "        self.wfile.write('YEPYEPYEP')\n"
+    "\n"
+    "\n"
+    "class MyMinion(minion.Minion):\n"
+    "    def on_ready(self):\n"
+    "        server_addr = (self.cfg.asyncServerAddr,\n"
+    "                       self.cfg.asyncServerPort)\n"
+    "        httpd = HTTPServer(server_addr, ResponseProcessor)\n"
+    "        module.register_el_fd(httpd.fileno(), select.POLLIN,\n"
+    "                              httpd.handle_request)\n"
+);
+
+static PyObject *py_register_el_fd(PyObject *self, PyObject *args,
+                                   PyObject *keywds)
+{
+    static const char *kwlist[] = {"fd", "eventmask", "handler", NULL};
+    PyObject *handler;
+    int fd;
+    short eventmask;
+    el_t el;
+
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "ihO", (char **)kwlist,
+                                     &fd, &eventmask, &handler))
+    {
+        return NULL;
+    }
+
+    Py_INCREF(handler);
+    el = el_fd_register(fd, false, eventmask, &py_register_fd_cb, handler);
+    qv_append(&_G.py_els, el);
+
+    Py_RETURN_NONE;
+}
+
+PyMethodDef python_el_methods_g[] = {
+    {
+        "register_el_fd",
+        (PyCFunction)py_register_el_fd,
+        METH_VARARGS | METH_KEYWORDS,
+        py_register_el_fd_doc
+    }, {
+        NULL,
+        NULL,
+        0,
+        NULL,
+    }
+};
+
+static int python_el_initialize(void *arg)
+{
+    python_el_cfg_t *cfg = arg;
+
+    if (cfg) {
+        _G.py_el_cfg = *cfg;
+    }
+    qv_init(&_G.py_els);
+    return 0;
+}
+
+static void python_el_on_term(int signo)
+{
+    qv_deep_wipe(&_G.py_els, py_el_wipe);
+}
+
+static int python_el_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(python_el)
+    MODULE_IMPLEMENTS_INT(on_term, &python_el_on_term);
+MODULE_END()
 
 /* }}} */

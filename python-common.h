@@ -17,6 +17,7 @@
 #include <Python.h>
 #include "core.h"
 #include "container-qvector.h"
+#include "el.h"
 
 #if PY_MAJOR_VERSION >= 3
 #define IS_PY3K
@@ -85,5 +86,24 @@ void sb_add_py_traceback(sb_t *err);
                                        \
         __res;                         \
     })
+
+/* {{{ Python Event loop */
+
+/** Module methods of python event loop. */
+extern PyMethodDef python_el_methods_g[];
+
+/** Optional configuration for python_el. */
+typedef struct python_el_cfg_t {
+    /** Callback in case of exception in the el callback.
+     *
+     * The Python exception is already set when this callback is called.
+     */
+    void (*on_cb_exception)(el_t el);
+} python_el_cfg_t;
+
+/** Module to handle intersec event loop from python. */
+MODULE_DECLARE(python_el);
+
+/* }}} */
 
 #endif
