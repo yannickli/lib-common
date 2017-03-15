@@ -1150,6 +1150,32 @@ Z_GROUP_EXPORT(ssl)
     } Z_TEST_END;
 
 /* }}} */
+/* {{{ IOP Signature */
+
+    Z_TEST(iop_rsa_signature, "iop_rsa_signature") {
+        t_scope;
+        core__licence__t licence;
+        lstr_t sig;
+
+        iop_init(core__licence, &licence);
+        licence.registered_to = LSTR("Z tests");
+        licence.version = LSTR("3.0");
+        licence.production_use = false;
+
+        sig = t_iop_compute_rsa_signature(&core__licence__s, &licence,
+                                          LSTR_SB_V(&priv), 0);
+
+        Z_ASSERT(sig.s != NULL);
+
+        Z_ASSERT_N(iop_check_rsa_signature(&core__licence__s, &licence,
+                                           LSTR_SB_V(&pub), sig, 0));
+
+        licence.production_use = true;
+        Z_ASSERT_NEG(iop_check_rsa_signature(&core__licence__s, &licence,
+                                             LSTR_SB_V(&pub), sig, 0));
+    } Z_TEST_END;
+
+/* }}} */
 
     }
 #endif
