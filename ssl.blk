@@ -855,6 +855,33 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
     return res;
 }
 
+#ifdef SSL_HAVE_EVP_PKEY
+
+#define ALL_STATIC
+#define ATTRS
+#define F(x)  x ## _rsa
+#include "licence-host-check.in.c"
+#undef F
+#undef ATTRS
+#undef ALL_STATIC
+
+int licence_check_rsa(const struct core__signed_licence__t *signed_licence,
+                      lstr_t version, lstr_t pub_key, unsigned flags,
+                      pem_password_b nullable pass_cb)
+{
+    const core__licence__t *licence = signed_licence->licence;
+
+    RETHROW(iop_check_rsa_signature(&core__licence__s, licence, pub_key,
+                                    signed_licence->signature, flags,
+                                    pass_cb));
+    RETHROW(licence_check_iop_expiry(licence));
+    RETHROW(licence_check_iop_host_rsa(licence));
+    RETHROW(licence_check_modules(licence));
+    return 0;
+}
+
+#endif
+
 /* }}} */
 /* {{{ Tests */
 
