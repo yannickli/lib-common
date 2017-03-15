@@ -113,13 +113,25 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     ic_query_do_post_hook(NULL, cmd, slot, st, v);
     gzenc = httpd_qinfo_accept_enc_get(q->qinfo);
 
-    if (cmd == IC_MSG_OK) {
+    switch (cmd) {
+      case IC_MSG_OK:
         code = HTTP_CODE_OK;
-    } else {
-        /* SOAP specifies that failing queries must return error code
-         * INTERNAL_SERVER_ERROR. */
+        break;
+
+      default:
+        assert (false);
+        /* FALLTHROUGH */
+
+      case IC_MSG_EXN:
+        /* Use INTERNAL_SERVER_ERROR for exceptions:
+         *  - in SOAP, this is the error code that must always be used.
+         *  - in REST, use it to allow clients to distinguish exceptions
+         *    (other error cases must not return INTERNAL_SERVER_ERROR).
+         */
         code = HTTP_CODE_INTERNAL_SERVER_ERROR;
+        break;
     }
+
     ob = httpd_reply_hdrs_start(q, code, true);
 
 
@@ -222,9 +234,9 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
     __ichttp_err_ctx_clear();
 }
 
-__attr_printf__(3, 4)
+__attr_printf__(4, 5)
 static void __ichttp_reject(uint64_t slot, ichttp_query_t *iq,
-                            const char *fmt, ...)
+                            http_code_t rest_code, const char *fmt, ...)
 {
     SB_1k(err);
     va_list ap;
@@ -234,13 +246,15 @@ static void __ichttp_reject(uint64_t slot, ichttp_query_t *iq,
     va_end(ap);
 
     if (iq->json) {
-        /* SOAP specifies that failing queries must return error code
-         * INTERNAL_SERVER_ERROR. Do the same in REST for consistency. */
+        /* In REST, INTERNAL_SERVER_ERROR is reserved for IOP exceptions
+         * (cf. __ichttp_reply). */
+        assert (rest_code != HTTP_CODE_INTERNAL_SERVER_ERROR);
         __ichttp_err_ctx_set(LSTR_SB_V(&err));
-        httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR,
-                     "%*pM", SB_FMT_ARG(&err));
+        httpd_reject_(obj_vcast(httpd_query, iq), rest_code,
+                      "%*pM", SB_FMT_ARG(&err));
         __ichttp_err_ctx_clear();
     } else {
+        /* SOAP always throws INTERNAL_SERVER_ERROR. */
         __ichttp_reply_soap_err(slot, true, &LSTR_SB_V(&err));
     }
 }
@@ -258,18 +272,22 @@ void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
       case IC_MSG_RETRY:
       case IC_MSG_ABORT:
       case IC_MSG_PROXY_ERROR:
-        __ichttp_reject(slot, iq, "query temporary refused");
+        __ichttp_reject(slot, iq, HTTP_CODE_BAD_REQUEST,
+                        "query temporary refused");
         break;
       case IC_MSG_INVALID:
       case IC_MSG_SERVER_ERROR:
         if (err_str && err_str->len) {
-            __ichttp_reject(slot, iq, "%*pM", LSTR_FMT_ARG(*err_str));
+            __ichttp_reject(slot, iq, HTTP_CODE_BAD_REQUEST,
+                            "%*pM", LSTR_FMT_ARG(*err_str));
         } else {
-            __ichttp_reject(slot, iq, "query refused by server");
+            __ichttp_reject(slot, iq, HTTP_CODE_BAD_REQUEST,
+                            "query refused by server");
         }
         break;
       case IC_MSG_UNIMPLEMENTED:
-        __ichttp_reject(slot, iq, "query not implemented by server");
+        __ichttp_reject(slot, iq, HTTP_CODE_NOT_FOUND,
+                        "query not implemented by server");
         break;
     }
 }
