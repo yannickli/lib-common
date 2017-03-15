@@ -193,7 +193,7 @@ libcommon_SOURCES = \
 	xmlr.c \
 	\
 	zlib-wrapper.c \
-	ssl.c \
+	ssl.blk \
 	\
 	z.blk
 libcommon_SWIFTMIXED = 1
