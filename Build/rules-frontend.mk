@@ -285,26 +285,34 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 define rule/wwwscript
 tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(var/wwwtool)../tsc/lib/js
 
+BROWSERIFY_OPTIONS = -g browserify-shim \
+                     -g [uglifyify --mangle --compress] \
+                     --debug
+
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/$3.js
 $~$2/htdocs/javascript/$3.js: $~$2/package.json
 $~$2/htdocs/javascript/$3.js: _FLAGS=$($(1DV)$3_FLAGS)
+$~$2/htdocs/javascript/$3.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%))
 $~$2/htdocs/javascript/$3.js: | _npm_tools
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript
-	cd $~$2/node_modules/
-	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify $$(_FLAGS) -g browserify-shim $$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%)) --debug | $(var/wwwtool)exorcist $$@.map > $$@
-	# change browserify starting function by our own function
+	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify \
+		$$(_FLAGS) \
+		$(BROWSERIFY_OPTIONS) \
+		$$(_FILES) \
+	| $(var/wwwtool)exorcist $$@.map > $$@
+
+# change browserify starting function by our own function
 	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
-	# build list of all files included in bundle (needed for r.js)
+# build list of all files included in bundle (needed for r.js)
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
 	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/$(notdir $s).js))
 $2/htdocs/javascript/$3.js: $~$2/htdocs/javascript/$3.js | _npm_tools
-	$(msg/MINIFY.js) $3.js
-	$(var/wwtool)uglifyjs -c warnings=false -m -o $~$$@+ $$< $$$$([ -f $$<.map ] && echo "--in-source-map $$<.map --source-map $$@.map --source-map-url $3.js.map")
-	$(FASTCP) $~$$@+ $$@
+	$(FASTCP) $$< $$@
+	([ -f $$<.map ] && $(FASTCP) $$<.map $$@.map) || true
 endef
 
 # rule/wwwmodule <MODULE>
