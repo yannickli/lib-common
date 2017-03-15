@@ -114,10 +114,13 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     gzenc = httpd_qinfo_accept_enc_get(q->qinfo);
 
     if (cmd == IC_MSG_OK) {
-        ob = httpd_reply_hdrs_start(q, code = HTTP_CODE_OK, true);
+        code = HTTP_CODE_OK;
     } else {
-        ob = httpd_reply_hdrs_start(q, code = HTTP_CODE_INTERNAL_SERVER_ERROR, true);
+        /* SOAP specifies that failing queries must return error code
+         * INTERNAL_SERVER_ERROR. */
+        code = HTTP_CODE_INTERNAL_SERVER_ERROR;
     }
+    ob = httpd_reply_hdrs_start(q, code, true);
 
 
     if (iq->json) {
@@ -182,6 +185,8 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
 
     assert (!iq->json);
 
+    /* SOAP specifies that failing queries must return error code
+     * INTERNAL_SERVER_ERROR. */
     __ichttp_err_ctx_set(*err);
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_INTERNAL_SERVER_ERROR, true);
     ob_adds(ob, "Content-Type: text/xml; charset=utf-8\r\n");
@@ -217,6 +222,29 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
     __ichttp_err_ctx_clear();
 }
 
+__attr_printf__(3, 4)
+static void __ichttp_reject(uint64_t slot, ichttp_query_t *iq,
+                            const char *fmt, ...)
+{
+    SB_1k(err);
+    va_list ap;
+
+    va_start(ap, fmt);
+    sb_addvf(&err, fmt, ap);
+    va_end(ap);
+
+    if (iq->json) {
+        /* SOAP specifies that failing queries must return error code
+         * INTERNAL_SERVER_ERROR. Do the same in REST for consistency. */
+        __ichttp_err_ctx_set(LSTR_SB_V(&err));
+        httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR,
+                     "%*pM", SB_FMT_ARG(&err));
+        __ichttp_err_ctx_clear();
+    } else {
+        __ichttp_reply_soap_err(slot, true, &LSTR_SB_V(&err));
+    }
+}
+
 void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
@@ -230,43 +258,18 @@ void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
       case IC_MSG_RETRY:
       case IC_MSG_ABORT:
       case IC_MSG_PROXY_ERROR:
-        if (iq->json) {
-            httpd_reject(obj_vcast(httpd_query, iq), GATEWAY_TIMEOUT, "");
-        } else {
-            __ichttp_reply_soap_err_cst(slot, true,
-                                        "query temporary refused");
-        }
+        __ichttp_reject(slot, iq, "query temporary refused");
         break;
       case IC_MSG_INVALID:
       case IC_MSG_SERVER_ERROR:
         if (err_str && err_str->len) {
-            if (iq->json) {
-                __ichttp_err_ctx_set(*err_str);
-                httpd_reject(obj_vcast(httpd_query, iq),
-                             INTERNAL_SERVER_ERROR, "%*pM",
-                             LSTR_FMT_ARG(*err_str));
-                __ichttp_err_ctx_clear();
-            } else {
-                __ichttp_reply_soap_err(slot, true, err_str);
-            }
+            __ichttp_reject(slot, iq, "%*pM", LSTR_FMT_ARG(*err_str));
         } else {
-            if (iq->json) {
-                httpd_reject(obj_vcast(httpd_query, iq),
-                             INTERNAL_SERVER_ERROR, "");
-            } else {
-                __ichttp_reply_soap_err_cst(slot, true,
-                                            "query refused by server");
-            }
+            __ichttp_reject(slot, iq, "query refused by server");
         }
         break;
       case IC_MSG_UNIMPLEMENTED:
-        if (iq->json) {
-            httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR,
-                         "");
-        } else {
-            __ichttp_reply_soap_err_cst(slot, true,
-                                        "query not implemented by server");
-        }
+        __ichttp_reject(slot, iq, "query not implemented by server");
         break;
     }
 }
