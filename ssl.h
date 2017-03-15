@@ -338,13 +338,20 @@ ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
 #ifdef SSL_HAVE_EVP_PKEY
 
+#ifdef __has_blocks
+typedef int (BLOCK_CARET pem_password_b)(char *buf, int size, int rwflag);
+#else
+typedef void *pem_password_b;
+#endif
+
 typedef enum rsa_hash_algo_t {
     RSA_HASH_SHA256,
 } rsa_hash_algo_t;
 
 typedef struct rsa_sign_t rsa_sign_t;
 
-rsa_sign_t * nullable rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo);
+rsa_sign_t * nullable rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo,
+                                   pem_password_b nullable pass_cb);
 
 __must_check__
 int rsa_sign_update(rsa_sign_t * nonnull ctx, const void * nonnull input,
@@ -361,11 +368,13 @@ typedef struct rsa_verif_t rsa_verif_t;
 
 __must_check__
 rsa_verif_t * nullable rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
-                                     lstr_t bin_sig);
+                                     lstr_t bin_sig,
+                                     pem_password_b nullable pass_cb);
 
 __must_check__
 rsa_verif_t * nullable rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
-                                         lstr_t hex_sig);
+                                         lstr_t hex_sig,
+                                         pem_password_b nullable pass_cb);
 
 __must_check__
 int rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
@@ -385,10 +394,13 @@ int rsa_verif_finish(rsa_verif_t * nonnull * nonnull ctx);
  * \param[in] priv_key The private key, in PEM format.
  * \param[in] flags  Flags modifying the hashing algorithm. The same flags
  *                   must be used when computing and checking the signature.
+ * \param[in] pass_cb Block called to retrieve the password used to decrypt
+ *                    the key in case the key is encrypted.
  */
 lstr_t t_iop_compute_rsa_signature(const iop_struct_t * nonnull st,
                                    const void * nonnull v, lstr_t priv_key,
-                                   unsigned flags);
+                                   unsigned flags,
+                                   pem_password_b nullable pass_cb);
 
 /** Check the RSA signature of an IOP structure with a public key.
  *
@@ -401,11 +413,14 @@ lstr_t t_iop_compute_rsa_signature(const iop_struct_t * nonnull st,
  * \param[in] sig    Excepted signature.
  * \param[in] flags  Flags modifying the hashing algorithm. The same flags
  *                   must be used when computing and checking the signature.
+ * \param[in] pass_cb Block called to retrieve the password used to decrypt
+ *                    the key in case the key is encrypted.
  */
 __must_check__
 int iop_check_rsa_signature(const iop_struct_t * nonnull st,
                             const void * nonnull v, lstr_t pub_key,
-                            lstr_t sig, unsigned flags);
+                            lstr_t sig, unsigned flags,
+                            pem_password_b nullable pass_cb);
 
 #endif
 

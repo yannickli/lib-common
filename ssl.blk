@@ -21,6 +21,7 @@ static int ssl_initialize(void *arg)
 {
     /* interpreting internal errors is a nightmare, we want human readable
      * messages */
+    OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
     return 0;
 }
@@ -28,6 +29,7 @@ static int ssl_initialize(void *arg)
 static int ssl_shutdown(void)
 {
     ERR_free_strings();
+    EVP_cleanup();
     return 0;
 }
 
@@ -522,6 +524,13 @@ static const EVP_MD *from_rsa_algo(rsa_hash_algo_t algo)
     }
 }
 
+static int pem_password_blk_cb(char *buf, int size, int rwflags, void *u)
+{
+    pem_password_b blk = u;
+
+    return blk(buf, size, rwflags);
+}
+
 /* {{{ Signature */
 
 struct rsa_sign_t {
@@ -535,7 +544,8 @@ static void rsa_sign_wipe(rsa_sign_t *sg)
 
 GENERIC_DELETE(rsa_sign_t, rsa_sign);
 
-rsa_sign_t *rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo)
+rsa_sign_t *rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo,
+                         pem_password_b pass_cb)
 {
     rsa_sign_t *sg;
 
@@ -546,7 +556,9 @@ rsa_sign_t *rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo)
     }
 
     /* TODO add callback to read passphrase */
-    sg->ctx.key = PEM_read_bio_PrivateKey(sg->ctx.keybio, NULL, NULL, NULL);
+    sg->ctx.key = PEM_read_bio_PrivateKey(sg->ctx.keybio, NULL,
+                                          pass_cb ? &pem_password_blk_cb : NULL,
+                                          pass_cb);
     if (!sg->ctx.key) {
         goto error;
     }
@@ -624,7 +636,7 @@ static void rsa_verif_wipe(rsa_verif_t *sg)
 GENERIC_DELETE(rsa_verif_t, rsa_verif);
 
 rsa_verif_t *rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
-                           lstr_t bin_sig)
+                           lstr_t bin_sig, pem_password_b pass_cb)
 {
     rsa_verif_t *sg;
 
@@ -635,7 +647,9 @@ rsa_verif_t *rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
     }
 
     /* TODO add callback to read passphrase */
-    sg->ctx.key = PEM_read_bio_PUBKEY(sg->ctx.keybio, NULL, NULL, NULL);
+    sg->ctx.key = PEM_read_bio_PUBKEY(sg->ctx.keybio, NULL,
+                                      pass_cb ? pem_password_blk_cb : NULL,
+                                      pass_cb);
     if (!sg->ctx.key) {
         goto error;
     }
@@ -660,12 +674,12 @@ rsa_verif_t *rsa_verif_new(lstr_t pub_key, rsa_hash_algo_t algo,
 }
 
 rsa_verif_t *rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
-                               lstr_t hex_sig)
+                               lstr_t hex_sig, pem_password_b pass_cb)
 {
     SB_1k(bin);
 
     RETHROW_NP(sb_add_unhex(&bin, hex_sig.s, hex_sig.len));
-    return rsa_verif_new(pub_key, algo, LSTR_SB_V(&bin));
+    return rsa_verif_new(pub_key, algo, LSTR_SB_V(&bin), pass_cb);
 }
 
 int rsa_verif_update(rsa_verif_t *ctx, const void *input, int ilen)
@@ -696,21 +710,24 @@ int rsa_verif_finish(rsa_verif_t **pctx)
 static int iop_rsa_sign(const struct iop_struct_t * nonnull st,
                         const void * nonnull v, lstr_t priv_key,
                         rsa_hash_algo_t algo, sb_t * nonnull out,
-                        unsigned flags)
+                        unsigned flags, pem_password_b pass_cb)
 {
-    rsa_sign_t *sg = RETHROW_PN(rsa_sign_new(priv_key, algo));
+    rsa_sign_t *sg = RETHROW_PN(rsa_sign_new(priv_key, algo, pass_cb));
 
     iop_hash(st, v, (iop_hash_f *)&rsa_sign_update, sg, flags);
     return rsa_sign_finish_hex(&sg, out);
 }
 
 lstr_t t_iop_compute_rsa_signature(const iop_struct_t *st, const void *v,
-                                   lstr_t priv_key, unsigned flags)
+                                   lstr_t priv_key, unsigned flags,
+                                   pem_password_b pass_cb)
 {
     SB_1k(out);
 
     sb_adds(&out, "$RSA:SHA256$");
-    if (iop_rsa_sign(st, v, priv_key, RSA_HASH_SHA256, &out, flags) < 0) {
+    if (iop_rsa_sign(st, v, priv_key, RSA_HASH_SHA256, &out,
+                     flags, pass_cb) < 0)
+    {
         return LSTR_NULL_V;
     }
 
@@ -720,16 +737,19 @@ lstr_t t_iop_compute_rsa_signature(const iop_struct_t *st, const void *v,
 
 static int iop_rsa_verif(const struct iop_struct_t * nonnull st,
                          const void * nonnull v, lstr_t pub_key,
-                         rsa_hash_algo_t algo, lstr_t sig, unsigned flags)
+                         rsa_hash_algo_t algo, lstr_t sig, unsigned flags,
+                         pem_password_b pass_cb)
 {
-    rsa_verif_t *sg = RETHROW_PN(rsa_verif_hex_new(pub_key, algo, sig));
+    rsa_verif_t *sg;
 
+    sg = RETHROW_PN(rsa_verif_hex_new(pub_key, algo, sig, pass_cb));
     iop_hash(st, v, (iop_hash_f *)&rsa_verif_update, sg, flags);
     return rsa_verif_finish(&sg);
 }
 
 int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
-                            lstr_t pub_key, lstr_t signature, unsigned flags)
+                            lstr_t pub_key, lstr_t signature, unsigned flags,
+                            pem_password_b pass_cb)
 {
     pstream_t ps = ps_initlstr(&signature);
     pstream_t n;
@@ -769,7 +789,7 @@ int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
 #endif
     }
 
-    return iop_rsa_verif(st, v, pub_key, algo, LSTR_PS_V(&ps), flags);
+    return iop_rsa_verif(st, v, pub_key, algo, LSTR_PS_V(&ps), flags, pass_cb);
 }
 
 
@@ -1163,16 +1183,16 @@ Z_GROUP_EXPORT(ssl)
         licence.production_use = false;
 
         sig = t_iop_compute_rsa_signature(&core__licence__s, &licence,
-                                          LSTR_SB_V(&priv), 0);
+                                          LSTR_SB_V(&priv), 0, NULL);
 
         Z_ASSERT(sig.s != NULL);
 
         Z_ASSERT_N(iop_check_rsa_signature(&core__licence__s, &licence,
-                                           LSTR_SB_V(&pub), sig, 0));
+                                           LSTR_SB_V(&pub), sig, 0, NULL));
 
         licence.production_use = true;
         Z_ASSERT_NEG(iop_check_rsa_signature(&core__licence__s, &licence,
-                                             LSTR_SB_V(&pub), sig, 0));
+                                             LSTR_SB_V(&pub), sig, 0, NULL));
     } Z_TEST_END;
 
 /* }}} */
