@@ -92,6 +92,9 @@ void sb_add_py_traceback(sb_t *err);
 /** Module methods of python event loop. */
 extern PyMethodDef python_el_methods_g[];
 
+/** Register python types used by event loops functions to given module. */
+int register_python_el_types(PyObject *module);
+
 /** Optional configuration for python_el. */
 typedef struct python_el_cfg_t {
     /** Callback in case of exception in the el callback.

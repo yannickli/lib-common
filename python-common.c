@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <Python.h>
+#include <structmember.h>
 #include "core.h"
 #include "http.h"
 #include "el.h"
@@ -19,8 +20,6 @@
 #include "log.h"
 #include "python-common.h"
 #include "core.iop.h"
-
-qvector_t(el, el_t);
 
 static struct {
     struct ev_t             *blocker;
@@ -48,8 +47,10 @@ static struct {
 
     PyObject                *tb_module;
 
+    bool                     py_el_module_registered : 1;
+    bool                     py_el_types_registered : 1;
     python_el_cfg_t          py_el_cfg;
-    qv_t(el)                 py_els;
+    qh_t(ptr)                py_els;
 } python_http_g;
 #define _G  python_http_g
 
@@ -930,13 +931,16 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
 
 /* }}} */
 /* {{{ Python Event loop */
+/* {{{ Helpers */
 
-static void py_el_wipe(el_t *el)
+static void py_el_wipe(void **ptr)
 {
+    el_t *el = (el_t *)ptr;
     data_t data = el_unregister(el);
-    PyObject *py_handler = data.ptr;
+    PyObject *py_el = data.ptr;
 
-    Py_DECREF(py_handler);
+    assert (py_el);
+    Py_DECREF(py_el);
 }
 
 static void py_el_on_cb_exception(el_t el)
@@ -946,12 +950,160 @@ static void py_el_on_cb_exception(el_t el)
     }
 }
 
+static int py_el_check_all_registered(void)
+{
+    if (!_G.py_el_module_registered || !_G.py_el_types_registered) {
+        PyErr_SetString(PyExc_RuntimeError, "Python event loop module has "
+                        "not been correctly initialized");
+        return -1;
+    }
+
+    return 0;
+}
+
+/* }}} */
+/* {{{ Types */
+/* {{{ PyElBase */
+
+typedef struct PyElBase {
+    PyObject_HEAD
+    el_t el;
+    PyObject *handler;
+} PyElBase;
+
+static int PyElBase_traverse(PyElBase *self, visitproc visit, void *arg)
+{
+    Py_VISIT(self->handler);
+    return 0;
+}
+
+static int PyElBase_clear(PyElBase *self)
+{
+    Py_CLEAR(self->handler);
+    return 0;
+}
+
+static void PyElBase_dealloc(PyElBase *self)
+{
+    PyElBase_clear(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+PyDoc_STRVAR(PyElBase_handler_doc, "Handler called on event.");
+
+static PyMemberDef PyElBase_members[] = {
+    {
+        (char *)"handler",
+        T_OBJECT_EX,
+        offsetof(PyElBase, handler),
+        READONLY,
+        PyElBase_handler_doc
+    }, {
+        NULL,
+        0,
+        0,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElBase_unregister_doc, "Unregister the event.");
+
+static PyObject *PyElBase_unregister(PyElBase *self, PyObject *null)
+{
+    qh_deep_del_key(ptr, &_G.py_els, self->el, py_el_wipe);
+    self->el = NULL;
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef PyElBase_methods[] = {
+    {
+        "unregister",
+        (PyCFunction)PyElBase_unregister,
+        METH_NOARGS,
+        PyElBase_unregister_doc
+    }, {
+        NULL,
+        NULL,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElBase_type_doc,
+    "Event loop object\n"
+    "\n"
+    "Contains a reference to the C event variable.");
+
+static PyTypeObject PyElBase_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "ElBase",
+    .tp_basicsize = sizeof(PyElBase),
+    .tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc       = PyElBase_type_doc,
+    .tp_methods   = PyElBase_methods,
+    .tp_members   = PyElBase_members,
+    .tp_dealloc   = (destructor)PyElBase_dealloc,
+    .tp_clear     = (inquiry)PyElBase_clear,
+    .tp_traverse  = (traverseproc)PyElBase_traverse,
+};
+
+/* }}} */
+/* {{{ PyElFd */
+
+PyDoc_STRVAR(PyElFd_get_fd_doc,
+             "Get the corresponding file descriptor of the fd event.");
+
+static PyObject *PyElFd_get_fd(PyElBase *self, PyObject *null)
+{
+    int fd = el_fd_get_fd(self->el);
+
+#ifdef IS_PY3K
+    return PyInt_FromLong(fd);
+#else
+    return PyLong_FromLong(fd);
+#endif
+}
+
+static PyMethodDef PyElFd_methods[] = {
+    {
+        "get_fd",
+        (PyCFunction)PyElFd_get_fd,
+        METH_NOARGS,
+        PyElFd_get_fd_doc
+    }, {
+        NULL,
+        NULL,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElFd_type_doc,
+    "Fd Event loop object\n"
+    "\n"
+    "Contains a reference to the C fd event variable.");
+
+static PyTypeObject PyElFd_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "ElFd",
+    .tp_base      = &PyElBase_type,
+    .tp_flags     = Py_TPFLAGS_DEFAULT,
+    .tp_doc       = PyElFd_type_doc,
+    .tp_methods   = PyElFd_methods,
+};
+
+/* }}} */
+/* }}} */
+/* {{{ Method functions */
+
 static int py_register_fd_cb(el_t el, int fd, short ev, data_t priv)
 {
-    PyObject *py_handler = priv.ptr;
+    PyElBase *py_el = priv.ptr;
     PyObject *res;
 
-    res = PyObject_CallObject(py_handler, NULL);
+    assert (el == py_el->el);
+    res = PyObject_CallObject(py_el->handler, NULL);
     if (res) {
         Py_DECREF(res);
     } else {
@@ -971,6 +1123,8 @@ PyDoc_STRVAR(py_register_el_fd_doc,
     "    handler: must be a callable Object. Called when a event is \n"
     "received.\n"
     "\n"
+    "Returns the ElFd corresponding to the event.\n"
+    "\n"
     "Example:\n"
     "class ResponseProcessor(BaseHTTPRequestHandler):\n"
     "    def do_GET(self):\n"
@@ -984,30 +1138,34 @@ PyDoc_STRVAR(py_register_el_fd_doc,
     "        server_addr = (self.cfg.asyncServerAddr,\n"
     "                       self.cfg.asyncServerPort)\n"
     "        httpd = HTTPServer(server_addr, ResponseProcessor)\n"
-    "        module.register_el_fd(httpd.fileno(), select.POLLIN,\n"
+    "        minion.register_el_fd(httpd.fileno(), select.POLLIN,\n"
     "                              httpd.handle_request)\n"
 );
 
 static PyObject *py_register_el_fd(PyObject *self, PyObject *args,
-                                   PyObject *keywds)
+                                   PyObject *kwargs)
 {
     static const char *kwlist[] = {"fd", "eventmask", "handler", NULL};
     PyObject *handler;
     int fd;
     short eventmask;
-    el_t el;
+    PyElBase *py_el;
 
-    if (!PyArg_ParseTupleAndKeywords(args, keywds, "ihO", (char **)kwlist,
-                                     &fd, &eventmask, &handler))
-    {
-        return NULL;
-    }
+    RETHROW_NP(py_el_check_all_registered());
 
+    THROW_NULL_UNLESS(PyArg_ParseTupleAndKeywords(args, kwargs, "ihO",
+                                                  (char **)kwlist, &fd,
+                                                  &eventmask, &handler));
+
+    py_el = RETHROW_P(PyObject_New(PyElBase, &PyElFd_type));
     Py_INCREF(handler);
-    el = el_fd_register(fd, false, eventmask, &py_register_fd_cb, handler);
-    qv_append(&_G.py_els, el);
+    py_el->handler = handler;
+    py_el->el = el_fd_register(fd, false, eventmask, &py_register_fd_cb,
+                               py_el);
+    qh_add(ptr, &_G.py_els, py_el->el);
 
-    Py_RETURN_NONE;
+    Py_INCREF(py_el);
+    return (PyObject *)py_el;
 }
 
 PyMethodDef python_el_methods_g[] = {
@@ -1024,6 +1182,25 @@ PyMethodDef python_el_methods_g[] = {
     }
 };
 
+/* }}} */
+/* {{{ Module */
+
+static int register_el_py_type(PyObject *module, PyTypeObject *type)
+{
+    RETHROW(PyType_Ready(type));
+    Py_INCREF(type);
+    PyModule_AddObject(module, type->tp_name, (PyObject *)type);
+    return 0;
+}
+
+int register_python_el_types(PyObject *module)
+{
+    RETHROW(register_el_py_type(module, &PyElBase_type));
+    RETHROW(register_el_py_type(module, &PyElFd_type));
+    _G.py_el_types_registered = true;
+    return 0;
+}
+
 static int python_el_initialize(void *arg)
 {
     python_el_cfg_t *cfg = arg;
@@ -1031,17 +1208,19 @@ static int python_el_initialize(void *arg)
     if (cfg) {
         _G.py_el_cfg = *cfg;
     }
-    qv_init(&_G.py_els);
+    qh_init(ptr, &_G.py_els);
+    _G.py_el_module_registered = true;
     return 0;
 }
 
 static void python_el_on_term(int signo)
 {
-    qv_deep_wipe(&_G.py_els, py_el_wipe);
+    qh_deep_wipe(ptr, &_G.py_els, py_el_wipe);
 }
 
 static int python_el_shutdown(void)
 {
+    _G.py_el_module_registered = false;
     return 0;
 }
 
@@ -1049,4 +1228,5 @@ MODULE_BEGIN(python_el)
     MODULE_IMPLEMENTS_INT(on_term, &python_el_on_term);
 MODULE_END()
 
+/* }}} */
 /* }}} */
