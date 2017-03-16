@@ -961,15 +961,30 @@ static int py_el_check_all_registered(void)
     return 0;
 }
 
+#ifdef IS_PY3K
+# define PYINT_FROMLONG(x)  PyLong_FromLong(x)
+#else
+# define PYINT_FROMLONG(x)  PyInt_FromLong(x)
+#endif
+
 /* }}} */
 /* {{{ Types */
 /* {{{ PyElBase */
 
+#define PY_ELBASE_FIELDS                                                     \
+    el_t el;                                                                 \
+    PyObject *handler
+
 typedef struct PyElBase {
     PyObject_HEAD
-    el_t el;
-    PyObject *handler;
+    PY_ELBASE_FIELDS;
 } PyElBase;
+
+static void py_el_unregister(PyElBase *py_el)
+{
+    qh_deep_del_key(ptr, &_G.py_els, py_el->el, py_el_wipe);
+    py_el->el = NULL;
+}
 
 static int PyElBase_traverse(PyElBase *self, visitproc visit, void *arg)
 {
@@ -1011,8 +1026,7 @@ PyDoc_STRVAR(PyElBase_unregister_doc, "Unregister the event.");
 
 static PyObject *PyElBase_unregister(PyElBase *self, PyObject *null)
 {
-    qh_deep_del_key(ptr, &_G.py_els, self->el, py_el_wipe);
-    self->el = NULL;
+    py_el_unregister(self);
     Py_RETURN_NONE;
 }
 
@@ -1058,11 +1072,7 @@ static PyObject *PyElFd_get_fd(PyElBase *self, PyObject *null)
 {
     int fd = el_fd_get_fd(self->el);
 
-#ifdef IS_PY3K
-    return PyInt_FromLong(fd);
-#else
-    return PyLong_FromLong(fd);
-#endif
+    return PYINT_FROMLONG(fd);
 }
 
 static PyMethodDef PyElFd_methods[] = {
@@ -1091,6 +1101,98 @@ static PyTypeObject PyElFd_type = {
     .tp_flags     = Py_TPFLAGS_DEFAULT,
     .tp_doc       = PyElFd_type_doc,
     .tp_methods   = PyElFd_methods,
+};
+
+/* }}} */
+/* {{{ PyElTimer */
+
+#define PY_ELTIMER_FIELDS                                                    \
+    PY_ELBASE_FIELDS;                                                        \
+    bool is_armed : 1
+
+typedef struct PyElTimer {
+    PyObject_HEAD
+    PY_ELTIMER_FIELDS;
+} PyElTimer;
+
+PyDoc_STRVAR(PyElTimer_is_repeated_doc,
+             "True if the corresponding el timer is repeated.");
+
+static PyObject *PyElTimer_is_repeated(PyElTimer *self, PyObject *null)
+{
+    if (el_timer_is_repeated(self->el)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+PyDoc_STRVAR(PyElTimer_restart_doc,
+    "Restart a one-shot timer.\n"
+    "\n"
+    "Note that if the timer hasn't expired yet, it just sets it to a later "
+    "time.\n"
+    "\n"
+    "Arguments:\n"
+    "    [next]: relative time in ms at which the timer will fire. If not \n"
+    "set or negative, the previous relative value is reused."
+);
+
+static PyObject *PyElTimer_restart(PyElTimer *self, PyObject *args,
+                                   PyObject *kwargs)
+{
+    static const char *kwlist[] = {"next", NULL};
+    int64_t next = -1;
+
+    if (!self->el) {
+        PyErr_SetString(PyExc_TypeError, "timer has been unregistered");
+        return NULL;
+    }
+
+    if (el_timer_is_repeated(self->el)) {
+        PyErr_SetString(PyExc_TypeError, "timer is not a one-shot timer");
+        return NULL;
+    }
+
+    THROW_NULL_UNLESS(PyArg_ParseTupleAndKeywords(args, kwargs, "|L",
+                                                  (char **)kwlist, &next));
+    el_timer_restart(self->el, next);
+    self->is_armed = true;
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef PyElTimer_methods[] = {
+    {
+        "is_repeated",
+        (PyCFunction)PyElTimer_is_repeated,
+        METH_NOARGS,
+        PyElTimer_is_repeated_doc
+    }, {
+        "restart",
+        (PyCFunction)PyElTimer_restart,
+        METH_VARARGS | METH_KEYWORDS,
+        PyElTimer_restart_doc
+    }, {
+        NULL,
+        NULL,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElTimer_type_doc,
+    "Timer Event loop object\n"
+    "\n"
+    "Contains a reference to the C timer event variable.");
+
+static PyTypeObject PyElTimer_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "ElTimer",
+    .tp_basicsize = sizeof(PyElTimer),
+    .tp_base      = &PyElBase_type,
+    .tp_flags     = Py_TPFLAGS_DEFAULT,
+    .tp_doc       = PyElTimer_type_doc,
+    .tp_methods   = PyElTimer_methods,
 };
 
 /* }}} */
@@ -1168,12 +1270,107 @@ static PyObject *py_register_el_fd(PyObject *self, PyObject *args,
     return (PyObject *)py_el;
 }
 
+static void py_register_timer_cb(el_t el, data_t priv)
+{
+    PyElTimer *py_el = priv.ptr;
+    PyObject *res;
+
+    assert (el == py_el->el);
+    if (!el_timer_is_repeated(el)) {
+        py_el->is_armed = false;
+    }
+
+    Py_INCREF(py_el);
+    res = PyObject_CallFunctionObjArgs(py_el->handler, (PyObject *)py_el,
+                                       NULL);
+    if (res) {
+        Py_DECREF(res);
+    } else {
+        py_el_on_cb_exception(el);
+    }
+
+    if (py_el->el && !py_el->is_armed) {
+        /* XXX: The one-shot timer was not unregistered but was not rearmed
+         * either. It will be automatically unregistered after this callback,
+         * so we need to remove it from py_els. */
+        py_el_unregister((PyElBase *)py_el);
+    }
+    Py_DECREF(py_el);
+}
+
+PyDoc_STRVAR(py_register_el_timer_doc,
+    "Register a timer in the event loop.\n"
+    "\n"
+    "There are two kinds of timers: one shot and repeating timers:\n"
+    "- One shot timers fire their callback once, when they time out.\n"
+    "- Repeating timers automatically rearm after being fired.\n"
+    "\n"
+    "One shot timers are automatically destroyed at the end of the callback\n"
+    "if they have not be rearmed in it. As a consequence, you must be\n"
+    "careful to cleanup all references to one-shot timers you did not rearm\n"
+    "within the callback.\n"
+    "\n"
+    "Arguments:\n"
+    "    next:    relative time in ms at which the timer fires.\n"
+    "    repeat:  repeat interval in ms, 0 means single shot.\n"
+    "    handler: callback to call upon timer expiry.\n"
+    "    [flags]: timer related flags (EL_TIMER_NOMISS, EL_TIMER_LOWRES).\n"
+    "\n"
+    "Returns the ElTimer corresponding to the event.\n"
+    "\n"
+    "Example:\n"
+    "def print_plop(el):\n"
+    "    LOGGER.info('plop')\n"
+    "    el.restart(1000)\n"
+    "\n"
+    "\n"
+    "class MyMinion(minion.Minion):\n"
+    "    def on_ready(self):\n"
+    "        module.register_el_timer(2000, 0, print_plop,\n"
+    "                                 module.EL_TIMER_LOWRES)"
+);
+
+static PyObject *py_register_el_timer(PyObject *self, PyObject *args,
+                                      PyObject *kwargs)
+{
+    static const char *kwlist[] = {
+        "next", "repeat", "handler", "flags", NULL
+    };
+    int64_t next;
+    int64_t repeat;
+    PyObject *handler;
+    int flags = 0;
+    PyElTimer *py_el;
+
+    RETHROW_NP(py_el_check_all_registered());
+
+    THROW_NULL_UNLESS(PyArg_ParseTupleAndKeywords(args, kwargs, "LLO|i",
+                                                  (char **)kwlist, &next,
+                                                  &repeat, &handler, &flags));
+
+    py_el = RETHROW_P(PyObject_New(PyElTimer, &PyElTimer_type));
+    Py_INCREF(handler);
+    py_el->handler = handler;
+    py_el->el = el_timer_register(next, repeat, flags, &py_register_timer_cb,
+                                  py_el);
+    py_el->is_armed = true;
+    qh_add(ptr, &_G.py_els, py_el->el);
+
+    Py_INCREF(py_el);
+    return (PyObject *)py_el;
+}
+
 PyMethodDef python_el_methods_g[] = {
     {
         "register_el_fd",
         (PyCFunction)py_register_el_fd,
         METH_VARARGS | METH_KEYWORDS,
         py_register_el_fd_doc
+    }, {
+        "register_el_timer",
+        (PyCFunction)py_register_el_timer,
+        METH_VARARGS | METH_KEYWORDS,
+        py_register_el_timer_doc
     }, {
         NULL,
         NULL,
@@ -1197,6 +1394,13 @@ int register_python_el_types(PyObject *module)
 {
     RETHROW(register_el_py_type(module, &PyElBase_type));
     RETHROW(register_el_py_type(module, &PyElFd_type));
+    RETHROW(register_el_py_type(module, &PyElTimer_type));
+
+    PyModule_AddObject(module, "EL_TIMER_NOMISS",
+                       PYINT_FROMLONG(EL_TIMER_NOMISS));
+    PyModule_AddObject(module, "EL_TIMER_LOWRES",
+                       PYINT_FROMLONG(EL_TIMER_LOWRES));
+
     _G.py_el_types_registered = true;
     return 0;
 }
