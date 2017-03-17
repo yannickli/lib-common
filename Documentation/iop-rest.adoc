@@ -7,6 +7,17 @@ as defined in <<HTTP_1.1>> and to JSONfootnote:[http://www.json.org/[]] format.
 
 include::http-conformance.adoc[]
 
+Here are the HTTP codes returned by the platform REST interfaces:
+
+[options="header"]
+|===
+| Code                        | Meaning
+| 200 - OK                    | Query success
+| 404 - Not Found             | The requested function does not exist
+| 500 - Internal Server Error | Applicative exception (described in the JSON payload)
+| 400 - Bad Request           | Any other error
+|===
+
 ==== JSON conformance ====
 
 include::json-conformance.adoc[]
