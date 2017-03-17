@@ -164,7 +164,7 @@
  */
 #if __has_feature(c_static_assert) || \
     (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)
-# define __error__(msg)
+# define __error__(msg)       (void)({__asm__(".error \""msg"\"");})
 # define STATIC_ASSERT(cond)  do { _Static_assert(cond, #cond); } while (0)
 #   define ASSERT_COMPATIBLE(e1, e2) \
      STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
