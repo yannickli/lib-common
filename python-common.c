@@ -152,6 +152,7 @@ typedef struct python_ctx_t {
     dlist_t   list;
     time_t    expiry;
     core__iop_http_method__t http_method;
+    bool encode_url;
 } python_ctx_t;
 
 static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
@@ -330,7 +331,11 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     httpc_query_attach(&q->q, w);
 
     if (ctx->path.s) {
-        sb_add_urlencode(&sb, ctx->path.s, ctx->path.len);
+        if (ctx->encode_url) {
+            sb_add_urlencode(&sb, ctx->path.s, ctx->path.len);
+        } else {
+            sb_add_lstr(&sb, ctx->path);
+        }
     } else {
         sb_addc(&sb, '/');
     }
@@ -615,17 +620,19 @@ static PyObject *
 python_http_query(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static const char *kwlist[] = {"data", "query_done_cb", "url_path",
-                                   "url_args", "http_method", NULL};
+                                   "url_args", "http_method", "encode_url",
+                                   NULL};
     PyObject                 *data = NULL;
     PyObject                 *cb_query_done = NULL;
     char                     *path = NULL;
     char                     *url_args = NULL;
     core__iop_http_method__t http_method = _G.http_method;
+    bool encode_url = true;
     python_ctx_t *ctx;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOz|zi", (char **)kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOz|zib", (char **)kwlist,
                                      &data, &cb_query_done, &path, &url_args,
-                                     &http_method))
+                                     &http_method, &encode_url))
     {
         PyErr_SetString(http_query_error,
                         "failed to parse http_query argument");
@@ -648,6 +655,7 @@ python_http_query(PyObject *self, PyObject *args, PyObject *kwargs)
     ctx->url_args = url_args ? lstr_dups(url_args, strlen(url_args))
                              : LSTR_NULL_V;
     ctx->http_method = http_method;
+    ctx->encode_url = encode_url;
 
     if (_G.nb_pending > PYTHON_HTTP_MAX_PENDING) {
         python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
