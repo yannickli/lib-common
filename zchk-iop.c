@@ -1811,8 +1811,13 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_json_test_json(st_sa_opt, "{ a:42, o: null }",
                                         &json_sa_opt_res, "json_sa_opt"));
 
+        /* test iop void */
         json_sa_opt_res.v = &iop_void;
-        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, "{ a:42, o: null, v: {} }",
+        /* test escaping of characters according to http://www.json.org/ */
+        json_sa_opt_res.j = LSTR("\" \\ / \b \f \n \r \t ♡");
+        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, "{ a:42, o: null, v: {}, "
+                                        "j: \"\\\" \\\\ \\/ \\b \\f \\n \\r "
+                                        "\\t \\u2661\" }",
                                         &json_sa_opt_res, "json_sa_opt"));
 
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1,
