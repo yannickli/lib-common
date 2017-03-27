@@ -1588,6 +1588,23 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 /* }}} */
 /* Check {{{ */
 
+static int z_test_aper_enum(const asn1_enum_info_t *e, uint32_t val,
+                            const char *exp_encoding)
+{
+    BB_1k(bb);
+    bit_stream_t bs;
+    uint32_t res;
+
+    Z_ASSERT_N(aper_encode_enum(&bb, val, e), "cannot encode");
+    bs = bs_init_bb(&bb);
+    Z_ASSERT_N(aper_decode_enum(&bs, e, &res), "cannot decode");
+    Z_ASSERT_EQ(res, val, "decoded value differs");
+    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bb(&bb, NULL),
+                      "unexpected encoding");
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(asn1_aligned_per) {
     bit_stream_t bs;
     size_t len;
@@ -1899,7 +1916,6 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
 
     Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
         t_scope;
-        BB_1k(bb);
 
         asn1_enum_info_t e1;
         asn1_enum_info_t e2;
@@ -1907,7 +1923,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
 
         struct {
             uint32_t          val;
-            asn1_enum_info_t *e;
+            const asn1_enum_info_t *e;
             const char       *s;
         } t[] = {
             { 5,   &e1, ".0" },
@@ -1937,14 +1953,9 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         }
 
         for (int i = 0; i < countof(t); i++) {
-            uint32_t res;
-
-            bb_reset(&bb);
-            Z_ASSERT_N(aper_encode_enum(&bb, t[i].val, t[i].e), "[i:%d]", i);
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(aper_decode_enum(&bs, t[i].e, &res), "[i:%d]", i);
-            Z_ASSERT_EQ(res, t[i].val, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
+            Z_HELPER_RUN(z_test_aper_enum(t[i].e, t[i].val, t[i].s),
+                         "check fail for value `%d` (expected encoding `%s`)",
+                         t[i].val, t[i].s);
         }
 
         qv_wipe(u32, &e1.values);
