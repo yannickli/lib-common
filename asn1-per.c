@@ -163,7 +163,8 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
     return e_error("ASN.1 PER encoder: fragmentation is not supported");
 }
 
-static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v)
+static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v,
+                                               bool is_signed)
 {
     uint8_t olen;
 
@@ -270,7 +271,8 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
 }
 
 static int
-aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
+aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
+                   bool is_signed)
 {
     if (info) {
         if (n < info->min || n > info->max) {
@@ -304,7 +306,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
     if (info && info->min != INT64_MIN) {
         aper_write_number(bb, n - info->min, info);
     } else { /* Only 2's-complement case */
-        aper_write_2c_number(bb, n);
+        aper_write_2c_number(bb, n, is_signed);
     }
 
     return 0;
@@ -409,17 +411,18 @@ aper_encode_value(bb_t *bb, const void *v, const asn1_field_t *field)
       case ASN1_OBJ_TYPE(bool):
         aper_encode_bool(bb, *(const bool *)v);
         break;
-#define ASN1_ENCODE_INT_CASE(type_t)                                      \
-      case ASN1_OBJ_TYPE(type_t):                                         \
-        return aper_encode_number(bb, *(type_t *)v, &field->int_info);
-      ASN1_ENCODE_INT_CASE(int8_t);
-      ASN1_ENCODE_INT_CASE(uint8_t);
-      ASN1_ENCODE_INT_CASE(int16_t);
-      ASN1_ENCODE_INT_CASE(uint16_t);
-      ASN1_ENCODE_INT_CASE(int32_t);
-      ASN1_ENCODE_INT_CASE(uint32_t);
-      ASN1_ENCODE_INT_CASE(int64_t);
-      ASN1_ENCODE_INT_CASE(uint64_t);
+#define ASN1_ENCODE_INT_CASE(type_t, is_signed)                              \
+      case ASN1_OBJ_TYPE(type_t):                                            \
+        return aper_encode_number(bb, *(type_t *)v, &field->int_info,        \
+                                  (is_signed));
+      ASN1_ENCODE_INT_CASE(int8_t, true);
+      ASN1_ENCODE_INT_CASE(uint8_t, false);
+      ASN1_ENCODE_INT_CASE(int16_t, true);
+      ASN1_ENCODE_INT_CASE(uint16_t, false);
+      ASN1_ENCODE_INT_CASE(int32_t, true);
+      ASN1_ENCODE_INT_CASE(uint32_t, false);
+      ASN1_ENCODE_INT_CASE(int64_t, true);
+      ASN1_ENCODE_INT_CASE(uint64_t, false);
 #undef ASN1_ENCODE_INT_CASE
       case ASN1_OBJ_TYPE(enum):
         return aper_encode_enum(bb, *(int32_t *)v, field->enum_info);
@@ -813,7 +816,7 @@ aper_read_ulen(bit_stream_t *bs, size_t *l)
 }
 
 static ALWAYS_INLINE int
-aper_read_2c_number(bit_stream_t *bs, int64_t *v)
+aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
 {
     size_t olen;
 
@@ -1008,7 +1011,9 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
 }
 
 static int
-aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
+aper_decode_number(bit_stream_t *nonnull bs,
+                   const asn1_int_info_t *nonnull info, bool is_signed,
+                   int64_t *nonnull n)
 {
     int64_t res = 0;
 
@@ -1023,7 +1028,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
         extension_present = __bs_be_get_bit(bs);
 
         if (extension_present) {
-            if (aper_read_2c_number(bs, n) < 0) {
+            if (aper_read_2c_number(bs, n, is_signed) < 0) {
                 e_info("cannot read extended unconstrained number");
                 return -1;
             }
@@ -1054,7 +1059,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
     } else {
         assert (!info || !info->constrained);
 
-        if (aper_read_2c_number(bs, &res) < 0) {
+        if (aper_read_2c_number(bs, &res, is_signed) < 0) {
             e_info("cannot read unconstrained number");
             return -1;
         }
@@ -1090,7 +1095,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
         }
     }
 
-    RETHROW(aper_decode_number(bs, &e->constraints, &pos));
+    RETHROW(aper_decode_number(bs, &e->constraints, true, &pos));
 
     if (pos >= e->values.len) {
         e_info("cannot read enumerated value: unregistered value");
@@ -1251,27 +1256,31 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
       case ASN1_OBJ_TYPE(bool):
         return aper_decode_bool(bs, (bool *)v);
         break;
-#define ASN1_DECODE_INT_CASE(type_t)  \
+
+    /* TODO Detect integer overflows. */
+#define ASN1_DECODE_INT_CASE(type_t, is_signed)  \
       case ASN1_OBJ_TYPE(type_t):                                         \
         {                                                                 \
             int64_t i64;                                                  \
                                                                           \
-            RETHROW(aper_decode_number(bs, &field->int_info, &i64));      \
+            RETHROW(aper_decode_number(bs, &field->int_info, (is_signed), \
+                                       &i64));                            \
             e_trace(5, "decoded number value (n = %jd)", i64);            \
                                                                           \
             *(type_t *)v = i64;                                           \
                                                                           \
         }                                                                 \
         return 0;
-      ASN1_DECODE_INT_CASE(int8_t);
-      ASN1_DECODE_INT_CASE(uint8_t);
-      ASN1_DECODE_INT_CASE(int16_t);
-      ASN1_DECODE_INT_CASE(uint16_t);
-      ASN1_DECODE_INT_CASE(int32_t);
-      ASN1_DECODE_INT_CASE(uint32_t);
-      ASN1_DECODE_INT_CASE(int64_t);
-      ASN1_DECODE_INT_CASE(uint64_t);
+      ASN1_DECODE_INT_CASE(int8_t, true);
+      ASN1_DECODE_INT_CASE(uint8_t, false);
+      ASN1_DECODE_INT_CASE(int16_t, true);
+      ASN1_DECODE_INT_CASE(uint16_t, false);
+      ASN1_DECODE_INT_CASE(int32_t, true);
+      ASN1_DECODE_INT_CASE(uint32_t, false);
+      ASN1_DECODE_INT_CASE(int64_t, true);
+      ASN1_DECODE_INT_CASE(uint64_t, false);
 #undef ASN1_DECODE_INT_CASE
+
       case ASN1_OBJ_TYPE(enum):
         RETHROW(aper_decode_enum(bs, field->enum_info, (int32_t *)v));
         e_trace(5, "decoded enum value (n = %u)", *(int32_t *)v);
@@ -1757,10 +1766,11 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             int64_t i64;
 
             bb_reset(&bb);
-            asn1_int_info_update(t[i].info);
-            aper_encode_number(&bb, t[i].i, t[i].info);
+            asn1_int_info_update(t[i].info, true);
+            aper_encode_number(&bb, t[i].i, t[i].info, true);
             bs = bs_init_bb(&bb);
-            Z_ASSERT_N(aper_decode_number(&bs, t[i].info, &i64), "[i:%d]", i);
+            Z_ASSERT_N(aper_decode_number(&bs, t[i].info, true, &i64),
+                       "[i:%d]", i);
             Z_ASSERT_EQ(i64, t[i].i, "[i:%d]", i);
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }

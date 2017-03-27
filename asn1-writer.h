@@ -263,8 +263,7 @@ typedef struct asn1_int_info_t {
     int64_t       ext_max; /* XXX INT64_MAX if infinity */
 } asn1_int_info_t;
 
-static inline void
-asn1_int_info_update(asn1_int_info_t *info)
+static inline void asn1_int_info_update(asn1_int_info_t *info, bool is_signed)
 {
     if (!info)
         return;
@@ -295,6 +294,21 @@ static inline asn1_int_info_t *asn1_int_info_init(asn1_int_info_t *info)
     info->ext_max = INT64_MAX;
 
     return info;
+}
+static inline bool asn1_field_type_is_signed_int(enum obj_type type)
+{
+    return type == ASN1_OBJ_TYPE(int8_t) ||
+           type == ASN1_OBJ_TYPE(int16_t) ||
+           type == ASN1_OBJ_TYPE(int32_t) ||
+           type == ASN1_OBJ_TYPE(int64_t);
+}
+
+static inline bool asn1_field_type_is_uint(enum obj_type type)
+{
+    return type == ASN1_OBJ_TYPE(uint8_t) ||
+           type == ASN1_OBJ_TYPE(uint16_t) ||
+           type == ASN1_OBJ_TYPE(uint32_t) ||
+           type == ASN1_OBJ_TYPE(uint64_t);
 }
 
 typedef struct asn1_cnt_info_t {
