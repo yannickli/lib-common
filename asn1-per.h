@@ -93,9 +93,9 @@
 #define ASN1_MAX_LEN  SIZE_MAX /* FIXME put real ASN1_MAX_LEN instead */
 
 /* TODO optimize */
-static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
+static inline int asn1_enum_pos(const asn1_enum_info_t *e, int32_t val)
 {
-    qv_for_each_pos(u32, pos, &e->values) {
+    tab_for_each_pos(pos, &e->values) {
         if (e->values.tab[pos] == val) {
             return pos;
         }
@@ -104,12 +104,12 @@ static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
     return -1;
 }
 
-static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
+static inline void asn1_enum_append(asn1_enum_info_t *e, int32_t val)
 {
     assert (e->values.len <= 255);
     assert (asn1_enum_pos(e, val) < 0);
 
-    qv_append(u32, &e->values, val);
+    qv_append(i32, &e->values, val);
 
     if (e->values.len > 1) {
         e->blen = bsr8(e->values.len - 1) + 1;

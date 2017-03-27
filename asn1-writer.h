@@ -316,7 +316,7 @@ static inline asn1_cnt_info_t *asn1_cnt_info_init(asn1_cnt_info_t *info)
 }
 
 typedef struct asn1_enum_info_t {
-    qv_t(u32)     values;  /* XXX Enumeration values in canonical order */
+    qv_t(i32)     values;  /* XXX Enumeration values in canonical order */
     size_t        blen;
 
     flag_t        extended;
@@ -325,7 +325,7 @@ typedef struct asn1_enum_info_t {
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
 {
     p_clear(e, 1);
-    qv_init(u32, &e->values);
+    qv_init(i32, &e->values);
 
     return e;
 }

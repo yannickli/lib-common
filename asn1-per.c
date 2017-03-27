@@ -311,7 +311,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
 }
 
 static int
-aper_encode_enum(bb_t *bb, uint32_t val, const asn1_enum_info_t *e)
+aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 {
     int pos = asn1_enum_pos(e, val);
 
@@ -1061,9 +1061,8 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
     return 0;
 }
 
-/* XXX Negative values are forbidden */
 static int
-aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
+aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
 {
     uint8_t pos;
 
@@ -1275,8 +1274,8 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
       ASN1_DECODE_INT_CASE(uint64_t);
 #undef ASN1_DECODE_INT_CASE
       case ASN1_OBJ_TYPE(enum):
-        RETHROW(aper_decode_enum(bs, field->enum_info, (uint32_t *)v));
-        e_trace(5, "decoded enum value (n = %u)", *(uint32_t *)v);
+        RETHROW(aper_decode_enum(bs, field->enum_info, (int32_t *)v));
+        e_trace(5, "decoded enum value (n = %u)", *(int32_t *)v);
         return 0;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
@@ -1588,12 +1587,12 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 /* }}} */
 /* Check {{{ */
 
-static int z_test_aper_enum(const asn1_enum_info_t *e, uint32_t val,
+static int z_test_aper_enum(const asn1_enum_info_t *e, int32_t val,
                             const char *exp_encoding)
 {
     BB_1k(bb);
     bit_stream_t bs;
-    uint32_t res;
+    int32_t res;
 
     Z_ASSERT_N(aper_encode_enum(&bb, val, e), "cannot encode");
     bs = bs_init_bb(&bb);
@@ -1917,12 +1916,14 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
     Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
         t_scope;
 
+        asn1_enum_info_t *e;
         asn1_enum_info_t e1;
         asn1_enum_info_t e2;
         asn1_enum_info_t e3;
+        asn1_enum_info_t e4;
 
         struct {
-            uint32_t          val;
+            int32_t          val;
             const asn1_enum_info_t *e;
             const char       *s;
         } t[] = {
@@ -1932,25 +1933,29 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { 104, &e2, ".11000000.00000001.01101000" },
             { 192, &e2, ".11000000.00000001.11000000" },
             { 20,  &e3, ".10010100" },
+            { -42, &e4, ".0" },
         };
 
-        asn1_enum_info_init(&e1);
-        asn1_enum_append(&e1, 5);
-        asn1_enum_append(&e1, 18);
+        e = asn1_enum_info_init(&e1);
+        asn1_enum_append(e, 5);
+        asn1_enum_append(e, 18);
 
-        asn1_enum_info_init(&e2);
-        e2.extended = true;
-
-        for (uint32_t u = 0; u < 100; u++) {
-            asn1_enum_append(&e2, u);
+        e = asn1_enum_info_init(&e2);
+        e->extended = true;
+        for (int32_t i = 0; i < 100; i++) {
+            asn1_enum_append(e, i);
         }
 
-        asn1_enum_info_init(&e3);
-        e3.extended = true;
-
-        for (uint32_t u = 0; u < 18; u++) {
-            asn1_enum_append(&e3, u);
+        e = asn1_enum_info_init(&e3);
+        e->extended = true;
+        for (int32_t i = 0; i < 18; i++) {
+            asn1_enum_append(e, i);
         }
+
+        e = asn1_enum_info_init(&e4);
+        asn1_enum_append(e, -42);
+        asn1_enum_append(e, 42);
+
 
         for (int i = 0; i < countof(t); i++) {
             Z_HELPER_RUN(z_test_aper_enum(t[i].e, t[i].val, t[i].s),
@@ -1958,9 +1963,10 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
                          t[i].val, t[i].s);
         }
 
-        qv_wipe(u32, &e1.values);
-        qv_wipe(u32, &e2.values);
-        qv_wipe(u32, &e3.values);
+        qv_wipe(i32, &e1.values);
+        qv_wipe(i32, &e2.values);
+        qv_wipe(i32, &e3.values);
+        qv_wipe(i32, &e4.values);
     } Z_TEST_END;
 } Z_GROUP_END
 
