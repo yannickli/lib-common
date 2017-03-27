@@ -508,6 +508,7 @@ static int asn1_pack_choice_size(const void *st, const asn1_desc_t *desc,
     selector_spec = &desc->vec.tab[0];
 
     choice = __asn1_get_int(st, selector_spec);
+    assert (choice > 0 && choice < desc->vec.len);
     choice_spec = &desc->vec.tab[choice];
 
     RETHROW(asn1_pack_field_size(st, choice_spec, stack, &len));
@@ -705,6 +706,7 @@ static uint8_t *asn1_pack_choice(uint8_t *dst, const void *st,
     selector_spec = &desc->vec.tab[0];
 
     choice = __asn1_get_int(st, selector_spec);
+    assert (choice > 0 && choice < desc->vec.len);
     choice_spec = &desc->vec.tab[choice];
 
     e_trace_desc(1, "serializing", desc, choice, depth);
