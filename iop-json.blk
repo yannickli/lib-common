@@ -682,8 +682,12 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
             int a, b;
 
           case 'a': case 'b': case 'e': case 't': case 'n': case 'v':
-          case 'f': case 'r': case '\\': case '"': case '\'':
+          case 'f': case 'r':
             sb_add_unquoted(&ll->ctx->b, PS->p, 2);
+            SKIP(2);
+            continue;
+          case '\\': case '"': case '\'': case '/':
+            sb_addc(&ll->ctx->b, READAT(1));
             SKIP(2);
             continue;
           case '0' ... '2':
