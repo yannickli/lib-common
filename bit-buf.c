@@ -176,6 +176,58 @@ char *t_print_be_bb(const bb_t *bb, size_t *len)
     return t_print_be_bs(bs, len);
 }
 
+int z_set_be_bb(bb_t *bb, const char *bits, sb_t *err)
+{
+    int c;
+    uint8_t u = 0;
+    int blen = 0;
+    const char *r = bits;
+
+    bb_reset(bb);
+    for (;;) {
+        c = *r++;
+
+        if (c == '0' || c == '1') {
+            u <<= 1;
+            blen++;
+
+            if (blen > 8) {
+                sb_sets(err, "invalid input");
+                return -1;
+            }
+
+            if (c == '1') {
+                u |= 1;
+            }
+        } else
+        if (c == '.' || !c) {
+            bb_add_bits(bb, u, blen);
+
+            if (!c) {
+                break;
+            }
+
+            u = 0;
+            blen = 0;
+        } else {
+            sb_setf(err, "unexpected character '%c'", c);
+            return -1;
+        }
+    }
+
+    {
+        t_scope;
+        const char *s = t_print_be_bb(bb, NULL);
+
+        if (!strequal(s, bits)) {
+            sb_setf(err, "input different when re-generated: got `%s`", s);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 char *t_print_bb(const bb_t *bb, size_t *len)
 {
     bit_stream_t bs = bs_init_bb(bb);

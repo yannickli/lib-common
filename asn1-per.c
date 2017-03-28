@@ -1709,10 +1709,20 @@ static int z_test_aper_number(const asn1_int_info_t *nonnull info,
     Z_HELPER_END;
 }
 
-Z_GROUP_EXPORT(asn1_aper_low_level) {
-    bit_stream_t bs;
-    size_t len;
+static void z_asn1_int_info_set_opt_min(asn1_int_info_t *info, opt_i64_t i)
+{
+    if (OPT_ISSET(i)) {
+        asn1_int_info_set_min(info, OPT_VAL(i));
+    }
+}
+static void z_asn1_int_info_set_opt_max(asn1_int_info_t *info, opt_i64_t i)
+{
+    if (OPT_ISSET(i)) {
+        asn1_int_info_set_max(info, OPT_VAL(i));
+    }
+}
 
+Z_GROUP_EXPORT(asn1_aper_low_level) {
     Z_TEST(u16, "aligned per: aper_write_u16_m/aper_read_u16_m") {
         t_scope;
         BB_1k(bb);
@@ -1730,6 +1740,9 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         };
 
         for (int i = 0; i < countof(t); i++) {
+            bit_stream_t bs;
+            size_t len;
+
             bb_reset(&bb);
             bb_add0s(&bb, t[i].skip);
 
@@ -1764,6 +1777,9 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         };
 
         for (int i = 0; i < countof(t); i++) {
+            bit_stream_t bs;
+            size_t len;
+
             bb_reset(&bb);
             bb_add0s(&bb, t[i].skip);
 
@@ -1792,6 +1808,9 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         };
 
         for (int i = 0; i < countof(t); i++) {
+            bit_stream_t bs;
+            size_t len;
+
             bb_reset(&bb);
             aper_write_nsnnwn(&bb, t[i].n);
             bs = bs_init_bb(&bb);
@@ -1809,7 +1828,7 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             bool is_signed;
             bool extended;
             const char *s;
-        } t[] = {
+        } tests[] = {
             { 1234,  OPT_NONE, OPT_NONE, true, false,
               ".00000010.00000100.11010010" },
             { -1234, OPT_NONE, OPT_NONE, true, false,
@@ -1842,24 +1861,84 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
               ".11111111.11111111.11111111.11111111" },
         };
 
-        carray_for_each_ptr(test, t) {
+        carray_for_each_ptr(t, tests) {
             asn1_int_info_t info;
 
             asn1_int_info_init(&info);
-            if (OPT_ISSET(test->min)) {
-                asn1_int_info_set_min(&info, OPT_VAL(test->min));
-            }
-            if (OPT_ISSET(test->max)) {
-                asn1_int_info_set_max(&info, OPT_VAL(test->max));
-            }
-            if (test->extended) {
+            z_asn1_int_info_set_opt_min(&info, t->min);
+            z_asn1_int_info_set_opt_max(&info, t->max);
+            if (t->extended) {
                 info.extended = true;
             }
-            asn1_int_info_update(&info, test->is_signed);
+            asn1_int_info_update(&info, t->is_signed);
 
-            Z_HELPER_RUN(z_test_aper_number(&info, test->i, test->is_signed,
-                                            test->s),
-                         "test (%ld/%zd) failed", test - t + 1, countof(t));
+            Z_HELPER_RUN(z_test_aper_number(&info, t->i, t->is_signed, t->s),
+                         "test (%ld/%zd) failed", t - tests + 1,
+                         countof(tests));
+        }
+    } Z_TEST_END;
+
+    Z_TEST(64bits_number_overflows, "aper: 64bits overflows on numbers") {
+        BB_1k(bb);
+        SB_1k(err);
+        struct {
+            const char *title;
+            bool is_signed;
+            opt_i64_t min;
+            opt_i64_t max;
+            const char *input;
+        } tests[] = {
+            { "unsigned: -1", false, OPT_NONE, OPT_NONE,
+              ".00000001.11111111" },
+
+            { "unsigned: UINT64_MAX + 1", false, OPT_NONE, OPT_NONE,
+              ".00001001.00000001.00000000.00000000.00000000.00000000"
+              ".00000000.00000000.00000000.00000000" },
+
+            { "signed: INT64_MIN - 1", true, OPT_NONE, OPT_NONE,
+              ".00001001.10000000.00000000.00000000.00000000.00000000"
+              ".00000000.00000000.00000000.00000000" },
+
+            { "signed: INT64_MAX + 1", true, OPT_NONE, OPT_NONE,
+              ".00001001.00000000.10000000.00000000.00000000.00000000"
+              ".00000000.00000000.00000000.00000000" },
+
+            { "signed semi-constrained: INT64_MAX + 1", true,
+              OPT(INT64_MAX), OPT_NONE,
+              ".00000001.00000001" },
+
+            { "signed semi-constrained: INT64_MAX + 1 (delta overflow)", true,
+              OPT(INT64_MIN), OPT_NONE,
+              ".00001001.00000001.00000000.00000000.00000000.00000000"
+              ".00000000.00000000.00000000.00000000" },
+
+            { "unsigned semi-constrained: UINT64_MAX + 1 (delta overflow)",
+              false, OPT(UINT64_MAX), OPT_NONE,
+              ".00000001.00000001" },
+
+            { "unsigned constrained: UINT64_MAX + 1", false,
+              OPT(1), OPT(UINT64_MAX),
+              ".11100000.11111111.11111111.11111111.11111111"
+              ".11111111.11111111.11111111.11111111" },
+        };
+
+        carray_for_each_ptr(t, tests) {
+            bit_stream_t bs;
+            int64_t v;
+            asn1_int_info_t info;
+
+            asn1_int_info_init(&info);
+            z_asn1_int_info_set_opt_min(&info, t->min);
+            z_asn1_int_info_set_opt_max(&info, t->max);
+            asn1_int_info_update(&info, t->is_signed);
+
+            Z_ASSERT_N(z_set_be_bb(&bb, t->input, &err),
+                       "invalid input `%s`: %*pM", t->input,
+                       SB_FMT_ARG(&err));
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_NEG(aper_decode_number(&bs, &info, t->is_signed, &v),
+                         "test `%s`: decoding was supposed to fail "
+                         "(v=%juULL/%jdLL)", t->title, v, v);
         }
     } Z_TEST_END;
 
@@ -1915,6 +1994,7 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         for (int i = 0; i < countof(t); i++) {
             lstr_t src = LSTR(t[i].os);
             lstr_t dst;
+            bit_stream_t bs;
 
             bb_reset(&bb);
             aper_encode_data(&bb, src, t[i].info);
@@ -1990,6 +2070,7 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         for (int i = 0; i < countof(t); i++) {
             bit_stream_t src;
             bit_stream_t dst;
+            bit_stream_t bs;
 
             bb_reset(&bb);
             bb_reset(&src_bb);

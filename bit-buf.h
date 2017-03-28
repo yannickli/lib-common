@@ -377,6 +377,8 @@ char *t_print_be_bb(const bb_t *bb, size_t *len)
 char *t_print_bb(const bb_t *bb, size_t *len)
     __leaf;
 
+/* XXX Inverse function for t_print_be_bb(). Only for tests. */
+int z_set_be_bb(bb_t *bb, const char *bits, sb_t *err);
 
 #ifndef NDEBUG
 #   define e_trace_be_bb(lvl, bb, fmt, ...)  \
