@@ -352,6 +352,32 @@ struct StructJpackFlags {
     int[] rep;
 };
 
+class JpackEmptyClsA {
+    int a = 1;
+};
+
+class JpackEmptyClsB : 1 : JpackEmptyClsA {
+    int b = 2;
+};
+
+class JpackEmptyClsC : 2 : JpackEmptyClsB {
+    int c = 3;
+};
+
+struct JpackEmptySubStruct {
+    @private int? priv;
+    int? opt;
+    int def = 42;
+    int[] rep;
+    StructJpackFlags reqSt;
+    StructJpackFlags? optSt;
+    JpackEmptyClsB cls;
+};
+
+struct JpackEmptyStruct {
+    JpackEmptySubStruct sub;
+};
+
 /* {{{ zchk iop.iop_for_each_field */
 
 struct MiniStruct {

@@ -378,10 +378,14 @@ SWIFT_OPTIONS(iop_jpack_flags) {
     /** Skip empty repeated fields. */
     IOP_JPACK_SKIP_EMPTY_ARRAYS __swift_name__("skipEmptyArrays") = (1U << 6),
 
+    /** Skip empty sub-structures. */
+    IOP_JPACK_SKIP_EMPTY_STRUCTS __swift_name__("skipEmptyStructs") = (1U << 7),
+
     /** Produce the smallest possible json. */
     IOP_JPACK_MINIMAL __swift_name__("minimal") = IOP_JPACK_NO_WHITESPACES
                                                 | IOP_JPACK_SKIP_DEFAULT
-                                                | IOP_JPACK_SKIP_EMPTY_ARRAYS,
+                                                | IOP_JPACK_SKIP_EMPTY_ARRAYS
+                                                | IOP_JPACK_SKIP_EMPTY_STRUCTS,
 };
 
 typedef int (iop_jpack_writecb_f)(void * nonnull priv,

@@ -1898,7 +1898,69 @@ Z_GROUP_EXPORT(iop)
                       "{\"priv\":12,\"def\":1,\"rep\":[]}");
             TST_FLAGS(flags | IOP_JPACK_SKIP_PRIVATE, false,
                       "{\"def\":1,\"rep\":[]}");
+
 #undef TST_FLAGS
+        }
+
+        /* Test empty struct packer flag. */
+        {
+            tstiop__jpack_empty_struct__t empty_jpack;
+            tstiop__struct_jpack_flags__t sub_st;
+            tstiop__jpack_empty_cls_b__t clsb;
+            tstiop__jpack_empty_cls_c__t clsc;
+            unsigned flags = IOP_JPACK_NO_TRAILING_EOL
+                           | IOP_JPACK_MINIMAL;
+
+            iop_init(tstiop__jpack_empty_struct, &empty_jpack);
+            iop_init(tstiop__jpack_empty_cls_b, &clsb);
+            empty_jpack.sub.cls = &clsb;
+
+#define TST(_flags, _must_be_equal, _exp)                                    \
+            Z_HELPER_RUN(iop_json_test_pack(&tstiop__jpack_empty_struct__s,  \
+                                            &empty_jpack, _flags,            \
+                                            _must_be_equal, _exp))
+
+            TST(flags, true, "{}");
+
+            OPT_SET(empty_jpack.sub.priv, 8);
+            TST(flags, true, "{\"sub\":{\"priv\":8}}");
+            TST(flags | IOP_JPACK_SKIP_PRIVATE, false, "{}");
+            OPT_CLR(empty_jpack.sub.priv);
+
+            OPT_SET(empty_jpack.sub.opt, 12);
+            TST(flags, true, "{\"sub\":{\"opt\":12}}");
+            OPT_CLR(empty_jpack.sub.opt);
+
+            empty_jpack.sub.def = 99;
+            TST(flags, true, "{\"sub\":{\"def\":99}}");
+            empty_jpack.sub.def = 42;
+
+            empty_jpack.sub.rep.tab = &empty_jpack.sub.def;
+            empty_jpack.sub.rep.len = 1;
+            TST(flags, true, "{\"sub\":{\"rep\":[42]}}");
+            empty_jpack.sub.rep.len = 0;
+
+            OPT_SET(empty_jpack.sub.req_st.opt, 65);
+            TST(flags, true, "{\"sub\":{\"reqSt\":{\"opt\":65}}}");
+            OPT_CLR(empty_jpack.sub.req_st.opt);
+
+            iop_init(tstiop__struct_jpack_flags, &sub_st);
+            empty_jpack.sub.opt_st = &sub_st;
+            TST(flags, true, "{\"sub\":{\"optSt\":{}}}");
+            empty_jpack.sub.opt_st = NULL;
+
+            clsb.a = 10;
+            TST(flags, true, "{\"sub\":{\"cls\":{"
+                "\"_class\":\"tstiop.JpackEmptyClsB\",\"a\":10}}}");
+            clsb.a = 1;
+
+            iop_init(tstiop__jpack_empty_cls_c, &clsc);
+            empty_jpack.sub.cls = &clsc.super;
+            TST(flags, true, "{\"sub\":{\"cls\":{"
+                "\"_class\":\"tstiop.JpackEmptyClsC\"}}}");
+            empty_jpack.sub.cls = &clsb;
+
+#undef TST
         }
 
         iop_dso_close(&dso);
