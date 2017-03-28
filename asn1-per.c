@@ -1340,35 +1340,40 @@ t_aper_decode_constructed(bit_stream_t *bs, const asn1_desc_t *desc,
 
 static int
 t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
-                  flag_t copy, void *v)
+                    flag_t copy, void *v)
 {
     switch (field->type) {
       case ASN1_OBJ_TYPE(bool):
         return aper_decode_bool(bs, (bool *)v);
         break;
 
-    /* TODO Detect integer overflows. */
-#define ASN1_DECODE_INT_CASE(type_t, is_signed)  \
-      case ASN1_OBJ_TYPE(type_t):                                         \
-        {                                                                 \
-            int64_t i64;                                                  \
-                                                                          \
-            RETHROW(aper_decode_number(bs, &field->int_info, (is_signed), \
-                                       &i64));                            \
-            e_trace(5, "decoded number value (n = %jd)", i64);            \
-                                                                          \
-            *(type_t *)v = i64;                                           \
-                                                                          \
-        }                                                                 \
+#define ASN1_DECODE_INT_CASE(type_t, type64_t, is_signed)  \
+      case ASN1_OBJ_TYPE(type_t):                                            \
+        {                                                                    \
+            int64_t i64;                                                     \
+                                                                             \
+            RETHROW(aper_decode_number(bs, &field->int_info, (is_signed),    \
+                                       &i64));                               \
+            e_trace(5, "decoded number value (n = %jd)", i64);               \
+                                                                             \
+            if ((type64_t)i64 != (type_t)i64) {                              \
+                e_info("overflow detected for field `%s` (" #type_t ")",     \
+                       field->name);                                         \
+                return -1;                                                   \
+            }                                                                \
+            *(type_t *)v = i64;                                              \
+        }                                                                    \
         return 0;
-      ASN1_DECODE_INT_CASE(int8_t, true);
-      ASN1_DECODE_INT_CASE(uint8_t, false);
-      ASN1_DECODE_INT_CASE(int16_t, true);
-      ASN1_DECODE_INT_CASE(uint16_t, false);
-      ASN1_DECODE_INT_CASE(int32_t, true);
-      ASN1_DECODE_INT_CASE(uint32_t, false);
-      ASN1_DECODE_INT_CASE(int64_t, true);
-      ASN1_DECODE_INT_CASE(uint64_t, false);
+
+      ASN1_DECODE_INT_CASE(int8_t, int64_t, true);
+      ASN1_DECODE_INT_CASE(uint8_t, uint64_t, false);
+      ASN1_DECODE_INT_CASE(int16_t, int64_t, true);
+      ASN1_DECODE_INT_CASE(uint16_t, uint64_t, false);
+      ASN1_DECODE_INT_CASE(int32_t, int64_t, true);
+      ASN1_DECODE_INT_CASE(uint32_t, uint64_t, false);
+      ASN1_DECODE_INT_CASE(int64_t, int64_t, true);
+      ASN1_DECODE_INT_CASE(uint64_t, uint64_t, false);
+
 #undef ASN1_DECODE_INT_CASE
 
       case ASN1_OBJ_TYPE(enum):

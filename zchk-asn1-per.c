@@ -37,7 +37,101 @@ static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
     asn1_set_int_min_max(desc, 666, 1234567);
 ASN1_CHOICE_DESC_END(desc);
 
+/* {{{ Integers overflows checks. */
+
+typedef struct ints_seq_t {
+    int8_t i8;
+    uint8_t u8;
+    int16_t i16;
+    uint16_t u16;
+    int32_t i32;
+    uint32_t u32;
+    int64_t i64;
+    uint64_t u64;
+    int64_t i64_bis;
+    uint64_t u64_bis;
+} ints_seq_t;
+
+typedef struct ints_seq_base_t {
+    int64_t i8;
+    int64_t u8;
+    int64_t i16;
+    int64_t u16;
+    int64_t i32;
+    int64_t u32;
+    int64_t i64;
+    uint64_t u64;
+    uint64_t i64_bis;
+    int64_t u64_bis;
+} ints_seq_base_t;
+
+#define INTS_SEQ_FIELDS_DESC(desc, pfx)                                      \
+    asn1_reg_scalar(desc, pfx, i8, 0);                                       \
+    asn1_reg_scalar(desc, pfx, u8, 1);                                       \
+    asn1_reg_scalar(desc, pfx, i16, 2);                                      \
+    asn1_reg_scalar(desc, pfx, u16, 3);                                      \
+    asn1_reg_scalar(desc, pfx, i32, 4);                                      \
+    asn1_reg_scalar(desc, pfx, u32, 5);                                      \
+    asn1_reg_scalar(desc, pfx, i64, 6);                                      \
+    asn1_reg_scalar(desc, pfx, u64, 7);                                      \
+    asn1_reg_scalar(desc, pfx, i64_bis, 8);                                  \
+    asn1_reg_scalar(desc, pfx, u64_bis, 9)
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, ints_seq);
+    INTS_SEQ_FIELDS_DESC(desc, ints_seq);
+ASN1_SEQUENCE_DESC_END(desc);
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, ints_seq_base);
+    INTS_SEQ_FIELDS_DESC(desc, ints_seq_base);
+ASN1_SEQUENCE_DESC_END(desc);
+
+static int z_assert_ints_seq_equals_base(const ints_seq_t *seq,
+                                         const ints_seq_base_t *base)
+{
+#define ASSERT_FIELD_EQUALS(field)                                           \
+    Z_ASSERT_EQ(seq->field, base->field);
+
+    ASSERT_FIELD_EQUALS(i8);
+    ASSERT_FIELD_EQUALS(u8);
+    ASSERT_FIELD_EQUALS(i16);
+    ASSERT_FIELD_EQUALS(u16);
+    ASSERT_FIELD_EQUALS(i32);
+    ASSERT_FIELD_EQUALS(u32);
+
+#undef ASSERT_FIELD_EQUALS
+
+    Z_HELPER_END;
+}
+
+#undef INTS_SEQ_FIELDS_DESC
+
+static int z_translate_ints_seq(const ints_seq_base_t *base,
+                                bool expect_error)
+{
+    t_scope;
+    SB_1k(sb);
+    ints_seq_t ints;
+    pstream_t ps;
+
+    p_clear(&ints, 1);
+    Z_ASSERT_N(aper_encode(&sb, ints_seq_base, base));
+    ps = ps_initsb(&sb);
+
+    if (expect_error) {
+        Z_ASSERT_NEG(t_aper_decode(&ps, ints_seq, false, &ints));
+    } else {
+        Z_ASSERT_N(t_aper_decode(&ps, ints_seq, false, &ints));
+        Z_HELPER_RUN(z_assert_ints_seq_equals_base(&ints, base));
+    }
+
+    Z_HELPER_END;
+}
+
+/* }}} */
+
 Z_GROUP_EXPORT(asn1_aper) {
+    /* {{{ Choice. */
+
     Z_TEST(choice, "choice") {
         t_scope;
         SB_1k(buf);
@@ -62,6 +156,9 @@ Z_GROUP_EXPORT(asn1_aper) {
             Z_ASSERT_EQ(in.i, out.i);
         }
     } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Extended choice. */
 
     Z_TEST(extended_choice, "extended choice") {
         struct {
@@ -90,4 +187,61 @@ Z_GROUP_EXPORT(asn1_aper) {
             Z_ASSERT_IOPEQUAL(tstiop__asn1_ext_choice, &t->in, &out);
         }
     } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Integers overflow. */
+
+    Z_TEST(ints_overflows, "integers overflows") {
+        ints_seq_base_t base_min = {
+            INT8_MIN, 0, INT16_MIN, 0, INT32_MIN, 0, INT64_MIN, 0, 0, 0,
+        };
+        ints_seq_base_t base_max = {
+            INT8_MAX, UINT8_MAX, INT16_MAX, UINT16_MAX,
+            INT32_MAX, UINT32_MAX, INT64_MAX, UINT64_MAX,
+            0, 0,
+        };
+        ints_seq_base_t base;
+
+        struct {
+            const char *title;
+            int64_t v;
+            int64_t *base_field;
+        } err_cases[] = {
+#define TEST(x)                                                              \
+    { "i" #x ", min - 1", (int64_t)INT##x##_MIN - 1, &base.i##x },           \
+    { "i" #x ", max + 1", (int64_t)INT##x##_MAX + 1, &base.i##x },           \
+    { "u" #x ", min - 1", (int64_t)-1, &base.u##x },                         \
+    { "u" #x ", max + 1", (int64_t)UINT##x##_MAX + 1, &base.u##x }
+
+            TEST(8),
+            TEST(16),
+            TEST(32),
+
+#undef TEST
+
+            /* XXX INT64_MIN - 1 is untestable this way */
+            { "i64, max + 1", (uint64_t)INT64_MAX + 1,
+                (int64_t *)&base.i64_bis },
+            { "u64, min + 1", -1, &base.u64_bis },
+            /* XXX UINT64_MAX + 1 is untestable this way */
+        };
+
+        Z_HELPER_RUN(z_translate_ints_seq(&base_min, false),
+                     "unexected error on minimum values");
+        Z_HELPER_RUN(z_translate_ints_seq(&base_max, false),
+                     "unexected error on maximum values");
+
+        p_clear(&base, 1);
+        Z_HELPER_RUN(z_translate_ints_seq(&base, false),
+                     "unexected error on zeros");
+
+        carray_for_each_ptr(t, err_cases) {
+            p_clear(&base, 1);
+            *t->base_field = t->v;
+            Z_HELPER_RUN(z_translate_ints_seq(&base, true),
+                         "test `%s`: no overflow detection", t->title);
+        }
+    } Z_TEST_END;
+
+    /* }}} */
 } Z_GROUP_END
