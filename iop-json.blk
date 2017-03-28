@@ -2067,16 +2067,32 @@ typedef struct jpack_file_ctx_t {
     qv_t(iop_json_field_path) field_paths;
 } jpack_file_ctx_t;
 
-static inline const void *
-get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
+static const void *
+get_n_and_ptr(const iop_struct_t *desc, unsigned flags,
+              const iop_field_t *fdesc, const void *value, int *n,
+              bool *is_skipped)
 {
-    void *ptr = (char *)value + fdesc->data_offs;
+    bool repeated = fdesc->repeat == IOP_R_REPEATED;
+    const void *ptr;
+
+    *is_skipped = false;
+
+    if (flags & IOP_JPACK_SKIP_PRIVATE) {
+        const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+
+        if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
+            goto skip;
+        }
+    }
+
+    ptr = (char *)value + fdesc->data_offs;
 
     switch (fdesc->repeat) {
       case IOP_R_OPTIONAL:
         *n = iop_value_has(fdesc, ptr);
-        if (*n && ((1 << fdesc->type) & IOP_STRUCTS_OK))
+        if (*n && ((1 << fdesc->type) & IOP_STRUCTS_OK)) {
             ptr = *(void **)ptr;
+        }
         break;
       case IOP_R_REQUIRED:
       case IOP_R_DEFVAL:
@@ -2092,7 +2108,29 @@ get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
       default:
         abort();
     }
+
+    if (!*n && !repeated) {
+        goto skip;
+    }
+    if ((flags & IOP_JPACK_SKIP_DEFAULT) && fdesc->repeat == IOP_R_DEFVAL
+    &&  iop_field_is_defval(fdesc, ptr, true))
+    {
+        goto skip;
+    }
+    if ((flags & IOP_JPACK_SKIP_EMPTY_ARRAYS) && !*n && repeated) {
+        goto skip;
+    }
+    if (!desc->is_union && fdesc->type == IOP_T_VOID
+    &&  fdesc->repeat == IOP_R_REQUIRED)
+    {
+        goto skip;
+    }
+
     return ptr;
+
+  skip:
+    *is_skipped = true;
+    return NULL;
 }
 
 static int do_write(iop_jpack_writecb_f *writecb, void *priv,
@@ -2372,33 +2410,13 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     }
 
     for (; fdesc < fend; fdesc++) {
-        const void *ptr;
         bool repeated = fdesc->repeat == IOP_R_REPEATED;
+        const void *ptr;
         int n;
+        bool is_skipped = false;
 
-        if (flags & IOP_JPACK_SKIP_PRIVATE) {
-            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
-
-            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
-                continue;
-            }
-        }
-
-        ptr = get_n_and_ptr(fdesc, value, &n);
-        if (!n && !repeated) {
-            continue;
-        }
-        if ((flags & IOP_JPACK_SKIP_DEFAULT) && fdesc->repeat == IOP_R_DEFVAL
-        &&  iop_field_is_defval(fdesc, ptr, true))
-        {
-            continue;
-        }
-        if ((flags & IOP_JPACK_SKIP_EMPTY_ARRAYS) && !n && repeated) {
-            continue;
-        }
-        if (!desc->is_union && fdesc->type == IOP_T_VOID
-        &&  fdesc->repeat == IOP_R_REQUIRED)
-        {
+        ptr = get_n_and_ptr(desc, flags, fdesc, value, &n, &is_skipped);
+        if (is_skipped) {
             continue;
         }
 
