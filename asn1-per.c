@@ -953,6 +953,10 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         e_info("forbidden number length value : 0");
         return -1;
     }
+    if (olen > sizeof(v)) {
+        e_info("number encoding is too big not to overflow");
+        return -1;
+    }
 
     if (__read_u64_o_aligned(bs, olen, v) < 0) {
         e_info("not enough bytes to read number (got %zd, need %zd)",
