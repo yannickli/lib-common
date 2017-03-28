@@ -194,8 +194,8 @@ public protocol IopEnum : RawRepresentable,
 
 extension IopEnum {
     public var description: String {
-        guard let data = iop_enum_to_str_desc(Self.descriptor, self.rawValue).data else {
-            return String(self.rawValue)
+        guard let data = iop_enum_to_str_desc(Self.descriptor, self.rawValue as! Int32).s else {
+            return String(describing: self.rawValue)
         }
 
         return String(cString: data)

@@ -81,7 +81,7 @@ do {
     var registry = IcImplRegistry(impl: &ic_impl.wrapped)
 
     registry.implements(rpc: core.modules.Core.log.setRootLevel, cb: {
-        print("\($0) hdr=\($1)")
+        print("\($0) hdr=\(String(describing: $1))")
         return core.interfaces.Log.SetRootLevel.Response(level: LOG_LEVEL_ERR)
     })
 

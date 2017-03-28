@@ -40,7 +40,7 @@ extension LString : Collection {
     }
 
     public subscript(pos: Int) -> Int8 {
-        return self.data![pos]
+        return self.s![pos]
     }
 
     public func index(after pos: Int) -> Int {

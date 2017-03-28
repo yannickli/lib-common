@@ -49,10 +49,10 @@ public class Parameter<Type, StorageType> : CommandLineOption {
     override func convertedToC(on allocator: Allocator) -> popt_t {
         return popt_t(kind: self.kind,
                       shrt: Int32(self.short?.value ?? 0),
-                       lng: self.name.duplicated(on: allocator).data,
+                       lng: self.name.duplicated(on: allocator).s,
                      value: &self.valueStorage,
                       init: 0,
-                      help: self.help.duplicated(on: allocator).data,
+                      help: self.help.duplicated(on: allocator).s,
                  int_vsize: MemoryLayout<StorageType>.size)
     }
 }
@@ -130,7 +130,7 @@ public class CommandLineOption {
                            lng: nil,
                          value: nil,
                           init: 0,
-                          help: self.name.duplicated(on: allocator).data,
+                          help: self.name.duplicated(on: allocator).s,
                      int_vsize: 0)
         }
     }

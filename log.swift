@@ -60,7 +60,7 @@ extension Logger : Wipeable {
 
     mutating func log<C: Collection>(level: Int32, items: C, separator: String, file: String, function: String, line: Int) {
         _ = self.format(items: items, separator: separator).withLString {
-            withVaList([$0.len, $0.data!]) {
+            withVaList([$0.len, $0.s!]) {
                 logger_vlog(&self, level, nil, -1, file, function, Int32(line), "%*pM", $0)
             }
         }
@@ -113,7 +113,7 @@ extension Logger : Wipeable {
     public mutating func trace(level: Int32, _ items: Any..., separator: String = " ", file: String = #file, function: String = #function, line: Int = #line) {
         let logLevel = level + Int32(LOG_LEVEL_TRACE.rawValue)
 
-        if !logger_has_level(&self, logLevel) && __logger_is_traced(&self, level, file, function, self.full_name.data) <= 0 {
+        if !logger_has_level(&self, logLevel) && __logger_is_traced(&self, level, file, function, self.full_name.s) <= 0 {
             return
         }
 
