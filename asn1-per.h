@@ -128,7 +128,9 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 
 #define aper_encode(sb, pfx, st)  \
     ({                                                                       \
-        if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)) {          \
+        if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)             \
+        &&  !__builtin_types_compatible_p(typeof(st), const pfx##_t *))      \
+        {                                                                    \
             __error__("ASN.1 PER encoder: `"#st"' type "                     \
                       "is not <"#pfx"_t *>");                                \
         }                                                                    \
