@@ -24,13 +24,11 @@ public protocol QVector : RandomAccessCollection,
 {
     associatedtype Element
     typealias Index = Int32
-    typealias Comparator = (UnsafePointer<Element>, UnsafePointer<Element>) -> Int32
 
+    var tab : UnsafeMutablePointer<Element>? { get }
+    var len : Int32 { get }
     var qv : qvector_t { get set }
     init(qv: qvector_t)
-
-    /* Exposed C APIs */
-    mutating func _sorted(cmp: @escaping Comparator)
 }
 
 /* Implements base accessors */
@@ -56,28 +54,24 @@ extension QVector {
     }
 
     public var endIndex : Int32 {
-        return qv.len
+        return self.len
     }
 
     public subscript(pos: Int32) -> Element {
         get {
-            let len = Int(qv.len)
+            let len = Int(self.len)
             let pos = Int(pos)
-            let tab = qv.tab!
 
             precondition(pos < len, "cannot fetch element \(pos) of vector of len \(len)")
-            return tab.withMemoryRebound(to: Element.self, capacity: len) { $0[pos] }
+            return self.tab![pos]
         }
 
         set(newValue) {
-            let len = Int(qv.len)
+            let len = Int(self.len)
             let pos = Int(pos)
-            let tab = qv.tab!
 
             precondition(pos < len, "cannot fetch element \(pos) of vector of len \(len)")
-            tab.withMemoryRebound(to: Element.self, capacity: len) {
-                $0[pos] = newValue
-            }
+            self.tab![pos] = newValue
         }
     }
 
@@ -152,7 +146,7 @@ extension QVector {
 }
 
 /* Implements MutableCollection protocol */
-extension QVector {
+extension QVector where MutableRangeReplaceableRandomAccessSlice<Self>.Index == Int32 {
     public subscript(bounds: Range<Int32>) -> MutableRangeReplaceableRandomAccessSlice<Self> {
         get {
             return .init(base: self, bounds: bounds)
@@ -273,6 +267,9 @@ public protocol QHash : Collection,
     typealias Index = QHashIndex
 
     var qh : qhash_t { get set }
+    var hdr : qhash_hdr_t { get set }
+    var keys : UnsafeMutablePointer<Key>? { get set }
+
     init(qh: qhash_t)
 
     /// Retrieve the index for `key`
@@ -300,7 +297,7 @@ public protocol QHash : Collection,
 /* Implements Collection */
 extension QHash {
     public var startIndex : QHashIndex {
-        if qh.hdr.len != 0 {
+        if self.hdr.len != 0 {
             return self.index(after: QHashIndex(pos: 0))
         } else {
             return .endIndex
@@ -520,10 +517,7 @@ extension QSet {
     }
 
     public func element(at pos: QHashIndex) -> Key {
-        let size = Int(qh.hdr.size)
-        let keys = qh.keys!
-
-        return keys.withMemoryRebound(to: Key.self, capacity: size) { $0[Int(pos.pos)] }
+        return self.keys![Int(pos.pos)]
     }
 
     public mutating func remove(at pos: QHashIndex) -> Key {
@@ -546,12 +540,7 @@ extension QSet {
         }
 
         set(newValue) {
-            let size = Int(qh.hdr.size)
-            let keys = qh.keys!
-
-            keys.withMemoryRebound(to: Key.self, capacity: size) {
-                $0[Int(pos.pos)] = newValue
-            }
+            self.keys![Int(pos.pos)] = newValue
         }
     }
 }
@@ -576,6 +565,8 @@ extension qh_cptr_t : QSetSimple { }
 public protocol QMap : QHash, ExpressibleByDictionaryLiteral {
     associatedtype Value
     typealias Element = (key: Key, value: Value)
+
+    var values : UnsafeMutablePointer<Value>? { get set }
 }
 
 extension QMap {
@@ -611,13 +602,8 @@ extension QMap {
     }
 
     public func element(at pos: QHashIndex) -> (key: Key, value: Value) {
-        let size = Int(qh.hdr.size)
-
-        let keys = qh.keys!
-        let key = keys.withMemoryRebound(to: Key.self, capacity: size) { $0[Int(pos.pos)] }
-
-        let values = qh.values!
-        let value = values.withMemoryRebound(to: Value.self, capacity: size) { $0[Int(pos.pos)] }
+        let key = self.keys![Int(pos.pos)]
+        let value = self.values![Int(pos.pos)]
 
         return (key: key, value: value)
     }
@@ -643,17 +629,9 @@ extension QMap {
 
         set {
             let (key, value) = newValue
-            let size = Int(qh.hdr.size)
 
-            let keys = qh.keys!
-            keys.withMemoryRebound(to: Key.self, capacity: size) {
-                $0[Int(pos.pos)] = key
-            }
-
-            let values = qh.values!
-            values.withMemoryRebound(to: Value.self, capacity: size) {
-                $0[Int(pos.pos)] = value
-            }
+            self.keys![Int(pos.pos)] = key
+            self.values![Int(pos.pos)] = value
         }
     }
 
@@ -663,9 +641,7 @@ extension QMap {
                 return nil
             }
 
-            let size = Int(qh.hdr.size)
-            let values = qh.values!
-            return values.withMemoryRebound(to: Value.self, capacity: size) { $0[Int(pos.pos)] }
+            return self.values![Int(pos.pos)]
         }
 
         set {

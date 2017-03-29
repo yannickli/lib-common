@@ -79,12 +79,6 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void * nullable s, int len,
     return (lstr_t){ { (const char *)s }, len, flags };
 }
 
-__swift_name__("getter:LString.data(self:)")
-static ALWAYS_INLINE const char * nullable lstr_get_data(lstr_t l)
-{
-    return l.s;
-}
-
 static ALWAYS_INLINE
 lstr_t mp_lstr_init(mem_pool_t * nullable mp, const void * nullable s, int len)
 {

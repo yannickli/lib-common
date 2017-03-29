@@ -108,7 +108,7 @@ check_iopc() {
 }
 
 check_swift() {
-    SWIFT_VER=3.0.1
+    SWIFT_VER=3.1
 
     if ! which "swiftc" >/dev/null 2>&1; then
         log "disabling swift support"
@@ -124,7 +124,8 @@ check_swift() {
             ;;
     esac
     if ! prereq "$SWIFT_VER" "$CUR_VER"; then
-        warn "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
+        log "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
+        return
     fi
     setenv "SWIFTC" "$(which swiftc)"
 }
