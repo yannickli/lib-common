@@ -220,7 +220,7 @@ $$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT)%o,$3): $3
 		$(if $($1_SWIFTMAIN),,-parse-as-library -emit-module -emit-module-path $~$$(swift/$2/mod)$4.swiftmodule) \
 		-output-file-map $$(swift/$2/map) $3  -g -I$~ -Xcc -xc \
 		$(if $(filter $(OS),darwin),,-Xcc -D__MACH__=0) \
-		$$(if $$(findstring .pic,$$(swift/$2/ns)),-Xcc -fPIC -Xcc -DSHARED,$(CNOPICFLAGS)) \
+		$$(if $$(findstring .pic,$$(swift/$2/ns)),-Xcc -fPIC -Xcc -DSHARED) \
 		$$(filter -I%,$$(swift/$2/cflags)) $$(addprefix -Xcc ,$$(filter-out -I%,$$(swift/$2/cflags)))
 
 $(if $($1_SWIFTMAIN),,$$(eval $~$$(swift/$2/mod)$4.swiftmodule: $$(swift/$2/objs)))
