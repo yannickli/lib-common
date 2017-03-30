@@ -106,6 +106,19 @@ static inline int asn1_enum_pos(const asn1_enum_info_t *e, int32_t val)
 
 static inline void asn1_enum_append(asn1_enum_info_t *e, int32_t val)
 {
+    if (e->values.len) {
+        int32_t last = *qv_last(i32, &e->values);
+
+        if (val < last) {
+            e_panic("enumeration value `%d` "
+                    "should be registered before value `%d`", val, last);
+        }
+
+        if (val == last) {
+            e_panic("duplicated enumeration value `%d`", val);
+        }
+    }
+
     qv_append(i32, &e->values, val);
 }
 
