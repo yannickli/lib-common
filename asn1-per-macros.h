@@ -194,6 +194,7 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
             info = asn1_enum_info_new();
 
 #define ASN1_ENUM_END()  \
+            asn1_enum_info_done(info);                                    \
         }                                                                 \
                                                                           \
         return info;                                                      \
@@ -234,6 +235,13 @@ asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)
     }
 
     field->enum_info = info;
+}
+
+static inline void asn1_enum_info_done(asn1_enum_info_t *info)
+{
+    info->constraints.min = 0;
+    info->constraints.max = info->values.len - 1;
+    asn1_int_info_update(&info->constraints);
 }
 
 #define asn1_set_enum_info(desc, pfx)                                     \

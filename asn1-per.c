@@ -333,8 +333,7 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
         bb_be_add_bit(bb, false);
     }
 
-    /* XXX We suppose that enumerations cannot hold more than 255 values */
-    bb_be_add_bits(bb, pos, e->blen);
+    aper_write_number(bb, pos, &e->constraints);
 
     e_trace_be_bb_tail(5, bb, "Enum value (value = %d)", val);
     bb_pop_mark(bb);
@@ -1069,7 +1068,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
 static int
 aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
 {
-    uint8_t pos;
+    int64_t pos;
 
     if (e->extended) {
         if (bs_done(bs)) {
@@ -1091,12 +1090,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
         }
     }
 
-    if (!bs_has(bs, e->blen)) {
-        e_info("cannot read enumerated value: not enough bits");
-        return -1;
-    }
-
-    pos = __bs_be_get_bits(bs, e->blen);
+    RETHROW(aper_decode_number(bs, &e->constraints, &pos));
 
     if (pos >= e->values.len) {
         e_info("cannot read enumerated value: unregistered value");
@@ -1926,6 +1920,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         asn1_enum_info_t e2;
         asn1_enum_info_t e3;
         asn1_enum_info_t e4;
+        asn1_enum_info_t e5;
 
         struct {
             int32_t          val;
@@ -1939,28 +1934,39 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             { 192, &e2, ".11000000.00000001.11000000" },
             { 20,  &e3, ".10010100" },
             { -42, &e4, ".0" },
+            { 42,  &e4, ".1" },
+            { 1024, &e5, ".00000011.11100010" },
         };
 
         e = asn1_enum_info_init(&e1);
         asn1_enum_append(e, 5);
         asn1_enum_append(e, 18);
+        asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e2);
         e->extended = true;
         for (int32_t i = 0; i < 100; i++) {
             asn1_enum_append(e, i);
         }
+        asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e3);
         e->extended = true;
         for (int32_t i = 0; i < 18; i++) {
             asn1_enum_append(e, i);
         }
+        asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e4);
         asn1_enum_append(e, -42);
         asn1_enum_append(e, 42);
+        asn1_enum_info_done(e);
 
+        e = asn1_enum_info_init(&e5);
+        for (int32_t i = 0; i < 1000; i++) {
+            asn1_enum_append(e, i + 30);
+        }
+        asn1_enum_info_done(e);
 
         for (int i = 0; i < countof(t); i++) {
             Z_HELPER_RUN(z_test_aper_enum(t[i].e, t[i].val, t[i].s),
@@ -1972,6 +1978,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         qv_wipe(i32, &e2.values);
         qv_wipe(i32, &e3.values);
         qv_wipe(i32, &e4.values);
+        qv_wipe(i32, &e5.values);
     } Z_TEST_END;
 } Z_GROUP_END
 

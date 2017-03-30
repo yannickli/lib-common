@@ -106,16 +106,7 @@ static inline int asn1_enum_pos(const asn1_enum_info_t *e, int32_t val)
 
 static inline void asn1_enum_append(asn1_enum_info_t *e, int32_t val)
 {
-    assert (e->values.len <= 255);
-    assert (asn1_enum_pos(e, val) < 0);
-
     qv_append(i32, &e->values, val);
-
-    if (e->values.len > 1) {
-        e->blen = bsr8(e->values.len - 1) + 1;
-    } else {
-        e->blen = 0;
-    }
 }
 
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc);
