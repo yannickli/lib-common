@@ -47,32 +47,35 @@ static inline asn1_field_t
     return field;
 }
 
+/* XXX The 'min' in the prototype is signed but will be casted to the proper
+ * type if needed. */
 static inline void asn1_set_int_min(asn1_desc_t *desc, int64_t min)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
-    field->int_info.min = min;
+    asn1_int_info_set_min(&field->int_info, min);
     asn1_int_info_update(&field->int_info,
                          asn1_field_type_is_signed_int(field->type));
 }
 
-static inline void
-asn1_set_int_max(asn1_desc_t *desc, int64_t max)
+/* XXX Same remark as for 'asn1_set_int_min'. */
+static inline void asn1_set_int_max(asn1_desc_t *desc, int64_t max)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
-    field->int_info.max = max;
+    asn1_int_info_set_max(&field->int_info, max);
     asn1_int_info_update(&field->int_info,
                          asn1_field_type_is_signed_int(field->type));
 }
 
+/* XXX Same remark as for 'asn1_set_int_min'. */
 static inline void
 asn1_set_int_min_max(asn1_desc_t *desc, int64_t min, int64_t max)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
-    asn1_set_int_min(desc, min);
-    asn1_set_int_max(desc, max);
+    asn1_int_info_set_min(&field->int_info, min);
+    asn1_int_info_set_max(&field->int_info, max);
     asn1_int_info_update(&field->int_info,
                          asn1_field_type_is_signed_int(field->type));
 }
@@ -243,8 +246,8 @@ asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)
 
 static inline void asn1_enum_info_done(asn1_enum_info_t *info)
 {
-    info->constraints.min = 0;
-    info->constraints.max = info->values.len - 1;
+    asn1_int_info_set_min(&info->constraints, 0);
+    asn1_int_info_set_max(&info->constraints, info->values.len - 1);
     asn1_int_info_update(&info->constraints, true);
 }
 

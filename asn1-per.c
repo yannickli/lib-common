@@ -179,7 +179,7 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
 {
     uint8_t olen;
 
-    if (info && info->constrained) {
+    if (info && info->has_min && info->has_max) {
         if (info->max_blen <= 16) {
             aper_write_u16_m(bb, v, info->max_blen, info->d_max);
             return;
@@ -270,41 +270,68 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
     return 0;
 }
 
+static ALWAYS_INLINE int check_constraints(int64_t n,
+                                           bool has_min, asn1_int_t min,
+                                           bool has_max, asn1_int_t max,
+                                           bool is_signed)
+{
+    if (is_signed) {
+        THROW_ERR_IF((has_min && n < min.i) || (has_max && n > max.i));
+    } else {
+        uint64_t u = n;
+
+        THROW_ERR_IF((has_min && u < min.u) || (has_max && u > max.u));
+    }
+
+    return 0;
+}
+
+static int
+aper_check_int_root_constraints(int64_t n, const asn1_int_info_t *info,
+                                bool is_signed)
+{
+    return check_constraints(n, info->has_min, info->min, info->has_max,
+                             info->max, is_signed);
+}
+
+static int
+aper_check_int_ext_constraints(int64_t n, const asn1_int_info_t *info,
+                               bool is_signed)
+{
+    return check_constraints(n, info->has_ext_min, info->ext_min,
+                             info->has_ext_max, info->ext_max, is_signed);
+}
+
 static int
 aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
                    bool is_signed)
 {
-    if (info) {
-        if (n < info->min || n > info->max) {
-            if (info->extended) {
-                if (n < info->ext_min || n > info->ext_max) {
-                    return e_error("extended constraint not respected");
-                }
-
-                /* Extension present */
-                bb_be_add_bit(bb, true);
-
-                /* XXX Extension constraints are not PER-visible */
-                aper_write_number(bb, n, NULL);
-
-                return 0;
-            } else {
-                e_error("root constraint not respected: "
-                        "%jd is not in [ %jd, %jd ]",
-                        n, info->min, info->max);
-
-                return -1;
+    if (aper_check_int_root_constraints(n, info, is_signed) < 0) {
+        if (info->extended) {
+            if (aper_check_int_ext_constraints(n, info, is_signed) < 0) {
+                return e_error("extended constraint not respected");
             }
+
+            /* Extension present */
+            bb_be_add_bit(bb, true);
+
+            /* XXX Extension constraints are not PER-visible */
+            aper_write_number(bb, n, NULL);
+
+            return 0;
         } else {
-            if (info->extended) {
-                /* Extension not present */
-                bb_be_add_bit(bb, false);
-            }
+            e_error("root constraint not respected");
+            return -1;
+        }
+    } else {
+        if (info->extended) {
+            /* Extension not present */
+            bb_be_add_bit(bb, false);
         }
     }
 
-    if (info && info->min != INT64_MIN) {
-        aper_write_number(bb, n - info->min, info);
+    if (info->has_min) {
+        aper_write_number(bb, n - info->min.i, info);
     } else { /* Only 2's-complement case */
         aper_write_2c_number(bb, n, is_signed);
     }
@@ -839,7 +866,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
 {
     size_t olen;
 
-    if (info && info->constrained) {
+    if (info && info->has_min && info->has_max) {
         if (info->max_blen <= 16) {
             uint16_t u16;
 
@@ -1017,7 +1044,7 @@ aper_decode_number(bit_stream_t *nonnull bs,
 {
     int64_t res = 0;
 
-    if (info && info->extended) {
+    if (info->extended) {
         bool extension_present;
 
         if (bs_done(bs)) {
@@ -1033,12 +1060,16 @@ aper_decode_number(bit_stream_t *nonnull bs,
                 return -1;
             }
 
-            /* TODO check extension constraint */
+            if (aper_check_int_ext_constraints(*n, info, is_signed) < 0) {
+                e_info("extension constraint not respected");
+                return -1;
+            }
+
             return 0;
         }
     }
 
-    if (info && info->min != INT64_MIN) {
+    if (info->has_min) {
         uint64_t u64;
 
         if (aper_read_number(bs, info, &u64) < 0) {
@@ -1047,22 +1078,17 @@ aper_decode_number(bit_stream_t *nonnull bs,
         }
 
         res =  u64;
-        res += info->min;
-
-        if (info && (res < info->min || res > info->max)) {
-            e_error("root constraint not respected: "
-                    "%jd is not in [ %jd, %jd ]",
-                    res, info->min, info->max);
-
-            return -1;
-        }
+        res += info->min.i;
     } else {
-        assert (!info || !info->constrained);
-
         if (aper_read_2c_number(bs, &res, is_signed) < 0) {
             e_info("cannot read unconstrained number");
             return -1;
         }
+    }
+
+    if (aper_check_int_root_constraints(res, info, is_signed) < 0) {
+        e_info("root constraint not respected");
+        return -1;
     }
 
     *n = res;
@@ -1612,7 +1638,27 @@ static int z_test_aper_enum(const asn1_enum_info_t *e, int32_t val,
     Z_HELPER_END;
 }
 
-Z_GROUP_EXPORT(asn1_aligned_per) {
+static int z_test_aper_number(const asn1_int_info_t *nonnull info,
+                              int64_t val, bool is_signed,
+                              const char *nonnull exp_encoding)
+{
+    t_scope;
+    BB_1k(bb);
+    bit_stream_t bs;
+    int64_t i64;
+
+    aper_encode_number(&bb, val, info, is_signed);
+    bs = bs_init_bb(&bb);
+    Z_ASSERT_STREQUAL(t_print_be_bb(&bb, NULL), exp_encoding,
+                      "unexpected encoding");
+    Z_ASSERT_N(aper_decode_number(&bs, info, is_signed, &i64),
+               "cannot decode `%s`", exp_encoding);
+    Z_ASSERT_EQ(i64, val, "decoded value differs");
+
+    Z_HELPER_END;
+}
+
+Z_GROUP_EXPORT(asn1_aper_low_level) {
     bit_stream_t bs;
     size_t len;
 
@@ -1705,74 +1751,61 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
     } Z_TEST_END;
 
     Z_TEST(number, "aligned per: aper_{encode,decode}_number") {
-        t_scope;
-        BB_1k(bb);
-
-        asn1_int_info_t uc = { /* Unconstrained */
-            .min     = INT64_MIN,
-            .max     = INT64_MAX,
-        };
-
-        asn1_int_info_t sc = { /* Semi-constrained */
-            .min     = -5,
-            .max     = INT64_MAX,
-        };
-
-        asn1_int_info_t fc1 = { /* Fully constrained */
-            .min     = -5,
-            .max     = -1,
-        };
-
-        asn1_int_info_t fc2 = { /* Fully constrained */
-            .min     = 0,
-            .max     = 100000,
-        };
-
-        asn1_int_info_t fc3 = { /* Fully constrained */
-            .min     = 666,
-            .max     = 666,
-        };
-
-        asn1_int_info_t ext = { /* Extended */
-            .min       = 0,
-            .max       = 7,
-            .extended  = true,
-            .ext_min   = 0,
-            .ext_max   = INT64_MAX,
-        };
-
         struct {
-            int64_t         i;
-            asn1_int_info_t *info;
-            const char      *s;
+            int64_t i;
+            opt_i64_t min;
+            opt_i64_t max;
+            bool is_signed;
+            bool extended;
+            const char *s;
         } t[] = {
-            { 1234,  &uc,  ".00000010.00000100.11010010" },
-            { 1234,  NULL, ".00000010.00000100.11010010" },
-            { -1234, NULL, ".00000010.11111011.00101110" },
-            { 0,     NULL, ".00000001.00000000" },
-            { 0,     &sc,  ".00000001.00000101" },
-            { -3,    &fc1, ".010" },
-            { -1,    &fc1, ".100" },
-            { -1,    NULL, ".00000001.11111111" },
-            { 45,    &fc2, ".00000000.00101101" },
-            { 128,   &fc2, ".00000000.10000000" },
-            { 256,   &fc2, ".01000000.00000001.00000000" },
-            { 666,   &fc3, "" },
-            { 5,     &ext, ".0101" },
-            { 8,     &ext, ".10000000.00000001.00001000" },
+            { 1234,  OPT_NONE, OPT_NONE, true, false,
+              ".00000010.00000100.11010010" },
+            { -1234, OPT_NONE, OPT_NONE, true, false,
+              ".00000010.11111011.00101110" },
+            { 0,     OPT_NONE, OPT_NONE, true, false, ".00000001.00000000" },
+            { 0,     OPT(-5), OPT_NONE, true, false, ".00000001.00000101" },
+            { -3,    OPT(-5), OPT(-1), true, false, ".010" },
+            { -1,    OPT(-5), OPT(-1), true, false, ".100" },
+            { -1,    OPT_NONE, OPT_NONE, true, false, ".00000001.11111111" },
+            { 45,    OPT(0), OPT(100000), true, false, ".00000000.00101101" },
+            { 128,   OPT(0), OPT(100000), true, false, ".00000000.10000000" },
+            { 256,   OPT(0), OPT(100000), true, false,
+                ".01000000.00000001.00000000" },
+            { 666,   OPT(666), OPT(666), true, false, "" },
+            { 1ULL + INT64_MAX, OPT(INT64_MAX), OPT(UINT64_MAX), false, false,
+              ".00000000.00000001" },
+            { UINT64_MAX, OPT(0), OPT_NONE, false, false,
+              ".00001000.11111111.11111111.11111111.11111111.11111111"
+              ".11111111.11111111.11111111" },
+            { UINT64_MAX, OPT(INT64_MAX), OPT(UINT64_MAX), false, false,
+              ".11100000.10000000.00000000.00000000.00000000.00000000"
+              ".00000000.00000000.00000000" },
+            { INT64_MAX, OPT(INT64_MIN), OPT(INT64_MAX), true, false,
+              ".11100000.11111111.11111111.11111111.11111111.11111111"
+              ".11111111.11111111.11111111" },
+            { 5, OPT(0), OPT(7), true, true, ".0101" },
+            { 8, OPT(0), OPT(7), true, true, ".10000000.00000001.00001000" },
         };
 
-        for (int i = 0; i < countof(t); i++) {
-            int64_t i64;
+        carray_for_each_ptr(test, t) {
+            asn1_int_info_t info;
 
-            bb_reset(&bb);
-            asn1_int_info_update(t[i].info, true);
-            aper_encode_number(&bb, t[i].i, t[i].info, true);
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(aper_decode_number(&bs, t[i].info, true, &i64),
-                       "[i:%d]", i);
-            Z_ASSERT_EQ(i64, t[i].i, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
+            asn1_int_info_init(&info);
+            if (OPT_ISSET(test->min)) {
+                asn1_int_info_set_min(&info, OPT_VAL(test->min));
+            }
+            if (OPT_ISSET(test->max)) {
+                asn1_int_info_set_max(&info, OPT_VAL(test->max));
+            }
+            if (test->extended) {
+                info.extended = true;
+            }
+            asn1_int_info_update(&info, test->is_signed);
+
+            Z_HELPER_RUN(z_test_aper_number(&info, test->i, test->is_signed,
+                                            test->s),
+                         "test (%ld/%zd) failed", test - t + 1, countof(t));
         }
     } Z_TEST_END;
 

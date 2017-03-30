@@ -244,39 +244,63 @@ enum asn1_cstd_type {
 
 /* Special field information {{{ */
 
+typedef union asn1_int_t {
+    int64_t i;
+    uint64_t u;
+} asn1_int_t;
+
 /* XXX we use special values (INT64_MIN, INT64_MAX) because PER support far
  *     more than 64 bits integers
  */
 typedef struct asn1_int_info_t {
-    int64_t       min; /* XXX INT64_MIN if minus infinity */
-    int64_t       max; /* XXX INT64_MAX if infinity */
+    asn1_int_t    min;
+    asn1_int_t    max;
 
     /* Pre-processed information */
-    flag_t        constrained;   /* XXX means fully constrained          */
     uint16_t      max_blen;      /* XXX needed only if fully constrained */
     uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16    */
-    size_t        d_max;         /* XXX needed only if fully constrained */
+    uint64_t      d_max;         /* XXX needed only if fully constrained */
 
     /* Extensions */
-    flag_t        extended;
-    int64_t       ext_min; /* XXX INT64_MIN if minus infinity */
-    int64_t       ext_max; /* XXX INT64_MAX if infinity */
+    asn1_int_t    ext_min;
+    asn1_int_t    ext_max;
+
+    flag_t        has_min : 1;
+    flag_t        has_max : 1;
+    flag_t        extended : 1;
+    flag_t        has_ext_min : 1;
+    flag_t        has_ext_max : 1;
 } asn1_int_info_t;
+
+static inline void asn1_int_info_set_min(asn1_int_info_t *info, int64_t min)
+{
+    info->has_min = true;
+    info->min.i = min;
+}
+
+static inline void asn1_int_info_set_max(asn1_int_info_t *info, int64_t max)
+{
+    info->has_max = true;
+    info->max.i = max;
+}
 
 static inline void asn1_int_info_update(asn1_int_info_t *info, bool is_signed)
 {
     if (!info)
         return;
 
-    if (info->min == INT64_MIN || info->max == INT64_MAX) {
-        info->constrained = false;
-
+    if (!info->has_min || !info->has_max) {
         return;
     }
 
-    info->constrained = true;
+    if (is_signed) {
+        assert (info->min.i <= info->max.i);
+        info->d_max = info->max.i - info->min.i;
+    } else {
+        assert (info->min.u <= info->max.u);
+        info->d_max = info->max.u - info->min.u;
+    }
 
-    info->d_max = info->max - info->min;
     info->max_blen = u64_blen(info->d_max);
 
     if (info->max_blen > 16) {
@@ -284,17 +308,9 @@ static inline void asn1_int_info_update(asn1_int_info_t *info, bool is_signed)
     }
 }
 
-static inline asn1_int_info_t *asn1_int_info_init(asn1_int_info_t *info)
-{
-    p_clear(info, 1);
 
-    info->min     = INT64_MIN;
-    info->max     = INT64_MAX;
-    info->ext_min = INT64_MIN;
-    info->ext_max = INT64_MAX;
+GENERIC_INIT(asn1_int_info_t, asn1_int_info);
 
-    return info;
-}
 static inline bool asn1_field_type_is_signed_int(enum obj_type type)
 {
     return type == ASN1_OBJ_TYPE(int8_t) ||
