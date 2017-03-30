@@ -315,6 +315,8 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 {
     int pos = asn1_enum_pos(e, val);
 
+    bb_push_mark(bb);
+
     if (pos < 0) {
         if (e->extended) {
             bb_be_add_bit(bb, true);
@@ -333,6 +335,9 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 
     /* XXX We suppose that enumerations cannot hold more than 255 values */
     bb_be_add_bits(bb, pos, e->blen);
+
+    e_trace_be_bb_tail(5, bb, "Enum value (value = %d)", val);
+    bb_pop_mark(bb);
 
     return 0;
 }
