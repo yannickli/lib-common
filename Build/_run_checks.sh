@@ -114,13 +114,14 @@ set_www_env() {
 
     z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
     index=$(basename "$productdir").php
+    product=$(basename "$productdir")
     intersec_so=$(find $(dirname "$productdir") -name intersec.so -print -quit)
     Z_WWW_HOST="${Z_WWW_HOST:-$(hostname -f)}"
-    Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium}"
+    Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium-${product}}"
     Z_WWW_BROWSER="${Z_WWW_BROWSER:-Remote}"
     # configure an apache website and add intersec.so to the php configuration
     make -C "$z_www" all htdocs=$htdocs index=$index intersec_so=$intersec_so \
-                         host="${Z_WWW_PREFIX}.${Z_WWW_HOST}"
+                         host="${Z_WWW_PREFIX}.${Z_WWW_HOST}" product=$product
     if [ $? -ne 0 ]; then
         echo -e "****** Error ******\n"                                       \
             "To run web test suite you need to have some privileges:\n"       \
@@ -130,6 +131,11 @@ set_www_env() {
         return 1
     fi
     export Z_WWW_HOST Z_WWW_PREFIX Z_WWW_BROWSER
+}
+unset_www_env() {
+    Z_WWW_HOST=""
+    Z_WWW_PREFIX=""
+    Z_WWW_BROWSER=""
 }
 
 
@@ -170,6 +176,7 @@ while read -r zd line; do
                 $pybin -m z $BEHAVE_FLAGS "$productdir"/ci/features
                 res=$?
             fi
+            unset_www_env
             ;;
         *.py)
             $pybin ./$t
