@@ -168,8 +168,17 @@ static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v,
 {
     uint8_t olen;
 
-    olen = i64_olen(v);
-    aper_write_ulen(bb, olen);
+    /* XXX Handle the special case of unsigned 64-bits integers
+     * in [ INT64_MAX + 1, UINT64_MAX ]. */
+    if (unlikely(!is_signed && TST_BIT(&v, 63))) {
+        olen = 8;
+        aper_write_ulen(bb, 9);
+        bb_align(bb);
+        bb_add0s(bb, 8);
+    } else {
+        olen = i64_olen(v);
+        aper_write_ulen(bb, olen);
+    }
     write_i64_o_aligned(bb, v, olen);
 }
 
@@ -852,13 +861,51 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
         return -1;
     }
 
+    /* XXX Handle the special case of unsigned 64-bits integers
+     * in [ INT64_MAX + 1, UINT64_MAX ]. */
+    if (olen == 9 && !is_signed) {
+        uint8_t o;
+        uint64_t u;
+
+        if (__read_u8_aligned(bs, &o) < 0) {
+            goto not_enough_bytes;
+        }
+
+        if (o) {
+            goto overflow;
+        }
+
+        if (__read_u64_o_aligned(bs, 8, &u) < 0) {
+            goto not_enough_bytes;
+        }
+
+        *v = u;
+        return 0;
+    }
+
+    if (olen > 8) {
+        goto overflow;
+    }
+
     if (__read_i64_o_aligned(bs, olen, v) < 0) {
-        e_info("not enough bytes to read unconstrained number "
-               "(got %zd, need %zd)", bs_len(bs) / 8, olen);
+        goto not_enough_bytes;
+    }
+
+    if (!is_signed && *v < 0) {
+        e_info("cannot write negative number to unsigned integer");
         return -1;
     }
 
     return 0;
+
+  not_enough_bytes:
+    e_info("not enough bytes to read unconstrained number "
+           "(got %zd, need %zd)", bs_len(bs) / 8, olen);
+    return -1;
+
+  overflow:
+    e_info("the number is too big not to overflow");
+    return -1;
 }
 
 static ALWAYS_INLINE int
@@ -1786,6 +1833,9 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
               ".11111111.11111111.11111111" },
             { 5, OPT(0), OPT(7), true, true, ".0101" },
             { 8, OPT(0), OPT(7), true, true, ".10000000.00000001.00001000" },
+            { UINT64_MAX, OPT_NONE, OPT_NONE, false, false,
+              ".00001001.00000000.11111111.11111111.11111111.11111111"
+              ".11111111.11111111.11111111.11111111" },
         };
 
         carray_for_each_ptr(test, t) {
