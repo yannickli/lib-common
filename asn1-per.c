@@ -1121,15 +1121,28 @@ aper_decode_number(bit_stream_t *nonnull bs,
     }
 
     if (info->has_min) {
-        uint64_t u64;
+        uint64_t d;
 
-        if (aper_read_number(bs, info, &u64) < 0) {
+        if (aper_read_number(bs, info, &d) < 0) {
             e_info("cannot read constrained or semi-constrained number");
             return -1;
         }
 
-        res =  u64;
-        res += info->min.i;
+        if (is_signed) {
+            if (d > (uint64_t)INT64_MAX - info->min.i) {
+                e_info("cannot decode: overflow of signed 64-bits integer");
+                return -1;
+            }
+
+            res = info->min.i + d;
+        } else {
+            if (d > (uint64_t)UINT64_MAX - info->min.u) {
+                e_info("cannot decode: overflow of unsigned 64-bits integer");
+                return -1;
+            }
+
+            res = info->min.u + d;
+        }
     } else {
         if (aper_read_2c_number(bs, &res, is_signed) < 0) {
             e_info("cannot read unconstrained number");
