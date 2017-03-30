@@ -53,6 +53,7 @@ static inline void asn1_set_int_min(asn1_desc_t *desc, int64_t min)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
+    /* TODO Assert when the bound doesn't fit in the field. */
     asn1_int_info_set_min(&field->int_info, min);
     asn1_int_info_update(&field->int_info,
                          asn1_field_type_is_signed_int(field->type));
@@ -63,6 +64,7 @@ static inline void asn1_set_int_max(asn1_desc_t *desc, int64_t max)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
+    /* TODO Assert when the bound doesn't fit in the field. */
     asn1_int_info_set_max(&field->int_info, max);
     asn1_int_info_update(&field->int_info,
                          asn1_field_type_is_signed_int(field->type));
@@ -74,6 +76,7 @@ asn1_set_int_min_max(asn1_desc_t *desc, int64_t min, int64_t max)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
+    /* TODO Assert when the bounds don't fit in the field. */
     asn1_int_info_set_min(&field->int_info, min);
     asn1_int_info_set_max(&field->int_info, max);
     asn1_int_info_update(&field->int_info,
