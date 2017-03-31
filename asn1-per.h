@@ -137,8 +137,6 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
         aper_encode_desc(sb, st, ASN1_GET_DESC(pfx));                        \
     })
 
-#endif
-
 #define t_aper_decode(ps, pfx, copy, st)  \
     ({                                                                       \
         if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)) {          \
@@ -155,3 +153,5 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
  *   * >= 0 means e_trace(level, ...)
  */
 void aper_set_decode_log_level(int level);
+
+#endif
