@@ -143,10 +143,9 @@ endef
 define ext/expand/ts
 $2: $~$(3:ts=js)
 $~$(3:ts=d.ts): $~$(3:ts=js)
-$~$(3:ts=js): $3 $(var/wwwtool)tsc
+$~$(3:ts=js): $3 $(var/wwwtool)tsc $4/node_modules/tsconfig.json
 	$(msg/COMPILE.ts) $3
-	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc --moduleResolution node --module commonjs --declaration --inlineSourceMap --noImplicitAny --noEmitOnError --removeComments --outDir "$~$(dir $3)" $3
-	sed -e 's@///.*<reference.*@@' -i $~$(3:ts=d.ts)
+	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $4/node_modules --baseUrl $4/node_modules --outDir "$~$(dir $3)"
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
 	mkdir -p "$$(dir $$@)"
