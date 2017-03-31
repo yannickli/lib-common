@@ -61,7 +61,7 @@ void dsort(type_t base[], size_t n)
         t_scope;
         volatile uint32_t count[sizeof(type_t)][256] = { { 0, } };
         const uint8_t *bp = (const uint8_t *)base;
-        type_t *tmp, *p1, *p2;
+        type_t *p1, *p2;
 
         /* Achtung little endian version */
         for (size_t i = 0; i < n; i++) {
@@ -82,7 +82,7 @@ void dsort(type_t base[], size_t n)
             bp += sizeof(type_t);
         }
 
-        p2 = tmp = t_new_raw(type_t, n);
+        p2 = t_new_raw(type_t, n);
         p1 = base;
 
         for (size_t shift = 0; shift < sizeof(type_t); shift ++) {
