@@ -124,7 +124,7 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
     /* FALLTHROUGH */
 
   end:
-    e_trace_be_bb_tail(5, bb, "Constrained number (n = %u)", u16);
+    e_trace_be_bb_tail(5, bb, "constrained number (n = %u)", u16);
     bb_pop_mark(bb);
 }
 
@@ -135,13 +135,13 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
 
     bb_align(bb);
 
-    e_trace_be_bb_tail(5, bb, "Align");
+    e_trace_be_bb_tail(5, bb, "align");
     bb_reset_mark(bb);
 
     if (l <= 127) {
         write_u8_aligned(bb, l);
 
-        e_trace_be_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
+        e_trace_be_bb_tail(5, bb, "unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
 
         return 0;
@@ -152,7 +152,7 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
 
         write_u16_aligned(bb, u16);
 
-        e_trace_be_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
+        e_trace_be_bb_tail(5, bb, "unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
 
         return 0;
@@ -373,7 +373,7 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 
     aper_write_number(bb, pos, &e->constraints);
 
-    e_trace_be_bb_tail(5, bb, "Enum value (value = %d)", val);
+    e_trace_be_bb_tail(5, bb, "enum value (value = %d)", val);
     bb_pop_mark(bb);
 
     return 0;
@@ -519,7 +519,7 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
         res = aper_encode_value(bb, v, field);
     }
 
-    e_trace_be_bb_tail(5, bb, "Value encoding for %s:%s",
+    e_trace_be_bb_tail(5, bb, "value encoding for %s:%s",
                     field->oc_t_name, field->name);
     bb_pop_mark(bb);
 
