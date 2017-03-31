@@ -884,9 +884,13 @@ int licence_check_rsa(const struct core__signed_licence__t *signed_licence,
 /* }}} */
 /* {{{ Tests */
 
+#ifdef SSL_HAVE_EVP_PKEY
+
 static pem_password_b dummy_pass = ^int (char *buf, int size, int rwflags) {
     return snprintf(buf, size, "this-is-a-complicated-pass-phrase");
 };
+
+#endif
 
 Z_GROUP_EXPORT(ssl)
 {
