@@ -18,32 +18,36 @@
 
 /* Numeric optimized versions */
 #define type_t   uint8_t
-#define dsort    dsort8
-#define uniq     uniq8
 #define bisect   bisect8
 #define contains contains8
 #include "sort-numeric.in.h"
 
 #define type_t   uint16_t
-#define dsort    dsort16
-#define uniq     uniq16
 #define bisect   bisect16
 #define contains contains16
 #include "sort-numeric.in.h"
 
 #define type_t   uint32_t
-#define dsort    dsort32
-#define uniq     uniq32
 #define bisect   bisect32
 #define contains contains32
 #include "sort-numeric.in.h"
 
 #define type_t   uint64_t
-#define dsort    dsort64
-#define uniq     uniq64
 #define bisect   bisect64
 #define contains contains64
 #include "sort-numeric.in.h"
+
+void   dsort8(uint8_t base[], size_t n);
+size_t uniq8(uint8_t base[], size_t n);
+
+void   dsort16(uint16_t base[], size_t n);
+size_t uniq16(uint16_t base[], size_t n);
+
+void   dsort32(uint32_t base[], size_t n);
+size_t uniq32(uint32_t base[], size_t n);
+
+void   dsort64(uint64_t base[], size_t n);
+size_t uniq64(uint64_t base[], size_t n);
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);

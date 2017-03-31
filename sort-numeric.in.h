@@ -59,11 +59,6 @@ static inline bool (contains)(type_t what, const type_t data[], size_t len)
     return false;
 }
 
-void   (dsort)(type_t base[], size_t n);
-size_t (uniq)(type_t base[], size_t n);
-
 #undef type_t
-#undef dsort
-#undef uniq
 #undef bisect
 #undef contains
