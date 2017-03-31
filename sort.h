@@ -38,16 +38,33 @@
 #include "sort-numeric.in.h"
 
 void   dsort8(uint8_t base[], size_t n);
+void   dsort_i8(int8_t base[], size_t n);
 size_t uniq8(uint8_t base[], size_t n);
 
 void   dsort16(uint16_t base[], size_t n);
+void   dsort_i16(int16_t base[], size_t n);
 size_t uniq16(uint16_t base[], size_t n);
 
 void   dsort32(uint32_t base[], size_t n);
+void   dsort_i32(int32_t base[], size_t n);
 size_t uniq32(uint32_t base[], size_t n);
 
 void   dsort64(uint64_t base[], size_t n);
+void   dsort_i64(int64_t base[], size_t n);
 size_t uniq64(uint64_t base[], size_t n);
+
+static inline size_t uniq_i8(int8_t base[], size_t n) {
+    return uniq8((uint8_t *)base, n);
+}
+static inline size_t uniq_i16(int16_t base[], size_t n) {
+    return uniq16((uint16_t *)base, n);
+}
+static inline size_t uniq_i32(int32_t base[], size_t n) {
+    return uniq32((uint32_t *)base, n);
+}
+static inline size_t uniq_i64(int64_t base[], size_t n) {
+    return uniq64((uint64_t *)base, n);
+}
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);
