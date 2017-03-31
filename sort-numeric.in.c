@@ -203,6 +203,4 @@ size_t uniq(type_t data[], size_t len)
 #undef type_t
 #undef dsort
 #undef uniq
-#undef bisect
-#undef contains
 #undef SIMPLE_SORT

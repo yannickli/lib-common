@@ -18,8 +18,6 @@
 #define type_t   uint8_t
 #define dsort    dsort8
 #define uniq     uniq8
-#define bisect   bisect8
-#define contains contains8
 #include "sort-numeric.in.c"
 
 #define SIMPLE_SORT
@@ -32,8 +30,6 @@
 #define type_t   uint16_t
 #define dsort    dsort16
 #define uniq     uniq16
-#define bisect   bisect16
-#define contains contains16
 #include "sort-numeric.in.c"
 
 #define type_t    int16_t
@@ -45,8 +41,6 @@
 #define type_t   uint32_t
 #define dsort    dsort32
 #define uniq     uniq32
-#define bisect   bisect32
-#define contains contains32
 #include "sort-numeric.in.c"
 
 #define type_t    int32_t
@@ -58,8 +52,6 @@
 #define type_t   uint64_t
 #define dsort    dsort64
 #define uniq     uniq64
-#define bisect   bisect64
-#define contains contains64
 #include "sort-numeric.in.c"
 
 #define type_t    int64_t
