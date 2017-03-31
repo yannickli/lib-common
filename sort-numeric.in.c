@@ -11,6 +11,14 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* XXX Syntastic tranquility block. */
+#ifndef type_t
+# include "sort.h"
+# define type_t uint8_t
+# define dsort dsort8
+# define uniq uniq8
+#endif
+
 #ifdef SIMPLE_SORT
 void dsort(type_t base[], size_t n)
 {
