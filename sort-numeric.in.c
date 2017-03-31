@@ -205,3 +205,4 @@ size_t uniq(type_t data[], size_t len)
 #undef uniq
 #undef bisect
 #undef contains
+#undef SIMPLE_SORT

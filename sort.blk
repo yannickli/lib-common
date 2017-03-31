@@ -22,13 +22,13 @@
 #define contains contains8
 #include "sort-numeric.in.c"
 
+#define SIMPLE_SORT
 #define type_t    int8_t
 #define utype_t   uint8_t
 #define TYPE_MIN  INT8_MIN
 #define dsort     dsort_i8
 #include "sort-numeric.in.c"
 
-#undef SIMPLE_SORT
 #define type_t   uint16_t
 #define dsort    dsort16
 #define uniq     uniq16
