@@ -2082,7 +2082,6 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         qv_append(iopc_field, &st->static_fields, f);
         return f;
     }
-    qv_append(iopc_field, &st->fields, f);
 
     qv_for_each_entry(i32, t, tags) {
         if (t == tag) {
@@ -2091,6 +2090,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
     }
     qv_append(i32, tags, tag);
+    qv_append(iopc_field, &st->fields, f);
     return f;
 
   error:
