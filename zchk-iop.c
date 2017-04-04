@@ -1941,23 +1941,23 @@ Z_GROUP_EXPORT(iop)
             empty_jpack.sub.rep.len = 0;
 
             OPT_SET(empty_jpack.sub.req_st.opt, 65);
-            TST(flags, true, "{\"sub\":{\"reqSt\":{\"opt\":65}}}");
+            TST(flags, true, "{\"sub\":{\"reqSt\":{\"opt\":65}}""}");
             OPT_CLR(empty_jpack.sub.req_st.opt);
 
             iop_init(tstiop__struct_jpack_flags, &sub_st);
             empty_jpack.sub.opt_st = &sub_st;
-            TST(flags, true, "{\"sub\":{\"optSt\":{}}}");
+            TST(flags, true, "{\"sub\":{\"optSt\":{}}""}");
             empty_jpack.sub.opt_st = NULL;
 
             clsb.a = 10;
             TST(flags, true, "{\"sub\":{\"cls\":{"
-                "\"_class\":\"tstiop.JpackEmptyClsB\",\"a\":10}}}");
+                "\"_class\":\"tstiop.JpackEmptyClsB\",\"a\":10}}""}");
             clsb.a = 1;
 
             iop_init(tstiop__jpack_empty_cls_c, &clsc);
             empty_jpack.sub.cls = &clsc.super;
             TST(flags, true, "{\"sub\":{\"cls\":{"
-                "\"_class\":\"tstiop.JpackEmptyClsC\"}}}");
+                "\"_class\":\"tstiop.JpackEmptyClsC\"}}""}");
             empty_jpack.sub.cls = &clsb;
 
 #undef TST
