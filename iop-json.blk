@@ -954,6 +954,7 @@ t_get_current_field_path(qv_t(iop_json_field_path) *field_paths)
  * infinite recursions in includes.
  */
 static __thread qv_t(lstr) filenames_g;
+static __thread qv_t(lstr) relative_dirs_g;
 static __thread qv_t(iop_json_subfile) *subfiles_g;
 static __thread qv_t(iop_json_field_path) field_paths_g;
 
@@ -981,6 +982,7 @@ static void iop_junpack_remove_last_field_path(void)
 static void thr_globals_wipe(void)
 {
     qv_deep_wipe(&filenames_g, lstr_wipe);
+    qv_deep_wipe(&relative_dirs_g, lstr_wipe);
     qv_wipe(&field_paths_g);
 }
 thr_hooks(NULL, thr_globals_wipe);
@@ -1036,6 +1038,7 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
 {
     char prefix[PATH_MAX];
     char path[PATH_MAX];
+    char relative_path[PATH_MAX];
     lstr_t path_lstr;
 
     if (!filenames_g.len) {
@@ -1080,12 +1083,20 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
     }
 
     if (subfiles_g) {
-        char relative_path[PATH_MAX];
+        lstr_t basedir;
         iop_json_subfile__t subfile;
         int len;
 
-        assert (filenames_g.len);
-        len = path_relative_to(relative_path, filenames_g.tab[0].s, path);
+        if (relative_dirs_g.len) {
+            basedir = *qv_last(&relative_dirs_g);
+        } else {
+            basedir = LSTR_EMPTY_V;
+        }
+
+        snprintf(relative_path, PATH_MAX, "%*pM%*pM",
+                 LSTR_FMT_ARG(basedir), SB_FMT_ARG(&ll->ctx->b));
+        len = path_simplify2(relative_path, false);
+
         if (len < 0) {
             return JERROR_VARIOUS("cannot get relative path of `%*pM`",
                                   SB_FMT_ARG(&ll->ctx->b));
@@ -1112,7 +1123,16 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
 
       case IOP_T_UNION: case IOP_T_STRUCT: {
         SB_1k(err);
+        char relative_dir[PATH_MAX];
         int res;
+
+        if (subfiles_g) {
+            path_dirname(relative_dir, sizeof(relative_dir), relative_path);
+            if (*relative_dir) {
+                pstrcat(relative_dir, sizeof(relative_dir), "/");
+            }
+            qv_append(&relative_dirs_g, LSTR(relative_dir));
+        }
 
         if (iop_field_is_class(fdesc)) {
             *(void **)value = NULL;
@@ -1121,6 +1141,10 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         } else {
             res = t_iop_junpack_file(path, fdesc->u1.st_desc, value,
                                      ll->flags, NULL, &err);
+        }
+
+        if (subfiles_g) {
+            qv_remove_last(&relative_dirs_g);
         }
 
         if (res < 0) {
@@ -1976,7 +2000,7 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
                                                                              \
     if (filename) {                                                          \
         path_expand(path, sizeof(path), filename);                           \
-        qv_append(&filenames_g, LSTR(path));                           \
+        qv_append(&filenames_g, LSTR(path));                                 \
     }                                                                        \
     if (subfiles) {                                                          \
         assert (filename);                                                   \
@@ -1990,11 +2014,11 @@ static int _fun(pstream_t *ps, const iop_struct_t *desc,                     \
     }                                                                        \
                                                                              \
     if (filename) {                                                          \
-        qv_remove_last(&filenames_g);                                  \
+        qv_remove_last(&filenames_g);                                        \
     }                                                                        \
     if (subfiles) {                                                          \
         subfiles_g = NULL;                                                   \
-        qv_clear(&field_paths_g);                       \
+        qv_clear(&field_paths_g);                                            \
     }                                                                        \
     iop_jlex_wipe(&jll);                                                     \
                                                                              \

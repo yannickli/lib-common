@@ -2142,6 +2142,14 @@ Z_GROUP_EXPORT(iop)
             .iop_path = LSTR("b.b"),
         });
 
+        T_OK(tstiop__my_struct_c, &obj_recursion, "recursion_symlinks", {
+            .file_path = LSTR("json-includes-symlinks/MyStructC-recur-3.json"),
+            .iop_path = LSTR("b"),
+        }, {
+            .file_path = LSTR("json-includes-symlinks/MyStructC-recur-4.json"),
+            .iop_path = LSTR("b.b"),
+        });
+
         T_OK(tstiop__my_struct_m, &obj_first_field, "first_field", {
             .file_path = LSTR("json-includes/MyStructK.json"),
             .iop_path = LSTR("k"),
