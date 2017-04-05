@@ -408,7 +408,8 @@ typedef struct {
 
     /* Only for open type fields */
     /* XXX eg. type is <...>.&<...> */
-    flag_t                      is_open_type;
+    flag_t                      is_open_type : 1;
+    flag_t                      is_extension : 1;
     size_t                      open_type_buf_len;
 } asn1_field_t;
 

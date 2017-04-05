@@ -502,7 +502,7 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
 
     bb_push_mark(bb);
 
-    if (field->is_open_type) {
+    if (field->is_open_type || field->is_extension) {
         lstr_t  os;
         bb_t    buf;
 
@@ -591,7 +591,6 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     int index;
     const void *v;
     bool extension_present = false;
-    BB_1k(ext_bits);
 
     assert (desc->vec.len > 1);
 
@@ -633,22 +632,9 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     v = GET_DATA_P(st, choice_field, uint8_t);
     assert (v);
 
-    if (aper_encode_field(extension_present ? &ext_bits : bb, v,
-                          choice_field) < 0)
-    {
+    if (aper_encode_field(bb, v, choice_field) < 0) {
         return e_error("failed to encode choice element %s:%s",
                        choice_field->oc_t_name, choice_field->name);
-    }
-
-    if (extension_present) {
-        sb_t ext_bytes;
-
-        sb_init(&ext_bytes);
-        bb_transfer_to_sb(&ext_bits, &ext_bytes);
-        if (aper_encode_data(bb, LSTR_SB_V(&ext_bytes), NULL) < 0) {
-            e_info("cannot encode choice extension field-list");
-            return -1;
-        }
     }
 
     return 0;
@@ -1422,12 +1408,14 @@ static int
 t_aper_decode_field(bit_stream_t *bs, const asn1_field_t *field,
                     flag_t copy, void *v)
 {
-    if (field->is_open_type) {
+    if (field->is_open_type || field->is_extension) {
         lstr_t        os;
         bit_stream_t  open_type_bs;
 
         if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
-            e_info("cannot read OPEN TYPE field");
+            e_info("cannot read %s%sfield",
+                   field->is_open_type ? "OPEN TYPE " : "",
+                   field->is_extension ? "extension " : "");
             return -1;
         }
 
@@ -1523,7 +1511,6 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     size_t               index;
     void                *v;
     bool extension_present = false;
-    bit_stream_t ext_bits;
 
     if (desc->extended) {
         if (bs_done(bs)) {
@@ -1542,15 +1529,8 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     }
 
     if (extension_present) {
-        lstr_t ext_bytes;
-
         if (aper_read_nsnnwn(bs, &index)) {
             e_info("cannot read choice extension index");
-            return -1;
-        }
-
-        if (t_aper_decode_ostring(bs, NULL, false, &ext_bytes) < 0) {
-            e_info("cannot read extension field-list");
             return -1;
         }
 
@@ -1560,8 +1540,6 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
         }
 
         index += desc->ext_pos;
-        ext_bits = bs_init(ext_bytes.data, 0, ext_bytes.len * 8);
-        bs = &ext_bits;
     } else {
         if (aper_read_number(bs, &desc->choice_info, &u64) < 0) {
             e_info("cannot read choice index");
