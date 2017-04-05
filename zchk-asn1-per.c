@@ -37,6 +37,28 @@ static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
     asn1_set_int_min_max(desc, 666, 1234567);
 ASN1_CHOICE_DESC_END(desc);
 
+/* {{{ Enumerated type. */
+
+typedef enum enum1 {
+    FOO,
+    BAR,
+} enum1_t;
+
+static ASN1_ENUM_BEGIN(enum1)
+    asn1_enum_reg_val(FOO);
+    asn1_enum_reg_val(BAR);
+ASN1_ENUM_END();
+
+typedef struct {
+    enum1_t e1;
+} struct1_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, struct1);
+    asn1_reg_enum(desc, struct1, enum1, e1, 0);
+    asn1_set_enum_info(desc, enum1);
+ASN1_SEQUENCE_DESC_END(desc);
+
+/* }}} */
 /* {{{ Integers overflows checks. */
 
 typedef struct ints_seq_t {
@@ -241,6 +263,25 @@ Z_GROUP_EXPORT(asn1_aper) {
             Z_HELPER_RUN(z_translate_ints_seq(&base, true),
                          "test `%s`: no overflow detection", t->title);
         }
+    } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Enumerated. */
+
+    Z_TEST(enumerated, "enumerated type check (mostly for auto-wipe)") {
+        t_scope;
+        SB_1k(buf);
+        pstream_t ps;
+        struct1_t s1[2];
+
+        p_clear(&s1[0], 1);
+        s1[0].e1 = BAR;
+
+        Z_ASSERT_N(aper_encode(&buf, struct1, &s1[0]), "encoding failure");
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_aper_decode(&ps, struct1, false, &s1[1]),
+                   "decoding failure");
+        Z_ASSERT_EQ(s1[1].e1, s1[0].e1);
     } Z_TEST_END;
 
     /* }}} */

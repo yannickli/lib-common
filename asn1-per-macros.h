@@ -198,13 +198,14 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
 #define ASN1_ENUM_BEGIN(pfx)  \
     const asn1_enum_info_t *ASN1_ENUM(pfx)(void)                          \
     {                                                                     \
-        static asn1_enum_info_t *info = NULL;                             \
+        static __thread asn1_enum_info_t *info = NULL;                    \
                                                                           \
         if (unlikely(!info)) {                                            \
             info = asn1_enum_info_new();
 
 #define ASN1_ENUM_END()  \
             asn1_enum_info_done(info);                                    \
+            qv_append(asn1_enum_info, &asn1_descs_g.enums, info);         \
         }                                                                 \
                                                                           \
         return info;                                                      \

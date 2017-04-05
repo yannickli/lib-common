@@ -2170,11 +2170,11 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
                          t[i].val, t[i].s);
         }
 
-        qv_wipe(i32, &e1.values);
-        qv_wipe(i32, &e2.values);
-        qv_wipe(i32, &e3.values);
-        qv_wipe(i32, &e4.values);
-        qv_wipe(i32, &e5.values);
+        asn1_enum_info_wipe(&e1);
+        asn1_enum_info_wipe(&e2);
+        asn1_enum_info_wipe(&e3);
+        asn1_enum_info_wipe(&e4);
+        asn1_enum_info_wipe(&e5);
     } Z_TEST_END;
 } Z_GROUP_END
 
