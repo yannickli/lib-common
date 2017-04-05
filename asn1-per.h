@@ -93,11 +93,25 @@
 #define ASN1_MAX_LEN  SIZE_MAX /* FIXME put real ASN1_MAX_LEN instead */
 
 /* TODO optimize */
-static inline int asn1_enum_pos(const asn1_enum_info_t *e, int32_t val)
+static inline int asn1_enum_find_val(const asn1_enum_info_t *nonnull e,
+                                     int32_t val, bool *nonnull extended)
 {
-    tab_for_each_pos(pos, &e->values) {
-        if (e->values.tab[pos] == val) {
-            return pos;
+    struct {
+        const qv_t(i32) *values;
+        bool extended;
+    } vals_tabs[] = {
+        { &e->values, false },
+        { &e->ext_values, true },
+    };
+
+    carray_for_each_ptr(v, vals_tabs) {
+        tab_for_each_pos(pos, v->values) {
+            if (v->values->tab[pos] == val) {
+                assert (e->extended || !v->extended);
+                *extended = v->extended;
+
+                return pos;
+            }
         }
     }
 
@@ -106,20 +120,32 @@ static inline int asn1_enum_pos(const asn1_enum_info_t *e, int32_t val)
 
 static inline void asn1_enum_append(asn1_enum_info_t *e, int32_t val)
 {
-    if (e->values.len) {
-        int32_t last = *qv_last(i32, &e->values);
+    qv_t(i32) *values;
+    const char *kind;
+
+    if (e->extended) {
+        values = &e->ext_values;
+        kind = "root";
+    } else {
+        values = &e->values;
+        kind = "extended";
+    }
+
+    if (values->len) {
+        int32_t last = *qv_last(i32, values);
 
         if (val < last) {
-            e_panic("enumeration value `%d` "
-                    "should be registered before value `%d`", val, last);
+            e_panic("enumeration %s value `%d` "
+                    "should be registered before value `%d`", kind, val,
+                    last);
         }
 
         if (val == last) {
-            e_panic("duplicated enumeration value `%d`", val);
+            e_panic("duplicated enumeration %s value `%d`", kind, val);
         }
     }
 
-    qv_append(i32, &e->values, val);
+    qv_append(i32, values, val);
 }
 
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc);

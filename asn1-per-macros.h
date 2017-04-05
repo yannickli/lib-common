@@ -212,6 +212,12 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
     }
 #endif
 
+/** Register an enumeration value.
+ *
+ * Can be used for registration of root values as well as for extended values.
+ * The values registered after a call to "asn1_enum_reg_extension()" will be
+ * assumed as part of the extension.
+ */
 #define asn1_enum_reg_val(val)  \
             asn1_enum_append(info, val);
 

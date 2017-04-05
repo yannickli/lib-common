@@ -346,12 +346,14 @@ static inline asn1_cnt_info_t *asn1_cnt_info_init(asn1_cnt_info_t *info)
 }
 
 typedef struct asn1_enum_info_t {
-    qv_t(i32)     values;  /* XXX Enumeration values in canonical order */
+    /* XXX Enumeration values in canonical order (for both root values and
+     * extended values). */
+    qv_t(i32)     values;
+    qv_t(i32)     ext_values;
 
     asn1_int_info_t constraints;
 
-    flag_t        extended;
-    /* TODO extension values */
+    flag_t extended;
 } asn1_enum_info_t;
 
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
@@ -368,6 +370,7 @@ GENERIC_NEW(asn1_enum_info_t, asn1_enum_info);
 static inline void asn1_enum_info_wipe(asn1_enum_info_t *info)
 {
     qv_wipe(i32, &info->values);
+    qv_wipe(i32, &info->ext_values);
 }
 
 GENERIC_DELETE(asn1_enum_info_t, asn1_enum_info);

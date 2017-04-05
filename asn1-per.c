@@ -351,20 +351,21 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
 static int
 aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 {
-    int pos = asn1_enum_pos(e, val);
+    bool extended_val = false;
+    int pos = asn1_enum_find_val(e, val, &extended_val);
 
     bb_push_mark(bb);
 
     if (pos < 0) {
-        if (e->extended) {
-            bb_be_add_bit(bb, true);
-            aper_write_nsnnwn(bb, val);
+        e_info("undeclared enumerated value: %d", val);
+        return -1;
+    }
 
-            return 0;
-        } else {
-            e_info("undeclared enumerated value: %d", val);
-            return -1;
-        }
+    if (extended_val) {
+        bb_be_add_bit(bb, true);
+        aper_write_nsnnwn(bb, pos);
+
+        return 0;
     }
 
     if (e->extended) {
@@ -1180,7 +1181,13 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
                 return -1;
             }
 
-            *val = nsnnwn;
+            if (nsnnwn >= (size_t)e->ext_values.len) {
+                e_info("cannot read enumerated value (extended): "
+                       "unregistered value");
+                return -1;
+            }
+
+            *val = e->ext_values.tab[nsnnwn];
 
             return 0;
         }
@@ -1189,7 +1196,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
     RETHROW(aper_decode_number(bs, &e->constraints, true, &pos));
 
     if (pos >= e->values.len) {
-        e_info("cannot read enumerated value: unregistered value");
+        e_info("cannot read enumerated value (root): unregistered value");
         return -1;
     }
 
@@ -2138,13 +2145,13 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             int32_t          val;
             const asn1_enum_info_t *e;
             const char       *s;
-        } t[] = {
+        } tests[] = {
             { 5,   &e1, ".0" },
             { 18,  &e1, ".1" },
             { 48,  &e2, ".00110000" },
-            { 104, &e2, ".11000000.00000001.01101000" },
-            { 192, &e2, ".11000000.00000001.11000000" },
-            { 20,  &e3, ".10010100" },
+            { 104, &e2, ".10000000" },
+            { 192, &e2, ".10000001" },
+            { 20,  &e3, ".010100" },
             { -42, &e4, ".0" },
             { 42,  &e4, ".1" },
             { 1024, &e5, ".00000011.11100010" },
@@ -2156,17 +2163,19 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e2);
-        e->extended = true;
         for (int32_t i = 0; i < 100; i++) {
             asn1_enum_append(e, i);
         }
+        e->extended = true;
+        asn1_enum_append(e, 104);
+        asn1_enum_append(e, 192);
         asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e3);
-        e->extended = true;
-        for (int32_t i = 0; i < 18; i++) {
+        for (int32_t i = 0; i < 21; i++) {
             asn1_enum_append(e, i);
         }
+        e->extended = true;
         asn1_enum_info_done(e);
 
         e = asn1_enum_info_init(&e4);
@@ -2180,10 +2189,11 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         }
         asn1_enum_info_done(e);
 
-        for (int i = 0; i < countof(t); i++) {
-            Z_HELPER_RUN(z_test_aper_enum(t[i].e, t[i].val, t[i].s),
-                         "check fail for value `%d` (expected encoding `%s`)",
-                         t[i].val, t[i].s);
+        carray_for_each_ptr(t, tests) {
+            Z_HELPER_RUN(z_test_aper_enum(t->e, t->val, t->s),
+                         "(test %ld/%ld) check fail for value `%d` "
+                         "(expected encoding `%s`)", t - tests + 1,
+                         countof(tests), t->val, t->s);
         }
 
         asn1_enum_info_wipe(&e1);
