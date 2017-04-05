@@ -533,7 +533,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
     const void *v;
 
     /* Put extension bit */
-    if (desc->extended) {
+    if (desc->is_extended) {
         e_trace(5, "sequence is extended");
         bb_be_add_bit(bb, false);
     }
@@ -605,7 +605,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
     /* Put extension bit */
-    if (desc->extended) {
+    if (desc->is_extended) {
         e_trace(5, "choice is extended");
 
         if ((extension_present = index >= desc->ext_pos)) {
@@ -1442,7 +1442,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
 {
     bit_stream_t opt_bitmap;
 
-    if (desc->extended) {
+    if (desc->is_extended) {
         flag_t extension_present;
 
         if (bs_done(bs)) {
@@ -1512,7 +1512,7 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     void                *v;
     bool extension_present = false;
 
-    if (desc->extended) {
+    if (desc->is_extended) {
         if (bs_done(bs)) {
             e_info("cannot read extension bit: end of input");
             return -1;

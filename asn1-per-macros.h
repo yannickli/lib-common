@@ -230,8 +230,8 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
  * (if any) are the extended fields.
  */
 #define asn1_reg_extension(desc)                                             \
-            assert (!desc->extended);                                        \
-            desc->extended = true;                                           \
+            assert (!desc->is_extended);                                     \
+            desc->is_extended = true;                                        \
             desc->ext_pos = desc->vec.len;
 
 static inline void

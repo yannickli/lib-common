@@ -437,8 +437,8 @@ typedef struct asn1_desc_t {
 
     /* PER information */
     qv_t(u16)             opt_fields;
-    flag_t                extended;
     uint16_t              ext_pos;
+    flag_t                is_extended : 1;
 } asn1_desc_t;
 
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
