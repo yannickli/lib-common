@@ -1498,6 +1498,8 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
         }
     }
 
+    /* TODO Skip extension fields. */
+
     return 0;
 }
 
