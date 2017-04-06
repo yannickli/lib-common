@@ -527,32 +527,87 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
     return res;
 }
 
+static void field_bitmap_add_bit(bb_t *bitmap, const void *st,
+                                 const asn1_field_t *field, bool *present)
+{
+    const void *opt;
+    const void *val;
+    bool field_present;
+
+    assert (field->mode == ASN1_OBJ_MODE(OPTIONAL));
+    opt = GET_DATA_P(st, field, uint8_t);
+    val = asn1_opt_field(opt, field->type);
+    field_present = !!val;
+
+    /* Add bit '1' if the field is present, '0' otherwise. */
+    bb_be_add_bit(bitmap, field_present);
+
+    *present = field_present;
+}
+
+static uint16_t
+fill_ext_bitmap(const void *st, const asn1_desc_t *desc, bb_t *bb)
+{
+    uint16_t fields_cnt = 0;
+
+    for (int i = desc->ext_pos; i < desc->vec.len; i++) {
+        const asn1_field_t *field = &desc->vec.tab[i];
+        bool field_present;
+
+        field_bitmap_add_bit(bb, st, field, &field_present);
+        fields_cnt += field_present;
+    }
+
+    return fields_cnt;
+}
+
+static uint16_t
+fill_opt_bitmap(const void *st, const asn1_desc_t *desc, bb_t *bb)
+{
+    uint16_t fields_cnt = 0;
+
+    tab_for_each_entry(field_pos, &desc->opt_fields) {
+        const asn1_field_t *field = &desc->vec.tab[field_pos];
+        bool field_present;
+
+        field_bitmap_add_bit(bb, st, field, &field_present);
+        fields_cnt += field_present;
+    }
+
+    return fields_cnt;
+}
+
 static int
 aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
 {
+    BB(ext_bb, desc->vec.len - desc->ext_pos);
     const void *v;
+    bool extended_fields_reached = false;
 
-    /* Put extension bit */
     if (desc->is_extended) {
-        e_trace(5, "sequence is extended");
-        bb_be_add_bit(bb, false);
+        uint16_t ext_fields_cnt;
+
+        ext_fields_cnt = fill_ext_bitmap(st, desc, &ext_bb);
+
+#ifndef NDEBUG
+        {
+            t_scope;
+            const char *bits = t_print_be_bb(&ext_bb, NULL);
+
+            e_trace(5, "extension bitmap = [ %s ]", bits);
+        }
+#endif
+
+        /* Put extension bit */
+        e_trace(5, "sequence is extended (extension bit = %d)",
+                !!ext_fields_cnt);
+        bb_be_add_bit(bb, !!ext_fields_cnt);
     }
 
     bb_push_mark(bb);
 
     /* Encode optional fields bit-map */
-    qv_for_each_pos(u16, pos, &desc->opt_fields) {
-        uint16_t            field_pos = desc->opt_fields.tab[pos];
-        const asn1_field_t *field     = &desc->vec.tab[field_pos];
-        const void         *opt       = GET_DATA_P(st, field, uint8_t);
-        const void         *val       = asn1_opt_field(opt, field->type);
-
-        if (val) { /* Field present */
-            bb_be_add_bit(bb, true);
-        } else {
-            bb_be_add_bit(bb, false);
-        }
-    }
+    fill_opt_bitmap(st, desc, bb);
 
     e_trace_be_bb_tail(5, bb, "SEQUENCE OPTIONAL fields bit-map");
     bb_pop_mark(bb);
@@ -565,7 +620,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
         if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
             const void *opt = GET_DATA_P(st, field, uint8_t);
 
-            v   = asn1_opt_field(opt, field->type);
+            v = asn1_opt_field(opt, field->type);
 
             if (v == NULL) {
                 continue; /* XXX field not present */
@@ -574,13 +629,36 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
             v = GET_DATA_P(st, field, uint8_t);
         }
 
+        if (!extended_fields_reached && field->is_extension) {
+            bit_stream_t ext_bs = bs_init_bb(&ext_bb);
+
+            bb_push_mark(bb);
+
+            /* First extension field reached, write presence bitmap for fields
+             * to come. */
+            extended_fields_reached = true;
+            aper_write_nsnnwn(bb, bs_len(&ext_bs) - 1);
+            e_trace_be_bb_tail(5, bb, "extension bitmap length (l=%zd)",
+                               bs_len(&ext_bs));
+            bb_be_add_bs(bb, &ext_bs);
+
+            e_trace_be_bb_tail(5, bb, "extension bitmap");
+            bb_pop_mark(bb);
+        }
+
         if (aper_encode_field(bb, v, field) < 0) {
-            return e_error("failed to encode value %s:%s",
-                           field->oc_t_name, field->name);
+            e_error("failed to encode value %s:%s", field->oc_t_name,
+                    field->name);
+            goto error;
         }
     }
 
+    bb_wipe(&ext_bb);
     return 0;
+
+  error:
+    bb_wipe(&ext_bb);
+    return -1;
 }
 
 static int
@@ -1471,6 +1549,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
 {
     bit_stream_t opt_bitmap;
     bit_stream_t ext_bitmap;
+    bit_stream_t *fields_bitmap = &opt_bitmap;
     bool extension_present = false;
     bool extended_fields_reached = false;
 
@@ -1495,23 +1574,58 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
 
     for (int i = 0; i < desc->vec.len; i++) {
         const asn1_field_t *field = &desc->vec.tab[i];
-        void               *v;
+        void *v;
+
+        if (!extended_fields_reached && field->is_extension) {
+            extended_fields_reached = true;
+
+            if (extension_present) {
+                e_trace(5, "extended fields reached, read extension bitmap");
+
+                if (read_ext_bitmap(bs, &ext_bitmap) < 0) {
+                    e_info("cannot read extension bitmap");
+                    return -1;
+                }
+
+                fields_bitmap = &ext_bitmap;
+            }
+        }
 
         if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
-            if (unlikely(bs_done(&opt_bitmap))) {
+            if (bs_done(fields_bitmap)) {
+                if (likely(extended_fields_reached)) {
+                    e_trace(5, "extended field `%s:%s` not present "
+                            "(out of bitmap range)", field->oc_t_name,
+                            field->name);
+
+                    /* Extended field not present (out of extension bitmap
+                     * range). */
+                    asn1_opt_field_w(GET_PTR(st, field, void), field->type,
+                                     false);
+                    continue;
+                }
+
                 assert (0);
                 return e_error("sequence is broken");
             }
 
-            if (!__bs_be_get_bit(&opt_bitmap)) {
-                asn1_opt_field_w(GET_PTR(st, field, void), field->type, false);
-                continue;  /* XXX Field not present */
+            if (!__bs_be_get_bit(fields_bitmap)) {
+                e_trace(5, "field `%s:%s` not present", field->oc_t_name,
+                        field->name);
+
+                /* Extended field not present (bit=0 in extension bitmap). */
+                asn1_opt_field_w(GET_PTR(st, field, void), field->type,
+                                 false);
+                continue;
             }
 
             t_alloc_if_pointed(field, st);
             v = asn1_opt_field_w(GET_PTR(st, field, void), field->type, true);
         } else {
             assert (field->mode != ASN1_OBJ_MODE(SEQ_OF));
+
+            /* Should be checked in "asn1_reg_field()". */
+            assert (!field->is_extension);
 
             v = t_alloc_if_pointed(field, st);
         }

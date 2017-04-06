@@ -50,8 +50,10 @@
  *             - Full support, extension included
  *             - Needs optimization
  *         - SEQUENCE
- *             - Extensions supproted when encoding and decoding
- *               only if absent.
+ *             - Full support when no extension is included
+ *             - Extensions of type "ComponentType" supported (declared
+ *               with "...") are supported (not the ones of type
+ *               "ExtensionAdditionGroup", declared with "[[ <extensions ]]")
  *         - CHOICE
  *             - Warning : field order not checked yet (fields must use
  *                         canonical order defined for tag values).
@@ -78,10 +80,6 @@
  *         English version : data/dev/doc/asn1/ASN1dubuisson.pdf
  *     [3] ITU-T X.680 (07/2002)
  *         data/dev/doc/asn1/X-680-0207.pdf
- *
- * XXX Suspected bug :
- *     We never encode l - 1 (see [2] 20.5). But it seems to be used
- *     only for extension bit-map length.
  */
 
 #ifndef IS_LIB_INET_ASN1_PER_H

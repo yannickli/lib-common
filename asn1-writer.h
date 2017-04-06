@@ -429,9 +429,6 @@ typedef struct asn1_desc_t {
     size_t                size;
     enum asn1_cstd_type   type;
 
-    /* TODO add SEQUENCE OF into constructed type enum */
-    flag_t                is_seq_of;
-
     /* XXX CHOICE only */
     asn1_int_info_t       choice_info;
 
@@ -439,6 +436,9 @@ typedef struct asn1_desc_t {
     qv_t(u16)             opt_fields;
     uint16_t              ext_pos;
     flag_t                is_extended : 1;
+
+    /* TODO add SEQUENCE OF into constructed type enum */
+    flag_t                is_seq_of : 1;
 } asn1_desc_t;
 
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)

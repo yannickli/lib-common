@@ -751,8 +751,14 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
     }
 
     if (desc->is_extended) {
+        if (desc->type == ASN1_CSTD_TYPE_SEQUENCE
+        &&  field->mode != ASN1_OBJ_MODE(OPTIONAL))
+        {
+            e_fatal("ASN.1 extension field `%s` should be optional",
+                    field->name);
+        }
+
         field->is_extension = true;
-        /* TODO same thing with extensions */
     } else {
         if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
             qv_append(u16, &desc->opt_fields, desc->vec.len);

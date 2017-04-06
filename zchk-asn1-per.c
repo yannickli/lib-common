@@ -46,31 +46,102 @@ ASN1_CHOICE_DESC_END(desc);
 /* {{{ Extended sequence. */
 
 typedef struct sequence1_t {
-    opt_i8_t root1;
-    int root2;
+#define SEQ_EXT_ROOT_FIELDS                                                  \
+    opt_i8_t root1;                                                          \
+    int root2
+
+#define SEQ_EXT_PARTIAL_FIELDS                                               \
+    SEQ_EXT_ROOT_FIELDS;                                                     \
+    lstr_t ext1;
+
+#define SEQ_EXT_FIELDS                                                       \
+    SEQ_EXT_PARTIAL_FIELDS;                                                  \
+    opt_i32_t ext2;                                                          \
+    opt_u8_t ext3
+
+    SEQ_EXT_FIELDS;
 } sequence1_t;
 
 static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1);
-    asn1_reg_scalar(desc, sequence1, root1, 0);
-    asn1_set_int_min_max(desc, 1, 16);
+#define SEQ_EXT_ROOT_FIELDS_DESC(pfx)                                        \
+    asn1_reg_scalar(desc, pfx, root1, 0);                                    \
+    asn1_set_int_min_max(desc, 1, 16);                                       \
+                                                                             \
+    asn1_reg_scalar(desc, pfx, root2, 0);                                    \
+    asn1_set_int_min(desc, -42);                                             \
+                                                                             \
+    asn1_reg_extension(desc)
 
-    asn1_reg_scalar(desc, sequence1, root2, 0);
-    asn1_set_int_min(desc, -42);
+#define SEQ_EXT_PARTIAL_FIELDS_DESC(pfx)                                     \
+    SEQ_EXT_ROOT_FIELDS_DESC(pfx);                                           \
+    asn1_reg_opt_string(desc, pfx, ext1, 0)
 
-    asn1_reg_extension(desc);
+#define SEQ_EXT_FIELDS_DESC(pfx)                                             \
+    SEQ_EXT_PARTIAL_FIELDS_DESC(pfx);                                        \
+    asn1_reg_scalar(desc, pfx, ext2, 0);                                     \
+    asn1_set_int_min_max(desc, -100000, 100000);                             \
+                                                                             \
+    asn1_reg_scalar(desc, pfx, ext3, 0);                                     \
+    asn1_set_int_min_max(desc, 0, 256)
+
+    SEQ_EXT_FIELDS_DESC(sequence1);
 ASN1_SEQUENCE_DESC_END(desc);
 
-static int z_test_seq_ext(const sequence1_t *in, lstr_t encoding)
+/* Same without extension. */
+typedef struct sequence1_root_t {
+    SEQ_EXT_ROOT_FIELDS;
+} sequence1_root_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1_root);
+    SEQ_EXT_ROOT_FIELDS_DESC(sequence1_root);
+ASN1_SEQUENCE_DESC_END(desc);
+
+/* Same with less fields in extension. */
+typedef struct sequence1_partial_t {
+    SEQ_EXT_PARTIAL_FIELDS;
+} sequence1_partial_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1_partial);
+    SEQ_EXT_PARTIAL_FIELDS_DESC(sequence1_partial);
+ASN1_SEQUENCE_DESC_END(desc);
+
+static int z_test_seq_ext(const sequence1_t *in, lstr_t exp_encoding)
 {
+    SB_1k(buf);
     pstream_t ps;
     sequence1_t out;
+    sequence1_root_t out_root;
+    sequence1_partial_t out_partial;
+
+    Z_ASSERT_N(aper_encode(&buf, sequence1, in), "encoding failure");
+    /* TODO switch to bits */
+    Z_ASSERT_LSTREQUAL(exp_encoding, LSTR_SB_V(&buf),
+                       "unexpected encoding value");
 
     memset(&out, 0xff, sizeof(out));
-    ps = ps_initlstr(&encoding);
+    ps = ps_initsb(&buf);
     Z_ASSERT_N(t_aper_decode(&ps, sequence1, false, &out),
                "decoding failure (full sequence)");
     Z_ASSERT_OPT_EQ(out.root1, in->root1);
     Z_ASSERT_EQ(out.root2, in->root2);
+    Z_ASSERT_LSTREQUAL(out.ext1, in->ext1);
+    Z_ASSERT_OPT_EQ(out.ext2, in->ext2);
+    Z_ASSERT_OPT_EQ(out.ext3, in->ext3);
+
+    memset(&out_root, 0xff, sizeof(out_root));
+    ps = ps_initsb(&buf);
+    Z_ASSERT_N(t_aper_decode(&ps, sequence1_root, false, &out_root),
+               "decoding failure (root sequence)");
+    Z_ASSERT_OPT_EQ(out_root.root1, in->root1);
+    Z_ASSERT_EQ(out_root.root2, in->root2);
+
+    memset(&out_partial, 0xff, sizeof(out_partial));
+    ps = ps_initsb(&buf);
+    Z_ASSERT_N(t_aper_decode(&ps, sequence1_partial, false, &out_partial),
+               "decoding failure (partial sequence)");
+    Z_ASSERT_OPT_EQ(out_partial.root1, in->root1);
+    Z_ASSERT_EQ(out_partial.root2, in->root2);
+    Z_ASSERT_LSTREQUAL(out_partial.ext1, in->ext1);
 
     Z_HELPER_END;
 }
@@ -255,24 +326,24 @@ Z_GROUP_EXPORT(asn1_aper) {
     Z_TEST(extended_sequence, "extended sequence") {
         struct {
             const char *title;
-            sequence1_t exp_out;
+            sequence1_t in;
             lstr_t encoding;
         } tests[] = { {
             "no extension",
-            { OPT(10), -20 },
+            { OPT(10), -20, LSTR_NULL, OPT_NONE, OPT_NONE },
             LSTR_IMMED("\x64\x01\x16"),
         }, {
             "one extension",
-            { OPT(10), -20 },
+            { OPT(10), -20, LSTR_IMMED("toto"), OPT_NONE, OPT_NONE },
             LSTR_IMMED("\xE4\x01\x16\x05\x00\x05\x04toto"),
         }, {
             "more extensions",
-            { OPT(10), -20 },
+            { OPT(10), -20, LSTR_NULL, OPT(-90000), OPT(42) },
             LSTR_IMMED("\xE4\x01\x16\x04\xC0\x03\x40\x27\x10\x02\x00\x2A"),
         } };
 
         carray_for_each_ptr(t, tests) {
-            Z_HELPER_RUN(z_test_seq_ext(&t->exp_out, t->encoding),
+            Z_HELPER_RUN(z_test_seq_ext(&t->in, t->encoding),
                          "test failure for `%s`", t->title);
         }
     } Z_TEST_END;
