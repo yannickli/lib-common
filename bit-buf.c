@@ -20,11 +20,19 @@ bb_t *bb_init(bb_t *bb)
 
     bb->alignment = 8;
 
+#ifndef NDEBUG
+    qv_init(u64, &bb->marks);
+#endif
+
     return bb;
 }
 
 void bb_wipe(bb_t *bb)
 {
+#ifndef NDEBUG
+    qv_wipe(u64, &bb->marks);
+#endif
+
     mp_delete(bb->mp, &bb->data);
 }
 
@@ -60,6 +68,8 @@ void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
     bb_grow(bb, 8);
     sb_init_full(sb, bb->data, DIV_ROUND_UP(bb->len, 8),
                  bb->size * 8, bb->mp);
+    bb->data = NULL;
+    bb_wipe(bb);
     bb_init(bb);
 }
 
