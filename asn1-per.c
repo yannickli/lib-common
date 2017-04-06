@@ -1436,14 +1436,46 @@ static void *t_alloc_if_pointed(const asn1_field_t *field, void *st)
     return GET_PTR(st, field, void);
 }
 
+static int read_ext_bitmap(bit_stream_t *bs, bit_stream_t *ext_bitmap)
+{
+    size_t ext_bitmap_len;
+
+    if (aper_read_nsnnwn(bs, &ext_bitmap_len) < 0) {
+        e_info("cannot read extension bitmap length");
+        return -1;
+    }
+
+    /* XXX The value "-1" is impossible so the encoded value is "n - 1". */
+    ext_bitmap_len++;
+
+    if (bs_get_bs(bs, ext_bitmap_len, ext_bitmap) < 0) {
+        e_info("cannot read extension bitmap (not enough bits)");
+        return -1;
+    }
+
+#ifndef NDEBUG
+    {
+        t_scope;
+        const char *bits = t_print_be_bs(*ext_bitmap, NULL);
+
+        e_trace(5, "extension bitmap = [ %s ]", bits);
+    }
+#endif
+
+    return 0;
+}
+
 static int
 t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
                        flag_t copy, void *st)
 {
     bit_stream_t opt_bitmap;
+    bit_stream_t ext_bitmap;
+    bool extension_present = false;
+    bool extended_fields_reached = false;
 
     if (desc->is_extended) {
-        flag_t extension_present;
+        e_trace(5, "the sequence is extended");
 
         if (bs_done(bs)) {
             e_info("cannot read extension bit: end of input");
@@ -1451,11 +1483,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
         }
 
         extension_present = __bs_be_get_bit(bs);
-
-        if (extension_present) {
-            e_info("extension are not supported in sequences");
-            return -1;
-        }
+        e_trace(5, "extension present");
     }
 
     if (!bs_has(bs, desc->opt_fields.len)) {
@@ -1498,7 +1526,36 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
         }
     }
 
-    /* TODO Skip extension fields. */
+    if (extension_present) {
+        if (!extended_fields_reached) {
+            e_trace(5, "skipping extension bitmap");
+
+            /* The sequence is registered as extended but no extended field is
+             * registered. Skip the extended field bitmap. */
+            if (read_ext_bitmap(bs, &ext_bitmap) < 0) {
+                e_info("cannot read extension bitmap (for skipping)");
+                return -1;
+            }
+        }
+
+        /* Skip all the unknown extended fields. */
+        while (!bs_done(&ext_bitmap)) {
+            lstr_t os;
+
+            if (!__bs_be_get_bit(&ext_bitmap)) {
+                e_trace(5, "skipping unknown extension (absent)");
+                continue;
+            }
+
+            e_trace(5, "skipping unknown extension (present)");
+            if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
+                e_info("cannot skip unknown extension field");
+                return -1;
+            }
+            e_trace(5, "skipped unknown extension with encoding size %d",
+                    os.len);
+        }
+    }
 
     return 0;
 }

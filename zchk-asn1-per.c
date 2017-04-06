@@ -16,6 +16,8 @@
 #include "iop.h"
 #include "iop/tstiop.iop.h"
 
+/* {{{ Choice */
+
 typedef struct {
     uint16_t iop_tag;
     union {
@@ -28,6 +30,9 @@ static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, choice1);
     asn1_set_int_min_max(desc, 2, 15);
 ASN1_CHOICE_DESC_END(desc);
 
+/* }}} */
+/* {{{ Extended choice. */
+
 static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
     asn1_reg_scalar(desc, tstiop__asn1_ext_choice_, i, 0);
     asn1_set_int_min_max(desc, 42, 666);
@@ -37,6 +42,40 @@ static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
     asn1_set_int_min_max(desc, 666, 1234567);
 ASN1_CHOICE_DESC_END(desc);
 
+/* }}} */
+/* {{{ Extended sequence. */
+
+typedef struct sequence1_t {
+    opt_i8_t root1;
+    int root2;
+} sequence1_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1);
+    asn1_reg_scalar(desc, sequence1, root1, 0);
+    asn1_set_int_min_max(desc, 1, 16);
+
+    asn1_reg_scalar(desc, sequence1, root2, 0);
+    asn1_set_int_min(desc, -42);
+
+    asn1_reg_extension(desc);
+ASN1_SEQUENCE_DESC_END(desc);
+
+static int z_test_seq_ext(const sequence1_t *in, lstr_t encoding)
+{
+    pstream_t ps;
+    sequence1_t out;
+
+    memset(&out, 0xff, sizeof(out));
+    ps = ps_initlstr(&encoding);
+    Z_ASSERT_N(t_aper_decode(&ps, sequence1, false, &out),
+               "decoding failure (full sequence)");
+    Z_ASSERT_OPT_EQ(out.root1, in->root1);
+    Z_ASSERT_EQ(out.root2, in->root2);
+
+    Z_HELPER_END;
+}
+
+/* }}} */
 /* {{{ Enumerated type. */
 
 typedef enum enum1 {
@@ -207,6 +246,34 @@ Z_GROUP_EXPORT(asn1_aper) {
             Z_ASSERT_N(t_aper_decode(&ps, tstiop__asn1_ext_choice_, false,
                                      &out));
             Z_ASSERT_IOPEQUAL(tstiop__asn1_ext_choice, &t->in, &out);
+        }
+    } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Extended sequence. */
+
+    Z_TEST(extended_sequence, "extended sequence") {
+        struct {
+            const char *title;
+            sequence1_t exp_out;
+            lstr_t encoding;
+        } tests[] = { {
+            "no extension",
+            { OPT(10), -20 },
+            LSTR_IMMED("\x64\x01\x16"),
+        }, {
+            "one extension",
+            { OPT(10), -20 },
+            LSTR_IMMED("\xE4\x01\x16\x05\x00\x05\x04toto"),
+        }, {
+            "more extensions",
+            { OPT(10), -20 },
+            LSTR_IMMED("\xE4\x01\x16\x04\xC0\x03\x40\x27\x10\x02\x00\x2A"),
+        } };
+
+        carray_for_each_ptr(t, tests) {
+            Z_HELPER_RUN(z_test_seq_ext(&t->exp_out, t->encoding),
+                         "test failure for `%s`", t->title);
         }
     } Z_TEST_END;
 
