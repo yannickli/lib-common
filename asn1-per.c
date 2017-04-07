@@ -739,21 +739,22 @@ static int aper_encode_constructed(bb_t *bb, const void *st,
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc)
 {
     bb_t bb;
+    int res;
 
     bb_init_sb(&bb, sb);
 
-    if (aper_encode_constructed(&bb, st, desc, NULL) < 0) {
-        return -1;
-    }
-
+    res = aper_encode_constructed(&bb, st, desc, NULL);
     bb_transfer_to_sb(&bb, sb);
 
-    /* Ref : [1] 10.1.3 */
-    if (unlikely(!sb->len)) {
-        sb_addc(sb, 0);
+    if (res >= 0) {
+        /* Ref : [1] 10.1.3 */
+        if (unlikely(!sb->len)) {
+            sb_addc(sb, 0);
+        }
     }
 
-    return 0;
+    bb_wipe(&bb);
+    return res;
 }
 
 /* }}} */
