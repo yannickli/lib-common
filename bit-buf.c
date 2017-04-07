@@ -330,6 +330,8 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #2");
         Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #1");
         Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #1");
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_add_0_1, "") {
@@ -361,6 +363,8 @@ Z_GROUP_EXPORT(bit_buf)
                 Z_ASSERT_NEG(bs_get_bit(&bs));
             }
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_add_bytes, "") {
@@ -398,6 +402,8 @@ Z_GROUP_EXPORT(bit_buf)
                 }
             }
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(be_full, "bit-buf/bit-stream: full check") {
@@ -463,6 +469,8 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #2");
         Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #1");
         Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #1");
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_bug, "bit-buf: add 64nth bit") {
