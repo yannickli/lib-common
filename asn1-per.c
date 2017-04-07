@@ -1705,6 +1705,7 @@ static int z_test_aper_enum(const asn1_enum_info_t *e, int32_t val,
     Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bb(&bb, NULL),
                       "unexpected encoding");
 
+    bb_wipe(&bb);
     Z_HELPER_END;
 }
 
@@ -1725,6 +1726,7 @@ static int z_test_aper_number(const asn1_int_info_t *nonnull info,
                "cannot decode `%s`", exp_encoding);
     Z_ASSERT_EQ(i64, val, "decoded value differs");
 
+    bb_wipe(&bb);
     Z_HELPER_END;
 }
 
@@ -1778,6 +1780,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             }
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(len, "aligned per: aper_write_len/aper_read_len") {
@@ -1810,6 +1814,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             Z_ASSERT_EQ(len, t[i].l, "[i:%d]", i);
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
@@ -1837,6 +1843,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             Z_ASSERT_EQ(len, t[i].n, "[i:%d]", i);
             Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(number, "aligned per: aper_{encode,decode}_number") {
@@ -1959,6 +1967,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
                          "test `%s`: decoding was supposed to fail "
                          "(v=%juULL/%jdLL)", t->title, v, v);
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(ostring, "aligned per: aper_{encode,decode}_ostring") {
@@ -2027,6 +2037,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
                                LSTR_INIT_V((void *)src.data, src.len),
                                "[i:%d]", i);
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(bstring, "aligned per: aper_{encode,decode}_bstring") {
@@ -2107,6 +2119,9 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             Z_ASSERT_EQ(bs_len(&dst), bs_len(&src), "[i:%d]", i);
             Z_ASSERT(bs_equals(dst, src), "[i:%d]", i);
         }
+
+        bb_wipe(&bb);
+        bb_wipe(&src_bb);
     } Z_TEST_END;
 
     Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
