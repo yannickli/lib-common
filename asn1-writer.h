@@ -351,6 +351,9 @@ typedef struct asn1_enum_info_t {
     qv_t(i32)     values;
     qv_t(i32)     ext_values;
 
+    /* Value to set when decoding an unknown extended value. */
+    opt_i32_t ext_defval;
+
     asn1_int_info_t constraints;
 
     flag_t extended;
@@ -374,6 +377,8 @@ static inline void asn1_enum_info_wipe(asn1_enum_info_t *info)
 }
 
 GENERIC_DELETE(asn1_enum_info_t, asn1_enum_info);
+
+void asn1_enum_info_reg_ext_defval(asn1_enum_info_t *info, int32_t defval);
 
 /* }}} */
 

@@ -154,6 +154,34 @@ t_asn1_bstring_from_bf64(uint64_t bit_field, int min_bit_len)
     };
 }
 
+void asn1_enum_info_reg_ext_defval(asn1_enum_info_t *info, int32_t defval)
+{
+    if (!info->extended) {
+        e_panic("the enumeration is not extended");
+    }
+
+    if (OPT_ISSET(info->ext_defval)) {
+        e_panic("default value already registered");
+    }
+
+    /* TODO use contains_i32 */
+    tab_for_each_entry(v, &info->values) {
+        if (defval == v) {
+            e_panic("cannot use %d as default value: "
+                    "already registered (root value)", defval);
+        }
+    }
+    /* TODO use contains_i32 */
+    tab_for_each_entry(v, &info->ext_values) {
+        if (defval == v) {
+            e_panic("cannot use %d as default value: "
+                    "already registered (extended value)", defval);
+        }
+    }
+
+    OPT_SET(info->ext_defval, defval);
+}
+
 /* }}} */
 /*----- PACKER -{{{- */
 #define ASN1_BOOL_TRUE_VALUE 0x01

@@ -1246,8 +1246,17 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
             }
 
             if (nsnnwn >= (size_t)e->ext_values.len) {
+                if (OPT_ISSET(e->ext_defval)) {
+                    e_trace(5, "unknown extended enum value, use default");
+
+                    *val = OPT_VAL(e->ext_defval);
+
+                    return 0;
+                }
+
                 e_info("cannot read enumerated value (extended): "
                        "unregistered value");
+
                 return -1;
             }
 
@@ -2352,6 +2361,30 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         asn1_enum_info_wipe(&e3);
         asn1_enum_info_wipe(&e4);
         asn1_enum_info_wipe(&e5);
+    } Z_TEST_END;
+
+    Z_TEST(enum_ext_defval, "aligned per: extended enum default value") {
+        asn1_enum_info_t e;
+        BB_1k(bb);
+        bit_stream_t bs;
+        int32_t res;
+
+        asn1_enum_info_init(&e);
+        e.extended = true;
+        asn1_enum_append(&e, 666);
+        Z_ASSERT_N(aper_encode_enum(&bb, 666, &e));
+
+        asn1_enum_info_wipe(&e);
+        asn1_enum_info_init(&e);
+        e.extended = true;
+        asn1_enum_info_reg_ext_defval(&e, 42);
+
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_N(aper_decode_enum(&bs, &e, &res));
+        Z_ASSERT_EQ(res, 42);
+
+        asn1_enum_info_wipe(&e);
+        bb_wipe(&bb);
     } Z_TEST_END;
 } Z_GROUP_END
 
