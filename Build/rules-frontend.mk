@@ -321,7 +321,7 @@ $~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exo
 	mkdir -p $~$2/htdocs/javascript/bundles
 	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify \
 		$$(_FLAGS) \
-		$(BROWSERIFY_OPTIONS) \
+		$$(BROWSERIFY_OPTIONS) \
 		$$(_FILES) \
 	| $(var/wwwtool)exorcist $$@.map > $$@
 
