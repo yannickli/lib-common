@@ -47,33 +47,43 @@ static inline asn1_field_t
     return field;
 }
 
-static inline void
-asn1_set_int_min(asn1_desc_t *desc, int64_t min)
+/* XXX The 'min' in the prototype is signed but will be casted to the proper
+ * type if needed. */
+static inline void asn1_set_int_min(asn1_desc_t *desc, int64_t min)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
-    field->int_info.min = min;
-    asn1_int_info_update(&field->int_info);
+    /* TODO Assert when the bound doesn't fit in the field. */
+    asn1_int_info_set_min(&field->int_info, min);
+    asn1_int_info_update(&field->int_info,
+                         asn1_field_type_is_signed_int(field->type));
 }
 
-static inline void
-asn1_set_int_max(asn1_desc_t *desc, int64_t max)
+/* XXX Same remark as for 'asn1_set_int_min'. */
+static inline void asn1_set_int_max(asn1_desc_t *desc, int64_t max)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
-    field->int_info.max = max;
-    asn1_int_info_update(&field->int_info);
+    /* TODO Assert when the bound doesn't fit in the field. */
+    asn1_int_info_set_max(&field->int_info, max);
+    asn1_int_info_update(&field->int_info,
+                         asn1_field_type_is_signed_int(field->type));
 }
 
+/* XXX Same remark as for 'asn1_set_int_min'. */
 static inline void
 asn1_set_int_min_max(asn1_desc_t *desc, int64_t min, int64_t max)
 {
-    asn1_set_int_min(desc, min);
-    asn1_set_int_max(desc, max);
+    asn1_field_t *field = asn1_desc_get_int_field(desc);
+
+    /* TODO Assert when the bounds don't fit in the field. */
+    asn1_int_info_set_min(&field->int_info, min);
+    asn1_int_info_set_max(&field->int_info, max);
+    asn1_int_info_update(&field->int_info,
+                         asn1_field_type_is_signed_int(field->type));
 }
 
-static inline void
-asn1_int_set_extended(asn1_desc_t *desc)
+static inline void asn1_int_set_extended(asn1_desc_t *desc)
 {
     asn1_field_t *field = asn1_desc_get_int_field(desc);
 
@@ -188,23 +198,34 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
 #define ASN1_ENUM_BEGIN(pfx)  \
     const asn1_enum_info_t *ASN1_ENUM(pfx)(void)                          \
     {                                                                     \
-        static asn1_enum_info_t *info = NULL;                             \
+        static __thread asn1_enum_info_t *info = NULL;                    \
                                                                           \
         if (unlikely(!info)) {                                            \
             info = asn1_enum_info_new();
 
 #define ASN1_ENUM_END()  \
+            asn1_enum_info_done(info);                                    \
+            qv_append(&asn1_descs_g.enums, info);                         \
         }                                                                 \
                                                                           \
         return info;                                                      \
     }
 #endif
 
+/** Register an enumeration value.
+ *
+ * Can be used for registration of root values as well as for extended values.
+ * The values registered after a call to "asn1_enum_reg_extension()" will be
+ * assumed as part of the extension.
+ */
 #define asn1_enum_reg_val(val)  \
             asn1_enum_append(info, val);
 
 #define asn1_enum_reg_extension()  \
             info->extended = true;
+
+#define asn1_enum_reg_ext_defval(v)                                          \
+            asn1_enum_info_reg_ext_defval(info, (v))
 
 /* XXX This macro must be called at the same place the "..." extension marker
  * is set in the abstract syntax of the choice. The fields before the
@@ -212,8 +233,8 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
  * (if any) are the extended fields.
  */
 #define asn1_reg_extension(desc)                                             \
-            assert (!desc->extended);                                        \
-            desc->extended = true;                                           \
+            assert (!desc->is_extended);                                     \
+            desc->is_extended = true;                                        \
             desc->ext_pos = desc->vec.len;
 
 static inline void
@@ -234,6 +255,13 @@ asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)
     }
 
     field->enum_info = info;
+}
+
+static inline void asn1_enum_info_done(asn1_enum_info_t *info)
+{
+    asn1_int_info_set_min(&info->constraints, 0);
+    asn1_int_info_set_max(&info->constraints, info->values.len - 1);
+    asn1_int_info_update(&info->constraints, true);
 }
 
 #define asn1_set_enum_info(desc, pfx)                                     \

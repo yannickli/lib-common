@@ -50,8 +50,10 @@
  *             - Full support, extension included
  *             - Needs optimization
  *         - SEQUENCE
- *             - Extensions supproted when encoding and decoding
- *               only if absent.
+ *             - Full support when no extension is included
+ *             - Extensions of type "ComponentType" supported (declared
+ *               with "...") are supported (not the ones of type
+ *               "ExtensionAdditionGroup", declared with "[[ <extensions ]]")
  *         - CHOICE
  *             - Warning : field order not checked yet (fields must use
  *                         canonical order defined for tag values).
@@ -78,10 +80,6 @@
  *         English version : data/dev/doc/asn1/ASN1dubuisson.pdf
  *     [3] ITU-T X.680 (07/2002)
  *         data/dev/doc/asn1/X-680-0207.pdf
- *
- * XXX Suspected bug :
- *     We never encode l - 1 (see [2] 20.5). But it seems to be used
- *     only for extension bit-map length.
  */
 
 #ifndef IS_LIB_INET_ASN1_PER_H
@@ -93,29 +91,59 @@
 #define ASN1_MAX_LEN  SIZE_MAX /* FIXME put real ASN1_MAX_LEN instead */
 
 /* TODO optimize */
-static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
+static inline int asn1_enum_find_val(const asn1_enum_info_t *nonnull e,
+                                     int32_t val, bool *nonnull extended)
 {
-    tab_for_each_pos(pos, &e->values) {
-        if (e->values.tab[pos] == val) {
-            return pos;
+    struct {
+        const qv_t(i32) *values;
+        bool extended;
+    } vals_tabs[] = {
+        { &e->values, false },
+        { &e->ext_values, true },
+    };
+
+    carray_for_each_ptr(v, vals_tabs) {
+        tab_for_each_pos(pos, v->values) {
+            if (v->values->tab[pos] == val) {
+                assert (e->extended || !v->extended);
+                *extended = v->extended;
+
+                return pos;
+            }
         }
     }
 
     return -1;
 }
 
-static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
+static inline void asn1_enum_append(asn1_enum_info_t *e, int32_t val)
 {
-    assert (e->values.len <= 255);
-    assert (asn1_enum_pos(e, val) < 0);
+    qv_t(i32) *values;
+    const char *kind;
 
-    qv_append(&e->values, val);
-
-    if (e->values.len > 1) {
-        e->blen = bsr8(e->values.len - 1) + 1;
+    if (e->extended) {
+        values = &e->ext_values;
+        kind = "root";
     } else {
-        e->blen = 0;
+        values = &e->values;
+        kind = "extended";
     }
+
+    if (values->len) {
+        int32_t last = *tab_last(values);
+
+        if (val < last) {
+            e_panic("enumeration %s value `%d` "
+                    "should be registered before value `%d`", kind, val,
+                    last);
+        }
+
+        if (val == last) {
+            e_panic("duplicated enumeration %s value `%d`", kind, val);
+        }
+    }
+
+    qv_append(values, val);
 }
 
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc);
@@ -124,14 +152,14 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 
 #define aper_encode(sb, pfx, st)  \
     ({                                                                       \
-        if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)) {          \
+        if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)             \
+        &&  !__builtin_types_compatible_p(typeof(st), const pfx##_t *))      \
+        {                                                                    \
             __error__("ASN.1 PER encoder: `"#st"' type "                     \
                       "is not <"#pfx"_t *>");                                \
         }                                                                    \
         aper_encode_desc(sb, st, ASN1_GET_DESC(pfx));                        \
     })
-
-#endif
 
 #define t_aper_decode(ps, pfx, copy, st)  \
     ({                                                                       \
@@ -149,3 +177,5 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
  *   * >= 0 means e_trace(level, ...)
  */
 void aper_set_decode_log_level(int level);
+
+#endif

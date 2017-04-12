@@ -31,6 +31,8 @@
         int len, size;                                                       \
     }
 
+#define STRUCT_QVECTOR_INIT()  { NULL, NULL, 0, 0 }
+
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
@@ -202,6 +204,8 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
         qvector_t qv;                                                       \
         STRUCT_QVECTOR_T(val_t);                                            \
     } pfx##_t;
+
+#define QV_INIT() { .qv = STRUCT_QVECTOR_INIT() }
 
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)                           \

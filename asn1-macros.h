@@ -129,12 +129,13 @@
 
 #define ASN1_CHOICE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_CHOICE);                    \
-            desc->choice_info.min = 0;                                       \
+            asn1_int_info_set_min(&desc->choice_info, 0);                    \
             /* - 2 -> index + first choice */                                \
             assert (desc->vec.len >= 2);                                     \
-            desc->choice_info.max = (desc->extended ? desc->ext_pos          \
-                                                    : desc->vec.len) - 2;    \
-            asn1_int_info_update(&desc->choice_info);                        \
+            asn1_int_info_set_max(&desc->choice_info,                        \
+                                  (desc->is_extended ? desc->ext_pos         \
+                                                     : desc->vec.len) - 2);  \
+            asn1_int_info_update(&desc->choice_info, false);                 \
             asn1_build_choice_table((asn1_choice_desc_t *)desc);             \
             qv_append(&asn1_descs_g.choice_descs,          \
                       __choice_desc);                                        \
