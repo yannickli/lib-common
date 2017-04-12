@@ -357,7 +357,7 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
     bb_push_mark(bb);
 
     if (pos < 0) {
-        e_info("undeclared enumerated value: %d", val);
+        e_error("undeclared enumerated value: %d", val);
         return -1;
     }
 
