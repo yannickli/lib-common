@@ -7208,6 +7208,32 @@ Z_GROUP_EXPORT(iop)
                   "http://localhost:1080/iop/", false, true);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(json_empty_string, "parsing '' as JSON always returns an error") { /* {{{ */
+        tstiop__my_union_a__t union_a;
+        tstiop__my_class1__t class1;
+        tstiop__my_struct_a_opt__t struct_opt;
+        pstream_t json = ps_initstr("");
+        const char *error = "1:1: there is nothing to read";
+        SB_1k(err);
+
+        /* test for an union */
+        Z_ASSERT_NEG(t_iop_junpack_ps(&json, &tstiop__my_union_a__s, &union_a,
+                                      0, &err));
+        Z_ASSERT_STREQUAL(err.data, error);
+        sb_reset(&err);
+
+        /* test for a class */
+        Z_ASSERT_NEG(t_iop_junpack_ps(&json, &tstiop__my_class1__s, &class1,
+                                      0, &err));
+        Z_ASSERT_STREQUAL(err.data, error);
+        sb_reset(&err);
+
+        /* test for a struct with all optional fields */
+        Z_ASSERT_NEG(t_iop_junpack_ps(&json, &tstiop__my_struct_a_opt__s,
+                                      &struct_opt, 0, &err));
+        Z_ASSERT_STREQUAL(err.data, error);
+    } Z_TEST_END;
+    /* }}} */
 } Z_GROUP_END
 
 /* LCOV_EXCL_STOP */

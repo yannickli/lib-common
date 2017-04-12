@@ -19,6 +19,7 @@ static void asn1_wipe(void)
 {
     qv_deep_wipe(&asn1_descs_g.descs, asn1_desc_delete);
     qv_deep_wipe(&asn1_descs_g.choice_descs, asn1_choice_desc_delete);
+    qv_deep_wipe(&asn1_descs_g.enums, asn1_enum_info_delete);
 }
 thr_hooks(NULL, asn1_wipe);
 
@@ -150,6 +151,34 @@ t_asn1_bstring_from_bf64(uint64_t bit_field, int min_bit_len)
         .bit_len = bit_len,
         .data = t_dup((const byte *)&be, len),
     };
+}
+
+void asn1_enum_info_reg_ext_defval(asn1_enum_info_t *info, int32_t defval)
+{
+    if (!info->extended) {
+        e_panic("the enumeration is not extended");
+    }
+
+    if (OPT_ISSET(info->ext_defval)) {
+        e_panic("default value already registered");
+    }
+
+    /* TODO use contains_i32 */
+    tab_for_each_entry(v, &info->values) {
+        if (defval == v) {
+            e_panic("cannot use %d as default value: "
+                    "already registered (root value)", defval);
+        }
+    }
+    /* TODO use contains_i32 */
+    tab_for_each_entry(v, &info->ext_values) {
+        if (defval == v) {
+            e_panic("cannot use %d as default value: "
+                    "already registered (extended value)", defval);
+        }
+    }
+
+    OPT_SET(info->ext_defval, defval);
 }
 
 /* }}} */
@@ -748,11 +777,20 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
                 "tagged as a sequence", field->name);
     }
 
-    if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
-        qv_append(&desc->opt_fields, desc->vec.len);
-    }
+    if (desc->is_extended) {
+        if (desc->type == ASN1_CSTD_TYPE_SEQUENCE
+        &&  field->mode != ASN1_OBJ_MODE(OPTIONAL))
+        {
+            e_fatal("ASN.1 extension field `%s` should be optional",
+                    field->name);
+        }
 
-    /* TODO same thing with extensions */
+        field->is_extension = true;
+    } else {
+        if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
+            qv_append(&desc->opt_fields, desc->vec.len);
+        }
+    }
 
     asn1_field_init_info(field);
     qv_append(&desc->vec, *field);

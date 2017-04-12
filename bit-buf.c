@@ -20,11 +20,19 @@ bb_t *bb_init(bb_t *bb)
 
     bb->alignment = 8;
 
+#ifndef NDEBUG
+    qv_init(&bb->marks);
+#endif
+
     return bb;
 }
 
 void bb_wipe(bb_t *bb)
 {
+#ifndef NDEBUG
+    qv_wipe(&bb->marks);
+#endif
+
     mp_delete(bb->mp, &bb->data);
 }
 
@@ -60,6 +68,8 @@ void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
     bb_grow(bb, 8);
     sb_init_full(sb, bb->data, DIV_ROUND_UP(bb->len, 8),
                  bb->size * 8, bb->mp);
+    bb->data = NULL;
+    bb_wipe(bb);
     bb_init(bb);
 }
 
@@ -176,6 +186,58 @@ char *t_print_be_bb(const bb_t *bb, size_t *len)
     return t_print_be_bs(bs, len);
 }
 
+int z_set_be_bb(bb_t *bb, const char *bits, sb_t *err)
+{
+    int c;
+    uint8_t u = 0;
+    int blen = 0;
+    const char *r = bits;
+
+    bb_reset(bb);
+    for (;;) {
+        c = *r++;
+
+        if (c == '0' || c == '1') {
+            u <<= 1;
+            blen++;
+
+            if (blen > 8) {
+                sb_sets(err, "invalid input");
+                return -1;
+            }
+
+            if (c == '1') {
+                u |= 1;
+            }
+        } else
+        if (c == '.' || !c) {
+            bb_add_bits(bb, u, blen);
+
+            if (!c) {
+                break;
+            }
+
+            u = 0;
+            blen = 0;
+        } else {
+            sb_setf(err, "unexpected character '%c'", c);
+            return -1;
+        }
+    }
+
+    {
+        t_scope;
+        const char *s = t_print_be_bb(bb, NULL);
+
+        if (!strequal(s, bits)) {
+            sb_setf(err, "input different when re-generated: got `%s`", s);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 char *t_print_bb(const bb_t *bb, size_t *len)
 {
     bit_stream_t bs = bs_init_bb(bb);
@@ -268,6 +330,8 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #2");
         Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #1");
         Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #1");
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_add_0_1, "") {
@@ -299,6 +363,8 @@ Z_GROUP_EXPORT(bit_buf)
                 Z_ASSERT_NEG(bs_get_bit(&bs));
             }
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_add_bytes, "") {
@@ -336,6 +402,8 @@ Z_GROUP_EXPORT(bit_buf)
                 }
             }
         }
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(be_full, "bit-buf/bit-stream: full check") {
@@ -401,6 +469,8 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #2");
         Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #1");
         Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #1");
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 
     Z_TEST(le_bug, "bit-buf: add 64nth bit") {

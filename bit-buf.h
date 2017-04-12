@@ -17,6 +17,10 @@
 #include "core.h"
 #include "arith.h"
 
+#ifndef NDEBUG
+# include "container-qvector.h"
+#endif
+
 typedef struct bb_t {
     union {
         uint64_t   *data;
@@ -38,6 +42,10 @@ typedef struct bb_t {
     /** Memory alignment (in bytes) */
     size_t     alignment;
     mem_pool_t *mp;
+
+#ifndef NDEBUG
+    qv_t(u64) marks;
+#endif
 } bb_t;
 
 struct bit_stream_t;
@@ -78,6 +86,10 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, size_t alignment,
     bzero(bb->bytes + used_bytes, bsize * 8 - used_bytes);
     assert (bb->size >= bb->word);
 
+#ifndef NDEBUG
+    qv_init(&bb->marks);
+#endif
+
     return bb;
 }
 
@@ -85,15 +97,23 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, size_t alignment,
     bb_init_full(bb, p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)), \
                  0, DIV_ROUND_UP(sz, 8), 8, &mem_pool_static)
 
+#ifdef NDEBUG
+# define __BB_INIT_MARKS
+#else
+# define __BB_INIT_MARKS  .marks = QV_INIT()
+#endif
+
 #define BB(name, sz) \
     bb_t name = { { .data = p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
                     .size = DIV_ROUND_UP(sz, 8), .alignment = 8,       \
-                    .mp   = &mem_pool_static }
+                    .mp   = &mem_pool_static,                          \
+                    __BB_INIT_MARKS }
 #define t_BB(name, sz) \
     bb_t name = { { .data = t_new(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
                     .size = DIV_ROUND_UP(sz, 8),                    \
                     .alignment = 8,                                 \
-                    .mp = t_pool() }
+                    .mp = t_pool(),                                 \
+                    __BB_INIT_MARKS }
 
 #define BB_1k(name)    BB(name, 1 << 10)
 #define BB_8k(name)    BB(name, 8 << 10)
@@ -360,9 +380,32 @@ void bb_shift_left(bb_t *bb, size_t shift);
 /* }}} */
 /* Marking {{{ */
 
+#ifdef NDEBUG
+
 static ALWAYS_INLINE void bb_push_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_pop_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
+
+#else
+
+static inline void bb_push_mark(bb_t *bb)
+{
+    qv_append(&bb->marks, bb->len);
+}
+
+static inline void bb_pop_mark(bb_t *bb)
+{
+    qv_shrink(&bb->marks, 1);
+}
+
+static inline void bb_reset_mark(bb_t *bb)
+{
+    bb_pop_mark(bb);
+    bb_push_mark(bb);
+}
+
+#endif
+
 #define e_trace_be_bb_tail(...)  e_trace_be_bb(__VA_ARGS__)
 
 /* }}} */
@@ -377,12 +420,15 @@ char *t_print_be_bb(const bb_t *bb, size_t *len)
 char *t_print_bb(const bb_t *bb, size_t *len)
     __leaf;
 
+/* XXX Inverse function for t_print_be_bb(). Only for tests. */
+int z_set_be_bb(bb_t *bb, const char *bits, sb_t *err);
 
 #ifndef NDEBUG
 #   define e_trace_be_bb(lvl, bb, fmt, ...)  \
 {                                                                      \
     bit_stream_t __bs = bs_init_bb(bb);                                \
                                                                        \
+    __bs_skip(&__bs, *tab_last(&bb->marks));                           \
     e_trace_be_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                     \
 }
 
@@ -390,6 +436,7 @@ char *t_print_bb(const bb_t *bb, size_t *len)
 {                                                                      \
     bit_stream_t __bs = bs_init_bb(bb);                                \
                                                                        \
+    __bs_skip(&__bs, *tab_last(&bb->marks));                           \
     e_trace_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                        \
 }
 #else

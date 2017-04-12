@@ -244,40 +244,63 @@ enum asn1_cstd_type {
 
 /* Special field information {{{ */
 
+typedef union asn1_int_t {
+    int64_t i;
+    uint64_t u;
+} asn1_int_t;
+
 /* XXX we use special values (INT64_MIN, INT64_MAX) because PER support far
  *     more than 64 bits integers
  */
 typedef struct asn1_int_info_t {
-    int64_t       min; /* XXX INT64_MIN if minus infinity */
-    int64_t       max; /* XXX INT64_MAX if infinity */
+    asn1_int_t    min;
+    asn1_int_t    max;
 
     /* Pre-processed information */
-    bool          constrained;   /* XXX means fully constrained          */
     uint16_t      max_blen;      /* XXX needed only if fully constrained */
     uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16    */
-    size_t        d_max;         /* XXX needed only if fully constrained */
+    uint64_t      d_max;         /* XXX needed only if fully constrained */
 
     /* Extensions */
-    bool          extended;
-    int64_t       ext_min; /* XXX INT64_MIN if minus infinity */
-    int64_t       ext_max; /* XXX INT64_MAX if infinity */
+    asn1_int_t    ext_min;
+    asn1_int_t    ext_max;
+
+    bool          has_min : 1;
+    bool          has_max : 1;
+    bool          extended : 1;
+    bool          has_ext_min : 1;
+    bool          has_ext_max : 1;
 } asn1_int_info_t;
 
-static inline void
-asn1_int_info_update(asn1_int_info_t *info)
+static inline void asn1_int_info_set_min(asn1_int_info_t *info, int64_t min)
+{
+    info->has_min = true;
+    info->min.i = min;
+}
+
+static inline void asn1_int_info_set_max(asn1_int_info_t *info, int64_t max)
+{
+    info->has_max = true;
+    info->max.i = max;
+}
+
+static inline void asn1_int_info_update(asn1_int_info_t *info, bool is_signed)
 {
     if (!info)
         return;
 
-    if (info->min == INT64_MIN || info->max == INT64_MAX) {
-        info->constrained = false;
-
+    if (!info->has_min || !info->has_max) {
         return;
     }
 
-    info->constrained = true;
+    if (is_signed) {
+        assert (info->min.i <= info->max.i);
+        info->d_max = info->max.i - info->min.i;
+    } else {
+        assert (info->min.u <= info->max.u);
+        info->d_max = info->max.u - info->min.u;
+    }
 
-    info->d_max = info->max - info->min;
     info->max_blen = u64_blen(info->d_max);
 
     if (info->max_blen > 16) {
@@ -285,16 +308,23 @@ asn1_int_info_update(asn1_int_info_t *info)
     }
 }
 
-static inline asn1_int_info_t *asn1_int_info_init(asn1_int_info_t *info)
+
+GENERIC_INIT(asn1_int_info_t, asn1_int_info);
+
+static inline bool asn1_field_type_is_signed_int(enum obj_type type)
 {
-    p_clear(info, 1);
+    return type == ASN1_OBJ_TYPE(int8_t) ||
+           type == ASN1_OBJ_TYPE(int16_t) ||
+           type == ASN1_OBJ_TYPE(int32_t) ||
+           type == ASN1_OBJ_TYPE(int64_t);
+}
 
-    info->min     = INT64_MIN;
-    info->max     = INT64_MAX;
-    info->ext_min = INT64_MIN;
-    info->ext_max = INT64_MAX;
-
-    return info;
+static inline bool asn1_field_type_is_uint(enum obj_type type)
+{
+    return type == ASN1_OBJ_TYPE(uint8_t) ||
+           type == ASN1_OBJ_TYPE(uint16_t) ||
+           type == ASN1_OBJ_TYPE(uint32_t) ||
+           type == ASN1_OBJ_TYPE(uint64_t);
 }
 
 typedef struct asn1_cnt_info_t {
@@ -316,21 +346,39 @@ static inline asn1_cnt_info_t *asn1_cnt_info_init(asn1_cnt_info_t *info)
 }
 
 typedef struct asn1_enum_info_t {
-    qv_t(u32)     values;  /* XXX Enumeration values in canonical order */
-    size_t        blen;
+    /* XXX Enumeration values in canonical order (for both root values and
+     * extended values). */
+    qv_t(i32)     values;
+    qv_t(i32)     ext_values;
 
-    bool          extended;
+    /* Value to set when decoding an unknown extended value. */
+    opt_i32_t ext_defval;
+
+    asn1_int_info_t constraints;
+
+    bool extended;
 } asn1_enum_info_t;
 
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
 {
     p_clear(e, 1);
     qv_init(&e->values);
+    asn1_int_info_init(&e->constraints);
 
     return e;
 }
 
 GENERIC_NEW(asn1_enum_info_t, asn1_enum_info);
+
+static inline void asn1_enum_info_wipe(asn1_enum_info_t *info)
+{
+    qv_wipe(&info->values);
+    qv_wipe(&info->ext_values);
+}
+
+GENERIC_DELETE(asn1_enum_info_t, asn1_enum_info);
+
+void asn1_enum_info_reg_ext_defval(asn1_enum_info_t *info, int32_t defval);
 
 /* }}} */
 
@@ -365,7 +413,8 @@ typedef struct {
 
     /* Only for open type fields */
     /* XXX eg. type is <...>.&<...> */
-    bool                        is_open_type;
+    bool                        is_open_type : 1;
+    bool                        is_extension : 1;
     size_t                      open_type_buf_len;
 } asn1_field_t;
 
@@ -385,16 +434,16 @@ typedef struct asn1_desc_t {
     size_t                size;
     enum asn1_cstd_type   type;
 
-    /* TODO add SEQUENCE OF into constructed type enum */
-    bool                  is_seq_of;
-
     /* XXX CHOICE only */
     asn1_int_info_t       choice_info;
 
     /* PER information */
     qv_t(u16)             opt_fields;
-    bool                  extended;
     uint16_t              ext_pos;
+    bool                  is_extended : 1;
+
+    /* TODO add SEQUENCE OF into constructed type enum */
+    bool                  is_seq_of : 1;
 } asn1_desc_t;
 
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
@@ -431,9 +480,11 @@ GENERIC_DELETE(asn1_choice_desc_t, asn1_choice_desc);
 
 qvector_t(asn1_desc, asn1_desc_t *);
 qvector_t(asn1_choice_desc, asn1_choice_desc_t *);
+qvector_t(asn1_enum_info, asn1_enum_info_t *);
 struct asn1_descs_t {
     qv_t(asn1_desc) descs;
     qv_t(asn1_choice_desc) choice_descs;
+    qv_t(asn1_enum_info) enums;
 };
 extern __thread struct asn1_descs_t asn1_descs_g;
 
