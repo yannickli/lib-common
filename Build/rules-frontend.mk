@@ -147,10 +147,10 @@ $~$(3:ts=js): $3 $(var/wwwtool)tsc $4/node_modules/tsconfig.json
 	$(msg/COMPILE.ts) $3
 	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $4/node_modules --baseUrl $4/node_modules --outDir "$~$(dir $3)"
 
-$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
+$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
 	mkdir -p "$$(dir $$@)"
 	/bin/echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
+	NODE_PATH="$(var/wwwtool)/..:$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
 	$(MV) $$@+ $$@
 
 -include $~$3.d
@@ -325,10 +325,10 @@ $~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exo
 	| $(var/wwwtool)exorcist $$@.map > $$@
 
 # change browserify starting function by our own function
-	sed -i 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
+	sed $(if $(filter $(OS),darwin),-i '',-i) 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
 # build list of all files included in bundle (needed for r.js)
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
-	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
+	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/bundles/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/bundles/$(notdir $s).js))
 $2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.js
