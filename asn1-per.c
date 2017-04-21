@@ -930,7 +930,7 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
     /* XXX Handle the special case of unsigned 64-bits integers
      * in [ INT64_MAX + 1, UINT64_MAX ]. */
     if (olen == 9 && !is_signed) {
-        uint8_t o;
+        uint8_t o = 0;
         uint64_t u;
 
         if (__read_u8_aligned(bs, &o) < 0) {
