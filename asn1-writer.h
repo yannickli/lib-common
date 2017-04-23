@@ -362,7 +362,6 @@ typedef struct asn1_enum_info_t {
 static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
 {
     p_clear(e, 1);
-    qv_init(&e->values);
     asn1_int_info_init(&e->constraints);
 
     return e;
@@ -449,8 +448,6 @@ typedef struct asn1_desc_t {
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
 {
     p_clear(desc, 1);
-    qv_init(&desc->vec);
-    qv_init(&desc->opt_fields);
     asn1_int_info_init(&desc->choice_info);
 
     return desc;
