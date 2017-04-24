@@ -16,34 +16,113 @@
 
 #include "core.h"
 
-/* Numeric optimized versions */
+/* {{{ Numeric optimized versions */
+
+static inline
+size_t bisect8(uint8_t what, const uint8_t data[], size_t len, bool *found);
+static inline
+size_t bisect_i8(int8_t what, const int8_t data[], size_t len, bool *found);
+static inline
+bool contains8(uint8_t what, const uint8_t data[], size_t len);
+static inline
+bool contains_i8(int8_t what, const int8_t data[], size_t len);
+
+void   dsort8(uint8_t base[], size_t n);
+void   dsort_i8(int8_t base[], size_t n);
+size_t uniq8(uint8_t base[], size_t n);
+static inline size_t uniq_i8(int8_t base[], size_t n) {
+    return uniq8((uint8_t *)base, n);
+}
+
+static inline size_t
+bisect16(uint16_t what, const uint16_t data[], size_t len, bool *found);
+static inline size_t
+bisect_i16(int16_t what, const int16_t data[], size_t len, bool *found);
+static inline
+bool contains16(uint16_t what, const uint16_t data[], size_t len);
+static inline
+bool contains_i16(int16_t what, const int16_t data[], size_t len);
+
+void   dsort16(uint16_t base[], size_t n);
+void   dsort_i16(int16_t base[], size_t n);
+size_t uniq16(uint16_t base[], size_t n);
+static inline size_t uniq_i16(int16_t base[], size_t n) {
+    return uniq16((uint16_t *)base, n);
+}
+
+static inline size_t
+bisect32(uint32_t what, const uint32_t data[], size_t len, bool *found);
+static inline size_t
+bisect_i32(int32_t what, const int32_t data[], size_t len, bool *found);
+static inline
+bool contains32(uint32_t what, const uint32_t data[], size_t len);
+static inline
+bool contains_i32(int32_t what, const int32_t data[], size_t len);
+
+void   dsort32(uint32_t base[], size_t n);
+void   dsort_i32(int32_t base[], size_t n);
+size_t uniq32(uint32_t base[], size_t n);
+static inline size_t uniq_i32(int32_t base[], size_t n) {
+    return uniq32((uint32_t *)base, n);
+}
+
+static inline size_t
+bisect64(uint64_t what, const uint64_t data[], size_t len, bool *found);
+static inline size_t
+bisect_i64(int64_t what, const int64_t data[], size_t len, bool *found);
+static inline
+bool contains64(uint64_t what, const uint64_t data[], size_t len);
+static inline
+bool contains_i64(int64_t what, const int64_t data[], size_t len);
+
+void   dsort64(uint64_t base[], size_t n);
+void   dsort_i64(int64_t base[], size_t n);
+size_t uniq64(uint64_t base[], size_t n);
+static inline size_t uniq_i64(int64_t base[], size_t n) {
+    return uniq64((uint64_t *)base, n);
+}
+
 #define type_t   uint8_t
-#define dsort    dsort8
-#define uniq     uniq8
 #define bisect   bisect8
 #define contains contains8
 #include "sort-numeric.in.h"
 
+#define type_t   int8_t
+#define bisect   bisect_i8
+#define contains contains_i8
+#include "sort-numeric.in.h"
+
 #define type_t   uint16_t
-#define dsort    dsort16
-#define uniq     uniq16
 #define bisect   bisect16
 #define contains contains16
 #include "sort-numeric.in.h"
 
+#define type_t   int16_t
+#define bisect   bisect_i16
+#define contains contains_i16
+#include "sort-numeric.in.h"
+
 #define type_t   uint32_t
-#define dsort    dsort32
-#define uniq     uniq32
 #define bisect   bisect32
 #define contains contains32
 #include "sort-numeric.in.h"
 
+#define type_t   int32_t
+#define bisect   bisect_i32
+#define contains contains_i32
+#include "sort-numeric.in.h"
+
 #define type_t   uint64_t
-#define dsort    dsort64
-#define uniq     uniq64
 #define bisect   bisect64
 #define contains contains64
 #include "sort-numeric.in.h"
+
+#define type_t   int64_t
+#define bisect   bisect_i64
+#define contains contains_i64
+#include "sort-numeric.in.h"
+
+/* }}} */
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);
