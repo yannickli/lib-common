@@ -122,28 +122,22 @@ extension Logger : Wipeable {
 
     /// Emit a log and cleaning exit the program.
     public mutating func exit(_ items: Any..., separator: String = " ", file: String = #file, function: String = #function, line: Int = #line) -> Never {
-        return self.format(items: items, separator: separator).withCString {
-            return withVaList([$0]) {
-                __logger_vexit(&self, file, function, Int32(line), "%s", $0)
-            }
-        }
+        let str = AutoWipe(self.format(items: items, separator: separator).duplicated(on: StandardAllocator.malloc))
+
+        __logger_exits(&self, file, function, Int32(line), str.wrapped.s!)
     }
 
     /// Emit a log and terminate the execution of the program.
     public mutating func fatal(_ items: Any..., separator: String = " ", file: String = #file, function: String = #function, line: Int = #line) -> Never {
-        return self.format(items: items, separator: separator).withCString {
-            return withVaList([$0]) {
-                __logger_vfatal(&self, file, function, Int32(line), "%s", $0)
-            }
-        }
+        let str = AutoWipe(self.format(items: items, separator: separator).duplicated(on: StandardAllocator.malloc))
+
+        __logger_fatals(&self, file, function, Int32(line), str.wrapped.s!)
     }
 
     /// Emit a log a abort the execution of the program.
     public mutating func panic(_ items: Any..., separator: String = " ", file: String = #file, function: String = #function, line: Int = #line) -> Never {
-        return self.format(items: items, separator: separator).withCString {
-            return withVaList([$0]) {
-                __logger_vpanic(&self, file, function, Int32(line), "%s", $0)
-            }
-        }
+        let str = AutoWipe(self.format(items: items, separator: separator).duplicated(on: StandardAllocator.malloc))
+
+        __logger_panics(&self, file, function, Int32(line), str.wrapped.s!)
     }
 }

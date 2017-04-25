@@ -2135,7 +2135,6 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         qv_append(&st->static_fields, f);
         return f;
     }
-    qv_append(&st->fields, f);
 
     tab_for_each_entry(t, tags) {
         if (t == tag) {
@@ -2144,6 +2143,7 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
     }
     qv_append(tags, tag);
+    qv_append(&st->fields, f);
     return f;
 
   error:
