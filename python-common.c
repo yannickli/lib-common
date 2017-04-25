@@ -238,24 +238,17 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
 
 static void python_http_process_answer(python_query_t *q)
 {
-    int res = q->q.qinfo->code;
-    SB_8k(err);
-
     PyObject *cbk_res = NULL;
-
-    if (res != HTTP_CODE_OK) {
-        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
-                              http_code_to_str(res), true);
-        return;
-    }
+    SB_8k(err);
 
     PyEval_RestoreThread(python_state_g);
 
     cbk_res = PY_TRY_CATCH(PyObject_CallFunction(_G.cb_parse_answer,
-                                                 (char *)"z#O",
+                                                 (char *)"z#Oi",
                                                  q->q.payload.data,
                                                  q->q.payload.len,
-                                                 q->ctx->data),
+                                                 q->ctx->data,
+                                                 q->q.qinfo->code),
                            &err);
     if (!cbk_res) {
         lstr_t err_msg = LSTR_IMMED_V("parse callback raised an exception");
