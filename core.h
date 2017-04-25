@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -63,7 +64,6 @@
 #include <sys/user.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
-#include <termios.h>
 #undef ECHO
 #include <time.h>
 #include <unistd.h>
