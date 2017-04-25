@@ -147,6 +147,7 @@ static struct {
     int       active;         /* number of ev_t keeping the el_loop running */
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
+    int       loop_depth;     /* depth of el_loop_timeout() recursion       */
     uint64_t  lp_clk;         /* low precision monotonic clock              */
 
     dlist_t   idle;           /* ev_t to run when we're "idle"              */
@@ -1145,6 +1146,7 @@ void el_loop_timeout(int timeout)
 {
     uint64_t clk = get_clock(false);
 
+    _G.loop_depth++;
     el_timer_process(clk);
     if (!qhp_is_empty(timer, &_G.timers)) {
         uint64_t nxt = qhp_first(timer, &_G.timers)->timer.expiry;
@@ -1152,8 +1154,10 @@ void el_loop_timeout(int timeout)
             timeout = nxt - clk;
     }
     do_license_checks();
-    if (unlikely(_G.unloop))
+    if (unlikely(_G.unloop)) {
+        _G.loop_depth--;
         return;
+    }
     ev_list_process(&_G.before);
     el_idle_process(clk);
     if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle))
@@ -1161,7 +1165,13 @@ void el_loop_timeout(int timeout)
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
-    dlist_splice(&_G.evs_free, &_G.evs_gc);
+    if (_G.loop_depth <= 1) {
+        /* To be reentrant we can't reuse unregistered el_t until we came back
+         * to the main loop */
+        assert (_G.loop_depth == 1);
+        dlist_splice(&_G.evs_free, &_G.evs_gc);
+    }
+    _G.loop_depth--;
 }
 
 void el_bl_use(void)
