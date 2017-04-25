@@ -146,7 +146,7 @@ FASTCP := ln -f
 MV     := mv -f
 INSTALL := $(shell which ginstall 2> /dev/null)
 ifneq (,$(SWIFTC))
-	SWIFTC  := $(shell realpath $$(which swiftc))
+	SWIFTC  := $(realpath $(shell which swiftc))
 	SWIFTBASE := $(dir $(SWIFTC))/../lib/swift/linux
 endif
 ifeq ($(INSTALL),)
