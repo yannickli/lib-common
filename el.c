@@ -117,6 +117,7 @@ static struct {
     volatile uint32_t gotsigs;
     int      active;          /* number of ev_t keeping the el_loop running */
     int      unloop;          /* @see el_unloop()                           */
+    int      loop_depth;      /* depth of el_loop_timeout() recursion       */
     uint64_t lp_clk;          /* low precision monotonic clock              */
 
     dlist_t  before;          /* ev_t to run at the start of the loop       */
@@ -853,6 +854,7 @@ void el_loop_timeout(int timeout)
 {
     uint64_t clk;
 
+    _G.loop_depth++;
     ev_list_process(&_G.before);
     if (_G.timers.len) {
         clk = get_clock(false);
@@ -867,13 +869,21 @@ void el_loop_timeout(int timeout)
         timeout = 0;
     }
     do_license_checks();
-    if (unlikely(_G.unloop))
+    if (unlikely(_G.unloop)) {
+        _G.loop_depth--;
         return;
+    }
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
     ev_list_process(&_G.after);
-    dlist_splice(&_G.evs_free, &_G.evs_gc);
+    if (_G.loop_depth <= 1) {
+        /* To be reentrant we can't reuse unregistered el_t until we came back
+         * to the main loop */
+        assert (_G.loop_depth == 1);
+        dlist_splice(&_G.evs_free, &_G.evs_gc);
+    }
+    _G.loop_depth--;
 }
 
 void el_bl_use(void)
