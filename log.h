@@ -289,6 +289,16 @@ void __logger_panic(logger_t * nonnull logger, const char * nonnull file,
                     const char * nonnull func, int line,
                     const char * nonnull fmt, ...);
 
+__attr_noreturn__ __cold
+static inline void __logger_panics(logger_t * nonnull logger,
+                                   const char * nonnull file,
+                                   const char * nonnull func, int line,
+                                   const char * nullable msg)
+{
+    __logger_panic(logger, file, func, line, "%s", msg);
+}
+
+
 __attr_printf__(5, 0) __attr_noreturn__ __cold
 void __logger_vfatal(logger_t * nonnull logger, const char * nonnull file,
                      const char * nonnull func, int line,
@@ -298,6 +308,16 @@ void __logger_fatal(logger_t * nonnull logger, const char * nonnull file,
                     const char * nonnull func, int line,
                     const char * nonnull fmt, ...);
 
+__attr_noreturn__ __cold
+static inline void __logger_fatals(logger_t * nonnull logger,
+                                   const char * nonnull file,
+                                   const char * nonnull func, int line,
+                                   const char * nullable msg)
+{
+    __logger_fatal(logger, file, func, line, "%s", msg);
+}
+
+
 __attr_printf__(5, 0) __attr_noreturn__ __cold
 void __logger_vexit(logger_t * nonnull logger, const char * nonnull file,
                     const char * nonnull func, int line,
@@ -306,6 +326,15 @@ __attr_printf__(5, 6) __attr_noreturn__ __cold
 void __logger_exit(logger_t * nonnull logger, const char * nonnull file,
                    const char * nonnull func, int line,
                    const char * nonnull fmt, ...);
+
+__attr_noreturn__ __cold
+static inline void __logger_exits(logger_t * nonnull logger,
+                                  const char * nonnull file,
+                                  const char * nonnull func, int line,
+                                  const char * nullable msg)
+{
+    __logger_exit(logger, file, func, line, "%s", msg);
+}
 
 #define logger_panic(Logger, Fmt, ...)                                       \
     __logger_panic((Logger), __FILE__, __func__, __LINE__, (Fmt), ##__VA_ARGS__)
