@@ -747,6 +747,14 @@ class IopcTest(z.TestCase):
         self.run_iopc(f, False,
                       'attribute private does not apply to enum', 5)
 
+    def test_attrs_invalid_enum_alias(self):
+        f = 'attrs_invalid_enum_alias.iop'
+        self.run_iopc(f, False, 'enum field alias `ENUM0` is used twice', 5)
+        f = 'attrs_invalid_enum_alias2.iop'
+        self.run_iopc(f, False, 'enum field name `ENUM1` is used twice', 5)
+        f = 'attrs_invalid_enum_alias3.iop'
+        self.run_iopc(f, False, 'enum field name `ENUM0` is used twice', 5)
+
     def test_attrs_invalid_max_1(self):
         f = 'attrs_invalid_max_1.iop'
         self.run_iopc(f, False,

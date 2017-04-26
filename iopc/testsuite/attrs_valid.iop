@@ -9,6 +9,14 @@ enum MyEnumA {
     C = 0x2,
 };
 
+/* enum aliases */
+enum MyEnumB {
+    @alias(FOO)
+    @alias(BAR)
+    A = 0x0,
+    B = 0x1,
+};
+
 @ctype(type = my_union_a__t)
 union MyUnionA {
     byte    ub;

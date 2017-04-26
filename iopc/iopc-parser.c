@@ -357,9 +357,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                     }
                 } else
                 if (type == IOPC_ATTR_T_ENUM) {
-                    tab_for_each_entry(ef,
-                                      &f->enum_def->values)
-                    {
+                    tab_for_each_entry(ef, &f->enum_def->values) {
                         if (strequal(ef->name, arg->v.s.s)) {
                             found = true;
                             break;
@@ -2446,7 +2444,22 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
         }
 
         tab_for_each_entry(attr, &f->attrs) {
-            if (attr->desc->id != IOPC_ATTR_GENERIC) {
+            switch(attr->desc->id) {
+              case IOPC_ATTR_GENERIC:
+                break;
+              case IOPC_ATTR_ALIAS:
+                tab_for_each_entry(alias, &attr->args) {
+                    ename = asprintf("%*pM_%*pM", LSTR_FMT_ARG(ns),
+                                     LSTR_FMT_ARG(alias.v.s));
+                    if (qm_add(enums, &_G.enums, ename, f)) {
+                        p_delete(&ename);
+                        error_loc("enum field alias `%*pM` is used twice",
+                                  f->loc, LSTR_FMT_ARG(alias.v.s));
+                        goto error;
+                    }
+                }
+                break;
+              default:
                 error_loc("invalid attribute %s on enum field", f->loc,
                           attr->desc->name.s);
                 goto error;
