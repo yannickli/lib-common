@@ -145,7 +145,7 @@ $2: $~$(3:ts=js)
 $~$(3:ts=d.ts): $~$(3:ts=js)
 $~$(3:ts=js): $3 $(var/wwwtool)tsc $4/node_modules/tsconfig.json
 	$(msg/COMPILE.ts) $3
-	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $4/node_modules --baseUrl $4/node_modules --outDir "$~$(dir $3)"
+	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $4/node_modules --baseUrl $4/node_modules --outDir "$~$4/node_modules"
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
 	mkdir -p "$$(dir $$@)"
