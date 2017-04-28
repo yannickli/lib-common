@@ -955,9 +955,13 @@ static int py_el_check_all_registered(void)
 }
 
 #ifdef IS_PY3K
-# define PYINT_FROMLONG(x)  PyLong_FromLong(x)
+# define PYINT_FROMLONG(x)        PyLong_FromLong(x)
+# define PYSTR_FROMSTR(x)         PyUnicode_FromString(x)
+# define PYSTR_FROMSTRSIZE(x, l)  PyUnicode_FromStringAndSize(x, l)
 #else
-# define PYINT_FROMLONG(x)  PyInt_FromLong(x)
+# define PYINT_FROMLONG(x)        PyInt_FromLong(x)
+# define PYSTR_FROMSTR(x)         PyString_FromString(x)
+# define PYSTR_FROMSTRSIZE(x, l)  PyString_FromStringAndSize(x, l)
 #endif
 
 /* }}} */
@@ -1189,6 +1193,116 @@ static PyTypeObject PyElTimer_type = {
 };
 
 /* }}} */
+/* {{{ PyElFs */
+
+#define PY_ELFSWATCH_FIELDS                                                  \
+    PY_ELBASE_FIELDS;                                                        \
+    uint32_t flags
+
+typedef struct PyElFsWatch {
+    PyObject_HEAD
+    PY_ELFSWATCH_FIELDS;
+} PyElFsWatch;
+
+PyDoc_STRVAR(PyElFsWatch_flags_doc, "The events to watch.");
+
+static PyMemberDef PyElFsWatch_members[] = {
+    {
+        (char *)"flags",
+        T_OBJECT_EX,
+        offsetof(PyElFsWatch, flags),
+        READONLY,
+        PyElFsWatch_flags_doc
+    }, {
+        NULL,
+        0,
+        0,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElFsWatch_change_doc,
+             "Change the events to watch.\n"
+             "\n"
+             "Arguments:\n"
+             "    flags: the events to watch.");
+
+static PyObject *PyElFsWatch_change(PyElFsWatch *self, PyObject *args,
+                                    PyObject *kwargs)
+{
+    static const char *kwlist[] = {"flags", NULL};
+    uint32_t flags;
+
+    if (!self->el) {
+        PyErr_SetString(PyExc_TypeError, "fs watch has been unregistered");
+        return NULL;
+    }
+
+    THROW_NULL_UNLESS(PyArg_ParseTupleAndKeywords(args, kwargs, "I",
+                                                  (char **)kwlist, &flags));
+
+    if (el_fs_watch_change(self->el, flags) < 0) {
+        PyErr_SetString(PyExc_RuntimeError, "error while changing events of "
+                        "fs watch");
+        return NULL;
+    }
+    self->flags = flags;
+    Py_RETURN_NONE;
+}
+
+PyDoc_STRVAR(PyElFsWatch_get_path_doc,
+             "Get path of the watched directory/file.");
+
+static PyObject *PyElFsWatch_get_path(PyElFsWatch *self, PyObject *null)
+{
+    const char *path;
+
+    if (!self->el) {
+        PyErr_SetString(PyExc_TypeError, "fs watch has been unregistered");
+        return NULL;
+    }
+
+    path = el_fs_watch_get_path(self->el);
+    return PYSTR_FROMSTR(path);
+}
+
+static PyMethodDef PyElFsWatch_methods[] = {
+    {
+        "change",
+        (PyCFunction)PyElFsWatch_change,
+        METH_VARARGS | METH_KEYWORDS,
+        PyElFsWatch_change_doc
+    }, {
+        "get_path",
+        (PyCFunction)PyElFsWatch_get_path,
+        METH_NOARGS,
+        PyElFsWatch_get_path_doc
+    }, {
+        NULL,
+        NULL,
+        0,
+        NULL
+    }
+};
+
+PyDoc_STRVAR(PyElFsWatch_type_doc,
+    "File system watcher event loop object\n"
+    "\n"
+    "Contains a reference to the C fs watch event variable");
+
+static PyTypeObject PyElFsWatch_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "ElFsWatch",
+    .tp_basicsize = sizeof(PyElFsWatch),
+    .tp_base      = &PyElBase_type,
+    .tp_flags     = Py_TPFLAGS_DEFAULT,
+    .tp_doc       = PyElFsWatch_type_doc,
+    .tp_members   = PyElFsWatch_members,
+    .tp_methods   = PyElFsWatch_methods,
+};
+
+/* }}} */
 /* }}} */
 /* {{{ Method functions */
 
@@ -1356,6 +1470,96 @@ static PyObject *py_register_el_timer(PyObject *self, PyObject *args,
     return (PyObject *)py_el;
 }
 
+static void py_register_el_fs_watch_cb(el_t el, uint32_t mask,
+                                       uint32_t cookie, lstr_t name,
+                                       data_t priv)
+{
+    PyElFsWatch *py_el = priv.ptr;
+    PyObject *py_mask = PYINT_FROMLONG(mask);
+    PyObject *py_cookie = PYINT_FROMLONG(cookie);
+    PyObject *py_name = PYSTR_FROMSTRSIZE(name.s, name.len);
+    PyObject *res;
+
+    assert (el == py_el->el);
+    Py_INCREF(py_el);
+
+    res = PyObject_CallFunctionObjArgs(py_el->handler, (PyObject *)py_el,
+                                       py_mask, py_cookie, py_name, NULL);
+    if (res) {
+        Py_DECREF(res);
+    } else {
+        py_el_on_cb_exception(el);
+    }
+    Py_DECREF(py_el);
+    Py_DECREF(py_mask);
+    Py_DECREF(py_cookie);
+    Py_DECREF(py_name);
+}
+
+PyDoc_STRVAR(py_register_el_fs_watch_doc,
+    "Register a file-system watcher in the event loop.\n"
+    "\n"
+    "Monitor file-system events using inotify(7).\n"
+    "\n"
+    "Arguments:\n"
+    "    path:    the path to watch.\n"
+    "    flags:   the events to watch, see inotify(7).\n"
+    "    handler: callback to call when the event is triggered.\n"
+    "\n"
+    "Handler arguments:\n"
+    "    el:      the file-system watcher.\n"
+    "    mask:    mask describing the event.\n"
+    "    cookie:  unique cookie associating related events, see inotify(7).\n"
+    "    name:    name of the file in case of directory event.\n"
+    "\n"
+    "Returns the ElFsWatch corresponding to the event.\n"
+    "\n"
+    "Example:\n"
+    "def watch_cb(el, mask, cookie, name):\n"
+    "    LOGGER.info('mask: %d, cookie: %d, name: %s', mask, cookie, name)\n"
+    "\n"
+    "\n"
+    "class MyMinion(minion.Minion):\n"
+    "    def on_ready(self):\n"
+    "        flags = minion.IN_ONLYDIR | minion.IN_MOVED_TO | "
+    "minion.IN_CREATE\n"
+    "        module.register_el_fs_watch('/tmp/watched_dir', flags, watch_cb)"
+);
+
+static PyObject *py_register_el_fs_watch(PyObject *self, PyObject *args,
+                                         PyObject *kwargs)
+{
+    static const char *kwlist[] = {"path", "flags", "handler", NULL};
+    const char *path;
+    uint32_t flags;
+    PyObject *handler;
+    PyElFsWatch *py_el;
+
+    RETHROW_NP(py_el_check_all_registered());
+
+    THROW_NULL_UNLESS(PyArg_ParseTupleAndKeywords(args, kwargs, "sIO",
+                                                  (char **)kwlist, &path,
+                                                  &flags, &handler));
+
+    py_el = RETHROW_P(PyObject_New(PyElFsWatch, &PyElFsWatch_type));
+    Py_INCREF(handler);
+    py_el->handler = handler;
+    py_el->flags = flags;
+    py_el->el = el_fs_watch_register(path, flags, &py_register_el_fs_watch_cb,
+                                     py_el);
+    if (!py_el->el) {
+        Py_DECREF(py_el);
+        PyErr_SetString(PyExc_RuntimeError, "error while registering fs "
+                        "watch");
+        return NULL;
+    }
+
+    qh_add(ptr, &_G.py_els, py_el->el);
+
+    Py_INCREF(py_el);
+    return (PyObject *)py_el;
+}
+
 PyMethodDef python_el_methods_g[] = {
     {
         "register_el_fd",
@@ -1367,6 +1571,11 @@ PyMethodDef python_el_methods_g[] = {
         (PyCFunction)py_register_el_timer,
         METH_VARARGS | METH_KEYWORDS,
         py_register_el_timer_doc
+    }, {
+        "register_el_fs_watch",
+        (PyCFunction)py_register_el_fs_watch,
+        METH_VARARGS | METH_KEYWORDS,
+        py_register_el_fs_watch_doc
     }, {
         NULL,
         NULL,
@@ -1391,11 +1600,34 @@ int register_python_el_types(PyObject *module)
     RETHROW(register_el_py_type(module, &PyElBase_type));
     RETHROW(register_el_py_type(module, &PyElFd_type));
     RETHROW(register_el_py_type(module, &PyElTimer_type));
+    RETHROW(register_el_py_type(module, &PyElFsWatch_type));
 
-    PyModule_AddObject(module, "EL_TIMER_NOMISS",
-                       PYINT_FROMLONG(EL_TIMER_NOMISS));
-    PyModule_AddObject(module, "EL_TIMER_LOWRES",
-                       PYINT_FROMLONG(EL_TIMER_LOWRES));
+#define ADD_ENUM(_x)  PyModule_AddObject(module, #_x, PYINT_FROMLONG(_x))
+
+    ADD_ENUM(EL_TIMER_NOMISS);
+    ADD_ENUM(EL_TIMER_LOWRES);
+
+    ADD_ENUM(IN_ACCESS);
+    ADD_ENUM(IN_ATTRIB);
+    ADD_ENUM(IN_CLOSE_WRITE);
+    ADD_ENUM(IN_CLOSE_NOWRITE);
+    ADD_ENUM(IN_CREATE);
+    ADD_ENUM(IN_DELETE);
+    ADD_ENUM(IN_DELETE_SELF);
+    ADD_ENUM(IN_MODIFY);
+    ADD_ENUM(IN_MOVE_SELF);
+    ADD_ENUM(IN_MOVED_FROM);
+    ADD_ENUM(IN_MOVED_TO);
+    ADD_ENUM(IN_OPEN);
+    ADD_ENUM(IN_IGNORED);
+    ADD_ENUM(IN_ISDIR);
+    ADD_ENUM(IN_Q_OVERFLOW);
+    ADD_ENUM(IN_UNMOUNT);
+    ADD_ENUM(IN_ONLYDIR);
+    ADD_ENUM(IN_MOVE);
+    ADD_ENUM(IN_CLOSE);
+
+#undef ADD_ENUM
 
     _G.py_el_types_registered = true;
     return 0;
