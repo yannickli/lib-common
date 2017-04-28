@@ -617,6 +617,11 @@ class IopcTest(z.TestCase):
         self.run_iopc_pass(f, 3)
         self.run_gcc(f)
 
+    def test_attrs_valid_enum_aliases_headers(self):
+        f = 'attrs_valid.iop'
+        self.run_iopc_pass(f, 5)
+        self.run_gcc('enum_aliases')
+
     def test_attrs_valid_enum_aliases_json(self):
         f = 'attrs_valid.iop'
         self.run_iopc_pass(f, 5)
