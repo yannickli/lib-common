@@ -174,7 +174,7 @@ $~$3: $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
 
-$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js
+$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
 	mkdir -p "$$(dir $$@)"
 	/bin/echo -n "$~$3: " > $$@+
 	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
