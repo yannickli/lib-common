@@ -123,7 +123,8 @@ pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 syntastic:
 jshint:
-.PHONY: tags cscope jshint syntastic
+tslint:
+.PHONY: tags cscope jshint tslint syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -282,7 +283,12 @@ jshint: | __setup_buildsys_trampoline _npm_tools
 	$(msg/CHECK.js)
 	git ls-files -- '*.js' | xargs $(var/wwwtool)jshint
 
-www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
+tslint: | __setup_buildsys_trampoline _npm_tools
+	$(MAKEPARALLEL) -C $/ -f $!Makefile tslint
+	$(msg/CHECK.ts)
+	git ls-files -- '*.ts' | xargs -r $(var/wwwtool)tslint --project $/platform/www/modules/core/node_modules/tsconfig.json --type-check --fix
+
+www:: $(if $(NOCHECK)$(NOJSHINT),,jshint tslint)
 
 pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
