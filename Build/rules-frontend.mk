@@ -312,6 +312,7 @@ tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_
 
 BROWSERIFY_OPTIONS = -g browserify-shim \
                      -g [uglifyify --mangle --compress] \
+                     -g deamdify \
                      --debug
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
