@@ -147,10 +147,15 @@ endef
 # - $~$(3:ts=js): the javascript file for the typescript module
 define ext/expand/ts
 $2: $~$(3:ts=js)
+$~$3: $3
+	$(msg/COMPILE.json) $3
+	mkdir -p "$(dir $~$3)"
+	cp -f $$< $$@
+$~$4/node_modules/tsconfig.json: $~$3
+$~$(3:ts=js): $~$4/node_modules/tsconfig.json
+	touch $$@
+
 $~$(3:ts=d.ts): $~$(3:ts=js)
-$~$(3:ts=js): $3 $(var/wwwtool)tsc $4/node_modules/tsconfig.json
-	$(msg/COMPILE.ts) $3
-	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $4/node_modules --baseUrl $4/node_modules --outDir "$~$4/node_modules"
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
 	mkdir -p "$$(dir $$@)"
@@ -174,6 +179,7 @@ $~$3: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
+$~$4/node_modules/tsconfig.json: $~$3
 
 $~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
 	mkdir -p "$$(dir $$@)"
@@ -186,6 +192,11 @@ endef
 
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>
 define ext/rule/ts
+$~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc
+	$(msg/COMPILE.ts) $4
+	cp $$< $$@
+	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $~$4/node_modules --baseUrl $~$4/node_modules --outDir "$~$4/node_modules"
+
 $$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4))))
 $$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4))))
 endef
@@ -215,6 +226,7 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var json: any; export = json;" > $$@+
 	$(MV) $$@+ $$@
+$~$4/node_modules/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/json <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
@@ -236,7 +248,7 @@ endef
 # - $~$3.js: the HTML wrapped in JavaScript
 # - $~$3.d.ts: the declaration file for use with typescript
 define ext/expand/html
-$2: $~$3.js
+$2: $~$3.js $~$3.d.ts
 $~$3.js: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
@@ -249,6 +261,7 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var html: string; export = html;" > $$@+
 	$(MV) $$@+ $$@
+$~$4/node_modules/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/html <PHONY>,<TARGET>,<HTML>[],<MODULEPATH>
