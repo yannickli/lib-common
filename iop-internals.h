@@ -183,6 +183,16 @@ typedef struct iop_enum_attrs_t {
     const iop_enum_attr_t * nonnull attrs;
 } iop_enum_attrs_t;
 
+typedef struct iop_enum_alias_t {
+    int    pos;
+    lstr_t name;
+} iop_enum_alias_t;
+
+typedef struct iop_enum_aliases_t {
+    uint16_t len;
+    iop_enum_alias_t aliases[];
+} iop_enum_aliases_t;
+
 /*
  * .ranges helps finding tags into .fields.
  * ----------------------------------------
@@ -219,11 +229,15 @@ struct iop_enum_t {
      * TST_BIT(this->flags, IOP_ENUM_EXTENDED) first */
     const iop_enum_attrs_t       * nullable en_attrs;
     const iop_enum_value_attrs_t * nullable values_attrs;
+    /* XXX do not dereference the following member without checking
+     * TST_BIT(this->flags, IOP_ENUM_ALIASES) first */
+    const iop_enum_aliases_t     * nullable aliases;
 };
 
 enum iop_enum_flags_t {
     IOP_ENUM_EXTENDED,      /**< to access en_attrs and values_attrs */
     IOP_ENUM_STRICT,        /**< strict packing/unpacking of enum values */
+    IOP_ENUM_ALIASES,       /**< aliases of enum values */
 };
 
 /*}}}*/

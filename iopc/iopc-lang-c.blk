@@ -2655,6 +2655,7 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     bool has_attrs;
     qv_t(i32) t;
     bool values_have_attributes = false;
+    uint16_t alias_count = 0;
 
     qv_sort(iopc_enum_field)(&en->values,
                              ^int (iopc_enum_field_t * const *f1,
@@ -2698,6 +2699,35 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             SET_BIT(&flags, IOP_ENUM_STRICT);
             break;
         }
+    }
+
+    for (int i = 0; i < en->values.len; i++) {
+        t_scope;
+        iopc_enum_field_t *f = en->values.tab[i];
+        lstr_t fname = t_lstr_dups(f->name, -1);
+
+        lstr_ascii_tolower(&fname);
+        tab_for_each_entry(attr, &f->attrs) {
+            if (attr->desc->id == IOPC_ATTR_ALIAS) {
+                SET_BIT(&flags, IOP_ENUM_ALIASES);
+                tab_for_each_entry(alias, &attr->args) {
+                    if (!alias_count) {
+                        sb_addf(buf, "static const iop_enum_aliases_t "
+                                "%s__aliases = {\n", tbase);
+                        sb_adds(buf, "    .aliases = {\n");
+                    }
+                    sb_addf(buf, "        { "
+                            ".pos = %d, .name = LSTR_IMMED(\"%*pM\") },\n",
+                            i, LSTR_FMT_ARG(alias.v.s));
+                    alias_count++;
+                }
+            }
+        }
+    }
+    if (alias_count > 0) {
+        sb_adds(buf, "    },\n");
+        sb_addf(buf, "    .len = %d\n", alias_count);
+        sb_adds(buf, "};\n");
     }
 
     tab_for_each_entry(f, &en->values) {
@@ -2765,6 +2795,9 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     }
     if (values_have_attributes) {
         sb_addf(buf, "    .values_attrs = %s__e_desc_values_attrs,\n", tbase);
+    }
+    if (alias_count > 0) {
+        sb_addf(buf, "    .aliases      = &%s__aliases,\n", tbase);
     }
     sb_addf(buf,
             "};\n"

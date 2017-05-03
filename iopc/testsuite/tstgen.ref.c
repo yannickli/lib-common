@@ -23,6 +23,12 @@ static const lstr_t tstgen__my_enum_a__names[] = {
     LSTR_IMMED("VAL_B"),
     LSTR_IMMED("VAL_C"),
 };
+static const iop_enum_aliases_t tstgen__my_enum_a__aliases = {
+    .aliases = {
+        { .pos = 2, .name = LSTR_IMMED("ALIAS_C") },
+    },
+    .len = 1
+};
 static const iop_help_t tstgen__my_enum_a__val_a__v_help = {
     .brief = LSTR_IMMED("Test doc + generic attributes on enum value"),
 };
@@ -84,9 +90,10 @@ iop_enum_t const tstgen__my_enum_a__e = {
     .ranges       = iop__ranges__1,
     .ranges_len   = countof(iop__ranges__1) / 2,
     .enum_len     = 3,
-    .flags        = 1,
+    .flags        = 5,
     .en_attrs     = &tstgen__my_enum_a__e_desc_attrs,
     .values_attrs = tstgen__my_enum_a__e_desc_values_attrs,
+    .aliases      = &tstgen__my_enum_a__aliases,
 };
 iop_enum_t const * const tstgen__my_enum_a__ep = &tstgen__my_enum_a__e;
 
