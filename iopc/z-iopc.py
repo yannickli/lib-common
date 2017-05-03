@@ -14,6 +14,7 @@
 ##########################################################################
 
 import os, os.path
+import json
 
 SELF_PATH = os.path.dirname(__file__)
 TEST_PATH = os.path.join(SELF_PATH, 'testsuite')
@@ -111,6 +112,11 @@ class IopcTest(z.TestCase):
         self.run_iopc(iop, False, 'use -3 param', 1, lang, class_id_range)
         self.run_iopc(iop, False, 'use -3 param', 2, lang, class_id_range)
         self.run_iopc(iop, expect_pass, errors, 3, lang, class_id_range)
+
+    @staticmethod
+    def get_iop_json(iop):
+        with open(os.path.join(TEST_PATH, iop+'.json')) as f:
+            return json.load(f)
 
     def run_gcc(self, iop, expect_pass=True):
         iop_c = iop + '.c'
@@ -610,6 +616,15 @@ class IopcTest(z.TestCase):
         f = 'attrs_valid.iop'
         self.run_iopc_pass(f, 3)
         self.run_gcc(f)
+
+    def test_attrs_valid_enum_aliases_json(self):
+        f = 'attrs_valid.iop'
+        self.run_iopc_pass(f, 5)
+        iop_json = self.get_iop_json(f)
+        for obj in iop_json['objects']:
+            if obj['fullName'] == 'attrs_valid.MyEnumB':
+                self.assertEqual(obj['values']['A'],
+                                 {'value': 0, 'aliases': ['FOO', 'BAR']})
 
     def test_attrs_valid_v5(self):
         f = 'attrs_valid_v5'

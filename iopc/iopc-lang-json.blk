@@ -362,6 +362,18 @@ iopc_enum_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         if (f->comments.len) {
             help_values = true;
         }
+
+        tab_for_each_entry(attr, &f->attrs) {
+            if (attr->desc->id == IOPC_ATTR_ALIAS) {
+                LINE_START_ARRAY(wbuf, "aliases");
+                tab_for_each_entry(alias, &attr->args) {
+                    write_string(wbuf, alias.v.s.s);
+                    sep(wbuf);
+                }
+                LINE_END_ARRAY(wbuf);
+            }
+        }
+
         LINE_END_OBJ(wbuf);
     }
     LINE_END_OBJ(wbuf);
