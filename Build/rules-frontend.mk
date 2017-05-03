@@ -22,6 +22,7 @@ $(var/wwwtool)tsc: _npm_tools
 $(var/wwwtool)r.js: _npm_tools
 $(var/wwwtool)browserify: _npm_tools
 $(var/wwwtool)exorcist: _npm_tools
+$(var/wwwtool)sorcery: _npm_tools
 
 $(var/wwwtool)npm:
 	$(msg/npm) npm
@@ -336,10 +337,18 @@ $~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exo
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $2/htdocs/javascript/bundles/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/bundles/$(notdir $s).js))
+$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)sorcery
 $2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.js
 	mkdir -p $2/htdocs/javascript/bundles
 	$(FASTCP) $$< $$@
-	([ -f $$<.map ] && $(FASTCP) $$<.map $$@.map) || true
+	if [ -f $$<.map ]; then \
+		$(FASTCP) $$<.map $/$3.js.map; \
+		$(FASTCP) $$< $/$3.js; \
+		$(var/wwwtool)sorcery -i $3.js; \
+		rm $/$3.js; \
+		rm $$@.map; \
+		mv $/$3.js.map $$@.map; \
+	fi
 endef
 
 # rule/wwwmodule <MODULE>
