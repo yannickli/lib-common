@@ -3287,12 +3287,23 @@ static int iop_enum_pos_from_val(const iop_enum_t *e, int val)
 
 static int iop_enum_pos_from_str(const iop_enum_t *e, const char *s, int len)
 {
+    lstr_t ename;
+
     if (len < 0) {
-        len = strlen(s);
+        ename = LSTR(s);
+    } else {
+        ename = LSTR_INIT_V(s, len);
     }
     for (int i = 0; i < e->enum_len; i++) {
-        if (len == e->names[i].len && !strncasecmp(e->names[i].s, s, len)) {
+        if (lstr_ascii_iequal(e->names[i], ename)) {
             return i;
+        }
+    }
+    if (TST_BIT(&e->flags, IOP_ENUM_ALIASES) && e->aliases) {
+        for (int i = 0; i < e->aliases->len; i++) {
+            if (lstr_ascii_iequal(e->aliases->aliases[i].name, ename)) {
+                return e->aliases->aliases[i].pos;
+            }
         }
     }
     return -1;

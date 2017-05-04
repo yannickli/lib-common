@@ -5684,6 +5684,20 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_LSTREQUAL(en->name, LSTR("MyEnumA"));
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_enum_alias, "test iop enums aliases") { /* {{{ */
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "A_ALIAS", -1, -1),
+                    iop_enum_from_str(tstiop__my_enum_a, "A", -1, -1));
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "C_ALIAS_1", -1, -1),
+                    iop_enum_from_str(tstiop__my_enum_a, "C", -1, -1));
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "C_ALIAS_2", -1, -1),
+                    iop_enum_from_str(tstiop__my_enum_a, "C", -1, -1));
+        Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "D_ALIAS", -1, -1),
+                    iop_enum_from_str(tstiop__my_enum_a, "D", -1, -1));
+        Z_ASSERT_EQ(MY_ENUM_A_A_ALIAS, MY_ENUM_A_A);
+        Z_ASSERT_EQ(MY_ENUM_A_C_ALIAS_1, MY_ENUM_A_C);
+        Z_ASSERT_EQ(MY_ENUM_A_C_ALIAS_2, MY_ENUM_A_C);
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(iop_gen_attrs, "test iop generic attributes") { /* {{{ */
         iop_value_t value;
         iop_type_t type;
