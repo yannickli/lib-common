@@ -51,10 +51,17 @@ static void iopc_dump_string_literal(sb_t *buf, const char *str)
 
     while ((c = utf8_ngetc_at(str, len, &pos)) >= 0) {
         if (c < 128) {
-            if (c == '\\' || c == '"') {
+            switch (c) {
+              case '\n':
+                sb_adds(buf, "\\n");
+                break;
+              case '\\':
+              case '"':
                 sb_addc(buf, '\\');
+              /* fallthrough */
+              default:
+                sb_addc(buf, c);
             }
-            sb_addc(buf, c);
         } else {
             sb_addf(buf, "\\u{%x}", c);
         }
