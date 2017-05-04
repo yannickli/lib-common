@@ -24,18 +24,14 @@ $(var/wwwtool)browserify: _npm_tools
 $(var/wwwtool)exorcist: _npm_tools
 $(var/wwwtool)sorcery: _npm_tools
 
-$(var/wwwtool)npm:
-	$(msg/npm) npm
-	cd $/ && npm install npm --silent > /dev/null
-
-$/$~package-installed.json: $/package.json $(var/wwwtool)npm
+$/$~package-installed.json: $/package.json
 	$(msg/npm) ""
-	cd $(dir $<) && $(var/wwwtool)npm install --silent > /dev/null
+	cd $(dir $<) && npm install --silent > /dev/null
 	cp $< $@
 
-$/$~%package-installed.json: $/%package.json $(var/wwwtool)npm
+$/$~%package-installed.json: $/%package.json
 	$(msg/npm) "$(patsubst $/%/package.json,%,$<)"
-	cd $(dir $<) && $(var/wwwtool)npm install --silent > /dev/null
+	cd $(dir $<) && npm install --silent > /dev/null
 	cp $< $@
 
 # }}}
