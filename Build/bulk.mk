@@ -288,7 +288,7 @@ tslint: | __setup_buildsys_trampoline _npm_tools
 	$(msg/CHECK.ts)
 	git ls-files -- '*.ts' | xargs -r $(var/wwwtool)tslint --project $/platform/www/modules/core/node_modules/tsconfig.json --type-check --fix
 
-www:: $(if $(NOCHECK)$(NOJSHINT),,jshint tslint)
+www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
 
 pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
