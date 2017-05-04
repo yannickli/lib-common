@@ -7,7 +7,7 @@ case "$cc" in
         swift_version="$("$cc" --version | grep 'Swift version' | cut -d ' ' -f 3)"
         cc="clang"
         case "$swift_version" in
-            3.0.*)
+            3.0.* | 3.1.*)
                 clang_version="3.7.0"
                 ;;
             *)
