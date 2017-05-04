@@ -28,10 +28,15 @@ $(var/wwwtool)npm:
 	$(msg/npm) npm
 	cd $/ && npm install npm --silent > /dev/null
 
-$/node_modules/build.lock: $/package.json $(var/wwwtool)npm
+$/$~package-installed.json: $/package.json $(var/wwwtool)npm
 	$(msg/npm) ""
 	cd $(dir $<) && $(var/wwwtool)npm install --silent > /dev/null
-	touch $@
+	cp $< $@
+
+$/$~%package-installed.json: $/%package.json $(var/wwwtool)npm
+	$(msg/npm) "$(patsubst $/%/package.json,%,$<)"
+	cd $(dir $<) && $(var/wwwtool)npm install --silent > /dev/null
+	cp $< $@
 
 # }}}
 
