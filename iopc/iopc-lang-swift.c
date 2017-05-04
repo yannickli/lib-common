@@ -661,7 +661,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     /* Generate field list */
     tab_for_each_entry(field, &st->fields) {
         if (!iopc_struct_is_field_ignored(field)) {
-            sb_addf(buf, "%s    public var %s : ", indent, field->name);
+            sb_addf(buf, "%s    public var `%s` : ", indent, field->name);
             iopc_dump_field_type(buf, field);
             sb_addc(buf, '\n');
         }
@@ -689,7 +689,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                         indent);
             }
             first = false;
-            sb_addf(buf, "%s: ", field->name);
+            sb_addf(buf, "`%s`: ", field->name);
             iopc_dump_field_type(buf, field);
             iopc_dump_field_defval(buf, field);
         }
@@ -697,7 +697,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     sb_adds(buf, ") {\n");
     tab_for_each_entry(field, &st->fields) {
         if (!iopc_struct_is_field_ignored(field)) {
-            sb_addf(buf, "%s        self.%s = %s\n", indent, field->name,
+            sb_addf(buf, "%s        self.%s = `%s`\n", indent, field->name,
                     field->name);
         }
     }
@@ -716,7 +716,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                                 indent);
                     }
                     first = false;
-                    sb_addf(buf, "%s: %s", field->name, field->name);
+                    sb_addf(buf, "%s: `%s`", field->name, field->name);
                 }
             }
         }
@@ -835,7 +835,7 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
       case IOP_T_I8...IOP_T_DOUBLE:
         sb_adds(buf, "                data.bindMemory(to: ");
         iopc_dump_field_basetype(buf, field);
-        sb_addf(buf, ".self, capacity: 1).pointee = %s\n", field->name);
+        sb_addf(buf, ".self, capacity: 1).pointee = `%s`\n", field->name);
         break;
 
       case IOP_T_DATA:
@@ -884,7 +884,7 @@ static void iopc_dump_union(sb_t *buf,
 
     /* Generate case list */
     tab_for_each_entry(field, &st->fields) {
-        sb_addf(buf, "        case %s", field->name);
+        sb_addf(buf, "        case `%s`", field->name);
         if (field->kind != IOP_T_VOID) {
             sb_addc(buf, '(');
             iopc_dump_field_type(buf, field);
@@ -985,7 +985,7 @@ static void iopc_dump_rpc_desc(sb_t *buf, const iopc_pkg_t *pkg,
             "                public static let descriptor = %s__if.funs.advanced(by: %d)\n"
             "                public static let tag = %d\n"
             "            }\n"
-            "            public var %s : (Int, %c%s.Type) {\n"
+            "            public var `%s` : (Int, %c%s.Type) {\n"
             "                return ((self._tag << 16) + %c%s.tag, %c%s.self)\n"
             "            }\n\n",
             pkg_name, pos, rpc->tag, rpc->name, toupper(*rpc->name),
@@ -1012,7 +1012,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                 rpc->name, rpc_desc, rpc_desc, rpc_desc);
         if (st->type == STRUCT_TYPE_UNION) {
             tab_for_each_entry(field, &st->fields) {
-                sb_addf(buf, "            public func %s(%s: ",
+                sb_addf(buf, "            public func `%s`(`%s`: ",
                         rpc->name, field->name);
                 iopc_dump_field_type(buf, field);
 
@@ -1043,7 +1043,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                 qv_append(&parents, (iopc_struct_t *)parent);
             }
 
-            sb_addf(buf, "                public func %s(", rpc->name);
+            sb_addf(buf, "                public func `%s`(", rpc->name);
             tab_for_each_pos_rev(p, &parents) {
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
                     if (!first) {
@@ -1051,7 +1051,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                         sb_addnc(buf, 25 + strlen(rpc->name), ' ');
                     }
                     first = false;
-                    sb_addf(buf, "%s: ", field->name);
+                    sb_addf(buf, "`%s`: ", field->name);
                     iopc_dump_field_type(buf, field);
                     iopc_dump_field_defval(buf, field);
                 }
@@ -1068,7 +1068,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                             sb_addnc(buf, 39 + 2 * strlen(rpc->name), ' ');
                         }
                         first = false;
-                        sb_addf(buf, "%s: %s", field->name, field->name);
+                        sb_addf(buf, "%s: `%s`", field->name, field->name);
                     }
                 }
             }
@@ -1078,7 +1078,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
         }
     } else {
         sb_addf(buf,
-                "                public func %s() -> %s.ReturnType {\n"
+                "                public func `%s`() -> %s.ReturnType {\n"
                 "                    return self._query(rpc: %s.self, args: libcommon.IopVoid())\n"
                 "                }\n\n",
                 rpc->name, rpc_desc, rpc_desc);
@@ -1157,13 +1157,13 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
     }
 
     tab_for_each_entry(field, &mod->fields) {
-        sb_addf(buf, "    var %s : ", field->name);
+        sb_addf(buf, "    var `%s` : ", field->name);
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
         sb_addf(buf, "interfaces.%s.Impl { get }\n", field->type_name);
 
-        sb_addf(buf, "    static var %s : ", field->name);
+        sb_addf(buf, "    static var `%s` : ", field->name);
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
@@ -1173,7 +1173,7 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
 
     sb_addf(buf, "public extension %s__modules__%s {\n", pkg_name, mod->name);
     tab_for_each_entry(field, &mod->fields) {
-        sb_addf(buf, "    public var %s : ", field->name);
+        sb_addf(buf, "    public var `%s` : ", field->name);
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
@@ -1186,7 +1186,7 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
         sb_addf(buf, "interfaces.%s.Impl(channel: self.channel, tag: %d)\n"
                 "    }\n", field->type_name, field->tag);
 
-        sb_addf(buf, "    public static var %s : ", field->name);
+        sb_addf(buf, "    public static var `%s` : ", field->name);
         tab_for_each_entry(tok, &field->type_path->bits) {
             sb_addf(buf, "%s.", tok);
         }
