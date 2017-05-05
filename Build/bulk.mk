@@ -120,7 +120,7 @@ fast-selenium:: all
 	pylint $<
 pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 
-tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
+tags: $(filter-out %.blk.c %.blkk.cc %.min.js,$(var/generated))
 syntastic:
 jshint:
 .PHONY: tags cscope jshint syntastic
