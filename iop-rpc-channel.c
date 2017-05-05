@@ -917,8 +917,9 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
     pstream_t ps = ps_init(data, dlen);
     bool do_copy = false;
 
-#define QUERY_FMT      "query %04x:%04x, type %s: "
-#define QUERY_FMT_ARG  (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s
+#define QUERY_FMT  "query %04x:%04x, type %s: "
+#define QUERY_FMT_ARG  \
+    (cmd >> 16) & 0x7fff, cmd & 0x7fff, (st ? st->fullname.s : "<nil>")
 
     if (ic_is_local(ic) && !unpacked_msg) {
         /* IOP payload comes from a volatile ic_msg_t that will be destroy
@@ -960,8 +961,8 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
     }
 
     if (value) {
-        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value
-                                       , do_copy) < 0))
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value,
+                                       do_copy) < 0))
         {
             const char *err = iop_get_err();
 
