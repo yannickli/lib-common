@@ -113,8 +113,14 @@ extension Logger : Wipeable {
     public mutating func trace(level: Int32, _ items: Any..., separator: String = " ", file: String = #file, function: String = #function, line: Int = #line) {
         let logLevel = level + Int32(LOG_LEVEL_TRACE.rawValue)
 
-        if !logger_has_level(&self, logLevel) && __logger_is_traced(&self, level, file, function, self.full_name.s) <= 0 {
+        if !logger_has_level(&self, logLevel) {
+#if NDEBUG
             return
+#else
+            if __logger_is_traced(&self, level, file, function, self.full_name.s) <= 0 {
+                return
+            }
+#endif
         }
 
         self.log(level: logLevel, items: items, separator: separator, file: file, function: function, line: line)
