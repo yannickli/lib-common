@@ -335,12 +335,12 @@ static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
         } else {
             sb_addf(buf,
                     "\n"
-                    "%s        var %s = %s\n"
+                    "%s        var %s_var = %s\n"
                     "%s        %s try ",
                     indent, field->name, source,
                     indent, action);
             iopc_dump_field_basetype(buf, field);
-            sb_addf(buf, "(&%s)\n%s        ",
+            sb_addf(buf, "(&%s_var)\n%s        ",
                     field->name, indent);
         }
 
@@ -391,11 +391,12 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
 
           case IOP_T_UNION: case IOP_T_STRUCT:
             sb_addf(buf,
-                    "%s        if let %s = data.%*pM {\n"
+                    "%s        if let %s_val = data.%*pM {\n"
                     "%s            ",
                     indent, field->name, LSTR_FMT_ARG(c_field_name), indent);
             iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent),
-                                            field, field->name,
+                                            field,
+                                            t_fmt("%s_val", field->name),
                                             t_fmt("self.%s =", field->name));
             sb_addf(buf, "\n%s         }\n", indent);
             break;
@@ -499,8 +500,8 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
 
           case IOP_T_DATA:
             sb_addf(buf,
-                    "%s        if let %s = self.%s {\n"
-                    "%s            data.pointee.%*pM = libcommon.LString(%s.duplicated(on: allocator), count: Swift.Int32(%s.count), flags: 0)\n"
+                    "%s        if let %s_val = self.%s {\n"
+                    "%s            data.pointee.%*pM = libcommon.LString(%s_val.duplicated(on: allocator), count: Swift.Int32(%s_val.count), flags: 0)\n"
                     "%s        }\n",
                     indent, field->name, field->name, indent,
                     LSTR_FMT_ARG(c_field_name), field->name, field->name,
@@ -509,8 +510,8 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
 
           case IOP_T_STRING: case IOP_T_XML:
             sb_addf(buf,
-                    "%s        if let %s = self.%s {\n"
-                    "%s            data.pointee.%*pM = %s.duplicated(on: allocator)\n"
+                    "%s        if let %s_val = self.%s {\n"
+                    "%s            data.pointee.%*pM = %s_val.duplicated(on: allocator)\n"
                     "%s        }\n",
                     indent, field->name, field->name, indent,
                     LSTR_FMT_ARG(c_field_name), field->name, indent);
@@ -523,8 +524,8 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
             field_pkg_name = t_pp_under(field->type_pkg->name);
             field_name = t_camelcase_to_c(LSTR(field->type_name));
             sb_addf(buf,
-                    "%s        if let %s = self.%s {\n"
-                    "%s            data.pointee.%*pM = %s.duplicated(on: allocator)"
+                    "%s        if let %s_val = self.%s {\n"
+                    "%s            data.pointee.%*pM = %s_val.duplicated(on: allocator)"
                     ".bindMemory(to: %s__%*pM__t.self, capacity: 1)\n"
                     "%s        }\n",
                     indent, field->name, field->name, indent,
@@ -831,7 +832,7 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
 
     sb_addf(buf, "              case .%s", field->name);
     if (field->kind != IOP_T_VOID) {
-        sb_addf(buf, "(let %s)", field->name);
+        sb_addf(buf, "(let %s_val)", field->name);
     }
     sb_addf(buf,
             ":\n"
@@ -842,29 +843,29 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
       case IOP_T_I8...IOP_T_DOUBLE:
         sb_adds(buf, "                data.bindMemory(to: ");
         iopc_dump_field_basetype(buf, field);
-        sb_addf(buf, ".self, capacity: 1).pointee = `%s`\n", field->name);
+        sb_addf(buf, ".self, capacity: 1).pointee = `%s_val`\n", field->name);
         break;
 
       case IOP_T_DATA:
         sb_addf(buf,
                 "                data.bindMemory(to: LString.self, capacity: 1).pointee"
-                " = LString(%s.duplicated(on: allocator), count: Swift.Int32(%s.count), flags: 0)\n",
+                " = LString(%s_val.duplicated(on: allocator), count: Swift.Int32(%s_val.count), flags: 0)\n",
                 field->name, field->name);
         break;
 
       case IOP_T_STRING: case IOP_T_XML:
         sb_addf(buf,
                 "                data.bindMemory(to: libcommon.LString.self, capacity: 1).pointee"
-                " = %s.duplicated(on: allocator)\n", field->name);
+                " = %s_val.duplicated(on: allocator)\n", field->name);
         break;
 
       case IOP_T_UNION: case IOP_T_STRUCT:
         if (type_is_class || field->is_ref) {
             sb_addf(buf,
                    "                data.bindMemory(to: Swift.UnsafeMutableRawPointer.self, "
-                   "capacity: 1).pointee = %s.duplicated(on: allocator)\n", field->name);
+                   "capacity: 1).pointee = %s_val.duplicated(on: allocator)\n", field->name);
         } else {
-            sb_addf(buf, "                %s.fill(data, on: allocator)\n", field->name);
+            sb_addf(buf, "                %s_val.fill(data, on: allocator)\n", field->name);
         }
         break;
 
