@@ -89,9 +89,9 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
         sb_addf(buf,
                 "extension %s__%*pM__t : libcommon.IopEnum {\n"
                 "    public static let descriptor = %s__%*pM__ep\n"
-                "    public static let min : Swift.Int32 = %*pM_min\n"
-                "    public static let max : Swift.Int32 = %*pM_max\n"
-                "    public static let count : Swift.Int32 = %*pM_count\n"
+                "    public static let min : Swift.Int32 = Swift.Int32(%*pM_min)\n"
+                "    public static let max : Swift.Int32 = Swift.Int32(%*pM_max)\n"
+                "    public static let count : Swift.Int32 = Swift.Int32(%*pM_count)\n"
                 "}\n"
                 "extension %s__%*pM__array_t : libcommon.IopSimpleArray { }\n"
                 "extension %s__%*pM__opt_t : libcommon.IopOptional { }\n\n",
