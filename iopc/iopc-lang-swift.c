@@ -68,6 +68,25 @@ static void iopc_dump_string_literal(sb_t *buf, const char *str)
     }
 }
 
+static void dump_package_alias(sb_t *buf, iopc_path_t *path)
+{
+    tab_for_each_entry(tok, &path->bits) {
+        sb_addf(buf, "%s_", tok);
+    }
+    sb_adds(buf, "package");
+}
+
+static void
+iopc_dump_package_member(sb_t *buf, iopc_path_t *path, const char *type)
+{
+    assert (path->bits.len);
+    for (int i = 0; i < path->bits.len - 1; i++) {
+        sb_addf(buf, "%s.", path->bits.tab[i]);
+    }
+    dump_package_alias(buf, path);
+    sb_addf(buf, ".%s", type);
+}
+
 static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
                                  const char *pkg_name)
 {
@@ -143,10 +162,7 @@ static void iopc_dump_field_basetype(sb_t *buf, const iopc_field_t *field)
         break;
 
       case IOP_T_STRUCT: case IOP_T_UNION: case IOP_T_ENUM:
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_adds(buf, field->type_name);
+        iopc_dump_package_member(buf, field->type_path, field->type_name);
         break;
     }
 }
@@ -635,10 +651,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
 
             parent = st->extends.tab[0]->st;
             is_root_class = false;
-            tab_for_each_entry(tok, &parent_pkg->name->bits) {
-                sb_addf(buf, "%s.", tok);
-            }
-            sb_addf(buf, "%s {\n", parent->name);
+            iopc_dump_package_member(buf, parent_pkg->name, parent->name);
+            sb_adds(buf, " {\n");
         } else {
             sb_adds(buf, "libcommon.IopClass {\n");
         }
@@ -1243,6 +1257,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
 {
     t_scope;
     const char *pkg_name = t_pp_under(pkg->name);
+    const char *curr_pkg_name = *qv_last(&pkg->name->bits);
     char path[PATH_MAX];
     SB(buf, 32 << 10);
 
@@ -1285,8 +1300,7 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         }
         sb_adds(&buf, "{\n");
     }
-    sb_addf(&buf, "public enum %s : libcommon.IopPackage {\n",
-            *qv_last(&pkg->name->bits));
+    sb_addf(&buf, "public enum %s : libcommon.IopPackage {\n", curr_pkg_name);
 
     /* Generate types */
     iopc_dump_enums(&buf, pkg, pkg_name);
@@ -1312,6 +1326,12 @@ int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     }
 
     sb_adds(&buf, "}\n");
+
+    /* Add alias */
+    sb_adds(&buf, "\npublic typealias ");
+    dump_package_alias(&buf, pkg->name);
+    sb_addf(&buf, " = %s\n",  curr_pkg_name);
+
     if (pkg->name->bits.len > 1) {
         sb_adds(&buf, "}\n");
     }
