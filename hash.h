@@ -86,6 +86,32 @@ void murmur_hash3_x86_32_finish(murmur_hash3_x86_32_ctx * nonnull ctx,
 
 #define MEM_HASH32_MURMUR_SEED  0xdeadc0de
 
+#define HASH32_IMPL(method, ...)                                             \
+typedef struct hash32_ctx {                                                  \
+    method##_ctx ctx;                                                        \
+} hash32_ctx;                                                                \
+static inline void hash32_starts(hash32_ctx *nonnull ctx)                    \
+{                                                                            \
+    method##_starts(&ctx->ctx, ##__VA_ARGS__);                               \
+}                                                                            \
+static inline void hash32_update(hash32_ctx *nonnull ctx,                    \
+                                 const void *nonnull input, ssize_t len)     \
+{                                                                            \
+    method##_update(&ctx->ctx, input, len);                                  \
+}                                                                            \
+static inline void hash32_finish(hash32_ctx *nonnull ctx, byte output[4])    \
+{                                                                            \
+    method##_finish(&ctx->ctx, output);                                      \
+}
+
+#if defined(__x86_64__) || defined(__i386__)
+    HASH32_IMPL(murmur_hash3_x86_32, MEM_HASH32_MURMUR_SEED);
+#else
+    HASH32_IMPL(jenkins);
+#endif
+
+#undef HASH32_IMPL
+
 #include "hash-iop.h"
 
 uint32_t icrc32(uint32_t crc, const void * nonnull data, ssize_t len) __leaf;

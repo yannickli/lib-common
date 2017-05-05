@@ -57,12 +57,7 @@ ATTRS static inline void F(iop_hash_murmur_hash3_x86_32)(HASH_ARGS(4),
                                                          uint32_t seed)
 { HASH(murmur_hash3_x86_32, seed); }
 
-ATTRS static inline void F(iop_hash32)(HASH_ARGS(4))
-#if defined(__x86_64__) || defined(__i386__)
-{ HASH(murmur_hash3_x86_32, MEM_HASH32_MURMUR_SEED); }
-#else
-{ HASH(jenkins); }
-#endif
+ATTRS static inline void F(iop_hash32)(HASH_ARGS(4))       { HASH(hash32); }
 
 ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
 ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
