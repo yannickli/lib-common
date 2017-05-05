@@ -76,6 +76,10 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
     tab_for_each_entry(st, &pkg->structs) {
         lstr_t name = t_camelcase_to_c(LSTR(st->name));
 
+        if (iopc_is_snmp_st(st->type)) {
+            continue;
+        }
+
         sb_addf(buf,
                 "extension %s__%*pM__array_t : libcommon.Iop%sArray { }\n\n",
                 pkg_name, LSTR_FMT_ARG(name),
