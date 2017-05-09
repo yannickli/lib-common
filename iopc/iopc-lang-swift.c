@@ -624,7 +624,7 @@ static bool iopc_class_is_final(const iopc_pkg_t *pkg,
 }
 
 static void iopc_dump_struct(sb_t *buf, const char *indent,
-                             const iopc_pkg_t *pkg, const iopc_struct_t *st,
+                             const iopc_pkg_t *pkg, iopc_struct_t *st,
                              const char *pkg_name, const char *st_name)
 {
     t_scope;
@@ -634,6 +634,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     const iopc_struct_t *parent;
     bool first = true;
     bool is_struct = true;
+
+    iopc_struct_sort_fields(st, BY_POS);
 
     if (!st_name) {
         st_name = st->name;
@@ -705,6 +707,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     sb_addf(buf, "%s    public %sinit(", indent,
             st->fields.len == 0 && iopc_is_class(st->type) ? "override " : "");
     tab_for_each_pos_rev(pos, &parents) {
+        iopc_struct_sort_fields(parents.tab[pos], BY_POS);
         tab_for_each_entry(field, &parents.tab[pos]->fields) {
             if (iopc_struct_is_field_ignored(field)) {
                 continue;
@@ -892,8 +895,8 @@ static void iopc_dump_union_field_exporter(sb_t *buf, const iopc_field_t *field)
     }
 }
 
-static void iopc_dump_union(sb_t *buf,
-                            const iopc_struct_t *st, const char *pkg_name)
+static void
+iopc_dump_union(sb_t *buf, iopc_struct_t *st, const char *pkg_name)
 {
     t_scope;
     lstr_t c_name = t_camelcase_to_c(LSTR(st->name));
@@ -909,6 +912,7 @@ static void iopc_dump_union(sb_t *buf,
             LSTR_FMT_ARG(c_name));
 
     /* Generate case list */
+    iopc_struct_sort_fields(st, BY_POS);
     tab_for_each_entry(field, &st->fields) {
         sb_addf(buf, "        case `%s`", field->name);
         if (field->kind != IOP_T_VOID) {
@@ -947,7 +951,7 @@ static void iopc_dump_union(sb_t *buf,
     sb_adds(buf, "    }\n\n");
 }
 
-static void iopc_dump_structs(sb_t *buf, const iopc_pkg_t *pkg,
+static void iopc_dump_structs(sb_t *buf, iopc_pkg_t *pkg,
                               const char *pkg_name)
 {
     tab_for_each_entry(st, &pkg->structs) {
@@ -1020,7 +1024,7 @@ static void iopc_dump_rpc_desc(sb_t *buf, const iopc_pkg_t *pkg,
 }
 
 static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
-                               const iopc_fun_t *rpc, int pos,
+                               iopc_fun_t *rpc, int pos,
                                const char *pkg_name)
 {
     t_scope;
@@ -1028,7 +1032,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
 
     /* Generate functions */
     if (rpc->arg) {
-        const iopc_struct_t *st;
+        iopc_struct_t *st;
 
         st = rpc->arg_is_anonymous ? rpc->arg : rpc->farg->struct_def;
         sb_addf(buf,
@@ -1037,6 +1041,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
                 "                }\n",
                 rpc->name, rpc_desc, rpc_desc, rpc_desc);
         if (st->type == STRUCT_TYPE_UNION) {
+            iopc_struct_sort_fields(st, BY_POS);
             tab_for_each_entry(field, &st->fields) {
                 sb_addf(buf, "            public func `%s`(`%s`: ",
                         rpc->name, field->name);
@@ -1071,6 +1076,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
 
             sb_addf(buf, "                public func `%s`(", rpc->name);
             tab_for_each_pos_rev(p, &parents) {
+                iopc_struct_sort_fields(parents.tab[p], BY_POS);
                 tab_for_each_entry(field, &parents.tab[p]->fields) {
                     if (!first) {
                         sb_adds(buf, ",\n");
@@ -1112,7 +1118,7 @@ static void iopc_dump_rpc_call(sb_t *buf, const iopc_pkg_t *pkg,
 }
 
 static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
-                            const iopc_iface_t *iface, const char *pkg_name)
+                            iopc_iface_t *iface, const char *pkg_name)
 {
     t_scope;
     lstr_t iname = t_camelcase_to_c(LSTR(iface->name));
@@ -1144,7 +1150,7 @@ static void iopc_dump_iface(sb_t *buf, const iopc_pkg_t *pkg,
             "        }\n\n");
 }
 
-static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
+static void iopc_dump_ifaces(sb_t *buf, iopc_pkg_t *pkg,
                              const char *pkg_name)
 {
     sb_adds(buf, "    public enum interfaces {\n");
@@ -1161,7 +1167,7 @@ static void iopc_dump_ifaces(sb_t *buf, const iopc_pkg_t *pkg,
     sb_adds(buf, "    }\n");
 }
 
-static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
+static void iopc_dump_module(sb_t *buf, iopc_struct_t *mod,
                              const char *pkg_name)
 {
     sb_addf(buf, "public protocol %s__modules__%s : ", pkg_name, mod->name);
@@ -1182,6 +1188,7 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
         sb_adds(buf, "libcommon.IopModule {\n");
     }
 
+    iopc_struct_sort_fields(mod, BY_POS);
     tab_for_each_entry(field, &mod->fields) {
         sb_addf(buf, "    var `%s` : ", field->name);
         tab_for_each_entry(tok, &field->type_path->bits) {
@@ -1228,7 +1235,7 @@ static void iopc_dump_module(sb_t *buf, const iopc_struct_t *mod,
     sb_adds(buf, "}\n\n");
 }
 
-static void iopc_dump_modules(sb_t *buf, const iopc_pkg_t *pkg,
+static void iopc_dump_modules(sb_t *buf, iopc_pkg_t *pkg,
                               const char *pkg_name)
 {
     tab_for_each_entry(mod, &pkg->modules) {

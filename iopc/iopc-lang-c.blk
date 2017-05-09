@@ -84,6 +84,30 @@ static iopc_field_t *iopc_struct_bubble_field(iopc_struct_t *st, int pos, size_t
     return tab[0];
 }
 
+void iopc_struct_sort_fields(iopc_struct_t *st, sorted_t how)
+{
+    if (st->fields_sorted == how) {
+        return;
+    }
+    switch(how) {
+      case BY_TAG:
+        qv_sort(iopc_field)(&st->fields,
+            ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
+                return (*f1)->tag - (*f2)->tag;
+            });
+        break;
+      case BY_POS:
+        qv_sort(iopc_field)(&st->fields,
+            ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
+                return (*f1)->pos - (*f2)->pos;
+            });
+        break;
+      default:
+        assert (0);
+    }
+    st->fields_sorted = how;
+}
+
 static void iopc_struct_optimize(iopc_struct_t *st)
 {
     size_t size = 0;
@@ -104,10 +128,7 @@ static void iopc_struct_optimize(iopc_struct_t *st)
     }
     orig_size = ROUND_UP(orig_size, st->align);
 
-    qv_sort(iopc_field)(&st->fields,
-                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
-        return (*f1)->tag - (*f2)->tag;
-    });
+    iopc_struct_sort_fields(st, BY_TAG);
 
     if (st->type == STRUCT_TYPE_UNION) {
         /*
@@ -1276,11 +1297,7 @@ iopc_module_dump_hdr(sb_t *buf, iopc_pkg_t *pkg,
             "/*----- module %s.%s -----*/\n",
             pretty_path_dot(pkg->name), mod->name);
 
-    qv_sort(iopc_field)(&mod->fields,
-                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
-        return (*f1)->tag - (*f2)->tag;
-    });
-
+    iopc_struct_sort_fields(mod, BY_TAG);
 
     for (int i = 0; i < mod->fields.len; i++) {
         iopc_field_t *f = mod->fields.tab[i];
@@ -2869,10 +2886,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     qv_t(i32) t;
     bool has_attrs;
 
-    qv_sort(iopc_field)(&st->fields,
-                        ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
-        return (*f1)->tag - (*f2)->tag;
-    });
+    iopc_struct_sort_fields(st, BY_TAG);
     sb_addf(buf, "/* %s %s.%s {""{{ */\n\n",
             comment, pretty_path_dot(pkg->name), sname);
 
