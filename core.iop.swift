@@ -19,31 +19,31 @@ extension core__iop_json_subfile__array_t : libcommon.IopComplexTypeArray { }
 
 extension core__log_level__t : libcommon.IopEnum {
     public static let descriptor = core__log_level__ep
-    public static let min : Swift.Int32 = LOG_LEVEL_min
-    public static let max : Swift.Int32 = LOG_LEVEL_max
-    public static let count : Swift.Int32 = LOG_LEVEL_count
+    public static let min : Swift.Int32 = Swift.Int32(LOG_LEVEL_min)
+    public static let max : Swift.Int32 = Swift.Int32(LOG_LEVEL_max)
+    public static let count : Swift.Int32 = Swift.Int32(LOG_LEVEL_count)
 }
 extension core__log_level__array_t : libcommon.IopSimpleArray { }
 extension core__log_level__opt_t : libcommon.IopOptional { }
 
 extension core__iop_http_method__t : libcommon.IopEnum {
     public static let descriptor = core__iop_http_method__ep
-    public static let min : Swift.Int32 = IOP_HTTP_METHOD_min
-    public static let max : Swift.Int32 = IOP_HTTP_METHOD_max
-    public static let count : Swift.Int32 = IOP_HTTP_METHOD_count
+    public static let min : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_min)
+    public static let max : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_max)
+    public static let count : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_count)
 }
 extension core__iop_http_method__array_t : libcommon.IopSimpleArray { }
 extension core__iop_http_method__opt_t : libcommon.IopOptional { }
 
 public protocol core__modules__Core : libcommon.IopModule {
-    var log : core.interfaces.Log.Impl { get }
-    static var log : core.interfaces.Log { get }
+    var `log` : core.interfaces.Log.Impl { get }
+    static var `log` : core.interfaces.Log { get }
 }
 public extension core__modules__Core {
-    public var log : core.interfaces.Log.Impl {
+    public var `log` : core.interfaces.Log.Impl {
         return core.interfaces.Log.Impl(channel: self.channel, tag: 16384)
     }
-    public static var log : core.interfaces.Log {
+    public static var `log` : core.interfaces.Log {
         return core.interfaces.Log(tag: 16384)
     }
 }
@@ -56,19 +56,19 @@ public enum core : libcommon.IopPackage {
     public struct LoggerConfiguration : libcommon.IopStruct {
         public static let descriptor = core__logger_configuration__sp
 
-        public var fullName : Swift.String
-        public var level : core.LogLevel
-        public var forceAll : Swift.Bool
-        public var isSilent : Swift.Bool
+        public var `fullName` : Swift.String
+        public var `level` : core_package.LogLevel
+        public var `forceAll` : Swift.Bool
+        public var `isSilent` : Swift.Bool
 
-        public init(fullName: Swift.String,
-                    level: core.LogLevel,
-                    forceAll: Swift.Bool = false,
-                    isSilent: Swift.Bool = false) {
-            self.fullName = fullName
-            self.level = level
-            self.forceAll = forceAll
-            self.isSilent = isSilent
+        public init(`fullName`: Swift.String,
+                    `level`: core_package.LogLevel,
+                    `forceAll`: Swift.Bool = false,
+                    `isSilent`: Swift.Bool = false) {
+            self.fullName = `fullName`
+            self.level = `level`
+            self.forceAll = `forceAll`
+            self.isSilent = `isSilent`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -91,19 +91,19 @@ public enum core : libcommon.IopPackage {
     public struct LogConfiguration : libcommon.IopStruct {
         public static let descriptor = core__log_configuration__sp
 
-        public var rootLevel : core.LogLevel
-        public var forceAll : Swift.Bool
-        public var isSilent : Swift.Bool
-        public var specific : [core.LoggerConfiguration]
+        public var `rootLevel` : core_package.LogLevel
+        public var `forceAll` : Swift.Bool
+        public var `isSilent` : Swift.Bool
+        public var `specific` : [core_package.LoggerConfiguration]
 
-        public init(rootLevel: core.LogLevel = core.LogLevel(rawValue: -2),
-                    forceAll: Swift.Bool = false,
-                    isSilent: Swift.Bool = false,
-                    specific: [core.LoggerConfiguration] = []) {
-            self.rootLevel = rootLevel
-            self.forceAll = forceAll
-            self.isSilent = isSilent
-            self.specific = specific
+        public init(`rootLevel`: core_package.LogLevel = core_package.LogLevel(rawValue: -2),
+                    `forceAll`: Swift.Bool = false,
+                    `isSilent`: Swift.Bool = false,
+                    `specific`: [core_package.LoggerConfiguration] = []) {
+            self.rootLevel = `rootLevel`
+            self.forceAll = `forceAll`
+            self.isSilent = `isSilent`
+            self.specific = `specific`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -112,8 +112,8 @@ public enum core : libcommon.IopPackage {
             self.forceAll = data.force_all
             self.isSilent = data.is_silent
             self.specific = try data.specific.map {
-                var specific = $0
-                return try core.LoggerConfiguration(&specific)
+                var specific_var = $0
+                return try core_package.LoggerConfiguration(&specific_var)
                 }
         }
 
@@ -135,22 +135,22 @@ public enum core : libcommon.IopPackage {
             return false
         }
 
-        public var maxSize : Swift.Int32
-        public var maxTime : Swift.UInt64
-        public var maxFiles : Swift.Int32
-        public var totalMaxSize : Swift.Int64
-        public var compress : Swift.Bool
+        public var `maxSize` : Swift.Int32
+        public var `maxTime` : Swift.UInt64
+        public var `maxFiles` : Swift.Int32
+        public var `totalMaxSize` : Swift.Int64
+        public var `compress` : Swift.Bool
 
-        public init(maxSize: Swift.Int32 = 536870912,
-                    maxTime: Swift.UInt64 = 86400,
-                    maxFiles: Swift.Int32 = 0,
-                    totalMaxSize: Swift.Int64 = 1073741824,
-                    compress: Swift.Bool = true) {
-            self.maxSize = maxSize
-            self.maxTime = maxTime
-            self.maxFiles = maxFiles
-            self.totalMaxSize = totalMaxSize
-            self.compress = compress
+        public init(`maxSize`: Swift.Int32 = 536870912,
+                    `maxTime`: Swift.UInt64 = 86400,
+                    `maxFiles`: Swift.Int32 = 0,
+                    `totalMaxSize`: Swift.Int64 = 1073741824,
+                    `compress`: Swift.Bool = true) {
+            self.maxSize = `maxSize`
+            self.maxTime = `maxTime`
+            self.maxFiles = `maxFiles`
+            self.totalMaxSize = `totalMaxSize`
+            self.compress = `compress`
             super.init()
         }
 
@@ -183,13 +183,13 @@ public enum core : libcommon.IopPackage {
             return true
         }
 
-        public var expirationDate : Swift.String?
-        public var expirationWarningDelay : Swift.UInt32
+        public var `expirationDate` : Swift.String?
+        public var `expirationWarningDelay` : Swift.UInt32
 
-        public init(expirationDate: Swift.String? = nil,
-                    expirationWarningDelay: Swift.UInt32 = 1296000) {
-            self.expirationDate = expirationDate
-            self.expirationWarningDelay = expirationWarningDelay
+        public init(`expirationDate`: Swift.String? = nil,
+                    `expirationWarningDelay`: Swift.UInt32 = 1296000) {
+            self.expirationDate = `expirationDate`
+            self.expirationWarningDelay = `expirationWarningDelay`
             super.init()
         }
 
@@ -202,8 +202,8 @@ public enum core : libcommon.IopPackage {
 
         open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__licence_module__t.self, capacity: 1)
-            if let expirationDate = self.expirationDate {
-                data.pointee.expiration_date = expirationDate.duplicated(on: allocator)
+            if let expirationDate_val = self.expirationDate {
+                data.pointee.expiration_date = expirationDate_val.duplicated(on: allocator)
             }
             data.pointee.expiration_warning_delay = self.expirationWarningDelay
         }
@@ -218,34 +218,34 @@ public enum core : libcommon.IopPackage {
             return false
         }
 
-        public var expirationDate : Swift.String
-        public var expirationHardDate : Swift.String?
-        public var expirationWarningDelay : Swift.UInt32
-        public var registeredTo : Swift.String
-        public var version : Swift.String
-        public var productionUse : Swift.Bool
-        public var cpuSignatures : [Swift.Int64]
-        public var macAddresses : [Swift.String]
-        public var modules : [core.LicenceModule]
+        public var `expirationDate` : Swift.String
+        public var `expirationHardDate` : Swift.String?
+        public var `expirationWarningDelay` : Swift.UInt32
+        public var `registeredTo` : Swift.String
+        public var `version` : Swift.String
+        public var `productionUse` : Swift.Bool
+        public var `cpuSignatures` : [Swift.Int64]
+        public var `macAddresses` : [Swift.String]
+        public var `modules` : [core_package.LicenceModule]
 
-        public init(expirationDate: Swift.String = "31-dec-2035",
-                    expirationHardDate: Swift.String? = nil,
-                    expirationWarningDelay: Swift.UInt32 = 1296000,
-                    registeredTo: Swift.String,
-                    version: Swift.String,
-                    productionUse: Swift.Bool,
-                    cpuSignatures: [Swift.Int64] = [],
-                    macAddresses: [Swift.String] = [],
-                    modules: [core.LicenceModule] = []) {
-            self.expirationDate = expirationDate
-            self.expirationHardDate = expirationHardDate
-            self.expirationWarningDelay = expirationWarningDelay
-            self.registeredTo = registeredTo
-            self.version = version
-            self.productionUse = productionUse
-            self.cpuSignatures = cpuSignatures
-            self.macAddresses = macAddresses
-            self.modules = modules
+        public init(`expirationDate`: Swift.String = "31-dec-2035",
+                    `expirationHardDate`: Swift.String? = nil,
+                    `expirationWarningDelay`: Swift.UInt32 = 1296000,
+                    `registeredTo`: Swift.String,
+                    `version`: Swift.String,
+                    `productionUse`: Swift.Bool,
+                    `cpuSignatures`: [Swift.Int64] = [],
+                    `macAddresses`: [Swift.String] = [],
+                    `modules`: [core_package.LicenceModule] = []) {
+            self.expirationDate = `expirationDate`
+            self.expirationHardDate = `expirationHardDate`
+            self.expirationWarningDelay = `expirationWarningDelay`
+            self.registeredTo = `registeredTo`
+            self.version = `version`
+            self.productionUse = `productionUse`
+            self.cpuSignatures = `cpuSignatures`
+            self.macAddresses = `macAddresses`
+            self.modules = `modules`
             super.init()
         }
 
@@ -259,15 +259,15 @@ public enum core : libcommon.IopPackage {
             self.productionUse = data.production_use
             self.cpuSignatures = Swift.Array(data.cpu_signatures)
             self.macAddresses = data.mac_addresses.map {                return Swift.String($0) ?? ""}
-            self.modules = try data.modules.map {                return try core.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
+            self.modules = try data.modules.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
             try super.init(c)
         }
 
         open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__licence__t.self, capacity: 1)
              data.pointee.expiration_date = self.expirationDate.duplicated(on: allocator)
-            if let expirationHardDate = self.expirationHardDate {
-                data.pointee.expiration_hard_date = expirationHardDate.duplicated(on: allocator)
+            if let expirationHardDate_val = self.expirationHardDate {
+                data.pointee.expiration_hard_date = expirationHardDate_val.duplicated(on: allocator)
             }
             data.pointee.expiration_warning_delay = self.expirationWarningDelay
              data.pointee.registered_to = self.registeredTo.duplicated(on: allocator)
@@ -282,18 +282,18 @@ public enum core : libcommon.IopPackage {
     public struct SignedLicence : libcommon.IopStruct {
         public static let descriptor = core__signed_licence__sp
 
-        public var licence : core.Licence
-        public var signature : Swift.String
+        public var `licence` : core_package.Licence
+        public var `signature` : Swift.String
 
-        public init(licence: core.Licence,
-                    signature: Swift.String) {
-            self.licence = licence
-            self.signature = signature
+        public init(`licence`: core_package.Licence,
+                    `signature`: Swift.String) {
+            self.licence = `licence`
+            self.signature = `signature`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1).pointee
-            self.licence = try core.Licence.make(Swift.UnsafeRawPointer(data.licence)!)
+            self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.licence)!)
             self.signature = Swift.String(data.signature) ?? ""
         }
 
@@ -307,34 +307,34 @@ public enum core : libcommon.IopPackage {
     public struct HttpdCfg : libcommon.IopStruct {
         public static let descriptor = core__httpd_cfg__sp
 
-        public var bindAddr : Swift.String
-        public var outbufMaxSize : Swift.UInt32
-        public var pipelineDepth : Swift.UInt16
-        public var noactDelay : Swift.UInt32
-        public var maxQueries : Swift.UInt32
-        public var maxConnsIn : Swift.UInt32
-        public var onDataThreshold : Swift.UInt32
-        public var headerLineMax : Swift.UInt32
-        public var headerSizeMax : Swift.UInt32
+        public var `bindAddr` : Swift.String
+        public var `outbufMaxSize` : Swift.UInt32
+        public var `pipelineDepth` : Swift.UInt16
+        public var `noactDelay` : Swift.UInt32
+        public var `maxQueries` : Swift.UInt32
+        public var `maxConnsIn` : Swift.UInt32
+        public var `onDataThreshold` : Swift.UInt32
+        public var `headerLineMax` : Swift.UInt32
+        public var `headerSizeMax` : Swift.UInt32
 
-        public init(bindAddr: Swift.String,
-                    outbufMaxSize: Swift.UInt32 = 33554432,
-                    pipelineDepth: Swift.UInt16 = 32,
-                    noactDelay: Swift.UInt32 = 30000,
-                    maxQueries: Swift.UInt32 = 1024,
-                    maxConnsIn: Swift.UInt32 = 1000,
-                    onDataThreshold: Swift.UInt32 = 16384,
-                    headerLineMax: Swift.UInt32 = 1024,
-                    headerSizeMax: Swift.UInt32 = 65536) {
-            self.bindAddr = bindAddr
-            self.outbufMaxSize = outbufMaxSize
-            self.pipelineDepth = pipelineDepth
-            self.noactDelay = noactDelay
-            self.maxQueries = maxQueries
-            self.maxConnsIn = maxConnsIn
-            self.onDataThreshold = onDataThreshold
-            self.headerLineMax = headerLineMax
-            self.headerSizeMax = headerSizeMax
+        public init(`bindAddr`: Swift.String,
+                    `outbufMaxSize`: Swift.UInt32 = 33554432,
+                    `pipelineDepth`: Swift.UInt16 = 32,
+                    `noactDelay`: Swift.UInt32 = 30000,
+                    `maxQueries`: Swift.UInt32 = 1024,
+                    `maxConnsIn`: Swift.UInt32 = 1000,
+                    `onDataThreshold`: Swift.UInt32 = 16384,
+                    `headerLineMax`: Swift.UInt32 = 1024,
+                    `headerSizeMax`: Swift.UInt32 = 65536) {
+            self.bindAddr = `bindAddr`
+            self.outbufMaxSize = `outbufMaxSize`
+            self.pipelineDepth = `pipelineDepth`
+            self.noactDelay = `noactDelay`
+            self.maxQueries = `maxQueries`
+            self.maxConnsIn = `maxConnsIn`
+            self.onDataThreshold = `onDataThreshold`
+            self.headerLineMax = `headerLineMax`
+            self.headerSizeMax = `headerSizeMax`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -367,25 +367,25 @@ public enum core : libcommon.IopPackage {
     public struct HttpcCfg : libcommon.IopStruct {
         public static let descriptor = core__httpc_cfg__sp
 
-        public var pipelineDepth : Swift.UInt16
-        public var noactDelay : Swift.UInt32
-        public var maxQueries : Swift.UInt32
-        public var onDataThreshold : Swift.UInt32
-        public var headerLineMax : Swift.UInt32
-        public var headerSizeMax : Swift.UInt32
+        public var `pipelineDepth` : Swift.UInt16
+        public var `noactDelay` : Swift.UInt32
+        public var `maxQueries` : Swift.UInt32
+        public var `onDataThreshold` : Swift.UInt32
+        public var `headerLineMax` : Swift.UInt32
+        public var `headerSizeMax` : Swift.UInt32
 
-        public init(pipelineDepth: Swift.UInt16 = 32,
-                    noactDelay: Swift.UInt32 = 30000,
-                    maxQueries: Swift.UInt32 = 1024,
-                    onDataThreshold: Swift.UInt32 = 16384,
-                    headerLineMax: Swift.UInt32 = 1024,
-                    headerSizeMax: Swift.UInt32 = 65536) {
-            self.pipelineDepth = pipelineDepth
-            self.noactDelay = noactDelay
-            self.maxQueries = maxQueries
-            self.onDataThreshold = onDataThreshold
-            self.headerLineMax = headerLineMax
-            self.headerSizeMax = headerSizeMax
+        public init(`pipelineDepth`: Swift.UInt16 = 32,
+                    `noactDelay`: Swift.UInt32 = 30000,
+                    `maxQueries`: Swift.UInt32 = 1024,
+                    `onDataThreshold`: Swift.UInt32 = 16384,
+                    `headerLineMax`: Swift.UInt32 = 1024,
+                    `headerSizeMax`: Swift.UInt32 = 65536) {
+            self.pipelineDepth = `pipelineDepth`
+            self.noactDelay = `noactDelay`
+            self.maxQueries = `maxQueries`
+            self.onDataThreshold = `onDataThreshold`
+            self.headerLineMax = `headerLineMax`
+            self.headerSizeMax = `headerSizeMax`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -412,13 +412,13 @@ public enum core : libcommon.IopPackage {
     public struct IopJsonSubfile : libcommon.IopStruct {
         public static let descriptor = core__iop_json_subfile__sp
 
-        public var filePath : Swift.String
-        public var iopPath : Swift.String
+        public var `filePath` : Swift.String
+        public var `iopPath` : Swift.String
 
-        public init(filePath: Swift.String,
-                    iopPath: Swift.String) {
-            self.filePath = filePath
-            self.iopPath = iopPath
+        public init(`filePath`: Swift.String,
+                    `iopPath`: Swift.String) {
+            self.filePath = `filePath`
+            self.iopPath = `iopPath`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -440,16 +440,16 @@ public enum core : libcommon.IopPackage {
                 public struct Argument : libcommon.IopStruct {
                     public static let descriptor = core__log__set_root_level_args__sp
 
-                    public var level : core.LogLevel
-                    public var forceAll : Swift.Bool
-                    public var isSilent : Swift.Bool
+                    public var `level` : core_package.LogLevel
+                    public var `forceAll` : Swift.Bool
+                    public var `isSilent` : Swift.Bool
 
-                    public init(level: core.LogLevel,
-                                forceAll: Swift.Bool = false,
-                                isSilent: Swift.Bool = false) {
-                        self.level = level
-                        self.forceAll = forceAll
-                        self.isSilent = isSilent
+                    public init(`level`: core_package.LogLevel,
+                                `forceAll`: Swift.Bool = false,
+                                `isSilent`: Swift.Bool = false) {
+                        self.level = `level`
+                        self.forceAll = `forceAll`
+                        self.isSilent = `isSilent`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -470,10 +470,10 @@ public enum core : libcommon.IopPackage {
                 public struct Response : libcommon.IopStruct {
                     public static let descriptor = core__log__set_root_level_res__sp
 
-                    public var level : core.LogLevel
+                    public var `level` : core_package.LogLevel
 
-                    public init(level: core.LogLevel) {
-                        self.level = level
+                    public init(`level`: core_package.LogLevel) {
+                        self.level = `level`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -490,7 +490,7 @@ public enum core : libcommon.IopPackage {
                 public static let descriptor = core__log__if.funs.advanced(by: 0)
                 public static let tag = 1
             }
-            public var setRootLevel : (Int, SetRootLevel.Type) {
+            public var `setRootLevel` : (Int, SetRootLevel.Type) {
                 return ((self._tag << 16) + SetRootLevel.tag, SetRootLevel.self)
             }
 
@@ -498,10 +498,10 @@ public enum core : libcommon.IopPackage {
                 public struct Response : libcommon.IopStruct {
                     public static let descriptor = core__log__reset_root_level_res__sp
 
-                    public var level : core.LogLevel
+                    public var `level` : core_package.LogLevel
 
-                    public init(level: core.LogLevel) {
-                        self.level = level
+                    public init(`level`: core_package.LogLevel) {
+                        self.level = `level`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -518,7 +518,7 @@ public enum core : libcommon.IopPackage {
                 public static let descriptor = core__log__if.funs.advanced(by: 1)
                 public static let tag = 2
             }
-            public var resetRootLevel : (Int, ResetRootLevel.Type) {
+            public var `resetRootLevel` : (Int, ResetRootLevel.Type) {
                 return ((self._tag << 16) + ResetRootLevel.tag, ResetRootLevel.self)
             }
 
@@ -526,19 +526,19 @@ public enum core : libcommon.IopPackage {
                 public struct Argument : libcommon.IopStruct {
                     public static let descriptor = core__log__set_logger_level_args__sp
 
-                    public var fullName : Swift.String
-                    public var level : core.LogLevel
-                    public var forceAll : Swift.Bool
-                    public var isSilent : Swift.Bool
+                    public var `fullName` : Swift.String
+                    public var `level` : core_package.LogLevel
+                    public var `forceAll` : Swift.Bool
+                    public var `isSilent` : Swift.Bool
 
-                    public init(fullName: Swift.String,
-                                level: core.LogLevel,
-                                forceAll: Swift.Bool = false,
-                                isSilent: Swift.Bool = false) {
-                        self.fullName = fullName
-                        self.level = level
-                        self.forceAll = forceAll
-                        self.isSilent = isSilent
+                    public init(`fullName`: Swift.String,
+                                `level`: core_package.LogLevel,
+                                `forceAll`: Swift.Bool = false,
+                                `isSilent`: Swift.Bool = false) {
+                        self.fullName = `fullName`
+                        self.level = `level`
+                        self.forceAll = `forceAll`
+                        self.isSilent = `isSilent`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -561,10 +561,10 @@ public enum core : libcommon.IopPackage {
                 public struct Response : libcommon.IopStruct {
                     public static let descriptor = core__log__set_logger_level_res__sp
 
-                    public var level : core.LogLevel
+                    public var `level` : core_package.LogLevel
 
-                    public init(level: core.LogLevel) {
-                        self.level = level
+                    public init(`level`: core_package.LogLevel) {
+                        self.level = `level`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -581,7 +581,7 @@ public enum core : libcommon.IopPackage {
                 public static let descriptor = core__log__if.funs.advanced(by: 2)
                 public static let tag = 3
             }
-            public var setLoggerLevel : (Int, SetLoggerLevel.Type) {
+            public var `setLoggerLevel` : (Int, SetLoggerLevel.Type) {
                 return ((self._tag << 16) + SetLoggerLevel.tag, SetLoggerLevel.self)
             }
 
@@ -589,10 +589,10 @@ public enum core : libcommon.IopPackage {
                 public struct Argument : libcommon.IopStruct {
                     public static let descriptor = core__log__reset_logger_level_args__sp
 
-                    public var fullName : Swift.String
+                    public var `fullName` : Swift.String
 
-                    public init(fullName: Swift.String) {
-                        self.fullName = fullName
+                    public init(`fullName`: Swift.String) {
+                        self.fullName = `fullName`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -609,10 +609,10 @@ public enum core : libcommon.IopPackage {
                 public struct Response : libcommon.IopStruct {
                     public static let descriptor = core__log__reset_logger_level_res__sp
 
-                    public var level : core.LogLevel
+                    public var `level` : core_package.LogLevel
 
-                    public init(level: core.LogLevel) {
-                        self.level = level
+                    public init(`level`: core_package.LogLevel) {
+                        self.level = `level`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -629,7 +629,7 @@ public enum core : libcommon.IopPackage {
                 public static let descriptor = core__log__if.funs.advanced(by: 3)
                 public static let tag = 4
             }
-            public var resetLoggerLevel : (Int, ResetLoggerLevel.Type) {
+            public var `resetLoggerLevel` : (Int, ResetLoggerLevel.Type) {
                 return ((self._tag << 16) + ResetLoggerLevel.tag, ResetLoggerLevel.self)
             }
 
@@ -637,10 +637,10 @@ public enum core : libcommon.IopPackage {
                 public struct Argument : libcommon.IopStruct {
                     public static let descriptor = core__log__list_loggers_args__sp
 
-                    public var prefix : Swift.String?
+                    public var `prefix` : Swift.String?
 
-                    public init(prefix: Swift.String? = nil) {
-                        self.prefix = prefix
+                    public init(`prefix`: Swift.String? = nil) {
+                        self.prefix = `prefix`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -650,8 +650,8 @@ public enum core : libcommon.IopPackage {
 
                     public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__list_loggers_args__t.self, capacity: 1)
-                        if let prefix = self.prefix {
-                            data.pointee.prefix = prefix.duplicated(on: allocator)
+                        if let prefix_val = self.prefix {
+                            data.pointee.prefix = prefix_val.duplicated(on: allocator)
                         }
                     }
                 }
@@ -659,17 +659,17 @@ public enum core : libcommon.IopPackage {
                 public struct Response : libcommon.IopStruct {
                     public static let descriptor = core__log__list_loggers_res__sp
 
-                    public var loggers : [core.LoggerConfiguration]
+                    public var `loggers` : [core_package.LoggerConfiguration]
 
-                    public init(loggers: [core.LoggerConfiguration] = []) {
-                        self.loggers = loggers
+                    public init(`loggers`: [core_package.LoggerConfiguration] = []) {
+                        self.loggers = `loggers`
                     }
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1).pointee
                         self.loggers = try data.loggers.map {
-                            var loggers = $0
-                            return try core.LoggerConfiguration(&loggers)
+                            var loggers_var = $0
+                            return try core_package.LoggerConfiguration(&loggers_var)
                             }
                     }
 
@@ -682,7 +682,7 @@ public enum core : libcommon.IopPackage {
                 public static let descriptor = core__log__if.funs.advanced(by: 4)
                 public static let tag = 5
             }
-            public var listLoggers : (Int, ListLoggers.Type) {
+            public var `listLoggers` : (Int, ListLoggers.Type) {
                 return ((self._tag << 16) + ListLoggers.tag, ListLoggers.self)
             }
 
@@ -690,43 +690,43 @@ public enum core : libcommon.IopPackage {
                 public func setRootLevel(_ args: SetRootLevel.Argument) -> SetRootLevel.ReturnType {
                     return self._query(rpc: SetRootLevel.self, args: args)
                 }
-                public func setRootLevel(level: core.LogLevel,
-                                     forceAll: Swift.Bool = false,
-                                     isSilent: Swift.Bool = false) -> SetRootLevel.ReturnType {
-                    return self.setRootLevel(SetRootLevel.Argument(level: level,
-                                                               forceAll: forceAll,
-                                                               isSilent: isSilent))
+                public func `setRootLevel`(`level`: core_package.LogLevel,
+                                     `forceAll`: Swift.Bool = false,
+                                     `isSilent`: Swift.Bool = false) -> SetRootLevel.ReturnType {
+                    return self.setRootLevel(SetRootLevel.Argument(level: `level`,
+                                                               forceAll: `forceAll`,
+                                                               isSilent: `isSilent`))
                 }
 
-                public func resetRootLevel() -> ResetRootLevel.ReturnType {
+                public func `resetRootLevel`() -> ResetRootLevel.ReturnType {
                     return self._query(rpc: ResetRootLevel.self, args: libcommon.IopVoid())
                 }
 
                 public func setLoggerLevel(_ args: SetLoggerLevel.Argument) -> SetLoggerLevel.ReturnType {
                     return self._query(rpc: SetLoggerLevel.self, args: args)
                 }
-                public func setLoggerLevel(fullName: Swift.String,
-                                       level: core.LogLevel,
-                                       forceAll: Swift.Bool = false,
-                                       isSilent: Swift.Bool = false) -> SetLoggerLevel.ReturnType {
-                    return self.setLoggerLevel(SetLoggerLevel.Argument(fullName: fullName,
-                                                                   level: level,
-                                                                   forceAll: forceAll,
-                                                                   isSilent: isSilent))
+                public func `setLoggerLevel`(`fullName`: Swift.String,
+                                       `level`: core_package.LogLevel,
+                                       `forceAll`: Swift.Bool = false,
+                                       `isSilent`: Swift.Bool = false) -> SetLoggerLevel.ReturnType {
+                    return self.setLoggerLevel(SetLoggerLevel.Argument(fullName: `fullName`,
+                                                                   level: `level`,
+                                                                   forceAll: `forceAll`,
+                                                                   isSilent: `isSilent`))
                 }
 
                 public func resetLoggerLevel(_ args: ResetLoggerLevel.Argument) -> ResetLoggerLevel.ReturnType {
                     return self._query(rpc: ResetLoggerLevel.self, args: args)
                 }
-                public func resetLoggerLevel(fullName: Swift.String) -> ResetLoggerLevel.ReturnType {
-                    return self.resetLoggerLevel(ResetLoggerLevel.Argument(fullName: fullName))
+                public func `resetLoggerLevel`(`fullName`: Swift.String) -> ResetLoggerLevel.ReturnType {
+                    return self.resetLoggerLevel(ResetLoggerLevel.Argument(fullName: `fullName`))
                 }
 
                 public func listLoggers(_ args: ListLoggers.Argument) -> ListLoggers.ReturnType {
                     return self._query(rpc: ListLoggers.self, args: args)
                 }
-                public func listLoggers(prefix: Swift.String? = nil) -> ListLoggers.ReturnType {
-                    return self.listLoggers(ListLoggers.Argument(prefix: prefix))
+                public func `listLoggers`(`prefix`: Swift.String? = nil) -> ListLoggers.ReturnType {
+                    return self.listLoggers(ListLoggers.Argument(prefix: `prefix`))
                 }
 
 
@@ -755,3 +755,5 @@ public enum core : libcommon.IopPackage {
     }
     public static let classes : [libcommon.IopClass.Type] = [ LogFileConfiguration.self, LicenceModule.self, Licence.self ]
 }
+
+public typealias core_package = core

@@ -11,9 +11,9 @@ extension ic__hdr__array_t : libcommon.IopComplexTypeArray { }
 
 extension ic__ic_priority__t : libcommon.IopEnum {
     public static let descriptor = ic__ic_priority__ep
-    public static let min : Swift.Int32 = IC_PRIORITY_min
-    public static let max : Swift.Int32 = IC_PRIORITY_max
-    public static let count : Swift.Int32 = IC_PRIORITY_count
+    public static let min : Swift.Int32 = Swift.Int32(IC_PRIORITY_min)
+    public static let max : Swift.Int32 = Swift.Int32(IC_PRIORITY_max)
+    public static let count : Swift.Int32 = Swift.Int32(IC_PRIORITY_count)
 }
 extension ic__ic_priority__array_t : libcommon.IopSimpleArray { }
 extension ic__ic_priority__opt_t : libcommon.IopOptional { }
@@ -24,13 +24,13 @@ public enum ic : libcommon.IopPackage {
     public struct Tracer : libcommon.IopStruct {
         public static let descriptor = ic__tracer__sp
 
-        public var token : Swift.UInt64
-        public var epoch : Swift.UInt64
+        public var `token` : Swift.UInt64
+        public var `epoch` : Swift.UInt64
 
-        public init(token: Swift.UInt64,
-                    epoch: Swift.UInt64) {
-            self.token = token
-            self.epoch = epoch
+        public init(`token`: Swift.UInt64,
+                    `epoch`: Swift.UInt64) {
+            self.token = `token`
+            self.epoch = `epoch`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -49,25 +49,25 @@ public enum ic : libcommon.IopPackage {
     public struct SimpleHdr : libcommon.IopStruct {
         public static let descriptor = ic__simple_hdr__sp
 
-        public var login : Swift.String?
-        public var password : Swift.String?
-        public var kind : Swift.String?
-        public var payload : Swift.Int32
-        public var host : Swift.String?
-        public var group : Swift.String?
+        public var `login` : Swift.String?
+        public var `password` : Swift.String?
+        public var `kind` : Swift.String?
+        public var `payload` : Swift.Int32
+        public var `host` : Swift.String?
+        public var `group` : Swift.String?
 
-        public init(login: Swift.String? = nil,
-                    password: Swift.String? = nil,
-                    kind: Swift.String? = nil,
-                    payload: Swift.Int32 = -1,
-                    host: Swift.String? = nil,
-                    group: Swift.String? = nil) {
-            self.login = login
-            self.password = password
-            self.kind = kind
-            self.payload = payload
-            self.host = host
-            self.group = group
+        public init(`login`: Swift.String? = nil,
+                    `password`: Swift.String? = nil,
+                    `kind`: Swift.String? = nil,
+                    `payload`: Swift.Int32 = -1,
+                    `host`: Swift.String? = nil,
+                    `group`: Swift.String? = nil) {
+            self.login = `login`
+            self.password = `password`
+            self.kind = `kind`
+            self.payload = `payload`
+            self.host = `host`
+            self.group = `group`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -82,21 +82,21 @@ public enum ic : libcommon.IopPackage {
 
         public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: ic__simple_hdr__t.self, capacity: 1)
-            if let login = self.login {
-                data.pointee.login = login.duplicated(on: allocator)
+            if let login_val = self.login {
+                data.pointee.login = login_val.duplicated(on: allocator)
             }
-            if let password = self.password {
-                data.pointee.password = password.duplicated(on: allocator)
+            if let password_val = self.password {
+                data.pointee.password = password_val.duplicated(on: allocator)
             }
-            if let kind = self.kind {
-                data.pointee.kind = kind.duplicated(on: allocator)
+            if let kind_val = self.kind {
+                data.pointee.kind = kind_val.duplicated(on: allocator)
             }
             data.pointee.payload = self.payload
-            if let host = self.host {
-                data.pointee.host = host.duplicated(on: allocator)
+            if let host_val = self.host {
+                data.pointee.host = host_val.duplicated(on: allocator)
             }
-            if let group = self.group {
-                data.pointee.group = group.duplicated(on: allocator)
+            if let group_val = self.group {
+                data.pointee.group = group_val.duplicated(on: allocator)
             }
         }
     }
@@ -128,39 +128,39 @@ public enum ic : libcommon.IopPackage {
             return ic__routing_hdr__sp
         }
 
-        public var route : ic.Route
-        public var ttl : Swift.Int32
-        public var priority : ic.IcPriority
-        public var tracer : ic.Tracer?
-        public var originalHdr : ic.Hdr?
+        public var `route` : ic_package.Route
+        public var `ttl` : Swift.Int32
+        public var `priority` : ic_package.IcPriority
+        public var `tracer` : ic_package.Tracer?
+        public var `originalHdr` : ic_package.Hdr?
 
-        public init(route: ic.Route,
-                    ttl: Swift.Int32,
-                    priority: ic.IcPriority = ic.IcPriority(rawValue: 1),
-                    tracer: ic.Tracer? = nil,
-                    originalHdr: ic.Hdr? = nil) {
-            self.route = route
-            self.ttl = ttl
-            self.priority = priority
-            self.tracer = tracer
-            self.originalHdr = originalHdr
+        public init(`route`: ic_package.Route,
+                    `ttl`: Swift.Int32,
+                    `priority`: ic_package.IcPriority = ic_package.IcPriority(rawValue: 1),
+                    `tracer`: ic_package.Tracer? = nil,
+                    `originalHdr`: ic_package.Hdr? = nil) {
+            self.route = `route`
+            self.ttl = `ttl`
+            self.priority = `priority`
+            self.tracer = `tracer`
+            self.originalHdr = `originalHdr`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1).pointee
-            self.route = try ic.Route.make(Swift.UnsafeRawPointer(data.route)!)
+            self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.route)!)
             self.ttl = data.ttl
             self.priority = data.priority
-            if let tracer = data.tracer {
+            if let tracer_val = data.tracer {
                 
-                var tracer = tracer
-                self.tracer = try ic.Tracer(&tracer)
+                var tracer_var = tracer_val
+                self.tracer = try ic_package.Tracer(&tracer_var)
                 
              }
-            if let originalHdr = data.original_hdr {
+            if let originalHdr_val = data.original_hdr {
                 
-                var originalHdr = originalHdr
-                self.originalHdr = try ic.Hdr(&originalHdr)
+                var originalHdr_var = originalHdr_val
+                self.originalHdr = try ic_package.Hdr(&originalHdr_var)
                 
              }
         }
@@ -170,11 +170,11 @@ public enum ic : libcommon.IopPackage {
             data.pointee.route = self.route.duplicated(on: allocator).bindMemory(to: ic__route__t.self, capacity: 1)
             data.pointee.ttl = self.ttl
             data.pointee.priority = self.priority
-            if let tracer = self.tracer {
-                data.pointee.tracer = tracer.duplicated(on: allocator).bindMemory(to: ic__tracer__t.self, capacity: 1)
+            if let tracer_val = self.tracer {
+                data.pointee.tracer = tracer_val.duplicated(on: allocator).bindMemory(to: ic__tracer__t.self, capacity: 1)
             }
-            if let originalHdr = self.originalHdr {
-                data.pointee.original_hdr = originalHdr.duplicated(on: allocator).bindMemory(to: ic__hdr__t.self, capacity: 1)
+            if let originalHdr_val = self.originalHdr {
+                data.pointee.original_hdr = originalHdr_val.duplicated(on: allocator).bindMemory(to: ic__hdr__t.self, capacity: 1)
             }
         }
     }
@@ -182,16 +182,16 @@ public enum ic : libcommon.IopPackage {
     public indirect enum Hdr : libcommon.IopUnion {
         public static let descriptor =  ic__hdr__sp
 
-        case simple(ic.SimpleHdr)
-        case routing(ic.RoutingHdr)
+        case `simple`(ic_package.SimpleHdr)
+        case `routing`(ic_package.RoutingHdr)
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
             let (tag, data) = type(of: self)._explode(c)
             switch tag {
               case 1:
-                self = .simple(try ic.SimpleHdr(data))
+                self = .simple(try ic_package.SimpleHdr(data))
               case 2:
-                self = .routing(try ic.RoutingHdr(data))
+                self = .routing(try ic_package.RoutingHdr(data))
               default:
                 throw libcommon.IopImportError.invalidUnionTag(type(of: self).descriptor, tag)
             }
@@ -200,12 +200,12 @@ public enum ic : libcommon.IopPackage {
         public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let (tag, data) = type(of: self)._explode(c)
             switch self {
-              case .simple(let simple):
+              case .simple(let simple_val):
                 tag[0] = 1
-                simple.fill(data, on: allocator)
-              case .routing(let routing):
+                simple_val.fill(data, on: allocator)
+              case .routing(let routing_val):
                 tag[0] = 2
-                routing.fill(data, on: allocator)
+                routing_val.fill(data, on: allocator)
             }
         }
     }
@@ -216,3 +216,5 @@ public enum ic : libcommon.IopPackage {
     }
     public static let classes : [libcommon.IopClass.Type] = [ Route.self ]
 }
+
+public typealias ic_package = ic
