@@ -69,6 +69,13 @@ void sha2_finish_hex(sha2_ctx * nonnull ctx, char output[65]) __leaf;
 void sha2(const void * nonnull input, int ilen, byte output[32], int is224)
     __leaf;
 
+/* \brief          64-bit output = SHA-2(input buffer)
+ *
+ * \param data     buffer holding the data
+ * \param len      length of the input data
+ */
+uint64_t sha2_hash_64(const void * nonnull data, int len) __leaf;
+
 /**
  * \brief          Output = SHA-256(input buffer)
  *

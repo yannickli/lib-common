@@ -62,6 +62,13 @@ void md5_finish_hex(md5_ctx * nonnull ctx, char output[33]) __leaf;
  */
 void md5(const void * nonnull input, int ilen, byte output[16]) __leaf;
 
+/* \brief          64-bit output = MD5(input buffer)
+ *
+ * \param data     buffer holding the data
+ * \param len      length of the input data
+ */
+uint64_t md5_hash_64(const void * nonnull data, int len) __leaf;
+
 /**
  * \brief          Output = MD5(input buffer)
  *

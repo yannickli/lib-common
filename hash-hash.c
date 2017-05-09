@@ -430,8 +430,8 @@ void murmur_hash3_x86_128(const void *key, size_t len,
     ((uint32_t *)out)[3] = h4;
 }
 
-static void murmur_hash3_x64_128_(const void *key, const size_t len,
-                                  const uint32_t seed, char out[static 16])
+void murmur_hash3_x64_128(const void *key, size_t len,
+                          uint32_t seed, char out[static 16])
 {
     const uint8_t *data = (const uint8_t*)key;
     const size_t nblocks = len / 16;
@@ -508,11 +508,32 @@ static void murmur_hash3_x64_128_(const void *key, const size_t len,
     ((uint64_t*)out)[1] = h2;
 }
 
-void murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed, char out[static 16])
+/* {{{ Hashers */
+
+uint64_t identity_hash_64(const void *data, int len)
 {
-    murmur_hash3_x64_128_(key, len, seed, out);
+    uint64_t v = 0;
+
+    if (len >= ssizeof(uint64_t)) {
+        return *(uint64_t *)data;
+    } else {
+        memcpy(&v, data, len);
+        return v;
+    }
 }
 
+uint64_t murmur3_128_hash_64(const void *data, int len)
+{
+    union {
+        char b[16];
+        uint64_t u[2];
+    } res;
+
+    murmur_hash3_x64_128(data, len, 0, res.b);
+    return res.u[0] ^ res.u[1];
+}
+
+/* }}} */
 /* {{{ Tests */
 
 /* LCOV_EXCL_START */

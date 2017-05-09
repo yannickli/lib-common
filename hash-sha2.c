@@ -53,6 +53,17 @@ void sha2_finish_hex( sha2_ctx *ctx, char output[65] )
                       ctx->is224 ? SHA224_DIGEST_SIZE : SHA256_DIGEST_SIZE);
 }
 
+uint64_t sha2_hash_64(const void *data, int len)
+{
+    union {
+        byte b[32];
+        uint64_t u[4];
+    } res;
+
+    sha2(data, len, res.b, false);
+    return res.u[0] ^ res.u[1] ^ res.u[2] ^ res.u[3];
+}
+
 /*
  * output = SHA-256( input buffer )
  */

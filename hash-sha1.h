@@ -62,6 +62,14 @@ void sha1_finish_hex(sha1_ctx * nonnull ctx, char output[41]) __leaf;
  */
 void sha1(const void * nonnull input, int ilen, byte output[20]) __leaf;
 
+
+/* \brief          64-bit output = SHA-1(input buffer)
+ *
+ * \param data     buffer holding the data
+ * \param len      length of the input data
+ */
+uint64_t sha1_hash_64(const void * nonnull data, int len) __leaf;
+
 /**
  * \brief          Output = SHA-1(input buffer)
  *

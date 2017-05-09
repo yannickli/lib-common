@@ -276,6 +276,17 @@ void md5( const void *input, int ilen, byte output[16] )
     memset( &ctx, 0, sizeof( md5_ctx ) );
 }
 
+uint64_t md5_hash_64(const void *data, int len)
+{
+    union {
+        byte b[16];
+        uint64_t u[2];
+    } res;
+
+    md5(data, len, res.b);
+    return res.u[0] ^ res.u[1];
+}
+
 /*
  * output = MD5( input buffer )
  */

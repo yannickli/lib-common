@@ -149,6 +149,20 @@ static inline uint32_t u64_hash32(uint64_t u64)
     return (uint32_t)(u64) ^ (uint32_t)(u64 >> 32);
 }
 
+uint64_t identity_hash_64(const void * nonnull data, int len);
+
+uint64_t murmur3_128_hash_64(const void * nonnull data, int len);
+
+static inline uint64_t crc64_hash_64(const void * nonnull data, int len)
+{
+    return icrc64(0, data, len);
+}
+
+static inline uint64_t hsieh_hash_64(const void * nonnull data, int len)
+{
+    return hsieh_hash(data, len);
+}
+
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop
 #endif

@@ -311,6 +311,17 @@ void sha1( const void *input, int ilen, byte output[20] )
     memset( &ctx, 0, sizeof( sha1_ctx ) );
 }
 
+uint64_t sha1_hash_64(const void *data, int len)
+{
+    union {
+        byte b[20];
+        uint64_t u[2];
+    } res;
+
+    sha1(data, len, res.b);
+    return res.u[0] ^ res.u[1];
+}
+
 /*
  * output = SHA-1( input buffer )
  */
