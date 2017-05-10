@@ -11,13 +11,18 @@
 #                                                                        #
 ##########################################################################
 
-mcms_PROGRAMS = str-ctype-maker
+_PROGRAMS = str-ctype-maker farchc
+_LIBS = -lrt -ldl -lpthread
 
 str-ctype-maker_SOURCES = \
 	str-ctype-maker.c \
 	\
 	$llibcommon.a
 
-str-ctype-maker_LIBS = -lrt -ldl -lpthread
+farchc_SOURCES = \
+	farchc.c \
+	\
+	$llibcommon.a
+farchc_NOGENERATED = 1
 
 include ../Build/base.mk

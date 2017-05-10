@@ -44,12 +44,14 @@ endef
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/expand/fc
-$~$3.c.dep: $3
+$~$3.c.dep: $3 $(patsubst $/%,%,$ltools/farchc)
 	$(msg/generate) $3
-	farchc -c -d $~$3.c.dep -o $3.c $$<
-$3.c: $3
+	mkdir -p $(dir $~$3.c.dep)
+	$ltools/farchc -c -d $~$3.c.dep -o $3.c $$<
+$3.c: $3 $(patsubst $/%,%,$ltools/farchc)
 	$(msg/generate) $3
-	farchc -c -d $~$3.c.dep -o $3.c $$<
+	mkdir -p $(dir $~$3.c.dep)
+	$ltools/farchc -c -d $~$3.c.dep -o $3.c $$<
 -include $~$3.c.dep
 endef
 
