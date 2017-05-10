@@ -57,6 +57,7 @@ define ext/rule/fc
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/fc,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 _generated: $(3:=.c)
+$(if $($1_NOGENERATED),$(filter-out %.fc,$($1_SOURCES)): $(3:=.c))
 endef
 
 #}}}
@@ -75,10 +76,10 @@ $~$3.dep $3.c: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) 
 $~$3.dep $3.c: IOPCLASSRANGE_=$(firstword $($(1DV)_IOPCLASSRANGE) $($1_IOPCLASSRANGE) $($3_IOPCLASSRANGE))
 $~$3.dep $3.c: IOPSWIFTDEPS_=$(firstword $($(1DV)_SWIFTDEPS) $($1_SWIFTDEPS) $($3_SWIFTDEPS))
 $~$3.dep $3.c: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPVER))
-$~$3.dep $3.c: $3 $(IOPC)
+$~$3.dep $3.c: $3 $(patsubst $/%,%,$liopc/iopc)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) $$(IOPVER_) $(IOPFLAGS) -l c,json$(if $(SWIFTC),$(var/comma)swift) \
+	$liopc/iopc $$(IOPVER_) $(IOPFLAGS) -l c,json$(if $(SWIFTC),$(var/comma)swift) \
 	    -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) --json-output-path $$(IOPJSONPATH_) \
 	    $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) \
 	    $(if $(SWIFTC),$$(if $$(IOPSWIFTDEPS_),--swift-import-modules $$(IOPSWIFTDEPS_))) $$<
@@ -125,7 +126,8 @@ $(foreach t,$3,$(eval $3.c_NOCHECK = block))
 $3.c: FL_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
 $3.c: FLAGS_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
 $3.c: CLANGFLAGS_=$($(1DV)_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
-$3.c: $3 $(CLANG) | _generated_hdr
+$3.c: $3 $(CLANG) $(if $($1_NOGENERATED),,| _generated_hdr)
+
 	$(msg/COMPILE) " BLK" $3
 	$(CLANG) $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 		-x c -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \
@@ -149,7 +151,7 @@ $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
 $3.cc: FL_=$($(1DV)_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
 $3.cc: FLAGS_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
 $3.cc: CLANGXXFLAGS_=$($(1DV)_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
-$3.cc: $3 $(CLANGXX) | _generated_hdr
+$3.cc: $3 $(CLANGXX) $(if $($1_NOGENERATED),,| _generated_hdr)
 	$(msg/COMPILE) " BLK" $3
 	$(CLANGXX) $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 		-x c++ -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \

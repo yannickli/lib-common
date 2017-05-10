@@ -85,7 +85,6 @@ libcommon_SOURCES = \
 	core-types.blk \
 	core-version.c \
 	core-errors.c \
-	core.iop.c \
 	core-module.c \
 	qpage.c \
 	core.swift \
@@ -187,7 +186,7 @@ libcommon_SOURCES = \
 	http-srv-static.c \
 	http-def.c \
 	http-hdr.perf \
-	http.tokens \
+	httptokens.c \
 	\
 	xmlpp.c \
 	xmlr.c \
@@ -203,6 +202,7 @@ libcommon_SOURCES += net-sctp.c
 endif
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
+libcommon_NOGENERATED = 1
 
 libcommon-iop_SOURCES = $(ioplibs)
 
@@ -217,10 +217,10 @@ common_LIBS = $(python2_LIBS)
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ifeq (,$(TOOLS_REPOSITORY))
-core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
+core-iop-plugin_SOURCES = iop-core/core.iop core-iop-plugin.c
 
 zchk-iop-plugin_SOURCES =  \
-    ic.iop                                                               \
+    iop-core/ic.iop                                                      \
     zchk-iop-plugin.c                                                    \
     zchk-iop-ressources.c
 

@@ -43,7 +43,7 @@ endef
 
 define fun/foreach-ext-rule
 $(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4,$5)
-$2: | _generated
+$(if $($1_NOGENERATED),,$2: | _generated)
 endef
 
 include $(var/toolsdir)/rules-backend.mk
@@ -399,7 +399,7 @@ __dump_targets:
 	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
 		$(foreach vv,$($v),\
 			echo '$.$(vv) += $(call fun/exportvars,$(CURDIR),$($(vv)))';))
-	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %CFLAGSBASE %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH %_SWIFTMODULE %_SWIFTMIXED %_SWIFTDEPS,$(filter-out MAKE%,$(.VARIABLES))),\
+	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %CFLAGSBASE %INCPATH %JSONPATH %CLASSRANGE %IOPVER %_SOVERSION %_NOCHECK %_CLASSPATH %_SWIFTMODULE %_SWIFTMIXED %_SWIFTDEPS %_NOGENERATED,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'

@@ -84,7 +84,7 @@ define ext/expand/c
 $5: NOCHECK_=$$(NOCHECK)$(findstring clang,$(CC_BASE))$($(1DV)_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)$(findstring .iop.c,$3)
 $5: FLAGS_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
 $5: CLANGFLAGS_=$($(1DV)_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
-$5: $3 | _generated
+$5: $3 $(if $($1_NOGENERATED),,| _generated)
 	mkdir -p $$(@D)
 	$$(if $$(NOCHECK_),,$(msg/CHECK.c) $3)
 	$$(if $$(NOCHECK_),,clang $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
@@ -113,7 +113,7 @@ define ext/expand/cc
 $5: NOCHECK_=$$(NOCHECK)$(findstring clang,$(CXX_BASE))$($(1DV)_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
 $5: FLAGS_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
 $5: CLANGXXFLAGS_=$($(1DV)_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
-$5: $3 | _generated
+$5: $3 $(if $($1_NOGENERATED),,| _generated)
 	mkdir -p $$(@D)
 	$$(if $$(NOCHECK_),,$(msg/CHECK.C) $3)
 	$$(if $$(NOCHECK_),,clang++ $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
@@ -165,7 +165,6 @@ define ext/rule/l
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
 $(eval $(call ext/rule/c,$1,$2,$(3:l=c),$4))
 $(eval $(call fun/common-depends,$1,$(3:l=c),$3))
-_generated: $(3:l=c)
 endef
 
 #}}}
@@ -208,7 +207,7 @@ swift/$2/map  := $~$$(swift/$2/mod)$$(swift/$2/ns)-map.json
 
 $2: $$(swift/$2/objs)
 
-$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foundation' | grep -v 'Swift' | grep -v 'Glibc' | grep -v 'Darwin' | awk '{ print $$$$2 }'),$~$$m.swiftmodule) | _generated
+$$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foundation' | grep -v 'Swift' | grep -v 'Glibc' | grep -v 'Darwin' | awk '{ print $$$$2 }'),$~$$m.swiftmodule) $(if $($1_NOGENERATED),,| _generated)
 	echo '{ $$(foreach s,$3,"$$s": { "object": "$$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT).o,$$s)", "swiftmodule": "$$(patsubst %.swift,$~%~partial$4.swiftmodule,$$s)" },) }' > $$@
 
 $$(swift/$2/objs): $$(swift/$2/map) $3

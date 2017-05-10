@@ -21,6 +21,7 @@ iopc_SOURCES = \
     libiopc.a                       \
     $lcore-version.c                \
     $llibcommon.a
+iopc_NOGENERATED = 1
 
 libiopc_SOURCES = \
     iopc.fc                   \
@@ -29,11 +30,12 @@ libiopc_SOURCES = \
     iopc-parser.c             \
     iopc-pretty.c             \
     iopc-typer.blk            \
-    iopc.tokens               \
+    iopctokens.c              \
     iopc-write.c              \
     \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
     iopc-lang-swift.c
+libiopc_NOGENERATED = 1
 
 include ../Build/base.mk

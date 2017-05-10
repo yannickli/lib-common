@@ -10,8 +10,6 @@
 /conf-parser.c
 /core-version.c
 /http-hdr.c
-/httptokens.c
-/httptokens.h
 
 /zchk
 /zchk-iop-plugin.so
