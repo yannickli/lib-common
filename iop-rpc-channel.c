@@ -952,8 +952,9 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
     pstream_t ps = ps_init(data, dlen);
     bool do_copy = false;
 
-#define QUERY_FMT      "query %04x:%04x, type %s: "
-#define QUERY_FMT_ARG  (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s
+#define QUERY_FMT  "query %04x:%04x, type %s: "
+#define QUERY_FMT_ARG  \
+    (cmd >> 16) & 0x7fff, cmd & 0x7fff, (st ? st->fullname.s : "<nil>")
 
     if (ic_is_local(ic) && !unpacked_msg) {
         /* IOP payload comes from a volatile ic_msg_t that will be destroy
@@ -995,8 +996,8 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
     }
 
     if (value) {
-        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value
-                                       , do_copy) < 0))
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value,
+                                       do_copy) < 0))
         {
             const char *err = iop_get_err();
 
@@ -1028,7 +1029,8 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
 #undef QUERY_FMT_ARG
 }
 
-static ALWAYS_INLINE void
+/* Returns an error if the ic must be closed with ic_mark_disconnected. */
+static ALWAYS_INLINE __must_check__ int
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                       uint32_t flags, const void *data, int dlen,
                       const ic_msg_t *unpacked_msg)
@@ -1051,7 +1053,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (slot) {
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_UNIMPLEMENTED);
         }
-        return;
+        return 0;
     }
     e = ic->impl->values + pos;
     st = e->rpc ? e->rpc->args : NULL;
@@ -1081,7 +1083,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         }
         ic->desc = NULL;
         ic->cmd  = 0;
-        return;
+        return 0;
       }
 
       case IC_CB_PROXY_P:
@@ -1142,7 +1144,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic->cmd = cmd;
             if (ic_query_do_pre_hook(ic, query_slot, hdr, e) < 0) {
                 ic->cmd = 0;
-                return;
+                return 0;
             }
             if (!slot) {
                 ic_query_do_post_hook(ic, cmd, query_slot);
@@ -1204,17 +1206,17 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         }
         ___ic_query_flags(pxy, tmp, flags);
     }
-    return;
+    return 0;
 
   invalid_iop:
     if (slot) {
         lstr_t err_str = iop_get_err_lstr();
         ic_reply_err2(ic, query_slot, IC_MSG_INVALID, &err_str);
     }
-    if (!iop_get_err()) {
-        /* Close connection unless we just had a constraint violation */
-        ic_bye(ic);
-    }
+
+    /* Close connection unless we just had a constraint violation */
+    THROW_ERR_UNLESS(iop_get_err());
+    return 0;
 }
 
 /* Check flag consistency.
@@ -1444,7 +1446,12 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                                  IC_MSG_RETRY);
                 }
             } else {
-                ic_read_process_query(ic, cmd, slot, flags, data, dlen, NULL);
+                if (ic_read_process_query(ic, cmd, slot, flags, data, dlen,
+                                          NULL) < 0)
+                {
+                    errno = 0;
+                    goto close_and_error_out;
+                }
             }
         }
 
@@ -1812,8 +1819,11 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
             dlen = 0;
             unpacked_msg = msg;
         }
-        ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
-                              unpacked_msg);
+        if (ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
+                                  unpacked_msg) < 0)
+        {
+            e_panic("invalid query for local ic");
+        }
         if (async) {
             ic_msg_delete(&msg);
         }
