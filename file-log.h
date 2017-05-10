@@ -64,6 +64,7 @@ typedef struct log_file_t {
     };
 
     uint32_t flags;
+    uint32_t mode;
     uint64_t total_size;
     int      max_size;
     int      max_files;
@@ -116,6 +117,7 @@ void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize);
 void
 log_file_set_file_cb(log_file_t *file, log_file_cb_f *on_event,
                      void *priv);
+void log_file_set_mode(log_file_t *file, uint32_t mode);
 
 int log_fwrite(log_file_t *log_file, const void *data, size_t len);
 int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen);
