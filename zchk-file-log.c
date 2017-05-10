@@ -29,6 +29,27 @@ static void on_cb(struct log_file_t *file, enum log_file_event event,
     _G.events[event]++;
 }
 
+static int z_check_file_permission(const char *prefix, uint32_t mode)
+{
+    glob_t globbuf;
+    char buf[PATH_MAX];
+    struct stat st;
+
+    snprintf(buf, sizeof(buf), "%s_????????_??????.log", prefix);
+    Z_ASSERT_EQ(glob(buf, GLOB_BRACE, NULL, &globbuf), 0);
+
+    Z_ASSERT_EQ(globbuf.gl_pathc, 1u);
+
+    Z_ASSERT_EQ(stat(globbuf.gl_pathv[0], &st), 0);
+    Z_ASSERT_EQ(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO), mode);
+
+    Z_ASSERT_EQ(unlink(globbuf.gl_pathv[0]), 0);
+
+    globfree(&globbuf);
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(file_log)
 {
 #define RANDOM_DATA_SIZE  (2 << 20)
@@ -114,4 +135,28 @@ Z_GROUP_EXPORT(file_log)
     } Z_TEST_END;
 #undef RANDOM_DATA_SIZE
 #undef NB_FILES
+
+    Z_TEST(file_log_mode, "check file permissions") {
+        t_scope;
+        lstr_t path;
+        log_file_t *log_file;
+
+        Z_TEST_FLAGS("redmine_52590");
+
+        path = t_lstr_fmt("%*pMtmp_log_mode", LSTR_FMT_ARG(z_tmpdir_g));
+
+        log_file = log_file_new(path.s, 0);
+        Z_ASSERT_EQ(log_file_open(log_file, false), 0);
+        Z_ASSERT_EQ(log_file_close(&log_file), 0);
+
+        /* check default perm of file */
+        Z_HELPER_RUN(z_check_file_permission(path.s, 0644u));
+
+        log_file = log_file_new(path.s, 0);
+        log_file_set_mode(log_file, 0640);
+        Z_ASSERT_EQ(log_file_open(log_file, false), 0);
+        Z_ASSERT_EQ(log_file_close(&log_file), 0);
+
+        Z_HELPER_RUN(z_check_file_permission(path.s, 0640u));
+    } Z_TEST_END;
 } Z_GROUP_END
