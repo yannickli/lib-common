@@ -214,7 +214,7 @@ $$(swift/$2/map): $3 $$(foreach m,$$(shell grep -h '^import ' $3 | grep -v 'Foun
 $$(swift/$2/objs): $$(swift/$2/map) $3
 $$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT)%o,$3): $3
 	$(msg/COMPILE.swift) $$(swift/$2/mod)
-	-rm $$(swift/$2/objs)
+	-rm -f $$(swift/$2/objs)
 	$(SWIFTC) -emit-dependencies -emit-object -module-name $$(swift/$2/mod) \
 		$$(swift/$2/swiftflags) \
 		$(if $($1_SWIFTMIXED),-import-underlying-module) \
