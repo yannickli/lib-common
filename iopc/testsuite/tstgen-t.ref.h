@@ -30,6 +30,16 @@ typedef tstgen__my_struct_a__t my_struct_a__t;
 typedef tstgen__my_struct_a__array_t my_struct_a__array_t;
 #define my_struct_a__s  tstgen__my_struct_a__s
 
+struct tstgen__optimized__t {
+    bool     f1;
+    bool     f3;
+    int64_t  f2;
+    int64_t  f4;
+};
+extern iop_struct_t const tstgen__optimized__s;
+extern iop_struct_t const * const  tstgen__optimized__sp;
+IOP_GENERIC(tstgen__optimized);
+
 struct tstgen__my_class_a__t {
     const iop_struct_t *__vptr;
 };
