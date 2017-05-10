@@ -84,28 +84,33 @@ static iopc_field_t *iopc_struct_bubble_field(iopc_struct_t *st, int pos, size_t
     return tab[0];
 }
 
-void iopc_struct_sort_fields(iopc_struct_t *st, sorted_t how)
+void iopc_struct_sort_fields(iopc_struct_t *st, sort_order_t order)
 {
-    if (st->fields_sorted == how) {
+    if (st->fields_sort_order == order) {
         return;
     }
-    switch(how) {
+
+    switch (order) {
       case BY_TAG:
         qv_sort(iopc_field)(&st->fields,
             ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
                 return (*f1)->tag - (*f2)->tag;
             });
         break;
+
       case BY_POS:
         qv_sort(iopc_field)(&st->fields,
             ^int (iopc_field_t * const *f1, iopc_field_t * const *f2) {
                 return (*f1)->pos - (*f2)->pos;
             });
         break;
-      default:
-        assert (0);
+
+      case UNSORTED:
+        assert (false);
+        break;
     }
-    st->fields_sorted = how;
+
+    st->fields_sort_order = order;
     st->optimized = false;
 }
 
@@ -178,7 +183,7 @@ static void iopc_struct_optimize(iopc_struct_t *st)
 
     st->optimized = true;
     if (do_reorder) {
-        st->fields_sorted = UNSORTED;
+        st->fields_sort_order = UNSORTED;
     }
 }
 

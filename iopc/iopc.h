@@ -727,11 +727,11 @@ static inline void iopc_attrs_wipe(iopc_attrs_t *attrs)
 /* Used to detect duplicated ids in an inheritance tree */
 qm_k32_t(id_class, struct iopc_struct_t *);
 
-typedef enum {
+typedef enum sort_order_t {
     UNSORTED,
     BY_POS,
     BY_TAG,
-} sorted_t;
+} sort_order_t;
 
 typedef struct iopc_struct_t {
     uint16_t   size;
@@ -755,7 +755,6 @@ typedef struct iopc_struct_t {
     bool       contains_snmp_info : 1;
     /* C writer */
     bool       c_hdr_written : 1;
-    sorted_t   fields_sorted;
     unsigned   flags;                       /**< st.flags                   */
 
     char      *name;
@@ -766,6 +765,7 @@ typedef struct iopc_struct_t {
     };
     struct iopc_struct_t *same_as;
     struct iopc_iface_t  *iface;
+    sort_order_t       fields_sort_order;
     qv_t(iopc_field)   fields;
     qv_t(iopc_field)   static_fields;
     int                nb_real_static_fields; /**< those with a defval */
@@ -1024,7 +1024,7 @@ void iopc_get_depends(iopc_pkg_t *pkg,
 /*----- utilities -----*/
 
 int iopc_field_get_signed(const iopc_field_t *f, bool *is_signed);
-void iopc_struct_sort_fields(iopc_struct_t *st, sorted_t how);
+void iopc_struct_sort_fields(iopc_struct_t *st, sort_order_t order);
 
 /*----- writing output files -----*/
 
