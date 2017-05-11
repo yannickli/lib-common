@@ -103,6 +103,7 @@
 #if  !__has_feature(generalized_swift_name)
 # define __swift_name__(name)
 #else
+#define HAS_SWIFT
 # define __swift_name__(name)  __attribute__((swift_name(name)))
 #endif
 
