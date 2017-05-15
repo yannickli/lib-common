@@ -153,15 +153,11 @@ public enum ic : libcommon.IopPackage {
             self.priority = data.priority
             if let tracer_val = data.tracer {
                 
-                var tracer_var = tracer_val
-                self.tracer = try ic_package.Tracer(&tracer_var)
-                
+                self.tracer = try ic_package.Tracer(tracer_val)
              }
             if let originalHdr_val = data.original_hdr {
                 
-                var originalHdr_var = originalHdr_val
-                self.originalHdr = try ic_package.Hdr(&originalHdr_var)
-                
+                self.originalHdr = try ic_package.Hdr(originalHdr_val)
              }
         }
 

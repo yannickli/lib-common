@@ -352,6 +352,11 @@ static void iopc_dump_struct_value_importer(sb_t *buf, const char *indent,
             sb_addf(buf, "%s        %s try ", indent, action);
             iopc_dump_field_basetype(buf, field);
             sb_addf(buf, "(Swift.UnsafeRawPointer(%s)!)", source);
+        } else
+        if (field->repeat == IOP_R_OPTIONAL) {
+            sb_addf(buf, "\n%s        %s try ", indent, action);
+            iopc_dump_field_basetype(buf, field);
+            sb_addf(buf, "(%s)", source);
         } else {
             sb_addf(buf,
                     "\n"
