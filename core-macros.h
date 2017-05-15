@@ -639,5 +639,21 @@ typedef unsigned char byte;
 #define readdir_r(...)  NEVER_USE_readdir_r(__VA_ARGS__)
 
 /* }}} */
+/* {{{ SWIFT */
+
+/** The symbol of a swift func () -> Void.
+ *
+ * \param mod      name of the swift module of the function.
+ * \param mod_len  len of mod.
+ * \param func     name of the function.
+ * \param func_len len of func
+ */
+#define SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)  \
+    _TF##_mod_len##_mod##_func_len##_func##FT_T_
+
+#define DECLARE_SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)  \
+    void SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)(void)
+
+/* }}} */
 /** \} */
 #endif
