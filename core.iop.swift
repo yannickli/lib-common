@@ -36,15 +36,15 @@ extension core__iop_http_method__array_t : libcommon.IopSimpleArray { }
 extension core__iop_http_method__opt_t : libcommon.IopOptional { }
 
 public protocol core__modules__Core : libcommon.IopModule {
-    var `log` : core.interfaces.Log.Impl { get }
-    static var `log` : core.interfaces.Log { get }
+    var `log` : core_package.interfaces.Log.Impl { get }
+    static var `log` : core_package.interfaces.Log { get }
 }
 public extension core__modules__Core {
-    public var `log` : core.interfaces.Log.Impl {
-        return core.interfaces.Log.Impl(channel: self.channel, tag: 16384)
+    public var `log` : core_package.interfaces.Log.Impl {
+        return core_package.interfaces.Log.Impl(channel: self.channel, tag: 16384)
     }
-    public static var `log` : core.interfaces.Log {
-        return core.interfaces.Log(tag: 16384)
+    public static var `log` : core_package.interfaces.Log {
+        return core_package.interfaces.Log(tag: 16384)
     }
 }
 

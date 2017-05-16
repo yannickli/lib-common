@@ -68,23 +68,34 @@ static void iopc_dump_string_literal(sb_t *buf, const char *str)
     }
 }
 
-static void dump_package_alias(sb_t *buf, iopc_path_t *path)
+static void dump_package_alias_(sb_t *buf, iopc_path_t *path, int len)
 {
-    tab_for_each_entry(tok, &path->bits) {
-        sb_addf(buf, "%s_", tok);
+    assert (len > 0 && len <= path->bits.len);
+    for (int i = 0; i < len; i++) {
+        sb_addf(buf, "%s_", path->bits.tab[i]);
     }
     sb_adds(buf, "package");
+}
+
+static void dump_package_alias(sb_t *buf, iopc_path_t *path)
+{
+    dump_package_alias_(buf, path, path->bits.len);
 }
 
 static void
 iopc_dump_package_member(sb_t *buf, iopc_path_t *path, const char *type)
 {
     assert (path->bits.len);
-    for (int i = 0; i < path->bits.len - 1; i++) {
-        sb_addf(buf, "%s.", path->bits.tab[i]);
+    for (int i = 0; i < path->bits.len; i++) {
+        dump_package_alias_(buf, path, i + 1);
+        sb_addc(buf, '.');
     }
-    dump_package_alias(buf, path);
-    sb_addf(buf, ".%s", type);
+    sb_addf(buf, "%s", type);
+}
+
+static void dump_package_interface(sb_t *buf, iopc_path_t *path)
+{
+    iopc_dump_package_member(buf, path, "interfaces");
 }
 
 static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
@@ -1196,45 +1207,33 @@ static void iopc_dump_module(sb_t *buf, iopc_struct_t *mod,
     iopc_struct_sort_fields(mod, BY_POS);
     tab_for_each_entry(field, &mod->fields) {
         sb_addf(buf, "    var `%s` : ", field->name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s.Impl { get }\n", field->type_name);
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s.Impl { get }\n", field->type_name);
 
         sb_addf(buf, "    static var `%s` : ", field->name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s { get }\n", field->type_name);
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s { get }\n", field->type_name);
     }
     sb_adds(buf, "}\n");
 
     sb_addf(buf, "public extension %s__modules__%s {\n", pkg_name, mod->name);
     tab_for_each_entry(field, &mod->fields) {
         sb_addf(buf, "    public var `%s` : ", field->name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s.Impl {\n"
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s.Impl {\n"
                 "        return ",
                 field->type_name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s.Impl(channel: self.channel, tag: %d)\n"
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s.Impl(channel: self.channel, tag: %d)\n"
                 "    }\n", field->type_name, field->tag);
 
         sb_addf(buf, "    public static var `%s` : ", field->name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s {\n"
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s {\n"
                 "        return ",
                 field->type_name);
-        tab_for_each_entry(tok, &field->type_path->bits) {
-            sb_addf(buf, "%s.", tok);
-        }
-        sb_addf(buf, "interfaces.%s(tag: %d)\n"
+        dump_package_interface(buf, field->type_path);
+        sb_addf(buf, ".%s(tag: %d)\n"
                 "    }\n", field->type_name, field->tag);
     }
     sb_adds(buf, "}\n\n");
