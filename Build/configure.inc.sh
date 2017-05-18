@@ -110,6 +110,11 @@ check_iopc() {
 check_swift() {
     SWIFT_VER=3.1
 
+    if [ -z "$SWIFT" ]; then
+        log "disabiling swift support"
+        return
+    fi
+
     if ! which "swiftc" >/dev/null 2>&1; then
         log "disabling swift support"
         return
