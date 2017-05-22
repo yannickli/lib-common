@@ -1434,7 +1434,18 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             repeats[f->repeat], types[kind]);
 
     if (!iopc_is_snmp_obj(st->type)) {
-        if (!iopc_struct_is_field_ignored(f)) {
+        if (iopc_struct_is_field_ignored(f)) {
+            if (st->type == STRUCT_TYPE_UNION) {
+                tab_for_each_entry(f2, &st->fields) {
+                    if (!iopc_struct_is_field_ignored(f2)) {
+                        sb_addf(buf,
+                                "        .data_offs = offsetof(%s__t, %s),\n",
+                                tbase, pp_to_c(f2->name));
+                        break;
+                    }
+                }
+            }
+        } else {
             sb_addf(buf,
                     "        .data_offs = offsetof(%s__t, %s),\n",
                     tbase, cname);
