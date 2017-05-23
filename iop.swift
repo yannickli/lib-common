@@ -210,7 +210,8 @@ extension IopEnum {
 /// This protocol defines the interface used to import object from C as
 /// well as create a C object from Swift.
 public protocol IopComplexType: CustomStringConvertible,
-                                CustomDebugStringConvertible
+                                CustomDebugStringConvertible,
+                                Equatable
 {
     /// Create a new object from the content of a C instance.
     ///
@@ -288,6 +289,14 @@ public extension IopComplexType {
 
     public static func make(optional c: UnsafeRawPointer?) throws -> Self? {
         return try Self(c)
+    }
+}
+
+public func ==<T: IopComplexType>(lhs : T, rhs : T) -> Bool {
+    return lhs.withC { lhsC in
+        return rhs.withC {
+            return iop_equals_desc(type(of: lhs).descriptor, lhsC, $0)
+        }
     }
 }
 
