@@ -129,10 +129,19 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, group),
         .size      = fieldsizeof(ic__simple_hdr__t, group),
     },
+    {
+        .name      = LSTR_IMMED("source"),
+        .tag       = 7,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(ic__simple_hdr__t, source),
+        .size      = fieldsizeof(ic__simple_hdr__t, source),
+    },
 };
 static int const iop__ranges__3[] = {
     0, 1,
-    6,
+    7,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),

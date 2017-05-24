@@ -25,6 +25,7 @@ struct ic__simple_hdr__t {
     int32_t  payload;
     lstr_t           host;
     lstr_t           group;
+    lstr_t           source;
 };
 EXPORT iop_struct_t const ic__simple_hdr__s;
 EXPORT iop_struct_t const * const nonnull  ic__simple_hdr__sp;
