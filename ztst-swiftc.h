@@ -19,4 +19,16 @@
 MODULE_DECLARE(c_from_swift);
 MODULE_DECLARE(swift_from_c);
 
+#define ZSWIFTC_FIELDS(pfx) \
+    OBJECT_FIELDS(pfx);     \
+    int my_id
+
+#define ZSWIFTC_METHODS(type_t) \
+    OBJECT_METHODS(type_t);    \
+    void (* nonnull set_id)(type_t * nonnull)
+
+OBJ_CLASS(zswiftc, object, ZSWIFTC_FIELDS, ZSWIFTC_METHODS)
+
+SWIFT_OBJ_DECLARE_SET_INIT_FUNC(zswiftc);
+
 #endif

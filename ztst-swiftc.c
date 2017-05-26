@@ -15,11 +15,23 @@
 #include "el.h"
 #include "unix.h"
 
+
 MODULE_SWIFT(swift_from_c, 12, swiftc, 6)
 
 static int c_from_swift_initialize(void *arg)
 {
+    t_scope;
+    zswiftc_t *obj;
     e_trace(0, "blih init");
+
+    obj = obj_mp_new(t_pool(), zswiftc);
+    e_trace(0, "obj id: %i", obj->my_id);
+
+    e_trace(0, "set id");
+    obj_vcall(obj, set_id);
+
+    e_trace(0, "obj id: %i", obj->my_id);
+
     return 0;
 }
 
@@ -28,6 +40,8 @@ static int c_from_swift_shutdown(void)
     e_trace(0, "blih shutdown");
     return 0;
 }
+
+SWIFT_OBJ_VTABLE(zswiftc, 15, swiftc, 6, fill_zswiftc, 12)
 
 MODULE_BEGIN(c_from_swift)
 MODULE_END()

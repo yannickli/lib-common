@@ -641,12 +641,46 @@ typedef unsigned char byte;
 /* }}} */
 /* {{{ SWIFT */
 
+#define SWIFT_FUNC(_mod, _func, _args)  \
+
+/** The symbol of a swift function taking a non-const pointer as parameter.
+ *
+ * The function should looks like this:
+ *      func name(_ arg: UnsafeMutablePointer<type>) {
+ *      }
+ *
+ * \param _mod  len and name of the swift module of the function.
+ * \param _func len and name of the function.
+ * \param _type len and name of the type of the pointee of the
+ *              UnsafeMutablePointer argument.
+ */
+#define SWIFT_UMP_FUNCTION(_mod, _func, _type)  \
+    _TF##_mod##_func##FGSpVSC##_type##_T_
+
+/** Declare a swift UMP function.
+ *
+ * See \ref SWIFT_UMP_FUNCTION.
+ *
+ * Adds a convenient caller alias named module_function.
+ */
+#define DECLARE_SWIFT_UMP_FUNCTION(_mod, _mod_len, _func, _func_len,         \
+                                   _type, _type_len)                         \
+    void SWIFT_UMP_FUNCTION(_mod_len##_mod,                                  \
+                            _func_len##_func,                                \
+                            _type_len##_type)(_type * nonnull _arg);         \
+    static inline void _mod##_##_func(_type * nonnull obj_class)             \
+    {                                                                        \
+        SWIFT_UMP_FUNCTION(_mod_len##_mod,                                   \
+                           _func_len##_func,                                 \
+                           _type_len##_type)(obj_class);                     \
+    }
+
 /** The symbol of a swift func () -> Void.
  *
- * \param mod      name of the swift module of the function.
- * \param mod_len  len of mod.
- * \param func     name of the function.
- * \param func_len len of func
+ * \param _mod      name of the swift module of the function.
+ * \param _mod_len  len of mod.
+ * \param _func     name of the function.
+ * \param _func_len len of func
  */
 #define SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)  \
     _TF##_mod_len##_mod##_func_len##_func##FT_T_

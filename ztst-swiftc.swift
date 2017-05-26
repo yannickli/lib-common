@@ -53,6 +53,27 @@ let swift_from_c = ({ () -> Module in
     return mod
 })()
 
+func zswiftc_set_id(_ obj: UnsafeMutablePointer<zswiftc_t>)
+{
+    print(#function)
+    obj.pointee.my_id = 42
+}
+
+func zswiftc_init(_ obj: UnsafeMutablePointer<zswiftc_t>)
+    -> UnsafeMutablePointer<zswiftc_t>
+{
+    print(#function)
+    obj.pointee.my_id = 1337
+
+    return obj
+}
+
+func fill_zswiftc(_ cls : UnsafeMutablePointer<zswiftc_class_t>) {
+    print(#function)
+    cls.pointee.set_id = zswiftc_set_id
+    zswiftc_class_set_init(cls, zswiftc_init)
+}
+
 func useVector(qv: UnsafeMutablePointer<qv_u64_t>) {
     for val in qv.pointee {
         print(val)
