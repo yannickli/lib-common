@@ -30,9 +30,7 @@
 
 unsigned long hardclock(void);
 
-/***************************************************************************/
-/* low precision time() and gettimeofday() replacements                    */
-/***************************************************************************/
+/* {{{ Low precision time() and gettimeofday() replacements */
 
 const char *lp_getsec_str(void);
 time_t lp_getsec(void);
@@ -40,9 +38,8 @@ void lp_gettv(struct timeval *);
 uint64_t lp_getmsec(void);
 uint64_t lp_getcsec(void);
 
-/***************************************************************************/
-/* miscellaneous                                                           */
-/***************************************************************************/
+/* }}} */
+/* {{{ Miscellaneous */
 
 /** Count the number of leap years since 1900.
  *
@@ -64,9 +61,8 @@ static inline bool year_is_leap_year(int year)
         || (year % 400) == 0;
 }
 
-/***************************************************************************/
-/* time.h wrappers                                                         */
-/***************************************************************************/
+/* }}} */
+/* {{{ time.h wrappers */
 
 /** Return timestamp of the start of the minute which contains
  * the timestamp \p date.
@@ -224,9 +220,8 @@ static inline int tm_diff_minutes(struct tm* from, struct tm *to)
     return nb_hours * 60 + (to->tm_min - from->tm_min);
 }
 
-/***************************************************************************/
-/* Time amount splitting and formatting                                    */
-/***************************************************************************/
+/* }}} */
+/* {{{ Time amount splitting and formatting */
 
 typedef struct time_split_t {
     int seconds;
@@ -293,9 +288,8 @@ lstr_t t_get_time_split_lstr_fr(uint64_t seconds)
     return t_get_time_split_p_lstr_fr(seconds, -1);
 }
 
-/***************************************************************************/
-/* iso8601                                                                 */
-/***************************************************************************/
+/* }}} */
+/* {{{ iso8601 */
 
 #define ISO8601_BASE_FMT          "%04d-%02d-%02dT%02d:%02d:%02d"
 #define ISO8601_BASE_FMT_ARG(tm)                                             \
@@ -508,9 +502,8 @@ static inline int time_parse_str(const char *s, time_t *res)
 
 #endif
 
-/***************************************************************************/
-/* timeval operations                                                      */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timeval operations */
 
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv, bool as_duration);
@@ -602,9 +595,8 @@ static inline int64_t timeval_to_msec(const struct timeval tv)
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
 
-/***************************************************************************/
-/* timers for benchmarks                                                   */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timers for benchmarks */
 
 /* we use gettimeofday() and getrusage() for accurate benchmark timings.
  * - clock(); returns process time, but has a precision of only 10ms
@@ -711,5 +703,7 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt);
  * if fmt is NULL, use "real: %r ms, proc:%p ms, user:%u ms, sys: %s ms"
  */
 const char *proctimer_report(proctimer_t *tp, const char *fmt);
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_TIMEVAL_H */

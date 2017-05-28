@@ -124,9 +124,8 @@ unsigned long hardclock(void)
 #endif
 
 /* }}} */
-/***************************************************************************/
-/* timeval operations                                                      */
-/***************************************************************************/
+
+/* {{{ timeval operations */
 
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
@@ -235,6 +234,9 @@ bool is_expired(const struct timeval *date,
     }
     return timeval_is_le0(timeval_sub(*date, *now));
 }
+
+/* }}} */
+/* {{{ time.h wrappers */
 
 static int localtime_(time_t date, struct tm *t)
 {
@@ -592,9 +594,8 @@ int format_timestamp(const char *fmt, time_t ts, const char *locale,
 #pragma GCC diagnostic warning "-Wformat-nonliteral"
 #endif
 
-/***************************************************************************/
-/* timers for benchmarks                                                   */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timers for benchmarks */
 
 const char *proctimer_report(proctimer_t *tp, const char *fmt)
 {
@@ -715,6 +716,9 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
     return buf;
 }
 
+/* }}} */
+/* {{{ Time amount splitting and formatting */
+
 time_split_t split_time_interval(uint64_t seconds)
 {
     time_split_t res;
@@ -791,9 +795,8 @@ lstr_t t_get_time_split_p_lstr_fr(uint64_t seconds, int precision)
 
 #undef ADD_FIELD
 
-/***************************************************************************/
-/* low precision time() and gettimeofday() replacements                    */
-/***************************************************************************/
+/* }}} */
+/* {{{ Low precision time() and gettimeofday() replacements */
 
 static __thread struct {
     char sec_str[24];
@@ -842,3 +845,5 @@ __attribute__((weak)) uint64_t lp_getcsec(void)
 {
     return lp_getmsec() / 10ull;
 }
+
+/* }}} */
