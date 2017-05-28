@@ -847,3 +847,60 @@ __attribute__((weak)) uint64_t lp_getcsec(void)
 }
 
 /* }}} */
+/* {{{ timing_scope */
+
+timing_scope_ctx_t
+timing_scope_start(logger_t *logger,
+                   const char *file, const char *func, int line,
+                   int64_t timeout_ms, const char *fmt, ...)
+{
+    va_list va;
+    timing_scope_ctx_t res;
+
+    p_clear(&res, 1);
+    res.logger     = logger;
+    res.file       = file;
+    res.func       = func;
+    res.line       = line;
+    res.timeout_ms = timeout_ms;
+
+    va_start(va, fmt);
+    res.desc = lstr_vfmt(fmt, va);
+    va_end(va);
+
+    lp_gettv(&res.tv_start);
+
+    return res;
+}
+
+void timing_scope_finish(timing_scope_ctx_t *ctx)
+{
+    struct timeval tv_end;
+    int level;
+
+    lp_gettv(&tv_end);
+
+    if (timeval_diffmsec(&tv_end, &ctx->tv_start) >= ctx->timeout_ms) {
+        level = LOG_WARNING;
+    } else {
+        level = LOG_TRACE + 1;
+    }
+
+    if (logger_has_level(ctx->logger, level)) {
+        struct timeval tv_diff;
+
+        tv_diff = timeval_sub(tv_end, ctx->tv_start);
+
+        __logger_log(ctx->logger, level, NULL, -1,
+                     ctx->file, ctx->func, ctx->line,
+                     "%*pM done in %ld.%06ldsec (expected less than "
+                     "%ld.%06ldsec)",
+                     LSTR_FMT_ARG(ctx->desc),
+                     tv_diff.tv_sec, tv_diff.tv_usec,
+                     ctx->timeout_ms / 1000, (ctx->timeout_ms % 1000) * 1000);
+    }
+
+    lstr_wipe(&ctx->desc);
+}
+
+/* }}} */
