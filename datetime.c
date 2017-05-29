@@ -124,9 +124,8 @@ unsigned long hardclock(void)
 #endif
 
 /* }}} */
-/***************************************************************************/
-/* timeval operations                                                      */
-/***************************************************************************/
+
+/* {{{ timeval operations */
 
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
@@ -235,6 +234,9 @@ bool is_expired(const struct timeval *date,
     }
     return timeval_is_le0(timeval_sub(*date, *now));
 }
+
+/* }}} */
+/* {{{ time.h wrappers */
 
 static int localtime_(time_t date, struct tm *t)
 {
@@ -592,9 +594,8 @@ int format_timestamp(const char *fmt, time_t ts, const char *locale,
 #pragma GCC diagnostic warning "-Wformat-nonliteral"
 #endif
 
-/***************************************************************************/
-/* timers for benchmarks                                                   */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timers for benchmarks */
 
 const char *proctimer_report(proctimer_t *tp, const char *fmt)
 {
@@ -715,6 +716,9 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
     return buf;
 }
 
+/* }}} */
+/* {{{ Time amount splitting and formatting */
+
 time_split_t split_time_interval(uint64_t seconds)
 {
     time_split_t res;
@@ -791,9 +795,8 @@ lstr_t t_get_time_split_p_lstr_fr(uint64_t seconds, int precision)
 
 #undef ADD_FIELD
 
-/***************************************************************************/
-/* low precision time() and gettimeofday() replacements                    */
-/***************************************************************************/
+/* }}} */
+/* {{{ Low precision time() and gettimeofday() replacements */
 
 static __thread struct {
     char sec_str[24];
@@ -842,3 +845,62 @@ __attribute__((weak)) uint64_t lp_getcsec(void)
 {
     return lp_getmsec() / 10ull;
 }
+
+/* }}} */
+/* {{{ timing_scope */
+
+timing_scope_ctx_t
+timing_scope_start(logger_t *logger,
+                   const char *file, const char *func, int line,
+                   int64_t timeout_ms, const char *fmt, ...)
+{
+    va_list va;
+    timing_scope_ctx_t res;
+
+    p_clear(&res, 1);
+    res.logger     = logger;
+    res.file       = file;
+    res.func       = func;
+    res.line       = line;
+    res.timeout_ms = timeout_ms;
+
+    va_start(va, fmt);
+    res.desc = lstr_vfmt(fmt, va);
+    va_end(va);
+
+    lp_gettv(&res.tv_start);
+
+    return res;
+}
+
+void timing_scope_finish(timing_scope_ctx_t *ctx)
+{
+    struct timeval tv_end;
+    int level;
+
+    lp_gettv(&tv_end);
+
+    if (timeval_diffmsec(&tv_end, &ctx->tv_start) >= ctx->timeout_ms) {
+        level = LOG_WARNING;
+    } else {
+        level = LOG_TRACE + 1;
+    }
+
+    if (logger_has_level(ctx->logger, level)) {
+        struct timeval tv_diff;
+
+        tv_diff = timeval_sub(tv_end, ctx->tv_start);
+
+        __logger_log(ctx->logger, level, NULL, -1,
+                     ctx->file, ctx->func, ctx->line,
+                     "%*pM done in %ld.%06ldsec (expected less than "
+                     "%ld.%06ldsec)",
+                     LSTR_FMT_ARG(ctx->desc),
+                     tv_diff.tv_sec, tv_diff.tv_usec,
+                     ctx->timeout_ms / 1000, (ctx->timeout_ms % 1000) * 1000);
+    }
+
+    lstr_wipe(&ctx->desc);
+}
+
+/* }}} */
