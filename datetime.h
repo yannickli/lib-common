@@ -18,6 +18,7 @@
 #define PROCTIMER_USE_RUSAGE  0
 
 #include "core.h"
+#include "log.h"
 
 #define TIME_T_ERROR  ((time_t)-1)
 
@@ -30,9 +31,7 @@
 
 unsigned long hardclock(void);
 
-/***************************************************************************/
-/* low precision time() and gettimeofday() replacements                    */
-/***************************************************************************/
+/* {{{ Low precision time() and gettimeofday() replacements */
 
 const char *lp_getsec_str(void);
 time_t lp_getsec(void);
@@ -40,9 +39,8 @@ void lp_gettv(struct timeval *);
 uint64_t lp_getmsec(void);
 uint64_t lp_getcsec(void);
 
-/***************************************************************************/
-/* miscellaneous                                                           */
-/***************************************************************************/
+/* }}} */
+/* {{{ Miscellaneous */
 
 /** Count the number of leap years since 1900.
  *
@@ -64,9 +62,8 @@ static inline bool year_is_leap_year(int year)
         || (year % 400) == 0;
 }
 
-/***************************************************************************/
-/* time.h wrappers                                                         */
-/***************************************************************************/
+/* }}} */
+/* {{{ time.h wrappers */
 
 /** Return timestamp of the start of the minute which contains
  * the timestamp \p date.
@@ -224,9 +221,8 @@ static inline int tm_diff_minutes(struct tm* from, struct tm *to)
     return nb_hours * 60 + (to->tm_min - from->tm_min);
 }
 
-/***************************************************************************/
-/* Time amount splitting and formatting                                    */
-/***************************************************************************/
+/* }}} */
+/* {{{ Time amount splitting and formatting */
 
 typedef struct time_split_t {
     int seconds;
@@ -293,9 +289,8 @@ lstr_t t_get_time_split_lstr_fr(uint64_t seconds)
     return t_get_time_split_p_lstr_fr(seconds, -1);
 }
 
-/***************************************************************************/
-/* iso8601                                                                 */
-/***************************************************************************/
+/* }}} */
+/* {{{ iso8601 */
 
 #define ISO8601_BASE_FMT          "%04d-%02d-%02dT%02d:%02d:%02d"
 #define ISO8601_BASE_FMT_ARG(tm)                                             \
@@ -508,9 +503,8 @@ static inline int time_parse_str(const char *s, time_t *res)
 
 #endif
 
-/***************************************************************************/
-/* timeval operations                                                      */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timeval operations */
 
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv, bool as_duration);
@@ -602,9 +596,8 @@ static inline int64_t timeval_to_msec(const struct timeval tv)
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
 
-/***************************************************************************/
-/* timers for benchmarks                                                   */
-/***************************************************************************/
+/* }}} */
+/* {{{ Timers for benchmarks */
 
 /* we use gettimeofday() and getrusage() for accurate benchmark timings.
  * - clock(); returns process time, but has a precision of only 10ms
@@ -711,5 +704,79 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt);
  * if fmt is NULL, use "real: %r ms, proc:%p ms, user:%u ms, sys: %s ms"
  */
 const char *proctimer_report(proctimer_t *tp, const char *fmt);
+
+/* }}} */
+/* {{{ timing_scope */
+
+/** timing_scope.
+ *
+ * timing_scope can be used to log the execution time of a scope of code.
+ * For example:
+ *
+ *    {
+ *        timing_scope(&_G.logger, 100, "desc");
+ *
+ *        ...
+ *    }
+ *
+ * will emit a warning if the block of code takes 500ms of more to execute, or
+ * emit a trace of level 1 otherwise.
+ *
+ * You can also use the low level functions \ref timing_scope_start and
+ * \ref timing_scope_finish.
+ */
+typedef struct timing_scope_ctx_t {
+    logger_t *logger;
+    lstr_t desc;
+    const char *file;
+    const char *func;
+    int line;
+    struct timeval tv_start;
+    int64_t timeout_ms;
+} timing_scope_ctx_t;
+
+/** Start a timing scope.
+ *
+ * \param[in]  logger      logger on which the log will be emitted.
+ * \param[in]  file        source file of the code scope.
+ * \param[in]  func        function where the code scope is.
+ * \param[in]  line        line of the code scope in the source file.
+ * \param[in]  timeout_ms  if the timing scope takes more than this amount of
+ *                         milliseconds, a warning will be emitted; otherwise,
+ *                         the timing will be printed in a trace of level 1.
+ * \param[in]  fmt         description of the block of scope to profile; will
+ *                         be used in the log.
+ *
+ * \return  a timing scope context.
+ */
+__attr_printf__(6, 7)
+timing_scope_ctx_t
+timing_scope_start(logger_t *logger,
+                   const char *file, const char *func, int line,
+                   int64_t timeout_ms, const char *fmt, ...);
+
+/** Finish a timing scope.
+ *
+ * This measures the execution time since the timing scope was started, and
+ * emits it in a log.
+ *
+ * This MUST be called to wipe the context created by \ref timing_scope_start.
+ */
+void timing_scope_finish(timing_scope_ctx_t *ctx);
+
+#define timing_scope__(_file, _func, _line, _logger, _timeout_ms, _fmt, ...)  \
+    __attribute__((unused,cleanup(timing_scope_finish)))                     \
+    timing_scope_ctx_t timer_scope_ctx_##_line =                             \
+        timing_scope_start(_logger, _file, _func, _line, _timeout_ms,        \
+                           _fmt, ##__VA_ARGS__)
+
+#define timing_scope_(_file, _func, _line, _logger, _timeout_ms, _fmt, ...)  \
+    timing_scope__(_file, _func, _line, _logger, _timeout_ms,                \
+                   _fmt, ##__VA_ARGS__)
+#define timing_scope(_logger, _timeout_ms, _fmt, ...)  \
+    timing_scope_(__FILE__, __func__, __LINE__, _logger, _timeout_ms,        \
+                  _fmt, ##__VA_ARGS__)
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_TIMEVAL_H */
