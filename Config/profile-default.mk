@@ -24,7 +24,7 @@ CXXFLAGS += -fno-omit-frame-pointer -fvisibility=hidden
 ifneq ($(OS),darwin)
 LDFLAGS += -Xlinker -export-dynamic
 endif
-SWIFTFLAGS += -g -O
+SWIFTFLAGS += -g -Onone
 
 clang-analyzer: __setup_forward
 	MAKELEVEL=0 scan-build --use-analyzer $(shell which clang) --use-cc $(shell which clang) --use-c++ $(shell which clang++) $(MAKE)
