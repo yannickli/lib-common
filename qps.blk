@@ -2423,6 +2423,25 @@ static int qps_lock(qps_t *qps)
     return 0;
 }
 
+static int qps_lock_snapshot(qps_t *qps, dir_lock_t *dlock)
+{
+    const char *path = ".snapshotter-lock/";
+    int ret;
+    int fd;
+
+    if (mkdirat_p(qps->dfd, path, 0755) < 0) {
+        return logger_error(&_G.logger, "QPS(%p): unable to create `%s`: %m",
+                            qps, path);
+    }
+    if ((fd = openat(qps->dfd, path, O_RDONLY)) < 0) {
+        return logger_error(&_G.logger, "QPS(%p): unable to open `%s`: %m",
+                            qps, path);
+    }
+    ret = lockdir(fd, dlock);
+    p_close(&fd);
+    return ret;
+}
+
 /** open a qps store.
  *
  * \param[in]  path
@@ -2437,6 +2456,7 @@ static int qps_lock(qps_t *qps)
  */
 qps_t *qps_open(const char *path, sb_t *priv)
 {
+    dir_lock_t  snapshot_lock;
     struct stat st;
     qps_t      *qps;
     int         fd;
@@ -2451,8 +2471,16 @@ qps_t *qps_open(const char *path, sb_t *priv)
     qps->gc_idle = el_idle_register(qps_gc_on_idle, qps);
     el_idle_unregister(&qps->gc_idle);
 
-    if (qps_lock(qps) < 0)
+    if (qps_lock(qps) < 0) {
         goto out_close;
+    }
+    if (qps_lock_snapshot(qps, &snapshot_lock) < 0) {
+        logger_error(&_G.logger, "QPS(%p): cannot take snapshotter lock: "
+                     "background snapshot in progress?", qps);
+        goto out_close;
+    }
+    unlockdir(&snapshot_lock);
+
     if (fstatat(fd, "meta.qps", &st, 0) < 0) {
         logger_error(&_G.logger, "[%p] unable to stat meta.qps: %m", qps);
         goto out_close;
@@ -2596,7 +2624,8 @@ static pid_t
 qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                 qv_t(u32) t, uint32_t generation)
 {
-    pid_t     pid;
+    dir_lock_t dlock;
+    pid_t pid;
     struct timeval begin, step_fork, step_end;
 
     lp_gettv(&begin);
@@ -2612,8 +2641,9 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
 
     lp_gettv(&step_fork);
 
-    setsid();
-    setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
+    if (qps_lock_snapshot(qps, &dlock) < 0) {
+        logger_fatal(&_G.logger, "QPS: cannot take snapshotter lock");
+    }
 
     for (int i = 0; i < qps->maps.len; i++) {
         struct timeval start, end;
@@ -2663,6 +2693,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                  "(fork: %jd msec)", qps->maps.len,
                  timeval_diffmsec(&step_end, &begin),
                  timeval_diffmsec(&step_fork, &begin));
+    unlockdir(&dlock);
     _exit(0);
 }
 
