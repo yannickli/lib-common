@@ -104,6 +104,8 @@ static int iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
          * To be deleted once all clients will have a product >= 2017.1. */
         e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname),
                 *st, fix);
+        mprotect((void *)(((uintptr_t)st >> PAGE_SIZE_SHIFT) << PAGE_SIZE_SHIFT),
+                 PAGE_SIZE, PROT_READ | PROT_WRITE);
         *st = fix;
     }
 
