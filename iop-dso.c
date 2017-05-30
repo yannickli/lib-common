@@ -97,6 +97,8 @@ static void iopdso_fix_struct_ref(iop_dso_t *dso, const iop_struct_t **st,
 
         e_trace(3, "fixup `%*pM`, %p => %p", LSTR_FMT_ARG((*st)->fullname),
                 *st, fix);
+        mprotect((void *)(((uintptr_t)st >> PAGE_SIZE_SHIFT) << PAGE_SIZE_SHIFT),
+                 PAGE_SIZE, PROT_READ | PROT_WRITE);
         *st = fix;
         if (dep) {
             qh_add(ptr, &dso->depends_on, dep);
