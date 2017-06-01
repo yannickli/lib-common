@@ -58,7 +58,7 @@ is_clang()
         return 0
     fi
     case "$cc" in
-        swift|clang*|*c*-analyzer) return 0;;
+        swiftc|clang*|*c*-analyzer) return 0;;
         *) return 1;;
     esac
 }
