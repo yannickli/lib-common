@@ -48,6 +48,12 @@ extension LString : Collection {
     }
 }
 
+extension LString : CustomStringConvertible {
+    public var description: String {
+        return String(self) ?? "nil"
+    }
+}
+
 public extension String {
     /// Calls a closure with a view of the string UTF8 representation as a `LString`.
     ///
