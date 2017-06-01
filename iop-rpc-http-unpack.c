@@ -185,6 +185,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     ic__hdr__t   default_hdr = IOP_UNION_VA(ic__hdr, simple,
        .kind = LSTR_OPT(tcb->auth_kind),
        .payload = q->received_body_length,
+       .source = LSTR("webservice"),
     );
     ic_cb_entry_t       *e;
 
