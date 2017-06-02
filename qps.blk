@@ -2436,11 +2436,11 @@ static int qps_lock_snapshot(qps_t *qps, dir_lock_t *dlock)
     int fd;
 
     if (mkdirat_p(qps->dfd, path, 0755) < 0) {
-        return logger_error(&_G.logger, "QPS(%p): unable to create `%s`: %m",
+        return logger_error(&_G.logger, "[%p] unable to create `%s`: %m",
                             qps, path);
     }
     if ((fd = openat(qps->dfd, path, O_RDONLY)) < 0) {
-        return logger_error(&_G.logger, "QPS(%p): unable to open `%s`: %m",
+        return logger_error(&_G.logger, "[%p] unable to open `%s`: %m",
                             qps, path);
     }
     ret = lockdir(fd, dlock);
@@ -2481,7 +2481,7 @@ qps_t *qps_open(const char *path, sb_t *priv)
         goto out_close;
     }
     if (qps_lock_snapshot(qps, &snapshot_lock) < 0) {
-        logger_error(&_G.logger, "QPS(%p): cannot take snapshotter lock: "
+        logger_error(&_G.logger, "[%p] cannot take snapshotter lock: "
                      "background snapshot in progress?", qps);
         goto out_close;
     }
