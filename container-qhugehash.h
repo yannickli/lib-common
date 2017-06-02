@@ -463,8 +463,16 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhh_t(name)     qhh_##name##_t
 #define qhh_qh_t(name)  qh_t(qhh_##name)
 
-#define qhh_key_p(name, qhh, pos)           qhh_##name##_key_p(qhh, pos)
-#define qhh_hash_p(name, qhh, pos)          qhh_##name##_hash_p(qhh, pos)
+#define qhh_key_p(name, qhh, pos)                                            \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhh_##name##_key_p(qhh, pos);                                        \
+    })
+#define qhh_hash_p(name, qhh, pos)                                           \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhh_##name##_hash_p(qhh, pos);                                       \
+    })
 
 #define qhh_init(name, qhh, chashes)        qhh_##name##_init(qhh, chashes)
 #define qhh_len(name, qhh)                  qhh_##name##_len(qhh)
@@ -485,7 +493,12 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhh_add_h(name, qhh, h, key)        qhh_##name##_add_h(qhh, h, key)
 #define qhh_replace(name, qhh, key)         qhh_##name##_replace(qhh, key)
 #define qhh_replace_h(name, qhh, h, key)    qhh_##name##_replace_h(qhh, h, key)
-#define qhh_del_at(name, qhh, pos)          qhh_##name##_del_at(qhh, pos)
+
+#define qhh_del_at(name, qhh, pos)                                           \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhh_##name##_del_at(qhh, pos);                                       \
+    })
 #define qhh_del_key(name, qhh, key)  \
     ({ int64_t __pos = qhh_find(name, qhh, key);                             \
        if (likely(__pos >= 0)) qhh_del_at(name, qhh, __pos);                 \
@@ -550,9 +563,21 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhm_t(name)  qhm_##name##_t
 #define qhm_qm_t(name)  qm_t(qhm_##name)
 
-#define qhm_key_p(name, qhh, pos)           qhm_##name##_key_p(qhh, pos)
-#define qhm_hash_p(name, qhh, pos)          qhm_##name##_hash_p(qhh, pos)
-#define qhm_value_p(name, qhh, pos)         qhm_##name##_value_p(qhh, pos)
+#define qhm_key_p(name, qhm, pos)                                            \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhm_##name##_key_p(qhm, pos);                                        \
+    })
+#define qhm_hash_p(name, qhm, pos)                                           \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhm_##name##_hash_p(qhm, pos);                                       \
+    })
+#define qhm_value_p(name, qhm, pos)                                          \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhm_##name##_value_p(qhm, pos);                                      \
+    })
 
 #define qhm_init(name, qhm, chashes)        qhm_##name##_init(qhm, chashes)
 #define qhm_len(name, qhm)                  qhm_##name##_len(qhm)
@@ -573,7 +598,12 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
 #define qhm_add_h(name, qhm, h, key, v)     qhm_##name##_add_h(qhm, h, key, v)
 #define qhm_replace(name, qhm, key, v)      qhm_##name##_replace(qhm, key, v)
 #define qhm_replace_h(name, qhm, h, key, v) qhm_##name##_replace_h(qhm, h, key, v)
-#define qhm_del_at(name, qhm, pos)          qhm_##name##_del_at(qhm, pos)
+
+#define qhm_del_at(name, qhm, pos)                                           \
+    ({                                                                       \
+        STATIC_ASSERT(sizeof(pos) == sizeof(uint64_t));                      \
+        qhm_##name##_del_at(qhm, pos);                                       \
+    })
 #define qhm_del_key(name, qhm, key)  \
     ({ int64_t __pos = qhm_find(name, qhm, key);                             \
        if (likely(__pos >= 0)) qhm_del_at(name, qhm, __pos);                 \
