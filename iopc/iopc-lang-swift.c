@@ -426,15 +426,11 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
             break;
 
           case IOP_T_UNION: case IOP_T_STRUCT:
-            sb_addf(buf,
-                    "%s        if let %s_val = data.%*pM {\n"
-                    "%s            ",
-                    indent, field->name, LSTR_FMT_ARG(c_field_name), indent);
-            iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent),
-                                            field,
-                                            t_fmt("%s_val", field->name),
+            iopc_dump_struct_value_importer(buf, indent, field,
+                                            t_fmt("data.%*pM",
+                                                  LSTR_FMT_ARG(c_field_name)),
                                             t_fmt("self.%s =", field->name));
-            sb_addf(buf, "\n%s         }\n", indent);
+            sb_addc(buf, '\n');
             break;
 
           case IOP_T_VOID:

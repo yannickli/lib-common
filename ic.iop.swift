@@ -158,14 +158,10 @@ public enum ic : libcommon.IopPackage {
             self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.route)!)
             self.ttl = data.ttl
             self.priority = data.priority
-            if let tracer_val = data.tracer {
-                
-                self.tracer = try ic_package.Tracer(tracer_val)
-             }
-            if let originalHdr_val = data.original_hdr {
-                
-                self.originalHdr = try ic_package.Hdr(originalHdr_val)
-             }
+
+            self.tracer = try ic_package.Tracer(data.tracer)
+
+            self.originalHdr = try ic_package.Hdr(data.original_hdr)
         }
 
         public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
