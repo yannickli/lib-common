@@ -55,19 +55,22 @@ public enum ic : libcommon.IopPackage {
         public var `payload` : Swift.Int32
         public var `host` : Swift.String?
         public var `group` : Swift.String?
+        public var `source` : Swift.String?
 
         public init(`login`: Swift.String? = nil,
                     `password`: Swift.String? = nil,
                     `kind`: Swift.String? = nil,
                     `payload`: Swift.Int32 = -1,
                     `host`: Swift.String? = nil,
-                    `group`: Swift.String? = nil) {
+                    `group`: Swift.String? = nil,
+                    `source`: Swift.String? = nil) {
             self.login = `login`
             self.password = `password`
             self.kind = `kind`
             self.payload = `payload`
             self.host = `host`
             self.group = `group`
+            self.source = `source`
         }
 
         public init(_ c: Swift.UnsafeRawPointer) throws {
@@ -78,6 +81,7 @@ public enum ic : libcommon.IopPackage {
             self.payload = data.payload
              self.host = Swift.String(data.host)
              self.group = Swift.String(data.group)
+             self.source = Swift.String(data.source)
         }
 
         public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
@@ -97,6 +101,9 @@ public enum ic : libcommon.IopPackage {
             }
             if let group_val = self.group {
                 data.pointee.group = group_val.duplicated(on: allocator)
+            }
+            if let source_val = self.source {
+                data.pointee.source = source_val.duplicated(on: allocator)
             }
         }
     }

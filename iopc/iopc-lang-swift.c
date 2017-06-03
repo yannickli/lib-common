@@ -450,12 +450,12 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_REPEATED:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        self.%s = Swift.Array(data.%*pM)\n", indent,
+            sb_addf(buf, "%s        self.%s = Swift.Array(data.%*pM.buffer)\n", indent,
                     field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
           default:
-            sb_addf(buf, "%s        self.%s = %sdata.%*pM.map {",
+            sb_addf(buf, "%s        self.%s = %sdata.%*pM.buffer.map {",
                     indent, field->name,
                     field->kind == IOP_T_UNION || field->kind == IOP_T_STRUCT ? "try ": "",
                     LSTR_FMT_ARG(c_field_name));

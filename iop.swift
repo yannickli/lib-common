@@ -90,39 +90,21 @@ extension opt_bool_t : IopOptional { }
 /// Protocol describing C IOP arrays.
 ///
 /// This protocol allows mapping the C arrays to collections
-public protocol IopArray : Collection {
+public protocol IopArray {
     associatedtype Element
 
     var tab: UnsafeMutablePointer<Element>? { get set }
     var len: Int32 { get set }
 
     init()
+
+    var buffer: UnsafeMutableBufferPointer<Element> { get }
 }
 
 /* implements Collection protocol */
 public extension IopArray {
-    public var startIndex: Int {
-        return 0
-    }
-
-    public var endIndex: Int {
-        return Int(len)
-    }
-
-    public subscript(pos: Int) -> Element {
-        let len = Int(self.len)
-        let tab = self.tab!
-
-        precondition(pos < len, "cannot fetch element \(pos) of vector of len \(len)")
-        return tab[pos]
-    }
-
-    public func index(after pos: Int) -> Int {
-        return pos + 1
-    }
-
-    public func index(before pos: Int) -> Int {
-        return pos - 1
+    public var buffer: UnsafeMutableBufferPointer<Element> {
+        return UnsafeMutableBufferPointer(start: self.tab, count: Int(self.len))
     }
 }
 

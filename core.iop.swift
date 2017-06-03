@@ -111,7 +111,7 @@ public enum core : libcommon.IopPackage {
             self.rootLevel = data.root_level
             self.forceAll = data.force_all
             self.isSilent = data.is_silent
-            self.specific = try data.specific.map {
+            self.specific = try data.specific.buffer.map {
                 var specific_var = $0
                 return try core_package.LoggerConfiguration(&specific_var)
                 }
@@ -257,9 +257,9 @@ public enum core : libcommon.IopPackage {
             self.registeredTo = Swift.String(data.registered_to) ?? ""
             self.version = Swift.String(data.version) ?? ""
             self.productionUse = data.production_use
-            self.cpuSignatures = Swift.Array(data.cpu_signatures)
-            self.macAddresses = data.mac_addresses.map {                return Swift.String($0) ?? ""}
-            self.modules = try data.modules.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
+            self.cpuSignatures = Swift.Array(data.cpu_signatures.buffer)
+            self.macAddresses = data.mac_addresses.buffer.map {                return Swift.String($0) ?? ""}
+            self.modules = try data.modules.buffer.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
             try super.init(c)
         }
 
@@ -667,7 +667,7 @@ public enum core : libcommon.IopPackage {
 
                     public init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1).pointee
-                        self.loggers = try data.loggers.map {
+                        self.loggers = try data.loggers.buffer.map {
                             var loggers_var = $0
                             return try core_package.LoggerConfiguration(&loggers_var)
                             }
