@@ -21,8 +21,10 @@ extension ic__ic_priority__opt_t : libcommon.IopOptional { }
 public enum ic : libcommon.IopPackage {
     public typealias IcPriority = ic__ic_priority__t
 
-    public struct Tracer : libcommon.IopStruct {
-        public static let descriptor = ic__tracer__sp
+    public final class Tracer : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return ic__tracer__sp
+        }
 
         public var `token` : Swift.UInt64
         public var `epoch` : Swift.UInt64
@@ -31,23 +33,27 @@ public enum ic : libcommon.IopPackage {
                     `epoch`: Swift.UInt64) {
             self.token = `token`
             self.epoch = `epoch`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: ic__tracer__t.self, capacity: 1).pointee
             self.token = data.token
             self.epoch = data.epoch
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: ic__tracer__t.self, capacity: 1)
             data.pointee.token = self.token
             data.pointee.epoch = self.epoch
         }
     }
 
-    public struct SimpleHdr : libcommon.IopStruct {
-        public static let descriptor = ic__simple_hdr__sp
+    public final class SimpleHdr : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return ic__simple_hdr__sp
+        }
 
         public var `login` : Swift.String?
         public var `password` : Swift.String?
@@ -71,9 +77,10 @@ public enum ic : libcommon.IopPackage {
             self.host = `host`
             self.group = `group`
             self.source = `source`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: ic__simple_hdr__t.self, capacity: 1).pointee
              self.login = Swift.String(data.login)
              self.password = Swift.String(data.password)
@@ -82,9 +89,10 @@ public enum ic : libcommon.IopPackage {
              self.host = Swift.String(data.host)
              self.group = Swift.String(data.group)
              self.source = Swift.String(data.source)
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: ic__simple_hdr__t.self, capacity: 1)
             if let login_val = self.login {
                 data.pointee.login = login_val.duplicated(on: allocator)
@@ -131,7 +139,7 @@ public enum ic : libcommon.IopPackage {
     }
 
     public final class RoutingHdr : libcommon.IopStruct {
-        public static var descriptor : Swift.UnsafePointer<iop_struct_t> {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
             return ic__routing_hdr__sp
         }
 
@@ -151,9 +159,10 @@ public enum ic : libcommon.IopPackage {
             self.priority = `priority`
             self.tracer = `tracer`
             self.originalHdr = `originalHdr`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1).pointee
             self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.route)!)
             self.ttl = data.ttl
@@ -162,9 +171,10 @@ public enum ic : libcommon.IopPackage {
             self.tracer = try ic_package.Tracer(data.tracer)
 
             self.originalHdr = try ic_package.Hdr(data.original_hdr)
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1)
             data.pointee.route = self.route.duplicated(on: allocator).bindMemory(to: ic__route__t.self, capacity: 1)
             data.pointee.ttl = self.ttl

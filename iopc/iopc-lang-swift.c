@@ -645,7 +645,6 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     qv_t(iopc_struct) parents;
     const iopc_struct_t *parent;
     bool first = true;
-    bool is_struct = true;
 
     iopc_struct_sort_fields(st, BY_POS);
 
@@ -670,26 +669,17 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
         } else {
             sb_adds(buf, "libcommon.IopClass {\n");
         }
-        is_struct = false;
     } else {
-        is_struct = !iopc_struct_is_recursive(st);
-        sb_addf(buf, "%spublic %s %s : libcommon.IopStruct {\n", indent,
-                is_struct ? "struct" : "final class", st_name);
+        sb_addf(buf, "%spublic final class %s : libcommon.IopStruct {\n",
+                indent, st_name);
     }
 
     /* Generate descriptor */
-    if (is_struct) {
-        sb_addf(buf, "%s    public static let descriptor = %*pM__sp\n\n",
-                indent, LSTR_FMT_ARG(c_name));
-    } else {
-        sb_addf(buf,
-                "%s    %svar descriptor : Swift.UnsafePointer<iop_struct_t> {\n"
-                "%s        return %*pM__sp\n"
-                "%s    }\n\n",
-                indent, iopc_is_class(st->type) ? "open override class "
-                                                : "public static ",
-                indent, LSTR_FMT_ARG(c_name), indent);
-    }
+    sb_addf(buf,
+            "%s    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {\n"
+            "%s        return %*pM__sp\n"
+            "%s    }\n\n",
+            indent, indent, LSTR_FMT_ARG(c_name), indent);
     if (iopc_is_class(st->type)) {
         sb_addf(buf,
                 "%s    open override class var isAbstract : Swift.Bool {\n"
@@ -717,7 +707,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
         qv_append(&parents, (iopc_struct_t *)parent);
     }
     sb_addf(buf, "%s    public %sinit(", indent,
-            st->fields.len == 0 && iopc_is_class(st->type) ? "override " : "");
+            st->fields.len == 0 ? "override " : "");
     tab_for_each_pos_rev(pos, &parents) {
         iopc_struct_sort_fields(parents.tab[pos], BY_POS);
         tab_for_each_entry(field, &parents.tab[pos]->fields) {
@@ -742,32 +732,30 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                     field->name);
         }
     }
-    if (iopc_is_class(st->type)) {
-        sb_addf(buf, "%s        super.init(", indent);
-        first = true;
-        tab_for_each_pos_rev(pos, &parents) {
-            if (pos == 0) {
-                break;
-            }
-            tab_for_each_entry(field, &parents.tab[pos]->fields) {
-                if (!iopc_struct_is_field_ignored(field)) {
-                    if (!first) {
-                        sb_addf(buf, ",\n"
-                                "%s               ",
-                                indent);
-                    }
-                    first = false;
-                    sb_addf(buf, "%s: `%s`", field->name, field->name);
+    sb_addf(buf, "%s        super.init(", indent);
+    first = true;
+    tab_for_each_pos_rev(pos, &parents) {
+        if (pos == 0) {
+            break;
+        }
+        tab_for_each_entry(field, &parents.tab[pos]->fields) {
+            if (!iopc_struct_is_field_ignored(field)) {
+                if (!first) {
+                    sb_addf(buf, ",\n"
+                            "%s               ",
+                            indent);
                 }
+                first = false;
+                sb_addf(buf, "%s: `%s`", field->name, field->name);
             }
         }
-        sb_adds(buf, ")\n");
     }
+    sb_adds(buf, ")\n");
     sb_addf(buf, "%s    }\n\n", indent);
 
     /* Generate C interface */
-    sb_addf(buf, "%s    public %sinit(_ c: Swift.UnsafeRawPointer) throws {\n",
-            indent, iopc_is_class(st->type) ? "required " : "");
+    sb_addf(buf, "%s    public required init(_ c: Swift.UnsafeRawPointer) throws {\n",
+            indent);
     if (st->fields.len) {
         sb_addf(buf,
                 "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1).pointee\n",
@@ -778,14 +766,11 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             }
         }
     }
-    if (iopc_is_class(st->type)) {
-        sb_addf(buf, "%s        try super.init(c)\n", indent);
-    }
+    sb_addf(buf, "%s        try super.init(c)\n", indent);
     sb_addf(buf,
             "%s    }\n\n"
-            "%s    %sfunc fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {\n",
-            indent, indent,
-            iopc_is_class(st->type) ? "open override " : "public ");
+            "%s    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {\n",
+            indent, indent);
     if (st->fields.len) {
         sb_addf(buf,
                 "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1)\n",

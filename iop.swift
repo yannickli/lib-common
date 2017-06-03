@@ -305,7 +305,21 @@ public extension IopComplexTypeArray {
 ///
 /// Fields from a structure are imported as-is, after mapping their type to the
 /// corresponding Swift type.
-public typealias IopStruct = IopComplexType
+open class IopStruct : IopComplexType {
+    open class var descriptor: UnsafePointer<iop_struct_t> {
+        fatalError("This property must be provided")
+    }
+
+    public init() {
+    }
+
+    public required init(_ c: UnsafeRawPointer) throws {
+    }
+
+    open func fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {
+        precondition(false, "Unimplemented")
+    }
+}
 
 /// Representation of the IOP Void type.
 public struct IopVoid : IopComplexType {
@@ -378,31 +392,25 @@ public extension IopUnion {
 ///
 /// Classes that are declared `local` in IOP are automatically marked as `final` in Swift
 /// if they have no child in their package.
-open class IopClass : IopComplexType {
+open class IopClass : IopStruct {
     public static func descriptor(of buffer: UnsafeRawPointer) -> UnsafePointer<iop_struct_t> {
         return buffer.bindMemory(to: UnsafePointer<iop_struct_t>.self, capacity: 1)[0]
-    }
-
-    open class var descriptor: UnsafePointer<iop_struct_t> {
-        fatalError("This property must be provided")
     }
 
     open class var isAbstract: Bool {
         fatalError("This property must be provided")
     }
 
-    public init() {
+    public override init() {
+        super.init()
         precondition(!type(of: self).isAbstract, "cannot instantiate abstract classes")
     }
 
     public required init(_ c: UnsafeRawPointer) throws {
+        try super.init(c)
         precondition(!type(of: self).isAbstract, "cannot instantiate abstract classes")
         precondition(IopClass.descriptor(of: c) == type(of: self).descriptor,
                      "type mismatch for object: use IopClass.make(_:)")
-    }
-
-    open func fill(_ c: UnsafeMutableRawPointer, on allocator: FrameBasedAllocator) {
-        precondition(false, "Unimplemented")
     }
 
     public class func make(_ buffer: UnsafeRawPointer, using env: IopEnv = .defaultEnv) throws -> Self {
@@ -631,13 +639,13 @@ extension IopRPCError : CustomStringConvertible,
 /// derived from whether the RPC is asynchronous (`out null`) or not.
 public protocol IopRPC {
     /// Type of the argument of the RPC.
-    associatedtype Argument : IopStruct = IopVoid
+    associatedtype Argument : IopComplexType = IopVoid
 
     /// Type of the response of the RPC.
-    associatedtype Response : IopStruct = IopVoid
+    associatedtype Response : IopComplexType = IopVoid
 
     /// Type of the exceptions thrown by the RPC.
-    associatedtype Exception : IopStruct = IopVoid
+    associatedtype Exception : IopComplexType = IopVoid
 
     /// Return type of the RPC.
     ///
@@ -669,7 +677,7 @@ public protocol IopChannel {
     /// `query(msg:args:)` must ensures the message will eventually get a
     /// reply (which can be either a response or an error), and that it is
     /// replied to only once.
-    func query<T: IopStruct>(msg: UnsafeMutablePointer<ic_msg_t>, args: T)
+    func query<T: IopComplexType>(msg: UnsafeMutablePointer<ic_msg_t>, args: T)
 }
 
 /// Type of IOP interface implementation.
@@ -1101,7 +1109,7 @@ public class IChannelBase {
 }
 
 extension IChannelBase : IopChannel {
-    public func query<T: IopStruct>(msg: UnsafeMutablePointer<ic_msg_t>, args: T) {
+    public func query<T: IopComplexType>(msg: UnsafeMutablePointer<ic_msg_t>, args: T) {
         guard let ic = self.ic else {
             __ic_msg_reply_err(nil, msg, .IC_MSG_ABORT)
 

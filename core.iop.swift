@@ -53,8 +53,10 @@ public enum core : libcommon.IopPackage {
 
     public typealias IopHttpMethod = core__iop_http_method__t
 
-    public struct LoggerConfiguration : libcommon.IopStruct {
-        public static let descriptor = core__logger_configuration__sp
+    public final class LoggerConfiguration : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__logger_configuration__sp
+        }
 
         public var `fullName` : Swift.String
         public var `level` : core_package.LogLevel
@@ -69,17 +71,19 @@ public enum core : libcommon.IopPackage {
             self.level = `level`
             self.forceAll = `forceAll`
             self.isSilent = `isSilent`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__logger_configuration__t.self, capacity: 1).pointee
             self.fullName = Swift.String(data.full_name) ?? ""
             self.level = data.level
             self.forceAll = data.force_all
             self.isSilent = data.is_silent
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__logger_configuration__t.self, capacity: 1)
              data.pointee.full_name = self.fullName.duplicated(on: allocator)
             data.pointee.level = self.level
@@ -88,8 +92,10 @@ public enum core : libcommon.IopPackage {
         }
     }
 
-    public struct LogConfiguration : libcommon.IopStruct {
-        public static let descriptor = core__log_configuration__sp
+    public final class LogConfiguration : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__log_configuration__sp
+        }
 
         public var `rootLevel` : core_package.LogLevel
         public var `forceAll` : Swift.Bool
@@ -104,9 +110,10 @@ public enum core : libcommon.IopPackage {
             self.forceAll = `forceAll`
             self.isSilent = `isSilent`
             self.specific = `specific`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__log_configuration__t.self, capacity: 1).pointee
             self.rootLevel = data.root_level
             self.forceAll = data.force_all
@@ -115,9 +122,10 @@ public enum core : libcommon.IopPackage {
                 var specific_var = $0
                 return try core_package.LoggerConfiguration(&specific_var)
                 }
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__log_configuration__t.self, capacity: 1)
             data.pointee.root_level = self.rootLevel
             data.pointee.force_all = self.forceAll
@@ -279,8 +287,10 @@ public enum core : libcommon.IopPackage {
         }
     }
 
-    public struct SignedLicence : libcommon.IopStruct {
-        public static let descriptor = core__signed_licence__sp
+    public final class SignedLicence : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__signed_licence__sp
+        }
 
         public var `licence` : core_package.Licence
         public var `signature` : Swift.String
@@ -289,23 +299,27 @@ public enum core : libcommon.IopPackage {
                     `signature`: Swift.String) {
             self.licence = `licence`
             self.signature = `signature`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1).pointee
             self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.licence)!)
             self.signature = Swift.String(data.signature) ?? ""
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1)
             data.pointee.licence = self.licence.duplicated(on: allocator).bindMemory(to: core__licence__t.self, capacity: 1)
              data.pointee.signature = self.signature.duplicated(on: allocator)
         }
     }
 
-    public struct HttpdCfg : libcommon.IopStruct {
-        public static let descriptor = core__httpd_cfg__sp
+    public final class HttpdCfg : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__httpd_cfg__sp
+        }
 
         public var `bindAddr` : Swift.String
         public var `outbufMaxSize` : Swift.UInt32
@@ -335,9 +349,10 @@ public enum core : libcommon.IopPackage {
             self.onDataThreshold = `onDataThreshold`
             self.headerLineMax = `headerLineMax`
             self.headerSizeMax = `headerSizeMax`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__httpd_cfg__t.self, capacity: 1).pointee
             self.bindAddr = Swift.String(data.bind_addr) ?? ""
             self.outbufMaxSize = data.outbuf_max_size
@@ -348,9 +363,10 @@ public enum core : libcommon.IopPackage {
             self.onDataThreshold = data.on_data_threshold
             self.headerLineMax = data.header_line_max
             self.headerSizeMax = data.header_size_max
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__httpd_cfg__t.self, capacity: 1)
              data.pointee.bind_addr = self.bindAddr.duplicated(on: allocator)
             data.pointee.outbuf_max_size = self.outbufMaxSize
@@ -364,8 +380,10 @@ public enum core : libcommon.IopPackage {
         }
     }
 
-    public struct HttpcCfg : libcommon.IopStruct {
-        public static let descriptor = core__httpc_cfg__sp
+    public final class HttpcCfg : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__httpc_cfg__sp
+        }
 
         public var `pipelineDepth` : Swift.UInt16
         public var `noactDelay` : Swift.UInt32
@@ -386,9 +404,10 @@ public enum core : libcommon.IopPackage {
             self.onDataThreshold = `onDataThreshold`
             self.headerLineMax = `headerLineMax`
             self.headerSizeMax = `headerSizeMax`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__httpc_cfg__t.self, capacity: 1).pointee
             self.pipelineDepth = data.pipeline_depth
             self.noactDelay = data.noact_delay
@@ -396,9 +415,10 @@ public enum core : libcommon.IopPackage {
             self.onDataThreshold = data.on_data_threshold
             self.headerLineMax = data.header_line_max
             self.headerSizeMax = data.header_size_max
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__httpc_cfg__t.self, capacity: 1)
             data.pointee.pipeline_depth = self.pipelineDepth
             data.pointee.noact_delay = self.noactDelay
@@ -409,8 +429,10 @@ public enum core : libcommon.IopPackage {
         }
     }
 
-    public struct IopJsonSubfile : libcommon.IopStruct {
-        public static let descriptor = core__iop_json_subfile__sp
+    public final class IopJsonSubfile : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__iop_json_subfile__sp
+        }
 
         public var `filePath` : Swift.String
         public var `iopPath` : Swift.String
@@ -419,15 +441,17 @@ public enum core : libcommon.IopPackage {
                     `iopPath`: Swift.String) {
             self.filePath = `filePath`
             self.iopPath = `iopPath`
+            super.init()
         }
 
-        public init(_ c: Swift.UnsafeRawPointer) throws {
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1).pointee
             self.filePath = Swift.String(data.file_path) ?? ""
             self.iopPath = Swift.String(data.iop_path) ?? ""
+            try super.init(c)
         }
 
-        public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
             let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1)
              data.pointee.file_path = self.filePath.duplicated(on: allocator)
              data.pointee.iop_path = self.iopPath.duplicated(on: allocator)
@@ -437,8 +461,10 @@ public enum core : libcommon.IopPackage {
     public enum interfaces {
         public struct Log : libcommon.IopInterface {
             public enum SetRootLevel : libcommon.IopRPC {
-                public struct Argument : libcommon.IopStruct {
-                    public static let descriptor = core__log__set_root_level_args__sp
+                public final class Argument : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__set_root_level_args__sp
+                    }
 
                     public var `level` : core_package.LogLevel
                     public var `forceAll` : Swift.Bool
@@ -450,16 +476,18 @@ public enum core : libcommon.IopPackage {
                         self.level = `level`
                         self.forceAll = `forceAll`
                         self.isSilent = `isSilent`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__set_root_level_args__t.self, capacity: 1).pointee
                         self.level = data.level
                         self.forceAll = data.force_all
                         self.isSilent = data.is_silent
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__set_root_level_args__t.self, capacity: 1)
                         data.pointee.level = self.level
                         data.pointee.force_all = self.forceAll
@@ -467,21 +495,25 @@ public enum core : libcommon.IopPackage {
                     }
                 }
 
-                public struct Response : libcommon.IopStruct {
-                    public static let descriptor = core__log__set_root_level_res__sp
+                public final class Response : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__set_root_level_res__sp
+                    }
 
                     public var `level` : core_package.LogLevel
 
                     public init(`level`: core_package.LogLevel) {
                         self.level = `level`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__set_root_level_res__t.self, capacity: 1).pointee
                         self.level = data.level
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__set_root_level_res__t.self, capacity: 1)
                         data.pointee.level = self.level
                     }
@@ -495,21 +527,25 @@ public enum core : libcommon.IopPackage {
             }
 
             public enum ResetRootLevel : libcommon.IopRPC {
-                public struct Response : libcommon.IopStruct {
-                    public static let descriptor = core__log__reset_root_level_res__sp
+                public final class Response : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__reset_root_level_res__sp
+                    }
 
                     public var `level` : core_package.LogLevel
 
                     public init(`level`: core_package.LogLevel) {
                         self.level = `level`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__reset_root_level_res__t.self, capacity: 1).pointee
                         self.level = data.level
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__reset_root_level_res__t.self, capacity: 1)
                         data.pointee.level = self.level
                     }
@@ -523,8 +559,10 @@ public enum core : libcommon.IopPackage {
             }
 
             public enum SetLoggerLevel : libcommon.IopRPC {
-                public struct Argument : libcommon.IopStruct {
-                    public static let descriptor = core__log__set_logger_level_args__sp
+                public final class Argument : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__set_logger_level_args__sp
+                    }
 
                     public var `fullName` : Swift.String
                     public var `level` : core_package.LogLevel
@@ -539,17 +577,19 @@ public enum core : libcommon.IopPackage {
                         self.level = `level`
                         self.forceAll = `forceAll`
                         self.isSilent = `isSilent`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__set_logger_level_args__t.self, capacity: 1).pointee
                         self.fullName = Swift.String(data.full_name) ?? ""
                         self.level = data.level
                         self.forceAll = data.force_all
                         self.isSilent = data.is_silent
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__set_logger_level_args__t.self, capacity: 1)
                          data.pointee.full_name = self.fullName.duplicated(on: allocator)
                         data.pointee.level = self.level
@@ -558,21 +598,25 @@ public enum core : libcommon.IopPackage {
                     }
                 }
 
-                public struct Response : libcommon.IopStruct {
-                    public static let descriptor = core__log__set_logger_level_res__sp
+                public final class Response : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__set_logger_level_res__sp
+                    }
 
                     public var `level` : core_package.LogLevel
 
                     public init(`level`: core_package.LogLevel) {
                         self.level = `level`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__set_logger_level_res__t.self, capacity: 1).pointee
                         self.level = data.level
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__set_logger_level_res__t.self, capacity: 1)
                         data.pointee.level = self.level
                     }
@@ -586,41 +630,49 @@ public enum core : libcommon.IopPackage {
             }
 
             public enum ResetLoggerLevel : libcommon.IopRPC {
-                public struct Argument : libcommon.IopStruct {
-                    public static let descriptor = core__log__reset_logger_level_args__sp
+                public final class Argument : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__reset_logger_level_args__sp
+                    }
 
                     public var `fullName` : Swift.String
 
                     public init(`fullName`: Swift.String) {
                         self.fullName = `fullName`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__reset_logger_level_args__t.self, capacity: 1).pointee
                         self.fullName = Swift.String(data.full_name) ?? ""
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__reset_logger_level_args__t.self, capacity: 1)
                          data.pointee.full_name = self.fullName.duplicated(on: allocator)
                     }
                 }
 
-                public struct Response : libcommon.IopStruct {
-                    public static let descriptor = core__log__reset_logger_level_res__sp
+                public final class Response : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__reset_logger_level_res__sp
+                    }
 
                     public var `level` : core_package.LogLevel
 
                     public init(`level`: core_package.LogLevel) {
                         self.level = `level`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__reset_logger_level_res__t.self, capacity: 1).pointee
                         self.level = data.level
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__reset_logger_level_res__t.self, capacity: 1)
                         data.pointee.level = self.level
                     }
@@ -634,21 +686,25 @@ public enum core : libcommon.IopPackage {
             }
 
             public enum ListLoggers : libcommon.IopRPC {
-                public struct Argument : libcommon.IopStruct {
-                    public static let descriptor = core__log__list_loggers_args__sp
+                public final class Argument : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__list_loggers_args__sp
+                    }
 
                     public var `prefix` : Swift.String?
 
                     public init(`prefix`: Swift.String? = nil) {
                         self.prefix = `prefix`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__list_loggers_args__t.self, capacity: 1).pointee
                          self.prefix = Swift.String(data.prefix)
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__list_loggers_args__t.self, capacity: 1)
                         if let prefix_val = self.prefix {
                             data.pointee.prefix = prefix_val.duplicated(on: allocator)
@@ -656,24 +712,28 @@ public enum core : libcommon.IopPackage {
                     }
                 }
 
-                public struct Response : libcommon.IopStruct {
-                    public static let descriptor = core__log__list_loggers_res__sp
+                public final class Response : libcommon.IopStruct {
+                    open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+                        return core__log__list_loggers_res__sp
+                    }
 
                     public var `loggers` : [core_package.LoggerConfiguration]
 
                     public init(`loggers`: [core_package.LoggerConfiguration] = []) {
                         self.loggers = `loggers`
+                        super.init()
                     }
 
-                    public init(_ c: Swift.UnsafeRawPointer) throws {
+                    public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1).pointee
                         self.loggers = try data.loggers.buffer.map {
                             var loggers_var = $0
                             return try core_package.LoggerConfiguration(&loggers_var)
                             }
+                        try super.init(c)
                     }
 
-                    public func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+                    open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
                         let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1)
                         data.pointee.loggers = .init(self.loggers, on: allocator)
                     }
