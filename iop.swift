@@ -275,6 +275,13 @@ public extension IopComplexType {
 }
 
 public func ==<T: IopComplexType>(lhs : T, rhs : T) -> Bool {
+    let lhDesc = type(of: lhs).descriptor
+    let rhDesc = type(of: rhs).descriptor
+
+    guard lhDesc == rhDesc else {
+        return false
+    }
+
     return lhs.withC { lhsC in
         return rhs.withC {
             return iop_equals_desc(type(of: lhs).descriptor, lhsC, $0)
