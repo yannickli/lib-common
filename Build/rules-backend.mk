@@ -215,7 +215,7 @@ $$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT)%o,$3): $3
 	$(msg/COMPILE.swift) $$(swift/$2/mod)
 	-rm -f $$(swift/$2/objs)
 	$(SWIFTC) -emit-dependencies -emit-object -module-name $$(swift/$2/mod) \
-		$$(swift/$2/swiftflags) \
+		-j$(SUBPARALLELISM) $$(swift/$2/swiftflags) \
 		$(if $($1_SWIFTMIXED),-import-underlying-module) \
 		$(if $($1_SWIFTMAIN),,-parse-as-library -emit-module -emit-module-path $~$$(swift/$2/mod)$4.swiftmodule) \
 		-output-file-map $$(swift/$2/map) $3  -g -I$~ -Xcc -xc \

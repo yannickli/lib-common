@@ -117,8 +117,10 @@ msg/DOC.pdf     := $(msg/color) '1;$(col/red)'     " PDF"
 .DEFAULT_GOAL := all
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
+PARALLELISM   := $(shell $(var/toolsdir)/getncpu.sh)
+SUBPARALLELISM := $(shell echo $$(( ($(PARALLELISM) + 1) / 2 )))
 ifeq (,$(L)$(LINEAR))
-MAKEPARALLEL  ?= $(MAKE) -j$(shell $(var/toolsdir)/getncpu.sh)
+MAKEPARALLEL  ?= $(MAKE) -j$(PARALLELISM)
 else
 MAKEPARALLEL  ?= $(MAKE)
 endif
