@@ -370,6 +370,7 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_SNMP_PARAMS_FROM,
     IOPC_ATTR_SNMP_PARAM,
     IOPC_ATTR_SNMP_INDEX,
+    IOPC_ATTR_SWIFT_DUMP_ARRAY,
 } iopc_attr_id_t;
 
 /* types on which an attribute can apply */
@@ -942,6 +943,7 @@ static inline void iopc_iface_wipe(iopc_iface_t *iface) {
 GENERIC_NEW(iopc_iface_t, iopc_iface);
 GENERIC_DELETE(iopc_iface_t, iopc_iface);
 qvector_t(iopc_iface, iopc_iface_t *);
+qh_khptr_t(iopc_pkg, iopc_pkg_t);
 
 struct iopc_pkg_t {
     bool t_resolving : 1;
@@ -961,6 +963,7 @@ struct iopc_pkg_t {
     qv_t(iopc_struct) modules;
     qv_t(iopc_field)  typedefs;
     qv_t(iopc_dox)    comments;
+    qh_t(iopc_pkg)    deps;
 };
 static inline iopc_pkg_t *iopc_pkg_init(iopc_pkg_t *pkg) {
     p_clear(pkg, 1);
@@ -972,10 +975,12 @@ static inline iopc_pkg_t *iopc_pkg_init(iopc_pkg_t *pkg) {
     qv_init(&pkg->ifaces);
     qv_init(&pkg->typedefs);
     qv_init(&pkg->comments);
+    qh_init(iopc_pkg, &pkg->deps);
     return pkg;
 }
 static inline void iopc_pkg_wipe(iopc_pkg_t *pkg) {
     sb_wipe(&pkg->verbatim_c);
+    qh_wipe(iopc_pkg, &pkg->deps);
     qv_deep_wipe(&pkg->ifaces, iopc_iface_delete);
     qv_deep_wipe(&pkg->structs, iopc_struct_delete);
     qv_deep_wipe(&pkg->modules, iopc_struct_delete);

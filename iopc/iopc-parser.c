@@ -573,6 +573,12 @@ static void init_attributes(void)
     d = add_attr(IOPC_ATTR_SNMP_INDEX, "snmpIndex");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     d->types |= IOPC_ATTR_T_ALL;
+
+    d = add_attr(IOPC_ATTR_SWIFT_DUMP_ARRAY, "swiftDumpArray");
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_STRUCT;
+    d->types |= IOPC_ATTR_T_UNION;
+    d->types |= IOPC_ATTR_T_ENUM;
 #undef ADD_ATTR_ARG
 }
 
@@ -3872,6 +3878,16 @@ iopc_pkg_t *iopc_parse_file(qv_t(cstr) *includes,
         qv_deep_wipe(&pp.tokens, iopc_token_delete);
         iopc_lexer_delete(&pp.ld);
         iop_cfolder_delete(&pp.cfolder);
+    }
+
+    if (pkg) {
+        qm_for_each_pos(iopc_pkg, pos, &_G.pkgs) {
+            iopc_pkg_t *p = _G.pkgs.values[pos];
+
+            if (p != pkg) {
+                qh_add(iopc_pkg, &pkg->deps, p);
+            }
+        }
     }
 
     return pkg;

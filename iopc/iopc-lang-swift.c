@@ -98,22 +98,206 @@ static void dump_package_interface(sb_t *buf, iopc_path_t *path)
     iopc_dump_package_member(buf, path, "interfaces");
 }
 
+static void t_iopc_collect_dumped_struct_fields(const iopc_pkg_t *src_pkg,
+                                                const iopc_pkg_t *pkg,
+                                                const iopc_struct_t *st,
+                                                qh_t(lstr) *dumped)
+{
+    if (iopc_is_snmp_st(st->type)) {
+        return;
+    }
+
+    tab_for_each_entry(attr, &st->attrs) {
+        if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
+            lstr_t name = t_camelcase_to_c(LSTR(st->name));
+
+            name = t_lstr_fmt("%s__%*pM__array_t", t_pp_under(pkg->name),
+                              LSTR_FMT_ARG(name));
+            qh_add(lstr, dumped, &name);
+            break;
+        }
+    }
+
+    tab_for_each_entry(field, &st->fields) {
+        const iopc_pkg_t *p = pkg;
+        lstr_t name;
+
+        if (field->repeat != IOP_R_REPEATED) {
+            continue;
+        }
+
+        switch (field->kind) {
+          case IOP_T_STRUCT:
+          case IOP_T_UNION:
+          case IOP_T_ENUM:
+            name = t_camelcase_to_c(LSTR(field->type_name));
+            break;
+
+          default:
+            continue;
+        }
+
+        if (field->type_pkg) {
+            p = field->type_pkg;
+        }
+        if (p != src_pkg) {
+            name = t_lstr_fmt("%s__%*pM__array_t", t_pp_under(p->name),
+                              LSTR_FMT_ARG(name));
+            qh_add(lstr, dumped, &name);
+        }
+    }
+}
+
+static void t_iopc_collect_dumped_array_types(const iopc_pkg_t *src_pkg,
+                                              const iopc_pkg_t *pkg,
+                                              qh_t(lstr) *dumped)
+{
+    tab_for_each_entry(en, &pkg->enums) {
+        tab_for_each_entry(attr, &en->attrs) {
+            if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
+                lstr_t name = t_camelcase_to_c(LSTR(en->name));
+
+                name = t_lstr_fmt("%s__%*pM__array_t", t_pp_under(pkg->name),
+                                  LSTR_FMT_ARG(name));
+                qh_add(lstr, dumped, &name);
+                break;
+            }
+        }
+    }
+
+    tab_for_each_entry(st, &pkg->structs) {
+        t_iopc_collect_dumped_struct_fields(src_pkg, pkg, st, dumped);
+    }
+
+    tab_for_each_entry(iface, &pkg->ifaces) {
+        tab_for_each_entry(rpc, &iface->funs) {
+            if (rpc->arg && rpc->arg_is_anonymous) {
+                t_iopc_collect_dumped_struct_fields(src_pkg, pkg, rpc->arg,
+                                                    dumped);
+            }
+            if (rpc->res && rpc->res_is_anonymous) {
+                t_iopc_collect_dumped_struct_fields(src_pkg, pkg, rpc->res,
+                                                    dumped);
+            }
+            if (rpc->exn && rpc->exn_is_anonymous) {
+                t_iopc_collect_dumped_struct_fields(src_pkg, pkg, rpc->exn,
+                                                    dumped);
+            }
+        }
+    }
+}
+
+static void t_iopc_dump_struct_deps(sb_t *buf, const iopc_pkg_t *pkg,
+                                    const iopc_struct_t *st,
+                                    qh_t(lstr) *dumped)
+{
+    if (iopc_is_snmp_st(st->type)) {
+        return;
+    }
+
+    tab_for_each_entry(field, &st->fields) {
+        lstr_t name;
+        lstr_t array_type;
+
+        if (field->repeat != IOP_R_REPEATED) {
+            continue;
+        }
+
+        switch (field->kind) {
+          case IOP_T_STRUCT:
+          case IOP_T_UNION:
+            name = t_camelcase_to_c(LSTR(field->struct_def->name));
+            if (iopc_is_class(field->struct_def->type)) {
+                array_type = LSTR("IopClassArray");
+            } else {
+                array_type = LSTR("IopComplexTypeArray");
+            }
+            break;
+
+          case IOP_T_ENUM:
+            name = t_camelcase_to_c(LSTR(field->enum_def->name));
+            array_type = LSTR("IopSimpleArray");
+            break;
+
+          default:
+            continue;
+        }
+
+        name = t_lstr_fmt("%s__%*pM__array_t",
+                          t_pp_under(field->type_pkg->name),
+                          LSTR_FMT_ARG(name));
+        if (qh_add(lstr, dumped, &name) >= 0) {
+            sb_addf(buf, "extension %*pM : libcommon.%*pM { }\n",
+                    LSTR_FMT_ARG(name), LSTR_FMT_ARG(array_type));
+        }
+    }
+}
+
 static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
                                  const char *pkg_name)
 {
     t_scope;
+    qh_t(lstr) dumped;
+
+    t_qh_init(lstr, &dumped, 128);
 
     tab_for_each_entry(st, &pkg->structs) {
-        lstr_t name = t_camelcase_to_c(LSTR(st->name));
-
         if (iopc_is_snmp_st(st->type)) {
             continue;
         }
 
-        sb_addf(buf,
-                "extension %s__%*pM__array_t : libcommon.Iop%sArray { }\n\n",
-                pkg_name, LSTR_FMT_ARG(name),
-                iopc_is_class(st->type) ? "Class" : "ComplexType");
+        tab_for_each_entry(attr, &st->attrs) {
+            if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
+                lstr_t name = t_camelcase_to_c(LSTR(st->name));
+
+                name = t_lstr_fmt("%s__%*pM__array_t", t_pp_under(pkg->name),
+                                  LSTR_FMT_ARG(name));
+                if (iopc_is_class(st->type)) {
+                    sb_addf(buf, "extension %*pM: libcommon.IopClassArray { }\n",
+                            LSTR_FMT_ARG(name));
+                } else {
+                    sb_addf(buf, "extension %*pM: libcommon.IopComplexTypeArray { }\n",
+                            LSTR_FMT_ARG(name));
+                }
+                qh_add(lstr, &dumped, &name);
+                break;
+            }
+        }
+    }
+
+    tab_for_each_entry(en, &pkg->enums) {
+        tab_for_each_entry(attr, &en->attrs) {
+            if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
+                lstr_t name = t_camelcase_to_c(LSTR(en->name));
+
+                sb_addf(buf, "extension %s__%*pM__array_t : libcommon.IopSimpleArray { }\n",
+                        t_pp_under(pkg->name), LSTR_FMT_ARG(name));
+                qh_add(lstr, &dumped, &name);
+                break;
+            }
+        }
+    }
+
+    qh_for_each_pos(iopc_pkg, pos, &pkg->deps) {
+        t_iopc_collect_dumped_array_types(pkg, pkg->deps.keys[pos], &dumped);
+    }
+
+    tab_for_each_entry(st, &pkg->structs) {
+        t_iopc_dump_struct_deps(buf, pkg, st, &dumped);
+    }
+
+    tab_for_each_entry(iface, &pkg->ifaces) {
+        tab_for_each_entry(rpc, &iface->funs) {
+            if (rpc->arg && rpc->arg_is_anonymous) {
+                t_iopc_dump_struct_deps(buf, pkg, rpc->arg, &dumped);
+            }
+            if (rpc->res && rpc->res_is_anonymous) {
+                t_iopc_dump_struct_deps(buf, pkg, rpc->res, &dumped);
+            }
+            if (rpc->exn && rpc->exn_is_anonymous) {
+                t_iopc_dump_struct_deps(buf, pkg, rpc->exn, &dumped);
+            }
+        }
     }
 
     tab_for_each_entry(en, &pkg->enums) {
@@ -127,12 +311,11 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
                 "    public static let max : Swift.Int32 = Swift.Int32(%*pM_max)\n"
                 "    public static let count : Swift.Int32 = Swift.Int32(%*pM_count)\n"
                 "}\n"
-                "extension %s__%*pM__array_t : libcommon.IopSimpleArray { }\n"
                 "extension %s__%*pM__opt_t : libcommon.IopOptional { }\n\n",
                 pkg_name, LSTR_FMT_ARG(name), pkg_name, LSTR_FMT_ARG(name),
                 LSTR_FMT_ARG(c_prefix), LSTR_FMT_ARG(c_prefix),
                 LSTR_FMT_ARG(c_prefix),
-                pkg_name, LSTR_FMT_ARG(name), pkg_name, LSTR_FMT_ARG(name));
+                pkg_name, LSTR_FMT_ARG(name));
     }
 }
 
