@@ -66,10 +66,6 @@ public extension IopOptional {
             v = value
         }
     }
-
-    public static func from(_ value: Element?) -> Self {
-        return Self(value)
-    }
 }
 
 extension opt_i8_t : IopOptional { }

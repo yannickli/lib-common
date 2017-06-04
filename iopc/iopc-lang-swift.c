@@ -709,7 +709,7 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
       case IOP_R_OPTIONAL:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        data.pointee.%*pM = .from(self.%s)\n",
+            sb_addf(buf, "%s        data.pointee.%*pM = .init(self.%s)\n",
                     indent, LSTR_FMT_ARG(c_field_name), field->name);
             break;
 
