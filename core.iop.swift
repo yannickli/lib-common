@@ -57,11 +57,11 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__logger_configuration__t.self, capacity: 1).pointee
-            self.fullName = Swift.String(data.full_name) ?? ""
-            self.level = data.level
-            self.forceAll = data.force_all
-            self.isSilent = data.is_silent
+            let data = c.bindMemory(to: core__logger_configuration__t.self, capacity: 1)
+            self.fullName = Swift.String(data.pointee.full_name) ?? ""
+            self.level = data.pointee.level
+            self.forceAll = data.pointee.force_all
+            self.isSilent = data.pointee.is_silent
             try super.init(c)
         }
 
@@ -96,11 +96,11 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__log_configuration__t.self, capacity: 1).pointee
-            self.rootLevel = data.root_level
-            self.forceAll = data.force_all
-            self.isSilent = data.is_silent
-            self.specific = try data.specific.buffer.map {
+            let data = c.bindMemory(to: core__log_configuration__t.self, capacity: 1)
+            self.rootLevel = data.pointee.root_level
+            self.forceAll = data.pointee.force_all
+            self.isSilent = data.pointee.is_silent
+            self.specific = try data.pointee.specific.buffer.map {
                 var specific_var = $0
                 return try core_package.LoggerConfiguration(&specific_var)
                 }
@@ -145,12 +145,12 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__log_file_configuration__t.self, capacity: 1).pointee
-            self.maxSize = data.max_size
-            self.maxTime = data.max_time
-            self.maxFiles = data.max_files
-            self.totalMaxSize = data.total_max_size
-            self.compress = data.compress
+            let data = c.bindMemory(to: core__log_file_configuration__t.self, capacity: 1)
+            self.maxSize = data.pointee.max_size
+            self.maxTime = data.pointee.max_time
+            self.maxFiles = data.pointee.max_files
+            self.totalMaxSize = data.pointee.total_max_size
+            self.compress = data.pointee.compress
             try super.init(c)
         }
 
@@ -184,9 +184,9 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__licence_module__t.self, capacity: 1).pointee
-             self.expirationDate = Swift.String(data.expiration_date)
-            self.expirationWarningDelay = data.expiration_warning_delay
+            let data = c.bindMemory(to: core__licence_module__t.self, capacity: 1)
+             self.expirationDate = Swift.String(data.pointee.expiration_date)
+            self.expirationWarningDelay = data.pointee.expiration_warning_delay
             try super.init(c)
         }
 
@@ -240,16 +240,16 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__licence__t.self, capacity: 1).pointee
-            self.expirationDate = Swift.String(data.expiration_date) ?? ""
-             self.expirationHardDate = Swift.String(data.expiration_hard_date)
-            self.expirationWarningDelay = data.expiration_warning_delay
-            self.registeredTo = Swift.String(data.registered_to) ?? ""
-            self.version = Swift.String(data.version) ?? ""
-            self.productionUse = data.production_use
-            self.cpuSignatures = Swift.Array(data.cpu_signatures.buffer)
-            self.macAddresses = data.mac_addresses.buffer.map {                return Swift.String($0) ?? ""}
-            self.modules = try data.modules.buffer.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
+            let data = c.bindMemory(to: core__licence__t.self, capacity: 1)
+            self.expirationDate = Swift.String(data.pointee.expiration_date) ?? ""
+             self.expirationHardDate = Swift.String(data.pointee.expiration_hard_date)
+            self.expirationWarningDelay = data.pointee.expiration_warning_delay
+            self.registeredTo = Swift.String(data.pointee.registered_to) ?? ""
+            self.version = Swift.String(data.pointee.version) ?? ""
+            self.productionUse = data.pointee.production_use
+            self.cpuSignatures = Swift.Array(data.pointee.cpu_signatures.buffer)
+            self.macAddresses = data.pointee.mac_addresses.buffer.map {                return Swift.String($0) ?? ""}
+            self.modules = try data.pointee.modules.buffer.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
             try super.init(c)
         }
 
@@ -285,9 +285,9 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1).pointee
-            self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.licence)!)
-            self.signature = Swift.String(data.signature) ?? ""
+            let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1)
+            self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.pointee.licence)!)
+            self.signature = Swift.String(data.pointee.signature) ?? ""
             try super.init(c)
         }
 
@@ -335,16 +335,16 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__httpd_cfg__t.self, capacity: 1).pointee
-            self.bindAddr = Swift.String(data.bind_addr) ?? ""
-            self.outbufMaxSize = data.outbuf_max_size
-            self.pipelineDepth = data.pipeline_depth
-            self.noactDelay = data.noact_delay
-            self.maxQueries = data.max_queries
-            self.maxConnsIn = data.max_conns_in
-            self.onDataThreshold = data.on_data_threshold
-            self.headerLineMax = data.header_line_max
-            self.headerSizeMax = data.header_size_max
+            let data = c.bindMemory(to: core__httpd_cfg__t.self, capacity: 1)
+            self.bindAddr = Swift.String(data.pointee.bind_addr) ?? ""
+            self.outbufMaxSize = data.pointee.outbuf_max_size
+            self.pipelineDepth = data.pointee.pipeline_depth
+            self.noactDelay = data.pointee.noact_delay
+            self.maxQueries = data.pointee.max_queries
+            self.maxConnsIn = data.pointee.max_conns_in
+            self.onDataThreshold = data.pointee.on_data_threshold
+            self.headerLineMax = data.pointee.header_line_max
+            self.headerSizeMax = data.pointee.header_size_max
             try super.init(c)
         }
 
@@ -390,13 +390,13 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__httpc_cfg__t.self, capacity: 1).pointee
-            self.pipelineDepth = data.pipeline_depth
-            self.noactDelay = data.noact_delay
-            self.maxQueries = data.max_queries
-            self.onDataThreshold = data.on_data_threshold
-            self.headerLineMax = data.header_line_max
-            self.headerSizeMax = data.header_size_max
+            let data = c.bindMemory(to: core__httpc_cfg__t.self, capacity: 1)
+            self.pipelineDepth = data.pointee.pipeline_depth
+            self.noactDelay = data.pointee.noact_delay
+            self.maxQueries = data.pointee.max_queries
+            self.onDataThreshold = data.pointee.on_data_threshold
+            self.headerLineMax = data.pointee.header_line_max
+            self.headerSizeMax = data.pointee.header_size_max
             try super.init(c)
         }
 
@@ -427,9 +427,9 @@ public enum core : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1).pointee
-            self.filePath = Swift.String(data.file_path) ?? ""
-            self.iopPath = Swift.String(data.iop_path) ?? ""
+            let data = c.bindMemory(to: core__iop_json_subfile__t.self, capacity: 1)
+            self.filePath = Swift.String(data.pointee.file_path) ?? ""
+            self.iopPath = Swift.String(data.pointee.iop_path) ?? ""
             try super.init(c)
         }
 
@@ -462,10 +462,10 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__set_root_level_args__t.self, capacity: 1).pointee
-                        self.level = data.level
-                        self.forceAll = data.force_all
-                        self.isSilent = data.is_silent
+                        let data = c.bindMemory(to: core__log__set_root_level_args__t.self, capacity: 1)
+                        self.level = data.pointee.level
+                        self.forceAll = data.pointee.force_all
+                        self.isSilent = data.pointee.is_silent
                         try super.init(c)
                     }
 
@@ -490,8 +490,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__set_root_level_res__t.self, capacity: 1).pointee
-                        self.level = data.level
+                        let data = c.bindMemory(to: core__log__set_root_level_res__t.self, capacity: 1)
+                        self.level = data.pointee.level
                         try super.init(c)
                     }
 
@@ -522,8 +522,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__reset_root_level_res__t.self, capacity: 1).pointee
-                        self.level = data.level
+                        let data = c.bindMemory(to: core__log__reset_root_level_res__t.self, capacity: 1)
+                        self.level = data.pointee.level
                         try super.init(c)
                     }
 
@@ -563,11 +563,11 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__set_logger_level_args__t.self, capacity: 1).pointee
-                        self.fullName = Swift.String(data.full_name) ?? ""
-                        self.level = data.level
-                        self.forceAll = data.force_all
-                        self.isSilent = data.is_silent
+                        let data = c.bindMemory(to: core__log__set_logger_level_args__t.self, capacity: 1)
+                        self.fullName = Swift.String(data.pointee.full_name) ?? ""
+                        self.level = data.pointee.level
+                        self.forceAll = data.pointee.force_all
+                        self.isSilent = data.pointee.is_silent
                         try super.init(c)
                     }
 
@@ -593,8 +593,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__set_logger_level_res__t.self, capacity: 1).pointee
-                        self.level = data.level
+                        let data = c.bindMemory(to: core__log__set_logger_level_res__t.self, capacity: 1)
+                        self.level = data.pointee.level
                         try super.init(c)
                     }
 
@@ -625,8 +625,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__reset_logger_level_args__t.self, capacity: 1).pointee
-                        self.fullName = Swift.String(data.full_name) ?? ""
+                        let data = c.bindMemory(to: core__log__reset_logger_level_args__t.self, capacity: 1)
+                        self.fullName = Swift.String(data.pointee.full_name) ?? ""
                         try super.init(c)
                     }
 
@@ -649,8 +649,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__reset_logger_level_res__t.self, capacity: 1).pointee
-                        self.level = data.level
+                        let data = c.bindMemory(to: core__log__reset_logger_level_res__t.self, capacity: 1)
+                        self.level = data.pointee.level
                         try super.init(c)
                     }
 
@@ -681,8 +681,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__list_loggers_args__t.self, capacity: 1).pointee
-                         self.prefix = Swift.String(data.prefix)
+                        let data = c.bindMemory(to: core__log__list_loggers_args__t.self, capacity: 1)
+                         self.prefix = Swift.String(data.pointee.prefix)
                         try super.init(c)
                     }
 
@@ -707,8 +707,8 @@ public enum core : libcommon.IopPackage {
                     }
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
-                        let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1).pointee
-                        self.loggers = try data.loggers.buffer.map {
+                        let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1)
+                        self.loggers = try data.pointee.loggers.buffer.map {
                             var loggers_var = $0
                             return try core_package.LoggerConfiguration(&loggers_var)
                             }

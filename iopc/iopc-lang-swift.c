@@ -578,7 +578,7 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_REQUIRED:
       case IOP_R_DEFVAL:
         iopc_dump_struct_value_importer(buf, indent, field,
-                                        t_fmt("data.%*pM",
+                                        t_fmt("data.pointee.%*pM",
                                               LSTR_FMT_ARG(c_field_name)),
                                         t_fmt("self.%s =", field->name));
         sb_addc(buf, '\n');
@@ -587,22 +587,22 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_OPTIONAL:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        self.%s = data.%*pM.value\n",
+            sb_addf(buf, "%s        self.%s = data.pointee.%*pM.value\n",
                     indent, field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
           case IOP_T_STRING: case IOP_T_XML:
-            sb_addf(buf, "%s         self.%s = Swift.String(data.%*pM)\n",
+            sb_addf(buf, "%s         self.%s = Swift.String(data.pointee.%*pM)\n",
                     indent, field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
           case IOP_T_DATA:
             sb_addf(buf,
-                    "%s        if data.%*pM.data != nil {\n"
+                    "%s        if data.pointee.%*pM.data != nil {\n"
                     "%s            ",
                     indent, LSTR_FMT_ARG(c_field_name), indent);
             iopc_dump_struct_value_importer(buf, t_fmt("%s    ", indent), field,
-                                        t_fmt("data.%*pM",
+                                        t_fmt("data.pointee.%*pM",
                                               LSTR_FMT_ARG(c_field_name)),
                                         t_fmt("self.%s =", field->name));
             sb_addf(buf, "\n%s        }\n", indent);
@@ -610,7 +610,7 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
 
           case IOP_T_UNION: case IOP_T_STRUCT:
             iopc_dump_struct_value_importer(buf, indent, field,
-                                            t_fmt("data.%*pM",
+                                            t_fmt("data.pointee.%*pM",
                                                   LSTR_FMT_ARG(c_field_name)),
                                             t_fmt("self.%s =", field->name));
             sb_addc(buf, '\n');
@@ -618,7 +618,7 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
 
           case IOP_T_VOID:
             sb_addf(buf,
-                    "%s        if data.%*pM {\n"
+                    "%s        if data.pointee.%*pM {\n"
                     "%s            self.%s = libcommon.IopVoid()\n"
                     "%s        }\n", indent, LSTR_FMT_ARG(c_field_name),
                     indent, field->name, indent);
@@ -629,12 +629,12 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_REPEATED:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        self.%s = Swift.Array(data.%*pM.buffer)\n", indent,
+            sb_addf(buf, "%s        self.%s = Swift.Array(data.pointee.%*pM.buffer)\n", indent,
                     field->name, LSTR_FMT_ARG(c_field_name));
             break;
 
           default:
-            sb_addf(buf, "%s        self.%s = %sdata.%*pM.buffer.map {",
+            sb_addf(buf, "%s        self.%s = %sdata.pointee.%*pM.buffer.map {",
                     indent, field->name,
                     field->kind == IOP_T_UNION || field->kind == IOP_T_STRUCT ? "try ": "",
                     LSTR_FMT_ARG(c_field_name));
@@ -941,7 +941,7 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
             indent);
     if (st->fields.len) {
         sb_addf(buf,
-                "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1).pointee\n",
+                "%s        let data = c.bindMemory(to: %*pM__t.self, capacity: 1)\n",
                 indent, LSTR_FMT_ARG(c_name));
         tab_for_each_entry(field, &st->fields) {
             if (!iopc_struct_is_field_ignored(field)) {

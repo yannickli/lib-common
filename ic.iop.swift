@@ -26,9 +26,9 @@ public enum ic : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: ic__tracer__t.self, capacity: 1).pointee
-            self.token = data.token
-            self.epoch = data.epoch
+            let data = c.bindMemory(to: ic__tracer__t.self, capacity: 1)
+            self.token = data.pointee.token
+            self.epoch = data.pointee.epoch
             try super.init(c)
         }
 
@@ -70,14 +70,14 @@ public enum ic : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: ic__simple_hdr__t.self, capacity: 1).pointee
-             self.login = Swift.String(data.login)
-             self.password = Swift.String(data.password)
-             self.kind = Swift.String(data.kind)
-            self.payload = data.payload
-             self.host = Swift.String(data.host)
-             self.group = Swift.String(data.group)
-             self.source = Swift.String(data.source)
+            let data = c.bindMemory(to: ic__simple_hdr__t.self, capacity: 1)
+             self.login = Swift.String(data.pointee.login)
+             self.password = Swift.String(data.pointee.password)
+             self.kind = Swift.String(data.pointee.kind)
+            self.payload = data.pointee.payload
+             self.host = Swift.String(data.pointee.host)
+             self.group = Swift.String(data.pointee.group)
+             self.source = Swift.String(data.pointee.source)
             try super.init(c)
         }
 
@@ -152,14 +152,14 @@ public enum ic : libcommon.IopPackage {
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1).pointee
-            self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.route)!)
-            self.ttl = data.ttl
-            self.priority = data.priority
+            let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1)
+            self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.pointee.route)!)
+            self.ttl = data.pointee.ttl
+            self.priority = data.pointee.priority
 
-            self.tracer = try ic_package.Tracer(data.tracer)
+            self.tracer = try ic_package.Tracer(data.pointee.tracer)
 
-            self.originalHdr = try ic_package.Hdr(data.original_hdr)
+            self.originalHdr = try ic_package.Hdr(data.pointee.original_hdr)
             try super.init(c)
         }
 
