@@ -310,12 +310,10 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
                 "    public static let min : Swift.Int32 = Swift.Int32(%*pM_min)\n"
                 "    public static let max : Swift.Int32 = Swift.Int32(%*pM_max)\n"
                 "    public static let count : Swift.Int32 = Swift.Int32(%*pM_count)\n"
-                "}\n"
-                "extension %s__%*pM__opt_t : libcommon.IopOptional { }\n\n",
+                "}\n",
                 pkg_name, LSTR_FMT_ARG(name), pkg_name, LSTR_FMT_ARG(name),
                 LSTR_FMT_ARG(c_prefix), LSTR_FMT_ARG(c_prefix),
-                LSTR_FMT_ARG(c_prefix),
-                pkg_name, LSTR_FMT_ARG(name));
+                LSTR_FMT_ARG(c_prefix));
     }
 }
 
@@ -587,8 +585,12 @@ static void iopc_dump_struct_field_importer(sb_t *buf, const char *indent,
       case IOP_R_OPTIONAL:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        self.%s = data.pointee.%*pM.value\n",
-                    indent, field->name, LSTR_FMT_ARG(c_field_name));
+            sb_addf(buf, "%s        if data.pointee.%*pM.has_field {\n"
+                         "%s            self.%s = data.pointee.%*pM.v\n"
+                         "%s        }\n",
+                    indent, LSTR_FMT_ARG(c_field_name),
+                    indent, field->name, LSTR_FMT_ARG(c_field_name),
+                    indent);
             break;
 
           case IOP_T_STRING: case IOP_T_XML:
@@ -709,8 +711,16 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
       case IOP_R_OPTIONAL:
         switch (field->kind) {
           case IOP_T_I8...IOP_T_DOUBLE:
-            sb_addf(buf, "%s        data.pointee.%*pM = .init(self.%s)\n",
-                    indent, LSTR_FMT_ARG(c_field_name), field->name);
+            sb_addf(buf, "%s        if let %s_val = self.%s {\n"
+                         "%s            data.pointee.%*pM.has_field = true\n"
+                         "%s            data.pointee.%*pM.v = %s_val\n"
+                         "%s        } else {\n"
+                         "%s            data.pointee.%*pM.has_field = false\n"
+                         "%s        }\n",
+                    indent, field->name, field->name,
+                    indent, LSTR_FMT_ARG(c_field_name),
+                    indent, LSTR_FMT_ARG(c_field_name), field->name,
+                    indent, indent, LSTR_FMT_ARG(c_field_name), indent);
             break;
 
           case IOP_T_DATA:

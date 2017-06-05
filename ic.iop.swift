@@ -5,8 +5,6 @@ extension ic__ic_priority__t : libcommon.IopEnum {
     public static let max : Swift.Int32 = Swift.Int32(IC_PRIORITY_max)
     public static let count : Swift.Int32 = Swift.Int32(IC_PRIORITY_count)
 }
-extension ic__ic_priority__opt_t : libcommon.IopOptional { }
-
 public enum ic : libcommon.IopPackage {
     public typealias IcPriority = ic__ic_priority__t
 

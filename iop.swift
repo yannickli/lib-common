@@ -40,47 +40,6 @@ public enum IopImportError : Error {
 }
 
 /* }}} */
-/* Simple optionals {{{ */
-
-/// Protocol describing C simple types optionals.
-public protocol IopOptional {
-    associatedtype Element
-
-    var v: Element { get set }
-    var has_field : Bool { get set }
-    init()
-}
-
-public extension IopOptional {
-    public var value: Element? {
-        if has_field {
-            return v
-        }
-        return nil
-    }
-
-    public init(_ value: Element?) {
-        self.init()
-        if let value = value {
-            has_field = true
-            v = value
-        }
-    }
-}
-
-extension opt_i8_t : IopOptional { }
-extension opt_u8_t : IopOptional { }
-extension opt_i16_t : IopOptional { }
-extension opt_u16_t : IopOptional { }
-extension opt_i32_t : IopOptional { }
-extension opt_u32_t : IopOptional { }
-extension opt_i64_t : IopOptional { }
-extension opt_u64_t : IopOptional { }
-extension opt_enum_t : IopOptional { }
-extension opt_double_t : IopOptional { }
-extension opt_bool_t : IopOptional { }
-
-/* }}} */
 /* Arrays {{{ */
 
 /// Protocol describing C IOP arrays.

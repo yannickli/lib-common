@@ -7,16 +7,12 @@ extension core__log_level__t : libcommon.IopEnum {
     public static let max : Swift.Int32 = Swift.Int32(LOG_LEVEL_max)
     public static let count : Swift.Int32 = Swift.Int32(LOG_LEVEL_count)
 }
-extension core__log_level__opt_t : libcommon.IopOptional { }
-
 extension core__iop_http_method__t : libcommon.IopEnum {
     public static let descriptor = core__iop_http_method__ep
     public static let min : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_min)
     public static let max : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_max)
     public static let count : Swift.Int32 = Swift.Int32(IOP_HTTP_METHOD_count)
 }
-extension core__iop_http_method__opt_t : libcommon.IopOptional { }
-
 public protocol core__modules__Core : libcommon.IopModule {
     var `log` : core_package.interfaces.Log.Impl { get }
     static var `log` : core_package.interfaces.Log { get }
