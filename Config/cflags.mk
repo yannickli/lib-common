@@ -37,7 +37,7 @@ CLANGXX  := $(shell which "clang++")
 CC_FULL  := $(shell which "$(CC)")
 CXX_FULL := $(shell which "$(CXX)")
 
-$!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
+$!clang-flags.mk: $(CLANG) $(SWIFTC) $(var/cfgdir)/cflags.sh $/configure
 	$(RM) $@
 	/bin/echo -n "CLANGFLAGS := "                      >  $@+
 	$(var/cfgdir)/cflags.sh "clang"               >> $@+
@@ -56,14 +56,14 @@ $!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
-$!cc-$(CC_BASE)-flags.mk: $(CC_FULL) $(var/cfgdir)/cflags.sh
+$!cc-$(CC_BASE)-flags.mk: $(CC_FULL) $(var/cfgdir)/cflags.sh $/configure
 	$(RM) $@
 	/bin/echo -n "CFLAGS := "                          >  $@+
 	$(var/cfgdir)/cflags.sh "$(CC)"               >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
-$!cxx-$(CXX_BASE)-flags.mk: $(CXX_FULL) $(var/cfgdir)/cflags.sh
+$!cxx-$(CXX_BASE)-flags.mk: $(CXX_FULL) $(var/cfgdir)/cflags.sh $/configure
 	$(RM) $@
 	/bin/echo -n "CXXFLAGS := "                        >  $@+
 	$(var/cfgdir)/cflags.sh "$(CXX)"              >> $@+
