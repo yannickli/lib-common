@@ -197,7 +197,6 @@ static void t_iopc_dump_struct_deps(sb_t *buf, const iopc_pkg_t *pkg,
 
     tab_for_each_entry(field, &st->fields) {
         lstr_t name;
-        lstr_t array_type;
 
         if (field->repeat != IOP_R_REPEATED) {
             continue;
@@ -207,16 +206,10 @@ static void t_iopc_dump_struct_deps(sb_t *buf, const iopc_pkg_t *pkg,
           case IOP_T_STRUCT:
           case IOP_T_UNION:
             name = t_camelcase_to_c(LSTR(field->struct_def->name));
-            if (iopc_is_class(field->struct_def->type)) {
-                array_type = LSTR("IopClassArray");
-            } else {
-                array_type = LSTR("IopComplexTypeArray");
-            }
             break;
 
           case IOP_T_ENUM:
             name = t_camelcase_to_c(LSTR(field->enum_def->name));
-            array_type = LSTR("IopSimpleArray");
             break;
 
           default:
@@ -227,8 +220,8 @@ static void t_iopc_dump_struct_deps(sb_t *buf, const iopc_pkg_t *pkg,
                           t_pp_under(field->type_pkg->name),
                           LSTR_FMT_ARG(name));
         if (qh_add(lstr, dumped, &name) >= 0) {
-            sb_addf(buf, "extension %*pM : libcommon.%*pM { }\n",
-                    LSTR_FMT_ARG(name), LSTR_FMT_ARG(array_type));
+            sb_addf(buf, "extension %*pM : libcommon.IopArray { }\n",
+                    LSTR_FMT_ARG(name));
         }
     }
 }
@@ -250,15 +243,8 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
             if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
                 lstr_t name = t_camelcase_to_c(LSTR(st->name));
 
-                name = t_lstr_fmt("%s__%*pM__array_t", t_pp_under(pkg->name),
-                                  LSTR_FMT_ARG(name));
-                if (iopc_is_class(st->type)) {
-                    sb_addf(buf, "extension %*pM: libcommon.IopClassArray { }\n",
-                            LSTR_FMT_ARG(name));
-                } else {
-                    sb_addf(buf, "extension %*pM: libcommon.IopComplexTypeArray { }\n",
-                            LSTR_FMT_ARG(name));
-                }
+                sb_addf(buf, "extension %s__%*pM__array_t: libcommon.IopArray { }\n",
+                        t_pp_under(pkg->name), LSTR_FMT_ARG(name));
                 qh_add(lstr, &dumped, &name);
                 break;
             }
@@ -270,7 +256,7 @@ static void iopc_dump_extensions(sb_t *buf, const iopc_pkg_t *pkg,
             if (attr->desc->id == IOPC_ATTR_SWIFT_DUMP_ARRAY) {
                 lstr_t name = t_camelcase_to_c(LSTR(en->name));
 
-                sb_addf(buf, "extension %s__%*pM__array_t : libcommon.IopSimpleArray { }\n",
+                sb_addf(buf, "extension %s__%*pM__array_t : libcommon.IopArray { }\n",
                         t_pp_under(pkg->name), LSTR_FMT_ARG(name));
                 qh_add(lstr, &dumped, &name);
                 break;
@@ -767,8 +753,35 @@ static void iopc_dump_struct_field_exporter(sb_t *buf, const char *indent,
         break;
 
       case IOP_R_REPEATED:
-        sb_addf(buf, "%s        data.pointee.%*pM = .init(self.%s, on: allocator)\n",
+        switch (field->kind) {
+          case IOP_T_I8...IOP_T_DOUBLE:
+            sb_addf(buf, "%s        data.pointee.%*pM.tab = self.%s.duplicated(on: allocator)\n"
+                         "%s        data.pointee.%*pM.len = Swift.Int32(self.%s.count)\n",
+                indent, LSTR_FMT_ARG(c_field_name), field->name,
                 indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
+
+          case IOP_T_DATA: case IOP_T_STRING: case IOP_T_XML:
+            sb_addf(buf, "%s        data.pointee.%*pM = .init(self.%s, on: allocator)\n",
+                         indent, LSTR_FMT_ARG(c_field_name), field->name);
+            break;
+
+          case IOP_T_UNION: case IOP_T_STRUCT:
+            if (iopc_is_class(field->struct_def->type)) {
+                sb_addf(buf, "%s        libcommon.duplicate(classArray: self.%s, "
+                             "to: &data.pointee.%*pM, on: allocator)\n",
+                             indent, field->name, LSTR_FMT_ARG(c_field_name));
+            } else {
+                sb_addf(buf, "%s        libcommon.duplicate(complexTypeArray: self.%s, "
+                             "to: &data.pointee.%*pM, on: allocator)\n",
+                             indent, field->name, LSTR_FMT_ARG(c_field_name));
+            }
+            break;
+
+          case IOP_T_VOID:
+            assert (false);
+            break;
+        }
         break;
     }
 }

@@ -52,39 +52,24 @@ public protocol IopArray {
     var len: Int32 { get set }
 
     init()
-
-    var buffer: UnsafeMutableBufferPointer<Element> { get }
 }
 
-/* implements Collection protocol */
-public extension IopArray {
+extension IopArray {
     public var buffer: UnsafeMutableBufferPointer<Element> {
         return UnsafeMutableBufferPointer(start: self.tab, count: Int(self.len))
     }
 }
 
-/// C array of simple types.
-public protocol IopSimpleArray : IopArray {
-}
-
-public extension IopSimpleArray {
-    public init(_ array: [Element], on allocator: Allocator) {
-        self.init()
-        self.tab = array.duplicated(on: allocator)
-        self.len = Int32(array.count)
-    }
-}
-
-extension iop_array_i8_t : IopSimpleArray { }
-extension iop_array_u8_t : IopSimpleArray { }
-extension iop_array_i16_t : IopSimpleArray { }
-extension iop_array_u16_t : IopSimpleArray { }
-extension iop_array_i32_t : IopSimpleArray { }
-extension iop_array_u32_t : IopSimpleArray { }
-extension iop_array_i64_t : IopSimpleArray { }
-extension iop_array_u64_t : IopSimpleArray { }
-extension iop_array_bool_t : IopSimpleArray { }
-extension iop_array_double_t : IopSimpleArray { }
+extension iop_array_i8_t : IopArray { }
+extension iop_array_u8_t : IopArray { }
+extension iop_array_i16_t : IopArray { }
+extension iop_array_u16_t : IopArray { }
+extension iop_array_i32_t : IopArray { }
+extension iop_array_u32_t : IopArray { }
+extension iop_array_i64_t : IopArray { }
+extension iop_array_u64_t : IopArray { }
+extension iop_array_bool_t : IopArray { }
+extension iop_array_double_t : IopArray { }
 
 extension iop_array_lstr_t : IopArray {
     public init(_ array: [String], on allocator: Allocator) {
@@ -244,21 +229,6 @@ public func ==<T: IopComplexType>(lhs : T, rhs : T) -> Bool {
     }
 }
 
-public protocol IopComplexTypeArray : IopArray {
-}
-
-public extension IopComplexTypeArray {
-    public init<T: IopComplexType>(_ array: [T], on allocator: FrameBasedAllocator) {
-        let vec = array.map {
-            $0.duplicated(on: allocator).bindMemory(to: Self.Element.self, capacity: 1).pointee
-        }
-
-        self.init()
-        self.tab = vec.duplicated(on: allocator)
-        self.len = Int32(vec.count)
-    }
-}
-
 /// Type of an IOP struct.
 ///
 /// IOP struct are imported in Swift as either struct or classes depending on whether
@@ -387,19 +357,27 @@ open class IopClass : IopStruct {
     }
 }
 
-public protocol IopClassArray : IopArray {
+public func duplicate<E: IopComplexType, T: IopArray>(complexTypeArray array: Array<E>, to out: inout
+T, on allocator: FrameBasedAllocator)
+{
+    let vec = array.map {
+        $0.duplicated(on: allocator)
+          .bindMemory(to: type(of: out.tab!.pointee), capacity: 1)
+          .pointee
+    }
+
+    out.tab = vec.duplicated(on: allocator)
+    out.len = Int32(vec.count)
 }
 
-public extension IopClassArray {
-    public init<T: IopClass>(_ array: [T], on allocator: FrameBasedAllocator) {
-        let vec = array.map {
-            $0.duplicated(on: allocator)
-        }
+public func duplicate<E: IopClass, T: IopArray>(classArray array: Array<E>, to out: inout
+T, on allocator: FrameBasedAllocator)
+{
+    let vec = array.map { $0.duplicated(on: allocator) }
 
-        self.init()
-        self.tab = UnsafeMutableRawPointer(vec.duplicated(on: allocator)).bindMemory(to: Self.Element.self, capacity: vec.count)
-        self.len = Int32(vec.count)
-    }
+    out.tab = UnsafeMutableRawPointer(vec.duplicated(on: allocator))
+                .bindMemory(to: type(of: out.tab!.pointee), capacity: vec.count)
+    out.len = Int32(vec.count)
 }
 
 /* }}} */
