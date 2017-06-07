@@ -357,8 +357,8 @@ open class IopClass : IopStruct {
     }
 }
 
-public func duplicate<E: IopComplexType, T: IopArray>(complexTypeArray array: Array<E>, to out: inout
-T, on allocator: FrameBasedAllocator)
+public func duplicate<E: IopComplexType, T: IopArray>
+(complexTypeArray array: Array<E>, to out: inout T, on allocator: FrameBasedAllocator)
 {
     let vec = array.map {
         $0.duplicated(on: allocator)
@@ -370,13 +370,16 @@ T, on allocator: FrameBasedAllocator)
     out.len = Int32(vec.count)
 }
 
-public func duplicate<E: IopClass, T: IopArray>(classArray array: Array<E>, to out: inout
-T, on allocator: FrameBasedAllocator)
+public func duplicate<E: IopClass, T: IopArray, C>
+(classArray array: Array<E>, to out: inout T, on allocator: FrameBasedAllocator)
+    where T.Element == UnsafeMutablePointer<C>
 {
-    let vec = array.map { $0.duplicated(on: allocator) }
+    let vec = array.map {
+        $0.duplicated(on: allocator)
+          .bindMemory(to: C.self, capacity: 1)
+    }
 
-    out.tab = UnsafeMutableRawPointer(vec.duplicated(on: allocator))
-                .bindMemory(to: T.Element.self, capacity: vec.count)
+    out.tab = vec.duplicated(on: allocator)
     out.len = Int32(vec.count)
 }
 
