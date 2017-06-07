@@ -209,7 +209,7 @@ public extension IopComplexType {
         return try Self(c)
     }
 
-    public static func make(optional c: UnsafeRawPointer?) throws -> Self? {
+    public static func make(_ c: UnsafeRawPointer?) throws -> Self? {
         return try Self(c)
     }
 }
@@ -362,7 +362,7 @@ T, on allocator: FrameBasedAllocator)
 {
     let vec = array.map {
         $0.duplicated(on: allocator)
-          .bindMemory(to: type(of: out.tab!.pointee), capacity: 1)
+          .bindMemory(to: T.Element.self, capacity: 1)
           .pointee
     }
 
@@ -376,7 +376,7 @@ T, on allocator: FrameBasedAllocator)
     let vec = array.map { $0.duplicated(on: allocator) }
 
     out.tab = UnsafeMutableRawPointer(vec.duplicated(on: allocator))
-                .bindMemory(to: type(of: out.tab!.pointee), capacity: vec.count)
+                .bindMemory(to: T.Element.self, capacity: vec.count)
     out.len = Int32(vec.count)
 }
 
@@ -675,13 +675,13 @@ public extension IopInterfaceImpl {
                 do {
                     switch status {
                       case .IC_MSG_OK:
-                        guard let response = try RPC.Response.make(optional: res) else {
+                        guard let response = try RPC.Response.make(res) else {
                             throw IopRPCError<RPC>.invalid(msg: "cannot convert response to Swift")
                         }
                         onSuccess(response)
 
                       default:
-                        guard let err = IopRPCError<RPC>(status: status, exn: try RPC.Exception.make(optional: exn)) else {
+                        guard let err = IopRPCError<RPC>(status: status, exn: try RPC.Exception.make(exn)) else {
                             throw IopRPCError<RPC>.invalid(msg: "cannot convert exception to Swift")
                         }
                         onError(err)

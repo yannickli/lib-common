@@ -96,7 +96,7 @@ public enum core : libcommon.IopPackage {
             self.rootLevel = data.pointee.root_level
             self.forceAll = data.pointee.force_all
             self.isSilent = data.pointee.is_silent
-            self.specific = try Swift.UnsafeBufferPointer(start: data.pointee.specific.tab, count: Swift.Int(data.pointee.specific.len)).map {
+            self.specific = try data.pointee.specific.buffer.map {
                 var specific_var = $0
                 return try core_package.LoggerConfiguration(&specific_var)
                 }
@@ -243,9 +243,9 @@ public enum core : libcommon.IopPackage {
             self.registeredTo = Swift.String(data.pointee.registered_to) ?? ""
             self.version = Swift.String(data.pointee.version) ?? ""
             self.productionUse = data.pointee.production_use
-            self.cpuSignatures = Swift.Array(Swift.UnsafeBufferPointer(start: data.pointee.cpu_signatures.tab, count: Swift.Int(data.pointee.cpu_signatures.len)))
-            self.macAddresses = Swift.UnsafeBufferPointer(start: data.pointee.mac_addresses.tab, count: Swift.Int(data.pointee.mac_addresses.len)).map {                return Swift.String($0) ?? ""}
-            self.modules = try Swift.UnsafeBufferPointer(start: data.pointee.modules.tab, count: Swift.Int(data.pointee.modules.len)).map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0)!)}
+            self.cpuSignatures = Swift.Array(data.pointee.cpu_signatures.buffer)
+            self.macAddresses = data.pointee.mac_addresses.buffer.map {                return Swift.String($0) ?? ""}
+            self.modules = try data.pointee.modules.buffer.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0))}
             try super.init(c)
         }
 
@@ -283,7 +283,7 @@ public enum core : libcommon.IopPackage {
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1)
-            self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.pointee.licence)!)
+            self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.pointee.licence))
             self.signature = Swift.String(data.pointee.signature) ?? ""
             try super.init(c)
         }
@@ -705,7 +705,7 @@ public enum core : libcommon.IopPackage {
 
                     public required init(_ c: Swift.UnsafeRawPointer) throws {
                         let data = c.bindMemory(to: core__log__list_loggers_res__t.self, capacity: 1)
-                        self.loggers = try Swift.UnsafeBufferPointer(start: data.pointee.loggers.tab, count: Swift.Int(data.pointee.loggers.len)).map {
+                        self.loggers = try data.pointee.loggers.buffer.map {
                             var loggers_var = $0
                             return try core_package.LoggerConfiguration(&loggers_var)
                             }

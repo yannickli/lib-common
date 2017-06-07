@@ -151,7 +151,7 @@ public enum ic : libcommon.IopPackage {
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
             let data = c.bindMemory(to: ic__routing_hdr__t.self, capacity: 1)
-            self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.pointee.route)!)
+            self.route = try ic_package.Route.make(Swift.UnsafeRawPointer(data.pointee.route))
             self.ttl = data.pointee.ttl
             self.priority = data.pointee.priority
 
