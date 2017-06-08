@@ -160,7 +160,6 @@ done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary --no-capture-stderr"
 
 coredump=$(which core_dump)
-ROOT_PATH=$PWD
 
 while read -r zd line; do
     t="${zd}${line}"
@@ -185,7 +184,7 @@ while read -r zd line; do
             ;;
         *testem.json)
             cd $zd
-            PATH=$ROOT_PATH/node_modules/.bin:$PATH ztestem $line
+            ztestem $line
             res=$?
             cd - &>/dev/null
             ;;
