@@ -26,7 +26,7 @@ $(var/wwwtool)sorcery: _npm_tools
 
 $/node_modules/build.lock: $/package.json
 	$(msg/npm) ""
-	cd $(dir $<) && npm install --silent > /dev/null
+	cd $(dir $<) && npm install --quiet
 	touch $@
 
 # }}}
