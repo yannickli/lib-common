@@ -24,13 +24,9 @@ $(var/wwwtool)browserify: _npm_tools
 $(var/wwwtool)exorcist: _npm_tools
 $(var/wwwtool)sorcery: _npm_tools
 
-$(var/wwwtool)npm:
-	$(msg/npm) npm
-	cd $/ && npm install npm --silent > /dev/null
-
-$/node_modules/build.lock: $/package.json $(var/wwwtool)npm
+$/node_modules/build.lock: $/package.json
 	$(msg/npm) ""
-	cd $(dir $<) && $(var/wwwtool)npm install --silent > /dev/null
+	cd $(dir $<) && npm install --silent > /dev/null
 	touch $@
 
 # }}}
