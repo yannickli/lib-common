@@ -1037,6 +1037,102 @@ void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
 }
 
 /* }}} */
+/* {{{ High level helpers */
+
+struct thr_for_each_lvl1_job_t {
+    thr_job_t job;
+    void (^blk)(size_t pos);
+
+    size_t pos;
+};
+
+static void thr_for_each_lvl1(thr_job_t *job, thr_syn_t *syn)
+{
+    const struct thr_for_each_lvl1_job_t *lvl1;
+
+    lvl1 = container_of(job, struct thr_for_each_lvl1_job_t, job);
+    lvl1->blk(lvl1->pos);
+}
+
+struct thr_for_each_lvl0_job_t {
+    thr_job_t job;
+    void (^blk)(size_t pos);
+
+    struct thr_for_each_lvl1_job_t *lvl1s;
+    size_t from;
+    size_t to;
+};
+
+static void thr_for_each_lvl0(thr_job_t *job, thr_syn_t *syn)
+{
+    const struct thr_for_each_lvl0_job_t *lvl0;
+
+    lvl0 = container_of(job, struct thr_for_each_lvl0_job_t, job);
+
+    for (size_t i = lvl0->from; i < lvl0->to; i++) {
+        struct thr_for_each_lvl1_job_t *lvl1 = &lvl0->lvl1s[i - lvl0->from];
+
+        lvl1->job.run = &thr_for_each_lvl1;
+        lvl1->blk = lvl0->blk;
+        lvl1->pos = i;
+
+        thr_syn_schedule(syn, &lvl1->job);
+    }
+}
+
+void thr_for_each(size_t count, void (^blk)(size_t pos))
+{
+    thr_syn_t syn;
+    struct thr_for_each_lvl0_job_t *lvl0s = NULL;
+    struct thr_for_each_lvl1_job_t *lvl1s;
+
+    thr_syn_init(&syn);
+
+    lvl1s = p_new_raw(struct thr_for_each_lvl1_job_t, count);
+
+    if (count < thr_parallelism_g * 2) {
+        struct thr_for_each_lvl0_job_t thr;
+
+        thr.job.run = &thr_for_each_lvl0;
+        thr.blk = blk;
+        thr.from = 0;
+        thr.to = count;
+        thr.lvl1s = lvl1s;
+        thr_for_each_lvl0(&thr.job, &syn);
+    } else {
+        size_t per_thread;
+
+        lvl0s = p_new_raw(struct thr_for_each_lvl0_job_t, thr_parallelism_g);
+        per_thread = DIV_ROUND_UP(count, thr_parallelism_g);
+
+        for (size_t i = 0; i < thr_parallelism_g; i++) {
+            struct thr_for_each_lvl0_job_t *t = &lvl0s[i];
+
+            t->job.run = &thr_for_each_lvl0;
+            t->blk = blk;
+            t->from = i * per_thread;
+            t->to = t->from + per_thread;
+            t->lvl1s = &lvl1s[t->from];
+
+            if (t->from >= count) {
+                break;
+            } else
+            if (t->to > count) {
+                t->to = count;
+            }
+
+            thr_syn_schedule(&syn, &t->job);
+        }
+    }
+
+    thr_syn_wait(&syn);
+    thr_syn_wipe(&syn);
+
+    p_delete(&lvl1s);
+    p_delete(&lvl0s);
+}
+
+/* }}} */
 /* Tests {{{ */
 
 #include <lib-common/z.h>

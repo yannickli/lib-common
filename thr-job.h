@@ -301,6 +301,16 @@ static inline pid_t thr_job_fork(void)
     return pid;
 }
 
+#ifdef __has_blocks
+
+/** Run \p count concurrent jobs.
+ *
+ * The function exits when all the jobs have run.
+ */
+void thr_for_each(size_t count, void (BLOCK_CARET blk)(size_t pos));
+
+#endif
+
 /*- accounting -----------------------------------------------------------*/
 
 #if !defined(NDEBUG) && !defined(__has_tsan)
