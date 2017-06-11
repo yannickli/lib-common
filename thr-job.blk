@@ -36,6 +36,7 @@ struct thr_queue_t {
     thr_job_t    run;
     thr_job_t    destroy;
     mpsc_queue_t q;
+    _Atomic(ssize_t) running_on;
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef _Atomic(thr_job_t *) atomic_thr_job_t;
@@ -268,6 +269,7 @@ static bool job_run(thr_job_t * nonnull job, thr_syn_t *syn)
     } else {
         (*job->run)(job, syn);
     }
+
 #ifdef __has_thr_acc
     self_g->acc.time += (hardclock() - start);
 #endif
@@ -550,6 +552,7 @@ static void thr_queue_drain(thr_queue_t *q)
 {
     bool wipe = false;
     mpsc_it_t it;
+    ssize_t id;
 
     if (unlikely(mpsc_queue_looks_empty(&q->q))) {
         /* The queue should not be marked empty *and* scheduled. the only
@@ -560,6 +563,8 @@ static void thr_queue_drain(thr_queue_t *q)
         return;
     }
 
+    id = thr_id();
+    atomic_store(&q->running_on, id);
     mpsc_queue_drain_start(&it, &q->q);
     do {
         mpsc_node_t *m = mpsc_queue_drain_fast(&it, &thr_queue_run_node,
@@ -569,6 +574,7 @@ static void thr_queue_drain(thr_queue_t *q)
         job_run(n->job, n->syn);
         wipe = (n->job == &q->destroy);
     } while (!mpsc_queue_drain_end(&it, &thr_qnode_destroy));
+    atomic_compare_exchange_strong(&q->running_on, &id, -1);
 
     if (wipe) {
         thr_queue_delete(&q);
@@ -595,6 +601,7 @@ static thr_queue_t *thr_queue_init(thr_queue_t *q)
     mpsc_queue_init(&q->q);
     q->run.run     = &thr_queue_run;
     q->destroy.run = &thr_queue_finalize;
+    atomic_init(&q->running_on, -1);
     return q;
 }
 
@@ -639,6 +646,12 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
     thr_qnode_t *n;
     thr_syn_t syn;
 
+    if (thr_is_on_queue(q)) {
+        /* We're already on the queue, so don't pass the queue again */
+        job_run(job, NULL);
+        return;
+    }
+
     thr_syn_init(&syn);
     thr_syn__job_prepare(&syn);
     n = thr_qnode_create();
@@ -679,6 +692,12 @@ void thr_queue_destroy(thr_queue_t *q, bool wait)
     } else {
         thr_queue(q, &q->destroy);
     }
+}
+
+bool thr_is_on_queue(thr_queue_t *q)
+{
+    return atomic_load(&q->running_on) == (ssize_t)thr_id()
+        || (q == thr_queue_main_g && thr_id() == 0);
 }
 
 /* }}} */

@@ -126,6 +126,12 @@ static ALWAYS_INLINE void thr_syn_schedule_b(thr_syn_t *syn, block_t blk)
 thr_queue_t *thr_queue_create(void) __leaf;
 void thr_queue_destroy(thr_queue_t *q, bool wait) __leaf;
 
+/** Return true if the queue is currently running on the current thread.
+ *
+ * This basically means we are inside the queue.
+ */
+bool thr_is_on_queue(thr_queue_t *q) __leaf;
+
 /** \brief Queue one job on a serial queue
  *
  * For simplicity, #q can be NULL and then thr_queue* is similar to calling
