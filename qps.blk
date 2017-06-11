@@ -1796,8 +1796,9 @@ bool qps_gc_enable(qps_t *qps)
     int prev = atomic_fetch_or(&qps->gc_state, QPS_GC_ENABLED);
 
     logger_trace(&_G.tracing_logger, 1, "enable gc on %p", qps);
-    if (thr_id() == 0)
+    if (thr_is_on_queue(thr_queue_main_g)) {
         qps_gc_on_idle(NULL, (data_t){ .ptr = qps });
+    }
     return prev & QPS_GC_ENABLED;
 }
 

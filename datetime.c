@@ -810,7 +810,7 @@ __attribute__((weak)) const char *lp_getsec_str(void)
 
 __attribute__((weak)) time_t lp_getsec(void)
 {
-    if (unlikely(!lp_time_g.sec || thr_id() != 0)) {
+    if (unlikely(!lp_time_g.sec || !thr_is_on_queue(thr_queue_main_g))) {
         /* XXX: in the main thead, lp_gettv is called at the beginning of the
          *      event loop, so we have the guarantee the cached values are "up
          *      to date". This is not a guarantee we have in the other

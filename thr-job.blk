@@ -1179,7 +1179,7 @@ static int z_wake_up(void)
         for (int i = 0; i < iterations; i++) {
             struct timeval start;
 
-            assert (thr_id() != 0);
+            assert (!thr_is_on_queue(thr_queue_main_g));
             lp_gettv(&start);
             thr_queue_sync_b(thr_queue_main_g, ^{
                 struct timeval job;
