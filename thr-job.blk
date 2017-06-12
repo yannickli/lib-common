@@ -98,6 +98,7 @@ static struct {
     thr_evc_t         start_bar_thr;
 
     thr_info_t       *threads;
+    size_t            threads_count;
     el_t              before;
     el_t              wakeel;
     thr_queue_t       main_queue;
@@ -808,6 +809,57 @@ static void *thr_job_main(void *arg)
 /* }}} */
 /* Module init / shutdown {{{ */
 
+static void thr_fork_threads(void)
+{
+    thr_info_t **last = &_G.threads;
+    uint64_t to_fork;
+    sigset_t fillset;
+    sigset_t old;
+    pthread_t tid;
+    pthread_attr_t attr;
+    uint64_t expected_key;
+    uint64_t key;
+
+    if (thr_parallelism_g <= _G.threads_count) {
+        return;
+    }
+
+    to_fork = thr_parallelism_g - _G.threads_count;
+    while (*last) {
+        last = &(*last)->next;
+    }
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    sigfillset(&fillset);
+    pthread_sigmask(SIG_SETMASK, &fillset, &old);
+
+    expected_key = thr_ec_get(&thr_job_g.start_bar_main) + to_fork;
+
+    for (size_t i = _G.threads_count; i < thr_parallelism_g; i++) {
+        thr_info_t *info = p_new(thr_info_t, 1);
+
+        info->id = i;
+        *last = info;
+        last = &info->next;
+
+        if (i == 0) {
+            thr_info_init(info);
+        } else
+        if (thr_create(&tid, &attr, thr_job_main, info)) {
+            e_fatal("unable to create new thread: %m");
+        }
+    }
+
+    while ((key = thr_ec_get(&thr_job_g.start_bar_main)) != expected_key) {
+        thr_ec_wait(&thr_job_g.start_bar_main, key);
+    }
+
+    thr_ec_broadcast(&thr_job_g.start_bar_thr);
+    pthread_sigmask(SIG_SETMASK, &old, NULL);
+    pthread_attr_destroy(&attr);
+}
+
 bool thr_job_reload_at_fork(bool enabled)
 {
     bool prev = reload_at_fork_g;
@@ -851,11 +903,6 @@ void thr_queue_main_drain(void)
 
 static int thr_initialize(void *arg)
 {
-    uint64_t key;
-    sigset_t fillset;
-    sigset_t old;
-    pthread_t tid;
-    pthread_attr_t attr;
 
     if (!thr_parallelism_g) {
         const char *env = getenv("THR_MAX_PARALLELISM");
@@ -876,36 +923,12 @@ static int thr_initialize(void *arg)
             thr_parallelism_g = MIN(2, thr_parallelism_g);
         }
 
-        for (size_t i = thr_parallelism_g; i-- > 0;) {
-            thr_info_t *last = _G.threads;
-
-            _G.threads = p_new(thr_info_t, 1);
-            _G.threads->id = i;
-            _G.threads->next = last;
-        }
-
         atomic_init(&_G.stopping, false);
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        sigfillset(&fillset);
-        pthread_sigmask(SIG_SETMASK, &fillset, &old);
         thr_ec_init(&thr_job_g.ec);
         thr_ec_init(&thr_job_g.start_bar_thr);
         thr_ec_init(&thr_job_g.start_bar_main);
-        for_each_thread(thr) {
-            if (thr->id == 0) {
-                thr_info_init(thr);
-            } else
-            if (thr_create(&tid, &attr, thr_job_main, thr)) {
-                e_fatal("unable to create new thread: %m");
-            }
-        }
-        while ((key = thr_ec_get(&thr_job_g.start_bar_main)) != thr_parallelism_g) {
-            thr_ec_wait(&thr_job_g.start_bar_main, key);
-        }
-        thr_ec_broadcast(&thr_job_g.start_bar_thr);
-        pthread_sigmask(SIG_SETMASK, &old, NULL);
-        pthread_attr_destroy(&attr);
+
+        thr_fork_threads();
         thr_queue_init(thr_queue_main_g);
         _G.before = el_unref(el_before_register(&thr_on_el, NULL));
         _G.wakeel = el_unref(el_wake_register(&thr_on_el, NULL));
