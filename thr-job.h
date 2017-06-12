@@ -26,6 +26,10 @@ struct thr_job_t {
     void (*run)(thr_job_t *, thr_syn_t *);
 };
 
+typedef struct thr_td_t {
+    _Atomic(struct thr_td_t *) next;
+} thr_td_t;
+
 /** \brief Synchronization structure to wait for the completion of a batch.
  *
  * It is allowed to add jobs on a thr_syn_t iff you hold a reference on the
@@ -53,6 +57,15 @@ struct thr_syn_t {
     atomic_uint refcnt;
     /** the eventcount used for the blocking part of the thr_syn_wait() */
     thr_evc_t         ec;
+
+#ifdef __has_blocks
+    /** Thread data allocator */
+    thr_td_t *(BLOCK_CARET new_td)(void);
+    /** Thread data deallocator */
+    void (BLOCK_CARET delete_td)(thr_td_t **);
+    /** Stack of thread data */
+    _Atomic(struct thr_td_t *) head;
+#endif
 } __attribute__((aligned(64)));
 
 #ifdef __has_blocks
@@ -195,14 +208,7 @@ static ALWAYS_INLINE thr_syn_t *thr_syn_init(thr_syn_t *syn)
 }
 GENERIC_NEW(thr_syn_t, thr_syn);
 
-static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
-{
-    thr_syn__release(syn);
-    while (unlikely(atomic_load_explicit(&syn->refcnt, memory_order_acquire))) {
-        cpu_relax();
-    }
-    thr_ec_wipe(&syn->ec);
-}
+void thr_syn_wipe(thr_syn_t *syn);
 GENERIC_DELETE(thr_syn_t, thr_syn);
 
 /** \brief setup a thr_syn_t to fire an event when finished.
@@ -282,6 +288,33 @@ void thr_syn_wait(thr_syn_t *syn);
  *                 no guarantees on the number of times it will be called.
  */
 void thr_syn_wait_until(thr_syn_t *syn, bool (BLOCK_CARET cond)(void));
+
+/** Associate a new Thread data to the #thr_syn_t.
+ *
+ * A thread data is a data that can be requested in a job implementation that
+ * depends on this #thr_syn_t and that must be local to one thread at a time.
+ */
+void thr_syn_declare_td(thr_syn_t * nonnull syn,
+                        thr_td_t * nonnull (BLOCK_CARET nonnull new_td)(void),
+                        void (BLOCK_CARET nonnull delete_td)(thr_td_t * nullable * nonnull)) __leaf;
+
+/** Acquire an instance of the associated thread data.
+ */
+thr_td_t * nonnull thr_syn_acquire_td(thr_syn_t * nonnull syn);
+
+/** Release a thread data.
+ */
+void thr_syn_release_td(thr_syn_t * nonnull syn, thr_td_t * nonnull td);
+
+/** Iterates on the allocated thread data.
+ *
+ * This function must be used only after the #thr_syn_t has been waited for
+ * and there is no more pending jobs for it. It lets you iterate on the thread
+ * data associated to that #thr_syn_t in order to merge them into a final
+ * result.
+ */
+void thr_syn_collect_td(thr_syn_t * nonnull syn,
+                        void (BLOCK_CARET collector)(const thr_td_t * nonnull td));
 
 #endif
 

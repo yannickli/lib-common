@@ -1055,6 +1055,97 @@ void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
     });
 }
 
+#define TD_GET_PTR(td)  (((uintptr_t)(td)) & 0x0000ffffffffffffull)
+#define TD_GET_SEQ(td)  (((uintptr_t)(td)) & 0xffff000000000000ull)
+
+static thr_td_t *thr_syn_get_td(thr_td_t *td)
+{
+    return (thr_td_t *)TD_GET_PTR(td);
+}
+
+static thr_td_t *thr_syn_next_td_ptr(thr_td_t *cur, thr_td_t *next)
+{
+    return (thr_td_t *)((TD_GET_SEQ(cur) + 0x1000000000000ull) | TD_GET_PTR(next));
+}
+
+void thr_syn_wipe(thr_syn_t *syn)
+{
+    thr_td_t *ptr = thr_syn_get_td(atomic_load(&syn->head));
+
+    thr_syn__release(syn);
+    while (unlikely(atomic_load_explicit(&syn->refcnt, memory_order_acquire))) {
+        cpu_relax();
+    }
+    thr_ec_wipe(&syn->ec);
+
+    Block_release_p(&syn->new_td);
+
+    while (ptr) {
+        thr_td_t *next = atomic_load(&ptr->next);
+
+        syn->delete_td(&ptr);
+        ptr = next;
+    }
+    Block_release_p(&syn->delete_td);
+}
+
+void thr_syn_declare_td(thr_syn_t *syn, thr_td_t *(BLOCK_CARET new_td)(void),
+                        void (BLOCK_CARET delete_td)(thr_td_t **))
+{
+    assert (!syn->new_td);
+    assert (!syn->delete_td);
+
+    syn->new_td = Block_copy(new_td);
+    syn->delete_td = Block_copy(delete_td);
+}
+
+thr_td_t *thr_syn_acquire_td(thr_syn_t *syn)
+{
+    thr_td_t *ptr = atomic_load(&syn->head);
+
+    assert (syn->new_td);
+
+    if (thr_syn_get_td(ptr)) {
+        thr_td_t *next;
+
+        do {
+            next = thr_syn_next_td_ptr(ptr, atomic_load(&thr_syn_get_td(ptr)->next));
+        } while (!atomic_compare_exchange_weak(&syn->head, &ptr, next)
+             &&  thr_syn_get_td(ptr));
+    }
+
+    ptr = thr_syn_get_td(ptr);
+    if (ptr) {
+        atomic_store(&ptr->next, NULL);
+        return ptr;
+    }
+
+    return syn->new_td();
+}
+
+void thr_syn_release_td(thr_syn_t *syn, thr_td_t *td)
+{
+    thr_td_t *ptr = atomic_load(&syn->head);
+    thr_td_t *next;
+
+    do {
+        next = thr_syn_next_td_ptr(ptr, td);
+        atomic_store(&td->next, thr_syn_get_td(ptr));
+    } while (!atomic_compare_exchange_weak(&syn->head, &ptr, next));
+}
+
+void thr_syn_collect_td(thr_syn_t *syn, void (^collector)(const thr_td_t *td))
+{
+    thr_td_t *ptr = thr_syn_get_td(atomic_load(&syn->head));
+
+    assert (atomic_load(&syn->pending) == 0);
+
+    while (ptr) {
+        collector(ptr);
+        ptr = atomic_load(&ptr->next);
+    }
+}
+
 /* }}} */
 /* {{{ High level helpers */
 
