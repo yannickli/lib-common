@@ -354,11 +354,9 @@ void thr_for_each(size_t count, void (BLOCK_CARET blk)(size_t pos));
 
 #if !defined(NDEBUG) && !defined(__has_tsan)
 void thr_acc_reset(void);
-void thr_acc_set_affinity(size_t offs);
 void thr_acc_trace(int lvl, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #else
 #define thr_acc_reset()            ((void)0)
-#define thr_acc_set_affinity(offs) ((void)0)
 #define thr_acc_trace(...)         ((void)0)
 #endif
 
