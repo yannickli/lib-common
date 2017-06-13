@@ -41,7 +41,10 @@ struct thr_queue_t {
 
 typedef _Atomic(thr_job_t *) atomic_thr_job_t;
 
-typedef struct thr_info_t {
+typedef struct thr_info_t thr_info_t;
+typedef _Atomic(thr_info_t *) atomic_thr_info_t;
+
+struct thr_info_t {
     int id;
 
     /** top of the deque.
@@ -58,8 +61,10 @@ typedef struct thr_info_t {
      */
     atomic_uint bot;
     atomic_bool alive;
+    bool dequeue_all;
+
     pthread_t  thr;
-    struct thr_info_t *next;
+    atomic_thr_info_t next;
     char       padding_0[CACHE_LINE_SIZE];
 
     struct deque_entry {
@@ -89,7 +94,7 @@ typedef struct thr_info_t {
         unsigned jobs_failed_dequeues;
     } acc;
 #endif
-} thr_info_t;
+};
 
 static struct {
     atomic_bool       stopping;
@@ -97,8 +102,14 @@ static struct {
     thr_evc_t         start_bar_main;
     thr_evc_t         start_bar_thr;
 
-    thr_info_t       *threads;
-    size_t            threads_count;
+    atomic_thr_info_t threads;
+    _Atomic(size_t)   threads_count;
+    _Atomic(size_t)   target_threads_count;
+    thr_evc_t         threads_count_evc;
+    _Atomic(uint64_t) threads_count_gen;
+    _Atomic(uint64_t) threads_gen;
+    spinlock_t        threads_lock;
+
     el_t              before;
     el_t              wakeel;
     thr_queue_t       main_queue;
@@ -117,7 +128,8 @@ static atomic_thr_evc_t thr0_cur_ec_g;
 static bool reload_at_fork_g;
 
 #define for_each_thread(thr)  \
-    for (thr_info_t *thr = thr_job_g.threads; thr; thr = thr->next)
+    for (thr_info_t *thr = atomic_load(&thr_job_g.threads); thr; \
+         thr = atomic_load(&thr->next))
 
 /* Tracing {{{ */
 #ifdef __has_thr_acc
@@ -467,7 +479,9 @@ static int thr_job_steal(void)
     bool empty = true;
     int i = 1;
 
-    for (thr_info_t *thr = self_g->next; thr; thr = thr->next) {
+    for (thr_info_t *thr = atomic_load(&self_g->next); thr;
+         thr = atomic_load(&thr->next))
+    {
         int res = thr_job_try_steal(thr, i++);
 
         if (res > 0) {
@@ -676,6 +690,7 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
             thr_wakeup_thr0();
         } else {
             thr_queue_drain(q);
+            thr_syn_wipe(&syn);
             return;
         }
     }
@@ -720,6 +735,7 @@ static void thr_info_init(thr_info_t *info)
 
     self_g = info;
     self_g->thr = pthread_self();
+    self_g->dequeue_all = true;
     atomic_thread_fence(memory_order_acq_rel);
     atomic_store(&self_g->alive, true);
     thr_ec_signal(&thr_job_g.start_bar_main);
@@ -733,11 +749,13 @@ static void thr_info_cleanup(void *unused)
 {
     mpsc_node_t *m;
 
-    do {
-        if (self_g->id == 0) {
-            thr_queue_drain(thr_queue_main_g);
-        }
-    } while (thr_job_dequeue());
+    if (self_g->dequeue_all) {
+        do {
+            if (self_g->id == 0) {
+                thr_queue_drain(thr_queue_main_g);
+            }
+        } while (thr_job_dequeue());
+    }
     if (self_g->id == 0) {
         thr_queue_wipe(thr_queue_main_g);
     }
@@ -753,9 +771,37 @@ static void thr_info_cleanup(void *unused)
     atomic_store(&self_g->alive, false);
 }
 
+static int thr_sleep_until(thr_evc_t *ec, int timeout, bool (^cond)(void))
+{
+    uint64_t key = thr_ec_get(ec);
+    struct timeval start_tv;
+
+    lp_gettv(&start_tv);
+
+    while (!cond()) {
+        thr_ec_timedwait(ec, key, timeout / 10);
+
+        if (!cond()) {
+            struct timeval end_tv;
+
+            lp_gettv(&end_tv);
+            if (timeval_diffmsec(&end_tv, &start_tv) >= timeout) {
+                return -1;
+            }
+        }
+        key = thr_ec_get(ec);
+    }
+    return 0;
+}
+
 static void *thr_job_main(void *arg)
 {
     sigset_t set;
+    bool (^cond)(void) = ^bool (void) {
+        /* Exit immediately if we are active or we are stopping */
+        return atomic_load(&_G.target_threads_count) > (size_t)self_g->id
+            || unlikely(atomic_load(&_G.stopping));
+    };
 
     sigemptyset(&set);
     sigaddset(&set, SIGABRT);
@@ -771,9 +817,33 @@ static void *thr_job_main(void *arg)
     thr_info_init(arg);
     pthread_cleanup_push(thr_info_cleanup, NULL);
 
+    /* explanation of thread states :
+     * thread_id <  target_thread_count : active threads
+     * thread_id == target_thread_count : this thread is kept on disposal
+     * thread_id >  target_thread_count : these threads were created but are
+     *   not used anymore, keep them for 5 seconds just in case.
+     */
     while (likely(!atomic_load(&_G.stopping))) {
         int res;
         uint64_t key = 0;
+
+        /* quarantine and obsolete threads loop */
+        if (!cond()) {
+            /* We may have been woken up by the addition of a new job in the
+             * queue of a thread, so we must make sure another thread will
+             * take over so there is no deadlock.
+             */
+            thr_ec_signal(&_G.ec);
+            if (thr_sleep_until(&_G.threads_count_evc, 5000, cond) < 0) {
+                /* obsolete threads will be shut down after 5s */
+                if (atomic_load(&_G.target_threads_count) < (size_t)self_g->id) {
+                    self_g->dequeue_all = false;
+                    break;
+                }
+                /* quarantine thread will sleep again */
+                continue;
+            }
+        }
 
         while (likely(thr_job_dequeue())) {
             continue;
@@ -811,53 +881,92 @@ static void *thr_job_main(void *arg)
 
 static void thr_fork_threads(void)
 {
-    thr_info_t **last = &_G.threads;
-    uint64_t to_fork;
-    sigset_t fillset;
-    sigset_t old;
-    pthread_t tid;
     pthread_attr_t attr;
-    uint64_t expected_key;
-    uint64_t key;
-
-    if (thr_parallelism_g <= _G.threads_count) {
-        return;
-    }
-
-    to_fork = thr_parallelism_g - _G.threads_count;
-    while (*last) {
-        last = &(*last)->next;
-    }
+    uint64_t target_threads_gen = atomic_load(&_G.threads_count_gen);
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    sigfillset(&fillset);
-    pthread_sigmask(SIG_SETMASK, &fillset, &old);
 
-    expected_key = thr_ec_get(&thr_job_g.start_bar_main) + to_fork;
+    while (target_threads_gen != atomic_load(&_G.threads_gen)
+        && !atomic_load(&_G.stopping))
+    {
+        sigset_t fillset;
+        sigset_t old;
+        pthread_t tid;
+        atomic_thr_info_t *last = &_G.threads;
+        uint64_t target_count = atomic_load(&_G.target_threads_count) + 1;
+        uint64_t expected_key;
+        uint64_t key;
 
-    for (size_t i = _G.threads_count; i < thr_parallelism_g; i++) {
-        thr_info_t *info = p_new(thr_info_t, 1);
+        sigfillset(&fillset);
+        pthread_sigmask(SIG_SETMASK, &fillset, &old);
 
-        info->id = i;
-        *last = info;
-        last = &info->next;
+        expected_key = thr_ec_get(&_G.start_bar_main);
 
-        if (i == 0) {
-            thr_info_init(info);
-        } else
-        if (thr_create(&tid, &attr, thr_job_main, info)) {
-            e_fatal("unable to create new thread: %m");
+        while (atomic_load(last)) {
+            thr_info_t *info = atomic_load(last);
+
+            if ((uint64_t)info->id < target_count && !atomic_load(&info->alive)) {
+                assert (info->id > 0);
+
+                if (thr_create(&tid, &attr, thr_job_main, info)) {
+                    e_fatal("unable to create new thread: %m");
+                }
+                expected_key++;
+            }
+            last = &info->next;
         }
+
+        while (atomic_load(&_G.threads_count) < target_count) {
+            thr_info_t *info = p_new(thr_info_t, 1);
+
+            info->id = atomic_fetch_add(&_G.threads_count, 1);
+            atomic_store(last, info);
+            last = &info->next;
+
+            if (info->id == 0) {
+                thr_info_init(info);
+            } else {
+                if (thr_create(&tid, &attr, thr_job_main, info)) {
+                    e_fatal("unable to create new thread: %m");
+                }
+            }
+            expected_key++;
+        }
+
+        while ((key = thr_ec_get(&_G.start_bar_main)) != expected_key) {
+            thr_ec_wait(&_G.start_bar_main, key);
+        }
+
+        thr_ec_broadcast(&_G.start_bar_thr);
+        pthread_sigmask(SIG_SETMASK, &old, NULL);
+
+        atomic_store(&_G.threads_gen, target_threads_gen);
     }
 
-    while ((key = thr_ec_get(&thr_job_g.start_bar_main)) != expected_key) {
-        thr_ec_wait(&thr_job_g.start_bar_main, key);
-    }
-
-    thr_ec_broadcast(&thr_job_g.start_bar_thr);
-    pthread_sigmask(SIG_SETMASK, &old, NULL);
     pthread_attr_destroy(&attr);
+}
+
+void thr_enter_blocking_syscall(void)
+{
+    if (MODULE_IS_LOADED(thr)) {
+        atomic_fetch_add(&_G.target_threads_count, 1);
+        atomic_fetch_add(&_G.threads_count_gen, 1);
+        thr_ec_broadcast(&_G.threads_count_evc);
+
+        spin_lock(&_G.threads_lock);
+        thr_fork_threads();
+        spin_unlock(&_G.threads_lock);
+    }
+}
+
+void thr_exit_blocking_syscall(void)
+{
+    if (MODULE_IS_LOADED(thr)) {
+        size_t count = atomic_fetch_sub(&_G.target_threads_count, 1);
+
+        assert (count > thr_parallelism_g);
+    }
 }
 
 bool thr_job_reload_at_fork(bool enabled)
@@ -872,13 +981,13 @@ bool thr_job_reload_at_fork(bool enabled)
 __attr_notsan__
 static void thr_wipe(void)
 {
-    thr_info_t *thr = _G.threads;
+    thr_info_t *thr = atomic_load(&_G.threads);
 
     el_unregister(&_G.before);
     el_unregister(&_G.wakeel);
 
     while (thr) {
-        thr_info_t *next = thr->next;
+        thr_info_t *next = atomic_load(&thr->next);
 
         p_delete(&thr);
         thr = next;
@@ -924,12 +1033,18 @@ static int thr_initialize(void *arg)
         }
 
         atomic_init(&_G.stopping, false);
-        thr_ec_init(&thr_job_g.ec);
-        thr_ec_init(&thr_job_g.start_bar_thr);
-        thr_ec_init(&thr_job_g.start_bar_main);
+        thr_ec_init(&_G.ec);
+        thr_ec_init(&_G.start_bar_thr);
+        thr_ec_init(&_G.start_bar_main);
+        thr_ec_init(&_G.threads_count_evc);
+        atomic_init(&_G.target_threads_count, thr_parallelism_g);
+        atomic_init(&_G.threads_count_gen, 1);
+        atomic_init(&_G.threads_gen, 0);
+        atomic_init(&_G.threads_count, 0);
+        thr_queue_init(thr_queue_main_g);
+        _G.threads_lock = 0;
 
         thr_fork_threads();
-        thr_queue_init(thr_queue_main_g);
         _G.before = el_unref(el_before_register(&thr_on_el, NULL));
         _G.wakeel = el_unref(el_wake_register(&thr_on_el, NULL));
     }
@@ -941,7 +1056,9 @@ static int thr_shutdown(void)
 {
     if (thr_parallelism_g && self_g->id == 0) {
         atomic_store(&_G.stopping, true);
+        atomic_store(&_G.target_threads_count, thr_parallelism_g);
         thr_ec_broadcast(&_G.ec);
+        thr_ec_broadcast(&_G.threads_count_evc);
 
         for_each_thread(thr) {
             if (thr->id == 0) {
@@ -954,8 +1071,6 @@ static int thr_shutdown(void)
                 sched_yield();
             }
         }
-
-
 
         thr_info_cleanup(NULL);
 
@@ -970,8 +1085,11 @@ static int thr_shutdown(void)
 static void thr_job_at_fork(void)
 {
     thr_wipe();
+    self_g = NULL;
     if (reload_at_fork_g) {
         thr_initialize(NULL);
+    } else {
+        thr_queue_init(thr_queue_main_g);
     }
 }
 

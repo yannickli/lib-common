@@ -482,6 +482,7 @@ Z_GROUP_EXPORT(qps_bitmap) {
     } Z_TEST_END;
 
     qps_close(&qps);
+
     MODULE_RELEASE(qps);
 } Z_GROUP_END
 

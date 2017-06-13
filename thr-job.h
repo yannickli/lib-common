@@ -340,6 +340,21 @@ static inline pid_t thr_job_fork(void)
     return pid;
 }
 
+/** Notifies the thr-jobs that the current thread enters a potentially
+ * blocking system call.
+ *
+ * This can be used to notifies the thr-job library that the parallelism will
+ * be temporarilly reduced because the current thread enters a potentially
+ * blocking call and that it won't be able to process additional jobs during
+ * that call.
+ */
+void thr_enter_blocking_syscall(void);
+
+/** Notified the thr-jobs that the current thread has exited a potentially
+ * blocking system call.
+ */
+void thr_exit_blocking_syscall(void);
+
 #ifdef __has_blocks
 
 /** Run \p count concurrent jobs.
