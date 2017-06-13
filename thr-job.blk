@@ -1708,6 +1708,52 @@ static void run_job(thr_job_t *j, thr_syn_t *syn)
 }
 
 /* }}} */
+/* {{{ Test thr_for_each */
+
+struct thr_int_td_t {
+    thr_td_t td;
+    uint64_t sum;
+};
+
+static int z_thr_for_each(void)
+{
+    thr_syn_t *syn = thr_syn_new();
+    __block uint64_t res = 0;
+    __block uint64_t tds = 0;
+    uint64_t sum;
+
+    thr_syn_declare_td(syn, ^{
+        return &p_new(struct thr_int_td_t, 1)->td;
+    }, ^(thr_td_t **ptd) {
+        p_delete(ptd);
+    });
+
+    thr_for_each(1000000, ^(size_t pos) {
+        struct thr_int_td_t *td;
+
+        td = container_of(thr_syn_acquire_td(syn), struct thr_int_td_t, td);
+        td->sum += pos;
+        thr_syn_release_td(syn, &td->td);
+    });
+
+    thr_syn_collect_td(syn, ^(const thr_td_t *ttd) {
+        const struct thr_int_td_t *td;
+
+        td = container_of(ttd, const struct thr_int_td_t, td);
+        res += td->sum;
+        tds++;
+    });
+
+    thr_syn_delete(&syn);
+
+    sum = res;
+    Z_ASSERT_EQ(sum, 499999500000ull);
+
+    sum = tds;
+    Z_ASSERT_LE(sum, thr_parallelism_g);
+
+    Z_HELPER_END;
+}
 
 Z_GROUP_EXPORT(thrjobs) {
     const bool fast = Z_HAS_MODE(FAST)
@@ -1875,6 +1921,10 @@ Z_GROUP_EXPORT(thrjobs) {
         }
         Z_ASSERT_EQ(queue_steal_g.last_acked, seqid - 1);
         Z_ASSERT_ZERO(queue_steal_g.ci_ring.len);
+    } Z_TEST_END;
+
+    Z_TEST(for_each, "thr for each") {
+        Z_HELPER_RUN(z_thr_for_each());
     } Z_TEST_END;
 
     MODULE_RELEASE(thr);
