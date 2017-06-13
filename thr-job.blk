@@ -1142,17 +1142,12 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
 
     if (self_g->id == 0) {
         while (!cond()) {
+            int ret;
             uint64_t key;
             thr_evc_t *ec;
 
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
                 thr_queue_drain(thr_queue_main_g);
-                continue;
-            }
-            if (likely(thr_job_dequeue())) {
-                continue;
-            }
-            if (thr_job_steal() > 0) {
                 continue;
             }
 
@@ -1172,7 +1167,14 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
             self_g->acc.ec_waits++;
             start = hardclock();
 #endif
-            thr_ec_wait(&syn->ec, key);
+            ret = thr_sleep_until(&syn->ec, 100, ^bool (void) {
+                return cond() || !mpsc_queue_looks_empty(&thr_queue_main_g->q);
+            });
+            if (ret < 0) {
+                thr_enter_blocking_syscall();
+                thr_ec_wait(&syn->ec, key);
+                thr_exit_blocking_syscall();
+            }
 #ifdef __has_thr_acc
             self_g->acc.ec_wait_time += (hardclock() - start);
 #endif
@@ -1186,34 +1188,23 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
             }
         }
     } else {
-        while (!cond()) {
-            int res = -1;
-            uint64_t key = 0;
+        uint64_t key = thr_ec_get(&syn->ec);
 
-            if (likely(thr_job_dequeue())) {
-                continue;
-            }
-            if (thr_job_steal() > 0) {
-                continue;
-            }
+#ifdef __has_thr_acc
+        self_g->acc.ec_waits++;
+        start = hardclock();
+#endif
+        if (thr_sleep_until(&syn->ec, 100, cond) < 0) {
+            thr_enter_blocking_syscall();
             do {
-                sched_yield();
+                thr_ec_wait(&syn->ec, key);
                 key = thr_ec_get(&syn->ec);
-#ifdef __has_thr_acc
-                self_g->acc.ec_gets++;
-#endif
-            } while (!cond() && (res = thr_job_steal()) < 0);
-            if (res == 0) {
-#ifdef __has_thr_acc
-                self_g->acc.ec_waits++;
-                start = hardclock();
-#endif
-                thr_ec_timedwait(&syn->ec, key, 100);
-#ifdef __has_thr_acc
-                self_g->acc.ec_wait_time += (hardclock() - start);
-#endif
-            }
+            } while (!cond());
+            thr_exit_blocking_syscall();
         }
+#ifdef __has_thr_acc
+        self_g->acc.ec_wait_time += (hardclock() - start);
+#endif
     }
 
     thr_syn__release(syn);
