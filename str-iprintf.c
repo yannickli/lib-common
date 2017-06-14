@@ -361,6 +361,11 @@ static ssize_t fmt_output_lstr(int modifier, const void *val, FILE *stream,
 {
     const lstr_t *str = val;
 
+    /* This function is used to format sb_t objects too, make sure they
+     * both have the buf,len at the same offset */
+    STATIC_ASSERT(offsetof(lstr_t, s) == offsetof(sb_t, data));
+    STATIC_ASSERT(offsetof(lstr_t, len) == offsetof(sb_t, len));
+
     if (stream) {
         for (int i = 0; i < str->len; i++) {
             ISPUTC(str->s[i], stream);
@@ -417,7 +422,7 @@ static struct formatter_t put_memory_fmt[256] = {
     ['M'] = { { .raw_formatter = &fmt_output_raw }, .is_raw = true },
     ['X'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
     ['x'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
-    ['L'] = { { .ptr_formatter = &fmt_output_lstr }, .is_raw = false },
+    ['L'] = { { .ptr_formatter = &fmt_output_lstr }, .is_raw = false }
 };
 
 static ALWAYS_INLINE
@@ -1639,6 +1644,7 @@ Z_GROUP_EXPORT(iprintf) {
 
     Z_TEST(pL, "") {
         const lstr_t str = LSTR_IMMED("1234");
+        SB_1k(sb);
 
         isprintf(buffer, "%pL", &str);
         Z_ASSERT_STREQUAL(buffer, "1234");
@@ -1646,6 +1652,17 @@ Z_GROUP_EXPORT(iprintf) {
         isprintf(buffer, "%pL;toto", &str);
         Z_ASSERT_STREQUAL(buffer, "1234;toto");
         isprintf(buffer, "%pLtrailing", &str);
+        Z_ASSERT_STREQUAL(buffer, "1234trailing");
+
+        /* works for sb_t variables too */
+        sb_set_lstr(&sb, str);
+
+        isprintf(buffer, "%pL", &sb);
+        Z_ASSERT_STREQUAL(buffer, "1234");
+
+        isprintf(buffer, "%pL;toto", &sb);
+        Z_ASSERT_STREQUAL(buffer, "1234;toto");
+        isprintf(buffer, "%pLtrailing", &sb);
         Z_ASSERT_STREQUAL(buffer, "1234trailing");
     } Z_TEST_END
 
