@@ -387,10 +387,18 @@ static ssize_t fmt_output_hex(int modifier, const void *val, size_t val_len,
     return val_len * 2;
 }
 
-static formatter_f *put_memory_fmt[256] = {
-    ['M'] = &fmt_output_raw,
-    ['X'] = &fmt_output_hex,
-    ['x'] = &fmt_output_hex,
+struct formatter_t {
+    union {
+        formatter_f *raw_formatter;
+        pointer_formatter_f *ptr_formatter;
+    };
+    bool is_raw;
+};
+
+static struct formatter_t put_memory_fmt[256] = {
+    ['M'] = { { .raw_formatter = &fmt_output_raw }, .is_raw = true },
+    ['X'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
+    ['x'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
 };
 
 static ALWAYS_INLINE
@@ -398,7 +406,7 @@ ssize_t fmt_output_chunk(FILE *stream, char *str, size_t size,
                          size_t count, const char *lp, size_t len,
                          int modifier)
 {
-    formatter_f *f;
+    const struct formatter_t *format;
     size_t out_len;
 
     size = count >= size ? 0 : size - count - 1;
@@ -407,12 +415,22 @@ ssize_t fmt_output_chunk(FILE *stream, char *str, size_t size,
         out_len = RETHROW(fmt_output_raw(modifier, lp, len, stream,
                                          str, size));
     } else {
-        f = put_memory_fmt[(unsigned char)modifier];
-        if (!expect(f)) {
-            return -1;
-        }
+        format = &put_memory_fmt[(unsigned char)modifier];
 
-        out_len = RETHROW((*f)(modifier, lp, len, stream, str, size));
+        if (format->is_raw) {
+            if (!expect(format->raw_formatter)) {
+                return -1;
+            }
+
+            out_len = RETHROW((*format->raw_formatter)(modifier, lp, len,
+                                                       stream, str, size));
+        } else {
+            if (!expect(format->ptr_formatter)) {
+                return -1;
+            }
+            out_len = RETHROW((*format->ptr_formatter)(modifier, lp, stream,
+                                                       str, size));
+        }
     }
 
     return count + out_len;
@@ -510,7 +528,8 @@ static int fmt_output(FILE *stream, char *str, size_t size,
          * and %*pX for "put hexadecimal content here".
          */
         if (format[0] == '*' && format[1] == 'p'
-        &&  put_memory_fmt[(unsigned char)format[2]])
+        &&  put_memory_fmt[(unsigned char)format[2]].is_raw
+        &&  put_memory_fmt[(unsigned char)format[2]].raw_formatter)
         {
             modifier = format[2];
             format += 3;
@@ -520,6 +539,17 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             /* XXX No "trailing garbage" consumption: we support only single
              *     character modifiers for now.
              */
+            goto haslp;
+        } else
+        if (format[0] == 'p'
+        &&  !put_memory_fmt[(unsigned char)format[1]].is_raw
+        &&  put_memory_fmt[(unsigned char)format[1]].ptr_formatter)
+        {
+            modifier = format[1];
+            format += 2;
+            len = 0;
+            lp  = va_arg(ap, const char *);
+
             goto haslp;
         }
 
@@ -1486,14 +1516,31 @@ static int exponent(char *p0, int expn, int fmtch)
 
 void iprintf_register_formatter(int modifier, formatter_f *formatter)
 {
-    formatter_f *old = put_memory_fmt[(unsigned char)modifier];
+    struct formatter_t *old = &put_memory_fmt[(unsigned char)modifier];
 
-    if (old && old != formatter) {
+    if ((old->is_raw && old->raw_formatter != formatter)
+    ||  (!old->is_raw && old->ptr_formatter)) {
         e_panic("trying to overload already defined memory formatter for "
                 "modifier '%c'", modifier);
     }
 
-    put_memory_fmt[(unsigned char)modifier] = formatter;
+    old->is_raw = true;
+    old->raw_formatter = formatter;
+}
+
+void iprintf_register_pointer_formatter(int modifier,
+                                        pointer_formatter_f *formatter)
+{
+    struct formatter_t *old = &put_memory_fmt[(unsigned char)modifier];
+
+    if ((!old->is_raw && old->ptr_formatter != formatter)
+    ||  (old->is_raw && old->raw_formatter)) {
+        e_panic("trying to overload already defined memory formatter for "
+                "modifier '%c'", modifier);
+    }
+
+    old->is_raw = false;
+    old->ptr_formatter = formatter;
 }
 
 ssize_t formatter_writef(FILE *stream, char *buf, size_t buf_len,

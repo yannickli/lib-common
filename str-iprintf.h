@@ -129,9 +129,48 @@ typedef ssize_t
               FILE * nullable stream, char * nullable buf, size_t buf_len);
 
 /** Register a formatter for the provided modifier.
+ *
+ * The formatter will be called when "%*pf" is found (f being the modifier
+ * character).
  */
 __attr_nonnull__((2))
-void iprintf_register_formatter(int modifier, formatter_f * nonnull formatter);
+void iprintf_register_formatter(int modifier,
+                                formatter_f * nonnull formatter);
+
+/** Pointer Formatter function type.
+ *
+ * A pointer formatter is called when, for a formatter f, the format %pf is
+ * encountered in the format string. The formatter is then called with the
+ * parameters passed as argument of that particular format as well as the
+ * modifier.
+ *
+ * see \p formatter_f description for more details.
+ *
+ * \param[in] modifier  The modifier that triggered the call
+ * \param[in] val       The pointer received as parameter.
+ * \param[out] stream   If the formatter is expected to write on a stream,
+ *                      this is the destination stream.
+ * \param[out] buf      If the formatter is expected to write in a buffer,
+ *                      this is the destination buffer.
+ * \param[out] buf_len  The size of the buffer.
+ *
+ * \return The size required to format the \p val (not including the trailing
+ *         zero) or -1 in case of error.
+ */
+typedef ssize_t (pointer_formatter_f)(int modifier,
+                                      const void * null_unspecified val,
+                                      FILE * nullable stream,
+                                      char * nullable buf, size_t buf_len);
+
+/** Register a pointer formatter for the provided modifier.
+ *
+ * The formatter will be called when "%pf" is found (f being the modifier
+ * character). No length value is then provided to the formatter.
+ */
+__attr_nonnull__((2))
+void
+iprintf_register_pointer_formatter(int modifier,
+                                   pointer_formatter_f * nonnull formatter);
 
 /* Formatter helpers. */
 
