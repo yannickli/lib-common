@@ -356,6 +356,24 @@ static ssize_t fmt_output_raw(int modifier, const void *val, size_t val_len,
     return val_len;
 }
 
+static ssize_t fmt_output_lstr(int modifier, const void *val, FILE *stream,
+                               char *buf, size_t buf_len)
+{
+    const lstr_t *str = val;
+
+    if (stream) {
+        for (int i = 0; i < str->len; i++) {
+            ISPUTC(str->s[i], stream);
+        }
+    } else {
+        ssize_t len1 = MIN((size_t)str->len, buf_len);
+
+        memcpy(buf, str->s, len1);
+    }
+
+    return str->len;
+}
+
 static ssize_t fmt_output_hex(int modifier, const void *val, size_t val_len,
                               FILE *stream, char *buf, size_t buf_len)
 {
@@ -399,6 +417,7 @@ static struct formatter_t put_memory_fmt[256] = {
     ['M'] = { { .raw_formatter = &fmt_output_raw }, .is_raw = true },
     ['X'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
     ['x'] = { { .raw_formatter = &fmt_output_hex }, .is_raw = true },
+    ['L'] = { { .ptr_formatter = &fmt_output_lstr }, .is_raw = false },
 };
 
 static ALWAYS_INLINE
@@ -1617,6 +1636,18 @@ Z_GROUP_EXPORT(iprintf) {
         isprintf(buffer, "%*pxworld!", 5, "Hello");
         Z_ASSERT_STREQUAL(buffer, "48656c6c6fworld!");
     } Z_TEST_END;
+
+    Z_TEST(pL, "") {
+        const lstr_t str = LSTR_IMMED("1234");
+
+        isprintf(buffer, "%pL", &str);
+        Z_ASSERT_STREQUAL(buffer, "1234");
+
+        isprintf(buffer, "%pL;toto", &str);
+        Z_ASSERT_STREQUAL(buffer, "1234;toto");
+        isprintf(buffer, "%pLtrailing", &str);
+        Z_ASSERT_STREQUAL(buffer, "1234trailing");
+    } Z_TEST_END
 
     Z_TEST(ivasprintf, "") {
         char *formatted = iasprintf("%*pM", 4, "1234");
