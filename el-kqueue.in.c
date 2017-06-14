@@ -15,6 +15,7 @@
 #include <sys/event.h>
 #include <sys/time.h>
 #include "unix.h"
+#include "thr.h"
 
 qvector_t(kevent, struct kevent);
 
@@ -140,10 +141,12 @@ static void el_loop_fds_poll(int timeout)
     ts.tv_sec = timeout / 1000;
     ts.tv_nsec = (timeout % 1000) * 1000000;
     errno = 0;
+    thr_enter_blocking_syscall();
     kqueue_g.pending = kevent(kqueue_g.kq, kqueue_g.chlist.tab,
                               kqueue_g.chlist.len,
                               kqueue_g.events.tab, kqueue_g.events.size,
                               timeout < 0 ? NULL : &ts);
+    thr_exit_blocking_syscall();
     if (kqueue_g.pending < 0) {
         assert (ERR_RW_RETRIABLE(errno));
     } else {

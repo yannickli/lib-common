@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <sys/epoll.h>
 #include "unix.h"
+#include "thr.h"
 
 static struct {
     int fd;
@@ -112,8 +113,10 @@ static void el_loop_fds_poll(int timeout)
 {
     el_bl_unlock();
     timeout = el_signal_has_pending_events() ? 0 : timeout;
+    thr_enter_blocking_syscall();
     el_epoll_g.pending = epoll_wait(el_epoll_g.fd, el_epoll_g.events,
                                     countof(el_epoll_g.events), timeout);
+    thr_exit_blocking_syscall();
     el_bl_lock();
     assert (el_epoll_g.pending >= 0 || ERR_RW_RETRIABLE(errno));
 }
