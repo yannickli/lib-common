@@ -249,6 +249,7 @@ zchk_SOURCES = zchk.c \
 	zchk-mem.c \
 	zchk-iop-ressources.c \
 	zchk-core-obj.c \
+	zchk-thrjob.blk \
 	\
 	$ltest-data/snmp/snmp_test.iop \
 	$ltest-data/snmp/snmp_test_doc.iop \
