@@ -261,20 +261,29 @@ struct SignedLicence {
     string signature;
 };
 
-/** Address.
+/** Full address.
  *
  * Addresses can be of the following forms:
  *
  * - "a.b.c.d:port": must be a valid ipv4 IP address.
  * - "[ipv6addr]:port": must be a valid ipv6 IP address.
  * - "fqdn.tld:port": must be a valid fully qualified domain name.
+ *
+ * The port must be strictly positive.
+ */
+@nonEmpty @(cfg:fullAddr, true)
+typedef string FullAddr;
+
+/** Address.
+ *
+ * Same as \ref FullAddr except that the port can be omitted.
  */
 @nonEmpty @(cfg:addr, true)
 typedef string Addr;
 
 struct HttpdCfg {
     /** Address (host:port) to listen on */
-    Addr    bindAddr;
+    FullAddr bindAddr;
     /** Maximum size of the output buffer (in octets) */
     uint    outbufMaxSize    = 32 << 20;
     /** Maximum number of pending incoming queries */
