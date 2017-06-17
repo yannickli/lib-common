@@ -97,7 +97,8 @@ lstr_t t_sockunion_gethost_lstr(const sockunion_t *su)
     return lstr_init_(buf, len, MEM_STACK);
 }
 
-int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport)
+int addr_parse_minport(pstream_t ps, pstream_t *host, in_port_t *port,
+                       int minport, int defport)
 {
     int i;
 
@@ -121,10 +122,47 @@ int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport)
     PS_WANT(__ps_getc(&ps) == ':');
     PS_WANT(ps_has(&ps, 1));
     i = ps_geti(&ps);
-    if (i < 1 || i > UINT16_MAX)
+    if (i < minport || i > UINT16_MAX)
         return -1;
     *port = i;
     return ps_done(&ps) ? 0 : -1;
+}
+
+int addr_resolve2(const char * nonnull what, const lstr_t s,
+                  int minport, int defport,
+                  sockunion_t * nonnull out_su,
+                  pstream_t * nullable out_host,
+                  in_port_t * nullable out_port,
+                  sb_t * nullable err)
+{
+    pstream_t host;
+    in_port_t port;
+
+    if (addr_parse_minport(ps_init(s.s, s.len), &host, &port,
+                           minport, defport) < 0)
+    {
+        if (err) {
+            sb_addf(err, "unable to parse %s address `%*pM`",
+                    what, LSTR_FMT_ARG(s));
+        }
+        return -1;
+    }
+    if (addr_info(out_su, AF_UNSPEC, host, port) < 0) {
+        if (err) {
+            sb_addf(err, "unable to resolve %s address `%*pM`",
+                    what, LSTR_FMT_ARG(s));
+        }
+        return -1;
+    }
+
+    if (out_host) {
+        *out_host = host;
+    }
+    if (out_port) {
+        *out_port = port;
+    }
+
+    return 0;
 }
 
 const char *t_addr_fmt(const sockunion_t *su, int *slen)

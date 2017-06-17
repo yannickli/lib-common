@@ -121,8 +121,13 @@ uint32_t sockunion_hash(const sockunion_t * nonnull su);
          su = (typeof(sus))((byte *)su + sockunion_len(su)))
 
 /* -1 as defport means port is mandatory */
-int addr_parse(pstream_t ps, pstream_t * nonnull host,
-               in_port_t * nonnull port, int defport);
+int addr_parse_minport(pstream_t ps, pstream_t * nonnull host,
+                       in_port_t * nonnull port, int minport, int defport);
+static inline int addr_parse(pstream_t ps, pstream_t * nonnull host,
+                             in_port_t * nonnull port, int defport)
+{
+    return addr_parse_minport(ps, host, port, 1, defport);
+}
 int addr_info(sockunion_t * nonnull, sa_family_t, pstream_t host, in_port_t);
 
 /** Convert a TCP/IPv4, TCP/IPv6 or UNIX address into a string.
@@ -181,19 +186,38 @@ int addr_filter_build(lstr_t subnet, addr_filter_t * nonnull filter);
 int addr_filter_matches(const addr_filter_t * nonnull filter,
                         const sockunion_t * nonnull peer);
 
+/** Resolve an address.
+ *
+ * \param[in]  what     description of the address to resolve
+ * \param[in]  s        address to resolve
+ * \param[in]  minport  minimum port authorized (if 0, port can be missing)
+ * \param[in]  defport  default port, if not present in the address
+ *
+ * \param[out] out_su    sockunion_t to fill with the resolution of the
+ *                       address
+ * \param[out] out_host  host of the address
+ * \param[out] out_port  port of the address
+ * \param[out] err       buffer to fill in case of error
+ *
+ * \return  0 if success, -1 if error
+ */
+int addr_resolve2(const char * nonnull what, const lstr_t s,
+                  int minport, int defport,
+                  sockunion_t * nonnull out_su,
+                  pstream_t * nullable out_host,
+                  in_port_t * nullable out_port,
+                  sb_t * nullable err);
+
 static inline int addr_resolve(const char * nonnull what, const lstr_t s,
                                sockunion_t * nonnull out)
 {
+    SB_1k(err);
     pstream_t host;
     in_port_t port;
 
-    if (addr_parse(ps_init(s.s, s.len), &host, &port, -1) < 0) {
-        return e_error("unable to parse %s address: %*pM", what,
-                       LSTR_FMT_ARG(s));
-    }
-    if (addr_info(out, AF_UNSPEC, host, port) < 0) {
-        return e_error("unable to resolve %s address: %*pM", what,
-                       LSTR_FMT_ARG(s));
+    if (addr_resolve2(what, s, 1, -1, out, &host, &port, &err) < 0) {
+        e_error("%*pM", SB_FMT_ARG(&err));
+        return -1;
     }
     return 0;
 }
