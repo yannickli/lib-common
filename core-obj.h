@@ -29,52 +29,8 @@
  * \brief Objects and Virtual Tables in C (header)
  */
 
-bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
-    __leaf __attribute__((pure));
-
-#define obj_is_a_class(obj, cls) \
-    cls_inherits((obj)->v.as_obj_cls, cls)
-
-#define obj_is_a(obj, pfx)  \
-    obj_is_a_class(obj, pfx##_class())
-
-#define obj_vfield(o, field)       ((o)->v.ptr->field)
-#define obj_vmethod(o, method)     ((o)->v.ptr->method)
-#define obj_vcall(o, method, ...)  obj_vmethod(o, method)(o, ##__VA_ARGS__)
-
-#if !defined(NDEBUG) && defined(__GNUC__)
-#  define obj_cast_debug(pfx, o) \
-    ({ typeof(o) __##pfx##_o = (o);                                          \
-       if (__##pfx##_o && unlikely(!obj_is_a(__##pfx##_o, pfx))) {           \
-           e_panic("%s:%d: cannot cast (%p : %s) into a %s",                 \
-                   __FILE__, __LINE__, __##pfx##_o,                          \
-                   obj_vfield(__##pfx##_o, type_name),                       \
-                   pfx##_class()->type_name);                                \
-     }                                                                       \
-     __##pfx##_o; })
-#  define cls_cast_debug(pfx, c) \
-    ({ typeof(c) __##pfx##_c = (c);                                          \
-       if (unlikely(!cls_inherits(__##pfx##_c, pfx##_class()))) {            \
-           e_panic("%s:%d: bad class cast (%s into %s)", __FILE__, __LINE__, \
-                   __##pfx##_c->type_name, pfx##_class()->type_name);        \
-       }                                                                     \
-       __##pfx##_c; })
-#else
-#  define obj_cast_debug(pfx, o)  (o)
-#  define cls_cast_debug(pfx, c)  (c)
-#endif
-
-#define obj_vcast(pfx, o)  ((pfx##_t *)obj_cast_debug(pfx, o))
-#define obj_ccast(pfx, o)  ((const pfx##_t *)obj_cast_debug(pfx, o))
-#define cls_cast(pfx, c)   ((const pfx##_class_t *)cls_cast_debug(pfx, c))
-
-#define cls_call(pfx, o, f, ...) \
-    (pfx##_class()->f(obj_vcast(pfx, o), ##__VA_ARGS__))
-
-#define super_call(pfx, o, f, ...)  \
-    (pfx##_class()->super->f(&(o)->super, ##__VA_ARGS__))
-
-#define class_vcall(cls, f, ...)  cls->f(__VA_ARGS__)
+/* {{{ Constructor macros */
+/* {{{ Private macros */
 
 #define OBJ_MAKE_STRUCT_INHERIT(pfx, superclass, fields, ...)                \
     union {                                                                  \
@@ -111,6 +67,8 @@ bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
         STATIC_ASSERT(offsetof(pfx##_t, v) == 0);                            \
         return superclass##_class();                                         \
     }
+
+/* }}} */
 
 #define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods, ...)          \
     OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods,                  \
@@ -203,6 +161,9 @@ bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
     void pfx##_class_set_init(pfx##_class_t * nonnull cls,                   \
         pfx##_t * nonnull (*nonnull init)(pfx##_t * nonnull))
 
+/* }}} */
+/* {{{ Base object class */
+
 #define OBJECT_FIELDS(pfx) \
     union {                                                                  \
         const object_class_t * nonnull as_obj_cls;                           \
@@ -221,18 +182,66 @@ bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
     void     (*nonnull release)(type_t * nonnull);                           \
     bool     (*nonnull can_wipe)(type_t * nonnull)
 
-#define OBJ_CLASS(pfx, superclass, fields, methods, ...)                     \
-    typedef struct pfx##_t pfx##_t;                                          \
-    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods, ##__VA_ARGS__)
-
 typedef struct object_t object_t;
 OBJ_CLASS_NO_TYPEDEF_(object, object, OBJECT_FIELDS, OBJECT_METHODS,
                       OBJ_MAKE_STRUCT_BASE)
 
+/* }}} */
+/* {{{ Public helpers */
+/* {{{ Private macros */
+
+#if !defined(NDEBUG) && defined(__GNUC__)
+#  define obj_cast_debug(pfx, o) \
+    ({ typeof(o) __##pfx##_o = (o);                                          \
+       if (__##pfx##_o && unlikely(!obj_is_a(__##pfx##_o, pfx))) {           \
+           e_panic("%s:%d: cannot cast (%p : %s) into a %s",                 \
+                   __FILE__, __LINE__, __##pfx##_o,                          \
+                   obj_vfield(__##pfx##_o, type_name),                       \
+                   pfx##_class()->type_name);                                \
+     }                                                                       \
+     __##pfx##_o; })
+#  define cls_cast_debug(pfx, c) \
+    ({ typeof(c) __##pfx##_c = (c);                                          \
+       if (unlikely(!cls_inherits(__##pfx##_c, pfx##_class()))) {            \
+           e_panic("%s:%d: bad class cast (%s into %s)", __FILE__, __LINE__, \
+                   __##pfx##_c->type_name, pfx##_class()->type_name);        \
+       }                                                                     \
+       __##pfx##_c; })
+#else
+#  define obj_cast_debug(pfx, o)  (o)
+#  define cls_cast_debug(pfx, c)  (c)
+#endif
 
 void * nonnull obj_init_real(const void * nonnull cls, void * nonnull o,
                              mem_pool_t * nonnull mp);
 void obj_wipe_real(object_t * nonnull o);
+
+/* }}} */
+
+bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
+    __leaf __attribute__((pure));
+
+#define obj_is_a_class(obj, cls)  \
+    cls_inherits((obj)->v.as_obj_cls, cls)
+
+#define obj_is_a(obj, pfx)  \
+    obj_is_a_class(obj, pfx##_class())
+
+#define obj_vfield(o, field)       ((o)->v.ptr->field)
+#define obj_vmethod(o, method)     ((o)->v.ptr->method)
+#define obj_vcall(o, method, ...)  obj_vmethod(o, method)(o, ##__VA_ARGS__)
+
+#define obj_vcast(pfx, o)  ((pfx##_t *)obj_cast_debug(pfx, o))
+#define obj_ccast(pfx, o)  ((const pfx##_t *)obj_cast_debug(pfx, o))
+#define cls_cast(pfx, c)   ((const pfx##_class_t *)cls_cast_debug(pfx, c))
+
+#define cls_call(pfx, o, f, ...) \
+    (pfx##_class()->f(obj_vcast(pfx, o), ##__VA_ARGS__))
+
+#define super_call(pfx, o, f, ...)  \
+    (pfx##_class()->super->f(&(o)->super, ##__VA_ARGS__))
+
+#define class_vcall(cls, f, ...)  cls->f(__VA_ARGS__)
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
 #define obj_mp_new_of_class(mp, pfx, cls)  ({                                \
@@ -261,6 +270,8 @@ void obj_wipe_real(object_t * nonnull o);
     ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)),       \
                               &mem_pool_static))
 #define obj_wipe(o)     obj_wipe_real(obj_vcast(object, o))
+
+/* }}} */
 
 /**\}*/
 #endif
