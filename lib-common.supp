@@ -141,3 +141,21 @@
     ...
     fun:memtod
 }
+
+# Swift
+{
+    lib-common/swift/getGenericMetadata
+    Memcheck:Leak
+    match-leak-kinds: possible
+    fun:malloc
+    ...
+    fun:swift_getGenericMetadata
+}
+{
+    lib-common/swift/getGenericWitnessTable
+    Memcheck:Leak
+    match-leak-kinds: possible
+    fun:malloc
+    ...
+    fun:swift_getGenericWitnessTable
+}
