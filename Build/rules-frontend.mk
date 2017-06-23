@@ -316,16 +316,14 @@ define rule/wwwscript
 tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(var/wwwtool)../tsc/lib/js
 
 BROWSERIFY_OPTIONS = -g browserify-shim \
-                     -g [uglifyify --mangle --compress] \
-                     -g deamdify \
                      --debug
 
-$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/bundles/$3.js
-$~$2/htdocs/javascript/bundles/$3.js: $~$2/package.json
-$~$2/htdocs/javascript/bundles/$3.js: _FLAGS=$($(1DV)$3_FLAGS)
-$~$2/htdocs/javascript/bundles/$3.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%))
-$~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exorcist
+$~$2/htdocs/javascript/bundles/$3.full.js: $~$2/package.json
+$~$2/htdocs/javascript/bundles/$3.full.js: _FLAGS=$($(1DV)$3_FLAGS)
+$~$2/htdocs/javascript/bundles/$3.full.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%))
+$~$2/htdocs/javascript/bundles/$3.full.js: $(var/wwwtool)browserify $(var/wwwtool)exorcist
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript/bundles
 	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify \
@@ -340,17 +338,24 @@ $~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exo
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
+$~$2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.full.js $(var/wwwtool)uglifyjs
+	cd $/$~$2/htdocs/javascript/bundles && $(var/wwwtool)uglifyjs --source-map $3.js.map --compress --mangle -b beautify=false,quote-keys=true -o $3.js $3.full.js
+
 $2/htdocs/javascript/bundles/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/bundles/$(notdir $s).js))
 $2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)sorcery
 $2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.js
 	mkdir -p $2/htdocs/javascript/bundles
 	$(FASTCP) $$< $$@
 	if [ -f $$<.map ]; then \
+		$(FASTCP) $~$2/htdocs/javascript/bundles/$3.full.js.map $/$3.full.js.map; \
+		$(FASTCP) $~$2/htdocs/javascript/bundles/$3.full.js $/$3.full.js; \
 		$(FASTCP) $$<.map $/$3.js.map; \
 		$(FASTCP) $$< $/$3.js; \
 		$(var/wwwtool)sorcery -i $3.js; \
 		rm $/$3.js; \
 		rm $$@.map; \
+		rm $/$3.full.js.map; \
+		rm $/$3.full.js; \
 		mv $/$3.js.map $$@.map; \
 	fi
 endef
