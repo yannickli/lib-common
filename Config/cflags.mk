@@ -13,7 +13,9 @@
 
 ifeq (,$(NOCOMPRESS))
 ifneq (,$(shell ld --help | grep compress-debug-sections))
+ifneq (,$(shell objcopy --help | grep compress-debug-sections))
     LDFLAGS += -Wl,--compress-debug-sections=zlib
+endif
 endif
 endif
 
