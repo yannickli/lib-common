@@ -1250,7 +1250,6 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
             RETHROW(iopc_resolve(rpkg));
         }
     }
-    qv_wipe(iopc_pkg, &_G.resolve_list);
 
     /* Count static fields having a default value */
     qv_for_each_entry(iopc_struct, st, &pkg->structs) {
@@ -1619,6 +1618,16 @@ void iopc_get_depends(iopc_pkg_t *pkg,
     iopc_depends_uniquify(t_deps);
     iopc_depends_uniquify(i_deps);
     iopc_depends_uniquify(t_weak_deps);
+}
+
+void iopc_typer_initialize(void)
+{
+    qv_init(iopc_pkg, &_G.resolve_list);
+}
+
+void iopc_typer_shutdown(void)
+{
+    qv_wipe(iopc_pkg, &_G.resolve_list);
 }
 
 /* {{{ Module */
