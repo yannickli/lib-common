@@ -237,6 +237,8 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
         value->p = (void *)ptr;
         return 0;
       }
+      case IOP_T_VOID:
+        return IOP_FIELD_NOT_SET;
     }
     return IOP_FIELD_ERROR;
 }
@@ -470,7 +472,7 @@ iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
             field_size = field_info->u1.st_desc->size;
             field_align = field_size;
             break;
-          default:
+          case IOP_T_VOID:
             /* type not handled */
             assert (0);
             break;
@@ -870,9 +872,23 @@ static bool iop_type_is_string(iop_type_t type)
       case IOP_T_XML:
         return true;
 
-      default:
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_BOOL:
+      case IOP_T_ENUM:
+      case IOP_T_DOUBLE:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+      case IOP_T_VOID:
         return false;
     }
+    return false;
 }
 
 static int iop_convert_i64(int64_t i64, iop_type_t type, iop_value_t *value)
@@ -914,7 +930,13 @@ static int iop_convert_i64(int64_t i64, iop_type_t type, iop_value_t *value)
       case IOP_T_DOUBLE:
         value->d = i64;
         break;
-      default:
+      case IOP_T_ENUM:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+      case IOP_T_VOID:
         return -1;
     }
 
@@ -941,9 +963,23 @@ static int iop_convert_value(iop_type_t exp_type, iop_type_t val_type,
       case IOP_T_DOUBLE:
         return exp_type == IOP_T_DOUBLE ? 0 : -1;
 
-      default:
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_BOOL:
+      case IOP_T_ENUM:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+      case IOP_T_VOID:
         e_panic("iop_type unsupported");
     }
+    return -1;
 }
 
 #define __get_gen_attr_value(_attrs, _len, _key, _what, _what_l,           \
@@ -1163,7 +1199,9 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
                 *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
                                              fdesc->u0.defval_len);
                 break;
-              default:
+              case IOP_T_UNION:
+              case IOP_T_STRUCT:
+              case IOP_T_VOID:
                 e_panic("unsupported");
                 continue;
             }
@@ -2515,11 +2553,11 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
       case IOP_T_STRING:
       case IOP_T_DATA:
       case IOP_T_XML:
+      case IOP_T_VOID:
         break;
 
       case IOP_T_UNION:
-      case IOP_T_STRUCT:
-      default: {
+      case IOP_T_STRUCT: {
         bool is_class;
         bool is_ref;
 
@@ -3404,6 +3442,13 @@ int iop_patch_int(const iop_field_t *fdesc, void *ptr, int64_t i64)
         e_named_trace(3, "iop/c/unpacker", "dropped value (0x%jx) into void "
                       "field `%*pM`", i64, LSTR_FMT_ARG(fdesc->name));
         break;
+      case IOP_T_DOUBLE:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+      case IOP_T_XML:
+        e_panic("iop_type unsupported");
     }
 
 #undef CHECK_RANGE
@@ -3607,6 +3652,8 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
                               LSTR_FMT_ARG(fdesc->name));
             }
             return __ps_skip(ps, u32);
+          default:
+            break;
         }
         return -1;
 
@@ -5574,6 +5621,21 @@ iop_field_check_backward_compat(const iop_field_t *f1,
         return __iop_enum_check_backward_compat(f1->u1.en_desc,
                                                 f2->u1.en_desc,
                                                 flags, ctx);
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_BOOL:
+      case IOP_T_DOUBLE:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_VOID:
+        break;
     }
 
     return 0;

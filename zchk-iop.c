@@ -4625,7 +4625,7 @@ Z_GROUP_EXPORT(iop)
 
 #define TEST_FIELD(_f, _type, _name, _st, _class)                       \
         do {                                                            \
-            Z_ASSERT_EQ(_f->type, IOP_T_##_type);                       \
+            Z_ASSERT_EQ((int)_f->type, IOP_T_##_type);                  \
             Z_ASSERT_LSTREQUAL(_f->name, LSTR(_name));                  \
             Z_ASSERT(_st == _class.__vptr);                             \
         } while (0)
@@ -5518,73 +5518,73 @@ Z_GROUP_EXPORT(iop)
         /* test fields */
         f = GET_FIELD_FROM_NAME("f0");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I8);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I8);
         Z_ASSERT_EQ(f->size, 1);
         Z_ASSERT_EQ(f->tag, 1);
 
         f = GET_FIELD_FROM_NAME("f1");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I16);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I16);
         Z_ASSERT_EQ(f->size, 2);
         Z_ASSERT_EQ(f->tag, 2);
 
         f = GET_FIELD_FROM_NAME("f2");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I32);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I32);
         Z_ASSERT_EQ(f->size, 4);
         Z_ASSERT_EQ(f->tag, 3);
 
         f = GET_FIELD_FROM_NAME("f3");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I64);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I64);
         Z_ASSERT_EQ(f->size, 8);
         Z_ASSERT_EQ(f->tag, 4);
 
         f = GET_FIELD_FROM_NAME("f4");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_DOUBLE);
+        Z_ASSERT_EQ((int)f->type, IOP_T_DOUBLE);
         Z_ASSERT_EQ(f->size, 8);
         Z_ASSERT_EQ(f->tag, 5);
 
         f = GET_FIELD_FROM_NAME("f5");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_STRING);
+        Z_ASSERT_EQ((int)f->type, IOP_T_STRING);
         Z_ASSERT_EQ(f->size, sizeof(lstr_t));
         Z_ASSERT_EQ(f->tag, 6);
 
         f = GET_FIELD_FROM_NAME("f6");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I8);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I8);
         Z_ASSERT_EQ(f->size, sizeof(opt_i8_t));
         Z_ASSERT_EQ(f->tag, 7);
 
         f = GET_FIELD_FROM_NAME("f7");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I16);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I16);
         Z_ASSERT_EQ(f->size, sizeof(opt_i16_t));
         Z_ASSERT_EQ(f->tag, 8);
 
         f = GET_FIELD_FROM_NAME("f8");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I32);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I32);
         Z_ASSERT_EQ(f->size, sizeof(opt_i32_t));
         Z_ASSERT_EQ(f->tag, 9);
 
         f = GET_FIELD_FROM_NAME("f9");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_I64);
+        Z_ASSERT_EQ((int)f->type, IOP_T_I64);
         Z_ASSERT_EQ(f->size, sizeof(opt_i64_t));
         Z_ASSERT_EQ(f->tag, 10);
 
         f = GET_FIELD_FROM_NAME("f10");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_DOUBLE);
+        Z_ASSERT_EQ((int)f->type, IOP_T_DOUBLE);
         Z_ASSERT_EQ(f->size, sizeof(opt_double_t));
         Z_ASSERT_EQ(f->tag, 11);
 
         f = GET_FIELD_FROM_NAME("f11");
         Z_ASSERT_P(f);
-        Z_ASSERT_EQ(f->type, IOP_T_STRING);
+        Z_ASSERT_EQ((int)f->type, IOP_T_STRING);
         Z_ASSERT_EQ(f->size, sizeof(lstr_t));
         Z_ASSERT_EQ(f->tag, 12);
 

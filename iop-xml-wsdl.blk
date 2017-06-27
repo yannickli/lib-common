@@ -63,7 +63,14 @@ static void iop_xwsdl_put_attr_value(wsdlpp_t *wpp, iop_type_t type,
         xmlpp_putattrfmt(&wpp->pp, "value", "%.17e", attr->args[0].v.d);
         break;
 
-      default:
+      case IOP_T_BOOL:
+      case IOP_T_ENUM:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+      case IOP_T_VOID:
         e_panic("should not happen");
     }
 }
@@ -354,8 +361,6 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             if (f->type == IOP_T_VOID && !st->is_union) {
                 xmlpp_putattr(&wpp->pp, "minOccurs", "0");
             }
-          default:
-            break;
         }
 
         if (f->type == IOP_T_VOID) {
@@ -401,6 +406,12 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
               case IOP_T_STRING:
                 wpp_add_comment(wpp, "\n", "default: %s=%s",
                                 f->name.s, (const char *)f->u1.defval_data);
+                break;
+              case IOP_T_DATA:
+              case IOP_T_XML:
+              case IOP_T_STRUCT:
+              case IOP_T_UNION:
+              case IOP_T_VOID:
                 break;
             }
         }

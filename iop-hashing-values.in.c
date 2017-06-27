@@ -133,6 +133,12 @@ F(iop_hash_opt)(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
         b = true;
         F(iop_hash_update)(ctx, &b, 1);
         break;
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+      case IOP_T_XML:
+        e_panic("iop_type unsupported");
     }
 }
 

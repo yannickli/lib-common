@@ -62,8 +62,8 @@ typedef struct iop_field_t {
     uint16_t     tag;
     unsigned     tag_len:  2; /**< 0 to 2                                   */
     unsigned     flags  : 14; /**< bitfield of iop_field_flags_t            */
-    uint16_t     repeat;      /**< iop_repeat_t                             */
-    uint16_t     type;        /**< iop_type_t                               */
+    iop_repeat_t repeat : 16; /**< iop_repeat_t                             */
+    iop_type_t   type   : 16; /**< iop_type_t                               */
     uint16_t     size;        /**< sizeof(type);                            */
     uint16_t     data_offs;   /**< offset to the data                       */
     /**
