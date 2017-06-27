@@ -237,6 +237,8 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
         value->p = (void *)ptr;
         return 0;
       }
+      case IOP_T_VOID:
+        return IOP_FIELD_NOT_SET;
     }
     return IOP_FIELD_ERROR;
 }
@@ -2515,11 +2517,11 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
       case IOP_T_STRING:
       case IOP_T_DATA:
       case IOP_T_XML:
+      case IOP_T_VOID:
         break;
 
       case IOP_T_UNION:
-      case IOP_T_STRUCT:
-      default: {
+      case IOP_T_STRUCT: {
         bool is_class;
         bool is_ref;
 
