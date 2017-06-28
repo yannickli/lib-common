@@ -821,28 +821,41 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
         assert (__ghp_pos >= 0);                                             \
         __gqh->values[__ghp_pos];                                            \
     })
+
 #define qm_get_def(name, _qh, key, def)                                      \
     ({  qm_t(name) *__gqh = (_qh);                                           \
-        typeof(__gqh->values[0]) __def = (def);                              \
+        typeof(def) __def_type = (def);                                      \
+        typeof(__gqh->values[0]) __def = __def_type;                         \
         int __ghp_pos = qm_find(name, __gqh, (key));                         \
+        assert (__def_type == __def && "default value type is incompatible " \
+                "with qm value type");                                       \
         __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
     })
 #define qm_get_def_h(name, _qh, h, key, def)                                 \
     ({  qm_t(name) *__gqh = (_qh);                                           \
-        typeof(__gqh->values[0]) __def = (def);                              \
+        typeof(def) __def_type = (def);                                      \
+        typeof(__gqh->values[0]) __def = __def_type;                         \
         int __ghp_pos = qm_find_h(name, __gqh, (h), (key));                  \
+        assert (__def_type == __def && "default value type is incompatible " \
+                "with qm value type");                                       \
         __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
     })
 #define qm_get_def_safe(name, _qh, key, def)                                 \
     ({  const qm_t(name) *__gqh = (_qh);                                     \
-        typeof(__gqh->values[0]) __def = (def);                              \
+        typeof(def) __def_type = (def);                                      \
+        typeof(__gqh->values[0]) __def = __def_type;                         \
         int __ghp_pos = qm_find_safe(name, __gqh, (key));                    \
+        assert (__def_type == __def && "default value type is incompatible " \
+                "with qm value type");                                       \
         __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
     })
 #define qm_get_def_safe_h(name, _qh, h, key, def)                            \
     ({  const qm_t(name) *__gqh = (_qh);                                     \
-        typeof(__gqh->values[0]) __def = (def);                              \
+        typeof(def) __def_type = (def);                                      \
+        typeof(__gqh->values[0]) __def = __def_type;                         \
         int __ghp_pos = qm_find_safe_h(name, __gqh, (h), (key));             \
+        assert (__def_type == __def && "default value type is incompatible " \
+                "with qm value type");                                       \
         __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
     })
 

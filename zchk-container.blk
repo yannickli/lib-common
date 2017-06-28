@@ -23,6 +23,7 @@ qh_k64_t(test_qh_64);
 
 qm_k32_t(test, uint32_t);
 qm_k32_t(test_vlstr, lstr_t);
+qm_k32_t(test_p_val, uint32_t *);
 qm_k64_t(test_qh_64, uint32_t);
 
 qh_kptr_ckey_t(test_str, char, qhash_str_hash, qhash_str_equal);
@@ -408,6 +409,26 @@ Z_GROUP_EXPORT(qhash)
 
     } Z_TEST_END
 
+    Z_TEST(qm_get_def, "qhash: qm_get_def") {
+        t_scope;
+        qm_t(test_p_val) qm;
+        qm_t(test) qm2;
+        uint32_t val = 4242;
+        uint32_t *pval = &val;
+
+        t_qm_init(test_p_val, &qm, 1);
+        qm_add(test_p_val, &qm, 42, pval);
+
+        Z_ASSERT(qm_get_def(test_p_val, &qm, 42, NULL) == pval);
+        Z_ASSERT(qm_get_def(test_p_val, &qm, 0, NULL) == NULL);
+
+        t_qm_init(test, &qm2, 1);
+        qm_add(test, &qm2, 42, val);
+
+        Z_ASSERT_EQ(qm_get_def(test, &qm2, 42, 3U), val);
+        Z_ASSERT_EQ(qm_get_def(test, &qm2, 0, 3U), 3U);
+    } Z_TEST_END
+
     Z_TEST(qm_fetch, "qhash: qm_fetch uint") {
         t_scope;
         qm_t(test) qm;
@@ -579,7 +600,7 @@ Z_GROUP_EXPORT(qhash)
         qm_hash    (test_ptr, qm,       const_ptr);
         qm_get     (test_ptr, qm,       const_ptr);
         qm_get_safe(test_ptr, const_qm, const_ptr);
-        qm_get_def (test_ptr, qm,       const_ptr, 0);
+        qm_get_def (test_ptr, qm,       const_ptr, 0U);
 
         qm_find    (test_ptr, qm,       const_ptr);
 

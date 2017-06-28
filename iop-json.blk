@@ -2372,8 +2372,7 @@ static lstr_t get_subfile_file_path(const void *value,
         qm_t(iop_jpack_paths) *paths = &file_ctx->sub_files.values[pos];
         lstr_t iop_path = t_get_current_field_path(&file_ctx->field_paths);
 
-        file_path = qm_get_def(iop_jpack_paths, paths, &iop_path,
-                               LSTR_NULL_V);
+        qm_fetch(iop_jpack_paths, paths, &iop_path, &file_path, LSTR_NULL_V);
     }
 
     return file_path;
