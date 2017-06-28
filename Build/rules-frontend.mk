@@ -343,7 +343,9 @@ $~$2/htdocs/javascript/bundles/$3.full.js: $(var/wwwtool)browserify $(var/wwwtoo
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $~$2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.full.js $(var/wwwtool)uglifyjs
-	cd $/$~$2/htdocs/javascript/bundles && $(var/wwwtool)uglifyjs --source-map $3.js.map --compress --mangle -b beautify=false,quote-keys=true -o $3.js $3.full.js
+	$(if $(NOCOMPRESS),,$(msg/MINIFY.js) $3.js)
+	$(if $(NOCOMPRESS),$(FASTCP) $$< $$@,cd $/$~$2/htdocs/javascript/bundles && $(var/wwwtool)uglifyjs --source-map $3.js.map --compress warnings=false --mangle -b beautify=false,quote-keys=true -o $3.js $3.full.js)
+	$(if $(NOCOMPRESS),-$(FASTCP) $$<.map $$@.map)
 
 $2/htdocs/javascript/bundles/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/bundles/$(notdir $s).js))
 $2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)sorcery
