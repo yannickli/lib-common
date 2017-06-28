@@ -846,6 +846,29 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
         __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
     })
 
+#define _qm_fetch(name, _qh, key, _v, _defval, _qh_modifier, _qm_find,       \
+                  _pointer_ampersand, _pointer_star)                         \
+    ({                                                                       \
+        _qh_modifier qm_t(name) *__gqh = (_qh);                              \
+        int __ghp_pos = _qm_find(name, __gqh, (key));                        \
+        typeof(__gqh->values[0]) _pointer_star *__v = (_v);                  \
+        if (__ghp_pos >= 0) {                                                \
+            *__v = _pointer_ampersand __gqh->values[__ghp_pos];              \
+        } else {                                                             \
+            *__v = (_defval);                                                \
+        }                                                                    \
+        __ghp_pos;                                                           \
+    })
+
+#define qm_fetch(name, _qh, key, _v, _defval)                                \
+    _qm_fetch(name, _qh, key, _v, (_defval), , qm_find, , )
+#define qm_fetch_safe(name, _qh, key, _v, _defval)                           \
+    _qm_fetch(name, _qh, key, _v, (_defval), const, qm_find_safe, , )
+#define qm_fetch_p(name, _qh, key, _vp, _defval)                             \
+    _qm_fetch(name, _qh, key, _vp, (_defval), , qm_find, &, *)
+#define qm_fetch_p_safe(name, _qh, key, _vp, _defval)                        \
+    _qm_fetch(name, _qh, key, _vp, (_defval), const, qm_find_safe, &, *)
+
 #define qm_deep_clear(name, h, k_wipe, v_wipe)                           \
     do {                                                                 \
         qm_t(name) *__h = (h);                                           \

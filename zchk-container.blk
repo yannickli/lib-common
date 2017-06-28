@@ -22,6 +22,7 @@ qh_k32_t(test);
 qh_k64_t(test_qh_64);
 
 qm_k32_t(test, uint32_t);
+qm_k32_t(test_vlstr, lstr_t);
 qm_k64_t(test_qh_64, uint32_t);
 
 qh_kptr_ckey_t(test_str, char, qhash_str_hash, qhash_str_equal);
@@ -407,6 +408,54 @@ Z_GROUP_EXPORT(qhash)
 
     } Z_TEST_END
 
+    Z_TEST(qm_fetch, "qhash: qm_fetch uint") {
+        t_scope;
+        qm_t(test) qm;
+        const qm_t(test) *qm_c = &qm;
+        uint32_t v = 42;
+        uint32_t *vp = NULL;
+
+        t_qm_init(test, &qm, 1);
+        qm_add(test, &qm, 1, 2);
+
+        Z_ASSERT_N(qm_fetch(test, &qm, 1, &v, 999));
+        Z_ASSERT_EQ(v, 2U);
+
+        Z_ASSERT_NEG(qm_fetch(test, &qm, 11, &v, 999));
+        Z_ASSERT_EQ(v, 999U);
+
+        Z_ASSERT_N(qm_fetch_p(test, &qm, 1, &vp, NULL));
+        Z_ASSERT_EQ(*vp, 2U);
+
+        Z_ASSERT_NEG(qm_fetch_p(test, &qm, 11, &vp, NULL));
+        Z_ASSERT(vp == NULL);
+
+        Z_ASSERT_N(qm_fetch_safe(test, qm_c, 1, &v, 999));
+        Z_ASSERT_N(qm_fetch_p_safe(test, qm_c, 1, &vp, NULL));
+    } Z_TEST_END
+
+    Z_TEST(qm_fetch_lstr, "qhash: qm_fetch uint") {
+        t_scope;
+        qm_t(test_vlstr) qm;
+        lstr_t v_ref = LSTR("42");
+        lstr_t v;
+        lstr_t *vp;
+
+        t_qm_init(test_vlstr, &qm, 1);
+        qm_add(test_vlstr, &qm, 1, v_ref);
+
+        Z_ASSERT_N(qm_fetch(test_vlstr, &qm, 1, &v, LSTR_NULL_V));
+        Z_ASSERT_LSTREQUAL(v, v_ref);
+
+        Z_ASSERT_NEG(qm_fetch(test_vlstr, &qm, 11, &v, LSTR_NULL_V));
+        Z_ASSERT_LSTREQUAL(v, LSTR_NULL_V);
+
+        Z_ASSERT_N(qm_fetch_p(test_vlstr, &qm, 1, &vp, NULL));
+        Z_ASSERT_LSTREQUAL(*vp, v_ref);
+
+        Z_ASSERT_NEG(qm_fetch_p(test_vlstr, &qm, 11, &vp, NULL));
+        Z_ASSERT(vp == NULL);
+    } Z_TEST_END
 
     Z_TEST(qm_deep_del, "qhash: qm_deep_del") {
         int32_t pos;
