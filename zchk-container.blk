@@ -1192,6 +1192,7 @@ Z_GROUP_EXPORT(qvector)
     Z_TEST(qv_init_static, "qvector: qv_init_static() helper") {
         t_scope;
         qv_t(u32) vec;
+        qv_t(u32) vec2;
         uint32_t tab[] = { 0, 1, 2, 3 };
         const uint32_t ctab[] = { 0, 1, 2, 3 };
         uint32_t *ttab = t_dup(tab, countof(tab));
@@ -1212,6 +1213,10 @@ Z_GROUP_EXPORT(qvector)
         qv_init_static(&vec, cttab, countof(tab));
         Z_ASSERT(vec.tab == cttab);
         Z_ASSERT_EQ(vec.len, countof(tab));
+
+        qv_init_static_tab(&vec2, &vec);
+        Z_ASSERT(vec2.tab == vec.tab);
+        Z_ASSERT(vec2.len == vec.len);
     } Z_TEST_END
 
     Z_TEST(qv_deep_uniq, "qvector: qv_uniq()") {

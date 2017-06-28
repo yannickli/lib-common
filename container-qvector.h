@@ -319,6 +319,11 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
         __qvector_init(&__vec->qv, (void *)__tab, __len, __len,              \
                        &mem_pool_static);                                    \
         __vec; })
+#define qv_init_static_tab(vec, _tab)                                        \
+    ({                                                                       \
+        typeof(_tab) ___tab = (_tab);                                        \
+        qv_init_static((vec), ___tab->tab, ___tab->len);                     \
+    })
 #define qv_inita(vec, size)                                                  \
     ({  size_t __size = (size), _sz = __size * __qv_sz(vec);                 \
         typeof(*(vec)) *__vec = (vec);                                       \
