@@ -137,7 +137,7 @@ iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
     iopc_do_c_g.no_const = true;
     iopc_do_c_g.iop_compat_header = sb.data;
 
-    iopc_parser_initialize();
+    iopc_parser_typer_initialize();
 
     pkg = iopc_parse_file(NULL, env, iopfile, iopdata, is_main_pkg);
     if (!pkg) {
@@ -169,11 +169,11 @@ iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
         *pkgpath = lstr_dups(pretty_path(pkg->name), -1);
     }
 
-    iopc_parser_shutdown();
+    iopc_parser_typer_shutdown();
     return 0;
 
   error:
-    iopc_parser_shutdown();
+    iopc_parser_typer_shutdown();
     return -1;
 }
 
