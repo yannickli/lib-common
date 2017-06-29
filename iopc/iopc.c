@@ -299,18 +299,18 @@ int main(int argc, char **argv)
         argv = (char **)only_stdin;
     }
     for (int i = 0; i < argc; i++) {
-        iopc_parser_initialize();
+        iopc_parser_typer_initialize();
 
         if (!(pkg = iopc_parse_file(&incpath, NULL, argv[i], NULL, true))) {
-            iopc_parser_shutdown();
+            iopc_parser_typer_shutdown();
             goto error;
         }
         if (iopc_resolve(pkg) < 0) {
-            iopc_parser_shutdown();
+            iopc_parser_typer_shutdown();
             goto error;
         }
         if (iopc_resolve_second_pass(pkg) < 0) {
-            iopc_parser_shutdown();
+            iopc_parser_typer_shutdown();
             goto error;
         }
 
@@ -318,12 +318,12 @@ int main(int argc, char **argv)
 
         tab_for_each_ptr(doit, &doits) {
             if ((*doit->cb)(pkg, doit->outpath, &deps) < 0) {
-                iopc_parser_shutdown();
+                iopc_parser_typer_shutdown();
                 goto error;
             }
         }
 
-        iopc_parser_shutdown();
+        iopc_parser_typer_shutdown();
     }
 
     if (opts.depends) {
