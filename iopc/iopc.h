@@ -1001,6 +1001,9 @@ void iopc_parser_shutdown(void);
 iopc_pkg_t *iopc_parse_file(qv_t(cstr) *includes,
                             const qm_t(iopc_env) *env, const char *file,
                             const char *data, bool is_main_pkg);
+
+void iopc_typer_initialize(void);
+void iopc_typer_shutdown(void);
 int iopc_resolve(iopc_pkg_t *pkg);
 int iopc_resolve_second_pass(iopc_pkg_t *pkg);
 void iopc_types_fold(iopc_pkg_t *pkg);
@@ -1010,6 +1013,17 @@ void iopc_get_depends(iopc_pkg_t *pkg,
                       qv_t(iopc_pkg) *t_weak_deps,
                       qv_t(iopc_pkg) *i_deps);
 
+static inline void iopc_parser_typer_initialize(void)
+{
+    iopc_parser_initialize();
+    iopc_typer_initialize();
+}
+
+static inline void iopc_parser_typer_shutdown(void)
+{
+    iopc_parser_shutdown();
+    iopc_typer_shutdown();
+}
 
 /*----- utilities -----*/
 
