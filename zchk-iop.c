@@ -3046,6 +3046,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("lr._class"), 0));
         /* error: get subfield of class */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("cls2._class.int2"), 0));
+        /* error: cannot sort on required void field */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("u"), 0));
 
         qv_wipe(&vec);
 #undef TST_SORT_VEC
@@ -3057,8 +3059,10 @@ Z_GROUP_EXPORT(iop)
         OPT_SET(a2.a, 42);
         qv_append(&vec2, a2);
         OPT_SET(a2.a, 43);
+        a2.w = true;
         qv_append(&vec2, a2);
         OPT_CLR(a2.a);
+        a2.w = false;
         a2.j = LSTR("abc");
         a2.l = &IOP_UNION(tstiop__my_union_a, ua, 222);
         qv_append(&vec2, a2);
@@ -3104,6 +3108,16 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(TST_SORT_VEC(LSTR("o.a"), 0));
         Z_ASSERT_EQ(OPT_VAL(vec2.tab[0].o->a), 42);
         Z_ASSERT_EQ(OPT_VAL(vec2.tab[1].o->a), 72);
+
+        /* sort on optional void w */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("w"), 0));
+        Z_ASSERT_EQ(OPT_VAL(vec2.tab[0].a), 43);
+        Z_ASSERT(vec2.tab[0].w);
+        Z_ASSERT(!vec2.tab[1].w);
+        Z_ASSERT(!vec2.tab[2].w);
+        Z_ASSERT(!vec2.tab[3].w);
+        Z_ASSERT(!vec2.tab[4].w);
+        Z_ASSERT(!vec2.tab[5].w);
 
         /* error: cannot sort on struct */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("o"), 0));
@@ -3521,6 +3535,12 @@ Z_GROUP_EXPORT(iop)
         second.u.len = 1;
         FILTER_AND_CHECK_LEN("u", true,   1);
         FILTER_AND_CHECK_LEN("u", false,  2);
+
+        /* Test filter on optional void. */
+        first.w  = true;
+        second.w = true;
+        FILTER_AND_CHECK_LEN("w", true,   2);
+        FILTER_AND_CHECK_LEN("w", false,  1);
 
 #undef FILTER_AND_CHECK_LEN
 

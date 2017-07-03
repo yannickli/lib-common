@@ -106,6 +106,7 @@ struct MyStructA {
     int r;
     int s;
     int t;
+    void u;
 };
 
 struct MyStructAOpt {
@@ -133,6 +134,7 @@ struct MyStructAOpt {
     int? t;
     int[] u;
     Void? v;
+    void? w;
 };
 
 struct MyStructB {
