@@ -142,7 +142,7 @@ define ext/expand/ts
 $2: $~$(3:ts=js)
 $~$3: $3
 	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
-	$$(if $$(NOCHECK),,$(var/wwwtool)tslint --project $/platform/www/modules/core/node_modules/tsconfig.json --type-check $3)
+	$$(if $$(NOCHECK),,$(var/wwwtool)tslint --project $4/node_modules/tsconfig.json --type-check $3)
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
