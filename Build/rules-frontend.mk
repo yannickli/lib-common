@@ -320,7 +320,8 @@ define rule/wwwscript
 tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(var/wwwtool)../tsc/lib/js
 
 BROWSERIFY_OPTIONS = -g browserify-shim \
-                     --debug
+                     --debug \
+                     --no-bundle-external
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
 $(1DV)www:: $2/htdocs/javascript/bundles/$3.js
