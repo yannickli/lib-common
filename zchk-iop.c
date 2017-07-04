@@ -5685,6 +5685,7 @@ Z_GROUP_EXPORT(iop)
     } Z_TEST_END
     /* }}} */
     Z_TEST(iop_enum_alias, "test iop enums aliases") { /* {{{ */
+        Z_TEST_FLAGS("redmine_52799");
         Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "A_ALIAS", -1, -1),
                     iop_enum_from_str(tstiop__my_enum_a, "A", -1, -1));
         Z_ASSERT_EQ(iop_enum_from_str(tstiop__my_enum_a, "C_ALIAS_1", -1, -1),
