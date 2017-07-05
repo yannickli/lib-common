@@ -124,7 +124,7 @@ endef
 # }}}
 # {{{ ts
 
-# ext/expand/ts <PHONY>,<TARGET>,<TS>,<MODULEPATH>
+# ext/expand/ts <PHONY>,<TARGET>,<TS>,<MODULEPATH>,<DEPS>[]
 #
 # Compile the TypeScript file into a javascript object and a declaration
 # file. Files must be generated in dependency order since the compiler
@@ -140,9 +140,9 @@ endef
 # - $~$(3:ts=js): the javascript file for the typescript module
 define ext/expand/ts
 $2: $~$(3:ts=js)
-$~$3: $3
+$~$3: $3 $5
 	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
-	$$(if $$(NOCHECK),,$(var/wwwtool)tslint --project $4/node_modules/tsconfig.json --type-check $3)
+	$$(if $$(NOCHECK),,$(var/wwwtool)tslint $3)
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
@@ -151,17 +151,9 @@ $~$(3:ts=js): $~$4/node_modules/tsconfig.json
 	touch $$@
 
 $~$(3:ts=d.ts): $~$(3:ts=js)
-
-$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
-	mkdir -p "$$(dir $$@)"
-	/bin/echo -n "$~$(3:ts=js): " > $$@+
-	NODE_PATH="$(var/wwwtool)/..:$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
-	$(MV) $$@+ $$@
-
--include $~$3.d
 endef
 
-# ext/expand/d.ts <PHONY>,<TARGET>,<D.TS>,<MODULEPATH>
+# ext/expand/d.ts <PHONY>,<TARGET>,<D.TS>,<MODULEPATH>,<DEPS>[]
 #
 # Copies the declaration file into the build directory and computes its
 # dependences.
@@ -170,30 +162,24 @@ endef
 # - $~$3: a copy of the declaration file
 #   $~$3.d: the depency file for the typescript module
 define ext/expand/d.ts
-$~$3: $3
+$~$3: $3 $5
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
+	mkdir -p "$(dir $(patsubst $~$4%,$~%,$~$3))"
+	$(FASTCP) $$< $(patsubst $~$4%,$~%,$~$3)
 $~$4/node_modules/tsconfig.json: $~$3
-
-$~$3.d: $3 $(var/toolsdir)/_get_ts_deps.js $(var/wwwtool)tsc
-	mkdir -p "$$(dir $$@)"
-	/bin/echo -n "$~$3: " > $$@+
-	NODE_PATH="$4/node_modules:$$(tmp/$1/node_path)" node $(var/toolsdir)/_get_ts_deps.js $$< $/ $~ >> $$@+
-	$(MV) $$@+ $$@
-
--include $~$3.d
 endef
 
-# ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>
+# ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<DEPS>[]
 define ext/rule/ts
 $~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc
 	$(msg/COMPILE.ts) $4
 	cp $$< $$@
-	NODE_PATH="$~$4/node_modules:$$(tmp/$1/node_path)" $(var/wwwtool)tsc -p $~$4/node_modules --baseUrl $~$4/node_modules --outDir "$~$4/node_modules"
+	$(var/wwwtool)tsc -p $~$4/node_modules --rootDir $~$4/node_modules --outDir $~$4/node_modules --declarationDir $~node_modules
 
-$$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4))))
-$$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4))))
+$$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
+$$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4,$5))))
 endef
 
 # }}}
@@ -221,6 +207,8 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var json: any; export = json;" > $$@+
 	$(MV) $$@+ $$@
+	mkdir -p "$$(dir $$(patsubst $~$4%,$~%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4%,$~%,$$@)
 $~$4/node_modules/tsconfig.json: $~$3.d.ts
 endef
 
@@ -256,6 +244,8 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var html: string; export = html;" > $$@+
 	$(MV) $$@+ $$@
+	mkdir -p "$$(dir $$(patsubst $~$4%,$~%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4%,$~%,$$@)
 $~$4/node_modules/tsconfig.json: $~$3.d.ts
 endef
 
@@ -317,13 +307,11 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/bundles/<BUNDLE>.js
 define rule/wwwscript
-tmp/$1/node_path := $(call fun/join,:,$(foreach t,$4,$~$t/node_modules/:$t/node_modules/)):$(var/wwwtool)../tsc/lib/js
-
 BROWSERIFY_OPTIONS = -g browserify-shim \
                      --debug \
                      --no-bundle-external
 
-$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2))
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
 $(1DV)www:: $2/htdocs/javascript/bundles/$3.js
 $~$2/htdocs/javascript/bundles/$3.full.js: $~$2/package.json
 $~$2/htdocs/javascript/bundles/$3.full.js: _FLAGS=$($(1DV)$3_FLAGS)
@@ -331,15 +319,12 @@ $~$2/htdocs/javascript/bundles/$3.full.js: _FILES=$$(foreach t,$$(filter %.js,$$
 $~$2/htdocs/javascript/bundles/$3.full.js: $(var/wwwtool)browserify $(var/wwwtool)exorcist
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript/bundles
-	NODE_PATH="$$(tmp/$1/node_path)" $(var/wwwtool)browserify \
-		$$(_FLAGS) \
-		$$(BROWSERIFY_OPTIONS) \
-		$$(_FILES) \
-	| $(var/wwwtool)exorcist $$@.map > $$@
+	$(var/wwwtool)browserify $$(_FLAGS) $$(BROWSERIFY_OPTIONS) $$(_FILES) -o $$@.combined.js
+	$(var/wwwtool)exorcist $$@.map < $$@.combined.js > $$@
 
-# change browserify starting function by our own function
+	# change browserify starting function by our own function
 	sed $(if $(filter $(OS),darwin),-i '',-i) 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
-# build list of all files included in bundle (needed for r.js)
+	# build list of all files included in bundle (needed for r.js)
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
@@ -348,7 +333,6 @@ $~$2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.full.js 
 	$(if $(NOCOMPRESS),$(FASTCP) $$< $$@,cd $/$~$2/htdocs/javascript/bundles && $(var/wwwtool)uglifyjs --source-map $3.js.map --compress warnings=false --mangle -b beautify=false,quote-keys=true -o $3.js $3.full.js)
 	$(if $(NOCOMPRESS),-$(FASTCP) $$<.map $$@.map)
 
-$2/htdocs/javascript/bundles/$3.js: $(foreach t,$4,$(foreach s,$($(t:%/modules/$(notdir $t)=%)/$(notdir $t)_WWWSCRIPTS),$(dir $s)modules/$(notdir $t)/htdocs/javascript/bundles/$(notdir $s).js))
 $2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)sorcery
 $2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.js
 	mkdir -p $2/htdocs/javascript/bundles
