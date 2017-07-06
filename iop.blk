@@ -5535,9 +5535,9 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     }
 
     /* Check non-required -> required:
-     * forbidden iff it isn't an optional struct. */
+     * forbidden iff it isn't an optional struct or void. */
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
-    &&  f2->repeat == IOP_R_REQUIRED
+    &&  f2->repeat == IOP_R_REQUIRED && f2->type != IOP_T_VOID
     &&  (f2->type != IOP_T_STRUCT
          || !iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
     {

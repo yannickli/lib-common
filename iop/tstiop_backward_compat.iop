@@ -120,16 +120,17 @@ struct FieldRepeated {
     string b;
 };
 
-/* Check transition from repeated to unrepeated void. */
+/* Field 'b' is required in BasicStruct but is optional here. */
+struct FieldOptional {
+   bool? a;
+   string b;
+};
+
+/* Check transition from repeated to unrepeated void and optional to required
+ * void. */
 struct FieldVoid {
     void a;
     string b;
-};
-
-/* Field 'b' is required in BasicStruct but is optional here. */
-struct FieldOptional {
-   bool a;
-   string? b;
 };
 
 struct NumberStruct {

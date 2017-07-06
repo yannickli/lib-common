@@ -6357,15 +6357,18 @@ Z_GROUP_EXPORT(iop)
             tstiop_backward_compat__field_optional__t field_optional;
 
             iop_init(tstiop_backward_compat__field_optional, &field_optional);
-            field_optional.a = 12;
+            field_optional.b = LSTR("plop");
 
             /* Required -> optional. */
             T_OK_ALL(basic_struct, &basic_struct, field_optional);
 
             /* Optional -> required. */
             T_KO_ALL(field_optional, &field_optional, basic_struct,
-                     "field `b`:"
+                     "field `a`:"
                      INDENT_LVL1 "is required and was not before");
+
+            /* Optional -> required void. */
+            T_OK_ALL(field_optional, &field_optional, field_void);
 
             /* Optional -> required, optional structure */
             {
