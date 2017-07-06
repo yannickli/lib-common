@@ -23,6 +23,8 @@ $(var/wwwtool)r.js: _npm_tools
 $(var/wwwtool)browserify: _npm_tools
 $(var/wwwtool)exorcist: _npm_tools
 $(var/wwwtool)sorcery: _npm_tools
+$(var/wwwtool)jshint: _npm_tools
+$(var/wwwtool)tslint: _npm_tools
 
 $/node_modules/build.lock: $/package.json
 	$(msg/npm) ""
@@ -101,7 +103,7 @@ endef
 # - $~$3: a copy of the source JS file
 define ext/expand/js
 $2: $~$3
-$~$3: $3
+$~$3: $3 $(var/wwwtool)jshint
 	$$(if $$(NOCHECK),,$(msg/CHECK.js) $3)
 	$$(if $$(NOCHECK),,$(var/wwwtool)jshint $3)
 	$(msg/COMPILE.json) $3
@@ -140,7 +142,7 @@ endef
 # - $~$(3:ts=js): the javascript file for the typescript module
 define ext/expand/ts
 $2: $~$(3:ts=js)
-$~$3: $3 $5
+$~$3: $3 $5 $(var/wwwtool)tslint
 	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
 	$$(if $$(NOCHECK),,$(var/wwwtool)tslint $3)
 	$(msg/COMPILE.json) $3
@@ -162,7 +164,9 @@ endef
 # - $~$3: a copy of the declaration file
 #   $~$3.d: the depency file for the typescript module
 define ext/expand/d.ts
-$~$3: $3 $5
+$~$3: $3 $5 $(var/wwwtool)tslint
+	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
+	$$(if $$(NOCHECK),,$(var/wwwtool)tslint $3)
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
