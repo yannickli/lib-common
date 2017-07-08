@@ -36,7 +36,8 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[]);
 
 void py_add_module_constant(PyObject *module, const char *constant_name,
                             long value);
-PyTypeObject *pylogger_get_class(void);
+PyTypeObject *pylogger_class_init(void);
+void pylogger_class_wipe(void);
 void py_add_log_constants(PyObject *module);
 
 /** Add a PyObject to a sb_t.

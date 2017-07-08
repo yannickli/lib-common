@@ -21,6 +21,9 @@
 #include "python-common.h"
 #include "core.iop.h"
 
+typedef struct pylogger_object_t pylogger_object_t;
+qh_khptr_t(pylogger, pylogger_object_t);
+
 static struct {
     struct ev_t             *blocker;
     httpc_pool_t            *m;
@@ -46,6 +49,9 @@ static struct {
     PyObject                *cb_parse_answer;
 
     PyObject                *tb_module;
+
+    qh_t(pylogger)           pyloggers;
+    bool                     pylogger_class_initialized : 1;
 
     bool                     py_el_module_registered : 1;
     bool                     py_el_types_registered : 1;
@@ -679,11 +685,17 @@ static PyObject *loop(PyObject *self, PyObject *arg)
 
 #define PY_LOG_PANIC  10
 
-typedef struct pylogger_object_t {
+struct pylogger_object_t {
     PyObject_HEAD
     PyObject *fields;
     logger_t *logger;
-} pylogger_object_t;
+};
+
+static void pylogger_wipe(pylogger_object_t **pyobj)
+{
+    logger_delete(&(*pyobj)->logger);
+    Py_DECREF((*pyobj));
+}
 
 static PyObject *pylogger_log(pylogger_object_t *self, PyObject *args)
 {
@@ -734,9 +746,9 @@ pylogger_init(pylogger_object_t *self, PyObject *args, PyObject *kw)
     lstr_t parent = LSTR_NULL;
     lstr_t name = LSTR_NULL;
     lstr_t fullname;
-    bool silent = false;
+    int silent = 0;
 
-    if (!PyArg_ParseTuple(args, "z#s#|I", &parent.s, &parent.len,
+    if (!PyArg_ParseTuple(args, "z#s#|i", &parent.s, &parent.len,
                           &name.s, &name.len, &silent)) {
         PyErr_Format(PyExc_RuntimeError,
                      "invalid arguments, expect (parent, name, [silent])");
@@ -770,13 +782,17 @@ pylogger_init(pylogger_object_t *self, PyObject *args, PyObject *kw)
     }
     self->logger = logger_new(parent_logger, name, LOG_INHERITS,
                               silent ? LOG_SILENT : 0);
+    if (_G.pylogger_class_initialized) {
+        Py_INCREF(self);
+        qh_add(pylogger, &_G.pyloggers, self);
+    }
     return 0;
 }
 
 static void
 pylogger_dealloc(pylogger_object_t *self)
 {
-    logger_delete(&self->logger);
+    qh_deep_del_key(pylogger, &_G.pyloggers, self, pylogger_wipe);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -805,9 +821,20 @@ PyTypeObject pylogger_class = {
     .tp_doc        = pylogger_doc
 };
 
-PyTypeObject *pylogger_get_class(void)
+PyTypeObject *pylogger_class_init(void)
 {
+    RETHROW_NP(PyType_Ready(&pylogger_class));
+    _G.pylogger_class_initialized = true;
+    qh_init(pylogger, &_G.pyloggers);
     return &pylogger_class;
+}
+
+void pylogger_class_wipe(void)
+{
+    if (_G.pylogger_class_initialized) {
+        _G.pylogger_class_initialized = false;
+        qh_deep_wipe(pylogger, &_G.pyloggers, pylogger_wipe);
+    }
 }
 
 /* }}} */
