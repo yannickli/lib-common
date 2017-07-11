@@ -25,6 +25,7 @@ static struct {
     const char *json_outpath;
     const char *c_outpath;
     const char *swift_outpath;
+    const char *typescript_outpath;
     const char *depends;
     const char *class_id_range;
 } opts;
@@ -62,9 +63,13 @@ static popt_t options[] = {
 
     OPT_GROUP("Swift backend options"),
     OPT_STR(0,    "swift-output-path", &opts.swift_outpath,
-            "base of the compiled hierarchy for swift files"),
+            "base of the compiled hierarchy for Swift files"),
     OPT_STR(0,    "swift-import-modules", &iopc_do_swift_g.imported_modules,
-            "comma-separated list of modules to import in swift files"),
+            "comma-separated list of modules to import in Swift files"),
+
+    OPT_GROUP("TypeScript backend options"),
+    OPT_STR(0,    "typescript-output-path", &opts.typescript_outpath,
+            "base of the compiled hierarchy for TypeScript files"),
     OPT_END(),
 };
 
@@ -168,6 +173,12 @@ static int build_doit_table(qv_t(doit) *doits)
             doit = (struct doit){
                 .cb = &iopc_do_swift,
                 .outpath = opts.swift_outpath
+            };
+        } else
+        if (lstr_ascii_iequal(lang, LSTR("typescript"))) {
+            doit = (struct doit){
+                .cb = &iopc_do_typescript,
+                .outpath = opts.typescript_outpath
             };
         } else {
             print_error("unsupported language `%*pM`", LSTR_FMT_ARG(lang));

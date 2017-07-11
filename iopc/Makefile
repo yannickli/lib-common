@@ -35,7 +35,8 @@ libiopc_SOURCES = \
     \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
-    iopc-lang-swift.c
+    iopc-lang-swift.c         \
+    iopc-lang-typescript.c
 libiopc_NOGENERATED = 1
 
 include ../Build/base.mk

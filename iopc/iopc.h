@@ -992,7 +992,9 @@ void iopc_depends_uniquify(qv_t(iopc_pkg) *deps);
 void iopc_get_depends(iopc_pkg_t *pkg,
                       qv_t(iopc_pkg) *t_deps,
                       qv_t(iopc_pkg) *t_weak_deps,
-                      qv_t(iopc_pkg) *i_deps);
+                      qv_t(iopc_pkg) *i_deps,
+                      bool include_ifaces,
+                      bool include_snmp);
 
 static inline void iopc_parser_typer_initialize(void)
 {
@@ -1074,6 +1076,7 @@ extern struct iopc_do_swift_globs {
 int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 int iopc_do_json(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 int iopc_do_swift(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
+int iopc_do_typescript(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf);
 
 /*----- IOPC DSO -----*/
 

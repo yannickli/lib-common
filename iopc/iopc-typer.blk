@@ -1511,13 +1511,22 @@ void iopc_depends_uniquify(qv_t(iopc_pkg) *deps)
 void iopc_get_depends(iopc_pkg_t *pkg,
                       qv_t(iopc_pkg) *t_deps,
                       qv_t(iopc_pkg) *t_weak_deps,
-                      qv_t(iopc_pkg) *i_deps)
+                      qv_t(iopc_pkg) *i_deps,
+                      bool include_ifaces,
+                      bool include_snmp)
 {
     tab_for_each_entry(st, &pkg->structs) {
+        if (!include_snmp && iopc_is_snmp_st(st->type)) {
+            continue;
+        }
         get_structs_t_depends(pkg, t_deps, t_weak_deps, st);
     }
 
     tab_for_each_entry(iface, &pkg->ifaces) {
+        if (!include_snmp && iopc_is_snmp_iface(iface->type)) {
+            continue;
+        }
+
         /* Check inheritance dependencies of snmpIface */
         get_ifaces_t_depends(pkg, t_deps, iface);
 
@@ -1553,8 +1562,10 @@ void iopc_get_depends(iopc_pkg_t *pkg,
             }
         }
     }
-    tab_for_each_entry(mod, &pkg->modules) {
-        get_structs_depends(pkg, i_deps, mod);
+    if (include_ifaces) {
+        tab_for_each_entry(mod, &pkg->modules) {
+            get_structs_depends(pkg, i_deps, mod);
+        }
     }
     iopc_depends_uniquify(t_deps);
     iopc_depends_uniquify(i_deps);
