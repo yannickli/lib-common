@@ -471,6 +471,7 @@ class FirstDiffC2 : 2 : FirstDiffC0 {
 
 @ctype(z_first_diff_st__t)
 struct FirstDiffSt {
+    bool b;
     int i;
     string s;
     int? optI;
