@@ -41,6 +41,9 @@
  * - `wipe` is the destructor, destructors are called in the reverse order
  *   of declaration.
  *
+ * The virtual functions table can also be extended in another compile unit
+ * than the one using OBJ_VTABLE* with the macros OBJ_EXT_VTABLE*.
+ *
  * Example:
  *
  * -- obj.h
@@ -68,7 +71,7 @@
  *           MY_CHILD_OBJECT_FIELDS, MY_CHILD_OBJECT_METHODS, double)
  *
  *
- * -- obj.c
+ * -- obj1.c
  *
  * static my_base_object_t *my_base_object_init(my_base_object_t *self)
  * {
@@ -98,16 +101,22 @@
  *     printf("child b: %g\n", obj_vcall(self, get_b));
  * }
  *
+ * OBJ_VTABLE(my_child_object)
+ *     my_child_object.init = my_child_object_init;
+ *     my_child_object.print = my_child_object_print;
+ * OBJ_VTABLE_END()
+ *
+ *
+ * -- obj2.c
+ *
  * static double my_child_object_get_b(my_child_object_t *self)
  * {
  *     return self->b;
  * }
  *
- * OBJ_VTABLE(my_child_object)
- *     my_child_object.init = my_child_object_init;
- *     my_child_object.print = my_child_object_print;
+ * OBJ_EXT_VTABLE(my_child_object)
  *     my_child_object.get_b = my_child_object_get_b;
- * OBJ_VTABLE_END()
+ * OBJ_EXT_VTABLE_END()
  *
  */
 
@@ -128,6 +137,7 @@
 #define OBJ_CLASS_NO_TYPEDEF_(pfx, superclass, fields, methods, make_struct, \
                               ...)                                           \
     typedef struct pfx##_class_t pfx##_class_t;                              \
+    typedef void (*pfx##_vtable_extension_f)(pfx##_class_t * nonnull);       \
                                                                              \
     struct pfx##_t {                                                         \
         make_struct(pfx, superclass, fields, ##__VA_ARGS__);                 \
@@ -140,6 +150,9 @@
     };                                                                       \
                                                                              \
     const pfx##_class_t * nonnull pfx##_class(void) __leaf;                  \
+                                                                             \
+    pfx##_vtable_extension_f nullable                                        \
+    pfx##_set_vtable_extension(pfx##_vtable_extension_f nonnull func);       \
                                                                              \
     __unused__                                                               \
     static inline const superclass##_class_t * nonnull pfx##_super(void) {   \
@@ -177,6 +190,33 @@
  * \param pfx object class prefix.
  */
 #define OBJ_VTABLE(pfx)                                                      \
+    static bool pfx##_vtable_extension_init_g;                               \
+    static pfx##_vtable_extension_f pfx##_vtable_extension_func_g;           \
+                                                                             \
+    /** Set class vtable extension function.                                 \
+     *                                                                       \
+     * This function is called by OBJ_EXT_VTABLE* to set an extension        \
+     * function for the class vtable.                                        \
+     * This function must be called before initializing the class with       \
+     * pfx##_class().                                                        \
+     *                                                                       \
+     * Returns the previous class vtable extension function or NULL if it    \
+     * hasn't been set before.                                               \
+     */                                                                      \
+    pfx##_vtable_extension_f nullable                                        \
+    pfx##_set_vtable_extension(pfx##_vtable_extension_f nonnull func)        \
+    {                                                                        \
+        pfx##_vtable_extension_f old_func = pfx##_vtable_extension_func_g;   \
+                                                                             \
+        if (unlikely(pfx##_vtable_extension_init_g)) {                       \
+            e_panic("class constructor of " #pfx " has already been called " \
+                    "while trying to set vtable extension function, check "  \
+                    "vtable extension init order");                          \
+        }                                                                    \
+        pfx##_vtable_extension_func_g = func;                                \
+        return old_func;                                                     \
+    }                                                                        \
+                                                                             \
     typedef _Atomic(pfx##_class_t *) pfx##_atomic_ptrclass_t;                \
                                                                              \
     const pfx##_class_t *pfx##_class(void) {                                 \
@@ -197,6 +237,10 @@
                 typeof(pfx.super)     cls_super;                             \
                 const char           *type_name;                             \
                 int                   type_size;                             \
+                const pfx##_vtable_extension_f vtable_extension =            \
+                    pfx##_vtable_extension_func_g;                           \
+                                                                             \
+                pfx##_vtable_extension_init_g = true;                        \
                                                                              \
                 cls_super = pfx##_super();                                   \
                 type_name = #pfx;                                            \
@@ -206,6 +250,9 @@
 
 /** End implementation of class virtual table. */
 #define OBJ_VTABLE_END()                                                     \
+                if (vtable_extension) {                                      \
+                    (*vtable_extension)(cls);                                \
+                }                                                            \
                 cls->type_name = type_name;                                  \
                 cls->type_size = type_size;                                  \
                 cls->super     = cls_super;                                  \
@@ -214,6 +261,71 @@
             spin_unlock(&lock);                                              \
         }                                                                    \
         return cls;                                                          \
+    }
+
+/** Default constructor priority for OBJ_EXT_VTABLE. */
+#define OBJ_EXT_VTABLE_DEF_PRIO  1000
+
+/** Begin implementation of class virtual table extension.
+ *
+ * This macro will create a constructor to set the vtable extension function
+ * and begin its implementation.
+ *
+ * The vtable extension function is set in a constructor with the default
+ * constructor priority. It must be set before initializing the class with
+ * pfx##_class().
+ *
+ * If you have some constructor priority conflicts, you can use
+ * OBJ_EXT_VTABLE_WITH_PRIO with a custom priority.
+ *
+ * \param pfx object class prefix.
+ */
+#define OBJ_EXT_VTABLE(pfx)                                                  \
+     OBJ_EXT_VTABLE_WITH_PRIO(pfx, OBJ_EXT_VTABLE_DEF_PRIO)
+
+/** Begin implementation class virtual table extension with a custom priority.
+ *
+ * This macro can be used if pfx##_class() is called in a constructor with a
+ * lower priority than OBJ_EXT_VTABLE_DEF_PRIO, or if you have multiple
+ * vtable extensions and the order matters.
+ *
+ * Extensions with a lower priority are called first.
+ *
+ * \param pfx  object class prefix.
+ * \param prio constructor priority.
+ */
+#define OBJ_EXT_VTABLE_WITH_PRIO(pfx, prio)                                  \
+    OBJ_EXT_VTABLE_(pfx, prio, __LINE__)
+
+#define OBJ_EXT_VTABLE_(pfx, prio, line)                                     \
+    OBJ_EXT_VTABLE__(pfx, prio, line)
+
+#define OBJ_EXT_VTABLE__(pfx, prio, line)                                    \
+    OBJ_EXT_VTABLE___(pfx ## _ ## line ## _ext_vtable, pfx, prio)
+
+#define OBJ_EXT_VTABLE___(ext_pfx, cls_pfx, prio)                            \
+    static cls_pfx##_vtable_extension_f ext_pfx##_old_func_g;                \
+    static void ext_pfx(cls_pfx##_class_t * nonnull cls);                    \
+                                                                             \
+    __attribute__((constructor(prio)))                                       \
+    static void ext_pfx##_ctor(void)                                         \
+    {                                                                        \
+        ext_pfx##_old_func_g = cls_pfx##_set_vtable_extension(&ext_pfx);     \
+    }                                                                        \
+                                                                             \
+    static void ext_pfx(cls_pfx##_class_t * nonnull _cls)                    \
+    {                                                                        \
+        cls_pfx##_class_t cls_pfx;                                           \
+        cls_pfx##_class_t *cls = &cls_pfx;                                   \
+                                                                             \
+        if (ext_pfx##_old_func_g) {                                          \
+            (*ext_pfx##_old_func_g)(_cls);                                   \
+        }                                                                    \
+        cls_pfx = *_cls;                                                     \
+
+/** End implementation of class vtable extension. */
+#define OBJ_EXT_VTABLE_END()                                                 \
+        *_cls = *cls;                                                        \
     }
 
 /** Allow to fill object VTABLE from swift.
