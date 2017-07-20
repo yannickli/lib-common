@@ -6785,6 +6785,13 @@ Z_GROUP_EXPORT(iop)
                           "field `i`: value differs (`42` vs `41`)");
 
         d2 = d1;
+        d2.b = true;
+        Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
+                                       &diff_desc));
+        Z_ASSERT_STREQUAL(diff_desc.data,
+                          "field `b`: value differs (`false` vs `true`)");
+
+        d2 = d1;
         OPT_SET(d1.opt_i, 666);
         Z_ASSERT_N(iop_first_diff_desc(&z_first_diff_st__s, &d1, &d2,
                                        &diff_desc));
