@@ -111,6 +111,7 @@ struct MyStructA {
     int r;
     int s;
     int t;
+    void u;
 };
 
 struct MyStructAOpt {
@@ -138,6 +139,7 @@ struct MyStructAOpt {
     int? t;
     int[] u;
     Void? v;
+    void? w;
 };
 
 struct MyStructB {
@@ -474,6 +476,7 @@ class FirstDiffC2 : 2 : FirstDiffC0 {
 
 @ctype(z_first_diff_st__t)
 struct FirstDiffSt {
+    bool b;
     int i;
     string s;
     int? optI;

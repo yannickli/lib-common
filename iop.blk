@@ -1595,7 +1595,7 @@ static void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
 {
     switch (type) {
       case IOP_T_BOOL:
-        sb_sets(buf, *(const bool *)v ? "true" : "false");
+        sb_adds(buf, *(const bool *)v ? "true" : "false");
         break;
 
 #define CASE_NUMBER(type, fmt, type_t)                                       \
@@ -1924,13 +1924,15 @@ GENERIC_FUNCTIONS(field_path_t, field_path);
 
 /* {{{ Get */
 
-static const void *
-iop_get_fieldp(const void *data, const field_path_t *field_path)
+static int iop_get_fieldp(const void *data, const field_path_t *field_path,
+                          const void **value)
 {
     const qv_t(field_step)  *steps = &field_path->steps;
     const iop_field_t       *fdesc = field_path->fdesc;
 
-    RETHROW_P(data);
+    if (!data) {
+        goto no_value;
+    }
 
     for (int i = 0; i < steps->len - 1; i++) {
         field_step_t *step = &steps->tab[i];
@@ -1942,11 +1944,14 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
              * (the one specified in field_path), and if not this object is
              * considered as NULL in the sort/filter. */
             if (*(const uint16_t *)data != step->union_tag) {
-                return NULL;
+                goto no_value;
             }
         } else {
             /* Pointed structure or union (optional), or classes */
-            data = RETHROW_P(*((void **)data));
+            data = *((void **)data);
+            if (!data) {
+                goto no_value;
+            }
         }
     }
 
@@ -1955,25 +1960,32 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
     if (field_path->is_typename) {
         const iop_struct_t *st = *(const void **)data;
 
-        return &st->fullname;
+        *value = &st->fullname;
+        return 0;
     }
 
     if (fdesc->repeat == IOP_R_REPEATED) {
         int len = ((iop_array_i8_t *)data)->len;
 
-        return len ? data : NULL;
+        *value = len ? data : NULL;
+        return len ? 0 : -1;
     }
 
     if (fdesc->type == IOP_T_UNION
     ||  fdesc->repeat != IOP_R_OPTIONAL || fdesc->type == IOP_T_STRUCT)
     {
-        return data;
+        *value = data;
+        return 0;
     }
 
-    if (!iop_opt_field_is_set_const(fdesc->type, data, &data) || !data) {
-        return NULL;
+    if (!iop_opt_field_is_set_const(field_path->fdesc->type, data, value)) {
+        return -1;
     }
-    return data;
+    return 0;
+
+  no_value:
+    *value = NULL;
+    return -1;
 }
 
 /* }}} */
@@ -2078,40 +2090,89 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
 /* }}} */
 /* {{{ cmp functions */
 
-static cmp_f const iop_cmp_funs[] = {
-    [IOP_T_I8]          = &cmp_i8,
-    [IOP_T_U8]          = &cmp_u8,
-    [IOP_T_I16]         = &cmp_i16,
-    [IOP_T_U16]         = &cmp_u16,
-    [IOP_T_ENUM]        = &cmp_i32,
-    [IOP_T_I32]         = &cmp_i32,
-    [IOP_T_U32]         = &cmp_u32,
-    [IOP_T_I64]         = &cmp_i64,
-    [IOP_T_U64]         = &cmp_u64,
-    [IOP_T_BOOL]        = &cmp_bool,
-    [IOP_T_DOUBLE]      = &cmp_double,
-    [IOP_T_UNION]       = &cmp_u16, /* XXX: we compare the union tag. */
-    [IOP_T_STRING]      = &cmp_lstr_iutf8,
-    [IOP_T_XML]         = &cmp_lstr_iutf8,
-    [IOP_T_DATA]        = &cmp_lstr_iutf8,
-};
-static cmp_f const iop_cmp_rev_funs[] = {
-    [IOP_T_I8]          = &cmp_rev_i8,
-    [IOP_T_U8]          = &cmp_rev_u8,
-    [IOP_T_I16]         = &cmp_rev_i16,
-    [IOP_T_U16]         = &cmp_rev_u16,
-    [IOP_T_ENUM]        = &cmp_rev_i32,
-    [IOP_T_I32]         = &cmp_rev_i32,
-    [IOP_T_U32]         = &cmp_rev_u32,
-    [IOP_T_I64]         = &cmp_rev_i64,
-    [IOP_T_U64]         = &cmp_rev_u64,
-    [IOP_T_BOOL]        = &cmp_rev_bool,
-    [IOP_T_DOUBLE]      = &cmp_rev_double,
-    [IOP_T_UNION]       = &cmp_rev_u16, /* XXX: we compare the union tag. */
-    [IOP_T_STRING]      = &cmp_rev_lstr_iutf8,
-    [IOP_T_XML]         = &cmp_rev_lstr_iutf8,
-    [IOP_T_DATA]        = &cmp_rev_lstr_iutf8,
-};
+static cmp_f iop_get_cmp_fun(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_I8:
+        return &cmp_i8;
+      case IOP_T_U8:
+        return &cmp_u8;
+      case IOP_T_I16:
+        return &cmp_i16;
+      case IOP_T_U16:
+        return &cmp_u16;
+      case IOP_T_ENUM:
+        return &cmp_i32;
+      case IOP_T_I32:
+        return &cmp_i32;
+      case IOP_T_U32:
+        return &cmp_u32;
+      case IOP_T_I64:
+        return &cmp_i64;
+      case IOP_T_U64:
+        return &cmp_u64;
+      case IOP_T_BOOL:
+        return &cmp_bool;
+      case IOP_T_DOUBLE:
+        return &cmp_double;
+      case IOP_T_UNION:
+        return &cmp_u16; /* XXX: we compare the union tag. */
+      case IOP_T_STRING:
+        return &cmp_lstr_iutf8;
+      case IOP_T_XML:
+        return &cmp_lstr_iutf8;
+      case IOP_T_DATA:
+        return &cmp_lstr_iutf8;
+      case IOP_T_VOID:
+        return NULL; /* XXX: cmp func is get but never called for void */
+
+      case IOP_T_STRUCT:
+        break;
+    }
+    e_panic("iop_type unsupported");
+}
+
+static cmp_f iop_get_cmp_rev_fun(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_I8:
+        return &cmp_rev_i8;
+      case IOP_T_U8:
+        return &cmp_rev_u8;
+      case IOP_T_I16:
+        return &cmp_rev_i16;
+      case IOP_T_U16:
+        return &cmp_rev_u16;
+      case IOP_T_ENUM:
+        return &cmp_rev_i32;
+      case IOP_T_I32:
+        return &cmp_rev_i32;
+      case IOP_T_U32:
+        return &cmp_rev_u32;
+      case IOP_T_I64:
+        return &cmp_rev_i64;
+      case IOP_T_U64:
+        return &cmp_rev_u64;
+      case IOP_T_BOOL:
+        return &cmp_rev_bool;
+      case IOP_T_DOUBLE:
+        return &cmp_rev_double;
+      case IOP_T_UNION:
+        return &cmp_rev_u16; /* XXX: we compare the union tag. */
+      case IOP_T_STRING:
+        return &cmp_rev_lstr_iutf8;
+      case IOP_T_XML:
+        return &cmp_rev_lstr_iutf8;
+      case IOP_T_DATA:
+        return &cmp_rev_lstr_iutf8;
+      case IOP_T_VOID:
+        return NULL; /* XXX: cmp func is get but never called for void */
+
+      case IOP_T_STRUCT:
+        break;
+    }
+    e_panic("iop_type unsupported");
+}
 
 /*}}}*/
 /* {{{ equality functions */
@@ -2125,23 +2186,46 @@ static int iop_string_sql_like(const void *s1, const void *s2)
                               *(const lstr_t *)s2) ? 0 : -1;
 }
 
-static cmp_f const iop_equal_funs_sql_like[] = {
-    [IOP_T_I8]          = &cmp_i8,
-    [IOP_T_U8]          = &cmp_u8,
-    [IOP_T_I16]         = &cmp_i16,
-    [IOP_T_U16]         = &cmp_u16,
-    [IOP_T_ENUM]        = &cmp_i32,
-    [IOP_T_I32]         = &cmp_i32,
-    [IOP_T_U32]         = &cmp_u32,
-    [IOP_T_I64]         = &cmp_i64,
-    [IOP_T_U64]         = &cmp_u64,
-    [IOP_T_BOOL]        = &cmp_bool,
-    [IOP_T_DOUBLE]      = &cmp_double,
-    [IOP_T_UNION]       = &cmp_u16,
-    [IOP_T_STRING]      = &iop_string_sql_like,
-    [IOP_T_XML]         = &cmp_lstr_iutf8,
-    [IOP_T_DATA]        = &cmp_lstr_iutf8,
-};
+static cmp_f iop_get_equal_fun_sql_like(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_I8:
+        return &cmp_i8;
+      case IOP_T_U8:
+        return &cmp_u8;
+      case IOP_T_I16:
+        return &cmp_i16;
+      case IOP_T_U16:
+        return &cmp_u16;
+      case IOP_T_ENUM:
+        return &cmp_i32;
+      case IOP_T_I32:
+        return &cmp_i32;
+      case IOP_T_U32:
+        return &cmp_u32;
+      case IOP_T_I64:
+        return &cmp_i64;
+      case IOP_T_U64:
+        return &cmp_u64;
+      case IOP_T_BOOL:
+        return &cmp_bool;
+      case IOP_T_DOUBLE:
+        return &cmp_double;
+      case IOP_T_UNION:
+        return &cmp_u16; /* XXX: we compare the union tag. */
+      case IOP_T_STRING:
+        return &iop_string_sql_like;
+      case IOP_T_XML:
+        return &cmp_lstr_iutf8;
+      case IOP_T_DATA:
+        return &cmp_lstr_iutf8;
+
+      case IOP_T_STRUCT:
+      case IOP_T_VOID:
+        break;
+    }
+    e_panic("iop_type unsupported");
+}
 
 /*}}}*/
 
@@ -2156,16 +2240,20 @@ qvector_t(iop_sort_p, iop_sort_priv_t);
 static int
 compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
 {
-    d1 = iop_get_fieldp(d1, &priv->fp);
-    d2 = iop_get_fieldp(d2, &priv->fp);
-    if (d1 == d2) {
+    bool d1_is_set = iop_get_fieldp(d1, &priv->fp, &d1) >= 0;
+    bool d2_is_set = iop_get_fieldp(d2, &priv->fp, &d2) >= 0;
+
+    if (!d1_is_set && !d2_is_set) {
         return 0;
     }
-    if (!d1) {
+    if (!d1_is_set) {
         return (priv->flags & IOP_SORT_NULL_FIRST) ? -1 : 1;
     }
-    if (!d2) {
+    if (!d2_is_set) {
         return (priv->flags & IOP_SORT_NULL_FIRST) ? 1 : -1;
+    }
+    if (d1 == d2) {
+        return 0;
     }
     return priv->cmp(d1, d2);
 }
@@ -2204,6 +2292,15 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
                 }
                 return -1;
             }
+            if (priv->fp.fdesc->type == IOP_T_VOID
+            &&  priv->fp.fdesc->repeat == IOP_R_REQUIRED)
+            {
+                if (err) {
+                    sb_addf(err, "cannot sort on void required field `%*pM'",
+                            LSTR_FMT_ARG(sort->field_path));
+                }
+                return -1;
+            }
             if (priv->fp.fdesc->repeat == IOP_R_REPEATED) {
                 if (err) {
                     sb_addf(err, "cannot sort on repeated field `%*pM'",
@@ -2215,9 +2312,9 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
         }
 
         if (sort->flags & IOP_SORT_REVERSE) {
-            priv->cmp = iop_cmp_rev_funs[type];
+            priv->cmp = iop_get_cmp_rev_fun(type);
         } else {
-            priv->cmp = iop_cmp_funs[type];
+            priv->cmp = iop_get_cmp_fun(type);
         }
 
         priv->flags = sort->flags;
@@ -2264,7 +2361,7 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     t_scope;
     bool is_pointer = iop_struct_is_class(st);
     field_path_t fp;
-    cmp_f equal;
+    cmp_f equal = NULL;
     byte *vec_read = vec;
     byte *vec_write = vec;
     byte *vec_start = vec;
@@ -2289,48 +2386,58 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
             return -1;
         }
         type = fp.fdesc->type;
-    } else
-    if (!fp.is_typename) {
-        if (fp.fdesc->type == IOP_T_STRUCT) {
-            if (err) {
-                sb_addf(err, "cannot filter on sub-structure `%*pM'",
-                        LSTR_FMT_ARG(field_path));
-            }
-            return -1;
-        }
-        if (fp.fdesc->repeat == IOP_R_REPEATED) {
-            if (err) {
-                sb_addf(err, "cannot filter on repeated field `%*pM'",
-                        LSTR_FMT_ARG(field_path));
-            }
-            return -1;
-        }
-        type = fp.fdesc->type;
     } else {
-        type = IOP_T_STRING;
-    }
+        if (!fp.is_typename) {
+            if (fp.fdesc->type == IOP_T_STRUCT) {
+                if (err) {
+                    sb_addf(err, "cannot filter on sub-structure `%*pM'",
+                            LSTR_FMT_ARG(field_path));
+                }
+                return -1;
+            }
+            if (fp.fdesc->type == IOP_T_VOID) {
+                if (err) {
+                    sb_addf(err, "cannot filter on void field `%*pM'",
+                            LSTR_FMT_ARG(field_path));
+                }
+                return -1;
+            }
+            if (fp.fdesc->repeat == IOP_R_REPEATED) {
+                if (err) {
+                    sb_addf(err, "cannot filter on repeated field `%*pM'",
+                            LSTR_FMT_ARG(field_path));
+                }
+                return -1;
+            }
+            type = fp.fdesc->type;
+        } else {
+            type = IOP_T_STRING;
+        }
 
-    if (flags & IOP_FILTER_SQL_LIKE) {
-        equal = iop_equal_funs_sql_like[type];
-    } else {
-        equal = iop_cmp_funs[type];
+        if (flags & IOP_FILTER_SQL_LIKE) {
+            equal = iop_get_equal_fun_sql_like(type);
+        } else {
+            equal = iop_get_cmp_fun(type);
+        }
     }
 
     for (int i = 0; i < *len; i++) {
-        const void *d;
         const void *tmp;
+        const void *d;
+        bool val_is_set;
 
         tmp = is_pointer ? *(void **)vec_read : vec_read;
-        d = iop_get_fieldp(tmp, &fp);
+        val_is_set = iop_get_fieldp(tmp, &fp, &d) >= 0;
 
         if (OPT_ISSET(is_set)) {
             assert (!values_len);
-            if (!!d == OPT_VAL(is_set)) {
+            if (val_is_set == OPT_VAL(is_set)) {
                 goto next;
             }
             goto filter_out;
         }
 
+        assert (equal);
         if (d) {
             for (int j = 0; j < values_len; j++) {
                 /* TODO: sort allowed_values and use a bisection. */
@@ -5593,9 +5700,9 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     }
 
     /* Check non-required -> required:
-     * forbidden iff it isn't an optional struct. */
+     * forbidden iff it isn't an optional struct or void. */
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
-    &&  f2->repeat == IOP_R_REQUIRED
+    &&  f2->repeat == IOP_R_REQUIRED && f2->type != IOP_T_VOID
     &&  (f2->type != IOP_T_STRUCT
          || !iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
     {
