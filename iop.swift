@@ -340,9 +340,9 @@ open class IopClass : IopStruct {
 
     public required init(_ c: UnsafeRawPointer) throws {
         try super.init(c)
-        precondition(!type(of: self).isAbstract, "cannot instantiate abstract classes")
         precondition(IopClass.descriptor(of: c) == type(of: self).descriptor,
                      "type mismatch for object: use IopClass.make(_:)")
+        precondition(!type(of: self).isAbstract, "cannot instantiate abstract classes")
     }
 
     public class func make(_ buffer: UnsafeRawPointer, using env: IopEnv = .defaultEnv) throws -> Self {

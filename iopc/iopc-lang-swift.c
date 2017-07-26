@@ -1031,6 +1031,11 @@ static void iopc_dump_union_field_importer(sb_t *buf, const iopc_field_t *field)
       case IOP_T_UNION: case IOP_T_STRUCT:
         sb_addf(buf, "                self = .%s(try ", field->name);
         iopc_dump_field_basetype(buf, field);
+        if (type_is_class) {
+            /* Force conversion into real type. */
+            sb_adds(buf, ".make");
+        }
+
         sb_adds(buf, "(data");
         if (type_is_class || field->is_ref) {
             sb_adds(buf, ".bindMemory(to: Swift.UnsafeRawPointer.self, capacity: 1).pointee");
