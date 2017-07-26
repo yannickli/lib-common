@@ -1989,8 +1989,14 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         w->chunk_length = 0;
         w->state = HTTP_PARSER_CHUNK_HDR;
     } else {
-        /* rfc 2616: §4.4: support no Content-Length followed by close */
-        w->chunk_length = clen;
+        /* rfc 2616: §4.4: support no Content-Length */
+        if (clen < 0 && req.code == HTTP_CODE_NO_CONTENT) {
+            /* due to code 204 (No Content) */
+            w->chunk_length = 0;
+        } else {
+            /* or followed by close */
+            w->chunk_length = clen;
+        }
         w->state = HTTP_PARSER_BODY;
     }
     req.hdrs     = hdrs.tab;
@@ -2795,6 +2801,18 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
     return 0;
 }
 
+static int z_reply_no_content(el_t el, int fd, short mask, data_t data)
+{
+    SB_1k(buf);
+
+    if (sb_read(&buf, fd, 1000) > 0) {
+        char reply[] = "HTTP/1.1 204 No Content\r\n\r\n";
+
+        IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
+    }
+    return 0;
+}
+
 static int z_accept(el_t el, int fd, short mask, data_t data)
 {
     int (* query_cb)(el_t, int, short, data_t) = data.ptr;
@@ -2970,6 +2988,13 @@ Z_GROUP_EXPORT(httpc) {
         Z_ASSERT(lstr_startswith(LSTR_SB_V(&zquery_sb_g),
             LSTR("GET https://localhost:443/coucou HTTP/1.1\r\n"
                  "Host: localhost\r\n")));
+        z_query_cleanup();
+    } Z_TEST_END;
+
+    Z_TEST(no_content, "test a reply with NO_CONTENT code") {
+        Z_HELPER_RUN(z_query_setup(&z_reply_no_content, 0,
+                                   LSTR("localhost"), LSTR("/")));
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_NO_CONTENT, code_g);
         z_query_cleanup();
     } Z_TEST_END;
 } Z_GROUP_END;
