@@ -108,11 +108,6 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
 #define swap(p,q)        ({ memcpy(tmp, p, v_size);      \
                             memcpy(p, q, v_size);        \
                             memcpy(q, tmp, v_size); })
-#define rotate(p,r,q)    ({ memcpy(tmp, p, v_size);      \
-                            memcpy(p, q, v_size);        \
-                            memcpy(q, r, v_size);        \
-                            memcpy(r, tmp, v_size); })
-
 #define nth(base, i)     ((void *)((uint8_t *)(base) + (i) * v_size))
 
     if (n <= 1)
@@ -187,7 +182,6 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
     }
 #undef nth
 #undef swap
-#undef rotate
 }
 
 __flatten
