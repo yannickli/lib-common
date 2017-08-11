@@ -14,6 +14,8 @@
 #include "container.h"
 #include "z.h"
 #include "sort.h"
+#include "thr.h"
+#include "datetime.h"
 
 /*{{{1 Qhash */
 
@@ -884,24 +886,35 @@ Z_GROUP_EXPORT(qhugehash)
 /*1}}}*/
 /*{{{1 Qvectors */
 
-static _Bool qv_sort_tst(void)
+static int qv_sort_tst(int nb, struct timeval * nullable execution_time)
 {
-    bool ok = true;
+    t_scope;
     qv_t(u32) tab;
+    struct timeval tv_start;
 
-#define N  128
-    qv_inita(&tab, N);
-    for (int i = 0; i < N; i++)
+    t_qv_init(&tab, nb);
+    for (int i = 0; i < nb; i++) {
         qv_append(&tab, rand());
+    }
+
+    lp_gettv(&tv_start);
+
     qv_sort(u32)(&tab, ^int (const uint32_t *v1, const uint32_t *v2) {
         return CMP(*v1, *v2);
     });
-    for (int i = 1; ok && i < tab.len; i++) {
-        ok = tab.tab[i - 1] <= tab.tab[i];
-    }
-#undef N
 
-    return ok;
+    if (execution_time) {
+        struct timeval tv_end;
+
+        lp_gettv(&tv_end);
+        *execution_time = timeval_sub(tv_end, tv_start);
+    }
+
+    for (int i = 1; i < tab.len; i++) {
+        Z_ASSERT_GT(tab.tab[i], tab.tab[i - 1]);
+    }
+
+    Z_HELPER_END;
 }
 
 static void build_sorted_uniq_vec(qv_t(u32) *vec)
@@ -1091,7 +1104,24 @@ Z_GROUP_EXPORT(qvector)
     } Z_TEST_END;
 
     Z_TEST(qv_sort, "qvector: qv_sort") {
-        Z_ASSERT(qv_sort_tst());
+        struct timeval tv_nothread, tv_thread;
+
+        /* First test withtout threading. */
+        Z_ASSERT(!MODULE_IS_LOADED(thr));
+        Z_HELPER_RUN(qv_sort_tst(128, NULL));
+        Z_HELPER_RUN(qv_sort_tst(100000, &tv_nothread));
+
+        /* Then test with threading. */
+        MODULE_REQUIRE(thr);
+        Z_HELPER_RUN(qv_sort_tst(128, NULL));
+        Z_HELPER_RUN(qv_sort_tst(100000, &tv_thread));
+        MODULE_RELEASE(thr);
+
+        /* Using threads should be faster (but this is not guaranteed, so do
+         * not assert it). */
+        if (timeval_diffmsec(&tv_nothread, &tv_thread) <= 0) {
+            e_error("qv_sort monothread was faster than qv_sort multithread");
+        }
     } Z_TEST_END;
 
     Z_TEST(qv_diff, "qvector: qv_diff") {

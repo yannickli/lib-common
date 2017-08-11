@@ -13,6 +13,7 @@
 
 #include "container-qvector.h"
 #include "sort.h"
+#include "thr.h"
 
 static void __qvector_reset(qvector_t *vec, size_t v_size, size_t threshold)
 {
@@ -99,7 +100,23 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
     return vec->tab + pos * v_size;
 }
 
-static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
+/* {{{ qv_sort */
+
+typedef struct qv_sort_thr_job_t {
+    thr_job_t job;
+
+    void *a;
+    size_t v_size;
+    size_t n;
+    qvector_cmp_b cmp;
+} qv_sort_thr_job_t;
+
+GENERIC_FUNCTIONS(qv_sort_thr_job_t, qv_sort_thr_job);
+
+static void qv_sort_thr_job(thr_job_t *job, thr_syn_t *syn);
+
+static void ____qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp,
+                        thr_syn_t *syn)
 {
     uint8_t tmp[v_size], meantmp[v_size];
     void   *mean, *i, *j;
@@ -110,8 +127,9 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
                             memcpy(q, tmp, v_size); })
 #define nth(base, i)     ((void *)((uint8_t *)(base) + (i) * v_size))
 
-    if (n <= 1)
+    if (n <= 1) {
         return;
+    }
 
     for (;;) {
         i = a;
@@ -120,8 +138,9 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
         if (cmp(i, j) > 0) {
             swap(i, j);
         }
-        if (n == 2)
+        if (n == 2) {
             return;
+        }
 
         mean = nth(i, n >> 1);
         if (cmp(i, mean) > 0) {
@@ -131,8 +150,9 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
             swap(j, mean);
         }
 
-        if (n == 3)
+        if (n == 3) {
             return;         /* in case of 3 items */
+        }
 
         memcpy(meantmp, mean, v_size);  /* cause *mean is gonna change */
         for (;;) {
@@ -177,11 +197,48 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
         }
 
         if (n1 > 1) {
-            ___qv_sort(j, v_size, n1, cmp);
+            if (syn) {
+                qv_sort_thr_job_t *job = qv_sort_thr_job_new();
+
+                job->job.run = &qv_sort_thr_job;
+                job->a = j;
+                job->v_size = v_size;
+                job->n = n1;
+                job->cmp = cmp;
+                thr_syn_schedule(syn, &job->job);
+            } else {
+                ____qv_sort(j, v_size, n1, cmp, syn);
+            }
         }
     }
 #undef nth
 #undef swap
+}
+
+static void qv_sort_thr_job(thr_job_t *job, thr_syn_t *syn)
+{
+    qv_sort_thr_job_t *sj = (qv_sort_thr_job_t *)job;
+
+    ____qv_sort(sj->a, sj->v_size, sj->n, sj->cmp, syn);
+    qv_sort_thr_job_delete(&sj);
+}
+
+static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
+{
+    /* Use parallelism of the thread jobs are available, and if the vector is
+     * large enough so that it is worth doing. */
+    if (MODULE_IS_LOADED(thr) && n > 50000) {
+        thr_syn_t syn;
+
+        thr_syn_init(&syn);
+
+        ____qv_sort(a, v_size, n, cmp, &syn);
+
+        thr_syn_wait(&syn);
+        thr_syn_wipe(&syn);
+    } else {
+        ____qv_sort(a, v_size, n, cmp, NULL);
+    }
 }
 
 __flatten
@@ -201,6 +258,8 @@ void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
 {
     ___qv_sort(a, v_size, n, cmp);
 }
+
+/* }}} */
 
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
                     qvector_t *add, qvector_t *del, qvector_t *inter,
