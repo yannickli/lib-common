@@ -3319,4 +3319,33 @@ Z_GROUP_EXPORT(iop)
                                      (void **)&c_ptr, ps_initsb(&sb), false));
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(repeated_field_removal, "repeated field removal") { /* {{{ */
+        t_scope;
+        lstr_t data;
+        pstream_t data_ps;
+        struct_with_repeated_field__t st;
+        struct_without_repeated_field__t *out = NULL;
+        lstr_t tab[] = { LSTR_IMMED("toto"), LSTR_IMMED("foo") };
+
+        Z_TEST_FLAGS("redmine_54728");
+
+        struct_with_repeated_field__init(&st);
+        st.a = 42;
+        st.b.tab = tab;
+        st.b.len = countof(tab);
+        st.c = 999;
+
+        data = t_iop_bpack_struct(&struct_with_repeated_field__s, &st);
+        Z_ASSERT_P(data.s);
+        data_ps = ps_initlstr(&data);
+        Z_ASSERT_N(iop_bunpack_ptr(t_pool(),
+                                   &struct_without_repeated_field__s,
+                                   (void **)&out, data_ps, false),
+                   "unexpected backward incompatibility for repeated field "
+                   "removal: %s", iop_get_err());
+        Z_ASSERT_EQ(st.a, out->a);
+        Z_ASSERT_EQ(st.c, out->c);
+    } Z_TEST_END;
+    /* }}} */
+
 } Z_GROUP_END
