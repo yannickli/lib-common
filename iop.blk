@@ -3193,6 +3193,20 @@ static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
       case IOP_WIRE_QUAD:
         u32 = 8;
         break;
+
+      case IOP_WIRE_REPEAT: {
+        uint32_t n;
+
+        PS_CHECK(get_uint32(ps, 4, &n));
+        PS_WANT(n >= 1);
+
+        while (n--) {
+            PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
+            wt = IOP_WIRE_FMT(__ps_getc(ps));
+            RETHROW(iop_skip_field(ps, wt));
+        }
+      } break;
+
       default:
         return -1;
     }
