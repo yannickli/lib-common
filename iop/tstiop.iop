@@ -330,6 +330,22 @@ union MyRefUnion {
     MyReferencedUnion&   u;
 };
 
+/* {{{ zchk iop.repeated_field_removal */
+
+@ctype(struct_with_repeated_field__t)
+struct StructWithRepeatedField {
+    int a;
+    string[] b;
+    int c;
+};
+
+@ctype(struct_without_repeated_field__t)
+struct StructWithoutRepeatedField {
+    int a;
+3:  int c;
+};
+
+/* }}} */
 /* Interfaces */
 
 @(test:gen5, 5)
