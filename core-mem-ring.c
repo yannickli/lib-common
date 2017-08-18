@@ -14,6 +14,7 @@
 #include "arith.h"
 #include "container-dlist.h"
 #include "thr.h"
+#include "log.h"
 
 /*
  * Ring memory allocator
@@ -399,8 +400,15 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
             assert (rp->alive);
             rp->alive = false;
 
-            e_trace(0, "keep ring-pool alive: %d frames in use",
-                    rp->frames_cnt);
+            /* XXX: the log module may have been deleted already,
+             * but we cannot depend on it. See #54184 */
+            if (MODULE_IS_LOADED(log)) {
+                e_trace(0, "keep ring-pool alive: %d frames in use",
+                        rp->frames_cnt);
+            } else {
+                printf("keep ring-pool alive: %d frames in use",
+                       rp->frames_cnt);
+            }
             spin_unlock(&rp->lock);
 
             *rpp = NULL;
