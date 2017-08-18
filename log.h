@@ -243,6 +243,8 @@ void __logger_cold(void)
     /* This function is just a marker for error cases */
 }
 
+MODULE_DECLARE(log);
+
 /* }}} */
 /* Simple logging {{{ */
 
