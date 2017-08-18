@@ -49,6 +49,8 @@ qvector_t(buffer_instance, buffer_instance_t);
 
 static log_handler_f log_stderr_raw_handler;
 
+_MODULE_ADD_DECLS(log);
+
 static struct {
     logger_t root_logger;
     e_handler_f   *e_handler;
@@ -1193,7 +1195,6 @@ static int log_shutdown(void)
 __attribute__((constructor))
 void log_module_register(void)
 {
-    static module_t *log_module = NULL;
     const char *__deps[] = { "iop" };
 
     if (log_module) {

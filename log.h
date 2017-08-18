@@ -253,6 +253,8 @@ qvector_t(spec, log_trace_spec_t);
 
 void log_parse_specs(char *p, qv_t(spec) *out);
 
+MODULE_DECLARE(log);
+
 void log_module_register(void);
 
 /* }}} */
