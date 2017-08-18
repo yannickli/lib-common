@@ -168,6 +168,14 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
     extern module_t * nullable MODULE(name);                                 \
     extern module_t * nullable * const nonnull MODULE_PTR(name)
 
+/** Add declarations of a module.
+ *
+ * Do not use this, use \ref MODULE_BEGIN.
+ */
+#define _MODULE_ADD_DECLS(name)                                              \
+    module_t *MODULE(name);                                                  \
+    module_t ** const MODULE_PTR(name) = &MODULE(name)
+
 /** Begin the definition of a module.
  *
  * This begin a section of code that can contain the description of a module.
@@ -184,8 +192,7 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  */
 #define MODULE_BEGIN(name)                                                   \
     __attr_section("intersec", "module")                                     \
-    module_t *MODULE(name);                                                  \
-    module_t ** const MODULE_PTR(name) = &MODULE(name);                      \
+    _MODULE_ADD_DECLS(name);                                                 \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
