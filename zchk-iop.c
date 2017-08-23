@@ -6182,10 +6182,11 @@ Z_GROUP_EXPORT(iop)
         T_KO_ALL(basic_struct, &basic_struct, new_required_field,
                  "new field `c` must not be required");
 
-        /* Optional/repeated/default value fields added. */
+        /* Optional/repeated/default/required void value fields added. */
         T_OK_ALL(basic_struct, &basic_struct, new_opt_field);
         T_OK_ALL(basic_struct, &basic_struct, new_repeated_field);
         T_OK_ALL(basic_struct, &basic_struct, new_defval_field);
+        T_OK_ALL(basic_struct, &basic_struct, new_required_void_field);
 
         /* Renamed field. */
         T_OK(basic_struct, &basic_struct, renamed_field, IOP_COMPAT_BIN);

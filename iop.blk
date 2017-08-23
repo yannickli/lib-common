@@ -5925,6 +5925,10 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
         return res;
     }
 
+    if (f2->type == IOP_T_VOID) {
+        return 0;
+    }
+
     if (st1->is_union || f2->repeat != IOP_R_REQUIRED) {
         return 0;
     }
