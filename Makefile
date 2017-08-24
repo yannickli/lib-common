@@ -27,6 +27,7 @@ endif
 endif
 
 _IOPJSONPATH = $ljson
+_IOPTSPATH = $liop-core
 
 bench_PROGRAMS += zgcd-bench
 dso_TOOLS_PROGRAMS = dso-compatibility-check

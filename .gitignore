@@ -2,6 +2,7 @@
 *.fc.c
 *.pyo
 *.pyc
+*.iop.ts
 
 .tags
 .syntastic*
