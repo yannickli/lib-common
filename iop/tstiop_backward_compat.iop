@@ -80,6 +80,13 @@ struct NewDefvalField {
     double c = 1.1;
 };
 
+/* A field with required void value was added compared to BasicStruct. */
+struct NewRequiredVoidField {
+    bool a;
+    string b;
+    void c;
+};
+
 /* A field was renamed compared to BasicStruct. */
 struct RenamedField {
     bool a;
