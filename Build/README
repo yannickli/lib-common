@@ -99,6 +99,11 @@ At the moment, the following set of variables are used at the directory level:
 `_IOPJSONPATH`::
         To specify the directory in which IOP-JSON files are generated.
 
+`_IOPTSPATH`::
+        To specify the directory in which IOP-TypeScript definition are
+        generated. The TypeScript generation is enabled only if the is a path
+        defined in the Makefile.
+
 `_IOPCLASSRANGE`::
         To specify a class ids range that declared IOP classes must respect.
         Format is `min-max`.
