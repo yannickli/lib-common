@@ -98,8 +98,7 @@ prereq() {
 }
 
 check_iopc() {
-    setenv "IOPVER" "-5"
-    setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index --c-unions-use-enums --c-minimal-includes"
+    setenv "IOPFLAGS" "--Wextra --c-resolve-includes"
 }
 
 check_swift() {

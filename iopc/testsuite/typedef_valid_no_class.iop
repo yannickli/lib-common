@@ -1,8 +1,5 @@
 package typedef_valid_no_class;
 
-import typedef1.*;
-import typedef2.*;
-
 /* Typedef of native types */
 
 typedef string MyString;
@@ -30,18 +27,12 @@ typedef MyNumericalString? MyNumericalStringOpt;
 struct MyStruct {
     string a;
     int b;
-    /* this will not compile in v3 because it is ambiguous (conflict between
-     * imported typedef1 and typedef2 packages) */
-    MyType              type;
     typedef1.MyType     type1;
     typedef2.MyType     type2;
-    MyTypeS             s;
     typedef1.MyTypeS    s1;
     typedef2.MyTypeS    s2;
-    MyTypeU             u;
     typedef1.MyTypeU    u1;
     typedef2.MyTypeU    u2;
-    MyTypeE             e;
     typedef1.MyTypeE    e1;
     typedef2.MyTypeE    e2;
 };

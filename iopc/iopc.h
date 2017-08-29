@@ -64,7 +64,6 @@ typedef enum iopc_tok_type_t {
     ITOK_STRING,
     ITOK_COMMENT,
     ITOK_DOX_COMMENT,
-    ITOK_VERBATIM_C, /* deprecated in v6 */
     ITOK_ATTR,
     ITOK_GEN_ATTR_NAME,
 } iopc_tok_type_t;
@@ -88,18 +87,6 @@ extern struct {
     qv_t(iopc_loc) loc_stack;
 
     bool print_info;
-    bool v2;
-    bool v3;
-    bool v4;
-    bool v5;
-    bool v6;
-
-    /** Check the presence of an @snmpIndex in each snmpTbl.
-     *
-     * This flag exists because the @snmpIndex attribute did not exist before
-     * 3c446cb6bd293 and is now mandatory.
-     */
-    bool check_snmp_table_has_index;
 
     int class_id_min;
     int class_id_max;
@@ -326,21 +313,6 @@ qvector_t(iopc_path, iopc_path_t *);
 
 typedef struct iopc_pkg_t iopc_pkg_t;
 static inline void iopc_pkg_delete(iopc_pkg_t **);
-
-typedef struct iopc_import_t {
-    iopc_loc_t loc;
-    iopc_path_t *path;
-    iopc_pkg_t *pkg;
-    char *type;
-    bool used : 1;
-} iopc_import_t;
-GENERIC_NEW_INIT(iopc_import_t, iopc_import);
-static inline void iopc_import_wipe(iopc_import_t *import) {
-    iopc_path_delete(&import->path);
-    p_delete(&import->type);
-}
-GENERIC_DELETE(iopc_import_t, iopc_import);
-qvector_t(iopc_import, iopc_import_t *);
 
 /*----- attributes -----*/
 
@@ -954,9 +926,7 @@ struct iopc_pkg_t {
     char        *file;
     char        *base;
     iopc_path_t *name;
-    sb_t         verbatim_c;
 
-    qv_t(iopc_import) imports;
     qv_t(iopc_enum)   enums;
     qv_t(iopc_struct) structs;
     qv_t(iopc_iface)  ifaces;
@@ -967,8 +937,6 @@ struct iopc_pkg_t {
 };
 static inline iopc_pkg_t *iopc_pkg_init(iopc_pkg_t *pkg) {
     p_clear(pkg, 1);
-    sb_init(&pkg->verbatim_c);
-    qv_init(&pkg->imports);
     qv_init(&pkg->enums);
     qv_init(&pkg->structs);
     qv_init(&pkg->modules);
@@ -979,13 +947,11 @@ static inline iopc_pkg_t *iopc_pkg_init(iopc_pkg_t *pkg) {
     return pkg;
 }
 static inline void iopc_pkg_wipe(iopc_pkg_t *pkg) {
-    sb_wipe(&pkg->verbatim_c);
     qh_wipe(iopc_pkg, &pkg->deps);
     qv_deep_wipe(&pkg->ifaces, iopc_iface_delete);
     qv_deep_wipe(&pkg->structs, iopc_struct_delete);
     qv_deep_wipe(&pkg->modules, iopc_struct_delete);
     qv_deep_wipe(&pkg->enums, iopc_enum_delete);
-    qv_deep_wipe(&pkg->imports, iopc_import_delete);
     qv_deep_wipe(&pkg->typedefs, iopc_field_delete);
     qv_deep_wipe(&pkg->comments, iopc_dox_wipe);
     iopc_path_delete(&pkg->name);
@@ -1084,18 +1050,7 @@ int iopc_write_file(const sb_t *buf, const char *path);
 
 extern struct iopc_do_c_globs {
     bool resolve_includes;
-    bool export_nullability;
-    bool unions_use_enums;
 
-    /** Export C symbols for access through dynamic linker / dlsym.
-     */
-    bool export_symbols;
-
-    /** Include core.h/iop-internals.h instead of iop.h.
-     */
-    bool minimal_includes;
-
-    const char *data_c_type;
     /** remove const on all objects that may contain a pointer to an
      * iop_struct_t */
     bool no_const;

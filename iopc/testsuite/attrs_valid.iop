@@ -117,10 +117,3 @@ interface AIface {
     grpc in void
          out B;
 };
-
-%C{
-static inline int a_get_a(attrs_valid__a__t *a)
-{
-    return a->a;;
-}
-%}

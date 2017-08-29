@@ -128,10 +128,6 @@ iopc_build(const char *pfxdir, bool display_pfx, const qm_t(iopc_env) *env,
     farch = t_farch_get_uncompressed(iopc_farch, "../iop-internals.h");
     sb_add_lstr(&sb, farch);
 
-    iopc_g.v2 = true;
-    iopc_g.v3 = true;
-    iopc_g.v4 = true;
-
     iopc_g.prefix_dir     = pfxdir;
     iopc_g.display_prefix = display_pfx;
 

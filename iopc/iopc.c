@@ -49,45 +49,10 @@ static popt_t options[] = {
     OPT_STR(0,  "class-id-range", &opts.class_id_range,
             "authorized class id range (min-max, included)"),
     OPT_FLAG(0,   "Wextra",       &_G.print_info,  "add extra warnings"),
-    OPT_FLAG(0,  "check-snmp-table-has-index", &_G.check_snmp_table_has_index,
-             "check each snmpTbl has an @snmpIndex"),
-    OPT_FLAG('2', "features-v2",  &_G.v2,          "use iopc v2 features"),
-    OPT_FLAG('3', "features-v3",  &_G.v3,          "use iopc v3 features"),
-    OPT_FLAG('4', "features-v4",  &_G.v4,          "use iopc v4 features"),
-
-    /* List of changes in v5:
-     * - handling of \example doxygen tag (7e8bec96f68).
-     * - trigger errors (and not warnings) when "avoid keywords" are
-     *   used (ad5bf3fda).
-     * - support @private attribute on classes (fa2055549).
-     * - remove trailing '.' in briefs (54f5dc6b).
-     * - deprecate 'import' feature (b8b9c529d).
-     */
-    OPT_FLAG('5', "features-v5",  &_G.v5,
-             "use iopc v5 features (in progress)"),
-
-    /* List of pending changes in v6:
-     * - deprecate '%C{' features (b8b9c529d).
-     * - unions use enum for iop_tag instead of int (#50352 / I87e09b3aef349)
-     * - unions cannot be empty (#50352 / I5c9bc521e3ce)
-     * - export nullability attributes on pointed types (Idfab7cb64ae16)
-     * - export symbols (Ic430d3e80e12f3)
-     * - minimal imports (Iad8aaaafb)
-     */
-    OPT_FLAG('6', "features-v6",  &_G.v6,
-             "use iopc v6 features (in progress)"),
 
     OPT_GROUP("C backend options"),
     OPT_FLAG(0,   "c-resolve-includes", &iopc_do_c_g.resolve_includes,
              "try to generate relative includes"),
-    OPT_FLAG(0,   "c-export-nullability", &iopc_do_c_g.export_nullability,
-             "add nullability attributes to exported C types"),
-    OPT_FLAG(0,   "c-unions-use-enums", &iopc_do_c_g.unions_use_enums,
-             "use an enum for selected field in unions instead of an int"),
-    OPT_FLAG(0,   "c-export-symbols", &iopc_do_c_g.export_symbols,
-             "publicly export C symbols"),
-    OPT_FLAG(0,   "c-minimal-includes", &iopc_do_c_g.minimal_includes,
-             "include core.h/iop-internals.h instead of iop.h"),
     OPT_STR(0,    "c-output-path", &opts.c_outpath,
             "base of the compiled hierarchy for C files"),
 
@@ -261,16 +226,6 @@ int main(int argc, char **argv)
 
     opts.c_outpath    = opts.c_outpath ?: opts.outpath;
     opts.json_outpath = opts.json_outpath ?: opts.outpath;
-
-    _G.v5 |= _G.v6;
-    _G.v4 |= _G.v5;
-    _G.v3 |= _G.v4;
-    _G.v2 |= _G.v3;
-
-    iopc_do_c_g.export_nullability |= _G.v6;
-    iopc_do_c_g.export_nullability |= iopc_do_c_g.include_swift_support;
-    iopc_do_c_g.export_symbols |= _G.v6;
-    iopc_do_c_g.minimal_includes |= _G.v6;
 
     _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
     _G.display_prefix = true;

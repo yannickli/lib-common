@@ -34,7 +34,7 @@ static const iop_help_t tstgen__my_enum_a__val_a__v_help = {
 };
 static const iop_enum_value_attr_t tstgen__my_enum_a__val_a__v_attrs[] = {
     {
-        .type = 0,
+        .type = 5,
         .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &tstgen__my_enum_a__val_a__v_help } },
     },
     {
@@ -56,7 +56,7 @@ static const iop_enum_value_attr_t tstgen__my_enum_a__val_c__v_attrs[] = {
 };
 static const iop_enum_value_attrs_t tstgen__my_enum_a__e_desc_values_attrs[] = {
     {
-        .flags     = 9,
+        .flags     = 40,
         .attrs_len = 2,
         .attrs     = tstgen__my_enum_a__val_a__v_attrs,
     },

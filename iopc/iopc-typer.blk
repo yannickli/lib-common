@@ -129,22 +129,6 @@ iopc_ifaces_find_n_check(iopc_pkg_t *pkg, iopc_field_t *iface)
         iface->type_pkg = t_pkg = pkg;
     }
 
-    tab_for_each_pos_safe(i, &pkg->imports) {
-        iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
-
-        if (!pkg_provides_iface(ipkg, iface->type_name, true))
-            continue;
-        if (!found) {
-            pkg->imports.tab[i]->used = found = true;
-            iface->type_pkg = t_pkg = ipkg;
-            continue;
-        }
-
-        warn_loc("interface `%s` is provided by both `%s` and `%s`",
-                 iface->loc, iface->type_name,
-                 pretty_path_dot(t_pkg->name),
-                 pretty_path_dot(ipkg->name));
-    }
     if (!found) {
         throw_loc("unable to find any pkg providing interface `%s`",
                   iface->loc, iface->type_name);
@@ -174,26 +158,6 @@ iopc_modules_find_n_check(iopc_pkg_t *pkg, iopc_extends_t *xt)
         xt->pkg = t_pkg = pkg;
     }
 
-    tab_for_each_pos_safe(i, &pkg->imports) {
-        iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
-        iopc_struct_t *st;
-
-        st = pkg_find_module(ipkg, xt->name);
-        if (!st) {
-            continue;
-        }
-        if (!xt->st) {
-            xt->st  = st;
-            xt->pkg = t_pkg = ipkg;
-            pkg->imports.tab[i]->used = true;
-            continue;
-        }
-
-        warn_loc("module `%s` is provided by both `%s` and `%s`",
-                 xt->loc, xt->name,
-                 pretty_path_dot(t_pkg->name),
-                 pretty_path_dot(ipkg->name));
-    }
     if (!xt->st) {
         throw_loc("unable to find any pkg providing module `%s`",
                   xt->loc, xt->name);
@@ -326,31 +290,6 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
     RETHROW(iopc_find_type_in_pkg(pkg, f, original_name, false, f_is_tdef,
                                   &found));
 
-    tab_for_each_pos_safe(i, &pkg->imports) {
-        iopc_pkg_t *ipkg = pkg->imports.tab[i]->pkg;
-        bool resolved = !(f->kind == IOP_T_STRUCT && !f->struct_def);
-
-        RETHROW(iopc_find_type_in_pkg(ipkg, f, original_name, true, f_is_tdef,
-                                      &found));
-        if (!found) {
-            continue;
-        } else
-        if (resolved) {
-            if (iopc_g.v3) {
-                throw_loc("type `%s` is provided by both `%s` and `%s`",
-                          f->loc, original_name,
-                          pretty_path_dot(f->found_pkg->name),
-                          pretty_path_dot(ipkg->name));
-            }
-            warn_loc("type `%s` is provided by both `%s` and `%s`",
-                     f->loc, original_name,
-                     pretty_path_dot(f->found_pkg->name),
-                     pretty_path_dot(ipkg->name));
-        } else {
-            pkg->imports.tab[i]->used = true;
-            f->type_pkg = ipkg;
-        }
-    }
     if (f->kind == IOP_T_STRUCT && !f->struct_def) {
         throw_loc("unable to find any pkg providing type `%s`",
                   f->loc, original_name);
@@ -420,10 +359,6 @@ static int iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
     ||  field->repeat == IOP_R_OPTIONAL)
     {
         iopc_pkg_t *fpkg = field->type_pkg;
-
-        if (!iopc_g.v2) {
-            return 0;
-        }
 
         /* In a normal situation we avoid to resolve this field because we
          * can have an authorized recursion. But we must know if the field
@@ -967,11 +902,6 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
                 pop_loc();
             }
             RETHROW(iopc_module_check_extends(mod, xt));
-        }
-    }
-    tab_for_each_entry(ipkg, &pkg->imports) {
-        if (!ipkg->used) {
-            warn_loc("import not used", ipkg->loc);
         }
     }
 

@@ -5,10 +5,14 @@
 #include "tstgen-tdef.iop.h"
 
 #include "pkg_a-tdef.iop.h"
+#if __has_feature(nullability)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wnullability-completeness"
+#endif
 
-extern iop_enum_t const tstgen__my_enum_a__e;
-extern iop_enum_t const * const  tstgen__my_enum_a__ep;
-IOP_ENUM(tstgen__my_enum_a);
+
+EXPORT iop_enum_t const tstgen__my_enum_a__e;
+EXPORT iop_enum_t const * const nonnull tstgen__my_enum_a__ep;
 
 typedef tstgen__my_enum_a__t my_enum_a__t;
 typedef tstgen__my_enum_a__array_t my_enum_a__array_t;
@@ -19,13 +23,11 @@ struct tstgen__my_struct_a__t {
     int32_t  i;
     int32_t  j;
     double   d1;
-    struct pkg_a__a__t *weak_ref1;
-    struct pkg_a__a__t *weak_ref2;
+    struct pkg_a__a__t *nullable weak_ref1;
+    struct pkg_a__a__t *nullable weak_ref2;
 };
-extern iop_struct_t const tstgen__my_struct_a__s;
-extern iop_struct_t const * const  tstgen__my_struct_a__sp;
-IOP_GENERIC(tstgen__my_struct_a);
-
+EXPORT iop_struct_t const tstgen__my_struct_a__s;
+EXPORT iop_struct_t const * const nonnull tstgen__my_struct_a__sp;
 typedef tstgen__my_struct_a__t my_struct_a__t;
 typedef tstgen__my_struct_a__array_t my_struct_a__array_t;
 #define my_struct_a__s  tstgen__my_struct_a__s
@@ -36,22 +38,22 @@ struct tstgen__optimized__t {
     int64_t  f2;
     int64_t  f4;
 };
-extern iop_struct_t const tstgen__optimized__s;
-extern iop_struct_t const * const  tstgen__optimized__sp;
-IOP_GENERIC(tstgen__optimized);
-
+EXPORT iop_struct_t const tstgen__optimized__s;
+EXPORT iop_struct_t const * const nonnull tstgen__optimized__sp;
 struct tstgen__my_class_a__t {
-    const iop_struct_t *__vptr;
+    const iop_struct_t *nonnull __vptr;
 };
-extern iop_struct_t const tstgen__my_class_a__s;
-extern iop_struct_t const * const  tstgen__my_class_a__sp;
-IOP_CLASS(tstgen__my_class_a);
-
+EXPORT iop_struct_t const tstgen__my_class_a__s;
+EXPORT iop_struct_t const * const nonnull tstgen__my_class_a__sp;
 #define tstgen__my_class_a__class_id  0
 
 typedef tstgen__my_class_a__t my_class_a__t;
 typedef tstgen__my_class_a__array_t my_class_a__array_t;
 #define my_class_a__s  tstgen__my_class_a__s
 #define my_class_a__class_id  0
+
+#if __has_feature(nullability)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

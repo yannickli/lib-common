@@ -315,7 +315,7 @@ iopc_dox_dump_json(const iopc_write_buf_t *wbuf,
 
           case IOPC_DOX_TYPE_BRIEF:
             brief = dox->desc;
-            if (iopc_g.v5 && brief.len > 0 && brief.s[brief.len - 1] == '.') {
+            if (brief.len > 0 && brief.s[brief.len - 1] == '.') {
                 brief.len--;
             }
             dump_key_val_lstr(wbuf, type.s, &brief);

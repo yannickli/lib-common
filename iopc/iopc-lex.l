@@ -306,7 +306,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %option noyywrap nounput noyy_top_state noinput
 %option prefix="iopc_"
 
-%x      DOX_COMMENT DOX_LINE_COMMENT DOX_PARAM COMMENT STRING CSTRING VERBATIM
+%x      DOX_COMMENT DOX_LINE_COMMENT DOX_PARAM COMMENT STRING CSTRING
 %s      ATTR
 
 ID      [a-zA-Z][a-zA-Z0-9_]*
@@ -359,30 +359,18 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           return tk;
                         }
     "/*"("*<"|"!""<"?){HS}* {
-                          if (!iopc_g.v3) {
-                              USER_REJECT;
-                          }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_COMMENT);
                         }
     "/**"{HS}+|"/**"/[^"*"] {
-                          if (!iopc_g.v3) {
-                              USER_REJECT;
-                          }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_COMMENT);
                         }
     "//"("/<"|"!""<"?)  {
-                          if (!iopc_g.v3) {
-                              USER_REJECT;
-                          }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_LINE_COMMENT);
                         }
     "///"/[^"/"]        {
-                          if (!iopc_g.v3) {
-                              USER_REJECT;
-                          }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_LINE_COMMENT);
                         }
@@ -393,16 +381,8 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           return tk;
                         }
     "//"[^\n\r]*{EOL}   {
-                          if (iopc_g.v3) {
-                              /* This rule must be skipped if we parse doxygen
-                               * comments or it will mask them */
-                              USER_REJECT;
-                          } else {
-                              iopc_token_t *tk = token_new(ITOK_COMMENT);
-                              sb_set(&tk->b, yytext, yyleng);
-                              lexdata_newline(yyextra, yyleng);
-                              return tk;
-                          }
+                          /* Skip this rule or it will mask the doxygen comments */
+                          USER_REJECT;
                         }
     "/*"                {
                           yyextra->tk = token_new(ITOK_COMMENT);
@@ -416,10 +396,6 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     c\"                 {
                           yyextra->tk = token_new(ITOK_STRING);
                           BEGIN(CSTRING);
-                        }
-    ^"%C{"              {
-                          yyextra->tk = token_new(ITOK_VERBATIM_C);
-                          BEGIN(VERBATIM);
                         }
     "-"?[0-9]*"."[0-9]+([eE][+-]?[0-9]+)? {
                           iopc_token_t *tk = token_new(ITOK_DOUBLE);
@@ -559,21 +535,6 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     <<EOF>>             { ERROR("unterminated comment"); }
     "*/"                {
                           sb_add(&yyextra->tk->b, yytext, yyleng);
-                          BEGIN(INITIAL);
-                          return yyextra->tk;
-                        }
-    .                   {
-                          sb_add(&yyextra->tk->b, yytext, yyleng);
-                        }
-}
-
-<VERBATIM>{
-    {EOL}               {
-                          sb_add(&yyextra->tk->b, yytext, yyleng);
-                          lexdata_newline(yyextra, yyleng);
-                        }
-    <<EOF>>             { ERROR("unterminated verbatim section"); }
-    ^"%}"               {
                           BEGIN(INITIAL);
                           return yyextra->tk;
                         }

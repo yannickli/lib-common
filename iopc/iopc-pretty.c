@@ -30,7 +30,6 @@ const char *t_pretty_token(iopc_tok_type_t token)
       case ITOK_STRING:        return "string";
       case ITOK_COMMENT:       return "comment";
       case ITOK_DOX_COMMENT:   return "doxygen comment";
-      case ITOK_VERBATIM_C:    return "verbatim c";
       case ITOK_ATTR:          return "attribute";
       case ITOK_GEN_ATTR_NAME: return "generic attribute name (namespace:id)";
       default:                 return "unknown token";

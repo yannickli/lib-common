@@ -99,11 +99,7 @@ static int check_name(const char *name, iopc_loc_t loc,
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
             if (strequal(name, avoid_keywords[i])) {
-                if (iopc_g.v5) {
-                    throw_loc("%s is a keyword in some languages", loc, name);
-                } else {
-                    warn_loc("%s is a keyword in some languages", loc, name);
-                }
+                throw_loc("%s is a keyword in some languages", loc, name);
             }
         }
     }
@@ -514,9 +510,7 @@ static void init_attributes(void)
 
     d = add_attr(IOPC_ATTR_PRIVATE, "private");
     d->flags |= IOPC_ATTR_F_FIELD_ALL_BUT_REQUIRED;
-    if (iopc_g.v5) {
-        d->flags |= IOPC_ATTR_F_DECL;
-    }
+    d->flags |= IOPC_ATTR_F_DECL;
     d->types |= IOPC_ATTR_T_ALL;
 
     d = add_attr(IOPC_ATTR_ALIAS, "alias");
@@ -1520,10 +1514,6 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             type = -1;
         }
 
-        if (type == IOPC_DOX_TYPE_EXAMPLE && !iopc_g.v4) {
-            type = -1;
-        }
-
         if (type >= 0) {
             dox = iopc_dox_find_type_or_create(comments, type);
             iopc_dox_append_paragraphs(comments, &dox->desc,
@@ -1792,62 +1782,6 @@ static iopc_path_t *parse_pkg_stmt(iopc_parser_t *pp)
 
   error:
     iopc_path_delete(&path);
-    return NULL;
-}
-
-static iopc_import_t *parse_import_stmt(iopc_parser_t *pp)
-{
-    iopc_import_t *import = iopc_import_new();
-    iopc_token_t *tk;
-
-    import->loc  = TK(pp, 0, goto error)->loc;
-
-    if (iopc_g.v5) {
-        error_loc("`import` feature is deprecated",
-                  TK(pp, 0, goto error)->loc);
-        goto error;
-    }
-
-    if (__eat_kw(pp, "import") < 0
-    ||  !(import->path = parse_path_aux(pp, &import->pkg)))
-    {
-        goto error;
-    }
-
-    if (!CHECK(pp, 0, '.', goto error)) {
-        error_loc("no type is specified, missing `.*` ?",
-                  TK(pp, 0, goto error)->loc);
-        goto error;
-    }
-    DROP(pp, 1);
-
-    if (CHECK(pp, 0, ITOK_IDENT, goto error)) {
-        if (!(import->type = iopc_upper_ident(pp))) {
-            goto error;
-        }
-    } else
-    if (!CHECK(pp, 0, '*', goto error)) {
-        t_scope;
-
-        tk = TK(pp, 0, goto error);
-        error_loc("%s or %s expected, but got %s instead",
-                  tk->loc, t_pretty_token('*'), t_pretty_token(ITOK_IDENT),
-                  t_pretty_token(tk->token));
-        goto error;
-    } else {
-        DROP(pp, 1);
-    }
-
-    if (__want(pp, 0, ';') < 0) {
-        goto error;
-    }
-    iopc_loc_merge(&import->loc, TK(pp, 0, goto error)->loc);
-    DROP(pp, 1);
-
-    return import;
-
-  error:
-    iopc_import_delete(&import);
     return NULL;
 }
 
@@ -2215,14 +2149,9 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         }
 
         if (!previous_static && f->is_static) {
-            if (iopc_g.v4) {
-                error_loc("all static attributes must be declared first",
-                            TK(pp, 0, goto error)->loc);
-                goto error;
-            } else {
-                warn_loc("all static attributes must be declared first",
-                         TK(pp, 0, goto error)->loc);
-            }
+            error_loc("all static attributes must be declared first",
+                      TK(pp, 0, goto error)->loc);
+            goto error;
         }
         previous_static = f->is_static;
 
@@ -2244,17 +2173,13 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         }
     }
 
-    if (iopc_g.v6 && st->type == STRUCT_TYPE_UNION
-    &&  qm_len(iopc_field, &fields) == 0)
-    {
+    if (st->type == STRUCT_TYPE_UNION && qm_len(iopc_field, &fields) == 0) {
         error_loc("a union must contain at least one field",
                   TK(pp, 0, goto error)->loc);
         goto error;
     }
 
-    if (iopc_g.check_snmp_table_has_index && iopc_is_snmp_tbl(st->type)
-    &&  check_snmp_tbl_has_index(st) < 0)
-    {
+    if (iopc_is_snmp_tbl(st->type) && check_snmp_tbl_has_index(st) < 0) {
         goto error;
     }
 
@@ -2287,19 +2212,6 @@ check_class_or_snmp_obj_id_range(iopc_parser_t *pp, int struct_id,
     return 0;
 }
 
-static int parse_check_class_snmp(iopc_parser_t *pp, bool is_class)
-{
-    if (!iopc_g.v2 && is_class) {
-        throw_loc("inheritance forbidden (use -2 parameter)",
-                  TK_N(pp, 0)->loc);
-    } else
-    if (!iopc_g.v4 && !is_class) {
-        throw_loc("use of snmp forbidden (use -4 parameter)",
-                  TK_N(pp, 0)->loc);
-    }
-    return 0;
-}
-
 static int parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
                                    bool is_main_pkg)
 {
@@ -2307,8 +2219,6 @@ static int parse_handle_class_snmp(iopc_parser_t *pp, iopc_struct_t *st,
     bool is_class = iopc_is_class(st->type);
 
     assert (is_class || iopc_is_snmp_st(st->type));
-
-    RETHROW(parse_check_class_snmp(pp, is_class));
 
     /* Parse struct id; This is optional for a struct without parent, and
      * in this case default is 0. */
@@ -3424,16 +3334,9 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     }
 
     if (attr->desc->id == IOPC_ATTR_CTYPE) {
-        if (iopc_g.v4) {
-            if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("__t"))) {
-                throw_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
-                          LSTR_FMT_ARG(attr->args.tab[0].v.s));
-            }
-        } else {
-            if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("_t"))) {
-                warn_loc("invalid ctype %*pM: missing _t suffix", attr->loc,
-                         LSTR_FMT_ARG(attr->args.tab[0].v.s));
-            }
+        if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("__t"))) {
+            throw_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
+                      LSTR_FMT_ARG(attr->args.tab[0].v.s));
         }
     }
 
@@ -3447,11 +3350,6 @@ static iopc_attr_t *parse_attr(iopc_parser_t *pp)
     int              pos;
 
     WANT_P(pp, 0, ITOK_ATTR);
-
-    if (!iopc_g.v2) {
-        throw_loc_p("attributes forbidden (use -2 parameter)",
-                    TK_P(pp, 0)->loc);
-    }
 
     attr = iopc_attr_new();
     attr->loc = TK(pp, 0, goto error)->loc;
@@ -3578,29 +3476,10 @@ static iopc_pkg_t *parse_package(iopc_parser_t *pp, char *file,
         }
     }
 
-    while (CHECK_KW(pp, 0, "import", goto error)) {
-        iopc_import_t *import = parse_import_stmt(pp);
-
-        if (!import) {
-            goto error;
-        }
-        qv_append(&pkg->imports, import);
-    }
-
     while (!CHECK(pp, 0, ITOK_EOF, goto error)) {
         const char *id;
         bool is_abstract = false;
         bool is_local = false;
-
-        if (CHECK(pp, 0, ITOK_VERBATIM_C, goto error)) {
-            if (iopc_g.v6) {
-                error_loc("verbatim C feature deprecated",
-                          TK(pp, 0, goto error)->loc);
-                goto error;
-            }
-            sb_addsb(&pkg->verbatim_c, &TK(pp, 0, goto error)->b);
-            DROP(pp, 1);
-        }
 
         if (check_dox_and_attrs(pp, &chunks, &attrs) < 0) {
             goto error;
