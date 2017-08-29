@@ -98,7 +98,7 @@ prereq() {
 }
 
 check_iopc() {
-    setenv "IOPFLAGS" "--Wextra --c-resolve-includes"
+    setenv "IOPFLAGS" "--Wextra --c-resolve-includes --typescript-enable-backbone"
 }
 
 check_swift() {

@@ -13,6 +13,27 @@
 
 #include "iopc.h"
 
+struct iopc_do_typescript_globs iopc_do_typescript_g;
+#define _G  iopc_do_typescript_g
+
+static const char *reserved_model_names_g[] = {
+    /* event methods */
+    "on", "off", "trigger", "once", "listenTo", "stopListening",
+    "listenToOnce",
+
+    /* model methods */
+    "get", "set", "escape", "has", "unset", "clear", "toJSON", "sync",
+    "fetch", "save", "destroy", "validate", "isValid", "url", "parse",
+    "clone", "isNew", "hasChanged", "previous",
+
+    /* out custom methods */
+    "getLastAttr", "equal", "icQuery",
+
+    /* underscore methods */
+    "keys", "values", "pairs", "invert", "pick", "omit", "chain",
+    "isEmpty"
+};
+
 static qv_t(str) pp_g;
 
 #define RO_WARN \
@@ -87,6 +108,77 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
 
     iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps, false, false);
 
+    if (_G.enable_iop_backbone) {
+        bool import_struct = false;
+        bool import_base_class = false;
+        bool import_sub_class = false;
+        bool import_union = false;
+
+        tab_for_each_entry(st, &pkg->structs) {
+            switch (st->type) {
+              case STRUCT_TYPE_STRUCT:
+                import_struct = true;
+                break;
+              case STRUCT_TYPE_CLASS:
+                if (!st->extends.len) {
+                    import_base_class = true;
+                } else {
+                    import_sub_class = true;
+                }
+                break;
+              case STRUCT_TYPE_UNION:
+                import_union = true;
+                break;
+              default:
+                break;
+            }
+        }
+        tab_for_each_entry(iface, &pkg->ifaces) {
+            if (iface->type == IFACE_TYPE_IFACE) {
+                tab_for_each_entry(rpc, &iface->funs) {
+                    if ((rpc->arg && rpc->arg_is_anonymous)
+                    ||  (rpc->res && rpc->res_is_anonymous)
+                    ||  (rpc->exn && rpc->exn_is_anonymous))
+                    {
+                        import_struct = true;
+                    }
+                }
+            }
+        }
+        if (import_struct || import_base_class || import_union) {
+            sb_adds(buf, "import { ");
+            if (import_struct) {
+                sb_adds(buf, "StructModel");
+            }
+            if (import_base_class) {
+                if (import_struct) {
+                    sb_adds(buf, ", ");
+                }
+                sb_adds(buf, "ClassModel");
+            }
+            if (import_union) {
+                if (import_struct || import_base_class) {
+                    sb_adds(buf, ", ");
+                }
+                sb_adds(buf, "UnionModel");
+            }
+            sb_adds(buf, " } from 'iop/backbone/model';\n");
+        }
+        if (import_struct || import_base_class || import_sub_class || import_union) {
+            sb_adds(buf, "import { IopCollection } from 'iop/backbone/collection';\n");
+        }
+
+        if (pkg->enums.len) {
+            sb_adds(buf, "import { Enumeration } from 'iop/enumeration';\n");
+        }
+
+        sb_adds(buf, "import iop = require('iop/backbone');\n");
+        sb_addf(buf, "import JSON = require('json/%s.iop.json');\n",
+                pp_path(pkg->name));
+
+        sb_addf(buf, "iop.load(JSON);\n\n");
+    }
+
     tab_for_each_entry(dep, &t_deps) {
         iopc_dump_import(buf, dep, &imported);
     }
@@ -158,6 +250,13 @@ static void iopc_dump_enum(sb_t *buf, const char *indent,
         sb_addf(buf, "%sexport type %s = %s_Str;\n",
                 indent, en->name, en->name);
     }
+
+    if (_G.enable_iop_backbone) {
+        sb_addf(buf, "%sexport const %s_Model: Enumeration<%s_Str, %s_Int> "
+                "= iop.enumeration<%s_Str, %s_Int>('%s.%s');\n",
+                indent, en->name, en->name, en->name,  en->name, en->name,
+                pp_dot(pkg->name), en->name);
+    }
 }
 
 static void iopc_dump_enums(sb_t *buf, const iopc_pkg_t *pkg)
@@ -168,7 +267,8 @@ static void iopc_dump_enums(sb_t *buf, const iopc_pkg_t *pkg)
 }
 
 static void iopc_dump_field_basetype(sb_t *buf, const iopc_pkg_t *pkg,
-                                     const iopc_field_t *field)
+                                     const iopc_field_t *field,
+                                     const char * nullable suffix)
 {
     switch (field->kind) {
       case IOP_T_I8: sb_adds(buf, "number"); break;
@@ -191,6 +291,9 @@ static void iopc_dump_field_basetype(sb_t *buf, const iopc_pkg_t *pkg,
       case IOP_T_STRUCT:
         iopc_dump_package_member(buf, pkg, field->type_pkg, field->type_path,
                                  field->type_name);
+        if (suffix) {
+            sb_adds(buf, suffix);
+        } else
         if (iopc_is_class(field->struct_def->type)) {
             sb_adds(buf, "_If");
         }
@@ -199,44 +302,99 @@ static void iopc_dump_field_basetype(sb_t *buf, const iopc_pkg_t *pkg,
       case IOP_T_UNION: case IOP_T_ENUM:
         iopc_dump_package_member(buf, pkg, field->type_pkg, field->type_path,
                                  field->type_name);
+        if (field->kind == IOP_T_UNION && suffix) {
+            sb_adds(buf, suffix);
+        } else
+        if (suffix) {
+            sb_adds(buf, "_Str");
+        }
         break;
     }
 }
 
+enum {
+    OBJECT_FIELD = 1 << 0,
+    DEFVAL_AS_OPT = 1 << 1,
+    USE_MODEL = 1 << 2,
+    USE_PARAM = 1 << 3
+};
+
 static void iopc_dump_field_type(sb_t *buf, const iopc_pkg_t *pkg,
                                  const iopc_field_t *field,
-                                 bool defval_as_opt)
+                                 unsigned flags)
 {
+    const char *suffix = (flags & USE_PARAM) ? "_ModelParam" :
+                         (flags & USE_MODEL) ? "_Model" : NULL;
+
+    if (field->kind != IOP_T_STRUCT && field->kind != IOP_T_UNION) {
+        flags &= ~USE_MODEL;
+    }
     switch (field->repeat) {
       case IOP_R_REPEATED:
-        sb_adds(buf, ": Array<");
+        if (!(flags & USE_MODEL)) {
+            sb_adds(buf, "Array<");
+        } else {
+            suffix = "_Collection";
+        }
         break;
 
       default:
-        sb_adds(buf, ": ");
         break;
     }
 
-    iopc_dump_field_basetype(buf, pkg, field);
+    iopc_dump_field_basetype(buf, pkg, field, suffix);
 
     switch (field->repeat) {
       case IOP_R_REPEATED:
-        sb_addc(buf, '>');
+        if (!(flags & USE_MODEL)) {
+            if ((flags & USE_PARAM)) {
+                sb_adds(buf, " | ");
+                iopc_dump_field_basetype(buf, pkg, field, "_Model");
+            }
+            sb_addc(buf, '>');
+        }
         break;
 
       case IOP_R_DEFVAL:
-        if (!defval_as_opt) {
+        if (!(flags & DEFVAL_AS_OPT)) {
             break;
         }
         /* FALLTHROUGH */
 
       case IOP_R_OPTIONAL:
-        sb_adds(buf, " | undefined");
+        if (!(flags & OBJECT_FIELD)) {
+            sb_adds(buf, " | undefined");
+        }
         break;
 
       default:
         break;
     }
+}
+
+static void iopc_dump_field(sb_t *buf, const iopc_pkg_t *pkg,
+                            const iopc_field_t *field,
+                            unsigned flags)
+{
+    sb_adds(buf, field->name);
+    if (flags & OBJECT_FIELD) {
+        switch (field->repeat) {
+          case IOP_R_DEFVAL:
+            if (!(flags & DEFVAL_AS_OPT)) {
+                break;
+            }
+            /* FALLTHROUGH */
+
+          case IOP_R_OPTIONAL:
+            sb_addc(buf, '?');
+            break;
+
+          default:
+            break;
+        }
+    }
+    sb_adds(buf, ": ");
+    iopc_dump_field_type(buf, pkg, field, flags);
 }
 
 static void iopc_dump_struct(sb_t *buf, const char *indent,
@@ -267,8 +425,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     sb_adds(buf, " {\n");
 
     tab_for_each_entry(field, &st->fields) {
-        sb_addf(buf, "%s    %s", indent, field->name);
-        iopc_dump_field_type(buf, pkg, field, false);
+        sb_addf(buf, "%s    ", indent);
+        iopc_dump_field(buf, pkg, field, OBJECT_FIELD);
         sb_adds(buf, ";\n");
     }
 
@@ -277,6 +435,90 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     if (iopc_is_class(st->type)) {
         sb_addf(buf, "%sexport type %s = { _class: '%s.%s' } & %s_If;\n",
                 indent, st_name, pp_dot(pkg->name), st_name, st_name);
+    }
+
+    if (_G.enable_iop_backbone) {
+        if (iopc_is_class(st->type)) {
+            sb_addf(buf, "%sexport interface %s_ModelParam", indent, st_name);
+
+            if (st->extends.len) {
+                const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
+                const iopc_struct_t *parent = st->extends.tab[0]->st;
+
+                sb_adds(buf, " extends ");
+                iopc_dump_package_member(buf, pkg, parent_pkg, parent_pkg->name,
+                                         parent->name);
+                sb_adds(buf, "_ModelParam");
+            }
+        } else {
+            sb_addf(buf, "%sexport interface %s_ModelParam", indent, st_name);
+        }
+        sb_adds(buf, " {\n");
+        tab_for_each_entry(field, &st->fields) {
+            sb_addf(buf, "%s    ", indent);
+            iopc_dump_field(buf, pkg, field,
+                            OBJECT_FIELD | DEFVAL_AS_OPT | USE_PARAM);
+            if (field->kind == IOP_T_UNION || field->kind == IOP_T_STRUCT) {
+                sb_adds(buf, " | ");
+                iopc_dump_field_type(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+            }
+            sb_adds(buf, ";\n");
+        }
+        sb_addf(buf, "%s}\n", indent);
+
+        sb_addf(buf, "%sexport class %s_Model", indent, st_name);
+        if (iopc_is_class(st->type)) {
+            sb_addf(buf, "<Param extends %s_ModelParam = %s_ModelParam>",
+                    st_name, st_name);
+        }
+        sb_adds(buf, " extends ");
+
+        if (iopc_is_class(st->type)) {
+            if (st->extends.len) {
+                const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
+                const iopc_struct_t *parent = st->extends.tab[0]->st;
+
+                iopc_dump_package_member(buf, pkg, parent_pkg, parent_pkg->name,
+                                         parent->name);
+                sb_adds(buf, "_Model<Param>");
+            } else {
+                sb_adds(buf, "ClassModel<Param>");
+            }
+        } else {
+            sb_addf(buf, "StructModel<%s_ModelParam>", st_name);
+        }
+        sb_adds(buf, " {\n");
+
+        tab_for_each_entry(field, &st->fields) {
+            bool is_reserved = false;
+
+            carray_for_each_entry(name, reserved_model_names_g) {
+                is_reserved = strequal(field->name, name);
+                if (is_reserved) {
+                    break;
+                }
+            }
+
+            if (is_reserved) {
+                continue;
+            }
+
+            sb_addf(buf, "%s    public ", indent);
+            iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+            sb_adds(buf, ";\n");
+        }
+
+        sb_addf(buf, "%s};\n", indent);
+        sb_addf(buf, "%siop.backbone.registerModel(%s_Model, '%s%s%s.%s');\n",
+                indent, st_name, pp_dot(pkg->name),
+                st->iface ? "." : "", st->iface ? st->iface->name : "",
+                st_name);
+        sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
+                indent, st_name, st_name);
+        sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s%s%s.%s');\n",
+                indent, st_name, pp_dot(pkg->name),
+                st->iface ? "." : "", st->iface ? st->iface->name : "",
+                st_name);
     }
 }
 
@@ -300,8 +542,8 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
         if (!first) {
             sb_addf(buf, "\n%s    | ", indent);
         }
-        sb_addf(buf, "{ %s", field->name);
-        iopc_dump_field_type(buf, pkg, field, false);
+        sb_adds(buf, "{ ");
+        iopc_dump_field(buf, pkg, field, OBJECT_FIELD);
         sb_adds(buf, " }");
         first = false;
     }
@@ -313,8 +555,8 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
         if (!first) {
             sb_addf(buf, "\n%s    | ", indent);
         }
-        sb_addf(buf, "{ tag: '%s', value", field->name);
-        iopc_dump_field_type(buf, pkg, field, false);
+        sb_addf(buf, "{ kind: '%s', value: ", field->name);
+        iopc_dump_field_type(buf, pkg, field, OBJECT_FIELD);
         sb_adds(buf, " }");
         first = false;
     }
@@ -327,6 +569,52 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
     sb_shrink(buf, 3);
     sb_adds(buf, ";\n");
 
+
+    if (_G.enable_iop_backbone) {
+        first = true;
+        sb_addf(buf, "%sexport type %s_ModelPairs = ", indent, st_name);
+        tab_for_each_entry(field, &st->fields) {
+            if (!first) {
+                sb_addf(buf, "\n%s    | ", indent);
+            }
+            sb_addf(buf, "{ kind: '%s', value: ", field->name);
+            iopc_dump_field_type(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+            sb_adds(buf, " }");
+            first = false;
+        }
+        sb_adds(buf, ";\n");
+
+        first = true;
+        sb_addf(buf, "%sexport type %s_ModelParam = ", indent, st_name);
+        tab_for_each_entry(field, &st->fields) {
+            if (!first) {
+                sb_addf(buf, "\n%s    | ", indent);
+            }
+            sb_adds(buf, "{ ");
+            iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_PARAM);
+            sb_adds(buf, " }");
+
+            if (field->kind == IOP_T_UNION || field->kind == IOP_T_STRUCT) {
+                sb_addf(buf, "\n%s    | { ", indent);
+                iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+                sb_adds(buf, " }");
+            }
+
+            first = false;
+        }
+        sb_adds(buf, ";\n");
+
+        sb_addf(buf, "%sexport class %s_Model extends UnionModel<%s_Keys, %s_ModelPairs, %s_ModelParam> {\n",
+                indent, st_name, st_name, st_name, st_name);
+
+        sb_addf(buf, "%s};\n", indent);
+        sb_addf(buf, "%siop.backbone.registerModel(%s_Model, '%s.%s');\n",
+                indent, st_name, pp_dot(pkg->name), st_name);
+        sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
+                indent, st_name, st_name);
+        sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s.%s');\n",
+                indent, st_name, pp_dot(pkg->name), st_name);
+    }
 }
 
 static void iopc_dump_structs(sb_t *buf, iopc_pkg_t *pkg)
@@ -361,7 +649,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                              t_fmt("%sArgs", rpc->name));
         } else {
             sb_addf(buf, "        export type %sArgs = ", rpc->name);
-            iopc_dump_field_basetype(buf, pkg, rpc->farg);
+            iopc_dump_field_basetype(buf, pkg, rpc->farg, NULL);
             sb_adds(buf, ";\n");
         }
     } else {
@@ -374,7 +662,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                              t_fmt("%sRes", rpc->name));
         } else {
             sb_addf(buf, "        export type %sRes = ", rpc->name);
-            iopc_dump_field_basetype(buf, pkg, rpc->fres);
+            iopc_dump_field_basetype(buf, pkg, rpc->fres, NULL);
             sb_adds(buf, ";\n");
         }
     } else {
@@ -387,7 +675,7 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                              t_fmt("%sExn", rpc->name));
         } else {
             sb_addf(buf, "        export type %sExn = ", rpc->name);
-            iopc_dump_field_basetype(buf, pkg, rpc->fexn);
+            iopc_dump_field_basetype(buf, pkg, rpc->fexn, NULL);
             sb_adds(buf, ";\n");
         }
     } else {
@@ -403,13 +691,12 @@ static void iopc_dump_rpc(sb_t *buf, const iopc_pkg_t *pkg,
                 if (!first) {
                     sb_adds(buf, ", ");
                 }
-                sb_adds(buf, field->name);
-                iopc_dump_field_type(buf, pkg, field, true);
+                iopc_dump_field(buf, pkg, field, DEFVAL_AS_OPT);
                 first = false;
             }
         } else {
             sb_adds(buf, "arg: ");
-            iopc_dump_field_basetype(buf, pkg, rpc->farg);
+            iopc_dump_field_basetype(buf, pkg, rpc->farg, NULL);
         }
     }
     sb_adds(buf, ") => ");
