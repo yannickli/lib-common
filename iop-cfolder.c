@@ -394,7 +394,7 @@ iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res, bool *is_signed)
             return CF_ERR(INVALID, "can't reduce completly the stack");
     }
 
-    cf_stack_pop(&folder->stack, &elem);
+    RETHROW(cf_stack_pop(&folder->stack, &elem));
     if (elem.type != CF_ELEM_NUMBER)
         return CF_ERR(INVALID, "invalid stack content");
 
