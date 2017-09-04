@@ -2366,7 +2366,6 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     byte *vec_write = vec;
     byte *vec_start = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
-    iop_type_t type;
 
     field_path_init(&fp);
     t_qv_init(&fp.steps, 16);
@@ -2385,8 +2384,9 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
             }
             return -1;
         }
-        type = fp.fdesc->type;
     } else {
+        iop_type_t type;
+
         if (!fp.is_typename) {
             if (fp.fdesc->type == IOP_T_STRUCT) {
                 if (err) {
