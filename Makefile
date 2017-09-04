@@ -107,7 +107,6 @@ libcommon_SOURCES = \
 	hash-des.c \
 	hash-hash.c \
 	hash-md2.c \
-	hash-md4.c \
 	hash-md5.c \
 	hash-padlock.c \
 	hash-sha1.c \

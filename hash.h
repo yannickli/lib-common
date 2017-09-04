@@ -54,7 +54,6 @@
 #include "hash-arc4.h"
 #include "hash-des.h"
 #include "hash-md2.h"
-#include "hash-md4.h"
 #include "hash-md5.h"
 #include "hash-padlock.h"
 #include "hash-sha1.h"

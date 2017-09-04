@@ -62,9 +62,6 @@ ATTRS static inline void F(iop_hash32)(HASH_ARGS(4))       { HASH(hash32); }
 ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
 ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
 
-ATTRS static inline void F(iop_hash_md4)(HASH_ARGS(16))    { HASH(md4); }
-ATTRS static inline void F(iop_hmac_md4)(HMAC_ARGS(16))    { HMAC(md4); }
-
 ATTRS static inline void F(iop_hash_md5)(HASH_ARGS(16))    { HASH(md5); }
 ATTRS static inline void F(iop_hmac_md5)(HMAC_ARGS(16))    { HMAC(md5); }
 
