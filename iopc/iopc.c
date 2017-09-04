@@ -167,8 +167,8 @@ static int build_doit_table(qv_t(doit) *doits)
 {
     qv_t(lstr) langs;
     ctype_desc_t sep;
-    bool has_swift;
-    bool has_c;
+    bool has_swift = false;
+    bool has_c = false;
 
     /* default languages */
     if (!opts.lang) {
