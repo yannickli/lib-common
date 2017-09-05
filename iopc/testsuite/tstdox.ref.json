@@ -8,7 +8,7 @@
 			"type": "enum",
 			"help": {
 				"brief": "comment for MyEnumA",
-				"details": "details for MyEnumA\n\\word not a recognized keyword",
+				"details": "details for MyEnumA \\word not a recognized keyword",
 				"warning": "warn for MyEnumA"
 			},
 			"values": {
@@ -227,6 +227,22 @@
 				},
 				"j": {
 					"type": "int"
+				}
+			}
+		},
+		{
+			"name": "SortField",
+			"fullName": "tstdox.SortField",
+			"type": "struct",
+			"help": {
+				"brief": "Specify a sorting condition on a field"
+			},
+			"fields": {
+				"pos": {
+					"type": "uint",
+					"help": {
+						"brief": "Position of the field to use in the \\ref Extract::fields"
+					}
 				}
 			}
 		},
