@@ -573,6 +573,11 @@ static void init_attributes(void)
     d->types |= IOPC_ATTR_T_STRUCT;
     d->types |= IOPC_ATTR_T_UNION;
     d->types |= IOPC_ATTR_T_ENUM;
+
+    d = add_attr(IOPC_ATTR_TS_NO_COLL, "typescriptNoCollection");
+    d->flags |= IOPC_ATTR_F_DECL;
+    d->types |= IOPC_ATTR_T_STRUCT;
+    d->types |= IOPC_ATTR_T_UNION;
 #undef ADD_ATTR_ARG
 }
 

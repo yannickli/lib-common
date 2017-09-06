@@ -94,6 +94,16 @@ static void iopc_dump_import(sb_t *buf, const iopc_pkg_t *dep,
             pp_under(dep->name), pp_path(dep->name));
 }
 
+static bool iopc_should_dump_coll(const iopc_struct_t *st)
+{
+    tab_for_each_entry(attr, &st->attrs) {
+        if (attr->desc->id == IOPC_ATTR_TS_NO_COLL) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
 {
     qh_t(cstr) imported;
@@ -111,23 +121,30 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
     if (_G.enable_iop_backbone) {
         bool import_struct = false;
         bool import_base_class = false;
-        bool import_sub_class = false;
         bool import_union = false;
+        bool import_coll = false;
 
         tab_for_each_entry(st, &pkg->structs) {
             switch (st->type) {
               case STRUCT_TYPE_STRUCT:
                 import_struct = true;
+                if (iopc_should_dump_coll(st)) {
+                    import_coll = true;
+                }
                 break;
               case STRUCT_TYPE_CLASS:
                 if (!st->extends.len) {
                     import_base_class = true;
-                } else {
-                    import_sub_class = true;
+                    if (iopc_should_dump_coll(st)) {
+                        import_coll = true;
+                    }
                 }
                 break;
               case STRUCT_TYPE_UNION:
                 import_union = true;
+                if (iopc_should_dump_coll(st)) {
+                    import_coll = true;
+                }
                 break;
               default:
                 break;
@@ -141,6 +158,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
                     ||  (rpc->exn && rpc->exn_is_anonymous))
                     {
                         import_struct = true;
+                        import_coll = true;
                     }
                 }
             }
@@ -164,7 +182,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
             }
             sb_adds(buf, " } from 'iop/backbone/model';\n");
         }
-        if (import_struct || import_base_class || import_sub_class || import_union) {
+        if (import_coll) {
             sb_adds(buf, "import { IopCollection } from 'iop/backbone/collection';\n");
         }
 
@@ -513,12 +531,31 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 indent, st_name, pp_dot(pkg->name),
                 st->iface ? "." : "", st->iface ? st->iface->name : "",
                 st_name);
-        sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
-                indent, st_name, st_name);
-        sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s%s%s.%s');\n",
-                indent, st_name, pp_dot(pkg->name),
-                st->iface ? "." : "", st->iface ? st->iface->name : "",
-                st_name);
+        if (iopc_should_dump_coll(st)) {
+            if (iopc_is_class(st->type)) {
+                sb_addf(buf, "%sexport class %s_Collection<Model extends "
+                        "%s_Model = %s_Model> extends ", indent, st_name,
+                        st_name, st_name);
+
+                if (st->extends.len) {
+                    const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
+                    const iopc_struct_t *parent = st->extends.tab[0]->st;
+
+                    iopc_dump_package_member(buf, pkg, parent_pkg, parent_pkg->name,
+                                             parent->name);
+                    sb_adds(buf, "_Collection<Model> { };\n");
+                } else {
+                    sb_adds(buf, "IopCollection<Model> { };\n");
+                }
+            } else {
+                sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
+                        indent, st_name, st_name);
+            }
+            sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s%s%s.%s');\n",
+                    indent, st_name, pp_dot(pkg->name),
+                    st->iface ? "." : "", st->iface ? st->iface->name : "",
+                    st_name);
+        }
     }
 }
 
