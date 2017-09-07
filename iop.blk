@@ -4556,31 +4556,40 @@ __iop_enum_check_backward_compat(const iop_enum_t *en1,
         res = -1;
     }
 
-    if (!(flags & IOP_COMPAT_JSON)
-    &&  !(TST_BIT(&en2->flags, IOP_ENUM_STRICT)))
-    {
-        return res;
-    }
-
     for (int i = 0; i < en1->enum_len; i++) {
-        if (flags & IOP_COMPAT_BIN && TST_BIT(&en2->flags, IOP_ENUM_STRICT)
-        &&  iop_ranges_search(en2->ranges, en2->ranges_len,
-                              en1->values[i]) < 0)
-        {
-            iop_compat_add_err(ctx, "numeric value %d does not exist anymore",
-                               en1->values[i]);
-            res = -1;
+        int pos2_bin  = -1;
+        int pos2_json = -1;
+
+        if (flags & IOP_COMPAT_BIN) {
+            pos2_bin = iop_ranges_search(en2->ranges, en2->ranges_len,
+                                         en1->values[i]);
+            if (pos2_bin < 0) {
+                iop_compat_add_err(ctx,
+                                   "numeric value %d does not exist anymore",
+                                   en1->values[i]);
+                res = -1;
+            }
         }
 
         if (flags & IOP_COMPAT_JSON) {
-            bool found = false;
-
-            iop_enum_from_lstr_desc(en2, en1->names[i], &found);
-            if (!found) {
+            pos2_json = iop_enum_pos_from_str(en2, en1->names[i].s,
+                                              en1->names[i].len);
+            if (pos2_json < 0) {
                 iop_compat_add_err(ctx, "value `%*pM` does not exist anymore",
                                    LSTR_FMT_ARG(en1->names[i]));
                 res = -1;
             }
+        }
+
+        if (pos2_bin >= 0 && pos2_json >= 0 && pos2_bin != pos2_json) {
+            iop_compat_add_err(ctx, "value `%*pM` (%d): name and value "
+                               "lookups mismatch: `%*pM` (%d) != `%*pM` (%d)",
+                               LSTR_FMT_ARG(en1->names[i]), en1->values[i],
+                               LSTR_FMT_ARG(en2->names[pos2_json]),
+                               en2->values[pos2_json],
+                               LSTR_FMT_ARG(en2->names[pos2_bin]),
+                               en2->values[pos2_bin]);
+            res = -1;
         }
     }
 
