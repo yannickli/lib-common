@@ -270,9 +270,18 @@ static void iopc_dump_enum(sb_t *buf, const char *indent,
     }
 
     if (_G.enable_iop_backbone) {
-        sb_addf(buf, "%sexport const %s_Model: Enumeration<%s_Str, %s_Int> "
-                "= iop.enumeration<%s_Str, %s_Int>('%s.%s');\n",
-                indent, en->name, en->name, en->name,  en->name, en->name,
+        sb_addf(buf, "%sexport interface %s_ModelIf extends "
+                "Enumeration<%s_Str, %s_Int> {\n", indent, en->name, en->name,
+                en->name);
+        tab_for_each_entry(field, &en->values) {
+            sb_addf(buf, "%s    %s: '%s';\n", indent, field->name,
+                    field->name);
+        }
+        sb_addf(buf, "%s}\n", indent);
+
+        sb_addf(buf, "%sexport const %s_Model: %s_ModelIf "
+                "= iop.enumeration<%s_Str, %s_Int>('%s.%s') as any;\n",
+                indent, en->name, en->name, en->name,  en->name,
                 pp_dot(pkg->name), en->name);
     }
 }
