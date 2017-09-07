@@ -262,9 +262,9 @@ enum StrictEnum1 {
     VAL2 = 2,
 };
 
-@strict
-enum StrictEnum2 {
-    VAL2 = 2,
+enum InvertedEnum1 {
+    VAL1 = 2,
+    VAL2 = 1,
 };
 
 struct StructEnum1 {
@@ -279,8 +279,8 @@ struct StructStrictEnum1 {
     StrictEnum1 en;
 };
 
-struct StructStrictEnum2 {
-    StrictEnum2 en;
+struct StructInvertedEnum1 {
+    InvertedEnum1 en;
 };
 
 /* Field changed from enum to int compared to StructEnum1. */

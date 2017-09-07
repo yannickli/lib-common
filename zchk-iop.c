@@ -6449,7 +6449,7 @@ Z_GROUP_EXPORT(iop)
             tstiop_backward_compat__struct_enum1__t enum_1;
             tstiop_backward_compat__struct_enum2__t enum_2;
             tstiop_backward_compat__struct_strict_enum1__t strict_enum_1;
-            tstiop_backward_compat__struct_strict_enum2__t strict_enum_2;
+            tstiop_backward_compat__struct_inverted_enum1__t inverted_enum_1;
 
             iop_init(tstiop_backward_compat__struct_enum1, &enum_1);
             enum_1.en = 12;
@@ -6461,41 +6461,46 @@ Z_GROUP_EXPORT(iop)
                      &strict_enum_1);
             strict_enum_1.en = STRICT_ENUM1_VAL1;
 
-            iop_init(tstiop_backward_compat__struct_strict_enum2,
-                     &strict_enum_2);
-            strict_enum_2.en = STRICT_ENUM2_VAL2;
+            iop_init(tstiop_backward_compat__struct_inverted_enum1,
+                     &inverted_enum_1);
+            inverted_enum_1.en = INVERTED_ENUM1_VAL1;
 
             /* Test enums are compatible with themselves. */
             T_OK_ALL(struct_enum1, &enum_1, struct_enum1);
             T_OK_ALL(struct_enum2, &enum_2, struct_enum2);
             T_OK_ALL(struct_strict_enum1, &strict_enum_1,
                      struct_strict_enum1);
-            T_OK_ALL(struct_strict_enum2, &strict_enum_2,
-                     struct_strict_enum2);
 
             /* Not strict -> strict is always forbidden. */
             T_KO_ALL(struct_enum1, &enum_1, struct_strict_enum1,
                      "field `en`:"
                      INDENT_LVL1 "enum is strict and was not before");
 
-            /* A value disappears from a non-strict enum; this is authorized
-             * in binary but forbidden in json. */
-            enum_1.en = ENUM1_VAL2;
-            T_OK(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_BIN);
+            /* A value disappears from an enum, this is always forbidden.
+             * Note that this actually "works" in binary if the new enum is
+             * not strict, but forbid this dangerous usage. */
+            T_KO(struct_enum1, NULL, struct_enum2, IOP_COMPAT_BIN,
+                 "field `en`:"
+                 INDENT_LVL1 "numeric value 2 does not exist anymore");
+            enum_1.en = 2;
             T_KO(struct_enum1, &enum_1, struct_enum2, IOP_COMPAT_JSON,
                  "field `en`:"
                  INDENT_LVL1 "value `VAL2` does not exist anymore");
 
-            /* A value disappears from a strict enum; this is always
-             * forbidden. */
-            T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
-                 IOP_COMPAT_BIN,
+            /* Inverting two enumeration values should be allowed in binary
+             * and in json, but not when both binary and json compatibility
+             * modes are required. */
+            T_OK(struct_enum1, &enum_1, struct_inverted_enum1,
+                 IOP_COMPAT_BIN);
+            T_OK(struct_enum1, &enum_1, struct_inverted_enum1,
+                 IOP_COMPAT_JSON);
+            T_KO(struct_enum1, NULL, struct_inverted_enum1,
+                 IOP_COMPAT_JSON | IOP_COMPAT_BIN,
                  "field `en`:"
-                 INDENT_LVL1 "numeric value 1 does not exist anymore");
-            T_KO(struct_strict_enum1, &strict_enum_1, struct_strict_enum2,
-                 IOP_COMPAT_JSON,
-                 "field `en`:"
-                 INDENT_LVL1 "value `VAL1` does not exist anymore");
+                 INDENT_LVL1 "value `VAL1` (1): name and value lookups "
+                 "mismatch: `VAL1` (2) != `VAL2` (1)"
+                 INDENT_LVL1 "value `VAL2` (2): name and value lookups "
+                 "mismatch: `VAL2` (1) != `VAL1` (2)");
 
             /* Field conversion from enum to int. */
             T_OK(struct_enum1, &enum_1, struct_enum3, IOP_COMPAT_BIN);
