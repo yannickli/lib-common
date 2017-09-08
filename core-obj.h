@@ -431,6 +431,12 @@ OBJ_CLASS_NO_TYPEDEF_(object, object, OBJECT_FIELDS, OBJECT_METHODS,
 #  define cls_cast_debug(pfx, c)  (c)
 #endif
 
+#define obj_dyn_cast(pfx, o)                                                 \
+    ({                                                                       \
+        typeof(o) __##pfx##_o = (o);                                         \
+        obj_is_a(__##pfx##_o, pfx) ? __##pfx##_o : NULL;                     \
+    })
+
 void * nonnull obj_init_real(const void * nonnull cls, void * nonnull o,
                              mem_pool_t * nonnull mp);
 void obj_wipe_real(object_t * nonnull o);
@@ -468,11 +474,48 @@ bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
 /** Call virtual method of an object. */
 #define obj_vcall(o, method, ...)  obj_vmethod(o, method)(o, ##__VA_ARGS__)
 
-/** Cast object to another class type. */
+/** Cast object to another class type.
+ *
+ * This macro is to be used only in case the parent object is known to be of
+ * the target type.
+ *
+ * In debug mode, this macro checks if the wanted type is compatible with the
+ * actual type of the object (ie. if obj_is_a returns true), if the object is
+ * not NULL.
+ * In release mode, no check will be made.
+ *
+ * \param[in]  pfx  Prefix of the destination type.
+ * \param[in]  o    Pointer on the object to cast.
+ *
+ * \return  a pointer equal to \p o, of the \p pfx type.
+ */
+/* TODO: This should have the same behavior as iop_obj_vcast, ie to check the
+ * cast is valid, and not allow a NULL pointer. */
 #define obj_vcast(pfx, o)  ((pfx##_t *)obj_cast_debug(pfx, o))
 
-/** Cast object to another class type. */
+/** Cast object to another class type.
+ *
+ * Same as obj_vcast, but returns a const pointer.
+ */
 #define obj_ccast(pfx, o)  ((const pfx##_t *)obj_cast_debug(pfx, o))
+
+/** Dynamically cast an object to the wanted type.
+ *
+ * This macro will cast \p o to \p pfx if \p o inherits from \p pfx and will
+ * return NULL if this is not the case.
+ */
+#define obj_dynvcast(pfx, o)                                                 \
+    ({                                                                       \
+        void *_arg_o = (o); /* check constness with cast to void * */        \
+                                                                             \
+        (pfx##_t *)obj_dyn_cast(pfx, (typeof(o))_arg_o);                     \
+    })
+
+/** Dynamically cast a const object to the wanted type.
+ *
+ * Same as obj_dynvcast, but returns a const pointer, or NULL.
+ */
+#define obj_dynccast(pfx, o)  ((const pfx##_t *)obj_dyn_cast(pfx, o))
 
 /** Cast class decriptor to another class descriptor. */
 #define cls_cast(pfx, c)  ((const pfx##_class_t *)cls_cast_debug(pfx, c))
