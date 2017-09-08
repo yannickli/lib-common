@@ -1273,14 +1273,11 @@ read_dox(iopc_parser_t *pp, int tk_offset, qv_t(dox_chunk) *chunks, bool back,
         }
         last = tab_last(chunks);
 
-        /* force merge if the chunk has a unknown keyword while the previous
-         * one has a known keyword, so that syntax like:
-         *  "\brief a \p b" or "\param[in] a  The \p ref" works.
+        /* force merge if the chunk has a unknown keyword, so that syntax
+         * like: "See \ref field" or "\param[in] a The \p ref" works.
          */
         if (chunk->keyword.len > 0
-        &&  iopc_dox_check_keyword(chunk->keyword, NULL) < 0
-        &&  last->keyword.len > 0
-        &&  iopc_dox_check_keyword(last->keyword, NULL) >= 0)
+        &&  iopc_dox_check_keyword(chunk->keyword, NULL) < 0)
         {
             force_merge = true;
         }

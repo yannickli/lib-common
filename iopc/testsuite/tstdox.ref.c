@@ -57,7 +57,7 @@ static const iop_enum_value_attrs_t tstdox__my_enum_a__e_desc_values_attrs[] = {
 };
 static const iop_help_t tstdox__my_enum_a__e_help = {
     .brief = LSTR_IMMED("comment for MyEnumA"),
-    .details = LSTR_IMMED("details for MyEnumA\012\134word not a recognized keyword"),
+    .details = LSTR_IMMED("details for MyEnumA \134word not a recognized keyword"),
     .warning = LSTR_IMMED("warn for MyEnumA"),
 };
 static const iop_enum_attr_t tstdox__my_enum_a__e_attrs[] = {
@@ -653,6 +653,63 @@ const iop_struct_t tstdox__my_struct_bb__s = {
     .fields_attrs = tstdox__my_struct_bb__desc_fields_attrs,
 };
 iop_struct_t const * const tstdox__my_struct_bb__sp = &tstdox__my_struct_bb__s;
+
+/* }}} */
+/* Structure tstdox.SortField {{{ */
+
+static const iop_help_t tstdox__sort_field__pos__f_help = {
+    .brief = LSTR_IMMED("Position of the field to use in the \134ref Extract::fields"),
+};
+static iop_field_attr_t const tstdox__sort_field__pos__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &tstdox__sort_field__pos__f_help } },
+    },
+};
+static iop_field_attrs_t const tstdox__sort_field__desc_fields_attrs[] = {
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = tstdox__sort_field__pos__attrs,
+    },
+};
+static iop_field_t const tstdox__sort_field__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("pos"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(tstdox__sort_field__t, pos),
+        .size      = fieldsizeof(tstdox__sort_field__t, pos),
+    },
+};
+static const iop_help_t tstdox__sort_field__s_help = {
+    .brief = LSTR_IMMED("Specify a sorting condition on a field"),
+};
+static const iop_struct_attr_t tstdox__sort_field__s_attrs[] = {
+    {
+        .type = 6,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &tstdox__sort_field__s_help } },
+    },
+};
+static const iop_struct_attrs_t tstdox__sort_field__s_desc_attrs = {
+    .flags     = 64,
+    .attrs_len = 1,
+    .attrs     = tstdox__sort_field__s_attrs,
+};
+const iop_struct_t tstdox__sort_field__s = {
+    .fullname   = LSTR_IMMED("tstdox.SortField"),
+    .fields     = tstdox__sort_field__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(tstdox__sort_field__desc_fields),
+    .size       = sizeof(tstdox__sort_field__t),
+    .flags      = 1,
+    .st_attrs   = &tstdox__sort_field__s_desc_attrs,
+    .fields_attrs = tstdox__sort_field__desc_fields_attrs,
+};
+iop_struct_t const * const tstdox__sort_field__sp = &tstdox__sort_field__s;
 
 /* }}} */
 /* Class tstdox.MyClassBase {{{ */
@@ -1975,6 +2032,7 @@ static const iop_struct_t *const tstdox__structs[] = {
     &tstdox__my_struct_ac__s,
     &tstdox__my_struct_ba__s,
     &tstdox__my_struct_bb__s,
+    &tstdox__sort_field__s,
     &tstdox__my_class_base__s,
     &tstdox__my_class_a__s,
     &tstdox__my_class1__s,

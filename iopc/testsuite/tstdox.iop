@@ -88,6 +88,14 @@ struct MyStructBb {
     int j;
 };
 
+/** Specify a sorting condition on a field
+ */
+struct SortField {
+    /** Position of the field to use in the \ref Extract::fields
+     */
+    uint pos;
+};
+
 abstract class MyClassBase {
     /// comment for name of MyClassBase
     static string name; ///< this static field has no defval
