@@ -26,8 +26,11 @@
 
 static struct {
     iop_env_t env;
-} iop_g;
+    size_t threaded_pack_threshold;
+} iop_g = {
 #define _G  iop_g
+    .threaded_pack_threshold = 300,
+};
 
 /* {{{ Various helpers */
 
@@ -2792,11 +2795,197 @@ int iop_check_constraints_desc(const iop_struct_t *desc, const void *val)
 /* }}} */
 /* {{{ Get value encoding size */
 
+void iop_bpack_set_threaded_threshold(size_t threshold)
+{
+    /* XXX: Repeated fields having at least threaded_pack_threshold elements
+     * will be packed using multi-threading (if thread jobs are enabled).
+     * It must be at least 2 because one-element arrays are handled in a
+     * specific way that prevents the multi-threaded path to work (and anyway,
+     * this would be useless). */
+    if (!expect(threshold >= 2)) {
+        return;
+    }
+
+    _G.threaded_pack_threshold = threshold;
+}
+
+static bool
+iop_bpack_is_threadable(const iop_field_t *fdesc, int flags, size_t n)
+{
+    return ((fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION)
+        &&  fdesc->repeat == IOP_R_REPEATED
+        &&  !(flags & IOP_BPACK_MONOTHREAD)
+        &&  module_is_loaded(MODULE(thr))
+        &&  n >= _G.threaded_pack_threshold);
+}
+
 static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
-                                  const unsigned flags, qv_t(i32) *szs);
+                                  const unsigned flags, qv_t(i32) *szs,
+                                  bool in_thread);
+static void iop_bpack_size_struct_union_job(thr_job_t *job, thr_syn_t *syn);
+static void iop_bpack_size_class_job(thr_job_t *job, thr_syn_t *syn);
+
+typedef struct pack_size_job_t {
+    thr_job_t job;
+    const iop_field_t *fdesc;
+    const void *v;
+    unsigned flags;
+    int32_t n;
+    int chunk_id;
+} pack_size_job_t;
+
+typedef struct pack_size_res_t {
+    int32_t packed_len;
+    qv_t(i32) szs;
+    int chunk_id;
+} pack_size_res_t;
+qvector_t(pack_size_res, pack_size_res_t);
+
+typedef struct pack_size_td_t {
+    thr_td_t td;
+    qv_t(pack_size_res) res;
+} pack_size_td_t;
+
+static int get_chunk_count(size_t n)
+{
+    /* chunks of size 200 provide a good performance improvement
+     * on 4 and 16 cores machines */
+    size_t chunks = DIV_ROUND_UP(n, 200);
+
+    /* at least 1, at most 3 times the processors */
+    return CLIP(chunks, MIN(thr_parallelism_g, n), thr_parallelism_g * 3);
+}
+
+static int __iop_bpack_size_threaded(const iop_field_t *fdesc,
+                                     const void *val, const unsigned flags,
+                                     int n, qv_t(i32) *szs)
+{
+    pack_size_job_t *jobs;
+    thr_syn_t syn;
+    __block int len = 0;
+    __block size_t szs_len_blk = 0;
+    size_t szs_len;
+    qv_t(pack_size_res) res;
+    int chunks_packed_size_offs, chunks_szs_offs;
+    unsigned chunk_size;
+    int chunk_remainder;
+    int n_count = 0;
+    bool is_class = iop_field_is_class(fdesc);
+
+    int chunks = get_chunk_count(n);
+
+    jobs = p_new(pack_size_job_t, chunks);
+    qv_init(&res);
+    qv_growlen(&res, chunks);
+
+    /* Chunk metadata is added between the array length and the element sizes.
+     *
+     * ╔══════════════════════════════╗          -----------------------------
+     * ║ array len                    ║              present in mono packing
+     * ╠══════════════════════════════╣          -----------------------------
+     * ║ chunk count = n              ║
+     * ╠══════════════════════════════╣            added for multi-threaded
+     * ║ chunk 0 offset in this array ║ ═══╗               packing
+     * ╠══════════════════════════════╣    ║
+     * ║ ...                          ║    ║
+     * ╠══════════════════════════════╣    ║
+     * ║ chunk n offset in this array ║ ═══╬═══╗
+     * ╠══════════════════════════════╣    ║   ║
+     * ║ chunk 0 packed size          ║    ║   ║
+     * ╠══════════════════════════════╣    ║   ║
+     * ║ ...                          ║    ║   ║
+     * ╠══════════════════════════════╣    ║   ║
+     * ║ chunk n packed size          ║    ║   ║
+     * ╠══════════════════════════════╣    ║   ║ -----------------------------
+     * ║ size of array element 0      ║<═══╝   ║
+     * ╠══════════════════════════════╣        ║     present in mono packing
+     * ║ ...                          ║        ║
+     * ╠══════════════════════════════╣        ║
+     * ║ ...                          ║        ║
+     * ╠══════════════════════════════╣        ║
+     * ║ size of array element N      ║<═══════╝     (N = n * chunk size)
+     * ╠══════════════════════════════╣
+     * ║ size of array element N+1    ║
+     * ╚══════════════════════════════╝          -----------------------------
+     */
+    qv_growlen(szs, 1);
+    szs->tab[szs->len - 1] = chunks;
+    chunks_packed_size_offs = szs->len;
+    qv_growlen(szs, chunks);
+    chunks_szs_offs = szs->len;
+    qv_growlen(szs, chunks);
+    chunk_size = n / chunks;
+    chunk_remainder = n % chunks;
+
+    thr_syn_init(&syn);
+    thr_syn_declare_td(&syn, ^{
+        pack_size_td_t *td = p_new(pack_size_td_t, 1);
+
+        qv_init(&td->res);
+        return &td->td;
+    }, ^(thr_td_t **ptd) {
+        pack_size_td_t *r;
+
+        r = container_of(*ptd, pack_size_td_t, td);
+        qv_wipe(&r->res);
+        p_delete(ptd);
+    });
+
+    /* chunks are handled manually (instead of thr_for_each)
+     * because we need to retrieve and store chunk infos
+     * (packed size and szs len) for packing. */
+    for (int i = 0; i < chunks; i++) {
+        pack_size_job_t *job = &jobs[i];
+
+        if (is_class) {
+            job->job.run = iop_bpack_size_class_job;
+        } else {
+            job->job.run = iop_bpack_size_struct_union_job;
+        }
+        job->fdesc = fdesc;
+        job->n = i < chunk_remainder ? chunk_size + 1 : chunk_size;
+        job->flags = flags;
+        job->v = (byte *)val + (n_count * fdesc->size);
+        job->chunk_id = i;
+        thr_syn_schedule(&syn, &job->job);
+        n_count += job->n;
+    }
+    thr_syn_wait(&syn);
+
+    /* each td contains 1-n results, which need to be
+     * put in order before inserting in szs */
+    thr_syn_collect_td(&syn, ^(const thr_td_t *td) {
+        const pack_size_td_t *r;
+
+        r = container_of(td, const pack_size_td_t, td);
+        tab_for_each_ptr(e, &r->res) {
+            res.tab[e->chunk_id] = *e;
+            len += e->packed_len;
+            szs_len_blk += e->szs.len;
+        }
+    });
+
+    /* cannot use the __block variable in qv_grow macro */
+    szs_len = szs_len_blk;
+    qv_grow(szs, szs_len);
+    for (int i = 0; i < res.len; i++) {
+        szs->tab[chunks_szs_offs + i] = res.tab[i].packed_len;
+        szs->tab[chunks_packed_size_offs + i] =
+            szs->len - chunks_packed_size_offs;
+        qv_extend(szs, &res.tab[i].szs);
+        qv_wipe(&res.tab[i].szs);
+    }
+    thr_syn_wipe(&syn);
+    qv_wipe(&res);
+    p_delete(&jobs);
+    /* XXX: substract n because we already added it in
+     * __iop_bpack_size when we found an IOP_R_REPEATED. */
+    return len - n;
+}
 
 static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
-                            const unsigned flags, qv_t(i32) *szs)
+                            const unsigned flags, qv_t(i32) *szs,
+                            bool in_thread)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
@@ -2918,10 +3107,19 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
           default: {
             bool is_class = iop_field_is_class(fdesc);
             bool is_ref   = iop_field_is_reference(fdesc);
+            bool threadable = iop_bpack_is_threadable(fdesc, flags, n);
 
+            /* do not multi thread packing of an array if we are already
+             * multithreading, to avoid recursive thr_syn_wait() that can
+             * cause a thread explosion */
+            if (threadable && !in_thread) {
+                len += __iop_bpack_size_threaded(fdesc, ptr, flags, n, szs);
+                break;
+            }
             for (int j = 0; j < n; j++) {
                 const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                int32_t offs = szs->len, i32;
+                int32_t offs = szs->len;
+                int32_t i32;
 
                 qv_growlen(szs, 1);
 
@@ -2934,13 +3132,15 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
                 }
                 if (is_class) {
                     i32 = __iop_bpack_size_class(fdesc->u1.st_desc, v, flags,
-                                                 szs);
+                                                 szs, in_thread);
                 } else {
-                    i32 = __iop_bpack_size(fdesc->u1.st_desc, v, flags, szs);
+                    i32 = __iop_bpack_size(fdesc->u1.st_desc, v, flags, szs,
+                                           in_thread);
                 }
 
                 szs->tab[offs] = i32;
                 len += get_len_len(i32) + i32;
+
             }
             break;
           }
@@ -2950,8 +3150,58 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
     return len;
 }
 
+/* "in_thread" argument is set to true to avoid thread explosions */
+#define bpack_size_struct_union(st_desc, v, flags, szsp)  \
+    __iop_bpack_size(st_desc, v, flags, szsp, true);
+#define bpack_size_class(st_desc, v, flags, szsp)  \
+    __iop_bpack_size_class(st_desc, *(void **)v, flags, &szs, true);
+
+#define GEN_PACK_SIZE_JOB(type)  \
+static void                                                                  \
+iop_bpack_size_##type##_job(thr_job_t *job, thr_syn_t *syn)                  \
+{                                                                            \
+    pack_size_job_t *pj = (pack_size_job_t *)job;                            \
+    qv_t(i32) szs;                                                           \
+    int chunk_len = 0;                                                       \
+    pack_size_td_t *td;                                                      \
+    int n = pj->n;                                                           \
+    const iop_struct_t *st_desc = pj->fdesc->u1.st_desc;                     \
+    uint32_t flags = pj->flags;                                              \
+    const void *orig_v = pj->v;                                              \
+    int fdesc_size = pj->fdesc->size;                                        \
+                                                                             \
+    qv_init(&szs);                                                           \
+    qv_grow(&szs, 1024); /* arbitrary could use some heuristics */           \
+                                                                             \
+    for (int i = 0; i < n; i++) {                                            \
+        const void *v = &IOP_FIELD(const char, orig_v, i * fdesc_size);      \
+        int32_t offs = szs.len, i32;                                         \
+                                                                             \
+        qv_growlen(&szs, 1);                                                 \
+        i32 = bpack_size_##type (st_desc, v, flags, &szs);                   \
+                                                                             \
+        szs.tab[offs] = i32;                                                 \
+        chunk_len += get_len_len(i32) + i32 + 1;                             \
+    }                                                                        \
+                                                                             \
+    /* write result to td */                                                 \
+    td = container_of(thr_syn_acquire_td(syn), pack_size_td_t, td);          \
+    qv_growlen(&td->res, 1);                                                 \
+    td->res.tab[td->res.len - 1].szs = szs;                                  \
+    td->res.tab[td->res.len - 1].packed_len = chunk_len;                     \
+    td->res.tab[td->res.len - 1].chunk_id = pj->chunk_id;                    \
+    thr_syn_release_td(syn, &td->td);                                        \
+}
+
+GEN_PACK_SIZE_JOB(class)
+GEN_PACK_SIZE_JOB(struct_union)
+#undef bpack_size_struct_union
+#undef bpack_size_class
+#undef GEN_PACK_SIZE_JOB
+
 static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
-                                  const unsigned flags, qv_t(i32) *szs)
+                                  const unsigned flags, qv_t(i32) *szs,
+                                  bool in_thread)
 {
     int size = 0, level_size;
     bool first = true;
@@ -2972,7 +3222,7 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
         int szs_pos = szs->len;
 
         qv_growlen(szs, 1);
-        level_size = __iop_bpack_size(desc, val, flags, szs);
+        level_size = __iop_bpack_size(desc, val, flags, szs, in_thread);
         szs->tab[szs_pos] = level_size;
         size += level_size;
         if (first || level_size) {
@@ -2996,9 +3246,9 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
     qv_append(szs, flags);
 
     if (iop_struct_is_class(desc)) {
-        return __iop_bpack_size_class(desc, val, flags, szs);
+        return __iop_bpack_size_class(desc, val, flags, szs, false);
     } else {
-        return __iop_bpack_size(desc, val, flags, szs);
+        return __iop_bpack_size(desc, val, flags, szs, false);
     }
 }
 
@@ -3006,15 +3256,16 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
 /* {{{ Packing */
 
 static uint8_t *pack_struct(void *dst, const iop_struct_t *, const void *,
-                            const unsigned, const int **);
+                            const unsigned, const int **, bool in_thread);
 static uint8_t *pack_class(void *dst, const iop_struct_t *, const void *,
-                           const unsigned, const int **);
+                           const unsigned, const int **, bool in_thread);
 static uint8_t *pack_union(void *dst, const iop_struct_t *, const void *,
-                           const unsigned, const int **);
+                           const unsigned, const int **, bool in_thread);
 
 static uint8_t *
 pack_value(uint8_t *dst, const iop_struct_t *desc, const iop_field_t *f,
-           const void *v, const unsigned flags, const int **szsp)
+           const void *v, const unsigned flags, const int **szsp,
+           bool in_thread)
 {
     uint32_t len;
 
@@ -3068,7 +3319,7 @@ pack_value(uint8_t *dst, const iop_struct_t *desc, const iop_field_t *f,
             v = *(void **)v;
         }
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_union(dst, f->u1.st_desc, v, flags, szsp);
+        return pack_union(dst, f->u1.st_desc, v, flags, szsp, in_thread);
       case IOP_T_STRUCT:
       default: {
         bool is_class = iop_field_is_class(f);
@@ -3082,21 +3333,169 @@ pack_value(uint8_t *dst, const iop_struct_t *desc, const iop_field_t *f,
             v = *(void **)v;
         }
         if (is_class) {
-            return pack_class(dst, f->u1.st_desc, v, flags, szsp);
+            return pack_class(dst, f->u1.st_desc, v, flags, szsp, in_thread);
         } else {
-            return pack_struct(dst, f->u1.st_desc, v, flags, szsp);
+            return pack_struct(dst, f->u1.st_desc, v, flags, szsp, in_thread);
         }
       }
     }
 }
 
+typedef struct pack_job_t {
+    thr_job_t job;
+    uint8_t *dst;
+    const iop_field_t *f;
+    const void *v;
+    uint32_t n;
+    unsigned flags;
+    const int *szs;
+    bool is_class;
+    bool last_chunk;
+} pack_job_t;
+
+typedef struct pack_td_t {
+    thr_td_t td;
+    const void *v;
+    const int *szs;
+    uint8_t *dst;
+} pack_td_t;
+
+#define _pack_class(dst, st_desc, v, flags, szs)  \
+    pack_class(dst, st_desc, *(void **)v, flags, szs, true)
+#define _pack_union(dst, st_desc, v, flags, szs)  \
+    pack_union(dst, st_desc, v, flags, szs, true)
+#define _pack_struct(dst, st_desc, v, flags, szs)  \
+    pack_struct(dst, st_desc, v, flags, szs, true)
+
+#define GEN_PACK_JOB(type)  \
+static void pack_value_vec_##type##_job(thr_job_t *job, thr_syn_t *syn)      \
+{                                                                            \
+    pack_job_t *pj = (pack_job_t *)job;                                      \
+    uint32_t n = pj->n;                                                      \
+    uint8_t *dst = pj->dst;                                                  \
+    const iop_struct_t *st_desc = pj->f->u1.st_desc;                         \
+    const void *v = pj->v;                                                   \
+    unsigned flags = pj->flags;                                              \
+    const int *szs = pj->szs;                                                \
+    const int fsize = pj->f->size;                                           \
+                                                                             \
+    for (uint32_t i = 0; i < n; i++) {                                       \
+        dst = pack_len(dst, 0, 0, *(szs++));                                 \
+        dst = _pack_##type(dst, st_desc, v, flags, &szs);                    \
+        v = (const byte *)v + fsize;                                         \
+    }                                                                        \
+                                                                             \
+    if (pj->last_chunk) {                                                    \
+        pack_td_t *td = container_of(thr_syn_acquire_td(syn), pack_td_t, td);\
+        td->v = v;                                                           \
+        td->szs = szs;                                                       \
+        td->dst = dst;                                                       \
+        thr_syn_release_td(syn, &td->td);                                    \
+    }                                                                        \
+}
+
+GEN_PACK_JOB(class);
+GEN_PACK_JOB(struct);
+GEN_PACK_JOB(union);
+
+#undef _pack_class
+#undef _pack_struct
+#undef _pack_union
+#undef GEN_PACK_JOB
+
+static uint8_t *
+pack_value_vec_threaded(uint8_t *dst, const iop_field_t *f, const void *v,
+                        uint32_t n, const unsigned flags, const int **szsp)
+{
+    pack_job_t *jobs;
+    thr_syn_t syn;
+    __block uint8_t *dst_res = dst;
+    int32_t *len_chunks;
+    bool is_class = iop_field_is_class(f);
+    int chunks = *(*szsp)++;
+    int chunk_size = n / chunks;
+    int chunk_remainder = n % chunks;
+    int n_count = 0;
+
+    jobs = p_new(pack_job_t, chunks);
+    len_chunks = p_new(int32_t, chunks);
+
+    thr_syn_init(&syn);
+    thr_syn_declare_td(&syn, ^{
+        pack_td_t *td = p_new(pack_td_t, 1);
+        return &td->td;
+    }, ^(thr_td_t **ptd) {
+        p_delete(ptd);
+    });
+
+    for (int i = 0; i < chunks; i++) {
+        int32_t offs;
+        pack_job_t *job = &jobs[i];
+
+        /* get relative offset of chunk in szs */
+        offs = *((*szsp) + i);
+        /* get chunk packed size from metadata in szs */
+        len_chunks[i] = *((*szsp) + i + chunks);
+
+        job->szs = (*szsp) + offs;
+        /* chunk output ptr = previous chunk output ptr
+         *  + packed size of previous chunk */
+        job->dst = i == 0 ? dst : jobs[i - 1].dst + len_chunks[i - 1];
+        job->f = f;
+        /* last chunk may has remainder elements */
+        job->n = i < chunk_remainder ? chunk_size + 1 : chunk_size;
+        job->v = (byte *)v + (n_count * f->size);
+        job->flags = flags;
+        switch (f->type) {
+          case IOP_T_STRUCT:
+            if (is_class) {
+                job->job.run = pack_value_vec_class_job;
+            } else {
+                job->job.run = pack_value_vec_struct_job;
+            }
+            break;
+          case IOP_T_UNION:
+            job->job.run = pack_value_vec_union_job;
+            break;
+          default:
+            assert (false);
+            break;
+        }
+        job->last_chunk = i == chunks - 1;
+        thr_syn_schedule(&syn, &job->job);
+        n_count += job->n;
+    }
+    *szsp += chunks;
+
+    thr_syn_wait(&syn);
+    thr_syn_collect_td(&syn, ^(const thr_td_t *td) {
+        const pack_td_t *r = container_of(td, const pack_td_t, td);
+
+        *szsp = r->szs;
+        dst_res = r->dst;
+    });
+    thr_syn_wipe(&syn);
+
+    p_delete(&jobs);
+    p_delete(&len_chunks);
+
+    return dst_res;
+}
+
 static uint8_t *
 pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
-               const unsigned flags, const int **szsp)
+               const unsigned flags, const int **szsp, bool in_thread)
 {
     const lstr_t *d;
     uint32_t len;
     bool is_class;
+
+    /* do not multi thread packing of an array if we are already
+     * multithreading, to avoid recursive thr_syn_wait() that can
+     * cause a thread explosion */
+    if (iop_bpack_is_threadable(f, flags, n) && !in_thread) {
+        return pack_value_vec_threaded(dst, f, v, n, flags, szsp);
+    }
 
     switch (f->type) {
       case IOP_T_I32:
@@ -3140,7 +3539,7 @@ pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
       case IOP_T_UNION:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_union(dst, f->u1.st_desc, v, flags, szsp);
+            dst = pack_union(dst, f->u1.st_desc, v, flags, szsp, in_thread);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
@@ -3150,9 +3549,10 @@ pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
             dst = pack_len(dst, 0, 0, *(*szsp)++);
             if (is_class) {
                 dst = pack_class(dst, f->u1.st_desc, *(void **)v, flags,
-                                 szsp);
+                                 szsp, in_thread);
             } else {
-                dst = pack_struct(dst, f->u1.st_desc, v, flags, szsp);
+                dst = pack_struct(dst, f->u1.st_desc, v, flags, szsp,
+                                  in_thread);
             }
             v = (char *)v + f->size;
         } while (--n > 0);
@@ -3164,7 +3564,7 @@ pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
 
 static uint8_t *
 pack_struct(void *dst, const iop_struct_t *desc, const void *v,
-            const unsigned flags, const int **szsp)
+            const unsigned flags, const int **szsp, bool in_thread)
 {
     assert(!desc->is_union); /* We don't want a union here */
 
@@ -3205,7 +3605,8 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
                     dst = pack_tag(dst, f->tag, f->tag_len,
                                    IOP_WIRE_MASK(REPEAT));
                     dst = put_unaligned_le32(dst, data->len);
-                    dst = pack_value_vec(dst, f, ptr, data->len, flags, szsp);
+                    dst = pack_value_vec(dst, f, ptr, data->len, flags, szsp,
+                                         in_thread);
                 }
                 continue;
             }
@@ -3219,13 +3620,14 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
             }
         }
 
-        dst = pack_value(dst, desc, f, ptr, flags, szsp);
+        dst = pack_value(dst, desc, f, ptr, flags, szsp, in_thread);
     }
     return dst;
 }
 
 static uint8_t *pack_class(void *dst, const iop_struct_t *desc, const void *v,
-                           const unsigned flags, const int **szsp)
+                           const unsigned flags, const int **szsp,
+                           bool in_thread)
 {
     bool first = true;
 
@@ -3244,7 +3646,7 @@ static uint8_t *pack_class(void *dst, const iop_struct_t *desc, const void *v,
             first = false;
         }
         if (level_size) {
-            dst = pack_struct(dst, desc, v, flags, szsp);
+            dst = pack_struct(dst, desc, v, flags, szsp, in_thread);
         }
     } while ((desc = desc->class_attrs->parent));
 
@@ -3253,11 +3655,12 @@ static uint8_t *pack_class(void *dst, const iop_struct_t *desc, const void *v,
 
 static uint8_t *
 pack_union(void *dst, const iop_struct_t *desc, const void *v,
-           const unsigned flags, const int **szsp)
+           const unsigned flags, const int **szsp, bool in_thread)
 {
     const iop_field_t *f = get_union_field(desc, v);
 
-    return pack_value(dst, desc, f, (char *)v + f->data_offs, flags, szsp);
+    return pack_value(dst, desc, f, (char *)v + f->data_offs, flags, szsp,
+                      in_thread);
 }
 
 void iop_bpack(void *dst, const iop_struct_t *desc, const void *v,
@@ -3267,12 +3670,12 @@ void iop_bpack(void *dst, const iop_struct_t *desc, const void *v,
     const unsigned flags = *szs++;
 
     if (desc->is_union) {
-        pack_union(dst, desc, v, flags, &szs);
+        pack_union(dst, desc, v, flags, &szs, false);
     } else
     if (iop_struct_is_class(desc)) {
-        pack_class(dst, desc, v, flags, &szs);
+        pack_class(dst, desc, v, flags, &szs, false);
     } else {
-        pack_struct(dst, desc, v, flags, &szs);
+        pack_struct(dst, desc, v, flags, &szs, false);
     }
 }
 

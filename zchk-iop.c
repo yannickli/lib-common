@@ -15,6 +15,8 @@
 
 #include <math.h>
 #include "core.h"
+#include "datetime.h"
+#include "thr.h"
 #include "unix.h"
 #include "z.h"
 #include "iop.h"
@@ -376,6 +378,45 @@ static int iop_json_test_pack(const iop_struct_t *st, const void *value,
     Z_HELPER_END;
 }
 
+static void iop_std_test_speed(const iop_struct_t *st, void *v, int iter,
+                               const unsigned flags, const char *info)
+{
+    proctimer_t pt;
+    int elapsed, elapsed2;
+    qv_t(i32) szs;
+    int len;
+    byte *dst;
+
+    proctimer_start(&pt);
+    for (int i = 0; i < iter; i++) {
+        t_scope;
+
+        t_qv_init(&szs, 2);
+        len = iop_bpack_size_flags(st, v, flags, &szs);
+        dst = t_new(byte, len);
+        iop_bpack(dst, st, v, szs.tab);
+    }
+    elapsed = proctimer_stop(&pt);
+    e_named_trace(1, "iop_speed", "pack monothread: %i", elapsed);
+
+    module_require(MODULE(thr), NULL);
+    iop_bpack_set_threaded_threshold(2);
+    proctimer_start(&pt);
+    for (int i = 0; i < iter; i++) {
+        t_scope;
+
+        t_qv_init(&szs, 2);
+        len = iop_bpack_size_flags(st, v, flags, &szs);
+        dst = t_new(byte, len);
+        iop_bpack(dst, st, v, szs.tab);
+    }
+    elapsed2 = proctimer_stop(&pt);
+    module_release(MODULE(thr));
+    e_named_trace(1, "iop_speed", "pack multithread: %i", elapsed2);
+    e_named_trace(1, "iop_speed", "multithread improvement: x%f",
+                  (float)elapsed / elapsed2);
+}
+
 static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                                      const unsigned flags, const char *info)
 {
@@ -383,9 +424,9 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     int ret;
     void *res = NULL;
     uint8_t buf1[20], buf2[20];
-    qv_t(i32) szs;
-    int len;
-    byte *dst;
+    qv_t(i32) szs, szs2;
+    int len, len2;
+    byte *dst, *dst2;
 
     /* XXX: Use a small t_qv here to force a realloc during (un)packing and
      *      detect possible illegal usage of the t_pool in the (un)packing
@@ -402,6 +443,29 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     Z_ASSERT_LSTREQUAL(t_iop_bpack_struct_flags(st, v, flags |
                                                 IOP_BPACK_STRICT),
                        LSTR_INIT_V((const char *)dst, len));
+
+    /* packing in threaded mode should work */
+    module_require(MODULE(thr), NULL);
+    iop_bpack_set_threaded_threshold(2);
+    t_qv_init(&szs2, 2);
+    len2 = iop_bpack_size_flags(st, v, flags, &szs2);
+    Z_ASSERT_EQ(len, len2);
+    Z_ASSERT_LE(szs.len, szs2.len);
+    dst2 = t_new(byte, len2);
+    iop_bpack(dst2, st, v, szs2.tab);
+    Z_ASSERT_LSTREQUAL(LSTR_INIT_V((const char *)dst, len),
+                       LSTR_INIT_V((const char *)dst2, len2));
+
+    /* test flag to force monothread */
+    t_qv_init(&szs2, 2);
+    len2 =  iop_bpack_size_flags(st, v, flags | IOP_BPACK_MONOTHREAD, &szs2);
+    Z_ASSERT_EQ(len, len2);
+    Z_ASSERT_EQ(szs.len, szs2.len);
+    dst2 = t_new(byte, len2);
+    iop_bpack(dst2, st, v, szs2.tab);
+    Z_ASSERT_LSTREQUAL(LSTR_INIT_V((const char *)dst, len),
+                       LSTR_INIT_V((const char *)dst2, len2));
+    module_release(MODULE(thr));
 
     /* unpacking */
     ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
@@ -2356,6 +2420,31 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_close(&dso);
     } Z_TEST_END
+    /* }}} */
+    Z_TEST(big_array_parallel, "test big array packing") { /* {{{ */
+        tstiop__my_struct_f__t sf;
+        tstiop__my_struct_b__t arr[100000];
+        tstiop__my_class1__t *arr2[100000];
+        tstiop__my_class2__t cl1;
+
+        iop_init(tstiop__my_class2, &cl1);
+        cl1.int1 = 123;
+        cl1.int2 = 4567;
+
+        iop_init(tstiop__my_struct_f, &sf);
+        for (int i = 0; i < 100000; i++) {
+            iop_init(tstiop__my_struct_b, &arr[i]);
+            OPT_SET(arr[i].a, 123);
+            arr2[i] = iop_obj_vcast(tstiop__my_class1, &cl1);
+        }
+        sf.c = IOP_TYPED_ARRAY(tstiop__my_struct_b, arr, 100000);
+        sf.e = IOP_TYPED_ARRAY(tstiop__my_class1, arr2, 100000);
+
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop__my_struct_f__s,
+                                         &sf, "big_arr"));
+
+        iop_std_test_speed(&tstiop__my_struct_f__s, &sf, 100, 0, "big arr");
+    } Z_TEST_END;
     /* }}} */
     Z_TEST(roptimized, "test IOP std: optimized repeated fields") { /* {{{ */
         t_scope;

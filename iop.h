@@ -1573,6 +1573,12 @@ struct iop_enum_value {
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
 
+/** Set the multithreaded packing threshold, for testing purposes.
+ *
+ * \param[in]  threshold  Arrays smaller than this be packed in threads.
+ */
+void iop_bpack_set_threaded_threshold(size_t threshold);
+
 /** IOP binary packer modifiers. */
 enum iop_bpack_flags {
     /** With this flag on, the values still equal to their default will not be
@@ -1587,6 +1593,10 @@ enum iop_bpack_flags {
     /** With this flag on, packing will omit private fields.
      */
     IOP_BPACK_SKIP_PRIVATE  = (1U << 2),
+
+    /** With this flag on, packing will not be multi-threaded.
+     */
+    IOP_BPACK_MONOTHREAD    = (1U << 3),
 };
 
 /** Do some preliminary work to pack an IOP structure into IOP binary format.
