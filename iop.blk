@@ -5672,9 +5672,9 @@ backward_compat_build_tables(uint32_t table_bin[IOP_T_max + 1],
     table_bin_r[IOP_T_BOOL] = TO_BIT(U8) | TO_BIT(I8) | TO_BIT(BOOL);
 }
 
-static bool
-iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
-                       iop_compat_ctx_t *ctx);
+static bool _iop_struct_is_optional(const iop_struct_t *st,
+                                    bool forbid_abstract,
+                                    iop_compat_ctx_t *ctx);
 
 static int
 iop_field_check_backward_compat(const iop_field_t *f1,
@@ -5727,7 +5727,7 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
     &&  f2->repeat == IOP_R_REQUIRED && f2->type != IOP_T_VOID
     &&  (f2->type != IOP_T_STRUCT
-         || !iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
+         || !_iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
     {
         iop_compat_add_err(ctx, "is required and was not before");
         return -1;
@@ -5822,7 +5822,7 @@ check_parent_required_fields(const qv_t(iop_struct) *parents,
 
             if (f->repeat == IOP_R_REQUIRED
             &&  (f->type != IOP_T_STRUCT
-              || !iop_struct_is_optional(f->u1.st_desc, true, ctx)))
+              || !_iop_struct_is_optional(f->u1.st_desc, true, ctx)))
             {
                 iop_compat_add_err(ctx, "class `%*pM` was added in the "
                                    "parents with a required field `%*pM`",
@@ -5938,9 +5938,8 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
     return res;
 }
 
-static bool
-iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
-                       iop_compat_ctx_t *ctx)
+bool _iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
+                             iop_compat_ctx_t *ctx)
 {
     if (forbid_abstract && iop_struct_is_class(st)
     &&  st->class_attrs->is_abstract)
@@ -5959,20 +5958,31 @@ iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
             continue;
         }
         if (f->type != IOP_T_STRUCT
-        ||  !iop_struct_is_optional(f->u1.st_desc, true, ctx))
+        ||  !_iop_struct_is_optional(f->u1.st_desc, true, ctx))
         {
             return false;
         }
     }
 
     if (iop_struct_is_class(st) && st->class_attrs->parent
-    &&  !iop_struct_is_optional(st->class_attrs->parent, false, ctx))
+    &&  !_iop_struct_is_optional(st->class_attrs->parent, false, ctx))
     {
         return false;
     }
 
     qh_add(cptr, &ctx->seen_opt_st, st);
     return true;
+}
+
+bool iop_struct_is_optional(const iop_struct_t *st)
+{
+    iop_compat_ctx_t ctx;
+    int ret;
+
+    iop_compat_ctx_init(&ctx);
+    ret = _iop_struct_is_optional(st, false, &ctx);
+    iop_compat_ctx_wipe(&ctx);
+    return ret;
 }
 
 static int
@@ -6014,7 +6024,7 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
     }
 
     if (f2->type == IOP_T_STRUCT
-    &&  iop_struct_is_optional(f2->u1.st_desc, true, ctx))
+    &&  _iop_struct_is_optional(f2->u1.st_desc, true, ctx))
     {
         return 0;
     }

@@ -2005,6 +2005,14 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t * nonnull pkg1,
                                       iop_compat_ctx_t * nonnull ctx,
                                       unsigned flags, sb_t * nonnull err);
 
+/** Get whether a struct is optional or not.
+ *
+ * Get whether a struct is optional or not. A struct is optional if it
+ * contains no mandatory fields (ie. it only contains arrays, optional fields
+ * or fields with a default value).
+ */
+bool iop_struct_is_optional(const iop_struct_t *nonnull st);
+
 /* }}} */
 
 /** Module that handles IOP registration data.
