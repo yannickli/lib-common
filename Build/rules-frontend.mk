@@ -180,7 +180,7 @@ define ext/rule/ts
 $~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc
 	$(msg/COMPILE.ts) $4
 	cp $$< $$@
-	$(var/wwwtool)tsc -p $~$4/node_modules --rootDir $~$4/node_modules --outDir $~$4/node_modules --declarationDir $~node_modules || (rm $$@ && false)
+	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4/node_modules --rootDir $~$4/node_modules --outDir $~$4/node_modules --declarationDir $~node_modules || (rm $$@ && false)
 
 $$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
 $$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4,$5))))
