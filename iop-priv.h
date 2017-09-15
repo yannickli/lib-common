@@ -36,40 +36,20 @@ class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
 qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
           class_id_key_hash, class_id_key_equal);
 
-typedef struct class_name_key_t {
-    const iop_struct_t *master;
-    const lstr_t       *child_fullname;
-} class_name_key_t;
-
-static inline uint32_t
-class_name_key_hash(const qhash_t *h, const class_name_key_t *key)
-{
-    return qhash_hash_ptr(h, key->master)
-         ^ qhash_lstr_hash(h, key->child_fullname);
-}
-static inline bool
-class_name_key_equal(const qhash_t *h, const class_name_key_t *k1,
-                   const class_name_key_t *k2)
-{
-    return (k1->master == k2->master)
-         && lstr_equal(*k1->child_fullname, *k2->child_fullname);
-}
-
-qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
-          class_name_key_hash, class_name_key_equal);
-
 /* }}} */
 /* {{{ IOP context */
 
-qm_kvec_t(iop_objs, lstr_t, qv_t(cvoid), qhash_lstr_hash, qhash_lstr_equal);
 qm_khptr_ckey_t(iop_dsos, iop_pkg_t, iop_dso_t *);
+
+qvector_t(iop_obj, iop_obj_t);
+qm_kvec_t(iop_objs, lstr_t, qv_t(iop_obj), qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct iop_env_t {
     qm_t(class_id)   classes_by_id;
-    qm_t(class_name) classes_by_name;
     qm_t(iop_dsos)   dsos_by_pkg;
-    qm_t(iop_objs)   pkgs_by_name;
-    qm_t(iop_objs)   enums_by_fullname;
+
+    /* Contains classes/structs/unions/enums/packages. */
+    qm_t(iop_objs)   iop_obj_by_fullname;
 } iop_env_t;
 
 iop_env_t *iop_env_init(iop_env_t *env);

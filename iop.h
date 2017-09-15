@@ -1460,6 +1460,34 @@ qm_kvec_t(iop_enum, lstr_t, const iop_enum_t * nonnull,
 /** Get an enumeration from its fullname. */
 const iop_enum_t * nullable iop_get_enum(lstr_t fullname);
 
+typedef enum iop_obj_type_t {
+    /* Struct/union/class. */
+    IOP_OBJ_TYPE_ST,
+
+    /* Enum. */
+    IOP_OBJ_TYPE_ENUM,
+
+    /* IOP package. */
+    IOP_OBJ_TYPE_PKG,
+} iop_obj_type_t;
+
+typedef struct iop_obj_t {
+    iop_obj_type_t type;
+
+    union {
+        const iop_struct_t *nonnull st;
+        const iop_enum_t *nonnull en;
+        const iop_pkg_t *nonnull pkg;
+    } desc;
+
+    /* Cached ancestor for classes (purpose: optimize calls to
+     * iop_get_class_by_fullname()). */
+    const iop_struct_t *nullable ancestor;
+} iop_obj_t;
+
+/** Get an union/struct/class/enum from its fullname. */
+const iop_obj_t *nullable iop_get_obj(lstr_t fullname);
+
 /** Convert IOP enum integer value to lstr_t representation.
  *
  * This function will return NULL if the integer value doesn't exist in the

@@ -7649,6 +7649,51 @@ Z_GROUP_EXPORT(iop)
 #undef T
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_env, "environment object getters") { /* {{{ */
+        lstr_t name;
+        const iop_obj_t *obj;
+        const iop_struct_t *cls;
+        const iop_enum_t *en;
+
+        name = tstiop__my_struct_a__s.fullname;
+        Z_ASSERT_P((obj = iop_get_obj(name)), "cannot find obj `%pL'", &name);
+        Z_ASSERT(obj->type == IOP_OBJ_TYPE_ST);
+        Z_ASSERT(obj->desc.st == &tstiop__my_struct_a__s,
+                 "wrong iop_struct_t (got `%pL')", &obj->desc.st->fullname);
+
+        Z_ASSERT_NULL(iop_get_enum(name), "`%pL' is not an enum", &name);
+        Z_ASSERT_NULL(iop_get_class_by_fullname(&tstiop__my_class1__s, name),
+                      "`%pL' is not a class", &name);
+
+        name = tstiop__my_enum_c__e.fullname;
+        Z_ASSERT_P((obj = iop_get_obj(name)), "cannot find obj `%pL'", &name);
+        Z_ASSERT(obj->type == IOP_OBJ_TYPE_ENUM);
+        Z_ASSERT(obj->desc.en == &tstiop__my_enum_c__e,
+                 "wrong iop_enum_t (got `%pL')", &obj->desc.en->fullname);
+
+        en = iop_get_enum(name);
+        Z_ASSERT_P(en, "cannot find enum `%pL'", &name);
+        Z_ASSERT(en == &tstiop__my_enum_c__e, "wrong enum (got `%pL')",
+                 &en->fullname);
+
+        name = tstiop__my_class3__s.fullname;
+        Z_ASSERT_P((obj = iop_get_obj(name)), "cannot find obj `%pL'", &name);
+        Z_ASSERT(obj->type == IOP_OBJ_TYPE_ST);
+        Z_ASSERT(obj->desc.st == &tstiop__my_class3__s,
+                 "wrong iop_struct_t (got `%pL')", &obj->desc.st->fullname);
+
+        cls = iop_get_class_by_fullname(&tstiop__my_class1__s, name);
+        Z_ASSERT_P(cls, "cannot find class `%pL'", &name);
+        Z_ASSERT(cls == &tstiop__my_class3__s,
+                 "wrong IOP class (got `%pL')", &obj->desc.st->fullname);
+
+        cls = iop_get_class_by_id(&tstiop__my_class1__s,
+                                  tstiop__my_class3__s.class_attrs->class_id);
+        Z_ASSERT_P(cls, "cannot find class `%pL' from ID", &name);
+        Z_ASSERT(cls == &tstiop__my_class3__s, "wrong IOP class (got `%pL')",
+                 &cls->fullname);
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END
 
