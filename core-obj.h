@@ -540,6 +540,15 @@ bool cls_inherits(const void * nonnull cls, const void * nonnull vptr)
 #define super_call(pfx, o, f, ...)                                           \
     (pfx##_class()->super->f(&(o)->super, ##__VA_ARGS__))
 
+/** Call virtual method of parent class for a class.
+ *
+ * \param pfx         Prefix of object's class.
+ * \param f           Method to call.
+ * \param __VA_ARGS__ Arguments passed to the method.
+ */
+#define super_cls_call(pfx, f, ...)                                          \
+    (pfx##_class()->super->f(__VA_ARGS__))
+
 /** Call virtual method of parent class without object instance.
  *
  * \param pfx         Prefix of class.
