@@ -59,6 +59,7 @@ static struct popt_t popt[] = {
 
 int main(int argc, char *argv[])
 {
+    t_scope;
     iop_dso_t *dso;
     iop_dso_t *dso_old;
     iop_compat_ctx_t *ctx;
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
     SB_1k(err);
     lstr_t mode;
     const char *arg0 = NEXTARG(argc, argv);
+    qv_t(lstr) sorted_pkg_names;
 
     if (!argc) {
         makeusage(EX_USAGE, arg0, "", usage, popt);
@@ -102,15 +104,22 @@ int main(int argc, char *argv[])
     dso_old = open_dso(_G.old_dso);
     ctx = iop_compat_ctx_new();
 
+    t_qv_init(&sorted_pkg_names, qm_len(iop_pkg, &dso_old->pkg_h));
     qm_for_each_pos(iop_pkg, pos, &dso_old->pkg_h) {
-        const iop_pkg_t *pkg_old = dso_old->pkg_h.values[pos];
+        qv_append(&sorted_pkg_names, dso_old->pkg_h.values[pos]->name);
+    }
+    qv_sort(lstr)(&sorted_pkg_names, core_lstr_cmp);
+
+    tab_for_each_entry(name, &sorted_pkg_names) {
+        const iop_pkg_t *pkg_old;
         const iop_pkg_t *pkg;
 
-        pkg = qm_get_def(iop_pkg, &dso->pkg_h, &pkg_old->name, NULL);
+        pkg_old = qm_get(iop_pkg, &dso_old->pkg_h, &name);
 
+        pkg = qm_get_def(iop_pkg, &dso->pkg_h, &name, NULL);
         if (!pkg) {
             fprintf(stderr, "package `%*pM` is not in the new dso\n",
-                    LSTR_FMT_ARG(pkg_old->name));
+                    LSTR_FMT_ARG(name));
             continue;
         }
 
