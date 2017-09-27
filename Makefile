@@ -316,7 +316,7 @@ ztst-mem-bench_SOURCES = \
 	$llibcommon.a
 
 dso-compatibility-check_SOURCES = \
-    dso-compatibility-check.c \
+    dso-compatibility-check.blk \
     $llibcommon.a
 
 ztst-swift_SOURCES = \
