@@ -142,7 +142,7 @@ endef
 # - $~$(3:ts=js): the javascript file for the typescript module
 define ext/expand/ts
 $2: $~$(3:ts=js)
-$~$3: $3 $5 $(var/wwwtool)tslint
+$~$3: $3 $(var/wwwtool)tslint
 	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
 	$$(if $$(NOCHECK),,$(var/wwwtool)tslint $3)
 	$(msg/COMPILE.json) $3
@@ -164,7 +164,7 @@ endef
 # - $~$3: a copy of the declaration file
 #   $~$3.d: the depency file for the typescript module
 define ext/expand/d.ts
-$~$3: $3 $5 $(var/wwwtool)tslint
+$~$3: $3 $(var/wwwtool)tslint
 	$$(if $$(NOCHECK),,$(msg/CHECK.ts) $3)
 	$$(if $$(NOCHECK),,$(var/wwwtool)tslint $3)
 	$(msg/COMPILE.json) $3
@@ -177,7 +177,7 @@ endef
 
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<DEPS>[]
 define ext/rule/ts
-$~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc
+$~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc $5
 	$(msg/COMPILE.ts) $4
 	cp $$< $$@
 	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4/node_modules --rootDir $~$4/node_modules --outDir $~$4/node_modules --declarationDir $~node_modules || (rm $$@ && false)
@@ -339,6 +339,7 @@ $~$2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.full.js 
 
 $2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)sorcery
 $2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.js
+	$(msg/MAP.js) $3.js
 	mkdir -p $2/htdocs/javascript/bundles
 	$(FASTCP) $$< $$@
 	if [ -f $$<.map ]; then \
@@ -366,7 +367,7 @@ $~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/node_m
 	$(FASTCP) $(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js $~$(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js
 	echo '{ "browserify-shim": "./node_modules/shim.js" }' > $$@
 
-$$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$($1_DEPENDS)))))
+$$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$(patsubst %.js,$~%.full.js,$($1_DEPENDS))))))
 endef
 
 #}}}
