@@ -1197,7 +1197,7 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
         if (thr_sleep_until(&syn->ec, 100, cond) < 0) {
             thr_enter_blocking_syscall();
             do {
-                thr_ec_wait(&syn->ec, key);
+                thr_ec_timedwait(&syn->ec, key, 100);
                 key = thr_ec_get(&syn->ec);
             } while (!cond());
             thr_exit_blocking_syscall();
