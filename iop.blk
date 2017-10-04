@@ -384,6 +384,11 @@ size_t iop_value_get_bpack_size(const iop_value_t * nonnull value,
     return 0;
 }
 
+size_t iop_get_len_bpack_size(uint32_t length)
+{
+    return get_len_len(length);
+}
+
 int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
                                 uint32_t pos, const iop_value_t *value)
 {

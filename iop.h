@@ -983,6 +983,9 @@ size_t iop_value_get_bpack_size(const iop_value_t * nonnull value,
                                 iop_type_t type,
                                 const iop_struct_t * nullable st_desc);
 
+/** Get the size of the binary encoding of a length. */
+size_t iop_get_len_bpack_size(uint32_t length);
+
 /** Set an optional field of an IOP object.
  *
  * For optional scalar fields (integers, double, boolean, enum), this function
