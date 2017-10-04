@@ -332,6 +332,58 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
     return -1;
 }
 
+size_t iop_value_get_bpack_size(const iop_value_t * nonnull value,
+                                iop_type_t type,
+                                const iop_struct_t * nullable st_desc)
+{
+    switch (type) {
+      case IOP_T_I8:
+      case IOP_T_BOOL:
+        return 1;
+
+      case IOP_T_U8:
+        return 1 + (((uint8_t)value->u32) >> 7);
+
+      case IOP_T_I16:
+      case IOP_T_U16:
+      case IOP_T_I32:
+      case IOP_T_ENUM:
+        return get_vint32_len(value->i32);
+
+      case IOP_T_U32:
+      case IOP_T_I64:
+      case IOP_T_U64:
+        return get_vint64_len(value->i64);
+
+      case IOP_T_VOID:
+        return 0;
+
+      case IOP_T_DOUBLE:
+        return 8;
+
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return get_len_len(value->s.len + 1) + value->s.len + 1;
+
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+      {
+        qv_t(i32) szs;
+        size_t sz;
+
+        qv_inita(&szs, 1024);
+        sz = iop_bpack_size(st_desc, value->p, &szs);
+        qv_wipe(&szs);
+
+        return get_len_len(sz) + sz;
+      }
+    }
+
+    assert (false);
+    return 0;
+}
+
 int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
                                 uint32_t pos, const iop_value_t *value)
 {

@@ -968,6 +968,21 @@ int iop_value_to_repeated_field(void * nonnull ptr,
                                 uint32_t pos,
                                 const iop_value_t * nonnull value);
 
+/** Get the size of the binary encoding of a given IOP value.
+ *
+ * \param[in] value  The IOP value.
+ *
+ * \param[in] type   The type of the IOP value.
+ *
+ * \param[in] st_desc  The IOP description if the IOP value is a struct, union
+ *                     or class.
+ *
+ * \return The size of the IOP binary encoding of the value.
+ */
+size_t iop_value_get_bpack_size(const iop_value_t * nonnull value,
+                                iop_type_t type,
+                                const iop_struct_t * nullable st_desc);
+
 /** Set an optional field of an IOP object.
  *
  * For optional scalar fields (integers, double, boolean, enum), this function

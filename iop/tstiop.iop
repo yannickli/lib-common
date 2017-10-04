@@ -495,6 +495,34 @@ union Asn1ExtChoice {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_value_get_bpack_size */
+
+struct GetBpackSzSt {
+    int a;
+    string b;
+};
+
+enum GetBpackSzEn {
+    A,
+    B,
+};
+
+union GetBpackSzU {
+    byte i8;
+    ubyte u8;
+    short i16;
+    ushort u16;
+    int i32;
+    uint u32;
+    long i64;
+    ulong u64;
+    string s;
+    bool b;
+    GetBpackSzEn en;
+    GetBpackSzSt st;
+};
+
+/* }}} */
 
 /* Interfaces */
 

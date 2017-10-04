@@ -80,6 +80,45 @@ z_iop_get_field_values_check(const iop_struct_t *st_desc, const void *st_ptr,
 }
 
 /* }}} */
+/* {{{ iop_value_get_bpack_size() */
+
+static int
+_z_check_iop_value_get_bpack_size(const tstiop__get_bpack_sz_u__t *u,
+                                  const char *fname)
+{
+    size_t st_bpack_sz;
+    size_t field_bpack_sz;
+    qv_t(i32) szs;
+    const iop_field_t *f;
+    iop_value_t v;
+
+    qv_inita(&szs, 1024);
+    st_bpack_sz = iop_bpack_size(&tstiop__get_bpack_sz_u__s, u, &szs);
+    qv_wipe(&szs);
+
+    Z_ASSERT_N(iop_field_find_by_name(&tstiop__get_bpack_sz_u__s,
+                                      LSTR(fname), NULL, &f),
+               "field `%s' does not exist", fname);
+    /* XXX The real tag binary packing length is 'tag_len' + 1. */
+    field_bpack_sz = st_bpack_sz - f->tag_len - 1;
+
+    Z_ASSERT_N(iop_value_from_field(u, f, &v), "cannot get value");
+    Z_ASSERT_EQ(iop_value_get_bpack_size(&v, f->type, f->u1.st_desc),
+                field_bpack_sz, "unexpected bpack size");
+    Z_HELPER_END;
+}
+
+static int
+z_check_iop_value_get_bpack_size(const tstiop__get_bpack_sz_u__t *u,
+                                 const char *fname)
+{
+    Z_HELPER_RUN(_z_check_iop_value_get_bpack_size(u, fname),
+                 "check failed for %*pS",
+                 IOP_ST_FMT_ARG(tstiop__get_bpack_sz_u, u));
+    Z_HELPER_END;
+}
+
+/* }}} */
 /* {{{ Other helpers (waiting proper folds). */
 
 static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info)
@@ -7400,6 +7439,38 @@ Z_GROUP_EXPORT(iop)
                    "removal: %s", iop_get_err());
         Z_ASSERT_EQ(st.a, out->a);
         Z_ASSERT_EQ(st.c, out->c);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_value_get_bpack_size, "iop_value_get_bpack_size") { /* {{{ */
+        tstiop__get_bpack_sz_u__t u;
+        tstiop__get_bpack_sz_st__t st;
+
+        iop_init(tstiop__get_bpack_sz_st, &st);
+        st.a = 123456;
+        st.b = LSTR("test");
+
+#define T(field, _v)                                                         \
+        u = IOP_UNION(tstiop__get_bpack_sz_u, field, _v);                    \
+        Z_HELPER_RUN(z_check_iop_value_get_bpack_size(&u, #field),           \
+                     #field "=" #_v);
+
+        T(i8, 45);
+        T(u8, 240);
+        T(i16, -42);
+        T(u16, UINT16_MAX);
+        T(i32, 4000);
+        T(u32, UINT32_MAX);
+        T(i64, INT64_MIN);
+        T(i64, INT64_MAX);
+        T(i64, 0);
+        T(u64, UINT64_MAX);
+        T(b, true);
+        T(b, false);
+        T(s, LSTR("I am Joe's complete lack of surprise."));
+        T(en, GET_BPACK_SZ_EN_B);
+        T(st, st);
+
+#undef T
     } Z_TEST_END;
     /* }}} */
 
