@@ -175,6 +175,10 @@ static inline sb_t * nonnull r_sb_init(sb_t * nonnull sb, int size)
 
 __swift_name__("StringBuffer.reset(self:)")
 void sb_reset(sb_t * nonnull sb) __leaf;
+
+/** Resets the buffer but keeps the allocated memory, however big it is. */
+void sb_reset_keep_mem(sb_t * nonnull sb) __leaf;
+
 __swift_name__("StringBuffer.wipe(self:)")
 void sb_wipe(sb_t * nonnull sb) __leaf;
 

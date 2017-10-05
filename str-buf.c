@@ -38,6 +38,11 @@ char *sb_detach(sb_t *sb, int *len)
     return s;
 }
 
+void sb_reset_keep_mem(sb_t *sb)
+{
+    sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->mp);
+}
+
 static void __sb_reset(sb_t *sb, int threshold)
 {
     mem_pool_t *mp = mp_ipool(sb->mp);
@@ -49,7 +54,7 @@ static void __sb_reset(sb_t *sb, int threshold)
         }
         sb_init_full(sb, (char *)__sb_slop, 0, 1, sb->mp);
     } else {
-        sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->mp);
+        sb_reset_keep_mem(sb);
     }
 }
 
