@@ -1167,9 +1167,16 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
             self_g->acc.ec_waits++;
             start = hardclock();
 #endif
+            /* allow quarantine thread to become active even if we wait
+             * less than 100ms */
+            atomic_fetch_add(&_G.target_threads_count, 1);
+            thr_ec_broadcast(&_G.threads_count_evc);
             ret = thr_sleep_until(&syn->ec, 100, ^bool (void) {
                 return cond() || !mpsc_queue_looks_empty(&thr_queue_main_g->q);
             });
+            /* Decrease thread count. If we waited more than 100ms,
+             * thr_enter_blocking_syscall() will increment it again. */
+            atomic_fetch_sub(&_G.target_threads_count, 1);
             if (ret < 0) {
                 thr_enter_blocking_syscall();
                 thr_ec_wait(&syn->ec, key);
@@ -1189,12 +1196,17 @@ void thr_syn_wait_until(thr_syn_t *syn, bool (^cond)(void))
         }
     } else {
         uint64_t key = thr_ec_get(&syn->ec);
+        int ret;
 
 #ifdef __has_thr_acc
         self_g->acc.ec_waits++;
         start = hardclock();
 #endif
-        if (thr_sleep_until(&syn->ec, 100, cond) < 0) {
+        atomic_fetch_add(&_G.target_threads_count, 1);
+        thr_ec_broadcast(&_G.threads_count_evc);
+        ret = thr_sleep_until(&syn->ec, 100, cond);
+        atomic_fetch_sub(&_G.target_threads_count, 1);
+        if (ret < 0) {
             thr_enter_blocking_syscall();
             do {
                 thr_ec_timedwait(&syn->ec, key, 100);
