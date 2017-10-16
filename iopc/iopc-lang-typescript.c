@@ -34,6 +34,10 @@ static const char *reserved_model_names_g[] = {
     "isEmpty"
 };
 
+static const char *reserved_union_model_names_g[] = {
+    "kind", "is", "isSet", "getPair", "unionGet"
+};
+
 static qv_t(str) pp_g;
 
 #define RO_WARN \
@@ -79,6 +83,24 @@ static const char *pp_dot(iopc_path_t *path)
     sb_shrink(&buf, 1);
     qv_append(&pp_g, res = sb_detach(&buf, NULL));
     return res;
+}
+
+static bool is_name_reserved_in_model(const char *field_name, bool is_union)
+{
+    carray_for_each_entry(name, reserved_model_names_g) {
+        if (strequal(field_name, name)) {
+            return true;
+        }
+    }
+    if (is_union) {
+        carray_for_each_entry(name, reserved_union_model_names_g) {
+            if (strequal(field_name, name)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 static void iopc_dump_import(sb_t *buf, const iopc_pkg_t *dep,
@@ -517,22 +539,11 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
         sb_adds(buf, " {\n");
 
         tab_for_each_entry(field, &st->fields) {
-            bool is_reserved = false;
-
-            carray_for_each_entry(name, reserved_model_names_g) {
-                is_reserved = strequal(field->name, name);
-                if (is_reserved) {
-                    break;
-                }
+            if (!is_name_reserved_in_model(field->name, false)) {
+                sb_addf(buf, "%s    public ", indent);
+                iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+                sb_adds(buf, ";\n");
             }
-
-            if (is_reserved) {
-                continue;
-            }
-
-            sb_addf(buf, "%s    public ", indent);
-            iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
-            sb_adds(buf, ";\n");
         }
 
         sb_addf(buf, "%s};\n", indent);
@@ -652,6 +663,14 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
 
         sb_addf(buf, "%sexport class %s_Model extends UnionModel<%s_Keys, %s_ModelPairs, %s_ModelParam> {\n",
                 indent, st_name, st_name, st_name, st_name);
+
+        tab_for_each_entry(field, &st->fields) {
+            if (!is_name_reserved_in_model(field->name, true)) {
+                sb_addf(buf, "%s    public ", indent);
+                iopc_dump_field(buf, pkg, field, OBJECT_FIELD | USE_MODEL);
+                sb_adds(buf, " | undefined;\n");
+            }
+        }
 
         sb_addf(buf, "%s};\n", indent);
         sb_addf(buf, "%siop.backbone.registerModel(%s_Model, '%s.%s');\n",
