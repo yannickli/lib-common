@@ -10,14 +10,14 @@
 #endif
 
 EXPORT iop_enum_t const ic__ic_priority__e;
-EXPORT iop_enum_t const * const nonnull  ic__ic_priority__ep;
+EXPORT iop_enum_t const * const nonnull ic__ic_priority__ep;
 
 struct ic__tracer__t {
     uint64_t token;
     uint64_t epoch;
 };
 EXPORT iop_struct_t const ic__tracer__s;
-EXPORT iop_struct_t const * const nonnull  ic__tracer__sp;
+EXPORT iop_struct_t const * const nonnull ic__tracer__sp;
 struct ic__simple_hdr__t {
     lstr_t           login;
     lstr_t           password;
@@ -26,14 +26,15 @@ struct ic__simple_hdr__t {
     lstr_t           host;
     lstr_t           group;
     lstr_t           source;
+    opt_u64_t        workspace_id;
 };
 EXPORT iop_struct_t const ic__simple_hdr__s;
-EXPORT iop_struct_t const * const nonnull  ic__simple_hdr__sp;
+EXPORT iop_struct_t const * const nonnull ic__simple_hdr__sp;
 struct ic__route__t {
     const iop_struct_t *nonnull __vptr;
 };
 EXPORT iop_struct_t const ic__route__s;
-EXPORT iop_struct_t const * const nonnull  ic__route__sp;
+EXPORT iop_struct_t const * const nonnull ic__route__sp;
 #define ic__route__class_id  0
 
 struct ic__routing_hdr__t {
@@ -44,7 +45,7 @@ struct ic__routing_hdr__t {
     struct ic__hdr__t *nullable original_hdr;
 };
 EXPORT iop_struct_t const ic__routing_hdr__s;
-EXPORT iop_struct_t const * const nonnull  ic__routing_hdr__sp;
+EXPORT iop_struct_t const * const nonnull ic__routing_hdr__sp;
 /*----- XXX private data, do not use directly -{{{-*/
 typedef enum ic__hdr__tag_t {
     ic__hdr__simple__ft = 1,
@@ -59,7 +60,7 @@ struct ic__hdr__t {
     };
 };
 EXPORT iop_struct_t const ic__hdr__s;
-EXPORT iop_struct_t const * const nonnull  ic__hdr__sp;
+EXPORT iop_struct_t const * const nonnull ic__hdr__sp;
 #define ic__hdr__get(u, field)       IOP_UNION_GET(ic__hdr, u, field)
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop

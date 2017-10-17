@@ -8,6 +8,6 @@
 
 /*----- package ic -----*/
 EXPORT iop_pkg_t const ic__pkg;
-EXPORT iop_pkg_t const * const nonnull  ic__pkgp;
+EXPORT iop_pkg_t const * const nonnull ic__pkgp;
 
 #endif

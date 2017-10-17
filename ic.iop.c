@@ -138,10 +138,19 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, source),
         .size      = fieldsizeof(ic__simple_hdr__t, source),
     },
+    {
+        .name      = LSTR_IMMED("workspaceId"),
+        .tag       = 8,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_U64,
+        .data_offs = offsetof(ic__simple_hdr__t, workspace_id),
+        .size      = fieldsizeof(ic__simple_hdr__t, workspace_id),
+    },
 };
 static int const iop__ranges__3[] = {
     0, 1,
-    7,
+    8,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),

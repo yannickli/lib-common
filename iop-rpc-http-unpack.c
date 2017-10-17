@@ -186,6 +186,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
        .kind = LSTR_OPT(tcb->auth_kind),
        .payload = q->received_body_length,
        .source = LSTR("webservice"),
+       .workspace_id = OPT_NONE,
     );
     ic_cb_entry_t       *e;
 
