@@ -1635,7 +1635,7 @@ int iop_bpack_size_flags(const iop_struct_t * nonnull st,
                          unsigned flags, qv_t(i32) * nonnull szs);
 
 __must_check__
-static inline int
+static inline size_t
 iop_bpack_size(const iop_struct_t * nonnull st, const void * nonnull v,
                qv_t(i32) * nonnull szs)
 {
