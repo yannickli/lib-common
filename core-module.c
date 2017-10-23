@@ -89,6 +89,7 @@ GENERIC_DELETE(module_t, module);
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
 qm_khptr_t(module_arg, void, void *);
 qm_kvec_t(module_dep, lstr_t, qh_t(ptr), qhash_lstr_hash, qhash_lstr_equal);
+qh_khptr_t(module, module_t);
 
 /* }}} */
 /* }}} */
@@ -212,6 +213,69 @@ void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
     qv_append(&module->dependent_of, lstr_dup(dep));
 }
 
+static int modules_topo_visit(qh_t(module) *temporary_mark,
+                              qh_t(module) *permanent_mark,
+                              qv_t(module) *ordered_modules,
+                              module_t *m, sb_t *err)
+{
+    if (qh_find(module, permanent_mark, m) >= 0) {
+        return 0;
+    }
+    if (qh_add(module, temporary_mark, m) < 0) {
+        sb_addf(err, "-> %*pM", LSTR_FMT_ARG(m->name));
+        return -1;
+    }
+    tab_for_each_entry(dep, &m->dependent_of) {
+        module_t *mdep = qm_get_def(module, &_G.modules, &dep, NULL);
+
+        if (!mdep) {
+            sb_addf(err, "invalid module %*pM", LSTR_FMT_ARG(dep));
+            return -1;
+        }
+        if (modules_topo_visit(temporary_mark, permanent_mark,
+                               ordered_modules, mdep, err) < 0)
+        {
+            sb_prependf(err, "-> %*pM", LSTR_FMT_ARG(m->name));
+            return -1;
+        }
+    }
+    qh_add(module, permanent_mark, m);
+    qv_append(ordered_modules, m);
+    return 0;
+}
+
+static int
+modules_topo_sort_rev(qm_t(module) *modules, qv_t(module) *sorted, sb_t *err)
+{
+    int ret = 0;
+    qh_t(module) temporary_mark;
+    qh_t(module) permanent_mark;
+
+    qh_init(module, &temporary_mark);
+    qh_init(module, &permanent_mark);
+
+    qm_for_each_pos(module, pos, &_G.modules) {
+        module_t *m = _G.modules.values[pos];
+
+        if (qh_find(module, &temporary_mark, m) < 0
+        &&  qh_find(module, &permanent_mark, m) < 0)
+        {
+            if (modules_topo_visit(&temporary_mark, &permanent_mark, sorted,
+                                   m, err) < 0)
+            {
+                sb_prepends(err, "module dependency error: ");
+                ret = -1;
+                goto end;
+            }
+        }
+    }
+
+  end:
+    qh_wipe(module, &temporary_mark);
+    qh_wipe(module, &permanent_mark);
+    return ret;
+}
+
 void module_require(module_t *module, module_t *required_by)
 {
     if (module->state == INITIALIZING) {
@@ -266,8 +330,6 @@ void module_require(module_t *module, module_t *required_by)
     logger_fatal(&_G.logger, "unable to initialize %*pM",
                  LSTR_FMT_ARG(module->name));
 }
-
-
 
 void module_provide(module_t **module, void *argument)
 {
@@ -535,72 +597,46 @@ static void module_add_method(module_t *module, module_method_impl_t *method)
     }
 }
 
-static void module_register_method(module_t *module,
-                                   module_method_impl_t *method,
-                                   qh_t(ptr) *already_registered)
+static void module_method_register_cb(module_method_impl_t *method,
+                                      qv_t(module) *modules)
 {
-    int pos = qh_put(ptr, already_registered, module, 0);
-
-    assert (module_is_loaded(module));
-    if (pos & QHASH_COLLISION) {
-        return;
-    }
-
-    if (method->params->order == MODULE_DEPS_AFTER) {
-        tab_for_each_entry(dep, &module->required_by) {
-            if (module_is_loaded(dep)) {
-                module_register_method(dep, method, already_registered);
-            }
-        }
-        module_add_method(module, method);
-    }
-
-    tab_for_each_entry(dep, &module->dependent_of) {
-        module_register_method(qm_get(module, &_G.modules, &dep), method,
-                               already_registered);
-    }
 
     if (method->params->order == MODULE_DEPS_BEFORE) {
-        module_add_method(module, method);
-    }
-}
+        tab_for_each_pos(pos, modules) {
+            module_t *m = modules->tab[pos];
 
-static void module_method_register_cb(module_method_impl_t *method)
-{
-    qh_t(ptr) already_registered;
+            if (module_is_loaded(m)) {
+                module_add_method(m, method);
+            }
+        }
+    } else
+    if (method->params->order == MODULE_DEPS_AFTER) {
+        tab_for_each_pos_rev(pos, modules) {
+            module_t *m = modules->tab[pos];
 
-    qv_clear(&method->callbacks);
-
-    qh_init(ptr, &already_registered);
-
-    qm_for_each_pos(module, position, &_G.modules) {
-        module_t *module = _G.modules.values[position];
-
-        if (module->state == MANU_REQ && module->required_by.len == 0) {
-            module_register_method(module, method, &already_registered);
-        } else
-        if (module->state == INITIALIZING) {
-            assert (_G.in_initialization);
-            tab_for_each_entry(dep, &module->dependent_of) {
-                module_t *module_dep = qm_get(module, &_G.modules, &dep);
-
-                if (module_is_loaded(module_dep)) {
-                    module_register_method(module_dep, method,
-                                           &already_registered);
-                }
+            if (module_is_loaded(m)) {
+                module_add_method(m, method);
             }
         }
     }
-
-    qh_wipe(ptr, &already_registered);
 }
 
 static void module_method_register_all_cb(void)
 {
+    t_scope;
+    qv_t(module) sorted_modules;
+    SB_1k(err);
+
+    t_qv_init(&sorted_modules, qm_len(module, &_G.modules));
+    if (modules_topo_sort_rev(&_G.modules, &sorted_modules, &err) < 0) {
+        e_fatal("%*pM", SB_FMT_ARG(&err));
+    }
+
     qm_for_each_pos(methods_impl, pos, &_G.methods) {
         module_method_impl_t *m = _G.methods.values[pos];
 
-        module_method_register_cb(m);
+        qv_clear(&m->callbacks);
+        module_method_register_cb(m, &sorted_modules);
     }
     _G.methods_dirty = false;
 }
