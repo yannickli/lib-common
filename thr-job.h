@@ -333,7 +333,25 @@ __must_check__
 static inline pid_t thr_job_fork(void)
 {
     bool prev_val = thr_job_reload_at_fork(true);
-    pid_t pid = fork();
+    pid_t pid;
+
+#ifdef SHARED
+    MODULE_METHOD_RUN_VOID(at_fork_prepare);
+#endif
+
+    pid = fork();
+
+#ifdef SHARED
+    /* XXX: when compiled as a shared library, module_register_at_fork()
+     * is not called as a constructor, so we need to manually call the
+     * methods. */
+    if (pid == 0) {
+        MODULE_METHOD_RUN_VOID(at_fork_on_child);
+    } else
+    if (pid > 0) {
+        MODULE_METHOD_RUN_VOID(at_fork_on_parent);
+    }
+#endif
 
     thr_job_reload_at_fork(prev_val);
 
