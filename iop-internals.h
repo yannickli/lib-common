@@ -676,6 +676,33 @@ typedef struct iop_dso_vt_t {
 
 #define T_IOP_ARRAY_DUP(array)  IOP_ARRAY_DUP(t_pool(), array)
 
+#define _IOP_ARRAY_NEW_ALLOC_MP(_mp, _new_fun, _iop_type, _len)              \
+    ({                                                                       \
+        typeof(_len) __len = _len;                                           \
+                                                                             \
+        IOP_TYPED_ARRAY(_iop_type, _new_fun(_mp, _iop_type##__t, __len,      \
+                                            alignof(_iop_type##__t)),        \
+                        __len);                                              \
+    })
+
+#define MP_IOP_ARRAY_NEW(_mp, _iop_type, _len)                               \
+    _IOP_ARRAY_NEW_ALLOC_MP(_mp, mpa_new, _iop_type, _len)
+
+#define MP_IOP_ARRAY_NEW_RAW(_mp, _iop_type, _len)                           \
+    _IOP_ARRAY_NEW_ALLOC_MP(_mp, mpa_new_raw, _iop_type, _len)
+
+#define T_IOP_ARRAY_NEW(_iop_type, _len)                                     \
+    MP_IOP_ARRAY_NEW(t_pool(), _iop_type, _len)
+
+#define T_IOP_ARRAY_NEW_RAW(_iop_type, _len)                                 \
+    MP_IOP_ARRAY_NEW_RAW(t_pool(), _iop_type, _len)
+
+#define IOP_ARRAY_NEW(_iop_type, _len)                                       \
+    MP_IOP_ARRAY_NEW(NULL, _iop_type, _len)
+
+#define IOP_ARRAY_NEW_RAW(_iop_type, _len)                                   \
+    MP_IOP_ARRAY_NEW_RAW(NULL, _iop_type, _len)
+
 /* }}} */
 
 #endif

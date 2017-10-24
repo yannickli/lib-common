@@ -5268,8 +5268,7 @@ Z_GROUP_EXPORT(iop)
         z_struct.st_ref = t_iop_new(tstiop__simple_struct);
         TEST("stRef", z_struct.st_ref, 1, false);
         TEST("stTab", z_struct.st_tab.tab, 0, false);
-        z_struct.st_tab.tab = t_new(tstiop__simple_struct__t, 42);
-        z_struct.st_tab.len = 42;
+        z_struct.st_tab = T_IOP_ARRAY_NEW(tstiop__simple_struct, 42);
         TEST("stTab", z_struct.st_tab.tab, 42, false);
 
         z_struct.obj = t_iop_new(tstiop__simple_class);
@@ -6188,6 +6187,28 @@ Z_GROUP_EXPORT(iop)
         }
 
         p_delete(&n.tab);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_array_new, "test the IOP_ARRAY_NEW* macros") { /* {{{ */
+        t_scope;
+        tstiop__my_struct_a__array_t array;
+
+#define TEST(macro, wipe)                                                    \
+    do {                                                                     \
+        p_clear(&array, 1);                                                  \
+        array = macro(tstiop__my_struct_a, 3);                               \
+        Z_ASSERT_P(array.tab);                                               \
+        Z_ASSERT_EQ(array.len, 3);                                           \
+                                                                             \
+        wipe(&array.tab);                                                    \
+    } while (0)
+
+        TEST(T_IOP_ARRAY_NEW, IGNORE);
+        TEST(T_IOP_ARRAY_NEW_RAW, IGNORE);
+        TEST(IOP_ARRAY_NEW, p_delete);
+        TEST(IOP_ARRAY_NEW_RAW, p_delete);
+
+#undef TEST
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */
