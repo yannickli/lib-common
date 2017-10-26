@@ -191,7 +191,7 @@ int F(read_cpu_signature)(uint32_t *dst)
 /* IOP Licences {{{ */
 
 ATTRS
-static __must_check__
+__must_check__
 int F(licence_check_iop_host)(const core__licence__t *licence)
 {
     /* check optional CPU Signatures */

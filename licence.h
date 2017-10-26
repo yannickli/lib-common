@@ -55,19 +55,12 @@ typedef enum licence_expiry_t {
     LICENCE_EXPIRES_SOON = 2,
 } licence_expiry_t;
 
-/** Check an IOP Licence.
+/** Check the licence is valid for the current host.
  *
- * \warning this function won't check the licence expiry: use
- *          \ref licence_check_iop_expiry for that.
- *
- * \param[in] licence     The signed licence structure.
- * \param[in] version     The version of the product we're running on,
- *                        LSTR_NULL if the version should not be checked.
- * \param[in] flags       Flags to use to compute the signature.
+ * \param[in]  licence      The licence structure to check.
  */
 __must_check__
-int licence_check_iop(const struct core__signed_licence__t *licence,
-                      lstr_t version, unsigned flags);
+int licence_check_iop_host(const struct core__licence__t *licence);
 
 /** Check the expiration of an IOP Licence.
  *
@@ -75,6 +68,13 @@ int licence_check_iop(const struct core__signed_licence__t *licence,
  */
 __must_check__ licence_expiry_t
 licence_check_iop_expiry(const struct core__licence__t *licence);
+
+/** Check the licence modules are valid.
+ *
+ * \param[in]  licence      The licence structure to check.
+ */
+__must_check__
+int licence_check_modules(const struct core__licence__t *licence);
 
 /** Returns a licence module.
  *
@@ -111,10 +111,5 @@ __must_check__ licence_expiry_t
 licence_check_module_expiry(const struct core__licence_module__t *licence);
 
 /* }}} */
-/*{{{ Private function. Exposed for unit tests pruposes only. */
 
-__must_check__
-int licence_check_modules(const struct core__licence__t *licence);
-
-/*}}} */
 #endif /* IS_LIB_COMMON_LICENCE_H */

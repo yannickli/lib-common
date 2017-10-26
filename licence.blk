@@ -430,19 +430,6 @@ int licence_check_modules(const core__licence__t *licence)
     return 0;
 }
 
-int licence_check_iop(const core__signed_licence__t *signed_licence,
-                      lstr_t version, unsigned flags)
-{
-    const core__licence__t *licence = signed_licence->licence;
-
-    RETHROW(iop_check_signature(&core__licence__s, licence,
-                                signed_licence->signature, flags));
-    RETHROW(licence_check_iop_host(licence));
-    RETHROW(licence_check_modules(licence));
-
-    return 0;
-}
-
 __must_check__
 const struct core__licence_module__t *
 licence_get_module_desc(const struct core__licence__t *licence,

@@ -438,28 +438,6 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
  */
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
-#ifdef SSL_HAVE_EVP_PKEY
-
-/** Check an IOP Licence signed using a RSA key.
- *
- * \warning this function won't check the licence expiry: use
- *          \ref licence_check_iop_expiry for that.
- *
- * \param[in] licence     The signed licence structure.
- * \param[in] version     The version of the product we're running on,
- *                        LSTR_NULL if the version should not be checked.
- * \param[in] pub_key     The public key in PEM format of the RSA key that was
- *                        used to sign he licence.
- * \param[in] flags       Flags to use to compute the signature.
- * \param[in] pass_cb     A callback used to retrieve the password of \p
- *                        pub_key in case it is encrypted.
- */
-__must_check__
-int licence_check_rsa(const struct core__signed_licence__t *licence,
-                      lstr_t version, lstr_t pub_key, unsigned flags,
-                      pem_password_b nullable pass_cb);
-#endif
-
 /* }}} */
 /* Module {{{ */
 
