@@ -189,10 +189,9 @@ class Licence {
      * After that date the product could be used until \ref expirationHardDate
      * but it will emit errors.
      */
-    @length(11) @pattern("[a-zA-Z0-9\-]*")
     @(licence:label, en = "Expiration date"
                    , fr = "Date d\'expiration")
-    string expirationDate = "31-dec-2035";
+    ExpirationDate expirationDate = "31-dec-2035";
 
     /** Real expiration date of the licence.
      *
