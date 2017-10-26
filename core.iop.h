@@ -45,12 +45,12 @@ struct core__log__set_root_level_args__t {
     bool     is_silent;
 };
 EXPORT iop_struct_t const core__log__set_root_level_args__s;
-EXPORT iop_struct_t const * const nonnull  core__log__set_root_level_args__sp;
+EXPORT iop_struct_t const * const nonnull core__log__set_root_level_args__sp;
 struct core__log__set_root_level_res__t {
     core__log_level__t level;
 };
 EXPORT iop_struct_t const core__log__set_root_level_res__s;
-EXPORT iop_struct_t const * const nonnull  core__log__set_root_level_res__sp;
+EXPORT iop_struct_t const * const nonnull core__log__set_root_level_res__sp;
 #define core__log__set_root_level__rpc__tag    0x0001
 #define core__log__set_root_level__rpc__async  0
 #define core__log__set_root_level__rpc         (core__log__if.funs + 0)
@@ -59,7 +59,7 @@ struct core__log__reset_root_level_res__t {
     core__log_level__t level;
 };
 EXPORT iop_struct_t const core__log__reset_root_level_res__s;
-EXPORT iop_struct_t const * const nonnull  core__log__reset_root_level_res__sp;
+EXPORT iop_struct_t const * const nonnull core__log__reset_root_level_res__sp;
 #define core__log__reset_root_level__rpc__tag    0x0002
 #define core__log__reset_root_level__rpc__async  0
 #define core__log__reset_root_level__rpc         (core__log__if.funs + 1)
@@ -71,12 +71,12 @@ struct core__log__set_logger_level_args__t {
     bool     is_silent;
 };
 EXPORT iop_struct_t const core__log__set_logger_level_args__s;
-EXPORT iop_struct_t const * const nonnull  core__log__set_logger_level_args__sp;
+EXPORT iop_struct_t const * const nonnull core__log__set_logger_level_args__sp;
 struct core__log__set_logger_level_res__t {
     core__log_level__t level;
 };
 EXPORT iop_struct_t const core__log__set_logger_level_res__s;
-EXPORT iop_struct_t const * const nonnull  core__log__set_logger_level_res__sp;
+EXPORT iop_struct_t const * const nonnull core__log__set_logger_level_res__sp;
 #define core__log__set_logger_level__rpc__tag    0x0003
 #define core__log__set_logger_level__rpc__async  0
 #define core__log__set_logger_level__rpc         (core__log__if.funs + 2)
@@ -85,12 +85,12 @@ struct core__log__reset_logger_level_args__t {
     lstr_t   full_name;
 };
 EXPORT iop_struct_t const core__log__reset_logger_level_args__s;
-EXPORT iop_struct_t const * const nonnull  core__log__reset_logger_level_args__sp;
+EXPORT iop_struct_t const * const nonnull core__log__reset_logger_level_args__sp;
 struct core__log__reset_logger_level_res__t {
     core__log_level__t level;
 };
 EXPORT iop_struct_t const core__log__reset_logger_level_res__s;
-EXPORT iop_struct_t const * const nonnull  core__log__reset_logger_level_res__sp;
+EXPORT iop_struct_t const * const nonnull core__log__reset_logger_level_res__sp;
 #define core__log__reset_logger_level__rpc__tag    0x0004
 #define core__log__reset_logger_level__rpc__async  0
 #define core__log__reset_logger_level__rpc         (core__log__if.funs + 3)
@@ -99,18 +99,18 @@ struct core__log__list_loggers_args__t {
     lstr_t           prefix;
 };
 EXPORT iop_struct_t const core__log__list_loggers_args__s;
-EXPORT iop_struct_t const * const nonnull  core__log__list_loggers_args__sp;
+EXPORT iop_struct_t const * const nonnull core__log__list_loggers_args__sp;
 struct core__log__list_loggers_res__t {
     core__logger_configuration__array_t loggers;
 };
 EXPORT iop_struct_t const core__log__list_loggers_res__s;
-EXPORT iop_struct_t const * const nonnull  core__log__list_loggers_res__sp;
+EXPORT iop_struct_t const * const nonnull core__log__list_loggers_res__sp;
 #define core__log__list_loggers__rpc__tag    0x0005
 #define core__log__list_loggers__rpc__async  0
 #define core__log__list_loggers__rpc         (core__log__if.funs + 4)
 
 EXPORT iop_iface_t const core__log__if;
-EXPORT iop_iface_t const * const nonnull  core__log__ifp;
+EXPORT iop_iface_t const * const nonnull core__log__ifp;
 
 
 /*----- module core.Core -----*/
@@ -119,11 +119,11 @@ EXPORT iop_iface_t const * const nonnull  core__log__ifp;
 #define core__core__log__alias  (core__core__mod.ifaces + 0)
 
 EXPORT iop_mod_t const core__core__mod;
-EXPORT iop_mod_t const * const nonnull  core__core__modp;
+EXPORT iop_mod_t const * const nonnull core__core__modp;
 
 
 /*----- package core -----*/
 EXPORT iop_pkg_t const core__pkg;
-EXPORT iop_pkg_t const * const nonnull  core__pkgp;
+EXPORT iop_pkg_t const * const nonnull core__pkgp;
 
 #endif

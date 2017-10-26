@@ -213,6 +213,7 @@ public enum core : libcommon.IopPackage {
         public var `cpuSignatures` : [Swift.Int64]
         public var `macAddresses` : [Swift.String]
         public var `modules` : [core_package.LicenceModule]
+        public var `signatureTs` : Swift.Int64?
 
         public init(`expirationDate`: Swift.String = "31-dec-2035",
                     `expirationHardDate`: Swift.String? = nil,
@@ -222,7 +223,8 @@ public enum core : libcommon.IopPackage {
                     `productionUse`: Swift.Bool,
                     `cpuSignatures`: [Swift.Int64] = [],
                     `macAddresses`: [Swift.String] = [],
-                    `modules`: [core_package.LicenceModule] = []) {
+                    `modules`: [core_package.LicenceModule] = [],
+                    `signatureTs`: Swift.Int64? = nil) {
             self.expirationDate = `expirationDate`
             self.expirationHardDate = `expirationHardDate`
             self.expirationWarningDelay = `expirationWarningDelay`
@@ -232,6 +234,7 @@ public enum core : libcommon.IopPackage {
             self.cpuSignatures = `cpuSignatures`
             self.macAddresses = `macAddresses`
             self.modules = `modules`
+            self.signatureTs = `signatureTs`
             super.init()
         }
 
@@ -246,6 +249,9 @@ public enum core : libcommon.IopPackage {
             self.cpuSignatures = Swift.Array(data.pointee.cpu_signatures.buffer)
             self.macAddresses = data.pointee.mac_addresses.buffer.map {                return Swift.String($0) ?? ""}
             self.modules = try data.pointee.modules.buffer.map {                return try core_package.LicenceModule.make(Swift.UnsafeRawPointer($0))}
+            if data.pointee.signature_ts.has_field {
+                self.signatureTs = data.pointee.signature_ts.v
+            }
             try super.init(c)
         }
 
@@ -263,6 +269,12 @@ public enum core : libcommon.IopPackage {
             data.pointee.cpu_signatures.len = Swift.Int32(self.cpuSignatures.count)
             data.pointee.mac_addresses = .init(self.macAddresses, on: allocator)
             libcommon.duplicate(classArray: self.modules, to: &data.pointee.modules, on: allocator)
+            if let signatureTs_val = self.signatureTs {
+                data.pointee.signature_ts.has_field = true
+                data.pointee.signature_ts.v = signatureTs_val
+            } else {
+                data.pointee.signature_ts.has_field = false
+            }
         }
     }
 
