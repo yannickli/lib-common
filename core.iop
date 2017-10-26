@@ -246,6 +246,12 @@ class Licence {
     @(licence:label, en = "Modules"
                    , fr = "Modules")
     LicenceModule[] modules;
+
+    /** Date at which the licence was signed. */
+    /* Thanks to this attribute, the iop-sign tool will automatically set this
+     * field before signing a licence. */
+    @(iopSign:signatureTs, true)
+    long? signatureTs;
 };
 
 /** Signed licence.
