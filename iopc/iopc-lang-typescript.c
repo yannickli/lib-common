@@ -143,6 +143,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
     if (_G.enable_iop_backbone) {
         bool import_struct = false;
         bool import_base_class = false;
+        bool import_class = false;
         bool import_union = false;
         bool import_coll = false;
 
@@ -155,6 +156,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
                 }
                 break;
               case STRUCT_TYPE_CLASS:
+                import_class = true;
                 if (!st->extends.len) {
                     import_base_class = true;
                     if (iopc_should_dump_coll(st)) {
@@ -208,11 +210,17 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
             sb_adds(buf, "import { IopCollection } from 'iop/backbone/collection';\n");
         }
 
+        sb_adds(buf, "import iop = require('iop/backbone');\n");
         if (pkg->enums.len) {
             sb_adds(buf, "import { Enumeration } from 'iop/enumeration';\n");
+            sb_adds(buf, "const enumeration = iop.enumeration;\n");
         }
 
-        sb_adds(buf, "import iop = require('iop/backbone');\n");
+
+        if (import_struct || import_union || import_class) {
+            sb_adds(buf, "const registerModel = iop.backbone.registerModel;\n");
+            sb_adds(buf, "const registerCollection = iop.backbone.registerCollection;\n");
+        }
         sb_addf(buf, "import JSON = require('json/%s.iop.json');\n",
                 pp_path(pkg->name));
 
@@ -302,7 +310,7 @@ static void iopc_dump_enum(sb_t *buf, const char *indent,
         sb_addf(buf, "%s}\n", indent);
 
         sb_addf(buf, "%sexport const %s_Model: %s_ModelIf "
-                "= iop.enumeration<%s_Str, %s_Int>('%s.%s') as any;\n",
+                "= enumeration<%s_Str, %s_Int>('%s.%s') as any;\n",
                 indent, en->name, en->name, en->name,  en->name,
                 pp_dot(pkg->name), en->name);
     }
@@ -451,6 +459,10 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
         st_name = st->name;
     }
 
+    sb_addf(buf, "%sconst %s_fullname = '%s%s%s.%s';\n",
+            indent, st_name, pp_dot(pkg->name), st->iface ? "." : "",
+            st->iface ? st->iface->name : "", st_name);
+
     iopc_struct_sort_fields(st, BY_POS);
 
     sb_addf(buf, "%sexport interface %s", indent, st_name);
@@ -538,10 +550,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
         }
 
         sb_addf(buf, "%s};\n", indent);
-        sb_addf(buf, "%siop.backbone.registerModel(%s_Model, '%s%s%s.%s');\n",
-                indent, st_name, pp_dot(pkg->name),
-                st->iface ? "." : "", st->iface ? st->iface->name : "",
-                st_name);
+        sb_addf(buf, "%sregisterModel(%s_Model, %s_fullname);\n",
+                indent, st_name, st_name);
         if (iopc_should_dump_coll(st)) {
             if (iopc_is_class(st->type)) {
                 sb_addf(buf, "%sexport class %s_Collection<Model extends "
@@ -562,10 +572,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
                         indent, st_name, st_name);
             }
-            sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s%s%s.%s');\n",
-                    indent, st_name, pp_dot(pkg->name),
-                    st->iface ? "." : "", st->iface ? st->iface->name : "",
-                    st_name);
+            sb_addf(buf, "%sregisterCollection(%s_Collection, %s_fullname);\n",
+                    indent, st_name, st_name);
         }
     }
 }
@@ -619,6 +627,9 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
 
 
     if (_G.enable_iop_backbone) {
+        sb_addf(buf, "%sconst %s_fullname = '%s.%s';\n",
+                indent, st_name, pp_dot(pkg->name), st_name);
+
         first = true;
         sb_addf(buf, "%sexport type %s_ModelPairs = ", indent, st_name);
         tab_for_each_entry(field, &st->fields) {
@@ -664,12 +675,12 @@ static void iopc_dump_union(sb_t *buf, const char *indent,
         }
 
         sb_addf(buf, "%s};\n", indent);
-        sb_addf(buf, "%siop.backbone.registerModel(%s_Model, '%s.%s');\n",
-                indent, st_name, pp_dot(pkg->name), st_name);
+        sb_addf(buf, "%sregisterModel(%s_Model, %s_fullname);\n",
+                indent, st_name, st_name);
         sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
                 indent, st_name, st_name);
-        sb_addf(buf, "%siop.backbone.registerCollection(%s_Collection, '%s.%s');\n",
-                indent, st_name, pp_dot(pkg->name), st_name);
+        sb_addf(buf, "%sregisterCollection(%s_Collection, %s_fullname);\n",
+                indent, st_name, st_name);
     }
 }
 
