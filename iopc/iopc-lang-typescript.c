@@ -342,9 +342,6 @@ static void iopc_dump_field_basetype(sb_t *buf, const iopc_pkg_t *pkg,
                                  field->type_name);
         if (suffix) {
             sb_adds(buf, suffix);
-        } else
-        if (iopc_is_class(field->struct_def->type)) {
-            sb_adds(buf, "_If");
         }
         break;
 
@@ -456,22 +453,21 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
 
     iopc_struct_sort_fields(st, BY_POS);
 
-    if (iopc_is_class(st->type)) {
-        sb_addf(buf, "%sexport interface %s_If", indent, st_name);
+    sb_addf(buf, "%sexport interface %s", indent, st_name);
+    if (iopc_is_class(st->type) && st->extends.len) {
+        const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
+        const iopc_struct_t *parent = st->extends.tab[0]->st;
 
-        if (st->extends.len) {
-            const iopc_pkg_t *parent_pkg = st->extends.tab[0]->pkg;
-            const iopc_struct_t *parent = st->extends.tab[0]->st;
-
-            sb_adds(buf, " extends ");
-            iopc_dump_package_member(buf, pkg, parent_pkg, parent_pkg->name,
-                                     parent->name);
-        }
-    } else {
-        sb_addf(buf, "%sexport interface %s", indent, st_name);
+        sb_adds(buf, " extends ");
+        iopc_dump_package_member(buf, pkg, parent_pkg, parent_pkg->name,
+                                 parent->name);
     }
 
     sb_adds(buf, " {\n");
+
+    if (iopc_is_class(st->type) && !st->extends.len) {
+        sb_addf(buf, "%s    _class: string;\n", indent);
+    }
 
     tab_for_each_entry(field, &st->fields) {
         sb_addf(buf, "%s    ", indent);
@@ -480,11 +476,6 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
     }
 
     sb_addf(buf, "%s}\n", indent);
-
-    if (iopc_is_class(st->type)) {
-        sb_addf(buf, "%sexport type %s = { _class: '%s.%s' } & %s_If;\n",
-                indent, st_name, pp_dot(pkg->name), st_name, st_name);
-    }
 
     if (_G.enable_iop_backbone) {
         if (iopc_is_class(st->type)) {
