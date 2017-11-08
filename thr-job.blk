@@ -548,6 +548,8 @@ static void thr_queue_run_node(mpsc_node_t *m, data_t data)
     job_run(job, syn);
 }
 
+#define THR_QUEUE_NOT_RUNNING  -2
+
 static void thr_queue_drain(thr_queue_t *q)
 {
     bool wipe = false;
@@ -574,7 +576,8 @@ static void thr_queue_drain(thr_queue_t *q)
         job_run(n->job, n->syn);
         wipe = (n->job == &q->destroy);
     } while (!mpsc_queue_drain_end(&it, &thr_qnode_destroy));
-    atomic_compare_exchange_strong(&q->running_on, &id, -1);
+    atomic_compare_exchange_strong(&q->running_on, &id,
+                                   THR_QUEUE_NOT_RUNNING);
 
     if (wipe) {
         thr_queue_delete(&q);
@@ -601,7 +604,7 @@ static thr_queue_t *thr_queue_init(thr_queue_t *q)
     mpsc_queue_init(&q->q);
     q->run.run     = &thr_queue_run;
     q->destroy.run = &thr_queue_finalize;
-    atomic_init(&q->running_on, -1);
+    atomic_init(&q->running_on, THR_QUEUE_NOT_RUNNING);
     return q;
 }
 
