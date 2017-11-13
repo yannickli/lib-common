@@ -2919,31 +2919,36 @@ void qps_snapshot_wait(qps_t *qps)
         thr_syn_wait(&qps->snap_syn);
 
         if (qps->snap_el) {
-            int status;
-            bool first = true;
+            thr_syn_schedule_b(&qps->snap_syn, ^{
+                int status;
+                bool first = true;
 
-            for (;;) {
-                int ret = waitpid(qps->snap_pid, &status, 0);
+                for (;;) {
+                    int ret = waitpid(qps->snap_pid, &status, 0);
 
-                if (ret == qps->snap_pid) {
-                    break;
-                } else
-                if (errno == ECHILD) {
-                    /* XXX The child probably get collected by the
-                     * el_child_register call that performs a waitpid(), but
-                     * we may not have returned to the event loop since then,
-                     * so the el didn't get fired. As a consequence, we get
-                     * the status cached by the el_t.
-                     */
-                    assert (first);
-                    status = el_child_get_status(qps->snap_el);
-                    break;
+                    if (ret == qps->snap_pid) {
+                        break;
+                    } else
+                    if (errno == ECHILD) {
+                        /* XXX The child probably get collected by the
+                         * el_child_register call that performs a waitpid(), but
+                         * we may not have returned to the event loop since then,
+                         * so the el didn't get fired. As a consequence, we get
+                         * the status cached by the el_t.
+                         */
+                        assert (first);
+                        status = el_child_get_status(qps->snap_el);
+                        break;
+                    }
+                    first = false;
                 }
-                first = false;
-            }
-            el_unregister(&qps->snap_el);
-            qps_snapshot_bg_done(NULL, qps->snap_pid, status,
-                                 (data_t){ .ptr = qps });
+                thr_syn_queue_b(&qps->snap_syn, thr_queue_main_g, ^{
+                    el_unregister(&qps->snap_el);
+                    qps_snapshot_bg_done(NULL, qps->snap_pid, status,
+                                         (data_t){ .ptr = qps });
+                });
+            });
+            thr_syn_wait(&qps->snap_syn);
         }
 
         while (qps->snapshotting) {
