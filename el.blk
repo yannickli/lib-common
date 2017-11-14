@@ -302,8 +302,6 @@ static ev_t *el_create(ev_type_t type, void *cb, data_t priv, bool ref)
     logger_trace(&_G.logger, 2, "creating event %p (%s)",
                  res, ev_type_to_str(res->type));
     assert (MODULE_IS_LOADED(el) || MODULE_IS_INITIALIZING(el));
-    assert (!MODULE(thr) || !MODULE_IS_LOADED(thr)
-            || thr_is_on_queue(thr_queue_main_g));
 
     _G.used++;
     return ref ? el_ref(res) : res;
