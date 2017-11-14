@@ -1626,6 +1626,9 @@ void el_loop_timeout(int timeout)
         dlist_splice(&_G.evs_free, &_G.evs_gc);
     }
     _G.loop_depth--;
+
+    /* Eventually reset the thread-local t_pool. */
+    mem_stack_pool_try_reset(&t_pool_g);
 }
 
 void el_bl_use(void)

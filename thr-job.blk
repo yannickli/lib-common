@@ -821,6 +821,9 @@ static void *thr_job_main(void *arg)
     thr_info_init(arg);
     pthread_cleanup_push(thr_info_cleanup, NULL);
 
+    /* Ensure there is no open frame on the t_stack. */
+    assert (mem_stack_is_at_top(&t_pool_g));
+
     /* explanation of thread states :
      * thread_id <  target_thread_count : active threads
      * thread_id == target_thread_count : this thread is kept on disposal
@@ -833,6 +836,10 @@ static void *thr_job_main(void *arg)
 
         /* quarantine and obsolete threads loop */
         if (!cond()) {
+
+            /* Eventually reset the thread-local t_pool. */
+            mem_stack_pool_try_reset(&t_pool_g);
+
             /* We may have been woken up by the addition of a new job in the
              * queue of a thread, so we must make sure another thread will
              * take over so there is no deadlock.
@@ -848,6 +855,9 @@ static void *thr_job_main(void *arg)
                 continue;
             }
         }
+
+        /* Eventually reset the thread-local t_pool. */
+        mem_stack_pool_try_reset(&t_pool_g);
 
         while (likely(thr_job_dequeue())) {
             continue;
