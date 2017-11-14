@@ -113,12 +113,11 @@ typedef struct mem_stack_pool_t {
     /* hot data : align on cache boundary */
     __attribute__((aligned(64)))
 #endif
-    mem_stack_frame_t   * nonnull stack;     /*<  0  (8) : everywhere */
-    size_t               alloc_sz;  /*<  8  (8) : alloc */
-    uint32_t             alloc_nb;  /*< 16  (4) : alloc */
-    uint32_t             nbpops;    /*< 20  (4) : pop */
-
-    mem_pool_t           funcs;     /*< 24 (40) : mp_* functions */
+    mem_stack_frame_t   * nonnull stack; /*<  0  (8) : everywhere */
+    size_t               alloc_sz;       /*<  8  (8) : alloc */
+    uint32_t             alloc_nb;       /*< 16  (4) : alloc */
+    uint32_t             padding;        /*< 20  (4) : never */
+    mem_pool_t           funcs;          /*< 24 (40) : mp_* functions */
 
     /* ---- cache line boundary (offset 64) ---- */
 
@@ -129,8 +128,9 @@ typedef struct mem_stack_pool_t {
     mem_stack_frame_t    base;      /*< never */
     uint32_t             minsize;   /*< blk_create */
 
-    size_t               stacksize; /*< blk_create / blk_destroy */
-    uint32_t             nb_blocks; /*< blk_create / blk_destroy */
+    size_t               stacksize;  /*< blk_create / blk_destroy */
+    uint32_t             nb_blocks;  /*< blk_create / blk_destroy */
+    time_t               last_reset; /*< mem_stack_pool_(check_)reset */
 
 #ifdef MEM_BENCH
     /* never mind data : bench */
@@ -142,6 +142,7 @@ typedef struct mem_stack_pool_t {
 mem_stack_pool_t * nonnull
 mem_stack_pool_init(mem_stack_pool_t * nonnull, int initialsize) __leaf;
 void mem_stack_pool_reset(mem_stack_pool_t * nonnull) __leaf;
+void mem_stack_pool_try_reset(mem_stack_pool_t * nonnull) __leaf;
 void mem_stack_pool_wipe(mem_stack_pool_t * nonnull) __leaf;
 
 #ifndef NDEBUG
@@ -199,9 +200,9 @@ const void * nonnull mem_stack_pop(mem_stack_pool_t * nonnull sp)
 #endif
     assert (sp->stack);
     mem_stack_protect(sp, frame);
-    if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
-        sp->nbpops = 0;
-        mem_stack_pool_reset(sp);
+
+    if (mem_stack_is_at_top(sp)) {
+        mem_stack_pool_try_reset(sp);
     }
     return frame;
 }

@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "container-dlist.h"
+#include "datetime.h"
 #include "thr.h"
 
 #ifdef MEM_BENCH
@@ -473,9 +474,9 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
      */
     sp->stack     = &sp->base;
 
-    sp->alloc_sz  = 0;
-    sp->alloc_nb  = 1; /* avoid the division by 0 */
-    sp->nbpops    = 0;
+    sp->alloc_sz   = 0;
+    sp->alloc_nb   = 1; /* avoid the division by 0 */
+    sp->last_reset = lp_getsec();
 
     sp->funcs     = pool_funcs;
 
@@ -536,6 +537,7 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
      * and less than 256*alloc_mean.
      * we keep the biggest in this range.
      */
+    sp->last_reset = lp_getsec();
     saved_blk  = NULL;
     saved_size = RESET_MIN * sp_alloc_mean(sp);
     max_size   = RESET_MAX * sp_alloc_mean(sp);
@@ -559,6 +561,32 @@ void mem_stack_pool_reset(mem_stack_pool_t *sp)
     } else {
         frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
     }
+}
+
+void mem_stack_pool_try_reset(mem_stack_pool_t *sp)
+{
+    size_t size_limit = 1 << 20; /* 1 MiB */
+
+    /* Reset only at top stacks. */
+    if (!mem_stack_is_at_top(sp)) {
+        return;
+    }
+
+    /* Do not reset small stacks (10 MiB on the main thread, 1 MiB on the
+     * others). */
+    if (thr_is_on_queue(thr_queue_main_g)) {
+        size_limit *= 10;
+    }
+    if (sp->stacksize < size_limit) {
+        return;
+    }
+
+    /* Do not reset more than once per minute. */
+    if (sp->last_reset + 60 > lp_getsec()) {
+        return;
+    }
+
+    mem_stack_pool_reset(sp);
 }
 
 void mem_stack_pool_wipe(mem_stack_pool_t *sp)
