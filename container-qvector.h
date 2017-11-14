@@ -93,7 +93,7 @@ void __qvector_diff(const qvector_t * nonnull vec1,
                     qvector_t * nullable add, qvector_t * nullable del,
                     qvector_t * nullable inter, size_t v_size, size_t v_align,
                     qvector_cmp_b nonnull cmp);
-int  __qvector_bisect(const qvector_t * nonnull vec, size_t v_size, 
+int  __qvector_bisect(const qvector_t * nonnull vec, size_t v_size,
                       const void * nonnull elt, bool * nullable found,
                       qvector_cmp_b nonnull cmp);
 int __qvector_find(const qvector_t * nonnull vec, size_t v_size,
@@ -164,6 +164,9 @@ void * nonnull qvector_growlen(qvector_t * nonnull vec, size_t v_size,
     vec->len += extra;
     return res;
 }
+
+uint64_t __qvector_grow_get_new_alloc_size(qvector_t *nonnull vec,
+                                           size_t v_size, int extra);
 
 static inline void * nonnull
 qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
@@ -439,6 +442,19 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
 #define qv_growlen(vec, extra)                                               \
     ({ (__qv_typeof(vec) *)qvector_growlen(&(vec)->qv, __qv_sz(vec),         \
                                            __qv_align(vec), (extra)); })
+
+/** Get the amount of memory needed to perform such grow call.
+ *
+ * Parameters are identical to \ref qv_grow ones.
+ *
+ * \return  The amount of memory that will need to be allocated in order to
+ * perform successfully such a call to \ref qv_grow function.
+ */
+#define qv_grow_get_alloc_size(vec, extra)                                   \
+    ({                                                                       \
+        __qvector_grow_get_new_alloc_size(&(vec)->qv, __qv_sz(vec),          \
+                                          (extra));                          \
+    })
 
 #define qv_grow0(vec, extra)                                                 \
     ({                                                                       \

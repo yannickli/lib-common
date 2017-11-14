@@ -37,23 +37,52 @@ void qvector_wipe(qvector_t *vec, size_t v_size)
     __qvector_reset(vec, v_size, 0);
 }
 
-void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
+static void qvector_get_grow_info(qvector_t *vec, size_t v_size, int extra,
+                                  int *newsz, bool *needs_alloc)
 {
     int newlen = vec->len + extra;
-    int newsz;
 
     if (unlikely(newlen < 0)) {
         e_panic("trying to allocate insane amount of memory");
     }
 
     if (newlen < vec->size) {
+        *needs_alloc = false;
         return;
     }
 
-    newsz = p_alloc_nr(vec->size);
-    if (newsz < newlen) {
-        newsz = newlen;
+    *newsz = p_alloc_nr(vec->size);
+    if (*newsz < newlen) {
+        *newsz = newlen;
     }
+
+    *needs_alloc = true;
+}
+
+uint64_t __qvector_grow_get_new_alloc_size(qvector_t *nonnull vec,
+                                           size_t v_size, int extra)
+{
+    int newsz;
+    bool needs_alloc;
+
+    qvector_get_grow_info(vec, v_size, extra, &newsz, &needs_alloc);
+
+    if (!needs_alloc) {
+        return 0;
+    }
+    return newsz * v_size;
+}
+
+void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
+{
+    int newsz;
+    bool needs_alloc;
+
+    qvector_get_grow_info(vec, v_size, extra, &newsz, &needs_alloc);
+    if (!needs_alloc) {
+        return;
+    }
+
     vec->tab = mp_irealloc_fallback(&vec->mp, vec->tab, vec->len * v_size,
                                     newsz * v_size, v_align, MEM_RAW);
     vec->size = newsz;
