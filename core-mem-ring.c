@@ -31,8 +31,8 @@
 /** Size tuning parameters.
  * These are multiplicative factors over rp_alloc_mean.
  */
-#define RESET_MIN   56 /*< minimum size in mem_stack_pool_reset */
-#define RESET_MAX  256 /*< maximum size in mem_stack_pool_reset */
+#define RESET_MIN   56 /*< minimum size in mem_ring_reset */
+#define RESET_MAX  256 /*< maximum size in mem_ring_reset */
 
 typedef struct ring_pool_t ring_pool_t;
 
