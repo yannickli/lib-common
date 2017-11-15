@@ -120,14 +120,17 @@ typedef struct mem_stack_pool_t {
 
     mem_pool_t           funcs;     /*< 24 (40) : mp_* functions */
 
-    /* cache line boundary */
+    /* ---- cache line boundary (offset 64) ---- */
 
-    /* cold data : root block */
+    /* cold data : root block (alias on a mem_stack_blk_t) */
     size_t               size;      /*< never */
     dlist_t              blk_list;  /*< blk_create */
 
     mem_stack_frame_t    base;      /*< never */
     uint32_t             minsize;   /*< blk_create */
+
+    size_t               stacksize; /*< blk_create / blk_destroy */
+    uint32_t             nb_blocks; /*< blk_create / blk_destroy */
 
 #ifdef MEM_BENCH
     /* never mind data : bench */

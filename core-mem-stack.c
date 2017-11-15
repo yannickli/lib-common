@@ -67,6 +67,9 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp,
     blk->size      = blksize - sizeof(*blk);
     dlist_add_after(&cur->blk_list, &blk->blk_list);
 
+    sp->stacksize += blk->size;
+    sp->nb_blocks++;
+
 #ifdef MEM_BENCH
     sp->mem_bench->malloc_calls++;
     sp->mem_bench->current_allocated += blk->size;
@@ -91,6 +94,9 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
         mem_bench_print_csv(sp->mem_bench);
     }
 #endif
+
+    sp->stacksize -= blk->size;
+    sp->nb_blocks--;
 
     dlist_remove(&blk->blk_list);
     mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
@@ -486,6 +492,9 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
         initialsize = 640 << 10;
     sp->minsize   = ROUND_UP(initialsize, PAGE_SIZE);
 
+    sp->stacksize = 0;
+    sp->nb_blocks = 0;
+
 #ifndef NDEBUG
     /* bypass mem_pool if demanded
      * XXX this code is intentionnally
@@ -572,6 +581,7 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     dlist_for_each(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
     }
+    assert (sp->stacksize == 0);
 }
 
 const void *mem_stack_push(mem_stack_pool_t *sp)
