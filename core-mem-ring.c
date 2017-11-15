@@ -13,6 +13,7 @@
 
 #include "arith.h"
 #include "container-dlist.h"
+#include "str-buf-pp.h"
 #include "thr.h"
 #include "log.h"
 
@@ -33,6 +34,17 @@
  */
 #define RESET_MIN   56 /*< minimum size in mem_ring_reset */
 #define RESET_MAX  256 /*< maximum size in mem_ring_reset */
+
+static struct {
+    logger_t logger;
+
+    dlist_t all_pools;
+    spinlock_t all_pools_lock;
+} core_mem_ring_g = {
+#define _G  core_mem_ring_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "core-mem-ring"),
+    .all_pools = DLIST_INIT(_G.all_pools),
+};
 
 typedef struct ring_pool_t ring_pool_t;
 
@@ -72,6 +84,8 @@ struct ring_pool_t {
     bool         alive : 1;
 
     mem_pool_t   funcs;
+
+    dlist_t      pool_list;
 };
 
 struct mem_ring_checkpoint {
@@ -389,6 +403,10 @@ mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
     mem_tool_allow_memory(blk->area, sizeof(frame_t), false);
     ring_setup_frame(rp, blk, acast(frame_t, &blk->area));
 
+    spin_lock(&_G.all_pools_lock);
+    dlist_add_tail(&_G.all_pools, &rp->pool_list);
+    spin_unlock(&_G.all_pools_lock);
+
     return &rp->funcs;
 }
 
@@ -419,6 +437,10 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
             *rpp = NULL;
             return;
         }
+
+        spin_lock(&_G.all_pools_lock);
+        dlist_remove(&rp->pool_list);
+        spin_unlock(&_G.all_pools_lock);
 
         dlist_for_each(e, &rp->cblk->blist) {
             blk_destroy(rp, blk_entry(e));
@@ -742,5 +764,110 @@ size_t mem_ring_memory_footprint(const mem_pool_t *_rp)
 
     return sizeof(*rp) + rp->ringsize;
 }
+
+/* }}} */
+/* {{{ Module (for print_state method) */
+
+static void core_mem_ring_print_state(void)
+{
+    t_scope;
+    qv_t(table_hdr) hdr;
+    qv_t(table_data) rows;
+    table_hdr_t hdr_data[] = { {
+            .title = LSTR_IMMED("MEM RING POOL"),
+        }, {
+            .title = LSTR_IMMED("MIN SIZE"),
+        }, {
+            .title = LSTR_IMMED("RING SIZE"),
+        }, {
+            .title = LSTR_IMMED("NB PAGES"),
+        }, {
+            .title = LSTR_IMMED("ALLOC SIZE"),
+        }, {
+            .title = LSTR_IMMED("ALLOC NB"),
+        }, {
+            .title = LSTR_IMMED("ALLOC MEAN"),
+        }
+    };
+    uint32_t hdr_size = countof(hdr_data);
+    size_t   total_ringsize = 0;
+    size_t   total_nbpages  = 0;
+    size_t   total_alloc_sz = 0;
+    uint64_t total_alloc_nb = 0;
+    int nb_ring_pool = 0;
+    ring_pool_t *rp;
+
+    qv_init_static(&hdr, hdr_data, hdr_size);
+    t_qv_init(&rows, 200);
+
+#define ADD_NUMBER_FIELD(_what)  \
+    do {                                                                     \
+        t_SB(_buf, 16);                                                      \
+                                                                             \
+        sb_add_int_fmt(&_buf, _what, ',');                                   \
+        qv_append(tab, LSTR_SB_V(&_buf));                                    \
+    } while (0)
+
+    spin_lock(&_G.all_pools_lock);
+
+    dlist_for_each_entry(rp, &_G.all_pools, pool_list) {
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, t_lstr_fmt("%p",  rp));
+
+        ADD_NUMBER_FIELD(rp->minsize);
+        ADD_NUMBER_FIELD(rp->ringsize);
+        ADD_NUMBER_FIELD(rp->nbpages);
+        ADD_NUMBER_FIELD(rp->alloc_sz);
+        ADD_NUMBER_FIELD(rp->alloc_nb);
+        ADD_NUMBER_FIELD(rp_alloc_mean(rp));
+
+        nb_ring_pool++;
+        total_ringsize  += rp->ringsize;
+        total_nbpages   += rp->nbpages;
+        total_alloc_sz  += rp->alloc_sz;
+        total_alloc_nb  += rp->alloc_nb;
+    }
+
+    spin_unlock(&_G.all_pools_lock);
+
+    if (nb_ring_pool) {
+        SB_1k(buf);
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, LSTR("TOTAL"));
+        qv_append(tab, LSTR("-"));
+
+        ADD_NUMBER_FIELD(total_ringsize);
+        ADD_NUMBER_FIELD(total_nbpages);
+        ADD_NUMBER_FIELD(total_alloc_sz);
+        ADD_NUMBER_FIELD(total_alloc_nb);
+        ADD_NUMBER_FIELD(total_alloc_sz / total_alloc_nb);
+
+        sb_add_table(&buf, &hdr, &rows);
+        sb_shrink(&buf, 1);
+        logger_notice(&_G.logger, "ring pools summary:\n%*pM",
+                      SB_FMT_ARG(&buf));
+    }
+
+#undef ADD_NUMBER_FIELD
+}
+
+static int core_mem_ring_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_ring_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_ring)
+    MODULE_NEEDED_BY(el);
+    MODULE_IMPLEMENTS_VOID(print_state, &core_mem_ring_print_state);
+MODULE_END()
 
 /* }}} */
