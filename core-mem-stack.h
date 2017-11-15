@@ -132,10 +132,11 @@ typedef struct mem_stack_pool_t {
     uint32_t             nb_blocks;  /*< blk_create / blk_destroy */
     time_t               last_reset; /*< mem_stack_pool_(check_)reset */
 
+    dlist_t              pool_list;
+
 #ifdef MEM_BENCH
     /* never mind data : bench */
     struct mem_bench_t  *mem_bench;
-    dlist_t              pool_list;
 #endif
 } mem_stack_pool_t;
 

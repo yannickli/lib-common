@@ -18,8 +18,6 @@
 #ifdef MEM_BENCH
 #include "core-mem-bench.h"
 
-static DLIST(mem_stack_pool_list);
-static spinlock_t mem_stack_dlist_lock;
 #define WRITE_PERIOD  256
 #endif
 
@@ -40,6 +38,14 @@ static spinlock_t mem_stack_dlist_lock;
 #define ALLOC_MIN   64 /*< minimum block allocation */
 #define RESET_MIN   56 /*< minimum size in mem_stack_pool_reset */
 #define RESET_MAX  256 /*< maximum size in mem_stack_pool_reset */
+
+static struct {
+    dlist_t all_pools;
+    spinlock_t all_pools_lock;
+} core_mem_stack_g = {
+#define _G  core_mem_stack_g
+    .all_pools = DLIST_INIT(_G.all_pools),
+};
 
 static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
@@ -510,11 +516,11 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 #ifdef MEM_BENCH
     sp->mem_bench = mem_bench_new(LSTR("stack"), WRITE_PERIOD);
     mem_bench_leak(sp->mem_bench);
-
-    spin_lock(&mem_stack_dlist_lock);
-    dlist_add_tail(&mem_stack_pool_list, &sp->pool_list);
-    spin_unlock(&mem_stack_dlist_lock);
 #endif
+
+    spin_lock(&_G.all_pools_lock);
+    dlist_add_tail(&_G.all_pools, &sp->pool_list);
+    spin_unlock(&_G.all_pools_lock);
 
     return sp;
 }
@@ -596,12 +602,12 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
         return;
     }
 
+    spin_lock(&_G.all_pools_lock);
+    dlist_remove(&sp->pool_list);
+    spin_unlock(&_G.all_pools_lock);
+
 #ifdef MEM_BENCH
     mem_bench_delete(&sp->mem_bench);
-
-    spin_lock(&mem_stack_dlist_lock);
-    dlist_remove(&sp->pool_list);
-    spin_unlock(&mem_stack_dlist_lock);
 #endif
 
     frame_set_blk(&sp->base, blk_entry(&sp->blk_list));
@@ -699,12 +705,13 @@ void mem_stack_pools_print_stats(void) {
         return;
     }
 
-    spin_lock(&mem_stack_dlist_lock);
-    dlist_for_each(n, &mem_stack_pool_list) {
+    spin_lock(&_G.all_pools_lock);
+    dlist_for_each(n, &_G.all_pools) {
         mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);
+
         mem_bench_print_human(mp->mem_bench, MEM_BENCH_PRINT_CURRENT);
     }
-    spin_unlock(&mem_stack_dlist_lock);
+    spin_unlock(&_G.all_pools_lock);
 #endif
 }
 
