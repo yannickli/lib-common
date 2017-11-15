@@ -2187,7 +2187,7 @@ static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
         break;
 
       case IOP_WIRE_REPEAT: {
-        uint32_t n;
+        uint32_t n = 0;
 
         PS_CHECK(get_uint32(ps, 4, &n));
         PS_WANT(n >= 1);
