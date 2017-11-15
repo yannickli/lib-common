@@ -13,6 +13,7 @@
 
 #include "container-dlist.h"
 #include "datetime.h"
+#include "str-buf-pp.h"
 #include "thr.h"
 
 #ifdef MEM_BENCH
@@ -40,10 +41,13 @@
 #define RESET_MAX  256 /*< maximum size in mem_stack_pool_reset */
 
 static struct {
+    logger_t logger;
+
     dlist_t all_pools;
     spinlock_t all_pools_lock;
 } core_mem_stack_g = {
 #define _G  core_mem_stack_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "core-mem-stack"),
     .all_pools = DLIST_INIT(_G.all_pools),
 };
 
@@ -751,3 +755,109 @@ static void t_pool_wipe(void)
 thr_hooks(t_pool_init, t_pool_wipe);
 
 __thread mem_stack_pool_t t_pool_g;
+
+/* {{{ Module (for print_state method) */
+
+static void core_mem_stack_print_state(void)
+{
+    t_scope;
+    qv_t(table_hdr) hdr;
+    qv_t(table_data) rows;
+    table_hdr_t hdr_data[] = { {
+            .title = LSTR_IMMED("MEM STACK POOL"),
+        }, {
+            .title = LSTR_IMMED("SIZE"),
+        }, {
+            .title = LSTR_IMMED("NB BLOCKS"),
+        }, {
+            .title = LSTR_IMMED("ALLOC SIZE"),
+        }, {
+            .title = LSTR_IMMED("ALLOC NB"),
+        }, {
+            .title = LSTR_IMMED("ALLOC MEAN"),
+        }, {
+            .title = LSTR_IMMED("LAST RESET"),
+        }
+    };
+    uint32_t hdr_size = countof(hdr_data);
+    size_t   total_stacksize = 0;
+    uint32_t total_nb_blocks = 0;
+    size_t   total_alloc_sz = 0;
+    uint32_t total_alloc_nb = 0;
+    int nb_stack_pool = 0;
+    mem_stack_pool_t *sp;
+
+    qv_init_static(&hdr, hdr_data, hdr_size);
+    t_qv_init(&rows, 200);
+
+#define ADD_NUMBER_FIELD(_what)  \
+    do {                                                                     \
+        t_SB(_buf, 16);                                                      \
+                                                                             \
+        sb_add_int_fmt(&_buf, _what, ',');                                   \
+        qv_append(tab, LSTR_SB_V(&_buf));                                    \
+    } while (0)
+
+    spin_lock(&_G.all_pools_lock);
+
+    dlist_for_each_entry(sp, &_G.all_pools, pool_list) {
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, t_lstr_fmt("%p",  sp));
+
+        ADD_NUMBER_FIELD(sp->stacksize);
+        ADD_NUMBER_FIELD(sp->nb_blocks);
+        ADD_NUMBER_FIELD(sp->alloc_sz);
+        ADD_NUMBER_FIELD(sp->alloc_nb);
+        ADD_NUMBER_FIELD(sp_alloc_mean(sp));
+
+        qv_append(tab, t_lstr_fmt("%jd", sp->last_reset));
+
+        nb_stack_pool++;
+        total_stacksize += sp->stacksize;
+        total_nb_blocks += sp->nb_blocks;
+        total_alloc_sz  += sp->alloc_sz;
+        total_alloc_nb  += sp->alloc_nb;
+    }
+
+    spin_unlock(&_G.all_pools_lock);
+
+    if (nb_stack_pool) {
+        SB_1k(buf);
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, LSTR("TOTAL"));
+
+        ADD_NUMBER_FIELD(total_stacksize);
+        ADD_NUMBER_FIELD(total_nb_blocks);
+        ADD_NUMBER_FIELD(total_alloc_sz);
+        ADD_NUMBER_FIELD(total_alloc_nb);
+        ADD_NUMBER_FIELD(total_alloc_sz / total_alloc_nb);
+        qv_append(tab, LSTR("-"));
+
+        sb_add_table(&buf, &hdr, &rows);
+        sb_shrink(&buf, 1);
+        logger_notice(&_G.logger, "stack pools summary:\n%*pM",
+                      SB_FMT_ARG(&buf));
+    }
+#undef ADD_NUMBER_FIELD
+}
+
+static int core_mem_stack_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_stack_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_stack)
+    MODULE_NEEDED_BY(el);
+    MODULE_IMPLEMENTS_VOID(print_state, &core_mem_stack_print_state);
+MODULE_END()
+
+/* }}} */
