@@ -12,16 +12,27 @@
 /**************************************************************************/
 
 #include "core.h"
+#include "log.h"
+#include "str-buf-pp.h"
 
 #ifdef MEM_BENCH
 
 #include "core-mem-bench.h"
 #include "thr.h"
 
-static DLIST(mem_fifo_pool_list);
-static spinlock_t mem_fifo_dlist_lock;
 #define WRITE_PERIOD 256
 #endif
+
+static struct {
+    logger_t logger;
+
+    dlist_t all_pools;
+    spinlock_t all_pools_lock;
+} core_mem_fifo_g = {
+#define _G  core_mem_fifo_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "core-mem-fifo"),
+    .all_pools = DLIST_INIT(_G.all_pools),
+};
 
 typedef struct mem_page_t {
 
@@ -52,10 +63,11 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
 
+    dlist_t     pool_list;
+
 #ifdef MEM_BENCH
     /* Instrumentation */
     mem_bench_t  mem_bench;
-    dlist_t      pool_list;
 #endif
 
 } mem_fifo_pool_t;
@@ -412,11 +424,11 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 
 #ifdef MEM_BENCH
     mem_bench_init(&mfp->mem_bench, LSTR("fifo"), WRITE_PERIOD);
-
-    spin_lock(&mem_fifo_dlist_lock);
-    dlist_add_tail(&mem_fifo_pool_list, &mfp->pool_list);
-    spin_unlock(&mem_fifo_dlist_lock);
 #endif
+
+    spin_lock(&_G.all_pools_lock);
+    dlist_add_tail(&_G.all_pools, &mfp->pool_list);
+    spin_unlock(&_G.all_pools_lock);
 
     return &mfp->funcs;
 }
@@ -431,13 +443,17 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         return;
     }
 
-    if (!*poolp)
+    if (!*poolp) {
         return;
+    }
 
     mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
 
-#ifdef MEM_BENCH
+    spin_lock(&_G.all_pools_lock);
     dlist_remove(&mfp->pool_list);
+    spin_unlock(&_G.all_pools_lock);
+
+#ifdef MEM_BENCH
     mem_bench_wipe(&mfp->mem_bench);
 #endif
 
@@ -473,7 +489,8 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     *used      = mfp->occupied;
 }
 
-void mem_fifo_pool_print_stats(mem_pool_t *mp) {
+void mem_fifo_pool_print_stats(mem_pool_t *mp)
+{
 #ifdef MEM_BENCH
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
@@ -485,19 +502,114 @@ void mem_fifo_pool_print_stats(mem_pool_t *mp) {
 #endif
 }
 
-void mem_fifo_pools_print_stats(void) {
+void mem_fifo_pools_print_stats(void)
+{
 #ifdef MEM_BENCH
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
         return;
     }
 
-    spin_lock(&mem_fifo_dlist_lock);
-    dlist_for_each(n, &mem_fifo_pool_list) {
+    spin_lock(&_G.all_pools_lock);
+    dlist_for_each(n, &_G.all_pools) {
         mem_fifo_pool_t *mfp = container_of(n, mem_fifo_pool_t, pool_list);
         mem_bench_print_human(&mfp->mem_bench, MEM_BENCH_PRINT_CURRENT);
     }
-    spin_unlock(&mem_fifo_dlist_lock);
+    spin_unlock(&_G.all_pools_lock);
 #endif
 }
 
+/* {{{ Module (for print_state method) */
+
+static void core_mem_fifo_print_state(void)
+{
+    t_scope;
+    qv_t(table_hdr) hdr;
+    qv_t(table_data) rows;
+    table_hdr_t hdr_data[] = { {
+            .title = LSTR_IMMED("MEM FIFO POOL"),
+        }, {
+            .title = LSTR_IMMED("SIZE"),
+        }, {
+            .title = LSTR_IMMED("OCCUPIED"),
+        }, {
+            .title = LSTR_IMMED("PAGE SIZE"),
+        }, {
+            .title = LSTR_IMMED("NB PAGES"),
+        }
+    };
+    uint32_t hdr_size = countof(hdr_data);
+    size_t   total_size = 0;
+    size_t   total_occupied = 0;
+    uint32_t total_nb_pages = 0;
+    int nb_fifo_pool = 0;
+    mem_fifo_pool_t *fp;
+
+    qv_init_static(&hdr, hdr_data, hdr_size);
+    t_qv_init(&rows, 200);
+
+#define ADD_NUMBER_FIELD(_what)  \
+    do {                                                                     \
+        t_SB(_buf, 16);                                                      \
+                                                                             \
+        sb_add_int_fmt(&_buf, _what, ',');                                   \
+        qv_append(tab, LSTR_SB_V(&_buf));                                    \
+    } while (0)
+
+    spin_lock(&_G.all_pools_lock);
+
+    dlist_for_each_entry(fp, &_G.all_pools, pool_list) {
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, t_lstr_fmt("%p", fp));
+
+        ADD_NUMBER_FIELD(fp->map_size);
+        ADD_NUMBER_FIELD(fp->occupied);
+        ADD_NUMBER_FIELD(fp->page_size);
+        ADD_NUMBER_FIELD(fp->nb_pages);
+
+        nb_fifo_pool++;
+        total_size     += fp->map_size;
+        total_occupied += fp->occupied;
+        total_nb_pages += fp->nb_pages;
+    }
+
+    spin_unlock(&_G.all_pools_lock);
+
+    if (nb_fifo_pool) {
+        SB_1k(buf);
+        qv_t(lstr) *tab = qv_growlen(&rows, 1);
+
+        t_qv_init(tab, hdr_size);
+        qv_append(tab, LSTR("TOTAL"));
+
+        ADD_NUMBER_FIELD(total_size);
+        ADD_NUMBER_FIELD(total_occupied);
+        qv_append(tab, LSTR("-"));
+        ADD_NUMBER_FIELD(total_nb_pages);
+
+        sb_add_table(&buf, &hdr, &rows);
+        sb_shrink(&buf, 1);
+        logger_notice(&_G.logger, "fifo pools summary:\n%*pM",
+                      SB_FMT_ARG(&buf));
+    }
+#undef ADD_NUMBER_FIELD
+}
+
+static int core_mem_fifo_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_fifo_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_fifo)
+    MODULE_NEEDED_BY(el);
+    MODULE_IMPLEMENTS_VOID(print_state, &core_mem_fifo_print_state);
+MODULE_END()
+
+/* }}} */
