@@ -139,6 +139,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
     if (res == 0)
         sched_yield();
 
-    pthread_setcanceltype(canceltype, NULL);
+    /* XXX passing NULL to pthread_setcanceltype() breaks TSAN */
+    pthread_setcanceltype(canceltype, &res);
     pthread_cleanup_pop(1);
 }
