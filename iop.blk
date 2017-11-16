@@ -2873,6 +2873,7 @@ iop_bpack_is_threadable(const iop_field_t *fdesc, int flags, size_t n)
         &&  fdesc->repeat == IOP_R_REPEATED
         &&  !(flags & IOP_BPACK_MONOTHREAD)
         &&  module_is_loaded(MODULE(thr))
+        &&  thr_parallelism_g > 1
         &&  n >= _G.threaded_pack_threshold);
 }
 
