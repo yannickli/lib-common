@@ -284,7 +284,7 @@ static void ic_print_state(void)
 
 static int ic_initialize(void *arg)
 {
-    _G.mp = mem_fifo_pool_new(1 << 20);
+    _G.mp = mem_fifo_pool_new("ic", 1 << 20);
     qm_init(ic, &_G.ics);
     qm_init(ic_hook_ctx, &_G.hook_ctxs);
     qv_init(&_G.traced_names);

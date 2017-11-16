@@ -133,7 +133,7 @@ Z_GROUP_EXPORT(fifo)
 {
     Z_TEST(fifo_pool, "fifo_pool:allocate an amount near pool page size") {
         int page_size = 1 << 19;
-        mem_pool_t *pool = mem_fifo_pool_new(page_size);
+        mem_pool_t *pool = mem_fifo_pool_new("fifo.fifo_pool", page_size);
         char vtest[2 * page_size];
         char *v;
 

@@ -584,7 +584,7 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     _G.m->max_len          = maxconn;
     _G.m->on_connect_error = http_on_connect_error;
 
-    _G.pool = mem_fifo_pool_new(PYTHON_HTTP_POOL_SIZE);
+    _G.pool = mem_fifo_pool_new("python-http", PYTHON_HTTP_POOL_SIZE);
     dlist_init(&_G.pending);
 
     net_rctl_init(&_G.rctl, maxrate, net_rtcl_on_ready);

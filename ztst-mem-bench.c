@@ -132,7 +132,7 @@ static int benchmark_fifo_pool(mem_pool_t *mp)
 static int benchmark_fifo(void)
 {
     int res;
-    mem_pool_t *mp_fifo = mem_fifo_pool_new(0);
+    mem_pool_t *mp_fifo = mem_fifo_pool_new("benchmark", 0);
 
     res = benchmark_fifo_pool(mp_fifo);
     mem_fifo_pool_delete(&mp_fifo);
@@ -186,7 +186,7 @@ static int benchmark_fifo_worst_case(void)
 static int benchmark_fifo_worst_case(void)
 {
     int res;
-    mem_pool_t *mp = mem_fifo_pool_new(32 * 4096);
+    mem_pool_t *mp = mem_fifo_pool_new("worst-case", 32 * 4096);
 
     res = benchmark_fifo_worst_case_pool(mp);
     mem_fifo_pool_delete(&mp);

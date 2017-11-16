@@ -673,7 +673,8 @@ static inline void (p_delete)(void * nullable * nonnull p)
 /* }}} */
 /* Mem-fifo Pool {{{ */
 
-mem_pool_t * nonnull mem_fifo_pool_new(int page_size_hint)
+mem_pool_t * nonnull mem_fifo_pool_new(const char * nonnull name,
+                                       int page_size_hint)
     __leaf __attribute__((malloc));
 void mem_fifo_pool_delete(mem_pool_t * nullable * nonnull poolp)
     __leaf;

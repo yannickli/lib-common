@@ -63,6 +63,7 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
 
+    char       *name;
     dlist_t     pool_list;
 
 #ifdef MEM_BENCH
@@ -405,9 +406,11 @@ static mem_pool_t const mem_fifo_pool_funcs = {
     .min_alignment = 8
 };
 
-mem_pool_t *mem_fifo_pool_new(int page_size_hint)
+mem_pool_t *mem_fifo_pool_new(const char *name, int page_size_hint)
 {
     mem_fifo_pool_t *mfp = p_new(mem_fifo_pool_t, 1);
+
+    mfp->name = p_strdup(name);
 
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
@@ -457,6 +460,7 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
     mem_bench_wipe(&mfp->mem_bench);
 #endif
 
+    p_delete(&mfp->name);
     mfp->alive = false;
     mem_page_delete(mfp, &mfp->freepage);
     if (mfp->current && mfp->current->used_blocks == 0) {
@@ -527,7 +531,9 @@ static void core_mem_fifo_print_state(void)
     qv_t(table_hdr) hdr;
     qv_t(table_data) rows;
     table_hdr_t hdr_data[] = { {
-            .title = LSTR_IMMED("MEM FIFO POOL"),
+            .title = LSTR_IMMED("FIFO POOL NAME"),
+        }, {
+            .title = LSTR_IMMED("POINTER"),
         }, {
             .title = LSTR_IMMED("SIZE"),
         }, {
@@ -562,6 +568,7 @@ static void core_mem_fifo_print_state(void)
         qv_t(lstr) *tab = qv_growlen(&rows, 1);
 
         t_qv_init(tab, hdr_size);
+        qv_append(tab, t_lstr_fmt("%s", fp->name));
         qv_append(tab, t_lstr_fmt("%p", fp));
 
         ADD_NUMBER_FIELD(fp->map_size);
@@ -583,6 +590,7 @@ static void core_mem_fifo_print_state(void)
 
         t_qv_init(tab, hdr_size);
         qv_append(tab, LSTR("TOTAL"));
+        qv_append(tab, LSTR("-"));
 
         ADD_NUMBER_FIELD(total_size);
         ADD_NUMBER_FIELD(total_occupied);
