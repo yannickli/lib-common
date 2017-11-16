@@ -118,6 +118,7 @@ static struct {
 } thr_job_g;
 #define _G  thr_job_g
 
+static thr_info_t main_thr_default_g = { .id = 0 };
 static __thread thr_info_t *self_g;
 
 size_t thr_parallelism_g;
@@ -997,7 +998,7 @@ static void thr_wipe(void)
     }
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
-    self_g = NULL;
+    self_g = &main_thr_default_g;
 }
 
 
@@ -1088,7 +1089,6 @@ static int thr_shutdown(void)
 static void thr_job_at_fork(void)
 {
     thr_wipe();
-    self_g = NULL;
     if (reload_at_fork_g) {
         thr_initialize(NULL);
     } else {
@@ -1097,6 +1097,8 @@ static void thr_job_at_fork(void)
 }
 
 MODULE_BEGIN(thr)
+    self_g = &main_thr_default_g;
+
     MODULE_DEPENDS_ON(thr_hooks);
     MODULE_DEPENDS_ON(el);
     MODULE_IMPLEMENTS_VOID(at_fork_on_child, &thr_job_at_fork);
@@ -1108,10 +1110,7 @@ MODULE_END()
 size_t thr_id(void)
 {
     if (!self_g) {
-        if (MODULE_IS_LOADED(thr)) {
-            return SIZE_MAX;
-        }
-        return 0;
+        return SIZE_MAX;
     }
     return self_g->id;
 }
