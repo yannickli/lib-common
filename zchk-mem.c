@@ -163,7 +163,7 @@ Z_GROUP_EXPORT(core_mem_stack) {
     Z_TEST(big_alloc_mean, "non regression on #39120") {
         mem_stack_pool_t sp;
 
-        mem_stack_pool_init(&sp, 0);
+        mem_stack_pool_init(&sp, "core_mem_stack.big_alloc_mean", 0);
 
         mem_stack_push(&sp);
 

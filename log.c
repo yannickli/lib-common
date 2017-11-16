@@ -1160,7 +1160,7 @@ static int log_initialize(void* args)
 {
     char *env;
 
-    mem_stack_pool_init(&_G.mp_stack, 64 << 10);
+    mem_stack_pool_init(&_G.mp_stack, "log", 64 << 10);
     qv_init(&_G.specs);
     qv_init(&_G.vec_buff_stack);
     _G.fancy = is_fancy_fd(STDERR_FILENO);

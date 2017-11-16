@@ -473,7 +473,8 @@ static mem_pool_t const pool_funcs_libc = {
 };
 #endif
 
-mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
+mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, const char *name,
+                                      int initialsize)
 {
     /* no p_clear is made for two reasons :
      * - there is few objects that shall be zero-initialized
@@ -521,6 +522,8 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->mem_bench = mem_bench_new(LSTR("stack"), WRITE_PERIOD);
     mem_bench_leak(sp->mem_bench);
 #endif
+
+    sp->name = p_strdup(name);
 
     spin_lock(&_G.all_pools_lock);
     dlist_add_tail(&_G.all_pools, &sp->pool_list);
@@ -609,6 +612,8 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     spin_lock(&_G.all_pools_lock);
     dlist_remove(&sp->pool_list);
     spin_unlock(&_G.all_pools_lock);
+
+    p_delete((char **)&sp->name);
 
 #ifdef MEM_BENCH
     mem_bench_delete(&sp->mem_bench);
@@ -746,7 +751,7 @@ void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
 __attribute__((constructor))
 static void t_pool_init(void)
 {
-    mem_stack_pool_init(&t_pool_g, 64 << 10);
+    mem_stack_pool_init(&t_pool_g, "t_pool", 64 << 10);
 }
 static void t_pool_wipe(void)
 {
@@ -764,7 +769,9 @@ static void core_mem_stack_print_state(void)
     qv_t(table_hdr) hdr;
     qv_t(table_data) rows;
     table_hdr_t hdr_data[] = { {
-            .title = LSTR_IMMED("MEM STACK POOL"),
+            .title = LSTR_IMMED("STACK POOL NAME"),
+        }, {
+            .title = LSTR_IMMED("POINTER"),
         }, {
             .title = LSTR_IMMED("SIZE"),
         }, {
@@ -804,7 +811,8 @@ static void core_mem_stack_print_state(void)
         qv_t(lstr) *tab = qv_growlen(&rows, 1);
 
         t_qv_init(tab, hdr_size);
-        qv_append(tab, t_lstr_fmt("%p",  sp));
+        qv_append(tab, t_lstr_fmt("%s", sp->name));
+        qv_append(tab, t_lstr_fmt("%p", sp));
 
         ADD_NUMBER_FIELD(sp->stacksize);
         ADD_NUMBER_FIELD(sp->nb_blocks);
@@ -829,6 +837,7 @@ static void core_mem_stack_print_state(void)
 
         t_qv_init(tab, hdr_size);
         qv_append(tab, LSTR("TOTAL"));
+        qv_append(tab, LSTR("-"));
 
         ADD_NUMBER_FIELD(total_stacksize);
         ADD_NUMBER_FIELD(total_nb_blocks);

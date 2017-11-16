@@ -132,7 +132,8 @@ typedef struct mem_stack_pool_t {
     uint32_t             nb_blocks;  /*< blk_create / blk_destroy */
     time_t               last_reset; /*< mem_stack_pool_(check_)reset */
 
-    dlist_t              pool_list;
+    dlist_t        pool_list;
+    char * nonnull name;
 
 #ifdef MEM_BENCH
     /* never mind data : bench */
@@ -141,7 +142,8 @@ typedef struct mem_stack_pool_t {
 } mem_stack_pool_t;
 
 mem_stack_pool_t * nonnull
-mem_stack_pool_init(mem_stack_pool_t * nonnull, int initialsize) __leaf;
+mem_stack_pool_init(mem_stack_pool_t * nonnull, const char * nonnull name,
+                    int initialsize) __leaf;
 void mem_stack_pool_reset(mem_stack_pool_t * nonnull) __leaf;
 void mem_stack_pool_try_reset(mem_stack_pool_t * nonnull) __leaf;
 void mem_stack_pool_wipe(mem_stack_pool_t * nonnull) __leaf;
