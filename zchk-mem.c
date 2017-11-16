@@ -182,7 +182,7 @@ Z_GROUP_EXPORT(core_mem_stack) {
 
 Z_GROUP_EXPORT(core_mem_ring) {
     Z_TEST(big_alloc_mean, "non regression on #39120") {
-        mem_pool_t *rp = mem_ring_pool_new(0);
+        mem_pool_t *rp = mem_ring_pool_new("core_mem_ring.big_alloc_mean", 0);
         const void *rframe = mem_ring_newframe(rp);
 
         /* First big allocation to set a big allocation mean */

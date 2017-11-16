@@ -85,6 +85,7 @@ struct ring_pool_t {
 
     mem_pool_t   funcs;
 
+    char        *name;
     dlist_t      pool_list;
 };
 
@@ -381,10 +382,12 @@ void ring_setup_frame(ring_pool_t *rp, ring_blk_t *blk, frame_t *frame)
 
 /*------ Public API -{{{-*/
 
-mem_pool_t *__mem_ring_pool_new(int initialsize, const char *file, int line)
+mem_pool_t *mem_ring_pool_new(const char *name, int initialsize)
 {
     ring_pool_t *rp = p_new(ring_pool_t, 1);
     ring_blk_t *blk;
+
+    rp->name = p_strdup(name);
 
     dlist_init(&rp->fhead);
 
@@ -446,6 +449,7 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
             blk_destroy(rp, blk_entry(e));
         }
         blk_destroy(rp, rp->cblk);
+        p_delete(&rp->name);
         p_delete(&rp);
         *rpp = NULL;
     }
@@ -666,7 +670,7 @@ static __thread mem_pool_t *r_pool_g;
 mem_pool_t *r_pool(void)
 {
     if (unlikely(!r_pool_g)) {
-        r_pool_g = mem_ring_pool_new(64 << 10);
+        r_pool_g = mem_ring_pool_new("r_pool", 64 << 10);
     }
     return r_pool_g;
 }
@@ -774,7 +778,9 @@ static void core_mem_ring_print_state(void)
     qv_t(table_hdr) hdr;
     qv_t(table_data) rows;
     table_hdr_t hdr_data[] = { {
-            .title = LSTR_IMMED("MEM RING POOL"),
+            .title = LSTR_IMMED("RING POOL NAME"),
+        }, {
+            .title = LSTR_IMMED("POINTER"),
         }, {
             .title = LSTR_IMMED("MIN SIZE"),
         }, {
@@ -814,6 +820,7 @@ static void core_mem_ring_print_state(void)
         qv_t(lstr) *tab = qv_growlen(&rows, 1);
 
         t_qv_init(tab, hdr_size);
+        qv_append(tab, t_lstr_fmt("%s",  rp->name));
         qv_append(tab, t_lstr_fmt("%p",  rp));
 
         ADD_NUMBER_FIELD(rp->minsize);
@@ -838,6 +845,7 @@ static void core_mem_ring_print_state(void)
 
         t_qv_init(tab, hdr_size);
         qv_append(tab, LSTR("TOTAL"));
+        qv_append(tab, LSTR("-"));
         qv_append(tab, LSTR("-"));
 
         ADD_NUMBER_FIELD(total_ringsize);

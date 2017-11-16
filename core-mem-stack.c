@@ -613,7 +613,7 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     dlist_remove(&sp->pool_list);
     spin_unlock(&_G.all_pools_lock);
 
-    p_delete((char **)&sp->name);
+    p_delete(&sp->name);
 
 #ifdef MEM_BENCH
     mem_bench_delete(&sp->mem_bench);

@@ -695,13 +695,11 @@ void mem_fifo_pools_print_stats(void);
  * This is quite a fifo-pool with the oldest frames always re-appended at the
  * head of the pool.
  *
+ * \param[name]         Name of the ring pool, used for debug.
  * \param[initialsize]  First memory block size.
  */
-mem_pool_t * nonnull __mem_ring_pool_new(int initialsize,
-                                         const char * nonnull file, int line)
-    __leaf __attribute__((malloc));
-
-#define mem_ring_pool_new(is)  __mem_ring_pool_new(is, __FILE__, __LINE__)
+mem_pool_t * nonnull mem_ring_pool_new(const char * nonnull name,
+                                       int initialsize);
 
 /** Delete the given memory ring-pool */
 void mem_ring_pool_delete(mem_pool_t * nullable * nonnull) __leaf;
