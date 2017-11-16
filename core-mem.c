@@ -26,9 +26,13 @@
 #endif
 
 #include "core.h"
+#include "log.h"
+#include "malloc.h"
 
 
 /* Libc allocator {{{ */
+
+static logger_t libc_logger_g = LOGGER_INIT_INHERITS(NULL, "core-mem-libc");
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
                          mem_flags_t flags)
@@ -46,18 +50,20 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
             res = calloc(1, size);
         }
         if (unlikely(res == NULL)) {
-            if (flags & MEM_ERRORS_OK)
+            if (flags & MEM_ERRORS_OK) {
                 return NULL;
-            e_panic("out of memory");
+            }
+            logger_panic(&libc_logger_g, "out of memory");
         }
     } else {
         int ret = posix_memalign(&res, alignment, size);
 
         if (unlikely(ret != 0)) {
             errno = ret;
-            if (flags & MEM_ERRORS_OK)
+            if (flags & MEM_ERRORS_OK) {
                 return NULL;
-            e_panic("cannot allocate memory: %m");
+            }
+            logger_panic(&libc_logger_g, "cannot allocate memory: %m");
         }
         if (!(flags & MEM_RAW)) {
             memset(res, 0, size);
@@ -82,9 +88,10 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
     res = realloc(mem, size);
 
     if (unlikely(res == NULL)) {
-        if (!size || (flags & MEM_ERRORS_OK))
+        if (!size || (flags & MEM_ERRORS_OK)) {
             return NULL;
-        e_panic("out of memory");
+        }
+        logger_panic(&libc_logger_g, "out of memory");
     }
 
     if (alignment > 8 && ((uintptr_t)res & (alignment - 1))) {
@@ -114,6 +121,46 @@ mem_pool_t mem_pool_libc = {
     .mem_pool = MEM_LIBC | MEM_EFFICIENT_REALLOC,
     .min_alignment = sizeof(void *)
 };
+
+static void core_mem_libc_print_state(void)
+{
+    FILE *fstream;
+    char *malloc_info_res = NULL;
+    size_t malloc_info_res_size;
+
+    fstream = open_memstream(&malloc_info_res, &malloc_info_res_size);
+    if (!fstream) {
+        logger_error(&libc_logger_g, "cannot open memstream: %m");
+        return;
+    }
+
+    if (malloc_info(0, fstream) < 0) {
+        logger_error(&libc_logger_g, "malloc_info failed: %m");
+        fclose(fstream);
+        free(malloc_info_res);
+        return;
+    }
+
+    fclose(fstream);
+    logger_notice(&libc_logger_g, "malloc status:\n%*pM",
+                  (int)malloc_info_res_size, malloc_info_res);
+    free(malloc_info_res);
+}
+
+static int core_mem_libc_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_libc_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_libc)
+    MODULE_NEEDED_BY(el);
+    MODULE_IMPLEMENTS_VOID(print_state, &core_mem_libc_print_state);
+MODULE_END()
 
 /* }}} */
 /* Libc cacheline aligned allocator {{{ */
