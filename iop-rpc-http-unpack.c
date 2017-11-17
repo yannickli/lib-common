@@ -327,9 +327,9 @@ static void httpd_trigger__ic_cb(httpd_trigger_t *tcb, httpd_query_t *q,
 {
     httpd_trigger__ic_t *cb = container_of(tcb, httpd_trigger__ic_t, cb);
 
-    httpd_bufferize(q, cb->query_max_size);
     q->on_done = ichttp_query_on_done;
     q->qinfo   = httpd_qinfo_dup(req);
+    httpd_bufferize(q, cb->query_max_size);
 }
 
 
