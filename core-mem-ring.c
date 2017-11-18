@@ -874,7 +874,6 @@ static int core_mem_ring_shutdown(void)
 }
 
 MODULE_BEGIN(core_mem_ring)
-    MODULE_NEEDED_BY(el);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_ring_print_state);
 MODULE_END()
 

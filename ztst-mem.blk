@@ -431,6 +431,7 @@ int main(int argc, char **argv)
     el_signal_register(SIGQUIT, on_term, NULL);
 
     /* Run stress-tests. */
+    MODULE_REQUIRE(core_mem);
     if (!_G.opt_monothread) {
         MODULE_REQUIRE(thr);
     }
@@ -461,6 +462,7 @@ int main(int argc, char **argv)
     if (!_G.opt_monothread) {
         MODULE_RELEASE(thr);
     }
+    MODULE_RELEASE(core_mem);
 
     return 0;
 }

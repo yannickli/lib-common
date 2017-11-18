@@ -158,7 +158,6 @@ static int core_mem_libc_shutdown(void)
 }
 
 MODULE_BEGIN(core_mem_libc)
-    MODULE_NEEDED_BY(el);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_libc_print_state);
 MODULE_END()
 
@@ -547,5 +546,25 @@ bool mem_pool_is_enabled(void)
     return mp_is_enabled;
 }
 #endif
+
+/* }}} */
+/* {{{ Module */
+
+static int core_mem_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem)
+    MODULE_DEPENDS_ON(core_mem_libc);
+    MODULE_DEPENDS_ON(core_mem_fifo);
+    MODULE_DEPENDS_ON(core_mem_ring);
+    MODULE_DEPENDS_ON(core_mem_stack);
+MODULE_END()
 
 /* }}} */

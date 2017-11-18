@@ -865,7 +865,6 @@ static int core_mem_stack_shutdown(void)
 }
 
 MODULE_BEGIN(core_mem_stack)
-    MODULE_NEEDED_BY(el);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_stack_print_state);
 MODULE_END()
 

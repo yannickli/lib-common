@@ -548,4 +548,24 @@ int module_check_no_dependencies(module_t * nonnull tab[], int len,
 
 /* }}} */
 
+/* {{{ Module declarations */
+
+/* Here are the declaration of the core modules that can't be declared in
+ * their own header because of a circular dependency. */
+
+/** Core memory module.
+ *
+ * Require it to have the memory pools status when receiving a PWR signal.
+ */
+MODULE_DECLARE(core_mem);
+
+/* {{{ private */
+
+MODULE_DECLARE(core_mem_fifo);
+MODULE_DECLARE(core_mem_ring);
+MODULE_DECLARE(core_mem_stack);
+
+/* }}} */
+/* }}} */
+
 #endif
