@@ -25,14 +25,23 @@
 #  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif
 
-#include "core.h"
-#include "log.h"
-#include "malloc.h"
+#include <malloc.h>
 
+#include "core.h"
+#include "datetime.h"
+#include "log.h"
+#include "thr.h"
 
 /* Libc allocator {{{ */
 
-static logger_t libc_logger_g = LOGGER_INIT_INHERITS(NULL, "core-mem-libc");
+static struct {
+    logger_t logger;
+
+    el_t malloc_trim_cron;
+} core_mem_libc_g = {
+#define libc_g  core_mem_libc_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "core-mem-libc"),
+};
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
                          mem_flags_t flags)
@@ -53,7 +62,7 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
             if (flags & MEM_ERRORS_OK) {
                 return NULL;
             }
-            logger_panic(&libc_logger_g, "out of memory");
+            logger_panic(&libc_g.logger, "out of memory");
         }
     } else {
         int ret = posix_memalign(&res, alignment, size);
@@ -63,7 +72,7 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
             if (flags & MEM_ERRORS_OK) {
                 return NULL;
             }
-            logger_panic(&libc_logger_g, "cannot allocate memory: %m");
+            logger_panic(&libc_g.logger, "cannot allocate memory: %m");
         }
         if (!(flags & MEM_RAW)) {
             memset(res, 0, size);
@@ -91,7 +100,7 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
         if (!size || (flags & MEM_ERRORS_OK)) {
             return NULL;
         }
-        logger_panic(&libc_logger_g, "out of memory");
+        logger_panic(&libc_g.logger, "out of memory");
     }
 
     if (alignment > 8 && ((uintptr_t)res & (alignment - 1))) {
@@ -132,36 +141,72 @@ static void core_mem_libc_print_state(void)
 
     fstream = open_memstream(&malloc_info_res, &malloc_info_res_size);
     if (!fstream) {
-        logger_error(&libc_logger_g, "cannot open memstream: %m");
+        logger_error(&libc_g.logger, "cannot open memstream: %m");
         return;
     }
 
     if (malloc_info(0, fstream) < 0) {
-        logger_error(&libc_logger_g, "malloc_info failed: %m");
+        logger_error(&libc_g.logger, "malloc_info failed: %m");
         fclose(fstream);
         free(malloc_info_res);
         return;
     }
 
     fclose(fstream);
-    logger_notice(&libc_logger_g, "malloc status:\n%*pM",
+    logger_notice(&libc_g.logger, "malloc status:\n%*pM",
                   (int)malloc_info_res_size, malloc_info_res);
     free(malloc_info_res);
 # endif
 #endif
 }
 
+static void call_malloc_trim(void)
+{
+    timing_scope(&libc_g.logger, 500, "malloc_trim");
+
+    malloc_trim(10 << 20);
+}
+
+static void malloc_trim_cron(el_t ev, data_t priv)
+{
+    if (MODULE_IS_LOADED(thr)) {
+        thr_schedule_b(^{
+            call_malloc_trim();
+        });
+    } else {
+        call_malloc_trim();
+    }
+}
+
+#define MALLOC_TRIM_PERIOD  (10 * 60 * 1000) /* 10 minutes. */
+
 static int core_mem_libc_initialize(void *arg)
 {
+    /* Call malloc_trim every MALLOC_TRIM_PERIOD milliseconds in order to try
+     * releasing some memory to the kernel.
+     * Randomly pick the first call to avoid that every daemon of a product
+     * call it at the same time, causing a potential slowdown. */
+    int next = rand_range(0, MALLOC_TRIM_PERIOD);
+
+    libc_g.malloc_trim_cron = el_timer_register(next, MALLOC_TRIM_PERIOD,
+                                                EL_TIMER_LOWRES,
+                                                &malloc_trim_cron, NULL);
     return 0;
+}
+
+static void core_mem_libc_on_term(int signo)
+{
+    el_unref(libc_g.malloc_trim_cron);
 }
 
 static int core_mem_libc_shutdown(void)
 {
+    el_unregister(&libc_g.malloc_trim_cron);
     return 0;
 }
 
 MODULE_BEGIN(core_mem_libc)
+    MODULE_IMPLEMENTS_INT(on_term, &core_mem_libc_on_term);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_libc_print_state);
 MODULE_END()
 
