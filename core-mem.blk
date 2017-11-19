@@ -25,10 +25,23 @@
 #  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif
 
+#include <malloc.h>
+
 #include "core.h"
+#include "datetime.h"
+#include "log.h"
+
+#include "thr.h"
 
 
 /* Libc allocator {{{ */
+
+static logger_t libc_logger_g = LOGGER_INIT_INHERITS(NULL, "core-mem-libc");
+
+static struct {
+    el_t malloc_trim_cron;
+} core_mem_libc_g;
+#define libc_g  core_mem_libc_g
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
                          mem_flags_t flags)
@@ -114,6 +127,55 @@ mem_pool_t mem_pool_libc = {
     .mem_pool = MEM_LIBC | MEM_EFFICIENT_REALLOC,
     .min_alignment = sizeof(void *)
 };
+
+static void call_malloc_trim(void)
+{
+    timing_scope(&libc_logger_g, 500, "malloc_trim");
+
+    malloc_trim(10 << 20);
+}
+
+static void malloc_trim_cron(el_t ev, data_t priv)
+{
+    if (MODULE_IS_LOADED(thr)) {
+        thr_schedule_b(^{
+            call_malloc_trim();
+        });
+    } else {
+        call_malloc_trim();
+    }
+}
+
+#define MALLOC_TRIM_PERIOD  (10 * 60 * 1000) /* 10 minutes. */
+
+static int core_mem_libc_initialize(void *arg)
+{
+    /* Call malloc_trim every MALLOC_TRIM_PERIOD milliseconds in order to try
+     * releasing some memory to the kernel.
+     * Randomly pick the first call to avoid that every daemon of a product
+     * call it at the same time, causing a potential slowdown. */
+    int next = rand_range(0, MALLOC_TRIM_PERIOD);
+
+    libc_g.malloc_trim_cron = el_timer_register(next, MALLOC_TRIM_PERIOD,
+                                                EL_TIMER_LOWRES,
+                                                &malloc_trim_cron, NULL);
+    return 0;
+}
+
+static void core_mem_libc_on_term(int signo)
+{
+    el_unref(libc_g.malloc_trim_cron);
+}
+
+static int core_mem_libc_shutdown(void)
+{
+    el_unregister(&libc_g.malloc_trim_cron);
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_libc)
+    MODULE_IMPLEMENTS_INT(on_term, &core_mem_libc_on_term);
+MODULE_END()
 
 /* }}} */
 /* Libc cacheline aligned allocator {{{ */
@@ -500,5 +562,22 @@ bool mem_pool_is_enabled(void)
     return mp_is_enabled;
 }
 #endif
+
+/* }}} */
+/* {{{ Module */
+
+static int core_mem_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem)
+    MODULE_DEPENDS_ON(core_mem_libc);
+MODULE_END()
 
 /* }}} */

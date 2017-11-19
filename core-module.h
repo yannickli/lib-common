@@ -548,4 +548,15 @@ int module_check_no_dependencies(module_t * nonnull tab[], int len,
 
 /* }}} */
 
+/* {{{ Module declarations */
+
+/* Here are the declaration of the core modules that can't be declared in
+ * their own header because of a circular dependency. */
+
+/** Core memory module.
+ */
+MODULE_DECLARE(core_mem);
+
+/* }}} */
+
 #endif
