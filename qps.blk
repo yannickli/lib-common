@@ -2912,7 +2912,7 @@ void qps_snapshot_wait(qps_t *qps)
         thr_syn_wait(&qps->snap_syn);
 
         if (qps->snap_el) {
-            thr_syn_schedule_b(&qps->snap_syn, ^{
+            thr_schedule_b(^{
                 int status;
                 bool first = true;
 
@@ -2935,16 +2935,16 @@ void qps_snapshot_wait(qps_t *qps)
                     }
                     first = false;
                 }
-                thr_syn_queue_b(&qps->snap_syn, thr_queue_main_g, ^{
+                thr_queue_b(thr_queue_main_g, ^{
                     el_child_unregister(&qps->snap_el);
                     qps_snapshot_bg_done(NULL, qps->snap_pid, status,
                                          (data_t){ .ptr = qps });
                 });
             });
-            thr_syn_wait(&qps->snap_syn);
         }
 
-        while (qps->snapshotting) {
+        while (qps->snapshotting || qps->snap_el) {
+            MODULE_METHOD_RUN_VOID(consume_child_events);
             thr_queue_main_drain();
         }
     }
