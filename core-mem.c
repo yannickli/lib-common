@@ -124,6 +124,8 @@ mem_pool_t mem_pool_libc = {
 
 static void core_mem_libc_print_state(void)
 {
+#ifdef __GLIBC__
+# if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 10)
     FILE *fstream;
     char *malloc_info_res = NULL;
     size_t malloc_info_res_size;
@@ -145,6 +147,8 @@ static void core_mem_libc_print_state(void)
     logger_notice(&libc_logger_g, "malloc status:\n%*pM",
                   (int)malloc_info_res_size, malloc_info_res);
     free(malloc_info_res);
+# endif
+#endif
 }
 
 static int core_mem_libc_initialize(void *arg)
