@@ -16,7 +16,7 @@
 
 #define LIB_COMMON_VERSION  "2017.3"
 #define LIB_COMMON_MAJOR    2017
-#define LIB_COMMON_MINOR    1
+#define LIB_COMMON_MINOR    3
 #define __LIB_COMMON_VER(Maj, Min)  (((Maj) << 16) | Min)
 
 #define LIB_COMMON_PREREQ(Maj, Min)                                          \
