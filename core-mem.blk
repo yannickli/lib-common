@@ -37,10 +37,12 @@
 static struct {
     logger_t logger;
 
+    size_t malloc_trim_pad;
     el_t malloc_trim_cron;
 } core_mem_libc_g = {
 #define libc_g  core_mem_libc_g
     .logger = LOGGER_INIT_INHERITS(NULL, "core-mem-libc"),
+    .malloc_trim_pad = (10 << 20),
 };
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
@@ -160,37 +162,50 @@ static void core_mem_libc_print_state(void)
 #endif
 }
 
-static void call_malloc_trim(void)
+void core_mem_set_malloc_trim_pad(size_t pad)
+{
+    libc_g.malloc_trim_pad = pad;
+}
+
+static void call_malloc_trim(size_t pad)
 {
     timing_scope(&libc_g.logger, 500, "malloc_trim");
 
-    malloc_trim(10 << 20);
+    malloc_trim(pad);
 }
 
 static void malloc_trim_cron(el_t ev, data_t priv)
 {
+    size_t pad = libc_g.malloc_trim_pad;
+
     if (MODULE_IS_LOADED(thr)) {
         thr_schedule_b(^{
-            call_malloc_trim();
+            call_malloc_trim(pad);
         });
     } else {
-        call_malloc_trim();
+        call_malloc_trim(pad);
     }
+}
+
+void core_mem_set_malloc_trim_period(int64_t period)
+{
+    int next = rand_range(0, period);
+
+    /* Call malloc_trim every "period" milliseconds in order to try releasing
+     * some memory to the kernel.
+     * Randomly pick the first call to avoid that every daemon of a product
+     * call it at the same time, causing a potential slowdown. */
+    el_unregister(&libc_g.malloc_trim_cron);
+    libc_g.malloc_trim_cron = el_timer_register(next, period, EL_TIMER_LOWRES,
+                                                &malloc_trim_cron, NULL);
 }
 
 #define MALLOC_TRIM_PERIOD  (10 * 60 * 1000) /* 10 minutes. */
 
 static int core_mem_libc_initialize(void *arg)
 {
-    /* Call malloc_trim every MALLOC_TRIM_PERIOD milliseconds in order to try
-     * releasing some memory to the kernel.
-     * Randomly pick the first call to avoid that every daemon of a product
-     * call it at the same time, causing a potential slowdown. */
-    int next = rand_range(0, MALLOC_TRIM_PERIOD);
+    core_mem_set_malloc_trim_period(MALLOC_TRIM_PERIOD);
 
-    libc_g.malloc_trim_cron = el_timer_register(next, MALLOC_TRIM_PERIOD,
-                                                EL_TIMER_LOWRES,
-                                                &malloc_trim_cron, NULL);
     return 0;
 }
 
