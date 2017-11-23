@@ -198,6 +198,7 @@ void core_mem_set_malloc_trim_period(int64_t period)
     el_unregister(&libc_g.malloc_trim_cron);
     libc_g.malloc_trim_cron = el_timer_register(next, period, EL_TIMER_LOWRES,
                                                 &malloc_trim_cron, NULL);
+    el_unref(libc_g.malloc_trim_cron);
 }
 
 #define MALLOC_TRIM_PERIOD  (10 * 60 * 1000) /* 10 minutes. */
@@ -209,11 +210,6 @@ static int core_mem_libc_initialize(void *arg)
     return 0;
 }
 
-static void core_mem_libc_on_term(int signo)
-{
-    el_unref(libc_g.malloc_trim_cron);
-}
-
 static int core_mem_libc_shutdown(void)
 {
     el_unregister(&libc_g.malloc_trim_cron);
@@ -221,7 +217,6 @@ static int core_mem_libc_shutdown(void)
 }
 
 MODULE_BEGIN(core_mem_libc)
-    MODULE_IMPLEMENTS_INT(on_term, &core_mem_libc_on_term);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_libc_print_state);
 MODULE_END()
 
