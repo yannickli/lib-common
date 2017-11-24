@@ -670,6 +670,15 @@ static inline void (p_delete)(void * nullable * nonnull p)
 }
 #endif
 
+/** Set the period for the cron that calls malloc_trim().
+ *
+ * \param[in] period  Malloc trim period (in millisecond).
+ */
+void core_mem_set_malloc_trim_period(int64_t period);
+
+/** Set the value to use when calling malloc_trim(). */
+void core_mem_set_malloc_trim_pad(size_t pad);
+
 /* }}} */
 /* Mem-fifo Pool {{{ */
 
