@@ -721,7 +721,7 @@ static inline pstream_t ps_get_span(pstream_t * nonnull ps,
     return __ps_get_ps_upto(ps, b);
 }
 
-/* @func ps_get_span
+/* @func ps_get_cspan
  * @param[in] ps
  * @param[in] d
  * @return a sub pstream spanning on the first characters
