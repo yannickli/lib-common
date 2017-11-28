@@ -359,13 +359,13 @@ void qps_bitmap_compute_stats(qps_bitmap_t *map, size_t *_memory,
             dispatch = qps_pg_deref(map->qps, map->root->roots[i]);
 
             for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
-                if ((*dispatch[j]).node) {
+                if ((*dispatch)[j].node) {
                     if (map->root->is_nullable) {
                         memory += 2 * QPS_PAGE_SIZE;
                     } else {
                         memory += QPS_PAGE_SIZE;
                     }
-                    entries += (*dispatch[j]).active_bits;
+                    entries += (*dispatch)[j].active_bits;
                     slots   += QPS_BITMAP_LEAF;
                 }
             }
