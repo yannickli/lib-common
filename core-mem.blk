@@ -25,10 +25,26 @@
 #  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif
 
+#include <malloc.h>
+
 #include "core.h"
+#include "datetime.h"
+#include "log.h"
+
+#include "thr.h"
 
 
 /* Libc allocator {{{ */
+
+static logger_t libc_logger_g = LOGGER_INIT_INHERITS(NULL, "core-mem-libc");
+
+static struct {
+    size_t malloc_trim_pad;
+    el_t malloc_trim_cron;
+} core_mem_libc_g = {
+#define libc_g  core_mem_libc_g
+    .malloc_trim_pad = (10 << 20),
+};
 
 static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
                          mem_flags_t flags)
@@ -114,6 +130,63 @@ mem_pool_t mem_pool_libc = {
     .mem_pool = MEM_LIBC | MEM_EFFICIENT_REALLOC,
     .min_alignment = sizeof(void *)
 };
+
+void core_mem_set_malloc_trim_pad(size_t pad)
+{
+    libc_g.malloc_trim_pad = pad;
+}
+
+static void call_malloc_trim(size_t pad)
+{
+    timing_scope(&libc_logger_g, 500, "malloc_trim");
+
+    malloc_trim(pad);
+}
+
+static void malloc_trim_cron(el_t ev, data_t priv)
+{
+    size_t pad = libc_g.malloc_trim_pad;
+
+    if (MODULE_IS_LOADED(thr)) {
+        thr_schedule_b(^{
+            call_malloc_trim(pad);
+        });
+    } else {
+        call_malloc_trim(pad);
+    }
+}
+
+void core_mem_set_malloc_trim_period(int64_t period)
+{
+    int next = rand_range(0, period);
+
+    /* Call malloc_trim every "period" milliseconds in order to try releasing
+     * some memory to the kernel.
+     * Randomly pick the first call to avoid that every daemon of a product
+     * call it at the same time, causing a potential slowdown. */
+    el_unregister(&libc_g.malloc_trim_cron);
+    libc_g.malloc_trim_cron = el_timer_register(next, period, EL_TIMER_LOWRES,
+                                                &malloc_trim_cron, NULL);
+    el_unref(libc_g.malloc_trim_cron);
+}
+
+#define MALLOC_TRIM_PERIOD  (10 * 60 * 1000) /* 10 minutes. */
+
+static int core_mem_libc_initialize(void *arg)
+{
+    core_mem_set_malloc_trim_period(MALLOC_TRIM_PERIOD);
+
+    return 0;
+}
+
+static int core_mem_libc_shutdown(void)
+{
+    el_unregister(&libc_g.malloc_trim_cron);
+    return 0;
+}
+
+MODULE_BEGIN(core_mem_libc)
+MODULE_END()
 
 /* }}} */
 /* Libc cacheline aligned allocator {{{ */
@@ -500,5 +573,22 @@ bool mem_pool_is_enabled(void)
     return mp_is_enabled;
 }
 #endif
+
+/* }}} */
+/* {{{ Module */
+
+static int core_mem_initialize(void *arg)
+{
+    return 0;
+}
+
+static int core_mem_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(core_mem)
+    MODULE_DEPENDS_ON(core_mem_libc);
+MODULE_END()
 
 /* }}} */
