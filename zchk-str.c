@@ -1638,6 +1638,14 @@ Z_GROUP_EXPORT(str)
         CHECK("\"", ';', "\"\"\"\"");
     } Z_TEST_END;
 
+    Z_TEST(sb_splice_lstr, "") {
+        SB_1k(sb);
+
+        sb_sets(&sb, "123");
+        sb_splice_lstr(&sb, 1, 1, LSTR("two"));
+        Z_ASSERT_LSTREQUAL(LSTR("1two3"), LSTR_SB_V(&sb));
+    } Z_TEST_END;
+
     Z_TEST(ps_skip_afterlastchr, "") {
         pstream_t ps = ps_initstr("test_1_2");
         pstream_t ps2 = ps_initstr("test1.02");

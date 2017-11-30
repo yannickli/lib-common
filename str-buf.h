@@ -345,7 +345,7 @@ __sb_splice(sb_t * nonnull sb, int pos, int rm_len, int insert_len);
  * \param[in]      dlen    Length of the data to insert.
  */
 __swift_name__("StringBuffer.splice(self:at:remove:insert:count:)")
-static inline char * nonnull 
+static inline char * nonnull
 sb_splice(sb_t * nonnull sb, int pos, int rm_len, const void * nullable data,
           int dlen)
 {
@@ -375,6 +375,12 @@ sb_splice(sb_t * nonnull sb, int pos, int rm_len, const void * nullable data,
     return data ? (char *)memcpy(res, data, dlen) : res;
 }
 
+static inline char * nonnull
+sb_splice_lstr(sb_t * nonnull sb, int pos, int rm_len, lstr_t insert)
+{
+    return sb_splice(sb, pos, rm_len, insert.s, insert.len);
+}
+
 __swift_name__("StringBuffer.splice(self:at:remove:insertCount:byte:)")
 static inline void
 sb_splicenc(sb_t * nonnull sb, int pos, int len, int extralen, unsigned char c)
@@ -394,7 +400,7 @@ static inline void sb_prepends(sb_t * nonnull sb, const char * nonnull s)
 __swift_name__("StringBuffer.prependLString(self:_:)")
 static inline void sb_prepend_lstr(sb_t * nonnull sb, lstr_t s)
 {
-    sb_splice(sb, 0, 0, s.s, s.len);
+    sb_splice_lstr(sb, 0, 0, s);
 }
 __swift_name__("StringBuffer.prependByte(self:_:)")
 static inline void sb_prependc(sb_t * nonnull sb, unsigned char c)
