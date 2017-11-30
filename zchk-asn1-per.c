@@ -64,6 +64,7 @@ Z_GROUP_EXPORT(asn1_aper) {
     } Z_TEST_END;
 
     Z_TEST(extended_choice, "extended choice") {
+        t_scope;
         struct {
             tstiop__asn1_ext_choice__t in;
             lstr_t aper_bytes;
