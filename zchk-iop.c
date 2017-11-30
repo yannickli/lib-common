@@ -2098,6 +2098,50 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_STREQUAL(sb.data, json_sn_strint);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(json_big_bytes, "test JSON packing big bytes fields") { /* {{{ */
+        SB_1k(sb);
+        tstiop__my_struct_a_opt__t sn;
+
+#define B64_RES_START  "QUJDREVGR0h"
+#define B64_RES_MIDDLE  "JSktMTU5PUFFSU1RVVldYWVpBQkNERUZHSElKS0xNTk9QUVJTV"
+#define B64_RES_END  "FVWV1hZWg=="
+
+        const char json[] =
+            "{\n"
+            "\t\"i\": \"" B64_RES_START B64_RES_MIDDLE B64_RES_END "\"\n"
+            "}\n";
+
+        const char json_cut[] =
+            "{\n"
+            "\t\"i\": \"" B64_RES_START " …(skip 50 bytes)… " B64_RES_END
+                "\"\n"
+            "}\n";
+
+        Z_ASSERT_EQ(strlen(B64_RES_MIDDLE), 50ul);
+        Z_ASSERT_EQ(strlen(B64_RES_START), 11ul);
+        Z_ASSERT_EQ(strlen(B64_RES_END), 11ul);
+
+#undef B64_RES_START
+#undef B64_RES_MIDDLE
+#undef B64_RES_END
+
+        iop_init(tstiop__my_struct_a_opt, &sn);
+        sn.i = LSTR("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ");
+
+        Z_ASSERT_N(iop_jpack(&tstiop__my_struct_a_opt__s, &sn, iop_sb_write,
+                             &sb, IOP_JPACK_UNSAFE_INTEGERS
+                                      | IOP_JPACK_SKIP_EMPTY_ARRAYS));
+        Z_ASSERT_STREQUAL(sb.data, json, "`%*pM`", SB_FMT_ARG(&sb));
+
+        sb_reset(&sb);
+
+        Z_ASSERT_N(iop_jpack(&tstiop__my_struct_a_opt__s, &sn, iop_sb_write,
+                             &sb, IOP_JPACK_UNSAFE_INTEGERS
+                                      | IOP_JPACK_SKIP_EMPTY_ARRAYS
+                                      | IOP_JPACK_SHORTEN_DATA));
+        Z_ASSERT_STREQUAL(sb.data, json_cut, "`%*pM`", SB_FMT_ARG(&sb));
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(json_file_include, "test file inclusion in IOP JSon (un)packer") { /* {{{ */
         t_scope;
         SB_1k(err);

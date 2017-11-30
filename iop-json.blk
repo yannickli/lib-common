@@ -2311,7 +2311,7 @@ static int do_indent(iop_jpack_writecb_f *writecb, void *priv, int lvl)
  */
 #define IBUF_LEN  25
 
-static int write_string(lstr_t val, iop_type_t type,
+static int write_string(lstr_t val, iop_type_t type, unsigned flags,
                         iop_jpack_writecb_f *writecb, void *priv)
 {
     SB_8k(sb);
@@ -2323,6 +2323,20 @@ static int write_string(lstr_t val, iop_type_t type,
         if (val.len) {
             sb_reset(&sb);
             sb_add_b64(&sb, val.data, val.len, -1);
+
+#define HALF_MAX_DISPLAY  11
+#define REPL_FMT  (" …(skip %d bytes)… ")
+
+            if (unlikely(flags & IOP_JPACK_SHORTEN_DATA)
+            &&  (size_t)sb.len > 2 * HALF_MAX_DISPLAY + strlen(REPL_FMT))
+            {
+                t_scope;
+                int nb_skip = sb.len - 2 * HALF_MAX_DISPLAY;
+                lstr_t repl = t_lstr_fmt(REPL_FMT, nb_skip);
+
+                sb_splice_lstr(&sb, HALF_MAX_DISPLAY, nb_skip, repl);
+            }
+
             WRITE(sb.data, sb.len);
         }
     } else {
@@ -2455,7 +2469,8 @@ static int write_field(const iop_struct_t *st, const void *value,
 
     /* Write include in original path. */
     PUTS("@include(");
-    res += RETHROW(write_string(sub_file_path, IOP_T_STRING, writecb, priv));
+    res += RETHROW(write_string(sub_file_path, IOP_T_STRING, flags, writecb,
+                                priv));
     PUTS(")");
 
     return res;
@@ -2592,10 +2607,11 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_DATA: {
                 const lstr_t *sv = &IOP_FIELD(const lstr_t, ptr, j);
 
-                tmp_res = write_field(desc, sv, writecb, priv, flags, file_ctx,
-                                      ^int (void) {
+                tmp_res = write_field(desc, sv, writecb, priv, flags,
+                                      file_ctx, ^int (void) {
                     /* Write the field inline. */
-                    return write_string(*sv, fdesc->type, writecb, priv);
+                    return write_string(*sv, fdesc->type, flags, writecb,
+                                        priv);
                 },
                 ^int (const char *path) {
                     /* Write the field in a dedicated file. */
