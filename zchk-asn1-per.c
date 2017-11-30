@@ -37,6 +37,27 @@ static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
     asn1_set_int_min_max(desc, 666, 1234567);
 ASN1_CHOICE_DESC_END(desc);
 
+enum test_enum {
+    A,
+    B,
+    C,
+};
+
+static ASN1_ENUM_BEGIN(test_enum);
+    asn1_enum_reg_val(A);
+    asn1_enum_reg_val(B);
+    asn1_enum_reg_val(C);
+ASN1_ENUM_END();
+
+typedef struct {
+    enum test_enum e;
+} seq1_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, seq1);
+    asn1_reg_enum(desc, seq1, test_enum, e, 0);
+    asn1_set_enum_info(desc, test_enum);
+ASN1_SEQUENCE_DESC_END(desc);
+
 Z_GROUP_EXPORT(asn1_aper) {
     Z_TEST(choice, "choice") {
         t_scope;
@@ -90,5 +111,21 @@ Z_GROUP_EXPORT(asn1_aper) {
                                      &out));
             Z_ASSERT_IOPEQUAL(tstiop__asn1_ext_choice, &t->in, &out);
         }
+    } Z_TEST_END;
+
+    Z_TEST(enum, "enum") {
+        t_scope;
+        SB_1k(buf);
+        seq1_t seq = { .e = B };
+        seq1_t out;
+        lstr_t expected_encoding = LSTR_IMMED("\x40");
+        pstream_t ps;
+
+        Z_ASSERT_N(aper_encode(&buf, seq1, &seq));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), expected_encoding, "%*pX",
+                           SB_FMT_ARG(&buf));
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_aper_decode(&ps, seq1, false, &out));
+        Z_ASSERT_EQ(seq.e, out.e);
     } Z_TEST_END;
 } Z_GROUP_END

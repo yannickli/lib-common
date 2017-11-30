@@ -332,6 +332,15 @@ static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
 
 GENERIC_NEW(asn1_enum_info_t, asn1_enum_info);
 
+static inline void asn1_enum_info_wipe(asn1_enum_info_t *e)
+{
+    qv_wipe(u32, &e->values);
+}
+
+GENERIC_DELETE(asn1_enum_info_t, asn1_enum_info);
+
+qvector_t(asn1_enum_info, asn1_enum_info_t *);
+
 /* }}} */
 
 /** \brief Define specification of an asn1 field.
@@ -434,6 +443,7 @@ qvector_t(asn1_choice_desc, asn1_choice_desc_t *);
 struct asn1_descs_t {
     qv_t(asn1_desc) descs;
     qv_t(asn1_choice_desc) choice_descs;
+    qv_t(asn1_enum_info) enum_infos;
 };
 extern __thread struct asn1_descs_t asn1_descs_g;
 
