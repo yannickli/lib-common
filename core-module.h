@@ -512,6 +512,7 @@ void module_on_term(int signo);
 MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
+MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, consume_child_events);
 
 /** Register at fork methods.
  *
