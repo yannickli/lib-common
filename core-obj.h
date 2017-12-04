@@ -394,9 +394,6 @@
 #define OBJECT_METHODS(type_t)                                               \
     type_t  * nonnull (*nonnull init)(type_t * nonnull);                     \
     void     (*nonnull wipe)(type_t * nonnull);                              \
-    uint32_t (*nonnull hash)(const type_t * nonnull);                        \
-    bool     (*nonnull equal)(const type_t * nonnull,                        \
-                              const type_t * nonnull);                       \
     type_t  * nonnull (*nonnull retain)(type_t * nonnull);                   \
     void     (*nonnull release)(type_t * nonnull);                           \
     bool     (*nonnull can_wipe)(type_t * nonnull)
