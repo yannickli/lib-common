@@ -30,6 +30,30 @@ void xmlpp_close(xmlpp_t *);
 
 void xmlpp_opentag(xmlpp_t *, const char *tag);
 void xmlpp_closetag(xmlpp_t *);
+
+static inline xmlpp_t *
+__xmlpp_open_tag_and_return(xmlpp_t *xmlpp, const char *tag)
+{
+    xmlpp_opentag(xmlpp, tag);
+
+    return xmlpp;
+}
+
+#define ____xmlpp_tag_scope(_tmpname, _xmlpp, _tag)                          \
+    for (xmlpp_t *_tmpname = __xmlpp_open_tag_and_return((_xmlpp), (_tag));  \
+         _tmpname; xmlpp_closetag(_tmpname), _tmpname = NULL)
+
+#define ___xmlpp_tag_scope(n, _xmlpp, _tag)                                  \
+    ____xmlpp_tag_scope(__xmlpp_scope_##n, (_xmlpp), (_tag))
+
+/* XXX This level of macro is just here to force the preprocessing of
+ * predefined macro "__LINE__". */
+#define __xmlpp_tag_scope(n, _xmlpp, _tag)                                   \
+    ___xmlpp_tag_scope(n, (_xmlpp), (_tag))
+
+#define xmlpp_tag_scope(_xmlpp, _tag)                                        \
+    __xmlpp_tag_scope(__LINE__, (_xmlpp), (_tag))
+
 void xmlpp_nl(xmlpp_t *);
 
 void xmlpp_putattr(xmlpp_t *, const char *key, const char *val);
