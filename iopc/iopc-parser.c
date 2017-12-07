@@ -2658,8 +2658,9 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
         goto error;
     }
     if (!res_res && !exn_res && !iopc_is_snmp_iface(type)) {
-        info_loc("function `%s` may be a candidate for async-ness",
-                 fun->loc, fun->name);
+        error_loc("no `out` nor `throw` for function `%s`",
+                  fun->loc, fun->name);
+        goto error;
     }
 
     if (__eat(pp, ';') < 0) {

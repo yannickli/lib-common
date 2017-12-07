@@ -891,10 +891,10 @@ class IopcTest(z.TestCase):
     def test_unknown_file(self):
         self.run_iopc_fail('unknown_file.iop', 'unable to open file')
 
-    def test_async_candidate(self):
-        self.run_iopc('async_candidate.iop', True,
-                      "function `asyncCandidate` may be a candidate for "
-                      "async-ness")
+    def test_no_out_nor_throw(self):
+        self.run_iopc_fail('async_candidate.iop',
+                           ("no `out` nor `throw` for function "
+                            "`asyncCandidate`"))
 
     def test_dup_struct(self):
         self.run_iopc('duplicated_struct.iop', False,
