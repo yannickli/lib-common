@@ -324,8 +324,9 @@ void t_scope_cleanup(const void * nonnull * nonnull unused)
     mem_stack_pop(&t_pool_g);
 #endif
 }
-#define t_scope__(n)  \
-    const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) \
+#define t_scope  \
+    const void *PFX_LINE(t_scope_)                                           \
+    __attribute__((unused,cleanup(t_scope_cleanup)))                         \
         = mem_stack_push(&t_pool_g)
 #else
 /*
@@ -340,11 +341,8 @@ class TScope {
     void*  null_unspecified operator new(size_t);
     void  operator delete(void * null_unspecified , size_t);
 };
-#define t_scope__(n)  \
-    TScope t_scope_because_cpp_sucks_donkeys_##n
+#define t_scope  \
+    TScope PFX_LINE(t_scope_because_cpp_sucks_donkeys_)
 #endif
-
-#define t_scope_(n)  t_scope__(n)
-#define t_scope      t_scope_(__LINE__)
 
 #endif

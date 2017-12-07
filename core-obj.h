@@ -283,6 +283,10 @@
 #define OBJ_EXT_VTABLE(pfx)                                                  \
      OBJ_EXT_VTABLE_WITH_PRIO(pfx, OBJ_EXT_VTABLE_DEF_PRIO)
 
+/* Names generators. */
+#define _OBJ_VT_SFX(pfx, sfx)  PFX_LINE_SFX(pfx##_, _ext_vtable##sfx)
+#define _OBJ_VT(pfx)           _OBJ_VT_SFX(pfx, )
+
 /** Begin implementation class virtual table extension with a custom priority.
  *
  * This macro can be used if pfx##_class() is called in a constructor with a
@@ -295,31 +299,28 @@
  * \param prio constructor priority.
  */
 #define OBJ_EXT_VTABLE_WITH_PRIO(pfx, prio)                                  \
-    OBJ_EXT_VTABLE_(pfx, prio, __LINE__)
+     OBJ_EXT_VTABLE_WITH_PRIO_(pfx, prio, _OBJ_VT(pfx),                      \
+                               _OBJ_VT_SFX(pfx, _ctor),                      \
+                               _OBJ_VT_SFX(pfx, _old_func_g))
 
-#define OBJ_EXT_VTABLE_(pfx, prio, line)                                     \
-    OBJ_EXT_VTABLE__(pfx, prio, line)
-
-#define OBJ_EXT_VTABLE__(pfx, prio, line)                                    \
-    OBJ_EXT_VTABLE___(pfx ## _ ## line ## _ext_vtable, pfx, prio)
-
-#define OBJ_EXT_VTABLE___(ext_pfx, cls_pfx, prio)                            \
-    static cls_pfx##_vtable_extension_f ext_pfx##_old_func_g;                \
-    static void ext_pfx(cls_pfx##_class_t * nonnull cls);                    \
+#define OBJ_EXT_VTABLE_WITH_PRIO_(cls_pfx, prio, _ext_vt,                    \
+                                  _ext_vt_constructor, _old_func_g)          \
+    static cls_pfx##_vtable_extension_f _old_func_g;                         \
+    static void _ext_vt(cls_pfx##_class_t * nonnull cls);                    \
                                                                              \
     __attribute__((constructor(prio)))                                       \
-    static void ext_pfx##_ctor(void)                                         \
+    static void _ext_vt_constructor(void)                                    \
     {                                                                        \
-        ext_pfx##_old_func_g = cls_pfx##_set_vtable_extension(&ext_pfx);     \
+        _old_func_g = cls_pfx##_set_vtable_extension(&_ext_vt);              \
     }                                                                        \
                                                                              \
-    static void ext_pfx(cls_pfx##_class_t * nonnull _cls)                    \
+    static void _ext_vt(cls_pfx##_class_t * nonnull _cls)                    \
     {                                                                        \
         cls_pfx##_class_t cls_pfx;                                           \
         cls_pfx##_class_t *cls = &cls_pfx;                                   \
                                                                              \
-        if (ext_pfx##_old_func_g) {                                          \
-            (*ext_pfx##_old_func_g)(_cls);                                   \
+        if (_old_func_g) {                                                   \
+            (*_old_func_g)(_cls);                                            \
         }                                                                    \
         cls_pfx = *_cls;                                                     \
 

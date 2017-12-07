@@ -764,18 +764,11 @@ timing_scope_start(logger_t *logger,
  */
 void timing_scope_finish(timing_scope_ctx_t *ctx);
 
-#define timing_scope__(_file, _func, _line, _logger, _timeout_ms, _fmt, ...)  \
+#define timing_scope(_logger, _timeout_ms, _fmt, ...)                        \
     __attribute__((unused,cleanup(timing_scope_finish)))                     \
-    timing_scope_ctx_t timer_scope_ctx_##_line =                             \
-        timing_scope_start(_logger, _file, _func, _line, _timeout_ms,        \
-                           _fmt, ##__VA_ARGS__)
-
-#define timing_scope_(_file, _func, _line, _logger, _timeout_ms, _fmt, ...)  \
-    timing_scope__(_file, _func, _line, _logger, _timeout_ms,                \
-                   _fmt, ##__VA_ARGS__)
-#define timing_scope(_logger, _timeout_ms, _fmt, ...)  \
-    timing_scope_(__FILE__, __func__, __LINE__, _logger, _timeout_ms,        \
-                  _fmt, ##__VA_ARGS__)
+    timing_scope_ctx_t PFX_LINE(timer_scope_ctx_) =                          \
+        timing_scope_start(_logger, __FILE__, __func__, __LINE__,            \
+                           _timeout_ms, _fmt, ##__VA_ARGS__)
 
 /* }}} */
 

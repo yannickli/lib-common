@@ -547,6 +547,18 @@ typedef unsigned char byte;
 #define unconst_cast(type_t, p)  ({ const type_t *__p = (p); (type_t *)__p; })
 
 /* }}} */
+/* {{{ Macro-building helpers */
+
+#define __PFX_LINE_SFX(pfx, line, sfx)  pfx##line##sfx
+#define _PFX_LINE_SFX(pfx, line, sfx)   __PFX_LINE_SFX(pfx, line, sfx)
+
+/** Builds a name by concatenating \p pfx to the line number. */
+#define PFX_LINE(pfx)  _PFX_LINE_SFX(pfx, __LINE__, )
+
+/** Builds a name by concatenating \p pfx, line number and \p sfx. */
+#define PFX_LINE_SFX(pfx, sfx)  _PFX_LINE_SFX(pfx, __LINE__, sfx)
+
+/* }}} */
 /* {{{ Loops */
 
 /* Standard loops for structures of the form struct { type_t *tab; int len; }.
