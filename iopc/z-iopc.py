@@ -903,6 +903,14 @@ class IopcTest(z.TestCase):
     def test_empty(self):
         self.run_iopc_fail('empty.iop', 'error: unexpected end of file')
 
+    def test_dox_invalid(self):
+        self.run_iopc_fail('tstdox_invalid1.iop',
+                           ('doxygen unrelated `in` argument `unknown` for '
+                            'RPC `funA`'))
+        self.run_iopc_fail('tstdox_invalid2.iop',
+                           ('error: invalid identifier when parsing json '
+                            'value'))
+
     # }}}
 
 if __name__ == "__main__":

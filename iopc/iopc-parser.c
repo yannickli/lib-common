@@ -1414,20 +1414,17 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
     iopc_dox_arg_dir_t dir;
 
     if (!chunk->params.len) {
-        warn_loc("doxygen param direction not specified", chunk->loc);
-        return -1;
+        throw_loc("doxygen param direction not specified", chunk->loc);
     }
 
     if (chunk->params.len > 1) {
-        warn_loc("more than one doxygen param direction", chunk->loc);
-        return -1;
+        throw_loc("more than one doxygen param direction", chunk->loc);
     }
 
     if (iopc_dox_check_param_dir(chunk->params.tab[0], &dir) < 0)
     {
-        warn_loc("unsupported doxygen param direction: `%*pM`", chunk->loc,
-                 LSTR_FMT_ARG(chunk->params.tab[0]));
-        return -1;
+        throw_loc("unsupported doxygen param direction: `%*pM`", chunk->loc,
+                  LSTR_FMT_ARG(chunk->params.tab[0]));
     }
 
 #define TEST_ANONYMOUS(X, Y)  \
@@ -1444,8 +1441,9 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
 
     dox_chunk_params_args_validate(chunk);
 
-    if (iopc_dox_check_paragraphs(res, &chunk->paragraphs) < 0)
+    if (iopc_dox_check_paragraphs(res, &chunk->paragraphs) < 0) {
         return 0;
+    }
 
     tab_for_each_pos(i, &chunk->params_args) {
         lstr_t arg = chunk->params_args.tab[i];
@@ -1454,10 +1452,11 @@ build_dox_param(const iopc_fun_t *owner, qv_t(iopc_dox) *res,
         qv_t(sb) object_paragraphs;
 
         for (int j = i + 1; j < chunk->params_args.len; j++) {
-            if (!lstr_equal(arg, chunk->params_args.tab[j]))
-                continue;
-            throw_loc("doxygen duplicated `%*pM` argument `%*pM`", chunk->loc,
-                      LSTR_FMT_ARG(chunk->params.tab[0]), LSTR_FMT_ARG(arg));
+            if (lstr_equal(arg, chunk->params_args.tab[j])) {
+                throw_loc("doxygen duplicated `%*pM` argument `%*pM`",
+                          chunk->loc, LSTR_FMT_ARG(chunk->params.tab[0]),
+                          LSTR_FMT_ARG(arg));
+            }
         }
 
         arg_field = iopc_dox_arg_find_in_fun(arg, dir, owner);
@@ -1495,9 +1494,9 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
         &&  iopc_dox_check_keyword(chunk->keyword, &type) >= 0
         &&  !iopc_dox_type_is_related(type, attr_type))
         {
-            warn_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
-                     LSTR_FMT_ARG(chunk->keyword));
-            type = -1;
+            error_loc("unrelated doxygen keyword: `%*pM`", chunk->loc,
+                      LSTR_FMT_ARG(chunk->keyword));
+            goto error;
         }
 
         if (type == -1) {
@@ -1505,15 +1504,15 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             dox_chunk_keyword_merge(chunk);
         }
 
-        if (iopc_dox_check_paragraphs(comments, &chunk->paragraphs) < 0)
+        if (iopc_dox_check_paragraphs(comments, &chunk->paragraphs) < 0) {
             continue;
+        }
 
         if (type == IOPC_DOX_TYPE_PARAM) {
-            if (build_dox_param(owner, comments, chunk) >= 0)
-                continue;
-            dox_chunk_params_merge(chunk);
-            dox_chunk_keyword_merge(chunk);
-            type = -1;
+            if (build_dox_param(owner, comments, chunk) < 0) {
+                goto error;
+            }
+            continue;
         }
 
         if (type >= 0) {
@@ -1557,10 +1556,12 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
             iop_cfolder_delete(&pp.cfolder);
             if (res < 0) {
                 if (logs->len > 0) {
-                    print_warning("warning: %*pM",
-                                  LSTR_FMT_ARG(logs->tab[0].msg));
+                    print_error("error: %*pM",
+                                LSTR_FMT_ARG(logs->tab[0].msg));
+                } else {
+                    print_error("json parsing error");
                 }
-                sb_setf(&sb, "{}");
+                goto error;
             }
             lstr_transfer_sb(&dox->desc, &sb, false);
         }
@@ -1569,6 +1570,10 @@ static int build_dox_(qv_t(dox_chunk) *chunks, const void *owner,
 
     qv_deep_clear(chunks, dox_chunk_wipe);
     return 0;
+
+  error:
+    qv_deep_clear(chunks, dox_chunk_wipe);
+    return -1;
 }
 
 #define build_dox(_chunks, _owner, _attr_type)                             \
