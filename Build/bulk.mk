@@ -211,7 +211,7 @@ www-coverage::
 	$(msg/generate) "$!${REPORT_DIR}"
 	mkdir -p $!${REPORT_DIR}
 	$(msg/generate) "$!"
-	cp -a $/* $!
+	rsync -a $/ $! --exclude "*module.map"
 	find -type d -name "javascript" -not -path '*/\.*' -not -path '*/cache/*' | while read line ; do \
 		$(msg/generate) "instrumented directory: $!$${line}"; \
 		$(RM) -rf $!$${line}; \
