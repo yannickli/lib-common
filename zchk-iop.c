@@ -913,7 +913,7 @@ Z_GROUP_EXPORT(iop)
                           &tstiop_inheritance__pkg,
                           &tstiop_backward_compat__pkg);
 
-    Z_TEST(dso_open, "test wether iop_dso_open works and loads stuff") { /* {{{ */
+    Z_TEST(dso_open, "test whether iop_dso_open works and loads stuff") { /* {{{ */
         t_scope;
 
         SB_1k(err);
@@ -965,7 +965,7 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(hash_sha1, "test wether iop_hash_sha1 is stable wrt ABI change") { /* {{{ */
+    Z_TEST(hash_sha1, "test whether iop_hash_sha1 is stable wrt ABI change") { /* {{{ */
         t_scope;
 
         int  i_10 = 10, i_11 = 11;
@@ -1007,6 +1007,35 @@ Z_GROUP_EXPORT(iop)
         iop_hash_sha1(stv1, &v1_not_same, buf2, 0);
         Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) != 0);
         iop_dso_close(&dso);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(hash_sha1_class, "test whether iop_hash_sha1 takes the class type into account") { /* {{{ */
+        tstiop__my_class2__t cl2;
+        tstiop__my_class2_bis__t cl2bis;
+        tstiop__my_class2_after__t cl2after;
+        uint8_t buf1[20], buf2[20];
+
+        iop_init(tstiop__my_class2, &cl2);
+        cl2.int1 = 1;
+        cl2.int2 = 2;
+        iop_init(tstiop__my_class2_bis, &cl2bis);
+        cl2bis.int1 = 1;
+        cl2bis.int2 = 2;
+
+        Z_ASSERT(!iop_equals_desc(&tstiop__my_class1__s, &cl2, &cl2bis));
+
+        iop_hash_sha1(&tstiop__my_class1__s, &cl2, buf1, 0);
+        iop_hash_sha1(&tstiop__my_class1__s, &cl2bis, buf2, 0);
+        Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) != 0);
+
+        /* ensure that adding an empty class in the hierarchy (which is
+         * backward compatible) does not change the hash, only the class_id
+         * of the instance is considered. */
+        iop_init(tstiop__my_class2_after, &cl2after);
+        cl2after.int1 = 1;
+        cl2after.int2 = 2;
+        iop_hash_sha1(&tstiop__my_class1_after__s, &cl2after, buf2, 0);
+        Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) == 0);
     } Z_TEST_END;
     /* }}} */
     Z_TEST(constant_folder, "test the IOP constant folder") { /* {{{ */

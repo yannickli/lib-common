@@ -73,7 +73,7 @@ class MyClass1 : 1 {
     int int1;
 };
 
-class MyClass2 : 2 :MyClass1 {
+class MyClass2 : 2 : MyClass1 {
     int int2;
 };
 
@@ -83,6 +83,20 @@ class MyClass3 : 3 : MyClass2 {
     string? string1;
 };
 
+class MyClass2Bis : 4 : MyClass1 {
+    int int2;
+};
+
+class MyClass1After : 1 {
+    int int1;
+};
+
+class MyClassEmpty : 5 : MyClass1After {
+};
+
+class MyClass2After : 2 : MyClassEmpty {
+    int int2;
+};
 
 @(test:gen3, "3")
 @(test:json, "field": { "f1": "val1", "f2": -1.0e2 } )
