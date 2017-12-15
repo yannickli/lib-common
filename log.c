@@ -1092,9 +1092,6 @@ static void log_shutdown_thread(void)
         sb_wipe(&log_thr_g.log);
 
         qv_deep_wipe(&log_thr_g.vec_buff_stack, buffer_instance_wipe);
-        if (log_thr_g.vec_buff_stack.len > 0) {
-            mem_stack_pop(&log_thr_g.mp_stack);
-        }
         mem_stack_pool_wipe(&log_thr_g.mp_stack);
 
         log_thr_g.inited = false;
