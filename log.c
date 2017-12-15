@@ -68,7 +68,6 @@ static struct {
     int pid;
     spinlock_t update_lock;
 
-    bool use_handler   : 1;
     bool log_timestamp : 1;
 } log_g = {
 #define _G  log_g
@@ -457,9 +456,7 @@ void log_start_buffering_filter(bool use_handler, int log_level)
 {
     buffer_instance_t *buffer_instance;
 
-    if (log_thr_g.nb_buffer_started == 0) {
-        _G.use_handler = use_handler;
-    } else {
+    if (log_thr_g.nb_buffer_started) {
         const buffer_instance_t *buff;
 
         buff = &log_thr_g.vec_buff_stack.tab[log_thr_g.nb_buffer_started - 1];
