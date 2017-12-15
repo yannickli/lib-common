@@ -48,6 +48,40 @@ static void z_logger_init_job(thr_job_t *tjob, thr_syn_t *syn)
     }
 }
 
+static int z_log_buffer_thr(void)
+{
+    logger_t logger;
+    __block _Bool test_failed_blk = false;
+    bool test_failed;
+
+    Z_TEST_FLAGS("redmine_57316");
+
+    MODULE_REQUIRE(thr);
+    logger_init(&logger, NULL, LSTR("log_buffer_thr"), LOG_DEBUG, 0);
+
+    thr_for_each(1000, ^(size_t pos) {
+        const qv_t(log_buffer) *vect_buffer;
+
+        log_start_buffering(false);
+        logger_info(&logger, "buffered log 1");
+        logger_info(&logger, "buffered log 2");
+        logger_info(&logger, "buffered log 3");
+        vect_buffer = log_stop_buffering();
+
+        if (vect_buffer->len != 3) {
+            test_failed_blk = true;
+        }
+    });
+
+    test_failed = test_failed_blk;
+    Z_ASSERT(!test_failed);
+
+    logger_wipe(&logger);
+    MODULE_RELEASE(thr);
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(log) {
     Z_TEST(log_level, "log") {
         logger_t *root_logger = logger_get_by_name(LSTR_EMPTY_V);
@@ -558,6 +592,10 @@ Z_GROUP_EXPORT(log) {
 
         log_set_handler(handler);
 #undef TEST_LOG_ENTRY
+    } Z_TEST_END;
+
+    Z_TEST(log_buffer_thr, "multi-threaded log buffers") {
+        Z_HELPER_RUN(z_log_buffer_thr());
     } Z_TEST_END;
 
     Z_TEST(scope, "scoped logs") {
