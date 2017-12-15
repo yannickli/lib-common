@@ -5321,8 +5321,7 @@ Z_GROUP_EXPORT(iop)
         z_struct.opt_obj = t_iop_new(tstiop__simple_class);
         TEST("optObj", z_struct.opt_obj, 1, false);
         TEST("objTab", z_struct.obj_tab.tab, 0, true);
-        z_struct.obj_tab.tab = t_new(tstiop__simple_class__t *, 1);
-        z_struct.obj_tab.len = 1;
+        z_struct.obj_tab = T_IOP_ARRAY_NEW(tstiop__simple_class, 1);
         TEST("objTab", z_struct.obj_tab.tab, 1, true);
 
         TEST("v", NULL, 0, false);

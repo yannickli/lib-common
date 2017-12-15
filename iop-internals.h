@@ -676,12 +676,18 @@ typedef struct iop_dso_vt_t {
 
 #define T_IOP_ARRAY_DUP(array)  IOP_ARRAY_DUP(t_pool(), array)
 
+#define IOP_ARRAY_ELEM_TYPE(_iop_type)                                       \
+    typeof(*cast(_iop_type##__array_t *, 0)->tab)
+
+
 #define _IOP_ARRAY_NEW_ALLOC_MP(_mp, _new_fun, _iop_type, _len)              \
     ({                                                                       \
         typeof(_len) __len = _len;                                           \
                                                                              \
-        IOP_TYPED_ARRAY(_iop_type, _new_fun(_mp, _iop_type##__t, __len,      \
-                                            alignof(_iop_type##__t)),        \
+        IOP_TYPED_ARRAY(_iop_type,                                           \
+                        _new_fun(_mp, IOP_ARRAY_ELEM_TYPE(_iop_type),        \
+                                 __len,                                      \
+                                 alignof(IOP_ARRAY_ELEM_TYPE(_iop_type))),   \
                         __len);                                              \
     })
 
