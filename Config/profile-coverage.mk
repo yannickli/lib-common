@@ -20,7 +20,7 @@ LDFLAGS  += -lgcov
 coverage:: __setup_forward
 	lcov --directory $! --base-directory $/ --zerocounters
 	MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 all
-	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 L=1 check
+	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 L=1 Z_LIST_SKIP='web' check
 	find $! -name "*.gcno" | grep -v '\.pic\.' | while read line ; do \
 	    gcda=`echo $$line | sed 's/\.gcno$$/.gcda/'` ; \
 	    if [ \! -e $$gcda ]  ; then \
