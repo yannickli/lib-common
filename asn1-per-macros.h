@@ -194,6 +194,7 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
             info = asn1_enum_info_new();
 
 #define ASN1_ENUM_END()  \
+            qv_append(asn1_enum_info, &asn1_descs_g.enum_infos, info);    \
         }                                                                 \
                                                                           \
         return info;                                                      \
