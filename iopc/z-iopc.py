@@ -885,6 +885,20 @@ class IopcTest(z.TestCase):
         self.run_iopc('attrs_valid.iop', False,
                       'error: verbatim C feature deprecated', 6)
 
+    def test_check_name(self):
+        err_str = 'error: You_Shall_Not_Pass contains a _'
+
+        self.run_iopc_fail('check_name_class.iop', err_str)
+        self.run_iopc_fail('check_name_struct.iop', err_str)
+        self.run_iopc_fail('check_name_enum.iop', err_str)
+        self.run_iopc_fail('check_name_union.iop', err_str)
+        self.run_iopc_fail('check_name_interface.iop', err_str)
+
+        self.run_iopc_fail('check_name_field.iop', 'error: identifier '
+                           '\'You_Shall_Not_Pass\' contains a _')
+        self.run_iopc_fail('check_name_rpc.iop', 'error: you_Shall_Not_Pass '
+                           'contains a _')
+
     # }}}
 
 if __name__ == "__main__":
