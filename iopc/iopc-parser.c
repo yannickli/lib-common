@@ -2380,6 +2380,8 @@ parse_struct_class_union_snmp_stmt(iopc_parser_t *pp,
     out->is_abstract = is_abstract;
     out->is_local = is_local;
 
+    RETHROW(check_name(out->name, out->loc, &out->attrs));
+
     if (iopc_is_class(out->type) || iopc_is_snmp_st(out->type)) {
         RETHROW(parse_handle_class_snmp(pp, out, is_main_pkg));
     }
@@ -2414,6 +2416,7 @@ static int __parse_enum_stmt(iopc_parser_t *pp, const qv_t(iopc_attr) *attrs,
 
     EAT_KW(pp, "enum");
     out->name = RETHROW_PN(iopc_upper_ident(pp));
+    RETHROW(check_name(out->name, out->loc, &out->attrs));
     EAT(pp, '{');
 
     t_iopc_attr_check_prefix(attrs, &prefix);
@@ -2844,6 +2847,10 @@ static iopc_iface_t *parse_iface_stmt(iopc_parser_t *pp,
     if (__eat_kw(pp, name) < 0
     ||  !(iface->name = iopc_upper_ident(pp)))
     {
+        goto error;
+    }
+
+    if (check_name(iface->name, iface->loc, &iface->attrs) < 0) {
         goto error;
     }
 

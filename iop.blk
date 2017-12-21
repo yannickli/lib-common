@@ -2353,18 +2353,45 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
     return iop_msort_desc(st, vec, len, &params, err);
 }
 
-static int
-__iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-             void * const *allowed_values, int values_len,
-             opt_bool_t is_set, unsigned flags, sb_t *err)
+static bool iop_filter_val_matches(const byte *vec_read,
+                                   const field_path_t *fp,
+                                   bool is_pointer, opt_bool_t is_set,
+                                   void * const *allowed_values, int len,
+                                   cmp_f equal)
 {
-    t_scope;
+    bool val_is_set;
+    const void *tmp;
+    const void *val;
+
+    tmp = is_pointer ? *(void **)vec_read : vec_read;
+    val_is_set = iop_get_fieldp(tmp, fp, &val) >= 0;
+
+    if (OPT_ISSET(is_set)) {
+        return val_is_set == OPT_VAL(is_set);
+    } else {
+        if (val) {
+            /* TODO: sort allowed_values and use a bisection. */
+            for (int i = 0; i < len; i++) {
+                if (equal(val, allowed_values[i]) == 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
+static int
+__t_iop_filter(const iop_struct_t *st, const void *vec, int len,
+               lstr_t field_path, void * const *allowed_values,
+               int values_len, opt_bool_t is_set, unsigned flags,
+               iop_filter_bitmap_op_t bitmap_op, byte **bitmap, sb_t *err)
+{
     bool is_pointer = iop_struct_is_class(st);
     field_path_t fp;
     cmp_f equal = NULL;
-    byte *vec_read = vec;
-    byte *vec_write = vec;
-    byte *vec_start = vec;
+    const byte *vec_read = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
     iop_type_t type;
 
@@ -2374,6 +2401,7 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     assert (fp.is_typename || fp.fdesc);
 
     if (OPT_ISSET(is_set)) {
+        assert (!values_len);
         if (!fp.is_typename
         &&  fp.fdesc->repeat != IOP_R_OPTIONAL
         &&  fp.fdesc->repeat != IOP_R_REPEATED)
@@ -2421,40 +2449,102 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
         }
     }
 
+    if (!*bitmap) {
+        *bitmap = t_new(byte, BITS_TO_ARRAY_LEN(byte, len));
+        bitmap_op = BITMAP_OP_OR;
+    }
+
+    for (int i = 0; i < len; i++) {
+        switch (bitmap_op) {
+#define VAL_MATCHES()                                                        \
+            iop_filter_val_matches(vec_read, &fp, is_pointer, is_set,        \
+                                   allowed_values, values_len, equal)
+
+          case BITMAP_OP_AND:
+            if (TST_BIT(*bitmap, i) && !VAL_MATCHES()) {
+                RST_BIT(*bitmap, i);
+            }
+            break;
+
+          case BITMAP_OP_OR:
+            if (!TST_BIT(*bitmap, i) && VAL_MATCHES()) {
+                SET_BIT(*bitmap, i);
+            }
+            break;
+
+#undef VAL_MATCHES
+        }
+
+        vec_read += elem_size;
+    }
+
+    return 0;
+}
+
+int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
+               void * const *allowed_values, int values_len, unsigned flags,
+               sb_t *err)
+{
+    t_scope;
+    byte *bitmap = NULL;
+
+    RETHROW(t_iop_filter_bitmap(st, vec, *len, field_path,
+                                allowed_values, values_len, flags,
+                                BITMAP_OP_OR, &bitmap, err));
+    iop_filter_bitmap_apply(st, vec, len, bitmap);
+    return 0;
+}
+
+int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
+                   lstr_t field_path, bool is_set, sb_t *err)
+{
+    t_scope;
+    byte *bitmap = NULL;
+
+    RETHROW(t_iop_filter_opt_bitmap(st, vec, *len, field_path,
+                                    is_set, BITMAP_OP_AND, &bitmap, err));
+    iop_filter_bitmap_apply(st, vec, len, bitmap);
+    return 0;
+}
+
+int t_iop_filter_bitmap(const iop_struct_t *st, const void *vec, int len,
+                        lstr_t field_path, void * const *allowed_values,
+                        int values_len, unsigned flags,
+                        iop_filter_bitmap_op_t bitmap_op, byte **bitmap,
+                        sb_t *err)
+{
+    return __t_iop_filter(st, vec, len, field_path, allowed_values,
+                          values_len, (opt_bool_t)OPT_NONE, flags,
+                          bitmap_op, bitmap, err);
+}
+
+int t_iop_filter_opt_bitmap(const iop_struct_t *st, const void *vec, int len,
+                            lstr_t field_path, bool is_set,
+                            iop_filter_bitmap_op_t bitmap_op, byte **bitmap,
+                            sb_t *err)
+{
+    return __t_iop_filter(st, vec, len, field_path, NULL, 0,
+                          (opt_bool_t)OPT(is_set), 0, bitmap_op, bitmap, err);
+}
+
+void iop_filter_bitmap_apply(const iop_struct_t *st, void *vec, int *len,
+                             const byte *bitmap)
+{
+    bool is_pointer = iop_struct_is_class(st);
+    size_t elem_size = is_pointer ? sizeof(void *) : st->size;
+    const byte *vec_read = vec;
+    const byte *vec_start = vec;
+    byte *vec_write = vec;
+
     for (int i = 0; i < *len; i++) {
-        const void *tmp;
-        const void *d;
-        bool val_is_set;
-
-        tmp = is_pointer ? *(void **)vec_read : vec_read;
-        val_is_set = iop_get_fieldp(tmp, &fp, &d) >= 0;
-
-        if (OPT_ISSET(is_set)) {
-            assert (!values_len);
-            if (val_is_set == OPT_VAL(is_set)) {
-                goto next;
+        if (!TST_BIT(bitmap, i)) {
+            if (vec_start != vec_read && vec_write != vec_read) {
+                p_move(vec_write, vec_start, vec_read - vec_start);
             }
-            goto filter_out;
+            vec_write += vec_read - vec_start;
+            vec_start = vec_read + elem_size;
         }
 
-        assert (equal);
-        if (d) {
-            for (int j = 0; j < values_len; j++) {
-                /* TODO: sort allowed_values and use a bisection. */
-                if (equal(d, allowed_values[j]) == 0) {
-                    goto next;
-                }
-            }
-        }
-
-      filter_out:
-        if (vec_start != vec_read && vec_write != vec_read) {
-            p_move(vec_write, vec_start, vec_read - vec_start);
-        }
-        vec_write += vec_read - vec_start;
-        vec_start = vec_read + elem_size;
-
-      next:
         vec_read += elem_size;
     }
 
@@ -2464,23 +2554,6 @@ __iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
     }
     assert (elem_size > 0);
     *len = (vec_write - (byte *)vec) / elem_size;
-
-    return 0;
-}
-
-int iop_filter(const iop_struct_t *st, void *vec, int *len, lstr_t field_path,
-               void * const *allowed_values, int values_len, unsigned flags,
-               sb_t *err)
-{
-    return __iop_filter(st, vec, len, field_path, allowed_values, values_len,
-                        (opt_bool_t)OPT_NONE, flags, err);
-}
-
-int iop_filter_opt(const iop_struct_t *st, void *vec, int *len,
-                   lstr_t field_path, bool is_set, sb_t *err)
-{
-    return __iop_filter(st, vec, len, field_path, NULL, 0,
-                        (opt_bool_t)OPT(is_set), 0, err);
 }
 
 /* }}} */
