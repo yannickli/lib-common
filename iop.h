@@ -626,7 +626,8 @@ enum iop_filter_flags {
     IOP_FILTER_SQL_LIKE = (1U << 0),
 };
 
-/** Filter a vector of IOP based on a given field or subfield of reference.
+/** Filter in-place a vector of IOP based on a given field or subfield of
+ *  reference.
  *
  *  It takes an array of IOP objets and an array of values, and filters out
  *  the objects whose field value is not in the values array.
@@ -655,8 +656,8 @@ int iop_filter(const iop_struct_t * nonnull st, void * nonnull vec,
                void * const nonnull * nonnull allowed_values, int values_len,
                unsigned flags, sb_t * nullable err);
 
-/** Filter a vector of IOP based on the presence of a given optional or
- *  repeated field or subfield.
+/** Filter in-place a vector of IOP based on the presence of a given optional
+ *  or repeated field or subfield.
  *
  * Same as \ref iop_filter but for optional or repeated fields only. It does
  * not take an array of value, but a parameter \p is_set telling if the fields
@@ -666,6 +667,61 @@ int iop_filter(const iop_struct_t * nonnull st, void * nonnull vec,
 int iop_filter_opt(const iop_struct_t * nonnull st, void * nonnull vec,
                    int * nonnull len, lstr_t field_path, bool is_set,
                    sb_t * nullable err);
+
+typedef enum iop_filter_bitmap_op_t {
+    /** And operation.
+     *
+     * The elements that are not in the allowed values are removed from the
+     * bitmap.
+     */
+    BITMAP_OP_AND,
+
+    /** Or operation.
+     *
+     * The elements that are in the allowed values are added in the bitmap.
+     */
+    BITMAP_OP_OR,
+} iop_filter_bitmap_op_t;
+
+/** Filter a vector of IOP based on a given field or subfield of reference,
+ *  and fills a bitmap accordingly.
+ *
+ * Same as \ref iop_filter, but it does not modify the input vector: it just
+ * fills a bitmap depending on the presence of the elements in the allowed
+ * values and the requested bitmap operation.
+ *
+ * If the bitmap is NULL, it is automatically created. Callers must NOT create
+ * it themselves.
+ */
+int t_iop_filter_bitmap(const iop_struct_t * nonnull st,
+                        const void * nonnull vec, int len, lstr_t field_path,
+                        void * const nonnull * nonnull allowed_values,
+                        int values_len, unsigned flags,
+                        iop_filter_bitmap_op_t bitmap_op,
+                        byte * nonnull * nullable bitmap,
+                        sb_t * nullable err);
+
+/** Filter a vector of IOP based on the presence of a given optional or
+ *  repeated field or subfield.
+ *
+ * Same as \ref iop_filter_bitmap, but based on \ref iop_filter_opt.
+ */
+int t_iop_filter_opt_bitmap(const iop_struct_t * nonnull st,
+                            const void * nonnull vec, int len,
+                            lstr_t field_path, bool is_set,
+                            iop_filter_bitmap_op_t bitmap_op,
+                            byte * nonnull * nullable bitmap,
+                            sb_t * nullable err);
+
+/** Filter in-place a vector according to a bitmap.
+ *
+ * It applies a bitmap resulting of \ref iop_filter_bitmap or
+ * \ref iop_filter_opt_bitmap. Only entries marked as present in the bitmap
+ * are kept in the vector.
+ */
+void iop_filter_bitmap_apply(const iop_struct_t * nonnull st,
+                             void * nonnull vec, int * nonnull len,
+                             const byte * nonnull bitmap);
 
 /** Duplicate an IOP structure.
  *

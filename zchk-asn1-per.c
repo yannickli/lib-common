@@ -293,6 +293,7 @@ Z_GROUP_EXPORT(asn1_aper) {
     /* {{{ Extended choice. */
 
     Z_TEST(extended_choice, "extended choice") {
+        t_scope;
         struct {
             tstiop__asn1_ext_choice__t in;
             lstr_t aper_bytes;
@@ -411,11 +412,14 @@ Z_GROUP_EXPORT(asn1_aper) {
         SB_1k(buf);
         pstream_t ps;
         struct1_t s1[2];
+        lstr_t expected_encoding = LSTR_IMMED("\x80");
 
         p_clear(&s1[0], 1);
         s1[0].e1 = BAR;
 
         Z_ASSERT_N(aper_encode(&buf, struct1, &s1[0]), "encoding failure");
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), expected_encoding, "%*pX",
+                           SB_FMT_ARG(&buf));
         ps = ps_initsb(&buf);
         Z_ASSERT_N(t_aper_decode(&ps, struct1, false, &s1[1]),
                    "decoding failure");

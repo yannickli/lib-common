@@ -3474,6 +3474,7 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_g__t third;
         qv_t(my_struct_g) original;
         void **allowed = t_new_raw(void *, 3);
+        byte *bitmap;
 
         t_qv_init(&original, 3);
 
@@ -3490,10 +3491,13 @@ Z_GROUP_EXPORT(iop)
         third.b = 1;
         third.d = 44;
 
-        original.tab[0] = first;
-        original.tab[1] = second;
-        original.tab[2] = third;
-        original.len = 3;
+#define INIT_ORIGINAL()  \
+        do {                                                                 \
+            qv_clear(&original);                                             \
+            qv_append(&original, first);                                     \
+            qv_append(&original, second);                                    \
+            qv_append(&original, third);                                     \
+        } while (0)
 
 #define ADD_PARAM(_value, idx)  do {                                         \
             allowed[idx] = t_new_raw(int, 1);                                \
@@ -3508,18 +3512,14 @@ Z_GROUP_EXPORT(iop)
     } while (0)
 
         /* Simple filter */
+        INIT_ORIGINAL();
         ADD_PARAM(1, 0);
         FILTER_AND_CHECK_LEN("a", 1, 2);
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &third);
 
         /* Filter on several values */
-        qv_clear(&original);
-        t_qv_init(&original, 3);
-        original.tab[0] = first;
-        original.tab[1] = second;
-        original.tab[2] = third;
-        original.len = 3;
+        INIT_ORIGINAL();
         ADD_PARAM(2, 1);
 
         FILTER_AND_CHECK_LEN("a", 2, 3);
@@ -3528,28 +3528,63 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[2], &third);
 
         /* Filter with no match */
-        qv_clear(&original);
-        t_qv_init(&original, 3);
-        original.tab[0] = first;
-        original.tab[1] = second;
-        original.tab[2] = third;
-        original.len = 3;
+        INIT_ORIGINAL();
         ADD_PARAM(3773, 0);
 
         FILTER_AND_CHECK_LEN("a", 1, 0);
 
         /* Filter excluding tip */
-        qv_clear(&original);
-        t_qv_init(&original, 3);
-        original.tab[0] = first;
-        original.tab[1] = second;
-        original.tab[2] = third;
-        original.len = 3;
+        INIT_ORIGINAL();
         ADD_PARAM(43, 0);
 
         FILTER_AND_CHECK_LEN("d", 1, 1);
         Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
 
+
+        /* iop_filter_bitmap. */
+#define FILTER_BITMAP(_field, _allowed_len, _op)  \
+        do {                                                                 \
+            Z_ASSERT_ZERO(t_iop_filter_bitmap(&tstiop__my_struct_g__s,       \
+                                              original.tab, original.len,    \
+                                              LSTR(_field), allowed,         \
+                                              _allowed_len, 0, _op, &bitmap, \
+                                              NULL));                        \
+        } while (0)
+
+#define APPLY_BITMAP(_result_len)  \
+        do {                                                                 \
+            iop_filter_bitmap_apply(&tstiop__my_struct_g__s,                 \
+                                    original.tab, &original.len, bitmap);    \
+            Z_ASSERT_EQ(_result_len, original.len);                          \
+        } while (0)
+
+        bitmap = NULL;
+        INIT_ORIGINAL();
+        ADD_PARAM(42, 0);
+        ADD_PARAM(1,  1);
+        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
+        FILTER_BITMAP("a", 2, BITMAP_OP_OR);
+        APPLY_BITMAP(2);
+
+        bitmap = NULL;
+        INIT_ORIGINAL();
+        ADD_PARAM(1, 0);
+        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
+        ADD_PARAM(2, 0);
+        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
+        APPLY_BITMAP(3);
+
+        bitmap = NULL;
+        INIT_ORIGINAL();
+        ADD_PARAM(1, 0);
+        FILTER_BITMAP("a", 1, BITMAP_OP_AND);
+        ADD_PARAM(2, 1);
+        FILTER_BITMAP("a", 2, BITMAP_OP_AND);
+        APPLY_BITMAP(2);
+
+#undef FILTER_BITMAP
+
+#undef INIT_ORIGINAL
 #undef ADD_PARAM
 #undef FILTER_AND_CHECK_LEN
 
