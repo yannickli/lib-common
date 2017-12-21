@@ -68,12 +68,6 @@ static struct {
     int pid;
     spinlock_t update_lock;
 
-    /* log buffer */
-    qv_t(buffer_instance) vec_buff_stack;
-    mem_stack_pool_t mp_stack;
-    int nb_buffer_started;
-
-    bool use_handler   : 1;
     bool log_timestamp : 1;
 } log_g = {
 #define _G  log_g
@@ -97,6 +91,11 @@ static __thread struct {
     sb_t buf;
 
     log_ctx_t ml_ctx;
+
+    /* log buffer */
+    qv_t(buffer_instance) vec_buff_stack;
+    mem_stack_pool_t mp_stack;
+    int nb_buffer_started;
 } log_thr_g;
 
 __thread log_thr_ml_t log_thr_ml_g;
@@ -443,12 +442,13 @@ static void buffer_instance_wipe(buffer_instance_t *buffer_instance)
 
 static void free_last_buffer(void)
 {
-    if (_G.vec_buff_stack.len > _G.nb_buffer_started) {
-        assert (_G.vec_buff_stack.len == _G.nb_buffer_started + 1);
-        buffer_instance_wipe(tab_last(&_G.vec_buff_stack));
-        qv_remove(&_G.vec_buff_stack,
-                  _G.vec_buff_stack.len - 1);
-        mem_stack_pop(&_G.mp_stack);
+    if (log_thr_g.vec_buff_stack.len > log_thr_g.nb_buffer_started) {
+        assert (log_thr_g.vec_buff_stack.len
+            ==  log_thr_g.nb_buffer_started + 1);
+        buffer_instance_wipe(tab_last(&log_thr_g.vec_buff_stack));
+        qv_remove(&log_thr_g.vec_buff_stack,
+                  log_thr_g.vec_buff_stack.len - 1);
+        mem_stack_pop(&log_thr_g.mp_stack);
     }
 }
 
@@ -456,22 +456,23 @@ void log_start_buffering_filter(bool use_handler, int log_level)
 {
     buffer_instance_t *buffer_instance;
 
-    if (_G.nb_buffer_started == 0) {
-        _G.use_handler = use_handler;
-    } else {
-        if (!_G.vec_buff_stack.tab[_G.nb_buffer_started - 1].use_handler) {
+    if (log_thr_g.nb_buffer_started) {
+        const buffer_instance_t *buff;
+
+        buff = &log_thr_g.vec_buff_stack.tab[log_thr_g.nb_buffer_started - 1];
+        if (!buff->use_handler) {
             use_handler = false;
         }
     }
     free_last_buffer();
-    buffer_instance = qv_growlen(&_G.vec_buff_stack, 1);
+    buffer_instance = qv_growlen(&log_thr_g.vec_buff_stack, 1);
 
     buffer_instance_init(buffer_instance);
     buffer_instance->use_handler = use_handler;
     buffer_instance->buffer_log_level = log_level;
 
-    mem_stack_push(&_G.mp_stack);
-    _G.nb_buffer_started++;
+    mem_stack_push(&log_thr_g.mp_stack);
+    log_thr_g.nb_buffer_started++;
 }
 
 void log_start_buffering(bool use_handler)
@@ -483,12 +484,12 @@ const qv_t(log_buffer) *log_stop_buffering(void)
 {
     buffer_instance_t *buffer_instance;
 
-    if (!expect(_G.nb_buffer_started > 0)) {
+    if (!expect(log_thr_g.nb_buffer_started > 0)) {
         return NULL;
     }
     free_last_buffer();
-    buffer_instance = tab_last(&_G.vec_buff_stack);
-    _G.nb_buffer_started--;
+    buffer_instance = tab_last(&log_thr_g.vec_buff_stack);
+    log_thr_g.nb_buffer_started--;
 
     return &buffer_instance->vec_buffer;
 }
@@ -506,7 +507,7 @@ static __attr_printf__(3, 0)
 void logger_putv(const log_ctx_t *ctx, bool do_log,
                  const char *fmt, va_list va)
 {
-    buffer_instance_t *buffer_instance;
+    buffer_instance_t *buff;
 
     if (ctx->level <= LOG_CRIT) {
         va_list cpy;
@@ -521,21 +522,21 @@ void logger_putv(const log_ctx_t *ctx, bool do_log,
         return;
     }
 
-    if (!_G.nb_buffer_started) {
+    if (!log_thr_g.nb_buffer_started) {
         (*_G.handler)(ctx, fmt, va);
         return;
     }
 
-    buffer_instance = &_G.vec_buff_stack.tab[_G.nb_buffer_started - 1];
+    buff = &log_thr_g.vec_buff_stack.tab[log_thr_g.nb_buffer_started - 1];
 
-    if (ctx->level <= buffer_instance->buffer_log_level) {
+    if (ctx->level <= buff->buffer_log_level) {
         int size_fmt;
         log_buffer_t *log_save;
         va_list cpy;
         char *buffer;
-        qv_t(log_buffer) *vec_buffer = &buffer_instance->vec_buffer;
+        qv_t(log_buffer) *vec_buffer = &buff->vec_buffer;
 
-        if (buffer_instance->use_handler) {
+        if (buff->use_handler) {
             (*_G.handler)(ctx, fmt, va);
         }
 
@@ -544,7 +545,7 @@ void logger_putv(const log_ctx_t *ctx, bool do_log,
         va_end(cpy);
 
         free_last_buffer();
-        buffer = mp_new_raw(&_G.mp_stack.funcs, char, size_fmt);
+        buffer = mp_new_raw(&log_thr_g.mp_stack.funcs, char, size_fmt);
         vsnprintf(buffer, size_fmt, fmt, va);
 
         log_save = qv_growlen(vec_buffer, 1);
@@ -1076,6 +1077,10 @@ static void log_initialize_thread(void)
     if (!log_thr_g.inited) {
         sb_init(&log_thr_g.log);
         sb_init(&log_thr_g.buf);
+
+        mem_stack_pool_init(&log_thr_g.mp_stack, "log", 16 << 10);
+        qv_init(&log_thr_g.vec_buff_stack);
+
         log_thr_g.inited = true;
     }
 }
@@ -1085,6 +1090,13 @@ static void log_shutdown_thread(void)
     if (log_thr_g.inited) {
         sb_wipe(&log_thr_g.buf);
         sb_wipe(&log_thr_g.log);
+
+        qv_deep_wipe(&log_thr_g.vec_buff_stack, buffer_instance_wipe);
+        if (log_thr_g.vec_buff_stack.len > 0) {
+            mem_stack_pop(&log_thr_g.mp_stack);
+        }
+        mem_stack_pool_wipe(&log_thr_g.mp_stack);
+
         log_thr_g.inited = false;
     }
 }
@@ -1160,9 +1172,7 @@ static int log_initialize(void* args)
 {
     char *env;
 
-    mem_stack_pool_init(&_G.mp_stack, "log", 64 << 10);
     qv_init(&_G.specs);
-    qv_init(&_G.vec_buff_stack);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     _G.pid   = getpid();
     log_stderr_handler_g = &log_stderr_raw_handler;
@@ -1198,12 +1208,6 @@ static int log_initialize(void* args)
 
 static int log_shutdown(void)
 {
-    qv_deep_wipe(&_G.vec_buff_stack,
-                 buffer_instance_wipe);
-    if (_G.vec_buff_stack.len > 0) {
-        mem_stack_pop(&_G.mp_stack);
-    }
-    mem_stack_pool_wipe(&_G.mp_stack);
     logger_wipe(&_G.root_logger);
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
     qv_wipe(&_G.specs);

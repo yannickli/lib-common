@@ -637,6 +637,7 @@ qps_bitmap_enumerator_t qps_bitmap_start_enumeration_nn(qps_bitmap_t *map)
 /* Debugging tools {{{ */
 
 void qps_bitmap_get_qps_roots(qps_bitmap_t *map, qps_roots_t *roots) __leaf;
+void qps_bitmap_debug_print(qps_bitmap_t *map) __leaf;
 
 /* }}} */
 

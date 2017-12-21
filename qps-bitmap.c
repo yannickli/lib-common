@@ -359,13 +359,13 @@ void qps_bitmap_compute_stats(qps_bitmap_t *map, size_t *_memory,
             dispatch = qps_pg_deref(map->qps, map->root->roots[i]);
 
             for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
-                if ((*dispatch[j]).node) {
+                if ((*dispatch)[j].node) {
                     if (map->root->is_nullable) {
                         memory += 2 * QPS_PAGE_SIZE;
                     } else {
                         memory += QPS_PAGE_SIZE;
                     }
-                    entries += (*dispatch[j]).active_bits;
+                    entries += (*dispatch)[j].active_bits;
                     slots   += QPS_BITMAP_LEAF;
                 }
             }
@@ -399,6 +399,52 @@ void qps_bitmap_get_qps_roots(qps_bitmap_t *map, qps_roots_t *roots)
         }
     }
     qv_append(&roots->handles, map->root_cache.handle);
+}
+
+void qps_bitmap_debug_print(qps_bitmap_t *map)
+{
+    fprintf(stderr, "QPS: debugging bitmap\n");
+    fprintf(stderr, "map:\n"
+            " \\struct_gen: %u\n"
+            " \\nullable: %s\n",
+            map->struct_gen, map->root->is_nullable ? "True" : "False");
+
+    fprintf(stderr, " \\keys:\n");
+    qps_bitmap_for_each(en, map) {
+        fprintf(stderr, "  \\en.key: %u\n", en.key.key);
+    }
+    qps_hptr_deref(map->qps, &map->root_cache);
+    for (int i = 0; i < QPS_BITMAP_ROOTS; i++) {
+        qps_bitmap_node_t root = map->root->roots[i];
+
+        if (root) {
+            const qps_bitmap_dispatch_t *dispatch;
+            uint32_t nil_nodes = 0;
+
+            fprintf(stderr, "  root node %d: " QPS_PG_FMT "\n",
+                    i, QPS_PG_ARG(root));
+
+            dispatch = qps_pg_deref(map->qps, map->root->roots[i]);
+            for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
+                qps_bitmap_node_t node = (*dispatch)[j].node;
+
+                if (node) {
+                    if (nil_nodes) {
+                        fprintf(stderr, "    dispatch %u nodes nil\n",
+                                nil_nodes);
+                        nil_nodes = 0;
+                    }
+
+                    fprintf(stderr, "    dispatch node %d: " QPS_PG_FMT "\n",
+                            j, QPS_PG_ARG(node));
+                    fprintf(stderr, "     \\active_bits: %u\n",
+                            (*dispatch)[j].active_bits);
+                } else {
+                    nil_nodes++;
+                }
+            }
+        }
+    }
 }
 
 /* }}} */
