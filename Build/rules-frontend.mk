@@ -276,8 +276,8 @@ $~$1/.build: | _generated_hdr
 
 $~$1/.mark: $~$1/.build $($1_CONFIG) $(var/wwwtool)r.js
 	$(msg/COMPILE.js) $($1_CONFIG)
-	$(var/wwwtool)r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~rjs.log \
-		|| (cat $~rjs.log; false)
+	$(var/wwwtool)r.js -o $($1_CONFIG) baseUrl=$~$1/javascript > $~$1/rjs.log \
+		|| (cat $~$1/rjs.log; false)
 	touch $~$1/.mark
 
 $($1_MINIFY): $~$1/.mark
