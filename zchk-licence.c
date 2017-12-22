@@ -47,39 +47,35 @@ Z_GROUP_EXPORT(licence)
         Z_LOAD_LICENCE("samples/licence-iop-exp-ko.cf");
         Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
                                        lic.signature, flags));
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_HARD_EXPIRED);
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic), LICENCE_HARD_EXPIRED);
 
         /* Invalid expiration date : "02-aaa-2012" */
         Z_LOAD_LICENCE("samples/licence-iop-exp-invalid.cf");
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic),
                     LICENCE_INVALID_EXPIRATION);
 
         /* Invalid expiration date : soft expiration > hard expiration */
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                      &lic.licence->expiration_hard_date);
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic),
                     LICENCE_INVALID_EXPIRATION);
 
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
                      &lic.licence->expiration_hard_date);
         lic.licence->expiration_warning_delay = 7 * 24 * 3600;
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_EXPIRES_SOON);
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic), LICENCE_EXPIRES_SOON);
 
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)+(3 * 24 * 3600),
                    &lic.licence->expiration_hard_date);
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_SOFT_EXPIRED);
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic), LICENCE_SOFT_EXPIRED);
 
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600), &lic.licence->expiration_date);
         t_ts_to_lstr(time(NULL)-(3 * 24 * 3600),
                    &lic.licence->expiration_hard_date);
-        Z_ASSERT_EQ(licence_check_iop_expiry(lic.licence),
-                    LICENCE_HARD_EXPIRED);
+        Z_ASSERT_EQ(licence_check_iop_expiry(&lic), LICENCE_HARD_EXPIRED);
 
 #define Z_MODULE_ACTIVATION(module, result) \
     Z_ASSERT_EQ(licence_is_module_activated_desc(lic.licence, \

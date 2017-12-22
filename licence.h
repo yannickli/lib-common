@@ -47,12 +47,14 @@ typedef enum licence_expiry_t {
     LICENCE_OK = 0,
 
     /* Error cases */
+    LICENCE_TOKEN_EXPIRED = -3,
     LICENCE_INVALID_EXPIRATION = -2,
     LICENCE_HARD_EXPIRED = -1,
 
     /* Warning cases */
     LICENCE_SOFT_EXPIRED = 1,
     LICENCE_EXPIRES_SOON = 2,
+    LICENCE_TOKEN_EXPIRES_SOON = 3,
 } licence_expiry_t;
 
 /** Check the licence is valid for the current host.
@@ -67,7 +69,7 @@ int licence_check_iop_host(const struct core__licence__t *licence);
  * \param[in]  licence      The licence structure to check.
  */
 __must_check__ licence_expiry_t
-licence_check_iop_expiry(const struct core__licence__t *licence);
+licence_check_iop_expiry(const struct core__signed_licence__t *licence);
 
 /** Check the licence modules are valid.
  *
