@@ -1230,6 +1230,127 @@ const iop_struct_t core__licence__s = {
 iop_struct_t const * const core__licence__sp = &core__licence__s;
 
 /* }}} */
+/* Structure core.ActivationToken {{{ */
+
+static const iop_help_t core__activation_token__expiration_date__f_help = {
+    .brief = LSTR_IMMED("Product expiration: the licence will no longer be active after\012 this date."),
+};
+static int core__activation_token__expiration_date__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        if (val.len != 11) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "length", 11, "expirationDate", val.len);
+            return -1;
+        }
+        for (int c = 0; c < val.len; c++) {
+            switch (val.s[c]) {
+                case 'a' ... 'z':
+                case 'A' ... 'Z':
+                case '0' ... '9':
+                case '-':
+                    break;
+                default:
+                    iop_set_err("violation of constraint %s (%s) on field %s: %*pM",
+                                "pattern", "[a-zA-Z0-9\\-]*", "expirationDate", LSTR_FMT_ARG(val));
+                    return -1;
+            }
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const core__activation_token__expiration_date__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__activation_token__expiration_date__f_help } },
+    },
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
+    },
+    {
+        .type = 8,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
+    },
+    {
+        .type = 9,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[a-zA-Z0-9\\-]*") } },
+    },
+};
+static const iop_help_t core__activation_token__token__f_help = {
+    .brief = LSTR_IMMED("The activation token."),
+};
+static iop_field_attr_t const core__activation_token__token__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__activation_token__token__f_help } },
+    },
+};
+static iop_field_attrs_t const core__activation_token__desc_fields_attrs[] = {
+    {
+        .flags             = 263040,
+        .attrs_len         = 4,
+        .check_constraints = &core__activation_token__expiration_date__check,
+        .attrs             = core__activation_token__expiration_date__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__activation_token__token__attrs,
+    },
+};
+static iop_field_t const core__activation_token__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("expirationDate"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__activation_token__t, expiration_date),
+        .flags     = 1,
+        .size      = fieldsizeof(core__activation_token__t, expiration_date),
+    },
+    {
+        .name      = LSTR_IMMED("token"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__activation_token__t, token),
+        .size      = fieldsizeof(core__activation_token__t, token),
+    },
+};
+static const iop_help_t core__activation_token__s_help = {
+    .brief = LSTR_IMMED("Activation token."),
+    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has tree constraints:\012  - it specifies an expiration date for the product,\012  - it expires itself after some date (and can't be used),\012  - it must depend on the licence."),
+};
+static const iop_struct_attr_t core__activation_token__s_attrs[] = {
+    {
+        .type = 6,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__activation_token__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__activation_token__s_desc_attrs = {
+    .flags     = 64,
+    .attrs_len = 1,
+    .attrs     = core__activation_token__s_attrs,
+};
+const iop_struct_t core__activation_token__s = {
+    .fullname   = LSTR_IMMED("core.ActivationToken"),
+    .fields     = core__activation_token__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(core__activation_token__desc_fields),
+    .size       = sizeof(core__activation_token__t),
+    .flags      = 3,
+    .st_attrs   = &core__activation_token__s_desc_attrs,
+    .fields_attrs = core__activation_token__desc_fields_attrs,
+};
+iop_struct_t const * const core__activation_token__sp = &core__activation_token__s;
+
+/* }}} */
 /* Structure core.SignedLicence {{{ */
 
 static const iop_help_t core__signed_licence__licence__f_help = {
@@ -1250,6 +1371,15 @@ static iop_field_attr_t const core__signed_licence__signature__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__signature__f_help } },
     },
 };
+static const iop_help_t core__signed_licence__activation_token__f_help = {
+    .brief = LSTR_IMMED("The associated activation token"),
+};
+static iop_field_attr_t const core__signed_licence__activation_token__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__activation_token__f_help } },
+    },
+};
 static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
     {
         .flags             = 262144,
@@ -1260,6 +1390,11 @@ static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
         .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__signed_licence__signature__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__signed_licence__activation_token__attrs,
     },
 };
 static iop_field_t const core__signed_licence__desc_fields[] = {
@@ -1282,6 +1417,20 @@ static iop_field_t const core__signed_licence__desc_fields[] = {
         .data_offs = offsetof(core__signed_licence__t, signature),
         .size      = fieldsizeof(core__signed_licence__t, signature),
     },
+    {
+        .name      = LSTR_IMMED("activationToken"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(core__signed_licence__t, activation_token),
+        .size      = sizeof(core__activation_token__t),
+        .u1        = { .st_desc = &core__activation_token__s },
+    },
+};
+static int const iop__ranges__7[] = {
+    0, 1,
+    3,
 };
 static const iop_help_t core__signed_licence__s_help = {
     .brief = LSTR_IMMED("Signed licence."),
@@ -1300,8 +1449,8 @@ static const iop_struct_attrs_t core__signed_licence__s_desc_attrs = {
 const iop_struct_t core__signed_licence__s = {
     .fullname   = LSTR_IMMED("core.SignedLicence"),
     .fields     = core__signed_licence__desc_fields,
-    .ranges     = iop__ranges__5,
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .fields_len = countof(core__signed_licence__desc_fields),
     .size       = sizeof(core__signed_licence__t),
     .flags      = 3,
@@ -1556,15 +1705,15 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__7[] = {
+static int const iop__ranges__8[] = {
     0, 1,
     9,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges     = iop__ranges__8,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .fields_len = countof(core__httpd_cfg__desc_fields),
     .size       = sizeof(core__httpd_cfg__t),
     .flags      = 3,
@@ -1723,15 +1872,15 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__8[] = {
+static int const iop__ranges__9[] = {
     0, 1,
     6,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__8,
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__httpc_cfg__desc_fields),
     .size       = sizeof(core__httpc_cfg__t),
     .flags      = 1,
@@ -1856,15 +2005,11 @@ static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
         .size      = fieldsizeof(core__log__set_root_level_args__t, is_silent),
     },
 };
-static int const iop__ranges__9[] = {
-    0, 1,
-    3,
-};
 const iop_struct_t core__log__set_root_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
     .fields     = core__log__set_root_level_args__desc_fields,
-    .ranges     = iop__ranges__9,
-    .ranges_len = countof(iop__ranges__9) / 2,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
     .size       = sizeof(core__log__set_root_level_args__t),
 };
@@ -2184,6 +2329,7 @@ static const iop_struct_t *const core__structs[] = {
     &core__log_file_configuration__s,
     &core__licence_module__s,
     &core__licence__s,
+    &core__activation_token__s,
     &core__signed_licence__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,

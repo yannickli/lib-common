@@ -77,9 +77,16 @@ EXPORT iop_struct_t const core__licence__s;
 EXPORT iop_struct_t const * const nonnull core__licence__sp;
 #define core__licence__class_id  0
 
+struct core__activation_token__t {
+    lstr_t           expiration_date;
+    lstr_t   token;
+};
+EXPORT iop_struct_t const core__activation_token__s;
+EXPORT iop_struct_t const * const nonnull core__activation_token__sp;
 struct core__signed_licence__t {
     struct core__licence__t *nonnull licence;
     lstr_t   signature;
+    struct core__activation_token__t *nullable activation_token;
 };
 EXPORT iop_struct_t const core__signed_licence__s;
 EXPORT iop_struct_t const * const nonnull core__signed_licence__sp;

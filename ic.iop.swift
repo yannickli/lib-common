@@ -49,6 +49,7 @@ public enum ic : libcommon.IopPackage {
         public var `host` : Swift.String?
         public var `group` : Swift.String?
         public var `source` : Swift.String?
+        public var `workspaceId` : Swift.UInt64?
 
         public init(`login`: Swift.String? = nil,
                     `password`: Swift.String? = nil,
@@ -56,7 +57,8 @@ public enum ic : libcommon.IopPackage {
                     `payload`: Swift.Int32 = -1,
                     `host`: Swift.String? = nil,
                     `group`: Swift.String? = nil,
-                    `source`: Swift.String? = nil) {
+                    `source`: Swift.String? = nil,
+                    `workspaceId`: Swift.UInt64? = nil) {
             self.login = `login`
             self.password = `password`
             self.kind = `kind`
@@ -64,6 +66,7 @@ public enum ic : libcommon.IopPackage {
             self.host = `host`
             self.group = `group`
             self.source = `source`
+            self.workspaceId = `workspaceId`
             super.init()
         }
 
@@ -76,6 +79,9 @@ public enum ic : libcommon.IopPackage {
              self.host = Swift.String(data.pointee.host)
              self.group = Swift.String(data.pointee.group)
              self.source = Swift.String(data.pointee.source)
+            if data.pointee.workspace_id.has_field {
+                self.workspaceId = data.pointee.workspace_id.v
+            }
             try super.init(c)
         }
 
@@ -99,6 +105,12 @@ public enum ic : libcommon.IopPackage {
             }
             if let source_val = self.source {
                 data.pointee.source = source_val.duplicated(on: allocator)
+            }
+            if let workspaceId_val = self.workspaceId {
+                data.pointee.workspace_id.has_field = true
+                data.pointee.workspace_id.v = workspaceId_val
+            } else {
+                data.pointee.workspace_id.has_field = false
             }
         }
     }

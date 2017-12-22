@@ -278,6 +278,37 @@ public enum core : libcommon.IopPackage {
         }
     }
 
+    public final class ActivationToken : libcommon.IopStruct {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return core__activation_token__sp
+        }
+
+        public var `expirationDate` : Swift.String?
+        public var `token` : Swift.String
+
+        public init(`expirationDate`: Swift.String? = nil,
+                    `token`: Swift.String) {
+            self.expirationDate = `expirationDate`
+            self.token = `token`
+            super.init()
+        }
+
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
+            let data = c.bindMemory(to: core__activation_token__t.self, capacity: 1)
+             self.expirationDate = Swift.String(data.pointee.expiration_date)
+            self.token = Swift.String(data.pointee.token) ?? ""
+            try super.init(c)
+        }
+
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+            let data = c.bindMemory(to: core__activation_token__t.self, capacity: 1)
+            if let expirationDate_val = self.expirationDate {
+                data.pointee.expiration_date = expirationDate_val.duplicated(on: allocator)
+            }
+             data.pointee.token = self.token.duplicated(on: allocator)
+        }
+    }
+
     public final class SignedLicence : libcommon.IopStruct {
         open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
             return core__signed_licence__sp
@@ -285,11 +316,14 @@ public enum core : libcommon.IopPackage {
 
         public var `licence` : core_package.Licence
         public var `signature` : Swift.String
+        public var `activationToken` : core_package.ActivationToken?
 
         public init(`licence`: core_package.Licence,
-                    `signature`: Swift.String) {
+                    `signature`: Swift.String,
+                    `activationToken`: core_package.ActivationToken? = nil) {
             self.licence = `licence`
             self.signature = `signature`
+            self.activationToken = `activationToken`
             super.init()
         }
 
@@ -297,6 +331,8 @@ public enum core : libcommon.IopPackage {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1)
             self.licence = try core_package.Licence.make(Swift.UnsafeRawPointer(data.pointee.licence))
             self.signature = Swift.String(data.pointee.signature) ?? ""
+
+            self.activationToken = try core_package.ActivationToken(data.pointee.activation_token)
             try super.init(c)
         }
 
@@ -304,6 +340,9 @@ public enum core : libcommon.IopPackage {
             let data = c.bindMemory(to: core__signed_licence__t.self, capacity: 1)
             data.pointee.licence = self.licence.duplicated(on: allocator).bindMemory(to: core__licence__t.self, capacity: 1)
              data.pointee.signature = self.signature.duplicated(on: allocator)
+            if let activationToken_val = self.activationToken {
+                data.pointee.activation_token = activationToken_val.duplicated(on: allocator).bindMemory(to: core__activation_token__t.self, capacity: 1)
+            }
         }
     }
 

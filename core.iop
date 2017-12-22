@@ -254,6 +254,27 @@ class Licence {
     long? signatureTs;
 };
 
+/** Activation token.
+ *
+ * An activation token is a small string which allows the product to
+ * work for a short time (for example 30 days).
+ *
+ * The activation token has three constraints:
+ *   - it must specify an expiration date for the product,
+ *   - it must expire itself after some date (and can't be used anymore),
+ *   - it must depend on the licence.
+ */
+struct ActivationToken {
+    /** Product expiration: the licence will no longer be active after
+     *  this date.
+     */
+    ExpirationDate? expirationDate;
+
+    /** The activation token.
+     */
+    string token;
+};
+
 /** Signed licence.
  */
 struct SignedLicence {
@@ -264,6 +285,9 @@ struct SignedLicence {
     /** The signature of the previously defined licence.
      */
     string signature;
+
+    /** The associated activation token */
+    ActivationToken? activationToken;
 };
 
 /** Full address.
