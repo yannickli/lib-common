@@ -26,6 +26,9 @@ enum {
     IOP_HASH_SKIP_DEFAULT = 1 << 1, /* Skip fields having the default value */
     IOP_HASH_SHALLOW_DEFAULT = 1 << 2, /* Compare pointers, not content of
                                           string to detect default values */
+    IOP_HASH_DONT_INCLUDE_CLASS_ID = 1 << 3, /* Do not take the class id into
+                                                account when hashing a class
+                                              */
 };
 
 #define ATTRS

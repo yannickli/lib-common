@@ -152,7 +152,9 @@ F(__iop_hash_class)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
                     const uint8_t *v, unsigned flags)
 {
     st = *(const iop_struct_t **)v;
-    F(iop_hash_update_u16)(ctx, st->class_attrs->class_id);
+    if (!(flags & IOP_HASH_DONT_INCLUDE_CLASS_ID)) {
+        F(iop_hash_update_u16)(ctx, st->class_attrs->class_id);
+    }
     do {
         F(__iop_hash)(ctx, st, v, flags);
     } while ((st = st->class_attrs->parent));

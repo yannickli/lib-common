@@ -1009,7 +1009,7 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(hash_sha1_class, "test whether iop_hash_sha1 takes the class type into account") { /* {{{ */
+    Z_TEST(hash_sha1_class, "test whether iop_hash_sha1 takes the IOP_HASH_DONT_INCLUDE_CLASS_ID param into account") { /* {{{ */
         tstiop__my_class2__t cl2;
         tstiop__my_class2_bis__t cl2bis;
         tstiop__my_class2_after__t cl2after;
@@ -1024,6 +1024,16 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT(!iop_equals_desc(&tstiop__my_class1__s, &cl2, &cl2bis));
 
+        /* test both classes hash are equal with
+         * IOP_HASH_DONT_INCLUDE_CLASS_ID param */
+        iop_hash_sha1(&tstiop__my_class1__s, &cl2, buf1,
+                      IOP_HASH_DONT_INCLUDE_CLASS_ID);
+        iop_hash_sha1(&tstiop__my_class1__s, &cl2bis, buf2,
+                      IOP_HASH_DONT_INCLUDE_CLASS_ID);
+        Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) == 0);
+
+        /* test both classes hash are different without
+         * IOP_HASH_DONT_INCLUDE_CLASS_ID param */
         iop_hash_sha1(&tstiop__my_class1__s, &cl2, buf1, 0);
         iop_hash_sha1(&tstiop__my_class1__s, &cl2bis, buf2, 0);
         Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) != 0);
