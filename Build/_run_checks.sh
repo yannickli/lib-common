@@ -86,7 +86,7 @@ fi
 trap "rm $tmp $tmp2 $corelist" 0
 
 set_www_env() {
-    if [[ "$Z_TAG_SKIP" =~ "web" ]]; then
+    if [[ "$Z_TAG_SKIP" =~ "web" ]] && [[ -z "$Z_TAG_OR" ]]; then
         return 0
     fi
 
