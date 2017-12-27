@@ -132,6 +132,25 @@ licence_check_module_expiry(const struct core__licence_module__t *licence);
  */
 #define ACTIVATION_TOKEN_LENGTH  20
 
+/** Parse an activation token.
+ *
+ * \param[in]  rawtoken  The activation token.
+ * \param[in]  licence  The associated licence, used for hash computation.
+ * \param[out]  product_exp  The product expiration date (as a timestamp).
+ * \param[out]  token_exp  The token expiration date (as a timestamp).
+ * \param[out]  token  The activation token as defined in an IOP.
+ * \param[out]  err  A buffer for error messages.
+ *
+ * \return 0 on success, -1 on error, -2 if the hash is invalid. In
+ * this later case, the other fields have been "sucessfully" parsed.
+ */
+int t_parse_activation_token(lstr_t rawtoken,
+                             const core__licence__t * nonnull licence,
+                             time_t * nullable product_exp,
+                             time_t * nullable token_exp,
+                             core__activation_token__t * nullable token,
+                             sb_t * nullable err);
+
 /** Format an activation token based on what it depends.
  *
  * Note that the timestamps provided are rounded to the lower day.

@@ -489,6 +489,90 @@ activation_token_hash(const char buf[BIN_TKN_TS_SZ],
     return icrc64(hash, buf, BIN_TKN_TS_SZ);
 }
 
+int t_parse_activation_token(lstr_t rawtoken, const core__licence__t *licence,
+                             time_t *product_exp_out, time_t *token_exp_out,
+                             core__activation_token__t *token, sb_t *err)
+{
+    SB_1k(buf);
+    uint8_t *val;
+    int value;
+    const char *error;
+    time_t signature_ts = OPT_DEFVAL(licence->signature_ts, 0);
+    time_t product_exp;
+    time_t token_exp;
+    bool hash_valid = false;
+
+    if (!signature_ts) {
+        error = "no signature timestamp";
+        goto error;
+    }
+
+#ifndef NDEBUG
+    /* Special parsing for easier tests: "12-Jan-2018|12-Feb-2018". */
+    if (rawtoken.len == 23 && rawtoken.s[11] == '|') {
+        product_exp = lstrtotime(LSTR_INIT_V(rawtoken.s, 11));
+        token_exp = lstrtotime(LSTR_INIT_V(rawtoken.s + 12, 11));
+        hash_valid = true;
+        goto fill_out;
+    }
+#endif
+
+    if (ACTIVATION_TOKEN_LENGTH != rawtoken.len) {
+        error = "invalid token length";
+        goto error;
+    }
+
+    if (sb_add_unb64(&buf, rawtoken.data, ACTIVATION_TOKEN_LENGTH) < 0) {
+        error = "cannot read token";
+        goto error;
+    }
+    val = (uint8_t *)buf.data;
+    if (licence) {
+        be64_t stored_hash_be;
+        uint64_t stored_hash;
+        uint64_t hash;
+
+        memcpy(&stored_hash_be, val + BIN_TKN_TS_SZ, sizeof(be64_t));
+        stored_hash = be_to_cpu64(stored_hash_be);
+        hash = activation_token_hash((char *)val, licence);
+        hash_valid = (stored_hash == hash);
+    }
+    value = (val[0] << 4) | ((val[1] >> 4) & 0xF);
+    product_exp = localtime_addday(signature_ts, value);
+    value = ((val[1] & 0xF) << 8) | val[2];
+    token_exp = localtime_addday(signature_ts, value);
+
+#ifndef NDEBUG
+  fill_out:
+#endif
+    if (product_exp_out) {
+        *product_exp_out = product_exp;
+    }
+    if (token_exp_out) {
+        *token_exp_out = token_exp;
+    }
+    if (token) {
+        char *product_exp_date_str = t_new_raw(char, 21);
+
+        if (!expect(strftime(product_exp_date_str, 20, "%d-%b-%Y",
+                             localtime(&product_exp)) > 0))
+        {
+            error = "cannot format product expiration date";
+            goto error;
+        }
+        token->expiration_date = LSTR(product_exp_date_str);
+
+        token->token = rawtoken;
+    }
+    return hash_valid ? 0 : -2;
+
+  error:
+    if (err) {
+        sb_adds(err, error);
+    }
+    return -1;
+}
+
 int t_format_activation_token(const core__signed_licence__t *licence,
                               time_t product_exp, time_t token_exp,
                               core__activation_token__t *token, sb_t *err)
