@@ -1700,8 +1700,6 @@ data_t el_unregister(ev_t **evp)
     if (*evp) {
         switch ((*evp)->type) {
           case EV_BLOCKER:
-            return el_destroy(evp);
-
           case EV_BEFORE:
           case EV_SIGNAL:
           case EV_PROXY:
