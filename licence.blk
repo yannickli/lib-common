@@ -469,6 +469,85 @@ bool licence_is_module_activated_desc(const struct core__licence__t *licence,
 }
 
 /* }}} */
+/* {{{ Activation tokens */
+
+static void hash_crc64(void *ctx, const void *input, int ilen)
+{
+    *(uint64_t *)ctx = icrc64(*(uint64_t *)ctx, input, ilen);
+}
+
+#define BIN_TKN_TS_SZ  3
+
+static uint64_t
+activation_token_hash(const char buf[BIN_TKN_TS_SZ],
+                      const core__licence__t *licence)
+{
+    uint64_t hash = 0;
+
+    iop_hash(&core__licence__s, licence, hash_crc64, &hash,
+             IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT);
+    return icrc64(hash, buf, BIN_TKN_TS_SZ);
+}
+
+int t_format_activation_token(const core__signed_licence__t *licence,
+                              time_t product_exp, time_t token_exp,
+                              core__activation_token__t *token, sb_t *err)
+{
+    time_t signature_ts = OPT_VAL(licence->licence->signature_ts);
+    int pe_diff = time_diff_days(signature_ts, product_exp);
+    int te_diff = time_diff_days(signature_ts, token_exp);
+    SB_1k(rawtoken);
+    sb_b64_ctx_t b64ctx;
+    char buf[BIN_TKN_TS_SZ];
+    uint32_t noise = rand();
+    uint64_t cpuhash = 0;
+    be64_t behash;
+    char *product_exp_date_str = t_new_raw(char, 21);
+
+    sb_add_b64_start(&rawtoken, 16, -1, &b64ctx);
+
+    /* Put 12 bits from pe_diff and 12 from te_diff. */
+    if (signature_ts > product_exp || signature_ts > token_exp) {
+        sb_adds(err, "signature timestamp is newer than some expiration");
+        return -1;
+    }
+    if (pe_diff <= 0 || pe_diff >= (1 << 12)
+    ||  te_diff <= 0 || te_diff >= (1 << 12))
+    {
+        sb_adds(err, "activation tokens cannot handle such expirations");
+        return -1;
+    }
+    buf[0] = (pe_diff >> 4) & 0xFF;
+    buf[1] = ((pe_diff & 0xF) << 4) | ((te_diff >> 8) & 0xF);
+    buf[2] = te_diff & 0xFF;
+    sb_add_b64_update(&rawtoken, buf, BIN_TKN_TS_SZ, &b64ctx);
+
+    /* Put the hash of the licence + expirations */
+    cpuhash = activation_token_hash(buf, licence->licence);
+    behash = cpu_to_be64(cpuhash);
+    sb_add_b64_update(&rawtoken, &behash, sizeof(behash), &b64ctx);
+
+    /* Put some noise. */
+    sb_add_b64_update(&rawtoken, &noise, sizeof(noise), &b64ctx);
+    sb_add_b64_finish(&rawtoken, &b64ctx);
+
+    if (!expect(rawtoken.len == ACTIVATION_TOKEN_LENGTH)) {
+        return -1;
+    }
+
+    token->token = t_lstr_dup(LSTR_SB_V(&rawtoken));
+    if (!expect(strftime(product_exp_date_str, 20, "%d-%b-%Y",
+                         localtime(&product_exp)) > 0))
+    {
+        return -1;
+    }
+    token->expiration_date = LSTR(product_exp_date_str);
+    return 0;
+}
+
+#undef BIN_TKN_TS_SZ
+
+/* }}} */
 /* tests {{{ */
 
 static int find_local_mac(char buf[static 6 * 3])

@@ -111,5 +111,44 @@ __must_check__ licence_expiry_t
 licence_check_module_expiry(const struct core__licence_module__t *licence);
 
 /* }}} */
+/* {{{ Activation tokens */
+
+/* An activation token is a string composed of ACTIVATION_TOKEN_LENGTH
+ * base64 characters of the form [pe | te | hash | rest] where:
+ *   - pe is the number of days after which the product expires,
+ *     counting from the associated licence signature timestamp.
+ *     It is two char length (which is sufficient for around 11
+ *     years).
+ *   - te is the number of days after which the token cannot be
+ *     used.  It is also two char length.
+ *   - hash is the base64 encoding of the crc64 of the associated
+ *     licence, pe and te.
+ *   - rest is noise.
+ *
+ * Note: we just use a hash and not a signature because (i) the length
+ * of the tokens are too small to allow real cryptography, and (ii)
+ * signatures do not prevent the attacker to hack binaries. A simple
+ * hash solution is considered proportional to the risks encountered.
+ */
+#define ACTIVATION_TOKEN_LENGTH  20
+
+/** Format an activation token based on what it depends.
+ *
+ * Note that the timestamps provided are rounded to the lower day.
+ *
+ * \param[in]  licence  The licence associated with the token.
+ * \param[in]  product_exp  The product will no longer be active after
+ *                          this date.
+ * \param[in]  token_exp  The token cannot be applied after this date.
+ * \param[out]  token  The activation token, as a string.
+ *
+ * \return 0 on success, -1 on error.
+ */
+int t_format_activation_token(const core__signed_licence__t * nonnull licence,
+                              time_t product_exp, time_t token_exp,
+                              core__activation_token__t * nonnull token,
+                              sb_t * nonnull err);
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_LICENCE_H */
