@@ -775,21 +775,31 @@ int el_child_get_status(el_t ev)
     return ev->child.status;
 }
 
-pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
-                     block_t child, el_child_b blk, block_t wipe)
+pid_t el_spawn_child(const char *file, const char *argv_in[],
+                     const char *envp[], block_t child, el_child_b blk,
+                     block_t wipe)
 {
     pid_t pid;
+    qv_t(cstr) argv_final;
+
+    qv_init(&argv_final);
+    qv_append(&argv_final, file);
 
     {
         logger_debug_scope(&_G.tracing_logger);
-        const char **ptr = &argv[0];
+        const char **ptr = &argv_in[0];
 
-        logger_cont("running command ");
+        logger_cont("running command %s", file);
         while (*ptr) {
-            logger_cont("%s ", *ptr);
+            logger_cont(" %s", *ptr);
+            qv_append(&argv_final, *ptr);
+
             ptr++;
         }
     }
+
+    qv_append(&argv_final, NULL);
+
     if ((pid = fork()) == 0) {
         if (child) {
             child();
@@ -799,13 +809,14 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
              * centos 5 only has gblic 2.5 */
             environ = (char **)envp;
         }
-        execvp(file, (char **)argv);
+        execvp(file, (char **)argv_final.tab);
         logger_fatal(&_G.logger, "unable to execute `%s`: %m", file);
     } else
     if (pid < 0) {
         logger_fatal(&_G.logger,
                      "unable to fork `%s` in the background: %m", file);
     }
+    qv_wipe(&argv_final);
     el_child_register_blk(pid, blk, wipe);
     return pid;
 }
@@ -2004,7 +2015,7 @@ static void fs_notify(el_t el, uint32_t event, uint32_t cookie,
 static int z_spawn_child(void)
 {
     pid_t pid;
-    const char *argv[] = { "ls", "-l", NULL };
+    const char *argv[] = { "-l", NULL };
     __block _Bool done = false;
 
     pid = el_spawn_child("ls", argv, NULL,
