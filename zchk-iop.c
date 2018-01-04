@@ -6328,6 +6328,36 @@ Z_GROUP_EXPORT(iop)
 #undef TEST
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(mp_iop_array, "test the *_IOP_ARRAY macros") { /* {{{ */
+        t_scope;
+        tstiop__basic_struct__t st1 = { .i = 1 };
+        tstiop__basic_struct__t st2 = { .i = 2 };
+        tstiop__basic_struct__array_t st_array;
+
+        tstiop__basic_class__t cl1;
+        tstiop__basic_class__t cl2;
+        tstiop__basic_class__array_t cl_array;
+
+        st_array = T_IOP_ARRAY(tstiop__basic_struct, st1, st2);
+        Z_ASSERT_EQ(st_array.len, 2);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_struct, &st1, &st_array.tab[0]);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_struct, &st2, &st_array.tab[1]);
+
+        st_array = T_IOP_ARRAY(tstiop__basic_struct, st2, st1);
+        Z_ASSERT_EQ(st_array.len, 2);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_struct, &st1, &st_array.tab[1]);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_struct, &st2, &st_array.tab[0]);
+
+        iop_init(tstiop__basic_class, &cl1);
+        cl1.i = 3;
+        iop_init(tstiop__basic_class, &cl2);
+        cl2.i = 4;
+        cl_array = T_IOP_ARRAY(tstiop__basic_class, &cl1, &cl2);
+        Z_ASSERT_EQ(cl_array.len, 2);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_class, &cl1, cl_array.tab[0]);
+        Z_ASSERT_IOPEQUAL(tstiop__basic_class, &cl2, cl_array.tab[1]);
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */
         struct {
             const iop_struct_t *st;

@@ -677,7 +677,7 @@ typedef struct iop_dso_vt_t {
 #define T_IOP_ARRAY_DUP(array)  IOP_ARRAY_DUP(t_pool(), array)
 
 #define IOP_ARRAY_ELEM_TYPE(_iop_type)                                       \
-    typeof(*cast(_iop_type##__array_t *, 0)->tab)
+    typeof(*cast(IOP_ARRAY_T(_iop_type) *, 0)->tab)
 
 
 #define _IOP_ARRAY_NEW_ALLOC_MP(_mp, _new_fun, _iop_type, _len)              \
@@ -708,6 +708,20 @@ typedef struct iop_dso_vt_t {
 
 #define IOP_ARRAY_NEW_RAW(_iop_type, _len)                                   \
     MP_IOP_ARRAY_NEW_RAW(NULL, _iop_type, _len)
+
+#define MP_IOP_ARRAY(_mp, _iop_type, ...)                                    \
+    ({                                                                       \
+        IOP_ARRAY_ELEM_TYPE(_iop_type) __carray[] = { __VA_ARGS__ };         \
+        IOP_ARRAY_T(_iop_type) __array;                                      \
+                                                                             \
+        __array = MP_IOP_ARRAY_NEW_RAW(_mp, _iop_type, countof(__carray));   \
+        p_copy(__array.tab, __carray, countof(__carray));                    \
+                                                                             \
+        __array;                                                             \
+    })
+
+#define T_IOP_ARRAY(_iop_type, ...)                                          \
+    MP_IOP_ARRAY(t_pool(), _iop_type, __VA_ARGS__)
 
 /* }}} */
 

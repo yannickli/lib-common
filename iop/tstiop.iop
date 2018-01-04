@@ -537,6 +537,17 @@ union GetBpackSzU {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_array_new */
+
+struct BasicStruct {
+    int i;
+};
+
+class BasicClass {
+    int i;
+};
+
+/* }}} */
 
 /* Interfaces */
 
