@@ -6338,6 +6338,8 @@ Z_GROUP_EXPORT(iop)
         tstiop__basic_class__t cl2;
         tstiop__basic_class__array_t cl_array;
 
+        iop_array_u32_t u32_array;
+
         st_array = T_IOP_ARRAY(tstiop__basic_struct, st1, st2);
         Z_ASSERT_EQ(st_array.len, 2);
         Z_ASSERT_IOPEQUAL(tstiop__basic_struct, &st1, &st_array.tab[0]);
@@ -6356,6 +6358,12 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(cl_array.len, 2);
         Z_ASSERT_IOPEQUAL(tstiop__basic_class, &cl1, cl_array.tab[0]);
         Z_ASSERT_IOPEQUAL(tstiop__basic_class, &cl2, cl_array.tab[1]);
+
+        u32_array = T_IOP_ARRAY(u32, 10, 11, 12, 13, 14);
+        Z_ASSERT_EQ(u32_array.len, 5);
+        tab_for_each_pos(pos, &u32_array) {
+            Z_ASSERT_EQ(u32_array.tab[pos], 10u + pos);
+        }
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */

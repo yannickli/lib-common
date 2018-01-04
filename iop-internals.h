@@ -565,6 +565,18 @@ typedef iop_array_bool_t iop_array__Bool_t;
 typedef IOP_ARRAY_OF(double) iop_array_double_t;
 typedef IOP_ARRAY_OF(lstr_t) iop_array_lstr_t;
 
+typedef iop_array_i8_t i8__array_t;
+typedef iop_array_u8_t u8__array_t;
+typedef iop_array_i16_t i16__array_t;
+typedef iop_array_u16_t u16__array_t;
+typedef iop_array_i32_t i32__array_t;
+typedef iop_array_u32_t u32__array_t;
+typedef iop_array_i64_t i64__array_t;
+typedef iop_array_u64_t u64__array_t;
+typedef iop_array_bool_t bool__array_t;
+typedef iop_array_double_t double__array_t;
+typedef iop_array_lstr_t lstr__array_t;
+
 /*}}}*/
 /*{{{ iop__void__t */
 
