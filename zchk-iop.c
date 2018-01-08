@@ -52,6 +52,7 @@ qvector_t(my_struct_a_opt, tstiop__my_struct_a_opt__t);
 qvector_t(my_struct_g, tstiop__my_struct_g__t);
 qvector_t(my_struct_m, tstiop__my_struct_m__t);
 qvector_t(my_class2, tstiop__my_class2__t *);
+qvector_t(filtered_struct, tstiop__filtered_struct__t);
 
 /* {{{ IOP testing helpers */
 
@@ -3479,24 +3480,30 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_filter, "test IOP structures filtering") { /* {{{ */
         t_scope;
-        tstiop__my_struct_g__t first;
-        tstiop__my_struct_g__t second;
-        tstiop__my_struct_g__t third;
-        qv_t(my_struct_g) original;
+        tstiop__filtered_struct__t first;
+        tstiop__filtered_struct__t second;
+        tstiop__filtered_struct__t third;
+        qv_t(filtered_struct) original;
         void **allowed = t_new_raw(void *, 3);
         byte *bitmap;
+        int values_1[] = { 2, 3, 5, 7, 11 };
+        int values_2[] = { 2, 3, 7, 11 };
 
         t_qv_init(&original, 3);
 
-        iop_init(tstiop__my_struct_g, &first);
-        iop_init(tstiop__my_struct_g, &second);
-        iop_init(tstiop__my_struct_g, &third);
+        iop_init(tstiop__filtered_struct, &first);
+        iop_init(tstiop__filtered_struct, &second);
+        iop_init(tstiop__filtered_struct, &third);
         first.a = 1;
         first.b = 1;
         first.d = 42;
+        first.c.tab = values_1;
+        first.c.len = countof(values_1);
         second.a = 2;
         second.b = 1;
         second.d = 43;
+        second.c.tab = values_2;
+        second.c.len = countof(values_2);
         third.a = 1;
         third.b = 1;
         third.d = 44;
@@ -3515,7 +3522,7 @@ Z_GROUP_EXPORT(iop)
         } while (0)
 
 #define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__my_struct_g__s, original.tab,      \
+        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
                                  &original.len, LSTR(_field), allowed,       \
                                  _allowed_len, 0, NULL));                    \
         Z_ASSERT_EQ(_result_len, original.len);                              \
@@ -3525,17 +3532,17 @@ Z_GROUP_EXPORT(iop)
         INIT_ORIGINAL();
         ADD_PARAM(1, 0);
         FILTER_AND_CHECK_LEN("a", 1, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &third);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
 
         /* Filter on several values */
         INIT_ORIGINAL();
         ADD_PARAM(2, 1);
 
         FILTER_AND_CHECK_LEN("a", 2, 3);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[1], &second);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[2], &third);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &second);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[2], &third);
 
         /* Filter with no match */
         INIT_ORIGINAL();
@@ -3548,13 +3555,22 @@ Z_GROUP_EXPORT(iop)
         ADD_PARAM(43, 0);
 
         FILTER_AND_CHECK_LEN("d", 1, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
+
+        /* Filter on repeated field */
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        FILTER_AND_CHECK_LEN("c", 1, 1);
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        ADD_PARAM(11, 1);
+        FILTER_AND_CHECK_LEN("c", 2, 2);
 
 
         /* iop_filter_bitmap. */
 #define FILTER_BITMAP(_field, _allowed_len, _op)  \
         do {                                                                 \
-            Z_ASSERT_ZERO(t_iop_filter_bitmap(&tstiop__my_struct_g__s,       \
+            Z_ASSERT_ZERO(t_iop_filter_bitmap(&tstiop__filtered_struct__s,   \
                                               original.tab, original.len,    \
                                               LSTR(_field), allowed,         \
                                               _allowed_len, 0, _op, &bitmap, \
@@ -3563,7 +3579,7 @@ Z_GROUP_EXPORT(iop)
 
 #define APPLY_BITMAP(_result_len)  \
         do {                                                                 \
-            iop_filter_bitmap_apply(&tstiop__my_struct_g__s,                 \
+            iop_filter_bitmap_apply(&tstiop__filtered_struct__s,             \
                                     original.tab, &original.len, bitmap);    \
             Z_ASSERT_EQ(_result_len, original.len);                          \
         } while (0)
@@ -3671,21 +3687,21 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_filter_strings, "test IOP filtering on string values") { /* {{{ */
         t_scope;
-        tstiop__my_struct_g__t first;
-        tstiop__my_struct_g__t second;
-        tstiop__my_struct_g__t third;
-        qv_t(my_struct_g) original;
+        tstiop__filtered_struct__t first;
+        tstiop__filtered_struct__t second;
+        tstiop__filtered_struct__t third;
+        qv_t(filtered_struct) original;
         lstr_t filter;
         void **allowed = t_new_raw(void *, 1);
 
         t_qv_init(&original, 3);
 
-        iop_init(tstiop__my_struct_g, &first);
-        iop_init(tstiop__my_struct_g, &second);
-        iop_init(tstiop__my_struct_g, &third);
-        first.j = LSTR("toto");
-        second.j = LSTR("titi");
-        third.j = LSTR("tutu");
+        iop_init(tstiop__filtered_struct, &first);
+        iop_init(tstiop__filtered_struct, &second);
+        iop_init(tstiop__filtered_struct, &third);
+        first.s = LSTR("toto");
+        second.s = LSTR("titi");
+        third.s = LSTR("tutu");
 
         *allowed = &filter;
 
@@ -3694,7 +3710,7 @@ Z_GROUP_EXPORT(iop)
         original.tab[1] = second;                                            \
         original.tab[2] = third;                                             \
         original.len = 3;                                                    \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__my_struct_g__s, original.tab,      \
+        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
                                  &original.len, LSTR(_field), allowed, 1,    \
                                  _flags, NULL));                             \
         Z_ASSERT_EQ(_result_len, original.len);                              \
@@ -3702,21 +3718,21 @@ Z_GROUP_EXPORT(iop)
 
         /* Simple filters */
         filter = LSTR("none");
-        FILTER_AND_CHECK_LEN("j", 0, 0);
-        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 0);
+        FILTER_AND_CHECK_LEN("s", 0, 0);
+        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 0);
 
         filter = LSTR("titi");
-        FILTER_AND_CHECK_LEN("j", 0, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
+        FILTER_AND_CHECK_LEN("s", 0, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
 
-        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &second);
+        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
 
         /* SQL patterns. */
         filter = LSTR("to%");
-        FILTER_AND_CHECK_LEN("j", 0, 0);
-        FILTER_AND_CHECK_LEN("j", IOP_FILTER_SQL_LIKE, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_struct_g, &original.tab[0], &first);
+        FILTER_AND_CHECK_LEN("s", 0, 0);
+        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 1);
+        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
 
 #undef FILTER_AND_CHECK_LEN
 

@@ -632,6 +632,10 @@ enum iop_filter_flags {
  *  It takes an array of IOP objets and an array of values, and filters out
  *  the objects whose field value is not in the values array.
  *
+ *  When the field is repeated, the function looks for the first occurrence of
+ *  allowed_values in the field.
+ *  Example: [ 1, 2, 3 ] and allowed_values = [ 3 ] => true.
+ *
  *  \param[in] st             The IOP structure definition (__s).
  *  \param[in/out] vec        Array of objects to filter. If st is a class,
  *                            this must be an array of pointers on the

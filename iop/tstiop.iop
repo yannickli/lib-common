@@ -576,6 +576,17 @@ struct StructWithOptionalObject {
 
 
 /* }}} */
+/* {{{ zchk iop.iop_filter */
+
+struct FilteredStruct {
+    int a   = -1;
+    uint b  = 2;
+    ubyte d = 4;
+    int[] c;
+    string s = "test";
+};
+
+/* }}} */
 
 /* Interfaces */
 

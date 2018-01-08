@@ -2413,6 +2413,20 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
     return iop_msort_desc(st, vec, len, &params, err);
 }
 
+static bool iop_filter_is_value_allowed(const void *val,
+                                        void * const * allowed_values,
+                                        int len,
+                                        cmp_f equal)
+{
+    /* TODO: sort allowed_values and use a bisection. */
+    for (int i = 0; i < len; i++) {
+        if (equal(val, allowed_values[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool iop_filter_val_matches(const byte *vec_read,
                                    const field_path_t *fp,
                                    bool is_pointer, opt_bool_t is_set,
@@ -2428,18 +2442,30 @@ static bool iop_filter_val_matches(const byte *vec_read,
 
     if (OPT_ISSET(is_set)) {
         return val_is_set == OPT_VAL(is_set);
-    } else {
-        if (val) {
-            /* TODO: sort allowed_values and use a bisection. */
-            for (int i = 0; i < len; i++) {
-                if (equal(val, allowed_values[i]) == 0) {
-                    return true;
-                }
-            }
-        }
+    }
 
+    if (!val) {
         return false;
     }
+
+    if (fp->fdesc && fp->fdesc->repeat == IOP_R_REPEATED) {
+        const iop_array_i8_t *array = val;
+
+        for (int i = 0; i < array->len; i++) {
+            val = (const char *)array->tab + i * fp->fdesc->size;
+
+            if (iop_filter_is_value_allowed(val, allowed_values, len, equal))
+            {
+                return true;
+            }
+        }
+    } else {
+        if (iop_filter_is_value_allowed(val, allowed_values, len, equal)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static int
@@ -2486,13 +2512,6 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
             if (fp.fdesc->type == IOP_T_VOID) {
                 if (err) {
                     sb_addf(err, "cannot filter on void field `%*pM'",
-                            LSTR_FMT_ARG(field_path));
-                }
-                return -1;
-            }
-            if (fp.fdesc->repeat == IOP_R_REPEATED) {
-                if (err) {
-                    sb_addf(err, "cannot filter on repeated field `%*pM'",
                             LSTR_FMT_ARG(field_path));
                 }
                 return -1;
