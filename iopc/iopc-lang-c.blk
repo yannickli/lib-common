@@ -187,8 +187,10 @@ static void iopc_struct_optimize(iopc_struct_t *st)
 
 static void iopc_field_compute_size(iopc_field_t *f)
 {
-    if (f->size)
+    if (f->size) {
         return;
+    }
+
     if (f->repeat == IOP_R_OPTIONAL || f->is_ref) {
         switch (f->kind) {
           case IOP_T_VOID:
@@ -284,8 +286,15 @@ static void iopc_field_compute_size(iopc_field_t *f)
         f->align = alignof(lstr_t);
         f->size  = sizeof(lstr_t);
         break;
-      case IOP_T_UNION:
       case IOP_T_STRUCT:
+        if (iopc_is_class(f->struct_def->type)) {
+            f->align = alignof(void *);
+            f->size  = sizeof(void *);
+            break;
+        }
+        /* FALLTHROUGH */
+
+      case IOP_T_UNION:
         iopc_struct_optimize(f->struct_def);
         f->align = f->struct_def->align;
         f->size  = f->struct_def->size;

@@ -7694,6 +7694,20 @@ Z_GROUP_EXPORT(iop)
                  &cls->fullname);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(struct_packing, "check struct packing behavior") { /* {{{ */
+        /* Check that a struct is properly packed. */
+        STATIC_ASSERT(sizeof(tstiop__struct_with_optional_object__t) ==
+                      2 * sizeof(int32_t) + sizeof(void *));
+
+        /* Check consistency of struct packing between similar structs. */
+        STATIC_ASSERT(sizeof(tstiop__struct_with_mandatory_object__t) ==
+                      sizeof(tstiop__struct_with_optional_object__t));
+        STATIC_ASSERT(sizeof(tstiop__struct_with_mandatory_object__t) ==
+                      sizeof(tstiop__struct_with_typedef__t));
+
+        Z_ASSERT(true);
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END
 

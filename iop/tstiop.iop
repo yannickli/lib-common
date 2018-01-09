@@ -548,6 +548,34 @@ class BasicClass {
 };
 
 /* }}} */
+/* {{{ zchk iop.struct_packing */
+
+class SmallClass {
+    int i;
+};
+
+typedef SmallClass SmallClassTypedef;
+
+struct StructWithMandatoryObject {
+    int i1;
+    SmallClass c;
+    int i2;
+};
+
+struct StructWithTypedef {
+    int i1;
+    SmallClassTypedef c;
+    int i2;
+};
+
+struct StructWithOptionalObject {
+    int i1;
+    SmallClass? c;
+    int i2;
+};
+
+
+/* }}} */
 
 /* Interfaces */
 
