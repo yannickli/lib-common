@@ -1575,6 +1575,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int to_read = IC_PKT_MAX;
     bool starves = false;
     int write_errno = 0;
+    bool try_write = true;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         errno = 0;
@@ -1723,12 +1724,12 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         }
         sb_skip(buf, IC_MSG_HDR_LEN + dlen);
 
-        if (events & POLLOUT) {
+        if (try_write) {
             int ret = ic_write(ic, sock);
 
             if (ret <= 0) {
                 /* Stop writing */
-                events &= ~POLLOUT;
+                try_write = false;
                 if (ret < 0) {
                     /* XXX don't raise an error _now_ since we want to read
                      * a potential pending IC_BYE on the channel.
