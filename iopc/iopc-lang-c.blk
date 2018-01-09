@@ -123,7 +123,16 @@ static void iopc_struct_optimize(iopc_struct_t *st)
         return;
     }
 
-    st->align = (st->type == STRUCT_TYPE_UNION ? 2 : 1);
+    if (st->type == STRUCT_TYPE_UNION) {
+        /* iop_tag field */
+        st->align = alignof(uint16_t);
+    } else
+    if (st->type == STRUCT_TYPE_CLASS) {
+        /* __vptr field */
+        st->align = alignof(void *);
+    } else {
+        st->align = 1;
+    }
     tab_for_each_entry(f, &st->fields) {
         iopc_field_compute_size(f);
         st->align = MAX(st->align, f->align);
