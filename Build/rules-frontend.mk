@@ -187,6 +187,34 @@ $$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/exp
 endef
 
 # }}}
+# {{{ tsx
+
+# ext/expand/tsx <PHONY>,<TARGET>,<TS>,<MODULEPATH>,<DEPS>[]
+#
+# Typescript file containing JSX. See 'ts' rule for details.
+#
+# Produces:
+# - $~$3.d: the dependency file for the typescript module
+# - $~$(3:tsx=d.ts): the declaration file for the typescript module
+# - $~$(3:tsx=js): the javascript file for the typescript module
+define ext/expand/tsx
+$2: $~$(3:tsx=js)
+$~$3: $3 $(var/wwwtool)tslint
+	$(msg/COMPILE.json) $3
+	mkdir -p "$(dir $~$3)"
+	cp -f $$< $$@
+$~$4/node_modules/tsconfig.json: $~$3
+$~$(3:tsx=js): $~$4/node_modules/tsconfig.json
+	touch $$@
+
+$~$(3:tsx=d.ts): $~$(3:tsx=js)
+endef
+
+define ext/rule/tsx
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/tsx,$1,$2,$$t,$4,$5))))
+endef
+
+# }}}
 # {{{ json
 
 # ext/expand/json <PHONY>,<TARGET>,<JSON>,<MODULEPATH>
