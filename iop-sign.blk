@@ -268,7 +268,19 @@ int main(int argc, char **argv)
                LIB_COMMON_VERSION, libcommon_git_revision);
         return 0;
     }
-    if (opts.help || !opts.path_dso || !opts.signed_iop || !opts.data_field) {
+    if (opts.help) {
+        goto usage;
+    }
+    if (!opts.path_dso) {
+        e_error("missing dso path (-d)");
+        goto usage;
+    }
+    if (!opts.signed_iop) {
+        e_error("missing signed iop (-s)");
+        goto usage;
+    }
+    if (!opts.data_field) {
+        e_error("missing data field name to set (-f)");
         goto usage;
     }
     if (argc < 2) {
@@ -280,6 +292,7 @@ int main(int argc, char **argv)
     if (strequal(argv[0], "check")) {
         opts.do_sign = false;
     } else {
+        e_error("invalid command: %s", argv[0]);
         goto usage;
     }
 
