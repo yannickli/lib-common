@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc.h"
+#include "iopc-priv.h"
 #include <float.h>
 #include <math.h>
 
@@ -112,7 +112,7 @@ void iopc_struct_sort_fields(iopc_struct_t *st, sort_order_t order)
     st->optimized = false;
 }
 
-static void iopc_struct_optimize(iopc_struct_t *st)
+void iopc_struct_optimize(iopc_struct_t *st)
 {
     size_t size = 0;
     size_t opt_size = 0;
@@ -473,7 +473,7 @@ static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
 qm_kvec_t(rg, lstr_t, int, qhash_lstr_hash, qhash_lstr_equal);
 static qm_t(rg) range_h_g = QM_INIT_CACHED(rg, range_h_g);
 
-static int iopc_put_range(sb_t *sb, qv_t(i32) *tab)
+static int iopc_put_range(sb_t *sb, iop_array_i32_t *tab)
 {
     qm_t(rg) *h = &range_h_g;
     lstr_t    s   = LSTR_INIT((char *)tab->tab, 4 * tab->len);
@@ -1254,17 +1254,37 @@ static char const * const types[] = {
 #undef ITEM
 };
 
-static int tag_len(int32_t tag)
-{
-    /* Tags 0..29 are encoded inline -> 0 byte,
-     * Tags 30..255 are encoded as value 30 plus 1 byte,
-     * Tags 256..65535 are encoded as value 31 plus 2 extra bytes */
-    return (tag >= 30) + (tag >= 256);
-}
-
 static void defval_escape(sb_t *sb, const void *ptr)
 {
     write_string(sb, ptr, "?");
+}
+
+unsigned iopc_field_build_flags(const iopc_field_t *nonnull f,
+                                const iopc_struct_t *nonnull st,
+                                const iopc_attrs_t *nullable attrs)
+{
+    unsigned flags = 0;
+
+    if (f->is_ref) {
+        SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);
+    }
+    if (attrs && attrs->checkf_name.len) {
+        SET_BIT(&flags, IOP_FIELD_CHECK_CONSTRAINTS);
+    }
+    if (f->snmp_is_from_param || iopc_is_snmp_st(st->type)) {
+        SET_BIT(&flags, IOP_FIELD_HAS_SNMP_INFO);
+    }
+    tab_for_each_entry(attr, &f->attrs) {
+        if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
+            SET_BIT(&flags, IOP_FIELD_IS_SNMP_INDEX);
+        } else
+        if (attr->desc->id == IOPC_ATTR_MIN_OCCURS) {
+            SET_BIT(&flags, 1 /* IOP_FIELD_NO_EMPTY_ARRAY */);
+            break;
+        }
+    }
+
+    return flags;
 }
 
 static void
@@ -1288,7 +1308,7 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
             "        .tag_len   = %d,\n"
             "        .repeat    = %s,\n"
             "        .type      = %s,\n",
-            f->name, f->tag, tag_len(f->tag),
+            f->name, f->tag, iopc_tag_len(f->tag),
             repeats[f->repeat], types[kind]);
 
     if (!iopc_is_snmp_obj(st->type)) {
@@ -1310,24 +1330,7 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
         }
     }
 
-    if (f->is_ref) {
-        SET_BIT(&flags, IOP_FIELD_IS_REFERENCE);
-    }
-    if (attrs && attrs->checkf_name.len) {
-        SET_BIT(&flags, IOP_FIELD_CHECK_CONSTRAINTS);
-    }
-    if (f->snmp_is_from_param || iopc_is_snmp_st(st->type)) {
-        SET_BIT(&flags, IOP_FIELD_HAS_SNMP_INFO);
-    }
-    tab_for_each_entry(attr, &f->attrs) {
-        if (attr->desc->id == IOPC_ATTR_SNMP_INDEX) {
-            SET_BIT(&flags, IOP_FIELD_IS_SNMP_INDEX);
-        } else
-        if (attr->desc->id == IOPC_ATTR_MIN_OCCURS) {
-            SET_BIT(&flags, 1 /* IOP_FIELD_NO_EMPTY_ARRAY */);
-            break;
-        }
-    }
+    flags = iopc_field_build_flags(f, st, attrs);
     if (flags) {
         sb_addf(buf, "        .flags     = %u,\n", flags);
     }
@@ -2499,6 +2502,27 @@ iopc_dump_rpc_attrs_src(sb_t *buf, const iopc_attrs_t *attrs)
             "    },\n");
 }
 
+/* FIXME Almost a duplicate from t_iopc_struct_build_ranges. */
+iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en)
+{
+    qv_t(i32) t;
+
+    t_qv_init(&t, 2 * en->values.len + 1);
+    for (int i = 0, last_enum = 0; i < en->values.len; i++) {
+        iopc_enum_field_t *f = en->values.tab[i];
+
+        if (!i || ++last_enum != f->value) {
+            qv_append(&t, i);
+            qv_append(&t, f->value);
+            last_enum = f->value;
+        }
+    }
+    qv_append(&t, en->values.len);
+    t_realloc_from(&t.tab, t.size, t.len);
+
+    return (iop_array_i32_t)IOP_ARRAY_TAB(&t);
+}
+
 static void
 iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                    const char *pkg_name, iopc_enum_t *en)
@@ -2511,7 +2535,7 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     int range;
     unsigned flags = 0;
     bool has_attrs;
-    qv_t(i32) t;
+    iop_array_i32_t t;
     bool values_have_attributes = false;
     uint16_t alias_count = 0;
 
@@ -2532,17 +2556,7 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             "\n"
             "};\n");
 
-    t_qv_init(&t, 1024);
-    for (int i = 0, last_enum = 0; i < en->values.len; i++) {
-        iopc_enum_field_t *f = en->values.tab[i];
-
-        if (!i || ++last_enum != f->value) {
-            qv_append(&t, i);
-            qv_append(&t, f->value);
-            last_enum = f->value;
-        }
-    }
-    qv_append(&t, en->values.len);
+    t = t_iopc_enum_build_ranges(en);
     range = iopc_put_range(buf, &t);
 
     sb_addf(buf,
@@ -2786,6 +2800,26 @@ static int iopc_put_struct_fields(sb_t *buf, iopc_struct_t *st, char *tbase,
 #undef LVL3
 #undef LVL4
 
+iop_array_i32_t t_iopc_struct_build_ranges(const iopc_struct_t *st)
+{
+    qv_t(i32) t;
+    int last_tag = INT_MIN;
+
+    t_qv_init(&t, 2 * st->fields.len + 1);
+    tab_for_each_pos(i, &st->fields) {
+        iopc_field_t *f = st->fields.tab[i];
+        if (++last_tag != f->tag) {
+            qv_append(&t, i);
+            qv_append(&t, f->tag);
+            last_tag = f->tag;
+        }
+    }
+    qv_append(&t, st->fields.len);
+    t_realloc_from(&t.tab, t.size, t.len);
+
+    return (iop_array_i32_t)IOP_ARRAY_TAB(&t);
+}
+
 static int
 iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
                      const char *pkg_name,
@@ -2801,9 +2835,8 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
     char *sname = iname ? t_fmt("%s.%s", iname, st->name)
                         : t_fmt("%s", st->name);
     char *as_base;
-    int last_tag   = INT_MIN;
     int range;
-    qv_t(i32) t;
+    iop_array_i32_t t;
     bool has_attrs;
 
     iopc_struct_sort_fields(st, BY_TAG);
@@ -2935,16 +2968,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
 
-    t_qv_init(&t, 1024);
-    tab_for_each_pos(i, &st->fields) {
-        iopc_field_t *f = st->fields.tab[i];
-        if (++last_tag != f->tag) {
-            qv_append(&t, i);
-            qv_append(&t, f->tag);
-            last_tag = f->tag;
-        }
-    }
-    qv_append(&t, st->fields.len);
+    t = t_iopc_struct_build_ranges(st);
     range = iopc_put_range(buf, &t);
 
     has_attrs = DUMP_ATTRS(STRUCT, buf, st, tbase, "struct", "s", "s_desc",

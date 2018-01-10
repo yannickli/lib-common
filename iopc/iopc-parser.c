@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc.h"
+#include "iopc-priv.h"
 #include "iopctokens.h"
 
 typedef struct iopc_parser_t {
@@ -831,6 +831,10 @@ static inline char *dup_ident(iopc_token_t *tk)
 static inline const char *ident(iopc_token_t *tk)
 {
     return tk->b.data;
+}
+static inline lstr_t ident_lstr(iopc_token_t *tk)
+{
+    return LSTR_SB_V(&tk->b);
 }
 
 static int
@@ -1656,15 +1660,30 @@ check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
 /*-}}}-*/
 /*----- recursive descent parser -{{{-*/
 
+int iopc_check_upper(lstr_t tk, sb_t *err)
+{
+    assert (tk.len);
+    if (!isupper(tk.s[0])) {
+        sb_setf(err, "first character must be uppercased (got %*pM)",
+                LSTR_FMT_ARG(tk));
+        return -1;
+    }
+
+    return 0;
+}
+
 static char *iopc_upper_ident(iopc_parser_t *pp)
 {
+    SB_1k(err);
     iopc_token_t *tk = TK_P(pp, 0);
     char *res;
+    lstr_t tk_s;
 
     WANT_P(pp, 0, ITOK_IDENT);
-    if (!isupper((unsigned char)ident(tk)[0])) {
-        throw_loc_p("first character must be uppercased (got %s)",
-                    tk->loc, ident(tk));
+    tk_s = ident_lstr(tk);
+
+    if (iopc_check_upper(tk_s, &err) < 0) {
+        throw_loc_p("%*pM", tk->loc, SB_FMT_ARG(&err));
     }
     res = dup_ident(tk);
     DROP(pp, 1);
@@ -1940,6 +1959,20 @@ static int parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
     return 0;
 }
 
+int iopc_check_tag_value(int tag, sb_t *err)
+{
+    if (tag < 1) {
+        sb_setf(err, "tag is too small (must be >= 1, got %d)", tag);
+        return -1;
+    }
+    if (tag >= 0x8000) {
+        sb_setf(err, "tag is too large (must be < 0x8000, got 0x%x)", tag);
+        return -1;
+    }
+
+    return 0;
+}
+
 static iopc_field_t *
 parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
                  qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag,
@@ -1962,6 +1995,8 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
         f->is_static = true;
     } else {
+        SB_1k(err);
+
         /* Tag */
         if (CHECK(pp, 0, ITOK_INTEGER, goto error)) {
             if (__want(pp, 1, ':') < 0) {
@@ -1979,14 +2014,9 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         } else {
             f->tag = (*next_tag)++;
         }
-        if (f->tag < 1) {
-            error_loc("tag is too small (must be >= 1, got %d)",
-                      TK(pp, 0, goto error)->loc, f->tag);
-            goto error;
-        }
-        if (f->tag >= 0x8000) {
-            error_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                      TK(pp, 0, goto error)->loc, f->tag);
+
+        if (iopc_check_tag_value(f->tag, &err) < 0) {
+            error_loc("%*pM", TK(pp, 0, goto error)->loc, SB_FMT_ARG(&err));
             goto error;
         }
     }
@@ -2605,6 +2635,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
                     qv_t(i32) *tags, int *next_tag,
                     iopc_iface_type_t type)
 {
+    SB_1k(err);
     iopc_fun_t *fun = iopc_fun_new();
     iopc_token_t *tk;
     int tag;
@@ -2631,14 +2662,8 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     } else {
         fun->tag = (*next_tag)++;
     }
-    if (fun->tag < 1) {
-        error_loc("tag is too small (must be >= 1, got %d)",
-                  TK(pp, 0, goto error)->loc, fun->tag);
-        goto error;
-    }
-    if (fun->tag >= 0x8000) {
-        error_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                  TK(pp, 0, goto error)->loc, fun->tag);
+    if (iopc_check_tag_value(fun->tag, &err) < 0) {
+        error_loc("%*pM", TK(pp, 0, goto error)->loc, SB_FMT_ARG(&err));
         goto error;
     }
 
@@ -2824,6 +2849,7 @@ static iopc_field_t *
 parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
                      qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag)
 {
+    SB_1k(err);
     iopc_field_t *f = NULL;
     iopc_token_t *tk;
     int tag;
@@ -2841,13 +2867,9 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     } else {
         f->tag = (*next_tag)++;
     }
-    if (f->tag < 1) {
-        throw_loc_p("tag is too small (must be >= 1, got %d)",
-                    TK_P(pp, 0)->loc, f->tag);
-    }
-    if (f->tag >= 0x8000) {
-        throw_loc_p("tag is too large (must be < 0x8000, got 0x%x)",
-                    TK_P(pp, 0)->loc, f->tag);
+
+    if (iopc_check_tag_value(f->tag, &err) < 0) {
+        throw_loc_p("%*pM", TK_P(pp, 0)->loc, SB_FMT_ARG(&err));
     }
 
     RETHROW_NP(parse_struct_type(pp, &f->type_pkg, &f->type_path,
