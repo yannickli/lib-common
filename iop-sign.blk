@@ -19,8 +19,15 @@
 
 extern const char libcommon_git_revision[];
 
+enum action {
+    DO_SIGN,
+    CHECK,
+    GEN_TOKEN,
+};
+
 static struct {
-    int help, version, do_sign, skip_missing, skip_default, use_class_id;
+    enum action action;
+    int help, version, skip_missing, skip_default, use_class_id;
     int quiet_obsolete;
     int php_e_handler;
     const char *path_dso;
@@ -28,6 +35,8 @@ static struct {
     const char *data_field;
     const char *path_signed;
     const char *key_path;
+    const char *activation_timeout;
+    const char *token_timeout;
 } opts;
 
 static popt_t popt[] = {
@@ -48,6 +57,11 @@ static popt_t popt[] = {
              "use class_id when hashing classes, using this option is highly "
              "recommended because it takes into account the exact used class "
              "instead of only relying on the unpacker for the type check"),
+
+    OPT_STR('A', "activation-timeout", &opts.activation_timeout,
+            "the product will be active until this date"),
+    OPT_STR('T', "token-timeout", &opts.token_timeout,
+            "the activation token will be usable until this date"),
 
     OPT_FLAG('q', "quiet", &opts.quiet_obsolete, "OBSOLETE, so not use"),
 
@@ -182,8 +196,39 @@ fill_and_check_fields(const iop_struct_t *desc,
                        iop_file, SB_FMT_ARG(&fbuf));
     }
 
-    if (opts.do_sign) {
+    if (opts.action == DO_SIGN) {
         RETHROW(fill_signature_timestamp(desc, signed_data));
+    }
+
+    if (opts.action == GEN_TOKEN) {
+        core__activation_token__t token;
+        time_t activation_timeout;
+        time_t token_timeout;
+
+        if (!strequal(opts.signed_iop, "core.SignedLicence")) {
+            return e_error("You must provide a core.SignedLicence.");
+        }
+
+        activation_timeout = lstrtotime(LSTR(opts.activation_timeout));
+        if (activation_timeout < 0) {
+            return e_error("Activation timeout malformed.");
+        }
+        token_timeout = lstrtotime(LSTR(opts.token_timeout));
+        if (token_timeout < 0) {
+            return e_error("Token timeout malformed.");
+        }
+
+        sb_reset(&fbuf);
+        if (t_format_activation_token((core__signed_licence__t *)signed_data,
+                                      activation_timeout, token_timeout,
+                                      &token, &fbuf) < 0)
+        {
+            return fbuf.len > 0 ? e_error("%*pM\n", SB_FMT_ARG(&fbuf))
+                                : e_error("can't format token");
+        }
+
+        printf("%*pM\n", LSTR_FMT_ARG(token.token));
+        return 0;
     }
 
     signature = (lstr_t *)((byte *)signed_data + sig_field->data_offs);
@@ -202,7 +247,7 @@ fill_and_check_fields(const iop_struct_t *desc,
         flags |= IOP_HASH_DONT_INCLUDE_CLASS_ID;
     }
 
-    if (opts.do_sign) {
+    if (opts.action == DO_SIGN) {
 #ifdef SSL_HAVE_EVP_PKEY
         if (key.s) {
             *signature = t_iop_compute_rsa_signature(data_field->u1.st_desc,
@@ -287,10 +332,21 @@ int main(int argc, char **argv)
         goto usage;
     }
     if (strequal(argv[0], "sign")) {
-        opts.do_sign = true;
+        opts.action = DO_SIGN;
     } else
     if (strequal(argv[0], "check")) {
-        opts.do_sign = false;
+        opts.action = CHECK;
+    } else
+    if (strequal(argv[0], "gen-token")) {
+        opts.action = GEN_TOKEN;
+        if (!opts.token_timeout) {
+            e_error("missing token timeout (-T)");
+            goto usage;
+        }
+        if (!opts.activation_timeout) {
+            e_error("missing activation timeout (-A)");
+            goto usage;
+        }
     } else {
         e_error("invalid command: %s", argv[0]);
         goto usage;
@@ -332,6 +388,7 @@ int main(int argc, char **argv)
     return 0;
 
   usage:
-    makeusage(EX_USAGE, argv0, "<command> <file>\n\ncommand: sign, check",
+    makeusage(EX_USAGE, argv0, "<command> <file>\n\n"
+              "command: sign, check, gen-token",
               NULL, popt);
 }
