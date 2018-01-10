@@ -150,7 +150,7 @@ time_t localtime_curyear(time_t date);
 time_t localtime_nextmonth(time_t date);
 
 /* Fill struct tm t from date in this format:
- * DDyyyy-eYY]YY with MMM the abbreviated month in English
+ * DD-MMM-[YY]YY with MMM the abbreviated month in English
  */
 int strtotm(const char *date, struct tm *t);
 
@@ -209,6 +209,9 @@ static inline int tm_diff_days(struct tm *from, struct tm *to)
 {
     return tm_nb_days_since_1900(to) - tm_nb_days_since_1900(from);
 }
+
+/** Count the number of days between two timestamps, in local time. */
+int time_diff_days(time_t from, time_t to);
 
 /** Count the number of hours between two dates.
  *

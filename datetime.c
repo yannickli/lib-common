@@ -569,6 +569,19 @@ struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
     return p_tm;
 }
 
+int time_diff_days(time_t from, time_t to)
+{
+    struct tm tm_from;
+    struct tm tm_to;
+
+    if (!expect(localtime_(from, &tm_from) >= 0)
+    ||  !expect(localtime_(to, &tm_to) >= 0))
+    {
+        return -1;
+    }
+    return tm_diff_days(&tm_from, &tm_to);
+}
+
 #if __GNUC_PREREQ(4, 2)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 #endif
