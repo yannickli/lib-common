@@ -526,6 +526,18 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
+time_t lstrtotime(lstr_t date)
+{
+    SB_1k(str);
+    struct tm tm;
+
+    sb_add_lstr(&str, date); /* Ensures the date is null terminated. */
+    p_clear(&tm, 1);
+    tm.tm_isdst = -1;
+    RETHROW(strtotm(str.data, &tm));
+    return mktime(&tm);
+}
+
 struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
                               const char *tz)
 {

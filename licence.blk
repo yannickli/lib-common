@@ -366,7 +366,8 @@ licence_expiry_t licence_check_module_expiry(const core__licence_module__t *e)
     if (!e->expiration_date.s) {
         return LICENCE_OK;
     }
-    if (!expect(strtotime(e->expiration_date, &expiration) >= 0)) {
+    expiration = lstrtotime(e->expiration_date);
+    if (!expect(expiration >= 0)) {
         return LICENCE_INVALID_EXPIRATION;
     }
     soon_expiration = expiration - e->expiration_warning_delay;
@@ -459,7 +460,8 @@ bool licence_is_module_activated_desc(const struct core__licence__t *licence,
         return true;
     }
 
-    if (!expect(strtotime(e->expiration_date, &exp) >= 0)) {
+    exp = lstrtotime(e->expiration_date);
+    if (!expect(exp >= 0)) {
         return false;
     }
 

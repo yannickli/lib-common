@@ -154,6 +154,17 @@ time_t localtime_nextmonth(time_t date);
  */
 int strtotm(const char *date, struct tm *t);
 
+/** Date converter from lstr_t to time_t.
+ *
+ * The date format is specified by strtotm.  This functions is
+ * basically equivalent to successive calls to strtotm and mktime.
+ *
+ * \param  date  The date in a format compatible with strtotm().
+
+ * \return  The corresponding timestamp in seconds since epoch.
+ */
+time_t lstrtotime(lstr_t date);
+
 /* Get the local time of the timezone specified by the tz parameter.
  * If not NULL, the string pointed by this parameter will be used to set
  * the TZ environment variable, otherwise the system local time will be

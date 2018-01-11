@@ -11,31 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-/** Converter of licence date from lstr_t to time_t.
- *
- * The value of out will be the timestamp corresponding to the given date
- * parameter, at midnight.
- *
- * \param[in]   s    String describing a date, for example `07-may-2014`.
- * \param[out]  out  The timestamp,
- *                   for example the timestamp of 07-05-2014 00:00:00.
- */
-ATTRS
-static int F(strtotime)(lstr_t s, time_t *out)
-{
-    struct tm t;
-
-    RETHROW_PN(s.s);
-
-    p_clear(&t, 1);
-    t.tm_isdst = -1;
-    RETHROW(strtotm(s.s, &t));
-
-    *out = RETHROW(mktime(&t));
-
-    return 0;
-}
-
 ATTRS
 #ifdef ALL_STATIC
 static
@@ -45,7 +20,8 @@ licence_expiry_t F(licence_check_iop_expiry)(const core__licence__t *licence)
     time_t expires_soon_ts, soft_expiration_ts, hard_expiration_ts;
     time_t now = lp_getsec();
 
-    if (F(strtotime)(licence->expiration_date, &soft_expiration_ts) < 0) {
+    soft_expiration_ts = lstrtotime(licence->expiration_date);
+    if (soft_expiration_ts < 0) {
 #ifndef NO_LOG
         e_error("invalid soft expiration date");
 #endif
@@ -55,9 +31,8 @@ licence_expiry_t F(licence_check_iop_expiry)(const core__licence__t *licence)
     expires_soon_ts = soft_expiration_ts - licence->expiration_warning_delay;
 
     if (licence->expiration_hard_date.s) {
-        if (F(strtotime)(licence->expiration_hard_date,
-                      &hard_expiration_ts) < 0)
-        {
+        hard_expiration_ts = lstrtotime(licence->expiration_hard_date);
+        if (hard_expiration_ts < 0) {
 #ifndef NO_LOG
             e_error("invalid hard expiration date");
 #endif
