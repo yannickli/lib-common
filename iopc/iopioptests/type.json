@@ -1,0 +1,17 @@
+{
+    "name": "foo",
+    "elems": [ {
+        "_class": "iop.Struct",
+        "name": "bar",
+        "fields": [ {
+            "name": "toto",
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S32"
+                }
+            },
+            "presence": { "required": null }
+        } ]
+    } ]
+}

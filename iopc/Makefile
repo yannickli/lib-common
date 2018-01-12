@@ -12,7 +12,7 @@
 ##########################################################################
 
 iopc_LIBRARIES = libiopc
-iopc_PROGRAMS = iopc
+iopc_PROGRAMS = iopc zchk
 
 _LIBS = -ldl -lpthread -lrt
 
@@ -22,6 +22,12 @@ iopc_SOURCES = \
     $lcore-version.c                \
     $llibcommon.a
 iopc_NOGENERATED = 1
+
+zchk_SOURCES = \
+    zchk.c \
+    iopc-iop.c \
+    libiopc.a \
+    $llibcommon.a
 
 libiopc_SOURCES = \
     iopc.fc                   \

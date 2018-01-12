@@ -1,0 +1,140 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+package iop;
+
+/* {{{ IopType */
+
+enum IntSize {
+    S8,
+    S16,
+    S32,
+    S64,
+};
+
+struct IntType {
+    bool isSigned;
+    IntSize size;
+};
+
+enum StringType {
+    STRING,
+    BYTES,
+    XML,
+};
+
+@ctype(iop__type__t)
+union IopType {
+    IntType i;
+
+    void b;
+    void d;
+
+    /* TODO Test. */
+    StringType s;
+
+    void v;
+
+    @pattern("[a-zA-Z0-9\.]*") @minLength(1)
+    string typeName;
+
+    /* TODO Could include length contraints. */
+    IopType& array;
+};
+
+/* }}} */
+
+abstract local class PackageElem {
+    string name;
+};
+
+/* {{{ Struct */
+
+union Value {
+    long i;
+    ulong u;
+    double d;
+    string s;
+    bool b;
+};
+
+union Presence {
+    void required;
+    void optional;
+    Value defVal;
+};
+
+struct Field {
+    @pattern("[a-zA-Z0-9]*") @minLength(1)
+    string name;
+    IopType type;
+    /* TODO constraints */
+    /* TODO attributes */
+    Presence presence;
+    ushort? tag;
+    void? isReference;
+};
+
+abstract local class Structure : 1 : PackageElem {
+    Field[] fields;
+};
+
+local class Struct : 2 : Structure {
+};
+
+/* }}} */
+/* {{{ Enum */
+
+/* TODO Implement */
+/*
+struct EnumVal {
+    string name;
+    int? val;
+};
+
+local class Enum : 3 : PackageElem {
+    EnumVal[] values;
+};
+*/
+
+/* }}} */
+/* {{{ Union */
+
+/* TODO Implement */
+/*
+local class Union : 4 : Structure {
+};
+*/
+
+/* }}} */
+/* {{{ Typedef */
+
+/* TODO Implement */
+/*
+local class Typedef : 5 : PackageElem {
+    IopType type;
+};
+*/
+
+/* }}} */
+/* {{{ Package */
+
+struct Package {
+    string name;
+    PackageElem[] elems;
+    /* TODO sub-packages */
+};
+
+/* }}} */
+
+/* TODO class */
