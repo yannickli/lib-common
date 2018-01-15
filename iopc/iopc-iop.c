@@ -254,7 +254,8 @@ static iopc_struct_t *iopc_struct_load(const iop__struct__t *st_desc,
     return st;
 }
 
-iopc_pkg_t *iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
+static iopc_pkg_t *
+iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
 {
     t_scope;
     iopc_pkg_t *pkg = iopc_pkg_new();

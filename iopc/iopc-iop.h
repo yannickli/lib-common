@@ -20,10 +20,6 @@
 #include <lib-common/iop-priv.h>
 
 /* TODO Doc. */
-iopc_pkg_t *iopc_pkg_load_from_iop(const iop__package__t *pkg_desc,
-                                   sb_t *err);
-
-/* TODO Doc. */
 iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *mp,
                                 const iop__package__t *pkg_desc, sb_t *err);
 
