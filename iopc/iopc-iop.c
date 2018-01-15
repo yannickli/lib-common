@@ -313,16 +313,29 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
         .flags = iopc_field_build_flags(f, st, NULL), /* TODO attrs */
         /* TODO default value */
         .size = f->size, /* TODO handle pointed values */
-        /* TODO enum/st */
+        /* TODO enum */
     };
+
+    if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
+        STATIC_ASSERT(offsetof(iopc_field_t, struct_def) ==
+                      offsetof(iopc_field_t, union_def));
+
+        /* Should be set in "mp_iopc_struct_to_desc". */
+        assert (f->struct_def->desc);
+
+        /* TODO We're going to have to load dependancies first if we want
+         * that to work in multi-package contexts. */
+        fdesc->u1.st_desc = f->struct_def->desc;
+    }
 
     if (st->type != STRUCT_TYPE_UNION) {
         *offset += f->size;
     }
+
 }
 
 static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
-                                            const iopc_struct_t *st,
+                                            iopc_struct_t *st,
                                             const iopc_pkg_t *pkg)
 {
     iop_struct_t *st_desc;
@@ -342,11 +355,6 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
     }
 
     fields = mp_new_raw(mp, iop_field_t, st->fields.len);
-    wf = fields;
-    tab_for_each_entry(f, &st->fields) {
-        mp_iopc_field_to_desc(mp, f, st, &offset, wf++);
-    }
-
     {
         iop_struct_t _st_desc = {
             .fullname = mp_lstr_fmt(mp, "%s.%s", pretty_path_dot(pkg->name),
@@ -366,7 +374,13 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
         st_desc = mp_new_raw(mp, iop_struct_t, 1);
         /* XXX Work-around all the const fields in 'iop_struct_t'. */
         p_copy(st_desc, &_st_desc, 1);
+        st->desc = st_desc;
     };
+
+    wf = fields;
+    tab_for_each_entry(f, &st->fields) {
+        mp_iopc_field_to_desc(mp, f, st, &offset, wf++);
+    }
 
     return st_desc;
 }

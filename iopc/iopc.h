@@ -759,6 +759,10 @@ typedef struct iopc_struct_t {
     /* Used for master classes (ie. not having a parent); indexes all the
      * children classes by their id. */
     qm_t(id_class) children_by_id;
+
+    /* IOP description of the struct (used by IOP² when generating IOP
+     * descriptions from iopc structures). */
+    const iop_struct_t *desc;
 } iopc_struct_t;
 static inline iopc_struct_t *iopc_struct_init(iopc_struct_t *st) {
     p_clear(st, 1);

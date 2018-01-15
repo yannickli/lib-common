@@ -1,0 +1,25 @@
+{
+    "name": "foo",
+    "elems": [ {
+        "_class": "iop.Struct",
+        "name": "S1",
+        "fields": [ {
+            "name": "i",
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S32"
+                }
+            }
+        } ]
+    }, {
+        "_class": "iop.Struct",
+        "name": "S2",
+        "fields": [ {
+            "name": "st",
+            "type": {
+                "typeName": "S1"
+            }
+        } ]
+    } ]
+}
