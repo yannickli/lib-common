@@ -68,8 +68,8 @@ static int test_package(const char *pkg_file, int st_index,
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
 
-    Z_TEST(basic, "load an IOP package") {
-        Z_HELPER_RUN(test_package("type.json", 0,
+    Z_TEST(struct_, "basic struct") {
+        Z_HELPER_RUN(test_package("struct.json", 0,
                                   "{\"toto\":42,\"tata\":\"tutu\"}"));
     } Z_TEST_END;
 
