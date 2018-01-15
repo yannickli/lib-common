@@ -2,7 +2,7 @@
     "name": "foo",
     "elems": [ {
         "_class": "iop.Struct",
-        "name": "bar",
+        "name": "Bar",
         "fields": [ {
             "name": "toto",
             "type": {

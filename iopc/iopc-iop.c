@@ -232,9 +232,12 @@ static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
 static iopc_struct_t *iopc_struct_load(const iop__struct__t *st_desc,
                                        sb_t *err)
 {
-    iopc_struct_t *st = iopc_struct_new();
+    iopc_struct_t *st;
     int next_tag = 1;
 
+    RETHROW_NP(iopc_check_upper(st_desc->name, err));
+
+    st = iopc_struct_new();
     st->name = p_dupz(st_desc->name.s, st_desc->name.len);
 
     tab_for_each_ptr(field_desc, &st_desc->fields) {
