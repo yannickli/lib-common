@@ -20,6 +20,28 @@ static const char *t_get_path(const char *filename)
     return t_fmt("%pL/iopioptests/%s", &z_cmddir_g, filename);
 }
 
+static int t_package_load(iop_pkg_t **pkg, const char *file,
+                          lstr_t err_msg)
+{
+    SB_1k(err);
+    const char *path;
+    iop__package__t pkg_desc;
+
+    path = t_get_path(file);
+    Z_ASSERT_N(t_iop_junpack_file(path, &iop__package__s, &pkg_desc, 0,
+                                  NULL, &err), "%s: %pL", file, &err);
+    *pkg = mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err);
+    if (err_msg.s) {
+        Z_ASSERT_NULL(*pkg, "%s: expected an error", file);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), err_msg,
+                           "%s: unexpected error message", file);
+    } else {
+        Z_ASSERT_P(*pkg, "%s: %pL", file, &err);
+    }
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
 
@@ -27,19 +49,12 @@ Z_GROUP_EXPORT(iopiop) {
         t_scope;
         SB_1k(err);
         SB_1k(buf);
-        const char *path;
-        iop__package__t pkg_desc;
         iop_pkg_t *pkg;
         void *foo = NULL;
         lstr_t instance_json;
         pstream_t ps;
 
-        path = t_get_path("type.json");
-        Z_ASSERT_N(t_iop_junpack_file(path, &iop__package__s, &pkg_desc, 0,
-                                      NULL, &err), "%pL", &err);
-        pkg = mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err);
-        Z_ASSERT_P(pkg, "%pL", &err);
-
+        Z_HELPER_RUN(t_package_load(&pkg, "type.json", LSTR_NULL_V));
         instance_json = LSTR("{\"toto\":42}");
         ps = ps_initlstr(&instance_json);
         Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, pkg->structs[0], &foo, 0,
