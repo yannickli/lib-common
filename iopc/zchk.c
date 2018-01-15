@@ -62,15 +62,17 @@ Z_GROUP_EXPORT(iopiop) {
         iop_sb_jpack(&buf, pkg->structs[0], foo,
                      IOP_JPACK_MINIMAL | IOP_JPACK_NO_TRAILING_EOL);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), instance_json);
+    } Z_TEST_END;
 
-        /* TODO:
-         * 1. have an IOP package similar to the one declared in the json
-         *    example
-         * 2. check the generated C is similar when generating from IOP or
-         *    from abstract syntax.
-         * 3. use the package to compare pack/unpack results.
-         * 4. Have an "iop_pkg_equal" ?
-         */
+    Z_TEST(error, "try to load a broken IOP package") {
+        t_scope;
+        iop_pkg_t *pkg;
+        const char *err;
+
+        err = "failed to resolve the package: "
+              "error: unable to find any pkg providing type `Unknown`";
+
+        Z_HELPER_RUN(t_package_load(&pkg, "error.json", LSTR(err)));
     } Z_TEST_END;
 } Z_GROUP_END;
 

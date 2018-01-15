@@ -412,12 +412,18 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *mp,
         return NULL;
     }
 
+    log_start_buffering_filter(false, LOG_ERR);
     if (iopc_resolve(iopc_pkg) < 0 || iopc_resolve_second_pass(iopc_pkg) < 0)
     {
-        /* TODO Have a *real* error message. */
+        const qv_t(log_buffer) *logs = log_stop_buffering();
+
         sb_sets(err, "failed to resolve the package");
+        tab_for_each_ptr(log, logs) {
+            sb_addf(err, ": %pL", &log->msg);
+        }
         goto end;
     }
+    IGNORE(log_stop_buffering());
 
     tab_for_each_entry(st, &iopc_pkg->structs) {
         iopc_struct_optimize(st);
