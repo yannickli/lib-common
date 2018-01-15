@@ -132,10 +132,19 @@ static inline const char *get_full_path(const char *file)
     return __get_path(file, true);
 }
 
-#define do_loc_(fmt, level, t, loc, ...) \
-    logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,                   \
-               get_print_path((loc).file), (loc).lmin, (loc).cmin,           \
-               (t), ##__VA_ARGS__)
+#define do_loc_(fmt, level, t, loc, ...)                                     \
+    do {                                                                     \
+        const typeof(loc) *__loc = &(loc);                                   \
+                                                                             \
+        if (__loc->file) {                                                   \
+            logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,           \
+                       get_print_path(__loc->file),                          \
+                       __loc->lmin, __loc->cmin, (t), ##__VA_ARGS__);        \
+        } else {                                                             \
+            logger_log(&iopc_g.logger, level, "%s: "fmt, (t),                \
+                       ##__VA_ARGS__);                                       \
+        }                                                                    \
+    } while (0)
 
 #define do_loc(fmt, level, t, loc, ...)  \
     do {                                                                     \

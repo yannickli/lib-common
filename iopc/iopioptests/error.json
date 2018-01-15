@@ -1,0 +1,13 @@
+{
+    "name": "foo",
+    "elems": [ {
+        "_class": "iop.Struct",
+        "name": "bar",
+        "fields": [ {
+            "name": "unknownTypeField",
+            "type": {
+                "typeName": "Unknown"
+            }
+        } ]
+    } ]
+}
