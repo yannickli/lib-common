@@ -55,7 +55,7 @@ Z_GROUP_EXPORT(iopiop) {
         pstream_t ps;
 
         Z_HELPER_RUN(t_package_load(&pkg, "type.json", LSTR_NULL_V));
-        instance_json = LSTR("{\"toto\":42}");
+        instance_json = LSTR("{\"toto\":42,\"tata\":\"tutu\"}");
         ps = ps_initlstr(&instance_json);
         Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, pkg->structs[0], &foo, 0,
                                         &err), "%pL", &err);

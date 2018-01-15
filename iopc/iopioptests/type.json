@@ -11,6 +11,11 @@
                     "size": "S32"
                 }
             }
+        }, {
+            "name": "tata",
+            "type": {
+                "s": "STRING"
+            }
         } ]
     } ]
 }
