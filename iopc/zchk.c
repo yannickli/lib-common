@@ -42,28 +42,44 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     Z_HELPER_END;
 }
 
-static int test_package(const char *pkg_file, int st_index,
-                        const char *_st_json)
+static int _test_package(const char *pkg_file, int st_index,
+                         const char **jsons, int nb_jsons)
 {
     t_scope;
     SB_1k(err);
     SB_1k(buf);
     iop_pkg_t *pkg;
-    void *st_ptr = NULL;
-    pstream_t ps;
-    lstr_t st_json = LSTR(_st_json);
     const iop_struct_t *st_desc;
 
     Z_HELPER_RUN(t_package_load(&pkg, pkg_file, LSTR_NULL_V));
-    ps = ps_initlstr(&st_json);
     st_desc = pkg->structs[st_index];
-    Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st_desc, &st_ptr, st_index, &err),
-               "%pL", &err);
-    iop_sb_jpack(&buf, st_desc, st_ptr,
-                 IOP_JPACK_MINIMAL | IOP_JPACK_NO_TRAILING_EOL);
-    Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), st_json);
+
+    for (int i = 0; i < nb_jsons; i++) {
+        lstr_t st_json = LSTR(jsons[i]);
+        pstream_t ps;
+        void *st_ptr = NULL;
+
+        ps = ps_initlstr(&st_json);
+        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st_desc, &st_ptr, st_index, &err),
+                   "cannot junpack `%pL': %pL", &err, &st_json);
+        sb_reset(&buf);
+        Z_ASSERT_N(iop_sb_jpack(&buf, st_desc, st_ptr,
+                                IOP_JPACK_MINIMAL |
+                                IOP_JPACK_NO_TRAILING_EOL),
+                   "cannot repack to get `%pL'", &st_json);
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), st_json,
+                           "the json data changed after unpack/repack");
+    }
+
     Z_HELPER_END;
 }
+
+#define test_package(_file, _idx, ...)                                       \
+    ({                                                                       \
+        const char *__files[] = { __VA_ARGS__ };                             \
+                                                                             \
+        _test_package(_file, _idx, __files, countof(__files));               \
+    })
 
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
@@ -76,6 +92,12 @@ Z_GROUP_EXPORT(iopiop) {
     Z_TEST(sub_struct, "struct with struct field") {
         Z_HELPER_RUN(test_package("sub-struct.json", 1,
                                   "{\"st\":{\"i\":51}}"));
+    } Z_TEST_END;
+
+    Z_TEST(union_, "basic union") {
+        Z_HELPER_RUN(test_package("union.json", 0,
+                                  "{\"i\":6}",
+                                  "{\"s\":\"toto\"}"));
     } Z_TEST_END;
 
     Z_TEST(error, "try to load a broken IOP package") {

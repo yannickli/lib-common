@@ -326,6 +326,31 @@ public enum iop : libcommon.IopPackage {
         }
     }
 
+    public final class Union : iop_package.Structure {
+        open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
+            return iop__union__sp
+        }
+
+        open override class var isAbstract : Swift.Bool {
+            return false
+        }
+
+
+        public override init(`name`: Swift.String,
+                    `fields`: [iop_package.Field] = []) {
+            super.init(name: `name`,
+                   fields: `fields`)
+        }
+
+        public required init(_ c: Swift.UnsafeRawPointer) throws {
+            try super.init(c)
+        }
+
+        open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+            super.fill(c, on: allocator)
+        }
+    }
+
     public final class Package : libcommon.IopStruct {
         open override class var descriptor : Swift.UnsafePointer<iop_struct_t> {
             return iop__package__sp
@@ -359,7 +384,7 @@ public enum iop : libcommon.IopPackage {
     }
     public enum modules {
     }
-    public static let classes : [libcommon.IopClass.Type] = [ PackageElem.self, Structure.self, Struct.self ]
+    public static let classes : [libcommon.IopClass.Type] = [ PackageElem.self, Structure.self, Struct.self, Union.self ]
 }
 
 public typealias iop_package = iop

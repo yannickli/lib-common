@@ -108,11 +108,8 @@ local class Enum : 3 : PackageElem {
 /* }}} */
 /* {{{ Union */
 
-/* TODO Implement */
-/*
 local class Union : 4 : Structure {
 };
-*/
 
 /* }}} */
 /* {{{ Typedef */

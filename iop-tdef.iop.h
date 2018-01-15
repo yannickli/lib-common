@@ -60,6 +60,9 @@ typedef IOP_ARRAY_OF(iop__structure__t *nonnull ) iop__structure__array_t;
 typedef struct iop__struct__t iop__struct__t;
 typedef IOP_ARRAY_OF(iop__struct__t *nonnull ) iop__struct__array_t;
 
+typedef struct iop__union__t iop__union__t;
+typedef IOP_ARRAY_OF(iop__union__t *nonnull ) iop__union__array_t;
+
 typedef struct iop__package__t iop__package__t;
 typedef IOP_ARRAY_OF(iop__package__t) iop__package__array_t;
 

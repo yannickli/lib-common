@@ -573,6 +573,32 @@ const iop_struct_t iop__struct__s = {
 iop_struct_t const * const iop__struct__sp = &iop__struct__s;
 
 /* }}} */
+/* Class iop.Union {{{ */
+
+/* same as iop.Struct */
+
+static const iop_class_attrs_t iop__union__class_s = {
+    .parent            = &iop__structure__s,
+    .class_id          = 4,
+};
+const iop_struct_t iop__union__s = {
+    .fullname   = LSTR_IMMED("iop.Union"),
+    .fields     = iop__struct__desc_fields,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .fields_len = countof(iop__struct__desc_fields),
+    .size       = sizeof(iop__union__t),
+    .flags      = 13,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &iop__union__class_s,
+    }
+};
+iop_struct_t const * const iop__union__sp = &iop__union__s;
+
+/* }}} */
 /* Structure iop.Package {{{ */
 
 static iop_field_t const iop__package__desc_fields[] = {
@@ -628,6 +654,7 @@ static const iop_struct_t *const iop__structs[] = {
     &iop__field__s,
     &iop__structure__s,
     &iop__struct__s,
+    &iop__union__s,
     &iop__package__s,
     NULL,
 };

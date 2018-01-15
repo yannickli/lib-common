@@ -139,6 +139,24 @@ EXPORT iop_struct_t const iop__struct__s;
 EXPORT iop_struct_t const * const nonnull iop__struct__sp;
 #define iop__struct__class_id  2
 
+struct iop__union__t {
+    union {
+        struct iop__structure__t super;
+        struct {
+            struct {
+                const iop_struct_t *nonnull __vptr;
+                /* fields of iop__package_elem__t */
+                lstr_t   name;
+            };
+            /* fields of iop__structure__t */
+            iop__field__array_t fields;
+        };
+    };
+};
+EXPORT iop_struct_t const iop__union__s;
+EXPORT iop_struct_t const * const nonnull iop__union__sp;
+#define iop__union__class_id  4
+
 struct iop__package__t {
     lstr_t   name;
     iop__package_elem__array_t elems;
