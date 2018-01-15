@@ -64,7 +64,7 @@ static const char * const avoid_keywords[] = {
 
 static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
 
-static bool warn(qv_t(iopc_attr) *attrs, const char *category)
+static bool warn(qv_t(iopc_attr) *nullable attrs, const char *category)
 {
     lstr_t s = LSTR(category);
 
@@ -85,23 +85,38 @@ static bool warn(qv_t(iopc_attr) *attrs, const char *category)
     return true;
 }
 
-static int check_name(const char *name, iopc_loc_t loc,
-                       qv_t(iopc_attr) *attrs)
+int iopc_check_name(const char *nonnull name, qv_t(iopc_attr) *nullable attrs,
+                    sb_t *nonnull err)
 {
     if (strchr(name, '_')) {
-        throw_loc("%s contains a _", loc, name);
+        sb_setf(err, "%s contains a _", name);
+        return -1;
     }
     for (int i = 0; i < countof(reserved_keywords); i++) {
         if (strequal(name, reserved_keywords[i])) {
-            throw_loc("%s is a reserved keyword", loc, name);
+            sb_setf(err, "%s is a reserved keyword", name);
+            return -1;
         }
     }
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
             if (strequal(name, avoid_keywords[i])) {
-                throw_loc("%s is a keyword in some languages", loc, name);
+                sb_setf(err, "%s is a keyword in some languages", name);
+                return -1;
             }
         }
+    }
+
+    return 0;
+}
+
+static int check_name(const char *name, iopc_loc_t loc,
+                      qv_t(iopc_attr) *attrs)
+{
+    SB_1k(err);
+
+    if (iopc_check_name(name, attrs, &err) < 0) {
+        throw_loc("%*pM", loc, SB_FMT_ARG(&err));
     }
 
     return 0;

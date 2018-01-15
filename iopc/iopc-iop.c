@@ -185,10 +185,11 @@ static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
 {
     iopc_field_t *f = iopc_field_new();
 
-    /* TODO We may want to share a lot of checks that are only done in
-     * iopc-parser.c */
-
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
+    if (iopc_check_name(f->name, NULL, err) < 0) {
+        goto error;
+    }
+
     f->tag = OPT_DEFVAL(field_desc->tag, *next_tag);
     if (iopc_check_tag_value(f->tag, err) < 0) {
         goto error;
