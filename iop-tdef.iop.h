@@ -48,8 +48,8 @@ typedef IOP_ARRAY_OF(iop__package_elem__t *nonnull ) iop__package_elem__array_t;
 typedef struct iop__value__t iop__value__t;
 typedef IOP_ARRAY_OF(iop__value__t) iop__value__array_t;
 
-typedef struct iop__presence__t iop__presence__t;
-typedef IOP_ARRAY_OF(iop__presence__t) iop__presence__array_t;
+typedef struct iop__opt_info__t iop__opt_info__t;
+typedef IOP_ARRAY_OF(iop__opt_info__t) iop__opt_info__array_t;
 
 typedef struct iop__field__t iop__field__t;
 typedef IOP_ARRAY_OF(iop__field__t) iop__field__array_t;
@@ -59,18 +59,6 @@ typedef IOP_ARRAY_OF(iop__structure__t *nonnull ) iop__structure__array_t;
 
 typedef struct iop__struct__t iop__struct__t;
 typedef IOP_ARRAY_OF(iop__struct__t *nonnull ) iop__struct__array_t;
-
-typedef struct iop__enum_val__t iop__enum_val__t;
-typedef IOP_ARRAY_OF(iop__enum_val__t) iop__enum_val__array_t;
-
-typedef struct iop__enum__t iop__enum__t;
-typedef IOP_ARRAY_OF(iop__enum__t *nonnull ) iop__enum__array_t;
-
-typedef struct iop__union__t iop__union__t;
-typedef IOP_ARRAY_OF(iop__union__t *nonnull ) iop__union__array_t;
-
-typedef struct iop__typedef__t iop__typedef__t;
-typedef IOP_ARRAY_OF(iop__typedef__t *nonnull ) iop__typedef__array_t;
 
 typedef struct iop__package__t iop__package__t;
 typedef IOP_ARRAY_OF(iop__package__t) iop__package__array_t;

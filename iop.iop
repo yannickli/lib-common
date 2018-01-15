@@ -68,10 +68,8 @@ union Value {
     bool b;
 };
 
-union Presence {
-    void required;
-    void optional;
-    Value defVal;
+struct OptInfo {
+    Value? defVal;
 };
 
 struct Field {
@@ -80,7 +78,7 @@ struct Field {
     IopType type;
     /* TODO constraints */
     /* TODO attributes */
-    Presence presence;
+    OptInfo? optional;
     ushort? tag;
     void? isReference;
 };

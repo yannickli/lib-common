@@ -163,20 +163,18 @@ iopc_field_set_defval(iopc_field_t *f, const iop__value__t *defval)
 }
 
 static int
-iopc_field_set_presence(iopc_field_t *f, const iop__presence__t *presence,
+iopc_field_set_opt_info(iopc_field_t *nonnull f,
+                        const iop__opt_info__t *nullable opt_info,
                         sb_t *err)
 {
-    IOP_UNION_SWITCH(presence) {
-      IOP_UNION_CASE_V(iop__presence, presence, required) {
+    if (!opt_info) {
         f->repeat = IOP_R_REQUIRED;
-      }
-      IOP_UNION_CASE_V(iop__presence, presence, optional) {
-        f->repeat = IOP_R_OPTIONAL;
-      }
-      IOP_UNION_CASE_P(iop__presence, presence, def_val, defval) {
+    } else
+    if (opt_info->def_val) {
         f->repeat = IOP_R_DEFVAL;
-        iopc_field_set_defval(f, defval);
-      }
+        iopc_field_set_defval(f, opt_info->def_val);
+    } else {
+        f->repeat = IOP_R_OPTIONAL;
     }
 
     return 0;
@@ -201,15 +199,13 @@ static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
     if (iopc_field_set_type(f, &field_desc->type, err) < 0) {
         goto error;
     }
-    if (f->repeat == IOP_R_REPEATED
-    &&  !IOP_UNION_IS(iop__presence, &field_desc->presence, required))
-    {
+    if (f->repeat == IOP_R_REPEATED && field_desc->optional) {
         sb_setf(err, "repeated field cannot be optional "
                 "or have a default value");
         goto error;
     }
 
-    if (iopc_field_set_presence(f, &field_desc->presence, err) < 0) {
+    if (iopc_field_set_opt_info(f, field_desc->optional, err) < 0) {
         goto error;
     }
 

@@ -10,8 +10,7 @@
                     "isSigned": true,
                     "size": "S32"
                 }
-            },
-            "presence": { "required": null }
+            }
         } ]
     } ]
 }

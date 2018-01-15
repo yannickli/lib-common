@@ -92,28 +92,15 @@ struct iop__value__t {
 EXPORT iop_struct_t const iop__value__s;
 EXPORT iop_struct_t const * const nonnull iop__value__sp;
 #define iop__value__get(u, field)       IOP_UNION_GET(iop__value, u, field)
-/*----- XXX private data, do not use directly -{{{-*/
-typedef enum iop__presence__tag_t {
-    iop__presence__required__ft = 1,
-#define iop__presence__required__empty_ft  iop__presence__required__ft
-    iop__presence__optional__ft = 2,
-#define iop__presence__optional__empty_ft  iop__presence__optional__ft
-    iop__presence__def_val__ft = 3,
-} iop__presence__tag_t;
-/*-}}}-*/
-struct iop__presence__t {
-    iop__presence__tag_t iop_tag;
-    union {
-        struct iop__value__t def_val;
-    };
+struct iop__opt_info__t {
+    struct iop__value__t *nullable def_val;
 };
-EXPORT iop_struct_t const iop__presence__s;
-EXPORT iop_struct_t const * const nonnull iop__presence__sp;
-#define iop__presence__get(u, field)       IOP_UNION_GET(iop__presence, u, field)
+EXPORT iop_struct_t const iop__opt_info__s;
+EXPORT iop_struct_t const * const nonnull iop__opt_info__sp;
 struct iop__field__t {
     lstr_t   name;
     struct iop__iop_type__t type;
-    struct iop__presence__t presence;
+    struct iop__opt_info__t *nullable optional;
     opt_u16_t        tag;
     bool             is_reference;
 };
@@ -151,60 +138,6 @@ struct iop__struct__t {
 EXPORT iop_struct_t const iop__struct__s;
 EXPORT iop_struct_t const * const nonnull iop__struct__sp;
 #define iop__struct__class_id  2
-
-struct iop__enum_val__t {
-    lstr_t   name;
-    opt_i32_t        val;
-};
-EXPORT iop_struct_t const iop__enum_val__s;
-EXPORT iop_struct_t const * const nonnull iop__enum_val__sp;
-struct iop__enum__t {
-    union {
-        struct iop__package_elem__t super;
-        struct {
-            const iop_struct_t *nonnull __vptr;
-            /* fields of iop__package_elem__t */
-            lstr_t   name;
-        };
-    };
-    iop__enum_val__array_t values;
-};
-EXPORT iop_struct_t const iop__enum__s;
-EXPORT iop_struct_t const * const nonnull iop__enum__sp;
-#define iop__enum__class_id  3
-
-struct iop__union__t {
-    union {
-        struct iop__structure__t super;
-        struct {
-            struct {
-                const iop_struct_t *nonnull __vptr;
-                /* fields of iop__package_elem__t */
-                lstr_t   name;
-            };
-            /* fields of iop__structure__t */
-            iop__field__array_t fields;
-        };
-    };
-};
-EXPORT iop_struct_t const iop__union__s;
-EXPORT iop_struct_t const * const nonnull iop__union__sp;
-#define iop__union__class_id  4
-
-struct iop__typedef__t {
-    union {
-        struct iop__package_elem__t super;
-        struct {
-            const iop_struct_t *nonnull __vptr;
-            /* fields of iop__package_elem__t */
-            lstr_t   name;
-        };
-    };
-    struct iop__iop_type__t type;
-};
-EXPORT iop_struct_t const iop__typedef__s;
-EXPORT iop_struct_t const * const nonnull iop__typedef__sp;
-#define iop__typedef__class_id  5
 
 struct iop__package__t {
     lstr_t   name;

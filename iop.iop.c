@@ -358,50 +358,29 @@ const iop_struct_t iop__value__s = {
 iop_struct_t const * const iop__value__sp = &iop__value__s;
 
 /* }}} */
-/* Union iop.Presence {{{ */
+/* Structure iop.OptInfo {{{ */
 
-static iop_field_t const iop__presence__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("required"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_VOID,
-        .data_offs = offsetof(iop__presence__t, def_val),
-    },
-    {
-        .name      = LSTR_IMMED("optional"),
-        .tag       = 2,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_VOID,
-        .data_offs = offsetof(iop__presence__t, def_val),
-    },
+static iop_field_t const iop__opt_info__desc_fields[] = {
     {
         .name      = LSTR_IMMED("defVal"),
-        .tag       = 3,
+        .tag       = 1,
         .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
+        .repeat    = IOP_R_OPTIONAL,
         .type      = IOP_T_UNION,
-        .data_offs = offsetof(iop__presence__t, def_val),
+        .data_offs = offsetof(iop__opt_info__t, def_val),
         .size      = sizeof(iop__value__t),
         .u1        = { .st_desc = &iop__value__s },
     },
 };
-static int const iop__ranges__7[] = {
-    0, 1,
-    3,
+const iop_struct_t iop__opt_info__s = {
+    .fullname   = LSTR_IMMED("iop.OptInfo"),
+    .fields     = iop__opt_info__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(iop__opt_info__desc_fields),
+    .size       = sizeof(iop__opt_info__t),
 };
-const iop_struct_t iop__presence__s = {
-    .fullname   = LSTR_IMMED("iop.Presence"),
-    .fields     = iop__presence__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
-    .fields_len = countof(iop__presence__desc_fields),
-    .size       = sizeof(iop__presence__t),
-    .is_union   = true,
-};
-iop_struct_t const * const iop__presence__sp = &iop__presence__s;
+iop_struct_t const * const iop__opt_info__sp = &iop__opt_info__s;
 
 /* }}} */
 /* Structure iop.Field {{{ */
@@ -487,14 +466,14 @@ static iop_field_t const iop__field__desc_fields[] = {
         .u1        = { .st_desc = &iop__iop_type__s },
     },
     {
-        .name      = LSTR_IMMED("presence"),
+        .name      = LSTR_IMMED("optional"),
         .tag       = 3,
         .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_UNION,
-        .data_offs = offsetof(iop__field__t, presence),
-        .size      = sizeof(iop__presence__t),
-        .u1        = { .st_desc = &iop__presence__s },
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(iop__field__t, optional),
+        .size      = sizeof(iop__opt_info__t),
+        .u1        = { .st_desc = &iop__opt_info__s },
     },
     {
         .name      = LSTR_IMMED("tag"),
@@ -569,7 +548,7 @@ iop_struct_t const * const iop__structure__sp = &iop__structure__s;
 
 static iop_field_t const iop__struct__desc_fields[] = {
 };
-static int const iop__ranges__8[] = {
+static int const iop__ranges__7[] = {
     0,
 };
 static const iop_class_attrs_t iop__struct__class_s = {
@@ -579,8 +558,8 @@ static const iop_class_attrs_t iop__struct__class_s = {
 const iop_struct_t iop__struct__s = {
     .fullname   = LSTR_IMMED("iop.Struct"),
     .fields     = iop__struct__desc_fields,
-    .ranges     = iop__ranges__8,
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .fields_len = countof(iop__struct__desc_fields),
     .size       = sizeof(iop__struct__t),
     .flags      = 13,
@@ -592,137 +571,6 @@ const iop_struct_t iop__struct__s = {
     }
 };
 iop_struct_t const * const iop__struct__sp = &iop__struct__s;
-
-/* }}} */
-/* Structure iop.EnumVal {{{ */
-
-static iop_field_t const iop__enum_val__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("name"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_STRING,
-        .data_offs = offsetof(iop__enum_val__t, name),
-        .size      = fieldsizeof(iop__enum_val__t, name),
-    },
-    {
-        .name      = LSTR_IMMED("val"),
-        .tag       = 2,
-        .tag_len   = 0,
-        .repeat    = IOP_R_OPTIONAL,
-        .type      = IOP_T_I32,
-        .data_offs = offsetof(iop__enum_val__t, val),
-        .size      = fieldsizeof(iop__enum_val__t, val),
-    },
-};
-const iop_struct_t iop__enum_val__s = {
-    .fullname   = LSTR_IMMED("iop.EnumVal"),
-    .fields     = iop__enum_val__desc_fields,
-    .ranges     = iop__ranges__3,
-    .ranges_len = countof(iop__ranges__3) / 2,
-    .fields_len = countof(iop__enum_val__desc_fields),
-    .size       = sizeof(iop__enum_val__t),
-};
-iop_struct_t const * const iop__enum_val__sp = &iop__enum_val__s;
-
-/* }}} */
-/* Class iop.Enum {{{ */
-
-static iop_field_t const iop__enum__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("values"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REPEATED,
-        .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(iop__enum__t, values),
-        .size      = sizeof(iop__enum_val__t),
-        .u1        = { .st_desc = &iop__enum_val__s },
-    },
-};
-static const iop_class_attrs_t iop__enum__class_s = {
-    .parent            = &iop__package_elem__s,
-    .class_id          = 3,
-};
-const iop_struct_t iop__enum__s = {
-    .fullname   = LSTR_IMMED("iop.Enum"),
-    .fields     = iop__enum__desc_fields,
-    .ranges     = iop__ranges__5,
-    .ranges_len = countof(iop__ranges__5) / 2,
-    .fields_len = countof(iop__enum__desc_fields),
-    .size       = sizeof(iop__enum__t),
-    .flags      = 13,
-    .is_union   = false,
-    .st_attrs   = NULL,
-    .fields_attrs = NULL,
-    {
-        .class_attrs  = &iop__enum__class_s,
-    }
-};
-iop_struct_t const * const iop__enum__sp = &iop__enum__s;
-
-/* }}} */
-/* Class iop.Union {{{ */
-
-/* same as iop.Struct */
-
-static const iop_class_attrs_t iop__union__class_s = {
-    .parent            = &iop__structure__s,
-    .class_id          = 4,
-};
-const iop_struct_t iop__union__s = {
-    .fullname   = LSTR_IMMED("iop.Union"),
-    .fields     = iop__struct__desc_fields,
-    .ranges     = iop__ranges__8,
-    .ranges_len = countof(iop__ranges__8) / 2,
-    .fields_len = countof(iop__struct__desc_fields),
-    .size       = sizeof(iop__union__t),
-    .flags      = 13,
-    .is_union   = false,
-    .st_attrs   = NULL,
-    .fields_attrs = NULL,
-    {
-        .class_attrs  = &iop__union__class_s,
-    }
-};
-iop_struct_t const * const iop__union__sp = &iop__union__s;
-
-/* }}} */
-/* Class iop.Typedef {{{ */
-
-static iop_field_t const iop__typedef__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("type"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REQUIRED,
-        .type      = IOP_T_UNION,
-        .data_offs = offsetof(iop__typedef__t, type),
-        .size      = sizeof(iop__iop_type__t),
-        .u1        = { .st_desc = &iop__iop_type__s },
-    },
-};
-static const iop_class_attrs_t iop__typedef__class_s = {
-    .parent            = &iop__package_elem__s,
-    .class_id          = 5,
-};
-const iop_struct_t iop__typedef__s = {
-    .fullname   = LSTR_IMMED("iop.Typedef"),
-    .fields     = iop__typedef__desc_fields,
-    .ranges     = iop__ranges__5,
-    .ranges_len = countof(iop__ranges__5) / 2,
-    .fields_len = countof(iop__typedef__desc_fields),
-    .size       = sizeof(iop__typedef__t),
-    .flags      = 15,
-    .is_union   = false,
-    .st_attrs   = NULL,
-    .fields_attrs = NULL,
-    {
-        .class_attrs  = &iop__typedef__class_s,
-    }
-};
-iop_struct_t const * const iop__typedef__sp = &iop__typedef__s;
 
 /* }}} */
 /* Structure iop.Package {{{ */
@@ -776,14 +624,10 @@ static const iop_struct_t *const iop__structs[] = {
     &iop__iop_type__s,
     &iop__package_elem__s,
     &iop__value__s,
-    &iop__presence__s,
+    &iop__opt_info__s,
     &iop__field__s,
     &iop__structure__s,
     &iop__struct__s,
-    &iop__enum_val__s,
-    &iop__enum__s,
-    &iop__union__s,
-    &iop__typedef__s,
     &iop__package__s,
     NULL,
 };
