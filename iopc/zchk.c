@@ -86,7 +86,7 @@ Z_GROUP_EXPORT(iopiop) {
 
     Z_TEST(struct_, "basic struct") {
         Z_HELPER_RUN(test_package("struct.json", 0,
-                                  "{\"toto\":42,\"tata\":\"tutu\"}"));
+                                  "{\"i1\":42,\"i2\":2,\"s\":\"foo\"}"));
     } Z_TEST_END;
 
     Z_TEST(sub_struct, "struct with struct field") {

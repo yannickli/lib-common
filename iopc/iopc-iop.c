@@ -111,18 +111,20 @@ iopc_field_set_type(iopc_field_t *f, const iop__type__t *type, sb_t *err)
         f->repeat = IOP_R_REPEATED;
     }
     if_assign (type_name, IOP_UNION_GET(iop__type, type, type_name)) {
-        /* Set the type as "STRUCT", the typer will sort it out. */
-        f->kind = IOP_T_STRUCT;
+        f->kind = iop_get_type(*type_name);
 
-        if (lstr_contains(*type_name, LSTR("."))) {
-            sb_setf(err, "cannot use type `%pL': "
-                    "external type names are not supported yet", type_name);
-            return -1;
-        }
-        /* TODO Support and fill paths. */
-        if (iopc_check_type_name(*type_name, err) < 0) {
-            sb_prependf(err, "invalid type name: `%pL': ", type_name);
-            return -1;
+        if (f->kind == IOP_T_STRUCT) {
+            if (lstr_contains(*type_name, LSTR("."))) {
+                sb_setf(err, "cannot use type `%pL': "
+                        "external type names are not supported yet",
+                        type_name);
+                return -1;
+            }
+            /* TODO Support and fill paths. */
+            if (iopc_check_type_name(*type_name, err) < 0) {
+                sb_prependf(err, "invalid type name: `%pL': ", type_name);
+                return -1;
+            }
         }
         f->type_name = p_dupz(type_name->s, type_name->len);
     } else {

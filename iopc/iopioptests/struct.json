@@ -4,7 +4,7 @@
         "_class": "iop.Struct",
         "name": "Bar",
         "fields": [ {
-            "name": "toto",
+            "name": "i1",
             "type": {
                 "i": {
                     "isSigned": true,
@@ -12,7 +12,10 @@
                 }
             }
         }, {
-            "name": "tata",
+            "name": "i2",
+            "type": { "typeName": "int" }
+        }, {
+            "name": "s",
             "type": {
                 "s": "STRING"
             }
