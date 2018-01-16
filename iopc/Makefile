@@ -27,6 +27,7 @@ zchk_SOURCES = \
     zchk.c \
     iopc-iop.c \
     libiopc.a \
+    $liop/tstiop.a \
     $llibcommon.a
 
 libiopc_SOURCES = \

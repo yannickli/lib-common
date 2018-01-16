@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "iopc-iop.h"
+#include "../iop/tstiop.iop.h"
 
 #include <lib-common/z.h>
 
@@ -42,10 +43,10 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     Z_HELPER_END;
 }
 
-static int _test_package(const char *pkg_file, int st_index,
-                         const char **jsons, int nb_jsons)
+static int _t_test_struct(const char *pkg_file, int st_index,
+                          const char **jsons, int nb_jsons,
+                          const iop_struct_t **_st_desc)
 {
-    t_scope;
     SB_1k(err);
     SB_1k(buf);
     iop_pkg_t *pkg;
@@ -71,33 +72,64 @@ static int _test_package(const char *pkg_file, int st_index,
                            "the json data changed after unpack/repack");
     }
 
+    if (_st_desc) {
+        *_st_desc = st_desc;
+    }
+
     Z_HELPER_END;
 }
 
-#define test_package(_file, _idx, ...)                                       \
+#define t_test_struct(_file, _idx, st_desc, ...)                             \
     ({                                                                       \
         const char *__files[] = { __VA_ARGS__ };                             \
                                                                              \
-        _test_package(_file, _idx, __files, countof(__files));               \
+        _t_test_struct(_file, _idx, __files, countof(__files), (st_desc));   \
+    })
+
+#define test_struct(_file, _idx, ...)                                        \
+    ({                                                                       \
+        t_scope;                                                             \
+        t_test_struct(_file, _idx, NULL, ##__VA_ARGS__);                     \
     })
 
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
 
     Z_TEST(struct_, "basic struct") {
-        Z_HELPER_RUN(test_package("struct.json", 0,
-                                  "{\"i1\":42,\"i2\":2,\"s\":\"foo\"}"));
+        Z_HELPER_RUN(test_struct("struct.json", 0,
+                                 "{\"i1\":42,\"i2\":2,\"s\":\"foo\"}"));
     } Z_TEST_END;
 
     Z_TEST(sub_struct, "struct with struct field") {
-        Z_HELPER_RUN(test_package("sub-struct.json", 1,
-                                  "{\"st\":{\"i\":51}}"));
+        t_scope;
+        const char *v1 = "{\"i\":51}";
+        const char *v2 = "{\"i\":12345678}";
+        const char *tst1;
+        const char *tst2;
+        const iop_struct_t *st;
+        const iop_struct_t *ref_st;
+
+        tst1 = t_fmt("{\"st\":%s,\"stRef\":%s}", v1, v2);
+        tst2 = t_fmt("{\"st\":%s,\"stRef\":%s,\"stOpt\":%s}", v1, v2, v1);
+
+        Z_HELPER_RUN(t_test_struct("sub-struct.json", 1, &st, tst1, tst2));
+
+        ref_st = tstiop__s2__sp;
+        Z_ASSERT_EQ(st->fields_len, ref_st->fields_len);
+        for (int i = 0; i < st->fields_len; i++) {
+            const iop_field_t *fdesc = &st->fields[i];
+            const iop_field_t *ref_fdesc = &ref_st->fields[i];
+
+            Z_ASSERT_LSTREQUAL(fdesc->name, ref_fdesc->name);
+            Z_ASSERT_EQ(fdesc->size, ref_fdesc->size,
+                        "sizes differ for field `%pL'", &fdesc->name);
+        }
     } Z_TEST_END;
 
     Z_TEST(union_, "basic union") {
-        Z_HELPER_RUN(test_package("union.json", 0,
-                                  "{\"i\":6}",
-                                  "{\"s\":\"toto\"}"));
+        Z_HELPER_RUN(test_struct("union.json", 0,
+                                 "{\"i\":6}",
+                                 "{\"s\":\"toto\"}"));
     } Z_TEST_END;
 
     Z_TEST(error, "try to load a broken IOP package") {

@@ -20,6 +20,18 @@
             "type": {
                 "typeName": "S1"
             }
+        }, {
+            "name": "stRef",
+            "type": {
+                "typeName": "S1"
+            },
+            "isReference": true
+        }, {
+            "name": "stOpt",
+            "type": {
+                "typeName": "S1"
+            },
+            "optional": {}
         } ]
     } ]
 }

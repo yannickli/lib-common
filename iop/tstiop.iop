@@ -721,6 +721,21 @@ struct FilteredStruct {
 };
 
 /* }}} */
+/* {{{ iopc zchk */
+/* {{{ zchk iopiop.sub_struct */
+
+struct S1 {
+    int i;
+};
+
+struct S2 {
+    S1 st;
+    S1& stRef;
+    S1? stOpt;
+};
+
+/* }}} */
+/* }}} */
 
 /* Interfaces */
 

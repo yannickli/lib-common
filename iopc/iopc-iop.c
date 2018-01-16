@@ -324,7 +324,24 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
                                   const iopc_struct_t *st, uint16_t *offset,
                                   iop_field_t *fdesc)
 {
+    size_t size;
+
     *offset = ROUND_UP(*offset, f->align);
+
+    /* The "size" is not the same between iop_field_t and iopc_field_t:
+     *
+     *    iopc_field_t: size of the field (as returned by fieldtypeof)
+     *    iop_field_t: size of the underlying type except for class
+     */
+    if (f->kind == IOP_T_STRUCT || f->kind == IOP_T_UNION) {
+        if (f->struct_def->type == STRUCT_TYPE_CLASS) {
+            size = sizeof(void *);
+        } else {
+            size = f->struct_def->size;
+        }
+    } else {
+        size = f->size;
+    }
 
     *fdesc = (iop_field_t){
         .name = mp_lstr_dups(mp, f->name, -1),
@@ -335,7 +352,7 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
         .data_offs = *offset,
         .flags = iopc_field_build_flags(f, st, NULL), /* TODO attrs */
         /* TODO default value */
-        .size = f->size, /* TODO handle pointed values */
+        .size = size,
         /* TODO enum */
     };
 
