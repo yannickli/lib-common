@@ -127,6 +127,10 @@ licence_check_module_expiry(const struct core__licence_module__t *licence);
  *     licence, pe and te.
  *   - rest is noise.
  *
+ * The values pe and te represents 3 octets, which are obfuscated by
+ * xor-ing them with the 3 first octets of the rest (before they're
+ * put as base64).
+ *
  * Note: we just use a hash and not a signature because (i) the length
  * of the tokens are too small to allow real cryptography, and (ii)
  * signatures do not prevent the attacker to hack binaries. A simple
