@@ -175,7 +175,7 @@ Z_GROUP_EXPORT(iopiop) {
                                  "{\"i\":[4,5,6]}"));
     } Z_TEST_END;
 
-    Z_TEST(error, "try to load a broken IOP package") {
+    Z_TEST(error_unknown_type, "error case: unknown type name") {
         t_scope;
         iop_pkg_t *pkg;
         const char *err;
@@ -183,7 +183,8 @@ Z_GROUP_EXPORT(iopiop) {
         err = "failed to resolve the package: "
               "error: unable to find any pkg providing type `Unknown`";
 
-        Z_HELPER_RUN(t_package_load(&pkg, "error.json", LSTR(err)));
+        Z_HELPER_RUN(t_package_load(&pkg, "error-unknown-type.json",
+                                    LSTR(err)));
     } Z_TEST_END;
 } Z_GROUP_END;
 
