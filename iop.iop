@@ -84,10 +84,10 @@ struct Field {
 };
 
 abstract local class Structure : 1 : PackageElem {
-    Field[] fields;
 };
 
 local class Struct : 2 : Structure {
+    Field[] fields;
 };
 
 /* }}} */
@@ -109,6 +109,8 @@ local class Enum : 3 : PackageElem {
 /* {{{ Union */
 
 local class Union : 4 : Structure {
+    @minOccurs(1)
+    Field[] fields;
 };
 
 /* }}} */

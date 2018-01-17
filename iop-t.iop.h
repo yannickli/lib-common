@@ -115,7 +115,6 @@ struct iop__structure__t {
             lstr_t   name;
         };
     };
-    iop__field__array_t fields;
 };
 EXPORT iop_struct_t const iop__structure__s;
 EXPORT iop_struct_t const * const nonnull iop__structure__sp;
@@ -131,9 +130,9 @@ struct iop__struct__t {
                 lstr_t   name;
             };
             /* fields of iop__structure__t */
-            iop__field__array_t fields;
         };
     };
+    iop__field__array_t fields;
 };
 EXPORT iop_struct_t const iop__struct__s;
 EXPORT iop_struct_t const * const nonnull iop__struct__sp;
@@ -149,9 +148,9 @@ struct iop__union__t {
                 lstr_t   name;
             };
             /* fields of iop__structure__t */
-            iop__field__array_t fields;
         };
     };
+    iop__field__array_t fields;
 };
 EXPORT iop_struct_t const iop__union__s;
 EXPORT iop_struct_t const * const nonnull iop__union__sp;

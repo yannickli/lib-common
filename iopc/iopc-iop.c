@@ -232,21 +232,26 @@ static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
     return NULL;
 }
 
-static iopc_struct_type_t
-iop_structure_get_type(const iop__structure__t *desc)
+static void
+iop_structure_get_type_and_fields(const iop__structure__t *desc,
+                                  iopc_struct_type_t *type,
+                                  iop__field__array_t *fields)
 {
     IOP_OBJ_EXACT_SWITCH(desc) {
       IOP_OBJ_CASE_CONST(iop__struct, desc, st) {
-        return STRUCT_TYPE_STRUCT;
+        *fields = st->fields;
+        *type = STRUCT_TYPE_STRUCT;
       }
 
       IOP_OBJ_CASE_CONST(iop__union, desc, un) {
-        return STRUCT_TYPE_UNION;
+        *fields = un->fields;
+        *type = STRUCT_TYPE_UNION;
+      }
+
+      IOP_OBJ_EXACT_DEFAULT() {
+        assert (false);
       }
     }
-
-    assert (false);
-    return 0;
 }
 
 static iopc_struct_t *iopc_struct_load(const iop__structure__t *st_desc,
@@ -254,14 +259,15 @@ static iopc_struct_t *iopc_struct_load(const iop__structure__t *st_desc,
 {
     iopc_struct_t *st;
     int next_tag = 1;
+    iop__field__array_t fields;
 
     RETHROW_NP(iopc_check_upper(st_desc->name, err));
 
     st = iopc_struct_new();
     st->name = p_dupz(st_desc->name.s, st_desc->name.len);
-    st->type = iop_structure_get_type(st_desc);
+    iop_structure_get_type_and_fields(st_desc, &st->type, &fields);
 
-    tab_for_each_ptr(field_desc, &st_desc->fields) {
+    tab_for_each_ptr(field_desc, &fields) {
         iopc_field_t *f;
 
         if (!(f = iopc_field_load(field_desc, &next_tag, err))) {

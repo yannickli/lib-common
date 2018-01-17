@@ -510,16 +510,9 @@ iop_struct_t const * const iop__field__sp = &iop__field__s;
 /* Class iop.Structure {{{ */
 
 static iop_field_t const iop__structure__desc_fields[] = {
-    {
-        .name      = LSTR_IMMED("fields"),
-        .tag       = 1,
-        .tag_len   = 0,
-        .repeat    = IOP_R_REPEATED,
-        .type      = IOP_T_STRUCT,
-        .data_offs = offsetof(iop__structure__t, fields),
-        .size      = sizeof(iop__field__t),
-        .u1        = { .st_desc = &iop__field__s },
-    },
+};
+static int const iop__ranges__7[] = {
+    0,
 };
 static const iop_class_attrs_t iop__structure__class_s = {
     .parent            = &iop__package_elem__s,
@@ -529,11 +522,11 @@ static const iop_class_attrs_t iop__structure__class_s = {
 const iop_struct_t iop__structure__s = {
     .fullname   = LSTR_IMMED("iop.Structure"),
     .fields     = iop__structure__desc_fields,
-    .ranges     = iop__ranges__5,
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .fields_len = countof(iop__structure__desc_fields),
     .size       = sizeof(iop__structure__t),
-    .flags      = 15,
+    .flags      = 13,
     .is_union   = false,
     .st_attrs   = NULL,
     .fields_attrs = NULL,
@@ -547,9 +540,16 @@ iop_struct_t const * const iop__structure__sp = &iop__structure__s;
 /* Class iop.Struct {{{ */
 
 static iop_field_t const iop__struct__desc_fields[] = {
-};
-static int const iop__ranges__7[] = {
-    0,
+    {
+        .name      = LSTR_IMMED("fields"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(iop__struct__t, fields),
+        .size      = sizeof(iop__field__t),
+        .u1        = { .st_desc = &iop__field__s },
+    },
 };
 static const iop_class_attrs_t iop__struct__class_s = {
     .parent            = &iop__structure__s,
@@ -558,11 +558,11 @@ static const iop_class_attrs_t iop__struct__class_s = {
 const iop_struct_t iop__struct__s = {
     .fullname   = LSTR_IMMED("iop.Struct"),
     .fields     = iop__struct__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .fields_len = countof(iop__struct__desc_fields),
     .size       = sizeof(iop__struct__t),
-    .flags      = 13,
+    .flags      = 15,
     .is_union   = false,
     .st_attrs   = NULL,
     .fields_attrs = NULL,
@@ -575,23 +575,57 @@ iop_struct_t const * const iop__struct__sp = &iop__struct__s;
 /* }}} */
 /* Class iop.Union {{{ */
 
-/* same as iop.Struct */
-
+static int iop__union__fields__check(const void *ptr, int n)
+{
+    if (n < 1) {
+        iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                    "minOccurs", 1, "fields", n);
+        return -1;
+    }
+    return 0;
+}
+static iop_field_attr_t const iop__union__fields__attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
+    },
+};
+static iop_field_attrs_t const iop__union__desc_fields_attrs[] = {
+    {
+        .flags             = 1,
+        .attrs_len         = 1,
+        .check_constraints = &iop__union__fields__check,
+        .attrs             = iop__union__fields__attrs,
+    },
+};
+static iop_field_t const iop__union__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("fields"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(iop__union__t, fields),
+        .flags     = 3,
+        .size      = sizeof(iop__field__t),
+        .u1        = { .st_desc = &iop__field__s },
+    },
+};
 static const iop_class_attrs_t iop__union__class_s = {
     .parent            = &iop__structure__s,
     .class_id          = 4,
 };
 const iop_struct_t iop__union__s = {
     .fullname   = LSTR_IMMED("iop.Union"),
-    .fields     = iop__struct__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
-    .fields_len = countof(iop__struct__desc_fields),
+    .fields     = iop__union__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(iop__union__desc_fields),
     .size       = sizeof(iop__union__t),
-    .flags      = 13,
+    .flags      = 15,
     .is_union   = false,
     .st_attrs   = NULL,
-    .fields_attrs = NULL,
+    .fields_attrs = iop__union__desc_fields_attrs,
     {
         .class_attrs  = &iop__union__class_s,
     }

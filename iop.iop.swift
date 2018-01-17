@@ -277,26 +277,16 @@ public enum iop : libcommon.IopPackage {
             return true
         }
 
-        public var `fields` : [iop_package.Field]
 
-        public init(`name`: Swift.String,
-                    `fields`: [iop_package.Field] = []) {
-            self.fields = `fields`
+        public override init(`name`: Swift.String) {
             super.init(name: `name`)
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
-            let data = c.bindMemory(to: iop__structure__t.self, capacity: 1)
-            self.fields = try data.pointee.fields.buffer.map {
-                var fields_var = $0
-                return try iop_package.Field(&fields_var)
-                }
             try super.init(c)
         }
 
         open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
-            let data = c.bindMemory(to: iop__structure__t.self, capacity: 1)
-            libcommon.duplicate(complexTypeArray: self.fields, to: &data.pointee.fields, on: allocator)
             super.fill(c, on: allocator)
         }
     }
@@ -310,18 +300,26 @@ public enum iop : libcommon.IopPackage {
             return false
         }
 
+        public var `fields` : [iop_package.Field]
 
-        public override init(`name`: Swift.String,
+        public init(`name`: Swift.String,
                     `fields`: [iop_package.Field] = []) {
-            super.init(name: `name`,
-                   fields: `fields`)
+            self.fields = `fields`
+            super.init(name: `name`)
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
+            let data = c.bindMemory(to: iop__struct__t.self, capacity: 1)
+            self.fields = try data.pointee.fields.buffer.map {
+                var fields_var = $0
+                return try iop_package.Field(&fields_var)
+                }
             try super.init(c)
         }
 
         open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+            let data = c.bindMemory(to: iop__struct__t.self, capacity: 1)
+            libcommon.duplicate(complexTypeArray: self.fields, to: &data.pointee.fields, on: allocator)
             super.fill(c, on: allocator)
         }
     }
@@ -335,18 +333,26 @@ public enum iop : libcommon.IopPackage {
             return false
         }
 
+        public var `fields` : [iop_package.Field]
 
-        public override init(`name`: Swift.String,
+        public init(`name`: Swift.String,
                     `fields`: [iop_package.Field] = []) {
-            super.init(name: `name`,
-                   fields: `fields`)
+            self.fields = `fields`
+            super.init(name: `name`)
         }
 
         public required init(_ c: Swift.UnsafeRawPointer) throws {
+            let data = c.bindMemory(to: iop__union__t.self, capacity: 1)
+            self.fields = try data.pointee.fields.buffer.map {
+                var fields_var = $0
+                return try iop_package.Field(&fields_var)
+                }
             try super.init(c)
         }
 
         open override func fill(_ c: Swift.UnsafeMutableRawPointer, on allocator: libcommon.FrameBasedAllocator) {
+            let data = c.bindMemory(to: iop__union__t.self, capacity: 1)
+            libcommon.duplicate(complexTypeArray: self.fields, to: &data.pointee.fields, on: allocator)
             super.fill(c, on: allocator)
         }
     }
