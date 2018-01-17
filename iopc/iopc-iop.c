@@ -18,26 +18,26 @@
 
 /* {{{ IOP-described package to iopc_pkg_t */
 
-static iopc_path_t *parse_path(lstr_t name, bool is_type)
+static iopc_path_t *parse_path(lstr_t name, bool is_type, sb_t *err)
 {
     pstream_t ps = ps_initlstr(&name);
     iopc_path_t *path = iopc_path_new();
 
-    for (;;) {
+    while (!ps_done(&ps)) {
         pstream_t bit;
 
-        bit = ps_get_span(&ps, &ctype_isalpha);
-        /* TODO error in case of empty "bit". */
-        qv_append(&path->bits, p_dupz(bit.s, ps_len(&bit)));
-        if (ps_done(&ps)) {
-            break;
+        if (ps_get_ps_chr_and_skip(&ps, '.', &bit) < 0) {
+            bit = ps;
+            __ps_skip_upto(&ps, ps.s_end);
         }
-        if (__ps_getc(&ps) != '.') {
-            /* TODO error */
-        }
-    }
+        if (ps_done(&bit)) {
+            sb_setf(err, "empty package or sub-package name");
+            iopc_path_delete(&path);
 
-    /* TODO fill loc/pretty_dot/pretty_slash/... */
+            return NULL;
+        }
+        qv_append(&path->bits, p_dupz(bit.s, ps_len(&bit)));
+    }
 
     return path;
 }
@@ -283,7 +283,11 @@ iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
     qh_t(lstr) things;
 
     pkg->file = p_strdup("<none>");
-    pkg->name = parse_path(pkg_desc->name, false);
+    pkg->name = parse_path(pkg_desc->name, false, err);
+    if (!pkg->name) {
+        sb_prepends(err, "invalid name: ");
+        goto error;
+    }
     /* XXX Nothing to do for attribute "base" (related to package file path).
      */
 
@@ -483,7 +487,7 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *mp,
     iopc_pkg_t *iopc_pkg;
 
     if (!(iopc_pkg = iopc_pkg_load_from_iop(pkg_desc, err))) {
-        sb_prepends(err, "invalid package description: ");
+        sb_prependf(err, "invalid package `%pL': ", &pkg_desc->name);
         return NULL;
     }
 

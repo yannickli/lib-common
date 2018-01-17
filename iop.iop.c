@@ -601,6 +601,53 @@ iop_struct_t const * const iop__union__sp = &iop__union__s;
 /* }}} */
 /* Structure iop.Package {{{ */
 
+static int iop__package__name__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        for (int c = 0; c < val.len; c++) {
+            switch (val.s[c]) {
+                case 'a' ... 'z':
+                case '_':
+                case '.':
+                    break;
+                default:
+                    iop_set_err("violation of constraint %s (%s) on field %s: %*pM",
+                                "pattern", "[a-z_\\.]*", "name", LSTR_FMT_ARG(val));
+                    return -1;
+            }
+        }
+        if (val.len < 1) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "minLength", 1, "name", val.len);
+            return -1;
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const iop__package__name__attrs[] = {
+    {
+        .type = 9,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[a-z_\\.]*") } },
+    },
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
+    },
+};
+static iop_field_attrs_t const iop__package__desc_fields_attrs[] = {
+    {
+        .flags             = 640,
+        .attrs_len         = 2,
+        .check_constraints = &iop__package__name__check,
+        .attrs             = iop__package__name__attrs,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
+};
 static iop_field_t const iop__package__desc_fields[] = {
     {
         .name      = LSTR_IMMED("name"),
@@ -609,6 +656,7 @@ static iop_field_t const iop__package__desc_fields[] = {
         .repeat    = IOP_R_REQUIRED,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(iop__package__t, name),
+        .flags     = 1,
         .size      = fieldsizeof(iop__package__t, name),
     },
     {
@@ -629,6 +677,8 @@ const iop_struct_t iop__package__s = {
     .ranges_len = countof(iop__ranges__3) / 2,
     .fields_len = countof(iop__package__desc_fields),
     .size       = sizeof(iop__package__t),
+    .flags      = 3,
+    .fields_attrs = iop__package__desc_fields_attrs,
 };
 iop_struct_t const * const iop__package__sp = &iop__package__s;
 

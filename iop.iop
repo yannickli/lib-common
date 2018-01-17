@@ -125,6 +125,7 @@ local class Typedef : 5 : PackageElem {
 /* {{{ Package */
 
 struct Package {
+    @pattern("[a-z_\.]*") @minLength(1)
     string name;
     PackageElem[] elems;
     /* TODO sub-packages */

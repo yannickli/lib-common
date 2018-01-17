@@ -1,0 +1,14 @@
+{
+    "name": "foo..bar",
+    "elems": [ {
+        "_class": "iop.Struct",
+        "name": "Bar",
+        "fields": [ {
+            "name": "foo",
+            "type": {
+                "typeName": "int"
+            }
+        } ]
+    } ]
+}
+

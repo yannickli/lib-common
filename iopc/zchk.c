@@ -16,10 +16,20 @@
 
 #include <lib-common/z.h>
 
+/* {{{ Helpers */
+
 static const char *t_get_path(const char *filename)
 {
     return t_fmt("%pL/iopioptests/%s", &z_cmddir_g, filename);
 }
+
+static lstr_t t_build_json_pkg(const char *pkg_name)
+{
+    return t_lstr_fmt("{\"name\":\"%s\",\"elems\":[]}", pkg_name);
+}
+
+/* }}} */
+/* {{{ Z_HELPERs */
 
 static int t_package_load(iop_pkg_t **pkg, const char *file,
                           lstr_t err_msg)
@@ -142,6 +152,9 @@ static int _test_struct(const char *pkg_file, int st_index,
         _test_struct(_file, _idx, __files, countof(__files), (st_desc));     \
     })
 
+/* }}} */
+/* {{{ Z_GROUP */
+
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
 
@@ -186,7 +199,49 @@ Z_GROUP_EXPORT(iopiop) {
         Z_HELPER_RUN(t_package_load(&pkg, "error-unknown-type.json",
                                     LSTR(err)));
     } Z_TEST_END;
+
+    Z_TEST(error_invalid_pkg_name, "error case: invalid package name") {
+        SB_1k(err);
+        static struct {
+            const char *pkg_name;
+            const char *jpack_err;
+            const char *lib_err;
+        } tests[] = {
+            {
+                "foo..bar", NULL,
+                "invalid package `foo..bar': "
+                "invalid name: empty package or sub-package name"
+            }, {
+                "fOo.bar",
+                "1:9: invalid field (ending at `\"fOo.bar\"'): "
+                "in type iop.Package: violation of constraint pattern "
+                "([a-z_\\.]*) on field name: fOo.bar",
+                NULL
+            }
+        };
+
+        carray_for_each_ptr(t, tests) {
+            t_scope;
+            lstr_t json = t_build_json_pkg(t->pkg_name);
+            pstream_t ps = ps_initlstr(&json);
+            iop__package__t pkg_desc;
+            int res;
+
+            sb_reset(&err);
+            res = t_iop_junpack_ps(&ps, iop__package__sp, &pkg_desc, 0, &err);
+            if (t->jpack_err) {
+                Z_ASSERT_STREQUAL(err.data, t->jpack_err);
+                continue;
+            }
+            Z_ASSERT_N(res);
+            Z_ASSERT_P(t->lib_err);
+            Z_ASSERT_NULL(mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err));
+            Z_ASSERT_STREQUAL(err.data, t->lib_err);
+        }
+    } Z_TEST_END;
 } Z_GROUP_END;
+
+/* }}} */
 
 int main(int argc, char **argv)
 {
