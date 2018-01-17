@@ -207,4 +207,22 @@ static inline double get_unaligned_double_be(const void * nonnull p) {
  */
 double double_round(double val, uint8_t precision);
 
+/** Round a double value to a given significant precision for decimals.
+ *
+ * Round the decimal part of a double, taking into account the significant
+ * figures of the integer part.
+ *
+ * Examples:
+ *  - (12.1234567, 5) -> 12.123 (5 significant digits)
+ *  - ( 0.1234567, 5) ->  0.12345 (5 significant digits)
+ *  - (12.1234567, 0) -> 12.0 (keep integer part)
+ *  - (12345.67, 3) -> 12346.0 (keep integer part)
+ *
+ * \param[in]  val        the input value to round.
+ * \param[in]  precision  the precision.
+ *
+ * \return  the rounded value.
+ */
+double double_round_significant(double d, uint8_t precision);
+
 #endif
