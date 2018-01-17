@@ -194,6 +194,49 @@ void iopc_struct_optimize(iopc_struct_t *st)
     }
 }
 
+void iop_scalar_type_get_size_and_alignment(iop_type_t type,
+                                            uint16_t *nullable size,
+                                            uint8_t *nullable align)
+{
+    static struct {
+        uint16_t size;
+        uint8_t align;
+    } sizes_and_alignments[] = {
+#define SIZE_ALIGN(type_t)  { sizeof(type_t), alignof(type_t) }
+
+        [IOP_T_VOID]   = { 0, alignof(bool) },
+        [IOP_T_BOOL]   = SIZE_ALIGN(bool),
+        [IOP_T_U8]     = SIZE_ALIGN(uint8_t),
+        [IOP_T_I8]     = SIZE_ALIGN(int8_t),
+        [IOP_T_U16]    = SIZE_ALIGN(uint16_t),
+        [IOP_T_I16]    = SIZE_ALIGN(int16_t),
+        [IOP_T_U32]    = SIZE_ALIGN(uint32_t),
+        [IOP_T_I32]    = SIZE_ALIGN(int32_t),
+        [IOP_T_ENUM]   = SIZE_ALIGN(int32_t),
+        [IOP_T_U64]    = SIZE_ALIGN(uint64_t),
+        [IOP_T_I64]    = SIZE_ALIGN(int64_t),
+        [IOP_T_DOUBLE] = SIZE_ALIGN(double),
+        [IOP_T_STRING] = SIZE_ALIGN(lstr_t),
+        [IOP_T_DATA]   = SIZE_ALIGN(lstr_t),
+        [IOP_T_XML]    = SIZE_ALIGN(lstr_t),
+
+#undef SIZE_ALIGN
+    };
+    typeof(sizes_and_alignments[0]) res;
+
+    if (!iop_type_is_scalar(type)) {
+        e_panic("should not happen");
+    }
+
+    res = sizes_and_alignments[type];
+    if (size) {
+        *size = res.size;
+    }
+    if (align) {
+        *align = res.align;
+    }
+}
+
 static void iopc_field_compute_size(iopc_field_t *f)
 {
     if (f->size) {
@@ -255,61 +298,16 @@ static void iopc_field_compute_size(iopc_field_t *f)
         f->size  = sizeof(IOP_ARRAY_OF(void));
         return;
     } else
-    switch (f->kind) {
-      case IOP_T_VOID:
-        f->align = alignof(bool);
-        f->size = 0;
-        break;
-      case IOP_T_BOOL:
-        f->align = alignof(bool);
-        f->size  = sizeof(bool);
-        break;
-      case IOP_T_U8:
-      case IOP_T_I8:
-        f->align = alignof(int8_t);
-        f->size  = sizeof(int8_t);
-        break;
-      case IOP_T_U16:
-      case IOP_T_I16:
-        f->align = alignof(int16_t);
-        f->size  = sizeof(int16_t);
-        break;
-      case IOP_T_U32:
-      case IOP_T_I32:
-      case IOP_T_ENUM:
-        f->align = alignof(int32_t);
-        f->size  = sizeof(int32_t);
-        break;
-      case IOP_T_U64:
-      case IOP_T_I64:
-        f->align = alignof(int64_t);
-        f->size  = sizeof(int64_t);
-        break;
-      case IOP_T_DOUBLE:
-        f->align = alignof(double);
-        f->size  = sizeof(double);
-        break;
-      case IOP_T_STRING:
-      case IOP_T_DATA:
-      case IOP_T_XML:
-        f->align = alignof(lstr_t);
-        f->size  = sizeof(lstr_t);
-        break;
-      case IOP_T_STRUCT:
-        if (iopc_is_class(f->struct_def->type)) {
-            f->align = alignof(void *);
-            f->size  = sizeof(void *);
-            break;
-        }
-        /* FALLTHROUGH */
-
-      case IOP_T_UNION:
+    if (iop_type_is_scalar(f->kind)) {
+        iop_scalar_type_get_size_and_alignment(f->kind, &f->size, &f->align);
+    } else
+    if (iopc_is_class(f->struct_def->type)) {
+        f->align = alignof(void *);
+        f->size  = sizeof(void *);
+    } else {
         iopc_struct_optimize(f->struct_def);
         f->align = f->struct_def->align;
         f->size  = f->struct_def->size;
-        break;
-      default:
-        e_panic("should not happen");
     }
 }
 

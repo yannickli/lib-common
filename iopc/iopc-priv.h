@@ -71,6 +71,13 @@ iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en);
  */
 void iopc_struct_optimize(iopc_struct_t *st);
 
+/** Get the field size and alignment for the C type associated to an IOP
+ * scalar type.
+ */
+void iop_scalar_type_get_size_and_alignment(iop_type_t type,
+                                            uint16_t *nullable size,
+                                            uint8_t *nullable align);
+
 /* }}} */
 
 #endif /* IS_IOP_IOPC_PRIV_H */
