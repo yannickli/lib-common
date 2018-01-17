@@ -131,7 +131,7 @@ iopc_field_set_type(iopc_field_t *f, const iop__type__t *type, sb_t *err)
         f->kind = iop_type_from_iop(type);
     }
 
-    /* TODO import checks from "parse_field_type" */
+    RETHROW(iopc_check_field_type(f, err));
 
     return 0;
 }

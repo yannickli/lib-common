@@ -1880,9 +1880,48 @@ static int parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
     return 0;
 }
 
+int iopc_check_field_type(const iopc_field_t *f, sb_t *err)
+{
+    if (f->repeat == IOP_R_OPTIONAL) {
+        if (f->is_static) {
+            sb_sets(err, "optional static members are forbidden");
+            return -1;
+        }
+    } else
+    if (f->is_ref) {
+        if (f->is_static) {
+            sb_sets(err, "referenced static members are forbidden");
+            return -1;
+        }
+        if (f->kind != IOP_T_STRUCT) {
+            sb_sets(err,
+                    "references can only be applied to structures or unions");
+            return -1;
+        }
+        if (f->repeat != IOP_R_REQUIRED) {
+            sb_sets(err, "references can only be applied to required fields");
+            return -1;
+        }
+    } else
+    if (f->repeat == IOP_R_REPEATED) {
+        if (f->is_static) {
+            sb_sets(err, "repeated static members are forbidden");
+            return -1;
+        }
+        if (f->kind == IOP_T_VOID) {
+            sb_sets(err, "repeated void types are forbidden");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
                             iopc_field_t *f)
 {
+    SB_1k(err);
+
     WANT(pp, 0, ITOK_IDENT);
     f->kind = get_type_kind(TK_N(pp, 0));
 
@@ -1896,34 +1935,18 @@ static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 
     switch (TK_N(pp, 0)->token) {
       case '?':
-        if (f->is_static) {
-            throw_loc("optional static members are forbidden", f->loc);
-        }
         f->repeat = IOP_R_OPTIONAL;
         DROP(pp, 1);
         break;
 
       case '&':
-        if (f->is_static) {
-            throw_loc("referenced static members are forbidden", f->loc);
-        }
-        if (f->kind != IOP_T_STRUCT) {
-            throw_loc("references can only be applied to structures or unions",
-                      f->loc);
-        }
         f->repeat = IOP_R_REQUIRED;
         f->is_ref = true;
         DROP(pp, 1);
         break;
 
       case '[':
-        if (f->is_static) {
-            throw_loc("repeated static members are forbidden", f->loc);
-        }
         WANT(pp, 1, ']');
-        if (f->kind == IOP_T_VOID) {
-            throw_loc("repeated void types are forbidden", f->loc);
-        }
         f->repeat = IOP_R_REPEATED;
         DROP(pp, 2);
         break;
@@ -1932,6 +1955,11 @@ static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
         f->repeat = IOP_R_REQUIRED;
         break;
     }
+
+    if (iopc_check_field_type(f, &err) < 0) {
+        throw_loc("%*pM", f->loc, SB_FMT_ARG(&err));
+    }
+
     return 0;
 }
 

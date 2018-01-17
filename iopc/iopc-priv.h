@@ -78,6 +78,9 @@ void iop_scalar_type_get_size_and_alignment(iop_type_t type,
                                             uint16_t *nullable size,
                                             uint8_t *nullable align);
 
+/** Check for type incompatibilities in an IOPC field. */
+int iopc_check_field_type(const iopc_field_t *f, sb_t *err);
+
 /* }}} */
 
 #endif /* IS_IOP_IOPC_PRIV_H */
