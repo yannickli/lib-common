@@ -167,10 +167,15 @@ iopc_modules_find_n_check(iopc_pkg_t *pkg, iopc_extends_t *xt)
     return res;
 }
 
+static bool iopc_field_is_resolved(const iopc_field_t *f)
+{
+    return f->kind != IOP_T_STRUCT || f->struct_def;
+}
+
 static int
 iopc_apply_typedef(const iopc_field_t *tdef, iopc_field_t *f, bool f_is_tdef)
 {
-    assert (tdef->kind != IOP_T_STRUCT || tdef->struct_def != NULL);
+    assert (iopc_field_is_resolved(tdef));
 
     f->kind       = tdef->kind;
     if ((f->repeat != IOP_R_REQUIRED && f->repeat != IOP_R_DEFVAL)
@@ -265,7 +270,7 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
     const char *original_name;
     bool found;
 
-    if (f->kind != IOP_T_STRUCT || f->struct_def != NULL) {
+    if (iopc_field_is_resolved(f)) {
         return 0;
     }
 
@@ -290,7 +295,7 @@ iopc_types_find_n_check(iopc_pkg_t *pkg, iopc_field_t *f, bool f_is_tdef)
     RETHROW(iopc_find_type_in_pkg(pkg, f, original_name, false, f_is_tdef,
                                   &found));
 
-    if (f->kind == IOP_T_STRUCT && !f->struct_def) {
+    if (!iopc_field_is_resolved(f)) {
         throw_loc("unable to find any pkg providing type `%s`",
                   f->loc, original_name);
     }
@@ -347,7 +352,7 @@ static int iopc_field_resolve(iopc_pkg_t *pkg, iopc_field_t *field,
 {
     t_scope;
 
-    if (field->kind != IOP_T_STRUCT) {
+    if (iopc_field_is_resolved(field)) {
         return 0;
     }
     RETHROW(iopc_types_find_n_check(pkg, field, st == NULL));
