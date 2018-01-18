@@ -826,6 +826,10 @@ typedef struct iopc_enum_t {
     qv_t(iopc_enum_field) values;
     qv_t(iopc_attr)       attrs;
     qv_t(iopc_dox)        comments;
+
+    /* IOP description of the enum (used by IOP² when generating IOP
+     * descriptions from iopc enumerations). */
+    const iop_enum_t *desc;
 } iopc_enum_t;
 static inline iopc_enum_t *iopc_enum_init(iopc_enum_t *e) {
     p_clear(e, 1);

@@ -94,17 +94,17 @@ local class Struct : 2 : Structure {
 /* }}} */
 /* {{{ Enum */
 
-/* TODO Implement */
-/*
 struct EnumVal {
+    @pattern("[A-Z0-9_]*") @minLength(1)
     string name;
     int? val;
+    /* TODO Aliases */
 };
 
 local class Enum : 3 : PackageElem {
     EnumVal[] values;
+    /* TODO Strictness */
 };
-*/
 
 /* }}} */
 /* {{{ Union */

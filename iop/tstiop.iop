@@ -742,6 +742,19 @@ struct ArrayTest {
 };
 
 /* }}} */
+/* {{{ zchk iopiop.enum_ */
+
+enum IopSqEnum {
+    VAL1,
+    VAL2 = 6,
+    VAL3,
+};
+
+struct IopSqEnumSt {
+    IopSqEnum en;
+};
+
+/* }}} */
 /* }}} */
 
 /* Interfaces */

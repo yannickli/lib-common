@@ -53,8 +53,44 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     Z_HELPER_END;
 }
 
-static int z_assert_struct_eq(const iop_struct_t *st1,
-                              const iop_struct_t *st2);
+static int z_assert_ranges_eq(const int *ranges, int ranges_len,
+                              const int *ref_ranges, int ref_ranges_len)
+{
+    Z_ASSERT_EQ(ranges_len, ref_ranges_len, "lengths mismatch");
+    for (int i = 0; i < ranges_len * 2 + 1; i++) {
+        Z_ASSERT_EQ(ranges[i], ref_ranges[i],
+                    "ranges differ at index %d", i);
+    }
+
+    Z_HELPER_END;
+}
+
+static int z_assert_enum_eq(const iop_enum_t *en, const iop_enum_t *ref)
+{
+    Z_ASSERT_LSTREQUAL(en->name, ref->name, "names mismatch");
+    /* XXX Don't check fullname: the package name can change. */
+
+    Z_ASSERT_EQ(en->enum_len, ref->enum_len, "length mismatch");
+    for (int i = 0; i < en->enum_len; i++) {
+        Z_ASSERT_LSTREQUAL(en->names[i], ref->names[i],
+                           "names mismatch for element #%d", i);
+        Z_ASSERT_EQ(en->values[i], ref->values[i],
+                    "values mismatch for element #%d", i);
+    }
+
+    Z_ASSERT_EQ(en->flags, ref->flags, "flags mismatch");
+    Z_HELPER_RUN(z_assert_ranges_eq(en->ranges, en->ranges_len,
+                                    ref->ranges, ref->ranges_len),
+                 "ranges mismatch");
+
+    /* TODO Attributes. */
+    /* TODO Aliases. */
+
+    Z_HELPER_END;
+}
+
+static int z_assert_struct_eq(const iop_struct_t *st,
+                              const iop_struct_t *ref);
 
 static int z_assert_field_eq(const iop_field_t *f, const iop_field_t *ref)
 {
@@ -73,8 +109,11 @@ static int z_assert_field_eq(const iop_field_t *f, const iop_field_t *ref)
         /* TODO Protect against loops. */
         Z_HELPER_RUN(z_assert_struct_eq(f->u1.st_desc, ref->u1.st_desc),
                      "struct type mismatch");
+    } else
+    if (f->type == IOP_T_ENUM) {
+        Z_HELPER_RUN(z_assert_enum_eq(f->u1.en_desc, ref->u1.en_desc),
+                     "enum type mismatch");
     }
-    /* TODO Check enum if relevant. */
 
     Z_HELPER_END;
 }
@@ -95,14 +134,13 @@ static int z_assert_struct_eq(const iop_struct_t *st,
     }
 
     Z_ASSERT(st->is_union == ref->is_union);
-    Z_ASSERT(st->flags == ref->flags);
+    Z_ASSERT(st->flags == ref->flags, "flags mismatch: %d vs %d",
+             st->flags, ref->flags);
     /* TODO Check attributes. */
 
-    Z_ASSERT_EQ(st->ranges_len, ref->ranges_len);
-    for (int i = 0; i < st->ranges_len * 2 + 1; i++) {
-        Z_ASSERT_EQ(st->ranges[i], ref->ranges[i],
-                    "ranges differ at index %d", i);
-    }
+    Z_HELPER_RUN(z_assert_ranges_eq(st->ranges, st->ranges_len,
+                                    ref->ranges, ref->ranges_len),
+                 "ranges mismatch");
 
     Z_HELPER_END;
 }
@@ -181,6 +219,13 @@ Z_GROUP_EXPORT(iopiop) {
         Z_HELPER_RUN(test_struct("union.json", 0, NULL,
                                  "{\"i\":6}",
                                  "{\"s\":\"toto\"}"));
+    } Z_TEST_END;
+
+    Z_TEST(enum_, "basic enum") {
+        Z_HELPER_RUN(test_struct("enum.json", 0, tstiop__iop_sq_enum_st__sp,
+                                 "{\"en\":\"VAL1\"}",
+                                 "{\"en\":\"VAL2\"}",
+                                 "{\"en\":\"VAL3\"}"));
     } Z_TEST_END;
 
     Z_TEST(array, "array") {

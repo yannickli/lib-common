@@ -17,6 +17,7 @@
 #include <lib-common/iop-priv.h>
 
 /* {{{ IOP-described package to iopc_pkg_t */
+/* {{{ Helpers */
 
 static iopc_path_t *parse_path(lstr_t name, bool is_type, sb_t *err)
 {
@@ -41,6 +42,15 @@ static iopc_path_t *parse_path(lstr_t name, bool is_type, sb_t *err)
 
     return path;
 }
+
+static lstr_t mp_build_fullname(mem_pool_t *mp, const iopc_pkg_t *pkg,
+                                const char *name)
+{
+    return mp_lstr_fmt(mp, "%s.%s", pretty_path_dot(pkg->name), name);
+}
+
+/* }}} */
+/* {{{ IOP struct/union */
 
 static iop_type_t iop_type_from_iop(const iop__type__t *iop_type)
 {
@@ -278,6 +288,53 @@ static iopc_struct_t *iopc_struct_load(const iop__structure__t *st_desc,
     return st;
 }
 
+/* }}} */
+/* {{{ IOP enum */
+
+static iopc_enum_t *iopc_enum_load(const iop__enum__t *en_desc, sb_t *err)
+{
+    t_scope;
+    iopc_enum_t *en;
+    int next_val = 0;
+    qh_t(lstr) keys;
+    qh_t(u32) values;
+
+    t_qh_init(lstr, &keys, en_desc->values.len);
+    t_qh_init(u32, &values, en_desc->values.len);
+    tab_for_each_ptr(enum_val, &en_desc->values) {
+        int32_t val = OPT_DEFVAL(enum_val->val, next_val);
+
+        if (qh_add(u32, &values, val) < 0) {
+            sb_setf(err, "key `%pL': the value `%d' is already used",
+                    &enum_val->name, val);
+            return NULL;
+        }
+        if (qh_add(lstr, &keys, &enum_val->name) < 0) {
+            sb_setf(err, "value `%pL' is already used", &enum_val->name);
+            return NULL;
+        }
+        next_val = val + 1;
+    }
+
+    en = iopc_enum_new();
+    en->name = p_dupz(en_desc->name.s, en_desc->name.len);
+    next_val = 0;
+    tab_for_each_ptr(enum_val, &en_desc->values) {
+        iopc_enum_field_t *field = iopc_enum_field_new();
+
+        field->name = p_dupz(enum_val->name.s, enum_val->name.len);
+        field->value = OPT_DEFVAL(enum_val->val, next_val);
+        next_val = field->value + 1;
+
+        qv_append(&en->values, field);
+    }
+
+    return en;
+}
+
+/* }}} */
+/* {{{ IOP package */
+
 static iopc_pkg_t *
 iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
 {
@@ -309,15 +366,36 @@ iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
               iopc_struct_t *st;
 
               if (!(st = iopc_struct_load(st_desc, err))) {
+                  sb_prependf(err, "cannot load `%pL': ", &elem->name);
                   goto error;
               }
 
               qv_append(&pkg->structs, st);
           }
 
-          IOP_OBJ_DEFAULT(iop__package_elem) {
+          IOP_OBJ_CASE(iop__enum, elem, en_desc) {
+              iopc_enum_t *en;
+
+              if (!(en = iopc_enum_load(en_desc, err))) {
+                  sb_prependf(err, "cannot load enum `%pL': ", &elem->name);
+                  goto error;
+              }
+
+              qv_append(&pkg->enums, en);
           }
-          /* TODO Handle other kinds. */
+
+          /* TODO Classes */
+          /* TODO Typedefs */
+          /* TODO Interfaces */
+          /* TODO Modules */
+          /* TODO SNMP stuff */
+
+          IOP_OBJ_DEFAULT(iop__package_elem) {
+              sb_setf(err,
+                      "package elements of type `%pL' are not supported yet",
+                      &elem->__vptr->fullname);
+              goto error;
+          }
         }
     }
 
@@ -329,7 +407,9 @@ iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
 }
 
 /* }}} */
+/* }}} */
 /* {{{ iopc_pkg_t to iop_pkg_t */
+/* {{{ IOP struct/union */
 
 static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
                                   const iopc_struct_t *st, uint16_t *offset,
@@ -364,10 +444,9 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
         .flags = iopc_field_build_flags(f, st, NULL), /* TODO attrs */
         /* TODO default value */
         .size = size,
-        /* TODO enum */
     };
 
-    if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
+    if (!iop_type_is_scalar(fdesc->type)) {
         STATIC_ASSERT(offsetof(iopc_field_t, struct_def) ==
                       offsetof(iopc_field_t, union_def));
 
@@ -377,6 +456,13 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
         /* TODO We're going to have to load dependancies first if we want
          * that to work in multi-package contexts. */
         fdesc->u1.st_desc = f->struct_def->desc;
+    } else
+    if (fdesc->type == IOP_T_ENUM) {
+        /* Should be set in "mp_iopc_enum_to_desc". */
+        assert (f->enum_def->desc);
+
+        /* TODO Ditto. */
+        fdesc->u1.en_desc = f->enum_def->desc;
     }
 
     if (st->type != STRUCT_TYPE_UNION) {
@@ -406,8 +492,7 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
     fields = mp_new_raw(mp, iop_field_t, st->fields.len);
     {
         iop_struct_t _st_desc = {
-            .fullname = mp_lstr_fmt(mp, "%s.%s", pretty_path_dot(pkg->name),
-                                    st->name),
+            .fullname = mp_build_fullname(mp, pkg, st->name),
             .fields = fields,
             .fields_len = st->fields.len,
             .ranges = ranges.tab,
@@ -451,6 +536,59 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
     return st_desc;
 }
 
+/* }}} */
+/* {{{ IOP enum */
+
+static iop_enum_t *mp_iopc_enum_to_desc(mem_pool_t *mp,
+                                        iopc_enum_t *en,
+                                        const iopc_pkg_t *pkg)
+{
+    iop_enum_t *en_desc;
+    iop_array_i32_t ranges;
+    lstr_t *names;
+    int32_t *values;
+    int pos = 0;
+
+    if (mp != t_pool()) {
+        t_scope;
+
+        ranges = t_iopc_enum_build_ranges(en);
+        ranges.tab = mp_dup(mp, ranges.tab, ranges.len);
+    } else {
+        ranges = t_iopc_enum_build_ranges(en);
+    }
+
+    names = mp_new_raw(mp, lstr_t, en->values.len);
+    values = mp_new_raw(mp, int32_t, en->values.len);
+    tab_for_each_entry(f, &en->values) {
+        names[pos] = mp_lstr_dups(mp, f->name, -1);
+        values[pos] = f->value;
+        pos++;
+    }
+
+    {
+        iop_enum_t _en_desc = {
+            .name = mp_lstr_dup(mp, LSTR(en->name)),
+            .fullname = mp_build_fullname(mp, pkg, en->name),
+            .names = names,
+            .values = values,
+            .ranges = ranges.tab,
+            .ranges_len = ranges.len / 2,
+            .enum_len = en->values.len,
+            /* TODO attrs */
+            /* TODO aliases */
+        };
+
+        en_desc = mp_new_raw(mp, iop_enum_t, 1);
+        p_copy(en_desc, &_en_desc, 1);
+        en->desc = en_desc;
+    }
+
+    return en_desc;
+}
+
+/* }}} */
+
 /* TODO maybe we can avoid the mem_pool and keep all the references somehow
  */
 static iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg)
@@ -458,6 +596,15 @@ static iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg)
     iop_pkg_t *pkg_desc;
     const iop_struct_t **structs;
     const iop_struct_t **wst;
+    const iop_enum_t **enums;
+    const iop_enum_t **wen;
+
+    enums = mp_new_raw(mp, const iop_enum_t *, pkg->enums.len + 1);
+    wen = enums;
+    tab_for_each_entry(en, &pkg->enums) {
+        *wen++ = mp_iopc_enum_to_desc(mp, en, pkg);
+    }
+    *wen = NULL;
 
     structs = mp_new_raw(mp, const iop_struct_t *, pkg->structs.len + 1);
     wst = structs;
@@ -469,7 +616,7 @@ static iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg)
     {
         iop_pkg_t _pkg_desc = {
             .name = mp_lstr_dups(mp, pretty_path_dot(pkg->name), -1),
-            /* TODO Enums */
+            .enums = enums,
             .structs = structs,
             /* TODO (later) ifaces, mods */
             /* TODO deps */

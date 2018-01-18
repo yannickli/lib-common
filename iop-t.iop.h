@@ -138,6 +138,27 @@ EXPORT iop_struct_t const iop__struct__s;
 EXPORT iop_struct_t const * const nonnull iop__struct__sp;
 #define iop__struct__class_id  2
 
+struct iop__enum_val__t {
+    lstr_t   name;
+    opt_i32_t        val;
+};
+EXPORT iop_struct_t const iop__enum_val__s;
+EXPORT iop_struct_t const * const nonnull iop__enum_val__sp;
+struct iop__enum__t {
+    union {
+        struct iop__package_elem__t super;
+        struct {
+            const iop_struct_t *nonnull __vptr;
+            /* fields of iop__package_elem__t */
+            lstr_t   name;
+        };
+    };
+    iop__enum_val__array_t values;
+};
+EXPORT iop_struct_t const iop__enum__s;
+EXPORT iop_struct_t const * const nonnull iop__enum__sp;
+#define iop__enum__class_id  3
+
 struct iop__union__t {
     union {
         struct iop__structure__t super;

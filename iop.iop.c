@@ -617,6 +617,125 @@ const iop_struct_t iop__struct__s = {
 iop_struct_t const * const iop__struct__sp = &iop__struct__s;
 
 /* }}} */
+/* Structure iop.EnumVal {{{ */
+
+static int iop__enum_val__name__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        for (int c = 0; c < val.len; c++) {
+            switch (val.s[c]) {
+                case 'A' ... 'Z':
+                case '0' ... '9':
+                case '_':
+                    break;
+                default:
+                    iop_set_err("violation of constraint %s (%s) on field %s: %*pM",
+                                "pattern", "[A-Z0-9_]*", "name", LSTR_FMT_ARG(val));
+                    return -1;
+            }
+        }
+        if (val.len < 1) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "minLength", 1, "name", val.len);
+            return -1;
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const iop__enum_val__name__attrs[] = {
+    {
+        .type = 9,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[A-Z0-9_]*") } },
+    },
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
+    },
+};
+static iop_field_attrs_t const iop__enum_val__desc_fields_attrs[] = {
+    {
+        .flags             = 640,
+        .attrs_len         = 2,
+        .check_constraints = &iop__enum_val__name__check,
+        .attrs             = iop__enum_val__name__attrs,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
+};
+static iop_field_t const iop__enum_val__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("name"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(iop__enum_val__t, name),
+        .flags     = 1,
+        .size      = fieldsizeof(iop__enum_val__t, name),
+    },
+    {
+        .name      = LSTR_IMMED("val"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_I32,
+        .data_offs = offsetof(iop__enum_val__t, val),
+        .size      = fieldsizeof(iop__enum_val__t, val),
+    },
+};
+const iop_struct_t iop__enum_val__s = {
+    .fullname   = LSTR_IMMED("iop.EnumVal"),
+    .fields     = iop__enum_val__desc_fields,
+    .ranges     = iop__ranges__3,
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .fields_len = countof(iop__enum_val__desc_fields),
+    .size       = sizeof(iop__enum_val__t),
+    .flags      = 3,
+    .fields_attrs = iop__enum_val__desc_fields_attrs,
+};
+iop_struct_t const * const iop__enum_val__sp = &iop__enum_val__s;
+
+/* }}} */
+/* Class iop.Enum {{{ */
+
+static iop_field_t const iop__enum__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("values"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(iop__enum__t, values),
+        .size      = sizeof(iop__enum_val__t),
+        .u1        = { .st_desc = &iop__enum_val__s },
+    },
+};
+static const iop_class_attrs_t iop__enum__class_s = {
+    .parent            = &iop__package_elem__s,
+    .class_id          = 3,
+};
+const iop_struct_t iop__enum__s = {
+    .fullname   = LSTR_IMMED("iop.Enum"),
+    .fields     = iop__enum__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(iop__enum__desc_fields),
+    .size       = sizeof(iop__enum__t),
+    .flags      = 15,
+    .is_union   = false,
+    .st_attrs   = NULL,
+    .fields_attrs = NULL,
+    {
+        .class_attrs  = &iop__enum__class_s,
+    }
+};
+iop_struct_t const * const iop__enum__sp = &iop__enum__s;
+
+/* }}} */
 /* Class iop.Union {{{ */
 
 static int iop__union__fields__check(const void *ptr, int n)
@@ -782,6 +901,8 @@ static const iop_struct_t *const iop__structs[] = {
     &iop__field__s,
     &iop__structure__s,
     &iop__struct__s,
+    &iop__enum_val__s,
+    &iop__enum__s,
     &iop__union__s,
     &iop__package__s,
     NULL,
