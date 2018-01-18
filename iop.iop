@@ -55,6 +55,7 @@ union IopType {
 /* }}} */
 
 abstract local class PackageElem {
+    @pattern("[a-zA-Z0-9]*") @minLength(1)
     string name;
 };
 

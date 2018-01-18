@@ -256,6 +256,49 @@ iop_struct_t const * const iop__iop_type__sp = &iop__iop_type__s;
 /* }}} */
 /* Class iop.PackageElem {{{ */
 
+static int iop__package_elem__name__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        for (int c = 0; c < val.len; c++) {
+            switch (val.s[c]) {
+                case 'a' ... 'z':
+                case 'A' ... 'Z':
+                case '0' ... '9':
+                    break;
+                default:
+                    iop_set_err("violation of constraint %s (%s) on field %s: %*pM",
+                                "pattern", "[a-zA-Z0-9]*", "name", LSTR_FMT_ARG(val));
+                    return -1;
+            }
+        }
+        if (val.len < 1) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "minLength", 1, "name", val.len);
+            return -1;
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const iop__package_elem__name__attrs[] = {
+    {
+        .type = 9,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[a-zA-Z0-9]*") } },
+    },
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
+    },
+};
+static iop_field_attrs_t const iop__package_elem__desc_fields_attrs[] = {
+    {
+        .flags             = 640,
+        .attrs_len         = 2,
+        .check_constraints = &iop__package_elem__name__check,
+        .attrs             = iop__package_elem__name__attrs,
+    },
+};
 static iop_field_t const iop__package_elem__desc_fields[] = {
     {
         .name      = LSTR_IMMED("name"),
@@ -264,6 +307,7 @@ static iop_field_t const iop__package_elem__desc_fields[] = {
         .repeat    = IOP_R_REQUIRED,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(iop__package_elem__t, name),
+        .flags     = 1,
         .size      = fieldsizeof(iop__package_elem__t, name),
     },
 };
@@ -282,10 +326,10 @@ const iop_struct_t iop__package_elem__s = {
     .ranges_len = countof(iop__ranges__5) / 2,
     .fields_len = countof(iop__package_elem__desc_fields),
     .size       = sizeof(iop__package_elem__t),
-    .flags      = 13,
+    .flags      = 15,
     .is_union   = false,
     .st_attrs   = NULL,
-    .fields_attrs = NULL,
+    .fields_attrs = iop__package_elem__desc_fields_attrs,
     {
         .class_attrs  = &iop__package_elem__class_s,
     }

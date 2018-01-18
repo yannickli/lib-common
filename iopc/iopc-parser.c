@@ -85,23 +85,23 @@ static bool warn(qv_t(iopc_attr) *nullable attrs, const char *category)
     return true;
 }
 
-int iopc_check_name(const char *nonnull name, qv_t(iopc_attr) *nullable attrs,
+int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
                     sb_t *nonnull err)
 {
-    if (strchr(name, '_')) {
-        sb_setf(err, "%s contains a _", name);
+    if (memchr(name.s, '_', name.len)) {
+        sb_setf(err, "%pL contains a _", &name);
         return -1;
     }
     for (int i = 0; i < countof(reserved_keywords); i++) {
-        if (strequal(name, reserved_keywords[i])) {
-            sb_setf(err, "%s is a reserved keyword", name);
+        if (lstr_equal(name, LSTR(reserved_keywords[i]))) {
+            sb_setf(err, "%pL is a reserved keyword", &name);
             return -1;
         }
     }
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
-            if (strequal(name, avoid_keywords[i])) {
-                sb_setf(err, "%s is a keyword in some languages", name);
+            if (lstr_equal(name, LSTR(avoid_keywords[i]))) {
+                sb_setf(err, "%pL is a keyword in some languages", &name);
                 return -1;
             }
         }
@@ -115,7 +115,7 @@ static int check_name(const char *name, iopc_loc_t loc,
 {
     SB_1k(err);
 
-    if (iopc_check_name(name, attrs, &err) < 0) {
+    if (iopc_check_name(LSTR(name), attrs, &err) < 0) {
         throw_loc("%*pM", loc, SB_FMT_ARG(&err));
     }
 

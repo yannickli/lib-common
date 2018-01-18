@@ -185,13 +185,12 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
 static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
                                      int *next_tag, sb_t *err)
 {
-    iopc_field_t *f = iopc_field_new();
+    iopc_field_t *f;
 
+    RETHROW_NP(iopc_check_name(field_desc->name, NULL, err));
+
+    f = iopc_field_new();
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
-    if (iopc_check_name(f->name, NULL, err) < 0) {
-        goto error;
-    }
-
     f->tag = OPT_DEFVAL(field_desc->tag, *next_tag);
     if (iopc_check_tag_value(f->tag, err) < 0) {
         goto error;
@@ -261,8 +260,6 @@ static iopc_struct_t *iopc_struct_load(const iop__structure__t *st_desc,
     int next_tag = 1;
     iop__field__array_t fields;
 
-    RETHROW_NP(iopc_check_upper(st_desc->name, err));
-
     st = iopc_struct_new();
     st->name = p_dupz(st_desc->name.s, st_desc->name.len);
     iop_structure_get_type_and_fields(st_desc, &st->type, &fields);
@@ -299,6 +296,9 @@ iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
 
     t_qh_init(lstr, &things, pkg_desc->elems.len);
     tab_for_each_entry(elem, &pkg_desc->elems) {
+        RETHROW_NP(iopc_check_name(elem->name, NULL, err));
+        RETHROW_NP(iopc_check_upper(elem->name, err));
+
         if (qh_add(lstr, &things, &elem->name) < 0) {
             sb_setf(err, "already got a thing named `%pL'", &elem->name);
             goto error;

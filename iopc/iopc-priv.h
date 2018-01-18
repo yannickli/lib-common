@@ -39,7 +39,7 @@ static inline int iopc_check_type_name(lstr_t type_name, sb_t *err)
 /** Check that the name does not contain a character that is already a keyword
  * in some programmation language.
  */
-int iopc_check_name(const char *nonnull name, qv_t(iopc_attr) *nullable attrs,
+int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
                     sb_t *nonnull err);
 
 /* }}} */
