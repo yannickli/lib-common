@@ -108,7 +108,55 @@ static iop_type_t iop_type_from_iop(const iop__type__t *iop_type)
 }
 
 static int
-iopc_field_set_type(iopc_field_t *f, const iop__type__t *type, sb_t *err)
+iopc_field_set_typename(iopc_field_t *nonnull f, lstr_t typename,
+                        sb_t *nonnull err)
+{
+    f->kind = iop_get_type(typename);
+
+    if (f->kind == IOP_T_STRUCT) {
+        if (lstr_contains(typename, LSTR("."))) {
+            /* TODO Could parse and check that the type name looks like a
+             * proper type name. */
+            const iop_obj_t *obj;
+
+            obj = iop_get_obj(typename);
+            if (obj) {
+                switch (obj->type) {
+                  case IOP_OBJ_TYPE_PKG:
+                    /* Not expected to happen if we properly check the name.
+                     */
+                    sb_sets(err, "is a package name");
+                    return -1;
+
+                  case IOP_OBJ_TYPE_ST:
+                    f->external_st = obj->desc.st;
+                    f->kind = obj->desc.st->is_union ? IOP_T_UNION
+                                                     : IOP_T_STRUCT;
+                    break;
+
+                  case IOP_OBJ_TYPE_ENUM:
+                    f->external_en = obj->desc.en;
+                    f->kind = IOP_T_ENUM;
+                    break;
+                }
+
+                f->has_external_type = true;
+            }
+        } else {
+            /* TODO Support and fill paths. */
+            if (iopc_check_type_name(typename, err) < 0) {
+                sb_prepends(err, "invalid type name: ");
+                return -1;
+            }
+        }
+    }
+    f->type_name = p_dupz(typename.s, typename.len);
+    return 0;
+}
+
+static int
+iopc_field_set_type(iopc_field_t *nonnull f,
+                    const iop__type__t *nonnull type, sb_t *nonnull err)
 {
     if_assign (array_type, IOP_UNION_GET(iop__type, type, array)) {
         type = *array_type;
@@ -120,23 +168,11 @@ iopc_field_set_type(iopc_field_t *f, const iop__type__t *type, sb_t *err)
 
         f->repeat = IOP_R_REPEATED;
     }
-    if_assign (type_name, IOP_UNION_GET(iop__type, type, type_name)) {
-        f->kind = iop_get_type(*type_name);
-
-        if (f->kind == IOP_T_STRUCT) {
-            if (lstr_contains(*type_name, LSTR("."))) {
-                sb_setf(err, "cannot use type `%pL': "
-                        "external type names are not supported yet",
-                        type_name);
-                return -1;
-            }
-            /* TODO Support and fill paths. */
-            if (iopc_check_type_name(*type_name, err) < 0) {
-                sb_prependf(err, "invalid type name: `%pL': ", type_name);
-                return -1;
-            }
+    if_assign (typename, IOP_UNION_GET(iop__type, type, type_name)) {
+        if (iopc_field_set_typename(f, *typename, err) < 0) {
+            sb_prependf(err, "type name `%pL': ", typename);
+            return -1;
         }
-        f->type_name = p_dupz(type_name->s, type_name->len);
     } else {
         f->kind = iop_type_from_iop(type);
     }
@@ -192,8 +228,9 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
     return 0;
 }
 
-static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
-                                     int *next_tag, sb_t *err)
+static iopc_field_t *
+iopc_field_load(const iop__field__t *nonnull field_desc,
+                int *nonnull next_tag, sb_t *nonnull err)
 {
     iopc_field_t *f;
 
@@ -263,8 +300,9 @@ iop_structure_get_type_and_fields(const iop__structure__t *desc,
     }
 }
 
-static iopc_struct_t *iopc_struct_load(const iop__structure__t *st_desc,
-                                       sb_t *err)
+static iopc_struct_t *
+iopc_struct_load(const iop__structure__t *nonnull st_desc,
+                 sb_t *nonnull err)
 {
     iopc_struct_t *st;
     int next_tag = 1;
@@ -336,7 +374,8 @@ static iopc_enum_t *iopc_enum_load(const iop__enum__t *en_desc, sb_t *err)
 /* {{{ IOP package */
 
 static iopc_pkg_t *
-iopc_pkg_load_from_iop(const iop__package__t *pkg_desc, sb_t *err)
+iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
+                       sb_t *nonnull err)
 {
     t_scope;
     iopc_pkg_t *pkg = iopc_pkg_new();
@@ -427,8 +466,11 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
     if (iop_type_is_scalar(f->kind)) {
         iop_scalar_type_get_size_and_alignment(f->kind, &size, NULL);
     } else {
-        if (f->struct_def->type == STRUCT_TYPE_CLASS) {
+        if (iopc_field_type_is_class(f)) {
             size = sizeof(void *);
+        } else
+        if (f->has_external_type) {
+            size = f->external_st->size;
         } else {
             size = f->struct_def->size;
         }
@@ -447,22 +489,28 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
     };
 
     if (!iop_type_is_scalar(fdesc->type)) {
-        STATIC_ASSERT(offsetof(iopc_field_t, struct_def) ==
-                      offsetof(iopc_field_t, union_def));
+        if (f->has_external_type) {
+            fdesc->u1.st_desc = f->external_st;
+        } else {
+            STATIC_ASSERT(offsetof(iopc_field_t, struct_def) ==
+                          offsetof(iopc_field_t, union_def));
 
-        /* Should be set in "mp_iopc_struct_to_desc". */
-        assert (f->struct_def->desc);
+            /* TODO We're going to have to load dependancies first if we want
+             * that to work in multi-package contexts. */
+            fdesc->u1.st_desc = f->struct_def->desc;
+        }
 
-        /* TODO We're going to have to load dependancies first if we want
-         * that to work in multi-package contexts. */
-        fdesc->u1.st_desc = f->struct_def->desc;
+        assert (fdesc->u1.st_desc);
     } else
     if (fdesc->type == IOP_T_ENUM) {
-        /* Should be set in "mp_iopc_enum_to_desc". */
-        assert (f->enum_def->desc);
+        if (f->has_external_type) {
+            fdesc->u1.en_desc = f->external_en;
+        } else {
+            /* TODO Ditto. */
+            fdesc->u1.en_desc = f->enum_def->desc;
+        }
 
-        /* TODO Ditto. */
-        fdesc->u1.en_desc = f->enum_def->desc;
+        assert (fdesc->u1.en_desc);
     }
 
     if (st->type != STRUCT_TYPE_UNION) {
@@ -633,11 +681,17 @@ static iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg)
 /* }}} */
 /* {{{ IOP² API */
 
-iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *mp,
-                                const iop__package__t *pkg_desc, sb_t *err)
+iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
+                                const iop__package__t *nonnull pkg_desc,
+                                sb_t *nonnull err)
 {
     iop_pkg_t *pkg = NULL;
     iopc_pkg_t *iopc_pkg;
+
+    if (!expect(mp->mem_pool & MEM_BY_FRAME)) {
+        sb_sets(err, "incompatible memory pool type");
+        return NULL;
+    }
 
     if (!(iopc_pkg = iopc_pkg_load_from_iop(pkg_desc, err))) {
         sb_prependf(err, "invalid package `%pL': ", &pkg_desc->name);

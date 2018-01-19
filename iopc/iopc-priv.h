@@ -43,6 +43,11 @@ int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
                     sb_t *nonnull err);
 
 /* }}} */
+/* {{{ Typer. */
+
+bool iopc_field_type_is_class(const iopc_field_t *f);
+
+/* }}} */
 /* {{{ C Language */
 
 /** Give the extra length for the encoding of an IOP tag. */

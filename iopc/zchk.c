@@ -195,6 +195,7 @@ static int _test_struct(const char *pkg_file, int st_index,
 
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
+    IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
     Z_TEST(struct_, "basic struct") {
         Z_HELPER_RUN(test_struct("struct.json", 0, NULL,
@@ -231,6 +232,12 @@ Z_GROUP_EXPORT(iopiop) {
     Z_TEST(array, "array") {
         Z_HELPER_RUN(test_struct("array.json", 0, tstiop__array_test__sp,
                                  "{\"i\":[4,5,6]}"));
+    } Z_TEST_END;
+
+    Z_TEST(external_types, "external type names") {
+        Z_HELPER_RUN(test_struct("external-types.json", 0,
+                                 tstiop__test_external_types__sp,
+                                 "{\"st\":{\"i\":42},\"en\":\"B\"}"));
     } Z_TEST_END;
 
     Z_TEST(error_unknown_type, "error case: unknown type name") {

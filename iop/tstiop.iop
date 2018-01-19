@@ -755,6 +755,23 @@ struct IopSqEnumSt {
 };
 
 /* }}} */
+/* {{{ zchk iopiop.external_types */
+
+enum ExternalEnum {
+    A,
+    B,
+};
+
+struct ExternalStruct {
+    int i;
+};
+
+struct TestExternalTypes {
+    ExternalStruct st;
+    ExternalEnum en;
+};
+
+/* }}} */
 /* }}} */
 
 /* Interfaces */

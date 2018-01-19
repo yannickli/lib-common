@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc.h"
+#include "iopc-priv.h"
 
 static struct {
     qv_t(iopc_pkg) resolve_list;
@@ -195,7 +195,13 @@ iopc_apply_typedef(const iopc_field_t *tdef, iopc_field_t *f, bool f_is_tdef)
         f->type_pkg   = tdef->type_pkg;
         f->type_name  = p_strdup(tdef->type_name);
         f->type_path  = iopc_path_dup(tdef->type_path);
-        f->struct_def = tdef->struct_def;
+
+        if (tdef->has_external_type) {
+            f->has_external_type = tdef->has_external_type;
+            f->external_st = tdef->external_st;
+        } else {
+            f->struct_def = tdef->struct_def;
+        }
     }
 
     RETHROW(iopc_check_field_attributes(f, f_is_tdef));
@@ -229,6 +235,7 @@ static int iopc_find_type_in_pkg(iopc_pkg_t *pkg, iopc_field_t *f,
         if (!f->found_pkg) {
             f->found_pkg = pkg;
         }
+        assert (!f->has_external_type);
         f->struct_def = st;
         f->kind = (st->type == STRUCT_TYPE_UNION) ? IOP_T_UNION : IOP_T_STRUCT;
         return 0;
@@ -616,7 +623,8 @@ static int iopc_struct_check_circular_dep(iopc_pkg_t *pkg, iopc_struct_t *st)
         ||  field->repeat == IOP_R_OPTIONAL
         ||  field->repeat == IOP_R_REPEATED
         ||  (field->is_ref && st->type == STRUCT_TYPE_UNION && st->fields.len > 1)
-        ||  (field->is_ref && field->kind != IOP_T_STRUCT))
+        ||  (field->is_ref && field->kind != IOP_T_STRUCT)
+        ||  field->has_external_type)
         {
             continue;
         } else {
@@ -1179,6 +1187,17 @@ static int check_attr(const iopc_field_t *f)
     return 0;
 }
 
+bool iopc_field_type_is_class(const iopc_field_t *f)
+{
+    THROW_FALSE_IF(f->kind != IOP_T_STRUCT);
+
+    if (f->has_external_type) {
+        return iop_struct_is_class(f->external_st);
+    }
+
+    return f->struct_def->type == STRUCT_TYPE_CLASS;
+}
+
 int iopc_resolve_second_pass(iopc_pkg_t *pkg)
 {
     /* second pass: resolving of weak deps */
@@ -1213,7 +1232,7 @@ int iopc_resolve_second_pass(iopc_pkg_t *pkg)
                               f->loc);
                 }
                 if ((f->kind != IOP_T_STRUCT && f->kind != IOP_T_UNION)
-                ||  f->struct_def->type == STRUCT_TYPE_CLASS)
+                ||  iopc_field_type_is_class(f))
                 {
                     throw_loc("references can only be applied to structures "
                               "or unions", f->loc);

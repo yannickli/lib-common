@@ -19,8 +19,17 @@
 #include <lib-common/iop.iop.h>
 #include <lib-common/iop-priv.h>
 
-/* TODO Doc. */
-iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *mp,
-                                const iop__package__t *pkg_desc, sb_t *err);
+/** Generates an IOP package description from its IOP version.
+ *
+ * \param[in,out] mp        Memory pool to use for any needed allocation
+ *                          (should be a frame-based pool).
+ *
+ * \param[in]     pkg_desc  IOP description of the package.
+ *
+ * \param[out]    err       Error buffer.
+ */
+iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
+                                const iop__package__t *nonnull pkg_desc,
+                                sb_t *nonnull err);
 
 #endif /* IS_IOP_IOPC_IOP_H */

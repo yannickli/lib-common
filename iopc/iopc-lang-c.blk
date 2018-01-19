@@ -194,6 +194,48 @@ void iopc_struct_optimize(iopc_struct_t *st)
     }
 }
 
+static void iop_opt_type_get_size_and_alignment(iop_type_t type,
+                                                uint16_t *nullable size,
+                                                uint8_t *nullable align)
+{
+    static struct {
+        uint16_t size;
+        uint8_t align;
+    } sizes_and_alignments[] = {
+#define SIZE_ALIGN(type_t)  { sizeof(type_t), alignof(type_t) }
+
+        [IOP_T_VOID]   = SIZE_ALIGN(bool),
+        [IOP_T_BOOL]   = SIZE_ALIGN(opt_bool_t),
+        [IOP_T_U8]     = SIZE_ALIGN(opt_u8_t),
+        [IOP_T_I8]     = SIZE_ALIGN(opt_i8_t),
+        [IOP_T_U16]    = SIZE_ALIGN(opt_u16_t),
+        [IOP_T_I16]    = SIZE_ALIGN(opt_i16_t),
+        [IOP_T_U32]    = SIZE_ALIGN(opt_u32_t),
+        [IOP_T_I32]    = SIZE_ALIGN(opt_i32_t),
+        [IOP_T_ENUM]   = SIZE_ALIGN(opt_i32_t),
+        [IOP_T_U64]    = SIZE_ALIGN(opt_u64_t),
+        [IOP_T_I64]    = SIZE_ALIGN(opt_i64_t),
+        [IOP_T_DOUBLE] = SIZE_ALIGN(opt_double_t),
+        [IOP_T_STRING] = SIZE_ALIGN(lstr_t),
+        [IOP_T_DATA]   = SIZE_ALIGN(lstr_t),
+        [IOP_T_XML]    = SIZE_ALIGN(lstr_t),
+        [IOP_T_UNION]  = SIZE_ALIGN(void *),
+        [IOP_T_STRUCT] = SIZE_ALIGN(void *),
+
+#undef SIZE_ALIGN
+    };
+
+    typeof(sizes_and_alignments[0]) res;
+
+    res = sizes_and_alignments[type];
+    if (size) {
+        *size = res.size;
+    }
+    if (align) {
+        *align = res.align;
+    }
+}
+
 void iop_scalar_type_get_size_and_alignment(iop_type_t type,
                                             uint16_t *nullable size,
                                             uint8_t *nullable align)
@@ -237,73 +279,81 @@ void iop_scalar_type_get_size_and_alignment(iop_type_t type,
     }
 }
 
+static uint8_t iop_struct_get_align(const iop_struct_t *st);
+
+/* XXX The logic is the same (and *should* stay the same) as for
+ * "iopc_field_compute_size" except that the description type is different. */
+static uint16_t iop_field_get_align(const iop_field_t *f)
+{
+    uint8_t align;
+    uint16_t flags = f->flags;
+
+    if (TST_BIT(&flags, IOP_FIELD_IS_REFERENCE)) {
+        align = alignof(void *);
+    } else
+    if (f->repeat == IOP_R_OPTIONAL) {
+        iop_opt_type_get_size_and_alignment(f->type, NULL, &align);
+    } else
+    if (f->repeat == IOP_R_REPEATED) {
+        align = alignof(IOP_ARRAY_OF(void));
+    } else
+    if (iop_type_is_scalar(f->type)) {
+        iop_scalar_type_get_size_and_alignment(f->type, NULL, &align);
+    } else
+    if (iop_field_is_class(f)) {
+        align = alignof(void *);
+    } else {
+        align = iop_struct_get_align(f->u1.st_desc);
+    }
+
+    return align;
+}
+
+/* TODO We may want to expose it someday and also to extend iop_struct_t to
+ * have the alignment in it. */
+/* XXX The there is no caching of structs alignments (and we might want to add
+ * some at some point. The calculation is in O(N) where N is the number of
+ * inlined fields and subfields in the struct/union, which is not so bad. */
+static uint8_t iop_struct_get_align(const iop_struct_t *st)
+{
+    uint8_t align = 1;
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *f = &st->fields[i];
+
+        align = MAX(align, iop_field_get_align(f));
+    }
+
+    return align;
+}
+
 static void iopc_field_compute_size(iopc_field_t *f)
 {
     if (f->size) {
         return;
     }
 
-    if (f->repeat == IOP_R_OPTIONAL || f->is_ref) {
-        switch (f->kind) {
-          case IOP_T_VOID:
-            f->align = alignof(bool);
-            f->size = sizeof(bool);
-            break;
-          case IOP_T_BOOL:
-            f->align = alignof(opt_bool_t);
-            f->size  = sizeof(opt_bool_t);
-            break;
-          case IOP_T_U8:
-          case IOP_T_I8:
-            f->align = alignof(opt_i8_t);
-            f->size  = sizeof(opt_i8_t);
-            break;
-          case IOP_T_U16:
-          case IOP_T_I16:
-            f->align = alignof(opt_i16_t);
-            f->size  = sizeof(opt_i16_t);
-            break;
-          case IOP_T_U32:
-          case IOP_T_I32:
-          case IOP_T_ENUM:
-            f->align = alignof(opt_i32_t);
-            f->size  = sizeof(opt_i32_t);
-            break;
-          case IOP_T_U64:
-          case IOP_T_I64:
-            f->align = alignof(opt_i64_t);
-            f->size  = sizeof(opt_i64_t);
-            break;
-          case IOP_T_DOUBLE:
-            f->align = alignof(opt_double_t);
-            f->size  = sizeof(opt_double_t);
-            break;
-          case IOP_T_STRING:
-          case IOP_T_DATA:
-          case IOP_T_XML:
-            f->align = alignof(lstr_t);
-            f->size  = sizeof(lstr_t);
-            break;
-          case IOP_T_UNION:
-          case IOP_T_STRUCT:
-            f->align = alignof(void *);
-            f->size  = sizeof(void *);
-            break;
-          default:
-            e_panic("should not happen");
-        }
+    if (f->is_ref) {
+        f->align = alignof(void *);
+        f->size  = sizeof(void *);
+    } else
+    if (f->repeat == IOP_R_OPTIONAL) {
+        iop_opt_type_get_size_and_alignment(f->kind, &f->size, &f->align);
     } else
     if (f->repeat == IOP_R_REPEATED) {
         f->align = alignof(IOP_ARRAY_OF(void));
         f->size  = sizeof(IOP_ARRAY_OF(void));
-        return;
     } else
     if (iop_type_is_scalar(f->kind)) {
         iop_scalar_type_get_size_and_alignment(f->kind, &f->size, &f->align);
     } else
-    if (iopc_is_class(f->struct_def->type)) {
+    if (iopc_field_type_is_class(f)) {
         f->align = alignof(void *);
         f->size  = sizeof(void *);
+    } else
+    if (f->has_external_type) {
+        f->align = iop_struct_get_align(f->external_st);
+        f->size = f->external_st->size;
     } else {
         iopc_struct_optimize(f->struct_def);
         f->align = f->struct_def->align;
@@ -1292,6 +1342,10 @@ iopc_dump_field_src(sb_t *buf, iopc_struct_t *st, const char *tbase,
     unsigned flags = 0;
     const char *cname = pp_to_c(f->name);
     iop_type_t kind = f->kind;
+
+    /* IOPC fields with types taken from IOP environment cannot be dumped to C
+     * code. */
+    assert (!f->has_external_type);
 
     /* If the field is a field of a snmp rpc' struct, it is needed to get the
      * real type of the field, which is the one of field_origin */

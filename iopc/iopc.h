@@ -636,6 +636,9 @@ typedef struct iopc_field_t {
     /* In case the field is contained by a snmpTbl */
     bool snmp_is_in_tbl : 1;
 
+    /* For IOP²: true for fields of IOP types taken from IOP environment. */
+    bool has_external_type : 1;
+
     /** kind of the resolved type */
     iop_type_t kind;
     /** path of the resolved complex type */
@@ -650,6 +653,10 @@ typedef struct iopc_field_t {
         struct iopc_struct_t *struct_def;
         struct iopc_struct_t *union_def;
         struct iopc_enum_t   *enum_def;
+
+        /* For IOP², when the field has a type taken from IOP environment. */
+        const iop_struct_t *external_st;
+        const iop_enum_t   *external_en;
     };
     char *type_name;
     char *pp_type;
