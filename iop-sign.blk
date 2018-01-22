@@ -403,7 +403,21 @@ int main(int argc, char **argv)
     return 0;
 
   usage:
-    makeusage(EX_USAGE, argv0, "<command> <file>\n\n"
-              "command: sign, check, gen-token",
-              NULL, popt);
+    makeusage(EX_USAGE, argv0, "<command> <file>\n\n\
+commands: sign, check, gen-token\n\n\
+Examples with a One licence (from the One directory):\n\
+    # to sign the licence\n\
+    iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
+        sign ./etc/dev/licence.cf\n\
+    # to get an activation token for the licence\n\
+    iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
+        -A 24-Jan-2029 -T 25-Jan-2029\n\
+        gen-token ./etc/dev/licence.cf\n\
+    # to sign the licence with an embeded activation token\n\
+    iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
+        -A 24-Jan-2029\n\
+        sign ./etc/dev/licence.cf\n\
+    # to check the licence\n\
+    iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
+        check ./etc/dev/licence.cf", NULL, popt);
 }
