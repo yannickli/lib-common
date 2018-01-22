@@ -166,6 +166,7 @@ fill_and_check_fields(const iop_struct_t *desc,
     void              *signed_data = NULL;
     byte              *data;
     unsigned           flags = 0;
+    core__activation_token__t token;
     t_SB_8k(fbuf);
 
     sig_field = find_field(desc, LSTR_IMMED_V("signature"));
@@ -200,8 +201,7 @@ fill_and_check_fields(const iop_struct_t *desc,
         RETHROW(fill_signature_timestamp(desc, signed_data));
     }
 
-    if (opts.action == GEN_TOKEN) {
-        core__activation_token__t token;
+    if (opts.token_timeout) {
         time_t activation_timeout;
         time_t token_timeout;
 
@@ -227,8 +227,10 @@ fill_and_check_fields(const iop_struct_t *desc,
                                 : e_error("can't format token");
         }
 
-        printf("%*pM\n", LSTR_FMT_ARG(token.token));
-        return 0;
+        if (opts.action == GEN_TOKEN) {
+            printf("%*pM\n", LSTR_FMT_ARG(token.token));
+            return 0;
+        }
     }
 
     signature = (lstr_t *)((byte *)signed_data + sig_field->data_offs);
@@ -262,6 +264,18 @@ fill_and_check_fields(const iop_struct_t *desc,
 
         if (!signature->s) {
             return e_error("cannot compute signature");
+        }
+
+        /* Fill or remove activation token, if any. */
+        if (opts.token_timeout) {
+            core__signed_licence__t *licence = (void *)signed_data;
+
+            *licence->activation_token = token;
+        } else
+        if (strequal(opts.signed_iop, "core.SignedLicence")) {
+            core__signed_licence__t *licence = (void *)signed_data;
+
+            licence->activation_token = NULL;
         }
 
         if (!opts.quiet_obsolete) {
@@ -333,6 +347,7 @@ int main(int argc, char **argv)
     }
     if (strequal(argv[0], "sign")) {
         opts.action = DO_SIGN;
+        opts.token_timeout = opts.activation_timeout;
     } else
     if (strequal(argv[0], "check")) {
         opts.action = CHECK;
