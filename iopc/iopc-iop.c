@@ -722,4 +722,24 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
     return pkg;
 }
 
+const iop_struct_t *
+mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
+                        const iop__structure__t *nonnull iop_desc,
+                        sb_t *nonnull err)
+{
+    iop__package__t pkg_desc;
+    iop__package_elem__t *elem_array;
+    iop_pkg_t *pkg;
+
+    elem_array = &unconst_cast(iop__structure__t, iop_desc)->super;
+
+    iop_init(iop__package, &pkg_desc);
+    pkg_desc.name = LSTR("user_package");
+    pkg_desc.elems = IOP_TYPED_ARRAY(iop__package_elem, &elem_array, 1);
+
+    pkg = RETHROW_P(mp_iop_pkg_from_desc(mp, &pkg_desc, err));
+
+    return pkg->structs[0];
+}
+
 /* }}} */

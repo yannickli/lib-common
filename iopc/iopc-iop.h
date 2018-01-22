@@ -21,6 +21,10 @@
 
 /** Generates an IOP package description from its IOP version.
  *
+ * \warning This function can use elements from current IOP environment
+ * (referenced by full type name), so the environment should *not* be updated
+ * during the lifetime of an IOP description obtained with this function.
+ *
  * \param[in,out] mp        Memory pool to use for any needed allocation
  *                          (should be a frame-based pool).
  *
@@ -31,5 +35,21 @@
 iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
                                 const iop__package__t *nonnull pkg_desc,
                                 sb_t *nonnull err);
+
+/** Generates an IOP struct or union description from its IOP version.
+ *
+ * \warning Same as for \ref mp_iop_pkg_from_desc.
+ *
+ * \param[in,out] mp        Memory pool to use for any needed allocation
+ *                          (should be a frame-based pool).
+ *
+ * \param[in]     st_desc   IOP description of the struct/union.
+ *
+ * \param[out]    err       Error buffer.
+ */
+const iop_struct_t *
+mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
+                        const iop__structure__t *nonnull st_desc,
+                        sb_t *nonnull err);
 
 #endif /* IS_IOP_IOPC_IOP_H */
