@@ -305,6 +305,20 @@ fill_and_check_fields(const iop_struct_t *desc,
                 return e_error("invalid signature");
             }
         }
+
+        /* Check if activation token is valid. */
+        if (strequal(opts.signed_iop, "core.SignedLicence")) {
+            core__signed_licence__t *slicence = (void *)signed_data;
+            int rc;
+
+            sb_reset(&fbuf);
+            rc = t_parse_activation_token(slicence->activation_token->token,
+                                          slicence->licence, NULL, NULL,
+                                          NULL, &fbuf);
+            if (rc < 0) {
+                return e_error("%*pM", SB_FMT_ARG(&fbuf));
+            }
+        }
         e_notice("signature of file '%*pM' is valid",
                  LSTR_FMT_ARG(LSTR_STR_V(opts.path_signed)));
     }

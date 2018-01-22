@@ -570,7 +570,14 @@ int t_parse_activation_token(lstr_t rawtoken, const core__licence__t *licence,
 
         token->token = rawtoken;
     }
-    return hash_valid ? 0 : -2;
+    if (!hash_valid) {
+        if (err) {
+            sb_adds(err, "invalid activation token signature");
+            /* Note: it's not really a signature, just a hash. */
+        }
+        return -2;
+    }
+    return 0;
 
   error:
     if (err) {
