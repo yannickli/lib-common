@@ -107,20 +107,7 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
         return -1;                          \
     } while (0)
 
-static inline const char *__get_path(const char *file, bool display_prefix)
-{
-    static char res_path[PATH_MAX];
-
-    if (*file == '/' || !display_prefix || !iopc_g.prefix_dir) {
-        return file;
-    }
-
-    if (!expect(path_extend(res_path, iopc_g.prefix_dir, "%s", file) >= 0)) {
-        return NULL;
-    }
-
-    return res_path;
-}
+const char *__get_path(const char *file, bool display_prefix);
 
 static inline const char *get_print_path(const char *file)
 {

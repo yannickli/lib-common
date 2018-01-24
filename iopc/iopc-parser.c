@@ -14,6 +14,21 @@
 #include "iopc-priv.h"
 #include "iopctokens.h"
 
+const char *__get_path(const char *file, bool display_prefix)
+{
+    static char res_path[PATH_MAX];
+
+    if (*file == '/' || !display_prefix || !iopc_g.prefix_dir) {
+        return file;
+    }
+
+    if (!expect(path_extend(res_path, iopc_g.prefix_dir, "%s", file) >= 0)) {
+        return NULL;
+    }
+
+    return res_path;
+}
+
 typedef struct iopc_parser_t {
     qv_t(iopc_token) tokens;
     struct lexdata *ld;
