@@ -674,7 +674,7 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     qv_deep_wipe(&field->attrs, iopc_attr_delete);
     qv_deep_wipe(&field->comments, iopc_dox_wipe);
     if (field->defval_type == IOPC_DEFVAL_STRING) {
-        p_delete(&field->defval.ptr);
+        p_delete((char **)&field->defval.ptr);
     }
     qv_deep_wipe(&field->parents, iopc_extends_delete);
 }
