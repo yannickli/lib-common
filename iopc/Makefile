@@ -25,7 +25,6 @@ iopc_NOGENERATED = 1
 
 zchk_SOURCES = \
     zchk.c \
-    iopc-iop.c \
     libiopc.a \
     $liop/tstiop.a \
     $llibcommon.a
@@ -40,6 +39,7 @@ libiopc_SOURCES = \
     iopctokens.c              \
     iopc-write.c              \
     \
+    iopc-iop.c \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
     iopc-lang-swift.c         \
