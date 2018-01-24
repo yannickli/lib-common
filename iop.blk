@@ -5274,9 +5274,9 @@ static void iop_env_copy(iop_env_t *dst, iop_env_t *src)
 {
     iop_env_init(dst);
 
-    qm_for_each_pos(class_id, pos, &src->classes_by_id) {
-        qm_add(class_id, &dst->classes_by_id, &src->classes_by_id.keys[pos],
-               src->classes_by_id.values[pos]);
+    qm_for_each_pos(iop_class_by_id, pos, &src->classes_by_id) {
+        qm_add(iop_class_by_id, &dst->classes_by_id,
+               &src->classes_by_id.keys[pos], src->classes_by_id.values[pos]);
     }
     qm_for_each_pos(iop_dsos, pos, &src->dsos_by_pkg) {
         qm_add(iop_dsos, &dst->dsos_by_pkg, src->dsos_by_pkg.keys[pos],
@@ -5309,7 +5309,7 @@ void iop_env_get(iop_env_t *env)
 
 iop_env_t *iop_env_init(iop_env_t *env)
 {
-    qm_init(class_id,   &env->classes_by_id);
+    qm_init(iop_class_by_id, &env->classes_by_id);
     qm_init(iop_dsos,   &env->dsos_by_pkg);
     qm_init(iop_objs,   &env->iop_obj_by_fullname);
     return env;
@@ -5317,7 +5317,7 @@ iop_env_t *iop_env_init(iop_env_t *env)
 
 void iop_env_wipe(iop_env_t *env)
 {
-    qm_wipe(class_id,      &env->classes_by_id);
+    qm_wipe(iop_class_by_id, &env->classes_by_id);
     qm_wipe(iop_dsos,      &env->dsos_by_pkg);
     qm_deep_wipe(iop_objs, &env->iop_obj_by_fullname, lstr_wipe, qv_wipe);
 }
@@ -5453,12 +5453,13 @@ iop_get_class_by_id(const iop_struct_t *st, uint16_t class_id)
         key.master = key.master->class_attrs->parent;
     }
 
-    return qm_get_def_safe(class_id, &_G.env.classes_by_id, &key, NULL);
+    return qm_get_def_safe(iop_class_by_id, &_G.env.classes_by_id, &key,
+                           NULL);
 }
 
 void iop_for_each_registered_classes(iop_for_each_class_b cb)
 {
-    qm_for_each_pos(class_id, pos, &_G.env.classes_by_id) {
+    qm_for_each_pos(iop_class_by_id, pos, &_G.env.classes_by_id) {
         cb(_G.env.classes_by_id.values[pos]);
     }
 }
@@ -5554,7 +5555,7 @@ static int iop_register_class(const iop_struct_t *desc, iop_env_t *env,
     }
 
     /* Register in classes_by_id hash table */
-    pos = qm_put(class_id, &env->classes_by_id, &key, desc, 0);
+    pos = qm_put(iop_class_by_id, &env->classes_by_id, &key, desc, 0);
     if (pos & QHASH_COLLISION) {
         pos ^= QHASH_COLLISION;
         if (env->classes_by_id.values[pos] != desc) {
@@ -5594,7 +5595,7 @@ iop_class_check_parents_are_registered(const iop_struct_t *st,
             return 0;
         }
 
-        if (qm_find_safe(class_id, &env->classes_by_id, &key) < 0) {
+        if (qm_find_safe(iop_class_by_id, &env->classes_by_id, &key) < 0) {
             sb_setf(err, "class `%*pM` is not registered while its child "
                     "class `%*pM` is", LSTR_FMT_ARG(st->fullname),
                     LSTR_FMT_ARG(child->fullname));
@@ -5612,9 +5613,10 @@ int iop_check_registered_classes(const iop_env_t *env, sb_t *err)
     t_scope;
     qh_t(cptr) registered;
 
-    t_qh_init(cptr, &registered, qm_len(class_id, &env->classes_by_id));
+    t_qh_init(cptr, &registered,
+              qm_len(iop_class_by_id, &env->classes_by_id));
 
-    qm_for_each_pos(class_id, pos, &env->classes_by_id) {
+    qm_for_each_pos(iop_class_by_id, pos, &env->classes_by_id) {
         const iop_struct_t *st     = env->classes_by_id.values[pos];
         const iop_struct_t *master = env->classes_by_id.keys[pos].master;
 
@@ -5831,7 +5833,7 @@ static void iop_unregister_class(const iop_struct_t *desc)
         key.master = key.master->class_attrs->parent;
     }
 
-    qm_del_key(class_id, &_G.env.classes_by_id, &key);
+    qm_del_key(iop_class_by_id, &_G.env.classes_by_id, &key);
 }
 
 static int iop_unregister_obj(lstr_t fullname, iop_obj_t obj)

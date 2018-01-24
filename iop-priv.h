@@ -33,7 +33,7 @@ class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
     return (k1->master == k2->master) && (k1->child_id == k2->child_id);
 }
 
-qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
+qm_kvec_t(iop_class_by_id, class_id_key_t, const iop_struct_t *,
           class_id_key_hash, class_id_key_equal);
 
 /* }}} */
@@ -45,7 +45,7 @@ qvector_t(iop_obj, iop_obj_t);
 qm_kvec_t(iop_objs, lstr_t, qv_t(iop_obj), qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct iop_env_t {
-    qm_t(class_id)   classes_by_id;
+    qm_t(iop_class_by_id)   classes_by_id;
     qm_t(iop_dsos)   dsos_by_pkg;
 
     /* Contains classes/structs/unions/enums/packages. */
