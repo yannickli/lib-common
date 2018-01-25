@@ -194,7 +194,7 @@ static int _test_struct(const char *pkg_file, int st_index,
 /* {{{ Z_GROUP */
 
 Z_GROUP_EXPORT(iopiop) {
-    IOP_REGISTER_PACKAGES(&iop__pkg);
+    IOP_REGISTER_PACKAGES(&iopsq__pkg);
     IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
     Z_TEST(struct_, "basic struct") {
@@ -266,7 +266,7 @@ Z_GROUP_EXPORT(iopiop) {
             }, {
                 "fOo.bar",
                 "1:9: invalid field (ending at `\"fOo.bar\"'): "
-                "in type iop.Package: violation of constraint pattern "
+                "in type iopsq.Package: violation of constraint pattern "
                 "([a-z_\\.]*) on field name: fOo.bar",
                 NULL
             }
@@ -280,7 +280,8 @@ Z_GROUP_EXPORT(iopiop) {
             int res;
 
             sb_reset(&err);
-            res = t_iop_junpack_ps(&ps, iop__package__sp, &pkg_desc, 0, &err);
+            res = t_iop_junpack_ps(&ps, iopsq__package__sp, &pkg_desc, 0,
+                                   &err);
             if (t->jpack_err) {
                 Z_ASSERT_STREQUAL(err.data, t->jpack_err);
                 continue;

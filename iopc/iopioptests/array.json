@@ -1,7 +1,7 @@
 {
     "name": "array",
     "elems": [ {
-        "_class": "iop.Struct",
+        "_class": "iopsq.Struct",
         "name": "ArrayTest",
         "fields": [ {
             "name": "i",

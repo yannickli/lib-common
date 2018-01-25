@@ -1,7 +1,7 @@
 {
     "name": "foo",
     "elems": [ {
-        "_class": "iop.Enum",
+        "_class": "iopsq.Enum",
         "name": "IopSqEnum",
         "values": [ {
             "name": "VAL1"
@@ -12,7 +12,7 @@
             "name": "VAL3"
         } ]
     }, {
-        "_class": "iop.Struct",
+        "_class": "iopsq.Struct",
         "name": "IopSqEnumSt",
         "fields": [ {
             "name": "en",

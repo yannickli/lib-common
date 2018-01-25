@@ -16,7 +16,7 @@
 
 #include "iopc.h"
 
-#include <lib-common/iop.iop.h>
+#include <lib-common/iopsq.iop.h>
 #include <lib-common/iop-priv.h>
 
 /** Generates an IOP package description from its IOP version.
@@ -33,7 +33,7 @@
  * \param[out]    err       Error buffer.
  */
 iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
-                                const iop__package__t *nonnull pkg_desc,
+                                const iopsq__package__t *nonnull pkg_desc,
                                 sb_t *nonnull err);
 
 /** Generates an IOP struct or union description from its IOP version.
@@ -49,7 +49,7 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
  */
 const iop_struct_t *
 mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
-                        const iop__structure__t *nonnull st_desc,
+                        const iopsq__structure__t *nonnull st_desc,
                         sb_t *nonnull err);
 
 #endif /* IS_IOP_IOPC_IOP_H */

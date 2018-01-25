@@ -1,7 +1,7 @@
 {
     "name": "foo",
     "elems": [ {
-        "_class": "iop.Union",
+        "_class": "iopsq.Union",
         "name": "SimpleUnion",
         "fields": [ {
             "name": "i",

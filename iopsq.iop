@@ -11,10 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-package iop;
+package iopsq;
 
 /* {{{ IopType */
 
+@ctype(iop__int_size__t)
 enum IntSize {
     S8,
     S16,
@@ -22,17 +23,21 @@ enum IntSize {
     S64,
 };
 
+@ctype(iop__int_type__t)
 struct IntType {
     bool isSigned;
     IntSize size;
 };
 
+@ctype(iop__string_type__t)
 enum StringType {
     STRING,
     BYTES,
     XML,
 };
 
+/* XXX The type is named "IopType" and not just "Type" because it messes with
+ * swift otherwise. */
 @ctype(iop__type__t)
 union IopType {
     IntType i;
@@ -54,6 +59,7 @@ union IopType {
 
 /* }}} */
 
+@ctype(iop__package_elem__t)
 abstract local class PackageElem {
     @pattern("[a-zA-Z0-9]*") @minLength(1)
     string name;
@@ -61,6 +67,7 @@ abstract local class PackageElem {
 
 /* {{{ Struct */
 
+@ctype(iop__value__t)
 union Value {
     long i;
     ulong u;
@@ -69,10 +76,12 @@ union Value {
     bool b;
 };
 
+@ctype(iop__opt_info__t)
 struct OptInfo {
     Value? defVal;
 };
 
+@ctype(iop__field__t)
 struct Field {
     @pattern("[a-zA-Z0-9]*") @minLength(1)
     string name;
@@ -84,9 +93,11 @@ struct Field {
     void? isReference;
 };
 
+@ctype(iop__structure__t)
 abstract local class Structure : 1 : PackageElem {
 };
 
+@ctype(iop__struct__t)
 local class Struct : 2 : Structure {
     Field[] fields;
 };
@@ -94,6 +105,7 @@ local class Struct : 2 : Structure {
 /* }}} */
 /* {{{ Enum */
 
+@ctype(iop__enum_val__t)
 struct EnumVal {
     @pattern("[A-Z0-9_]*") @minLength(1)
     string name;
@@ -101,6 +113,7 @@ struct EnumVal {
     /* TODO Aliases */
 };
 
+@ctype(iop__enum__t)
 local class Enum : 3 : PackageElem {
     EnumVal[] values;
     /* TODO Strictness */
@@ -109,6 +122,7 @@ local class Enum : 3 : PackageElem {
 /* }}} */
 /* {{{ Union */
 
+@ctype(iop__union__t)
 local class Union : 4 : Structure {
     @minOccurs(1)
     Field[] fields;
@@ -119,6 +133,7 @@ local class Union : 4 : Structure {
 
 /* TODO Implement */
 /*
+@ctype(iop__typedef__t)
 local class Typedef : 5 : PackageElem {
     IopType type;
 };
@@ -127,6 +142,7 @@ local class Typedef : 5 : PackageElem {
 /* }}} */
 /* {{{ Package */
 
+@ctype(iop__package__t)
 struct Package {
     @pattern("[a-z_\.]*") @minLength(1)
     string name;

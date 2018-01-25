@@ -1,7 +1,7 @@
 {
     "name": "foo",
     "elems": [ {
-        "_class": "iop.Struct",
+        "_class": "iopsq.Struct",
         "name": "Bar",
         "fields": [ {
             "name": "unknownTypeField",
