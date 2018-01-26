@@ -1444,7 +1444,7 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
         if (fdesc->repeat == IOP_R_OPTIONAL) {
             if (!iop_value_has(fdesc, rp))
                 continue;
-            if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+            if (!iop_type_is_scalar(fdesc->type)) {
                 rp = *(void **)rp;
                 wp = *(void **)wp = dst;
                 if (!iop_field_is_class(fdesc)) {
@@ -1454,7 +1454,7 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
             }
         }
 
-        if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+        if (!iop_type_is_scalar(fdesc->type)) {
             bool is_class = iop_field_is_class(fdesc);
             bool is_ref   = iop_field_is_reference(fdesc);
 
