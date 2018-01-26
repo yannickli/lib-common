@@ -1441,17 +1441,8 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
             continue;
 
-        if (fdesc->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(fdesc, rp))
-                continue;
-            if (!iop_type_is_scalar(fdesc->type)) {
-                rp = *(void **)rp;
-                wp = *(void **)wp = dst;
-                if (!iop_field_is_class(fdesc)) {
-                    /* Will be done in __iop_copy_class for classes */
-                    dst = realign(mempcpy(dst, rp, fdesc->size));
-                }
-            }
+        if (fdesc->repeat == IOP_R_OPTIONAL && !iop_value_has(fdesc, rp)) {
+            continue;
         }
 
         if (!iop_type_is_scalar(fdesc->type)) {
@@ -1462,21 +1453,22 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                 const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
                 void       *wv = &IOP_FIELD(char,       wp, j * fdesc->size);
 
-                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
+                if (is_class || is_ref || fdesc->repeat == IOP_R_OPTIONAL) {
                     /* Non-optional referenced fields have to be dereferenced
                      * (dereferencing of optional fields was already done
                      *  just above).
                      */
                     rv = *(void **)rv;
                     wv = *(void **)wv = dst;
+
+                    if (!is_class) {
+                        /* Will be done in __iop_copy_class for classes */
+                        dst = realign(mempcpy(dst, rv, fdesc->size));
+                    }
                 }
                 if (is_class) {
                     dst = __iop_copy_class(fdesc->u1.st_desc, dst, wv, rv);
                 } else {
-                    if (is_ref) {
-                        /* Will be done in __iop_copy_class for classes */
-                        dst = realign(mempcpy(dst, rv, fdesc->size));
-                    }
                     dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
                 }
             }
