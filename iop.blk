@@ -1438,8 +1438,10 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
             }
         }
 
-        if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
+        if (!((1 << fdesc->type) & IOP_BLK_OK)) {
+            /* The type is not DATA,STRING,STRUCT,UNION */
             continue;
+        }
 
         if (fdesc->repeat == IOP_R_OPTIONAL && !iop_value_has(fdesc, rp)) {
             continue;
