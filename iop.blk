@@ -1482,11 +1482,12 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
 
             for (int j = 0; j < n; j++) {
                 lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
+                lstr_t *dest = &IOP_FIELD(lstr_t, wp, j);
 
                 /* We have to fix the lstr_t mem_pool manually because some
                  * naughty programmers could have played with it */
-                IOP_FIELD(lstr_t, wp, j).data = dst;
-                IOP_FIELD(lstr_t, wp, j).mem_pool = MEM_STATIC;
+                dest->data = dst;
+                dest->mem_pool = MEM_STATIC;
                 dst = realign(mempcpyz(dst, orig->s, orig->len));
             }
         }
