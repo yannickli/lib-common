@@ -1467,7 +1467,9 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                     }
                 }
                 if (is_class) {
-                    dst = __iop_copy_class(fdesc->u1.st_desc, dst, wv, rv);
+                    const iop_struct_t *st_cls = *(const iop_struct_t **)rv;
+
+                    dst = __iop_copy_class(st_cls, dst, wv, rv);
                 } else {
                     dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
                 }
@@ -1494,7 +1496,6 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
 static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
                                  void *wval, const void *rval)
 {
-    st = *(const iop_struct_t **)rval;
     dst = realign(mempcpy(dst, rval, st->size));
 
     do {
@@ -1524,13 +1525,11 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
     }
 
     res = mp_imalloc(mp, sz, 8, MEM_RAW);
-    dst = realign(mempcpy(res, v, st->size));
 
     if (is_class) {
-        do {
-            dst = __iop_copy(st, dst, res, v);
-        } while ((st = st->class_attrs->parent));
+        dst = __iop_copy_class(st, res, res, v);
     } else {
+        dst = realign(mempcpy(res, v, st->size));
         dst = __iop_copy(st, dst, res, v);
     }
 
@@ -1562,13 +1561,11 @@ void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
     }
 
     res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
-    dst = realign(mempcpy(res, v, st->size));
 
     if (is_class) {
-        do {
-            dst = __iop_copy(st, dst, res, v);
-        } while ((st = st->class_attrs->parent));
+        dst = __iop_copy_class(st, res, res, v);
     } else {
+        dst = realign(mempcpy(res, v, st->size));
         dst = __iop_copy(st, dst, res, v);
     }
 
