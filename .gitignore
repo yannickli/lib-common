@@ -39,6 +39,7 @@
 /ztst-swift
 /ztst-swiftc
 /dso-compatibility-check
+/iop-sign
 
 /common.so
 /core-iop-plugin.so

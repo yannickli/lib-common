@@ -26,6 +26,7 @@ ifneq (,$(SWIFTC))
 test_PROGRAMS += ztst-swift ztst-swiftc
 endif
 endif
+iop_PROGRAMS = iop-sign
 
 _IOPJSONPATH = $ljson
 _IOPTSPATH = $liop-core
@@ -338,5 +339,11 @@ ztst-swiftc_SOURCES = \
 	$llibcommon.a
 ztst-swiftc_SWIFTMODULE = swiftc
 ztst-swiftc_SWIFTMIXED = 1
+
+iop-sign_SOURCES = \
+	iop-sign.blk \
+	$llibcommon.a
+
+iop-sign_LIBS = $(openssl_LIBS) $(zlib_LIBS)
 
 include Build/base.mk
