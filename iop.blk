@@ -1504,6 +1504,154 @@ void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
 }
 
 /* }}} */
+/* {{{ Duplicating values: mp_iop_dup_desc_multi_alloc(). */
+
+static uint8_t *
+__mp_iop_copy_class(mem_pool_t *mp, const iop_struct_t *st,
+                    uint8_t *dst, void *wval, const void *rval);
+
+static uint8_t *__mp_iop_copy(mem_pool_t *mp, const iop_struct_t *st,
+                              uint8_t *dst, void *wval, const void *rval)
+{
+    const iop_field_t *fdesc;
+    const iop_field_t *end;
+
+    if (st->is_union) {
+        fdesc = get_union_field(st, rval);
+        end   = fdesc + 1;
+    } else {
+        fdesc = st->fields;
+        end   = fdesc + st->fields_len;
+    }
+
+    for (; fdesc < end; fdesc++) {
+        const void *rp = (char *)rval + fdesc->data_offs;
+        const void *wp = (char *)wval + fdesc->data_offs;
+        int n = 1;
+
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            n = ((lstr_t *)rp)->len;
+            if (n) {
+                dst = mp_imalloc(mp, n * fdesc->size, 8, MEM_RAW);
+                rp  = ((lstr_t *)rp)->data;
+                wp  = ((lstr_t *)wp)->data = dst;
+                dst = realign(mempcpy(dst, rp, n * fdesc->size));
+            } else {
+                ((lstr_t *)wp)->data = NULL;
+                dst = realign(dst);
+                continue;
+            }
+        }
+
+        if (!((1 << fdesc->type) & IOP_BLK_OK)) {
+            /* The type is not DATA,STRING,STRUCT,UNION */
+            continue;
+        }
+
+        if (fdesc->repeat == IOP_R_OPTIONAL && !iop_value_has(fdesc, rp)) {
+            continue;
+        }
+
+        if (!iop_type_is_scalar(fdesc->type)) {
+            bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
+            const iop_struct_t *fst = fdesc->u1.st_desc;
+
+            for (int j = 0; j < n; j++) {
+                const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
+                void       *wv = &IOP_FIELD(char,       wp, j * fdesc->size);
+
+                if (is_class || is_ref || fdesc->repeat == IOP_R_OPTIONAL) {
+                    /* Non-optional referenced fields have to be dereferenced
+                     * (dereferencing of optional fields was already done
+                     *  just above).
+                     */
+                    rv = *(void **)rv;
+
+                    if (is_class) {
+                        fst = *(const iop_struct_t **)rv;
+                    }
+                    dst = mp_imalloc(mp, fst->size, 8, MEM_RAW);
+                    wv = *(void **)wv = dst;
+
+                    if (!is_class) {
+                        /* Will be done in __mp_iop_copy_class for classes */
+                        dst = realign(mempcpy(dst, rv, fdesc->size));
+                    }
+                }
+                if (is_class) {
+                    dst = __mp_iop_copy_class(mp, fst, dst, wv, rv);
+                } else {
+                    dst = __mp_iop_copy(mp, fst, dst, wv, rv);
+                }
+            }
+        } else {
+            assert (fdesc->type == IOP_T_STRING || fdesc->type == IOP_T_XML
+                ||  fdesc->type == IOP_T_DATA);
+
+            for (int j = 0; j < n; j++) {
+                lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
+                lstr_t *dest = &IOP_FIELD(lstr_t, wp, j);
+
+                dst = mp_imalloc(mp, orig->len + 1, alignof(char), MEM_RAW);
+
+                /* We have to fix the lstr_t mem_pool manually because
+                 * some naughty programmers could have played with it */
+                dest->data = dst;
+                dest->mem_pool = MEM_STATIC;
+                dst = realign(mempcpyz(dst, orig->s, orig->len));
+            }
+        }
+    }
+
+    return dst;
+}
+
+static uint8_t *
+__mp_iop_copy_class(mem_pool_t *mp, const iop_struct_t *st,
+                    uint8_t *dst, void *wval, const void *rval)
+{
+    dst = realign(mempcpy(dst, rval, st->size));
+
+    do {
+        dst = __mp_iop_copy(mp, st, dst, wval, rval);
+    } while ((st = st->class_attrs->parent));
+
+    return dst;
+}
+
+void *mp_iop_dup_desc_multi_alloc(mem_pool_t *nonnull mp,
+                                  const iop_struct_t *nonnull st,
+                                  const void *nullable v)
+{
+    bool is_class;
+    size_t sz;
+    uint8_t *dst, *res;
+
+    e_assert(panic, mp->mem_pool & MEM_BY_FRAME,
+             "using 'mp_iop_dup_desc_multi_alloc' "
+             "on non frame-based memory pools is forbidden");
+
+    RETHROW_P(v);
+
+    if ((is_class = iop_struct_is_class(st))) {
+        st = *(const iop_struct_t **)v;
+    }
+
+    sz = st->size;
+    res = mp_imalloc(mp, sz, 8, MEM_RAW);
+
+    if (is_class) {
+        dst = __mp_iop_copy_class(mp, st, res, res, v);
+    } else {
+        dst = realign(mempcpy(res, v, st->size));
+        dst = __mp_iop_copy(mp, st, dst, res, v);
+    }
+
+    return res;
+}
+
+/* }}} */
 /* {{{ Comparing values */
 
 __cold static void
