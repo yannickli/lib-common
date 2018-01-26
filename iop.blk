@@ -1433,8 +1433,8 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                 dst = realign(mempcpy(dst, rp, n * fdesc->size));
             } else {
                 ((lstr_t *)wp)->data = NULL;
-                wp  = dst;
                 dst = realign(dst);
+                continue;
             }
         }
 
