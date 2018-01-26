@@ -1508,8 +1508,9 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
     return dst;
 }
 
-void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
-                         const void *v, size_t * nullable psz)
+static void *__mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
+                                  void *nullable *outp, const void *v,
+                                  size_t *nullable psz)
 {
     bool is_class;
     size_t sz;
@@ -1527,7 +1528,12 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
         *psz = sz;
     }
 
-    res = mp_imalloc(mp, sz, 8, MEM_RAW);
+    if (outp) {
+        res = *outp;
+        res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
+    } else {
+        res = mp_imalloc(mp, sz, 8, MEM_RAW);
+    }
 
     if (is_class) {
         dst = __iop_copy_class(st, res, res, v);
@@ -1540,40 +1546,17 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
     return res;
 }
 
-void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-                         const void *v, size_t * nullable psz)
+
+void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
+                         const void *v, size_t *nullable psz)
 {
-    bool is_class;
-    size_t sz;
-    uint8_t *dst, *res = *outp;
+    return __mp_iop_dup_desc_sz(mp, st, NULL, v, psz);
+}
 
-    if (unlikely(!v)) {
-        mp_delete(mp, outp);
-        return;
-    }
-
-    if ((is_class = iop_struct_is_class(st))) {
-        st = *(const iop_struct_t **)v;
-        sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
-    } else {
-        sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
-    }
-
-    if (psz) {
-        *psz = sz;
-    }
-
-    res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
-
-    if (is_class) {
-        dst = __iop_copy_class(st, res, res, v);
-    } else {
-        dst = realign(mempcpy(res, v, st->size));
-        dst = __iop_copy(st, dst, res, v);
-    }
-
-    assert (dst == res + sz);
-    *outp = res;
+void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+                         const void *v, size_t *nullable psz)
+{
+    *outp = __mp_iop_dup_desc_sz(mp, st, outp, v, psz);
 }
 
 void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
