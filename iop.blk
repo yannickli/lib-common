@@ -7020,7 +7020,7 @@ static lstr_t iop_get_name_from_fullname(lstr_t fullname)
 }
 
 #define BUILD_GET_BY_NAME(_fun, _type, _vec)                                 \
-static const _type *_fun(const iop_pkg_t *pkg, lstr_t name)                  \
+const _type *_fun(const iop_pkg_t *pkg, lstr_t name)                         \
 {                                                                            \
     for (const _type *const *it = pkg->_vec; *it; it++) {                    \
         const _type *obj = *it;                                              \
@@ -7033,8 +7033,8 @@ static const _type *_fun(const iop_pkg_t *pkg, lstr_t name)                  \
 }
 
 BUILD_GET_BY_NAME(iop_pkg_get_struct_by_name, iop_struct_t, structs)
-BUILD_GET_BY_NAME(iop_pkg_get_iface_by_name,  iop_iface_t,  ifaces)
-BUILD_GET_BY_NAME(iop_pkg_get_mod_by_name,    iop_mod_t,    mods)
+static BUILD_GET_BY_NAME(iop_pkg_get_iface_by_name,  iop_iface_t,  ifaces)
+static BUILD_GET_BY_NAME(iop_pkg_get_mod_by_name,    iop_mod_t,    mods)
 
 #undef BUILD_GET_BY_NAME
 

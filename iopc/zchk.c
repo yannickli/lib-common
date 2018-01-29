@@ -67,6 +67,10 @@ static int z_assert_ranges_eq(const int *ranges, int ranges_len,
 
 static int z_assert_enum_eq(const iop_enum_t *en, const iop_enum_t *ref)
 {
+    if (en == ref) {
+        return 0;
+    }
+
     Z_ASSERT_LSTREQUAL(en->name, ref->name, "names mismatch");
     /* XXX Don't check fullname: the package name can change. */
 
@@ -122,6 +126,10 @@ static int z_assert_field_eq(const iop_field_t *f, const iop_field_t *ref)
 static int z_assert_struct_eq(const iop_struct_t *st,
                               const iop_struct_t *ref)
 {
+    if (st == ref) {
+        return 0;
+    }
+
     Z_ASSERT_EQ(st->fields_len, ref->fields_len);
 
     for (int i = 0; i < st->fields_len; i++) {
@@ -291,6 +299,22 @@ Z_GROUP_EXPORT(iopiop) {
             Z_ASSERT_NULL(mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err));
             Z_ASSERT_STREQUAL(err.data, t->lib_err);
         }
+    } Z_TEST_END;
+
+    Z_TEST(full_struct, "test with a struct as complete as possible") {
+        t_scope;
+        iop_pkg_t *pkg;
+        const iop_struct_t *st;
+        lstr_t st_name = LSTR("FullStruct");
+
+        /* FIXME: some types cannot be implemented with IOP² yet (classes and
+         * fields with default values) so we have to use types from tstiop to
+         * avoid dissimilarities between structs. */
+        Z_HELPER_RUN(t_package_load(&pkg, "full-struct.json", LSTR_NULL_V));
+        st = iop_pkg_get_struct_by_name(pkg, st_name);
+        Z_ASSERT_P(st, "cannot find struct `%pL'", &st_name);
+        Z_HELPER_RUN(z_assert_struct_eq(st, &tstiop__full_struct__s),
+                     "structs mismatch");
     } Z_TEST_END;
 } Z_GROUP_END;
 

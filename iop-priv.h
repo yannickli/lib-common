@@ -69,5 +69,10 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len,
                               iop_env_t *env, unsigned flags, sb_t *err);
 
 /* }}} */
+/* {{{ Getters */
+
+const iop_struct_t *iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name);
+
+/* }}} */
 
 #endif
