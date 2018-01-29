@@ -467,7 +467,11 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
      *    iop_field_t: size of the underlying type except for class
      */
     if (iop_type_is_scalar(f->kind)) {
-        iop_scalar_type_get_size_and_alignment(f->kind, &size, NULL);
+        if (f->repeat == IOP_R_OPTIONAL) {
+            iop_opt_type_get_size_and_alignment(f->kind, &size, NULL);
+        } else {
+            iop_scalar_type_get_size_and_alignment(f->kind, &size, NULL);
+        }
     } else {
         if (iopc_field_type_is_class(f)) {
             size = sizeof(void *);

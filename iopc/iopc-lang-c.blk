@@ -194,9 +194,9 @@ void iopc_struct_optimize(iopc_struct_t *st)
     }
 }
 
-static void iop_opt_type_get_size_and_alignment(iop_type_t type,
-                                                uint16_t *nullable size,
-                                                uint8_t *nullable align)
+void iop_opt_type_get_size_and_alignment(iop_type_t type,
+                                         uint16_t *nullable size,
+                                         uint8_t *nullable align)
 {
     static struct {
         uint16_t size;
