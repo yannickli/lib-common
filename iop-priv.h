@@ -14,6 +14,8 @@
 #ifndef IS_LIB_COMMON_IOP_PRIV_H
 #define IS_LIB_COMMON_IOP_PRIV_H
 
+#include "iop.h"
+
 /* {{{ class_id/class_name qm declarations */
 
 typedef struct class_id_key_t {

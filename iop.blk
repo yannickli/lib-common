@@ -14,10 +14,9 @@
 #include <float.h>
 #include <math.h>
 #include <lib-common/container-htlist.h>
+#include "iop-priv.h"
 #include "arith.h"
 #include "core.h"
-#include "iop.h"
-#include "iop-priv.h"
 #include "iop-helpers.in.c"
 #include "thr.h"
 #include "sort.h"
