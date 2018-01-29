@@ -229,7 +229,7 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
 }
 
 static iopc_field_t *
-iopc_field_load(const iop__field__t *nonnull field_desc,
+iopc_field_load(const iop__field__t *nonnull field_desc, int pos,
                 int *nonnull next_tag, sb_t *nonnull err)
 {
     iopc_field_t *f;
@@ -238,6 +238,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
 
     f = iopc_field_new();
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
+    f->pos = pos;
     f->tag = OPT_DEFVAL(field_desc->tag, *next_tag);
     if (iopc_check_tag_value(f->tag, err) < 0) {
         goto error;
@@ -315,7 +316,9 @@ iopc_struct_load(const iop__structure__t *nonnull st_desc,
     tab_for_each_ptr(field_desc, &fields) {
         iopc_field_t *f;
 
-        if (!(f = iopc_field_load(field_desc, &next_tag, err))) {
+        if (!(f = iopc_field_load(field_desc, st->fields.len, &next_tag,
+                                  err)))
+        {
             iopc_struct_delete(&st);
             return NULL;
         }
@@ -528,6 +531,29 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
     uint16_t offset;
     iop_array_i32_t ranges;
 
+    if (st->type == STRUCT_TYPE_UNION) {
+        offset = sizeof(uint16_t);
+    } else {
+        /* TODO handle the case of offsets for union */
+        offset = 0;
+    }
+
+    fields = mp_new_raw(mp, iop_field_t, st->fields.len);
+    tab_for_each_entry(f, &st->fields) {
+        mp_iopc_field_to_desc(mp, f, st, &offset, &fields[f->pos]);
+    }
+
+    if (st->type == STRUCT_TYPE_UNION) {
+        /* The anonymous union field offset depends on its alignment, which
+         * depends of the IOP union field with the biggest alignment. This
+         * loop realigns all the fields offsets on the biggest offset.
+         */
+        tab_for_each_pos(pos, &st->fields) {
+            fields[pos].data_offs = offset;
+        }
+    }
+
+    iopc_struct_sort_fields(st, BY_TAG);
     if (mp != t_pool()) {
         t_scope;
 
@@ -537,7 +563,6 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
         ranges = t_iopc_struct_build_ranges(st);
     }
 
-    fields = mp_new_raw(mp, iop_field_t, st->fields.len);
     {
         iop_struct_t _st_desc = {
             .fullname = mp_build_fullname(mp, pkg, st->name),
@@ -558,28 +583,6 @@ static iop_struct_t *mp_iopc_struct_to_desc(mem_pool_t *mp,
         p_copy(st_desc, &_st_desc, 1);
         st->desc = st_desc;
     };
-
-    if (st->type == STRUCT_TYPE_UNION) {
-        offset = sizeof(uint16_t);
-    } else {
-        /* TODO handle the case of offsets for union */
-        offset = 0;
-    }
-
-    tab_for_each_pos(pos, &st->fields) {
-        mp_iopc_field_to_desc(mp, st->fields.tab[pos], st, &offset,
-                              &fields[pos]);
-    }
-
-    if (st->type == STRUCT_TYPE_UNION) {
-        /* The anonymous union field offset depends on its alignment, which
-         * depends of the IOP union field with the biggest alignment. This
-         * loop realigns all the fields offsets on the biggest offset.
-         */
-        tab_for_each_pos(pos, &st->fields) {
-            fields[pos].data_offs = offset;
-        }
-    }
 
     return st_desc;
 }
