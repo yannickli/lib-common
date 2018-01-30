@@ -28,6 +28,19 @@ static lstr_t t_build_json_pkg(const char *pkg_name)
     return t_lstr_fmt("{\"name\":\"%s\",\"elems\":[]}", pkg_name);
 }
 
+static iop__package__t *t_load_package_from_file(const char *filename,
+                                                 sb_t *err)
+{
+    const char *path;
+    iop__package__t *pkg_desc = NULL;
+
+    path = t_get_path(filename);
+    RETHROW_NP(t_iop_junpack_ptr_file(path, &iop__package__s,
+                                      (void **)&pkg_desc, 0, NULL, err));
+
+    return pkg_desc;
+}
+
 /* }}} */
 /* {{{ Z_HELPERs */
 
@@ -35,13 +48,11 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
                           lstr_t err_msg)
 {
     SB_1k(err);
-    const char *path;
-    iop__package__t pkg_desc;
+    const iop__package__t *pkg_desc;
 
-    path = t_get_path(file);
-    Z_ASSERT_N(t_iop_junpack_file(path, &iop__package__s, &pkg_desc, 0,
-                                  NULL, &err), "%s: %pL", file, &err);
-    *pkg = mp_iopsq_build_pkg(t_pool(), &pkg_desc, &err);
+    pkg_desc = t_load_package_from_file(file, &err);
+    Z_ASSERT_P(pkg_desc, "%s: %pL", file, &err);
+    *pkg = mp_iopsq_build_pkg(t_pool(), pkg_desc, &err);
     if (err_msg.s) {
         Z_ASSERT_NULL(*pkg, "%s: expected an error", file);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), err_msg,
@@ -321,6 +332,52 @@ Z_GROUP_EXPORT(iopsq) {
         Z_HELPER_RUN(z_assert_struct_eq(st, &tstiop__full_struct__s),
                      "structs mismatch");
     } Z_TEST_END;
+
+    Z_TEST(st_error_cases, "struct error cases miscellaneous") {
+        t_scope;
+        SB_1k(err);
+        const iop__package__t *pkg_desc;
+        const char *errors[] = {
+            /* TODO Detect the bad type name instead. */
+            "failed to resolve the package: error: "
+                "unable to find any pkg providing type `foo..Bar`",
+            "invalid package `user_package': "
+                "cannot load `MultiDimensionArray': "
+                "multi-dimension arrays are not supported",
+            "invalid package `user_package': "
+                "cannot load `OptionalArray': "
+                "repeated field cannot be optional or have a default value",
+            "invalid package `user_package': "
+                "cannot load `OptionalReference': "
+                "optional references are not supported",
+            "invalid package `user_package': "
+                "cannot load `ArrayOfReference': "
+                "arrays of references are not supported",
+            /* TODO tag conflict */
+            /* TODO name conflict */
+        };
+        const char **exp_error = errors;
+
+        pkg_desc = t_load_package_from_file("st-error-misc.json", &err);
+        Z_ASSERT_P(pkg_desc, "%pL", &err);
+        Z_ASSERT_EQ(pkg_desc->elems.len, countof(errors));
+
+        tab_for_each_entry(elem, &pkg_desc->elems) {
+            t_scope;
+            const iop__structure__t *st_desc;
+
+            st_desc = iop_obj_ccast(iop__structure, elem);
+            Z_ASSERT_NULL(mp_iopsq_build_struct(t_pool(), st_desc, &err),
+                          "unexpected success for struct %*pS "
+                          "(expected error: %s)",
+                          IOP_OBJ_FMT_ARG(elem), *exp_error);
+            Z_ASSERT_STREQUAL(err.data, *exp_error,
+                              "unexpected error message");
+            exp_error++;
+        }
+    } Z_TEST_END;
+
+    /* TODO Same as 'st_error_cases' but with enums. */
 } Z_GROUP_END;
 
 /* }}} */

@@ -1,0 +1,61 @@
+{
+    "name": "foo",
+    "elems": [ {
+        "_class": "iopsq.Struct",
+        "name": "InvalidTypeName",
+        "fields": [ {
+            "name": "s",
+            "type": {
+                "typeName": "foo..Bar"
+            }
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "MultiDimensionArray",
+        "fields": [ {
+            "name": "multiArray",
+            "type": {
+                "array": {
+                    "array": {
+                        "typeName": "uint"
+                    }
+                }
+            }
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "OptionalArray",
+        "fields": [ {
+            "name": "optionalArray",
+            "type": {
+                "array": {
+                    "typeName": "uint"
+                }
+            },
+            "optional": {}
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "OptionalReference",
+        "fields": [ {
+            "name": "optionalReference",
+            "type": {
+                "typeName": "uint"
+            },
+            "optional": {},
+            "isReference": true
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "ArrayOfReference",
+        "fields": [ {
+            "name": "arrayOfReference",
+            "type": {
+                "array": {
+                    "typeName": "uint"
+                }
+            },
+            "isReference": true
+        } ]
+    } ]
+}

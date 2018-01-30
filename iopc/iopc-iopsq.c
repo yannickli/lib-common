@@ -276,6 +276,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc, int pos,
     return f;
 
   error:
+    /* TODO: prepend a message with the field name. */
     iopc_field_delete(&f);
     return NULL;
 }
