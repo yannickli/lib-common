@@ -342,21 +342,23 @@ Z_GROUP_EXPORT(iopsq) {
             "failed to resolve the package: error: "
                 "unable to find any pkg providing type `foo..Bar`",
             "invalid package `user_package': "
-                "cannot load `MultiDimensionArray': "
+                "cannot load `MultiDimensionArray': field `multiArray': "
                 "multi-dimension arrays are not supported",
             "invalid package `user_package': "
-                "cannot load `OptionalArray': "
+                "cannot load `OptionalArray': field `optionalArray': "
                 "repeated field cannot be optional or have a default value",
             "invalid package `user_package': "
-                "cannot load `OptionalReference': "
+                "cannot load `OptionalReference': field `optionalReference': "
                 "optional references are not supported",
             "invalid package `user_package': "
-                "cannot load `ArrayOfReference': "
+                "cannot load `ArrayOfReference': field `arrayOfReference': "
                 "arrays of references are not supported",
-            "invalid package `user_package': cannot load `TagConflict': "
+            "invalid package `user_package': "
+                "cannot load `TagConflict': field `f2': "
                 "tag `42' is already used by field `f1'",
-            "invalid package `user_package': cannot load `NameConflict': "
-                "name `field' is already used by another field",
+            "invalid package `user_package': "
+                "cannot load `NameConflict': field `field': "
+                "name already used by another field",
         };
         const char **exp_error = errors;
 

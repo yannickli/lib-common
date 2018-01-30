@@ -233,9 +233,11 @@ static iopc_field_t *
 iopc_field_load(const iop__field__t *nonnull field_desc,
                 const qv_t(iopc_field) *fields, sb_t *nonnull err)
 {
-    iopc_field_t *f;
+    iopc_field_t *f = NULL;
 
-    RETHROW_NP(iopc_check_name(field_desc->name, NULL, err));
+    if (iopc_check_name(field_desc->name, NULL, err) < 0) {
+        goto error;
+    }
 
     f = iopc_field_new();
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
@@ -251,8 +253,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
     }
     tab_for_each_entry(other_field, fields) {
         if (strequal(other_field->name, f->name)) {
-            sb_setf(err, "name `%s' is already used by another field",
-                    f->name);
+            sb_sets(err, "name already used by another field");
             goto error;
         }
         if (other_field->tag == f->tag) {
@@ -291,7 +292,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
     return f;
 
   error:
-    /* TODO: prepend a message with the field name. */
+    sb_prependf(err, "field `%pL': ", &field_desc->name);
     iopc_field_delete(&f);
     return NULL;
 }
