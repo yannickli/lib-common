@@ -735,6 +735,13 @@ struct S2 {
 };
 
 /* }}} */
+/* {{{ zchk iopiop.array */
+
+struct ArrayTest {
+    int[] i;
+};
+
+/* }}} */
 /* }}} */
 
 /* Interfaces */

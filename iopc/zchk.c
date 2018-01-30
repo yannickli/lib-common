@@ -43,10 +43,65 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     Z_HELPER_END;
 }
 
-static int _t_test_struct(const char *pkg_file, int st_index,
-                          const char **jsons, int nb_jsons,
-                          const iop_struct_t **_st_desc)
+static int z_assert_struct_eq(const iop_struct_t *st1,
+                              const iop_struct_t *st2);
+
+static int z_assert_field_eq(const iop_field_t *f, const iop_field_t *ref)
 {
+    Z_ASSERT_LSTREQUAL(f->name, ref->name, "names mismatch");
+    Z_ASSERT_EQ(f->tag, ref->tag, "tag mismatch");
+    Z_ASSERT(f->tag_len == ref->tag_len, "tag_len field mismatch");
+    Z_ASSERT(f->flags == ref->flags, "flags mismatch");
+    Z_ASSERT_EQ(f->size, ref->size, "sizes mismatch");
+    Z_ASSERT(f->type == ref->type, "types mismatch");
+    Z_ASSERT(f->repeat == ref->repeat, "repeat field mismatch");
+    Z_ASSERT_EQ(f->data_offs, ref->data_offs, "offset mismatch");
+
+    /* TODO Check default value. */
+
+    if (!iop_type_is_scalar(f->type)) {
+        /* TODO Protect against loops. */
+        Z_HELPER_RUN(z_assert_struct_eq(f->u1.st_desc, ref->u1.st_desc),
+                     "struct type mismatch");
+    }
+    /* TODO Check enum if relevant. */
+
+    Z_HELPER_END;
+}
+
+/* Check that two IOP structs are identical. The name can differ. */
+static int z_assert_struct_eq(const iop_struct_t *st,
+                              const iop_struct_t *ref)
+{
+    Z_ASSERT_EQ(st->fields_len, ref->fields_len);
+
+    for (int i = 0; i < st->fields_len; i++) {
+        const iop_field_t *fdesc = &st->fields[i];
+        const iop_field_t *ref_fdesc = &ref->fields[i];
+
+        Z_HELPER_RUN(z_assert_field_eq(fdesc, ref_fdesc),
+                     "got difference(s) on field #%d (`%pL')",
+                     i, &ref_fdesc->name);
+    }
+
+    Z_ASSERT(st->is_union == ref->is_union);
+    Z_ASSERT(st->flags == ref->flags);
+    /* TODO Check attributes. */
+
+    Z_ASSERT_EQ(st->ranges_len, ref->ranges_len);
+    for (int i = 0; i < st->ranges_len * 2 + 1; i++) {
+        Z_ASSERT_EQ(st->ranges[i], ref->ranges[i],
+                    "ranges differ at index %d", i);
+    }
+
+    Z_HELPER_END;
+}
+
+static int _test_struct(const char *pkg_file, int st_index,
+                        const char **jsons, int nb_jsons,
+                        const iop_struct_t *nullable ref_st_desc)
+{
+    t_scope;
     SB_1k(err);
     SB_1k(buf);
     iop_pkg_t *pkg;
@@ -54,6 +109,11 @@ static int _t_test_struct(const char *pkg_file, int st_index,
 
     Z_HELPER_RUN(t_package_load(&pkg, pkg_file, LSTR_NULL_V));
     st_desc = pkg->structs[st_index];
+
+    if (ref_st_desc) {
+        Z_HELPER_RUN(z_assert_struct_eq(st_desc, ref_st_desc),
+                     "struct description mismatch");
+    }
 
     for (int i = 0; i < nb_jsons; i++) {
         lstr_t st_json = LSTR(jsons[i]);
@@ -72,31 +132,21 @@ static int _t_test_struct(const char *pkg_file, int st_index,
                            "the json data changed after unpack/repack");
     }
 
-    if (_st_desc) {
-        *_st_desc = st_desc;
-    }
-
     Z_HELPER_END;
 }
 
-#define t_test_struct(_file, _idx, st_desc, ...)                             \
+#define test_struct(_file, _idx, st_desc, ...)                               \
     ({                                                                       \
         const char *__files[] = { __VA_ARGS__ };                             \
                                                                              \
-        _t_test_struct(_file, _idx, __files, countof(__files), (st_desc));   \
-    })
-
-#define test_struct(_file, _idx, ...)                                        \
-    ({                                                                       \
-        t_scope;                                                             \
-        t_test_struct(_file, _idx, NULL, ##__VA_ARGS__);                     \
+        _test_struct(_file, _idx, __files, countof(__files), (st_desc));     \
     })
 
 Z_GROUP_EXPORT(iopiop) {
     IOP_REGISTER_PACKAGES(&iop__pkg);
 
     Z_TEST(struct_, "basic struct") {
-        Z_HELPER_RUN(test_struct("struct.json", 0,
+        Z_HELPER_RUN(test_struct("struct.json", 0, NULL,
                                  "{\"i1\":42,\"i2\":2,\"s\":\"foo\"}"));
     } Z_TEST_END;
 
@@ -106,30 +156,23 @@ Z_GROUP_EXPORT(iopiop) {
         const char *v2 = "{\"i\":12345678}";
         const char *tst1;
         const char *tst2;
-        const iop_struct_t *st;
-        const iop_struct_t *ref_st;
 
         tst1 = t_fmt("{\"st\":%s,\"stRef\":%s}", v1, v2);
         tst2 = t_fmt("{\"st\":%s,\"stRef\":%s,\"stOpt\":%s}", v1, v2, v1);
 
-        Z_HELPER_RUN(t_test_struct("sub-struct.json", 1, &st, tst1, tst2));
-
-        ref_st = tstiop__s2__sp;
-        Z_ASSERT_EQ(st->fields_len, ref_st->fields_len);
-        for (int i = 0; i < st->fields_len; i++) {
-            const iop_field_t *fdesc = &st->fields[i];
-            const iop_field_t *ref_fdesc = &ref_st->fields[i];
-
-            Z_ASSERT_LSTREQUAL(fdesc->name, ref_fdesc->name);
-            Z_ASSERT_EQ(fdesc->size, ref_fdesc->size,
-                        "sizes differ for field `%pL'", &fdesc->name);
-        }
+        Z_HELPER_RUN(test_struct("sub-struct.json", 1, tstiop__s2__sp, tst1,
+                                 tst2));
     } Z_TEST_END;
 
     Z_TEST(union_, "basic union") {
-        Z_HELPER_RUN(test_struct("union.json", 0,
+        Z_HELPER_RUN(test_struct("union.json", 0, NULL,
                                  "{\"i\":6}",
                                  "{\"s\":\"toto\"}"));
+    } Z_TEST_END;
+
+    Z_TEST(array, "array") {
+        Z_HELPER_RUN(test_struct("array.json", 0, tstiop__array_test__sp,
+                                 "{\"i\":[4,5,6]}"));
     } Z_TEST_END;
 
     Z_TEST(error, "try to load a broken IOP package") {

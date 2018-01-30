@@ -202,12 +202,13 @@ static iopc_field_t *iopc_field_load(const iop__field__t *field_desc,
     if (iopc_field_set_type(f, &field_desc->type, err) < 0) {
         goto error;
     }
-    if (f->repeat == IOP_R_REPEATED && field_desc->optional) {
-        sb_setf(err, "repeated field cannot be optional "
-                "or have a default value");
-        goto error;
-    }
-
+    if (f->repeat == IOP_R_REPEATED) {
+        if (field_desc->optional) {
+            sb_setf(err, "repeated field cannot be optional "
+                    "or have a default value");
+            goto error;
+        }
+    } else
     if (iopc_field_set_opt_info(f, field_desc->optional, err) < 0) {
         goto error;
     }
@@ -324,7 +325,7 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
                                   const iopc_struct_t *st, uint16_t *offset,
                                   iop_field_t *fdesc)
 {
-    size_t size;
+    uint16_t size;
 
     *offset = ROUND_UP(*offset, f->align);
 
@@ -333,14 +334,14 @@ static void mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
      *    iopc_field_t: size of the field (as returned by fieldtypeof)
      *    iop_field_t: size of the underlying type except for class
      */
-    if (f->kind == IOP_T_STRUCT || f->kind == IOP_T_UNION) {
+    if (iop_type_is_scalar(f->kind)) {
+        iop_scalar_type_get_size_and_alignment(f->kind, &size, NULL);
+    } else {
         if (f->struct_def->type == STRUCT_TYPE_CLASS) {
             size = sizeof(void *);
         } else {
             size = f->struct_def->size;
         }
-    } else {
-        size = f->size;
     }
 
     *fdesc = (iop_field_t){
