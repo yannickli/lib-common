@@ -42,6 +42,9 @@ static inline int iopc_check_type_name(lstr_t type_name, sb_t *err)
 int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
                     sb_t *nonnull err);
 
+/** Check for type incompatibilities in an IOPC field. */
+int iopc_check_field_type(const iopc_field_t *f, sb_t *err);
+
 /* }}} */
 /* {{{ Typer. */
 
@@ -50,47 +53,14 @@ bool iopc_field_type_is_class(const iopc_field_t *f);
 /* }}} */
 /* {{{ C Language */
 
-/** Give the extra length for the encoding of an IOP tag. */
-static inline int iopc_tag_len(int32_t tag)
-{
-    /* Tags 0..29 are encoded inline -> 0 byte,
-     * Tags 30..255 are encoded as value 30 plus 1 byte,
-     * Tags 256..65535 are encoded as value 31 plus 2 extra bytes */
-    return (tag >= 30) + (tag >= 256);
-}
-
-/** Process the value of the flags associated to an IOP field. */
-unsigned iopc_field_build_flags(const iopc_field_t *nonnull f,
-                                const iopc_struct_t *nonnull st,
-                                const iopc_attrs_t *nullable attrs);
-
-/** Build the range used to associate an IOP tag to a struct field. */
-iop_array_i32_t t_iopc_struct_build_ranges(const iopc_struct_t *st);
-
-/** Build the range used to associate an enum value to the associated element.
+/** Create an 'iop_pkg_t' from an 'iopc_pkg_t'.
+ *
+ * \warning The types must be resolved by the typer first.
+ *
+ * \param[in,out] mp  The memory pool for all needed allocations. Must be a
+ *                    by-frame memory pool (flag MEM_BY_FRAME set).
  */
-iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en);
-
-/** Calculate sizes and alignments then and optimize the fields order to
- * minimize the structure size.
- */
-void iopc_struct_optimize(iopc_struct_t *st);
-
-/** Get the field size and alignment for the C type associated to an IOP
- * scalar type.
- */
-void iop_scalar_type_get_size_and_alignment(iop_type_t type,
-                                            uint16_t *nullable size,
-                                            uint8_t *nullable align);
-
-/** Same as \ref iop_scalar_type_get_size_and_alignment but for optional
- * types. */
-void iop_opt_type_get_size_and_alignment(iop_type_t type,
-                                         uint16_t *nullable size,
-                                         uint8_t *nullable align);
-
-/** Check for type incompatibilities in an IOPC field. */
-int iopc_check_field_type(const iopc_field_t *f, sb_t *err);
+iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg);
 
 /* }}} */
 
