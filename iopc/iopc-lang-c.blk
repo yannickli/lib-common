@@ -22,6 +22,8 @@ struct iopc_do_c_globs iopc_do_c_g;
 #define CONST     _G.no_const ? "" : "const "
 #define NULLABLE  (_G.export_nullability ? "nullable " : "")
 
+/* {{{ Misc. */
+
 static const char *pp_under(iopc_path_t *path)
 {
     sb_t buf;
@@ -55,6 +57,9 @@ static lstr_t t_enum_get_prefix(iopc_enum_t *en)
     lstr_ascii_toupper(&ns);
     return ns;
 }
+
+/* }}} */
+/* {{{ Struct sorting and optimizing. */
 
 static void iopc_field_compute_size(iopc_field_t *f);
 
@@ -193,6 +198,9 @@ void iopc_struct_optimize(iopc_struct_t *st)
         st->fields_sort_order = UNSORTED;
     }
 }
+
+/* }}} */
+/* {{{ Sizes and alignment helpers. */
 
 void iop_opt_type_get_size_and_alignment(iop_type_t type,
                                          uint16_t *nullable size,
@@ -360,6 +368,9 @@ static void iopc_field_compute_size(iopc_field_t *f)
         f->size  = f->struct_def->size;
     }
 }
+
+/* }}} */
+/* {{{ Field source writing */
 
 static void pp_field_with_type(sb_t *sb, iopc_field_t *f, int indent)
 {
@@ -1848,6 +1859,9 @@ static inline int get_char(pstream_t *ps, lstr_t *s) {
     }
 }
 
+/* }}} */
+/* {{{ Attributes source writing. */
+
 static int
 iopc_dump_pattern(sb_t *sb, iopc_attr_t *attr, iopc_field_t *f)
 {
@@ -2554,6 +2568,9 @@ iopc_dump_rpc_attrs_src(sb_t *buf, const iopc_attrs_t *attrs)
             "    },\n");
 }
 
+/* }}} */
+/* {{{ Enum source writing. */
+
 /* FIXME Almost a duplicate from t_iopc_struct_build_ranges. */
 iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en)
 {
@@ -2730,6 +2747,9 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             "/* }""}} */\n", tbase, tbase);
 }
 
+/* }}} */
+/* {{{ Constraint checks. */
+
 static bool
 iopc_has_constraints(qv_t(iopc_attr) *attrs)
 {
@@ -2786,6 +2806,9 @@ iopc_struct_check_constraints(iopc_struct_t *st)
         }
     }
 }
+
+/* }}} */
+/* {{{ Struct source writing. */
 
 static const char *get_struct_type_desc(iopc_struct_type_t type)
 {
@@ -3104,6 +3127,9 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
 
     return 0;
 }
+
+/* }}} */
+/* {{{ RPC source writing. */
 
 static void
 iopc_dump_rpc_defines(sb_t *buf, char *ibase, iopc_field_t *field,
@@ -3471,6 +3497,9 @@ iopc_module_dump_src(sb_t *buf, iopc_pkg_t *pkg,
             "iop_mod_t const * const %s__modp = &%s__mod;\n\n"
             "/* }""}} */\n", mbase, mbase);
 }
+
+/* }}} */
+/* {{{ Package source writing. */
 
 static void
 iopc_pkg_dump_src(sb_t *buf, iopc_pkg_t *pkg,
@@ -3866,7 +3895,8 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     return res;
 }
 
-/* {{{ Module */
+/* }}} */
+/* {{{ Module. */
 
 static int iopc_lang_c_initialize(void *arg)
 {
