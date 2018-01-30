@@ -722,7 +722,7 @@ struct FilteredStruct {
 
 /* }}} */
 /* {{{ iopc zchk */
-/* {{{ zchk iopiop.sub_struct */
+/* {{{ zchk iopsq.sub_struct */
 
 struct S1 {
     int i;
@@ -735,14 +735,14 @@ struct S2 {
 };
 
 /* }}} */
-/* {{{ zchk iopiop.array */
+/* {{{ zchk iopsq.array */
 
 struct ArrayTest {
     int[] i;
 };
 
 /* }}} */
-/* {{{ zchk iopiop.enum_ */
+/* {{{ zchk iopsq.enum_ */
 
 enum IopSqEnum {
     VAL1,
@@ -755,7 +755,7 @@ struct IopSqEnumSt {
 };
 
 /* }}} */
-/* {{{ zchk iopiop.external_types */
+/* {{{ zchk iopsq.external_types */
 
 enum ExternalEnum {
     A,

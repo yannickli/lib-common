@@ -39,7 +39,7 @@ libiopc_SOURCES = \
     iopctokens.c              \
     iopc-write.c              \
     \
-    iopc-iop.c \
+    iopc-iopsq.c \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
     iopc-lang-swift.c         \

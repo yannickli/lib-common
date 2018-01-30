@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc-iop.h"
+#include "iopc-iopsq.h"
 #include "../iop/tstiop.iop.h"
 
 #include <lib-common/z.h>
@@ -20,7 +20,7 @@
 
 static const char *t_get_path(const char *filename)
 {
-    return t_fmt("%pL/iopioptests/%s", &z_cmddir_g, filename);
+    return t_fmt("%pL/iopsq-tests/%s", &z_cmddir_g, filename);
 }
 
 static lstr_t t_build_json_pkg(const char *pkg_name)
@@ -41,7 +41,7 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     path = t_get_path(file);
     Z_ASSERT_N(t_iop_junpack_file(path, &iop__package__s, &pkg_desc, 0,
                                   NULL, &err), "%s: %pL", file, &err);
-    *pkg = mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err);
+    *pkg = mp_iopsq_build_pkg(t_pool(), &pkg_desc, &err);
     if (err_msg.s) {
         Z_ASSERT_NULL(*pkg, "%s: expected an error", file);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), err_msg,
@@ -201,7 +201,7 @@ static int _test_struct(const char *pkg_file, int st_index,
 /* }}} */
 /* {{{ Z_GROUP */
 
-Z_GROUP_EXPORT(iopiop) {
+Z_GROUP_EXPORT(iopsq) {
     IOP_REGISTER_PACKAGES(&iopsq__pkg);
     IOP_REGISTER_PACKAGES(&tstiop__pkg);
 
@@ -296,7 +296,7 @@ Z_GROUP_EXPORT(iopiop) {
             }
             Z_ASSERT_N(res);
             Z_ASSERT_P(t->lib_err);
-            Z_ASSERT_NULL(mp_iop_pkg_from_desc(t_pool(), &pkg_desc, &err));
+            Z_ASSERT_NULL(mp_iopsq_build_pkg(t_pool(), &pkg_desc, &err));
             Z_ASSERT_STREQUAL(err.data, t->lib_err);
         }
     } Z_TEST_END;

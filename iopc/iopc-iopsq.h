@@ -32,9 +32,9 @@
  *
  * \param[out]    err       Error buffer.
  */
-iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
-                                const iopsq__package__t *nonnull pkg_desc,
-                                sb_t *nonnull err);
+iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
+                              const iopsq__package__t *nonnull pkg_desc,
+                              sb_t *nonnull err);
 
 /** Generates an IOP struct or union description from its IOP version.
  *
@@ -48,8 +48,8 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
  * \param[out]    err       Error buffer.
  */
 const iop_struct_t *
-mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
-                        const iopsq__structure__t *nonnull st_desc,
-                        sb_t *nonnull err);
+mp_iopsq_build_struct(mem_pool_t *nonnull mp,
+                      const iopsq__structure__t *nonnull st_desc,
+                      sb_t *nonnull err);
 
 #endif /* IS_IOP_IOPC_IOP_H */

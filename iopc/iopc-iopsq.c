@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc-iop.h"
+#include "iopc-iopsq.h"
 #include "iopc-priv.h"
 
 #include <lib-common/iop-priv.h>
@@ -688,9 +688,9 @@ static iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg)
 /* }}} */
 /* {{{ IOP² API */
 
-iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
-                                const iop__package__t *nonnull pkg_desc,
-                                sb_t *nonnull err)
+iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
+                              const iop__package__t *nonnull pkg_desc,
+                              sb_t *nonnull err)
 {
     iop_pkg_t *pkg = NULL;
     iopc_pkg_t *iopc_pkg;
@@ -730,9 +730,9 @@ iop_pkg_t *mp_iop_pkg_from_desc(mem_pool_t *nonnull mp,
 }
 
 const iop_struct_t *
-mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
-                        const iop__structure__t *nonnull iop_desc,
-                        sb_t *nonnull err)
+mp_iopsq_build_struct(mem_pool_t *nonnull mp,
+                      const iop__structure__t *nonnull iop_desc,
+                      sb_t *nonnull err)
 {
     iop__package__t pkg_desc;
     iop__package_elem__t *elem_array;
@@ -744,7 +744,7 @@ mp_iop_struct_from_desc(mem_pool_t *nonnull mp,
     pkg_desc.name = LSTR("user_package");
     pkg_desc.elems = IOP_TYPED_ARRAY(iop__package_elem, &elem_array, 1);
 
-    pkg = RETHROW_P(mp_iop_pkg_from_desc(mp, &pkg_desc, err));
+    pkg = RETHROW_P(mp_iopsq_build_pkg(mp, &pkg_desc, err));
 
     return pkg->structs[0];
 }
