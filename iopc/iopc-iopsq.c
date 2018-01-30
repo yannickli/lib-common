@@ -230,8 +230,8 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
 }
 
 static iopc_field_t *
-iopc_field_load(const iop__field__t *nonnull field_desc, int pos,
-                int *nonnull next_tag, sb_t *nonnull err)
+iopc_field_load(const iop__field__t *nonnull field_desc,
+                const qv_t(iopc_field) *fields, sb_t *nonnull err)
 {
     iopc_field_t *f;
 
@@ -239,13 +239,23 @@ iopc_field_load(const iop__field__t *nonnull field_desc, int pos,
 
     f = iopc_field_new();
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
-    f->pos = pos;
-    f->tag = OPT_DEFVAL(field_desc->tag, *next_tag);
+    f->pos = fields->len;
+
+    if (OPT_ISSET(field_desc->tag)) {
+        f->tag = OPT_VAL(field_desc->tag);
+    } else {
+        f->tag = fields->len ? (*tab_last(fields))->tag + 1 : 1;
+    }
     if (iopc_check_tag_value(f->tag, err) < 0) {
         goto error;
     }
-    *next_tag = f->tag + 1;
-    /* TODO Check tag unicity ? */
+    tab_for_each_entry(other_field, fields) {
+        if (other_field->tag == f->tag) {
+            sb_setf(err, "tag `%d' is already used by field `%s'", f->tag,
+                    other_field->name);
+            goto error;
+        }
+    }
 
     if (iopc_field_set_type(f, &field_desc->type, err) < 0) {
         goto error;
@@ -308,7 +318,6 @@ iopc_struct_load(const iop__structure__t *nonnull st_desc,
                  sb_t *nonnull err)
 {
     iopc_struct_t *st;
-    int next_tag = 1;
     iop__field__array_t fields;
 
     st = iopc_struct_new();
@@ -318,9 +327,7 @@ iopc_struct_load(const iop__structure__t *nonnull st_desc,
     tab_for_each_ptr(field_desc, &fields) {
         iopc_field_t *f;
 
-        if (!(f = iopc_field_load(field_desc, st->fields.len, &next_tag,
-                                  err)))
-        {
+        if (!(f = iopc_field_load(field_desc, &st->fields, err))) {
             iopc_struct_delete(&st);
             return NULL;
         }

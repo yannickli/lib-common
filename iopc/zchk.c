@@ -353,7 +353,8 @@ Z_GROUP_EXPORT(iopsq) {
             "invalid package `user_package': "
                 "cannot load `ArrayOfReference': "
                 "arrays of references are not supported",
-            /* TODO tag conflict */
+            "invalid package `user_package': cannot load `TagConflict': "
+                "tag `42' is already used by field `f1'",
             /* TODO name conflict */
         };
         const char **exp_error = errors;

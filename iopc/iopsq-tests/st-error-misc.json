@@ -57,5 +57,21 @@
             },
             "isReference": true
         } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "TagConflict",
+        "fields": [ {
+            "name": "f1",
+            "type": {
+                "typeName": "int"
+            },
+            "tag": 42
+        }, {
+            "name": "f2",
+            "type": {
+                "typeName": "int"
+            },
+            "tag": 42
+        } ]
     } ]
 }
