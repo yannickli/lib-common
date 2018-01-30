@@ -60,7 +60,7 @@ bool iopc_field_type_is_class(const iopc_field_t *f);
  * \param[in,out] mp  The memory pool for all needed allocations. Must be a
  *                    by-frame memory pool (flag MEM_BY_FRAME set).
  */
-iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg);
+iop_pkg_t *mp_iopc_pkg_to_desc(mem_pool_t *mp, iopc_pkg_t *pkg, sb_t *err);
 
 /* }}} */
 

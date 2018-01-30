@@ -365,6 +365,9 @@ Z_GROUP_EXPORT(iopsq) {
             "invalid package `user_package': "
                 "cannot load enum `KeyConflict': "
                 "the key `A' is duplicated",
+            "failed to generate package `user_package': "
+                "struct UnsupportedDefVal: field `field': "
+                "default values are not supported yet",
         };
         const char **exp_error = errors;
 

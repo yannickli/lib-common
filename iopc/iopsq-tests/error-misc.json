@@ -105,5 +105,19 @@
         }, {
             "name": "A"
         } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "UnsupportedDefVal",
+        "fields": [ {
+            "name": "field",
+            "type": {
+                "typeName": "int"
+            },
+            "optional": {
+                "defVal": {
+                    "i": 1
+                }
+            }
+        } ]
     } ]
 }
