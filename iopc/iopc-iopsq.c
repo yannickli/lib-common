@@ -250,6 +250,11 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
         goto error;
     }
     tab_for_each_entry(other_field, fields) {
+        if (strequal(other_field->name, f->name)) {
+            sb_setf(err, "name `%s' is already used by another field",
+                    f->name);
+            goto error;
+        }
         if (other_field->tag == f->tag) {
             sb_setf(err, "tag `%d' is already used by field `%s'", f->tag,
                     other_field->name);
