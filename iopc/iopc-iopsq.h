@@ -52,4 +52,13 @@ mp_iopsq_build_struct(mem_pool_t *nonnull mp,
                       const iopsq__structure__t *nonnull st_desc,
                       sb_t *nonnull err);
 
+/** Generates an dumb IOP package from a single package elem description.
+ *
+ * \note Mainly meant to be used for testing.
+ */
+iop_pkg_t *
+mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
+                                const iop__package_elem__t *nonnull elem,
+                                sb_t *nonnull err);
+
 #endif /* IS_IOP_IOPC_IOP_H */

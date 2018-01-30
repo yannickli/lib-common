@@ -333,7 +333,7 @@ Z_GROUP_EXPORT(iopsq) {
                      "structs mismatch");
     } Z_TEST_END;
 
-    Z_TEST(st_error_cases, "struct error cases miscellaneous") {
+    Z_TEST(error_misc, "struct error cases miscellaneous") {
         t_scope;
         SB_1k(err);
         const iop__package__t *pkg_desc;
@@ -359,19 +359,24 @@ Z_GROUP_EXPORT(iopsq) {
             "invalid package `user_package': "
                 "cannot load `NameConflict': field `field': "
                 "name already used by another field",
+            "invalid package `user_package': "
+                "cannot load enum `ValueConflict': "
+                "key `B': the value `42' is already used",
+            "invalid package `user_package': "
+                "cannot load enum `KeyConflict': "
+                "the key `A' is duplicated",
         };
         const char **exp_error = errors;
 
-        pkg_desc = t_load_package_from_file("st-error-misc.json", &err);
+        pkg_desc = t_load_package_from_file("error-misc.json", &err);
         Z_ASSERT_P(pkg_desc, "%pL", &err);
         Z_ASSERT_EQ(pkg_desc->elems.len, countof(errors));
 
         tab_for_each_entry(elem, &pkg_desc->elems) {
             t_scope;
-            const iop__structure__t *st_desc;
 
-            st_desc = iop_obj_ccast(iop__structure, elem);
-            Z_ASSERT_NULL(mp_iopsq_build_struct(t_pool(), st_desc, &err),
+            Z_ASSERT_NULL(mp_iopsq_build_mono_element_pkg(t_pool(), elem,
+                                                          &err),
                           "unexpected success for struct %*pS "
                           "(expected error: %s)",
                           IOP_OBJ_FMT_ARG(elem), *exp_error);
@@ -380,8 +385,6 @@ Z_GROUP_EXPORT(iopsq) {
             exp_error++;
         }
     } Z_TEST_END;
-
-    /* TODO Same as 'st_error_cases' but with enums. */
 } Z_GROUP_END;
 
 /* }}} */

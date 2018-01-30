@@ -87,5 +87,23 @@
                 "typeName": "int"
             }
         } ]
+    }, {
+        "_class": "iopsq.Enum",
+        "name": "ValueConflict",
+        "values": [ {
+            "name": "A",
+            "val": 42
+        }, {
+            "name": "B",
+            "val": 42
+        } ]
+    }, {
+        "_class": "iopsq.Enum",
+        "name": "KeyConflict",
+        "values": [ {
+            "name": "A"
+        }, {
+            "name": "A"
+        } ]
     } ]
 }

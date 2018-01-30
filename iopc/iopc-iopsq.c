@@ -366,7 +366,7 @@ static iopc_enum_t *iopc_enum_load(const iop__enum__t *en_desc, sb_t *err)
             return NULL;
         }
         if (qh_add(lstr, &keys, &enum_val->name) < 0) {
-            sb_setf(err, "value `%pL' is already used", &enum_val->name);
+            sb_setf(err, "the key `%pL' is duplicated", &enum_val->name);
             return NULL;
         }
         next_val = val + 1;
@@ -504,22 +504,30 @@ iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
     return pkg;
 }
 
+iop_pkg_t *
+mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
+                                const iop__package_elem__t *nonnull elem,
+                                sb_t *nonnull err)
+{
+    iop__package__t pkg_desc;
+    iop__package_elem__t *_elem = unconst_cast(iop__package_elem__t, elem);
+
+    iop_init(iop__package, &pkg_desc);
+    pkg_desc.name = LSTR("user_package");
+    pkg_desc.elems = IOP_TYPED_ARRAY(iop__package_elem, &_elem, 1);
+
+    return mp_iopsq_build_pkg(mp, &pkg_desc, err);
+}
+
 const iop_struct_t *
 mp_iopsq_build_struct(mem_pool_t *nonnull mp,
                       const iop__structure__t *nonnull iop_desc,
                       sb_t *nonnull err)
 {
-    iop__package__t pkg_desc;
-    iop__package_elem__t *elem_array;
     iop_pkg_t *pkg;
 
-    elem_array = &unconst_cast(iop__structure__t, iop_desc)->super;
-
-    iop_init(iop__package, &pkg_desc);
-    pkg_desc.name = LSTR("user_package");
-    pkg_desc.elems = IOP_TYPED_ARRAY(iop__package_elem, &elem_array, 1);
-
-    pkg = RETHROW_P(mp_iopsq_build_pkg(mp, &pkg_desc, err));
+    pkg = RETHROW_P(mp_iopsq_build_mono_element_pkg(mp, &iop_desc->super,
+                                                    err));
 
     return pkg->structs[0];
 }
