@@ -277,6 +277,10 @@ Z_GROUP_EXPORT(iopsq) {
                 "in type iopsq.Package: violation of constraint pattern "
                 "([a-z_\\.]*) on field name: fOo.bar",
                 NULL
+            }, {
+                "foo.", NULL,
+                "invalid package `foo.': "
+                "invalid name: trailing dot in package name"
             }
         };
 
@@ -296,7 +300,8 @@ Z_GROUP_EXPORT(iopsq) {
             }
             Z_ASSERT_N(res);
             Z_ASSERT_P(t->lib_err);
-            Z_ASSERT_NULL(mp_iopsq_build_pkg(t_pool(), &pkg_desc, &err));
+            Z_ASSERT_NULL(mp_iopsq_build_pkg(t_pool(), &pkg_desc, &err),
+                          "unexpected success");
             Z_ASSERT_STREQUAL(err.data, t->lib_err);
         }
     } Z_TEST_END;

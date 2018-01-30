@@ -30,17 +30,24 @@ static iopc_path_t *parse_path(lstr_t name, bool is_type, sb_t *err)
         if (ps_get_ps_chr_and_skip(&ps, '.', &bit) < 0) {
             bit = ps;
             __ps_skip_upto(&ps, ps.s_end);
+        } else
+        if (ps_done(&ps)) {
+            sb_sets(err, "trailing dot in package name");
+            goto error;
         }
+
         if (ps_done(&bit)) {
             sb_setf(err, "empty package or sub-package name");
-            iopc_path_delete(&path);
-
-            return NULL;
+            goto error;
         }
         qv_append(&path->bits, p_dupz(bit.s, ps_len(&bit)));
     }
 
     return path;
+
+  error:
+    iopc_path_delete(&path);
+    return NULL;
 }
 
 /* }}} */
