@@ -119,5 +119,14 @@
                 }
             }
         } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "Bar",
+        "fields": [ {
+            "name": "unknownTypeField",
+            "type": {
+                "typeName": "Unknown"
+            }
+        } ]
     } ]
 }

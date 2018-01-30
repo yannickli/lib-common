@@ -44,8 +44,7 @@ static iop__package__t *t_load_package_from_file(const char *filename,
 /* }}} */
 /* {{{ Z_HELPERs */
 
-static int t_package_load(iop_pkg_t **pkg, const char *file,
-                          lstr_t err_msg)
+static int t_package_load(iop_pkg_t **pkg, const char *file)
 {
     SB_1k(err);
     const iop__package__t *pkg_desc;
@@ -53,13 +52,7 @@ static int t_package_load(iop_pkg_t **pkg, const char *file,
     pkg_desc = t_load_package_from_file(file, &err);
     Z_ASSERT_P(pkg_desc, "%s: %pL", file, &err);
     *pkg = mp_iopsq_build_pkg(t_pool(), pkg_desc, &err);
-    if (err_msg.s) {
-        Z_ASSERT_NULL(*pkg, "%s: expected an error", file);
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&err), err_msg,
-                           "%s: unexpected error message", file);
-    } else {
-        Z_ASSERT_P(*pkg, "%s: %pL", file, &err);
-    }
+    Z_ASSERT_P(*pkg, "%s: %pL", file, &err);
 
     Z_HELPER_END;
 }
@@ -174,7 +167,7 @@ static int _test_struct(const char *pkg_file, int st_index,
     iop_pkg_t *pkg;
     const iop_struct_t *st_desc;
 
-    Z_HELPER_RUN(t_package_load(&pkg, pkg_file, LSTR_NULL_V));
+    Z_HELPER_RUN(t_package_load(&pkg, pkg_file));
     st_desc = pkg->structs[st_index];
 
     if (ref_st_desc) {
@@ -259,18 +252,6 @@ Z_GROUP_EXPORT(iopsq) {
                                  "{\"st\":{\"i\":42},\"en\":\"B\"}"));
     } Z_TEST_END;
 
-    Z_TEST(error_unknown_type, "error case: unknown type name") {
-        t_scope;
-        iop_pkg_t *pkg;
-        const char *err;
-
-        err = "failed to resolve the package: "
-              "error: unable to find any pkg providing type `Unknown`";
-
-        Z_HELPER_RUN(t_package_load(&pkg, "error-unknown-type.json",
-                                    LSTR(err)));
-    } Z_TEST_END;
-
     Z_TEST(error_invalid_pkg_name, "error case: invalid package name") {
         SB_1k(err);
         static struct {
@@ -326,7 +307,7 @@ Z_GROUP_EXPORT(iopsq) {
         /* FIXME: some types cannot be implemented with IOP² yet (classes and
          * fields with default values) so we have to use types from tstiop to
          * avoid dissimilarities between structs. */
-        Z_HELPER_RUN(t_package_load(&pkg, "full-struct.json", LSTR_NULL_V));
+        Z_HELPER_RUN(t_package_load(&pkg, "full-struct.json"));
         st = iop_pkg_get_struct_by_name(pkg, st_name);
         Z_ASSERT_P(st, "cannot find struct `%pL'", &st_name);
         Z_HELPER_RUN(z_assert_struct_eq(st, &tstiop__full_struct__s),
@@ -368,6 +349,9 @@ Z_GROUP_EXPORT(iopsq) {
             "failed to generate package `user_package': "
                 "struct UnsupportedDefVal: field `field': "
                 "default values are not supported yet",
+            "failed to resolve the package: "
+                "error: unable to find any pkg providing type `Unknown`",
+
         };
         const char **exp_error = errors;
 
