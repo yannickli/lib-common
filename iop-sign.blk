@@ -270,7 +270,7 @@ fill_and_check_fields(const iop_struct_t *desc,
         if (opts.token_timeout) {
             core__signed_licence__t *licence = (void *)signed_data;
 
-            *licence->activation_token = token;
+            licence->activation_token = &token;
         } else
         if (strequal(opts.signed_iop, "core.SignedLicence")) {
             core__signed_licence__t *licence = (void *)signed_data;
@@ -417,8 +417,10 @@ int main(int argc, char **argv)
     return 0;
 
   usage:
-    makeusage(EX_USAGE, argv0, "<command> <file>\n\n\
-commands: sign, check, gen-token\n\n\
+    makeusage(EX_USAGE, argv0, "<command> <file>\n\
+\n\
+commands: sign, check, gen-token\n\
+\n\
 Examples with a One licence (from the One directory):\n\
     # to sign the licence\n\
     iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
