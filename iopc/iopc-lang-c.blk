@@ -4026,14 +4026,11 @@ mp_iopc_struct_to_desc(mem_pool_t *mp, iopc_struct_t *st,
 {
     iop_struct_t *st_desc;
     iop_field_t *fields;
-    uint16_t offset;
+    uint16_t offset = 0;
     iop_array_i32_t ranges;
 
     if (st->type == STRUCT_TYPE_UNION) {
         offset = sizeof(uint16_t);
-    } else {
-        /* TODO handle the case of offsets for union */
-        offset = 0;
     }
 
     fields = mp_new_raw(mp, iop_field_t, st->fields.len);
