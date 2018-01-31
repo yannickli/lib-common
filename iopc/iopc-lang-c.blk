@@ -1983,7 +1983,7 @@ static int iopc_dump_allow_union(sb_t *sb, const iopc_attr_t *attr,
 {
     sb_adds(sb, LVL2 "switch (val->iop_tag) {\n");
 
-    tab_for_each_entry(uf, &f->union_def->fields) {
+    tab_for_each_entry(uf, &f->struct_def->fields) {
         sb_addf(sb, LVL2 "  case %s__%s__%s__ft:\n", pp_under(f->type_path),
                 pp_to_c(f->type_name), pp_to_c(uf->name));
 
@@ -2816,19 +2816,17 @@ static void iopc_struct_check_constraints(iopc_struct_t *st)
 
         switch (f->kind) {
           case IOP_T_STRUCT:
+          case IOP_T_UNION:
             iopc_struct_check_constraints(f->struct_def);
             if (f->struct_def->has_constraints)
                 st->has_constraints = true;
             break;
-          case IOP_T_UNION:
-            iopc_struct_check_constraints(f->union_def);
-            if (f->union_def->has_constraints)
-                st->has_constraints = true;
-            break;
+
           case IOP_T_ENUM:
             if (iopc_has_constraints(&f->enum_def->attrs))
                 st->has_constraints = true;
             break;
+
           default:
             break;
         }
@@ -3992,9 +3990,6 @@ static int mp_iopc_field_to_desc(mem_pool_t *mp, const iopc_field_t *f,
         if (f->has_external_type) {
             fdesc->u1.st_desc = f->external_st;
         } else {
-            STATIC_ASSERT(offsetof(iopc_field_t, struct_def) ==
-                          offsetof(iopc_field_t, union_def));
-
             /* TODO We're going to have to load dependancies first if we want
              * that to work in multi-package contexts. */
             fdesc->u1.st_desc = f->struct_def->desc;

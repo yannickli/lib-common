@@ -375,7 +375,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                 bool found = false;
 
                 if (type == IOPC_ATTR_T_UNION) {
-                    tab_for_each_entry(uf, &f->union_def->fields) {
+                    tab_for_each_entry(uf, &f->struct_def->fields) {
                         if (strequal(uf->name, arg->v.s.s)) {
                             found = true;
                             break;

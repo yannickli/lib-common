@@ -638,7 +638,6 @@ typedef struct iopc_field_t {
     /** definition of the resolved complex type */
     union {
         struct iopc_struct_t *struct_def;
-        struct iopc_struct_t *union_def;
         struct iopc_enum_t   *enum_def;
 
         /* For IOP², when the field has a type taken from IOP environment. */
