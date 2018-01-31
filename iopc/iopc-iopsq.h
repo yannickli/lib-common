@@ -19,6 +19,49 @@
 #include <lib-common/iopsq.iop.h>
 #include <lib-common/iop-priv.h>
 
+/* IOP² - An IOP-based library for IOP generation.
+ *
+ * Tools for dynamic generation of usable IOP content.
+ *
+ *  iopsq.Package ── 1 ──→ iopc_pkg_t ── 2,3 ──→ iop_pkg_t
+ *
+ * 1. Building of an iopc package from an IOP² package. The code is in
+ *    iopc-iopsq.c and it works in a similar way as iopc-parser.
+ *    The package can refer to types from IOP environment: builtin IOP types
+ *    can be used and have the expected pointer value (&foo__bar__s).
+ *
+ * 2. Resolution of IOP types with iopc-typer.
+ *
+ * 3. Generation of an IOP C package description. The code is in iopc-lang-c.c
+ *    because it does quite the same as the code generator except that it
+ *    directly generates the structures. This is the part that uses the
+ *    provided memory pool.
+ *
+ * Limitations:
+ *
+ *    - Default values: default values exist in iopsq.iop and are correctly
+ *    transformed at step 1., but not at step 3 (yet).
+ *
+ *    - Not supported yet: classes, attributes, modules, interfaces, typedefs,
+ *    RPCs, SNMP objects.
+ *
+ *    - Typedefs from IOPs loaded to the environment cannot be used by
+ *    refering to them with "typeName" like for the other types because
+ *    typedefs cease to exist in packge descriptions iop_pkg_t, so they are
+ *    missing in the IOP environment too.
+ *
+ *    - Dynamic transformation of IOP syntax (mypackage.iop) into IOP
+ *    description without having to create a DSO: already possible but no
+ *    helper is provided to do that. The step 3. should be protected against
+ *    unsupported features first, because for now, most of them would be
+ *    silently ignored.
+ *
+ *   - No tool to "extract" an IOP² description of an IOP type for now. This
+ *   feature could be useful for versioning and migration of IOP objects.
+ *
+ *   - Sub-packages and multi-package loading.
+ */
+
 /** Generates an IOP package description from its IOP version.
  *
  * \warning This function can use elements from current IOP environment
