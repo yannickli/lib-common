@@ -382,7 +382,8 @@ struct JpackEmptyStruct {
 
 /* {{{ zchk common */
 
-/* XXX These struct are supposed to cover all cases in term of field type.
+/* XXX These structs are supposed to cover all possible field types.
+ *
  * They can be used by anyone that would need that completeness, but they have
  * to be maintained as the IOPs evolve or as it seems to become necessary.
  *
