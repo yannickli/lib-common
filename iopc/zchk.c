@@ -314,6 +314,23 @@ Z_GROUP_EXPORT(iopsq) {
                      "structs mismatch");
     } Z_TEST_END;
 
+    Z_TEST(mp_iopsq_build_struct, "test mp_iopsq_build_struct") {
+        t_scope;
+        SB_1k(err);
+        iop__package__t *pkg_desc;
+        const iop__structure__t *st_desc;
+        const iop_struct_t *st;
+
+        pkg_desc = t_load_package_from_file("single-struct.json", &err);
+        Z_ASSERT_P(pkg_desc, "%pL", &err);
+        Z_ASSERT_EQ(pkg_desc->elems.len, 1);
+        st_desc = iop_obj_ccast(iop__structure, pkg_desc->elems.tab[0]);
+        st = mp_iopsq_build_struct(t_pool(), st_desc, &err);
+        Z_ASSERT_P(st, "%pL", &err);
+        Z_HELPER_RUN(z_assert_struct_eq(st, &tstiop__tst_build_struct__s),
+                     "struct mismatch");
+    } Z_TEST_END;
+
     Z_TEST(error_misc, "struct error cases miscellaneous") {
         t_scope;
         SB_1k(err);

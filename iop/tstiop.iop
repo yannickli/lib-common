@@ -772,6 +772,15 @@ struct TestExternalTypes {
 };
 
 /* }}} */
+/* {{{ zchk iopsq.mp_iopsq_build_struct */
+
+struct TstBuildStruct {
+    int i1;
+    int i2;
+    string s;
+};
+
+/* }}} */
 /* }}} */
 
 /* Interfaces */
