@@ -12,7 +12,8 @@
 ##########################################################################
 
 iopc_LIBRARIES = libiopc
-iopc_PROGRAMS = iopc zchk
+iopc_PROGRAMS = iopc
+test_PROGRAMS = zchk
 
 _LIBS = -ldl -lpthread -lrt
 
