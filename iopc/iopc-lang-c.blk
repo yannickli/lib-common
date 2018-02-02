@@ -2603,11 +2603,12 @@ iopc_dump_rpc_attrs_src(sb_t *buf, const iopc_attrs_t *attrs)
 /* FIXME Almost a duplicate from t_iopc_struct_build_ranges. */
 /** Build the range used to associate an enum value to the associated element.
  */
-static iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en)
+static iop_array_i32_t mp_iopc_enum_build_ranges(mem_pool_t *mp,
+                                                 const iopc_enum_t *en)
 {
     qv_t(i32) t;
 
-    t_qv_init(&t, 2 * en->values.len + 1);
+    mp_qv_init(mp, &t, 2 * en->values.len + 1);
     for (int i = 0, last_enum = 0; i < en->values.len; i++) {
         iopc_enum_field_t *f = en->values.tab[i];
 
@@ -2618,7 +2619,7 @@ static iop_array_i32_t t_iopc_enum_build_ranges(const iopc_enum_t *en)
         }
     }
     qv_append(&t, en->values.len);
-    t_realloc_from(&t.tab, t.size, t.len);
+    mp_realloc_from(mp, &t.tab, t.size, t.len);
 
     return IOP_TYPED_ARRAY_TAB(i32, &t);
 }
@@ -2656,7 +2657,7 @@ iopc_enum_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
             "\n"
             "};\n");
 
-    t = t_iopc_enum_build_ranges(en);
+    t = mp_iopc_enum_build_ranges(t_pool(), en);
     range = iopc_put_range(buf, &t);
 
     sb_addf(buf,
@@ -2904,12 +2905,13 @@ static int iopc_put_struct_fields(sb_t *buf, const iopc_struct_t *st,
 #undef LVL4
 
 /** Build the range used to associate an IOP tag to a struct field. */
-static iop_array_i32_t t_iopc_struct_build_ranges(const iopc_struct_t *st)
+static iop_array_i32_t mp_iopc_struct_build_ranges(mem_pool_t *mp,
+                                                   const iopc_struct_t *st)
 {
     qv_t(i32) t;
     int last_tag = INT_MIN;
 
-    t_qv_init(&t, 2 * st->fields.len + 1);
+    mp_qv_init(mp, &t, 2 * st->fields.len + 1);
     tab_for_each_pos(i, &st->fields) {
         iopc_field_t *f = st->fields.tab[i];
         if (++last_tag != f->tag) {
@@ -2919,7 +2921,7 @@ static iop_array_i32_t t_iopc_struct_build_ranges(const iopc_struct_t *st)
         }
     }
     qv_append(&t, st->fields.len);
-    t_realloc_from(&t.tab, t.size, t.len);
+    mp_realloc_from(mp, &t.tab, t.size, t.len);
 
     return IOP_TYPED_ARRAY_TAB(i32, &t);
 }
@@ -3072,7 +3074,7 @@ iopc_struct_dump_src(sb_t *buf, const iopc_pkg_t *pkg,
         }
     }
 
-    t = t_iopc_struct_build_ranges(st);
+    t = mp_iopc_struct_build_ranges(t_pool(), st);
     range = iopc_put_range(buf, &t);
 
     has_attrs = DUMP_ATTRS(STRUCT, buf, st, tbase, "struct", "s", "s_desc",
@@ -4049,14 +4051,7 @@ mp_iopc_struct_to_desc(mem_pool_t *mp, iopc_struct_t *st,
     }
 
     iopc_struct_sort_fields(st, BY_TAG);
-    if (mp != t_pool()) {
-        t_scope;
-
-        ranges = t_iopc_struct_build_ranges(st);
-        ranges.tab = mp_dup(mp, ranges.tab, ranges.len);
-    } else {
-        ranges = t_iopc_struct_build_ranges(st);
-    }
+    ranges = mp_iopc_struct_build_ranges(mp, st);
 
     {
         iop_struct_t _st_desc = {
@@ -4095,15 +4090,7 @@ static iop_enum_t *mp_iopc_enum_to_desc(mem_pool_t *mp,
     int32_t *values;
     int pos = 0;
 
-    if (mp != t_pool()) {
-        t_scope;
-
-        ranges = t_iopc_enum_build_ranges(en);
-        ranges.tab = mp_dup(mp, ranges.tab, ranges.len);
-    } else {
-        ranges = t_iopc_enum_build_ranges(en);
-    }
-
+    ranges = mp_iopc_enum_build_ranges(mp, en);
     names = mp_new_raw(mp, lstr_t, en->values.len);
     values = mp_new_raw(mp, int32_t, en->values.len);
     tab_for_each_entry(f, &en->values) {
