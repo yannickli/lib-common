@@ -163,7 +163,8 @@ static int _test_struct(const char *pkg_file, int st_index,
 {
     t_scope;
     SB_1k(err);
-    SB_1k(buf);
+    SB_1k(jbuf);
+    SB_1k(jbuf_ref);
     iop_pkg_t *pkg;
     const iop_struct_t *st_desc;
 
@@ -176,20 +177,67 @@ static int _test_struct(const char *pkg_file, int st_index,
     }
 
     for (int i = 0; i < nb_jsons; i++) {
+        t_scope;
         lstr_t st_json = LSTR(jsons[i]);
         pstream_t ps;
         void *st_ptr = NULL;
+        void *st_ptr_bunpacked = NULL;
+        void *st_ptr_ref = NULL;
+        lstr_t bin;
+        lstr_t bin_ref;
 
         ps = ps_initlstr(&st_json);
-        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st_desc, &st_ptr, st_index, &err),
+        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st_desc, &st_ptr, st_index,
+                                        &err),
                    "cannot junpack `%pL': %pL", &err, &st_json);
-        sb_reset(&buf);
-        Z_ASSERT_N(iop_sb_jpack(&buf, st_desc, st_ptr,
+
+        sb_reset(&jbuf);
+        Z_ASSERT_N(iop_sb_jpack(&jbuf, st_desc, st_ptr,
                                 IOP_JPACK_MINIMAL |
                                 IOP_JPACK_NO_TRAILING_EOL),
-                   "cannot repack to get `%pL'", &st_json);
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), st_json,
+                   "cannot pack to get `%pL'", &st_json);
+
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&jbuf), st_json,
                            "the json data changed after unpack/repack");
+
+        bin = t_iop_bpack_struct_flags(st_desc, st_ptr, IOP_BPACK_STRICT);
+        Z_ASSERT_P(bin.s, "bpack error: %s", iop_get_err());
+        ps = ps_initlstr(&bin);
+        Z_ASSERT_N(iop_bunpack_ptr(t_pool(), st_desc, &st_ptr_bunpacked, ps,
+                                   true), "bunpack error: %s", iop_get_err());
+        Z_ASSERT_IOPEQUAL_DESC(st_desc, st_ptr, st_ptr_bunpacked,
+                               "IOP differs after bpack+bunpack");
+
+        if (!ref_st_desc) {
+            continue;
+        }
+
+        sb_reset(&jbuf_ref);
+        Z_ASSERT_N(iop_sb_jpack(&jbuf_ref, ref_st_desc, st_ptr,
+                                IOP_JPACK_MINIMAL |
+                                IOP_JPACK_NO_TRAILING_EOL),
+                   "unexpected packing failure");
+
+        Z_ASSERT_STREQUAL(jbuf.data, jbuf_ref.data,
+                          "the JSON we obtain differs from the one obtained "
+                          "with reference description");
+
+        ps = ps_initlstr(&st_json);
+        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, ref_st_desc, &st_ptr_ref,
+                                        st_index, &err),
+                   "unexpected junpacking failure: %pL", &err);
+
+        Z_ASSERT_IOPEQUAL_DESC(ref_st_desc, st_ptr, st_ptr_ref,
+                               "junpacked IOP differs "
+                               "(desc = reference desc)");
+        Z_ASSERT_IOPEQUAL_DESC(st_desc, st_ptr, st_ptr_ref,
+                               "junpacked IOP differs "
+                               "(desc = generated desc)");
+
+        bin_ref = t_iop_bpack_struct_flags(st_desc, st_ptr_ref,
+                                           IOP_BPACK_STRICT);
+        Z_ASSERT_P(bin_ref.s, "unexpected bpack error: %s", iop_get_err());
+        Z_ASSERT_LSTREQUAL(bin, bin_ref, "bpacked content differs");
     }
 
     Z_HELPER_END;
