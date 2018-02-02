@@ -21,21 +21,6 @@
 /** Checks that an IOP tag has an authorized value. */
 int iopc_check_tag_value(int tag, sb_t *err);
 
-/** Check that the first character of the token is uppercase.
- *
- * \param[in] tk  Non-empty token.
- */
-int iopc_check_upper(lstr_t tk, sb_t *err);
-
-/** Check the correctness of a type name.
- *
- * \param[in] tk  Non-empty alphanumeric type name.
- */
-static inline int iopc_check_type_name(lstr_t type_name, sb_t *err)
-{
-    return iopc_check_upper(type_name, err);
-}
-
 /** Check that the name does not contain a character that is already a keyword
  * in some programmation language.
  */

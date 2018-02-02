@@ -50,6 +50,21 @@ static iopc_path_t *parse_path(lstr_t name, bool is_type, sb_t *err)
     return NULL;
 }
 
+static int iopc_check_type_name(lstr_t name, sb_t *err)
+{
+    RETHROW(iopc_check_name(name, NULL, err));
+
+    /* XXX Checked by iopc_check_name(). */
+    assert (name.len);
+
+    if (!isupper(name.s[0])) {
+        sb_sets(err, "first field name character should be uppercase");
+        return -1;
+    }
+
+    return 0;
+}
+
 /* }}} */
 /* {{{ IOP struct/union */
 
@@ -144,7 +159,6 @@ iopc_field_set_typename(iopc_field_t *nonnull f, lstr_t typename,
                 f->has_external_type = true;
             }
         } else {
-            /* TODO Support and fill paths. */
             if (iopc_check_type_name(typename, err) < 0) {
                 sb_prepends(err, "invalid type name: ");
                 return -1;
@@ -233,6 +247,10 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
     iopc_field_t *f = NULL;
 
     if (iopc_check_name(field_desc->name, NULL, err) < 0) {
+        goto error;
+    }
+    if (!islower(field_desc->name.s[0])) {
+        sb_sets(err, "first field name character should be lowercase");
         goto error;
     }
 
@@ -406,8 +424,9 @@ iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
 
     t_qh_init(lstr, &things, pkg_desc->elems.len);
     tab_for_each_entry(elem, &pkg_desc->elems) {
-        RETHROW_NP(iopc_check_name(elem->name, NULL, err));
-        RETHROW_NP(iopc_check_upper(elem->name, err));
+        if (iopc_check_type_name(elem->name, err) < 0) {
+            goto error;
+        }
 
         if (qh_add(lstr, &things, &elem->name) < 0) {
             sb_setf(err, "already got a thing named `%pL'", &elem->name);

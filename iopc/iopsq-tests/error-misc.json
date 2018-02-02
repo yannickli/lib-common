@@ -128,5 +128,23 @@
                 "typeName": "Unknown"
             }
         } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "LowercaseTypeName",
+        "fields": [ {
+            "name": "lowercaseTypeName",
+            "type": {
+                "typeName": "lowercase"
+            }
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "UppercaseField",
+        "fields": [ {
+            "name": "UppercaseField",
+            "type": {
+                "typeName": "int"
+            }
+        } ]
     } ]
 }

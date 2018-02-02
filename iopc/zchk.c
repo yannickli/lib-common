@@ -368,7 +368,14 @@ Z_GROUP_EXPORT(iopsq) {
                 "default values are not supported yet",
             "failed to resolve the package: "
                 "error: unable to find any pkg providing type `Unknown`",
-
+            "invalid package `user_package': "
+                "cannot load `LowercaseTypeName': "
+                "field `lowercaseTypeName': type name `lowercase': "
+                "invalid type name: "
+                "first field name character should be uppercase",
+            "invalid package `user_package': cannot load `UppercaseField': "
+                "field `UppercaseField': "
+                "first field name character should be lowercase",
         };
         const char **exp_error = errors;
 

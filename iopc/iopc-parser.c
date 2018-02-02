@@ -103,6 +103,11 @@ static bool warn(qv_t(iopc_attr) *nullable attrs, const char *category)
 int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
                     sb_t *nonnull err)
 {
+    if (!name.len) {
+        sb_sets(err, "empty name");
+        return -1;
+    }
+
     if (memchr(name.s, '_', name.len)) {
         sb_setf(err, "%pL contains a _", &name);
         return -1;
@@ -861,10 +866,6 @@ static inline char *dup_ident(iopc_token_t *tk)
 static inline const char *ident(iopc_token_t *tk)
 {
     return tk->b.data;
-}
-static inline lstr_t ident_lstr(iopc_token_t *tk)
-{
-    return LSTR_SB_V(&tk->b);
 }
 
 static int
@@ -1690,30 +1691,15 @@ check_dox_and_attrs(iopc_parser_t *pp, qv_t(dox_chunk) *chunks,
 /*-}}}-*/
 /*----- recursive descent parser -{{{-*/
 
-int iopc_check_upper(lstr_t tk, sb_t *err)
-{
-    assert (tk.len);
-    if (!isupper(tk.s[0])) {
-        sb_setf(err, "first character must be uppercased (got %*pM)",
-                LSTR_FMT_ARG(tk));
-        return -1;
-    }
-
-    return 0;
-}
-
 static char *iopc_upper_ident(iopc_parser_t *pp)
 {
-    SB_1k(err);
     iopc_token_t *tk = TK_P(pp, 0);
     char *res;
-    lstr_t tk_s;
 
     WANT_P(pp, 0, ITOK_IDENT);
-    tk_s = ident_lstr(tk);
-
-    if (iopc_check_upper(tk_s, &err) < 0) {
-        throw_loc_p("%*pM", tk->loc, SB_FMT_ARG(&err));
+    if (!isupper((unsigned char)ident(tk)[0])) {
+        throw_loc_p("first character must be uppercased (got %s)",
+                    tk->loc, ident(tk));
     }
     res = dup_ident(tk);
     DROP(pp, 1);
