@@ -211,10 +211,9 @@ iopc_field_set_defval(iopc_field_t *f, const iop__value__t *defval)
     }
 }
 
-static int
+static void
 iopc_field_set_opt_info(iopc_field_t *nonnull f,
-                        const iop__opt_info__t *nullable opt_info,
-                        sb_t *err)
+                        const iop__opt_info__t *nullable opt_info)
 {
     if (!opt_info) {
         f->repeat = IOP_R_REQUIRED;
@@ -225,8 +224,6 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
     } else {
         f->repeat = IOP_R_OPTIONAL;
     }
-
-    return 0;
 }
 
 static iopc_field_t *
@@ -272,9 +269,8 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
                     "or have a default value");
             goto error;
         }
-    } else
-    if (iopc_field_set_opt_info(f, field_desc->optional, err) < 0) {
-        goto error;
+    } else {
+        iopc_field_set_opt_info(f, field_desc->optional);
     }
 
     if (field_desc->is_reference) {
