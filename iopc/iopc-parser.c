@@ -1698,7 +1698,7 @@ static char *iopc_upper_ident(iopc_parser_t *pp)
 
     WANT_P(pp, 0, ITOK_IDENT);
     if (!isupper((unsigned char)ident(tk)[0])) {
-        throw_loc_p("first character must be uppercased (got %s)",
+        throw_loc_p("first character must be uppercase (got `%s')",
                     tk->loc, ident(tk));
     }
     res = dup_ident(tk);
@@ -1733,7 +1733,7 @@ static char *iopc_lower_ident(iopc_parser_t *pp)
 
     WANT_P(pp, 0, ITOK_IDENT);
     if (!islower((unsigned char)ident(tk)[0])) {
-        throw_loc_p("first character must be lowercased (got %s)",
+        throw_loc_p("first character must be lowercase (got `%s')",
                     tk->loc, ident(tk));
     }
     res = dup_ident(tk);
