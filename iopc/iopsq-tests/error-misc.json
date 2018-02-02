@@ -146,5 +146,21 @@
                 "typeName": "int"
             }
         } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "TagTooSmall",
+        "fields": [ {
+            "name": "tagTooSmall",
+            "type": { "typeName": "int" },
+            "tag": 0
+        } ]
+    }, {
+        "_class": "iopsq.Struct",
+        "name": "TagTooBig",
+        "fields": [ {
+            "name": "tagTooBig",
+            "type": { "typeName": "int" },
+            "tag": 32768
+        } ]
     } ]
 }

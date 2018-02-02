@@ -376,6 +376,11 @@ Z_GROUP_EXPORT(iopsq) {
             "invalid package `user_package': cannot load `UppercaseField': "
                 "field `UppercaseField': "
                 "first field name character should be lowercase",
+            "invalid package `user_package': cannot load `TagTooSmall': "
+                "field `tagTooSmall': tag is too small (must be >= 1, got 0)",
+            "invalid package `user_package': cannot load `TagTooBig': "
+                "field `tagTooBig': "
+                "tag is too large (must be < 0x8000, got 0x8000)"
         };
         const char **exp_error = errors;
 
