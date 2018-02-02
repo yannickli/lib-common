@@ -401,6 +401,20 @@ Z_GROUP_EXPORT(iopsq) {
             exp_error++;
         }
     } Z_TEST_END;
+
+    Z_TEST(error_duplicated_name, "duplicated type names") {
+        t_scope;
+        SB_1k(err);
+        const iop__package__t *pkg_desc;
+
+        pkg_desc = t_load_package_from_file("error-duplicated-name.json",
+                                            &err);
+        Z_ASSERT_P(pkg_desc, "%pL", &err);
+        Z_ASSERT_NULL(mp_iopsq_build_pkg(t_pool(), pkg_desc, &err),
+                      "unexpected success");
+        Z_ASSERT_STREQUAL(err.data, "invalid package `foo': "
+                          "already got a thing named `DuplicatedName'");
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
