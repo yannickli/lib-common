@@ -11,8 +11,23 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "iopc.h"
+#include "iopc-priv.h"
 #include "iopctokens.h"
+
+const char *__get_path(const char *file, bool display_prefix)
+{
+    static char res_path[PATH_MAX];
+
+    if (*file == '/' || !display_prefix || !iopc_g.prefix_dir) {
+        return file;
+    }
+
+    if (!expect(path_extend(res_path, iopc_g.prefix_dir, "%s", file) >= 0)) {
+        return NULL;
+    }
+
+    return res_path;
+}
 
 typedef struct iopc_parser_t {
     qv_t(iopc_token) tokens;
@@ -64,7 +79,7 @@ static const char * const avoid_keywords[] = {
 
 static int parse_json_object(iopc_parser_t *pp, sb_t *sb, bool toplevel);
 
-static bool warn(qv_t(iopc_attr) *attrs, const char *category)
+static bool warn(qv_t(iopc_attr) *nullable attrs, const char *category)
 {
     lstr_t s = LSTR(category);
 
@@ -85,23 +100,43 @@ static bool warn(qv_t(iopc_attr) *attrs, const char *category)
     return true;
 }
 
-static int check_name(const char *name, iopc_loc_t loc,
-                       qv_t(iopc_attr) *attrs)
+int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
+                    sb_t *nonnull err)
 {
-    if (strchr(name, '_')) {
-        throw_loc("%s contains a _", loc, name);
+    if (!name.len) {
+        sb_sets(err, "empty name");
+        return -1;
+    }
+
+    if (memchr(name.s, '_', name.len)) {
+        sb_setf(err, "%pL contains a _", &name);
+        return -1;
     }
     for (int i = 0; i < countof(reserved_keywords); i++) {
-        if (strequal(name, reserved_keywords[i])) {
-            throw_loc("%s is a reserved keyword", loc, name);
+        if (lstr_equal(name, LSTR(reserved_keywords[i]))) {
+            sb_setf(err, "%pL is a reserved keyword", &name);
+            return -1;
         }
     }
     if (warn(attrs, "keyword")) {
         for (int i = 0; i < countof(avoid_keywords); i++) {
-            if (strequal(name, avoid_keywords[i])) {
-                throw_loc("%s is a keyword in some languages", loc, name);
+            if (lstr_equal(name, LSTR(avoid_keywords[i]))) {
+                sb_setf(err, "%pL is a keyword in some languages", &name);
+                return -1;
             }
         }
+    }
+
+    return 0;
+}
+
+static int check_name(const char *name, iopc_loc_t loc,
+                      qv_t(iopc_attr) *attrs)
+{
+    SB_1k(err);
+
+    if (iopc_check_name(LSTR(name), attrs, &err) < 0) {
+        throw_loc("%*pM", loc, SB_FMT_ARG(&err));
     }
 
     return 0;
@@ -345,7 +380,7 @@ int iopc_check_field_attributes(iopc_field_t *f, bool tdef)
                 bool found = false;
 
                 if (type == IOPC_ATTR_T_UNION) {
-                    tab_for_each_entry(uf, &f->union_def->fields) {
+                    tab_for_each_entry(uf, &f->struct_def->fields) {
                         if (strequal(uf->name, arg->v.s.s)) {
                             found = true;
                             break;
@@ -1663,7 +1698,7 @@ static char *iopc_upper_ident(iopc_parser_t *pp)
 
     WANT_P(pp, 0, ITOK_IDENT);
     if (!isupper((unsigned char)ident(tk)[0])) {
-        throw_loc_p("first character must be uppercased (got %s)",
+        throw_loc_p("first character must be uppercase (got `%s')",
                     tk->loc, ident(tk));
     }
     res = dup_ident(tk);
@@ -1698,7 +1733,7 @@ static char *iopc_lower_ident(iopc_parser_t *pp)
 
     WANT_P(pp, 0, ITOK_IDENT);
     if (!islower((unsigned char)ident(tk)[0])) {
-        throw_loc_p("first character must be lowercased (got %s)",
+        throw_loc_p("first character must be lowercase (got `%s')",
                     tk->loc, ident(tk));
     }
     res = dup_ident(tk);
@@ -1846,9 +1881,48 @@ static int parse_struct_type(iopc_parser_t *pp, iopc_pkg_t **type_pkg,
     return 0;
 }
 
+int iopc_check_field_type(const iopc_field_t *f, sb_t *err)
+{
+    if (f->repeat == IOP_R_OPTIONAL) {
+        if (f->is_static) {
+            sb_sets(err, "optional static members are forbidden");
+            return -1;
+        }
+    } else
+    if (f->is_ref) {
+        if (f->is_static) {
+            sb_sets(err, "referenced static members are forbidden");
+            return -1;
+        }
+        if (f->kind != IOP_T_STRUCT) {
+            sb_sets(err,
+                    "references can only be applied to structures or unions");
+            return -1;
+        }
+        if (f->repeat != IOP_R_REQUIRED) {
+            sb_sets(err, "references can only be applied to required fields");
+            return -1;
+        }
+    } else
+    if (f->repeat == IOP_R_REPEATED) {
+        if (f->is_static) {
+            sb_sets(err, "repeated static members are forbidden");
+            return -1;
+        }
+        if (f->kind == IOP_T_VOID) {
+            sb_sets(err, "repeated void types are forbidden");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
                             iopc_field_t *f)
 {
+    SB_1k(err);
+
     WANT(pp, 0, ITOK_IDENT);
     f->kind = get_type_kind(TK_N(pp, 0));
 
@@ -1862,34 +1936,18 @@ static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
 
     switch (TK_N(pp, 0)->token) {
       case '?':
-        if (f->is_static) {
-            throw_loc("optional static members are forbidden", f->loc);
-        }
         f->repeat = IOP_R_OPTIONAL;
         DROP(pp, 1);
         break;
 
       case '&':
-        if (f->is_static) {
-            throw_loc("referenced static members are forbidden", f->loc);
-        }
-        if (f->kind != IOP_T_STRUCT) {
-            throw_loc("references can only be applied to structures or unions",
-                      f->loc);
-        }
         f->repeat = IOP_R_REQUIRED;
         f->is_ref = true;
         DROP(pp, 1);
         break;
 
       case '[':
-        if (f->is_static) {
-            throw_loc("repeated static members are forbidden", f->loc);
-        }
         WANT(pp, 1, ']');
-        if (f->kind == IOP_T_VOID) {
-            throw_loc("repeated void types are forbidden", f->loc);
-        }
         f->repeat = IOP_R_REPEATED;
         DROP(pp, 2);
         break;
@@ -1898,6 +1956,11 @@ static int parse_field_type(iopc_parser_t *pp, iopc_struct_t *st,
         f->repeat = IOP_R_REQUIRED;
         break;
     }
+
+    if (iopc_check_field_type(f, &err) < 0) {
+        throw_loc("%*pM", f->loc, SB_FMT_ARG(&err));
+    }
+
     return 0;
 }
 
@@ -1940,6 +2003,20 @@ static int parse_field_defval(iopc_parser_t *pp, iopc_field_t *f, int paren)
     return 0;
 }
 
+int iopc_check_tag_value(int tag, sb_t *err)
+{
+    if (tag < 1) {
+        sb_setf(err, "tag is too small (must be >= 1, got %d)", tag);
+        return -1;
+    }
+    if (tag >= 0x8000) {
+        sb_setf(err, "tag is too large (must be < 0x8000, got 0x%x)", tag);
+        return -1;
+    }
+
+    return 0;
+}
+
 static iopc_field_t *
 parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
                  qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag,
@@ -1962,6 +2039,8 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         }
         f->is_static = true;
     } else {
+        SB_1k(err);
+
         /* Tag */
         if (CHECK(pp, 0, ITOK_INTEGER, goto error)) {
             if (__want(pp, 1, ':') < 0) {
@@ -1979,14 +2058,9 @@ parse_field_stmt(iopc_parser_t *pp, iopc_struct_t *st, qv_t(iopc_attr) *attrs,
         } else {
             f->tag = (*next_tag)++;
         }
-        if (f->tag < 1) {
-            error_loc("tag is too small (must be >= 1, got %d)",
-                      TK(pp, 0, goto error)->loc, f->tag);
-            goto error;
-        }
-        if (f->tag >= 0x8000) {
-            error_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                      TK(pp, 0, goto error)->loc, f->tag);
+
+        if (iopc_check_tag_value(f->tag, &err) < 0) {
+            error_loc("%*pM", TK(pp, 0, goto error)->loc, SB_FMT_ARG(&err));
             goto error;
         }
     }
@@ -2605,6 +2679,7 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
                     qv_t(i32) *tags, int *next_tag,
                     iopc_iface_type_t type)
 {
+    SB_1k(err);
     iopc_fun_t *fun = iopc_fun_new();
     iopc_token_t *tk;
     int tag;
@@ -2631,14 +2706,8 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     } else {
         fun->tag = (*next_tag)++;
     }
-    if (fun->tag < 1) {
-        error_loc("tag is too small (must be >= 1, got %d)",
-                  TK(pp, 0, goto error)->loc, fun->tag);
-        goto error;
-    }
-    if (fun->tag >= 0x8000) {
-        error_loc("tag is too large (must be < 0x8000, got 0x%x)",
-                  TK(pp, 0, goto error)->loc, fun->tag);
+    if (iopc_check_tag_value(fun->tag, &err) < 0) {
+        error_loc("%*pM", TK(pp, 0, goto error)->loc, SB_FMT_ARG(&err));
         goto error;
     }
 
@@ -2824,6 +2893,7 @@ static iopc_field_t *
 parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
                      qm_t(iopc_field) *fields, qv_t(i32) *tags, int *next_tag)
 {
+    SB_1k(err);
     iopc_field_t *f = NULL;
     iopc_token_t *tk;
     int tag;
@@ -2841,13 +2911,9 @@ parse_mod_field_stmt(iopc_parser_t *pp, iopc_struct_t *mod,
     } else {
         f->tag = (*next_tag)++;
     }
-    if (f->tag < 1) {
-        throw_loc_p("tag is too small (must be >= 1, got %d)",
-                    TK_P(pp, 0)->loc, f->tag);
-    }
-    if (f->tag >= 0x8000) {
-        throw_loc_p("tag is too large (must be < 0x8000, got 0x%x)",
-                    TK_P(pp, 0)->loc, f->tag);
+
+    if (iopc_check_tag_value(f->tag, &err) < 0) {
+        throw_loc_p("%*pM", TK_P(pp, 0)->loc, SB_FMT_ARG(&err));
     }
 
     RETHROW_NP(parse_struct_type(pp, &f->type_pkg, &f->type_path,

@@ -14,6 +14,8 @@
 #ifndef IS_LIB_COMMON_IOP_PRIV_H
 #define IS_LIB_COMMON_IOP_PRIV_H
 
+#include "iop.h"
+
 /* {{{ class_id/class_name qm declarations */
 
 typedef struct class_id_key_t {
@@ -33,7 +35,7 @@ class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
     return (k1->master == k2->master) && (k1->child_id == k2->child_id);
 }
 
-qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
+qm_kvec_t(iop_class_by_id, class_id_key_t, const iop_struct_t *,
           class_id_key_hash, class_id_key_equal);
 
 /* }}} */
@@ -45,7 +47,7 @@ qvector_t(iop_obj, iop_obj_t);
 qm_kvec_t(iop_objs, lstr_t, qv_t(iop_obj), qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct iop_env_t {
-    qm_t(class_id)   classes_by_id;
+    qm_t(iop_class_by_id)   classes_by_id;
     qm_t(iop_dsos)   dsos_by_pkg;
 
     /* Contains classes/structs/unions/enums/packages. */
@@ -65,6 +67,11 @@ iop_dso_t *iop_dso_get_from_pkg(const iop_pkg_t *pkg);
 int iop_register_packages_env(const iop_pkg_t **pkgs, int len,
                               iop_dso_t * nullable dso,
                               iop_env_t *env, unsigned flags, sb_t *err);
+
+/* }}} */
+/* {{{ Getters */
+
+const iop_struct_t *iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name);
 
 /* }}} */
 

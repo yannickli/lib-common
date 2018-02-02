@@ -721,6 +721,67 @@ struct FilteredStruct {
 };
 
 /* }}} */
+/* {{{ iopc zchk */
+/* {{{ zchk iopsq.sub_struct */
+
+struct S1 {
+    int i;
+};
+
+struct S2 {
+    S1 st;
+    S1& stRef;
+    S1? stOpt;
+};
+
+/* }}} */
+/* {{{ zchk iopsq.array */
+
+struct ArrayTest {
+    int[] i;
+};
+
+/* }}} */
+/* {{{ zchk iopsq.enum_ */
+
+enum IopSqEnum {
+    VAL1,
+    VAL2 = 6,
+    VAL3,
+};
+
+struct IopSqEnumSt {
+    IopSqEnum en;
+};
+
+/* }}} */
+/* {{{ zchk iopsq.external_types */
+
+enum ExternalEnum {
+    A,
+    B,
+};
+
+struct ExternalStruct {
+    int i;
+};
+
+struct TestExternalTypes {
+    ExternalStruct st;
+    ExternalEnum en;
+};
+
+/* }}} */
+/* {{{ zchk iopsq.mp_iopsq_build_struct */
+
+struct TstBuildStruct {
+    int i1;
+    int i2;
+    string s;
+};
+
+/* }}} */
+/* }}} */
 
 /* Interfaces */
 

@@ -107,20 +107,7 @@ iopc_loc_t iopc_loc_merge2(iopc_loc_t l1, iopc_loc_t l2);
         return -1;                          \
     } while (0)
 
-static inline const char *__get_path(const char *file, bool display_prefix)
-{
-    static char res_path[PATH_MAX];
-
-    if (*file == '/' || !display_prefix || !iopc_g.prefix_dir) {
-        return file;
-    }
-
-    if (!expect(path_extend(res_path, iopc_g.prefix_dir, "%s", file) >= 0)) {
-        return NULL;
-    }
-
-    return res_path;
-}
+const char *__get_path(const char *file, bool display_prefix);
 
 static inline const char *get_print_path(const char *file)
 {
@@ -132,10 +119,19 @@ static inline const char *get_full_path(const char *file)
     return __get_path(file, true);
 }
 
-#define do_loc_(fmt, level, t, loc, ...) \
-    logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,                   \
-               get_print_path((loc).file), (loc).lmin, (loc).cmin,           \
-               (t), ##__VA_ARGS__)
+#define do_loc_(fmt, level, t, loc, ...)                                     \
+    do {                                                                     \
+        const typeof(loc) *__loc = &(loc);                                   \
+                                                                             \
+        if (__loc->file) {                                                   \
+            logger_log(&iopc_g.logger, level, "%s:%d:%d: %s: "fmt,           \
+                       get_print_path(__loc->file),                          \
+                       __loc->lmin, __loc->cmin, (t), ##__VA_ARGS__);        \
+        } else {                                                             \
+            logger_log(&iopc_g.logger, level, "%s: "fmt, (t),                \
+                       ##__VA_ARGS__);                                       \
+        }                                                                    \
+    } while (0)
 
 #define do_loc(fmt, level, t, loc, ...)  \
     do {                                                                     \
@@ -627,6 +623,9 @@ typedef struct iopc_field_t {
     /* In case the field is contained by a snmpTbl */
     bool snmp_is_in_tbl : 1;
 
+    /* For IOP²: true for fields of IOP types taken from IOP environment. */
+    bool has_external_type : 1;
+
     /** kind of the resolved type */
     iop_type_t kind;
     /** path of the resolved complex type */
@@ -639,8 +638,11 @@ typedef struct iopc_field_t {
     /** definition of the resolved complex type */
     union {
         struct iopc_struct_t *struct_def;
-        struct iopc_struct_t *union_def;
         struct iopc_enum_t   *enum_def;
+
+        /* For IOP², when the field has a type taken from IOP environment. */
+        const iop_struct_t *external_st;
+        const iop_enum_t   *external_en;
     };
     char *type_name;
     char *pp_type;
@@ -671,7 +673,7 @@ static inline void iopc_field_wipe(iopc_field_t *field) {
     qv_deep_wipe(&field->attrs, iopc_attr_delete);
     qv_deep_wipe(&field->comments, iopc_dox_wipe);
     if (field->defval_type == IOPC_DEFVAL_STRING) {
-        p_delete(&field->defval.ptr);
+        p_delete((char **)&field->defval.ptr);
     }
     qv_deep_wipe(&field->parents, iopc_extends_delete);
 }
@@ -750,6 +752,10 @@ typedef struct iopc_struct_t {
     /* Used for master classes (ie. not having a parent); indexes all the
      * children classes by their id. */
     qm_t(id_class) children_by_id;
+
+    /* IOP description of the struct (used by IOP² when generating IOP
+     * descriptions from iopc structures). */
+    const iop_struct_t *desc;
 } iopc_struct_t;
 static inline iopc_struct_t *iopc_struct_init(iopc_struct_t *st) {
     p_clear(st, 1);
@@ -813,6 +819,10 @@ typedef struct iopc_enum_t {
     qv_t(iopc_enum_field) values;
     qv_t(iopc_attr)       attrs;
     qv_t(iopc_dox)        comments;
+
+    /* IOP description of the enum (used by IOP² when generating IOP
+     * descriptions from iopc enumerations). */
+    const iop_enum_t *desc;
 } iopc_enum_t;
 static inline iopc_enum_t *iopc_enum_init(iopc_enum_t *e) {
     p_clear(e, 1);

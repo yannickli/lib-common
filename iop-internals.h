@@ -536,11 +536,11 @@ typedef struct iop_mod_t {
 typedef struct iop_pkg_t iop_pkg_t;
 struct iop_pkg_t {
     const lstr_t               name;
-    iop_enum_t   const *const nonnull * nonnull enums;
-    iop_struct_t const *const nonnull * nonnull structs;
-    iop_iface_t  const *const nonnull * nonnull ifaces;
-    iop_mod_t    const *const nonnull * nonnull mods;
-    iop_pkg_t    const *const nonnull * nonnull deps;
+    iop_enum_t   const *const nullable *nonnull enums;
+    iop_struct_t const *const nullable *nonnull structs;
+    iop_iface_t  const *const nullable *nonnull ifaces;
+    iop_mod_t    const *const nullable *nonnull mods;
+    iop_pkg_t    const *const nullable *nonnull deps;
 };
 
 /*}}}*/
