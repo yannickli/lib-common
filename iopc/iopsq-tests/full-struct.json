@@ -36,43 +36,83 @@
         "name": "FullRequired",
         "fields": [ {
             "name": "i8",
-            "type": { "typeName": "byte" }
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S8"
+                }
+            }
         }, {
             "name": "u8",
-            "type": { "typeName": "ubyte" }
+            "type": {
+                "i": {
+                    "isSigned": false,
+                    "size": "S8"
+                }
+            }
         }, {
             "name": "i16",
-            "type": { "typeName": "short" }
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S16"
+                }
+            }
         }, {
             "name": "u16",
-            "type": { "typeName": "ushort" }
+            "type": {
+                "i": {
+                    "isSigned": false,
+                    "size": "S16"
+                }
+            }
         }, {
             "name": "i32",
-            "type": { "typeName": "int" }
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S32"
+                }
+            }
         }, {
             "name": "u32",
-            "type": { "typeName": "uint" }
+            "type": {
+                "i": {
+                    "isSigned": false,
+                    "size": "S32"
+                }
+            }
         }, {
             "name": "i64",
-            "type": { "typeName": "long" }
+            "type": {
+                "i": {
+                    "isSigned": true,
+                    "size": "S64"
+                }
+            }
         }, {
             "name": "u64",
-            "type": { "typeName": "ulong" }
+            "type": {
+                "i": {
+                    "isSigned": false,
+                    "size": "S64"
+                }
+            }
         }, {
             "name": "b",
-            "type": { "typeName": "bool" }
+            "type": { "b": null }
         }, {
             "name": "e",
             "type": { "typeName": "TestEnum" }
         }, {
             "name": "d",
-            "type": { "typeName": "double" }
+            "type": { "d": null }
         }, {
             "name": "s",
-            "type": { "typeName": "string" }
+            "type": { "s": "STRING" }
         }, {
             "name": "data",
-            "type": { "typeName": "bytes" }
+            "type": { "s": "BYTES" }
         }, {
             "name": "un",
             "type": { "typeName": "TestUnion" }
@@ -84,7 +124,7 @@
             "type": { "typeName": "tstiop.TestClass" }
         }, {
             "name": "xml",
-            "type": { "typeName": "xml" }
+            "type": { "s": "XML" }
         } ]
     }, {
         "_class": "iopsq.Struct",
@@ -171,7 +211,7 @@
             "optional": {}
         }, {
             "name": "v",
-            "type": { "typeName": "void" },
+            "type": { "v": null },
             "optional": {}
         } ]
     }, {
