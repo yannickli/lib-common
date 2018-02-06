@@ -146,7 +146,11 @@ done
 TAGS=($Z_TAG_SKIP)
 for TAG in ${TAGS[@]}
 do
-     BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG$COMA_SEPARATED_TAGS"
+     if [[ $TAG = "wip" ]]; then
+         BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG"
+     else
+         BEHAVE_TAGS="${BEHAVE_TAGS} --tags=-$TAG$COMA_SEPARATED_TAGS"
+    fi
 done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary"
 
