@@ -317,7 +317,7 @@ static void ztst_ring_run(int run_id)
 
 static int ztst_ring_initialize(void *arg)
 {
-    _G.ring_pool = mem_ring_pool_new("ztst-ring", 64 << 10);
+    _G.ring_pool = mem_ring_new("ztst-ring", 64 << 10);
 
     _G.ring_cron = el_timer_register_blk(2000, 5000, 0, ^(el_t ev){
         static int run_id = 0;
@@ -385,7 +385,7 @@ static void on_term(el_t ev, int signo, el_data_t arg)
 
       case 2:
         logger_notice(&_G.logger, "destroy memory pools");
-        mem_ring_pool_delete(&_G.ring_pool);
+        mem_ring_delete(&_G.ring_pool);
         break;
 
       case 3:

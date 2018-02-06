@@ -140,66 +140,89 @@ void mem_stack_pool_reset(mem_stack_pool_t * nonnull) __leaf;
 void mem_stack_pool_try_reset(mem_stack_pool_t * nonnull) __leaf;
 void mem_stack_pool_wipe(mem_stack_pool_t * nonnull) __leaf;
 
+mem_pool_t *nonnull mem_stack_new(const char *nonnull name, int initialsize);
+void mem_stack_delete(mem_pool_t *nonnull *nullable mp);
+
+static inline
+mem_stack_pool_t *nonnull mem_stack_get_pool(mem_pool_t *nonnull mp)
+{
+    assert (mp->mem_pool & MEM_STACK);
+    return container_of(mp, mem_stack_pool_t, funcs);
+}
+
 #ifndef NDEBUG
-void mem_stack_protect(mem_stack_pool_t * nonnull sp,
-                       const mem_stack_frame_t * nonnull up_to);
+void mem_stack_pool_protect(mem_stack_pool_t * nonnull sp,
+                            const mem_stack_frame_t * nonnull up_to);
 /*
  * sealing a stack frame ensures that people wanting to allocate in that stack
- * use a mem_stack_push/mem_stack_pop or a t_scope first.
+ * use a mem_stack_pool_push/mem_stack_pool_pop or a t_scope first.
  *
  * It's not necessary to unseal before a pop().
  */
-#  define mem_stack_prev(frame)  ((mem_stack_frame_t *)((frame)->prev & ~1L))
-#  define mem_stack_seal(sp)     ((void)((sp)->stack->prev |=  1L))
-#  define mem_stack_unseal(sp)   ((void)((sp)->stack->prev &= ~1L))
+#  define mem_stack_pool_prev(frame)                                         \
+       ((mem_stack_frame_t *)((frame)->prev & ~1L))
+#  define mem_stack_pool_seal(sp)     ((void)((sp)->stack->prev |=  1L))
+#  define mem_stack_pool_unseal(sp)   ((void)((sp)->stack->prev &= ~1L))
 #else
-#  define mem_stack_prev(frame)       ((mem_stack_frame_t *)(frame)->prev)
-#  define mem_stack_seal(sp)          ((void)0)
-#  define mem_stack_unseal(sp)        ((void)0)
-#  define mem_stack_protect(sp, end)  ((void)0)
+#  define mem_stack_pool_prev(frame)                                         \
+       ((mem_stack_frame_t *)(frame)->prev)
+#  define mem_stack_pool_seal(sp)          ((void)0)
+#  define mem_stack_pool_unseal(sp)        ((void)0)
+#  define mem_stack_pool_protect(sp, end)  ((void)0)
 #endif
 
 static ALWAYS_INLINE
-bool mem_stack_is_at_top(const mem_stack_pool_t * nonnull sp)
+bool mem_stack_pool_is_at_top(const mem_stack_pool_t * nonnull sp)
 {
     return sp->stack == &sp->base;
 }
 
-const void * nonnull mem_stack_push(mem_stack_pool_t * nonnull) __leaf;
+const void * nonnull mem_stack_pool_push(mem_stack_pool_t * nonnull) __leaf;
 #ifndef NDEBUG
-const void * nonnull mem_stack_pop_libc(mem_stack_pool_t * nonnull);
+const void * nonnull mem_stack_pool_pop_libc(mem_stack_pool_t * nonnull);
 #endif
 
 #ifdef MEM_BENCH
-void mem_stack_bench_pop(mem_stack_pool_t * nonnull,
-                         mem_stack_frame_t * nonnull);
+void mem_stack_pool_bench_pop(mem_stack_pool_t * nonnull,
+                              mem_stack_frame_t * nonnull);
 #endif
-void mem_stack_pool_print_stats(const mem_pool_t * nonnull);
-void mem_stack_pools_print_stats(void);
+
+void mem_stack_print_stats(const mem_pool_t * nonnull);
+void mem_stack_print_pools_stats(void);
 
 static ALWAYS_INLINE
-const void * nonnull mem_stack_pop(mem_stack_pool_t * nonnull sp)
+const void * nonnull mem_stack_pool_pop(mem_stack_pool_t * nonnull sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
 #ifndef NDEBUG
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
-        return mem_stack_pop_libc(sp);
+        return mem_stack_pool_pop_libc(sp);
     }
 #endif
 
-    sp->stack = mem_stack_prev(frame);
+    sp->stack = mem_stack_pool_prev(frame);
 #ifdef MEM_BENCH
-    mem_stack_bench_pop(sp, frame);
+    mem_stack_pool_bench_pop(sp, frame);
 #endif
     assert (sp->stack);
-    mem_stack_protect(sp, frame);
+    mem_stack_pool_protect(sp, frame);
 
-    if (mem_stack_is_at_top(sp)) {
+    if (mem_stack_pool_is_at_top(sp)) {
         mem_stack_pool_try_reset(sp);
     }
     return frame;
+}
+
+static inline const void *nonnull mem_stack_pop(mem_pool_t *nonnull mp)
+{
+    return mem_stack_pool_pop(mem_stack_get_pool(mp));
+}
+
+static inline const void *nonnull mem_stack_push(mem_pool_t *nonnull mp)
+{
+    return mem_stack_pool_push(mem_stack_get_pool(mp));
 }
 
 extern __thread mem_stack_pool_t t_pool_g;
@@ -214,8 +237,8 @@ static ALWAYS_INLINE mem_stack_pool_t * nonnull t_stack_pool(void)
     return &t_pool_g;
 }
 
-#define t_seal()      mem_stack_seal(&t_pool_g)
-#define t_unseal()    mem_stack_unseal(&t_pool_g)
+#define t_seal()      mem_stack_pool_seal(&t_pool_g)
+#define t_unseal()    mem_stack_pool_unseal(&t_pool_g)
 
 #define t_fmt(fmt, ...)  mp_fmt(t_pool(), NULL, fmt, ##__VA_ARGS__)
 
@@ -290,7 +313,7 @@ static ALWAYS_INLINE mem_stack_pool_t * nonnull t_stack_pool(void)
 #ifndef __cplusplus
 /*
  * t_scope protects all the code after its use up to the end of the block
- * scope with an implicit mem_stack_push(), mem_stack_pop() pair.
+ * scope with an implicit mem_stack_pool_push(), mem_stack_pool_pop() pair.
  *
  * It works using the same principle as C++ RAII, see the C++ TScope class
  * below, but for C.
@@ -309,24 +332,24 @@ static ALWAYS_INLINE
 void t_scope_cleanup(const void * nonnull * nonnull unused)
 {
 #ifndef NDEBUG
-    if (unlikely(*unused != mem_stack_pop(&t_pool_g)))
+    if (unlikely(*unused != mem_stack_pool_pop(&t_pool_g)))
         e_panic("unbalanced t_stack");
 #else
-    mem_stack_pop(&t_pool_g);
+    mem_stack_pool_pop(&t_pool_g);
 #endif
 }
 #define t_scope  \
     const void *PFX_LINE(t_scope_)                                           \
     __attribute__((unused,cleanup(t_scope_cleanup)))                         \
-        = mem_stack_push(&t_pool_g)
+        = mem_stack_pool_push(&t_pool_g)
 #else
 /*
- * RAII scoped mem_stask_push/mem_stack_pop
+ * RAII scoped mem_stask_pool_push/mem_stack_pool_pop
  */
 class TScope {
   public:
-    inline TScope() { mem_stack_push(&t_pool_g); };
-    inline ~TScope() { mem_stack_pop(&t_pool_g); };
+    inline TScope() { mem_stack_pool_push(&t_pool_g); };
+    inline ~TScope() { mem_stack_pool_pop(&t_pool_g); };
   private:
     DISALLOW_COPY_AND_ASSIGN(TScope);
     void*  null_unspecified operator new(size_t);

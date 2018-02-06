@@ -382,7 +382,7 @@ void ring_setup_frame(ring_pool_t *rp, ring_blk_t *blk, frame_t *frame)
 
 /*------ Public API -{{{-*/
 
-mem_pool_t *mem_ring_pool_new(const char *name, int initialsize)
+mem_pool_t *mem_ring_new(const char *name, int initialsize)
 {
     ring_pool_t *rp = p_new(ring_pool_t, 1);
     ring_blk_t *blk;
@@ -415,7 +415,7 @@ mem_pool_t *mem_ring_pool_new(const char *name, int initialsize)
 
 static void __mem_ring_reset(ring_pool_t *rp);
 
-void mem_ring_pool_delete(mem_pool_t **rpp)
+void mem_ring_delete(mem_pool_t **rpp)
 {
     if (*rpp) {
         ring_pool_t *rp = container_of(*rpp, ring_pool_t, funcs);
@@ -628,7 +628,7 @@ void mem_ring_release(const void *cookie)
     if (to_delete) {
         mem_pool_t *mp = &rp->funcs;
 
-        mem_ring_pool_delete(&mp);
+        mem_ring_delete(&mp);
     }
 }
 
@@ -670,14 +670,14 @@ static __thread mem_pool_t *r_pool_g;
 mem_pool_t *r_pool(void)
 {
     if (unlikely(!r_pool_g)) {
-        r_pool_g = mem_ring_pool_new("r_pool", 64 << 10);
+        r_pool_g = mem_ring_new("r_pool", 64 << 10);
     }
     return r_pool_g;
 }
 
 void r_pool_destroy(void)
 {
-    mem_ring_pool_delete(&r_pool_g);
+    mem_ring_delete(&r_pool_g);
 }
 thr_hooks(NULL, r_pool_destroy);
 

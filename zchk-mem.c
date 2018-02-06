@@ -179,16 +179,28 @@ Z_GROUP_EXPORT(core_mem_stack) {
 
         mem_stack_pool_init(&sp, "core_mem_stack.big_alloc_mean", 0);
 
-        mem_stack_push(&sp);
+        mem_stack_pool_push(&sp);
 
         /* First big allocation to set a big allocation mean */
         Z_ASSERT_P(mp_new_raw(&sp.funcs, char, 50 << 20));
         /* Second big allocation to make the allocator abort */
         Z_ASSERT_P(mp_new_raw(&sp.funcs, char, 50 << 20));
 
-        mem_stack_pop(&sp);
+        mem_stack_pool_pop(&sp);
         mem_stack_pool_wipe(&sp);
     } Z_TEST_END
+
+    Z_TEST(new_delete, "test mem_stack_new/mem_stack_delete") {
+        lstr_t s;
+        mem_pool_t *sp = mem_stack_new("core_mem_stack.new_delete", 0);
+
+        mem_stack_push(sp);
+        s = mp_lstr_fmt(sp, "C'qui est embêtant dans les oiseaux "
+                        "c'est le bec.");
+        Z_ASSERT_P(s.s);
+        mem_stack_pop(sp);
+        mem_stack_delete(&sp);
+    } Z_TEST_END;
 } Z_GROUP_END
 
 /*}}}1*/
@@ -196,7 +208,7 @@ Z_GROUP_EXPORT(core_mem_stack) {
 
 Z_GROUP_EXPORT(core_mem_ring) {
     Z_TEST(big_alloc_mean, "non regression on #39120") {
-        mem_pool_t *rp = mem_ring_pool_new("core_mem_ring.big_alloc_mean", 0);
+        mem_pool_t *rp = mem_ring_new("core_mem_ring.big_alloc_mean", 0);
         const void *rframe = mem_ring_newframe(rp);
 
         /* First big allocation to set a big allocation mean */
@@ -205,7 +217,7 @@ Z_GROUP_EXPORT(core_mem_ring) {
         Z_ASSERT_P(mp_new_raw(rp, char, 50 << 20));
 
         mem_ring_release(rframe);
-        mem_ring_pool_delete(&rp);
+        mem_ring_delete(&rp);
     } Z_TEST_END
 } Z_GROUP_END
 

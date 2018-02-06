@@ -448,7 +448,7 @@ static void free_last_buffer(void)
         buffer_instance_wipe(tab_last(&log_thr_g.vec_buff_stack));
         qv_remove(&log_thr_g.vec_buff_stack,
                   log_thr_g.vec_buff_stack.len - 1);
-        mem_stack_pop(&log_thr_g.mp_stack);
+        mem_stack_pool_pop(&log_thr_g.mp_stack);
     }
 }
 
@@ -471,7 +471,7 @@ void log_start_buffering_filter(bool use_handler, int log_level)
     buffer_instance->use_handler = use_handler;
     buffer_instance->buffer_log_level = log_level;
 
-    mem_stack_push(&log_thr_g.mp_stack);
+    mem_stack_pool_push(&log_thr_g.mp_stack);
     log_thr_g.nb_buffer_started++;
 }
 

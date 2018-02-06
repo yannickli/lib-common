@@ -822,7 +822,7 @@ static void *thr_job_main(void *arg)
     pthread_cleanup_push(thr_info_cleanup, NULL);
 
     /* Ensure there is no open frame on the t_stack. */
-    assert (mem_stack_is_at_top(&t_pool_g));
+    assert (mem_stack_pool_is_at_top(&t_pool_g));
 
     /* explanation of thread states :
      * thread_id <  target_thread_count : active threads

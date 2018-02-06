@@ -704,11 +704,10 @@ void mem_fifo_pools_print_stats(void);
  * \param[name]         Name of the ring pool, used for debug.
  * \param[initialsize]  First memory block size.
  */
-mem_pool_t * nonnull mem_ring_pool_new(const char * nonnull name,
-                                       int initialsize);
+mem_pool_t * nonnull mem_ring_new(const char * nonnull name, int initialsize);
 
 /** Delete the given memory ring-pool */
-void mem_ring_pool_delete(mem_pool_t * nullable * nonnull) __leaf;
+void mem_ring_delete(mem_pool_t * nullable * nonnull) __leaf;
 
 /** Force clean the ring pool from empty memory blocks.
  *

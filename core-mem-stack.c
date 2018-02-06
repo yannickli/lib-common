@@ -222,7 +222,7 @@ __flatten
 static void *sp_alloc(mem_pool_t *_sp, size_t size, size_t alignment,
                       mem_flags_t flags)
 {
-    mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
+    mem_stack_pool_t *sp = mem_stack_get_pool(_sp);
     mem_stack_frame_t *frame = sp->stack;
     uint8_t *res;
 #ifdef MEM_BENCH
@@ -284,7 +284,7 @@ static void sp_free(mem_pool_t *_sp, void *mem)
 static void *sp_realloc(mem_pool_t *_sp, void *mem, size_t oldsize,
                         size_t asked, size_t alignment, mem_flags_t flags)
 {
-    mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
+    mem_stack_pool_t *sp = mem_stack_get_pool(_sp);
     mem_stack_frame_t *frame = sp->stack;
     ssize_t sizediff = asked - oldsize;
     uint8_t *res = mem;
@@ -388,7 +388,7 @@ static mem_pool_t const pool_funcs = {
 static void *sp_alloc_libc(mem_pool_t *_sp, size_t asked, size_t alignment,
                            mem_flags_t flags)
 {
-    mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
+    mem_stack_pool_t *sp = mem_stack_get_pool(_sp);
     size_t oversize = mem_align_ptr(sizeof(mem_stack_blk_t), alignment);
     mem_stack_blk_t *blk;
     uint8_t *ptr;
@@ -440,12 +440,12 @@ static void *sp_push_libc(mem_stack_pool_t *sp)
     return sp->stack = frame;
 }
 
-const void *mem_stack_pop_libc(mem_stack_pool_t *sp)
+const void *mem_stack_pool_pop_libc(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
     mem_stack_blk_t *blk;
 
-    sp->stack = mem_stack_prev(frame);
+    sp->stack = mem_stack_pool_prev(frame);
 
     dlist_for_each_entry_continue(frame->blk, blk, &sp->blk_list,
                                        blk_list) {
@@ -581,7 +581,7 @@ void mem_stack_pool_try_reset(mem_stack_pool_t *sp)
     size_t size_limit = 1 << 20; /* 1 MiB */
 
     /* Reset only at top stacks. */
-    if (!mem_stack_is_at_top(sp)) {
+    if (!mem_stack_pool_is_at_top(sp)) {
         return;
     }
 
@@ -627,7 +627,7 @@ void mem_stack_pool_wipe(mem_stack_pool_t *sp)
     assert (sp->stacksize == 0);
 }
 
-const void *mem_stack_push(mem_stack_pool_t *sp)
+const void *mem_stack_pool_push(mem_stack_pool_t *sp)
 {
     uint8_t *end;
     uint8_t *res;
@@ -695,7 +695,7 @@ void mem_stack_bench_pop(mem_stack_pool_t *sp, mem_stack_frame_t * frame)
 }
 #endif
 
-void mem_stack_pool_print_stats(const mem_pool_t *mp) {
+void mem_stack_print_stats(const mem_pool_t *mp) {
 #ifdef MEM_BENCH
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
@@ -707,7 +707,7 @@ void mem_stack_pool_print_stats(const mem_pool_t *mp) {
 #endif
 }
 
-void mem_stack_pools_print_stats(void) {
+void mem_stack_print_pools_stats(void) {
 #ifdef MEM_BENCH
     /* bypass mem_pool if demanded */
     if (!mem_pool_is_enabled()) {
@@ -716,7 +716,7 @@ void mem_stack_pools_print_stats(void) {
 
     spin_lock(&_G.all_pools_lock);
     dlist_for_each(n, &_G.all_pools) {
-        mem_stack_pool_t *mp = container_of(n, mem_stack_pool_t, pool_list);
+        mem_stack_pool_t *mp = mem_stack_get_pool(n);
 
         mem_bench_print_human(mp->mem_bench, MEM_BENCH_PRINT_CURRENT);
     }
@@ -725,7 +725,7 @@ void mem_stack_pools_print_stats(void) {
 }
 
 #ifndef NDEBUG
-void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
+void mem_stack_pool_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
 {
     if (up_to->blk == sp->stack->blk) {
         mem_tool_disallow_memory(sp->stack->pos, up_to->pos - sp->stack->pos);
@@ -747,6 +747,35 @@ void mem_stack_protect(mem_stack_pool_t *sp, const mem_stack_frame_t *up_to)
     }
 }
 #endif
+
+static inline mem_stack_pool_t *mem_stack_pool_new(const char *name,
+                                                   int initialsize)
+{
+    mem_stack_pool_t *sp = p_new_raw(mem_stack_pool_t, 1);
+
+    mem_stack_pool_init(sp, name, initialsize);
+
+    return sp;
+}
+
+mem_pool_t *mem_stack_new(const char *name, int initialsize)
+{
+    mem_stack_pool_t *pool = mem_stack_pool_new(name, initialsize);
+
+    return &pool->funcs;
+}
+
+GENERIC_DELETE(mem_stack_pool_t, mem_stack_pool);
+
+void mem_stack_delete(mem_pool_t *nonnull *nullable mp)
+{
+    if (*mp) {
+        mem_stack_pool_t *sp = mem_stack_get_pool(*mp);
+
+        mem_stack_pool_delete(&sp);
+        *mp = NULL;
+    }
+}
 
 __attribute__((constructor))
 static void t_pool_init(void)
