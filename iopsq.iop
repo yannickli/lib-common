@@ -41,13 +41,9 @@ enum StringType {
 @ctype(iop__type__t)
 union IopType {
     IntType i;
-
     void b;
     void d;
-
-    /* TODO Test. */
     StringType s;
-
     void v;
 
     @pattern("[a-zA-Z0-9\.]*") @minLength(1)
