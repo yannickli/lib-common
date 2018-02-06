@@ -782,6 +782,29 @@ struct TstBuildStruct {
 };
 
 /* }}} */
+/* {{{ zchk iopsq.type_table */
+
+struct TTBasicStruct {
+    int i;
+};
+
+enum TTBasicEnum {
+    A,
+    B,
+    C,
+    D,
+};
+
+struct TTComplexStruct {
+    string s;
+    TTBasicStruct stId1;
+    TTBasicEnum enId;
+    TTBasicStruct stTypeName;
+    TTBasicStruct stId2;
+    TTBasicEnum enTypeName;
+};
+
+/* }}} */
 /* }}} */
 
 /* Interfaces */

@@ -74,5 +74,20 @@ int iop_register_packages_env(const iop_pkg_t **pkgs, int len,
 const iop_struct_t *iop_pkg_get_struct_by_name(const iop_pkg_t *pkg, lstr_t name);
 
 /* }}} */
+/* {{{ Helpers */
+
+static inline bool iop_int_type_is_signed(iop_type_t type)
+{
+    assert (type <= IOP_T_U64);
+    return !(type & 1);
+}
+
+static inline size_t iop_int_type_size(iop_type_t type)
+{
+    assert (type <= IOP_T_U64);
+    return 1 << (type >> 1);
+}
+
+/* }}} */
 
 #endif

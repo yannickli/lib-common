@@ -62,37 +62,93 @@
  *   - Sub-packages and multi-package loading.
  */
 
+/* {{{ IOP² building helpers */
+/* {{{ Basic builders */
+
+qvector_t(iopsq_field, iop__field__t);
+qvector_t(iopsq_enum_val, iop__enum_val__t);
+
+/** Fill an IOP² type from an \p iop_type_t.
+ *
+ * \return -1 if the base type is not enough (for \ref IOP_T_ENUM,
+ *         \ref IOP_T_STRUCT or \ref IOP_T_UNION).
+ */
+int iop_type_to_iop(iop_type_t type, iop__type__t *out);
+
+/* }}} */
+/* {{{ Type table */
+
+/** Type table: allows to use custom IOP structs/enums in IOP² descriptions.
+ */
+typedef struct iopsq_type_table_t iopsq_type_table_t;
+
+/* Low-level constructor/destructor. Should not be used directly. */
+iopsq_type_table_t *__iopsq_type_table_new(void);
+void __iopsq_type_table_delete(iopsq_type_table_t **table);
+
+/** Create a scope-bound IOP² type table. */
+#define IOPSQ_TYPE_TABLE(name)                                               \
+    iopsq_type_table_t *name                                                 \
+    __attribute__((cleanup(__iopsq_type_table_delete))) =                    \
+        __iopsq_type_table_new()
+
+/** Build an iopsq.Type instance from an 'iop_full_type_t'.
+ *
+ * If the \p iop_full_type_t is an enum or struct/union/class that is not
+ * present in the IOP environment, the table will register it and pair it with
+ * an ID, otherwise, it will set the IOP² type accordingly to the input type.
+ *
+ * \param[in, out] table  The type table.
+ *
+ * \param[in]      ftype  The complete field type (with \p en or \p st filled
+ *                        appropriately).
+ *
+ * \param[out]     type   The IOP² type.
+ */
+void iopsq_type_table_fill_type(iopsq_type_table_t *table,
+                                const iop_full_type_t *ftype,
+                                iop__type__t *type);
+
+/* }}} */
+/* }}} */
+
 /** Generates an IOP package description from its IOP version.
  *
  * \warning This function can use elements from current IOP environment
  * (referenced by full type name), so the environment should *not* be updated
  * during the lifetime of an IOP description obtained with this function.
  *
- * \param[in,out] mp        Memory pool to use for any needed allocation
- *                          (should be a frame-based pool).
+ * \param[in,out] mp          Memory pool to use for any needed allocation
+ *                            (should be a frame-based pool).
  *
- * \param[in]     pkg_desc  IOP description of the package.
+ * \param[in]     pkg_desc    IOP description of the package.
  *
- * \param[out]    err       Error buffer.
+ * \param[in]     type_table  Table for custom IOP types.
+ *
+ * \param[out]    err         Error buffer.
  */
 iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
-                              const iopsq__package__t *nonnull pkg_desc,
+                              const iop__package__t *nonnull pkg_desc,
+                              const iopsq_type_table_t *nullable type_table,
                               sb_t *nonnull err);
 
 /** Generates an IOP struct or union description from its IOP version.
  *
  * \warning Same as for \ref mp_iop_pkg_from_desc.
  *
- * \param[in,out] mp        Memory pool to use for any needed allocation
- *                          (should be a frame-based pool).
+ * \param[in,out] mp          Memory pool to use for any needed allocation
+ *                            (should be a frame-based pool).
  *
- * \param[in]     st_desc   IOP description of the struct/union.
+ * \param[in]     st_desc     IOP description of the struct/union.
  *
- * \param[out]    err       Error buffer.
+ * \param[in]     type_table  Table for custom IOP types.
+ *
+ * \param[out]    err         Error buffer.
  */
 const iop_struct_t *
 mp_iopsq_build_struct(mem_pool_t *nonnull mp,
                       const iopsq__structure__t *nonnull st_desc,
+                      const iopsq_type_table_t *nullable type_table,
                       sb_t *nonnull err);
 
 /** Generates an dumb IOP package from a single package elem description.
@@ -102,6 +158,17 @@ mp_iopsq_build_struct(mem_pool_t *nonnull mp,
 iop_pkg_t *
 mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
                                 const iop__package_elem__t *nonnull elem,
+                                const iopsq_type_table_t *nullable type_table,
                                 sb_t *nonnull err);
+
+/* {{{ Private helpers */
+
+static inline iopsq__int_size__t iopsq_int_type_to_int_size(iop_type_t type)
+{
+    assert (type <= IOP_T_U64);
+    return type >> 1;
+}
+
+/* }}} */
 
 #endif /* IS_IOP_IOPC_IOP_H */

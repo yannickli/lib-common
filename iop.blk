@@ -5409,6 +5409,36 @@ static int call_st_const_fast_cb(const iop_struct_t *st_desc, void *st_ptr,
 #undef SET_INDEX_WSTACK
 
 /* }}} */
+/* {{{ IOP iop_full_type_t */
+
+uint32_t qhash_iop_full_type_hash(const qhash_t *qhash,
+                                  const iop_full_type_t *type)
+{
+    if (type->type == IOP_T_ENUM) {
+        return u64_hash32((uint64_t)type->en);
+    }
+    if (!iop_type_is_scalar(type->type)) {
+        return u64_hash32((uint64_t)type->st);
+    }
+
+    return type->type;
+}
+
+bool qhash_iop_full_type_equal(const qhash_t *qhash,
+                               const iop_full_type_t *t1,
+                               const iop_full_type_t *t2)
+{
+    THROW_FALSE_IF(t1->type != t2->type);
+    if (t1->type == IOP_T_ENUM) {
+        return t1->en == t2->en;
+    }
+    if (!iop_type_is_scalar(t1->type)) {
+        return t1->st == t2->st;
+    }
+    return true;
+}
+
+/* }}} */
 /* {{{ Signature */
 
 #define ATTRS

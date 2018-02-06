@@ -7811,6 +7811,32 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(true);
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(int_types_helpers, "integer types sign/size helpers") { /* {{{ */
+        struct {
+            iop_type_t type;
+            bool is_signed;
+            size_t size;
+        } int_types[] = {
+            { IOP_T_I8, true, 1 },
+            { IOP_T_U8, false, 1 },
+            { IOP_T_I16, true, 2 },
+            { IOP_T_U16, false, 2 },
+            { IOP_T_I32, true, 4 },
+            { IOP_T_U32, false, 4 },
+            { IOP_T_I64, true, 8 },
+            { IOP_T_U64, false, 8 },
+        };
+
+        carray_for_each_ptr(type, int_types) {
+            Z_ASSERT_EQ(iop_int_type_is_signed(type->type), type->is_signed,
+                        "wrong sign for type %s",
+                        iop_type_get_string_desc(type->type));
+            Z_ASSERT_EQ(iop_int_type_size(type->type), type->size,
+                        "wrong size for type %s",
+                        iop_type_get_string_desc(type->type));
+        }
+    } Z_TEST_END;
+    /* }}} */
 
 } Z_GROUP_END
 

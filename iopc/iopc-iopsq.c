@@ -65,6 +65,157 @@ static int iopc_check_type_name(lstr_t name, sb_t *err)
     return 0;
 }
 
+int iop_type_to_iop(iop_type_t type, iop__type__t *out)
+{
+    switch (type) {
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+        *out = IOP_UNION_VA(iop__type, i,
+                            .is_signed = iop_int_type_is_signed(type),
+                            .size = iopsq_int_type_to_int_size(type));
+        break;
+
+      case IOP_T_BOOL:
+        *out = IOP_UNION_VOID(iop__type, b);
+        break;
+
+      case IOP_T_DOUBLE:
+        *out = IOP_UNION_VOID(iop__type, d);
+        break;
+
+      case IOP_T_STRING:
+        *out = IOP_UNION(iop__type, s, STRING_TYPE_STRING);
+        break;
+
+      case IOP_T_DATA:
+        *out = IOP_UNION(iop__type, s, STRING_TYPE_BYTES);
+        break;
+
+      case IOP_T_XML:
+        *out = IOP_UNION(iop__type, s, STRING_TYPE_XML);
+        break;
+
+      case IOP_T_VOID:
+        *out = IOP_UNION_VOID(iop__type, v);
+        break;
+
+      case IOP_T_ENUM:
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        return -1;
+    }
+
+    return 0;
+}
+
+/* }}} */
+/* {{{ iopsq_type_table_t */
+
+qm_kvec_t(iopsq_type_id, iop_full_type_t, uint64_t,
+          qhash_iop_full_type_hash, qhash_iop_full_type_equal);
+
+qvector_t(iop_full_type, iop_full_type_t);
+
+struct iopsq_type_table_t {
+    qm_t(iopsq_type_id) map;
+    qv_t(iop_full_type) types;
+};
+
+static iopsq_type_table_t *__iopsq_type_table_init(iopsq_type_table_t *table)
+{
+    p_clear(table, 1);
+    qm_init(iopsq_type_id, &table->map);
+
+    return table;
+}
+
+DO_NEW(iopsq_type_table_t, __iopsq_type_table);
+
+static void __iopsq_type_table_wipe(iopsq_type_table_t *table)
+{
+    qm_wipe(iopsq_type_id, &table->map);
+    qv_wipe(&table->types);
+}
+
+DO_DELETE(iopsq_type_table_t, __iopsq_type_table);
+
+/** Fill an iopsq type from an iop_full_type_t. */
+static int iopsq_fill_type(const iop_full_type_t *ftype, iop__type__t *type)
+{
+    lstr_t typename;
+
+    if (iop_type_to_iop(ftype->type, type) >= 0) {
+        return 0;
+    }
+
+    if (ftype->type == IOP_T_ENUM) {
+        typename = ftype->en->fullname;
+    } else {
+        assert (!iop_type_is_scalar(ftype->type));
+        typename = ftype->st->fullname;
+    }
+
+    if_assign (obj, iop_get_obj(typename)) {
+        switch (obj->type) {
+          case IOP_OBJ_TYPE_PKG:
+            break;
+
+          case IOP_OBJ_TYPE_ENUM:
+            if (ftype->type == IOP_T_ENUM && obj->desc.en == ftype->en) {
+                /* The enumeration is registered in the environment so it can
+                 * be refered to with a type name. */
+                *type = IOP_UNION(iop__type, type_name, typename);
+                return 0;
+            }
+            break;
+
+          case IOP_OBJ_TYPE_ST:
+            if (ftype->type != IOP_T_ENUM && obj->desc.st == ftype->st) {
+                /* The struct/union/class is registered in the environment so
+                 * it can be refered to with a type name. */
+                *type = IOP_UNION(iop__type, type_name, typename);
+                return 0;
+            }
+            break;
+        }
+    }
+
+    return -1;
+}
+
+void iopsq_type_table_fill_type(iopsq_type_table_t *table,
+                                const iop_full_type_t *ftype,
+                                iop__type__t *type)
+{
+    if (iopsq_fill_type(ftype, type) < 0) {
+        int pos;
+
+        /* The type is unknown and has probably been built by the user.
+         * Register it in the table. */
+        pos = qm_put(iopsq_type_id, &table->map, ftype, table->types.len, 0);
+        if (pos & QHASH_COLLISION) {
+            pos &= ~QHASH_COLLISION;
+        } else {
+            qv_append(&table->types, *ftype);
+        }
+
+        *type = IOP_UNION(iop__type, type_id, table->map.values[pos]);
+    }
+}
+
+static const iop_full_type_t *
+iopsq_type_table_get_type(const iopsq_type_table_t *table, uint32_t type_id)
+{
+    THROW_NULL_IF(type_id >= (uint32_t)table->types.len);
+    return &table->types.tab[type_id];
+}
+
 /* }}} */
 /* {{{ IOP struct/union */
 
@@ -114,9 +265,9 @@ static iop_type_t iop_type_from_iop(const iop__type__t *iop_type)
         /* This case should be handled at higher level. */
         e_panic("should not happen");
       }
-      IOP_UNION_DEFAULT() {
-        e_panic("unhandled type %*pU",
-                IOP_UNION_FMT_ARG(iop__type, iop_type));
+      IOP_UNION_CASE_V(iop__type, iop_type, type_id) {
+        /* This case should be handled at higher level. */
+        e_panic("should not happen");
       }
     }
 
@@ -171,7 +322,9 @@ iopc_field_set_typename(iopc_field_t *nonnull f, lstr_t typename,
 
 static int
 iopc_field_set_type(iopc_field_t *nonnull f,
-                    const iop__type__t *nonnull type, sb_t *nonnull err)
+                    const iop__type__t *nonnull type,
+                    const iopsq_type_table_t *nullable type_table,
+                    sb_t *nonnull err)
 {
     if_assign (array_type, IOP_UNION_GET(iop__type, type, array)) {
         type = *array_type;
@@ -187,6 +340,25 @@ iopc_field_set_type(iopc_field_t *nonnull f,
         if (iopc_field_set_typename(f, *typename, err) < 0) {
             sb_prependf(err, "type name `%pL': ", typename);
             return -1;
+        }
+    } else
+    if_assign (type_id, IOP_UNION_GET(iop__type, type, type_id)) {
+        const iop_full_type_t *ftype;
+
+        if (!type_table) {
+            sb_sets(err, "got type ID but no type table");
+            return -1;
+        }
+
+        ftype = iopsq_type_table_get_type(type_table, *type_id);
+        f->kind = ftype->type;
+        if (ftype->type == IOP_T_ENUM) {
+            f->external_en = ftype->en;
+            f->has_external_type = true;
+        } else
+        if (!iop_type_is_scalar(ftype->type)) {
+            f->external_st = ftype->st;
+            f->has_external_type = true;
         }
     } else {
         f->kind = iop_type_from_iop(type);
@@ -242,7 +414,9 @@ iopc_field_set_opt_info(iopc_field_t *nonnull f,
 
 static iopc_field_t *
 iopc_field_load(const iop__field__t *nonnull field_desc,
-                const qv_t(iopc_field) *fields, sb_t *nonnull err)
+                const qv_t(iopc_field) *fields,
+                const iopsq_type_table_t *nullable type_table,
+                sb_t *nonnull err)
 {
     iopc_field_t *f = NULL;
 
@@ -278,7 +452,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
         }
     }
 
-    if (iopc_field_set_type(f, &field_desc->type, err) < 0) {
+    if (iopc_field_set_type(f, &field_desc->type, type_table, err) < 0) {
         goto error;
     }
     if (f->repeat == IOP_R_REPEATED) {
@@ -335,6 +509,7 @@ iop_structure_get_type_and_fields(const iop__structure__t *desc,
 
 static iopc_struct_t *
 iopc_struct_load(const iop__structure__t *nonnull st_desc,
+                 const iopsq_type_table_t *nullable type_table,
                  sb_t *nonnull err)
 {
     iopc_struct_t *st;
@@ -347,7 +522,8 @@ iopc_struct_load(const iop__structure__t *nonnull st_desc,
     tab_for_each_ptr(field_desc, &fields) {
         iopc_field_t *f;
 
-        if (!(f = iopc_field_load(field_desc, &st->fields, err))) {
+        if (!(f = iopc_field_load(field_desc, &st->fields, type_table, err)))
+        {
             iopc_struct_delete(&st);
             return NULL;
         }
@@ -407,6 +583,7 @@ static iopc_enum_t *iopc_enum_load(const iop__enum__t *en_desc, sb_t *err)
 
 static iopc_pkg_t *
 iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
+                       const iopsq_type_table_t *nullable type_table,
                        sb_t *nonnull err)
 {
     t_scope;
@@ -437,7 +614,7 @@ iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
           IOP_OBJ_CASE(iop__structure, elem, st_desc) {
               iopc_struct_t *st;
 
-              if (!(st = iopc_struct_load(st_desc, err))) {
+              if (!(st = iopc_struct_load(st_desc, type_table, err))) {
                   sb_prependf(err, "cannot load `%pL': ", &elem->name);
                   goto error;
               }
@@ -484,6 +661,7 @@ iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
 
 iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
                               const iop__package__t *nonnull pkg_desc,
+                              const iopsq_type_table_t *nullable type_table,
                               sb_t *nonnull err)
 {
     iop_pkg_t *pkg = NULL;
@@ -494,7 +672,7 @@ iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
         return NULL;
     }
 
-    if (!(iopc_pkg = iopc_pkg_load_from_iop(pkg_desc, err))) {
+    if (!(iopc_pkg = iopc_pkg_load_from_iop(pkg_desc, type_table, err))) {
         sb_prependf(err, "invalid package `%pL': ", &pkg_desc->name);
         return NULL;
     }
@@ -527,6 +705,7 @@ iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
 iop_pkg_t *
 mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
                                 const iop__package_elem__t *nonnull elem,
+                                const iopsq_type_table_t *nullable type_table,
                                 sb_t *nonnull err)
 {
     iop__package__t pkg_desc;
@@ -536,18 +715,19 @@ mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
     pkg_desc.name = LSTR("user_package");
     pkg_desc.elems = IOP_TYPED_ARRAY(iop__package_elem, &_elem, 1);
 
-    return mp_iopsq_build_pkg(mp, &pkg_desc, err);
+    return mp_iopsq_build_pkg(mp, &pkg_desc, type_table, err);
 }
 
 const iop_struct_t *
 mp_iopsq_build_struct(mem_pool_t *nonnull mp,
                       const iop__structure__t *nonnull iop_desc,
+                      const iopsq_type_table_t *nullable type_table,
                       sb_t *nonnull err)
 {
     iop_pkg_t *pkg;
 
     pkg = RETHROW_P(mp_iopsq_build_mono_element_pkg(mp, &iop_desc->super,
-                                                    err));
+                                                    type_table, err));
 
     return pkg->structs[0];
 }
