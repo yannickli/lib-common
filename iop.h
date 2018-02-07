@@ -451,6 +451,72 @@ int iop_for_each_st_const_fast(const iop_struct_t *nullable st_desc,
 #endif
 
 /* }}} */
+/* {{{ IOP iop_full_type_t */
+
+/** Description of a complete IOP type. */
+typedef struct {
+    /** The base type.
+     */
+    iop_type_t type;
+
+    union {
+        /** Union/struct type description.
+         *
+         * If \ref type is a struct, union or class (\ref IOP_T_STRUCT or
+         * \ref IOP_T_UNION), then this field is expected to be set to the
+         * right iop structure descriptor.
+         */
+        const iop_struct_t *nullable st;
+
+        /** Enum type description.
+         *
+         * If \ref type is \ref IOP_T_ENUM, then this field is set to the
+         * right iop enum descriptor.
+         */
+        const iop_enum_t *nullable en;
+    };
+    /* TODO Attributes and constraints (we are very likely to want to accept
+     * constraints as a part of the type in the future). */
+    /* TODO Flag for repeated types (we may want to support ARRAY_OF(X) as a
+     * plain type in the future). */
+} iop_full_type_t;
+
+GENERIC_INIT(iop_full_type_t, iop_full_type);
+
+#define IOP_FTYPE_VOID    (iop_full_type_t){ .type = IOP_T_VOID }
+#define IOP_FTYPE_I8      (iop_full_type_t){ .type = IOP_T_I8 }
+#define IOP_FTYPE_U8      (iop_full_type_t){ .type = IOP_T_U8 }
+#define IOP_FTYPE_I16     (iop_full_type_t){ .type = IOP_T_I16 }
+#define IOP_FTYPE_U16     (iop_full_type_t){ .type = IOP_T_U16 }
+#define IOP_FTYPE_I32     (iop_full_type_t){ .type = IOP_T_I32 }
+#define IOP_FTYPE_U32     (iop_full_type_t){ .type = IOP_T_U32 }
+#define IOP_FTYPE_I64     (iop_full_type_t){ .type = IOP_T_I64 }
+#define IOP_FTYPE_U64     (iop_full_type_t){ .type = IOP_T_U64 }
+#define IOP_FTYPE_BOOL    (iop_full_type_t){ .type = IOP_T_BOOL }
+#define IOP_FTYPE_DOUBLE  (iop_full_type_t){ .type = IOP_T_DOUBLE }
+#define IOP_FTYPE_STRING  (iop_full_type_t){ .type = IOP_T_STRING }
+#define IOP_FTYPE_DATA    (iop_full_type_t){ .type = IOP_T_DATA }
+#define IOP_FTYPE_XML     (iop_full_type_t){ .type = IOP_T_XML }
+
+#define IOP_FTYPE_ST_DESC(_st)                                               \
+    ({                                                                       \
+        const iop_struct_t *__st = (_st);                                    \
+                                                                             \
+        (iop_full_type_t){                                                   \
+            .type = __st->is_union ? IOP_T_UNION : IOP_T_STRUCT,             \
+            { .st = __st }                                                   \
+        };                                                                   \
+    })
+
+#define IOP_FTYPE_ST(pfx)  IOP_FTYPE_ST_DESC(&pfx##__s)
+
+#define IOP_FTYPE_EN_DESC(_en)                                               \
+    (iop_full_type_t){                                                       \
+        .type = IOP_T_ENUM,                                                  \
+        { .en = (_en) }                                                      \
+    };                                                                       \
+
+/* }}} */
 /* {{{ IOP structures manipulation */
 
 /** Initialize an IOP structure with the correct default values.
