@@ -325,7 +325,7 @@ $~$2/htdocs/javascript/bundles/$3.js: $(var/wwwtool)browserify $(var/wwwtool)exo
 	| $(var/wwwtool)exorcist $$@.map > $$@
 
 # change browserify starting function by our own function
-	sed $(if $(filter $(OS),darwin),-i '',-i) 's/function e(t,n,r){.\+return s}/browserifyRequire/' $$@
+	sed $(if $(filter $(OS),darwin),-i '',-i) 's/(function(){function e(t,n,r){.\+return s}return e})()/browserifyRequire/' $$@
 # build list of all files included in bundle (needed for r.js)
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
 	sed $(if $(filter $(OS),darwin),-i '',-i) -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
