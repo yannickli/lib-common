@@ -338,7 +338,7 @@ iopc_struct_load(const iop__structure__t *nonnull st_desc,
                  sb_t *nonnull err)
 {
     iopc_struct_t *st;
-    iop__field__array_t fields;
+    iop__field__array_t fields = IOP_ARRAY_EMPTY;
 
     st = iopc_struct_new();
     st->name = p_dupz(st_desc->name.s, st_desc->name.len);
