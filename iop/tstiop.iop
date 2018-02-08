@@ -385,6 +385,141 @@ struct JpackEmptyStruct {
     JpackEmptySubStruct sub;
 };
 
+/* {{{ zchk common */
+
+/* XXX These structs are supposed to cover all possible field types.
+ *
+ * They can be used by anyone that would need that completeness, but they have
+ * to be maintained as the IOPs evolve or as it seems to become necessary.
+ *
+ * There is a JSON sample for tstiop.FullStruct in samples/z-full-struct.json.
+ */
+
+enum TestEnum {
+    A,
+    B,
+    C = 42,
+};
+
+union TestUnion {
+    int i;
+    string s;
+};
+
+struct TestStruct {
+    int i;
+    string s;
+};
+
+abstract class TestClass {
+    int i;
+};
+
+class TestClassChild : 42 : TestClass {
+    string s;
+};
+
+class TestClassChild2 : 43 : TestClass {
+    ulong u;
+};
+
+struct FullRequired {
+    byte i8;
+    ubyte u8;
+    short i16;
+    ushort u16;
+    int i32;
+    uint u32;
+    long i64;
+    ulong u64;
+    bool b;
+    TestEnum e;
+    double d;
+    string s;
+    bytes data;
+    TestUnion un;
+    TestStruct st;
+    TestClass o;
+    xml xml;
+    /* No mandatory void. */
+};
+
+struct FullRef {
+    TestUnion& un;
+    TestStruct& st;
+};
+
+struct FullOpt {
+    byte? i8;
+    ubyte? u8;
+    short? i16;
+    ushort? u16;
+    int? i32;
+    uint? u32;
+    long? i64;
+    ulong? u64;
+    bool? b;
+    TestEnum? e;
+    double? d;
+    string? s;
+    bytes? data;
+    TestUnion? un;
+    TestStruct? st;
+    TestClass? o;
+    xml? xml;
+    void? v;
+};
+
+struct FullDefVal {
+    byte i8 = -1;
+    ubyte u8 = 2;
+    short i16 = -3;
+    ushort u16 = 4;
+    int i32 = -5;
+    uint u32 = 6;
+    long i64 = -7;
+    ulong u64 = 8;
+    bool b = true;
+    TestEnum e = TEST_ENUM_C;
+    double d = 3.14;
+    string s = "Default value";
+    bytes data = "\x42";
+    xml xml = "<a></a>";
+};
+
+struct FullRepeated {
+    byte[] i8;
+    ubyte[] u8;
+    short[] i16;
+    ushort[] u16;
+    int[] i32;
+    uint[] u32;
+    long[] i64;
+    ulong[] u64;
+    bool[] b;
+    TestEnum[] e;
+    double[] d;
+    string[] s;
+    bytes[] data;
+    TestUnion[] un;
+    TestStruct[] st;
+    TestClass[] o;
+    xml[] xml;
+    /* No repeated void. */
+};
+
+struct FullStruct {
+    FullRequired required;
+    FullRef reference;
+    FullOpt optPresent;
+    FullOpt optAbsent;
+    FullDefVal defValPresent;
+    FullDefVal defValAbsent;
+    FullRepeated repeated;
+    FullRepeated repeatedEmpty;
+};
+
+/* }}} */
 /* {{{ zchk iop.iop_for_each_field */
 
 struct MiniStruct {

@@ -119,6 +119,67 @@ z_check_iop_value_get_bpack_size(const tstiop__get_bpack_sz_u__t *u,
 }
 
 /* }}} */
+/* {{{ zchk iop.dup_and_copy */
+
+static int z_test_dup_or_copy(const iop_struct_t *st, const void *v,
+                              bool use_pool, bool get_size, bool test_dup,
+                              size_t exp_size)
+{
+    t_scope;
+    void *res;
+    size_t sz;
+    mem_pool_t *mp = use_pool ? t_pool() : NULL;
+    size_t *psz = get_size ? &sz : NULL;
+
+    if (test_dup) {
+        res = mp_iop_dup_desc_sz(mp, st, v, psz);
+    } else {
+        res = mp_iop_new_desc(mp, st);
+        mp_iop_copy_desc_sz(mp, st, &res, v, psz);
+    }
+    Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source");
+    if (use_pool && !psz) {
+        res = mp_iop_dup_desc_multi_alloc(mp, st, v);
+        Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source "
+                               "(multi-alloc mode)");
+    }
+    if (psz) {
+        Z_ASSERT_EQ(*psz, exp_size, "size differs from expected");
+    }
+    mp_delete(mp, &res);
+
+    Z_HELPER_END;
+}
+
+static int
+z_test_dup_and_copy(const iop_struct_t *st, const void *v)
+{
+    t_scope;
+    size_t exp_size;
+
+    Z_ASSERT_P(mp_iop_dup_desc_sz(t_pool(), st, v, &exp_size));
+    for (int use_pool = 0; use_pool <= 1; use_pool++) {
+        for (int get_size = 0; get_size <= 1; get_size++) {
+            t_scope;
+            const char *info;
+
+            info = t_fmt("(use_pool=%s, get_size=%s)",
+                         use_pool ? "true" : "false",
+                         get_size ? "true" : "false");
+
+            Z_HELPER_RUN(z_test_dup_or_copy(st, v, use_pool, get_size, true,
+                                            exp_size),
+                         "duplication test failed %s", info);
+            Z_HELPER_RUN(z_test_dup_or_copy(st, v, use_pool, get_size, false,
+                                            exp_size),
+                         "copy test failed %s", info);
+        }
+    }
+
+    Z_HELPER_END;
+}
+
+/* }}} */
 /* {{{ Other helpers (waiting proper folds). */
 
 static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info)
@@ -6223,6 +6284,25 @@ Z_GROUP_EXPORT(iop)
         }
 
         p_delete(&n.tab);
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(dup_and_copy, "test duplication/copy functions") { /* {{{ */
+        t_scope;
+        SB_1k(err);
+        const char *path;
+        tstiop__full_struct__t fs;
+        const iop_struct_t *st = tstiop__full_struct__sp;
+
+        path = t_fmt("%*pM/samples/z-full-struct.json",
+                     LSTR_FMT_ARG(z_cmddir_g));
+        Z_ASSERT_N(t_iop_junpack_file(path, st, &fs, 0, NULL, &err),
+                   "%pL", &err);
+        Z_HELPER_RUN(z_test_dup_and_copy(st, &fs),
+                     "test failed for sample %s (type `%pL')", path,
+                     &st->fullname);
+        Z_HELPER_RUN(z_test_dup_and_copy(fs.required.o->__vptr,
+                                         fs.required.o),
+                     "test failed for class");
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */

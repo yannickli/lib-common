@@ -116,9 +116,11 @@ set_www_env() {
     index=$(basename "$productdir").php
     product=$(basename "$productdir")
     intersec_so=$(find $(dirname "$productdir") -name intersec.so -print -quit)
-    Z_WWW_HOST="${Z_WWW_HOST:-$(hostname -f)}"
-    Z_WWW_PREFIX="${Z_WWW_PREFIX:-zselenium-${product}}"
-    Z_WWW_BROWSER="${Z_WWW_BROWSER:-Remote}"
+
+    Z_WWW_HOST="${_bkp_z_www_host:-$(hostname -f)}"
+    Z_WWW_PREFIX="${_bkp_z_www_prefix:-zselenium-${product}}"
+    Z_WWW_BROWSER="${_bkp_z_www_browser:-Remote}"
+
     # configure an apache website and add intersec.so to the php configuration
     make -C "$z_www" all htdocs=$htdocs index=$index intersec_so=$intersec_so \
                          host="${Z_WWW_PREFIX}.${Z_WWW_HOST}" product=$product
@@ -132,11 +134,6 @@ set_www_env() {
     fi
     export Z_WWW_HOST Z_WWW_PREFIX Z_WWW_BROWSER
 }
-unset_www_env() {
-    Z_WWW_HOST=""
-    Z_WWW_PREFIX=""
-    Z_WWW_BROWSER=""
-}
 
 
 "$(dirname "$0")"/_list_checks.py "$where" | (
@@ -146,6 +143,9 @@ export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade web perf}"
 export Z_TAG_OR="${Z_TAG_OR:-}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
+_bkp_z_www_prefix=${Z_WWW_PREFIX}
+_bkp_z_www_host=${Z_WWW_HOST}
+_bkp_z_www_browser=${Z_WWW_BROWSER}
 
 for TAG_OR in ${Z_TAG_OR[@]}
 do
@@ -176,7 +176,6 @@ while read -r zd line; do
                 $pybin -m z $BEHAVE_FLAGS "$productdir"/ci/features
                 res=$?
             fi
-            unset_www_env
             ;;
         *.py)
             $pybin ./$t
