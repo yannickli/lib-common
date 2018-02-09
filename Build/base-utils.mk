@@ -18,7 +18,21 @@ define fun/path-mangle
 $(subst .,_,$(subst /,_,$1))
 endef
 
+# gen-and-update-if-changed
+#
+# $(call fun/gen-and-update-if-changed,<SCRIPT>,<SRCPFX>,<DST>,<ARGS>)
+define fun/gen-and-update-if-changed
+{ \
+TMP=$$(mktemp $2.XXXXXXXXXX) ;\
+$1 $4 > $$TMP ;\
+if test -f $3 && cmp -s $$TMP $3; then $(RM) $$TMP; else $(MV) $$TMP $3; fi ;\
+}
+endef
+
 # update-if-changed
+#
+# Be careful this function is racy, unless <SRC> is guaranteed to be unique
+# during parallel executions. You should prefer gen-and-update-if-changed.
 #
 # $(call fun/update-if-changed,<SRC>,<DST>)
 define fun/update-if-changed
