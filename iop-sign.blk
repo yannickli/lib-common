@@ -361,7 +361,10 @@ int main(int argc, char **argv)
     }
     if (strequal(argv[0], "sign")) {
         opts.action = DO_SIGN;
-        opts.token_timeout = opts.activation_timeout;
+        if (!!opts.token_timeout != !!opts.activation_timeout) {
+            e_error("please set neither or both -A and -T options");
+            goto usage;
+        }
     } else
     if (strequal(argv[0], "check")) {
         opts.action = CHECK;
