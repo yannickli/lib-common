@@ -509,16 +509,6 @@ int t_parse_activation_token(lstr_t rawtoken, const core__licence__t *licence,
         goto error;
     }
 
-#ifndef NDEBUG
-    /* Special parsing for easier tests: "12-Jan-2018|12-Feb-2018". */
-    if (rawtoken.len == 23 && rawtoken.s[11] == '|') {
-        product_exp = lstrtotime(LSTR_INIT_V(rawtoken.s, 11));
-        token_exp = lstrtotime(LSTR_INIT_V(rawtoken.s + 12, 11));
-        hash_valid = true;
-        goto fill_out;
-    }
-#endif
-
     if (ACTIVATION_TOKEN_LENGTH != rawtoken.len) {
         error = "invalid token length";
         goto error;
@@ -548,9 +538,6 @@ int t_parse_activation_token(lstr_t rawtoken, const core__licence__t *licence,
     value = ((val[1] & 0xF) << 8) | val[2];
     token_exp = localtime_addday(signature_ts, value);
 
-#ifndef NDEBUG
-  fill_out:
-#endif
     if (product_exp_out) {
         *product_exp_out = product_exp;
     }
