@@ -4,6 +4,9 @@
 *.pyc
 *.iop.ts
 
+iopsq.iop.*
+iopsq-t*
+
 .tags
 .syntastic*
 

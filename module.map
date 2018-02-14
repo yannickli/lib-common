@@ -26,7 +26,6 @@ module libcommon {
         header "iop-rpc.h"
         header "core.iop.h"
         header "ic.iop.h"
-        header "iopsq.iop.h"
         export *
     }
 

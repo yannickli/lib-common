@@ -12,6 +12,7 @@
 ##########################################################################
 
 iopc_LIBRARIES = libiopc
+iopc_LIBRARIES += libiopsq
 iopc_PROGRAMS = iopc
 test_PROGRAMS = zchk
 
@@ -26,6 +27,7 @@ iopc_NOGENERATED = 1
 
 zchk_SOURCES = \
     zchk.c \
+    libiopsq.a \
     libiopc.a \
     $liop/tstiop.a \
     $llibcommon.a
@@ -40,10 +42,14 @@ libiopc_SOURCES = \
     iopctokens.c              \
     iopc-write.c              \
     \
-    iopc-iopsq.c \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
     iopc-lang-typescript.c
 libiopc_NOGENERATED = 1
+
+libiopsq_SOURCES = \
+    iopc-iopsq.c              \
+    $liopsq.iop
+libiopsq_NOGENERATED = 1
 
 include ../Build/base.mk

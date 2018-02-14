@@ -44,7 +44,6 @@ _IOPCLASSRANGE = 1-499
 ioplibs = \
 	core.iop.c \
 	ic.iop.c \
-	iopsq.iop.c \
 	iop-void.c
 
 libcommon_SOURCES = \
@@ -118,7 +117,6 @@ libcommon_SOURCES = \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
 	ic.iop.c \
-	iopsq.iop.c \
 	\
 	log.c \
 	log-iop.c \
@@ -204,11 +202,10 @@ common_LIBS = $(python2_LIBS)
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
-core-iop-plugin_SOURCES = iop-core/iopsq.iop iop-core/core.iop core-iop-plugin.c
+core-iop-plugin_SOURCES = iop-core/core.iop core-iop-plugin.c
 
 zchk-iop-plugin_SOURCES =  \
     iop-core/ic.iop                                                      \
-    iop-core/iopsq.iop                                                   \
     zchk-iop-plugin.c                                                    \
     zchk-iop-ressources.c
 
