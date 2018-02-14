@@ -28,6 +28,7 @@ thr_hooks(NULL, asn1_wipe);
 __thread struct asn1_descs_t asn1_descs_g;
 
 /*----- COMMON -{{{- */
+
 #ifndef NDEBUG
 static const char *asn1_type_name(enum obj_type type)
 {
