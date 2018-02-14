@@ -15,6 +15,7 @@
 #include "z.h"
 
 /*----- COMMON -{{{- */
+
 #ifndef NDEBUG
 static const char *asn1_type_name(enum obj_type type)
 {
