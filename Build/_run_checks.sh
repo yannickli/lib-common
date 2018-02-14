@@ -86,7 +86,9 @@ fi
 trap "rm $tmp $tmp2 $corelist" 0
 
 set_www_env() {
-    case "$Z_TAG_SKIP" in *web*) return 0;; esac
+    if [[ "$Z_TAG_SKIP" =~ "web" ]] && [[ -z "$Z_TAG_OR" ]]; then
+        return 0
+    fi
 
     productdir=$(readlink -e "$1")
     htdocs="$productdir"/www/htdocs/

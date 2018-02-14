@@ -151,7 +151,7 @@ ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 
 define ext/expand/blkk
 $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
-$3.cc: FL_=$($(1DV)_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
+$3.cc: FL_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3.cc_CXXFLAGS)
 $3.cc: FLAGS_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
 $3.cc: CLANGXXFLAGS_=$($(1DV)_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
 $3.cc: $3 $(CLANGXX) | _generated_hdr
