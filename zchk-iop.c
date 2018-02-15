@@ -2062,6 +2062,7 @@ Z_GROUP_EXPORT(iop)
         /* Test packer flags. */
         {
             tstiop__struct_jpack_flags__t st_jpack;
+            tstiop__jpack_empty_cls_b__t cl_jpack;
             unsigned flags = IOP_JPACK_NO_WHITESPACES
                            | IOP_JPACK_NO_TRAILING_EOL;
 
@@ -2104,6 +2105,12 @@ Z_GROUP_EXPORT(iop)
                       "{\"def\":1,\"rep\":[]}");
 
 #undef TST_FLAGS
+
+            iop_init(tstiop__jpack_empty_cls_b, &cl_jpack);
+            Z_HELPER_RUN(iop_json_test_pack(&tstiop__jpack_empty_cls_b__s,
+                                            &cl_jpack,
+                                            flags | IOP_JPACK_SKIP_CLASS_NAME,
+                                            true, "{\"a\":1,\"b\":2}"));
         }
 
         /* Test empty struct packer flag. */

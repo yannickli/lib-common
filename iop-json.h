@@ -381,13 +381,16 @@ SWIFT_OPTIONS(iop_jpack_flags) {
     /** Skip empty sub-structures. */
     IOP_JPACK_SKIP_EMPTY_STRUCTS __swift_name__("skipEmptyStructs") = (1U << 7),
 
-    /** Shorten long data strings when not writing a file.
+    /** Shorten long data strings when not writing a file (lossy).
      *
      * Data longer than 25 characters will be replaced by
      * "XXXXXXXXXXX …(skip x bytes)… YYYYYYYYYYY" where only the first and
      * last 11 characters are kept.
      */
     IOP_JPACK_SHORTEN_DATA __swift_name__("shortenData") = (1U << 8),
+
+    /** Skip class names (lossy). */
+    IOP_JPACK_SKIP_CLASS_NAME __swift_name__("skipClassName") = (1U << 9),
 
     /** Produce the smallest possible json. */
     IOP_JPACK_MINIMAL __swift_name__("minimal") = IOP_JPACK_NO_WHITESPACES

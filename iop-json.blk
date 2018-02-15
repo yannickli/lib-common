@@ -2683,12 +2683,14 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 || !(flags & IOP_JPACK_SKIP_PRIVATE));
 
         /* Write type of class */
-        INDENT();
-        IPUTS("\"_class\": ", "\"_class\":");
-        PUTS("\"");
-        PUTLSTR(real_desc->fullname);
-        PUTS("\"");
-        first = false;
+        if (!(flags & IOP_JPACK_SKIP_CLASS_NAME)) {
+            INDENT();
+            IPUTS("\"_class\": ", "\"_class\":");
+            PUTS("\"");
+            PUTLSTR(real_desc->fullname);
+            PUTS("\"");
+            first = false;
+        }
 
         /* We want to write the fields in the order "master -> children", and
          * not "children -> master", so first build a qvector of the parents.
