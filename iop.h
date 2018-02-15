@@ -756,6 +756,19 @@ void * nullable mp_iop_dup_desc_sz(mem_pool_t * nullable mp,
 #define t_iop_dup(pfx, v)       mp_iop_dup(t_pool(), pfx, (v))
 #define r_iop_dup(pfx, v)       mp_iop_dup(r_pool(), pfx, (v))
 
+/** Duplicate an IOP structure without trying to allocate it in a single
+ * block.
+ *
+ * \param[in] mp  The memory pool to use for allocations (should only be
+ *                by-frame memory pools like mem_stack or ring_pool because we
+ *                don't expect the user to free all the pointers manually).
+ * \param[in] st  The description of the IOP struct/union/class to duplicate.
+ * \param[in] v   A pointer on the IOP struct/union/class to duplicate.
+ */
+void *nullable mp_iop_dup_desc_multi_alloc(mem_pool_t *nonnull mp,
+                                           const iop_struct_t *nonnull st,
+                                           const void *nullable v);
+
 /** Copy an IOP structure into another one.
  *
  * The destination IOP structure will reallocated to handle the source

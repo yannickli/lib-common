@@ -139,6 +139,11 @@ static int z_test_dup_or_copy(const iop_struct_t *st, const void *v,
         mp_iop_copy_desc_sz(mp, st, &res, v, psz);
     }
     Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source");
+    if (use_pool && !psz) {
+        res = mp_iop_dup_desc_multi_alloc(mp, st, v);
+        Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source "
+                               "(multi-alloc mode)");
+    }
     if (psz) {
         Z_ASSERT_EQ(*psz, exp_size, "size differs from expected");
     }
