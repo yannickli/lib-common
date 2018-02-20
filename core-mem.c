@@ -75,6 +75,13 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
         mem = NULL;
     }
 
+    if (unlikely(size == 0)) {
+        if (mem) {
+            free(mem);
+        }
+        return MEM_EMPTY_ALLOC;
+    }
+
     if (alignment > 8 && mem == NULL) {
         return libc_malloc(m, size, alignment, flags);
     }
@@ -82,7 +89,7 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
     res = realloc(mem, size);
 
     if (unlikely(res == NULL)) {
-        if (!size || (flags & MEM_ERRORS_OK))
+        if (flags & MEM_ERRORS_OK)
             return NULL;
         e_panic("out of memory");
     }
