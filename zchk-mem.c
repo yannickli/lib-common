@@ -124,6 +124,20 @@ Z_GROUP_EXPORT(mem_pool_macros) {
 
         Z_ASSERT(true, "execution OK");
     } Z_TEST_END
+
+    Z_TEST(mem_libc_size0, "mem_libc pool: allocation of size 0") {
+        int *p;
+
+        p = p_new(int, 0);
+        Z_ASSERT_EQ((intptr_t)p, (intptr_t)MEM_EMPTY_ALLOC);
+        p_delete(&p);
+
+        p = p_new(int, 42);
+        Z_ASSERT_NE((intptr_t)p, (intptr_t)MEM_EMPTY_ALLOC);
+        p_realloc(&p, 0);
+        Z_ASSERT_EQ((intptr_t)p, (intptr_t)MEM_EMPTY_ALLOC);
+        p_delete(&p);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*}}}1*/
