@@ -355,6 +355,19 @@ open class IopClass : IopStruct {
         }
         return try .make(buffer, using: env)
     }
+
+    /* XXX: Ugly swift compiler bug workaround: Swift should normally call the
+     *      make version above, but for some reason, it fails to do so and
+     *      calls the IopComplexType static version instead. It seems that the
+     *      defaulted env variable makes the compiler fail to recognize above
+     *      function's signature.
+     */
+    public class func make(_ c: UnsafeRawPointer?) throws -> Self? {
+        guard let buffer = c else {
+            return nil
+        }
+        return try .make(buffer, using: .defaultEnv)
+    }
 }
 
 public func duplicate<E: IopComplexType, T: IopArray>
