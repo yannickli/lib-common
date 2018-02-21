@@ -316,6 +316,18 @@ class IopcTest(z.TestCase):
         self.run_iopc('integer_ext_invalid.iop', False,
                       'invalid integer extension', 2)
 
+    def test_unterminated_string(self):
+        self.run_iopc('string_val_unterminated.iop', False,
+                      '4:27:unterminated string', 2)
+
+    def test_unterminated_cstring(self):
+        self.run_iopc('cstring_val_unterminated.iop', False,
+                      '4:28:unterminated cstring', 2)
+
+    def test_unterminated_comment(self):
+        self.run_iopc('unterminated_comment.iop', False,
+                      '6:0:unterminated comment', 2)
+
     def test_integer_ext_valid(self):
         b = 'integer_ext_valid'
         self.run_iopc_pass(b + '.iop', 2)
@@ -739,6 +751,12 @@ class IopcTest(z.TestCase):
                        'error: `]` expected, but got integer instead')
         self.run_iopc2('json_generic_invalid5.iop', False,
                        'error: `)` expected, but got identifier instead')
+
+    @z.ZFlags('redmine_56755')
+    def test_generic_json_unterminated(self):
+        self.run_iopc2('json_generic_invalid6.iop', False,
+                       "4:70:unterminated string")
+
 
     # }}}
     # {{{ References
