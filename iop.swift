@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -354,6 +354,19 @@ open class IopClass : IopStruct {
             return nil
         }
         return try .make(buffer, using: env)
+    }
+
+    /* XXX: Ugly swift compiler bug workaround: Swift should normally call the
+     *      make version above, but for some reason, it fails to do so and
+     *      calls the IopComplexType static version instead. It seems that the
+     *      defaulted env variable makes the compiler fail to recognize above
+     *      function's signature.
+     */
+    public class func make(_ c: UnsafeRawPointer?) throws -> Self? {
+        guard let buffer = c else {
+            return nil
+        }
+        return try .make(buffer, using: .defaultEnv)
     }
 }
 
