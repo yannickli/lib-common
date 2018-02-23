@@ -1,7 +1,7 @@
 %{
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2017 INTERSEC SA                                   */
+/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -556,7 +556,10 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           sb_add(&yyextra->tk->b, yytext, yyleng);
                           lexdata_newline(yyextra, yyleng);
                         }
-    <<EOF>>             { ERROR("unterminated comment"); }
+    <<EOF>>             {
+                            iopc_token_delete(&yyextra->tk);
+                            ERROR("unterminated comment");
+                        }
     "*/"                {
                           sb_add(&yyextra->tk->b, yytext, yyleng);
                           BEGIN(INITIAL);
@@ -572,7 +575,10 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           sb_add(&yyextra->tk->b, yytext, yyleng);
                           lexdata_newline(yyextra, yyleng);
                         }
-    <<EOF>>             { ERROR("unterminated verbatim section"); }
+    <<EOF>>             {
+                            iopc_token_delete(&yyextra->tk);
+                            ERROR("unterminated verbatim section");
+                        }
     ^"%}"               {
                           BEGIN(INITIAL);
                           return yyextra->tk;
@@ -593,6 +599,10 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
     \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->tk->b, yytext, 2); }
     \\.                 { sb_add(&yyextra->tk->b, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->tk->b, yytext, yyleng); }
+    <<EOF>>             {
+                            iopc_token_delete(&yyextra->tk);
+                            ERROR("unterminated string");
+                        }
 }
 
 <CSTRING>{
@@ -603,6 +613,10 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                         }
     \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->tk->b, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->tk->b, yytext, yyleng); }
+    <<EOF>>             {
+                            iopc_token_delete(&yyextra->tk);
+                            ERROR("unterminated cstring");
+                        }
 }
 
 <*>{ /* default rules to catch end of lines and end of files */
