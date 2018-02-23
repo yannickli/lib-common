@@ -2,7 +2,7 @@
 #vim:set fileencoding=utf-8:
 ##########################################################################
 #                                                                        #
-#  Copyright (C) 2004-2017 INTERSEC SA                                   #
+#  Copyright (C) 2004-2018 INTERSEC SA                                   #
 #                                                                        #
 #  Should you receive a copy of this source code, you must check you     #
 #  have a proper, written authorization of INTERSEC to hold it. If you   #
@@ -287,6 +287,18 @@ class IopcTest(z.TestCase):
     def test_integer_ext_invalid(self):
         self.run_iopc('integer_ext_invalid.iop', False,
                       'invalid integer extension')
+
+    def test_unterminated_string(self):
+        self.run_iopc('string_val_unterminated.iop', False,
+                      '4:27:unterminated string')
+
+    def test_unterminated_cstring(self):
+        self.run_iopc('cstring_val_unterminated.iop', False,
+                      '4:28:unterminated cstring')
+
+    def test_unterminated_comment(self):
+        self.run_iopc('unterminated_comment.iop', False,
+                      '6:0:unterminated comment')
 
     def test_integer_ext_valid(self):
         b = 'integer_ext_valid'
@@ -768,6 +780,12 @@ class IopcTest(z.TestCase):
                       'error: `]` expected, but got integer instead')
         self.run_iopc('json_generic_invalid5.iop', False,
                       'error: `)` expected, but got identifier instead')
+
+    @z.ZFlags('redmine_56755')
+    def test_generic_json_unterminated(self):
+        self.run_iopc('json_generic_invalid6.iop', False,
+                      "4:70:unterminated string")
+
 
     # }}}
     # {{{ References
