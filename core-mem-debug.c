@@ -1,12 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-<<<<<<< HEAD
 /*  Copyright (C) 2004-2018 INTERSEC SA                                   */
-||||||| merged common ancestors
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
-=======
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
->>>>>>> origin/v5
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
