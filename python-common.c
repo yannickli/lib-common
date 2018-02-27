@@ -48,8 +48,6 @@ static struct {
     PyObject                *cb_build_body;
     PyObject                *cb_parse_answer;
 
-    PyObject                *tb_module;
-
     qh_t(pylogger)           pyloggers;
     bool                     pylogger_class_initialized : 1;
 
@@ -96,16 +94,19 @@ void sb_add_py_traceback(sb_t *err)
     PyObject *value;
     PyObject *traceback;
     PyObject *tc_str;
+    PyObject *tb_module = NULL;
 
     PyErr_Fetch(&type, &value, &traceback);
-    if (unlikely(!type || !value || !traceback || !_G.tb_module)) {
+    if (unlikely(!type || !value || !traceback
+    || !(tb_module = PyImport_ImportModule("traceback"))))
+    {
         if (!value || sb_add_py_obj(err, value) < 0) {
             sb_adds(err, PYTHON_EXN_DEFAULT_MSG);
         }
         goto wipe;
     }
 
-    tc_str = PyObject_CallMethod(_G.tb_module, (char *)"format_exception",
+    tc_str = PyObject_CallMethod(tb_module, (char *)"format_exception",
                                  (char *)"OOO", type, value, traceback);
     if (unlikely(!tc_str)) {
         sb_adds(err, PYTHON_EXN_DEFAULT_MSG);
@@ -128,6 +129,7 @@ void sb_add_py_traceback(sb_t *err)
     Py_XDECREF(type);
     Py_XDECREF(value);
     Py_XDECREF(traceback);
+    Py_XDECREF(tb_module);
 }
 
 #undef PYTHON_EXN_DEFAULT_MSG
@@ -590,10 +592,6 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     net_rctl_init(&_G.rctl, maxrate, net_rtcl_on_ready);
     net_rctl_start(&_G.rctl);
 
-    if (unlikely(!(_G.tb_module = PyImport_ImportModule("traceback")))) {
-        e_error("unable to import the Python traceback module");
-    }
-
     _G.first_connection = true;
 
     Py_RETURN_TRUE;
@@ -611,7 +609,6 @@ static PyObject *python_http_shutdown(PyObject *self, PyObject *arg)
     Py_XDECREF(_G.cb_parse_answer);
     Py_XDECREF(_G.cb_build_body);
     Py_XDECREF(_G.cb_build_headers);
-    Py_XDECREF(_G.tb_module);
 
     Py_RETURN_TRUE;
 }
