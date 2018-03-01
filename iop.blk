@@ -1515,7 +1515,13 @@ static void *__mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
     size_t sz;
     uint8_t *dst, *res;
 
-    RETHROW_P(v);
+    if (!v) {
+        if (outp) {
+            mp_ifree(mp, *outp);
+            *outp = NULL;
+        }
+        return NULL;
+    }
 
     if ((is_class = iop_struct_is_class(st))) {
         st = *(const iop_struct_t **)v;
@@ -1542,6 +1548,9 @@ static void *__mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
     }
 
     assert (dst == res + sz);
+    if (outp) {
+        *outp = res;
+    }
     return res;
 }
 
@@ -1555,7 +1564,7 @@ void *mp_iop_dup_desc_sz(mem_pool_t *mp, const iop_struct_t *st,
 void mp_iop_copy_desc_sz(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                          const void *v, size_t *nullable psz)
 {
-    *outp = __mp_iop_dup_desc_sz(mp, st, outp, v, psz);
+    __mp_iop_dup_desc_sz(mp, st, outp, v, psz);
 }
 
 void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)

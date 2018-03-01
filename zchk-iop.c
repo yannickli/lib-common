@@ -6469,6 +6469,16 @@ Z_GROUP_EXPORT(iop)
                      "test failed for class");
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(nr_58558, "avoid leak when copying an IOP with no value") { /* {{{ */
+        tstiop__my_struct_c__t st;
+        tstiop__my_struct_c__t *p;
+
+        iop_init(tstiop__my_struct_c, &st);
+        p = iop_dup(tstiop__my_struct_c, &st);
+        iop_copy(tstiop__my_struct_c, &p, NULL);
+        Z_ASSERT_NULL(p);
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_field_is_pointed, "test the iop_field_is_pointed function") { /* {{{ */
         struct {
             const iop_struct_t *st;
