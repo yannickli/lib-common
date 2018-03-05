@@ -11,8 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = libcommon libcommon-iop python
-python_SHARED_LIBRARIES += common
+none_LIBRARIES = libcommon libcommon-iop
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
@@ -191,14 +190,6 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 libcommon_NOGENERATED = 1
 
 libcommon-iop_SOURCES = $(ioplibs)
-
-python_SOURCES = python-common.c
-python_CFLAGS = $(python2_CFLAGS) -Wno-strict-aliasing
-python_LIBS = $(python2_LIBS)
-
-common_SOURCES = python-module.c python.a libcommon.a
-common_CFLAGS = $(python2_CFLAGS)
-common_LIBS = $(python2_LIBS)
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
