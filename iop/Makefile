@@ -16,7 +16,6 @@ examples_LIBRARIES = tstiop tstiop2
 
 tstiop_SOURCES =  \
     tstiop.iop                                                               \
-    tstiop.iop.swift                                                         \
     tstiop_inheritance.iop                                                   \
     tstiop_licence.iop                                                       \
     tstiop_backward_compat.iop                                               \
