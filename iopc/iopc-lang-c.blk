@@ -789,23 +789,6 @@ iopc_dump_attrs_ref(sb_t *buf, unsigned int flags, uint16_t attrs_len,
 /*}}} */
 
 static void
-iopc_enum_field_dump_tdef_hdr(sb_t *buf, bool swift_enum, lstr_t ns,
-                              lstr_t name)
-{
-    t_scope;
-    SB_1k(swift_name);
-
-    sb_addf(buf, "    %*pM_%*pM", LSTR_FMT_ARG(ns), LSTR_FMT_ARG(name));
-    if (swift_enum) {
-        lstr_t sw_name = t_lstr_dup(name);
-
-        lstr_ascii_tolower(&sw_name);
-        c_to_camelcase(sw_name, false, &swift_name);
-        sb_addf(buf, " __swift_name__(\"%s\")", swift_name.data);
-    }
-}
-
-static void
 iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
 {
     t_scope;
@@ -815,24 +798,11 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
     lstr_t ns = t_enum_get_prefix(en);
     int min = INT_MAX;
     int max = INT_MIN;
-    bool swift_enum = false;
 
-    if (_G.include_swift_support) {
-        tab_for_each_entry(attr, &en->attrs) {
-            if (attr->desc->id == IOPC_ATTR_STRICT) {
-                swift_enum = true;
-                break;
-            }
-        }
-    }
+    sb_addf(buf, "typedef enum %s__t {\n", tbase);
 
-    if (swift_enum) {
-        sb_addf(buf, "SWIFT_ENUM(%s__t) {\n", tbase);
-    } else {
-        sb_addf(buf, "typedef enum %s__t {\n", tbase);
-    }
     tab_for_each_entry(f, &en->values) {
-        iopc_enum_field_dump_tdef_hdr(buf, swift_enum, ns, LSTR(f->name));
+        sb_addf(buf, "    %*pM_%s", LSTR_FMT_ARG(ns), f->name);
         if (f->value == next_value++) {
             sb_adds(buf, ",\n");
         } else {
@@ -846,18 +816,14 @@ iopc_enum_dump_tdef_hdr(sb_t *buf, const char *pkg_name, iopc_enum_t *en)
         tab_for_each_entry(attr, &f->attrs) {
             if (attr->desc->id == IOPC_ATTR_ALIAS) {
                 tab_for_each_entry(alias, &attr->args) {
-                    iopc_enum_field_dump_tdef_hdr(buf, swift_enum, ns,
-                                                  alias.v.s);
+                    sb_addf(buf, "    %*pM_%*pM", LSTR_FMT_ARG(ns),
+                            LSTR_FMT_ARG(alias.v.s));
                     sb_addf(buf, " = %*pM_%s,\n", LSTR_FMT_ARG(ns), f->name);
                 }
             }
         }
     }
-    if (swift_enum) {
-        sb_adds(buf, "};\n");
-    } else {
-        sb_addf(buf, "} %s__t;\n", tbase);
-    }
+    sb_addf(buf, "} %s__t;\n", tbase);
     sb_addf(buf,
             "typedef IOP_ARRAY_OF(enum %s__t) %s__array_t;\n",
             tbase, tbase);

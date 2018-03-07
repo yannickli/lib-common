@@ -573,12 +573,6 @@ static void init_attributes(void)
     d = add_attr(IOPC_ATTR_SNMP_INDEX, "snmpIndex");
     d->flags |= IOPC_ATTR_F_FIELD_ALL;
     d->types |= IOPC_ATTR_T_ALL;
-
-    d = add_attr(IOPC_ATTR_SWIFT_DUMP_ARRAY, "swiftDumpArray");
-    d->flags |= IOPC_ATTR_F_DECL;
-    d->types |= IOPC_ATTR_T_STRUCT;
-    d->types |= IOPC_ATTR_T_UNION;
-    d->types |= IOPC_ATTR_T_ENUM;
 #undef ADD_ATTR_ARG
 }
 
