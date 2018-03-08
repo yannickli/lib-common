@@ -267,7 +267,7 @@ enum mem_pools_t {
 
 #define CACHE_LINE_SIZE   64
 
-typedef struct __swift_name__("MemoryPool") mem_pool_t {
+typedef struct mem_pool_t {
     mem_flags_t mem_pool;
     uint32_t    min_alignment;
     struct mem_pool_t * nullable realloc_fallback;
@@ -287,13 +287,9 @@ typedef struct __swift_name__("MemoryPool") mem_pool_t {
  * mem_pool_cl_aligned ensure that allocation will be aligned on
  * CACHE_LINE_SIZE to prevent false sharing between threads.
  */
-__swift_name__("MemoryPool.libC")
 extern mem_pool_t mem_pool_libc;
-__swift_name__("MemoryPool.libCAligned")
 extern mem_pool_t mem_pool_cl_aligned;
-__swift_name__("MemoryPool.static")
 extern mem_pool_t mem_pool_static;
-__swift_name__("getter:MemoryPool.tStack()")
 static ALWAYS_INLINE mem_pool_t * nonnull t_pool(void);
 
 #if __GNUC_PREREQ(4, 3) || __has_attribute(error)
@@ -789,7 +785,6 @@ void mem_ring_dump(const mem_pool_t * nonnull) __leaf;
 size_t mem_ring_memory_footprint(const mem_pool_t * nonnull) __leaf;
 
 /** Just like the t_pool() we have the corresponding r_pool() */
-__swift_name__("getter:MemoryPool.ring()")
 mem_pool_t * nonnull r_pool(void) __leaf;
 
 /** Destroy the r_pool() */
