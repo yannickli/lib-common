@@ -265,11 +265,7 @@
 # define __needlock(x)
 #endif
 
-#ifdef __APPLE__
-# define __attr_section(sg, sc)  __attribute__((section(sg","sc)))
-#else
-# define __attr_section(sg, sc)  __attribute__((section("."sg"."sc)))
-#endif
+#define __attr_section(sg, sc)  __attribute__((section("."sg"."sc)))
 
 /* }}} */
 /* {{{ Useful expressions */
