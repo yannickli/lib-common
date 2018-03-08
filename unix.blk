@@ -786,15 +786,6 @@ int fd_set_features(int fd, int flags)
     if (flags & (O_NONBLOCK | O_DIRECT)) {
         int res;
 
-#ifdef OS_APPLE
-        if ((flags & O_DIRECT)) {
-            if (fcntl(fd, F_NOCACHE, 1)) {
-                return e_error("fcntl failed: %m");
-            }
-            flags &= ~O_DIRECT;
-        }
-#endif
-
         res = fcntl(fd, F_GETFL);
         if (res < 0) {
             return e_error("fcntl failed: %m");
@@ -829,15 +820,6 @@ int fd_unset_features(int fd, int flags)
     if (flags & (O_NONBLOCK | O_DIRECT)) {
         int res;
 
-#ifdef OS_APPLE
-        if ((flags & O_DIRECT)) {
-            if (fcntl(fd, F_NOCACHE, 0)) {
-                return e_error("fcntl failed: %m");
-            }
-            flags &= ~O_DIRECT;
-        }
-#endif
-
         res = fcntl(fd, F_GETFL);
         if (res < 0) {
             return e_error("fcntl failed: %m");
@@ -870,22 +852,14 @@ int fd_unset_features(int fd, int flags)
 
 ssize_t fd_get_path(int fd, char buf[], size_t buf_len)
 {
+    char proc[PATH_MAX];
     size_t path_len;
     struct stat fdst;
     struct stat pathst;
 
-#if defined(__linux__)
-    {
-        char proc[PATH_MAX];
-        snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
-        path_len = RETHROW(readlink(proc, buf, buf_len));
-    }
-#elif defined(__APPLE__)
-    RETHROW(fcntl(fd, F_GETPATH, buf));
-    path_len = strlen(buf);
-#else
-# error "fd_get_path not implemented on your platform"
-#endif
+    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
+    path_len = RETHROW(readlink(proc, buf, buf_len));
+
     if (path_len == buf_len) {
         /* Path to long to append a nul byte */
         errno = ENAMETOOLONG;

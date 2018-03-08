@@ -167,7 +167,6 @@ libcommon_SOURCES = \
 	unix-fts.c \
 	unix-psinfo.c \
 	unix-linux.c \
-	unix-darwin.c \
 	\
 	http.c \
 	http-srv-static.c \

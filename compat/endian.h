@@ -17,12 +17,6 @@
 #include_next <sys/param.h>
 #ifdef __GLIBC__
 # include_next <endian.h>
-#elif defined(__APPLE__)
-# include <sys/types.h>
-# define __LITTLE_ENDIAN  LITTLE_ENDIAN
-# define __BIG_ENDIAN     BIG_ENDIAN
-# define __BYTE_ORDER     BYTE_ORDER
-# define __FLOAT_WORD_ORDER  __BYTE_ORDER
 #else
 #  error your platform is unsupported
 #endif

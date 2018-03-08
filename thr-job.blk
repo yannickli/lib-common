@@ -1817,10 +1817,6 @@ Z_GROUP_EXPORT(thrjobs) {
     Z_TEST(queue_syn, "tests queue sync") {
         int loops = fast ? 100 : 10000;
 
-#ifdef OS_APPLE
-        loops = 100;
-#endif
-
         for (int i = 0; i < loops; i++) {
             Z_HELPER_RUN(test_queue_sync());
         }
@@ -1840,10 +1836,6 @@ Z_GROUP_EXPORT(thrjobs) {
         if (fast) {
             iterations = 50000;
         }
-
-#ifdef OS_APPLE
-        iterations /= 100;
-#endif
 
         for (int loops = 0; loops < iterations; loops++) {
             t_scope;

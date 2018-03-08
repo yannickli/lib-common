@@ -103,16 +103,8 @@ struct mem_stack_frame_t {
 
 /* all fields are annotated like this [offset (size) : usage] */
 typedef struct mem_stack_pool_t {
-#ifndef __APPLE__
-    /* XXX disable alignement on OS X since alignement constraints are not
-     * properly taken into account for thread-local variable. Since the
-     * optimizer emit code that supposes the alignement are respected (such as
-     * use of xmm registers), this can cause crashes of the application.
-     */
-
     /* hot data : align on cache boundary */
     __attribute__((aligned(64)))
-#endif
     mem_stack_frame_t   * nonnull stack;     /*<  0  (8) : everywhere */
     size_t               alloc_sz;  /*<  8  (8) : alloc */
     uint32_t             alloc_nb;  /*< 16  (4) : alloc */
