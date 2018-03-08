@@ -18,9 +18,7 @@ CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
 CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
 SWIFTFLAGS := $(filter-out -O%,$(SWIFTFLAGS)) -Onone
 
-ifneq ($(OS),darwin)
 ifeq (,$(USE_DWARF4))
 CFLAGS += -gdwarf-2
 CXXFLAGS += -gdwarf-2
-endif
 endif

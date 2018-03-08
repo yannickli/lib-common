@@ -34,16 +34,6 @@ define fun/bin-compress
 endef
 endif
 
-ifeq ($(OS),darwin)
-# fun/lib-link <OBJS>,<LIBS>
-fun/lib-link = \
-	$(addprefix -Xlinker -force_load -Xlinker ,$(filter %.wa,$1)) \
-	$(filter %.a,$1) \
-	$(filter-out -lrt,$2)
-
-# fun/soname <NAME>,<VERSION>
-fun/soname =
-else
 # fun/lib-link <OBJS>,<LIBS>
 fun/lib-link = \
 	$(addprefix -Xlinker --version-script -Xlinker ,$(filter %.ld,$1)) \
@@ -53,7 +43,6 @@ fun/lib-link = \
 
 # fun/soname <NAME>,<VERSION>
 fun/soname = -Xlinker -soname -Xlinker $1$(if $2,.$2)
-endif
 
 #
 # extension driven rules
@@ -151,8 +140,8 @@ define ext/expand/l
 $(3:l=c): $3
 	$(msg/COMPILE.l) $3
 	flex -R -o $~$3.c+ $$<
-	sed $(if $(filter $(OS),darwin),-i '',-i) -e 's/^extern int isatty.*;//' \
-	       $(if $(filter $(OS),darwin),,-e '1s/^/#if defined __clang__ || ((__GNUC__ << 16) + __GNUC_MINOR__ >= (4 << 16) +2)\n#pragma GCC diagnostic ignored "-Wsign-compare"\n#endif\n/') \
+	sed -i -e 's/^extern int isatty.*;//' \
+	       -e '1s/^/#if defined __clang__ || ((__GNUC__ << 16) + __GNUC_MINOR__ >= (4 << 16) +2)\n#pragma GCC diagnostic ignored "-Wsign-compare"\n#endif\n/' \
 	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
 	       -e 's/^int .*get_column.*;//' \
 	       -e 's/^void .*set_column.*;//' \
@@ -219,7 +208,7 @@ $$(patsubst %,$~%$$(swift/$2/ns)$(OBJECTEXT)%o,$3): $3
 		$(if $($1_SWIFTMIXED),-import-underlying-module) \
 		$(if $($1_SWIFTMAIN),,-parse-as-library -emit-module -emit-module-path $~$$(swift/$2/mod)$4.swiftmodule) \
 		-output-file-map $$(swift/$2/map) $3  -g -I$~ -Xcc -xc \
-		$(if $(filter $(OS),darwin),,-Xcc -D__MACH__=0) \
+		-Xcc -D__MACH__=0 \
 		$$(if $$(findstring .pic,$$(swift/$2/ns)),-Xcc -fPIC -Xcc -DSHARED) \
 		$$(filter -I%,$$(swift/$2/cflags)) $$(addprefix -Xcc ,$$(filter-out -I%,$$(swift/$2/cflags)))
 
@@ -276,22 +265,6 @@ $1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F).$$(tmp/$1/sover))
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
-ifeq ($(OS),darwin)
-$~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(SWIFTC))
-$~$1.so$$(tmp/$1/build): _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
-$~$1.so$$(tmp/$1/build):
-	$(msg/LINK.c) $$(@R)
-	-$(RM) $$@
-	$$(if $$(NOLINK),:,$$(_L) $(addprefix,-Xcc $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS)) \
-	    -emit-library -o $$@ \
-	    $$(filter %.o %.oo,$$^) \
-	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) $$(LDSHAREDFLAGS) \
-	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^) \
-	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $$(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
-	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-else
 $~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
 $~$1.so$$(tmp/$1/build): _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
 $~$1.so$$(tmp/$1/build):
@@ -310,7 +283,6 @@ $~$1.so$$(tmp/$1/build):
 	    @$~$1.so.autolink $(SWIFTBASE)/x86_64/swift_end.o)
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-endif
 
 $(1DV)clean::
 	$(RM) $1.so*
@@ -324,17 +296,6 @@ $1$(EXEEXT): $~$1.exe FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES)))
-ifeq ($(OS),darwin)
-$~$1.exe: _L=$(or $($1_LINKER),$(SWIFTC))
-$~$1.exe: _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
-$~$1.exe:
-	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,$$(_L) $(addprefix,-Xcc ,$(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS)) -o $$@ \
-	    $$(filter %.o %.oo,$$^) \
-	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
-	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-else
 $~$1.exe: _L=$(or $($1_LINKER),$(CC))
 $~$1.exe: _LIBS=$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)
 $~$1.exe:
@@ -348,7 +309,6 @@ $~$1.exe:
 	    $$(if $(SWIFTC),-Xlinker -rpath -Xlinker $(SWIFTBASE) -L $(SWIFTBASE) \
 	    @$~$1.exe.autolink $(SWIFTBASE)/x86_64/swift_end.o)
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-endif
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef

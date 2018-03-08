@@ -21,9 +21,7 @@ ifndef SPARSE
 endif
 CFLAGS += -fno-omit-frame-pointer -fvisibility=hidden
 CXXFLAGS += -fno-omit-frame-pointer -fvisibility=hidden
-ifneq ($(OS),darwin)
 LDFLAGS += -Xlinker -export-dynamic
-endif
 SWIFTFLAGS += -g -Onone
 
 clang-analyzer: __setup_forward
