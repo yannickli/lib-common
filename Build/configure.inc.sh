@@ -102,22 +102,6 @@ check_iopc() {
     setenv "IOPFLAGS" "--Wextra --c-export-symbols --c-export-nullability --c-resolve-includes --check-snmp-table-has-index --c-unions-use-enums --c-minimal-includes"
 }
 
-check_swift() {
-    SWIFT_VER=3.1
-
-    if ! which "swiftc" >/dev/null 2>&1; then
-        log "disabling swift support"
-        return
-    fi
-
-    CUR_VER="$(swiftc -v 2>&1 | grep 'Swift version' | cut -d ' ' -f 3 | sed 's/-dev/.0/')"
-    if ! prereq "$SWIFT_VER" "$CUR_VER"; then
-        log "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
-        return
-    fi
-    setenv "SWIFTC" "$(which swiftc)"
-}
-
 __check_python_mod() {
     mod="$1"
     msg="$2"
@@ -174,7 +158,6 @@ fi
 for tool in clang clang++ flex gperf xsltproc; do
     check_tool $tool $tool
 done
-check_swift
 
 # }}}
 # {{{ pkg-config packages

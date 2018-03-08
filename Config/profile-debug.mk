@@ -16,7 +16,6 @@ include $(var/cfgdir)/profile-default.mk
 CFLAGS := $(filter-out -O%,$(CFLAGS))
 CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
 CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
-SWIFTFLAGS := $(filter-out -O%,$(SWIFTFLAGS)) -Onone
 
 ifeq (,$(USE_DWARF4))
 CFLAGS += -gdwarf-2

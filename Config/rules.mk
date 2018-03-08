@@ -72,19 +72,16 @@ ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
 define ext/expand/iop
 $3.h: $3.c
 $3.json: $3.c
-$3.swift: $3.c
 $~$3.dep $3.c: IOPINCPATH_=$l $(var/platform)/lib-inet $(var/platform)/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $~$3.dep $3.c: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) $(1DV))
 $~$3.dep $3.c: IOPCLASSRANGE_=$(firstword $($(1DV)_IOPCLASSRANGE) $($1_IOPCLASSRANGE) $($3_IOPCLASSRANGE))
-$~$3.dep $3.c: IOPSWIFTDEPS_=$(firstword $($(1DV)_SWIFTDEPS) $($1_SWIFTDEPS) $($3_SWIFTDEPS))
 $~$3.dep $3.c: IOPVER_= $(firstword $($3_IOPVER) $($1_IOPVER) $($(1DV)_IOPVER) $(IOPVER))
 $~$3.dep $3.c: $3 $(patsubst $/%,%,$liopc/iopc)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$liopc/iopc $$(IOPVER_) $(IOPFLAGS) -l c,json$(if $(SWIFTC),$(var/comma)swift) \
+	$liopc/iopc $$(IOPVER_) $(IOPFLAGS) -l c,json \
 	    -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) --json-output-path $$(IOPJSONPATH_) \
-	    $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) \
-	    $(if $(SWIFTC),$$(if $$(IOPSWIFTDEPS_),--swift-import-modules $$(IOPSWIFTDEPS_))) $$<
+	    $$(if $$(IOPCLASSRANGE_),--class-id-range $$(IOPCLASSRANGE_)) $$<
 -include $~$3.dep
 endef
 

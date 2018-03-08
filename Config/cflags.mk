@@ -32,7 +32,7 @@ CLANGXX  := $(shell which "clang++")
 CC_FULL  := $(shell which "$(CC)")
 CXX_FULL := $(shell which "$(CXX)")
 
-$!clang-flags.mk: $(CLANG) $(SWIFTC) $(var/cfgdir)/cflags.sh $/configure
+$!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh $/configure
 	$(RM) $@
 	/bin/echo -n "CLANGFLAGS := "                      >  $@+
 	$(var/cfgdir)/cflags.sh "clang"               >> $@+
@@ -45,9 +45,6 @@ $!clang-flags.mk: $(CLANG) $(SWIFTC) $(var/cfgdir)/cflags.sh $/configure
 	echo                                          >> $@+
 	/bin/echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
 	$(var/cfgdir)/cflags.sh "clang++" "rewrite"   >> $@+
-	echo                                          >> $@+
-	/bin/echo -n "CLANGSWIFTFLAGS := "            >> $@+
-	$(var/cfgdir)/cflags.sh "swiftc"              >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
@@ -86,19 +83,15 @@ CLANGXXFLAGS        += $(CFLAGSBASE)
 CLANGXXREWRITEFLAGS += $(CFLAGSBASE)
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
-CLANGSWIFTFLAGS     += $(CFLAGSBASE)
 else
 CLANGFLAGS          = $(CFLAGS)
 CLANGREWRITEFLAGS   = $(CFLAGS)
 CLANGXXFLAGS        = $(CXXFLAGS)
 CLANGXXREWRITEFLAGS = $(CXXFLAGS)
-CLANGSWIFTFLAGS     = $(CFLAGS)
 endif
 
 ifeq ($(NOASSERT),1)
 CFLAGS += -DNDEBUG
 CXXFLAGS += -DNDEBUG
-CLANGSWIFTFLAGS += -DNDEBUG
-SWIFTFLAGS += -DNDEBUG
 OBJECTEXT = .noassert
 endif
