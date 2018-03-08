@@ -256,7 +256,7 @@ iopc_field_load(const iop__field__t *nonnull field_desc,
 
     f = iopc_field_new();
     f->name = p_dupz(field_desc->name.s, field_desc->name.len);
-    f->pos = fields->len;
+    f->field_pos = fields->len;
 
     if (OPT_ISSET(field_desc->tag)) {
         f->tag = OPT_VAL(field_desc->tag);

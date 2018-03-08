@@ -751,7 +751,7 @@ iopc_struct_dump_json(const iopc_write_buf_t *wbuf, const char *pkg_name,
         qv_sort(iopc_field)(&st->static_fields,
                             ^int (iopc_field_t * const *f1,
                                   iopc_field_t * const *f2) {
-            return (*f1)->pos - (*f2)->pos;
+            return (*f1)->field_pos - (*f2)->field_pos;
         });
         RETHROW(dump_fields(wbuf, &st->static_fields));
         LINE_END_OBJ(wbuf);

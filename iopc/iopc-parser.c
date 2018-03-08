@@ -2203,7 +2203,8 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
     int res = 0;
     qm_t(iopc_field) fields = QM_INIT_CACHED(field, fields);
     int next_tag = 1;
-    int next_pos = 1;
+    int next_field_pos = 0;
+    int next_static_field_pos = 0;
     bool previous_static = true;
     qv_t(i32) tags;
     qv_t(iopc_attr) attrs;
@@ -2230,7 +2231,11 @@ static int parse_struct(iopc_parser_t *pp, iopc_struct_t *st, int sep,
         }
         previous_static = f->is_static;
 
-        f->pos = next_pos++;
+        if (f->is_static) {
+            f->field_pos = next_static_field_pos++;
+        } else {
+            f->field_pos = next_field_pos++;
+        }
         RETHROW(read_dox_back(pp, &chunks, sep));
         RETHROW(build_dox_check_all(&chunks, f));
 

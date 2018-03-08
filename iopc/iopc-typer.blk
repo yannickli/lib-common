@@ -449,7 +449,7 @@ static int resolve_snmp_iface_field(iopc_iface_t *iface, iopc_field_t *field)
     bool found = false;
     /* Keep information about the field */
     iopc_loc_t loc = field->loc;
-    int pos = field->pos;
+    int field_pos = field->field_pos;
 
     if (!field->snmp_is_from_param) {
         throw_loc("any field should be a snmpObj previously defined",
@@ -479,7 +479,7 @@ static int resolve_snmp_iface_field(iopc_iface_t *iface, iopc_field_t *field)
         } else {
             /* Give back information on the field */
             field->loc = loc;
-            field->pos = pos;
+            field->field_pos = field_pos;
         }
     }
     return 0;

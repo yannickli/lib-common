@@ -601,7 +601,11 @@ typedef struct iopc_field_t {
     iopc_loc_t loc;
 
     int tag;
-    int pos;  /* To sort fields by order of appearance in struct/class. */
+
+    /* Position in the order of appearance of the struct fields. Starts at
+     * zero. Static fields and regular fields positions are computed
+     * separately. */
+    int field_pos;
     int repeat;
     char *name;
 
