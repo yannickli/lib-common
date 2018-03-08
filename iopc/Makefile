@@ -43,7 +43,6 @@ libiopc_SOURCES = \
     iopc-iopsq.c \
     iopc-lang-c.blk           \
     iopc-lang-json.blk        \
-    iopc-lang-swift.c         \
     iopc-lang-typescript.c
 libiopc_NOGENERATED = 1
 

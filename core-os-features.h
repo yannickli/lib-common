@@ -19,8 +19,6 @@
 /*---------------- Guess the OS ----------------*/
 #if defined(__linux__)
 #  define OS_LINUX
-#elif defined(__APPLE__)
-#  define OS_APPLE
 #else
 #  error "we don't know about your OS"
 #endif
@@ -35,10 +33,6 @@
 # ifndef HAVE_SYS_INOTIFY_H
 #  define HAVE_SYS_INOTIFY_H
 # endif
-#endif
-
-#ifdef OS_APPLE
-# define SO_FILEEXT  ".so"
 #endif
 
 #ifndef SO_FILEEXT
