@@ -120,14 +120,7 @@ check_swift() {
         return
     fi
 
-    case "$OS" in
-        darwin)
-            CUR_VER="$(swiftc -v 2>&1 | grep 'Apple Swift version' | cut -d ' ' -f 4 | sed 's/-dev/.0/')"
-            ;;
-        *)
-            CUR_VER="$(swiftc -v 2>&1 | grep 'Swift version' | cut -d ' ' -f 3 | sed 's/-dev/.0/')"
-            ;;
-    esac
+    CUR_VER="$(swiftc -v 2>&1 | grep 'Swift version' | cut -d ' ' -f 3 | sed 's/-dev/.0/')"
     if ! prereq "$SWIFT_VER" "$CUR_VER"; then
         log "swift version $SWIFT_VER required but you have $CUR_VER, update swift"
         return
@@ -196,20 +189,9 @@ check_swift
 # }}}
 # {{{ pkg-config packages
 
-case "$OS" in
-    darwin)
-        setvar "libxml2_LIBS" "-L/usr/local/opt/libxml2/lib -lxml2"
-        setvar "libxml2_CFLAGS" "-I/usr/local/opt/libxml2/include/libxml2"
-        setvar "zlib_LIBS" "-lz"
-        setvar "openssl_CFLAGS" "-I/usr/local/opt/openssl/include/"
-        setvar "openssl_LIBS" "-L/usr/local/opt/openssl/lib -lssl -lcrypto"
-        ;;
-    *)
-        pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
-        pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
-        pkg_config_setvar "openssl" "libssl-dev"     "openssl"
-        ;;
-esac
+pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
+pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
+pkg_config_setvar "openssl" "libssl-dev"     "openssl"
 
 pkg_config_setvar "valgrind" "valgrind" "valgrind"
 
@@ -279,9 +261,7 @@ fi
 if test -r /usr/include/netinet/sctp.h; then
     setvardef "HAVE_NETINET_SCTP_H" "1"
 else
-    if ! [ "$OS" = "darwin" ]; then
-        warn "missing libsctp, apt-get install libsctp-dev"
-    fi
+    warn "missing libsctp, apt-get install libsctp-dev"
 fi
 
 # }}}

@@ -79,15 +79,9 @@ if [ -z "$pybin" ] ; then
     exit 1
 fi
 
-if [ "${OS}" == "darwin" ]; then
-    tmp=$(mktemp -t tmp)
-    tmp2=$(mktemp -t tmp)
-    corelist=$(mktemp -t tmp)
-else
-    tmp=$(mktemp)
-    tmp2=$(mktemp)
-    corelist=$(mktemp)
-fi
+tmp=$(mktemp)
+tmp2=$(mktemp)
+corelist=$(mktemp)
 trap "rm $tmp $tmp2 $corelist" 0
 
 set_www_env() {

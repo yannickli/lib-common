@@ -19,19 +19,12 @@ endif
 endif
 endif
 
-ifeq ($(OS),darwin)
-	CC_BASE  := clang
-	CXX_BASE := clang++
-	LDFLAGS  := -Xlinker -arch -Xlinker x86_64 -Xlinker -macosx_version_min -Xlinker 10.12.0 -framework CoreServices
-	LDSHAREDFLAGS := -Xlinker -undefined -Xlinker dynamic_lookup
-else
 ifeq ($(filter %-analyzer,$(CC)),)
 	CC_BASE  := $(notdir $(CC))
 	CXX_BASE := $(notdir $(CXX))
 else
 	CC_BASE  := clang
 	CXX_BASE := clang++
-endif
 endif
 
 CLANG    := $(shell which "clang")

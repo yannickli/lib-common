@@ -15,12 +15,7 @@ case "$cc" in
         esac
         ;;
     *)
-        if [ "$OS" = "darwin" ]; then
-            clang_version="3.7.0"
-        else
-            clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
-        fi
-        ;;
+        clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
 esac
 version=$("$cc" -dumpversion)
 
@@ -54,9 +49,6 @@ gcc_prereq()
 
 is_clang()
 {
-    if [ "$OS" = "darwin" ]; then
-        return 0
-    fi
     case "$cc" in
         swift|clang*|*c*-analyzer) return 0;;
         *) return 1;;
