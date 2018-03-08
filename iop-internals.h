@@ -350,10 +350,10 @@ struct iop_struct_t {
     const iop_field_attrs_t  * nullable fields_attrs;
     union {
         /* XXX do not dereference the following members without checking
-         * TST_BIT(this->flags, IOP_STRUCT_IS_CLASS) first */
+         * iop_struct_is_class(this) first */
         const iop_class_attrs_t * nullable class_attrs;
         /* XXX do not dereference the following members without checking
-         * TST_BIT(this->flags, IOP_STRUCT_IS_SNMP_OBJ) first */
+         * iop_struct_is_snmp_obj(this) first */
         const iop_snmp_attrs_t * nullable snmp_attrs;
     };
 };
