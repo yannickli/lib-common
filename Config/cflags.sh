@@ -2,21 +2,7 @@
 
 cc="$1"
 
-case "$cc" in
-    swiftc)
-        swift_version="$("$cc" --version | grep 'Swift version' | cut -d ' ' -f 3)"
-        cc="clang"
-        case "$swift_version" in
-            3.0.*)
-                clang_version="3.7.0"
-                ;;
-            *)
-                ;;
-        esac
-        ;;
-    *)
-        clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
-esac
+clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
 version=$("$cc" -dumpversion)
 
 prereq() {
@@ -50,7 +36,7 @@ gcc_prereq()
 is_clang()
 {
     case "$cc" in
-        swift|clang*|*c*-analyzer) return 0;;
+        clang*|*c*-analyzer) return 0;;
         *) return 1;;
     esac
 }

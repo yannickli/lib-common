@@ -46,9 +46,6 @@ $!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
 	/bin/echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
 	$(var/cfgdir)/cflags.sh "clang++" "rewrite"   >> $@+
 	echo                                          >> $@+
-	/bin/echo -n "CLANGSWIFTFLAGS := "            >> $@+
-	$(var/cfgdir)/cflags.sh "swiftc"              >> $@+
-	echo                                          >> $@+
 	$(MV) $@+ $@
 
 $!cc-$(CC_BASE)-flags.mk: $(CC_FULL) $(var/cfgdir)/cflags.sh
@@ -86,19 +83,15 @@ CLANGXXFLAGS        += $(CFLAGSBASE)
 CLANGXXREWRITEFLAGS += $(CFLAGSBASE)
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
-CLANGSWIFTFLAGS     += $(CFLAGSBASE)
 else
 CLANGFLAGS          = $(CFLAGS)
 CLANGREWRITEFLAGS   = $(CFLAGS)
 CLANGXXFLAGS        = $(CXXFLAGS)
 CLANGXXREWRITEFLAGS = $(CXXFLAGS)
-CLANGSWIFTFLAGS     = $(CFLAGS)
 endif
 
 ifeq ($(NOASSERT),1)
 CFLAGS += -DNDEBUG
 CXXFLAGS += -DNDEBUG
-CLANGSWIFTFLAGS += -DNDEBUG
-SWIFTFLAGS += -DNDEBUG
 OBJECTEXT = .noassert
 endif

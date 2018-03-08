@@ -95,7 +95,6 @@ msg/COMPILE.js  := $(msg/color) '0;$(col/blue)'    " RJS"
 msg/COMPILE.ts  := $(msg/color) '0;$(col/blue)'    " TSC"
 msg/COMPILE.json:= $(msg/color) '0;$(col/blue)'    " CP "
 msg/COMPILE.java := $(msg/color) '0;$(col/blue)'   " JVA"
-msg/COMPILE.swift := $(msg/color) '0;$(col/blue)'  " SFT"
 msg/MINIFY.css  := $(msg/color) '0;$(col/cyan)'    " MIN"
 msg/MINIFY.js   := $(msg/color) '0;$(col/cyan)'    " MIN"
 msg/LINK.jar    := $(msg/color) '1;$(col/green)'   " JAR"
@@ -145,10 +144,6 @@ endif
 FASTCP := ln -f
 MV     := mv -f
 INSTALL := $(shell which ginstall 2> /dev/null)
-ifneq (,$(SWIFTC))
-	SWIFTC  := $(realpath $(shell which swiftc))
-	SWIFTBASE := $(dir $(SWIFTC))/../lib/swift/linux
-endif
 ifeq ($(INSTALL),)
 	INSTALL := install
 endif
