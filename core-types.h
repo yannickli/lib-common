@@ -29,37 +29,49 @@ typedef int spinlock_t;
 /* }}} */
 /* {{{1 Refcount */
 
-#define REFCNT_NEW(type, pfx)                                             \
-    __unused__                                                            \
-    static inline type *pfx##_new(void) {                                 \
-        type *res = pfx##_init(p_new_raw(type, 1));                       \
-        res->refcnt = 1;                                                  \
-        return res;                                                       \
+#define REFCNT_NEW(type, pfx)                                                \
+    __unused__ static inline __attribute__((malloc))                         \
+    type *nonnull pfx##_new(void)                                            \
+    {                                                                        \
+        type *res = pfx##_init(p_new_raw(type, 1));                          \
+        res->refcnt = 1;                                                     \
+        return res;                                                          \
     }
 
-#define REFCNT_DUP(type, pfx)                                             \
-    __unused__                                                            \
-    static inline type *pfx##_dup(type *t) {                              \
-        t->refcnt++;                                                      \
-        return t;                                                         \
+#define REFCNT_DUP(type, pfx)                                                \
+    __unused__ static inline __attr_nonnull__((1))                           \
+    type *nonnull pfx##_dup(type *nonnull t)                                 \
+    {                                                                        \
+        if (unlikely(t->refcnt < 1)) {                                       \
+            e_panic("memory corruption: dead object revival detected");      \
+        }                                                                    \
+        t->refcnt++;                                                         \
+        return t;                                                            \
     }
 
-#define REFCNT_DELETE(type, pfx)                                          \
-    __unused__                                                            \
-    static inline void pfx##_delete(type **tp) {                          \
-        if (*tp) {                                                        \
-            if (--(*tp)->refcnt > 0) {                                    \
-                *tp = NULL;                                               \
-            } else {                                                      \
-                pfx##_wipe(*tp);                                          \
-                p_delete(tp);                                             \
-            }                                                             \
-        }                                                                 \
+#define REFCNT_DELETE(type, pfx)                                             \
+    __unused__ static inline void __attr_nonnull__((1))                      \
+    pfx##_delete(type *nullable *nonnull tp)                                 \
+    {                                                                        \
+        type * const t = *tp;                                                \
+                                                                             \
+        if (t) {                                                             \
+            if (unlikely(t->refcnt <= 0)) {                                  \
+                e_panic("memory corruption: double free detected");          \
+            } else                                                           \
+            if (--t->refcnt > 0) {                                           \
+                *tp = NULL;                                                  \
+            } else {                                                         \
+                pfx##_wipe(t);                                               \
+                assert (likely(t == *tp) && "pointer corruption detected");  \
+                p_delete(tp);                                                \
+            }                                                                \
+        }                                                                    \
     }
 
-#define DO_REFCNT(type, pfx)                                              \
-    REFCNT_NEW(type, pfx)                                                 \
-    REFCNT_DUP(type, pfx)                                                 \
+#define DO_REFCNT(type, pfx)                                                 \
+    REFCNT_NEW(type, pfx)                                                    \
+    REFCNT_DUP(type, pfx)                                                    \
     REFCNT_DELETE(type, pfx)
 
 /* 1}}} */
