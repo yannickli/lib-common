@@ -217,7 +217,7 @@ qvector_splice(qvector_t * nonnull vec, size_t v_size, size_t v_align,
     typedef void (BLOCK_CARET pfx##_cpy_b)(val_t * nonnull a,               \
                                            cval_t * nonnull b);             \
                                                                             \
-    __unused__ __swift_name__(#pfx "_t._sorted(self:cmp:)")                 \
+    __unused__                                                              \
     static inline void pfx##_sort(pfx##_t * nonnull vec,                    \
                                   pfx##_cmp_b nonnull cmp)                  \
     {                                                                       \

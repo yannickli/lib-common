@@ -14,32 +14,32 @@
 #ifndef IS_LIB_COMMON_IOP_INTERNALS_H
 #define IS_LIB_COMMON_IOP_INTERNALS_H
 
-SWIFT_ENUM(iop_repeat_t) {
-    IOP_R_REQUIRED __swift_name__("required"),
-    IOP_R_DEFVAL __swift_name__("defaultValue"),
-    IOP_R_OPTIONAL __swift_name__("optional"),
-    IOP_R_REPEATED __swift_name__("repeated"),
-};
+typedef enum iop_repeat_t {
+    IOP_R_REQUIRED,
+    IOP_R_DEFVAL,
+    IOP_R_OPTIONAL,
+    IOP_R_REPEATED,
+} iop_repeat_t;
 
-SWIFT_ENUM(iop_type_t) {
-    IOP_T_I8 __swift_name__("byte"),
-    IOP_T_U8 __swift_name__("ubyte"),
-    IOP_T_I16 __swift_name__("short"),
-    IOP_T_U16 __swift_name__("ushort"),
-    IOP_T_I32 __swift_name__("int"),
-    IOP_T_U32 __swift_name__("uint"),
-    IOP_T_I64 __swift_name__("long"),
-    IOP_T_U64 __swift_name__("ulong"),
-    IOP_T_BOOL __swift_name__("bool"),
-    IOP_T_ENUM __swift_name__("enum"),
-    IOP_T_DOUBLE __swift_name__("double"),
-    IOP_T_STRING __swift_name__("string"),
-    IOP_T_DATA __swift_name__("bytes"),
-    IOP_T_UNION __swift_name__("union"),
-    IOP_T_STRUCT __swift_name__("struct"),
-    IOP_T_XML __swift_name__("xml"),
-    IOP_T_VOID __swift_name__("void"),
-};
+typedef enum iop_type_t {
+    IOP_T_I8,
+    IOP_T_U8,
+    IOP_T_I16,
+    IOP_T_U16,
+    IOP_T_I32,
+    IOP_T_U32,
+    IOP_T_I64,
+    IOP_T_U64,
+    IOP_T_BOOL,
+    IOP_T_ENUM,
+    IOP_T_DOUBLE,
+    IOP_T_STRING,
+    IOP_T_DATA,
+    IOP_T_UNION,
+    IOP_T_STRUCT,
+    IOP_T_XML,
+    IOP_T_VOID,
+} iop_type_t;
 #define IOP_T_max  IOP_T_VOID
 
 /*{{{ iop_field_t */
@@ -135,14 +135,14 @@ typedef struct iop_generic_attr_arg_t {
 /*}}}*/
 /*{{{ iop_enum_t */
 
-SWIFT_ENUM(iop_enum_value_attr_type_t) {
-    IOP_ENUM_VALUE_ATTR_HELP __swift_name__("help"),
-    IOP_ENUM_VALUE_GEN_ATTR_S __swift_name__("string"),
-    IOP_ENUM_VALUE_GEN_ATTR_I __swift_name__("integer"),
-    IOP_ENUM_VALUE_GEN_ATTR_D __swift_name__("double"),
-    IOP_ENUM_VALUE_GEN_ATTR_O __swift_name__("object"),
-    IOP_ENUM_VALUE_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_enum_value_attr_type_t {
+    IOP_ENUM_VALUE_ATTR_HELP,
+    IOP_ENUM_VALUE_GEN_ATTR_S,
+    IOP_ENUM_VALUE_GEN_ATTR_I,
+    IOP_ENUM_VALUE_GEN_ATTR_D,
+    IOP_ENUM_VALUE_GEN_ATTR_O,
+    IOP_ENUM_VALUE_ATTR_HELP_V2,
+} iop_enum_value_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;
 
@@ -159,14 +159,14 @@ typedef struct iop_enum_value_attrs_t {
     const iop_enum_value_attr_t * nonnull attrs;
 } iop_enum_value_attrs_t;
 
-SWIFT_ENUM(iop_enum_attr_type_t) {
-    IOP_ENUM_ATTR_HELP __swift_name__("help"),
-    IOP_ENUM_GEN_ATTR_S __swift_name__("string"),
-    IOP_ENUM_GEN_ATTR_I __swift_name__("integer"),
-    IOP_ENUM_GEN_ATTR_D __swift_name__("double"),
-    IOP_ENUM_GEN_ATTR_O __swift_name__("object"),
-    IOP_ENUM_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_enum_attr_type_t {
+    IOP_ENUM_ATTR_HELP,
+    IOP_ENUM_GEN_ATTR_S,
+    IOP_ENUM_GEN_ATTR_I,
+    IOP_ENUM_GEN_ATTR_D,
+    IOP_ENUM_GEN_ATTR_O,
+    IOP_ENUM_ATTR_HELP_V2,
+} iop_enum_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
 
@@ -247,27 +247,27 @@ typedef int (check_constraints_f)(const void * nonnull ptr, int n);
 
 typedef iop_generic_attr_arg_t iop_field_attr_arg_t;
 
-SWIFT_ENUM(iop_field_attr_type_t) {
-    IOP_FIELD_MIN_OCCURS __swift_name__("minOccurs"),
-    IOP_FIELD_MAX_OCCURS __swift_name__("maxOccurs"),
-    IOP_FIELD_CDATA __swift_name__("cdata"),
-    IOP_FIELD_MIN __swift_name__("min"),
-    IOP_FIELD_MAX __swift_name__("max"),
-    IOP_FIELD_NON_EMPTY __swift_name__("nonEmpty"),
-    IOP_FIELD_NON_ZERO __swift_name__("nonZero"),
-    IOP_FIELD_MIN_LENGTH __swift_name__("minLength"),
-    IOP_FIELD_MAX_LENGTH __swift_name__("maxLength"),
-    IOP_FIELD_PATTERN __swift_name__("pattern"),
-    IOP_FIELD_PRIVATE __swift_name__("private"),
-    IOP_FIELD_ATTR_HELP __swift_name__("help"),
-    IOP_FIELD_GEN_ATTR_S __swift_name__("genAttrString"),
-    IOP_FIELD_GEN_ATTR_I __swift_name__("genAttrInteger"),
-    IOP_FIELD_GEN_ATTR_D __swift_name__("genAttrDouble"),
-    IOP_FIELD_GEN_ATTR_O __swift_name__("genAttrObject"),
-    IOP_FIELD_DEPRECATED __swift_name__("deprecated"),
-    IOP_FIELD_SNMP_INFO __swift_name__("snmpInfo"), /**< not a real attribute, used in snmpObj         */
-    IOP_FIELD_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_field_attr_type_t {
+    IOP_FIELD_MIN_OCCURS,
+    IOP_FIELD_MAX_OCCURS,
+    IOP_FIELD_CDATA,
+    IOP_FIELD_MIN,
+    IOP_FIELD_MAX,
+    IOP_FIELD_NON_EMPTY,
+    IOP_FIELD_NON_ZERO,
+    IOP_FIELD_MIN_LENGTH,
+    IOP_FIELD_MAX_LENGTH,
+    IOP_FIELD_PATTERN,
+    IOP_FIELD_PRIVATE,
+    IOP_FIELD_ATTR_HELP,
+    IOP_FIELD_GEN_ATTR_S,
+    IOP_FIELD_GEN_ATTR_I,
+    IOP_FIELD_GEN_ATTR_D,
+    IOP_FIELD_GEN_ATTR_O,
+    IOP_FIELD_DEPRECATED,
+    IOP_FIELD_SNMP_INFO, /**< not a real attribute, used in snmpObj         */
+    IOP_FIELD_ATTR_HELP_V2,
+} iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
     iop_field_attr_type_t        type;
@@ -283,15 +283,15 @@ typedef struct iop_field_attrs_t {
     const iop_field_attr_t  * nonnull attrs;
 } iop_field_attrs_t;
 
-SWIFT_ENUM(iop_struct_attr_type_t) {
-    IOP_STRUCT_ATTR_HELP __swift_name__("help"),
-    IOP_STRUCT_GEN_ATTR_S __swift_name__("string"),
-    IOP_STRUCT_GEN_ATTR_I __swift_name__("integer"),
-    IOP_STRUCT_GEN_ATTR_D __swift_name__("double"),
-    IOP_STRUCT_GEN_ATTR_O __swift_name__("object"),
-    IOP_STRUCT_DEPRECATED __swift_name__("deprecated"),
-    IOP_STRUCT_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_struct_attr_type_t {
+    IOP_STRUCT_ATTR_HELP,
+    IOP_STRUCT_GEN_ATTR_S,
+    IOP_STRUCT_GEN_ATTR_I,
+    IOP_STRUCT_GEN_ATTR_D,
+    IOP_STRUCT_GEN_ATTR_O,
+    IOP_STRUCT_DEPRECATED,
+    IOP_STRUCT_ATTR_HELP_V2,
+} iop_struct_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
 
@@ -379,21 +379,21 @@ enum iop_rpc_flags_t {
 
 typedef iop_field_attr_arg_t iop_rpc_attr_arg_t;
 
-SWIFT_ENUM(iop_rpc_attr_type_t) {
-    IOP_RPC_ALIAS __swift_name__("alias"),
-    IOP_RPC_ATTR_HELP __swift_name__("help"),
-    IOP_RPC_ATTR_ARG_HELP __swift_name__("argHelp"),
-    IOP_RPC_ATTR_RES_HELP __swift_name__("resHelp"),
-    IOP_RPC_ATTR_EXN_HELP __swift_name__("exnHelp"),
-    IOP_RPC_GEN_ATTR_S __swift_name__("genAttrString"),
-    IOP_RPC_GEN_ATTR_I __swift_name__("genAttrInteger"),
-    IOP_RPC_GEN_ATTR_D __swift_name__("genAttrDouble"),
-    IOP_RPC_GEN_ATTR_O __swift_name__("genAttrObject"),
-    IOP_RPC_ATTR_HELP_V2 __swift_name__("helpV2"),
-    IOP_RPC_ATTR_ARG_HELP_V2 __swift_name__("argHelpV2"),
-    IOP_RPC_ATTR_RES_HELP_V2 __swift_name__("resHelpV2"),
-    IOP_RPC_ATTR_EXN_HELP_V2 __swift_name__("exnHelpV2"),
-};
+typedef enum iop_rpc_attr_type_t {
+    IOP_RPC_ALIAS,
+    IOP_RPC_ATTR_HELP,
+    IOP_RPC_ATTR_ARG_HELP,
+    IOP_RPC_ATTR_RES_HELP,
+    IOP_RPC_ATTR_EXN_HELP,
+    IOP_RPC_GEN_ATTR_S,
+    IOP_RPC_GEN_ATTR_I,
+    IOP_RPC_GEN_ATTR_D,
+    IOP_RPC_GEN_ATTR_O,
+    IOP_RPC_ATTR_HELP_V2,
+    IOP_RPC_ATTR_ARG_HELP_V2,
+    IOP_RPC_ATTR_RES_HELP_V2,
+    IOP_RPC_ATTR_EXN_HELP_V2,
+} iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
     iop_rpc_attr_type_t type;
@@ -421,15 +421,15 @@ typedef struct iop_rpc_t {
 /*}}}*/
 /*{{{ iop_iface_t */
 
-SWIFT_ENUM(iop_iface_attr_type_t) {
-    IOP_IFACE_ATTR_HELP __swift_name__("help"),
-    IOP_IFACE_GEN_ATTR_S __swift_name__("string"),
-    IOP_IFACE_GEN_ATTR_I __swift_name__("integer"),
-    IOP_IFACE_GEN_ATTR_D __swift_name__("double"),
-    IOP_IFACE_GEN_ATTR_O __swift_name__("object"),
-    IOP_IFACE_DEPRECATED __swift_name__("deprecated"),
-    IOP_IFACE_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_iface_attr_type_t {
+    IOP_IFACE_ATTR_HELP,
+    IOP_IFACE_GEN_ATTR_S,
+    IOP_IFACE_GEN_ATTR_I,
+    IOP_IFACE_GEN_ATTR_D,
+    IOP_IFACE_GEN_ATTR_O,
+    IOP_IFACE_DEPRECATED,
+    IOP_IFACE_ATTR_HELP_V2,
+} iop_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
 
@@ -475,10 +475,10 @@ typedef struct iop_iface_alias_t {
     uint32_t            tag;
 } iop_iface_alias_t;
 
-SWIFT_ENUM(iop_mod_iface_attr_type_t) {
-    IOP_MOD_IFACE_ATTR_HELP __swift_name__("help"),
-    IOP_MOD_IFACE_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_mod_iface_attr_type_t {
+    IOP_MOD_IFACE_ATTR_HELP,
+    IOP_MOD_IFACE_ATTR_HELP_V2,
+} iop_mod_iface_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_mod_iface_attr_arg_t;
 
@@ -495,10 +495,10 @@ typedef struct iop_mod_iface_attrs_t {
     const iop_mod_iface_attr_t * nonnull attrs;
 } iop_mod_iface_attrs_t;
 
-SWIFT_ENUM(iop_mod_attr_type_t) {
-    IOP_MOD_ATTR_HELP __swift_name__("help"),
-    IOP_MOD_ATTR_HELP_V2 __swift_name__("helpV2"),
-};
+typedef enum iop_mod_attr_type_t {
+    IOP_MOD_ATTR_HELP,
+    IOP_MOD_ATTR_HELP_V2,
+} iop_mod_attr_type_t;
 
 typedef iop_generic_attr_arg_t iop_mod_attr_arg_t;
 

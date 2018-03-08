@@ -210,7 +210,6 @@ static ALWAYS_INLINE mem_pool_t * nonnull t_pool(void)
     return &t_pool_g.funcs;
 }
 
-__swift_name__("getter:MemoryPool.tPool()")
 static ALWAYS_INLINE mem_stack_pool_t * nonnull t_stack_pool(void)
 {
     return &t_pool_g;

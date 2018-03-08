@@ -227,34 +227,6 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 #define MODULE_NEEDED_BY(need)  \
     module_add_dep(MODULE(need), LSTR(#need), __name, &__mod)
 
-/** Register a module defined in Swift.
- *
- * Modules defined in swift have to be declared and defined in both C and
- * Swift in order to be usable. The C part needs only to contain the
- * MODULE_DECLARE(name) and the MODULE_SWIFT(name, swift_file), while the
- * Swift code mustinclude a constructor in the form of the following code:
- *
- *  let {module_name} : Module.Constructor = { (name, module) in
- *      Module.register(name: name, module: module, initialize: initialize,
- *                      shutdown: shutdown)
- *  }
- */
-#define MODULE_SWIFT(name, name_len, swift_file, swift_file_len)             \
-    __attr_section("intersec", "module")                                     \
-    module_t *MODULE(name);                                                  \
-    module_t ** const MODULE_PTR(name) = &MODULE(name);                      \
-                                                                             \
-    void _TF##swift_file_len##swift_file##au##name_len##name##C9libcommon6Module(void);\
-                                                                             \
-    static __attribute__((constructor))                                      \
-    void __##name##_module_register(void)                                    \
-    {                                                                        \
-        STATIC_ASSERT(name_len == sizeof(#name) - 1);                        \
-        STATIC_ASSERT(swift_file_len == sizeof(#swift_file) - 1);            \
-                                                                             \
-        _TF##swift_file_len##swift_file##au##name_len##name##C9libcommon6Module();\
-    }
-
 /* {{{ Method */
 
 /** Declare the implementation of the method \p hook.

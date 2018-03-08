@@ -131,7 +131,7 @@ enum {
  * You should not touch the fields of that structure. It is provided only for
  * the sake of inlining.
  */
-typedef struct __swift_name__("Logger") logger_t {
+typedef struct logger_t {
     atomic_uint conf_gen;
     bool is_static : 1;
 
@@ -216,7 +216,6 @@ logger_t * nonnull logger_init(logger_t * nonnull logger,
 logger_t * nonnull logger_new(logger_t *nullable parent, lstr_t name,
                               int default_level, unsigned level_flags) __leaf;
 
-__swift_name__("Logger.wipe(self:)")
 void logger_wipe(logger_t * nonnull logger) __leaf;
 GENERIC_DELETE(logger_t, logger)
 
