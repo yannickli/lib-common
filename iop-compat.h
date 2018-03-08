@@ -51,8 +51,6 @@
 #define nullable
 #define nonnull
 #define null_unspecified
-#define SWIFT_ENUM(_name)     typedef enum _name _name; enum _name
-#define __swift_name__(...)
 
 /* str-l.h */
 typedef struct lstr_t {

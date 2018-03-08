@@ -45,4 +45,3 @@ mem.fifo.data.*
 
 test-data/snmp/*.iop.h
 test-data/snmp/*.iop.c
-test-data/snmp/*.iop.swift
