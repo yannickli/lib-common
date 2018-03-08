@@ -2375,21 +2375,11 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
     ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && ic->is_unix) {
         ic_creds_t creds;
-#if defined(OS_LINUX)
         struct ucred ucred;
         socklen_t len = sizeof(ucred);
 
         RETHROW(getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len));
         creds = (ic_creds_t){ .uid = ucred.uid, .gid = ucred.gid, .pid = ucred.pid };
-#elif defined(OS_APPLE)
-        struct xucred xucred;
-        socklen_t len = sizeof(xucred);
-
-        RETHROW(getsockopt(fd, SOL_LOCAL, LOCAL_PEERCRED, &xucred, &len));
-        creds = (ic_creds_t){ .uid = xucred.cr_uid, .gid = xucred.cr_gid, .pid = -1 };
-#else
-# error "unsupported OS"
-#endif
         RETHROW((*ic->on_creds)(ic, &creds));
 
     }
@@ -2488,11 +2478,7 @@ static int __ic_connect(ichannel_t *ic, int flags)
 
     if (ic->su.family == AF_UNIX) {
         flags &= ~O_NONBLOCK;
-#ifdef __APPLE__
-        type   = SOCK_STREAM;
-#else
         type   = SOCK_SEQPACKET;
-#endif
     } else {
         type   = SOCK_STREAM;
     }
@@ -2615,11 +2601,6 @@ el_t ic_listento(const sockunion_t *su, int type, int proto,
 {
     int sock;
 
-#ifdef __APPLE__
-    if (type == SOCK_SEQPACKET) {
-        type = SOCK_STREAM;
-    }
-#endif
     sock = RETHROW_NP(listenx(-1, su, 1, type, proto, O_NONBLOCK));
     return el_unref(el_fd_register(sock, true, POLLIN, &ic_accept,
                                    (void *)on_accept));

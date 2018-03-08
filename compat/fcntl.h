@@ -22,15 +22,6 @@
 #define O_BINARY 0
 #endif
 
-#if defined(__APPLE__)
-
-#define O_DIRECT      0x200000
-
-ssize_t fd_get_path(int fd, char buf[], size_t buf_len);
-
-
-#endif
-
 #ifndef __GLIBC__
 #define __is_need_posix_fallocate
 int posix_fallocate(int fd, off_t offset, off_t len);

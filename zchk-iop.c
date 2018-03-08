@@ -2552,10 +2552,6 @@ Z_GROUP_EXPORT(iop)
         lstr_t path_v3;
         lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-#ifdef __APPLE__
-        Z_SKIP("tests unsupported on non-Linux setups");
-#endif
-
         path_v3 = t_lstr_cat3(z_cmddir_g,
                               LSTR("/test-data/test_v3_centos-5u4/"), file);
 
@@ -3775,10 +3771,6 @@ Z_GROUP_EXPORT(iop)
         lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
         lstr_t path_v3;
         lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
-
-#ifdef __APPLE__
-        Z_SKIP("tests unsupported on non-Linux setups");
-#endif
 
         path_v3 = t_lstr_cat3(z_cmddir_g,
                               LSTR("/test-data/test_v3_centos-5u4/"), file);

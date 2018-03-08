@@ -11,12 +11,4 @@ case "$PATH" in
     *)
         ;;
 esac
-case "$OS" in
-    darwin)
-        expr $(sysctl hw.ncpu | awk '{print $2}') + 1
-        ;;
-
-    *)
-        expr $(getconf _NPROCESSORS_ONLN) + 1
-        ;;
-esac
+expr $(getconf _NPROCESSORS_ONLN) + 1

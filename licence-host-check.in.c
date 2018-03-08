@@ -16,11 +16,6 @@
 #ifdef OS_LINUX
 #include <net/if_arp.h>
 #endif
-#ifdef OS_APPLE
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#endif
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
@@ -35,7 +30,6 @@ ATTRS
 static int F(get_mac_addr)(int s, const struct if_nameindex *iface,
                         byte mac[static 6])
 {
-#if defined(OS_LINUX)
     struct ifreq if_hwaddr;
 
     pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, iface->if_name);
@@ -44,30 +38,6 @@ static int F(get_mac_addr)(int s, const struct if_nameindex *iface,
 
     p_copy(mac, if_hwaddr.ifr_hwaddr.sa_data, 6);
     return 0;
-#elif defined(OS_APPLE)
-    struct {
-        struct if_msghdr ifm;
-        struct sockaddr_dl sdl;
-        char   extra[16];
-    } res;
-    size_t len = sizeof(res);
-    int mib[] = {
-        CTL_NET,
-        AF_ROUTE,
-        0,
-        AF_LINK,
-        NET_RT_IFLIST,
-        iface->if_index
-    };
-
-    RETHROW(sysctl(mib, countof(mib), &res, &len, NULL, 0));
-    THROW_ERR_IF(len > sizeof(res));
-    THROW_ERR_IF(res.sdl.sdl_type != IFT_ETHER);
-    p_copy(mac, LLADDR(&res.sdl), 6);
-    return 0;
-#else
-# error "unsupported operating system"
-#endif
 }
 
 ATTRS

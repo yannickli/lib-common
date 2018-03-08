@@ -16,7 +16,7 @@
 
 #include_next <dirent.h>
 
-#if !defined(__GLIBC__) && !defined(__APPLE__)
+#if !defined(__GLIBC__)
 #define __is_need_dirfd
 int dirfd(DIR *dir);
 

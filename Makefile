@@ -22,9 +22,6 @@ none_LIBRARIES += iop-snmp
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
-ifneq (,$(SWIFTC))
-test_PROGRAMS += ztst-swift ztst-swiftc
-endif
 endif
 
 _IOPJSONPATH = $ljson
@@ -54,7 +51,6 @@ libcommon_SOURCES = \
 	\
 	licence.blk \
 	parseopt.c \
-	parseopt.swift \
 	\
 	arith-int.c \
 	arith-float.c \
@@ -74,7 +70,6 @@ libcommon_SOURCES = \
 	container-qvector.blk \
 	container-rbtree.c \
 	container-ring.c \
-	container.swift \
 	\
 	core-bithacks.c \
 	core-obj.c \
@@ -89,12 +84,8 @@ libcommon_SOURCES = \
 	core-errors.c \
 	core-module.c \
 	qpage.c \
-	core.swift \
-	promise.swift \
-	core.iop.swift \
 	\
 	el.blk \
-	el.swift \
 	\
 	farch.c \
 	file.c \
@@ -121,17 +112,14 @@ libcommon_SOURCES = \
 	iop-xml-unpack.c \
 	iop-xml-wsdl.blk \
 	iop.blk \
-	iop.swift \
 	\
 	iop-rpc-channel.blk \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
 	ic.iop.c \
-	ic.iop.swift \
 	\
 	log.c \
 	log-iop.c \
-	log.swift \
 	\
 	net-addr.c \
 	net-rate.blk \
@@ -164,7 +152,6 @@ libcommon_SOURCES = \
 	str-outbuf.c \
 	str-path.c \
 	str-stream.c \
-	str.swift \
 	\
 	thr.c \
 	thr-evc.c \
@@ -181,7 +168,6 @@ libcommon_SOURCES = \
 	unix-fts.c \
 	unix-psinfo.c \
 	unix-linux.c \
-	unix-darwin.c \
 	\
 	http.c \
 	http-srv-static.c \
@@ -196,7 +182,6 @@ libcommon_SOURCES = \
 	ssl.blk \
 	\
 	z.blk
-libcommon_SWIFTMIXED = 1
 
 ifneq ($(HAVE_NETINET_SCTP_H),)
 libcommon_SOURCES += net-sctp.c
@@ -324,18 +309,5 @@ ztst-mem_SOURCES = \
 dso-compatibility-check_SOURCES = \
     dso-compatibility-check.blk \
     $llibcommon.a
-
-ztst-swift_SOURCES = \
-	ztst-swift.swift \
-	$llibcommon.a
-ztst-swift_SWIFTMODULE = ztst_swift
-ztst-swift_SWIFTMAIN = 1
-
-ztst-swiftc_SOURCES = \
-	ztst-swiftc.c \
-	ztst-swiftc.swift \
-	$llibcommon.a
-ztst-swiftc_SWIFTMODULE = swiftc
-ztst-swiftc_SWIFTMIXED = 1
 
 include Build/base.mk

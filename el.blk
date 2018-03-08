@@ -21,10 +21,6 @@
 #include "el.h"
 #include "thr.h"
 
-#ifdef __APPLE__
-# include <crt_externs.h>
-#endif
-
 static pthread_mutex_t big_lock_g;
 static bool use_big_lock_g = false;
 struct rlimit fd_limit_g;
@@ -801,11 +797,7 @@ pid_t el_spawn_child(const char *file, const char *argv[], const char *envp[],
         if (envp) {
             /* XXX we cannot use execvpe which appeared in glibc 2.11 since
              * centos 5 only has gblic 2.5 */
-#ifdef __APPLE__
-            *_NSGetEnviron() = (char **)envp;
-#else
             environ = (char **)envp;
-#endif
         }
         execvp(file, (char **)argv);
         logger_fatal(&_G.logger, "unable to execute `%s`: %m", file);
@@ -900,31 +892,6 @@ static void el_timer_process(uint64_t until)
     }
 }
 
-#ifdef __APPLE__
-#include <mach/mach_time.h>
-
-static struct {
-    mach_timebase_info_data_t info;
-    bool inited;
-} mach_conv_g;
-
-static uint64_t get_clock(void)
-{
-    uint64_t t;
-
-    t = mach_absolute_time();
-    if (unlikely(!mach_conv_g.inited)) {
-        mach_timebase_info(&mach_conv_g.info);
-        mach_conv_g.inited = true;
-    }
-    t *= mach_conv_g.info.numer;
-    t /= mach_conv_g.info.denom;
-    t /= 1000000;
-    return t;
-}
-
-#else
-
 static uint64_t get_clock(void)
 {
     struct timespec ts;
@@ -938,8 +905,6 @@ static uint64_t get_clock(void)
     assert (res == 0);
     return 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
-
-#endif
 
 static bool el_timer_has_pending_events(void)
 {
@@ -1136,8 +1101,6 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 
 #ifdef __linux__
 #  include "el-epoll.in.c"
-#elif defined(__APPLE__)
-#  include "el-kqueue.in.c"
 #else
 #  error one has to port el to your OS
 #endif
@@ -1497,8 +1460,6 @@ static void el_fs_watch_fire(el_t el, uint32_t event, uint32_t cookie,
 
 #ifdef __linux__
 # include "el-inotify.in.c"
-#elif defined(__APPLE__)
-# include "el-fsevents.in.c"
 #else
 # error one has to port el to your OS
 #endif

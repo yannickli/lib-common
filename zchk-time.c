@@ -27,24 +27,7 @@ static struct tm z_create_tm(int year, int month, int day, int hour,
         .tm_isdst = -1,
     };
 
-#ifdef __APPLE__
-    {
-        int day_per_month[12] = {
-            31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-        };
-
-        if (year_is_leap_year(year)) {
-            day_per_month[1] = 29;
-        }
-
-        t.tm_yday = t.tm_mday - 1;
-        for (int i = 0; i < month - 1; i++) {
-            t.tm_yday += day_per_month[i];
-        }
-    }
-#else
     mktime(&t);
-#endif
     return t;
 }
 

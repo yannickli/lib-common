@@ -328,50 +328,6 @@
         *_cls = *cls;                                                        \
     }
 
-/** Allow to fill object VTABLE from swift.
- *
- * The swift needs to declare a function named _func in the module mod:
- *  func _func(_ cls : UnsafeMutablePointer<pfx_class_t>) {
- *      cls.my_method = MySwiftFunc
- *  }
- *
- * The function can assign any method like this *but* init.
- * In order to set the init method, one needs to call pfx_class_set_init.
- * Also \ref SWIFT_OBJ_DECLARE_SET_INIT_FUNC must be used in a header.
- *
- * \param pfx           object prefix.
- * \param pfx_class_len strlen(pfx) + strlen("_class_t") (8)
- * \param _mod          name of the swift module
- * \param _mod_len      len of the name of the swift module
- * \param _func         name of the swift function
- * \param _func_len     len of the name of the swift function
- * \param _vtable       OBJ_VTABLE variant to use. (it should have a
- *                      corresponding _vtable_END)
- */
-#define SWIFT_OBJ_VTABLE_(pfx, pfx_class_len, _mod, _mod_len, _func,         \
-                         _func_len, _vtable)                                 \
-    DECLARE_SWIFT_UMP_FUNCTION(_mod, _mod_len, _func, _func_len,             \
-                               pfx##_class_t, pfx_class_len)                 \
-                                                                             \
-    void pfx##_class_set_init(pfx##_class_t * nonnull cls,                   \
-        pfx##_t * nonnull (*nonnull init)(pfx##_t * nonnull))                \
-    {                                                                        \
-        cls->init = init;                                                    \
-    }                                                                        \
-                                                                             \
-    _vtable(pfx)                                                             \
-        _mod##_##_func(&pfx);                                                \
-    _vtable##_END()
-
-#define SWIFT_OBJ_VTABLE(pfx, pfx_class_len, _mod, _mod_len, _func,          \
-                         _func_len)                                          \
-    SWIFT_OBJ_VTABLE_(pfx, pfx_class_len, _mod, _mod_len, _func, _func_len,  \
-                      OBJ_VTABLE)
-
-#define SWIFT_OBJ_DECLARE_SET_INIT_FUNC(pfx)                                 \
-    void pfx##_class_set_init(pfx##_class_t * nonnull cls,                   \
-        pfx##_t * nonnull (*nonnull init)(pfx##_t * nonnull))
-
 /* }}} */
 /* {{{ Base object class */
 

@@ -24,7 +24,7 @@
  * It remembers wether the string has been allocated through p_new, t_new, a
  * pool or is static.
  */
-typedef struct __swift_name__("LString") lstr_t {
+typedef struct lstr_t {
     union {
         const char * nullable s;
         char       * nullable v;
@@ -72,7 +72,6 @@ typedef struct __swift_name__("LString") lstr_t {
 /* }}} */
 /* Base helpers {{{ */
 
-__swift_name__("LString.init(_:count:flags:)")
 static ALWAYS_INLINE lstr_t lstr_init_(const void * nullable s, int len,
                                        unsigned flags)
 {
@@ -185,7 +184,6 @@ void lstr_transfer_sb(lstr_t * nonnull dst, struct sb_t * nonnull sb,
 
 /** \brief copies a constant of \v s into \v dst.
  */
-__swift_name__("LString.set(self:noCopy:)")
 static inline void lstr_copyc(lstr_t * nonnull dst, const lstr_t s)
 {
     mp_lstr_copy_(&mem_pool_static, dst, s.s, s.len);
@@ -193,7 +191,6 @@ static inline void lstr_copyc(lstr_t * nonnull dst, const lstr_t s)
 
 /** \brief returns a constant copy of \v s.
  */
-__swift_name__("LString.init(noCopy:)")
 static inline lstr_t lstr_dupc(const lstr_t s)
 {
     return lstr_init_(s.s, s.len, MEM_STATIC);
@@ -204,7 +201,6 @@ static inline lstr_t lstr_dupc(const lstr_t s)
 
 /** \brief wipe a lstr_t (frees memory if needed).
  */
-__swift_name__("LString.wipe(self:)")
 static inline void lstr_wipe(lstr_t * nonnull s)
 {
     return mp_lstr_wipe(NULL, s);
@@ -212,7 +208,6 @@ static inline void lstr_wipe(lstr_t * nonnull s)
 
 /** \brief returns new libc allocated lstr from its arguments.
  */
-__swift_name__("LString.init(fromString:count:)")
 static inline lstr_t lstr_dups(const char * nullable s, int len)
 {
     return mp_lstr_dups(NULL, s, len);
@@ -220,7 +215,6 @@ static inline lstr_t lstr_dups(const char * nullable s, int len)
 
 /** \brief returns new libc allocated lstr from its arguments.
  */
-__swift_name__("LString.init(_:)")
 static inline lstr_t lstr_dup(const lstr_t s)
 {
     return mp_lstr_dup(NULL, s);
@@ -228,7 +222,6 @@ static inline lstr_t lstr_dup(const lstr_t s)
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
-__swift_name__("LString.set(self:_:count:)")
 static inline void lstr_copys(lstr_t * nonnull dst, const char * nullable s,
                               int len)
 {
@@ -237,7 +230,6 @@ static inline void lstr_copys(lstr_t * nonnull dst, const char * nullable s,
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
-__swift_name__("LString.set(self:_:)")
 static inline void lstr_copy(lstr_t * nonnull dst, const lstr_t src)
 {
     mp_lstr_copy(NULL, dst, src);
@@ -257,7 +249,6 @@ static inline void lstr_persists(lstr_t * nonnull s)
  *
  * This function is not unicode-aware.
  */
-__swift_name__("getter:LString.asciiReversed(self:)")
 static inline lstr_t lstr_dup_ascii_reversed(const lstr_t v)
 {
     return mp_lstr_dup_ascii_reversed(NULL, v);
@@ -272,7 +263,6 @@ static inline lstr_t lstr_dup_ascii_reversed(const lstr_t v)
  *
  * In case of error, LSTR_NULL_V is returned.
  */
-__swift_name__("getter:LString.utf8Reversed(self:)")
 static inline lstr_t lstr_dup_utf8_reversed(const lstr_t v)
 {
     return mp_lstr_dup_utf8_reversed(NULL, v);
