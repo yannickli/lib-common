@@ -673,10 +673,9 @@ static int iop_check_retro_compat_roptimized(lstr_t path)
     iop_dso_t *dso;
     unsigned seed = (unsigned)time(NULL);
 
-    if ((dso = iop_dso_open(path.s, LM_ID_BASE, &err)) == NULL) {
-        Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",
+    dso = iop_dso_open(path.s, LM_ID_BASE, &err);
+    Z_ASSERT_P(dso, "unable to load zchk-tstiop-plugin: %*pM",
                SB_FMT_ARG(&err));
-    }
 
     Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("tstiop.Repeated")));
 
@@ -770,10 +769,9 @@ static int iop_check_retro_compat_copy_inv_tab(lstr_t path)
     iop_dso_t *dso;
     const iop_struct_t *st_sb;
 
-    if ((dso = iop_dso_open(path.s, LM_ID_BASE, &err)) == NULL) {
-        Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",
+    dso = iop_dso_open(path.s, LM_ID_BASE, &err);
+    Z_ASSERT_P(dso, "unable to load zchk-tstiop-plugin: %*pM",
                SB_FMT_ARG(&err));
-    }
 
     Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR("tstiop.MyStructB")));
 

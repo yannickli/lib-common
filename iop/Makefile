@@ -11,7 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-ifeq (,$(TOOLS_REPOSITORY))
 examples_LIBRARIES = tstiop tstiop2
 
 tstiop_SOURCES =  \
@@ -39,7 +38,5 @@ tstiop_SOURCES =  \
 tstiop_inheritance.iop_IOPVER=-5
 
 tstiop2_SOURCES = tstiop2.iop
-
-endif
 
 include ../Build/base.mk

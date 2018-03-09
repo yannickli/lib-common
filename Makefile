@@ -17,12 +17,10 @@ test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
 test_PROGRAMS += ztst-mem
-ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
-endif
 iop_PROGRAMS = iop-sign
 
 _IOPJSONPATH = $ljson
@@ -204,7 +202,6 @@ common_LIBS = $(python2_LIBS)
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
-ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = iop-core/iopsq.iop iop-core/core.iop core-iop-plugin.c
 
 zchk-iop-plugin_SOURCES =  \
@@ -264,7 +261,6 @@ ztst-httpd_SOURCES = \
 	$llibcommon.a
 
 ztst-httpd_LIBS = $(libxml2_LIBS)
-endif
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 

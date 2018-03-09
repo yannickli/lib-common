@@ -11,7 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-ifeq (,$(TOOLS_REPOSITORY))
 examples_PROGRAMS = ex-iop
 examples_LIBRARIES = iop
 
@@ -25,7 +24,5 @@ ex-iop_SOURCES = \
 	\
 	iop.a \
 	$llibcommon.a
-
-endif
 
 include ../Build/base.mk
