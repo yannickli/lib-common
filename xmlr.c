@@ -253,8 +253,9 @@ int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out)
 
     assert (xmlr_on_element(xr, false));
     s = (const char *)xmlTextReaderConstLocalName(xr);
-    if (s == NULL)
-        return XMLR_ERROR;
+    if (s == NULL) {
+        return xmlr_fail(xr, "cannot retrieve char string in %s", __func__);
+    }
     *out = LSTR(s);
     return 0;
 }
@@ -336,7 +337,7 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
     if (res == XMLR_NOCHILD) {
         if (flags & XMLR_ENTER_EMPTY_OK)
             return xmlr_next_node(xr);
-        return XMLR_ERROR;
+        return xmlr_fail(xr, "no child in node <%s>", s);
     }
     return res ?: 1;
 }
@@ -542,8 +543,9 @@ int xmlr_get_inner_xml(xml_reader_t xr, lstr_t *out)
     assert (xmlr_on_element(xr, false));
 
     res = (char *)xmlTextReaderReadInnerXml(xr);
-    if (!res)
-        return XMLR_ERROR;
+    if (!res) {
+        return xmlr_fail(xr, "cannot retrieve char string in %s", __func__);
+    }
     *out = lstr_init_(res, strlen(res), MEM_LIBC);
     return xmlr_next_sibling(xr);
 }
@@ -555,8 +557,9 @@ int mp_xmlr_get_inner_xml(mem_pool_t *mp, xml_reader_t xr, lstr_t *out)
     assert (xmlr_on_element(xr, false));
 
     res = (char *)xmlTextReaderReadInnerXml(xr);
-    if (!res)
-        return XMLR_ERROR;
+    if (!res) {
+        return xmlr_fail(xr, "cannot retrieve char string in %s", __func__);
+    }
     *out = mp_lstr_dups(mp, res, strlen(res));
     free(res);
     return xmlr_next_sibling(xr);
