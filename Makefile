@@ -31,8 +31,7 @@ dso_TOOLS_PROGRAMS = dso-compatibility-check
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
 	$(msg/generate) $@
-	$< rcsid libcommon > $!$@+
-	$(call fun/update-if-changed,$!$@+,$@)
+	$(call fun/gen-and-update-if-changed,$<,$!$@+,$@,rcsid libcommon)
 
 _CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS) $(valgrind_CFLAGS)
 _CFLAGS += $(if $(LIBCOMMON_REPOSITORY),-DLIBCOMMON_REPOSITORY)
