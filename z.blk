@@ -197,6 +197,7 @@ bool _z_step_is_skipped(int unused, ...)
     const char *s;
     va_list ap;
     bool hit = false;
+    lstr_t wip = LSTR("wip");
 
     IN_TEST;
 
@@ -204,7 +205,9 @@ bool _z_step_is_skipped(int unused, ...)
     while ((s = va_arg(ap, const char *))) {
         lstr_t t = LSTR(s);
 
-        if (qh_find(lstr, &_G.tag_or, &t) >= 0) {
+        if (qh_find(lstr, &_G.tag_or, &t) >= 0
+        &&  qh_find(lstr, &_G.tag_or, &wip) < 0)
+        {
             return false;
         }
     }
