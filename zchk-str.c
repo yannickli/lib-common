@@ -1543,6 +1543,86 @@ Z_GROUP_EXPORT(str)
 #undef T_SKIP
     } Z_TEST_END;
 
+    Z_TEST(t_ps_split_escaped, "str-stream: t_ps_split_escaped") {
+        t_scope;
+        qv_t(lstr) arr;
+
+        qv_init(&arr);
+
+#define T(str_main, str1, str2, str3, seps, esc)                             \
+        TST_MAIN(str_main, str1, str2, str3, seps, esc, 0)
+
+#define T_SKIP(str_main, str1, str2, str3, seps, esc)                        \
+        TST_MAIN(str_main, str1, str2, str3, seps, esc, PS_SPLIT_SKIP_EMPTY)
+
+#define TST_EMPTY(str_main, str, seps, esc, flags)                           \
+        ({  pstream_t ps;                                                    \
+            ctype_desc_t sep_desc;                                           \
+            const char esc_char = esc;                                       \
+                                                                             \
+            ps = ps_initstr(str_main);                                       \
+            ctype_desc_build(&sep_desc, seps);                               \
+            qv_deep_clear(&arr, lstr_wipe);                                  \
+            t_ps_split_escaped(ps, &sep_desc, esc_char, flags, &arr);        \
+            if (flags & PS_SPLIT_SKIP_EMPTY) {                               \
+                Z_ASSERT_EQ(arr.len, 0);                                     \
+            } else {                                                         \
+                Z_ASSERT_EQ(arr.len, 1);                                     \
+                Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str));                   \
+            }                                                                \
+         })
+
+#define TST_MAIN(str_main, str1, str2, str3, seps, esc, flags)               \
+        ({  pstream_t ps;                                                    \
+            ctype_desc_t sep_desc;                                           \
+            const char esc_char = esc;                                       \
+                                                                             \
+            ps = ps_initstr(str_main);                                       \
+            ctype_desc_build(&sep_desc, seps);                               \
+            qv_deep_clear(&arr, lstr_wipe);                                  \
+            t_ps_split_escaped(ps, &sep_desc, esc_char, flags, &arr);        \
+            Z_ASSERT_EQ(arr.len, 3);                                         \
+            Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str1));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR(str2));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[2], LSTR(str3));                      \
+        })
+
+        TST_EMPTY("", "", "123 ", '\\', 0);
+        T("123/abc !%*", "123", "abc", "!%*", " /", '\0');
+        T("/123;abc", "", "123", "abc", "/;", '\0');
+        T("abc/123;", "abc", "123", "", "/;", '\0');
+
+        T_SKIP("//123//abc/!%*", "123", "abc", "!%*", "/", '\0');
+        T_SKIP("$123$$$abc$!%*", "123", "abc", "!%*", "$", '\0');
+        T_SKIP(",   ,:::,!!!,,", "   ", ":::", "!!!", ",", '\0');
+        T_SKIP(",secret1;secret2, ,secret3,;,,", "secret1", "secret2",
+               "secret3", " ,;", '\0');
+
+        /* with escape characters */
+        TST_EMPTY("", "", "123 ", '\\', PS_SPLIT_SKIP_EMPTY);
+        TST_EMPTY("///", "", "123/", '\\', PS_SPLIT_SKIP_EMPTY);
+        T("12\\3\\%abc%%abc", "12\\3%abc", "", "abc", "%", '\\');
+        T("123&%abc&!def!ghi;ab", "123%abc!def", "ghi", "ab", "%;!", '&');
+        T("&123&%&abc&!def!ghi;ab", "&123%&abc!def", "ghi", "ab",
+          "%;!", '&');
+        T("1\\%\\%\\%\\\\a%b%c", "1%%%\\a", "b", "c", "%", '\\');
+        T("%\\%%", "", "%", "", "%", '\\');
+        T("\\%%%\\%", "%", "", "%", "%", '\\');
+
+        T_SKIP("//123\\/abc/abc/!%*", "123/abc", "abc", "!%*", "/", '\\');
+        T_SKIP("//1\\/\\;abc/;;;;;a/!%*", "1/;abc", "a", "!%*", "/;", '\\');
+        T_SKIP("\\1\\/\\;a/;;;;;a/!%*", "\\1/;a", "a", "!%*", "/;", '\\');
+        T_SKIP("%%\\%%%%%a%\\%%%%%", "%", "a", "%", "%", '\\');
+        T_SKIP("\\%%%%%a%%%%%\\%", "%", "a", "%", "%", '\\');
+        T_SKIP("\\%%%a%%%%%%%a\\", "%", "a", "a\\", "%", '\\');
+        qv_deep_wipe(&arr, lstr_wipe);
+
+#undef T
+#undef TST_EMPTY
+#undef TST_MAIN
+#undef T_SKIP
+    } Z_TEST_END;
+
     Z_TEST(t_ps_get_http_var, "str: t_ps_get_http_var") {
         t_scope;
         pstream_t ps;

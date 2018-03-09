@@ -150,3 +150,70 @@ void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
         }
     }
 }
+
+void ps_split_escaped(mem_pool_t *nullable mp, pstream_t ps,
+                      const ctype_desc_t *nonnull sep, const char escape,
+                      unsigned flags, qv_t(lstr) *res)
+{
+    SB_1k(sb);
+    pstream_t tmp;
+    ctype_desc_t sep_esc;
+    ctype_desc_t esc;
+
+    if (escape) {
+        ctype_desc_build2(&esc, &escape, 1);
+        ctype_desc_combine(&sep_esc, sep, &esc);
+    } else {
+        sep_esc = *sep;
+    }
+
+    if (flags & PS_SPLIT_SKIP_EMPTY) {
+        ps_skip_span(&ps, sep);
+    }
+
+    while (!ps_done(&ps)) {
+        tmp = ps_get_cspan(&ps, &sep_esc);
+        sb_add(&sb, tmp.s, tmp.s_end - tmp.s);
+
+        if (ctype_desc_contains(sep, *ps.s)) {
+            if (mp) {
+                qv_append(res, mp_lstr_dup(mp, LSTR_SB_V(&sb)));
+            } else {
+                lstr_t dst = LSTR_NULL;
+
+                lstr_transfer_sb(&dst, &sb, false);
+                qv_append(res, dst);
+            }
+            sb_reset(&sb);
+
+            if (flags & PS_SPLIT_SKIP_EMPTY) {
+                ps_skip_span(&ps, sep);
+            } else {
+                ps_skip(&ps, 1);
+            }
+        } else
+        if (escape && escape == *ps.s) {
+            /* Check if next character is a separator
+             * An escape character is removed if followed by an other escape
+             * character or a separator.
+             */
+            if (ps_has(&ps, 2)
+            &&  ctype_desc_contains(&sep_esc, ps.s[1]))
+            {
+                /* add next character, skip escape character */
+                sb_add(&sb, ps.s + 1, 1);
+                ps_skip(&ps, 2);
+            } else {
+                /* add escape character only */
+                sb_add(&sb, ps.s, 1);
+                ps_skip(&ps, 1);
+            }
+        }
+    }
+
+    if (!(flags & PS_SPLIT_SKIP_EMPTY)  /* last character is a separator */
+    ||  (sb.len != 0))                  /* last character is an escape */
+    {
+        qv_append(res, t_lstr_dup(LSTR_SB_V(&sb)));
+    }
+}
