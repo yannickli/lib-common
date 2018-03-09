@@ -16,4 +16,3 @@ include $(var/cfgdir)/cflags.mk
 CFLAGS += -fvisibility=hidden
 CXXFLAGS += -fvisibility=hidden
 LDFLAGS += -Wl,-x -rdynamic
-SWIFTFLAGS += -g -O

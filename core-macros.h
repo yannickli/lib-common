@@ -100,27 +100,6 @@
 # define __unsafe_unretained
 #endif
 
-#if  !__has_feature(generalized_swift_name)
-# define __swift_name__(name)
-#else
-#define HAS_SWIFT
-# define __swift_name__(name)  __attribute__((swift_name(name)))
-#endif
-
-#ifndef __cplusplus
-# define SWIFT_ENUM(_name)     typedef enum _name _name; enum _name
-# define SWIFT_OPTIONS(_name)  typedef enum _name _name; enum _name
-#else
-# define SWIFT_ENUM(_name)     enum _name
-# define SWIFT_OPTIONS(_name)  enum _name
-#endif
-
-#if __has_feature(attribute_availability_swift)
-# define __swift_unavailable__(msg)  __attribute__((availability(swift, unavailable, message=msg)))
-#else
-# define __swift_unavailable__(msg)
-#endif
-
 #ifdef __cplusplus
 #define restrict
 #endif
@@ -286,11 +265,7 @@
 # define __needlock(x)
 #endif
 
-#ifdef __APPLE__
-# define __attr_section(sg, sc)  __attribute__((section(sg","sc)))
-#else
-# define __attr_section(sg, sc)  __attribute__((section("."sg"."sc)))
-#endif
+#define __attr_section(sg, sc)  __attribute__((section("."sg"."sc)))
 
 /* }}} */
 /* {{{ Useful expressions */
@@ -649,56 +624,6 @@ typedef unsigned char byte;
 #define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
 #undef readdir_r
 #define readdir_r(...)  NEVER_USE_readdir_r(__VA_ARGS__)
-
-/* }}} */
-/* {{{ SWIFT */
-
-#define SWIFT_FUNC(_mod, _func, _args)  \
-
-/** The symbol of a swift function taking a non-const pointer as parameter.
- *
- * The function should looks like this:
- *      func name(_ arg: UnsafeMutablePointer<type>) {
- *      }
- *
- * \param _mod  len and name of the swift module of the function.
- * \param _func len and name of the function.
- * \param _type len and name of the type of the pointee of the
- *              UnsafeMutablePointer argument.
- */
-#define SWIFT_UMP_FUNCTION(_mod, _func, _type)  \
-    _TF##_mod##_func##FGSpVSC##_type##_T_
-
-/** Declare a swift UMP function.
- *
- * See \ref SWIFT_UMP_FUNCTION.
- *
- * Adds a convenient caller alias named module_function.
- */
-#define DECLARE_SWIFT_UMP_FUNCTION(_mod, _mod_len, _func, _func_len,         \
-                                   _type, _type_len)                         \
-    void SWIFT_UMP_FUNCTION(_mod_len##_mod,                                  \
-                            _func_len##_func,                                \
-                            _type_len##_type)(_type * nonnull _arg);         \
-    static inline void _mod##_##_func(_type * nonnull obj_class)             \
-    {                                                                        \
-        SWIFT_UMP_FUNCTION(_mod_len##_mod,                                   \
-                           _func_len##_func,                                 \
-                           _type_len##_type)(obj_class);                     \
-    }
-
-/** The symbol of a swift func () -> Void.
- *
- * \param _mod      name of the swift module of the function.
- * \param _mod_len  len of mod.
- * \param _func     name of the function.
- * \param _func_len len of func
- */
-#define SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)  \
-    _TF##_mod_len##_mod##_func_len##_func##FT_T_
-
-#define DECLARE_SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)  \
-    void SWIFT_VOID_FUNCTION(_mod, _mod_len, _func, _func_len)(void)
 
 /* }}} */
 /** \} */

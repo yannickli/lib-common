@@ -16,11 +16,6 @@
 #ifdef OS_LINUX
 #include <net/if_arp.h>
 #endif
-#ifdef OS_APPLE
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#endif
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 

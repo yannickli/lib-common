@@ -29,14 +29,14 @@ typedef struct ichannel_t    ichannel_t;
 typedef struct ic_msg_t      ic_msg_t;
 typedef struct ic_hook_ctx_t ic_hook_ctx_t;
 
-SWIFT_ENUM(ic_event_t) {
-    IC_EVT_CONNECTED __swift_name__("connected"),
-    IC_EVT_DISCONNECTED __swift_name__("disconnected"),
+typedef enum ic_event_t {
+    IC_EVT_CONNECTED,
+    IC_EVT_DISCONNECTED,
     /* used to notify of first activity when using soft wa */
-    IC_EVT_ACT __swift_name__("activity"),
+    IC_EVT_ACT,
     /* used to notify no activity when using soft wa       */
-    IC_EVT_NOACT __swift_name__("noActivity"),
-};
+    IC_EVT_NOACT,
+} ic_event_t;
 
 
 #define IC_MSG_HDR_LEN             12
@@ -183,14 +183,14 @@ ic_hook_ctx_t * nonnull ic_hook_ctx_new(uint64_t slot, ssize_t extra);
 ic_hook_ctx_t * nullable ic_hook_ctx_get(uint64_t slot);
 void ic_hook_ctx_delete(ic_hook_ctx_t * nullable * nonnull pctx);
 
-SWIFT_ENUM(ic_cb_entry_type_t) {
+typedef enum ic_cb_entry_type_t {
     IC_CB_NORMAL,
     IC_CB_NORMAL_BLK,
     IC_CB_PROXY_P,
     IC_CB_PROXY_PP,
     IC_CB_DYNAMIC_PROXY,
     IC_CB_WS_SHARED,
-};
+} ic_cb_entry_type_t;
 
 typedef struct ic_dynproxy_t {
     ichannel_t * nullable ic;

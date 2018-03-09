@@ -37,14 +37,7 @@ typedef union sockunion_t {
     struct sockaddr_in6     sin6;
     struct sockaddr_un      sunix;
     struct sockaddr         sa;
-#ifdef OS_APPLE
-    struct {
-        uint8_t len;
-        sa_family_t family;
-    };
-#else
     sa_family_t             family;
-#endif
 } sockunion_t;
 
 bool sockunion_equal(const sockunion_t * nonnull,

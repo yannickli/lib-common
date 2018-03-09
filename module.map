@@ -45,7 +45,3 @@ module tstiop {
 module IopTutorial {
     header "iop-tutorial/exiop.iop.h"
 }
-
-module swiftc {
-    header "ztst-swiftc.h"
-}

@@ -24,18 +24,18 @@
 #endif
 #endif
 
-SWIFT_ENUM(popt_kind) {
-    OPTION_END __swift_name__("end"),
-    OPTION_FLAG __swift_name__("flag"),
-    OPTION_INT __swift_name__("int"),
-    OPTION_UINT __swift_name__("uint"),
-    OPTION_STR __swift_name__("str"),
-    OPTION_GROUP __swift_name__("group"),
-    OPTION_CHAR __swift_name__("char"),
-    OPTION_VERSION __swift_name__("version"),
+enum popt_kind {
+    OPTION_END,
+    OPTION_FLAG,
+    OPTION_INT,
+    OPTION_UINT,
+    OPTION_STR,
+    OPTION_GROUP,
+    OPTION_CHAR,
+    OPTION_VERSION,
 };
 
-SWIFT_OPTIONS(popt_options) {
+enum popt_options {
     POPT_STOP_AT_NONARG = (1 << 0),
 };
 

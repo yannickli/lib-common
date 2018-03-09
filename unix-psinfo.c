@@ -14,17 +14,6 @@
 #include <sys/wait.h>
 #include "unix.h"
 
-#if defined(__APPLE__)
-
-int psinfo_get(pid_t pid, sb_t *output)
-{
-    /* TODO PORT */
-    sb_adds(output, "Information not available");
-    return 0;
-}
-
-#endif
-
 pid_t psinfo_get_tracer_pid(pid_t pid)
 {
     return _psinfo_get_tracer_pid(pid);

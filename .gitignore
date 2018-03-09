@@ -16,8 +16,6 @@
 /zchk-iop-plugin.so
 /zchk-tstiop-plugin.so
 /zchk-tstiop2-plugin.so
-/zchk-iop-plugin.dylib
-/zchk-tstiop-plugin.dylib
 /zgcd-bench
 /ztst-asn1-wr
 /ztst-blob-iconv
@@ -36,15 +34,11 @@
 /ztst-qpsstress
 /ztst-sort
 /ztst-tpl
-/ztst-swift
-/ztst-swiftc
 /dso-compatibility-check
 /iop-sign
 
 /common.so
 /core-iop-plugin.so
-/common.dylib
-/core-iop-plugin.dylib
 
 /json
 /.build*
@@ -54,4 +48,3 @@ mem.fifo.data.*
 
 test-data/snmp/*.iop.h
 test-data/snmp/*.iop.c
-test-data/snmp/*.iop.swift

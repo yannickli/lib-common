@@ -127,6 +127,7 @@ if test $# -eq 2; then
     TOKENS_FILE="$1"
     TARGET="$2"
 
+    UPPERCASE_NAME=`basename ${TOKENS_FILE} | sed -e 's/\(.*\).tokens$/\U\1/'`
     UPPERCASE_NAME=`basename ${TOKENS_FILE} | sed -e 's/\(.*\).tokens$/\1/' | tr a-z A-Z`
     LOWERCASE_NAME=`echo ${UPPERCASE_NAME} | tr A-Z a-z`
 elif test $# -eq 3; then

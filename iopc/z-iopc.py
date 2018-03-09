@@ -22,7 +22,6 @@ IOPC = os.path.join(SELF_PATH, 'iopc')
 
 import z
 import subprocess
-import platform
 
 @z.ZGroup
 class IopcTest(z.TestCase):
@@ -108,8 +107,6 @@ class IopcTest(z.TestCase):
                     '-I' + os.path.join(SELF_PATH, '../lib-common/compat'),
                     '-I' + os.path.join(SELF_PATH, '..'),
                     os.path.join(TEST_PATH, iop_c) ]
-        if platform.system() == 'Darwin':
-            gcc_args.append('-Wno-nullability-completeness')
 
         gcc_p = subprocess.Popen(gcc_args, stderr=subprocess.PIPE)
         self.assertIsNotNone(gcc_p)
@@ -531,24 +528,22 @@ class IopcTest(z.TestCase):
 
     @z.ZFlags('redmine_8536')
     def test_void_types(self):
-        self.run_iopc_pass('void_in_union.iop', lang="C,json,swift")
+        self.run_iopc_pass('void_in_union.iop', lang="C,json")
         self.run_gcc('void_in_union.iop')
 
         # void tags have a defined value to make IOP_UNION_SET_V safe
         self.run_iopc_pass('void_in_union.iop', lang="C")
         self.run_gcc('void_in_union_field_def')
 
-        self.run_iopc_pass('void_mandatory_in_struct.iop',
-                           lang="C,json,swift")
+        self.run_iopc_pass('void_mandatory_in_struct.iop', lang="C,json")
         self.run_gcc('void_mandatory_in_struct.iop')
-        self.run_iopc_pass('void_optional_in_struct.iop',
-                           lang="C,json,swift")
+        self.run_iopc_pass('void_optional_in_struct.iop', lang="C,json")
         self.run_gcc('void_optional_in_struct.iop')
         self.run_iopc('invalid_void_repeated.iop', False,
                       'repeated void types are forbidden')
         self.run_iopc('invalid_void_default.iop', False,
                       'default values are forbidden for void types')
-        self.run_iopc_pass('void_opt_rpc_arg.iop', lang="C,json,swift")
+        self.run_iopc_pass('void_opt_rpc_arg.iop', lang="C,json")
         self.run_iopc('invalid_void_req_rpc_arg.iop', False,
                       'required void types are forbidden for rpc arguments')
 
