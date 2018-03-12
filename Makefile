@@ -17,10 +17,12 @@ test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
 test_PROGRAMS += ztst-mem
+ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
+endif
 iop_PROGRAMS = iop-sign
 
 _IOPJSONPATH = $ljson
