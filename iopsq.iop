@@ -13,7 +13,7 @@
 
 package iopsq;
 
-/* {{{ IopType */
+/* {{{ Type */
 
 @ctype(iop__int_size__t)
 enum IntSize {
@@ -36,10 +36,8 @@ enum StringType {
     XML,
 };
 
-/* XXX The type is named "IopType" and not just "Type" because it messes with
- * swift otherwise. */
 @ctype(iop__type__t)
-union IopType {
+union Type {
     IntType i;
     void b;
     void d;
@@ -50,7 +48,7 @@ union IopType {
     string typeName;
 
     /* TODO Could include length contraints. */
-    IopType& array;
+    Type& array;
 };
 
 /* }}} */
@@ -81,7 +79,7 @@ struct OptInfo {
 struct Field {
     @pattern("[a-zA-Z0-9]*") @minLength(1)
     string name;
-    IopType type;
+    Type type;
     /* TODO constraints */
     /* TODO attributes */
     OptInfo? optional;
@@ -131,7 +129,7 @@ local class Union : 4 : Structure {
 /*
 @ctype(iop__typedef__t)
 local class Typedef : 5 : PackageElem {
-    IopType type;
+    Type type;
 };
 */
 
