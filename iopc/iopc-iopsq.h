@@ -15,8 +15,8 @@
 #define IS_IOP_IOPC_IOP_H
 
 #include "iopc.h"
+#include "iopsq.iop.h"
 
-#include <lib-common/iopsq.iop.h>
 #include <lib-common/iop-priv.h>
 
 /* IOP² - An IOP-based library for IOP generation.

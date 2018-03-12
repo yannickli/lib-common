@@ -49,7 +49,7 @@ libiopc_NOGENERATED = 1
 
 libiopsq_SOURCES = \
     iopc-iopsq.c              \
-    $liopsq.iop
+    iopsq.iop
 libiopsq_NOGENERATED = 1
 
 include ../Build/base.mk
