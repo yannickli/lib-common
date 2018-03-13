@@ -62,36 +62,6 @@ typedef int spinlock_t;
     REFCNT_DUP(type, pfx)                                                 \
     REFCNT_DELETE(type, pfx)
 
-#define REFCOUNT_TYPE(type, tpfx, subt, spfx)                             \
-    typedef struct {                                                      \
-        int refcnt;                                                       \
-        subt v;                                                           \
-    } type;                                                               \
-                                                                          \
-    __unused__                                                            \
-    static inline type *tpfx##_new(void) {                                \
-        type *res = p_new_raw(type, 1);                                   \
-        spfx##_init(&res->v);                                             \
-        res->refcnt = 1;                                                  \
-        return res;                                                       \
-    }                                                                     \
-    __unused__                                                            \
-    static inline type *tpfx##_dup(type *t) {                             \
-        t->refcnt++;                                                      \
-        return t;                                                         \
-    }                                                                     \
-    __unused__                                                            \
-    static inline void tpfx##_delete(type **tp) {                         \
-        if (*tp) {                                                        \
-            if (--(*tp)->refcnt > 0) {                                    \
-                *tp = NULL;                                               \
-            } else {                                                      \
-                spfx##_wipe(&(*tp)->v);                                   \
-                p_delete(tp);                                             \
-            }                                                             \
-        }                                                                 \
-    }
-
 /* 1}}} */
 /* {{{ Optional scalar types */
 
