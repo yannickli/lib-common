@@ -166,7 +166,7 @@ mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
 static inline iopsq__int_size__t iopsq_int_type_to_int_size(iop_type_t type)
 {
     assert (type <= IOP_T_U64);
-    return type >> 1;
+    return (iopsq__int_size__t)(type >> 1);
 }
 
 /* }}} */
