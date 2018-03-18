@@ -18,7 +18,7 @@
 #include <lib-common/core.h>
 
 #include "iopc.h"
-#include "iopc.fc.c"
+#include "iopc.fc.h"
 
 typeof(iopc_g) iopc_g = {
     .logger       = LOGGER_INIT_INHERITS(NULL, "iopc"),
