@@ -17,6 +17,7 @@ iopc_PROGRAMS = iopc
 test_PROGRAMS = zchk
 
 _LIBS = -ldl -lpthread -lrt
+_IOPTSPATH = $l/iopc
 
 iopc_SOURCES = \
     iopc.c                          \
