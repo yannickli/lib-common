@@ -1030,6 +1030,28 @@ iop_get_field(const void * nullable ptr, const iop_struct_t * nonnull st,
               lstr_t path, const void * nullable * nullable out_ptr,
               const iop_struct_t * nullable * nullable out_st);
 
+/** Get a pointer on the C field associated to a given IOP field.
+ *
+ * \param[in] f       The IOP field description.
+ *
+ * \param[in] st_ptr  Pointer on the struct/union/class instance containing
+ *                    the field.
+ *
+ * \return The pointer on the C field.
+ */
+static inline void *nonnull
+iop_field_get_ptr(const iop_field_t *nonnull f, void *nonnull st_ptr)
+{
+    return ((byte *)st_ptr) + f->data_offs;
+}
+
+/** Constant version of \ref iop_field_get_ptr. */
+static inline const void *nonnull
+iop_field_get_cptr(const iop_field_t *nonnull f, const void *nonnull sptr)
+{
+    return ((const byte *)sptr) + f->data_offs;
+}
+
 /** Get the value(s) associated to a given IOP field.
  *
  * Efficient IOP field value getter that allows to abstract the fact that the

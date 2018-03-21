@@ -407,7 +407,7 @@ int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
 int iop_value_to_field(void *ptr, const iop_field_t *field,
                        const iop_value_t *value)
 {
-    ptr = (byte *)ptr + field->data_offs;
+    ptr = iop_field_get_ptr(field, ptr);
 
     return iop_value_to_ptr(ptr, field, value);
 }
@@ -1319,7 +1319,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
     }
 
     for (; fdesc < end; fdesc++) {
-        const void *ptr = (char *)val + fdesc->data_offs;
+        const void *ptr = iop_field_get_cptr(fdesc, val);
         bool is_class = iop_field_is_class(fdesc);
         bool is_ref   = iop_field_is_reference(fdesc);
         int n = 1;
