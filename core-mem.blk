@@ -193,6 +193,7 @@ static int core_mem_libc_shutdown(void)
 }
 
 MODULE_BEGIN(core_mem_libc)
+    MODULE_DEPENDS_ON(el);
 MODULE_END()
 
 /* }}} */
