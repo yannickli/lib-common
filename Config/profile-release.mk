@@ -16,3 +16,5 @@ include $(var/cfgdir)/cflags.mk
 CFLAGS += -fvisibility=hidden
 CXXFLAGS += -fvisibility=hidden
 LDFLAGS += -Wl,-x -rdynamic
+
+NODE_ENV=production
