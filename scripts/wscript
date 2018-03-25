@@ -1,0 +1,36 @@
+##########################################################################
+#                                                                        #
+#  Copyright (C) 2004-2018 INTERSEC SA                                   #
+#                                                                        #
+#  Should you receive a copy of this source code, you must check you     #
+#  have a proper, written authorization of INTERSEC to hold it. If you   #
+#  don't have such an authorization, you must DELETE all source code     #
+#  files in your possession, and inform INTERSEC of the fact you obtain  #
+#  these files. Should you not comply to these terms, you can be         #
+#  prosecuted in the extent permitted by applicable law.                 #
+#                                                                        #
+##########################################################################
+
+from waflib.Task import Task
+from waflib.TaskGen import extension
+
+def configure(ctx):
+    path = ctx.path.abspath()
+
+    ctx.find_program('flex', mandatory=True)
+    ctx.find_program('flex.sh', path_list=[path], mandatory=True,
+                     var='FLEX_SH')
+    ctx.find_program('version.sh', path_list=[path], mandatory=True,
+                     var='VERSION_SH')
+
+def build(bld):
+    pass
+
+class lex2c(Task):
+    run_str = '${FLEX_SH} ${SRC} ${TGT}'
+    color   = 'PURPLE'
+
+@extension('.l')
+def process_lex(self, node):
+    task = self.create_task('lex2c', node, node.change_ext('.c'))
+    self.source.extend(task.outputs)

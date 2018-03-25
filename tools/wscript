@@ -1,0 +1,29 @@
+##########################################################################
+#                                                                        #
+#  Copyright (C) 2004-2018 INTERSEC SA                                   #
+#                                                                        #
+#  Should you receive a copy of this source code, you must check you     #
+#  have a proper, written authorization of INTERSEC to hold it. If you   #
+#  don't have such an authorization, you must DELETE all source code     #
+#  files in your possession, and inform INTERSEC of the fact you obtain  #
+#  these files. Should you not comply to these terms, you can be         #
+#  prosecuted in the extent permitted by applicable law.                 #
+#                                                                        #
+##########################################################################
+
+from waflib.Task import Task
+from waflib.TaskGen import extension
+
+def build(bld):
+    bld.program(target='farchc', source='farchc.c', use='libcommon',
+                lib=['pthread', 'dl'])
+
+class Fc2c(Task):
+    run_str = '${SRC[0].abspath()} -c -o ${TGT} ${SRC[1].abspath()}'
+    color   = 'PINK'
+
+@extension('.fc')
+def process_fc(self, node):
+    farchc = self.bld.get_tgen_by_name('farchc').link_task.outputs[0]
+    farch_task = self.create_task('Fc2c', [farchc, node],
+                                  node.change_ext('.fc.h'))

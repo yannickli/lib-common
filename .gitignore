@@ -45,6 +45,8 @@ iopsq-t*
 
 /json
 /.build*
+/build
+/.lock-waf*
 
 mem.stack.data.*
 mem.fifo.data.*
