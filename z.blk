@@ -992,9 +992,20 @@ void z_register_group(void (*cb)(void))
 
 void z_register_exports(const char *prefix)
 {
+#ifdef WAF_MODE
+    /* FIXME: the __FILE__ macro returns paths prefixed by '../'. Until we
+     *        find a proper solution we have to ignore it. */
+    t_scope;
+
+    if (prefix) {
+        prefix = t_fmt("../%s", prefix);
+    }
+#endif
+
     for (struct z_export *ex = z_exports_g; ex; ex = ex->prev) {
-        if (!prefix || strstart(ex->file, prefix, NULL))
+        if (!prefix || strstart(ex->file, prefix, NULL)) {
             z_register_group(ex->cb);
+        }
     }
 }
 
