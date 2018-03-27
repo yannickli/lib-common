@@ -1217,6 +1217,13 @@ struct iop_struct_value {
     IOP_ST_FMT_ARG_FLAGS(pfx, _val,                                          \
                          IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
+/** Same as \ref IOP_ST_FMT_ARG_FLAGS but with explicit description pointer.
+ */
+#define IOP_ST_DESC_FMT_ARG_FLAGS(desc, _val, _flags)                        \
+    (_flags), &(struct iop_struct_value){                                    \
+        .st = desc,                                                          \
+        .val = (_val) }
+
 /** Provide the appropriate arguments to the %*pU modifier.
  *
  * '%*pU' can be used in format string in order to print the selected field

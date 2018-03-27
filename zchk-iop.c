@@ -6050,7 +6050,9 @@ Z_GROUP_EXPORT(iop)
         char *path;
         lstr_t file;
         FILE *out;
+        int compact_flags;
 
+        compact_flags = IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL;
         iop_init(tstiop__my_class2, &cls2);
 
         iop_init(tstiop__my_struct_a, &st);
@@ -6063,10 +6065,12 @@ Z_GROUP_EXPORT(iop)
         st.lr = &st.l;
         st.cls2 = &cls2;
 
-        iop_sb_jpack(&ref, &tstiop__my_struct_a__s, &st,
-                     IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL);
-
-        sb_addf(&tst_sb, "%*pS", IOP_ST_FMT_ARG(tstiop__my_struct_a, &st));
+        iop_sb_jpack(&ref, &tstiop__my_struct_a__s, &st, compact_flags);
+        sb_setf(&tst_sb, "%*pS", IOP_ST_FMT_ARG(tstiop__my_struct_a, &st));
+        Z_ASSERT_EQ(tst_sb.len, ref.len);
+        sb_setf(&tst_sb, "%*pS",
+                IOP_ST_DESC_FMT_ARG_FLAGS(&tstiop__my_struct_a__s, &st,
+                                          compact_flags));
         Z_ASSERT_EQ(tst_sb.len, ref.len);
         Z_ASSERT_STREQUAL(tst_sb.data, ref.data);
 
