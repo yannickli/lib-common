@@ -381,11 +381,20 @@ enum iop_jpack_flags {
     /** Skip empty sub-structures. */
     IOP_JPACK_SKIP_EMPTY_STRUCTS = (1U << 7),
 
+    /** Skip class names when not needed.
+     *
+     * If set, the class names won't be written if they are equal to the
+     * actual type of the field (missing class names are supported by the
+     * unpacker in that case).
+     */
+    IOP_JPACK_SKIP_OPTIONAL_CLASS_NAMES = (1U << 8),
+
     /** Produce the smallest possible json. */
     IOP_JPACK_MINIMAL = IOP_JPACK_NO_WHITESPACES
                       | IOP_JPACK_SKIP_DEFAULT
                       | IOP_JPACK_SKIP_EMPTY_ARRAYS
-                      | IOP_JPACK_SKIP_EMPTY_STRUCTS,
+                      | IOP_JPACK_SKIP_EMPTY_STRUCTS
+                      | IOP_JPACK_SKIP_OPTIONAL_CLASS_NAMES,
 };
 
 typedef int (iop_jpack_writecb_f)(void * nonnull priv,
