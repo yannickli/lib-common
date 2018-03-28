@@ -371,6 +371,7 @@ struct StructJpackFlags {
     int? opt;
     int def = 1;
     int[] rep;
+    MyClass1? myClass;
 };
 
 class JpackEmptyClsA {
