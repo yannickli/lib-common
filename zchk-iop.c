@@ -7048,6 +7048,21 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_struct_is_optional, "test iop_struct_is_optional") { /* {{{ */
+
+        Z_ASSERT(iop_struct_is_optional(
+                    &tstiop_backward_compat__abstract_class1__s, false));
+        Z_ASSERT(iop_struct_is_optional(
+                    &tstiop_backward_compat__abstract_class1__s, true));
+        Z_ASSERT(!iop_struct_is_optional(
+                    &tstiop_backward_compat__child_class41__s, true));
+        Z_ASSERT(iop_struct_is_optional(
+                    &tstiop_backward_compat__child_class41__s, false));
+        Z_ASSERT(!iop_struct_is_optional(
+                    &tstiop_backward_compat__child_class42__s, false));
+
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(iop_dso_fixup, "test fixup for external DSOs") { /* {{{ */
         iop_dso_t *dso;
         const iop_struct_t *my_struct;

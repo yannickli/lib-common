@@ -2211,8 +2211,12 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t * nonnull pkg1,
  * Get whether a struct is optional or not. A struct is optional if it
  * contains no mandatory fields (ie. it only contains arrays, optional fields
  * or fields with a default value).
+ *
+ * If \ref check_parents is false, parent classes are not checked if \ref st
+ * is a class.
  */
-bool iop_struct_is_optional(const iop_struct_t *nonnull st);
+bool iop_struct_is_optional(const iop_struct_t *nonnull st,
+                            bool check_parents);
 
 /* }}} */
 
