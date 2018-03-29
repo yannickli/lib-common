@@ -58,7 +58,8 @@ static int iopc_check_type_name(lstr_t name, sb_t *err)
     assert (name.len);
 
     if (!isupper(name.s[0])) {
-        sb_sets(err, "first field name character should be uppercase");
+        sb_setf(err, "`%pL': first character should be uppercase",
+                &name);
         return -1;
     }
 
@@ -338,7 +339,6 @@ iopc_field_set_type(iopc_field_t *nonnull f,
     }
     if_assign (typename, IOP_UNION_GET(iop__type, type, type_name)) {
         if (iopc_field_set_typename(f, *typename, err) < 0) {
-            sb_prependf(err, "type name `%pL': ", typename);
             return -1;
         }
     } else
@@ -581,6 +581,23 @@ static iopc_enum_t *iopc_enum_load(const iop__enum__t *en_desc, sb_t *err)
 /* }}} */
 /* {{{ IOP package */
 
+static const char *pkg_elem_type_to_str(const iop__package_elem__t *elem)
+{
+    IOP_OBJ_EXACT_SWITCH(elem) {
+      case IOP_CLASS_ID(iop__struct):
+        return "struct";
+
+      case IOP_CLASS_ID(iop__union):
+        return "union";
+
+      case IOP_CLASS_ID(iop__enum):
+        return "enum";
+    }
+
+    assert (false);
+    return "<unknown>";
+}
+
 static iopc_pkg_t *
 iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
                        const iopsq_type_table_t *nullable type_table,
@@ -602,6 +619,7 @@ iopc_pkg_load_from_iop(const iop__package__t *nonnull pkg_desc,
     t_qh_init(lstr, &things, pkg_desc->elems.len);
     tab_for_each_entry(elem, &pkg_desc->elems) {
         if (iopc_check_type_name(elem->name, err) < 0) {
+            sb_prependf(err, "invalid %s name: ", pkg_elem_type_to_str(elem));
             goto error;
         }
 
