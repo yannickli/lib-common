@@ -2683,7 +2683,10 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 || !(flags & IOP_JPACK_SKIP_PRIVATE));
 
         /* Write type of class */
-        if (!(flags & IOP_JPACK_SKIP_CLASS_NAME)) {
+        if (!(flags & IOP_JPACK_SKIP_CLASS_NAMES)
+        &&  !(flags & IOP_JPACK_SKIP_OPTIONAL_CLASS_NAMES
+          &&  desc == real_desc))
+        {
             INDENT();
             IPUTS("\"_class\": ", "\"_class\":");
             PUTS("\"");

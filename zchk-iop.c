@@ -459,21 +459,23 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
 }
 
 static int iop_json_test_pack(const iop_struct_t *st, const void *value,
-                              unsigned flags, bool must_be_equal,
-                              const char *expected)
+                              unsigned flags, bool test_unpack,
+                              bool must_be_equal, const char *expected)
 {
     t_scope;
     t_SB_1k(sb);
     void *unpacked = NULL;
-    pstream_t ps;
 
     Z_ASSERT_N(iop_sb_jpack(&sb, st, value, flags));
     Z_ASSERT_STREQUAL(sb.data, expected);
 
-    ps = ps_initsb(&sb);
-    Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st, &unpacked, 0, NULL));
-    if (must_be_equal) {
-        Z_ASSERT(iop_equals_desc(st, value, unpacked));
+    if (test_unpack) {
+        pstream_t ps = ps_initsb(&sb);
+
+        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, st, &unpacked, 0, NULL));
+        if (must_be_equal) {
+            Z_ASSERT(iop_equals_desc(st, value, unpacked));
+        }
     }
 
     Z_HELPER_END;
@@ -2060,55 +2062,73 @@ Z_GROUP_EXPORT(iop)
         /* Test packer flags. */
         {
             tstiop__struct_jpack_flags__t st_jpack;
-            tstiop__jpack_empty_cls_b__t cl_jpack;
+            tstiop__my_class1__t my_class_1;
+            tstiop__my_class2__t my_class_2;
             unsigned flags = IOP_JPACK_NO_WHITESPACES
                            | IOP_JPACK_NO_TRAILING_EOL;
 
             iop_init(tstiop__struct_jpack_flags, &st_jpack);
+            iop_init(tstiop__my_class1, &my_class_1);
+            iop_init(tstiop__my_class2, &my_class_2);
 
-#define TST_FLAGS(_flags, _must_be_equal, _exp)  \
+#define TST_FLAGS(_flags, _test_unpack, _must_be_equal, _exp)  \
             Z_HELPER_RUN(iop_json_test_pack(&tstiop__struct_jpack_flags__s,  \
-                                            &st_jpack, _flags,               \
+                                            &st_jpack, _flags, _test_unpack, \
                                             _must_be_equal, _exp))
 
-            TST_FLAGS(0, true,
+            /* NO_WHITESPACES, NO_TRAILING_EOL */
+            TST_FLAGS(0, true, true,
                       "{\n"
                       "\t\"def\": 1,\n"
                       "\t\"rep\": [  ]\n"
                       "}\n");
-            TST_FLAGS(IOP_JPACK_NO_WHITESPACES, true,
+            TST_FLAGS(IOP_JPACK_NO_WHITESPACES, true, true,
                       "{\"def\":1,\"rep\":[]}\n");
-            TST_FLAGS(flags, true,
+            TST_FLAGS(flags, true, true,
                       "{\"def\":1,\"rep\":[]}");
 
-            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true,
+            /* SKIP_DEFAULT */
+            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true, true,
                       "{\"rep\":[]}");
             st_jpack.def = 2;
-            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true,
+            TST_FLAGS(flags | IOP_JPACK_SKIP_DEFAULT, true, true,
                       "{\"def\":2,\"rep\":[]}");
             st_jpack.def = 1;
 
-            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true,
+            /* SKIP_EMPTY_ARRAYS */
+            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true, true,
                       "{\"def\":1}");
             st_jpack.rep.tab = &st_jpack.def;
             st_jpack.rep.len = 1;
-            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true,
+            TST_FLAGS(flags | IOP_JPACK_SKIP_EMPTY_ARRAYS, true, true,
                       "{\"def\":1,\"rep\":[1]}");
             st_jpack.rep.len = 0;
+            flags |= IOP_JPACK_SKIP_EMPTY_ARRAYS;
 
+            /* SKIP_OPTIONAL_CLASS_NAME */
+            st_jpack.my_class = &my_class_1;
+            TST_FLAGS(flags, true, true,
+                      "{\"def\":1,\"myClass\":{\"_class\":\"tstiop.MyClass1\""
+                      ",\"int1\":0}}");
+            TST_FLAGS(flags | IOP_JPACK_SKIP_OPTIONAL_CLASS_NAMES, true, true,
+                      "{\"def\":1,\"myClass\":{\"int1\":0}}");
+            st_jpack.my_class = &my_class_2.super;
+            TST_FLAGS(flags | IOP_JPACK_SKIP_OPTIONAL_CLASS_NAMES, true, true,
+                      "{\"def\":1,\"myClass\":{\"_class\":\"tstiop.MyClass2\""
+                      ",\"int1\":0,\"int2\":0}}");
+
+            /* IOP_JPACK_SKIP_CLASS_NAMES */
+            TST_FLAGS(flags | IOP_JPACK_SKIP_CLASS_NAMES, false, false,
+                      "{\"def\":1,\"myClass\":{\"int1\":0,\"int2\":0}}");
+            st_jpack.my_class = NULL;
+
+            /* SKIP_PRIVATE */
             OPT_SET(st_jpack.priv, 12);
-            TST_FLAGS(flags, true,
-                      "{\"priv\":12,\"def\":1,\"rep\":[]}");
-            TST_FLAGS(flags | IOP_JPACK_SKIP_PRIVATE, false,
-                      "{\"def\":1,\"rep\":[]}");
+            TST_FLAGS(flags, true, true, "{\"priv\":12,\"def\":1}");
+            TST_FLAGS(flags | IOP_JPACK_SKIP_PRIVATE, true, false,
+                      "{\"def\":1}");
 
 #undef TST_FLAGS
-
-            iop_init(tstiop__jpack_empty_cls_b, &cl_jpack);
-            Z_HELPER_RUN(iop_json_test_pack(&tstiop__jpack_empty_cls_b__s,
-                                            &cl_jpack,
-                                            flags | IOP_JPACK_SKIP_CLASS_NAME,
-                                            true, "{\"a\":1,\"b\":2}"));
         }
 
         /* Test empty struct packer flag. */
@@ -2126,7 +2146,7 @@ Z_GROUP_EXPORT(iop)
 
 #define TST(_flags, _must_be_equal, _exp)                                    \
             Z_HELPER_RUN(iop_json_test_pack(&tstiop__jpack_empty_struct__s,  \
-                                            &empty_jpack, _flags,            \
+                                            &empty_jpack, _flags, true,      \
                                             _must_be_equal, _exp))
 
             TST(flags, true, "{}");
@@ -2159,8 +2179,7 @@ Z_GROUP_EXPORT(iop)
             empty_jpack.sub.opt_st = NULL;
 
             clsb.a = 10;
-            TST(flags, true, "{\"sub\":{\"cls\":{"
-                "\"_class\":\"tstiop.JpackEmptyClsB\",\"a\":10}}""}");
+            TST(flags, true, "{\"sub\":{\"cls\":{\"a\":10}}""}");
             clsb.a = 1;
 
             iop_init(tstiop__jpack_empty_cls_c, &clsc);
@@ -7468,7 +7487,7 @@ Z_GROUP_EXPORT(iop)
                              "{ field: { a: 1, b: 2 } }", 0, true,
                              "struct to void");
         iop_json_test_pack(&tstiop_void_type__void_required__s, &s,
-                           0, true, "{\n}\n");
+                           0, true, true, "{\n}\n");
 
         /* test XML pack required void */
         iop_xpack(&buff, &tstiop_void_type__void_required__s, &s, false,
