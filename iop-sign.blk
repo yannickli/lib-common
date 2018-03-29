@@ -434,7 +434,7 @@ Examples with a One licence (from the One directory):\n\
         gen-token ./etc/dev/licence.cf\n\
     # to sign the licence with an embeded activation token\n\
     iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
-        -A 24-Jan-2029\n\
+        -A 24-Jan-2029 -T 25-Jan-2029\n\
         sign ./etc/dev/licence.cf\n\
     # to check the licence\n\
     iop-sign -mnc -d ./one.so -s core.SignedLicence -f licence \\\n\
