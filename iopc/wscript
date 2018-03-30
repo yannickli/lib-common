@@ -32,8 +32,13 @@ def build(ctx):
         'iopc-lang-typescript.c',
     ], use='libcommon', includes='.')
 
-    ctx.program(target='iopc', source='iopc.c', use='libcommon libiopc',
-                lib=['pthread', 'dl'])
+    iopc = ctx.program(target='iopc', source='iopc.c',
+                       use='libcommon libiopc',
+                       lib=['pthread', 'dl'], install_path=None)
+
+    iopc.post()
+    ctx.env.IOPC_TASK = iopc.link_task
+    ctx.env.IOPC = iopc.link_task.outputs[0].abspath()
 
     ctx.set_group('code_compiling')
 
@@ -52,22 +57,23 @@ def build(ctx):
 class Iop2c(Task):
     # TODO: handle depfiles
     # TODO: handle class ids range
-    run_str = ('${SRC[0].abspath()} --Wextra -l c ' +
+    run_str = ('${IOPC} --Wextra -l c ' +
                '-I .. ' + # TODO: properly handle include path
                '-o ${TGT[0].parent.abspath()} ' +
-               '${SRC[1].abspath()}')
+               '${SRC[0].abspath()}')
     color   = 'BLUE'
-    ext_out = ['.h']
+    ext_out = ['.h', '.c']
+
 
 @extension('.iop')
 def process_iop(self, node):
-    iopc = self.bld.get_tgen_by_name('iopc').link_task.outputs[0]
-
-    # TODO: declare -tdef.iop.h and -t.iop.h
     c_node = node.change_ext('.iop.c')
     h_node = node.change_ext('.iop.h')
+    tdef_h_node = node.change_ext('-tdef.iop.h')
+    t_h_node = node.change_ext('-t.iop.h')
 
-    task = self.create_task('Iop2c', [iopc, node], [c_node, h_node])
+    task = self.create_task('Iop2c', node, [c_node, h_node, tdef_h_node, t_h_node])
+    task.set_run_after(self.env.IOPC_TASK)
     self.bld.add_to_group(task, 'code_generation')
     self.source.append(c_node)
 
