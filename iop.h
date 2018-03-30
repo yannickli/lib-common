@@ -698,6 +698,40 @@ int iop_msort_desc(const iop_struct_t * nonnull st, void * nonnull vec,
         iop_msort_desc(&pfx##__s, (void *)__vec, (len), (params), (err));    \
     })
 
+/** Compare two IOPs in an arbitrary way. */
+int iop_cmp_desc(const iop_struct_t *nonnull st,
+                 const void *nullable v1, const void *nullable v2);
+
+#define iop_cmp(pfx, st1, st2)  ({                                           \
+        const pfx##__t *__st1 = (st1);                                       \
+        const pfx##__t *__st2 = (st2);                                       \
+                                                                             \
+        iop_cmp_desc(&pfx##__s, __st1, __st2);                               \
+    })
+
+/** Sort an IOP vector following an arbitrary order.
+ *
+ * \warning The array will be considered as an array of pointers iff the
+ *          struct is a class. If the input is an user-built array of struct
+ *          or unions, please use \ref iop_xpsort_desc.
+ */
+void iop_xsort_desc(const iop_struct_t *nonnull st,
+                    void *nonnull vec, int len);
+
+/** Sort an IOP vector of pointers following an arbitrary order. */
+void iop_xpsort_desc(const iop_struct_t *nonnull st,
+                     const void *nonnull *nonnull vec, int len);
+
+#define iop_xsort(pfx, vec, len)  ({                                         \
+        pfx##__t *__vec = (vec);                                             \
+        iop_xsort_desc(&pfx##__s, (void *)__vec, (len));                     \
+    })
+
+#define iop_xpsort(pfx, vec, len)  ({                                        \
+        const pfx##__t **__vec = (vec);                                      \
+        iop_xpsort_desc(&pfx##__s, (const void **)__vec, (len));             \
+    })
+
 /** Flags for IOP filter. */
 enum iop_filter_flags {
     /** Perform a SQL-like pattern matching for strings. */

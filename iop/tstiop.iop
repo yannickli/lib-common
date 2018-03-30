@@ -723,6 +723,14 @@ struct FilteredStruct {
 };
 
 /* }}} */
+/* {{{ zchk iop.xsort_and_xpsort */
+
+struct XsortStruct {
+    ubyte a;
+    string s;
+};
+
+/* }}} */
 /* {{{ iopc zchk */
 /* {{{ zchk iopsq.sub_struct */
 

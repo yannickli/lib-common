@@ -181,6 +181,33 @@ z_test_dup_and_copy(const iop_struct_t *st, const void *v)
 }
 
 /* }}} */
+/* {{{ zchk iop.equals_and_cmp */
+
+static int z_assert_iop_gt_desc(const struct iop_struct_t *st,
+                                const void *s1, const void *s2)
+{
+    Z_ASSERT(!iop_equals_desc(st, s1, s2));
+    Z_ASSERT_GT(iop_cmp_desc(st, s1, s2), 0);
+    Z_HELPER_END;
+}
+
+static int z_assert_iop_lt_desc(const struct iop_struct_t *st,
+                                const void *s1, const void *s2)
+{
+    Z_ASSERT(!iop_equals_desc(st, s1, s2));
+    Z_ASSERT_LT(iop_cmp_desc(st, s1, s2), 0);
+    Z_HELPER_END;
+}
+
+static int z_assert_iop_eq_desc(const struct iop_struct_t *st,
+                                const void *s1, const void *s2)
+{
+    Z_ASSERT_IOPEQUAL_DESC(st, s1, s2);
+    Z_ASSERT_ZERO(iop_cmp_desc(st, s1, s2));
+    Z_HELPER_END;
+}
+
+/* }}} */
 /* {{{ Other helpers (waiting proper folds). */
 
 static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info)
@@ -2748,7 +2775,16 @@ Z_GROUP_EXPORT(iop)
                                          &out, ps_initlstr(&bpacked), 0));
     } Z_TEST_END;
     /* }}} */
-    Z_TEST(equals, "test iop_equals()") { /* {{{ */
+    Z_TEST(equals_and_cmp, "test iop_equals()/iop_cmp()") { /* {{{ */
+#define CHECK_IOP_GT(st, lhs, rhs, ...)                                      \
+    Z_HELPER_RUN(z_assert_iop_gt_desc((st), (lhs), (rhs)), ##__VA_ARGS__)
+
+#define CHECK_IOP_LT(st, lhs, rhs, ...)                                      \
+    Z_HELPER_RUN(z_assert_iop_lt_desc((st), (lhs), (rhs)), ##__VA_ARGS__)
+
+#define CHECK_IOP_EQ(st, lhs, rhs, ...)                                      \
+    Z_HELPER_RUN(z_assert_iop_eq_desc((st), (lhs), (rhs)), ##__VA_ARGS__)
+
         t_scope;
 
         tstiop__my_struct_g__t sg_a, sg_b;
@@ -2770,66 +2806,73 @@ Z_GROUP_EXPORT(iop)
         /* Test with all the default values */
         iop_init_desc(st_sg, &sg_a);
         iop_init_desc(st_sg, &sg_b);
-        Z_ASSERT_IOPEQUAL_DESC(st_sg, &sg_a, &sg_b);
+        CHECK_IOP_EQ(st_sg, &sg_a, &sg_b);
 
         /* Change some fields and test */
         sg_a.b++;
-        Z_ASSERT(!iop_equals_desc(st_sg, &sg_a, &sg_b));
+        CHECK_IOP_GT(st_sg, &sg_a, &sg_b);
 
         sg_a.b--;
         sg_b.j = LSTR("not equal");
-        Z_ASSERT(!iop_equals_desc(st_sg, &sg_a, &sg_b));
+        CHECK_IOP_LT(st_sg, &sg_a, &sg_b);
 
         /* Use a more complex structure */
         iop_init_desc(st_sa_opt, &sa_opt_a);
         iop_init_desc(st_sa_opt, &sa_opt_b);
-        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
+        CHECK_IOP_EQ(st_sa_opt, &sa_opt_a, &sa_opt_b);
+
+        /* Change optional void field. */
+        sa_opt_a.w = true;
+        CHECK_IOP_GT(st_sa_opt, &sa_opt_a, &sa_opt_b);
+        sa_opt_b.w = true;
 
         OPT_SET(sa_opt_a.a, 42);
         OPT_SET(sa_opt_b.a, 42);
         sa_opt_a.j = LSTR("plop");
         sa_opt_b.j = LSTR("plop");
-        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
+        CHECK_IOP_EQ(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         OPT_CLR(sa_opt_b.a);
-        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        CHECK_IOP_GT(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         OPT_SET(sa_opt_b.a, 42);
         sa_opt_b.j = LSTR_NULL_V;
-        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        CHECK_IOP_GT(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         sa_opt_b.j = LSTR("plop2");
-        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        CHECK_IOP_LT(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         sa_opt_b.j = LSTR("plop");
         ua_a = IOP_UNION(tstiop__my_union_a, ua, 1);
         ua_b = IOP_UNION(tstiop__my_union_a, ua, 1);
         sa_opt_a.l = &ua_a;
         sa_opt_b.l = &ua_b;
-        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
+        CHECK_IOP_EQ(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         sa_opt_b.l = NULL;
-        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        CHECK_IOP_GT(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         ua_b = IOP_UNION(tstiop__my_union_a, ub, 1);
         sa_opt_b.l = &ua_b;
-        Z_ASSERT(!iop_equals_desc(st_sa_opt, &sa_opt_a, &sa_opt_b));
+        CHECK_IOP_LT(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         /* test with non initialized optional fields values */
         iop_init_desc(st_sa_opt, &sa_opt_a);
         iop_init_desc(st_sa_opt, &sa_opt_b);
         sa_opt_a.a.v = 42;
-        Z_ASSERT_IOPEQUAL_DESC(st_sa_opt, &sa_opt_a, &sa_opt_b);
+        CHECK_IOP_EQ(st_sa_opt, &sa_opt_a, &sa_opt_b);
 
         /* Now test with some arrays */
         {
             lstr_t strs[] = { LSTR_IMMED("a"), LSTR_IMMED("b") };
             uint8_t uints[] = { 1, 2, 3, 4 };
             uint8_t uints2[] = { 1, 2, 4, 4 };
+            tstiop__full_repeated__t st1;
+            tstiop__full_repeated__t st2;
 
             iop_init_desc(st_sr, &sr_a);
             iop_init_desc(st_sr, &sr_b);
-            Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
+            CHECK_IOP_EQ(st_sr, &sr_a, &sr_b);
 
             sr_a.s.tab = strs;
             sr_a.s.len = countof(strs);
@@ -2839,31 +2882,75 @@ Z_GROUP_EXPORT(iop)
             sr_a.u8.len = countof(uints);
             sr_b.u8.tab = uints;
             sr_b.u8.len = countof(uints);
-            Z_ASSERT_IOPEQUAL_DESC(st_sr, &sr_a, &sr_b);
+            CHECK_IOP_EQ(st_sr, &sr_a, &sr_b);
 
             sr_b.s.len--;
-            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
+            CHECK_IOP_GT(st_sr, &sr_a, &sr_b);
             sr_b.s.len++;
 
             sr_b.u8.len--;
-            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
+            CHECK_IOP_GT(st_sr, &sr_a, &sr_b);
             sr_b.u8.len++;
 
             sr_b.u8.tab = uints2;
-            Z_ASSERT(!iop_equals_desc(st_sr, &sr_a, &sr_b));
+            CHECK_IOP_LT(st_sr, &sr_a, &sr_b);
+
+            iop_init(tstiop__full_repeated, &st1);
+            iop_init(tstiop__full_repeated, &st2);
+            st1.s = T_IOP_ARRAY(lstr, LSTR("abc"), LSTR("dez"));
+            st2.s = T_IOP_ARRAY(lstr, LSTR("abc"), LSTR("def"), LSTR("ghij"));
+            CHECK_IOP_GT(tstiop__full_repeated__sp, &st1, &st2);
+            st1.s.tab[1] = LSTR("dea");
+            CHECK_IOP_LT(tstiop__full_repeated__sp, &st1, &st2);
+            st1.s.tab[1] = st2.s.tab[1];
+            CHECK_IOP_LT(tstiop__full_repeated__sp, &st1, &st2);
         }
 
         /* An empty struct has only one representation, so iop_equals should
          * always return true. */
         iop_init(tstiop__void, &v_a);
         iop_init(tstiop__void, &v_b);
-        Z_ASSERT(iop_equals(tstiop__void, NULL, NULL));
-        Z_ASSERT(iop_equals(tstiop__void, NULL, &v_a));
-        Z_ASSERT(iop_equals(tstiop__void, &v_a, NULL));
-        Z_ASSERT(iop_equals(tstiop__void, &v_a, &v_b));
+        CHECK_IOP_EQ(&tstiop__void__s, NULL, NULL);
+        CHECK_IOP_EQ(&tstiop__void__s, NULL, &v_a);
+        CHECK_IOP_EQ(&tstiop__void__s, &v_a, NULL);
+        CHECK_IOP_EQ(&tstiop__void__s, &v_a, &v_b);
 
         iop_dso_close(&dso);
+
+#undef CHECK_IOP_EQ
+#undef CHECK_IOP_GT
+#undef CHECK_IOP_LT
     } Z_TEST_END
+    /* }}} */
+    Z_TEST(xsort_and_xpsort, "test iop_xsort()/iop_xpsort()") { /* {{{ */
+        t_scope;
+        tstiop__xsort_struct__array_t array;
+        const tstiop__xsort_struct__t **parray;
+
+#define XSORT_ST(_a, _s)  (tstiop__xsort_struct__t){ .a = _a, .s = LSTR(_s) }
+
+        array = T_IOP_ARRAY(tstiop__xsort_struct, XSORT_ST(42, "abc"),
+                            XSORT_ST(42, "aaaa"), XSORT_ST(1, "toto"));
+
+        iop_xsort(tstiop__xsort_struct, array.tab, array.len);
+        for (int i = 0; i < array.len - 1; i++) {
+            Z_ASSERT_LT(iop_cmp(tstiop__xsort_struct, &array.tab[i],
+                                &array.tab[i + 1]), 0);
+        }
+
+        array = T_IOP_ARRAY(tstiop__xsort_struct, XSORT_ST(51, "abc"),
+                            XSORT_ST(42, "tutu"), XSORT_ST(51, "zzz"),
+                            XSORT_ST(21, "lala"));
+        parray = t_new_raw(const tstiop__xsort_struct__t *, array.len);
+        tab_for_each_pos(pos, &array) {
+            parray[pos] = &array.tab[pos];
+        }
+        iop_xpsort(tstiop__xsort_struct, parray, array.len);
+        for (int i = 0; i < array.len - 1; i++) {
+            Z_ASSERT_LT(iop_cmp(tstiop__xsort_struct, parray[i],
+                                parray[i + 1]), 0);
+        }
+    } Z_TEST_END;
     /* }}} */
     Z_TEST(strict_enum, "test IOP strict enum (un)packing") { /* {{{ */
         t_scope;
@@ -4458,6 +4545,8 @@ Z_GROUP_EXPORT(iop)
                                                                              \
             Z_ASSERT(iop_equals_desc(&tstiop_inheritance__##_type##__s,      \
                                      _v1, _v2) == _res);                     \
+            Z_ASSERT_EQ(!iop_cmp_desc(&tstiop_inheritance__##_type##__s,     \
+                                  _v1, _v2), _res);                          \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1, 0);  \
             iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2, 0);  \
             Z_ASSERT(lstr_equal(                                             \
