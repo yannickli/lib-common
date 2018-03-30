@@ -3,6 +3,17 @@ from itertools import chain
 import waflib.TaskGen as TaskGen
 
 
+# {{{ depends_on
+
+@TaskGen.feature('*')
+@TaskGen.before_method('process_rule')
+def post_deps(self):
+    deps = getattr(self, 'depends_on', [])
+    for name in self.to_list(deps):
+        other = self.bld.get_tgen_by_name(name)
+        other.post()
+
+# }}}
 # {{{ use_whole
 
 @TaskGen.feature('c', 'cprogram', 'cstlib')

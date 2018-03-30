@@ -188,6 +188,7 @@ def build(ctx):
         target='libcommon',
         includes='.',
         export_includes=['.'],
+        depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
         lib=['pthread', 'dl'],
         source=[
