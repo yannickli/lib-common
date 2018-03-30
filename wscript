@@ -11,8 +11,17 @@
 #                                                                        #
 ##########################################################################
 
+import os
+import sys
+
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension, after_method
+
+waftoolsdir = os.path.join(os.getcwd(), 'waftools')
+sys.path.insert(0, waftoolsdir)
+
+import waftools.intersec as intersec
+
 
 # FIXME:
 #   - waf build -v reports warnings about nodes created more than once
@@ -34,6 +43,9 @@ def options(ctx):
 # {{{ configure
 
 def configure(ctx):
+    # Loads only waf definitions
+    ctx.load('intersec', tooldir=waftoolsdir)
+
     # Setup gcc as default compiler
     ctx.load('compiler_c')
 
@@ -377,7 +389,8 @@ def build(ctx):
             'test-data/snmp/snmp_test_doc.iop',
             'test-data/snmp/snmp_intersec_test.iop'
         ],
-        use='tstiop tstiop2 iop-snmp', # FIXME: libcommon should be linked in whole archive
+        use='tstiop tstiop2 iop-snmp',
+        use_whole='libcommon',
         lib=['pthread', 'dl', 'm'], includes='.')
 
     ctx.shlib(target='zchk-iop-plugin', source=[
