@@ -14,9 +14,6 @@
 import os
 import sys
 
-from waflib.Task import Task
-from waflib.TaskGen import feature, extension, after_method
-
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
@@ -31,7 +28,6 @@ import waftools.intersec as intersec
 #   - handle IOP deps
 #   - have a 'check' command
 #   - Fix various TODOs and FIXMEs in the wscript files
-
 
 # {{{ options
 
@@ -453,45 +449,4 @@ def build(ctx):
                 use='libcommon', lib=['pthread', 'dl'])
 
     # }}}
-# }}}
-
-# {{{ blocks generator
-
-# TODO: must be put in a separated module.
-
-class Blk2c(Task):
-    # INCPATHS: includes paths are the same as for C compilation.
-    run_str = '${CLANG} ${CLANG_REWRITE_FLAGS} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}'
-    ext_out = [ '.c' ]
-    color = 'YELLOW'
-
-@extension('.blk')
-@feature('blk')
-def process_blk(self, node):
-    # TODO: Should probably be done somewhere else. It computes env.INCPATHS.
-    self.process_use()
-    self.apply_incpaths()
-
-    # Create block rewrite task.
-    blk_c_node = node.change_ext('.blk.c')
-    blk_tsk = self.create_task('Blk2c', node, blk_c_node)
-
-    # Create C compilation task for the generated C source.
-    out = self.create_compiled_task('c', blk_c_node)
-    # The generated C source is computed in the build directory, thus we need
-    # to add the source directory to include paths.
-    out.env.append_unique('INCPATHS', node.parent.bldpath()) # FIXME: seems useless?
-
-# }}}
-# {{{ perf generator
-
-class Perf2c(Task):
-    run_str = '${GPERF} --language ANSI-C --output-file ${TGT} ${SRC}'
-    color   = 'BLUE'
-
-@extension('.perf')
-def process_perf(self, node):
-    task = self.create_task('Perf2c', node, node.change_ext('.c'))
-    self.source.extend(task.outputs)
-
 # }}}

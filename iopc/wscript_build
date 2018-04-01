@@ -11,14 +11,39 @@
 #                                                                        #
 ##########################################################################
 
-def configure(ctx):
-    path = ctx.path.abspath()
+ctx.set_group('tools_generation')
 
-    ctx.find_program('flex', mandatory=True)
-    ctx.find_program('flex.sh', path_list=[path], mandatory=True,
-                     var='FLEX_SH')
-    ctx.find_program('version.sh', path_list=[path], mandatory=True,
-                     var='VERSION_SH')
+ctx.stlib(target='libiopc', source=[
+    'iopc.fc',
+    'iopc-dso.c',
+    'iopc-lex.l',
+    'iopc-parser.c',
+    'iopc-pretty.c',
+    'iopc-typer.blk',
+    'iopctokens.c',
+    'iopc-write.c',
 
-def build(bld):
-    pass
+    'iopc-lang-c.blk',
+    'iopc-lang-json.blk',
+    'iopc-lang-typescript.c',
+], use='libcommon', includes='.')
+
+iopc = ctx.program(target='iopc', source='iopc.c',
+                   use='libcommon libiopc',
+                   lib=['pthread', 'dl'], install_path=None)
+
+iopc.post()
+ctx.env.IOPC_TASK = iopc.link_task
+ctx.env.IOPC = iopc.link_task.outputs[0].abspath()
+
+ctx.set_group('code_compiling')
+
+ctx.stlib(target='libiopsq', source=[
+    'iopc-iopsq.c',
+    'iopsq.iop',
+], use='libcommon', includes='.')
+
+ctx.program(target='zchk', source='zchk.c',
+            includes='.',
+            use='libcommon libiopsq libiopc tstiop',
+            lib=['pthread', 'dl'])

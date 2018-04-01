@@ -11,22 +11,8 @@
 #                                                                        #
 ##########################################################################
 
-from waflib.Task import Task
-from waflib.TaskGen import extension
-
-def build(ctx):
-    farchc = ctx(features='c cprogram', target='farchc', source='farchc.c',
-                 use='libcommon', lib=['pthread', 'dl', 'm'])
-    farchc.post()
-    ctx.env.FARCHC_TASK = farchc.link_task
-    ctx.env.FARCHC = farchc.link_task.outputs[0].abspath()
-
-class Fc2c(Task):
-    run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
-    color   = 'PINK'
-
-@extension('.fc')
-def process_fc(self, node):
-    farch_task = self.create_task('Fc2c', [node],
-                                  node.change_ext('.fc.h'))
-    farch_task.set_run_after(self.env.FARCHC_TASK)
+farchc = ctx.program(target='farchc', source='farchc.c',
+                     use='libcommon', lib=['pthread', 'dl', 'm'])
+farchc.post()
+ctx.env.FARCHC_TASK = farchc.link_task
+ctx.env.FARCHC = farchc.link_task.outputs[0].abspath()

@@ -15,6 +15,10 @@ from itertools import chain
 
 import waflib.TaskGen as TaskGen
 
+from waflib.Task import Task
+from waflib.TaskGen import feature, extension
+
+
 # {{{ depends_on
 
 @TaskGen.feature('*')
@@ -72,5 +76,97 @@ def process_whole(self):
 
     # ...and close the whole archive mode
     self.env.append_value('LINKFLAGS', '-Wl,--no-whole-archive')
+
+# }}}
+
+# {{{ BLK
+
+class Blk2c(Task):
+    # INCPATHS: includes paths are the same as for C compilation.
+    run_str = ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CPPPATH_ST:INCPATHS} '
+               '${SRC} -o ${TGT}')
+    ext_out = [ '.c' ]
+    color = 'YELLOW'
+
+@extension('.blk')
+@feature('blk')
+def process_blk(self, node):
+    # TODO: Should probably be done somewhere else. It computes env.INCPATHS.
+    self.process_use()
+    self.apply_incpaths()
+
+    # Create block rewrite task.
+    blk_c_node = node.change_ext('.blk.c')
+    self.create_task('Blk2c', node, blk_c_node)
+
+    # Create C compilation task for the generated C source.
+    out = self.create_compiled_task('c', blk_c_node)
+    # The generated C source is computed in the build directory, thus we need
+    # to add the source directory to include paths.
+    out.env.append_unique('INCPATHS', node.parent.bldpath()) # FIXME: seems useless?
+
+# }}}
+# {{{ PERF
+
+class Perf2c(Task):
+    run_str = '${GPERF} --language ANSI-C --output-file ${TGT} ${SRC}'
+    color   = 'BLUE'
+
+@extension('.perf')
+def process_perf(self, node):
+    task = self.create_task('Perf2c', node, node.change_ext('.c'))
+    self.source.extend(task.outputs)
+
+# }}}
+# {{{ LEX
+
+class Lex2c(Task):
+    run_str = '${FLEX_SH} ${SRC} ${TGT}'
+    color   = 'PURPLE'
+
+@extension('.l')
+def process_lex(self, node):
+    task = self.create_task('Lex2c', node, node.change_ext('.c'))
+    self.source.extend(task.outputs)
+
+# }}}
+# {{{ FC
+
+class Fc2c(Task):
+    run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
+    color   = 'PINK'
+
+@extension('.fc')
+def process_fc(self, node):
+    farch_task = self.create_task('Fc2c', [node],
+                                  node.change_ext('.fc.h'))
+    farch_task.set_run_after(self.env.FARCHC_TASK)
+
+# }}}
+# {{{ IOP
+
+class Iop2c(Task):
+    # TODO: handle depfiles
+    # TODO: handle class ids range
+    run_str = ('${IOPC} --Wextra -l c ' +
+               '-I .. ' + # TODO: properly handle include path
+               '-o ${TGT[0].parent.abspath()} ' +
+               '${SRC[0].abspath()}')
+    color   = 'BLUE'
+    ext_out = ['.h', '.c']
+
+
+@extension('.iop')
+def process_iop(self, node):
+    c_node = node.change_ext('.iop.c')
+    h_node = node.change_ext('.iop.h')
+    tdef_h_node = node.change_ext('-tdef.iop.h')
+    t_h_node = node.change_ext('-t.iop.h')
+
+    task = self.create_task('Iop2c', node,
+                            [c_node, h_node, tdef_h_node, t_h_node])
+    task.set_run_after(self.env.IOPC_TASK)
+    self.bld.add_to_group(task, 'code_generation')
+    self.source.append(c_node)
 
 # }}}
