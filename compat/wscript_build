@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2018 INTERSEC SA                                   #
@@ -11,3 +10,5 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+
+ctx(name='compat', export_includes='.')

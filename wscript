@@ -25,7 +25,6 @@ import waftools.intersec as intersec
 
 # FIXME:
 #   - waf build -v reports warnings about nodes created more than once
-#   - executing 'waf' in a sub-directory (like iop-tutorial) should work
 #   - __FILE__ are wrong (this is why zchk executes no test)
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
@@ -184,8 +183,7 @@ def build(ctx):
         target='core-version.c', always=True)
 
     # TODO: add net-sctp.c in libcommon target
-    ctx(features='c cstlib',
-        target='libcommon',
+    ctx.stlib(target='libcommon',
         includes='.',
         export_includes=['.'],
         depends_on='core-version.c',
@@ -360,7 +358,7 @@ def build(ctx):
     # }}}
     # {{{ zchk and ztst-*
 
-    ctx(features='c cprogram', target='zchk',
+    ctx.program(target='zchk',
         source=[
             'zchk.c',
             'zchk-asn1-writer.c',

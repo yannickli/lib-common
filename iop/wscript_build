@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-bld.stlib(target='tstiop', features='c', source=[
+ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop.iop',
     'tstiop_inheritance.iop',
     'tstiop_licence.iop',
@@ -35,7 +35,7 @@ bld.stlib(target='tstiop', features='c', source=[
     'tstiop_void_type.iop',
 ], includes='..', use='compat')
 
-bld.stlib(target='tstiop2', features='c', source=[
+ctx.stlib(target='tstiop2', features='c cstlib', source=[
     'tstiop2.iop',
 ], includes='..', use='compat')
 
@@ -44,6 +44,6 @@ bld.stlib(target='tstiop2', features='c', source=[
 #    'tstiop-plugin.c',
 #], includes='.', use='libcommon tstiop')
 
-bld.shlib(target='zchk-tstiop2-plugin', source=[
+ctx.shlib(target='zchk-tstiop2-plugin', source=[
     'tstiop2-plugin.c',
 ], includes='.', use='libcommon tstiop2')
