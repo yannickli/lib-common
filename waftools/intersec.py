@@ -100,10 +100,7 @@ def process_blk(self, node):
     self.create_task('Blk2c', node, blk_c_node)
 
     # Create C compilation task for the generated C source.
-    out = self.create_compiled_task('c', blk_c_node)
-    # The generated C source is computed in the build directory, thus we need
-    # to add the source directory to include paths.
-    out.env.append_unique('INCPATHS', node.parent.bldpath()) # FIXME: seems useless?
+    self.create_compiled_task('c', blk_c_node)
 
 # }}}
 # {{{ PERF
