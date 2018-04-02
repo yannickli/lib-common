@@ -93,6 +93,7 @@ def configure(ctx):
         '-I/usr/include/valgrind',
         '-DHAS_LIBCOMMON_REPOSITORY=0',
         '-DWAF_MODE',
+        '-fPIC',
     ]
 
     # Find clang for blk
@@ -328,10 +329,10 @@ def build(ctx):
     ctx.recurse('scripts')
     ctx.recurse('tools')
     ctx.recurse('iopc')
-    ctx.recurse('iop')
 
     ctx.set_group('code_compiling')
 
+    ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
 
     # {{{ iop-snmp library
@@ -357,6 +358,9 @@ def build(ctx):
     # }}}
     # {{{ zchk and ztst-*
 
+    # FIXME: iop.iop_dso_fixup and iop.iop_dso_fixup_bad_dep are skipped
+    #        because zchk-tstiop2-plugin.so fails to be dlopened:
+    #        undefined symbol: tstiop__my_struct_a__s
     ctx.program(target='zchk',
         source=[
             'zchk.c',
@@ -387,7 +391,7 @@ def build(ctx):
             'test-data/snmp/snmp_test_doc.iop',
             'test-data/snmp/snmp_intersec_test.iop'
         ],
-        use='tstiop tstiop2 iop-snmp',
+        use='iop-snmp tstiop',
         use_whole='libcommon',
         lib=['pthread', 'dl', 'm'], includes='.')
 

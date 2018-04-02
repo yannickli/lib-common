@@ -39,10 +39,9 @@ ctx.stlib(target='tstiop2', features='c cstlib', source=[
     'tstiop2.iop',
 ], includes='..', use='compat')
 
-# FIXME: this does not link, use -fPIC
-#bld.shlib(target='zchk-tstiop-plugin', source=[
-#    'tstiop-plugin.c',
-#], includes='.', use='libcommon tstiop')
+bld.shlib(target='zchk-tstiop-plugin', source=[
+    'tstiop-plugin.c',
+], includes='.', use='libcommon tstiop')
 
 ctx.shlib(target='zchk-tstiop2-plugin', source=[
     'tstiop2-plugin.c',
