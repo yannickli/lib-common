@@ -159,6 +159,9 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
+    # Register the deploy_target post function
+    ctx.add_post_fun(intersec.deploy_targets)
+
     # Declare 3 build groups:
     #  - one for generating the build tools (iopc)
     #  - one for generating the code (IOP files processing)

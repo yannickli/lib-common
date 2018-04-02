@@ -11,10 +11,13 @@
 #                                                                        #
 ##########################################################################
 
+import os
+import errno
 from itertools import chain
 
 import waflib.TaskGen as TaskGen
 
+from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension
 
@@ -76,6 +79,47 @@ def process_whole(self):
 
     # ...and close the whole archive mode
     self.env.append_value('LINKFLAGS', '-Wl,--no-whole-archive')
+
+# }}}
+# {{{ Deploy targets
+
+def deploy_targets(ctx):
+    """ Deploy the targets (using hard links) in the source directories once
+        the build is done.
+    """
+    for group in ctx.groups:
+        for tg in group:
+
+            # Deploy only posted targets
+            if not getattr(tg, 'posted', False):
+                continue
+
+            # Deploy only C programs and shared libraries
+            features = getattr(tg, 'features', [])
+            is_cprogram = 'cprogram' in features
+            is_cshlib = 'cshlib' in features
+            if not is_cprogram and not is_cshlib:
+                continue
+
+            node = tg.link_task.outputs[0]
+
+            if is_cprogram:
+                # Deploy C programs in the corresponding source directory
+                dst = node.get_src().abspath()
+            else:
+                # Deploy C shared library in the corresponding source
+                # directory, stripping the 'lib' prefix
+                assert (node.name.startswith('lib'))
+                name = node.name[len('lib'):]
+                dst = os.path.join(node.parent.get_src().abspath(), name)
+
+            # Remove possibly existing file, and create hard link
+            try:
+                os.remove(dst)
+            except OSError as exn:
+                if exn.errno != errno.ENOENT:
+                    raise
+            os.link(node.abspath(), dst)
 
 # }}}
 
