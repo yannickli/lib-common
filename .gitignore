@@ -17,8 +17,6 @@ iopsq-t*
 
 /zchk
 /zchk-iop-plugin.so
-/zchk-tstiop-plugin.so
-/zchk-tstiop2-plugin.so
 /zgcd-bench
 /ztst-asn1-wr
 /ztst-blob-iconv

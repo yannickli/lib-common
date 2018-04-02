@@ -930,13 +930,13 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
         }                                                                    \
         _dso = iop_dso_open(_path.s, LM_ID_BASE, &_err);                     \
         if (_dso == NULL) {                                                  \
-            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",  \
-                   SB_FMT_ARG(&_err));                                       \
+            Z_SKIP("unable to load `%s`, TOOLS repo? (%*pM)",                \
+                   _path.s, SB_FMT_ARG(&_err));                              \
         }                                                                    \
         _dso;                                                                \
     })
 
-#define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true)
+#define Z_DSO_OPEN()  _Z_DSO_OPEN("iop/zchk-tstiop-plugin" SO_FILEEXT, true)
 
 static int z_check_static_field_type(const iop_struct_t *st,
                                      lstr_t name, iop_type_t type,
@@ -984,7 +984,8 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR("zchk-iop-plugin"SO_FILEEXT));
 
-        Z_ASSERT(dso = iop_dso_open(path.s, LM_ID_BASE, &err));
+        Z_ASSERT(dso = iop_dso_open(path.s, LM_ID_BASE, &err), "%*pM",
+                 SB_FMT_ARG(&err));
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h, &LSTR_IMMED_V("ic.Hdr")));
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));
@@ -2637,12 +2638,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(roptimized, "test IOP std: optimized repeated fields") { /* {{{ */
         t_scope;
-        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_curr_v;
         lstr_t path_v3;
-        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        path_v3 = t_lstr_cat3(z_cmddir_g,
-                              LSTR("/test-data/test_v3_centos-5u4/"), file);
+        path_curr_v = t_lstr_fmt("%*pM/iop/zchk-tstiop-plugin" SO_FILEEXT,
+                                 LSTR_FMT_ARG(z_cmddir_g));
+
+        path_v3 = t_lstr_fmt("%*pM/test-data/test_v3_centos-5u4/"
+                             "zchk-tstiop-plugin" SO_FILEEXT,
+                             LSTR_FMT_ARG(z_cmddir_g));
 
         Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_curr_v));
         Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_v3));
@@ -3872,12 +3876,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
-        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_curr_v;
         lstr_t path_v3;
-        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        path_v3 = t_lstr_cat3(z_cmddir_g,
-                              LSTR("/test-data/test_v3_centos-5u4/"), file);
+        path_curr_v = t_lstr_fmt("%*pM/iop/zchk-tstiop-plugin" SO_FILEEXT,
+                                 LSTR_FMT_ARG(z_cmddir_g));
+
+        path_v3 = t_lstr_fmt("%*pM/test-data/test_v3_centos-5u4/"
+                             "zchk-tstiop-plugin" SO_FILEEXT,
+                             LSTR_FMT_ARG(z_cmddir_g));
 
         Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_curr_v));
         Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_v3));
@@ -7227,7 +7234,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *my_struct;
         const iop_field_t *field;
 
-        dso = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT, true);
+        dso = _Z_DSO_OPEN("iop/zchk-tstiop2-plugin" SO_FILEEXT, true);
 
         my_struct = iop_dso_find_type(dso, LSTR("tstiop2.MyStruct"));
         Z_ASSERT_N(iop_field_find_by_name(my_struct, LSTR("a"), NULL,
@@ -7249,7 +7256,7 @@ Z_GROUP_EXPORT(iop)
         iop_dso_t *dso2;
         const char *newpath;
         const char *sofile = "zchk-tstiop2-plugin" SO_FILEEXT;
-        const char *sopath = t_fmt("%s%s", z_cmddir_g.s, sofile);
+        const char *sopath = t_fmt("%s/iop/%s", z_cmddir_g.s, sofile);
 
         /* build one dso, remove file */
         newpath = t_fmt("%*pM/1_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);
