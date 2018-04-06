@@ -821,6 +821,135 @@ pid_t el_spawn_child(const char *file, const char *argv_in[],
     return pid;
 }
 
+typedef struct spawn_child_capture_t {
+    pid_t pid;
+
+    /* stdout/stderr capture. */
+    sb_t out;
+    el_t capture;
+
+    /* Timeout. */
+    el_t timer;
+    int next_sig;
+
+    /* Callbacks. */
+    block_t child;
+    el_child_output_b blk;
+    block_t wipe;
+} spawn_child_capture_t;
+
+static inline spawn_child_capture_t *
+spawn_child_capture_init(spawn_child_capture_t *ctx)
+{
+    p_clear(ctx, 1);
+    sb_init(&ctx->out);
+    return ctx;
+}
+GENERIC_NEW(spawn_child_capture_t, spawn_child_capture);
+static inline void spawn_child_capture_wipe(spawn_child_capture_t *ctx)
+{
+    sb_wipe(&ctx->out);
+    el_unregister(&ctx->capture);
+    el_unregister(&ctx->timer);
+    Block_release_p(&ctx->child);
+    Block_release_p(&ctx->blk);
+    Block_release_p(&ctx->wipe);
+}
+GENERIC_DELETE(spawn_child_capture_t, spawn_child_capture);
+
+static int spawn_child_capture_on_output(el_t el, int fd, short event,
+                                         data_t data)
+{
+    spawn_child_capture_t *ctx = data.ptr;
+
+    IGNORE(sb_read(&ctx->out, fd, 0));
+    return 0;
+}
+
+static void spawn_child_timeout(el_t el, data_t data)
+{
+    spawn_child_capture_t *ctx = data.ptr;
+
+    killpg(ctx->pid, ctx->next_sig);
+    if (ctx->next_sig == SIGINT) {
+        ctx->next_sig = SIGTERM;
+    } else {
+        ctx->next_sig = SIGKILL;
+    }
+}
+
+pid_t el_spawn_child_capture(const char *file,
+                             const char *argv[],
+                             const char *envp[],
+                             int timeout,
+                             block_t child,
+                             el_child_output_b blk,
+                             block_t wipe)
+{
+    spawn_child_capture_t *ctx = spawn_child_capture_new();
+    int pfd[2];
+    int *pfd_ptr = pfd;
+
+    if (pipe(pfd) < 0) {
+        logger_fatal(&_G.logger,
+                     "unable to execute `%s`: cannot prepare out fds", file);
+    }
+
+    ctx->blk = Block_copy(blk);
+    if (child) {
+        ctx->child = Block_copy(child);
+    }
+    if (wipe) {
+        ctx->wipe = Block_copy(wipe);
+    }
+
+    ctx->pid = el_spawn_child(file, argv, envp, ^{
+        qv_t(u32) fds_to_keep;
+
+        setpgid(0, 0); /* Create a process group id. */
+        p_close(&pfd_ptr[0]);
+
+        qv_inita(&fds_to_keep, 1);
+        qv_append(&fds_to_keep, pfd_ptr[1]);
+        close_fds(STDIN_FILENO, &fds_to_keep);
+
+        dup2(pfd_ptr[1], STDOUT_FILENO);
+        dup2(pfd_ptr[1], STDERR_FILENO);
+        p_close(&pfd_ptr[1]);
+
+        devnull_dup(STDIN_FILENO);
+
+        if (ctx->child) {
+            ctx->child();
+        }
+    }, ^(el_t el, pid_t _pid, int status) {
+        spawn_child_capture_on_output(ctx->capture,
+                                      el_fd_get_fd(ctx->capture),
+                                      POLLIN, (data_t){ .ptr = ctx });
+        ctx->blk(el, _pid, status, LSTR_SB_V(&ctx->out));
+    }, ^{
+        spawn_child_capture_t *_ctx = ctx;
+
+        if (ctx->wipe) {
+            ctx->wipe();
+        }
+        spawn_child_capture_delete(&_ctx);
+    });
+
+    p_close(&pfd[1]);
+    fd_set_features(pfd[0], O_NONBLOCK);
+
+    if (timeout > 0) {
+        ctx->next_sig = SIGINT;
+        ctx->timer = el_timer_register(timeout, timeout, EL_TIMER_LOWRES,
+                                       &spawn_child_timeout, ctx);
+    }
+    ctx->capture = el_fd_register(pfd[0], true, POLLIN,
+                                  &spawn_child_capture_on_output, ctx);
+
+    return ctx->pid;
+}
+
 /* }}} */
 /* {{{ timer events */
 
@@ -2040,6 +2169,64 @@ static int z_spawn_child(void)
     Z_HELPER_END;
 }
 
+static int z_spawn_child_capture(void)
+{
+    pid_t pid;
+    const char *argv[] = { "hello", NULL };
+    __block lstr_t capture = LSTR_NULL_V;
+
+    pid = el_spawn_child_capture("echo", argv, NULL, 0, NULL,
+    ^void (el_t ev, pid_t _pid, int _st, lstr_t _capture) {
+        capture = lstr_dup(_capture);
+    }, NULL);
+
+    Z_ASSERT_N(pid);
+
+    for (int i = 0; i < 10; i++) {
+        el_loop_timeout(500);
+        if (capture.s) {
+            lstr_t _capture = capture;
+
+            Z_ASSERT_LSTREQUAL(_capture, LSTR("hello\n"));
+            lstr_wipe(&capture);
+            return 0;
+        }
+        usleep(1000);
+    }
+    Z_ASSERT(false, "timeout");
+
+    Z_HELPER_END;
+}
+
+static int z_spawn_child_capture_timeout(void)
+{
+    pid_t pid;
+    const char *argv[] = { "10", NULL };
+    __block int status = 0;
+
+    pid = el_spawn_child_capture("sleep", argv, NULL, 10, NULL,
+    ^void (el_t ev, pid_t _pid, int _st, lstr_t _capture) {
+        status = _st;
+    }, NULL);
+
+    Z_ASSERT_N(pid);
+
+    for (int i = 0; i < 10; i++) {
+        el_loop_timeout(500);
+        if (status) {
+            /* Program should have been interrupted because of a timeout. */
+            int _status = status;
+
+            Z_ASSERT_EQ(_status, SIGINT);
+            return 0;
+        }
+        usleep(1000);
+    }
+    Z_ASSERT(false, "should have timedout");
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(el)
 {
     Z_TEST(fd_priority, "el: priority") {
@@ -2205,6 +2392,11 @@ Z_GROUP_EXPORT(el)
 
     Z_TEST(spawn_child, "el: spawn child") {
         Z_HELPER_RUN(z_spawn_child());
+    } Z_TEST_END;
+
+    Z_TEST(spawn_child_capture, "el: spawn child capture") {
+        Z_HELPER_RUN(z_spawn_child_capture());
+        Z_HELPER_RUN(z_spawn_child_capture_timeout());
     } Z_TEST_END;
 } Z_GROUP_END;
 

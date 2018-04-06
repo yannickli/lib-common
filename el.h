@@ -98,7 +98,7 @@ typedef void (el_worker_f)(int timeout);
 #ifdef __has_blocks
 typedef void (BLOCK_CARET el_cb_b)(el_t nonnull);
 typedef void (BLOCK_CARET el_signal_b)(el_t nonnull, int);
-typedef void (BLOCK_CARET el_child_b)(el_t nonnull, pid_t, int);
+typedef void (BLOCK_CARET el_child_b)(el_t nonnull, pid_t, int status);
 typedef int  (BLOCK_CARET el_fd_b)(el_t nonnull, int, short);
 typedef void (BLOCK_CARET el_proxy_b)(el_t nonnull, short);
 typedef void (BLOCK_CARET el_fs_watch_b)(el_t nonnull, uint32_t, uint32_t,
@@ -150,6 +150,33 @@ el_t nonnull el_child_register_blk(pid_t pid, el_child_b nonnull,
 pid_t el_spawn_child(const char * nonnull file, const char * nullable argv[],
                      const char * nullable envp[], block_t nullable child,
                      el_child_b nonnull blk, block_t nullable wipe);
+
+typedef void (BLOCK_CARET el_child_output_b)(el_t nonnull, pid_t, int status,
+                                             lstr_t output);
+
+/** Run a command in the background, capturing its output.
+ *
+ * \param[in]  file    the command to run.
+ * \param[in]  argv    the argument list available to the executed program,
+ *                     without the name of the program itself as the first
+ *                     argument.
+ * \param[in]  envp    the environment for the new process (optional).
+ * \param[in]  timeout if positive, maximum execution time of the command
+ *                     before it gets killed.
+ * \param[in]  child   optional callback to run in the child before exec.
+ * \param[in]  blk     the callback to run in the parent when the child exits
+ *                     it takes the child stdout/stderr capture as argument.
+ * \param[in]  wipe    optional block to wipe the environment of the callback.
+ *
+ * \return the pid
+ */
+pid_t el_spawn_child_capture(const char * nonnull file,
+                             const char * nullable argv[],
+                             const char * nullable envp[],
+                             int timeout,
+                             block_t nullable child,
+                             el_child_output_b nonnull blk,
+                             block_t nullable wipe);
 #endif
 
 static inline el_t nonnull
