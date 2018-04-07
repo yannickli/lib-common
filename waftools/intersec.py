@@ -87,39 +87,38 @@ def deploy_targets(ctx):
     """ Deploy the targets (using hard links) in the source directories once
         the build is done.
     """
-    for group in ctx.groups:
-        for tg in group:
+    for tgen in ctx.get_all_task_gen():
+        # Deploy only posted targets
+        if not getattr(tgen, 'posted', False):
+            continue
 
-            # Deploy only posted targets
-            if not getattr(tg, 'posted', False):
-                continue
+        # Deploy only C programs and shared libraries
+        features = getattr(tgen, 'features', [])
+        is_cprogram = 'cprogram' in features
+        is_cshlib = 'cshlib' in features
+        if not is_cprogram and not is_cshlib:
+            continue
 
-            # Deploy only C programs and shared libraries
-            features = getattr(tg, 'features', [])
-            is_cprogram = 'cprogram' in features
-            is_cshlib = 'cshlib' in features
-            if not is_cprogram and not is_cshlib:
-                continue
+        node = tgen.link_task.outputs[0]
 
-            node = tg.link_task.outputs[0]
+        if is_cprogram:
+            # Deploy C programs in the corresponding source directory
+            dst = node.get_src().abspath()
+        else:
+            # Deploy C shared library in the corresponding source
+            # directory, stripping the 'lib' prefix
+            assert (node.name.startswith('lib'))
+            name = node.name[len('lib'):]
+            dst = os.path.join(node.parent.get_src().abspath(), name)
 
-            if is_cprogram:
-                # Deploy C programs in the corresponding source directory
-                dst = node.get_src().abspath()
-            else:
-                # Deploy C shared library in the corresponding source
-                # directory, stripping the 'lib' prefix
-                assert (node.name.startswith('lib'))
-                name = node.name[len('lib'):]
-                dst = os.path.join(node.parent.get_src().abspath(), name)
+        # Remove possibly existing file, and create hard link
+        try:
+            os.remove(dst)
+        except OSError as exn:
+            if exn.errno != errno.ENOENT:
+                raise
+        os.link(node.abspath(), dst)
 
-            # Remove possibly existing file, and create hard link
-            try:
-                os.remove(dst)
-            except OSError as exn:
-                if exn.errno != errno.ENOENT:
-                    raise
-            os.link(node.abspath(), dst)
 
 # }}}
 
