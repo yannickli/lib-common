@@ -17,6 +17,7 @@ from itertools import chain
 
 import waflib.TaskGen as TaskGen
 
+from waflib.Build import BuildContext
 from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension
@@ -119,6 +120,20 @@ def deploy_targets(ctx):
                 raise
         os.link(node.abspath(), dst)
 
+# }}}
+# {{{ Run checks
+
+def run_checks(ctx):
+    if ctx.cmd == 'check':
+        # FIXME: have color output (cf. Build/_run_checks.sh / say_color)
+        cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0],
+                               ctx.launch_node().path_from(ctx.path))
+        if ctx.exec_command(cmd, stdout=None, stderr=None):
+            ctx.fatal('')
+
+class CheckClass(BuildContext):
+    '''run tests'''
+    cmd = 'check'
 
 # }}}
 

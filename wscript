@@ -26,7 +26,6 @@ import waftools.intersec as intersec
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
 #   - handle IOP deps
-#   - have a 'check' command
 #   - Fix various TODOs and FIXMEs in the wscript files
 
 # {{{ options
@@ -44,7 +43,14 @@ def configure(ctx):
     # Setup gcc as default compiler
     ctx.load('compiler_c')
 
+    # Scripts
+    ctx.find_program('_run_checks.sh',
+                     path_list=[os.path.join(ctx.path.abspath(), 'Build')],
+                     mandatory=True,
+                     var='RUN_CHECKS_SH')
     ctx.recurse('scripts')
+
+    # External programs
     ctx.find_program('gperf', mandatory=True)
 
     # External libraries
@@ -160,8 +166,9 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    # Register the deploy_target post function
+    # Register Intersec post functions
     ctx.add_post_fun(intersec.deploy_targets)
+    ctx.add_post_fun(intersec.run_checks)
 
     # Declare 3 build groups:
     #  - one for generating the build tools (iopc)
