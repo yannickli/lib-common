@@ -40,6 +40,8 @@ class IopcTest(z.TestCase):
         # specific language(s)
         if lang:
             iopc_args.append('-l' + lang)
+        else:
+            iopc_args.append('-lc')
 
         if class_id_range:
             iopc_args.append('--class-id-range')
