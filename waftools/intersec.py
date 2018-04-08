@@ -200,9 +200,9 @@ def process_fc(self, node):
 # {{{ IOP
 
 class Iop2c(Task):
-    # TODO: handle class ids range
     run_str = ('${IOPC} --Wextra --language c ' +
-               '-I .. ' + # TODO: properly handle include path
+               '${IOP_INCLUDES} ' +
+               '${IOP_CLASS_RANGE} ' +
                '-o ${TGT[0].parent.abspath()} ' +
                '${SRC[0].abspath()}')
     color   = 'BLUE'
@@ -215,9 +215,9 @@ class Iop2c(Task):
         node = self.inputs[0]
         depfile = node.change_ext('.iop.d').get_bld()
 
-        # TODO: properly handle include path
-        cmd = '{0} -I .. --depends {1} -o {2} {3}'
+        cmd = '{0} {1} --depends {2} -o {3} {4}'
         cmd = cmd.format(self.env.IOPC,
+                         self.env.IOP_INCLUDES,
                          depfile.abspath(),
                          self.outputs[0].parent.abspath(),
                          node.abspath())
@@ -233,15 +233,28 @@ class Iop2c(Task):
 
 @extension('.iop')
 def process_iop(self, node):
+    # Create iopc task
     c_node = node.change_ext('.iop.c')
     h_node = node.change_ext('.iop.h')
     tdef_h_node = node.change_ext('-tdef.iop.h')
     t_h_node = node.change_ext('-t.iop.h')
-
     task = self.create_task('Iop2c', node,
                             [c_node, h_node, tdef_h_node, t_h_node])
     task.set_run_after(self.env.IOPC_TASK)
     self.bld.add_to_group(task, 'code_generation')
     self.source.append(c_node)
+
+    # class id range
+    if hasattr(self, 'iop_class_range'):
+        class_range = self.iop_class_range
+        task.env.IOP_CLASS_RANGE = '--class-id-range={0}'.format(class_range)
+    else:
+        task.env.IOP_CLASS_RANGE = ''
+
+    # includes
+    if hasattr(self, 'iop_includes'):
+        task.env.IOP_INCLUDES = '-I{0}'.format(self.iop_includes)
+    else:
+        task.env.IOP_INCLUDES = ''
 
 # }}}
