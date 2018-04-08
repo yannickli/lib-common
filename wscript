@@ -25,7 +25,6 @@ import waftools.intersec as intersec
 #   - __FILE__ are wrong (this is why zchk executes no test)
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
-#   - handle IOP deps
 #   - Fix various TODOs and FIXMEs in the wscript files
 
 # {{{ options

@@ -18,7 +18,6 @@ from itertools import chain
 import waflib.TaskGen as TaskGen
 
 from waflib.Build import BuildContext
-from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension
 
@@ -201,15 +200,36 @@ def process_fc(self, node):
 # {{{ IOP
 
 class Iop2c(Task):
-    # TODO: handle depfiles
     # TODO: handle class ids range
-    run_str = ('${IOPC} --Wextra -l c ' +
+    run_str = ('${IOPC} --Wextra --language c ' +
                '-I .. ' + # TODO: properly handle include path
                '-o ${TGT[0].parent.abspath()} ' +
                '${SRC[0].abspath()}')
     color   = 'BLUE'
     ext_out = ['.h', '.c']
 
+    def scan(self):
+        """ Gets the dependencies of the current IOP file.
+            It uses the --depends command of iopc.
+        """
+        node = self.inputs[0]
+        depfile = node.change_ext('.iop.d').get_bld()
+
+        # TODO: properly handle include path
+        cmd = '{0} -I .. --depends {1} -o {2} {3}'
+        cmd = cmd.format(self.env.IOPC,
+                         depfile.abspath(),
+                         self.outputs[0].parent.abspath(),
+                         node.abspath())
+        if self.exec_command(cmd):
+            # iopc falied, run should fail too
+            return ([], None)
+
+        pfx = self.bld.path.abspath() + '/'
+        deps = depfile.read().splitlines()
+        deps = [self.bld.path.make_node(dep[len(pfx):]) for dep in deps]
+
+        return (deps, None)
 
 @extension('.iop')
 def process_iop(self, node):
