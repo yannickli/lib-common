@@ -446,8 +446,8 @@ def build(ctx):
                 source='ztst-qpscheck.blk',
                 use='libcommon', lib=['pthread', 'dl'])
 
-    ctx.program(target='ztst-qpscheck', features="c",
-                source='ztst-qpscheck.blk',
+    ctx.program(target='ztst-qpsstress', features="c",
+                source='ztst-qpsstress.blk',
                 use='libcommon', lib=['pthread', 'dl'])
 
     ctx.program(target='ztst-hattrie', features="c",
