@@ -775,6 +775,11 @@ int el_child_get_status(el_t ev)
     return ev->child.status;
 }
 
+el_t el_child_get_el(pid_t pid)
+{
+    return qm_get_def(ev_assoc, &_G.childs, pid, NULL);
+}
+
 pid_t el_spawn_child(const char *file, const char *argv_in[],
                      const char *envp[], block_t child, el_child_b blk,
                      block_t wipe)
