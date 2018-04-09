@@ -21,7 +21,6 @@ import waftools.intersec as intersec
 
 
 # FIXME:
-#   - waf build -v reports warnings about nodes created more than once
 #   - __FILE__ are wrong (this is why zchk executes no test)
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
@@ -169,16 +168,13 @@ def build(ctx):
     ctx.add_post_fun(intersec.deploy_targets)
     ctx.add_post_fun(intersec.run_checks)
 
-    # Declare 3 build groups:
-    #  - one for generating the build tools (iopc)
-    #  - one for generating the code (IOP files processing)
-    #  - one for compiling code after then.
+    # Declare 2 build groups:
+    #  - one for compiling the build tools (iopc)
+    #  - one for generating/compiling code after then.
     #
-    # This way we are sure IOPs are generated before the code using them
-    # is compiled. Refer to section "Building the compiler first" of the
-    # waf book.
+    # This way we are sure iopc is generated before building the IOP files.
+    # Refer to section "Building the compiler first" of the waf book.
     ctx.add_group('tools_generation')
-    ctx.add_group('code_generation')
     ctx.add_group('code_compiling')
 
     ctx.set_group('tools_generation')

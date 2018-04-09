@@ -240,8 +240,8 @@ def process_iop(self, node):
     t_h_node = node.change_ext('-t.iop.h')
     task = self.create_task('Iop2c', node,
                             [c_node, h_node, tdef_h_node, t_h_node])
+    task.bld = self.bld
     task.set_run_after(self.env.IOPC_TASK)
-    self.bld.add_to_group(task, 'code_generation')
     self.source.append(c_node)
 
     # class id range
