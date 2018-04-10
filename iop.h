@@ -845,6 +845,17 @@ void iop_filter_bitmap_apply(const iop_struct_t * nonnull st,
                              void * nonnull vec, int * nonnull len,
                              const byte * nonnull bitmap);
 
+/** Flags used by iop_dup and iop_copy functions. */
+typedef enum iop_copy_flags_t {
+    /** Use multiple allocations instead of using a single block.
+     *
+     * The memory pool must be a by-frame memory pool like mem_stack or
+     * ring_pool because we don't expect the user to free all the pointers
+     * manually.
+     */
+    IOP_COPY_MULTIPLE_ALLOC = 1 << 0,
+} iop_copy_flags_t;
+
 /** Duplicate an IOP structure.
  *
  * The resulting IOP structure will fully contained in one block of memory.
@@ -855,37 +866,45 @@ void iop_filter_bitmap_apply(const iop_struct_t * nonnull st,
  *               the libc malloc() will be used.
  * \param[in] st The IOP structure definition (__s).
  * \param[in] v  The IOP structure to duplicate.
+ * \param[in] flags The bitmap of \ref iop_copy_flags_t.
  * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void * nullable mp_iop_dup_desc_sz(mem_pool_t * nullable mp,
-                                   const iop_struct_t * nonnull st,
-                                   const void * nullable v,
-                                   size_t * nullable sz);
+void * nullable
+mp_iop_dup_desc_flags_sz(mem_pool_t * nullable mp,
+                         const iop_struct_t * nonnull st,
+                         const void * nullable v, unsigned flags,
+                         size_t * nullable sz);
 
-#define mp_iop_dup_sz(mp, pfx, v, sz)  ({                                    \
+static inline void * nullable
+mp_iop_dup_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
+                   const void * nullable v, size_t * nullable sz)
+{
+    return mp_iop_dup_desc_flags_sz(mp, st, v, 0, sz);
+}
+
+#define mp_iop_dup_flags_sz(mp, pfx, v, flags, sz)  ({                       \
         const pfx##__t *_id_v = (v);                                         \
                                                                              \
-        (pfx##__t *)mp_iop_dup_desc_sz((mp), &pfx##__s, (const void *)_id_v, \
-                                       (sz));                                \
+        (pfx##__t *)mp_iop_dup_desc_flags_sz((mp), &pfx##__s,                \
+                                             (const void *)_id_v, (flags),   \
+                                             (sz));                          \
     })
 
-#define mp_iop_dup(mp, pfx, v)  mp_iop_dup_sz((mp), pfx, (v), NULL)
-#define iop_dup(pfx, v)         mp_iop_dup(NULL, pfx, (v))
-#define t_iop_dup(pfx, v)       mp_iop_dup(t_pool(), pfx, (v))
-#define r_iop_dup(pfx, v)       mp_iop_dup(r_pool(), pfx, (v))
+#define mp_iop_dup_flags(mp, pfx, v, flags)                                  \
+    mp_iop_dup_flags_sz((mp), pfx, (v), (flags), NULL)
+#define iop_dup_flags(pfx, v, flags)                                         \
+    mp_iop_dup_flags(NULL, pfx, (v), (flags))
+#define t_iop_dup_flags(pfx, v, flags)                                       \
+    mp_iop_dup_flags(t_pool(), pfx, (v), (flags))
+#define r_iop_dup_flags(pfx, v, flags)                                       \
+    mp_iop_dup_flags(r_pool(), pfx, (v), (flags))
 
-/** Duplicate an IOP structure without trying to allocate it in a single
- * block.
- *
- * \param[in] mp  The memory pool to use for allocations (should only be
- *                by-frame memory pools like mem_stack or ring_pool because we
- *                don't expect the user to free all the pointers manually).
- * \param[in] st  The description of the IOP struct/union/class to duplicate.
- * \param[in] v   A pointer on the IOP struct/union/class to duplicate.
- */
-void *nullable mp_iop_dup_desc_multi_alloc(mem_pool_t *nonnull mp,
-                                           const iop_struct_t *nonnull st,
-                                           const void *nullable v);
+#define mp_iop_dup_sz(mp, pfx, v, sz)                                        \
+    mp_iop_dup_flags_sz((mp), pfx, (v), 0, (sz))
+#define mp_iop_dup(mp, pfx, v)  mp_iop_dup_flags((mp), pfx, (v), 0)
+#define iop_dup(pfx, v)         iop_dup_flags(pfx, (v), 0)
+#define t_iop_dup(pfx, v)       t_iop_dup_flags(pfx, (v), 0)
+#define r_iop_dup(pfx, v)       r_iop_dup_flags(pfx, (v), 0)
 
 /** Copy an IOP structure into another one.
  *
@@ -894,30 +913,53 @@ void *nullable mp_iop_dup_desc_multi_alloc(mem_pool_t *nonnull mp,
  *
  * Prefer the macro versions instead of this low-level API.
  *
- * \param[in] mp   The memory pool to use for the reallocation. If mp is NULL
- *                 the libc realloc() will be used.
- * \param[in] st   The IOP structure definition (__s).
- * \param[in] outp Pointer on the destination structure that will be
- *                 reallocated to retrieve the v IOP structure.
- * \param[in] v    The IOP structure to copy.
- * \param[out] sz If set, filled with the size of the allocated buffer.
+ * \param[in] mp    The memory pool to use for the reallocation. If mp is NULL
+ *                  the libc realloc() will be used.
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] outp  Pointer on the destination structure that will be
+ *                  reallocated to retrieve the v IOP structure.
+ * \param[in] v     The IOP structure to copy.
+ * \param[in] flags The bitmap of \ref iop_copy_flags_t.
+ * \param[out] sz   If set, filled with the size of the allocated buffer.
  */
-void mp_iop_copy_desc_sz(mem_pool_t * nullable mp,
-                         const iop_struct_t * nonnull st,
-                         void * nullable * nonnull outp,
-                         const void * nullable v, size_t * nullable sz);
+void mp_iop_copy_desc_flags_sz(mem_pool_t * nullable mp,
+                               const iop_struct_t * nonnull st,
+                               void * nullable * nonnull outp,
+                               const void * nullable v, unsigned flags,
+                               size_t * nullable sz);
 
-#define mp_iop_copy_sz(mp, pfx, outp, v, sz)  do {                           \
+static inline void
+mp_iop_copy_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
+                    void * nullable * nonnull outp, const void * nullable v,
+                    size_t * nullable sz)
+{
+    mp_iop_copy_desc_flags_sz(mp, st, outp, v, 0, sz);
+}
+
+#define mp_iop_copy_flags_sz(mp, pfx, outp, v, flags, sz)  do {              \
         pfx##__t **__outp = (outp);                                          \
         const pfx##__t *__v = (v);                                           \
                                                                              \
-        mp_iop_copy_desc_sz(mp, &pfx##__s, (void **)__outp,                  \
-                            (const void *)__v, (sz));                        \
+        mp_iop_copy_desc_flags_sz(mp, &pfx##__s, (void **)__outp,            \
+                                  (const void *)__v, (flags), (sz));         \
     } while (0)
 
-#define mp_iop_copy(mp, pfx, outp, v)  \
-    mp_iop_copy_sz((mp), pfx, (outp), (v), NULL)
-#define iop_copy(pfx, outp, v)  mp_iop_copy(NULL, pfx, (outp), (v))
+#define mp_iop_copy_flags(mp, pfx, outp, v, flags)                           \
+    mp_iop_copy_flags_sz((mp), pfx, (outp), (v), (flags), NULL)
+#define iop_copy_flags(pfx, outp, v, flags)                                  \
+    mp_iop_copy_flags(NULL, pfx, (outp), (v), (flags))
+#define t_iop_copy_flags(pfx, outp, v, flags)                                \
+    mp_iop_copy_flags(t_pool(), pfx, (outp), (v), (flags))
+#define r_iop_copy_flags(pfx, outp, v, flags)                                \
+    mp_iop_copy_flags(r_pool(), pfx, (outp), (v), (flags))
+
+#define mp_iop_copy_sz(mp, pfx, outp, v, sz)                                 \
+    mp_iop_copy_flags_sz((mp), pfx, (outp), (v), 0, (sz))
+#define mp_iop_copy(mp, pfx, outp, v)                                        \
+    mp_iop_copy_flags((mp), pfx, (outp), (v), 0)
+#define iop_copy(pfx, outp, v)    iop_copy_flags(pfx, (outp), (v), 0)
+#define t_iop_copy(pfx, outp, v)  t_iop_copy_flags(pfx, (outp), (v), 0)
+#define r_iop_copy(pfx, outp, v)  r_iop_copy_flags(pfx, (outp), (v), 0)
 
 /** Copy an iop object into another one.
  *
