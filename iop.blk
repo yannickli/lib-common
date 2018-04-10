@@ -1181,7 +1181,7 @@ void *mp_iop_new_desc(mem_pool_t *mp, const iop_struct_t *st)
 /* }}} */
 /* {{{ Duplicating values */
 
-static size_t iop_dup_size(const iop_struct_t *desc, const void *val);
+static size_t __iop_dup_class_size(const iop_struct_t *desc, const void *val);
 
 static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
 {
@@ -1242,7 +1242,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
                     }
                 }
                 if (is_class) {
-                    len += iop_dup_size(fdesc->u1.st_desc, v);
+                    len += __iop_dup_class_size(fdesc->u1.st_desc, v);
                 } else {
                     if (is_ref) {
                         len += ROUND_UP(fdesc->size, 8);
@@ -1260,17 +1260,22 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
     return len;
 }
 
+static size_t __iop_dup_class_size(const iop_struct_t *desc, const void *val)
+{
+    size_t len = 0;
+
+    desc = *(const iop_struct_t **)val;
+    do {
+        len += __iop_dup_size(desc, val);
+    } while ((desc = desc->class_attrs->parent));
+
+    return len;
+}
+
 static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
 {
     if (iop_struct_is_class(desc)) {
-        size_t len = 0;
-
-        desc = *(const iop_struct_t **)val;
-        do {
-            len += __iop_dup_size(desc, val);
-        } while ((desc = desc->class_attrs->parent));
-
-        return len;
+        return __iop_dup_class_size(desc, val);
     } else {
         return __iop_dup_size(desc, val);
     }
@@ -1442,24 +1447,58 @@ __mp_iop_copy_desc_flags_sz(mem_pool_t *mp, const iop_struct_t *st,
         st = *(const iop_struct_t **)v;
     }
 
-    if (flags & (IOP_COPY_MULTIPLE_ALLOC | IOP_COPY_SHALLOW)) {
-        sz = st->size;
-    } else {
-        sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
-    }
+    if (flags & IOP_COPY_NO_REALLOC) {
+        size_t offset = 0;
 
-    if (psz) {
-        *psz = sz;
-    }
+        e_assert(panic, outp && *outp, "IOP_COPY_NO_REALLOC require outp to "
+                 "point to an existing object");
 
-    if (outp) {
         res = *outp;
-        res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
-    } else {
-        res = mp_imalloc(mp, sz, 8, MEM_RAW);
-    }
+        if (is_class) {
+            e_assert(panic, iop_obj_is_a_desc(res, st),
+                     "existing outp object is not a `%*pM`",
+                     LSTR_FMT_ARG(st->fullname));
+            /* Skip the __vptr field. */
+            offset = sizeof(iop_struct_t *);
+        }
 
-    dst = realign(mempcpy(res, v, st->size));
+        if (flags & (IOP_COPY_MULTIPLE_ALLOC | IOP_COPY_SHALLOW)) {
+            sz = 0;
+        } else {
+            e_assert(panic, mp->mem_pool & MEM_BY_FRAME,
+                     "using IOP_COPY_NO_REALLOC on non frame-based memory "
+                     "pools without IOP_COPY_SHALLOW is forbidden");
+            sz = iop_dup_size(st, v);
+        }
+
+        memcpy(res + offset, (const uint8_t *)v + offset, st->size - offset);
+        dst = sz ? mp_imalloc(mp, sz, 8, MEM_RAW) : NULL;
+
+        if (!expect(!psz)) {
+            /* Size can be set only in realloc mode. */
+            *psz = 0;
+        }
+    } else {
+        if (flags & (IOP_COPY_MULTIPLE_ALLOC | IOP_COPY_SHALLOW)) {
+            sz = st->size;
+        } else {
+            sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
+        }
+
+        if (psz) {
+            *psz = sz;
+        }
+
+        if (outp) {
+            res = *outp;
+            res = mp_irealloc(mp, res, 0, sz, 8, MEM_RAW);
+            *outp = res;
+        } else {
+            res = mp_imalloc(mp, sz, 8, MEM_RAW);
+        }
+
+        dst = realign(mempcpy(res, v, st->size));
+    }
 
     if (!(flags & IOP_COPY_SHALLOW)) {
         if (!(flags & IOP_COPY_MULTIPLE_ALLOC)) {
@@ -1477,10 +1516,8 @@ __mp_iop_copy_desc_flags_sz(mem_pool_t *mp, const iop_struct_t *st,
         }
     }
 
-    assert ((flags & IOP_COPY_MULTIPLE_ALLOC) || dst == res + sz);
-    if (outp) {
-        *outp = res;
-    }
+    assert ((flags & (IOP_COPY_MULTIPLE_ALLOC | IOP_COPY_NO_REALLOC))
+         || dst == res + sz);
     return res;
 }
 

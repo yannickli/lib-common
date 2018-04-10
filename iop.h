@@ -861,6 +861,18 @@ typedef enum iop_copy_flags_t {
      * default, all fields of the structure are copied recursively.
      */
     IOP_COPY_SHALLOW = 1 << 1,
+
+    /** Do not perform reallocation of the output value on copy.
+     *
+     * For class instances, the output object must be initialized and the
+     * original __vptr of the output object is not modified.
+     *
+     * Like \ref IOP_COPY_MULTIPLE_ALLOC, the memory pool must be a by-frame
+     * memory pool if \ref IOP_COPY_SHALLOW is not used.
+     *
+     * This flag is not available for iop_dup functions.
+     */
+    IOP_COPY_NO_REALLOC = 1 << 2,
 } iop_copy_flags_t;
 
 /** Duplicate an IOP structure.
@@ -967,6 +979,33 @@ mp_iop_copy_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
 #define iop_copy(pfx, outp, v)    iop_copy_flags(pfx, (outp), (v), 0)
 #define t_iop_copy(pfx, outp, v)  t_iop_copy_flags(pfx, (outp), (v), 0)
 #define r_iop_copy(pfx, outp, v)  r_iop_copy_flags(pfx, (outp), (v), 0)
+
+/** Macros to copy an IOP structure value to an already allocated one.
+ *
+ * It uses \ref IOP_COPY_NO_REALLOC.
+ *
+ * Example:
+ *     value__t dst;
+ *
+ *     t_iop_copy_v(value, src, &dst);
+ */
+
+#define mp_iop_copy_v_flags(mp, pfx, out, v, flags)  do {                    \
+        pfx##__t *_out = (out);                                              \
+        unsigned _flags = (flags) | IOP_COPY_NO_REALLOC;                     \
+                                                                             \
+        mp_iop_copy_flags_sz((mp), pfx, &_out, (v), _flags, NULL);           \
+    } while (0)
+
+#define t_iop_copy_v_flags(pfx, out, v, flags)                               \
+    mp_iop_copy_v_flags(t_pool(), pfx, (out), (v), (flags))
+#define r_iop_copy_v_flags(pfx, out, v, flags)                               \
+    mp_iop_copy_v_flags(r_pool(), pfx, (out), (v), (flags))
+
+#define mp_iop_copy_v(mp, pfx, out, v)                                        \
+    mp_iop_copy_v_flags((mp), pfx, (out), (v), 0)
+#define t_iop_copy_v(pfx, out, v)  t_iop_copy_v_flags(pfx, (out), (v), 0)
+#define r_iop_copy_v(pfx, out, v)  r_iop_copy_v_flags(pfx, (out), (v), 0)
 
 /** Copy an iop object into another one.
  *

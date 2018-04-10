@@ -128,8 +128,9 @@ typedef enum z_test_dup_and_copy_flags_t {
     Z_TEST_DUP_AND_COPY_GET_SIZE = 1 << 2,
     Z_TEST_DUP_AND_COPY_MULTIPLE_ALLOC = 1 << 3,
     Z_TEST_DUP_AND_COPY_SHALLOW = 1 << 4,
+    Z_TEST_DUP_AND_COPY_NO_REALLOC = 1 << 5,
 
-    Z_TEST_DUP_AND_COPY_END = 1 << 5,
+    Z_TEST_DUP_AND_COPY_END = 1 << 6,
 } z_test_dup_and_copy_flags_t;
 
 #define _F(_fl)  ((z_flags) & Z_TEST_DUP_AND_COPY_##_fl)
@@ -154,6 +155,14 @@ static int z_test_dup_or_copy(const iop_struct_t *st, const void *v,
 
     if (_F(SHALLOW)) {
         flags |= IOP_COPY_SHALLOW;
+    }
+
+    if (_F(NO_REALLOC)) {
+        if (psz || _F(TEST_DUP) || (!mp && !_F(SHALLOW))) {
+            /* Skip invalid case */
+            return 0;
+        }
+        flags |= IOP_COPY_NO_REALLOC;
     }
 
     if (_F(TEST_DUP)) {
