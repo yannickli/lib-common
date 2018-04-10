@@ -122,31 +122,55 @@ z_check_iop_value_get_bpack_size(const tstiop__get_bpack_sz_u__t *u,
 /* }}} */
 /* {{{ zchk iop.dup_and_copy */
 
+typedef enum z_test_dup_and_copy_flags_t {
+    Z_TEST_DUP_AND_COPY_TEST_DUP = 1 << 0,
+    Z_TEST_DUP_AND_COPY_USE_POOL = 1 << 1,
+    Z_TEST_DUP_AND_COPY_GET_SIZE = 1 << 2,
+    Z_TEST_DUP_AND_COPY_MULTIPLE_ALLOC = 1 << 3,
+    Z_TEST_DUP_AND_COPY_SHALLOW = 1 << 4,
+
+    Z_TEST_DUP_AND_COPY_END = 1 << 5,
+} z_test_dup_and_copy_flags_t;
+
+#define _F(_fl)  ((z_flags) & Z_TEST_DUP_AND_COPY_##_fl)
+
 static int z_test_dup_or_copy(const iop_struct_t *st, const void *v,
-                              bool use_pool, bool get_size, bool test_dup,
-                              size_t exp_size)
+                              size_t exp_size, unsigned z_flags)
 {
     t_scope;
     void *res;
     size_t sz;
-    mem_pool_t *mp = use_pool ? t_pool() : NULL;
-    size_t *psz = get_size ? &sz : NULL;
+    mem_pool_t *mp = _F(USE_POOL) ? t_pool() : NULL;
+    size_t *psz = _F(GET_SIZE) ? &sz : NULL;
+    unsigned flags = 0;
 
-    if (test_dup) {
-        res = mp_iop_dup_desc_sz(mp, st, v, psz);
+    if (_F(MULTIPLE_ALLOC)) {
+        if (!mp || psz) {
+            /* Skip invalid case */
+            return 0;
+        }
+        flags |= IOP_COPY_MULTIPLE_ALLOC;
+    }
+
+    if (_F(SHALLOW)) {
+        flags |= IOP_COPY_SHALLOW;
+    }
+
+    if (_F(TEST_DUP)) {
+        res = mp_iop_dup_desc_flags_sz(mp, st, v, flags, psz);
     } else {
         res = mp_iop_new_desc(mp, st);
-        mp_iop_copy_desc_sz(mp, st, &res, v, psz);
+        mp_iop_copy_desc_flags_sz(mp, st, &res, v, flags, psz);
     }
     Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source");
-    if (use_pool && !psz) {
-        res = mp_iop_dup_desc_flags_sz(mp, st, v, IOP_COPY_MULTIPLE_ALLOC,
-                                       NULL);
-        Z_ASSERT_IOPEQUAL_DESC(st, res, v, "result differs from source "
-                               "(multi-alloc mode)");
-    }
-    if (psz) {
-        Z_ASSERT_EQ(*psz, exp_size, "size differs from expected");
+
+    if (_F(SHALLOW)) {
+        Z_ASSERT_EQ(memcmp(res, v, st->size), 0);
+    } else {
+        Z_ASSERT_NE(memcmp(res, v, st->size), 0);
+        if (psz) {
+            Z_ASSERT_EQ(*psz, exp_size, "size differs from expected");
+        }
     }
     mp_delete(mp, &res);
 
@@ -160,26 +184,22 @@ z_test_dup_and_copy(const iop_struct_t *st, const void *v)
     size_t exp_size;
 
     Z_ASSERT_P(mp_iop_dup_desc_sz(t_pool(), st, v, &exp_size));
-    for (int use_pool = 0; use_pool <= 1; use_pool++) {
-        for (int get_size = 0; get_size <= 1; get_size++) {
-            t_scope;
-            const char *info;
 
-            info = t_fmt("(use_pool=%s, get_size=%s)",
-                         use_pool ? "true" : "false",
-                         get_size ? "true" : "false");
-
-            Z_HELPER_RUN(z_test_dup_or_copy(st, v, use_pool, get_size, true,
-                                            exp_size),
-                         "duplication test failed %s", info);
-            Z_HELPER_RUN(z_test_dup_or_copy(st, v, use_pool, get_size, false,
-                                            exp_size),
-                         "copy test failed %s", info);
-        }
+    for (unsigned z_flags = 0; z_flags < Z_TEST_DUP_AND_COPY_END; z_flags++) {
+        Z_HELPER_RUN(z_test_dup_or_copy(st, v, exp_size, z_flags),
+                     "%s test failed (use_pool=%s, get_size=%s, shallow=%s, "
+                     "multiple_alloc=%s)",
+                     _F(TEST_DUP) ? "duplication" : "copy",
+                     _F(USE_POOL) ? "true" : "false",
+                     _F(GET_SIZE) ? "true" : "false",
+                     _F(MULTIPLE_ALLOC) ? "true" : "false",
+                     _F(SHALLOW)  ? "true" : "false");
     }
 
     Z_HELPER_END;
 }
+
+#undef _F
 
 /* }}} */
 /* {{{ zchk iop.equals_and_cmp */

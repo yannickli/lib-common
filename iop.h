@@ -854,6 +854,13 @@ typedef enum iop_copy_flags_t {
      * manually.
      */
     IOP_COPY_MULTIPLE_ALLOC = 1 << 0,
+
+    /** Perform a shallow copy instead of a default deep copy.
+     *
+     * Only the root structure fields are copied when using this flag. By
+     * default, all fields of the structure are copied recursively.
+     */
+    IOP_COPY_SHALLOW = 1 << 1,
 } iop_copy_flags_t;
 
 /** Duplicate an IOP structure.
