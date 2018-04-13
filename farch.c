@@ -49,26 +49,18 @@ static const lstr_t xor_array_g[] = {
 
 /* {{{ Public API */
 
-static void farch_xor(const char *in, int len, int xor_key, char *out)
-{
-    lstr_t xor_str = xor_array_g[xor_key];
-
-    for (int i = 0; i < len; i++) {
-        out[i] = in[i] ^ xor_str.s[i % xor_str.len];
-    }
-}
-
 void farch_obfuscate(const char *in, int len, int *xor_key, char *out)
 {
     int key = rand() % countof(xor_array_g);
 
     *xor_key = key;
-    farch_xor(in, len, key, out);
+    lstr_xor(LSTR_INIT_V(in, len), xor_array_g[key], LSTR_INIT_V(out, len));
 }
 
 static void unobfuscate(const char *in, int len, int xor_key, char *out)
 {
-    farch_xor(in, len, xor_key, out);
+    lstr_xor(LSTR_INIT_V(in, len), xor_array_g[xor_key],
+             LSTR_INIT_V(out, len));
 }
 
 static lstr_t t_farch_aggregate(const farch_entry_t *entry)
