@@ -168,6 +168,42 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_NULL(out.s);
     } Z_TEST_END;
 
+    Z_TEST(lstr_obfuscate, "str: lstr_obfuscate/lstr_unobfuscate") {
+        uint64_t keys[] = { 0, 1, 1234, 2327841961327486523LLU, UINT64_MAX };
+
+        STATIC_ASSERT (sizeof(buf) >= 3 * 16);
+        /* Check, for different key values that:
+         *   - obfuscation preserves the input (when different than output),
+         *   - obfuscation is not identity,
+         *   - obfuscation · unobfuscation is identity,
+         *   - obfuscating the same string with the same key yields the same
+         *     results,
+         *   - our functions work both with two different lstr and with the
+         *     same lstr given as input and output (inplace).
+         */
+        for (int i = 0; i < countof(keys); i++) {
+            lstr_t orig = LSTR_IMMED("intersec");
+            lstr_t obf = LSTR_INIT(buf, orig.len);
+            lstr_t unobf = LSTR_INIT(buf + 16, orig.len);
+            lstr_t inplace = LSTR_INIT(buf + 16 * 2, orig.len);
+
+            p_clear(&buf, 1);
+
+            lstr_obfuscate(orig, keys[i], obf);
+            Z_ASSERT_EQ(orig.len, obf.len);
+            Z_ASSERT(!lstr_equal(orig, obf));
+            lstr_unobfuscate(obf, keys[i], unobf);
+            Z_ASSERT_LSTREQUAL(orig, unobf);
+
+            memcpy(inplace.v, orig.s, orig.len);
+            Z_ASSERT_LSTREQUAL(orig, inplace);
+            lstr_obfuscate(inplace, keys[i], inplace);
+            Z_ASSERT_LSTREQUAL(obf, inplace);
+            lstr_unobfuscate(inplace, keys[i], inplace);
+            Z_ASSERT_LSTREQUAL(orig, inplace);
+        }
+    } Z_TEST_END;
+
     Z_TEST(utf8_stricmp, "str: utf8_stricmp test") {
 
 #define RUN_UTF8_TEST_(Str1, Str2, Strip, Val) \

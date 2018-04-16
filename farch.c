@@ -22,45 +22,19 @@ static struct {
 } farch_g;
 #define _G  farch_g
 
-static const lstr_t xor_array_g[] = {
-    LSTR_IMMED("error when writing CSV line: %m"),
-    LSTR_IMMED("cannot unlink [%*pM]: %m"),
-    LSTR_IMMED("cannot move [%*pM] to [%*pM]: %m"),
-    LSTR_IMMED("__builtin_expect(!!(var == *varp), 1) && \"pointer "
-               "corruption detected\""),
-    LSTR_IMMED("processing cuid block for file '%*pM'"),
-    LSTR_IMMED("duplicated column '%*pM' (note that column names are case "
-               "insensitive)"),
-    LSTR_IMMED("missing type column, file is not processed"),
-    LSTR_IMMED("Cell id column `%*pM` is not found, associated Cell uid "
-               "column '%*pM' will not be added"),
-    LSTR_IMMED("Cell uid column '%*pM' is already present, related uids will "
-               "not be updated."),
-    LSTR_IMMED("no associations found, file is not processed"),
-    LSTR_IMMED("cannot open file [%*pM]"),
-    LSTR_IMMED("error while closing output data file `%*pM`: %m"),
-    LSTR_IMMED("failed to parse file `%*pM` line %d (fid=%u)"),
-    LSTR_IMMED("not enough entries in CSV line: %d, line skipped"),
-    LSTR_IMMED("unsupported type `%*pM` in line %d, no cuid will be added"),
-    LSTR_IMMED("missing date in line %d, incoming file modification date is "
-               "set instead"),
-    LSTR_IMMED("error when parsing date column: %d"),
-};
-
 /* {{{ Public API */
 
 void farch_obfuscate(const char *in, int len, int *xor_key, char *out)
 {
-    int key = rand() % countof(xor_array_g);
+    int key = rand();
 
     *xor_key = key;
-    lstr_xor(LSTR_INIT_V(in, len), xor_array_g[key], LSTR_INIT_V(out, len));
+    lstr_obfuscate(LSTR_INIT_V(in, len), key, LSTR_INIT_V(out, len));
 }
 
 static void unobfuscate(const char *in, int len, int xor_key, char *out)
 {
-    lstr_xor(LSTR_INIT_V(in, len), xor_array_g[xor_key],
-             LSTR_INIT_V(out, len));
+    lstr_unobfuscate(LSTR_INIT_V(in, len), xor_key, LSTR_INIT_V(out, len));
 }
 
 static lstr_t t_farch_aggregate(const farch_entry_t *entry)
