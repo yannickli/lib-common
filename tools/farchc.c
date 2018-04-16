@@ -63,22 +63,19 @@ static void copy_dir(char *buf, int sz, const char *s)
     buf[len + 1] = '\0';
 }
 
-static void put_as_str(const char *data, int len, FILE *out)
+static void put_as_str(lstr_t chunk, FILE *out)
 {
-    for (int i = 0; i < len; i++) {
-        fprintf(out, "\\x%x", data[i]);
+    for (int i = 0; i < chunk.len; i++) {
+        fprintf(out, "\\x%x", chunk.s[i]);
     }
 }
 
-static void put_chunk(const char *data, int len, int xor_data_key, FILE *out)
+static void put_chunk(lstr_t chunk, FILE *out)
 {
-    fprintf(out, "{\n"
-            "    .chunk_size = %d,\n"
-            "    .xor_data_key = %d,\n"
-            "    .chunk = \"", len, xor_data_key);
-    put_as_str(data, len, out);
-    fprintf(out, "\",\n"
-            "},\n");
+    fprintf(out,
+            "    LSTR_IMMED(\"");
+    put_as_str(chunk, out);
+    fprintf(out, "\"),\n");
 }
 
 static int dump_and_obfuscate(const char *data, int len, FILE *out)
@@ -86,15 +83,17 @@ static int dump_and_obfuscate(const char *data, int len, FILE *out)
     int nb_chunk = 0;
 
     while (len > 0) {
-        char obfuscated_chunk[FARCH_MAX_SYMBOL_SIZE];
-        int xor_data_key;
-        int chunk_size;
+        char buffer[FARCH_MAX_SYMBOL_SIZE];
+        lstr_t obfuscated_chunk;
+        uint32_t chunk_size;
 
         chunk_size = rand_range(FARCH_MAX_SYMBOL_SIZE / 2,
                                 FARCH_MAX_SYMBOL_SIZE);
-        chunk_size = MIN(len, chunk_size);
-        farch_obfuscate(data, chunk_size, &xor_data_key, obfuscated_chunk);
-        put_chunk(obfuscated_chunk, chunk_size, xor_data_key, out);
+        chunk_size = MIN((uint32_t)len, chunk_size);
+        obfuscated_chunk = LSTR_INIT_V(buffer, chunk_size);
+        lstr_obfuscate(LSTR_INIT_V(data, chunk_size), chunk_size,
+                       obfuscated_chunk);
+        put_chunk(obfuscated_chunk, out);
         data += chunk_size;
         len -= chunk_size;
         nb_chunk++;
@@ -146,26 +145,24 @@ static void dump_entries(const char *archname,
     int chunk = 0;
 
     tab_for_each_ptr(entry, entries) {
-        char obfuscated_name[2 * PATH_MAX];
-        int xor_name_key;
-        int len = entry->name.len;
+        char buffer[2 * PATH_MAX];
+        lstr_t obfuscated_name = LSTR_INIT(buffer, entry->name.len);
 
-        farch_obfuscate(entry->name.s, len, &xor_name_key, obfuscated_name);
+        lstr_obfuscate(entry->name, entry->nb_chunks, obfuscated_name);
 
         fprintf(out, "/* {""{{ %*pM */\n", LSTR_FMT_ARG(entry->name));
         fprintf(out, "{\n"
                 "    .name = LSTR_IMMED(\"");
-        put_as_str(obfuscated_name, len, out);
+        put_as_str(obfuscated_name, out);
         fprintf(out, "\"),\n"
-                "    .data = &%s_data[%d],\n"
+                "    .chunks = &%s_data[%d],\n"
                 "    .size = %d,\n"
                 "    .compressed_size = %d,\n"
                 "    .nb_chunks = %d,\n"
-                "    .xor_name_key = %d,\n"
                 "},\n"
                 "/* }""}} */\n",
                 archname, chunk, entry->size, entry->compressed_size,
-                entry->nb_chunks, xor_name_key);
+                entry->nb_chunks);
         chunk += entry->nb_chunks;
     }
 }

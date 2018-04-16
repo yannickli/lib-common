@@ -24,19 +24,6 @@ static struct {
 
 /* {{{ Public API */
 
-void farch_obfuscate(const char *in, int len, int *xor_key, char *out)
-{
-    int key = rand();
-
-    *xor_key = key;
-    lstr_obfuscate(LSTR_INIT_V(in, len), key, LSTR_INIT_V(out, len));
-}
-
-static void unobfuscate(const char *in, int len, int xor_key, char *out)
-{
-    lstr_unobfuscate(LSTR_INIT_V(in, len), xor_key, LSTR_INIT_V(out, len));
-}
-
 static lstr_t t_farch_aggregate(const farch_entry_t *entry)
 {
     char *contents = t_new_raw(char, entry->compressed_size);
@@ -44,15 +31,15 @@ static lstr_t t_farch_aggregate(const farch_entry_t *entry)
     int compressed_size = 0;
 
     for (int i = 0; i < entry->nb_chunks; i++) {
-        const farch_data_t *chunk = &entry->data[i];
+        lstr_t chunk = entry->chunks[i];
+        lstr_t content_chunk = LSTR_INIT(tail, chunk.len);
 
-        compressed_size += chunk->chunk_size;
+        compressed_size += chunk.len;
         if (!expect(compressed_size <= entry->compressed_size)) {
             return LSTR_NULL_V;
         }
-        unobfuscate(chunk->chunk, chunk->chunk_size, chunk->xor_data_key,
-                    tail);
-        tail += chunk->chunk_size;
+        lstr_unobfuscate(chunk, chunk.len, content_chunk);
+        tail += chunk.len;
     }
 
     if (!expect(compressed_size == entry->compressed_size)) {
@@ -64,10 +51,12 @@ static lstr_t t_farch_aggregate(const farch_entry_t *entry)
 
 char *farch_get_filename(const farch_entry_t *entry, char *name)
 {
+    lstr_t out = LSTR_INIT(name, entry->name.len);
+
     if (!entry->name.s) {
         return NULL;
     }
-    unobfuscate(entry->name.s, entry->name.len, entry->xor_name_key, name);
+    lstr_unobfuscate(entry->name, entry->nb_chunks, out);
     name[entry->name.len] = '\0';
     return name;
 }
@@ -128,8 +117,8 @@ static lstr_t t_farch_unarchive(const farch_entry_t *entry)
     return res;
 
   error:
-    unobfuscate(entry->name.s, entry->name.len, entry->xor_name_key,
-                real_name);
+    lstr_unobfuscate(entry->name, entry->nb_chunks,
+                     LSTR_INIT_V(real_name, entry->name.len));
     real_name[entry->name.len] = '\0';
     e_panic("cannot uncompress farch entry `%s`", real_name);
 }
