@@ -93,6 +93,11 @@ ZReporter.prototype = {
     }
 };
 
+/* XXX: phantomJS has a bug on some tests, where a JIT-compiled function that
+ * uses a polyfill such as Number.isInteger will fail on the polyfill.
+ * Disable JIT to avoid such failures. */
+process.env.JSC_useJIT = 0;
+
 /* cf https://github.com/airportyh/testem/blob/master/docs/config_file.md#common-configuration-options */
 testem.startCI({
     file: file,
