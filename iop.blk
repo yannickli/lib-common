@@ -407,7 +407,7 @@ int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
 int iop_value_to_field(void *ptr, const iop_field_t *field,
                        const iop_value_t *value)
 {
-    ptr = (byte *)ptr + field->data_offs;
+    ptr = iop_field_get_ptr(field, ptr);
 
     return iop_value_to_ptr(ptr, field, value);
 }
@@ -454,138 +454,6 @@ void iop_set_opt_field(void *ptr, const iop_field_t *field)
         *(bool *)ptr = true;
         break;
     }
-}
-
-iop_struct_t *
-iop_type_vector_to_iop_struct(mem_pool_t *mp, lstr_t fullname,
-                              const qv_t(iop_field_info) *fields_info)
-{
-    iop_struct_t *st;
-    iop_field_t *field;
-    int *ranges;
-    int data_offs = 0;
-    int max_align = 1;
-    int len = fields_info->len;
-    int names_len = 0;
-    char *names;
-
-    if (!expect(len > 0)) {
-        return mp_dup(mp, &iop__void__s, 1);
-    }
-
-    tab_for_each_ptr(field_info, fields_info) {
-        names_len += field_info->name.len;
-    }
-
-    /* single allocation for output iop_struct_t */
-    st = mp_new_extra(mp, iop_struct_t, sizeof(iop_field_t) * len +
-                      3 * sizeof(int) +
-                      fullname.len * sizeof(char) +
-                      names_len * sizeof(char));
-    st->fields = (iop_field_t *)&st[1];
-    st->ranges = (int *)&st->fields[len];
-    ((lstr_t *)&st->fullname)->v = (char *)&st->ranges[3];
-    names = st->fullname.v + fullname.len;
-
-    /* fields */
-    field = (iop_field_t *)st->fields;
-    tab_for_each_ptr(field_info, fields_info) {
-        unsigned field_size = 1;
-        int field_align = 1;
-        iop_type_t type = field_info->type;
-        bool is_optional = field_info->repeat == IOP_R_OPTIONAL;
-        int tag;
-
-        switch (type) {
-          case IOP_T_I8:
-          case IOP_T_U8:
-          case IOP_T_BOOL:
-            field_size = is_optional ? sizeof(opt_i8_t) : 1;
-            field_align = is_optional ? alignof(opt_i8_t) : 1;
-            break;
-          case IOP_T_I16:
-          case IOP_T_U16:
-            field_size = is_optional ? sizeof(opt_i16_t) : 2;
-            field_align = is_optional ? alignof(opt_i16_t) : 2;
-            break;
-          case IOP_T_I32:
-          case IOP_T_U32:
-          case IOP_T_ENUM:
-            field_size = is_optional ? sizeof(opt_i32_t) : 4;
-            field_align = is_optional ? alignof(opt_i32_t) : 4;
-            break;
-          case IOP_T_I64:
-          case IOP_T_U64:
-          case IOP_T_DOUBLE:
-            field_size = is_optional ? sizeof(opt_i64_t) : 8;
-            field_align = is_optional ? alignof(opt_i64_t) : 8;
-            break;
-          case IOP_T_STRING:
-          case IOP_T_DATA:
-          case IOP_T_XML:
-            field_size = sizeof(lstr_t);
-            field_align = alignof(lstr_t);
-            break;
-          case IOP_T_STRUCT:
-          case IOP_T_UNION:
-            field_size = field_info->u1.st_desc->size;
-            field_align = field_size;
-            break;
-          case IOP_T_VOID:
-            /* type not handled */
-            assert (0);
-            break;
-        }
-
-        /* update alignement */
-        data_offs   = ROUND_UP(data_offs, field_align);
-        max_align   = MAX(max_align, field_align);
-
-        /* update field attributes */
-        tag = field - st->fields + 1;
-        *field = (iop_field_t){
-            .name      = LSTR_NULL,
-            .tag       = tag,
-            .tag_len   = (tag >= 30) + (tag >= 256),
-            .repeat    = field_info->repeat,
-            .type      = type,
-            .size      = field_size,
-            .data_offs = data_offs
-        };
-
-        /* set name */
-        field->name.s = names;
-        field->name.len = field_info->name.len;
-        p_copy(field->name.v, field_info->name.v, field_info->name.len);
-        names += field_info->name.len;
-
-        if (type == IOP_T_STRUCT || type == IOP_T_UNION) {
-            field->u1.st_desc = field_info->u1.st_desc;
-        } else
-        if (type == IOP_T_ENUM) {
-            field->u1.en_desc = field_info->u1.en_desc;
-        }
-
-        /* next */
-        data_offs += field_size;
-        field++;
-    }
-
-    /* ranges */
-    ranges = (int *)st->ranges;
-    ranges[0] = 0;
-    ranges[1] = 1;
-    ranges[2] = len;
-
-    /* build iop structure for record */
-    memcpy((void *)st->fullname.s, fullname.s, fullname.len);
-    *(int *)&st->fullname.len = fullname.len;
-
-    st->fields_len = len;
-    st->ranges_len = 1;
-    st->size       = ROUND_UP(data_offs, max_align);
-
-    return st;
 }
 
 lstr_t t_camelcase_to_c(lstr_t s)
@@ -1319,7 +1187,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
     }
 
     for (; fdesc < end; fdesc++) {
-        const void *ptr = (char *)val + fdesc->data_offs;
+        const void *ptr = iop_field_get_cptr(fdesc, val);
         bool is_class = iop_field_is_class(fdesc);
         bool is_ref   = iop_field_is_reference(fdesc);
         int n = 1;
@@ -2419,6 +2287,7 @@ static cmp_f iop_get_equal_fun_sql_like(iop_type_t type)
 }
 
 /*}}}*/
+/* {{{ iop_msort */
 
 typedef struct iop_sort_priv_t {
     field_path_t fp;
@@ -2543,6 +2412,211 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
     qv_init_static(&params, &param, 1);
     return iop_msort_desc(st, vec, len, &params, err);
 }
+
+/* }}} */
+/* {{{ IOP arbitrary sorting function */
+
+#define CMP_RETHROW(expr)                                                    \
+    do {                                                                     \
+        int __cmp_res = (expr);                                              \
+        THROW_IF(__cmp_res, __cmp_res);                                      \
+    } while (0)
+
+static size_t iop_scalar_type_get_size(iop_type_t type)
+{
+    static uint8_t sizes[] = {
+        [IOP_T_VOID]   = 0,
+        [IOP_T_BOOL]   = sizeof(bool),
+        [IOP_T_U8]     = sizeof(uint8_t),
+        [IOP_T_I8]     = sizeof(int8_t),
+        [IOP_T_U16]    = sizeof(uint16_t),
+        [IOP_T_I16]    = sizeof(int16_t),
+        [IOP_T_U32]    = sizeof(uint32_t),
+        [IOP_T_I32]    = sizeof(int32_t),
+        [IOP_T_ENUM]   = sizeof(int32_t),
+        [IOP_T_U64]    = sizeof(uint64_t),
+        [IOP_T_I64]    = sizeof(int64_t),
+        [IOP_T_DOUBLE] = sizeof(double),
+        [IOP_T_STRING] = sizeof(lstr_t),
+        [IOP_T_DATA]   = sizeof(lstr_t),
+        [IOP_T_XML]    = sizeof(lstr_t),
+    };
+
+    if (!iop_type_is_scalar(type)) {
+        e_panic("should not happen");
+    }
+
+    return sizes[type];
+}
+
+static int
+__iop_cmp(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
+{
+    const iop_field_t *fdesc;
+    const iop_field_t *end;
+
+    THROW_IF(v1 == v2, 0);
+
+    if (st->is_union) {
+        int tag_v1 = RETHROW(iop_union_get_tag(st, v1));
+        int tag_v2 = RETHROW(iop_union_get_tag(st, v2));
+
+        fdesc = get_union_field(st, v1);
+        if (tag_v1 != tag_v2) {
+            const iop_field_t *f2;
+
+            f2 = get_union_field(st, v2);
+            /* TODO Flag to compare tag only. */
+            CMP_RETHROW(lstr_utf8_icmp(fdesc->name, f2->name));
+            assert (false);
+
+            return CMP(tag_v1, tag_v2);
+        }
+        end   = fdesc + 1;
+    } else {
+        fdesc = st->fields;
+        end   = fdesc + st->fields_len;
+    }
+
+    for (; fdesc < end; fdesc++) {
+        const void *r1 = v1 + fdesc->data_offs;
+        const void *r2 = v2 + fdesc->data_offs;
+        int n = 1;
+        int n1 = 1;
+        int n2 = 1;
+
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            /* Here we just check the length of the repeated field, then we
+             * position our pointers on values to compare them later. */
+            n1   = ((iop_array_u8_t *)r1)->len;
+            n2   = ((iop_array_u8_t *)r2)->len;
+            r1  = ((iop_array_u8_t *)r1)->tab;
+            r2  = ((iop_array_u8_t *)r2)->tab;
+            n = MIN(n1, n2);
+        }
+
+        if (fdesc->repeat == IOP_R_OPTIONAL) {
+            /* Optional blocks types cannot be compared using a single memcmp
+             * we need to handle absent values first. */
+            bool has = iop_value_has(fdesc, r1);
+
+            CMP_RETHROW(CMP(has, iop_value_has(fdesc, r2)));
+            if (!has) {
+                continue;
+            }
+            if (!iop_type_is_scalar(fdesc->type)) {
+                /* Structures & unions must be dereferenced */
+                r1  = *(void **)r1;
+                r2  = *(void **)r2;
+            }
+        }
+
+        if (!iop_type_is_scalar(fdesc->type)) {
+            bool is_class = iop_field_is_class(fdesc);
+            bool is_ref   = iop_field_is_reference(fdesc);
+
+            /* We need to recurse to compare structures & unions. */
+            for (int i = 0; i < n; i++) {
+                const void *t1, *t2;
+
+                t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
+                t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+
+                if ((is_class || is_ref) && fdesc->repeat != IOP_R_OPTIONAL) {
+                    /* Non-optional class fields have to be dereferenced
+                     * (dereferencing of optional fields was already done just
+                     *  above).
+                     */
+                    t1  = *(void **)t1;
+                    t2  = *(void **)t2;
+                }
+                if (is_class) {
+                    CMP_RETHROW(iop_cmp_desc(fdesc->u1.st_desc, t1, t2));
+                } else {
+                    CMP_RETHROW(__iop_cmp(fdesc->u1.st_desc, t1, t2));
+                }
+            }
+        } else
+        if (fdesc->type == IOP_T_VOID) {
+            /* Two void fields are always equal if present. */
+            continue;
+        } else {
+            cmp_f cmp = iop_get_cmp_fun(fdesc->type);
+            uint8_t fsize = iop_scalar_type_get_size(fdesc->type);
+            const uint8_t *p1 = r1;
+            const uint8_t *p2 = r2;
+
+            for (int i = 0; i < n; i++) {
+                CMP_RETHROW(cmp(p1, p2));
+                p1 += fsize;
+                p2 += fsize;
+            }
+        }
+
+        CMP_RETHROW(CMP(n1, n2));
+    }
+
+    return 0;
+}
+
+int iop_cmp_desc(const iop_struct_t *st, const void *v1, const void *v2)
+{
+    if (!v1 || !v2) {
+        return st->size ? CMP(v1, v2) : 0;
+    }
+
+    if (iop_struct_is_class(st)) {
+        const iop_struct_t *st1 = *(const iop_struct_t **)v1;
+        const iop_struct_t *st2 = *(const iop_struct_t **)v2;
+
+        if (st1 != st2) {
+            /* TODO Have a flag to compare class IDs instead. */
+            CMP_RETHROW(lstr_utf8_icmp(st1->fullname, st2->fullname));
+            assert (false);
+
+            return CMP(st1, st2);
+        }
+
+        do {
+            CMP_RETHROW(__iop_cmp(st, v1, v2));
+        } while ((st = st->class_attrs->parent));
+
+        return 0;
+    }
+
+    return __iop_cmp(st, v1, v2);
+}
+
+#undef CMP_RETHROW
+
+static void
+__iop_xsort_desc(const iop_struct_t *st, void *vec, int len, bool pointed)
+{
+    __qv_sort(vec, pointed ? sizeof(void *) : st->size, len,
+        ^int (const void *d1, const void *d2) {
+            if (pointed) {
+                d1 = *(void **)d1;
+                d2 = *(void **)d2;
+            }
+
+            return iop_cmp_desc(st, d1, d2);
+        });
+}
+
+void iop_xsort_desc(const iop_struct_t *st, void *vec, int len)
+{
+    __iop_xsort_desc(st, vec, len, iop_struct_is_class(st));
+}
+
+void iop_xpsort_desc(const iop_struct_t *st, const void **vec, int len)
+{
+    __iop_xsort_desc(st, vec, len, true);
+}
+
+/* }}} */
+
+/* }}} */
+/* {{{ Filtering values */
 
 static bool iop_filter_is_value_allowed(const void *val,
                                         void * const * allowed_values,
@@ -6459,6 +6533,7 @@ backward_compat_build_tables(uint32_t table_bin[IOP_T_max + 1],
 
 static bool _iop_struct_is_optional(const iop_struct_t *st,
                                     bool forbid_abstract,
+                                    bool check_parents,
                                     iop_compat_ctx_t *ctx);
 
 static int
@@ -6512,7 +6587,7 @@ iop_field_check_backward_compat(const iop_field_t *f1,
     if ((f1->repeat == IOP_R_DEFVAL || f1->repeat == IOP_R_OPTIONAL)
     &&  f2->repeat == IOP_R_REQUIRED && f2->type != IOP_T_VOID
     &&  (f2->type != IOP_T_STRUCT
-         || !_iop_struct_is_optional(f2->u1.st_desc, true, ctx)))
+         || !_iop_struct_is_optional(f2->u1.st_desc, true, true, ctx)))
     {
         iop_compat_add_err(ctx, "is required and was not before");
         return -1;
@@ -6607,7 +6682,7 @@ check_parent_required_fields(const qv_t(iop_struct) *parents,
 
             if (f->repeat == IOP_R_REQUIRED
             &&  (f->type != IOP_T_STRUCT
-              || !_iop_struct_is_optional(f->u1.st_desc, true, ctx)))
+              || !_iop_struct_is_optional(f->u1.st_desc, true, true, ctx)))
             {
                 iop_compat_add_err(ctx, "class `%*pM` was added in the "
                                    "parents with a required field `%*pM`",
@@ -6724,7 +6799,7 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
 }
 
 bool _iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
-                             iop_compat_ctx_t *ctx)
+                             bool check_parents, iop_compat_ctx_t *ctx)
 {
     if (forbid_abstract && iop_struct_is_class(st)
     &&  st->class_attrs->is_abstract)
@@ -6743,14 +6818,14 @@ bool _iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
             continue;
         }
         if (f->type != IOP_T_STRUCT
-        ||  !_iop_struct_is_optional(f->u1.st_desc, true, ctx))
+        ||  !_iop_struct_is_optional(f->u1.st_desc, true, true, ctx))
         {
             return false;
         }
     }
 
-    if (iop_struct_is_class(st) && st->class_attrs->parent
-    &&  !_iop_struct_is_optional(st->class_attrs->parent, false, ctx))
+    if (check_parents && iop_struct_is_class(st) && st->class_attrs->parent
+    &&  !_iop_struct_is_optional(st->class_attrs->parent, false, true, ctx))
     {
         return false;
     }
@@ -6759,13 +6834,13 @@ bool _iop_struct_is_optional(const iop_struct_t *st, bool forbid_abstract,
     return true;
 }
 
-bool iop_struct_is_optional(const iop_struct_t *st)
+bool iop_struct_is_optional(const iop_struct_t *st, bool check_parents)
 {
     iop_compat_ctx_t ctx;
     int ret;
 
     iop_compat_ctx_init(&ctx);
-    ret = _iop_struct_is_optional(st, false, &ctx);
+    ret = _iop_struct_is_optional(st, false, check_parents, &ctx);
     iop_compat_ctx_wipe(&ctx);
     return ret;
 }
@@ -6809,7 +6884,7 @@ __backward_compat_check_new_field(const iop_struct_t *st1,
     }
 
     if (f2->type == IOP_T_STRUCT
-    &&  _iop_struct_is_optional(f2->u1.st_desc, true, ctx))
+    &&  _iop_struct_is_optional(f2->u1.st_desc, true, true, ctx))
     {
         return 0;
     }

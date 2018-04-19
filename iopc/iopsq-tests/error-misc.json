@@ -11,6 +11,24 @@
         } ]
     }, {
         "_class": "iopsq.Struct",
+        "name": "invalidStructTypeName",
+        "fields": []
+    }, {
+        "_class": "iopsq.Union",
+        "name": "invalidUnionTypeName",
+        "fields": [ {
+            "name": "f1",
+            "type": {
+                "typeName": "int"
+            },
+            "tag": 42
+        } ]
+    }, {
+        "_class": "iopsq.Enum",
+        "name": "invalidEnumTypeName",
+        "values": []
+    }, {
+        "_class": "iopsq.Struct",
         "name": "MultiDimensionArray",
         "fields": [ {
             "name": "multiArray",

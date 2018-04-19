@@ -378,12 +378,15 @@ def build(ctx):
             'zchk-snmp.c',
             'zchk-time.c',
             'zchk-unix.c',
+            'zchk-farch.c',
             'zchk-file-log.c',
             'zchk-module.c',
             'zchk-mem.c',
             'zchk-iop-ressources.c',
             'zchk-core-obj.c',
             'zchk-xmlpp.c',
+
+            'zchk-farch.fc',
 
             'zchk-container.blk',
             'zchk-hat.blk',

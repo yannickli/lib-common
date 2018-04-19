@@ -698,6 +698,40 @@ int iop_msort_desc(const iop_struct_t * nonnull st, void * nonnull vec,
         iop_msort_desc(&pfx##__s, (void *)__vec, (len), (params), (err));    \
     })
 
+/** Compare two IOPs in an arbitrary way. */
+int iop_cmp_desc(const iop_struct_t *nonnull st,
+                 const void *nullable v1, const void *nullable v2);
+
+#define iop_cmp(pfx, st1, st2)  ({                                           \
+        const pfx##__t *__st1 = (st1);                                       \
+        const pfx##__t *__st2 = (st2);                                       \
+                                                                             \
+        iop_cmp_desc(&pfx##__s, __st1, __st2);                               \
+    })
+
+/** Sort an IOP vector following an arbitrary order.
+ *
+ * \warning The array will be considered as an array of pointers iff the
+ *          struct is a class. If the input is an user-built array of struct
+ *          or unions, please use \ref iop_xpsort_desc.
+ */
+void iop_xsort_desc(const iop_struct_t *nonnull st,
+                    void *nonnull vec, int len);
+
+/** Sort an IOP vector of pointers following an arbitrary order. */
+void iop_xpsort_desc(const iop_struct_t *nonnull st,
+                     const void *nonnull *nonnull vec, int len);
+
+#define iop_xsort(pfx, vec, len)  ({                                         \
+        pfx##__t *__vec = (vec);                                             \
+        iop_xsort_desc(&pfx##__s, (void *)__vec, (len));                     \
+    })
+
+#define iop_xpsort(pfx, vec, len)  ({                                        \
+        const pfx##__t **__vec = (vec);                                      \
+        iop_xpsort_desc(&pfx##__s, (const void **)__vec, (len));             \
+    })
+
 /** Flags for IOP filter. */
 enum iop_filter_flags {
     /** Perform a SQL-like pattern matching for strings. */
@@ -1030,6 +1064,28 @@ iop_get_field(const void * nullable ptr, const iop_struct_t * nonnull st,
               lstr_t path, const void * nullable * nullable out_ptr,
               const iop_struct_t * nullable * nullable out_st);
 
+/** Get a pointer on the C field associated to a given IOP field.
+ *
+ * \param[in] f       The IOP field description.
+ *
+ * \param[in] st_ptr  Pointer on the struct/union/class instance containing
+ *                    the field.
+ *
+ * \return The pointer on the C field.
+ */
+static inline void *nonnull
+iop_field_get_ptr(const iop_field_t *nonnull f, void *nonnull st_ptr)
+{
+    return ((byte *)st_ptr) + f->data_offs;
+}
+
+/** Constant version of \ref iop_field_get_ptr. */
+static inline const void *nonnull
+iop_field_get_cptr(const iop_field_t *nonnull f, const void *nonnull sptr)
+{
+    return ((const byte *)sptr) + f->data_offs;
+}
+
 /** Get the value(s) associated to a given IOP field.
  *
  * Efficient IOP field value getter that allows to abstract the fact that the
@@ -1152,34 +1208,6 @@ size_t iop_get_len_bpack_size(uint32_t length);
  */
 void iop_set_opt_field(void * nonnull ptr, const iop_field_t * nonnull field);
 
-/** Used for iop_type_vector_to_iop_struct function.
- */
-typedef struct iop_field_info_t {
-    lstr_t       name;
-    iop_type_t   type;
-    iop_repeat_t repeat;
-    union {
-        const iop_struct_t * nonnull st_desc;
-        const iop_enum_t   * nonnull en_desc;
-    } u1;
-} iop_field_info_t;
-
-qvector_t(iop_field_info, iop_field_info_t);
-
-/** Get an IOP struct from a vector of IOP type. Does not work with types
- * IOP_T_STRUCT, IOP_T_UNION and IOP_T_ENUM.
- *
- * \param[in]  fullname    The full name of the IOP struct.
- * \param[in]  types       The vector of IOP types.
- * \param[in]  fields_name The vector of fields name corresponding to the types.
- *
- * \return the IOP struct.
-*/
-iop_struct_t * nonnull
-iop_type_vector_to_iop_struct(mem_pool_t * nullable mp, lstr_t fullname,
-                              const qv_t(iop_field_info) * nonnull fields_info);
-
-
 /** Private intermediary structure for IOP struct/union formatting. */
 struct iop_struct_value {
     /* Struct/union description, can be null only when the element is an
@@ -1222,6 +1250,13 @@ struct iop_struct_value {
 #define IOP_ST_FMT_ARG(pfx, _val)                                            \
     IOP_ST_FMT_ARG_FLAGS(pfx, _val,                                          \
                          IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
+
+/** Same as \ref IOP_ST_FMT_ARG_FLAGS but with explicit description pointer.
+ */
+#define IOP_ST_DESC_FMT_ARG_FLAGS(desc, _val, _flags)                        \
+    (_flags), &(struct iop_struct_value){                                    \
+        .st = desc,                                                          \
+        .val = (_val) }
 
 /** Provide the appropriate arguments to the %*pU modifier.
  *
@@ -2217,8 +2252,12 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t * nonnull pkg1,
  * Get whether a struct is optional or not. A struct is optional if it
  * contains no mandatory fields (ie. it only contains arrays, optional fields
  * or fields with a default value).
+ *
+ * If \ref check_parents is false, parent classes are not checked if \ref st
+ * is a class.
  */
-bool iop_struct_is_optional(const iop_struct_t *nonnull st);
+bool iop_struct_is_optional(const iop_struct_t *nonnull st,
+                            bool check_parents);
 
 /* }}} */
 

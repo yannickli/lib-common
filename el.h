@@ -137,7 +137,9 @@ el_t nonnull el_child_register_blk(pid_t pid, el_child_b nonnull,
 /** Run a command in the background.
  *
  * \param[in]  file    the command to run.
- * \param[in]  argv    the argument list available to the executed program.
+ * \param[in]  argv    the argument list available to the executed program,
+ *                     without the name of the program itself as the first
+ *                     argument.
  * \param[in]  envp    the environment for the new process (optional).
  * \param[in]  child   optional callback to run in the child before exec.
  * \param[in]  blk     the callback to run in the parent when the child exits.

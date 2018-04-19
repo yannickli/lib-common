@@ -406,6 +406,15 @@ Z_GROUP_EXPORT(iopsq) {
             /* TODO Detect the bad type name instead. */
             "failed to resolve the package: error: "
                 "unable to find any pkg providing type `foo..Bar`",
+            "invalid package `user_package': invalid struct name: "
+                "`invalidStructTypeName': "
+                "first character should be uppercase",
+            "invalid package `user_package': invalid union name: "
+                "`invalidUnionTypeName': "
+                "first character should be uppercase",
+            "invalid package `user_package': invalid enum name: "
+                "`invalidEnumTypeName': "
+                "first character should be uppercase",
             "invalid package `user_package': "
                 "cannot load `MultiDimensionArray': field `multiArray': "
                 "multi-dimension arrays are not supported",
@@ -437,9 +446,9 @@ Z_GROUP_EXPORT(iopsq) {
                 "error: unable to find any pkg providing type `Unknown`",
             "invalid package `user_package': "
                 "cannot load `LowercaseTypeName': "
-                "field `lowercaseTypeName': type name `lowercase': "
-                "invalid type name: "
-                "first field name character should be uppercase",
+                "field `lowercaseTypeName': "
+                "invalid type name: `lowercase': "
+                "first character should be uppercase",
             "invalid package `user_package': cannot load `UppercaseField': "
                 "field `UppercaseField': "
                 "first field name character should be lowercase",

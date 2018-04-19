@@ -371,6 +371,7 @@ struct StructJpackFlags {
     int? opt;
     int def = 1;
     int[] rep;
+    MyClass1? myClass;
 };
 
 class JpackEmptyClsA {
@@ -719,6 +720,14 @@ struct FilteredStruct {
     ubyte d = 4;
     int[] c;
     string s = "test";
+};
+
+/* }}} */
+/* {{{ zchk iop.xsort_and_xpsort */
+
+struct XsortStruct {
+    ubyte a;
+    string s;
 };
 
 /* }}} */

@@ -226,6 +226,8 @@ zchk_SOURCES = zchk.c \
 	zchk-core-obj.c \
 	zchk-thrjob.blk \
 	zchk-xmlpp.c \
+	zchk-farch.fc \
+	zchk-farch.c \
 	\
 	$ltest-data/snmp/snmp_test.iop \
 	$ltest-data/snmp/snmp_test_doc.iop \
