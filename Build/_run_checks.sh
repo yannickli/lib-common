@@ -24,10 +24,11 @@ libcommondir=$(dirname "$(dirname "$($readlink -f "$0")")")
 shift
 BEHAVE_FLAGS="${BEHAVE_FLAGS:-}"
 
-if test "$TERM" != "dumb" -a -t 1 &&
+if test "$TERM" == "vt100" || # waf sets $TERM to vt100 when enabling colors
+   (test "$TERM" != "dumb" -a -t 1 &&
     tput bold >/dev/null 2>&1 &&
     tput setaf 1 >/dev/null 2>&1 &&
-    tput sgr0 >/dev/null 2>&1
+    tput sgr0 >/dev/null 2>&1)
 then
     say_color()
     {

@@ -124,7 +124,6 @@ def deploy_targets(ctx):
 
 def run_checks(ctx):
     if ctx.cmd == 'check':
-        # FIXME: have color output (cf. Build/_run_checks.sh / say_color)
         cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0],
                                ctx.launch_node().path_from(ctx.path))
         if ctx.exec_command(cmd, stdout=None, stderr=None):
