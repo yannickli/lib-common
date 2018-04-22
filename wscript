@@ -99,6 +99,9 @@ def configure(ctx):
         '-DWAF_MODE',
         '-fPIC',
     ]
+    ctx.env.LINKFLAGS_cprogram = [
+        '-Wl,--export-dynamic',
+    ]
 
     # Find clang for blk
     ctx.env.CLANG = ctx.find_program('clang')
@@ -362,9 +365,6 @@ def build(ctx):
     # }}}
     # {{{ zchk and ztst-*
 
-    # FIXME: iop.iop_dso_fixup and iop.iop_dso_fixup_bad_dep are skipped
-    #        because zchk-tstiop2-plugin.so fails to be dlopened:
-    #        undefined symbol: tstiop__my_struct_a__s
     ctx.program(target='zchk',
         source=[
             'zchk.c',
