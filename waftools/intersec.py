@@ -64,7 +64,7 @@ def process_whole(self):
 
     # Patch the LINKFLAGS to enter in whole archive mode...
     self.env.append_value('LINKFLAGS',
-                          '-Wl,-Bstatic,--as-needed,--whole-archive')
+                          '-Wl,--as-needed,--whole-archive')
 
     for name in use_whole:
         # ...add the whole archive libraries...
