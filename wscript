@@ -97,7 +97,6 @@ def configure(ctx):
         '-I/usr/include/valgrind',
         '-DHAS_LIBCOMMON_REPOSITORY=0',
         '-DWAF_MODE',
-        '-fPIC',
     ]
     ctx.env.LINKFLAGS_cprogram = [
         '-Wl,--export-dynamic',
