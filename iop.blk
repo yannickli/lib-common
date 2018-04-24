@@ -1535,21 +1535,6 @@ void mp_iop_copy_desc_flags_sz(mem_pool_t *mp, const iop_struct_t *st,
     __mp_iop_copy_desc_flags_sz(mp, st, outp, v, flags, psz);
 }
 
-void mp_iop_obj_copy(mem_pool_t *mp, void *out, const void *v, unsigned flags)
-{
-    size_t offset = sizeof(iop_struct_t *);
-    const iop_struct_t *v_desc = *(const iop_struct_t **)v;
-
-    assert (iop_obj_is_a_desc(out, v_desc));
-
-    if (flags & IOP_OBJ_DEEP_COPY) {
-        assert (0 && "DEEP COPY UNIMPLEMENTED");
-    }
-
-    memcpy((char *)out + offset, (const char *)v + offset,
-           v_desc->size - offset);
-}
-
 /* }}} */
 /* {{{ Comparing values */
 

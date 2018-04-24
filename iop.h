@@ -925,6 +925,12 @@ mp_iop_dup_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
 #define t_iop_dup(pfx, v)       t_iop_dup_flags(pfx, (v), 0)
 #define r_iop_dup(pfx, v)       r_iop_dup_flags(pfx, (v), 0)
 
+#define mp_iop_shallow_dup(mp, pfx, v)                                       \
+    mp_iop_dup_flags((mp), pfx, (v), IOP_COPY_SHALLOW)
+#define iop_shallow_dup(pfx, v)    mp_iop_shallow_dup(NULL, pfx, (v))
+#define t_iop_shallow_dup(pfx, v)  mp_iop_shallow_dup(t_pool(), pfx, (v))
+#define r_iop_shallow_dup(pfx, v)  mp_iop_shallow_dup(r_pool(), pfx, (v))
+
 /** Copy an IOP structure into another one.
  *
  * The destination IOP structure will reallocated to handle the source
@@ -1007,20 +1013,9 @@ mp_iop_copy_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
 #define t_iop_copy_v(pfx, out, v)  t_iop_copy_v_flags(pfx, (out), (v), 0)
 #define r_iop_copy_v(pfx, out, v)  r_iop_copy_v_flags(pfx, (out), (v), 0)
 
-/** Copy an iop object into another one.
- *
- * The destination should be an object of same or child type of the source.
- *
- * \param[in] mp    The memory pool to use in case of deep copy
- * \param[in] out   The destination IOP object address.
- * \param[in] v     The IOP object address to copy, its class type should be
- *                  an ancestor of the class type of out.
- * \param[in] flags Flags controling the copy
- *                  IOP_OBJ_DEEP_COPY: if set, data of v is duplicated
- */
-#define IOP_OBJ_DEEP_COPY  (1 << 0)
-void mp_iop_obj_copy(mem_pool_t * nullable mp, void * nonnull out,
-                     const void * nonnull v, unsigned flags);
+/* This macro does not perform any allocations. */
+#define iop_shallow_copy_v(pfx, out, v)                                      \
+    mp_iop_copy_v_flags(NULL, pfx, (out), (v), IOP_COPY_SHALLOW)
 
 /** Generate a signature of an IOP structure.
  *
