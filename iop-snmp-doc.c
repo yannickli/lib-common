@@ -447,8 +447,9 @@ static void doc_parseopt(int argc, char **argv, lstr_t *output_notif,
 
     argc = parseopt(argc, argv, popt_g, 0);
     if (argc != 2 || _G.help) {
-        makeusage(EX_USAGE, arg0, "<output-notifications-file> "
-                  "<output-objects-file>", NULL, popt_g);
+        makeusage(_G.help ? EX_OK : EX_USAGE, arg0,
+                  "<output-notifications-file> <output-objects-file>",
+                  NULL, popt_g);
     }
     *output_notif  = LSTR(NEXTARG(argc, argv));
     *output_object = LSTR(NEXTARG(argc, argv));

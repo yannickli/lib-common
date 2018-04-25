@@ -764,7 +764,7 @@ static void mib_parseopt(int argc, char **argv)
 
     argc = parseopt(argc, argv, popt_g, 0);
     if (argc != 0 || _G.help) {
-        makeusage(EX_USAGE, arg0, "", NULL, popt_g);
+        makeusage(_G.help ? EX_OK : EX_USAGE, arg0, "", NULL, popt_g);
     }
 }
 

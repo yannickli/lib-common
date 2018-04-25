@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     argc = parseopt(argc, argv, popt, 0);
 
     if (argc != 0 || _G.help || !_G.old_dso || !_G.new_dso) {
-        makeusage(EX_USAGE, arg0, "", usage, popt);
+        makeusage(_G.help ? EX_OK : EX_USAGE, arg0, "", usage, popt);
     }
 
     mode = _G.mode ? LSTR(_G.mode) : LSTR_EMPTY_V;

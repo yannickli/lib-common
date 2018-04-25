@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     argc = parseopt(argc, argv, popts, 0);
     if (argc != 0 || _G.help)
-        makeusage(EX_USAGE, arg0, "", NULL, popts);
+        makeusage(_G.help ? EX_OK : EX_USAGE, arg0, "", NULL, popts);
 
     if (_G.wsdl) {
         SB_8k(sb);
