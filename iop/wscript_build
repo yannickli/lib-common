@@ -41,8 +41,8 @@ ctx.stlib(target='tstiop2', features='c cstlib', source=[
 
 bld.shlib(target='zchk-tstiop-plugin', source=[
     'tstiop-plugin.c',
-], includes='.', use='libcommon tstiop')
+], use='libcommon tstiop')
 
 ctx.shlib(target='zchk-tstiop2-plugin', source=[
     'tstiop2-plugin.c',
-], includes='.', use='libcommon tstiop2')
+], use='libcommon tstiop2')

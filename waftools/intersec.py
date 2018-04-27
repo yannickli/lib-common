@@ -20,6 +20,8 @@ import waflib.TaskGen as TaskGen
 from waflib.Build import BuildContext
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension
+from waflib.Tools import c
+from waflib.Tools import ccroot
 
 
 # {{{ depends_on
@@ -66,6 +68,8 @@ def process_whole(self):
     self.env.append_value('LINKFLAGS',
                           '-Wl,--as-needed,--whole-archive')
 
+    cwd = self.get_cwd()
+
     for name in use_whole:
         # ...add the whole archive libraries...
         lib_task = self.bld.get_tgen_by_name(name)
@@ -74,11 +78,40 @@ def process_whole(self):
         # TODO: filter STLIB_PATH by removing unused ones.
         self.env.append_value(
             'LINKFLAGS',
-            list(chain.from_iterable(('-Xlinker', p.relpath())
+            list(chain.from_iterable(('-Xlinker', p.path_from(cwd))
                                      for p in lib_task.link_task.outputs)))
 
     # ...and close the whole archive mode
     self.env.append_value('LINKFLAGS', '-Wl,--no-whole-archive')
+
+# }}}
+# {{{ Execute commands from project root
+
+'''
+The purpose of this section is to execute the compiler's commands from the
+project root instead of the project build directory.
+This is important for us because some code (for example the Z tests
+registration) relies on the value of the __FILE__ macro.
+'''
+
+def register_get_cwd():
+    def get_cwd(self):
+        return self.env.PROJECT_ROOT
+
+    c.c.get_cwd = get_cwd
+    ccroot.link_task.get_cwd = get_cwd
+    TaskGen.task_gen.get_cwd = get_cwd
+
+
+@TaskGen.feature('c', 'cprogram', 'cstlib')
+@TaskGen.after_method('process_use')
+def include_source_dir(self):
+    # Always include '.' in the tasks includes
+    includes = self.to_list(getattr(self, 'includes', []))
+    if not '.' in includes:
+        includes.append('.')
+        self.includes = includes
+
 
 # }}}
 # {{{ Deploy targets
@@ -153,7 +186,8 @@ def process_blk(self, node):
 
     # Create block rewrite task.
     blk_c_node = node.change_ext('.blk.c')
-    self.create_task('Blk2c', node, blk_c_node)
+    blk_task = self.create_task('Blk2c', node, blk_c_node)
+    blk_task.cwd = self.env.PROJECT_ROOT
 
     # Create C compilation task for the generated C source.
     self.create_compiled_task('c', blk_c_node)
@@ -220,7 +254,7 @@ class Iop2c(Task):
                          depfile.abspath(),
                          self.outputs[0].parent.abspath(),
                          node.abspath())
-        if self.exec_command(cmd):
+        if self.exec_command(cmd, cwd=self.bld.bldnode):
             # iopc falied, run should fail too
             return ([], None)
 

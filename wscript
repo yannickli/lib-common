@@ -21,7 +21,6 @@ import waftools.intersec as intersec
 
 
 # FIXME:
-#   - __FILE__ are wrong (this is why zchk executes no test)
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
 #   - Fix various TODOs and FIXMEs in the wscript files
@@ -166,7 +165,9 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    # Register Intersec post functions
+    # Bootstrap Intersec environment
+    ctx.env.PROJECT_ROOT = ctx.path
+    intersec.register_get_cwd()
     ctx.add_post_fun(intersec.deploy_targets)
     ctx.add_post_fun(intersec.run_checks)
 
@@ -188,7 +189,6 @@ def build(ctx):
 
     # TODO: add net-sctp.c in libcommon target
     ctx.stlib(target='libcommon',
-        includes='.',
         export_includes=['.'],
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
@@ -400,7 +400,7 @@ def build(ctx):
         use='iop-snmp tstiop',
         use_whole='libcommon',
         iop_class_range=iop_class_range,
-        lib=['pthread', 'dl', 'm'], includes='.')
+        lib=['pthread', 'dl', 'm'])
 
     ctx.shlib(target='zchk-iop-plugin', source=[
         'iop-core/ic.iop',
