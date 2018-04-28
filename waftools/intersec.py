@@ -177,7 +177,12 @@ class Blk2c(Task):
     run_str = ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CPPPATH_ST:INCPATHS} '
                '${SRC} -o ${TGT}')
     ext_out = [ '.c' ]
-    color = 'YELLOW'
+    color = 'CYAN'
+
+    @classmethod
+    def keyword(cls):
+        return 'Rewriting'
+
 
 @extension('.blk')
 @feature('blk')
@@ -197,6 +202,11 @@ class Perf2c(Task):
     run_str = '${GPERF} --language ANSI-C --output-file ${TGT} ${SRC}'
     color   = 'BLUE'
 
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
+
+
 @extension('.perf')
 def process_perf(self, node):
     task = self.create_task('Perf2c', node, node.change_ext('.c'))
@@ -207,7 +217,11 @@ def process_perf(self, node):
 
 class Lex2c(Task):
     run_str = '${FLEX_SH} ${SRC} ${TGT}'
-    color   = 'PURPLE'
+    color   = 'BLUE'
+
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
 
 @extension('.l')
 def process_lex(self, node):
@@ -219,7 +233,12 @@ def process_lex(self, node):
 
 class Fc2c(Task):
     run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
-    color   = 'PINK'
+    color   = 'BLUE'
+
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
+
 
 @extension('.fc')
 def process_fc(self, node):
@@ -238,6 +257,10 @@ class Iop2c(Task):
                '${SRC[0].abspath()}')
     color   = 'BLUE'
     ext_out = ['.h', '.c']
+
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
 
     def scan(self):
         """ Gets the dependencies of the current IOP file.
