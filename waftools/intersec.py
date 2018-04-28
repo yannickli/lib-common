@@ -182,10 +182,6 @@ class Blk2c(Task):
 @extension('.blk')
 @feature('blk')
 def process_blk(self, node):
-    # TODO: Should probably be done somewhere else. It computes env.INCPATHS.
-    self.process_use()
-    self.apply_incpaths()
-
     # Create block rewrite task.
     blk_c_node = node.change_ext('.blk.c')
     blk_task = self.create_task('Blk2c', node, blk_c_node)
