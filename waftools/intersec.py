@@ -15,6 +15,7 @@ import os
 import errno
 from itertools import chain
 
+# pylint: disable = import-error
 import waflib.TaskGen as TaskGen
 
 from waflib.Build import BuildContext
@@ -22,6 +23,7 @@ from waflib.Task import Task
 from waflib.TaskGen import feature, extension
 from waflib.Tools import c
 from waflib.Tools import ccroot
+# pylint: enable = import-error
 
 
 # {{{ depends_on

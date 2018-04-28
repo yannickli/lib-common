@@ -10,5 +10,6 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = undefined-variable
 
 ctx(name='compat', export_includes='.')

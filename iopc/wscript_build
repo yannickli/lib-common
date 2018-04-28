@@ -10,6 +10,7 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = undefined-variable, invalid-name
 
 ctx.set_group('tools_generation')
 

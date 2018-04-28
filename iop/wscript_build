@@ -10,6 +10,7 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = undefined-variable
 
 ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop.iop',

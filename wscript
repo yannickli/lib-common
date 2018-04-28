@@ -10,6 +10,7 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = invalid-name, bad-continuation
 
 import os
 import sys
@@ -154,7 +155,7 @@ def configure(ctx):
         '-Wdeclaration-after-statement',
         '-Wno-format-zero-length',
         '-internal-isystem', '/usr/local/include',
-        '-internal-isystem', '/srv/tools/clang_3.9/bin/../lib/clang/3.9.1/include',
+        '-internal-isystem', '/srv/tools/clang_3.9/lib/clang/3.9.1/include',
         '-internal-externc-isystem', '/usr/include/x86_64-linux-gnu',
         '-internal-externc-isystem', '/include',
         '-internal-externc-isystem', '/usr/include',

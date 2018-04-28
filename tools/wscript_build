@@ -10,6 +10,7 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = undefined-variable, invalid-name
 
 farchc = ctx.program(target='farchc', source='farchc.c',
                      use='libcommon', lib=['pthread', 'dl', 'm'])

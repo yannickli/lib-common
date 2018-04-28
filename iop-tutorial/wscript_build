@@ -10,6 +10,7 @@
 #  prosecuted in the extent permitted by applicable law.                 #
 #                                                                        #
 ##########################################################################
+# pylint: disable = undefined-variable
 
 bld.program(target='ex-iop', source=[
     'ex-iop.c',
