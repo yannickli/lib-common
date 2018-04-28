@@ -166,11 +166,8 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    # Bootstrap Intersec environment
-    ctx.env.PROJECT_ROOT = ctx.path
-    intersec.register_get_cwd()
-    ctx.add_post_fun(intersec.deploy_targets)
-    ctx.add_post_fun(intersec.run_checks)
+    # Register Intersec environment
+    intersec.register(ctx)
 
     # Declare 2 build groups:
     #  - one for compiling the build tools (iopc)

@@ -289,3 +289,10 @@ def process_iop(self, node):
         task.env.IOP_INCLUDES = ''
 
 # }}}
+
+
+def register(ctx):
+    ctx.env.PROJECT_ROOT = ctx.path
+    register_get_cwd()
+    ctx.add_post_fun(deploy_targets)
+    ctx.add_post_fun(run_checks)
