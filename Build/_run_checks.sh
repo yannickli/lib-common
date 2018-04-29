@@ -184,7 +184,7 @@ while read -r zd line; do
             ;;
         *testem.json)
             cd $zd
-            ztestem $line
+            "$(dirname "$0")"/tests/ztestem.sh $line
             res=$?
             cd - &>/dev/null
             ;;

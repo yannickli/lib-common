@@ -443,6 +443,12 @@ static void iopc_dump_field(sb_t *buf, const iopc_pkg_t *pkg,
             sb_addc(buf, '?');
             break;
 
+          case IOP_R_REPEATED:
+            if (flags & USE_PARAM) {
+                sb_addc(buf, '?');
+            }
+            break;
+
           default:
             break;
         }

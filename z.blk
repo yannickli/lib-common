@@ -951,7 +951,8 @@ int z_setup(int argc, char **argv)
 
     argc = parseopt(argc, argv, z_opts_g, 0);
     if (argc < 0 || _G.opt_help) {
-        makeusage(EX_USAGE, _G.arg0.s, "[tests...]", NULL, z_opts_g);
+        makeusage(_G.opt_help ? EX_OK : EX_USAGE, _G.arg0.s,
+                  "[tests...]", NULL, z_opts_g);
     }
 
     /* Parse tags to skip. */

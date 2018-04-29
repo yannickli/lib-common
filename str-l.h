@@ -711,6 +711,36 @@ lstr_t t_lstr_hexdecode(lstr_t lstr);
  */
 lstr_t t_lstr_hexencode(lstr_t lstr);
 
+/** Xor a lstr with another.
+ *
+ * \param[in]  in  the string to xor
+ * \param[in]  key  the string used to perform the xor
+ * \param[out]  out the result (may be the same than in)
+ */
+static inline void lstr_xor(lstr_t in, lstr_t key, lstr_t out)
+{
+    assert (in.len == out.len);
+    for (int i = 0; i < in.len; i++) {
+        out.v[i] = in.s[i] ^ key.s[i % key.len];
+    }
+}
+
+/** Obfuscate or unobfuscate a lstr.
+ *
+ * This function is a bit more "secure" than lstr_xor because it uses
+ * additional keys, such that it's hard to find the string key even if you
+ * know both the original str and the results. There is no particular
+ * constraints on the key.
+ *
+ * \param[in]  in  the string to xor
+ * \param[in]  key  a key used internally to choose a string used to
+ *                  perform the xor
+ * \param[out]  out  the result; must be allocated, may be the same than
+ *                   `in`; its length is unchanged.
+ */
+void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out);
+#define lstr_unobfuscate(in, key, out)  lstr_obfuscate(in, key, out)
+
 /* }}} */
 /* Format {{{ */
 

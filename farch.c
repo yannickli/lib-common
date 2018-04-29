@@ -22,54 +22,7 @@ static struct {
 } farch_g;
 #define _G  farch_g
 
-static const lstr_t xor_array_g[] = {
-    LSTR_IMMED("error when writing CSV line: %m"),
-    LSTR_IMMED("cannot unlink [%*pM]: %m"),
-    LSTR_IMMED("cannot move [%*pM] to [%*pM]: %m"),
-    LSTR_IMMED("__builtin_expect(!!(var == *varp), 1) && \"pointer "
-               "corruption detected\""),
-    LSTR_IMMED("processing cuid block for file '%*pM'"),
-    LSTR_IMMED("duplicated column '%*pM' (note that column names are case "
-               "insensitive)"),
-    LSTR_IMMED("missing type column, file is not processed"),
-    LSTR_IMMED("Cell id column `%*pM` is not found, associated Cell uid "
-               "column '%*pM' will not be added"),
-    LSTR_IMMED("Cell uid column '%*pM' is already present, related uids will "
-               "not be updated."),
-    LSTR_IMMED("no associations found, file is not processed"),
-    LSTR_IMMED("cannot open file [%*pM]"),
-    LSTR_IMMED("error while closing output data file `%*pM`: %m"),
-    LSTR_IMMED("failed to parse file `%*pM` line %d (fid=%u)"),
-    LSTR_IMMED("not enough entries in CSV line: %d, line skipped"),
-    LSTR_IMMED("unsupported type `%*pM` in line %d, no cuid will be added"),
-    LSTR_IMMED("missing date in line %d, incoming file modification date is "
-               "set instead"),
-    LSTR_IMMED("error when parsing date column: %d"),
-};
-
 /* {{{ Public API */
-
-static void farch_xor(const char *in, int len, int xor_key, char *out)
-{
-    lstr_t xor_str = xor_array_g[xor_key];
-
-    for (int i = 0; i < len; i++) {
-        out[i] = in[i] ^ xor_str.s[i % xor_str.len];
-    }
-}
-
-void farch_obfuscate(const char *in, int len, int *xor_key, char *out)
-{
-    int key = rand() % countof(xor_array_g);
-
-    *xor_key = key;
-    farch_xor(in, len, key, out);
-}
-
-static void unobfuscate(const char *in, int len, int xor_key, char *out)
-{
-    farch_xor(in, len, xor_key, out);
-}
 
 static lstr_t t_farch_aggregate(const farch_entry_t *entry)
 {
@@ -78,15 +31,15 @@ static lstr_t t_farch_aggregate(const farch_entry_t *entry)
     int compressed_size = 0;
 
     for (int i = 0; i < entry->nb_chunks; i++) {
-        const farch_data_t *chunk = &entry->data[i];
+        lstr_t chunk = entry->chunks[i];
+        lstr_t content_chunk = LSTR_INIT(tail, chunk.len);
 
-        compressed_size += chunk->chunk_size;
+        compressed_size += chunk.len;
         if (!expect(compressed_size <= entry->compressed_size)) {
             return LSTR_NULL_V;
         }
-        unobfuscate(chunk->chunk, chunk->chunk_size, chunk->xor_data_key,
-                    tail);
-        tail += chunk->chunk_size;
+        lstr_unobfuscate(chunk, chunk.len, content_chunk);
+        tail += chunk.len;
     }
 
     if (!expect(compressed_size == entry->compressed_size)) {
@@ -98,10 +51,12 @@ static lstr_t t_farch_aggregate(const farch_entry_t *entry)
 
 char *farch_get_filename(const farch_entry_t *entry, char *name)
 {
+    lstr_t out = LSTR_INIT(name, entry->name.len);
+
     if (!entry->name.s) {
         return NULL;
     }
-    unobfuscate(entry->name.s, entry->name.len, entry->xor_name_key, name);
+    lstr_unobfuscate(entry->name, entry->nb_chunks, out);
     name[entry->name.len] = '\0';
     return name;
 }
@@ -162,8 +117,8 @@ static lstr_t t_farch_unarchive(const farch_entry_t *entry)
     return res;
 
   error:
-    unobfuscate(entry->name.s, entry->name.len, entry->xor_name_key,
-                real_name);
+    lstr_unobfuscate(entry->name, entry->nb_chunks,
+                     LSTR_INIT_V(real_name, entry->name.len));
     real_name[entry->name.len] = '\0';
     e_panic("cannot uncompress farch entry `%s`", real_name);
 }

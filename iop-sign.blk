@@ -420,7 +420,7 @@ int main(int argc, char **argv)
     return 0;
 
   usage:
-    makeusage(EX_USAGE, argv0, "<command> <file>\n\
+    makeusage(opts.help ? EX_OK : EX_USAGE, argv0, "<command> <file>\n\
 \n\
 commands: sign, check, gen-token\n\
 \n\

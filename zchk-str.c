@@ -168,6 +168,42 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_NULL(out.s);
     } Z_TEST_END;
 
+    Z_TEST(lstr_obfuscate, "str: lstr_obfuscate/lstr_unobfuscate") {
+        uint64_t keys[] = { 0, 1, 1234, 2327841961327486523LLU, UINT64_MAX };
+
+        STATIC_ASSERT (sizeof(buf) >= 3 * 16);
+        /* Check, for different key values that:
+         *   - obfuscation preserves the input (when different than output),
+         *   - obfuscation is not identity,
+         *   - obfuscation · unobfuscation is identity,
+         *   - obfuscating the same string with the same key yields the same
+         *     results,
+         *   - our functions work both with two different lstr and with the
+         *     same lstr given as input and output (inplace).
+         */
+        for (int i = 0; i < countof(keys); i++) {
+            lstr_t orig = LSTR_IMMED("intersec");
+            lstr_t obf = LSTR_INIT(buf, orig.len);
+            lstr_t unobf = LSTR_INIT(buf + 16, orig.len);
+            lstr_t inplace = LSTR_INIT(buf + 16 * 2, orig.len);
+
+            p_clear(&buf, 1);
+
+            lstr_obfuscate(orig, keys[i], obf);
+            Z_ASSERT_EQ(orig.len, obf.len);
+            Z_ASSERT(!lstr_equal(orig, obf));
+            lstr_unobfuscate(obf, keys[i], unobf);
+            Z_ASSERT_LSTREQUAL(orig, unobf);
+
+            memcpy(inplace.v, orig.s, orig.len);
+            Z_ASSERT_LSTREQUAL(orig, inplace);
+            lstr_obfuscate(inplace, keys[i], inplace);
+            Z_ASSERT_LSTREQUAL(obf, inplace);
+            lstr_unobfuscate(inplace, keys[i], inplace);
+            Z_ASSERT_LSTREQUAL(orig, inplace);
+        }
+    } Z_TEST_END;
+
     Z_TEST(utf8_stricmp, "str: utf8_stricmp test") {
 
 #define RUN_UTF8_TEST_(Str1, Str2, Strip, Val) \
@@ -1539,6 +1575,86 @@ Z_GROUP_EXPORT(str)
 
         qv_deep_wipe(&arr, lstr_wipe);
 #undef T
+#undef TST_MAIN
+#undef T_SKIP
+    } Z_TEST_END;
+
+    Z_TEST(t_ps_split_escaped, "str-stream: t_ps_split_escaped") {
+        t_scope;
+        qv_t(lstr) arr;
+
+        qv_init(&arr);
+
+#define T(str_main, str1, str2, str3, seps, esc)                             \
+        TST_MAIN(str_main, str1, str2, str3, seps, esc, 0)
+
+#define T_SKIP(str_main, str1, str2, str3, seps, esc)                        \
+        TST_MAIN(str_main, str1, str2, str3, seps, esc, PS_SPLIT_SKIP_EMPTY)
+
+#define TST_EMPTY(str_main, str, seps, esc, flags)                           \
+        ({  pstream_t ps;                                                    \
+            ctype_desc_t sep_desc;                                           \
+            const char esc_char = esc;                                       \
+                                                                             \
+            ps = ps_initstr(str_main);                                       \
+            ctype_desc_build(&sep_desc, seps);                               \
+            qv_deep_clear(&arr, lstr_wipe);                                  \
+            t_ps_split_escaped(ps, &sep_desc, esc_char, flags, &arr);        \
+            if (flags & PS_SPLIT_SKIP_EMPTY) {                               \
+                Z_ASSERT_EQ(arr.len, 0);                                     \
+            } else {                                                         \
+                Z_ASSERT_EQ(arr.len, 1);                                     \
+                Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str));                   \
+            }                                                                \
+         })
+
+#define TST_MAIN(str_main, str1, str2, str3, seps, esc, flags)               \
+        ({  pstream_t ps;                                                    \
+            ctype_desc_t sep_desc;                                           \
+            const char esc_char = esc;                                       \
+                                                                             \
+            ps = ps_initstr(str_main);                                       \
+            ctype_desc_build(&sep_desc, seps);                               \
+            qv_deep_clear(&arr, lstr_wipe);                                  \
+            t_ps_split_escaped(ps, &sep_desc, esc_char, flags, &arr);        \
+            Z_ASSERT_EQ(arr.len, 3);                                         \
+            Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR(str1));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR(str2));                      \
+            Z_ASSERT_LSTREQUAL(arr.tab[2], LSTR(str3));                      \
+        })
+
+        TST_EMPTY("", "", "123 ", '\\', 0);
+        T("123/abc !%*", "123", "abc", "!%*", " /", '\0');
+        T("/123;abc", "", "123", "abc", "/;", '\0');
+        T("abc/123;", "abc", "123", "", "/;", '\0');
+
+        T_SKIP("//123//abc/!%*", "123", "abc", "!%*", "/", '\0');
+        T_SKIP("$123$$$abc$!%*", "123", "abc", "!%*", "$", '\0');
+        T_SKIP(",   ,:::,!!!,,", "   ", ":::", "!!!", ",", '\0');
+        T_SKIP(",secret1;secret2, ,secret3,;,,", "secret1", "secret2",
+               "secret3", " ,;", '\0');
+
+        /* with escape characters */
+        TST_EMPTY("", "", "123 ", '\\', PS_SPLIT_SKIP_EMPTY);
+        TST_EMPTY("///", "", "123/", '\\', PS_SPLIT_SKIP_EMPTY);
+        T("12\\3\\%abc%%abc", "12\\3%abc", "", "abc", "%", '\\');
+        T("123&%abc&!def!ghi;ab", "123%abc!def", "ghi", "ab", "%;!", '&');
+        T("&123&%&abc&!def!ghi;ab", "&123%&abc!def", "ghi", "ab",
+          "%;!", '&');
+        T("1\\%\\%\\%\\\\a%b%c", "1%%%\\a", "b", "c", "%", '\\');
+        T("%\\%%", "", "%", "", "%", '\\');
+        T("\\%%%\\%", "%", "", "%", "%", '\\');
+
+        T_SKIP("//123\\/abc/abc/!%*", "123/abc", "abc", "!%*", "/", '\\');
+        T_SKIP("//1\\/\\;abc/;;;;;a/!%*", "1/;abc", "a", "!%*", "/;", '\\');
+        T_SKIP("\\1\\/\\;a/;;;;;a/!%*", "\\1/;a", "a", "!%*", "/;", '\\');
+        T_SKIP("%%\\%%%%%a%\\%%%%%", "%", "a", "%", "%", '\\');
+        T_SKIP("\\%%%%%a%%%%%\\%", "%", "a", "%", "%", '\\');
+        T_SKIP("\\%%%a%%%%%%%a\\", "%", "a", "a\\", "%", '\\');
+        qv_deep_wipe(&arr, lstr_wipe);
+
+#undef T
+#undef TST_EMPTY
 #undef TST_MAIN
 #undef T_SKIP
     } Z_TEST_END;

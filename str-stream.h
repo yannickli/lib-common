@@ -842,6 +842,36 @@ enum {
 void ps_split(pstream_t ps, const ctype_desc_t * nonnull sep, unsigned flags,
               union qv_lstr_t * nonnull res);
 
+/** Split a stream based on a set of separator and an escape character.
+ *
+ * The line is parsed and
+ * - Each time one of the separators is encountered, a new chunk is added
+ *   in the result vector.
+ * - Each time the escape character is encountered:
+ *   - If the next character is a separator or an escape character. This
+ *     character is added in the result vector.
+ *   - If not, the escape character and the next character are added in the
+ *     result vector.
+ *
+ * Strings appended are copied. The results may contain empty strings if
+ * flags == PS_SPLIT_SKIP_EMPTY.
+ *
+ * \param[in] mp The pool on which copied data is allocated (NULL to allocate
+ *                data on the heap).
+ * \param[in] ps The input stream.
+ * \param[in] sep The separating characters.
+ * \param[in] esc An escape character.
+ * \param[in] flags Some flags (see the enum declaration above)
+ * \param[out] res A vector that get filled with the content of the ps.
+ */
+void ps_split_escaped(mem_pool_t * nullable mp, pstream_t ps,
+                      const ctype_desc_t * nonnull sep, const char escape,
+                      unsigned flags, union qv_lstr_t * nonnull res);
+
+#define t_ps_split_escaped(ps, sep, escape, flags, res)  ({                  \
+            ps_split_escaped(t_pool(), ps, sep, escape, flags, res);         \
+        })
+
 /****************************************************************************/
 /* binary parsing helpers                                                   */
 /****************************************************************************/

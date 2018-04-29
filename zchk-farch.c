@@ -31,11 +31,13 @@ Z_GROUP_EXPORT(farch)
             const farch_entry_t *entry = &farch_test[i];
             char ffilename[FARCH_MAX_FILENAME];
             const char *filename = farch_filenames[i];
+            const char *path;
             lstr_t fcontents;
             lstr_t fcontents_persist;
             lstr_t contents;
 
-            Z_ASSERT_ZERO(lstr_init_from_file(&contents, filename, PROT_READ,
+            path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_cmddir_g), filename);
+            Z_ASSERT_ZERO(lstr_init_from_file(&contents, path, PROT_READ,
                                               MAP_SHARED));
 
             /* test get_filename */

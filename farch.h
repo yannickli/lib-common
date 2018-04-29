@@ -45,27 +45,15 @@
  * and the size of the contents after and before compression. The obfuscation
  * method for the filename is the same than for the contents.
  */
-typedef struct farch_data_t {
-    int chunk_size; /* random length of the chunk */
-    int xor_data_key; /* used to find the string for unobfuscation */
-    const void * nonnull chunk; /* the obfuscated chunk of file contents */
-} farch_data_t;
+typedef lstr_t farch_data_t;
 
 typedef struct farch_entry_t {
-    lstr_t name; /* obfuscated filename */
-    const farch_data_t * nonnull data; /* chunks of file contents */
+    lstr_t name; /* obfuscated filename, its length is the obfuscation key */
+    const lstr_t * nonnull chunks; /* obfuscated content chunks */
     int compressed_size;
     int size;
     int nb_chunks;
-    int xor_name_key; /* used to find the string for unobfuscation */
 } farch_entry_t;
-
-/** Obfuscate a string based on some internal data.
- *
- * This function should only be used by the farchc tool.
- */
-void farch_obfuscate(const char * nonnull in, int len, int * nonnull xor_key,
-                     char * nonnull out);
 
 /* }}} */
 /* {{{ Public API */
