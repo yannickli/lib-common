@@ -15,11 +15,14 @@
 import os
 import sys
 
+# pylint: disable = import-error
+from waflib import Logs
+# pylint: enable = import-error
+
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
 import waftools.intersec as intersec
-
 
 # FIXME:
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
@@ -61,6 +64,13 @@ def configure(ctx):
     ctx.check_cfg(package='zlib', uselib_store='zlib',
                   args=['--cflags', '--libs'])
 
+    # libsctp-dev
+    sctp_h = '/usr/include/netinet/sctp.h'
+    if os.path.exists(sctp_h):
+        ctx.env.HAVE_NETINET_SCTP_H = True
+        ctx.msg('Checking for libsctp-dev', sctp_h)
+    else:
+        Logs.warn('missing libsctp, apt-get install libsctp-dev')
 
     # TODO: Must be cleanup depending on the chosen C compiler (test each one
     # of them).
@@ -185,8 +195,7 @@ def build(ctx):
     ctx(rule='${VERSION_SH} rcsid libcommon > ${TGT}',
         target='core-version.c', always=True)
 
-    # TODO: add net-sctp.c in libcommon target
-    ctx.stlib(target='libcommon',
+    libcommon = ctx.stlib(target='libcommon',
         export_includes=['.'],
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
@@ -324,6 +333,9 @@ def build(ctx):
             'zlib-wrapper.c',
         ]
     )
+    if ctx.env.HAVE_NETINET_SCTP_H:
+        libcommon.source.append('net-sctp.c')
+        libcommon.cflags = '-DHAVE_NETINET_SCTP_H'
 
     # }}}
 
