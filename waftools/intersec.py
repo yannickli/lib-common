@@ -159,8 +159,8 @@ def deploy_targets(ctx):
 
 def run_checks(ctx):
     if ctx.cmd == 'check':
-        cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0],
-                               ctx.launch_node().path_from(ctx.path))
+        path = ctx.launch_node().path_from(ctx.env.PROJECT_ROOT)
+        cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0], path)
         if ctx.exec_command(cmd, stdout=None, stderr=None):
             ctx.fatal('')
 
@@ -318,7 +318,7 @@ def process_iop(self, node):
 
 
 def register(ctx):
-    ctx.env.PROJECT_ROOT = ctx.path
+    ctx.env.PROJECT_ROOT = ctx.root.find_node(ctx.top_dir)
     register_get_cwd()
     ctx.add_post_fun(deploy_targets)
     ctx.add_post_fun(run_checks)
