@@ -247,6 +247,29 @@ def process_fc(self, node):
     farch_task.set_run_after(self.env.FARCHC_TASK)
 
 # }}}
+# {{{ TOKENS
+
+
+class Tokens2c(Task):
+    run_str = ('${TOKENS_SH} ${SRC[0].abspath()} ${TGT[0]} && ' +
+               '${TOKENS_SH} ${SRC[0].abspath()} ${TGT[1]}')
+    color   = 'BLUE'
+    ext_out = ['.h', '.c']
+
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
+
+
+@extension('.tokens')
+def process_tokens(self, node):
+    c_node = node.change_ext('tokens.c')
+    h_node = node.change_ext('tokens.h')
+    self.create_task('Tokens2c', [node], [c_node, h_node])
+    self.source.append(c_node)
+
+
+# }}}
 # {{{ IOP
 
 class Iop2c(Task):

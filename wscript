@@ -49,6 +49,10 @@ def configure(ctx):
                      path_list=[os.path.join(ctx.path.abspath(), 'Build')],
                      mandatory=True,
                      var='RUN_CHECKS_SH')
+    ctx.find_program('_tokens.sh',
+                     path_list=[os.path.join(ctx.path.abspath(), 'Config')],
+                     mandatory=True,
+                     var='TOKENS_SH')
     ctx.recurse('scripts')
 
     # External programs
