@@ -262,6 +262,9 @@ class Iop2c(Task):
     def keyword(cls):
         return 'Generating'
 
+    def get_cwd(self):
+        return self.inputs[0].parent
+
     def scan(self):
         """ Gets the dependencies of the current IOP file.
             It uses the --depends command of iopc.
@@ -275,7 +278,7 @@ class Iop2c(Task):
                          depfile.abspath(),
                          self.outputs[0].parent.abspath(),
                          node.abspath())
-        if self.exec_command(cmd, cwd=self.bld.bldnode):
+        if self.exec_command(cmd, cwd=self.get_cwd()):
             # iopc falied, run should fail too
             return ([], None)
 
