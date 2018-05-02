@@ -750,4 +750,32 @@ mp_iopsq_build_struct(mem_pool_t *nonnull mp,
     return pkg->structs[0];
 }
 
+__must_check__
+int iopsq_iop_struct_build(iopsq_iop_struct_t *nonnull st,
+                           const iopsq__structure__t *nonnull iop_desc,
+                           const iopsq_type_table_t *nullable type_table,
+                           sb_t *nonnull err)
+{
+    assert (!st->mp && !st->st);
+
+    st->mp = mem_ring_new("iop_struct_mp_build", PAGE_SIZE);
+    mem_ring_newframe(st->mp);
+    st->st = mp_iopsq_build_struct(st->mp, iop_desc, type_table, err);
+    st->release_cookie = mem_ring_seal(st->mp);
+
+    if (unlikely(!st->st)) {
+        iopsq_iop_struct_wipe(st);
+        return -1;
+    }
+    return 0;
+}
+
+void iopsq_iop_struct_wipe(iopsq_iop_struct_t *nonnull st)
+{
+    mem_ring_release(st->release_cookie);
+    mem_ring_delete(&st->mp);
+    p_clear(st, 1);
+}
+
+
 /* }}} */
