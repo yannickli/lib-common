@@ -16,7 +16,7 @@ import errno
 from itertools import chain
 
 # pylint: disable = import-error
-import waflib.TaskGen as TaskGen
+from waflib import TaskGen, Utils
 
 from waflib.Build import BuildContext
 from waflib.Task import Task
@@ -272,6 +272,69 @@ def process_tokens(self, node):
 # }}}
 # {{{ IOP
 
+# IOPC options for a given sources path
+class IopcOptions(object):
+
+    def __init__(self, ctx, class_range=None, includes=None):
+        self.ctx = ctx
+        self.path = ctx.path
+        self.class_range = class_range
+
+        # Evaluate include nodes
+        self.includes = set()
+        if includes is not None:
+            for include in Utils.to_list(includes):
+                node = ctx.path.find_node(include)
+                if node is None or not node.isdir():
+                    ctx.fatal('cannot find include {0}'.format(include))
+                self.includes.add(node)
+        self.computed_includes = None
+
+        # Add options in global cache
+        assert not ctx.path in ctx.iopc_options
+        ctx.iopc_options[ctx.path] = self
+
+    @property
+    def class_range_option(self):
+        """ Get the class-id range option for iopc """
+        if self.class_range:
+            return '--class-id-range={0}'.format(self.class_range)
+        else:
+            return ''
+
+    def get_includes_recursive(self, includes, seen_opts):
+        """ Recursively get the IOP include paths for the current node """
+
+        # Detect infinite recursions
+        if self in seen_opts:
+            return
+        seen_opts.add(self)
+
+        # Add includes of the current object in the resulting set
+        includes.update(self.includes)
+
+        # Recurse on the included nodes
+        for node in self.includes:
+            if node in self.ctx.iopc_options:
+                self.ctx.iopc_options[node].get_includes_recursive(includes,
+                                                                   seen_opts)
+
+    @property
+    def includes_option(self):
+        """ Get the -I option for iopc """
+        if self.computed_includes is None:
+            includes = set()
+            seen_opts = set()
+            self.get_includes_recursive(includes, seen_opts)
+            if len(includes):
+                nodes = [node.abspath() for node in includes]
+                nodes.sort()
+                self.computed_includes = '-I{0}'.format(':'.join(nodes))
+            else:
+                self.computed_includes = ''
+        return self.computed_includes
+
+
 class Iop2c(Task):
     run_str = ('${IOPC} --Wextra --language c ' +
                '${IOP_INCLUDES} ' +
@@ -311,6 +374,7 @@ class Iop2c(Task):
 
         return (deps, None)
 
+
 @extension('.iop')
 def process_iop(self, node):
     # Create iopc task
@@ -324,24 +388,26 @@ def process_iop(self, node):
     task.set_run_after(self.env.IOPC_TASK)
     self.source.append(c_node)
 
-    # class id range
-    if hasattr(self, 'iop_class_range'):
-        class_range = self.iop_class_range
-        task.env.IOP_CLASS_RANGE = '--class-id-range={0}'.format(class_range)
+    # Handle iopc options
+    if self.path in self.bld.iopc_options:
+        options = self.bld.iopc_options[self.path]
+        task.env.IOP_CLASS_RANGE = options.class_range_option
+        task.env.IOP_INCLUDES = options.includes_option
     else:
         task.env.IOP_CLASS_RANGE = ''
-
-    # includes
-    if hasattr(self, 'iop_includes'):
-        task.env.IOP_INCLUDES = '-I{0}'.format(self.iop_includes)
-    else:
         task.env.IOP_INCLUDES = ''
+
 
 # }}}
 
 
 def register(ctx):
     ctx.env.PROJECT_ROOT = ctx.root.find_node(ctx.top_dir)
+
     register_get_cwd()
+
+    ctx.IopcOptions = IopcOptions
+    ctx.iopc_options = {}
+
     ctx.add_post_fun(deploy_targets)
     ctx.add_post_fun(run_checks)

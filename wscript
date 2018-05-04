@@ -200,7 +200,7 @@ def build(ctx):
         target='core-version.c', always=True)
 
     libcommon = ctx.stlib(target='libcommon',
-        export_includes=['.'],
+        export_includes=['.', 'iopc'],
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
         lib=['pthread', 'dl'],
@@ -353,7 +353,7 @@ def build(ctx):
     ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
 
-    iop_class_range = '1-499'
+    ctx.IopcOptions(ctx, class_range='1-499')
 
     # {{{ iop-snmp library
 
@@ -413,14 +413,13 @@ def build(ctx):
         ],
         use='iop-snmp tstiop',
         use_whole='libcommon',
-        iop_class_range=iop_class_range,
         lib=['pthread', 'dl', 'm'])
 
     ctx.shlib(target='zchk-iop-plugin', source=[
         'iop-core/ic.iop',
         'zchk-iop-plugin.c',
         'zchk-iop-ressources.c',
-    ], use='libcommon', iop_class_range=iop_class_range)
+    ], use='libcommon')
 
     ctx.program(target='ztst-cfgparser', source='ztst-cfgparser.c',
                 use='libcommon tstiop', lib=['pthread', 'dl'])

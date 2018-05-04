@@ -12,6 +12,8 @@
 ##########################################################################
 # pylint: disable = undefined-variable
 
+ctx.IopcOptions(ctx, includes='..')
+
 ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop.iop',
     'tstiop_inheritance.iop',
@@ -34,7 +36,7 @@ ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop_backward_compat_mod_deleted.iop',
     'tstiop_backward_compat_mod_deleted_if.iop',
     'tstiop_void_type.iop',
-], includes='..', iop_includes='..', use='compat', cflags='-fPIC')
+], includes='..', use='compat', cflags='-fPIC')
 
 ctx.stlib(target='tstiop2', features='c cstlib', source=[
     'tstiop2.iop',
