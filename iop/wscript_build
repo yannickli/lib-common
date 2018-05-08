@@ -36,7 +36,7 @@ ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop_backward_compat_mod_deleted.iop',
     'tstiop_backward_compat_mod_deleted_if.iop',
     'tstiop_void_type.iop',
-], use='libcommon', cflags='-fPIC')
+], use='libcommon')
 
 ctx.stlib(target='tstiop2', features='c cstlib', source=[
     'tstiop2.iop',
