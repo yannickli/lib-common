@@ -201,7 +201,7 @@ def build(ctx):
     # {{{ libcommon library
 
     ctx(rule='${VERSION_SH} rcsid libcommon > ${TGT}',
-        target='core-version.c', always=True)
+        target='core-version.c', cwd='.', always=True)
 
     libcommon = ctx.stlib(target='libcommon',
         export_includes='.',
