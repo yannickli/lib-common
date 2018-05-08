@@ -234,6 +234,7 @@ def process_lex(self, node):
 class Fc2c(Task):
     run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
     color   = 'BLUE'
+    ext_out = ['.h']
 
     @classmethod
     def keyword(cls):

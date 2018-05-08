@@ -183,16 +183,19 @@ def build(ctx):
     # Register Intersec environment
     intersec.register(ctx)
 
-    # Declare 2 build groups:
-    #  - one for compiling the build tools (iopc)
+    # Declare 3 build groups:
+    #  - one for compiling farchc
+    #  - one for compiling compiling iopc
     #  - one for generating/compiling code after then.
     #
-    # This way we are sure iopc is generated before building the IOP files.
+    # This way we are sure farchc is generated before iopc (needed because it
+    # uses a farch file), and iopc is generated before building the IOP files.
     # Refer to section "Building the compiler first" of the waf book.
-    ctx.add_group('tools_generation')
+    ctx.add_group('farchc')
+    ctx.add_group('iopc')
     ctx.add_group('code_compiling')
 
-    ctx.set_group('tools_generation')
+    ctx.set_group('farchc')
 
     # {{{ libcommon library
 

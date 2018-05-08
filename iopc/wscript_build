@@ -12,7 +12,7 @@
 ##########################################################################
 # pylint: disable = undefined-variable, invalid-name
 
-ctx.set_group('tools_generation')
+ctx.set_group('iopc')
 
 ctx.stlib(target='libiopc', source=[
     'iopc.fc',
