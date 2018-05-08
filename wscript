@@ -347,7 +347,6 @@ def build(ctx):
     # }}}
 
     ctx.recurse('compat')
-    ctx.recurse('scripts')
     ctx.recurse('tools')
     ctx.recurse('iopc')
 

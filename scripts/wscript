@@ -19,6 +19,3 @@ def configure(ctx):
                      var='FLEX_SH')
     ctx.find_program('version.sh', path_list=[path], mandatory=True,
                      var='VERSION_SH')
-
-def build(bld):
-    pass
