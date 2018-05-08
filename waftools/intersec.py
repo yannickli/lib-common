@@ -111,7 +111,7 @@ def include_source_dir(self):
     # Always include '.' in the tasks includes
     includes = self.to_list(getattr(self, 'includes', []))
     if not '.' in includes:
-        includes.append('.')
+        includes.insert(0, '.')
         self.includes = includes
 
 
