@@ -36,11 +36,11 @@ ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop_backward_compat_mod_deleted.iop',
     'tstiop_backward_compat_mod_deleted_if.iop',
     'tstiop_void_type.iop',
-], includes='..', use='compat', cflags='-fPIC')
+], use='libcommon', cflags='-fPIC')
 
 ctx.stlib(target='tstiop2', features='c cstlib', source=[
     'tstiop2.iop',
-], includes='..', use='compat')
+], use='libcommon')
 
 bld.shlib(target='zchk-tstiop-plugin', source=[
     'tstiop-plugin.c',

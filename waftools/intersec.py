@@ -19,6 +19,7 @@ from itertools import chain
 from waflib import TaskGen, Utils
 
 from waflib.Build import BuildContext
+from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import feature, extension
 from waflib.Tools import c
@@ -169,6 +170,28 @@ class CheckClass(BuildContext):
     cmd = 'check'
 
 # }}}
+# {{{ Node::change_ext_src method
+
+''' Declares the method Node.change_ext_src, which is similar to
+    Node.change_ext, excepts it makes a node in the source directory (instead
+    of the build directory).
+'''
+
+def node_change_ext_src(self, ext):
+    name = self.name
+
+    k = name.rfind('.')
+    if k >= 0:
+        name = name[:k] + ext
+    else:
+        name = name + ext
+
+    return self.parent.make_node(name)
+
+
+Node.change_ext_src = node_change_ext_src
+
+# }}}
 
 # {{{ BLK
 
@@ -188,7 +211,7 @@ class Blk2c(Task):
 @feature('blk')
 def process_blk(self, node):
     # Create block rewrite task.
-    blk_c_node = node.change_ext('.blk.c')
+    blk_c_node = node.change_ext_src('.blk.c')
     blk_task = self.create_task('Blk2c', node, blk_c_node)
     blk_task.cwd = self.env.PROJECT_ROOT
 
@@ -209,7 +232,7 @@ class Perf2c(Task):
 
 @extension('.perf')
 def process_perf(self, node):
-    task = self.create_task('Perf2c', node, node.change_ext('.c'))
+    task = self.create_task('Perf2c', node, node.change_ext_src('.c'))
     self.source.extend(task.outputs)
 
 # }}}
@@ -225,7 +248,7 @@ class Lex2c(Task):
 
 @extension('.l')
 def process_lex(self, node):
-    task = self.create_task('Lex2c', node, node.change_ext('.c'))
+    task = self.create_task('Lex2c', node, node.change_ext_src('.c'))
     self.source.extend(task.outputs)
 
 # }}}
@@ -244,7 +267,7 @@ class Fc2c(Task):
 @extension('.fc')
 def process_fc(self, node):
     farch_task = self.create_task('Fc2c', [node],
-                                  node.change_ext('.fc.h'))
+                                  node.change_ext_src('.fc.h'))
     farch_task.set_run_after(self.env.FARCHC_TASK)
 
 # }}}
@@ -264,8 +287,8 @@ class Tokens2c(Task):
 
 @extension('.tokens')
 def process_tokens(self, node):
-    c_node = node.change_ext('tokens.c')
-    h_node = node.change_ext('tokens.h')
+    c_node = node.change_ext_src('tokens.c')
+    h_node = node.change_ext_src('tokens.h')
     self.create_task('Tokens2c', [node], [c_node, h_node])
     self.source.append(c_node)
 
@@ -337,10 +360,9 @@ class IopcOptions(object):
 
 
 class Iop2c(Task):
-    run_str = ('${IOPC} --Wextra --language c ' +
+    run_str = ('${IOPC} --Wextra --language c --c-resolve-includes ' +
                '${IOP_INCLUDES} ' +
                '${IOP_CLASS_RANGE} ' +
-               '-o ${TGT[0].parent.abspath()} ' +
                '${SRC[0].abspath()}')
     color   = 'BLUE'
     ext_out = ['.h', '.c']
@@ -357,7 +379,7 @@ class Iop2c(Task):
             It uses the --depends command of iopc.
         """
         node = self.inputs[0]
-        depfile = node.change_ext('.iop.d').get_bld()
+        depfile = node.change_ext('.iop.d')
 
         cmd = '{0} {1} --depends {2} -o {3} {4}'
         cmd = cmd.format(self.env.IOPC,
@@ -379,10 +401,10 @@ class Iop2c(Task):
 @extension('.iop')
 def process_iop(self, node):
     # Create iopc task
-    c_node = node.change_ext('.iop.c')
-    h_node = node.change_ext('.iop.h')
-    tdef_h_node = node.change_ext('-tdef.iop.h')
-    t_h_node = node.change_ext('-t.iop.h')
+    c_node = node.change_ext_src('.iop.c')
+    h_node = node.change_ext_src('.iop.h')
+    tdef_h_node = node.change_ext_src('-tdef.iop.h')
+    t_h_node = node.change_ext_src('-t.iop.h')
     task = self.create_task('Iop2c', node,
                             [c_node, h_node, tdef_h_node, t_h_node])
     task.bld = self.bld

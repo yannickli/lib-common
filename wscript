@@ -203,7 +203,7 @@ def build(ctx):
         target='core-version.c', always=True)
 
     libcommon = ctx.stlib(target='libcommon',
-        export_includes=['.', 'iopc'],
+        export_includes='.',
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
         lib=['pthread', 'dl'],
