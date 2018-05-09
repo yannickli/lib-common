@@ -134,7 +134,7 @@ iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
 
 /** Generates an IOP struct or union description from its IOP version.
  *
- * \warning Same as for \ref mp_iop_pkg_from_desc.
+ * \warning Same as for \ref mp_iopsq_build_pkg.
  *
  * \param[in,out] mp          Memory pool to use for any needed allocation
  *                            (should be a frame-based pool).
@@ -178,6 +178,7 @@ GENERIC_INIT(iopsq_iop_struct_t, iopsq_iop_struct);
  *
  * Same as calling \ref mp_iopsq_build_struct except that the mempool is
  * handled in iopsq_iop_struct_t.
+ * \warning Same as for \ref mp_iopsq_build_pkg.
  *
  * \param[out] st          The iopsq_iop_struct_t object to build. Must be
  *                         first initialized with iopsq_iop_struct_init.
