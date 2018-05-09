@@ -36,7 +36,11 @@ enum popt_kind {
 };
 
 enum popt_options {
-    POPT_STOP_AT_NONARG = (1 << 0),
+    /** Stop as soon as a non option argument is found. */
+    POPT_STOP_AT_NONARG =      (1 << 0),
+
+    /** Ignore all unknown options, they will be left in argv. */
+    POPT_IGNORE_UNKNOWN_OPTS = (1 << 1),
 };
 
 typedef struct popt_t {
