@@ -184,6 +184,9 @@ def build(ctx):
     # Register Intersec environment
     intersec.register(ctx)
 
+    # Export includes
+    ctx.add_global_includes(['.', 'compat'])
+
     # Declare 3 build groups:
     #  - one for compiling farchc
     #  - one for compiling compiling iopc
@@ -204,7 +207,6 @@ def build(ctx):
         target='core-version.c', cwd='.', always=True)
 
     libcommon = ctx.stlib(target='libcommon',
-        export_includes='.',
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
         lib=['pthread', 'dl'],
@@ -347,7 +349,6 @@ def build(ctx):
 
     # }}}
 
-    ctx.recurse('compat')
     ctx.recurse('tools')
     ctx.recurse('iopc')
 
