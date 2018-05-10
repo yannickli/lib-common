@@ -90,14 +90,13 @@ def process_whole(self):
 # }}}
 # {{{ Execute commands from project root
 
-'''
-The purpose of this section is to execute the compiler's commands from the
-project root instead of the project build directory.
-This is important for us because some code (for example the Z tests
-registration) relies on the value of the __FILE__ macro.
-'''
-
 def register_get_cwd():
+    '''
+    Execute the compiler's commands from the project root instead of the
+    project build directory.
+    This is important for us because some code (for example the Z tests
+    registration) relies on the value of the __FILE__ macro.
+    '''
     def get_cwd(self):
         return self.env.PROJECT_ROOT
 
@@ -106,15 +105,32 @@ def register_get_cwd():
     TaskGen.task_gen.get_cwd = get_cwd
 
 
+# }}}
+# {{{ Add general includes
+
+
 @TaskGen.feature('c', 'cprogram', 'cstlib')
 @TaskGen.after_method('process_use')
-def include_source_dir(self):
-    # Always include '.' in the tasks includes
+def add_includes(self):
     includes = self.to_list(getattr(self, 'includes', []))
+
+    # Always include '.' in the tasks includes
     if not '.' in includes:
         includes.insert(0, '.')
         self.includes = includes
 
+    # Add the global includes
+    includes.extend(self.bld.env.GLOBAL_INCLUDES)
+
+
+def add_global_includes(self, includes):
+    ''' Add global includes (that are added to all the targets). '''
+    for include in Utils.to_list(includes):
+        node = self.path.find_node(include)
+        if node is None or not node.isdir():
+            msg = 'cannot find include path `{0}` from `{1}`'
+            self.fatal(msg.format(include, self.path))
+        self.env.GLOBAL_INCLUDES.append(node)
 
 # }}}
 # {{{ Deploy targets
@@ -428,6 +444,9 @@ def register(ctx):
     ctx.env.PROJECT_ROOT = ctx.root.find_node(ctx.top_dir)
 
     register_get_cwd()
+
+    BuildContext.add_global_includes = add_global_includes
+    ctx.env.GLOBAL_INCLUDES = []
 
     ctx.IopcOptions = IopcOptions
     ctx.iopc_options = {}
