@@ -16,6 +16,7 @@ import os
 import sys
 
 # pylint: disable = import-error
+from waflib import Context
 from waflib import Logs
 # pylint: enable = import-error
 
@@ -75,6 +76,31 @@ def configure(ctx):
         ctx.msg('Checking for libsctp-dev', sctp_h)
     else:
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
+
+
+    # {{{ Python 2
+
+    ctx.find_program('python2', mandatory=True)
+
+    # Check version is >= 2.6
+    py_ver = ctx.cmd_and_log(ctx.env.PYTHON2 + ['--version'],
+                             output=Context.STDERR)
+    py_ver = py_ver.strip()[len('Python '):]
+    py_ver_minor = int(py_ver.split('.')[1])
+    if py_ver_minor not in [6, 7]:
+        ctx.fatal('unsupported python version {0}'.format(py_ver))
+
+    # Get compilation flags
+    ctx.find_program('python2-config', mandatory=True)
+
+    py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
+    ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
+
+    py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--ldflags'])
+    ctx.env.append_unique('LINKFLAGS_python2', py_ldflags.strip().split(' '))
+
+    # }}}
+
 
     # TODO: Must be cleanup depending on the chosen C compiler (test each one
     # of them).
