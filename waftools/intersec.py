@@ -106,21 +106,15 @@ def register_get_cwd():
 
 
 # }}}
-# {{{ Add general includes
+# {{{ Add global includes
 
 
 @TaskGen.feature('c', 'cprogram', 'cstlib')
 @TaskGen.after_method('process_use')
 def add_includes(self):
     includes = self.to_list(getattr(self, 'includes', []))
-
-    # Always include '.' in the tasks includes
-    if not '.' in includes:
-        includes.insert(0, '.')
-        self.includes = includes
-
-    # Add the global includes
     includes.extend(self.bld.env.GLOBAL_INCLUDES)
+    self.includes = includes
 
 
 def add_global_includes(self, includes):
