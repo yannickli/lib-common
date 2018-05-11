@@ -66,6 +66,12 @@ iop_value_t iop_type_to_min(iop_type_t type);
  */
 int c_to_camelcase(lstr_t name, bool is_first_upper, sb_t * nonnull out);
 
+/** Same as \ref c_to_camelcase but returns a string.
+ *
+ * \return LSTR_NULL_V in case of error.
+ */
+lstr_t t_c_to_camelcase(lstr_t s, bool is_first_upper);
+
 /* }}} */
 /* {{{ IOP attributes and constraints */
 

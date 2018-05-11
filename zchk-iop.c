@@ -1335,6 +1335,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NEG(c_to_camelcase(LSTR("foo_Bar"), false, &out));
 
 #undef CHECK_C_TO_CAMELCASE
+
+        Z_ASSERT_LSTREQUAL(t_c_to_camelcase(LSTR("foo_bar"), true),
+                           LSTR("FooBar"));
+        Z_ASSERT_LSTREQUAL(t_c_to_camelcase(LSTR("foo_bar"), false),
+                           LSTR("fooBar"));
     } Z_TEST_END;
     /* }}} */
     Z_TEST(unions, "test IOP union helpers") { /* {{{ */
