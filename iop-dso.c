@@ -345,6 +345,7 @@ static int iop_dso_reopen(iop_dso_t *dso, sb_t *err)
 {
     lstr_t path = LSTR_NULL_V;
     Lmid_t lmid = dso->lmid;
+    int old_refcnt = dso->refcnt;
 
     lstr_transfer(&path, &dso->path);
 
@@ -353,7 +354,8 @@ static int iop_dso_reopen(iop_dso_t *dso, sb_t *err)
     iop_dso_wipe(dso);
     iop_dso_init(dso);
 
-    dso->path = path;
+    dso->refcnt = old_refcnt;
+    dso->path   = path;
 
     return iop_dso_open_(dso, lmid, err);
 }
