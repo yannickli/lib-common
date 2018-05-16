@@ -4838,7 +4838,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
     PS_WANT(!real_desc->class_attrs->is_abstract);
     *value = mp_irealloc(mp, *value, 0, real_desc->size, 8, MEM_RAW);
 
-    /* Set the _vprt pointer */
+    /* Set the __vptr pointer */
     *(const iop_struct_t **)(*value) = real_desc;
 
     /* Unpack the several levels */
