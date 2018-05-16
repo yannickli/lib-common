@@ -151,7 +151,6 @@ def configure(ctx):
         '-std=gnu11',
         '-D_GNU_SOURCE',
         '-fblocks',
-        '-I/usr/include/valgrind',
         '-DHAS_LIBCOMMON_REPOSITORY=0',
         '-DWAF_MODE',
         '-fdiagnostics-show-option',

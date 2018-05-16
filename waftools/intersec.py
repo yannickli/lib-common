@@ -21,7 +21,7 @@ from waflib import TaskGen, Utils
 from waflib.Build import BuildContext
 from waflib.Node import Node
 from waflib.Task import Task
-from waflib.TaskGen import feature, extension
+from waflib.TaskGen import extension
 from waflib.Tools import c
 from waflib.Tools import ccroot
 # pylint: enable = import-error
@@ -207,8 +207,8 @@ Node.change_ext_src = node_change_ext_src
 
 class Blk2c(Task):
     # INCPATHS: includes paths are the same as for C compilation.
-    run_str = ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CPPPATH_ST:INCPATHS} '
-               '${SRC} -o ${TGT}')
+    run_str = ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_INCLUDES} '
+               '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')
     ext_out = [ '.c' ]
     color = 'CYAN'
 
@@ -218,12 +218,25 @@ class Blk2c(Task):
 
 
 @extension('.blk')
-@feature('blk')
 def process_blk(self, node):
+    # Compute includes from gcc flags
+    if not hasattr(self, 'clang_includes'):
+        if not hasattr(self, 'uselib'):
+            # FIXME: this will also be done by waf itself on the same task
+            #        generator, resulting in doubled flags in the GCC
+            #        arguments. A solution would be do deepcopy "self", but it
+            #        fails...
+            self.process_use()
+            self.propagate_uselib_vars()
+        cflags = self.env.CFLAGS
+        includes = [flag for flag in cflags if flag.startswith('-I')]
+        self.clang_includes = includes
+
     # Create block rewrite task.
     blk_c_node = node.change_ext_src('.blk.c')
     blk_task = self.create_task('Blk2c', node, blk_c_node)
     blk_task.cwd = self.env.PROJECT_ROOT
+    blk_task.env.CLANG_INCLUDES = self.clang_includes
 
     # Create C compilation task for the generated C source.
     self.create_compiled_task('c', blk_c_node)
