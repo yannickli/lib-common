@@ -30,8 +30,7 @@ ctx.stlib(target='libiopc', source=[
 ])
 
 iopc = ctx.program(target='iopc', source='iopc.c',
-                   use=['libcommon', 'libiopc'],
-                   lib=['pthread', 'dl'], install_path=None)
+                   use=['libcommon', 'libiopc'])
 
 iopc.post()
 ctx.env.IOPC_TASK = iopc.link_task
@@ -45,5 +44,4 @@ ctx.stlib(target='libiopsq', source=[
 ])
 
 ctx.program(target='zchk', source='zchk.c',
-            use=['libiopsq', 'libiopc', 'tstiop', 'libcommon'],
-            lib=['pthread', 'dl'])
+            use=['libiopsq', 'libiopc', 'tstiop', 'libcommon'])

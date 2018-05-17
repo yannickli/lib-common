@@ -142,6 +142,11 @@ def configure(ctx):
     ctx.env.LINKFLAGS_cprogram = [
         '-Wl,--export-dynamic',
     ]
+    ctx.env.LDFLAGS_cprogram = [
+        '-lpthread',
+        '-ldl',
+        '-lm',
+    ]
 
     # Find clang for blk
     ctx.env.CLANG = ctx.find_program('clang')
@@ -234,7 +239,6 @@ def build(ctx):
     libcommon = ctx.stlib(target='libcommon',
         depends_on='core-version.c',
         use=['libxml', 'openssl', 'zlib', 'compat'],
-        lib=['pthread', 'dl'],
         source=[
             'core-version.c',
             'core.iop.c',
@@ -396,13 +400,11 @@ def build(ctx):
 
     ctx.program(target='dso-compatibility-check', features='c cprogram',
                 source='dso-compatibility-check.blk',
-                use='libcommon',
-                lib=['pthread', 'dl'])
+                use='libcommon')
 
     ctx.program(target='iop-sign', features='c cprogram',
                 source='iop-sign.blk',
-                use='libcommon',
-                lib=['pthread', 'dl'])
+                use='libcommon')
 
     # }}}
     # {{{ zchk and ztst-*
@@ -441,8 +443,7 @@ def build(ctx):
             'test-data/snmp/snmp_intersec_test.iop'
         ],
         use='iop-snmp tstiop',
-        use_whole='libcommon',
-        lib=['pthread', 'dl', 'm'])
+        use_whole='libcommon')
 
     ctx.shlib(target='zchk-iop-plugin', source=[
         'iop-core/ic.iop',
@@ -451,58 +452,51 @@ def build(ctx):
     ], use='libcommon')
 
     ctx.program(target='ztst-cfgparser', source='ztst-cfgparser.c',
-                use='libcommon tstiop', lib=['pthread', 'dl'])
+                use='libcommon tstiop')
 
     ctx.program(target='ztst-httpd', source='ztst-httpd.c',
-                use='libcommon tstiop', lib=['pthread', 'dl'])
+                use='libcommon tstiop')
 
     ctx.program(target='ztst-tpl', source='ztst-tpl.c',
-                use='libcommon', lib=['pthread', 'dl'])
+                use='libcommon')
 
     ctx.program(target='ztst-iprintf', source='ztst-iprintf.c',
-                use='libcommon', lib=['pthread', 'dl'])
+                use='libcommon')
 
     ctx.program(target='ztst-iprintf-fp', source='ztst-iprintf-fp.c',
-                use='libcommon', lib=['pthread', 'dl'],
+                use='libcommon',
                 cflags=['-Wno-format', '-Wno-missing-format-attribute',
                         '-Wno-format-nonliteral'])
 
     ctx.program(target='ztst-iprintf-glibc', source='ztst-iprintf-glibc.c',
-                use='libcommon', lib=['pthread', 'dl'],
+                use='libcommon',
                 cflags=['-Wno-format', '-Wno-missing-format-attribute',
                         '-Wno-format-nonliteral'])
 
     ctx.program(target='ztst-iprintf-speed', source='ztst-iprintf-speed.c',
-                use='libcommon', lib=['pthread', 'dl'])
+                use='libcommon')
 
-    ctx.program(target='ztst-lzo', source='ztst-lzo.c',
-                use='libcommon', lib=['pthread', 'dl'])
+    ctx.program(target='ztst-lzo', source='ztst-lzo.c', use='libcommon')
 
     ctx.program(target='ztst-qps', features="c",
-                source='ztst-qps.blk',
-                use='libcommon', lib=['pthread', 'dl'])
+                source='ztst-qps.blk', use='libcommon')
 
     ctx.program(target='ztst-qpscheck', features="c",
-                source='ztst-qpscheck.blk',
-                use='libcommon', lib=['pthread', 'dl'])
+                source='ztst-qpscheck.blk', use='libcommon')
 
     ctx.program(target='ztst-qpsstress', features="c",
-                source='ztst-qpsstress.blk',
-                use='libcommon', lib=['pthread', 'dl'])
+                source='ztst-qpsstress.blk', use='libcommon')
 
     ctx.program(target='ztst-hattrie', features="c",
-                source='ztst-hattrie.blk',
-                use='libcommon', lib=['pthread', 'dl'])
+                source='ztst-hattrie.blk', use='libcommon')
 
-    ctx.program(target='zgcd-bench', source='zgcd-bench.c',
-                use='libcommon', lib=['pthread', 'dl'])
+    ctx.program(target='zgcd-bench', source='zgcd-bench.c', use='libcommon')
 
     ctx.program(target='ztst-mem-bench', source='ztst-mem-bench.c',
-                use='libcommon', lib=['pthread', 'dl'])
+                use='libcommon')
 
     ctx.program(target='ztst-mem', features="c",
-                source='ztst-mem.blk',
-                use='libcommon', lib=['pthread', 'dl'])
+                source='ztst-mem.blk', use='libcommon')
 
     # }}}
 # }}}

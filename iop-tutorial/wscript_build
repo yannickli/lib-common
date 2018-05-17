@@ -15,4 +15,4 @@
 bld.program(target='ex-iop', source=[
     'ex-iop.c',
     'exiop.iop',
-], use='libcommon', lib=['pthread', 'dl'])
+], use='libcommon')
