@@ -206,9 +206,9 @@ Node.change_ext_src = node_change_ext_src
 # {{{ BLK
 
 class Blk2c(Task):
-    # INCPATHS: includes paths are the same as for C compilation.
-    run_str = ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_INCLUDES} '
-               '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')
+    run_str = ['rm -f ${TGT}',
+               ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_INCLUDES} '
+                '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
     ext_out = [ '.c' ]
     color = 'CYAN'
 
@@ -262,7 +262,7 @@ def process_perf(self, node):
 # {{{ LEX
 
 class Lex2c(Task):
-    run_str = '${FLEX_SH} ${SRC} ${TGT}'
+    run_str = ['rm -f ${TGT}', '${FLEX_SH} ${SRC} ${TGT}']
     color   = 'BLUE'
 
     @classmethod
