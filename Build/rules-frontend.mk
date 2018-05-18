@@ -342,7 +342,8 @@ define rule/wwwscript
 BROWSERIFY_OPTIONS = -g browserify-shim \
                      -g envify \
                      --debug \
-                     --no-bundle-external
+                     --no-bundle-external \
+                     --insert-global-vars global
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
 $(1DV)www:: $2/htdocs/javascript/bundles/$3.js
