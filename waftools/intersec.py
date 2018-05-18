@@ -13,6 +13,7 @@
 
 import os
 import errno
+import copy
 from itertools import chain
 
 # pylint: disable = import-error
@@ -52,7 +53,7 @@ def prepare_whole(self):
 
     # Add the 'use_whole' elements in the 'use' list, so that waf considers it
     # for paths, includes, ...
-    self.use = self.to_list(self.use)
+    self.use = copy.copy(self.to_list(self.use))
     for uw in use_whole:
         if uw in self.use:
             self.bld.fatal(('`{0}` from `use_whole` of target `{1}` is '
