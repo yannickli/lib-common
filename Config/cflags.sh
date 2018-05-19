@@ -64,7 +64,7 @@ from_editor()
 {
     test -f /proc/self/exe || return 1
     pid=$(getppid self)
-    while test "$pid" > 1; do
+    while test "$pid" -gt 1; do
         case "$(readlink /proc/$pid/exe)" in
             *vim*|*emacs*)
                 return 0;;
