@@ -23,7 +23,7 @@ from waflib.Build import BuildContext
 from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import extension
-from waflib.Tools import c
+from waflib.Tools import c, cxx
 from waflib.Tools import ccroot
 # pylint: enable = import-error
 
@@ -102,6 +102,7 @@ def register_get_cwd():
         return self.env.PROJECT_ROOT
 
     c.c.get_cwd = get_cwd
+    cxx.cxx.get_cwd = get_cwd
     ccroot.link_task.get_cwd = get_cwd
     TaskGen.task_gen.get_cwd = get_cwd
 
@@ -141,14 +142,14 @@ def deploy_targets(ctx):
 
         # Deploy only C programs and shared libraries
         features = getattr(tgen, 'features', [])
-        is_cprogram = 'cprogram' in features
+        is_program = 'cprogram' in features or 'cxxprogram' in features
         is_cshlib = 'cshlib' in features
-        if not is_cprogram and not is_cshlib:
+        if not is_program and not is_cshlib:
             continue
 
         node = tgen.link_task.outputs[0]
 
-        if is_cprogram:
+        if is_program:
             # Deploy C programs in the corresponding source directory
             dst = node.get_src().abspath()
         else:
@@ -206,6 +207,19 @@ Node.change_ext_src = node_change_ext_src
 
 # {{{ BLK
 
+def compute_clang_includes(self, includes_field, cflags):
+    if not hasattr(self, includes_field):
+        if not hasattr(self, 'uselib'):
+            # FIXME: this will also be done by waf itself on the same task
+            #        generator, resulting in doubled flags in the GCC
+            #        arguments. A solution would be do deepcopy "self", but it
+            #        fails...
+            self.process_use()
+            self.propagate_uselib_vars()
+        cflags = self.env[cflags]
+        includes = [flag for flag in cflags if flag.startswith('-I')]
+        setattr(self, includes_field, includes)
+
 class Blk2c(Task):
     run_str = ['rm -f ${TGT}',
                ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_INCLUDES} '
@@ -221,17 +235,7 @@ class Blk2c(Task):
 @extension('.blk')
 def process_blk(self, node):
     # Compute includes from gcc flags
-    if not hasattr(self, 'clang_includes'):
-        if not hasattr(self, 'uselib'):
-            # FIXME: this will also be done by waf itself on the same task
-            #        generator, resulting in doubled flags in the GCC
-            #        arguments. A solution would be do deepcopy "self", but it
-            #        fails...
-            self.process_use()
-            self.propagate_uselib_vars()
-        cflags = self.env.CFLAGS
-        includes = [flag for flag in cflags if flag.startswith('-I')]
-        self.clang_includes = includes
+    compute_clang_includes(self, 'clang_includes', 'CFLAGS')
 
     # Create block rewrite task.
     blk_c_node = node.change_ext_src('.blk.c')
@@ -241,6 +245,35 @@ def process_blk(self, node):
 
     # Create C compilation task for the generated C source.
     self.create_compiled_task('c', blk_c_node)
+
+# }}}
+# {{{ BLKK
+
+class Blkk2cc(Task):
+    run_str = ['rm -f ${TGT}',
+               ('${CLANGXX} ${CLANGXX_REWRITE_FLAGS} ${CLANG_INCLUDES} '
+                '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
+    ext_out = [ '.cc' ]
+    color = 'CYAN'
+
+    @classmethod
+    def keyword(cls):
+        return 'Rewriting'
+
+
+@extension('.blkk')
+def process_blkk(self, node):
+    # Compute includes from g++ flags
+    compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
+
+    # Create block rewrite task.
+    blkk_cc_node = node.change_ext_src('.blkk.cc')
+    blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
+    blkk_task.cwd = self.env.PROJECT_ROOT
+    blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
+
+    # Create CC compilation task for the generated c++ source.
+    self.create_compiled_task('cxx', blkk_cc_node)
 
 # }}}
 # {{{ PERF

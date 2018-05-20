@@ -34,6 +34,7 @@ import waftools.intersec as intersec
 
 def options(ctx):
     ctx.load('compiler_c')
+    ctx.load('compiler_cxx')
 
 # }}}
 # {{{ configure
@@ -42,8 +43,9 @@ def configure(ctx):
     # Loads only waf definitions
     ctx.load('intersec', tooldir=waftoolsdir)
 
-    # Setup gcc as default compiler
+    # Load C/C++ compilers
     ctx.load('compiler_c')
+    ctx.load('compiler_cxx')
 
     # Scripts
     ctx.find_program('_run_checks.sh',
@@ -139,10 +141,10 @@ def configure(ctx):
         '-DWAF_MODE',
         '-fPIC',
     ]
-    ctx.env.LINKFLAGS_cprogram = [
+    ctx.env.LINKFLAGS = [
         '-Wl,--export-dynamic',
     ]
-    ctx.env.LDFLAGS_cprogram = [
+    ctx.env.LDFLAGS = [
         '-lpthread',
         '-ldl',
         '-lm',
@@ -204,6 +206,65 @@ def configure(ctx):
         '-internal-externc-isystem', '/usr/include/x86_64-linux-gnu',
         '-internal-externc-isystem', '/include',
         '-internal-externc-isystem', '/usr/include',
+        '-rewrite-blocks',
+    ]
+
+    # Find clang++ for blkk
+    ctx.env.CLANGXX = ctx.find_program('clang++')
+    ctx.env.CLANGXX_REWRITE_FLAGS = [
+        '-cc1',
+        '-x', 'c++',
+        '-std=gnu++98',
+        '-O2',
+        '-fblocks',
+        '-fdiagnostics-show-option',
+        '-fwrapv',
+        '-Wall',
+        '-Wextra',
+        '-Werror',
+        '-Wno-error=deprecated-declarations',
+        '-Wno-gnu-designator',
+        '-Wno-return-type-c-linkage',
+        '-Wbool-conversion',
+        '-Wempty-body',
+        '-Wloop-analysis',
+        '-Wsizeof-array-argument',
+        '-Wstring-conversion',
+        '-Wparentheses',
+        '-Wduplicate-enum',
+        '-Wheader-guard',
+        '-Wlogical-not-parentheses',
+        '-Wno-extern-c-compat',
+        '-Wno-nullability-completeness',
+        '-Wno-shift-negative-value',
+        '-Wcomma',
+        '-Wfloat-overflow-conversion',
+        '-Wfloat-zero-conversion',
+        '-Wchar-subscripts',
+        '-Wundef',
+        '-Wshadow',
+        '-Wwrite-strings',
+        '-Wsign-compare',
+        '-Wunused',
+        '-Wno-unused-parameter',
+        '-Wuninitialized',
+        '-Winit-self',
+        '-Wpointer-arith',
+        '-Wredundant-decls',
+        '-Wno-format-y2k',
+        '-Wmissing-format-attribute',
+        '-Wno-shadow',
+        '-D_GNU_SOURCE',
+        '-internal-isystem', '/usr/local/include',
+        '-internal-isystem', '/srv/tools/clang_3.9/lib/clang/3.9.1/include',
+        '-internal-externc-isystem', '/usr/include/x86_64-linux-gnu',
+        '-internal-externc-isystem', '/include',
+        '-internal-externc-isystem', '/usr/include',
+        '-DHAS_LIBCOMMON_REPOSITORY=1',
+        '-DHAS_PLATFORM_REPOSITORY=1',
+        '-D__STDC_LIMIT_MACROS',
+        '-D__STDC_CONSTANT_MACROS',
+        '-D__STDC_FORMAT_MACROS',
         '-rewrite-blocks',
     ]
 
