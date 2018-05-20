@@ -55,7 +55,8 @@ def prepare_whole(self):
     # for paths, includes, ...
     self.use = copy.copy(self.to_list(self.use))
     for uw in use_whole:
-        if uw in self.use:
+        if  not getattr(self, 'no_use_whole_error', False) \
+        and uw in self.use:
             self.bld.fatal(('`{0}` from `use_whole` of target `{1}` is '
                             'already in attribute `use`, you may remove it')
                            .format(uw, self.target))
