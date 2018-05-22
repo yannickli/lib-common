@@ -132,6 +132,8 @@ def add_global_includes(self, includes):
 # }}}
 # {{{ Deploy targets
 
+# TODO: investigate if declaring this as a feature would work
+
 def deploy_targets(ctx):
     """ Deploy the targets (using hard links) in the source directories once
         the build is done.
@@ -145,20 +147,32 @@ def deploy_targets(ctx):
         features = getattr(tgen, 'features', [])
         is_program = 'cprogram' in features or 'cxxprogram' in features
         is_cshlib = 'cshlib' in features
-        if not is_program and not is_cshlib:
+        is_jar = 'jar' in features
+        is_javac = 'javac' in features
+        if not (is_program or is_cshlib or is_javac or is_jar):
             continue
-
-        node = tgen.link_task.outputs[0]
 
         if is_program:
             # Deploy C programs in the corresponding source directory
+            node = tgen.link_task.outputs[0]
+            src = node.abspath()
             dst = node.get_src().abspath()
-        else:
+        elif is_cshlib:
             # Deploy C shared library in the corresponding source
             # directory, stripping the 'lib' prefix
+            node = tgen.link_task.outputs[0]
             assert (node.name.startswith('lib'))
             name = node.name[len('lib'):]
+            src = node.abspath()
             dst = os.path.join(node.parent.get_src().abspath(), name)
+        elif is_jar:
+            node = tgen.jar_task.outputs[0]
+            src = node.abspath()
+            dst = node.get_src().abspath()
+        elif is_javac:
+            src = os.path.join(tgen.outdir.abspath(), tgen.destfile)
+            dst = os.path.join(tgen.outdir.get_src().abspath(),
+                               tgen.destfile)
 
         # Remove possibly existing file, and create hard link
         try:
@@ -166,7 +180,7 @@ def deploy_targets(ctx):
         except OSError as exn:
             if exn.errno != errno.ENOENT:
                 raise
-        os.link(node.abspath(), dst)
+        os.link(src, dst)
 
 # }}}
 # {{{ Run checks

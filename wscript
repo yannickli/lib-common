@@ -79,6 +79,10 @@ def configure(ctx):
     else:
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
 
+    # JAVA
+    # TODO: this should be optional
+    ctx.load('java')
+    ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
 
     # {{{ Python 2
 
