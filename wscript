@@ -120,6 +120,7 @@ def configure(ctx):
         '-Wextra',
         '-Werror',
         '-Wno-error=deprecated-declarations',
+        '-Wno-shift-negative-value',
         '-Wchar-subscripts',
         '-Wundef',
         '-Wshadow',
