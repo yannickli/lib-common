@@ -47,66 +47,7 @@ def configure(ctx):
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
 
-    # Scripts
-    ctx.find_program('_run_checks.sh',
-                     path_list=[os.path.join(ctx.path.abspath(), 'Build')],
-                     mandatory=True,
-                     var='RUN_CHECKS_SH')
-    ctx.find_program('_tokens.sh',
-                     path_list=[os.path.join(ctx.path.abspath(), 'Config')],
-                     mandatory=True,
-                     var='TOKENS_SH')
-    ctx.recurse('scripts')
-
-    # External programs
-    ctx.find_program('gperf', mandatory=True)
-
-    # External libraries
-    ctx.check_cfg(package='libxml-2.0', uselib_store='libxml',
-                  args=['--cflags', '--libs'])
-
-    ctx.check_cfg(package='openssl', uselib_store='openssl',
-                  args=['--cflags', '--libs'])
-
-    ctx.check_cfg(package='zlib', uselib_store='zlib',
-                  args=['--cflags', '--libs'])
-
-    # libsctp-dev
-    sctp_h = '/usr/include/netinet/sctp.h'
-    if os.path.exists(sctp_h):
-        ctx.env.HAVE_NETINET_SCTP_H = True
-        ctx.msg('Checking for libsctp-dev', sctp_h)
-    else:
-        Logs.warn('missing libsctp, apt-get install libsctp-dev')
-
-    # JAVA
-    # TODO: this should be optional
-    ctx.load('java')
-    ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
-
-    # {{{ Python 2
-
-    ctx.find_program('python2', mandatory=True)
-
-    # Check version is >= 2.6
-    py_ver = ctx.cmd_and_log(ctx.env.PYTHON2 + ['--version'],
-                             output=Context.STDERR)
-    py_ver = py_ver.strip()[len('Python '):]
-    py_ver_minor = int(py_ver.split('.')[1])
-    if py_ver_minor not in [6, 7]:
-        ctx.fatal('unsupported python version {0}'.format(py_ver))
-
-    # Get compilation flags
-    ctx.find_program('python2-config', mandatory=True)
-
-    py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
-    ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
-
-    py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--ldflags'])
-    ctx.env.append_unique('LINKFLAGS_python2', py_ldflags.strip().split(' '))
-
-    # }}}
-
+    # {{{ Compilation flags
 
     # TODO: Must be cleanup depending on the chosen C compiler (test each one
     # of them).
@@ -272,6 +213,71 @@ def configure(ctx):
         '-D__STDC_FORMAT_MACROS',
         '-rewrite-blocks',
     ]
+
+    # }}}
+    # {{{ Dependencies
+
+    # Scripts
+    ctx.find_program('_run_checks.sh',
+                     path_list=[os.path.join(ctx.path.abspath(), 'Build')],
+                     mandatory=True,
+                     var='RUN_CHECKS_SH')
+    ctx.find_program('_tokens.sh',
+                     path_list=[os.path.join(ctx.path.abspath(), 'Config')],
+                     mandatory=True,
+                     var='TOKENS_SH')
+    ctx.recurse('scripts')
+
+    # External programs
+    ctx.find_program('gperf', mandatory=True)
+
+    # External libraries
+    ctx.check_cfg(package='libxml-2.0', uselib_store='libxml',
+                  args=['--cflags', '--libs'])
+
+    ctx.check_cfg(package='openssl', uselib_store='openssl',
+                  args=['--cflags', '--libs'])
+
+    ctx.check_cfg(package='zlib', uselib_store='zlib',
+                  args=['--cflags', '--libs'])
+
+    # libsctp-dev
+    sctp_h = '/usr/include/netinet/sctp.h'
+    if os.path.exists(sctp_h):
+        ctx.env.HAVE_NETINET_SCTP_H = True
+        ctx.msg('Checking for libsctp-dev', sctp_h)
+    else:
+        Logs.warn('missing libsctp, apt-get install libsctp-dev')
+
+    # JAVA
+    # TODO: this should be optional
+    ctx.load('java')
+    ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
+
+    # {{{ Python 2
+
+    ctx.find_program('python2', mandatory=True)
+
+    # Check version is >= 2.6
+    py_ver = ctx.cmd_and_log(ctx.env.PYTHON2 + ['--version'],
+                             output=Context.STDERR)
+    py_ver = py_ver.strip()[len('Python '):]
+    py_ver_minor = int(py_ver.split('.')[1])
+    if py_ver_minor not in [6, 7]:
+        ctx.fatal('unsupported python version {0}'.format(py_ver))
+
+    # Get compilation flags
+    ctx.find_program('python2-config', mandatory=True)
+
+    py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
+    ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
+
+    py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--ldflags'])
+    ctx.env.append_unique('LINKFLAGS_python2', py_ldflags.strip().split(' '))
+
+    # }}}
+
+    # }}}
 
 # }}}
 # {{{ build
