@@ -245,6 +245,8 @@ def configure(ctx):
     sctp_h = '/usr/include/netinet/sctp.h'
     if os.path.exists(sctp_h):
         ctx.env.HAVE_NETINET_SCTP_H = True
+        ctx.env.CFLAGS.append('-DHAVE_NETINET_SCTP_H')
+        ctx.env.CLANG_REWRITE_FLAGS.append('-DHAVE_NETINET_SCTP_H')
         ctx.msg('Checking for libsctp-dev', sctp_h)
     else:
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
@@ -446,7 +448,6 @@ def build(ctx):
     )
     if ctx.env.HAVE_NETINET_SCTP_H:
         libcommon.source.append('net-sctp.c')
-        libcommon.cflags = '-DHAVE_NETINET_SCTP_H'
 
     # }}}
 
