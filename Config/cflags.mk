@@ -19,6 +19,12 @@ endif
 endif
 endif
 
+# Debian stretch uses --enable-new-dtags by default, which breaks indirect
+# library dependencies loading when using -rpath.
+# See https://sourceware.org/ml/binutils/2014-02/msg00031.html
+#  or https://reviews.llvm.org/D8836
+LDFLAGS += -Xlinker --disable-new-dtags
+
 ifeq ($(filter %-analyzer,$(CC)),)
 	CC_BASE  := $(notdir $(CC))
 	CXX_BASE := $(notdir $(CXX))
