@@ -16,8 +16,7 @@ import os
 import sys
 
 # pylint: disable = import-error
-from waflib import Context
-from waflib import Logs
+from waflib import Context, Logs, Errors
 # pylint: enable = import-error
 
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
@@ -252,9 +251,12 @@ def configure(ctx):
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
 
     # JAVA
-    # TODO: this should be optional
-    ctx.load('java')
-    ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
+    # TODO: have an option to disable JAVA
+    try:
+        ctx.load('java')
+        ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
+    except Errors.ConfigurationError as e:
+        Logs.warn('cannot configure JAVA: %s', e.msg)
 
     # {{{ Python 2
 
