@@ -88,6 +88,7 @@ def configure(ctx):
     ]
     ctx.env.LINKFLAGS = [
         '-Wl,--export-dynamic',
+        '-Xlinker', '--disable-new-dtags',
     ]
     ctx.env.LDFLAGS = [
         '-lpthread',
