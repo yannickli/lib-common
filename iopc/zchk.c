@@ -381,12 +381,15 @@ Z_GROUP_EXPORT(iopsq) {
                      "structs mismatch");
     } Z_TEST_END;
 
-    Z_TEST(mp_iopsq_build_struct, "test mp_iopsq_build_struct") {
+    Z_TEST(mp_iopsq_build_struct, "test mp_iopsq_build_struct and "
+           "iop_struct_mp_build")
+    {
         t_scope;
         SB_1k(err);
         iop__package__t *pkg_desc;
         const iop__structure__t *st_desc;
         const iop_struct_t *st;
+        iopsq_iop_struct_t st_mp;
 
         pkg_desc = t_load_package_from_file("single-struct.json", &err);
         Z_ASSERT_P(pkg_desc, "%pL", &err);
@@ -396,6 +399,18 @@ Z_GROUP_EXPORT(iopsq) {
         Z_ASSERT_P(st, "%pL", &err);
         Z_HELPER_RUN(z_assert_struct_eq(st, &tstiop__tst_build_struct__s),
                      "struct mismatch");
+
+        iopsq_iop_struct_init(&st_mp);
+        Z_ASSERT_N(iopsq_iop_struct_build(&st_mp, st_desc, NULL, &err));
+        Z_ASSERT_P(st_mp.st, "%pL", &err);
+        Z_HELPER_RUN(z_assert_struct_eq(st_mp.st,
+                                        &tstiop__tst_build_struct__s),
+                     "struct mismatch");
+
+        iopsq_iop_struct_wipe(&st_mp);
+        Z_ASSERT_NULL(st_mp.st);
+        Z_ASSERT_NULL(st_mp.mp);
+        Z_ASSERT_NULL(st_mp.release_cookie);
     } Z_TEST_END;
 
     Z_TEST(error_misc, "struct error cases miscellaneous") {

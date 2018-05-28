@@ -134,7 +134,7 @@ iop_pkg_t *mp_iopsq_build_pkg(mem_pool_t *nonnull mp,
 
 /** Generates an IOP struct or union description from its IOP version.
  *
- * \warning Same as for \ref mp_iop_pkg_from_desc.
+ * \warning Same as for \ref mp_iopsq_build_pkg.
  *
  * \param[in,out] mp          Memory pool to use for any needed allocation
  *                            (should be a frame-based pool).
@@ -161,6 +161,45 @@ mp_iopsq_build_mono_element_pkg(mem_pool_t *nonnull mp,
                                 const iopsq_type_table_t *nullable type_table,
                                 sb_t *nonnull err);
 
+/* {{{ Helper: iopsq_iop_struct_t */
+
+typedef struct iopsq_iop_struct_t {
+    const iop_struct_t *st;
+/* {{{ Internal: used to allocate and wipe the above iop_struct_t object. */
+    mem_pool_t *mp;
+    const void *release_cookie;
+/* }}} */
+} iopsq_iop_struct_t;
+
+GENERIC_INIT(iopsq_iop_struct_t, iopsq_iop_struct);
+
+
+/** Build iopsq_iop_struct_t object.
+ *
+ * Same as calling \ref mp_iopsq_build_struct except that the mempool is
+ * handled in iopsq_iop_struct_t.
+ * \warning Same as for \ref mp_iopsq_build_pkg.
+ *
+ * \param[out] st          The iopsq_iop_struct_t object to build. Must be
+ *                         first initialized with iopsq_iop_struct_init.
+ * \param[in]  st_desc     IOP description of the struct/union.
+ * \param[in]  type_table  Table for custom IOP types.
+ * \param[out] err         Error buffer.
+ *
+ * \return -1 in case of error, 0 otherwise.
+ */
+int iopsq_iop_struct_build(iopsq_iop_struct_t *nonnull st,
+                           const iopsq__structure__t *nonnull st_desc,
+                           const iopsq_type_table_t *nullable type_table,
+                           sb_t *nonnull err);
+
+/** Wipe an iopsq_iop_struct_t object.
+ *
+ * \param[in,out] st The iopsq_iop_struct_t object to wipe.
+ */
+void iopsq_iop_struct_wipe(iopsq_iop_struct_t *nonnull st);
+
+/* }}} */
 /* {{{ Private helpers */
 
 static inline iopsq__int_size__t iopsq_int_type_to_int_size(iop_type_t type)
