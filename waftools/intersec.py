@@ -11,8 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-import os
-import errno
 import copy
 from itertools import chain
 
@@ -132,55 +130,56 @@ def add_global_includes(self, includes):
 # }}}
 # {{{ Deploy targets
 
-# TODO: investigate if declaring this as a feature would work
+class DeployTarget(Task):
 
-def deploy_targets(ctx):
-    """ Deploy the targets (using hard links) in the source directories once
-        the build is done.
-    """
-    for tgen in ctx.get_all_task_gen():
-        # Deploy only posted targets
-        if not getattr(tgen, 'posted', False):
-            continue
+    run_str = ['rm -f ${TGT}', 'ln ${SRC} ${TGT}']
+    color = 'CYAN'
 
-        # Deploy only C programs and shared libraries
-        features = getattr(tgen, 'features', [])
-        is_program = 'cprogram' in features or 'cxxprogram' in features
-        is_cshlib = 'cshlib' in features
-        is_jar = 'jar' in features
-        is_javac = 'javac' in features
-        if not (is_program or is_cshlib or is_javac or is_jar):
-            continue
+    @classmethod
+    def keyword(cls):
+        return 'Deploying'
 
-        if is_program:
-            # Deploy C programs in the corresponding source directory
-            node = tgen.link_task.outputs[0]
-            src = node.abspath()
-            dst = node.get_src().abspath()
-        elif is_cshlib:
-            # Deploy C shared library in the corresponding source
-            # directory, stripping the 'lib' prefix
-            node = tgen.link_task.outputs[0]
-            assert (node.name.startswith('lib'))
-            name = node.name[len('lib'):]
-            src = node.abspath()
-            dst = os.path.join(node.parent.get_src().abspath(), name)
-        elif is_jar:
-            node = tgen.jar_task.outputs[0]
-            src = node.abspath()
-            dst = node.get_src().abspath()
-        elif is_javac:
-            src = os.path.join(tgen.outdir.abspath(), tgen.destfile)
-            dst = os.path.join(tgen.outdir.get_src().abspath(),
-                               tgen.destfile)
+    def __str__(self):
+        node = self.outputs[0]
+        return node.path_from(node.ctx.launch_node())
 
-        # Remove possibly existing file, and create hard link
-        try:
-            os.remove(dst)
-        except OSError as exn:
-            if exn.errno != errno.ENOENT:
-                raise
-        os.link(src, dst)
+
+@TaskGen.feature('cprogram', 'cxxprogram')
+@TaskGen.after_method('apply_link')
+def deploy_program(self):
+    # Deploy programs in the corresponding source directory
+    node = self.link_task.outputs[0]
+    self.create_task('DeployTarget', src=node, tgt=node.get_src())
+
+
+@TaskGen.feature('cshlib')
+@TaskGen.after_method('apply_link')
+def deploy_shlib(self):
+    # Deploy C shared library in the corresponding source directory,
+    # stripping the 'lib' prefix
+    node = self.link_task.outputs[0]
+    assert (node.name.startswith('lib'))
+    tgt = node.parent.get_src().make_node(node.name[len('lib'):])
+    self.create_task('DeployTarget', src=node, tgt=tgt)
+
+
+@TaskGen.feature('jar')
+@TaskGen.after_method('jar_files')
+def deploy_jar(self):
+    # Deploy Java jar files in the corresponding source directory
+    node = self.jar_task.outputs[0]
+    tsk = self.create_task('DeployTarget', src=node, tgt=node.get_src())
+    tsk.set_run_after(self.jar_task)
+
+
+@TaskGen.feature('deploy_javac')
+@TaskGen.after_method('apply_java')
+def deploy_javac(self):
+    src = self.outdir.make_node(self.destfile)
+    tgt = self.outdir.get_src().make_node(self.destfile)
+    tsk = self.create_task('DeployTarget', src=src, tgt=tgt)
+    tsk.set_run_after(self.javac_task)
+
 
 # }}}
 # {{{ Run checks
@@ -507,5 +506,4 @@ def register(ctx):
     ctx.IopcOptions = IopcOptions
     ctx.iopc_options = {}
 
-    ctx.add_post_fun(deploy_targets)
     ctx.add_post_fun(run_checks)
