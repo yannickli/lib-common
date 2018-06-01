@@ -101,7 +101,12 @@ def configure(ctx):
         try:
             ctx.check_hadoop()
         except Errors.ConfigurationError as e:
-            Logs.warn('cannot configure HADOOP dependency: %s', e.msg)
+            Logs.warn('cannot configure Hadoop dependency: %s', e.msg)
+
+        try:
+            ctx.check_hbase()
+        except Errors.ConfigurationError as e:
+            Logs.warn('cannot configure HBase dependency: %s', e.msg)
 
     # {{{ Python 2
 

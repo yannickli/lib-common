@@ -556,24 +556,36 @@ def process_ld(self, node):
 # {{{ JAVA
 
 
-@conf
-def check_hadoop(self):
-    if 'HADOOP_HOME' not in self.environ:
-        self.fatal('missing HADOOP_HOME environment variable')
+def check_class_from_env_var(ctx, var, binpath, classname):
+    if var not in ctx.environ:
+        ctx.fatal('missing %s environment variable', var)
 
-    cmd = [self.environ['HADOOP_HOME'] + '/bin/hadoop', 'classpath']
+    cmd = [ctx.environ[var] + binpath, 'classpath']
     try:
-        classpath = self.cmd_and_log(cmd, output=Context.STDOUT)
+        classpath = ctx.cmd_and_log(cmd, output=Context.STDOUT)
     except Errors.WafError as e:
-        self.fatal('cmd `%s` failed: %s' % (' '.join(cmd), e))
+        ctx.fatal('cmd `%s` failed: %s' % (' '.join(cmd), e))
 
-    res = self.check_java_class('org.apache.hadoop.io.Text',
-                                with_classpath=classpath)
+    res = ctx.check_java_class(classname, with_classpath=classpath)
     if res == 0:
-        self.env.HADOOP_CLASSPATH = classpath
+        return classpath
     else:
-        self.fatal('cannot find hadoop classes with provided HADOOP_HOME '\
-                   'environment variable')
+        ctx.fatal('cannot find classes with provided %s env variable' % (var))
+
+
+@conf
+def check_hadoop(ctx):
+    classpath = check_class_from_env_var(ctx, 'HADOOP_HOME', '/bin/hadoop',
+                                         'org.apache.hadoop.io.Text')
+    ctx.env.HADOOP_CLASSPATH = classpath
+
+
+@conf
+def check_hbase(ctx):
+    classpath = check_class_from_env_var(ctx, 'HBASE_LIB_DIR',
+                                         '/../bin/hbase',
+                                         'org.apache.hadoop.hbase.KeyValue')
+    ctx.env.HBASE_CLASSPATH = classpath
 
 
 class ClassToHeaderFile(Task):
