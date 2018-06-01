@@ -97,6 +97,12 @@ def configure(ctx):
     except Errors.ConfigurationError as e:
         Logs.warn('cannot configure JAVA: %s', e.msg)
 
+    if ctx.env.HAVE_JAVA:
+        try:
+            ctx.check_hadoop()
+        except Errors.ConfigurationError as e:
+            Logs.warn('cannot configure HADOOP dependency: %s', e.msg)
+
     # {{{ Python 2
 
     ctx.find_program('python2', mandatory=True)

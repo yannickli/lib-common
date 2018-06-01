@@ -16,10 +16,10 @@ import os
 from itertools import chain
 
 # pylint: disable = import-error
-from waflib import TaskGen, Utils
+from waflib import TaskGen, Utils, Context, Errors
 
 from waflib.Build import BuildContext
-from waflib.Configure import ConfigurationContext
+from waflib.Configure import ConfigurationContext, conf
 from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import extension
@@ -550,6 +550,30 @@ def process_ld(self, node):
     self.env.append_value('LDFLAGS',
                           ['-Xlinker', '--version-script',
                            '-Xlinker', node.abspath()])
+
+
+# }}}
+# {{{ JAVA
+
+
+@conf
+def check_hadoop(self):
+    if 'HADOOP_HOME' not in self.environ:
+        self.fatal('missing HADOOP_HOME environment variable')
+
+    cmd = [self.environ['HADOOP_HOME'] + '/bin/hadoop', 'classpath']
+    try:
+        classpath = self.cmd_and_log(cmd, output=Context.STDOUT)
+    except Errors.WafError as e:
+        self.fatal('cmd `%s` failed: %s' % (' '.join(cmd), e))
+
+    res = self.check_java_class('org.apache.hadoop.io.Text',
+                                with_classpath=classpath)
+    if res == 0:
+        self.env.HADOOP_CLASSPATH = classpath
+    else:
+        self.fatal('cannot find hadoop classes with provided HADOOP_HOME '\
+                   'environment variable')
 
 
 # }}}
