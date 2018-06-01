@@ -576,6 +576,30 @@ def check_hadoop(self):
                    'environment variable')
 
 
+class ClassToHeaderFile(Task):
+    run_str = ['javah -cp ${OUTDIR} -jni -o ${TGT} ${CLASSNAME}']
+    color = 'BLUE'
+    ext_out = [ '.h' ]
+
+    @classmethod
+    def keyword(cls):
+        return 'Generating'
+
+    def __str__(self):
+        node = self.outputs[0]
+        return node.path_from(node.ctx.launch_node())
+
+
+@TaskGen.feature('javah')
+@TaskGen.after_method('apply_java')
+def generate_java_header_file(self):
+    # Make a .h file from a given class
+    task1 = self.create_task('ClassToHeaderFile')
+    task1.set_outputs(self.path.make_node(self.header_file))
+    task1.env.CLASSNAME = self.javah_class
+    task1.set_run_after(self.javac_task)
+
+
 # }}}
 
 # {{{ options
