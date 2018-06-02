@@ -236,8 +236,8 @@ def compute_clang_includes(self, includes_field, cflags):
 
 class Blk2c(Task):
     run_str = ['rm -f ${TGT}',
-               ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_INCLUDES} '
-                '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
+               ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_CFLAGS} '
+                '${CLANG_INCLUDES} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
     ext_out = [ '.c' ]
     color = 'CYAN'
 
@@ -250,6 +250,10 @@ class Blk2c(Task):
 def process_blk(self, node):
     # Compute includes from gcc flags
     compute_clang_includes(self, 'clang_includes', 'CFLAGS')
+
+    # Get cflags of the task generator
+    if not 'CLANG_CFLAGS' in self.env:
+        self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
 
     # Create block rewrite task.
     blk_c_node = node.change_ext_src('.blk.c')
