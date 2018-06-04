@@ -208,6 +208,177 @@ z_test_dup_and_copy(const iop_struct_t *st, const void *v)
     Z_HELPER_END;
 }
 
+static int z_test_macros_dup_copy_eq(const tstiop__full_struct__t *v,
+                                     const tstiop__full_struct__t *out,
+                                     bool memcmp_eq)
+{
+    Z_ASSERT_IOPEQUAL(tstiop__full_struct, out, v);
+    Z_ASSERT_EQ(memcmp(v, out, sizeof(tstiop__full_struct__t)) == 0,
+                memcmp_eq);
+    Z_HELPER_END;
+}
+
+static int z_test_macros_dup_copy(const tstiop__full_struct__t *v)
+{
+    t_scope;
+    const void *frame = r_newframe();
+    const unsigned flags = IOP_COPY_SHALLOW;
+    size_t sz;
+    tstiop__full_struct__t *out;
+
+    /* dup */
+
+    sz = 0;
+    out = mp_iop_dup_desc_sz(t_pool(), &tstiop__full_struct__s, v, &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    /* iop_dup_flags */
+    sz = 0;
+    out = mp_iop_dup_flags_sz(t_pool(), tstiop__full_struct, v, flags, &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    out = mp_iop_dup_flags(t_pool(), tstiop__full_struct, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = iop_dup_flags(tstiop__full_struct, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+    p_delete(&out);
+
+    out = t_iop_dup_flags(tstiop__full_struct, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = r_iop_dup_flags(tstiop__full_struct, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    /* iop_dup */
+    sz = 0;
+    out = mp_iop_dup_sz(t_pool(), tstiop__full_struct, v, &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    out = mp_iop_dup(t_pool(), tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    out = iop_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    p_delete(&out);
+
+    out = t_iop_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    out = r_iop_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    /* iop_shallow_dup */
+    out = mp_iop_shallow_dup(t_pool(), tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = iop_shallow_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+    p_delete(&out);
+
+    out = t_iop_shallow_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = r_iop_shallow_dup(tstiop__full_struct, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+
+    /* copy */
+
+    out = NULL;
+    sz = 0;
+    mp_iop_copy_desc_sz(t_pool(), &tstiop__full_struct__s, (void **)&out, v,
+                        &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    /* iop_copy_flags */
+    out = NULL;
+    sz = 0;
+    mp_iop_copy_flags_sz(t_pool(), tstiop__full_struct, &out, v, flags, &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    out = NULL;
+    mp_iop_copy_flags(t_pool(), tstiop__full_struct, &out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = NULL;
+    iop_copy_flags(tstiop__full_struct, &out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+    p_delete(&out);
+
+    out = NULL;
+    t_iop_copy_flags(tstiop__full_struct, &out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    out = NULL;
+    r_iop_copy_flags(tstiop__full_struct, &out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    /* iop_copy */
+    out = NULL;
+    sz = 0;
+    mp_iop_copy_sz(t_pool(), tstiop__full_struct, &out, v, &sz);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    Z_ASSERT_NE(sz, (size_t)0);
+
+    out = NULL;
+    mp_iop_copy(t_pool(), tstiop__full_struct, &out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    out = NULL;
+    iop_copy(tstiop__full_struct, &out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+    p_delete(&out);
+
+    out = NULL;
+    t_iop_copy(tstiop__full_struct, &out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    out = NULL;
+    r_iop_copy(tstiop__full_struct, &out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    /* iop_copy_v_flags */
+    out = t_iop_new(tstiop__full_struct);
+    mp_iop_copy_v_flags(t_pool(), tstiop__full_struct, out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    iop_init(tstiop__full_struct, out);
+    t_iop_copy_v_flags(tstiop__full_struct, out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    iop_init(tstiop__full_struct, out);
+    r_iop_copy_v_flags(tstiop__full_struct, out, v, flags);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+    /* iop_copy_v */
+    mp_iop_copy_v(t_pool(), tstiop__full_struct, out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    iop_init(tstiop__full_struct, out);
+    t_iop_copy_v(tstiop__full_struct, out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+    iop_init(tstiop__full_struct, out);
+    r_iop_copy_v(tstiop__full_struct, out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, false));
+
+
+    /* iop_shallow_copy_v */
+    iop_init(tstiop__full_struct, out);
+    iop_shallow_copy_v(tstiop__full_struct, out, v);
+    Z_HELPER_RUN(z_test_macros_dup_copy_eq(v, out, true));
+
+
+    r_release(frame);
+    Z_HELPER_END;
+}
+
 #undef _F
 
 /* }}} */
@@ -6430,6 +6601,7 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(z_test_dup_and_copy(fs.required.o->__vptr,
                                          fs.required.o),
                      "test failed for class");
+        Z_HELPER_RUN(z_test_macros_dup_copy(&fs));
     } Z_TEST_END;
     /* }}} */
     Z_TEST(nr_58558, "avoid leak when copying an IOP with no value") { /* {{{ */
