@@ -542,6 +542,17 @@ def process_iop(self, node):
 
 
 # }}}
+# {{{ LD
+
+
+@extension('.ld')
+def process_ld(self, node):
+    self.env.append_value('LDFLAGS',
+                          ['-Xlinker', '--version-script',
+                           '-Xlinker', node.abspath()])
+
+
+# }}}
 
 # {{{ options
 
