@@ -343,7 +343,7 @@ class Fc2c(Task):
 def process_fc(self, node):
     farch_task = self.create_task('Fc2c', [node],
                                   node.change_ext_src('.fc.h'))
-    farch_task.set_run_after(self.env.FARCHC_TASK)
+    farch_task.set_run_after(self.bld.farchc_task)
 
 # }}}
 # {{{ TOKENS
@@ -483,7 +483,7 @@ def process_iop(self, node):
     task = self.create_task('Iop2c', node,
                             [c_node, h_node, tdef_h_node, t_h_node])
     task.bld = self.bld
-    task.set_run_after(self.env.IOPC_TASK)
+    task.set_run_after(self.bld.iopc_task)
     self.source.append(c_node)
 
     # Handle iopc options
