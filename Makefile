@@ -107,6 +107,7 @@ libcommon_SOURCES = \
 	iop-cfolder.c \
 	iop-dso.c \
 	iop-json.blk \
+	iop-core-obj.c \
 	iop-xml-pack.c \
 	iop-xml-unpack.c \
 	iop-xml-wsdl.blk \
@@ -213,6 +214,7 @@ zchk_SOURCES = zchk.c \
 	zchk-iop.c \
 	zchk-iop.blk \
 	zchk-iop-rpc.c \
+	zchk-iop-core-obj.c \
 	zchk-licence.c \
 	zchk-log.blk \
 	zchk-mem.c \

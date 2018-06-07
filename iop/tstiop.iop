@@ -731,6 +731,19 @@ struct XsortStruct {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_core_obj */
+
+abstract class Mammal {
+    string name;
+};
+
+class Fox : 1 : Mammal {
+};
+
+class Hound : 2 : Mammal {
+};
+
+/* }}} */
 /* {{{ iopc zchk */
 /* {{{ zchk iopsq.sub_struct */
 

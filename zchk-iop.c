@@ -14,6 +14,7 @@
 /* LCOV_EXCL_START */
 
 #include <math.h>
+#include "zchk-iop.h"
 #include "core.h"
 #include "datetime.h"
 #include "thr.h"
@@ -7995,6 +7996,10 @@ Z_GROUP_EXPORT(iop)
                         "wrong size for type %s",
                         iop_type_get_string_desc(type->type));
         }
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_core_obj, "IOP core obj") { /* {{{ */
+        Z_HELPER_RUN(test_iop_core_obj());
     } Z_TEST_END;
     /* }}} */
 

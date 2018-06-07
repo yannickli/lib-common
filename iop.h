@@ -2360,6 +2360,7 @@ void iop_module_register(void);
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"
+#include "iop-core-obj.h"
 
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop
