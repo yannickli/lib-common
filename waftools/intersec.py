@@ -18,6 +18,7 @@ from itertools import chain
 from waflib import TaskGen, Utils
 
 from waflib.Build import BuildContext
+from waflib.Configure import ConfigurationContext
 from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import extension
@@ -107,25 +108,18 @@ def register_get_cwd():
 
 
 # }}}
-# {{{ Add global includes
+# {{{ Register global includes
 
 
-@TaskGen.feature('c', 'cprogram', 'cstlib')
-@TaskGen.after_method('process_use')
-def add_includes(self):
-    includes = self.to_list(getattr(self, 'includes', []))
-    includes.extend(self.bld.env.GLOBAL_INCLUDES)
-    self.includes = includes
-
-
-def add_global_includes(self, includes):
-    ''' Add global includes (that are added to all the targets). '''
+def register_global_includes(self, includes):
+    ''' Register global includes (that are added to all the targets). '''
     for include in Utils.to_list(includes):
         node = self.path.find_node(include)
         if node is None or not node.isdir():
             msg = 'cannot find include path `{0}` from `{1}`'
             self.fatal(msg.format(include, self.path))
-        self.env.GLOBAL_INCLUDES.append(node)
+        self.env.append_unique('INCLUDES', node.abspath())
+
 
 # }}}
 # {{{ Deploy targets
@@ -521,6 +515,9 @@ def configure(ctx):
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
 
+    # register_global_includes
+    ConfigurationContext.register_global_includes = register_global_includes
+
 
 # }}}
 # {{{ build
@@ -530,12 +527,11 @@ def build(ctx):
 
     register_get_cwd()
 
-    BuildContext.add_global_includes = add_global_includes
-    ctx.env.GLOBAL_INCLUDES = []
-
+    # iopc options
     ctx.IopcOptions = IopcOptions
     ctx.iopc_options = {}
 
+    # Register pre/post functions
     ctx.add_post_fun(run_checks)
 
 # }}}

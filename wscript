@@ -38,6 +38,9 @@ def options(ctx):
 def configure(ctx):
     ctx.load('intersec', tooldir=waftoolsdir)
 
+    # Export includes
+    ctx.register_global_includes(['.', 'compat'])
+
     # {{{ Compilation flags
 
     # TODO: Must be cleanup depending on the chosen C compiler (test each one
@@ -327,9 +330,6 @@ def configure(ctx):
 def build(ctx):
     # Register Intersec environment
     ctx.load('intersec', tooldir=waftoolsdir)
-
-    # Export includes
-    ctx.add_global_includes(['.', 'compat'])
 
     # Declare 3 build groups:
     #  - one for compiling farchc
