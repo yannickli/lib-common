@@ -496,9 +496,9 @@ def process_iop(self, node):
 
     # Handle iopc options
     if self.path in self.bld.iopc_options:
-        options = self.bld.iopc_options[self.path]
-        task.env.IOP_CLASS_RANGE = options.class_range_option
-        task.env.IOP_INCLUDES = options.includes_option
+        opts = self.bld.iopc_options[self.path]
+        task.env.IOP_CLASS_RANGE = opts.class_range_option
+        task.env.IOP_INCLUDES = opts.includes_option
     else:
         task.env.IOP_CLASS_RANGE = ''
         task.env.IOP_INCLUDES = ''
@@ -506,8 +506,26 @@ def process_iop(self, node):
 
 # }}}
 
+# {{{ options
 
-def register(ctx):
+def options(ctx):
+    # Load C/C++ compilers
+    ctx.load('compiler_c')
+    ctx.load('compiler_cxx')
+
+# }}}
+# {{{ configure
+
+def configure(ctx):
+    # Load C/C++ compilers
+    ctx.load('compiler_c')
+    ctx.load('compiler_cxx')
+
+
+# }}}
+# {{{ build
+
+def build(ctx):
     ctx.env.PROJECT_ROOT = ctx.root.find_node(ctx.top_dir)
 
     register_get_cwd()
@@ -519,3 +537,5 @@ def register(ctx):
     ctx.iopc_options = {}
 
     ctx.add_post_fun(run_checks)
+
+# }}}

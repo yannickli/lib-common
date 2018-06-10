@@ -22,8 +22,6 @@ from waflib import Context, Logs, Errors
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
-import waftools.intersec as intersec
-
 # FIXME:
 #   - clean cflags, support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
@@ -32,19 +30,13 @@ import waftools.intersec as intersec
 # {{{ options
 
 def options(ctx):
-    ctx.load('compiler_c')
-    ctx.load('compiler_cxx')
+    ctx.load('intersec', tooldir=waftoolsdir)
 
 # }}}
 # {{{ configure
 
 def configure(ctx):
-    # Loads only waf definitions
     ctx.load('intersec', tooldir=waftoolsdir)
-
-    # Load C/C++ compilers
-    ctx.load('compiler_c')
-    ctx.load('compiler_cxx')
 
     # {{{ Compilation flags
 
@@ -334,7 +326,7 @@ def configure(ctx):
 
 def build(ctx):
     # Register Intersec environment
-    intersec.register(ctx)
+    ctx.load('intersec', tooldir=waftoolsdir)
 
     # Export includes
     ctx.add_global_includes(['.', 'compat'])
