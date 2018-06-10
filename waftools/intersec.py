@@ -523,7 +523,7 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    ctx.env.PROJECT_ROOT = ctx.root.find_node(ctx.top_dir)
+    ctx.env.PROJECT_ROOT = ctx.srcnode
 
     register_get_cwd()
 
