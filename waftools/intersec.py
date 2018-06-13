@@ -213,6 +213,47 @@ def node_change_ext_src(self, ext):
 Node.change_ext_src = node_change_ext_src
 
 # }}}
+# {{{ syntastic/ale
+
+
+def get_linter_flags(ctx, flags_key):
+    include_flags = []
+    for key in ctx.env:
+        if key == 'INCLUDES' or key.startswith('INCLUDES_'):
+            include_flags += ['-I' + value for value in ctx.env[key]]
+
+    return ctx.env[flags_key] + ctx.env.CFLAGS_python2 + include_flags
+
+
+def gen_syntastic(ctx):
+    def write_file(filename, what, envs):
+        node = ctx.srcnode.make_node(filename)
+        content = '\n'.join(envs)
+        node.write(content + '\n')
+        msg = 'Writing syntastic {0} configuration file'.format(what)
+        ctx.msg(msg, node)
+
+    write_file('.syntastic_c_config', 'C',
+               get_linter_flags(ctx, 'CLANG_FLAGS'))
+    write_file('.syntastic_cpp_config', 'C++',
+               get_linter_flags(ctx, 'CLANGXX_FLAGS'))
+
+
+def gen_ale(ctx):
+    flags = get_linter_flags(ctx, 'CLANG_FLAGS')
+
+    content  = "let g:ale_c_clang_options = '\n"
+    content += "    \\ "
+    content += " ".join(flags)
+    content += "\n"
+    content += "\\'\n"
+
+    node = ctx.srcnode.make_node('.local_vimrc.vim')
+    node.write(content)
+    ctx.msg('Writing ale configuration file', node)
+
+
+# }}}
 
 # {{{ BLK
 
@@ -561,6 +602,17 @@ def configure(ctx):
     ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
 
     # }}}
+
+
+class IsConfigurationContext(ConfigurationContext):
+
+    def execute(self):
+        # Run configure
+        ConfigurationContext.execute(self)
+
+        # Ensure syntastic/ale are done after the end of the configure step
+        gen_syntastic(self)
+        gen_ale(self)
 
 
 # }}}
