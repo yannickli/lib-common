@@ -23,7 +23,7 @@ waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
 # FIXME:
-#   - clean cflags, support profiles (default, debug, release, asan, ...)
+#   - support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
 #   - Fix various TODOs and FIXMEs in the wscript files
 
@@ -43,216 +43,14 @@ def configure(ctx):
 
     # {{{ Compilation flags
 
-    # TODO: Must be cleanup depending on the chosen C compiler (test each one
-    # of them).
-    ctx.env.CFLAGS = [
-        '-std=gnu11',
-        '-fdiagnostics-show-option',
-        '-funsigned-char',
-        '-fno-strict-aliasing',
-        '-fwrapv',
-        '-Wall',
-        '-Wextra',
-        '-Werror',
-        '-Wno-error=deprecated-declarations',
-        '-Wno-shift-negative-value',
-        '-Wchar-subscripts',
-        '-Wundef',
-        '-Wshadow',
-        '-Wwrite-strings',
-        '-Wsign-compare',
-        '-Wunused',
-        '-Wno-unused-parameter',
-        '-Wuninitialized',
-        '-Winit-self',
-        '-Wpointer-arith',
-        '-Wredundant-decls',
-        '-Wno-format-y2k',
-        '-Wmissing-format-attribute',
-        '-Wstrict-prototypes',
-        '-Wmissing-prototypes',
-        '-Wmissing-declarations',
-        '-Wnested-externs',
-        '-Wdeclaration-after-statement',
-        '-Wno-format-zero-length',
-        '-D_GNU_SOURCE',
-        '-I/usr/include/valgrind',
-        '-DHAS_LIBCOMMON_REPOSITORY=0',
-        '-DWAF_MODE',
-        '-fPIC',
-    ]
-    ctx.env.LINKFLAGS = [
-        '-Wl,--export-dynamic',
-        '-Xlinker', '--disable-new-dtags',
-    ]
-    ctx.env.LDFLAGS = [
-        '-lpthread',
-        '-ldl',
-        '-lm',
-    ]
+    flags = ['-DHAS_LIBCOMMON_REPOSITORY=0']
 
-    ctx.env.CXXFLAGS = [
-        '-g',
-        '-std=gnu++98',
-        '-O2',
-        '-funswitch-loops',
-        '-funsafe-loop-optimizations',
-        '-fshow-column',
-        '-fpredictive-commoning',
-        '-ftree-vectorize',
-        '-fgcse-after-reload',
-        '-fdiagnostics-show-option',
-        '-funsigned-char',
-        '-fno-strict-aliasing',
-        '-fwrapv',
-        '-Wall',
-        '-Wextra',
-        '-Werror',
-        '-Wno-error=deprecated-declarations',
-        '-Wchar-subscripts',
-        '-Wundef',
-        '-Wshadow',
-        '-Wwrite-strings',
-        '-Wsign-compare',
-        '-Wunused',
-        '-Wno-unused-parameter',
-        '-Wuninitialized',
-        '-Winit-self',
-        '-Wenum-compare',
-        '-Wlogical-op',
-        '-Wsuggest-attribute=noreturn',
-        '-Wpointer-arith',
-        '-Wredundant-decls',
-        '-Wformat-nonliteral',
-        '-Wno-format-y2k',
-        '-Wmissing-format-attribute',
-        '-Wno-shift-negative-value',
-        '-fno-rtti',
-        '-fno-exceptions',
-        '-Wnon-virtual-dtor',
-        '-Woverloaded-virtual',
-        '-Wno-c++11-compat',
-        '-D_GNU_SOURCE',
-        '-DHAS_LIBCOMMON_REPOSITORY=0',
-    ]
-
-    # Find clang for blk
-    ctx.env.CLANG = ctx.find_program('clang')
-    ctx.env.CLANG_REWRITE_FLAGS = [
-        '-cc1',
-        '-x', 'c',
-        '-std=gnu11',
-        '-D_GNU_SOURCE',
-        '-fblocks',
-        '-DHAS_LIBCOMMON_REPOSITORY=0',
-        '-DWAF_MODE',
-        '-fdiagnostics-show-option',
-        '-fwrapv',
-        '-Wall',
-        '-Wextra',
-        '-Werror',
-        '-Wno-error=deprecated-declarations',
-        '-Wno-gnu-designator',
-        '-Wno-return-type-c-linkage',
-        '-Wbool-conversion',
-        '-Wempty-body',
-        '-Wloop-analysis',
-        '-Wsizeof-array-argument',
-        '-Wstring-conversion',
-        '-Wparentheses',
-        '-Wduplicate-enum',
-        '-Wheader-guard',
-        '-Wlogical-not-parentheses',
-        '-Wno-nullability-completeness',
-        '-Wno-shift-negative-value',
-        '-Wcomma',
-        '-Wfloat-overflow-conversion',
-        '-Wfloat-zero-conversion',
-        '-Wchar-subscripts',
-        '-Wundef',
-        '-Wshadow',
-        '-Wwrite-strings',
-        '-Wsign-compare',
-        '-Wunused',
-        '-Wno-unused-parameter',
-        '-Wuninitialized',
-        '-Winit-self',
-        '-Wpointer-arith',
-        '-Wredundant-decls',
-        '-Wno-format-y2k',
-        '-Wmissing-format-attribute',
-        '-Wstrict-prototypes',
-        '-Wmissing-prototypes',
-        '-Wmissing-declarations',
-        '-Wnested-externs',
-        '-Wdeclaration-after-statement',
-        '-Wno-format-zero-length',
-        '-internal-isystem', '/usr/local/include',
-        '-internal-isystem', '/srv/tools/clang_3.9/lib/clang/3.9.1/include',
-        '-internal-externc-isystem', '/usr/include/x86_64-linux-gnu',
-        '-internal-externc-isystem', '/include',
-        '-internal-externc-isystem', '/usr/include',
-        '-rewrite-blocks',
-    ]
-
-    # Find clang++ for blkk
-    ctx.env.CLANGXX = ctx.find_program('clang++')
-    ctx.env.CLANGXX_REWRITE_FLAGS = [
-        '-cc1',
-        '-x', 'c++',
-        '-std=gnu++98',
-        '-O2',
-        '-fblocks',
-        '-fdiagnostics-show-option',
-        '-fwrapv',
-        '-Wall',
-        '-Wextra',
-        '-Werror',
-        '-Wno-error=deprecated-declarations',
-        '-Wno-gnu-designator',
-        '-Wno-return-type-c-linkage',
-        '-Wbool-conversion',
-        '-Wempty-body',
-        '-Wloop-analysis',
-        '-Wsizeof-array-argument',
-        '-Wstring-conversion',
-        '-Wparentheses',
-        '-Wduplicate-enum',
-        '-Wheader-guard',
-        '-Wlogical-not-parentheses',
-        '-Wno-extern-c-compat',
-        '-Wno-nullability-completeness',
-        '-Wno-shift-negative-value',
-        '-Wcomma',
-        '-Wfloat-overflow-conversion',
-        '-Wfloat-zero-conversion',
-        '-Wchar-subscripts',
-        '-Wundef',
-        '-Wshadow',
-        '-Wwrite-strings',
-        '-Wsign-compare',
-        '-Wunused',
-        '-Wno-unused-parameter',
-        '-Wuninitialized',
-        '-Winit-self',
-        '-Wpointer-arith',
-        '-Wredundant-decls',
-        '-Wno-format-y2k',
-        '-Wmissing-format-attribute',
-        '-Wno-shadow',
-        '-D_GNU_SOURCE',
-        '-internal-isystem', '/usr/local/include',
-        '-internal-isystem', '/srv/tools/clang_3.9/lib/clang/3.9.1/include',
-        '-internal-externc-isystem', '/usr/include/x86_64-linux-gnu',
-        '-internal-externc-isystem', '/include',
-        '-internal-externc-isystem', '/usr/include',
-        '-DHAS_LIBCOMMON_REPOSITORY=1',
-        '-DHAS_PLATFORM_REPOSITORY=1',
-        '-D__STDC_LIMIT_MACROS',
-        '-D__STDC_CONSTANT_MACROS',
-        '-D__STDC_FORMAT_MACROS',
-        '-rewrite-blocks',
-    ]
+    ctx.env.CFLAGS += flags
+    ctx.env.CXXFLAGS += flags
+    ctx.env.CLANG_FLAGS += flags
+    ctx.env.CLANG_REWRITE_FLAGS += flags
+    ctx.env.CLANGXX_FLAGS += flags
+    ctx.env.CLANGXX_REWRITE_FLAGS += flags
 
     # }}}
     # {{{ Dependencies
@@ -274,12 +72,12 @@ def configure(ctx):
     # External libraries
     ctx.check_cfg(package='libxml-2.0', uselib_store='libxml',
                   args=['--cflags', '--libs'])
-
     ctx.check_cfg(package='openssl', uselib_store='openssl',
                   args=['--cflags', '--libs'])
-
     ctx.check_cfg(package='zlib', uselib_store='zlib',
                   args=['--cflags', '--libs'])
+    ctx.check_cfg(package='valgrind', uselib_store='valgrind',
+                  args=['--cflags'])
 
     # libsctp-dev
     sctp_h = '/usr/include/netinet/sctp.h'
@@ -352,7 +150,7 @@ def build(ctx):
 
     libcommon = ctx.stlib(target='libcommon',
         depends_on='core-version.c',
-        use=['libxml', 'openssl', 'zlib', 'compat'],
+        use=['libxml', 'openssl', 'zlib', 'valgrind', 'compat'],
         source=[
             'core-version.c',
             'core.iop.c',

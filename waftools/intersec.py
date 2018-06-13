@@ -12,6 +12,7 @@
 ##########################################################################
 
 import copy
+import os
 from itertools import chain
 
 # pylint: disable = import-error
@@ -238,8 +239,9 @@ def compute_clang_includes(self, includes_field, cflags):
 
 class Blk2c(Task):
     run_str = ['rm -f ${TGT}',
-               ('${CLANG} ${CLANG_REWRITE_FLAGS} ${CLANG_CFLAGS} '
-                '${CLANG_INCLUDES} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
+               ('${CLANG} -cc1 -x c ${CLANG_REWRITE_FLAGS} ${CLANG_CFLAGS} '
+                '-rewrite-blocks ${CLANG_INCLUDES} ${CPPPATH_ST:INCPATHS} '
+                '${SRC} -o ${TGT}')]
     ext_out = [ '.c' ]
     color = 'CYAN'
 
@@ -271,7 +273,8 @@ def process_blk(self, node):
 
 class Blkk2cc(Task):
     run_str = ['rm -f ${TGT}',
-               ('${CLANGXX} ${CLANGXX_REWRITE_FLAGS} ${CLANG_INCLUDES} '
+               ('${CLANGXX} -cc1 -x c++ ${CLANGXX_REWRITE_FLAGS} '
+                '${CLANG_INCLUDES} -rewrite-blocks '
                 '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
     ext_out = [ '.cc' ]
     color = 'CYAN'
@@ -510,6 +513,13 @@ def options(ctx):
 # }}}
 # {{{ configure
 
+
+def get_cflags(ctx, args):
+    # TODO: maybe rewrite it in full-python after getting rid of make
+    flags = ctx.cmd_and_log(ctx.env.CFLAGS_SH + args)
+    return flags.strip().replace('"', '').split(' ')
+
+
 def configure(ctx):
     # Load C/C++ compilers
     ctx.load('compiler_c')
@@ -517,6 +527,40 @@ def configure(ctx):
 
     # register_global_includes
     ConfigurationContext.register_global_includes = register_global_includes
+
+    # {{{ Compilation flags
+
+    ctx.find_program('cflags.sh', mandatory=True, var='CFLAGS_SH',
+                     path_list=[os.path.join(ctx.path.abspath(), 'Config')])
+
+    ctx.env.CFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CC])
+    ctx.env.CFLAGS += [
+        '-DWAF_MODE',
+        '-fPIC', # TODO: understand this
+    ]
+    ctx.env.LINKFLAGS = [
+        '-Wl,--export-dynamic',
+    ]
+    ctx.env.LDFLAGS = [
+        '-lpthread',
+        '-ldl',
+        '-lm',
+    ]
+
+    ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
+    ctx.env.CXXFLAGS += ['-DWAF_MODE']
+
+    ctx.env.CLANG = ctx.find_program('clang')
+    ctx.env.CLANG_FLAGS = get_cflags(ctx, ['clang'])
+    ctx.env.CLANG_FLAGS += ['-DWAF_MODE']
+    ctx.env.CLANG_REWRITE_FLAGS = get_cflags(ctx, ['clang', 'rewrite'])
+
+    ctx.env.CLANGXX = ctx.find_program('clang++')
+    ctx.env.CLANGXX_FLAGS = get_cflags(ctx, ['clang++'])
+    ctx.env.CLANGXX_FLAGS += ['-DWAF_MODE']
+    ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
+
+    # }}}
 
 
 # }}}
