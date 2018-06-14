@@ -127,7 +127,7 @@ def register_global_includes(self, includes):
 
 class DeployTarget(Task):
 
-    run_str = ['rm -f ${TGT}', 'ln ${SRC} ${TGT}']
+    run_str = 'ln -f ${SRC} ${TGT}'
     color = 'CYAN'
 
     @classmethod
