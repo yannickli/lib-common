@@ -267,11 +267,10 @@ def compute_clang_includes(self, includes_field, cflags):
     #      flags in the GCC arguments otherwise.
     env_bak = self.env
 
-    if not hasattr(self, 'uselib'):
-        self.env = self.env.derive()
-        self.env.detach()
-        self.process_use()
-        self.propagate_uselib_vars()
+    self.env = self.env.derive()
+    self.env.detach()
+    self.process_use()
+    self.propagate_uselib_vars()
 
     cflags = self.env[cflags]
     includes = [flag for flag in cflags if flag.startswith('-I')]
