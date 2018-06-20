@@ -273,7 +273,15 @@ static inline char * nonnull sb_growlen(sb_t * nonnull sb, int extra)
 static inline void sb_add(sb_t * nonnull sb, const void * nonnull data,
                           int dlen)
 {
-    memcpy(sb_growlen(sb, dlen), data, dlen);
+    char *buf = sb_growlen(sb, dlen);
+
+    /* workaround for a false positive of -Warray-bounds in gcc 8
+     * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89689
+     */
+    if (dlen && sb->data == __sb_slop) {
+        __builtin_unreachable();
+    }
+    memcpy(buf, data, dlen);
 }
 
 static inline void sb_addsb(sb_t * nonnull sb, const sb_t * nonnull sb2)
