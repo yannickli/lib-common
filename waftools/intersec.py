@@ -257,25 +257,25 @@ def gen_ale(ctx):
 
 # {{{ BLK
 
+
 def compute_clang_includes(self, includes_field, cflags):
     if hasattr(self, includes_field):
         return
 
-    # XXX: backup the environment and restore it after because
-    #      process_use/propagate_uselib_vars will also be done by waf
-    #      itself on the same task generator, resulting in doubled
-    #      flags in the GCC arguments otherwise.
-    env_bak = self.env
-
-    self.env = self.env.derive()
-    self.env.detach()
-    self.process_use()
-    self.propagate_uselib_vars()
+    if not hasattr(self, 'uselib'):
+        # This will also be done by waf itself on the same task generator,
+        # resulting in doubled flags in the GCC arguments. It works, but is
+        # not really elegant.
+        # To fix that, deep copying the environment works but it has a
+        # disastrous impact on performances.
+        # I have not found any other solution, so keep it like that for now.
+        self.process_use()
+        self.propagate_uselib_vars()
 
     cflags = self.env[cflags]
     includes = [flag for flag in cflags if flag.startswith('-I')]
     setattr(self, includes_field, includes)
-    self.env = env_bak
+
 
 class Blk2c(Task):
     run_str = ['rm -f ${TGT}',
