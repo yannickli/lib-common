@@ -167,9 +167,10 @@ The following suffixes are used to define goals of specific kinds:
 `_JARS`::
        List jars targets to be generated. This can be used to compile and
        jar together several Java source files. This requires a
-       `_SOURCES` containing the Java source files. An optional  `_CLASSPATH`
-       can be added to specify the classpath to use when compiling the source
-       files.
+       `_SOURCES` containing the Java source files, and a `_DIRECTORY`
+       pointing to where the .class files were generated.
+       An optional  `_CLASSPATH` can be added to specify the classpath to use
+       when compiling the source files.
 
 The build system doesn't support any other kind of goal yet, though you can
 add local rules (FIXME: add some doc about how to do that).
