@@ -13,10 +13,11 @@
 
 import copy
 import os
+import re
 from itertools import chain
 
 # pylint: disable = import-error
-from waflib import TaskGen, Utils, Context, Errors
+from waflib import TaskGen, Utils, Context, Errors, Options, Logs
 
 from waflib.Build import BuildContext
 from waflib.Configure import ConfigurationContext, conf
@@ -292,21 +293,28 @@ class Blk2c(Task):
 
 @extension('.blk')
 def process_blk(self, node):
-    # Compute includes from gcc flags
-    compute_clang_includes(self, 'clang_includes', 'CFLAGS')
+    if self.env.COMPILER_CC == 'clang':
+        # clang is our C compiler -> directly compile the file
+        self.create_compiled_task('c', node)
+    else:
+        # clang is not our C compiler -> it has to be rewritten first
 
-    # Get cflags of the task generator
-    if not 'CLANG_CFLAGS' in self.env:
-        self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
+        # Compute includes from gcc flags
+        compute_clang_includes(self, 'clang_includes', 'CFLAGS')
 
-    # Create block rewrite task.
-    blk_c_node = node.change_ext_src('.blk.c')
-    blk_task = self.create_task('Blk2c', node, blk_c_node)
-    blk_task.cwd = self.env.PROJECT_ROOT
-    blk_task.env.CLANG_INCLUDES = self.clang_includes
+        # Get cflags of the task generator
+        if not 'CLANG_CFLAGS' in self.env:
+            self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
 
-    # Create C compilation task for the generated C source.
-    self.create_compiled_task('c', blk_c_node)
+        # Create block rewrite task.
+        blk_c_node = node.change_ext_src('.blk.c')
+        blk_task = self.create_task('Blk2c', node, blk_c_node)
+        blk_task.cwd = self.env.PROJECT_ROOT
+        blk_task.env.CLANG_INCLUDES = self.clang_includes
+
+        # Create C compilation task for the generated C source.
+        self.create_compiled_task('c', blk_c_node)
+
 
 # }}}
 # {{{ BLKK
@@ -326,17 +334,24 @@ class Blkk2cc(Task):
 
 @extension('.blkk')
 def process_blkk(self, node):
-    # Compute includes from g++ flags
-    compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
+    if self.env.COMPILER_CXX == 'clang++':
+        # clang++ is our C++ compiler -> directly compile the file
+        self.create_compiled_task('cxx', node)
+    else:
+        # clang++ is not our C++ compiler -> it has to be rewritten first
 
-    # Create block rewrite task.
-    blkk_cc_node = node.change_ext_src('.blkk.cc')
-    blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
-    blkk_task.cwd = self.env.PROJECT_ROOT
-    blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
+        # Compute includes from g++ flags
+        compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
 
-    # Create CC compilation task for the generated c++ source.
-    self.create_compiled_task('cxx', blkk_cc_node)
+        # Create block rewrite task.
+        blkk_cc_node = node.change_ext_src('.blkk.cc')
+        blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
+        blkk_task.cwd = self.env.PROJECT_ROOT
+        blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
+
+        # Create CC compilation task for the generated c++ source.
+        self.create_compiled_task('cxx', blkk_cc_node)
+
 
 # }}}
 # {{{ PERF
@@ -621,8 +636,17 @@ def options(ctx):
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
 
+    # Profile option
+    default_profile = os.environ.get('P', 'default')
+    gr = ctx.get_option_group('configure options')
+    h = 'Compilation profile ({0}) [default: \'{1}\']'
+    h = h.format(', '.join(PROFILES.keys()), default_profile)
+    gr.add_option('-P', '--PROFILE', action='store', dest='PROFILE',
+                  type='string', default=default_profile, help=h)
+
 # }}}
 # {{{ configure
+# {{{ compilation profiles
 
 
 def get_cflags(ctx, args):
@@ -631,26 +655,34 @@ def get_cflags(ctx, args):
     return flags.strip().replace('"', '').split(' ')
 
 
-def configure(ctx):
+def profile_default(ctx, no_assert=False,
+                    fortify_source='-D_FORTIFY_SOURCE=2'):
+
+    # TODO: NOCOMPRESS (well, compress)
+
     # Load C/C++ compilers
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
 
-    # register_global_includes
-    ConfigurationContext.register_global_includes = register_global_includes
-
-    # {{{ Compilation flags
-
+    # Get compilation flags with cflags.sh
     ctx.find_program('cflags.sh', mandatory=True, var='CFLAGS_SH',
                      path_list=[os.path.join(ctx.path.abspath(), 'Config')])
 
     ctx.env.CFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CC])
     ctx.env.CFLAGS += [
         '-DWAF_MODE',
+        '-fno-omit-frame-pointer',
+        '-fvisibility=hidden',
         '-fPIC', # TODO: understand this
     ]
     ctx.env.LINKFLAGS = [
         '-Wl,--export-dynamic',
+        # Debian stretch uses --enable-new-dtags by default, which breaks
+        # indirect library dependencies loading when using -rpath.
+        # See https://sourceware.org/ml/binutils/2014-02/msg00031.html
+        #  or https://reviews.llvm.org/D8836
+        '-Xlinker', '--disable-new-dtags',
+        '-Wl,--disable-new-dtags',
     ]
     ctx.env.LDFLAGS = [
         '-lpthread',
@@ -659,7 +691,11 @@ def configure(ctx):
     ]
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
-    ctx.env.CXXFLAGS += ['-DWAF_MODE']
+    ctx.env.CXXFLAGS += [
+        '-DWAF_MODE',
+        '-fno-omit-frame-pointer',
+        '-fvisibility=hidden',
+    ]
 
     ctx.env.CLANG = ctx.find_program('clang')
     ctx.env.CLANG_FLAGS = get_cflags(ctx, ['clang'])
@@ -671,7 +707,99 @@ def configure(ctx):
     ctx.env.CLANGXX_FLAGS += ['-DWAF_MODE']
     ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
 
-    # }}}
+    if no_assert:
+        ctx.env.CFLAGS += ['-DNDEBUG']
+        ctx.env.CXXFLAGS += ['-DNDEBUG']
+
+    if fortify_source is not None:
+        ctx.env.CFLAGS += [fortify_source]
+
+
+def profile_debug(ctx):
+    profile_default(ctx, fortify_source=None)
+
+    pattern = re.compile("^-O[0-9]$")
+    ctx.env.CFLAGS = [f for f in ctx.env.CFLAGS if not pattern.match(f)]
+
+    cflags = [
+        '-O0', '-Wno-uninitialized', '-fno-inline', '-fno-inline-functions',
+        '-g3', '-gdwarf-2',
+    ]
+    ctx.env.CFLAGS += cflags
+    ctx.env.CXXFLAGS += cflags
+
+
+
+def profile_release(ctx):
+    profile_default(ctx, no_assert=True)
+    ctx.env.LINKFLAGS += ['-Wl,-x', '-rdynamic']
+
+
+def profile_asan(ctx):
+    Options.options.check_c_compiler = 'clang'
+    Options.options.check_cxx_compiler = 'clang++'
+
+    profile_debug(ctx)
+
+    flags = ['-fsanitize=address']
+    ctx.env.CFLAGS += flags + ['-x', 'c']
+    ctx.env.CXXFLAGS += flags + ['-x', 'cxx']
+    ctx.env.LDFLAGS += flags + ['-lstdc++']
+
+
+def profile_tsan(ctx):
+    Options.options.check_c_compiler = 'clang'
+    Options.options.check_cxx_compiler = 'clang++'
+
+    profile_debug(ctx)
+
+    flags = ['-fsanitize=thread']
+    ctx.env.CFLAGS += flags + ['-x', 'c']
+    ctx.env.CXXFLAGS += flags + ['-x', 'cxx']
+    ctx.env.LDFLAGS += flags
+
+
+def profile_mem_bench(ctx):
+    profile_default(ctx, no_assert=True, fortify_source=None)
+
+    flags = ['-DMEM_BENCH']
+    ctx.env.CFLAGS += flags
+    ctx.env.CXXFLAGS += flags
+
+
+def profile_coverage(ctx):
+    # TODO: coverage command
+    profile_debug(ctx)
+
+    flags = ['-pg', '-fprofile-arcs', '-ftest-coverage']
+    ctx.env.CFLAGS += flags
+    ctx.env.CXXFLAGS += flags
+    ctx.env.LDFLAGS += ['-lgcov']
+
+
+PROFILES = {
+    'default':   profile_default,
+    'debug':     profile_debug,
+    'release':   profile_release,
+    'asan':      profile_asan,
+    'tsan':      profile_tsan,
+    'mem-bench': profile_mem_bench,
+    'coverage':  profile_coverage,
+}
+
+# }}}
+
+def configure(ctx):
+    # register_global_includes
+    ConfigurationContext.register_global_includes = register_global_includes
+
+    # Load compilation profile
+    ctx.env.PROFILE = Options.options.PROFILE
+    try:
+        ctx.msg('Selecting profile', ctx.env.PROFILE)
+        PROFILES[ctx.env.PROFILE](ctx)
+    except KeyError:
+        ctx.fatal('Profile `{0}` not found'.format(ctx.env.PROFILE))
 
 
 class IsConfigurationContext(ConfigurationContext):
@@ -689,6 +817,8 @@ class IsConfigurationContext(ConfigurationContext):
 # {{{ build
 
 def build(ctx):
+    Logs.info('Waf: Selected profile: %s', ctx.env.PROFILE)
+
     ctx.env.PROJECT_ROOT = ctx.srcnode
 
     register_get_cwd()
