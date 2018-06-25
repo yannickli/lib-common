@@ -181,9 +181,11 @@ static inline uint32_t qhash_hash_ptr(const qhash_t * nullable qh,
 }
 
 #define __qhash_for_each(i, qh, doit) \
-    for (uint32_t i = (qh)->hdr.len ? qhash_scan(qh, 0) : UINT32_MAX; \
-         i != UINT32_MAX && (doit, true);                             \
-         i = qhash_scan(qh, i + 1))
+    for (uint32_t __##i##_priv = (qh)->hdr.len ? qhash_scan(qh, 0)           \
+                                               : UINT32_MAX,                 \
+         i = __##i##_priv;                                                   \
+         __##i##_priv != UINT32_MAX && (doit, true);                         \
+         __##i##_priv = qhash_scan(qh, __##i##_priv + 1), i = __##i##_priv)
 
 #define qhash_for_each_pos(i, qh)       __qhash_for_each(i, qh, (void)0)
 

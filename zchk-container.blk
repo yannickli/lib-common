@@ -636,6 +636,32 @@ Z_GROUP_EXPORT(qhash)
         qm_deep_delete(test_ptr, &qm, p_delete, IGNORE);
         Z_ASSERT(qm == NULL);
     } Z_TEST_END
+
+    Z_TEST(for_each_safety,
+           "qhash: check that *for_each* resist to pos overwrites")
+    {
+        int sz = 42;
+        qh_t(u32) *qh = qh_new(u32, sz);
+        qh_t(u32) *seen = qh_new(u32, sz);
+        int nb_iter = 0;
+
+        for (int i = 0; i < sz; i++) {
+            Z_ASSERT_N(qh_add(u32, qh, i));
+        }
+        qh_for_each_pos(u32, pos, qh) {
+            uint32_t key = qh->keys[pos];
+
+            pos = UINT32_MAX;
+            Z_ASSERT_N(qh_add(u32, seen, key), "key `%u' seen twice", key);
+            nb_iter++;
+        }
+        Z_ASSERT_EQ(qh_len(u32, qh), nb_iter,
+                    "number of loops in qh_for_each_pos "
+                    "mismatches the QH length");
+
+        qh_delete(u32, &qh);
+        qh_delete(u32, &seen);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/
@@ -879,6 +905,33 @@ Z_GROUP_EXPORT(qhugehash)
 
 #undef CHECK
 
+    } Z_TEST_END
+
+    Z_TEST(for_each_safety,
+           "qhhash: check that *for_each* resist to pos overwrites")
+    {
+        int sz = 42;
+        qhh_t(test) qhh;
+        qh_t(u32) *seen = qh_new(u32, sz);
+        uint64_t nb_iter = 0;
+
+        qhh_init(test, &qhh, sz);
+        for (int i = 0; i < sz; i++) {
+            Z_ASSERT_N(qhh_add(test, &qhh, i));
+        }
+        qhh_for_each_pos(test, pos, &qhh) {
+            uint32_t key = *qhh_key_p(test, &qhh, pos);
+
+            pos = UINT64_MAX;
+            Z_ASSERT_N(qh_add(u32, seen, key), "key `%u' seen twice", key);
+            nb_iter++;
+        }
+        Z_ASSERT_EQ(qhh_len(test, &qhh), nb_iter,
+                    "number of loops in qh_for_each_pos "
+                    "mismatches the QHH length");
+
+        qhh_wipe(test, &qhh);
+        qh_delete(u32, &seen);
     } Z_TEST_END
 
 } Z_GROUP_END
