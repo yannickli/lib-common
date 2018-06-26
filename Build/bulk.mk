@@ -122,8 +122,9 @@ pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 
 tags: $(filter-out %.blk.c %.blkk.cc,$(var/generated))
 syntastic:
+ale:
 jshint:
-.PHONY: tags cscope jshint syntastic
+.PHONY: tags cscope jshint syntastic ale
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -287,6 +288,18 @@ pylint:: | __setup_buildsys_trampoline
 syntastic: | __setup_buildsys_trampoline
 	echo '$(CLANGFLAGS)   $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_c_config
 	echo '$(CLANGXXFLAGS) $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS)' | tr -s ' ' '\n' | sed -e '/\"/d' > $/.syntastic_cpp_config
+
+# To use ALE, you will need to add the local_vimrc plugin, and this configuration:
+#
+# let g:ale_linters = { 'c': ['clang'] }
+# let g:local_vimrc = '.local_vimrc.vim'
+# call lh#local_vimrc#munge('whitelist', $HOME)
+# call lh#local_vimrc#filter_list('asklist', 'v:val != $HOME')
+#
+ale: | __setup_buildsys_trampoline
+	echo "let g:ale_c_clang_options = '" > $/.local_vimrc.vim
+	echo ' $(CLANGFLAGS) $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS) $(python2_CFLAGS)' | sed -e 's/^/    \\ /g' >> $/.local_vimrc.vim
+	echo "\\'" >> $/.local_vimrc.vim
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
