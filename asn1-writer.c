@@ -948,10 +948,7 @@ void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
     }
 }
 
-/** \brief Get an ASN.1 field recursively supporting indefinite lengths.
- *  \note This function is designed for ASN.1 fields without description.
- */
-static int asn1_get_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
+int asn1_get_ber_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
 {
     uint32_t data_size;
     int n_eoc = indef_father ? 1: 0;
@@ -1001,7 +998,7 @@ static int asn1_get_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
 
 int asn1_skip_field(pstream_t *ps)
 {
-    return asn1_get_field(ps, false, NULL);
+    return asn1_get_ber_field(ps, false, NULL);
 }
 
 static int asn1_unpack_rec(pstream_t *ps, const asn1_desc_t *desc,
@@ -1018,9 +1015,9 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
 
     switch (spec->type) {
       case ASN1_OBJ_TYPE(SKIP):
-        return asn1_get_field(ps, false, NULL);
+        return asn1_get_ber_field(ps, false, NULL);
       case ASN1_OBJ_TYPE(OPEN_TYPE):
-        RETHROW(asn1_get_field(ps, false, &field_ps));
+        RETHROW(asn1_get_ber_field(ps, false, &field_ps));
         data_size = ps_len(&field_ps);
         indef_len = false;
         break;
@@ -1126,7 +1123,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
         ((asn1_ext_t *)dt)->has_value = true;
 
         if (indef_len) {
-            RETHROW(asn1_get_field(&field_ps, true,
+            RETHROW(asn1_get_ber_field(&field_ps, true,
                                     &((asn1_ext_t *)dt)->value));
         } else {
             ((asn1_ext_t *)dt)->value = field_ps;
@@ -1144,7 +1141,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
         *ps = field_ps;
 
         /* Skip every trailing fields up to EOC. */
-        RETHROW(asn1_get_field(ps, true, NULL));
+        RETHROW(asn1_get_ber_field(ps, true, NULL));
 
         /* Skip EOC. */
         __ps_skip(ps, 2);
@@ -1158,7 +1155,7 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
     int len;
 
     for (len = 0; ps_peekc(ps) == tag; len++) {
-        if (asn1_get_field(&ps, false, NULL) < 0) {
+        if (asn1_get_ber_field(&ps, false, NULL) < 0) {
             e_trace(1, "invalid BER content in SEQUENCE OF");
             return -1;
         }
@@ -1365,7 +1362,7 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
       && asn1_find_choice(choice_desc, ps_peekc(temp_ps));
          len++)
     {
-        if (asn1_get_field(&temp_ps, false, NULL) < 0) {
+        if (asn1_get_ber_field(&temp_ps, false, NULL) < 0) {
             e_trace(1, "invalid BER content in SEQUENCE OF untagged choice");
             return -1;
         }

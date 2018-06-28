@@ -513,6 +513,12 @@ const char *t_asn1_oid_print(lstr_t oid);
 /** \brief Skips an ASN.1 BER field */
 int asn1_skip_field(pstream_t *ps);
 
+/** \brief Get an ASN.1 field recursively supporting indefinite lengths.
+ *  \note This function is designed for ASN.1 fields without description.
+ *  It can only by used for BER encoded streams.
+ */
+int asn1_get_ber_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps);
+
 /* Private */
 const void *asn1_opt_field(const void *field, enum obj_type type);
 void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field);
