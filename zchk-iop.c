@@ -3023,6 +3023,12 @@ Z_GROUP_EXPORT(iop)
         sg_b.j = LSTR("not equal");
         CHECK_IOP_LT(st_sg, &sg_a, &sg_b);
 
+        /* test with bytes */
+        sg_b = sg_a;
+        sg_a.i = LSTR("aa");
+        sg_b.i = LSTR("Az");
+        CHECK_IOP_GT(st_sg, &sg_a, &sg_b, "expected binary comparison");
+
         /* Use a more complex structure */
         iop_init_desc(st_sa_opt, &sa_opt_a);
         iop_init_desc(st_sa_opt, &sa_opt_b);
