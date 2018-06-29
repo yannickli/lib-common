@@ -3157,6 +3157,8 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_LT(iop_cmp(tstiop__xsort_struct, parray[i],
                                 parray[i + 1]), 0);
         }
+
+#undef XSORT_ST
     } Z_TEST_END;
     /* }}} */
     Z_TEST(strict_enum, "test IOP strict enum (un)packing") { /* {{{ */
