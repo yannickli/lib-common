@@ -23,6 +23,7 @@ struct ic__simple_hdr__t {
     lstr_t           password;
     lstr_t           kind;
     int32_t  payload;
+    bool     dealias;
     lstr_t           host;
     lstr_t           group;
     lstr_t           source;

@@ -11,44 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-package ic;
+#ifndef IS_LIB_COMMON_ZCHK_IOP_H
+#define IS_LIB_COMMON_ZCHK_IOP_H
 
-enum IcPriority {
-    LOW,
-    NORMAL,
-    HIGH,
-};
+int test_iop_core_obj(void);
 
-struct Tracer {
-    ulong token;
-    ulong epoch;
-};
-
-struct SimpleHdr {
-    string? login;
-    string? password;
-    string? kind;
-    int     payload = -1;
-    string? host;
-    string? group;
-    string? source;
-    ulong?  workspaceId;
-    bool    dealias = false;
-};
-
-abstract class Route {
-};
-
-struct RoutingHdr {
-    Route route;
-
-    int        ttl;
-    IcPriority priority = IC_PRIORITY_NORMAL;
-    Tracer?    tracer;
-    Hdr?       originalHdr;
-};
-
-union Hdr {
-    SimpleHdr      simple;
-    RoutingHdr     routing;
-};
+#endif /* IS_LIB_COMMON_ZCHK_IOP_H */

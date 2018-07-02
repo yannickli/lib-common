@@ -85,13 +85,15 @@ qhhash_ptr_equal(const qhhash_t *qhh, const qhash_t *qh,
     for (uint64_t __b_##pos = 0;                                             \
          __b_##pos < countof((hh)->buckets);                                 \
          __b_##pos++)                                                        \
-        for (uint64_t pos                                                    \
-             = ((hh)->buckets[__b_##pos].qm.hdr.len ?                        \
-                qhash_scan(&(hh)->buckets[__b_##pos].qm.qh, 0)               \
-                : UINT32_MAX) | (__b_##pos << 32);                           \
+        for (uint64_t __##pos##_priv                                         \
+             = ((hh)->buckets[__b_##pos].qm.hdr.len                          \
+             ? qhash_scan(&(hh)->buckets[__b_##pos].qm.qh, 0)                \
+             : UINT32_MAX) | (__b_##pos << 32),                              \
+             pos = __##pos##_priv;                                           \
              __QHH_POS(hh, pos) != UINT32_MAX;                               \
-             pos = qhash_scan(&(hh)->buckets[__b_##pos].qm.qh,               \
-                              __QHH_POS(hh, pos) + 1) | (__b_##pos << 32))
+             __##pos##_priv = qhash_scan(&(hh)->buckets[__b_##pos].qm.qh,    \
+                              __QHH_POS(hh, __##pos##_priv) + 1) |           \
+                              (__b_##pos << 32), pos = __##pos##_priv)
 
 #define __QHH_BUCKET_ID(qhh, pos)  ((pos) >> 32)
 #define __QHH_BUCKET(qhh, pos)     (&(qhh)->buckets[__QHH_BUCKET_ID(qhh, pos)])
