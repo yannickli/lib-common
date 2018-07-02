@@ -147,10 +147,20 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, workspace_id),
         .size      = fieldsizeof(ic__simple_hdr__t, workspace_id),
     },
+    {
+        .name      = LSTR_IMMED("dealias"),
+        .tag       = 9,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(ic__simple_hdr__t, dealias),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(ic__simple_hdr__t, dealias),
+    },
 };
 static int const iop__ranges__3[] = {
     0, 1,
-    8,
+    9,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),
