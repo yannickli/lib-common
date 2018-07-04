@@ -23,7 +23,6 @@ waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
 # FIXME:
-#   - support profiles (default, debug, release, asan, ...)
 #   - enhance configure (be equivalent to Make's one)
 #   - Fix various TODOs and FIXMEs in the wscript files
 
@@ -56,14 +55,6 @@ def configure(ctx):
     # {{{ Dependencies
 
     # Scripts
-    ctx.find_program('_run_checks.sh',
-                     path_list=[os.path.join(ctx.path.abspath(), 'Build')],
-                     mandatory=True,
-                     var='RUN_CHECKS_SH')
-    ctx.find_program('_tokens.sh',
-                     path_list=[os.path.join(ctx.path.abspath(), 'Config')],
-                     mandatory=True,
-                     var='TOKENS_SH')
     ctx.recurse('scripts')
 
     # External programs

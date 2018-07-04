@@ -255,6 +255,40 @@ def gen_ale(ctx):
 
 
 # }}}
+# {{{ Tags
+
+
+def gen_tags(ctx):
+    if ctx.cmd == 'tags':
+        tags_options = ''
+        tags_output  = '.tags'
+    elif ctx.cmd == 'etags':
+        tags_options = '-e'
+        tags_output  = 'TAGS'
+    else:
+        return
+
+    # Generate tags using ctags
+    cmd = '{0} "{1}" "{2}"'.format(ctx.env.CTAGS_SH[0],
+                                   tags_options, tags_output)
+    if ctx.exec_command(cmd, stdout=None, stderr=None, cwd=ctx.srcnode):
+        ctx.fatal('ctags generation failed')
+
+    # Interrupt the build
+    ctx.groups = []
+
+
+class TagsClass(BuildContext):
+    '''generate tags using ctags'''
+    cmd = 'tags'
+
+
+class EtagsClass(BuildContext):
+    '''generate tags for emacs using ctags'''
+    cmd = 'etags'
+
+
+# }}}
 
 # {{{ BLK
 
@@ -802,6 +836,18 @@ def configure(ctx):
         ctx.fatal('Profile `{0}` not found'.format(ctx.env.PROFILE))
 
 
+    # Check dependencies
+    config_dir = os.path.join(ctx.path.abspath(), 'Config')
+    build_dir  = os.path.join(ctx.path.abspath(), 'Build')
+    ctx.find_program('_run_checks.sh', path_list=[build_dir], mandatory=True,
+                     var='RUN_CHECKS_SH')
+    ctx.find_program('_tokens.sh', path_list=[config_dir], mandatory=True,
+                     var='TOKENS_SH')
+    if ctx.find_program('ctags', mandatory=False):
+        ctx.find_program('ctags.sh', path_list=[build_dir], mandatory=True,
+                         var='CTAGS_SH')
+
+
 class IsConfigurationContext(ConfigurationContext):
 
     def execute(self):
@@ -828,6 +874,7 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
+    ctx.add_pre_fun(gen_tags)
     ctx.add_post_fun(run_checks)
 
 # }}}
