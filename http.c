@@ -20,6 +20,8 @@
 #include "iop.h"
 #include "core.iop.h"
 
+#include <openssl/ssl.h>
+
 /*
  * rfc 2616 TODO list:
  *
@@ -924,16 +926,30 @@ static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
 
 static void httpd_set_mask(httpd_t *w)
 {
-    int mask = POLLIN;
+    int mask;
 
-    if (unlikely(w->queries >= w->cfg->pipeline_depth))
+    if (w->queries >= w->cfg->pipeline_depth
+    ||  w->ob.length >= (int)w->cfg->outbuf_max_size
+    ||  w->state == HTTP_PARSER_CLOSE)
+    {
         mask = 0;
-    if (unlikely(w->ob.length >= (int)w->cfg->outbuf_max_size))
-        mask = 0;
-    if (unlikely(w->state == HTTP_PARSER_CLOSE))
-        mask = 0;
-    if (!ob_is_empty(&w->ob))
+    } else {
+        mask = POLLIN;
+    }
+
+    if (!ob_is_empty(&w->ob)) {
         mask |= POLLOUT;
+    }
+
+    if (w->ssl) {
+        if (SSL_want_read(w->ssl)) {
+            mask |= POLLIN;
+        }
+        if (SSL_want_write(w->ssl)) {
+            mask |= POLLOUT;
+        }
+    }
+
     el_fd_set_mask(w->ev, mask);
 }
 
@@ -1367,6 +1383,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     cfg->httpd_cls = obj_class(httpd);
 
     iop_init(core__httpd_cfg, &iop_cfg);
+    /* Default configuration must succeed. */
     httpd_cfg_from_iop(cfg, &iop_cfg);
 
     for (int i = 0; i < countof(cfg->roots); i++) {
@@ -1375,8 +1392,10 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     return cfg;
 }
 
-void httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
+int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
 {
+    THROW_ERR_IF((!!iop_cfg->cert.s) != (!!iop_cfg->key.s));
+    THROW_ERR_IF(!expect(!cfg->cert.s && !cfg->key.s && !cfg->ssl_ctx));
     cfg->outbuf_max_size    = iop_cfg->outbuf_max_size;
     cfg->pipeline_depth     = iop_cfg->pipeline_depth;
     cfg->noact_delay        = iop_cfg->noact_delay;
@@ -1385,6 +1404,44 @@ void httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
     cfg->on_data_threshold  = iop_cfg->on_data_threshold;
     cfg->header_line_max    = iop_cfg->header_line_max;
     cfg->header_size_max    = iop_cfg->header_size_max;
+    if (iop_cfg->cert.s) {
+        const SSL_METHOD *method;
+        long mode;
+        int pem = SSL_FILETYPE_PEM;
+
+        cfg->cert = lstr_dup(iop_cfg->cert);
+        cfg->key = lstr_dup(iop_cfg->key);
+
+        /* Create ssl context -- the ssl module must be loaded. */
+        method = TLS_server_method();
+        cfg->ssl_ctx = SSL_CTX_new(method);
+        if (!cfg->ssl_ctx) {
+            e_error("cannot initialize ssl context");
+            return -1;
+        }
+
+        /* Configure ssl context. */
+        SSL_CTX_set_ecdh_auto(cfg->ssl_ctx, 1);
+        if (SSL_CTX_use_certificate_file(cfg->ssl_ctx, cfg->cert.s, pem) != 1)
+        {
+            e_error("invalid certificate file `%*pM` for httpd",
+                    LSTR_FMT_ARG(cfg->cert));
+            return -1;
+        }
+        if (SSL_CTX_use_PrivateKey_file(cfg->ssl_ctx, cfg->key.s, pem) != 1) {
+            e_error("invalid key file `%*pM` for httpd",
+                    LSTR_FMT_ARG(cfg->cert));
+            return -1;
+        }
+        mode = SSL_MODE_ENABLE_PARTIAL_WRITE
+             | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+        if (SSL_CTX_set_mode(cfg->ssl_ctx, mode) != mode) {
+            e_error("impossible to set openssl partial write mode");
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 void httpd_cfg_wipe(httpd_cfg_t *cfg)
@@ -1392,11 +1449,19 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
     for (int i = 0; i < countof(cfg->roots); i++) {
         httpd_trigger_node_wipe(&cfg->roots[i]);
     }
+    if (cfg->cert.s) {
+        lstr_wipe(&cfg->cert);
+        lstr_wipe(&cfg->key);
+        SSL_CTX_free(cfg->ssl_ctx);
+        cfg->ssl_ctx = NULL;
+    }
     assert (dlist_is_empty(&cfg->httpd_list));
 }
 
 static httpd_t *httpd_init(httpd_t *w)
 {
+    MODULE_REQUIRE(ssl);
+
     dlist_init(&w->query_list);
     dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
@@ -1429,6 +1494,9 @@ static void httpd_wipe(httpd_t *w)
     dlist_remove(&w->httpd_link);
     httpd_cfg_delete(&w->cfg);
     lstr_wipe(&w->peer_address);
+    SSL_free(w->ssl);
+    w->ssl = NULL;
+    MODULE_RELEASE(ssl);
 }
 
 OBJ_VTABLE(httpd)
@@ -1672,26 +1740,42 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
 {
     httpd_t *w = priv.ptr;
     pstream_t ps;
-    int res;
 
-    if (events == EL_EVENTS_NOACT)
+    if (events == EL_EVENTS_NOACT) {
         goto close;
+    }
 
     if (events & POLLIN) {
-        if (sb_read(&w->ibuf, fd, 0) <= 0)
-            goto close;
+        int ret;
+
+        ret = w->ssl ?
+            ssl_sb_read(&w->ibuf, w->ssl, 0):
+            sb_read(&w->ibuf, fd, 0);
+        if (ret < 0) {
+            if (!ERR_RW_RETRIABLE(errno)) {
+                goto close;
+            }
+            goto write;
+        }
 
         ps = ps_initsb(&w->ibuf);
         do {
-            res = (*httpd_parsers[w->state])(w, &ps);
-        } while (res == PARSE_OK);
+            ret = (*httpd_parsers[w->state])(w, &ps);
+        } while (ret == PARSE_OK);
         sb_skip_upto(&w->ibuf, ps.s);
     }
 
+  write:
     {
         int oldlen = w->ob.length;
-        if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
+        int ret;
+
+        ret = w->ssl ?
+            ob_write_with(&w->ob, fd, ssl_writev, w->ssl) :
+            ob_write(&w->ob, fd);
+        if (ret < 0 && !ERR_RW_RETRIABLE(errno)) {
             goto close;
+        }
 
         if (!dlist_is_empty(&w->query_list)) {
             httpd_query_t *query = dlist_first_entry(&w->query_list,
@@ -1748,6 +1832,39 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
 }
 
 static int
+httpd_tls_handshake(el_t evh, int fd, short events, data_t priv)
+{
+    httpd_t *w = priv.ptr;
+    int ret;
+
+    ret = SSL_do_handshake(w->ssl);
+    if (ret < 0) {
+        switch (SSL_get_error(w->ssl, ret)) {
+          case SSL_ERROR_WANT_READ:
+            el_fd_set_mask(evh, POLLIN);
+            return 0;
+          case SSL_ERROR_WANT_WRITE:
+            el_fd_set_mask(evh, POLLOUT);
+            return 0;
+          default:
+            /* An error occured. */
+            obj_delete(&w);
+            return -1;
+        }
+    }
+    if (ret == 0) {
+        /* Cleanly closed with respect to the TLS protocol. */
+        obj_delete(&w);
+        return 0;
+    }
+
+    /* Handshake completed. */
+    el_fd_set_mask(evh, POLLIN);
+    el_fd_set_hook(evh, httpd_on_event);
+    return 0;
+}
+
+static int
 httpd_on_accept(el_t evh, int fd, short events, data_t priv)
 {
     httpd_cfg_t *cfg = priv.ptr;
@@ -1766,8 +1883,9 @@ httpd_on_accept(el_t evh, int fd, short events, data_t priv)
 
 el_t httpd_listen(sockunion_t *su, httpd_cfg_t *cfg)
 {
-    int fd = listenx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK);
+    int fd;
 
+    fd = listenx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK);
     if (fd < 0)
         return NULL;
     return el_unref(el_fd_register(fd, true, POLLIN, httpd_on_accept,
@@ -1789,12 +1907,19 @@ void httpd_unlisten(el_t *ev)
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
 {
     httpd_t *w = obj_new_of_class(httpd, cfg->httpd_cls);
+    el_fd_f *el_cb = cfg->ssl_ctx ? &httpd_tls_handshake : &httpd_on_event;
 
     cfg->nb_conns++;
     w->cfg         = httpd_cfg_dup(cfg);
-    w->ev          = el_unref(el_fd_register(fd, true, POLLIN,
-                                             &httpd_on_event, w));
+    w->ev          = el_unref(el_fd_register(fd, true, POLLIN, el_cb, w));
     w->max_queries = cfg->max_queries;
+    if (cfg->ssl_ctx) {
+        w->ssl = SSL_new(cfg->ssl_ctx);
+        assert (w->ssl);
+        SSL_set_fd(w->ssl, fd);
+        SSL_set_accept_state(w->ssl);
+    }
+
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     dlist_add_tail(&cfg->httpd_list, &w->httpd_link);
     if (w->on_accept) {

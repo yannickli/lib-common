@@ -329,6 +329,10 @@ struct HttpdCfg {
     uint    headerLineMax    = 1024;
     /** Maximum total size for headers */
     uint    headerSizeMax    = 64 << 10;
+    /** HTTPS certificate filepath (pem format) **/
+    string? cert;
+    /** HTTPS private key filepath (pem format) **/
+    string? key;
 };
 
 struct HttpcCfg {

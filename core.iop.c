@@ -1324,7 +1324,7 @@ static iop_field_t const core__activation_token__desc_fields[] = {
 };
 static const iop_help_t core__activation_token__s_help = {
     .brief = LSTR_IMMED("Activation token."),
-    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has tree constraints:\012  - it specifies an expiration date for the product,\012  - it expires itself after some date (and can't be used),\012  - it must depend on the licence."),
+    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has three constraints:\012  - it must specify an expiration date for the product,\012  - it must expire itself after some date (and can't be used anymore),\012  - it must depend on the licence."),
 };
 static const iop_struct_attr_t core__activation_token__s_attrs[] = {
     {
@@ -1565,6 +1565,24 @@ static iop_field_attr_t const core__httpd_cfg__header_size_max__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_size_max__f_help } },
     },
 };
+static const iop_help_t core__httpd_cfg__cert__f_help = {
+    .brief = LSTR_IMMED("HTTPS certificate filepath (pem format) *"),
+};
+static iop_field_attr_t const core__httpd_cfg__cert__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__cert__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__key__f_help = {
+    .brief = LSTR_IMMED("HTTPS private key filepath (pem format) *"),
+};
+static iop_field_attr_t const core__httpd_cfg__key__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__key__f_help } },
+    },
+};
 static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
     {
         .flags             = 270368,
@@ -1611,6 +1629,16 @@ static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
         .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__header_size_max__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__cert__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__key__attrs,
     },
 };
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
@@ -1704,10 +1732,28 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .u1        = { .defval_u64 = 0x10000 },
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
+    {
+        .name      = LSTR_IMMED("cert"),
+        .tag       = 10,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__httpd_cfg__t, cert),
+        .size      = fieldsizeof(core__httpd_cfg__t, cert),
+    },
+    {
+        .name      = LSTR_IMMED("key"),
+        .tag       = 11,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__httpd_cfg__t, key),
+        .size      = fieldsizeof(core__httpd_cfg__t, key),
+    },
 };
 static int const iop__ranges__8[] = {
     0, 1,
-    9,
+    11,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),

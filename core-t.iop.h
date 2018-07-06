@@ -100,6 +100,8 @@ struct core__httpd_cfg__t {
     uint32_t on_data_threshold;
     uint32_t header_line_max;
     uint32_t header_size_max;
+    lstr_t           cert;
+    lstr_t           key;
 };
 EXPORT iop_struct_t const core__httpd_cfg__s;
 EXPORT iop_struct_t const * const nonnull core__httpd_cfg__sp;
