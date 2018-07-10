@@ -173,7 +173,7 @@ lstr_t mp_lstr_cat3(mem_pool_t *mp, const lstr_t s1, const lstr_t s2,
     return res;
 }
 
-int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
+bool lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
 {
     SB_1k(sb1);
     SB_1k(sb2);
@@ -184,7 +184,7 @@ int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2)
     return lstr_endswith(LSTR_SB_V(&sb1), LSTR_SB_V(&sb2));
 }
 
-int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
+bool lstr_utf8_endswith(const lstr_t s1, const lstr_t s2)
 {
     SB_1k(sb1);
     SB_1k(sb2);
