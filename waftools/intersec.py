@@ -332,19 +332,23 @@ def process_blk(self, node):
         self.create_compiled_task('c', node)
     else:
         # clang is not our C compiler -> it has to be rewritten first
-
-        # Compute includes from gcc flags
-        compute_clang_includes(self, 'clang_includes', 'CFLAGS')
-
-        # Get cflags of the task generator
-        if not 'CLANG_CFLAGS' in self.env:
-            self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
-
-        # Create block rewrite task.
         blk_c_node = node.change_ext_src('.blk.c')
-        blk_task = self.create_task('Blk2c', node, blk_c_node)
-        blk_task.cwd = self.env.PROJECT_ROOT
-        blk_task.env.CLANG_INCLUDES = self.clang_includes
+
+        if not blk_c_node in self.env.GEN_FILES:
+            self.env.GEN_FILES.add(blk_c_node)
+
+            # Compute includes from gcc flags
+            compute_clang_includes(self, 'clang_includes', 'CFLAGS')
+
+            # Get cflags of the task generator
+            if not 'CLANG_CFLAGS' in self.env:
+                self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags',
+                                                             []))
+
+            # Create block rewrite task.
+            blk_task = self.create_task('Blk2c', node, blk_c_node)
+            blk_task.cwd = self.env.PROJECT_ROOT
+            blk_task.env.CLANG_INCLUDES = self.clang_includes
 
         # Create C compilation task for the generated C source.
         self.create_compiled_task('c', blk_c_node)
@@ -373,15 +377,18 @@ def process_blkk(self, node):
         self.create_compiled_task('cxx', node)
     else:
         # clang++ is not our C++ compiler -> it has to be rewritten first
-
-        # Compute includes from g++ flags
-        compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
-
-        # Create block rewrite task.
         blkk_cc_node = node.change_ext_src('.blkk.cc')
-        blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
-        blkk_task.cwd = self.env.PROJECT_ROOT
-        blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
+
+        if not blkk_cc_node in self.env.GEN_FILES:
+            self.env.GEN_FILES.add(blkk_cc_node)
+
+            # Compute includes from g++ flags
+            compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
+
+            # Create block rewrite task.
+            blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
+            blkk_task.cwd = self.env.PROJECT_ROOT
+            blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
 
         # Create CC compilation task for the generated c++ source.
         self.create_compiled_task('cxx', blkk_cc_node)
@@ -389,6 +396,7 @@ def process_blkk(self, node):
 
 # }}}
 # {{{ PERF
+
 
 class Perf2c(Task):
     run_str = '${GPERF} --language ANSI-C --output-file ${TGT} ${SRC}'
@@ -401,8 +409,14 @@ class Perf2c(Task):
 
 @extension('.perf')
 def process_perf(self, node):
-    task = self.create_task('Perf2c', node, node.change_ext_src('.c'))
-    self.source.extend(task.outputs)
+    c_node = node.change_ext_src('.c')
+
+    if not c_node in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(c_node)
+        self.create_task('Perf2c', node, c_node)
+
+    self.source.extend([c_node])
+
 
 # }}}
 # {{{ LEX
@@ -415,13 +429,21 @@ class Lex2c(Task):
     def keyword(cls):
         return 'Generating'
 
+
 @extension('.l')
 def process_lex(self, node):
-    task = self.create_task('Lex2c', node, node.change_ext_src('.c'))
-    self.source.extend(task.outputs)
+    c_node = node.change_ext_src('.c')
+
+    if not c_node in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(c_node)
+        self.create_task('Lex2c', node, c_node)
+
+    self.source.extend([c_node])
+
 
 # }}}
 # {{{ FC
+
 
 class Fc2c(Task):
     run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
@@ -435,9 +457,13 @@ class Fc2c(Task):
 
 @extension('.fc')
 def process_fc(self, node):
-    farch_task = self.create_task('Fc2c', [node],
-                                  node.change_ext_src('.fc.h'))
-    farch_task.set_run_after(self.bld.farchc_task)
+    h_node = node.change_ext_src('.fc.h')
+
+    if not h_node in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(h_node)
+        farch_task = self.create_task('Fc2c', [node], h_node)
+        farch_task.set_run_after(self.bld.farchc_task)
+
 
 # }}}
 # {{{ TOKENS
@@ -458,7 +484,11 @@ class Tokens2c(Task):
 def process_tokens(self, node):
     c_node = node.change_ext_src('tokens.c')
     h_node = node.change_ext_src('tokens.h')
-    self.create_task('Tokens2c', [node], [c_node, h_node])
+
+    if not h_node in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(h_node)
+        self.create_task('Tokens2c', [node], [c_node, h_node])
+
     self.source.append(c_node)
 
 
@@ -569,25 +599,31 @@ class Iop2c(Task):
 
 @extension('.iop')
 def process_iop(self, node):
-    # Create iopc task
     c_node = node.change_ext_src('.iop.c')
-    h_node = node.change_ext_src('.iop.h')
-    tdef_h_node = node.change_ext_src('-tdef.iop.h')
-    t_h_node = node.change_ext_src('-t.iop.h')
-    task = self.create_task('Iop2c', node,
-                            [c_node, h_node, tdef_h_node, t_h_node])
-    task.bld = self.bld
-    task.set_run_after(self.bld.iopc_task)
-    self.source.append(c_node)
 
-    # Handle iopc options
-    if self.path in self.bld.iopc_options:
-        opts = self.bld.iopc_options[self.path]
-        task.env.IOP_CLASS_RANGE = opts.class_range_option
-        task.env.IOP_INCLUDES = opts.includes_option
-    else:
-        task.env.IOP_CLASS_RANGE = ''
-        task.env.IOP_INCLUDES = ''
+    if not c_node in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(c_node)
+
+        h_node = node.change_ext_src('.iop.h')
+        tdef_h_node = node.change_ext_src('-tdef.iop.h')
+        t_h_node = node.change_ext_src('-t.iop.h')
+
+        # Create iopc task
+        task = self.create_task('Iop2c', node,
+                                [c_node, h_node, tdef_h_node, t_h_node])
+        task.bld = self.bld
+        task.set_run_after(self.bld.iopc_task)
+
+        # Handle iopc options
+        if self.path in self.bld.iopc_options:
+            opts = self.bld.iopc_options[self.path]
+            task.env.IOP_CLASS_RANGE = opts.class_range_option
+            task.env.IOP_INCLUDES = opts.includes_option
+        else:
+            task.env.IOP_CLASS_RANGE = ''
+            task.env.IOP_INCLUDES = ''
+
+    self.source.append(c_node)
 
 
 # }}}
@@ -866,6 +902,7 @@ def build(ctx):
     Logs.info('Waf: Selected profile: %s', ctx.env.PROFILE)
 
     ctx.env.PROJECT_ROOT = ctx.srcnode
+    ctx.env.GEN_FILES = set()
 
     register_get_cwd()
 
