@@ -45,7 +45,7 @@ def post_deps(self):
 # These functions implement the use_whole attribute, allowing to link a
 # library with -whole-archive
 
-@TaskGen.feature('cprogram', 'cstlib', 'cshlib')
+@TaskGen.feature('c', 'cprogram', 'cstlib')
 @TaskGen.before_method('process_rule')
 def prepare_whole(self):
     use_whole = self.to_list(getattr(self, 'use_whole', []))
@@ -63,7 +63,7 @@ def prepare_whole(self):
                            .format(uw, self.target))
         self.use.append(uw)
 
-@TaskGen.feature('cprogram', 'cstlib', 'cshlib')
+@TaskGen.feature('c', 'cprogram', 'cstlib')
 @TaskGen.after_method('process_use')
 def process_whole(self):
     use_whole = self.to_list(getattr(self, 'use_whole', []))
