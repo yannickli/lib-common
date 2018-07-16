@@ -106,12 +106,6 @@ use by a '-fPIC' version (by copying the original task generator and adding
 the compilation flag).
 """
 
-def add_fpic_flag(tgen):
-    cflags = tgen.to_list(getattr(tgen, 'cflags', []))
-    cflags.append('-fPIC')
-    tgen.cflags = cflags
-
-
 def declare_fpic_lib(ctx, pic_name, orig_lib):
     orig_source     = orig_lib.to_list(getattr(orig_lib, 'source',     []))
     orig_use        = orig_lib.to_list(getattr(orig_lib, 'use',        []))
@@ -128,7 +122,7 @@ def declare_fpic_lib(ctx, pic_name, orig_lib):
                     depends_on=orig_depends_on,
                     includes=orig_includes)
 
-    add_fpic_flag(lib)
+    lib.env.append_value('CFLAGS', ['-fPIC'])
 
 
 def compile_fpic(ctx):
@@ -140,7 +134,7 @@ def compile_fpic(ctx):
             continue
 
         # Shared libraries must be compiled with the -fPIC compilation flag...
-        add_fpic_flag(tgen)
+        tgen.env.append_value('CFLAGS', ['-fPIC'])
 
         # ...such as all the libraries they use
         def process_use_pic(tgen, use_attr):
@@ -432,10 +426,7 @@ def process_blk(self, node):
 
             # Get cflags of the task generator
             if not 'CLANG_CFLAGS' in self.env:
-                cflags = list(self.to_list(getattr(self, 'cflags', [])))
-                if '-fPIC' in cflags:
-                    cflags = list(cflags)
-                    cflags.remove('-fPIC')
+                cflags = self.to_list(getattr(self, 'cflags', []))
                 self.env.CLANG_CFLAGS = cflags
 
             # Create block rewrite task.
