@@ -91,6 +91,96 @@ def process_whole(self):
     self.env.append_value('LINKFLAGS', '-Wl,--no-whole-archive')
 
 # }}}
+# {{{ fPIC compilation for shared libraries
+
+"""
+Our shared libraries need to be compiled with the -fPIC compilation flag (such
+as all the static libraries they use).
+But since this compilation flag has a significant impact on performances, we
+don't want to compile our programs (and the static libraries they use) with
+it.
+
+The purpose of this code is to add the -fPIC compilation flag to all the
+shared libraries task generators, and to replace all the static libraries they
+use by a '-fPIC' version (by copying the original task generator and adding
+the compilation flag).
+"""
+
+def add_fpic_flag(tgen):
+    cflags = tgen.to_list(getattr(tgen, 'cflags', []))
+    cflags.append('-fPIC')
+    tgen.cflags = cflags
+
+
+def declare_fpic_lib(ctx, pic_name, orig_lib):
+    orig_source     = orig_lib.to_list(getattr(orig_lib, 'source',     []))
+    orig_use        = orig_lib.to_list(getattr(orig_lib, 'use',        []))
+    orig_depends_on = orig_lib.to_list(getattr(orig_lib, 'depends_on', []))
+    orig_cflags     = orig_lib.to_list(getattr(orig_lib, 'cflags',     []))
+    orig_includes   = orig_lib.to_list(getattr(orig_lib, 'includes',   []))
+
+    lib = ctx.stlib(target=pic_name,
+                    features=orig_lib.features,
+                    source=list(orig_source),
+                    cflags=list(orig_cflags),
+                    use=orig_use,
+                    path=orig_lib.path,
+                    depends_on=orig_depends_on,
+                    includes=orig_includes)
+
+    add_fpic_flag(lib)
+
+
+def compile_fpic(ctx):
+    pic_libs = set()
+
+    for tgen in ctx.get_all_task_gen():
+        features = tgen.to_list(getattr(tgen, 'features', []))
+        if not 'cshlib' in features:
+            continue
+
+        # Shared libraries must be compiled with the -fPIC compilation flag...
+        add_fpic_flag(tgen)
+
+        # ...such as all the libraries they use
+        def process_use_pic(tgen, use_attr):
+            # for all the libraries used by the shared library...
+            use = tgen.to_list(getattr(tgen, use_attr, []))
+            for i in xrange(len(use)):
+                use_name = use[i]
+
+                if use_name.endswith('.pic'):
+                    # already a pic library
+                    continue
+
+                try:
+                    use_tgen = ctx.get_tgen_by_name(use_name)
+                except Errors.WafError:
+                    # the 'use' element does not have an associatde task
+                    # generator; probably an external library
+                    continue
+
+                features = use_tgen.to_list(getattr(use_tgen, 'features', []))
+                if not 'cstlib' in features:
+                    # the 'use' element is not a static library
+                    continue
+
+                # Replace the static library by the pic version in the shared
+                # library sources
+                pic_name = use_name + '.pic'
+                use[i] = pic_name
+
+                # Declare the pic static library, if not done yet
+                if not use_name in pic_libs:
+                    declare_fpic_lib(ctx, pic_name, use_tgen)
+                    pic_libs.add(use_name)
+
+        # Process the use and use_whole lists
+        process_use_pic(tgen, 'use')
+        process_use_pic(tgen, 'use_whole')
+
+
+# }}}
 # {{{ Execute commands from project root
 
 def register_get_cwd():
@@ -342,8 +432,11 @@ def process_blk(self, node):
 
             # Get cflags of the task generator
             if not 'CLANG_CFLAGS' in self.env:
-                self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags',
-                                                             []))
+                cflags = list(self.to_list(getattr(self, 'cflags', [])))
+                if '-fPIC' in cflags:
+                    cflags = list(cflags)
+                    cflags.remove('-fPIC')
+                self.env.CLANG_CFLAGS = cflags
 
             # Create block rewrite task.
             blk_task = self.create_task('Blk2c', node, blk_c_node)
@@ -743,7 +836,6 @@ def profile_default(ctx, no_assert=False,
         '-DWAF_MODE',
         '-fno-omit-frame-pointer',
         '-fvisibility=hidden',
-        '-fPIC', # TODO: understand this
     ]
     ctx.env.LINKFLAGS = [
         '-Wl,--export-dynamic',
@@ -911,6 +1003,7 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
+    ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(gen_tags)
     ctx.add_post_fun(run_checks)
 
