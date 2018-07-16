@@ -558,6 +558,13 @@ def process_fc(self, node):
         farch_task.set_run_after(self.bld.farchc_task)
 
 
+def post_farchc(ctx):
+    farchc = ctx.get_tgen_by_name('farchc')
+    farchc.post()
+    ctx.farchc_task = farchc.link_task
+    ctx.env.FARCHC = farchc.link_task.outputs[0].abspath()
+
+
 # }}}
 # {{{ TOKENS
 
@@ -717,6 +724,13 @@ def process_iop(self, node):
             task.env.IOP_INCLUDES = ''
 
     self.source.append(c_node)
+
+
+def post_iopc(ctx):
+    iopc = ctx.get_tgen_by_name('iopc')
+    iopc.post()
+    ctx.iopc_task = iopc.link_task
+    ctx.env.IOPC = iopc.link_task.outputs[0].abspath()
 
 
 # }}}
@@ -1004,6 +1018,8 @@ def build(ctx):
 
     # Register pre/post functions
     ctx.add_pre_fun(compile_fpic)
+    ctx.add_pre_fun(post_farchc)
+    ctx.add_pre_fun(post_iopc)
     ctx.add_pre_fun(gen_tags)
     ctx.add_post_fun(run_checks)
 

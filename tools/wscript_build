@@ -12,7 +12,5 @@
 ##########################################################################
 # pylint: disable = undefined-variable, invalid-name
 
-farchc = ctx.program(target='farchc', source='farchc.c', use='libcommon')
-farchc.post()
-ctx.farchc_task = farchc.link_task
-ctx.env.FARCHC = farchc.link_task.outputs[0].abspath()
+ctx.program(target='farchc', source='farchc.c',
+            use='libcommon')
