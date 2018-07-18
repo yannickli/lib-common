@@ -650,10 +650,6 @@ class IopcOptions(object):
 
 
 class Iop2c(Task):
-    run_str = ('${IOPC} --Wextra --language c --c-resolve-includes ' +
-               '${IOP_INCLUDES} ' +
-               '${IOP_CLASS_RANGE} ' +
-               '${SRC[0].abspath()}')
     color   = 'BLUE'
     ext_out = ['.h', '.c']
 
@@ -671,21 +667,37 @@ class Iop2c(Task):
         node = self.inputs[0]
         depfile = node.change_ext('.iop.d')
 
-        cmd = '{0} {1} --depends {2} -o {3} {4}'
-        cmd = cmd.format(self.env.IOPC,
-                         self.env.IOP_INCLUDES,
-                         depfile.abspath(),
-                         self.outputs[0].parent.abspath(),
-                         node.abspath())
+        # Manually redirect output to /dev/null because we don't want IOP
+        # errors to be printed in double (once here, and once in build).
+        # exec_command does not seem to allow dropping the output :-(...
+        cmd = ('{iopc} {includes} --depends {depfile} -o {outdir} {source} '
+               '> /dev/null 2>&1')
+        cmd = cmd.format(iopc=self.env.IOPC,
+                         includes=self.env.IOP_INCLUDES,
+                         depfile=depfile.abspath(),
+                         outdir=self.outputs[0].parent.abspath(),
+                         source=node.abspath())
         if self.exec_command(cmd, cwd=self.get_cwd()):
             # iopc falied, run should fail too
+            self.scan_failed = True
             return ([], None)
 
         pfx = self.bld.path.abspath() + '/'
         deps = depfile.read().splitlines()
         deps = [self.bld.path.make_node(dep[len(pfx):]) for dep in deps]
-
         return (deps, None)
+
+    def run(self):
+        cmd = ('{iopc} --Wextra --language c --c-resolve-includes {includes} '
+               '{class_range} {source}')
+        cmd = cmd.format(iopc=self.env.IOPC,
+                         includes=self.env.IOP_INCLUDES,
+                         class_range=self.env.IOP_CLASS_RANGE,
+                         source=self.inputs[0].abspath())
+        res = self.exec_command(cmd, cwd=self.get_cwd())
+        if res and not getattr(self, 'scan_failed', False):
+            self.bld.fatal("scan should have failed for %s" % self.inputs[0])
+        return res
 
 
 @extension('.iop')
