@@ -21,7 +21,6 @@ from waflib import TaskGen, Utils, Context, Errors, Options, Logs
 
 from waflib.Build import BuildContext
 from waflib.Configure import ConfigurationContext, conf
-from waflib.Node import Node
 from waflib.Task import Task
 from waflib.TaskGen import extension
 from waflib.Tools import c, cxx
@@ -29,17 +28,6 @@ from waflib.Tools import ccroot
 # pylint: enable = import-error
 
 
-# {{{ depends_on
-
-@TaskGen.feature('*')
-@TaskGen.before_method('process_rule')
-def post_deps(self):
-    deps = getattr(self, 'depends_on', [])
-    for name in self.to_list(deps):
-        other = self.bld.get_tgen_by_name(name)
-        other.post()
-
-# }}}
 # {{{ use_whole
 
 # These functions implement the use_whole attribute, allowing to link a
@@ -260,42 +248,6 @@ def deploy_javac(self):
     tsk = self.create_task('DeployTarget', src=src, tgt=tgt)
     tsk.set_run_after(self.javac_task)
 
-
-# }}}
-# {{{ Run checks
-
-def run_checks(ctx):
-    if ctx.cmd == 'check':
-        path = ctx.launch_node().path_from(ctx.env.PROJECT_ROOT)
-        cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0], path)
-        if ctx.exec_command(cmd, stdout=None, stderr=None):
-            ctx.fatal('')
-
-class CheckClass(BuildContext):
-    '''run tests'''
-    cmd = 'check'
-
-# }}}
-# {{{ Node::change_ext_src method
-
-''' Declares the method Node.change_ext_src, which is similar to
-    Node.change_ext, excepts it makes a node in the source directory (instead
-    of the build directory).
-'''
-
-def node_change_ext_src(self, ext):
-    name = self.name
-
-    k = name.rfind('.')
-    if k >= 0:
-        name = name[:k] + ext
-    else:
-        name = name + ext
-
-    return self.parent.make_node(name)
-
-
-Node.change_ext_src = node_change_ext_src
 
 # }}}
 # {{{ syntastic/ale
@@ -1024,6 +976,5 @@ def build(ctx):
     ctx.add_pre_fun(post_farchc)
     ctx.add_pre_fun(post_iopc)
     ctx.add_pre_fun(gen_tags)
-    ctx.add_post_fun(run_checks)
 
 # }}}

@@ -28,14 +28,22 @@ sys.path.insert(0, waftoolsdir)
 
 # {{{ options
 
+
+def load_tools(ctx):
+    ctx.load('common',  tooldir=waftoolsdir)
+    ctx.load('backend', tooldir=waftoolsdir)
+
+
 def options(ctx):
-    ctx.load('intersec', tooldir=waftoolsdir)
+    load_tools(ctx)
+
 
 # }}}
 # {{{ configure
 
+
 def configure(ctx):
-    ctx.load('intersec', tooldir=waftoolsdir)
+    load_tools(ctx)
 
     # Export includes
     ctx.register_global_includes(['.', 'compat'])
@@ -125,12 +133,13 @@ def configure(ctx):
 
     # }}}
 
+
 # }}}
 # {{{ build
 
+
 def build(ctx):
-    # Register Intersec environment
-    ctx.load('intersec', tooldir=waftoolsdir)
+    load_tools(ctx)
 
     # Declare 3 build groups:
     #  - one for compiling farchc
@@ -415,4 +424,6 @@ def build(ctx):
                 source='ztst-mem.blk', use='libcommon')
 
     # }}}
+
+
 # }}}
