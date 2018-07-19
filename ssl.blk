@@ -87,54 +87,52 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
     EVP_CIPHER_CTX_free(ctx->decrypt);
 }
 
-static int ssl_ctx_configure(ssl_ctx_t *ctx, const lstr_t key,
-                             const uint64_t salt, const int nb_rounds,
-                             const bool do_encrypt, const bool do_decrypt)
+/** Generate the key and IV from the given password and salt. */
+static void t_ssl_get_aes_key(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                              int nb_rounds, lstr_t *key, lstr_t *iv)
 {
-    t_scope;
-    unsigned char *keybuf, *ivbuf;
+    const EVP_CIPHER *type = EVP_aes_256_cbc();
+    const EVP_MD *md = EVP_sha256();
+    int keylen = EVP_CIPHER_key_length(type);
+    int ivlen = EVP_CIPHER_iv_length(type);
+    unsigned char *keybuf = t_new_raw(unsigned char, keylen);
+    unsigned char *ivbuf = t_new_raw(unsigned char, ivlen);
 
-    assert (do_encrypt || do_decrypt);
+    EVP_BytesToKey(type, md, (const unsigned char *)&salt,
+                   (const unsigned char *)password.s, password.len, nb_rounds,
+                   keybuf, ivbuf);
+    *key = LSTR_INIT_V((char *)keybuf, keylen);
+    *iv = LSTR_INIT_V((char *)ivbuf, ivlen);
+}
 
-    keybuf = t_new_raw(unsigned char, EVP_CIPHER_key_length(ctx->type));
-    ivbuf  = t_new_raw(unsigned char, EVP_CIPHER_iv_length(ctx->type));
+/** Setup (distinct) contexts for encryption and decryption. */
+static int ssl_ctx_configure(ssl_ctx_t *ctx, lstr_t key, lstr_t iv)
+{
+    const EVP_CIPHER *type = EVP_aes_256_cbc();
 
-    /* Generate the key and IV from the given key and salt. */
-    EVP_BytesToKey(ctx->type, ctx->md, (const unsigned char *)&salt,
-                   (const unsigned char *)key.s, key.len, nb_rounds, keybuf,
-                   ivbuf);
-
-    if (do_encrypt) {
-        if (unlikely(!EVP_EncryptInit_ex(ctx->encrypt, ctx->type, NULL,
-                                         keybuf, ivbuf)))
-        {
-            return ssl_set_error("encrypt context initialization failure");
-        }
-        ctx->encrypt_state = SSL_CTX_INIT;
+    if (!EVP_EncryptInit_ex(ctx->encrypt, type, NULL, (void *)key.s,
+                            (void *)iv.s)
+    ||  !EVP_DecryptInit_ex(ctx->decrypt, type, NULL, (void *)key.s,
+                            (void *)iv.s))
+    {
+        ssl_set_error("decrypt context initialization failure");
+        return -1;
     }
-
-    if (do_decrypt) {
-        if (unlikely(!EVP_DecryptInit_ex(ctx->decrypt, ctx->type, NULL,
-                                         keybuf, ivbuf)))
-        {
-            return ssl_set_error("decrypt context initialization failure");
-        }
-        ctx->decrypt_state = SSL_CTX_INIT;
-    }
-
+    ctx->encrypt_state = SSL_CTX_INIT;
+    ctx->decrypt_state = SSL_CTX_INIT;
     return 0;
 }
 
-ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
+ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
                                int nb_rounds)
 {
+    t_scope;
+    lstr_t key, iv;
+
     ssl_ctx_init(ctx);
+    t_ssl_get_aes_key(ctx, password, salt, nb_rounds, &key, &iv);
 
-    ctx->type = EVP_aes_256_cbc();
-    ctx->md   = EVP_sha256();
-
-    if (ssl_ctx_configure(ctx, key, salt, nb_rounds, true, true) < 0)
-    {
+    if (ssl_ctx_configure(ctx, key, iv) < 0) {
         ssl_ctx_wipe(ctx);
         return NULL;
     }
@@ -212,8 +210,12 @@ ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
     return NULL;
 }
 
-int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                  int nb_rounds)
 {
+    t_scope;
+    lstr_t key, iv;
+
     assert (ctx->encrypt_state == SSL_CTX_NONE
         ||  ctx->encrypt_state == SSL_CTX_INIT
         ||  ctx->encrypt_state == SSL_CTX_FINISH);
@@ -221,7 +223,8 @@ int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
         ||  ctx->decrypt_state == SSL_CTX_INIT
         ||  ctx->decrypt_state == SSL_CTX_FINISH);
 
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, true, true);
+    t_ssl_get_aes_key(ctx, password, salt, nb_rounds, &key, &iv);
+    return ssl_ctx_configure(ctx, key, iv);
 }
 
 const char *ssl_get_error(void)
@@ -306,20 +309,6 @@ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     return 0;
 }
 
-int ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds)
-{
-    assert (ctx->encrypt_state != SSL_CTX_NONE);
-
-    if (ctx->encrypt_state == SSL_CTX_UPDATE) {
-        assert (out);
-        RETHROW(ssl_encrypt_finish(ctx, out));
-    }
-    assert (ctx->encrypt_state == SSL_CTX_INIT);
-
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, true, false);
-}
-
 /* }}} */
 /* {{{ Decrypt */
 
@@ -389,20 +378,6 @@ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     return 0;
 }
 
-int ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds)
-{
-    assert (ctx->decrypt_state != SSL_CTX_NONE);
-
-    if (ctx->decrypt_state == SSL_CTX_UPDATE) {
-        assert (out);
-        RETHROW(ssl_decrypt_finish(ctx, out));
-    }
-    assert (ctx->decrypt_state == SSL_CTX_INIT);
-
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, false, true);
-}
-
 /* }}} */
 /* }}} */
 /* {{{ PKEY */
@@ -424,14 +399,14 @@ int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
     if (EVP_PKEY_encrypt(ctx->pkey_encrypt, NULL, &outlen, in, inlen) <= 0)
     {
-        ssl_set_error("decryption failure (size computation)");
+        ssl_set_error("encryption failure (size computation)");
         return -1;
     }
     if (EVP_PKEY_encrypt(ctx->pkey_encrypt,
                          (unsigned char *)sb_grow(out, outlen),
                          &outlen, in, inlen) <= 0)
     {
-        ssl_set_error("decryption failure");
+        ssl_set_error("encryption failure");
         return -1;
     }
     sb_growlen(out, outlen);
@@ -782,7 +757,7 @@ int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
 char *licence_compute_encryption_key(const char *signature, const char *key)
 {
     /* We encrypt the obfuscation key using the compute signature as a SSL
-     * key. The salt will be 42 and that's all. */
+     * password. The salt will be 42 and that's all. */
     ssl_ctx_t ctx;
     char *encrypted;
     int len;

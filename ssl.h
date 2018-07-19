@@ -117,10 +117,6 @@ enum ssl_ctx_state {
  * SSL context used to encrypt and decrypt data.
  */
 typedef struct ssl_ctx_t {
-    /* CIPHER data */
-    const EVP_CIPHER  *type;
-    const EVP_MD      *md;
-
     EVP_CIPHER_CTX     *encrypt;
     EVP_CIPHER_CTX     *decrypt;
 
@@ -138,13 +134,14 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx);
 GENERIC_DELETE(ssl_ctx_t, ssl_ctx);
 
 /**
- * Init the SSL context with the given key and an optional salt. This
+ * Init the SSL context with a given password and an optional salt. This
  * initializer will use AES 256 with SHA256.
  *
- * You don't need to call ssl_ctx_init() it will be done for you.
+ * The password, salt and nb_rounds arguments are used to derive the AES key
+ * and initialisation vector.
  *
  * \param ctx       The SSL context.
- * \param key       The cypher key to use for encryption.
+ * \param password  The password.
  * \param salt      The salt to use when encrypting.
  * \param nb_rounds The iteration count to use, changing this value will break
  *                  encryption/decryption compatibility (a value of 1024
@@ -152,18 +149,18 @@ GENERIC_DELETE(ssl_ctx_t, ssl_ctx);
  *
  * \return The initialized AES context or NULL in case of error.
  */
-ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
+ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
                                int nb_rounds);
 
 /**
  * Same as ssl_ctx_init_aes() but allocate the ssl_ctx_t for you.
  */
 static inline ssl_ctx_t *
-ssl_ctx_new_aes256(lstr_t key, uint64_t salt, int nb_rounds)
+ssl_ctx_new_aes256(lstr_t password, uint64_t salt, int nb_rounds)
 {
     ssl_ctx_t *ctx = p_new_raw(ssl_ctx_t, 1);
 
-    if (unlikely(!ssl_ctx_init_aes256(ctx, key, salt, nb_rounds))) {
+    if (unlikely(!ssl_ctx_init_aes256(ctx, password, salt, nb_rounds))) {
         p_delete(&ctx);
     }
 
@@ -171,16 +168,27 @@ ssl_ctx_new_aes256(lstr_t key, uint64_t salt, int nb_rounds)
 }
 
 /**
- * Reset the whole SSL context changing the key, the salt and the nb_rounds
- * parameters.
+ * Reset the whole SSL context and change the AES key and IV.
+ *
+ * The key and the initialisation vector are derived from the given
+ * password, salt and nb_rounds parameters.
+ *
+ * The context is not wiped on error.
+ *
+ * \param  ctx        The SSL context.
+ * \param  password   The password.
+ * \param  salt       The salt to use when encrypting.
+ * \param  nb_rounds  The iteration count to use, changing this value will
+ *                    break encryption/decryption compatibility (a value of
+ *                    1024 should be good in most situations).
+ * \return 0 on success and -1 on error.
  */
-int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds);
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                  int nb_rounds);
 
 /**
  * Init the given SSL context with the given key. You can use private or
  * public key to init the context, depending on what you need.
- *
- * You don't need to call ssl_ctx_init() it will be done for you.
  *
  * \param ctx       The SSL context.
  * \param priv_key  The private key.
@@ -198,8 +206,6 @@ ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
  * Init the given SSL context with the public key.
  *
  * \warning You won't be able to decrypt data using this context.
- *
- * You don't need to call ssl_ctx_init() it will be done for you.
  *
  * \param ctx       The SSL context.
  * \param pub_key   The public key.
@@ -254,15 +260,6 @@ __must_check__ int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 __must_check__ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
- * Just like ssl_encrypt_reset() this function will allow to encrypt a new
- * bunch of data but you can change the key, the salt and the nb_rounds
- * parameters.
- */
-__must_check__ int
-ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
-                       int nb_rounds);
-
-/**
  * Encrypt the given data via public key and append the result to out.
  */
 __must_check__ int
@@ -301,15 +298,6 @@ __must_check__ int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out);
  * parameter is mandatory in this case.
  */
 __must_check__ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
-
-/**
- * Just like ssl_decrypt_reset() this function will allow to decrypt a new
- * bunch of data but you can change the key, the salt and the nb_rounds
- * parameters.
- */
-__must_check__ int
-ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
-                       int nb_rounds);
 
 /**
  * Decrypt the given data via private key and append the result to out.
