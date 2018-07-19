@@ -140,6 +140,17 @@ ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
     return ctx;
 }
 
+ssl_ctx_t *ssl_ctx_init_aes256_by_key(ssl_ctx_t *ctx, lstr_t key, lstr_t iv)
+{
+    ssl_ctx_init(ctx);
+    if (ssl_ctx_configure(ctx, key, iv) < 0) {
+        ssl_ctx_wipe(ctx);
+        return NULL;
+    }
+
+    return ctx;
+}
+
 ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
                              lstr_t priv_key, lstr_t pub_key, lstr_t pass)
 {
@@ -381,6 +392,27 @@ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out)
 /* }}} */
 /* }}} */
 /* {{{ PKEY */
+
+/** Return the size of the key.
+ *
+ * The length of the key determine both the maximum amount of encryptable data
+ * and the length of the resulted encrypted string. For example, if you have a
+ * 2048 bits length RSA key, then you can only encrypt up to 256 bytes and the
+ * resulting string will (always) be 256 bytes long.
+ */
+static int ssl_pkey_size(ssl_ctx_t *ctx) {
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+    RSA *tmp = EVP_PKEY_get1_RSA(ctx->pkey);
+    int size;
+
+    size = RSA_size(tmp);
+    RSA_free(tmp);
+    return size;
+#else
+    return RSA_size(EVP_PKEY_get0_RSA(ctx->pkey));
+#endif
+}
+
 /* {{{ Encrypt */
 
 int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
@@ -411,6 +443,74 @@ int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     }
     sb_growlen(out, outlen);
     return 0;
+}
+
+/**
+ * RSA keys can only encrypt data as long as the size of the key. A 2048 bit
+ * key can only encrypt 256 bytes. Plus, the encryption should (to increase
+ * security) add a random padding. While the most common padding weight 11
+ * bytes, the new recommanded one is about 41 bytes, which reduces again the
+ * available space for encryption.
+ *
+ * Plus, it is NOT RECOMMANDED to split a string and encode each part with the
+ * RSA key (especially for performance purposes). Instead, we generate a
+ * symmetric AES key and a random initialisation vector, and we put them
+ * together with all data that can fit in the RSA header. The rest of the data
+ * are encrypted with the AES key.
+ *
+ *   [ -------- RSA encrypted data --------- ][ AES encrypted data ]
+ *   [ AES key | AES IV | Data | RSA padding ||    rest of data    ]
+ *
+ * However, for small strings (ligher than rsa_size - rsa_padding bytes), all
+ * data can fit in one RSA header. Thus we continue to use only this header.
+ *
+ *   [ -------- RSA encrypted data --------- ]
+ *   [          Data           | RSA padding ]
+ */
+int ssl_encrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+{
+    ssl_ctx_t actx;
+    char key_buf[32];
+    char iv_buf[16];
+    lstr_t key = LSTR_INIT(key_buf, 32);
+    lstr_t iv = LSTR_INIT(iv_buf, 16);
+    int key_size = ssl_pkey_size(ctx);
+    int rsa_buf_size = key_size - RSA_OAEP_PADDING_SIZE;
+    int free_space = rsa_buf_size - key.len - iv.len;
+    SB_1k(rsa_buf);
+
+    /* If the data are small enough, let's encrypt them directly. */
+    if (data.len <= rsa_buf_size) {
+        return ssl_encrypt_pkey(ctx, data, out);
+    }
+
+    /* Otherwise, generate AES-256 key and initialisation vector. */
+    THROW_IF(RAND_bytes((void *)key_buf, 32) != 1, -1);
+    THROW_IF(RAND_bytes((void *)iv_buf, 16) != 1, -1);
+
+    /* Append the encrypted AES key, its IV, and the first data. */
+    sb_add_lstr(&rsa_buf, key);
+    sb_add_lstr(&rsa_buf, iv);
+    sb_add(&rsa_buf, data.s, free_space);
+    data = LSTR_INIT_V(data.s + free_space, data.len - free_space);
+
+    RETHROW(ssl_encrypt_pkey(ctx, LSTR_SB_V(&rsa_buf), out));
+
+    /* Encrypt the rest of the data with the AES algorithm. */
+    RETHROW_PN(ssl_ctx_init_aes256_by_key(&actx, key, iv));
+    if (ssl_encrypt_update(&actx, data, out) < 0) {
+        goto error;
+    }
+    if (ssl_encrypt_reset(&actx, out) < 0) {
+        goto error;
+    }
+
+    ssl_ctx_wipe(&actx);
+    return 0;
+
+  error:
+    ssl_ctx_wipe(&actx);
+    return -1;
 }
 
 /* }}} */
@@ -444,6 +544,58 @@ int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     }
     sb_growlen(out, outlen);
     return 0;
+}
+
+/* See t_ssl_encrypt_pkey_lstr for encoding informations. */
+int ssl_decrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+{
+    ssl_ctx_t actx;
+    lstr_t rsa_enc;
+    lstr_t key;
+    lstr_t iv;
+    lstr_t aes_enc;
+    int key_size = ssl_pkey_size(ctx);
+    SB_1k(rsa_buf);
+
+    /* If the data are small enough, decrypt them directly. */
+    if (data.len == key_size) {
+        return ssl_decrypt_pkey(ctx, data, out);
+    }
+
+    if (data.len < key_size) {
+        __ssl_set_error("invalid encrypted content (invalid size)");
+        return -1;
+    }
+
+    /* Separate the RSA header and the AES encrypted data. */
+    rsa_enc = LSTR_INIT_V(data.s, key_size);
+    aes_enc = LSTR_INIT_V(data.s + key_size, data.len - key_size);
+
+    /* Extract RSA header (get the AES key and IV, and the first data). */
+    RETHROW(ssl_decrypt_pkey(ctx, rsa_enc, &rsa_buf));
+    if (rsa_buf.len < 32 + 16) {
+        __ssl_set_error("invalid AES key or IV in the rsa header");
+        return -1;
+    }
+    key = LSTR_INIT_V(rsa_buf.data, 32);
+    iv = LSTR_INIT_V(rsa_buf.data + 32, 16);
+    sb_add(out, rsa_buf.data + 32 + 16, rsa_buf.len - 32 - 16);
+
+    /* Decrypt the data with the AES algorithm. */
+    RETHROW_PN(ssl_ctx_init_aes256_by_key(&actx, key, iv));
+    if (ssl_decrypt_update(&actx, aes_enc, out) < 0) {
+        goto error;
+    }
+    if (ssl_decrypt_reset(&actx, out) < 0) {
+        goto error;
+    }
+
+    ssl_ctx_wipe(&actx);
+    return 0;
+
+  error:
+    ssl_ctx_wipe(&actx);
+    return -1;
 }
 
 /* }}} */
@@ -1060,6 +1212,7 @@ Z_GROUP_EXPORT(ssl)
         SB_1k(priv);
         SB_1k(priv_encrypted);
         SB_1k(pub);
+        SB_1k(text_rand);
         const lstr_t text = LSTR_IMMED("secret pioupiou23\n");
         const lstr_t text_garbage = LSTR_IMMED("bonjour openssl!\n");
 
@@ -1083,6 +1236,7 @@ Z_GROUP_EXPORT(ssl)
                 e_fatal("cannot read public key");
             }
         }
+        strrand(sb_growlen(&text_rand, 1024), 1024, LSTR_NULL_V);
 
 /* {{{ PKEY for RSA without padding */
 
@@ -1123,7 +1277,8 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_LSTREQUAL(text_encrypted, LSTR_SB_V(&sb_encrypted));
         ssl_ctx_wipe(&ctx);
 
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv), LSTR_EMPTY_V));
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
         Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_decrypt,
                                                  RSA_NO_PADDING), 0);
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
@@ -1159,11 +1314,14 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NULL(ssl_ctx_init_pkey_pub(&ctx, LSTR_EMPTY_V));
         Z_ASSERT_NULL(ssl_ctx_init_pkey_priv(&ctx, LSTR_EMPTY_V,
                                              LSTR_EMPTY_V));
+
+        /* Use a public key: we can encrypt but we cannot decrypt. */
         Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb_encrypted));
         Z_ASSERT_NEG(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         ssl_ctx_wipe(&ctx);
 
+        /* The corresponding private key can decrypt. */
         Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
                                           LSTR_EMPTY_V));
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
@@ -1177,6 +1335,7 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NEG(ssl_decrypt(&ctx, text_garbage, &sb_clear));
         ssl_ctx_wipe(&ctx);
 
+        /* It's also possible to encrypt with the private key. */
         sb_reset(&sb_encrypted);
         sb_reset(&sb_clear);
         Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
@@ -1185,14 +1344,53 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         Z_ASSERT_LSTREQUAL(text, LSTR_SB_V(&sb_clear));
         ssl_ctx_wipe(&ctx);
+
+        /* Test lstr encryption / decryption of long strings. */
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
+        {
+            t_scope;
+            lstr_t clear;
+            lstr_t encrypted;
+            int msg_len = 256 - RSA_OAEP_PADDING_SIZE + 1;
+            lstr_t init = LSTR_INIT(text_rand.data, msg_len);
+
+            encrypted = t_ssl_encrypt_pkey_lstr(&ctx, init);
+            Z_ASSERT(encrypted.len > 256);
+            clear = t_ssl_decrypt_pkey_lstr(&ctx, encrypted);
+            Z_ASSERT_LSTREQUAL(init, clear);
+        }
+
+        /* With small strings, it should behave just as ssl_encrypt_pkey. */
+        {
+            t_scope;
+            lstr_t clear;
+            lstr_t encrypted;
+            int msg_len = 256 - RSA_OAEP_PADDING_SIZE;
+            lstr_t init = LSTR_INIT(text_rand.data, msg_len);
+
+            sb_reset(&sb_encrypted);
+            sb_reset(&sb_clear);
+            /* Encryption */
+            encrypted = t_ssl_encrypt_pkey_lstr(&ctx, init);
+            Z_ASSERT_EQ(encrypted.len, 256);
+            Z_ASSERT_N(ssl_encrypt_pkey(&ctx, init, &sb_encrypted));
+            Z_ASSERT_EQ(sb_encrypted.len, 256);
+            /* Decryption */
+            clear = t_ssl_decrypt_pkey_lstr(&ctx, LSTR_SB_V(&sb_encrypted));
+            Z_ASSERT_LSTREQUAL(init, clear);
+            Z_ASSERT_N(ssl_decrypt_pkey(&ctx, encrypted, &sb_clear));
+            Z_ASSERT_LSTREQUAL(init, LSTR_SB_V(&sb_clear));
+        }
+        ssl_ctx_wipe(&ctx);
     } Z_TEST_END;
 
 /* }}} */
 /* {{{ PKEY for RSA with OAEP */
 
-    Z_TEST(pkey_rsa_with_oeap, "pkey_rsa_with_oeap") {
+    Z_TEST(pkey_rsa_with_oaep, "pkey_rsa_with_oaep") {
         ssl_ctx_t ctx;
-        /* same but encrypt with -pkeyopt rsa_padding_mode:oeap */
+        /* same but encrypt with -pkeyopt rsa_padding_mode:oaep */
         const lstr_t text_encrypted = LSTR_IMMED(
           "\x18\x55\xef\x38\xf8\x54\x18\x13\x2e\xc1\x10\x43\xbf\xeb\x53\xb7"
           "\xeb\x6a\x6a\x8c\x26\xe8\xac\x1f\x09\xc5\x26\xfc\x6c\x15\x8d\x39"

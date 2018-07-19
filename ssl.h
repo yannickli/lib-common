@@ -104,6 +104,19 @@
 #define SSL_CTX_set_ecdh_auto(ctx, onoff)  do {} while(0)
 #endif
 
+#ifndef RSA_OAEP_PADDING_SIZE
+/* RSA can just encrypt a message as large as the key, i.e. 256 bytes for a
+ * 2048 key. But the algorithm used some random padding to increase security.
+ * Thus, RSA encrypt message up to key_size - PADDING bytes.
+ *
+ * Sadly enough, if there is a RSA_PKCS1_PADDING_SIZE constant defined for the
+ * old PKCS1 method, I didn't found an equivalent way to get the maximum
+ * padding size used with OAEP -- which seems to be the current standard. The
+ * RSA_public_encrypt(3) man page says it's 41 bytes.
+ */
+# define RSA_OAEP_PADDING_SIZE  41
+#endif
+
 /* Encryption {{{ */
 
 enum ssl_ctx_state {
@@ -166,6 +179,15 @@ ssl_ctx_new_aes256(lstr_t password, uint64_t salt, int nb_rounds)
 
     return ctx;
 }
+
+/** Init AES 256 context with the symmetric key.
+ *
+ * \param  ctx  The SSL context.
+ * \param  key  The AES 256bits key.
+ * \param  iv  The initialisation vector.
+ * \return The initialiased AES context or NULL in case of error.
+ */
+ssl_ctx_t *ssl_ctx_init_aes256_by_key(ssl_ctx_t *ctx, lstr_t key, lstr_t iv);
 
 /**
  * Reset the whole SSL context and change the AES key and IV.
@@ -266,6 +288,41 @@ __must_check__ int
 ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
+ * Encrypt an arbitrarily long lstr_t.
+ *
+ * Encrypt the data with a RSA key. If the data is too large to fit in a
+ * single RSA message, we use hybrid cryptography (RSA + AES). The format is
+ * described in the code.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA key.
+ * \param[in]  data  The data to encrypt.
+ * \param[out]  out  The buffer where encrypted data are accumulated.
+ * \return 0 on success, -1 on error. You can call ssl_get_error() on error to
+ *         have stringified informations.
+ */
+__must_check__ int
+ssl_encrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+
+/**
+ * Encrypt an arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA key.
+ * \param[in]  data  The data to encrypt.
+ * \return the encrypted data as a t-stack allocated lstr_t (or LSTR_NULL_V on
+ *         error). You can call ssl_get_error() on error to have stringified
+ *         informations.
+ */
+static inline lstr_t t_ssl_encrypt_pkey_lstr(ssl_ctx_t *ctx, lstr_t data)
+{
+    SB_1k(out);
+
+    /* grow(data + AES key + AES IV + AES padding + RSA padding). */
+    sb_grow(&out, data.len + 32 + 16 + 16 + RSA_OAEP_PADDING_SIZE);
+    THROW_IF(ssl_encrypt_pkey_sb(ctx, data, &out) < 0, LSTR_NULL_V);
+    return t_lstr_dup(LSTR_SB_V(&out));
+}
+
+/**
  * Encrypt a bunch of data in one operation. The SSL context will be ready to
  * be updated again.
  */
@@ -304,6 +361,36 @@ __must_check__ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
  */
 __must_check__ int
 ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+
+/**
+ * Decrypt arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA private key.
+ * \param[in]  data  The data to decrypt.
+ * \param[out]  out  The buffer where decrypted data are accumulated.
+ * \return 0 on success, -1 on error. You can call ssl_get_error() on error to
+ *         have stringified informations.
+ */
+__must_check__ int
+ssl_decrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+
+/**
+ * Decrypt an arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA private key.
+ * \param[in]  data  The data to decrypt.
+ * \return the decrypted data as a t-stack allocated lstr_t (or LSTR_NULL_V on
+ *         error). You can call ssl_get_error() on error to have stringified
+ *         informations.
+ */
+static inline lstr_t t_ssl_decrypt_pkey_lstr(ssl_ctx_t *ctx, lstr_t data)
+{
+    int min_aes_data = (data.len == 256 ? 0 : 32 + 16);
+    t_SB(out, data.len + 1 - RSA_OAEP_PADDING_SIZE - min_aes_data);
+
+    THROW_IF(ssl_decrypt_pkey_sb(ctx, data, &out) < 0, LSTR_NULL_V);
+    return LSTR_SB_V(&out);
+}
 
 /**
  * Decrypt a bunch of data in one operation. The SSL context will be ready to
