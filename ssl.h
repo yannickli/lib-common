@@ -282,12 +282,6 @@ __must_check__ int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 __must_check__ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
- * Encrypt the given data via public key and append the result to out.
- */
-__must_check__ int
-ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
-
-/**
  * Encrypt an arbitrarily long lstr_t.
  *
  * Encrypt the data with a RSA key. If the data is too large to fit in a
@@ -330,7 +324,7 @@ __must_check__ static inline int
 ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
     if (ctx->pkey) {
-        RETHROW(ssl_encrypt_pkey(ctx, data, out));
+        RETHROW(ssl_encrypt_pkey_sb(ctx, data, out));
         return 0;
     }
     RETHROW(ssl_encrypt_update(ctx, data, out));
@@ -355,12 +349,6 @@ __must_check__ int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out);
  * parameter is mandatory in this case.
  */
 __must_check__ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
-
-/**
- * Decrypt the given data via private key and append the result to out.
- */
-__must_check__ int
-ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
  * Decrypt arbitrarily long lstr_t.
@@ -400,7 +388,7 @@ __must_check__ static inline int
 ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
     if (ctx->pkey) {
-        RETHROW(ssl_decrypt_pkey(ctx, data, out));
+        RETHROW(ssl_decrypt_pkey_sb(ctx, data, out));
         return 0;
     }
     RETHROW(ssl_decrypt_update(ctx, data, out));
