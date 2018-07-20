@@ -94,10 +94,6 @@
 #include "core.h"
 #include "licence.h"
 
-#if (OPENSSL_VERSION_NUMBER >= 0x0100000fL)
-# define SSL_HAVE_EVP_PKEY
-#endif
-
 /* Encryption {{{ */
 
 enum ssl_ctx_state {
@@ -118,12 +114,10 @@ typedef struct ssl_ctx_t {
     EVP_CIPHER_CTX     *encrypt;
     EVP_CIPHER_CTX     *decrypt;
 
-#ifdef SSL_HAVE_EVP_PKEY
     /* PKEY data */
     EVP_PKEY          *pkey;
     EVP_PKEY_CTX      *pkey_encrypt;
     EVP_PKEY_CTX      *pkey_decrypt;
-#endif
 
     /* common data */
     enum ssl_ctx_state encrypt_state;
@@ -271,12 +265,10 @@ ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 __must_check__ static inline int
 ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey) {
         RETHROW(ssl_encrypt_pkey(ctx, data, out));
         return 0;
     }
-#endif
     RETHROW(ssl_encrypt_update(ctx, data, out));
     RETHROW(ssl_encrypt_reset(ctx, out));
     return 0;
@@ -322,12 +314,10 @@ ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 __must_check__ static inline int
 ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey) {
         RETHROW(ssl_decrypt_pkey(ctx, data, out));
         return 0;
     }
-#endif
     RETHROW(ssl_decrypt_update(ctx, data, out));
     RETHROW(ssl_decrypt_reset(ctx, out));
     return 0;
@@ -335,8 +325,6 @@ ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
 /* }}} */
 /* {{{ Signature */
-
-#ifdef SSL_HAVE_EVP_PKEY
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET pem_password_b)(char *buf, int size, int rwflag);
@@ -421,8 +409,6 @@ int iop_check_rsa_signature(const iop_struct_t * nonnull st,
                             const void * nonnull v, lstr_t pub_key,
                             lstr_t sig, unsigned flags,
                             pem_password_b nullable pass_cb);
-
-#endif
 
 /* }}} */
 /* {{{ Licence */

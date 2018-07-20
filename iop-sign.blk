@@ -50,9 +50,7 @@ static popt_t popt[] = {
              "skip optional missing fields in signature computation"),
     OPT_FLAG('n', "skip-default", &opts.skip_default,
              "skip fields having the default value in signature computation"),
-#ifdef SSL_HAVE_EVP_PKEY
     OPT_STR('K', "key", &opts.key_path, "enable key-based signing"),
-#endif
     OPT_FLAG('c', "class-id", &opts.use_class_id,
              "use class_id when hashing classes, using this option is highly "
              "recommended because it takes into account the exact used class "
@@ -100,8 +98,6 @@ find_field(const iop_struct_t *iop, const lstr_t field_name)
     return NULL;
 }
 
-#ifdef SSL_HAVE_EVP_PKEY
-
 static pem_password_b prompt_pass = ^int (char *buf, int size, int rwflags) {
     char *pass = getpass("Enter the passphrase of the key: ");
 
@@ -111,8 +107,6 @@ static pem_password_b prompt_pass = ^int (char *buf, int size, int rwflags) {
 
     return snprintf(buf, size, "%s", pass);
 };
-
-#endif
 
 static int fill_signature_timestamp(const iop_struct_t *desc,
                                     void *signed_data)
@@ -250,14 +244,11 @@ fill_and_check_fields(const iop_struct_t *desc,
     }
 
     if (opts.action == DO_SIGN) {
-#ifdef SSL_HAVE_EVP_PKEY
         if (key.s) {
             *signature = t_iop_compute_rsa_signature(data_field->u1.st_desc,
                                                      data, key, flags,
                                                      prompt_pass);
-        } else
-#endif
-        {
+        } else {
             *signature = t_iop_compute_signature(data_field->u1.st_desc, data,
                                                  flags);
         }
@@ -288,7 +279,6 @@ fill_and_check_fields(const iop_struct_t *desc,
             printf("%*pM\n", LSTR_FMT_ARG(*signature));
         }
     } else {
-#ifdef SSL_HAVE_EVP_PKEY
         if (key.s) {
             if (iop_check_rsa_signature(data_field->u1.st_desc, data,
                                         key, *signature, flags,
@@ -297,13 +287,10 @@ fill_and_check_fields(const iop_struct_t *desc,
                 return e_error("invalid signature");
             }
         } else
-#endif
+        if (iop_check_signature(data_field->u1.st_desc, data, *signature,
+                                flags) < 0)
         {
-            if (iop_check_signature(data_field->u1.st_desc, data, *signature,
-                                    flags) < 0)
-            {
-                return e_error("invalid signature");
-            }
+            return e_error("invalid signature");
         }
 
         /* Check if activation token is valid. */
