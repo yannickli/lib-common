@@ -32,6 +32,8 @@ sys.path.insert(0, waftoolsdir)
 def load_tools(ctx):
     ctx.load('common',  tooldir=waftoolsdir)
     ctx.load('backend', tooldir=waftoolsdir)
+    for tool in getattr(ctx, 'extra_waftools', []):
+        ctx.load(tool, tooldir=waftoolsdir)
 
 
 def options(ctx):
