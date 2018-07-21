@@ -141,8 +141,6 @@ def configure(ctx):
 
 
 def build(ctx):
-    load_tools(ctx)
-
     # Declare 3 build groups:
     #  - one for compiling farchc
     #  - one for compiling compiling iopc
@@ -154,6 +152,8 @@ def build(ctx):
     ctx.add_group('farchc')
     ctx.add_group('iopc')
     ctx.add_group('code_compiling')
+
+    load_tools(ctx)
 
     ctx.set_group('farchc')
 
