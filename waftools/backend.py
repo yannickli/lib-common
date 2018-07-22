@@ -634,9 +634,8 @@ class Iop2c(Task):
             self.scan_failed = True
             return ([], None)
 
-        pfx = self.bld.path.abspath() + '/'
         deps = depfile.read().splitlines()
-        deps = [self.bld.path.make_node(dep[len(pfx):]) for dep in deps]
+        deps = [self.bld.root.make_node(dep) for dep in deps]
         return (deps, None)
 
     def run(self):
