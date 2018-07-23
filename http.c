@@ -22,6 +22,13 @@
 
 #include <openssl/ssl.h>
 
+static struct {
+    logger_t logger;
+} http_g = {
+#define _G  http_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "http"),
+};
+
 /*
  * rfc 2616 TODO list:
  *
@@ -108,7 +115,7 @@ static void http_zlib_stream_reset(z_stream *s)
                                                                   \
         if (_w->zs.state == NULL) {                               \
             if (inflateInit2(&_w->zs, MAX_WBITS + 32) != Z_OK)    \
-                e_panic("zlib error");                            \
+                logger_panic(&_G.logger, "zlib error");           \
         }                                                         \
         http_zlib_stream_reset(&_w->zs);                          \
         _w->compressed = true;                                    \
@@ -1468,7 +1475,7 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
         if (!data) {
             /* If a keyname has been provided in the configuration, it
              * should have been replaced by the actual TLS data. */
-            e_panic("TLS data are not provided");
+            logger_panic(&_G.logger, "TLS data are not provided");
             return -1;
         }
 
@@ -1476,24 +1483,24 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
         method = TLS_server_method();
         cfg->ssl_ctx = SSL_CTX_new(method);
         if (!cfg->ssl_ctx) {
-            e_error("cannot initialize TLS context");
+            logger_error(&_G.logger, "cannot initialize TLS context");
             return -1;
         }
 
         /* Configure ssl context. */
         SSL_CTX_set_ecdh_auto(cfg->ssl_ctx, 1);
         if (ssl_ctx_use_certificate_lstr(cfg->ssl_ctx, data->cert) < 0) {
-            e_error("cannot load TLS certificate");
+            logger_error(&_G.logger, "cannot load TLS certificate");
             return -1;
         }
         if (ssl_ctx_use_privatekey_lstr(cfg->ssl_ctx, data->key) < 0) {
-            e_error("cannot load TLS private key");
+            logger_error(&_G.logger, "cannot load TLS private key");
             return -1;
         }
         mode = SSL_MODE_ENABLE_PARTIAL_WRITE
              | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
         if (SSL_CTX_set_mode(cfg->ssl_ctx, mode) != mode) {
-            e_error("impossible to set openssl partial write mode");
+            logger_error(&_G.logger, "cannot set openssl partial write mode");
             return -1;
         }
     }
@@ -2086,8 +2093,8 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     int clen = -1, res;
 
     if (ps_len(ps) > 0 && dlist_is_empty(&w->query_list)) {
-        e_trace(0, "UHOH spurious data from the HTTP server: %*pM",
-                (int)ps_len(ps), ps->s);
+        logger_trace(&_G.logger, 0, "UHOH spurious data from the HTTP "
+                     "server: %*pM", (int)ps_len(ps), ps->s);
         return PARSE_ERROR;
     }
 
@@ -3012,7 +3019,7 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
 
                 if ((res = write(fd, ptr, len)) <= 0) {
                     if (res < 0 && !ERR_RW_RETRIABLE(errno)) {
-                        e_panic("write error: %m");
+                        logger_panic(&_G.logger, "write error: %m");
                     }
                     el_fd_loop(zhttpc_g->ev, 10, EV_FDLOOP_HANDLE_TIMERS);
                     continue;
