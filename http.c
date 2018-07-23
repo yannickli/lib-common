@@ -1449,8 +1449,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
 
 int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
 {
-    THROW_ERR_IF((!!iop_cfg->cert.s) != (!!iop_cfg->key.s));
-    THROW_ERR_IF(!expect(!cfg->cert.s && !cfg->key.s && !cfg->ssl_ctx));
+    THROW_ERR_UNLESS(expect(!cfg->ssl_ctx));
     cfg->outbuf_max_size    = iop_cfg->outbuf_max_size;
     cfg->pipeline_depth     = iop_cfg->pipeline_depth;
     cfg->noact_delay        = iop_cfg->noact_delay;
@@ -1459,33 +1458,36 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
     cfg->on_data_threshold  = iop_cfg->on_data_threshold;
     cfg->header_line_max    = iop_cfg->header_line_max;
     cfg->header_size_max    = iop_cfg->header_size_max;
-    if (iop_cfg->cert.s) {
+
+    if (iop_cfg->tls) {
         const SSL_METHOD *method;
         long mode;
-        int pem = SSL_FILETYPE_PEM;
+        core__tls_cert_and_key__t *data;
 
-        cfg->cert = lstr_dup(iop_cfg->cert);
-        cfg->key = lstr_dup(iop_cfg->key);
+        data = IOP_UNION_GET(core__tls_cfg, iop_cfg->tls, data);
+        if (!data) {
+            /* If a keyname has been provided in the configuration, it
+             * should have been replaced by the actual TLS data. */
+            e_panic("TLS data are not provided");
+            return -1;
+        }
 
         /* Create ssl context -- the ssl module must be loaded. */
         method = TLS_server_method();
         cfg->ssl_ctx = SSL_CTX_new(method);
         if (!cfg->ssl_ctx) {
-            e_error("cannot initialize ssl context");
+            e_error("cannot initialize TLS context");
             return -1;
         }
 
         /* Configure ssl context. */
         SSL_CTX_set_ecdh_auto(cfg->ssl_ctx, 1);
-        if (SSL_CTX_use_certificate_file(cfg->ssl_ctx, cfg->cert.s, pem) != 1)
-        {
-            e_error("invalid certificate file `%*pM` for httpd",
-                    LSTR_FMT_ARG(cfg->cert));
+        if (ssl_ctx_use_certificate_lstr(cfg->ssl_ctx, data->cert) < 0) {
+            e_error("cannot load TLS certificate");
             return -1;
         }
-        if (SSL_CTX_use_PrivateKey_file(cfg->ssl_ctx, cfg->key.s, pem) != 1) {
-            e_error("invalid key file `%*pM` for httpd",
-                    LSTR_FMT_ARG(cfg->cert));
+        if (ssl_ctx_use_privatekey_lstr(cfg->ssl_ctx, data->key) < 0) {
+            e_error("cannot load TLS private key");
             return -1;
         }
         mode = SSL_MODE_ENABLE_PARTIAL_WRITE
@@ -1504,9 +1506,7 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
     for (int i = 0; i < countof(cfg->roots); i++) {
         httpd_trigger_node_wipe(&cfg->roots[i]);
     }
-    if (cfg->cert.s) {
-        lstr_wipe(&cfg->cert);
-        lstr_wipe(&cfg->key);
+    if (cfg->ssl_ctx) {
         SSL_CTX_free(cfg->ssl_ctx);
         cfg->ssl_ctx = NULL;
     }

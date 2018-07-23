@@ -90,6 +90,28 @@ struct core__signed_licence__t {
 };
 EXPORT iop_struct_t const core__signed_licence__s;
 EXPORT iop_struct_t const * const nonnull core__signed_licence__sp;
+struct core__tls_cert_and_key__t {
+    lstr_t   cert;
+    lstr_t   key;
+};
+EXPORT iop_struct_t const core__tls_cert_and_key__s;
+EXPORT iop_struct_t const * const nonnull core__tls_cert_and_key__sp;
+/*----- XXX private data, do not use directly -{{{-*/
+typedef enum core__tls_cfg__tag_t {
+    core__tls_cfg__keyname__ft = 1,
+    core__tls_cfg__data__ft = 2,
+} core__tls_cfg__tag_t;
+/*-}}}-*/
+struct core__tls_cfg__t {
+    core__tls_cfg__tag_t iop_tag;
+    union {
+        lstr_t   keyname;
+        struct core__tls_cert_and_key__t data;
+    };
+};
+EXPORT iop_struct_t const core__tls_cfg__s;
+EXPORT iop_struct_t const * const nonnull core__tls_cfg__sp;
+#define core__tls_cfg__get(u, field)       IOP_UNION_GET(core__tls_cfg, u, field)
 struct core__httpd_cfg__t {
     lstr_t   bind_addr;
     uint32_t outbuf_max_size;
@@ -100,8 +122,7 @@ struct core__httpd_cfg__t {
     uint32_t on_data_threshold;
     uint32_t header_line_max;
     uint32_t header_size_max;
-    lstr_t           cert;
-    lstr_t           key;
+    struct core__tls_cfg__t *nullable tls;
 };
 EXPORT iop_struct_t const core__httpd_cfg__s;
 EXPORT iop_struct_t const * const nonnull core__httpd_cfg__sp;
