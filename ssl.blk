@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <lib-common/z.h>
 #include "ssl.h"
@@ -831,6 +832,140 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
     ssl_ctx_wipe(&ctx);
 
     return res;
+}
+
+/* }}} */
+/* {{{ TLS */
+
+/** Helper to convert openssl errors to classical system errors.
+ *
+ * \param[in]  ssl  The ssl context on which the operation has been called.
+ * \param[in]  ret  The return code of the operation.
+ * \return ret if ret > 0, 0 on graceful exit, and -1 on error, with errno set
+ *         to an appropriate value.
+ */
+static inline int ssl_error_conv(SSL *ssl, int ret) {
+    if (ret > 0) {
+        return ret;
+    }
+    switch (SSL_get_error(ssl, ret)) {
+      case SSL_ERROR_ZERO_RETURN:
+        /* Graceful exit. */
+        return 0;
+      case SSL_ERROR_WANT_READ:
+      case SSL_ERROR_WANT_WRITE:
+        errno = EAGAIN;
+        return -1;
+      case SSL_ERROR_SSL:
+        errno = EIO;
+        return -1;
+      case SSL_ERROR_SYSCALL:
+        return -1;
+      default:
+        assert (false);
+        errno = EIO;
+        return -1;
+    }
+}
+
+ssize_t ssl_read(SSL *ssl, void *buf, size_t len)
+{
+    if (!expect(len > 0)) {
+        return 0;
+    }
+
+    return ssl_error_conv(ssl, SSL_read(ssl, buf, len));
+}
+
+ssize_t ssl_write(SSL *ssl, const void *buf, size_t len)
+{
+    long expected_mode;
+
+    if (!expect(len > 0)) {
+        /* SSL_write with 0 length is undefined. */
+        return 0;
+    }
+
+    expected_mode = SSL_MODE_ENABLE_PARTIAL_WRITE
+                  | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+    if (!expect((SSL_get_mode(ssl) & expected_mode) == expected_mode)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return ssl_error_conv(ssl, SSL_write(ssl, buf, len));
+}
+
+/* This function sends `len` data from `buf` through the `ssl` connection. It
+ * returns 0 if all data have been sent, and -1 in all other cases. If all or
+ * some (partial write) data are sent, `total_wr` is increased by the number
+ * of bytes sent.
+ *
+ * This function assumes that `ssl` is configured to allow partial write.
+ */
+static int ssl_write_chunk(SSL *ssl, const char *buf, int len, int *total_wr)
+{
+    int wr;
+
+    wr = ssl_write(ssl, buf, len);
+    if (wr <= 0) {
+        return -1;
+    }
+    *total_wr += wr;
+    if (wr != len) {
+        /* Its unlikely that the system could absorb more data for now. */
+        errno = EAGAIN;
+        return -1;
+    }
+    return 0;
+}
+
+ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv)
+{
+    SSL *ssl = priv;
+    char buf[BUFSIZ];
+    int buflen = 0;
+    int bufrest = BUFSIZ;
+    int total_wr = 0;
+
+    for (int i = 0; i < iovcnt; i++) {
+        const char *base = iov[i].iov_base;
+        int len = iov[i].iov_len;
+
+        while (len > 0) {
+            if (buflen == 0 && len > BUFSIZ) {
+                /* The iov buffer is large enougth to be directly written. */
+                if (ssl_write_chunk(ssl, base, len, &total_wr) < 0) {
+                    goto end;
+                }
+                break;
+            }
+            if (len <= bufrest) {
+                /* The iov fits entirely in buf. */
+                memcpy(buf + buflen, base, len);
+                buflen += len;
+                bufrest -= len;
+                break;
+            }
+            /* Append as many data as we can in buf and send everything. */
+            memcpy(buf + buflen, base, bufrest);
+            base += bufrest;
+            len -= bufrest;
+
+            if (ssl_write_chunk(ssl, buf, buflen, &total_wr) < 0) {
+                goto end;
+            }
+            buflen = 0;
+            bufrest = BUFSIZ;
+        }
+    }
+
+    /* Send the rest. */
+    if (buflen > 0) {
+        ssl_write_chunk(ssl, buf, buflen, &total_wr);
+    }
+  end:
+    return total_wr > 0 ? total_wr : -1;
 }
 
 /* }}} */

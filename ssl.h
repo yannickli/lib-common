@@ -425,6 +425,47 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 /* }}} */
+/* {{{ TLS */
+
+/** Wrapper to SSL_read that mimic read(2).
+ *
+ * \param[in]  ssl  The ssl context for which data must be received.
+ * \param[in]  buf  The buffer into which data are received.
+ * \param[in]  len  The maximum number of bytes to receive into `buf`.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_read(SSL *ssl, void *buf, size_t len);
+
+/** Wrapper to SSL_write that mimic write(2).
+ *
+ * \param[in]  ssl  The ssl context for which data must be sent. It must be
+ *                  configured to allow partial write. (See
+ *                  SSL_MODE_ENABLE_PARTIAL_WRITE and
+ *                  SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER options).
+ * \param[in]  buf  The buffer to write.
+ * \param[in]  len  The number of bytes to send from `buf`.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_write(SSL *ssl, const void *buf, size_t len);
+
+/** A writev-like callback using SSL_write.
+ *
+ * The priv argument must be the corresponding SSL* structure.
+ *
+ * This function assumes that the ssl context (i.e. the `priv` argument) is
+ * configured to allow partial write (see SSL_MODE_ENABLE_PARTIAL_WRITE and
+ * SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER).
+ *
+ * \param[in]  fd  The socket from which data are sent; this argument is
+ *                 unused: the ssl context (`priv`) is used instead.
+ * \param[in]  iov  The buffers to write.
+ * \param[in]  iovcnt  The number of iov buffers.
+ * \param[in]  priv  A pointer to the corresponding SSL structure.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv);
+
+/* }}} */
 /* Module {{{ */
 
 MODULE_DECLARE(ssl);
