@@ -181,7 +181,9 @@ static int ob_consume(outbuf_t *ob, int len)
     return 0;
 }
 
-int ob_write(outbuf_t *ob, int fd)
+int ob_write_with(outbuf_t *ob, int fd,
+                  ssize_t (*writerv)(int, const struct iovec *, int, void *),
+                  void *priv)
 {
 #define PREPARE_AT_LEAST  (64U << 10)
     struct iovec iov[IOV_MAX];
@@ -214,5 +216,7 @@ int ob_write(outbuf_t *ob, int fd)
     }
 
   doit:
-    return ob_consume(ob, RETHROW(writev(fd, iov, iovcnt)));
+    return ob_consume(ob, RETHROW(writerv ?
+                                  (*writerv)(fd, iov, iovcnt, priv) :
+                                  writev(fd, iov, iovcnt)));
 }
