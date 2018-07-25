@@ -54,8 +54,8 @@ static inline int sockunion_getport(const sockunion_t * nonnull su)
 static inline void sockunion_setport(sockunion_t * nonnull su, int port)
 {
     switch (su->family) {
-      case AF_INET:  su->sin.sin_port   = ntohs(port); break;
-      case AF_INET6: su->sin6.sin6_port = ntohs(port); break;
+      case AF_INET:  su->sin.sin_port   = htons(port); break;
+      case AF_INET6: su->sin6.sin6_port = htons(port); break;
       default:       e_panic("should not happen");
     }
 }
