@@ -84,6 +84,11 @@ int test_iop_core_obj(void)
 
         hound_desc->name = LSTR("Rouky");
         rouky = iop_core_obj_new(mammal, &hound_desc->super);
+
+        Z_ASSERT(iop_core_obj_get_cls(mammal, &fox_desc->super) ==
+                 cls_cast(mammal, obj_class(fox)));
+        Z_ASSERT(iop_core_obj_get_cls(mammal, &hound_desc->super) ==
+                 cls_cast(mammal, obj_class(hound)));
     }
 
     Z_ASSERT(obj_is_a_class(rox, obj_class(fox)));
