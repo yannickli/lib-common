@@ -94,6 +94,16 @@
 #include "core.h"
 #include "licence.h"
 
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL)
+#define TLS_server_method()  SSLv23_server_method()
+#define TLS_client_method()  SSLv23_client_method()
+#endif
+#if (OPENSSL_VERSION_NUMBER < 0x1000200fL)
+/* Note: this function is also removed after 1.1.0, so please remove all its
+ * occurrences if you remove this compatibility code. */
+#define SSL_CTX_set_ecdh_auto(ctx, onoff)  do {} while(0)
+#endif
+
 /* Encryption {{{ */
 
 enum ssl_ctx_state {
@@ -426,6 +436,26 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 /* }}} */
 /* {{{ TLS */
+
+/** Load a certificate into the SSL_CTX.
+ *
+ * A wrapper of SSL_CTX_use_certificate_file for lstr.
+ *
+ * \param[in]  ctx  The SSL_CTX to enrich.
+ * \param[in]  key  The certificate in PEM format.
+ * \return 0 on success and -1 on error.
+ */
+int ssl_ctx_use_certificate_lstr(SSL_CTX *ctx, lstr_t cert);
+
+/** Load a private key into the SSL_CTX.
+ *
+ * A wrapper of SSL_CTX_use_PrivateKey for lstr.
+ *
+ * \param[in]  ctx  The SSL_CTX to enrich.
+ * \param[in]  key  The private key in PEM format.
+ * \return 0 on success and -1 on error.
+ */
+int ssl_ctx_use_privatekey_lstr(SSL_CTX *ctx, lstr_t key);
 
 /** Wrapper to SSL_read that mimic read(2).
  *
