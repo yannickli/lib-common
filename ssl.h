@@ -495,6 +495,17 @@ ssize_t ssl_write(SSL *ssl, const void *buf, size_t len);
  */
 ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv);
 
+/* A sb_read function for reading TLS connections.
+ *
+ * \param[in]  sb  The string buffer for receiving data.
+ * \param[in]  ssl  The SSL context associated to the connection.
+ * \param[in]  hint  Expected number of bytes received. Defaults to BUFSIZ
+ *                   when hint is 0.
+ * \return the number of bytes read on success, and -1 on error. If an error
+ *         because the socket would block, errno is set to EAGAIN.
+ */
+ssize_t ssl_sb_read(sb_t *sb, SSL *ssl, int hint);
+
 /* }}} */
 /* Module {{{ */
 
