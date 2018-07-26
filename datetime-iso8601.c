@@ -203,6 +203,24 @@ int time_parse_iso8601_flags(pstream_t *ps, time_t *res, unsigned flags)
         return -1;
     }
 
+    if (ps_done(ps)) {
+        if ((flags & ISO8601_RESTRICT_DAY_DATE_FORMAT)
+        ||  (flags & ISO8601_ALLOW_DAY_DATE_FORMAT))
+        {
+            t.tm_isdst = -1;
+            *res = mktime(&t);
+            return 0;
+        } else {
+            e_debug("day date format `YYYY-MM-DD` is not allowed");
+            return -1;
+        }
+    }
+
+    if (flags & ISO8601_RESTRICT_DAY_DATE_FORMAT) {
+        e_debug("input is not a day");
+        return -1;
+    }
+
     c = ps_getc(ps);
     if (toupper(c) != 'T') {
         if ((flags & ISO8601_ALLOW_SYSLOG_FORMAT) && c == ' ') {
@@ -299,8 +317,11 @@ int time_parse(pstream_t *ps, time_t *d)
     } while (0);
 
     if (len > 4 && (ps->s[0] == 'P' || ps->s[4] == '-')) {
-        /* ISO8601: YYYY-MM-DDThh:mm:ss */
-        return time_parse_iso8601_flags(ps, d, ISO8601_ALLOW_SYSLOG_FORMAT);
+        unsigned flags;
+
+        /* ISO8601: YYYY-MM-DD[Thh:mm:ss] */
+        flags = ISO8601_ALLOW_SYSLOG_FORMAT | ISO8601_ALLOW_DAY_DATE_FORMAT;
+        return time_parse_iso8601_flags(ps, d, flags);
     } else
     if (len > 3 && (ps->s[1] == ' ' || ps->s[2] == ' ')) {
         /* RFC822: D month YYYY hh:mm:ss tz */
