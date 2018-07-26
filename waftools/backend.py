@@ -542,7 +542,7 @@ def process_tokens(self, node):
 class IopcOptions(object):
 
     def __init__(self, ctx, path=None, class_range=None, includes=None,
-                 json_path=None):
+                 json_path=None, ts_path=None):
         self.ctx = ctx
         self.path = path or ctx.path
         self.class_range = class_range
@@ -563,6 +563,12 @@ class IopcOptions(object):
         else:
             self.json_node = None
 
+        # typescript path
+        if ts_path:
+            self.ts_node = self.path.make_node(ts_path)
+        else:
+            self.ts_node = None
+
         # Add options in global cache
         assert not self.path in ctx.iopc_options
         ctx.iopc_options[self.path] = self
@@ -570,10 +576,12 @@ class IopcOptions(object):
     @property
     def languages(self):
         """ Get the list of languages for iopc """
+        res = 'c'
         if self.json_node:
-            return 'c,json'
-        else:
-            return 'c'
+            res += ',json'
+        if self.ts_node:
+            res += ',typescript'
+        return res
 
     @property
     def class_range_option(self):
@@ -588,6 +596,14 @@ class IopcOptions(object):
         """ Get the json-output-path option for iopc """
         if self.json_node:
             return '--json-output-path={0}'.format(self.json_node)
+        else:
+            return ''
+
+    @property
+    def ts_output_option(self):
+        """ Get the typescript-output-path option for iopc """
+        if self.ts_node:
+            return '--typescript-output-path={0}'.format(self.ts_node)
         else:
             return ''
 
@@ -664,17 +680,31 @@ class Iop2c(Task):
     def run(self):
         cmd = ('{iopc} --Wextra --language {languages} '
                '--c-resolve-includes {includes} {class_range} {json_output} '
-               '{source}')
+               '{ts_output} {source}')
         cmd = cmd.format(iopc=self.env.IOPC,
                          languages=self.env.IOP_LANGUAGES,
                          includes=self.env.IOP_INCLUDES,
                          class_range=self.env.IOP_CLASS_RANGE,
                          json_output=self.env.IOP_JSON_OUTPUT,
+                         ts_output=self.env.IOP_TS_OUTPUT,
                          source=self.inputs[0].abspath())
         res = self.exec_command(cmd, cwd=self.get_cwd())
         if res and not getattr(self, 'scan_failed', False):
             self.bld.fatal("scan should have failed for %s" % self.inputs[0])
         return res
+
+
+RE_IOP_PACKAGE = re.compile(r'^package (.*);$', re.MULTILINE)
+
+def iop_get_package_path(self, node):
+    """ Get the 'package path' of a IOP file.
+        It opens the IOP file, parses the 'package' line, and returns a string
+        where dots are replaced by slashes.
+    """
+    match = RE_IOP_PACKAGE.search(node.read())
+    if match is None:
+        self.bld.fatal('no package declaration found in %s' % node)
+    return match.group(1).replace('.', '/')
 
 
 @extension('.iop')
@@ -690,13 +720,21 @@ def process_iop(self, node):
         else:
             opts = IopcOptions(self.bld, path=self.path)
 
-        # Create iopc task
+        # Build list of outputs
         outputs = [c_node,
                    node.change_ext_src('.iop.h'),
                    node.change_ext_src('-tdef.iop.h'),
                    node.change_ext_src('-t.iop.h')]
+        if opts.json_node or opts.ts_node:
+            package_path = iop_get_package_path(self, node)
         if opts.json_node:
-            outputs.append(opts.json_node.make_node(node.name + '.json'))
+            json_path = package_path + '.iop.json'
+            outputs.append(opts.json_node.make_node(json_path))
+        if opts.ts_node:
+            ts_path = package_path + '.iop.ts'
+            outputs.append(opts.ts_node.make_node(ts_path))
+
+        # Create iopc task
         task = self.create_task('Iop2c', node, outputs)
         task.bld = self.bld
         task.set_run_after(self.bld.iopc_task)
@@ -706,6 +744,7 @@ def process_iop(self, node):
         task.env.IOP_INCLUDES    = opts.includes_option
         task.env.IOP_CLASS_RANGE = opts.class_range_option
         task.env.IOP_JSON_OUTPUT = opts.json_output_option
+        task.env.IOP_TS_OUTPUT   = opts.ts_output_option
 
     self.source.append(c_node)
 
