@@ -311,6 +311,8 @@ def build(ctx):
 
     ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
+    ctx.recurse('iop-core')
+    ctx.recurse('test-data/snmp')
 
     ctx.IopcOptions(ctx, class_range='1-499',
                     json_path='json',
@@ -366,16 +368,14 @@ def build(ctx):
             'zchk-iop.blk',
             'zchk-log.blk',
             'zchk-thrjob.blk',
-
-            'test-data/snmp/snmp_test.iop',
-            'test-data/snmp/snmp_test_doc.iop',
-            'test-data/snmp/snmp_intersec_test.iop'
         ],
-        use='iop-snmp tstiop',
-        use_whole='libcommon')
+        use=[
+            'iop-snmp',
+            'tstiop',
+            'tst-snmp-iop',
+        ], use_whole='libcommon')
 
     ctx.shlib(target='zchk-iop-plugin', source=[
-        'iop-core/ic.iop',
         'zchk-iop-plugin.c',
         'zchk-iop-ressources.c',
     ], use='libcommon')
