@@ -312,7 +312,9 @@ def build(ctx):
     ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
 
-    ctx.IopcOptions(ctx, class_range='1-499')
+    ctx.IopcOptions(ctx, class_range='1-499',
+                    json_path='json',
+                    ts_path='iop-core')
 
     # {{{ iop-snmp library
 
