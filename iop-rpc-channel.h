@@ -11,6 +11,80 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* IOP Channels.
+ *
+ * An IOP Channel is used to execute some RPCs (Remote Procedure Call). To
+ * allow an IChannel to accept RPCs, each RPC must be registered with its
+ * interface in the IChannel.
+ *
+ * IChannel packet format
+ * ======================
+ *
+ * An IChannel packet is composed of a header followed by some payload.
+ *
+ * IC Header format: general case
+ * ------------------------------
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |Reserved |A|B|C|                     Slot                      |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |T|         Interface           |0|           RPC               | = Command
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          Data length                          |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * | Payload...
+ * +-+-+-+-+-+-+-
+ *
+ * The header format is quite cahotic. The Command argument defines both the
+ * type of the message and, if it is an RPC call, the RPC called (and its
+ * interface).
+ *
+ *     Flags    The A, B and C flags respectively indicate if that IC is
+ *              traced (IC_MSG_IS_TRACED), if the payload is prefixed by a IC
+ *              header (IC_MSG_HAS_HDR) and if it embed a file descriptor
+ *              (IC_MSG_HAS_FD -- only over Unix sockets).
+ *
+ *     Slot     The IC slot.
+ *
+ *     T        Just the sign bit of Command. When Command <= 0, then this
+ *              message is either a response or a stream control message. Note
+ *              that the 0 case let the T bit unset while the message is not
+ *              an RPC request. When Command <= 0, then Command is defined by
+ *              the ic_status_t enum.
+ *
+ *     Interface  The RPC interface on 15 bits.
+ *
+ *     RPC      The RPC tag on 15 bits.
+ *
+ *     Data length The length of the Payload.
+ *
+ *     Payload  Contains the RPC data (both for queries and responses). If B
+ *              (IC_MSG_HAS_HDR) is set, the payload is prefixed with an
+ *              IC-internal IOP header (see ic.iop).
+ *
+ * IC Header format: stream control messages
+ * -----------------------------------------
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          Message type                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                           0x80000000                          | = Command
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          Data length                          |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * Stream control messages are basic messages used for internal IC purposes.
+ * A stream control message is an IC message having 0x80000000 as Command in
+ * its header. The message type is given by the ic_msg_sc_slots enum.
+ *
+ * At the time of this writing, there is no payload, thus Data length MUST be
+ * 0.
+ */
+
 #if !defined(IS_LIB_COMMON_IOP_RPC_H) || defined(IS_LIB_COMMON_IOP_RPC_CHANNEL_H)
 #  error "you must include <lib-common/iop-rpc.h> instead"
 #else
@@ -283,6 +357,7 @@ struct ichannel_t {
                                    fields to be omitted on outgoing messages
                                    and forbidden on incoming messages. */
     bool fd_overflow  :  1;
+    bool hdr_checked  :  1;   /**< read checks are successful. */
 
     unsigned nextslot;          /**< next slot id to try                    */
 
