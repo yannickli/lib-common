@@ -12,6 +12,8 @@
 ##########################################################################
 # pylint: disable = undefined-variable, invalid-name
 
+ctx.IopcOptions(ctx, json_path='.', ts_path='.')
+
 ctx.set_group('iopc')
 
 ctx.stlib(target='libiopc', source=[
