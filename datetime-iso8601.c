@@ -198,7 +198,7 @@ int time_parse_iso8601_flags(pstream_t *ps, time_t *res, unsigned flags)
     }
 
     t.tm_mday = ps_geti(ps);
-    if (t.tm_mday <= 0 || t.tm_mday > 31) {
+    if (!is_mday_valid(t.tm_mday, t.tm_mon, t.tm_year + 1900)) {
         e_debug("invalid day in date");
         return -1;
     }
