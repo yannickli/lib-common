@@ -468,6 +468,19 @@ enum iso8601_flags {
      * Format is: YYYY-MM-DD hh:mm:ss +zzzz.
      */
     ISO8601_ALLOW_SYSLOG_FORMAT = (1U << 1),
+
+    /** Restrict the parsing to day level format: YYYY-MM-DD
+     *
+     * An error is raised if the input has a different format.
+     */
+    ISO8601_RESTRICT_DAY_DATE_FORMAT = (1U << 2),
+
+    /** Allow the parsing of a day level format: YYYY-MM-DD
+     *
+     * If unset, the default behavior is to support the following format:
+     * YYYY-MM-DDThh:mm:ss[TZ]. The time is mandatory in this case.
+     */
+    ISO8601_ALLOW_DAY_DATE_FORMAT = (1U << 3),
 };
 
 int time_parse_iso8601_flags(pstream_t *ps, time_t *res, unsigned flags);
@@ -489,7 +502,7 @@ static inline int time_parse_iso8601s(const char *s, time_t *res)
 /** Parse a string as a date and builds the corresponding unix timestamp.
  *
  * That function parses a string from one of those three formats:
- * - ISO8601: YYYY-MM-DDThh:mm:ss[TZ]
+ * - ISO8601: YYYY-MM-DD[Thh:mm:ss][TZ]
  * - RFC822: [Day, ]D month YYYY hh:mm:ss[ TZ]
  * - Unix timestamp in decimal
  *

@@ -197,6 +197,9 @@ Z_GROUP_EXPORT(time)
 
     Z_TEST(iso8601_tz, "check that we grok timezone offsets properly")
     {
+        pstream_t ps;
+        time_t t;
+
 #define CHECK_DATE(str, res)  do {                                           \
             time_t ts;                                                       \
             Z_ASSERT_N(time_parse_iso8601s(str, &ts));                       \
@@ -215,6 +218,38 @@ Z_GROUP_EXPORT(time)
 
         /* hours/minutes overflow */
         CHECK_DATE("2007-03-05T23:54:13-11:40", 1173180853);
+
+        /* test ISO8601_RESTRICT_DAY_DATE_FORMAT and
+         * ISO8601_ALLOW_DAY_DATE_FORMAT flags
+         */
+        ps = ps_initstr("2007-03-06T11:34:13Z");
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_RESTRICT_DAY_DATE_FORMAT));
+        ps = ps_initstr("2007-03-06");
+        Z_ASSERT_N(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_RESTRICT_DAY_DATE_FORMAT));
+        Z_ASSERT_EQ(t, 1173135600);
+
+        ps = ps_initstr("2007-03-06");
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t, 0));
+
+        ps = ps_initstr("2007-03-06");
+        Z_ASSERT_N(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_ALLOW_DAY_DATE_FORMAT));
+        Z_ASSERT_EQ(t, 1173135600);
+
+        ps = ps_initstr("2007-03-06T11:34:13Z");
+        Z_ASSERT_N(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_ALLOW_DAY_DATE_FORMAT));
+        Z_ASSERT_EQ(t, 1173180853);
+
+        ps = ps_initstr("2007/03/06");
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_RESTRICT_DAY_DATE_FORMAT));
+
+        ps = ps_initstr("2007-03-06T11:34:13Z");
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
+           ISO8601_RESTRICT_DAY_DATE_FORMAT | ISO8601_ALLOW_DAY_DATE_FORMAT));
 #undef CHECK_DATE
     } Z_TEST_END;
 
@@ -279,6 +314,13 @@ Z_GROUP_EXPORT(time)
 
         /* Timestamp */
         CHECK_DATE("1173180853", 1173180853);
+
+        /* ISO 8601 YYYY-MM-DD format */
+        CHECK_DATE("2007-03-06", 1173135600);
+        CHECK_DATE("2007-3-06",  1173135600);
+        CHECK_DATE("2007-03-6",  1173135600);
+        CHECK_DATE("2007-3-6",   1173135600);
+
 #undef CHECK_DATE
     } Z_TEST_END;
 
