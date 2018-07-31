@@ -464,7 +464,8 @@ bool is_mday_valid(int d, int m, int y)
     assert (0 <= m && m <= 11);
 
     return d > 0
-        && d <= __valid_mdays[m] + (m == 1 && year_is_leap_year(y));
+        && (d <= __valid_mdays[m]
+         || (m == 1 && d == 29 && year_is_leap_year(y)));
 }
 
 /* We currently support only this format: DD-MMM-[YY]YY */
