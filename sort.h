@@ -170,6 +170,12 @@ SORT_DEF(double, double,   CMP);
 
 #undef SORT_DEF
 
+static inline int cmp_lstr_bin(const void *s1, const void *s2) {
+    return lstr_cmp(*(const lstr_t *)s1, *(const lstr_t *)s2);
+}
+static inline int cmp_rev_lstr_bin(const void *s1, const void *s2) {
+    return lstr_cmp(*(const lstr_t *)s2, *(const lstr_t *)s1);
+}
 static inline int cmp_lstr_iutf8(const void *s1, const void *s2) {
     return lstr_utf8_icmp(*(const lstr_t *)s1, *(const lstr_t *)s2);
 }

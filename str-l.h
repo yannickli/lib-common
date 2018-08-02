@@ -536,7 +536,7 @@ static ALWAYS_INLINE bool lstr_utf8_equal(const lstr_t s1, const lstr_t s2)
  * way.
  */
 static ALWAYS_INLINE
-int lstr_utf8_istartswith(const lstr_t s1, const lstr_t s2)
+bool lstr_utf8_istartswith(const lstr_t s1, const lstr_t s2)
 {
     return utf8_str_istartswith(s1.s, s1.len, s2.s, s2.len);
 }
@@ -544,18 +544,18 @@ int lstr_utf8_istartswith(const lstr_t s1, const lstr_t s2)
 /** Returns whether \v s starts with \v p, in a case-sensitive utf8-aware way.
  */
 static ALWAYS_INLINE
-int lstr_utf8_startswith(const lstr_t s1, const lstr_t s2)
+bool lstr_utf8_startswith(const lstr_t s1, const lstr_t s2)
 {
     return utf8_str_startswith(s1.s, s1.len, s2.s, s2.len);
 }
 
 /** Returns whether \v s ends with \v p, in a case-insensitive utf8-aware way.
  */
-int lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2);
+bool lstr_utf8_iendswith(const lstr_t s1, const lstr_t s2);
 
 /** Returns whether \v s ends with \v p, in a case-sensitive utf8-aware way.
  */
-int lstr_utf8_endswith(const lstr_t s1, const lstr_t s2);
+bool lstr_utf8_endswith(const lstr_t s1, const lstr_t s2);
 
 /** Checks if the input string has only characters in the given ctype. */
 bool lstr_match_ctype(lstr_t s, const ctype_desc_t * nonnull d);

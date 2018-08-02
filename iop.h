@@ -715,6 +715,19 @@ int iop_cmp_desc(const iop_struct_t *nonnull st,
         iop_cmp_desc(&pfx##__s, __st1, __st2);                               \
     })
 
+/** Single-field comparison between two IOP structs, unions or classes.
+ *
+ * \param[in] st1  Pointer on the first struct containing the field to
+ *                 compare.
+ *
+ * \param[in] st2  Pointer on the second struct.
+ *
+ * \warning If the fields are union fields then the field given in \p fdesc
+ *          should be selected in both structs.
+ */
+int iop_cmp_field(const iop_field_t *nonnull fdesc,
+                  const void *nonnull st1, const void *nonnull st2);
+
 /** Sort an IOP vector following an arbitrary order.
  *
  * \warning The array will be considered as an array of pointers iff the

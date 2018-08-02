@@ -58,6 +58,9 @@ void iop_core_obj_map_delete(iop_core_obj_map_t *nullable *nonnull map);
 
 void *nonnull _iop_core_obj_map_new_obj(const iop_core_obj_map_t *nonnull map,
                                         const void *nonnull iop_obj);
+const object_class_t *nonnull
+_iop_core_obj_map_get_cls(const iop_core_obj_map_t *nonnull map,
+                          const void *nonnull iop_obj);
 void _iop_core_obj_map_register_cls(iop_core_obj_map_t *nonnull map,
                                     const iop_struct_t *nonnull iop_cls,
                                     const object_class_t *nonnull cls);
@@ -65,7 +68,8 @@ void _iop_core_obj_map_register_cls(iop_core_obj_map_t *nonnull map,
 #define IOP_CORE_OBJ_DECLARE(cls_pfx, iop_cls_pfx)                           \
     void cls_pfx##_register(const iop_struct_t *iop_cls,                     \
                             const object_class_t *cls);                      \
-    cls_pfx##_t *cls_pfx##_new_obj(const iop_cls_pfx##__t *desc)
+    cls_pfx##_t *cls_pfx##_new_obj(const iop_cls_pfx##__t *desc);            \
+    const cls_pfx##_class_t *cls_pfx##_get_cls(const iop_cls_pfx##__t *desc) \
 
 #define IOP_CORE_OBJ_IMPL(map, cls_pfx, iop_cls_pfx, ...)                    \
     __VA_ARGS__ void cls_pfx##_register(const iop_struct_t *iop_cls,         \
@@ -85,6 +89,12 @@ void _iop_core_obj_map_register_cls(iop_core_obj_map_t *nonnull map,
     cls_pfx##_new_obj(const iop_cls_pfx##__t *desc)                          \
     {                                                                        \
         return _iop_core_obj_map_new_obj((map), desc);                       \
+    }                                                                        \
+                                                                             \
+    __VA_ARGS__ __unused__ const cls_pfx##_class_t *                         \
+    cls_pfx##_get_cls(const iop_cls_pfx##__t *desc)                          \
+    {                                                                        \
+        return cls_cast(cls_pfx, _iop_core_obj_map_get_cls((map), desc));    \
     }
 
 #define IOP_CORE_OBJ_IMPL_STATIC(map, cls_pfx, iop_cls_pfx)                  \
@@ -115,5 +125,8 @@ void _iop_core_obj_map_register_cls(iop_core_obj_map_t *nonnull map,
  */
 #define iop_core_obj_new(ancestor_cls_pfx, desc)                             \
     ancestor_cls_pfx##_new_obj((desc))
+
+#define iop_core_obj_get_cls(ancestor_cls_pfx, desc)                         \
+    ancestor_cls_pfx##_get_cls((desc))
 
 #endif /* IS_LIB_COMMON_IOP_CORE_OBJ_H */
