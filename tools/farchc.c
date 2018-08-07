@@ -53,16 +53,6 @@ static void panic_purge(void)
 #define DIE_IF(tst, fmt, ...) \
     do { if (tst) { e_error(fmt, ##__VA_ARGS__); panic_purge(); } } while (0)
 
-static void copy_dir(char *buf, int sz, const char *s)
-{
-    /* OG: need a generic makepath utility function */
-    int len = snprintf(buf, sz, "%s/", s);
-    assert (len < sz);
-    while (len > 0 && buf[len - 1] == '/')
-        len--;
-    buf[len + 1] = '\0';
-}
-
 static void put_as_str(lstr_t chunk, FILE *out)
 {
     for (int i = 0; i < chunk.len; i++) {
@@ -214,34 +204,6 @@ static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
         if (*s == '#') {
             TRACE("%s", s);
             continue;
-        }
-        if (strstart(s, "CD", &s)) {
-            if (isspace((unsigned char)*s)) {
-                snprintf(srcdir, sizeof(srcdir), "%s/%s", reldir, skipspaces(s));
-                path_simplify(srcdir);
-                path_join(srcdir, sizeof(srcdir), "/");
-                TRACE("changing directory to `%s`", srcdir);
-                srcdirlen = strlen(srcdir);
-                continue;
-            } else if (!*s) {
-                strcpy(srcdir, "./");
-                srcdirlen = 2;
-                TRACE("changing directory to `.`");
-                continue;
-            }
-            s = skipspaces(buf);
-        }
-        if (strstart(s, "PREFIX", &s)) {
-            if (isspace((unsigned char)*s)) {
-                copy_dir(prefix, sizeof(prefix), skipspaces(s));
-                TRACE("changing prefix to `%s`", prefix);
-                continue;
-            } else if (!*s) {
-                *srcdir = '\0';
-                TRACE("changing prefix to ``");
-                continue;
-            }
-            s = skipspaces(buf);
         }
 
         snprintf(path, sizeof(path), "%s%s", srcdir, s);
