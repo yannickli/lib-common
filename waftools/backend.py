@@ -490,6 +490,24 @@ class Fc2c(Task):
     def keyword(cls):
         return 'Generating'
 
+    def scan(self):
+        """ Parses the .fc file to get the dependencies. """
+        node = self.inputs[0]
+        lines = node.read().splitlines()
+        variable_name_found = False
+        deps = []
+
+        for line in lines:
+            line = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                if variable_name_found:
+                    deps.append(node.parent.make_node(line))
+                else:
+                    variable_name_found = True
+
+        return (deps, None)
+
+
 
 @extension('.fc')
 def process_fc(self, node):
