@@ -13,76 +13,222 @@
 
 /* IOP Channels.
  *
- * An IOP Channel is used to execute some RPCs (Remote Procedure Call). To
+ * An IOP Channel is used to execute some RPCs (Remote Procedure Call). Each
+ * IOP module can implement multiple IOP interfaces which have IOP RPCs. To
  * allow an IChannel to accept RPCs, each RPC must be registered with its
- * interface in the IChannel.
+ * interface in the IChannel. Note that the registration of RPCs does not
+ * depends on its module. Thus, you MUST use at least one IChannel per module
+ * (otherwise, you may call the wrong RPC).
  *
- * IChannel packet format
- * ======================
+ * 1  IChannel packet format
+ * =========================
  *
  * An IChannel packet is composed of a header followed by some payload.
  *
- * IC Header format: general case
- * ------------------------------
+ * 1.1  Warning about endianness
+ * -----------------------------
+ *
+ * Note that Intersec only supports little endian architectures. For this
+ * reason, IChannels data are not encoded in network byte order and you wont
+ * see any conversion in the code.
+ *
+ * For example, in section 1.2, Flags is the most significant byte of a 32
+ * bits little endian encoded field (32LE) and it's the last byte of the
+ * network stream.
+ *
+ * 1.2  IC Header format: general case
+ * -----------------------------------
  *
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |Reserved |A|B|C|                     Slot                      |
+ * |     Flags     |                   Reserved                    | } 32LE
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |T|         Interface           |0|           RPC               | = Command
+ * |                            Command                            | } 32LE
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |                          Data length                          |
+ * |0|                         Data length                         | } 32LE
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * | Payload...
  * +-+-+-+-+-+-+-
  *
- * The header format is quite cahotic. The Command argument defines both the
- * type of the message and, if it is an RPC call, the RPC called (and its
- * interface).
+ * The header format is at least composed of 12 bytes encoded as three words
+ * of four bytes in little endian.
  *
- *     Flags    The A, B and C flags respectively indicate if that IC is
- *              traced (IC_MSG_IS_TRACED), if the payload is prefixed by a IC
- *              header (IC_MSG_HAS_HDR) and if it embed a file descriptor
- *              (IC_MSG_HAS_FD -- only over Unix sockets).
+ *     Flags   8 bits reserved for Flags. Defined flags      +-+-+-+-+-+-+-+-+
+ *             are:                                          |  0  | D |C|B|A|
+ *               - A (IC_MSG_HAS_FD): the IC embed a         +-+-+-+-+-+-+-+-+
+ *                 file descriptor (Unix sockets only),
+ *               - B (IC_MSG_HAS_HDR): the payload starts with an IC header,
+ *               - C (IC_MSG_IS_TRACED): the IC is traced,
+ *               - D (IC_MSG_PRIORITY): the IC priority; messages with high
+ *                 priority (in the sense of EV_PRIORITY) are sent first; this
+ *                 field propagate the priority such that high priority
+ *                 responses are also sent first (but not parsed first).
  *
- *     Slot     The IC slot.
+ *     Reserved  Depends on the Command.
  *
- *     T        Just the sign bit of Command. When Command <= 0, then this
- *              message is either a response or a stream control message. Note
- *              that the 0 case let the T bit unset while the message is not
- *              an RPC request. When Command <= 0, then Command is defined by
- *              the ic_status_t enum.
+ *     Command  The type of the message.
+ *                - If Command > 0, then the message is a query,
+ *                - If Command == 0x80000000, then the message is a stream
+ *                  control message,
+ *                - Otherwise, the message is a reply.
+ *
+ *     Data length  The length of the payload. For compatibility purposes with
+ *                  version 0, the sign bit MUST be 0.
+ *
+ *     Payload  Depends on the Command.
+ *
+ * Note: in fact, Command defines both the type of the message and, if it is a
+ * query, the RPC called and its interface (see 1.3).
+ *
+ * 1.3  Query message (Command > 0)
+ * --------------------------------
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |     Flags     |                     Slot                      | } 32LE
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |0|         Interface           |0|           RPC               | = Command
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   ↳ 32LE
+ * |0|                         Data length                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * | Payload...
+ * +-+-+-+-+-+-+-
+ *
+ *     Flags    See 1.2.
+ *
+ *     Slot     The IC slot of the query or response (IC_MSG_SLOT_MASK).
  *
  *     Interface  The RPC interface on 15 bits.
  *
  *     RPC      The RPC tag on 15 bits.
  *
- *     Data length The length of the Payload.
+ *     Data length  The length of the Payload.
  *
- *     Payload  Contains the RPC data (both for queries and responses). If B
- *              (IC_MSG_HAS_HDR) is set, the payload is prefixed with an
- *              IC-internal IOP header (see ic.iop).
+ *     Payload  Contains the RPC query. If B (IC_MSG_HAS_HDR) is set, the
+ *              payload starts with an IC-internal IOP header (see ic.iop).
  *
- * IC Header format: stream control messages
- * -----------------------------------------
+ * 1.4  Reply message
+ * ------------------
  *
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |                          Message type                         |
+ * |     Flags     |                     Slot                      | } 32LE
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                            Status                             | = Command
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   ↳ 32LE
+ * |0|                         Data length                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * | Payload...
+ * +-+-+-+-+-+-+-
+ *
+ *     Flags    See 1.2.
+ *
+ *     Slot     The IC slot of the query or response (IC_MSG_SLOT_MASK).
+ *
+ *     Status   The status of the response, defined by the ic_status_t enum.
+ *
+ *     Data length  The length of the Payload.
+ *
+ *     Payload  Contains the RPC response (out). If B (IC_MSG_HAS_HDR) is set,
+ *              the payload starts with an IC-internal IOP header (see
+ *              ic.iop).
+ *
+ * 1.5  Stream control message
+ * ---------------------------
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |     Flags     |                     Type                      | } 32LE
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * |                           0x80000000                          | = Command
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |                          Data length                          |
+ * |0|                         Data length                         |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- * Stream control messages are basic messages used for internal IC purposes.
- * A stream control message is an IC message having 0x80000000 as Command in
- * its header. The message type is given by the ic_msg_sc_slots enum.
+ * Stream control messages are used for internal IC purposes. It is defined as
+ * an IC message having IC_MSG_STREAM_CONTROL (0x80000000) as Command. The
+ * message type is given by the ic_msg_sc_slots enum.
  *
- * At the time of this writing, there is no payload, thus Data length MUST be
- * 0.
+ * 1.5.1  Bye message
+ *
+ * The Bye message indicates that the remote peer will shutdown in a very few
+ * time and will not send any further data. It has no payload.
+ *
+ * 1.5.2  Nop message
+ *
+ * The nop message MUST be silently ignored. It was sent by version 0 at
+ * connection establishment to force a message exchange.
+ *
+ * 1.5.3  Version message
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |     Flags     |             Type = IC_SC_VERSION              | } 32LE
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                           0x80000000                          | = Command
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                        Data length = 2                        |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |          Version = 1          |T|          Reserved           | } 2x16LE
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * This should be the very first message sent by both the server and the
+ * client. If not, then the remote version is 0 and each flag is considered
+ * unset.
+ *
+ *     Type    Set to IC_SC_VERSION.
+ *
+ *     Reserved  See 1.2.
+ *
+ *     Version  The version of the IC channel (IC_VERSION).
+ *
+ *     T       Indicate that TLS is required on this connection. If one peer
+ *             require TLS, then both peers proceed to the TLS handshake (or
+ *             close the connection).
+ *
+ *     Reserved  MUST be set to 0, reserved for future use.
+ *
+ * 2  IChannel connection establishment
+ * ====================================
+ *
+ * Once the TCP connection is established, the server and the client
+ * immediately send a version message (1.5.3). If the first message received
+ * from the remote peer is not a version message, then the remote peer has
+ * version 0.
+ *
+ * The client and the server MUST NOT send any other data before the complete
+ * parsing of the version message sent by their peer. Note they may received
+ * more data from their peer than just the version message.
+ *
+ * 3  Versions, bugs and tricks
+ * ============================
+ *
+ * 3.1 Version 0
+ * -------------
+ *
+ * Version 0 does not have Version messages and thus concerns all IOP Channels
+ * versions before version 1. We know that a peer has version 0 because it's
+ * first message is not a Version message (see 1.5.3).
+ *
+ * Version 0 uses Data length as a signed integer and does not check it is
+ * positive. The most significant bit of Data length MUST be 0.
+ *
+ * Version 0 closes the connection if new Flags are defined.
+ *
+ * Version 0 closes the connection if new IC_MSG are defined (except if your
+ * message is huge (>= 10 << 20)).
+ *
+ * 4.2 Version 1
+ * -------------
+ *
+ * Version 1 introduces Version messages and TLS cryptography (see 1.5.3).
+ *
+ * This is the last version: all this documentation applies to Version 1.
  */
 
 #if !defined(IS_LIB_COMMON_IOP_RPC_H) || defined(IS_LIB_COMMON_IOP_RPC_CHANNEL_H)
@@ -91,6 +237,7 @@
 #define IS_LIB_COMMON_IOP_RPC_CHANNEL_H
 
 #include <lib-common/container-htlist.h>
+#include <openssl/ssl.h>
 
 #if 0
 #define IC_DEBUG_REPLIES
@@ -112,6 +259,7 @@ typedef enum ic_event_t {
     IC_EVT_NOACT,
 } ic_event_t;
 
+#define IC_VERSION                  1
 
 #define IC_MSG_HDR_LEN             12
 #define IC_MSG_CMD_OFFSET           4
@@ -119,13 +267,15 @@ typedef enum ic_event_t {
 #define IC_PKT_MAX              65536
 
 #define IC_ID_MAX               BITMASK_LE(uint32_t, 30)
-#define IC_MSG_SLOT_MASK        (0xffffff)
+#define IC_MSG_SLOT_MASK        (0xffffffU)
 #define IC_MSG_HAS_FD           (1U << 24)
 #define IC_MSG_HAS_HDR          (1U << 25)
 #define IC_MSG_IS_TRACED        (1U << 26)
 #define IC_MSG_PRIORITY_SHIFT   27
 #define IC_MSG_PRIORITY_MASK    (BITMASK_LT(uint32_t,                        \
                                             2) << IC_MSG_PRIORITY_SHIFT)
+
+#define IC_SC_VERSION_TLS  (1U << 15)
 
 #define IC_PROXY_MAGIC_CB       ((ic_msg_cb_f *)-1)
 
@@ -350,14 +500,17 @@ struct ichannel_t {
     bool do_el_unref  :  1;
     bool is_wiped     :  1;
     bool cancel_guard :  1;
-    bool queuable     :  1;
+    bool queuable     :  1;   /**< indicate that the IC is ready to send
+                                   messages, but some process does enqueue
+                                   messages before the IC being queuable */
     bool is_local     :  1;
     bool is_trusted   :  1;   /**< set to true for internal ichannels     */
     bool is_public    :  1;   /**< setting this flag to true causses private
                                    fields to be omitted on outgoing messages
-                                   and forbidden on incoming messages. */
+                                   and forbidden on incoming messages */
     bool fd_overflow  :  1;
-    bool hdr_checked  :  1;   /**< read checks are successful. */
+    bool hdr_checked  :  1;   /**< read checks are successful */
+    bool tls_required :  1;   /**< ignored on non TCP sockets */
 
     unsigned nextslot;          /**< next slot id to try                    */
 
@@ -378,6 +531,7 @@ struct ichannel_t {
     int  wa_soft;             /**< to be notified when no activity          */
     int  wa_hard;             /**< to close the connection when no activity */
 
+    uint16_t     peer_version; /**< version of the remote peer */
     int          protocol;     /**< transport layer protocol (0 = default) */
     int          retry_delay;  /**< delay before a reconnection attempt (ms) */
     sockunion_t  su;
@@ -396,6 +550,7 @@ struct ichannel_t {
     int current_fd; /**< used to store the current fd                       */
     int pending;    /**< number of pending queries (for peak warning)       */
     int queue_len;  /**< length of the query queue, without canceled        */
+    SSL * nullable ssl; /**< TLS context, if any. */
 
     /* Buffers */
     qv_t(i32)    fds;
