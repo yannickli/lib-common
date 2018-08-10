@@ -459,6 +459,15 @@ static int const __valid_mdays[] = {
     31
 };
 
+bool is_mday_valid(int d, int m, int y)
+{
+    assert (0 <= m && m <= 11);
+
+    return d > 0
+        && (d <= __valid_mdays[m]
+         || (m == 1 && d == 29 && year_is_leap_year(y)));
+}
+
 /* We currently support only this format: DD-MMM-[YY]YY */
 /* WARNING: Only date related tm structure fields are changed, others
  * must be initialized before this call.
@@ -511,12 +520,10 @@ int strtotm(const char *date, struct tm *t)
     if (year < 1970 || year > 2036)
         return -1;
 
-    /* Simplistic leap year check because 1900 < year < 2100 */
-#define year_is_leap(year)  (((unsigned)(year) % 4) == 0)
-
     /* Check mday validity */
-    if (mday > __valid_mdays[mon] + (mon == 1 && year_is_leap(year)))
+    if (!is_mday_valid(mday, mon, year)) {
         return -1;
+    }
 
     t->tm_mday = mday;
     t->tm_mon  = mon;
