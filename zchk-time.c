@@ -247,6 +247,18 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
                          ISO8601_RESTRICT_DAY_DATE_FORMAT));
 
+        ps = ps_initstr("2018-02-29"); /* not a leap year */
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_ALLOW_DAY_DATE_FORMAT));
+
+        ps = ps_initstr("2016-02-29"); /* leap year */
+        Z_ASSERT_N(time_parse_iso8601_flags(&ps, &t,
+                         ISO8601_ALLOW_DAY_DATE_FORMAT));
+        Z_ASSERT_EQ(t, 1456700400);
+
+        ps = ps_initstr("2007-04-31T11:34:13Z");
+        Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t, 0));
+
         ps = ps_initstr("2007-03-06T11:34:13Z");
         Z_ASSERT_NEG(time_parse_iso8601_flags(&ps, &t,
            ISO8601_RESTRICT_DAY_DATE_FORMAT | ISO8601_ALLOW_DAY_DATE_FORMAT));
