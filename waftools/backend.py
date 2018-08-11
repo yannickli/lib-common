@@ -12,7 +12,6 @@
 ##########################################################################
 
 import copy
-import glob
 import os
 import re
 from itertools import chain
@@ -502,9 +501,11 @@ class Fc2c(Task):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
                 if variable_name_found:
-                    glob_pattern = os.path.join(node.parent.abspath(), line)
-                    for fname in glob.iglob(glob_pattern):
-                        deps.append(node.ctx.root.make_node(fname))
+                    dep_node = node.parent.find_node(line)
+                    if dep_node is None:
+                        err = 'cannot find `{0}` when scanning `{1}`'
+                        node.ctx.fatal(err.format(line, node))
+                    deps.append(dep_node)
                 else:
                     variable_name_found = True
 

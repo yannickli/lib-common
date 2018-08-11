@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <glob.h>
 #include <lib-common/parseopt.h>
 #include <lib-common/qlzo.h>
 #include <lib-common/unix.h>
@@ -160,8 +159,9 @@ static void dump_entries(const char *archname,
 static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
 {
     t_scope;
-    char prefix[PATH_MAX] = "", srcdir[PATH_MAX] = "";
-    char name[PATH_MAX], buf[PATH_MAX], path[PATH_MAX];
+    char srcdir[PATH_MAX];
+    char buf[PATH_MAX];
+    char name[PATH_MAX];
     int srcdirlen = 0;
     sb_t dep;
     qv_t(farch_entry) entries;
@@ -195,42 +195,34 @@ static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
 
     for (int lineno = 2; fgets(buf, sizeof(buf), in); lineno++) {
         const char *s = skipspaces(buf);
-        glob_t gbuf;
+        char path[PATH_MAX];
+        farch_entry_t entry;
+        char *fullname;
 
         DIE_IF(buf[strlen(buf) - 1] != '\n', "line %d is too long", lineno);
         strrtrim(buf);
-        if (!*s)
+        if (!*s) {
             continue;
+        }
         if (*s == '#') {
             TRACE("%s", s);
             continue;
         }
 
         snprintf(path, sizeof(path), "%s%s", srcdir, s);
-        DIE_IF(glob(path, 0, NULL, &gbuf), "no file matching `%s`: %m", path);
-        if (gbuf.gl_pathc >= 1 && !strequal(gbuf.gl_pathv[0], path)) {
-            TRACE("globbing `%s` (%zd matches)", path + srcdirlen, gbuf.gl_pathc);
-            if (deps)
-                fprintf(deps, "%s$(wildcard %s)\n", dep.data, path);
-        }
-        for (size_t i = 0; i < gbuf.gl_pathc; i++) {
-            farch_entry_t entry;
-            const char *p = gbuf.gl_pathv[i];
-            char *fullname = t_fmt("%s%s", prefix, p + srcdirlen);
+        fullname = path + srcdirlen;
 
-            if (deps) {
-                fprintf(deps, "%s%s\n", dep.data, p);
-                fprintf(deps, "%s:\n", p);
-            }
-
-            TRACE("adding `%s` as `%s`", p, fullname);
-            entry.name = LSTR(fullname);
-            fprintf(out, "/* {""{{ %s */\n", fullname);
-            dump_file(p, &entry, out);
-            fprintf(out, "/* }""}} */\n");
-            qv_append(&entries, entry);
+        if (deps) {
+            fprintf(deps, "%s%s\n", dep.data, path);
+            fprintf(deps, "%s:\n", path);
         }
-        globfree(&gbuf);
+
+        TRACE("adding `%s` as `%s`", path, fullname);
+        entry.name = t_lstr_dups(fullname, -1);
+        fprintf(out, "/* {""{{ %s */\n", fullname);
+        dump_file(path, &entry, out);
+        fprintf(out, "/* }""}} */\n");
+        qv_append(&entries, entry);
     }
 
     fprintf(out, "};\n\n"
