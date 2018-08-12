@@ -701,8 +701,8 @@ class Iop2c(Task):
 
     def run(self):
         cmd = ('{iopc} --Wextra --language {languages} '
-               '--c-resolve-includes {includes} {class_range} {json_output} '
-               '{ts_output} {source}')
+               '--c-resolve-includes --typescript-enable-backbone '
+               '{includes} {class_range} {json_output} {ts_output} {source}')
         cmd = cmd.format(iopc=self.env.IOPC,
                          languages=self.env.IOP_LANGUAGES,
                          includes=self.env.IOP_INCLUDES,
