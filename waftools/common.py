@@ -71,11 +71,47 @@ Node.change_ext_src = node_change_ext_src
 
 
 # }}}
+# {{{ with UseGroup statement
+
+
+"""
+This context manager allows using a waf group, and then restore the previous
+one.
+
+For example, this:
+
+   with UseGroup(ctx, 'www'):
+       do_something()
+
+Is equivalent to:
+
+   previous_group = ctx.current_group
+   ctx.set_group('www')
+   do_something()
+   ctx.set_group(previous_group)
+"""
+class UseGroup(object):
+
+    def __init__(self, ctx, group):
+        self.ctx = ctx
+        self.group = group
+
+    def __enter__(self):
+        self.previous_group = self.ctx.current_group
+        self.ctx.set_group(self.group)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.ctx.set_group(self.previous_group)
+
+
+# }}}
 
 # {{{ build
 
 def build(ctx):
     ctx.env.PROJECT_ROOT = ctx.srcnode
+
+    ctx.UseGroup = UseGroup
 
     # Register pre/post functions
     ctx.add_post_fun(run_checks)
