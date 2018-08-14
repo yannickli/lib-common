@@ -88,6 +88,21 @@ void sb_add_py_traceback(sb_t *err);
         __res;                         \
     })
 
+/** Ensure that the current thread is ready to call the Python C API in the
+ * scope.
+ *
+ * It uses PyGILState_Ensure() at the beginning of the scope, and
+ * PyGILState_Release() at the end.
+ */
+#define py_gil_lock_scope                                                    \
+    __attribute__((unused, cleanup(py_gil_lock_scope_end)))                  \
+    PyGILState_STATE py_gstate_scope = PyGILState_Ensure()
+
+static inline void py_gil_lock_scope_end(PyGILState_STATE *gstate)
+{
+    PyGILState_Release(*gstate);
+}
+
 /* {{{ Python Event loop */
 
 /** Module methods of python event loop. */

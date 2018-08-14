@@ -1335,6 +1335,7 @@ static PyTypeObject PyElFsWatch_type = {
 
 static int py_register_fd_cb(el_t el, int fd, short ev, data_t priv)
 {
+    py_gil_lock_scope;
     PyElBase *py_el = priv.ptr;
     PyObject *res;
 
@@ -1406,6 +1407,7 @@ static PyObject *py_register_el_fd(PyObject *self, PyObject *args,
 
 static void py_register_timer_cb(el_t el, data_t priv)
 {
+    py_gil_lock_scope;
     PyElTimer *py_el = priv.ptr;
     PyObject *res;
 
@@ -1501,6 +1503,7 @@ static void py_register_el_fs_watch_cb(el_t el, uint32_t mask,
                                        uint32_t cookie, lstr_t name,
                                        data_t priv)
 {
+    py_gil_lock_scope;
     PyElFsWatch *py_el = priv.ptr;
     PyObject *py_mask = PYINT_FROMLONG(mask);
     PyObject *py_cookie = PYINT_FROMLONG(cookie);
