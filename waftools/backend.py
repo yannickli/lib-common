@@ -265,10 +265,11 @@ def get_linter_flags(ctx, flags_key):
 def gen_syntastic(ctx):
     def write_file(filename, what, envs):
         node = ctx.srcnode.make_node(filename)
-        content = '\n'.join(envs)
-        node.write(content + '\n')
-        msg = 'Writing syntastic {0} configuration file'.format(what)
-        ctx.msg(msg, node)
+        content = '\n'.join(envs) + '\n'
+        if not node.exists() or node.read() != content:
+            node.write(content)
+            msg = 'Writing syntastic {0} configuration file'.format(what)
+            ctx.msg(msg, node)
 
     write_file('.syntastic_c_config', 'C',
                get_linter_flags(ctx, 'CLANG_FLAGS'))
@@ -286,8 +287,9 @@ def gen_ale(ctx):
     content += "\\'\n"
 
     node = ctx.srcnode.make_node('.local_vimrc.vim')
-    node.write(content)
-    ctx.msg('Writing ale configuration file', node)
+    if not node.exists() or node.read() != content:
+        node.write(content)
+        ctx.msg('Writing ale configuration file', node)
 
 
 # }}}
