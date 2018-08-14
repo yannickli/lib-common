@@ -1564,6 +1564,6 @@ void __ic_msg_reply_err(ichannel_t * nullable ic, ic_msg_t * nonnull msg,
 #define ic_reply_throw(...)    ic_throw(__VA_ARGS__)
 
 /** \brief Return true if dealias is set in the ic header. */
-bool ic_hdr_get_dealias(const ic__hdr__t * nullable hdr);
+bool ic_hdr_has_dealias(const ic__hdr__t * nullable hdr);
 
 #endif
