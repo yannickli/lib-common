@@ -114,6 +114,7 @@ def configure(ctx):
 
     # {{{ Python 2
 
+    # TODO: use waf python tool for that?
     ctx.find_program('python2', mandatory=True)
 
     # Check version is >= 2.6
