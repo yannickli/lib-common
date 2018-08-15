@@ -245,7 +245,7 @@ ztst-httpd_SOURCES = \
 	$liop/tstiop.a \
 	$llibcommon.a
 
-ztst-httpd_LIBS = $(libxml2_LIBS)
+ztst-httpd_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 

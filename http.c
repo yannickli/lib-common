@@ -20,6 +20,15 @@
 #include "iop.h"
 #include "core.iop.h"
 
+#include <openssl/ssl.h>
+
+static struct {
+    logger_t logger;
+} http_g = {
+#define _G  http_g
+    .logger = LOGGER_INIT_INHERITS(NULL, "http"),
+};
+
 /*
  * rfc 2616 TODO list:
  *
@@ -106,7 +115,7 @@ static void http_zlib_stream_reset(z_stream *s)
                                                                   \
         if (_w->zs.state == NULL) {                               \
             if (inflateInit2(&_w->zs, MAX_WBITS + 32) != Z_OK)    \
-                e_panic("zlib error");                            \
+                logger_panic(&_G.logger, "zlib error");           \
         }                                                         \
         http_zlib_stream_reset(&_w->zs);                          \
         _w->compressed = true;                                    \
@@ -159,13 +168,16 @@ static int http_zlib_inflate(z_stream *s, int *clen,
             return rc;
         }
 
-        if (rc == Z_STREAM_END && ps_len(in))
+        if (rc == Z_STREAM_END && ps_len(in)) {
             return Z_STREAM_ERROR;
+        }
         if (rc == Z_BUF_ERROR) {
-            if (s->avail_in)
+            if (s->avail_in) {
                 continue;
-            if (flush)
+            }
+            if (flush) {
                 return Z_STREAM_ERROR;
+            }
             return 0;
         }
         return 0;
@@ -175,7 +187,12 @@ static int http_zlib_inflate(z_stream *s, int *clen,
 /* }}} */
 /* RFC 2616 helpers {{{ */
 
-#define PARSE_RETHROW(e)  ({ int __e = (e); if (unlikely(__e)) return __e; })
+#define PARSE_RETHROW(e)  ({                                                 \
+            int __e = (e);                                                   \
+            if (unlikely(__e)) {                                             \
+                return __e;                                                  \
+            }                                                                \
+        })
 
 static inline void http_skipspaces(pstream_t *ps)
 {
@@ -191,8 +208,9 @@ static inline int http_getline(pstream_t *ps, unsigned max_len,
 
     if (unlikely(!p)) {
         *out = ps_initptr(NULL, NULL);
-        if (ps_len(ps) > max_len)
+        if (ps_len(ps) > max_len) {
             return PARSE_ERROR;
+        }
         return PARSE_MISSING_DATA;
     }
     *out = ps_initptr(ps->s, p);
@@ -237,11 +255,13 @@ static ALWAYS_INLINE bool http_hdr_equals(pstream_t ps, const char *v)
 {
     size_t vlen = strlen(v);
 
-    if (ps_len(&ps) != vlen)
+    if (ps_len(&ps) != vlen) {
         return false;
+    }
     for (size_t i = 0; i < vlen; i++) {
-        if (tolower(ps.b[i]) != v[i])
+        if (tolower(ps.b[i]) != v[i]) {
             return false;
+        }
     }
     return true;
 }
@@ -254,8 +274,9 @@ static bool http_hdr_contains(pstream_t ps, const char *v)
         ps_trim(&tmp);
         __ps_skip(&ps, 1);
 
-        if (http_hdr_equals(tmp, v))
+        if (http_hdr_equals(tmp, v)) {
             return true;
+        }
     }
     ps_trim(&ps);
     return http_hdr_equals(ps, v);
@@ -334,20 +355,24 @@ static int t_http_parse_request_line(pstream_t *ps, unsigned max_len,
     PS_CHECK(ps_get_ps_chr(&line, ' ', &uri));
     __ps_skip(&line, 1);
 
-    if (ps_skipstr(&uri, "http://") == 0 || ps_skipstr(&uri, "https://") == 0) {
+    if (ps_skipstr(&uri, "http://") == 0 || ps_skipstr(&uri, "https://") == 0)
+    {
         PS_CHECK(ps_get_ps_chr(&uri, '/', &req->host));
     } else {
         p_clear(&req->host, 1);
-        if (uri.s[0] != '/' && !ps_memequal(&uri, "*", 1))
+        if (uri.s[0] != '/' && !ps_memequal(&uri, "*", 1)) {
             return PARSE_ERROR;
+        }
     }
     RETHROW(t_urldecode(req, uri));
     PS_CHECK(ps_skipstr(&line, "HTTP/"));
-    if (ps_len(&line) == 0 || !isdigit(line.b[0]))
+    if (ps_len(&line) == 0 || !isdigit(line.b[0])) {
         return PARSE_ERROR;
+    }
     req->http_version  = RETHROW(ps_get_ver(&line)) << 8;
-    if (ps_getc(&line) != '.' || ps_len(&line) == 0 || !isdigit(line.b[0]))
+    if (ps_getc(&line) != '.' || ps_len(&line) == 0 || !isdigit(line.b[0])) {
         return PARSE_ERROR;
+    }
     req->http_version |= RETHROW(ps_get_ver(&line));
     return ps_len(&line) ? PARSE_ERROR : 0;
 }
@@ -361,23 +386,28 @@ http_parse_status_line(pstream_t *ps, unsigned max_len, httpc_qinfo_t *qi)
 
     PARSE_RETHROW(http_getline(ps, max_len, &line));
 
-    if (ps_skipstr(&line, "HTTP/"))
+    if (ps_skipstr(&line, "HTTP/")) {
         return PARSE_ERROR;
-    if (ps_len(&line) == 0 || !isdigit(line.b[0]))
+    }
+    if (ps_len(&line) == 0 || !isdigit(line.b[0])) {
         return PARSE_ERROR;
+    }
     qi->http_version  = RETHROW(ps_get_ver(&line)) << 8;
-    if (ps_getc(&line) != '.' || ps_len(&line) == 0 || !isdigit(line.b[0]))
+    if (ps_getc(&line) != '.' || ps_len(&line) == 0 || !isdigit(line.b[0])) {
         return PARSE_ERROR;
+    }
     qi->http_version |= RETHROW(ps_get_ver(&line));
     __ps_skip(&line, 1);
 
-    if (ps_get_ps_chr(&line, ' ', &code) || ps_len(&code) != 3)
+    if (ps_get_ps_chr(&line, ' ', &code) || ps_len(&code) != 3) {
         return PARSE_ERROR;
+    }
     __ps_skip(&line, 1);
 
     qi->code = ps_geti(&code);
-    if ((int)qi->code < 100 || (int)qi->code >= 600)
+    if ((int)qi->code < 100 || (int)qi->code >= 600) {
         return PARSE_ERROR;
+    }
     qi->reason = line;
     return PARSE_OK;
 }
@@ -477,15 +507,17 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
         q = obj_new(httpd_query);
     }
 
-    if (w->queries == 0)
+    if (w->queries == 0) {
         q->ob = &w->ob;
+    }
     /* ensure refcount is 3: owned, unanwsered, unparsed */
     obj_retain(q);
     obj_retain(q);
     q->owner = w;
     dlist_add_tail(&w->query_list, &q->query_link);
-    if (cb)
+    if (cb) {
         q->trig_cb = httpd_trigger_dup(cb);
+    }
     return q;
 }
 
@@ -494,8 +526,9 @@ static ALWAYS_INLINE void httpd_query_detach(httpd_query_t *q)
     httpd_t *w = q->owner;
 
     if (w) {
-        if (!q->own_ob)
+        if (!q->own_ob) {
             q->ob = NULL;
+        }
         dlist_remove(&q->query_link);
         if (q->parsed) {
             w->queries--;
@@ -516,12 +549,14 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
 static void httpd_query_wipe(httpd_query_t *q)
 {
     if (q->trig_cb) {
-        if (q->trig_cb->on_query_wipe)
+        if (q->trig_cb->on_query_wipe) {
             q->trig_cb->on_query_wipe(q);
+        }
         httpd_trigger_delete(&q->trig_cb);
     }
-    if (q->own_ob)
+    if (q->own_ob) {
         ob_delete(&q->ob);
+    }
     httpd_qinfo_delete(&q->qinfo);
     sb_wipe(&q->payload);
     httpd_query_detach(q);
@@ -546,8 +581,9 @@ void httpd_bufferize(httpd_query_t *q, unsigned maxsize)
 
     q->payload_max_size = maxsize;
     q->on_data          = &httpd_query_on_data_bufferize;
-    if (!inf)
+    if (!inf) {
         return;
+    }
     for (int i = inf->hdrs_len; i-- > 0; ) {
         if (inf->hdrs[i].wkhdr == HTTP_WKHDR_CONTENT_LENGTH) {
             uint64_t len = strtoull(inf->hdrs[i].val.s, NULL, 0);
@@ -626,8 +662,9 @@ void httpd_reply_hdrs_done(httpd_query_t *q, int clen, bool chunked)
                 ob_adds(ob, "Connection: close\r\n");
                 q->conn_close = true;
             }
-            if (q->owner)
+            if (q->owner) {
                 q->owner->connection_close = true;
+            }
             ob_adds(ob, "\r\n");
         }
     } else {
@@ -658,8 +695,9 @@ void httpd_reply_done(httpd_query_t *q)
     outbuf_t *ob = httpd_get_ob(q);
 
     assert (q->hdrs_done && !q->answered && !q->chunk_started);
-    if (q->chunked)
+    if (q->chunked) {
         ob_adds(ob, "\r\n0\r\n\r\n");
+    }
     if (q->clength_hack) {
         http_clength_patch(ob, ob->sb.data + q->chunk_hdr_offs,
                            ob->length - q->chunk_prev_length);
@@ -685,8 +723,9 @@ void httpd_signal_write(httpd_query_t *q)
 
 static ALWAYS_INLINE void httpd_query_reply_100continue_(httpd_query_t *q)
 {
-    if (q->answered || q->hdrs_started)
+    if (q->answered || q->hdrs_started) {
         return;
+    }
     if (q->expect100cont) {
         ob_addf(httpd_get_ob(q), "HTTP/1.%d 100 Continue\r\n\r\n",
                 HTTP_MINOR(q->http_version));
@@ -701,8 +740,9 @@ void httpd_reply_100continue(httpd_query_t *q)
 
 void httpd_reply_202accepted(httpd_query_t *q)
 {
-    if (q->answered || q->hdrs_started)
+    if (q->answered || q->hdrs_started) {
         return;
+    }
 
     httpd_reply_hdrs_start(q, HTTP_CODE_ACCEPTED, false);
     httpd_reply_hdrs_done(q, 0, false);
@@ -714,8 +754,9 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
     va_list ap;
     outbuf_t *ob;
 
-    if (q->answered || q->hdrs_started)
+    if (q->answered || q->hdrs_started) {
         return;
+    }
 
     ob = httpd_reply_hdrs_start(q, code, false);
     ob_adds(ob, "Content-Type: text/html\r\n");
@@ -742,8 +783,9 @@ void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
     va_list va;
     outbuf_t *ob;
 
-    if (q->answered || q->hdrs_started)
+    if (q->answered || q->hdrs_started) {
         return;
+    }
 
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_UNAUTHORIZED, false);
     ob_adds(ob, "Content-Type: text/html\r\n");
@@ -766,8 +808,9 @@ httpd_trigger_node_new(httpd_trigger_node_t *parent, lstr_t path)
     int pos;
 
     pos = qm_put(http_path, &parent->childs, &path, NULL, 0);
-    if (pos & QHASH_COLLISION)
+    if (pos & QHASH_COLLISION) {
         return parent->childs.values[pos & ~QHASH_COLLISION];
+    }
 
     parent->childs.values[pos] = node =
         p_new_extra(httpd_trigger_node_t, path.len + 1);
@@ -802,12 +845,14 @@ bool httpd_trigger_register_flags(httpd_trigger_node_t *n, const char *path,
             q++;
         path = q;
     }
-    if (!overwrite && n->cb)
+    if (!overwrite && n->cb) {
         return false;
+    }
     httpd_trigger_delete(&n->cb);
     n->cb = httpd_trigger_dup(cb);
-    if (unlikely(cb->query_cls == NULL))
+    if (unlikely(cb->query_cls == NULL)) {
         cb->query_cls = obj_class(httpd_query);
+    }
     return true;
 }
 
@@ -829,8 +874,9 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
         lstr_t      s = LSTR_INIT(path, q - path);
         int pos       = qm_find(http_path, &n->childs, &s);
 
-        if (pos < 0)
+        if (pos < 0) {
             return false;
+        }
         if (httpd_trigger_unregister__(n->childs.values[pos], q, what, res)) {
             httpd_trigger_node_delete(&n->childs.values[pos]);
             qm_del_at(http_path, &n->childs, pos);
@@ -865,8 +911,9 @@ httpd_trigger_resolve(httpd_trigger_node_t *n, httpd_qinfo_t *req)
         p     = memchr(p, '/', q - p) ?: q;
         s.len = p - s.s;
         pos   = qm_find(http_path, &n->childs, &s);
-        if (pos < 0)
+        if (pos < 0) {
             break;
+        }
         n = n->childs.values[pos];
         if (n->cb) {
             res = n->cb;
@@ -924,16 +971,30 @@ static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
 
 static void httpd_set_mask(httpd_t *w)
 {
-    int mask = POLLIN;
+    int mask;
 
-    if (unlikely(w->queries >= w->cfg->pipeline_depth))
+    if (w->queries >= w->cfg->pipeline_depth
+    ||  w->ob.length >= (int)w->cfg->outbuf_max_size
+    ||  w->state == HTTP_PARSER_CLOSE)
+    {
         mask = 0;
-    if (unlikely(w->ob.length >= (int)w->cfg->outbuf_max_size))
-        mask = 0;
-    if (unlikely(w->state == HTTP_PARSER_CLOSE))
-        mask = 0;
-    if (!ob_is_empty(&w->ob))
+    } else {
+        mask = POLLIN;
+    }
+
+    if (!ob_is_empty(&w->ob)) {
         mask |= POLLOUT;
+    }
+
+    if (w->ssl) {
+        if (SSL_want_read(w->ssl)) {
+            mask |= POLLIN;
+        }
+        if (SSL_want_write(w->ssl)) {
+            mask |= POLLOUT;
+        }
+    }
+
     el_fd_set_mask(w->ev, mask);
 }
 
@@ -950,8 +1011,9 @@ static void httpd_flush_answered(httpd_t *w)
             q->ob = &w->ob;
             break;
         }
-        if (likely(q->parsed))
+        if (likely(q->parsed)) {
             httpd_query_detach(q);
+        }
     }
     httpd_set_mask(w);
 }
@@ -986,8 +1048,9 @@ static void httpd_mark_query_answered(httpd_query_t *q)
         httpd_t *w = q->owner;
 
         w->queries_done++;
-        if (dlist_is_first(&w->query_list, &q->query_link))
+        if (dlist_is_first(&w->query_list, &q->query_link)) {
             httpd_flush_answered(w);
+        }
     }
     q->expect100cont = false;
     obj_release(q);
@@ -1022,8 +1085,9 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
         return PARSE_MISSING_DATA;
     }
 
-    if (--w->max_queries == 0)
+    if (--w->max_queries == 0) {
         w->connection_close = true;
+    }
 
     http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
@@ -1041,8 +1105,9 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
         break;
     }
 
-    if ((unsigned)req.method < countof(w->cfg->roots))
+    if ((unsigned)req.method < countof(w->cfg->roots)) {
         cb = httpd_trigger_resolve(&w->cfg->roots[req.method], &req);
+    }
     q = httpd_query_create(w, cb);
     q->received_hdr_length = ps_len(&req.hdrs_ps);
     q->http_version = req.http_version;
@@ -1086,18 +1151,21 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
                 goto unrecoverable_error;
             }
             qhdr->val.s_end = buf.s - 2;
-            if (ps_done(&buf))
+            if (ps_done(&buf)) {
                 break;
-            if (buf.s[0] != '\t' && buf.s[0] != ' ')
+            }
+            if (buf.s[0] != '\t' && buf.s[0] != ' ') {
                 break;
+            }
             __ps_skip(&buf, 1);
         }
         ps_trim(&qhdr->val);
 
         switch ((qhdr->wkhdr = http_wkhdr_from_ps(qhdr->key))) {
           case HTTP_WKHDR_HOST:
-            if (ps_len(&req.host) == 0)
+            if (ps_len(&req.host) == 0) {
                 req.host = qhdr->val;
+            }
             qv_shrink(&hdrs, 1);
             break;
 
@@ -1205,8 +1273,9 @@ httpd_flush_data(httpd_t *w, httpd_query_t *q, pstream_t *ps, bool done)
             sb_t zbuf;
 
             t_sb_init(&zbuf, HTTP_ZLIB_BUFSIZ);
-            if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done))
+            if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done)) {
                 goto zlib_error;
+            }
             q->on_data(q, ps_initsb(&zbuf));
             return PARSE_OK;
         }
@@ -1234,14 +1303,16 @@ static int httpd_parse_body(httpd_t *w, pstream_t *ps)
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
         RETHROW(httpd_flush_data(w, q, &tmp, true));
-        if (q->on_done)
+        if (q->on_done) {
             q->on_done(q);
+        }
         httpd_query_done(w, q);
         return PARSE_OK;
     }
 
-    if (plen >= w->cfg->on_data_threshold)
+    if (plen >= w->cfg->on_data_threshold) {
         RETHROW(httpd_flush_data(w, q, ps, false));
+    }
     return PARSE_MISSING_DATA;
 }
 
@@ -1263,17 +1334,21 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
 
     q->expect100cont = false;
     res = http_getline(ps, w->cfg->header_line_max, &line);
-    if (res > 0)
+    if (res > 0) {
         return res;
-    if (res < 0)
+    }
+    if (res < 0) {
         goto cancel_query;
+    }
     http_skipspaces(&line);
     hex = ps_get_span(&line, &ctype_ishexdigit);
     http_skipspaces(&line);
-    if (unlikely(ps_len(&line)) != 0 && unlikely(line.s[0] != ';'))
+    if (unlikely(ps_len(&line)) != 0 && unlikely(line.s[0] != ';')) {
         goto cancel_query;
-    if (unlikely(ps_len(&hex) == 0) || unlikely(ps_len(&hex) > 16))
+    }
+    if (unlikely(ps_len(&hex) == 0) || unlikely(ps_len(&hex) > 16)) {
         goto cancel_query;
+    }
     for (const char *s = hex.s; s < hex.s_end; s++)
         len = (len << 4) | __str_digit_value[*s + 128];
     w->chunk_length = len;
@@ -1307,8 +1382,9 @@ static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
         w->state = HTTP_PARSER_CHUNK_HDR;
         return PARSE_OK;
     }
-    if (plen >= w->cfg->on_data_threshold)
+    if (plen >= w->cfg->on_data_threshold) {
         RETHROW(httpd_flush_data(w, q, ps, false));
+    }
     return PARSE_MISSING_DATA;
 }
 
@@ -1327,13 +1403,15 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
             httpd_query_done(w, q);
             return PARSE_ERROR;
         }
-        if (res > 0)
+        if (res > 0) {
             return res;
+        }
     } while (ps_len(&line));
 
     q->received_body_length += ps->s - orig;
-    if (q->on_done)
+    if (q->on_done) {
         q->on_done(q);
+    }
     httpd_query_done(w, q);
     return PARSE_OK;
 }
@@ -1367,6 +1445,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     cfg->httpd_cls = obj_class(httpd);
 
     iop_init(core__httpd_cfg, &iop_cfg);
+    /* Default configuration must succeed. */
     httpd_cfg_from_iop(cfg, &iop_cfg);
 
     for (int i = 0; i < countof(cfg->roots); i++) {
@@ -1375,8 +1454,9 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     return cfg;
 }
 
-void httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
+int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
 {
+    THROW_ERR_UNLESS(expect(!cfg->ssl_ctx));
     cfg->outbuf_max_size    = iop_cfg->outbuf_max_size;
     cfg->pipeline_depth     = iop_cfg->pipeline_depth;
     cfg->noact_delay        = iop_cfg->noact_delay;
@@ -1385,6 +1465,47 @@ void httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
     cfg->on_data_threshold  = iop_cfg->on_data_threshold;
     cfg->header_line_max    = iop_cfg->header_line_max;
     cfg->header_size_max    = iop_cfg->header_size_max;
+
+    if (iop_cfg->tls) {
+        const SSL_METHOD *method;
+        long mode;
+        core__tls_cert_and_key__t *data;
+
+        data = IOP_UNION_GET(core__tls_cfg, iop_cfg->tls, data);
+        if (!data) {
+            /* If a keyname has been provided in the configuration, it
+             * should have been replaced by the actual TLS data. */
+            logger_panic(&_G.logger, "TLS data are not provided");
+            return -1;
+        }
+
+        /* Create ssl context -- the ssl module must be loaded. */
+        method = TLS_server_method();
+        cfg->ssl_ctx = SSL_CTX_new(method);
+        if (!cfg->ssl_ctx) {
+            logger_error(&_G.logger, "cannot initialize TLS context");
+            return -1;
+        }
+
+        /* Configure ssl context. */
+        SSL_CTX_set_ecdh_auto(cfg->ssl_ctx, 1);
+        if (ssl_ctx_use_certificate_lstr(cfg->ssl_ctx, data->cert) < 0) {
+            logger_error(&_G.logger, "cannot load TLS certificate");
+            return -1;
+        }
+        if (ssl_ctx_use_privatekey_lstr(cfg->ssl_ctx, data->key) < 0) {
+            logger_error(&_G.logger, "cannot load TLS private key");
+            return -1;
+        }
+        mode = SSL_MODE_ENABLE_PARTIAL_WRITE
+             | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+        if (SSL_CTX_set_mode(cfg->ssl_ctx, mode) != mode) {
+            logger_error(&_G.logger, "cannot set openssl partial write mode");
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 void httpd_cfg_wipe(httpd_cfg_t *cfg)
@@ -1392,11 +1513,17 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
     for (int i = 0; i < countof(cfg->roots); i++) {
         httpd_trigger_node_wipe(&cfg->roots[i]);
     }
+    if (cfg->ssl_ctx) {
+        SSL_CTX_free(cfg->ssl_ctx);
+        cfg->ssl_ctx = NULL;
+    }
     assert (dlist_is_empty(&cfg->httpd_list));
 }
 
 static httpd_t *httpd_init(httpd_t *w)
 {
+    MODULE_REQUIRE(ssl);
+
     dlist_init(&w->query_list);
     dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
@@ -1429,6 +1556,9 @@ static void httpd_wipe(httpd_t *w)
     dlist_remove(&w->httpd_link);
     httpd_cfg_delete(&w->cfg);
     lstr_wipe(&w->peer_address);
+    SSL_free(w->ssl);
+    w->ssl = NULL;
+    MODULE_RELEASE(ssl);
 }
 
 OBJ_VTABLE(httpd)
@@ -1456,8 +1586,9 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
         sb_t sb;
         int len;
 
-        if (hdr->wkhdr != HTTP_WKHDR_AUTHORIZATION)
+        if (hdr->wkhdr != HTTP_WKHDR_AUTHORIZATION) {
             continue;
+        }
         v = hdr->val;
         ps_skipspaces(&v);
         PS_CHECK(ps_skipcasestr(&v, "basic"));
@@ -1467,8 +1598,9 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
         t_sb_init(&sb, len + 1);
         PS_CHECK(sb_add_unb64(&sb, v.s, len));
         colon = strchr(sb.data, ':');
-        if (!colon)
+        if (!colon) {
             return -1;
+        }
         *user    = ps_initptr(sb.data, colon);
         *colon++ = '\0';
         *pw      = ps_initptr(colon, sb_end(&sb));
@@ -1484,8 +1616,9 @@ static int parse_qvalue(pstream_t *ps)
     int res;
 
     /* is there a ';' ? */
-    if (ps_skipc(ps, ';') < 0)
+    if (ps_skipc(ps, ';') < 0) {
         return 1000;
+    }
     ps_skipspaces(ps);
 
     /* parse q= */
@@ -1509,8 +1642,9 @@ static int parse_qvalue(pstream_t *ps)
                 res *= 10;
             }
         }
-        if (res > 1000)
+        if (res > 1000) {
             res = 1000;
+        }
     } else {
         res *= 1000;
     }
@@ -1589,11 +1723,13 @@ int httpd_qinfo_accept_enc_get(const httpd_qinfo_t *info)
     for (int i = info->hdrs_len; i-- > 0; ) {
         const http_qhdr_t *hdr = info->hdrs + i;
 
-        if (hdr->wkhdr != HTTP_WKHDR_ACCEPT_ENCODING)
+        if (hdr->wkhdr != HTTP_WKHDR_ACCEPT_ENCODING) {
             continue;
+        }
 
-        if ((res = parse_accept_enc(hdr->val)) >= 0)
+        if ((res = parse_accept_enc(hdr->val)) >= 0) {
             return res;
+        }
         /* ignore malformed header */
     }
     return 0;
@@ -1672,26 +1808,42 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
 {
     httpd_t *w = priv.ptr;
     pstream_t ps;
-    int res;
 
-    if (events == EL_EVENTS_NOACT)
+    if (events == EL_EVENTS_NOACT) {
         goto close;
+    }
 
     if (events & POLLIN) {
-        if (sb_read(&w->ibuf, fd, 0) <= 0)
-            goto close;
+        int ret;
+
+        ret = w->ssl ?
+            ssl_sb_read(&w->ibuf, w->ssl, 0):
+            sb_read(&w->ibuf, fd, 0);
+        if (ret < 0) {
+            if (!ERR_RW_RETRIABLE(errno)) {
+                goto close;
+            }
+            goto write;
+        }
 
         ps = ps_initsb(&w->ibuf);
         do {
-            res = (*httpd_parsers[w->state])(w, &ps);
-        } while (res == PARSE_OK);
+            ret = (*httpd_parsers[w->state])(w, &ps);
+        } while (ret == PARSE_OK);
         sb_skip_upto(&w->ibuf, ps.s);
     }
 
+  write:
     {
         int oldlen = w->ob.length;
-        if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
+        int ret;
+
+        ret = w->ssl ?
+            ob_write_with(&w->ob, fd, ssl_writev, w->ssl) :
+            ob_write(&w->ob, fd);
+        if (ret < 0 && !ERR_RW_RETRIABLE(errno)) {
             goto close;
+        }
 
         if (!dlist_is_empty(&w->query_list)) {
             httpd_query_t *query = dlist_first_entry(&w->query_list,
@@ -1739,11 +1891,45 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
         q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
         if (!q->parsed) {
             obj_release(q);
-            if (!q->answered)
+            if (!q->answered) {
                 obj_release(q);
+            }
         }
     }
     obj_delete(&w);
+    return 0;
+}
+
+static int
+httpd_tls_handshake(el_t evh, int fd, short events, data_t priv)
+{
+    httpd_t *w = priv.ptr;
+    int ret;
+
+    ret = SSL_do_handshake(w->ssl);
+    if (ret < 0) {
+        switch (SSL_get_error(w->ssl, ret)) {
+          case SSL_ERROR_WANT_READ:
+            el_fd_set_mask(evh, POLLIN);
+            return 0;
+          case SSL_ERROR_WANT_WRITE:
+            el_fd_set_mask(evh, POLLOUT);
+            return 0;
+          default:
+            /* An error occured. */
+            obj_delete(&w);
+            return -1;
+        }
+    }
+    if (ret == 0) {
+        /* Cleanly closed with respect to the TLS protocol. */
+        obj_delete(&w);
+        return 0;
+    }
+
+    /* Handshake completed. */
+    el_fd_set_mask(evh, POLLIN);
+    el_fd_set_hook(evh, httpd_on_event);
     return 0;
 }
 
@@ -1766,10 +1952,12 @@ httpd_on_accept(el_t evh, int fd, short events, data_t priv)
 
 el_t httpd_listen(sockunion_t *su, httpd_cfg_t *cfg)
 {
-    int fd = listenx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK);
+    int fd;
 
-    if (fd < 0)
+    fd = listenx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK);
+    if (fd < 0) {
         return NULL;
+    }
     return el_unref(el_fd_register(fd, true, POLLIN, httpd_on_accept,
                                    httpd_cfg_dup(cfg)));
 }
@@ -1789,12 +1977,19 @@ void httpd_unlisten(el_t *ev)
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
 {
     httpd_t *w = obj_new_of_class(httpd, cfg->httpd_cls);
+    el_fd_f *el_cb = cfg->ssl_ctx ? &httpd_tls_handshake : &httpd_on_event;
 
     cfg->nb_conns++;
     w->cfg         = httpd_cfg_dup(cfg);
-    w->ev          = el_unref(el_fd_register(fd, true, POLLIN,
-                                             &httpd_on_event, w));
+    w->ev          = el_unref(el_fd_register(fd, true, POLLIN, el_cb, w));
     w->max_queries = cfg->max_queries;
+    if (cfg->ssl_ctx) {
+        w->ssl = SSL_new(cfg->ssl_ctx);
+        assert (w->ssl);
+        SSL_set_fd(w->ssl, fd);
+        SSL_set_accept_state(w->ssl);
+    }
+
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     dlist_add_tail(&cfg->httpd_list, &w->httpd_link);
     if (w->on_accept) {
@@ -1854,8 +2049,9 @@ static void httpc_query_on_done(httpc_query_t *q, int status)
     httpc_t *w = q->owner;
 
     if (w) {
-        if (--w->queries < w->cfg->pipeline_depth && w->max_queries && w->busy)
+        if (--w->queries < w->cfg->pipeline_depth && w->max_queries && w->busy) {
             obj_vcall(w, set_ready, false);
+        }
         q->owner = NULL;
     }
     dlist_remove(&q->query_link);
@@ -1897,14 +2093,15 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     int clen = -1, res;
 
     if (ps_len(ps) > 0 && dlist_is_empty(&w->query_list)) {
-        e_trace(0, "UHOH spurious data from the HTTP server: %*pM",
-                (int)ps_len(ps), ps->s);
+        logger_trace(&_G.logger, 0, "UHOH spurious data from the HTTP "
+                     "server: %*pM", (int)ps_len(ps), ps->s);
         return PARSE_ERROR;
     }
 
     if ((p = memmem(ps->s + start, ps_len(ps) - start, "\r\n\r\n", 4)) == NULL) {
-        if (ps_len(ps) > w->cfg->header_size_max)
+        if (ps_len(ps) > w->cfg->header_size_max) {
             return PARSE_ERROR;
+        }
         w->chunk_length = ps_len(ps);
         return PARSE_MISSING_DATA;
     }
@@ -1912,8 +2109,9 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
     res = http_parse_status_line(ps, w->cfg->header_line_max, &req);
-    if (res)
+    if (res) {
         return res;
+    }
 
     buf = __ps_get_ps_upto(ps, p + 2);
     __ps_skip_upto(ps, p + 4);
@@ -1924,18 +2122,22 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
         /* TODO: normalize, make "lists" */
         qhdr->key = ps_get_cspan(&buf, &http_non_token);
-        if (ps_len(&qhdr->key) == 0 || __ps_getc(&buf) != ':')
+        if (ps_len(&qhdr->key) == 0 || __ps_getc(&buf) != ':') {
             return PARSE_ERROR;
+        }
         qhdr->val.s = buf.s;
         for (;;) {
             ps_skip_afterchr(&buf, '\r');
-            if (__ps_getc(&buf) != '\n')
+            if (__ps_getc(&buf) != '\n') {
                 return PARSE_ERROR;
+            }
             qhdr->val.s_end = buf.s - 2;
-            if (ps_done(&buf))
+            if (ps_done(&buf)) {
                 break;
-            if (buf.s[0] != '\t' && buf.s[0] != ' ')
+            }
+            if (buf.s[0] != '\t' && buf.s[0] != ' ') {
                 break;
+            }
             __ps_skip(&buf, 1);
         }
         ps_trim(&qhdr->val);
@@ -1962,8 +2164,9 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
           case HTTP_WKHDR_CONTENT_LENGTH:
             clen = memtoip(qhdr->val.b, ps_len(&qhdr->val), &p);
-            if (p != qhdr->val.b_end)
+            if (p != qhdr->val.b_end) {
                 return PARSE_ERROR;
+            }
             break;
 
           case HTTP_WKHDR_CONTENT_ENCODING:
@@ -2040,12 +2243,14 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
     q->received_hdr_length = ps_len(&req.hdrs_ps);
     q->qinfo = httpc_qinfo_dup(&req);
-    if (q->on_hdrs)
+    if (q->on_hdrs) {
         RETHROW((*q->on_hdrs)(q));
+    }
     if (conn_close) {
         w->max_queries = 0;
-        if (!w->busy)
+        if (!w->busy) {
             obj_vcall(w, set_busy);
+        }
         dlist_for_each_entry_continue(q, q, &w->query_list, query_link) {
             httpc_query_abort(q);
         }
@@ -2066,8 +2271,9 @@ httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
         sb_t zbuf;
 
         t_sb_init(&zbuf, HTTP_ZLIB_BUFSIZ);
-        if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done))
+        if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done)) {
             return PARSE_ERROR;
+        }
         RETHROW(q->on_data(q, ps_initsb(&zbuf)));
     } else {
         RETHROW(q->on_data(q, *ps));
@@ -2090,8 +2296,9 @@ static int httpc_parse_body(httpc_t *w, pstream_t *ps)
         RETHROW(httpc_flush_data(w, q, &tmp, true));
         return httpc_query_ok(q);
     }
-    if (plen >= w->cfg->on_data_threshold)
+    if (plen >= w->cfg->on_data_threshold) {
         RETHROW(httpc_flush_data(w, q, ps, false));
+    }
     return PARSE_MISSING_DATA;
 }
 
@@ -2104,15 +2311,18 @@ static int httpc_parse_chunk_hdr(httpc_t *w, pstream_t *ps)
     int res;
 
     res = http_getline(ps, w->cfg->header_line_max, &line);
-    if (res)
+    if (res) {
         return res;
+    }
     http_skipspaces(&line);
     hex = ps_get_span(&line, &ctype_ishexdigit);
     http_skipspaces(&line);
-    if (unlikely(ps_len(&line)) != 0 && unlikely(line.s[0] != ';'))
+    if (unlikely(ps_len(&line)) != 0 && unlikely(line.s[0] != ';')) {
         return PARSE_ERROR;
-    if (unlikely(ps_len(&hex) == 0) || unlikely(ps_len(&hex) > 16))
+    }
+    if (unlikely(ps_len(&hex) == 0) || unlikely(ps_len(&hex) > 16)) {
         return PARSE_ERROR;
+    }
     for (const char *s = hex.s; s < hex.s_end; s++)
         len = (len << 4) | __str_digit_value[*s + 128];
     w->chunk_length = len;
@@ -2130,14 +2340,16 @@ static int httpc_parse_chunk(httpc_t *w, pstream_t *ps)
     if (plen >= w->chunk_length + 2) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
-        if (ps_skipstr(ps, "\r\n"))
+        if (ps_skipstr(ps, "\r\n")) {
             return PARSE_ERROR;
+        }
         RETHROW(httpc_flush_data(w, q, &tmp, false));
         w->state = HTTP_PARSER_CHUNK_HDR;
         return PARSE_OK;
     }
-    if (plen >= w->cfg->on_data_threshold)
+    if (plen >= w->cfg->on_data_threshold) {
         RETHROW(httpc_flush_data(w, q, ps, false));
+    }
     return PARSE_MISSING_DATA;
 }
 
@@ -2150,8 +2362,9 @@ static int httpc_parse_chunk_trailer(httpc_t *w, pstream_t *ps)
     do {
         int res = http_getline(ps, w->cfg->header_line_max, &line);
 
-        if (res)
+        if (res) {
             return res;
+        }
     } while (ps_len(&line));
 
     q->received_body_length += ps->s - orig;
@@ -2236,8 +2449,9 @@ void httpc_pool_detach(httpc_t *w)
 {
     if (w->pool) {
         w->pool->len--;
-        if (w->pool->len_global)
+        if (w->pool->len_global) {
             (*w->pool->len_global)--;
+        }
         dlist_remove(&w->pool_link);
         w->pool = NULL;
     }
@@ -2248,16 +2462,19 @@ void httpc_pool_attach(httpc_t *w, httpc_pool_t *pool)
     httpc_pool_detach(w);
     w->pool = pool;
     pool->len++;
-    if (pool->len_global)
+    if (pool->len_global) {
         (*pool->len_global)++;
+    }
     if (w->busy) {
         dlist_add(&pool->busy_list, &w->pool_link);
-        if (pool->on_busy)
+        if (pool->on_busy) {
             (*pool->on_busy)(pool, w);
+        }
     } else {
         dlist_add(&pool->ready_list, &w->pool_link);
-        if (pool->on_ready)
+        if (pool->on_ready) {
             (*pool->on_ready)(pool, w);
+        }
     }
 }
 
@@ -2301,8 +2518,9 @@ static httpc_t *httpc_init(httpc_t *w)
 
 static void httpc_wipe(httpc_t *w)
 {
-    if (w->ev)
+    if (w->ev) {
         obj_vcall(w, disconnect);
+    }
     sb_wipe(&w->ibuf);
     http_zlib_wipe(w);
     ob_wipe(&w->ob);
@@ -2326,8 +2544,9 @@ static void httpc_set_ready(httpc_t *w, bool first)
     w->busy = false;
     if (pool) {
         dlist_move(&pool->ready_list, &w->pool_link);
-        if (pool->on_ready)
+        if (pool->on_ready) {
             (*pool->on_ready)(pool, w);
+        }
     }
 }
 
@@ -2339,8 +2558,9 @@ static void httpc_set_busy(httpc_t *w)
     w->busy = true;
     if (pool) {
         dlist_move(&pool->busy_list, &w->pool_link);
-        if (pool->on_busy)
+        if (pool->on_busy) {
             (*pool->on_busy)(pool, w);
+        }
     }
 }
 
@@ -2355,8 +2575,9 @@ OBJ_VTABLE_END()
 void httpc_close_gently(httpc_t *w)
 {
     w->connection_close = true;
-    if (!w->busy)
+    if (!w->busy) {
         obj_vcall(w, set_busy);
+    }
     /* let the event loop maybe destroy us later, not now */
     el_fd_set_mask(w->ev, POLLOUT);
 }
@@ -2365,8 +2586,9 @@ static void httpc_set_mask(httpc_t *w)
 {
     int mask = POLLIN;
 
-    if (!ob_is_empty(&w->ob))
+    if (!ob_is_empty(&w->ob)) {
         mask |= POLLOUT;
+    }
     el_fd_set_mask(w->ev, mask);
 }
 
@@ -2419,12 +2641,14 @@ static int httpc_on_event(el_t evh, int fd, short events, data_t priv)
     }
 
     if (unlikely(w->connection_close)) {
-        if (dlist_is_empty(&w->query_list) && ob_is_empty(&w->ob))
+        if (dlist_is_empty(&w->query_list) && ob_is_empty(&w->ob)) {
             goto close;
+        }
     }
     res = ob_write(&w->ob, fd);
-    if (res < 0 && !ERR_RW_RETRIABLE(errno))
+    if (res < 0 && !ERR_RW_RETRIABLE(errno)) {
         goto close;
+    }
     httpc_set_mask(w);
     return 0;
 
@@ -2498,8 +2722,9 @@ httpc_t *httpc_connect_as(const sockunion_t *su,
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     w->busy        = true;
-    if (pool)
+    if (pool) {
         httpc_pool_attach(w, pool);
+    }
     return w;
 }
 
@@ -2513,8 +2738,9 @@ httpc_t *httpc_spawn(int fd, httpc_cfg_t *cfg, httpc_pool_t *pool)
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     httpc_set_mask(w);
-    if (pool)
+    if (pool) {
         httpc_pool_attach(w, pool);
+    }
     return w;
 }
 
@@ -2560,19 +2786,22 @@ void httpc_query_attach(httpc_query_t *q, httpc_t *w)
     dlist_add_tail(&w->query_list, &q->query_link);
     if (--w->max_queries == 0) {
         w->connection_close = true;
-        if (!w->busy)
+        if (!w->busy) {
             obj_vcall(w, set_busy);
+        }
     }
-    if (++w->queries >= w->cfg->pipeline_depth && !w->busy)
+    if (++w->queries >= w->cfg->pipeline_depth && !w->busy) {
         obj_vcall(w, set_busy);
+    }
 }
 
 static int httpc_query_on_data_bufferize(httpc_query_t *q, pstream_t ps)
 {
     size_t plen = ps_len(&ps);
 
-    if (unlikely(plen + q->payload.len > q->payload_max_size))
+    if (unlikely(plen + q->payload.len > q->payload_max_size)) {
         return HTTPC_STATUS_TOOLARGE;
+    }
     sb_add(&q->payload, ps.s, plen);
     return 0;
 }
@@ -2631,8 +2860,9 @@ void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
     http_update_date_cache(&date_cache_g, lp_getsec());
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
     ob_adds(ob, "Accept-Encoding: identity, gzip, deflate\r\n");
-    if (w->connection_close)
+    if (w->connection_close) {
         ob_adds(ob, "Connection: close\r\n");
+    }
     q->hdrs_started = true;
 }
 
@@ -2676,8 +2906,9 @@ void httpc_query_done(httpc_query_t *q)
     outbuf_t *ob = &q->owner->ob;
 
     assert (q->hdrs_done && !q->query_done && !q->chunk_started);
-    if (q->chunked)
+    if (q->chunked) {
         ob_adds(ob, "\r\n0\r\n\r\n");
+    }
     if (q->clength_hack) {
         http_clength_patch(ob, ob->sb.data + q->chunk_hdr_offs,
                            ob->length - q->chunk_prev_length);
@@ -2788,7 +3019,7 @@ static int z_reply_close_without_content_length(el_t el, int fd, short mask,
 
                 if ((res = write(fd, ptr, len)) <= 0) {
                     if (res < 0 && !ERR_RW_RETRIABLE(errno)) {
-                        e_panic("write error: %m");
+                        logger_panic(&_G.logger, "write error: %m");
                     }
                     el_fd_loop(zhttpc_g->ev, 10, EV_FDLOOP_HANDLE_TIMERS);
                     continue;

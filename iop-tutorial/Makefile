@@ -14,7 +14,7 @@
 examples_PROGRAMS = ex-iop
 examples_LIBRARIES = iop
 
-_LIBS = -lm -lz -lrt -ldl -lpthread
+_LIBS = -lm -lz -lrt -ldl -lpthread $(openssl_LIBS)
 
 iop_SOURCES = \
 	exiop.iop \

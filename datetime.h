@@ -154,6 +154,15 @@ time_t localtime_nextmonth(time_t date);
  */
 int strtotm(const char *date, struct tm *t);
 
+/** Check if the given date is valid.
+ *
+ * \param[in] mday  the day of the month.
+ * \param[in] month the month [0, 11].
+ * \param[in] year  the year.
+ * \return true if the date is valid and false otherwise.
+ */
+bool is_mday_valid(int mday, int month, int year);
+
 /** Date converter from lstr_t to time_t.
  *
  * The date format is specified by strtotm.  This functions is

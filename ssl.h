@@ -94,8 +94,27 @@
 #include "core.h"
 #include "licence.h"
 
-#if (OPENSSL_VERSION_NUMBER >= 0x0100000fL)
-# define SSL_HAVE_EVP_PKEY
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL)
+#define TLS_server_method()  SSLv23_server_method()
+#define TLS_client_method()  SSLv23_client_method()
+#endif
+#if (OPENSSL_VERSION_NUMBER < 0x1000200fL)
+/* Note: this function is also removed after 1.1.0, so please remove all its
+ * occurrences if you remove this compatibility code. */
+#define SSL_CTX_set_ecdh_auto(ctx, onoff)  do {} while(0)
+#endif
+
+#ifndef RSA_OAEP_PADDING_SIZE
+/* RSA can just encrypt a message as large as the key, i.e. 256 bytes for a
+ * 2048 key. But the algorithm used some random padding to increase security.
+ * Thus, RSA encrypt message up to key_size - PADDING bytes.
+ *
+ * Sadly enough, if there is a RSA_PKCS1_PADDING_SIZE constant defined for the
+ * old PKCS1 method, I didn't found an equivalent way to get the maximum
+ * padding size used with OAEP -- which seems to be the current standard. The
+ * RSA_public_encrypt(3) man page says it's 41 bytes.
+ */
+# define RSA_OAEP_PADDING_SIZE  41
 #endif
 
 /* Encryption {{{ */
@@ -111,19 +130,13 @@ enum ssl_ctx_state {
  * SSL context used to encrypt and decrypt data.
  */
 typedef struct ssl_ctx_t {
-    /* CIPHER data */
-    const EVP_CIPHER  *type;
-    const EVP_MD      *md;
-
     EVP_CIPHER_CTX     *encrypt;
     EVP_CIPHER_CTX     *decrypt;
 
-#ifdef SSL_HAVE_EVP_PKEY
     /* PKEY data */
     EVP_PKEY          *pkey;
     EVP_PKEY_CTX      *pkey_encrypt;
     EVP_PKEY_CTX      *pkey_decrypt;
-#endif
 
     /* common data */
     enum ssl_ctx_state encrypt_state;
@@ -134,13 +147,14 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx);
 GENERIC_DELETE(ssl_ctx_t, ssl_ctx);
 
 /**
- * Init the SSL context with the given key and an optional salt. This
+ * Init the SSL context with a given password and an optional salt. This
  * initializer will use AES 256 with SHA256.
  *
- * You don't need to call ssl_ctx_init() it will be done for you.
+ * The password, salt and nb_rounds arguments are used to derive the AES key
+ * and initialisation vector.
  *
  * \param ctx       The SSL context.
- * \param key       The cypher key to use for encryption.
+ * \param password  The password.
  * \param salt      The salt to use when encrypting.
  * \param nb_rounds The iteration count to use, changing this value will break
  *                  encryption/decryption compatibility (a value of 1024
@@ -148,35 +162,55 @@ GENERIC_DELETE(ssl_ctx_t, ssl_ctx);
  *
  * \return The initialized AES context or NULL in case of error.
  */
-ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
+ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
                                int nb_rounds);
 
 /**
  * Same as ssl_ctx_init_aes() but allocate the ssl_ctx_t for you.
  */
 static inline ssl_ctx_t *
-ssl_ctx_new_aes256(lstr_t key, uint64_t salt, int nb_rounds)
+ssl_ctx_new_aes256(lstr_t password, uint64_t salt, int nb_rounds)
 {
     ssl_ctx_t *ctx = p_new_raw(ssl_ctx_t, 1);
 
-    if (unlikely(!ssl_ctx_init_aes256(ctx, key, salt, nb_rounds))) {
+    if (unlikely(!ssl_ctx_init_aes256(ctx, password, salt, nb_rounds))) {
         p_delete(&ctx);
     }
 
     return ctx;
 }
 
-/**
- * Reset the whole SSL context changing the key, the salt and the nb_rounds
- * parameters.
+/** Init AES 256 context with the symmetric key.
+ *
+ * \param  ctx  The SSL context.
+ * \param  key  The AES 256bits key.
+ * \param  iv  The initialisation vector.
+ * \return The initialiased AES context or NULL in case of error.
  */
-int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds);
+ssl_ctx_t *ssl_ctx_init_aes256_by_key(ssl_ctx_t *ctx, lstr_t key, lstr_t iv);
+
+/**
+ * Reset the whole SSL context and change the AES key and IV.
+ *
+ * The key and the initialisation vector are derived from the given
+ * password, salt and nb_rounds parameters.
+ *
+ * The context is not wiped on error.
+ *
+ * \param  ctx        The SSL context.
+ * \param  password   The password.
+ * \param  salt       The salt to use when encrypting.
+ * \param  nb_rounds  The iteration count to use, changing this value will
+ *                    break encryption/decryption compatibility (a value of
+ *                    1024 should be good in most situations).
+ * \return 0 on success and -1 on error.
+ */
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                  int nb_rounds);
 
 /**
  * Init the given SSL context with the given key. You can use private or
  * public key to init the context, depending on what you need.
- *
- * You don't need to call ssl_ctx_init() it will be done for you.
  *
  * \param ctx       The SSL context.
  * \param priv_key  The private key.
@@ -194,8 +228,6 @@ ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
  * Init the given SSL context with the public key.
  *
  * \warning You won't be able to decrypt data using this context.
- *
- * You don't need to call ssl_ctx_init() it will be done for you.
  *
  * \param ctx       The SSL context.
  * \param pub_key   The public key.
@@ -250,19 +282,39 @@ __must_check__ int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 __must_check__ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
- * Just like ssl_encrypt_reset() this function will allow to encrypt a new
- * bunch of data but you can change the key, the salt and the nb_rounds
- * parameters.
+ * Encrypt an arbitrarily long lstr_t.
+ *
+ * Encrypt the data with a RSA key. If the data is too large to fit in a
+ * single RSA message, we use hybrid cryptography (RSA + AES). The format is
+ * described in the code.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA key.
+ * \param[in]  data  The data to encrypt.
+ * \param[out]  out  The buffer where encrypted data are accumulated.
+ * \return 0 on success, -1 on error. You can call ssl_get_error() on error to
+ *         have stringified informations.
  */
 __must_check__ int
-ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
-                       int nb_rounds);
+ssl_encrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
- * Encrypt the given data via public key and append the result to out.
+ * Encrypt an arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA key.
+ * \param[in]  data  The data to encrypt.
+ * \return the encrypted data as a t-stack allocated lstr_t (or LSTR_NULL_V on
+ *         error). You can call ssl_get_error() on error to have stringified
+ *         informations.
  */
-__must_check__ int
-ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+static inline lstr_t t_ssl_encrypt_pkey_lstr(ssl_ctx_t *ctx, lstr_t data)
+{
+    SB_1k(out);
+
+    /* grow(data + AES key + AES IV + AES padding + RSA padding). */
+    sb_grow(&out, data.len + 32 + 16 + 16 + RSA_OAEP_PADDING_SIZE);
+    THROW_IF(ssl_encrypt_pkey_sb(ctx, data, &out) < 0, LSTR_NULL_V);
+    return t_lstr_dup(LSTR_SB_V(&out));
+}
 
 /**
  * Encrypt a bunch of data in one operation. The SSL context will be ready to
@@ -271,12 +323,10 @@ ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 __must_check__ static inline int
 ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey) {
-        RETHROW(ssl_encrypt_pkey(ctx, data, out));
+        RETHROW(ssl_encrypt_pkey_sb(ctx, data, out));
         return 0;
     }
-#endif
     RETHROW(ssl_encrypt_update(ctx, data, out));
     RETHROW(ssl_encrypt_reset(ctx, out));
     return 0;
@@ -301,19 +351,34 @@ __must_check__ int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 __must_check__ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
- * Just like ssl_decrypt_reset() this function will allow to decrypt a new
- * bunch of data but you can change the key, the salt and the nb_rounds
- * parameters.
+ * Decrypt arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA private key.
+ * \param[in]  data  The data to decrypt.
+ * \param[out]  out  The buffer where decrypted data are accumulated.
+ * \return 0 on success, -1 on error. You can call ssl_get_error() on error to
+ *         have stringified informations.
  */
 __must_check__ int
-ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
-                       int nb_rounds);
+ssl_decrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
- * Decrypt the given data via private key and append the result to out.
+ * Decrypt an arbitrarily long lstr_t.
+ *
+ * \param[in]  ctx  An ssl context initialized with an RSA private key.
+ * \param[in]  data  The data to decrypt.
+ * \return the decrypted data as a t-stack allocated lstr_t (or LSTR_NULL_V on
+ *         error). You can call ssl_get_error() on error to have stringified
+ *         informations.
  */
-__must_check__ int
-ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+static inline lstr_t t_ssl_decrypt_pkey_lstr(ssl_ctx_t *ctx, lstr_t data)
+{
+    int min_aes_data = (data.len == 256 ? 0 : 32 + 16);
+    t_SB(out, data.len + 1 - RSA_OAEP_PADDING_SIZE - min_aes_data);
+
+    THROW_IF(ssl_decrypt_pkey_sb(ctx, data, &out) < 0, LSTR_NULL_V);
+    return LSTR_SB_V(&out);
+}
 
 /**
  * Decrypt a bunch of data in one operation. The SSL context will be ready to
@@ -322,12 +387,10 @@ ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 __must_check__ static inline int
 ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey) {
-        RETHROW(ssl_decrypt_pkey(ctx, data, out));
+        RETHROW(ssl_decrypt_pkey_sb(ctx, data, out));
         return 0;
     }
-#endif
     RETHROW(ssl_decrypt_update(ctx, data, out));
     RETHROW(ssl_decrypt_reset(ctx, out));
     return 0;
@@ -335,8 +398,6 @@ ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
 /* }}} */
 /* {{{ Signature */
-
-#ifdef SSL_HAVE_EVP_PKEY
 
 #ifdef __has_blocks
 typedef int (BLOCK_CARET pem_password_b)(char *buf, int size, int rwflag);
@@ -422,8 +483,6 @@ int iop_check_rsa_signature(const iop_struct_t * nonnull st,
                             lstr_t sig, unsigned flags,
                             pem_password_b nullable pass_cb);
 
-#endif
-
 /* }}} */
 /* {{{ Licence */
 /* ---- misc SSL usages for others modules ---- */
@@ -437,6 +496,78 @@ char *licence_compute_encryption_key(const char *signature, const char *key);
  * Decrypt the encryption key from a licence file.
  */
 int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
+
+/* }}} */
+/* {{{ TLS */
+
+/** Load a certificate into the SSL_CTX.
+ *
+ * A wrapper of SSL_CTX_use_certificate_file for lstr.
+ *
+ * \param[in]  ctx  The SSL_CTX to enrich.
+ * \param[in]  key  The certificate in PEM format.
+ * \return 0 on success and -1 on error.
+ */
+int ssl_ctx_use_certificate_lstr(SSL_CTX *ctx, lstr_t cert);
+
+/** Load a private key into the SSL_CTX.
+ *
+ * A wrapper of SSL_CTX_use_PrivateKey for lstr.
+ *
+ * \param[in]  ctx  The SSL_CTX to enrich.
+ * \param[in]  key  The private key in PEM format.
+ * \return 0 on success and -1 on error.
+ */
+int ssl_ctx_use_privatekey_lstr(SSL_CTX *ctx, lstr_t key);
+
+/** Wrapper to SSL_read that mimic read(2).
+ *
+ * \param[in]  ssl  The ssl context for which data must be received.
+ * \param[in]  buf  The buffer into which data are received.
+ * \param[in]  len  The maximum number of bytes to receive into `buf`.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_read(SSL *ssl, void *buf, size_t len);
+
+/** Wrapper to SSL_write that mimic write(2).
+ *
+ * \param[in]  ssl  The ssl context for which data must be sent. It must be
+ *                  configured to allow partial write. (See
+ *                  SSL_MODE_ENABLE_PARTIAL_WRITE and
+ *                  SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER options).
+ * \param[in]  buf  The buffer to write.
+ * \param[in]  len  The number of bytes to send from `buf`.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_write(SSL *ssl, const void *buf, size_t len);
+
+/** A writev-like callback using SSL_write.
+ *
+ * The priv argument must be the corresponding SSL* structure.
+ *
+ * This function assumes that the ssl context (i.e. the `priv` argument) is
+ * configured to allow partial write (see SSL_MODE_ENABLE_PARTIAL_WRITE and
+ * SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER).
+ *
+ * \param[in]  fd  The socket from which data are sent; this argument is
+ *                 unused: the ssl context (`priv`) is used instead.
+ * \param[in]  iov  The buffers to write.
+ * \param[in]  iovcnt  The number of iov buffers.
+ * \param[in]  priv  A pointer to the corresponding SSL structure.
+ * \return the number of bytes sent.
+ */
+ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv);
+
+/* A sb_read function for reading TLS connections.
+ *
+ * \param[in]  sb  The string buffer for receiving data.
+ * \param[in]  ssl  The SSL context associated to the connection.
+ * \param[in]  hint  Expected number of bytes received. Defaults to BUFSIZ
+ *                   when hint is 0.
+ * \return the number of bytes read on success, and -1 on error. If an error
+ *         because the socket would block, errno is set to EAGAIN.
+ */
+ssize_t ssl_sb_read(sb_t *sb, SSL *ssl, int hint);
 
 /* }}} */
 /* Module {{{ */

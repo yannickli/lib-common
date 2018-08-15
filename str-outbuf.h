@@ -61,7 +61,14 @@ static inline bool ob_is_empty(const outbuf_t * nonnull ob)
     return ob->length == 0;
 }
 
-int ob_write(outbuf_t * nonnull ob, int fd) __leaf;
+int ob_write_with(outbuf_t * nonnull ob, int fd,
+                  ssize_t (* nullable writerv)(int,
+                                               const struct iovec * nonnull,
+                                               int, void * nullable),
+                  void * nullable priv) __leaf;
+static inline int ob_write(outbuf_t * nonnull ob, int fd) {
+    return ob_write_with(ob, fd, NULL, NULL);
+}
 int ob_xread(outbuf_t * nonnull ob, int fd, int size) __leaf;
 
 

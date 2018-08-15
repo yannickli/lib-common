@@ -69,6 +69,12 @@ typedef IOP_ARRAY_OF(core__activation_token__t) core__activation_token__array_t;
 typedef struct core__signed_licence__t core__signed_licence__t;
 typedef IOP_ARRAY_OF(core__signed_licence__t) core__signed_licence__array_t;
 
+typedef struct core__tls_cert_and_key__t core__tls_cert_and_key__t;
+typedef IOP_ARRAY_OF(core__tls_cert_and_key__t) core__tls_cert_and_key__array_t;
+
+typedef struct core__tls_cfg__t core__tls_cfg__t;
+typedef IOP_ARRAY_OF(core__tls_cfg__t) core__tls_cfg__array_t;
+
 typedef struct core__httpd_cfg__t core__httpd_cfg__t;
 typedef IOP_ARRAY_OF(core__httpd_cfg__t) core__httpd_cfg__array_t;
 

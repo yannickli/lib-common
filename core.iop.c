@@ -1324,7 +1324,7 @@ static iop_field_t const core__activation_token__desc_fields[] = {
 };
 static const iop_help_t core__activation_token__s_help = {
     .brief = LSTR_IMMED("Activation token."),
-    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has tree constraints:\012  - it specifies an expiration date for the product,\012  - it expires itself after some date (and can't be used),\012  - it must depend on the licence."),
+    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has three constraints:\012  - it must specify an expiration date for the product,\012  - it must expire itself after some date (and can't be used anymore),\012  - it must depend on the licence."),
 };
 static const iop_struct_attr_t core__activation_token__s_attrs[] = {
     {
@@ -1460,6 +1460,170 @@ const iop_struct_t core__signed_licence__s = {
 iop_struct_t const * const core__signed_licence__sp = &core__signed_licence__s;
 
 /* }}} */
+/* Structure core.TlsCertAndKey {{{ */
+
+static const iop_help_t core__tls_cert_and_key__cert__f_help = {
+    .brief = LSTR_IMMED("Contents of a certificate file."),
+};
+static iop_field_attr_t const core__tls_cert_and_key__cert__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__tls_cert_and_key__cert__f_help } },
+    },
+};
+static const iop_help_t core__tls_cert_and_key__key__f_help = {
+    .brief = LSTR_IMMED("Contents of a private key file."),
+};
+static iop_field_attr_t const core__tls_cert_and_key__key__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__tls_cert_and_key__key__f_help } },
+    },
+};
+static iop_field_attrs_t const core__tls_cert_and_key__desc_fields_attrs[] = {
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__tls_cert_and_key__cert__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__tls_cert_and_key__key__attrs,
+    },
+};
+static iop_field_t const core__tls_cert_and_key__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("cert"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_DATA,
+        .data_offs = offsetof(core__tls_cert_and_key__t, cert),
+        .size      = fieldsizeof(core__tls_cert_and_key__t, cert),
+    },
+    {
+        .name      = LSTR_IMMED("key"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_DATA,
+        .data_offs = offsetof(core__tls_cert_and_key__t, key),
+        .size      = fieldsizeof(core__tls_cert_and_key__t, key),
+    },
+};
+static const iop_help_t core__tls_cert_and_key__s_help = {
+    .brief = LSTR_IMMED("A certificate and its private key for TLS."),
+    .details = LSTR_IMMED("Such files can be generated with the following command:\012\012  $ openssl req -newkey rsa:4096 -nodes -sha512 -x509 -days 3650\012                -nodes -out cert.pem -keyout priv-key.pem"),
+};
+static const iop_struct_attr_t core__tls_cert_and_key__s_attrs[] = {
+    {
+        .type = 6,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__tls_cert_and_key__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__tls_cert_and_key__s_desc_attrs = {
+    .flags     = 64,
+    .attrs_len = 1,
+    .attrs     = core__tls_cert_and_key__s_attrs,
+};
+const iop_struct_t core__tls_cert_and_key__s = {
+    .fullname   = LSTR_IMMED("core.TlsCertAndKey"),
+    .fields     = core__tls_cert_and_key__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(core__tls_cert_and_key__desc_fields),
+    .size       = sizeof(core__tls_cert_and_key__t),
+    .flags      = 1,
+    .st_attrs   = &core__tls_cert_and_key__s_desc_attrs,
+    .fields_attrs = core__tls_cert_and_key__desc_fields_attrs,
+};
+iop_struct_t const * const core__tls_cert_and_key__sp = &core__tls_cert_and_key__s;
+
+/* }}} */
+/* Union core.TlsCfg {{{ */
+
+static const iop_help_t core__tls_cfg__keyname__f_help = {
+    .brief = LSTR_IMMED("A keyname refering a key from the platform keychain."),
+};
+static iop_field_attr_t const core__tls_cfg__keyname__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__tls_cfg__keyname__f_help } },
+    },
+};
+static const iop_help_t core__tls_cfg__data__f_help = {
+    .brief = LSTR_IMMED("The certificate and key of the server."),
+};
+static iop_field_attr_t const core__tls_cfg__data__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__tls_cfg__data__f_help } },
+    },
+};
+static iop_field_attrs_t const core__tls_cfg__desc_fields_attrs[] = {
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__tls_cfg__keyname__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__tls_cfg__data__attrs,
+    },
+};
+static iop_field_t const core__tls_cfg__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("keyname"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__tls_cfg__t, keyname),
+        .size      = fieldsizeof(core__tls_cfg__t, keyname),
+    },
+    {
+        .name      = LSTR_IMMED("data"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(core__tls_cfg__t, data),
+        .size      = sizeof(core__tls_cert_and_key__t),
+        .u1        = { .st_desc = &core__tls_cert_and_key__s },
+    },
+};
+static const iop_help_t core__tls_cfg__s_help = {
+    .brief = LSTR_IMMED("TLS configuration."),
+    .details = LSTR_IMMED("These should be stored in the platform keychain, if available, and\012refered by their keyname. They may also be directly provided."),
+};
+static const iop_struct_attr_t core__tls_cfg__s_attrs[] = {
+    {
+        .type = 6,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__tls_cfg__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__tls_cfg__s_desc_attrs = {
+    .flags     = 64,
+    .attrs_len = 1,
+    .attrs     = core__tls_cfg__s_attrs,
+};
+const iop_struct_t core__tls_cfg__s = {
+    .fullname   = LSTR_IMMED("core.TlsCfg"),
+    .fields     = core__tls_cfg__desc_fields,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .fields_len = countof(core__tls_cfg__desc_fields),
+    .size       = sizeof(core__tls_cfg__t),
+    .flags      = 1,
+    .is_union   = true,
+    .st_attrs   = &core__tls_cfg__s_desc_attrs,
+    .fields_attrs = core__tls_cfg__desc_fields_attrs,
+};
+iop_struct_t const * const core__tls_cfg__sp = &core__tls_cfg__s;
+
+/* }}} */
 /* Structure core.HttpdCfg {{{ */
 
 static const iop_help_t core__httpd_cfg__bind_addr__f_help = {
@@ -1565,6 +1729,15 @@ static iop_field_attr_t const core__httpd_cfg__header_size_max__attrs[] = {
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_size_max__f_help } },
     },
 };
+static const iop_help_t core__httpd_cfg__tls__f_help = {
+    .brief = LSTR_IMMED("TLS data: certificate and private key."),
+};
+static iop_field_attr_t const core__httpd_cfg__tls__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__tls__f_help } },
+    },
+};
 static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
     {
         .flags             = 270368,
@@ -1611,6 +1784,11 @@ static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
         .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpd_cfg__header_size_max__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__tls__attrs,
     },
 };
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
@@ -1704,16 +1882,22 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .u1        = { .defval_u64 = 0x10000 },
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
-};
-static int const iop__ranges__8[] = {
-    0, 1,
-    9,
+    {
+        .name      = LSTR_IMMED("tls"),
+        .tag       = 10,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_UNION,
+        .data_offs = offsetof(core__httpd_cfg__t, tls),
+        .size      = sizeof(core__tls_cfg__t),
+        .u1        = { .st_desc = &core__tls_cfg__s },
+    },
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__8,
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges     = iop__ranges__6,
+    .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(core__httpd_cfg__desc_fields),
     .size       = sizeof(core__httpd_cfg__t),
     .flags      = 3,
@@ -1872,15 +2056,15 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__9[] = {
+static int const iop__ranges__8[] = {
     0, 1,
     6,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__9,
-    .ranges_len = countof(iop__ranges__9) / 2,
+    .ranges     = iop__ranges__8,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .fields_len = countof(core__httpc_cfg__desc_fields),
     .size       = sizeof(core__httpc_cfg__t),
     .flags      = 1,
@@ -2030,15 +2214,15 @@ static iop_field_t const core__log__set_root_level_res__desc_fields[] = {
         .u1        = { .en_desc = &core__log_level__e },
     },
 };
-static int const iop__ranges__10[] = {
+static int const iop__ranges__9[] = {
     0, 1,
     1,
 };
 const iop_struct_t core__log__set_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__set_root_level_res__t),
 };
@@ -2052,8 +2236,8 @@ iop_struct_t const * const core__log__set_root_level_res__sp = &core__log__set_r
 const iop_struct_t core__log__reset_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__reset_root_level_res__t),
 };
@@ -2121,8 +2305,8 @@ iop_struct_t const * const core__log__set_logger_level_args__sp = &core__log__se
 const iop_struct_t core__log__set_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__set_logger_level_res__t),
 };
@@ -2145,8 +2329,8 @@ static iop_field_t const core__log__reset_logger_level_args__desc_fields[] = {
 const iop_struct_t core__log__reset_logger_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelArgs"),
     .fields     = core__log__reset_logger_level_args__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__reset_logger_level_args__desc_fields),
     .size       = sizeof(core__log__reset_logger_level_args__t),
 };
@@ -2160,8 +2344,8 @@ iop_struct_t const * const core__log__reset_logger_level_args__sp = &core__log__
 const iop_struct_t core__log__reset_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
     .size       = sizeof(core__log__reset_logger_level_res__t),
 };
@@ -2184,8 +2368,8 @@ static iop_field_t const core__log__list_loggers_args__desc_fields[] = {
 const iop_struct_t core__log__list_loggers_args__s = {
     .fullname   = LSTR_IMMED("core.Log.listLoggersArgs"),
     .fields     = core__log__list_loggers_args__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__list_loggers_args__desc_fields),
     .size       = sizeof(core__log__list_loggers_args__t),
 };
@@ -2209,8 +2393,8 @@ static iop_field_t const core__log__list_loggers_res__desc_fields[] = {
 const iop_struct_t core__log__list_loggers_res__s = {
     .fullname   = LSTR_IMMED("core.Log.listLoggersRes"),
     .fields     = core__log__list_loggers_res__desc_fields,
-    .ranges     = iop__ranges__10,
-    .ranges_len = countof(iop__ranges__10) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__list_loggers_res__desc_fields),
     .size       = sizeof(core__log__list_loggers_res__t),
 };
@@ -2331,6 +2515,8 @@ static const iop_struct_t *const core__structs[] = {
     &core__licence__s,
     &core__activation_token__s,
     &core__signed_licence__s,
+    &core__tls_cert_and_key__s,
+    &core__tls_cfg__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,
     &core__iop_json_subfile__s,

@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <lib-common/z.h>
 #include "ssl.h"
@@ -69,7 +70,6 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
     if (unlikely(ctx->decrypt_state == SSL_CTX_UPDATE))
         e_trace(0, "SSL context closed with inconsistent decrypt state");
 #endif
-#ifdef SSL_HAVE_EVP_PKEY
     if (ctx->pkey_encrypt) {
         EVP_PKEY_CTX_free(ctx->pkey_encrypt);
         ctx->pkey_encrypt = NULL;
@@ -82,60 +82,68 @@ void ssl_ctx_wipe(ssl_ctx_t *ctx)
         EVP_PKEY_free(ctx->pkey);
         ctx->pkey = NULL;
     }
-#endif
 
     EVP_CIPHER_CTX_free(ctx->encrypt);
     EVP_CIPHER_CTX_free(ctx->decrypt);
 }
 
-static int ssl_ctx_configure(ssl_ctx_t *ctx, const lstr_t key,
-                             const uint64_t salt, const int nb_rounds,
-                             const bool do_encrypt, const bool do_decrypt)
+/** Generate the key and IV from the given password and salt. */
+static void t_ssl_get_aes_key(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                              int nb_rounds, lstr_t *key, lstr_t *iv)
 {
-    t_scope;
-    unsigned char *keybuf, *ivbuf;
+    const EVP_CIPHER *type = EVP_aes_256_cbc();
+    const EVP_MD *md = EVP_sha256();
+    int keylen = EVP_CIPHER_key_length(type);
+    int ivlen = EVP_CIPHER_iv_length(type);
+    unsigned char *keybuf = t_new_raw(unsigned char, keylen);
+    unsigned char *ivbuf = t_new_raw(unsigned char, ivlen);
 
-    assert (do_encrypt || do_decrypt);
+    EVP_BytesToKey(type, md, (const unsigned char *)&salt,
+                   (const unsigned char *)password.s, password.len, nb_rounds,
+                   keybuf, ivbuf);
+    *key = LSTR_INIT_V((char *)keybuf, keylen);
+    *iv = LSTR_INIT_V((char *)ivbuf, ivlen);
+}
 
-    keybuf = t_new_raw(unsigned char, EVP_CIPHER_key_length(ctx->type));
-    ivbuf  = t_new_raw(unsigned char, EVP_CIPHER_iv_length(ctx->type));
+/** Setup (distinct) contexts for encryption and decryption. */
+static int ssl_ctx_configure(ssl_ctx_t *ctx, lstr_t key, lstr_t iv)
+{
+    const EVP_CIPHER *type = EVP_aes_256_cbc();
 
-    /* Generate the key and IV from the given key and salt. */
-    EVP_BytesToKey(ctx->type, ctx->md, (const unsigned char *)&salt,
-                   (const unsigned char *)key.s, key.len, nb_rounds, keybuf,
-                   ivbuf);
-
-    if (do_encrypt) {
-        if (unlikely(!EVP_EncryptInit_ex(ctx->encrypt, ctx->type, NULL,
-                                         keybuf, ivbuf)))
-        {
-            return ssl_set_error("encrypt context initialization failure");
-        }
-        ctx->encrypt_state = SSL_CTX_INIT;
+    if (!EVP_EncryptInit_ex(ctx->encrypt, type, NULL, (void *)key.s,
+                            (void *)iv.s)
+    ||  !EVP_DecryptInit_ex(ctx->decrypt, type, NULL, (void *)key.s,
+                            (void *)iv.s))
+    {
+        ssl_set_error("decrypt context initialization failure");
+        return -1;
     }
-
-    if (do_decrypt) {
-        if (unlikely(!EVP_DecryptInit_ex(ctx->decrypt, ctx->type, NULL,
-                                         keybuf, ivbuf)))
-        {
-            return ssl_set_error("decrypt context initialization failure");
-        }
-        ctx->decrypt_state = SSL_CTX_INIT;
-    }
-
+    ctx->encrypt_state = SSL_CTX_INIT;
+    ctx->decrypt_state = SSL_CTX_INIT;
     return 0;
 }
 
-ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
+ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
                                int nb_rounds)
 {
+    t_scope;
+    lstr_t key, iv;
+
     ssl_ctx_init(ctx);
+    t_ssl_get_aes_key(ctx, password, salt, nb_rounds, &key, &iv);
 
-    ctx->type = EVP_aes_256_cbc();
-    ctx->md   = EVP_sha256();
+    if (ssl_ctx_configure(ctx, key, iv) < 0) {
+        ssl_ctx_wipe(ctx);
+        return NULL;
+    }
 
-    if (ssl_ctx_configure(ctx, key, salt, nb_rounds, true, true) < 0)
-    {
+    return ctx;
+}
+
+ssl_ctx_t *ssl_ctx_init_aes256_by_key(ssl_ctx_t *ctx, lstr_t key, lstr_t iv)
+{
+    ssl_ctx_init(ctx);
+    if (ssl_ctx_configure(ctx, key, iv) < 0) {
         ssl_ctx_wipe(ctx);
         return NULL;
     }
@@ -146,7 +154,6 @@ ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
 ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
                              lstr_t priv_key, lstr_t pub_key, lstr_t pass)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     t_scope;
     lstr_t key = priv_key.len ? priv_key : pub_key;
     void *u = pass.len ? t_dupz(pass.data, pass.len) : NULL;
@@ -212,15 +219,14 @@ ssl_ctx_t *ssl_ctx_init_pkey(ssl_ctx_t *ctx,
     }
     ssl_ctx_wipe(ctx);
     return NULL;
-#else
-    __ssl_set_error("private key not supported");
-    ssl_ctx_wipe(ctx);
-    return NULL;
-#endif
 }
 
-int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t password, uint64_t salt,
+                  int nb_rounds)
 {
+    t_scope;
+    lstr_t key, iv;
+
     assert (ctx->encrypt_state == SSL_CTX_NONE
         ||  ctx->encrypt_state == SSL_CTX_INIT
         ||  ctx->encrypt_state == SSL_CTX_FINISH);
@@ -228,7 +234,8 @@ int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
         ||  ctx->decrypt_state == SSL_CTX_INIT
         ||  ctx->decrypt_state == SSL_CTX_FINISH);
 
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, true, true);
+    t_ssl_get_aes_key(ctx, password, salt, nb_rounds, &key, &iv);
+    return ssl_ctx_configure(ctx, key, iv);
 }
 
 const char *ssl_get_error(void)
@@ -313,20 +320,6 @@ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     return 0;
 }
 
-int ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds)
-{
-    assert (ctx->encrypt_state != SSL_CTX_NONE);
-
-    if (ctx->encrypt_state == SSL_CTX_UPDATE) {
-        assert (out);
-        RETHROW(ssl_encrypt_finish(ctx, out));
-    }
-    assert (ctx->encrypt_state == SSL_CTX_INIT);
-
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, true, false);
-}
-
 /* }}} */
 /* {{{ Decrypt */
 
@@ -396,28 +389,34 @@ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out)
     return 0;
 }
 
-int ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds)
-{
-    assert (ctx->decrypt_state != SSL_CTX_NONE);
-
-    if (ctx->decrypt_state == SSL_CTX_UPDATE) {
-        assert (out);
-        RETHROW(ssl_decrypt_finish(ctx, out));
-    }
-    assert (ctx->decrypt_state == SSL_CTX_INIT);
-
-    return ssl_ctx_configure(ctx, key, salt, nb_rounds, false, true);
-}
-
 /* }}} */
 /* }}} */
 /* {{{ PKEY */
+
+/** Return the size of the key.
+ *
+ * The length of the key determine both the maximum amount of encryptable data
+ * and the length of the resulted encrypted string. For example, if you have a
+ * 2048 bits length RSA key, then you can only encrypt up to 256 bytes and the
+ * resulting string will (always) be 256 bytes long.
+ */
+static int ssl_pkey_size(ssl_ctx_t *ctx) {
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+    RSA *tmp = EVP_PKEY_get1_RSA(ctx->pkey);
+    int size;
+
+    size = RSA_size(tmp);
+    RSA_free(tmp);
+    return size;
+#else
+    return RSA_size(EVP_PKEY_get0_RSA(ctx->pkey));
+#endif
+}
+
 /* {{{ Encrypt */
 
-int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+static int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     size_t outlen;
     size_t inlen = data.len;
     const unsigned char *in = data.data;
@@ -432,30 +431,93 @@ int ssl_encrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
     if (EVP_PKEY_encrypt(ctx->pkey_encrypt, NULL, &outlen, in, inlen) <= 0)
     {
-        ssl_set_error("decryption failure (size computation)");
+        ssl_set_error("encryption failure (size computation)");
         return -1;
     }
     if (EVP_PKEY_encrypt(ctx->pkey_encrypt,
                          (unsigned char *)sb_grow(out, outlen),
                          &outlen, in, inlen) <= 0)
     {
-        ssl_set_error("decryption failure");
+        ssl_set_error("encryption failure");
         return -1;
     }
     sb_growlen(out, outlen);
     return 0;
-#else
-    __ssl_set_error("private key not supported");
+}
+
+/**
+ * RSA keys can only encrypt data as long as the size of the key. A 2048 bit
+ * key can only encrypt 256 bytes. Plus, the encryption should (to increase
+ * security) add a random padding. While the most common padding weight 11
+ * bytes, the new recommanded one is about 41 bytes, which reduces again the
+ * available space for encryption.
+ *
+ * Plus, it is NOT RECOMMANDED to split a string and encode each part with the
+ * RSA key (especially for performance purposes). Instead, we generate a
+ * symmetric AES key and a random initialisation vector, and we put them
+ * together with all data that can fit in the RSA header. The rest of the data
+ * are encrypted with the AES key.
+ *
+ *   [ -------- RSA encrypted data --------- ][ AES encrypted data ]
+ *   [ AES key | AES IV | Data | RSA padding ||    rest of data    ]
+ *
+ * However, for small strings (ligher than rsa_size - rsa_padding bytes), all
+ * data can fit in one RSA header. Thus we continue to use only this header.
+ *
+ *   [ -------- RSA encrypted data --------- ]
+ *   [          Data           | RSA padding ]
+ */
+int ssl_encrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+{
+    ssl_ctx_t actx;
+    char key_buf[32];
+    char iv_buf[16];
+    lstr_t key = LSTR_INIT(key_buf, 32);
+    lstr_t iv = LSTR_INIT(iv_buf, 16);
+    int key_size = ssl_pkey_size(ctx);
+    int rsa_buf_size = key_size - RSA_OAEP_PADDING_SIZE;
+    int free_space = rsa_buf_size - key.len - iv.len;
+    SB_1k(rsa_buf);
+
+    /* If the data are small enough, let's encrypt them directly. */
+    if (data.len <= rsa_buf_size) {
+        return ssl_encrypt_pkey(ctx, data, out);
+    }
+
+    /* Otherwise, generate AES-256 key and initialisation vector. */
+    THROW_IF(RAND_bytes((void *)key_buf, 32) != 1, -1);
+    THROW_IF(RAND_bytes((void *)iv_buf, 16) != 1, -1);
+
+    /* Append the encrypted AES key, its IV, and the first data. */
+    sb_add_lstr(&rsa_buf, key);
+    sb_add_lstr(&rsa_buf, iv);
+    sb_add(&rsa_buf, data.s, free_space);
+    data = LSTR_INIT_V(data.s + free_space, data.len - free_space);
+
+    RETHROW(ssl_encrypt_pkey(ctx, LSTR_SB_V(&rsa_buf), out));
+
+    /* Encrypt the rest of the data with the AES algorithm. */
+    RETHROW_PN(ssl_ctx_init_aes256_by_key(&actx, key, iv));
+    if (ssl_encrypt_update(&actx, data, out) < 0) {
+        goto error;
+    }
+    if (ssl_encrypt_reset(&actx, out) < 0) {
+        goto error;
+    }
+
+    ssl_ctx_wipe(&actx);
+    return 0;
+
+  error:
+    ssl_ctx_wipe(&actx);
     return -1;
-#endif
 }
 
 /* }}} */
 /* {{{ Decrypt */
 
-int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+static int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
-#ifdef SSL_HAVE_EVP_PKEY
     size_t outlen;
     size_t inlen = data.len;
     const unsigned char *in = data.data;
@@ -482,17 +544,63 @@ int ssl_decrypt_pkey(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     }
     sb_growlen(out, outlen);
     return 0;
-#else
-    __ssl_set_error("private key not supported");
+}
+
+/* See t_ssl_encrypt_pkey_lstr for encoding informations. */
+int ssl_decrypt_pkey_sb(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+{
+    ssl_ctx_t actx;
+    lstr_t rsa_enc;
+    lstr_t key;
+    lstr_t iv;
+    lstr_t aes_enc;
+    int key_size = ssl_pkey_size(ctx);
+    SB_1k(rsa_buf);
+
+    /* If the data are small enough, decrypt them directly. */
+    if (data.len == key_size) {
+        return ssl_decrypt_pkey(ctx, data, out);
+    }
+
+    if (data.len < key_size) {
+        __ssl_set_error("invalid encrypted content (invalid size)");
+        return -1;
+    }
+
+    /* Separate the RSA header and the AES encrypted data. */
+    rsa_enc = LSTR_INIT_V(data.s, key_size);
+    aes_enc = LSTR_INIT_V(data.s + key_size, data.len - key_size);
+
+    /* Extract RSA header (get the AES key and IV, and the first data). */
+    RETHROW(ssl_decrypt_pkey(ctx, rsa_enc, &rsa_buf));
+    if (rsa_buf.len < 32 + 16) {
+        __ssl_set_error("invalid AES key or IV in the rsa header");
+        return -1;
+    }
+    key = LSTR_INIT_V(rsa_buf.data, 32);
+    iv = LSTR_INIT_V(rsa_buf.data + 32, 16);
+    sb_add(out, rsa_buf.data + 32 + 16, rsa_buf.len - 32 - 16);
+
+    /* Decrypt the data with the AES algorithm. */
+    RETHROW_PN(ssl_ctx_init_aes256_by_key(&actx, key, iv));
+    if (ssl_decrypt_update(&actx, aes_enc, out) < 0) {
+        goto error;
+    }
+    if (ssl_decrypt_reset(&actx, out) < 0) {
+        goto error;
+    }
+
+    ssl_ctx_wipe(&actx);
+    return 0;
+
+  error:
+    ssl_ctx_wipe(&actx);
     return -1;
-#endif
 }
 
 /* }}} */
 /* }}} */
 /* {{{ Signature */
-
-#ifdef SSL_HAVE_EVP_PKEY
 
 typedef struct rsa_ctx_t {
     BIO *keybio;
@@ -795,15 +903,13 @@ int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
 
 /* }}} */
 
-#endif
-
 /* }}} */
 /* {{{ Licensing module */
 
 char *licence_compute_encryption_key(const char *signature, const char *key)
 {
     /* We encrypt the obfuscation key using the compute signature as a SSL
-     * key. The salt will be 42 and that's all. */
+     * password. The salt will be 42 and that's all. */
     ssl_ctx_t ctx;
     char *encrypted;
     int len;
@@ -856,15 +962,190 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
 }
 
 /* }}} */
-/* {{{ Tests */
+/* {{{ TLS */
 
-#ifdef SSL_HAVE_EVP_PKEY
+int ssl_ctx_use_certificate_lstr(SSL_CTX *ctx, lstr_t cert)
+{
+    BIO *bio;
+    X509 *x;
+    int ret;
+
+    bio = RETHROW_PN(BIO_new_mem_buf(cert.v, cert.len));
+    x = RETHROW_PN(PEM_read_bio_X509(bio, NULL, 0, NULL));
+    ret = SSL_CTX_use_certificate(ctx, x);
+
+    X509_free(x);
+    BIO_free(bio);
+    return ret == 1 ? 0 : -1;
+}
+
+int ssl_ctx_use_privatekey_lstr(SSL_CTX *ctx, lstr_t key)
+{
+    BIO *bio;
+    EVP_PKEY *evp;
+    int ret;
+
+    bio = RETHROW_PN(BIO_new_mem_buf(key.v, key.len));
+    evp = RETHROW_PN(PEM_read_bio_PrivateKey(bio, NULL, 0, NULL));
+    ret = SSL_CTX_use_PrivateKey(ctx, evp);
+
+    EVP_PKEY_free(evp);
+    BIO_free(bio);
+    return ret == 1 ? 0 : -1;
+}
+
+/** Helper to convert openssl errors to classical system errors.
+ *
+ * \param[in]  ssl  The ssl context on which the operation has been called.
+ * \param[in]  ret  The return code of the operation.
+ * \return ret if ret > 0, 0 on graceful exit, and -1 on error, with errno set
+ *         to an appropriate value.
+ */
+static inline int ssl_error_conv(SSL *ssl, int ret) {
+    if (ret > 0) {
+        return ret;
+    }
+    switch (SSL_get_error(ssl, ret)) {
+      case SSL_ERROR_ZERO_RETURN:
+        /* Graceful exit. */
+        return 0;
+      case SSL_ERROR_WANT_READ:
+      case SSL_ERROR_WANT_WRITE:
+        errno = EAGAIN;
+        return -1;
+      case SSL_ERROR_SSL:
+        errno = EIO;
+        return -1;
+      case SSL_ERROR_SYSCALL:
+        return -1;
+      default:
+        assert (false);
+        errno = EIO;
+        return -1;
+    }
+}
+
+ssize_t ssl_read(SSL *ssl, void *buf, size_t len)
+{
+    if (!expect(len > 0)) {
+        return 0;
+    }
+
+    return ssl_error_conv(ssl, SSL_read(ssl, buf, len));
+}
+
+ssize_t ssl_write(SSL *ssl, const void *buf, size_t len)
+{
+    long expected_mode;
+
+    if (!expect(len > 0)) {
+        /* SSL_write with 0 length is undefined. */
+        return 0;
+    }
+
+    expected_mode = SSL_MODE_ENABLE_PARTIAL_WRITE
+                  | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+    if (!expect((SSL_get_mode(ssl) & expected_mode) == expected_mode)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return ssl_error_conv(ssl, SSL_write(ssl, buf, len));
+}
+
+/* This function sends `len` data from `buf` through the `ssl` connection. It
+ * returns 0 if all data have been sent, and -1 in all other cases. If all or
+ * some (partial write) data are sent, `total_wr` is increased by the number
+ * of bytes sent.
+ *
+ * This function assumes that `ssl` is configured to allow partial write.
+ */
+static int ssl_write_chunk(SSL *ssl, const char *buf, int len, int *total_wr)
+{
+    int wr;
+
+    wr = ssl_write(ssl, buf, len);
+    if (wr <= 0) {
+        return -1;
+    }
+    *total_wr += wr;
+    if (wr != len) {
+        /* Its unlikely that the system could absorb more data for now. */
+        errno = EAGAIN;
+        return -1;
+    }
+    return 0;
+}
+
+ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv)
+{
+    SSL *ssl = priv;
+    char buf[BUFSIZ];
+    int buflen = 0;
+    int bufrest = BUFSIZ;
+    int total_wr = 0;
+
+    for (int i = 0; i < iovcnt; i++) {
+        const char *base = iov[i].iov_base;
+        int len = iov[i].iov_len;
+
+        while (len > 0) {
+            if (buflen == 0 && len > BUFSIZ) {
+                /* The iov buffer is large enougth to be directly written. */
+                if (ssl_write_chunk(ssl, base, len, &total_wr) < 0) {
+                    goto end;
+                }
+                break;
+            }
+            if (len <= bufrest) {
+                /* The iov fits entirely in buf. */
+                memcpy(buf + buflen, base, len);
+                buflen += len;
+                bufrest -= len;
+                break;
+            }
+            /* Append as many data as we can in buf and send everything. */
+            memcpy(buf + buflen, base, bufrest);
+            base += bufrest;
+            len -= bufrest;
+
+            if (ssl_write_chunk(ssl, buf, buflen, &total_wr) < 0) {
+                goto end;
+            }
+            buflen = 0;
+            bufrest = BUFSIZ;
+        }
+    }
+
+    /* Send the rest. */
+    if (buflen > 0) {
+        ssl_write_chunk(ssl, buf, buflen, &total_wr);
+    }
+  end:
+    return total_wr > 0 ? total_wr : -1;
+}
+
+ssize_t ssl_sb_read(sb_t *sb, SSL *ssl, int hint)
+{
+    sb_t orig = *sb;
+    char *buf;
+    int res;
+
+    buf = sb_grow(sb, hint <= 0 ? BUFSIZ : hint);
+    res = ssl_read(ssl, buf, sb_avail(sb));
+    if (res < 0) {
+        return __sb_rewind_adds(sb, &orig);
+    }
+    __sb_fixlen(sb, sb->len + res);
+    return res;
+}
+
+/* }}} */
+/* {{{ Tests */
 
 static pem_password_b dummy_pass = ^int (char *buf, int size, int rwflags) {
     return snprintf(buf, size, "this-is-a-complicated-pass-phrase");
 };
-
-#endif
 
 Z_GROUP_EXPORT(ssl)
 {
@@ -920,7 +1201,6 @@ Z_GROUP_EXPORT(ssl)
 /* }}} */
 /* {{{ PKEY */
 
-#ifdef SSL_HAVE_EVP_PKEY
     {
         /* To generate such test data, you can:
          * $ openssl genpkey -algorithm RSA -out priv.pem -pkeyopt
@@ -932,6 +1212,7 @@ Z_GROUP_EXPORT(ssl)
         SB_1k(priv);
         SB_1k(priv_encrypted);
         SB_1k(pub);
+        SB_1k(text_rand);
         const lstr_t text = LSTR_IMMED("secret pioupiou23\n");
         const lstr_t text_garbage = LSTR_IMMED("bonjour openssl!\n");
 
@@ -955,55 +1236,8 @@ Z_GROUP_EXPORT(ssl)
                 e_fatal("cannot read public key");
             }
         }
+        strrand(sb_growlen(&text_rand, 1024), 1024, LSTR_NULL_V);
 
-/* {{{ PKEY for RSA without padding */
-
-    Z_TEST(pkey_rsa_without_padding, "pkey_rsa_without_padding") {
-        ssl_ctx_t ctx;
-        /* We encrypt with -pkeyopt rsa_padding_mode:none */
-        /* As the encrypted data is deterministic, we can check it */
-        const lstr_t text_encrypted = LSTR_IMMED(
-          "\x52\x6a\xcd\x65\x2a\xec\xe1\x2a\x0a\x55\x93\x96\x14\x5d\xd9\x3a"
-          "\xb6\xce\x4d\xe0\xfa\x53\x6a\xd7\x9b\x34\x7b\xe9\x03\xcc\x07\xc6"
-          "\x32\x8a\x55\x3a\x3a\x18\x28\x3b\x42\xeb\xa1\x7f\xcc\x84\x66\x7c"
-          "\x46\x6e\x25\xf6\x75\xc4\xc1\x54\xca\x50\x0f\x50\xe8\x1a\x81\x81"
-          "\x6f\xc3\xa3\x5f\xba\x18\x46\xf4\xc2\x74\x71\x59\xeb\x42\x10\x20"
-          "\x76\xab\x00\x42\x71\x4e\x31\xad\xe9\x83\x03\x7b\x94\x16\x07\x88"
-          "\x8e\x10\xd3\xe5\xcb\x31\x4d\x27\x71\xd3\x65\x1c\xcd\x3c\xc0\xc2"
-          "\x81\x92\xdd\xfa\xc8\xb9\x40\xa8\x28\x6a\xf0\x57\x3d\xfc\xf9\x9c"
-          "\xaf\xc2\x01\x2e\xae\x5c\xa5\xf4\xaa\x85\xa8\xeb\x13\x11\x60\xd9"
-          "\x89\x61\x75\xd7\xfb\xdd\xab\x80\x59\x5b\x7f\x2e\x38\x1f\x5c\x99"
-          "\x59\xd8\x37\x7a\xb6\x13\x29\x5d\x15\xe6\x66\x6b\xdc\x02\x34\x24"
-          "\x6d\xee\x44\xbb\x17\x78\xee\xec\x40\x82\x16\x52\x31\x7a\x82\xe4"
-          "\x36\x33\x41\x1d\x2d\xd6\x34\x08\x5a\x52\x24\x05\x0e\x87\x0c\xf7"
-          "\x41\xac\x5c\xbf\xe2\x02\xec\x06\xc2\x1f\x5f\x7f\x2c\x7f\x8d\xde"
-          "\x68\x00\xb2\x92\x45\x9d\xa1\x75\x91\x67\x86\x42\x58\x03\x31\x33"
-          "\x32\xc9\xcb\x1b\x76\xa9\x44\x88\xf0\x3f\xc5\x51\x2c\x3e\x2f\x13");
-        SB_1k(sb_encrypted);
-        SB_1k(sb_clear);
-        lstr_t text_fixed;
-
-        /* We need a secret with fixed size 256: we use a truncated priv key
-         * as data */
-        assert (priv.len >= 256);
-        text_fixed = LSTR_INIT_V(priv.data, 256);
-
-        Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
-        Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_encrypt,
-                                                 RSA_NO_PADDING), 0);
-        Z_ASSERT_N(ssl_encrypt(&ctx, text_fixed, &sb_encrypted));
-        Z_ASSERT_LSTREQUAL(text_encrypted, LSTR_SB_V(&sb_encrypted));
-        ssl_ctx_wipe(&ctx);
-
-        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv), LSTR_EMPTY_V));
-        Z_ASSERT_GT(EVP_PKEY_CTX_set_rsa_padding(ctx.pkey_decrypt,
-                                                 RSA_NO_PADDING), 0);
-        Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
-        Z_ASSERT_LSTREQUAL(text_fixed, LSTR_SB_V(&sb_clear));
-        ssl_ctx_wipe(&ctx);
-    } Z_TEST_END;
-
-/* }}} */
 /* {{{ PKEY */
 
     Z_TEST(pkey, "pkey") {
@@ -1031,11 +1265,14 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NULL(ssl_ctx_init_pkey_pub(&ctx, LSTR_EMPTY_V));
         Z_ASSERT_NULL(ssl_ctx_init_pkey_priv(&ctx, LSTR_EMPTY_V,
                                              LSTR_EMPTY_V));
+
+        /* Use a public key: we can encrypt but we cannot decrypt. */
         Z_ASSERT_P(ssl_ctx_init_pkey_pub(&ctx, LSTR_SB_V(&pub)));
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb_encrypted));
         Z_ASSERT_NEG(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         ssl_ctx_wipe(&ctx);
 
+        /* The corresponding private key can decrypt. */
         Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
                                           LSTR_EMPTY_V));
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
@@ -1049,6 +1286,7 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NEG(ssl_decrypt(&ctx, text_garbage, &sb_clear));
         ssl_ctx_wipe(&ctx);
 
+        /* It's also possible to encrypt with the private key. */
         sb_reset(&sb_encrypted);
         sb_reset(&sb_clear);
         Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
@@ -1057,14 +1295,53 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb_encrypted), &sb_clear));
         Z_ASSERT_LSTREQUAL(text, LSTR_SB_V(&sb_clear));
         ssl_ctx_wipe(&ctx);
+
+        /* Test lstr encryption / decryption of long strings. */
+        Z_ASSERT_P(ssl_ctx_init_pkey_priv(&ctx, LSTR_SB_V(&priv),
+                                          LSTR_EMPTY_V));
+        {
+            t_scope;
+            lstr_t clear;
+            lstr_t encrypted;
+            int msg_len = 256 - RSA_OAEP_PADDING_SIZE + 1;
+            lstr_t init = LSTR_INIT(text_rand.data, msg_len);
+
+            encrypted = t_ssl_encrypt_pkey_lstr(&ctx, init);
+            Z_ASSERT(encrypted.len > 256);
+            clear = t_ssl_decrypt_pkey_lstr(&ctx, encrypted);
+            Z_ASSERT_LSTREQUAL(init, clear);
+        }
+
+        /* With small strings, it should behave just as ssl_encrypt_pkey. */
+        {
+            t_scope;
+            lstr_t clear;
+            lstr_t encrypted;
+            int msg_len = 256 - RSA_OAEP_PADDING_SIZE;
+            lstr_t init = LSTR_INIT(text_rand.data, msg_len);
+
+            sb_reset(&sb_encrypted);
+            sb_reset(&sb_clear);
+            /* Encryption */
+            encrypted = t_ssl_encrypt_pkey_lstr(&ctx, init);
+            Z_ASSERT_EQ(encrypted.len, 256);
+            Z_ASSERT_N(ssl_encrypt_pkey(&ctx, init, &sb_encrypted));
+            Z_ASSERT_EQ(sb_encrypted.len, 256);
+            /* Decryption */
+            clear = t_ssl_decrypt_pkey_lstr(&ctx, LSTR_SB_V(&sb_encrypted));
+            Z_ASSERT_LSTREQUAL(init, clear);
+            Z_ASSERT_N(ssl_decrypt_pkey(&ctx, encrypted, &sb_clear));
+            Z_ASSERT_LSTREQUAL(init, LSTR_SB_V(&sb_clear));
+        }
+        ssl_ctx_wipe(&ctx);
     } Z_TEST_END;
 
 /* }}} */
 /* {{{ PKEY for RSA with OAEP */
 
-    Z_TEST(pkey_rsa_with_oeap, "pkey_rsa_with_oeap") {
+    Z_TEST(pkey_rsa_with_oaep, "pkey_rsa_with_oaep") {
         ssl_ctx_t ctx;
-        /* same but encrypt with -pkeyopt rsa_padding_mode:oeap */
+        /* same but encrypt with -pkeyopt rsa_padding_mode:oaep */
         const lstr_t text_encrypted = LSTR_IMMED(
           "\x18\x55\xef\x38\xf8\x54\x18\x13\x2e\xc1\x10\x43\xbf\xeb\x53\xb7"
           "\xeb\x6a\x6a\x8c\x26\xe8\xac\x1f\x09\xc5\x26\xfc\x6c\x15\x8d\x39"
@@ -1227,7 +1504,6 @@ Z_GROUP_EXPORT(ssl)
 /* }}} */
 
     }
-#endif
 
 /* }}} */
 /* {{{ licence_encryption_key */

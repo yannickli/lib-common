@@ -19,6 +19,7 @@
 #include "el.h"
 #include "net.h"
 #include "container-qhash.h"
+#include "ssl.h"
 
 #if __has_feature(nullability)
 #pragma GCC diagnostic push
@@ -246,6 +247,7 @@ enum httpd_query_status {
                                                                              \
     bool               connection_close   : 1;                               \
     bool               compressed         : 1;                               \
+    bool               want_write         : 1;                               \
     uint8_t            state;                                                \
     uint16_t           queries;                                              \
     uint16_t           queries_done;                                         \
@@ -258,6 +260,7 @@ enum httpd_query_status {
                                      * httpd_get_peer_address function       \
                                      * instead */                            \
     sockunion_t        peer_su;                                              \
+    SSL               * nullable ssl;                                        \
                                                                              \
     void             (*nullable on_accept)(httpd_t * nonnull w);             \
     void             (*nullable on_disconnect)(httpd_t * nonnull w);         \
@@ -361,8 +364,11 @@ struct httpd_cfg_t {
     uint16_t pipeline_depth;
     unsigned header_line_max;
     unsigned header_size_max;
+    lstr_t cert;
+    lstr_t key;
 
-    dlist_t               httpd_list;
+    SSL_CTX * nullable ssl_ctx;
+    dlist_t httpd_list;
     const object_class_t * nullable httpd_cls;
     httpd_trigger_node_t  roots[HTTP_METHOD_DELETE + 1];
 };
@@ -370,8 +376,8 @@ struct httpd_cfg_t {
 struct core__httpd_cfg__t;
 
 httpd_cfg_t * nonnull httpd_cfg_init(httpd_cfg_t * nonnull cfg);
-void httpd_cfg_from_iop(httpd_cfg_t * nonnull cfg,
-                        const struct core__httpd_cfg__t * nonnull iop_cfg);
+int httpd_cfg_from_iop(httpd_cfg_t * nonnull cfg,
+                       const struct core__httpd_cfg__t * nonnull iop_cfg);
 void httpd_cfg_wipe(httpd_cfg_t * nonnull cfg);
 DO_REFCNT(httpd_cfg_t, httpd_cfg);
 
