@@ -92,6 +92,12 @@ The purpose of this code is to add the -fPIC compilation flag to all the
 shared libraries task generators, and to replace all the static libraries they
 use by a '-fPIC' version (by copying the original task generator and adding
 the compilation flag).
+
+Since this has a significant impact on the compilation time, it can be
+disabled using the NO_DOUBLE_FPIC environment variable at configure
+(NO_DOUBLE_FPIC=1 waf configure), but keep in mind this has an impact at
+runtime. For this reason, disabling the double compilation is not allowed in
+release profile.
 """
 
 def declare_fpic_lib(ctx, pic_name, orig_lib):
@@ -879,7 +885,7 @@ def get_cflags(ctx, args):
     return flags.strip().replace('"', '').split(' ')
 
 
-def profile_default(ctx, no_assert=False,
+def profile_default(ctx, no_assert=False, allow_no_double_fpic=True,
                     fortify_source='-D_FORTIFY_SOURCE=2'):
 
     # TODO: NOCOMPRESS (well, compress)
@@ -937,6 +943,16 @@ def profile_default(ctx, no_assert=False,
     if fortify_source is not None:
         ctx.env.CFLAGS += [fortify_source]
 
+    # Disable double fPIC compilation for shared libraries?
+    if allow_no_double_fpic and int(ctx.environ.get('NO_DOUBLE_FPIC', 0)):
+        ctx.env.DOUBLE_FPIC = False
+        ctx.env.CFLAGS += ['-fPIC']
+        log = 'no'
+    else:
+        ctx.env.DOUBLE_FPIC = True
+        log = 'yes'
+    ctx.msg('Double fPIC compilation for shared libraries', log)
+
 
 def profile_debug(ctx):
     profile_default(ctx, fortify_source=None)
@@ -954,7 +970,7 @@ def profile_debug(ctx):
 
 
 def profile_release(ctx):
-    profile_default(ctx, no_assert=True)
+    profile_default(ctx, no_assert=True, allow_no_double_fpic=False)
     ctx.env.LINKFLAGS += ['-Wl,-x', '-rdynamic']
 
 
@@ -1064,7 +1080,8 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
-    ctx.add_pre_fun(compile_fpic)
+    if ctx.env.DOUBLE_FPIC:
+        ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(post_farchc)
     ctx.add_pre_fun(post_iopc)
     ctx.add_pre_fun(gen_tags)
