@@ -98,6 +98,7 @@ def configure(ctx):
             ctx.load('java')
             ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
             ctx.env.DEFINES.append('WITH_JDBC=1')
+            ctx.env.RPATH_JAVA += ctx.env.LIBPATH_JAVA
         except Errors.ConfigurationError as e:
             Logs.warn('cannot configure JAVA: %s', e.msg)
 
