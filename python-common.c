@@ -1677,6 +1677,8 @@ static int python_el_initialize(void *arg)
 
 static void python_el_on_term(int signo)
 {
+    py_gil_lock_scope;
+
     qh_deep_wipe(ptr, &_G.py_els, py_el_wipe);
 }
 
