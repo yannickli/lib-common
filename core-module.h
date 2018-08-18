@@ -481,9 +481,12 @@ void module_on_term(int signo);
 /* }}} */
 /* {{{ atfork methods */
 
+/* XXX: Do not use t_scope with these methods because the t_pool_g is not
+ *      necessarily initialized when the methods are called. */
 MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
+
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, consume_child_events);
 
 /** Register at fork methods.
