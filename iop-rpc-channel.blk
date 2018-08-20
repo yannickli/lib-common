@@ -411,10 +411,11 @@ ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
 {
 #ifdef IC_DEBUG_REPLIES
     int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-    if (pos < 0)
+    if (pos < 0) {
         logger_panic(&_G.logger,
                      "answering to slot %d twice or unexpected answer!",
                      (uint32_t)slot);
+    }
 #endif
     assert (ic->pending > 0);
     ic->pending--;
@@ -534,8 +535,9 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
         return;
     }
     ic = ic_get_from_slot(slot);
-    if (unlikely(!ic))
+    if (unlikely(!ic)) {
         return;
+    }
     if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
 
@@ -553,8 +555,9 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
 
             assert (!unpacked_msg || dlen == 0 || cmd == IC_MSG_INVALID);
 
-            if (ic_is_local(ic))
+            if (ic_is_local(ic)) {
                 tmp->force_pack = !unpacked_msg;
+            }
 
             buf = __ic_get_buf(tmp, dlen);
             if (data) {
@@ -601,8 +604,9 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
         return;
     }
 
-    if (unlikely(!(ic = ic_get_from_slot(slot))))
+    if (unlikely(!(ic = ic_get_from_slot(slot)))) {
         return;
+    }
     if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(pxy_ic), 0);
         const sb_t *buf = &pxy_ic->rbuf;
@@ -627,8 +631,9 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
             tmp->force_dup = msg_org->force_dup;
             __ic_msg_build(tmp, st, data, !ic_is_local(ic));
         } else {
-            if (ic_is_local(ic))
+            if (ic_is_local(ic)) {
                 tmp->force_pack = true;
+            }
 
             memcpy(__ic_get_buf(tmp, dlen), data, dlen);
         }
@@ -665,13 +670,15 @@ static void ic_cancel_all(ichannel_t *ic)
 
     while (!htlist_is_empty(&ic->iov_list)) {
         msg = htlist_pop_entry(&ic->iov_list, ic_msg_t, msg_link);
-        if (msg->cmd <= 0 || msg->slot == 0)
+        if (msg->cmd <= 0 || msg->slot == 0) {
             ic_msg_delete(&msg);
+        }
     }
     while (!htlist_is_empty(&ic->msg_list)) {
         msg = ic_pop_msg(ic);
-        if (msg->cmd <= 0 || msg->slot == 0)
+        if (msg->cmd <= 0 || msg->slot == 0) {
             ic_msg_delete(&msg);
+        }
     }
     ic->last_normal_prio_msg = NULL;
 
@@ -701,8 +708,9 @@ static void ic_choose_id(ichannel_t *ic)
 {
     static uint32_t nextid = 0;
     do {
-        if (unlikely(nextid == IC_ID_MAX))
+        if (unlikely(nextid == IC_ID_MAX)) {
             nextid = 0;
+        }
     } while (unlikely(qm_add(ic, &_G.ics, ++nextid, ic) < 0));
     ic->id = nextid;
 }
@@ -921,8 +929,9 @@ static void ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh)
     struct cmsghdr *cmsg;
 
     for (cmsg = CMSG_FIRSTHDR(msgh); cmsg; cmsg = CMSG_NXTHDR(msgh, cmsg)) {
-        if (cmsg->cmsg_level != SOL_SOCKET)
+        if (cmsg->cmsg_level != SOL_SOCKET) {
             continue;
+        }
         switch (cmsg->cmsg_type) {
           case SCM_RIGHTS: {
             int fd_count = (cmsg->cmsg_len - sizeof(*cmsg)) / sizeof(int);
@@ -1348,8 +1357,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         break;
       case IC_CB_PROXY_PP:
         pxy     = *e->u.proxy_pp.ic_pp;
-        if (e->u.proxy_pp.hdr_pp)
+        if (e->u.proxy_pp.hdr_pp) {
             pxy_hdr = *e->u.proxy_pp.hdr_pp;
+        }
         break;
       case IC_CB_DYNAMIC_PROXY:
         {
@@ -1378,8 +1388,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     }
 
     if (unlikely(!pxy || !ic_is_ready(pxy))) {
-        if (slot)
+        if (slot) {
             ic_reply_err(ic, query_slot, IC_MSG_PROXY_ERROR);
+        }
     } else {
         ic_msg_t *tmp;
 
@@ -1430,8 +1441,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             }
             __ic_msg_build(tmp, st, unpacked_msg->data, !ic_is_local(pxy));
         } else {
-            if (ic_is_local(pxy))
+            if (ic_is_local(pxy)) {
                 tmp->force_pack = true;
+            }
 
             if (take_pxy_hdr) {
                 qv_t(i32) szs;
@@ -1576,6 +1588,70 @@ static int ic_check_msg_hdr(ichannel_t *ic)
     return 0;
 }
 
+static int _ic_read(ichannel_t *ic, short events, int sock, int to_read)
+{
+    sb_t *buf = &ic->rbuf;
+    char cmsgbuf[BUFSIZ];
+    struct iovec iov;
+    struct msghdr msgh = {
+        .msg_iov        = &iov,
+        .msg_iovlen     = 1,
+        .msg_control    = cmsgbuf,
+        .msg_controllen = sizeof(cmsgbuf),
+    };
+
+    ssize_t res;
+
+    if (!ic->is_unix) {
+        res = sb_read(buf, sock, to_read);
+    } else {
+        iov = (struct iovec){
+                .iov_base = sb_grow(buf, to_read),
+                .iov_len  = to_read,
+        };
+        res = recvmsg(sock, &msgh, 0);
+    }
+
+    if (res < 0) {
+        /* XXX: Workaround linux < 2.6.24 bug: it returns -EAGAIN *
+         * instead of 0 in the hangup case for SOCK_SEQPACKETS    */
+        if ((events & POLLHUP) || !ERR_RW_RETRIABLE(errno)) {
+            return -1;
+        }
+        return 0;
+    }
+    if (res == 0) {
+        errno = 0;
+        return -1;
+    }
+
+    if (ic->wa_soft > 0) {
+        if (!ic->wa_soft_timer) {
+            ic->on_event(ic, IC_EVT_ACT);
+            ic->wa_soft_timer = el_timer_register(ic->wa_soft, 0, 0,
+                                                  ic_watch_act_soft, ic);
+            el_unref(ic->wa_soft_timer);
+        } else {
+            el_timer_restart(ic->wa_soft_timer, 0);
+        }
+    }
+
+    if (ic->is_unix) {
+        __sb_fixlen(buf, buf->len + res);
+        ic_parse_cmsg(ic, &msgh);
+
+        /* XXX fd_overflow is set when the kernel decided that it cannot
+         * transfer some ancillary data. In our case, this means we didn't
+         * properly receive the expected file descriptor, probably because
+         * there is no file descriptor available anymore on our side of
+         * the channel.
+         */
+        ic->fd_overflow |= !!(msgh.msg_flags & MSG_CTRUNC);
+    }
+
+    return res;
+}
+
 static int ic_read(ichannel_t *ic, short events, int sock)
 {
     sb_t *buf = &ic->rbuf;
@@ -1584,6 +1660,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     bool starves = false;
     int write_errno = 0;
     bool try_write = true;
+    ssize_t res;
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         errno = 0;
@@ -1595,69 +1672,16 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     }
 
   again:
-    {
-        char cmsgbuf[BUFSIZ];
-        struct iovec iov;
-        struct msghdr msgh = {
-            .msg_iov        = &iov,
-            .msg_iovlen     = 1,
-            .msg_control    = cmsgbuf,
-            .msg_controllen = sizeof(cmsgbuf),
-        };
-
-        ssize_t res;
-
-        to_read = MAX(to_read, IC_PKT_MAX);
-        if (!ic->is_unix) {
-            res = sb_read(buf, sock, to_read);
-            starves = sb_avail(buf) == 0;
-        } else {
-            iov = (struct iovec){
-                .iov_base = sb_grow(buf, to_read),
-                .iov_len  = to_read,
-            };
-            res = recvmsg(sock, &msgh, 0);
-        }
-        if (ic->is_seqpacket) {
-            seqpkt_at_least -= res;
-        }
-
-        if (res < 0) {
-            /* XXX: Workaround linux < 2.6.24 bug: it returns -EAGAIN *
-             * instead of 0 in the hangup case for SOCK_SEQPACKETS    */
-            if ((events & POLLHUP) || !ERR_RW_RETRIABLE(errno))
-                return -1;
-            return 0;
-        }
-        if (res == 0) {
-            errno = 0;
-            return -1;
-        }
-
-        if (ic->wa_soft > 0) {
-            if (!ic->wa_soft_timer) {
-                ic->on_event(ic, IC_EVT_ACT);
-                ic->wa_soft_timer = el_timer_register(ic->wa_soft, 0, 0,
-                                                      ic_watch_act_soft, ic);
-                el_unref(ic->wa_soft_timer);
-            } else {
-                el_timer_restart(ic->wa_soft_timer, 0);
-            }
-        }
-
-        if (ic->is_unix) {
-            __sb_fixlen(buf, buf->len + res);
-            ic_parse_cmsg(ic, &msgh);
-
-
-            /* XXX fd_overflow is set when the kernel decided that it cannot
-             * transfer some ancillary data. In our case, this means we didn't
-             * properly receive the expected file descriptor, probably because
-             * there is no file descriptor available anymore on our side of
-             * the channel.
-             */
-            ic->fd_overflow |= !!(msgh.msg_flags & MSG_CTRUNC);
-        }
+    to_read = MAX(to_read, IC_PKT_MAX);
+    res = _ic_read(ic, events, sock, to_read);
+    if (res <= 0) {
+        return res;
+    }
+    if (!ic->is_unix) {
+        starves = (sb_avail(buf) == 0);
+    }
+    if (ic->is_seqpacket) {
+        seqpkt_at_least -= res;
     }
 
     while (buf->len >= IC_MSG_HDR_LEN) {
@@ -1849,7 +1873,7 @@ static int ic_event(el_t ev, int fd, short events, data_t priv)
         goto close;
     }
 
-    if ((events & POLLIN) && ic_read(ic, events, fd)) {
+    if ((events & POLLIN) && ic_read(ic, events, fd) < 0) {
         if (errno) {
             logger_trace(&_G.logger, 1, "ic_read error: %m");
         }
@@ -1932,8 +1956,9 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     hdr[0] = cpu_to_le32(flags);
     hdr[1] = cpu_to_le32(msg->cmd);
     hdr[2] = cpu_to_le32(msg->dlen - IC_MSG_HDR_LEN);
-    if (htlist_is_empty(&ic->msg_list) && ic->elh)
+    if (htlist_is_empty(&ic->msg_list) && ic->elh) {
         el_fd_set_mask(ic->elh, POLLINOUT);
+    }
 
     ic_msg_trace(msg, "queueing message on ic %p with cmd %x", ic, msg->cmd);
 
@@ -1984,8 +2009,9 @@ void ic_flush(ichannel_t *ic)
 {
     int fd = el_fd_get_fd(ic->elh);
 
-    if (ic_is_local(ic))
+    if (ic_is_local(ic)) {
         return;
+    }
 
     fd_unset_features(fd, O_NONBLOCK);
     __ic_flush(ic, fd);
@@ -2080,7 +2106,7 @@ void __ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
         if (ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
                                   unpacked_msg) < 0)
         {
-            e_panic("invalid query for local ic");
+            logger_panic(&_G.logger, "invalid query for local ic");
         }
         if (async) {
             ic_msg_delete(&msg);
@@ -2243,8 +2269,9 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
     ic_query_do_post_hook(ic, cmd, slot, st, arg);
 
     msg = ic_msg_new_for_reply(&ic, slot, cmd);
-    if (!msg)
+    if (!msg) {
         return 0;
+    }
 
     if (ic_is_local(ic)) {
         int32_t pos = qm_find(ic_msg, &ic->queries, slot & IC_MSG_SLOT_MASK);
@@ -2297,8 +2324,9 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
     ic_query_do_post_hook(ic, err, slot, NULL, NULL);
 
     msg = ic_msg_new_for_reply(&ic, slot, err);
-    if (!msg)
+    if (!msg) {
         return;
+    }
 
     if (err_str && err_str->len) {
         msg->data = mp_new_raw(_G.mp, char, IC_MSG_HDR_LEN + err_str->len + 1);
@@ -2393,8 +2421,9 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
 
     }
     /* force an exchange at connect time, so force NOP if queue is empty */
-    if (htlist_is_empty(&ic->msg_list))
+    if (htlist_is_empty(&ic->msg_list)) {
         ic_nop(ic);
+    }
     el_fd_set_mask(ic->elh, POLLINOUT);
     return 0;
 }
@@ -2450,8 +2479,9 @@ static void __ic_watch_activity(ichannel_t *ic)
 {
     int wa = ic->wa_hard;
 
-    if (!ic->elh)
+    if (!ic->elh) {
         return;
+    }
 
     el_fd_watch_activity(ic->elh, POLLIN, wa);
     el_unregister(&ic->timer);
@@ -2465,8 +2495,9 @@ static void __ic_watch_activity(ichannel_t *ic)
         }
     }
 
-    if (wa <= 0)
+    if (wa <= 0) {
         return;
+    }
 
     ic->timer = el_timer_register(wa / 3, 0, 0, ic_watch_act_nop, ic);
     el_unref(ic->timer);
@@ -2521,8 +2552,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 
 void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard)
 {
-    if (ic_is_local(ic))
+    if (ic_is_local(ic)) {
         return;
+    }
 
     ic->wa_soft = timeout_soft;
     ic->wa_hard = timeout_hard;
@@ -2599,8 +2631,9 @@ static int ic_accept(el_t ev, int fd, short events, data_t priv)
     int sock;
 
     while ((sock = acceptx(fd, O_NONBLOCK)) >= 0) {
-        if ((*on_accept)(ev, sock))
+        if ((*on_accept)(ev, sock)) {
             p_close(&sock);
+        }
     }
     return 0;
 }
