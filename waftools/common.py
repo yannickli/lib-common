@@ -12,6 +12,7 @@
 ##########################################################################
 
 # pylint: disable = import-error
+from waflib import Build
 from waflib import TaskGen
 
 from waflib.Build import BuildContext
@@ -109,8 +110,12 @@ class UseGroup(object):
 # {{{ build
 
 def build(ctx):
-    ctx.env.PROJECT_ROOT = ctx.srcnode
+    # Set post_mode to POST_AT_ONCE, which allows to properly handle
+    # dependencies between web task generators and IOP ones
+    # cf. https://gitlab.com/ita1024/waf/issues/2191
+    ctx.post_mode = Build.POST_AT_ONCE
 
+    ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.UseGroup = UseGroup
 
     # Register pre/post functions
