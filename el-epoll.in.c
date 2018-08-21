@@ -95,7 +95,7 @@ static data_t el_fd_unregister(ev_t **evp)
         if (el_epoll_g.generation == ev->fd.generation) {
             epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd.fd, NULL);
         }
-        if (likely(ev->fd.owned)) {
+        if (ev->fd.owned) {
             close(ev->fd.fd);
         }
         if (EV_FLAG_HAS(ev, FD_WATCHED)) {
