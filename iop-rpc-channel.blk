@@ -1525,12 +1525,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     return 0;
 }
 
-/* Check flag consistency.
- */
 static int ic_check_msg_hdr_flags(const ichannel_t *ic, uint32_t slot,
                                   int flags)
 {
-    flags &= ~IC_MSG_SLOT_MASK;
     if (!ic->is_unix && (flags & IC_MSG_HAS_FD)) {
         ic_slot_trace(slot, flags, "invalid flags HAS_FD on stream ic %p",
                       ic);
@@ -1548,12 +1545,11 @@ static int ic_check_msg_hdr_flags(const ichannel_t *ic, uint32_t slot,
     return 0;
 }
 
-/* Check if msg hdr seems valid.
- */
 static int ic_check_msg_hdr(ichannel_t *ic)
 {
     const byte *hdr;
     uint32_t slot;
+    uint32_t flags;
     int cmd;
     int dlen;
 
@@ -1563,34 +1559,44 @@ static int ic_check_msg_hdr(ichannel_t *ic)
 
     hdr = (const byte *)ic->rbuf.data;
     slot = get_unaligned_cpu32(hdr);
+    flags = slot & ~IC_MSG_SLOT_MASK;
+    slot &= IC_MSG_SLOT_MASK;
     cmd = get_unaligned_cpu32(hdr + IC_MSG_CMD_OFFSET);
     dlen = get_unaligned_cpu32(hdr + IC_MSG_DLEN_OFFSET);
 
     if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
         /* length is invalid */
-        assert (!ic->is_trusted);
-        return -1;
+        goto reject;
     }
 
-    if (cmd == IC_MSG_STREAM_CONTROL && dlen > 128) {
-        /* Currently, our control messages don't have payload (but we tolerate
-         * a moderate amount of payload for extensibility). */
-        assert (!ic->is_trusted);
-        return -1;
-    }
+    RETHROW(ic_check_msg_hdr_flags(ic, slot, flags));
 
-    RETHROW(ic_check_msg_hdr_flags(ic, slot, slot));
-    if (dlen < 10 << 20) {
-        /* don't lose time validating small messages, the correct checks will
-         * be performed when treating the message. */
-        ic->hdr_checked = true;
-        return 0;
-    }
-
-    slot &= IC_MSG_SLOT_MASK;
+    if (cmd == IC_MSG_STREAM_CONTROL) {
+        switch (slot) {
+          case IC_SC_BYE:
+          case IC_SC_NOP:
+            if (ic->peer_version <= IC_VERSION && dlen != 0) {
+                goto reject;
+            }
+            break;
+          case IC_SC_VERSION:
+            if (ic->peer_version <= 0) {
+                goto reject;
+            }
+            if (ic->peer_version <= IC_VERSION && dlen != 4) {
+                goto reject;
+            }
+            if (dlen < 4) {
+                goto reject;
+            }
+            break;
+          default:
+            if (ic->peer_version <= IC_VERSION) {
+                goto reject;
+            }
+        }
+    } else
     if (cmd <= 0) {
-        /* reject messages that reply to unkown slot. */
-        RETHROW(qm_find_safe(ic_msg, &ic->queries, slot));
         switch (-cmd) {
           case IC_MSG_OK:
           case IC_MSG_EXN:
@@ -1603,27 +1609,46 @@ static int ic_check_msg_hdr(ichannel_t *ic)
           case IC_MSG_SERVER_ERROR:
           case IC_MSG_PROXY_ERROR:
             /* no data are expected with those reply codes */
-            assert (!ic->is_trusted);
-            return -1;
+            if (ic->peer_version <= IC_VERSION && dlen != 0) {
+                goto reject;
+            }
+            break;
 
           default:
             /* unkown reply code */
-            assert (!ic->is_trusted);
-            return -1;
+            if (ic->peer_version <= IC_VERSION) {
+                goto reject;
+            }
         }
+        if (dlen < 10 << 20) {
+            /* don't lose time validating small messages, the correct checks
+             * will be performed when treating the message. */
+            goto accept;
+        }
+        /* reject messages that reply to unkown slot. */
+        RETHROW(qm_find_safe(ic_msg, &ic->queries, slot));
     } else {
         if (!ic->impl) {
             /* no implementation, so nothing to reply */
-            assert (!ic->is_trusted);
-            return -1;
+            goto reject;
+        }
+        if (dlen < 10 << 20) {
+            /* don't lose time validating small messages, the correct checks
+             * will be performed when treating the message. */
+            goto accept;
         }
         if (!ic->is_trusted) {
             /* unimplemented command */
             RETHROW(qm_find_safe(ic_cbs, ic->impl, cmd));
         }
     }
+  accept:
     ic->hdr_checked = true;
     return 0;
+
+  reject:
+    assert (!ic->is_trusted);
+    return -1;
 }
 
 /* Return -1 on error, 0 on EAGAIN, the number of bytes read otherwise.  */
@@ -2629,6 +2654,9 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         uint16_t version;
         uint16_t vflags;
 
+        if (dlen < 4) {
+            goto error;
+        }
         if (buf->len < IC_MSG_HDR_LEN + 4) {
             return 0;
         }

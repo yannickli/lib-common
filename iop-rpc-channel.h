@@ -76,7 +76,8 @@
  *     Data length  The length of the payload. For compatibility purposes with
  *                  version 0, the sign bit MUST be 0.
  *
- *     Payload  Depends on the Command.
+ *     Payload  Depends on the Command. It may be part of the header or being
+ *              binary-packed IOPs (i.e. TLVs).
  *
  * Note: in fact, Command defines both the type of the message and, if it is a
  * query, the RPC called and its interface (see 1.3).
@@ -165,6 +166,8 @@
  *
  * 1.5.3  Version message
  *
+ * This message is introduced in version 1.
+ *
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -177,7 +180,7 @@
  * |          Version = 1          |T|          Reserved           | } 2x16LE
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- * This should be the very first message sent by both the server and the
+ * This MUST be the very first message sent by both the server and the
  * client. If not, then the remote version is 0 and each flag is considered
  * unset.
  *
@@ -205,10 +208,28 @@
  * parsing of the version message sent by their peer. Note they may received
  * more data from their peer than just the version message.
  *
- * 3  Versions, bugs and tricks
+ * 3  Extensibility
+ * ================
+ *
+ * There is several ways to extend the IC format message: increasing the
+ * version number, using trailing space and using reserved fields.
+ *
+ * The version number is strictly increasing and it is believed that any
+ * version knows about its forefathers. The initial version exchange (see
+ * 1.5.3) allows the most recent peer to know which message it can use and
+ * which it cannot. Especially, a newer version MUST NOT send messages ignored
+ * by the older version, but it MAY reject older messages.
+ *
+ * Messages which does not yet have payload MAY be extended: the trailing data
+ * are ignored.
+ *
+ * It is possible to use Reserved fields to extend messages: reserved space is
+ * ignored.
+ *
+ * 4  Versions, bugs and tricks
  * ============================
  *
- * 3.1 Version 0
+ * 4.1 Version 0
  * -------------
  *
  * Version 0 does not have Version messages and thus concerns all IOP Channels
