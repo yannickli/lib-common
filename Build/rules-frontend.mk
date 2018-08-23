@@ -148,8 +148,8 @@ $~$3: $3 $(var/wwwtool)tslint
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
-$~$4/node_modules/tsconfig.json: $~$3
-$~$(3:ts=js): $~$4/node_modules/tsconfig.json
+$~$4/src/tsconfig.json: $~$3
+$~$(3:ts=js): $~$4/src/tsconfig.json
 	touch $$@
 
 $~$(3:ts=d.ts): $~$(3:ts=js)
@@ -157,8 +157,8 @@ endef
 
 # ext/expand/d.ts <PHONY>,<TARGET>,<D.TS>,<MODULEPATH>,<DEPS>[]
 #
-# Copies the declaration file into the build directory and computes its
-# dependences.
+# Copies the declaration file into the build directory, in a
+# top level node_modules.
 #
 # Produces:
 # - $~$3: a copy of the declaration file
@@ -170,17 +170,17 @@ $~$3: $3 $(var/wwwtool)tslint
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
-	mkdir -p "$(dir $(patsubst $~$4%,$~%,$~$3))"
-	$(FASTCP) $$< $(patsubst $~$4%,$~%,$~$3)
-$~$4/node_modules/tsconfig.json: $~$3
+	mkdir -p "$(dir $(patsubst $~$4/src%,$~node_modules%,$~$3))"
+	$(FASTCP) $$< $(patsubst $~$4/src%,$~node_modules%,$~$3)
+$~$4/src/tsconfig.json: $~$3
 endef
 
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<DEPS>[]
 define ext/rule/ts
-$~$4/node_modules/tsconfig.json: $4/node_modules/tsconfig.json $(var/wwwtool)tsc $5
+$~$4/src/tsconfig.json: $4/src/tsconfig.json $(var/wwwtool)tsc $5
 	$(msg/COMPILE.ts) $4
 	cp $$< $$@
-	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4/node_modules --rootDir $~$4/node_modules --outDir $~$4/node_modules --declarationDir $~node_modules || (rm $$@ && false)
+	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4/src --rootDir $~$4/src --outDir $~$4/src --declarationDir $~node_modules || (rm $$@ && false)
 
 $$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
 $$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4,$5))))
@@ -203,8 +203,8 @@ $~$3: $3 $(var/wwwtool)tslint
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
-$~$4/node_modules/tsconfig.json: $~$3
-$~$(3:tsx=js): $~$4/node_modules/tsconfig.json
+$~$4/src/tsconfig.json: $~$3
+$~$(3:tsx=js): $~$4/src/tsconfig.json
 	touch $$@
 
 $~$(3:tsx=d.ts): $~$(3:tsx=js)
@@ -239,9 +239,9 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var json: any; export = json;" > $$@+
 	$(MV) $$@+ $$@
-	mkdir -p "$$(dir $$(patsubst $~$4%,$~%,$$@))"
-	$(FASTCP) $$@ $$(patsubst $~$4%,$~%,$$@)
-$~$4/node_modules/tsconfig.json: $~$3.d.ts
+	mkdir -p "$$(dir $$(patsubst $~$4/src%,$~node_modules%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4/src%,$~node_modules%,$$@)
+$~$4/src/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/json <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
@@ -276,9 +276,9 @@ $~$3.d.ts: $3
 	mkdir -p "$(dir $~$3)"
 	echo "declare var html: string; export = html;" > $$@+
 	$(MV) $$@+ $$@
-	mkdir -p "$$(dir $$(patsubst $~$4%,$~%,$$@))"
-	$(FASTCP) $$@ $$(patsubst $~$4%,$~%,$$@)
-$~$4/node_modules/tsconfig.json: $~$3.d.ts
+	mkdir -p "$$(dir $$(patsubst $~$4/src%,$~node_modules%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4/src%,$~node_modules%,$$@)
+$~$4/src/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/html <PHONY>,<TARGET>,<HTML>[],<MODULEPATH>
@@ -334,7 +334,7 @@ $(eval $(call fun/common-depends,$1,$~$1/.build,$1))
 # This rule reads the <BUNDLE>_SOURCES variable to retrieve the list of source
 # files. Files can be TypeScript object, JavaScript object (with commonjs module
 # syntax) or JSON files. The _SOURCES content is patched so that paths are read
-# relative to the node_modules/ directory of the module.
+# relative to the src/ directory of the module.
 #
 # Produces:
 # - <MODULEPATH>/htdocs/javascript/bundles/<BUNDLE>.js
@@ -345,11 +345,11 @@ BROWSERIFY_OPTIONS = -g browserify-shim \
                      --no-bundle-external \
                      --insert-global-vars global
 
-$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/node_modules/%)),$2,$4))
+$(eval $(call fun/foreach-ext-rule,$1,$~$2/htdocs/javascript/bundles/$3.full.js,$(foreach t,$($(1DV)$3_SOURCES),$(t:$(1DV)%=$2/src/%)),$2,$4))
 $(1DV)www:: $2/htdocs/javascript/bundles/$3.js
 $~$2/htdocs/javascript/bundles/$3.full.js: $~$2/package.json
 $~$2/htdocs/javascript/bundles/$3.full.js: _FLAGS=$($(1DV)$3_FLAGS)
-$~$2/htdocs/javascript/bundles/$3.full.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/node_modules/%.js=%))
+$~$2/htdocs/javascript/bundles/$3.full.js: _FILES=$$(foreach t,$$(filter %.js,$$^),-r $$t:$$(t:$~$2/src/%.js=%))
 $~$2/htdocs/javascript/bundles/$3.full.js: $(var/wwwtool)browserify $(var/wwwtool)exorcist
 	$(msg/LINK.js) $3.js
 	mkdir -p $~$2/htdocs/javascript/bundles
@@ -360,7 +360,7 @@ $~$2/htdocs/javascript/bundles/$3.full.js: $(var/wwwtool)browserify $(var/wwwtoo
 	sed -i 's/(function(){function r(e,n,t){.\+return o}return r})()/browserifyRequire/' $$@
 	# build list of all files included in bundle (needed for r.js)
 	(for i in $$(filter %.js,$$^); do echo "        '$$$$i': 'empty:',"; done) > $~$2/$3.build.inc.js
-	sed -i -e "s,'[^']*/node_modules/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
+	sed -i -e "s,'[^']*/src/\([^']\+\).js','\1',g" $~$2/$3.build.inc.js
 
 $~$2/htdocs/javascript/bundles/$3.js: $~$2/htdocs/javascript/bundles/$3.full.js $(var/wwwtool)uglifyjs
 	$(if $(NOCOMPRESS),,$(msg/MINIFY.js) $3.js)
@@ -392,10 +392,10 @@ endef
 # sub targets for the module:
 # - <MODULE>_WWWSCRIPTS
 define rule/wwwmodule
-$~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js
-	mkdir -p $~$(1DV)modules/$(1:$(1DV)%=%)/node_modules
-	$(FASTCP) $(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js $~$(1DV)modules/$(1:$(1DV)%=%)/node_modules/shim.js
-	echo '{ "browserify-shim": "./node_modules/shim.js" }' > $$@
+$~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/src/shim.js
+	mkdir -p $~$(1DV)modules/$(1:$(1DV)%=%)/src
+	$(FASTCP) $(1DV)modules/$(1:$(1DV)%=%)/src/shim.js $~$(1DV)modules/$(1:$(1DV)%=%)/src/shim.js
+	echo '{ "browserify-shim": "./src/shim.js" }' > $$@
 
 $$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$(patsubst %.js,$~%.full.js,$($1_DEPENDS))))))
 endef

@@ -279,7 +279,7 @@ cscope: | __setup_buildsys_trampoline
 jshint: | __setup_buildsys_trampoline _npm_tools
 	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
 	$(msg/CHECK.js)
-	git ls-files -- '*.js' | grep -v 'node_modules' | xargs $(var/wwwtool)jshint
+	git ls-files -- '*.js' | grep -v '/src/' | xargs $(var/wwwtool)jshint
 
 www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
 
