@@ -525,6 +525,7 @@ static bool is_dummy_constraint(const iopc_attr_t *attr)
     switch (attr->desc->id) {
       case IOPC_ATTR_NOWARN:
       case IOPC_ATTR_PRIVATE:
+      case IOPC_ATTR_DEPRECATED:
       case IOPC_ATTR_GENERIC:
         return true;
 
@@ -645,6 +646,7 @@ int dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 {
     tab_for_each_entry(f, fields) {
         bool private = false;
+        bool deprecated = false;
 
         LINE_START_OBJ_KEY(wbuf, f->name);
 
@@ -666,6 +668,9 @@ int dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
         tab_for_each_entry(attr, &f->attrs) {
             if (attr->desc->id == IOPC_ATTR_PRIVATE) {
                 private = true;
+            } else
+            if (attr->desc->id == IOPC_ATTR_DEPRECATED) {
+                deprecated = true;
             }
         }
 
@@ -674,6 +679,9 @@ int dump_fields(const iopc_write_buf_t *wbuf, const qv_t(iopc_field) *fields)
 
         if (private) {
             LINE_CKEY_TRUE(wbuf, "private");
+        }
+        if (deprecated) {
+            LINE_CKEY_TRUE(wbuf, "deprecated");
         }
 
         LINE_END_OBJ(wbuf);

@@ -74,6 +74,8 @@ typedef MyUnionA MyUnionInt;
 struct MyStructA {
     @private
     int? i;
+    @deprecated
+    string? s;
     @allow(i) @allow(b)
     MyUnionA u1;
     @disallow(s)
