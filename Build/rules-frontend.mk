@@ -148,8 +148,8 @@ $~$3: $3 $(var/wwwtool)tslint
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
-$~$4/src/tsconfig.json: $~$3
-$~$(3:ts=js): $~$4/src/tsconfig.json
+$~$4/tsconfig.json: $~$3
+$~$(3:ts=js): $~$4/tsconfig.json
 	touch $$@
 
 $~$(3:ts=d.ts): $~$(3:ts=js)
@@ -172,15 +172,15 @@ $~$3: $3 $(var/wwwtool)tslint
 	cp -f $$< $$@
 	mkdir -p "$(dir $(patsubst $~$4/src%,$~node_modules%,$~$3))"
 	$(FASTCP) $$< $(patsubst $~$4/src%,$~node_modules%,$~$3)
-$~$4/src/tsconfig.json: $~$3
+$~$4/tsconfig.json: $~$3
 endef
 
 # ext/rule/ts <PHONY>,<TARGET>,<TS>[],<MODULEPATH>,<DEPS>[]
 define ext/rule/ts
-$~$4/src/tsconfig.json: $4/src/tsconfig.json $(var/wwwtool)tsc $5
+$~$4/tsconfig.json: $4/tsconfig.json $(var/wwwtool)tsc $5
 	$(msg/COMPILE.ts) $4
 	cp $$< $$@
-	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4/src --rootDir $~$4/src --outDir $~$4/src --declarationDir $~node_modules || (rm $$@ && false)
+	node --max-old-space-size=4096 $(var/wwwtool)tsc -p $~$4 --rootDir $~$4/src --outDir $~$4/src --declarationDir $~node_modules || (rm $$@ && false)
 
 $$(foreach t,$(filter-out %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/ts,$1,$2,$$t,$4,$5))))
 $$(foreach t,$(filter %.d.ts,$3),$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/d.ts,$1,$2,$$t,$4,$5))))
@@ -203,8 +203,8 @@ $~$3: $3 $(var/wwwtool)tslint
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
 	cp -f $$< $$@
-$~$4/src/tsconfig.json: $~$3
-$~$(3:tsx=js): $~$4/src/tsconfig.json
+$~$4/tsconfig.json: $~$3
+$~$(3:tsx=js): $~$4/tsconfig.json
 	touch $$@
 
 $~$(3:tsx=d.ts): $~$(3:tsx=js)
