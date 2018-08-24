@@ -8010,6 +8010,22 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(test_iop_core_obj());
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_init_union, "test IOP union init") { /* {{{ */
+        tstiop__my_union_d__t u;
+
+        iop_init_union(tstiop__my_union_d, &u, ua);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_d, &u, ua));
+        Z_ASSERT_EQ(u.ua, 0);
+
+        iop_init_union(tstiop__my_union_d, &u, ub);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_d, &u, ub));
+        Z_ASSERT_EQ(u.ub, 0);
+
+        iop_init_union(tstiop__my_union_d, &u, ug);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_d, &u, ug));
+        Z_ASSERT_EQ(u.ug.a, -1);
+    } Z_TEST_END
+    /* }}} */
 
 } Z_GROUP_END
 

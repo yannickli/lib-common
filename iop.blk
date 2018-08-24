@@ -1159,6 +1159,19 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
         }
     }
 }
+
+void iop_init_union_desc(const iop_struct_t *desc, void *value,
+                         const iop_field_t *fdesc)
+{
+    memset(value, 0, desc->size);
+
+    if (!expect(desc->is_union)) {
+        return;
+    }
+    iop_union_set_tag(desc, fdesc->tag, value);
+    iop_init_fields(value, fdesc, fdesc + 1);
+}
+
 void iop_init_desc(const iop_struct_t *desc, void *value)
 {
     memset(value, 0, desc->size);

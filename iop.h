@@ -541,6 +541,8 @@ bool qhash_iop_full_type_equal(const qhash_t *nonnull qhash,
  *
  * You always need to initialize your IOP structure before packing it, however
  * it is useless when you unpack a structure it will be done for you.
+ * If the struct contains a field with an union, that field will remain
+ * uninitialized.
  *
  * Prefer the macro version iop_init() instead of this low-level API.
  *
@@ -553,6 +555,26 @@ void iop_init_desc(const iop_struct_t * nonnull st, void * nonnull value);
         pfx##__t *__v = (value);                                             \
                                                                              \
         iop_init_desc(&pfx##__s, (void *)__v);                               \
+        __v;                                                                 \
+    })
+
+/** Initialize an IOP union with the specified tag.
+ *
+ * Prefer the macro version iop_init_union() instead of this low-level API.
+ *
+ * \param[in] st    The IOP union definition (__s).
+ * \param[in] value Pointer on the IOP structure to initialize.
+ * \param[in] tag   The union tag.
+ */
+void iop_init_union_desc(const iop_struct_t * nonnull st,
+                         void * nonnull value,
+                         const iop_field_t * nonnull fdesc);
+
+#define iop_init_union(pfx, value, field)  ({                                \
+        pfx##__t *__v = (value);                                             \
+                                                                             \
+        iop_init_union_desc(&pfx##__s, (void *)__v,                          \
+                            &IOP_UNION_FDESC(pfx, field));                   \
         __v;                                                                 \
     })
 

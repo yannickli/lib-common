@@ -209,6 +209,12 @@ struct MyStructG {
     bool m      = true;
 };
 
+union MyUnionD {
+5:  int         ua;
+2:  byte        ub;
+10: MyStructG   ug;
+};
+
 /* Constant folding */
 struct MyStructH {
     int a = 10 + 2 * 3 * 4 - 10;                    // 24 => 0x18
