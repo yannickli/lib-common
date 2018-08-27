@@ -28,6 +28,11 @@ struct MyStructA {
     pkg_a.A? weakRef2;
 };
 
+union MyUnionA {
+4:  long f4;
+1:  bool f1;
+};
+
 /* Test with an optimized structure (cf. iopc_struct_optimize). */
 struct Optimized {
 3:  bool f3;

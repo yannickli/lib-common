@@ -24,6 +24,9 @@
 /** Get the tag value of a union field. */
 #define IOP_UNION_TAG(pfx, field) pfx##__##field##__ft
 
+/** Get the description of a union field. */
+#define IOP_UNION_FDESC(pfx, field) pfx##__##field##__fdesc
+
 /** Get the tag value of a union void field.
  *
  * This will not work with non-void field, so we can prevent the use of
