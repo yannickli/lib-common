@@ -22,8 +22,11 @@ static int ssl_initialize(void *arg)
 {
     /* interpreting internal errors is a nightmare, we want human readable
      * messages */
+    SSL_load_error_strings();
+    SSL_library_init();
+#if (OPENSSL_VERSION_NUMBER < 0x1000200fL)
     OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
+#endif
     return 0;
 }
 
