@@ -187,7 +187,7 @@ ifneq ($(HAVE_NETINET_SCTP_H),)
 libcommon_SOURCES += net-sctp.c
 endif
 
-libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
+libcommon_SOURCES += compat/data.c compat/runtime.c
 libcommon_NOGENERATED = 1
 
 libcommon-iop_SOURCES = $(ioplibs)
