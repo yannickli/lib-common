@@ -25,6 +25,7 @@ $(var/wwwtool)exorcist: _npm_tools
 $(var/wwwtool)sorcery: _npm_tools
 $(var/wwwtool)jshint: _npm_tools
 $(var/wwwtool)tslint: _npm_tools
+$(var/wwwtool)webpack: _npm_tools
 
 $/node_modules/build.lock: $/package.json
 	$(msg/npm) ""
@@ -377,6 +378,16 @@ $~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/src/sh
 	echo '{ "browserify-shim": "./src/shim.js" }' > $$@
 
 $$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$(patsubst %.js,$~%.full.js,$($1_DEPENDS))))))
+endef
+
+# rule/webpack <MODULE>
+#
+# Add webpack target in current directory
+define rule/webpack
+$(1DV)www:: $1
+$1: $(var/wwwtool)/webpack
+	$(msg/PACK.js) $1
+	cd $(1DV) && $(var/wwwtool)webpack --progress
 endef
 
 #}}}
