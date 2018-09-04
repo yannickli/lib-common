@@ -879,16 +879,25 @@ def options(ctx):
 # {{{ compilation profiles
 
 
+def get_env_bool(ctx, name):
+    val = ctx.environ.get(name, 0)
+    if isinstance(val, basestring):
+        return val.lower() in ['true', 'yes', '1']
+    else:
+        return int(val) == 1
+
+
 def get_cflags(ctx, args):
     # TODO: maybe rewrite it in full-python after getting rid of make
     flags = ctx.cmd_and_log(ctx.env.CFLAGS_SH + args)
     return flags.strip().replace('"', '').split(' ')
 
 
-def profile_default(ctx, no_assert=False, allow_no_double_fpic=True,
+def profile_default(ctx,
+                    no_assert=False,
+                    allow_no_compress=True,
+                    allow_no_double_fpic=True,
                     fortify_source='-D_FORTIFY_SOURCE=2'):
-
-    # TODO: NOCOMPRESS (well, compress)
 
     # Load C/C++ compilers
     ctx.load('compiler_c')
@@ -943,8 +952,18 @@ def profile_default(ctx, no_assert=False, allow_no_double_fpic=True,
     if fortify_source is not None:
         ctx.env.CFLAGS += [fortify_source]
 
+    # Compression
+    # TODO: handle binaries compression
+    if allow_no_compress and get_env_bool(ctx, 'NOCOMPRESS'):
+        ctx.env.COMPRESS = False
+        log = 'no'
+    else:
+        ctx.env.COMPRESS = True
+        log = 'yes'
+    ctx.msg('Do compression', log)
+
     # Disable double fPIC compilation for shared libraries?
-    if allow_no_double_fpic and int(ctx.environ.get('NO_DOUBLE_FPIC', 0)):
+    if allow_no_double_fpic and get_env_bool(ctx, 'NO_DOUBLE_FPIC'):
         ctx.env.DOUBLE_FPIC = False
         ctx.env.CFLAGS += ['-fPIC']
         log = 'no'
@@ -970,7 +989,8 @@ def profile_debug(ctx):
 
 
 def profile_release(ctx):
-    profile_default(ctx, no_assert=True, allow_no_double_fpic=False)
+    profile_default(ctx, no_assert=True, allow_no_compress=False,
+                    allow_no_double_fpic=False)
     ctx.env.LINKFLAGS += ['-Wl,-x', '-rdynamic']
 
 
