@@ -130,6 +130,11 @@
 					"optional": true,
 					"private": true
 				},
+				"s": {
+					"type": "string",
+					"optional": true,
+					"deprecated": true
+				},
 				"u1": {
 					"type": "tstjson.MyUnionA",
 					"constraints": {

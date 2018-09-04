@@ -32,6 +32,25 @@ typedef tstgen__my_struct_a__t my_struct_a__t;
 typedef tstgen__my_struct_a__array_t my_struct_a__array_t;
 #define my_struct_a__s  tstgen__my_struct_a__s
 
+/*----- XXX private data, do not use directly -{{{-*/
+typedef enum tstgen__my_union_a__tag_t {
+    tstgen__my_union_a__f1__ft = 1,
+    tstgen__my_union_a__f4__ft = 4,
+} tstgen__my_union_a__tag_t;
+
+#define tstgen__my_union_a__f1__fdesc  tstgen__my_union_a__s.fields[0]
+#define tstgen__my_union_a__f4__fdesc  tstgen__my_union_a__s.fields[1]
+/*-}}}-*/
+struct tstgen__my_union_a__t {
+    tstgen__my_union_a__tag_t iop_tag;
+    union {
+        bool     f1;
+        int64_t  f4;
+    };
+};
+EXPORT iop_struct_t const tstgen__my_union_a__s;
+EXPORT iop_struct_t const * const nonnull tstgen__my_union_a__sp;
+#define tstgen__my_union_a__get(u, field)       IOP_UNION_GET(tstgen__my_union_a, u, field)
 struct tstgen__optimized__t {
     bool     f1;
     bool     f3;

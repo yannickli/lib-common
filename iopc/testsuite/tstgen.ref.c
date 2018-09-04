@@ -227,6 +227,45 @@ const iop_struct_t tstgen__my_struct_a__s = {
 iop_struct_t const * const tstgen__my_struct_a__sp = &tstgen__my_struct_a__s;
 
 /* }}} */
+/* Union tstgen.MyUnionA {{{ */
+
+static iop_field_t const tstgen__my_union_a__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("f1"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(tstgen__my_union_a__t, f1),
+        .size      = fieldsizeof(tstgen__my_union_a__t, f1),
+    },
+    {
+        .name      = LSTR_IMMED("f4"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_I64,
+        .data_offs = offsetof(tstgen__my_union_a__t, f4),
+        .size      = fieldsizeof(tstgen__my_union_a__t, f4),
+    },
+};
+static int const iop__ranges__3[] = {
+    0, 1,
+    1, 4,
+    2,
+};
+const iop_struct_t tstgen__my_union_a__s = {
+    .fullname   = LSTR_IMMED("tstgen.MyUnionA"),
+    .fields     = tstgen__my_union_a__desc_fields,
+    .ranges     = iop__ranges__3,
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .fields_len = countof(tstgen__my_union_a__desc_fields),
+    .size       = sizeof(tstgen__my_union_a__t),
+    .is_union   = true,
+};
+iop_struct_t const * const tstgen__my_union_a__sp = &tstgen__my_union_a__s;
+
+/* }}} */
 /* Structure tstgen.Optimized {{{ */
 
 static iop_field_t const tstgen__optimized__desc_fields[] = {
@@ -267,15 +306,15 @@ static iop_field_t const tstgen__optimized__desc_fields[] = {
         .size      = fieldsizeof(tstgen__optimized__t, f4),
     },
 };
-static int const iop__ranges__3[] = {
+static int const iop__ranges__4[] = {
     0, 1,
     4,
 };
 const iop_struct_t tstgen__optimized__s = {
     .fullname   = LSTR_IMMED("tstgen.Optimized"),
     .fields     = tstgen__optimized__desc_fields,
-    .ranges     = iop__ranges__3,
-    .ranges_len = countof(iop__ranges__3) / 2,
+    .ranges     = iop__ranges__4,
+    .ranges_len = countof(iop__ranges__4) / 2,
     .fields_len = countof(tstgen__optimized__desc_fields),
     .size       = sizeof(tstgen__optimized__t),
 };
@@ -286,7 +325,7 @@ iop_struct_t const * const tstgen__optimized__sp = &tstgen__optimized__s;
 
 static iop_field_t const tstgen__my_class_a__desc_fields[] = {
 };
-static int const iop__ranges__4[] = {
+static int const iop__ranges__5[] = {
     0,
 };
 static const iop_class_attrs_t tstgen__my_class_a__class_s = {
@@ -295,8 +334,8 @@ static const iop_class_attrs_t tstgen__my_class_a__class_s = {
 const iop_struct_t tstgen__my_class_a__s = {
     .fullname   = LSTR_IMMED("tstgen.MyClassA"),
     .fields     = tstgen__my_class_a__desc_fields,
-    .ranges     = iop__ranges__4,
-    .ranges_len = countof(iop__ranges__4) / 2,
+    .ranges     = iop__ranges__5,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .fields_len = countof(tstgen__my_class_a__desc_fields),
     .size       = sizeof(tstgen__my_class_a__t),
     .flags      = 13,
@@ -324,15 +363,15 @@ static iop_field_t const tstgen__my_iface_a__fun_a_args__desc_fields[] = {
         .size      = fieldsizeof(tstgen__my_iface_a__fun_a_args__t, a),
     },
 };
-static int const iop__ranges__5[] = {
+static int const iop__ranges__6[] = {
     0, 1,
     1,
 };
 const iop_struct_t tstgen__my_iface_a__fun_a_args__s = {
     .fullname   = LSTR_IMMED("tstgen.MyIfaceA.funAArgs"),
     .fields     = tstgen__my_iface_a__fun_a_args__desc_fields,
-    .ranges     = iop__ranges__5,
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges     = iop__ranges__6,
+    .ranges_len = countof(iop__ranges__6) / 2,
     .fields_len = countof(tstgen__my_iface_a__fun_a_args__desc_fields),
     .size       = sizeof(tstgen__my_iface_a__fun_a_args__t),
 };
@@ -415,6 +454,7 @@ static const iop_enum_t *const tstgen__enums[] = {
 
 static const iop_struct_t *const tstgen__structs[] = {
     &tstgen__my_struct_a__s,
+    &tstgen__my_union_a__s,
     &tstgen__optimized__s,
     &tstgen__my_class_a__s,
     NULL,

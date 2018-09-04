@@ -623,11 +623,14 @@ static void module_method_register_cb(module_method_impl_t *method,
 
 static void module_method_register_all_cb(void)
 {
-    t_scope;
+    /* XXX: Do not use t_scope here. This function can be called by
+     *      pthread_fork hooks and the t_pool_g is not necessarily
+     *      initialized here. */
     qv_t(module) sorted_modules;
     SB_1k(err);
 
-    t_qv_init(&sorted_modules, qm_len(module, &_G.modules));
+    qv_init(&sorted_modules);
+    qv_grow(&sorted_modules, qm_len(module, &_G.modules));
     if (modules_topo_sort_rev(&_G.modules, &sorted_modules, &err) < 0) {
         e_fatal("%*pM", SB_FMT_ARG(&err));
     }
@@ -638,6 +641,7 @@ static void module_method_register_all_cb(void)
         qv_clear(&m->callbacks);
         module_method_register_cb(m, &sorted_modules);
     }
+    qv_wipe(&sorted_modules);
     _G.methods_dirty = false;
 }
 

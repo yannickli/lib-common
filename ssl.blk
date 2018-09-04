@@ -1109,7 +1109,7 @@ ssize_t ssl_writev(int fd, const struct iovec *iov, int iovcnt, void *priv)
             base += bufrest;
             len -= bufrest;
 
-            if (ssl_write_chunk(ssl, buf, buflen, &total_wr) < 0) {
+            if (ssl_write_chunk(ssl, buf, BUFSIZ, &total_wr) < 0) {
                 goto end;
             }
             buflen = 0;

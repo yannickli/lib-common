@@ -456,6 +456,50 @@ void iop_set_opt_field(void *ptr, const iop_field_t *field)
     }
 }
 
+static int
+iop_field_set_defval(const iop_field_t *fdesc, void *ptr)
+{
+    assert (fdesc->repeat == IOP_R_DEFVAL);
+    switch (fdesc->type) {
+      case IOP_T_I8: case IOP_T_U8:
+        *(uint8_t *)ptr  = fdesc->u1.defval_u64;
+        break;
+      case IOP_T_I16: case IOP_T_U16:
+        *(uint16_t *)ptr = fdesc->u1.defval_u64;
+        break;
+      case IOP_T_ENUM:
+        *(uint32_t *)ptr = fdesc->u0.defval_enum;
+        break;
+      case IOP_T_I32: case IOP_T_U32:
+        *(uint32_t *)ptr = fdesc->u1.defval_u64;
+        break;
+      case IOP_T_I64: case IOP_T_U64:
+        *(uint64_t *)ptr = fdesc->u1.defval_u64;
+        break;
+      case IOP_T_BOOL:
+        *(bool *)ptr     = !!fdesc->u1.defval_u64; /* Map to 0/1 */
+        break;
+      case IOP_T_DOUBLE:
+        *(double *)ptr   = fdesc->u1.defval_d;
+        break;
+      case IOP_T_STRING:
+      case IOP_T_XML:
+      case IOP_T_DATA:
+        *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
+                                     fdesc->u0.defval_len);
+        break;
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        return -1;
+
+      case IOP_T_VOID:
+        assert (false);
+        return -1;
+    }
+
+    return 0;
+}
+
 lstr_t t_camelcase_to_c(lstr_t s)
 {
     t_SB(buf, 64);
@@ -1108,48 +1152,33 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
             iop_init_fields(ptr, desc->fields, desc->fields +
                             desc->fields_len);
         } else
-        if (fdesc->repeat == IOP_R_DEFVAL) {
-            switch (fdesc->type) {
-              case IOP_T_I8: case IOP_T_U8:
-                *(uint8_t *)ptr  = fdesc->u1.defval_u64;
-                break;
-              case IOP_T_I16: case IOP_T_U16:
-                *(uint16_t *)ptr = fdesc->u1.defval_u64;
-                break;
-              case IOP_T_ENUM:
-                *(uint32_t *)ptr = fdesc->u0.defval_enum;
-                break;
-              case IOP_T_I32: case IOP_T_U32:
-                *(uint32_t *)ptr = fdesc->u1.defval_u64;
-                break;
-              case IOP_T_I64: case IOP_T_U64:
-                *(uint64_t *)ptr = fdesc->u1.defval_u64;
-                break;
-              case IOP_T_BOOL:
-                *(bool *)ptr     = !!fdesc->u1.defval_u64; /* Map to 0/1 */
-                break;
-              case IOP_T_DOUBLE:
-                *(double *)ptr   = fdesc->u1.defval_d;
-                break;
-              case IOP_T_STRING:
-              case IOP_T_XML:
-              case IOP_T_DATA:
-                *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
-                                             fdesc->u0.defval_len);
-                break;
-              case IOP_T_UNION:
-              case IOP_T_STRUCT:
-              case IOP_T_VOID:
-                e_panic("unsupported");
-                continue;
-            }
+        if (fdesc->repeat == IOP_R_DEFVAL
+        &&  iop_field_set_defval(fdesc, ptr) < 0)
+        {
+            e_panic("should not happen");
         }
     }
 }
+
+void iop_init_union_desc(const iop_struct_t *desc, void *value,
+                         const iop_field_t *fdesc)
+{
+    memset(value, 0, desc->size);
+
+    if (!expect(desc->is_union)) {
+        return;
+    }
+    iop_union_set_tag(desc, fdesc->tag, value);
+    iop_init_fields(value, fdesc, fdesc + 1);
+}
+
 void iop_init_desc(const iop_struct_t *desc, void *value)
 {
     memset(value, 0, desc->size);
 
+    if (desc->is_union) {
+        return;
+    }
     if (iop_struct_is_class(desc)) {
         const iop_struct_t **__vptr = value;
         const iop_struct_t *parent = desc;
@@ -4359,40 +4388,7 @@ int iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
       } return 0;
 
       case IOP_R_DEFVAL:
-        switch (fdesc->type) {
-          case IOP_T_I8: case IOP_T_U8:
-            *(uint8_t *)ptr  = fdesc->u1.defval_u64;
-            break;
-          case IOP_T_I16: case IOP_T_U16:
-            *(uint16_t *)ptr = fdesc->u1.defval_u64;
-            break;
-          case IOP_T_ENUM:
-            *(uint32_t *)ptr = fdesc->u0.defval_enum;
-            break;
-          case IOP_T_I32: case IOP_T_U32:
-            *(uint32_t *)ptr = fdesc->u1.defval_u64;
-            break;
-          case IOP_T_I64: case IOP_T_U64:
-            *(uint64_t *)ptr = fdesc->u1.defval_u64;
-            break;
-          case IOP_T_BOOL:
-            *(bool *)ptr     = !!fdesc->u1.defval_u64; /* Map to 0/1 */
-            break;
-          case IOP_T_DOUBLE:
-            *(double *)ptr   = fdesc->u1.defval_d;
-            break;
-          case IOP_T_STRING:
-          case IOP_T_XML:
-          case IOP_T_DATA:
-            *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data,
-                                         fdesc->u0.defval_len);
-            break;
-          case IOP_T_VOID:
-            assert (false);
-            return -1;
-          default:
-            return -1;
-        }
+        RETHROW(iop_field_set_defval(fdesc, ptr));
         break;
 
       case IOP_R_REPEATED: {
