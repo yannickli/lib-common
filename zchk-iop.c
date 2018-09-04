@@ -1034,15 +1034,20 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
                                const char *exp_err)
 {
     t_scope;
+    static int packing_cnt;
+    const char *dir;
     const char *path;
     SB_1k(err);
     int res;
 
+    dir = t_fmt("%*pM/packing-%d", LSTR_FMT_ARG(z_tmpdir_g), packing_cnt++);
+    mkdir_p(dir, 0755);
+
     /* Pack val in a file, using the sub_files. */
-    path = t_fmt("%*pM/main.json", LSTR_FMT_ARG(z_tmpdir_g));
+    path = t_fmt("%s/main.json", dir);
 
     res = __iop_jpack_file(path, FILE_WRONLY | FILE_CREATE | FILE_TRUNC,
-                           0644, st, val, 0, sub_files, &err);
+                           0444, st, val, 0, sub_files, &err);
 
     if (exp_err) {
         Z_ASSERT_NEG(res);
@@ -1057,7 +1062,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
         t_scope;                                                             \
         void *_val = NULL;                                                   \
                                                                              \
-        path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_tmpdir_g), _file);            \
+        path = t_fmt("%s/%s", dir, _file);                                   \
         Z_ASSERT_N(t_iop_junpack_ptr_file(path, _st, &_val, 0, NULL, &err),  \
                    "cannot unpack `%s`: %*pM", path, SB_FMT_ARG(&err));      \
         Z_ASSERT_IOPEQUAL_DESC(_st, _val, _exp);                             \
@@ -1076,7 +1081,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
             const lstr_t *content = sub_file->val;
             lstr_t file_map;
 
-            path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_tmpdir_g), sub_file->path);
+            path = t_fmt("%s/%s", dir, sub_file->path);
             Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ,
                                            MAP_SHARED));
             Z_ASSERT_LSTREQUAL(file_map, *content);
@@ -2770,6 +2775,52 @@ Z_GROUP_EXPORT(iop)
         ADD_SUB_FILE(&tstiop__my_struct_j__s, &obj_first_field.k.j, "k.j",
                      "j.json");
         T_OK(tstiop__my_struct_m, &obj_first_field);
+
+        /* Dumping the exact same values in the same file twice is fine */
+        /* For structs */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b", "b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b->b, "b.b",
+                     "c.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1], "c[1]",
+                     "c.json");
+        T_OK(tstiop__my_struct_c, &obj_struct);
+
+        /* And for strings */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a[0]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a[2]", "s2.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b[1]", "s1.txt");
+        T_OK(tstiop__my_struct_f, &obj_string_array);
+
+        /* Dumping different types in the same file twice is not ok */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_referenced_struct__s, obj_ref.s, "s",
+                     "s.json");
+        ADD_SUB_FILE(&tstiop__my_referenced_union__s,  obj_ref.u, "u",
+                     "s.json");
+        exp_err = "subfile `s.json` is written twice with different iop "
+                  "types `struct` vs `union`";
+        T_KO(tstiop__my_ref_struct, &obj_ref, exp_err);
+
+        /* Dumping different values in the same file twice is not ok */
+        /* For structs */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b", "c.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b->b, "b.b",
+                     "b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1], "c[1]",
+                     "c.json");
+        exp_err = "subfile `c.json` is written twice with different values";
+        T_KO(tstiop__my_struct_c, &obj_struct, exp_err);
+
+        /* And for strings */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a[0]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a[2]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b[1]", "s2.txt");
+        exp_err = "subfile `s1.txt` is written twice with different values";
+        T_KO(tstiop__my_struct_f, &obj_string_array, exp_err);
 
 #undef T
 #undef T_OK

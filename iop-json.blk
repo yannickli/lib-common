@@ -2059,8 +2059,18 @@ CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, __t_iop_junpack_ptr_ps)
 /*-}}}-*/
 /* {{{ jpack */
 
+typedef struct iop_jpack_subfile_value_t {
+    /** Fulltype of the value of the subfile. */
+    iop_full_type_t full_type;
+
+    /** Pointer to the value of the subfile. */
+    const void *ptr;
+} iop_jpack_subfile_value_t;
+
 qm_kvec_t(iop_jpack_paths, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
-qm_khptr_ckey_t(iop_jpack_sub_files, void, qm_t(iop_jpack_paths));
+qm_khptr_ckey_t(iop_jpack_subfile_paths, void, qm_t(iop_jpack_paths));
+qm_kvec_t(iop_jpack_subfile_value, lstr_t, iop_jpack_subfile_value_t,
+          qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct jpack_file_ctx_t {
     sb_t *err;
@@ -2070,12 +2080,18 @@ typedef struct jpack_file_ctx_t {
     enum file_flags file_flags;
     mode_t          file_mode;
 
-    bool                      has_sub_files;
-    qm_t(iop_jpack_sub_files) sub_files;
-    qv_t(str)                 created_sub_files;
-    qv_t(str)                 created_sub_dirs;
-    const char               *recursive_file_path;
+    bool has_sub_files;
+    const char *recursive_file_path;
     qv_t(iop_json_field_path) field_paths;
+
+    /* Created subdirs */
+    qv_t(str) created_subdirs;
+
+    /* Created subfiles value by fullname. */
+    qm_t(iop_jpack_subfile_value) subfiles_values;
+
+    /* Subfiles paths by ptr. */
+    qm_t(iop_jpack_subfile_paths) subfiles_paths;
 } jpack_file_ctx_t;
 
 static const void *get_struct_field_value(const iop_field_t *fdesc,
@@ -2380,10 +2396,11 @@ static lstr_t get_subfile_file_path(const void *value,
     int pos;
 
     if (file_ctx && file_ctx->has_sub_files
-    && (pos = qm_find(iop_jpack_sub_files, &file_ctx->sub_files, value)) >= 0)
+    && (pos = qm_find(iop_jpack_subfile_paths, &file_ctx->subfiles_paths,
+                      value)) >= 0)
     {
         t_scope;
-        qm_t(iop_jpack_paths) *paths = &file_ctx->sub_files.values[pos];
+        qm_t(iop_jpack_paths) *paths = &file_ctx->subfiles_paths.values[pos];
         lstr_t iop_path = t_get_current_field_path(&file_ctx->field_paths);
 
         qm_fetch(iop_jpack_paths, paths, &iop_path, &file_path, LSTR_NULL_V);
@@ -2392,23 +2409,133 @@ static lstr_t get_subfile_file_path(const void *value,
     return file_path;
 }
 
-static int write_field(const iop_struct_t *st, const void *value,
+static void build_subfile_value(const iop_field_t *fdesc, const void *ptr,
+                                iop_jpack_subfile_value_t *value)
+{
+    p_clear(value, 1);
+
+    value->full_type.type = fdesc->type;
+    switch (fdesc->type) {
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_BOOL:
+      case IOP_T_DOUBLE:
+      case IOP_T_XML:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_VOID:
+        break;
+
+      case IOP_T_ENUM:
+        value->full_type.en = fdesc->u1.en_desc;
+        break;
+
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+        value->full_type.st = fdesc->u1.st_desc;
+        break;
+    }
+
+    value->ptr = ptr;
+}
+
+static int check_subfile_value(const iop_field_t *fdesc, const void *ptr,
+                               const iop_jpack_subfile_value_t *value,
+                               lstr_t subfile_path, sb_t *err)
+{
+    iop_type_t value_type = value->full_type.type;
+
+    if (value_type != fdesc->type
+    &&  (!iop_type_is_string(value_type) || !iop_type_is_string(fdesc->type)))
+    {
+        sb_addf(err, "subfile `%*pM` is written twice with different iop "
+                "types " "`%s` vs `%s`", LSTR_FMT_ARG(subfile_path),
+                iop_type_get_string_desc(value->full_type.type),
+                iop_type_get_string_desc(fdesc->type));
+        return -1;
+    }
+
+    switch (value_type) {
+      case IOP_T_ENUM:
+        if (value->full_type.en != fdesc->u1.en_desc) {
+            sb_addf(err, "subfile `%*pM` is written twice with different "
+                    "enum types `%*pM` vs `%*pM`", LSTR_FMT_ARG(subfile_path),
+                    LSTR_FMT_ARG(value->full_type.en->fullname),
+                    LSTR_FMT_ARG(fdesc->u1.en_desc->fullname));
+            return -1;
+        }
+        /* fallthrough */
+
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_BOOL:
+      case IOP_T_DOUBLE:
+      case IOP_T_XML:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_VOID:
+        if (!iop_value_equals(value_type, value->ptr, ptr)) {
+            goto err_val;
+        }
+        break;
+
+      case IOP_T_STRUCT:
+        if (iop_struct_is_class(value->full_type.st)) {
+            if (!iop_struct_is_class(fdesc->u1.st_desc)
+            ||  !iop_equals_desc(value->full_type.st, value->ptr, ptr))
+            {
+                goto err_val;
+            }
+            break;
+        }
+        /* fallthrough */
+
+      case IOP_T_UNION:
+        if (value->full_type.st != fdesc->u1.st_desc
+        ||  !iop_equals_desc(value->full_type.st, value->ptr, ptr))
+        {
+            goto err_val;
+        }
+        break;
+    }
+
+    return 0;
+
+  err_val:
+    sb_addf(err, "subfile `%*pM` is written twice with different values",
+            LSTR_FMT_ARG(subfile_path));
+    return -1;
+}
+
+static int write_field(const iop_field_t *fdesc, const void *value,
                        iop_jpack_writecb_f *writecb, void *priv,
                        unsigned flags, jpack_file_ctx_t *file_ctx,
                        int (^do_inline)(void),
                        int (^do_include)(const char *path))
 {
-    int ret;
     int res = 0;
-    lstr_t sub_file_path;
+    int ret;
+    int pos;
+    lstr_t subfile_path;
     char fullpath[PATH_MAX];
-    char fullpath_dir[PATH_MAX];
+    lstr_t fullpath_lstr;
     char relative_path[PATH_MAX];
-    const char *prev_recursive_file_path;
 
     /* Check if value must be packed in a different file. */
-    sub_file_path = get_subfile_file_path(value, file_ctx);
-    if (!sub_file_path.s) {
+    subfile_path = get_subfile_file_path(value, file_ctx);
+    if (!subfile_path.s) {
         /* This field shoud be packed inline. */
         return do_inline();
     }
@@ -2417,11 +2544,11 @@ static int write_field(const iop_struct_t *st, const void *value,
     /* This field should be written in a dedicated file.
      * Get include full path. */
     if (path_extend(fullpath, file_ctx->file_dir, "%*pM",
-                    LSTR_FMT_ARG(sub_file_path)) < 0)
+                    LSTR_FMT_ARG(subfile_path)) < 0)
     {
         if (file_ctx->err) {
             sb_addf(file_ctx->err, "cannot get fullpath of `%*pM`",
-                    LSTR_FMT_ARG(sub_file_path));
+                    LSTR_FMT_ARG(subfile_path));
         }
         return -1;
     }
@@ -2434,42 +2561,62 @@ static int write_field(const iop_struct_t *st, const void *value,
         if (len < 0) {
             if (file_ctx->err) {
                 sb_addf(file_ctx->err, "cannot get relative path of `%*pM`",
-                        LSTR_FMT_ARG(sub_file_path));
+                        LSTR_FMT_ARG(subfile_path));
             }
             return -1;
         }
-        sub_file_path = LSTR_INIT_V(relative_path, len);
+        subfile_path = LSTR_INIT_V(relative_path, len);
     }
 
-    prev_recursive_file_path = file_ctx->recursive_file_path;
-    file_ctx->recursive_file_path = fullpath;
+    fullpath_lstr = LSTR(fullpath);
+    pos = qm_reserve(iop_jpack_subfile_value, &file_ctx->subfiles_values,
+                     &fullpath_lstr, 0);
+    if (!(pos & QHASH_COLLISION)) {
+        char fullpath_dir[PATH_MAX];
+        const char *prev_recursive_file_path;
 
-    /* Ensure directory for subfile exists. */
-    path_dirname(fullpath_dir, sizeof(fullpath_dir), fullpath);
-    ret = mkdir_p(fullpath_dir, 0755);
-    if (ret < 0) {
-        if (file_ctx->err) {
-            sb_addf(file_ctx->err, "cannot create directory `%s`: %m",
-                    fullpath_dir);
+        /* Ensure directory for subfile exists. */
+        path_dirname(fullpath_dir, sizeof(fullpath_dir), fullpath);
+        ret = mkdir_p(fullpath_dir, 0755);
+        if (ret < 0) {
+            if (file_ctx->err) {
+                sb_addf(file_ctx->err, "cannot create directory `%s`: %m",
+                        fullpath_dir);
+            }
+            return -1;
         }
-        return -1;
-    }
-    if (ret == 1) {
-        qv_append(&file_ctx->created_sub_dirs, p_strdup(fullpath_dir));
-    }
+        if (ret == 1) {
+            /* Directory has been created for the subfile. */
+            qv_append(&file_ctx->created_subdirs, p_strdup(fullpath_dir));
+        }
 
-    /* Write include file. */
-    if (do_include(fullpath) < 0) {
-        return -1;
-    }
-    file_ctx->recursive_file_path = prev_recursive_file_path;
+        /* Create subfile value. */
+        file_ctx->subfiles_values.keys[pos] = lstr_dup(fullpath_lstr);
+        build_subfile_value(fdesc, value,
+                            &file_ctx->subfiles_values.values[pos]);
 
-    /* Remember include file as a created file. */
-    qv_append(&file_ctx->created_sub_files, p_strdup(fullpath));
+        /* Push recursive file path. */
+        prev_recursive_file_path = file_ctx->recursive_file_path;
+        file_ctx->recursive_file_path = fullpath;
+
+        /* Write include file. */
+        if (do_include(fullpath) < 0) {
+            return -1;
+        }
+
+        /* Pop recursive file path. */
+        file_ctx->recursive_file_path = prev_recursive_file_path;
+    } else {
+        /* File has already been written, check if it is the same as before */
+        pos ^= QHASH_COLLISION;
+        RETHROW(check_subfile_value(fdesc, value,
+                                    &file_ctx->subfiles_values.values[pos],
+                                    subfile_path, file_ctx->err));
+    }
 
     /* Write include in original path. */
     PUTS("@include(");
-    res += RETHROW(write_string(sub_file_path, IOP_T_STRING, flags, writecb,
+    res += RETHROW(write_string(subfile_path, IOP_T_STRING, flags, writecb,
                                 priv));
     PUTS(")");
 
@@ -2612,8 +2759,8 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_UNION:
               case IOP_T_STRUCT:
                 v = get_struct_field_value(fdesc, ptr, j);
-                tmp_res = write_field(desc, v, writecb, priv, flags, file_ctx,
-                                      ^int (void) {
+                tmp_res = write_field(fdesc, v, writecb, priv, flags,
+                                      file_ctx, ^int (void) {
                     /* Write the field inline. */
                     return pack_txt(fdesc->u1.st_desc, v, lvl, writecb,
                                     priv, flags, file_ctx);
@@ -2632,7 +2779,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_DATA: {
                 const lstr_t *sv = &IOP_FIELD(const lstr_t, ptr, j);
 
-                tmp_res = write_field(desc, sv, writecb, priv, flags,
+                tmp_res = write_field(fdesc, sv, writecb, priv, flags,
                                       file_ctx, ^int (void) {
                     /* Write the field inline. */
                     return write_string(*sv, fdesc->type, flags, writecb,
@@ -2824,7 +2971,8 @@ static int init_jpack_sub_files(const iop_struct_t *st, const void *value,
                                 const qv_t(iop_json_subfile) *subfiles,
                                 jpack_file_ctx_t *ctx, sb_t *err)
 {
-    qm_init(iop_jpack_sub_files, &ctx->sub_files);
+    qm_init(iop_jpack_subfile_paths, &ctx->subfiles_paths);
+    qm_init(iop_jpack_subfile_value, &ctx->subfiles_values);
 
     tab_for_each_ptr(subfile, subfiles) {
         const iop_field_t *fdesc;
@@ -2851,11 +2999,12 @@ static int init_jpack_sub_files(const iop_struct_t *st, const void *value,
          * path along with the pointer.
          */
 
-        pos = qm_reserve(iop_jpack_sub_files, &ctx->sub_files, ptr, 0);
+        pos = qm_reserve(iop_jpack_subfile_paths, &ctx->subfiles_paths, ptr,
+                         0);
         if (pos & QHASH_COLLISION) {
-            paths = &ctx->sub_files.values[pos ^ QHASH_COLLISION];
+            paths = &ctx->subfiles_paths.values[pos ^ QHASH_COLLISION];
         } else {
-            paths = &ctx->sub_files.values[pos];
+            paths = &ctx->subfiles_paths.values[pos];
             qm_init(iop_jpack_paths, paths);
         }
 
@@ -2908,22 +3057,24 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
 
     if (res < 0) {
         IGNORE(unlink(filename));
-        tab_for_each_entry(file, &ctx.created_sub_files) {
-            IGNORE(unlink(file));
+        qm_for_each_pos(iop_jpack_subfile_value, pos, &ctx.subfiles_values) {
+            IGNORE(unlink(ctx.subfiles_values.keys[pos].s));
         }
-        tab_for_each_entry(dir, &ctx.created_sub_dirs) {
+        tab_for_each_entry(dir, &ctx.created_subdirs) {
             IGNORE(rmdir_r(dir, false));
         }
     }
 
     if (ctx.has_sub_files) {
+        qm_deep_wipe(iop_jpack_subfile_value, &ctx.subfiles_values, lstr_wipe,
+                     IGNORE);
 #define wipe(_qm)  qm_wipe(iop_jpack_paths, (_qm))
-        qm_deep_wipe(iop_jpack_sub_files, &ctx.sub_files, IGNORE, wipe);
+        qm_deep_wipe(iop_jpack_subfile_paths, &ctx.subfiles_paths, IGNORE,
+                     wipe);
 #undef wipe
      }
 
-    qv_deep_wipe(&ctx.created_sub_files, p_delete);
-    qv_deep_wipe(&ctx.created_sub_dirs,  p_delete);
+    qv_deep_wipe(&ctx.created_subdirs,  p_delete);
     qv_wipe(&ctx.field_paths);
     return res;
 }
