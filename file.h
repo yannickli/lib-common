@@ -38,6 +38,10 @@ typedef struct file_t {
     sb_t obuf;
 } file_t;
 
+/*----- helpers -----*/
+
+__must_check__ int file_flags_to_open_flags(int flags);
+
 /*----- open/close -----*/
 __must_check__ file_t *file_open_at(int dfd, const char *path,
                                     unsigned flags, mode_t mode);

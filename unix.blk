@@ -596,12 +596,13 @@ ssize_t xwrite(int fd, const void *data, ssize_t len)
     return to_write;
 }
 
-static ssize_t xwrite_file_with_flags(const char *path, const void *data,
-                                      ssize_t dlen, int flags)
+ssize_t xwrite_file_extended(const char * nonnull path,
+                             const void * nonnull data,
+                             ssize_t dlen, int flags, mode_t mode)
 {
     int fd, res;
 
-    fd = RETHROW(open(path, flags, 0644));
+    fd = RETHROW(open(path, flags, mode));
     res = xwrite(fd, data, dlen);
     if (res < 0) {
         int save_errno = errno;
@@ -612,18 +613,6 @@ static ssize_t xwrite_file_with_flags(const char *path, const void *data,
     }
     close(fd);
     return dlen;
-}
-
-ssize_t xwrite_file(const char *path, const void *data, ssize_t dlen)
-{
-    return xwrite_file_with_flags(path, data, dlen,
-                                  O_WRONLY | O_CREAT | O_TRUNC);
-}
-
-ssize_t xappend_to_file(const char *path, const void *data, ssize_t dlen)
-{
-    return xwrite_file_with_flags(path, data, dlen,
-                                  O_WRONLY | O_CREAT | O_APPEND);
 }
 
 ssize_t xwritev(int fd, struct iovec *iov, int iovcnt)

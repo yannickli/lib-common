@@ -220,12 +220,26 @@ static inline size_t iovec_len(const struct iovec * nonnull iov, int iovlen)
 
 int iovec_vector_kill_first(qv_t(iovec) * nonnull iovs, ssize_t len);
 
+__must_check__ ssize_t
+xwrite_file_extended(const char * nonnull path, const void * nonnull data,
+                     ssize_t dlen, int flags, mode_t mode);
 
-__must_check__ ssize_t xwrite_file(const char * nonnull file,
-                                   const void * nonnull data, ssize_t dlen);
-__must_check__ ssize_t xappend_to_file(const char * nonnull file,
-                                       const void * nonnull data,
-                                       ssize_t dlen);
+static inline __must_check__ ssize_t
+xwrite_file(const char * nonnull path, const void * nonnull data,
+            ssize_t dlen)
+{
+    return xwrite_file_extended(path, data, dlen,
+                                O_WRONLY | O_CREAT | O_TRUNC, 0644);
+}
+
+static inline __must_check__ ssize_t
+xappend_to_file(const char * nonnull path, const void * nonnull data,
+                ssize_t dlen)
+{
+    return xwrite_file_extended(path, data, dlen,
+                                O_WRONLY | O_CREAT | O_APPEND, 0644);
+}
+
 __must_check__ ssize_t xwrite(int fd, const void * nonnull data,
                               ssize_t dlen);
 __must_check__ ssize_t xwritev(int fd, struct iovec * nonnull iov,

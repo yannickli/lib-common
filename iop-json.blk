@@ -2485,6 +2485,31 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
          iop_jpack_writecb_f *writecb, void *priv, unsigned flags,
          jpack_file_ctx_t *file_ctx);
 
+static int write_subfile_string(const char *path, lstr_t value,
+                                jpack_file_ctx_t *ctx)
+{
+    int oflags = file_flags_to_open_flags(ctx->file_flags);
+
+    if (unlikely(oflags < 0)) {
+        if (ctx->err) {
+            sb_addf(ctx->err, "cannot convert file flags `0x%02x` to open "
+                    "flags: %m", ctx->file_flags);
+        }
+        return -1;
+    }
+
+    if (xwrite_file_extended(path, value.data, value.len, oflags,
+                             ctx->file_mode) < 0)
+    {
+        if (ctx->err) {
+            sb_addf(ctx->err, "cannot write `%s`: %m", path);
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
 static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                       iop_jpack_writecb_f *writecb, void *priv,
                       unsigned flags, jpack_file_ctx_t *file_ctx, bool *first)
@@ -2615,14 +2640,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 },
                 ^int (const char *path) {
                     /* Write the field in a dedicated file. */
-                    if (xwrite_file(path, sv->data, sv->len) < 0) {
-                        if (file_ctx->err) {
-                            sb_addf(file_ctx->err, "cannot write `%s`: %m",
-                                    path);
-                        }
-                        return -1;
-                    }
-                    return 0;
+                    return write_subfile_string(path, *sv, file_ctx);
                 });
 
                 res += RETHROW(tmp_res);
