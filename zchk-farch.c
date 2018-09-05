@@ -13,7 +13,7 @@
 
 #include "z.h"
 #include "farch.h"
-#include "zchk-farch.fc.h"
+#include "zchk-farch.fc.c"
 
 Z_GROUP_EXPORT(farch)
 {

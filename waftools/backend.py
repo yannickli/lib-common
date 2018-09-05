@@ -523,7 +523,7 @@ class Fc2c(Task):
 
 @extension('.fc')
 def process_fc(self, node):
-    h_node = node.change_ext_src('.fc.h')
+    h_node = node.change_ext_src('.fc.c')
 
     if not h_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(h_node)

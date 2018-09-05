@@ -1,5 +1,5 @@
 *.blk.c
-*.fc.h
+*.fc.c
 *.pyo
 *.pyc
 *.iop.ts
