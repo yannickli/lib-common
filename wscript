@@ -91,7 +91,7 @@ def configure(ctx):
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
 
     # JAVA
-    if int(ctx.environ.get('NO_JAVA', 0)):
+    if ctx.get_env_bool('NO_JAVA'):
         Logs.warn('disabling JAVA support')
     else:
         try:

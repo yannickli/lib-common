@@ -879,14 +879,6 @@ def options(ctx):
 # {{{ compilation profiles
 
 
-def get_env_bool(ctx, name):
-    val = ctx.environ.get(name, 0)
-    if isinstance(val, basestring):
-        return val.lower() in ['true', 'yes', '1']
-    else:
-        return int(val) == 1
-
-
 def get_cflags(ctx, args):
     # TODO: maybe rewrite it in full-python after getting rid of make
     flags = ctx.cmd_and_log(ctx.env.CFLAGS_SH + args)
@@ -954,7 +946,7 @@ def profile_default(ctx,
 
     # Compression
     # TODO: handle binaries compression
-    if allow_no_compress and get_env_bool(ctx, 'NOCOMPRESS'):
+    if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
         ctx.env.COMPRESS = False
         log = 'no'
     else:
@@ -963,7 +955,7 @@ def profile_default(ctx,
     ctx.msg('Do compression', log)
 
     # Disable double fPIC compilation for shared libraries?
-    if allow_no_double_fpic and get_env_bool(ctx, 'NO_DOUBLE_FPIC'):
+    if allow_no_double_fpic and ctx.get_env_bool('NO_DOUBLE_FPIC'):
         ctx.env.DOUBLE_FPIC = False
         ctx.env.CFLAGS += ['-fPIC']
         log = 'no'

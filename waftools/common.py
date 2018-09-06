@@ -16,6 +16,7 @@ from waflib import Build
 from waflib import TaskGen
 
 from waflib.Build import BuildContext
+from waflib.Context import Context
 from waflib.Node import Node
 # pylint: enable = import-error
 
@@ -103,6 +104,21 @@ class UseGroup(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.ctx.set_group(self.previous_group)
+
+
+# }}}
+# {{{ get_env_bool
+
+
+def get_env_bool(self, name):
+    val = self.environ.get(name, 0)
+    if isinstance(val, basestring):
+        return val.lower() in ['true', 'yes', '1']
+    else:
+        return int(val) == 1
+
+
+Context.get_env_bool = get_env_bool
 
 
 # }}}
