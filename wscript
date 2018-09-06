@@ -22,9 +22,6 @@ from waflib import Context, Logs, Errors
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
-# FIXME:
-#   - enhance configure (be equivalent to Make's one)
-#   - Fix various TODOs and FIXMEs in the wscript files
 
 # {{{ options
 
@@ -115,7 +112,7 @@ def configure(ctx):
 
     # {{{ Python 2
 
-    # TODO: use waf python tool for that?
+    # TODO waf: use waf python tool for that?
     ctx.find_program('python2', mandatory=True)
 
     # Check version is >= 2.6

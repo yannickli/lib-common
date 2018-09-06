@@ -69,7 +69,7 @@ def process_whole(self):
         lib_task = self.bld.get_tgen_by_name(name)
         self.env.STLIB.remove(name)
 
-        # TODO: filter STLIB_PATH by removing unused ones.
+        # TODO waf: filter STLIB_PATH by removing unused ones.
         self.env.append_value(
             'LINKFLAGS',
             list(chain.from_iterable(('-Xlinker', p.path_from(cwd))
@@ -880,7 +880,7 @@ def options(ctx):
 
 
 def get_cflags(ctx, args):
-    # TODO: maybe rewrite it in full-python after getting rid of make
+    # TODO waf: maybe rewrite it in full-python after getting rid of make
     flags = ctx.cmd_and_log(ctx.env.CFLAGS_SH + args)
     return flags.strip().replace('"', '').split(' ')
 
@@ -945,7 +945,7 @@ def profile_default(ctx,
         ctx.env.CFLAGS += [fortify_source]
 
     # Compression
-    # TODO: handle binaries compression
+    # TODO waf: handle binaries compression
     if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
         ctx.env.COMPRESS = False
         log = 'no'
@@ -1019,7 +1019,7 @@ def profile_mem_bench(ctx):
 
 
 def profile_coverage(ctx):
-    # TODO: coverage command
+    # TODO waf: coverage command
     profile_debug(ctx)
 
     flags = ['-pg', '-fprofile-arcs', '-ftest-coverage']

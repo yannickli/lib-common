@@ -251,7 +251,9 @@ int main(int argc, char *argv[])
     if (opts_g.out) {
         /* XXX: using a temporary file is a hack: the build system is
          *      simultaneously calling farchc twice on iopc.fc,
-         *      leading to unpredictable results. */
+         *      leading to unpredictable results.
+         * TODO waf: get rid of this hack when getting rid of Make.
+         */
         tmp_filepath = t_fmt("%s.farchc.%d.%d.tmp", opts_g.out, getpid(),
                              (int)time(NULL));
         out = fopen(tmp_filepath, "w");
