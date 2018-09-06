@@ -2512,14 +2512,11 @@ ichannel_t *ic_init(ichannel_t *ic)
     return ic;
 }
 
-static int ic_mark_connected(ichannel_t *ic, el_t ev, int fd)
+static int ic_mark_connected(ichannel_t *ic, int fd)
 {
     ic->queuable = true;
-    ic->on_event(ic, IC_EVT_CONNECTED);
-    if (!ev) {
-        ic->elh = el_fd_register(fd, true, POLLINOUT, &ic_event, ic);
-    }
     el_fd_set_hook(ic->elh, ic_event);
+    ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && ic->is_unix) {
         ic_creds_t creds;
         struct ucred ucred;
@@ -2610,7 +2607,10 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
     }
 
     /* Handshake completed. */
-    if (ic_mark_connected(ic, ev, fd) < 0) {
+    if (!ev) {
+        ic->elh = el_fd_register(fd, true, POLLINOUT, &ic_event, ic);
+    }
+    if (ic_mark_connected(ic, fd) < 0) {
         ic_mark_disconnected(ic);
         return -1;
     }
@@ -2716,7 +2716,10 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         return 0;
     }
 
-    if (ic_mark_connected(ic, ev, fd) < 0) {
+    if (!ev) {
+        ic->elh = el_fd_register(fd, true, POLLINOUT, &ic_event, ic);
+    }
+    if (ic_mark_connected(ic, fd) < 0) {
         goto error;
     }
     return 0;
