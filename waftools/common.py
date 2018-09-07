@@ -11,6 +11,10 @@
 #                                                                        #
 ##########################################################################
 
+'''
+Contains the code that could be useful for both backend and frontend build.
+'''
+
 # pylint: disable = import-error
 from waflib import Build
 from waflib import TaskGen

@@ -11,6 +11,10 @@
 #                                                                        #
 ##########################################################################
 
+'''
+Contains the code needed for backend compilation.
+'''
+
 import copy
 import os
 import re
