@@ -385,7 +385,7 @@ endef
 # Add webpack target in current directory
 define rule/webpack
 $(1DV)www:: $1
-$1: $(var/wwwtool)/webpack
+$1: $(var/wwwtool)webpack
 	$(msg/PACK.js) $1
 	cd $(1DV) && $(var/wwwtool)webpack --progress
 endef
