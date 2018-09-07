@@ -15,6 +15,8 @@
 Contains the code that could be useful for both backend and frontend build.
 '''
 
+import os
+
 # pylint: disable = import-error
 from waflib import Build
 from waflib import TaskGen
@@ -115,7 +117,7 @@ class UseGroup(object):
 
 
 def get_env_bool(self, name):
-    val = self.environ.get(name, 0)
+    val = os.environ.get(name, 0)
     if isinstance(val, basestring):
         return val.lower() in ['true', 'yes', '1']
     else:
