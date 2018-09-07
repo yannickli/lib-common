@@ -2503,15 +2503,15 @@ int iop_cmp_desc(const iop_struct_t *st, const void *v1, const void *v2)
     }
 
     if (iop_struct_is_class(st)) {
-        const iop_struct_t *st1 = *(const iop_struct_t **)v1;
         const iop_struct_t *st2 = *(const iop_struct_t **)v2;
 
-        if (st1 != st2) {
+        st = *(const iop_struct_t **)v1;
+        if (st != st2) {
             /* TODO Have a flag to compare class IDs instead. */
-            CMP_RETHROW(lstr_utf8_icmp(st1->fullname, st2->fullname));
+            CMP_RETHROW(lstr_utf8_icmp(st->fullname, st2->fullname));
             assert (false);
 
-            return CMP(st1, st2);
+            return CMP(st, st2);
         }
 
         do {
