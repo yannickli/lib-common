@@ -27,7 +27,9 @@ from waflib.Build import BuildContext
 from waflib.Configure import ConfigurationContext, conf
 from waflib.Task import Task
 from waflib.TaskGen import extension
-from waflib.Tools import c, cxx
+from waflib.Tools import c as c_tool
+from waflib.Tools import c_preproc
+from waflib.Tools import cxx
 from waflib.Tools import ccroot
 # pylint: enable = import-error
 
@@ -173,6 +175,38 @@ def compile_fpic(ctx):
 
 
 # }}}
+# {{{ Patch C tasks for compression
+
+
+def patch_c_tasks_for_compression(ctx):
+    '''
+    This function recreates the c, cprogram and cshlib task classes in order
+    to add the compression of the debug sections using objcopy.
+    We can't simply replace the run_str field of each class because it was
+    already compiled into a 'run' method at this point.
+    '''
+    compress_str = '${OBJCOPY} --compress-debug-sections ${TGT}'
+
+    class c(Task):
+        run_str = [c_tool.c.orig_run_str, compress_str]
+        vars    = c_tool.c.vars
+        ext_in  = c_tool.c.ext_in
+        scan    = c_preproc.scan
+    c_tool.c = c
+
+    class cprogram(ccroot.link_task):
+        run_str = [c_tool.cprogram.orig_run_str, compress_str]
+        vars    = c_tool.cprogram.vars
+        ext_out = c_tool.cprogram.ext_out
+        inst_to = c_tool.cprogram.inst_to
+    c_tool.cprogram = cprogram
+
+    class cshlib(cprogram):
+        inst_to = c_tool.cshlib.inst_to
+    c_tool.cshlib = cshlib
+
+
+# }}}
 # {{{ Execute commands from project root
 
 def register_get_cwd():
@@ -185,7 +219,7 @@ def register_get_cwd():
     def get_cwd(self):
         return self.env.PROJECT_ROOT
 
-    c.c.get_cwd = get_cwd
+    c_tool.c.get_cwd = get_cwd
     cxx.cxx.get_cwd = get_cwd
     ccroot.link_task.get_cwd = get_cwd
     TaskGen.task_gen.get_cwd = get_cwd
@@ -210,6 +244,7 @@ def register_global_includes(self, includes):
 
 class DeployTarget(Task):
     color = 'CYAN'
+    vars = ['COMPRESS']
 
     @classmethod
     def keyword(cls):
@@ -953,7 +988,6 @@ def profile_default(ctx,
         ctx.env.CFLAGS += [fortify_source]
 
     # Compression
-    # TODO waf: handle binaries compression
     if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
         ctx.env.COMPRESS = False
         log = 'no'
@@ -1062,6 +1096,8 @@ def configure(ctx):
 
 
     # Check dependencies
+    ctx.find_program('objcopy', var='OBJCOPY', mandatory=True)
+
     config_dir = os.path.join(ctx.path.abspath(), 'Config')
     build_dir  = os.path.join(ctx.path.abspath(), 'Build')
     ctx.find_program('_run_checks.sh', path_list=[build_dir], mandatory=True,
@@ -1092,6 +1128,9 @@ def build(ctx):
 
     ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.env.GEN_FILES = set()
+
+    if ctx.env.COMPRESS:
+        patch_c_tasks_for_compression(ctx)
 
     register_get_cwd()
 

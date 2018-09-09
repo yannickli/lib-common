@@ -90,6 +90,7 @@ The following environment variables can be used at the configuration phase:
     leading to larger binary files. This can be used if you have to work
     with tools that does not support compressed-debug sections (like
     valgrind, pahole or some old version of gdb).
+    You may also want to set it to speedup the build.
     This is ignored in release profile.
 
 `NO_DOUBLE_FPIC` (boolean)::
