@@ -209,8 +209,6 @@ def register_global_includes(self, includes):
 # {{{ Deploy targets
 
 class DeployTarget(Task):
-
-    run_str = 'ln -f ${SRC} ${TGT}'
     color = 'CYAN'
 
     @classmethod
@@ -220,6 +218,12 @@ class DeployTarget(Task):
     def __str__(self):
         node = self.outputs[0]
         return node.path_from(node.ctx.launch_node())
+
+    def run(self):
+        # Create a hardlink from source to target
+        out_node = self.outputs[0]
+        out_node.delete(evict=False)
+        os.link(self.inputs[0].abspath(), out_node.abspath())
 
 
 @TaskGen.feature('cprogram', 'cxxprogram')
