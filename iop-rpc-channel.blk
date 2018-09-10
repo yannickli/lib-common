@@ -2596,20 +2596,17 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
             }
             /* FALLTHROUGH */
           default:
-            ic_disconnect(ic);
+            ic_mark_disconnected(ic);
             return -1;
         }
     }
     if (ret == 0) {
         /* Cleanly closed with respect to the TLS protocol. */
-        ic_disconnect(ic);
+        ic_mark_disconnected(ic);
         return 0;
     }
 
     /* Handshake completed. */
-    if (!ev) {
-        ic->elh = el_fd_register(fd, true, POLLINOUT, &ic_event, ic);
-    }
     if (ic_mark_connected(ic, fd) < 0) {
         ic_mark_disconnected(ic);
         return -1;
@@ -2716,9 +2713,6 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         return 0;
     }
 
-    if (!ev) {
-        ic->elh = el_fd_register(fd, true, POLLINOUT, &ic_event, ic);
-    }
     if (ic_mark_connected(ic, fd) < 0) {
         goto error;
     }
@@ -2839,14 +2833,15 @@ static int __ic_connect(ichannel_t *ic, int flags)
     } else {
         data_t priv;
 
+        ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_event, ic);
         if (ic_version_write(ic, sock) < 0) {
-            close(sock);
+            ic_mark_disconnected(ic);
             return -1;
         }
         priv.ptr = ic;
         ic_version_handshake(NULL, sock, POLLIN, priv);
         if (!ic->queuable) {
-            close(sock);
+            ic_mark_disconnected(ic);
             return -1;
         }
         fd_set_features(sock, O_NONBLOCK);
