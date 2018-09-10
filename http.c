@@ -1517,8 +1517,6 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
 
 static httpd_t *httpd_init(httpd_t *w)
 {
-    MODULE_REQUIRE(ssl);
-
     dlist_init(&w->query_list);
     dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
@@ -1553,7 +1551,6 @@ static void httpd_wipe(httpd_t *w)
     lstr_wipe(&w->peer_address);
     SSL_free(w->ssl);
     w->ssl = NULL;
-    MODULE_RELEASE(ssl);
 }
 
 OBJ_VTABLE(httpd)
@@ -2934,6 +2931,23 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
     outbuf_sb_end(ob, oldlen);
 }
+
+/* }}} */
+/* {{{ HTTP Module */
+
+static int http_initialize(void *arg)
+{
+    return 0;
+}
+
+static int http_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(http)
+    MODULE_DEPENDS_ON(ssl);
+MODULE_END()
 
 /* }}} */
 /* Tests {{{ */
