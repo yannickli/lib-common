@@ -44,8 +44,8 @@ static popt_t options[] = {
     OPT_GROUP(""),
     OPT_STR('I',  "include-path", &opts.incpath,  "include path"),
     OPT_STR('o',  "output-path",  &opts.outpath,  "base of the compiled hierarchy"),
-    OPT_STR('d',  "depends",      &opts.depends,  "dump Makefile depends"),
-    OPT_STR('l',  "language",     &opts.lang,     "output language (C)"),
+    OPT_STR('d',  "depends",      &opts.depends,  "dump depends file"),
+    OPT_STR('l',  "language",     &opts.lang,     "output language"),
     OPT_STR(0,  "class-id-range", &opts.class_id_range,
             "authorized class id range (min-max, included)"),
     OPT_FLAG(0,   "Wextra",       &_G.print_info,  "add extra warnings"),
@@ -137,10 +137,19 @@ static int build_doit_table(qv_t(doit) *doits)
     qv_t(lstr) langs;
     ctype_desc_t sep;
 
-    /* default languages */
     if (!opts.lang) {
+#ifdef WAF_MODE
+        /* No language specified; this is authorized in case of --depends. */
+        if (!opts.depends) {
+            print_error("no language specified");
+            goto error;
+        }
+        return 0;
+#else
         opts.lang = "c";
+#endif
     }
+
     qv_inita(&langs, 2);
     ctype_desc_build(&sep, ",");
     ps_split(ps_initstr(opts.lang), &sep, 0, &langs);
@@ -187,6 +196,32 @@ static int build_doit_table(qv_t(doit) *doits)
     qv_wipe(&langs);
     return -1;
 }
+
+#ifdef WAF_MODE
+static void sb_add_depends(iopc_pkg_t *pkg, sb_t *depbuf)
+{
+    t_scope;
+    qv_t(iopc_pkg) t_deps;
+    qv_t(iopc_pkg) t_weak_deps;
+    qv_t(iopc_pkg) i_deps;
+
+    t_qv_init(&t_deps, 16);
+    t_qv_init(&t_weak_deps, 16);
+    t_qv_init(&i_deps, 16);
+
+    iopc_get_depends(pkg, &t_deps, &t_weak_deps, &i_deps, true, true);
+
+    tab_for_each_entry(dep, &t_deps) {
+        sb_addf(depbuf, "%s\n", dep->file);
+    }
+    tab_for_each_entry(dep, &t_weak_deps) {
+        sb_addf(depbuf, "%s\n", dep->file);
+    }
+    tab_for_each_entry(dep, &i_deps) {
+        sb_addf(depbuf, "%s\n", dep->file);
+    }
+}
+#endif
 
 int main(int argc, char **argv)
 {
@@ -268,6 +303,12 @@ int main(int argc, char **argv)
                 goto error;
             }
         }
+
+#ifdef WAF_MODE
+        if (opts.depends) {
+            sb_add_depends(pkg, &deps);
+        }
+#endif
 
         iopc_parser_typer_shutdown();
     }

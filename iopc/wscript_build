@@ -1,0 +1,45 @@
+##########################################################################
+#                                                                        #
+#  Copyright (C) 2004-2018 INTERSEC SA                                   #
+#                                                                        #
+#  Should you receive a copy of this source code, you must check you     #
+#  have a proper, written authorization of INTERSEC to hold it. If you   #
+#  don't have such an authorization, you must DELETE all source code     #
+#  files in your possession, and inform INTERSEC of the fact you obtain  #
+#  these files. Should you not comply to these terms, you can be         #
+#  prosecuted in the extent permitted by applicable law.                 #
+#                                                                        #
+##########################################################################
+# pylint: disable = undefined-variable, invalid-name
+
+ctx.IopcOptions(ctx, json_path='.', ts_path='.')
+
+ctx.set_group('iopc')
+
+ctx.stlib(target='libiopc', source=[
+    'iopc.fc',
+    'iopc-dso.c',
+    'iopc-lex.l',
+    'iopc-parser.c',
+    'iopc-pretty.c',
+    'iopc-typer.blk',
+    'iopctokens.c',
+    'iopc-write.c',
+
+    'iopc-lang-c.blk',
+    'iopc-lang-json.blk',
+    'iopc-lang-typescript.c',
+])
+
+ctx.program(target='iopc', source='iopc.c',
+            use=['libcommon', 'libiopc'])
+
+ctx.set_group('code_compiling')
+
+ctx.stlib(target='libiopsq', source=[
+    'iopc-iopsq.c',
+    'iopsq.iop',
+])
+
+ctx.program(target='zchk', source='zchk.c',
+            use=['libiopsq', 'libiopc', 'tstiop', 'libcommon'])

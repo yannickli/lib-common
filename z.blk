@@ -994,8 +994,9 @@ void z_register_group(void (*cb)(void))
 void z_register_exports(const char *prefix)
 {
     for (struct z_export *ex = z_exports_g; ex; ex = ex->prev) {
-        if (!prefix || strstart(ex->file, prefix, NULL))
+        if (!prefix || strstart(ex->file, prefix, NULL)) {
             z_register_group(ex->cb);
+        }
     }
 }
 

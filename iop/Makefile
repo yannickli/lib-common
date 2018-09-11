@@ -12,6 +12,9 @@
 ##########################################################################
 
 examples_LIBRARIES = tstiop tstiop2
+ifeq (,$(TOOLS_REPOSITORY))
+none_SHARED_LIBRARIES = zchk-tstiop-plugin zchk-tstiop2-plugin
+endif
 
 tstiop_SOURCES =  \
     tstiop.iop                                                               \
@@ -38,5 +41,13 @@ tstiop_SOURCES =  \
 tstiop_inheritance.iop_IOPVER=-5
 
 tstiop2_SOURCES = tstiop2.iop
+
+zchk-tstiop-plugin_SOURCES = \
+	$liop/tstiop-plugin.c \
+	$liop/tstiop.a
+
+zchk-tstiop2-plugin_SOURCES = \
+	$liop/tstiop2-plugin.c \
+	$liop/tstiop2.a
 
 include ../Build/base.mk
