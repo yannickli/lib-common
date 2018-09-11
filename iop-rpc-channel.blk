@@ -2550,20 +2550,25 @@ void ic_mark_disconnected(ichannel_t *ic)
     }
 }
 
-#if OPENSSL_VERSION_IS(<,1,1,0)
-/* Openssl handles BIO changes weirdly (officially "historical reasons"),
- * with different cases when rbio == wbio.  Don't rely on it, but instead
- * (i) backup and dup wbio, (ii) cleanup both rbio and wbio, (iii) install
- * what we want. */
-static inline void SSL_set0_rbio(SSL *ssl, BIO *rbio)
+static void ic_change_ssl_rbio(ichannel_t *ic, int fd)
 {
-    BIO *wbio = SSL_get_wbio(ssl);
+    BIO *rbio_null = SSL_get_rbio(ic->ssl);
+    BIO *rbio_next = BIO_next(rbio_null);
 
-    wbio->references++;
-    SSL_set_bio(ssl, NULL, NULL);
-    SSL_set_bio(ssl, rbio, wbio);
+    /* The previous read was done in our read buffer and trailing
+     * data were the beginning of the TLS handshake. Now that SSL
+     * has read these data, fall back on directly reading from the
+     * socket. */
+    if (BIO_method_type(rbio_null) == BIO_TYPE_NULL_FILTER
+    &&  BIO_method_type(rbio_next) == BIO_TYPE_MEM)
+    {
+        BIO *rbio_fd = BIO_new_fd(fd, BIO_NOCLOSE);
+
+        BIO_free(BIO_pop(rbio_null));
+        BIO_push(rbio_null, rbio_fd);
+        sb_reset(&ic->rbuf);
+    }
 }
-#endif
 
 /* Non blocking is assumed if ev == NULL. */
 static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
@@ -2571,30 +2576,16 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
     ichannel_t *ic = priv.ptr;
     int ret;
 
-  again:
     ret = SSL_do_handshake(ic->ssl);
     if (ret < 0) {
-        BIO *rbio;
-
         switch (SSL_get_error(ic->ssl, ret)) {
           case SSL_ERROR_WANT_READ:
+            ic_change_ssl_rbio(ic, fd);
             el_fd_set_mask(ev, POLLIN);
             return 0;
           case SSL_ERROR_WANT_WRITE:
             el_fd_set_mask(ev, POLLOUT);
             return 0;
-          case SSL_ERROR_SYSCALL:
-            rbio = SSL_get_rbio(ic->ssl);
-            if (BIO_method_type(rbio) == BIO_TYPE_MEM) {
-                /* The previous read was done in our read buffer and trailing
-                 * data were the beginning of the TLS handshake. Now that SSL
-                 * has read these data, fall back on directly reading from the
-                 * socket. */
-                SSL_set0_rbio(ic->ssl, BIO_new_socket(fd, 0));
-                sb_reset(&ic->rbuf);
-                goto again;
-            }
-            /* FALLTHROUGH */
           default:
             ic_mark_disconnected(ic);
             return -1;
@@ -2682,7 +2673,6 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
             goto error;
         }
         ic->ssl = SSL_new(_G.ssl_ctx);
-        SSL_set_fd(ic->ssl, fd);
         if (ev) {
             el_fd_set_hook(ev, &ic_tls_handshake);
         }
@@ -2694,11 +2684,18 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
             if (buf->len > 0) {
                 /* Trailing data is the beginning of the TLS handshake. We
                  * must give it to openSSL. */
-                SSL_set0_rbio(ic->ssl, BIO_new_mem_buf(buf->data, buf->len));
+                BIO *rbio_null = BIO_new(BIO_f_null());
+                BIO *rbio_buf = BIO_new_mem_buf(buf->data, buf->len);
+                BIO *wbio = BIO_new_fd(fd, BIO_NOCLOSE);
+
+                BIO_set_mem_eof_return(rbio_buf, -1);
+                BIO_push(rbio_null, rbio_buf);
+                SSL_set_bio(ic->ssl, rbio_null, wbio);
                 return ic_tls_handshake(ev, fd, events, priv);
+            } else {
+                SSL_set_fd(ic->ssl, fd);
             }
         } else {
-            SSL_set_connect_state(ic->ssl);
             if (buf->len > 0) {
                 /* We have received data from the server, but the TLS hanshake
                  * should be initiated by the client! */
@@ -2707,6 +2704,8 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
                              ic->peer_version);
                 goto error;
             }
+            SSL_set_connect_state(ic->ssl);
+            SSL_set_fd(ic->ssl, fd);
             return ic_tls_handshake(ev, fd, events, priv);
         }
 
