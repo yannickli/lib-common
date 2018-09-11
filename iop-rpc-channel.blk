@@ -2495,7 +2495,9 @@ ichannel_t *ic_init(ichannel_t *ic)
     htlist_init(&ic->iov_list);
     ic->current_fd  = -1;
     ic->auto_reconn = true;
-    ic->tls_required = true;
+    /* FIXME: tls_required should be true when branch f/master/ichannel-ssl
+     *        will be stabilized. */
+    ic->tls_required = false;
     ic->priority    = EV_PRIORITY_NORMAL;
     qm_init(ic_msg, &ic->queries);
     sb_init(&ic->rbuf);
