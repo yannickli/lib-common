@@ -1,0 +1,108 @@
+Intersec waf-based build system
+================================
+
+Introduction
+------------
+
+Our Make-based build system is about to be replaced by a waf-based one
+(https://waf.io/). If you want to understand how it works, you should read the
+Waf Book (https://waf.io/book/).
+
+All the Intersec specificities and custom rules are defined in waf tools,
+located in the `waftools` directory.
+
+The main entry point of the build system is the `wscript` file located at
+top-level of the repository. It loads the Intersec tools, defines the main
+`configure` and `build` functions, and recurses in sub-directories (that
+contain their own `wscript` or `wscript_build` files).
+
+The waftools and wscript files are supposed to be readable and documented when
+needed.
+
+
+How to build?
+-------------
+
+First of all, you have to configure your project, by running in the top-level
+directory:
+----------------------------------
+$ waf configure [-P profile]
+----------------------------------
+
+Use the -P option to specify the desired compilation profile (default, debug,
+release, ... you can get the complete list in `waftools/backend.py`, variable
+`PROFILE`). If not specified, the default profile can be defined with the `$P`
+environment variable (and by default this is `default)`.
+
+
+If the configuration step triggers no error, then you are ready to build,
+which just consists in running:
+----------------------------------
+$ waf
+or
+$ waf build
+----------------------------------
+
+You can run it from a sub-directory in order to build only the targets defined
+in this directory and its sub-directories (and its dependencies).
+
+All the available targets can be listed with this command:
+----------------------------------
+$ waf list
+----------------------------------
+
+It is possible to build only a specific target, or a list of targets, by
+running, from anywhere in the repository:
+----------------------------------
+$ waf --targets=target1,target2
+----------------------------------
+
+NOTE: several targets have the same name (for example all the `zchk`
+      programs), so building a specific one in that case is not really
+      supported.
+
+
+Other Intersec-specific waf commands
+------------------------------------
+
+Other commands are listed with `waf --help`. Here they are:
+
+* `waf check`: run the tests of the current directory (defined in the `ZFile`)
+               and in its sub-directories.
+* `waf tags`: generate tags using ctags.
+* `waf etags`: generate tags for emacs using ctags.
+
+
+
+Environment variables
+---------------------
+
+The following environment variables can be used at the configuration phase:
+
+`P` (string)::
+    As explained above, it allows choosing the default compilation profile.
+
+`NO_JAVA` (boolean)::
+    Set it to disable the Java support.
+
+`NOCOMPRESS` (boolean)::
+    If set, the build-system doesn't compress the debug section of binaries
+    leading to larger binary files. This can be used if you have to work
+    with tools that does not support compressed-debug sections (like
+    valgrind, pahole or some old version of gdb).
+    You may also want to set it to speedup the build.
+    This is ignored in release profile.
+
+`NO_DOUBLE_FPIC` (boolean)::
+    If set, the compilation will be faster, but the produced binaries will be
+    larger and the runtime performances will be affected.
+    Cf. `waftools/backend.py` for the details.
+    This is ignored in release profile.
+
+
+TODOs
+-----
+
+* All waf TODOs and FIXMEs can be listed with `$ git grep "TODO waf"` and
+  `$ git grep "FIXME waf"`.
+* Get rid of `WAF_MODE` when getting rid of Make.

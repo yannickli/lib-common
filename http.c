@@ -1476,32 +1476,27 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
             /* If a keyname has been provided in the configuration, it
              * should have been replaced by the actual TLS data. */
             logger_panic(&_G.logger, "TLS data are not provided");
-            return -1;
         }
 
         /* Create ssl context -- the ssl module must be loaded. */
         method = TLS_server_method();
         cfg->ssl_ctx = SSL_CTX_new(method);
         if (!cfg->ssl_ctx) {
-            logger_error(&_G.logger, "cannot initialize TLS context");
-            return -1;
+            logger_fatal(&_G.logger, "cannot initialize TLS context");
         }
 
         /* Configure ssl context. */
         SSL_CTX_set_ecdh_auto(cfg->ssl_ctx, 1);
         if (ssl_ctx_use_certificate_lstr(cfg->ssl_ctx, data->cert) < 0) {
-            logger_error(&_G.logger, "cannot load TLS certificate");
-            return -1;
+            logger_fatal(&_G.logger, "cannot load TLS certificate");
         }
         if (ssl_ctx_use_privatekey_lstr(cfg->ssl_ctx, data->key) < 0) {
-            logger_error(&_G.logger, "cannot load TLS private key");
-            return -1;
+            logger_fatal(&_G.logger, "cannot load TLS private key");
         }
         mode = SSL_MODE_ENABLE_PARTIAL_WRITE
              | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
         if (SSL_CTX_set_mode(cfg->ssl_ctx, mode) != mode) {
-            logger_error(&_G.logger, "cannot set openssl partial write mode");
-            return -1;
+            logger_fatal(&_G.logger, "cannot set openssl partial write mode");
         }
     }
 
@@ -1522,8 +1517,6 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
 
 static httpd_t *httpd_init(httpd_t *w)
 {
-    MODULE_REQUIRE(ssl);
-
     dlist_init(&w->query_list);
     dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
@@ -1558,7 +1551,6 @@ static void httpd_wipe(httpd_t *w)
     lstr_wipe(&w->peer_address);
     SSL_free(w->ssl);
     w->ssl = NULL;
-    MODULE_RELEASE(ssl);
 }
 
 OBJ_VTABLE(httpd)
@@ -2939,6 +2931,23 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
     outbuf_sb_end(ob, oldlen);
 }
+
+/* }}} */
+/* {{{ HTTP Module */
+
+static int http_initialize(void *arg)
+{
+    return 0;
+}
+
+static int http_shutdown(void)
+{
+    return 0;
+}
+
+MODULE_BEGIN(http)
+    MODULE_DEPENDS_ON(ssl);
+MODULE_END()
 
 /* }}} */
 /* Tests {{{ */

@@ -342,6 +342,7 @@ static int ic_shutdown(void)
     qh_wipe(u32, &_G.traced_cmds);
     qm_wipe(ic_hook_ctx, &_G.hook_ctxs);
     qm_wipe(ic, &_G.ics);
+    SSL_CTX_free(_G.ssl_ctx);
     mem_fifo_pool_delete(&_G.mp);
     return 0;
 }
