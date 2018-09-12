@@ -245,7 +245,7 @@ def register_global_includes(self, includes):
 
 class DeployTarget(Task):
     color = 'CYAN'
-    vars = ['COMPRESS']
+    vars = ['DO_COMPRESS']
 
     @classmethod
     def keyword(cls):
@@ -1060,20 +1060,20 @@ def profile_default(ctx,
 
     # Compression
     if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
-        ctx.env.COMPRESS = False
+        ctx.env.DO_COMPRESS = False
         log = 'no'
     else:
-        ctx.env.COMPRESS = True
+        ctx.env.DO_COMPRESS = True
         log = 'yes'
     ctx.msg('Do compression', log)
 
     # Disable double fPIC compilation for shared libraries?
     if allow_no_double_fpic and ctx.get_env_bool('NO_DOUBLE_FPIC'):
-        ctx.env.DOUBLE_FPIC = False
+        ctx.env.DO_DOUBLE_FPIC = False
         ctx.env.CFLAGS += ['-fPIC']
         log = 'no'
     else:
-        ctx.env.DOUBLE_FPIC = True
+        ctx.env.DO_DOUBLE_FPIC = True
         log = 'yes'
     ctx.msg('Double fPIC compilation for shared libraries', log)
 
@@ -1198,7 +1198,7 @@ def build(ctx):
     ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.env.GEN_FILES = set()
 
-    if ctx.env.COMPRESS:
+    if ctx.env.DO_COMPRESS:
         patch_c_tasks_for_compression(ctx)
 
     register_get_cwd()
@@ -1208,7 +1208,7 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
-    if ctx.env.DOUBLE_FPIC:
+    if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(post_farchc)
     ctx.add_pre_fun(post_iopc)
