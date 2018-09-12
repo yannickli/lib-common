@@ -31,7 +31,7 @@ $ waf configure [-P profile]
 
 Use the -P option to specify the desired compilation profile (default, debug,
 release, ... you can get the complete list in `waftools/backend.py`, variable
-`PROFILE`). If not specified, the default profile can be defined with the `$P`
+`PROFILES`). If not specified, the default profile can be defined with the `$P`
 environment variable (and by default this is `default)`.
 
 
