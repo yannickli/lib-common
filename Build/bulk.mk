@@ -98,7 +98,7 @@ distclean::
 	$(msg/rm) "copied targets"
 	$(call fun/expand-if2,$(RM),$(var/docs))
 	$(call fun/expand-if2,$(RM),$(var/css))
-	$(call fun/expand-if2,$(RM),$(var/jars))
+	$(call fun/expand-if2,$(RM),$(var/jars:=.jar))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
