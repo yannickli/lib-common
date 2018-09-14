@@ -65,7 +65,7 @@ def configure(ctx):
     ctx.recurse('scripts')
 
     # External programs
-    ctx.find_program('gperf', mandatory=True)
+    ctx.find_program('gperf')
 
     # External libraries
     ctx.check_cfg(package='libxml-2.0', uselib_store='libxml',
@@ -113,7 +113,7 @@ def configure(ctx):
     # {{{ Python 2
 
     # TODO waf: use waf python tool for that?
-    ctx.find_program('python2', mandatory=True)
+    ctx.find_program('python2')
 
     # Check version is >= 2.6
     py_ver = ctx.cmd_and_log(ctx.env.PYTHON2 + ['--version'],
