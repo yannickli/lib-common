@@ -961,6 +961,7 @@ def profile_default(ctx,
         '-lpthread',
         '-ldl',
         '-lm',
+        '-lrt',
     ]
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
