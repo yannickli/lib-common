@@ -124,7 +124,10 @@ def configure(ctx):
         ctx.fatal('unsupported python version {0}'.format(py_ver))
 
     # Get compilation flags
-    ctx.find_program('python2-config', mandatory=True)
+    if py_ver_minor == 6:
+        ctx.find_program('python2.6-config', var='PYTHON2_CONFIG')
+    else:
+        ctx.find_program('python2.7-config', var='PYTHON2_CONFIG')
 
     py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
     ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
