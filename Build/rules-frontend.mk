@@ -67,8 +67,9 @@ $(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3 $(var/wwwtool)lessc
 	$(msg/COMPILE.less) $3
 	mkdir -p `dirname "$~$$@"`
 	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
-	$(var/wwwtool)lessc --source-map=$$@.map $$< $$@+
+	$(var/wwwtool)lessc --source-map=$$@.map+ $$< $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
+	$(MV) $$@.map+ $$@.map && chmod a-w $$@.map
 -include $~$(strip $($1_DESTDIR))/$(notdir $(3:less=css)).d
 $2: $(strip $($1_DESTDIR))/$(notdir $(3:less=css))
 endef
