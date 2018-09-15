@@ -342,6 +342,8 @@ def build(ctx):
     # }}}
     # {{{ zchk and ztst-*
 
+    ctx.stlib(target='zchk-iop-ressources', source='zchk-iop-ressources.c')
+
     ctx.program(target='zchk',
         source=[
             'zchk.c',
@@ -360,7 +362,6 @@ def build(ctx):
             'zchk-file-log.c',
             'zchk-module.c',
             'zchk-mem.c',
-            'zchk-iop-ressources.c',
             'zchk-core-obj.c',
             'zchk-xmlpp.c',
 
@@ -376,12 +377,15 @@ def build(ctx):
             'iop-snmp',
             'tstiop',
             'tst-snmp-iop',
+            'zchk-iop-ressources',
         ], use_whole='libcommon')
 
     ctx.shlib(target='zchk-iop-plugin', source=[
         'zchk-iop-plugin.c',
-        'zchk-iop-ressources.c',
-    ], use='libcommon')
+    ], use=[
+        'libcommon',
+        'zchk-iop-ressources',
+    ])
 
     ctx.program(target='ztst-cfgparser', source='ztst-cfgparser.c',
                 use='libcommon tstiop')
