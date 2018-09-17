@@ -37,9 +37,8 @@ typeof(iopc_g) iopc_g = {
 #define _G  iopc_g
 
 static popt_t options[] = {
-    OPT_FLAG('h', "help",         &opts.help,         "show this help"),
-    OPT_FLAG('V', "version",      &opts.version,      "show version"),
-    OPT_FLAG('G', "git-revision", &opts.git_revision, "show git revision"),
+    OPT_FLAG('h', "help",    &opts.help,    "show this help"),
+    OPT_FLAG('V', "version", &opts.version, "show version (git revision)"),
 
     OPT_GROUP(""),
     OPT_STR('I',  "include-path", &opts.incpath,  "include path"),
@@ -237,10 +236,6 @@ int main(int argc, char **argv)
         makeusage(!opts.help, arg0, "<iop file>", NULL, options);
     }
     if (opts.version) {
-        printf("%d.%d.%d\n", IOPC_MAJOR, IOPC_MINOR, IOPC_PATCH);
-        return 0;
-    }
-    if (opts.git_revision) {
         printf("%s\n", libcommon_git_revision);
         return 0;
     }
