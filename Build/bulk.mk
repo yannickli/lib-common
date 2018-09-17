@@ -62,9 +62,9 @@ endif
 endif
 
 doc:
-all full check fast-check www-check clean distclean www selenium fast-selenium pylint::
+all full check fast-check www-check www-check-deps clean distclean www selenium fast-selenium pylint::
 FORCE: ;
-.PHONY: all full check fast-check www-check clean distclean doc www selenium fast-selenium pylint FORCE
+.PHONY: all full check fast-check www-check www-check-deps clean distclean doc www selenium fast-selenium pylint FORCE
 
 var/sourcesvars = $(filter %_SOURCES,$(.VARIABLES))
 var/sources    = $(sort $(foreach v,$(var/sourcevars),$($v)))
@@ -81,6 +81,7 @@ var/css        = $(foreach v,$(filter %_CSS,$(.VARIABLES)),$($v))
 var/js         = $(foreach v,$(filter %_JS,$(.VARIABLES)),$($v))
 var/wwwmodules = $(foreach v,$(filter %_WWWMODULES,$(.VARIABLES)),$($v))
 var/webpacks   = $(foreach v,$(filter %_WEBPACKS,$(.VARIABLES)),$($v))
+var/webpacktests = $(foreach v,$(filter %_WEBPACKTESTS,$(.VARIABLES)),$($v))
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
@@ -110,7 +111,7 @@ check:: all
 	$(var/toolsdir)/_run_checks.sh .
 fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh .
-www-check:: | _generated_hdr
+www-check:: www-check-deps
 	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh .
 selenium:: all
 	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh .
@@ -129,19 +130,21 @@ jshint:
 
 define fun/subdirs-targets
 $(foreach d,$1,
-$(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
-$(patsubst ./%,%,$(dir $(d:/=)))doc:        $(d)doc
-$(patsubst ./%,%,$(dir $(d:/=)))www::       $(d)www
-$(patsubst ./%,%,$(dir $(d:/=)))full::      $(d)full
-$(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
-$(patsubst ./%,%,$(dir $(d:/=)))pylint::    $(d)pylint
+$(patsubst ./%,%,$(dir $(d:/=)))all::            $(d)all
+$(patsubst ./%,%,$(dir $(d:/=)))doc:             $(d)doc
+$(patsubst ./%,%,$(dir $(d:/=)))www::            $(d)www
+$(patsubst ./%,%,$(dir $(d:/=)))www-check-deps:: $(d)www-check-deps
+$(patsubst ./%,%,$(dir $(d:/=)))full::           $(d)full
+$(patsubst ./%,%,$(dir $(d:/=)))clean::          $(d)clean
+$(patsubst ./%,%,$(dir $(d:/=)))pylint::         $(d)pylint
 $(d)all::
 $(d)doc:
 $(d)www::
+$(d)www-check-deps:: | _generated_hdr
 $(d)full:: $(d)all $(d)www
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
-$(d)www-check:: | _generated_hdr
+$(d)www-check:: $(d)www-check-deps
 	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh $(d)
 $(d)selenium:: $(d)all
 	Z_LIST_SKIP="C web" Z_TAG_SKIP='wip' BEHAVE_FLAGS='--tags=web' $(var/toolsdir)/_run_checks.sh $(d)
@@ -172,6 +175,7 @@ $(foreach p,$(var/css),$(eval $(call rule/css,$p)))
 $(foreach p,$(var/js),$(eval $(call rule/js,$p)))
 $(foreach p,$(var/wwwmodules),$(eval $(call rule/wwwmodule,$p)))
 $(foreach p,$(var/webpacks),$(eval $(call rule/webpack,$p)))
+$(foreach p,$(var/webpacktests),$(eval $(call rule/webpack,$p,1)))
 
 # }}}
 else
@@ -399,7 +403,7 @@ __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
 	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES %_JARS %_CSS %_JS,$(.VARIABLES)),\
 	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
-	$(foreach v,$(filter %_WWWMODULES %_WWWSCRIPTS %_WEBPACKS,$(.VARIABLES)),\
+	$(foreach v,$(filter %_WWWMODULES %_WWWSCRIPTS %_WEBPACKS %_WEBPACKTESTS,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES %_DESTDIR %_CONFIG %_MINIFY,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)

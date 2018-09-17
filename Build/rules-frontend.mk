@@ -380,14 +380,18 @@ $~$(1DV)modules/$(1:$(1DV)%=%)/package.json: $(1DV)modules/$(1:$(1DV)%=%)/src/sh
 $$(foreach bundle,$($1_WWWSCRIPTS),$$(eval $$(call fun/do-once,$$(bundle),$$(call rule/wwwscript,$1,$(1DV)modules/$(1:$(1DV)%=%),$$(bundle:$(1DV)%=%),$(patsubst %.js,$~%.full.js,$($1_DEPENDS))))))
 endef
 
-# rule/webpack <MODULE>
+# rule/webpack <MODULE>,<for www-check?>
 #
 # Add webpack target in current directory
 define rule/webpack
+ifeq (,$2)
 $(1DV)www:: $1
+else
+$(1DV)www-check-deps:: $1
+endif
 $1: $(var/wwwtool)webpack
 	$(msg/PACK.js) $1
-	cd $(1DV) && $(var/wwwtool)webpack --progress
+	cd $(1DV) && $(var/wwwtool)webpack --mode=development
 endef
 
 #}}}
