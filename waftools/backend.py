@@ -919,9 +919,9 @@ def generate_java_header_file(self):
 
 
 class ClangCheck(Task):
-    run_str = ('${CLANG} -x c -O0 -fsyntax-only -D_FORTIFY_SOURCE=0 '
-               '${CLANG_FLAGS} ${CLANG_CFLAGS} ${CLANG_EXTRA_CFLAGS} '
-               '${CPPPATH_ST:INCPATHS} ${SRC} -o /dev/null')
+    run_str = ('${CLANG} -x c -O0 -fsyntax-only ${CLANG_FLAGS} '
+               '${CLANG_CFLAGS} ${CLANG_EXTRA_CFLAGS} ${CPPPATH_ST:INCPATHS} '
+               '${SRC} -o /dev/null')
     color = 'BLUE'
 
     @classmethod
