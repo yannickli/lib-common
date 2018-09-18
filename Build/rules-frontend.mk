@@ -221,10 +221,12 @@ endef
 # ext/expand/json <PHONY>,<TARGET>,<JSON>,<MODULEPATH>
 #
 # Wraps the JSON file into a javascript module allowing packaging. This
-# simply adds a export = { json }.
+# simply adds a export = { json }. This also produces a module declaration
+# file for inclusion of the module in typescript.
 #
 # Produces:
 # - $~$3.js: the JSON wrapped in JavaScript
+# - $~$3.d.ts: the declaration file for use with TypeScript
 define ext/expand/json
 $2: $~$3.js
 $~$3.js: $3
@@ -233,6 +235,14 @@ $~$3.js: $3
 	/bin/echo -n "module.exports = " > $$@+
 	cat $$< >> $$@+
 	$(MV) $$@+ $$@
+
+$~$3.d.ts: $3
+	mkdir -p "$(dir $~$3)"
+	echo "declare var json: any; export = json;" > $$@+
+	$(MV) $$@+ $$@
+	mkdir -p "$$(dir $$(patsubst $~$4/src%,$~node_modules%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4/src%,$~node_modules%,$$@)
+$~$4/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/json <PHONY>,<TARGET>,<JSON>[],<MODULEPATH>
@@ -246,12 +256,15 @@ endef
 # ext/expand/html <PHONY>,<TARGET>,<HTML>,<MODULEPATH>
 #
 # Wraps the HTML file into a javascript module allowing packaging. This
-# simply put the content of the HTML file as a string in the module.
+# simply put the content of the HTML file as a string in the module. This
+# also produces a module declaration file for inclusion of the modue in
+# typescript code.
 #
 # Produces:
 # - $~$3.js: the HTML wrapped in JavaScript
+# - $~$3.d.ts: the declaration file for use with typescript
 define ext/expand/html
-$2: $~$3.js
+$2: $~$3.js $~$3.d.ts
 $~$3.js: $3
 	$(msg/COMPILE.json) $3
 	mkdir -p "$(dir $~$3)"
@@ -259,6 +272,14 @@ $~$3.js: $3
 	cat $$< | sed -e :a -re 's/<!--.*?-->//g;/<!--/N;//ba' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^\(.*\)$$$$/"\1\\n" +/' >> $$@+
 	echo '"";' >> $$@+
 	$(MV) $$@+ $$@
+
+$~$3.d.ts: $3
+	mkdir -p "$(dir $~$3)"
+	echo "declare var html: string; export = html;" > $$@+
+	$(MV) $$@+ $$@
+	mkdir -p "$$(dir $$(patsubst $~$4/src%,$~node_modules%,$$@))"
+	$(FASTCP) $$@ $$(patsubst $~$4/src%,$~node_modules%,$$@)
+$~$4/tsconfig.json: $~$3.d.ts
 endef
 
 # ext/rule/html <PHONY>,<TARGET>,<HTML>[],<MODULEPATH>
