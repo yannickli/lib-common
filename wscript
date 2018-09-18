@@ -65,7 +65,7 @@ def configure(ctx):
     ctx.recurse('scripts')
 
     # External programs
-    ctx.find_program('gperf', mandatory=True)
+    ctx.find_program('gperf')
 
     # External libraries
     ctx.check_cfg(package='libxml-2.0', uselib_store='libxml',
@@ -81,8 +81,10 @@ def configure(ctx):
     sctp_h = '/usr/include/netinet/sctp.h'
     if os.path.exists(sctp_h):
         ctx.env.HAVE_NETINET_SCTP_H = True
-        ctx.env.CFLAGS.append('-DHAVE_NETINET_SCTP_H')
-        ctx.env.CLANG_REWRITE_FLAGS.append('-DHAVE_NETINET_SCTP_H')
+        netinet_sctp_flag = '-DHAVE_NETINET_SCTP_H'
+        ctx.env.CFLAGS.append(netinet_sctp_flag)
+        ctx.env.CLANG_FLAGS.append(netinet_sctp_flag)
+        ctx.env.CLANG_REWRITE_FLAGS.append(netinet_sctp_flag)
         ctx.msg('Checking for libsctp-dev', sctp_h)
     else:
         Logs.warn('missing libsctp, apt-get install libsctp-dev')
@@ -113,7 +115,7 @@ def configure(ctx):
     # {{{ Python 2
 
     # TODO waf: use waf python tool for that?
-    ctx.find_program('python2', mandatory=True)
+    ctx.find_program('python2')
 
     # Check version is >= 2.6
     py_ver = ctx.cmd_and_log(ctx.env.PYTHON2 + ['--version'],
@@ -124,7 +126,10 @@ def configure(ctx):
         ctx.fatal('unsupported python version {0}'.format(py_ver))
 
     # Get compilation flags
-    ctx.find_program('python2-config', mandatory=True)
+    if py_ver_minor == 6:
+        ctx.find_program('python2.6-config', var='PYTHON2_CONFIG')
+    else:
+        ctx.find_program('python2.7-config', var='PYTHON2_CONFIG')
 
     py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
     ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
@@ -339,6 +344,8 @@ def build(ctx):
     # }}}
     # {{{ zchk and ztst-*
 
+    ctx.stlib(target='zchk-iop-ressources', source='zchk-iop-ressources.c')
+
     ctx.program(target='zchk',
         source=[
             'zchk.c',
@@ -357,7 +364,6 @@ def build(ctx):
             'zchk-file-log.c',
             'zchk-module.c',
             'zchk-mem.c',
-            'zchk-iop-ressources.c',
             'zchk-core-obj.c',
             'zchk-xmlpp.c',
 
@@ -373,12 +379,15 @@ def build(ctx):
             'iop-snmp',
             'tstiop',
             'tst-snmp-iop',
+            'zchk-iop-ressources',
         ], use_whole='libcommon')
 
     ctx.shlib(target='zchk-iop-plugin', source=[
         'zchk-iop-plugin.c',
-        'zchk-iop-ressources.c',
-    ], use='libcommon')
+    ], use=[
+        'libcommon',
+        'zchk-iop-ressources',
+    ])
 
     ctx.program(target='ztst-cfgparser', source='ztst-cfgparser.c',
                 use='libcommon tstiop')

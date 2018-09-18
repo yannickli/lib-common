@@ -15,7 +15,6 @@
 Contains the code needed for backend compilation.
 '''
 
-import copy
 import os
 import re
 from itertools import chain
@@ -48,7 +47,7 @@ def prepare_whole(self):
 
     # Add the 'use_whole' elements in the 'use' list, so that waf considers it
     # for paths, includes, ...
-    self.use = copy.copy(self.to_list(self.use))
+    self.use = list(self.to_list(getattr(self, 'use', [])))
     for uw in use_whole:
         if  not getattr(self, 'no_use_whole_error', False) \
         and uw in self.use:
@@ -185,6 +184,7 @@ def patch_c_tasks_for_compression(ctx):
     We can't simply replace the run_str field of each class because it was
     already compiled into a 'run' method at this point.
     '''
+    # pylint: disable = invalid-name
     compress_str = '${OBJCOPY} --compress-debug-sections ${TGT}'
 
     class c(Task):
@@ -244,7 +244,7 @@ def register_global_includes(self, includes):
 
 class DeployTarget(Task):
     color = 'CYAN'
-    vars = ['COMPRESS']
+    vars = ['DO_COMPRESS']
 
     @classmethod
     def keyword(cls):
@@ -380,7 +380,9 @@ class EtagsClass(BuildContext):
 # {{{ BLK
 
 
-def compute_clang_includes(self, includes_field, cflags):
+def compute_clang_extra_cflags(self, includes_field, clang_flags, cflags):
+    ''' Compute clang cflags for a task generator from CFLAGS '''
+
     if hasattr(self, includes_field):
         return
 
@@ -394,16 +396,32 @@ def compute_clang_includes(self, includes_field, cflags):
         self.process_use()
         self.propagate_uselib_vars()
 
+    def keep_flag(flag):
+        if not flag.startswith('-I') and not flag.startswith('-D'):
+            return False
+        return flag not in clang_flags
+
     cflags = self.env[cflags]
-    includes = [flag for flag in cflags if flag.startswith('-I')]
+    includes = [flag for flag in cflags if keep_flag(flag)]
     setattr(self, includes_field, includes)
+
+
+def compute_clang_c_env(self):
+    # Compute clang extra cflags from gcc flags
+    compute_clang_extra_cflags(self, 'clang_extra_cflags',
+                               self.env.CLANG_FLAGS, 'CFLAGS')
+
+    # Get cflags of the task generator
+    if not 'CLANG_CFLAGS' in self.env:
+        cflags = self.to_list(getattr(self, 'cflags', []))
+        self.env.CLANG_CFLAGS = cflags
 
 
 class Blk2c(Task):
     run_str = ['rm -f ${TGT}',
                ('${CLANG} -cc1 -x c ${CLANG_REWRITE_FLAGS} ${CLANG_CFLAGS} '
-                '-rewrite-blocks ${CLANG_INCLUDES} ${CPPPATH_ST:INCPATHS} '
-                '${SRC} -o ${TGT}')]
+                '-rewrite-blocks ${CLANG_EXTRA_CFLAGS} '
+                '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
     ext_out = [ '.c' ]
     color = 'CYAN'
 
@@ -424,18 +442,11 @@ def process_blk(self, node):
         if not blk_c_node in self.env.GEN_FILES:
             self.env.GEN_FILES.add(blk_c_node)
 
-            # Compute includes from gcc flags
-            compute_clang_includes(self, 'clang_includes', 'CFLAGS')
-
-            # Get cflags of the task generator
-            if not 'CLANG_CFLAGS' in self.env:
-                cflags = self.to_list(getattr(self, 'cflags', []))
-                self.env.CLANG_CFLAGS = cflags
-
             # Create block rewrite task.
+            compute_clang_c_env(self)
             blk_task = self.create_task('Blk2c', node, blk_c_node)
             blk_task.cwd = self.env.PROJECT_ROOT
-            blk_task.env.CLANG_INCLUDES = self.clang_includes
+            blk_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
 
         # Create C compilation task for the generated C source.
         self.create_compiled_task('c', blk_c_node)
@@ -447,7 +458,7 @@ def process_blk(self, node):
 class Blkk2cc(Task):
     run_str = ['rm -f ${TGT}',
                ('${CLANGXX} -cc1 -x c++ ${CLANGXX_REWRITE_FLAGS} '
-                '${CLANG_INCLUDES} -rewrite-blocks '
+                '${CLANGXX_EXTRA_CFLAGS} -rewrite-blocks '
                 '${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}')]
     ext_out = [ '.cc' ]
     color = 'CYAN'
@@ -469,13 +480,15 @@ def process_blkk(self, node):
         if not blkk_cc_node in self.env.GEN_FILES:
             self.env.GEN_FILES.add(blkk_cc_node)
 
-            # Compute includes from g++ flags
-            compute_clang_includes(self, 'clangxx_includes', 'CXXFLAGS')
+            # Compute clang extra cflags from g++ flags
+            compute_clang_extra_cflags(self, 'clangxx_extra_cflags',
+                                       self.env.CLANGXX_REWRITE_FLAGS,
+                                       'CXXFLAGS')
 
             # Create block rewrite task.
             blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
             blkk_task.cwd = self.env.PROJECT_ROOT
-            blkk_task.env.CLANG_INCLUDES = self.clangxx_includes
+            blkk_task.env.CLANGXX_EXTRA_CFLAGS = self.clangxx_extra_cflags
 
         # Create CC compilation task for the generated c++ source.
         self.create_compiled_task('cxx', blkk_cc_node)
@@ -901,6 +914,53 @@ def generate_java_header_file(self):
 
 
 # }}}
+# {{{ .c checks using clang
+
+
+class ClangCheck(Task):
+    run_str = ('${CLANG} -x c -O0 -fsyntax-only ${CLANG_FLAGS} '
+               '${CLANG_CFLAGS} ${CLANG_EXTRA_CFLAGS} ${CPPPATH_ST:INCPATHS} '
+               '${SRC} -o /dev/null')
+    color = 'BLUE'
+
+    @classmethod
+    def keyword(cls):
+        return 'Checking'
+
+
+@extension('.c')
+def process_c_for_check(self, node):
+    # Call standard C hook
+    c_task = c_tool.c_hook(self, node)
+
+    # Test if checks are globally disabled...
+    if not self.env.DO_CHECK:
+        return
+
+    # ...or locally disabled
+    if hasattr(self, 'nocheck'):
+        if isinstance(self.nocheck, bool):
+            if self.nocheck:
+                # Checks are disabled for this task generator
+                return
+        else:
+            if node.path_from(self.path) in self.nocheck:
+                # Checks are disabled for this node
+                return
+
+    # Do not check generated files
+    if node in self.env.GEN_FILES:
+        return
+
+    # Create a clang check task
+    compute_clang_c_env(self)
+    clang_check_task = self.create_task('ClangCheck', node)
+    clang_check_task.cwd = self.env.PROJECT_ROOT
+    clang_check_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
+    c_task.set_run_after(clang_check_task)
+
+
+# }}}
 
 # {{{ options
 
@@ -939,7 +999,7 @@ def profile_default(ctx,
     ctx.load('compiler_cxx')
 
     # Get compilation flags with cflags.sh
-    ctx.find_program('cflags.sh', mandatory=True, var='CFLAGS_SH',
+    ctx.find_program('cflags.sh', var='CFLAGS_SH',
                      path_list=[os.path.join(ctx.path.abspath(), 'Config')])
 
     ctx.env.CFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CC])
@@ -961,6 +1021,7 @@ def profile_default(ctx,
         '-lpthread',
         '-ldl',
         '-lm',
+        '-lrt',
     ]
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
@@ -987,22 +1048,31 @@ def profile_default(ctx,
     if fortify_source is not None:
         ctx.env.CFLAGS += [fortify_source]
 
-    # Compression
-    if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
-        ctx.env.COMPRESS = False
+    # Checks
+    if ctx.get_env_bool('NOCHECK'):
+        ctx.env.DO_CHECK = False
         log = 'no'
     else:
-        ctx.env.COMPRESS = True
+        ctx.env.DO_CHECK = True
+        log = 'yes'
+    ctx.msg('Do checks', log)
+
+    # Compression
+    if allow_no_compress and ctx.get_env_bool('NOCOMPRESS'):
+        ctx.env.DO_COMPRESS = False
+        log = 'no'
+    else:
+        ctx.env.DO_COMPRESS = True
         log = 'yes'
     ctx.msg('Do compression', log)
 
     # Disable double fPIC compilation for shared libraries?
     if allow_no_double_fpic and ctx.get_env_bool('NO_DOUBLE_FPIC'):
-        ctx.env.DOUBLE_FPIC = False
+        ctx.env.DO_DOUBLE_FPIC = False
         ctx.env.CFLAGS += ['-fPIC']
         log = 'no'
     else:
-        ctx.env.DOUBLE_FPIC = True
+        ctx.env.DO_DOUBLE_FPIC = True
         log = 'yes'
     ctx.msg('Double fPIC compilation for shared libraries', log)
 
@@ -1096,17 +1166,15 @@ def configure(ctx):
 
 
     # Check dependencies
-    ctx.find_program('objcopy', var='OBJCOPY', mandatory=True)
+    ctx.find_program('objcopy', var='OBJCOPY')
 
     config_dir = os.path.join(ctx.path.abspath(), 'Config')
     build_dir  = os.path.join(ctx.path.abspath(), 'Build')
-    ctx.find_program('_run_checks.sh', path_list=[build_dir], mandatory=True,
+    ctx.find_program('_run_checks.sh', path_list=[build_dir],
                      var='RUN_CHECKS_SH')
-    ctx.find_program('_tokens.sh', path_list=[config_dir], mandatory=True,
-                     var='TOKENS_SH')
+    ctx.find_program('_tokens.sh', path_list=[config_dir], var='TOKENS_SH')
     if ctx.find_program('ctags', mandatory=False):
-        ctx.find_program('ctags.sh', path_list=[build_dir], mandatory=True,
-                         var='CTAGS_SH')
+        ctx.find_program('ctags.sh', path_list=[build_dir], var='CTAGS_SH')
 
 
 class IsConfigurationContext(ConfigurationContext):
@@ -1129,7 +1197,7 @@ def build(ctx):
     ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.env.GEN_FILES = set()
 
-    if ctx.env.COMPRESS:
+    if ctx.env.DO_COMPRESS:
         patch_c_tasks_for_compression(ctx)
 
     register_get_cwd()
@@ -1139,7 +1207,7 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
-    if ctx.env.DOUBLE_FPIC:
+    if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(post_farchc)
     ctx.add_pre_fun(post_iopc)
