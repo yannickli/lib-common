@@ -15,7 +15,6 @@
 Contains the code needed for backend compilation.
 '''
 
-import copy
 import os
 import re
 from itertools import chain
@@ -48,7 +47,7 @@ def prepare_whole(self):
 
     # Add the 'use_whole' elements in the 'use' list, so that waf considers it
     # for paths, includes, ...
-    self.use = copy.copy(self.to_list(self.use))
+    self.use = list(self.to_list(getattr(self, 'use', [])))
     for uw in use_whole:
         if  not getattr(self, 'no_use_whole_error', False) \
         and uw in self.use:
