@@ -407,7 +407,7 @@ ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
 {
     ic_msg_t *msg = mp_new_extra(_G.mp, ic_msg_t, sizeof(slot));
 
-    put_unaligned_cpu64(&msg->priv, slot);
+    put_unaligned_le64(&msg->priv, slot);
     msg->fd  = fd;
     msg->hdr = hdr;
 
@@ -557,7 +557,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
                        const void *data, int dlen,
                        const ic_msg_t *unpacked_msg)
 {
-    uint64_t slot = get_unaligned_cpu64(msg->priv);
+    uint64_t slot = get_unaligned_le64(msg->priv);
     ichannel_t *ic;
 
     cmd = -cmd;
@@ -643,11 +643,11 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
         ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(pxy_ic), 0);
         const sb_t *buf = &pxy_ic->rbuf;
         const void *data = buf->data + IC_MSG_HDR_LEN;
-        int dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+        int dlen = get_unaligned_le32(buf->data + IC_MSG_DLEN_OFFSET);
 
         ic_query_do_post_hook(ic, cmd, slot, NULL, NULL);
         ic_msg_init_for_reply(ic, tmp, slot, cmd);
-        if (ic_is_local(pxy_ic) && !get_unaligned_cpu32(buf->data)) {
+        if (ic_is_local(pxy_ic) && !get_unaligned_le32(buf->data)) {
             const ic_msg_t *msg_org = data;
             const iop_struct_t *st;
 
@@ -1008,14 +1008,14 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     if (ic_is_local(ic)) {
         sb_reset(&ic->rbuf);
         sb_addnc(&ic->rbuf, IC_MSG_HDR_LEN, 0);
-        put_unaligned_cpu32(ic->rbuf.data + IC_MSG_CMD_OFFSET, cmd);
+        put_unaligned_le32(ic->rbuf.data + IC_MSG_CMD_OFFSET, cmd);
         if (data) {
-            put_unaligned_cpu32(ic->rbuf.data, slot);
-            put_unaligned_cpu32(ic->rbuf.data + IC_MSG_DLEN_OFFSET, dlen);
+            put_unaligned_le32(ic->rbuf.data, slot);
+            put_unaligned_le32(ic->rbuf.data + IC_MSG_DLEN_OFFSET, dlen);
             sb_add(&ic->rbuf, data, dlen);
         } else
         if (unpacked_msg) {
-            put_unaligned_cpu32(ic->rbuf.data + IC_MSG_DLEN_OFFSET,
+            put_unaligned_le32(ic->rbuf.data + IC_MSG_DLEN_OFFSET,
                                 sizeof(ic_msg_t));
             sb_add(&ic->rbuf, unpacked_msg, sizeof(ic_msg_t));
             ((ic_msg_t *)(ic->rbuf.data + IC_MSG_HDR_LEN))->rpc = tmp->rpc;
@@ -1467,7 +1467,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             tmp->async = true;
         }
         tmp->cmd = cmd;
-        put_unaligned_cpu64(tmp->priv, query_slot);
+        put_unaligned_le64(tmp->priv, query_slot);
 
         /* XXX We do not support header replacement with static proxyfication.
          */
@@ -1559,11 +1559,11 @@ static int ic_check_msg_hdr(ichannel_t *ic)
     }
 
     hdr = (const byte *)ic->rbuf.data;
-    slot = get_unaligned_cpu32(hdr);
+    slot = get_unaligned_le32(hdr);
     flags = slot & ~IC_MSG_SLOT_MASK;
     slot &= IC_MSG_SLOT_MASK;
-    cmd = get_unaligned_cpu32(hdr + IC_MSG_CMD_OFFSET);
-    dlen = get_unaligned_cpu32(hdr + IC_MSG_DLEN_OFFSET);
+    cmd = get_unaligned_le32(hdr + IC_MSG_CMD_OFFSET);
+    dlen = get_unaligned_le32(hdr + IC_MSG_DLEN_OFFSET);
 
     if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
         /* length is invalid */
@@ -1735,7 +1735,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         if (buf->len >= IC_MSG_HDR_LEN) {
             errno = 0;
             RETHROW(ic_check_msg_hdr(ic));
-            to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+            to_read  = get_unaligned_le32(buf->data + IC_MSG_DLEN_OFFSET);
             to_read += IC_MSG_HDR_LEN;
             to_read -= buf->len;
         }
@@ -1759,11 +1759,11 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         int slot, dlen, cmd;
         int flags;
 
-        slot  = get_unaligned_cpu32(buf->data);
+        slot  = get_unaligned_le32(buf->data);
         flags = slot & ~IC_MSG_SLOT_MASK;
         slot &= IC_MSG_SLOT_MASK;
-        cmd   = get_unaligned_cpu32(buf->data + IC_MSG_CMD_OFFSET);
-        dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+        cmd   = get_unaligned_le32(buf->data + IC_MSG_CMD_OFFSET);
+        dlen  = get_unaligned_le32(buf->data + IC_MSG_DLEN_OFFSET);
 
         if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
             return -1;
@@ -2024,16 +2024,17 @@ static void ic_msg_update_flags(const ic_msg_t *msg, uint32_t *flags)
 
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 {
-    uint32_t *hdr = (uint32_t *)msg->data;
+    char *buffer = msg->data;
 
     assert (!ic->is_wiped);
     assert (msg->dlen >= IC_MSG_HDR_LEN && msg->data);
 
     flags |= msg->slot;
     ic_msg_update_flags(msg, &flags);
-    hdr[0] = cpu_to_le32(flags);
-    hdr[1] = cpu_to_le32(msg->cmd);
-    hdr[2] = cpu_to_le32(msg->dlen - IC_MSG_HDR_LEN);
+    put_unaligned_le32(buffer, flags);
+    put_unaligned_le32(buffer + IC_MSG_CMD_OFFSET, msg->cmd);
+    put_unaligned_le32(buffer + IC_MSG_DLEN_OFFSET,
+                       msg->dlen - IC_MSG_HDR_LEN);
     if (htlist_is_empty(&ic->msg_list) && ic->elh) {
         el_fd_set_mask(ic->elh, POLLINOUT);
     }
@@ -2463,19 +2464,18 @@ void ic_nop(ichannel_t *ic)
  * connection if you need. */
 static int ic_version_write(ichannel_t *ic, int fd)
 {
-    uint32_t buffer[4];
-    uint16_t payload[2];
+    char buffer[16];
+    uint16_t flags = 0;
 
-    payload[0] = IC_VERSION;
-    payload[1] = 0;
     if (ic->tls_required) {
-        payload[1] |= 0x8000;
+        flags |= 0x8000;
     }
 
-    buffer[0] = IC_SC_VERSION;
-    buffer[1] = IC_MSG_STREAM_CONTROL;
-    buffer[2] = 4;
-    memcpy(buffer + 3, payload, 4);
+    put_unaligned_le32(buffer, IC_SC_VERSION);
+    put_unaligned_le32(buffer + IC_MSG_CMD_OFFSET, IC_MSG_STREAM_CONTROL);
+    put_unaligned_le32(buffer + IC_MSG_DLEN_OFFSET, 4);
+    put_unaligned_le16(buffer + IC_MSG_HDR_LEN, IC_VERSION);
+    put_unaligned_le16(buffer + IC_MSG_HDR_LEN + 2, flags);
     return (write(fd, buffer, sizeof(buffer)) != sizeof(buffer)) ? -1 : 0;
 }
 
@@ -2632,9 +2632,9 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         return 0;
     }
 
-    slot = get_unaligned_cpu32(buf->data);
-    cmd = get_unaligned_cpu32(buf->data + IC_MSG_CMD_OFFSET);
-    dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+    slot = get_unaligned_le32(buf->data);
+    cmd = get_unaligned_le32(buf->data + IC_MSG_CMD_OFFSET);
+    dlen = get_unaligned_le32(buf->data + IC_MSG_DLEN_OFFSET);
     if (dlen < 0 || (uint32_t)dlen > MEM_ALLOC_MAX) {
         goto error;
     }
@@ -2649,8 +2649,8 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         if (buf->len < IC_MSG_HDR_LEN + 4) {
             return 0;
         }
-        version = get_unaligned_cpu16(data);
-        vflags = get_unaligned_cpu16(data + 2);
+        version = get_unaligned_le16(data);
+        vflags = get_unaligned_le16(data + 2);
         ic->peer_version = version;
         if (vflags & 0x8000) {
             ic->tls_required = true;
