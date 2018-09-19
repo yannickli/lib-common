@@ -45,30 +45,29 @@ static void iop_core_obj_map_wipe(iop_core_obj_map_t *map)
 
 DO_DELETE(iop_core_obj_map_t, iop_core_obj_map);
 
-const object_class_t *
+const object_class_t *nullable
 _iop_core_obj_map_get_cls(const iop_core_obj_map_t *nonnull map,
                           const void *nonnull iop_obj)
 {
-    const object_class_t *cls;
     const iop_struct_t *iop_class;
 
     iop_class = *(const iop_struct_t **)iop_obj;
 
     assert (iop_struct_is_class(iop_class));
-    cls = qm_get_def_safe(iop_core_cls, &map->qm,
-                          iop_class->class_attrs->class_id, NULL);
-    e_assert(panic, cls, "cannot find class `%pL'", &iop_class->fullname);
-    return cls;
+
+    return qm_get_def_safe(iop_core_cls, &map->qm,
+                           iop_class->class_attrs->class_id, NULL);
 }
 
-void *nonnull _iop_core_obj_map_new_obj(const iop_core_obj_map_t *nonnull map,
-                                        const void *nonnull iop_obj)
+void *nullable
+_iop_core_obj_map_new_obj(const iop_core_obj_map_t *nonnull map,
+                          const void *nonnull iop_obj)
 {
     const object_class_t *cls;
     const iop_struct_t *iop_class;
     iop_core_obj_t *obj;
 
-    cls = _iop_core_obj_map_get_cls(map, iop_obj);
+    cls = RETHROW_P(_iop_core_obj_map_get_cls(map, iop_obj));
     obj = obj_new_of_class(iop_core_obj, cls);
     iop_class = *(const iop_struct_t **)iop_obj;
     obj->desc = mp_iop_dup_desc_sz(NULL, iop_class, iop_obj, NULL);
