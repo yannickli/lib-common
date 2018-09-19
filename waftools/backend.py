@@ -329,6 +329,12 @@ def gen_syntastic(ctx):
 def gen_ale(ctx):
     flags = get_linter_flags(ctx, 'CLANG_FLAGS')
 
+    # Escape the -D flags with double quotes, which is needed for
+    # -D"index(s,c)=index__(s,c)"
+    for i, flag in enumerate(flags):
+        if flag.startswith('-D'):
+            flags[i] = '-D"' + flag[2:] + '"'
+
     content  = "let g:ale_c_clang_options = '\n"
     content += "    \\ "
     content += " ".join(flags)
