@@ -12,5 +12,5 @@
 ##########################################################################
 # pylint: disable = undefined-variable, invalid-name
 
-ctx.program(target='farchc', source='farchc.c',
-            use='libcommon')
+ctx.farchc_tgen = ctx.program(target='farchc', source='farchc.c',
+                              use='libcommon')

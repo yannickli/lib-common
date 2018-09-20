@@ -594,10 +594,9 @@ def process_fc(self, node):
 
 
 def post_farchc(ctx):
-    farchc = ctx.get_tgen_by_name('farchc')
-    farchc.post()
-    ctx.farchc_task = farchc.link_task
-    ctx.env.FARCHC = farchc.link_task.outputs[0].abspath()
+    ctx.farchc_tgen.post()
+    ctx.farchc_task = ctx.farchc_tgen.link_task
+    ctx.env.FARCHC = ctx.farchc_tgen.link_task.outputs[0].abspath()
 
 
 # }}}
