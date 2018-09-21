@@ -16,6 +16,7 @@
 
 'use strict';
 
+var puppeteer = require('puppeteer');
 var Testem = require('testem');
 var path = require('path');
 var util = require('util');
@@ -94,10 +95,6 @@ ZReporter.prototype = {
     }
 };
 
-/* XXX: phantomJS has a bug on some tests, where a JIT-compiled function that
- * uses a polyfill such as Number.isInteger will fail on the polyfill.
- * Disable JIT to avoid such failures. */
-process.env.JSC_useJIT = 0;
 
 /* cf https://github.com/airportyh/testem/blob/master/docs/config_file.md#common-configuration-options */
 testem.startCI({
@@ -105,7 +102,18 @@ testem.startCI({
     reporter: new ZReporter(),
     framework: 'jasmine',
     bail_on_uncaught_error: true,
-    timeout: 30000,
     fail_on_zero_tests: true,
-    launch: 'PhantomJS'
+    browser_paths: {
+        'Chromium': puppeteer.executablePath(),
+    },
+    browser_args: {
+        'Chromium': [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--headless',
+            '--disable-gpu',
+            '--remote-debugging-port=9222',
+        ]
+    },
+    launch: 'Chromium',
 });
