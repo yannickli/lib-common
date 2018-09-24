@@ -29,8 +29,8 @@
  * -----------------------------
  *
  * Note that Intersec only supports little endian architectures. For this
- * reason, IChannels data are not encoded in network byte order and you wont
- * see any conversion in the code.
+ * reason, IChannels data are not encoded in network byte order but directly
+ * in little endian.
  *
  * For example, in section 1.2, Flags is the most significant byte of a 32
  * bits little endian encoded field (32LE) and it's the last byte of the
