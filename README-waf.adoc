@@ -69,6 +69,9 @@ Other commands are listed with `waf --help`. Here they are:
 
 * `waf check`: run the tests of the current directory (defined in the `ZFile`)
                and in its sub-directories.
+               The following variants also exist (cf `waf --help` for the
+               details): `fast-check`, `www-check`, `selenium`,
+               `fast-selenium`.
 * `waf tags`: generate tags using ctags.
 * `waf etags`: generate tags for emacs using ctags.
 

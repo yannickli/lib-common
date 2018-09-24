@@ -43,15 +43,48 @@ def post_deps(self):
 
 
 def run_checks(ctx):
-    if ctx.cmd == 'check':
-        path = ctx.launch_node().path_from(ctx.env.PROJECT_ROOT)
-        cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0], path)
-        if ctx.exec_command(cmd, stdout=None, stderr=None):
-            ctx.fatal('')
+    env = dict(os.environ)
+
+    if ctx.cmd == 'fast-check':
+        env['Z_MODE']     = 'fast'
+        env['Z_TAG_SKIP'] = 'upgrade slow perf'
+    elif ctx.cmd == 'www-check':
+        env['Z_LIST_SKIP'] = 'C behave'
+    elif ctx.cmd == 'selenium':
+        env['Z_LIST_SKIP']  = 'C web'
+        env['Z_TAG_SKIP']   = 'wip'
+        env['BEHAVE_FLAGS'] = '--tags=web'
+    elif ctx.cmd == 'fast-selenium':
+        env['Z_LIST_SKIP']  = 'C web'
+        env['Z_TAG_SKIP']   = 'wip upgrade slow'
+        env['BEHAVE_FLAGS'] = '--tags=web'
+    elif ctx.cmd != 'check':
+        return
+
+    path = ctx.launch_node().path_from(ctx.env.PROJECT_ROOT)
+    cmd = '{0} {1}'.format(ctx.env.RUN_CHECKS_SH[0], path)
+    if ctx.exec_command(cmd, stdout=None, stderr=None, env=env):
+        ctx.fatal('')
 
 class CheckClass(BuildContext):
-    '''run tests'''
+    '''run tests (no web)'''
     cmd = 'check'
+
+class FastCheckClass(BuildContext):
+    '''run tests in fast mode (no web)'''
+    cmd = 'fast-check'
+
+class WwwCheckClass(BuildContext):
+    '''run jasmine tests'''
+    cmd = 'www-check'
+
+class SeleniumCheckClass(BuildContext):
+    '''run selenium tests (including slow ones)'''
+    cmd = 'selenium'
+
+class FastSeleniumCheckClass(BuildContext):
+    '''run selenium tests (without slow ones)'''
+    cmd = 'fast-selenium'
 
 
 # }}}
