@@ -1111,7 +1111,7 @@ def profile_asan(ctx):
 
     flags = ['-fsanitize=address']
     ctx.env.CFLAGS += flags + ['-x', 'c']
-    ctx.env.CXXFLAGS += flags + ['-x', 'cxx']
+    ctx.env.CXXFLAGS += flags + ['-x', 'c++']
     ctx.env.LDFLAGS += flags + ['-lstdc++']
 
 
