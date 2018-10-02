@@ -39,8 +39,24 @@ ctags ${TAGSOPTION} -o ${TAGSOUTPUT} --recurse=yes --totals=yes --links=no \
     --regex-iop='/^snmpObj +([a-zA-Z]+)/\1/s, snmpobj/' \
     --regex-iop='/^snmpTbl +([a-zA-Z]+)/\1/s, snmptbl/' \
     \
+    --langmap=javascript:+.jsx \
+    --langdef=typescript \
+    --langmap=typescript:+.ts \
+    --langmap=typescript:+.tsx \
+    --regex-typescript='/^[ \t]*(export[ \t]+([a-z]+[ \t]+)?)?class[ \t]+([a-zA-Z0-9_$]+)/\3/c,classes/' \
+    --regex-typescript='/^[ \t]*(declare[ \t]+)?namespace[ \t]+([a-zA-Z0-9_$]+)/\2/c,modules/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?module[ \t]+([a-zA-Z0-9_$]+)/\2/n,modules/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+([a-zA-Z0-9_$]+)/\3/f,functions/' \
+    --regex-typescript='/^[ \t]*export[ \t]+(var|let|const)[ \t]+([a-zA-Z0-9_$]+)/\2/v,variables/' \
+    --regex-typescript='/^[ \t]*(var|let|const)[ \t]+([a-zA-Z0-9_$]+)[ \t]*=[ \t]*function[ \t]*[*]?[ \t]*\(\)/\2/v,varlambdas/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?(public|protected|private)[ \t]+(static[ \t]+)?(abstract[ \t]+)?(((get|set)[ \t]+)|(async[ \t]+[*]*[ \t]*))?([a-zA-Z1-9_$]+)/\9/m,members/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?interface[ \t]+([a-zA-Z0-9_$]+)/\2/i,interfaces/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?type[ \t]+([a-zA-Z0-9_$]+)/\2/t,types/' \
+    --regex-typescript='/^[ \t]*(export[ \t]+)?enum[ \t]+([a-zA-Z0-9_$]+)/\2/e,enums/' \
+    --regex-typescript='/^[ \t]*import[ \t]+([a-zA-Z0-9_$]+)/\1/I,imports/' \
+    \
     --exclude=".build*" --exclude=".git" \
     --exclude="*.blk.c" --exclude="*.blkk.cc" \
     --exclude="js/v8" --exclude="ext" --exclude="node_modules/*" \
     \
-    --languages='c,c++,iop,python,php,javascript'
+    --languages='c,c++,iop,python,php,javascript,typescript'
