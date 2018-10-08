@@ -129,7 +129,12 @@ def compile_fpic(ctx):
 
     for tgen in ctx.get_all_task_gen():
         features = tgen.to_list(getattr(tgen, 'features', []))
+
         if not 'cshlib' in features:
+            if 'c' in features or 'cxx' in features:
+                tgen.env.append_value('CFLAGS', ctx.env.CNOPICFLAGS)
+                tgen.env.append_value('CXXFLAGS', ctx.env.CXXNOPICFLAGS)
+                tgen.env.append_value('LDFLAGS', ctx.env.LDNOPICFLAGS)
             continue
 
         # Shared libraries must be compiled with the -fPIC compilation flag...
@@ -1082,8 +1087,9 @@ def profile_default(ctx,
     ctx.msg('Double fPIC compilation for shared libraries', log)
 
 
-def profile_debug(ctx):
-    profile_default(ctx, fortify_source=None)
+def profile_debug(ctx, allow_no_double_fpic=True):
+    profile_default(ctx, fortify_source=None,
+                    allow_no_double_fpic=allow_no_double_fpic)
 
     pattern = re.compile("^-O[0-9]$")
     ctx.env.CFLAGS = [f for f in ctx.env.CFLAGS if not pattern.match(f)]
@@ -1107,24 +1113,31 @@ def profile_asan(ctx):
     Options.options.check_c_compiler = 'clang'
     Options.options.check_cxx_compiler = 'clang++'
 
-    profile_debug(ctx)
+    profile_debug(ctx, allow_no_double_fpic=False)
 
-    flags = ['-fsanitize=address']
-    ctx.env.CFLAGS += flags + ['-x', 'c']
-    ctx.env.CXXFLAGS += flags + ['-x', 'c++']
-    ctx.env.LDFLAGS += flags + ['-lstdc++']
+    ctx.env.CFLAGS += ['-x', 'c']
+    ctx.env.CXXFLAGS += ['-x', 'c++']
+    ctx.env.LDFLAGS += ['-lstdc++']
+
+    asan_flags = ['-fsanitize=address']
+    ctx.env.CNOPICFLAGS = asan_flags
+    ctx.env.CXXNOPICFLAGS = asan_flags
+    ctx.env.LDNOPICFLAGS = asan_flags
 
 
 def profile_tsan(ctx):
     Options.options.check_c_compiler = 'clang'
     Options.options.check_cxx_compiler = 'clang++'
 
-    profile_debug(ctx)
+    profile_debug(ctx, allow_no_double_fpic=False)
 
-    flags = ['-fsanitize=thread']
-    ctx.env.CFLAGS += flags + ['-x', 'c']
-    ctx.env.CXXFLAGS += flags + ['-x', 'cxx']
-    ctx.env.LDFLAGS += flags
+    ctx.env.CFLAGS += ['-x', 'c']
+    ctx.env.CXXFLAGS += ['-x', 'c++']
+
+    tsan_flags = ['-fsanitize=thread']
+    ctx.env.CNOPICFLAGS = tsan_flags
+    ctx.env.CXXNOPICFLAGS = tsan_flags
+    ctx.env.LDNOPICFLAGS = tsan_flags
 
 
 def profile_mem_bench(ctx):
