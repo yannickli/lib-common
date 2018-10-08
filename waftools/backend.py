@@ -1037,6 +1037,9 @@ def profile_default(ctx,
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
     ctx.env.CXXFLAGS += [
         '-DWAF_MODE',
+        '-D__STDC_LIMIT_MACROS',
+        '-D__STDC_CONSTANT_MACROS',
+        '-D__STDC_FORMAT_MACROS',
         '-fno-omit-frame-pointer',
         '-fvisibility=hidden',
     ]
