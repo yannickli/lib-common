@@ -799,30 +799,46 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
     ({  uint32_t __h = (h);                                                  \
         qm_##name##_find_safe_int((qh), &__h, (key));                        \
     })
+
+#define _qm_get(name, _qh, _qh_modifier, _opt_address_of_operator, _qm_find, \
+                ...)                                                         \
+    ({  _qh_modifier qm_t(name) *__gqh = (_qh);                              \
+        int __ghp_pos = _qm_find(name, __gqh, ##__VA_ARGS__);                \
+        assert (__ghp_pos >= 0);                                             \
+        _opt_address_of_operator __gqh->values[__ghp_pos];                   \
+    })
+
+/** Get the value of the corresponding key in the hash map.
+ *
+ * It will assert if the key is not found.
+ */
 #define qm_get(name, _qh, key)                                               \
-    ({  qm_t(name) *__gqh = (_qh);                                           \
-        int __ghp_pos = qm_find(name, __gqh, (key));                         \
-        assert (__ghp_pos >= 0);                                             \
-        __gqh->values[__ghp_pos];                                            \
-    })
+    _qm_get(name, (_qh), , , qm_find, (key))
 #define qm_get_h(name, _qh, h, key)                                          \
-    ({  qm_t(name) *__gqh = (_qh);                                           \
-        int __ghp_pos = qm_find_h(name, __gqh, (h), (key));                  \
-        assert (__ghp_pos >= 0);                                             \
-        __gqh->values[__ghp_pos];                                            \
-    })
+    _qm_get(name, (_qh), , , qm_find_h, (h), (key))
 #define qm_get_safe(name, _qh, key)                                          \
-    ({  const qm_t(name) *__gqh = (_qh);                                     \
-        int __ghp_pos = qm_find_safe(name, __gqh, (key));                    \
-        assert (__ghp_pos >= 0);                                             \
-        __gqh->values[__ghp_pos];                                            \
-    })
+    _qm_get(name, (_qh), const, , qm_find_safe, (key))
 #define qm_get_safe_h(name, _qh, h, key)                                     \
-    ({  const qm_t(name) *__gqh = (_qh);                                     \
-        int __ghp_pos = qm_find_safe_h(name, __gqh, (h), (key));             \
-        assert (__ghp_pos >= 0);                                             \
-        __gqh->values[__ghp_pos];                                            \
-    })
+    _qm_get(name, (_qh), const, , qm_find_safe_h, (h), (key))
+
+/** Get a pointer to the value of the corresponding key in the hash map.
+ *
+ * It will assert if the key is not found.
+ *
+ * WARNING: unlike the ones above, these macro functions are a bit dangerous.
+ * They will return a pointer on something very volatile, which will
+ * be invalidated by the next find/add/delete.
+ * So you must never retain the returned pointer.
+ */
+#define qm_get_p(name, _qh, key)                                             \
+    _qm_get(name, (_qh), , &, qm_find, (key))
+#define qm_get_p_h(name, _qh, h, key)                                        \
+    _qm_get(name, (_qh), , &, qm_find_h, (h), (key))
+#define qm_get_p_safe(name, _qh, key)                                        \
+    _qm_get(name, (_qh), const, &, qm_find_safe, (key))
+#define qm_get_p_safe_h(name, _qh, h, key)                                   \
+    _qm_get(name, (_qh), const, &, qm_find_safe_h, (h), (key))
+
 
 #define qm_get_def(name, _qh, key, def)                                      \
     ({  qm_t(name) *__gqh = (_qh);                                           \
@@ -862,13 +878,13 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
     })
 
 #define _qm_fetch(name, _qh, key, _v, _defval, _qh_modifier, _qm_find,       \
-                  _pointer_ampersand, _pointer_star)                         \
+                  _opt_address_of_operator, _opt_value_of_operator)          \
     ({                                                                       \
         _qh_modifier qm_t(name) *__gqh = (_qh);                              \
         int __ghp_pos = _qm_find(name, __gqh, (key));                        \
-        typeof(__gqh->values[0]) _pointer_star *__v = (_v);                  \
+        typeof(__gqh->values[0]) _opt_value_of_operator *__v = (_v);         \
         if (__ghp_pos >= 0) {                                                \
-            *__v = _pointer_ampersand __gqh->values[__ghp_pos];              \
+            *__v = _opt_address_of_operator __gqh->values[__ghp_pos];        \
         } else {                                                             \
             *__v = (_defval);                                                \
         }                                                                    \
