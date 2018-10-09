@@ -840,42 +840,56 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
     _qm_get(name, (_qh), const, &, qm_find_safe_h, (h), (key))
 
 
+#define _qm_get_def(name, _qh, _def, _qh_modifier, _opt_address_of_operator, \
+                    _qm_find, ...)                                           \
+    ({  _qh_modifier qm_t(name) *__gqh = (_qh);                              \
+        typeof(_def) __def_type = (_def);                                    \
+        typeof(_opt_address_of_operator __gqh->values[0]) __def = __def_type;\
+        int __ghp_pos = _qm_find(name, __gqh, ##__VA_ARGS__);                \
+        assert (__def_type == __def && "default value type is incompatible " \
+                "with qm value type");                                       \
+        __ghp_pos >= 0 ? _opt_address_of_operator __gqh->values[__ghp_pos]   \
+                       : __def;                                              \
+    })
+
+/** Get the value of the corresponding key in the hash map or the default
+ *  value if the key is not found.
+ */
 #define qm_get_def(name, _qh, key, def)                                      \
-    ({  qm_t(name) *__gqh = (_qh);                                           \
-        typeof(def) __def_type = (def);                                      \
-        typeof(__gqh->values[0]) __def = __def_type;                         \
-        int __ghp_pos = qm_find(name, __gqh, (key));                         \
-        assert (__def_type == __def && "default value type is incompatible " \
-                "with qm value type");                                       \
-        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
-    })
+    _qm_get_def(name, (_qh), (def), , , qm_find, (key))
 #define qm_get_def_h(name, _qh, h, key, def)                                 \
-    ({  qm_t(name) *__gqh = (_qh);                                           \
-        typeof(def) __def_type = (def);                                      \
-        typeof(__gqh->values[0]) __def = __def_type;                         \
-        int __ghp_pos = qm_find_h(name, __gqh, (h), (key));                  \
-        assert (__def_type == __def && "default value type is incompatible " \
-                "with qm value type");                                       \
-        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
-    })
+    _qm_get_def(name, (_qh), (def), , , qm_find_h, (h), (key))
 #define qm_get_def_safe(name, _qh, key, def)                                 \
-    ({  const qm_t(name) *__gqh = (_qh);                                     \
-        typeof(def) __def_type = (def);                                      \
-        typeof(__gqh->values[0]) __def = __def_type;                         \
-        int __ghp_pos = qm_find_safe(name, __gqh, (key));                    \
-        assert (__def_type == __def && "default value type is incompatible " \
-                "with qm value type");                                       \
-        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
-    })
+    _qm_get_def(name, (_qh), (def), const, , qm_find_safe, (key))
 #define qm_get_def_safe_h(name, _qh, h, key, def)                            \
-    ({  const qm_t(name) *__gqh = (_qh);                                     \
-        typeof(def) __def_type = (def);                                      \
-        typeof(__gqh->values[0]) __def = __def_type;                         \
-        int __ghp_pos = qm_find_safe_h(name, __gqh, (h), (key));             \
-        assert (__def_type == __def && "default value type is incompatible " \
-                "with qm value type");                                       \
-        __ghp_pos >= 0 ? __gqh->values[__ghp_pos] : __def;                   \
-    })
+    _qm_get_def(name, (_qh), (def), const, , qm_find_safe_h, (h), (key))
+
+
+/** Get a pointer to the value of the corresponding key in the hash map or the
+ *  default value if the key is not found.
+ *
+ * These macro functions are useful to do something like this:
+ *
+ *    int *pval = qm_get_def_p(test, &qm, 42, NULL);
+ *
+ *    if (!pval) {
+ *        return -1;
+ *    }
+ *    do_something(*pval);
+ *
+ * WARNING: unlike the ones above, these macro functions are a bit dangerous.
+ * They will return a pointer on something very volatile, which will
+ * be invalidated by the next find/add/delete.
+ * So you must never retain the returned pointer.
+ */
+#define qm_get_def_p(name, _qh, key, def)                                    \
+    _qm_get_def(name, (_qh), (def), , &, qm_find, (key))
+#define qm_get_def_p_h(name, _qh, h, key, def)                               \
+    _qm_get_def(name, (_qh), (def), , &, qm_find_h, (h), (key))
+#define qm_get_def_p_safe(name, _qh, key, def)                               \
+    _qm_get_def(name, (_qh), (def), const, &, qm_find_safe, (key))
+#define qm_get_def_p_safe_h(name, _qh, h, key, def)                          \
+    _qm_get_def(name, (_qh), (def), const, &, qm_find_safe_h, (h), (key))
 
 #define _qm_fetch(name, _qh, key, _v, _defval, _qh_modifier, _qm_find,       \
                   _opt_address_of_operator, _opt_value_of_operator)          \
