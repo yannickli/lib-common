@@ -249,7 +249,6 @@ def register_global_includes(self, includes):
 
 class DeployTarget(Task):
     color = 'CYAN'
-    vars = ['DO_COMPRESS']
 
     @classmethod
     def keyword(cls):
@@ -1077,6 +1076,19 @@ def profile_default(ctx,
     else:
         ctx.env.DO_COMPRESS = True
         log = 'yes'
+
+        ld_help = ctx.cmd_and_log('ld --help')
+        if 'compress-debug-sections' in ld_help:
+            ctx.env.LDFLAGS += ['-Xlinker', '--compress-debug-sections=zlib']
+        else:
+            Logs.warn('Compression requested but ld do not support it')
+
+        objcopy_help = ctx.cmd_and_log('objcopy --help')
+        if 'compress-debug-sections' in objcopy_help:
+            ctx.env.DO_OBJCOPY_COMPRESS = True
+        else:
+            Logs.warn('Compression requested but objcopy do not support it')
+
     ctx.msg('Do compression', log)
 
     # Disable double fPIC compilation for shared libraries?
@@ -1218,7 +1230,7 @@ def build(ctx):
     ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.env.GEN_FILES = set()
 
-    if ctx.env.DO_COMPRESS:
+    if ctx.env.DO_OBJCOPY_COMPRESS:
         patch_c_tasks_for_compression(ctx)
 
     register_get_cwd()
