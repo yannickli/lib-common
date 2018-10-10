@@ -942,6 +942,11 @@ def process_c_for_check(self, node):
     # Call standard C hook
     c_task = c_tool.c_hook(self, node)
 
+    # Do not check files in .pic task generators (they are already checked in
+    # the original task generator)
+    if self.name.endswith('.pic'):
+        return
+
     # Test if checks are globally disabled...
     if not self.env.DO_CHECK:
         return
