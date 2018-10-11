@@ -18,12 +18,12 @@ Contains the code that could be useful for both backend and frontend build.
 import os
 
 # pylint: disable = import-error
-from waflib import Build
-from waflib import TaskGen
+from waflib import Build, TaskGen, Logs
 
-from waflib.Build import BuildContext
+from waflib.Build import BuildContext, inst
 from waflib.Context import Context
 from waflib.Node import Node
+from waflib.Task import Task, compile_fun, SKIP_ME, RUN_ME
 # pylint: enable = import-error
 
 # {{{ depends_on
@@ -161,10 +161,116 @@ Context.get_env_bool = get_env_bool
 
 
 # }}}
+# {{{ Install
 
+# By default, waf will install everything that it has built on install.
+# Since our build tree is a little different than what is expected by waf,
+# we need to do our own install system.
+#
+# So we need to do two things:
+# - Remove all the default install tasks.
+# - Add our own custom install task that start shell commands.
+#
+# Usage:
+#
+# ctx.shlib(target='iopy2', features='c cshlib', source=[
+#     'iopy.c',
+#     ...
+# ], depends_on='iopy-version.c',
+#    custom_install=[
+#     '${INSTALL} -m 444 -D iopy2.so ${PREFIX}/lib/python/iopy/iopy2.so',
+#     ...
+# ])
+#
+# ctx(name='python-scripts',
+#     custom_install=[
+#     ...
+#     '${INSTALL} -t ${PREFIX}/lib/python/ z.py',
+#     ...
+# ])
+#
+# The environment variable ${PREFIX} is controlled by the configuration
+# argument `--prefix` (default is '/usr/local/')
+
+@TaskGen.feature('*')
+@TaskGen.after('process_subst', 'process_rule', 'process_source')
+def remove_default_install_tasks(self):
+    """ Remove all default install tasks """
+    for i, t in enumerate(self.tasks):
+        if isinstance(t, inst):
+            del self.tasks[i]
+
+    install_task = getattr(self, 'install_task', None)
+    if install_task:
+        del self.install_task
+
+
+class CustomInstall(Task):
+    """ Task to start custom shell commands on install. """
+    color = 'PINK'
+
+    def __str__(self):
+        launch_node = self.generator.bld.launch_node()
+        path = self.generator.path
+        return '%s/%s' % (path.path_from(launch_node), self.generator.name)
+
+    @classmethod
+    def keyword(cls):
+        return 'Installing'
+
+    def runnable_status(self):
+        """ Installation tasks are always executed on install, """
+        if not self.generator.bld.is_install:
+            return SKIP_ME
+        return RUN_ME
+
+    def run(self):
+        """ Execute every shell commands in self.commands """
+        for cmd in self.commands:
+            # compile_fun do the right thing by replacing the environment
+            # variables in the command.
+            f, _ = compile_fun(cmd, shell=True)
+            ret = f(self)
+            if ret:
+                return ret
+        return 0
+
+
+@TaskGen.feature('*')
+@TaskGen.after('process_rule', 'process_source')
+def add_custom_install(self):
+    commands = getattr(self, 'custom_install', None)
+    if not commands:
+        return
+    if not isinstance(commands, list):
+        commands = [commands]
+
+    tsk = self.create_task('CustomInstall', after='DeployTarget',
+                           commands=commands, cwd=self.path)
+    # All tasks needs to be done before executing the custom install.
+    tsk.run_after = set(self.tasks)
+    tsk.run_after.remove(tsk)
+
+
+# }}}
+
+# {{{ configure
+
+
+def configure(ctx):
+    ctx.msg('Install prefix', ctx.env.PREFIX)
+
+    # Find install for custom install
+    ctx.find_program('install')
+
+
+# }}}
 # {{{ build
 
 def build(ctx):
+    if ctx.is_install:
+        Logs.info('Waf: Install prefix: %s', ctx.env.PREFIX)
+
     # Set post_mode to POST_AT_ONCE, which allows to properly handle
     # dependencies between web task generators and IOP ones
     # cf. https://gitlab.com/ita1024/waf/issues/2191
