@@ -79,6 +79,7 @@ Other commands are listed with `waf --help`. Here they are:
                `fast-selenium`.
 * `waf tags`: generate tags using ctags.
 * `waf etags`: generate tags for emacs using ctags.
+* `waf pylint`: run pylint checks on committed python files
 
 
 

@@ -18,10 +18,9 @@ Contains the code that could be useful for both backend and frontend build.
 import os
 
 # pylint: disable = import-error
-from waflib import Build, TaskGen, Logs
+from waflib import Build, Context, TaskGen, Logs
 
 from waflib.Build import BuildContext, inst
-from waflib.Context import Context
 from waflib.Node import Node
 from waflib.Task import Task, compile_fun, SKIP_ME, RUN_ME
 # pylint: enable = import-error
@@ -157,7 +156,7 @@ def get_env_bool(self, name):
         return int(val) == 1
 
 
-Context.get_env_bool = get_env_bool
+Context.Context.get_env_bool = get_env_bool
 
 
 # }}}
@@ -253,6 +252,33 @@ def add_custom_install(self):
 
 
 # }}}
+# {{{ pylint
+
+
+def run_pylint(ctx):
+    if ctx.cmd != 'pylint':
+        return
+
+    # Reset the build
+    ctx.groups = []
+
+    # Get list of committed python files under the launch directory
+    path = ctx.launch_node()
+    files = ctx.cmd_and_log('git ls-files "*.py" "**/*.py"', cwd=path,
+                            quiet=Context.BOTH).strip()
+
+    # Create tasks to check them using pylint
+    for f in files.splitlines():
+        node = path.make_node(f)
+        ctx(rule='pylint ${SRC}', source=node, path=path, always=True)
+
+
+class PylintClass(BuildContext):
+    '''run pylint checks on committed python files'''
+    cmd = 'pylint'
+
+
+# }}}
 
 # {{{ configure
 
@@ -280,6 +306,7 @@ def build(ctx):
     ctx.UseGroup = UseGroup
 
     # Register pre/post functions
+    ctx.add_pre_fun(run_pylint)
     ctx.add_post_fun(run_checks)
 
 
