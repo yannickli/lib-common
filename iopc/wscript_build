@@ -31,8 +31,8 @@ ctx.stlib(target='libiopc', source=[
     'iopc-lang-typescript.c',
 ])
 
-ctx.program(target='iopc', source='iopc.c',
-            use=['libcommon', 'libiopc'])
+ctx.iopc_tgen = ctx.program(target='iopc', source='iopc.c',
+                            use=['libcommon', 'libiopc'])
 
 ctx.set_group('code_compiling')
 

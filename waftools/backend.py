@@ -845,10 +845,9 @@ def process_iop(self, node):
 
 
 def post_iopc(ctx):
-    iopc = ctx.get_tgen_by_name('iopc')
-    iopc.post()
-    ctx.iopc_task = iopc.link_task
-    ctx.env.IOPC = iopc.link_task.outputs[0].abspath()
+    ctx.iopc_tgen.post()
+    ctx.iopc_task = ctx.iopc_tgen.link_task
+    ctx.env.IOPC = ctx.iopc_tgen.link_task.outputs[0].abspath()
 
 
 # }}}
