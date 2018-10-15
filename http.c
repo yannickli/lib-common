@@ -1495,7 +1495,7 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
         }
         mode = SSL_MODE_ENABLE_PARTIAL_WRITE
              | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
-        if (SSL_CTX_set_mode(cfg->ssl_ctx, mode) != mode) {
+        if (!(SSL_CTX_set_mode(cfg->ssl_ctx, mode) & mode)) {
             logger_fatal(&_G.logger, "cannot set openssl partial write mode");
         }
     }
