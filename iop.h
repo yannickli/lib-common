@@ -605,10 +605,10 @@ static inline void * nonnull r_iop_new_desc(const iop_struct_t * nonnull st)
     return mp_iop_new_desc(r_pool(), st);
 }
 
-#define mp_iop_new(mp, pfx)  (pfx##__t *)mp_iop_new_desc(mp, &pfx##__s)
-#define iop_new(pfx)         (pfx##__t *)iop_new_desc(&pfx##__s)
-#define t_iop_new(pfx)       (pfx##__t *)t_iop_new_desc(&pfx##__s)
-#define r_iop_new(pfx)       (pfx##__t *)r_iop_new_desc(&pfx##__s)
+#define mp_iop_new(mp, pfx)  ((pfx##__t *)mp_iop_new_desc(mp, &pfx##__s))
+#define iop_new(pfx)         ((pfx##__t *)iop_new_desc(&pfx##__s))
+#define t_iop_new(pfx)       ((pfx##__t *)t_iop_new_desc(&pfx##__s))
+#define r_iop_new(pfx)       ((pfx##__t *)r_iop_new_desc(&pfx##__s))
 
 /** Return whether two IOP structures are equals or not.
  *
