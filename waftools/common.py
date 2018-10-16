@@ -18,7 +18,7 @@ Contains the code that could be useful for both backend and frontend build.
 import os
 
 # pylint: disable = import-error
-from waflib import Build, Context, TaskGen, Logs
+from waflib import Build, Context, TaskGen, Logs, Utils
 
 from waflib.Build import BuildContext, inst
 from waflib.Node import Node
@@ -217,14 +217,19 @@ class CustomInstall(Task):
     def keyword(cls):
         return 'Installing'
 
+    def uid(self):
+        """ Since this task has no inputs, return unique id from the commands.
+        """
+        return Utils.h_list([self.__class__.__name__] + self.commands)
+
     def runnable_status(self):
-        """ Installation tasks are always executed on install, """
+        """ Installation tasks are always executed on install. """
         if not self.generator.bld.is_install:
             return SKIP_ME
         return RUN_ME
 
     def run(self):
-        """ Execute every shell commands in self.commands """
+        """ Execute every shell commands in self.commands. """
         for cmd in self.commands:
             # compile_fun do the right thing by replacing the environment
             # variables in the command.
