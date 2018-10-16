@@ -169,7 +169,7 @@ $4: CLASSNAME_=$(basename $(notdir $3))
 $4: $3
 	mkdir -p $$(@D)/javatmp/$$(CLASSNAME_)
 	$(msg/COMPILE.java) $3
-	javac -classpath "$$($1_CLASSPATH):$(1DV)" -d $$(@D)/javatmp/$$(CLASSNAME_) $$<
+	javac -classpath "$$($1_CLASSPATH):$(1DV):$$(<D)" -d $$(@D)/javatmp/$$(CLASSNAME_) $$<
 	cp $$(@D)/javatmp/$$(CLASSNAME_)/$$(CLASSNAME_)*.class $$(@D)
 
 $2: $4
@@ -275,12 +275,14 @@ endef
 define rule/jars
 $(1DV)all:: $1.jar
 $(eval $(call fun/foreach-ext-rule,$1,$1.jar,$($1_SOURCES)))
+$1.jar: _DIR=$($1_DIRECTORY)
 $1.jar:
 	$(msg/LINK.jar) $$(@R)
 
-    # * Go where the class files are to build the jar file, to avoid jaring the build directory
-	# * Do not add %.class but %*.class, as a compiled java file may generate several class files
-	cd $~$(1DV) && jar cf $$(patsubst $(1DV)%,%,$$@) $$(patsubst $~$(1DV)%.class,%*.class,$$(filter %.class,$$^))
+	# Add all .class files in the provided DIRECTORY: for files toto/1.class, toto2.class:
+	#   $ jar cf target.jar -C toto 1.class -C toto 2.class ...
+	cd $~$(1DV) && jar cf $$(patsubst $(1DV)%,%,$$@) \
+		$$(patsubst $~$(1DV)$$(_DIR)/%.class,-C $$(_DIR) %.class,$$(wildcard $~$(1DV)$$(_DIR)/*.class))
 
 	cp -f $~$1.jar $$@
 

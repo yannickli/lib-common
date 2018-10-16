@@ -47,13 +47,8 @@ static int file_flush_obuf(file_t *f, int len)
     return 0;
 }
 
-/****************************************************************************/
-/* open/close                                                               */
-/****************************************************************************/
-
-file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
+int file_flags_to_open_flags(int flags)
 {
-    file_t *res;
     int oflags;
 
     switch (flags & FILE_OPEN_MODE_MASK) {
@@ -63,7 +58,7 @@ file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
         break;
 #else
         errno = ENOSYS;
-        return NULL;
+        return -1;
 #endif
       case FILE_WRONLY:
         oflags = O_WRONLY;
@@ -74,19 +69,38 @@ file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
         break;
 #else
         errno = ENOSYS;
-        return NULL;
+        return -1;
 #endif
       default:
         errno = EINVAL;
-        return NULL;
+        return -1;
     }
 
-    if (flags & FILE_CREATE)
+    if (flags & FILE_CREATE) {
         oflags |= O_CREAT;
-    if (flags & FILE_EXCL)
+    }
+    if (flags & FILE_EXCL) {
         oflags |= O_EXCL;
-    if (flags & FILE_TRUNC)
+    }
+    if (flags & FILE_TRUNC) {
         oflags |= O_TRUNC;
+    }
+
+    return oflags;
+}
+
+/****************************************************************************/
+/* open/close                                                               */
+/****************************************************************************/
+
+file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
+{
+    file_t *res;
+    int oflags = file_flags_to_open_flags(flags);
+
+    if (oflags < 0) {
+        return NULL;
+    }
 
     res = p_new(file_t, 1);
     res->flags = flags;
@@ -101,39 +115,11 @@ file_t *file_open_at(int dfd, const char *path, unsigned flags, mode_t mode)
 file_t *file_open(const char *path, unsigned flags, mode_t mode)
 {
     file_t *res;
-    int oflags;
+    int oflags = file_flags_to_open_flags(flags);
 
-    switch (flags & FILE_OPEN_MODE_MASK) {
-      case FILE_RDONLY:
-#if 0
-        oflags = O_RDONLY;
-        break;
-#else
-        errno = ENOSYS;
-        return NULL;
-#endif
-      case FILE_WRONLY:
-        oflags = O_WRONLY;
-        break;
-      case FILE_RDWR:
-#if 0
-        oflags = O_RDWR;
-        break;
-#else
-        errno = ENOSYS;
-        return NULL;
-#endif
-      default:
-        errno = EINVAL;
+    if (oflags < 0) {
         return NULL;
     }
-
-    if (flags & FILE_CREATE)
-        oflags |= O_CREAT;
-    if (flags & FILE_EXCL)
-        oflags |= O_EXCL;
-    if (flags & FILE_TRUNC)
-        oflags |= O_TRUNC;
 
     res = p_new(file_t, 1);
     res->flags = flags;

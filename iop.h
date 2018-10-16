@@ -437,7 +437,7 @@ typedef int
 
 /** Fast version of 'iop_for_each_st'.
  *
- * See 'iop_for_each_field_fast'.
+ * See 'iop_for_each_st'.
  */
 int iop_for_each_st_fast(const iop_struct_t *nullable st_desc,
                          void *nonnull st_ptr,

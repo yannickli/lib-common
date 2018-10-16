@@ -22,8 +22,11 @@ static int ssl_initialize(void *arg)
 {
     /* interpreting internal errors is a nightmare, we want human readable
      * messages */
+    SSL_load_error_strings();
+    SSL_library_init();
+#if OPENSSL_VERSION_IS(<,1,0,2)
     OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
+#endif
     return 0;
 }
 
@@ -401,7 +404,7 @@ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out)
  * resulting string will (always) be 256 bytes long.
  */
 static int ssl_pkey_size(ssl_ctx_t *ctx) {
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+#if OPENSSL_VERSION_IS(<,1,1,0)
     RSA *tmp = EVP_PKEY_get1_RSA(ctx->pkey);
     int size;
 

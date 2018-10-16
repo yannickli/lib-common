@@ -846,33 +846,6 @@ iop_value_t iop_type_to_min(iop_type_t type)
 /* }}} */
 /* {{{ Generic attributes */
 
-static bool iop_type_is_string(iop_type_t type)
-{
-    switch (type) {
-      case IOP_T_STRING:
-      case IOP_T_DATA:
-      case IOP_T_XML:
-        return true;
-
-      case IOP_T_I8:
-      case IOP_T_I16:
-      case IOP_T_I32:
-      case IOP_T_I64:
-      case IOP_T_BOOL:
-      case IOP_T_ENUM:
-      case IOP_T_DOUBLE:
-      case IOP_T_U8:
-      case IOP_T_U16:
-      case IOP_T_U32:
-      case IOP_T_U64:
-      case IOP_T_STRUCT:
-      case IOP_T_UNION:
-      case IOP_T_VOID:
-        return false;
-    }
-    return false;
-}
-
 static int iop_convert_i64(int64_t i64, iop_type_t type, iop_value_t *value)
 {
 #define CHECK_RANGE(_min, _max)  THROW_ERR_IF(i64 < _min || i64 > _max)
@@ -1574,49 +1547,7 @@ static int iop_first_diff(const iop_struct_t *st,
                           const void *v1, const void *v2,
                           sb_t *field_path, sb_t *diff_desc);
 
-static bool iop_value_equals(iop_type_t type, const void *v1, const void *v2)
-{
-    switch (type) {
-      case IOP_T_BOOL:
-        return *(const bool *)v1 == *(const bool *)v2;
-
-      case IOP_T_U8:
-      case IOP_T_I8:
-        return *(const int8_t *)v1 == *(const int8_t *)v2;
-
-      case IOP_T_U16:
-      case IOP_T_I16:
-        return *(const int16_t *)v1 == *(const int16_t *)v2;
-
-      case IOP_T_U32:
-      case IOP_T_I32:
-      case IOP_T_ENUM:
-        return *(const int32_t *)v1 == *(const int32_t *)v2;
-
-      case IOP_T_U64:
-      case IOP_T_I64:
-        return *(const int64_t *)v1 == *(const int64_t *)v2;
-
-      case IOP_T_DOUBLE:
-        return *(const double *)v1 == *(const double *)v2;
-
-      case IOP_T_STRING:
-      case IOP_T_DATA:
-      case IOP_T_XML:
-        return lstr_equal(*(const lstr_t *)v1, *(const lstr_t *)v2);
-
-      case IOP_T_VOID:
-        return true;
-
-      case IOP_T_UNION:
-      case IOP_T_STRUCT:
-        e_panic("not supported");
-    }
-
-    return false;
-}
-
-static void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
+static inline void iop_value_print(iop_type_t type, const void *v, sb_t *buf)
 {
     switch (type) {
       case IOP_T_BOOL:

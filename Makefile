@@ -18,7 +18,6 @@ test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-ben
 test_PROGRAMS += ztst-mem
 ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
-none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-tstiop2-plugin
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
 endif
@@ -187,7 +186,7 @@ ifneq ($(HAVE_NETINET_SCTP_H),)
 libcommon_SOURCES += net-sctp.c
 endif
 
-libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
+libcommon_SOURCES += compat/data.c compat/runtime.c
 libcommon_NOGENERATED = 1
 
 libcommon-iop_SOURCES = $(ioplibs)
@@ -240,14 +239,6 @@ zchk_SOURCES = zchk.c \
 	$liop/tstiop.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
-
-zchk-tstiop-plugin_SOURCES = \
-	$liop/tstiop-plugin.c \
-	$liop/tstiop.a
-
-zchk-tstiop2-plugin_SOURCES = \
-	$liop/tstiop2-plugin.c \
-	$liop/tstiop2.a
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \

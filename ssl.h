@@ -94,11 +94,16 @@
 #include "core.h"
 #include "licence.h"
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL)
+#define OPENSSL_VERSION_IS(op, maj1, maj2, min)                              \
+    (((OPENSSL_VERSION_NUMBER >> 12) & 0xFFFFF) op (((maj1) << 16)           \
+                                                    | ((maj2) << 8)          \
+                                                    | (min)))
+#if OPENSSL_VERSION_IS(<,1,1,0)
+#define TLS_method()  SSLv23_method()
 #define TLS_server_method()  SSLv23_server_method()
 #define TLS_client_method()  SSLv23_client_method()
 #endif
-#if (OPENSSL_VERSION_NUMBER < 0x1000200fL)
+#if OPENSSL_VERSION_IS(<,1,0,2)
 /* Note: this function is also removed after 1.1.0, so please remove all its
  * occurrences if you remove this compatibility code. */
 #define SSL_CTX_set_ecdh_auto(ctx, onoff)  do {} while(0)

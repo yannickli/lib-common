@@ -326,7 +326,7 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
 
     if (stream) {
         while (n1-- > 0) {
-            ISPUTC(c, stream);
+            putc_unlocked(c, stream);
         }
     } else {
         if (count + n1 >= size) {
@@ -346,7 +346,7 @@ static ssize_t fmt_output_raw(int modifier, const void *val, size_t val_len,
 
     if (stream) {
         for (size_t i = 0; i < val_len; i++) {
-            ISPUTC(lp[i], stream);
+            putc_unlocked(lp[i], stream);
         }
     } else {
         ssize_t len1 = MIN(val_len, buf_len);;
@@ -368,7 +368,7 @@ static ssize_t fmt_output_lstr(int modifier, const void *val, FILE *stream,
 
     if (stream) {
         for (int i = 0; i < str->len; i++) {
-            ISPUTC(str->s[i], stream);
+            putc_unlocked(str->s[i], stream);
         }
     } else {
         ssize_t len1 = MIN((size_t)str->len, buf_len);
@@ -393,8 +393,8 @@ static ssize_t fmt_output_hex(int modifier, const void *val, size_t val_len,
 
     if (stream) {
         for (size_t i = 0; i < val_len; i++) {
-            ISPUTC(digits[(lp[i] >> 4) & 0x0f], stream);
-            ISPUTC(digits[(lp[i] >> 0) & 0x0f], stream);
+            putc_unlocked(digits[(lp[i] >> 4) & 0x0f], stream);
+            putc_unlocked(digits[(lp[i] >> 0) & 0x0f], stream);
         }
     } else {
         size_t len1 = MIN(val_len * 2, buf_len);
@@ -1383,28 +1383,28 @@ int ifputs_hex(FILE *stream, const void *_buf, int len)
     while (len) {
         line_len = MIN(len, 16);
         for (i = 0; i < line_len; i++) {
-            ISPUTC(hexchar[(buf[i] >> 4) & 0x0F], stream);
-            ISPUTC(hexchar[ buf[i]       & 0x0F], stream);
-            ISPUTC(' ', stream);
+            putc_unlocked(hexchar[(buf[i] >> 4) & 0x0F], stream);
+            putc_unlocked(hexchar[ buf[i]       & 0x0F], stream);
+            putc_unlocked(' ', stream);
         }
         while (i < 16) {
-            ISPUTC(' ', stream);
-            ISPUTC(' ', stream);
-            ISPUTC(' ', stream);
+            putc_unlocked(' ', stream);
+            putc_unlocked(' ', stream);
+            putc_unlocked(' ', stream);
             i++;
         }
         ret += 16 * 3;
         for (i = 0; i < line_len; i++) {
             if (isprint((unsigned char)buf[i])) {
-                ISPUTC(buf[i], stream);
+                putc_unlocked(buf[i], stream);
             } else {
-                ISPUTC('.', stream);
+                putc_unlocked('.', stream);
             }
         }
         ret += line_len;
         buf += line_len;
         len -= line_len;
-        ISPUTC('\n', stream);
+        putc_unlocked('\n', stream);
         ret++;
     }
     return ret;

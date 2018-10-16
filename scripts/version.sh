@@ -37,8 +37,29 @@ char const $1_git_sha1[] = "$sha1";
 EOF
 }
 
+git_product_version() {
+    product="$1"
+
+    revision=$(git describe --match "$product/*" 2>/dev/null || git rev-parse --short HEAD)${dirty}
+
+    version=$(basename `(git describe --match "$product/*" 2>/dev/null || echo "$product/0.0.0") \
+              | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+"`)
+    version_major=$(echo $version |cut -d '.' -f 1)
+    version_minor=$(echo $version |cut -d '.' -f 2)
+    version_patchlevel=$(echo $version |cut -d '.' -f 3)
+
+    cat <<EOF
+const char ${product}_git_revision[] = "$revision";
+const unsigned ${product}_version_major = $version_major;
+const unsigned ${product}_version_minor = $version_minor;
+const unsigned ${product}_version_patchlevel = $version_patchlevel;
+const char ${product}_version[] = "$version";
+EOF
+}
+
 case "$1" in
-    "describe") shift; git_describe "$@";;
-    "rcsid")    shift; git_rcsid    "$@";;
+    "describe")        shift; git_describe        "$@";;
+    "rcsid")           shift; git_rcsid           "$@";;
+    "product-version") shift; git_product_version "$@";;
     *);;
 esac

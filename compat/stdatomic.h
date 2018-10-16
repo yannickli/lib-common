@@ -49,6 +49,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #if !defined(__has_feature)
 #define __has_feature(x) 0

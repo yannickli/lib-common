@@ -3884,6 +3884,7 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     path[strlen(path) - 1] = 'c';
     IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
+#ifndef WAF_MODE
     if (depbuf) {
         sb_adds(depbuf, path);
         sb_addc(depbuf, ' ');
@@ -3910,6 +3911,7 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
         }
         sb_addc(depbuf, '\n');
     }
+#endif
 
 #undef IOPC_DO_C_RETHROW
 

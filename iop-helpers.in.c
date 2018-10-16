@@ -51,6 +51,76 @@ static ALWAYS_INLINE unsigned get_vint64_len(int64_t i)
     return sizes[bsr64(((i >> 63) ^ (i << 1)) | 1) / 8];
 }
 
+static inline bool iop_type_is_string(iop_type_t type)
+{
+    switch (type) {
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return true;
+
+      case IOP_T_I8:
+      case IOP_T_I16:
+      case IOP_T_I32:
+      case IOP_T_I64:
+      case IOP_T_BOOL:
+      case IOP_T_ENUM:
+      case IOP_T_DOUBLE:
+      case IOP_T_U8:
+      case IOP_T_U16:
+      case IOP_T_U32:
+      case IOP_T_U64:
+      case IOP_T_STRUCT:
+      case IOP_T_UNION:
+      case IOP_T_VOID:
+        return false;
+    }
+    return false;
+}
+
+static inline bool iop_value_equals(iop_type_t type, const void *v1,
+                                    const void *v2)
+{
+    switch (type) {
+      case IOP_T_BOOL:
+        return *(const bool *)v1 == *(const bool *)v2;
+
+      case IOP_T_U8:
+      case IOP_T_I8:
+        return *(const int8_t *)v1 == *(const int8_t *)v2;
+
+      case IOP_T_U16:
+      case IOP_T_I16:
+        return *(const int16_t *)v1 == *(const int16_t *)v2;
+
+      case IOP_T_U32:
+      case IOP_T_I32:
+      case IOP_T_ENUM:
+        return *(const int32_t *)v1 == *(const int32_t *)v2;
+
+      case IOP_T_U64:
+      case IOP_T_I64:
+        return *(const int64_t *)v1 == *(const int64_t *)v2;
+
+      case IOP_T_DOUBLE:
+        return *(const double *)v1 == *(const double *)v2;
+
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        return lstr_equal(*(const lstr_t *)v1, *(const lstr_t *)v2);
+
+      case IOP_T_VOID:
+        return true;
+
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+        e_panic("not supported");
+    }
+
+    return false;
+}
+
 static inline bool iop_value_has(const iop_field_t *f, const void *v)
 {
     switch (f->type) {

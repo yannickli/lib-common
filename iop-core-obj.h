@@ -56,9 +56,10 @@ typedef struct iop_core_obj_map_t iop_core_obj_map_t;
 iop_core_obj_map_t *nonnull iop_core_obj_map_new(void);
 void iop_core_obj_map_delete(iop_core_obj_map_t *nullable *nonnull map);
 
-void *nonnull _iop_core_obj_map_new_obj(const iop_core_obj_map_t *nonnull map,
-                                        const void *nonnull iop_obj);
-const object_class_t *nonnull
+void *nullable
+_iop_core_obj_map_new_obj(const iop_core_obj_map_t *nonnull map,
+                          const void *nonnull iop_obj);
+const object_class_t *nullable
 _iop_core_obj_map_get_cls(const iop_core_obj_map_t *nonnull map,
                           const void *nonnull iop_obj);
 void _iop_core_obj_map_register_cls(iop_core_obj_map_t *nonnull map,

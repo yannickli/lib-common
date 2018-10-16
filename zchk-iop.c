@@ -1034,15 +1034,20 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
                                const char *exp_err)
 {
     t_scope;
+    static int packing_cnt;
+    const char *dir;
     const char *path;
     SB_1k(err);
     int res;
 
+    dir = t_fmt("%*pM/packing-%d", LSTR_FMT_ARG(z_tmpdir_g), packing_cnt++);
+    mkdir_p(dir, 0755);
+
     /* Pack val in a file, using the sub_files. */
-    path = t_fmt("%*pM/main.json", LSTR_FMT_ARG(z_tmpdir_g));
+    path = t_fmt("%s/main.json", dir);
 
     res = __iop_jpack_file(path, FILE_WRONLY | FILE_CREATE | FILE_TRUNC,
-                           0644, st, val, 0, sub_files, &err);
+                           0444, st, val, 0, sub_files, &err);
 
     if (exp_err) {
         Z_ASSERT_NEG(res);
@@ -1057,7 +1062,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
         t_scope;                                                             \
         void *_val = NULL;                                                   \
                                                                              \
-        path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_tmpdir_g), _file);            \
+        path = t_fmt("%s/%s", dir, _file);                                   \
         Z_ASSERT_N(t_iop_junpack_ptr_file(path, _st, &_val, 0, NULL, &err),  \
                    "cannot unpack `%s`: %*pM", path, SB_FMT_ARG(&err));      \
         Z_ASSERT_IOPEQUAL_DESC(_st, _val, _exp);                             \
@@ -1076,7 +1081,7 @@ iop_check_json_include_packing(const iop_struct_t *st, const void *val,
             const lstr_t *content = sub_file->val;
             lstr_t file_map;
 
-            path = t_fmt("%*pM/%s", LSTR_FMT_ARG(z_tmpdir_g), sub_file->path);
+            path = t_fmt("%s/%s", dir, sub_file->path);
             Z_ASSERT_N(lstr_init_from_file(&file_map, path, PROT_READ,
                                            MAP_SHARED));
             Z_ASSERT_LSTREQUAL(file_map, *content);
@@ -1161,13 +1166,13 @@ iop_check_struct_backward_compat(const iop_struct_t *st1,
         }                                                                    \
         _dso = iop_dso_open(_path.s, LM_ID_BASE, &_err);                     \
         if (_dso == NULL) {                                                  \
-            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo? (%*pM)",  \
-                   SB_FMT_ARG(&_err));                                       \
+            Z_SKIP("unable to load `%s`, TOOLS repo? (%*pM)",                \
+                   _path.s, SB_FMT_ARG(&_err));                              \
         }                                                                    \
         _dso;                                                                \
     })
 
-#define Z_DSO_OPEN()  _Z_DSO_OPEN("zchk-tstiop-plugin" SO_FILEEXT, true)
+#define Z_DSO_OPEN()  _Z_DSO_OPEN("iop/zchk-tstiop-plugin" SO_FILEEXT, true)
 
 static int z_check_static_field_type(const iop_struct_t *st,
                                      lstr_t name, iop_type_t type,
@@ -1215,7 +1220,8 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR("zchk-iop-plugin"SO_FILEEXT));
 
-        Z_ASSERT(dso = iop_dso_open(path.s, LM_ID_BASE, &err));
+        Z_ASSERT(dso = iop_dso_open(path.s, LM_ID_BASE, &err), "%*pM",
+                 SB_FMT_ARG(&err));
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h, &LSTR_IMMED_V("ic.Hdr")));
 
         Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR("ic.SimpleHdr")));
@@ -2771,6 +2777,52 @@ Z_GROUP_EXPORT(iop)
                      "j.json");
         T_OK(tstiop__my_struct_m, &obj_first_field);
 
+        /* Dumping the exact same values in the same file twice is fine */
+        /* For structs */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b", "b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b->b, "b.b",
+                     "c.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1], "c[1]",
+                     "c.json");
+        T_OK(tstiop__my_struct_c, &obj_struct);
+
+        /* And for strings */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a[0]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a[2]", "s2.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b[1]", "s1.txt");
+        T_OK(tstiop__my_struct_f, &obj_string_array);
+
+        /* Dumping different types in the same file twice is not ok */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_referenced_struct__s, obj_ref.s, "s",
+                     "s.json");
+        ADD_SUB_FILE(&tstiop__my_referenced_union__s,  obj_ref.u, "u",
+                     "s.json");
+        exp_err = "subfile `s.json` is written twice with different iop "
+                  "types `struct` vs `union`";
+        T_KO(tstiop__my_ref_struct, &obj_ref, exp_err);
+
+        /* Dumping different values in the same file twice is not ok */
+        /* For structs */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b, "b", "c.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, obj_struct.b->b, "b.b",
+                     "b.json");
+        ADD_SUB_FILE(&tstiop__my_struct_c__s, &obj_struct.c.tab[1], "c[1]",
+                     "c.json");
+        exp_err = "subfile `c.json` is written twice with different values";
+        T_KO(tstiop__my_struct_c, &obj_struct, exp_err);
+
+        /* And for strings */
+        CLEAR_SUB_FILES();
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[0], "a[0]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.a.tab[2], "a[2]", "s1.txt");
+        ADD_SUB_FILE(NULL, &obj_string_array.b.tab[1], "b[1]", "s2.txt");
+        exp_err = "subfile `s1.txt` is written twice with different values";
+        T_KO(tstiop__my_struct_f, &obj_string_array, exp_err);
+
 #undef T
 #undef T_OK
 #undef T_KO
@@ -2890,12 +2942,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(roptimized, "test IOP std: optimized repeated fields") { /* {{{ */
         t_scope;
-        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_curr_v;
         lstr_t path_v3;
-        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        path_v3 = t_lstr_cat3(z_cmddir_g,
-                              LSTR("/test-data/test_v3_centos-5u4/"), file);
+        path_curr_v = t_lstr_fmt("%*pM/iop/zchk-tstiop-plugin" SO_FILEEXT,
+                                 LSTR_FMT_ARG(z_cmddir_g));
+
+        path_v3 = t_lstr_fmt("%*pM/test-data/test_v3_centos-5u4/"
+                             "zchk-tstiop-plugin" SO_FILEEXT,
+                             LSTR_FMT_ARG(z_cmddir_g));
 
         Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_curr_v));
         Z_HELPER_RUN(iop_check_retro_compat_roptimized(path_v3));
@@ -4193,12 +4248,15 @@ Z_GROUP_EXPORT(iop)
     /* }}} */
     Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
-        lstr_t file = LSTR("zchk-tstiop-plugin"SO_FILEEXT);
+        lstr_t path_curr_v;
         lstr_t path_v3;
-        lstr_t path_curr_v = t_lstr_cat(z_cmddir_g, file);
 
-        path_v3 = t_lstr_cat3(z_cmddir_g,
-                              LSTR("/test-data/test_v3_centos-5u4/"), file);
+        path_curr_v = t_lstr_fmt("%*pM/iop/zchk-tstiop-plugin" SO_FILEEXT,
+                                 LSTR_FMT_ARG(z_cmddir_g));
+
+        path_v3 = t_lstr_fmt("%*pM/test-data/test_v3_centos-5u4/"
+                             "zchk-tstiop-plugin" SO_FILEEXT,
+                             LSTR_FMT_ARG(z_cmddir_g));
 
         Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_curr_v));
         Z_HELPER_RUN(iop_check_retro_compat_copy_inv_tab(path_v3));
@@ -7396,7 +7454,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *my_struct;
         const iop_field_t *field;
 
-        dso = _Z_DSO_OPEN("zchk-tstiop2-plugin" SO_FILEEXT, true);
+        dso = _Z_DSO_OPEN("iop/zchk-tstiop2-plugin" SO_FILEEXT, true);
 
         my_struct = iop_dso_find_type(dso, LSTR("tstiop2.MyStruct"));
         Z_ASSERT_N(iop_field_find_by_name(my_struct, LSTR("a"), NULL,
@@ -7418,7 +7476,7 @@ Z_GROUP_EXPORT(iop)
         iop_dso_t *dso2;
         const char *newpath;
         const char *sofile = "zchk-tstiop2-plugin" SO_FILEEXT;
-        const char *sopath = t_fmt("%s%s", z_cmddir_g.s, sofile);
+        const char *sopath = t_fmt("%s/iop/%s", z_cmddir_g.s, sofile);
 
         /* build one dso, remove file */
         newpath = t_fmt("%*pM/1_%s", LSTR_FMT_ARG(z_tmpdir_g), sofile);

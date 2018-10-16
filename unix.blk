@@ -194,7 +194,7 @@ off_t filecopy(const char *pathin, const char *pathout)
     struct stat st;
     off_t total = -1;
 
-    fdin = open(pathin, O_RDONLY | O_BINARY);
+    fdin = open(pathin, O_RDONLY);
     if (fdin < 0) {
         goto end;
     }
@@ -205,7 +205,7 @@ off_t filecopy(const char *pathin, const char *pathout)
     /* OG: this will not work if the source file is not writeable ;-) */
     /* OG: should test if source and destination files are the same
      * file before truncating destination file ;-) */
-    fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
+    fdout = open(pathout, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode);
     if (fdout < 0) {
         goto end;
     }
@@ -238,15 +238,15 @@ off_t filecopyat(int dfd_src, const char* name_src,
     struct stat st;
     off_t total;
 
-    fd_src = openat(dfd_src, name_src, O_RDONLY | O_BINARY);
+    fd_src = openat(dfd_src, name_src, O_RDONLY);
     if (fd_src < 0)
         goto error;
 
     if (fstat(fd_src, &st))
         goto error;
 
-    fd_dst = openat(dfd_dst, name_dst,
-                    O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
+    fd_dst = openat(dfd_dst, name_dst, O_WRONLY | O_CREAT | O_TRUNC,
+                    st.st_mode);
     if (fd_dst < 0)
         goto error;
 
@@ -596,12 +596,13 @@ ssize_t xwrite(int fd, const void *data, ssize_t len)
     return to_write;
 }
 
-static ssize_t xwrite_file_with_flags(const char *path, const void *data,
-                                      ssize_t dlen, int flags)
+ssize_t xwrite_file_extended(const char * nonnull path,
+                             const void * nonnull data,
+                             ssize_t dlen, int flags, mode_t mode)
 {
     int fd, res;
 
-    fd = RETHROW(open(path, flags, 0644));
+    fd = RETHROW(open(path, flags, mode));
     res = xwrite(fd, data, dlen);
     if (res < 0) {
         int save_errno = errno;
@@ -612,18 +613,6 @@ static ssize_t xwrite_file_with_flags(const char *path, const void *data,
     }
     close(fd);
     return dlen;
-}
-
-ssize_t xwrite_file(const char *path, const void *data, ssize_t dlen)
-{
-    return xwrite_file_with_flags(path, data, dlen,
-                                  O_WRONLY | O_CREAT | O_TRUNC);
-}
-
-ssize_t xappend_to_file(const char *path, const void *data, ssize_t dlen)
-{
-    return xwrite_file_with_flags(path, data, dlen,
-                                  O_WRONLY | O_CREAT | O_APPEND);
 }
 
 ssize_t xwritev(int fd, struct iovec *iov, int iovcnt)

@@ -201,9 +201,7 @@ http_qhdr_find(const http_qhdr_t * nonnull tab, size_t len, http_wkhdr_t wkhdr)
     return NULL;
 }
 
-/**************************************************************************/
-/* HTTP Server                                                            */
-/**************************************************************************/
+/* {{{ HTTP Server */
 
 struct httpd_query_t;
 typedef struct httpd_qinfo_t httpd_qinfo_t;
@@ -431,9 +429,8 @@ httpd_trigger_set_auth(httpd_trigger_t * nonnull cb,
     httpd_trigger_unregister2(cfg, m, p, NULL)
 
 
-/**************************************************************************/
-/* HTTP Server Queries related                                            */
-/**************************************************************************/
+/* }}} */
+/* {{{ HTTP Server Queries Related */
 
 struct httpd_qinfo_t {
     http_method_t method;
@@ -713,9 +710,8 @@ httpd_trigger_t * nonnull
 httpd_trigger__static_dir_new(const char * nonnull path);
 
 
-/**************************************************************************/
-/* HTTP Client                                                            */
-/**************************************************************************/
+/* }}} */
+/* {{{ HTTP Client */
 
 typedef struct httpc_pool_t httpc_pool_t;
 typedef struct httpc_query_t httpc_query_t;
@@ -844,9 +840,8 @@ void httpc_pool_attach(httpc_t * nonnull w, httpc_pool_t * nonnull pool);
 httpc_t * nullable httpc_pool_launch(httpc_pool_t * nonnull pool);
 httpc_t * nullable httpc_pool_get(httpc_pool_t * nonnull pool);
 
-/**************************************************************************/
-/* HTTP Client Queries                                                    */
-/**************************************************************************/
+/* }}} */
+/* {{{ HTTP Client Queries */
 
 typedef enum httpc_status_t {
     HTTPC_STATUS_OK,
@@ -981,6 +976,13 @@ static inline void httpc_query_hdrs_adds(httpc_query_t * nonnull q,
 {
     httpc_query_hdrs_add(q, LSTR(hdr));
 }
+
+/* }}} */
+/* {{{ HTTP module */
+
+MODULE_DECLARE(http);
+
+/* }}} */
 
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop
