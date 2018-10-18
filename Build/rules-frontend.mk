@@ -409,11 +409,11 @@ define rule/webpack
 ifeq (,$2)
 $(1DV)www:: $1
 else
-$(1DV)all:: $1
 $(1DV)www-check-deps:: $1
 endif
 $1: _CFGFILE=$(or $(patsubst $(1DV)%,%,$($1_CONFIG)),webpack.config.js)
 $1: $(var/wwwtool)webpack
+$1: FORCE
 	$(msg/PACK.js) $1
 	cd $(1DV) && $(var/wwwtool)webpack --mode=development --config $$(_CFGFILE)
 endef

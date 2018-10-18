@@ -107,7 +107,7 @@ distclean::
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
 	$(msg/rm) "build system"
 	$(RM) -r $~
-check:: all
+check:: all www-check-deps
 	$(var/toolsdir)/_run_checks.sh .
 fast-check:: all
 	Z_MODE=fast Z_TAG_SKIP='upgrade slow perf' $(var/toolsdir)/_run_checks.sh .
@@ -142,7 +142,7 @@ $(d)doc:
 $(d)www::
 $(d)www-check-deps:: | _generated_hdr
 $(d)full:: $(d)all $(d)www
-$(d)check:: $(d)all
+$(d)check:: $(d)all $(d)www-check-deps
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)www-check:: $(d)www-check-deps
 	Z_LIST_SKIP="C behave" $(var/toolsdir)/_run_checks.sh $(d)
