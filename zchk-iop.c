@@ -3190,6 +3190,18 @@ Z_GROUP_EXPORT(iop)
 #undef CHECK_IOP_LT
     } Z_TEST_END
     /* }}} */
+    Z_TEST(nr_61968, "non-regression test for bug with object comparison") { /* {{{ */
+        tstiop__bob__t bob1;
+        tstiop__bob__t bob2;
+
+        iop_init(tstiop__bob, &bob1);
+        bob1.i = 1;
+        iop_init(tstiop__bob, &bob2);
+        bob2.i = 2;
+
+        Z_ASSERT_LT(iop_cmp(tstiop__alice, &bob1.super, &bob2.super), 0);
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(xsort_and_xpsort, "test iop_xsort()/iop_xpsort()") { /* {{{ */
         t_scope;
         tstiop__xsort_struct__array_t array;
