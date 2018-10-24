@@ -413,10 +413,11 @@ $(1DV)www-check-deps:: $1
 endif
 $1: _CFGFILE=$(or $(patsubst $(1DV)%,%,$($1_CONFIG)),webpack.config.js)
 $1: _MODE=$(if $(WEBPACK_MODE),--mode $(WEBPACK_MODE))
+$1: _CHECK=$(if $(NOCHECK),--nocheck)
 $1: $(var/wwwtool)webpack
 $1: FORCE
 	$(msg/PACK.js) $1
-	cd $(1DV) && $(var/wwwtool)webpack --config $$(_CFGFILE) $$(_MODE)
+	cd $(1DV) && $(var/wwwtool)webpack --config $$(_CFGFILE) $$(_MODE) $$(_CHECK)
 endef
 
 #}}}
