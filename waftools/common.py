@@ -68,14 +68,17 @@ def run_checks(ctx):
 class CheckClass(BuildContext):
     '''run tests (no web)'''
     cmd = 'check'
+    has_jasmine_tests = True
 
 class FastCheckClass(BuildContext):
     '''run tests in fast mode (no web)'''
     cmd = 'fast-check'
+    has_jasmine_tests = True
 
 class WwwCheckClass(BuildContext):
     '''run jasmine tests'''
     cmd = 'www-check'
+    has_jasmine_tests = True
 
 class SeleniumCheckClass(BuildContext):
     '''run selenium tests (including slow ones)'''
