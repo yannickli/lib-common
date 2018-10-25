@@ -605,10 +605,10 @@ static inline void * nonnull r_iop_new_desc(const iop_struct_t * nonnull st)
     return mp_iop_new_desc(r_pool(), st);
 }
 
-#define mp_iop_new(mp, pfx)  (pfx##__t *)mp_iop_new_desc(mp, &pfx##__s)
-#define iop_new(pfx)         (pfx##__t *)iop_new_desc(&pfx##__s)
-#define t_iop_new(pfx)       (pfx##__t *)t_iop_new_desc(&pfx##__s)
-#define r_iop_new(pfx)       (pfx##__t *)r_iop_new_desc(&pfx##__s)
+#define mp_iop_new(mp, pfx)  ((pfx##__t *)mp_iop_new_desc(mp, &pfx##__s))
+#define iop_new(pfx)         ((pfx##__t *)iop_new_desc(&pfx##__s))
+#define t_iop_new(pfx)       ((pfx##__t *)t_iop_new_desc(&pfx##__s))
+#define r_iop_new(pfx)       ((pfx##__t *)r_iop_new_desc(&pfx##__s))
 
 /** Return whether two IOP structures are equals or not.
  *
@@ -1172,6 +1172,14 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t * nonnull st,
 bool iop_opt_field_is_set(iop_type_t type, void * nonnull data,
                           void * nullable * nonnull value);
 
+/** Constant version of \ref iop_get_field (below).
+ */
+const iop_field_t * nullable
+iop_get_field_const(const void * nullable ptr,
+                    const iop_struct_t * nonnull st,
+                    lstr_t path, const void * nullable * nullable out_ptr,
+                    const iop_struct_t * nullable * nullable out_st);
+
 /** Find an IOP field description from a iop object.
  *
  * \param[in]  ptr      The IOP object.
@@ -1183,10 +1191,14 @@ bool iop_opt_field_is_set(iop_type_t type, void * nonnull data,
  *
  * \return The iop field description if found, NULL otherwise.
  */
-const iop_field_t * nullable
-iop_get_field(const void * nullable ptr, const iop_struct_t * nonnull st,
-              lstr_t path, const void * nullable * nullable out_ptr,
-              const iop_struct_t * nullable * nullable out_st);
+static inline const iop_field_t * nullable
+iop_get_field(void * nullable ptr, const iop_struct_t * nonnull st,
+              lstr_t path, void * nullable * nullable out_ptr,
+              const iop_struct_t * nullable * nullable out_st)
+{
+    return iop_get_field_const((const void *)ptr, st, path,
+                               (const void **)out_ptr, out_st);
+}
 
 /** Get a pointer on the C field associated to a given IOP field.
  *

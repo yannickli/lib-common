@@ -729,6 +729,16 @@ struct FilteredStruct {
 };
 
 /* }}} */
+/* {{{ zchk iop.nr_61968 */
+
+abstract class Alice {
+};
+
+class Bob : 1 : Alice {
+    int i;
+};
+
+/* }}} */
 /* {{{ zchk iop.xsort_and_xpsort */
 
 struct XsortStruct {

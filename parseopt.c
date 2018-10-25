@@ -19,10 +19,37 @@
 #define FLAG_UNSET 2
 
 typedef struct popt_state_t {
-    char **argv;
-    int argc;
+    int flags;
+    char * const * pending_argv;
+    int pending_argc;
+    char **left_argv;
+    int left_argc;
     const char *p;
 } popt_state_t;
+
+static inline popt_state_t *
+opt_state_init(popt_state_t *st, int argc, char **argv, int flags)
+{
+    p_clear(st, 1);
+    st->flags = flags;
+    st->pending_argv = argv;
+    st->pending_argc = argc;
+    st->left_argv = argv;
+    st->left_argc = 0;
+    return st;
+}
+
+static inline int opt_state_end(popt_state_t *st)
+{
+    memmove(st->left_argv + st->left_argc, st->pending_argv,
+            st->pending_argc * sizeof(*st->pending_argv));
+    return st->left_argc + st->pending_argc;
+}
+
+static inline void opt_add_left_arg(popt_state_t *st, char *arg)
+{
+    st->left_argv[st->left_argc++] = arg;
+}
 
 static const char *opt_arg(popt_state_t *st)
 {
@@ -31,8 +58,8 @@ static const char *opt_arg(popt_state_t *st)
         st->p = NULL;
         return res;
     }
-    st->argc--;
-    return *++st->argv;
+    st->pending_argc--;
+    return *++st->pending_argv;
 }
 
 static int opterror(popt_t *opt, const char *reason, int flags)
@@ -83,15 +110,17 @@ static int put_int_value(popt_t *opt, uint64_t v)
 
 static int get_value(popt_state_t *st, popt_t *opt, int flags)
 {
-    if (st->p && (flags & FLAG_UNSET))
+    if (st->p && (flags & FLAG_UNSET)) {
         return opterror(opt, "takes no value", flags);
+    }
 
     switch (opt->kind) {
         const char *s;
 
       case OPTION_FLAG:
-        if (!(flags & FLAG_SHORT) && st->p)
+        if (!(flags & FLAG_SHORT) && st->p) {
             return opterror(opt, "takes no value", flags);
+        }
         put_int_value(opt, !(flags & FLAG_UNSET));
         return 0;
 
@@ -99,8 +128,9 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
         if (flags & FLAG_UNSET) {
             *(const char **)opt->value = (const char *)opt->init;
         } else {
-            if (!st->p && st->argc < 2)
+            if (!st->p && st->pending_argc < 2) {
                 return opterror(opt, "requires a value", flags);
+            }
             *(const char **)opt->value = opt_arg(st);
         }
         return 0;
@@ -110,11 +140,13 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
             *(char *)opt->value = (char)opt->init;
         } else {
             const char *value;
-            if (!st->p && st->argc < 2)
+            if (!st->p && st->pending_argc < 2) {
                 return opterror(opt, "requires a value", flags);
+            }
             value = opt_arg(st);
-            if (strlen(value) != 1)
+            if (strlen(value) != 1) {
                 return opterror(opt, "expects a single character", flags);
+            }
             *(char *)opt->value = value[0];
         }
         return 0;
@@ -127,7 +159,7 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
           if (flags & FLAG_UNSET) {
               v = opt->init;
           } else {
-              if (!st->p && st->argc < 2) {
+              if (!st->p && st->pending_argc < 2) {
                   return opterror(opt, "requires a value", flags);
               }
 
@@ -159,39 +191,75 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
     }
 }
 
-static int parse_short_opt(popt_state_t *st, popt_t *opts)
+static popt_t *find_opts_short_opt(popt_state_t *st, popt_t *opts)
 {
     for (; opts->kind; opts++) {
         if (opts->shrt == *st->p) {
-            st->p = st->p[1] ? st->p + 1 : NULL;
-            return get_value(st, opts, FLAG_SHORT);
+            return opts;
         }
     }
-    return e_error("unknown option `%c'", *st->p);
+    return NULL;
 }
 
-static int parse_long_opt(popt_state_t *st, const char *arg, popt_t *opts)
+static int parse_short_opt(popt_state_t *st, char *arg, popt_t *opts)
 {
+    bool ignore_unknown = st->flags & POPT_IGNORE_UNKNOWN_OPTS;
+
+    st->p = arg + 1;
+    do {
+        popt_t *p_opts = find_opts_short_opt(st, opts);
+
+        if (!p_opts) {
+            if (ignore_unknown) {
+                st->p = NULL;
+                opt_add_left_arg(st, arg);
+                return 0;
+            } else {
+                return e_error("unknown option `%c'", *st->p);
+            }
+        }
+        ignore_unknown = false;
+
+        st->p = st->p[1] ? st->p + 1 : NULL;
+        RETHROW(get_value(st, p_opts, FLAG_SHORT));
+    } while (st->p);
+
+    return 0;
+}
+
+static int parse_long_opt(popt_state_t *st, char *arg, popt_t *opts)
+{
+    const char *arg_opt = arg + 2;
+
     for (; opts->kind; opts++) {
         const char *p;
         int flags = 0;
 
-        if (!opts->lng)
+        if (!opts->lng) {
             continue;
+        }
 
-        if (!strstart(arg, opts->lng, &p)) {
-            if (!strstart(arg, "no-", &p) || !strstart(p, opts->lng, &p))
+        if (!strstart(arg_opt, opts->lng, &p)) {
+            if (!strstart(arg_opt, "no-", &p) || !strstart(p, opts->lng, &p))
+            {
                 continue;
+            }
             flags = FLAG_UNSET;
         }
         if (*p) {
-            if (*p != '=')
+            if (*p != '=') {
                 continue;
+            }
             st->p = p + 1;
         }
         return get_value(st, opts, flags);
     }
-    return e_error("unknown option `%s'", arg);
+    if (st->flags & POPT_IGNORE_UNKNOWN_OPTS) {
+        opt_add_left_arg(st, arg);
+        return 0;
+    } else {
+        return e_error("unknown option `%s'", arg_opt);
+    }
 }
 
 static void copyinits(popt_t *opts)
@@ -219,40 +287,37 @@ static void copyinits(popt_t *opts)
 
 int parseopt(int argc, char **argv, popt_t *opts, int flags)
 {
-    popt_state_t optst = { argv, argc, NULL };
-    int n = 0;
+    popt_state_t st;
 
+    opt_state_init(&st, argc, argv, flags);
     copyinits(opts);
 
-    for (; optst.argc > 0; optst.argc--, optst.argv++) {
-        const char *arg = optst.argv[0];
+    for (; st.pending_argc > 0; st.pending_argc--, st.pending_argv++) {
+        char *arg = st.pending_argv[0];
 
         if (*arg != '-' || !arg[1]) {
-            if (flags & POPT_STOP_AT_NONARG)
+            if (flags & POPT_STOP_AT_NONARG) {
                 break;
-            argv[n++] = optst.argv[0];
+            }
+            opt_add_left_arg(&st, arg);
             continue;
         }
 
         if (arg[1] != '-') {
-            optst.p = arg + 1;
-            do {
-                RETHROW(parse_short_opt(&optst, opts));
-            } while (optst.p);
+            RETHROW(parse_short_opt(&st, arg, opts));
             continue;
         }
 
         if (!arg[2]) { /* "--" */
-            optst.argc--;
-            optst.argv++;
+            st.pending_argc--;
+            st.pending_argv++;
             break;
         }
 
-        RETHROW(parse_long_opt(&optst, arg + 2, opts));
+        RETHROW(parse_long_opt(&st, arg, opts));
     }
 
-    memmove(argv + n, optst.argv, optst.argc * sizeof(*argv));
-    return n + optst.argc;
+    return opt_state_end(&st);
 }
 
 #define OPTS_WIDTH 20
