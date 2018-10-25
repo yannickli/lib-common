@@ -295,9 +295,6 @@ ignore:
 watch:
 	MAKELEVEL= $(var/toolsdir)/_watch.sh $(var/srcdir) ./$(CURDIR:$(var/srcdir)/%=%) $(var/profile) $/$~
 
-www-dev:
-	MAKELEVEL= $(var/toolsdir)/_www-dev.sh $(var/srcdir) $(CFGFILE)
-
 check-untracked:
 	check-for-untracked-files.sh
 
