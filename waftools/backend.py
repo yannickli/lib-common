@@ -589,18 +589,21 @@ class Fc2c(Task):
 
 @extension('.fc')
 def process_fc(self, node):
-    h_node = node.change_ext_src('.fc.c')
+    ctx = self.bld
 
+    # Ensure farchc tgen is posted
+    if not ctx.farchc_tgen.posted:
+        ctx.farchc_tgen.post()
+    if not hasattr(ctx, 'farchc_task'):
+        ctx.farchc_task = ctx.farchc_tgen.link_task
+        ctx.env.FARCHC = ctx.farchc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    h_node = node.change_ext_src('.fc.c')
     if not h_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(h_node)
         farch_task = self.create_task('Fc2c', [node], h_node)
-        farch_task.set_run_after(self.bld.farchc_task)
-
-
-def post_farchc(ctx):
-    ctx.farchc_tgen.post()
-    ctx.farchc_task = ctx.farchc_tgen.link_task
-    ctx.env.FARCHC = ctx.farchc_tgen.link_task.outputs[0].abspath()
+        farch_task.set_run_after(ctx.farchc_task)
 
 
 # }}}
@@ -804,16 +807,25 @@ def iop_get_package_path(self, node):
 
 @extension('.iop')
 def process_iop(self, node):
-    c_node = node.change_ext_src('.iop.c')
+    ctx = self.bld
 
+    # Ensure iopc tgen is posted
+    if not ctx.iopc_tgen.posted:
+        ctx.iopc_tgen.post()
+    if not hasattr(ctx, 'iopc_task'):
+        ctx.iopc_task = ctx.iopc_tgen.link_task
+        ctx.env.IOPC = ctx.iopc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    c_node = node.change_ext_src('.iop.c')
     if not c_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(c_node)
 
         # Get options
-        if self.path in self.bld.iopc_options:
-            opts = self.bld.iopc_options[self.path]
+        if self.path in ctx.iopc_options:
+            opts = ctx.iopc_options[self.path]
         else:
-            opts = IopcOptions(self.bld, path=self.path)
+            opts = IopcOptions(ctx, path=self.path)
 
         # Build list of outputs
         outputs = [c_node,
@@ -831,8 +843,8 @@ def process_iop(self, node):
 
         # Create iopc task
         task = self.create_task('Iop2c', node, outputs)
-        task.bld = self.bld
-        task.set_run_after(self.bld.iopc_task)
+        task.bld = ctx
+        task.set_run_after(ctx.iopc_task)
 
         # Set options in environment
         task.env.IOP_LANGUAGES   = opts.languages
@@ -842,12 +854,6 @@ def process_iop(self, node):
         task.env.IOP_TS_OUTPUT   = opts.ts_output_option
 
     self.source.append(c_node)
-
-
-def post_iopc(ctx):
-    ctx.iopc_tgen.post()
-    ctx.iopc_task = ctx.iopc_tgen.link_task
-    ctx.env.IOPC = ctx.iopc_tgen.link_task.outputs[0].abspath()
 
 
 # }}}
@@ -1246,8 +1252,6 @@ def build(ctx):
     # Register pre/post functions
     if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
-    ctx.add_pre_fun(post_farchc)
-    ctx.add_pre_fun(post_iopc)
     ctx.add_pre_fun(gen_tags)
 
 # }}}
