@@ -592,7 +592,7 @@ def process_fc(self, node):
     ctx = self.bld
 
     # Ensure farchc tgen is posted
-    if not ctx.farchc_tgen.posted:
+    if not getattr(ctx.farchc_tgen, 'posted', False):
         ctx.farchc_tgen.post()
     if not hasattr(ctx, 'farchc_task'):
         ctx.farchc_task = ctx.farchc_tgen.link_task
@@ -810,7 +810,7 @@ def process_iop(self, node):
     ctx = self.bld
 
     # Ensure iopc tgen is posted
-    if not ctx.iopc_tgen.posted:
+    if not getattr(ctx.iopc_tgen, 'posted', False):
         ctx.iopc_tgen.post()
     if not hasattr(ctx, 'iopc_task'):
         ctx.iopc_task = ctx.iopc_tgen.link_task
