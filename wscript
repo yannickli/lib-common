@@ -32,6 +32,10 @@ def load_tools(ctx):
     for tool in getattr(ctx, 'extra_waftools', []):
         ctx.load(tool, tooldir=waftoolsdir)
 
+    # Configure waf to re-evaluate hashes only when file timestamp/size
+    # change. This is way faster on no-op builds.
+    ctx.load('md5_tstamp')
+
 
 def options(ctx):
     load_tools(ctx)
