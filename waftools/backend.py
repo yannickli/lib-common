@@ -245,7 +245,7 @@ def register_global_includes(self, includes):
 
 
 # }}}
-# {{{ Deploy targets
+# {{{ Deploy targets / patch tasks to build targets in the source directory
 
 class DeployTarget(Task):
     color = 'CYAN'
@@ -268,29 +268,31 @@ class DeployTarget(Task):
 @TaskGen.feature('cprogram', 'cxxprogram')
 @TaskGen.after_method('apply_link')
 def deploy_program(self):
-    # Deploy programs in the corresponding source directory
+    # Build programs in the corresponding source directory
+    assert (len(self.link_task.outputs) == 1)
     node = self.link_task.outputs[0]
-    self.create_task('DeployTarget', src=node, tgt=node.get_src())
+    self.link_task.outputs = [node.get_src()]
 
 
 @TaskGen.feature('cshlib')
 @TaskGen.after_method('apply_link')
 def deploy_shlib(self):
-    # Deploy C shared library in the corresponding source directory,
+    # Build C shared library in the corresponding source directory,
     # stripping the 'lib' prefix
+    assert (len(self.link_task.outputs) == 1)
     node = self.link_task.outputs[0]
     assert (node.name.startswith('lib'))
     tgt = node.parent.get_src().make_node(node.name[len('lib'):])
-    self.create_task('DeployTarget', src=node, tgt=tgt)
+    self.link_task.outputs = [tgt]
 
 
 @TaskGen.feature('jar')
 @TaskGen.after_method('jar_files')
 def deploy_jar(self):
-    # Deploy Java jar files in the corresponding source directory
+    # Build Java jar files in the corresponding source directory
+    assert (len(self.jar_task.outputs) == 1)
     node = self.jar_task.outputs[0]
-    tsk = self.create_task('DeployTarget', src=node, tgt=node.get_src())
-    tsk.set_run_after(self.jar_task)
+    self.jar_task.outputs = [node.get_src()]
 
 
 @TaskGen.feature('deploy_javac')
