@@ -1037,6 +1037,10 @@ static iop_field_attr_t const core__licence__signature_ts__attrs[] = {
         .type = 13,
         .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("iopSign:signatureTs") }, { .v.i64 = 1UL } },
     },
+    {
+        .type = 15,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("licence:label") }, {.v.s = LSTR_IMMED("{\"en\":\"Signature date\",\"fr\":\"Date de signature\"}") } },
+    },
 };
 static iop_field_attrs_t const core__licence__desc_fields_attrs[] = {
     {
@@ -1087,8 +1091,8 @@ static iop_field_attrs_t const core__licence__desc_fields_attrs[] = {
         .attrs             = core__licence__modules__attrs,
     },
     {
-        .flags             = 270336,
-        .attrs_len         = 2,
+        .flags             = 303104,
+        .attrs_len         = 3,
         .attrs             = core__licence__signature_ts__attrs,
     },
 };
