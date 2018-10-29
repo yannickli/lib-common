@@ -254,6 +254,9 @@ class Licence {
     @(licence:label, en = "Signature date"
                    , fr = "Date de signature")
     long? signatureTs;
+
+    /** Show licence details on the web page. */
+    bool showDetails = true;
 };
 
 /** Activation token.
