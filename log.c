@@ -92,6 +92,8 @@ static __thread struct {
 
     log_ctx_t ml_ctx;
 
+    bool in_spinlock;
+
     /* log buffer */
     qv_t(buffer_instance) vec_buff_stack;
     mem_stack_pool_t mp_stack;
@@ -101,6 +103,31 @@ static __thread struct {
 __thread log_thr_ml_t log_thr_ml_g;
 
 /* Helpers {{{ */
+
+static void log_spin_lock(void)
+{
+    if (unlikely(log_thr_g.in_spinlock)) {
+        /* Deadlock detected. This can happen in tricky situations, for
+         * example if malloc fails we calling logger_panic, which calls
+         * logger_refresh, which takes a lock and tries to allocate memory.
+         * If it fails again, the same stack is called again and the deadlock
+         * occurs.
+         * Catch it and do the best we can to avoid blocking a thread: commit
+         * suicide.
+         */
+        syslog(LOG_USER | LOG_LEVEL_CRIT, "deadlock detected in log library");
+        printf("deadlock detected in log library\n");
+        abort();
+    }
+    log_thr_g.in_spinlock = true;
+    spin_lock(&_G.update_lock);
+}
+
+static void log_spin_unlock(void)
+{
+    spin_unlock(&_G.update_lock);
+    log_thr_g.in_spinlock = false;
+}
 
 lstr_t t_logger_sanitize_name(const lstr_t name)
 {
@@ -187,9 +214,9 @@ static void logger_wipe_child(logger_t *logger)
 
 void logger_wipe(logger_t *logger)
 {
-    spin_lock(&_G.update_lock);
+    log_spin_lock();
     logger_wipe_child(logger);
-    spin_unlock(&_G.update_lock);
+    log_spin_unlock();
 }
 
 static void logger_compute_fullname(logger_t *logger)
@@ -292,9 +319,9 @@ void __logger_refresh(logger_t *logger)
         return;
     }
 
-    spin_lock(&_G.update_lock);
+    log_spin_lock();
     __logger_do_refresh(logger);
-    spin_unlock(&_G.update_lock);
+    log_spin_unlock();
 }
 
 logger_t *logger_get_by_name(lstr_t name)
@@ -330,7 +357,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
 {
     logger_t *logger;
 
-    spin_lock(&_G.update_lock);
+    log_spin_lock();
     logger = logger_get_by_name(name);
 
     assert (level >= LOG_UNDEFINED);
@@ -357,7 +384,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
                 _G.pending_levels.keys[pos] = lstr_dup(name);
             }
         }
-        spin_unlock(&_G.update_lock);
+        log_spin_unlock();
         return LOG_UNDEFINED;
     }
 
@@ -370,7 +397,7 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
     logger->defined_level = logger->level;
     log_conf_gen_g += 2;
 
-    spin_unlock(&_G.update_lock);
+    log_spin_unlock();
     return level;
 }
 
@@ -417,9 +444,9 @@ get_configurations_recursive(logger_t *logger, lstr_t prefix,
 
 void logger_get_all_configurations(lstr_t prefix, qv_t(logger_conf) *confs)
 {
-    spin_lock(&_G.update_lock);
+    log_spin_lock();
     get_configurations_recursive(&_G.root_logger, prefix, confs);
-    spin_unlock(&_G.update_lock);
+    log_spin_unlock();
 }
 
 /* }}} */
@@ -1019,9 +1046,9 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
 {
     logger_t *logger;
 
-    spin_lock(&_G.update_lock);
+    log_spin_lock();
     logger = logger_get_by_name(LSTR_OPT(name)) ?: &log_g.root_logger;
-    spin_unlock(&_G.update_lock);
+    log_spin_unlock();
     return __logger_is_traced(logger, lvl, modname, func, name);
 }
 
