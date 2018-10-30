@@ -18,7 +18,10 @@
 
 /* GCC before 4.4 only supports SSE2 and has no x86intrin.h */
 #if defined(__clang__) || __GNUC_PREREQ(4, 4)
+#   pragma push_macro("__leaf")
+#   undef __leaf
 #   include <x86intrin.h>
+#   pragma pop_macro("__leaf")
 #else
 #   include <emmintrin.h>
 #endif
