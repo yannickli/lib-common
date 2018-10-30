@@ -61,27 +61,6 @@ is_cpp()
     esac
 }
 
-getppid()
-{
-    read pid comm state ppid rest < /proc/$1/stat
-    echo $ppid
-}
-
-from_editor()
-{
-    test -f /proc/self/exe || return 1
-    pid=$(getppid self)
-    while test "$pid" -gt 1; do
-        case "$(readlink /proc/$pid/exe)" in
-            *vim*|*emacs*)
-                return 0;;
-            *)
-                pid=$(getppid $pid);;
-        esac
-    done
-    return 1
-}
-
 get_internal_clang_args()
 {
     while test $# != 0; do
@@ -111,9 +90,6 @@ build_flags()
     echo -O2
 
     if is_clang; then
-        if $(from_editor); then
-            echo -fno-caret-diagnostics
-        fi
         if test "$2" != "rewrite"; then
             echo -fdiagnostics-show-category=name
         fi
