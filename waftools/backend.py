@@ -392,41 +392,15 @@ class EtagsClass(BuildContext):
 # {{{ BLK
 
 
-def compute_clang_extra_cflags(self, includes_field, clang_flags, cflags):
+def compute_clang_extra_cflags(self, clang_flags, cflags):
     ''' Compute clang cflags for a task generator from CFLAGS '''
-
-    if hasattr(self, includes_field):
-        return
-
-    if not hasattr(self, 'uselib'):
-        # This will also be done by waf itself on the same task generator,
-        # resulting in doubled flags in the GCC arguments. It works, but is
-        # not really elegant.
-        # To fix that, deep copying the environment works but it has a
-        # disastrous impact on performances.
-        # I have not found any other solution, so keep it like that for now.
-        self.process_use()
-        self.propagate_uselib_vars()
-
     def keep_flag(flag):
         if not flag.startswith('-I') and not flag.startswith('-D'):
             return False
         return flag not in clang_flags
 
     cflags = self.env[cflags]
-    includes = [flag for flag in cflags if keep_flag(flag)]
-    setattr(self, includes_field, includes)
-
-
-def compute_clang_c_env(self):
-    # Compute clang extra cflags from gcc flags
-    compute_clang_extra_cflags(self, 'clang_extra_cflags',
-                               self.env.CLANG_FLAGS, 'CFLAGS')
-
-    # Get cflags of the task generator
-    if not 'CLANG_CFLAGS' in self.env:
-        cflags = self.to_list(getattr(self, 'cflags', []))
-        self.env.CLANG_CFLAGS = cflags
+    return [flag for flag in cflags if keep_flag(flag)]
 
 
 class Blk2c(Task):
@@ -442,6 +416,30 @@ class Blk2c(Task):
         return 'Rewriting'
 
 
+@TaskGen.feature('c')
+@TaskGen.before_method('process_source')
+def init_c_ctx(self):
+    self.blk2c_tasks = []
+    self.clang_check_tasks = []
+    self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
+
+
+@TaskGen.feature('c')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_blk2c_envs(self):
+    if not len(self.blk2c_tasks):
+        return
+
+    # Compute clang extra cflags from gcc flags
+    extra_cflags = compute_clang_extra_cflags(self, self.env.CLANG_FLAGS,
+                                              'CFLAGS')
+
+    # Update Blk2c tasks environment
+    for task in self.blk2c_tasks:
+        task.cwd = self.env.PROJECT_ROOT
+        task.env.CLANG_EXTRA_CFLAGS = extra_cflags
+
+
 @extension('.blk')
 def process_blk(self, node):
     if self.env.COMPILER_CC == 'clang':
@@ -455,10 +453,8 @@ def process_blk(self, node):
             self.env.GEN_FILES.add(blk_c_node)
 
             # Create block rewrite task.
-            compute_clang_c_env(self)
             blk_task = self.create_task('Blk2c', node, blk_c_node)
-            blk_task.cwd = self.env.PROJECT_ROOT
-            blk_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
+            self.blk2c_tasks.append(blk_task)
 
         # Create C compilation task for the generated C source.
         self.create_compiled_task('c', blk_c_node)
@@ -480,6 +476,25 @@ class Blkk2cc(Task):
         return 'Rewriting'
 
 
+@TaskGen.feature('cxx')
+@TaskGen.before_method('process_source')
+def init_cxx_ctx(self):
+    self.blkk2cc_tasks = []
+
+
+@TaskGen.feature('cxx')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_blk2cc_envs(self):
+    if len(self.blkk2cc_tasks):
+        # Compute clang extra cflags from g++ flags
+        extra_flags = compute_clang_extra_cflags(
+            self, self.env.CLANGXX_REWRITE_FLAGS, 'CXXFLAGS')
+
+        # Update Blk2cc tasks environment
+        for task in self.blkk2cc_tasks:
+            task.env.CLANGXX_EXTRA_CFLAGS = extra_flags
+
+
 @extension('.blkk')
 def process_blkk(self, node):
     if self.env.COMPILER_CXX == 'clang++':
@@ -492,15 +507,10 @@ def process_blkk(self, node):
         if not blkk_cc_node in self.env.GEN_FILES:
             self.env.GEN_FILES.add(blkk_cc_node)
 
-            # Compute clang extra cflags from g++ flags
-            compute_clang_extra_cflags(self, 'clangxx_extra_cflags',
-                                       self.env.CLANGXX_REWRITE_FLAGS,
-                                       'CXXFLAGS')
-
             # Create block rewrite task.
             blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
             blkk_task.cwd = self.env.PROJECT_ROOT
-            blkk_task.env.CLANGXX_EXTRA_CFLAGS = self.clangxx_extra_cflags
+            self.blkk2cc_tasks.append(blkk_task)
 
         # Create CC compilation task for the generated c++ source.
         self.create_compiled_task('cxx', blkk_cc_node)
@@ -944,6 +954,17 @@ class ClangCheck(Task):
         return 'Checking'
 
 
+@TaskGen.feature('c')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_clang_check_envs(self):
+    if len(self.clang_check_tasks):
+        # Compute clang extra cflags from gcc flags
+        extra_flags = compute_clang_extra_cflags(self, self.env.CLANG_FLAGS,
+                                                 'CFLAGS')
+        for task in self.clang_check_tasks:
+            task.env.CLANG_EXTRA_CFLAGS = extra_flags
+
+
 @extension('.c')
 def process_c_for_check(self, node):
     # Call standard C hook
@@ -974,10 +995,9 @@ def process_c_for_check(self, node):
         return
 
     # Create a clang check task
-    compute_clang_c_env(self)
     clang_check_task = self.create_task('ClangCheck', node)
     clang_check_task.cwd = self.env.PROJECT_ROOT
-    clang_check_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
+    self.clang_check_tasks.append(clang_check_task)
     c_task.set_run_after(clang_check_task)
 
 
