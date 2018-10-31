@@ -14,3 +14,6 @@
 
 ctx.farchc_tgen = ctx.program(target='farchc', source='farchc.c',
                               use='libcommon')
+
+ctx.program(target='str-ctype-maker', source='str-ctype-maker.c',
+            use='libcommon')

@@ -72,6 +72,7 @@ struct core__licence__t {
 #endif
     core__licence_module__array_t modules;
     opt_i64_t        signature_ts;
+    bool     show_details;
 };
 EXPORT iop_struct_t const core__licence__s;
 EXPORT iop_struct_t const * const nonnull core__licence__sp;
@@ -101,6 +102,9 @@ typedef enum core__tls_cfg__tag_t {
     core__tls_cfg__keyname__ft = 1,
     core__tls_cfg__data__ft = 2,
 } core__tls_cfg__tag_t;
+
+#define core__tls_cfg__keyname__fdesc  core__tls_cfg__s.fields[0]
+#define core__tls_cfg__data__fdesc  core__tls_cfg__s.fields[1]
 /*-}}}-*/
 struct core__tls_cfg__t {
     core__tls_cfg__tag_t iop_tag;

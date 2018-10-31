@@ -245,7 +245,7 @@ def register_global_includes(self, includes):
 
 
 # }}}
-# {{{ Deploy targets
+# {{{ Deploy targets / patch tasks to build targets in the source directory
 
 class DeployTarget(Task):
     color = 'CYAN'
@@ -268,29 +268,31 @@ class DeployTarget(Task):
 @TaskGen.feature('cprogram', 'cxxprogram')
 @TaskGen.after_method('apply_link')
 def deploy_program(self):
-    # Deploy programs in the corresponding source directory
+    # Build programs in the corresponding source directory
+    assert (len(self.link_task.outputs) == 1)
     node = self.link_task.outputs[0]
-    self.create_task('DeployTarget', src=node, tgt=node.get_src())
+    self.link_task.outputs = [node.get_src()]
 
 
 @TaskGen.feature('cshlib')
 @TaskGen.after_method('apply_link')
 def deploy_shlib(self):
-    # Deploy C shared library in the corresponding source directory,
+    # Build C shared library in the corresponding source directory,
     # stripping the 'lib' prefix
+    assert (len(self.link_task.outputs) == 1)
     node = self.link_task.outputs[0]
     assert (node.name.startswith('lib'))
     tgt = node.parent.get_src().make_node(node.name[len('lib'):])
-    self.create_task('DeployTarget', src=node, tgt=tgt)
+    self.link_task.outputs = [tgt]
 
 
 @TaskGen.feature('jar')
 @TaskGen.after_method('jar_files')
 def deploy_jar(self):
-    # Deploy Java jar files in the corresponding source directory
+    # Build Java jar files in the corresponding source directory
+    assert (len(self.jar_task.outputs) == 1)
     node = self.jar_task.outputs[0]
-    tsk = self.create_task('DeployTarget', src=node, tgt=node.get_src())
-    tsk.set_run_after(self.jar_task)
+    self.jar_task.outputs = [node.get_src()]
 
 
 @TaskGen.feature('deploy_javac')
@@ -390,41 +392,15 @@ class EtagsClass(BuildContext):
 # {{{ BLK
 
 
-def compute_clang_extra_cflags(self, includes_field, clang_flags, cflags):
+def compute_clang_extra_cflags(self, clang_flags, cflags):
     ''' Compute clang cflags for a task generator from CFLAGS '''
-
-    if hasattr(self, includes_field):
-        return
-
-    if not hasattr(self, 'uselib'):
-        # This will also be done by waf itself on the same task generator,
-        # resulting in doubled flags in the GCC arguments. It works, but is
-        # not really elegant.
-        # To fix that, deep copying the environment works but it has a
-        # disastrous impact on performances.
-        # I have not found any other solution, so keep it like that for now.
-        self.process_use()
-        self.propagate_uselib_vars()
-
     def keep_flag(flag):
         if not flag.startswith('-I') and not flag.startswith('-D'):
             return False
         return flag not in clang_flags
 
     cflags = self.env[cflags]
-    includes = [flag for flag in cflags if keep_flag(flag)]
-    setattr(self, includes_field, includes)
-
-
-def compute_clang_c_env(self):
-    # Compute clang extra cflags from gcc flags
-    compute_clang_extra_cflags(self, 'clang_extra_cflags',
-                               self.env.CLANG_FLAGS, 'CFLAGS')
-
-    # Get cflags of the task generator
-    if not 'CLANG_CFLAGS' in self.env:
-        cflags = self.to_list(getattr(self, 'cflags', []))
-        self.env.CLANG_CFLAGS = cflags
+    return [flag for flag in cflags if keep_flag(flag)]
 
 
 class Blk2c(Task):
@@ -440,6 +416,30 @@ class Blk2c(Task):
         return 'Rewriting'
 
 
+@TaskGen.feature('c')
+@TaskGen.before_method('process_source')
+def init_c_ctx(self):
+    self.blk2c_tasks = []
+    self.clang_check_tasks = []
+    self.env.CLANG_CFLAGS = self.to_list(getattr(self, 'cflags', []))
+
+
+@TaskGen.feature('c')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_blk2c_envs(self):
+    if not len(self.blk2c_tasks):
+        return
+
+    # Compute clang extra cflags from gcc flags
+    extra_cflags = compute_clang_extra_cflags(self, self.env.CLANG_FLAGS,
+                                              'CFLAGS')
+
+    # Update Blk2c tasks environment
+    for task in self.blk2c_tasks:
+        task.cwd = self.env.PROJECT_ROOT
+        task.env.CLANG_EXTRA_CFLAGS = extra_cflags
+
+
 @extension('.blk')
 def process_blk(self, node):
     if self.env.COMPILER_CC == 'clang':
@@ -453,10 +453,8 @@ def process_blk(self, node):
             self.env.GEN_FILES.add(blk_c_node)
 
             # Create block rewrite task.
-            compute_clang_c_env(self)
             blk_task = self.create_task('Blk2c', node, blk_c_node)
-            blk_task.cwd = self.env.PROJECT_ROOT
-            blk_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
+            self.blk2c_tasks.append(blk_task)
 
         # Create C compilation task for the generated C source.
         self.create_compiled_task('c', blk_c_node)
@@ -478,6 +476,25 @@ class Blkk2cc(Task):
         return 'Rewriting'
 
 
+@TaskGen.feature('cxx')
+@TaskGen.before_method('process_source')
+def init_cxx_ctx(self):
+    self.blkk2cc_tasks = []
+
+
+@TaskGen.feature('cxx')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_blk2cc_envs(self):
+    if len(self.blkk2cc_tasks):
+        # Compute clang extra cflags from g++ flags
+        extra_flags = compute_clang_extra_cflags(
+            self, self.env.CLANGXX_REWRITE_FLAGS, 'CXXFLAGS')
+
+        # Update Blk2cc tasks environment
+        for task in self.blkk2cc_tasks:
+            task.env.CLANGXX_EXTRA_CFLAGS = extra_flags
+
+
 @extension('.blkk')
 def process_blkk(self, node):
     if self.env.COMPILER_CXX == 'clang++':
@@ -490,15 +507,10 @@ def process_blkk(self, node):
         if not blkk_cc_node in self.env.GEN_FILES:
             self.env.GEN_FILES.add(blkk_cc_node)
 
-            # Compute clang extra cflags from g++ flags
-            compute_clang_extra_cflags(self, 'clangxx_extra_cflags',
-                                       self.env.CLANGXX_REWRITE_FLAGS,
-                                       'CXXFLAGS')
-
             # Create block rewrite task.
             blkk_task = self.create_task('Blkk2cc', node, blkk_cc_node)
             blkk_task.cwd = self.env.PROJECT_ROOT
-            blkk_task.env.CLANGXX_EXTRA_CFLAGS = self.clangxx_extra_cflags
+            self.blkk2cc_tasks.append(blkk_task)
 
         # Create CC compilation task for the generated c++ source.
         self.create_compiled_task('cxx', blkk_cc_node)
@@ -589,18 +601,21 @@ class Fc2c(Task):
 
 @extension('.fc')
 def process_fc(self, node):
-    h_node = node.change_ext_src('.fc.c')
+    ctx = self.bld
 
+    # Ensure farchc tgen is posted
+    if not getattr(ctx.farchc_tgen, 'posted', False):
+        ctx.farchc_tgen.post()
+    if not hasattr(ctx, 'farchc_task'):
+        ctx.farchc_task = ctx.farchc_tgen.link_task
+        ctx.env.FARCHC = ctx.farchc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    h_node = node.change_ext_src('.fc.c')
     if not h_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(h_node)
         farch_task = self.create_task('Fc2c', [node], h_node)
-        farch_task.set_run_after(self.bld.farchc_task)
-
-
-def post_farchc(ctx):
-    ctx.farchc_tgen.post()
-    ctx.farchc_task = ctx.farchc_tgen.link_task
-    ctx.env.FARCHC = ctx.farchc_tgen.link_task.outputs[0].abspath()
+        farch_task.set_run_after(ctx.farchc_task)
 
 
 # }}}
@@ -804,16 +819,25 @@ def iop_get_package_path(self, node):
 
 @extension('.iop')
 def process_iop(self, node):
-    c_node = node.change_ext_src('.iop.c')
+    ctx = self.bld
 
+    # Ensure iopc tgen is posted
+    if not getattr(ctx.iopc_tgen, 'posted', False):
+        ctx.iopc_tgen.post()
+    if not hasattr(ctx, 'iopc_task'):
+        ctx.iopc_task = ctx.iopc_tgen.link_task
+        ctx.env.IOPC = ctx.iopc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    c_node = node.change_ext_src('.iop.c')
     if not c_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(c_node)
 
         # Get options
-        if self.path in self.bld.iopc_options:
-            opts = self.bld.iopc_options[self.path]
+        if self.path in ctx.iopc_options:
+            opts = ctx.iopc_options[self.path]
         else:
-            opts = IopcOptions(self.bld, path=self.path)
+            opts = IopcOptions(ctx, path=self.path)
 
         # Build list of outputs
         outputs = [c_node,
@@ -831,8 +855,8 @@ def process_iop(self, node):
 
         # Create iopc task
         task = self.create_task('Iop2c', node, outputs)
-        task.bld = self.bld
-        task.set_run_after(self.bld.iopc_task)
+        task.bld = ctx
+        task.set_run_after(ctx.iopc_task)
 
         # Set options in environment
         task.env.IOP_LANGUAGES   = opts.languages
@@ -842,12 +866,6 @@ def process_iop(self, node):
         task.env.IOP_TS_OUTPUT   = opts.ts_output_option
 
     self.source.append(c_node)
-
-
-def post_iopc(ctx):
-    ctx.iopc_tgen.post()
-    ctx.iopc_task = ctx.iopc_tgen.link_task
-    ctx.env.IOPC = ctx.iopc_tgen.link_task.outputs[0].abspath()
 
 
 # }}}
@@ -936,6 +954,17 @@ class ClangCheck(Task):
         return 'Checking'
 
 
+@TaskGen.feature('c')
+@TaskGen.after_method('propagate_uselib_vars')
+def update_clang_check_envs(self):
+    if len(self.clang_check_tasks):
+        # Compute clang extra cflags from gcc flags
+        extra_flags = compute_clang_extra_cflags(self, self.env.CLANG_FLAGS,
+                                                 'CFLAGS')
+        for task in self.clang_check_tasks:
+            task.env.CLANG_EXTRA_CFLAGS = extra_flags
+
+
 @extension('.c')
 def process_c_for_check(self, node):
     # Call standard C hook
@@ -966,10 +995,9 @@ def process_c_for_check(self, node):
         return
 
     # Create a clang check task
-    compute_clang_c_env(self)
     clang_check_task = self.create_task('ClangCheck', node)
     clang_check_task.cwd = self.env.PROJECT_ROOT
-    clang_check_task.env.CLANG_EXTRA_CFLAGS = self.clang_extra_cflags
+    self.clang_check_tasks.append(clang_check_task)
     c_task.set_run_after(clang_check_task)
 
 
@@ -1247,8 +1275,6 @@ def build(ctx):
     # Register pre/post functions
     if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
-    ctx.add_pre_fun(post_farchc)
-    ctx.add_pre_fun(post_iopc)
     ctx.add_pre_fun(gen_tags)
 
 # }}}
