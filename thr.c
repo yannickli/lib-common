@@ -104,8 +104,10 @@ int thr_create(pthread_t *restrict thread,
     pair[0] = fn;
     pair[1] = arg;
     res = (*real_pthread_create)(thread, attr, &thr_hooks_wrapper, pair);
-    if (res < 0)
+    if (res != 0) {
+        errno = res;
         p_delete(&pair);
+    }
     return res;
 }
 
