@@ -95,8 +95,10 @@ The following environment variables can be used at the configuration phase:
     Set it to disable the Java support.
 
 `NOCHECK` (boolean)::
-    The build-system doesn't run "check" targets (clang check of c files at
-    the time). You may want to set it to speedup the build.
+    The build-system doesn't run "check" targets, which are:
+      * clang check of c files.
+      * linters on js/ts files.
+    You may want to set it to speedup the build.
     You can also bypass the checks thanks to the `nocheck` parameter of
     task-generators, which can be `True` to bypass the checks of all the
     source files, or a list of files to not check.
@@ -115,6 +117,14 @@ The following environment variables can be used at the configuration phase:
     Cf. `waftools/backend.py` for the details.
     This is ignored in release profile.
 
+`WWW_DEV` (boolean)::
+    If set, the web bundles are build so as to help active development, for
+    example:
+      * source maps are improved
+      * watchers are activated, so that a change is immediately taken into
+        account in the bundles.
+    Bear in mind that, as watchers are activated, the webpack tasks and
+    thus the `waf` command *does not end*.
 
 TODOs
 -----

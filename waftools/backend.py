@@ -1154,6 +1154,7 @@ def profile_release(ctx):
     profile_default(ctx, no_assert=True, allow_no_compress=False,
                     allow_no_double_fpic=False)
     ctx.env.LINKFLAGS += ['-Wl,-x', '-rdynamic']
+    ctx.env.WEBPACK_MODE = 'production'
 
 
 def profile_asan(ctx):

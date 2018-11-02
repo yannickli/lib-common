@@ -18,3 +18,4 @@ CXXFLAGS += -fvisibility=hidden
 LDFLAGS += -Wl,-x -rdynamic
 
 NODE_ENV=production
+WEBPACK_MODE=production
