@@ -13,7 +13,7 @@
 #                                                                        #
 ##########################################################################
 
-import os, os.path
+import os
 import json
 
 SELF_PATH = os.path.dirname(__file__)
