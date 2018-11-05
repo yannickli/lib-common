@@ -104,7 +104,7 @@ $1: _DEV=$(if $(WWW_DEV),--mode development --watch)
 $1: $(var/wwwtool)webpack
 $1: FORCE
 	$(msg/PACK.js) $1
-	cd $(1DV) && $(var/wwwtool)webpack --config $$(_CFGFILE) $$(_MODE) $$(_CHECK) $$(_DEV)
+	cd $(1DV) && node --max-old-space-size=4096 $(var/wwwtool)webpack --config $$(_CFGFILE) $$(_MODE) $$(_CHECK) $$(_DEV)
 endef
 
 #}}}
