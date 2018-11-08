@@ -1811,8 +1811,8 @@ static int httpd_on_event(el_t evh, int fd, short events, data_t priv)
         ret = w->ssl ?
             ssl_sb_read(&w->ibuf, w->ssl, 0):
             sb_read(&w->ibuf, fd, 0);
-        if (ret < 0) {
-            if (!ERR_RW_RETRIABLE(errno)) {
+        if (ret <= 0) {
+            if (ret == 0 || !ERR_RW_RETRIABLE(errno)) {
                 goto close;
             }
             goto write;
