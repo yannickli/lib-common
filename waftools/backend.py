@@ -112,14 +112,16 @@ def declare_fpic_lib(ctx, pic_name, orig_lib):
     orig_cflags     = orig_lib.to_list(getattr(orig_lib, 'cflags',     []))
     orig_includes   = orig_lib.to_list(getattr(orig_lib, 'includes',   []))
 
+    ctx_path_bak = ctx.path
+    ctx.path = orig_lib.path
     lib = ctx.stlib(target=pic_name,
                     features=orig_lib.features,
                     source=list(orig_source),
                     cflags=list(orig_cflags),
                     use=orig_use,
-                    path=orig_lib.path,
                     depends_on=orig_depends_on,
                     includes=orig_includes)
+    ctx.path = ctx_path_bak
 
     lib.env.append_value('CFLAGS', ['-fPIC'])
 
