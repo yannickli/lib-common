@@ -9,6 +9,7 @@ iopsq-t*
 
 .tags
 .syntastic*
+.local_vimrc.vim
 
 /Upgrading.html
 /conf-parser.c
