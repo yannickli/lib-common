@@ -466,7 +466,7 @@ bool licence_is_module_activated_desc(const struct core__licence__t *licence,
 /* }}} */
 /* {{{ Activation tokens */
 
-static void hash_crc64(void *ctx, const void *input, int ilen)
+static void hash_crc64(void *ctx, const void *input, ssize_t ilen)
 {
     *(uint64_t *)ctx = icrc64(*(uint64_t *)ctx, input, ilen);
 }

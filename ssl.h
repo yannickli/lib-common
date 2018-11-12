@@ -419,9 +419,8 @@ typedef struct rsa_sign_t rsa_sign_t;
 rsa_sign_t * nullable rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo,
                                    pem_password_b nullable pass_cb);
 
-__must_check__
-int rsa_sign_update(rsa_sign_t * nonnull ctx, const void * nonnull input,
-                    int ilen);
+void rsa_sign_update(rsa_sign_t * nonnull ctx, const void * nonnull input,
+                     ssize_t ilen);
 
 __must_check__
 int rsa_sign_finish(rsa_sign_t * nonnull * nonnull ctx, sb_t *out);
@@ -442,9 +441,8 @@ rsa_verif_t * nullable rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
                                          lstr_t hex_sig,
                                          pem_password_b nullable pass_cb);
 
-__must_check__
-int rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
-                     int ilen);
+void rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
+                      ssize_t ilen);
 
 __must_check__
 int rsa_verif_finish(rsa_verif_t * nonnull * nonnull ctx);

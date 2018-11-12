@@ -692,12 +692,11 @@ rsa_sign_t *rsa_sign_new(lstr_t priv_key, rsa_hash_algo_t algo,
     return NULL;
 }
 
-int rsa_sign_update(rsa_sign_t *ctx, const void *input, int ilen)
+void rsa_sign_update(rsa_sign_t *ctx, const void *input, ssize_t ilen)
 {
     if (EVP_DigestSignUpdate(ctx->ctx.digest, input, ilen) <= 0) {
-        return -1;
+        e_error("failed to update signature");
     }
-    return 0;
 }
 
 int rsa_sign_finish(rsa_sign_t **pctx, sb_t *out)
@@ -793,12 +792,11 @@ rsa_verif_t *rsa_verif_hex_new(lstr_t pub_key, rsa_hash_algo_t algo,
     return rsa_verif_new(pub_key, algo, LSTR_SB_V(&bin), pass_cb);
 }
 
-int rsa_verif_update(rsa_verif_t *ctx, const void *input, int ilen)
+void rsa_verif_update(rsa_verif_t *ctx, const void *input, ssize_t ilen)
 {
     if (EVP_DigestVerifyUpdate(ctx->ctx.digest, input, ilen) <= 0) {
-        return -1;
+        e_error("failed to verify signature");
     }
-    return 0;
 }
 
 int rsa_verif_finish(rsa_verif_t **pctx)

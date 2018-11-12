@@ -34,7 +34,7 @@ void sha1_starts(sha1_ctx * nonnull ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha1_update(sha1_ctx * nonnull ctx, const void * nonnull input, int ilen)
+void sha1_update(sha1_ctx * nonnull ctx, const void * nonnull input, ssize_t ilen)
     __leaf;
 
 /**
@@ -60,7 +60,7 @@ void sha1_finish_hex(sha1_ctx * nonnull ctx, char output[41]) __leaf;
  * \param ilen     length of the input data
  * \param output   SHA-1 checksum result
  */
-void sha1(const void * nonnull input, int ilen, byte output[20]) __leaf;
+void sha1(const void * nonnull input, ssize_t ilen, byte output[20]) __leaf;
 
 
 /* \brief          64-bit output = SHA-1(input buffer)
@@ -68,7 +68,7 @@ void sha1(const void * nonnull input, int ilen, byte output[20]) __leaf;
  * \param data     buffer holding the data
  * \param len      length of the input data
  */
-uint64_t sha1_hash_64(const void * nonnull data, int len) __leaf;
+uint64_t sha1_hash_64(const void * nonnull data, ssize_t len) __leaf;
 
 /**
  * \brief          Output = SHA-1(input buffer)
@@ -77,7 +77,7 @@ uint64_t sha1_hash_64(const void * nonnull data, int len) __leaf;
  * \param ilen     length of the input data
  * \param output   SHA-1 checksum result
  */
-void sha1_hex(const void * nonnull input, int ilen, char output[41]) __leaf;
+void sha1_hex(const void * nonnull input, ssize_t ilen, char output[41]) __leaf;
 
 /**
  * \brief          Output = SHA-1(file contents)
@@ -108,7 +108,7 @@ void sha1_hmac_starts(sha1_ctx * nonnull ctx, const void * nonnull key,
  * \param ilen     length of the input data
  */
 void sha1_hmac_update(sha1_ctx * nonnull ctx, const void * nonnull input,
-                      int ilen) __leaf;
+                      ssize_t ilen) __leaf;
 
 /**
  * \brief          SHA-1 HMAC final digest
@@ -129,7 +129,7 @@ void sha1_hmac_finish(sha1_ctx * nonnull ctx, byte output[20])
  * \param output   HMAC-SHA-1 result
  */
 void sha1_hmac(const void * nonnull key, int keylen,
-               const void * nonnull input, int ilen,
+               const void * nonnull input, ssize_t ilen,
                byte output[20]) __leaf;
 
 #ifdef __cplusplus

@@ -211,7 +211,7 @@ static void sha1_process( sha1_ctx *ctx, const byte data[64] )
 /*
  * SHA-1 process buffer
  */
-void sha1_update( sha1_ctx *ctx, const void *_input, int ilen )
+void sha1_update( sha1_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -300,7 +300,7 @@ void sha1_finish_hex( sha1_ctx *ctx, char output[41] )
 /*
  * output = SHA-1( input buffer )
  */
-void sha1( const void *input, int ilen, byte output[20] )
+void sha1( const void *input, ssize_t ilen, byte output[20] )
 {
     sha1_ctx ctx;
 
@@ -311,7 +311,7 @@ void sha1( const void *input, int ilen, byte output[20] )
     memset( &ctx, 0, sizeof( sha1_ctx ) );
 }
 
-uint64_t sha1_hash_64(const void *data, int len)
+uint64_t sha1_hash_64(const void *data, ssize_t len)
 {
     union {
         byte b[20];
@@ -325,7 +325,7 @@ uint64_t sha1_hash_64(const void *data, int len)
 /*
  * output = SHA-1( input buffer )
  */
-void sha1_hex(const void *input, int ilen, char output[41])
+void sha1_hex(const void *input, ssize_t ilen, char output[41])
 {
     sha1_ctx ctx;
 
@@ -402,7 +402,7 @@ void sha1_hmac_starts( sha1_ctx *ctx, const void *_key, int keylen )
 /*
  * SHA-1 HMAC process buffer
  */
-void sha1_hmac_update( sha1_ctx *ctx, const void *input, int ilen )
+void sha1_hmac_update( sha1_ctx *ctx, const void *input, ssize_t ilen )
 {
     sha1_update( ctx, input, ilen );
 }
@@ -427,7 +427,7 @@ void sha1_hmac_finish( sha1_ctx *ctx, byte output[20] )
  * output = HMAC-SHA-1( hmac key, input buffer )
  */
 void sha1_hmac( const void *key, int keylen,
-                const void *input, int ilen,
+                const void *input, ssize_t ilen,
                 byte output[20] )
 {
     sha1_ctx ctx;

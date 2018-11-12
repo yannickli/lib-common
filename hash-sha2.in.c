@@ -214,7 +214,7 @@ ATTRS
 #ifdef ALL_STATIC
 static
 #endif
-void F(sha2_update)( sha2_ctx *ctx, const void *_input, int ilen )
+void F(sha2_update)( sha2_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -309,7 +309,7 @@ ATTRS
 #ifdef ALL_STATIC
 static
 #endif
-void F(sha2)( const void *input, int ilen, byte output[32], int is224 )
+void F(sha2)( const void *input, ssize_t ilen, byte output[32], int is224 )
 {
     sha2_ctx ctx;
 
@@ -363,7 +363,7 @@ ATTRS
 #ifdef ALL_STATIC
 static
 #endif
-void F(sha2_hmac_update)( sha2_ctx *ctx, const void *input, int ilen )
+void F(sha2_hmac_update)( sha2_ctx *ctx, const void *input, ssize_t ilen )
 {
     F(sha2_update)( ctx, input, ilen );
 }

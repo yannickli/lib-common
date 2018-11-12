@@ -34,7 +34,7 @@ void md5_starts(md5_ctx * nonnull ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md5_update(md5_ctx * nonnull ctx, const void * nonnull input, int ilen)
+void md5_update(md5_ctx * nonnull ctx, const void * nonnull input, ssize_t ilen)
     __leaf;
 
 /**
@@ -60,14 +60,14 @@ void md5_finish_hex(md5_ctx * nonnull ctx, char output[33]) __leaf;
  * \param ilen     length of the input data
  * \param output   MD5 checksum result
  */
-void md5(const void * nonnull input, int ilen, byte output[16]) __leaf;
+void md5(const void * nonnull input, ssize_t ilen, byte output[16]) __leaf;
 
 /* \brief          64-bit output = MD5(input buffer)
  *
  * \param data     buffer holding the data
  * \param len      length of the input data
  */
-uint64_t md5_hash_64(const void * nonnull data, int len) __leaf;
+uint64_t md5_hash_64(const void * nonnull data, ssize_t len) __leaf;
 
 /**
  * \brief          Output = MD5(input buffer)
@@ -76,7 +76,7 @@ uint64_t md5_hash_64(const void * nonnull data, int len) __leaf;
  * \param ilen     length of the input data
  * \param output   MD5 checksum result
  */
-void md5_hex(const void * nonnull input, int ilen, char output[33]) __leaf;
+void md5_hex(const void * nonnull input, ssize_t ilen, char output[33]) __leaf;
 
 /**
  * \brief          Output = MD5(file contents)
@@ -107,7 +107,7 @@ void md5_hmac_starts(md5_ctx * nonnull ctx, const void * nonnull key,
  * \param ilen     length of the input data
  */
 void md5_hmac_update(md5_ctx * nonnull ctx, const void * nonnull input,
-                     int ilen) __leaf;
+                     ssize_t ilen) __leaf;
 
 /**
  * \brief          MD5 HMAC final digest
@@ -127,7 +127,7 @@ void md5_hmac_finish(md5_ctx * nonnull ctx, byte output[16]) __leaf;
  * \param output   HMAC-MD5 result
  */
 void md5_hmac(const void * nonnull key, int keylen,
-              const void * nonnull input, int ilen,
+              const void * nonnull input, ssize_t ilen,
               byte output[16]) __leaf;
 
 #ifdef __cplusplus

@@ -215,9 +215,6 @@ EOF
         # already have hundreds of FALLTHROUGH in our codebase, hundreds are
         # still missing...
         echo -Wimplicit-fallthrough=0
-        # Disable because of weird casts with iop_hash_f but worth
-        # investigating.
-        echo -Wno-cast-function-type
         # Disable because of a very obscure error in TST_BIT
         echo -Wno-ignored-qualifiers
     fi
