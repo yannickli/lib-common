@@ -1205,7 +1205,7 @@ t_get_hdr_value_of_query(ichannel_t *ic, int cmd,
             return -1;
         }
         /* XXX on simple header we write the payload size of the iop query */
-        if (unlikely((*hdr)->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
+        if (unlikely(IOP_UNION_IS(ic__hdr, *hdr, simple))) {
             ic__simple_hdr__t *shdr = &(*hdr)->simple;
 
             if (shdr->payload < 0) {

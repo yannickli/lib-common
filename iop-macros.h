@@ -68,7 +68,7 @@
 #define IOP_UNION_CASE_P(pfx, u, field, val) \
         break;                                                          \
       case IOP_UNION_TAG(pfx, field):                                   \
-        { const pfx##__t __attribute__((unused)) *val = u; }            \
+        { const pfx##__t __attribute__((unused)) *val = (u); }          \
         for (typeof((u)->field) *val##_2 = &(u)->field, *val = val##_2; \
              val##_2; val##_2 = NULL)
 
@@ -84,7 +84,7 @@
 #define IOP_UNION_CASE(pfx, u, field, val) \
         break;                                                          \
       case IOP_UNION_TAG(pfx, field):                                   \
-        { const pfx##__t __attribute__((unused)) *val = u; }            \
+        { const pfx##__t __attribute__((unused)) *val = (u); }          \
         for (typeof((u)->field) *val##_p = &(u)->field, val = *val##_p; \
              val##_p; val##_p = NULL)
 
@@ -99,7 +99,7 @@
 #define IOP_UNION_CASE_V(pfx, u, field)  \
         break;                                                          \
       case IOP_UNION_TAG(pfx, field):                                   \
-        { const pfx##__t __attribute__((unused)) *_tmp = u; }
+        { const pfx##__t __attribute__((unused)) *_tmp = (u); }
 
 /** Default case. */
 #define IOP_UNION_DEFAULT() \
@@ -113,8 +113,8 @@
  * \param[in] field The union field to check.
  */
 #define IOP_UNION_IS(pfx, u, field) \
-    ({ const pfx##__t *_tmp = u;                                             \
-       _tmp->iop_tag == IOP_UNION_TAG(pfx, field); })
+    ({ const pfx##__t *_tmp_union_is = (u);                                  \
+       _tmp_union_is->iop_tag == IOP_UNION_TAG(pfx, field); })
 
 /** Extract a value from a union.
  *
@@ -126,9 +126,9 @@
  *   A pointer on the wanted field or NULL if this field isn't selected.
  */
 #define IOP_UNION_GET(pfx, u, field) \
-    ({ const pfx##__t *_tmp0 = u;                                        \
+    ({ const pfx##__t *_tmp0 = (u);                                      \
        typeof(u) _tmp = (typeof(u))_tmp0;                                \
-       (_tmp->iop_tag == IOP_UNION_TAG(pfx, field)) ? &_tmp->field : NULL; })
+       IOP_UNION_IS(pfx, _tmp, field) ? &_tmp->field : NULL; })
 
 /** Select an union field.
  *
@@ -140,7 +140,7 @@
  *   A pointer on the selected field.
  */
 #define IOP_UNION_SET(pfx, u, field) \
-    ({ pfx##__t *_tmp = u;                                               \
+    ({ pfx##__t *_tmp = (u);                                             \
        _tmp->iop_tag = IOP_UNION_TAG(pfx, field);                        \
        &_tmp->field;                                                     \
     })
@@ -153,7 +153,7 @@
  */
 #define IOP_UNION_SET_V(pfx, u, field)  \
     do {                                                                     \
-        pfx##__t *_tmp = u;                                                  \
+        pfx##__t *_tmp = (u);                                                \
         _tmp->iop_tag = IOP_UNION_TAG_VOID(pfx, field);                      \
     } while(0)
 
@@ -168,8 +168,8 @@
  *   True if the wanted field is selected, false otherwise.
  */
 #define IOP_UNION_COPY(dst, pfx, u, field) \
-    ({ pfx##__t *_tmp = u;                                           \
-       bool _copyok  = (_tmp->iop_tag == IOP_UNION_TAG(pfx, field)); \
+    ({ pfx##__t *_tmp = (u);                                         \
+       bool _copyok  = IOP_UNION_IS(pfx, _tmp, field);               \
        if (_copyok)                                                  \
            dst = _tmp->field;                                        \
        _copyok;                                                      \
