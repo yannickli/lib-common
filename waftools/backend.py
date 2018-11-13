@@ -84,6 +84,26 @@ def process_whole(self):
     self.env.append_value('LINKFLAGS', '-Wl,--no-whole-archive')
 
 # }}}
+# {{{ Filter-out zchk binaries in release mode
+
+"""
+Tests are not compiled in release mode, so compiling zchk programs is useless
+then. This code filters them out.
+
+It assumes all C task generators whose name begins with `zchk` are dedicated
+to tests (and only them).
+"""
+
+def filter_out_zchk(ctx):
+    for g in ctx.groups:
+        for i in xrange(len(g) - 1, 0, -1):
+            tgen = g[i]
+            features = tgen.to_list(getattr(tgen, 'features', []))
+            if  tgen.name.startswith('zchk') and 'c' in features:
+                del g[i]
+
+
+# }}}
 # {{{ fPIC compilation for shared libraries
 
 """
@@ -1088,6 +1108,7 @@ def profile_default(ctx,
     ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
 
     if no_assert:
+        ctx.env.NDEBUG = True
         ctx.env.CFLAGS += ['-DNDEBUG']
         ctx.env.CXXFLAGS += ['-DNDEBUG']
 
@@ -1275,6 +1296,8 @@ def build(ctx):
     ctx.iopc_options = {}
 
     # Register pre/post functions
+    if ctx.env.NDEBUG:
+        ctx.add_pre_fun(filter_out_zchk)
     if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(gen_tags)
