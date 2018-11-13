@@ -617,6 +617,9 @@ class Fc2c(Task):
                 else:
                     variable_name_found = True
 
+        # fc files must be rebuilt if farchc changes
+        deps.append(node.ctx.farchc_tgen.link_task.outputs[0])
+
         return (deps, None)
 
 
@@ -806,7 +809,11 @@ class Iop2c(Task):
             return ([], None)
 
         deps = depfile.read().splitlines()
-        deps = [self.bld.root.make_node(dep) for dep in deps]
+        deps = [node.ctx.root.make_node(dep) for dep in deps]
+
+        # IOP files must be rebuilt if iopc changes
+        deps.append(node.ctx.iopc_tgen.link_task.outputs[0])
+
         return (deps, None)
 
     def run(self):
@@ -877,7 +884,6 @@ def process_iop(self, node):
 
         # Create iopc task
         task = self.create_task('Iop2c', node, outputs)
-        task.bld = ctx
         task.set_run_after(ctx.iopc_task)
 
         # Set options in environment
