@@ -662,10 +662,10 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int *fdv, fdc;
     bool fd_overflow = false;
     ssize_t seqpkt_at_least = IC_PKT_MAX;
+    char cmsgbuf[BUFSIZ];
 
   again:
     {
-        char cmsgbuf[BUFSIZ];
         struct iovec iov;
         struct msghdr msgh = {
             .msg_iov        = &iov,
