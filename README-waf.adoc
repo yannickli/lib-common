@@ -117,15 +117,6 @@ The following environment variables can be used at the configuration phase:
     Cf. `waftools/backend.py` for the details.
     This is ignored in release profile.
 
-`WWW_DEV` (boolean)::
-    If set, the web bundles are build so as to help active development, for
-    example:
-      * source maps are improved
-      * watchers are activated, so that a change is immediately taken into
-        account in the bundles.
-    Bear in mind that, as watchers are activated, the webpack tasks and
-    thus the `waf` command *does not end*.
-
 TODOs
 -----
 
