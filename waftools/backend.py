@@ -592,6 +592,7 @@ def process_lex(self, node):
 class Fc2c(Task):
     run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
     color   = 'BLUE'
+    before  = ['Blk2c', 'Blkk2cc']
     ext_out = ['.h']
 
     @classmethod
@@ -651,6 +652,7 @@ class Tokens2c(Task):
     run_str = ('${TOKENS_SH} ${SRC[0].abspath()} ${TGT[0]} && ' +
                '${TOKENS_SH} ${SRC[0].abspath()} ${TGT[1]}')
     color   = 'BLUE'
+    before  = ['Blk2c', 'Blkk2cc']
     ext_out = ['.h', '.c']
 
     @classmethod
