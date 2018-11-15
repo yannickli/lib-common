@@ -1,7 +1,0 @@
-- [[[HTTP_1.1]]] 'Hypertext Transfer Protocol' -- HTTP/1.1, RFC 2616,
-  http://tools.ietf.org/html/rfc2616.
-- [[[SOAP_1.1]]] 'Simple Object Access Protocol (SOAP) 1.1' ,
-  http://www.w3.org/TR/soap11/.
-- [[[XMLSchema]]] 'XML Schema', http://www.w3.org/2001/XMLSchema.
-- [[[WSDL_1.1]]] 'Web Services Description Language (WSDL) 1.1',
-  http://www.w3.org/TR/wsdl.
