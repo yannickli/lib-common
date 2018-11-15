@@ -210,6 +210,7 @@ def remove_default_install_tasks(self):
 class CustomInstall(Task):
     """ Task to start custom shell commands on install. """
     color = 'PINK'
+    after = ['DeployTarget', 'vnum']
 
     def __str__(self):
         launch_node = self.generator.bld.launch_node()
@@ -252,8 +253,7 @@ def add_custom_install(self):
     if not isinstance(commands, list):
         commands = [commands]
 
-    tsk = self.create_task('CustomInstall', after='DeployTarget',
-                           commands=commands, cwd=self.path)
+    tsk = self.create_task('CustomInstall', commands=commands, cwd=self.path)
     # All tasks needs to be done before executing the custom install.
     tsk.run_after = set(self.tasks)
     tsk.run_after.remove(tsk)
