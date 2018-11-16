@@ -1077,6 +1077,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int to_read = IC_PKT_MAX;
     bool starves = false;
     int write_errno = 0;
+    char cmsgbuf[BUFSIZ];
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         RETHROW(ic_check_msg_hdr(ic, buf->data));
@@ -1087,7 +1088,6 @@ static int ic_read(ichannel_t *ic, short events, int sock)
 
   again:
     {
-        char cmsgbuf[BUFSIZ];
         struct iovec iov;
         struct msghdr msgh = {
             .msg_iov        = &iov,
