@@ -339,21 +339,6 @@ def get_linter_flags(ctx, flags_key):
     return ctx.env[flags_key] + ctx.env.CFLAGS_python2 + include_flags
 
 
-def gen_syntastic(ctx):
-    def write_file(filename, what, envs):
-        node = ctx.srcnode.make_node(filename)
-        content = '\n'.join(envs) + '\n'
-        if not node.exists() or node.read() != content:
-            node.write(content)
-            msg = 'Writing syntastic {0} configuration file'.format(what)
-            ctx.msg(msg, node)
-
-    write_file('.syntastic_c_config', 'C',
-               get_linter_flags(ctx, 'CLANG_FLAGS'))
-    write_file('.syntastic_cpp_config', 'C++',
-               get_linter_flags(ctx, 'CLANGXX_FLAGS'))
-
-
 def gen_ale(ctx):
     flags = get_linter_flags(ctx, 'CLANG_FLAGS')
 
@@ -1247,8 +1232,7 @@ class IsConfigurationContext(ConfigurationContext):
         # Run configure
         ConfigurationContext.execute(self)
 
-        # Ensure syntastic/ale are done after the end of the configure step
-        gen_syntastic(self)
+        # Ensure ale is done after the end of the configure step
         gen_ale(self)
 
 
