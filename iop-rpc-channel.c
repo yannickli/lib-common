@@ -840,6 +840,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     ssize_t seqpkt_at_least = IC_PKT_MAX;
     int to_read = IC_PKT_MAX;
     bool starves = false;
+    char cmsgbuf[BUFSIZ];
 
     if (buf->len >= IC_MSG_HDR_LEN) {
         to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
@@ -850,7 +851,6 @@ static int ic_read(ichannel_t *ic, short events, int sock)
 
   again:
     {
-        char cmsgbuf[BUFSIZ];
         struct iovec iov;
         struct msghdr msgh = {
             .msg_iov        = &iov,
