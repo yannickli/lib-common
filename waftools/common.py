@@ -228,7 +228,7 @@ class CustomInstall(Task):
 
     def runnable_status(self):
         """ Installation tasks are always executed on install. """
-        if not self.generator.bld.is_install:
+        if self.generator.bld.is_install <= 0:
             return SKIP_ME
         return RUN_ME
 
@@ -302,7 +302,7 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    if ctx.is_install:
+    if ctx.is_install > 0:
         Logs.info('Waf: Install prefix: %s', ctx.env.PREFIX)
 
     # Set post_mode to POST_AT_ONCE, which allows to properly handle
