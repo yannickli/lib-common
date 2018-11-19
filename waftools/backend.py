@@ -407,6 +407,147 @@ class EtagsClass(BuildContext):
 
 
 # }}}
+# {{{ Detect / delete old generated files
+
+
+GEN_FILES_SUFFIXES = [
+    '.blk.c',
+    '.blkk.cc',
+    '.iop.c',
+    '.iop.h',
+    '.iop.json',
+    '.iop.ts',
+    '.fc.c',
+    '.tokens.c',
+    '.tokens.h',
+]
+
+def is_gen_file(name):
+    for sfx in GEN_FILES_SUFFIXES:
+        if name.endswith(sfx):
+            return True
+    return False
+
+
+def get_git_files(ctx, repo_node):
+    """ Get the list of committed files in a git repository. """
+
+    # Call git ls-files to get the list of committed files
+    git_ls_files = ctx.cmd_and_log(['git', 'ls-files'], quiet=Context.BOTH,
+                                   cwd=repo_node)
+
+    # Build nodes from the list
+    res = [repo_node.make_node(p) for p in git_ls_files.strip().splitlines()]
+
+    # Exclude symlinks
+    res = [node for node in res if not os.path.islink(node.abspath())]
+
+    return res
+
+
+def get_git_files_recur(ctx):
+    """ Get the list of committed files in the repository, recursively on all
+        submodules.
+    """
+
+    # Get files of the current repository
+    res = get_git_files(ctx, ctx.srcnode)
+
+    # Get the list of submodules
+    cmd = 'git submodule foreach --recursive | cut -d"\'" -f2'
+    submodules = ctx.cmd_and_log(cmd, quiet=Context.BOTH, cwd=ctx.srcnode)
+
+    # Add the list of files of each submodules
+    for sub_path in submodules.strip().splitlines():
+        submodule_node = ctx.srcnode.make_node(sub_path)
+        res += get_git_files(ctx, submodule_node)
+
+    return res
+
+
+def get_old_gen_files(ctx):
+    """ Get the list of files that are on disk, have an extension that
+        correspond to auto-generated files, and that are not committed.
+    """
+
+    # Get all the generated files that are on disk (excluded symlinks).
+    # Do not use waf ant_glob because it follows symlinks
+    gen_files = []
+    for dirpath, dirnames, filenames in os.walk(ctx.srcnode.abspath()):
+        root_node = ctx.root.make_node(dirpath)
+        for name in filenames:
+            if is_gen_file(name):
+                path = os.path.join(dirpath, name)
+                if not os.path.islink(path):
+                    gen_files.append(root_node.make_node(name))
+        # Do not recurse in hidden directories (in particular the .build one),
+        # this is useless
+        for i in xrange(len(dirnames) - 1, 0, -1):
+            if dirnames[i].startswith('.'):
+                del dirnames[i]
+
+
+    # Get all committed files
+    git_files = set(get_git_files_recur(ctx))
+
+    # Filter-out from gen_files the files that are committed
+    gen_files = set([node for node in gen_files if node not in git_files])
+
+    # Filter-out the files that are produced by the build system.
+    # This requires to post all task generators.
+    for tgen in ctx.get_all_task_gen():
+        tgen.post()
+        for task in tgen.tasks:
+            for output in task.outputs:
+                try:
+                    gen_files.remove(output)
+                except KeyError:
+                    pass
+
+    # The files that are still in gen_files are old ones that should not be on
+    # disk anymore.
+    return sorted(gen_files)
+
+
+def old_gen_files_detect(ctx):
+    if ctx.cmd not in ['old-gen-files-detect', 'old-gen-files-delete']:
+        return
+
+    # Get the list of old generated files and print it
+    old_gen_files = get_old_gen_files(ctx)
+
+    # Interrupt the build
+    ctx.groups = []
+
+    if len(old_gen_files) == 0:
+        print('All good, you have no old generated file on disk :-)')
+        return
+
+    if ctx.cmd == 'old-gen-files-detect':
+        # Print old generated file names
+        Logs.warn('Following files are old generated ones:')
+        for node in old_gen_files:
+            Logs.warn('  %s', node.path_from(ctx.srcnode))
+        ctx.fatal(('Old generated files detected; '
+                   'use old-gen-files-delete to remove them'))
+    else:
+        # Delete old generated files
+        for node in old_gen_files:
+            Logs.warn('removing %s', node.path_from(ctx.srcnode))
+            node.delete()
+
+
+class OldGenFilesDetect(BuildContext):
+    '''detect old generated files on disk'''
+    cmd = 'old-gen-files-detect'
+
+
+class OldGenFilesDelete(BuildContext):
+    '''delete old generated files on disk'''
+    cmd = 'old-gen-files-delete'
+
+
+# }}}
 
 # {{{ BLK
 
@@ -1305,5 +1446,6 @@ def build(ctx):
     if ctx.env.DO_DOUBLE_FPIC:
         ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(gen_tags)
+    ctx.add_pre_fun(old_gen_files_detect)
 
 # }}}
