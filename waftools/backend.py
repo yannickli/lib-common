@@ -327,7 +327,7 @@ def deploy_javac(self):
 
 
 # }}}
-# {{{ syntastic/ale
+# {{{ .local_vimrc.vim generation
 
 
 def get_linter_flags(ctx, flags_key):
@@ -339,40 +339,37 @@ def get_linter_flags(ctx, flags_key):
     return ctx.env[flags_key] + ctx.env.CFLAGS_python2 + include_flags
 
 
-def gen_syntastic(ctx):
-    def write_file(filename, what, envs):
-        node = ctx.srcnode.make_node(filename)
-        content = '\n'.join(envs) + '\n'
-        if not node.exists() or node.read() != content:
-            node.write(content)
-            msg = 'Writing syntastic {0} configuration file'.format(what)
-            ctx.msg(msg, node)
+def gen_local_vimrc(ctx):
+    content = ""
 
-    write_file('.syntastic_c_config', 'C',
-               get_linter_flags(ctx, 'CLANG_FLAGS'))
-    write_file('.syntastic_cpp_config', 'C++',
-               get_linter_flags(ctx, 'CLANGXX_FLAGS'))
-
-
-def gen_ale(ctx):
-    flags = get_linter_flags(ctx, 'CLANG_FLAGS')
-
+    # Generate ALE options.
     # Escape the -D flags with double quotes, which is needed for
     # -D"index(s,c)=index__(s,c)"
+    flags = get_linter_flags(ctx, 'CLANG_FLAGS')
     for i, flag in enumerate(flags):
         if flag.startswith('-D'):
             flags[i] = '-D"' + flag[2:] + '"'
 
-    content  = "let g:ale_c_clang_options = '\n"
+    content += "let g:ale_c_clang_options = '\n"
     content += "    \\ "
     content += " ".join(flags)
     content += "\n"
     content += "\\'\n"
 
+    # Bind :make to waf
+    content += r"set makeprg=LC_ALL=C\ NO_WWW=1\ waf"
+    content += "\n"
+
+    # Update errorformat so that vim finds the files when compiling with :make
+    content += r"set errorformat^=\%D%*\\a:\ Entering\ directory\ `%f/"
+    content += ctx.bldnode.name
+    content += "'\n"
+
+    # Write file if it changed
     node = ctx.srcnode.make_node('.local_vimrc.vim')
     if not node.exists() or node.read() != content:
         node.write(content)
-        ctx.msg('Writing ale configuration file', node)
+        ctx.msg('Writing local vimrc configuration file', node)
 
 
 # }}}
@@ -1280,9 +1277,8 @@ class IsConfigurationContext(ConfigurationContext):
         # Run configure
         ConfigurationContext.execute(self)
 
-        # Ensure syntastic/ale are done after the end of the configure step
-        gen_syntastic(self)
-        gen_ale(self)
+        # Ensure local vimrc is generated after the end of the configure step
+        gen_local_vimrc(self)
 
 
 # }}}
