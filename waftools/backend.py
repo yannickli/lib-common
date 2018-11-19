@@ -327,7 +327,7 @@ def deploy_javac(self):
 
 
 # }}}
-# {{{ .local_vimrc.vim generation
+# {{{ .local_vimrc.vim / syntastic configuration generation
 
 
 def get_linter_flags(ctx, flags_key):
@@ -370,6 +370,28 @@ def gen_local_vimrc(ctx):
     if not node.exists() or node.read() != content:
         node.write(content)
         ctx.msg('Writing local vimrc configuration file', node)
+
+
+def gen_syntastic(ctx):
+    """
+    Syntastic is a vim syntax checker extension. It is not used by anybody
+    anymore, but its configuration file is used by the YouCompleteMe plugin,
+    that is used by some people.
+
+    https://github.com/vim-syntastic/syntastic
+    """
+    def write_file(filename, what, envs):
+        node = ctx.srcnode.make_node(filename)
+        content = '\n'.join(envs) + '\n'
+        if not node.exists() or node.read() != content:
+            node.write(content)
+            msg = 'Writing syntastic {0} configuration file'.format(what)
+            ctx.msg(msg, node)
+
+    write_file('.syntastic_c_config', 'C',
+               get_linter_flags(ctx, 'CLANG_FLAGS'))
+    write_file('.syntastic_cpp_config', 'C++',
+               get_linter_flags(ctx, 'CLANGXX_FLAGS'))
 
 
 # }}}
@@ -1244,8 +1266,10 @@ class IsConfigurationContext(ConfigurationContext):
         # Run configure
         ConfigurationContext.execute(self)
 
-        # Ensure local vimrc is generated after the end of the configure step
+        # Ensure local vimrc and syntastic configuration files are generated
+        # after the end of the configure step
         gen_local_vimrc(self)
+        gen_syntastic(self)
 
 
 # }}}
