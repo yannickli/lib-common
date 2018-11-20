@@ -122,4 +122,3 @@ TODOs
 
 * All waf TODOs and FIXMEs can be listed with `$ git grep "TODO waf"` and
   `$ git grep "FIXME waf"`.
-* Get rid of `WAF_MODE` when getting rid of Make.

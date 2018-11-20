@@ -33,14 +33,8 @@ iopc_set_path(const char *outdir, const iopc_pkg_t *pkg,
             res = snprintf(path, max_len, "%s/%*pM%s", outdir,
                            LSTR_FMT_ARG(sp), ext);
         } else {
-#ifdef WAF_MODE
             res = snprintf(path, max_len, "%s/%s%s", outdir,
                            pretty_path_base(pkg->name), ext);
-#else
-            path_dirname(dpath, max_len, pkg->file);
-            res = snprintf(path, max_len, "%s/%s/%s%s", outdir, dpath,
-                           pretty_path_base(pkg->name), ext);
-#endif
         }
         path_dirname(dpath, max_len, path);
         if (mkdir_p(dpath, 0777) < 0) {
