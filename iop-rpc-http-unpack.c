@@ -264,9 +264,9 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         msg = ic_msg_new(sizeof(uint64_t));
 
         if ((!ps_len(&login) || force_pxy_hdr) && pxy_hdr) {
-            /* XXX on simple header we write the payload size of the HTTP query */
-            if (unlikely(pxy_hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple)))
-            {
+            /* XXX on simple header we write the payload size of the HTTP
+             * query */
+            if (unlikely(IOP_UNION_IS(ic__hdr, pxy_hdr, simple))) {
                 ic__simple_hdr__t *shdr = &pxy_hdr->simple;
                 shdr->payload = iq->payload.len;
             }

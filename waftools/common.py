@@ -210,7 +210,7 @@ def remove_default_install_tasks(self):
 class CustomInstall(Task):
     """ Task to start custom shell commands on install. """
     color = 'PINK'
-    after = ['DeployTarget', 'vnum']
+    after = ['DeployTarget', 'cprogram', 'cshlib', 'vnum']
 
     def __str__(self):
         launch_node = self.generator.bld.launch_node()
@@ -228,7 +228,7 @@ class CustomInstall(Task):
 
     def runnable_status(self):
         """ Installation tasks are always executed on install. """
-        if not self.generator.bld.is_install:
+        if self.generator.bld.is_install <= 0:
             return SKIP_ME
         return RUN_ME
 
@@ -302,7 +302,7 @@ def configure(ctx):
 # {{{ build
 
 def build(ctx):
-    if ctx.is_install:
+    if ctx.is_install > 0:
         Logs.info('Waf: Install prefix: %s', ctx.env.PREFIX)
 
     # Set post_mode to POST_AT_ONCE, which allows to properly handle
