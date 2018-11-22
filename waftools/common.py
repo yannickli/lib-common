@@ -18,6 +18,7 @@ Contains the code that could be useful for both backend and frontend build.
 import os
 
 # pylint: disable = import-error
+import waflib
 from waflib import Build, Context, TaskGen, Logs, Utils
 
 from waflib.Build import BuildContext, inst
@@ -157,6 +158,25 @@ def get_env_bool(self, name):
 
 
 Context.Context.get_env_bool = get_env_bool
+
+
+# }}}
+# {{{ Ensure tasks are re-run when their scan method changes
+
+
+def add_scan_in_signature(ctx):
+    ''' By default in waf, tasks are not re-run when their scan method
+        changes. This is an issue that caused real bugs in our project when
+        switching branches.
+        The purpose of this code is to take the scan method of tasks in the
+        tasks signatures, like it's done for the run method.
+
+        Note: https://gitlab.com/ita1024/waf/issues/2209 was open to fix this
+              bug in waf, but it was rejected.
+    '''
+    for (_, task) in waflib.Task.classes.iteritems():
+        if task.scan:
+            task.hcode += str(Utils.h_fun(task.scan))
 
 
 # }}}
@@ -311,6 +331,7 @@ def build(ctx):
     ctx.UseGroup = UseGroup
 
     # Register pre/post functions
+    ctx.add_pre_fun(add_scan_in_signature)
     ctx.add_pre_fun(run_pylint)
     ctx.add_post_fun(run_checks)
 
