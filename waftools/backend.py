@@ -422,10 +422,23 @@ GEN_FILES_SUFFIXES = [
     '.tokens.h',
 ]
 
-def is_gen_file(name):
+
+def gen_file_keep(parent_node, name):
+    ''' The purpose of this function is to exclude some files from the list of
+        generated ones (because we don't want them to be deleted).
+        TODO waf: avoid hardcoding this list (which should belong to mmsx).
+    '''
+    # Exclude event.iop.json files produced in bigdata products by the schema
+    # library
+    if name == 'event.iop.json' and parent_node.name != 'bigdata':
+        return False
+    return True
+
+
+def is_gen_file(parent_node, name):
     for sfx in GEN_FILES_SUFFIXES:
         if name.endswith(sfx):
-            return True
+            return gen_file_keep(parent_node, name)
     return False
 
 
@@ -474,12 +487,12 @@ def get_old_gen_files(ctx):
     # Do not use waf ant_glob because it follows symlinks
     gen_files = []
     for dirpath, dirnames, filenames in os.walk(ctx.srcnode.abspath()):
-        root_node = ctx.root.make_node(dirpath)
+        parent_node = ctx.root.make_node(dirpath)
         for name in filenames:
-            if is_gen_file(name):
+            if is_gen_file(parent_node, name):
                 path = os.path.join(dirpath, name)
                 if not os.path.islink(path):
-                    gen_files.append(root_node.make_node(name))
+                    gen_files.append(parent_node.make_node(name))
         # Do not recurse in hidden directories (in particular the .build one),
         # this is useless
         for i in xrange(len(dirnames) - 1, -1, -1):
