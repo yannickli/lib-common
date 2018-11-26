@@ -2826,6 +2826,17 @@ static int __ic_connect(ichannel_t *ic, int flags)
     if (flags & O_NONBLOCK) {
         ic->elh = el_fd_register(sock, true, POLLOUT, &ic_connecting, ic);
         ic->queuable = true;
+    } else
+    if (ic->is_unix) {
+        ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_version_handshake,
+                                 ic);
+        if (ic_version_write(ic, sock) < 0) {
+            ic_mark_disconnected(ic);
+            return -1;
+        }
+
+        fd_set_features(sock, O_NONBLOCK);
+        ic->queuable = true;
     } else {
         data_t priv;
 
