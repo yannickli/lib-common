@@ -300,8 +300,7 @@ check-untracked:
 
 translations: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile translations
-	$(MAKEPARALLEL) -C $/www/po xgettext
-	$(MAKEPARALLEL) -C $/www/po merge
+	$(MAKEPARALLEL) -C $/one/www i18n
 
 check-translations: translations
 	git status --porcelain $/www/po
