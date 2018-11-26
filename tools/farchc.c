@@ -159,11 +159,11 @@ static void dump_entries(const char *archname,
 static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
 {
     t_scope;
+    SB_1k(dep);
     char srcdir[PATH_MAX];
     char buf[PATH_MAX];
     char name[PATH_MAX];
     int srcdirlen = 0;
-    sb_t dep;
     qv_t(farch_entry) entries;
 
     t_qv_init(&entries, 10);
@@ -181,7 +181,6 @@ static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
     fprintf(out, "\n");
     fprintf(out, "static const farch_data_t %s_data[] = {\n", name);
 
-    sb_inita(&dep, BUFSIZ);
     if (opts_g.target)
         sb_addf(&dep, "%s%s ", reldir, opts_g.target);
     if (opts_g.out)
@@ -229,7 +228,6 @@ static int do_work(const char *reldir, FILE *in, FILE *out, FILE *deps)
             "static const farch_entry_t %s[] = {\n", name);
     dump_entries(name, &entries, out);
 
-    sb_wipe(&dep);
     fprintf(out,
             "{   .name = LSTR_NULL },\n"
             "};\n");

@@ -1469,12 +1469,10 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
+            SB_1k(camelcase_name);
             lstr_t name = LSTR_SB_V(&ll->ctx->b);
-            sb_t camelcase_name;
 
             if (ll->flags & IOP_UNPACK_USE_C_CASE) {
-                sb_inita(&camelcase_name, name.len);
-
                 if (c_to_camelcase(name, false, &camelcase_name) < 0) {
                     return RJERROR_EXP("a valid union member name");
                 }

@@ -184,12 +184,10 @@ void props_hash_to_xml(xmlpp_t *xpp, const props_hash_t *ph)
 int props_hash_from_fmtv1_data_start(props_hash_t *ph,
                                      const void *_buf, int len, int start)
 {
+    SB_1k(key);
+    SB_1k(val);
     const char *buf = _buf;
     int pos = 0;
-    sb_t key, val;
-
-    sb_inita(&key, BUFSIZ);
-    sb_inita(&val, BUFSIZ);
 
     if (start >= 0)
         pos = start;
@@ -222,8 +220,6 @@ int props_hash_from_fmtv1_data_start(props_hash_t *ph,
         pos = end + 1 - buf;
     }
 
-    sb_wipe(&key);
-    sb_wipe(&val);
     return 0;
 }
 
