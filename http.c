@@ -2706,7 +2706,7 @@ httpc_t *httpc_connect_as(const sockunion_t *su,
     int fd;
 
     fd = RETHROW_NP(connectx_as(-1, su, 1, su_src, SOCK_STREAM, IPPROTO_TCP,
-                                O_NONBLOCK));
+                                O_NONBLOCK, 0));
     w  = obj_new_of_class(httpc, cfg->httpc_cls);
     w->cfg         = httpc_cfg_dup(cfg);
     w->ev          = el_unref(el_fd_register(fd, true, POLLOUT,
