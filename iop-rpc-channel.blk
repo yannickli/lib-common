@@ -2822,22 +2822,18 @@ static int __ic_connect(ichannel_t *ic, int flags)
     assert (!ic->elh);
 
     ic->is_spawned = false;
-    ic->is_unix = ic->su.family == AF_UNIX;
+    ic->is_unix = (ic->su.family == AF_UNIX);
 
     if (ic->is_unix) {
         ic->tls_required = false;
-    }
-
-    if (ic->su.family == AF_UNIX) {
         flags &= ~O_NONBLOCK;
-        type   = SOCK_SEQPACKET;
+        type = SOCK_SEQPACKET;
+        ic->is_seqpacket = true;
     } else {
-        type   = SOCK_STREAM;
-    }
-    if (!ic->is_unix && type == SOCK_STREAM) {
+        type = SOCK_STREAM;
         flags |= FD_FEAT_TCP_NODELAY;
+        ic->is_seqpacket = false;
     }
-    ic->is_seqpacket = type == SOCK_SEQPACKET;
 
     sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
     if (sock < 0) {
