@@ -327,7 +327,7 @@ def deploy_javac(self):
 
 
 # }}}
-# {{{ .local_vimrc.vim generation
+# {{{ .local_vimrc.vim / syntastic configuration generation
 
 
 def get_linter_flags(ctx, flags_key):
@@ -370,6 +370,28 @@ def gen_local_vimrc(ctx):
     if not node.exists() or node.read() != content:
         node.write(content)
         ctx.msg('Writing local vimrc configuration file', node)
+
+
+def gen_syntastic(ctx):
+    """
+    Syntastic is a vim syntax checker extension. It is not used by anybody
+    anymore, but its configuration file is used by the YouCompleteMe plugin,
+    that is used by some people.
+
+    https://github.com/vim-syntastic/syntastic
+    """
+    def write_file(filename, what, envs):
+        node = ctx.srcnode.make_node(filename)
+        content = '\n'.join(envs) + '\n'
+        if not node.exists() or node.read() != content:
+            node.write(content)
+            msg = 'Writing syntastic {0} configuration file'.format(what)
+            ctx.msg(msg, node)
+
+    write_file('.syntastic_c_config', 'C',
+               get_linter_flags(ctx, 'CLANG_FLAGS'))
+    write_file('.syntastic_cpp_config', 'C++',
+               get_linter_flags(ctx, 'CLANGXX_FLAGS'))
 
 
 # }}}
@@ -422,10 +444,23 @@ GEN_FILES_SUFFIXES = [
     '.tokens.h',
 ]
 
-def is_gen_file(name):
+
+def gen_file_keep(parent_node, name):
+    ''' The purpose of this function is to exclude some files from the list of
+        generated ones (because we don't want them to be deleted).
+        TODO waf: avoid hardcoding this list (which should belong to mmsx).
+    '''
+    # Exclude event.iop.json files produced in bigdata products by the schema
+    # library
+    if name == 'event.iop.json' and parent_node.name != 'bigdata':
+        return False
+    return True
+
+
+def is_gen_file(parent_node, name):
     for sfx in GEN_FILES_SUFFIXES:
         if name.endswith(sfx):
-            return True
+            return gen_file_keep(parent_node, name)
     return False
 
 
@@ -474,12 +509,12 @@ def get_old_gen_files(ctx):
     # Do not use waf ant_glob because it follows symlinks
     gen_files = []
     for dirpath, dirnames, filenames in os.walk(ctx.srcnode.abspath()):
-        root_node = ctx.root.make_node(dirpath)
+        parent_node = ctx.root.make_node(dirpath)
         for name in filenames:
-            if is_gen_file(name):
+            if is_gen_file(parent_node, name):
                 path = os.path.join(dirpath, name)
                 if not os.path.islink(path):
-                    gen_files.append(root_node.make_node(name))
+                    gen_files.append(parent_node.make_node(name))
         # Do not recurse in hidden directories (in particular the .build one),
         # this is useless
         for i in xrange(len(dirnames) - 1, -1, -1):
@@ -1414,8 +1449,10 @@ class IsConfigurationContext(ConfigurationContext):
         # Run configure
         ConfigurationContext.execute(self)
 
-        # Ensure local vimrc is generated after the end of the configure step
+        # Ensure local vimrc and syntastic configuration files are generated
+        # after the end of the configure step
         gen_local_vimrc(self)
+        gen_syntastic(self)
 
 
 # }}}
