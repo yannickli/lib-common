@@ -125,8 +125,7 @@ pylint:: $(addsuffix lint,$(shell git ls-files '*.py' '**/*.py'))
 tags: $(filter-out %.blk.c %.blkk.cc %.min.js,$(var/generated))
 syntastic:
 ale:
-jshint:
-.PHONY: tags cscope jshint syntastic ale
+.PHONY: tags cscope syntastic ale
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -256,13 +255,6 @@ cscope: | __setup_buildsys_trampoline
 		| grep -v "\/compat\/" \
 		| sort > .cscope.files && \
 		cscope -I$/lib-common/compat -I$/ -ub -i.cscope.files -f.cscope.out
-
-jshint: | __setup_buildsys_trampoline _npm_tools
-	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
-	$(msg/CHECK.js)
-	git ls-files -- '*.js' | grep -v '/src/' | xargs $(var/wwwtool)jshint
-
-www:: $(if $(NOCHECK)$(NOJSHINT),,jshint)
 
 pylint:: | __setup_buildsys_trampoline
 	@$(if $(shell which pylint),,$(error "Please install pylint: pip install pylint"))
