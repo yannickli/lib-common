@@ -1294,8 +1294,8 @@ iop_value_from_field(const void * nonnull ptr,
  * \param[in] field The IOP field definition.
  * \param[in] value The value to put the field.
  */
-int iop_value_to_field(void * nonnull ptr, const iop_field_t * nonnull field,
-                       const iop_value_t * nonnull value);
+void iop_value_to_field(void * nonnull ptr, const iop_field_t * nonnull field,
+                        const iop_value_t * nonnull value);
 
 /** Set one of the values of a repeated IOP field of an IOP object.
  *

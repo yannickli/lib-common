@@ -246,8 +246,8 @@ iop_value_from_field(const void *ptr, const iop_field_t *field,
     return IOP_FIELD_ERROR;
 }
 
-static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
-                            const iop_value_t *value)
+static void iop_value_to_ptr(void *ptr, const iop_field_t *field,
+                             const iop_value_t *value)
 {
 #define SET_SCALAR(type, opt, f)                                             \
         if (field->repeat == IOP_R_OPTIONAL) {                               \
@@ -261,44 +261,44 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
     switch (field->type) {
       case IOP_T_I8:
         SET_SCALAR(int8_t, opt_i8_t, i);
-        return 0;
+        break;
 
       case IOP_T_U8:
         SET_SCALAR(uint8_t, opt_u8_t, u);
-        return 0;
+        break;
 
       case IOP_T_I16:
         SET_SCALAR(int16_t, opt_i16_t, i);
-        return 0;
+        break;
 
       case IOP_T_U16:
         SET_SCALAR(uint16_t, opt_u16_t, u);
-        return 0;
+        break;
 
       case IOP_T_ENUM:
       case IOP_T_I32:
         SET_SCALAR(int32_t, opt_i32_t, i);
-        return 0;
+        break;
 
       case IOP_T_U32:
         SET_SCALAR(uint32_t, opt_u32_t, u);
-        return 0;
+        break;
 
       case IOP_T_I64:
         SET_SCALAR(int64_t, opt_i64_t, i);
-        return 0;
+        break;
 
       case IOP_T_U64:
         SET_SCALAR(uint64_t, opt_u64_t, u);
-        return 0;
+        break;
 
       case IOP_T_BOOL:
         SET_SCALAR(bool, opt_bool_t, b);
-        return 0;
+        break;
 
       case IOP_T_DOUBLE:
         SET_SCALAR(double, opt_double_t, d);
-        return 0;
+        break;
 #undef SET_SCALAR
 
       case IOP_T_VOID:
@@ -307,7 +307,7 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
         }
         e_trace(3, "ignored value_t for void field (field %d:%*pM)",
                 field->tag, LSTR_FMT_ARG(field->name));
-        return 0;
+        break;
 
       case IOP_T_STRING:
       case IOP_T_XML:
@@ -315,7 +315,7 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
         lstr_t *str = ptr;
 
         *str = lstr_dupc(value->s);
-        return 0;
+        break;
       }
       case IOP_T_STRUCT:
       case IOP_T_UNION: {
@@ -325,11 +325,9 @@ static int iop_value_to_ptr(void *ptr, const iop_field_t *field,
         if (value->p != ptr) {
             memcpy(ptr, value->p, field->size);
         }
-
-        return 0;
+        break;
       }
     }
-    return -1;
 }
 
 size_t iop_value_get_bpack_size(const iop_value_t * nonnull value,
@@ -402,15 +400,15 @@ int iop_value_to_repeated_field(void *ptr, const iop_field_t *field,
     data_s = *(lstr_t *)((byte *)ptr + field->data_offs);
     data_p = (byte *)data_s.data + pos * field->size;
 
-    return iop_value_to_ptr(data_p, field, value);
+    iop_value_to_ptr(data_p, field, value);
+    return 0;
 }
 
-int iop_value_to_field(void *ptr, const iop_field_t *field,
-                       const iop_value_t *value)
+void iop_value_to_field(void *ptr, const iop_field_t *field,
+                        const iop_value_t *value)
 {
     ptr = iop_field_get_ptr(field, ptr);
-
-    return iop_value_to_ptr(ptr, field, value);
+    iop_value_to_ptr(ptr, field, value);
 }
 
 void iop_set_opt_field(void *ptr, const iop_field_t *field)
