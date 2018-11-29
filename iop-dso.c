@@ -14,6 +14,13 @@
 #include "iop.h"
 #include "iop-priv.h"
 
+qm_khptr_ckey_t(iop_dso_by_handle, void, iop_dso_t *);
+
+static struct {
+    qm_t(iop_dso_by_handle) dsos_by_handle;
+} iop_dso_g;
+#define _G  iop_dso_g
+
 static ALWAYS_INLINE
 void iopdso_register_struct(iop_dso_t *dso, iop_struct_t const *st)
 {
@@ -218,7 +225,8 @@ static iop_dso_t *iop_dso_init(iop_dso_t *dso)
 
     return dso;
 }
-static void iop_dso_wipe(iop_dso_t *dso)
+
+static void iop_dso_unload(iop_dso_t *dso)
 {
     SB_1k(err);
 
@@ -253,7 +261,11 @@ static void iop_dso_wipe(iop_dso_t *dso)
                     SB_FMT_ARG(&err));
         }
     }
+}
 
+static void iop_dso_wipe(iop_dso_t *dso)
+{
+    iop_dso_unload(dso);
     qm_wipe(iop_pkg,    &dso->pkg_h);
     qm_wipe(iop_enum,   &dso->enum_h);
     qm_wipe(iop_struct, &dso->struct_h);
@@ -262,9 +274,8 @@ static void iop_dso_wipe(iop_dso_t *dso)
     qh_wipe(ptr,        &dso->depends_on);
     qh_wipe(ptr,        &dso->needed_by);
     lstr_wipe(&dso->path);
-    if (dso->handle) {
-        dlclose(dso->handle);
-    }
+    qm_del_key(iop_dso_by_handle, &_G.dsos_by_handle, dso->handle);
+    dlclose(dso->handle);
 }
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
@@ -275,29 +286,36 @@ static int iop_dso_register_(iop_dso_t *dso, sb_t *err);
 # define RTLD_DEEPBIND  0
 #endif
 
-static int iop_dso_open_(iop_dso_t *dso, Lmid_t lmid, sb_t *err)
+iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
 {
-    iop_pkg_t **pkgp;
-    void *handle;
-    iop_dso_vt_t *dso_vt;
     int flags = RTLD_LAZY | RTLD_DEEPBIND;
+    void *handle;
+    iop_dso_t *dso;
+    iop_dso_vt_t *dso_vt;
+    iop_pkg_t **pkgp;
 
     if (lmid == LM_ID_BASE) {
         flags |= RTLD_GLOBAL;
     }
 
-    handle = dlmopen(lmid, dso->path.s, flags);
+    handle = dlmopen(lmid, path, flags);
     if (handle == NULL) {
-        sb_setf(err, "unable to dlopen `%*pM`: %s", LSTR_FMT_ARG(dso->path),
-                dlerror());
-        return -1;
+        sb_setf(err, "unable to dlopen `%s`: %s", path, dlerror());
+        return NULL;
+    }
+
+    dso = qm_get_def(iop_dso_by_handle, &_G.dsos_by_handle, handle, NULL);
+    if (dso) {
+        e_trace(1, "reuse dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
+        dlclose(handle);
+        return iop_dso_dup(dso);
     }
 
     if (lmid == LM_ID_NEWLM && dlinfo(handle, RTLD_DI_LMID, &lmid) < 0) {
         sb_setf(err, "unable to get lmid of plugin `%*pM`: %s",
                 LSTR_FMT_ARG(dso->path), dlerror());
         dlclose(handle);
-        return -1;
+        return NULL;
     }
 
     dso_vt = dlsym(handle, "iop_vtable");
@@ -314,50 +332,44 @@ static int iop_dso_open_(iop_dso_t *dso, Lmid_t lmid, sb_t *err)
         sb_setf(err, "unable to find IOP packages in plugin `%*pM`: %s",
                 LSTR_FMT_ARG(dso->path), dlerror());
         dlclose(handle);
-        return -1;
+        return NULL;
     }
 
+    dso = iop_dso_new();
+    dso->path = lstr_dups(path, -1);
     dso->handle = handle;
     dso->lmid = lmid;
     dso->use_external_packages = !!dlsym(handle, "iop_use_external_packages");
     dso->dont_replace_fix_pkg = !!dlsym(handle, "iop_dont_replace_fix_pkg");
 
-    return iop_dso_register_(dso, err);
-}
+    e_trace(1, "open new dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
-iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
-{
-    iop_dso_t *dso = iop_dso_new();
-
-    dso->path = lstr_dups(path, -1);
-
-    e_trace(1, "open dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
-
-    if (iop_dso_open_(dso, lmid, err) < 0) {
+    if (iop_dso_register_(dso, err) < 0) {
         iop_dso_delete(&dso);
         return NULL;
     }
+
+    qm_add(iop_dso_by_handle, &_G.dsos_by_handle, handle, dso);
 
     return dso;
 }
 
 static int iop_dso_reopen(iop_dso_t *dso, sb_t *err)
 {
-    lstr_t path = LSTR_NULL_V;
-    Lmid_t lmid = dso->lmid;
-    int old_refcnt = dso->refcnt;
-
-    lstr_transfer(&path, &dso->path);
-
     e_trace(1, "reopen dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
-    iop_dso_wipe(dso);
-    iop_dso_init(dso);
+    iop_dso_unload(dso);
 
-    dso->refcnt = old_refcnt;
-    dso->path   = path;
+    qm_clear(iop_pkg,    &dso->pkg_h);
+    qm_clear(iop_enum,   &dso->enum_h);
+    qm_clear(iop_struct, &dso->struct_h);
+    qm_clear(iop_iface,  &dso->iface_h);
+    qm_clear(iop_mod,    &dso->mod_h);
+    qh_clear(ptr,        &dso->depends_on);
+    qh_clear(ptr,        &dso->needed_by);
 
-    return iop_dso_open_(dso, lmid, err);
+    dso->is_registered = false;
+    return iop_dso_register_(dso, err);
 }
 
 void iop_dso_close(iop_dso_t **dsop)
@@ -504,4 +516,14 @@ const void *const *iop_dso_get_ressources(const iop_dso_t *dso, lstr_t category)
     lstr_t name = t_lstr_cat(LSTR("iop_dso_ressources_"), category);
 
     return dlsym(dso->handle, name.s);
+}
+
+void iop_dso_initialize(void)
+{
+    qm_init(iop_dso_by_handle, &_G.dsos_by_handle);
+}
+
+void iop_dso_shutdown(void)
+{
+    qm_wipe(iop_dso_by_handle, &_G.dsos_by_handle);
 }
