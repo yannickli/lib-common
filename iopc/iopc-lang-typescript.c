@@ -45,10 +45,9 @@ static qv_t(str) pp_g;
 
 static const char *pp_under(iopc_path_t *path)
 {
-    sb_t buf;
+    SB_1k(buf);
     char *res;
 
-    sb_inita(&buf, 1024);
     tab_for_each_entry(bit, &path->bits) {
         sb_addf(&buf, "%s__", bit);
     }
@@ -59,10 +58,9 @@ static const char *pp_under(iopc_path_t *path)
 
 static const char *pp_path(iopc_path_t *path)
 {
-    sb_t buf;
+    SB_1k(buf);
     char *res;
 
-    sb_inita(&buf, 1024);
     tab_for_each_entry(bit, &path->bits) {
         sb_addf(&buf, "%s/", bit);
     }
@@ -73,10 +71,9 @@ static const char *pp_path(iopc_path_t *path)
 
 static const char *pp_dot(iopc_path_t *path)
 {
-    sb_t buf;
+    SB_1k(buf);
     char *res;
 
-    sb_inita(&buf, 1024);
     tab_for_each_entry(bit, &path->bits) {
         sb_addf(&buf, "%s.", bit);
     }
@@ -210,7 +207,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
             sb_adds(buf, "import { IopCollection } from 'iop/backbone/collection';\n");
         }
 
-        sb_adds(buf, "import iop = require('iop/backbone');\n");
+        sb_adds(buf, "import * as iop from 'iop/backbone';\n");
         if (pkg->enums.len) {
             sb_adds(buf, "import { Enumeration } from 'iop/enumeration';\n");
             sb_adds(buf, "const enumeration = iop.enumeration;\n");
@@ -222,7 +219,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
             sb_adds(buf, "const registerCollection = iop.backbone.registerCollection;\n");
         }
         sb_addf(buf, "import { Package } from 'iop/core';\n");
-        sb_addf(buf, "import JSON = require('json/%s.iop.json');\n",
+        sb_addf(buf, "import * as JSON from 'json/%s.iop.json';\n",
                 pp_path(pkg->name));
 
         sb_addf(buf, "iop.load(JSON as Package);\n\n");

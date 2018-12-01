@@ -114,13 +114,6 @@ sb_init_full(sb_t * nonnull sb, void * nonnull buf, int blen, int bsize,
     return sb;
 }
 
-/* Warning: size is evaluated multiple times, but use of alloca
- * requires implementation as a macro.  size should be a constant
- * anyway.
- */
-#define sb_inita(sb, sz)                                \
-    sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), &mem_pool_static)
-
 /** SB() macro declare a sb using alloca. It will be automatically wiped when
  * leaving the current scope. */
 #ifdef __cplusplus

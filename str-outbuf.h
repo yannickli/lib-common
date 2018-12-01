@@ -46,8 +46,6 @@ static inline outbuf_t * nonnull ob_init(outbuf_t * nonnull ob)
     sb_init(&ob->sb);
     return ob;
 }
-#define ob_inita(ob, sb_size) \
-    ({ ob_init(ob); sb_inita(&ob->sb, sb_size); })
 
 void ob_wipe(outbuf_t * nonnull ob) __leaf;
 GENERIC_NEW(outbuf_t, ob);

@@ -1360,9 +1360,8 @@ read_dox_back(iopc_parser_t *pp, qv_t(dox_chunk) *chunks, int ignore_token)
 static
 void iopc_dox_desc_append_paragraphs(lstr_t *desc, const qv_t(sb) *paragraphs)
 {
-    sb_t text;
+    SB_1k(text);
 
-    sb_inita(&text, 1024);
     sb_add_lstr(&text, *desc);
     tab_for_each_ptr(paragraph, paragraphs) {
         if (text.len && paragraph->len) {
