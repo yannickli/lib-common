@@ -1062,6 +1062,7 @@ def profile_default(ctx,
 
     ctx.env.CFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CC])
     ctx.env.CFLAGS += [
+        '-g',
         '-DWAF_MODE',
         '-fno-omit-frame-pointer',
         '-fvisibility=hidden',
@@ -1084,6 +1085,7 @@ def profile_default(ctx,
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
     ctx.env.CXXFLAGS += [
+        '-g',
         '-DWAF_MODE',
         '-D__STDC_LIMIT_MACROS',
         '-D__STDC_CONSTANT_MACROS',
