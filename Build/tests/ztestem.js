@@ -11,7 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-/* jshint node: true, globalstrict: true, camelcase: false */
+/* eslint-env node */
+/* eslint-disable camelcase, no-unused-vars */
 
 'use strict';
 

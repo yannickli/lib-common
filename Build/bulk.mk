@@ -275,6 +275,7 @@ ale: | __setup_buildsys_trampoline
 	echo "let g:ale_c_clang_options = '" > $/.local_vimrc.vim
 	echo ' $(CLANGFLAGS) $(libxml2_CFLAGS) $(openssl_CFLAGS) $(jni_CFLAGS) $(python2_CFLAGS)' | sed -e 's/^/    \\ /g' >> $/.local_vimrc.vim
 	echo "\\'" >> $/.local_vimrc.vim
+	echo "let g:ale_linters = { 'javascript': ['eslint'] }" >> $/.local_vimrc.vim
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
