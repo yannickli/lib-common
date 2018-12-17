@@ -34,6 +34,15 @@ enum sctp_events {
 #define sctp_connectx  sctp_connectx_old
 int sctp_connectx_old(int fd, struct sockaddr *addrs, int count);
 
+/** Improved version of sctp_connectx().
+ *
+ * This function uses the CONNECTX3 API, allowing to return the new
+ * association ID immediately. If the association ID is not required, it will
+ * fallback on the old sctp_connectx().
+ */
+int sctp_connectx_ng(int fd, struct sockaddr *addrs, int count,
+                     sctp_assoc_t *nullable id);
+
 int sctp_enable_events(int fd, int flags);
 
 ssize_t sctp_sendv(int sd, const struct iovec *iov, int iovlen,
