@@ -35,6 +35,10 @@ static void *libc_malloc(mem_pool_t *m, size_t size, size_t alignment,
 {
     void *res;
 
+    if (unlikely(size == 0)) {
+        return MEM_EMPTY_ALLOC;
+    }
+
     if (alignment <= 8) {
         if (flags & MEM_RAW) {
             res = malloc(size);
@@ -67,6 +71,10 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
 {
     byte *res = NULL;
 
+    if (unlikely(mem == MEM_EMPTY_ALLOC)) {
+        mem = NULL;
+    }
+
     if (alignment > 8 && mem == NULL) {
         return libc_malloc(m, size, alignment, flags);
     }
@@ -94,7 +102,9 @@ static void *libc_realloc(mem_pool_t *m, void *mem, size_t oldsize,
 
 static void libc_free(mem_pool_t *m, void *p)
 {
-    free(p);
+    if (likely(p != MEM_EMPTY_ALLOC)) {
+        free(p);
+    }
 }
 
 mem_pool_t mem_pool_libc = {
@@ -143,6 +153,112 @@ mem_pool_t mem_pool_static = {
     .min_alignment = 1,
     .realloc_fallback = &mem_pool_libc
 };
+
+/* }}} */
+/* {{{ Generic allocator functions */
+
+void icheck_alloc(size_t size)
+{
+    if (size > MEM_ALLOC_MAX) {
+        e_panic("you cannot allocate that amount of memory: %zu (max %llu)",
+                size, MEM_ALLOC_MAX);
+    }
+}
+
+void *__mp_imalloc(mem_pool_t *mp, size_t size, size_t alignment,
+                   mem_flags_t flags)
+{
+    void *res;
+
+    icheck_alloc(size);
+    mp = mp ?: &mem_pool_libc;
+    alignment = mem_bit_align(mp, alignment);
+
+    res = (*mp->malloc)(mp, size, alignment, flags);
+
+    if (unlikely(size == 0)) {
+        assert (res == MEM_EMPTY_ALLOC);
+    }
+
+    return res;
+}
+
+void *__mp_irealloc(mem_pool_t *mp, void *mem, size_t oldsize, size_t size,
+                    size_t alignment, mem_flags_t flags)
+{
+    void *res;
+
+    icheck_alloc(size);
+    mp = mp ?: &mem_pool_libc;
+
+    if (!mem) {
+        return mp_imalloc(mp, size, alignment, flags);
+    }
+
+    alignment = mem_bit_align(mp, alignment);
+    if (!(flags & MEM_UNALIGN_OK)) {
+        assert ((uintptr_t)mem == mem_align_ptr((uintptr_t)mem, alignment)
+            &&  "reallocation must have the same alignment as allocation");
+    }
+
+    res = (*mp->realloc)(mp, mem, oldsize, size, alignment, flags);
+
+    if (unlikely(size == 0)) {
+        assert (res == MEM_EMPTY_ALLOC);
+    }
+
+    return res;
+}
+
+void mp_ifree(mem_pool_t *mp, void *mem)
+{
+    mp = mp ?: &mem_pool_libc;
+    (*mp->free)(mp, mem);
+}
+
+void *__mp_irealloc_fallback(mem_pool_t **pmp, void *mem, size_t oldsize,
+                             size_t size, size_t alignment,
+                             mem_flags_t flags)
+{
+    mem_pool_t *mp = *pmp;
+
+    assert (oldsize != MEM_UNKNOWN);
+    icheck_alloc(size);
+    mp = mp ?: &mem_pool_libc;
+
+    if (mp->realloc_fallback && size > oldsize) {
+        void *out;
+
+        mp  = mp->realloc_fallback;
+        out = mp_imalloc(mp, size, alignment, flags);
+        if (oldsize != MEM_UNKNOWN) {
+            memcpy(out, mem, oldsize);
+        }
+        mp_ifree(*pmp, mem);
+        *pmp = mp;
+        return out;
+    } else {
+        return mp_irealloc(mp, mem, oldsize, size, alignment, flags);
+    }
+}
+
+mem_pool_t *ipool(mem_flags_t flags)
+{
+    switch (flags & MEM_POOL_MASK) {
+      case MEM_LIBC:
+        return &mem_pool_libc;
+
+      case MEM_STACK:
+        return t_pool();
+
+      case MEM_STATIC:
+        return &mem_pool_static;
+
+      default:
+        e_panic("pool memory cannot be used with imalloc familly");
+        return NULL;
+    }
+}
 
 /* }}} */
 
