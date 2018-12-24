@@ -314,7 +314,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize,
 
     if (unlikely(size == 0)) {
         mfp_free(_mfp, mem);
-        return NULL;
+        return MEM_EMPTY_ALLOC;
     }
 
     if (!mem || unlikely(mem == MEM_EMPTY_ALLOC)) {
