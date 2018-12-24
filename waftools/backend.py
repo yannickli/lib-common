@@ -1406,10 +1406,10 @@ def profile_coverage(ctx):
     # TODO waf: coverage command
     profile_debug(ctx)
 
-    flags = ['-pg', '-fprofile-arcs', '-ftest-coverage']
+    flags = ['-pg', '--coverage']
     ctx.env.CFLAGS += flags
     ctx.env.CXXFLAGS += flags
-    ctx.env.LDFLAGS += ['-lgcov']
+    ctx.env.LDFLAGS += flags
 
 
 PROFILES = {
