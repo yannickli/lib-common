@@ -205,6 +205,42 @@ int sctp_connectx_old(int fd, struct sockaddr *addrs, int count)
     return setsockopt(fd, SOL_SCTP, SCTP_SOCKOPT_CONNECTX, addrs, size);
 }
 
+/* XXX the CONNECTX3 version lacks of public declaration on redhat 6 */
+#ifndef SCTP_SOCKOPT_CONNECTX3
+# define SCTP_SOCKOPT_CONNECTX3  111
+#elif SCTP_SOCKOPT_CONNECTX3 != 111
+# error "unexpected value of SCTP_SOCKOPT_CONNECTX3"
+#endif
+
+int sctp_connectx_ng(int fd, struct sockaddr *addrs, int count,
+                     sctp_assoc_t *nullable id)
+{
+    int res;
+    int size = sctp_addr_len((const sockunion_t *)addrs, count);
+    struct sctp_getaddrs_old opt_val = {
+        .assoc_id = 0,
+        .addr_num = size,
+        .addrs    = addrs,
+    };
+    socklen_t opt_len = sizeof(opt_val);
+
+    RETHROW(size);
+
+    if (!id) {
+        /* No need to use CONNECTX3 */
+        return setsockopt(fd, SOL_SCTP, SCTP_SOCKOPT_CONNECTX, addrs, size);
+    }
+
+    res = getsockopt(fd, SOL_SCTP, SCTP_SOCKOPT_CONNECTX3, &opt_val,
+                     &opt_len);
+    if (res == 0 || ERR_CONNECT_RETRIABLE(errno)) {
+        /* We should have a valid association ID */
+        *id = opt_val.assoc_id;
+    }
+
+    return res;
+}
+
 int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
                   struct sockaddr *addrs, int addr_size)
 {
