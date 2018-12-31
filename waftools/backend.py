@@ -730,7 +730,7 @@ def process_perf(self, node):
 
     if not c_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(c_node)
-        self.create_task('Perf2c', node, c_node)
+        self.create_task('Perf2c', node, c_node, cwd=self.bld.srcnode)
 
     self.source.extend([c_node])
 
@@ -753,7 +753,7 @@ def process_lex(self, node):
 
     if not c_node in self.env.GEN_FILES:
         self.env.GEN_FILES.add(c_node)
-        self.create_task('Lex2c', node, c_node)
+        self.create_task('Lex2c', node, c_node, cwd=self.bld.srcnode)
 
     self.source.extend([c_node])
 
