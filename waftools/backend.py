@@ -15,6 +15,7 @@
 Contains the code needed for backend compilation.
 '''
 
+import datetime
 import os
 import re
 from itertools import chain
@@ -580,6 +581,106 @@ class OldGenFilesDetect(BuildContext):
 class OldGenFilesDelete(BuildContext):
     '''delete old generated files on disk'''
     cmd = 'old-gen-files-delete'
+
+
+# }}}
+# {{{ Coverage
+
+
+def do_coverage_start(ctx):
+    cmd = '{0} --directory {1} --base-directory {2} --zerocounters'
+    if ctx.exec_command(cmd.format(ctx.env.LCOV[0], ctx.bldnode.abspath(),
+                                   ctx.srcnode.abspath())):
+        ctx.fatal('failed to start coverage session')
+
+
+def coverage_start_cmd(ctx):
+    if ctx.cmd != 'coverage-start':
+        return
+
+    if ctx.env.PROFILE != 'coverage':
+        ctx.fatal('coverage-start requires coverage profile, current is %s' %
+                  ctx.env.PROFILE)
+
+    do_coverage_start(ctx)
+
+    print('You can now run some code, and use `waf coverage-end` to produce '
+          'a coverage report.')
+
+    # Interrupt the build
+    ctx.groups = []
+
+
+class CoverageStartClass(BuildContext):
+    '''start a coverage session (requires coverage profile)'''
+    cmd = 'coverage-start'
+
+
+def coverage_end_cmd(ctx):
+    if ctx.cmd != 'coverage-end':
+        return
+
+    if ctx.env.PROFILE != 'coverage':
+        ctx.fatal('coverage-end requires coverage profile, current is %s' %
+                  ctx.env.PROFILE)
+
+    # The following code is adapted from
+    # http://bind10.isc.org/wiki/TestCodeCoverage
+
+    # Create empty gcda files for every gcno file if they do not exist
+    gcno_nodes = ctx.bldnode.ant_glob('**/*.gcno', excl='*.pic.*', quiet=True)
+    for gcno_node in gcno_nodes:
+        gcda_node = gcno_node.change_ext('.gcda')
+        if not gcda_node.exists():
+            os.mknod(gcda_node.abspath())
+
+    # Generate the lcov trace file.
+    lcov_all_file = ctx.bldnode.make_node('lcov-all.info')
+    cmd = ('{0} --capture --ignore-errors gcov,source --directory {1} '
+           '--base-directory {2} --output-file {3}')
+    if ctx.exec_command(cmd.format(ctx.env.LCOV[0], ctx.bldnode.abspath(),
+                                   ctx.srcnode.abspath(),
+                                   lcov_all_file.abspath())):
+        ctx.fatal('failed to generate lcov trace file')
+
+    # Remove files not needed in the report
+    lcov_file = ctx.bldnode.make_node('lcov.info')
+    cmd = '{0} --remove {1} "/usr/*" --output {2}'
+    if ctx.exec_command(cmd.format(ctx.env.LCOV[0], lcov_all_file.abspath(),
+                                   lcov_file.abspath())):
+        ctx.fatal('failed to purify lcov trace file')
+    lcov_all_file.delete()
+
+    # Generate HTML report
+    now = datetime.datetime.now()
+    report_dir = 'coverage-report-{:%Y%m%d-%H%M%S}'.format(now)
+    report_dir = ctx.srcnode.make_node(report_dir)
+    report_dir.delete(evict=False)
+    cmd = '{0} -o {1} {2}'
+    if ctx.exec_command(cmd.format(ctx.env.GENHTML[0], report_dir.abspath(),
+                                   lcov_file.abspath())):
+        ctx.fatal('failed to generate HTML report')
+
+    # Produce a symlink to the report directory
+    report_link = ctx.srcnode.make_node('coverage-report')
+    try:
+        os.remove(report_link.abspath())
+    except OSError:
+        pass
+    os.symlink(report_dir.abspath(), report_link.abspath())
+
+    print('')
+    print('lcov data available in %s' % lcov_file.abspath())
+    print('Coverage report produced in %s' % report_dir.abspath())
+    print('')
+
+    # Interrupt the build
+    ctx.groups = []
+
+
+class CoverageReportClass(BuildContext):
+    '''end a coverage session and produce a report'''
+    cmd = 'coverage-end'
 
 
 # }}}
@@ -1403,13 +1504,17 @@ def profile_mem_bench(ctx):
 
 
 def profile_coverage(ctx):
-    # TODO waf: coverage command
     profile_debug(ctx)
+    ctx.find_program('lcov')
+    ctx.find_program('genhtml')
 
     flags = ['-pg', '--coverage']
     ctx.env.CFLAGS += flags
     ctx.env.CXXFLAGS += flags
     ctx.env.LDFLAGS += flags
+
+    do_coverage_start(ctx)
+    ctx.msg('Starting coverage session', 'ok')
 
 
 PROFILES = {
@@ -1486,5 +1591,7 @@ def build(ctx):
         ctx.add_pre_fun(compile_fpic)
     ctx.add_pre_fun(gen_tags)
     ctx.add_pre_fun(old_gen_files_detect)
+    ctx.add_pre_fun(coverage_start_cmd)
+    ctx.add_pre_fun(coverage_end_cmd)
 
 # }}}
