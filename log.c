@@ -566,7 +566,9 @@ void logger_putv(const log_ctx_t *ctx, bool do_log,
         qv_t(log_buffer) *vec_buffer = &buff->vec_buffer;
 
         if (buff->use_handler) {
-            (*_G.handler)(ctx, fmt, va);
+            va_copy(cpy, va);
+            (*_G.handler)(ctx, fmt, cpy);
+            va_end(cpy);
         }
 
         va_copy(cpy, va);
