@@ -263,6 +263,8 @@ Z_GROUP_EXPORT(log) {
                                                   LOG_TRACE);
         logger_t logger_test_2 = LOGGER_INIT_SILENT(NULL, "logger test 2",
                                                   LOG_TRACE);
+        logger_t logger_test_3 = LOGGER_INIT(NULL, "logger test 3",
+                                             LOG_TRACE);
         const qv_t(log_buffer) *vect_buffer;
 
 #define TEST_LOG_ENTRY(_i, _j, _level, _logger)                              \
@@ -513,6 +515,17 @@ Z_GROUP_EXPORT(log) {
         log_start_buffering(true);
         vect_buffer = log_stop_buffering();
         Z_ASSERT_EQ(vect_buffer->len, 0);
+
+        log_start_buffering(true);
+        {
+            core__httpd_cfg__t httpd_cfg;
+
+            iop_init(core__httpd_cfg, &httpd_cfg);
+            logger_info(&logger_test_3, "%*pS",
+                        IOP_ST_FMT_ARG(core__httpd_cfg, &httpd_cfg));
+        }
+        vect_buffer = log_stop_buffering();
+        Z_ASSERT_EQ(vect_buffer->len, 1);
 
         /* buffer capture different level */
 
