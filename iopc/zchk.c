@@ -186,9 +186,7 @@ static int _test_struct(const iop_struct_t *nonnull st_desc,
                    "cannot junpack `%pL': %pL", &err, &st_json);
 
         sb_reset(&jbuf);
-        Z_ASSERT_N(iop_sb_jpack(&jbuf, st_desc, st_ptr,
-                                IOP_JPACK_MINIMAL |
-                                IOP_JPACK_NO_TRAILING_EOL),
+        Z_ASSERT_N(iop_sb_jpack(&jbuf, st_desc, st_ptr, IOP_JPACK_MINIMAL),
                    "cannot pack to get `%pL'", &st_json);
 
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&jbuf), st_json,
@@ -208,8 +206,7 @@ static int _test_struct(const iop_struct_t *nonnull st_desc,
 
         sb_reset(&jbuf_ref);
         Z_ASSERT_N(iop_sb_jpack(&jbuf_ref, ref_st_desc, st_ptr,
-                                IOP_JPACK_MINIMAL |
-                                IOP_JPACK_NO_TRAILING_EOL),
+                                IOP_JPACK_MINIMAL),
                    "unexpected packing failure");
 
         Z_ASSERT_STREQUAL(jbuf.data, jbuf_ref.data,
