@@ -25,12 +25,12 @@ $(var/wwwtool)exorcist: _npm_tools
 
 $/$~package-installed.json: $/package.json
 	$(msg/npm) ""
-	cd $(dir $<) && npm install --silent > /dev/null
+	cd $(dir $<) && $(npminstall_BIN) --silent > /dev/null
 	cp $< $@
 
 $/$~%package-installed.json: $/%package.json
 	$(msg/npm) "$(patsubst $/%/package.json,%,$<)"
-	cd $(dir $<) && npm install --silent > /dev/null
+	cd $(dir $<) && $(npminstall_BIN) --silent > /dev/null
 	cp $< $@
 
 # }}}
