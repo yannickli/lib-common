@@ -25,14 +25,9 @@ How to build?
 
 First of all, you have to configure your project, by running in the top-level
 directory:
-----------------------------------------------
-$ waf configure [-P profile] [--prefix=PREFIX]
-----------------------------------------------
-
-Use the -P option to specify the desired compilation profile (default, debug,
-release, ... you can get the complete list with `waf --help`).
-If not specified, the default profile can be defined with the `$P` environment
-variable (and by default this is `default`).
+---------------------------------
+$ waf configure [--prefix=PREFIX]
+---------------------------------
 
 The installation prefix is controlled with the option `--prefix`.
 It is important to set it when you want to install the tools for example.
@@ -98,7 +93,10 @@ Environment variables
 The following environment variables can be used at the configuration phase:
 
 `P` (string)::
-    As explained above, it allows choosing the default compilation profile.
+    Specify the desired compilation profile (default, debug, release, ...).
+    The complete list of available profiles is defined in
+    `waftools/backend.py`, variable `PROFILES`.
+    If not specified, the default profile is `default`.
 
 `NO_JAVA` (boolean)::
     Set it to disable the Java support.

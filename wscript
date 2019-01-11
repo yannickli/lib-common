@@ -23,6 +23,9 @@ waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
 
 
+out = ".build-waf-%s" % os.environ.get('P', 'default')
+
+
 # {{{ options
 
 

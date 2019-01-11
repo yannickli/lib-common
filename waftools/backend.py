@@ -1314,14 +1314,6 @@ def options(ctx):
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
 
-    # Profile option
-    default_profile = os.environ.get('P', 'default')
-    gr = ctx.get_option_group('configure options')
-    h = 'Compilation profile ({0}) [default: \'{1}\']'
-    h = h.format(', '.join(PROFILES.keys()), default_profile)
-    gr.add_option('-P', '--PROFILE', action='store', dest='PROFILE',
-                  type='string', default=default_profile, help=h)
-
 # }}}
 # {{{ configure
 # {{{ compilation profiles
@@ -1534,7 +1526,7 @@ def configure(ctx):
     ConfigurationContext.register_global_includes = register_global_includes
 
     # Load compilation profile
-    ctx.env.PROFILE = Options.options.PROFILE
+    ctx.env.PROFILE = os.environ.get('P', 'default')
     try:
         ctx.msg('Selecting profile', ctx.env.PROFILE)
         PROFILES[ctx.env.PROFILE](ctx)
