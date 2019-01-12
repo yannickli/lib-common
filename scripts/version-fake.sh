@@ -1,3 +1,4 @@
+#!/bin/sh
 ##########################################################################
 #                                                                        #
 #  Copyright (C) INTERSEC SA                                             #
@@ -11,14 +12,31 @@
 #                                                                        #
 ##########################################################################
 
-def configure(ctx):
-    path = ctx.path.abspath()
+# Variant of version.sh which generates fakes (and thus constant) versions.
+# This is used by the FAKE_VERSIONS mode of waf.
 
-    ctx.find_program('flex')
-    ctx.find_program('flex.sh', path_list=[path], var='FLEX_SH')
+git_rcsid() {
+    cat <<EOF
+char const $1_id[] =
+    "\$Intersec: $1 fake-revision \$";
+char const $1_git_revision[] = "$1-fake-revision";
+char const $1_git_sha1[] = "$1-fake-sha1";
+EOF
+}
 
-    if ctx.env.FAKE_VERSIONS:
-        version_sh = 'version-fake.sh'
-    else:
-        version_sh = 'version.sh'
-    ctx.find_program(version_sh, path_list=[path], var='VERSION_SH')
+git_product_version() {
+    product="$1"
+    cat <<EOF
+const char ${product}_git_revision[] = "${product}-fake-revision";
+const unsigned ${product}_version_major = 0;
+const unsigned ${product}_version_minor = 0;
+const unsigned ${product}_version_patchlevel = 0;
+const char ${product}_version[] = "${product}-fake-version";
+EOF
+}
+
+case "$1" in
+    "rcsid")           shift; git_rcsid           "$@";;
+    "product-version") shift; git_product_version "$@";;
+    *);;
+esac

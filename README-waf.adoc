@@ -124,6 +124,13 @@ The following environment variables can be used at the configuration phase:
     Cf. `waftools/backend.py` for the details.
     This is ignored in release profile.
 
+`FAKE_VERSIONS` (boolean)::
+    If set, the version files are generated with fake (and constant) data, so
+    that changing of git revision does not trigger a re-link of all the
+    binaries. This is a huge gain of time, but it's not possible to know the
+    revision of the binaries that are built with this flag.
+    This is ignored in release profile.
+
 TODOs
 -----
 

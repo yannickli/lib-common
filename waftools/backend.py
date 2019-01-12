@@ -1333,6 +1333,7 @@ def profile_default(ctx,
                     no_assert=False,
                     allow_no_compress=True,
                     allow_no_double_fpic=True,
+                    allow_fake_versions=True,
                     fortify_source='-D_FORTIFY_SOURCE=2'):
 
     # Load C/C++ compilers
@@ -1436,6 +1437,15 @@ def profile_default(ctx,
         log = 'yes'
     ctx.msg('Double fPIC compilation for shared libraries', log)
 
+    # Generate fake versions?
+    if allow_fake_versions and ctx.get_env_bool('FAKE_VERSIONS'):
+        ctx.env.FAKE_VERSIONS = True
+        log = 'yes'
+    else:
+        ctx.env.FAKE_VERSIONS = False
+        log = 'no'
+    ctx.msg('Generate fake versions in binaries', log)
+
 
 def profile_debug(ctx, allow_no_double_fpic=True):
     profile_default(ctx, fortify_source=None,
@@ -1454,8 +1464,10 @@ def profile_debug(ctx, allow_no_double_fpic=True):
 
 
 def profile_release(ctx):
-    profile_default(ctx, no_assert=True, allow_no_compress=False,
-                    allow_no_double_fpic=False)
+    profile_default(ctx, no_assert=True,
+                    allow_no_compress=False,
+                    allow_no_double_fpic=False,
+                    allow_fake_versions=False)
     ctx.env.LINKFLAGS += ['-Wl,-x', '-rdynamic']
     ctx.env.WEBPACK_MODE = 'production'
 
