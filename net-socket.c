@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -108,12 +108,12 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
 int isconnectx(int sock, const sockunion_t *addrs, int cnt, int type,
                int proto, int flags)
 {
-    return connectx_as(sock, addrs, cnt, NULL, type, proto, flags);
+    return connectx_as(sock, addrs, cnt, NULL, type, proto, flags, 0);
 }
 
 int connectx_as(int sock, const sockunion_t *addrs, int cnt,
-                const sockunion_t * nullable src, int type,
-                int proto, int flags)
+                const sockunion_t * nullable src, int type, int proto,
+                int flags, int timeout)
 {
     int to_close = -1;
 
@@ -131,8 +131,17 @@ int connectx_as(int sock, const sockunion_t *addrs, int cnt,
         goto error;
     }
 
-    if (fd_set_features(sock, flags))
+    if (fd_set_features(sock, flags)) {
         goto error;
+    }
+
+    if (timeout) {
+        struct timeval tv = { .tv_sec = timeout };
+
+        assert (!(flags & O_NONBLOCK));
+        /* Set a socket timeout to avoid blocking indefinitely. */
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    }
 
 #ifdef HAVE_NETINET_SCTP_H
     if (proto != IPPROTO_SCTP || cnt == 1) {

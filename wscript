@@ -1,6 +1,6 @@
 ##########################################################################
 #                                                                        #
-#  Copyright (C) 2004-2018 INTERSEC SA                                   #
+#  Copyright (C) INTERSEC SA                                             #
 #                                                                        #
 #  Should you receive a copy of this source code, you must check you     #
 #  have a proper, written authorization of INTERSEC to hold it. If you   #
@@ -21,6 +21,9 @@ from waflib import Context, Logs, Errors
 
 waftoolsdir = os.path.join(os.getcwd(), 'waftools')
 sys.path.insert(0, waftoolsdir)
+
+
+out = ".build-waf-%s" % os.environ.get('P', 'default')
 
 
 # {{{ options

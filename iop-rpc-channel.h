@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -670,8 +670,19 @@ static inline void ic_delete(ichannel_t * nullable * nonnull icp)
     }
 }
 
-int  ic_connect(ichannel_t * nonnull);
-int  ic_connect_blocking(ichannel_t * nonnull ic);
+/** Connects the IOP Channel.
+ *
+ * \param[in]  ic  the IOP Channel configuration.
+ **/
+int  ic_connect(ichannel_t * nonnull ic);
+
+/** Connects the IOP Channel synchronously.
+ *
+ * \param[in]  ic  the IOP Channel configuration.
+ * \param[in]  timeout  the time, in seconds, after which the connection
+ *                      should timeout; 0 means default (i.e. 60s).
+ **/
+int  ic_connect_blocking(ichannel_t * nonnull ic, int timeout);
 void ic_disconnect(ichannel_t * nonnull ic);
 void ic_spawn(ichannel_t * nonnull, int fd, ic_creds_f * nullable fn);
 void ic_bye(ichannel_t * nonnull);

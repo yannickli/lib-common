@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -2378,8 +2378,7 @@ Z_GROUP_EXPORT(iop)
             tstiop__struct_jpack_flags__t sub_st;
             tstiop__jpack_empty_cls_b__t clsb;
             tstiop__jpack_empty_cls_c__t clsc;
-            unsigned flags = IOP_JPACK_NO_TRAILING_EOL
-                           | IOP_JPACK_MINIMAL;
+            unsigned flags = IOP_JPACK_MINIMAL;
 
             iop_init(tstiop__jpack_empty_struct, &empty_jpack);
             iop_init(tstiop__jpack_empty_cls_b, &clsb);

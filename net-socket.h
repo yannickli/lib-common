@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -31,15 +31,25 @@ int isconnectx(int sock, const sockunion_t * nonnull, int cnt,
  *
  * \param[in]   sock    a file descriptor for the socket, a negative value to
  *                      create a new socket
+ * \param[in]   addrs   addresses to connect to
+ * \param[in]   cnt     number of addresses to connect to (=1 except for SCTP)
  * \param[in]   src     use specific network interface as source
+ * \param[in]   type    see socket(2)
+ * \param[in]   proto   see socket(2)
+ * \param[in]   flags   see fd_features_flags_t
+ * \param[in]   timeout  the maximum time, in seconds, spent to establish the
+ *                       connection; only for blocking connects; bound to the
+ *                       socket and kept after connection such that further
+ *                       blocking read attempts would also have this timeout;
+ *                       ignored if equals to 0.
  *
  * \Returns On success, the file descriptor for the socket
  *          On error, -1 and errno is set appropriately.
  *
  */
-int connectx_as(int sock, const sockunion_t * nonnull, int cnt,
-                const sockunion_t * nullable src, int type,
-                int proto, int flags);
+int connectx_as(int sock, const sockunion_t * nonnull addrs, int cnt,
+                const sockunion_t * nullable src, int type, int proto,
+                int flags, int timeout);
 int acceptx(int server_fd, int flags);
 int acceptx_get_addr(int server_fd, int flags, sockunion_t * nullable su);
 

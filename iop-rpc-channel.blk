@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -2625,7 +2625,11 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
         goto error;
     }
     if (res == 0) {
-        return ev ? 0 : -1;
+        if (errno == EAGAIN && ev == NULL) {
+            logger_error(&_G.logger, "blocking IC connection failed "
+                         "(timeout)");
+        }
+        return 0;
     }
 
     if (buf->len < IC_MSG_HDR_LEN) {
@@ -2795,7 +2799,7 @@ static void __ic_watch_activity(ichannel_t *ic)
     el_unref(ic->timer);
 }
 
-static int __ic_connect(ichannel_t *ic, int flags)
+static int __ic_connect(ichannel_t *ic, int flags, int timeout)
 {
     int type, sock;
 
@@ -2806,32 +2810,41 @@ static int __ic_connect(ichannel_t *ic, int flags)
     assert (!ic->elh);
 
     ic->is_spawned = false;
-    ic->is_unix = ic->su.family == AF_UNIX;
+    ic->is_unix = (ic->su.family == AF_UNIX);
 
     if (ic->is_unix) {
         ic->tls_required = false;
-    }
-
-    if (ic->su.family == AF_UNIX) {
         flags &= ~O_NONBLOCK;
-        type   = SOCK_SEQPACKET;
+        type = SOCK_SEQPACKET;
+        ic->is_seqpacket = true;
     } else {
-        type   = SOCK_STREAM;
-    }
-    if (!ic->is_unix && type == SOCK_STREAM) {
+        type = SOCK_STREAM;
         flags |= FD_FEAT_TCP_NODELAY;
+        ic->is_seqpacket = false;
     }
-    ic->is_seqpacket = type == SOCK_SEQPACKET;
 
-    sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
+    sock = connectx_as(-1, &ic->su, 1, NULL, type, ic->protocol, flags,
+                       timeout);
     if (sock < 0) {
         return -1;
     }
     if (flags & O_NONBLOCK) {
         ic->elh = el_fd_register(sock, true, POLLOUT, &ic_connecting, ic);
         ic->queuable = true;
+    } else
+    if (ic->is_unix) {
+        ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_version_handshake,
+                                 ic);
+        if (ic_version_write(ic, sock) < 0) {
+            ic_mark_disconnected(ic);
+            return -1;
+        }
+
+        fd_set_features(sock, O_NONBLOCK);
+        ic->queuable = true;
     } else {
         data_t priv;
+        struct timeval tv = { .tv_sec = 0 };
 
         ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_event, ic);
         if (ic_version_write(ic, sock) < 0) {
@@ -2844,6 +2857,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
             ic_mark_disconnected(ic);
             return -1;
         }
+
+        /* Remove the timeout set by connectx. */
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         fd_set_features(sock, O_NONBLOCK);
     }
     (el_fd_set_priority)(ic->elh, ic->priority);
@@ -2881,12 +2897,12 @@ ev_priority_t ic_set_priority(ichannel_t *ic, ev_priority_t prio)
 
 int ic_connect(ichannel_t *ic)
 {
-    return __ic_connect(ic, O_NONBLOCK);
+    return __ic_connect(ic, O_NONBLOCK, 0);
 }
 
-int ic_connect_blocking(ichannel_t *ic)
+int ic_connect_blocking(ichannel_t *ic, int timeout)
 {
-    return __ic_connect(ic, 0);
+    return __ic_connect(ic, 0, timeout > 0 ? timeout : 60);
 }
 
 void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)

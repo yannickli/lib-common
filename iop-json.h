@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2018 INTERSEC SA                                   */
+/*  Copyright (C) INTERSEC SA                                             */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -402,6 +402,7 @@ enum iop_jpack_flags {
 
     /** Produce the smallest possible json. */
     IOP_JPACK_MINIMAL = IOP_JPACK_NO_WHITESPACES
+                      | IOP_JPACK_NO_TRAILING_EOL
                       | IOP_JPACK_SKIP_DEFAULT
                       | IOP_JPACK_SKIP_EMPTY_ARRAYS
                       | IOP_JPACK_SKIP_EMPTY_STRUCTS

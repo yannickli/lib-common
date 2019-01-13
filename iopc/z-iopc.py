@@ -2,7 +2,7 @@
 #vim:set fileencoding=utf-8:
 ##########################################################################
 #                                                                        #
-#  Copyright (C) 2004-2018 INTERSEC SA                                   #
+#  Copyright (C) INTERSEC SA                                             #
 #                                                                        #
 #  Should you receive a copy of this source code, you must check you     #
 #  have a proper, written authorization of INTERSEC to hold it. If you   #
