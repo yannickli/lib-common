@@ -1388,6 +1388,13 @@ def profile_default(ctx,
     ctx.env.CLANGXX_FLAGS += ['-DWAF_MODE']
     ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
 
+    # Special clang flags
+    if 'clang' in ctx.env.COMPILER_CC:
+        ctx.env.CFLAGS += ['-x', 'c']
+    if 'clang++' in ctx.env.COMPILER_CXX:
+        ctx.env.CXXFLAGS += ['-x', 'c++']
+
+    # Asserts
     if no_assert:
         ctx.env.NDEBUG = True
         ctx.env.CFLAGS += ['-DNDEBUG']
@@ -1478,8 +1485,6 @@ def profile_asan(ctx):
 
     profile_debug(ctx, allow_no_double_fpic=False)
 
-    ctx.env.CFLAGS += ['-x', 'c']
-    ctx.env.CXXFLAGS += ['-x', 'c++']
     ctx.env.LDFLAGS += ['-lstdc++']
 
     asan_flags = ['-fsanitize=address']
@@ -1493,9 +1498,6 @@ def profile_tsan(ctx):
     Options.options.check_cxx_compiler = 'clang++'
 
     profile_debug(ctx, allow_no_double_fpic=False)
-
-    ctx.env.CFLAGS += ['-x', 'c']
-    ctx.env.CXXFLAGS += ['-x', 'c++']
 
     tsan_flags = ['-fsanitize=thread']
     ctx.env.CNOPICFLAGS = tsan_flags
