@@ -81,7 +81,8 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, size_t alignment,
     bb->alignment = alignment;
 
     assert (alignment >= 8 && alignment % 8 == 0);
-    assert (((intptr_t)buf) % alignment == 0 && (bsize * 8) % alignment == 0);
+    assert (((intptr_t)buf) % alignment == 0);
+    assert ((bsize * 8) % alignment == 0);
 
     bzero(bb->bytes + used_bytes, bsize * 8 - used_bytes);
     assert (bb->size >= bb->word);
