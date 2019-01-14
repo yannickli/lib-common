@@ -21,7 +21,7 @@ $(var/wwwtool)webpack: _npm_tools
 
 $/node_modules/build.lock: $/package.json
 	$(msg/npm) ""
-	cd $(dir $<) && npm install --quiet
+	cd $(dir $<) && $(npminstall_BIN) --quiet
 	touch $@
 
 # }}}
