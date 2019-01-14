@@ -103,7 +103,7 @@ is automatically skipped. Some of tags have specific behavior:
    normal and nightly tests. Currently unused;
  * web: tests using selenium;
  * wip: tests are ignored by the buildbot (review and nightly) and when
-   running make check.
+   running waf check.
 Out of these tags, the choice is completely free.
 
 `Z_MODE` may contain a space-separated list of "modes". Modes can be used by

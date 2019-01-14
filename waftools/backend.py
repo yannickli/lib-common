@@ -868,7 +868,7 @@ def process_lex(self, node):
 
 
 class Fc2c(Task):
-    run_str = '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}'
+    run_str = ['rm -f ${TGT}', '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}']
     color   = 'BLUE'
     before  = ['Blk2c', 'Blkk2cc']
     ext_out = ['.h']
@@ -1347,7 +1347,6 @@ def profile_default(ctx,
     ctx.env.CFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CC])
     ctx.env.CFLAGS += [
         '-g',
-        '-DWAF_MODE',
         '-fno-omit-frame-pointer',
         '-fvisibility=hidden',
     ]
@@ -1370,7 +1369,6 @@ def profile_default(ctx,
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
     ctx.env.CXXFLAGS += [
         '-g',
-        '-DWAF_MODE',
         '-D__STDC_LIMIT_MACROS',
         '-D__STDC_CONSTANT_MACROS',
         '-D__STDC_FORMAT_MACROS',
@@ -1380,12 +1378,10 @@ def profile_default(ctx,
 
     ctx.env.CLANG = ctx.find_program('clang')
     ctx.env.CLANG_FLAGS = get_cflags(ctx, ['clang'])
-    ctx.env.CLANG_FLAGS += ['-DWAF_MODE']
     ctx.env.CLANG_REWRITE_FLAGS = get_cflags(ctx, ['clang', 'rewrite'])
 
     ctx.env.CLANGXX = ctx.find_program('clang++')
     ctx.env.CLANGXX_FLAGS = get_cflags(ctx, ['clang++'])
-    ctx.env.CLANGXX_FLAGS += ['-DWAF_MODE']
     ctx.env.CLANGXX_REWRITE_FLAGS = get_cflags(ctx, ['clang++', 'rewrite'])
 
     # Special clang flags

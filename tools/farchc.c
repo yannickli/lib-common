@@ -239,7 +239,6 @@ int main(int argc, char *argv[])
     t_scope;
     const char *arg0 = NEXTARG(argc, argv);
     char reldir[PATH_MAX];
-    char *tmp_filepath = NULL;
     FILE *in = stdin, *out = stdout, *deps = NULL;
 
     argc = parseopt(argc, argv, popt, 0);
@@ -247,14 +246,7 @@ int main(int argc, char *argv[])
         makeusage(EXIT_FAILURE, arg0, "<farch-script>", NULL, popt);
 
     if (opts_g.out) {
-        /* XXX: using a temporary file is a hack: the build system is
-         *      simultaneously calling farchc twice on iopc.fc,
-         *      leading to unpredictable results.
-         * TODO waf: get rid of this hack when getting rid of Make.
-         */
-        tmp_filepath = t_fmt("%s.farchc.%d.%d.tmp", opts_g.out, getpid(),
-                             (int)time(NULL));
-        out = fopen(tmp_filepath, "w");
+        out = fopen(opts_g.out, "w");
         DIE_IF(!out, "unable to open `%s` for writing: %m", opts_g.out);
     }
 
@@ -277,12 +269,6 @@ int main(int argc, char *argv[])
     p_fclose(&out);
     p_fclose(&deps);
     if (opts_g.out) {
-        if (rename(tmp_filepath, opts_g.out) < 0) {
-            unlink(tmp_filepath);
-            e_error("farchc can't rename `%s` to `%s`: %m.",
-                    tmp_filepath, opts_g.out);
-            return 1;
-        }
         DIE_IF(chmod(opts_g.out, 0440), "unable to chmod `%s`: %m",
                opts_g.out);
     }

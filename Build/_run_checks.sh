@@ -92,22 +92,8 @@ set_www_env() {
 
     productdir=$($readlink -e "$1")
     htdocs="$productdir"/www/htdocs/
-    htdocs_target="all"
-
-    if [[ $P = "coverage" ]]; then
-        make -q -C $htdocs $P
-        if [[ $? != 2 ]]; then
-            htdocs_target="$P"
-        else
-            say_color error "The Makefile in $htdocs does not contain the"\
-                            " coverage target, therefore the web coverage"\
-                            " can't be computed for that product"
-        fi
-    fi
 
     [ -d $htdocs ] || return 0;
-    # configure the product website spool (cache dir, .htaccess...)
-    make -C $htdocs $htdocs_target
 
     z_www="${Z_WWW:-$(dirname "$libcommondir")/www/www-spool}"
     index=$(basename "$productdir").php

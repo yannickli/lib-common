@@ -137,16 +137,12 @@ static int build_doit_table(qv_t(doit) *doits)
     ctype_desc_t sep;
 
     if (!opts.lang) {
-#ifdef WAF_MODE
         /* No language specified; this is authorized in case of --depends. */
         if (!opts.depends) {
             print_error("no language specified");
             goto error;
         }
         return 0;
-#else
-        opts.lang = "c";
-#endif
     }
 
     qv_inita(&langs, 2);
@@ -196,7 +192,6 @@ static int build_doit_table(qv_t(doit) *doits)
     return -1;
 }
 
-#ifdef WAF_MODE
 static void sb_add_depends(iopc_pkg_t *pkg, sb_t *depbuf)
 {
     t_scope;
@@ -220,7 +215,6 @@ static void sb_add_depends(iopc_pkg_t *pkg, sb_t *depbuf)
         sb_addf(depbuf, "%s\n", dep->file);
     }
 }
-#endif
 
 int main(int argc, char **argv)
 {
@@ -299,11 +293,9 @@ int main(int argc, char **argv)
             }
         }
 
-#ifdef WAF_MODE
         if (opts.depends) {
             sb_add_depends(pkg, &deps);
         }
-#endif
 
         iopc_parser_typer_shutdown();
     }

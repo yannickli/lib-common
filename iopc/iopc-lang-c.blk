@@ -3883,35 +3883,6 @@ int iopc_do_c(iopc_pkg_t *pkg, const char *outdir, sb_t *depbuf)
     path[strlen(path) - 1] = 'c';
     IOPC_DO_C_RETHROW(iopc_write_file(&buf, path));
 
-#ifndef WAF_MODE
-    if (depbuf) {
-        sb_adds(depbuf, path);
-        sb_addc(depbuf, ' ');
-        sb_adds(depbuf, path);
-        sb_adds(depbuf, ":");
-
-        tab_for_each_entry(dep, &t_deps) {
-            char tmp[PATH_MAX];
-
-            path_canonify(tmp, sizeof(tmp), dep->file);
-            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
-        }
-        tab_for_each_entry(dep, &t_weak_deps) {
-            char tmp[PATH_MAX];
-
-            path_canonify(tmp, sizeof(tmp), dep->file);
-            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
-        }
-        tab_for_each_entry(dep, &i_deps) {
-            char tmp[PATH_MAX];
-
-            path_canonify(tmp, sizeof(tmp), dep->file);
-            sb_addf(depbuf, " \\\n $(or $(wildcard %s),FORCE)", tmp);
-        }
-        sb_addc(depbuf, '\n');
-    }
-#endif
-
 #undef IOPC_DO_C_RETHROW
 
     /*----- collect memory -----*/

@@ -1,7 +1,0 @@
-#
-# Dblatex spec file example
-#
-TexInputs: ./
-TexStyle:  intersec
-Options:   -b pdftex -Ptoc.section.depth=3 -Platex.class.options=11pt -Platex.babel.use=1 -Pterm.breakline=1
-
