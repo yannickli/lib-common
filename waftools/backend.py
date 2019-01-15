@@ -366,10 +366,6 @@ def gen_local_vimrc(ctx):
     content += ctx.bldnode.name
     content += "'\n"
 
-    # Update ale linters list
-    content += r"let g:ale_linters = { 'javascript': ['eslint'] }"
-    content += "\n"
-
     # Write file if it changed
     node = ctx.srcnode.make_node('.local_vimrc.vim')
     if not node.exists() or node.read() != content:
