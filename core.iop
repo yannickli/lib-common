@@ -293,6 +293,9 @@ struct SignedLicence {
 
     /** The associated activation token */
     ActivationToken? activationToken;
+
+    /** List of subfiles included by the '@include' feature. */
+    @private core.IopJsonSubfile[] includedSubfiles;
 };
 
 /** Full address.
