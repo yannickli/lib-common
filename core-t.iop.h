@@ -87,6 +87,7 @@ struct core__signed_licence__t {
     struct core__licence__t *nonnull licence;
     lstr_t   signature;
     struct core__activation_token__t *nullable activation_token;
+    core__iop_json_subfile__array_t included_subfiles;
 };
 EXPORT iop_struct_t const core__signed_licence__s;
 EXPORT iop_struct_t const * const nonnull core__signed_licence__sp;

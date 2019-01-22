@@ -1324,7 +1324,7 @@ static iop_field_t const core__activation_token__desc_fields[] = {
 };
 static const iop_help_t core__activation_token__s_help = {
     .brief = LSTR_IMMED("Activation token."),
-    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has tree constraints:\012  - it specifies an expiration date for the product,\012  - it expires itself after some date (and can't be used),\012  - it must depend on the licence."),
+    .details = LSTR_IMMED("An activation token is a small string which allows the product to\012work for a short time (for example 30 days).\012\012The activation token has three constraints:\012  - it must specify an expiration date for the product,\012  - it must expire itself after some date (and can't be used anymore),\012  - it must depend on the licence."),
 };
 static const iop_struct_attr_t core__activation_token__s_attrs[] = {
     {
@@ -1380,6 +1380,15 @@ static iop_field_attr_t const core__signed_licence__activation_token__attrs[] = 
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__activation_token__f_help } },
     },
 };
+static const iop_help_t core__signed_licence__included_subfiles__f_help = {
+    .brief = LSTR_IMMED("List of subfiles included by the ' \134include ' feature."),
+};
+static iop_field_attr_t const core__signed_licence__included_subfiles__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__included_subfiles__f_help } },
+    },
+};
 static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
     {
         .flags             = 262144,
@@ -1395,6 +1404,11 @@ static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
         .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__signed_licence__activation_token__attrs,
+    },
+    {
+        .flags             = 263168,
+        .attrs_len         = 1,
+        .attrs             = core__signed_licence__included_subfiles__attrs,
     },
 };
 static iop_field_t const core__signed_licence__desc_fields[] = {
@@ -1427,10 +1441,16 @@ static iop_field_t const core__signed_licence__desc_fields[] = {
         .size      = sizeof(core__activation_token__t),
         .u1        = { .st_desc = &core__activation_token__s },
     },
-};
-static int const iop__ranges__7[] = {
-    0, 1,
-    3,
+    {
+        .name      = LSTR_IMMED("includedSubfiles"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(core__signed_licence__t, included_subfiles),
+        .size      = sizeof(core__iop_json_subfile__t),
+        .u1        = { .st_desc = &core__iop_json_subfile__s },
+    },
 };
 static const iop_help_t core__signed_licence__s_help = {
     .brief = LSTR_IMMED("Signed licence."),
@@ -1449,8 +1469,8 @@ static const iop_struct_attrs_t core__signed_licence__s_desc_attrs = {
 const iop_struct_t core__signed_licence__s = {
     .fullname   = LSTR_IMMED("core.SignedLicence"),
     .fields     = core__signed_licence__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges     = iop__ranges__3,
+    .ranges_len = countof(iop__ranges__3) / 2,
     .fields_len = countof(core__signed_licence__desc_fields),
     .size       = sizeof(core__signed_licence__t),
     .flags      = 3,
@@ -1705,15 +1725,15 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__8[] = {
+static int const iop__ranges__7[] = {
     0, 1,
     9,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__8,
-    .ranges_len = countof(iop__ranges__8) / 2,
+    .ranges     = iop__ranges__7,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .fields_len = countof(core__httpd_cfg__desc_fields),
     .size       = sizeof(core__httpd_cfg__t),
     .flags      = 3,
@@ -1872,15 +1892,15 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__9[] = {
+static int const iop__ranges__8[] = {
     0, 1,
     6,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__9,
-    .ranges_len = countof(iop__ranges__9) / 2,
+    .ranges     = iop__ranges__8,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .fields_len = countof(core__httpc_cfg__desc_fields),
     .size       = sizeof(core__httpc_cfg__t),
     .flags      = 1,
@@ -2005,11 +2025,15 @@ static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
         .size      = fieldsizeof(core__log__set_root_level_args__t, is_silent),
     },
 };
+static int const iop__ranges__9[] = {
+    0, 1,
+    3,
+};
 const iop_struct_t core__log__set_root_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
     .fields     = core__log__set_root_level_args__desc_fields,
-    .ranges     = iop__ranges__7,
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges     = iop__ranges__9,
+    .ranges_len = countof(iop__ranges__9) / 2,
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
     .size       = sizeof(core__log__set_root_level_args__t),
 };
