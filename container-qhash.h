@@ -180,14 +180,30 @@ static inline uint32_t qhash_hash_ptr(const qhash_t * nullable qh,
     return u64_hash32((uintptr_t)ptr);
 }
 
-#define __qhash_for_each(i, qh, doit) \
-    for (uint32_t __##i##_priv = (qh)->hdr.len ? qhash_scan(qh, 0)           \
-                                               : UINT32_MAX,                 \
-         i = __##i##_priv;                                                   \
-         __##i##_priv != UINT32_MAX && (doit, true);                         \
-         __##i##_priv = qhash_scan(qh, __##i##_priv + 1), i = __##i##_priv)
+#ifdef __cplusplus
+# define __qhash_check_type(_htype, _h)  (void)0
+#else
+# define __qhash_check_type(_htype, _h)                                      \
+    (void)({                                                                 \
+        STATIC_ASSERT(__builtin_types_compatible_p(typeof(_h), _htype *)     \
+                  ||  __builtin_types_compatible_p(typeof(_h),               \
+                                                   const _htype *));         \
+        0;                                                                   \
+    })
+#endif
 
-#define qhash_for_each_pos(i, qh)       __qhash_for_each(i, qh, (void)0)
+#define __qhash_for_each(_htype, _pos, _h, _doit)                            \
+    for (uint32_t __##_pos##_priv = (                                        \
+            __qhash_check_type(_htype, (_h)),                                \
+            (_h)->qh.hdr.len ? qhash_scan(&(_h)->qh, 0) : UINT32_MAX         \
+         ),                                                                  \
+         _pos = __##_pos##_priv;                                             \
+         __##_pos##_priv != UINT32_MAX && (_doit, true);                     \
+         __##_pos##_priv = qhash_scan(&(_h)->qh, __##_pos##_priv + 1),       \
+         _pos = __##_pos##_priv)
+
+#define __qhash_for_each_pos(_htype, _pos, _h)                               \
+    __qhash_for_each(_htype, _pos, (_h), (void)0)
 
 
 int32_t  qhash_safe_get32(const qhash_t * nonnull qh, uint32_t h, uint32_t k)
@@ -500,18 +516,11 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
  * The difference between the qh_ and qm_ functions is for the `add` and
  * `replace` ones, since maps have to deal with the associated value.
  */
-#ifdef __cplusplus
-# define qh_for_each_pos(name, pos, h)  \
-    qhash_for_each_pos(pos, &(h)->qh)
-#else
-# define qh_for_each_pos(name, pos, h)  \
-    STATIC_ASSERT(__builtin_types_compatible_p(typeof(h), qh_t(name) *)      \
-              ||  __builtin_types_compatible_p(typeof(h),                    \
-                                               const qh_t(name) *));         \
-    qhash_for_each_pos(pos, &(h)->qh)
-#endif
 
-#define qh_t(name)                          qh_##name##_t
+#define qh_t(name)  qh_##name##_t
+
+#define qh_for_each_pos(name, pos, h)                                        \
+    __qhash_for_each_pos(qh_t(name), pos, (h))
 
 /** Initialize a Hash-Set.
  *
@@ -704,18 +713,11 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
        qh_wipe_at(name, qh, _pos, wipe);                                 \
        _pos; })
 
-#ifdef __cplusplus
-# define qm_for_each_pos(name, pos, h)  \
-    qhash_for_each_pos(pos, &(h)->qh)
-#else
-# define qm_for_each_pos(name, pos, h)  \
-    STATIC_ASSERT(__builtin_types_compatible_p(typeof(h), qm_t(name) *)      \
-              ||  __builtin_types_compatible_p(typeof(h),                    \
-                                               const qm_t(name) *));         \
-    qhash_for_each_pos(pos, &(h)->qh)
-#endif
 
-#define qm_t(name)                          qm_##name##_t
+#define qm_t(name)  qm_##name##_t
+
+#define qm_for_each_pos(name, pos, h)                                        \
+    __qhash_for_each_pos(qm_t(name), pos, (h))
 
 /** Initialize a hash-map.
  *

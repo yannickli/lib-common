@@ -711,7 +711,7 @@ Z_GROUP_EXPORT(qhash)
         Z_ASSERT(qm == NULL);
     } Z_TEST_END
 
-    Z_TEST(for_each_safety,
+    Z_TEST(for_each_pos_safety,
            "qhash: check that *for_each* resist to pos overwrites")
     {
         int sz = 42;
@@ -735,6 +735,30 @@ Z_GROUP_EXPORT(qhash)
 
         qh_delete(u32, &qh);
         qh_delete(u32, &seen);
+    } Z_TEST_END
+
+    Z_TEST(for_each_scope_safety,
+           "qhash: check that *for_each* is scope safe without parentheses")
+    {
+        int sz = 5;
+        int sl = 3;
+        qh_t(u32) *qh = qh_new(u32, sz);
+        int sum = 0;
+        int expected_sum = 0;
+
+        for (int i = 0; i < sz; i++) {
+            Z_ASSERT_N(qh_add(u32, qh, i));
+            expected_sum += i;
+        }
+
+        for (int i = 0; i < sl; i++)
+            qh_for_each_pos(u32, pos, qh)
+                sum += qh->keys[pos];
+
+        expected_sum *= sl;
+        Z_ASSERT_EQ(expected_sum, sum, "unexpected sum number");
+
+        qh_delete(u32, &qh);
     } Z_TEST_END
 } Z_GROUP_END
 
