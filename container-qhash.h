@@ -205,6 +205,42 @@ static inline uint32_t qhash_hash_ptr(const qhash_t * nullable qh,
 #define __qhash_for_each_pos(_htype, _pos, _h)                               \
     __qhash_for_each(_htype, _pos, (_h), (void)0)
 
+#define __qhash_for_each_it_guard(_kinds, _it, _h, _opt_value_of_op)         \
+    for (typeof((_h)->_kinds[0]) _opt_value_of_op _it,                       \
+         *__##_it##_guard = (void *)-1;                                      \
+         __##_it##_guard != NULL; __##_it##_guard = NULL)
+
+#define __qhash_for_each_single_it(_htype, _kinds, _it, _h, _opt_addr_of_op, \
+                                  _opt_value_of_op)                          \
+    __qhash_for_each_it_guard(_kinds, _it, (_h), _opt_value_of_op)           \
+        __qhash_for_each(_htype, __##_it##_pos, (_h),                        \
+                         _it = _opt_addr_of_op (_h)->_kinds[__##_it##_pos])
+
+#define __qhash_for_each_key(_htype, _key, _h, _opt_addr_of_op,              \
+                             _opt_value_of_op)                               \
+    __qhash_for_each_single_it(_htype, keys, _key, (_h), _opt_addr_of_op,    \
+                               _opt_value_of_op)
+
+#define __qhash_for_each_value(_htype, _value, _h, _opt_addr_of_op,          \
+                               _opt_value_of_op)                             \
+    __qhash_for_each_single_it(_htype, values, _value, (_h), _opt_addr_of_op,\
+                               _opt_value_of_op)
+
+#define __qhash_for_each_key_value(_htype, _key, _value, _h,                 \
+                                   _key_opt_addr_of_op,                      \
+                                   _key_opt_value_of_op,                     \
+                                   _value_opt_addr_of_op,                    \
+                                   _value_opt_value_of_op)                   \
+    __qhash_for_each_it_guard(keys, _key, (_h), _key_opt_value_of_op)        \
+        __qhash_for_each_it_guard(values, _value, (_h),                      \
+                                  _value_opt_value_of_op)                    \
+            __qhash_for_each(_htype, __##_key##_##_value##_pos, (_h),        \
+                             (                                               \
+                                 _key = _key_opt_addr_of_op                  \
+                                    (_h)->keys[__##_key##_##_value##_pos],   \
+                                 _value = _value_opt_addr_of_op              \
+                                    (_h)->values[__##_key##_##_value##_pos]  \
+                             ))
 
 int32_t  qhash_safe_get32(const qhash_t * nonnull qh, uint32_t h, uint32_t k)
     __leaf;
@@ -522,6 +558,17 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
 #define qh_for_each_pos(name, pos, h)                                        \
     __qhash_for_each_pos(qh_t(name), pos, (h))
 
+#define qh_for_each_key(name, key, h)                                        \
+    __qhash_for_each_key(qh_t(name), key, (h), , )
+
+/* WARNING: This macro function is a bit dangerous.
+ * It will return a pointer on something very volatile, which will
+ * be invalidated by the next find/add/delete.
+ * So you must never retain the iterator pointer.
+ */
+#define qh_for_each_key_p(name, key, h)                                      \
+    __qhash_for_each_key(qh_t(name), key, (h), &, *)
+
 /** Initialize a Hash-Set.
  *
  * \param[in] name The type of the hash set.
@@ -718,6 +765,36 @@ size_t qhash_memory_footprint(const qhash_t * nonnull qh);
 
 #define qm_for_each_pos(name, pos, h)                                        \
     __qhash_for_each_pos(qm_t(name), pos, (h))
+
+/* WARNING: The loop *_p macro functions are a bit dangerous.
+ * They will return a pointer on something very volatile, which will
+ * be invalidated by the next find/add/delete.
+ * So you must never retain the iterator pointers.
+ */
+
+#define qm_for_each_key(name, key, h)                                        \
+    __qhash_for_each_key(qm_t(name), key, (h), , )
+
+#define qm_for_each_key_p(name, key, h)                                      \
+    __qhash_for_each_key(qm_t(name), key, (h), &, *)
+
+#define qm_for_each_value(name, value, h)                                    \
+    __qhash_for_each_value(qm_t(name), value, (h), , )
+
+#define qm_for_each_value_p(name, value, h)                                  \
+    __qhash_for_each_value(qm_t(name), value, (h), &, *)
+
+#define qm_for_each_key_value(name, key, value, h)                           \
+    __qhash_for_each_key_value(qm_t(name), key, value, (h), , , , )
+
+#define qm_for_each_key_p_value(name, key, value, h)                         \
+    __qhash_for_each_key_value(qm_t(name), key, value, (h), &, *, , )
+
+#define qm_for_each_key_value_p(name, key, value, h)                         \
+    __qhash_for_each_key_value(qm_t(name), key, value, (h), , , &, *)
+
+#define qm_for_each_key_p_value_p(name, key, value, h)                       \
+    __qhash_for_each_key_value(qm_t(name), key, value, (h), &, *, &, *)
 
 /** Initialize a hash-map.
  *

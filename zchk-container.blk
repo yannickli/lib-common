@@ -760,6 +760,99 @@ Z_GROUP_EXPORT(qhash)
 
         qh_delete(u32, &qh);
     } Z_TEST_END
+
+    Z_TEST(for_each_key_value,
+           "qhash: check *for_each_key* and *for_each_value* macro functions")
+    {
+        int sz = 5;
+        qh_t(u32) *qh = qh_new(u32, sz);
+        qm_t(test) *qm = qm_new(test, sz);
+        int expected_sum = 0;
+
+        for (int i = 1; i <= sz; i++) {
+            Z_ASSERT_N(qh_add(u32, qh, i));
+            Z_ASSERT_N(qm_add(test, qm, i, i * 10));
+            expected_sum += i;
+        }
+
+        /* _loop is the macro function call being tested.
+         * _k and _v are the variables set by _loop for the key and value.
+         * _k * 10 == _v.
+         */
+#define T(_loop, _k, _v)                                                     \
+        do {                                                                 \
+            int sum_key;                                                     \
+            int sum_value;                                                   \
+                                                                             \
+            sum_key = 0;                                                     \
+            sum_value = 0;                                                   \
+            _loop {                                                          \
+                sum_key += (_k);                                             \
+                sum_value += (_v);                                           \
+            }                                                                \
+            Z_ASSERT_EQ(expected_sum, sum_key,                               \
+                        "invalid sum key for " #_loop);                      \
+            Z_ASSERT_EQ(expected_sum * 10, sum_value,                        \
+                        "invalid sum value for " # _loop);                   \
+                                                                             \
+            sum_key = 0;                                                     \
+            sum_value = 0;                                                   \
+            _loop {                                                          \
+                sum_key += (_k);                                             \
+                sum_value += (_v);                                           \
+                if (sum_key > 0) {                                           \
+                    continue;                                                \
+                }                                                            \
+                /* Never executed */                                         \
+                sum_key += 7777;                                             \
+                sum_value += 9999;                                           \
+            }                                                                \
+            Z_ASSERT_EQ(expected_sum, sum_key,                               \
+                        "invalid sum key for " #_loop " with continue");     \
+            Z_ASSERT_EQ(expected_sum * 10, sum_value,                        \
+                        "invalid sum value for " #_loop " with continue");   \
+                                                                             \
+            sum_key = 0;                                                     \
+            sum_value = 0;                                                   \
+            _loop {                                                          \
+                sum_key += (_k);                                             \
+                sum_value += (_v);                                           \
+                if (sum_key > 0) {                                           \
+                    break;                                                   \
+                }                                                            \
+                /* Never executed */                                         \
+                sum_key += 7777;                                             \
+                sum_value += 9999;                                           \
+            }                                                                \
+            Z_ASSERT_LT(0, sum_key,                                          \
+                        "0 sum key for " #_loop " with break");              \
+            Z_ASSERT_GT(expected_sum, sum_key,                               \
+                        "invalid sum key for " #_loop " with break");        \
+            Z_ASSERT_LT(0, sum_value,                                        \
+                        "0 sum value for " #_loop " with break");            \
+            Z_ASSERT_GT(expected_sum * 10, sum_value,                        \
+                        "invalid sum value for " #_loop " with break");      \
+        } while (0)
+
+        T(qh_for_each_key(u32, k, qh), k, k * 10);
+        T(qh_for_each_key_p(u32, k, qh), *k, (*k) * 10);
+
+        T(qm_for_each_key(test, k, qm), k, k * 10);
+        T(qm_for_each_key_p(test, k, qm), *k, (*k) * 10);
+
+        T(qm_for_each_value(test, v, qm), v / 10, v);
+        T(qm_for_each_value_p(test, v, qm), (*v) / 10, *v);
+
+        T(qm_for_each_key_value(test, k, v, qm), k, v);
+        T(qm_for_each_key_p_value(test, k, v, qm), *k, v);
+        T(qm_for_each_key_value_p(test, k, v, qm), k, *v);
+        T(qm_for_each_key_p_value_p(test, k, v, qm), *k, *v);
+
+#undef T
+
+        qh_delete(u32, &qh);
+        qm_delete(test, &qm);
+    } Z_TEST_END
 } Z_GROUP_END
 
 /*1}}}*/
