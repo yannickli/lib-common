@@ -1632,6 +1632,11 @@ el_worker_f *el_set_worker(el_worker_f *worker)
     return worker;
 }
 
+el_worker_f *el_get_worker(void)
+{
+    return _G.worker;
+}
+
 #ifndef NDEBUG
 bool el_set_trace(el_t ev, bool trace)
 {
