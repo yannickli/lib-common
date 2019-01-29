@@ -520,6 +520,18 @@ typedef unsigned char byte;
 #define unconst_cast(type_t, p)  ({ const type_t *__p = (p); (type_t *)__p; })
 
 /* }}} */
+/* {{{ Const size array */
+
+/** Create an array of type \ref _type_t with variable name \ref _name of
+ *  constant size \ref _sz.
+ */
+#define CONST_SIZE_ARRAY(_name, _type_t, _sz)                                \
+    typeof(*(_type_t *)({                                                    \
+        STATIC_ASSERT(__builtin_constant_p(_sz));                            \
+        NULL;                                                                \
+    })) _name[(_sz)]
+
+/* }}} */
 /* {{{ Macro-building helpers */
 
 #define __PFX_LINE_SFX(pfx, line, sfx)  pfx##line##sfx

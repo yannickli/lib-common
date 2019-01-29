@@ -1762,6 +1762,17 @@ Z_GROUP_EXPORT(str)
         Z_ASSERT_LSTREQUAL(LSTR("1two3"), LSTR_SB_V(&sb));
     } Z_TEST_END;
 
+    Z_TEST(sb_loop_safe,
+           "Test using SB() in a loop does not trigger a stack overflow")
+    {
+        for (int i = 0; i < 1000000; i++) {
+            SB(sb, 32 << 10);
+
+            sb_sets(&sb, "pouet");
+            Z_ASSERT_LSTREQUAL(LSTR("pouet"), LSTR_SB_V(&sb));
+        }
+    } Z_TEST_END;
+
     Z_TEST(ps_skip_afterlastchr, "") {
         pstream_t ps = ps_initstr("test_1_2");
         pstream_t ps2 = ps_initstr("test1.02");

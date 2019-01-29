@@ -114,18 +114,32 @@ sb_init_full(sb_t * nonnull sb, void * nonnull buf, int blen, int bsize,
     return sb;
 }
 
-/** SB() macro declare a sb using alloca. It will be automatically wiped when
- * leaving the current scope. */
+/** SB() macro declare a sb using stack buffer with a constant size.
+ *
+ * It will be automatically wiped when leaving the current scope.
+ */
 #ifdef __cplusplus
-#define SB(name, sz)    sb_t name(alloca(sz), 0, sz, &mem_pool_static)
-#define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, t_pool())
+
+# define SB(name, sz)                                                        \
+    CONST_SIZE_ARRAY(__##name##_buf, char, (sz));                            \
+    sb_t name(__##name##_buf, 0, sz, &mem_pool_static)
+
+# define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, t_pool())
+
 #else
-#define SB_INIT(buf, sz, pool)                                               \
+
+# define SB_INIT(buf, sz, pool)                                              \
     {   .data = memset(buf, 0, 1),                                           \
         .size = sz, .mp = pool }
-#define SB(name, sz)    sb_t name __attribute__((cleanup(sb_wipe))) \
-                                  = SB_INIT(alloca(sz), sz, &mem_pool_static)
-#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), sz, t_pool())
+
+# define SB(name, sz)                                                        \
+    CONST_SIZE_ARRAY(__##name##_buf, char, (sz));                            \
+    sb_t name __attribute__((cleanup(sb_wipe))) =                            \
+        SB_INIT(__##name##_buf, sz, &mem_pool_static)
+
+# define t_SB(name, sz)                                                      \
+    sb_t name = SB_INIT(t_new_raw(char, sz), sz, t_pool())
+
 #endif
 
 #define t_SB_1k(name)  t_SB(name, 1 << 10)
