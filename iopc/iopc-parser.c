@@ -953,14 +953,14 @@ static void dox_chunk_autobrief_validate(dox_chunk_t *chunk)
     if (chunk->first_sentence_len
     &&  isspace(chunk->paragraphs.tab[0].data[chunk->first_sentence_len]))
     {
-        SB(tmp, chunk->paragraphs.tab[0].size);
+        pstream_t tmp = ps_initsb(&chunk->paragraphs.tab[0]);
         sb_t paragraph0_end;
 
+        ps_skip(&tmp, chunk->first_sentence_len);
+        ps_ltrim(&tmp);
+
         sb_init(&paragraph0_end);
-        sb_addsb(&tmp, &chunk->paragraphs.tab[0]);
-        sb_skip(&tmp, chunk->first_sentence_len);
-        sb_ltrim(&tmp);
-        sb_addsb(&paragraph0_end, &tmp);
+        sb_add_ps(&paragraph0_end, tmp);
 
         sb_clip(&chunk->paragraphs.tab[0], chunk->first_sentence_len);
 
