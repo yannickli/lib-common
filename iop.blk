@@ -578,13 +578,13 @@ int c_to_camelcase(lstr_t s, bool is_first_upper, sb_t *out)
 
 lstr_t t_c_to_camelcase(lstr_t s, bool is_first_upper)
 {
-    SB(buf, s.len);
+    t_SB(buf, s.len);
 
     if (c_to_camelcase(s, is_first_upper, &buf) < 0) {
         return LSTR_NULL_V;
     }
 
-    return t_lstr_dup(LSTR_SB_V(&buf));
+    return LSTR_SB_V(&buf);
 }
 
 bool iop_type_is_scalar(iop_type_t type)
