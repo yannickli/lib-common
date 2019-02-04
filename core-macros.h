@@ -525,11 +525,15 @@ typedef unsigned char byte;
 /** Create an array of type \ref _type_t with variable name \ref _name of
  *  constant size \ref _sz.
  */
-#define CONST_SIZE_ARRAY(_name, _type_t, _sz)                                \
+#ifdef __cplusplus
+# define CONST_SIZE_ARRAY(_name, _type_t, _sz)  _type_t _name[(_sz)]
+#else
+# define CONST_SIZE_ARRAY(_name, _type_t, _sz)                               \
     typeof(*(_type_t *)({                                                    \
         STATIC_ASSERT(__builtin_constant_p(_sz));                            \
         NULL;                                                                \
     })) _name[(_sz)]
+#endif
 
 /* }}} */
 /* {{{ Macro-building helpers */
