@@ -301,7 +301,7 @@ Z_GROUP_EXPORT(iop_blk) {
 
     Z_TEST(iop_for_each_field, "test iop_for_each_field") { /* {{{ */
         t_scope;
-        tstiop__z_iop_for_each__t *z_struct;
+        tstiop__z_iop_for_each__t *z_struct = NULL;
         qv_t(lstr) paths;
         const char *paths_file_path;
 
