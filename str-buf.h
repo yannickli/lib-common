@@ -187,14 +187,13 @@ sb_t::sb_t() :
 {
 }
 sb_t::sb_t(void * nonnull buf, int len_, int size_, mem_pool_t * nullable mp_)
-    : data(static_cast<char *>(buf)),
+    : data(static_cast<char *>(memset(buf, 0, 1))),
     len(len_),
     size(size_),
     skip(0),
     mp(mp_)
 {
     assert (len < size);
-    sb_set_trailing0(this);
 }
 sb_t::~sb_t() { sb_wipe(this); }
 #endif
