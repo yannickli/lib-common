@@ -912,7 +912,7 @@ def process_ld(self, node):
 
 def check_class_from_env_var(ctx, var, binpath, classname):
     if var not in ctx.environ:
-        ctx.fatal('missing %s environment variable', var)
+        ctx.fatal('missing %s environment variable' % var)
 
     cmd = [ctx.environ[var] + binpath, 'classpath']
     try:
