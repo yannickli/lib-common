@@ -445,6 +445,9 @@ void el_bl_unlock(void);
  */
 el_worker_f * nullable el_set_worker(el_worker_f * nullable worker) __leaf;
 
+/** Get the current worker function. */
+el_worker_f * nullable el_get_worker(void) __leaf;
+
 void el_cond_wait(pthread_cond_t * nonnull);
 void el_cond_signal(pthread_cond_t * nonnull) __leaf;
 
