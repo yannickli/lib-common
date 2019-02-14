@@ -274,8 +274,10 @@ static void iop_dso_wipe(iop_dso_t *dso)
     qh_wipe(ptr,        &dso->depends_on);
     qh_wipe(ptr,        &dso->needed_by);
     lstr_wipe(&dso->path);
-    qm_del_key(iop_dso_by_handle, &_G.dsos_by_handle, dso->handle);
-    dlclose(dso->handle);
+    if (dso->handle) {
+        qm_del_key(iop_dso_by_handle, &_G.dsos_by_handle, dso->handle);
+        dlclose(dso->handle);
+    }
 }
 REFCNT_NEW(iop_dso_t, iop_dso);
 REFCNT_DELETE(iop_dso_t, iop_dso);
@@ -291,8 +293,6 @@ iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
     int flags = RTLD_LAZY | RTLD_DEEPBIND;
     void *handle;
     iop_dso_t *dso;
-    iop_dso_vt_t *dso_vt;
-    iop_pkg_t **pkgp;
 
     if (lmid == LM_ID_BASE) {
         flags |= RTLD_GLOBAL;
@@ -304,6 +304,22 @@ iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
         return NULL;
     }
 
+    dso = iop_dso_load_handle(handle, path, lmid, err);
+    if (!dso) {
+        dlclose(handle);
+        return NULL;
+    }
+
+    return dso;
+}
+
+iop_dso_t *iop_dso_load_handle(void *handle, const char *path,
+                               Lmid_t lmid, sb_t *err)
+{
+    iop_dso_t *dso;
+    iop_dso_vt_t *dso_vt;
+    iop_pkg_t **pkgp;
+
     dso = qm_get_def(iop_dso_by_handle, &_G.dsos_by_handle, handle, NULL);
     if (dso) {
         e_trace(1, "reuse dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
@@ -312,26 +328,23 @@ iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
     }
 
     if (lmid == LM_ID_NEWLM && dlinfo(handle, RTLD_DI_LMID, &lmid) < 0) {
-        sb_setf(err, "unable to get lmid of plugin `%*pM`: %s",
-                LSTR_FMT_ARG(dso->path), dlerror());
-        dlclose(handle);
+        sb_setf(err, "unable to get lmid of plugin `%s`: %s", path,
+                dlerror());
         return NULL;
     }
 
     dso_vt = dlsym(handle, "iop_vtable");
     if (dso_vt == NULL || dso_vt->vt_size == 0) {
         e_warning("IOP DSO: unable to find valid IOP vtable in plugin "
-                  "`%*pM`, no error management allowed: %s",
-                  LSTR_FMT_ARG(dso->path), dlerror());
+                  "`%s`, no error management allowed: %s", path, dlerror());
     } else {
         dso_vt->iop_set_verr = &iop_set_verr;
     }
 
     pkgp = dlsym(handle, "iop_packages");
     if (pkgp == NULL) {
-        sb_setf(err, "unable to find IOP packages in plugin `%*pM`: %s",
-                LSTR_FMT_ARG(dso->path), dlerror());
-        dlclose(handle);
+        sb_setf(err, "unable to find IOP packages in plugin `%s`: %s",
+                path, dlerror());
         return NULL;
     }
 
@@ -345,6 +358,7 @@ iop_dso_t *iop_dso_open(const char *path, Lmid_t lmid, sb_t *err)
     e_trace(1, "open new dso %p (%*pM)", dso, LSTR_FMT_ARG(dso->path));
 
     if (iop_dso_register_(dso, err) < 0) {
+        dso->handle = NULL;
         iop_dso_delete(&dso);
         return NULL;
     }

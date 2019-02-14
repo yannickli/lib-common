@@ -70,6 +70,20 @@ typedef struct iop_dso_t {
 iop_dso_t * nullable iop_dso_open(const char * nonnull path,
                                   Lmid_t lmid, sb_t * nonnull err);
 
+/** Load a DSO from an already opened DSO handle, and register its packages.
+ *
+ * On success, the DSO will own the handle afterwards.
+ * On error, the handle is not closed.
+ *
+ * \param[in]  handle handle to the opened DSO.
+ * \param[in]  path   path to the DSO.
+ * \param[in]  lmid   lmid argument used to dlmopen(3) the DSO.
+ * \param[out] err    error description in case of error.
+ */
+iop_dso_t * nullable iop_dso_load_handle(void * nonnull handle,
+                                         const char * nonnull path,
+                                         Lmid_t lmid, sb_t * nonnull err);
+
 static ALWAYS_INLINE iop_dso_t * nonnull iop_dso_dup(iop_dso_t * nonnull dso)
 {
     dso->refcnt++;
