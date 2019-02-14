@@ -602,6 +602,7 @@ Z_GROUP_EXPORT(log) {
 
         logger_wipe(&logger_test);
         logger_wipe(&logger_test_2);
+        logger_wipe(&logger_test_3);
 
         log_set_handler(handler);
 #undef TEST_LOG_ENTRY
