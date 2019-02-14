@@ -2321,8 +2321,8 @@ Z_GROUP_EXPORT(iop)
             /* NO_WHITESPACES, NO_TRAILING_EOL */
             TST_FLAGS(0, true, true,
                       "{\n"
-                      "\t\"def\": 1,\n"
-                      "\t\"rep\": [  ]\n"
+                      "    \"def\": 1,\n"
+                      "    \"rep\": [  ]\n"
                       "}\n");
             TST_FLAGS(IOP_JPACK_NO_WHITESPACES, true, true,
                       "{\"def\":1,\"rep\":[]}\n");
@@ -2444,14 +2444,14 @@ Z_GROUP_EXPORT(iop)
 
         const char json_sn_bigint[] =
             "{\n"
-            "\t\"u\": 9223372036854775808,\n"
-            "\t\"i\": -4611686018427387904\n"
+            "    \"u\": 9223372036854775808,\n"
+            "    \"i\": -4611686018427387904\n"
             "}\n";
 
         const char json_sn_strint[] =
             "{\n"
-            "\t\"u\": \"9223372036854775808\",\n"
-            "\t\"i\": \"-4611686018427387904\"\n"
+            "    \"u\": \"9223372036854775808\",\n"
+            "    \"i\": \"-4611686018427387904\"\n"
             "}\n";
 
         Z_ASSERT_N(iop_jpack(&tstiop__my_struct_n__s, &sn, iop_sb_write,
@@ -2474,12 +2474,12 @@ Z_GROUP_EXPORT(iop)
 
         const char json[] =
             "{\n"
-            "\t\"i\": \"" B64_RES_START B64_RES_MIDDLE B64_RES_END "\"\n"
+            "    \"i\": \"" B64_RES_START B64_RES_MIDDLE B64_RES_END "\"\n"
             "}\n";
 
         const char json_cut[] =
             "{\n"
-            "\t\"i\": \"" B64_RES_START " …(skip 50 bytes)… " B64_RES_END
+            "    \"i\": \"" B64_RES_START " …(skip 50 bytes)… " B64_RES_END
                 "\"\n"
             "}\n";
 

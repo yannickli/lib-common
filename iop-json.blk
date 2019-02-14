@@ -2249,24 +2249,23 @@ static int do_write(iop_jpack_writecb_f *writecb, void *priv,
 
 static int do_indent(iop_jpack_writecb_f *writecb, void *priv, int lvl)
 {
-    static char const tabs[32] = {
-        '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t',
-        '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t',
-        '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t',
-        '\t', '\t', '\t', '\t', '\t', '\t', '\t', '\t',
-    };
-    int todo = lvl;
+    static lstr_t spaces = LSTR_IMMED("                                    ");
+    int total = lvl * 4;
+    int todo = total;
 
     while (todo > 0) {
-        int res = (*writecb)(priv, tabs, MIN(countof(tabs), todo));
+        int res = (*writecb)(priv, spaces.s, MIN(spaces.len, todo));
+
         if (res < 0) {
-            if (ERR_RW_RETRIABLE(errno))
+            if (ERR_RW_RETRIABLE(errno)) {
                 continue;
+            }
             return -1;
         }
         todo -= res;
     }
-    return lvl;
+
+    return total;
 }
 
 #define WRITE(b, l)    \
