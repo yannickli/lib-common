@@ -48,7 +48,54 @@ static void z_logger_init_job(thr_job_t *tjob, thr_syn_t *syn)
     }
 }
 
+static sb_t z_log_sb_g;
+
+__attr_printf__(2, 0)
+static void z_log_handler(const log_ctx_t *ctx, const char *fmt, va_list va)
+{
+    sb_addvf(&z_log_sb_g, fmt, va);
+}
+
+static void z_should_not_be_traced(logger_t *logger, bool use_logger_log)
+{
+    sb_reset(&z_log_sb_g);
+    if (use_logger_log) {
+        logger_log(logger, LOG_TRACE + 3, "test");
+    } else {
+        logger_trace(logger, 3, "test");
+    }
+}
+
+static void z_should_be_traced(logger_t *logger, bool use_logger_log)
+{
+    sb_reset(&z_log_sb_g);
+    if (use_logger_log) {
+        logger_log(logger, LOG_TRACE + 3, "test");
+    } else {
+        logger_trace(logger, 3, "test");
+    }
+}
+
+static int z_run_log_tracing_tests(logger_t *logger_test)
+{
+    z_should_not_be_traced(logger_test, false);
+    Z_ASSERT_ZERO(z_log_sb_g.len);
+
+    z_should_be_traced(logger_test, false);
+    Z_ASSERT_LSTREQUAL(LSTR_SB_V(&z_log_sb_g), LSTR("test"));
+
+    z_should_not_be_traced(logger_test, true);
+    Z_ASSERT_ZERO(z_log_sb_g.len);
+
+    z_should_be_traced(logger_test, true);
+    Z_ASSERT_LSTREQUAL(LSTR_SB_V(&z_log_sb_g), LSTR("test"));
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(log) {
+    sb_init(&z_log_sb_g);
+
     Z_TEST(log_level, "log") {
         logger_t *root_logger = logger_get_by_name(LSTR_EMPTY_V);
         logger_t a = LOGGER_INIT_INHERITS(NULL, "a");
@@ -781,6 +828,32 @@ Z_GROUP_EXPORT(log) {
 
     } Z_TEST_END;
 
+    Z_TEST(log_tracing, "check log tracing caching") {
+        t_scope;
+        log_handler_f *prev_handler = log_set_handler(&z_log_handler);
+        logger_t logger_test = LOGGER_INIT_INHERITS(NULL, "zlog");
+        qv_t(spec) *specs = log_get_specs();
+        qv_t(spec)  old_specs = *specs;
+
+        /* Reset current debugging context */
+        qv_init(specs);
+        log_parse_specs(t_strdup("@z_should_be_traced:10"), specs);
+
+        /* Must start by an unmatched trace to ensure non regression of a
+         * tracing caching bug */
+        Z_HELPER_RUN(z_run_log_tracing_tests(&logger_test));
+
+        /* Restore previous debugging and try again to see caching at work */
+        qv_wipe(specs);
+        *specs = old_specs;
+
+        Z_HELPER_RUN(z_run_log_tracing_tests(&logger_test));
+
+        logger_wipe(&logger_test);
+        log_set_handler(prev_handler);
+    } Z_TEST_END;
+
+    sb_wipe(&z_log_sb_g);
 } Z_GROUP_END;
 
 /* LCOV_EXCL_STOP */
