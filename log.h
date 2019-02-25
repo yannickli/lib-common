@@ -261,6 +261,7 @@ typedef struct log_trace_spec_t {
 qvector_t(spec, log_trace_spec_t);
 
 void log_parse_specs(char * nonnull p, qv_t(spec) * nonnull out);
+qv_t(spec) * nonnull log_get_specs(void);
 
 MODULE_DECLARE(log);
 
@@ -268,6 +269,52 @@ void log_module_register(void);
 
 /* }}} */
 /* Simple logging {{{ */
+
+#ifndef NDEBUG
+
+int __logger_is_traced(logger_t * nonnull logger, int level,
+                       const char * nonnull file, const char * nonnull func,
+                       const char * nullable name);
+
+#define logger_is_traced(Logger, Level)  ({                                  \
+        static int8_t __traced;                                              \
+        static const logger_t *__last_logger = NULL;                         \
+        const logger_t *__i_clogger = (Logger);                              \
+        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
+        const int __i_level = (Level);                                       \
+        bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
+                                                                             \
+        if (!__h_level) {                                                    \
+            if (unlikely(!__builtin_constant_p(Level)                        \
+                       || __i_clogger != __last_logger))                     \
+            {                                                                \
+                __traced = __logger_is_traced(__i_logger, __i_level,         \
+                                              __FILE__, __func__,            \
+                                              __i_logger->full_name.s);      \
+                __last_logger = __i_clogger;                                 \
+            }                                                                \
+        }                                                                    \
+        __h_level || __traced > 0;                                           \
+    })
+
+#define __LOGGER_HAS_LEVEL(__logger, __level)                                \
+    ((__level >= LOG_TRACE) ?                                                \
+     logger_is_traced(__logger, __level - LOG_TRACE) :                       \
+     logger_has_level(__logger, __level))
+
+#else
+
+#define logger_is_traced(Logger, Level)  ({                                  \
+        const logger_t *__i_clogger = (Logger);                              \
+        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
+                                                                             \
+        logger_has_level(__i_logger, (Level) + LOG_TRACE);                   \
+    })
+
+#define __LOGGER_HAS_LEVEL(__logger, __level)                              \
+    logger_has_level(__logger, __level)
+
+#endif
 
 __attr_printf__(8, 0)
 int logger_vlog(logger_t * nonnull logger, int level,
@@ -352,7 +399,7 @@ static inline void __logger_exits(logger_t * nonnull logger,
         const int __level = (Level);                                         \
                                                                              \
         Mark;                                                                \
-        if (logger_has_level(__logger, __level)) {                           \
+        if (__LOGGER_HAS_LEVEL(__logger, __level)) {                         \
             __logger_log(__logger, __level, NULL, -1, __FILE__, __func__,    \
                          __LINE__, Fmt, ##__VA_ARGS__);                      \
         }                                                                    \
@@ -377,62 +424,8 @@ static inline void __logger_exits(logger_t * nonnull logger,
 #define logger_debug(Logger, Fmt, ...)                                       \
     __LOGGER_LOG(Logger, LOG_DEBUG,, Fmt, ##__VA_ARGS__)
 
-
-#ifndef NDEBUG
-
-int __logger_is_traced(logger_t * nonnull logger, int level,
-                       const char * nonnull file, const char * nonnull func,
-                       const char * nullable name);
-
-#define logger_is_traced(Logger, Level)  ({                                  \
-        static int8_t __traced;                                              \
-        static const logger_t *__last_logger = NULL;                         \
-        const logger_t *__i_clogger = (Logger);                              \
-        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
-        const int __i_level = (Level);                                       \
-        bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
-                                                                             \
-        if (!__h_level) {                                                    \
-            if (unlikely(!__builtin_constant_p(Level)                        \
-                       || __i_clogger != __last_logger))                     \
-            {                                                                \
-                __traced = __logger_is_traced(__i_logger, __i_level,         \
-                                              __FILE__, __func__,            \
-                                              __i_logger->full_name.s);      \
-                __last_logger = __i_clogger;                                 \
-            }                                                                \
-        }                                                                    \
-        __h_level || __traced > 0;                                           \
-    })
-
-#define __LOGGER_TRACE(Logger, Level, Fmt, ...)  ({                          \
-        const logger_t *__clogger = (Logger);                                \
-        logger_t *__logger = (logger_t *)__clogger;                          \
-        const int __level = (Level);                                         \
-                                                                             \
-        if (logger_is_traced(__logger, __level)) {                           \
-            __logger_log(__logger, LOG_TRACE + __level, NULL, -1, __FILE__,  \
-                         __func__, __LINE__, Fmt, ##__VA_ARGS__);            \
-        }                                                                    \
-        0;                                                                   \
-    })
-
-#define logger_trace(Logger, Level, Fmt, ...)                                \
-    __LOGGER_TRACE(Logger, (Level), Fmt, ##__VA_ARGS__)
-
-#else
-
-#define logger_is_traced(Logger, Level)  ({                                  \
-        const logger_t *__i_clogger = (Logger);                              \
-        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
-                                                                             \
-        logger_has_level(__i_logger, (Level) + LOG_TRACE);                   \
-    })
-
 #define logger_trace(Logger, Level, Fmt, ...)                                \
     __LOGGER_LOG(Logger, LOG_TRACE + (Level),, Fmt, ##__VA_ARGS__)
-
-#endif
 
 /* }}} */
 /* Multi-line logging {{{ */

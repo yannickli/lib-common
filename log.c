@@ -645,14 +645,6 @@ int __logger_log(logger_t *logger, int level, const char *prog, int pid,
     int res;
     va_list va;
 
-#ifndef NDEBUG
-    if (unlikely(level >= LOG_TRACE
-              && !logger_is_traced(logger, level - LOG_TRACE)))
-    {
-        return 0;
-    }
-#endif
-
     va_start(va, fmt);
     res = logger_vlog(logger, level, prog, pid, file, func, line, fmt, va);
     va_end(va);
@@ -1192,6 +1184,11 @@ void log_parse_specs(char *p, qv_t(spec) *out)
 
         qv_append(out, spec);
     }
+}
+
+qv_t(spec) *log_get_specs(void)
+{
+    return &_G.specs;
 }
 
 static int log_initialize(void* args)
