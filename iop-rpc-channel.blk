@@ -817,6 +817,8 @@ static int ic_write(ichannel_t *ic, int fd)
         __attribute__((aligned(alignof(struct cmsghdr))));
     bool timer_restarted = false;
 
+    assert (ic->is_connected);
+
     do {
         struct cmsghdr *hdr = (struct cmsghdr *)buf;
         int *fdv = (int *)CMSG_DATA(hdr);
@@ -1884,6 +1886,7 @@ static void ic_reconnect(el_t ev, data_t priv)
 void ic_disconnect(ichannel_t *ic)
 {
     ic->queuable = false;
+    ic->is_connected = false;
 
     if (ic->ssl) {
         SSL_free(ic->ssl);
@@ -2088,7 +2091,7 @@ void ic_flush(ichannel_t *ic)
 {
     int fd = el_fd_get_fd(ic->elh);
 
-    if (ic_is_local(ic)) {
+    if (ic_is_local(ic) || !expect(ic->is_connected)) {
         return;
     }
 
@@ -2518,6 +2521,7 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
     ic->queuable = true;
     el_fd_set_hook(ic->elh, ic_event);
     ic->on_event(ic, IC_EVT_CONNECTED);
+    ic->is_connected = true;
     if (ic->on_creds && ic->is_unix) {
         ic_creds_t creds;
         struct ucred ucred;
@@ -2571,7 +2575,7 @@ static void ic_change_ssl_rbio(ichannel_t *ic, int fd)
     }
 }
 
-/* Non blocking is assumed if ev == NULL. */
+/* Blocking is assumed if ev == NULL. */
 static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
@@ -2607,7 +2611,7 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
     return 0;
 }
 
-/* Non blocking is assumed if ev == NULL. */
+/* Blocking is assumed if ev == NULL. */
 static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
