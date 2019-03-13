@@ -218,8 +218,6 @@ EOF
         # Disable because of weird casts with iop_hash_f but worth
         # investigating.
         echo -Wno-cast-function-type
-        # Disable because of __VALGRIND_PREREQ macro for instance.
-        echo -Wno-expansion-to-defined
         # Disable because of a very obscure error in TST_BIT
         echo -Wno-ignored-qualifiers
     fi

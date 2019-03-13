@@ -974,9 +974,14 @@ enum mem_tool {
 };
 
 #ifndef NDEBUG
+#  if defined(__VALGRIND_MAJOR__) && defined(__VALGRIND_MINOR__)
+#    define __HAS_VALGRIND_VERSION  1
+#  else
+#    define __HAS_VALGRIND_VERSION  0
+#  endif
 #  define __VALGRIND_PREREQ(x, y)  \
-    defined(__VALGRIND_MAJOR__) && defined(__VALGRIND_MINOR__) && \
-    (__VALGRIND_MAJOR__ << 16) + __VALGRIND_MINOR__ >= (((x) << 16) + (y))
+    (__HAS_VALGRIND_VERSION && \
+     (__VALGRIND_MAJOR__ << 16) + __VALGRIND_MINOR__ >= (((x) << 16) + (y)))
 #else
 #  define __VALGRIND_PREREQ(x, y)   0
 #  define RUNNING_ON_VALGRIND       false
