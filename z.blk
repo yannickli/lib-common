@@ -332,7 +332,7 @@ bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
 static void sb_put_string(sb_t *sb, lstr_t s)
 {
     for (int i = 0; i < s.len; i++) {
-        if (!isprint((unsigned char)s.s[i])) {
+        if (!isprint(s.s[i]) && !isspace(s.s[i])) {
             sb_adds(sb, "X'");
             sb_add_hex(sb, s.s, s.len);
             sb_adds(sb, "'");
