@@ -105,7 +105,7 @@
           </simpleType>
         </union>
       </simpleType>
-      <simpleType name="E">
+      <simpleType name="tstiop_wsdl.E">
         <union>
           <simpleType>
             <restriction base="string">
@@ -126,12 +126,12 @@
       <complexType name="tstiop_wsdl.C">
         <sequence>
           <element name="s" type="tns:tstiop_wsdl.S" />
-          <element name="e" type="tns:E" />
+          <element name="e" type="tns:tstiop_wsdl.E" />
         </sequence>
       </complexType>
       <complexType name="tstiop_wsdl.S">
         <sequence>
-          <element name="e" type="tns:E" />
+          <element name="e" type="tns:tstiop_wsdl.E" />
         </sequence>
       </complexType>
 
