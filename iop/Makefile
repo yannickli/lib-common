@@ -37,6 +37,7 @@ tstiop_SOURCES =  \
     tstiop_backward_compat_mod.iop                                           \
     tstiop_backward_compat_mod_deleted.iop                                   \
     tstiop_backward_compat_mod_deleted_if.iop                                \
+    tstiop_wsdl.iop                                                          \
     tstiop_void_type.iop
 tstiop_inheritance.iop_IOPVER=-5
 
