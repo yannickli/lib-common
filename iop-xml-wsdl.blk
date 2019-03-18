@@ -184,8 +184,7 @@ static void put_int_type(wsdlpp_t *wpp, iop_type_t type, const char *name,
 static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
 {
     xmlpp_opentag(&wpp->pp, "simpleType");
-    /* TODO maybe use a fullname (pkg.name) */
-    xmlpp_putattr(&wpp->pp, "name", e->name.s);
+    xmlpp_putattr(&wpp->pp, "name", e->fullname.s);
     xmlpp_opentag(&wpp->pp, "union");
 
     xmlpp_opentag(&wpp->pp, "simpleType");
@@ -373,8 +372,7 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
         } else
         if (wpp->wenums && f->type == IOP_T_ENUM) {
             const iop_enum_t *desc = f->u1.en_desc;
-            /* TODO maybe use a fullname (pkg.name) */
-            xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s", desc->name.s);
+            xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s", desc->fullname.s);
         } else
         if (f->type != IOP_T_XML) {
             iop_xwsdl_put_constraints(wpp, st, f);

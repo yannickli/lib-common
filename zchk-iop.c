@@ -45,6 +45,7 @@
 #include "iop/tstiop_backward_compat_mod_deleted.iop.h"
 #include "iop/tstiop_backward_compat_mod_deleted_if.iop.h"
 #include "iop/tstiop_void_type.iop.h"
+#include "iop/tstiop_wsdl.iop.h"
 #include "xmlr.h"
 #include "zchk-iop-ressources.h"
 
@@ -8087,6 +8088,23 @@ Z_GROUP_EXPORT(iop)
                         "wrong size for type %s",
                         iop_type_get_string_desc(type->type));
         }
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(wsdl, "test generation of WSDL") { /* {{{ */
+        t_scope;
+        SB_1k(buf);
+        lstr_t expected;
+
+        Z_ASSERT_N(lstr_init_from_file(&expected,
+                                       t_fmt("%*pM/test-data/iop.wsdl",
+                                             LSTR_FMT_ARG(z_cmddir_g)),
+                                       PROT_READ, MAP_SHARED));
+
+        iop_xwsdl(&buf, &tstiop_wsdl__m__mod, NULL,
+                  "http://example.com/tstiop",
+                  "http://localhost:1080/iop/", false, true);
+
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), expected);
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_core_obj, "IOP core obj") { /* {{{ */
