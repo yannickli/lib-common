@@ -24,7 +24,7 @@ from itertools import chain
 from waflib import TaskGen, Utils, Context, Errors, Options, Logs
 
 from waflib.Build import BuildContext
-from waflib.Configure import ConfigurationContext, conf
+from waflib.Configure import ConfigurationContext
 from waflib.Task import Task
 from waflib.TaskGen import extension
 from waflib.Tools import c as c_tool
@@ -1181,66 +1181,6 @@ def process_ld(self, node):
     self.env.append_value('LDFLAGS',
                           ['-Xlinker', '--version-script',
                            '-Xlinker', node.abspath()])
-
-
-# }}}
-# {{{ JAVA
-
-
-def check_class_from_env_var(ctx, var, binpath, classname):
-    if var not in ctx.environ:
-        ctx.fatal('missing %s environment variable' % var)
-
-    cmd = [ctx.environ[var] + binpath, 'classpath']
-    try:
-        classpath = ctx.cmd_and_log(cmd, output=Context.STDOUT)
-    except Errors.WafError as e:
-        ctx.fatal('cmd `%s` failed: %s' % (' '.join(cmd), e))
-
-    res = ctx.check_java_class(classname, with_classpath=classpath)
-    if res == 0:
-        return classpath
-    else:
-        ctx.fatal('cannot find classes with provided %s env variable' % (var))
-
-
-@conf
-def check_hadoop(ctx):
-    classpath = check_class_from_env_var(ctx, 'HADOOP_HOME', '/bin/hadoop',
-                                         'org.apache.hadoop.io.Text')
-    ctx.env.HADOOP_CLASSPATH = classpath
-
-
-@conf
-def check_hbase(ctx):
-    classpath = check_class_from_env_var(ctx, 'HBASE_LIB_DIR',
-                                         '/../bin/hbase',
-                                         'org.apache.hadoop.hbase.KeyValue')
-    ctx.env.HBASE_CLASSPATH = classpath
-
-
-class ClassToHeaderFile(Task):
-    run_str = ['javah -cp ${OUTDIR} -jni -o ${TGT} ${CLASSNAME}']
-    color = 'BLUE'
-    ext_out = [ '.h' ]
-
-    @classmethod
-    def keyword(cls):
-        return 'Generating'
-
-    def __str__(self):
-        node = self.outputs[0]
-        return node.path_from(node.ctx.launch_node())
-
-
-@TaskGen.feature('javah')
-@TaskGen.after_method('apply_java')
-def generate_java_header_file(self):
-    # Make a .h file from a given class
-    task1 = self.create_task('ClassToHeaderFile')
-    task1.set_outputs(self.path.make_node(self.header_file))
-    task1.env.CLASSNAME = self.javah_class
-    task1.set_run_after(self.javac_task)
 
 
 # }}}
