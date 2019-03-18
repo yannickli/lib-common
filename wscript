@@ -96,29 +96,6 @@ def configure(ctx):
         Logs.log('missing Linux UAPI SCTP header,'
                  ' it will be replaced by a custom one')
 
-    # JAVA
-    if ctx.get_env_bool('NO_JAVA'):
-        Logs.warn('disabling JAVA support')
-    else:
-        try:
-            ctx.load('java')
-            ctx.check_jni_headers() # declares ctx.env.HAVE_JAVA
-            ctx.env.DEFINES.append('WITH_JDBC=1')
-            ctx.env.RPATH_JAVA += ctx.env.LIBPATH_JAVA
-        except Errors.ConfigurationError as e:
-            Logs.warn('cannot configure JAVA: %s', e.msg)
-
-    if ctx.env.HAVE_JAVA:
-        try:
-            ctx.check_hadoop()
-        except Errors.ConfigurationError as e:
-            Logs.warn('cannot configure Hadoop dependency: %s', e.msg)
-
-        try:
-            ctx.check_hbase()
-        except Errors.ConfigurationError as e:
-            Logs.warn('cannot configure HBase dependency: %s', e.msg)
-
     # {{{ Python 2
 
     # TODO waf: use waf python tool for that?
