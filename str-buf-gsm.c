@@ -351,6 +351,7 @@ cimd_special_to_unicode(const byte *p, const byte *end, const byte **out)
                 p += 2;
                 break;
             }
+            /* FALLTHROUGH */
           default:
             return -1;
         }

@@ -211,10 +211,6 @@ EOF
         echo -Wno-shift-negative-value
     fi
     if gcc_prereq 8.0; then
-        # Do not warn about missing FALLTHROUGH. Unfortunately even though we
-        # already have hundreds of FALLTHROUGH in our codebase, hundreds are
-        # still missing...
-        echo -Wimplicit-fallthrough=0
         # Disable because of a very obscure error in TST_BIT
         echo -Wno-ignored-qualifiers
     fi

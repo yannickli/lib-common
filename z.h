@@ -242,6 +242,7 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 
 #define Z_TEST_END \
         }                                                                 \
+        /* FALLTHROUGH */                                                 \
       default:                                                            \
       _z_step_end:                                                        \
         _z_step_report();                                                 \

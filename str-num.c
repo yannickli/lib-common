@@ -291,12 +291,16 @@ int str_read_number_extension(const void **p, int len, uint64_t *out)
       /* times */
       case 'w':
         mult *= 7;
+        /* FALLTHROUGH */
       case 'd':
         mult *= 24;
+        /* FALLTHROUGH */
       case 'h':
         mult *= 60;
+        /* FALLTHROUGH */
       case 'm':
         mult *= 60;
+        /* FALLTHROUGH */
       case 's':
         mult *= 1;
         res = 1;
@@ -305,10 +309,13 @@ int str_read_number_extension(const void **p, int len, uint64_t *out)
       /* sizes */
       case 'T':
         mult *= 1024;
+        /* FALLTHROUGH */
       case 'G':
         mult *= 1024;
+        /* FALLTHROUGH */
       case 'M':
         mult *= 1024;
+        /* FALLTHROUGH */
       case 'K':
         mult *= 1024;
         res = 1;

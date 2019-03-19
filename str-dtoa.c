@@ -1967,6 +1967,7 @@ dig_done:
                 aadj1.d -= 0.5;
                 break;
             case 0: /* towards 0 */
+              /* FALLTHROUGH */
             case 3: /* towards -infinity */
                 aadj1.d += 0.5;
             }
@@ -2539,7 +2540,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
         break;
     case 2:
         leftright = 0;
-        /* no break */
+        /* FALLTHROUGH */
     case 4:
         if (ndigits <= 0)
             ndigits = 1;
@@ -2547,7 +2548,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
         break;
     case 3:
         leftright = 0;
-        /* no break */
+        /* FALLTHROUGH */
     case 5:
         i = ndigits + k + 1;
         ilim = i;

@@ -204,10 +204,13 @@ __murmur_hash3_x86_32_push_block(uint32_t block, uint8_t block_len,
       default:
       case 3:
         data_block |= data[2] << 16;
+        /* FALLTHROUGH */
       case 2:
         data_block |= data[1] << 8;
+        /* FALLTHROUGH */
       case 1:
         data_block |= data[0];
+        /* FALLTHROUGH */
       case 0:
         break;
     }
@@ -384,27 +387,42 @@ void murmur_hash3_x86_128(const void *key, size_t len,
 
         switch (len & 15) {
           case 15: k4 ^= tail[14] << 16;
+                   /* FALLTHROUGH */
           case 14: k4 ^= tail[13] << 8;
+                   /* FALLTHROUGH */
           case 13: k4 ^= tail[12] << 0;
                    k4 *= c4; k4  = rotl32(k4, 18); k4 *= c1; h4 ^= k4;
+                   /* FALLTHROUGH */
 
           case 12: k3 ^= tail[11] << 24;
+                   /* FALLTHROUGH */
           case 11: k3 ^= tail[10] << 16;
+                   /* FALLTHROUGH */
           case 10: k3 ^= tail[ 9] << 8;
+                   /* FALLTHROUGH */
           case  9: k3 ^= tail[ 8] << 0;
                    k3 *= c3; k3  = rotl32(k3, 17); k3 *= c4; h3 ^= k3;
+                   /* FALLTHROUGH */
 
           case  8: k2 ^= tail[ 7] << 24;
+                   /* FALLTHROUGH */
           case  7: k2 ^= tail[ 6] << 16;
+                   /* FALLTHROUGH */
           case  6: k2 ^= tail[ 5] << 8;
+                   /* FALLTHROUGH */
           case  5: k2 ^= tail[ 4] << 0;
                    k2 *= c2; k2  = rotl32(k2, 16); k2 *= c3; h2 ^= k2;
+                   /* FALLTHROUGH */
 
           case  4: k1 ^= tail[ 3] << 24;
+                   /* FALLTHROUGH */
           case  3: k1 ^= tail[ 2] << 16;
+                   /* FALLTHROUGH */
           case  2: k1 ^= tail[ 1] << 8;
+                   /* FALLTHROUGH */
           case  1: k1 ^= tail[ 0] << 0;
                    k1 *= c1; k1  = rotl32(k1, 15); k1 *= c2; h1 ^= k1;
+                   /* FALLTHROUGH */
         };
     }
 
@@ -470,23 +488,38 @@ void murmur_hash3_x64_128(const void *key, size_t len,
 
         switch (len & 15) {
           case 15: k2 ^= (uint64_t)tail[14] << 48;
+                   /* FALLTHROUGH */
           case 14: k2 ^= (uint64_t)tail[13] << 40;
+                   /* FALLTHROUGH */
           case 13: k2 ^= (uint64_t)tail[12] << 32;
+                   /* FALLTHROUGH */
           case 12: k2 ^= (uint64_t)tail[11] << 24;
+                   /* FALLTHROUGH */
           case 11: k2 ^= (uint64_t)tail[10] << 16;
+                   /* FALLTHROUGH */
           case 10: k2 ^= (uint64_t)tail[ 9] << 8;
+                   /* FALLTHROUGH */
           case  9: k2 ^= (uint64_t)tail[ 8] << 0;
                    k2 *= c2; k2  = rotl64(k2, 33); k2 *= c1; h2 ^= k2;
+                   /* FALLTHROUGH */
 
           case  8: k1 ^= (uint64_t)tail[ 7] << 56;
+                   /* FALLTHROUGH */
           case  7: k1 ^= (uint64_t)tail[ 6] << 48;
+                   /* FALLTHROUGH */
           case  6: k1 ^= (uint64_t)tail[ 5] << 40;
+                   /* FALLTHROUGH */
           case  5: k1 ^= (uint64_t)tail[ 4] << 32;
+                   /* FALLTHROUGH */
           case  4: k1 ^= (uint64_t)tail[ 3] << 24;
+                   /* FALLTHROUGH */
           case  3: k1 ^= (uint64_t)tail[ 2] << 16;
+                   /* FALLTHROUGH */
           case  2: k1 ^= (uint64_t)tail[ 1] << 8;
+                   /* FALLTHROUGH */
           case  1: k1 ^= (uint64_t)tail[ 0] << 0;
                    k1 *= c1; k1  = rotl64(k1, 31); k1 *= c2; h1 ^= k1;
+                   /* FALLTHROUGH */
         };
     }
 

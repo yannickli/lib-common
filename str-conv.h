@@ -115,9 +115,12 @@ static inline uint8_t __pstrputuc(char * nonnull dst, int32_t c)
     }
     switch (__builtin_expect(len, 2)) {
       default: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
+               /* FALLTHROUGH */
       case 3:  dst[2] = (c | 0x80) & 0xbf; c >>= 6;
+               /* FALLTHROUGH */
       case 2:  dst[1] = (c | 0x80) & 0xbf; c >>= 6;
                dst[0] = (c | __utf8_mark[len]);
+               /* FALLTHROUGH */
       case 0:  break;
     }
     return len;
@@ -134,8 +137,11 @@ static inline uint8_t utf8_charlen(const char * nonnull s, int len)
 
     switch (charlen) {
       default: if (unlikely((*++s & 0xc0) != 0x80)) return 0;
+               /* FALLTHROUGH */
       case 3:  if (unlikely((*++s & 0xc0) != 0x80)) return 0;
+               /* FALLTHROUGH */
       case 2:  if (unlikely((*++s & 0xc0) != 0x80)) return 0;
+               /* FALLTHROUGH */
       case 1:  return charlen;
       case 0:  return charlen;
     }
@@ -181,9 +187,13 @@ static inline int utf8_getc_slow(const char * nonnull s,
     switch (len) {
       default: return -1;
       case 3:  ret += (unsigned char)*s++; ret <<= 6;
+               /* FALLTHROUGH */
       case 2:  ret += (unsigned char)*s++; ret <<= 6;
+               /* FALLTHROUGH */
       case 1:  ret += (unsigned char)*s++; ret <<= 6;
+               /* FALLTHROUGH */
       case 0:  ret += (unsigned char)*s++;
+               /* FALLTHROUGH */
     }
 
     if (out) {

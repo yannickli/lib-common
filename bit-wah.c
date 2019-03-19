@@ -108,6 +108,7 @@ bool wah_word_enum_next(wah_word_enum_t *en)
         }
 
         /* Transition to literal, so don't break here */
+        /* FALLTHROUGH */
 
       case WAH_ENUM_LITERAL:
         if (en->pos == bucket->len) {

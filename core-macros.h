@@ -168,6 +168,12 @@
 # define __leaf
 #endif
 
+#if __GNUC_PREREQ(7, 0) || __has_attribute(fallthrough)
+# define __fallthrough __attribute__((fallthrough))
+#else
+# define __fallthrough
+#endif
+
 #if __has_attribute(optimize)
 # define __attr_optimize__(o)  __attribute__((optimize(o)))
 #else

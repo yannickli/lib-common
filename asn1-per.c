@@ -796,6 +796,7 @@ static int aper_encode_constructed(bb_t *bb, const void *st,
         return aper_encode_choice(bb, st, desc);
       case ASN1_CSTD_TYPE_SET:
         e_error("ASN.1 SET not supported yet");
+        /* FALLTHROUGH */
       default:
         return -1;
     }
