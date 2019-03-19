@@ -44,9 +44,7 @@
 #define ERR_ACCEPT_RETRIABLE(err) \
     ((err) == EINTR || (err) == EAGAIN || (err) == ECONNABORTED)
 
-/****************************************************************************/
-/* process related                                                          */
-/****************************************************************************/
+/* {{{ Process related */
 
 int  pid_get_starttime(pid_t pid, struct timeval * nonnull tv);
 void ps_panic_sighandler(int signum, siginfo_t * nullable si,
@@ -54,9 +52,8 @@ void ps_panic_sighandler(int signum, siginfo_t * nullable si,
 void ps_install_panic_sighandlers(void);
 void ps_dump_core_of_current_thread(void);
 
-/****************************************************************************/
-/* Filesystem related                                                       */
-/****************************************************************************/
+/* }}} */
+/* {{{ Filesystem related */
 
 /* XXX man 2 open
  * NOTES: minimum alignment boundaries on linux 2.6 for direct I/O is 512
@@ -133,9 +130,8 @@ void unlockdir(dir_lock_t * nonnull dlock);
 int tmpfd(void);
 void devnull_dup(int fd);
 
-/****************************************************************************/
-/* file listing related                                                     */
-/****************************************************************************/
+/* }}} */
+/* {{{ File listing related */
 
 #if defined(__linux__)
 
@@ -194,9 +190,8 @@ int list_dir(const char * nonnull path, unsigned flags,
              on_file_b nullable on_file);
 #endif
 
-/****************************************************************************/
-/* file descriptor related                                                  */
-/****************************************************************************/
+/* }}} */
+/* {{{ File descriptor related */
 
 /* `data' is cast to `void *' to remove the const: iovec structs are used
  * for input and output, thus `iov_base' cannot be `const void *' even
@@ -334,9 +329,8 @@ static inline int p_close(int * nonnull hdp) {
     return 0;
 }
 
-/****************************************************************************/
-/* Misc                                                                     */
-/****************************************************************************/
+/* }}} */
+/* {{{ Misc */
 
 static inline void getopt_init(void) {
     /* XXX this is not portable, BSD want it to be set to -1 *g* */
@@ -393,5 +387,7 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 #if __has_feature(nullability)
 #pragma GCC diagnostic pop
 #endif
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_UNIX_H */
