@@ -805,7 +805,7 @@ pid_t el_spawn_child(const char *file, const char *argv_in[],
 
     qv_append(&argv_final, NULL);
 
-    if ((pid = fork()) == 0) {
+    if ((pid = ifork()) == 0) {
         if (child) {
             child();
         }

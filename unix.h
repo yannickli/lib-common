@@ -389,5 +389,19 @@ static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
 #endif
 
 /* }}} */
+/* {{{ atfork methods / ifork */
+
+/** Wrapper of fork() that must be used instead of it.
+ *
+ * Using this wrapper guarantees fork handlers are properly called.
+ * In particular, the at_fork_on_parent method is called with the child pid
+ * when using ifork.
+ */
+__must_check__ pid_t ifork(void);
+
+/** Are we inside a ifork() call? */
+bool ifork_in_progress(void);
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_UNIX_H */

@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_THR_JOB_H
 
+#include "unix.h"
+
 #define THR_JOB_MAX   256
 
 typedef struct thr_job_t   thr_job_t;
@@ -333,25 +335,7 @@ __must_check__
 static inline pid_t thr_job_fork(void)
 {
     bool prev_val = thr_job_reload_at_fork(true);
-    pid_t pid;
-
-#ifdef SHARED
-    MODULE_METHOD_RUN_VOID(at_fork_prepare);
-#endif
-
-    pid = fork();
-
-#ifdef SHARED
-    /* XXX: when compiled as a shared library, module_register_at_fork()
-     * is not called as a constructor, so we need to manually call the
-     * methods. */
-    if (pid == 0) {
-        MODULE_METHOD_RUN_VOID(at_fork_on_child);
-    } else
-    if (pid > 0) {
-        MODULE_METHOD_RUN_VOID(at_fork_on_parent);
-    }
-#endif
+    pid_t pid = ifork();
 
     thr_job_reload_at_fork(prev_val);
 

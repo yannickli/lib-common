@@ -484,12 +484,18 @@ void module_on_term(int signo);
 /* XXX: Do not use t_scope with these methods because the t_pool_g is not
  *      necessarily initialized when the methods are called. */
 MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
-MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_parent);
+/* at_fork_on_parent is called with the child pid as parameter if it is known,
+ * and -1 otherwise. */
+MODULE_METHOD_DECLARE(INT,  DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
 
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, consume_child_events);
 
 /** Register at fork methods.
+ *
+ * This is needed so that fork methods defined above are called also when not
+ * using ifork(), which happens when we do not control the fork (like in
+ * python modules).
  *
  * Automatically called for non shared libraries.
  * When compiling for non shared libraries this function has constructor

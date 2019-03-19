@@ -2698,7 +2698,7 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
     struct timeval begin, step_fork, step_end;
 
     lp_gettv(&begin);
-    pid = fork();
+    pid = ifork();
     if (pid < 0) {
         logger_panic(&_G.logger, "unable to fork snapshotter in the "
                      "background, %m");

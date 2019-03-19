@@ -920,6 +920,36 @@ int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len)
     return i;
 }
 
+
+static __thread bool in_ifork_g;
+
+pid_t ifork(void)
+{
+    pid_t pid;
+
+    in_ifork_g = true;
+
+    MODULE_METHOD_RUN_VOID(at_fork_prepare);
+
+    pid = (fork)();
+
+    if (pid == 0) {
+        MODULE_METHOD_RUN_VOID(at_fork_on_child);
+    } else
+    if (pid > 0) {
+        MODULE_METHOD_RUN_INT(at_fork_on_parent, pid);
+    }
+
+    in_ifork_g = false;
+
+    return pid;
+}
+
+bool ifork_in_progress(void)
+{
+    return in_ifork_g;
+}
+
 /* {{{ Tests */
 
 
@@ -1075,7 +1105,7 @@ Z_GROUP_EXPORT(Unix) {
         p_close(&fd);
         Z_ASSERT_N(res);
 
-        pid = fork();
+        pid = ifork();
         if (pid == 0) {
             dir_lock_t dlock2 = DIR_LOCK_INIT;
 
@@ -1095,7 +1125,7 @@ Z_GROUP_EXPORT(Unix) {
         /* A releases the lock */
         unlockdir(&dlock1);
 
-        pid = fork();
+        pid = ifork();
         if (pid == 0) {
             dir_lock_t dlock2 = DIR_LOCK_INIT;
 

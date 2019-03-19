@@ -37,7 +37,7 @@ static int do_call(char * const argv[], sb_t *err)
 {
     pid_t pid;
 
-    pid = fork();
+    pid = ifork();
     if (pid < 0) {
         sb_setf(err, "unable to fork(): %m");
         return -1;

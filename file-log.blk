@@ -143,7 +143,7 @@ static void log_file_bgcompress(log_file_t *log_file, const char *path)
     ctx->path = lstr_dups(path, -1);
     ctx->ts = ts;
 
-    pid = fork();
+    pid = ifork();
     if (pid < 0) {
         logger_error(&logger_g, "unable to fork gzip in the background, %m");
         bgcompr_ctx_delete(&ctx);
