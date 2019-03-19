@@ -210,10 +210,6 @@ EOF
     if gcc_prereq 6.0; then
         echo -Wno-shift-negative-value
     fi
-    if gcc_prereq 8.0; then
-        # Disable because of a very obscure error in TST_BIT
-        echo -Wno-ignored-qualifiers
-    fi
 
     if is_cpp; then
         if test "$2" != "rewrite"; then
@@ -232,7 +228,13 @@ EOF
             echo -Wno-extern-c-compat
         fi
         if gcc_prereq 8.0; then
-            # Disable because not happy with our p_clear macro
+            # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89722
+            # The usage of typeof in OP_BIT is causing some const problems,
+            # only with g++, and this warning is not very interesting anyway.
+            echo -Wno-ignored-qualifiers
+            # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89729
+            # We are doing bad things like p_clear or memcpy on c++ objects
+            # like script_data_t, but not a big deal.
             echo -Wno-class-memaccess
         fi
     else
