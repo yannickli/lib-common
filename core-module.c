@@ -655,6 +655,7 @@ void module_on_term(int signo)
 MODULE_METHOD(VOID, DEPS_AFTER, at_fork_prepare);
 MODULE_METHOD(INT, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_child);
+MODULE_METHOD(INT, DEPS_BEFORE, at_fork_on_child_terminated);
 MODULE_METHOD(VOID, DEPS_BEFORE, consume_child_events);
 
 static void module_at_fork_prepare(void)

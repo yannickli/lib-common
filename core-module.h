@@ -483,11 +483,24 @@ void module_on_term(int signo);
 
 /* XXX: Do not use t_scope with these methods because the t_pool_g is not
  *      necessarily initialized when the methods are called. */
+
+/** Method called in the parent, just before the fork. */
 MODULE_METHOD_DECLARE(VOID, DEPS_AFTER, at_fork_prepare);
-/* at_fork_on_parent is called with the child pid as parameter if it is known,
- * and -1 otherwise. */
-MODULE_METHOD_DECLARE(INT,  DEPS_BEFORE, at_fork_on_parent);
+
+/** Method called in the parent, just after the fork.
+ *
+ * It takes the PID of the child as argument, or -1 if it is not known.
+ */
+MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, at_fork_on_parent);
+
+/** Method called in the child, just after the fork. */
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
+
+/** Method called in the parent, just after the child terminates.
+ *
+ * It takes the PID of the child as argument.
+ */
+MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, at_fork_on_child_terminated);
 
 MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, consume_child_events);
 

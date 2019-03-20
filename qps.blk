@@ -2947,6 +2947,8 @@ void qps_snapshot_wait(qps_t *qps)
                     el_unregister(&qps->snap_el);
                     qps_snapshot_bg_done(NULL, qps->snap_pid, status,
                                          (data_t){ .ptr = qps });
+                    MODULE_METHOD_RUN_INT(at_fork_on_child_terminated,
+                                          qps->snap_pid);
                 });
             });
         }

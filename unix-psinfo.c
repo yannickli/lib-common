@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include <sys/wait.h>
+
+#include "thr.h"
 #include "unix.h"
 
 pid_t psinfo_get_tracer_pid(pid_t pid)
@@ -28,6 +30,9 @@ void ps_dump_core_of_current_thread(void)
     } else
     if (pid > 0) {
         while (waitpid(pid, NULL, 0) < 0) {
+        }
+        if (thr_is_on_queue(thr_queue_main_g)) {
+            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
         }
     }
 }

@@ -360,6 +360,7 @@ static void el_child_fire(ev_t **ev)
     } else {
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
+    MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, e->child.pid);
     el_destroy(&e);
 }
 
@@ -691,6 +692,8 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
              */
             child->child.status = status;
             el_child_fire(&child);
+        } else {
+            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
         }
     }
 }
