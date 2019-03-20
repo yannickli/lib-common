@@ -146,7 +146,7 @@ do
 done
 export BEHAVE_FLAGS="${BEHAVE_FLAGS} ${BEHAVE_TAGS} --format z --no-summary --no-capture-stderr"
 
-coredump=$(which core_dump)
+coredump="$(dirname "$0")"/tests/core_dump.py
 
 while read -r zd line; do
     t="${zd}${line}"
