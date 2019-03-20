@@ -21,22 +21,6 @@ pid_t psinfo_get_tracer_pid(pid_t pid)
     return _psinfo_get_tracer_pid(pid);
 }
 
-void ps_dump_core_of_current_thread(void)
-{
-    pid_t pid = ifork();
-
-    if (!pid) {
-        abort();
-    } else
-    if (pid > 0) {
-        while (waitpid(pid, NULL, 0) < 0) {
-        }
-        if (thr_is_on_queue(thr_queue_main_g)) {
-            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
-        }
-    }
-}
-
 void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 {
     static const struct sigaction sa = {

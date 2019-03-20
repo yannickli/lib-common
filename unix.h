@@ -50,7 +50,6 @@ int  pid_get_starttime(pid_t pid, struct timeval * nonnull tv);
 void ps_panic_sighandler(int signum, siginfo_t * nullable si,
                          void * nullable addr);
 void ps_install_panic_sighandlers(void);
-void ps_dump_core_of_current_thread(void);
 
 /* }}} */
 /* {{{ Filesystem related */
