@@ -2315,8 +2315,7 @@ int iop_cmp_field(const iop_field_t *nonnull fdesc,
         r1  = ((iop_array_u8_t *)r1)->tab;
         r2  = ((iop_array_u8_t *)r2)->tab;
         n = MIN(n1, n2);
-    }
-
+    } else
     if (fdesc->repeat == IOP_R_OPTIONAL) {
         /* Optional blocks types cannot be compared using a single memcmp
          * we need to handle absent values first. */
