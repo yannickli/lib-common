@@ -2127,43 +2127,11 @@ static int iop_string_sql_like(const void *s1, const void *s2)
 
 static cmp_f iop_get_equal_fun_sql_like(iop_type_t type)
 {
-    switch (type) {
-      case IOP_T_I8:
-        return &cmp_i8;
-      case IOP_T_U8:
-        return &cmp_u8;
-      case IOP_T_I16:
-        return &cmp_i16;
-      case IOP_T_U16:
-        return &cmp_u16;
-      case IOP_T_ENUM:
-        return &cmp_i32;
-      case IOP_T_I32:
-        return &cmp_i32;
-      case IOP_T_U32:
-        return &cmp_u32;
-      case IOP_T_I64:
-        return &cmp_i64;
-      case IOP_T_U64:
-        return &cmp_u64;
-      case IOP_T_BOOL:
-        return &cmp_bool;
-      case IOP_T_DOUBLE:
-        return &cmp_double;
-      case IOP_T_UNION:
-        return &cmp_u16; /* XXX: we compare the union tag. */
-      case IOP_T_STRING:
+    if (type == IOP_T_STRING) {
         return &iop_string_sql_like;
-      case IOP_T_XML:
-        return &cmp_lstr_iutf8;
-      case IOP_T_DATA:
-        return &cmp_lstr_iutf8;
-
-      case IOP_T_STRUCT:
-      case IOP_T_VOID:
-        break;
     }
-    e_panic("iop_type unsupported");
+
+    return iop_get_cmp_fun(type);
 }
 
 /*}}}*/
