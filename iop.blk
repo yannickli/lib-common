@@ -1862,17 +1862,42 @@ bool iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2)
 /* {{{ Field path */
 
 typedef struct field_step_t {
+    /* Distance (in byte) between the current position and the next field to
+     * read. */
     uint16_t offset;
+
+    /* If the field to read is an union field, this attribute contains the
+     * union tag expected for the field. */
     uint16_t union_tag;
-    bool     is_union   : 1;
+
+    /* True if the field is an union field. No indirection needed in this
+     * case. */
+    bool is_union : 1;
 } field_step_t;
 GENERIC_INIT(field_step_t, field_step);
 
 qvector_t(field_step, field_step_t);
 
+/* A field path contains the instructions for a quick access to a given field.
+ * The path is split in:
+ *
+ *  - "indirection steps" that contains the number of bytes to skip to the
+ *    next pointer to indirect.
+ *  - "union steps" that contains the number of bytes to skip to get to the
+ *    union and the tag of the field we expect to be selected.
+ *
+ * Therefore, sequences of inlined struct field will be packed in a single
+ * indirection step.
+ */
 typedef struct field_path_t {
+    /* Steps needed to get to the field. */
     qv_t(field_step)    steps;
+
+    /* Description of the field to get. */
     const iop_field_t  *fdesc;
+
+    /* True if the field is the name of an IOP class (in this case, the
+     * field name is supposed to be '_class'). */
     bool is_typename : 1;
 } field_path_t;
 GENERIC_FUNCTIONS(field_path_t, field_path);
