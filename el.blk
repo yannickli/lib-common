@@ -738,11 +738,6 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
         return ev_add(&_G.before, ev);;
     }
 
-    if (unlikely(!_G.el_sigchld_hook)) {
-        _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook,
-                                                NULL);
-    }
-
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
     return ev;
 }
@@ -2008,6 +2003,8 @@ static int el_initialize(void *arg)
 #else
     _G.el_on_pwr = el_signal_register(SIGINFO, el_on_pwr, NULL);
 #endif
+
+    _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
 
     return 0;
 }
