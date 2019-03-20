@@ -152,9 +152,6 @@ typedef int (*cmp_f)(const void *a, const void *b);
 #define SORT_DEF(sfx, type_t, cmp)                                          \
 static inline int cmp_##sfx(const void *p1, const void *p2) {               \
     return cmp(*(const type_t *)p1, *(const type_t *)p2);                   \
-}                                                                           \
-static inline int cmp_rev_##sfx(const void *p1, const void *p2) {           \
-    return cmp(*(const type_t *)p2, *(const type_t *)p1);                   \
 }
 
 SORT_DEF(i8,     int8_t,   CMP);
@@ -173,14 +170,8 @@ SORT_DEF(double, double,   CMP);
 static inline int cmp_lstr_bin(const void *s1, const void *s2) {
     return lstr_cmp(*(const lstr_t *)s1, *(const lstr_t *)s2);
 }
-static inline int cmp_rev_lstr_bin(const void *s1, const void *s2) {
-    return lstr_cmp(*(const lstr_t *)s2, *(const lstr_t *)s1);
-}
 static inline int cmp_lstr_iutf8(const void *s1, const void *s2) {
     return lstr_utf8_icmp(*(const lstr_t *)s1, *(const lstr_t *)s2);
-}
-static inline int cmp_rev_lstr_iutf8(const void *s1, const void *s2) {
-    return lstr_utf8_icmp(*(const lstr_t *)s2, *(const lstr_t *)s1);
 }
 
 #endif

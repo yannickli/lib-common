@@ -2113,48 +2113,6 @@ static cmp_f iop_get_cmp_fun(iop_type_t type)
     e_panic("iop_type unsupported");
 }
 
-static cmp_f iop_get_cmp_rev_fun(iop_type_t type)
-{
-    switch (type) {
-      case IOP_T_I8:
-        return &cmp_rev_i8;
-      case IOP_T_U8:
-        return &cmp_rev_u8;
-      case IOP_T_I16:
-        return &cmp_rev_i16;
-      case IOP_T_U16:
-        return &cmp_rev_u16;
-      case IOP_T_ENUM:
-        return &cmp_rev_i32;
-      case IOP_T_I32:
-        return &cmp_rev_i32;
-      case IOP_T_U32:
-        return &cmp_rev_u32;
-      case IOP_T_I64:
-        return &cmp_rev_i64;
-      case IOP_T_U64:
-        return &cmp_rev_u64;
-      case IOP_T_BOOL:
-        return &cmp_rev_bool;
-      case IOP_T_DOUBLE:
-        return &cmp_rev_double;
-      case IOP_T_UNION:
-        return &cmp_rev_u16; /* XXX: we compare the union tag. */
-      case IOP_T_STRING:
-        return &cmp_rev_lstr_iutf8;
-      case IOP_T_XML:
-        return &cmp_rev_lstr_iutf8;
-      case IOP_T_DATA:
-        return &cmp_rev_lstr_bin;
-      case IOP_T_VOID:
-        return NULL; /* XXX: cmp func is get but never called for void */
-
-      case IOP_T_STRUCT:
-        break;
-    }
-    e_panic("iop_type unsupported");
-}
-
 /*}}}*/
 /* {{{ equality functions */
 
@@ -2224,6 +2182,7 @@ compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
 {
     bool d1_is_set = iop_get_fieldp(d1, &priv->fp, &d1) >= 0;
     bool d2_is_set = iop_get_fieldp(d2, &priv->fp, &d2) >= 0;
+    int res;
 
     if (!d1_is_set && !d2_is_set) {
         return 0;
@@ -2237,7 +2196,10 @@ compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
     if (d1 == d2) {
         return 0;
     }
-    return priv->cmp(d1, d2);
+
+    res = priv->cmp(d1, d2);
+
+    return priv->flags & IOP_SORT_REVERSE ? -res : res;
 }
 
 int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
@@ -2293,12 +2255,7 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
             type = priv->fp.fdesc->type;
         }
 
-        if (sort->flags & IOP_SORT_REVERSE) {
-            priv->cmp = iop_get_cmp_rev_fun(type);
-        } else {
-            priv->cmp = iop_get_cmp_fun(type);
-        }
-
+        priv->cmp = iop_get_cmp_fun(type);
         priv->flags = sort->flags;
     }
 
