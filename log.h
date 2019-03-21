@@ -254,24 +254,25 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
                        const char *func, const char *name);
 
 #define logger_is_traced(Logger, Level)  ({                                  \
-        static int8_t __traced;                                              \
+        static int8_t __logger_traced;                                       \
         static const logger_t *__last_logger = NULL;                         \
         const logger_t *__i_clogger = (Logger);                              \
         logger_t *__i_logger = (logger_t *)__i_clogger;                      \
-        const int __i_level = (Level);                                       \
-        bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
+        const int __logger_i_level = (Level);                                \
+        bool __logger_h_level = logger_has_level(__i_logger,                 \
+                                    LOG_TRACE + __logger_i_level);           \
                                                                              \
-        if (!__h_level) {                                                    \
+        if (!__logger_h_level) {                                             \
             if (unlikely(!__builtin_constant_p(Level)                        \
                        || __i_clogger != __last_logger))                     \
             {                                                                \
-                __traced = __logger_is_traced(__i_logger, __i_level,         \
-                                              __FILE__, __func__,            \
-                                              __i_logger->full_name.s);      \
+                __logger_traced = __logger_is_traced(__i_logger,             \
+                                      __logger_i_level,__FILE__, __func__,   \
+                                      __i_logger->full_name.s);              \
                 __last_logger = __i_clogger;                                 \
             }                                                                \
         }                                                                    \
-        __h_level || __traced > 0;                                           \
+        __logger_h_level || __logger_traced > 0;                             \
     })
 
 #define __LOGGER_HAS_LEVEL(__logger, __level)                                \
@@ -327,14 +328,30 @@ void __logger_exit(logger_t *logger, const char *file, const char *func,
 #define __LOGGER_LOG(Logger, Level, Mark, Fmt, ...)  ({                      \
         const logger_t *__clogger = (Logger);                                \
         logger_t *__logger = (logger_t *)__clogger;                          \
-        const int __level = (Level);                                         \
+        int __logger_res;                                                    \
                                                                              \
         Mark;                                                                \
-        if (__LOGGER_HAS_LEVEL(__logger, __level)) {                         \
-            __logger_log(__logger, __level, NULL, -1, __FILE__, __func__,    \
-                         __LINE__, Fmt, ##__VA_ARGS__);                      \
+        /* XXX We need two different cases: the first one (Level non-const)  \
+         * to protect Level against multi-evaluation; the second one to      \
+         * preserve the constness of Level until we reach logger_is_traced() \
+         * and allow its __builtin_constant_p to work even in O0.            \
+         */                                                                  \
+        if (unlikely(!__builtin_constant_p(Level))) {                        \
+            const int __logger_level = (Level);                              \
+                                                                             \
+            if (__LOGGER_HAS_LEVEL(__logger, __logger_level)) {              \
+                __logger_log(__logger, __logger_level, NULL, -1, __FILE__,   \
+                             __func__, __LINE__, Fmt, ##__VA_ARGS__);        \
+            }                                                                \
+            __logger_res = __logger_level <= LOG_WARNING ? -1 : 0;           \
+        } else {                                                             \
+            if (__LOGGER_HAS_LEVEL(__logger, (Level))) {                     \
+                __logger_log(__logger, (Level), NULL, -1, __FILE__,          \
+                             __func__,  __LINE__, Fmt, ##__VA_ARGS__);       \
+            }                                                                \
+            __logger_res = (Level) <= LOG_WARNING ? -1 : 0;                  \
         }                                                                    \
-        __level <= LOG_WARNING ? -1 : 0;                                     \
+        __logger_res;                                                        \
     })
 
 #define logger_log(Logger, Level, Fmt, ...)                                  \
