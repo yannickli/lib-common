@@ -1869,10 +1869,15 @@ typedef enum field_step_type_t {
     FIELD_STEP_TYPE_MOVE,
     FIELD_STEP_TYPE_INDIRECTION,
     FIELD_STEP_TYPE_UNION_FIELD,
+    FIELD_STEP_TYPE_GOTO_INDEX,
 } field_step_type_t;
 
 typedef struct field_step_t {
     field_step_type_t type : 16;
+
+    /* For step type FIELD_STEP_TYPE_GOTO_INDEX: size of the elements of the
+     * array. */
+    uint16_t array_element_sz;
 
     union {
         /* For step type FIELD_STEP_TYPE_MOVE. Distance (in byte) between the
@@ -1883,6 +1888,10 @@ typedef struct field_step_t {
          * current union. If another field is selected, then the field is
          * considered as missing. */
         uint16_t union_tag;
+
+        /* For step type FIELD_STEP_TYPE_GOTO_INDEX, index of the field in the
+         * array. */
+        int index;
     } u;
 } field_step_t;
 GENERIC_INIT(field_step_t, field_step);
@@ -1909,6 +1918,10 @@ typedef struct field_path_t {
 
     /* Description of the struct containing the field 'fdesc'. */
     const iop_struct_t *st_desc;
+
+    /* True if the field is an element of an array (eg. the path ends with an
+     * index like in the following example: "foo.bar[42]"). */
+    bool is_array_element : 1;
 
     /* True if the field is the name of an IOP class (in this case, the
      * field name is supposed to be '_class'). */
@@ -1951,6 +1964,18 @@ static int iop_get_fieldp(const void *nonnull data,
                 goto no_value;
             }
             break;
+
+          case FIELD_STEP_TYPE_GOTO_INDEX: {
+            const i8__array_t *array = data;
+
+            if (step->u.index >= array->len || step->u.index < 0) {
+                goto no_value;
+            }
+
+            data = array->tab;
+            data = (const byte *)data +
+                (ssize_t)step->u.index * step->array_element_sz;
+          } break;
         }
     }
 
@@ -1965,7 +1990,8 @@ static int iop_get_fieldp(const void *nonnull data,
         if (field_path->is_array_len) {
             *value = data;
             return 0;
-        } else {
+        }
+        if (!field_path->is_array_element) {
             const i8__array_t *array = data;
 
             if (!array->len) {
@@ -2012,19 +2038,36 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     step = NULL;
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
+        pstream_t field_ps;
+        opt_i32_t index = OPT_NONE;
 
-        if (ps_get_ps_chr_and_skip(&field_path_ps, '.', &fname) < 0) {
-            fname = field_path_ps;
+        if (ps_get_ps_chr_and_skip(&field_path_ps, '.', &field_ps) < 0) {
+            field_ps = field_path_ps;
             __ps_skip_upto(&field_path_ps, field_path_ps.p_end);
         }
 
-        if (ps_done(&fname)) {
+        if (ps_done(&field_ps)) {
             if (err) {
                 sb_addf(err, "cannot process field path `%*pM' "
                         "abnormal termination",
                         LSTR_FMT_ARG(field_path_s));
             }
             return -1;
+        }
+
+        if (ps_get_ps_chr_and_skip(&field_ps, '[', &fname) < 0) {
+            fname = field_ps;
+        } else {
+            errno = 0;
+            OPT_SET(index, ps_geti(&field_ps));
+            if (OPT_VAL(index) < 0 || errno || ps_skipc(&field_ps, ']') < 0
+            ||  !ps_done(&field_ps))
+            {
+                if (err) {
+                    sb_adds(err, "invalid field index");
+                }
+                return -1;
+            }
         }
 
         if (ps_strequal(&fname, "_class")) {
@@ -2062,7 +2105,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             step->type = FIELD_STEP_TYPE_UNION_FIELD;
             step->u.union_tag = fdesc->tag;
         }
-        if (fdesc->repeat == IOP_R_REPEATED
+        if (fdesc->repeat == IOP_R_REPEATED && !OPT_ISSET(index)
         &&  lstr_equal(LSTR_PS_V(&field_path_ps), LSTR("len")))
         {
             ps_skip_upto(&field_path_ps, ps_end(&field_path_ps));
@@ -2091,12 +2134,32 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             }
         }
 
-        if (fdesc->repeat == IOP_R_REPEATED && !ps_done(&field_path_ps)) {
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            if (OPT_ISSET(index)) {
+                step = field_step_init(qv_growlen(&fp->steps, 1));
+                step->type = FIELD_STEP_TYPE_GOTO_INDEX;
+                step->array_element_sz = fdesc->size;
+                step->u.index = OPT_VAL(index);
+
+                if (ps_done(&field_path_ps)) {
+                    fp->is_array_element = true;
+                }
+            } else
+            if (!ps_done(&field_path_ps)) {
+                if (err) {
+                    sb_addf(err, "cannot process field path `%*pM', "
+                            "field `%*pM' is repeated in structure `%*pM'",
+                            LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname),
+                            LSTR_FMT_ARG(it->fullname));
+                }
+                return -1;
+            }
+        } else
+        if (OPT_ISSET(index)) {
             if (err) {
-                sb_addf(err, "cannot process field path `%*pM', "
-                        "field `%*pM' is repeated in structure `%*pM'",
-                        LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname),
-                        LSTR_FMT_ARG(it->fullname));
+                sb_addf(err, "got index but field `%*pM:%*pM' "
+                        "is not repeated", LSTR_FMT_ARG(it->fullname),
+                        PS_FMT_ARG(&fname));
             }
             return -1;
         }
@@ -2228,11 +2291,12 @@ compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
         bool need_indirection = false;
 
         repeat = fdesc->repeat;
-        if (repeat != IOP_R_REPEATED) {
+        if (repeat != IOP_R_REPEATED || priv->fp.is_array_element) {
             /* XXX iop_get_fieldp() already did whatever is necessary to get a
              * proper field pointer. */
             repeat = IOP_R_REQUIRED;
         }
+
         if (!iop_type_is_scalar(fdesc->type)) {
             st_desc = fdesc->u1.st_desc;
 
@@ -2537,7 +2601,7 @@ static bool iop_filter_val_matches(const byte *vec_read,
     }
 
     if (fp->fdesc && fp->fdesc->repeat == IOP_R_REPEATED
-    &&  !fp->is_array_len)
+    &&  !fp->is_array_len && !fp->is_array_element)
     {
         const iop_array_i8_t *array = val;
 

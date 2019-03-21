@@ -55,6 +55,7 @@ qvector_t(my_struct_g, tstiop__my_struct_g__t);
 qvector_t(my_struct_m, tstiop__my_struct_m__t);
 qvector_t(my_class2, tstiop__my_class2__t *);
 qvector_t(filtered_struct, tstiop__filtered_struct__t);
+qvector_t(my_struct_f, tstiop__my_struct_f__t);
 
 /* {{{ IOP testing helpers */
 
@@ -3498,8 +3499,10 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_struct_m__t m;
         tstiop__my_class2__t cls2;
         tstiop__my_class3__t cls3;
-        qv_t(my_struct_m)  mvec;
+        qv_t(my_struct_m) mvec;
         qv_t(my_class2) cls2_vec;
+        qv_t(my_struct_f) fvec;
+        tstiop__my_struct_f__t *fst;
 
         qv_init(&vec);
         iop_init(tstiop__my_struct_a, &a);
@@ -3728,6 +3731,17 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[3].htab.len, 3);
         Z_ASSERT_EQ(vec.tab[4].htab.len, 4);
 
+        /* sort on an element of a repeated field */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("htab[2]"), 0));
+        Z_ASSERT_GE(vec.tab[0].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[0].htab.tab[2], 1u);
+        Z_ASSERT_GE(vec.tab[1].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[1].htab.tab[2], 2u);
+        Z_ASSERT_GE(vec.tab[2].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[2].htab.tab[2], 3u);
+        Z_ASSERT_LT(vec.tab[3].htab.len, 3);
+        Z_ASSERT_LT(vec.tab[4].htab.len, 3);
+
         /* error: empty field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
@@ -3883,6 +3897,72 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(cls2_vec.tab[1]->int2, 5);
         Z_ASSERT_EQ(cls2_vec.tab[2]->int2, 6);
 #undef TST_SORT_VEC
+
+        t_qv_init(&fvec, 3);
+        fst = iop_init(tstiop__my_struct_f, qv_growlen(&fvec, 1));
+        fst->d = T_IOP_ARRAY(tstiop__my_union_a,
+                             IOP_UNION(tstiop__my_union_a, ua, 2),
+                             IOP_UNION(tstiop__my_union_a, ua, 3));
+        fst->e = T_IOP_ARRAY(tstiop__my_class1,
+                             t_iop_new(tstiop__my_class1),
+                             t_iop_new(tstiop__my_class1));
+        fst->e.tab[0]->int1 = 7;
+        fst->e.tab[1]->int1 = 8;
+
+        fst = iop_init(tstiop__my_struct_f, qv_growlen(&fvec, 1));
+        fst->d = T_IOP_ARRAY(tstiop__my_union_a,
+                             IOP_UNION(tstiop__my_union_a, ua, 1),
+                             IOP_UNION(tstiop__my_union_a, ua, 4));
+        fst->e = T_IOP_ARRAY(tstiop__my_class1,
+                             t_iop_new(tstiop__my_class1));
+        fst->e.tab[0]->int1 = 4;
+
+        fst = iop_init(tstiop__my_struct_f, qv_growlen(&fvec, 1));
+        fst->d = T_IOP_ARRAY(tstiop__my_union_a,
+                             IOP_UNION(tstiop__my_union_a, ua, 3));
+        fst->e = T_IOP_ARRAY(tstiop__my_class1,
+                             t_iop_new(tstiop__my_class1),
+                             t_iop_new(tstiop__my_class1),
+                             t_iop_new(tstiop__my_class1));
+        fst->e.tab[0]->int1 = 5;
+        fst->e.tab[1]->int1 = 10;
+        fst->e.tab[2]->int1 = 42;
+
+#define TST_SORT_VEC(p, f)  \
+        iop_sort(tstiop__my_struct_f, fvec.tab, fvec.len, LSTR(p), (f), NULL)
+
+        Z_ASSERT_N(TST_SORT_VEC("d[0].ua", 0));
+        Z_ASSERT_EQ(fvec.tab[0].d.tab[0].ua, 1);
+        Z_ASSERT_EQ(fvec.tab[1].d.tab[0].ua, 2);
+        Z_ASSERT_EQ(fvec.tab[2].d.tab[0].ua, 3);
+
+        Z_ASSERT_N(TST_SORT_VEC("d[1].ua", 0));
+        Z_ASSERT_EQ(fvec.tab[0].d.tab[1].ua, 3);
+        Z_ASSERT_EQ(fvec.tab[1].d.tab[1].ua, 4);
+        Z_ASSERT_EQ(fvec.tab[2].d.len, 1);
+
+        Z_ASSERT_N(TST_SORT_VEC("d[0]", 0));
+        Z_ASSERT_EQ(fvec.tab[0].d.tab[0].ua, 1);
+        Z_ASSERT_EQ(fvec.tab[1].d.tab[0].ua, 2);
+        Z_ASSERT_EQ(fvec.tab[2].d.tab[0].ua, 3);
+
+        Z_ASSERT_N(TST_SORT_VEC("e[0].int1", 0));
+        Z_ASSERT_EQ(fvec.tab[0].e.tab[0]->int1, 4);
+        Z_ASSERT_EQ(fvec.tab[1].e.tab[0]->int1, 5);
+        Z_ASSERT_EQ(fvec.tab[2].e.tab[0]->int1, 7);
+
+        Z_ASSERT_N(TST_SORT_VEC("e[1].int1", 0));
+        Z_ASSERT_EQ(fvec.tab[0].e.tab[1]->int1, 8);
+        Z_ASSERT_EQ(fvec.tab[1].e.tab[1]->int1, 10);
+        Z_ASSERT_EQ(fvec.tab[2].e.len, 1);
+
+        Z_ASSERT_N(TST_SORT_VEC("e[2].int1", 0));
+        Z_ASSERT_EQ(fvec.tab[0].e.tab[2]->int1, 42);
+        Z_ASSERT_LT(fvec.tab[1].e.len, 3);
+        Z_ASSERT_LT(fvec.tab[2].e.len, 3);
+
+#undef TST_SORT_VEC
+
 
     } Z_TEST_END;
     /* }}} */
@@ -4047,10 +4127,24 @@ Z_GROUP_EXPORT(iop)
         INIT_ORIGINAL();
         ADD_PARAM(5, 0);
         FILTER_AND_CHECK_LEN("c", 1, 1);
+
         INIT_ORIGINAL();
         ADD_PARAM(5, 0);
         ADD_PARAM(11, 1);
         FILTER_AND_CHECK_LEN("c", 2, 2);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        FILTER_AND_CHECK_LEN("c[0]", 1, 0);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        FILTER_AND_CHECK_LEN("c[2]", 1, 1);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        ADD_PARAM(7, 1);
+        FILTER_AND_CHECK_LEN("c[2]", 2, 2);
 
         /* Filter on the length of a repeated field */
         INIT_ORIGINAL();
@@ -4287,6 +4381,10 @@ Z_GROUP_EXPORT(iop)
         second.u.len = 1;
         FILTER_AND_CHECK_LEN("u", true,   1);
         FILTER_AND_CHECK_LEN("u", false,  2);
+        FILTER_AND_CHECK_LEN("u[0]", true,   1);
+        FILTER_AND_CHECK_LEN("u[0]", false,  2);
+        FILTER_AND_CHECK_LEN("u[1]", true,   0);
+        FILTER_AND_CHECK_LEN("u[1]", false,  3);
 
         /* Test filter on optional void. */
         first.w  = true;
