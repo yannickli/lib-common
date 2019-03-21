@@ -3720,6 +3720,14 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(vec.tab[3].htab.tab[2], 2u);
         Z_ASSERT_EQ(vec.tab[4].htab.tab[0], 4u);
 
+        /* sort on the length of a repeated field */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("htab.len"), 0));
+        Z_ASSERT_EQ(vec.tab[0].htab.len, 1);
+        Z_ASSERT_EQ(vec.tab[1].htab.len, 2);
+        Z_ASSERT_EQ(vec.tab[2].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[3].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[4].htab.len, 4);
+
         /* error: empty field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
@@ -4044,6 +4052,10 @@ Z_GROUP_EXPORT(iop)
         ADD_PARAM(11, 1);
         FILTER_AND_CHECK_LEN("c", 2, 2);
 
+        /* Filter on the length of a repeated field */
+        INIT_ORIGINAL();
+        ADD_PARAM(4, 0);
+        FILTER_AND_CHECK_LEN("c.len", 1, 1);
 
         /* iop_filter_bitmap. */
 #define FILTER_BITMAP(_field, _allowed_len, _op)  \

@@ -1913,6 +1913,9 @@ typedef struct field_path_t {
     /* True if the field is the name of an IOP class (in this case, the
      * field name is supposed to be '_class'). */
     bool is_typename : 1;
+
+    /* True if the field we're trying to obtain is the length of an array. */
+    bool is_array_len : 1;
 } field_path_t;
 GENERIC_FUNCTIONS(field_path_t, field_path);
 
@@ -1959,10 +1962,19 @@ static int iop_get_fieldp(const void *nonnull data,
     }
 
     if (fdesc->repeat == IOP_R_REPEATED) {
-        int len = ((iop_array_i8_t *)data)->len;
+        if (field_path->is_array_len) {
+            *value = data;
+            return 0;
+        } else {
+            const i8__array_t *array = data;
 
-        *value = len ? data : NULL;
-        return len ? 0 : -1;
+            if (!array->len) {
+                goto no_value;
+            }
+        }
+
+        *value = data;
+        return 0;
     }
 
     if (fdesc->type == IOP_T_UNION
@@ -2050,15 +2062,36 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             step->type = FIELD_STEP_TYPE_UNION_FIELD;
             step->u.union_tag = fdesc->tag;
         }
+        if (fdesc->repeat == IOP_R_REPEATED
+        &&  lstr_equal(LSTR_PS_V(&field_path_ps), LSTR("len")))
+        {
+            ps_skip_upto(&field_path_ps, ps_end(&field_path_ps));
+
+            /* Length of arrays containing values of repeated fields can be
+             * accessed with '.len'. */
+            fp->is_array_len = true;
+        }
         if (ps_done(&field_path_ps)) {
             fp->st_desc = it;
             fp->fdesc = fdesc;
         }
 
+        if (fdesc->data_offs || fp->is_array_len) {
+            if (!step || step->type != FIELD_STEP_TYPE_MOVE) {
+                step = field_step_init(qv_growlen(&fp->steps, 1));
+                step->type = FIELD_STEP_TYPE_MOVE;
+            }
+            step->u.offset += fdesc->data_offs;
+
+            if (fp->is_array_len) {
+                /* Position the pointer on the array length. */
+                step->u.offset += offsetof(i8__array_t, len);
+
+                return 0;
+            }
+        }
+
         if (fdesc->repeat == IOP_R_REPEATED && !ps_done(&field_path_ps)) {
-            /* XXX we could also sort the repeated fields based on their
-             * number of elements
-             */
             if (err) {
                 sb_addf(err, "cannot process field path `%*pM', "
                         "field `%*pM' is repeated in structure `%*pM'",
@@ -2067,12 +2100,6 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             }
             return -1;
         }
-
-        if (!step || step->type != FIELD_STEP_TYPE_MOVE) {
-            step = field_step_init(qv_growlen(&fp->steps, 1));
-            step->type = FIELD_STEP_TYPE_MOVE;
-        }
-        step->u.offset += fdesc->data_offs;
 
         if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
             it = fdesc->u1.st_desc;
@@ -2191,6 +2218,9 @@ compare_field(const void *d1, const void *d2, const iop_sort_priv_t *priv)
 
     if (priv->fp.is_typename) {
         res = lstr_utf8_icmp(*(lstr_t *)d1, *(lstr_t *)d2);
+    } else
+    if (priv->fp.is_array_len) {
+        res = CMP(*(int *)d1, *(int *)d2);
     } else {
         const iop_field_t *fdesc = priv->fp.fdesc;
         iop_repeat_t repeat;
@@ -2506,7 +2536,9 @@ static bool iop_filter_val_matches(const byte *vec_read,
         return false;
     }
 
-    if (fp->fdesc && fp->fdesc->repeat == IOP_R_REPEATED) {
+    if (fp->fdesc && fp->fdesc->repeat == IOP_R_REPEATED
+    &&  !fp->is_array_len)
+    {
         const iop_array_i8_t *array = val;
 
         for (int i = 0; i < array->len; i++) {
@@ -2545,7 +2577,7 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
 
     if (OPT_ISSET(is_set)) {
         assert (!values_len);
-        if (!fp.is_typename
+        if (!fp.is_typename && !fp.is_array_len
         &&  fp.fdesc->repeat != IOP_R_OPTIONAL
         &&  fp.fdesc->repeat != IOP_R_REPEATED)
         {
@@ -2559,7 +2591,12 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
     } else {
         iop_type_t type;
 
-        if (!fp.is_typename) {
+        if (fp.is_typename) {
+            type = IOP_T_STRING;
+        } else
+        if (fp.is_array_len) {
+            type = IOP_T_I32;
+        } else {
             if (fp.fdesc->type == IOP_T_STRUCT) {
                 if (err) {
                     sb_addf(err, "cannot filter on sub-structure `%*pM'",
@@ -2575,8 +2612,6 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
                 return -1;
             }
             type = fp.fdesc->type;
-        } else {
-            type = IOP_T_STRING;
         }
 
         if (flags & IOP_FILTER_SQL_LIKE) {
