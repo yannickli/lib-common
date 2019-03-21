@@ -2270,33 +2270,6 @@ int iop_sort_desc(const iop_struct_t *st, void *vec, int len,
         THROW_IF(__cmp_res, __cmp_res);                                      \
     } while (0)
 
-static size_t iop_scalar_type_get_size(iop_type_t type)
-{
-    static uint8_t sizes[] = {
-        [IOP_T_VOID]   = 0,
-        [IOP_T_BOOL]   = sizeof(bool),
-        [IOP_T_U8]     = sizeof(uint8_t),
-        [IOP_T_I8]     = sizeof(int8_t),
-        [IOP_T_U16]    = sizeof(uint16_t),
-        [IOP_T_I16]    = sizeof(int16_t),
-        [IOP_T_U32]    = sizeof(uint32_t),
-        [IOP_T_I32]    = sizeof(int32_t),
-        [IOP_T_ENUM]   = sizeof(int32_t),
-        [IOP_T_U64]    = sizeof(uint64_t),
-        [IOP_T_I64]    = sizeof(int64_t),
-        [IOP_T_DOUBLE] = sizeof(double),
-        [IOP_T_STRING] = sizeof(lstr_t),
-        [IOP_T_DATA]   = sizeof(lstr_t),
-        [IOP_T_XML]    = sizeof(lstr_t),
-    };
-
-    if (!iop_type_is_scalar(type)) {
-        e_panic("should not happen");
-    }
-
-    return sizes[type];
-}
-
 static int __iop_cmp(const iop_struct_t *st, const void *v1, const void *v2);
 
 int iop_cmp_field(const iop_field_t *nonnull fdesc,
@@ -2364,14 +2337,13 @@ int iop_cmp_field(const iop_field_t *nonnull fdesc,
         return 0;
     } else {
         cmp_f cmp = iop_get_cmp_fun(fdesc->type);
-        uint8_t fsize = iop_scalar_type_get_size(fdesc->type);
         const uint8_t *p1 = r1;
         const uint8_t *p2 = r2;
 
         for (int i = 0; i < n; i++) {
             CMP_RETHROW(cmp(p1, p2));
-            p1 += fsize;
-            p2 += fsize;
+            p1 += fdesc->size;
+            p2 += fdesc->size;
         }
     }
 
