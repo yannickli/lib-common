@@ -319,7 +319,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
 %%
 
 <INITIAL,ATTR>{
-    "\239\187\191"      /* skip */
+    "\xef\xbb\xbf"      /* skip UTF8 BOM */
     {HS}+               /* skip */
     {EOL}               { lexdata_newline(yyextra, yyleng); }
     {SCHARS}            { return token_new(yytext[0]); }
