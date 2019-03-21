@@ -653,23 +653,36 @@ void module_on_term(int signo)
 }
 
 MODULE_METHOD(VOID, DEPS_AFTER, at_fork_prepare);
-MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_parent);
+MODULE_METHOD(INT, DEPS_BEFORE, at_fork_on_parent);
 MODULE_METHOD(VOID, DEPS_BEFORE, at_fork_on_child);
+MODULE_METHOD(INT, DEPS_BEFORE, at_fork_on_child_terminated);
 MODULE_METHOD(VOID, DEPS_BEFORE, consume_child_events);
 
 static void module_at_fork_prepare(void)
 {
-    MODULE_METHOD_RUN_VOID(at_fork_prepare);
+    /* XXX: don't call method when coming from ifork() because it already
+     *      calls it. */
+    if (!ifork_in_progress()) {
+        MODULE_METHOD_RUN_VOID(at_fork_prepare);
+    }
 }
 
 static void module_at_fork_on_parent(void)
 {
-    MODULE_METHOD_RUN_VOID(at_fork_on_parent);
+    /* XXX: don't call method when coming from ifork() because it already
+     *      calls it (with a good child pid). */
+    if (!ifork_in_progress()) {
+        MODULE_METHOD_RUN_INT(at_fork_on_parent, -1);
+    }
 }
 
 static void module_at_fork_on_child(void)
 {
-    MODULE_METHOD_RUN_VOID(at_fork_on_child);
+    /* XXX: don't call method when coming from ifork() because it already
+     *      calls it. */
+    if (!ifork_in_progress()) {
+        MODULE_METHOD_RUN_VOID(at_fork_on_child);
+    }
 }
 
 #ifndef SHARED

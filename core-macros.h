@@ -639,6 +639,10 @@ typedef unsigned char byte;
 #undef readdir_r
 #define readdir_r(...)  NEVER_USE_readdir_r(__VA_ARGS__)
 
+/* fork() is not dangerous, but ifork() must be used instead */
+#undef fork
+#define fork(...)  NEVER_USE_fork(__VA_ARGS__)
+
 /* }}} */
 /** \} */
 #endif

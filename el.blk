@@ -360,6 +360,7 @@ static void el_child_fire(ev_t **ev)
     } else {
         (*e->cb.child)(e, e->child.pid, e->child.status, e->priv);
     }
+    MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, e->child.pid);
     el_destroy(&e);
 }
 
@@ -691,6 +692,8 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
              */
             child->child.status = status;
             el_child_fire(&child);
+        } else {
+            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
         }
     }
 }
@@ -733,11 +736,6 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 
         pthread_sigmask(SIG_SETMASK, &prev, NULL);
         return ev_add(&_G.before, ev);;
-    }
-
-    if (unlikely(!_G.el_sigchld_hook)) {
-        _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook,
-                                                NULL);
     }
 
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
@@ -805,7 +803,7 @@ pid_t el_spawn_child(const char *file, const char *argv_in[],
 
     qv_append(&argv_final, NULL);
 
-    if ((pid = fork()) == 0) {
+    if ((pid = ifork()) == 0) {
         if (child) {
             child();
         }
@@ -2005,6 +2003,8 @@ static int el_initialize(void *arg)
 #else
     _G.el_on_pwr = el_signal_register(SIGINFO, el_on_pwr, NULL);
 #endif
+
+    _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
 
     return 0;
 }

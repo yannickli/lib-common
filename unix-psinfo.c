@@ -12,24 +12,13 @@
 /**************************************************************************/
 
 #include <sys/wait.h>
+
+#include "thr.h"
 #include "unix.h"
 
 pid_t psinfo_get_tracer_pid(pid_t pid)
 {
     return _psinfo_get_tracer_pid(pid);
-}
-
-void ps_dump_core_of_current_thread(void)
-{
-    pid_t pid = fork();
-
-    if (!pid) {
-        abort();
-    } else
-    if (pid > 0) {
-        while (waitpid(pid, NULL, 0) < 0) {
-        }
-    }
 }
 
 void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
