@@ -3742,6 +3742,15 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_LT(vec.tab[3].htab.len, 3);
         Z_ASSERT_LT(vec.tab[4].htab.len, 3);
 
+        /* sort on the last element of a repeated field */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("htab[-1]"), 0));
+        Z_ASSERT_EQ(vec.tab[0].htab.len, 3);
+        Z_ASSERT_EQ(vec.tab[0].htab.tab[2], 1u);
+        Z_ASSERT_EQ(*tab_last(&vec.tab[1].htab), 2u);
+        Z_ASSERT_EQ(*tab_last(&vec.tab[2].htab), 2u);
+        Z_ASSERT_EQ(*tab_last(&vec.tab[3].htab), 4u);
+        Z_ASSERT_EQ(*tab_last(&vec.tab[4].htab), 4u);
+
         /* error: empty field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
@@ -3941,6 +3950,18 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(fvec.tab[1].d.tab[1].ua, 4);
         Z_ASSERT_EQ(fvec.tab[2].d.len, 1);
 
+        Z_ASSERT_N(TST_SORT_VEC("d[-1].ua", 0));
+        Z_ASSERT_EQ(tab_last(&fvec.tab[0].d)->ua, 3);
+        Z_ASSERT_EQ(tab_last(&fvec.tab[1].d)->ua, 3);
+        Z_ASSERT_EQ(tab_last(&fvec.tab[2].d)->ua, 4);
+
+        Z_ASSERT_N(TST_SORT_VEC("d[-2].ua", 0));
+        Z_ASSERT_EQ(fvec.tab[0].d.len, 2);
+        Z_ASSERT_EQ(fvec.tab[0].d.tab[0].ua, 1);
+        Z_ASSERT_EQ(fvec.tab[1].d.len, 2);
+        Z_ASSERT_EQ(fvec.tab[1].d.tab[0].ua, 2);
+        Z_ASSERT_EQ(fvec.tab[2].d.len, 1);
+
         Z_ASSERT_N(TST_SORT_VEC("d[0]", 0));
         Z_ASSERT_EQ(fvec.tab[0].d.tab[0].ua, 1);
         Z_ASSERT_EQ(fvec.tab[1].d.tab[0].ua, 2);
@@ -3960,6 +3981,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(fvec.tab[0].e.tab[2]->int1, 42);
         Z_ASSERT_LT(fvec.tab[1].e.len, 3);
         Z_ASSERT_LT(fvec.tab[2].e.len, 3);
+
+        Z_ASSERT_N(TST_SORT_VEC("e[-1].int1", 0));
+        Z_ASSERT_EQ((*tab_last(&fvec.tab[0].e))->int1, 4);
+        Z_ASSERT_EQ((*tab_last(&fvec.tab[1].e))->int1, 8);
+        Z_ASSERT_EQ((*tab_last(&fvec.tab[2].e))->int1, 42);
 
 #undef TST_SORT_VEC
 
@@ -4145,6 +4171,18 @@ Z_GROUP_EXPORT(iop)
         ADD_PARAM(5, 0);
         ADD_PARAM(7, 1);
         FILTER_AND_CHECK_LEN("c[2]", 2, 2);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(11, 0);
+        FILTER_AND_CHECK_LEN("c[-1]", 1, 2);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(7, 0);
+        FILTER_AND_CHECK_LEN("c[-2]", 1, 2);
+
+        INIT_ORIGINAL();
+        ADD_PARAM(5, 0);
+        FILTER_AND_CHECK_LEN("c[-3]", 1, 1);
 
         /* Filter on the length of a repeated field */
         INIT_ORIGINAL();
@@ -4385,6 +4423,8 @@ Z_GROUP_EXPORT(iop)
         FILTER_AND_CHECK_LEN("u[0]", false,  2);
         FILTER_AND_CHECK_LEN("u[1]", true,   0);
         FILTER_AND_CHECK_LEN("u[1]", false,  3);
+        FILTER_AND_CHECK_LEN("u[-1]", true,   1);
+        FILTER_AND_CHECK_LEN("u[-1]", false,  2);
 
         /* Test filter on optional void. */
         first.w  = true;

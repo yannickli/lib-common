@@ -1967,14 +1967,18 @@ static int iop_get_fieldp(const void *nonnull data,
 
           case FIELD_STEP_TYPE_GOTO_INDEX: {
             const i8__array_t *array = data;
+            ssize_t index = step->u.index;
 
-            if (step->u.index >= array->len || step->u.index < 0) {
+            if (index < 0) {
+                /* Negative index: array[-1] is the last element of 'array'.
+                 */
+                index = array->len + index;
+            }
+            if (index >= array->len || index < 0) {
                 goto no_value;
             }
 
-            data = array->tab;
-            data = (const byte *)data +
-                (ssize_t)step->u.index * step->array_element_sz;
+            data = array->tab + index * step->array_element_sz;
           } break;
         }
     }
@@ -2060,8 +2064,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         } else {
             errno = 0;
             OPT_SET(index, ps_geti(&field_ps));
-            if (OPT_VAL(index) < 0 || errno || ps_skipc(&field_ps, ']') < 0
-            ||  !ps_done(&field_ps))
+            if (errno || ps_skipc(&field_ps, ']') < 0 || !ps_done(&field_ps))
             {
                 if (err) {
                     sb_adds(err, "invalid field index");
