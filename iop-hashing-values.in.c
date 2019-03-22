@@ -189,7 +189,7 @@ F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
         }
 
         if (fdesc->repeat == IOP_R_OPTIONAL && (flags & IOP_HASH_SKIP_MISSING)
-        &&  !iop_value_has(fdesc, r))
+        &&  !iop_opt_field_isset(fdesc->type, r))
         {
             continue;
         }
@@ -207,8 +207,9 @@ F(__iop_hash)(struct iop_hash_ctx *ctx, const iop_struct_t *st,
         }
 
         if (fdesc->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(fdesc, r))
+            if (!iop_opt_field_isset(fdesc->type, r)) {
                 continue;
+            }
 
             if ((1 << fdesc->type) & IOP_BLK_OK) {
                 if ((1 << fdesc->type) & IOP_STRUCTS_OK) {

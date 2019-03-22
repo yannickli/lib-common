@@ -605,7 +605,7 @@ bool iop_field_is_pointed(const iop_field_t *fdesc)
     return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
 }
 
-bool iop_opt_field_is_set(iop_type_t type, void *data, void **value)
+int iop_opt_field_getv(iop_type_t type, void *data, void **value)
 {
     switch (type) {
       case IOP_T_I8:
@@ -640,20 +640,19 @@ bool iop_opt_field_is_set(iop_type_t type, void *data, void **value)
       case IOP_T_UNION:
         *value = *(void **)data;
         break;
-      case IOP_T_VOID: {
-        bool res = *(bool *)data;
-
+      case IOP_T_VOID:
         *value = NULL;
-        return res;
-      }
+        return *(bool *)data ? 0 : -1;
     }
-    return *value != NULL;
+
+    RETHROW_PN(*value);
+    return 0;
 }
 
-static bool iop_opt_field_is_set_const(iop_type_t type, const void *data,
-                                       const void **value)
+static int iop_opt_field_getv_const(iop_type_t type, const void *data,
+                                    const void **value)
 {
-    return iop_opt_field_is_set(type, (void *)data, (void **)value);
+    return iop_opt_field_getv(type, (void *)data, (void **)value);
 }
 
 void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
@@ -680,7 +679,7 @@ void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
     }
 
     if (fdesc->repeat == IOP_R_OPTIONAL) {
-        if (!iop_opt_field_is_set(fdesc->type, fptr, &fptr)) {
+        if (iop_opt_field_getv(fdesc->type, fptr, &fptr) < 0) {
             /* The optional field is absent. */
             *len = 0;
             *values = NULL;
@@ -1214,8 +1213,9 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
             continue;
 
         if (fdesc->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(fdesc, ptr))
+            if (!iop_opt_field_isset(fdesc->type, ptr)) {
                 continue;
+            }
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
                 ptr = *(void **)ptr;
                 if (is_class) {
@@ -1331,7 +1331,9 @@ static uint8_t *__iop_deep_copy(mem_pool_t *mp, const iop_struct_t *st,
             continue;
         }
 
-        if (fdesc->repeat == IOP_R_OPTIONAL && !iop_value_has(fdesc, rp)) {
+        if (fdesc->repeat == IOP_R_OPTIONAL
+        &&  !iop_opt_field_isset(fdesc->type, rp))
+        {
             continue;
         }
 
@@ -1768,12 +1770,14 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
         if (fdesc->repeat == IOP_R_OPTIONAL) {
             /* Optional blocks types cannot be compared using a single memcmp
              * we need to handle absent values first. */
-            bool has = iop_value_has(fdesc, r1);
+            bool has = iop_opt_field_isset(fdesc->type, r1);
 
-            if (has != iop_value_has(fdesc, r2))
+            if (has != iop_opt_field_isset(fdesc->type, r2)) {
                 return false;
-            if (!has)
+            }
+            if (!has) {
                 continue;
+            }
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
                 /* Structures & unions must be dereferenced */
                 r1  = *(void **)r1;
@@ -1958,10 +1962,7 @@ static int iop_get_fieldp(const void *data, const field_path_t *field_path,
         return 0;
     }
 
-    if (!iop_opt_field_is_set_const(field_path->fdesc->type, data, value)) {
-        return -1;
-    }
-    return 0;
+    return iop_opt_field_getv_const(field_path->fdesc->type, data, value);
 
   no_value:
     *value = NULL;
@@ -2319,9 +2320,9 @@ int iop_cmp_field(const iop_field_t *nonnull fdesc,
     if (fdesc->repeat == IOP_R_OPTIONAL) {
         /* Optional blocks types cannot be compared using a single memcmp
          * we need to handle absent values first. */
-        bool has = iop_value_has(fdesc, r1);
+        bool has = iop_opt_field_isset(fdesc->type, r1);
 
-        CMP_RETHROW(CMP(has, iop_value_has(fdesc, r2)));
+        CMP_RETHROW(CMP(has, iop_opt_field_isset(fdesc->type, r2)));
         if (!has) {
             return 0;
         }
@@ -2938,10 +2939,12 @@ __iop_check_constraints_struct(const iop_struct_t *desc, const void *val)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(fdesc, ptr))
+            if (!iop_opt_field_isset(fdesc->type, ptr)) {
                 continue;
-            if ((1 << fdesc->type) & IOP_STRUCTS_OK)
+            }
+            if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
                 ptr = *(void **)ptr;
+            }
         } else
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((lstr_t *)ptr)->len;
@@ -3223,10 +3226,12 @@ static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
         }
 
         if (fdesc->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(fdesc, ptr))
+            if (!iop_opt_field_isset(fdesc->type, ptr)) {
                 continue;
-            if ((1 << fdesc->type) & IOP_STRUCTS_OK)
+            }
+            if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
                 ptr = *(void **)ptr;
+            }
         } else
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((lstr_t *)ptr)->len;
@@ -3792,10 +3797,12 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
         }
 
         if (f->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(f, ptr))
+            if (!iop_opt_field_isset(f->type, ptr)) {
                 continue;
-            if ((1 << f->type) & IOP_STRUCTS_OK)
+            }
+            if ((1 << f->type) & IOP_STRUCTS_OK) {
                 ptr = *(void **)ptr;
+            }
         } else
         if (f->repeat == IOP_R_REPEATED) {
             const lstr_t *data = ptr;

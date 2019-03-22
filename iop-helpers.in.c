@@ -121,9 +121,9 @@ static inline bool iop_value_equals(iop_type_t type, const void *v1,
     return false;
 }
 
-static inline bool iop_value_has(const iop_field_t *f, const void *v)
+static inline bool iop_opt_field_isset(iop_type_t type, const void *v)
 {
-    switch (f->type) {
+    switch (type) {
       case IOP_T_I8:  case IOP_T_U8:
         return ((opt_u8_t *)v)->has_field != 0;
       case IOP_T_I16: case IOP_T_U16:

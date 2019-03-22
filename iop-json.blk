@@ -2175,7 +2175,7 @@ get_n_and_ptr(const iop_struct_t *desc, unsigned flags,
 
     switch (fdesc->repeat) {
       case IOP_R_OPTIONAL:
-        *n = iop_value_has(fdesc, ptr);
+        *n = iop_opt_field_isset(fdesc->type, ptr);
         if (*n && ((1 << fdesc->type) & IOP_STRUCTS_OK)) {
             ptr = *(void **)ptr;
         }

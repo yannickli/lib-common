@@ -175,8 +175,9 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
         }
 
         if (f->repeat == IOP_R_OPTIONAL) {
-            if (!iop_value_has(f, ptr))
+            if (!iop_opt_field_isset(f->type, ptr)) {
                 continue;
+            }
             if ((1 << f->type) & IOP_STRUCTS_OK)
                 ptr = *(void **)ptr;
         }

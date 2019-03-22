@@ -1163,14 +1163,17 @@ int iop_field_by_name_get_gen_attr(const iop_struct_t * nonnull st,
  * The return value is useful to distinguish the case where the option
  * is set, but there is no data for it (optional void field).
  *
+ * The parameter \p value is mandatory. If you only want to know whether the
+ * optional field is set or not, please use \ref iop_opt_field_isset.
+ *
  * \param[in] type The type of the field.
  * \param[in] data A pointer to the optional field.
  * \param[out] value The value to put the result in.
  *
- * \return true if the option is set, false otherwise.
+ * \return 0 if the optional field is set, -1 otherwise.
  */
-bool iop_opt_field_is_set(iop_type_t type, void * nonnull data,
-                          void * nullable * nonnull value);
+int iop_opt_field_getv(iop_type_t type, void * nonnull data,
+                       void * nullable * nonnull value);
 
 /** Constant version of \ref iop_get_field (below).
  */
