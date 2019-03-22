@@ -1865,18 +1865,25 @@ bool iop_equals_desc(const iop_struct_t *st, const void *v1, const void *v2)
 /* {{{ Sorting values */
 /* {{{ Field path */
 
+typedef enum field_step_type_t {
+    FIELD_STEP_TYPE_MOVE,
+    FIELD_STEP_TYPE_INDIRECTION,
+    FIELD_STEP_TYPE_UNION_FIELD,
+} field_step_type_t;
+
 typedef struct field_step_t {
-    /* Distance (in byte) between the current position and the next field to
-     * read. */
-    uint16_t offset;
+    field_step_type_t type : 16;
 
-    /* If the field to read is an union field, this attribute contains the
-     * union tag expected for the field. */
-    uint16_t union_tag;
+    union {
+        /* For step type FIELD_STEP_TYPE_MOVE. Distance (in byte) between the
+         * current position and the next field to read. */
+        uint16_t offset;
 
-    /* True if the field is an union field. No indirection needed in this
-     * case. */
-    bool is_union : 1;
+        /* For step type FIELD_STEP_TYPE_UNION_FIELD. Expected union tag for
+         * current union. If another field is selected, then the field is
+         * considered as missing. */
+        uint16_t union_tag;
+    } u;
 } field_step_t;
 GENERIC_INIT(field_step_t, field_step);
 
@@ -1900,6 +1907,9 @@ typedef struct field_path_t {
     /* Description of the field to get. */
     const iop_field_t  *fdesc;
 
+    /* Description of the struct containing the field 'fdesc'. */
+    const iop_struct_t *st_desc;
+
     /* True if the field is the name of an IOP class (in this case, the
      * field name is supposed to be '_class'). */
     bool is_typename : 1;
@@ -1908,38 +1918,38 @@ GENERIC_FUNCTIONS(field_path_t, field_path);
 
 /* {{{ Get */
 
-static int iop_get_fieldp(const void *data, const field_path_t *field_path,
-                          const void **value)
+static int iop_get_fieldp(const void *nonnull data,
+                          const field_path_t *nonnull field_path,
+                          const void **nonnull value)
 {
     const qv_t(field_step)  *steps = &field_path->steps;
     const iop_field_t       *fdesc = field_path->fdesc;
 
-    if (!data) {
-        goto no_value;
-    }
+    tab_for_each_ptr(step, steps) {
+        switch (step->type) {
+          case FIELD_STEP_TYPE_MOVE:
+            data = ((const byte *)data) + step->u.offset;
+            break;
 
-    for (int i = 0; i < steps->len - 1; i++) {
-        field_step_t *step = &steps->tab[i];
-
-        data = ((const byte *)data) + step->offset;
-
-        if (step->is_union) {
-            /* Check if the selected member of the union is the one we want
-             * (the one specified in field_path), and if not this object is
-             * considered as NULL in the sort/filter. */
-            if (*(const uint16_t *)data != step->union_tag) {
-                goto no_value;
-            }
-        } else {
+          case FIELD_STEP_TYPE_INDIRECTION:
             /* Pointed structure or union (optional), or classes */
             data = *((void **)data);
             if (!data) {
+                /* TODO Error for mandatory fields maybe ? */
                 goto no_value;
             }
+            break;
+
+          case FIELD_STEP_TYPE_UNION_FIELD:
+            /* Check if the selected member of the union is the one we want
+             * (the one specified in field_path), and if not this object is
+             * considered as NULL in the sort/filter. */
+            if (*(const uint16_t *)data != step->u.union_tag) {
+                goto no_value;
+            }
+            break;
         }
     }
-
-    data = ((const byte *)data) + tab_last(steps)->offset;
 
     if (field_path->is_typename) {
         const iop_struct_t *st = *(const void **)data;
@@ -1987,7 +1997,7 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         }
         return -1;
     }
-    step = field_step_init(qv_growlen(&fp->steps, 1));
+    step = NULL;
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
 
@@ -2035,6 +2045,16 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             return -1;
         }
 
+        if (it->is_union) {
+            step = field_step_init(qv_growlen(&fp->steps, 1));
+            step->type = FIELD_STEP_TYPE_UNION_FIELD;
+            step->u.union_tag = fdesc->tag;
+        }
+        if (ps_done(&field_path_ps)) {
+            fp->st_desc = it;
+            fp->fdesc = fdesc;
+        }
+
         if (fdesc->repeat == IOP_R_REPEATED && !ps_done(&field_path_ps)) {
             /* XXX we could also sort the repeated fields based on their
              * number of elements
@@ -2047,23 +2067,22 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             }
             return -1;
         }
-        if (it->is_union) {
-            step->is_union = true;
-            step->union_tag = fdesc->tag;
-            step = field_step_init(qv_growlen(&fp->steps, 1));
-        }
 
-        step->offset += fdesc->data_offs;
+        if (!step || step->type != FIELD_STEP_TYPE_MOVE) {
+            step = field_step_init(qv_growlen(&fp->steps, 1));
+            step->type = FIELD_STEP_TYPE_MOVE;
+        }
+        step->u.offset += fdesc->data_offs;
+
         if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
             it = fdesc->u1.st_desc;
 
             if (iop_field_is_pointed(fdesc)) {
                 step = field_step_init(qv_growlen(&fp->steps, 1));
+                step->type = FIELD_STEP_TYPE_INDIRECTION;
             }
         }
     }
-
-    fp->fdesc = fdesc;
 
     return 0;
 }
