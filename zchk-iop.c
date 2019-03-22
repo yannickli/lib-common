@@ -3511,6 +3511,7 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("xyz");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 111);
         a.lr = &un[0];
+        a.htab = T_IOP_ARRAY(u64, 3, 2, 1);
         cls3.int1 = 10;
         cls3.int2 = 100;
         cls3.int3 = 1000;
@@ -3522,6 +3523,7 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("abc");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 666);
         a.lr = &un[1];
+        a.htab = T_IOP_ARRAY(u64, 3, 2, 2);
         cls2.int1 = 15;
         cls2.int2 = 95;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
@@ -3532,6 +3534,7 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("Jkl");
         a.l = IOP_UNION(tstiop__my_union_a, ua, 222);
         a.lr = &un[2];
+        a.htab = T_IOP_ARRAY(u64, 1, 2);
         cls3.int1 = 13;
         cls3.int2 = 98;
         cls3.int3 = 1000;
@@ -3543,6 +3546,7 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("jKl");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 23);
         a.lr = &un[3];
+        a.htab = T_IOP_ARRAY(u64, 1, 2, 3, 4);
         cls2.int1 = 14;
         cls2.int2 = 96;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
@@ -3553,6 +3557,7 @@ Z_GROUP_EXPORT(iop)
         a.j = LSTR("jkL");
         a.l = IOP_UNION(tstiop__my_union_a, ub, 42);
         a.lr = &un[4];
+        a.htab = T_IOP_ARRAY(u64, 4);
         cls2.int1 = 16;
         cls2.int2 = 97;
         a.cls2 = t_iop_dup(tstiop__my_class2, &cls2);
@@ -3574,7 +3579,15 @@ Z_GROUP_EXPORT(iop)
         /* sort on union l */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("l"), 0));
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
+        Z_ASSERT_EQ(vec.tab[0].l.ua, 111);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
+        Z_ASSERT_EQ(vec.tab[1].l.ua, 222);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
+        Z_ASSERT_EQ(vec.tab[2].l.ua, 666);
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[3].l, ub));
+        Z_ASSERT_EQ(vec.tab[3].l.ub, 23);
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[4].l, ub));
+        Z_ASSERT_EQ(vec.tab[4].l.ub, 42);
 
         /* sort on int ua, member of union l */
         Z_ASSERT_N(TST_SORT_VEC(LSTR("l.ua"), 0));
@@ -3696,14 +3709,23 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_LSTREQUAL(vec.tab[4].cls2->__vptr->fullname,
                            LSTR("tstiop.MyClass3"));
 
+        /* sort on repeated field */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("htab"), 0));
+        Z_ASSERT_EQ(vec.tab[0].htab.tab[0], 1u);
+        Z_ASSERT_EQ(vec.tab[0].htab.len, 2);
+        Z_ASSERT_EQ(vec.tab[1].htab.tab[0], 1u);
+        Z_ASSERT_EQ(vec.tab[2].htab.tab[0], 3u);
+        Z_ASSERT_EQ(vec.tab[2].htab.tab[2], 1u);
+        Z_ASSERT_EQ(vec.tab[3].htab.tab[0], 3u);
+        Z_ASSERT_EQ(vec.tab[3].htab.tab[2], 2u);
+        Z_ASSERT_EQ(vec.tab[4].htab.tab[0], 4u);
+
         /* error: empty field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR(""), 0));
         /* error: invalid field path */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("."), 0));
         /* error: bar field does not exist */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("bar"), 0));
-        /* error: htab is a repeated field */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("htab"), 0));
         /* error: get class of non-class */
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("_class"), 0));
         Z_ASSERT_NEG(TST_SORT_VEC(LSTR("lr._class"), 0));
@@ -3782,8 +3804,13 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(!vec2.tab[4].w);
         Z_ASSERT(!vec2.tab[5].w);
 
-        /* error: cannot sort on struct */
-        Z_ASSERT_NEG(TST_SORT_VEC(LSTR("o"), 0));
+        /* sort on struct */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR("o"), 0));
+        Z_ASSERT(vec2.tab[0].o == &b1);
+        Z_ASSERT(vec2.tab[1].o == &b2);
+        for (int i = 2; i < vec2.len; i++) {
+            Z_ASSERT_NULL(vec2.tab[i].o);
+        }
 
         qv_wipe(&vec2);
 #undef TST_SORT_VEC
