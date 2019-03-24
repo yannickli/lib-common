@@ -5735,7 +5735,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_NULL(iop_get_field_const(&struct_a, &tstiop__my_struct_a__s,
                                           LSTR("htab[0]a"), NULL, NULL));
         Z_ASSERT_NULL(iop_get_field_const(&struct_a, &tstiop__my_struct_a__s,
-                                          LSTR("htab[-1]"), NULL, NULL));
+                                          LSTR("htab[-42]"), NULL, NULL));
         Z_ASSERT_NULL(iop_get_field_const(&struct_f, &tstiop__my_struct_f__s,
                                           LSTR("c.a"), NULL, NULL));
         Z_ASSERT_NULL(iop_get_field_const(&struct_f, &tstiop__my_struct_f__s,
@@ -5911,6 +5911,13 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(out);
         Z_ASSERT(out_st == &tstiop__my_struct_a__s);
         Z_ASSERT_EQ(*(uint64_t *)out, struct_a.htab.tab[1]);
+
+        iop_field = iop_get_field_const(&struct_a, &tstiop__my_struct_a__s,
+                                        LSTR("htab[-1]"), &out, &out_st);
+        Z_ASSERT_P(iop_field);
+        Z_ASSERT_P(out);
+        Z_ASSERT(out_st == &tstiop__my_struct_a__s);
+        Z_ASSERT(out == tab_last(&struct_a.htab));
 
         iop_field = iop_get_field_const(&struct_a, &tstiop__my_struct_a__s,
                                         LSTR("htab"), &out, &out_st);

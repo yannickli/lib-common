@@ -80,6 +80,56 @@ int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
     return -1;
 }
 
+/* Parses a field from an input field path with or without index.
+ *
+ * Examples:
+ *
+ *    'foo[42]' -> field_name == 'foo'
+ *                 index == 42
+ *
+ *    'foo'     -> field_name == 'foo'
+ *                 index == NONE
+ */
+static int parse_field_from_path(pstream_t *field_path_ps,
+                                 pstream_t *field_name,
+                                 opt_i32_t *index, sb_t *err)
+{
+    pstream_t field_ps;
+    int indexv;
+
+    if (ps_get_ps_chr_and_skip(field_path_ps, '.', &field_ps) < 0) {
+        /* We reached the end of the path: this field is the last field. */
+        field_ps = *field_path_ps;
+        __ps_skip_upto(field_path_ps, ps_end(field_path_ps));
+    }
+
+    if (ps_get_ps_chr_and_skip(&field_ps, '[', field_name) >= 0) {
+        errno = 0;
+        indexv = ps_geti(&field_ps);
+        if (errno || ps_skipc(&field_ps, ']') < 0 || !ps_done(&field_ps)) {
+            if (err) {
+                sb_setf(err, "cannot read index for field `%*pM': "
+                        "syntax error", PS_FMT_ARG(field_name));
+            }
+
+            return -1;
+        }
+        *index = (opt_i32_t)OPT(indexv);
+    } else {
+        *field_name = field_ps;
+        *index = (opt_i32_t)OPT_NONE;
+    }
+
+    if (ps_done(field_name)) {
+        if (err) {
+            sb_sets(err, "empty field name");
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
 const iop_field_t *
 iop_get_field_const(const void *ptr, const iop_struct_t *st, lstr_t path,
                     const void ** nullable out_ptr,
@@ -89,27 +139,12 @@ iop_get_field_const(const void *ptr, const iop_struct_t *st, lstr_t path,
     const iop_field_t *iop_field = NULL;
 
     while (!ps_done(&ps)) {
-        pstream_t as;
         pstream_t s;
-        int array_index;
+        opt_i32_t array_index;
 
         RETHROW_P(ptr);
 
-        if (ps_get_ps_chr_and_skip(&ps, '.', &as) < 0) {
-            as = ps;
-            ps = ps_init(NULL, 0);
-        }
-
-        if (ps_get_ps_chr_and_skip(&as, '[', &s) < 0) {
-            s = as;
-            array_index = -1;
-        } else {
-            errno = 0;
-            array_index = ps_geti(&as);
-            THROW_NULL_IF(array_index < 0 || errno);
-            RETHROW_NP(ps_skipc(&as, ']'));
-            THROW_NULL_IF(!ps_done(&as));
-        }
+        RETHROW_NP(parse_field_from_path(&ps, &s, &array_index, NULL));
 
         if (iop_struct_is_class(st)) {
             st = *(const iop_struct_t **)ptr;
@@ -121,12 +156,18 @@ iop_get_field_const(const void *ptr, const iop_struct_t *st, lstr_t path,
         }
         ptr = (const byte *)ptr + iop_field->data_offs;
 
-        if (array_index >= 0) {
+        if (OPT_ISSET(array_index)) {
             const IOP_ARRAY_OF(byte) *array_ptr = ptr;
 
             THROW_NULL_IF(iop_field->repeat != IOP_R_REPEATED);
-            THROW_NULL_IF(array_ptr->len <= array_index);
-            ptr = array_ptr->tab + (iop_field->size * array_index);
+            if (OPT_VAL(array_index) < 0) {
+                /* Negative index means we read the array backward. */
+                array_index.v = array_ptr->len + OPT_VAL(array_index);
+                THROW_NULL_IF(array_index.v < 0);
+            }
+
+            THROW_NULL_IF(OPT_VAL(array_index) >= array_ptr->len);
+            ptr = array_ptr->tab + iop_field->size * OPT_VAL(array_index);
         } else
         if (iop_field->repeat == IOP_R_REPEATED) {
             THROW_NULL_IF(!ps_done(&ps));
@@ -2042,36 +2083,9 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     step = NULL;
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
-        pstream_t field_ps;
         opt_i32_t index = OPT_NONE;
 
-        if (ps_get_ps_chr_and_skip(&field_path_ps, '.', &field_ps) < 0) {
-            field_ps = field_path_ps;
-            __ps_skip_upto(&field_path_ps, field_path_ps.p_end);
-        }
-
-        if (ps_done(&field_ps)) {
-            if (err) {
-                sb_addf(err, "cannot process field path `%*pM' "
-                        "abnormal termination",
-                        LSTR_FMT_ARG(field_path_s));
-            }
-            return -1;
-        }
-
-        if (ps_get_ps_chr_and_skip(&field_ps, '[', &fname) < 0) {
-            fname = field_ps;
-        } else {
-            errno = 0;
-            OPT_SET(index, ps_geti(&field_ps));
-            if (errno || ps_skipc(&field_ps, ']') < 0 || !ps_done(&field_ps))
-            {
-                if (err) {
-                    sb_adds(err, "invalid field index");
-                }
-                return -1;
-            }
-        }
+        RETHROW(parse_field_from_path(&field_path_ps, &fname, &index, err));
 
         if (ps_strequal(&fname, "_class")) {
             if (!ps_done(&field_path_ps)) {
