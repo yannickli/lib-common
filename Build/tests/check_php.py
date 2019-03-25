@@ -19,13 +19,7 @@ for example use of mix of php 5.4+ languages on 5.3:
 please note that current php of buildbot is used so for centos 6, it will
 check with php 5.3 and with centos 5.1, php 5.1 will be used.
 
-The script will try to detect if there is GIT submodule in current
-directory or below.
-
-If script is launched in mmsx/product, it will check only PHP in
-subdirectories.
-If script is launch from project toplevel platform, it will check all
-PHP files in all its submodules.
+The script will check PHP syntax in all subdirectories.
 """
 
 
@@ -34,34 +28,16 @@ from seven_six import monkey_patch
 monkey_patch()
 from subprocess import check_output, STDOUT, CalledProcessError
 import os
-import os.path as osp
 import sys
-import ipath
+import fnmatch
 
 
-def do_check_php(path):
-    os.chdir(path)
-
-    files = check_output(['git', 'ls-files', '--', '*.php']).split('\n')
-    files = [x for x in files if x and os.path.isfile(x)]
-    errors = []
-    for entry in files:
-        try:
-            check_output(['php', '-l', entry], stderr=STDOUT)
-        except CalledProcessError as err:
-            errors += err.output.split('\n')
-    return errors
-
-def check_dir(directory, root_dir):
-    to_check = []
-    os.chdir(directory)
-
-    for entry in list(ipath.git_submodule_list()):
-        entry_fullpath = osp.abspath(entry)
-        if entry_fullpath.startswith(root_dir):
-            to_check.append((entry_fullpath, entry[len(root_dir)+1:]))
-            to_check += check_dir(entry_fullpath, root_dir)
-    return to_check
+def find_php_files(path):
+    php_files = []
+    for dirname, _, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, '*.php'):
+            php_files.append(os.path.join(dirname, filename))
+    return php_files
 
 
 def main():
@@ -70,25 +46,22 @@ def main():
     else:
         root_dir = os.getcwd()
     # convert to realpath (mix of symbolic link with abspath will fail later)
-    root_dir = osp.realpath(root_dir)
+    root_dir = os.path.realpath(root_dir)
     os.chdir(root_dir)
 
-    # on Centos 5, it must be launched from toplevel of the working tree
-    to_check = check_dir(ipath.git_toplevel(), root_dir)
-    to_check.append((root_dir, osp.basename(root_dir)))
+    files = find_php_files(root_dir)
 
-    print("1..{0} Check PHP syntax".format(len(to_check)))
+    print("1..{0} Check PHP syntax".format(len(files)))
     fail = 0
-    for i, (root_dir, entry) in enumerate(to_check, 1):
-        errors = do_check_php(root_dir)
-        if not errors:
-            print("{0} pass {1}".format(i, entry))
-        else:
+    for i, filename in enumerate(files, 1):
+        try:
+            check_output(['php', '-l', filename], stderr=STDOUT)
+            print("{0} pass {1}".format(i, filename))
+        except CalledProcessError as err:
             fail += 1
-            errors = ["\n: {0}".format(e) for e in errors]
-            print("{0} fail {1}{2}".format(i, entry, "".join(errors)))
+            print("{0} fail {1}{2}".format(i, filename, err.output))
 
-    fail = 100.0 * fail / len(to_check)
+    fail = 100.0 * fail / len(files)
     print("# 0% skipped  {0}% passed {1}% failed".format(
         int(100 - fail), int(fail)))
 
