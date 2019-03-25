@@ -175,7 +175,7 @@ while read -r zd line; do
             cd - &>/dev/null
             ;;
         */check_php)
-            $pybin $(which check_php) "$zd"
+            $pybin "$(dirname "$0")"/tests/check_php.py "$zd"
             res=$?
             ;;
         *)
