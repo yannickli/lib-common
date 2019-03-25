@@ -760,6 +760,22 @@ class Hound : 2 : Mammal {
 };
 
 /* }}} */
+/* {{{ zchk iop_blk.iop_field_path */
+
+struct Field {
+    int? tag;
+    string name;
+};
+
+struct Struct {
+    Field[] fields;
+};
+
+struct Package {
+    Struct[] structs;
+};
+
+/* }}} */
 /* {{{ iopc zchk */
 /* {{{ zchk iopsq.sub_struct */
 

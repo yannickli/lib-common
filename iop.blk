@@ -90,22 +90,29 @@ int iop_field_find_by_name(const iop_struct_t *st, const lstr_t name,
  *    'foo'     -> field_name == 'foo'
  *                 index == NONE
  */
-static int parse_field_from_path(pstream_t *field_path_ps,
-                                 pstream_t *field_name,
-                                 opt_i32_t *index, sb_t *err)
+static int
+parse_field_from_path(pstream_t *field_path_ps, pstream_t *field_name,
+                      opt_i32_t *index, bool *wildcard, sb_t *err)
 {
     pstream_t field_ps;
-    int indexv;
 
     if (ps_get_ps_chr_and_skip(field_path_ps, '.', &field_ps) < 0) {
         /* We reached the end of the path: this field is the last field. */
         field_ps = *field_path_ps;
         __ps_skip_upto(field_path_ps, ps_end(field_path_ps));
     }
+    if (wildcard) {
+        *wildcard = false;
+    }
 
     if (ps_get_ps_chr_and_skip(&field_ps, '[', field_name) >= 0) {
         errno = 0;
-        indexv = ps_geti(&field_ps);
+        if (wildcard && ps_skipc(&field_ps, '*') >= 0) {
+            *wildcard = true;
+            *index = (opt_i32_t)OPT_NONE;
+        } else {
+            *index = (opt_i32_t)OPT(ps_geti(&field_ps));
+        }
         if (errno || ps_skipc(&field_ps, ']') < 0 || !ps_done(&field_ps)) {
             if (err) {
                 sb_setf(err, "cannot read index for field `%*pM': "
@@ -114,7 +121,6 @@ static int parse_field_from_path(pstream_t *field_path_ps,
 
             return -1;
         }
-        *index = (opt_i32_t)OPT(indexv);
     } else {
         *field_name = field_ps;
         *index = (opt_i32_t)OPT_NONE;
@@ -144,7 +150,7 @@ iop_get_field_const(const void *ptr, const iop_struct_t *st, lstr_t path,
 
         RETHROW_P(ptr);
 
-        RETHROW_NP(parse_field_from_path(&ps, &s, &array_index, NULL));
+        RETHROW_NP(parse_field_from_path(&ps, &s, &array_index, NULL, NULL));
 
         if (iop_struct_is_class(st)) {
             st = *(const iop_struct_t **)ptr;
@@ -1911,13 +1917,14 @@ typedef enum field_step_type_t {
     FIELD_STEP_TYPE_INDIRECTION,
     FIELD_STEP_TYPE_UNION_FIELD,
     FIELD_STEP_TYPE_GOTO_INDEX,
+    FIELD_STEP_TYPE_SCAN_ARRAY,
 } field_step_type_t;
 
 typedef struct field_step_t {
     field_step_type_t type : 16;
 
-    /* For step type FIELD_STEP_TYPE_GOTO_INDEX: size of the elements of the
-     * array. */
+    /* For step type FIELD_STEP_TYPE_GOTO_INDEX and
+     * FIELD_STEP_TYPE_SCAN_ARRAY: size of the elements of the array. */
     uint16_t array_element_sz;
 
     union {
@@ -1950,7 +1957,7 @@ qvector_t(field_step, field_step_t);
  * Therefore, sequences of inlined struct field will be packed in a single
  * indirection step.
  */
-typedef struct field_path_t {
+struct iop_field_path_t {
     /* Steps needed to get to the field. */
     qv_t(field_step)    steps;
 
@@ -1970,19 +1977,36 @@ typedef struct field_path_t {
 
     /* True if the field we're trying to obtain is the length of an array. */
     bool is_array_len : 1;
-} field_path_t;
-GENERIC_FUNCTIONS(field_path_t, field_path);
+};
+
+typedef iop_field_path_t field_path_t;
+
+static iop_field_path_t *t_iop_field_path_init(iop_field_path_t *fp)
+{
+    p_clear(fp, 1);
+    t_qv_init(&fp->steps, 16);
+
+    return fp;
+}
 
 /* {{{ Get */
 
-static int iop_get_fieldp(const void *nonnull data,
-                          const field_path_t *nonnull field_path,
-                          const void **nonnull value)
+/* Get the field(s) associated to a field path for a given IOP
+ * struct/class/union either with a callback or by getting a value. */
+static int iop_field_path_run(const field_path_t *nonnull field_path,
+                              const void *nonnull data, int step_offset,
+                              const void **nullable value,
+                              iop_ptr_cb_b nullable on_value)
 {
-    const qv_t(field_step)  *steps = &field_path->steps;
-    const iop_field_t       *fdesc = field_path->fdesc;
+    const iop_field_t *fdesc = field_path->fdesc;
 
-    tab_for_each_ptr(step, steps) {
+    /* XXX Either we use the block callback or we return a value. We cannot do
+     * both. */
+    assert (!value || !on_value);
+
+    for (int i = step_offset; i < field_path->steps.len; i++) {
+        const field_step_t *step = &field_path->steps.tab[i];
+
         switch (step->type) {
           case FIELD_STEP_TYPE_MOVE:
             data = ((const byte *)data) + step->u.offset;
@@ -2021,58 +2045,86 @@ static int iop_get_fieldp(const void *nonnull data,
 
             data = array->tab + index * step->array_element_sz;
           } break;
+
+          case FIELD_STEP_TYPE_SCAN_ARRAY: {
+            const i8__array_t *array = data;
+
+            /* This mode is for block mode only. */
+            assert (!value);
+            assert (on_value);
+
+            data = array->tab;
+            tab_for_each_pos(j, array) {
+                iop_field_path_run(field_path, data, i + 1, NULL, on_value);
+                data = (const byte *)data + step->array_element_sz;
+            }
+
+            return 0;
+          } break;
         }
     }
 
     if (field_path->is_typename) {
         const iop_struct_t *st = *(const void **)data;
 
-        *value = &st->fullname;
-        return 0;
-    }
-
+        data = &st->fullname;
+    } else
     if (fdesc->repeat == IOP_R_REPEATED) {
-        if (field_path->is_array_len) {
-            *value = data;
-            return 0;
-        }
-        if (!field_path->is_array_element) {
+        if (!field_path->is_array_element && !field_path->is_array_len) {
             const i8__array_t *array = data;
 
             if (!array->len) {
                 goto no_value;
             }
         }
-
-        *value = data;
-        return 0;
-    }
-
-    if (fdesc->type == IOP_T_UNION
-    ||  fdesc->repeat != IOP_R_OPTIONAL || fdesc->type == IOP_T_STRUCT)
+    } else
+    if (fdesc->repeat == IOP_R_OPTIONAL
+    &&  iop_type_is_scalar(fdesc->type))
     {
-        *value = data;
-        return 0;
+        RETHROW(iop_opt_field_getv_const(fdesc->type, data, &data));
     }
 
-    return iop_opt_field_getv_const(field_path->fdesc->type, data, value);
+    if (value) {
+        *value = data;
+    }
+    if (on_value) {
+        on_value(data);
+    }
+    return 0;
 
   no_value:
-    *value = NULL;
+    if (value) {
+        *value = NULL;
+    }
     return -1;
+}
+
+static int iop_get_fieldp(const void *nonnull data,
+                          const field_path_t *nonnull field_path,
+                          const void **nonnull value)
+{
+    return iop_field_path_run(field_path, data, 0, value, NULL);
 }
 
 /* }}} */
 /* {{{ Compile */
 
+/* Allow the field paths to contain wildcards array indexes '[*]'.
+ * Field paths with wildcards can only be run with
+ * 'iop_field_path_for_each_value()'. */
+#define FIELD_PATH_ALLOW_WILDCARD  (1 << 0)
+
 static int
 t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
-                         field_path_t *fp, sb_t *err)
+                         int flags, field_path_t *fp, sb_t *err)
 {
     const iop_field_t *fdesc = NULL;
     pstream_t field_path_ps = ps_initlstr(&field_path_s);
     const iop_struct_t *it = st;
     field_step_t *step;
+
+    /* Don't use the same field path twice. */
+    assert (!fp->steps.len);
 
     if (ps_done(&field_path_ps)) {
         if (err) {
@@ -2084,20 +2136,28 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
         opt_i32_t index = OPT_NONE;
+        bool scan_array = false;
 
-        RETHROW(parse_field_from_path(&field_path_ps, &fname, &index, err));
+        RETHROW(parse_field_from_path(&field_path_ps, &fname, &index,
+                                      &scan_array, err));
+        if (scan_array && !(flags & FIELD_PATH_ALLOW_WILDCARD)) {
+            if (err) {
+                sb_sets(err, "unexpected wildcard");
+            }
+            return -1;
+        }
 
         if (ps_strequal(&fname, "_class")) {
-            if (!ps_done(&field_path_ps)) {
-                if (err) {
-                    sb_adds(err, "cannot fetch subfield of a typename");
-                }
-                return -1;
-            }
             if (!iop_struct_is_class(it)) {
                 if (err) {
                     sb_adds(err,
-                            "cannot fetch typename of a non-class object");
+                            "cannot fetch typename of a non-class field");
+                }
+                return -1;
+            }
+            if (!ps_done(&field_path_ps)) {
+                if (err) {
+                    sb_adds(err, "cannot fetch subfield of a typename");
                 }
                 return -1;
             }
@@ -2152,12 +2212,16 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         }
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            if (OPT_ISSET(index)) {
+            if (scan_array || OPT_ISSET(index)) {
                 step = field_step_init(qv_growlen(&fp->steps, 1));
-                step->type = FIELD_STEP_TYPE_GOTO_INDEX;
                 step->array_element_sz = fdesc->size;
-                step->u.index = OPT_VAL(index);
 
+                if (scan_array) {
+                    step->type = FIELD_STEP_TYPE_SCAN_ARRAY;
+                } else {
+                    step->type = FIELD_STEP_TYPE_GOTO_INDEX;
+                    step->u.index = OPT_VAL(index);
+                }
                 if (ps_done(&field_path_ps)) {
                     fp->is_array_element = true;
                 }
@@ -2192,6 +2256,57 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     }
 
     return 0;
+}
+
+/* }}} */
+/* {{{ IOP field path public API */
+
+const iop_field_path_t *nullable
+t_iop_field_path_compile(const iop_struct_t *nonnull st, lstr_t path,
+                         sb_t *nullable err)
+{
+    iop_field_path_t *fp;
+
+    fp = t_iop_field_path_init(t_new_raw(iop_field_path_t, 1));
+    RETHROW_NP(t_iop_compile_field_path(st, path, FIELD_PATH_ALLOW_WILDCARD,
+                                        fp, err));
+
+    return fp;
+}
+
+void iop_field_path_get_type(const iop_field_path_t *nonnull fp,
+                             iop_full_type_t *nonnull type,
+                             bool *nonnull is_array)
+{
+    if (fp->is_typename) {
+        *type = IOP_FTYPE_STRING;
+        *is_array = false;
+    } else
+    if (fp->is_array_len) {
+        *type = IOP_FTYPE_I32;
+        *is_array = false;
+    } else {
+        p_clear(type, 1);
+        type->type = fp->fdesc->type;
+        if (type->type == IOP_T_ENUM) {
+            type->en = fp->fdesc->u1.en_desc;
+        } else
+        if (!iop_type_is_scalar(type->type)) {
+            type->st = fp->fdesc->u1.st_desc;
+        }
+        if (fp->is_array_element) {
+            *is_array = false;
+        } else {
+            *is_array = fp->fdesc->repeat == IOP_R_REPEATED;
+        }
+    }
+}
+
+void iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
+                                   const void *nonnull st_ptr,
+                                   iop_ptr_cb_b nonnull on_value)
+{
+    iop_field_path_run(fp, st_ptr, 0, NULL, on_value);
 }
 
 /* }}} */
@@ -2353,9 +2468,8 @@ int iop_msort_desc(const iop_struct_t *st, void *vec, int len,
         iop_sort_priv_t *priv = &sorts.tab[pos];
         iop_sort_t *sort = &params->tab[pos];
 
-        field_path_init(&priv->fp);
-        t_qv_init(&priv->fp.steps, 16);
-        RETHROW(t_iop_compile_field_path(st, sort->field_path, &priv->fp,
+        t_iop_field_path_init(&priv->fp);
+        RETHROW(t_iop_compile_field_path(st, sort->field_path, 0, &priv->fp,
                                          err));
 
         if (priv->fp.fdesc
@@ -2651,9 +2765,9 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
     const byte *vec_read = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
 
-    field_path_init(&fp);
-    t_qv_init(&fp.steps, 16);
-    RETHROW(t_iop_compile_field_path(st, field_path, &fp, err));
+    t_iop_field_path_init(&fp);
+    /* TODO Support wildcards. */
+    RETHROW(t_iop_compile_field_path(st, field_path, 0, &fp, err));
     assert (fp.is_typename || fp.fdesc);
 
     if (OPT_ISSET(is_set)) {

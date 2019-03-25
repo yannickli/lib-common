@@ -535,6 +535,50 @@ bool qhash_iop_full_type_equal(const qhash_t *nonnull qhash,
                                const iop_full_type_t *nonnull t2);
 
 /* }}} */
+/* {{{ IOP field path API */
+
+typedef struct iop_field_path_t iop_field_path_t;
+
+/** Build an IOP field path on the t_stack.
+ *
+ * \param[in] path  Full path to the field. Can contain:
+ *     - Subfields: 'foo.bar'.
+ *     - Array indexes: 'elts[0].v', 'a.array[-1]' (negative indexes means
+ *     that the array is indexed backward: the index '-1' is for the last
+ *     element).
+ *     - Wildcard indexes: 'elts[*].v', 'a.array[*]', 'structs[*].fields[*]':
+ *     can be used when wanting to iterate on all elements of an array.
+ */
+const iop_field_path_t *nullable
+t_iop_field_path_compile(const iop_struct_t *nonnull st,
+                         lstr_t path, sb_t *nullable err);
+
+/** Get the type associated with a given field path. */
+void iop_field_path_get_type(const iop_field_path_t *nonnull fp,
+                             iop_full_type_t *nonnull type,
+                             bool *nonnull is_array);
+
+#ifdef __has_blocks
+
+typedef void (BLOCK_CARET iop_ptr_cb_b)(const void *nonnull field_ptr);
+
+/** List each value matching a given field path.
+ *
+ * \param[in] fp  Field path built with \ref t_iop_field_path_compile.
+ *
+ * \param[in] st_ptr  Pointer on the structure containing the values to list.
+ *                    The struct type should be the same as the one the field
+ *                    path has been built with.
+ *
+ * \param[in] on_value  Callback to call for each value found.
+ */
+void iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
+                                   const void *nonnull st_ptr,
+                                   iop_ptr_cb_b nonnull on_value);
+
+#endif /* __has_blocks */
+
+/* }}} */
 /* {{{ IOP structures manipulation */
 
 /** Initialize an IOP structure with the correct default values.
