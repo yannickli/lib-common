@@ -1964,9 +1964,6 @@ struct iop_field_path_t {
     /* Description of the field to get. */
     const iop_field_t  *fdesc;
 
-    /* Description of the struct containing the field 'fdesc'. */
-    const iop_struct_t *st_desc;
-
     /* True if the field is an element of an array (eg. the path ends with an
      * index like in the following example: "foo.bar[42]"). */
     bool is_array_element : 1;
@@ -2192,7 +2189,6 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
             fp->is_array_len = true;
         }
         if (ps_done(&field_path_ps)) {
-            fp->st_desc = it;
             fp->fdesc = fdesc;
         }
 
