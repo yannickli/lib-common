@@ -2014,7 +2014,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
             data = *((void **)data);
             if (!data) {
                 /* TODO Error for mandatory fields maybe ? */
-                goto no_value;
+                return -1;
             }
             break;
 
@@ -2022,9 +2022,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
             /* Check if the selected member of the union is the one we want
              * (the one specified in field_path), and if not this object is
              * considered as NULL in the sort/filter. */
-            if (*(const uint16_t *)data != step->u.union_tag) {
-                goto no_value;
-            }
+            THROW_ERR_IF(*(const uint16_t *)data != step->u.union_tag);
             break;
 
           case FIELD_STEP_TYPE_GOTO_INDEX: {
@@ -2036,9 +2034,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
                  */
                 index = array->len + index;
             }
-            if (index >= array->len || index < 0) {
-                goto no_value;
-            }
+            THROW_ERR_IF(index >= array->len || index < 0);
 
             data = array->tab + index * step->array_element_sz;
           } break;
@@ -2070,9 +2066,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
         if (!field_path->is_array_element && !field_path->is_array_len) {
             const i8__array_t *array = data;
 
-            if (!array->len) {
-                goto no_value;
-            }
+            THROW_ERR_IF(!array->len);
         }
     } else
     if (fdesc->repeat == IOP_R_OPTIONAL
@@ -2088,12 +2082,6 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
         on_value(data);
     }
     return 0;
-
-  no_value:
-    if (value) {
-        *value = NULL;
-    }
-    return -1;
 }
 
 static int iop_get_fieldp(const void *nonnull data,
@@ -2723,7 +2711,7 @@ static bool iop_filter_val_matches(const byte *vec_read,
         return val_is_set == OPT_VAL(is_set);
     }
 
-    if (!val) {
+    if (!val_is_set) {
         return false;
     }
 
