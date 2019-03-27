@@ -2624,6 +2624,7 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
     }
 
     /* Get and parse the version header; determine the peer version. */
+  again_blocking:
     res = _ic_read(ic, events, fd, BUFSIZ);
     if (res < 0) {
         goto error;
@@ -2638,7 +2639,10 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
     }
 
     if (buf->len < IC_MSG_HDR_LEN) {
-        return ev ? 0 : -1;
+        if (ev == NULL) {
+            goto again_blocking;
+        }
+        return 0;
     }
 
     slot = get_unaligned_le32(buf->data);
@@ -2656,7 +2660,10 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
             goto error;
         }
         if (buf->len < IC_MSG_HDR_LEN + 4) {
-            return ev ? 0 : -1;
+            if (ev == NULL) {
+                goto again_blocking;
+            }
+            return 0;
         }
         version = get_unaligned_le16(data);
         vflags = get_unaligned_le16(data + 2);
