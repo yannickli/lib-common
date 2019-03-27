@@ -5552,6 +5552,19 @@ bool qhash_iop_full_type_equal(const qhash_t *qhash,
     return true;
 }
 
+void iop_field_get_type(const iop_field_t *nonnull field,
+                        iop_full_type_t *nonnull type)
+{
+    p_clear(type, 1);
+    type->type = field->type;
+    if (field->type == IOP_T_ENUM) {
+        type->en = field->u1.en_desc;
+    } else
+    if (!iop_type_is_scalar(field->type)) {
+        type->st = field->u1.st_desc;
+    }
+}
+
 /* }}} */
 /* {{{ Signature */
 

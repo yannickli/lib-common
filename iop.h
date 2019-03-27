@@ -534,6 +534,10 @@ bool qhash_iop_full_type_equal(const qhash_t *nonnull qhash,
                                const iop_full_type_t *nonnull t1,
                                const iop_full_type_t *nonnull t2);
 
+/** Get the IOP full type associated with a given IOP field. */
+void iop_field_get_type(const iop_field_t *nonnull field,
+                        iop_full_type_t *nonnull type);
+
 /* }}} */
 /* {{{ IOP field path API */
 
@@ -553,7 +557,11 @@ const iop_field_path_t *nullable
 t_iop_field_path_compile(const iop_struct_t *nonnull st,
                          lstr_t path, sb_t *nullable err);
 
-/** Get the type associated with a given field path. */
+/** Get the type associated with a given field path.
+ *
+ * \note The parameter \p is_array may be removed someday if we integrate it
+ * into \ref iop_full_type_t.
+ */
 void iop_field_path_get_type(const iop_field_path_t *nonnull fp,
                              iop_full_type_t *nonnull type,
                              bool *nonnull is_array);
