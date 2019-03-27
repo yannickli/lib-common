@@ -568,7 +568,14 @@ void iop_field_path_get_type(const iop_field_path_t *nonnull fp,
 
 #ifdef __has_blocks
 
-typedef void (BLOCK_CARET iop_ptr_cb_b)(const void *nonnull field_ptr);
+/** Block type for \ref iop_field_path_for_each_value.
+ *
+ * \param[in] field_ptr  Pointer on one of the value of the field targeted by
+ *                       the field path.
+ *
+ * \return a negative value when wanting to stop the scan.
+ */
+typedef int (BLOCK_CARET iop_ptr_cb_b)(const void *nonnull field_ptr);
 
 /** List each value matching a given field path.
  *
@@ -579,10 +586,13 @@ typedef void (BLOCK_CARET iop_ptr_cb_b)(const void *nonnull field_ptr);
  *                    path has been built with.
  *
  * \param[in] on_value  Callback to call for each value found.
+ *
+ * \return -1 if the scan was interrupted because the \p on_value returned a
+ * negative value (user interruption).
  */
-void iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
-                                   const void *nonnull st_ptr,
-                                   iop_ptr_cb_b nonnull on_value);
+int iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
+                                  const void *nonnull st_ptr,
+                                  iop_ptr_cb_b nonnull on_value);
 
 #endif /* __has_blocks */
 

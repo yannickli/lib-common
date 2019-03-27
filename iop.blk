@@ -1990,10 +1990,11 @@ static iop_field_path_t *t_iop_field_path_init(iop_field_path_t *fp)
 
 /* Get the field(s) associated to a field path for a given IOP
  * struct/class/union either with a callback or by getting a value. */
-static int iop_field_path_run(const field_path_t *nonnull field_path,
-                              const void *nonnull data, int step_offset,
-                              const void **nullable value,
-                              iop_ptr_cb_b nullable on_value)
+static iop_value_from_field_res_t
+iop_field_path_run(const field_path_t *nonnull field_path,
+                   const void *nonnull data, int step_offset,
+                   const void **nullable value,
+                   iop_ptr_cb_b nullable on_value)
 {
     const iop_field_t *fdesc = field_path->fdesc;
 
@@ -2014,7 +2015,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
             data = *((void **)data);
             if (!data) {
                 /* TODO Error for mandatory fields maybe ? */
-                return -1;
+                return IOP_FIELD_NOT_SET;
             }
             break;
 
@@ -2022,7 +2023,8 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
             /* Check if the selected member of the union is the one we want
              * (the one specified in field_path), and if not this object is
              * considered as NULL in the sort/filter. */
-            THROW_ERR_IF(*(const uint16_t *)data != step->u.union_tag);
+            THROW_IF(*(const uint16_t *)data != step->u.union_tag,
+                     IOP_FIELD_NOT_SET);
             break;
 
           case FIELD_STEP_TYPE_GOTO_INDEX: {
@@ -2034,7 +2036,7 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
                  */
                 index = array->len + index;
             }
-            THROW_ERR_IF(index >= array->len || index < 0);
+            THROW_IF(index >= array->len || index < 0, IOP_FIELD_NOT_SET);
 
             data = array->tab + index * step->array_element_sz;
           } break;
@@ -2048,7 +2050,11 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
 
             data = array->tab;
             tab_for_each_pos(j, array) {
-                iop_field_path_run(field_path, data, i + 1, NULL, on_value);
+                iop_value_from_field_res_t res;
+
+                res = iop_field_path_run(field_path, data, i + 1, NULL,
+                                         on_value);
+                THROW_ERR_IF(res == IOP_FIELD_ERROR);
                 data = (const byte *)data + step->array_element_sz;
             }
 
@@ -2066,20 +2072,19 @@ static int iop_field_path_run(const field_path_t *nonnull field_path,
         if (!field_path->is_array_element && !field_path->is_array_len) {
             const i8__array_t *array = data;
 
-            THROW_ERR_IF(!array->len);
+            THROW_IF(!array->len, IOP_FIELD_NOT_SET);
         }
     } else
-    if (fdesc->repeat == IOP_R_OPTIONAL
-    &&  iop_type_is_scalar(fdesc->type))
-    {
-        RETHROW(iop_opt_field_getv_const(fdesc->type, data, &data));
+    if (fdesc->repeat == IOP_R_OPTIONAL && iop_type_is_scalar(fdesc->type)) {
+        THROW_IF(iop_opt_field_getv_const(fdesc->type, data, &data) < 0,
+                 IOP_FIELD_NOT_SET);
     }
 
     if (value) {
         *value = data;
     }
-    if (on_value) {
-        on_value(data);
+    if (on_value && on_value(data) < 0) {
+        return IOP_FIELD_ERROR;
     }
     return 0;
 }
@@ -2286,11 +2291,13 @@ void iop_field_path_get_type(const iop_field_path_t *nonnull fp,
     }
 }
 
-void iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
-                                   const void *nonnull st_ptr,
-                                   iop_ptr_cb_b nonnull on_value)
+int iop_field_path_for_each_value(const iop_field_path_t *nonnull fp,
+                                  const void *nonnull st_ptr,
+                                  iop_ptr_cb_b nonnull on_value)
 {
-    iop_field_path_run(fp, st_ptr, 0, NULL, on_value);
+    THROW_ERR_IF(iop_field_path_run(fp, st_ptr, 0, NULL, on_value) ==
+                 IOP_FIELD_ERROR);
+    return 0;
 }
 
 /* }}} */

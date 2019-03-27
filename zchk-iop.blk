@@ -313,8 +313,9 @@ static int z_test_iop_field_path_htab(void)
     Z_ASSERT_P(fp, "%pL", &err);
 
     values = t_qv_new(u64, 0);
-    iop_field_path_for_each_value(fp, &sta, ^(const void *v) {
+    iop_field_path_for_each_value(fp, &sta, ^int (const void *v) {
         qv_append(values, *(const uint64_t *)v);
+        return 0;
     });
 
     Z_ASSERT_EQ(sta.htab.len, values->len);
@@ -364,8 +365,9 @@ static int z_test_iop_field_path_structs_last_fields(void)
     Z_ASSERT_P(fp, "%pL", &err);
 
     names = t_qv_new(lstr, 0);
-    iop_field_path_for_each_value(fp, &pkg, ^(const void *v) {
+    iop_field_path_for_each_value(fp, &pkg, ^int (const void *v) {
         qv_append(names, *(const lstr_t *)v);
+        return 0;
     });
     Z_ASSERT_EQ(names->len, countof(expected));
     carray_for_each_pos(i, expected) {
@@ -377,8 +379,9 @@ static int z_test_iop_field_path_structs_last_fields(void)
     fp = t_iop_field_path_compile(&tstiop__package__s,
                                   LSTR("structs[*].fields.len"), &err);
     Z_ASSERT_P(fp, "%pL", &err);
-    iop_field_path_for_each_value(fp, &pkg, ^(const void *v) {
+    iop_field_path_for_each_value(fp, &pkg, ^int (const void *v) {
         qv_append(lengths, *(const int *)v);
+        return 0;
     });
     Z_ASSERT_EQ(lengths->len, pkg.structs.len);
     tab_for_each_pos(i, &pkg.structs) {
