@@ -1976,8 +1976,6 @@ struct iop_field_path_t {
     bool is_array_len : 1;
 };
 
-typedef iop_field_path_t field_path_t;
-
 static iop_field_path_t *t_iop_field_path_init(iop_field_path_t *fp)
 {
     p_clear(fp, 1);
@@ -1991,7 +1989,7 @@ static iop_field_path_t *t_iop_field_path_init(iop_field_path_t *fp)
 /* Get the field(s) associated to a field path for a given IOP
  * struct/class/union either with a callback or by getting a value. */
 static iop_value_from_field_res_t
-iop_field_path_run(const field_path_t *nonnull field_path,
+iop_field_path_run(const iop_field_path_t *nonnull field_path,
                    const void *nonnull data, int step_offset,
                    const void **nullable value,
                    iop_ptr_cb_b nullable on_value)
@@ -2090,7 +2088,7 @@ iop_field_path_run(const field_path_t *nonnull field_path,
 }
 
 static int iop_get_fieldp(const void *nonnull data,
-                          const field_path_t *nonnull field_path,
+                          const iop_field_path_t *nonnull field_path,
                           const void **nonnull value)
 {
     return iop_field_path_run(field_path, data, 0, value, NULL);
@@ -2106,7 +2104,7 @@ static int iop_get_fieldp(const void *nonnull data,
 
 static int
 t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
-                         int flags, field_path_t *fp, sb_t *err)
+                         int flags, iop_field_path_t *fp, sb_t *err)
 {
     const iop_field_t *fdesc = NULL;
     pstream_t field_path_ps = ps_initlstr(&field_path_s);
@@ -2371,7 +2369,7 @@ static cmp_f iop_get_equal_fun_sql_like(iop_type_t type)
 /* {{{ iop_msort */
 
 typedef struct iop_sort_priv_t {
-    field_path_t fp;
+    iop_field_path_t fp;
     int flags;
 } iop_sort_priv_t;
 
@@ -2702,7 +2700,7 @@ static bool iop_filter_is_value_allowed(const void *val,
 }
 
 static bool iop_filter_val_matches(const byte *vec_read,
-                                   const field_path_t *fp,
+                                   const iop_field_path_t *fp,
                                    bool is_pointer, opt_bool_t is_set,
                                    void * const *allowed_values, int len,
                                    cmp_f equal)
@@ -2751,7 +2749,7 @@ __t_iop_filter(const iop_struct_t *st, const void *vec, int len,
                iop_filter_bitmap_op_t bitmap_op, byte **bitmap, sb_t *err)
 {
     bool is_pointer = iop_struct_is_class(st);
-    field_path_t fp;
+    iop_field_path_t fp;
     cmp_f equal = NULL;
     const byte *vec_read = vec;
     size_t elem_size = is_pointer ? sizeof(void *) : st->size;
