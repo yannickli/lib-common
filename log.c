@@ -1867,6 +1867,7 @@ Z_GROUP_EXPORT(log) {
         thr_ec_wipe(&ec);
 
         MODULE_RELEASE(thr);
+        logger_wipe(&parent0);
     } Z_TEST_END;
 
     Z_TEST(parse_specs, "test parsing of IS_DEBUG environment variable") {
