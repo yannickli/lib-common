@@ -532,6 +532,7 @@ struct ichannel_t {
     bool fd_overflow  :  1;
     bool hdr_checked  :  1;   /**< read checks are successful */
     bool tls_required :  1;   /**< ignored on non TCP sockets */
+    bool is_connected :  1;   /**< true if handshakes are completed */
 
     unsigned nextslot;          /**< next slot id to try                    */
 
@@ -620,7 +621,11 @@ static inline bool ic_is_empty(ichannel_t * nonnull ic) {
 }
 
 /* XXX be carefull, this function do not mean that the ichannel is actually
- * connected, just that you are allowed to queue some queries */
+ * connected, just that you are allowed to queue some queries.
+ *
+ * To check if the IC is actually connected (TLS handshakes finished), use the
+ * `ic->is_connected` flag.
+ */
 static inline bool ic_is_ready(const ichannel_t * nonnull ic) {
     return (ic_is_local(ic) && ic->impl)
         || (ic->elh && ic->queuable && !ic->is_closing);
@@ -691,6 +696,16 @@ void ic_nop(ichannel_t * nonnull);
 el_t nullable
 ic_listento(const sockunion_t * nonnull su, int type, int proto,
             int (*nonnull on_accept)(el_t nonnull ev, int fd));
+
+/* Synchronously write everything in queue.
+ *
+ * The socket MUST be connected, i.e. ic->is_connected must be true: you may
+ * use a connect blocking or wait for the IC_EVT_CONNECTED event. On
+ * termination, you may simply skip flushing data if the IC is not yet
+ * connected.
+ *
+ * \param[in]  ic  The IC to flush.
+ */
 void ic_flush(ichannel_t * nonnull ic);
 lstr_t ic_get_client_addr(ichannel_t * nonnull ic);
 
