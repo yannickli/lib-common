@@ -558,7 +558,7 @@ struct ichannel_t {
     int          retry_delay;  /**< delay before a reconnection attempt (ms) */
     sockunion_t  su;
     const qm_t(ic_cbs) * nullable impl;
-    ic_hook_f   * nullable on_event;
+    ic_hook_f   * nonnull on_event;
     ic_creds_f  * nullable on_creds;
     void        (* nullable on_wipe)(ichannel_t * nonnull ic);
 
