@@ -10,8 +10,6 @@ Our HTTP interfaces support:
 -  Pipelining.
 -  Garbage collecting of unused connections after a configurable delay;
 -  Automatic recycling of connections after a configurable amount of requests;
--  Basic HTTP Authentication (no Digest support
-footnote:[Digest HTTP Authentication makes life harder for clients wishing to
-use pipelining, hence is not implemented.  If additional security is needed,
-using an HTTPS-enabled reverse proxy is suggested.]);
+-  Basic HTTP Authentication (If security is required, use HTTPS);
+-  HTTPS/TLS server (certificates and keys are in PEM format);
 -  Content encodings (identity, gzip and deflate).
