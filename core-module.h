@@ -499,6 +499,8 @@ MODULE_METHOD_DECLARE(VOID, DEPS_BEFORE, at_fork_on_child);
 /** Method called in the parent, just after the child terminates.
  *
  * It takes the PID of the child as argument.
+ * It is called only for the child processes that are tracked by the el
+ * library, either by using ifork() or el_child_register().
  */
 MODULE_METHOD_DECLARE(INT, DEPS_BEFORE, at_fork_on_child_terminated);
 
