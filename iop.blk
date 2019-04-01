@@ -652,54 +652,54 @@ bool iop_field_is_pointed(const iop_field_t *fdesc)
     return iop_field_is_reference(fdesc) || iop_field_is_class(fdesc);
 }
 
-int iop_opt_field_getv(iop_type_t type, void *data, void **value)
+void *nullable iop_opt_field_getv(iop_type_t type, void *nonnull data)
 {
     switch (type) {
       case IOP_T_I8:
       case IOP_T_U8:
-        *value = OPT_GET((opt_u8_t *)data);
-        break;
+        return OPT_GET((opt_u8_t *)data);
+
       case IOP_T_I16:
       case IOP_T_U16:
-        *value = OPT_GET((opt_u16_t *)data);
-        break;
+        return OPT_GET((opt_u16_t *)data);
+
       case IOP_T_ENUM:
       case IOP_T_I32:
       case IOP_T_U32:
-        *value = OPT_GET((opt_u32_t *)data);
-        break;
+        return OPT_GET((opt_u32_t *)data);
+
       case IOP_T_I64:
       case IOP_T_U64:
-        *value = OPT_GET((opt_u64_t *)data);
-        break;
+        return OPT_GET((opt_u64_t *)data);
+
       case IOP_T_BOOL:
-        *value = OPT_GET((opt_bool_t *)data);
-        break;
+        return OPT_GET((opt_bool_t *)data);
+
       case IOP_T_DOUBLE:
-        *value = OPT_GET((opt_double_t *)data);
-        break;
+        return OPT_GET((opt_double_t *)data);
+
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
-        *value = ((lstr_t *)data)->s ? data : NULL;
-        break;
+        return ((lstr_t *)data)->s ? data : NULL;
+
       case IOP_T_STRUCT:
       case IOP_T_UNION:
-        *value = *(void **)data;
-        break;
+        return *(void **)data;
+
       case IOP_T_VOID:
-        *value = NULL;
-        return *(bool *)data ? 0 : -1;
+        /* XXX Return a slop pointer that means that the field is present. It
+         * isn't expected to be indirected though. */
+        return *(bool *)data ? data : NULL;
     }
 
-    RETHROW_PN(*value);
-    return 0;
+    assert (false);
+    return NULL;
 }
 
-static int iop_opt_field_getv_const(iop_type_t type, const void *data,
-                                    const void **value)
+static const void *iop_opt_field_getv_const(iop_type_t type, const void *data)
 {
-    return iop_opt_field_getv(type, (void *)data, (void **)value);
+    return iop_opt_field_getv(type, (void *)data);
 }
 
 void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
@@ -726,13 +726,18 @@ void iop_get_field_values(const iop_field_t *fdesc, void *st_ptr,
     }
 
     if (fdesc->repeat == IOP_R_OPTIONAL) {
-        if (iop_opt_field_getv(fdesc->type, fptr, &fptr) < 0) {
+        fptr = iop_opt_field_getv(fdesc->type, fptr);
+        if (!fptr) {
             /* The optional field is absent. */
             *len = 0;
             *values = NULL;
             return;
         }
-        *values = fptr;
+        if (fdesc->type == IOP_T_VOID) {
+            *values = NULL;
+        } else {
+            *values = fptr;
+        }
     } else
     if (fdesc->type == IOP_T_VOID) {
         *values = NULL;
@@ -2074,8 +2079,8 @@ iop_field_path_run(const iop_field_path_t *nonnull field_path,
         }
     } else
     if (fdesc->repeat == IOP_R_OPTIONAL && iop_type_is_scalar(fdesc->type)) {
-        THROW_IF(iop_opt_field_getv_const(fdesc->type, data, &data) < 0,
-                 IOP_FIELD_NOT_SET);
+        data = iop_opt_field_getv_const(fdesc->type, data);
+        THROW_IF(!data, IOP_FIELD_NOT_SET);
     }
 
     if (value) {
