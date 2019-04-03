@@ -880,6 +880,20 @@ void iop_filter_bitmap_apply(const iop_struct_t * nonnull st,
                              void * nonnull vec, int * nonnull len,
                              const byte * nonnull bitmap);
 
+/* Remove fields tagged with the `gen_attr` generic attribute.
+ *
+ * Walk recursively through the IOP object.
+ *
+ * \param[in]  st  The IOP structure definition (__s).
+ * \param[in/out]  obj  The IOP object to lighten.
+ * \param[in]  gen_attr  The name of the generic attribute to search. This
+ *                       attribute must be a boolean and it must tag optional
+ *                       or repeated field. It must not tag default or
+ *                       required fields.
+ */
+void iop_prune(const iop_struct_t * nonnull st, void * nonnull obj,
+               lstr_t gen_attr);
+
 /** Flags used by iop_dup and iop_copy functions. */
 typedef enum iop_copy_flags_t {
     /** Use multiple allocations instead of using a single block.

@@ -4258,6 +4258,21 @@ Z_GROUP_EXPORT(iop)
 #undef FILTER_AND_CHECK_LEN
 
     } Z_TEST_END;
+    Z_TEST(iop_prune, "check gen attr filtering") { /* {{{ */
+        tstiop__filtered_struct__t obj;
+        int arr[] = { 1, 2, 3 };
+
+        iop_init(tstiop__filtered_struct, &obj);
+        obj.long_string = LSTR("struct");
+        obj.c = IOP_TYPED_ARRAY(i32, arr, countof(arr));
+
+        /* Filter fields tagged with "test:mayBeSkipped". */
+        iop_prune(&tstiop__filtered_struct__s, &obj,
+                  LSTR("test:mayBeSkipped"));
+        Z_ASSERT_NULL(obj.c.tab);
+        Z_ASSERT_EQ(obj.c.len, 0);
+        Z_ASSERT_LSTREQUAL(obj.long_string, LSTR_NULL_V);
+    } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_copy_inv_tab, "mp_iop_copy_desc_sz(): invalid tab pointer when len == 0") { /* {{{ */
         t_scope;
