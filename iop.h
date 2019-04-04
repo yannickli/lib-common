@@ -1686,6 +1686,74 @@ _iop_class_get_next_field(const iop_struct_t * nonnull * nonnull st,
                           IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
 /* }}} */
+/* {{{ IOP array loops */
+
+/* {{{ Internals, should not be used directly. */
+
+#define __iop_array_for_each(st_desc, _obj, vec, len, _const)                \
+    FOR_INSTR6(__iop_array_for_each##_obj,                                   \
+               const struct iop_struct_t *_obj##__st = (st_desc),            \
+               bool _obj##__is_pointer = iop_struct_is_class(_obj##__st),    \
+               size_t _obj##__elem_size = _obj##__is_pointer                 \
+                                        ? sizeof(void *)                     \
+                                        : _obj##__st->size,                  \
+               byte * nonnull _obj##__obj = (void *)(vec),                   \
+               int _obj##__len = (len),                                      \
+               _const void *_obj)                                            \
+    for (int _obj##__i = 0;                                                  \
+         _obj##__i < _obj##__len &&                                          \
+         (_obj = _obj##__is_pointer ? *(void **)_obj##__obj : _obj##__obj);  \
+         _obj##__i++,                                                        \
+         _obj##__obj += _obj##__elem_size)
+
+/* }}} */
+
+/** Iterate untyped IOP array of structs, unions or classes.
+ *
+ * Always give a simple pointer on the element, no need to dereference the
+ * pointer if the struct is a class.
+ *
+ * Should only be used when the IOP type is not known at compilation time,
+ * otherwise, \ref tab_for_each_ptr and \ref tab_for_each_entry should be
+ * preferred.
+ *
+ *  \param[in]  st_desc  The IOP structure definition (__s).
+ *  \param[in]  obj  The name of the current object. Allocated by the macro as
+ *                   a `void *`. It points directly to the struct, the union
+ *                   or the class.
+ *  \param[in]  vec  Array of objects. If st is a class, this must be an array
+ *                   of pointers on the elements, and not an array of
+ *                   elements.
+ *  \param[in]  len  Length of the array
+ */
+#define iop_array_for_each(st_desc, obj, vec, len)                           \
+    __iop_array_for_each(st_desc, obj, vec, len,)
+
+/** Same than \ref iop_array_for_each for tabs.
+ *
+ *  \param[in]  vec  A structured array with `tab` and `len` fields.
+ */
+#define iop_tab_for_each(st_desc, obj, vec)                                  \
+    FOR_INSTR1(iop_tab_for_each##obj, typeof(vec) obj##__vec = (vec))        \
+    iop_array_for_each(st_desc, obj, (obj##__vec)->tab, (obj##__vec)->len)
+
+/** Const version of \ref iop_array_for_each.
+ *
+ *  \param[in]  obj  The object as a `const void *`.
+ */
+#define iop_array_for_each_const(st_desc, obj, vec, len)                     \
+    __iop_array_for_each(st_desc, obj, vec, len, const)
+
+/** Const version of \ref iop_tab_for_each.
+ *
+ *  \param[in]  obj  The object as a `const void *`.
+ */
+#define iop_tab_for_each_const(st_desc, obj, vec)                            \
+    FOR_INSTR1(iop_tab_for_each##obj, typeof(vec) obj##__vec = (vec))        \
+    iop_array_for_each(st_desc, obj, (obj##__vec)->tab, (obj##__vec)->len)
+
+
+/* }}} */
 /* {{{ IOP constraints handling */
 
 /** Get the constraints error buffer.

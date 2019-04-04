@@ -531,6 +531,49 @@ typedef unsigned char byte;
 /** Builds a name by concatenating \p pfx, line number and \p sfx. */
 #define PFX_LINE_SFX(pfx, sfx)  _PFX_LINE_SFX(pfx, __LINE__, sfx)
 
+/* The FOR_INSTR* macros are used to declare variables with different types
+ * when building for_each-like macros. The `ctx` argument is used to avoid
+ * conflicts with multiple invocations but must be the same for the same
+ * instruction block.
+ *
+ * Note that ';' is not allowed because we're inside a for loop.
+ *
+ * You will find a typical example with __iop_array_for_each.
+ */
+#define FOR_INSTR_INIT(ctx)                                                  \
+    for (bool ctx##stop = false; !ctx##stop; ctx##stop = true)
+
+#define FOR_INSTR(ctx, instr)                                                \
+    for (instr; !ctx##stop; ctx##stop = true)
+
+#define FOR_INSTR1(ctx, i1)                                                  \
+    FOR_INSTR_INIT(ctx)                                                      \
+    FOR_INSTR(ctx, i1)
+
+#define FOR_INSTR2(ctx, i1, i2)                                              \
+    FOR_INSTR1(ctx, i1)                                                      \
+    FOR_INSTR(ctx, i2)
+
+#define FOR_INSTR3(ctx, i1, i2, i3)                                          \
+    FOR_INSTR2(ctx, i1, i2)                                                  \
+    FOR_INSTR(ctx, i3)
+
+#define FOR_INSTR4(ctx, i1, i2, i3, i4)                                      \
+    FOR_INSTR3(ctx, i1, i2, i3)                                              \
+    FOR_INSTR(ctx, i4)
+
+#define FOR_INSTR5(ctx, i1, i2, i3, i4, i5)                                  \
+    FOR_INSTR4(ctx, i1, i2, i3, i4)                                          \
+    FOR_INSTR(ctx, i5)
+
+#define FOR_INSTR6(ctx, i1, i2, i3, i4, i5, i6)                              \
+    FOR_INSTR5(ctx, i1, i2, i3, i4, i5)                                      \
+    FOR_INSTR(ctx, i6)
+
+#define FOR_INSTR7(ctx, i1, i2, i3, i4, i5, i6, i7)                          \
+    FOR_INSTR6(ctx, i1, i2, i3, i4, i5, i6)                                  \
+    FOR_INSTR(ctx, i7)
+
 /* }}} */
 /* {{{ Loops */
 
