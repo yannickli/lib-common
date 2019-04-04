@@ -2089,7 +2089,8 @@ void ic_flush(ichannel_t *ic)
 {
     int fd = el_fd_get_fd(ic->elh);
 
-    if (ic_is_local(ic) || !expect(ic->is_connected)) {
+    /* TODO Should be 'expect(!ic->is_connected)'. */
+    if (ic_is_local(ic) || !ic->is_connected) {
         return;
     }
 
