@@ -16,6 +16,7 @@ ctx.IopcOptions(ctx, includes='..')
 
 ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop.iop',
+    'tstiop_rpc.iop',
     'tstiop_inheritance.iop',
     'tstiop_licence.iop',
     'tstiop_backward_compat.iop',

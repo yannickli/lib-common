@@ -20,6 +20,9 @@
  * depends on its module. Thus, you MUST use at least one IChannel per module
  * (otherwise, you may call the wrong RPC).
  *
+ * IOP Channels can be used either over network or Unix Domain sockets. See
+ * Section 2 for more information.
+ *
  * 1  IChannel packet format
  * =========================
  *
@@ -199,6 +202,13 @@
  * 2  IChannel connection establishment
  * ====================================
  *
+ * Connection establishment is different according to whether we use Network
+ * or Unix Domain sockets. There is no version exchange on Unix Domain
+ * sockets.
+ *
+ * 2.1 Network sockets
+ * -------------------
+ *
  * Once the TCP connection is established, the server and the client
  * immediately send a version message (1.5.3). If the first message received
  * from the remote peer is not a version message, then the remote peer has
@@ -207,6 +217,17 @@
  * The client and the server MUST NOT send any other data before the complete
  * parsing of the version message sent by their peer. Note they may received
  * more data from their peer than just the version message.
+ *
+ * 2.2 Unix Domain sockets
+ * -----------------------
+ *
+ * We assume that processes of the same host have the same IC version. Thus,
+ * we skip version handshake in the case of Unix sockets.
+ *
+ * Also, if you have two connected Unix Domain sockets (e.g. obtained with
+ * socketpairx), you can call ic_spawn to have two connected IChannels. Note
+ * that you may use either SOCK_STREAM or SOCK_SEQPACKETS (the latter may be
+ * used to send file descriptors).
  *
  * 3  Extensibility
  * ================
@@ -513,7 +534,10 @@ struct ichannel_t {
     uint32_t id;
 
     bool is_closing   :  1;
-    bool is_spawned   :  1;   /**< auto delete if true                    */
+    bool is_spawned   :  1;   /**< auto delete if true; contrarily to what is
+        displayed with ic_get_state(), it does not always indicate that the
+        ichannel is actually server-side but really that it should be
+        autodeleted (if no_autodel is false) */
     bool no_autodel   :  1;   /**< disable autodelete feature             */
     bool is_seqpacket :  1;   /**< true if socket is SOCK_SEQPACKET       */
     bool is_unix      :  1;   /**< true if socket is a Unix socket        */
@@ -658,6 +682,8 @@ void ic_watch_activity(ichannel_t * nonnull ic, int timeout_soft,
 ev_priority_t ic_set_priority(ichannel_t * nonnull ic, ev_priority_t prio);
 ichannel_t * nullable ic_get_by_id(uint32_t id);
 ichannel_t * nonnull ic_init(ichannel_t * nonnull);
+
+/* Disconnect the IC (close the socket) and wipe it. */
 void ic_wipe(ichannel_t * nonnull);
 GENERIC_NEW(ichannel_t, ic);
 
@@ -675,10 +701,33 @@ static inline void ic_delete(ichannel_t * nullable * nonnull icp)
     }
 }
 
+/* Connect an IC to an IC server.
+ *
+ * If the IChannel uses Unix Domain socket (is_unix == true), the connect(2)
+ * system call is blocking and no version handshake is performed: the IC is
+ * immediately connected.
+ *
+ * \param[inout]  ic  The (initialized) ichannel structure.
+ */
 int  ic_connect(ichannel_t * nonnull);
+
+/* Connect an IC to an IC server in a blocking manner.
+ *
+ * \param[inout]  ic  The (initialized) ichannel structure.
+ */
 int  ic_connect_blocking(ichannel_t * nonnull ic);
 void ic_disconnect(ichannel_t * nonnull ic);
-void ic_spawn(ichannel_t * nonnull, int fd, ic_creds_f * nullable fn);
+
+/* Setup an IC for a connected socket.
+ *
+ * It should be used after an accept() (server side) but can also be used on
+ * two connected Unix Domain sockets.
+ *
+ * \param[inout]  ic  The ichannel structure to bind to the socket.
+ * \param[in]  fd  A connected socket (server-side).
+ * \param[in]  creds_fn  the on_creds callback.
+ */
+void ic_spawn(ichannel_t * nonnull ic, int fd, ic_creds_f * nullable fn);
 void ic_bye(ichannel_t * nonnull);
 void ic_nop(ichannel_t * nonnull);
 

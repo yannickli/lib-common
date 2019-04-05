@@ -18,6 +18,7 @@ endif
 
 tstiop_SOURCES =  \
     tstiop.iop                                                               \
+    tstiop_rpc.iop                                                           \
     tstiop_inheritance.iop                                                   \
     tstiop_licence.iop                                                       \
     tstiop_backward_compat.iop                                               \
