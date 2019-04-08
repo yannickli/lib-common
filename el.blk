@@ -678,23 +678,39 @@ ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
 
 static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
 {
-    pid_t pid;
-    int status;
+    qm_for_each_pos(ev_assoc, pos, &_G.childs) {
+        pid_t pid = _G.childs.keys[pos];
+        int status;
 
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        int32_t pos = qm_del_key(ev_assoc, &_G.childs, pid);
-
-        if (likely(pos >= 0)) {
+        if (waitpid(pid, &status, WNOHANG) == pid) {
+            /* The child process is dead. */
             ev_t *child = _G.childs.values[pos];
 
-            /* XXX callback inside el_child_fire may change the qm, so we
-             * mustn't use a pointer to the qm's data.
-             */
-            child->child.status = status;
-            el_child_fire(&child);
-        } else {
-            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
+            if (likely(child)) {
+                /* XXX callback inside el_child_fire may change the qm, so we
+                 * mustn't use a pointer to the qm's data.
+                 */
+                child->child.status = status;
+                el_child_fire(&child);
+            } else {
+                MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
+            }
         }
+    }
+}
+
+static void el_child_at_fork_on_parent(pid_t pid)
+{
+    if (pid < 0) {
+        /* Do nothing if it doesn't come from ifork(). */
+        return;
+    }
+
+    /* Watch pid without an el.
+     * This way, we can call at_fork_on_child_terminated without having to do
+     * a el_child_register() in el_sigchld_hook(). */
+    if (qm_add(ev_assoc, &_G.childs, pid, NULL) < 0) {
+        ASSERT("pid is already watched", false);
     }
 }
 
@@ -707,6 +723,7 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
 
 ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
 {
+    uint32_t pos;
     sigset_t set;
     sigset_t prev;
     int status;
@@ -717,8 +734,12 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
     ev->child.pid = pid;
     ev->child.has_exited = false;
 
-    if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
-        ASSERT("pid is already watched", false);
+    pos = qm_put(ev_assoc, &_G.childs, pid, ev, 0);
+    /* It is likely that the child process comes from ifork(). */
+    if (likely(pos & QHASH_COLLISION)) {
+        pos ^= QHASH_COLLISION;
+        ASSERT("pid is already watched", !_G.childs.values[pos]);
+        _G.childs.values[pos] = ev;
     }
 
     sigemptyset(&set);
@@ -735,12 +756,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
         ev->child.has_exited = true;
 
         pthread_sigmask(SIG_SETMASK, &prev, NULL);
-        return ev_add(&_G.before, ev);;
-    }
-
-    if (unlikely(!_G.el_sigchld_hook)) {
-        _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook,
-                                                NULL);
+        return ev_add(&_G.before, ev);
     }
 
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
@@ -2009,6 +2025,8 @@ static int el_initialize(void *arg)
     _G.el_on_pwr = el_signal_register(SIGINFO, el_on_pwr, NULL);
 #endif
 
+    _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
+
     return 0;
 }
 
@@ -2072,6 +2090,11 @@ static void el_at_fork_on_child(void)
     el_fd_at_fork();
 }
 
+static void el_at_fork_on_parent(pid_t pid)
+{
+    el_child_at_fork_on_parent(pid);
+}
+
 module_t *MODULE(el);
 MODULE_METHOD(VOID, DEPS_BEFORE, print_state);
 
@@ -2088,6 +2111,8 @@ static void el_module_register(void)
                                  __deps, countof(__deps));
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
+    module_implement_method(MODULE(el), &at_fork_on_parent_method,
+                            &el_at_fork_on_parent);
     module_implement_method(MODULE(el), &print_state_method,
                             &el_print_state);
     MODULE_REQUIRE(el);
