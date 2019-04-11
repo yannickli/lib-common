@@ -2614,7 +2614,10 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
 }
 
 /* Blocking is assumed if ev == NULL. Returns -1 on error, 0 on success or on
- * partial (or insufficient) reading (for non blocking sockets). */
+ * partial (or insufficient) reading (for non blocking sockets).
+ *
+ * XXX: Changes may need to be propagated to ic_bypass_version_handshake.
+ */
 static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
@@ -2742,6 +2745,16 @@ static int ic_version_handshake(el_t ev, int fd, short events, data_t priv)
     return -1;
 }
 
+/* This function is used by Unix socket because it's assumed that processes on
+ * the same host have the same version. */
+static void ic_bypass_version_handshake(ichannel_t *ic, int fd)
+{
+    assert (ic->is_unix);
+    ic->tls_required = false;
+    ic->peer_version = IC_VERSION;
+    IGNORE(expect(ic_mark_connected(ic, fd) >= 0));
+}
+
 static int ic_connecting(el_t ev, int fd, short events, data_t priv)
 {
     ichannel_t *ic = priv.ptr;
@@ -2825,22 +2838,18 @@ static int __ic_connect(ichannel_t *ic, int flags)
     assert (!ic->elh);
 
     ic->is_spawned = false;
-    ic->is_unix = ic->su.family == AF_UNIX;
+    ic->is_unix = (ic->su.family == AF_UNIX);
 
     if (ic->is_unix) {
         ic->tls_required = false;
-    }
-
-    if (ic->su.family == AF_UNIX) {
         flags &= ~O_NONBLOCK;
-        type   = SOCK_SEQPACKET;
+        type = SOCK_SEQPACKET;
+        ic->is_seqpacket = true;
     } else {
-        type   = SOCK_STREAM;
-    }
-    if (!ic->is_unix && type == SOCK_STREAM) {
+        type = SOCK_STREAM;
         flags |= FD_FEAT_TCP_NODELAY;
+        ic->is_seqpacket = false;
     }
-    ic->is_seqpacket = type == SOCK_SEQPACKET;
 
     sock = connectx(-1, &ic->su, 1, type, ic->protocol, flags);
     if (sock < 0) {
@@ -2853,14 +2862,18 @@ static int __ic_connect(ichannel_t *ic, int flags)
         data_t priv;
 
         ic->elh = el_fd_register(sock, true, POLLINOUT, &ic_event, ic);
-        if (ic_version_write(ic, sock) < 0) {
-            ic_mark_disconnected(ic);
-            return -1;
-        }
-        priv.ptr = ic;
-        if (ic_version_handshake(NULL, sock, POLLIN, priv) < 0) {
-            ic_mark_disconnected(ic);
-            return -1;
+        if (ic->is_unix) {
+            ic_bypass_version_handshake(ic, sock);
+        } else {
+            if (ic_version_write(ic, sock) < 0) {
+                ic_mark_disconnected(ic);
+                return -1;
+            }
+            priv.ptr = ic;
+            if (ic_version_handshake(NULL, sock, POLLIN, priv) < 0) {
+                ic_mark_disconnected(ic);
+                return -1;
+            }
         }
         fd_set_features(sock, O_NONBLOCK);
     }
@@ -2931,18 +2944,20 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     assert (type == SOCK_STREAM || type == SOCK_SEQPACKET);
     ic->is_seqpacket = type == SOCK_SEQPACKET;
 
-    if (!ic->is_unix && type == SOCK_STREAM) {
-        fd_set_features(fd, FD_FEAT_TCP_NODELAY);
-    }
+    ic->elh = el_fd_register(fd, true, POLLIN, &ic_version_handshake, ic);
 
     if (ic->is_unix) {
-        ic->tls_required = false;
+        ic_bypass_version_handshake(ic, fd);
+    } else {
+        if (type == SOCK_STREAM) {
+            fd_set_features(fd, FD_FEAT_TCP_NODELAY);
+        }
+        if (ic_version_write(ic, fd) < 0) {
+            ic_mark_disconnected(ic);
+            return;
+        }
     }
-    ic->elh = el_fd_register(fd, true, POLLIN, &ic_version_handshake, ic);
-    if (ic_version_write(ic, fd) < 0) {
-        ic_mark_disconnected(ic);
-        return;
-    }
+
     (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
     if (ic->do_el_unref) {

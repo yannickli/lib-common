@@ -11,9 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sys/wait.h>
+
 #include "z.h"
 #include "iop-rpc.h"
 #include "core.iop.h"
+#include "iop/tstiop_rpc.iop.h"
 
 typedef struct ctx_t {
     uint32_t u;
@@ -25,6 +28,7 @@ static struct {
     ic_status_t         status;
     core__log_level__t  level;
     ctx_t               ctx;
+    int echo_rpc_answered;
 } z_iop_rpc_g;
 #define _G  z_iop_rpc_g
 
@@ -117,15 +121,47 @@ static void IOP_RPC_CB(core__core, log, set_logger_level)
                     "rpc returned bad status"_suffix);                       \
     } while (0)
 
+/* {{{ Reset logger level RPC */
+
+typedef struct echo_ctx_t {
+    int received;
+    bool has_answer;
+} echo_ctx_t;
+
+static void IOP_RPC_CB(tstiop_rpc__rpc, test, echo)
+{
+    echo_ctx_t *ctx = *acast(echo_ctx_t *, msg->priv);
+
+    assert (res != NULL);
+    ctx->has_answer = true;
+    ctx->received = res->i;
+}
+
+static void IOP_RPC_IMPL(tstiop_rpc__rpc, test, echo)
+{
+    ic_reply(ic, slot, tstiop_rpc__rpc, test, echo, arg->i);
+    _G.echo_rpc_answered++;
+}
+
+/* }}} */
+/* {{{ Helpers */
+
+static void dummy_on_event(ichannel_t *ic, ic_event_t evt)
+{
+    return;
+}
+
+/* }}} */
+/* {{{ Tests */
 
 Z_GROUP_EXPORT(iop_rpc)
 {
+    MODULE_REQUIRE(ic);
+
     Z_TEST(ic_local, "iop-rpc: ic local") {
         ichannel_t ic;
         qm_t(ic_cbs) impl = QM_INIT(ic_cbs, impl);
         qm_t(ic_cbs) impl_aux = QM_INIT(ic_cbs, impl_aux);
-
-        MODULE_REQUIRE(ic);
 
         ic_init(&ic);
         ic_set_local(&ic);
@@ -182,7 +218,76 @@ Z_GROUP_EXPORT(iop_rpc)
         ic_disconnect(_G.ic_aux);
         ic_wipe(&ic);
         ic_delete(&_G.ic_aux);
-
-        MODULE_RELEASE(ic);
     } Z_TEST_END;
+
+    Z_TEST(ic_spawn_with_socketpair, "iop-rpc: socketpair and fork") {
+        /* A process, in order to share an IC with one of its children, may
+         * create two connected sockets with socketpair and then use them as
+         * an IC. This is done by calling ic_spawn on both ends. This test
+         * does exactly that and thus test that everything works well here. */
+        int sv[2];
+        ichannel_t *ic1 = ic_new();
+        ichannel_t *ic2 = ic_new();
+        qm_t(ic_cbs) impl = QM_INIT(ic_cbs, impl);
+        int child_pid;
+        int zombie_status;
+
+        Z_ASSERT_P(ic1);
+        Z_ASSERT_P(ic2);
+        ic1->no_autodel = ic2->no_autodel = true;
+        ic1->on_event = ic2->on_event = dummy_on_event;
+
+        Z_ASSERT_N(socketpairx(AF_UNIX, SOCK_SEQPACKET, 0, O_NONBLOCK, sv));
+        ic_spawn(ic1, sv[0], NULL);
+        ic_spawn(ic2, sv[1], NULL);
+
+        ic_register(&impl, tstiop_rpc__rpc, test, echo);
+        Z_ASSERT(ic1->is_connected);
+        Z_ASSERT(ic2->is_connected);
+
+        child_pid = ifork();
+        Z_ASSERT_N(child_pid);
+        if (!child_pid) {
+            /* The child echoes the father's messages. */
+            ic_delete(&ic1);
+            ic2->impl = &impl;
+
+            while (_G.echo_rpc_answered < 1) {
+                el_fd_loop(ic2->elh, 1000, EV_FDLOOP_HANDLE_TIMERS);
+            }
+
+            ic_unregister(&impl, tstiop_rpc__rpc, test, echo);
+            qm_wipe(ic_cbs, &impl);
+            ic_delete(&ic2);
+            MODULE_RELEASE(ic);
+            exit(0);
+        } else {
+            echo_ctx_t ctx;
+            ic_msg_t *msg;
+
+            /* The father tries to get an echo from its children. */
+            ic_delete(&ic2);
+            ic1->impl = &impl;
+
+            p_clear(&ctx, 1);
+            msg = ic_msg(echo_ctx_t *, &ctx);
+            ic_query2(ic1, msg, tstiop_rpc__rpc, test, echo, 1);
+            while (!ctx.has_answer) {
+                Z_ASSERT(ic1->is_connected);
+                el_fd_loop(ic1->elh, 1000, EV_FDLOOP_HANDLE_TIMERS);
+            }
+            Z_ASSERT_EQ(ctx.received, 1);
+
+            waitpid(child_pid, &zombie_status, 0);
+            Z_ASSERT_EQ(WEXITSTATUS(zombie_status), 0);
+
+            ic_unregister(&impl, core__core, log, set_root_level);
+            qm_wipe(ic_cbs, &impl);
+            ic_delete(&ic1);
+        }
+    } Z_TEST_END;
+
+    MODULE_RELEASE(ic);
 } Z_GROUP_END;
+
+/* }}} */
