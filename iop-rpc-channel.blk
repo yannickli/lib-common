@@ -2521,8 +2521,8 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
 {
     ic->queuable = true;
     el_fd_set_hook(ic->elh, ic_event);
-    ic->on_event(ic, IC_EVT_CONNECTED);
     ic->is_connected = true;
+    ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && ic->is_unix) {
         ic_creds_t creds;
         struct ucred ucred;
