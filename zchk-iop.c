@@ -4487,6 +4487,21 @@ Z_GROUP_EXPORT(iop)
 #undef FILTER_AND_CHECK_LEN
 
     } Z_TEST_END;
+    Z_TEST(iop_prune, "check gen attr filtering") { /* {{{ */
+        tstiop__filtered_struct__t obj;
+        int arr[] = { 1, 2, 3 };
+
+        iop_init(tstiop__filtered_struct, &obj);
+        obj.long_string = LSTR("struct");
+        obj.c = IOP_TYPED_ARRAY(i32, arr, countof(arr));
+
+        /* Filter fields tagged with "test:mayBeSkipped". */
+        iop_prune(&tstiop__filtered_struct__s, &obj,
+                  LSTR("test:mayBeSkipped"));
+        Z_ASSERT_NULL(obj.c.tab);
+        Z_ASSERT_EQ(obj.c.len, 0);
+        Z_ASSERT_LSTREQUAL(obj.long_string, LSTR_NULL_V);
+    } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_field_path_compile, "test iop_field_path compilation") { /* {{{ */
 #define TEST(pfx, _path, _exp_type, _exp_is_array, _exp_st, _exp_en,         \
@@ -8418,6 +8433,31 @@ Z_GROUP_EXPORT(iop)
         iop_init_union(tstiop__my_union_d, &u, ug);
         Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_d, &u, ug));
         Z_ASSERT_EQ(u.ug.a, -1);
+    } Z_TEST_END
+
+    Z_TEST(iop_st_array_for_each, "test iop_st_array_for_each") { /* {{{ */
+        t_scope;
+        tstiop__my_class3__array_t obj_array;
+        tstiop__my_class3__t **obj_ptr;
+        tstiop__my_union_d__array_t u_array;
+        tstiop__my_union_d__t *u_ptr;
+
+        obj_array = T_IOP_ARRAY(tstiop__my_class3,
+                                (tstiop__my_class3__t *)0x1,
+                                (tstiop__my_class3__t *)0x2,
+                                (tstiop__my_class3__t *)0x3);
+        obj_ptr = obj_array.tab;
+        iop_tab_for_each(&tstiop__my_class3__s, ptr, &obj_array) {
+            Z_ASSERT(ptr == *obj_ptr++);
+        }
+        Z_ASSERT(obj_ptr == tab_last(&obj_array) + 1);
+
+        u_array = T_IOP_ARRAY_NEW(tstiop__my_union_d, 2);
+        u_ptr = u_array.tab;
+        iop_tab_for_each_const(&tstiop__my_union_d__s, ptr, &u_array) {
+            Z_ASSERT(ptr == u_ptr++);
+        }
+        Z_ASSERT(u_ptr == tab_last(&u_array) + 1);
     } Z_TEST_END
     /* }}} */
 

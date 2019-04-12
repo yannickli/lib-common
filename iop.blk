@@ -5185,6 +5185,39 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
 }
 
 /* }}} */
+/* {{{ Altering IOP objects */
+
+void iop_prune(const iop_struct_t *st, void *obj, lstr_t gen_attr)
+{
+    iop_for_each_field_fast(st, obj, ^int (const iop_struct_t *st_desc,
+                                           const iop_field_t *fdesc,
+                                           void *st_ptr) {
+        /* Check first if the field is repeated of optional for perfs. */
+        if (fdesc->repeat == IOP_R_REPEATED
+        ||  fdesc->repeat == IOP_R_OPTIONAL)
+        {
+            if (iop_field_get_bool_gen_attr(st_desc, fdesc, gen_attr,
+                                            false))
+            {
+                int res;
+
+                t_seal();
+                res = iop_skip_absent_field_desc(t_pool(), st_ptr, st_desc,
+                                                 fdesc);
+                t_unseal();
+                assert (res >= 0);
+                return IOP_FIELD_SKIP;
+            }
+        } else {
+            assert (!iop_field_get_bool_gen_attr(st_desc, fdesc, gen_attr,
+                                                 false));
+        }
+
+        return 0;
+    });
+}
+
+/* }}} */
 /* {{{ Introspection - iop_for_each_field() */
 
 /* {{{ Stack management */

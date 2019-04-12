@@ -724,8 +724,11 @@ struct FilteredStruct {
     int a   = -1;
     uint b  = 2;
     ubyte d = 4;
+    @(test:mayBeSkipped, true)
     int[] c;
     string s = "test";
+    @(test:mayBeSkipped, true)
+    string? longString;
 };
 
 /* }}} */
