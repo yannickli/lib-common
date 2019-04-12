@@ -16,6 +16,12 @@
 #else
 #define IS_LIB_COMMON_NET_SOCKET_H
 
+/* Create a pair of connected sockets with some socket options.
+ *
+ * The socket pair is obtain with `socketpair(d, type, protocol)`. See
+ * socketpair(2) for more information about socketpair. The flags are ignored
+ * if O_NONBLOCK is missing.
+ */
 int socketpairx(int d, int type, int protocol, int flags, int sv[2]);
 
 int bindx(int sock, const sockunion_t * nonnull, int cnt,
