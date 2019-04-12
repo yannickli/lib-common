@@ -1718,13 +1718,18 @@ _iop_class_get_next_field(const iop_struct_t * nonnull * nonnull st,
  * preferred.
  *
  *  \param[in]  st_desc  The IOP structure definition (__s).
+ *
  *  \param[in]  obj  The name of the current object. Allocated by the macro as
  *                   a `void *`. It points directly to the struct, the union
  *                   or the class.
- *  \param[in]  vec  Array of objects. If st is a class, this must be an array
- *                   of pointers on the elements, and not an array of
- *                   elements.
- *  \param[in]  len  Length of the array
+ *
+ *  \param[in]  vec  Array of struct/union/class instances. The data format
+ *                   should be the same as the one for a genuine IOP array: we
+ *                   expect it to be an array of inlined IOP instances for
+ *                   IOP structs/unions and an array of object pointers for
+ *                   IOP classes.
+ *
+ *  \param[in]  len  Length of the array.
  */
 #define iop_array_for_each(st_desc, obj, vec, len)                           \
     __iop_array_for_each(st_desc, obj, vec, len,)
