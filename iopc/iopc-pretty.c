@@ -31,7 +31,8 @@ const char *t_pretty_token(iopc_tok_type_t token)
       case ITOK_COMMENT:       return "comment";
       case ITOK_DOX_COMMENT:   return "doxygen comment";
       case ITOK_ATTR:          return "attribute";
-      case ITOK_GEN_ATTR_NAME: return "generic attribute name (namespace:id)";
+      case ITOK_GEN_ATTR_NAME:
+        return "generic attribute name (namespaces:id)";
       default:                 return "unknown token";
     }
 }

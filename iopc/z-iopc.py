@@ -748,7 +748,7 @@ class IopcTest(z.TestCase):
 
     def test_generic_invalid_key(self):
         self.run_iopc('generic_attrs_invalid_2.iop', False,
-                      'generic attribute name (namespace:id) expected, '     \
+                      'generic attribute name (namespaces:id) expected, '    \
                       'but got identifier instead')
 
     def test_generic_repeated_key(self):
