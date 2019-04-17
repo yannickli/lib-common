@@ -132,6 +132,72 @@ enum z_mode {
 
 /* private implementations {{{ */
 
+/* z_val_t {{{ */
+
+enum z_val_type_t {
+    Z_VAL_TYPE_I,
+    Z_VAL_TYPE_U,
+    Z_VAL_TYPE_D,
+    Z_VAL_TYPE_B,
+    Z_VAL_TYPE_C,
+};
+
+typedef struct z_val_t {
+    enum z_val_type_t type;
+    union {
+        int64_t i;
+        uint64_t u;
+        double d;
+        bool b;
+        int c;
+    };
+} z_val_t;
+
+#define _Z_VAL_TEST(type_t)  \
+    __builtin_types_compatible_p(typeof(_z_val_build_v), type_t)
+
+/* Detect the type for '_v' and fill a 'z_val_t' structure. */
+#define _Z_VAL_BUILD(_v)                                                     \
+    ({                                                                       \
+        z_val_t _z_val_build_res;                                            \
+        typeof(_v) _z_val_build_v = (_v);                                    \
+                                                                             \
+        p_clear(&_z_val_build_res, 1);                                       \
+        if (_Z_VAL_TEST(int8_t) || _Z_VAL_TEST(int16_t)                      \
+        ||  _Z_VAL_TEST(int32_t) || _Z_VAL_TEST(int64_t)                     \
+        ||  _Z_VAL_TEST(int) || _Z_VAL_TEST(long) || _Z_VAL_TEST(long long)) \
+        {                                                                    \
+            _z_val_build_res.type = Z_VAL_TYPE_I;                            \
+            _z_val_build_res.i = _z_val_build_v;                             \
+        } else                                                               \
+        if (_Z_VAL_TEST(uint8_t) || _Z_VAL_TEST(uint16_t)                    \
+        ||  _Z_VAL_TEST(uint32_t) || _Z_VAL_TEST(uint64_t)                   \
+        ||  _Z_VAL_TEST(unsigned) || _Z_VAL_TEST(unsigned long)              \
+        ||  _Z_VAL_TEST(unsigned long long))                                 \
+        {                                                                    \
+            _z_val_build_res.type = Z_VAL_TYPE_U;                            \
+            _z_val_build_res.u = _z_val_build_v;                             \
+        } else                                                               \
+        if (_Z_VAL_TEST(float) || _Z_VAL_TEST(double)) {                     \
+            _z_val_build_res.type = Z_VAL_TYPE_D;                            \
+            _z_val_build_res.d = _z_val_build_v;                             \
+        } else                                                               \
+        if (_Z_VAL_TEST(bool)) {                                             \
+            _z_val_build_res.type = Z_VAL_TYPE_B;                            \
+            _z_val_build_res.b = _z_val_build_v;                             \
+        } else                                                               \
+        if (_Z_VAL_TEST(char)) {                                             \
+            _z_val_build_res.type = Z_VAL_TYPE_C;                            \
+            _z_val_build_res.c = _z_val_build_v;                             \
+        } else {                                                             \
+            __error__(#_v " has an unsupported type (for now)");             \
+        }                                                                    \
+        _z_val_build_res;                                                    \
+    })
+
+/* }}} */
+
+
 extern struct z_export *z_exports_g;
 
 void _z_group_start(const char *name);
@@ -146,9 +212,10 @@ void _z_step_report(void);
 
 __attr_printf__(9, 10)
 bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
-                   const char *lhs, long long lh,
-                   const char *ths, long long rh,
+                   const char *lvs, z_val_t lv,
+                   const char *rvs, z_val_t rv,
                    const char *fmt, ...);
+
 __attr_printf__(7, 8)
 bool _z_assert_lstrequal(const char *file, int lno,
                          const char *lhs, lstr_t lh,
@@ -287,14 +354,21 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 #define Z_ASSERT_NEG(e, ...)   Z_ASSERT((e) < 0, ##__VA_ARGS__)
 #define Z_ASSERT_NULL(e, ...)  Z_ASSERT((e) == NULL, ##__VA_ARGS__)
 
-#define Z_ASSERT_CMP(lhs, op, rhs, ...) \
-    ({  typeof(lhs) _l = (lhs);                                           \
-        typeof(rhs) _r = (rhs);                                           \
-        bool _z_res = _l op _r;                                           \
-        if (_z_assert_cmp(__FILE__, __LINE__, #op, _z_res, #lhs,          \
-                          _l, #rhs, _r, ""__VA_ARGS__))                   \
-            goto _z_step_end;                                             \
-        assert (_z_res); /* avoid false positive in clang-analyzer */     \
+#define Z_ASSERT_CMP(lhs, op, rhs, ...)                                      \
+    ({                                                                       \
+        typeof(lhs) _z_assert_cmp_l = (lhs);                                 \
+        typeof(rhs) _z_assert_cmp_r = (rhs);                                 \
+        z_val_t _z_assert_cmp_lv = _Z_VAL_BUILD(_z_assert_cmp_l);            \
+        z_val_t _z_assert_cmp_rv = _Z_VAL_BUILD(_z_assert_cmp_r);            \
+        bool _z_res = _z_assert_cmp_l op _z_assert_cmp_r;                    \
+                                                                             \
+        if (_z_assert_cmp(__FILE__, __LINE__, #op, _z_res, #lhs,             \
+                          _z_assert_cmp_lv, #rhs, _z_assert_cmp_rv,          \
+                          ""__VA_ARGS__))                                    \
+        {                                                                    \
+            goto _z_step_end;                                                \
+        }                                                                    \
+        assert (_z_res); /* avoid false positive in clang-analyzer */        \
     })
 #define Z_ASSERT_EQ(lhs, rhs, ...)  Z_ASSERT_CMP(lhs, ==, rhs, ##__VA_ARGS__)
 #define Z_ASSERT_NE(lhs, rhs, ...)  Z_ASSERT_CMP(lhs, !=, rhs, ##__VA_ARGS__)
