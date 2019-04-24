@@ -203,6 +203,10 @@ static void ic_get_state(sb_t *buf)
             .title = LSTR_IMMED("NEXT SLOT"),
         }, {
             .title = LSTR_IMMED("PENDING QUERIES"),
+        }, {
+            .title = LSTR_IMMED("NB IOV"),
+        }, {
+            .title = LSTR_IMMED("IOV TOTAL LEN"),
         }
     };
     uint32_t hdr_size = countof(hdr_data);
@@ -270,6 +274,8 @@ static void ic_get_state(sb_t *buf)
         qv_append(tab, ev_priority_to_str(ic->priority));
         qv_append(tab, t_lstr_fmt("%u", ic->nextslot));
         qv_append(tab, t_lstr_fmt("%d", ic_queue_len(ic)));
+        qv_append(tab, t_lstr_fmt("%d", ic->iov.len));
+        qv_append(tab, t_lstr_fmt("%d", ic->iov_total_len));
     }
 
     sb_add_table(buf, &hdr, &rows);
