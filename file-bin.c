@@ -89,29 +89,22 @@ static off_t file_bin_tell(const file_bin_t *file)
 
 static off_t file_bin_get_entry_end_off(const file_bin_t *f, uint32_t d_len)
 {
-    /* Number of slot header in this range */
-    int tmp_header = 1;
+    uint32_t len = d_len;
     off_t res;
-    off_t prev_end = f->cur + d_len;
-    int n_slot_header = get_multiples_nb_in_range(f->slot_size, f->cur,
-                                                  f->cur + d_len);
+    uint32_t nb_slots;
+    uint32_t remaining = file_bin_remaining_space_in_slot(f);
 
-    /* Even if not a multiple of slot_size, offset HEADER_SIZE needs a slot
-     * header
-     */
-    if (f->cur == HEADER_SIZE(f) && f->version > 0) {
-        n_slot_header++;
+    if (is_at_slot_start(f)) {
+        len += SLOT_HDR_SIZE(f);
     }
-
-    res = f->cur + d_len + SLOT_HDR_SIZE(f) * n_slot_header;
-
-    /* Adding slot headers could have move us behind other slot beginning */
-    while (tmp_header > 0 && res > prev_end) {
-        tmp_header = get_multiples_nb_in_range(f->slot_size,
-                                               prev_end + 1, res);
-        prev_end = res;
-        res += SLOT_HDR_SIZE(f) * tmp_header;
+    res = f->cur + len;
+    if (len <= remaining) {
+        return res;
     }
+    /* compute the number of extra slots needed to store the entry */
+    nb_slots = DIV_ROUND_UP(len - remaining,
+                            f->slot_size - SLOT_HDR_SIZE(f));
+    res += nb_slots * SLOT_HDR_SIZE(f);
 
     return res;
 }
@@ -119,13 +112,19 @@ static off_t file_bin_get_entry_end_off(const file_bin_t *f, uint32_t d_len)
 static off_t file_bin_get_next_entry_off(const file_bin_t *f, uint32_t d_len)
 {
     off_t res = file_bin_get_entry_end_off(f, d_len);
+    uint32_t remaining = 0;
 
-    /* If not enough space to put a record header, let's jump to the next
-     * slot beginning. */
-    if (f->slot_size - (res % f->slot_size) < RC_HDR_SIZE) {
-        res += f->slot_size - (res % f->slot_size) + SLOT_HDR_SIZE(f);
+    if (res % f->slot_size) {
+        remaining = f->slot_size - (res % f->slot_size);
     }
+    /* else it means res is exactly at the end of a slot so remaining is 0 */
 
+    if (remaining < RC_HDR_SIZE) {
+        /* if there is not enough space in the slot to put the record header,
+         * go to the beginning of the next slot
+         */
+        res += remaining + SLOT_HDR_SIZE(f);
+    }
     return res;
 }
 
