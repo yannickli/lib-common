@@ -353,7 +353,7 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           sb_sets(&tk->b, "generic");
                           return tk;
                         }
-    {ID}":"{ID}         {
+    ({ID}":")+{ID}      {
                           iopc_token_t *tk = token_new(ITOK_GEN_ATTR_NAME);
                           sb_set(&tk->b, yytext, yyleng);
                           return tk;

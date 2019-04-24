@@ -1,5 +1,6 @@
 package attrs_valid;
 
+@(namespace:subnamespace:attr, true)
 @ctype(my_enum_a__t) @ctype(type = enum_a__t)
 @prefix(A)
 @strict
