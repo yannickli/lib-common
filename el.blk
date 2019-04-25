@@ -676,27 +676,49 @@ ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
 /* }}} */
 /* {{{ child events */
 
+typedef struct ev_sigchld_assoc_t {
+    int pid;
+    ev_t *child;
+} ev_sigchld_assoc_t;
+
+qvector_t(ev_sigchld_assoc, ev_sigchld_assoc_t);
+
 static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
 {
+    qv_t(ev_sigchld_assoc) ev_assocs;
+
+    qv_init(&ev_assocs);
+
+    /* XXX callback inside el_child_fire may change the qm, so we cannot call
+     * it while iterating on the qm and removing elements from it.
+     * We first need to list the dead child processes, and then call
+     * el_child_fire() in another loop.
+     */
     qm_for_each_pos(ev_assoc, pos, &_G.childs) {
-        pid_t pid = _G.childs.keys[pos];
+        ev_sigchld_assoc_t ev_assoc;
         int status;
 
-        if (waitpid(pid, &status, WNOHANG) == pid) {
+        ev_assoc.pid = _G.childs.keys[pos];
+        if (waitpid(ev_assoc.pid, &status, WNOHANG) == ev_assoc.pid) {
             /* The child process is dead. */
-            ev_t *child = _G.childs.values[pos];
-
-            if (likely(child)) {
-                /* XXX callback inside el_child_fire may change the qm, so we
-                 * mustn't use a pointer to the qm's data.
-                 */
-                child->child.status = status;
-                el_child_fire(&child);
-            } else {
-                MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, pid);
+            ev_assoc.child = _G.childs.values[pos];
+            if (likely(ev_assoc.child)) {
+                ev_assoc.child->child.status = status;
             }
+            qv_append(&ev_assocs, ev_assoc);
+            qm_del_at(ev_assoc, &_G.childs, pos);
         }
     }
+
+    tab_for_each_ptr(ev_assoc, &ev_assocs) {
+        if (likely(ev_assoc->child)) {
+            el_child_fire(&ev_assoc->child);
+        } else {
+            MODULE_METHOD_RUN_INT(at_fork_on_child_terminated, ev_assoc->pid);
+        }
+    }
+
+    qv_wipe(&ev_assocs);
 }
 
 static void el_child_at_fork_on_parent(pid_t pid)
