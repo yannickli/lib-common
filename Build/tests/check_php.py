@@ -24,8 +24,6 @@ The script will check PHP syntax in all subdirectories.
 
 
 from __future__ import print_function
-from seven_six import monkey_patch
-monkey_patch()
 from subprocess import check_output, STDOUT, CalledProcessError
 import os
 import sys
