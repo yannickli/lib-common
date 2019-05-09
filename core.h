@@ -14,8 +14,8 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
-#define LIB_COMMON_VERSION  "master"
-#define LIB_COMMON_MAJOR    9999
+#define LIB_COMMON_VERSION  "2019.1"
+#define LIB_COMMON_MAJOR    2019
 #define LIB_COMMON_MINOR    1
 #define __LIB_COMMON_VER(Maj, Min)  (((Maj) << 16) | Min)
 
