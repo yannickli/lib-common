@@ -745,6 +745,15 @@ static inline void lstr_xor(lstr_t in, lstr_t key, lstr_t out)
 void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out);
 #define lstr_unobfuscate(in, key, out)  lstr_obfuscate(in, key, out)
 
+/** Trim 1 to 8 padding bytes (PKCS#7).
+ *
+ * \note sb_add_pkcs7_8_bytes_padding() should be used for padding.
+ *
+ * \param[in] padded The padded lstr.
+ * \returns The lstr with padding trimmed.
+ */
+lstr_t lstr_trim_pkcs7_padding(lstr_t padded);
+
 /* }}} */
 /* Format {{{ */
 
@@ -768,7 +777,6 @@ void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out);
        mp_lstr_init((mp), __s, __len); })
 
 #define t_lstr_vfmt(fmt, va)  mp_lstr_vfmt(t_pool(), fmt, va)
-
 
 /* }}} */
 #endif

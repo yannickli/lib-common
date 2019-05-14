@@ -26,7 +26,7 @@ static void custom_free(mem_pool_t *m, void *p)
     }
 }
 
-static int z_test_sb_padding(lstr_t initial_value, lstr_t padded_exp_value)
+static int z_test_padding(lstr_t initial_value, lstr_t padded_exp_value)
 {
     SB_1k(sb_padded);
 
@@ -34,6 +34,8 @@ static int z_test_sb_padding(lstr_t initial_value, lstr_t padded_exp_value)
     sb_add_pkcs7_8_bytes_padding(&sb_padded);
 
     Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb_padded), padded_exp_value);
+    Z_ASSERT_LSTREQUAL(initial_value,
+                       lstr_trim_pkcs7_padding(LSTR_SB_V(&sb_padded)));
 
     Z_HELPER_END;
 }
@@ -1430,7 +1432,7 @@ Z_GROUP_EXPORT(str)
 
     Z_TEST(sb_add_pkcs7_8_bytes_padding, "") {
 #define T(lstr_init, lstr_expected_padded)  \
-        Z_HELPER_RUN(z_test_sb_padding(lstr_init, lstr_expected_padded))
+        Z_HELPER_RUN(z_test_padding(lstr_init, lstr_expected_padded))
 
         T(LSTR_EMPTY_V,     LSTR(          "\x8\x8\x8\x8\x8\x8\x8\x8"));
         T(LSTR("1"),        LSTR("1"       "\x7\x7\x7\x7\x7\x7\x7"));

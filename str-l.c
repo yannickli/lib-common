@@ -618,6 +618,25 @@ void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out)
     }
 }
 
+lstr_t lstr_trim_pkcs7_padding(lstr_t padded)
+{
+    int nb_padding_bytes;
+
+    if (!expect(padded.len > 0)) {
+        return LSTR_EMPTY_V;
+    }
+
+    nb_padding_bytes = padded.s[padded.len - 1];
+
+    assert (padded.len % 8 == 0);
+    for (int i = padded.len - 1; i >= padded.len - nb_padding_bytes; i--) {
+        assert (padded.s[i] == nb_padding_bytes);
+    }
+    padded.len -= nb_padding_bytes;
+    assert (padded.len >= 0);
+    return padded;
+}
+
 /* }}} */
 /* {{{ SQL LIKE pattern matching */
 
