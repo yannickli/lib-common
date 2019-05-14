@@ -439,6 +439,14 @@ void _sb_add_duration_ms(sb_t *sb, uint64_t ms, bool print_ms)
 #undef SB_ADD_DUR
 }
 
+void sb_add_pkcs7_8_bytes_padding(sb_t *sb)
+{
+    int nb_additional_bytes = 8 - (sb->len % 8);
+
+    assert (1 <= nb_additional_bytes && nb_additional_bytes <= 8);
+    sb_addnc(sb, nb_additional_bytes, nb_additional_bytes);
+}
+
 /**************************************************************************/
 /* FILE *                                                                 */
 /**************************************************************************/

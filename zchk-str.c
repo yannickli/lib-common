@@ -26,6 +26,18 @@ static void custom_free(mem_pool_t *m, void *p)
     }
 }
 
+static int z_test_sb_padding(lstr_t initial_value, lstr_t padded_exp_value)
+{
+    SB_1k(sb_padded);
+
+    sb_set_lstr(&sb_padded, initial_value);
+    sb_add_pkcs7_8_bytes_padding(&sb_padded);
+
+    Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb_padded), padded_exp_value);
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(str)
 {
     char    buf[BUFSIZ];
@@ -1412,6 +1424,33 @@ Z_GROUP_EXPORT(str)
         sb_add_duration_s(&sb, 3);
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR("3s"));
         sb_reset(&sb);
+
+#undef T
+    } Z_TEST_END;
+
+    Z_TEST(sb_add_pkcs7_8_bytes_padding, "") {
+#define T(lstr_init, lstr_expected_padded)  \
+        Z_HELPER_RUN(z_test_sb_padding(lstr_init, lstr_expected_padded))
+
+        T(LSTR_EMPTY_V,     LSTR(          "\x8\x8\x8\x8\x8\x8\x8\x8"));
+        T(LSTR("1"),        LSTR("1"       "\x7\x7\x7\x7\x7\x7\x7"));
+        T(LSTR("2"),        LSTR("2"       "\x7\x7\x7\x7\x7\x7\x7"));
+        T(LSTR("12"),       LSTR("12"      "\x6\x6\x6\x6\x6\x6"));
+        T(LSTR("123"),      LSTR("123"     "\x5\x5\x5\x5\x5"));
+        T(LSTR("1234"),     LSTR("1234"    "\x4\x4\x4\x4"));
+        T(LSTR("12345"),    LSTR("12345"   "\x3\x3\x3"));
+        T(LSTR("123456"),   LSTR("123456"  "\x2\x2"));
+        T(LSTR("1234567"),  LSTR("1234567" "\x1"));
+        T(LSTR("12345678"), LSTR("12345678""\x8\x8\x8\x8\x8\x8\x8\x8"));
+
+        T(LSTR("12345678123"),
+          LSTR("12345678123\x5\x5\x5\x5\x5"));
+        T(LSTR("12345678123456781234"),
+          LSTR("12345678123456781234\x4\x4\x4\x4"));
+        T(LSTR("123456781234567812345678"),
+          LSTR("123456781234567812345678\x8\x8\x8\x8\x8\x8\x8\x8"));
+        T(LSTR("1234567812345678123456781"),
+          LSTR("1234567812345678123456781\x7\x7\x7\x7\x7\x7\x7"));
 
 #undef T
     } Z_TEST_END;

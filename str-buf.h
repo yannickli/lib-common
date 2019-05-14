@@ -629,6 +629,14 @@ static inline void sb_add_duration_ms(sb_t *nonnull sb, uint64_t ms)
     _sb_add_duration_ms(sb, ms, true);
 }
 
+/** Append 1 to 8 padding bytes (PKCS#7).
+ *
+ * Padding bytes are appended to the sb in order to ensure 8 bytes blocks.
+ *
+ * \param[in,out] sb The buffer to pad.
+ */
+void sb_add_pkcs7_8_bytes_padding(sb_t *nonnull sb);
+
 /**************************************************************************/
 /* syscall/system wrappers                                                */
 /**************************************************************************/
