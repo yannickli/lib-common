@@ -2094,6 +2094,7 @@ cdef void add_error_field_type(const iop_field_t *field, sb_t *err):
     cdef t_scope_t t_scope_guard = t_scope_init()
     cdef iop_type_t ftype = field.type
     cdef object py_field_type
+    cdef object py_field_type_name
 
     t_scope_ignore(t_scope_guard)
 
@@ -2134,7 +2135,8 @@ cdef void add_error_field_type(const iop_field_t *field, sb_t *err):
         py_field_type = None
 
     if py_field_type is not None:
-        sb_add_lstr(err, mp_py_obj_to_lstr(t_pool(), py_field_type.__name__,
+        py_field_type_name = py_field_type.__name__
+        sb_add_lstr(err, mp_py_obj_to_lstr(t_pool(), py_field_type_name,
                                            False))
     else:
         sb_adds(err, 'NoneType')
