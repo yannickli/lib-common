@@ -492,6 +492,14 @@ Z_GROUP_EXPORT(module)
         MODULE_REQUIRE(modprovide2);
         Z_ASSERT_LSTREQUAL(*word_global_g, overriding);
         MODULE_RELEASE(modprovide2);
+
+        MODULE_REQUIRE(modprovide2);
+        Z_ASSERT_LSTREQUAL(*word_global_g, provide_arg_g);
+        MODULE_RELEASE(modprovide2);
+
+        MODULE_REQUIRE(modprovide);
+        Z_ASSERT(word_global_g == NULL);
+        MODULE_RELEASE(modprovide);
     } Z_TEST_END;
 
 /* }}} */
