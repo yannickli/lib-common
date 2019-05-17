@@ -219,7 +219,7 @@ static void iopc_dump_imports(sb_t *buf, iopc_pkg_t *pkg)
             sb_adds(buf, "const registerCollection = iop.backbone.registerCollection;\n");
         }
         sb_addf(buf, "import { Package } from 'iop/core';\n");
-        sb_addf(buf, "import * as JSON from 'json/%s.iop.json';\n",
+        sb_addf(buf, "import JSON from 'json/%s.iop.json';\n",
                 pp_path(pkg->name));
 
         sb_addf(buf, "iop.load(JSON as Package);\n\n");
