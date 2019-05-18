@@ -7272,6 +7272,15 @@ __iop_iface_check_backward_compat(const iop_iface_t *if1,
     /* XXX: do not simply test if1 == if2 because it allows to easily write
      *      "compatible" z-tests. */
 
+    /* Skip SNMP interfaces: they do not have the same backward compatibility
+     * rules as the standard interfaces, and it would be quite useless for us.
+     */
+    if (TST_BIT(&if1->flags, IOP_IFACE_IS_SNMP_IFACE)
+    &&  TST_BIT(&if2->flags, IOP_IFACE_IS_SNMP_IFACE))
+    {
+        return 0;
+    }
+
     for (int i = 0; i < if1->funs_len; i++) {
         const iop_rpc_t *fun1 = &if1->funs[i];
         const iop_rpc_t *fun2;
