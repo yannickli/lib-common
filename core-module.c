@@ -55,6 +55,7 @@ typedef enum module_state_t {
 qvector_t(module, module_t *);
 
 qm_khptr_t(module_arg_by_dep, module_t *, void *);
+qm_khptr_t(module_manual_dep, module_t, int);
 
 struct module_t {
     lstr_t name;
@@ -73,6 +74,10 @@ struct module_t {
      * provided manually. */
     qm_t(module_arg_by_dep) deps_args;
 
+    /* Modules required during module initialization that should be released
+     * at shutdown. */
+    qm_t(module_manual_dep) manual_deps;
+
     int (*constructor)(void *);
     int (*destructor)(void);
     void *constructor_argument;
@@ -83,6 +88,7 @@ static module_t *module_init(module_t *module)
     p_clear(module, 1);
     qm_init(methods, &module->methods);
     qm_init(module_arg_by_dep, &module->deps_args);
+    qm_init(module_manual_dep, &module->manual_deps);
     return module;
 }
 GENERIC_NEW(module_t, module);
@@ -92,6 +98,7 @@ static void module_wipe(module_t *module)
     qv_deep_wipe(&module->dependent_of, lstr_wipe);
     qv_wipe(&module->required_by);
     qm_wipe(module_arg_by_dep, &module->deps_args);
+    qm_wipe(module_manual_dep, &module->manual_deps);
     qm_wipe(methods, &module->methods);
 }
 GENERIC_DELETE(module_t, module);
@@ -111,6 +118,9 @@ static struct module_g {
     qm_t(module_dep) module_dep_resolve;
 
     qm_t(methods_impl) methods;
+
+    qv_t(module) module_dep_init_stack;
+    qv_t(module) module_dep_wipe_stack;
 
     /* Keep track if we are currently initializing a module */
     int in_initialization;
@@ -307,6 +317,57 @@ modules_topo_sort_rev(qm_t(module) *modules, qv_t(module) *sorted, sb_t *err)
     return ret;
 }
 
+static void module_add_manual_dep(module_t *module)
+{
+    int pos;
+    module_t *required_by;
+
+    if (!_G.module_dep_init_stack.len) {
+        /* We're not into a module initialization. */
+        return;
+    }
+
+    required_by = *tab_last(&_G.module_dep_init_stack);
+    assert (module != required_by);
+    pos = qm_put(module_manual_dep, &required_by->manual_deps, module, 1, 0);
+    if (pos & QHASH_COLLISION) {
+        pos &= ~QHASH_COLLISION;
+        required_by->manual_deps.values[pos]++;
+    }
+}
+
+static void module_pop_manual_dep(module_t *module)
+{
+    int pos;
+    module_t *required_by;
+
+    if (!_G.module_dep_wipe_stack.len) {
+        /* We're not into a module shutdown. */
+        return;
+    }
+
+    required_by = *tab_last(&_G.module_dep_wipe_stack);
+    pos = qm_find(module_manual_dep, &required_by->manual_deps, module);
+    if (pos < 0) {
+        logger_panic(&_G.logger,
+                     "`%*pM` is released during shutdown of `%*pM` "
+                     "but was not required at initialization",
+                     LSTR_FMT_ARG(module->name),
+                     LSTR_FMT_ARG(required_by->name));
+    }
+    if (required_by->manual_deps.values[pos] <= 0) {
+        /* XXX Do not remove the key so we can have two distinct errors. */
+        /* TODO In debug mode, remember where (file + line) the module was
+         * removed. */
+        logger_panic(&_G.logger,
+                     "`%*pM` is released during shutdown of `%*pM` "
+                     "but it seems that it was already released",
+                     LSTR_FMT_ARG(module->name),
+                     LSTR_FMT_ARG(required_by->name));
+    }
+    required_by->manual_deps.values[pos]--;
+}
+
 void module_require(module_t *module, module_t *required_by)
 {
     if (module->state == INITIALIZING) {
@@ -331,6 +392,10 @@ void module_require(module_t *module, module_t *required_by)
                      LSTR_FMT_ARG(module->name), required_by ? "by " : "",
                      LSTR_FMT_ARG(required_by ? required_by->name
                                               : LSTR_NULL_V));
+    }
+
+    if (!required_by) {
+        module_add_manual_dep(module);
     }
 
     if (module->state == AUTO_REQ || module->state == MANU_REQ) {
@@ -359,10 +424,13 @@ void module_require(module_t *module, module_t *required_by)
                                                   NULL);
     }
 
+    qv_append(&_G.module_dep_init_stack, module);
     if ((*module->constructor)(module->constructor_argument) < 0) {
         logger_fatal(&_G.logger, "unable to initialize %*pM",
                      LSTR_FMT_ARG(module->name));
     }
+    assert (*tab_last(&_G.module_dep_init_stack) == module);
+    qv_shrink(&_G.module_dep_init_stack, 1);
     module->constructor_argument = NULL;
 
     set_require_type(module, required_by);
@@ -449,11 +517,25 @@ static int module_shutdown(module_t *module)
     logger_trace(&_G.logger, 1, "shutting down `%*pM`",
                  LSTR_FMT_ARG(module->name));
 
+    qv_append(&_G.module_dep_wipe_stack, module);
     if ((shut_self = (*module->destructor)()) < 0) {
         logger_warning(&_G.logger, "unable to shutdown   %*pM",
                        LSTR_FMT_ARG(module->name));
         module->state = FAIL_SHUT;
     }
+    assert (*tab_last(&_G.module_dep_wipe_stack) == module);
+    qv_shrink(&_G.module_dep_wipe_stack, 1);
+
+    qm_for_each_pos(module_manual_dep, pos, &module->manual_deps) {
+        if (module->manual_deps.values[pos] > 0) {
+            logger_panic(&_G.logger,
+                         "`%*pM` manually required module `%*pM` "
+                         "but didn't release it at shutdown",
+                         LSTR_FMT_ARG(module->name),
+                         LSTR_FMT_ARG(module->manual_deps.keys[pos]->name));
+        }
+    }
+    qm_clear(module_manual_dep, &module->manual_deps);
 
     _G.methods_dirty = true;
 
@@ -485,6 +567,8 @@ void module_release(module_t *module)
                      LSTR_FMT_ARG(module->name));
         return;
     }
+
+    module_pop_manual_dep(module);
 
     if (module->state == MANU_REQ && module->manu_req_count > 1) {
         module->manu_req_count--;
@@ -569,6 +653,8 @@ static void _module_shutdown(void)
     if (!syslog_is_critical) {
         module_hard_shutdown();
     }
+    qv_wipe(&_G.module_dep_init_stack);
+    qv_wipe(&_G.module_dep_wipe_stack);
     qm_deep_wipe(methods_impl, &_G.methods, IGNORE, module_method_delete);
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
     qm_deep_wipe(module_dep, &_G.module_dep_resolve, lstr_wipe,
