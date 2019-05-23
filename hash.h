@@ -39,11 +39,13 @@
 #define SHA384_HEX_DIGEST_SIZE  (SHA384_DIGEST_SIZE * 2 + 1)
 #define SHA512_HEX_DIGEST_SIZE  (SHA512_DIGEST_SIZE * 2 + 1)
 
-#define SHA1_BLOCK_SIZE     64
+#define SHA1_BLOCK_SIZE     ( 512 / 8)
 #define SHA256_BLOCK_SIZE   ( 512 / 8)
 #define SHA512_BLOCK_SIZE   (1024 / 8)
 #define SHA384_BLOCK_SIZE   SHA512_BLOCK_SIZE
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
+
+#define DES3_BLOCK_SIZE  (64 / 8)
 
 #define GET_U32_LE(n,b,i)    ((n) = cpu_to_le32pu((b) + (i)))
 #define PUT_U32_LE(n,b,i)    (*acast(le32_t, (b) + (i)) = cpu_to_le32(n))
