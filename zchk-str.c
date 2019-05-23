@@ -1468,6 +1468,19 @@ Z_GROUP_EXPORT(str)
           LSTR("1234567812345678123456781\x7\x7\x7\x7\x7\x7\x7"));
 
 #undef T
+
+        /* failing lstr_trim_pkcs7_padding cases */
+#define TEST_FAIL(_l)  \
+        Z_ASSERT_LSTREQUAL(LSTR_NULL_V, lstr_trim_pkcs7_padding(_l))
+
+        TEST_FAIL(LSTR_NULL_V);
+        TEST_FAIL(LSTR_EMPTY_V);
+        TEST_FAIL(LSTR_INIT_V("a", -1));
+        TEST_FAIL(LSTR("1"));
+        TEST_FAIL(LSTR("12345678"));
+        TEST_FAIL(LSTR("1234567890"));
+
+#undef TEST_FAIL
     } Z_TEST_END;
 
     Z_TEST(str_span, "str: filtering") {

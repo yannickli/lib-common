@@ -750,7 +750,8 @@ void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out);
  * \note sb_add_pkcs7_8_bytes_padding() should be used for padding.
  *
  * \param[in] padded The padded lstr.
- * \returns The lstr with padding trimmed.
+ * \returns The lstr with padding trimmed in case of success.
+ *          LSTR_NULL_V in case of error.
  */
 lstr_t lstr_trim_pkcs7_padding(lstr_t padded);
 
