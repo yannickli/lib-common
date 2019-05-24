@@ -182,8 +182,8 @@ static module_t *MODULE(module_arg);
     module_add_dep(MODULE(need), LSTR(#need), LSTR(#name), &MODULE(name))
 
 /** Provide arguments in constructor. */
-lstr_t *word_global;
-lstr_t  provide_arg = LSTR_IMMED("HELLO");
+lstr_t *word_global_g;
+lstr_t  provide_arg_g = LSTR_IMMED("HELLO");
 
 MODULE_DECLARE(modprovide);
 
@@ -196,13 +196,13 @@ static int modprovide2_shutdown(void)
     return 0;
 }
 MODULE_BEGIN(modprovide2)
-    MODULE_PROVIDE(modprovide, &provide_arg);
+    MODULE_PROVIDE(modprovide, &provide_arg_g);
     MODULE_DEPENDS_ON(modprovide);
 MODULE_END()
 
 static int modprovide_initialize(void *arg)
 {
-    word_global = arg;
+    word_global_g = arg;
     return 0;
 }
 static int modprovide_shutdown(void)
@@ -482,8 +482,15 @@ Z_GROUP_EXPORT(module)
     } Z_TEST_END;
 
     Z_TEST(provide_constructor, "provide constructor") {
+        lstr_t overriding = LSTR("overriding");
+
         MODULE_REQUIRE(modprovide2);
-        Z_ASSERT_LSTREQUAL(*word_global, provide_arg);
+        Z_ASSERT_LSTREQUAL(*word_global_g, provide_arg_g);
+        MODULE_RELEASE(modprovide2);
+
+        MODULE_PROVIDE(modprovide, &overriding);
+        MODULE_REQUIRE(modprovide2);
+        Z_ASSERT_LSTREQUAL(*word_global_g, overriding);
         MODULE_RELEASE(modprovide2);
     } Z_TEST_END;
 

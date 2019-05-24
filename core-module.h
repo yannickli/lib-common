@@ -199,10 +199,12 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
         lstr_t __name = LSTR_IMMED(#name);                                   \
         const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = module_register(__name, &MODULE(name),             \
-                                          &name##_initialize,                \
-                                          &name##_shutdown,                  \
-                                          __deps, countof(__deps));          \
+        module_t *__mod                                                      \
+            __attribute__((cleanup(module_definition_scope_end)))            \
+            = module_definition_scope_start(                                 \
+                module_register(__name, &MODULE(name),                       \
+                                &name##_initialize, &name##_shutdown,        \
+                                __deps, countof(__deps)));                   \
 
 /** Macro to end the definition of a module.
  *
@@ -440,6 +442,10 @@ bool module_is_initializing(const module_t * nonnull mod);
 /** true if module is currently shutting down. */
 __attr_nonnull__((1))
 bool module_is_shutting_down(const module_t * nonnull mod);
+
+module_t *nonnull module_definition_scope_start(module_t *nonnull mod);
+
+void module_definition_scope_end(module_t *nonnull *nonnull mod);
 
 /** Fetch the module hierarchy.
  *
