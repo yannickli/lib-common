@@ -321,14 +321,14 @@ void module_require(module_t *module, module_t *required_by)
     logger_trace(&_G.logger, 1, "calling `%*pM` constructor",
                  LSTR_FMT_ARG(module->name));
 
-    if ((*module->constructor)(module->constructor_argument) >= 0) {
-        set_require_type(module, required_by);
-        _G.methods_dirty = true;
-        _G.in_initialization--;
-        return;
+    if ((*module->constructor)(module->constructor_argument) < 0) {
+        logger_fatal(&_G.logger, "unable to initialize %*pM",
+                     LSTR_FMT_ARG(module->name));
     }
-    logger_fatal(&_G.logger, "unable to initialize %*pM",
-                 LSTR_FMT_ARG(module->name));
+
+    set_require_type(module, required_by);
+    _G.methods_dirty = true;
+    _G.in_initialization--;
 }
 
 void module_provide(module_t **module, void *argument)
