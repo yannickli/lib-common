@@ -179,6 +179,7 @@ module_t *module_register(lstr_t name, module_t **module,
     _G.modules.keys[pos] = &new_module->name;
     _G.modules.values[pos] = new_module;
 
+    *module = new_module;
     return new_module;
 }
 

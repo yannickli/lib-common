@@ -199,10 +199,10 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
         lstr_t __name = LSTR_IMMED(#name);                                   \
         const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = MODULE(name)                                       \
-            = module_register(__name, &MODULE(name),                         \
-                              &name##_initialize, &name##_shutdown,          \
-                              __deps, countof(__deps));                      \
+        module_t *__mod = module_register(__name, &MODULE(name),             \
+                                          &name##_initialize,                \
+                                          &name##_shutdown,                  \
+                                          __deps, countof(__deps));          \
 
 /** Macro to end the definition of a module.
  *
@@ -276,6 +276,7 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 /** Register a module.
  *
  *  \param[in] name         name of the module
+ *  \param[in] module       address of static pointer \p MODULE(name)
  *  \param[in] initialize   pointer to the function that initialize the module
  *  \param[in] shutdown     pointer to the function that shutdown the module
  *  \param[in] dependencies list of modules
