@@ -1295,11 +1295,11 @@ def profile_default(ctx,
         '-Xlinker', '--disable-new-dtags',
         '-Wl,--disable-new-dtags',
     ]
-    ctx.env.LDFLAGS = [
-        '-lpthread',
-        '-ldl',
-        '-lm',
-        '-lrt',
+    ctx.env.LIB = [
+        'pthread',
+        'dl',
+        'm',
+        'rt',
     ]
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
