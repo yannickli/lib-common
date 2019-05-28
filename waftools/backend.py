@@ -328,6 +328,15 @@ def deploy_javac(self):
 
 
 # }}}
+# {{{ remove_dynlibs: option to remove all dynamic libraries at link
+
+@TaskGen.feature('cshlib', 'cprogram')
+@TaskGen.after_method('apply_link', 'process_use')
+def remove_dynamic_libs(self):
+    if getattr(self, 'remove_dynlibs', False):
+        self.link_task.env.LIB = []
+
+# }}}
 # {{{ .local_vimrc.vim / syntastic configuration generation
 
 
