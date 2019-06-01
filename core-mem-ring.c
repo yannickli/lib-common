@@ -18,6 +18,7 @@
 
 #include "arith.h"
 #include "container-dlist.h"
+#include "el.h"
 #include "str-buf-pp.h"
 #include "thr.h"
 #include "log.h"

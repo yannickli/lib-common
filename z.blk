@@ -24,7 +24,7 @@
 #include "z.h"
 #include "thr.h"
 #include "container-qhash.h"
-#include "iop.h"
+#include "iop-json.h"
 #include "datetime.h"
 #include "parseopt.h"
 #include "log.h"

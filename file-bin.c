@@ -16,8 +16,10 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include "arith.h"
 #include "log.h"
 #include "file-bin.h"
+#include "unix.h"
 
 /* File header */
 #define CURRENT_VERSION  1

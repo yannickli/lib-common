@@ -18,6 +18,7 @@
 
 #include "z.h"
 #include "licence.h"
+#include "iop-json.h"
 #include "datetime.h"
 #include "iop/tstiop_licence.iop.h"
 

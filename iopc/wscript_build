@@ -37,7 +37,7 @@ ctx.stlib(target='libiopc', source=[
 ])
 
 ctx.iopc_tgen = ctx.program(target='iopc', source='iopc.c',
-                            use=['libcommon', 'libiopc'])
+                            use=['libiopc', 'libcommon-minimal'])
 
 ctx.set_group('code_compiling')
 

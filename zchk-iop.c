@@ -25,7 +25,7 @@
 #include "thr.h"
 #include "unix.h"
 #include "z.h"
-#include "iop.h"
+#include "iop-json.h"
 #include "iop-priv.h"
 #include "iop/tstiop.iop.h"
 #include "iop/tstiop2.iop.h"

@@ -25,7 +25,6 @@
 #include "iop-helpers.in.c"
 #include "thr.h"
 #include "sort.h"
-#include "ic-t.iop.h"
 
 
 static struct {
@@ -4201,11 +4200,7 @@ int iop_union_get_tag(const iop_struct_t *nonnull desc,
       case 2:
       case 4:
       case 8:
-        if (unlikely(sizeof(ic__hdr__tag_t) == 1)) {
-            return *(uint8_t *)st;
-        } else {
-            return *(uint16_t *)st;
-        }
+        return *(uint16_t *)st;
       default:
         assert (false);
         return -1;
@@ -6280,65 +6275,6 @@ void iop_for_each_registered_pkgs(iop_for_each_pkg_b cb)
 }
 
 /* }}} */
-/* {{{ Struct printf formatter %*pS */
-
-static int iop_file_write(void *file, const void *buf, int len)
-{
-    if (fwrite(buf, 1, len, file) != (size_t)len) {
-        return -1;
-    }
-    return len;
-}
-
-typedef struct iop_formatter_t {
-    char  *buf;
-    size_t buf_len;
-} iop_formatter_t;
-
-static int iop_formatter_write(void *out, const void *buf, int len)
-{
-    iop_formatter_t *f = out;
-    int to_copy = MIN((size_t)len, f->buf_len);
-
-    if (to_copy) {
-        memcpy(f->buf, buf, to_copy);
-        f->buf += to_copy;
-        f->buf_len -= to_copy;
-    }
-    return len;
-}
-
-static ssize_t
-iop_struct_format(const iop_struct_t *st, const void *val, size_t flags,
-                  FILE *stream, char *buf, size_t buf_len)
-{
-    if (!st) {
-        /* The struct is an IOP class. */
-        st = *(const iop_struct_t **)val;
-    }
-
-    if (stream) {
-        return iop_jpack(st, val, &iop_file_write, stream, flags);
-    } else {
-        iop_formatter_t f = {
-            .buf = buf,
-            .buf_len = buf_len,
-        };
-
-        return iop_jpack(st, val, &iop_formatter_write, &f, flags);
-    }
-}
-
-static ssize_t
-iop_struct_formatter(int modifier, const void *_sv, size_t flags,
-                     FILE *stream, char *buf, size_t buf_len)
-{
-    const struct iop_struct_value *sv = _sv;
-
-    return iop_struct_format(sv->st, sv->val, flags, stream, buf, buf_len);
-}
-
-/* }}} */
 /* {{{ Enum printf formatter %*pE */
 
 static ssize_t
@@ -7529,7 +7465,6 @@ int iop_pkg_check_backward_compat(const iop_pkg_t *pkg1,
 static int iop_initialize(void *arg)
 {
     iop_env_init(&_G.env);
-    iprintf_register_formatter('S', &iop_struct_formatter);
     iprintf_register_formatter('E', &iop_enum_formatter);
     iprintf_register_formatter('U', &iop_union_type_formatter);
     iop_dso_initialize();

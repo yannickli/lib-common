@@ -2,6 +2,8 @@
 *.fc.c
 *.pyo
 *.pyc
+*.iop.h
+*.iop.c
 *.iop.ts
 
 iopsq.iop.*

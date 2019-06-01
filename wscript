@@ -170,33 +170,20 @@ def build(ctx):
 
     ctx.set_group('farchc')
 
-    # {{{ libcommon library
+    # {{{ libcommon-minimal library
 
     ctx(rule='${VERSION_SH} rcsid libcommon > ${TGT}',
         target='core-version.c', cwd='.', always=True)
 
-    libcommon = ctx.stlib(target='libcommon',
+    # This minimal version of the lib-common contains only what's needed to
+    # build farchc and iopc. As a consequence, it cannot contain .fc or .iop
+    # files in its sources.
+    ctx.stlib(target='libcommon-minimal',
         depends_on='core-version.c',
-        use=['libxml', 'openssl', 'zlib', 'valgrind', 'compat'],
+        use=['libxml', 'valgrind', 'compat'],
         source=[
             'core-version.c',
-            'core.iop.c',
-            'ic.iop.c',
-            'iop-void.c',
-            'log-iop.c',
 
-            'arith-int.c',
-            'arith-float.c',
-            'arith-scan.c',
-            'asn1.c',
-            'asn1-writer.c',
-            'asn1-per.c',
-
-            'bit-buf.c',
-            'bit-wah.c',
-
-            'conf.c',
-            'conf-parser.l',
             'container-qhash.c',
             'container-qvector.blk',
             'container-rbtree.c',
@@ -222,9 +209,6 @@ def build(ctx):
             'el.blk',
 
             'farch.c',
-            'file.c',
-            'file-bin.c',
-            'file-log.blk',
 
             'hash-aes.c',
             'hash-arc4.c',
@@ -238,44 +222,21 @@ def build(ctx):
             'hash-sha1.c',
             'hash-sha2.c',
             'hash-sha4.c',
-            'http.c',
-            'http-hdr.perf',
-            'http-srv-static.c',
-            'http-def.c',
-            'httptokens.c',
 
             'iop.blk',
-            'iop-cfolder.c',
             'iop-dso.c',
-            'iop-json.blk',
+            'iop-cfolder.c',
             'iop-core-obj.c',
-            'iop-xml-pack.c',
-            'iop-xml-unpack.c',
-            'iop-xml-wsdl.blk',
-            'iop-rpc-channel.blk',
-            'iop-rpc-http-pack.c',
-            'iop-rpc-http-unpack.c',
+            'iop-void.c',
 
-            'licence.blk',
             'log.c',
 
-            'net-addr.c',
-            'net-socket.c',
-            'net-rate.blk',
-
             'parseopt.c',
-            'property.c',
-            'property-hash.c',
 
             'qlzo-c.c',
             'qlzo-d.c',
-            'qpage.c',
-            'qps.blk',
-            'qps-hat.c',
-            'qps-bitmap.c',
 
             'sort.blk',
-            'ssl.blk',
             'str.c',
             'str-buf-gsm.c',
             'str-buf-quoting.c',
@@ -296,8 +257,6 @@ def build(ctx):
             'thr-evc.c',
             'thr-job.blk',
             'thr-spsc.c',
-            'tpl.c',
-            'tpl-funcs.c',
 
             'unix.blk',
             'unix-fts.c',
@@ -306,6 +265,78 @@ def build(ctx):
 
             'xmlpp.c',
             'xmlr.c',
+        ]
+    )
+
+    # }}}
+
+    ctx.recurse('tools')
+    ctx.recurse('iopc')
+
+    ctx.set_group('code_compiling')
+
+    # {{{ libcommon library
+
+    # This is the full lib-common library. It can contain .fc or .iop files in
+    # its sources
+    libcommon = ctx.stlib(target='libcommon',
+        features='c cstlib',
+        use=['libcommon-minimal', 'openssl', 'zlib'],
+        source=[
+            'core.iop',
+            'ic.iop',
+
+            'arith-int.c',
+            'arith-float.c',
+            'arith-scan.c',
+            'asn1.c',
+            'asn1-writer.c',
+            'asn1-per.c',
+
+            'bit-buf.c',
+            'bit-wah.c',
+
+            'conf.c',
+            'conf-parser.l',
+
+            'file.c',
+            'file-bin.c',
+            'file-log.blk',
+
+            'http.c',
+            'http-hdr.perf',
+            'http-srv-static.c',
+            'http-def.c',
+            'httptokens.c',
+
+            'iop-json.blk',
+            'iop-rpc-channel.fc',
+            'iop-rpc-channel.blk',
+            'iop-rpc-http-pack.c',
+            'iop-rpc-http-unpack.c',
+            'iop-xml-pack.c',
+            'iop-xml-unpack.c',
+            'iop-xml-wsdl.blk',
+
+            'licence.blk',
+            'log-iop.c',
+
+            'net-addr.c',
+            'net-socket.c',
+            'net-rate.blk',
+
+            'property.c',
+            'property-hash.c',
+
+            'qpage.c',
+            'qps.blk',
+            'qps-hat.c',
+            'qps-bitmap.c',
+
+            'ssl.blk',
+
+            'tpl.c',
+            'tpl-funcs.c',
 
             'z.blk',
             'zlib-wrapper.c',
@@ -315,11 +346,6 @@ def build(ctx):
         libcommon.source.append('net-sctp.c')
 
     # }}}
-
-    ctx.recurse('tools')
-    ctx.recurse('iopc')
-
-    ctx.set_group('code_compiling')
 
     ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
