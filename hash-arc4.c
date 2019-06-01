@@ -34,7 +34,6 @@
  *  http://groups.google.com/group/sci.crypt/msg/10a300c9d21afca0
  */
 
-#include "z.h"
 #include "hash.h"
 
 /*
@@ -92,47 +91,3 @@ void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen)
     ctx->x = x;
     ctx->y = y;
 }
-
-/*
- * ARC4 tests vectors as posted by Eric Rescorla in sep. 1994:
- *
- * http://groups.google.com/group/comp.security.misc/msg/10a300c9d21afca0
- */
-static const byte arc4_test_key[3][8] =
-{
-    { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
-    { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
-};
-
-static const byte arc4_test_pt[3][8] =
-{
-    { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
-};
-
-static const byte arc4_test_ct[3][8] =
-{
-    { 0x75, 0xB7, 0x87, 0x80, 0x99, 0xE0, 0xC5, 0x96 },
-    { 0x74, 0x94, 0xC2, 0xE7, 0x10, 0x4B, 0x08, 0x79 },
-    { 0xDE, 0x18, 0x89, 0x41, 0xA3, 0x37, 0x5D, 0x3A }
-};
-
-/*
- * Checkup routine
- */
-Z_GROUP_EXPORT(arc4)
-{
-    byte buf[8];
-    arc4_ctx ctx;
-
-    Z_TEST(test, "") {
-        for (int i = 0; i < 3; i++) {
-            memcpy(buf, arc4_test_pt[i], 8);
-            arc4_setup(&ctx, (byte *)arc4_test_key[i], 8);
-            arc4_crypt(&ctx, buf, 8);
-            Z_ASSERT_EQUAL(buf, 8, arc4_test_ct[i], 8);
-        }
-    } Z_TEST_END;
-} Z_GROUP_END

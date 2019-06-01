@@ -16,11 +16,17 @@
 /*                                                                         */
 /***************************************************************************/
 
+/* LCOV_EXCL_START */
+
+#include <sys/wait.h>
+
 #include "arith.h"
 #include "unix.h"
 #include "file.h"
 #include "file-bin.h"
 #include "z.h"
+
+/* {{{ file */
 
 typedef struct test_struct_t {
     int32_t  a;
@@ -523,3 +529,204 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_STREQUAL(fcontent.data, res.data);
     } Z_TEST_END;
 } Z_GROUP_END
+
+/* }}} */
+/* {{{ Unix */
+
+static int z_list_dir_tests(void)
+{
+    t_scope;
+    const char *new_dir = t_fmt("%*pM/list_dir_test",
+                                LSTR_FMT_ARG(z_tmpdir_g));
+    __block int nb_bfile = 0;
+    int nb_file;
+
+    Z_ASSERT_NEG(list_dir(new_dir, 0, NULL));
+
+    /* z_tmpdir_g/list_dir_test
+     *  |- dir2
+     *  |  +- test
+     *  +- test
+     */
+    Z_ASSERT_EQ(1, mkdir_p(new_dir, 0755));
+    Z_ASSERT_EQ(1, mkdir_p(t_fmt("%s/dir2", new_dir), 0755));
+    Z_ASSERT_GE(xwrite_file(t_fmt("%s/dir2/test", new_dir),
+                            "toto2", strlen("toto")), 0);
+    Z_ASSERT_GE(xwrite_file(t_fmt("%s/test", new_dir),
+                            "toto", strlen("toto")), 0);
+
+    /* Basic recursive test. */
+    list_dir(new_dir, LIST_DIR_RECUR,
+             ^(const char *path, const linux_dirent_t *de) {
+        if (D_TYPE(de) == DT_REG) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(2, nb_file);
+
+    /* Basic non-recursive test. */
+    nb_bfile = 0;
+    list_dir(new_dir, 0, ^(const char *path, const linux_dirent_t *de) {
+        if (D_TYPE(de) == DT_REG) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(1, nb_file);
+
+    /* z_tmpdir_g/list_dir_test
+     *  |- dir2
+     *  |  +- test
+     *  |- test
+     *  +- test2 -> test
+     */
+    Z_ASSERT_N(symlink(t_fmt("%s/test", new_dir),
+                       t_fmt("%s/test2", new_dir)));
+
+    /* Non-recursive test; do not follow symlink */
+    nb_bfile = 0;
+    list_dir(new_dir, 0, ^(const char *path, const linux_dirent_t *de) {
+        if (D_TYPE(de) == DT_REG || D_TYPE(de) == DT_LNK) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(2, nb_file);
+
+    /* Non-recursive test; follow symlink;
+     * "test" should not be treated twice. */
+    nb_bfile = 0;
+    list_dir(new_dir, LIST_DIR_FOLLOW_SYMLINK,
+             ^(const char *path, const linux_dirent_t *de) {
+        assert (D_TYPE(de) != DT_LNK);
+        if (D_TYPE(de) == DT_REG) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(1, nb_file);
+
+    /* z_tmpdir_g/list_dir_test
+     *  |- dir2
+     *  |  +- test
+     *  |- test
+     *  +- test2 -> dir2/test
+     */
+    Z_ASSERT_N(unlink(t_fmt("%s/test2", new_dir)));
+    Z_ASSERT_N(symlink(t_fmt("%s/dir2/test", new_dir),
+                       t_fmt("%s/test2", new_dir)));
+
+    /* Recursive test; do not follow symlink */
+    nb_bfile = 0;
+    list_dir(new_dir, LIST_DIR_RECUR,
+             ^(const char *path, const linux_dirent_t *de) {
+        if (D_TYPE(de) == DT_REG || D_TYPE(de) == DT_LNK) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(3, nb_file);
+
+    /* Recursive test; follow symlink;
+     * "dir2/test" should not be treated twice. */
+    nb_bfile = 0;
+    list_dir(new_dir, LIST_DIR_RECUR | LIST_DIR_FOLLOW_SYMLINK,
+             ^(const char *path, const linux_dirent_t *de) {
+        assert (D_TYPE(de) != DT_LNK);
+        if (D_TYPE(de) == DT_REG) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(2, nb_file);
+
+    /* z_tmpdir_g/list_dir_test
+     *  |- dir2
+     *  |  +- test
+     *  |- test
+     *  +- test2 -> .. (loop)
+     */
+    Z_ASSERT_N(unlink(t_fmt("%s/test2", new_dir)));
+    Z_ASSERT_N(symlink(new_dir, t_fmt("%s/test2", new_dir)));
+
+    /* Recursive test; follow symlink; recursion should be detected. */
+    nb_bfile = 0;
+    list_dir(new_dir, LIST_DIR_RECUR | LIST_DIR_FOLLOW_SYMLINK,
+             ^(const char *path, const linux_dirent_t *de) {
+        assert (D_TYPE(de) != DT_LNK);
+        if (D_TYPE(de) == DT_REG) {
+            nb_bfile++;
+        }
+        return 0;
+    });
+    nb_file = nb_bfile;
+    Z_ASSERT_EQ(2, nb_file);
+
+    Z_HELPER_END;
+}
+
+Z_GROUP_EXPORT(Unix) {
+    Z_TEST(lockdir, "directory locking/unlocking") {
+        dir_lock_t dlock1 = DIR_LOCK_INIT;
+        int fd;
+        pid_t pid;
+        int res;
+
+        /* A takes the lock */
+        fd = open(".", O_RDONLY);
+        res = lockdir(fd, &dlock1);
+        p_close(&fd);
+        Z_ASSERT_N(res);
+
+        pid = ifork();
+        if (pid == 0) {
+            dir_lock_t dlock2 = DIR_LOCK_INIT;
+
+            /* B tries to take the lock */
+            fd = open(".", O_RDONLY);
+            res = lockdir(fd, &dlock2);
+            p_close(&fd);
+            unlockdir(&dlock2);
+
+            /* Failure is expected */
+            _exit(res < 0 ? 0 : 1);
+        }
+
+        waitpid(pid, &res, 0);
+        Z_ASSERT_EQ(res, 0);
+
+        /* A releases the lock */
+        unlockdir(&dlock1);
+
+        pid = ifork();
+        if (pid == 0) {
+            dir_lock_t dlock2 = DIR_LOCK_INIT;
+
+            /* B tries to take the lock */
+            fd = open(".", O_RDONLY);
+            res = lockdir(fd, &dlock2);
+            p_close(&fd);
+            unlockdir(&dlock2);
+
+            /* Success is expected */
+            _exit(res < 0 ? 1 : 0);
+        }
+
+        waitpid(pid, &res, 0);
+        Z_ASSERT_EQ(res, 0);
+    } Z_TEST_END;
+    Z_TEST(list_dir, "list_dir") {
+        Z_HELPER_RUN(z_list_dir_tests());
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */
+
+/* LCOV_EXCL_STOP */
