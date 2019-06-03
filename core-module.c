@@ -400,6 +400,11 @@ void module_provide(module_t **module, void *argument)
     (*module)->constructor_argument = argument;
 }
 
+void * nullable module_get_arg(module_t * nonnull mod)
+{
+    return mod->constructor_argument;
+}
+
 __attr_nonnull__((1))
 static int module_shutdown(module_t *module);
 

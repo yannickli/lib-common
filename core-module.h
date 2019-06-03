@@ -431,6 +431,13 @@ __attr_nonnull__((1))
 void module_provide(module_t * nullable * nonnull mod,
                     void * nullable argument);
 
+/** Get the argument of a module.
+ *
+ * Only for advanced uses.
+ */
+__attr_nonnull__((1))
+void * nullable module_get_arg(module_t * nonnull mod);
+
 /** true if module is loaded. (AUTO_REQ || MANU_REQ) */
 __attr_nonnull__((1))
 bool module_is_loaded(const module_t * nonnull mod);
