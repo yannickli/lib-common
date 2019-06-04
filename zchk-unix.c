@@ -387,6 +387,65 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_ZERO(file_bin_close(&file));
     } Z_TEST_END;
 
+    Z_TEST(file_bin_end, "file_bin: end of record at end of slot") {
+        t_scope;
+        lstr_t file_path = t_lstr_cat(LSTR(z_tmpdir_g.s),
+                                      LSTR("file_bin.test"));
+        file_bin_t *file = file_bin_create(file_path, 32, true);
+        /* test_struct_t size is 16 */
+        test_struct_t test;
+        int nbr_record = 0;
+
+        Z_TEST_FLAGS("redmine_62955");
+        p_clear(&test, 1);
+        test.a = -1;
+        test.b = UINT32_MAX + 1L;
+        test.c = 1;
+
+        Z_ASSERT_P(file);
+
+        /* 6 records fits exactly in a file with a first slot of size 12
+         * and 4 slots of size 32, here are the details of the computation:
+         *
+         * - the size of the header of the file is 20 and the second slot is
+         * at offset 32 so the first slot is of size 12.
+         * - each slot have a header of size 4, so the first slot contains
+         * 8 bytes of data and the other 28 so in total the file contains
+         * 28 * 4 + 8 = 120 bytes of data
+         * - each record needs 20 bytes (4 for header + 16 for the struct)
+         * so 6 records are also stored in 120 bytes
+         *
+         */
+        for (int i = 0; i < 6; i++) {
+            nbr_record++;
+            Z_ASSERT_N(file_bin_put_record(file, &test, sizeof(test)));
+        }
+        Z_ASSERT_ZERO(file->cur % file->slot_size);
+
+        Z_ASSERT_ZERO(file_bin_close(&file));
+        Z_ASSERT_P((file = file_bin_open(file_path)));
+
+        while (!file_bin_is_finished(file)) {
+            lstr_t record;
+            test_struct_t *test_ptr;
+
+            record = file_bin_get_next_record(file);
+
+            Z_ASSERT_EQ((unsigned)record.len, sizeof(test));
+            test_ptr = record.data;
+
+            Z_ASSERT_EQ(test_ptr->a, -1);
+            Z_ASSERT_EQ(test_ptr->b, UINT32_MAX + 1L);
+            Z_ASSERT_EQ(test_ptr->c, 1);
+
+            nbr_record--;
+        }
+        Z_ASSERT_ZERO(nbr_record);
+        Z_ASSERT_ZERO(file->cur % file->slot_size);
+
+        Z_ASSERT_ZERO(file_bin_close(&file));
+    } Z_TEST_END;
+
     Z_TEST(mkdir_p, "unix: mkdir_p") {
         t_scope;
 
@@ -439,4 +498,5 @@ Z_GROUP_EXPORT(file)
 
         lstr_wipe(&out_map);
     } Z_TEST_END;
+
 } Z_GROUP_END
