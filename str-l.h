@@ -736,14 +736,14 @@ static inline void lstr_xor(lstr_t in, lstr_t key, lstr_t out)
 
 /** Obfuscate or unobfuscate a lstr.
  *
- * This function is a bit more "secure" than lstr_xor because it uses
- * additional keys, such that it's hard to find the string key even if you
- * know both the original str and the results. There is no particular
- * constraints on the key.
+ * This function is meant to be more secure than lstr_xor.
+ * The default (naive) implementation is in str-l-obfuscate-default.c, but can
+ * be overridden using 'ctx.lstr_obfuscate_src' at waf configure.
  *
- * \param[in]  in  the string to xor
- * \param[in]  key  a key used internally to choose a string used to
- *                  perform the xor
+ * \param[in]  in  the string to obfuscate
+ * \param[in]  key  a key used to perform obfuscation; the same key must be
+ *                  given when for obfuscation and unobfuscation of the same
+ *                  string.
  * \param[out]  out  the result; must be allocated, may be the same than
  *                   `in`; its length is unchanged.
  */

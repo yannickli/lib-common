@@ -573,56 +573,6 @@ lstr_t t_lstr_hexencode(lstr_t lstr)
     return LSTR_INIT_V(s, len);
 }
 
-static const lstr_t xor_array_g[] = {
-    LSTR_IMMED("error when writing CSV line: %m"),
-    LSTR_IMMED("cannot unlink [%*pM]: %m"),
-    LSTR_IMMED("cannot move [%*pM] to [%*pM]: %m"),
-    LSTR_IMMED("__builtin_expect(!!(var == *varp), 1) && \"pointer "
-               "corruption detected\""),
-    LSTR_IMMED("processing cuid block for file '%*pM'"),
-    LSTR_IMMED("duplicated column '%*pM' (note that column names are case "
-               "insensitive)"),
-    LSTR_IMMED("missing type column, file is not processed"),
-    LSTR_IMMED("Cell id column `%*pM` is not found, associated Cell uid "
-               "column '%*pM' will not be added"),
-    LSTR_IMMED("Cell uid column '%*pM' is already present, related uids will "
-               "not be updated."),
-    LSTR_IMMED("no associations found, file is not processed"),
-    LSTR_IMMED("cannot open file [%*pM]"),
-    LSTR_IMMED("error while closing output data file `%*pM`: %m"),
-    LSTR_IMMED("failed to parse file `%*pM` line %d (fid=%u)"),
-    LSTR_IMMED("not enough entries in CSV line: %d, line skipped"),
-    LSTR_IMMED("unsupported type `%*pM` in line %d, no cuid will be added"),
-    LSTR_IMMED("missing date in line %d, incoming file modification date is "
-               "set instead"),
-    LSTR_IMMED("error when parsing date column: %d"),
-    /* XXX: Do not change this array. Among other things, it's used to
-     * obfuscate values stored in databases (as hashed passwords). Changing it
-     * would invalidate these data. */
-};
-
-/* An attacker may have both some input with the corresponding output, but
- * only for input he generated (for example, its own session ID).  To avoid
- * that a simple xor on these two strings give him an obvious unobfuscation
- * method, we also xor the string with the key provided as argument of this
- * function. However, this key might be lower than 255, in which case we would
- * have 7 unobfuscated characters. Thus, we additionnaly use a randomly chosen
- * number (the value 149 is not that important in itself). It MUST NOT be
- * changed for the same reasons than xor_array_g.
- */
-void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out)
-{
-    lstr_t with = xor_array_g[key % countof(xor_array_g)];
-    unsigned char *k = (unsigned char*)&key;
-
-    assert (in.len == out.len);
-    for (int i = 0; i < in.len; i++) {
-        out.v[i] = in.s[i]
-            ^ with.s[i % with.len]
-            ^ 149 ^ k[i % sizeof(key)];
-    }
-}
-
 lstr_t lstr_trim_pkcs7_padding(lstr_t padded)
 {
     int nb_padding_bytes;

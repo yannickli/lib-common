@@ -44,6 +44,10 @@ iopsq-t*
 /common.so
 /core-iop-plugin.so
 
+/str-l-obfuscate.c
+/utils/ic-cert.pem
+/utils/ic-key.pem
+
 /json
 /.build*
 /build

@@ -145,6 +145,36 @@ def configure(ctx):
     # }}}
 
     # }}}
+    # {{{ Source files customization
+
+    # The purpose of this section is to let projects using the lib-common to
+    # redefine some files.
+
+    def customize_source_file(name, ctx_field, default_path, out_path):
+        in_path = getattr(ctx, ctx_field, None) or default_path
+        in_node = ctx.srcnode.make_node(in_path)
+        out_node = ctx.path.make_node(out_path)
+        out_node.delete(evict=False)
+        os.symlink(in_node.path_from(out_node.parent), out_node.abspath())
+        ctx.msg(name, in_node)
+
+    # str-l-obfuscate.c
+    customize_source_file('lstr_obfuscate source file',
+                          'lstr_obfuscate_src',
+                          'str-l-obfuscate-default.c',
+                          'str-l-obfuscate.c')
+
+    # Ichannels SSL certificate/key
+    customize_source_file('Ichannel SSL certificate',
+                          'ic_cert_src',
+                          'utils/ic-cert-default.pem',
+                          'utils/ic-cert.pem')
+    customize_source_file('Ichannel SSL private key',
+                          'ic_key_src',
+                          'utils/ic-key-default.pem',
+                          'utils/ic-key.pem')
+
+    # }}}
 
 
 # }}}
@@ -248,6 +278,7 @@ def build(ctx):
             'str-dtoa.c',
             'str-iprintf.c',
             'str-l.c',
+            'str-l-obfuscate.c',
             'str-num.c',
             'str-outbuf.c',
             'str-path.c',
