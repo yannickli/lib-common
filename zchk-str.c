@@ -949,6 +949,19 @@ Z_GROUP_EXPORT(str)
 #undef DOUBLE_ABS
     } Z_TEST_END;
 
+    Z_TEST(memtoxllp, "str: memtoxllp") {
+        lstr_t s = LSTR("123");
+        const byte *end;
+
+        Z_ASSERT_EQ(123, memtollp(s.s, s.len, NULL));
+        Z_ASSERT_EQ(123, memtollp(s.s, s.len, &end));
+        Z_ASSERT(end == (byte *)s.s + s.len);
+
+        Z_ASSERT_EQ(123U, memtoullp(s.s, s.len, NULL));
+        Z_ASSERT_EQ(123U, memtoullp(s.s, s.len, &end));
+        Z_ASSERT(end == (byte *)s.s + s.len);
+    } Z_TEST_END;
+
     Z_TEST(str_tables, "str: test conversion tables") {
         for (int i = 0; i < countof(__str_unicode_lower); i++) {
             /* Check idempotence */
