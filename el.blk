@@ -721,6 +721,14 @@ static void el_sigchld_hook(ev_t *ev, int signo, data_t priv)
     qv_wipe(&ev_assocs);
 }
 
+static void el_sigchld_register(void)
+{
+    if (unlikely(!_G.el_sigchld_hook)) {
+        _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook,
+                                                NULL);
+    }
+}
+
 static void el_child_at_fork_on_parent(pid_t pid)
 {
     if (pid < 0) {
@@ -734,6 +742,8 @@ static void el_child_at_fork_on_parent(pid_t pid)
     if (qm_add(ev_assoc, &_G.childs, pid, NULL) < 0) {
         ASSERT("pid is already watched", false);
     }
+
+    el_sigchld_register();
 }
 
 void el_child_set_hook(el_t ev, el_child_f *cb)
@@ -781,6 +791,7 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, data_t priv)
         return ev_add(&_G.before, ev);
     }
 
+    el_sigchld_register();
     pthread_sigmask(SIG_SETMASK, &prev, NULL);
     return ev;
 }
@@ -2046,8 +2057,6 @@ static int el_initialize(void *arg)
 #else
     _G.el_on_pwr = el_signal_register(SIGINFO, el_on_pwr, NULL);
 #endif
-
-    _G.el_sigchld_hook = el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
 
     return 0;
 }

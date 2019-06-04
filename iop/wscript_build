@@ -36,7 +36,6 @@ ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop_backward_compat_mod.iop',
     'tstiop_backward_compat_mod_deleted.iop',
     'tstiop_backward_compat_mod_deleted_if.iop',
-    'tstiop_wsdl.iop',
     'tstiop_void_type.iop',
     'tstiop_wsdl.iop',
 ])
@@ -47,8 +46,8 @@ ctx.stlib(target='tstiop2', features='c cstlib', source=[
 
 bld.shlib(target='zchk-tstiop-plugin', source=[
     'tstiop-plugin.c',
-], use=['libcommon', 'tstiop'])
+], use=['libcommon', 'tstiop'], remove_dynlibs=True)
 
 ctx.shlib(target='zchk-tstiop2-plugin', source=[
     'tstiop2-plugin.c',
-], use=['libcommon', 'tstiop2'])
+], use=['libcommon', 'tstiop2'], remove_dynlibs=True)

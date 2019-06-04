@@ -390,7 +390,7 @@ def build(ctx):
     ], use=[
         'libcommon',
         'zchk-iop-ressources',
-    ])
+    ], remove_dynlibs=True)
 
     ctx.program(target='ztst-cfgparser', source='ztst-cfgparser.c',
                 use='libcommon tstiop')

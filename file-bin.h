@@ -28,7 +28,7 @@
  * Example:
  *
  * Here is the structure of a binary file, in version 1,  with a size of slot
- * of 30 with three records: A, of size 15, B, of size 10 and C of size 14.
+ * of 30 with three records: A, of size 11, B, of size 10 and C of size 14.
  * Bits 0 to 16 contain file header, which indicates the library version.
  *
  *    0     1     2     3     4     5     6     7     8     9    10
@@ -37,7 +37,7 @@
  *    *-----*-----*-----*-----*-----*-----*-----*-----*-----*-----*
  * 10 | 'v' | '0' | '1' | '.' | '0' | '0' | SS  | SS  | SS  | SS  |
  *    *-----*-----*-----*-----*-----*-----*-----*-----*-----*-----*
- * 20 |sizeA|sizeA|sizeA|sizeA|  A  |  A  |  A  |  A  |  A  |  A  |
+ * 20 | SH  | SH  | SH  | SH  |sizeA|sizeA|sizeA|sizeA|  A  |  A  |
  *    *-----*-----*-----*-----*-----*-----*-----*-----*-----*-----*
  * 30 | SH  | SH  | SH  | SH  |  A  |  A  |  A  |  A  |  A  |  A  |
  *    *-----*-----*-----*-----*-----*-----*-----*-----*-----*-----*

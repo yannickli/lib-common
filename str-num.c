@@ -196,7 +196,9 @@ uint64_t memtoullp(const void *s, int len, const byte **endp)
         errno = ERANGE;
         return 0;
     }
-    *endp = (const byte *)s + (tail - str);
+    if (endp) {
+        *endp = (const byte *)s + (tail - str);
+    }
 
     return res;
 }

@@ -328,6 +328,15 @@ def deploy_javac(self):
 
 
 # }}}
+# {{{ remove_dynlibs: option to remove all dynamic libraries at link
+
+@TaskGen.feature('cshlib', 'cprogram')
+@TaskGen.after_method('apply_link', 'process_use')
+def remove_dynamic_libs(self):
+    if getattr(self, 'remove_dynlibs', False):
+        self.link_task.env.LIB = []
+
+# }}}
 # {{{ .local_vimrc.vim / syntastic configuration generation
 
 
@@ -1295,11 +1304,11 @@ def profile_default(ctx,
         '-Xlinker', '--disable-new-dtags',
         '-Wl,--disable-new-dtags',
     ]
-    ctx.env.LDFLAGS = [
-        '-lpthread',
-        '-ldl',
-        '-lm',
-        '-lrt',
+    ctx.env.LIB = [
+        'pthread',
+        'dl',
+        'm',
+        'rt',
     ]
 
     ctx.env.CXXFLAGS = get_cflags(ctx, [ctx.env.COMPILER_CXX])
