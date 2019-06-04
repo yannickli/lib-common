@@ -752,6 +752,8 @@ void lstr_obfuscate(lstr_t in, uint64_t key, lstr_t out);
 
 /** Trim 1 to 8 padding bytes (PKCS#7).
  *
+ * This implementation is not fully PKCS#7 compliant: only the last padding
+ * byte is read, the other padding bytes are not checked.
  * \note sb_add_pkcs7_8_bytes_padding() should be used for padding.
  *
  * \param[in] padded The padded lstr.
