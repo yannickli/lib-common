@@ -576,8 +576,8 @@ static void iopc_dump_struct(sb_t *buf, const char *indent,
                 sb_addf(buf, "%sexport class %s_Collection extends IopCollection<%s_Model> { };\n",
                         indent, st_name, st_name);
             }
-            sb_addf(buf, "%sregisterCollection(%s_Collection, %s_fullname);\n",
-                    indent, st_name, st_name);
+            sb_addf(buf, "%sregisterCollection<%s_Model>(%s_Collection, %s_fullname);\n",
+                    indent, st_name, st_name, st_name);
         }
     }
 }
