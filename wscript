@@ -306,17 +306,19 @@ def build(ctx):
 
     ctx.set_group('code_compiling')
 
-    # {{{ libcommon library
+    # {{{ libcommon-iop / libcommon libraries
 
-    # This is the full lib-common library. It can contain .fc or .iop files in
-    # its sources
+    # libcommon library containing only IOP symbols
+    ctx.stlib(target='libcommon-iop', features='c cstlib', source=[
+        'core.iop',
+        'ic.iop',
+    ])
+
+    # Full lib-common library
     libcommon = ctx.stlib(target='libcommon',
         features='c cstlib',
-        use=['libcommon-minimal', 'openssl', 'zlib'],
+        use=['libcommon-iop', 'libcommon-minimal', 'openssl', 'zlib'],
         source=[
-            'core.iop',
-            'ic.iop',
-
             'arith-int.c',
             'arith-float.c',
             'arith-scan.c',
