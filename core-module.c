@@ -363,7 +363,6 @@ void module_require(module_t *module, module_t *required_by)
         logger_fatal(&_G.logger, "unable to initialize %*pM",
                      LSTR_FMT_ARG(module->name));
     }
-    module->constructor_argument = NULL;
 
     set_require_type(module, required_by);
     _G.methods_dirty = true;
@@ -382,17 +381,9 @@ void module_provide(module_t **module, void *argument)
         }
         return;
     }
-    if (module_is_loaded(*module)) {
-        logger_warning(&_G.logger,
-                       "providing argument for already loaded module "
-                       "`%*pM', argument ignored",
-                       LSTR_FMT_ARG((*module)->name));
-        return;
-    }
     if ((*module)->constructor_argument) {
-        logger_warning(&_G.logger, "argument for module '%*pM' "
-                       "has already been provided, override",
-                       LSTR_FMT_ARG((*module)->name));
+        logger_warning(&_G.logger, "argument for module '%*pM' has already "
+                       "been provided", LSTR_FMT_ARG((*module)->name));
     }
     (*module)->constructor_argument = argument;
 }
