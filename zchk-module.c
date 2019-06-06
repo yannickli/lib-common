@@ -287,48 +287,6 @@ static MODULE_BEGIN(module_a)
 MODULE_END()
 
 /* }}} */
-/* {{{ provide_indirect */
-
-static void *arg_receiver_arg_g;
-
-static int arg_receiver_initialize(void *arg)
-{
-    arg_receiver_arg_g = arg;
-    return 0;
-}
-static int arg_receiver_shutdown(void)
-{
-    return 0;
-}
-static MODULE_BEGIN(arg_receiver)
-MODULE_END()
-
-static int arg_intermediary_initialize(void *arg)
-{
-    return 0;
-}
-static int arg_intermediary_shutdown(void)
-{
-    return 0;
-}
-static MODULE_BEGIN(arg_intermediary)
-    MODULE_DEPENDS_ON(arg_receiver);
-MODULE_END()
-
-static int arg_provider_initialize(void *arg)
-{
-    return 0;
-}
-static int arg_provider_shutdown(void)
-{
-    return 0;
-}
-static MODULE_BEGIN(arg_provider)
-    MODULE_PROVIDE(arg_receiver, (void *)0x1);
-    MODULE_DEPENDS_ON(arg_intermediary);
-MODULE_END()
-
-/* }}} */
 
 Z_GROUP_EXPORT(module)
 {
@@ -542,13 +500,6 @@ Z_GROUP_EXPORT(module)
         MODULE_REQUIRE(modprovide);
         Z_ASSERT(word_global_g == NULL);
         MODULE_RELEASE(modprovide);
-    } Z_TEST_END;
-
-    Z_TEST(provide_indirect,
-           "module argument providing with indirect dependency")
-    {
-        MODULE_REQUIRE(arg_provider);
-        Z_ASSERT(arg_receiver_arg_g == (void *)0x1);
     } Z_TEST_END;
 
 /* }}} */

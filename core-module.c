@@ -54,12 +54,7 @@ typedef enum module_state_t {
 
 qvector_t(module, module_t *);
 
-typedef struct provided_arg_t {
-    module_t **module;
-    void *arg;
-} provided_arg_t;
-
-qvector_t(provided_args, provided_arg_t);
+qm_khptr_t(module_arg_by_dep, module_t *, void *);
 
 struct module_t {
     lstr_t name;
@@ -74,8 +69,9 @@ struct module_t {
     qv_t(module) required_by;
     qm_t(methods) methods;
 
-    /* Arguments provided to other modules. */
-    qv_t(provided_args) provided_args;
+    /* Arguments to apply for each dependency (these don't override the ones
+     * provided manually. */
+    qm_t(module_arg_by_dep) deps_args;
 
     int (*constructor)(void *);
     int (*destructor)(void);
@@ -86,6 +82,7 @@ static module_t *module_init(module_t *module)
 {
     p_clear(module, 1);
     qm_init(methods, &module->methods);
+    qm_init(module_arg_by_dep, &module->deps_args);
     return module;
 }
 GENERIC_NEW(module_t, module);
@@ -94,7 +91,7 @@ static void module_wipe(module_t *module)
     lstr_wipe(&(module->name));
     qv_deep_wipe(&module->dependent_of, lstr_wipe);
     qv_wipe(&module->required_by);
-    qv_wipe(&module->provided_args);
+    qm_wipe(module_arg_by_dep, &module->deps_args);
     qm_wipe(methods, &module->methods);
 }
 GENERIC_DELETE(module_t, module);
@@ -348,20 +345,19 @@ void module_require(module_t *module, module_t *required_by)
 
     _G.methods_dirty = true;
 
-    tab_for_each_ptr(provided_arg, &module->provided_args) {
-        module_t *other_module = *provided_arg->module;
-
-        if (!other_module->constructor_argument) {
-            module_provide(provided_arg->module, provided_arg->arg);
-        }
-    }
-
     tab_for_each_entry(dep, &module->dependent_of) {
         module_require(qm_get(module, &_G.modules, &dep), module);
     }
 
     logger_trace(&_G.logger, 1, "calling `%*pM` constructor",
                  LSTR_FMT_ARG(module->name));
+
+    if (required_by && !module->constructor_argument) {
+        module->constructor_argument = qm_get_def(module_arg_by_dep,
+                                                  &required_by->deps_args,
+                                                  module->static_pointer,
+                                                  NULL);
+    }
 
     if ((*module->constructor)(module->constructor_argument) < 0) {
         logger_fatal(&_G.logger, "unable to initialize %*pM",
@@ -377,12 +373,13 @@ void module_require(module_t *module, module_t *required_by)
 void module_provide(module_t **module, void *argument)
 {
     if (_G.module_being_defined) {
-        provided_arg_t provided_arg = {
-            .module = module,
-            .arg = argument,
-        };
-
-        qv_append(&_G.module_being_defined->provided_args, provided_arg);
+        if (qm_add(module_arg_by_dep, &_G.module_being_defined->deps_args,
+                   module, argument) < 0)
+        {
+            logger_panic(&_G.logger, "in definition of module `%pL': "
+                         "argument set twice for the same module",
+                         &_G.module_being_defined->name);
+        }
         return;
     }
     if (module_is_loaded(*module)) {
