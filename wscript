@@ -312,6 +312,9 @@ def build(ctx):
     # {{{ libcommon-iop / libcommon libraries
 
     # libcommon library containing only IOP symbols
+    ctx.IopcOptions(ctx, class_range='1-499',
+                    json_path='json',
+                    ts_path='iop-core')
     ctx.stlib(target='libcommon-iop', features='c cstlib', source=[
         'core.iop',
         'ic.iop',
@@ -386,10 +389,6 @@ def build(ctx):
     ctx.recurse('iop')
     ctx.recurse('iop-tutorial')
     ctx.recurse('test-data/snmp')
-
-    ctx.IopcOptions(ctx, class_range='1-499',
-                    json_path='json',
-                    ts_path='iop-core')
 
     # {{{ iop-snmp library
 
