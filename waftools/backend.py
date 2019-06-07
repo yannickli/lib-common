@@ -1203,6 +1203,50 @@ def process_ld(self, node):
 
 
 # }}}
+# {{{ PXC
+
+
+class Pxc2Pxd(Task):
+    run_str = '${PXCC} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}'
+    color   = 'BLUE'
+    before  = 'cython'
+
+    @classmethod
+    def keyword(cls):
+        return 'Pxcc'
+
+    def scan(self):
+        # pxc files are C-like files: call standard C preprocessor
+        (deps, raw) = c_preproc.scan(self)
+
+        # pxc files must be rebuilt when pxcc changes
+        deps.append(self.inputs[0].ctx.pxcc_tgen.link_task.outputs[0])
+
+        return (deps, raw)
+
+
+@extension('.pxc')
+def process_pxcc(self, node):
+    ctx = self.bld
+
+    # Ensure pxcc tgen is posted
+    if not getattr(ctx.pxcc_tgen, 'posted', False):
+        ctx.pxcc_tgen.post()
+    if not hasattr(ctx, 'pxcc_task'):
+        ctx.pxcc_task = ctx.pxcc_tgen.link_task
+        ctx.env.PXCC = ctx.pxcc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    pxd_node = node.change_ext_src('.pxd')
+
+    if pxd_node not in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(pxd_node)
+        pxc_task = self.create_task('Pxc2Pxd', [node], [pxd_node],
+                                    cwd=self.env.PROJECT_ROOT)
+        pxc_task.set_run_after(ctx.pxcc_task)
+
+
+# }}}
 # {{{ .c checks using clang
 
 
@@ -1272,6 +1316,10 @@ def options(ctx):
     # Load C/C++ compilers
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
+
+    # Python/cython
+    ctx.load('python')
+    ctx.load('cython_intersec')
 
 # }}}
 # {{{ configure
@@ -1502,7 +1550,6 @@ def configure(ctx):
     except KeyError:
         ctx.fatal('Profile `{0}` not found'.format(ctx.env.PROFILE))
 
-
     # Check dependencies
     ctx.find_program('objcopy', var='OBJCOPY')
 
@@ -1513,6 +1560,10 @@ def configure(ctx):
     ctx.find_program('_tokens.sh', path_list=[config_dir], var='TOKENS_SH')
     if ctx.find_program('ctags', mandatory=False):
         ctx.find_program('ctags.sh', path_list=[build_dir], var='CTAGS_SH')
+
+    # Python/cython
+    ctx.load('python')
+    ctx.load('cython_intersec')
 
 
 class IsConfigurationContext(ConfigurationContext):

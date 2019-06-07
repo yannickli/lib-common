@@ -1,0 +1,35 @@
+##########################################################################
+#                                                                        #
+#  Copyright (C) INTERSEC SA                                             #
+#                                                                        #
+#  Should you receive a copy of this source code, you must check you     #
+#  have a proper, written authorization of INTERSEC to hold it. If you   #
+#  don't have such an authorization, you must DELETE all source code     #
+#  files in your possession, and inform INTERSEC of the fact you obtain  #
+#  these files. Should you not comply to these terms, you can be         #
+#  prosecuted in the extent permitted by applicable law.                 #
+#                                                                        #
+##########################################################################
+# pylint: disable = undefined-variable
+
+
+with ctx.UseGroup(ctx, 'pxcc'):
+    ctx.pxcc_tgen = ctx.program(target='pxcc', features='c cprogram', source=[
+        'pxcc.c',
+        'pxcc.fc',
+    ], use=[
+        'clang',
+        'libcommon-minimal',
+    ])
+
+ctx.shlib(target='zchk_mod', features='c cshlib', source=[
+    'zchk_cmod.pxc',
+    'zchk_mod.pyx',
+    'zchk_cmod.c',
+], use=[
+    'python2',
+], cflags=[
+    '-Wno-unused-parameter',
+    '-Wno-shadow',
+    '-Wno-redundant-decls',
+])

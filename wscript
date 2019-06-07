@@ -143,6 +143,29 @@ def configure(ctx):
                               py_ldflags.strip().split(' '))
 
     # }}}
+    # {{{ lib clang
+
+    clang_format = ctx.find_program('clang-format')
+    clang_real_path = os.path.realpath(clang_format[0])
+    clang_root_dir = os.path.realpath(os.path.join(clang_real_path, '../..'))
+
+    ctx.env.append_value('LIB_clang', ['clang'])
+    ctx.env.append_value('STLIBPATH_clang', [clang_root_dir + '/lib'])
+    ctx.env.append_value('RPATH_clang', [clang_root_dir + '/lib'])
+    ctx.env.append_value('INCLUDES_clang', [clang_root_dir + '/include'])
+
+    ctx.msg('Checking for clang lib', clang_root_dir)
+
+    # }}}
+    # {{{ cython
+
+    ctx.env.append_unique('CYTHONFLAGS', [
+        '--warning-errors',
+        '--warning-extra'
+    ])
+    ctx.env.CYTHONSUFFIX = '.pyx'
+
+    # }}}
 
     # }}}
     # {{{ Source files customization
@@ -386,9 +409,12 @@ def build(ctx):
 
     # }}}
 
-    ctx.recurse('iop')
-    ctx.recurse('iop-tutorial')
-    ctx.recurse('test-data/snmp')
+    ctx.recurse([
+        'iop',
+        'iop-tutorial',
+        'pxcc',
+        'test-data/snmp',
+    ])
 
     # {{{ iop-snmp library
 
