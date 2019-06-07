@@ -147,6 +147,7 @@ def declare_fpic_lib(ctx, pic_name, orig_lib):
     ctx.path = ctx_path_bak
 
     lib.env.append_value('CFLAGS', ['-fPIC'])
+    return lib
 
 
 def compile_fpic(ctx):
@@ -167,7 +168,7 @@ def compile_fpic(ctx):
 
         # ...such as all the libraries they use
         def process_use_pic(tgen, use_attr):
-            # for all the libraries used by the shared library...
+            # for all the libraries used by tgen...
             use = tgen.to_list(getattr(tgen, use_attr, []))
             for i in xrange(len(use)):
                 use_name = use[i]
@@ -179,7 +180,7 @@ def compile_fpic(ctx):
                 try:
                     use_tgen = ctx.get_tgen_by_name(use_name)
                 except Errors.WafError:
-                    # the 'use' element does not have an associatde task
+                    # the 'use' element does not have an associated task
                     # generator; probably an external library
                     continue
 
@@ -188,15 +189,19 @@ def compile_fpic(ctx):
                     # the 'use' element is not a static library
                     continue
 
-                # Replace the static library by the pic version in the shared
-                # library sources
+                # Replace the static library by the pic version in tgen
+                # sources
                 pic_name = use_name + '.pic'
                 use[i] = pic_name
 
                 # Declare the pic static library, if not done yet
                 if not use_name in pic_libs:
-                    declare_fpic_lib(ctx, pic_name, use_tgen)
+                    pic_lib = declare_fpic_lib(ctx, pic_name, use_tgen)
                     pic_libs.add(use_name)
+                    # Recurse, to deal with the static libraries that use some
+                    # other static libraries.
+                    process_use_pic(pic_lib, 'use')
+                    process_use_pic(pic_lib, 'use_whole')
 
         # Process the use and use_whole lists
         process_use_pic(tgen, 'use')
