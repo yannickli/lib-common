@@ -413,6 +413,7 @@ def build(ctx):
         'iop',
         'iop-tutorial',
         'pxcc',
+        'iopy',
         'test-data/snmp',
     ])
 
