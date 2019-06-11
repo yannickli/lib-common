@@ -1210,6 +1210,7 @@ class Pxc2Pxd(Task):
     run_str = '${PXCC} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}'
     color   = 'BLUE'
     before  = 'cython'
+    after   = 'Iop2c'
 
     @classmethod
     def keyword(cls):
