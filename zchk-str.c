@@ -136,22 +136,6 @@ Z_GROUP_EXPORT(str)
                            LSTR_SB_V(&sb));
     } Z_TEST_END;
 
-    Z_TEST(ebcdic, "str: sb_conv_from_ebcdic297") {
-        static char const ebcdic[] = {
-#include "samples/ebcdic.sample.bin"
-            0
-        };
-        static char const utf8[] = {
-#include "samples/ebcdic.sample.utf-8.bin"
-            0
-        };
-        static lstr_t const utf8s = LSTR_INIT(utf8, sizeof(utf8) - 1);
-        SB_8k(sb);
-
-        Z_ASSERT_N(sb_conv_from_ebcdic297(&sb, ebcdic, sizeof(ebcdic) - 1));
-        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), utf8s);
-    } Z_TEST_END;
-
     Z_TEST(strconv_hexdecode, "str: strconv_hexdecode") {
         const char *encoded = "30313233";
         const char *decoded = "0123";

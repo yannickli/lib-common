@@ -884,8 +884,6 @@ void sb_conv_from_latin9(sb_t * nonnull sb, const void * nonnull s, int len)
     __leaf;
 int  sb_conv_to_latin1(sb_t * nonnull sb, const void * nonnull s,
                        int len, int rep) __leaf;
-int  sb_conv_from_ebcdic297(sb_t * nonnull dst, const char * nonnull src,
-                            int len) __leaf;
 
 /* ucs2 */
 int  sb_conv_to_ucs2le(sb_t * nonnull sb, const void * nonnull s, int len)

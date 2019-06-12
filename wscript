@@ -279,7 +279,6 @@ def build(ctx):
             'str-buf-quoting.c',
             'str-buf-pp.c',
             'str-buf.c',
-            'str-conv-ebcdic.c',
             'str-conv.c',
             'str-ctype.c',
             'str-dtoa.c',
