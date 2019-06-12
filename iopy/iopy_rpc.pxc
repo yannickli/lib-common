@@ -40,4 +40,5 @@ PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_parent);
 PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_child);
 
 PXCC_EXPORT_SYMBOL(iopy_rpc_module_init);
-PXCC_EXPORT_SYMBOL(iopy_rpc_module_shutdown);
+PXCC_EXPORT_SYMBOL(iopy_rpc_module_stop);
+PXCC_EXPORT_SYMBOL(iopy_rpc_module_cleanup);

@@ -232,11 +232,17 @@ void iopy_rpc_atfork_parent(void);
 /** Callback called by iopy after fork in the child process. */
 void iopy_rpc_atfork_child(void);
 
-/** Init the IOPy RPC C modules. */
+/** Initialize the IOPy RPC C module. */
 void iopy_rpc_module_init(void);
 
-/** Release the IOPy RPC C modules. */
-void iopy_rpc_module_shutdown(void);
+/** Stop the IOPy RPC C module. */
+void iopy_rpc_module_stop(void);
+
+/** Clean up the IOPy RPC C module.
+ *
+ * iopy_rpc_module_stop() must have been called before calling this function.
+ */
+void iopy_rpc_module_cleanup(void);
 
 /* }}} */
 

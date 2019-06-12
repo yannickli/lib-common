@@ -28,7 +28,7 @@ from cpython.object cimport (
 )
 from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from cpython.pylifecycle cimport Py_IsInitialized
+from cpython.pylifecycle cimport Py_IsInitialized, Py_AtExit
 from cpython.ceval cimport PyEval_InitThreads
 from cpython cimport bool
 from libc.stdint cimport UINT32_MAX
@@ -9674,26 +9674,45 @@ cdef void init_thread_attach():
     threading._start_new_thread = iopy_start_new_thread
 
 
-cdef void iopy_atexit_cb():
-    """Callback calling iopy_rpc_module_shutdown on python exit"""
+cdef void iopy_atexit_rpc_stop_cb():
+    """Callback to stop the RPC module when the interpreter is still valid"""
     with nogil:
-        iopy_rpc_module_shutdown()
+        iopy_rpc_module_stop()
 
 
-cdef void init_iopy_atexit():
-    """Register atexit callback to call iopy_rpc_module_shutdown on python
-    exit"""
+cdef int init_iopy_atexit() except -1:
+    """Register atexit callback to stop and clean up RPC module.
+
+    We need to split up the shutdown of the RPC module in two parts:
+      - Firstly, we need to stop the RPC module, with iopy_rpc_module_stop(),
+        which will stop the el thread loop, while the Python interpreter is
+        still valid.
+        When stopping the el thread, it can still call some Python callbacks,
+        so we need to be sure the interpreter is still valid.
+      - Secondly, we clean up all the resources of the RPC module after the
+        Python interpreter has been cleaned up, with
+        iopy_rpc_module_cleanup().
+        When this function is called, we are sure that no Python functions
+        will ever be called.
+    """
     cdef object atexit
 
+    # Use atexit Python module to call iopy_rpc_module_stop() while the Python
+    # interpreter is still valid.
     import atexit
-    atexit.register(iopy_atexit_cb)
+    atexit.register(iopy_atexit_rpc_stop_cb)
+
+    # Use Py_AtExit() to call iopy_rpc_module_cleanup() after the Python
+    # interpreter has been cleaned up.
+    if Py_AtExit(&iopy_rpc_module_cleanup) < 0:
+        raise RuntimeError('unable to register iopy at_exit callback')
 
 
+init_iopy_atexit()
 PyEval_InitThreads()
 iopy_rpc_module_init()
 init_module_versions()
 init_thread_attach()
-init_iopy_atexit()
 pthread_atfork(&pthread_atfork_prepare, &pthread_atfork_parent,
                &pthread_atfork_child)
 

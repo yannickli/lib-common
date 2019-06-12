@@ -28,6 +28,7 @@ typedef enum el_thr_status_t {
     EL_THR_NOT_STARTED = 0,
     EL_THR_STARTING = 1,
     EL_THR_STARTED = 2,
+    EL_THR_STOPPED = 3,
 } el_thr_status_t;
 
 qm_khptr_t(iopy_ic_el_server, struct ev_t, iopy_ic_server_t *);
@@ -36,7 +37,6 @@ qh_khptr_t(iopy_ic_client, iopy_ic_client_t);
 
 static struct {
     el_thr_status_t el_thr_status : 2;
-    bool is_rpc_module_shutdown : 1;
     bool el_wait_thr_sigint_received : 1;
 
     pthread_t main_thread;
@@ -66,6 +66,11 @@ static struct {
 #define _G  iopy_rpc_g
 
 /* {{{ Helpers */
+
+static bool is_el_thr_stopped(void)
+{
+    return _G.el_thr_status == EL_THR_STOPPED;
+}
 
 static int load_su_from_uri(lstr_t uri, sockunion_t *su, sb_t *err)
 {
@@ -105,7 +110,7 @@ pthread_cond_wait_ext(pthread_cond_t *cond, pthread_mutex_t *mutex,
 static void el_loop_thread_on_term(el_t ev, int signo, el_data_t priv)
 {
     _G.el_thr_signo = signo;
-    _G.is_rpc_module_shutdown = true;
+    _G.el_thr_status = EL_THR_STOPPED;
 }
 
 /** Callback called when mutex is requested to be locked. */
@@ -243,7 +248,10 @@ static void iopy_el_mutex_lock(bool start_thr)
 
     pthread_mutex_lock(&_G.el_mutex);
 
-    if (!start_thr || likely(_G.el_thr_status == EL_THR_STARTED)) {
+    if (!start_thr
+    ||  likely(_G.el_thr_status == EL_THR_STARTED)
+    ||  unlikely(is_el_thr_stopped()))
+    {
         iopy_dec_el_mutex_wait_lock_cnt();
         return;
     }
@@ -435,15 +443,11 @@ void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr)
     iopy_ic_server_t *server = *server_ptr;
 
     if (server) {
-        if (_G.is_rpc_module_shutdown) {
-            p_delete(server_ptr);
-        } else {
-            iopy_el_mutex_lock(true);
-            iopy_ic_server_stop(server);
-            server->ctx = NULL;
-            iopy_ic_server_delete(server_ptr);
-            iopy_el_mutex_unlock();
-        }
+        iopy_el_mutex_lock(true);
+        iopy_ic_server_stop(server);
+        server->ctx = NULL;
+        iopy_ic_server_delete(server_ptr);
+        iopy_el_mutex_unlock();
     }
 }
 
@@ -457,14 +461,14 @@ static void iopy_ic_server_on_event(ichannel_t *ic, ic_event_t evt)
 
     switch (evt) {
       case IC_EVT_CONNECTED:
-        if (!_G.is_rpc_module_shutdown) {
+        if (!is_el_thr_stopped()) {
             iopy_ic_server_on_connect(server->ctx, server->uri,
                                       ic_get_client_addr(ic));
         }
         break;
 
       case IC_EVT_DISCONNECTED:
-        if (!_G.is_rpc_module_shutdown) {
+        if (!is_el_thr_stopped()) {
             iopy_ic_server_on_disconnect(server->ctx, server->uri,
                                          ic_get_client_addr(ic));
         }
@@ -716,7 +720,7 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
         client->connected = true;
     } else
     if (evt == IC_EVT_DISCONNECTED) {
-        if (!client->closing_is_ok && !_G.is_rpc_module_shutdown) {
+        if (!client->closing_is_ok && !is_el_thr_stopped()) {
             iopy_ic_client_on_disconnect(client->ctx, client->connected);
         }
         client->connected = false;
@@ -817,13 +821,9 @@ iopy_ic_res_t iopy_ic_client_create(void *ctx, lstr_t uri, int timeout,
 void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
 {
     if (*client_ptr) {
-        if (_G.is_rpc_module_shutdown) {
-            p_delete(client_ptr);
-        } else {
-            iopy_el_mutex_lock(true);
-            iopy_ic_client_delete(client_ptr);
-            iopy_el_mutex_unlock();
-        }
+        iopy_el_mutex_lock(true);
+        iopy_ic_client_delete(client_ptr);
+        iopy_el_mutex_unlock();
     }
 }
 
@@ -1074,21 +1074,8 @@ static int iopy_rpc_initialize(void *arg)
 
 static int iopy_rpc_shutdown(void)
 {
-    iopy_el_mutex_lock(false);
-
-    _G.is_rpc_module_shutdown = true;
-
-    if (_G.el_thr_status != EL_THR_NOT_STARTED) {
-        el_t el = el_signal_register(SIGINT, &el_loop_thread_on_term, NULL);
-
-        iopy_el_mutex_unlock();
-        pthread_kill(_G.el_thread, SIGINT);
-        pthread_join(_G.el_thread, NULL);
-
-        el_unregister(&el);
-    } else {
-        iopy_el_mutex_unlock();
-    }
+    assert (_G.el_thr_status == EL_THR_NOT_STARTED
+         || _G.el_thr_status == EL_THR_STOPPED);
 
     iopy_el_thr_vars_wipe();
 
@@ -1125,7 +1112,30 @@ void iopy_rpc_module_init(void)
     MODULE_REQUIRE(iopy_rpc);
 }
 
-void iopy_rpc_module_shutdown(void)
+void iopy_rpc_module_stop(void)
+{
+    el_thr_status_t old_thr_status;
+
+    iopy_el_mutex_lock(false);
+
+    old_thr_status = _G.el_thr_status;
+    _G.el_thr_status = EL_THR_STOPPED;
+    if (old_thr_status != EL_THR_NOT_STARTED
+    &&  expect(old_thr_status != EL_THR_STOPPED))
+    {
+        el_t el = el_signal_register(SIGINT, &el_loop_thread_on_term, NULL);
+
+        iopy_el_mutex_unlock();
+        pthread_kill(_G.el_thread, SIGINT);
+        pthread_join(_G.el_thread, NULL);
+
+        el_unregister(&el);
+    } else {
+        iopy_el_mutex_unlock();
+    }
+}
+
+void iopy_rpc_module_cleanup(void)
 {
     MODULE_RELEASE(iopy_rpc);
 }
