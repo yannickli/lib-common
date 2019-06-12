@@ -2,6 +2,8 @@
 *.fc.c
 *.pyo
 *.pyc
+*.iop.h
+*.iop.c
 *.iop.ts
 
 iopsq.iop.*
@@ -42,6 +44,10 @@ iopsq-t*
 /common.so
 /core-iop-plugin.so
 
+/str-l-obfuscate.c
+/utils/ic-cert.pem
+/utils/ic-key.pem
+
 /json
 /.build*
 /build
@@ -55,3 +61,8 @@ test-data/snmp/*.iop.c
 
 # buildbot artefacts/buildbot.supp
 /buildbot.supp
+
+# cython stuff
+*.pxd
+*.pyx.c
+*.pyx.h

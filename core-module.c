@@ -19,8 +19,10 @@
 #include <pthread.h>
 
 #include "log.h"
+#include "el.h"
 #include "container-qvector.h"
 #include "container-qhash.h"
+#include "unix.h"
 
 /* {{{ Type definition */
 /* {{{ methods */

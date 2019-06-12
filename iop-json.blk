@@ -18,7 +18,7 @@
 
 #include <math.h>
 #include "unix.h"
-#include "iop.h"
+#include "iop-json.h"
 #include "iop-helpers.in.c"
 #include "thr.h"
 
@@ -3082,6 +3082,7 @@ int __iop_jpack_file(const char *filename, unsigned file_flags,
 }
 
 /* }}} */
+/* {{{ iop_jtrace */
 
 struct jtrace {
     int lvl;
@@ -3114,4 +3115,72 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
     iop_jpack(st, v, iop_jtrace_write, &jt, 0);
     e_trace_put_(lvl, fname, lno, func, name, "\n");
 }
+
+/* }}} */
+/* {{{ Struct/class printf formatter %*pS */
+
+static int iop_file_write(void *file, const void *buf, int len)
+{
+    if (fwrite(buf, 1, len, file) != (size_t)len) {
+        return -1;
+    }
+    return len;
+}
+
+typedef struct iop_formatter_t {
+    char  *buf;
+    size_t buf_len;
+} iop_formatter_t;
+
+static int iop_formatter_write(void *out, const void *buf, int len)
+{
+    iop_formatter_t *f = out;
+    int to_copy = MIN((size_t)len, f->buf_len);
+
+    if (to_copy) {
+        memcpy(f->buf, buf, to_copy);
+        f->buf += to_copy;
+        f->buf_len -= to_copy;
+    }
+    return len;
+}
+
+static ssize_t
+iop_struct_format(const iop_struct_t *st, const void *val, size_t flags,
+                  FILE *stream, char *buf, size_t buf_len)
+{
+    if (!st) {
+        /* The struct is an IOP class. */
+        st = *(const iop_struct_t **)val;
+    }
+
+    if (stream) {
+        return iop_jpack(st, val, &iop_file_write, stream, flags);
+    } else {
+        iop_formatter_t f = {
+            .buf = buf,
+            .buf_len = buf_len,
+        };
+
+        return iop_jpack(st, val, &iop_formatter_write, &f, flags);
+    }
+}
+
+static ssize_t
+iop_struct_formatter(int modifier, const void *_sv, size_t flags,
+                     FILE *stream, char *buf, size_t buf_len)
+{
+    const struct iop_struct_value *sv = _sv;
+
+    return iop_struct_format(sv->st, sv->val, flags, stream, buf, buf_len);
+}
+
+__attribute__((constructor))
+static void iop_struct_formatter_register(void)
+{
+    iprintf_register_formatter('S', &iop_struct_formatter);
+}
+
+/* }}} */
+
 #endif

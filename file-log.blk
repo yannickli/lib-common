@@ -21,6 +21,7 @@
 
 #include "file-log.h"
 #include "el.h"
+#include "iop-json.h"
 #include "unix.h"
 #include "thr.h"
 #include "log.h"

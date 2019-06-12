@@ -21,6 +21,7 @@
 
 #include "iop.h"
 #include "conf.h"
+#include "core.iop.h"
 
 /* Conf Licences {{{ */
 

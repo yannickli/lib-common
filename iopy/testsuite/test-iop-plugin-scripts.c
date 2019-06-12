@@ -1,0 +1,27 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) INTERSEC SA                                             */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include <lib-common/iop.h>
+#include <lib-common/iop-rpc.h>
+#include <lib-common/core.iop.h>
+
+#include "test.iop.h"
+
+#include "test_1_2.fc.c"
+#include "test_3.fc.c"
+
+IOP_EXPORT_PACKAGES_COMMON;
+
+IOP_EXPORT_PACKAGES(&test__pkg, &ic__pkg, &core__pkg);
+
+IOP_DSO_EXPORT_RESSOURCES(iopy_on_register, test_1_2_scripts, test_3_script);

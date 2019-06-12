@@ -89,7 +89,7 @@ ssize_t bsf(const void * nonnull data, size_t start_bit, size_t len,
  *     0011010001000101 -> 1010001000101100
  */
 
-extern uint8_t const __bit_reverse8[];
+extern uint8_t const __bit_reverse8[1 << 8];
 
 static ALWAYS_INLINE uint8_t bit_reverse8(uint8_t u8) {
     return __bit_reverse8[u8];
@@ -153,5 +153,12 @@ static inline uint8_t bitcountsz(size_t n) {
 }
 
 extern size_t (*nonnull membitcount)(const void * nonnull ptr, size_t n);
+
+size_t membitcount_c(const void *nonnull ptr, size_t n);
+
+#if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
+size_t membitcount_ssse3(const void *ptr, size_t n);
+size_t membitcount_popcnt(const void *ptr, size_t n);
+#endif
 
 #endif

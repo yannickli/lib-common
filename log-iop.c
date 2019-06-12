@@ -16,7 +16,19 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "log.h"
+#include "log-iop.h"
+
+__unused__
+static void log_iop_static_checks(void)
+{
+    /* This code statically checks that some assumptions done in log.c (which
+     * cannot use LOG_LEVEL IOP enumeration) are correct. */
+    STATIC_ASSERT (LOG_LEVEL_ERR     == LOG_ERR);
+    STATIC_ASSERT (LOG_LEVEL_CRIT    == LOG_CRIT);
+    STATIC_ASSERT (LOG_LEVEL_DEFAULT == -2);
+}
+
+/* {{{ Configuration */
 
 void logger_configure(const core__log_configuration__t *conf)
 {
@@ -57,6 +69,49 @@ void IOP_RPC_IMPL(core__core, log, reset_logger_level)
              .level = logger_reset_level(arg->full_name));
 }
 
+/* }}} */
+/* {{{ Accessors */
+
+static void
+get_configurations_recursive(logger_t *logger, lstr_t prefix,
+                             qv_t(logger_conf) *res)
+{
+    logger_t *child;
+    core__logger_configuration__t conf;
+
+    /* called first as it can force the update of several parameters
+     * including the full name (calling __logger_refresh) */
+    iop_init(core__logger_configuration, &conf);
+
+    /* Don't use logger_get_level since it takes the update_lock */
+    __logger_do_refresh(logger);
+    conf.level = MAX(logger->level, LOG_CRIT);
+
+    /* check if the first element in the full name is the prefix */
+    if (lstr_startswith(logger->full_name, prefix)) {
+        conf.full_name = lstr_dupc(logger->full_name);
+        conf.force_all = logger->level_flags & LOG_FORCED;
+        conf.is_silent = logger->level_flags & LOG_SILENT;
+
+        qv_append(res, conf);
+
+        /* all children will have the same prefix. No need to check it
+         * anymore, we set it to null */
+        prefix = LSTR_NULL_V;
+    }
+
+    dlist_for_each_entry(child, &logger->children, siblings) {
+        get_configurations_recursive(child, prefix, res);
+    }
+}
+
+void logger_get_all_configurations(lstr_t prefix, qv_t(logger_conf) *confs)
+{
+    log_spin_lock();
+    get_configurations_recursive(logger_get_root(), prefix, confs);
+    log_spin_unlock();
+}
+
 void IOP_RPC_IMPL(core__core, log, list_loggers)
 {
     t_scope;
@@ -69,3 +124,5 @@ void IOP_RPC_IMPL(core__core, log, list_loggers)
     ic_reply(ic, slot, core__core, log, list_loggers,
              .loggers = IOP_ARRAY_TAB(&confs));
 }
+
+/* }}} */

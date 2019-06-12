@@ -214,7 +214,7 @@ int iopc_dso_build(const char *pfxdir, bool display_pfx,
     }
 
     /* We'll get the error produced by iopc_build by using the log buffers. */
-    log_start_buffering_filter(false, LOG_LEVEL_ERR);
+    log_start_buffering_filter(false, LOG_ERR);
 
     if (iopc_build(pfxdir, display_pfx, env, iopfile, NULL, tmppath, true,
                    &pkgname, &pkgpath) < 0)

@@ -19,7 +19,7 @@
 /* LCOV_EXCL_START */
 
 #include "z.h"
-#include "iop.h"
+#include "iop-json.h"
 #include "iop/tstiop.iop.h"
 
 /* {{{ Helpers */

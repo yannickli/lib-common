@@ -18,6 +18,7 @@
 
 #include "container-dlist.h"
 #include "datetime.h"
+#include "el.h"
 #include "str-buf-pp.h"
 #include "thr.h"
 

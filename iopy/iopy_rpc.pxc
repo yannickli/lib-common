@@ -1,0 +1,37 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) INTERSEC SA                                             */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "iopy_rpc.h"
+
+PXCC_EXPORT_FILE("iopy_rpc.h");
+
+PXCC_EXPORT_SYMBOL(iopy_ic_server_create);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_destroy);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_listen);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_listen_block);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_stop);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_register_rpc);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_unregister_rpc);
+
+PXCC_EXPORT_SYMBOL(iopy_ic_client_create);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_destroy);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_call);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_is_connected);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_disconnect);
+
+PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_prepare);
+PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_parent);
+PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_child);
+
+PXCC_EXPORT_SYMBOL(iopy_rpc_module_init);
+PXCC_EXPORT_SYMBOL(iopy_rpc_module_shutdown);

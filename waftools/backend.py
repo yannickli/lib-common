@@ -150,6 +150,7 @@ def declare_fpic_lib(ctx, pic_name, orig_lib):
     ctx.path = ctx_path_bak
 
     lib.env.append_value('CFLAGS', ['-fPIC'])
+    return lib
 
 
 def compile_fpic(ctx):
@@ -170,7 +171,7 @@ def compile_fpic(ctx):
 
         # ...such as all the libraries they use
         def process_use_pic(tgen, use_attr):
-            # for all the libraries used by the shared library...
+            # for all the libraries used by tgen...
             use = tgen.to_list(getattr(tgen, use_attr, []))
             for i in xrange(len(use)):
                 use_name = use[i]
@@ -182,7 +183,7 @@ def compile_fpic(ctx):
                 try:
                     use_tgen = ctx.get_tgen_by_name(use_name)
                 except Errors.WafError:
-                    # the 'use' element does not have an associatde task
+                    # the 'use' element does not have an associated task
                     # generator; probably an external library
                     continue
 
@@ -191,15 +192,19 @@ def compile_fpic(ctx):
                     # the 'use' element is not a static library
                     continue
 
-                # Replace the static library by the pic version in the shared
-                # library sources
+                # Replace the static library by the pic version in tgen
+                # sources
                 pic_name = use_name + '.pic'
                 use[i] = pic_name
 
                 # Declare the pic static library, if not done yet
                 if not use_name in pic_libs:
-                    declare_fpic_lib(ctx, pic_name, use_tgen)
+                    pic_lib = declare_fpic_lib(ctx, pic_name, use_tgen)
                     pic_libs.add(use_name)
+                    # Recurse, to deal with the static libraries that use some
+                    # other static libraries.
+                    process_use_pic(pic_lib, 'use')
+                    process_use_pic(pic_lib, 'use_whole')
 
         # Process the use and use_whole lists
         process_use_pic(tgen, 'use')
@@ -880,7 +885,7 @@ def process_lex(self, node):
 class Fc2c(Task):
     run_str = ['rm -f ${TGT}', '${FARCHC} -c -o ${TGT} ${SRC[0].abspath()}']
     color   = 'BLUE'
-    before  = ['Blk2c', 'Blkk2cc']
+    before  = ['Blk2c', 'Blkk2cc', 'ClangCheck']
     ext_out = ['.h']
 
     @classmethod
@@ -940,7 +945,7 @@ class Tokens2c(Task):
     run_str = ('${TOKENS_SH} ${SRC[0].abspath()} ${TGT[0]} && ' +
                '${TOKENS_SH} ${SRC[0].abspath()} ${TGT[1]}')
     color   = 'BLUE'
-    before  = ['Blk2c', 'Blkk2cc']
+    before  = ['Blk2c', 'Blkk2cc', 'ClangCheck']
     ext_out = ['.h', '.c']
 
     @classmethod
@@ -1198,6 +1203,51 @@ def process_ld(self, node):
 
 
 # }}}
+# {{{ PXC
+
+
+class Pxc2Pxd(Task):
+    run_str = '${PXCC} ${CPPPATH_ST:INCPATHS} ${SRC} -o ${TGT}'
+    color   = 'BLUE'
+    before  = 'cython'
+    after   = 'Iop2c'
+
+    @classmethod
+    def keyword(cls):
+        return 'Pxcc'
+
+    def scan(self):
+        # pxc files are C-like files: call standard C preprocessor
+        (deps, raw) = c_preproc.scan(self)
+
+        # pxc files must be rebuilt when pxcc changes
+        deps.append(self.inputs[0].ctx.pxcc_tgen.link_task.outputs[0])
+
+        return (deps, raw)
+
+
+@extension('.pxc')
+def process_pxcc(self, node):
+    ctx = self.bld
+
+    # Ensure pxcc tgen is posted
+    if not getattr(ctx.pxcc_tgen, 'posted', False):
+        ctx.pxcc_tgen.post()
+    if not hasattr(ctx, 'pxcc_task'):
+        ctx.pxcc_task = ctx.pxcc_tgen.link_task
+        ctx.env.PXCC = ctx.pxcc_tgen.link_task.outputs[0].abspath()
+
+    # Handle file
+    pxd_node = node.change_ext_src('.pxd')
+
+    if pxd_node not in self.env.GEN_FILES:
+        self.env.GEN_FILES.add(pxd_node)
+        pxc_task = self.create_task('Pxc2Pxd', [node], [pxd_node],
+                                    cwd=self.env.PROJECT_ROOT)
+        pxc_task.set_run_after(ctx.pxcc_task)
+
+
+# }}}
 # {{{ .c checks using clang
 
 
@@ -1267,6 +1317,10 @@ def options(ctx):
     # Load C/C++ compilers
     ctx.load('compiler_c')
     ctx.load('compiler_cxx')
+
+    # Python/cython
+    ctx.load('python')
+    ctx.load('cython_intersec')
 
 # }}}
 # {{{ configure
@@ -1497,7 +1551,6 @@ def configure(ctx):
     except KeyError:
         ctx.fatal('Profile `{0}` not found'.format(ctx.env.PROFILE))
 
-
     # Check dependencies
     ctx.find_program('objcopy', var='OBJCOPY')
 
@@ -1508,6 +1561,10 @@ def configure(ctx):
     ctx.find_program('_tokens.sh', path_list=[config_dir], var='TOKENS_SH')
     if ctx.find_program('ctags', mandatory=False):
         ctx.find_program('ctags.sh', path_list=[build_dir], var='CTAGS_SH')
+
+    # Python/cython
+    ctx.load('python')
+    ctx.load('cython_intersec')
 
 
 class IsConfigurationContext(ConfigurationContext):

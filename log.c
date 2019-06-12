@@ -20,6 +20,8 @@
 #include "unix.h"
 #include "thr.h"
 #include "datetime.h"
+#include "container-qhash.h"
+#include "iop.h"
 
 #include "log.h"
 
@@ -109,7 +111,7 @@ __thread log_thr_ml_t log_thr_ml_g;
 
 /* Helpers {{{ */
 
-static void log_spin_lock(void)
+void log_spin_lock(void)
 {
     if (unlikely(log_thr_g.in_spinlock)) {
         /* Deadlock detected. This can happen in tricky situations, for
@@ -120,7 +122,7 @@ static void log_spin_lock(void)
          * Catch it and do the best we can to avoid blocking a thread: commit
          * suicide.
          */
-        syslog(LOG_USER | LOG_LEVEL_CRIT, "deadlock detected in log library");
+        syslog(LOG_USER | LOG_CRIT, "deadlock detected in log library");
         printf("deadlock detected in log library\n");
         abort();
     }
@@ -128,7 +130,7 @@ static void log_spin_lock(void)
     spin_lock(&_G.update_lock);
 }
 
-static void log_spin_unlock(void)
+void log_spin_unlock(void)
 {
     spin_unlock(&_G.update_lock);
     log_thr_g.in_spinlock = false;
@@ -255,7 +257,7 @@ static void logger_compute_fullname(logger_t *logger)
     }
 }
 
-static void __logger_do_refresh(logger_t *logger)
+void __logger_do_refresh(logger_t *logger)
 {
     if (atomic_load_explicit(&logger->conf_gen, memory_order_acquire)
         == log_conf_gen_g)
@@ -329,6 +331,11 @@ void __logger_refresh(logger_t *logger)
     log_spin_unlock();
 }
 
+logger_t *logger_get_root(void)
+{
+    return &_G.root_logger;
+}
+
 logger_t *logger_get_by_name(lstr_t name)
 {
     pstream_t ps = ps_initlstr(&name);
@@ -369,7 +376,10 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
     assert ((flags & (LOG_RECURSIVE | LOG_SILENT)) == flags);
     assert (!(flags & LOG_RECURSIVE) || level >= 0);
 
-    if (level == LOG_LEVEL_DEFAULT) {
+    /* -2 == LOG_LEVEL_DEFAULT, which cannot be used here because it is
+     * defined in core.iop, and we are in a source file of libcommon-minimal
+     * that cannot use content from iop files. */
+    if (level == -2) {
         level = LOG_DEFAULT;
     }
 
@@ -409,49 +419,6 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
 int logger_reset_level(lstr_t name)
 {
     return logger_set_level(name, LOG_UNDEFINED, 0);
-}
-
-/* }}} */
-/* Accessors {{{ */
-
-static void
-get_configurations_recursive(logger_t *logger, lstr_t prefix,
-                             qv_t(logger_conf) *res)
-{
-    logger_t *child;
-    core__logger_configuration__t conf;
-
-    /* called first as it can force the update of several parameters
-     * including the full name (calling __logger_refresh) */
-    iop_init(core__logger_configuration, &conf);
-
-    /* Don't use logger_get_level since it takes the update_lock */
-    __logger_do_refresh(logger);
-    conf.level = MAX(logger->level, LOG_CRIT);
-
-    /* check if the first element in the full name is the prefix */
-    if (lstr_startswith(logger->full_name, prefix)) {
-        conf.full_name = lstr_dupc(logger->full_name);
-        conf.force_all = logger->level_flags & LOG_FORCED;
-        conf.is_silent = logger->level_flags & LOG_SILENT;
-
-        qv_append(res, conf);
-
-        /* all children will have the same prefix. No need to check it
-         * anymore, we set it to null */
-        prefix = LSTR_NULL_V;
-    }
-
-    dlist_for_each_entry(child, &logger->children, siblings) {
-        get_configurations_recursive(child, prefix, res);
-    }
-}
-
-void logger_get_all_configurations(lstr_t prefix, qv_t(logger_conf) *confs)
-{
-    log_spin_lock();
-    get_configurations_recursive(&_G.root_logger, prefix, confs);
-    log_spin_unlock();
 }
 
 /* }}} */

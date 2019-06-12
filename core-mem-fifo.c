@@ -17,6 +17,7 @@
 /***************************************************************************/
 
 #include "core.h"
+#include "el.h"
 #include "log.h"
 #include "str-buf-pp.h"
 

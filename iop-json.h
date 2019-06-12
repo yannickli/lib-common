@@ -16,12 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_IOP_H) || defined(IS_LIB_COMMON_IOP_JSON_H)
-#  error "you must include <lib-common/iop.h> instead"
-#else
+#ifndef IS_LIB_COMMON_IOP_JSON_H
 #define IS_LIB_COMMON_IOP_JSON_H
 
 #include "file.h"
+#include "iop.h"
 #include "core.iop.h"
 
 /* {{{ Private API and definitions */
@@ -510,6 +509,95 @@ void iop_jtrace_(int lvl, const char * nonnull fname, int lno,
 #define iop_jtrace(lvl, st, v)              e_trace_ignore(lvl, v)
 #define iop_named_jtrace(lvl, name, st, v)  e_trace_ignore(lvl, name, v)
 #endif
+
+/* }}} */
+/* {{{ Struct printf formatter %*pS */
+
+/** Private intermediary structure for IOP struct/union formatting. */
+struct iop_struct_value {
+    /* Struct/union description, can be null only when the element is an
+     * object.
+     */
+    const iop_struct_t * nullable st;
+
+    const void * nonnull val;
+};
+
+/** Provide the appropriate arguments to the %*pS modifier.
+ *
+ * '%*pS' can be used in format string in order to print the JSON-encoded
+ * content of an IOP stuct or union. You can provide the flags to be used to
+ * the JSON packer in the format arguments (\ref iop_jpack_flags).
+ *
+ * \param[in]  pfx    IOP struct descriptor prefix.
+ * \param[in]  _val   The IOP struct or union to print.
+ * \param[in]  _flags The JSON packing flags
+ *
+ * See \ref IOP_ST_FMT_ARG() for a convenience helper to print compact JSON.
+ */
+#define IOP_ST_FMT_ARG_FLAGS(pfx, _val, _flags)                              \
+    (_flags), &(struct iop_struct_value){                                    \
+        .st = &pfx##__s,                                                     \
+        .val = ({ const pfx##__t *__val = (_val); __val; }) }
+
+/** Provide the appropriate argument to print compact JSON with the %*pS
+ * format.
+ *
+ * This macro is a convenience helper for \ref IOP_ST_FMT_ARG_FLAGS to
+ * cover the usual use case where compact JSON is needed.
+ *
+ * \param[in]  pfx  IOP struct descriptor prefix.
+ * \param[in]  _val The IOP struct or union to print.
+ *
+ * \note If the struct is actually a class, use \ref IOP_OBJ_FMT_ARG
+ *       formatting helper instead to get the code smaller.
+ */
+#define IOP_ST_FMT_ARG(pfx, _val)                                            \
+    IOP_ST_FMT_ARG_FLAGS(pfx, _val,                                          \
+                         IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
+
+/** Same as \ref IOP_ST_FMT_ARG_FLAGS but with explicit description pointer.
+ */
+#define IOP_ST_DESC_FMT_ARG_FLAGS(desc, _val, _flags)                        \
+    (_flags), &(struct iop_struct_value){                                    \
+        .st = desc,                                                          \
+        .val = (_val) }
+
+/** Provide the appropriate arguments to print an IOP class instance in JSON
+ *  with the %*pS modifier.
+ *
+ * '%*pS' can be used in format string in order to print the JSON-encoded
+ * content of an IOP object (instance of an IOP class). You can provide the
+ * flags to be used to the JSON packer in the format arguments
+ * (\ref iop_jpack_flags).
+ *
+ * \param[in]  _obj   The object to print.
+ * \param[in]  _flags The JSON packing flags
+ *
+ * See \ref IOP_OBJ_FMT_ARG() for a convenience helper to print compact JSON.
+ */
+#define IOP_OBJ_FMT_ARG_FLAGS(_obj, _flags)                                  \
+    (_flags),                                                                \
+    &(struct iop_struct_value){                                              \
+        .st = NULL,                                                          \
+        .val = ({                                                            \
+            typeof(*_obj) *_fmt_obj = (_obj);                                \
+            __unused__ const iop_struct_t *__ofa_st = _fmt_obj->__vptr;      \
+            _fmt_obj;                                                        \
+        })                                                                   \
+    }
+
+/** Provide the appropriate argument to print an IOP class instance in compact
+ *  JSON with the %*pS modifier.
+ *
+ * This macro is a convenience helper for \ref IOP_OBJ_FMT_ARG_FLAGS to
+ * cover the usual use case where compact JSON is needed.
+ *
+ * \param[in]  _obj  The object to print.
+ */
+#define IOP_OBJ_FMT_ARG(_obj)                                                \
+    IOP_OBJ_FMT_ARG_FLAGS((_obj),                                            \
+                          IOP_JPACK_NO_WHITESPACES | IOP_JPACK_NO_TRAILING_EOL)
 
 /* }}} */
 

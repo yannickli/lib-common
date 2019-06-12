@@ -16,6 +16,7 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include "iop-json.h"
 #include "iopc-iopsq.h"
 #include "../iop/tstiop.iop.h"
 
