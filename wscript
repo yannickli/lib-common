@@ -227,12 +227,10 @@ def build(ctx):
             'file-log.blk',
 
             'hash-aes.c',
-            'hash-arc4.c',
             'hash-crc32.c',
             'hash-crc64.c',
             'hash-des.c',
             'hash-hash.c',
-            'hash-md2.c',
             'hash-md5.c',
             'hash-padlock.c',
             'hash-sha1.c',

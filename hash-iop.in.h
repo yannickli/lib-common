@@ -64,9 +64,6 @@ ATTRS static inline void F(iop_hash_murmur_hash3_x86_32)(HASH_ARGS(4),
 
 ATTRS static inline void F(iop_hash32)(HASH_ARGS(4))       { HASH(hash32); }
 
-ATTRS static inline void F(iop_hash_md2)(HASH_ARGS(16))    { HASH(md2); }
-ATTRS static inline void F(iop_hmac_md2)(HMAC_ARGS(16))    { HMAC(md2); }
-
 ATTRS static inline void F(iop_hash_md5)(HASH_ARGS(16))    { HASH(md5); }
 ATTRS static inline void F(iop_hmac_md5)(HMAC_ARGS(16))    { HMAC(md5); }
 

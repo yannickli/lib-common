@@ -58,9 +58,7 @@
 #define PUT_U32_BE(n,b,i)    (*acast(be32_t, (b) + (i)) = cpu_to_be32(n))
 
 #include "hash-aes.h"
-#include "hash-arc4.h"
 #include "hash-des.h"
-#include "hash-md2.h"
 #include "hash-md5.h"
 #include "hash-padlock.h"
 #include "hash-sha1.h"
