@@ -2664,20 +2664,20 @@ Z_GROUP_EXPORT(conv)
 
     Z_TEST(sb_conv_gsm, "sb conv from/to gsm") {
 #define TL(input, expected, desc)       \
-        ({  lstr_t in   = input;                                             \
-            lstr_t exp  = expected;                                          \
+        ({  lstr_t in    = input;                                            \
+            lstr_t exp_s = expected;                                         \
             sb_reset(&tmp);                                                  \
             sb_reset(&out);                                                  \
             sb_conv_from_gsm(&tmp, in.s, in.len);                            \
             sb_conv_to_gsm(&out, tmp.data, tmp.len);                         \
-            Z_ASSERT_LSTREQUAL(exp, LSTR_SB_V(&out), desc);                  \
+            Z_ASSERT_LSTREQUAL(exp_s, LSTR_SB_V(&out), desc);                \
         })
 #define TLHEX(input, expected, desc)    \
-        ({  lstr_t in   = input;                                             \
-            lstr_t exp  = expected;                                          \
+        ({  lstr_t in    = input;                                            \
+            lstr_t exp_s = expected;                                         \
             SB_1k(in_hex); SB_1k(exp_hex);                                   \
             sb_add_hex(&in_hex, in.s, in.len);                               \
-            sb_add_hex(&exp_hex, exp.s, exp.len);                            \
+            sb_add_hex(&exp_hex, exp_s.s, exp_s.len);                        \
             sb_reset(&tmp);                                                  \
             sb_reset(&out);                                                  \
             sb_conv_from_gsm_hex(&tmp, in_hex.data, in_hex.len);             \
@@ -2731,13 +2731,13 @@ Z_GROUP_EXPORT(conv)
     Z_TEST(sb_conv_cimd, "sb conv from/to cimd") {
         SB_1k(sb);
 
-#define T(input, expected, description)      \
-        ({  lstr_t exp = LSTR_IMMED(expected);                               \
+#define T(input, _expected, description)      \
+        ({  lstr_t expected = LSTR_IMMED(_expected);                         \
             lstr_t in  = LSTR_IMMED(input);                                  \
                                                                              \
             sb_reset(&out);                                                  \
             sb_conv_from_gsm_plan(&out, in.s, in.len, GSM_CIMD_PLAN);        \
-            Z_ASSERT_LSTREQUAL(exp, LSTR_SB_V(&out), description);           \
+            Z_ASSERT_LSTREQUAL(expected, LSTR_SB_V(&out), description);      \
         })
 
         sb_init(&out);
