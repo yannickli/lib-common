@@ -24,6 +24,10 @@
 #include <lib-common/core.h>
 #include <lib-common/iop-rpc.h>
 
+/* XXX: Unless specified, all functions *MUST* be called with the GIL
+ * released.
+ */
+
 /** Result of blocking functions. */
 typedef enum iopy_ic_res_t {
     IOPY_IC_OK = 0,
@@ -38,9 +42,9 @@ typedef struct iopy_ic_server_t iopy_ic_server_t;
 
 /** Create IOPy IC Server.
  *
- * \param[in] ctx The context of the IOPy IC server.
+ * XXX: You don't need to release the GIL when using this function.
  */
-iopy_ic_server_t *iopy_ic_server_create(void *ctx);
+iopy_ic_server_t *iopy_ic_server_create(void);
 
 /** Destroy IOPy IC server.
  *
@@ -51,6 +55,19 @@ iopy_ic_server_t *iopy_ic_server_create(void *ctx);
  */
 void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr);
 
+/** Set the IOPy IC server python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void iopy_ic_server_set_py_obj(iopy_ic_server_t *server,
+                               void * nullable py_obj);
+
+/** Get the IOPy IC server python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void * nullable iopy_ic_server_get_py_obj(iopy_ic_server_t *server);
+
 /** Start listening IOPy IC server.
  *
  * \param[in]  server The IOPy IC server.
@@ -60,14 +77,18 @@ void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr);
  */
 int iopy_ic_server_listen(iopy_ic_server_t *server, lstr_t uri, sb_t *err);
 
-/** Start listening IOPy IC server and eep listening until time elapsed or
- * server stopped.
+/** Start listening IOPy IC server until timeout elapsed or the server has
+ * been stopped.
  *
  * \param[in]  server  The IOPy IC server.
  * \param[in]  uri     The uri the IC server should listen to.
  * \param[in]  timeout Number of seconds to listen.
  * \param[out] err     The error description in case of error.
- * \return     -1 in case of error, 0 otherwise.
+ * \return IOPY_IC_OK if the server has been stopped manually or the timeout
+ *         elapsed.
+ *         IOPY_IC_ERR if an error occured, \p err contains the description of
+ *         the error.
+ *         IOPY_IC_SIGINT if a sigint occurred.
  */
 iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
                                           lstr_t uri, int timeout, sb_t *err);
@@ -77,8 +98,12 @@ iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
  * Do nothing if the server is not listening.
  *
  * \param[in] server The IOPy IC server to stop.
+ *
+ * \return IOPY_IC_OK if the server has been successfully stopped.
+ *         IOPY_IC_SIGINT if a sigint occurred during the stop.
+ *         This function cannot return IOPY_IC_ERR.
  */
-void iopy_ic_server_stop(iopy_ic_server_t *server);
+iopy_ic_res_t iopy_ic_server_stop(iopy_ic_server_t *server);
 
 /** Register RPC to IOPy IC server.
  *
@@ -98,31 +123,33 @@ void iopy_ic_server_unregister_rpc(iopy_ic_server_t *server, uint32_t cmd);
 
 /** Called when a peer is connecting to the server.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in] ctx         The IOPy IC server context.
+ * \param[in] server      The IOPy IC server.
  * \param[in] server_uri  The URI the IOPy IC server is listening to.
  * \param[in] remote_addr The address of the peer.
  */
-void iopy_ic_server_on_connect(void *ctx, lstr_t server_uri,
-                               lstr_t remote_addr);
+void iopy_ic_py_server_on_connect(iopy_ic_server_t *server,
+                                  lstr_t server_uri,
+                                  lstr_t remote_addr);
 
 /** Called when a peer is disconnecting from the server.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in] ctx         The IOPy IC server context.
+ * \param[in] server      The IOPy IC server.
  * \param[in] server_uri  The URI the IOPy IC server is listening to.
  * \param[in] remote_addr The address of the peer.
  */
-void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
-                                  lstr_t remote_addr);
+void iopy_ic_py_server_on_disconnect(iopy_ic_server_t *server,
+                                     lstr_t server_uri,
+                                     lstr_t remote_addr);
 
 /** Called when a request is made to an RPC.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in]  ctx    The IOPy IC server context.
+ * \param[in]  server The IOPy IC server.
  * \param[in]  ic     The ichannel of the request.
  * \param[in]  slot   The slot of the request.
  * \param[in]  arg    The RPC argument of the request.
@@ -131,9 +158,10 @@ void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
  * \return  The status of the reply. If the status is not IC_MSG_OK or
  *          IC_MSG_EXN, \p res and \p res_desc are ignored.
  */
-ic_status_t t_iopy_ic_server_on_rpc(void *ctx, ichannel_t *ic, uint64_t slot,
-                                    void *arg, const ic__hdr__t *hdr,
-                                    void **res, const iop_struct_t **res_st);
+ic_status_t
+t_iopy_ic_py_server_on_rpc(iopy_ic_server_t *server, ichannel_t *ic,
+                           uint64_t slot, void *arg, const ic__hdr__t *hdr,
+                           void **res, const iop_struct_t **res_st);
 
 /** Is the IOPy IC server listening.
  *

@@ -22,6 +22,8 @@ PXCC_EXPORT_FILE("iopy_rpc.h");
 
 PXCC_EXPORT_SYMBOL(iopy_ic_server_create);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_destroy);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_set_py_obj);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_get_py_obj);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_listen);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_listen_block);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_stop);

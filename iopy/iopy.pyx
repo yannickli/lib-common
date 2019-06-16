@@ -7391,9 +7391,8 @@ cdef class ChannelServer(ChannelBase):
             The IOPy plugin.
         """
         self.rpc_impls = {}
-        with nogil:
-            self.ic_server = iopy_ic_server_create(<void *>self)
-
+        self.ic_server = iopy_ic_server_create()
+        iopy_ic_server_set_py_obj(self.ic_server, <void *>self)
         create_modules_of_channel(register, self, &create_server_rpc)
 
         self.plugin = register
@@ -7402,8 +7401,10 @@ cdef class ChannelServer(ChannelBase):
 
     def __dealloc__(ChannelServer self):
         """Destructor of server IC channel"""
-        with nogil:
-            iopy_ic_server_destroy(&self.ic_server)
+        if self.ic_server:
+            iopy_ic_server_set_py_obj(self.ic_server, NULL)
+            with nogil:
+                iopy_ic_server_destroy(&self.ic_server)
 
     def __repr__(ChannelServer self):
         """Return the representation of the server IC channel.
@@ -7482,8 +7483,12 @@ cdef class ChannelServer(ChannelBase):
 
     def stop(ChannelServer self):
         """Stop the IC server from listening"""
+        cdef iopy_ic_res_t res
+
         with nogil:
-            iopy_ic_server_stop(self.ic_server)
+            res = iopy_ic_server_stop(self.ic_server)
+
+        check_iopy_ic_res(res, NULL)
 
     @property
     def on_connect(ChannelServer self):
@@ -7598,8 +7603,9 @@ cdef class RPCArgs:
     cdef readonly object hdr
 
 
-cdef public void iopy_ic_server_on_connect(void *ctx, lstr_t server_uri,
-                                           lstr_t remote_addr) nogil:
+cdef public void iopy_ic_py_server_on_connect(iopy_ic_server_t *server,
+                                              lstr_t server_uri,
+                                              lstr_t remote_addr) nogil:
     """Called when a peer is connecting to the server.
 
     Parameters
@@ -7610,11 +7616,12 @@ cdef public void iopy_ic_server_on_connect(void *ctx, lstr_t server_uri,
         The address of the peer.
     """
     with gil:
-        iopy_ic_server_on_connect_gil(ctx, server_uri, remote_addr)
+        iopy_ic_py_server_on_connect_gil(server, server_uri, remote_addr)
 
 
-cdef void iopy_ic_server_on_connect_gil(void *ctx, lstr_t server_uri,
-                                        lstr_t remote_addr):
+cdef void iopy_ic_py_server_on_connect_gil(iopy_ic_server_t *server,
+                                           lstr_t server_uri,
+                                           lstr_t remote_addr):
     """Called when a peer is connecting to the server with the GIL.
 
     Parameters
@@ -7624,9 +7631,14 @@ cdef void iopy_ic_server_on_connect_gil(void *ctx, lstr_t server_uri,
     remote_addr
         The address of the peer.
     """
-    cdef ChannelServer channel = <ChannelServer>ctx
+    cdef void *ctx = iopy_ic_server_get_py_obj(server)
+    cdef ChannelServer channel
     cdef object message
 
+    if not ctx:
+        return
+
+    channel = <ChannelServer>ctx
     message = ('Channel Server listening on %s, connected to: %s (%s)' %
                (lstr_to_py_str(server_uri), lstr_to_py_str(remote_addr),
                 get_warning_time_str()))
@@ -7639,8 +7651,9 @@ cdef void iopy_ic_server_on_connect_gil(void *ctx, lstr_t server_uri,
             send_exception_to_main_thread()
 
 
-cdef public void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
-                                              lstr_t remote_addr) nogil:
+cdef public void iopy_ic_py_server_on_disconnect(iopy_ic_server_t *server,
+                                                 lstr_t server_uri,
+                                                 lstr_t remote_addr) nogil:
     """Called when a peer is disconnecting from the server.
 
     Parameters
@@ -7651,11 +7664,12 @@ cdef public void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
         The address of the peer.
     """
     with gil:
-        iopy_ic_server_on_disconnect_gil(ctx, server_uri, remote_addr)
+        iopy_ic_py_server_on_disconnect_gil(server, server_uri, remote_addr)
 
 
-cdef void iopy_ic_server_on_disconnect_gil(void *ctx, lstr_t server_uri,
-                                           lstr_t remote_addr):
+cdef void iopy_ic_py_server_on_disconnect_gil(iopy_ic_server_t *server,
+                                              lstr_t server_uri,
+                                              lstr_t remote_addr):
     """Called when a peer is disconnecting from the server with the GIL.
 
     Parameters
@@ -7665,9 +7679,14 @@ cdef void iopy_ic_server_on_disconnect_gil(void *ctx, lstr_t server_uri,
     remote_addr
         The address of the peer.
     """
-    cdef ChannelServer channel = <ChannelServer>ctx
+    cdef void *ctx = iopy_ic_server_get_py_obj(server)
+    cdef ChannelServer channel
     cdef object message
 
+    if not ctx:
+        return
+
+    channel = <ChannelServer>ctx
     message = ('Channel Server listening on %s, disconnected from: %s (%s)' %
                (lstr_to_py_str(server_uri), lstr_to_py_str(remote_addr),
                 get_warning_time_str()))
@@ -7680,8 +7699,8 @@ cdef void iopy_ic_server_on_disconnect_gil(void *ctx, lstr_t server_uri,
             send_exception_to_main_thread()
 
 
-cdef public ic_status_t t_iopy_ic_server_on_rpc(
-    void *ctx, ichannel_t *ic, uint64_t slot, void *arg,
+cdef public ic_status_t t_iopy_ic_py_server_on_rpc(
+    iopy_ic_server_t *server, ichannel_t *ic, uint64_t slot, void *arg,
     const ic__hdr__t *hdr, void **res, const iop_struct_t **res_st) nogil:
     """Called when a request is made to an RPC.
 
@@ -7709,8 +7728,8 @@ cdef public ic_status_t t_iopy_ic_server_on_rpc(
 
     with gil:
         try:
-            status = t_iopy_ic_server_on_rpc_gil(ctx, ic, slot, arg, hdr, res,
-                                                 res_st)
+            status = t_iopy_ic_py_server_on_rpc_gil(server, ic, slot, arg,
+                                                    hdr, res, res_st)
         except:
             send_exception_to_main_thread()
             status = IC_MSG_SERVER_ERROR
@@ -7718,8 +7737,8 @@ cdef public ic_status_t t_iopy_ic_server_on_rpc(
     return <ic_status_t>status
 
 
-cdef int t_iopy_ic_server_on_rpc_gil(
-    void *ctx, ichannel_t *ic, uint64_t slot, void *arg,
+cdef int t_iopy_ic_py_server_on_rpc_gil(
+    iopy_ic_server_t *server, ichannel_t *ic, uint64_t slot, void *arg,
     const ic__hdr__t *hdr, void **res, const iop_struct_t **res_st) except -1:
     """Called when a request is made to an RPC with the GIL.
 
@@ -7744,14 +7763,20 @@ cdef int t_iopy_ic_server_on_rpc_gil(
         res and res_desc are ignored.
         -1 in case of python exception.
     """
-    cdef ChannelServer channel = <ChannelServer>ctx
-    cdef Plugin plugin = channel.plugin
+    cdef void *ctx = iopy_ic_server_get_py_obj(server)
+    cdef ChannelServer channel
+    cdef Plugin plugin
     cdef RPCServer rpc
     cdef RPCArgs args
     cdef object py_arg_cls
     cdef object py_hdr_cls
     cdef object py_res
 
+    if not ctx:
+        raise Error('server has been stopped')
+
+    channel = <ChannelServer>ctx
+    plugin = channel.plugin
     rpc = channel.rpc_impls.get(ichannel_get_cmd(ic))
     if rpc is None or rpc.rpc_impl is None:
         return IC_MSG_UNIMPLEMENTED
