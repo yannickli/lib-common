@@ -3280,9 +3280,11 @@ MODULE_BEGIN(qps)
     MODULE_DEPENDS_ON(thr);
 MODULE_END()
 
-#ifdef __has_asan
-const char* __asan_default_options(void);
-const char* __asan_default_options(void)
+#if defined(__has_asan) && !__CLANG_PREREQ(5, 0)
+const char *__asan_default_options(void);
+
+__attribute__((visibility("default")))
+const char *__asan_default_options(void)
 {
     return "allow_user_segv_handler=1";
 }
