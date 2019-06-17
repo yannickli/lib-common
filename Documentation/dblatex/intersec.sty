@@ -49,6 +49,8 @@
 \let\oldfootrule=\footrule
 \renewcommand{\footrule}{\textcolor{is_red}{\oldfootrule}}
 
+\renewcommand{\sectionmark}[1]{\markboth{\MakeUppercase{\thesection\ #1}}{}}
+
 \def\PageHeader{
   \colorbox{is_red}{\parbox{1cm}{\centerline{
     \color{white}\textbf{\thepage}
