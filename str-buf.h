@@ -787,15 +787,55 @@ typedef struct sb_b64_ctx_t {
     byte  trail_len;
 } sb_b64_ctx_t;
 
+/** Start a multiple step base 64 encoding.
+ *
+ * \param[out]  sb  the output buffer, receiving encoded data.
+ * \param[in]  len  estimation of the number of bytes that will be encoded.
+ * \param[in]  width   maximum length for output lines, not counting end of
+ *                     line markers.  0 for standard 76 character lines, -1
+ *                     for unlimited line length.
+ * \param[out]  ctx  encoding context (may be uninitialized).
+ */
 void sb_add_b64_start(sb_t * nonnull sb, int len, int width,
                       sb_b64_ctx_t * nonnull ctx) __leaf;
+
+/** Next base 64 encoding step.
+ *
+ * \param[out]  sb  the output buffer, receiving encoded data.
+ * \param[in]  src0  next data to encode.
+ * \param[in]  len  number of bytes to encode from src0.
+ * \param[in|out]  ctx  encoding context.
+ */
 void sb_add_b64_update(sb_t * nonnull sb, const void * nonnull src0, int len,
                        sb_b64_ctx_t * nonnull ctx) __leaf;
+
+/** Terminates a multiple step base 64 encoding.
+ *
+ * \param[out]  sb  the output buffer, receiving encoded data.
+ * \param[in]  ctx  encoding context.
+ */
 void sb_add_b64_finish(sb_t * nonnull sb, sb_b64_ctx_t * nonnull ctx)
     __leaf;
 
+/** Encode data to base64.
+ *
+ * \param[out]  sb  the output buffer, receiving encoded data.
+ * \param[in]  data  data to encode.
+ * \param[in]  len  number of bytes to encode.
+ * \param[in]  width   maximum length for output lines, not counting end of
+ *                     line markers.  0 for standard 76 character lines, -1
+ *                     for unlimited line length.
+ */
 void sb_add_b64(sb_t * nonnull sb, const void * nonnull data,
                 int len, int width) __leaf;
+
+/** Decode data from base64.
+ *
+ * \param[out]  sb  the output buffer, receiving decoded data.
+ * \param[in]  data  data to decode.
+ * \param[in]  len  number of bytes to decode.
+ * \return 0 on success, -1 on error. The sb is unchanged on error.
+ */
 int  sb_add_unb64(sb_t * nonnull sb, const void * nonnull data, int len)
     __leaf;
 static inline void sb_adds_b64(sb_t * nonnull sb, const char * nonnull s,

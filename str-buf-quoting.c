@@ -759,10 +759,6 @@ void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
     ctx->trail_len = 0;
 }
 
-/* width is the maximum length for output lines, not counting end of
- * line markers.  0 for standard 76 character lines, -1 for unlimited
- * line length.
- */
 void sb_add_b64(sb_t *dst, const void *_src, int len, int width)
 {
     sb_b64_ctx_t ctx;
