@@ -5649,14 +5649,10 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
-    Z_TEST(iop_class_for_each_field, "test iop_class_for_each_field") { /* {{{ */
+    Z_TEST(iop_struct_for_each_field, "test iop_struct_for_each_field") { /* {{{ */
         tstiop__my_class1__t cls1;
         tstiop__my_class2__t cls2;
         tstiop__my_class3__t cls3;
-        const iop_struct_t *st;
-        const iop_struct_t *st2;
-        const iop_field_t  *f;
-        const iop_field_t  *f2;
         int i = 0;
 
         iop_init(tstiop__my_class1, &cls1);

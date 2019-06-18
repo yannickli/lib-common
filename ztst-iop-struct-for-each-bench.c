@@ -19,6 +19,33 @@
 #include "iop.h"
 #include "iop/tstiop.iop.h"
 
+/* {{{ Now removed implementation of iop_class_for_each_field. */
+
+__attribute__((noinline))
+static const iop_field_t *
+_iop_class_get_next_field(const iop_struct_t **st, int *it)
+{
+    while (*st && *it >= (*st)->fields_len) {
+        *st = (*st)->class_attrs->parent;
+        *it = 0;
+    }
+
+    return *st ? (*st)->fields + (*it)++ : NULL;
+}
+
+/** Loop on all fields of a class and its parents.
+ *
+ *  f is an already-declared iop_field_t where the results will be put in.
+ *
+ *  st is an already-declared iop_struct_t where the class of each field put
+ *  in f will be put in.
+ */
+#define iop_class_for_each_field(f, st, _cl)                                 \
+    st = _cl;                                                                \
+    for (int _i_##f = 0; (f = _iop_class_get_next_field(&st, &_i_##f));)
+
+/* }}} */
+
 /* This bench helps evaluating the cost of field iteration methods through IOP
  * structs and classes.
  *

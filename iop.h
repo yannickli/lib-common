@@ -1663,24 +1663,6 @@ typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t * nonnull);
 void iop_for_each_registered_classes(iop_for_each_class_b nonnull cb);
 #endif
 
-const iop_field_t * nullable
-_iop_class_get_next_field(const iop_struct_t * nonnull * nonnull st,
-                          int * nonnull it);
-
-/** Loop on all fields of a class and its parents.
- *
- *  f is an already-declared iop_field_t where the results will be put in.
- *
- *  st is an already-declared iop_struct_t where the class of each field put
- *  in f will be put in.
- */
-#define iop_class_for_each_field(f, st, _cl)                                \
-    st = _cl;                                                               \
-    for (int _i_##f = 0; (f = _iop_class_get_next_field(&st, &_i_##f));)
-
-#define iop_obj_for_each_field(f, st, _obj)                                 \
-    iop_class_for_each_field(f, st, (_obj)->__vptr)
-
 /* {{{ Private functions for iop_struct_for_each_field macro. */
 
 /* Dig into class hierarchy to find the first parent class containing fields
@@ -1749,6 +1731,13 @@ _iop_struct_next_field(bool is_class, const iop_field_t *nullable field,
     for (const iop_field_t *f = NULL;                                        \
          (f = _iop_struct_next_field(__##field_st##_is_class, f,             \
                                      &field_st));)
+
+/** Iterate on all fields of the class of a given IOP object.
+ *
+ * \see \p iop_struct_for_each_field.
+ */
+#define iop_obj_for_each_field(f, st, _obj)                                  \
+    iop_struct_for_each_field(f, st, (_obj)->__vptr)
 
 /* }}} */
 /* {{{ IOP array loops */

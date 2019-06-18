@@ -5173,17 +5173,6 @@ const iop_rpc_t *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd)
     return iop_iface_find_rpc(iface, cmd & 0xffff);
 }
 
-const iop_field_t *
-_iop_class_get_next_field(const iop_struct_t **st, int *it)
-{
-    while (*st && *it >= (*st)->fields_len) {
-        *st = (*st)->class_attrs->parent;
-        *it = 0;
-    }
-
-    return *st ? (*st)->fields + (*it)++ : NULL;
-}
-
 const iop_struct_t *
 _iop_class_first_non_empty_parent(const iop_struct_t *cls)
 {
