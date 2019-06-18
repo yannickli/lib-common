@@ -528,6 +528,13 @@ def build(ctx):
 
     ctx.program(target='zgcd-bench', source='zgcd-bench.c', use='libcommon')
 
+    ctx.program(target='ztst-iop-struct-for-each-bench',
+                source='ztst-iop-struct-for-each-bench.c',
+                use=[
+                    'tstiop',
+                    'libcommon'
+                ])
+
     ctx.program(target='ztst-mem-bench', source='ztst-mem-bench.c',
                 use='libcommon')
 

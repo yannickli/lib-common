@@ -26,6 +26,7 @@ iopsq-t*
 /ztst-cfgparser
 /ztst-hattrie
 /ztst-httpd
+/ztst-iop-struct-for-each-bench
 /ztst-iprintf
 /ztst-iprintf-fp
 /ztst-iprintf-glibc
