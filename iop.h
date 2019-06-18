@@ -1681,6 +1681,74 @@ _iop_class_get_next_field(const iop_struct_t * nonnull * nonnull st,
 #define iop_obj_for_each_field(f, st, _obj)                                 \
     iop_class_for_each_field(f, st, (_obj)->__vptr)
 
+/* {{{ Private functions for iop_struct_for_each_field macro. */
+
+/* Dig into class hierarchy to find the first parent class containing fields
+ * in its own description. */
+const iop_struct_t * nullable
+_iop_class_first_non_empty_parent(const iop_struct_t * nonnull cls);
+
+/* XXX The purpose of this static inline function is to keep the macro
+ * 'iop_struct_for_each_field readable.
+ *
+ * We want the loop to be fully inline as long as we don't have to switch to a
+ * parent struct to get next field (in that case, we use
+ * '_iop_class_first_non_empty_parent').
+ */
+static inline const iop_field_t * nullable
+_iop_struct_next_field(bool is_class, const iop_field_t *nullable field,
+                       const iop_struct_t *nonnull *nonnull st)
+{
+    assert (is_class == iop_struct_is_class(*st));
+
+    if (likely(field)) {
+        field++;
+    } else {
+        field = (*st)->fields;
+    }
+
+    if (field >= (*st)->fields + (*st)->fields_len) {
+        if (is_class) {
+            (*st) = RETHROW_P(_iop_class_first_non_empty_parent(*st));
+            field = (*st)->fields;
+        } else {
+            field = NULL;
+        }
+    }
+
+    return field;
+}
+
+/* }}} */
+
+/** Loop on all fields of a class or a struct.
+ *
+ * Less efficient than a simple loop for basic structs, it should be used when
+ * the struct can be a class and when optimizing the case in which the struct
+ * is not a class is not an important concern (~2.1x CPU overhead).
+ *
+ * Keywords \p break and \p continue are supported and work as they could be
+ * expected to work by the user.
+
+ * \warning The loop is not protected against modification of \p st or \p f
+ *          iterating variables.
+ *
+ * \param[in] f   Name of the variable to create and use to store the field
+ *                description pointer.
+ *
+ * \param[in] field_st  Name of the variable to create and use to store the
+ *                      struct description containing the field (can differ
+ *                      from \p st if \p st is a class).
+ *
+ * \param[in] st  Struct description in which we should iterate.
+ */
+#define iop_struct_for_each_field(f, field_st, st)                           \
+    FOR_INSTR2(iop_struct_for_each_field_##f,                                \
+               const iop_struct_t *field_st = (st),                          \
+               bool __##field_st##_is_class = iop_struct_is_class(field_st)) \
+    for (const iop_field_t *f = NULL;                                        \
+         (f = _iop_struct_next_field(__##field_st##_is_class, f,             \
+                                     &field_st));)
 
 /* }}} */
 /* {{{ IOP array loops */

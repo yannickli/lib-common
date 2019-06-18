@@ -5184,6 +5184,16 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
     return *st ? (*st)->fields + (*it)++ : NULL;
 }
 
+const iop_struct_t *
+_iop_class_first_non_empty_parent(const iop_struct_t *cls)
+{
+    do {
+        cls = cls->class_attrs->parent;
+    } while (cls && !cls->fields_len);
+
+    return cls;
+}
+
 /* }}} */
 /* {{{ Altering IOP objects */
 
