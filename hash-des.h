@@ -122,7 +122,8 @@ void des3_crypt_ecb(des3_ctx * nonnull ctx, const byte input[8],
  *
  * \param ctx      3DES context
  * \param mode     DES_ENCRYPT or DES_DECRYPT
- * \param length   length of the input data
+ * \param length   length of the input data; must be a multiple of 8 -- use
+ *                 PKCS#7 padding if needed, see sb_add_pkcs7_8_bytes_padding
  * \param iv       initialization vector (updated after use)
  * \param input    buffer holding the input data
  * \param output   buffer holding the output data

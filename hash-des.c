@@ -568,6 +568,8 @@ void des3_crypt_cbc(des3_ctx *ctx, int mode, int length, byte iv[8],
     int i;
     byte temp[8];
 
+    assert (length % 8 == 0);
+
     if (mode == DES_ENCRYPT)
     {
         while (length > 0)
