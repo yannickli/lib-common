@@ -2340,7 +2340,7 @@ static int write_string(lstr_t val, iop_type_t type, unsigned flags,
     if (type == IOP_T_DATA) {
         if (val.len) {
             sb_reset(&sb);
-            sb_add_b64(&sb, val.data, val.len, -1);
+            sb_addlstr_b64(&sb, val, -1);
 
 #define HALF_MAX_DISPLAY  11
 #define REPL_FMT  (" …(skip %d bytes)… ")

@@ -140,7 +140,7 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
       case IOP_T_DATA:
         s = v;
         if (s->len)
-            sb_add_b64(sb, s->s, s->len, -1);
+            sb_addlstr_b64(sb, *s, -1);
         break;
       case IOP_T_XML:
         s = v;

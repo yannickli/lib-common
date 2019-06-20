@@ -803,6 +803,10 @@ static inline void sb_adds_b64(sb_t * nonnull sb, const char * nonnull s,
 {
     sb_add_b64(sb, s, strlen(s), width);
 }
+static inline void sb_addlstr_b64(sb_t * nonnull sb, lstr_t s, int width)
+{
+    sb_add_b64(sb, s.s, s.len, width);
+}
 __SB_DEFINE_ADDS_ERR(unb64, "DecodingBase64");
 
 /** Append the CSV-escaped version of the string in the given sb.
