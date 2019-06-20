@@ -20,23 +20,18 @@ iopsq-t*
 
 /zchk
 /zchk-iop-plugin.so
-/zgcd-bench
 /ztst-asn1-wr
 /ztst-blob-iconv
 /ztst-cfgparser
 /ztst-hattrie
 /ztst-httpd
-/ztst-iop-struct-for-each-bench
 /ztst-iprintf
 /ztst-iprintf-fp
 /ztst-iprintf-glibc
-/ztst-iprintf-speed
 /ztst-lzo
 /ztst-mem
-/ztst-mem-bench
 /ztst-qps
 /ztst-qpscheck
-/ztst-qpsstress
 /ztst-sort
 /ztst-tpl
 /dso-compatibility-check

@@ -16,8 +16,8 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "unix.h"
-#include "datetime.h"
+#include <lib-common/unix.h>
+#include <lib-common/datetime.h>
 
 typedef struct mcms_event_t {
     int stamp;

@@ -16,13 +16,13 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "core.h"
-#include "datetime.h"
-#include "parseopt.h"
+#include <lib-common/core.h>
+#include <lib-common/datetime.h>
+#include <lib-common/parseopt.h>
 
 /* Small utility to benchmark allocators stack and fifo allocators
- * run ztst-mem-bench -f to test the fifo allocator
- *                    -s to test the stack allocator
+ * run mem-bench -f to test the fifo allocator
+ *               -s to test the stack allocator
  */
 
 static struct {

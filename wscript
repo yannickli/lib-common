@@ -412,6 +412,7 @@ def build(ctx):
         'pxcc',
         'iopy',
         'test-data/snmp',
+        'bench',
     ])
 
     # {{{ iop-snmp library
@@ -509,9 +510,6 @@ def build(ctx):
                 cflags=['-Wno-format', '-Wno-missing-format-attribute',
                         '-Wno-format-nonliteral'])
 
-    ctx.program(target='ztst-iprintf-speed', source='ztst-iprintf-speed.c',
-                use='libcommon')
-
     ctx.program(target='ztst-lzo', source='ztst-lzo.c', use='libcommon')
 
     ctx.program(target='ztst-qps', features="c cprogram",
@@ -520,23 +518,8 @@ def build(ctx):
     ctx.program(target='ztst-qpscheck', features="c cprogram",
                 source='ztst-qpscheck.blk', use='libcommon')
 
-    ctx.program(target='ztst-qpsstress', features="c cprogram",
-                source='ztst-qpsstress.blk', use='libcommon')
-
     ctx.program(target='ztst-hattrie', features="c cprogram",
                 source='ztst-hattrie.blk', use='libcommon')
-
-    ctx.program(target='zgcd-bench', source='zgcd-bench.c', use='libcommon')
-
-    ctx.program(target='ztst-iop-struct-for-each-bench',
-                source='ztst-iop-struct-for-each-bench.c',
-                use=[
-                    'tstiop',
-                    'libcommon'
-                ])
-
-    ctx.program(target='ztst-mem-bench', source='ztst-mem-bench.c',
-                use='libcommon')
 
     ctx.program(target='ztst-mem', features="c cprogram",
                 source='ztst-mem.blk', use='libcommon')

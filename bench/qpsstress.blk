@@ -17,7 +17,7 @@
 /***************************************************************************/
 
 #include <math.h>
-#include "qps.h"
+#include <lib-common/qps.h>
 
 struct {
     const char *path;

@@ -16,7 +16,7 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "arith.h"
+#include <lib-common/arith.h>
 
 /* This bench calculate GCD of every combination of integer of a given
  * interval using Euclid's and Stein's algorithms.

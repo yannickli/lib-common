@@ -16,8 +16,8 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "iop.h"
-#include "iop/tstiop.iop.h"
+#include <lib-common/iop.h>
+#include <lib-common/iop/tstiop.iop.h>
 
 /* {{{ Now removed implementation of iop_class_for_each_field. */
 
@@ -51,7 +51,7 @@ _iop_class_get_next_field(const iop_struct_t **st, int *it)
  *
  * Launch bench:
  *
- *     ./ztst-iop-struct-for-each-bench <struct-name> <nb-loop> (0|1)(*)
+ *     ./iop-struct-for-each-bench <struct-name> <nb-loop> (0|1)(*)
  *
  *     (*) 0: old way
  *         1: new way
