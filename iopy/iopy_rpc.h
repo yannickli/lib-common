@@ -176,9 +176,25 @@ bool iopy_ic_server_is_listening(const iopy_ic_server_t *server);
 /** IC client representation for IOPy. */
 typedef struct iopy_ic_client_t iopy_ic_client_t;
 
-/** Create and connect IOPy IC client.
+/** Create an IOPy IC client.
  *
- * \param[in]  ctx        The IOPy IC client context.
+ * \param[in]  ctx The IOPy IC client context.
+ * \param[in]  uri The uri the IC client should connect to.
+ * \param[out] err The error description in case of error.
+ * \return The new IOPy IC client.
+ */
+iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err);
+
+/** Destroy IOPy IC client.
+ *
+ * \param[in,out] client_ptr The pointer to the client to destroy. Will be set
+ *                           to NULL afterwards.
+ */
+void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr);
+
+/** Create an IOPy IC client.
+ *
+ * \param[in]  client      The IOPy IC client context.
  * \param[in]  uri        The uri the IC client should connect to.
  * \param[in]  timeout    The timeout it should wait for the connection in
  *                        seconds. -1 means forever.
@@ -190,15 +206,31 @@ typedef struct iopy_ic_client_t iopy_ic_client_t;
  *         the error.
  *         IOPY_IC_SIGINT if a sigint occurred during the connection.
  */
-iopy_ic_res_t iopy_ic_client_create(void *ctx, lstr_t uri, int timeout,
-                                    iopy_ic_client_t **client_ptr, sb_t *err);
+iopy_ic_res_t iopy_ic_client_connect(iopy_ic_client_t *client, int timeout,
+                                     sb_t *err);
 
-/** Destroy IOPy IC client.
+/** Disconnect the IOPy IC client.
  *
- * \param[in,out] client_ptr The pointer to the client to destroy. Will be set
- *                           to NULL afterwards.
+ * \param[in] client The IOPy RPC client.
  */
-void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr);
+void iopy_ic_client_disconnect(iopy_ic_client_t *client);
+
+/** Called when the client is disconnecting.
+ *
+ * Defined in iopy.pyx.
+ *
+ * \param[in] ctx       The IOPy IC client context.
+ * \param[in] connected True if the client has been connected before, false
+ *                      otherwise.
+ */
+void iopy_ic_client_on_disconnect(void *ctx, bool connected);
+
+/** Returns whether the IOPy IC client is connected or not.
+ *
+ * \param[in] client The IOPy RPC client.
+ * \return true if the associated IC channel is connected, false otherwise
+ */
+bool iopy_ic_client_is_connected(iopy_ic_client_t *client);
 
 /** Call RPC with IOPy IC client.
  *
@@ -224,29 +256,6 @@ iopy_ic_res_t
 iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
                     int32_t cmd, const ic__hdr__t *hdr, int timeout,
                     void *arg, ic_status_t *status, void **res, sb_t *err);
-
-/** Returns whether the IOPy IC client is connected or not.
- *
- * \param[in] client The IOPy RPC client.
- * \return true if the associated IC channel is connected, false otherwise
- */
-bool iopy_ic_client_is_connected(iopy_ic_client_t *client);
-
-/** Disconnect the IOPy IC client.
- *
- * \param[in] client The IOPy RPC client.
- */
-void iopy_ic_client_disconnect(iopy_ic_client_t *client);
-
-/** Called when the client is disconnecting.
- *
- * Defined in iopy.pyx.
- *
- * \param[in] ctx       The IOPy IC client context.
- * \param[in] connected True if the client has been connected before, false
- *                      otherwise.
- */
-void iopy_ic_client_on_disconnect(void *ctx, bool connected);
 
 /* }}} */
 /* {{{ Module init */

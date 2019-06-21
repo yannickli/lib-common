@@ -789,6 +789,37 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
     }
 }
 
+iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err)
+{
+    iopy_ic_client_t *client;
+    sockunion_t su;
+
+    RETHROW_NP(load_su_from_uri(uri, &su, err));
+
+    client = iopy_ic_client_new();
+    client->ctx = ctx;
+    client->ic.su = su;
+    client->ic.auto_reconn = false;
+    client->ic.tls_required = false;
+    client->ic.on_event = &iopy_ic_client_on_event;
+    client->ic.impl = &ic_no_impl;
+
+    iopy_el_mutex_lock(true);
+    qh_add(iopy_ic_client, &_G.clients, client);
+    iopy_el_mutex_unlock();
+
+    return client;
+}
+
+void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
+{
+    if (*client_ptr) {
+        iopy_el_mutex_lock(true);
+        iopy_ic_client_delete(client_ptr);
+        iopy_el_mutex_unlock();
+    }
+}
+
 /** Callback used by wait_thread_cond() to check if the client has been
  *  connected. */
 static bool iopy_ic_client_connect_is_terminated(void *arg)
@@ -804,7 +835,7 @@ static bool iopy_ic_client_connect_is_terminated(void *arg)
  * connected.
  */
 static wait_thread_cond_res_t
-iopy_ic_client_connect(iopy_ic_client_t *client, int timeout)
+iopy_ic_client_ic_connect_wait(iopy_ic_client_t *client, int timeout)
 {
     wait_thread_cond_res_t wait_res;
 
@@ -824,63 +855,63 @@ iopy_ic_client_connect(iopy_ic_client_t *client, int timeout)
     return wait_res;
 }
 
-iopy_ic_res_t iopy_ic_client_create(void *ctx, lstr_t uri, int timeout,
-                                    iopy_ic_client_t **client_ptr, sb_t *err)
+/** Connect the client with the el mutex locked. */
+static iopy_ic_res_t iopy_ic_client_connect_locked(iopy_ic_client_t *client,
+                                                   int timeout, sb_t *err)
 {
-    iopy_ic_client_t *client;
-    sockunion_t su;
-    iopy_ic_res_t create_res;
+    wait_thread_cond_res_t wait_res;
 
-    if (load_su_from_uri(uri, &su, err) < 0) {
-        return IOPY_IC_ERR;
-    }
-
-    client = iopy_ic_client_new();
-    client->ctx = ctx;
-    client->ic.su = su;
-    client->ic.auto_reconn = false;
-    client->ic.tls_required = false;
-    client->ic.on_event = &iopy_ic_client_on_event;
-    client->ic.impl = &ic_no_impl;
-
-    iopy_el_mutex_lock(true);
-
-    switch (iopy_ic_client_connect(client, timeout)) {
+    wait_res = iopy_ic_client_ic_connect_wait(client, timeout);
+    switch (wait_res) {
       case WAIT_THR_COND_OK:
-        break;
+        return IOPY_IC_OK;
 
-      case WAIT_THR_COND_TIMEOUT:
-        goto conn_err;
+      case WAIT_THR_COND_TIMEOUT: {
+        t_scope;
+        lstr_t uri = t_addr_fmt_lstr(&client->ic.su);
+
+        sb_setf(err, "unable to connect to %*pM", LSTR_FMT_ARG(uri));
+        return IOPY_IC_ERR;
+      }
 
       case WAIT_THR_COND_SIGINT:
-        create_res = IOPY_IC_SIGINT;
-        goto error;
+        return IOPY_IC_SIGINT;
     }
 
-    *client_ptr = client;
-    create_res = IOPY_IC_OK;
-    qh_add(iopy_ic_client, &_G.clients, client);
-    goto end;
-
-  conn_err:
-    sb_setf(err, "unable to connect to %*pM", LSTR_FMT_ARG(uri));
-    create_res = IOPY_IC_ERR;
-
-  error:
-    iopy_ic_client_delete(&client);
-
-  end:
-    iopy_el_mutex_unlock();
-    return create_res;
+    assert (false);
+    sb_setf(err, "unexpected connect status %d", wait_res);
+    return IOPY_IC_ERR;
 }
 
-void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
+iopy_ic_res_t iopy_ic_client_connect(iopy_ic_client_t *client, int timeout,
+                                     sb_t *err)
 {
-    if (*client_ptr) {
-        iopy_el_mutex_lock(true);
-        iopy_ic_client_delete(client_ptr);
-        iopy_el_mutex_unlock();
-    }
+    iopy_ic_res_t res;
+
+    iopy_el_mutex_lock(true);
+    res = iopy_ic_client_connect_locked(client, timeout, err);
+    iopy_el_mutex_unlock();
+    return res;
+}
+
+/** Disconnect IC client with mutex locked. */
+static void iopy_ic_client_disconnect_locked(iopy_ic_client_t *client)
+{
+    client->in_connect = false;
+    client->closing_is_ok = true;
+    ic_disconnect(&client->ic);
+}
+
+void iopy_ic_client_disconnect(iopy_ic_client_t *client)
+{
+    iopy_el_mutex_lock(true);
+    iopy_ic_client_disconnect_locked(client);
+    iopy_el_mutex_unlock();
+}
+
+bool iopy_ic_client_is_connected(iopy_ic_client_t *client)
+{
+    return client->connected;
 }
 
 /** Context used when doing ic client queries.
@@ -965,18 +996,8 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
     iopy_el_mutex_lock(true);
 
     if (!client->connected) {
-        switch (iopy_ic_client_connect(client, timeout)) {
-          case WAIT_THR_COND_OK:
-            break;
-
-          case WAIT_THR_COND_TIMEOUT:
-            sb_sets(err, "associated channel is disconnected; failed to "
-                    "reconnect it");
-            call_res = IOPY_IC_ERR;
-            goto end;
-
-          case WAIT_THR_COND_SIGINT:
-            call_res = IOPY_IC_SIGINT;
+        call_res = iopy_ic_client_connect_locked(client, timeout, err);
+        if (call_res != IOPY_IC_OK) {
             goto end;
         }
     }
@@ -1027,26 +1048,6 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
     iopy_ic_client_query_ctx_delete(&query_ctx);
     iopy_el_mutex_unlock();
     return call_res;
-}
-
-bool iopy_ic_client_is_connected(iopy_ic_client_t *client)
-{
-    return client->connected;
-}
-
-/** Disconnect IC client with mutex locked. */
-static void iopy_ic_client_disconnect_locked(iopy_ic_client_t *client)
-{
-    client->in_connect = false;
-    client->closing_is_ok = true;
-    ic_disconnect(&client->ic);
-}
-
-void iopy_ic_client_disconnect(iopy_ic_client_t *client)
-{
-    iopy_el_mutex_lock(true);
-    iopy_ic_client_disconnect_locked(client);
-    iopy_el_mutex_unlock();
 }
 
 /* }}} */

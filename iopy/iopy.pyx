@@ -6746,14 +6746,53 @@ cdef class Channel(ChannelBase):
     """Class for client IC channel"""
     cdef dict __dict__
     cdef Plugin plugin
-    cdef lstr_t uri
-    cdef int def_timeout
     cdef ic__hdr__t *def_hdr
     cdef iopy_ic_client_t *ic_client
+    cdef readonly basestring uri
+    cdef public int default_timeout
+
+    def __init__(Channel self, Plugin plugin, object uri=None, *,
+                 object host=None, int port=-1, int default_timeout=60,
+                 **kwargs):
+        """Constructor of client IC channel.
+
+        Parameters
+        ----------
+        plugin :iopy.Plugin
+            The IOPy plugin.
+        uri : str
+            The URI to connect to. This is the only allowed positional
+            argument.
+        host : str
+            The host to connect to. If set, port must also be set and uri must
+            not be set.
+        port : int
+            The port to connect to. If set, host must also be set and uri must
+            not be set.
+        default_timeout : int
+            The default timeout for the IC channel in seconds.
+            -1 means forever, default is 60.
+        _login : str
+            The login to be put in the default IC header.
+        _group : str
+            The group to be put in the default IC header.
+        _password : str
+            The password to be put in the default IC header.
+        _kind : str
+            The kind to be put in the default IC header.
+        _workspace_id : int
+            The id of workspace to be put in the default IC header.
+        _dealias : bool
+            The dealias flag to be put in the default IC header.
+        _hdr : ic.SimpleHdr
+            The default IC header to be used for this channel. If set, the
+            above arguments must not be set.
+        """
+        client_channel_init(self, plugin, uri, host, port, default_timeout,
+                            kwargs)
 
     def __dealloc__(Channel self):
         """Destructor of client IC channel"""
-        lstr_wipe(&self.uri)
         p_delete(<void **>&self.def_hdr)
         with nogil:
             iopy_ic_client_destroy(&self.ic_client)
@@ -6769,8 +6808,25 @@ cdef class Channel(ChannelBase):
         cdef list modules = self.__dict__.keys()
 
         modules.sort()
-        return ('Channel to %s (Modules: %s)' %
-                (lstr_to_py_str(self.uri), modules))
+        return 'Channel to %s (Modules: %s)' % (self.uri, modules)
+
+    def connect(Channel self, object timeout=None):
+        """Connect the client IC channel.
+
+        Parameters
+        ----------
+        timeout : int
+            The timeout of the connection of the IC channel in seconds.
+            -1 means forever. If not set, use the default timeout of the IC
+            channel.
+        """
+        cdef int timeout_connect
+
+        if timeout is not None:
+            timeout_connect = int(timeout)
+        else:
+            timeout_connect = self.default_timeout
+        client_channel_connect(self, timeout_connect)
 
     def is_connected(Channel self):
         """Returns whether the associated IC is connected or not.
@@ -6842,48 +6898,55 @@ cdef class Channel(ChannelBase):
                                    self.plugin)
 
 
-cdef Channel create_and_connect_client_channel(Plugin plugin, lstr_t uri,
-                                               int timeout, dict kwargs):
-    """Create and connect client IC channel.
+cdef int client_channel_init(Channel channel, Plugin plugin, object uri,
+                             object host, int port, int default_timeout,
+                             dict kwargs) except -1:
+    """Initialize client IC channel.
 
     Parameters
     ----------
+    channel
+        The client IC channel to initialize.
     plugin
         The IOPy plugin.
     uri
-        The URI the channel should connect to.
-    timeout
-        The default timeout of the channel.
-    kwargs
-        The arguments to create the default header
-
-    Returns
-    -------
-    Channel
-        The client IC channel.
+        The URI to connect to.
+    host
+        The host to connect to. If set, port must also be set and uri must
+        not be set.
+    port
+        The port to connect to. If set, host must also be set and uri must
+        not be set.
+    default_timeout
+        The default timeout for the IC channel in seconds.
     """
     cdef t_scope_t t_scope_guard = t_scope_init()
     cdef sb_scope_t err = sb_scope_init_1k()
-    cdef Channel channel = Channel.__new__(Channel)
-    cdef iopy_ic_res_t create_res
+    cdef ic__hdr__t *def_hdr = NULL
+    cdef lstr_t uri_lstr
+    cdef iopy_ic_client_t *ic_client
 
     t_scope_ignore(t_scope_guard)
-    channel.uri = lstr_dup(uri)
-    channel.plugin = plugin
-    channel.def_timeout = timeout
-
-    t_set_ic_hdr_from_kwargs(plugin, kwargs, &channel.def_hdr)
-    if channel.def_hdr:
-        channel.def_hdr = iop_dup_ic_hdr(channel.def_hdr)
-
-    with nogil:
-        create_res = iopy_ic_client_create(<void *>channel, uri, timeout,
-                                           &channel.ic_client, &err)
-    check_iopy_ic_res(create_res, &err)
 
     create_modules_of_channel(plugin, channel, &create_client_rpc)
 
-    return channel
+    t_set_ic_hdr_from_kwargs(plugin, kwargs, &def_hdr)
+
+    t_parse_uri_arg(uri, host, port, &uri_lstr)
+    with nogil:
+        ic_client = iopy_ic_client_create(<void*>channel, uri_lstr, &err)
+
+    if not ic_client:
+        raise Error(lstr_to_py_str(LSTR_SB_V(&err)))
+
+    channel.plugin = plugin
+    channel.ic_client = ic_client
+    channel.uri = lstr_to_py_str(uri_lstr)
+    channel.default_timeout = default_timeout
+    if def_hdr:
+        channel.def_hdr = iop_dup_ic_hdr(def_hdr)
+
+    return 0
 
 
 cdef int create_client_rpc(const iop_rpc_t *rpc,
@@ -6930,6 +6993,25 @@ cdef int create_client_rpc(const iop_rpc_t *rpc,
         setattr(py_iface, rpc_name, wrapper)
 
 
+cdef int client_channel_connect(Channel channel, int timeout) except -1:
+    """Initialize client IC channel.
+
+    Parameters
+    ----------
+    channel
+        The client IC channel to connect.
+    timeout
+        The connection timeout in seconds.
+    """
+    cdef sb_scope_t err = sb_scope_init_1k()
+    cdef iopy_ic_res_t res
+
+    with nogil:
+        res = iopy_ic_client_connect(channel.ic_client, timeout, &err)
+    check_iopy_ic_res(res, &err)
+    return 0
+
+
 cdef object client_channel_call_rpc(RPC rpc, tuple args, dict kwargs):
     """Call the RPC for the associated channel.
 
@@ -6945,7 +7027,7 @@ cdef object client_channel_call_rpc(RPC rpc, tuple args, dict kwargs):
     cdef Plugin plugin = iface_holder.plugin
     cdef _InternalIface py_iface = rpc.py_iface
     cdef Channel channel = py_iface.channel
-    cdef int timeout = channel.def_timeout
+    cdef int timeout = channel.default_timeout
     cdef tuple pre_hook_res
     cdef object py_timeout
     cdef ic__hdr__t *hdr = NULL
@@ -7249,7 +7331,7 @@ cdef public void iopy_ic_client_on_disconnect_gil(void *ctx, cbool connected):
 
     status = 'lost connection' if connected else 'cannot connect'
     message = ('IChannel %s to %s (%s)' %
-               (status, lstr_to_py_str(channel.uri), get_warning_time_str()))
+               (status, channel.uri, get_warning_time_str()))
     send_warning_to_main_thread(ClientWarning, message)
 
 
@@ -8315,7 +8397,8 @@ cdef class Plugin:
 
 
     def connect(Plugin self, object uri=None, *, object host=None,
-                int port=-1, int _timeout=60, **kwargs):
+                int port=-1, object timeout=None, object _timeout=None,
+                **kwargs):
         """Connect to an IC and return the created IOPy Channel.
 
         Parameters
@@ -8329,8 +8412,11 @@ cdef class Plugin:
         port : int
             The port to connect to. If set, host must also be set and uri must
             not be set.
+        timeout : int
+            The default and connection timeout for the IC channel.
+            -1 means forever, default is 60.
         _timeout : int
-            The timeout for the IC channel. -1 means forever, default is 60.
+            Backward compatibility parameter for timeout parameter.
         _login : str
             The login to be put in the default IC header.
         _group : str
@@ -8352,13 +8438,21 @@ cdef class Plugin:
         iopy.Channel
             The IOPy client channel.
         """
-        cdef t_scope_t t_scope_guard = t_scope_init()
-        cdef lstr_t uri_lstr
+        cdef Channel channel
+        cdef int default_timeout
 
-        t_scope_ignore(t_scope_guard)
-        t_parse_uri_arg(uri, host, port, &uri_lstr)
-        return create_and_connect_client_channel(self, uri_lstr, _timeout,
-                                                 kwargs)
+        if _timeout is not None and timeout is None:
+            timeout = _timeout
+        if timeout is not None:
+            default_timeout = int(timeout)
+        else:
+            default_timeout = 60
+
+        channel = Channel.__new__(Channel)
+        client_channel_init(channel, self, uri, host, port, default_timeout,
+                            kwargs)
+        client_channel_connect(channel, default_timeout)
+        return channel
 
     def channel_server(Plugin self):
         """Create an IC channel server.
