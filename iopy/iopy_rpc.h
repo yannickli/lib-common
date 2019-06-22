@@ -273,15 +273,6 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
 /* }}} */
 /* {{{ Module init */
 
-/** Callback called by iopy before fork in the parent process. */
-void iopy_rpc_atfork_prepare(void);
-
-/** Callback called by iopy after fork in the parent process. */
-void iopy_rpc_atfork_parent(void);
-
-/** Callback called by iopy after fork in the child process. */
-void iopy_rpc_atfork_child(void);
-
 /** Initialize the IOPy RPC C module. */
 void iopy_rpc_module_init(void);
 

@@ -137,5 +137,3 @@ PXCC_EXPORT_SYMBOL(ic_status_to_string);
 PXCC_EXPORT_TYPE(farch_entry_t);
 PXCC_EXPORT_SYMBOL(t_farch_get_data);
 PXCC_EXPORT_SYMBOL(farch_get_filename);
-
-PXCC_EXPORT_SYMBOL(pthread_atfork);

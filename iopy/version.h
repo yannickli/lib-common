@@ -20,7 +20,7 @@
 #define IS_IOPY_VERSION_H
 
 #define IOPY_MAJOR  4
-#define IOPY_MINOR  2
-#define IOPY_PATCH  2
+#define IOPY_MINOR  3
+#define IOPY_PATCH  0
 
 #endif

@@ -40,10 +40,6 @@ PXCC_EXPORT_SYMBOL(iopy_ic_client_disconnect);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_is_connected);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_call);
 
-PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_prepare);
-PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_parent);
-PXCC_EXPORT_SYMBOL(iopy_rpc_atfork_child);
-
 PXCC_EXPORT_SYMBOL(iopy_rpc_module_init);
 PXCC_EXPORT_SYMBOL(iopy_rpc_module_stop);
 PXCC_EXPORT_SYMBOL(iopy_rpc_module_cleanup);

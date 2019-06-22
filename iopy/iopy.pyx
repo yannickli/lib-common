@@ -9685,70 +9685,6 @@ cdef public object Iopy_make_plugin_from_handle(void *handle,
 
 
 # }}}
-# {{{ Pthread atfork
-
-
-cdef PyThreadState *cpython_release_gil_on_fork() nogil:
-    """Release the GIL and return the previous thread state on pthread atfork
-    callbacks.
-
-    We need to release the GIL on fork in order to call
-    iopy_rpc_atfork_prepare().
-    However, the fork does not necessarly come from the thread that holds the
-    GIL. To detect it, we need to check if the current thread state,
-    PyThreadState_GET(), is the one of the current thread,
-    PyGILState_GetThisThreadState().
-
-    Unfortunately, due to https://bugzilla.redhat.com/show_bug.cgi?id=1523089,
-    python will deadlock on the call of PyGILState_GetThisThreadState() with
-    redhat python-2.7.5-54.
-    It seems that there is no solutions to this issue.
-    So we are stuck with redhat python-2.7.5-53.
-
-    Returns
-    -------
-        The current python thread state if any.
-    """
-    cdef PyThreadState *state = NULL
-
-    if PyThreadState_GET() == PyGILState_GetThisThreadState():
-        state = PyEval_SaveThread();
-    return state
-
-
-cdef void cpython_acquire_gil_on_fork(PyThreadState *state) nogil:
-    """Acquire the GIL and set the saved thread state on pthread atfork
-    callbacks.
-
-    Parameters
-    ----------
-    state
-        The python thread state from cpython_release_gil_on_fork().
-    """
-    if state != NULL:
-        PyEval_RestoreThread(state);
-
-
-cdef void pthread_atfork_prepare() nogil:
-    """Callback called by pthread before fork in the parent process"""
-    cdef PyThreadState *state
-
-    state = cpython_release_gil_on_fork()
-    iopy_rpc_atfork_prepare()
-    cpython_acquire_gil_on_fork(state)
-
-
-cdef void pthread_atfork_parent() nogil:
-    """Callback called by pthread after fork in the parent process"""
-    iopy_rpc_atfork_parent()
-
-
-cdef void pthread_atfork_child() nogil:
-    """Callback called by pthread after fork in the child process"""
-    iopy_rpc_atfork_child()
-
-
-# }}}
 # {{{ Init
 
 
@@ -9846,8 +9782,6 @@ PyEval_InitThreads()
 iopy_rpc_module_init()
 init_module_versions()
 init_thread_attach()
-pthread_atfork(&pthread_atfork_prepare, &pthread_atfork_parent,
-               &pthread_atfork_child)
 
 
 # }}}

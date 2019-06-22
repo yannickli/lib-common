@@ -1120,7 +1120,8 @@ static void iopy_el_thr_vars_wipe(void)
     pthread_cond_destroy(&_G.el_wait_thr_cond);
 }
 
-void iopy_rpc_atfork_prepare(void)
+/** Callback called by iopy before fork in the parent process. */
+static void iopy_rpc_atfork_prepare(void)
 {
     if (_G.el_thr_status != EL_THR_NOT_STARTED
     &&  pthread_self() == _G.el_thread)
@@ -1131,12 +1132,14 @@ void iopy_rpc_atfork_prepare(void)
     iopy_el_mutex_lock(false);
 }
 
-void iopy_rpc_atfork_parent(void)
+/** Callback called by iopy after fork in the parent process. */
+static void iopy_rpc_atfork_parent(void)
 {
     iopy_el_mutex_unlock();
 }
 
-void iopy_rpc_atfork_child(void)
+/** Callback called by iopy after fork in the child process. */
+static void iopy_rpc_atfork_child(void)
 {
     /* Stop all servers. */
     qm_for_each_pos(iopy_ic_server, pos, &_G.servers) {
@@ -1163,6 +1166,9 @@ static int iopy_rpc_initialize(void *arg)
     qm_init(iopy_ic_server, &_G.servers);
     qh_init(iopy_ic_client, &_G.clients);
     dlist_init(&_G.destroyed_clients);
+
+    pthread_atfork(&iopy_rpc_atfork_prepare, &iopy_rpc_atfork_parent,
+                   &iopy_rpc_atfork_child);
 
     return 0;
 }
