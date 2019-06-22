@@ -64,6 +64,8 @@ static struct {
 
     qm_t(iopy_ic_server) servers;
     qh_t(iopy_ic_client) clients;
+
+    dlist_t destroyed_clients;
 } iopy_rpc_g;
 #define _G  iopy_rpc_g
 
@@ -132,6 +134,7 @@ static void el_loop_wait_after_lock_cond(void)
 }
 
 static void iopy_ic_server_el_process(void);
+static void iopy_ic_client_el_process(void);
 
 /** El thread loop. */
 static void *el_loop_thread_fun(void *arg)
@@ -172,6 +175,7 @@ static void *el_loop_thread_fun(void *arg)
         el_loop_timeout(wait_lock_cnt > 0 ? 0 : 100);
 
         iopy_ic_server_el_process();
+        iopy_ic_client_el_process();
 
         if (_G.el_thr_signo) {
             break;
@@ -740,8 +744,9 @@ struct iopy_ic_client_t {
     bool in_connect    : 1;
     bool closing_is_ok : 1;
     bool connected     : 1;
-    void *ctx;
+    void *py_obj;
     ichannel_t ic;
+    dlist_t destroyed;
 };
 
 static iopy_ic_client_t *iopy_ic_client_init(iopy_ic_client_t *client)
@@ -767,6 +772,17 @@ static void iopy_ic_client_wipe(iopy_ic_client_t *client)
 GENERIC_NEW(iopy_ic_client_t, iopy_ic_client);
 GENERIC_DELETE(iopy_ic_client_t, iopy_ic_client);
 
+/** Process destroyed iopy ic clients in the event loop. */
+static void iopy_ic_client_el_process(void)
+{
+    iopy_ic_client_t *client;
+
+    dlist_for_each_entry(client, &_G.destroyed_clients, destroyed) {
+        iopy_ic_client_delete(&client);
+    }
+    dlist_init(&_G.destroyed_clients);
+}
+
 /** Called on event on the ic channel. */
 static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
 {
@@ -776,10 +792,14 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
         client->connected = true;
     } else
     if (evt == IC_EVT_DISCONNECTED) {
-        if (!client->closing_is_ok && !is_el_thr_stopped()) {
-            iopy_ic_client_on_disconnect(client->ctx, client->connected);
-        }
+        bool connected = client->connected;
+
         client->connected = false;
+        if (!client->closing_is_ok && !is_el_thr_stopped()) {
+            iopy_el_mutex_unlock();
+            iopy_ic_py_client_on_disconnect(client, connected);
+            iopy_el_mutex_lock(false);
+        }
     }
 
     if (client->in_connect) {
@@ -789,23 +809,24 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
     }
 }
 
-iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err)
+iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, sb_t *err)
 {
     iopy_ic_client_t *client;
     sockunion_t su;
 
     RETHROW_NP(load_su_from_uri(uri, &su, err));
 
+    iopy_el_mutex_lock(true);
+
     client = iopy_ic_client_new();
-    client->ctx = ctx;
     client->ic.su = su;
     client->ic.auto_reconn = false;
     client->ic.tls_required = false;
     client->ic.on_event = &iopy_ic_client_on_event;
     client->ic.impl = &ic_no_impl;
 
-    iopy_el_mutex_lock(true);
     qh_add(iopy_ic_client, &_G.clients, client);
+
     iopy_el_mutex_unlock();
 
     return client;
@@ -813,11 +834,27 @@ iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err)
 
 void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
 {
-    if (*client_ptr) {
-        iopy_el_mutex_lock(true);
-        iopy_ic_client_delete(client_ptr);
-        iopy_el_mutex_unlock();
+    iopy_ic_client_t *client = *client_ptr;
+
+    if (!client) {
+        return;
     }
+
+    iopy_el_mutex_lock(true);
+    dlist_add(&_G.destroyed_clients, &client->destroyed);
+    iopy_el_mutex_unlock();
+    *client_ptr = NULL;
+}
+
+void iopy_ic_client_set_py_obj(iopy_ic_client_t *client,
+                               void * nullable py_obj)
+{
+    client->py_obj = py_obj;
+}
+
+void * nullable iopy_ic_client_get_py_obj(iopy_ic_client_t *client)
+{
+    return client->py_obj;
 }
 
 /** Callback used by wait_thread_cond() to check if the client has been
@@ -839,11 +876,13 @@ iopy_ic_client_ic_connect_wait(iopy_ic_client_t *client, int timeout)
 {
     wait_thread_cond_res_t wait_res;
 
-    client->in_connect = true;
-    client->closing_is_ok = false;
+    if (!client->in_connect) {
+        client->in_connect = true;
+        client->closing_is_ok = false;
 
-    if (ic_connect(&client->ic) < 0) {
-        return WAIT_THR_COND_TIMEOUT;
+        if (ic_connect(&client->ic) < 0) {
+            return WAIT_THR_COND_TIMEOUT;
+        }
     }
 
     wait_res = wait_thread_cond(&iopy_ic_client_connect_is_terminated,
@@ -1123,6 +1162,7 @@ static int iopy_rpc_initialize(void *arg)
 
     qm_init(iopy_ic_server, &_G.servers);
     qh_init(iopy_ic_client, &_G.clients);
+    dlist_init(&_G.destroyed_clients);
 
     return 0;
 }

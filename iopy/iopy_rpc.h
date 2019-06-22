@@ -178,12 +178,11 @@ typedef struct iopy_ic_client_t iopy_ic_client_t;
 
 /** Create an IOPy IC client.
  *
- * \param[in]  ctx The IOPy IC client context.
  * \param[in]  uri The uri the IC client should connect to.
  * \param[out] err The error description in case of error.
  * \return The new IOPy IC client.
  */
-iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err);
+iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, sb_t *err);
 
 /** Destroy IOPy IC client.
  *
@@ -191,6 +190,19 @@ iopy_ic_client_t *iopy_ic_client_create(void *ctx, lstr_t uri, sb_t *err);
  *                           to NULL afterwards.
  */
 void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr);
+
+/** Set the IOPy IC client python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void iopy_ic_client_set_py_obj(iopy_ic_client_t *client,
+                               void * nullable py_obj);
+
+/** Get the IOPy IC client python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void * nullable iopy_ic_client_get_py_obj(iopy_ic_client_t *client);
 
 /** Create an IOPy IC client.
  *
@@ -219,11 +231,12 @@ void iopy_ic_client_disconnect(iopy_ic_client_t *client);
  *
  * Defined in iopy.pyx.
  *
- * \param[in] ctx       The IOPy IC client context.
+ * \param[in] client    The IOPy IC client.
  * \param[in] connected True if the client has been connected before, false
  *                      otherwise.
  */
-void iopy_ic_client_on_disconnect(void *ctx, bool connected);
+void iopy_ic_py_client_on_disconnect(iopy_ic_client_t *client,
+                                     bool connected);
 
 /** Returns whether the IOPy IC client is connected or not.
  *

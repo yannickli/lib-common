@@ -6794,8 +6794,10 @@ cdef class Channel(ChannelBase):
     def __dealloc__(Channel self):
         """Destructor of client IC channel"""
         p_delete(<void **>&self.def_hdr)
-        with nogil:
-            iopy_ic_client_destroy(&self.ic_client)
+        if self.ic_client:
+            iopy_ic_client_set_py_obj(self.ic_client, NULL)
+            with nogil:
+                iopy_ic_client_destroy(&self.ic_client)
 
     def __repr__(Channel self):
         """Return the representation of the client IC channel.
@@ -6934,7 +6936,7 @@ cdef int client_channel_init(Channel channel, Plugin plugin, object uri,
 
     t_parse_uri_arg(uri, host, port, &uri_lstr)
     with nogil:
-        ic_client = iopy_ic_client_create(<void*>channel, uri_lstr, &err)
+        ic_client = iopy_ic_client_create(uri_lstr, &err)
 
     if not ic_client:
         raise Error(lstr_to_py_str(LSTR_SB_V(&err)))
@@ -6945,6 +6947,7 @@ cdef int client_channel_init(Channel channel, Plugin plugin, object uri,
     channel.default_timeout = default_timeout
     if def_hdr:
         channel.def_hdr = iop_dup_ic_hdr(def_hdr)
+    iopy_ic_client_set_py_obj(ic_client, <void*>channel)
 
     return 0
 
@@ -7300,35 +7303,41 @@ cdef int t_set_ic_hdr_from_kwargs(Plugin plugin, dict kwargs,
     return 0
 
 
-cdef public void iopy_ic_client_on_disconnect(void *ctx,
-                                              cbool connected) nogil:
+cdef public void iopy_ic_py_client_on_disconnect(iopy_ic_client_t *client,
+                                                 cbool connected) nogil:
     """Called when the client is disconnecting.
 
     Parameters
     ----------
-    ctx
-        The IOPy IC client context.
+    client
+        The IOPy IC client.
     connected
         True if the client has been connected before, False otherwise.
     """
     with gil:
-        iopy_ic_client_on_disconnect_gil(ctx, connected)
+        iopy_ic_py_client_on_disconnect_gil(client, connected)
 
 
-cdef public void iopy_ic_client_on_disconnect_gil(void *ctx, cbool connected):
+cdef public void iopy_ic_py_client_on_disconnect_gil(iopy_ic_client_t *client,
+                                                     cbool connected):
     """Called when the client is disconnecting with the GIL.
 
     Parameters
     ----------
-    ctx
-        The IOPy IC client context.
+    client
+        The IOPy IC client.
     connected
         True if the client has been connected before, False otherwise.
     """
-    cdef Channel channel = <Channel>ctx
+    cdef void *ctx = iopy_ic_client_get_py_obj(client)
+    cdef Channel channel
     cdef object status
     cdef object message
 
+    if not ctx:
+        return
+
+    channel = <Channel>ctx
     status = 'lost connection' if connected else 'cannot connect'
     message = ('IChannel %s to %s (%s)' %
                (status, channel.uri, get_warning_time_str()))

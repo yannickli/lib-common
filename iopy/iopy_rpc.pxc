@@ -33,6 +33,8 @@ PXCC_EXPORT_SYMBOL(iopy_ic_server_is_listening);
 
 PXCC_EXPORT_SYMBOL(iopy_ic_client_create);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_destroy);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_set_py_obj);
+PXCC_EXPORT_SYMBOL(iopy_ic_client_get_py_obj);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_connect);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_disconnect);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_is_connected);
