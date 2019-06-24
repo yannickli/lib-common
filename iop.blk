@@ -5183,6 +5183,13 @@ _iop_class_first_non_empty_parent(const iop_struct_t *cls)
     return cls;
 }
 
+const iop_field_t * nullable
+iop_struct_get_next_field(const iop_field_t *nullable field,
+                          const iop_struct_t *nonnull *nonnull st)
+{
+    return _iop_struct_next_field(iop_struct_is_class(*st), field, st);
+}
+
 /* }}} */
 /* {{{ Altering IOP objects */
 

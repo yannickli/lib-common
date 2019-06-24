@@ -1663,6 +1663,25 @@ typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t * nonnull);
 void iop_for_each_registered_classes(iop_for_each_class_b nonnull cb);
 #endif
 
+/** Get the struct/class field after the given one.
+ *
+ * \note If the struct is a class, fields in children classes come before the
+ *       ones in parent classes.
+ *
+ * \param[in] field  Current struct/class field.
+ *                   If null, the first field of the struct/class will be
+ *                   returned instead.
+ *
+ * \param[in, out] st  Description of the struct/class containing the field,
+ *                     may be modified if the struct is a class and the next
+ *                     field is in a parent class.
+ *
+ * \return NULL if there is no more field after the given one.
+ */
+const iop_field_t * nullable
+iop_struct_get_next_field(const iop_field_t *nullable field,
+                          const iop_struct_t *nonnull *nonnull st);
+
 /* {{{ Private functions for iop_struct_for_each_field macro. */
 
 /* Dig into class hierarchy to find the first parent class containing fields
