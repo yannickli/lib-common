@@ -2598,6 +2598,10 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
     if (ret < 0) {
         switch (SSL_get_error(ic->ssl, ret)) {
           case SSL_ERROR_WANT_READ:
+            if (unlikely(!ev)) {
+                /* This may happen if we add a timeout on the socket. */
+                goto error;
+            }
             ic_change_ssl_rbio(ic, fd);
             el_fd_set_mask(ev, POLLIN);
             return 0;
@@ -2605,8 +2609,7 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
             el_fd_set_mask(ev, POLLOUT);
             return 0;
           default:
-            ic_mark_disconnected(ic);
-            return -1;
+            goto error;
         }
     }
     if (ret == 0) {
@@ -2617,11 +2620,14 @@ static int ic_tls_handshake(el_t ev, int fd, short events, data_t priv)
 
     /* Handshake completed. */
     if (ic_mark_connected(ic, fd) < 0) {
-        ic_mark_disconnected(ic);
-        return -1;
+        goto error;
     }
     assert (ic->rbuf.len == 0);
     return 0;
+
+  error:
+    ic_mark_disconnected(ic);
+    return -1;
 }
 
 /* Blocking is assumed if ev == NULL. Returns -1 on error, 0 on success or on

@@ -407,20 +407,69 @@ free_n(page_run_t *run, page_desc_t *blk, size_t npages, uint32_t seg)
 #endif
         blk_set_clean(run->pages, bsz);
         mem_tool_disallow_memory(run->mem_pages, bsz * QPAGE_SIZE);
-    } else
-    if (npages > QDB_MADVISE_THRESHOLD) {
-#ifdef __linux__
-        madvise(run->mem_pages + blkno, npages * QPAGE_SIZE, MADV_DONTNEED);
-#else
-        mmap(run->mem_pages + blkno, npages * QPAGE_SIZE,
-             PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_FIXED,
-             -1, 0);
-#endif
-        blk_set_clean(run->pages + blkno, npages);
-        mem_tool_disallow_memory(run->mem_pages + blkno, npages * QPAGE_SIZE);
     } else {
-        blk_set_dirty(run->pages + blkno, npages);
-        mem_tool_disallow_memory(run->mem_pages + blkno, npages * QPAGE_SIZE);
+        /** Divide virtually the array of run->pages into chunk of size of
+         * QDB_MADVISE_THRESHOLD.
+         *
+         *          (¹)   blocks to free
+         *           ↓↓     ↓      ↓
+         *     ┌───────┬───────┬───────┬───────┬───────┐
+         *     │ .   dd│fffffff│fffff  │  .    │       │
+         *     └───────┴───────┴───────┴───────┴───────┘
+         *       ↑                        ↑
+         *    previous                  next
+         *   free block               free block
+         *
+         * When freeing last used blocks in a chunk, previous free block
+         * (blk) and next free block (blk + bsz) will point outside these
+         * chunk and we can call madvise.
+         * If it is not the last used blocks in the chunk, we still need to
+         * call blk_set_dirty for these blocks (see (¹)).
+         */
+        size_t chunk_begin;
+        size_t chunk_end;
+
+        /* find the first free chunk */
+        chunk_begin = ROUND(blkno, QDB_MADVISE_THRESHOLD);
+        if (chunk_begin <= blk_no(blk)) {
+            chunk_begin += QDB_MADVISE_THRESHOLD;
+        }
+        /* find the next non-free chunk */
+        chunk_end = ROUND_UP(blkno + npages, QDB_MADVISE_THRESHOLD);
+        if (chunk_end > blk_no(blk) + bsz) {
+            chunk_end -= QDB_MADVISE_THRESHOLD;
+        }
+
+        if (chunk_begin < chunk_end) {
+            const size_t chunk_sz = chunk_end - chunk_begin;
+
+#ifdef __linux__
+            madvise(run->mem_pages + chunk_begin, chunk_sz * QPAGE_SIZE,
+                    MADV_DONTNEED);
+#else
+            mmap(run->mem_pages + chunk_begin, chunk_sz * QPAGE_SIZE,
+                 PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_FIXED,
+                 -1, 0);
+#endif
+            blk_set_clean(run->pages + chunk_begin, chunk_sz);
+            mem_tool_disallow_memory(run->mem_pages + chunk_begin,
+                                     chunk_sz * QPAGE_SIZE);
+            if (blkno < chunk_begin) {
+                blk_set_dirty(run->pages + blkno, (chunk_begin - blkno));
+                mem_tool_disallow_memory(run->mem_pages + blkno,
+                                         (chunk_begin - blkno) * QPAGE_SIZE);
+            }
+            if (blkno + npages > chunk_end) {
+                blk_set_dirty(run->pages + chunk_end,
+                              (blkno + npages - chunk_end));
+                mem_tool_disallow_memory(run->mem_pages + chunk_end,
+                    (blkno + npages - chunk_end) * QPAGE_SIZE);
+            }
+        } else {
+            blk_set_dirty(run->pages + blkno, npages);
+            mem_tool_disallow_memory(run->mem_pages + blkno,
+                                     npages * QPAGE_SIZE);
+        }
     }
 
     qpages_check(run);
