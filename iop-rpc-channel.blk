@@ -144,7 +144,7 @@ static _Bool ic_cmd_is_traced(int cmd)
         /* XXX: The filling of _G.traced_cmds is done lazily because when
          * ic_initialize is called, the IOP packages were likely not
          * registered yet. */
-        iop_for_each_registered_pkgs(^(const iop_pkg_t *pkg) {
+        iop_for_each_registered_pkgs(^void (const iop_pkg_t *pkg) {
             for (const iop_mod_t *const *m = pkg->mods; *m; m++) {
                 const iop_mod_t *mod = *m;
 
