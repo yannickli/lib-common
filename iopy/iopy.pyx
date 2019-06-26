@@ -563,6 +563,28 @@ cdef inline cbool iop_struct_is_same_or_child_of(const iop_struct_t *child,
     else:
         return child == parent
 
+
+cdef inline int check_iopy_ic_res(iopy_ic_res_t res,
+                                  const sb_t *err) except -1:
+    """Check if the result of an IOPy IC operation is valid and raise an
+    appropriate exception otherwise.
+
+    Parameters
+    ----------
+    res
+        The IOPy IC operation result.
+    err
+        The error description in case of error.
+    """
+    if res == IOPY_IC_ERR:
+        raise Error(lstr_to_py_str(LSTR_SB_V(err)))
+    elif res == IOPY_IC_SIGINT:
+        raise KeyboardInterrupt()
+    else:
+        cassert(res == IOPY_IC_OK)
+    return 0
+
+
 # }}}
 # {{{ Errors
 
@@ -6857,13 +6879,7 @@ cdef Channel create_and_connect_client_channel(Plugin plugin, lstr_t uri,
     with nogil:
         create_res = iopy_ic_client_create(<void *>channel, uri, timeout,
                                            &channel.ic_client, &err)
-
-    if create_res == IOPY_IC_ERR:
-        raise Error(lstr_to_py_str(LSTR_SB_V(&err)))
-    elif create_res == IOPY_IC_SIGINT:
-        raise KeyboardInterrupt()
-    else:
-        cassert(create_res == IOPY_IC_OK)
+    check_iopy_ic_res(create_res, &err)
 
     create_modules_of_channel(plugin, channel, &create_client_rpc)
 
@@ -6985,12 +7001,7 @@ cdef object client_channel_call_rpc(RPC rpc, tuple args, dict kwargs):
                                        timeout, ic_input, &ic_status, &ic_res,
                                        &err)
 
-    if call_res == IOPY_IC_ERR:
-        raise Error(lstr_to_py_str(LSTR_SB_V(&err)))
-    elif call_res == IOPY_IC_SIGINT:
-        raise KeyboardInterrupt()
-    else:
-        cassert(call_res == IOPY_IC_OK)
+    check_iopy_ic_res(call_res, &err)
 
     if rpc.rpc.async:
         return None
@@ -7459,7 +7470,7 @@ cdef class ChannelServer(ChannelBase):
         cdef t_scope_t t_scope_guard = t_scope_init()
         cdef sb_scope_t err = sb_scope_init_1k()
         cdef lstr_t uri_lstr
-        cdef int res
+        cdef iopy_ic_res_t res
 
         t_scope_ignore(t_scope_guard)
         t_parse_uri_arg(uri, host, port, &uri_lstr)
@@ -7467,13 +7478,7 @@ cdef class ChannelServer(ChannelBase):
         with nogil:
             res = iopy_ic_server_listen_block(self.ic_server, uri_lstr,
                                               timeout, &err)
-
-        if res == IOPY_IC_ERR:
-            raise Error(lstr_to_py_str(LSTR_SB_V(&err)))
-        elif res == IOPY_IC_SIGINT:
-            raise KeyboardInterrupt()
-        else:
-            cassert(res == IOPY_IC_OK)
+        check_iopy_ic_res(res, &err)
 
     def stop(ChannelServer self):
         """Stop the IC server from listening"""
