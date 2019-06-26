@@ -662,6 +662,17 @@ void iopy_ic_server_unregister_rpc(iopy_ic_server_t *server, uint32_t cmd)
     iopy_el_mutex_unlock();
 }
 
+bool iopy_ic_server_is_listening(const iopy_ic_server_t *server)
+{
+    bool res;
+
+    iopy_el_mutex_lock(true);
+    res = !!server->el_ic;
+    iopy_el_mutex_unlock();
+
+    return res;
+}
+
 /* }}} */
 /* {{{ Client */
 

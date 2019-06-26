@@ -7542,6 +7542,15 @@ cdef class ChannelServer(ChannelBase):
         """Remove the callback called upon disconnection"""
         self.on_disconnect_cb = None
 
+    @property
+    def is_listening(ChannelServer self):
+        """Is the IC server listening."""
+        cdef cbool res
+
+        with nogil:
+            res = iopy_ic_server_is_listening(self.ic_server)
+        return res
+
 
 cdef int create_server_rpc(const iop_rpc_t *rpc,
                            _InternalIfaceHolder iface_holder,

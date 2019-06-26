@@ -27,6 +27,7 @@ PXCC_EXPORT_SYMBOL(iopy_ic_server_listen_block);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_stop);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_register_rpc);
 PXCC_EXPORT_SYMBOL(iopy_ic_server_unregister_rpc);
+PXCC_EXPORT_SYMBOL(iopy_ic_server_is_listening);
 
 PXCC_EXPORT_SYMBOL(iopy_ic_client_create);
 PXCC_EXPORT_SYMBOL(iopy_ic_client_destroy);

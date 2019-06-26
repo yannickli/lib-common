@@ -135,6 +135,13 @@ ic_status_t t_iopy_ic_server_on_rpc(void *ctx, ichannel_t *ic, uint64_t slot,
                                     void *arg, const ic__hdr__t *hdr,
                                     void **res, const iop_struct_t **res_st);
 
+/** Is the IOPy IC server listening.
+ *
+ * \param[in] server The IOPy IC server.
+ * \return true if the IOPy IC server is listening, false otherwise.
+ */
+bool iopy_ic_server_is_listening(const iopy_ic_server_t *server);
+
 /* }}} */
 /* {{{ Client */
 
