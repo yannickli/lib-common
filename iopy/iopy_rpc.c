@@ -996,13 +996,14 @@ void iopy_ic_client_disconnect(iopy_ic_client_t *client)
 /* }}} */
 /* {{{ Module init */
 
-/** Init variables for el thread. */
+/** Initialize variables for el thread. */
 static void iopy_el_thr_vars_init(void)
 {
     pthread_mutexattr_t attr;
 
     _G.el_thr_status = EL_THR_NOT_STARTED;
     _G.main_thread = pthread_self();
+    atomic_init(&_G.el_mutex_wait_lock_cnt, 0);
 
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -1010,11 +1011,7 @@ static void iopy_el_thr_vars_init(void)
     pthread_mutexattr_destroy(&attr);
 
     pthread_cond_init(&_G.el_thr_start_cond, NULL);
-    _G.el_mutex_before_lock_el = el_wake_register(request_el_mutex_lock_cb,
-                                                  NULL);
     pthread_cond_init(&_G.el_mutex_after_lock_cond, NULL);
-    atomic_init(&_G.el_mutex_wait_lock_cnt, 0);
-
     pthread_cond_init(&_G.el_wait_thr_cond, NULL);
 }
 
@@ -1064,6 +1061,9 @@ void iopy_rpc_atfork_child(void)
 static int iopy_rpc_initialize(void *arg)
 {
     iopy_el_thr_vars_init();
+
+    _G.el_mutex_before_lock_el = el_wake_register(request_el_mutex_lock_cb,
+                                                  NULL);
 
     qm_init(iopy_ic_el_server, &_G.el_servers);
     qh_init(iopy_ic_server, &_G.servers_stopped);
