@@ -682,7 +682,7 @@ class IopcTest(z.TestCase):
     def test_attrs_invalid_18(self):
         f = 'attrs_invalid_18.iop'
         self.run_iopc(f, False,
-                      'error: invalid ctype user_t: missing __t suffix')
+                      'error: invalid ctype `user_t`: missing __t suffix')
 
     def test_attrs_invalid_enumval(self):
         self.run_iopc('attrs_invalid_enumval.iop', False,
@@ -747,6 +747,11 @@ class IopcTest(z.TestCase):
         f = 'attrs_empty_ctype.iop'
         self.run_iopc(f, False,
                       'attribute ctype expects at least one argument')
+
+    def test_attrs_bad_ctypes(self):
+        f = 'attrs_bad_ctypes.iop'
+        self.run_iopc(f, False,
+                      'invalid ctype `invalid`: missing __t suffix')
 
     def test_attrs_bad_nb_args(self):
         f = 'attrs_bad_nb_args.iop'

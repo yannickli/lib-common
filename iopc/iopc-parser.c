@@ -3428,9 +3428,13 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     }
 
     if (attr->desc->id == IOPC_ATTR_CTYPE) {
-        if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("__t"))) {
-            throw_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
-                      LSTR_FMT_ARG(attr->args.tab[0].v.s));
+        tab_for_each_ptr(arg, &attr->args) {
+            lstr_t ctype = arg->v.s;
+
+            if (!lstr_endswith(ctype, LSTR("__t"))) {
+                throw_loc("invalid ctype `%*pM`: missing __t suffix",
+                          attr->loc, LSTR_FMT_ARG(ctype));
+            }
         }
     }
 
