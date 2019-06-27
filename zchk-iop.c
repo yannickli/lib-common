@@ -559,6 +559,11 @@ Z_GROUP_EXPORT(iop)
         feed_num(0);
         error();
 
+        feed_num(1);
+        feed_op('%');
+        feed_num(0);
+        error();
+
         feed_num(INT64_MIN);
         feed_op('/');
         feed_num(-1);

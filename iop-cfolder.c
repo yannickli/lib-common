@@ -179,6 +179,9 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         }
         break;
       case CF_OP_MOD:
+        if (!eright.num) {
+            return e_error("invalid modulo by 0");
+        }
         res.is_signed = eleft.is_signed ^ eright.is_signed;
         if (eleft.is_signed || eright.is_signed) {
             res.num = SIGNED(eleft.num) % SIGNED(eright.num);
