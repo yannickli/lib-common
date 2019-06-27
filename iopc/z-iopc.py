@@ -968,6 +968,16 @@ class IopcTest(z.TestCase):
         self.run_iopc_fail('check_name_rpc.iop', 'error: you_Shall_Not_Pass '
                            'contains a _')
 
+    def test_missing_iface(self):
+        self.run_iopc_fail('missing_iface.iop',
+                           'error: unable to find any pkg providing '
+                           'interface `MyIfaceA`')
+
+    def test_missing_module(self):
+        self.run_iopc_fail('missing_module.iop',
+                           'error: unable to find any pkg providing '
+                           'module `MyModuleA`')
+
     # }}}
 
 if __name__ == "__main__":
