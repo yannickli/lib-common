@@ -272,6 +272,10 @@ class IopcTest(z.TestCase):
                       "each snmp table must contain at least one field that "
                       "has attribute @snmpIndex of type 'uint' or 'string'")
 
+    def test_snmp_invalid_from(self):
+        self.run_iopc('snmp_invalid_from.iop', False,
+                      "error: invalid snmpParamsFrom `Params.`")
+
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
         self.run_iopc_pass(f)
