@@ -3380,6 +3380,10 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
         }
 
         if (attr->desc->id == IOPC_ATTR_GENERIC) {
+            if (explicit) {
+                throw_loc("invalid name for generic attribute: "
+                          "`=` is forbidden", attr->loc);
+            }
             RETHROW(parse_gen_attr_arg(pp, attr, desc, out));
             WANT(pp, 0, ')');
             break;

@@ -798,6 +798,10 @@ class IopcTest(z.TestCase):
         self.run_iopc('json_generic_invalid6.iop', False,
                       "4:70:unterminated string")
 
+    def test_generic_invalid_name(self):
+        self.run_iopc('generic_attrs_invalid_name.iop', False,
+                      "invalid name for generic attribute: `=` is forbidden")
+
 
     # }}}
     # {{{ References
