@@ -1062,6 +1062,10 @@ static int unpack_val_file_inclusion(iop_json_lex_t *ll,
         return JERROR_WARG(IOP_JERR_BAD_TOKEN, 1);
     }
 
+    if (!HAS(1)) {
+        RESTORECTX();
+        return JERROR_WARG(IOP_JERR_EXP_SMTH, 1);
+    }
     if (READC() != ')') {
         STORECTX();
         IGNORE(EATC());

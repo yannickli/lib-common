@@ -2771,6 +2771,8 @@ Z_GROUP_EXPORT(iop)
              "3:10: expected a string value, got `@'");
         T_KO(tstiop__my_struct_a_opt, "include-empty",
              "3:19: unexpected token `)'");
+        T_KO(tstiop__my_struct_a_opt, "include-eof",
+             "3:19: something was expected after `\"'");
         T_KO(tstiop__my_struct_a_opt, "missing-quotes",
              "3:19: unexpected token `t'");
         T_KO(tstiop__my_struct_a_opt, "unclosed-quotes",
