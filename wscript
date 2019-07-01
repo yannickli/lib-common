@@ -423,14 +423,10 @@ def build(ctx):
     ], use='libcommon')
 
     # }}}
-    # {{{ dso-compatibility-check / iop-sign
+    # {{{ dso-compatibility-check
 
     ctx.program(target='dso-compatibility-check', features='c cprogram',
                 source='dso-compatibility-check.blk',
-                use='libcommon')
-
-    ctx.program(target='iop-sign', features='c cprogram',
-                source='iop-sign.blk',
                 use='libcommon')
 
     # }}}
