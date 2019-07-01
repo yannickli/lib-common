@@ -844,17 +844,24 @@ void iop_xpsort_desc(const iop_struct_t *nonnull st,
 enum iop_filter_flags {
     /** Perform a SQL-like pattern matching for strings. */
     IOP_FILTER_SQL_LIKE = (1U << 0),
+
+    /** Instead of filtering out the objects which field value is not in the
+     *  values array by default, filtering out the objects which field value
+     *  is in the values array. */
+    IOP_FILTER_INVERT_MATCH = (1U << 1),
 };
 
 /** Filter in-place a vector of IOP based on a given field or subfield of
  *  reference.
  *
  *  It takes an array of IOP objets and an array of values, and filters out
- *  the objects whose field value is not in the values array.
+ *  the objects which field value is not in the values array if
+ *  IOP_FILTER_INVERT_MATCH is not set. Otherwise, it filters out
+ *  the objects which field value is in the values array.
  *
  *  When the field is repeated, the function looks for the first occurrence of
- *  allowed_values in the field.
- *  Example: [ 1, 2, 3 ] and allowed_values = [ 3 ] => true.
+ *  values in the field.
+ *  Example: [ 1, 2, 3 ] and values = [ 3 ] => true.
  *
  *  \param[in] st             The IOP structure definition (__s).
  *  \param[in/out] vec        Array of objects to filter. If st is a class,
@@ -866,18 +873,18 @@ enum iop_filter_flags {
  *                            containing the names of the fields and subfield,
  *                            separated by dots
  *                            Example: "field.subfield1.subfield2"
- *  \param[in] allowed_values Array of pointer on allowed values to keep
- *                            inside vec.
+ *  \param[in] values         Array of pointer on values to be matched inside
+ *                            vec.
  *                            \warning the type of values must be the right
  *                            one because no check is done inside the
  *                            function.
- *  \param[in] values_len     Length of the array of allowed values.
+ *  \param[in] values_len     Length of the array of values.
  *  \param[in] flags          A combination of enum iop_filter_flags.
  *  \param[out] err           In case of error, the error description.
  */
 int iop_filter(const iop_struct_t * nonnull st, void * nonnull vec,
                int * nonnull len, lstr_t field_path,
-               void * const nonnull * nonnull allowed_values, int values_len,
+               void * const nonnull * nonnull values, int values_len,
                unsigned flags, sb_t * nullable err);
 
 /** Filter in-place a vector of IOP based on the presence of a given optional
@@ -919,7 +926,7 @@ typedef enum iop_filter_bitmap_op_t {
  */
 int t_iop_filter_bitmap(const iop_struct_t * nonnull st,
                         const void * nonnull vec, int len, lstr_t field_path,
-                        void * const nonnull * nonnull allowed_values,
+                        void * const nonnull * nonnull values,
                         int values_len, unsigned flags,
                         iop_filter_bitmap_op_t bitmap_op,
                         byte * nonnull * nullable bitmap,
