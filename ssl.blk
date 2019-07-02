@@ -20,6 +20,7 @@
 #include <openssl/err.h>
 #include <lib-common/z.h>
 #include "ssl.h"
+#include "hash.h"
 
 /* {{{ Module */
 
@@ -910,64 +911,6 @@ int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
 /* }}} */
 
 /* }}} */
-/* {{{ Licensing module */
-
-char *licence_compute_encryption_key(const char *signature, const char *key)
-{
-    /* We encrypt the obfuscation key using the compute signature as a SSL
-     * password. The salt will be 42 and that's all. */
-    ssl_ctx_t ctx;
-    char *encrypted;
-    int len;
-    SB_1k(sb);
-
-    RETHROW_P(ssl_ctx_init_aes256(&ctx, LSTR(signature), 42424242424242ULL,
-                                  1024));
-
-    if (ssl_encrypt(&ctx, LSTR(key), &sb) < 0) {
-        ssl_ctx_wipe(&ctx);
-        return NULL;
-    }
-
-    /* Encode the encrypted key as hex-string */
-    encrypted = sb_detach(&sb, &len);
-    sb_add_hex(&sb, encrypted, len);
-    p_delete(&encrypted);
-
-    ssl_ctx_wipe(&ctx);
-    return sb_detach(&sb, NULL);
-}
-
-int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
-{
-    ssl_ctx_t ctx;
-    const char *signature, *key;
-    int res = -1;
-    SB_1k(sb);
-
-    RETHROW_PN(signature = conf_get_raw(conf, "licence", "signature"));
-    RETHROW_PN(key = conf_get_raw(conf, "licence", "encryptionKey"));
-
-    RETHROW_PN(ssl_ctx_init_aes256(&ctx, LSTR(signature), 42424242424242ULL,
-                                   1024));
-    /* Decode the hex-string */
-    if (sb_add_unhex(&sb, key, strlen(key)) < 0) {
-        goto end;
-    }
-
-    /* Decrypt the key */
-    if (ssl_decrypt(&ctx, LSTR_SB_V(&sb), out) < 0) {
-        goto end;
-    }
-
-    res = 0;
-  end:
-    ssl_ctx_wipe(&ctx);
-
-    return res;
-}
-
-/* }}} */
 /* {{{ TLS */
 
 int ssl_ctx_use_certificate_lstr(SSL_CTX *ctx, lstr_t cert)
@@ -1148,10 +1091,6 @@ ssize_t ssl_sb_read(sb_t *sb, SSL *ssl, int hint)
 
 /* }}} */
 /* {{{ Tests */
-
-static pem_password_b dummy_pass = ^int (char *buf, int size, int rwflags) {
-    return snprintf(buf, size, "this-is-a-complicated-pass-phrase");
-};
 
 Z_GROUP_EXPORT(ssl)
 {
@@ -1470,6 +1409,12 @@ Z_GROUP_EXPORT(ssl)
 /* }}} */
 /* {{{ IOP Signature */
 
+/* FIXME */
+#if 0
+static pem_password_b dummy_pass = ^int (char *buf, int size, int rwflags) {
+    return snprintf(buf, size, "this-is-a-complicated-pass-phrase");
+};
+
     Z_TEST(iop_rsa_signature, "iop_rsa_signature") {
         t_scope;
         core__licence__t licence;
@@ -1506,37 +1451,11 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_NEG(iop_check_rsa_signature(&core__licence__s, &licence,
                                              LSTR_SB_V(&pub), sig, 0, NULL));
     } Z_TEST_END;
+#endif
 
 /* }}} */
 
     }
-
-/* }}} */
-/* {{{ licence_encryption_key */
-
-    Z_TEST(licence_encryption_key, "") {
-        conf_t *conf;
-        const char *signature;
-        char *encrypted_key;
-        SB_1k(sb);
-
-        Z_ASSERT_N(chdir(z_cmddir_g.s));
-
-        Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
-        Z_ASSERT(licence_check_signature_ok(conf));
-
-        /* Test encryption key computation */
-        Z_ASSERT_P(signature = conf_get_raw(conf, "licence", "signature"));
-        Z_ASSERT_P(encrypted_key = licence_compute_encryption_key(signature, "plop"));
-        Z_ASSERT(conf_put(conf, "licence", "encryptionKey", encrypted_key));
-
-        /* Test encryption key resolver */
-        Z_ASSERT_N(licence_resolve_encryption_key(conf, &sb));
-        Z_ASSERT_STREQUAL("plop", sb.data);
-
-        conf_delete(&conf);
-        p_delete(&encrypted_key);
-    } Z_TEST_END;
 
 /* }}} */
 

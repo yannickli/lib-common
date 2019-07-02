@@ -31,7 +31,6 @@
 #include "iop/tstiop2.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
-#include "iop/tstiop_licence.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_1.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_2.iop.h"
@@ -7620,7 +7619,6 @@ Z_GROUP_EXPORT(iop)
         /* Test packages with themselves. */
         T_OK_ALL(tstiop, tstiop);
         T_OK_ALL(tstiop_inheritance, tstiop_inheritance);
-        T_OK_ALL(tstiop_licence, tstiop_licence);
         T_OK_ALL(tstiop_backward_compat, tstiop_backward_compat);
         T_OK_ALL(tstiop_backward_compat_iface, tstiop_backward_compat_iface);
         T_OK_ALL(tstiop_backward_compat_mod, tstiop_backward_compat_mod);

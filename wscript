@@ -377,7 +377,6 @@ def build(ctx):
             'iop-xml-unpack.c',
             'iop-xml-wsdl.blk',
 
-            'licence.blk',
             'log-iop.c',
 
             'net-addr.c',
@@ -456,7 +455,6 @@ def build(ctx):
             'zchk-iop-core-obj.c',
             'zchk-iop-rpc.c',
             'zchk-iprintf.c',
-            'zchk-licence.c',
             'zchk-log.blk',
             'zchk-mem.c',
             'zchk-module.c',

@@ -97,7 +97,7 @@
 #include <openssl/engine.h>
 #include <openssl/rsa.h>
 #include "core.h"
-#include "licence.h"
+#include "iop-internals.h"
 
 #define OPENSSL_VERSION_IS(op, maj1, maj2, min)                              \
     (((OPENSSL_VERSION_NUMBER >> 12) & 0xFFFFF) op (((maj1) << 16)           \
@@ -490,20 +490,6 @@ int iop_check_rsa_signature(const iop_struct_t * nonnull st,
                             const void * nonnull v, lstr_t pub_key,
                             lstr_t sig, unsigned flags,
                             pem_password_b nullable pass_cb);
-
-/* }}} */
-/* {{{ Licence */
-/* ---- misc SSL usages for others modules ---- */
-
-/**
- * Encrypt the given plaintext encryption key using the licence signature.
- */
-char *licence_compute_encryption_key(const char *signature, const char *key);
-
-/**
- * Decrypt the encryption key from a licence file.
- */
-int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 /* }}} */
 /* {{{ TLS */
