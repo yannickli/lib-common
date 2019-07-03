@@ -469,6 +469,167 @@ static int z_check_field_path_compile(const iop_struct_t *st, lstr_t path,
 }
 
 /* }}} */
+/* {{{ zchk iop.iop_filter* */
+
+static void **t_z_create_values_ptr_from_values(void *values, int values_len,
+                                                size_t value_size)
+{
+    void **values_ptrs = t_new_raw(void *, values_len);
+
+    for (int i = 0; i < values_len; i++) {
+        values_ptrs[i] = (uint8_t *)values + (i * value_size);
+    }
+
+    return values_ptrs;
+}
+
+static int z_iop_filter_check_results(const iop_struct_t *obj_st, void *objs,
+                                     int objs_len, void *exps, int exps_len)
+{
+    bool is_pointer = iop_struct_is_class(obj_st);
+    size_t obj_size = is_pointer ? sizeof(void *) : obj_st->size;
+
+    Z_ASSERT_EQ(exps_len, objs_len);
+    for (int i = 0; i < exps_len; i++) {
+        void *exp = exps;
+        void *obj = objs;
+
+        if (is_pointer) {
+            exp = *(void **)exp;
+            obj = *(void **)obj;
+        }
+
+        Z_ASSERT_IOPEQUAL_DESC(obj_st, exp, obj);
+
+        exps = (uint8_t *)exps + obj_size;
+        objs = (uint8_t *)objs + obj_size;
+    }
+
+    Z_HELPER_END;
+}
+
+static int z_iop_filter_check_filter(const char *field, unsigned flags,
+                                     void *values, int values_len,
+                                     size_t value_size,
+                                     const iop_struct_t *obj_st, void *objs,
+                                     int objs_len, void *exps, int exps_len)
+{
+    t_scope;
+    SB_1k(err);
+    void *values_ptrs;
+
+    values_ptrs = t_z_create_values_ptr_from_values(values, values_len,
+                                                    value_size);
+
+    Z_ASSERT_N(iop_filter(obj_st, objs, &objs_len, LSTR(field), values_ptrs,
+                          values_len, flags, &err), "%*pM", SB_FMT_ARG(&err));
+
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
+                                            exps_len));
+    Z_HELPER_END;
+}
+
+/* This macro is used to convert macro arguments in the form (a, b, ...) to an
+ * array initializer list {a, b, ...}.
+ * The array arguments passed to the Z_IOP_FILTER_* macros, e.g. _values_args,
+ * are in the form (a, b, ...). So by doing `ARGS_TO_ARRAY _array_args`, this
+ * will be expanded as `ARGS_TO_ARRAY (a, b, ...)`, and thus will finally be
+ * expanded as `{a, b, ...}`.
+ */
+#define ARGS_TO_ARRAY(...)  { __VA_ARGS__ }
+
+#define Z_IOP_FILTER_CHECK_FILTER(_value_type, _obj_type, _obj_st,           \
+                                  _objs_args, _flags, _field, _values_args,  \
+                                  _exps_args)                                \
+    do {                                                                     \
+        _value_type _values[] = ARGS_TO_ARRAY _values_args;                  \
+        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
+        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+                                                                             \
+        Z_HELPER_RUN(z_iop_filter_check_filter(                              \
+            _field, _flags, _values, countof(_values), sizeof(_value_type),  \
+            _obj_st, _objs, countof(_objs), _exps, countof(_exps)));         \
+    } while (0)
+
+static int t_z_iop_filter_add_bitmap(const char *field, unsigned flags,
+                                     iop_filter_bitmap_op_t op,
+                                     void *values, int values_len,
+                                     size_t value_size,
+                                     const iop_struct_t *obj_st,
+                                     void *objs, int objs_len, byte **bitmap)
+{
+    SB_1k(err);
+    void *values_ptrs;
+
+    values_ptrs = t_z_create_values_ptr_from_values(values, values_len,
+                                                    value_size);
+
+    Z_ASSERT_N(t_iop_filter_bitmap(obj_st, objs, objs_len, LSTR(field),
+                                   values_ptrs, values_len, flags, op, bitmap,
+                                   &err), "%*pM", SB_FMT_ARG(&err));
+
+    Z_HELPER_END;
+}
+
+#define T_Z_IOP_FILTER_ADD_BITMAP(_value_type, _obj_type, _obj_st,           \
+                                  _objs_args, _flags, _field, _op,           \
+                                  _values_args, _bitmap)                     \
+    do {                                                                     \
+        _value_type _values[] = ARGS_TO_ARRAY _values_args;                  \
+        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
+                                                                             \
+        Z_HELPER_RUN(t_z_iop_filter_add_bitmap(                              \
+            _field, _flags, _op, _values, countof(_values),                  \
+            sizeof(_value_type), _obj_st, _objs, countof(_objs), _bitmap));  \
+    } while (0)
+
+static int z_iop_filter_apply_bitmap(byte *bitmap,
+                                     const iop_struct_t *obj_st,
+                                     void *objs, int objs_len,
+                                     void *exps, int exps_len)
+{
+    iop_filter_bitmap_apply(obj_st, objs, &objs_len, bitmap);
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
+                                            exps_len));
+    Z_HELPER_END;
+}
+
+#define Z_IOP_FILTER_APPLY_BITMAP(_obj_type, _obj_st, _objs_args, _exps_args,\
+                                  _bitmap)                                   \
+    do {                                                                     \
+        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
+        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+                                                                             \
+        Z_HELPER_RUN(z_iop_filter_apply_bitmap(_bitmap, _obj_st, _objs,      \
+                                               countof(_objs), _exps,        \
+                                               countof(_exps)));             \
+    } while (0)
+
+static int z_iop_filter_check_opt(const char *field, bool must_be_set,
+                                  const iop_struct_t *obj_st, void *objs,
+                                  int objs_len, void *exps, int exps_len)
+{
+    SB_1k(err);
+
+    Z_ASSERT_N(iop_filter_opt(obj_st, objs, &objs_len, LSTR(field),
+                              must_be_set, &err), "%*pM", SB_FMT_ARG(&err));
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
+                                            exps_len));
+    Z_HELPER_END;
+}
+
+#define Z_IOP_FILTER_CHECK_OPT(_obj_type, _obj_st, _objs_args, _field,       \
+                               _must_be_set, _exps_args)                     \
+    do {                                                                     \
+        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
+        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+                                                                             \
+        Z_HELPER_RUN(z_iop_filter_check_opt(                                 \
+            _field, _must_be_set, _obj_st, _objs, countof(_objs), _exps,     \
+            countof(_exps)));                                                \
+    } while (0)
+
+/* }}} */
 /* {{{ Other helpers (waiting proper folds). */
 
 static int iop_xml_test_struct(const iop_struct_t *st, void *v,
@@ -4132,235 +4293,124 @@ Z_GROUP_EXPORT(iop)
         tstiop__filtered_struct__t first;
         tstiop__filtered_struct__t second;
         tstiop__filtered_struct__t third;
-        qv_t(filtered_struct) original;
-        void **allowed = t_new_raw(void *, 3);
         byte *bitmap;
-        int values_1[] = { 2, 3, 5, 7, 11 };
-        int values_2[] = { 2, 3, 7, 11 };
-
-        t_qv_init(&original, 3);
 
         iop_init(tstiop__filtered_struct, &first);
-        iop_init(tstiop__filtered_struct, &second);
-        iop_init(tstiop__filtered_struct, &third);
         first.a = 1;
         first.b = 1;
         first.d = 42;
-        first.c.tab = values_1;
-        first.c.len = countof(values_1);
+        first.c = T_IOP_ARRAY(i32, 2, 3, 5, 7, 11);
+
+        iop_init(tstiop__filtered_struct, &second);
         second.a = 2;
         second.b = 1;
         second.d = 43;
-        second.c.tab = values_2;
-        second.c.len = countof(values_2);
+        second.c = T_IOP_ARRAY(i32, 2, 3, 7, 11);
+
+        iop_init(tstiop__filtered_struct, &third);
         third.a = 1;
         third.b = 1;
         third.d = 44;
 
-#define INIT_ORIGINAL()  \
-        do {                                                                 \
-            qv_clear(&original);                                             \
-            qv_append(&original, first);                                     \
-            qv_append(&original, second);                                    \
-            qv_append(&original, third);                                     \
-        } while (0)
-
-#define ADD_PARAM(_value, idx)  do {                                         \
-            allowed[idx] = t_new_raw(int, 1);                                \
-            *(int *)allowed[idx] = _value;                                   \
-        } while (0)
-
-#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
-                                 &original.len, LSTR(_field), allowed,       \
-                                 _allowed_len, 0, NULL));                    \
-        Z_ASSERT_EQ(_result_len, original.len);                              \
-    } while (0)
+#define CHECK_FILTER(_field, _values_args, _exps_args)                       \
+    Z_IOP_FILTER_CHECK_FILTER(int, tstiop__filtered_struct__t,               \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third), 0, _field,             \
+                              _values_args, _exps_args)
 
         /* Simple filter */
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_AND_CHECK_LEN("a", 1, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
+        CHECK_FILTER("a", (1), (first, third));
 
         /* Filter on several values */
-        INIT_ORIGINAL();
-        ADD_PARAM(2, 1);
-
-        FILTER_AND_CHECK_LEN("a", 2, 3);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &second);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[2], &third);
+        CHECK_FILTER("a", (1, 2), (first, second, third));
 
         /* Filter with no match */
-        INIT_ORIGINAL();
-        ADD_PARAM(3773, 0);
-
-        FILTER_AND_CHECK_LEN("a", 1, 0);
+        CHECK_FILTER("a", (3773), ());
 
         /* Filter excluding tip */
-        INIT_ORIGINAL();
-        ADD_PARAM(43, 0);
-
-        FILTER_AND_CHECK_LEN("d", 1, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
+        CHECK_FILTER("d", (43), (second));
 
         /* Filter on repeated field */
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c", 1, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        ADD_PARAM(11, 1);
-        FILTER_AND_CHECK_LEN("c", 2, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[0]", 1, 0);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[2]", 1, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        ADD_PARAM(7, 1);
-        FILTER_AND_CHECK_LEN("c[2]", 2, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(11, 0);
-        FILTER_AND_CHECK_LEN("c[-1]", 1, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(7, 0);
-        FILTER_AND_CHECK_LEN("c[-2]", 1, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[-3]", 1, 1);
+        CHECK_FILTER("c", (5), (first));
+        CHECK_FILTER("c", (5, 11), (first, second));
+        CHECK_FILTER("c[0]", (5), ());
+        CHECK_FILTER("c[2]", (5), (first));
+        CHECK_FILTER("c[2]", (5, 7), (first, second));
+        CHECK_FILTER("c[-1]", (11), (first, second));
+        CHECK_FILTER("c[-2]", (7), (first, second));
+        CHECK_FILTER("c[-3]", (5), (first));
 
         /* Filter on the length of a repeated field */
-        INIT_ORIGINAL();
-        ADD_PARAM(4, 0);
-        FILTER_AND_CHECK_LEN("c.len", 1, 1);
+        CHECK_FILTER("c.len", (4), (second));
+
+#undef CHECK_FILTER
 
         /* iop_filter_bitmap. */
-#define FILTER_BITMAP(_field, _allowed_len, _op)  \
-        do {                                                                 \
-            Z_ASSERT_ZERO(t_iop_filter_bitmap(&tstiop__filtered_struct__s,   \
-                                              original.tab, original.len,    \
-                                              LSTR(_field), allowed,         \
-                                              _allowed_len, 0, _op, &bitmap, \
-                                              NULL));                        \
-        } while (0)
+#define T_ADD_BITMAP(_field, _values_args, _op)                              \
+    T_Z_IOP_FILTER_ADD_BITMAP(int, tstiop__filtered_struct__t,               \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third), 0, _field, _op,        \
+                              _values_args, &bitmap)
 
-#define APPLY_BITMAP(_result_len)  \
-        do {                                                                 \
-            iop_filter_bitmap_apply(&tstiop__filtered_struct__s,             \
-                                    original.tab, &original.len, bitmap);    \
-            Z_ASSERT_EQ(_result_len, original.len);                          \
-        } while (0)
+#define APPLY_BITMAP(...)                                                    \
+    Z_IOP_FILTER_APPLY_BITMAP(tstiop__filtered_struct__t,                    \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third), (__VA_ARGS__), bitmap)
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(42, 0);
-        ADD_PARAM(1,  1);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        FILTER_BITMAP("a", 2, BITMAP_OP_OR);
-        APPLY_BITMAP(2);
+        T_ADD_BITMAP("a", (42), BITMAP_OP_OR);
+        T_ADD_BITMAP("a", (42, 1), BITMAP_OP_OR);
+        APPLY_BITMAP(first, third);
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        ADD_PARAM(2, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        APPLY_BITMAP(3);
+        T_ADD_BITMAP("a", (1), BITMAP_OP_OR);
+        T_ADD_BITMAP("a", (2), BITMAP_OP_OR);
+        APPLY_BITMAP(first, second, third);
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_AND);
-        ADD_PARAM(2, 1);
-        FILTER_BITMAP("a", 2, BITMAP_OP_AND);
-        APPLY_BITMAP(2);
+        T_ADD_BITMAP("a", (1), BITMAP_OP_AND);
+        T_ADD_BITMAP("a", (1, 2), BITMAP_OP_AND);
+        APPLY_BITMAP(first, third);
 
-#undef FILTER_BITMAP
-
-#undef INIT_ORIGINAL
-#undef ADD_PARAM
-#undef FILTER_AND_CHECK_LEN
+#undef APPLY_BITMAP
+#undef T_ADD_BITMAP
 
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_filter_class, "test IOP classes filtering") { /* {{{ */
         t_scope;
-        qv_t(my_class2) original;
-        qv_t(my_class2) vec;
-        void **allowed = t_new_raw(void *, 3);
-        lstr_t class_name;
+        tstiop__my_class2__t *first;
+        tstiop__my_class2__t *second;
+        tstiop__my_class2__t *third;
 
-        t_qv_init(&original, 3);
-        original.tab[0] = t_new_raw(tstiop__my_class2__t, 1);
-        original.tab[1] = t_new_raw(tstiop__my_class2__t, 1);
-        original.tab[2] =
-            (tstiop__my_class2__t *)t_new_raw(tstiop__my_class3__t, 1);
-        iop_init(tstiop__my_class2, original.tab[0]);
-        iop_init(tstiop__my_class2, original.tab[1]);
-        iop_init(tstiop__my_class3, (tstiop__my_class3__t *)original.tab[2]);
-        original.tab[0]->int1 = 1;
-        original.tab[0]->int2 = 1;
-        original.tab[1]->int1 = 2;
-        original.tab[1]->int2 = 1;
-        original.tab[2]->int1 = 1;
-        original.tab[2]->int2 = 1;
-        original.len = 3;
+        first = t_iop_new(tstiop__my_class2);
+        first->int1 = 1;
+        first->int2 = 1;
 
-        t_qv_init(&vec, 3);
-        vec.tab[0] = t_iop_dup(tstiop__my_class2, original.tab[0]);
-        vec.tab[1] = t_iop_dup(tstiop__my_class2, original.tab[1]);
-        vec.tab[2] = t_iop_dup(tstiop__my_class2, original.tab[2]);
-        vec.len = 3;
+        second = t_iop_new(tstiop__my_class2);
+        second->int1 = 2;
+        second->int2 = 1;
 
-#define ADD_PARAM(_value, idx)  do {                                         \
-            allowed[idx] = t_new_raw(int, 1);                                \
-            *(int *)allowed[idx] = _value;                                   \
-        } while (0)
+        third = &t_iop_new(tstiop__my_class3)->super;
+        third->int1 = 1;
+        third->int2 = 1;
 
-#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__my_class2__s, vec.tab,             \
-                                 &vec.len, LSTR(_field), allowed,            \
-                                 _allowed_len, IOP_FILTER_SQL_LIKE, NULL));  \
-        Z_ASSERT_EQ(_result_len, vec.len);                                   \
-    } while (0)
+#define CHECK_FILTER(_field, _value_type, _values_args, _exps_args)          \
+    Z_IOP_FILTER_CHECK_FILTER(_value_type, tstiop__my_class2__t *,           \
+                              &tstiop__my_class2__s,                         \
+                              (first, second, third), 0, _field,             \
+                              _values_args, _exps_args)
 
         /* Simple filter */
-        ADD_PARAM(1, 0);
-        FILTER_AND_CHECK_LEN("int1", 1, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[1]);
+        CHECK_FILTER("int1", int, (1), (first, third));
 
         /* Filter on several values */
-        vec.tab[0] = t_iop_dup(tstiop__my_class2, original.tab[0]);
-        vec.tab[1] = t_iop_dup(tstiop__my_class2, original.tab[1]);
-        vec.tab[2] = t_iop_dup(tstiop__my_class2, original.tab[2]);
-        vec.len = 3;
-        ADD_PARAM(2, 1);
+        CHECK_FILTER("int1", int, (1, 2), (first, second, third));
 
-        FILTER_AND_CHECK_LEN("int1", 2, 3);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[1], vec.tab[1]);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[2]);
+        /* Filter on class name */
+        CHECK_FILTER("_class", lstr_t, (LSTR("tstiop.MyClass3")), (third));
 
-        class_name = LSTR("tstiop.MyClass3");
-        *allowed = &class_name;
-        FILTER_AND_CHECK_LEN("_class", 1, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[2], vec.tab[0]);
-
-#undef ADD_PARAM
-#undef FILTER_AND_CHECK_LEN
+#undef CHECK_FILTER
 
     } Z_TEST_END;
     /* }}} */
@@ -4369,127 +4419,108 @@ Z_GROUP_EXPORT(iop)
         tstiop__filtered_struct__t first;
         tstiop__filtered_struct__t second;
         tstiop__filtered_struct__t third;
-        qv_t(filtered_struct) original;
         lstr_t filter;
-        void **allowed = t_new_raw(void *, 1);
-
-        t_qv_init(&original, 3);
 
         iop_init(tstiop__filtered_struct, &first);
-        iop_init(tstiop__filtered_struct, &second);
-        iop_init(tstiop__filtered_struct, &third);
         first.s = LSTR("toto");
+
+        iop_init(tstiop__filtered_struct, &second);
         second.s = LSTR("titi");
+
+        iop_init(tstiop__filtered_struct, &third);
         third.s = LSTR("tutu");
 
-        *allowed = &filter;
-
-#define FILTER_AND_CHECK_LEN(_field, _flags, _result_len)  do {              \
-        original.tab[0] = first;                                             \
-        original.tab[1] = second;                                            \
-        original.tab[2] = third;                                             \
-        original.len = 3;                                                    \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
-                                 &original.len, LSTR(_field), allowed, 1,    \
-                                 _flags, NULL));                             \
-        Z_ASSERT_EQ(_result_len, original.len);                              \
-    } while (0)
+#define CHECK_FILTER(_flags, _exps_args)                                     \
+    Z_IOP_FILTER_CHECK_FILTER(lstr_t, tstiop__filtered_struct__t,            \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third), _flags, "s",           \
+                              (filter), _exps_args)
 
         /* Simple filters */
         filter = LSTR("none");
-        FILTER_AND_CHECK_LEN("s", 0, 0);
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 0);
+        CHECK_FILTER(0, ());
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, ());
 
         filter = LSTR("titi");
-        FILTER_AND_CHECK_LEN("s", 0, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
-
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
+        CHECK_FILTER(0, (second));
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (second));
 
         /* SQL patterns. */
         filter = LSTR("to%");
-        FILTER_AND_CHECK_LEN("s", 0, 0);
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
+        CHECK_FILTER(0, ());
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (first));
 
-#undef FILTER_AND_CHECK_LEN
+        filter = LSTR("%t%");
+        CHECK_FILTER(0, ());
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (first, second, third));
+
+#undef CHECK_FILTER
 
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_filter_opt, "test IOP filtering on optional fields") { /* {{{ */
         t_scope;
-        SB_1k(err);
         tstiop__my_struct_a_opt__t first;
         tstiop__my_struct_a_opt__t second;
         tstiop__my_struct_a_opt__t third;
-        qv_t(my_struct_a_opt) original;
-
-        t_qv_init(&original, 3);
 
         iop_init(tstiop__my_struct_a_opt, &first);
         iop_init(tstiop__my_struct_a_opt, &second);
         iop_init(tstiop__my_struct_a_opt, &third);
 
-#define FILTER_AND_CHECK_LEN(_field, _must_be_set, _result_len)  do {        \
-        original.tab[0] = first;                                             \
-        original.tab[1] = second;                                            \
-        original.tab[2] = third;                                             \
-        original.len = 3;                                                    \
-        Z_ASSERT_ZERO(iop_filter_opt(&tstiop__my_struct_a_opt__s,            \
-                                     original.tab, &original.len,            \
-                                     LSTR(_field), _must_be_set, &err),      \
-                                     "%*pM", SB_FMT_ARG(&err));              \
-        Z_ASSERT_EQ(_result_len, original.len);                              \
-    } while (0)
+#define CHECK_FILTER(_field, _must_be_set, _exps_args)                       \
+    Z_IOP_FILTER_CHECK_OPT(tstiop__my_struct_a_opt__t,                       \
+                           &tstiop__my_struct_a_opt__s,                      \
+                           (first, second, third), _field, _must_be_set,     \
+                           _exps_args)
 
         /* Test filter on optional string. */
         second.j = LSTR("present");
-        FILTER_AND_CHECK_LEN("j", true,  1);
-        FILTER_AND_CHECK_LEN("j", false, 2);
+        CHECK_FILTER("j", true,  (second));
+        CHECK_FILTER("j", false, (first, third));
 
         /* Test filter on optional integer. */
         OPT_SET(first.a, 1);
         OPT_SET(third.a, 2);
-        FILTER_AND_CHECK_LEN("a", true,  2);
-        FILTER_AND_CHECK_LEN("a", false, 1);
+        CHECK_FILTER("a", true,  (first, third));
+        CHECK_FILTER("a", false, (second));
 
         /* Test filter on optional union. */
         third.l  = t_iop_new(tstiop__my_union_a);
         *third.l = IOP_UNION(tstiop__my_union_a, ua, 1);
-        FILTER_AND_CHECK_LEN("l", true,   1);
-        FILTER_AND_CHECK_LEN("l", false,  2);
+        CHECK_FILTER("l", true,  (third));
+        CHECK_FILTER("l", false, (first, second));
 
         /* Test filter on optional struct. */
         first.o  = t_iop_new(tstiop__my_struct_b);
         second.o = first.o;
-        FILTER_AND_CHECK_LEN("o", true,   2);
-        FILTER_AND_CHECK_LEN("o", false,  1);
+        CHECK_FILTER("o", true,  (first, second));
+        CHECK_FILTER("o", false, (third));
 
         /* Test filter on optional class. */
         third.cls2 = t_iop_new(tstiop__my_class2);
-        FILTER_AND_CHECK_LEN("cls2", true,   1);
-        FILTER_AND_CHECK_LEN("cls2", false,  2);
+        CHECK_FILTER("cls2", true,  (third));
+        CHECK_FILTER("cls2", false, (first, second));
 
         /* Test filter on a repeated field. */
         second.u.tab = t_new(int, 1);
         second.u.len = 1;
-        FILTER_AND_CHECK_LEN("u", true,   1);
-        FILTER_AND_CHECK_LEN("u", false,  2);
-        FILTER_AND_CHECK_LEN("u[0]", true,   1);
-        FILTER_AND_CHECK_LEN("u[0]", false,  2);
-        FILTER_AND_CHECK_LEN("u[1]", true,   0);
-        FILTER_AND_CHECK_LEN("u[1]", false,  3);
-        FILTER_AND_CHECK_LEN("u[-1]", true,   1);
-        FILTER_AND_CHECK_LEN("u[-1]", false,  2);
+        CHECK_FILTER("u", true,  (second));
+        CHECK_FILTER("u", false, (first, third));
+        CHECK_FILTER("u[0]", true,  (second));
+        CHECK_FILTER("u[0]", false, (first, third));
+        CHECK_FILTER("u[1]", true,  ());
+        CHECK_FILTER("u[1]", false, (first, second, third));
+        CHECK_FILTER("u[-1]", true,  (second));
+        CHECK_FILTER("u[-1]", false, (first, third));
 
         /* Test filter on optional void. */
         first.w  = true;
         second.w = true;
-        FILTER_AND_CHECK_LEN("w", true,   2);
-        FILTER_AND_CHECK_LEN("w", false,  1);
+        CHECK_FILTER("w", true,  (first, second));
+        CHECK_FILTER("w", false, (third));
 
-#undef FILTER_AND_CHECK_LEN
+#undef CHECK_FILTER
 
     } Z_TEST_END;
     /* }}} */
@@ -4498,231 +4529,128 @@ Z_GROUP_EXPORT(iop)
         tstiop__filtered_struct__t first;
         tstiop__filtered_struct__t second;
         tstiop__filtered_struct__t third;
-        qv_t(filtered_struct) original;
-        void **values = t_new_raw(void *, 3);
         byte *bitmap;
-        int values_1[] = { 2, 3, 5, 7, 11 };
-        int values_2[] = { 2, 3, 7, 11 };
-
-        t_qv_init(&original, 3);
 
         iop_init(tstiop__filtered_struct, &first);
-        iop_init(tstiop__filtered_struct, &second);
-        iop_init(tstiop__filtered_struct, &third);
         first.a = 1;
         first.b = 1;
         first.d = 42;
-        first.c.tab = values_1;
-        first.c.len = countof(values_1);
+        first.c = T_IOP_ARRAY(i32, 2, 3, 5, 7, 11);
+
+        iop_init(tstiop__filtered_struct, &second);
         second.a = 2;
         second.b = 1;
         second.d = 43;
-        second.c.tab = values_2;
-        second.c.len = countof(values_2);
+        second.c = T_IOP_ARRAY(i32, 2, 3, 7, 11);
+
+        iop_init(tstiop__filtered_struct, &third);
         third.a = 1;
         third.b = 1;
         third.d = 44;
 
-#define INIT_ORIGINAL()  \
-        do {                                                                 \
-            qv_clear(&original);                                             \
-            qv_append(&original, first);                                     \
-            qv_append(&original, second);                                    \
-            qv_append(&original, third);                                     \
-        } while (0)
-
-#define ADD_PARAM(_value, idx)  do {                                         \
-            values[idx] = t_new_raw(int, 1);                                 \
-            *(int *)values[idx] = _value;                                    \
-        } while (0)
-
-#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
-                                 &original.len, LSTR(_field), values,        \
-                                 _allowed_len, IOP_FILTER_INVERT_MATCH,      \
-                                 NULL));                                     \
-        Z_ASSERT_EQ(_result_len, original.len);                              \
-    } while (0)
+#define CHECK_FILTER(_field, _values_args, _exps_args)                       \
+    Z_IOP_FILTER_CHECK_FILTER(int, tstiop__filtered_struct__t,               \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third),                        \
+                              IOP_FILTER_INVERT_MATCH, _field, _values_args, \
+                              _exps_args)
 
         /* Simple filter */
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_AND_CHECK_LEN("a", 1, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
+        CHECK_FILTER("a", (1), (second));
 
         /* Filter on several values */
-        INIT_ORIGINAL();
-        ADD_PARAM(2, 1);
-
-        FILTER_AND_CHECK_LEN("a", 2, 0);
+        CHECK_FILTER("a", (1, 2), ());
 
         /* Filter with no match */
-        INIT_ORIGINAL();
-        ADD_PARAM(3773, 0);
-
-        FILTER_AND_CHECK_LEN("a", 1, 3);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &second);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[2], &third);
+        CHECK_FILTER("a", (3773), (first, second, third));
 
         /* Filter excluding tip */
-        INIT_ORIGINAL();
-        ADD_PARAM(43, 0);
-
-        FILTER_AND_CHECK_LEN("d", 1, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
+        CHECK_FILTER("d", (43), (first, third));
 
         /* Filter on repeated field */
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c", 1, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        ADD_PARAM(11, 1);
-        FILTER_AND_CHECK_LEN("c", 2, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[0]", 1, 3);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[2]", 1, 2);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        ADD_PARAM(7, 1);
-        FILTER_AND_CHECK_LEN("c[2]", 2, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(11, 0);
-        FILTER_AND_CHECK_LEN("c[-1]", 1, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(7, 0);
-        FILTER_AND_CHECK_LEN("c[-2]", 1, 1);
-
-        INIT_ORIGINAL();
-        ADD_PARAM(5, 0);
-        FILTER_AND_CHECK_LEN("c[-3]", 1, 2);
+        CHECK_FILTER("c", (5), (second, third));
+        CHECK_FILTER("c", (5, 11), (third));
+        CHECK_FILTER("c[0]", (5), (first, second, third));
+        CHECK_FILTER("c[2]", (5), (second, third));
+        CHECK_FILTER("c[2]", (5, 7), (third));
+        CHECK_FILTER("c[-1]", (11), (third));
+        CHECK_FILTER("c[-2]", (7), (third));
+        CHECK_FILTER("c[-3]", (5), (second, third));
 
         /* Filter on the length of a repeated field */
-        INIT_ORIGINAL();
-        ADD_PARAM(4, 0);
-        FILTER_AND_CHECK_LEN("c.len", 1, 2);
+        CHECK_FILTER("c.len", (4), (first, third));
+
+#undef CHECK_FILTER
 
         /* iop_filter_bitmap. */
-#define FILTER_BITMAP(_field, _allowed_len, _op)  \
-        do {                                                                 \
-            Z_ASSERT_ZERO(t_iop_filter_bitmap(&tstiop__filtered_struct__s,   \
-                                              original.tab, original.len,    \
-                                              LSTR(_field), values,          \
-                                              _allowed_len,                  \
-                                              IOP_FILTER_INVERT_MATCH,       \
-                                              _op, &bitmap, NULL));          \
-        } while (0)
+#define T_ADD_BITMAP(_field, _values_args, _op)                              \
+    T_Z_IOP_FILTER_ADD_BITMAP(int, tstiop__filtered_struct__t,               \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third),                        \
+                              IOP_FILTER_INVERT_MATCH, _field, _op,          \
+                              _values_args, &bitmap)
 
-#define APPLY_BITMAP(_result_len)  \
-        do {                                                                 \
-            iop_filter_bitmap_apply(&tstiop__filtered_struct__s,             \
-                                    original.tab, &original.len, bitmap);    \
-            Z_ASSERT_EQ(_result_len, original.len);                          \
-        } while (0)
+#define APPLY_BITMAP(...)                                                    \
+    Z_IOP_FILTER_APPLY_BITMAP(tstiop__filtered_struct__t,                    \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third), (__VA_ARGS__), bitmap)
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(42, 0);
-        ADD_PARAM(1,  1);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        FILTER_BITMAP("a", 2, BITMAP_OP_OR);
-        APPLY_BITMAP(3);
+        T_ADD_BITMAP("a", (42), BITMAP_OP_OR);
+        T_ADD_BITMAP("a", (42, 1), BITMAP_OP_OR);
+        APPLY_BITMAP(first, second, third);
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        ADD_PARAM(2, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_OR);
-        APPLY_BITMAP(3);
+        T_ADD_BITMAP("a", (1), BITMAP_OP_OR);
+        T_ADD_BITMAP("a", (2), BITMAP_OP_OR);
+        APPLY_BITMAP(first, second, third);
 
         bitmap = NULL;
-        INIT_ORIGINAL();
-        ADD_PARAM(1, 0);
-        FILTER_BITMAP("a", 1, BITMAP_OP_AND);
-        ADD_PARAM(2, 1);
-        FILTER_BITMAP("a", 2, BITMAP_OP_AND);
-        APPLY_BITMAP(0);
+        T_ADD_BITMAP("a", (1), BITMAP_OP_AND);
+        T_ADD_BITMAP("a", (1, 2), BITMAP_OP_AND);
+        APPLY_BITMAP();
 
-#undef FILTER_BITMAP
-
-#undef INIT_ORIGINAL
-#undef ADD_PARAM
-#undef FILTER_AND_CHECK_LEN
+#undef APPLY_BITMAP
+#undef T_ADD_BITMAP
 
     } Z_TEST_END;
     /* }}} */
     Z_TEST(iop_filter_class_invert_match, "test IOP classes filtering with invert match") { /* {{{ */
         t_scope;
-        qv_t(my_class2) original;
-        qv_t(my_class2) vec;
-        void **values = t_new_raw(void *, 3);
-        lstr_t class_name;
+        tstiop__my_class2__t *first;
+        tstiop__my_class2__t *second;
+        tstiop__my_class2__t *third;
 
-        t_qv_init(&original, 3);
-        original.tab[0] = t_new_raw(tstiop__my_class2__t, 1);
-        original.tab[1] = t_new_raw(tstiop__my_class2__t, 1);
-        original.tab[2] =
-            (tstiop__my_class2__t *)t_new_raw(tstiop__my_class3__t, 1);
-        iop_init(tstiop__my_class2, original.tab[0]);
-        iop_init(tstiop__my_class2, original.tab[1]);
-        iop_init(tstiop__my_class3, (tstiop__my_class3__t *)original.tab[2]);
-        original.tab[0]->int1 = 1;
-        original.tab[0]->int2 = 1;
-        original.tab[1]->int1 = 2;
-        original.tab[1]->int2 = 1;
-        original.tab[2]->int1 = 1;
-        original.tab[2]->int2 = 1;
-        original.len = 3;
+        first = t_iop_new(tstiop__my_class2);
+        first->int1 = 1;
+        first->int2 = 1;
 
-        t_qv_init(&vec, 3);
-        qv_copy(&vec, &original);
+        second = t_iop_new(tstiop__my_class2);
+        second->int1 = 2;
+        second->int2 = 1;
 
-#define ADD_PARAM(_value, idx)  do {                                         \
-            values[idx] = t_new_raw(int, 1);                                 \
-            *(int *)values[idx] = _value;                                    \
-        } while (0)
+        third = &t_iop_new(tstiop__my_class3)->super;
+        third->int1 = 1;
+        third->int2 = 1;
 
-#define FILTER_AND_CHECK_LEN(_field, _allowed_len, _result_len)  do {        \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__my_class2__s, vec.tab,             \
-                                 &vec.len, LSTR(_field), values,             \
-                                 _allowed_len,                               \
-                                 IOP_FILTER_SQL_LIKE                         \
-                               | IOP_FILTER_INVERT_MATCH, NULL));            \
-        Z_ASSERT_EQ(_result_len, vec.len);                                   \
-    } while (0)
+#define CHECK_FILTER(_field, _value_type, _values_args, _exps_args)          \
+    Z_IOP_FILTER_CHECK_FILTER(_value_type, tstiop__my_class2__t *,           \
+                              &tstiop__my_class2__s,                         \
+                              (first, second, third),                        \
+                              IOP_FILTER_INVERT_MATCH, _field, _values_args, \
+                              _exps_args)
 
         /* Simple filter */
-        ADD_PARAM(1, 0);
-        FILTER_AND_CHECK_LEN("int1", 1, 1);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[1], vec.tab[0]);
+        CHECK_FILTER("int1", int, (1), (second));
 
         /* Filter on several values */
-        qv_copy(&vec, &original);
-        ADD_PARAM(2, 1);
+        CHECK_FILTER("int1", int, (1, 2), ());
 
-        FILTER_AND_CHECK_LEN("int1", 2, 0);
+        /* Filter on class name */
+        CHECK_FILTER("_class", lstr_t, (LSTR("tstiop.MyClass3")),
+                     (first, second));
 
-        qv_copy(&vec, &original);
-        class_name = LSTR("tstiop.MyClass3");
-        *values = &class_name;
-        FILTER_AND_CHECK_LEN("_class", 1, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[0], vec.tab[0]);
-        Z_ASSERT_IOPEQUAL(tstiop__my_class2, original.tab[1], vec.tab[1]);
-
-#undef ADD_PARAM
-#undef FILTER_AND_CHECK_LEN
+#undef CHECK_FILTER
 
     } Z_TEST_END;
     /* }}} */
@@ -4731,54 +4659,43 @@ Z_GROUP_EXPORT(iop)
         tstiop__filtered_struct__t first;
         tstiop__filtered_struct__t second;
         tstiop__filtered_struct__t third;
-        qv_t(filtered_struct) original;
         lstr_t filter;
-        void **values = t_new_raw(void *, 1);
-
-        t_qv_init(&original, 3);
 
         iop_init(tstiop__filtered_struct, &first);
-        iop_init(tstiop__filtered_struct, &second);
-        iop_init(tstiop__filtered_struct, &third);
         first.s = LSTR("toto");
+
+        iop_init(tstiop__filtered_struct, &second);
         second.s = LSTR("titi");
+
+        iop_init(tstiop__filtered_struct, &third);
         third.s = LSTR("tutu");
 
-        *values = &filter;
-
-#define FILTER_AND_CHECK_LEN(_field, _flags, _result_len)  do {              \
-        original.tab[0] = first;                                             \
-        original.tab[1] = second;                                            \
-        original.tab[2] = third;                                             \
-        original.len = 3;                                                    \
-        Z_ASSERT_ZERO(iop_filter(&tstiop__filtered_struct__s, original.tab,  \
-                                 &original.len, LSTR(_field), values, 1,     \
-                                 _flags | IOP_FILTER_INVERT_MATCH, NULL));   \
-        Z_ASSERT_EQ(_result_len, original.len);                              \
-    } while (0)
+#define CHECK_FILTER(_flags, _exps_args)                                     \
+    Z_IOP_FILTER_CHECK_FILTER(lstr_t, tstiop__filtered_struct__t,            \
+                              &tstiop__filtered_struct__s,                   \
+                              (first, second, third),                        \
+                              _flags | IOP_FILTER_INVERT_MATCH, "s",         \
+                              (filter), _exps_args)
 
         /* Simple filters */
         filter = LSTR("none");
-        FILTER_AND_CHECK_LEN("s", 0, 3);
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 3);
+        CHECK_FILTER(0, (first, second, third));
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (first, second, third));
 
         filter = LSTR("titi");
-        FILTER_AND_CHECK_LEN("s", 0, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
-
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &first);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
+        CHECK_FILTER(0, (first, third));
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (first, third));
 
         /* SQL patterns. */
         filter = LSTR("to%");
-        FILTER_AND_CHECK_LEN("s", 0, 3);
-        FILTER_AND_CHECK_LEN("s", IOP_FILTER_SQL_LIKE, 2);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[0], &second);
-        Z_ASSERT_IOPEQUAL(tstiop__filtered_struct, &original.tab[1], &third);
+        CHECK_FILTER(0, (first, second, third));
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, (second, third));
 
-#undef FILTER_AND_CHECK_LEN
+        filter = LSTR("%t%");
+        CHECK_FILTER(0, (first, second, third));
+        CHECK_FILTER(IOP_FILTER_SQL_LIKE, ());
+
+#undef CHECK_FILTER
 
     } Z_TEST_END;
     /* }}} */
