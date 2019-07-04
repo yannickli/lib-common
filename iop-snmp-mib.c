@@ -750,7 +750,7 @@ static int iop_mib_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(iop_mib)
+static MODULE_BEGIN(iop_mib)
 MODULE_END()
 
 /* }}} */

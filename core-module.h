@@ -162,24 +162,30 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 
 /** Pointer to the module of the given name.
  */
-#define MODULE(name)  name##_module
-#define MODULE_PTR(name)  name##_module_ptr
+#define MODULE(name)  name##_get_module()
 
 /** Declare a module.
  *
  * This macro declares a module variable.
  */
 #define MODULE_DECLARE(name)                                                 \
-    extern module_t * nullable MODULE(name);                                 \
-    extern module_t * nullable * const nonnull MODULE_PTR(name)
+    module_t * nonnull name##_get_module(void)
 
 /** Add declarations of a module.
  *
  * Do not use this, use \ref MODULE_BEGIN.
  */
 #define _MODULE_ADD_DECLS(name)                                              \
-    module_t *MODULE(name);                                                  \
-    module_t ** const MODULE_PTR(name) = &MODULE(name)
+    module_t *name##_get_module(void)                                        \
+    {                                                                        \
+        __attr_section("intersec", "module")                                 \
+        static module_t *mod;                                                \
+                                                                             \
+        if (!mod) {                                                          \
+            mod = module_register(LSTR(#name));                              \
+        }                                                                    \
+        return mod;                                                          \
+    }
 
 /** Begin the definition of a module.
  *
@@ -196,18 +202,15 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  * The section must be closed by calling \ref MODULE_END().
  */
 #define MODULE_BEGIN(name)                                                   \
-    __attr_section("intersec", "module")                                     \
     _MODULE_ADD_DECLS(name);                                                 \
                                                                              \
     static __attribute__((constructor))                                      \
     void __##name##_module_register(void) {                                  \
-        lstr_t __name = LSTR_IMMED(#name);                                   \
-        const char *__deps[] = { "log" };                                    \
         __unused__                                                           \
-        module_t *__mod = module_register(__name, &MODULE(name),             \
-                                          &name##_initialize,                \
-                                          &name##_shutdown,                  \
-                                          __deps, countof(__deps));          \
+        module_t *__mod = module_implement(MODULE(name),                     \
+                                           &name##_initialize,               \
+                                           &name##_shutdown,                 \
+                                           MODULE(log));                     \
 
 /** Macro to end the definition of a module.
  *
@@ -221,7 +224,7 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  * declares a dependence from the current module on \p dep.
  */
 #define MODULE_DEPENDS_ON(dep)  \
-    module_add_dep(__mod, __name, LSTR(#dep), &MODULE(dep))
+    module_add_dep(__mod, MODULE(dep))
 
 /** Add a dependence to another module.
  *
@@ -230,7 +233,7 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
  * It declares a dependence from the current module to \p need.
  */
 #define MODULE_NEEDED_BY(need)  \
-    module_add_dep(MODULE(need), LSTR(#need), __name, &__mod)
+    module_add_dep(MODULE(need), __mod)
 
 /* {{{ Method */
 
@@ -278,28 +281,26 @@ void module_run_method(const module_method_t * nonnull method, data_t arg);
 /* }}} */
 /* {{{ Low-level API */
 
-/** Register a module.
+/** Register a new module. */
+__leaf module_t * nonnull module_register(lstr_t name);
+
+/** Implement a module.
  *
- *  \param[in] name         name of the module
- *  \param[in] module       address of static pointer \p MODULE(name)
+ *  \param[in] module       the module to implement
  *  \param[in] initialize   pointer to the function that initialize the module
  *  \param[in] shutdown     pointer to the function that shutdown the module
- *  \param[in] dependencies list of modules
- *  \param[in] nb_dependencies number of dependent modules
- *
+ *  \param[in] dependency   module to depend on
  *
  *  \return the newly registered module in case of success.
  */
 __leaf
 module_t * nullable
-module_register(lstr_t name, module_t * nullable * nonnull module,
-                int (*nonnull constructor)(void * nullable),
-                int (*nonnull destructor)(void),
-                const char * nonnull dependencies[],
-                int nb_dependencies);
+module_implement(module_t * nonnull module,
+                 int (*nonnull constructor)(void * nullable),
+                 int (*nonnull destructor)(void),
+                 module_t *nullable dependency);
 
-void module_add_dep(module_t * nonnull mod, lstr_t name, lstr_t dep,
-                    module_ptr_ptr_t nonnull dep_ptr);
+void module_add_dep(module_t * nonnull module, module_t * nonnull dep);
 
 __attr_nonnull__((1, 2, 3))
 void module_implement_method(module_t * nonnull mod,
@@ -366,7 +367,7 @@ void module_implement_method_ptr(module_t * nonnull mod,
  *     }
  */
 #define MODULE_PROVIDE(name, argument)                                       \
-    module_provide(&MODULE(name), argument)
+    module_provide(MODULE(name), argument)
 
 /** Macro for requiring a module.
  *
@@ -431,7 +432,7 @@ __attr_nonnull__((1))
 void module_release(module_t * nonnull mod);
 
 __attr_nonnull__((1))
-void module_provide(module_t * nullable * nonnull mod,
+void module_provide(module_t * nonnull mod,
                     void * nullable argument);
 
 /** Get the argument of a module.
@@ -562,6 +563,12 @@ int module_check_no_dependencies(module_t * nonnull tab[], int len,
 
 /* Here are the declaration of the core modules that can't be declared in
  * their own header because of a circular dependency. */
+
+/** Log module.
+ *
+ * All modules declared with \p MODULE_BEGIN automatically depend on it.
+ */
+MODULE_DECLARE(log);
 
 /** Core memory module.
  *

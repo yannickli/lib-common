@@ -1210,23 +1210,21 @@ static int log_shutdown(void)
     return 0;
 }
 
+module_t *log_module_g;
+
 __attribute__((constructor))
 void log_module_register(void)
 {
-    const char *__deps[] = { "iop" };
-
-    if (log_module) {
+    if (log_module_g) {
         return;
     }
 
     thr_hooks_register();
     iop_module_register();
-    log_module = module_register(LSTR("log"), &log_module,
-                                 &log_initialize, &log_shutdown,
-                                 __deps, countof(__deps));
-    module_add_dep(log_module, LSTR("log"),  LSTR("thr_hooks"),
-                   &MODULE(thr_hooks));
-    module_implement_method(log_module, &at_fork_on_child_method,
+    log_module_g = module_implement(MODULE(log), &log_initialize,
+                                    &log_shutdown, MODULE(iop));
+    module_add_dep(log_module_g, MODULE(thr_hooks));
+    module_implement_method(log_module_g, &at_fork_on_child_method,
                             &log_atfork);
 
 #ifdef MEM_BENCH

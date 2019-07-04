@@ -2131,26 +2131,28 @@ static void el_at_fork_on_parent(pid_t pid)
     el_child_at_fork_on_parent(pid);
 }
 
-module_t *MODULE(el);
+
 MODULE_METHOD(VOID, DEPS_BEFORE, print_state);
+
+_MODULE_ADD_DECLS(el);
 
 __attribute__((constructor))
 static void el_module_register(void)
 {
     const char *env_home = getenv("HOME");
-    const char *__deps[] = { "log" };
 
     log_module_register();
 
-    MODULE(el) = module_register(LSTR("el"), &MODULE(el),
-                                 &el_initialize, &el_shutdown,
-                                 __deps, countof(__deps));
+    module_implement(MODULE(el), &el_initialize, &el_shutdown, MODULE(log));
     module_implement_method(MODULE(el), &at_fork_on_child_method,
                             &el_at_fork_on_child);
     module_implement_method(MODULE(el), &at_fork_on_parent_method,
                             &el_at_fork_on_parent);
     module_implement_method(MODULE(el), &print_state_method,
                             &el_print_state);
+
+    /* TODO Fix the fact the module is self-loading then turn it into a
+     * standard module declaration. */
     MODULE_REQUIRE(el);
 
     /* Check that the $HOME environment variable is set. */

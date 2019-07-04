@@ -204,10 +204,10 @@ static int mem_bench_shutdown(void)
 void mem_bench_require(void)
 {
     static module_t *mb_module;
-    const char *deps[] = { "log" };
 
-    mb_module = module_register(LSTR("mem-bench"), &mb_module,
-                                &mem_bench_initialize, &mem_bench_shutdown,
-                                deps, countof(deps));
+    assert (!mb_module);
+    mb_module = module_implement(module_register(LSTR("mem-bench")),
+                                 &mem_bench_initialize, &mem_bench_shutdown,
+                                 MODULE(log));
     module_require(mb_module, NULL);
 }

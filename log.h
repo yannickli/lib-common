@@ -271,8 +271,6 @@ qvector_t(spec, log_trace_spec_t);
 void log_parse_specs(char * nonnull p, qv_t(spec) * nonnull out);
 qv_t(spec) * nonnull log_get_specs(void);
 
-MODULE_DECLARE(log);
-
 void log_module_register(void);
 
 /* }}} */

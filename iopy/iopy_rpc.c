@@ -1095,7 +1095,7 @@ static int iopy_rpc_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(iopy_rpc)
+static MODULE_BEGIN(iopy_rpc)
     MODULE_DEPENDS_ON(el);
     MODULE_DEPENDS_ON(ic);
 MODULE_END()
