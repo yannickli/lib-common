@@ -19,6 +19,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <lib-common/z.h>
+#include "zchk-helpers.h"
 #include "ssl.h"
 #include "hash.h"
 
@@ -820,95 +821,6 @@ int rsa_verif_finish(rsa_verif_t **pctx)
 }
 
 /* }}} */
-/* {{{ IOP helpers */
-
-static int iop_rsa_sign(const struct iop_struct_t * nonnull st,
-                        const void * nonnull v, lstr_t priv_key,
-                        rsa_hash_algo_t algo, sb_t * nonnull out,
-                        unsigned flags, pem_password_b pass_cb)
-{
-    rsa_sign_t *sg = RETHROW_PN(rsa_sign_new(priv_key, algo, pass_cb));
-
-    iop_hash(st, v, (iop_hash_f *)&rsa_sign_update, sg, flags);
-    return rsa_sign_finish_hex(&sg, out);
-}
-
-lstr_t t_iop_compute_rsa_signature(const iop_struct_t *st, const void *v,
-                                   lstr_t priv_key, unsigned flags,
-                                   pem_password_b pass_cb)
-{
-    SB_1k(out);
-
-    sb_adds(&out, "$RSA:SHA256$");
-    if (iop_rsa_sign(st, v, priv_key, RSA_HASH_SHA256, &out,
-                     flags, pass_cb) < 0)
-    {
-        return LSTR_NULL_V;
-    }
-
-    return t_lstr_dups(out.data, out.len);
-}
-
-
-static int iop_rsa_verif(const struct iop_struct_t * nonnull st,
-                         const void * nonnull v, lstr_t pub_key,
-                         rsa_hash_algo_t algo, lstr_t sig, unsigned flags,
-                         pem_password_b pass_cb)
-{
-    rsa_verif_t *sg;
-
-    sg = RETHROW_PN(rsa_verif_hex_new(pub_key, algo, sig, pass_cb));
-    iop_hash(st, v, (iop_hash_f *)&rsa_verif_update, sg, flags);
-    return rsa_verif_finish(&sg);
-}
-
-int iop_check_rsa_signature(const iop_struct_t *st, const void *v,
-                            lstr_t pub_key, lstr_t signature, unsigned flags,
-                            pem_password_b pass_cb)
-{
-    pstream_t ps = ps_initlstr(&signature);
-    pstream_t n;
-    rsa_hash_algo_t algo;
-
-#ifndef NDEBUG
-    if (lstr_equal(signature, LSTR("$42:defeca7e$"))) {
-        return 0;
-    }
-#endif
-
-
-    if (ps_skipstr(&ps, "$RSA:") < 0) {
-#ifdef NDEBUG
-        return -1;
-#else
-        return e_error("invalid RSA signature: bad signature tag");
-#endif
-    }
-
-    if (ps_get_ps_chr_and_skip(&ps, '$', &n) < 0) {
-#ifdef NDEBUG
-        return -1;
-#else
-        return e_error("invalid RSA signature: malformed algorithm name");
-#endif
-    }
-
-    if (ps_strequal(&n, "SHA256")) {
-        algo = RSA_HASH_SHA256;
-    } else {
-#ifdef NDEBUG
-        return -1;
-#else
-        return e_error("invalid RSA signature: unsupported algorith `%*pM`",
-                       PS_FMT_ARG(&n));
-#endif
-    }
-
-    return iop_rsa_verif(st, v, pub_key, algo, LSTR_PS_V(&ps), flags, pass_cb);
-}
-
-
-/* }}} */
 
 /* }}} */
 /* {{{ TLS */
@@ -1161,26 +1073,7 @@ Z_GROUP_EXPORT(ssl)
         const lstr_t text = LSTR_IMMED("secret pioupiou23\n");
         const lstr_t text_garbage = LSTR_IMMED("bonjour openssl!\n");
 
-        {
-            t_scope;
-
-            if (sb_read_file(&priv, t_fmt("%*pM/test-data/keys/priv.pem",
-                                          LSTR_FMT_ARG(z_cmddir_g))) < 0)
-            {
-                e_fatal("cannot read private key");
-            }
-            if (sb_read_file(&priv_encrypted,
-                             t_fmt("%*pM/test-data/keys/priv.encrypted.pem",
-                                   LSTR_FMT_ARG(z_cmddir_g))) < 0)
-            {
-                e_fatal("cannot read encrypted private key");
-            }
-            if (sb_read_file(&pub, t_fmt("%*pM/test-data/keys/pub.pem",
-                                         LSTR_FMT_ARG(z_cmddir_g))) < 0)
-            {
-                e_fatal("cannot read public key");
-            }
-        }
+        z_load_keys(z_cmddir_g, &priv, &priv_encrypted, &pub);
         strrand(sb_growlen(&text_rand, 1024), 1024, LSTR_NULL_V);
 
 /* {{{ PKEY */
@@ -1405,53 +1298,6 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_LSTREQUAL(text, LSTR_SB_V(&sb_clear));
         ssl_ctx_wipe(&ctx);
     } Z_TEST_END;
-
-/* }}} */
-/* {{{ IOP Signature */
-
-/* FIXME */
-#if 0
-static pem_password_b dummy_pass = ^int (char *buf, int size, int rwflags) {
-    return snprintf(buf, size, "this-is-a-complicated-pass-phrase");
-};
-
-    Z_TEST(iop_rsa_signature, "iop_rsa_signature") {
-        t_scope;
-        core__licence__t licence;
-        lstr_t sig;
-
-        iop_init(core__licence, &licence);
-        licence.registered_to = LSTR("Z tests");
-        licence.version = LSTR("3.0");
-        licence.production_use = false;
-
-        sig = t_iop_compute_rsa_signature(&core__licence__s, &licence,
-                                          LSTR_SB_V(&priv), 0, NULL);
-
-        Z_ASSERT(sig.s != NULL);
-
-        Z_ASSERT_N(iop_check_rsa_signature(&core__licence__s, &licence,
-                                           LSTR_SB_V(&pub), sig, 0, NULL));
-
-        licence.production_use = true;
-        Z_ASSERT_NEG(iop_check_rsa_signature(&core__licence__s, &licence,
-                                             LSTR_SB_V(&pub), sig, 0, NULL));
-
-
-        sig = t_iop_compute_rsa_signature(&core__licence__s, &licence,
-                                          LSTR_SB_V(&priv_encrypted), 0,
-                                          dummy_pass);
-
-        Z_ASSERT(sig.s != NULL);
-
-        Z_ASSERT_N(iop_check_rsa_signature(&core__licence__s, &licence,
-                                           LSTR_SB_V(&pub), sig, 0, NULL));
-
-        licence.production_use = false;
-        Z_ASSERT_NEG(iop_check_rsa_signature(&core__licence__s, &licence,
-                                             LSTR_SB_V(&pub), sig, 0, NULL));
-    } Z_TEST_END;
-#endif
 
 /* }}} */
 
