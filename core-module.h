@@ -548,10 +548,10 @@ void module_register_at_fork(void);
  *
  * \param[in]   tab        input modules list.
  * \param[in]   len        length of the modules list.
- * \param[out]  collision  is set so that collision is a lstr that contains
- *                         the name of the module that collides with another
- *                         module. This field is only set when -1 is
- *                         returned.
+ * \param[out]  collision  name of the first module in the list on which
+ *                         another module from the list depends (if any).
+ *
+ * \return -1 in case of collision.
  */
 __must_check__
 int module_check_no_dependencies(module_t * nonnull tab[], int len,

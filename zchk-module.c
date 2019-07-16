@@ -674,10 +674,10 @@ Z_GROUP_EXPORT(module)
 /* dependency check {{{ */
 
     Z_TEST(dependency, "Modules dependency check") {
-        module_t* liste1[] = { MODULE(module_a), MODULE(module_e) };
-        module_t* liste2[] = { MODULE(module_a), MODULE(module_e),
+        module_t *liste1[] = { MODULE(module_a), MODULE(module_e) };
+        module_t *liste2[] = { MODULE(module_a), MODULE(module_e),
                                MODULE(module_g) };
-        module_t* liste3[] = { MODULE(module_a), MODULE(module_e),
+        module_t *liste3[] = { MODULE(module_a), MODULE(module_e),
                                MODULE(module_i) };
         lstr_t collision;
 
@@ -687,6 +687,8 @@ Z_GROUP_EXPORT(module)
                                                 &collision));
         Z_ASSERT_NEG(module_check_no_dependencies(liste3, countof(liste3),
                                                   &collision));
+        Z_ASSERT_LSTREQUAL(collision,
+                           LSTR(module_get_name(MODULE(module_i))));
     } Z_TEST_END;
 
 /* }}} */

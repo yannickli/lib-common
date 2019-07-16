@@ -664,22 +664,11 @@ void module_register_at_fork(void)
 
 /** Adds to qh all the modules that are dependent of the module m.
  */
-static void add_dependencies_to_qh(module_t *m, qh_t(lstr) *qh)
+static void add_dependencies_to_qh(module_t *m, qh_t(module) *qh)
 {
     tab_for_each_entry(dep, &m->dependent_of) {
-        lstr_t e = dep->name;
-
-        if (qh_add(lstr, qh, &e) >= 0) {
-            module_t *mod;
-            int pos = qm_find(module, &_G.modules, &e);
-
-            if (!expect(pos >= 0)) {
-                logger_error(&_G.logger, "unknown module `%*pM`",
-                             LSTR_FMT_ARG(e));
-                continue;
-            }
-            mod = _G.modules.values[pos];
-            add_dependencies_to_qh(mod, qh);
+        if (qh_add(module, qh, dep) >= 0) {
+            add_dependencies_to_qh(dep, qh);
         }
     }
 }
@@ -688,15 +677,15 @@ int module_check_no_dependencies(module_t *tab[], int len,
                                  lstr_t *collision)
 {
     t_scope;
-    qh_t(lstr) dependencies;
+    qh_t(module) dependencies;
 
-    t_qh_init(lstr, &dependencies, len);
+    t_qh_init(module, &dependencies, len);
     for (int pos = 0; pos < len; pos++) {
         add_dependencies_to_qh(tab[pos], &dependencies);
     }
     for (int pos = 0; pos < len; pos++) {
-        if (qh_find(lstr, &dependencies, &tab[pos]->name) >= 0) {
-            *collision = tab[pos]->name;
+        if (qh_find(module, &dependencies, tab[pos]) >= 0) {
+            *collision = lstr_dupc(tab[pos]->name);
             return -1;
         }
     }
