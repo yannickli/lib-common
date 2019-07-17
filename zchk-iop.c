@@ -483,26 +483,27 @@ static void **t_z_create_values_ptr_from_values(void *values, int values_len,
     return values_ptrs;
 }
 
-static int z_iop_filter_check_results(const iop_struct_t *obj_st, void *objs,
-                                     int objs_len, void *exps, int exps_len)
+static int z_iop_filter_check_results(const iop_struct_t *obj_st,
+                                      void *tst_objs, int tst_objs_len,
+                                      void *exp_objs, int exp_objs_len)
 {
     bool is_pointer = iop_struct_is_class(obj_st);
     size_t obj_size = is_pointer ? sizeof(void *) : obj_st->size;
 
-    Z_ASSERT_EQ(exps_len, objs_len);
-    for (int i = 0; i < exps_len; i++) {
-        void *exp = exps;
-        void *obj = objs;
+    Z_ASSERT_EQ(exp_objs_len, tst_objs_len);
+    for (int i = 0; i < exp_objs_len; i++) {
+        void *exp_obj = exp_objs;
+        void *tst_obj = tst_objs;
 
         if (is_pointer) {
-            exp = *(void **)exp;
-            obj = *(void **)obj;
+            exp_obj = *(void **)exp_obj;
+            tst_obj = *(void **)tst_obj;
         }
 
-        Z_ASSERT_IOPEQUAL_DESC(obj_st, exp, obj);
+        Z_ASSERT_IOPEQUAL_DESC(obj_st, exp_obj, tst_obj);
 
-        exps = (uint8_t *)exps + obj_size;
-        objs = (uint8_t *)objs + obj_size;
+        exp_objs = (uint8_t *)exp_objs + obj_size;
+        tst_objs = (uint8_t *)tst_objs + obj_size;
     }
 
     Z_HELPER_END;
@@ -511,8 +512,9 @@ static int z_iop_filter_check_results(const iop_struct_t *obj_st, void *objs,
 static int z_iop_filter_check_filter(const char *field, unsigned flags,
                                      void *values, int values_len,
                                      size_t value_size,
-                                     const iop_struct_t *obj_st, void *objs,
-                                     int objs_len, void *exps, int exps_len)
+                                     const iop_struct_t *obj_st,
+                                     void *tst_objs, int tst_objs_len,
+                                     void *exp_objs, int exp_objs_len)
 {
     t_scope;
     SB_1k(err);
@@ -521,11 +523,12 @@ static int z_iop_filter_check_filter(const char *field, unsigned flags,
     values_ptrs = t_z_create_values_ptr_from_values(values, values_len,
                                                     value_size);
 
-    Z_ASSERT_N(iop_filter(obj_st, objs, &objs_len, LSTR(field), values_ptrs,
-                          values_len, flags, &err), "%*pM", SB_FMT_ARG(&err));
+    Z_ASSERT_N(iop_filter(obj_st, tst_objs, &tst_objs_len, LSTR(field),
+                          values_ptrs, values_len, flags, &err),
+               "%*pM", SB_FMT_ARG(&err));
 
-    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
-                                            exps_len));
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, tst_objs, tst_objs_len,
+                                            exp_objs, exp_objs_len));
     Z_HELPER_END;
 }
 
@@ -539,16 +542,17 @@ static int z_iop_filter_check_filter(const char *field, unsigned flags,
 #define ARGS_TO_ARRAY(...)  { __VA_ARGS__ }
 
 #define Z_IOP_FILTER_CHECK_FILTER(_value_type, _obj_type, _obj_st,           \
-                                  _objs_args, _flags, _field, _values_args,  \
-                                  _exps_args)                                \
+                                  _tst_objs_args, _flags, _field,            \
+                                  _values_args, _exp_objs_args)              \
     do {                                                                     \
         _value_type _values[] = ARGS_TO_ARRAY _values_args;                  \
-        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
-        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+        _obj_type _tst_objs[] = ARGS_TO_ARRAY _tst_objs_args;                \
+        _obj_type _exp_objs[] = ARGS_TO_ARRAY _exp_objs_args;                \
                                                                              \
         Z_HELPER_RUN(z_iop_filter_check_filter(                              \
             _field, _flags, _values, countof(_values), sizeof(_value_type),  \
-            _obj_st, _objs, countof(_objs), _exps, countof(_exps)));         \
+            _obj_st, _tst_objs, countof(_tst_objs), _exp_objs,               \
+            countof(_exp_objs)));                                            \
     } while (0)
 
 static int t_z_iop_filter_add_bitmap(const char *field, unsigned flags,
@@ -556,7 +560,8 @@ static int t_z_iop_filter_add_bitmap(const char *field, unsigned flags,
                                      void *values, int values_len,
                                      size_t value_size,
                                      const iop_struct_t *obj_st,
-                                     void *objs, int objs_len, byte **bitmap)
+                                     void *tst_objs, int tst_objs_len,
+                                     byte **bitmap)
 {
     SB_1k(err);
     void *values_ptrs;
@@ -564,69 +569,72 @@ static int t_z_iop_filter_add_bitmap(const char *field, unsigned flags,
     values_ptrs = t_z_create_values_ptr_from_values(values, values_len,
                                                     value_size);
 
-    Z_ASSERT_N(t_iop_filter_bitmap(obj_st, objs, objs_len, LSTR(field),
-                                   values_ptrs, values_len, flags, op, bitmap,
-                                   &err), "%*pM", SB_FMT_ARG(&err));
+    Z_ASSERT_N(t_iop_filter_bitmap(obj_st, tst_objs, tst_objs_len,
+                                   LSTR(field), values_ptrs, values_len,
+                                   flags, op, bitmap, &err),
+               "%*pM", SB_FMT_ARG(&err));
 
     Z_HELPER_END;
 }
 
 #define T_Z_IOP_FILTER_ADD_BITMAP(_value_type, _obj_type, _obj_st,           \
-                                  _objs_args, _flags, _field, _op,           \
+                                  _tst_objs_args, _flags, _field, _op,       \
                                   _values_args, _bitmap)                     \
     do {                                                                     \
         _value_type _values[] = ARGS_TO_ARRAY _values_args;                  \
-        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
+        _obj_type _tst_objs[] = ARGS_TO_ARRAY _tst_objs_args;                \
                                                                              \
         Z_HELPER_RUN(t_z_iop_filter_add_bitmap(                              \
             _field, _flags, _op, _values, countof(_values),                  \
-            sizeof(_value_type), _obj_st, _objs, countof(_objs), _bitmap));  \
+            sizeof(_value_type), _obj_st, _tst_objs, countof(_tst_objs),     \
+            _bitmap));                                                       \
     } while (0)
 
 static int z_iop_filter_apply_bitmap(byte *bitmap,
                                      const iop_struct_t *obj_st,
-                                     void *objs, int objs_len,
-                                     void *exps, int exps_len)
+                                     void *tst_objs, int tst_objs_len,
+                                     void *exp_objs, int exp_objs_len)
 {
-    iop_filter_bitmap_apply(obj_st, objs, &objs_len, bitmap);
-    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
-                                            exps_len));
+    iop_filter_bitmap_apply(obj_st, tst_objs, &tst_objs_len, bitmap);
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, tst_objs, tst_objs_len,
+                                            exp_objs, exp_objs_len));
     Z_HELPER_END;
 }
 
-#define Z_IOP_FILTER_APPLY_BITMAP(_obj_type, _obj_st, _objs_args, _exps_args,\
-                                  _bitmap)                                   \
+#define Z_IOP_FILTER_APPLY_BITMAP(_obj_type, _obj_st, _tst_objs_args,        \
+                                  _exp_objs_args, _bitmap)                   \
     do {                                                                     \
-        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
-        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+        _obj_type _tst_objs[] = ARGS_TO_ARRAY _tst_objs_args;                \
+        _obj_type _exp_objs[] = ARGS_TO_ARRAY _exp_objs_args;                \
                                                                              \
-        Z_HELPER_RUN(z_iop_filter_apply_bitmap(_bitmap, _obj_st, _objs,      \
-                                               countof(_objs), _exps,        \
-                                               countof(_exps)));             \
+        Z_HELPER_RUN(z_iop_filter_apply_bitmap(_bitmap, _obj_st, _tst_objs,  \
+                                               countof(_tst_objs), _exp_objs,\
+                                               countof(_exp_objs)));         \
     } while (0)
 
 static int z_iop_filter_check_opt(const char *field, bool must_be_set,
-                                  const iop_struct_t *obj_st, void *objs,
-                                  int objs_len, void *exps, int exps_len)
+                                  const iop_struct_t *obj_st, void *tst_objs,
+                                  int tst_objs_len, void *exp_objs,
+                                  int exp_objs_len)
 {
     SB_1k(err);
 
-    Z_ASSERT_N(iop_filter_opt(obj_st, objs, &objs_len, LSTR(field),
+    Z_ASSERT_N(iop_filter_opt(obj_st, tst_objs, &tst_objs_len, LSTR(field),
                               must_be_set, &err), "%*pM", SB_FMT_ARG(&err));
-    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, objs, objs_len, exps,
-                                            exps_len));
+    Z_HELPER_RUN(z_iop_filter_check_results(obj_st, tst_objs, tst_objs_len,
+                                            exp_objs, exp_objs_len));
     Z_HELPER_END;
 }
 
-#define Z_IOP_FILTER_CHECK_OPT(_obj_type, _obj_st, _objs_args, _field,       \
-                               _must_be_set, _exps_args)                     \
+#define Z_IOP_FILTER_CHECK_OPT(_obj_type, _obj_st, _tst_objs_args, _field,   \
+                               _must_be_set, _exp_objs_args)                 \
     do {                                                                     \
-        _obj_type _objs[] = ARGS_TO_ARRAY _objs_args;                        \
-        _obj_type _exps[] = ARGS_TO_ARRAY _exps_args;                        \
+        _obj_type _tst_objs[] = ARGS_TO_ARRAY _tst_objs_args;                \
+        _obj_type _exp_objs[] = ARGS_TO_ARRAY _exp_objs_args;                \
                                                                              \
         Z_HELPER_RUN(z_iop_filter_check_opt(                                 \
-            _field, _must_be_set, _obj_st, _objs, countof(_objs), _exps,     \
-            countof(_exps)));                                                \
+            _field, _must_be_set, _obj_st, _tst_objs, countof(_tst_objs),    \
+            _exp_objs, countof(_exp_objs)));                                 \
     } while (0)
 
 /* }}} */
@@ -4312,11 +4320,11 @@ Z_GROUP_EXPORT(iop)
         third.b = 1;
         third.d = 44;
 
-#define CHECK_FILTER(_field, _values_args, _exps_args)                       \
+#define CHECK_FILTER(_field, _values_args, _exp_objs_args)                   \
     Z_IOP_FILTER_CHECK_FILTER(int, tstiop__filtered_struct__t,               \
                               &tstiop__filtered_struct__s,                   \
                               (first, second, third), 0, _field,             \
-                              _values_args, _exps_args)
+                              _values_args, _exp_objs_args)
 
         /* Simple filter */
         CHECK_FILTER("a", (1), (first, third));
@@ -4395,11 +4403,11 @@ Z_GROUP_EXPORT(iop)
         third->int1 = 1;
         third->int2 = 1;
 
-#define CHECK_FILTER(_field, _value_type, _values_args, _exps_args)          \
+#define CHECK_FILTER(_field, _value_type, _values_args, _exp_objs_args)      \
     Z_IOP_FILTER_CHECK_FILTER(_value_type, tstiop__my_class2__t *,           \
                               &tstiop__my_class2__s,                         \
                               (first, second, third), 0, _field,             \
-                              _values_args, _exps_args)
+                              _values_args, _exp_objs_args)
 
         /* Simple filter */
         CHECK_FILTER("int1", int, (1), (first, third));
@@ -4430,11 +4438,11 @@ Z_GROUP_EXPORT(iop)
         iop_init(tstiop__filtered_struct, &third);
         third.s = LSTR("tutu");
 
-#define CHECK_FILTER(_flags, _exps_args)                                     \
+#define CHECK_FILTER(_flags, _exp_objs_args)                                 \
     Z_IOP_FILTER_CHECK_FILTER(lstr_t, tstiop__filtered_struct__t,            \
                               &tstiop__filtered_struct__s,                   \
                               (first, second, third), _flags, "s",           \
-                              (filter), _exps_args)
+                              (filter), _exp_objs_args)
 
         /* Simple filters */
         filter = LSTR("none");
@@ -4468,11 +4476,11 @@ Z_GROUP_EXPORT(iop)
         iop_init(tstiop__my_struct_a_opt, &second);
         iop_init(tstiop__my_struct_a_opt, &third);
 
-#define CHECK_FILTER(_field, _must_be_set, _exps_args)                       \
+#define CHECK_FILTER(_field, _must_be_set, _exp_objs_args)                   \
     Z_IOP_FILTER_CHECK_OPT(tstiop__my_struct_a_opt__t,                       \
                            &tstiop__my_struct_a_opt__s,                      \
                            (first, second, third), _field, _must_be_set,     \
-                           _exps_args)
+                           _exp_objs_args)
 
         /* Test filter on optional string. */
         second.j = LSTR("present");
@@ -4548,12 +4556,12 @@ Z_GROUP_EXPORT(iop)
         third.b = 1;
         third.d = 44;
 
-#define CHECK_FILTER(_field, _values_args, _exps_args)                       \
+#define CHECK_FILTER(_field, _values_args, _exp_objs_args)                   \
     Z_IOP_FILTER_CHECK_FILTER(int, tstiop__filtered_struct__t,               \
                               &tstiop__filtered_struct__s,                   \
                               (first, second, third),                        \
                               IOP_FILTER_INVERT_MATCH, _field, _values_args, \
-                              _exps_args)
+                              _exp_objs_args)
 
         /* Simple filter */
         CHECK_FILTER("a", (1), (second));
@@ -4633,12 +4641,12 @@ Z_GROUP_EXPORT(iop)
         third->int1 = 1;
         third->int2 = 1;
 
-#define CHECK_FILTER(_field, _value_type, _values_args, _exps_args)          \
+#define CHECK_FILTER(_field, _value_type, _values_args, _exp_objs_args)      \
     Z_IOP_FILTER_CHECK_FILTER(_value_type, tstiop__my_class2__t *,           \
                               &tstiop__my_class2__s,                         \
                               (first, second, third),                        \
                               IOP_FILTER_INVERT_MATCH, _field, _values_args, \
-                              _exps_args)
+                              _exp_objs_args)
 
         /* Simple filter */
         CHECK_FILTER("int1", int, (1), (second));
@@ -4670,12 +4678,12 @@ Z_GROUP_EXPORT(iop)
         iop_init(tstiop__filtered_struct, &third);
         third.s = LSTR("tutu");
 
-#define CHECK_FILTER(_flags, _exps_args)                                     \
+#define CHECK_FILTER(_flags, _exp_objs_args)                                 \
     Z_IOP_FILTER_CHECK_FILTER(lstr_t, tstiop__filtered_struct__t,            \
                               &tstiop__filtered_struct__s,                   \
                               (first, second, third),                        \
                               _flags | IOP_FILTER_INVERT_MATCH, "s",         \
-                              (filter), _exps_args)
+                              (filter), _exp_objs_args)
 
         /* Simple filters */
         filter = LSTR("none");
