@@ -145,7 +145,7 @@ static int build_doit_table(qv_t(doit) *doits)
         /* No language specified; this is authorized in case of --depends. */
         if (!opts.depends) {
             print_error("no language specified");
-            goto error;
+            return -1;
         }
         return 0;
     }
