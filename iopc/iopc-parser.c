@@ -3406,7 +3406,9 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)
     &&  attr->args.len != attr->desc->args.len)
     {
-        throw_loc("wrong number of arguments", attr->loc);
+        throw_loc("attribute %*pM expects %d arguments, got %d", attr->loc,
+                  LSTR_FMT_ARG(attr->desc->name), attr->desc->args.len,
+                  attr->args.len);
     }
 
     if (attr->desc->id == IOPC_ATTR_MIN_OCCURS

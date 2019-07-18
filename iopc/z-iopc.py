@@ -748,6 +748,11 @@ class IopcTest(z.TestCase):
         self.run_iopc(f, False,
                       'attribute ctype expects at least one argument')
 
+    def test_attrs_bad_nb_args(self):
+        f = 'attrs_bad_nb_args.iop'
+        self.run_iopc(f, False,
+                      'attribute prefix expects 1 arguments, got 0')
+
     # }}}
     # {{{ Generic attributes
 
