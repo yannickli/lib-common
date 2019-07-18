@@ -347,18 +347,6 @@ union MyExceptions {
     MyBException b;
 };
 
-struct MyHashed {
-    int a;
-};
-
-struct MyHashedExtended {
-    int a;
-    int? b;
-    int[] c;
-    int d = 12;
-    string s = "default-value";
-};
-
 struct MyReferencedStruct {
     int a;
 };
