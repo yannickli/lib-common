@@ -3399,6 +3399,10 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     iopc_lexer_pop_state(pp->ld);
     DROP(pp, 1);
 
+    if (IOPC_ATTR_REPEATED_MONO_ARG(attr->desc) && !attr->args.len) {
+        throw_loc("attribute %*pM expects at least one argument", attr->loc,
+                  LSTR_FMT_ARG(attr->desc->name));
+    }
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)
     &&  attr->args.len != attr->desc->args.len)
     {

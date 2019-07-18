@@ -743,6 +743,11 @@ class IopcTest(z.TestCase):
                       'attribute min is larger than maximum value of '
                       'type ubyte (256 > 255)')
 
+    def test_attrs_empty_ctype(self):
+        f = 'attrs_empty_ctype.iop'
+        self.run_iopc(f, False,
+                      'attribute ctype expects at least one argument')
+
     # }}}
     # {{{ Generic attributes
 
