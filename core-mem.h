@@ -675,6 +675,9 @@ void core_mem_set_malloc_trim_period(int64_t period);
 /** Set the value to use when calling malloc_trim(). */
 void core_mem_set_malloc_trim_pad(size_t pad);
 
+/** Manually call malloc trim. */
+void core_mem_malloc_trim(void);
+
 /* }}} */
 /* Mem-fifo Pool {{{ */
 
