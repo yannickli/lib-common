@@ -229,7 +229,7 @@ static int core_mem_libc_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(core_mem_libc)
+static MODULE_BEGIN(core_mem_libc)
     MODULE_DEPENDS_ON(el);
     MODULE_IMPLEMENTS_VOID(print_state, &core_mem_libc_print_state);
 MODULE_END()

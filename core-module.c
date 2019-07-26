@@ -51,6 +51,7 @@ static void module_method_register_all_cb(void);
 
 typedef enum module_state_t {
     REGISTERED   = 0,
+
     AUTO_REQ     = 1 << 0, /* Initialized automatically */
     MANU_REQ     = 1 << 1, /* Initialized manually */
 
@@ -66,8 +67,7 @@ struct module_t {
     module_state_t state;
     int manu_req_count;
 
-    /* Vector of module name */
-    qv_t(lstr)   dependent_of;
+    qv_t(module) dependent_of;
     qv_t(module) required_by;
     qm_t(methods) methods;
 
@@ -86,7 +86,7 @@ GENERIC_NEW(module_t, module);
 static void module_wipe(module_t *module)
 {
     lstr_wipe(&(module->name));
-    qv_deep_wipe(&module->dependent_of, lstr_wipe);
+    qv_wipe(&module->dependent_of);
     qv_wipe(&module->required_by);
     qm_wipe(methods, &module->methods);
 }
@@ -94,8 +94,6 @@ GENERIC_DELETE(module_t, module);
 
 
 qm_kptr_t(module, lstr_t, module_t *, qhash_lstr_hash, qhash_lstr_equal);
-qm_khptr_t(module_arg, void, void *);
-qm_kvec_t(module_dep, lstr_t, qh_t(ptr), qhash_lstr_hash, qhash_lstr_equal);
 qh_khptr_t(module, module_t);
 
 /* }}} */
@@ -104,8 +102,6 @@ qh_khptr_t(module, module_t);
 static struct module_g {
     logger_t logger;
     qm_t(module)     modules;
-    qm_t(module_arg) modules_arg;
-    qm_t(module_dep) module_dep_resolve;
 
     qm_t(methods_impl) methods;
 
@@ -118,8 +114,6 @@ static struct module_g {
 #define _G module_g
     .logger = LOGGER_INIT(NULL, "module", LOG_INHERITS),
     .modules     = QM_INIT(module, _G.modules),
-    .modules_arg = QM_INIT(module_arg, _G.modules_arg),
-    .module_dep_resolve = QM_INIT(module_dep, _G.module_dep_resolve),
     .methods = QM_INIT(methods_impl, _G.methods),
 };
 
@@ -138,87 +132,49 @@ set_require_type(module_t *module, module_t *required_by)
     }
 }
 
-module_t *module_register(lstr_t name, module_t **module,
-                          int (*constructor)(void *),
-                          int (*destructor)(void),
-                          const char *dependencies[], int nb_dependencies)
+module_t *module_register(lstr_t name)
 {
-    module_t *new_module;
-    int pos, arg_pos, qm_pos;
+    module_t *module;
+    int pos;
 
     pos = qm_reserve(module, &_G.modules, &name, 0);
-
-    if (pos & QHASH_COLLISION) {
-        logger_warning(&_G.logger,
-                       "%*pM has already been register", LSTR_FMT_ARG(name));
-        return NULL;
+    if (!expect(!(pos & QHASH_COLLISION))) {
+        logger_error(&_G.logger, "%*pM has already been registered",
+                     LSTR_FMT_ARG(name));
+        return _G.modules.values[pos & ~QHASH_COLLISION];
     }
 
-    new_module = module_new();
-    new_module->state = REGISTERED;
-    new_module->name = lstr_dup(name);
-    new_module->manu_req_count = 0;
-    if ((arg_pos = qm_find(module_arg, &_G.modules_arg, module)) >= 0) {
-        new_module->constructor_argument = _G.modules_arg.values[arg_pos];
-    } else {
-        new_module->constructor_argument = NULL;
-    }
-    new_module->constructor = constructor;
-    new_module->destructor = destructor;
+    module = module_new();
+    module->state = REGISTERED;
+    module->name = lstr_dup(name);
 
-    for (int i = 0; i < nb_dependencies; i++) {
-        qv_append(&new_module->dependent_of, LSTR(dependencies[i]));
-    }
+    _G.modules.keys[pos] = &module->name;
+    _G.modules.values[pos] = module;
 
-    qm_pos = qm_del_key(module_dep, &_G.module_dep_resolve, &name);
-    if (qm_pos >= 0) {
-        qh_t(ptr) *modules_dep;
-
-        modules_dep = &_G.module_dep_resolve.values[qm_pos];
-        qh_for_each_pos(ptr, qh_pos, modules_dep) {
-            qv_append(&new_module->dependent_of,
-                      lstr_dupc(((module_t *)modules_dep->keys[qh_pos])->name));
-        }
-        qh_wipe(ptr, modules_dep);
-        lstr_wipe(&_G.module_dep_resolve.keys[qm_pos]);
-    }
-
-    _G.modules.keys[pos] = &new_module->name;
-    _G.modules.values[pos] = new_module;
-
-    *module = new_module;
-    return new_module;
+    return module;
 }
 
-void module_add_dep(module_t *module, lstr_t name, lstr_t dep,
-                    module_t **dep_ptr)
+module_t *module_implement(module_t *module,
+                           int (*constructor)(void *),
+                           int (*destructor)(void),
+                           module_t *dependency)
 {
-    /* XXX dep_ptr is used only to force an explicit dependency between
-     * modules. This guarantees that if module is present in the binary, the
-     * dependency will be present too.
-     */
+    assert (!module->constructor);
+    module->constructor = constructor;
+    assert (!module->destructor);
+    module->destructor = destructor;
 
-    if (!module) {
-        int pos;
-        qh_t(ptr) *dep_modules;
-
-        pos = qm_reserve(module_dep, &_G.module_dep_resolve, &name, 0);
-
-        if (pos & QHASH_COLLISION) {
-            pos ^= QHASH_COLLISION;
-
-            dep_modules = &_G.module_dep_resolve.values[pos];
-        } else {
-            _G.module_dep_resolve.keys[pos] = lstr_dup(name);
-            dep_modules = &_G.module_dep_resolve.values[pos];
-            qh_init(ptr, dep_modules);
-        }
-        IGNORE(expect(qh_add(ptr, dep_modules, *dep_ptr) >= 0));
-        return;
+    if (dependency) {
+        qv_push(&module->dependent_of, dependency);
     }
 
+    return module;
+}
+
+void module_add_dep(module_t *module, module_t *dep)
+{
     assert (module->state == REGISTERED);
-    qv_append(&module->dependent_of, lstr_dup(dep));
+    qv_append(&module->dependent_of, dep);
 }
 
 static int modules_topo_visit(qh_t(module) *temporary_mark,
@@ -234,14 +190,8 @@ static int modules_topo_visit(qh_t(module) *temporary_mark,
         return -1;
     }
     tab_for_each_entry(dep, &m->dependent_of) {
-        module_t *mdep = qm_get_def(module, &_G.modules, &dep, NULL);
-
-        if (!mdep) {
-            sb_addf(err, "invalid module %*pM", LSTR_FMT_ARG(dep));
-            return -1;
-        }
         if (modules_topo_visit(temporary_mark, permanent_mark,
-                               ordered_modules, mdep, err) < 0)
+                               ordered_modules, dep, err) < 0)
         {
             sb_prependf(err, "-> %*pM", LSTR_FMT_ARG(m->name));
             return -1;
@@ -323,7 +273,7 @@ void module_require(module_t *module, module_t *required_by)
     _G.methods_dirty = true;
 
     tab_for_each_entry(dep, &module->dependent_of) {
-        module_require(qm_get(module, &_G.modules, &dep), module);
+        module_require(dep, module);
     }
 
     logger_trace(&_G.logger, 1, "calling `%*pM` constructor",
@@ -339,19 +289,13 @@ void module_require(module_t *module, module_t *required_by)
     _G.in_initialization--;
 }
 
-void module_provide(module_t **module, void *argument)
+void module_provide(module_t *module, void *argument)
 {
-    if (!(*module)) {
-        if (qm_add(module_arg, &_G.modules_arg, module, argument) < 0) {
-            logger_warning(&_G.logger, "argument has already been provided");
-        }
-        return;
-    }
-    if ((*module)->constructor_argument) {
+    if (module->constructor_argument) {
         logger_warning(&_G.logger, "argument for module '%*pM' has already "
-                       "been provided", LSTR_FMT_ARG((*module)->name));
+                       "been provided", LSTR_FMT_ARG(module->name));
     }
-    (*module)->constructor_argument = argument;
+    module->constructor_argument = argument;
 }
 
 void * nullable module_get_arg(module_t * nonnull mod)
@@ -422,7 +366,7 @@ static int module_shutdown(module_t *module)
     tab_for_each_entry(dep, &module->dependent_of) {
         int shut;
 
-        shut = notify_shutdown(qm_get(module, &_G.modules, &dep), module);
+        shut = notify_shutdown(dep, module);
         if (shut < 0) {
             shut_dependent = shut;
         }
@@ -516,11 +460,6 @@ static void module_hard_shutdown(void)
 
 extern bool syslog_is_critical;
 
-static void module_dep_qh_wipe(qh_t(ptr) *qh)
-{
-    qh_wipe(ptr, qh);
-}
-
 __attribute__((destructor))
 static void _module_shutdown(void)
 {
@@ -533,9 +472,6 @@ static void _module_shutdown(void)
     }
     qm_deep_wipe(methods_impl, &_G.methods, IGNORE, module_method_delete);
     qm_deep_wipe(module, &_G.modules, IGNORE, module_delete);
-    qm_wipe(module_arg, &_G.modules_arg);
-    qm_deep_wipe(module_dep, &_G.module_dep_resolve, lstr_wipe,
-                 module_dep_qh_wipe);
     logger_wipe(&_G.logger);
     _G.is_shutdown = true;
 }
@@ -728,20 +664,11 @@ void module_register_at_fork(void)
 
 /** Adds to qh all the modules that are dependent of the module m.
  */
-static void add_dependencies_to_qh(module_t *m, qh_t(lstr) *qh)
+static void add_dependencies_to_qh(module_t *m, qh_t(module) *qh)
 {
-    tab_for_each_entry(e, &m->dependent_of) {
-        if (qh_add(lstr, qh, &e) >= 0) {
-            module_t *mod;
-            int pos = qm_find(module, &_G.modules, &e);
-
-            if (!expect(pos >= 0)) {
-                logger_error(&_G.logger, "unknown module `%*pM`",
-                             LSTR_FMT_ARG(e));
-                continue;
-            }
-            mod = _G.modules.values[pos];
-            add_dependencies_to_qh(mod, qh);
+    tab_for_each_entry(dep, &m->dependent_of) {
+        if (qh_add(module, qh, dep) >= 0) {
+            add_dependencies_to_qh(dep, qh);
         }
     }
 }
@@ -750,15 +677,15 @@ int module_check_no_dependencies(module_t *tab[], int len,
                                  lstr_t *collision)
 {
     t_scope;
-    qh_t(lstr) dependencies;
+    qh_t(module) dependencies;
 
-    t_qh_init(lstr, &dependencies, len);
+    t_qh_init(module, &dependencies, len);
     for (int pos = 0; pos < len; pos++) {
         add_dependencies_to_qh(tab[pos], &dependencies);
     }
     for (int pos = 0; pos < len; pos++) {
-        if (qh_find(lstr, &dependencies, &tab[pos]->name) >= 0) {
-            *collision = tab[pos]->name;
+        if (qh_find(module, &dependencies, tab[pos]) >= 0) {
+            *collision = lstr_dupc(tab[pos]->name);
             return -1;
         }
     }
@@ -778,9 +705,9 @@ void module_debug_dump_hierarchy(sb_t *modules, sb_t *dependencies)
 
         sb_addf(modules, "%*pM;%d\n", LSTR_FMT_ARG(module->name),
                 module_is_loaded(module) ? 1 : 0);
-        tab_for_each_entry(dep_name, &module->dependent_of) {
+        tab_for_each_entry(dep, &module->dependent_of) {
             sb_addf(dependencies, "%*pM;%*pM\n", LSTR_FMT_ARG(module->name),
-                    LSTR_FMT_ARG(dep_name));
+                    LSTR_FMT_ARG(dep->name));
         }
     }
 }

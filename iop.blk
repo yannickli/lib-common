@@ -7485,13 +7485,14 @@ static int iop_shutdown(void)
     return 0;
 }
 
-module_t *MODULE(iop);
+module_t *iop_module_g;
+
+_MODULE_ADD_DECLS(iop);
 
 void iop_module_register(void)
 {
-    if (!MODULE(iop)) {
-        MODULE(iop) = module_register(LSTR("iop"), &iop_module,
-                                      &iop_initialize, &iop_shutdown, NULL,
-                                      0);
+    if (!iop_module_g) {
+        iop_module_g = module_implement(MODULE(iop), &iop_initialize,
+                                        &iop_shutdown, NULL);
     }
 }

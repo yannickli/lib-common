@@ -185,7 +185,7 @@ static int ztst_libc_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(ztst_libc)
+static MODULE_BEGIN(ztst_libc)
     MODULE_IMPLEMENTS_INT(on_term, &ztst_libc_on_term);
 MODULE_END()
 
@@ -255,7 +255,7 @@ static int ztst_stack_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(ztst_stack)
+static MODULE_BEGIN(ztst_stack)
     MODULE_IMPLEMENTS_INT(on_term, &ztst_stack_on_term);
 MODULE_END()
 
@@ -363,7 +363,7 @@ static int ztst_ring_shutdown(void)
     return 0;
 }
 
-MODULE_BEGIN(ztst_ring)
+static MODULE_BEGIN(ztst_ring)
     MODULE_IMPLEMENTS_INT(on_term, &ztst_ring_on_term);
 MODULE_END()
 
