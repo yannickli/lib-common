@@ -782,6 +782,9 @@ void sb_add_b64_finish(sb_t * nonnull sb, sb_b64_ctx_t * nonnull ctx)
 
 void sb_add_b64(sb_t * nonnull sb, const void * nonnull data,
                 int len, int width) __leaf;
+
+void sb_add_lstr_b64(sb_t * nonnull sb, lstr_t data, int width);
+
 int  sb_add_unb64(sb_t * nonnull sb, const void * nonnull data, int len)
     __leaf;
 static inline void sb_adds_b64(sb_t * nonnull sb, const char * nonnull s,
@@ -790,6 +793,34 @@ static inline void sb_adds_b64(sb_t * nonnull sb, const char * nonnull s,
     sb_add_b64(sb, s, strlen(s), width);
 }
 __SB_DEFINE_ADDS_ERR(unb64, "DecodingBase64");
+
+/** base64url encoder/decoder.
+ *
+ * base64url is a variant of base64 where '+' and '/' are respectively
+ * replaced by '-' and '_', making it suitable for a use in URLs and file
+ * names.
+ */
+
+#define sb_add_b64url_start  sb_add_b64_start
+
+void sb_add_b64url_update(sb_t * nonnull sb, const void * nonnull src0,
+                          int len, sb_b64_ctx_t * nonnull ctx) __leaf;
+void sb_add_b64url_finish(sb_t * nonnull sb, sb_b64_ctx_t * nonnull ctx)
+    __leaf;
+
+void sb_add_b64url(sb_t * nonnull sb, const void * nonnull data,
+                   int len, int width) __leaf;
+
+void sb_add_lstr_b64url(sb_t * nonnull sb, lstr_t data, int width);
+
+int  sb_add_unb64url(sb_t * nonnull sb, const void * nonnull data, int len)
+    __leaf;
+static inline void sb_adds_b64url(sb_t * nonnull sb, const char * nonnull s,
+                                  int width)
+{
+    sb_add_b64url(sb, s, strlen(s), width);
+}
+__SB_DEFINE_ADDS_ERR(unb64url, "DecodingBase64Url");
 
 /** Append the CSV-escaped version of the string in the given sb.
  *

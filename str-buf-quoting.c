@@ -18,6 +18,9 @@
 static const char __b64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+static const char __b64url[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
 static unsigned char const __str_url_invalid[256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255),
@@ -47,6 +50,18 @@ static unsigned char const __decode_base64[256] = {
     52, 53, 54, 55, 56, 57, 58, 59, 60, 61, INV, INV, INV, INV, INV, INV,
     INV, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 /* O */,
     15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 /* Z */, INV, INV, INV, INV, INV,
+    INV, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 /* o */,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51 /* z */, INV, INV, INV, INV, INV,
+    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
+    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
+};
+
+static unsigned char const __decode_base64url[256] = {
+    REPEAT16, REPEAT16,
+    REPEAT8, INV, INV, INV, INV, INV, 62 /* - */, INV, INV,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, INV, INV, INV, INV, INV, INV,
+    INV, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 /* O */,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 /* Z */, INV, INV, INV, INV, 63 /* _ */,
     INV, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 /* o */,
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51 /* z */, INV, INV, INV, INV, INV,
     REPEAT16, REPEAT16, REPEAT16, REPEAT16,
@@ -687,7 +702,8 @@ void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
     sb_grow(dst, b64_rough_size(len, width));
 }
 
-void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
+static void _sb_add_b64_update(sb_t *dst, const void *src0, int len,
+                               sb_b64_ctx_t *ctx, const char table[64])
 {
     short ppline    = ctx->packs_per_line;
     short pack_num  = ctx->pack_num;
@@ -717,10 +733,10 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
         pack |= *src++ <<  0;
 
       initialized:
-        *data++ = __b64[(pack >> (3 * 6)) & 0x3f];
-        *data++ = __b64[(pack >> (2 * 6)) & 0x3f];
-        *data++ = __b64[(pack >> (1 * 6)) & 0x3f];
-        *data++ = __b64[(pack >> (0 * 6)) & 0x3f];
+        *data++ = table[(pack >> (3 * 6)) & 0x3f];
+        *data++ = table[(pack >> (2 * 6)) & 0x3f];
+        *data++ = table[(pack >> (1 * 6)) & 0x3f];
+        *data++ = table[(pack >> (0 * 6)) & 0x3f];
 
         if (ppline > 0 && ++pack_num >= ppline) {
             pack_num = 0;
@@ -735,16 +751,29 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
     __sb_fixlen(dst, data - dst->data);
 }
 
-void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
+void sb_add_b64_update(sb_t *dst, const void *src0, int len,
+                       sb_b64_ctx_t *ctx)
+{
+    _sb_add_b64_update(dst, src0, len, ctx, __b64);
+}
+
+void sb_add_b64url_update(sb_t *dst, const void *src0, int len,
+                          sb_b64_ctx_t *ctx)
+{
+    _sb_add_b64_update(dst, src0, len, ctx, __b64url);
+}
+
+static void
+_sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx, const char table[64])
 {
     if (ctx->trail_len) {
         unsigned c1 = ctx->trail[0];
         unsigned c2 = ctx->trail_len == 2 ? ctx->trail[1] : 0;
         char *data  = sb_growlen(dst, 4);
 
-        data[0] = __b64[c1 >> 2];
-        data[1] = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
-        data[2] = ctx->trail_len == 2 ? __b64[(c2 << 2) & 0x3f] : '=';
+        data[0] = table[c1 >> 2];
+        data[1] = table[((c1 << 4) | (c2 >> 4)) & 0x3f];
+        data[2] = ctx->trail_len == 2 ? table[(c2 << 2) & 0x3f] : '=';
         data[3] = '=';
     }
     if (ctx->packs_per_line > 0 && ctx->pack_num != 0) {
@@ -752,6 +781,16 @@ void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
         sb_adds(dst, "\r\n");
     }
     ctx->trail_len = 0;
+}
+
+void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
+{
+    _sb_add_b64_finish(dst, ctx, __b64);
+}
+
+void sb_add_b64url_finish(sb_t *dst, sb_b64_ctx_t *ctx)
+{
+    _sb_add_b64_finish(dst, ctx, __b64url);
 }
 
 /* width is the maximum length for output lines, not counting end of
@@ -767,7 +806,27 @@ void sb_add_b64(sb_t *dst, const void *_src, int len, int width)
     sb_add_b64_finish(dst, &ctx);
 }
 
-int sb_add_unb64(sb_t *sb, const void *data, int len)
+void sb_add_lstr_b64(sb_t * nonnull sb, lstr_t data, int width)
+{
+    sb_add_b64(sb, data.s, data.len, width);
+}
+
+void sb_add_b64url(sb_t *dst, const void *_src, int len, int width)
+{
+    sb_b64_ctx_t ctx;
+
+    sb_add_b64url_start(dst, len, width, &ctx);
+    sb_add_b64url_update(dst, _src, len, &ctx);
+    sb_add_b64url_finish(dst, &ctx);
+}
+
+void sb_add_lstr_b64url(sb_t * nonnull sb, lstr_t data, int width)
+{
+    sb_add_b64url(sb, data.s, data.len, width);
+}
+
+static int _sb_add_unb64(sb_t *sb, const void *data, int len,
+                         const unsigned char table[256])
 {
     const byte *src = data, *end = src + len;
     sb_t orig = *sb;
@@ -812,7 +871,7 @@ int sb_add_unb64(sb_t *sb, const void *data, int len)
                 return 0;
             }
 
-            in[ilen++] = c = __decode_base64[c];
+            in[ilen++] = c = table[c];
             if (unlikely(c == 255))
                 goto error;
         }
@@ -832,6 +891,16 @@ int sb_add_unb64(sb_t *sb, const void *data, int len)
 
 error:
     return __sb_rewind_adds(sb, &orig);
+}
+
+int sb_add_unb64(sb_t *sb, const void *data, int len)
+{
+    return _sb_add_unb64(sb, data, len, __decode_base64);
+}
+
+int sb_add_unb64url(sb_t *sb, const void *data, int len)
+{
+    return _sb_add_unb64(sb, data, len, __decode_base64url);
 }
 
 void sb_add_csvescape(sb_t *sb, int sep, const void *data, int len)
