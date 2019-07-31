@@ -1471,6 +1471,67 @@ class IopyTest(z.TestCase):
         self.assertEqual(b_desc.iop_type, 'test.ClassB')
         self.assertEqual(b_desc.py_type, self.p.test.ClassB)
 
+    def test_dict_init(self):
+        # Test working case
+        old_struct_a = self.r.test.StructA(
+            e=self.r.test.EnumA('A'),
+            a=self.r.test.ClassA(
+                field1=10
+            ),
+            tu=[self.r.test.UnionA(
+                i=24
+            ), self.r.test.UnionA(
+                a=self.r.test.ClassB(
+                    field2=87
+                )
+            ), self.r.test.UnionA(
+                s='toto'
+            )]
+        )
+
+        new_struct_a = self.r.test.StructA({
+            'e': 'A',
+            'a': {
+                'field1': 10
+            },
+            'tu': [{
+                'i': 24
+            }, {
+                'a': {
+                    '_class': 'test.ClassB',
+                    'field2': 87
+                }
+            }, {
+                's': 'toto'
+            }]
+        })
+
+        self.assertEqual(old_struct_a, new_struct_a)
+
+        # Fail test multiple args
+        with self.assertRaises(TypeError):
+            self.r.test.StructA({ 'e': 'A' }, { 'e': 'B' })
+
+        # Fail test with dict arg and kwargs
+        with self.assertRaises(TypeError):
+            self.r.test.StructA({ 'e': 'A' }, e='B')
+
+        # Fail test not a class
+        exp = r'IOPy type `test.StructA` is not a class'
+        with self.assertRaisesRegexp(TypeError, exp):
+            self.r.test.StructA({'_class': 'test.ClassA'})
+
+        # Fail test unknown type
+        exp = r'unknown IOPy type `plop.Plip`'
+        with self.assertRaisesRegexp(TypeError, exp):
+            self.r.test.ClassA({'_class': 'plop.Plip'})
+
+        # Fail test not a valid child
+        exp = (r'IOPy type `test.ClassC` is not a child type of IOPy type '
+               r'`test.ClassA`')
+        with self.assertRaisesRegexp(TypeError, exp):
+            self.r.test.ClassA({'_class': 'test.ClassC'})
+
 
 @z.ZGroup
 class IopyIfaceTests(z.TestCase):
@@ -1885,6 +1946,17 @@ class IopyIfaceTests(z.TestCase):
         self.assertEqual(iface2.foo(), 'foo')
         self.assertEqual(iface2.bar(), 'bar')
         self.assertEqual(str(iface1), str(iface2))
+
+    def test_iface_with_dict_arg(self):
+        c = self.r.connect(self.uri)
+        iface = c.test_ModuleA.interfaceA
+        res = iface.funA({
+            'a': {
+                'field1': 1
+            }
+        })
+        self.assertEqual(res.status, 'A')
+        self.assertEqual(res.res, 1000)
 
 
 @z.ZGroup

@@ -37,6 +37,10 @@ class ClassB : 2 : ClassA {
     int field2 = 0;
 };
 
+class ClassC {
+    int a = 0;
+};
+
 struct Error {
     int code;
     string desc;

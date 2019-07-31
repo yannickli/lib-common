@@ -1639,11 +1639,20 @@ cdef class _InternalStructUnionMetaclass(type):
     """Base metaclass of struct and union class types"""
     def __call__(_InternalStructUnionMetaclass cls, *args, **kwargs):
         cdef StructUnionBase obj
+        cdef dict new_kwargs
 
         obj = parse_special_kwargs(cls, kwargs)
-        if obj is None:
-            obj = cls.__new__(cls, *args, **kwargs)
-            obj.__init__(*args, **kwargs)
+        if obj is not None:
+            return obj
+
+        new_kwargs = struct_union_parse_dict_args(args, kwargs)
+        if new_kwargs is not None:
+            args = ()
+            kwargs = new_kwargs
+
+        cls = struct_union_get_real_cls_from_kwargs(cls, kwargs)
+        obj = cls.__new__(cls, *args, **kwargs)
+        obj.__init__(*args, **kwargs)
         return obj
 
     @property
@@ -3562,6 +3571,82 @@ cdef object unpack_file_from_args_to_py_obj(object cls, dict kwargs):
 
 
 # }}}
+# {{{ Prepare arguments
+
+
+cdef dict struct_union_parse_dict_args(tuple args, dict kwargs):
+    """Parse dict argument from args and put it in kwargs.
+
+    Parameters
+    ----------
+    args
+        The args containing the dict argument.
+    kwargs
+        The original kwargs.
+
+    Returns
+    -------
+        The new kwargs to use, or None if args does not contains a single
+        dict argument or kwargs is not empty.
+    """
+    cdef object first_arg
+
+    if len(args) != 1 or len(kwargs) > 0:
+        return None
+
+    first_arg = args[0]
+
+    if not isinstance(first_arg, dict):
+        return None
+
+    return <dict>first_arg
+
+
+cdef object struct_union_get_real_cls_from_kwargs(object cls, dict kwargs):
+    """Get the real class of the object to instantiate from the kwargs.
+
+    Parameters
+    ----------
+    cls
+        The parent IOPy class.
+    kwargs
+        The keyword arguments.
+
+    Returns
+    -------
+    object
+        The real IOPy class to use to instantiate the object.
+    """
+    cdef object real_cls_name
+    cdef _InternalStructUnionType iop_type
+    cdef const iop_struct_t *st
+    cdef Plugin plugin
+    cdef _InternalTypeClasses type_classes
+    cdef object real_cls
+
+    real_cls_name = kwargs.pop('_class', None)
+    if real_cls_name is None:
+        return cls
+
+    iop_type = struct_union_get_iop_type_cls(cls)
+    st = iop_type.desc
+
+    if st.is_union or not iop_struct_is_class(st):
+        raise TypeError('IOPy type `%s` is not a class' % cls.__name__)
+
+    plugin = iop_type.plugin
+    type_classes = plugin_get_type_classes(plugin, real_cls_name)
+    if type_classes is None:
+        raise TypeError('unknown IOPy type `%s`' % real_cls_name)
+
+    real_cls = type_classes.public_cls
+    if not issubclass(real_cls, cls):
+        raise TypeError('IOPy type `%s` is not a child type of IOPy type `%s`'
+                       % (real_cls.__name__, cls.__name__))
+    return real_cls
+
+
+# }}}
 # {{{ Validate and convert arguments
 
 cdef cbool check_exact_object_field_type(const iop_field_t *field,
@@ -3833,9 +3918,10 @@ cdef object explicit_convert_field(const iop_field_t *field, object py_obj,
 
     is_valid[0] = False
 
-    # Check cast is handled by the class method __from_python__
     if iop_type == IOP_T_UNION or iop_type == IOP_T_STRUCT:
         py_type = plugin_get_class_type_st(plugin, field.u1.st_desc)
+
+        # Check cast is handled by the class method __from_python__
         py_cast_method = getattr(py_type, "__from_python__", None)
         if py_cast_method is not None:
             py_cast_obj = py_cast_method(py_obj)
@@ -3845,6 +3931,13 @@ cdef object explicit_convert_field(const iop_field_t *field, object py_obj,
                 add_error_convert_field(field, py_cast_obj, err)
                 return None
             return py_res_obj
+
+        # Object creation can be done with a dict argument
+        if isinstance(py_obj, dict):
+            py_res_obj = py_type(py_obj)
+            is_valid[0] = True
+            return py_res_obj
+
 
     # Check cast to union with unambiguous type
     if iop_type == IOP_T_UNION:
@@ -7065,12 +7158,12 @@ cdef object client_channel_call_rpc(RPC rpc, tuple args, dict kwargs):
 
     if args:
         if len(args) != 1:
-            raise Error('Only one argument allowed: struct or union')
+            raise Error('Only one argument allowed: struct, union or dict')
 
         py_arg = args[0]
 
         if not isinstance(py_arg, py_arg_cls):
-            if issubclass(py_arg_cls, UnionBase):
+            if issubclass(py_arg_cls, UnionBase) or isinstance(py_arg, dict):
                 py_arg = py_arg_cls(py_arg)
             else:
                 raise Error('Incompatible type for argument')
