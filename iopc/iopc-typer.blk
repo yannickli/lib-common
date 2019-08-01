@@ -892,7 +892,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
     }
     tab_for_each_entry(mod, &pkg->modules) {
         tab_for_each_entry(iface, &mod->fields) {
-            iopc_ifaces_find_n_check(pkg, iface);
+            RETHROW(iopc_ifaces_find_n_check(pkg, iface));
             if (pkg == iface->type_pkg) {
                 continue;
             } else {
@@ -906,7 +906,7 @@ static int iopc_i_resolve(iopc_pkg_t *pkg)
             }
         }
         tab_for_each_entry(xt, &mod->extends) {
-            iopc_modules_find_n_check(pkg, xt);
+            RETHROW(iopc_modules_find_n_check(pkg, xt));
             if (xt->pkg != pkg) {
                 t_scope;
                 t_push_loc(xt->loc,

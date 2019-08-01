@@ -1,15 +1,20 @@
-/**************************************************************************/
-/*                                                                        */
-/*  Copyright (C) INTERSEC SA                                             */
-/*                                                                        */
-/*  Should you receive a copy of this source code, you must check you     */
-/*  have a proper, written authorization of INTERSEC to hold it. If you   */
-/*  don't have such an authorization, you must DELETE all source code     */
-/*  files in your possession, and inform INTERSEC of the fact you obtain  */
-/*  these files. Should you not comply to these terms, you can be         */
-/*  prosecuted in the extent permitted by applicable law.                 */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************/
+/*                                                                         */
+/* Copyright 2019 INTERSEC SA                                              */
+/*                                                                         */
+/* Licensed under the Apache License, Version 2.0 (the "License");         */
+/* you may not use this file except in compliance with the License.        */
+/* You may obtain a copy of the License at                                 */
+/*                                                                         */
+/*     http://www.apache.org/licenses/LICENSE-2.0                          */
+/*                                                                         */
+/* Unless required by applicable law or agreed to in writing, software     */
+/* distributed under the License is distributed on an "AS IS" BASIS,       */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.*/
+/* See the License for the specific language governing permissions and     */
+/* limitations under the License.                                          */
+/*                                                                         */
+/***************************************************************************/
 
 /* XXX: This file should never include <Python.h> */
 
@@ -19,19 +24,22 @@
 
 #include "iopy_rpc.h"
 
+/* {{{ Types */
+
 typedef enum el_thr_status_t {
     EL_THR_NOT_STARTED = 0,
     EL_THR_STARTING = 1,
     EL_THR_STARTED = 2,
+    EL_THR_STOPPED = 3,
 } el_thr_status_t;
 
-qm_khptr_t(iopy_ic_el_server, struct ev_t, iopy_ic_server_t *);
-qh_khptr_t(iopy_ic_server, iopy_ic_server_t);
+qm_khptr_t(iopy_ic_server, struct ev_t, iopy_ic_server_t *);
 qh_khptr_t(iopy_ic_client, iopy_ic_client_t);
+
+/* }}} */
 
 static struct {
     el_thr_status_t el_thr_status : 2;
-    bool is_rpc_module_shutdown : 1;
     bool el_wait_thr_sigint_received : 1;
 
     pthread_t main_thread;
@@ -54,13 +62,19 @@ static struct {
     struct sigaction el_wait_thr_py_sigint;
     el_t el_wait_thr_sigint_el;
 
-    qm_t(iopy_ic_el_server) el_servers;
-    qh_t(iopy_ic_server) servers_stopped;
+    qm_t(iopy_ic_server) servers;
     qh_t(iopy_ic_client) clients;
+
+    dlist_t destroyed_clients;
 } iopy_rpc_g;
 #define _G  iopy_rpc_g
 
 /* {{{ Helpers */
+
+static bool is_el_thr_stopped(void)
+{
+    return _G.el_thr_status == EL_THR_STOPPED;
+}
 
 static int load_su_from_uri(lstr_t uri, sockunion_t *su, sb_t *err)
 {
@@ -100,7 +114,7 @@ pthread_cond_wait_ext(pthread_cond_t *cond, pthread_mutex_t *mutex,
 static void el_loop_thread_on_term(el_t ev, int signo, el_data_t priv)
 {
     _G.el_thr_signo = signo;
-    _G.is_rpc_module_shutdown = true;
+    _G.el_thr_status = EL_THR_STOPPED;
 }
 
 /** Callback called when mutex is requested to be locked. */
@@ -119,8 +133,8 @@ static void el_loop_wait_after_lock_cond(void)
                           &abs_time);
 }
 
-static void iopy_ic_server_clear(iopy_ic_server_t *server,
-                                 bool use_wait_for_stop);
+static void iopy_ic_server_el_process(void);
+static void iopy_ic_client_el_process(void);
 
 /** El thread loop. */
 static void *el_loop_thread_fun(void *arg)
@@ -160,10 +174,8 @@ static void *el_loop_thread_fun(void *arg)
         assert (wait_lock_cnt >= 0);
         el_loop_timeout(wait_lock_cnt > 0 ? 0 : 100);
 
-        qh_for_each_pos(iopy_ic_server, pos, &_G.servers_stopped) {
-            qh_del_at(iopy_ic_server, &_G.servers_stopped, pos);
-            iopy_ic_server_clear(_G.servers_stopped.keys[pos], true);
-        }
+        iopy_ic_server_el_process();
+        iopy_ic_client_el_process();
 
         if (_G.el_thr_signo) {
             break;
@@ -238,7 +250,10 @@ static void iopy_el_mutex_lock(bool start_thr)
 
     pthread_mutex_lock(&_G.el_mutex);
 
-    if (!start_thr || likely(_G.el_thr_status == EL_THR_STARTED)) {
+    if (!start_thr
+    ||  likely(_G.el_thr_status == EL_THR_STARTED)
+    ||  unlikely(is_el_thr_stopped()))
+    {
         iopy_dec_el_mutex_wait_lock_cnt();
         return;
     }
@@ -354,13 +369,14 @@ wait_thread_cond(bool (*is_terminated)(void *), void *terminated_arg,
 /* {{{ Server */
 
 struct iopy_ic_server_t {
-    void *ctx;
+    int refcnt;
+    void *py_obj;
     el_t el_ic;
     lstr_t uri;
     qm_t(ic_cbs) impl;
     dlist_t peers;
+    bool is_stopping : 1;
     bool wait_for_stop : 1;
-    bool inside_cb : 1;
 };
 
 typedef struct iopy_ic_peer_t {
@@ -389,15 +405,25 @@ static iopy_ic_server_t *iopy_ic_server_init(iopy_ic_server_t *server)
     return server;
 }
 
+static void iopy_ic_server_wipe(iopy_ic_server_t *server)
+{
+    lstr_wipe(&server->uri);
+    qm_wipe(ic_cbs, &server->impl);
+}
+
+DO_REFCNT(iopy_ic_server_t, iopy_ic_server);
+
 static void iopy_ic_server_clear(iopy_ic_server_t *server,
                                  bool use_wait_for_stop)
 {
     iopy_ic_peer_t *peer;
 
-    lstr_wipe(&server->uri);
-    qm_del_key(iopy_ic_el_server, &_G.el_servers, server->el_ic);
-    qh_del_key(iopy_ic_server, &_G.servers_stopped, server);
+    if (!server->el_ic) {
+        return;
+    }
+
     el_unregister(&server->el_ic);
+
     dlist_for_each_entry(peer, &server->peers, node) {
         iopy_ic_peer_delete(&peer);
     }
@@ -406,62 +432,93 @@ static void iopy_ic_server_clear(iopy_ic_server_t *server,
         pthread_cond_broadcast(&_G.el_wait_thr_cond);
         iopy_inc_el_mutex_wait_lock_cnt();
     }
+
+    lstr_wipe(&server->uri);
 }
 
-static void iopy_ic_server_wipe(iopy_ic_server_t *server)
+/** Process stopped ic servers in the event loop. */
+static void iopy_ic_server_el_process(void)
 {
-    iopy_ic_server_clear(server, false);
-    qm_wipe(ic_cbs, &server->impl);
+    qm_for_each_pos(iopy_ic_server, pos, &_G.servers) {
+        iopy_ic_server_t *server = _G.servers.values[pos];
+
+        if (!server->is_stopping) {
+            continue;
+        }
+        iopy_ic_server_clear(server, true);
+        server->is_stopping = false;
+        iopy_ic_server_delete(&server);
+        qm_del_at(iopy_ic_server, &_G.servers, pos);
+    }
 }
 
-GENERIC_NEW(iopy_ic_server_t, iopy_ic_server);
-GENERIC_DELETE(iopy_ic_server_t, iopy_ic_server);
-
-iopy_ic_server_t *iopy_ic_server_create(void *ctx)
+iopy_ic_server_t *iopy_ic_server_create(void)
 {
-    iopy_ic_server_t *server = iopy_ic_server_new();
-
-    server->ctx = ctx;
-    return server;
+    return iopy_ic_server_new();
 }
 
 void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr)
 {
     iopy_ic_server_t *server = *server_ptr;
 
-    if (server) {
-        if (_G.is_rpc_module_shutdown) {
-            p_delete(server_ptr);
-        } else {
-            iopy_el_mutex_lock(true);
-            iopy_ic_server_stop(server);
-            server->ctx = NULL;
-            iopy_ic_server_delete(server_ptr);
-            iopy_el_mutex_unlock();
-        }
+    if (!server) {
+        return;
     }
+
+    iopy_el_mutex_lock(true);
+    if (server->el_ic) {
+        server->is_stopping = true;
+    }
+    iopy_ic_server_delete(server_ptr);
+    iopy_el_mutex_unlock();
+}
+
+void iopy_ic_server_set_py_obj(iopy_ic_server_t *server,
+                               void * nullable py_obj)
+{
+    server->py_obj = py_obj;
+}
+
+void * nullable iopy_ic_server_get_py_obj(iopy_ic_server_t *server)
+{
+    return server->py_obj;
 }
 
 static void iopy_ic_server_on_event(ichannel_t *ic, ic_event_t evt)
 {
     iopy_ic_server_t *server = ic->priv;
 
-    if (unlikely(!server || !server->ctx)) {
+    if (unlikely(!server)) {
         return;
     }
 
     switch (evt) {
       case IC_EVT_CONNECTED:
-        if (!_G.is_rpc_module_shutdown) {
-            iopy_ic_server_on_connect(server->ctx, server->uri,
-                                      ic_get_client_addr(ic));
+        if (!is_el_thr_stopped()) {
+            t_scope;
+            lstr_t server_uri = t_lstr_dup(server->uri);
+            lstr_t client_addr = t_lstr_dup(ic_get_client_addr(ic));
+            iopy_ic_server_t *server_dup = iopy_ic_server_dup(server);
+
+            iopy_el_mutex_unlock();
+            iopy_ic_py_server_on_connect(server_dup, server_uri, client_addr);
+            iopy_el_mutex_lock(false);
+            iopy_ic_server_delete(&server_dup);
         }
         break;
 
       case IC_EVT_DISCONNECTED:
-        if (!_G.is_rpc_module_shutdown) {
-            iopy_ic_server_on_disconnect(server->ctx, server->uri,
-                                         ic_get_client_addr(ic));
+        if (!is_el_thr_stopped()) {
+            t_scope;
+            lstr_t server_uri = t_lstr_dup(server->uri);
+            lstr_t client_addr = t_lstr_dup(ic_get_client_addr(ic));
+            iopy_ic_server_t *server_dup = iopy_ic_server_dup(server);
+
+            iopy_el_mutex_unlock();
+            iopy_ic_py_server_on_disconnect(server_dup, server_uri,
+                                            client_addr);
+            iopy_el_mutex_lock(false);
+            iopy_ic_server_delete(&server_dup);
         }
         if (ic->peer) {
             ((iopy_ic_peer_t *)ic->peer)->ic = NULL;
@@ -479,8 +536,7 @@ static int iopy_ic_server_on_accept(el_t ev, int fd)
     iopy_ic_server_t *server;
     iopy_ic_peer_t *peer;
 
-    server = RETHROW_PN(qm_get_def(iopy_ic_el_server, &_G.el_servers, ev,
-                                   NULL));
+    server = RETHROW_PN(qm_get_def(iopy_ic_server, &_G.servers, ev, NULL));
     peer = iopy_ic_peer_new();
     dlist_add_tail(&server->peers, &peer->node);
 
@@ -510,10 +566,12 @@ static void iopy_ic_server_rpc_cb(ichannel_t *ic, uint64_t slot, void *arg,
         return;
     }
 
-    server->inside_cb = true;
-    status = t_iopy_ic_server_on_rpc(server->ctx, ic, slot, arg, hdr, &res,
-                                     &res_st);
-    server->inside_cb = false;
+    iopy_ic_server_dup(server);
+    iopy_el_mutex_unlock();
+    status = t_iopy_ic_py_server_on_rpc(server, ic, slot, arg, hdr, &res,
+                                        &res_st);
+    iopy_el_mutex_lock(false);
+    iopy_ic_server_delete(&server);
 
     switch (status) {
       case IC_MSG_OK:
@@ -550,7 +608,8 @@ static int iopy_ic_server_listen_internal(iopy_ic_server_t *server,
         return -1;
     }
 
-    qm_add(iopy_ic_el_server, &_G.el_servers, server->el_ic, server);
+    qm_add(iopy_ic_server, &_G.servers, server->el_ic,
+           iopy_ic_server_dup(server));
     lstr_copy(&server->uri, uri);
     return 0;
 }
@@ -577,21 +636,12 @@ static bool iopy_ic_server_is_stopped(void *arg)
     return !server->el_ic;
 }
 
-iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
-                                          lstr_t uri, int timeout, sb_t *err)
+/** Wait for the IOPy IC server to be fully stopped by the event loop. */
+static iopy_ic_res_t iopy_ic_server_wait_for_stop(iopy_ic_server_t *server,
+                                                  int timeout)
 {
     iopy_ic_res_t res = IOPY_IC_OK;
-    sockunion_t su;
     wait_thread_cond_res_t wait_res;
-
-    RETHROW(load_su_from_uri(uri, &su, err));
-
-    iopy_el_mutex_lock(true);
-
-    if (iopy_ic_server_listen_internal(server, uri, &su, err) < 0) {
-        res = IOPY_IC_ERR;
-        goto end;
-    }
 
     server->wait_for_stop = true;
 
@@ -607,6 +657,25 @@ iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
     }
 
     server->wait_for_stop = false;
+    return res;
+}
+
+iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
+                                          lstr_t uri, int timeout, sb_t *err)
+{
+    iopy_ic_res_t res;
+    sockunion_t su;
+
+    RETHROW(load_su_from_uri(uri, &su, err));
+
+    iopy_el_mutex_lock(true);
+
+    if (iopy_ic_server_listen_internal(server, uri, &su, err) < 0) {
+        res = IOPY_IC_ERR;
+        goto end;
+    }
+
+    res = iopy_ic_server_wait_for_stop(server, timeout);
 
     if (server->el_ic) {
         iopy_ic_server_clear(server, false);
@@ -617,21 +686,21 @@ iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
     return res;
 }
 
-void iopy_ic_server_stop(iopy_ic_server_t *server)
+iopy_ic_res_t iopy_ic_server_stop(iopy_ic_server_t *server)
 {
-    if (!server->el_ic) {
-        return;
-    }
+    iopy_ic_res_t res = IOPY_IC_OK;
 
     iopy_el_mutex_lock(true);
+    if (server->el_ic) {
+        server->is_stopping = true;
 
-    if (server->inside_cb) {
-        qh_add(iopy_ic_server, &_G.servers_stopped, server);
-    } else {
-        iopy_ic_server_clear(server, true);
+        if (!server->wait_for_stop) {
+            res = iopy_ic_server_wait_for_stop(server, -1);
+        }
     }
-
     iopy_el_mutex_unlock();
+
+    return res;
 }
 
 void iopy_ic_server_register_rpc(iopy_ic_server_t *server,
@@ -657,6 +726,17 @@ void iopy_ic_server_unregister_rpc(iopy_ic_server_t *server, uint32_t cmd)
     iopy_el_mutex_unlock();
 }
 
+bool iopy_ic_server_is_listening(const iopy_ic_server_t *server)
+{
+    bool res;
+
+    iopy_el_mutex_lock(true);
+    res = !!server->el_ic;
+    iopy_el_mutex_unlock();
+
+    return res;
+}
+
 /* }}} */
 /* {{{ Client */
 
@@ -664,8 +744,9 @@ struct iopy_ic_client_t {
     bool in_connect    : 1;
     bool closing_is_ok : 1;
     bool connected     : 1;
-    void *ctx;
+    void *py_obj;
     ichannel_t ic;
+    dlist_t destroyed;
 };
 
 static iopy_ic_client_t *iopy_ic_client_init(iopy_ic_client_t *client)
@@ -691,6 +772,17 @@ static void iopy_ic_client_wipe(iopy_ic_client_t *client)
 GENERIC_NEW(iopy_ic_client_t, iopy_ic_client);
 GENERIC_DELETE(iopy_ic_client_t, iopy_ic_client);
 
+/** Process destroyed iopy ic clients in the event loop. */
+static void iopy_ic_client_el_process(void)
+{
+    iopy_ic_client_t *client;
+
+    dlist_for_each_entry(client, &_G.destroyed_clients, destroyed) {
+        iopy_ic_client_delete(&client);
+    }
+    dlist_init(&_G.destroyed_clients);
+}
+
 /** Called on event on the ic channel. */
 static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
 {
@@ -700,10 +792,14 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
         client->connected = true;
     } else
     if (evt == IC_EVT_DISCONNECTED) {
-        if (!client->closing_is_ok && !_G.is_rpc_module_shutdown) {
-            iopy_ic_client_on_disconnect(client->ctx, client->connected);
-        }
+        bool connected = client->connected;
+
         client->connected = false;
+        if (!client->closing_is_ok && !is_el_thr_stopped()) {
+            iopy_el_mutex_unlock();
+            iopy_ic_py_client_on_disconnect(client, connected);
+            iopy_el_mutex_lock(false);
+        }
     }
 
     if (client->in_connect) {
@@ -711,6 +807,54 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
         pthread_cond_broadcast(&_G.el_wait_thr_cond);
         iopy_inc_el_mutex_wait_lock_cnt();
     }
+}
+
+iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, sb_t *err)
+{
+    iopy_ic_client_t *client;
+    sockunion_t su;
+
+    RETHROW_NP(load_su_from_uri(uri, &su, err));
+
+    iopy_el_mutex_lock(true);
+
+    client = iopy_ic_client_new();
+    client->ic.su = su;
+    client->ic.auto_reconn = false;
+    client->ic.tls_required = false;
+    client->ic.on_event = &iopy_ic_client_on_event;
+    client->ic.impl = &ic_no_impl;
+
+    qh_add(iopy_ic_client, &_G.clients, client);
+
+    iopy_el_mutex_unlock();
+
+    return client;
+}
+
+void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
+{
+    iopy_ic_client_t *client = *client_ptr;
+
+    if (!client) {
+        return;
+    }
+
+    iopy_el_mutex_lock(true);
+    dlist_add(&_G.destroyed_clients, &client->destroyed);
+    iopy_el_mutex_unlock();
+    *client_ptr = NULL;
+}
+
+void iopy_ic_client_set_py_obj(iopy_ic_client_t *client,
+                               void * nullable py_obj)
+{
+    client->py_obj = py_obj;
+}
+
+void * nullable iopy_ic_client_get_py_obj(iopy_ic_client_t *client)
+{
+    return client->py_obj;
 }
 
 /** Callback used by wait_thread_cond() to check if the client has been
@@ -728,15 +872,17 @@ static bool iopy_ic_client_connect_is_terminated(void *arg)
  * connected.
  */
 static wait_thread_cond_res_t
-iopy_ic_client_connect(iopy_ic_client_t *client, int timeout)
+iopy_ic_client_ic_connect_wait(iopy_ic_client_t *client, int timeout)
 {
     wait_thread_cond_res_t wait_res;
 
-    client->in_connect = true;
-    client->closing_is_ok = false;
+    if (!client->in_connect) {
+        client->in_connect = true;
+        client->closing_is_ok = false;
 
-    if (ic_connect(&client->ic) < 0) {
-        return WAIT_THR_COND_TIMEOUT;
+        if (ic_connect(&client->ic) < 0) {
+            return WAIT_THR_COND_TIMEOUT;
+        }
     }
 
     wait_res = wait_thread_cond(&iopy_ic_client_connect_is_terminated,
@@ -748,67 +894,63 @@ iopy_ic_client_connect(iopy_ic_client_t *client, int timeout)
     return wait_res;
 }
 
-iopy_ic_res_t iopy_ic_client_create(void *ctx, lstr_t uri, int timeout,
-                                    iopy_ic_client_t **client_ptr, sb_t *err)
+/** Connect the client with the el mutex locked. */
+static iopy_ic_res_t iopy_ic_client_connect_locked(iopy_ic_client_t *client,
+                                                   int timeout, sb_t *err)
 {
-    iopy_ic_client_t *client;
-    sockunion_t su;
-    iopy_ic_res_t create_res;
+    wait_thread_cond_res_t wait_res;
 
-    if (load_su_from_uri(uri, &su, err) < 0) {
-        return IOPY_IC_ERR;
-    }
-
-    client = iopy_ic_client_new();
-    client->ctx = ctx;
-    client->ic.su = su;
-    client->ic.auto_reconn = false;
-    client->ic.tls_required = false;
-    client->ic.on_event = &iopy_ic_client_on_event;
-    client->ic.impl = &ic_no_impl;
-
-    iopy_el_mutex_lock(true);
-
-    switch (iopy_ic_client_connect(client, timeout)) {
+    wait_res = iopy_ic_client_ic_connect_wait(client, timeout);
+    switch (wait_res) {
       case WAIT_THR_COND_OK:
-        break;
+        return IOPY_IC_OK;
 
-      case WAIT_THR_COND_TIMEOUT:
-        goto conn_err;
+      case WAIT_THR_COND_TIMEOUT: {
+        t_scope;
+        lstr_t uri = t_addr_fmt_lstr(&client->ic.su);
+
+        sb_setf(err, "unable to connect to %*pM", LSTR_FMT_ARG(uri));
+        return IOPY_IC_ERR;
+      }
 
       case WAIT_THR_COND_SIGINT:
-        create_res = IOPY_IC_SIGINT;
-        goto error;
+        return IOPY_IC_SIGINT;
     }
 
-    *client_ptr = client;
-    create_res = IOPY_IC_OK;
-    qh_add(iopy_ic_client, &_G.clients, client);
-    goto end;
-
-  conn_err:
-    sb_setf(err, "unable to connect to %*pM", LSTR_FMT_ARG(uri));
-    create_res = IOPY_IC_ERR;
-
-  error:
-    iopy_ic_client_delete(&client);
-
-  end:
-    iopy_el_mutex_unlock();
-    return create_res;
+    assert (false);
+    sb_setf(err, "unexpected connect status %d", wait_res);
+    return IOPY_IC_ERR;
 }
 
-void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr)
+iopy_ic_res_t iopy_ic_client_connect(iopy_ic_client_t *client, int timeout,
+                                     sb_t *err)
 {
-    if (*client_ptr) {
-        if (_G.is_rpc_module_shutdown) {
-            p_delete(client_ptr);
-        } else {
-            iopy_el_mutex_lock(true);
-            iopy_ic_client_delete(client_ptr);
-            iopy_el_mutex_unlock();
-        }
-    }
+    iopy_ic_res_t res;
+
+    iopy_el_mutex_lock(true);
+    res = iopy_ic_client_connect_locked(client, timeout, err);
+    iopy_el_mutex_unlock();
+    return res;
+}
+
+/** Disconnect IC client with mutex locked. */
+static void iopy_ic_client_disconnect_locked(iopy_ic_client_t *client)
+{
+    client->in_connect = false;
+    client->closing_is_ok = true;
+    ic_disconnect(&client->ic);
+}
+
+void iopy_ic_client_disconnect(iopy_ic_client_t *client)
+{
+    iopy_el_mutex_lock(true);
+    iopy_ic_client_disconnect_locked(client);
+    iopy_el_mutex_unlock();
+}
+
+bool iopy_ic_client_is_connected(iopy_ic_client_t *client)
+{
+    return client->connected;
 }
 
 /** Context used when doing ic client queries.
@@ -893,18 +1035,8 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
     iopy_el_mutex_lock(true);
 
     if (!client->connected) {
-        switch (iopy_ic_client_connect(client, timeout)) {
-          case WAIT_THR_COND_OK:
-            break;
-
-          case WAIT_THR_COND_TIMEOUT:
-            sb_sets(err, "associated channel is disconnected; failed to "
-                    "reconnect it");
-            call_res = IOPY_IC_ERR;
-            goto end;
-
-          case WAIT_THR_COND_SIGINT:
-            call_res = IOPY_IC_SIGINT;
+        call_res = iopy_ic_client_connect_locked(client, timeout, err);
+        if (call_res != IOPY_IC_OK) {
             goto end;
         }
     }
@@ -957,36 +1089,17 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
     return call_res;
 }
 
-bool iopy_ic_client_is_connected(iopy_ic_client_t *client)
-{
-    return client->connected;
-}
-
-/** Disconnect IC client with mutex locked. */
-static void iopy_ic_client_disconnect_locked(iopy_ic_client_t *client)
-{
-    client->in_connect = false;
-    client->closing_is_ok = true;
-    ic_disconnect(&client->ic);
-}
-
-void iopy_ic_client_disconnect(iopy_ic_client_t *client)
-{
-    iopy_el_mutex_lock(true);
-    iopy_ic_client_disconnect_locked(client);
-    iopy_el_mutex_unlock();
-}
-
 /* }}} */
 /* {{{ Module init */
 
-/** Init variables for el thread. */
+/** Initialize variables for el thread. */
 static void iopy_el_thr_vars_init(void)
 {
     pthread_mutexattr_t attr;
 
     _G.el_thr_status = EL_THR_NOT_STARTED;
     _G.main_thread = pthread_self();
+    atomic_init(&_G.el_mutex_wait_lock_cnt, 0);
 
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -994,11 +1107,7 @@ static void iopy_el_thr_vars_init(void)
     pthread_mutexattr_destroy(&attr);
 
     pthread_cond_init(&_G.el_thr_start_cond, NULL);
-    _G.el_mutex_before_lock_el = el_wake_register(request_el_mutex_lock_cb,
-                                                  NULL);
     pthread_cond_init(&_G.el_mutex_after_lock_cond, NULL);
-    atomic_init(&_G.el_mutex_wait_lock_cnt, 0);
-
     pthread_cond_init(&_G.el_wait_thr_cond, NULL);
 }
 
@@ -1011,7 +1120,8 @@ static void iopy_el_thr_vars_wipe(void)
     pthread_cond_destroy(&_G.el_wait_thr_cond);
 }
 
-void iopy_rpc_atfork_prepare(void)
+/** Callback called by iopy before fork in the parent process. */
+static void iopy_rpc_atfork_prepare(void)
 {
     if (_G.el_thr_status != EL_THR_NOT_STARTED
     &&  pthread_self() == _G.el_thread)
@@ -1022,20 +1132,21 @@ void iopy_rpc_atfork_prepare(void)
     iopy_el_mutex_lock(false);
 }
 
-void iopy_rpc_atfork_parent(void)
+/** Callback called by iopy after fork in the parent process. */
+static void iopy_rpc_atfork_parent(void)
 {
     iopy_el_mutex_unlock();
 }
 
-void iopy_rpc_atfork_child(void)
+/** Callback called by iopy after fork in the child process. */
+static void iopy_rpc_atfork_child(void)
 {
     /* Stop all servers. */
-    qm_for_each_pos(iopy_ic_el_server, pos, &_G.el_servers) {
-        iopy_ic_server_clear(_G.el_servers.values[pos], false);
+    qm_for_each_pos(iopy_ic_server, pos, &_G.servers) {
+        iopy_ic_server_clear(_G.servers.values[pos], false);
+        iopy_ic_server_delete(&_G.servers.values[pos]);
     }
-    qh_for_each_pos(iopy_ic_server, pos, &_G.servers_stopped) {
-        iopy_ic_server_delete(&_G.servers_stopped.keys[pos]);
-    }
+    qm_clear(iopy_ic_server, &_G.servers);
 
     /* Disconnect all clients. They will reconnect on the next RPC call. */
     qh_for_each_pos(iopy_ic_client, pos, &_G.clients) {
@@ -1049,53 +1160,45 @@ static int iopy_rpc_initialize(void *arg)
 {
     iopy_el_thr_vars_init();
 
-    qm_init(iopy_ic_el_server, &_G.el_servers);
-    qh_init(iopy_ic_server, &_G.servers_stopped);
+    _G.el_mutex_before_lock_el = el_wake_register(request_el_mutex_lock_cb,
+                                                  NULL);
+
+    qm_init(iopy_ic_server, &_G.servers);
     qh_init(iopy_ic_client, &_G.clients);
+    dlist_init(&_G.destroyed_clients);
+
+    pthread_atfork(&iopy_rpc_atfork_prepare, &iopy_rpc_atfork_parent,
+                   &iopy_rpc_atfork_child);
 
     return 0;
 }
 
 static int iopy_rpc_shutdown(void)
 {
-    iopy_el_mutex_lock(false);
-
-    _G.is_rpc_module_shutdown = true;
-
-    if (_G.el_thr_status != EL_THR_NOT_STARTED) {
-        el_t el = el_signal_register(SIGINT, &el_loop_thread_on_term, NULL);
-
-        iopy_el_mutex_unlock();
-        pthread_kill(_G.el_thread, SIGINT);
-        pthread_join(_G.el_thread, NULL);
-
-        el_unregister(&el);
-    } else {
-        iopy_el_mutex_unlock();
-    }
+    assert (_G.el_thr_status == EL_THR_NOT_STARTED
+         || _G.el_thr_status == EL_THR_STOPPED);
 
     iopy_el_thr_vars_wipe();
 
     el_unregister(&_G.el_mutex_before_lock_el);
     el_unregister(&_G.el_wait_thr_sigint_el);
 
-    qm_for_each_pos(iopy_ic_el_server, pos, &_G.el_servers) {
-        iopy_ic_server_clear(_G.el_servers.values[pos], false);
-    }
-    qh_for_each_pos(iopy_ic_server, pos, &_G.servers_stopped) {
-        iopy_ic_server_delete(&_G.servers_stopped.keys[pos]);
+    qm_for_each_pos(iopy_ic_server, pos, &_G.servers) {
+        iopy_ic_server_t *server = _G.servers.values[pos];
+
+        iopy_ic_server_clear(server, false);
+        iopy_ic_server_delete(&server);
     }
     qh_for_each_pos(iopy_ic_client, pos, &_G.clients) {
         iopy_ic_client_clear(_G.clients.keys[pos]);
     }
 
-    qm_wipe(iopy_ic_el_server, &_G.el_servers);
-    qh_wipe(iopy_ic_server, &_G.servers_stopped);
+    qm_wipe(iopy_ic_server, &_G.servers);
     qh_wipe(iopy_ic_client, &_G.clients);
     return 0;
 }
 
-MODULE_BEGIN(iopy_rpc)
+static MODULE_BEGIN(iopy_rpc)
     MODULE_DEPENDS_ON(el);
     MODULE_DEPENDS_ON(ic);
 MODULE_END()
@@ -1109,7 +1212,30 @@ void iopy_rpc_module_init(void)
     MODULE_REQUIRE(iopy_rpc);
 }
 
-void iopy_rpc_module_shutdown(void)
+void iopy_rpc_module_stop(void)
+{
+    el_thr_status_t old_thr_status;
+
+    iopy_el_mutex_lock(false);
+
+    old_thr_status = _G.el_thr_status;
+    _G.el_thr_status = EL_THR_STOPPED;
+    if (old_thr_status != EL_THR_NOT_STARTED
+    &&  expect(old_thr_status != EL_THR_STOPPED))
+    {
+        el_t el = el_signal_register(SIGINT, &el_loop_thread_on_term, NULL);
+
+        iopy_el_mutex_unlock();
+        pthread_kill(_G.el_thread, SIGINT);
+        pthread_join(_G.el_thread, NULL);
+
+        el_unregister(&el);
+    } else {
+        iopy_el_mutex_unlock();
+    }
+}
+
+void iopy_rpc_module_cleanup(void)
 {
     MODULE_RELEASE(iopy_rpc);
 }

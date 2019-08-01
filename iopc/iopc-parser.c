@@ -3203,41 +3203,67 @@ static int parse_gen_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
     return 0;
 }
 
+static int check_snmp_from(const qv_t(lstr) *words)
+{
+    if (words->len <= 1) {
+        return -1;
+    }
+    tab_for_each_entry(word, words) {
+        if (!word.len) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
 static int parse_struct_snmp_from(iopc_parser_t *pp, iopc_pkg_t **pkg,
                                   iopc_path_t **path, char **name)
 {
+    t_scope;
     pstream_t ps = ps_initstr(TK_N(pp, 0)->b.data);
     ctype_desc_t sep;
+    iopc_path_t *path_new;
+    qv_t(lstr) words;
 
     ctype_desc_build(&sep, ".");
 
-    if (ps_has_char_in_ctype(&ps, &sep)) {
-        iopc_path_t *path_new = iopc_path_new();
-        qv_t(lstr) words;
-
-        path_new->loc = TK_N(pp, 0)->loc;
-        qv_init(&words);
-
-        /* Split the token */
-        ps_split(ps, &sep, 0, &words);
-
-        /* Get the path */
-        for (int i = 0; i < words.len - 1; i++) {
-            qv_append(&path_new->bits, lstr_dup(words.tab[i]).v);
-        }
-        if (pkg) {
-            *pkg = RETHROW_PN(check_path_exists(pp, path_new));
-        }
-
-        *path = path_new;
-        *name = lstr_dup(words.tab[words.len - 1]).v;
-
-        qv_wipe(&words);
-        DROP(pp, 1);
-    } else {
-        RETHROW(parse_struct_type(pp, pkg, path, name));
+    if (!ps_has_char_in_ctype(&ps, &sep)) {
+        return parse_struct_type(pp, pkg, path, name);
     }
+
+    path_new = iopc_path_new();
+    path_new->loc = TK_N(pp, 0)->loc;
+    t_qv_init(&words, 2);
+
+    /* Split the token */
+    ps_split(ps, &sep, 0, &words);
+
+    if (check_snmp_from(&words) < 0) {
+        error_loc("invalid snmpParamsFrom `%*pM`", path_new->loc,
+                  PS_FMT_ARG(&ps));
+        goto error;
+    }
+
+    /* Get the path */
+    for (int i = 0; i < words.len - 1; i++) {
+        qv_append(&path_new->bits, lstr_dup(words.tab[i]).v);
+    }
+    if (pkg) {
+        *pkg = check_path_exists(pp, path_new);
+        if (!(*pkg)) {
+            goto error;
+        }
+    }
+
+    *path = path_new;
+    *name = lstr_dup(words.tab[words.len - 1]).v;
+
+    DROP(pp, 1);
     return 0;
+
+  error:
+    iopc_path_delete(&path_new);
+    return -1;
 }
 
 static int parse_snmp_attr_arg(iopc_parser_t *pp, iopc_attr_t *attr,
@@ -3380,6 +3406,10 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
         }
 
         if (attr->desc->id == IOPC_ATTR_GENERIC) {
+            if (explicit) {
+                throw_loc("invalid name for generic attribute: "
+                          "`=` is forbidden", attr->loc);
+            }
             RETHROW(parse_gen_attr_arg(pp, attr, desc, out));
             WANT(pp, 0, ')');
             break;
@@ -3399,10 +3429,16 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     iopc_lexer_pop_state(pp->ld);
     DROP(pp, 1);
 
+    if (IOPC_ATTR_REPEATED_MONO_ARG(attr->desc) && !attr->args.len) {
+        throw_loc("attribute %*pM expects at least one argument", attr->loc,
+                  LSTR_FMT_ARG(attr->desc->name));
+    }
     if (!IOPC_ATTR_REPEATED_MONO_ARG(attr->desc)
     &&  attr->args.len != attr->desc->args.len)
     {
-        throw_loc("wrong number of arguments", attr->loc);
+        throw_loc("attribute %*pM expects %d arguments, got %d", attr->loc,
+                  LSTR_FMT_ARG(attr->desc->name), attr->desc->args.len,
+                  attr->args.len);
     }
 
     if (attr->desc->id == IOPC_ATTR_MIN_OCCURS
@@ -3418,9 +3454,13 @@ static int parse_attr_args(iopc_parser_t *pp, iopc_attr_t *attr, lstr_t *out)
     }
 
     if (attr->desc->id == IOPC_ATTR_CTYPE) {
-        if (!lstr_endswith(attr->args.tab[0].v.s, LSTR("__t"))) {
-            throw_loc("invalid ctype %*pM: missing __t suffix", attr->loc,
-                      LSTR_FMT_ARG(attr->args.tab[0].v.s));
+        tab_for_each_ptr(arg, &attr->args) {
+            lstr_t ctype = arg->v.s;
+
+            if (!lstr_endswith(ctype, LSTR("__t"))) {
+                throw_loc("invalid ctype `%*pM`: missing __t suffix",
+                          attr->loc, LSTR_FMT_ARG(ctype));
+            }
         }
     }
 

@@ -1,15 +1,20 @@
-/**************************************************************************/
-/*                                                                        */
-/*  Copyright (C) INTERSEC SA                                             */
-/*                                                                        */
-/*  Should you receive a copy of this source code, you must check you     */
-/*  have a proper, written authorization of INTERSEC to hold it. If you   */
-/*  don't have such an authorization, you must DELETE all source code     */
-/*  files in your possession, and inform INTERSEC of the fact you obtain  */
-/*  these files. Should you not comply to these terms, you can be         */
-/*  prosecuted in the extent permitted by applicable law.                 */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************/
+/*                                                                         */
+/* Copyright 2019 INTERSEC SA                                              */
+/*                                                                         */
+/* Licensed under the Apache License, Version 2.0 (the "License");         */
+/* you may not use this file except in compliance with the License.        */
+/* You may obtain a copy of the License at                                 */
+/*                                                                         */
+/*     http://www.apache.org/licenses/LICENSE-2.0                          */
+/*                                                                         */
+/* Unless required by applicable law or agreed to in writing, software     */
+/* distributed under the License is distributed on an "AS IS" BASIS,       */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.*/
+/* See the License for the specific language governing permissions and     */
+/* limitations under the License.                                          */
+/*                                                                         */
+/***************************************************************************/
 
 #ifndef IS_IOPY_CYTHON_RPC_H
 #define IS_IOPY_CYTHON_RPC_H
@@ -18,6 +23,10 @@
 
 #include <lib-common/core.h>
 #include <lib-common/iop-rpc.h>
+
+/* XXX: Unless specified, all functions *MUST* be called with the GIL
+ * released.
+ */
 
 /** Result of blocking functions. */
 typedef enum iopy_ic_res_t {
@@ -33,9 +42,9 @@ typedef struct iopy_ic_server_t iopy_ic_server_t;
 
 /** Create IOPy IC Server.
  *
- * \param[in] ctx The context of the IOPy IC server.
+ * XXX: You don't need to release the GIL when using this function.
  */
-iopy_ic_server_t *iopy_ic_server_create(void *ctx);
+iopy_ic_server_t *iopy_ic_server_create(void);
 
 /** Destroy IOPy IC server.
  *
@@ -46,6 +55,19 @@ iopy_ic_server_t *iopy_ic_server_create(void *ctx);
  */
 void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr);
 
+/** Set the IOPy IC server python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void iopy_ic_server_set_py_obj(iopy_ic_server_t *server,
+                               void * nullable py_obj);
+
+/** Get the IOPy IC server python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void * nullable iopy_ic_server_get_py_obj(iopy_ic_server_t *server);
+
 /** Start listening IOPy IC server.
  *
  * \param[in]  server The IOPy IC server.
@@ -55,14 +77,18 @@ void iopy_ic_server_destroy(iopy_ic_server_t **server_ptr);
  */
 int iopy_ic_server_listen(iopy_ic_server_t *server, lstr_t uri, sb_t *err);
 
-/** Start listening IOPy IC server and eep listening until time elapsed or
- * server stopped.
+/** Start listening IOPy IC server until timeout elapsed or the server has
+ * been stopped.
  *
  * \param[in]  server  The IOPy IC server.
  * \param[in]  uri     The uri the IC server should listen to.
  * \param[in]  timeout Number of seconds to listen.
  * \param[out] err     The error description in case of error.
- * \return     -1 in case of error, 0 otherwise.
+ * \return IOPY_IC_OK if the server has been stopped manually or the timeout
+ *         elapsed.
+ *         IOPY_IC_ERR if an error occured, \p err contains the description of
+ *         the error.
+ *         IOPY_IC_SIGINT if a sigint occurred.
  */
 iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
                                           lstr_t uri, int timeout, sb_t *err);
@@ -72,8 +98,12 @@ iopy_ic_res_t iopy_ic_server_listen_block(iopy_ic_server_t *server,
  * Do nothing if the server is not listening.
  *
  * \param[in] server The IOPy IC server to stop.
+ *
+ * \return IOPY_IC_OK if the server has been successfully stopped.
+ *         IOPY_IC_SIGINT if a sigint occurred during the stop.
+ *         This function cannot return IOPY_IC_ERR.
  */
-void iopy_ic_server_stop(iopy_ic_server_t *server);
+iopy_ic_res_t iopy_ic_server_stop(iopy_ic_server_t *server);
 
 /** Register RPC to IOPy IC server.
  *
@@ -93,31 +123,33 @@ void iopy_ic_server_unregister_rpc(iopy_ic_server_t *server, uint32_t cmd);
 
 /** Called when a peer is connecting to the server.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in] ctx         The IOPy IC server context.
+ * \param[in] server      The IOPy IC server.
  * \param[in] server_uri  The URI the IOPy IC server is listening to.
  * \param[in] remote_addr The address of the peer.
  */
-void iopy_ic_server_on_connect(void *ctx, lstr_t server_uri,
-                               lstr_t remote_addr);
+void iopy_ic_py_server_on_connect(iopy_ic_server_t *server,
+                                  lstr_t server_uri,
+                                  lstr_t remote_addr);
 
 /** Called when a peer is disconnecting from the server.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in] ctx         The IOPy IC server context.
+ * \param[in] server      The IOPy IC server.
  * \param[in] server_uri  The URI the IOPy IC server is listening to.
  * \param[in] remote_addr The address of the peer.
  */
-void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
-                                  lstr_t remote_addr);
+void iopy_ic_py_server_on_disconnect(iopy_ic_server_t *server,
+                                     lstr_t server_uri,
+                                     lstr_t remote_addr);
 
 /** Called when a request is made to an RPC.
  *
- * Defined in iopy.pyx.
+ * Implemented in iopy.pyx.
  *
- * \param[in]  ctx    The IOPy IC server context.
+ * \param[in]  server The IOPy IC server.
  * \param[in]  ic     The ichannel of the request.
  * \param[in]  slot   The slot of the request.
  * \param[in]  arg    The RPC argument of the request.
@@ -126,9 +158,17 @@ void iopy_ic_server_on_disconnect(void *ctx, lstr_t server_uri,
  * \return  The status of the reply. If the status is not IC_MSG_OK or
  *          IC_MSG_EXN, \p res and \p res_desc are ignored.
  */
-ic_status_t t_iopy_ic_server_on_rpc(void *ctx, ichannel_t *ic, uint64_t slot,
-                                    void *arg, const ic__hdr__t *hdr,
-                                    void **res, const iop_struct_t **res_st);
+ic_status_t
+t_iopy_ic_py_server_on_rpc(iopy_ic_server_t *server, ichannel_t *ic,
+                           uint64_t slot, void *arg, const ic__hdr__t *hdr,
+                           void **res, const iop_struct_t **res_st);
+
+/** Is the IOPy IC server listening.
+ *
+ * \param[in] server The IOPy IC server.
+ * \return true if the IOPy IC server is listening, false otherwise.
+ */
+bool iopy_ic_server_is_listening(const iopy_ic_server_t *server);
 
 /* }}} */
 /* {{{ Client */
@@ -136,9 +176,37 @@ ic_status_t t_iopy_ic_server_on_rpc(void *ctx, ichannel_t *ic, uint64_t slot,
 /** IC client representation for IOPy. */
 typedef struct iopy_ic_client_t iopy_ic_client_t;
 
-/** Create and connect IOPy IC client.
+/** Create an IOPy IC client.
  *
- * \param[in]  ctx        The IOPy IC client context.
+ * \param[in]  uri The uri the IC client should connect to.
+ * \param[out] err The error description in case of error.
+ * \return The new IOPy IC client.
+ */
+iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, sb_t *err);
+
+/** Destroy IOPy IC client.
+ *
+ * \param[in,out] client_ptr The pointer to the client to destroy. Will be set
+ *                           to NULL afterwards.
+ */
+void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr);
+
+/** Set the IOPy IC client python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void iopy_ic_client_set_py_obj(iopy_ic_client_t *client,
+                               void * nullable py_obj);
+
+/** Get the IOPy IC client python object.
+ *
+ * XXX: Since we are manipulating Python objects, the GIL *MUST* be acquired.
+ */
+void * nullable iopy_ic_client_get_py_obj(iopy_ic_client_t *client);
+
+/** Create an IOPy IC client.
+ *
+ * \param[in]  client      The IOPy IC client context.
  * \param[in]  uri        The uri the IC client should connect to.
  * \param[in]  timeout    The timeout it should wait for the connection in
  *                        seconds. -1 means forever.
@@ -150,15 +218,32 @@ typedef struct iopy_ic_client_t iopy_ic_client_t;
  *         the error.
  *         IOPY_IC_SIGINT if a sigint occurred during the connection.
  */
-iopy_ic_res_t iopy_ic_client_create(void *ctx, lstr_t uri, int timeout,
-                                    iopy_ic_client_t **client_ptr, sb_t *err);
+iopy_ic_res_t iopy_ic_client_connect(iopy_ic_client_t *client, int timeout,
+                                     sb_t *err);
 
-/** Destroy IOPy IC client.
+/** Disconnect the IOPy IC client.
  *
- * \param[in,out] client_ptr The pointer to the client to destroy. Will be set
- *                           to NULL afterwards.
+ * \param[in] client The IOPy RPC client.
  */
-void iopy_ic_client_destroy(iopy_ic_client_t **client_ptr);
+void iopy_ic_client_disconnect(iopy_ic_client_t *client);
+
+/** Called when the client is disconnecting.
+ *
+ * Defined in iopy.pyx.
+ *
+ * \param[in] client    The IOPy IC client.
+ * \param[in] connected True if the client has been connected before, false
+ *                      otherwise.
+ */
+void iopy_ic_py_client_on_disconnect(iopy_ic_client_t *client,
+                                     bool connected);
+
+/** Returns whether the IOPy IC client is connected or not.
+ *
+ * \param[in] client The IOPy RPC client.
+ * \return true if the associated IC channel is connected, false otherwise
+ */
+bool iopy_ic_client_is_connected(iopy_ic_client_t *client);
 
 /** Call RPC with IOPy IC client.
  *
@@ -185,46 +270,20 @@ iopy_ic_client_call(iopy_ic_client_t *client, const iop_rpc_t *rpc,
                     int32_t cmd, const ic__hdr__t *hdr, int timeout,
                     void *arg, ic_status_t *status, void **res, sb_t *err);
 
-/** Returns whether the IOPy IC client is connected or not.
- *
- * \param[in] client The IOPy RPC client.
- * \return true if the associated IC channel is connected, false otherwise
- */
-bool iopy_ic_client_is_connected(iopy_ic_client_t *client);
-
-/** Disconnect the IOPy IC client.
- *
- * \param[in] client The IOPy RPC client.
- */
-void iopy_ic_client_disconnect(iopy_ic_client_t *client);
-
-/** Called when the client is disconnecting.
- *
- * Defined in iopy.pyx.
- *
- * \param[in] ctx       The IOPy IC client context.
- * \param[in] connected True if the client has been connected before, false
- *                      otherwise.
- */
-void iopy_ic_client_on_disconnect(void *ctx, bool connected);
-
 /* }}} */
 /* {{{ Module init */
 
-/** Callback called by iopy before fork in the parent process. */
-void iopy_rpc_atfork_prepare(void);
-
-/** Callback called by iopy after fork in the parent process. */
-void iopy_rpc_atfork_parent(void);
-
-/** Callback called by iopy after fork in the child process. */
-void iopy_rpc_atfork_child(void);
-
-/** Init the IOPy RPC C modules. */
+/** Initialize the IOPy RPC C module. */
 void iopy_rpc_module_init(void);
 
-/** Release the IOPy RPC C modules. */
-void iopy_rpc_module_shutdown(void);
+/** Stop the IOPy RPC C module. */
+void iopy_rpc_module_stop(void);
+
+/** Clean up the IOPy RPC C module.
+ *
+ * iopy_rpc_module_stop() must have been called before calling this function.
+ */
+void iopy_rpc_module_cleanup(void);
 
 /* }}} */
 

@@ -272,6 +272,10 @@ class IopcTest(z.TestCase):
                       "each snmp table must contain at least one field that "
                       "has attribute @snmpIndex of type 'uint' or 'string'")
 
+    def test_snmp_invalid_from(self):
+        self.run_iopc('snmp_invalid_from.iop', False,
+                      "error: invalid snmpParamsFrom `Params.`")
+
     def test_snmp_valid_tbl(self):
         f = 'snmp_tbl.iop'
         self.run_iopc_pass(f)
@@ -682,7 +686,7 @@ class IopcTest(z.TestCase):
     def test_attrs_invalid_18(self):
         f = 'attrs_invalid_18.iop'
         self.run_iopc(f, False,
-                      'error: invalid ctype user_t: missing __t suffix')
+                      'error: invalid ctype `user_t`: missing __t suffix')
 
     def test_attrs_invalid_enumval(self):
         self.run_iopc('attrs_invalid_enumval.iop', False,
@@ -743,6 +747,21 @@ class IopcTest(z.TestCase):
                       'attribute min is larger than maximum value of '
                       'type ubyte (256 > 255)')
 
+    def test_attrs_empty_ctype(self):
+        f = 'attrs_empty_ctype.iop'
+        self.run_iopc(f, False,
+                      'attribute ctype expects at least one argument')
+
+    def test_attrs_bad_ctypes(self):
+        f = 'attrs_bad_ctypes.iop'
+        self.run_iopc(f, False,
+                      'invalid ctype `invalid`: missing __t suffix')
+
+    def test_attrs_bad_nb_args(self):
+        f = 'attrs_bad_nb_args.iop'
+        self.run_iopc(f, False,
+                      'attribute prefix expects 1 arguments, got 0')
+
     # }}}
     # {{{ Generic attributes
 
@@ -787,6 +806,10 @@ class IopcTest(z.TestCase):
     def test_generic_json_unterminated(self):
         self.run_iopc('json_generic_invalid6.iop', False,
                       "4:70:unterminated string")
+
+    def test_generic_invalid_name(self):
+        self.run_iopc('generic_attrs_invalid_name.iop', False,
+                      "invalid name for generic attribute: `=` is forbidden")
 
 
     # }}}
@@ -944,6 +967,16 @@ class IopcTest(z.TestCase):
                            '\'You_Shall_Not_Pass\' contains a _')
         self.run_iopc_fail('check_name_rpc.iop', 'error: you_Shall_Not_Pass '
                            'contains a _')
+
+    def test_missing_iface(self):
+        self.run_iopc_fail('missing_iface.iop',
+                           'error: unable to find any pkg providing '
+                           'interface `MyIfaceA`')
+
+    def test_missing_module(self):
+        self.run_iopc_fail('missing_module.iop',
+                           'error: unable to find any pkg providing '
+                           'module `MyModuleA`')
 
     # }}}
 
