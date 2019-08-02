@@ -23,7 +23,6 @@ ctx.stlib(target='tstiop', features='c cstlib', source=[
     'tstiop.iop',
     'tstiop_rpc.iop',
     'tstiop_inheritance.iop',
-    'tstiop_licence.iop',
     'tstiop_backward_compat.iop',
     'tstiop_backward_compat_deleted_struct_1.iop',
     'tstiop_backward_compat_deleted_struct_2.iop',

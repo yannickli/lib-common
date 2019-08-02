@@ -377,7 +377,6 @@ def build(ctx):
             'iop-xml-unpack.c',
             'iop-xml-wsdl.blk',
 
-            'licence.blk',
             'log-iop.c',
 
             'net-addr.c',
@@ -398,6 +397,7 @@ def build(ctx):
             'tpl-funcs.c',
 
             'z.blk',
+            'zchk-helpers.c',
             'zlib-wrapper.c',
         ]
     )
@@ -423,14 +423,10 @@ def build(ctx):
     ], use='libcommon')
 
     # }}}
-    # {{{ dso-compatibility-check / iop-sign
+    # {{{ dso-compatibility-check
 
     ctx.program(target='dso-compatibility-check', features='c cprogram',
                 source='dso-compatibility-check.blk',
-                use='libcommon')
-
-    ctx.program(target='iop-sign', features='c cprogram',
-                source='iop-sign.blk',
                 use='libcommon')
 
     # }}}
@@ -460,7 +456,6 @@ def build(ctx):
             'zchk-iop-core-obj.c',
             'zchk-iop-rpc.c',
             'zchk-iprintf.c',
-            'zchk-licence.c',
             'zchk-log.blk',
             'zchk-mem.c',
             'zchk-module.c',

@@ -97,7 +97,6 @@
 #include <openssl/engine.h>
 #include <openssl/rsa.h>
 #include "core.h"
-#include "licence.h"
 
 #define OPENSSL_VERSION_IS(op, maj1, maj2, min)                              \
     (((OPENSSL_VERSION_NUMBER >> 12) & 0xFFFFF) op (((maj1) << 16)           \
@@ -451,59 +450,6 @@ void rsa_verif_update(rsa_verif_t * nonnull ctx, const void * nonnull input,
 
 __must_check__
 int rsa_verif_finish(rsa_verif_t * nonnull * nonnull ctx);
-
-/** Generate a RSA signature of an IOP structure with a private key.
- *
- * This function computes a signature from the IOP structure using the
- * provided private key. The public key associated with the private key is
- * required in order to check the signature.
- *
- * \param[in] st     IOP structure description.
- * \param[in] v      IOP structure to sign.
- * \param[in] priv_key The private key, in PEM format.
- * \param[in] flags  Flags modifying the hashing algorithm. The same flags
- *                   must be used when computing and checking the signature.
- * \param[in] pass_cb Block called to retrieve the password used to decrypt
- *                    the key in case the key is encrypted.
- */
-lstr_t t_iop_compute_rsa_signature(const iop_struct_t * nonnull st,
-                                   const void * nonnull v, lstr_t priv_key,
-                                   unsigned flags,
-                                   pem_password_b nullable pass_cb);
-
-/** Check the RSA signature of an IOP structure with a public key.
- *
- * This function checks the signature of an IOP structure that way signed
- * using the private key associated to the \p pub_key public key.
- *
- * \param[in] st     IOP structure description.
- * \param[in] v      IOP structure to check.
- * \param[in] pub_key The public key, in PEM format.
- * \param[in] sig    Excepted signature.
- * \param[in] flags  Flags modifying the hashing algorithm. The same flags
- *                   must be used when computing and checking the signature.
- * \param[in] pass_cb Block called to retrieve the password used to decrypt
- *                    the key in case the key is encrypted.
- */
-__must_check__
-int iop_check_rsa_signature(const iop_struct_t * nonnull st,
-                            const void * nonnull v, lstr_t pub_key,
-                            lstr_t sig, unsigned flags,
-                            pem_password_b nullable pass_cb);
-
-/* }}} */
-/* {{{ Licence */
-/* ---- misc SSL usages for others modules ---- */
-
-/**
- * Encrypt the given plaintext encryption key using the licence signature.
- */
-char *licence_compute_encryption_key(const char *signature, const char *key);
-
-/**
- * Decrypt the encryption key from a licence file.
- */
-int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 /* }}} */
 /* {{{ TLS */

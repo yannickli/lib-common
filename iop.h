@@ -1140,33 +1140,6 @@ mp_iop_copy_desc_sz(mem_pool_t * nullable mp, const iop_struct_t * nonnull st,
 #define iop_shallow_copy_v(pfx, out, v)                                      \
     mp_iop_copy_v_flags(NULL, pfx, (out), (v), IOP_COPY_SHALLOW)
 
-/** Generate a signature of an IOP structure.
- *
- * This function generates a salted SHA256 signature of an IOP structure.
- *
- * \param[in] st     IOP structure description.
- * \param[in] v      IOP structure to sign.
- * \param[in] flags  Flags modifying the hashing algorithm. The same flags
- *                   must be used when computing and checking the signature.
- */
-lstr_t t_iop_compute_signature(const iop_struct_t * nonnull st,
-                               const void * nonnull v, unsigned flags);
-
-/** Check the signature of an IOP structure.
- *
- * This function checks the signature of an IOP structure.
- *
- * \param[in] st     IOP structure description.
- * \param[in] v      IOP structure to check.
- * \param[in] sig    Excepted signature.
- * \param[in] flags  Flags modifying the hashing algorithm. The same flags
- *                   must be used when computing and checking the signature.
- */
-__must_check__
-int iop_check_signature(const iop_struct_t * nonnull st,
-                        const void * nonnull v, lstr_t sig,
-                        unsigned flags);
-
 /** Find a generic attribute value for an IOP structure.
  *
  * See \ref iop_field_get_gen_attr for the description of exp_type and

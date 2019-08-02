@@ -16,20 +16,35 @@
 /*                                                                         */
 /***************************************************************************/
 
-/* This file is used to test the IOPs licences. */
-package tstiop_licence;
+#include "zchk-helpers.h"
 
-class LicenceTst1 : 1 : core.LicenceModule {
-    static string name =  "LicenceTST1";
-    static bool canExpire = true;
-};
 
-class LicenceTst2 : 2 : core.LicenceModule {
-    static string name =  "LicenceTST2";
-    static bool canExpire = true;
-};
+void z_load_keys(lstr_t libcommon_path, sb_t *priv, sb_t *priv_encrypted,
+                 sb_t *pub)
+{
+    /* To generate such test data, you can:
+     * $ openssl genpkey -algorithm RSA -out priv.pem -pkeyopt
+     *   rsa_keygen_bits:2048
+     * $ openssl pkey -in priv.pem -pubout -out pub.pem
+     * $ echo 'secret pioupiou23' > a
+     * $ openssl pkeyutl -encrypt -pubin -inkey pub.pem -in a -hexdump
+     */
+    t_scope;
 
-class LicenceTst3 : 3 : core.LicenceModule {
-    static string name =  "LicenceTST3";
-    static bool canExpire = false;
-};
+    if (sb_read_file(priv, t_fmt("%*pM/test-data/keys/priv.pem",
+                                  LSTR_FMT_ARG(libcommon_path))) < 0)
+    {
+        e_fatal("cannot read private key");
+    }
+    if (sb_read_file(priv_encrypted,
+                     t_fmt("%*pM/test-data/keys/priv.encrypted.pem",
+                           LSTR_FMT_ARG(libcommon_path))) < 0)
+    {
+        e_fatal("cannot read encrypted private key");
+    }
+    if (sb_read_file(pub, t_fmt("%*pM/test-data/keys/pub.pem",
+                                 LSTR_FMT_ARG(libcommon_path))) < 0)
+    {
+        e_fatal("cannot read public key");
+    }
+}

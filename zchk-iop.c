@@ -31,7 +31,6 @@
 #include "iop/tstiop2.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
-#include "iop/tstiop_licence.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_1.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_2.iop.h"
@@ -4799,85 +4798,6 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END
     /* }}} */
-    Z_TEST(iop_signature, "iop_compute/check_signature()") { /* {{{ */
-        t_scope;
-        tstiop__my_hashed__t a;
-        tstiop__my_hashed_extended__t b;
-
-        iop_init(tstiop__my_hashed, &a);
-        iop_init(tstiop__my_hashed_extended, &b);
-
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed__s, &a, 0), 0));
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed__s, &a,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed__s, &a,
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_DEFAULT));
-
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING |
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
-            0));
-
-        b.s = LSTR("default-value");
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING |
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
-
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_DEFAULT));
-
-        OPT_SET(b.b, 0);
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
-
-        OPT_CLR(b.b);
-        b.c.tab = t_new(int, 1);
-        b.c.len = 1;
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING |
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-
-        b.c.len = 0;
-        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING |
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-
-        b.d = 11;
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING |
-                                      IOP_HASH_SKIP_DEFAULT),
-            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
-            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
-            0));
-    } Z_TEST_END;
-    /* }}} */
     Z_TEST(inheritance_basics, "test inheritance basic properties") { /* {{{ */
 #define CHECK_PARENT(_type, _class_id)  \
         do {                                                                 \
@@ -7837,7 +7757,6 @@ Z_GROUP_EXPORT(iop)
         /* Test packages with themselves. */
         T_OK_ALL(tstiop, tstiop);
         T_OK_ALL(tstiop_inheritance, tstiop_inheritance);
-        T_OK_ALL(tstiop_licence, tstiop_licence);
         T_OK_ALL(tstiop_backward_compat, tstiop_backward_compat);
         T_OK_ALL(tstiop_backward_compat_iface, tstiop_backward_compat_iface);
         T_OK_ALL(tstiop_backward_compat_mod, tstiop_backward_compat_mod);

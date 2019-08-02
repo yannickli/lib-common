@@ -35,7 +35,6 @@ iopsq-t*
 /ztst-sort
 /ztst-tpl
 /dso-compatibility-check
-/iop-sign
 
 /common.so
 /core-iop-plugin.so

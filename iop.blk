@@ -5616,21 +5616,6 @@ void iop_field_get_type(const iop_field_t *nonnull field,
 }
 
 /* }}} */
-/* {{{ Signature */
-
-#define ATTRS
-#define F(x)  x
-#include "iop-signature.in.c"
-#undef F
-#undef ATTRS
-
-lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
-                               unsigned flags)
-{
-    return t_iop_sign_salt_sha256(st, v, rand32(), flags);
-}
-
-/* }}} */
 /* {{{ IOP context */
 
 static void iop_env_copy(iop_env_t *dst, iop_env_t *src)
