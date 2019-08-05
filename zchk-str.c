@@ -2293,6 +2293,38 @@ Z_GROUP_EXPORT(str)
 
         Z_ASSERT_LSTREQUAL(ps_get_lstr(&ps_not_zero_term), LSTR_NULL_V);
     } Z_TEST_END;
+
+    Z_TEST(base64, "base64/base64url encoding decoding") {
+        lstr_t data = LSTR_IMMED("\xD9\x87\xE3\xFE\x48\x7E\x25\x81\xFB");
+        SB_1k(data_buf);
+        SB_1k(data_decoded);
+
+        sb_add_lstr_b64(&data_buf, data, -1);
+        Z_ASSERT_STREQUAL(data_buf.data, "2Yfj/kh+JYH7");
+        Z_ASSERT_N(sb_add_lstr_unb64(&data_decoded, LSTR_SB_V(&data_buf)));
+        Z_ASSERT_LSTREQUAL(data, LSTR_SB_V(&data_decoded));
+
+        sb_reset(&data_buf);
+        sb_reset(&data_decoded);
+        sb_add_lstr_b64url(&data_buf, data, -1);
+        Z_ASSERT_STREQUAL(data_buf.data, "2Yfj_kh-JYH7");
+        Z_ASSERT_N(sb_add_lstr_unb64url(&data_decoded, LSTR_SB_V(&data_buf)));
+        Z_ASSERT_LSTREQUAL(data, LSTR_SB_V(&data_decoded));
+
+        /* Data encoded with base64url should not be decoded with base64.
+         * The opposite is also true.
+         */
+        Z_ASSERT_N(sb_add_lstr_unb64(&data_decoded, LSTR("wQA/03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64(&data_decoded, LSTR("wQA-03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64(&data_decoded, LSTR("wQA_03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64(&data_decoded, LSTR("wQA&03e=")));
+
+        Z_ASSERT_N(sb_add_lstr_unb64url(&data_decoded, LSTR("wQA_03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64url(&data_decoded, LSTR("wQA/03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64url(&data_decoded, LSTR("wQA+03e=")));
+        Z_ASSERT_NEG(sb_add_lstr_unb64url(&data_decoded, LSTR("wQA&03e=")));
+    } Z_TEST_END
+
 } Z_GROUP_END;
 
 /* }}} */

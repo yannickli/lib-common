@@ -333,7 +333,7 @@ static void doc_put_alarms(sb_t *buf, const iop_pkg_t *pkg)
 static void doc_put_field_header(sb_t *buf)
 {
     sb_adds(buf,
-            "[cols=\"<20strong,20d,10d,40asciidoc\",options=\"header\"]\n"
+            "[cols=\"<20s,20d,10d,40a\",options=\"header\"]\n"
             "|===\n"
             "|Object\n"
             "|OID\n"

@@ -1,4 +1,4 @@
-[cols="<20strong,20d,10d,40asciidoc",options="header"]
+[cols="<20s,20d,10d,40a",options="header"]
 |===
 |Object
 |OID
