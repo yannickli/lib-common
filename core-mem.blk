@@ -181,7 +181,7 @@ static void call_malloc_trim(size_t pad)
     malloc_trim(pad);
 }
 
-static void malloc_trim_cron(el_t ev, data_t priv)
+void core_mem_malloc_trim(void)
 {
     size_t pad = libc_g.malloc_trim_pad;
 
@@ -192,6 +192,11 @@ static void malloc_trim_cron(el_t ev, data_t priv)
     } else {
         call_malloc_trim(pad);
     }
+}
+
+static void malloc_trim_cron(el_t ev, data_t priv)
+{
+    core_mem_malloc_trim();
 }
 
 void core_mem_set_malloc_trim_period(int64_t period)

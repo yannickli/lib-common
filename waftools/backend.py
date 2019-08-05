@@ -1243,11 +1243,13 @@ def process_c_for_check(self, node):
                 # Checks are disabled for this node
                 return
 
-    # Do not check generated files
-    if node in self.env.GEN_FILES:
+    # Do not check generated files, or files for which a check task was
+    # already created
+    if node in self.env.GEN_FILES or node in self.env.CHECKED_FILES:
         return
 
     # Create a clang check task
+    self.env.CHECKED_FILES.add(node)
     clang_check_task = self.create_task('ClangCheck', node)
     clang_check_task.cwd = self.env.PROJECT_ROOT
     self.clang_check_tasks.append(clang_check_task)
@@ -1525,6 +1527,7 @@ def build(ctx):
 
     ctx.env.PROJECT_ROOT = ctx.srcnode
     ctx.env.GEN_FILES = set()
+    ctx.env.CHECKED_FILES = set()
 
     if ctx.env.DO_OBJCOPY_COMPRESS:
         patch_c_tasks_for_compression(ctx)
