@@ -673,6 +673,10 @@ Z_GROUP_EXPORT(core_macros) {
         Z_ASSERT(!OPT_ISSET(dst));
 
         Z_ASSERT_OPT_EQ(src, dst);
+
+        OPT_CLR(src);
+        OPT_SET(src, OPT_DEFVAL(src, 1U));
+        Z_ASSERT_EQ(OPT_VAL(src), 1U);
     } Z_TEST_END;
 
     /* }}} */

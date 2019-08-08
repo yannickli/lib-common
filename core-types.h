@@ -121,7 +121,7 @@ typedef opt_bool_t         opt__Bool_t;
 
 /** Set the optional field value. */
 #define OPT_SET(dst, val)  \
-    ({ typeof(dst) *_dst = &(dst); _dst->has_field = true; _dst->v = (val); })
+    ({ typeof(dst) *_dst = &(dst); _dst->v = (val); _dst->has_field = true; })
 /** Clear the optional field value. */
 #define OPT_CLR(dst)   (void)((dst).has_field = false)
 /** Set the optional field value if `cond` is fulfilled. */
