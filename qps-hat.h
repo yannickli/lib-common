@@ -450,8 +450,8 @@ void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
 
     /* Conversion from older version of the structure */
     if (memcmp(QPS_TRIE_SIG, hat->root->sig, sizeof(QPS_TRIE_SIG))) {
-        e_fatal("cannot upgrade trie from %*pM", (int)sizeof(QPS_TRIE_SIG) - 1,
-                hat->root->sig);
+        logger_fatal(&qps->logger, "cannot upgrade trie from `%*pM`",
+                     (int)sizeof(QPS_TRIE_SIG) - 1, hat->root->sig);
     }
     hat->do_stats = hat->root->do_stats;
 

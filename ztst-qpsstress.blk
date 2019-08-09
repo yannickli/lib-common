@@ -137,7 +137,7 @@ static void qreopen(void)
     qv_splice(&_G.free_list, 0, _G.free_list.len,
               _G.snap_free_list.tab, _G.snap_free_list.len);
     qps_close(&_G.qps);
-    _G.qps = qps_open(_G.path, NULL);
+    _G.qps = qps_open(_G.path, "stress", NULL);
     qps_gc_enable(_G.qps);
     e_info(">>>>>>>>>>>>>>>  reopen  <<<<<<<<<<<<<<<<");
 }
@@ -157,7 +157,7 @@ static void check_qps(void)
 
     __qps_check_maps(_G.qps, true);
     if (_G.has_snapshotted) {
-        assert (__qps_check_consistency(_G.path) >= 0);
+        assert (__qps_check_consistency(_G.path, "stress-consistency") >= 0);
     }
 }
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
     _G.path = argv[1];
     qps_unlink(argv[1]);
-    _G.qps = qps_create(argv[1], 0755, NULL, 0);
+    _G.qps = qps_create(argv[1], "stress", 0755, NULL, 0);
     if (!_G.qps) {
         e_fatal("unable to open qps");
     }

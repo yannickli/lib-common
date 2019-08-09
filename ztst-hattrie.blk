@@ -265,11 +265,11 @@ int main(int argc, char **argv)
 #endif
 
     if (qps_exists(argv[1])) {
-        qps = qps_open(argv[1], NULL);
+        qps = qps_open(argv[1], "ztst-hattrie", NULL);
         if (qps == NULL)
             e_fatal("cannot open qps");
     } else {
-        qps = qps_create(argv[1], 0755, NULL, 0);
+        qps = qps_create(argv[1], "ztst-hattrie", 0755, NULL, 0);
         if (qps == NULL)
             e_fatal("cannot create qps");
     }
