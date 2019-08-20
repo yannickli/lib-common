@@ -71,6 +71,7 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
     int *col_sizes = p_alloca(int, hdr->len);
     int row_size = 0;
     int col_count = 0;
+    bool first_column = true;
 
     /* Compute the size of the columns */
     tab_for_each_pos(pos, hdr) {
@@ -111,16 +112,19 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
         if (col_sizes[pos] == 0) {
             continue;
         }
-        if (pos != 0) {
+        if (!first_column) {
             sb_adds(out, "  ");
         }
         sb_add_cell(out, &hdr->tab[pos], col_sizes[pos], true,
                         pos == hdr->len - 1, hdr->tab[pos].title);
+        first_column = false;
     }
     sb_addc(out, '\n');
 
     /* Write the content */
     tab_for_each_ptr(row, data) {
+        first_column = true;
+
         tab_for_each_pos(pos, hdr) {
             lstr_t content = LSTR_NULL;
 
@@ -131,11 +135,12 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
                 content = row->tab[pos];
             }
 
-            if (pos != 0) {
+            if (!first_column) {
                 sb_adds(out, "  ");
             }
             sb_add_cell(out, &hdr->tab[pos], col_sizes[pos], false,
                             pos == hdr->len - 1, content);
+            first_column = false;
         }
         sb_addc(out, '\n');
     }

@@ -2673,6 +2673,20 @@ Z_GROUP_EXPORT(str_buf_pp) {
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B          COL C\n"
                                    "col A …  col B - row 1    -\n"
                                    "col A …  çôl B - row 2    -\n");
+
+
+        qv_clear(&data);
+        row = qv_growlen(&data, 1);
+        t_qv_init(row, countof(hdr_data));
+        qv_append(row, LSTR_NULL_V);
+        qv_append(row, LSTR("col B - row 1"));
+        hdr_data[0].omit_if_empty = true;
+
+        sb_reset(&sb);
+        sb_add_table(&sb, &hdr, &data);
+        Z_ASSERT_STREQUAL(sb.data, "COL B          COL C\n"
+                                   "col B - row 1    -\n");
+
     } Z_TEST_END;
 } Z_GROUP_END
 

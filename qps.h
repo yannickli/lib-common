@@ -21,11 +21,9 @@
 
 #include <sysexits.h>
 #include "unix.h"
+#include "log.h"
 #include "thr.h"
 #include "el.h"
-
-__attribute__((noreturn))
-extern void qps_enospc(const char *what);
 
 /* define this flag to 1 to allow valgrind/asan to potentially detect incorect
  * QPS API usage (WARNING: the QPS spool storage format is not compatible with
@@ -35,7 +33,7 @@ extern void qps_enospc(const char *what);
 #define qps_io_wrap(what, ...) \
     ({  typeof(what(__VA_ARGS__)) _res = what(__VA_ARGS__);  \
         if (unlikely(_res < 0))                              \
-            qps_enospc(#what);                               \
+            qps_enospc(NULL, #what);                         \
         _res; })
 
 #define x_close(...)      qps_io_wrap(close, __VA_ARGS__)
@@ -55,7 +53,7 @@ extern void qps_enospc(const char *what);
 #define x_mmap(...) \
     ({  void *_ptr = mmap(__VA_ARGS__);                      \
         if (unlikely(_ptr == MAP_FAILED))                    \
-            qps_enospc("mmap");                              \
+            qps_enospc(NULL, "mmap");                        \
         _ptr; })
 
 /** \defgroup qkv__ll__qps  Quick Paged Store.
@@ -100,9 +98,9 @@ extern void qps_enospc(const char *what);
  * #define QPS_PATH   "/some/directory"
  *
  * if (qps_exists(QPS_PATH)) {
- *     qps = qps_open(QPS_PATH);
+ *     qps = qps_open(QPS_PATH, "test-qps");
  * } else {
- *     qps = qps_create(QPS_PATH, 0755);
+ *     qps = qps_create(QPS_PATH, "test-qps", 0755);
  * }
  * \endcode
  *
@@ -239,6 +237,9 @@ typedef void *qps_notify_b;
 #endif
 
 typedef struct qps_t {
+    logger_t logger;
+    logger_t tracing_logger;
+
     dir_lock_t   lock;
     int          dfd;
     atomic_uint_fast16_t gc_state;   /* QPS_GC_* mask */
@@ -293,6 +294,9 @@ typedef struct qps_t {
     } m;
 } qps_t;
 
+__attribute__((noreturn))
+extern void qps_enospc(qps_t *nullable qps, const char *what);
+
 /* }}} */
 /* qps: file-system/persistent store handling {{{ */
 
@@ -306,10 +310,10 @@ struct qps_stats {
     int pages_free;
 };
 
-qps_t    *qps_create(const char *path, mode_t mode,
+qps_t    *qps_create(const char *path, const char *name, mode_t mode,
                      const void *data, size_t dlen);
-qps_t    *qps_open(const char *path, sb_t *priv);
-int       __qps_check_consistency(const char *path);
+qps_t    *qps_open(const char *path, const char *name, sb_t *priv);
+int       __qps_check_consistency(const char *path, const char *name);
 int       __qps_check_maps(qps_t *qps, bool fatal);
 bool      qps_exists(const char *path);
 int       qps_unlink(const char *path);

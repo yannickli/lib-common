@@ -179,7 +179,7 @@ logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
     dlist_init(&logger->children);
 
     logger->parent = parent;
-    logger->name   = lstr_dupc(name);
+    logger->name   = lstr_dup(name);
     __logger_refresh(logger);
 
     return logger;
@@ -252,8 +252,7 @@ static void logger_compute_fullname(logger_t *logger)
         lstr_wipe(&name);
     } else
     if (logger->name.len) {
-        logger->full_name = lstr_dup(logger->name);
-        logger->name      = lstr_dupc(logger->full_name);
+        logger->full_name = lstr_dupc(logger->name);
     }
 }
 
