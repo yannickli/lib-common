@@ -68,6 +68,7 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
     int *col_sizes = p_alloca(int, hdr->len);
     int row_size = 0;
     int col_count = 0;
+    bool first_column = true;
 
     /* Compute the size of the columns */
     tab_for_each_pos(pos, hdr) {
@@ -108,16 +109,19 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
         if (col_sizes[pos] == 0) {
             continue;
         }
-        if (pos != 0) {
+        if (!first_column) {
             sb_adds(out, "  ");
         }
         sb_add_cell(out, &hdr->tab[pos], col_sizes[pos], true,
                         pos == hdr->len - 1, hdr->tab[pos].title);
+        first_column = false;
     }
     sb_addc(out, '\n');
 
     /* Write the content */
     tab_for_each_ptr(row, data) {
+        first_column = true;
+
         tab_for_each_pos(pos, hdr) {
             lstr_t content = LSTR_NULL;
 
@@ -128,11 +132,12 @@ void sb_add_table(sb_t *out, const qv_t(table_hdr) *hdr,
                 content = row->tab[pos];
             }
 
-            if (pos != 0) {
+            if (!first_column) {
                 sb_adds(out, "  ");
             }
             sb_add_cell(out, &hdr->tab[pos], col_sizes[pos], false,
                             pos == hdr->len - 1, content);
+            first_column = false;
         }
         sb_addc(out, '\n');
     }
@@ -213,6 +218,20 @@ Z_GROUP_EXPORT(str_buf_pp) {
         Z_ASSERT_STREQUAL(sb.data, "COL A    COL B          COL C\n"
                                    "col A …  col B - row 1    -\n"
                                    "col A …  çôl B - row 2    -\n");
+
+
+        qv_clear(&data);
+        row = qv_growlen(&data, 1);
+        t_qv_init(row, countof(hdr_data));
+        qv_append(row, LSTR_NULL_V);
+        qv_append(row, LSTR("col B - row 1"));
+        hdr_data[0].omit_if_empty = true;
+
+        sb_reset(&sb);
+        sb_add_table(&sb, &hdr, &data);
+        Z_ASSERT_STREQUAL(sb.data, "COL B          COL C\n"
+                                   "col B - row 1    -\n");
+
     } Z_TEST_END;
 } Z_GROUP_END
 
