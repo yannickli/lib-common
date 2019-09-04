@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 cc="$1"
-version=$("$cc" -dumpversion)
+version=$("$cc" -dumpfullversion -dumpversion)
 clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
 
 prereq() {
