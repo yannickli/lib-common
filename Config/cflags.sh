@@ -3,7 +3,7 @@
 cc="$1"
 
 clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
-version=$("$cc" -dumpversion)
+version=$("$cc" -dumpfullversion -dumpversion)
 
 prereq() {
     want="$1"
@@ -210,6 +210,20 @@ EOF
     if gcc_prereq 6.0; then
         echo -Wno-shift-negative-value
     fi
+    # support for gcc 8.x on stable branches
+    if gcc_prereq 8.0; then
+        # Do not warn about missing FALLTHROUGH. Unfortunately even though we
+        # already have hundreds of FALLTHROUGH in our codebase, hundreds are
+        # still missing...
+        echo -Wimplicit-fallthrough=0
+        # Disable because of weird casts with iop_hash_f but worth
+        # investigating.
+        echo -Wno-cast-function-type
+        # Disable because of __VALGRIND_PREREQ macro for instance.
+        echo -Wno-expansion-to-defined
+        # Disable because of a very obscure error in TST_BIT
+        echo -Wno-ignored-qualifiers
+    fi
 
     if is_cpp; then
         if test "$2" != "rewrite"; then
@@ -226,6 +240,10 @@ EOF
             echo -Wno-c++11-compat
         elif gcc_prereq 4.9; then
             echo -Wno-extern-c-compat
+        fi
+        if gcc_prereq 8.0; then
+            # Disable because not happy with our p_clear macro
+            echo -Wno-class-memaccess
         fi
     else
         # warn about functions declared without complete a prototype
