@@ -534,7 +534,11 @@ static __must_check__ inline lstr_t lstr_trim(lstr_t s)
  */
 static ALWAYS_INLINE int lstr_cmp(const lstr_t *s1, const lstr_t *s2)
 {
-    int len = MIN(s1->len, s2->len);
+    /* workaround for a warning of -Wstringop-overflow in gcc 8
+     * see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89699
+     */
+    size_t len = MIN((size_t)s1->len, (size_t)s2->len);
+
     return memcmp(s1->s, s2->s, len) ?: CMP(s1->len, s2->len);
 }
 
