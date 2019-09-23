@@ -264,10 +264,6 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define YY_USER_ACTION_UNDO \
     yyextra->pos = yyextra->prev_pos; \
     yyextra->len = yyextra->prev_len;
-#define USER_REJECT \
-    YY_USER_ACTION_UNDO \
-    REJECT
-
 
 #define PRINT_MSG_OFFS(prn_fct, offs, fmt, ...)  \
     prn_fct("%s:%d:%d:"fmt, yyextra->path, yyextra->lno, \
@@ -360,28 +356,32 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                         }
     "/*"("*<"|"!""<"?){HS}* {
                           if (!iopc_g.v3) {
-                              USER_REJECT;
+                              YY_USER_ACTION_UNDO;
+                              REJECT;
                           }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_COMMENT);
                         }
     "/**"{HS}+|"/**"/[^"*"] {
                           if (!iopc_g.v3) {
-                              USER_REJECT;
+                              YY_USER_ACTION_UNDO;
+                              REJECT;
                           }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_COMMENT);
                         }
     "//"("/<"|"!""<"?)  {
                           if (!iopc_g.v3) {
-                              USER_REJECT;
+                              YY_USER_ACTION_UNDO;
+                              REJECT;
                           }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_LINE_COMMENT);
                         }
     "///"/[^"/"]        {
                           if (!iopc_g.v3) {
-                              USER_REJECT;
+                              YY_USER_ACTION_UNDO;
+                              REJECT;
                           }
                           lexdox_comment_begin(yyextra, yytext, yyleng);
                           BEGIN(DOX_LINE_COMMENT);
@@ -396,7 +396,8 @@ SCHARS  [.=:,;()\[\]{}?*\-_~\^/+%&|]
                           if (iopc_g.v3) {
                               /* This rule must be skipped if we parse doxygen
                                * comments or it will mask them */
-                              USER_REJECT;
+                              YY_USER_ACTION_UNDO;
+                              REJECT;
                           } else {
                               iopc_token_t *tk = token_new(ITOK_COMMENT);
                               sb_set(&tk->b, yytext, yyleng);
