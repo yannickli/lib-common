@@ -2015,12 +2015,21 @@ static iop_field_attr_t const core__httpc_cfg__header_size_max__attrs[] = {
     },
 };
 static const iop_help_t core__httpc_cfg__tls_on__f_help = {
-    .brief = LSTR_IMMED("TLS."),
+    .brief = LSTR_IMMED("TLS"),
 };
 static iop_field_attr_t const core__httpc_cfg__tls_on__attrs[] = {
     {
         .type = 18,
         .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__tls_on__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__tls_cert_path__f_help = {
+    .brief = LSTR_IMMED("Path to trusted certificate."),
+};
+static iop_field_attr_t const core__httpc_cfg__tls_cert_path__attrs[] = {
+    {
+        .type = 18,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__tls_cert_path__f_help } },
     },
 };
 static iop_field_attrs_t const core__httpc_cfg__desc_fields_attrs[] = {
@@ -2058,6 +2067,11 @@ static iop_field_attrs_t const core__httpc_cfg__desc_fields_attrs[] = {
         .flags             = 262144,
         .attrs_len         = 1,
         .attrs             = core__httpc_cfg__tls_on__attrs,
+    },
+    {
+        .flags             = 262144,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__tls_cert_path__attrs,
     },
 };
 static iop_field_t const core__httpc_cfg__desc_fields[] = {
@@ -2131,10 +2145,19 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .u1        = { .defval_u64 = false },
         .size      = fieldsizeof(core__httpc_cfg__t, tls_on),
     },
+    {
+        .name      = LSTR_IMMED("tlsCertPath"),
+        .tag       = 8,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__httpc_cfg__t, tls_cert_path),
+        .size      = fieldsizeof(core__httpc_cfg__t, tls_cert_path),
+    },
 };
 static int const iop__ranges__8[] = {
     0, 1,
-    7,
+    8,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
