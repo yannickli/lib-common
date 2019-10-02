@@ -133,7 +133,6 @@ EXPORT iop_struct_t const core__httpd_cfg__s;
 EXPORT iop_struct_t const * const nonnull core__httpd_cfg__sp;
 struct core__httpc_cfg__t {
     uint16_t pipeline_depth;
-    bool     tls_on;
     uint32_t noact_delay;
     uint32_t max_queries;
     uint32_t on_data_threshold;
