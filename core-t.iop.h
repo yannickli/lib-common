@@ -139,7 +139,6 @@ struct core__httpc_cfg__t {
     uint32_t on_data_threshold;
     uint32_t header_line_max;
     uint32_t header_size_max;
-    lstr_t           tls_cert_path;
 };
 EXPORT iop_struct_t const core__httpc_cfg__s;
 EXPORT iop_struct_t const * const nonnull core__httpc_cfg__sp;
