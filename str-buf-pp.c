@@ -68,7 +68,7 @@ sb_write_table_cell(sb_t *out, const struct table_hdr_t *col, int col_size,
         return -1;
     }
 
-    if (!content.len && expect(!is_hdr)) {
+    if (!content.len) {
         content = col->empty_value;
     }
 
@@ -331,6 +331,22 @@ Z_GROUP_EXPORT(str_buf_pp) {
         sb_add_table(&sb, &hdr, &data);
         Z_ASSERT_STREQUAL(sb.data, "COL B          COL C\n"
                                    "col B - row 1    -\n");
+
+        /* Header with empty value. */
+        hdr_data[2].title = LSTR_EMPTY_V;
+        hdr_data[2].empty_value = LSTR_EMPTY_V;
+        qv_clear(&data);
+        row = qv_growlen(&data, 1);
+        t_qv_init(row, countof(hdr_data));
+        qv_append(row, LSTR("col A"));
+        qv_append(row, LSTR("col B"));
+        qv_append(row, LSTR("col C"));
+
+        sb_reset(&sb);
+        sb_add_table(&sb, &hdr, &data);
+        Z_ASSERT_STREQUAL(sb.data, "COL A  COL B  \n"
+                                   "col A  col B  col C\n");
+
 
     } Z_TEST_END;
 } Z_GROUP_END
