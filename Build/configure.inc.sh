@@ -224,14 +224,12 @@ if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
 fi
 
 # }}}
-# {{{ libsctp-dev
+# {{{ linux uapi sctp header
 
-if test -r /usr/include/netinet/sctp.h; then
-    setvardef "HAVE_NETINET_SCTP_H" "1"
+if test -r /usr/include/linux/sctp.h; then
+    setvardef "HAVE_LINUX_UAPI_SCTP_H" "1"
 else
-    if ! [ "$OS" = "darwin" ]; then
-        warn "missing libsctp, apt-get install libsctp-dev"
-    fi
+    log "missing linux uapi sctp header, it will be replaced by a custom one"
 fi
 
 # }}}
