@@ -1065,6 +1065,7 @@ class IopcOptions(object):
 class Iop2c(Task):
     color   = 'BLUE'
     ext_out = ['.h', '.c']
+    before  = ['Blk2c', 'Blkk2cc', 'ClangCheck']
 
     @classmethod
     def keyword(cls):
