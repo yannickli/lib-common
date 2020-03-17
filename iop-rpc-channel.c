@@ -1850,6 +1850,7 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
 
 void ic_mark_disconnected(ichannel_t *ic)
 {
+    ic->is_closing = true;
     ic_disconnect(ic);
     if (!ic->is_spawned && ic->auto_reconn) {
         assert (ic->timer == NULL);
