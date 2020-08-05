@@ -115,6 +115,7 @@ libcommon_SOURCES = \
 	net-addr.c \
 	net-rate.blk \
 	net-socket.c \
+	net-sctp.c \
 	\
 	property.c \
 	property-hash.c \
@@ -174,10 +175,6 @@ libcommon_SOURCES = \
 	ssl.c \
 	\
 	z.blk
-
-ifneq ($(HAVE_NETINET_SCTP_H),)
-libcommon_SOURCES += net-sctp.c
-endif
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
