@@ -142,23 +142,27 @@ Z_GROUP_EXPORT(activation_token)
     Z_TEST(iop, "") {
         t_scope;
         SB_1k(tmp);
-        unsigned flags = IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT;
         core__signed_licence__t lic;
         core__activation_token__t token;
         core__activation_token__t new_token;
         time_t now = lp_getsec();
-        time_t sigt;
         time_t day = 60 * 60 * 24;
-        time_t prod_exp, token_exp;
 
         Z_ASSERT_N(chdir(z_cmddir_g.s));
 
         Z_LOAD_LICENCE("samples/licence-iop-2016.4-ok.cf");
-        sigt = OPT_VAL(lic.licence->signature_ts);
 
         /* Check activation token formatting and parsing. */
         {
             t_scope;
+            unsigned flags = IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT;
+            time_t prod_exp, token_exp;
+            time_t sigt;
+
+            /* Set a signature timestamp in the future so that these tests
+             * never fail (ie. licence never expires if not expected). */
+            sigt = now + 3600;
+            OPT_SET(lic.licence->signature_ts, sigt);
 
             Z_ASSERT_N(iop_check_signature(&core__licence__s, lic.licence,
                                            lic.signature, flags));
@@ -230,8 +234,8 @@ Z_GROUP_EXPORT(activation_token)
 
         }
 
-        /* reset licence */
-        OPT_SET(lic.licence->signature_ts, sigt);
+        /* Following tests are made to work on a sigature ts of 1509098400 */
+        OPT_SET(lic.licence->signature_ts, 1509098400);
 
         {
             /* Check expiry with a licence which expires soon. */

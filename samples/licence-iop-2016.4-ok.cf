@@ -12,8 +12,7 @@
         }, {
             "_class": "tstiop_licence.LicenceTst1",
             "expirationDate": "31-jul-2035"
-        } ],
-        "signatureTs": 1509098400
+        } ]
     },
     "signature": "$42:defeca7e$"
 }
