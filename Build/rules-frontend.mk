@@ -39,19 +39,6 @@ $/node_modules/build.lock: $/package.json
 #
 # {{{ css
 
-ext/gen/css = $(if $(filter %.css,$1),$(strip $($2_DESTDIR))/$(notdir $(1:css=min.css)))
-
-define ext/expand/css
-$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)): $3 $(var/wwwtool)lessc
-	$(msg/MINIFY.css) $3
-	mkdir -p `dirname "$~$$@"`
-	$(var/wwwtool)lessc -M $$< $$@ > $~$$@.d
-	(cat $(var/cfgdir)/head.css && $(var/wwwtool)lessc --clean-css="--s1 --advanced --compatibility=ie8" $$<) > $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
--include $~$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)).d
-$2: $(strip $($1_DESTDIR))/$(notdir $(3:css=min.css))
-endef
-
 define ext/rule/css
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/css,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(strip $($1_DESTDIR))/$(notdir $(3:css=min.css)),$3))
@@ -70,6 +57,9 @@ $(strip $($1_DESTDIR))/$(notdir $(3:less=css)): $3 $(var/wwwtool)lessc
 	$(var/wwwtool)lessc --source-map=$$@.map+ $$< $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 	$(MV) $$@.map+ $$@.map && chmod a-w $$@.map
+	(cat $(var/cfgdir)/head.css && $(var/wwwtool)lessc --clean-css="--s1 --advanced --compatibility=ie8" $$<) > $$@.min+
+	$(MV) $$@.min+ $$@.min && chmod a-w $$@.min
+	$(MV) $$@.min $$(basename $$@).min.css
 -include $~$(strip $($1_DESTDIR))/$(notdir $(3:less=css)).d
 $2: $(strip $($1_DESTDIR))/$(notdir $(3:less=css))
 endef
