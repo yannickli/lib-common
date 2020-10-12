@@ -37,6 +37,7 @@ iopsq-t*
 /ztst-tpl
 /dso-compatibility-check
 /iop-sign
+/container-bench
 
 /common.so
 /core-iop-plugin.so

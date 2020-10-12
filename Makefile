@@ -15,7 +15,7 @@ none_LIBRARIES = libcommon libcommon-iop
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
-test_PROGRAMS += ztst-mem
+test_PROGRAMS += ztst-mem container-bench
 ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
 none_SHARED_LIBRARIES += zchk-iop-plugin core-iop-plugin
@@ -286,6 +286,10 @@ ztst-mem-bench_SOURCES = \
 
 ztst-mem_SOURCES = \
 	ztst-mem.blk \
+	$llibcommon.a
+
+container-bench_SOURCES = \
+	container-bench.c \
 	$llibcommon.a
 
 dso-compatibility-check_SOURCES = \

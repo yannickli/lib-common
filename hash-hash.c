@@ -81,6 +81,23 @@ uint32_t jenkins_hash(const void *_s, ssize_t len)
     return get_unaligned_cpu32(output);
 }
 
+uint32_t jenkins_hash_ascii_lower(const void *_s, ssize_t len)
+{
+    const byte *s = _s;
+    byte output[4];
+    jenkins_ctx ctx;
+
+    if (len < 0) {
+        len = strlen((const char *)s);
+    }
+
+    jenkins_starts(&ctx);
+    jenkins_update_ascii_lower(&ctx, _s, len);
+    jenkins_finish(&ctx, output);
+
+    return get_unaligned_cpu32(output);
+}
+
 void jenkins_starts(jenkins_ctx *ctx)
 {
     ctx->hash = 0;
@@ -97,6 +114,25 @@ void jenkins_update(jenkins_ctx *ctx, const void *input, ssize_t len)
 
     while (len-- > 0) {
         hash += *s++;
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+
+    ctx->hash = hash;
+}
+
+void jenkins_update_ascii_lower(jenkins_ctx *ctx, const void *input,
+                                ssize_t len)
+{
+    const byte *s = input;
+    uint32_t hash = ctx->hash;
+
+    if (len <= 0) {
+        return;
+    }
+
+    while (len-- > 0) {
+        hash += tolower(*s++);
         hash += hash << 10;
         hash ^= hash >> 6;
     }
@@ -543,9 +579,14 @@ uint64_t murmur3_128_hash_64(const void *data, int len)
 Z_GROUP_EXPORT(hash32) {
     Z_TEST(jenkins, "jenkins") {
         lstr_t s = LSTR("hakunamatata");
+        lstr_t s_upper = LSTR("HAKUNAMATATA");
 
         Z_ASSERT_EQ(jenkins_hash(s.s, -1), 0xb536a6ee);
         Z_ASSERT_EQ(jenkins_hash(s.s, s.len), 0xb536a6ee);
+
+        Z_ASSERT_EQ(jenkins_hash_ascii_lower(s.s, s.len), 0xb536a6ee);
+        Z_ASSERT_EQ(jenkins_hash_ascii_lower(s_upper.s, s_upper.len),
+                    0xb536a6ee);
     } Z_TEST_END;
 
     Z_TEST(murmur_hash3_x86_32, "murmur_hash3_x86_32") {
