@@ -59,7 +59,7 @@ static int do_call(char * const argv[])
         }
         if (WIFSIGNALED(status)) {
             logger_fatal(&_G.logger, "%s killed with signal %s", argv[0],
-                         sys_siglist[WTERMSIG(status)]);
+                         strsignal(WTERMSIG(status)));
         }
     }
 
