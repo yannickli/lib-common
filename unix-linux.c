@@ -32,7 +32,7 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
     int   bkp_errno = errno;
 
     n = snprintf(buf, sizeof(buf), "---> %s[%d] %s\n\n",
-                 prog, getpid(), sys_siglist[signum]);
+                 prog, getpid(), strsignal(signum));
     if (xwrite(fd, buf, n) < 0)
         return;
 
