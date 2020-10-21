@@ -44,6 +44,10 @@
 #define ERR_ACCEPT_RETRIABLE(err) \
     ((err) == EINTR || (err) == EAGAIN || (err) == ECONNABORTED)
 
+/* sys_siglist has been deprecated and strsignal() should be used instead. */
+#define sys_siglist  DONT_USE_sys_siglist_USE_strsignal
+
+
 /****************************************************************************/
 /* process related                                                          */
 /****************************************************************************/
