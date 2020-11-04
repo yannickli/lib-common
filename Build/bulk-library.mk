@@ -17,30 +17,6 @@ $2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
 $2: $(foreach s,$3,$($s_DEPENDS)) | $($(1DV)_DEPENDS)
 endef
 
-ifeq (,$(NOCOMPRESS))
-
-define fun/obj-compress
-objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
-endef
-
-ifeq (,$(filter %compress-debug%,$(LDFLAGS)))
-define fun/bin-compress
-objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
-endef
-else
-define fun/bin-compress
-endef
-endif
-
-else # NOCOMPRESS
-define fun/obj-compress
-endef
-
-define fun/bin-compress
-endef
-endif
-
-
 #
 # extension driven rules
 # ~~~~~~~~~~~~~~~~~~~~~~
@@ -85,7 +61,6 @@ $5: $3 | _generated
 	$(msg/COMPILE.c) $3
 	$(CC) $(if $(filter %.c,$3),,-x c) -g $(CFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CNOPICFLAGS)) -c -o $5 $3
-	$(call fun/obj-compress,$5)
 -include $5.d
 endef
 
@@ -114,7 +89,6 @@ $5: $3 | _generated
 	$(msg/COMPILE.C) $3
 	$(CXX) $(if $(filter %.cc %.cpp,$3),,-x c++) -g $(CXXFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CXXNOPICFLAGS)) -c -o $5 $3
-	$(call fun/obj-compress,$5)
 -include $5.d
 endef
 
@@ -294,7 +268,6 @@ $~$1$(var/sharedlibext)$$(tmp/$1/build):
 	    -lc $$(if $$(filter clang++,$$(_L)),-lstdc++)                \
 	    $(filter-out -lrt,$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1$(var/sharedlibext)))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
 $(1DV)clean::
 	$(RM) $1$(var/sharedlibext)*
@@ -324,7 +297,6 @@ $~$1$(var/sharedlibext)$$(tmp/$1/build):
 	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS) \
 	    -Wl,-soname,$(1F)$(var/sharedlibext)$$(tmp/$1/sover))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1$(var/sharedlibext)))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
 $(1DV)clean::
 	$(RM) $1$(var/sharedlibext)*
@@ -347,7 +319,6 @@ $~$1.exe:
 	    -e main -macosx_version_min 10.8                             \
 	    -lc $$(if $$(filter clang++,$$(_L)),-lstdc++)                \
 	    $(filter-out -lrt,$(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS)))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
@@ -367,7 +338,6 @@ $~$1.exe:
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
 		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
 	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
