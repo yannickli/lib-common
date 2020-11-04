@@ -11,29 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-ifeq (,$(NOCOMPRESS))
-
-define fun/obj-compress
-objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
-endef
-
-ifeq (,$(filter %compress-debug%,$(LDFLAGS)))
-define fun/bin-compress
-objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
-endef
-else
-define fun/bin-compress
-endef
-endif
-
-else # NOCOMPRESS
-define fun/obj-compress
-endef
-
-define fun/bin-compress
-endef
-endif
-
 # fun/lib-link <OBJS>,<LIBS>
 fun/lib-link = \
 	$(addprefix -Xlinker --version-script -Xlinker ,$(filter %.ld,$1)) \
@@ -81,7 +58,6 @@ $5: $3 $(if $($1_NOGENERATED),,| _generated)
 	$(msg/COMPILE.c) $3
 	$(CC) $(if $(filter %.c,$3),,-x c) -g $(CFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CNOPICFLAGS)) -c -o $5 $3
-	$(call fun/obj-compress,$5)
 -include $5.d
 endef
 
@@ -110,7 +86,6 @@ $5: $3 $(if $($1_NOGENERATED),,| _generated)
 	$(msg/COMPILE.C) $3
 	$(CXX) $(if $(filter %.cc %.cpp,$3),,-x c++) -g $(CXXFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CXXNOPICFLAGS)) -c -o $5 $3
-	$(call fun/obj-compress,$5)
 -include $5.d
 endef
 
@@ -237,7 +212,6 @@ $~$1.so$$(tmp/$1/build):
 	    $$(if $$(filter clang++,$$(_L)),-lstdc++) \
 	    $$(call fun/soname,$(1F).so,$$(tmp/$1/sover)))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
 $(1DV)clean::
 	$(RM) $1.so*
@@ -259,7 +233,6 @@ $~$1.exe:
 	    $$(filter %.o %.oo,$$^) \
 	    $$(LDFLAGS) $$(LDNOPICFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    $$(call fun/lib-link,$$^,$$(_LIBS)) $$(filter %.so,$$^))
-	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
