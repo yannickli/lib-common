@@ -11,14 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-ifeq (,$(NOCOMPRESS))
-ifneq (,$(shell ld --help | grep compress-debug-sections))
-ifneq (,$(shell objcopy --help | grep compress-debug-sections))
-    LDFLAGS += -Xlinker --compress-debug-sections=zlib
-endif
-endif
-endif
-
 # Debian stretch uses --enable-new-dtags by default, which breaks indirect
 # library dependencies loading when using -rpath.
 # See https://sourceware.org/ml/binutils/2014-02/msg00031.html
