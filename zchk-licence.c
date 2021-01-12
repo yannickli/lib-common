@@ -186,15 +186,13 @@ Z_GROUP_EXPORT(activation_token)
             /* Check token upper bound (valid). */
             Z_ASSERT_N(t_format_activation_token(&lic,
                                                  localtime_curday(sigt)
-                                                 + (64 * 64) * day - 1,
+                                                 + (64 * 64 - 1) * day,
                                                  sigt + 1 * day, &new_token,
                                                  &tmp));
-            /* Check token upper bound (invalid). We use 3600 instead of 0
-             * because there can be some daylight saving time delay...
-             */
+            /* Check token upper bound (invalid). */
             Z_ASSERT_NEG(t_format_activation_token(&lic,
                                                    localtime_curday(sigt)
-                                                   + (64 * 64) * day + 3600,
+                                                   + (64 * 64 + 1) * day,
                                                    sigt + 1 * day,
                                                    &new_token, &tmp));
             /* Another token upper bounds. (Think that tokens are
