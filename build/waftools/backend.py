@@ -362,6 +362,10 @@ def gen_local_vimrc(ctx):
     content += ctx.bldnode.name
     content += "'\n"
 
+    if hasattr(ctx, 'vimrc_additions'):
+        for cb in ctx.vimrc_additions:
+            content += cb(ctx)
+
     # Write file if it changed
     node = ctx.srcnode.make_node('.local_vimrc.vim')
     if not node.exists() or node.read() != content:
