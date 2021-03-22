@@ -33,6 +33,109 @@ static struct yaml_g {
     .logger = LOGGER_INIT(NULL, "yaml", LOG_INHERITS),
 };
 
+/** YAML handling.
+ *
+ * Introduction
+ * ============
+ *
+ * This file contains all code related to YAML, in three main parts:
+ *  * Parsing (file | string -> [AST, presentation])
+ *  * Packing ([AST, presentation] -> file | string)
+ *  * AST API: creating/manipulating YAML AST from code.
+ *
+ * Not all of YAML 1.2 is supported, and custom features are added on top of
+ * it. See README-iop-yaml.adoc for a description of handled features.
+ *
+ * In addition to AST, presentation data is parsed and used when packing.
+ * Presentation data is everything that is related to how a document is
+ * written, so that it can be repacked in the exact same way. This includes:
+ *  - empty lines
+ *  - comments
+ *  - alternatives syntaxes (null or ~, flow mode or not, etc)
+ *  - files includes
+ *  - variables
+ *  - overrides
+ *
+ * For example, when parsing
+ *
+ * a: !include:foo.yml
+ *   variables:
+ *     b: 3 # comment
+ *
+ * with "foo.yml" being "var_b: $(b)"
+ *
+ * The parsed AST will be the final resolved document, such as:
+ *
+ * a:
+ *   var_b: 3
+ *
+ * And the presentation data will contain:
+ *  - the include details
+ *  - the variable details
+ *  - the inline comment
+ *
+ * For this reason, there is very important rule for every new feature:
+ *
+ * /!\ Any new parsing syntax must have a presentation counterpart /!\
+ *
+ * All tests often check that parsing then repacking keeps the document the
+ * same, to ensure this rule is always verified.
+ *
+ * Presentation
+ * ============
+ *
+ * After parsing, presentation data is returned decoupled from the AST, for
+ * two main reasons:
+ *  * The AST is usually used to deserialize the data into another object
+ *    representation (for example, iop/yaml.c converts the AST into an IOP
+ *    object). By keeping the presentation data separated from the AST, it can
+ *    be saved while the AST is discarded after being deserialized. Then, when
+ *    the object is serialized again into a YAML ast, the presentation data
+ *    can be re-used during packign.
+ *  * We want to allow modification of the AST, for example through automatic
+ *    migration of the object deserialized from the AST. The presentation data
+ *    must thus be separated from the AST.
+ *
+ * The consequence of this separation is that:
+ *
+ * /!\ There is no guarantee during repacking that the AST matches the /!\
+ * /!\ presentation, it may have been modified.                        /!\
+ *
+ * This fact is the cause of most of the complexity of the presentation
+ * handling during repacking, for example:
+ * * if a file was included multiple times, the AST might have changed, so
+ *   a single file cannot be used when repacking
+ * * if a variable was mused multiple times, same thing
+ * * if an override was used, the underlying AST might have changed, rendering
+ *   the override invalid
+ * * ...
+ *
+ * Presentation layout
+ * ===================
+ *
+ * Presentation data is stored inside the YAML datas during parsing. Then,
+ * it is converted into IOP when parsing is over. This IOP associates
+ * presentation data to AST nodes using paths with this syntax:
+ *  '.a': applies to the 'a' key of the YAML object
+ *  '[0]': applies to the first element of the YAML array
+ *  '!': applies to the YAML value
+ *
+ * For example:
+ *
+ *  '.a!': value of the key 'a'
+ *  '[1].b[2]!': value of the 2nd element of the key b of the first element
+ *  '!': value of the document
+ *  '.a.b': key 'b' inside key 'a'.
+ *
+ * There is a distinction between a value and a key/element because
+ * presentation data can be associated with one or the other:
+ *
+ * a: # a
+ *   3 # b
+ *
+ * Comment "a" is associated with ".a", comment "b" is associated with ".a!".
+ */
+
 /* {{{ Parsing types definitions */
 /* {{{ Presentation */
 
