@@ -2791,6 +2791,14 @@ t_yaml_env_handle_override(yaml_parse_t * nonnull env,
      *   variables: ...
      *   override: ...
      *
+     * This "verbose" syntax would allow using variables in raw includes as
+     * well:
+     *
+     * !include
+     *   path: foo.json
+     *   mode: raw
+     *   variables: ...
+     *
      * For the moment, it isn't a big deal however.
      */
     if (override->obj->fields.len > 0
@@ -7535,8 +7543,7 @@ Z_GROUP_EXPORT(yaml)
             "<<:\n"
             "  # goty\n"
             "  - !include:child1.yml\n"
-            /* FIXME: '  # bad\n' is not saved, to fix! */
-            /* "  # bad\n" */
+            "  # bad\n"
             "  - !include:child2.yml\n"
             "    d: ra\n"
             "\n"
@@ -7555,6 +7562,7 @@ Z_GROUP_EXPORT(yaml)
             "    b:\n"
             "      - ki # comment\n"
             "      - ro\n"
+            "  # bad\n"
             "  - c: shu\n"
             "    d: ra\n"
             "\n"
