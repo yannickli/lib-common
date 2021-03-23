@@ -856,6 +856,24 @@ void httpc_pool_attach(httpc_t * nonnull w, httpc_pool_t * nonnull pool);
 httpc_t * nullable httpc_pool_launch(httpc_pool_t * nonnull pool);
 httpc_t * nullable httpc_pool_get(httpc_pool_t * nonnull pool);
 
+/** Check if the pool has a connection ready.
+ *
+ * \param[in] pool a httpc_pool_t
+ *
+ * \return true if there is at least one connection ready.
+ */
+bool httpc_pool_has_ready(httpc_pool_t * nonnull pool);
+
+/** Check if the pool has either a connection ready or if a new
+ *  connection can be done.
+ *
+ * \param[in] pool a httpc_pool_t
+ *
+ * \return true if there is at least one connection ready or if a new
+ *         connection can be done.
+ */
+bool httpc_pool_can_query(httpc_pool_t * nonnull pool);
+
 /* }}} */
 /* {{{ HTTP Client Queries */
 
