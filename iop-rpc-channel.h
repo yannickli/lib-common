@@ -450,7 +450,6 @@ struct ic_hook_ctx_t {
     byte             data[];  /* data to pass through RPC workflow */
 };
 
-int ic_hook_ctx_save(ic_hook_ctx_t * nonnull ctx);
 ic_hook_ctx_t * nonnull ic_hook_ctx_new(uint64_t slot, ssize_t extra);
 ic_hook_ctx_t * nullable ic_hook_ctx_get(uint64_t slot);
 void ic_hook_ctx_delete(ic_hook_ctx_t * nullable * nonnull pctx);
