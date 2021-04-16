@@ -34,6 +34,9 @@
 #include "zchk-iop.h"
 #include "iop/tstiop.iop.h"
 #include "iop/tstiop2.iop.h"
+#include "iop/tstiop_dox.iop.h"
+#include "iop/tstiop_dox_invalid_example_struct.iop.h"
+#include "iop/tstiop_dox_invalid_example_rpc.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_1.iop.h"
@@ -1456,6 +1459,7 @@ static int z_check_static_field_type(const iop_struct_t *st,
 Z_GROUP_EXPORT(iop)
 {
     IOP_REGISTER_PACKAGES(&tstiop__pkg,
+                          &tstiop_dox__pkg,
                           &tstiop_inheritance__pkg,
                           &tstiop_backward_compat__pkg);
 
@@ -8780,6 +8784,35 @@ Z_GROUP_EXPORT(iop)
                                         0, NULL, &err),
                    "YAML unpacking failure: %*pM", SB_FMT_ARG(&err));
 
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(iop_check_package_examples, "test iop_check_rpc_example") { /* {{{ */
+        SB_1k(err);
+        const char *exp_err;
+
+        /* Examples in tstiop_dox.iop should be valid. */
+        Z_ASSERT_N(iop_check_package_examples(&tstiop_dox__pkg, &err));
+
+        /* tstiop_dox_invalid_example_struct should be detected as invalid */
+        Z_ASSERT_NEG(iop_check_package_examples(
+                &tstiop_dox_invalid_example_struct__pkg,
+                &err));
+        exp_err = "invalid example for "
+                  "`tstiop_dox_invalid_example_struct.MyStruct`: "
+                  "1:11: cannot parse number `\"not an integer\"'";
+        Z_ASSERT_STREQUAL(err.data, exp_err);
+
+        /* tstiop_dox_invalid_example_rpc also */
+        sb_reset(&err);
+        Z_ASSERT_NEG(iop_check_package_examples(
+                &tstiop_dox_invalid_example_rpc__pkg,
+                &err));
+        exp_err = "invalid example for argument of RPC "
+                  "`tstiop_dox_invalid_example_rpc.MyIface.funA`: "
+                  "1:2: expected field of struct "
+                  "tstiop_dox_invalid_example_rpc.MyStruct, "
+                  "got `\"unknownField\"'";
+        Z_ASSERT_STREQUAL(err.data, exp_err);
     } Z_TEST_END;
     /* }}} */
 
