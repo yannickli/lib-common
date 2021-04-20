@@ -142,6 +142,20 @@ int strtoll_ext(const char * nonnull s, int64_t * nonnull out,
 int strtoull_ext(const char * nonnull s, uint64_t * nonnull out,
                  const char * nullable * nullable tail, int base);
 
+/** Wrapper around strtod that do not consider subnormal values as errors.
+ *
+ * As defined in the C standard, subnormal values are "too small to be
+ * represented in normalized format".
+ *
+ * Such values can be parsed by strtod (ie. its return value is correct) but
+ * it sets errno to ERANGE in that case.
+ *
+ * This helper wraps strtod to not set errno to ERANGE in the case of
+ * subnormal values.
+ */
+double strtod_allow_subnormal(const char * nonnull nptr,
+                              char * nullable * nullable endptr);
+
 __attr_nonnull__((1))
 static inline double memtod(const void * nonnull s, int len,
                             const byte * nullable * nullable endptr)

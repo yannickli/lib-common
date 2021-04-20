@@ -16,6 +16,8 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include <math.h>
+
 #include <lib-common/core.h>
 
 static ALWAYS_INLINE int64_t
@@ -471,4 +473,20 @@ int strtoull_ext(const char *s, uint64_t *out, const char **tail, int base)
     return memtoxll_ext(s, 0, false, out, (const void **)tail, base, false);
 }
 
+double strtod_allow_subnormal(const char *nptr, char **endptr)
+{
+    double res = 0.;
+
+    errno = 0;
+    res = strtod(nptr, endptr);
+
+    if (errno) {
+        assert(errno == ERANGE);
+        if (fpclassify(res) == FP_SUBNORMAL) {
+            errno = 0;
+        }
+    }
+
+    return res;
+}
 /*}}} */
