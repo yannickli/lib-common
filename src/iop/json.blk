@@ -2731,7 +2731,7 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 if (isnan(d) || isinf(d)) {
                     PUTS("null");
                 } else {
-                    WRITE(ibuf, sprintf(ibuf, "%.17e", d));
+                    WRITE(ibuf, sprintf(ibuf, "%.17g", d));
                 }
               } break;
 
