@@ -26,6 +26,7 @@
 #include <lib-common/unix.h>
 #include <lib-common/z.h>
 #include <lib-common/iop-json.h>
+#include <lib-common/iop-yaml.h>
 #include <lib-common/iop/priv.h>
 #include <lib-common/iop/ic.iop.h>
 #include <lib-common/xmlr.h>
@@ -8723,6 +8724,62 @@ Z_GROUP_EXPORT(iop)
                           "class 'tstiop.ChildClassA' (id 2) "
                           "is not a child of 'tstiop.ChildClassB' (id 3) "
                           "as expected");
+    } Z_TEST_END;
+    /* }}} */
+    Z_TEST(double_subnormal_packing, "test packing/unpacking of subnormal doubles") { /* {{{ */
+        /* The purpose of this test is to check that IOP packing/unpacking of
+         * double subnormal values is both possible, and gives the same
+         * result. */
+        t_scope;
+        SB_1k(buf);
+        SB_1k(err);
+        pstream_t ps;
+        tstiop__my_struct_a_opt__t my_struct_in = {
+            .m = OPT(4.68120573995851602e-310),
+        };
+        tstiop__my_struct_a_opt__t *my_struct_out;
+
+        /* Test in json. */
+        sb_reset(&buf);
+        Z_ASSERT_N(iop_sb_jpack(&buf, &tstiop__my_struct_a_opt__s,
+                                &my_struct_in, 0));
+
+        my_struct_out = NULL;
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_iop_junpack_ptr_ps(&ps, &tstiop__my_struct_a_opt__s,
+                                        (void **)&my_struct_out,
+                                        0, &err),
+                   "json unpacking failure: %*pM", SB_FMT_ARG(&err));
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_a_opt, my_struct_out,
+                          &my_struct_in);
+
+
+        /* Test in XML. */
+        sb_setf(&buf, IOP_XML_HEADER_FULL);
+        iop_xpack_flags(&buf, &tstiop__my_struct_a_opt__s, &my_struct_in, 0);
+        sb_adds(&buf, IOP_XML_FOOTER);
+
+        my_struct_out = NULL;
+        Z_ASSERT_N(xmlr_setup(&xmlr_g, buf.data, buf.len));
+        Z_ASSERT_N(t_iop_xunpack_ptr(xmlr_g,
+                                     &tstiop__my_struct_a_opt__s,
+                                     (void **)&my_struct_out),
+                   "XML unpacking failure: %s", xmlr_get_err());
+        Z_ASSERT_IOPEQUAL(tstiop__my_struct_a_opt, my_struct_out,
+                          &my_struct_in);
+
+
+        /* Test in YAML. */
+        sb_reset(&buf);
+        t_iop_sb_ypack(&buf, &tstiop__my_struct_a_opt__s, &my_struct_in,
+                       NULL);
+        my_struct_out = NULL;
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_iop_yunpack_ptr_ps(&ps, &tstiop__my_struct_a_opt__s,
+                                        (void **)&my_struct_out,
+                                        0, NULL, &err),
+                   "YAML unpacking failure: %*pM", SB_FMT_ARG(&err));
+
     } Z_TEST_END;
     /* }}} */
 
