@@ -172,7 +172,7 @@ static inline double memtod(const void * nonnull s, int len,
 
         /* Ensure we have a '\0' */
         const char *duped = (const char *)t_dupz(s, len);
-        double res = strtod(duped, (char **)endptr);
+        double res = strtod_allow_subnormal(duped, (char **)endptr);
 
         if (endptr) {
             *(char **)endptr = (char *)s + (*(char **)endptr - duped);

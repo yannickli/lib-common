@@ -405,7 +405,7 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
     }
 
     errno = 0;
-    d = strtod(p, (char **)&pd);
+    d = strtod_allow_subnormal(p, (char **)&pd);
     is_d_err = errno;
     d_count = pd - p;
 
@@ -1237,7 +1237,8 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
 
           case IOP_T_DOUBLE:
             errno = 0;
-            ll->ctx->u.d = strtod(ll->ctx->b.data, (char **)&q);
+            ll->ctx->u.d = strtod_allow_subnormal(ll->ctx->b.data,
+                                                  (char **)&q);
             if (errno || q != (const char *)ll->ctx->b.data + ll->ctx->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto do_double;
