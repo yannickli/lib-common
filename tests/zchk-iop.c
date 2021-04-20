@@ -653,6 +653,15 @@ static int z_iop_filter_check_opt(const char *field, bool must_be_set,
 /* }}} */
 /* {{{ Other helpers (waiting proper folds). */
 
+#define IOP_XML_HEADER \
+    "<root"                                                                  \
+    " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\""                        \
+    " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+
+#define IOP_XML_HEADER_FULL IOP_XML_HEADER ">\n"
+
+#define IOP_XML_FOOTER "</root>\n"
+
 static int iop_xml_test_struct(const iop_struct_t *st, void *v,
                                const char *info)
 {
@@ -669,8 +678,7 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v,
      *      functions. */
     t_sb_init(&sb, 100);
 
-    sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+    sb_adds(&sb, IOP_XML_HEADER);
     if (iop_struct_is_class(st)) {
         const iop_struct_t *real_st = *(const iop_struct_t **)v;
 
@@ -680,9 +688,9 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v,
     sb_addc(&sb, '>');
     len = sb.len;
     iop_xpack(&sb, st, v, false, true);
-    sb_adds(&sb, "</root>");
+    sb_adds(&sb, IOP_XML_FOOTER);
 
-    s = t_lstr_dups(sb.data + len, sb.len - len - 7);
+    s = t_lstr_dups(sb.data + len, sb.len - len - strlen(IOP_XML_FOOTER));
 
     /* unpacking */
     Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -722,8 +730,7 @@ static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
      *      functions. */
     t_sb_init(&sb, 100);
 
-    sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+    sb_adds(&sb, IOP_XML_HEADER);
     if (iop_struct_is_class(st)) {
         const iop_struct_t *real_st = *(const iop_struct_t **)v;
 
@@ -732,7 +739,7 @@ static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
     }
     sb_addc(&sb, '>');
     iop_xpack(&sb, st, v, false, true);
-    sb_adds(&sb, "</root>");
+    sb_adds(&sb, IOP_XML_FOOTER);
 
     /* unpacking */
     Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2014,10 +2021,7 @@ Z_GROUP_EXPORT(iop)
             tstiop__my_struct_f__t sf_ret;
             SB_1k(sb);
 
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<unk1></unk1>"
                     "<a>foo</a><a>bar</a><a>foobar</a>"
@@ -2025,7 +2029,7 @@ Z_GROUP_EXPORT(iop)
                     "<c><unk2>foo</unk2></c><c><a>55</a><unk3 /></c><c />"
                     "<c><a>55</a><b>2</b><unk3 /></c>"
                     "<unk4>foo</unk4>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2051,17 +2055,14 @@ Z_GROUP_EXPORT(iop)
             qm_add(part, &parts, &LSTR_IMMED_V("foo"), LSTR("part cid foo"));
             qm_add(part, &parts, &LSTR_IMMED_V("bar"), LSTR("part cid bar"));
 
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<a></a><a/><a>foo</a>"
                     "<a href=\'cid:foo\'/>"
                     "<a><inc:Include href=\'cid:bar\' xmlns:inc=\"url\" /></a>"
                     "<b>VGVzdA==</b>"
                     "<b href=\'cid:foo\'/>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2084,16 +2085,13 @@ Z_GROUP_EXPORT(iop)
             tstiop__my_struct_a_opt__t sa_opt;
             SB_1k(sb);
 
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<a>42</a>"
                     "<b>0x10</b>"
                     "<e>-42</e>"
                     "<f>0x42</f>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_sa_opt, &sa_opt);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2134,10 +2132,9 @@ Z_GROUP_EXPORT(iop)
             Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
 
             /* packing (private values should be skipped) */
-            sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             iop_xpack_flags(&sb, st_cs, &cs, IOP_XPACK_SKIP_PRIVATE);
-            sb_adds(&sb, "</root>");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             Z_ASSERT_NULL(strstr(sb.data, "<priv>"));
             Z_ASSERT_NULL(strstr(sb.data, "<priv2>"));
@@ -2157,14 +2154,11 @@ Z_GROUP_EXPORT(iop)
             /* now test that unpacking only works when private values are not
              * specified */
             sb_reset(&sb);
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<s>abcd</s>"
                     "<s>abcd</s>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2173,15 +2167,12 @@ Z_GROUP_EXPORT(iop)
             xmlr_close(&xmlr_g);
 
             sb_reset(&sb);
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<s>abcd</s>"
                     "<s>abcd</s>"
                     "<priv>true</priv>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -2190,15 +2181,12 @@ Z_GROUP_EXPORT(iop)
             xmlr_close(&xmlr_g);
 
             sb_reset(&sb);
-            sb_adds(&sb, "<root "
-                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                    ">\n");
+            sb_adds(&sb, IOP_XML_HEADER_FULL);
             sb_adds(&sb,
                     "<s>abcd</s>"
                     "<s>abcd</s>"
                     "<priv2>true</priv2>");
-            sb_adds(&sb, "</root>\n");
+            sb_adds(&sb, IOP_XML_FOOTER);
 
             iop_init_desc(st_cs, &cs);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
@@ -8215,10 +8203,9 @@ Z_GROUP_EXPORT(iop)
                     IOP_UNION_TAG(tstiop__my_union_a, ua));
 
         /* pack/unpack xml */
-        sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+        sb_adds(&sb, IOP_XML_HEADER_FULL);
         iop_xpack(&sb, &tstiop__my_union_b__s, &src, false, false);
-        sb_adds(&sb, "</root>");
+        sb_adds(&sb, IOP_XML_FOOTER);
         memset(&dst, 0xFF, sizeof(tstiop__my_union_b__t));
         Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
         ret = iop_xunpack(xmlr_g, t_pool(), &tstiop__my_union_b__s, &dst);
@@ -8453,13 +8440,10 @@ Z_GROUP_EXPORT(iop)
             SB(sb, 10);                                                      \
             int ret;                                                         \
             void *res = NULL;                                                \
-            sb_adds(&sb,                                                     \
-                    "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "  \
-                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""\
-                    ">");                                                    \
+            sb_adds(&sb, IOP_XML_HEADER_FULL);                               \
             iop_xpack(&sb, &tstiop_void_type__##type##_to_void__s, &s_##type,\
                       false, false);                                         \
-            sb_adds(&sb, "</root>");                                         \
+            sb_adds(&sb, IOP_XML_FOOTER);                                    \
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));                \
             ret = iop_xunpack_ptr(xmlr_g, t_pool(),                          \
                                   &tstiop_void_type__void_required__s, &res);\
