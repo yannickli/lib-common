@@ -388,7 +388,7 @@ t_yaml_scalar_to_string(const yaml_scalar_t * nonnull scalar)
         if (isnan(scalar->d)) {
             return LSTR(".NaN");
         } else {
-            return t_lstr_fmt("%.15g", scalar->d);
+            return t_lstr_fmt("%.17g", scalar->d);
         }
       } break;
 
@@ -4022,7 +4022,7 @@ yaml_pack_scalar(yaml_pack_env_t * nonnull env,
         if (isnan(scalar->d)) {
             PUTS(".NaN");
         } else {
-            WRITE(ibuf, sprintf(ibuf, "%.15g", scalar->d));
+            WRITE(ibuf, sprintf(ibuf, "%.17g", scalar->d));
         }
       } break;
 
@@ -9396,15 +9396,15 @@ Z_GROUP_EXPORT(yaml)
             "  variables:\n"
             "    n: null\n"
             "    b: tRuE\n"
-            "    d: 10.2e-3\n",
+            "    d: 10.0e-3\n",
 
             "inc:\n"
             "  nr: ~\n"
             "  ns: <null>\n"
             "  br: true\n"
             "  bs: <tRuE>\n"
-            "  dr: 0.0102\n"
-            "  ds: <10.2e-3>"
+            "  dr: 0.01\n"
+            "  ds: <10.0e-3>"
         ));
 
         /* pack into files, to test repacking of variables */
@@ -9417,8 +9417,8 @@ Z_GROUP_EXPORT(yaml)
             "    n~1: \"null\"\n"
             "    b: true\n"
             "    b~1: tRuE\n"
-            "    d: 0.0102\n"
-            "    d~1: 10.2e-3\n"
+            "    d: 0.01\n"
+            "    d~1: 10.0e-3\n"
         ));
         Z_HELPER_RUN(z_check_file("var_mul_s2/inner.yml",
             "nr: $(n)\n"
@@ -10539,8 +10539,8 @@ Z_GROUP_EXPORT(yaml)
         yaml_data_set_string(&d2, LSTR("1"));
         TST(&d1, &d2, false, true);
 
-        yaml_data_set_double(&d1, -1.4);
-        yaml_data_set_string(&d2, LSTR("-1.4"));
+        yaml_data_set_double(&d1, -1.5);
+        yaml_data_set_string(&d2, LSTR("-1.5"));
         TST(&d1, &d2, false, true);
 
         yaml_data_set_int(&d2, -1);
@@ -10584,10 +10584,9 @@ Z_GROUP_EXPORT(yaml)
         /* Doubles are packed with enough precision to repack those values
          * as they were written. */
         Z_HELPER_RUN(t_z_yaml_test_parse_success(NULL, NULL, NULL, 0,
-            "- 3.14159265\n"
             "- 0.25\n"
-            "- 0.666666666666\n"
-            "- 1.23e+20",
+            "- 1.23e+20\n"
+            "- 18014398509481982",
 
             NULL
         ));
@@ -10599,7 +10598,7 @@ Z_GROUP_EXPORT(yaml)
             "- 0.66666666666666666667\n",
 
             "- 12000\n"
-            "- 0.666666666666667"
+            "- 0.66666666666666663"
         ));
     } Z_TEST_END;
 
