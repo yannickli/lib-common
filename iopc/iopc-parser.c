@@ -683,9 +683,12 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
             if (tk->token == '(') {
                 nparen++;
             }
-            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0)
+            if (iop_cfolder_feed_operator(pp->cfolder,
+                                          (iop_cfolder_op_t)tk->token) < 0)
+            {
                 fatal_loc("error when feeding the constant folder with `%c'",
                           tk->loc, tk->token);
+            }
             break;
 
           case ')':
@@ -696,9 +699,12 @@ parse_constant_integer(iopc_parser_t *pp, int paren, bool *is_signed)
                 goto end;
             }
 
-            if (iop_cfolder_feed_operator(pp->cfolder, tk->token) < 0)
+            if (iop_cfolder_feed_operator(pp->cfolder,
+                                          (iop_cfolder_op_t)tk->token) < 0)
+            {
                 fatal_loc("error when feeding the constant folder with `%c'",
                           tk->loc, tk->token);
+            }
             break;
 
           case ITOK_LSHIFT:
