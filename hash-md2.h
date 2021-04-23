@@ -35,7 +35,7 @@ void md2_starts(md2_ctx *ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md2_update(md2_ctx *ctx, const void *input, int ilen) __leaf;
+void md2_update(md2_ctx *ctx, const void *input, ssize_t ilen) __leaf;
 
 /**
  * \brief          MD2 final digest
@@ -52,7 +52,7 @@ void md2_finish(md2_ctx *ctx, byte output[16]) __leaf;
  * \param ilen     length of the input data
  * \param output   MD2 checksum result
  */
-void md2(const void *input, int ilen, byte output[16]) __leaf;
+void md2(const void *input, ssize_t ilen, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD2(file contents)
@@ -82,7 +82,7 @@ void md2_hmac_starts(md2_ctx *ctx, const void *key, int keylen)
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md2_hmac_update(md2_ctx *ctx, const void *input, int ilen)
+void md2_hmac_update(md2_ctx *ctx, const void *input, ssize_t ilen)
     __leaf;
 
 /**
@@ -102,7 +102,7 @@ void md2_hmac_finish(md2_ctx *ctx, byte output[16]) __leaf;
  * \param ilen     length of the input data
  * \param output   HMAC-MD2 result
  */
-void md2_hmac(const void *key, int keylen, const void *input, int ilen,
+void md2_hmac(const void *key, int keylen, const void *input, ssize_t ilen,
               byte output[16]) __leaf;
 
 #ifdef __cplusplus

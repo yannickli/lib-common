@@ -177,7 +177,7 @@ static void md5_process( md5_ctx *ctx, const byte data[64] )
 /*
  * MD5 process buffer
  */
-void md5_update( md5_ctx *ctx, const void *_input, int ilen )
+void md5_update( md5_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -265,7 +265,7 @@ void md5_finish_hex( md5_ctx *ctx, char output[33] )
 /*
  * output = MD5( input buffer )
  */
-void md5( const void *input, int ilen, byte output[16] )
+void md5( const void *input, ssize_t ilen, byte output[16] )
 {
     md5_ctx ctx;
 
@@ -279,7 +279,7 @@ void md5( const void *input, int ilen, byte output[16] )
 /*
  * output = MD5( input buffer )
  */
-void md5_hex( const void *input, int ilen, char output[33] )
+void md5_hex( const void *input, ssize_t ilen, char output[33] )
 {
     md5_ctx ctx;
 
@@ -356,7 +356,7 @@ void md5_hmac_starts( md5_ctx *ctx, const void *_key, int keylen )
 /*
  * MD5 HMAC process buffer
  */
-void md5_hmac_update( md5_ctx *ctx, const void *input, int ilen )
+void md5_hmac_update( md5_ctx *ctx, const void *input, ssize_t ilen )
 {
     md5_update( ctx, input, ilen );
 }
@@ -380,7 +380,7 @@ void md5_hmac_finish( md5_ctx *ctx, byte output[16] )
 /*
  * output = HMAC-MD5( hmac key, input buffer )
  */
-void md5_hmac( const void *key, int keylen, const void *input, int ilen,
+void md5_hmac( const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[16] )
 {
     md5_ctx ctx;

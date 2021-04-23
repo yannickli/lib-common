@@ -42,7 +42,7 @@ void sha4_starts(sha4_ctx *ctx, int is384) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha4_update(sha4_ctx *ctx, const void *input, int ilen) __leaf;
+void sha4_update(sha4_ctx *ctx, const void *input, ssize_t ilen) __leaf;
 
 /**
  * \brief          SHA-512 final digest
@@ -60,7 +60,7 @@ void sha4_finish(sha4_ctx *ctx, byte output[64]) __leaf;
  * \param output   SHA-384/512 checksum result
  * \param is384    0 = use SHA512, 1 = use SHA384
  */
-void sha4(const void *input, int ilen,
+void sha4(const void *input, ssize_t ilen,
           byte output[64], int is384) __leaf;
 
 /**
@@ -93,7 +93,7 @@ void sha4_hmac_starts(sha4_ctx *ctx, const void *key, int keylen,
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha4_hmac_update(sha4_ctx *ctx, const void *input, int ilen)
+void sha4_hmac_update(sha4_ctx *ctx, const void *input, ssize_t ilen)
     __leaf;
 
 /**
@@ -114,7 +114,7 @@ void sha4_hmac_finish(sha4_ctx *ctx, byte output[64]) __leaf;
  * \param output   HMAC-SHA-384/512 result
  * \param is384    0 = use SHA512, 1 = use SHA384
  */
-void sha4_hmac(const void *key, int keylen, const void *input, int ilen,
+void sha4_hmac(const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[64], int is384) __leaf;
 
 #ifdef __cplusplus

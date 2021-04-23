@@ -39,7 +39,7 @@ void sha2_starts(sha2_ctx *ctx, int is224) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_update(sha2_ctx *ctx, const void *input, int ilen) __leaf;
+void sha2_update(sha2_ctx *ctx, const void *input, ssize_t ilen) __leaf;
 
 /**
  * \brief          SHA-256 final digest
@@ -65,7 +65,7 @@ void sha2_finish_hex(sha2_ctx *ctx, char output[65]) __leaf;
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2(const void *input, int ilen,
+void sha2(const void *input, ssize_t ilen,
           byte output[32], int is224) __leaf;
 
 /**
@@ -76,7 +76,7 @@ void sha2(const void *input, int ilen,
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hex(const void *input, int ilen, char output[65], int is224)
+void sha2_hex(const void *input, ssize_t ilen, char output[65], int is224)
     __leaf;
 
 /**
@@ -109,7 +109,7 @@ void sha2_hmac_starts(sha2_ctx *ctx, const void *key, int keylen,
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen)
+void sha2_hmac_update(sha2_ctx *ctx, const void *input, ssize_t ilen)
     __leaf;
 
 /**
@@ -131,7 +131,7 @@ void sha2_hmac_finish(sha2_ctx *ctx, byte output[32])
  * \param output   HMAC-SHA-224/256 result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
+void sha2_hmac(const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[32], int is224) __leaf;
 
 #define SHA256_CRYPT_SALT_LEN_MAX    16

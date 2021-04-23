@@ -56,7 +56,7 @@ void sha2_finish_hex( sha2_ctx *ctx, char output[65] )
 /*
  * output = SHA-256( input buffer )
  */
-void sha2_hex( const void *input, int ilen, char output[65], int is224 )
+void sha2_hex( const void *input, ssize_t ilen, char output[65], int is224 )
 {
     sha2_ctx ctx;
 
@@ -103,7 +103,7 @@ int sha2_file(const char *path, byte output[32], int is224 )
  * output = HMAC-SHA-256( hmac key, input buffer )
  */
 void sha2_hmac( const void *key, int keylen,
-                const void *input, int ilen,
+                const void *input, ssize_t ilen,
                 byte output[32], int is224 )
 {
     sha2_ctx ctx;

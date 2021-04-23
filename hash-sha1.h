@@ -34,7 +34,7 @@ void sha1_starts(sha1_ctx *ctx) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha1_update(sha1_ctx *ctx, const void *input, int ilen) __leaf;
+void sha1_update(sha1_ctx *ctx, const void *input, ssize_t ilen) __leaf;
 
 /**
  * \brief          SHA-1 final digest
@@ -59,7 +59,7 @@ void sha1_finish_hex(sha1_ctx *ctx, char output[41]) __leaf;
  * \param ilen     length of the input data
  * \param output   SHA-1 checksum result
  */
-void sha1(const void *input, int ilen, byte output[20]) __leaf;
+void sha1(const void *input, ssize_t ilen, byte output[20]) __leaf;
 
 /**
  * \brief          Output = SHA-1(input buffer)
@@ -68,7 +68,7 @@ void sha1(const void *input, int ilen, byte output[20]) __leaf;
  * \param ilen     length of the input data
  * \param output   SHA-1 checksum result
  */
-void sha1_hex(const void *input, int ilen, char output[41]) __leaf;
+void sha1_hex(const void *input, ssize_t ilen, char output[41]) __leaf;
 
 /**
  * \brief          Output = SHA-1(file contents)
@@ -98,7 +98,7 @@ void sha1_hmac_starts(sha1_ctx *ctx, const void *key, int keylen)
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha1_hmac_update(sha1_ctx *ctx, const void *input, int ilen)
+void sha1_hmac_update(sha1_ctx *ctx, const void *input, ssize_t ilen)
     __leaf;
 
 /**
@@ -119,7 +119,7 @@ void sha1_hmac_finish(sha1_ctx *ctx, byte output[20])
  * \param ilen     length of the input data
  * \param output   HMAC-SHA-1 result
  */
-void sha1_hmac(const void *key, int keylen, const void *input, int ilen,
+void sha1_hmac(const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[20]) __leaf;
 
 #ifdef __cplusplus
