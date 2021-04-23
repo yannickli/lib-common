@@ -158,7 +158,7 @@ static void md4_process( md4_ctx *ctx, const byte data[64] )
 /*
  * MD4 process buffer
  */
-void md4_update( md4_ctx *ctx, const void *_input, int ilen )
+void md4_update( md4_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -239,7 +239,7 @@ void md4_finish( md4_ctx *ctx, byte output[16] )
 /*
  * output = MD4( input buffer )
  */
-void md4( const void *input, int ilen, byte output[16] )
+void md4( const void *input, ssize_t ilen, byte output[16] )
 {
     md4_ctx ctx;
 
@@ -316,7 +316,7 @@ void md4_hmac_starts( md4_ctx *ctx, const void *_key, int keylen )
 /*
  * MD4 HMAC process buffer
  */
-void md4_hmac_update( md4_ctx *ctx, const void *input, int ilen )
+void md4_hmac_update( md4_ctx *ctx, const void *input, ssize_t ilen )
 {
     md4_update( ctx, input, ilen );
 }
@@ -340,7 +340,7 @@ void md4_hmac_finish( md4_ctx *ctx, byte output[16] )
 /*
  * output = HMAC-MD4( hmac key, input buffer )
  */
-void md4_hmac( const void *key, int keylen, const void *input, int ilen,
+void md4_hmac( const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[16] )
 {
     md4_ctx ctx;

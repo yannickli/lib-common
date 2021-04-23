@@ -19,7 +19,7 @@
 struct iop_struct_t;
 
 typedef void (iop_hash_f)(void * nonnull ctx, const void * nonnull input,
-                          int ilen);
+                          ssize_t ilen);
 
 enum {
     IOP_HASH_SKIP_MISSING = 1 << 0, /* Skip missing optional fields         */

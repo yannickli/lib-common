@@ -113,7 +113,7 @@ static void md2_process( md2_ctx *ctx )
 /*
  * MD2 process buffer
  */
-void md2_update( md2_ctx *ctx, const void *_input, int ilen )
+void md2_update( md2_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -163,7 +163,7 @@ void md2_finish( md2_ctx *ctx, byte output[16] )
 /*
  * output = MD2( input buffer )
  */
-void md2( const void *input, int ilen, byte output[16] )
+void md2( const void *input, ssize_t ilen, byte output[16] )
 {
     md2_ctx ctx;
 
@@ -240,7 +240,7 @@ void md2_hmac_starts( md2_ctx *ctx, const void *_key, int keylen )
 /*
  * MD2 HMAC process buffer
  */
-void md2_hmac_update( md2_ctx *ctx, const void *input, int ilen )
+void md2_hmac_update( md2_ctx *ctx, const void *input, ssize_t ilen )
 {
     md2_update( ctx, input, ilen );
 }
@@ -264,7 +264,7 @@ void md2_hmac_finish( md2_ctx *ctx, byte output[16] )
 /*
  * output = HMAC-MD2( hmac key, input buffer )
  */
-void md2_hmac( const void *key, int keylen, const void *input, int ilen,
+void md2_hmac( const void *key, int keylen, const void *input, ssize_t ilen,
                byte output[16] )
 {
     md2_ctx ctx;

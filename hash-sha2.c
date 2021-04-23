@@ -53,7 +53,7 @@ void sha2_finish_hex( sha2_ctx *ctx, char output[65] )
                       ctx->is224 ? SHA224_DIGEST_SIZE : SHA256_DIGEST_SIZE);
 }
 
-uint64_t sha2_hash_64(const void *data, int len)
+uint64_t sha2_hash_64(const void *data, ssize_t len)
 {
     union {
         byte b[32];
@@ -67,7 +67,7 @@ uint64_t sha2_hash_64(const void *data, int len)
 /*
  * output = SHA-256( input buffer )
  */
-void sha2_hex( const void *input, int ilen, char output[65], int is224 )
+void sha2_hex( const void *input, ssize_t ilen, char output[65], int is224 )
 {
     sha2_ctx ctx;
 
@@ -114,7 +114,7 @@ int sha2_file(const char *path, byte output[32], int is224 )
  * output = HMAC-SHA-256( hmac key, input buffer )
  */
 void sha2_hmac( const void *key, int keylen,
-                const void *input, int ilen,
+                const void *input, ssize_t ilen,
                 byte output[32], int is224 )
 {
     sha2_ctx ctx;

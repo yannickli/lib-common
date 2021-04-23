@@ -223,7 +223,7 @@ static void sha4_process( sha4_ctx *ctx, const byte data[128] )
 /*
  * SHA-512 process buffer
  */
-void sha4_update( sha4_ctx *ctx, const void *_input, int ilen )
+void sha4_update( sha4_ctx *ctx, const void *_input, ssize_t ilen )
 {
     const byte *input = _input;
     int fill;
@@ -315,7 +315,7 @@ void sha4_finish( sha4_ctx *ctx, byte output[64] )
 /*
  * output = SHA-512( input buffer )
  */
-void sha4( const void *input, int ilen, byte output[64], int is384 )
+void sha4( const void *input, ssize_t ilen, byte output[64], int is384 )
 {
     sha4_ctx ctx;
 
@@ -392,7 +392,7 @@ void sha4_hmac_starts( sha4_ctx *ctx, const void *_key, int keylen, int is384 )
 /*
  * SHA-512 HMAC process buffer
  */
-void sha4_hmac_update( sha4_ctx  *ctx, const void *input, int ilen )
+void sha4_hmac_update( sha4_ctx  *ctx, const void *input, ssize_t ilen )
 {
     sha4_update( ctx, input, ilen );
 }
@@ -421,7 +421,7 @@ void sha4_hmac_finish( sha4_ctx *ctx, byte output[64] )
  * output = HMAC-SHA-512( hmac key, input buffer )
  */
 void sha4_hmac( const void *key, int keylen,
-                const void *input, int ilen,
+                const void *input, ssize_t ilen,
                 byte output[64], int is384 )
 {
     sha4_ctx ctx;

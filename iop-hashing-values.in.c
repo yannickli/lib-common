@@ -16,7 +16,7 @@
 struct iop_hash_ctx {
     size_t   pos;
     uint8_t  buf[1024];
-    void   (*hfun)(void *ctx, const void *input, int len);
+    void   (*hfun)(void *ctx, const void *input, ssize_t len);
     void    *ctx;
 };
 
@@ -314,7 +314,7 @@ ATTRS
 static
 #endif
 void F(iop_hash)(const iop_struct_t *st, const void *v,
-                 void (*hfun)(void *ctx, const void *input, int ilen),
+                 void (*hfun)(void *ctx, const void *input, ssize_t ilen),
                  void *hctx, unsigned flags)
 {
     struct iop_hash_ctx ctx = {

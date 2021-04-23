@@ -39,7 +39,7 @@ void sha2_starts(sha2_ctx * nonnull ctx, int is224) __leaf;
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_update(sha2_ctx * nonnull ctx, const void * nonnull input, int ilen)
+void sha2_update(sha2_ctx * nonnull ctx, const void * nonnull input, ssize_t ilen)
     __leaf;
 
 /**
@@ -66,7 +66,7 @@ void sha2_finish_hex(sha2_ctx * nonnull ctx, char output[65]) __leaf;
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2(const void * nonnull input, int ilen, byte output[32], int is224)
+void sha2(const void * nonnull input, ssize_t ilen, byte output[32], int is224)
     __leaf;
 
 /* \brief          64-bit output = SHA-2(input buffer)
@@ -74,7 +74,7 @@ void sha2(const void * nonnull input, int ilen, byte output[32], int is224)
  * \param data     buffer holding the data
  * \param len      length of the input data
  */
-uint64_t sha2_hash_64(const void * nonnull data, int len) __leaf;
+uint64_t sha2_hash_64(const void * nonnull data, ssize_t len) __leaf;
 
 /**
  * \brief          Output = SHA-256(input buffer)
@@ -84,7 +84,7 @@ uint64_t sha2_hash_64(const void * nonnull data, int len) __leaf;
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hex(const void * nonnull input, int ilen, char output[65], int is224)
+void sha2_hex(const void * nonnull input, ssize_t ilen, char output[65], int is224)
     __leaf;
 
 /**
@@ -118,7 +118,7 @@ void sha2_hmac_starts(sha2_ctx * nonnull ctx, const void * nonnull key,
  * \param ilen     length of the input data
  */
 void sha2_hmac_update(sha2_ctx * nonnull ctx, const void * nonnull input,
-                      int ilen)
+                      ssize_t ilen)
     __leaf;
 
 /**
@@ -141,7 +141,7 @@ void sha2_hmac_finish(sha2_ctx * nonnull ctx, byte output[32])
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
 void sha2_hmac(const void * nonnull key, int keylen,
-               const void * nonnull input, int ilen,
+               const void * nonnull input, ssize_t ilen,
                byte output[32], int is224) __leaf;
 
 #define SHA256_CRYPT_SALT_LEN_MAX    16
