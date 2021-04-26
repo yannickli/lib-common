@@ -546,7 +546,7 @@ void murmur_hash3_x64_128(const void *key, size_t len,
 
 /* {{{ Hashers */
 
-uint64_t identity_hash_64(const void *data, int len)
+uint64_t identity_hash_64(const void *data, ssize_t len)
 {
     uint64_t v = 0;
 
@@ -558,7 +558,7 @@ uint64_t identity_hash_64(const void *data, int len)
     }
 }
 
-uint64_t murmur3_128_hash_64(const void *data, int len)
+uint64_t murmur3_128_hash_64(const void *data, ssize_t len)
 {
     union {
         char b[16];
