@@ -982,7 +982,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
 
     if (info && info->has_min && info->has_max) {
         if (info->max_blen <= 16) {
-            uint16_t u16;
+            uint16_t u16 = 0;
 
             if (info->max_blen == 0) {
                 *v = 0;
@@ -998,7 +998,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
 
             return 0;
         } else {
-            uint16_t u16;
+            uint16_t u16 = 0;
 
             if (aper_read_u16_m(bs, info->max_olen_blen, &u16,
                                 info->d_max) < 0)
