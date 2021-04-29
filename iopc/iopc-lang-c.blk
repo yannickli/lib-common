@@ -3362,7 +3362,8 @@ static void put_include(sb_t *sb, const char *ext,
         if (!strendswith(dep_path, iop_path, (const char **)&p))
             goto no_rel;
         assert (p > dep_path && p[-1] == '/');
-        *--p = '\0';
+        --p;
+        dep_path[p - dep_path] = '\0';
         pfx = common_prefix(our_path, dep_path);
         while (pfx > 0 && our_path[pfx - 1] != '/')
             pfx--;
