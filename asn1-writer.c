@@ -79,8 +79,8 @@ static void e_trace_desc(int level, const char *txt,
                        || spec->type == ASN1_OBJ_TYPE(CHOICE)
                        || spec->type == ASN1_OBJ_TYPE(UNTAGGED_CHOICE);
 
-    e_trace(3, "%s %s(%d/%d) %s:%s%s%s:%s", txt,
-        "                                " + 32 - (depth % 16) * 2,
+    e_trace(3, "%s %*s(%d/%d) %s:%s%s%s:%s", txt,
+        (depth % 16) * 2, "",
         pos + 1, desc->vec.len,
         asn1_mode_name(spec->mode), asn1_type_name(spec->type),
         disp_type_name ? ":" : "", disp_type_name ? spec->oc_t_name : "",
