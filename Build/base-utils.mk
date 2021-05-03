@@ -97,8 +97,8 @@ fun/expand-if2 = $(if $2,$1 $2 $3)
 
 # a space
 #
-var/space :=
-var/space += 
+nullstring :=
+var/space := $(nullstring) # end of the line
 
 # join with separator
 #
