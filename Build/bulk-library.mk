@@ -59,7 +59,7 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 	    -x c -O0 -fsyntax-only -D_FORTIFY_SOURCE=0 -o /dev/null $3)
 	$(msg/COMPILE.c) $3
-	$(CC) $(if $(filter %.c,$3),,-x c) -g $(CFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	$(CC) $(if $(filter %.c,$3),,-x c) -ggdb3 $(CFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CNOPICFLAGS)) -c -o $5 $3
 -include $5.d
 endef
@@ -87,7 +87,7 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang++ $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 	    -x c++ -O0 -fsyntax-only -D_FORTIFY_SOURCE=0 -o /dev/null $3)
 	$(msg/COMPILE.C) $3
-	$(CXX) $(if $(filter %.cc %.cpp,$3),,-x c++) -g $(CXXFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	$(CXX) $(if $(filter %.cc %.cpp,$3),,-x c++) -ggdb3 $(CXXFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC -DSHARED,$(CXXNOPICFLAGS)) -c -o $5 $3
 -include $5.d
 endef
