@@ -1450,8 +1450,7 @@ def profile_debug(ctx, allow_no_double_fpic=True, use_sanitizer=False):
                     use_sanitizer=use_sanitizer, optim_level=0)
 
     cflags = [
-        '-Wno-uninitialized', '-fno-inline', '-fno-inline-functions', '-g3',
-        '-gdwarf-2',
+        '-Wno-uninitialized', '-fno-inline', '-fno-inline-functions', '-g3'
     ]
     ctx.env.CFLAGS += cflags
     ctx.env.CXXFLAGS += cflags
