@@ -14,8 +14,8 @@
 FORTIFY_SOURCE=
 include $(var/cfgdir)/profile-default.mk
 CFLAGS := $(filter-out -O%,$(CFLAGS))
-CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
-CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
+CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
+CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
 
 ifneq ($(OS),darwin)
 ifeq (,$(USE_DWARF4))
