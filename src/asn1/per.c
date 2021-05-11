@@ -418,7 +418,7 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
     size_t len = bs_len(bs);
 
     if (aper_encode_len(bb, len, info) < 0) {
-        return e_error("octet string: failed to encode length");
+        return e_error("bit string: failed to encode length");
     }
 
     bb_be_add_bs(bb, bs);
