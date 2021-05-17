@@ -200,9 +200,6 @@
 #define ASN1_IS_FIELD_TYPE(ctype_t, field, st) \
     __builtin_types_compatible_p(fieldtypeof(st, field), ctype_t)
 
-#define ASN1_TYPE_POINTED(st, field, type_t) \
-    __builtin_types_compatible_p(fieldtypeof(st, field), type_t *)
-
 #define ASN1_COMMON_FIELDS_NO_NAME(ctype_t, st, field, tg, typ, mod, ptd)    \
     .offset    = offsetof(st, field),                                        \
     .type      = ASN1_OBJ_TYPE(typ),                                         \
