@@ -31,22 +31,22 @@ typedef struct {
     };
 } choice1_t;
 
-static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, choice1);
-    asn1_reg_scalar(desc, choice1, i, 0);
-    asn1_set_int_min_max(desc, 2, 15);
-ASN1_CHOICE_DESC_END(desc);
+static __ASN1_IOP_CHOICE_DESC_BEGIN(choice1);
+    asn1_reg_scalar(choice1, i, 0);
+    asn1_set_int_min_max(choice1, 2, 15);
+ASN1_CHOICE_DESC_END(choice1);
 
 /* }}} */
 /* {{{ Extended choice. */
 
-static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, tstiop__asn1_ext_choice_);
-    asn1_reg_scalar(desc, tstiop__asn1_ext_choice_, i, 0);
-    asn1_set_int_min_max(desc, 42, 666);
-    asn1_reg_extension(desc);
-    asn1_reg_string(desc, tstiop__asn1_ext_choice_, ext_s, 1);
-    asn1_reg_scalar(desc, tstiop__asn1_ext_choice_, ext_i, 2);
-    asn1_set_int_min_max(desc, 666, 1234567);
-ASN1_CHOICE_DESC_END(desc);
+static __ASN1_IOP_CHOICE_DESC_BEGIN(tstiop__asn1_ext_choice_);
+    asn1_reg_scalar(tstiop__asn1_ext_choice_, i, 0);
+    asn1_set_int_min_max(tstiop__asn1_ext_choice_, 42, 666);
+    asn1_reg_extension(tstiop__asn1_ext_choice_);
+    asn1_reg_string(tstiop__asn1_ext_choice_, ext_s, 1);
+    asn1_reg_scalar(tstiop__asn1_ext_choice_, ext_i, 2);
+    asn1_set_int_min_max(tstiop__asn1_ext_choice_, 666, 1234567);
+ASN1_CHOICE_DESC_END(tstiop__asn1_ext_choice_);
 
 /* }}} */
 /* {{{ Extended sequence. */
@@ -68,48 +68,48 @@ typedef struct sequence1_t {
     SEQ_EXT_FIELDS;
 } sequence1_t;
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1);
+static ASN1_SEQUENCE_DESC_BEGIN(sequence1);
 #define SEQ_EXT_ROOT_FIELDS_DESC(pfx)                                        \
-    asn1_reg_scalar(desc, pfx, root1, 0);                                    \
-    asn1_set_int_min_max(desc, 1, 16);                                       \
+    asn1_reg_scalar(pfx, root1, 0);                                          \
+    asn1_set_int_min_max(pfx, 1, 16);                                        \
                                                                              \
-    asn1_reg_scalar(desc, pfx, root2, 0);                                    \
-    asn1_set_int_min(desc, -42);                                             \
+    asn1_reg_scalar(pfx, root2, 0);                                          \
+    asn1_set_int_min(pfx, -42);                                              \
                                                                              \
-    asn1_reg_extension(desc)
+    asn1_reg_extension(pfx)
 
 #define SEQ_EXT_PARTIAL_FIELDS_DESC(pfx)                                     \
     SEQ_EXT_ROOT_FIELDS_DESC(pfx);                                           \
-    asn1_reg_opt_string(desc, pfx, ext1, 0)
+    asn1_reg_opt_string(pfx, ext1, 0)
 
 #define SEQ_EXT_FIELDS_DESC(pfx)                                             \
     SEQ_EXT_PARTIAL_FIELDS_DESC(pfx);                                        \
-    asn1_reg_scalar(desc, pfx, ext2, 0);                                     \
-    asn1_set_int_min_max(desc, -100000, 100000);                             \
+    asn1_reg_scalar(pfx, ext2, 0);                                           \
+    asn1_set_int_min_max(pfx, -100000, 100000);                              \
                                                                              \
-    asn1_reg_scalar(desc, pfx, ext3, 0);                                     \
-    asn1_set_int_min_max(desc, 0, 256)
+    asn1_reg_scalar(pfx, ext3, 0);                                           \
+    asn1_set_int_min_max(pfx, 0, 256)
 
     SEQ_EXT_FIELDS_DESC(sequence1);
-ASN1_SEQUENCE_DESC_END(desc);
+ASN1_SEQUENCE_DESC_END(sequence1);
 
 /* Same without extension. */
 typedef struct sequence1_root_t {
     SEQ_EXT_ROOT_FIELDS;
 } sequence1_root_t;
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1_root);
+static ASN1_SEQUENCE_DESC_BEGIN(sequence1_root);
     SEQ_EXT_ROOT_FIELDS_DESC(sequence1_root);
-ASN1_SEQUENCE_DESC_END(desc);
+ASN1_SEQUENCE_DESC_END(sequence1_root);
 
 /* Same with less fields in extension. */
 typedef struct sequence1_partial_t {
     SEQ_EXT_PARTIAL_FIELDS;
 } sequence1_partial_t;
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, sequence1_partial);
+static ASN1_SEQUENCE_DESC_BEGIN(sequence1_partial);
     SEQ_EXT_PARTIAL_FIELDS_DESC(sequence1_partial);
-ASN1_SEQUENCE_DESC_END(desc);
+ASN1_SEQUENCE_DESC_END(sequence1_partial);
 
 static int z_test_seq_ext(const sequence1_t *in, lstr_t exp_encoding)
 {
@@ -169,10 +169,10 @@ typedef struct {
     enum1_t e1;
 } struct1_t;
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, struct1);
-    asn1_reg_enum(desc, struct1, enum1, e1, 0);
-    asn1_set_enum_info(desc, enum1);
-ASN1_SEQUENCE_DESC_END(desc);
+static ASN1_SEQUENCE_DESC_BEGIN(struct1);
+    asn1_reg_enum(struct1, enum1, e1, 0);
+    asn1_set_enum_info(struct1, enum1);
+ASN1_SEQUENCE_DESC_END(struct1);
 
 /* }}} */
 /* {{{ Integers overflows checks. */
@@ -203,25 +203,25 @@ typedef struct ints_seq_base_t {
     int64_t u64_bis;
 } ints_seq_base_t;
 
-#define INTS_SEQ_FIELDS_DESC(desc, pfx)                                      \
-    asn1_reg_scalar(desc, pfx, i8, 0);                                       \
-    asn1_reg_scalar(desc, pfx, u8, 1);                                       \
-    asn1_reg_scalar(desc, pfx, i16, 2);                                      \
-    asn1_reg_scalar(desc, pfx, u16, 3);                                      \
-    asn1_reg_scalar(desc, pfx, i32, 4);                                      \
-    asn1_reg_scalar(desc, pfx, u32, 5);                                      \
-    asn1_reg_scalar(desc, pfx, i64, 6);                                      \
-    asn1_reg_scalar(desc, pfx, u64, 7);                                      \
-    asn1_reg_scalar(desc, pfx, i64_bis, 8);                                  \
-    asn1_reg_scalar(desc, pfx, u64_bis, 9)
+#define INTS_SEQ_FIELDS_DESC(pfx)                                            \
+    asn1_reg_scalar(pfx, i8, 0);                                             \
+    asn1_reg_scalar(pfx, u8, 1);                                             \
+    asn1_reg_scalar(pfx, i16, 2);                                            \
+    asn1_reg_scalar(pfx, u16, 3);                                            \
+    asn1_reg_scalar(pfx, i32, 4);                                            \
+    asn1_reg_scalar(pfx, u32, 5);                                            \
+    asn1_reg_scalar(pfx, i64, 6);                                            \
+    asn1_reg_scalar(pfx, u64, 7);                                            \
+    asn1_reg_scalar(pfx, i64_bis, 8);                                        \
+    asn1_reg_scalar(pfx, u64_bis, 9)
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, ints_seq);
-    INTS_SEQ_FIELDS_DESC(desc, ints_seq);
-ASN1_SEQUENCE_DESC_END(desc);
+static ASN1_SEQUENCE_DESC_BEGIN(ints_seq);
+    INTS_SEQ_FIELDS_DESC(ints_seq);
+ASN1_SEQUENCE_DESC_END(ints_seq);
 
-static ASN1_SEQUENCE_DESC_BEGIN(desc, ints_seq_base);
-    INTS_SEQ_FIELDS_DESC(desc, ints_seq_base);
-ASN1_SEQUENCE_DESC_END(desc);
+static ASN1_SEQUENCE_DESC_BEGIN(ints_seq_base);
+    INTS_SEQ_FIELDS_DESC(ints_seq_base);
+ASN1_SEQUENCE_DESC_END(ints_seq_base);
 
 static int z_assert_ints_seq_equals_base(const ints_seq_t *seq,
                                          const ints_seq_base_t *base)
