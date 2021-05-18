@@ -89,6 +89,29 @@ static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
 
 
 /* }}} */
+/* PER generic helpers {{{ */
+
+static bool is_bstring_aligned(const asn1_cnt_info_t *constraints,
+                               size_t len)
+{
+    /* No need to realign for an empty bit string. */
+    THROW_FALSE_IF(!len);
+
+    if (constraints->max <= 16 && constraints->min == constraints->max) {
+        /* Only fixed-sized bit string with size <= 16 may be not aligned. */
+        if (len != constraints->min) {
+            /* The length is not within the root. */
+            assert(constraints->extended);
+
+            return true;
+        }
+        return false;
+    }
+
+    return true;
+}
+
+/* }}} */
 /* Write {{{ */
 
 /* Helpers {{{ */
@@ -370,6 +393,9 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
         return e_error("octet string: failed to encode length");
     }
 
+    if (is_bstring_aligned(info, len)) {
+        bb_align(bb);
+    }
     bb_be_add_bs(bb, bs);
 
     return 0;
@@ -1168,6 +1194,10 @@ t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         return -1;
     }
 
+    if (is_bstring_aligned(info, len) && bs_align(bs) < 0) {
+        e_info("cannot read bit string: not enough bits for padding");
+        return -1;
+    }
     if (bs_get_bs(bs, len, str) < 0) {
         e_info("cannot read bit string: not enough bits");
         return -1;
@@ -1904,16 +1934,12 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
                                          ".10110011.10001110.0", 0,
                                          ".10110011.10001110.0"));
-
-        /* FIXME Should be encoded as "0000000.10110011.10001110.0". */
         Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
                                          ".10110011.10001110.0", 1,
-                                         "1011001.11000111.00"));
-
-        /* FIXME Should be encoded as "000000.10110011.10001110.0". */
+                                         "0000000.10110011.10001110.0"));
         Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
                                          ".10110011.10001110.0", 2,
-                                         "101100.11100011.100"));
+                                         "000000.10110011.10001110.0"));
 
         /* }}} */
         /* {{{ BIT STRING (SIZE(0..23)) */
@@ -1921,9 +1947,8 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         asn1_cnt_info_init(&partially_constrained1);
         partially_constrained1.max = 23;
 
-        /* FIXME Should be encoded ".00011000.101". */
         Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained1, "101",
-                                         0, ".00011101"));
+                                         0, ".00011000.101"));
 
         /* }}} */
         /* {{{ BIT STRING (SIZE(0..1)) */
@@ -1931,14 +1956,10 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         asn1_cnt_info_init(&partially_constrained2);
         partially_constrained2.max = 1;
 
-        /* FIXME Should be encoded ".10000000.1". */
         Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "1",
-                                         0, ".11"));
-
-        /* FIXME Should be encoded "1000000.1". */
+                                         0, ".10000000.1"));
         Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "1",
-                                         1, "11"));
-
+                                         1, "1000000.1"));
         Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "",
                                          0, ".0"));
         Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "",
@@ -1954,11 +1975,8 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         extended1.ext_min = 3;
         extended1.ext_max = 3;
 
-        /* FIXME Should be encoded ".01000000.10". */
         Z_HELPER_RUN(z_test_aper_bstring(&extended1, "10", 0,
-                                         ".0110"));
-
-        /* FIXME Should be encoded ".10000000.00000011.011". */
+                                         ".01000000.10"));
         Z_HELPER_RUN(z_test_aper_bstring(&extended1, "011", 0,
                                          ".10000000.00000011.011"));
 
@@ -1972,9 +1990,8 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         extended2.ext_min = 1;
         extended2.ext_max = 65536;
 
-        /* FIXME Should be encoded ".00000000.10000000.00". */
         Z_HELPER_RUN(z_test_aper_bstring(&extended2, "00", 0,
-                                         ".00000000.100"));
+                                         ".00000000.10000000.00"));
 
         /* }}} */
         /* {{{ BIT STRING (SIZE(2, ...)) */
