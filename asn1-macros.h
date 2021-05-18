@@ -66,12 +66,14 @@
         return ASN1_GET_DESC(src_pfx);                                       \
     }
 
+#define ASN1_ST_CHECK_VAR(st_pfx) st_pfx##_CHECK_VAR
 
 /* Registers ASN.1 sequences implicitly. */
 #define ASN1_DESC_BEGIN(desc, pfx) \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static __thread asn1_desc_t *desc;                                   \
+        __unused__ void *ASN1_ST_CHECK_VAR(pfx) = NULL;                      \
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = asn1_desc_new();                                          \
@@ -106,6 +108,7 @@
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static __thread asn1_desc_t *desc;                                   \
+        __unused__ void *ASN1_ST_CHECK_VAR(pfx) = NULL;                      \
                                                                              \
         if (unlikely(!desc)) {                                               \
             asn1_choice_desc_t *__choice_desc;                               \
@@ -237,6 +240,7 @@
 
 #define asn1_reg_scalar(desc, st_pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (__builtin_types_compatible_p(fieldtypeof(st_pfx##_t, field),     \
                                          bool)) {                            \
             ASN1_REG_SCALAR(desc, st_pfx##_t, bool, field, tag);             \
@@ -368,11 +372,13 @@
             ASN1_COMMON_FIELDS(int, st_pfx##_t, field, tag, enum, mode,      \
                                false)                                        \
         };                                                                   \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
 
 #define asn1_reg_enum(desc, st_pfx, enum_sfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(enum enum_sfx, field, st_pfx##_t)) {          \
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, MANDATORY);    \
             break;                                                           \
@@ -382,6 +388,7 @@
 
 #define asn1_reg_opt_enum(desc, st_pfx, enum_sfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(ASN1_OPT_TYPE(enum_sfx), field,               \
                                st_pfx##_t)) {                                \
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, OPTIONAL);     \
@@ -392,6 +399,7 @@
 
 #define asn1_reg_seq_of_enum(desc, st_pfx, enum_sfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(enum_sfx), field,            \
@@ -431,6 +439,7 @@
 
 #define asn1_reg_opt_null(desc, st_pfx, bool_field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(bool, bool_field, st_pfx##_t)) {              \
             asn1_field_t tmp = (asn1_field_t){                               \
                 ASN1_COMMON_FIELDS(bool, st_pfx##_t, bool_field, tag,        \
@@ -449,13 +458,22 @@
 /***************************/
 
 #define asn1_reg_string(desc, st_pfx, field, tag) \
-    ASN1_REG_MAND_OPT_STRING(desc, st_pfx##_t, field, tag, MANDATORY)
+    do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
+        ASN1_REG_MAND_OPT_STRING(desc, st_pfx##_t, field, tag, MANDATORY);   \
+    } while(0)
 
 #define asn1_reg_opt_string(desc, st_pfx, field, tag) \
-    ASN1_REG_MAND_OPT_STRING(desc, st_pfx##_t, field, tag, OPTIONAL)
+    do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
+        ASN1_REG_MAND_OPT_STRING(desc, st_pfx##_t, field, tag, OPTIONAL);    \
+    } while(0)
 
 #define asn1_reg_seq_of_string(desc, st_pfx, field, tag) \
-    ASN1_REG_SEQ_OF_STRING(desc, st_pfx##_t, field, tag)
+    do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
+        ASN1_REG_SEQ_OF_STRING(desc, st_pfx##_t, field, tag);                \
+    } while(0)
 
 #define ASN1_REG_MAND_OPT_STRING(desc, st, field, tag, mode) \
     do {                                                                    \
@@ -500,6 +518,7 @@
 
 #define asn1_reg_open_type(desc, st_pfx, field)                              \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(lstr_t, field, st_pfx##_t)) {                 \
             ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, lstr_t, MANDATORY,          \
                                field);                                       \
@@ -508,6 +527,7 @@
 
 #define asn1_reg_opt_open_type(desc, st_pfx, field)                          \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(lstr_t, field, st_pfx##_t)) {                 \
             ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, lstr_t, OPTIONAL,           \
                                field);                                       \
@@ -531,6 +551,7 @@
 
 #define asn1_reg_opaque(desc, st_pfx, ctype, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(ctype, field, st_pfx##_t)) {                  \
             ASN1_REG_OPAQUE(desc, st_pfx##_t, ctype, pfx, field, tag,        \
                             MANDATORY, false);                               \
@@ -548,6 +569,7 @@
 
 #define asn1_reg_opt_opaque(desc, st_pfx, ctype, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(ctype *, field, st_pfx##_t)                   \
          || ASN1_IS_FIELD_TYPE(const ctype *, field, st_pfx##_t)) {          \
             ASN1_REG_OPAQUE(desc, st_pfx##_t, ctype, pfx, field, tag,        \
@@ -559,6 +581,7 @@
 
 #define asn1_reg_seq_of_opaque(desc, st_pfx, ctype, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx)), field, st_pfx##_t) {  \
@@ -599,6 +622,7 @@
 
 #define asn1_reg_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (!(tag & ASN1_TAG_CONSTRUCTED(0))) {                              \
             __error__("sequence tags must be constructed");                  \
         }                                                                    \
@@ -618,6 +642,7 @@
 
 #define asn1_reg_opt_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (!(tag & ASN1_TAG_CONSTRUCTED(0))) {                              \
             __error__("sequence tags must be constructed");                  \
         }                                                                    \
@@ -632,6 +657,7 @@
 
 #define asn1_reg_seq_of_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
@@ -669,6 +695,7 @@
 
 #define asn1_reg_choice(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(pfx##_t, field, st_pfx##_t)) {                \
             ASN1_REG_CHOICE(desc, st_pfx##_t, pfx, field, tag, MANDATORY,    \
                               false);                                        \
@@ -685,6 +712,7 @@
 
 #define asn1_reg_opt_choice(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(pfx##_t *, field, st_pfx##_t)                 \
         ||  ASN1_IS_FIELD_TYPE(const pfx##_t *, field, st_pfx##_t)) {        \
             ASN1_REG_CHOICE(desc, st_pfx##_t, pfx, field, tag, OPTIONAL,     \
@@ -696,6 +724,7 @@
 
 #define asn1_reg_seq_of_choice(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
@@ -733,6 +762,7 @@
 
 #define asn1_reg_untagged_choice(desc, st_pfx, pfx, field) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(pfx##_t, field, st_pfx##_t)) {                \
             ASN1_REG_UNTAGGED_CHOICE(desc, st_pfx##_t, pfx, field,           \
                                      MANDATORY, false);                      \
@@ -749,6 +779,7 @@
 
 #define asn1_reg_opt_untagged_choice(desc, st_pfx, pfx, field) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(pfx##_t *, field, st_pfx##_t)                 \
         ||  ASN1_IS_FIELD_TYPE(const pfx##_t *, field, st_pfx##_t)) {        \
             ASN1_REG_UNTAGGED_CHOICE(desc, st_pfx##_t, pfx, field,           \
@@ -760,6 +791,7 @@
 
 #define asn1_reg_seq_of_untagged_choice(desc, st_pfx, pfx, field) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
@@ -797,6 +829,7 @@
 
 #define asn1_reg_ext(desc, st_pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(asn1_ext_t, field, st_pfx##_t)) {             \
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, MANDATORY);           \
             break;                                                           \
@@ -806,6 +839,7 @@
 
 #define asn1_reg_opt_ext(desc, st_pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         if (ASN1_IS_FIELD_TYPE(asn1_ext_t, field, st_pfx##_t)) {             \
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, OPTIONAL);            \
             break;                                                           \
@@ -815,6 +849,7 @@
 
 #define asn1_reg_seq_of_ext(desc, st_pfx, field, tag) \
     do {                                                                     \
+        IGNORE(ASN1_ST_CHECK_VAR(st_pfx));                                   \
         desc->is_seq_of = true;                                              \
                                                                              \
         if (ASN1_IS_FIELD_TYPE(asn1_ext_vector_t, field,                     \
