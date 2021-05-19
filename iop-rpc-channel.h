@@ -989,21 +989,6 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
         __msg;                                                              \
     })
 
-/** \brief helper to build a typed query message.
- *
- * \param[in]  _ic    the #ichannel_t to send the query to.
- * \param[in]  _msg   the #ic_msg_t to fill.
- * \param[in]  _cb    the rpc reply callback to use
- * \param[in]  _mod   name of the package+module of the RPC
- * \param[in]  _if    name of the interface of the RPC
- * \param[in]  _rpc   name of the rpc
- * \param[in]  ...
- *   the initializers of the value on the form <tt>.field = value</tt>
- */
-#define ic_build_query(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
-    ic_build_query_p(_ic, _msg, _cb, _mod, _if, _rpc,                       \
-                     (&(IOP_RPC_T(_mod, _if, _rpc, args)){ __VA_ARGS__ }))
-
 /** \brief helper to send a query to a given ic.
  *
  * \param[in]  _ic    the #ichannel_t to send the query to.
@@ -1017,8 +1002,11 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
  */
 #define ic_query(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
     ({  ichannel_t *_ich = (_ic);                                         \
-        __ic_query(_ich, ic_build_query(_ich, _msg, _cb, _mod, _if, _rpc, \
-                                        __VA_ARGS__));                    \
+        const IOP_RPC_T(_mod, _if, _rpc, args) *_v =                      \
+            &((IOP_RPC_T(_mod, _if, _rpc, args)){ __VA_ARGS__ });         \
+                                                                          \
+        __ic_query(_ich, ic_build_query_p(_ich, _msg, _cb, _mod, _if,     \
+                                          _rpc, _v));                     \
     })
 
 /** \brief helper to send a query to a given ic.
@@ -1049,8 +1037,11 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
  */
 #define ic_query2(_ic, _msg, _mod, _if, _rpc, ...) \
     ({  ichannel_t *_ich = (_ic);                                            \
-        __ic_query(_ich, ic_build_query(_ich, _msg,                          \
-            IOP_RPC_CB_REF(_mod, _if, _rpc), _mod, _if, _rpc, __VA_ARGS__)); \
+        const IOP_RPC_T(_mod, _if, _rpc, args) *_v =                         \
+            &((IOP_RPC_T(_mod, _if, _rpc, args)){ __VA_ARGS__ });            \
+                                                                             \
+        __ic_query(_ich, ic_build_query_p(_ich, _msg,                        \
+            IOP_RPC_CB_REF(_mod, _if, _rpc), _mod, _if, _rpc, _v));          \
     })
 
 /** \brief helper to send a query to a given ic, computes callback name.
@@ -1085,8 +1076,11 @@ bool __ic_rpc_is_traced(const iop_iface_t *iface, const iop_rpc_t *rpc);
  */
 #define ic_query_sync(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
     ({  ichannel_t *_ich = (_ic);                                         \
-        __ic_query_sync(_ich, ic_build_query(_ich, _msg, _cb, _mod, _if,  \
-                                              _rpc, __VA_ARGS__));        \
+        const IOP_RPC_T(_mod, _if, _rpc, args) *_v =                      \
+            &((IOP_RPC_T(_mod, _if, _rpc, args)){ __VA_ARGS__ });         \
+                                                                          \
+        __ic_query_sync(_ich, ic_build_query_p(_ich, _msg, _cb, _mod, _if,\
+                                               _rpc, _v));                \
     })
 
 /** \brief helper to send a query to a given ic.
