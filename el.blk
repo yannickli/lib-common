@@ -1785,7 +1785,7 @@ static _Bool z_spawn_child(void)
         return false;
     }
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 100; i++) {
         el_loop_timeout(500);
         if (done) {
             return true;
