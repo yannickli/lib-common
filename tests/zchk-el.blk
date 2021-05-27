@@ -322,8 +322,6 @@ Z_GROUP_EXPORT(el)
 #endif
 
     Z_TEST(spawn_child, "el: spawn child") {
-        /* FIXME #78344 this test fails randomly. */
-        Z_TEST_FLAGS("wip", "redmine_78344");
         Z_HELPER_RUN(z_spawn_child());
     } Z_TEST_END;
 
