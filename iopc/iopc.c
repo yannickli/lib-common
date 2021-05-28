@@ -229,7 +229,7 @@ int main(int argc, char **argv)
     _G.v3 |= _G.v4;
     _G.v2 |= _G.v3;
 
-    _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
+    _G.prefix_dir     = getcwd(NULL, 0);
     _G.display_prefix = true;
 
     log_set_handler(&iopc_log_handler);
