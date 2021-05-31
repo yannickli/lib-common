@@ -272,7 +272,7 @@ int main(int argc, char **argv)
     iopc_do_c_g.export_symbols |= _G.v6;
     iopc_do_c_g.minimal_includes |= _G.v6;
 
-    _G.prefix_dir     = getcwd(NULL, MAXPATHLEN);
+    _G.prefix_dir     = getcwd(NULL, 0);
     _G.display_prefix = true;
 
     log_set_handler(&iopc_log_handler);
