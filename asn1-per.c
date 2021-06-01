@@ -244,7 +244,7 @@ static void aper_write_nsnnwn(bb_t *bb, size_t n)
     aper_write_number(bb, n, NULL);
 }
 
-static int
+__must_check__ static int
 aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max)
 {
     if (l_max != SIZE_MAX) {
@@ -293,10 +293,10 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
                 bb_be_add_bit(bb, false);
             }
 
-            aper_write_len(bb, l, info->min, info->max);
+            return aper_write_len(bb, l, info->min, info->max);
         }
     } else {
-        aper_write_len(bb, l, 0, SIZE_MAX);
+        return aper_write_len(bb, l, 0, SIZE_MAX);
     }
 
     return 0;
@@ -2068,7 +2068,7 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             bb_reset(&bb);
             bb_add0s(&bb, t[i].skip);
 
-            aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max);
+            Z_ASSERT_N(aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max));
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(bs_skip(&bs, t[i].skip));
             Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),
