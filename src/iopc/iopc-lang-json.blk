@@ -615,6 +615,9 @@ dump_constraint(const iopc_write_buf_t *wbuf, const iopc_field_t *f,
         /* TODO */
         break;
 
+      case IOPC_ATTR_FORCE_FIELD_NAME:
+        break;
+
       default:
         print_error("unsupported constraint %d", attr->desc->id);
     }

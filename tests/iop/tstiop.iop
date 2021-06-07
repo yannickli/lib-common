@@ -407,6 +407,14 @@ struct JpackEmptyStruct {
     JpackEmptySubStruct sub;
 };
 
+/* @forceFieldName attribute */
+struct ForceFieldNameStruct {
+    @max(100) @forceFieldName
+    int abc_def;
+    @forceFieldName
+    string ABC;
+};
+
 /* {{{ zchk common */
 
 /* XXX These structs are supposed to cover all possible field types.

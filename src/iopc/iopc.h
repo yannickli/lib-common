@@ -340,6 +340,7 @@ typedef enum iopc_attr_id_t {
     IOPC_ATTR_SNMP_PARAM,
     IOPC_ATTR_SNMP_INDEX,
     IOPC_ATTR_TS_NO_COLL,
+    IOPC_ATTR_FORCE_FIELD_NAME,
 } iopc_attr_id_t;
 
 /* types on which an attribute can apply */

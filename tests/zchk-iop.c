@@ -2714,6 +2714,20 @@ Z_GROUP_EXPORT(iop)
 #undef TST
         }
 
+        /* Test forceFieldName attribute */
+        {
+            tstiop__force_field_name_struct__t jns = {
+                .abc_def = 44,
+                .a_b_c   = LSTR("dgdfhfh"),
+            };
+            const char *jns_str = "{\"abc_def\":44,\"ABC\":\"dgdfhfh\"}";
+
+            Z_HELPER_RUN(
+                iop_json_test_pack(&tstiop__force_field_name_struct__s, &jns,
+                                   IOP_JPACK_MINIMAL, true, true, jns_str)
+            );
+        }
+
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
