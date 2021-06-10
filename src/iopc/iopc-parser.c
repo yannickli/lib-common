@@ -116,7 +116,8 @@ static int iopc_check_name(lstr_t name, qv_t(iopc_attr) *nullable attrs,
     }
 
     if (memchr(name.s, '_', name.len) &&
-        iopc_attr_check(attrs, IOPC_ATTR_FORCE_FIELD_NAME, NULL) < 0)
+        (!attrs ||
+         iopc_attr_check(attrs, IOPC_ATTR_FORCE_FIELD_NAME, NULL) < 0))
     {
         if (err) {
             sb_setf(err, "%pL contains a _", &name);

@@ -696,6 +696,13 @@ Z_GROUP_EXPORT(iopsq) {
         }
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iopc_check_field_name, "test iopc_check_field_name") { /* {{{ */
+        SB_1k(err);
+
+        Z_ASSERT_N(iopc_check_field_name(LSTR("validFieldName"), &err));
+        Z_ASSERT_NEG(iopc_check_field_name(LSTR("INVALID_FIELD_NAME"), &err));
+    } Z_TEST_END;
+    /* }}} */
 } Z_GROUP_END;
 
 /* }}} */
