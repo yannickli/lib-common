@@ -157,9 +157,16 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
     bb_pop_mark(bb);
 }
 
+#define PER_FRAG_64K  (64 << 10)
+#define PER_FRAG_16K  (16 << 10)
+
+/* Unconstrained length */
 static ALWAYS_INLINE int
-aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
+aper_write_ulen(bb_t *bb, size_t l, bool *nullable need_fragmentation)
 {
+    /* XXX See aper_encode_len(). */
+    assert (!need_fragmentation || !*need_fragmentation);
+
     bb_push_mark(bb);
 
     bb_align(bb);
@@ -176,7 +183,7 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
         return 0;
     }
 
-    if (l < (1 << 14)) {
+    if (l < PER_FRAG_16K) {
         uint16_t u16  = l | (1 << 15);
 
         write_u16_aligned(bb, u16);
@@ -189,7 +196,12 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
 
     bb_pop_mark(bb);
 
-    return e_error("ASN.1 PER encoder: fragmentation is not supported");
+    if (!need_fragmentation) {
+        return e_error("ASN.1 PER encoder: fragmentation is not supported");
+    }
+
+    *need_fragmentation = true;
+    return 0;
 }
 
 static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v,
@@ -201,12 +213,12 @@ static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v,
      * in [ INT64_MAX + 1, UINT64_MAX ]. */
     if (unlikely(!is_signed && TST_BIT(&v, 63))) {
         olen = 8;
-        aper_write_ulen(bb, 9);
+        aper_write_ulen(bb, 9, NULL);
         bb_align(bb);
         bb_add0s(bb, 8);
     } else {
         olen = i64_olen(v);
-        aper_write_ulen(bb, olen);
+        aper_write_ulen(bb, olen, NULL);
     }
     write_i64_o_aligned(bb, v, olen);
 }
@@ -227,7 +239,7 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
         aper_write_u16_m(bb, olen - 1, info->max_olen_blen, info->d_max);
     } else {
         olen = u64_olen(v);
-        aper_write_ulen(bb, olen);
+        aper_write_ulen(bb, olen, NULL);
     }
 
     write_i64_o_aligned(bb, v, olen);
@@ -251,8 +263,12 @@ static void aper_write_nsnnwn(bb_t *bb, size_t n)
 }
 
 __must_check__ static int
-aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max)
+aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max,
+               bool *nullable need_fragmentation)
 {
+    /* XXX See aper_encode_len(). */
+    assert (!need_fragmentation || !*need_fragmentation);
+
     if (l_max != SIZE_MAX) {
         uint32_t d_max = l_max - l_min;
         uint32_t d     = l - l_min;
@@ -266,7 +282,7 @@ aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max)
         }
     }
 
-    return aper_write_ulen(bb, l);
+    return aper_write_ulen(bb, l, need_fragmentation);
 }
 
 /* }}} */
@@ -275,8 +291,18 @@ aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max)
 /* Scalar types {{{ */
 
 static int
-aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
+aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info,
+                bool *nullable need_fragmentation)
 {
+    /* XXX
+     * - The parameter "need_fragmentation" should not be set if the caller
+     * isn't actually able to perform the fragmentation.
+     *
+     * - If set, it is caller's responsibility to pass a boolean initialized
+     * with the value 'false'.
+     */
+    assert (!need_fragmentation || !*need_fragmentation);
+
     if (info) {
         if (l < info->min || l > info->max) {
             if (info->extended) {
@@ -287,7 +313,7 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
                 /* Extension present */
                 bb_be_add_bit(bb, true);
 
-                if (aper_write_ulen(bb, l) < 0) {
+                if (aper_write_ulen(bb, l, need_fragmentation) < 0) {
                     return e_error("failed to write extended length");
                 }
             } else {
@@ -299,10 +325,11 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
                 bb_be_add_bit(bb, false);
             }
 
-            return aper_write_len(bb, l, info->min, info->max);
+            return aper_write_len(bb, l, info->min, info->max,
+                                  need_fragmentation);
         }
     } else {
-        return aper_write_len(bb, l, 0, SIZE_MAX);
+        return aper_write_len(bb, l, 0, SIZE_MAX, need_fragmentation);
     }
 
     return 0;
@@ -412,15 +439,54 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 /* }}} */
 /* String types {{{ */
 
+static int aper_encode_frag_data(bb_t *bb, lstr_t data)
+{
+    pstream_t ps = ps_initlstr(&data);
+
+    assert(data.len >= PER_FRAG_16K);
+    bb_align(bb);
+
+    for (;;) {
+        int len = ps_len(&ps);
+
+        if (len >= PER_FRAG_16K) {
+            /* Write a fragment of 16K, 32K, 48K or 64K. */
+            int nb_16k_blocks;
+            pstream_t frag;
+
+            len = MIN(len, PER_FRAG_64K);
+            nb_16k_blocks = len / PER_FRAG_16K;
+
+            bb_be_add_bits(bb, 0xc0 | nb_16k_blocks, 8);
+            frag = __ps_get_ps(&ps, nb_16k_blocks * PER_FRAG_16K);
+            bb_be_add_bytes(bb, frag.b, ps_len(&frag));
+        } else {
+            /* Write the last part. If there is no more data to write, just
+             * encode the length. */
+            aper_write_ulen(bb, len, NULL);
+            bb_be_add_bytes(bb, ps.b, len);
+            break;
+        }
+    }
+
+    return 0;
+}
+
 static int aper_encode_data(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
 {
-    if (aper_encode_len(bb, os.len, info) < 0) {
+    bool need_fragmentation = false;
+
+    if (aper_encode_len(bb, os.len, info, &need_fragmentation) < 0) {
         return e_error("octet string: failed to encode length");
+    }
+    if (need_fragmentation) {
+        return aper_encode_frag_data(bb, os);
     }
 
     if (info && info->max <= 2 && info->min == info->max
     &&  os.len == (int)info->max)
     {
+        /* Short form: the string isn't realigned. */
         for (int i = 0; i < os.len; i++) {
             bb_be_add_bits(bb, (uint8_t)os.s[i], 8);
         }
@@ -440,7 +506,7 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
 {
     size_t len = bs_len(bs);
 
-    if (aper_encode_len(bb, len, info) < 0) {
+    if (aper_encode_len(bb, len, info, NULL) < 0) {
         return e_error("bit string: failed to encode length");
     }
 
@@ -768,7 +834,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
 
     bb_push_mark(bb);
 
-    if (aper_encode_len(bb, elem_cnt, &field->seq_of_info) < 0) {
+    if (aper_encode_len(bb, elem_cnt, &field->seq_of_info, NULL) < 0) {
         bb_pop_mark(bb);
 
         return e_error("failed to encode SEQUENCE OF length (n = %zd)",
@@ -2074,7 +2140,8 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
             bb_reset(&bb);
             bb_add0s(&bb, t[i].skip);
 
-            Z_ASSERT_N(aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max));
+            Z_ASSERT_N(aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max,
+                                      NULL));
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(bs_skip(&bs, t[i].skip));
             Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),

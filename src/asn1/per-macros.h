@@ -349,5 +349,13 @@ static inline void
     field->open_type_buf_len = buf_len;
 }
 
+/** Set the last defined field as open type.
+ *
+ * The APER encoder/decoder will suppose that the declared field is
+ * encapsulated in an open type.
+ *
+ * If you don't want the lib to encode/decode the open type field, just
+ * declare it as an octet string and encode/decode it by yourself.
+ */
 #define asn1_set_open_type(st_pfx, buf_len) \
     (asn1_set_open_type)(ASN1_ST_DESC_VAR(st_pfx), (buf_len))

@@ -277,6 +277,38 @@ static ASN1_SEQUENCE_DESC_BEGIN(z_octet_string);
 ASN1_SEQUENCE_DESC_END(z_octet_string);
 
 /* }}} */
+/* {{{ Open type. */
+
+typedef struct {
+    z_octet_string_t os;
+} z_open_type_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_open_type);
+    asn1_reg_sequence(z_open_type, z_octet_string, os,
+                      ASN1_TAG_SEQUENCE_C);
+    asn1_set_open_type(z_open_type, (64 << 10));
+ASN1_SEQUENCE_DESC_END(z_open_type);
+
+/* }}} */
+/* {{{ Helpers. */
+
+/* Skip N characters on two pstreams and check that they are the same. */
+static int z_ps_skip_and_check_eq(pstream_t *ps1, pstream_t *ps2, int len)
+{
+    Z_ASSERT(ps_has(ps1, len));
+    Z_ASSERT(ps_has(ps2, len));
+
+    for (int i = 0; i < len; i++) {
+        int c1 = __ps_getc(ps1);
+        int c2 = __ps_getc(ps2);
+
+        Z_ASSERT_EQ(c1, c2, "[%d] %x != %x", i, c1, c2);
+    }
+
+    Z_HELPER_END;
+}
+
+/* }}} */
 
 Z_GROUP_EXPORT(asn1_aper) {
     /* {{{ Choice. */
@@ -444,12 +476,16 @@ Z_GROUP_EXPORT(asn1_aper) {
     } Z_TEST_END;
 
     /* }}} */
-    /* {{{ Frgamented octet string. */
+    /* {{{ Fragmented octet string. */
 
     Z_TEST(fragmented_octet_string, "") {
+        t_scope;
         sb_t buf;
         sb_t str;
-        z_octet_string_t os;
+        pstream_t str_ps;
+        z_octet_string_t os_before;
+        z_octet_string_t os_after;
+        pstream_t ps;
 
         sb_init(&buf);
         sb_init(&str);
@@ -457,12 +493,103 @@ Z_GROUP_EXPORT(asn1_aper) {
             sb_addc(&str, (char)i);
         }
 
-        p_clear(&os, 1);
-        os.str = LSTR_SB_V(&str);
-        Z_ASSERT_NEG(aper_encode(&buf, z_octet_string, &os),
+        p_clear(&os_before, 1);
+        os_before.str = LSTR_SB_V(&str);
+        Z_ASSERT_N(aper_encode(&buf, z_octet_string, &os_before),
+                   "unexpected failure");
+
+        /* Check the fragmented encoding. */
+        str_ps = ps_initsb(&str);
+        ps = ps_initsb(&buf);
+        /* First fragment: 4 x 16k. */
+        Z_ASSERT_EQ(ps_getc(&ps), 0xc4);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &str_ps, (64 << 10)));
+        /* Second fragment: 3 x 16k. */
+        Z_ASSERT_EQ(ps_getc(&ps), 0xc3);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &str_ps, (48 << 10)));
+        /* Remainder. */
+        Z_ASSERT(ps_has(&ps, 2));
+        Z_ASSERT_EQ(ps_len(&ps), ps_len(&str_ps) + 2);
+        Z_ASSERT_EQ(get_unaligned_be16(ps.b), (0x8000 | ps_len(&str_ps)));
+        __ps_skip(&ps, 2);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &str_ps, ps_len(&str_ps)));
+        ps = ps_initsb(&buf);
+        /* Unpacking of fragmented octet strings is not supported yet. */
+        Z_ASSERT_NEG(t_aper_decode(&ps, z_octet_string, false, &os_after),
+                     "unexpected success");
+
+        /* Special case: all the data is in the fragments
+         * (a single 16k fragment in this case). */
+        os_before.str.len = (16 << 10);
+        sb_reset(&buf);
+        Z_ASSERT_N(aper_encode(&buf, z_octet_string, &os_before),
+                   "unexpected failure");
+        str_ps = ps_initlstr(&os_before.str);
+        ps = ps_initsb(&buf);
+        /* Fragment: 1 x 16k. */
+        Z_ASSERT_EQ(ps_getc(&ps), 0xc1);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &str_ps, (16 << 10)));
+        /* No remainder: just a octet with value == zero. */
+        Z_ASSERT_EQ(ps_getc(&ps), 0x00);
+
+        sb_wipe(&str);
+        sb_wipe(&buf);
+    } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Fragmented open type. */
+
+    Z_TEST(fragmented_open_type, "") {
+        t_scope;
+        sb_t str;
+        sb_t buf;
+        sb_t os_buf;
+        lstr_t motif = LSTR("OPEN TYPE-");
+        z_open_type_t ot_before;
+        z_open_type_t ot_after;
+        pstream_t ps;
+        pstream_t exp_ps;
+
+        sb_init(&str);
+        for (int i = 0; i < 20000; i++) {
+            sb_addc(&str, motif.s[i % motif.len]);
+        }
+
+        p_clear(&ot_before, 1);
+        ot_before.os.str = LSTR_SB_V(&str);
+
+        sb_init(&buf);
+        Z_ASSERT_N(aper_encode(&buf, z_open_type, &ot_before),
+                   "unexpected failure");
+        ps = ps_initsb(&buf);
+
+        /* Encode the octet string twice: it should be the same as having the
+         * octet string in an open type. */
+        sb_init(&os_buf);
+        sb_addsb(&os_buf, &str);
+        for (int i = 0; i < 2; i++) {
+            t_scope;
+            z_octet_string_t os;
+
+            p_clear(&os, 1);
+            os.str = t_lstr_dup(LSTR_SB_V(&os_buf));
+            sb_reset(&os_buf);
+            Z_ASSERT_N(aper_encode(&os_buf, z_octet_string, &os),
+                       "unexpected failure (supposedly already tested with "
+                       "fragmented_octet_string)");
+        }
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&buf), LSTR_SB_V(&os_buf));
+        exp_ps = ps_initsb(&os_buf);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &exp_ps, ps_len(&exp_ps)));
+        Z_ASSERT(ps_done(&ps));
+
+        /* Unpacking of fragmented open types is not supported yet. */
+        ps = ps_initsb(&buf);
+        Z_ASSERT_NEG(t_aper_decode(&ps, z_open_type, false, &ot_after),
                      "unexpected success");
         sb_wipe(&str);
         sb_wipe(&buf);
+        sb_wipe(&os_buf);
     } Z_TEST_END;
 
     /* }}} */
