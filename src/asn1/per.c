@@ -2164,6 +2164,10 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
         Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 0,
                                      ".10011011.00110100"));
         Z_HELPER_RUN(z_test_aper_len(32, 1, 160, 1, "0001111.1"));
+        Z_HELPER_RUN(z_test_aper_len(15, 0, ASN1_MAX_LEN, 3,
+                                     "00000.00001111"));
+        Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 5,
+                                     "000.10011011.00110100"));
     } Z_TEST_END;
 
     Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
