@@ -2000,6 +2000,27 @@ static int z_test_aper_number(const asn1_int_info_t *nonnull info,
     Z_HELPER_END;
 }
 
+static int z_test_aper_len(size_t l, size_t l_min, size_t l_max, int skip,
+                           const char *exp_encoding)
+{
+    t_scope;
+    BB_1k(bb);
+    bit_stream_t bs;
+    size_t len;
+
+    bb_add0s(&bb, skip);
+
+    Z_ASSERT_N(aper_write_len(&bb, l, l_min, l_max, NULL));
+    bs = bs_init_bb(&bb);
+    Z_ASSERT_N(bs_skip(&bs, skip));
+    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bs(bs, NULL));
+    Z_ASSERT_N(aper_read_len(&bs, l_min, l_max, &len));
+    Z_ASSERT_EQ(len, l);
+    bb_wipe(&bb);
+
+    Z_HELPER_END;
+}
+
 static void z_asn1_int_info_set_opt_min(asn1_int_info_t *info, opt_i64_t i)
 {
     if (OPT_ISSET(i)) {
@@ -2119,38 +2140,12 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
     } Z_TEST_END;
 
     Z_TEST(len, "aligned per: aper_write_len/aper_read_len") {
-        t_scope;
-        BB_1k(bb);
-
-        struct {
-            size_t l, l_min, l_max, skip;
-            const char *s;
-        } t[] = {
-            { 15,    15,           15, 0, "" },
-            { 7,      3,           18, 0, ".0100" },
-            { 15,     0, ASN1_MAX_LEN, 0, ".00001111" },
-            { 0x1b34, 0, ASN1_MAX_LEN, 0, ".10011011.00110100" },
-            { 32,     1,          160, 1, ".00001111.1" },
-        };
-
-        for (int i = 0; i < countof(t); i++) {
-            bit_stream_t bs;
-            size_t len;
-
-            bb_reset(&bb);
-            bb_add0s(&bb, t[i].skip);
-
-            Z_ASSERT_N(aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max,
-                                      NULL));
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(bs_skip(&bs, t[i].skip));
-            Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),
-                       "[i:%d]", i);
-            Z_ASSERT_EQ(len, t[i].l, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
-        }
-
-        bb_wipe(&bb);
+        Z_HELPER_RUN(z_test_aper_len(15, 15, 15, 0, ""));
+        Z_HELPER_RUN(z_test_aper_len(7, 3, 18, 0, ".0100"));
+        Z_HELPER_RUN(z_test_aper_len(15, 0, ASN1_MAX_LEN, 0, ".00001111"));
+        Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 0,
+                                     ".10011011.00110100"));
+        Z_HELPER_RUN(z_test_aper_len(32, 1, 160, 1, "0001111.1"));
     } Z_TEST_END;
 
     Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
