@@ -983,36 +983,34 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
 static ALWAYS_INLINE int
 aper_read_ulen(bit_stream_t *bs, size_t *l)
 {
-    union {
-        uint8_t  b[2];
-        uint16_t w;
-    } res;
-    res.w = 0;
+    uint64_t len = 0;
 
-    if (__read_u8_aligned(bs, &res.b[1]) < 0) {
+    if (bs_align(bs) < 0 || !bs_has(bs, 8)) {
         e_info("cannot read unconstrained length: end of input "
                "(expected at least one aligned octet left)");
         return -1;
     }
 
-    if (!(res.b[1] & (1 << 7))) {
-        *l = res.b[1];
+    len = __bs_be_peek_bits(bs, 8);
+    if (!(len & (1 << 7))) {
+        __bs_skip(bs, 8);
+        *l = len;
         return 0;
     }
 
-    if (res.b[1] & (1 << 6)) {
+    if (len & (1 << 6)) {
         e_info("cannot read unconstrained length: "
                "fragmented values are not supported");
         return -1;
     }
 
-    if (__read_u8_aligned(bs, &res.b[0]) < 0) {
+    if (bs_be_get_bits(bs, 16, &len) < 0) {
         e_info("cannot read unconstrained length: end of input "
                "(expected at least a second octet left)");
         return -1;
     }
 
-    *l = res.w & 0x7fff;
+    *l = len & 0x7fff;
     return 0;
 }
 
