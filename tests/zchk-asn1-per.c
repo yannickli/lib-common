@@ -484,6 +484,31 @@ static int z_assert_bs_be_equal(bit_stream_t bs1, bit_stream_t bs2)
 }
 
 static int
+z_test_aper_octet_string(const asn1_cnt_info_t *info,
+                         const char *octet_string,
+                         bool copy, const char *exp_bits)
+{
+    t_scope;
+    BB_1k(bb __attribute__((cleanup(bb_wipe))));
+    bit_stream_t bs;
+    lstr_t decoded_octet_string;
+
+    Z_ASSERT_N(aper_encode_octet_string(&bb, LSTR(octet_string), info),
+               "encoding error");
+    Z_ASSERT_STREQUAL(t_print_be_bb(&bb, NULL), exp_bits,
+                      "unexpected encoding");
+    bs = bs_init_bb(&bb);
+    Z_ASSERT_N(t_aper_decode_octet_string(&bs, info, copy,
+                                          &decoded_octet_string),
+               "decoding error");
+    Z_ASSERT_LSTREQUAL(LSTR(octet_string), decoded_octet_string,
+                       "the decoded octet string is not the same "
+                       "as the one initially encoded");
+
+    Z_HELPER_END;
+}
+
+static int
 z_test_aper_bstring(const asn1_cnt_info_t *info, const char *bit_string,
                     int skip, const char *exp_bits)
 {
@@ -745,23 +770,46 @@ Z_GROUP_EXPORT(asn1_aper) {
     /* }}} */
     /* {{{ ostring */
     Z_TEST(ostring, "aligned per: aper_{encode,decode}_ostring") {
-        t_scope;
-        BB_1k(bb);
+        asn1_cnt_info_t cnt_info;
 
-        asn1_cnt_info_t uc = { /* Unconstrained */
+        /* {{{ Unconstrained octet string. */
+
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                NULL, "aaa", true,
+                ".00000011.01100001.01100001.01100001"));
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                NULL, "aaa", false,
+                ".00000011.01100001.01100001.01100001"));
+
+        cnt_info = (asn1_cnt_info_t){
             .max     = SIZE_MAX,
         };
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aaa", true,
+                ".00000011.01100001.01100001.01100001"));
 
-        asn1_cnt_info_t fc1 = { /* Fully constrained */
+        /* }}} */
+        /* {{{ Fully constrained octet string. */
+
+        cnt_info = (asn1_cnt_info_t){
             .min     = 3,
             .max     = 3,
         };
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aaa", false,
+                ".01100001.01100001.01100001"));
 
-        asn1_cnt_info_t fc2 = { /* Fully constrained */
+        cnt_info = (asn1_cnt_info_t){
             .max     = 23,
         };
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aaa", false,
+                ".00011000.01100001.01100001.01100001"));
 
-        asn1_cnt_info_t ext1 = { /* Extended */
+        /* }}} */
+        /* {{{ Extended octet string. */
+
+        cnt_info = (asn1_cnt_info_t){
             .min      = 1,
             .max      = 2,
             .extended = true,
@@ -769,49 +817,28 @@ Z_GROUP_EXPORT(asn1_aper) {
             .ext_max  = 3,
         };
 
-        asn1_cnt_info_t ext2 = { /* Extended */
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aa", true,
+                ".01000000.01100001.01100001"));
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aaa", true,
+                ".10000000.00000011.01100001.01100001.01100001"));
+
+        cnt_info = (asn1_cnt_info_t){
             .min      = 2,
             .max      = 2,
             .extended = true,
             .ext_max  = SIZE_MAX,
         };
 
-        struct {
-            const char      *os;
-            asn1_cnt_info_t *info;
-            bool             copy;
-            const char      *s;
-        } t[] = {
-            { "aaa", &uc,   true,  ".00000011.01100001.01100001.01100001" },
-            { "aaa", NULL,  true,  ".00000011.01100001.01100001.01100001" },
-            { "aaa", NULL,  false, ".00000011.01100001.01100001.01100001" },
-            { "aaa", &fc1,  false, ".01100001.01100001.01100001" },
-            { "aaa", &fc2,  false, ".00011000.01100001.01100001.01100001" },
-            { "aa",  &ext1, true,  ".01000000.01100001.01100001" },
-            { "aaa", &ext1, true,  ".10000000.00000011.01100001.01100001.01100001" },
-            { "aa",  &ext2, true,  ".00110000.10110000.1" },
-            { "a",   &ext2, true,  ".10000000.00000001.01100001" },
-        };
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "aa", true,
+                ".00110000.10110000.1"));
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "a", true,
+                ".10000000.00000001.01100001"));
 
-        for (int i = 0; i < countof(t); i++) {
-            lstr_t src = LSTR(t[i].os);
-            lstr_t dst;
-            bit_stream_t bs;
-
-            bb_reset(&bb);
-            aper_encode_octet_string(&bb, src, t[i].info);
-            if (src.len < 4) {
-                Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL),"[i:%d]", i);
-            }
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(t_aper_decode_ostring(&bs, t[i].info, t[i].copy, &dst),
-                       "[i:%d]", i);
-            Z_ASSERT_LSTREQUAL(LSTR_INIT_V((void *)dst.data, dst.len),
-                               LSTR_INIT_V((void *)src.data, src.len),
-                               "[i:%d]", i);
-        }
-
-        bb_wipe(&bb);
+        /* }}} */
     } Z_TEST_END;
     /* }}} */
     /* {{{ bstring */

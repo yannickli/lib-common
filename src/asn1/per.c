@@ -1637,8 +1637,8 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 /* }}} */
 /* String types {{{ */
 
-int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                          bool copy, lstr_t *os)
+int t_aper_decode_octet_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                               bool copy, lstr_t *os)
 {
     aper_len_decoding_ctx_t len_ctx;
     qv_t(u8) buf __attribute__((cleanup(aper_buf_wipe))) = QV_INIT();
@@ -1700,7 +1700,7 @@ t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
 {
     lstr_t os;
 
-    RETHROW(t_aper_decode_ostring(bs, info, copy, &os));
+    RETHROW(t_aper_decode_octet_string(bs, info, copy, &os));
 
     *data = os;
 
@@ -1841,7 +1841,7 @@ t_aper_decode_field(bit_stream_t *bs, const asn1_field_t *field,
         lstr_t        os;
         bit_stream_t  open_type_bs;
 
-        if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
+        if (t_aper_decode_octet_string(bs, NULL, false, &os) < 0) {
             e_info("cannot read %s%sfield",
                    field->is_open_type ? "OPEN TYPE " : "",
                    field->is_extension ? "extension " : "");
@@ -2013,7 +2013,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
             }
 
             e_trace(5, "skipping unknown extension (present)");
-            if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
+            if (t_aper_decode_octet_string(bs, NULL, false, &os) < 0) {
                 e_info("cannot skip unknown extension field");
                 return -1;
             }

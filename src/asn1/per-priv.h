@@ -54,7 +54,7 @@ int aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t d_max,
 
 int aper_encode_octet_string(bb_t *bb, lstr_t os,
                              const asn1_cnt_info_t *info);
-int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                          bool copy, lstr_t *os);
+int t_aper_decode_octet_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                               bool copy, lstr_t *os);
 
 #endif /* IS_LIB_INET_ASN1_PER_PRIV_H */
