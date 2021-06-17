@@ -1228,50 +1228,82 @@ aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
 
 /* Scalar types {{{ */
 
-static int
-aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
-{
-    if (info) {
-        bool extension_present;
+/* Contextual information about length decoding. */
+typedef struct aper_len_decoding_ctx_t {
+    /* The min/max length depends on the presence of the extension bit. */
+    size_t min_len;
+    size_t max_len;
 
+    bool extension_present;
+} aper_len_decoding_ctx_t;
+
+GENERIC_INIT(aper_len_decoding_ctx_t, aper_len_decoding_ctx);
+
+static int
+aper_len_decoding_ctx_check_constraints(const aper_len_decoding_ctx_t *ctx,
+                                        size_t len)
+{
+    if (len < ctx->min_len || len > ctx->max_len) {
+        e_info("%s length constraint not respected",
+               ctx->extension_present ? "extended" : "root");
+        return -1;
+    }
+
+    return 0;
+}
+
+/* Read extension bit (if any) and resolve min/max length. */
+static int
+aper_decode_len_extension_bit(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                              aper_len_decoding_ctx_t *ctx)
+{
+    aper_len_decoding_ctx_init(ctx);
+    if (info) {
         if (info->extended) {
             if (bs_done(bs)) {
                 e_info("cannot read extension bit: end of input");
                 return -1;
             }
 
-            extension_present = __bs_be_get_bit(bs);
-        } else {
-            extension_present = false;
+            ctx->extension_present = __bs_be_get_bit(bs);
         }
 
-        if (extension_present) {
-            if (aper_read_ulen(bs, l) < 0) {
-                e_info("cannot read extended length");
-                return -1;
-            }
-
-            if (*l < info->ext_min || *l > info->ext_max) {
-                e_info("extended length constraint not respected");
-                return -1;
-            }
+        if (ctx->extension_present) {
+            ctx->min_len = info->ext_min;
+            ctx->max_len = info->ext_max;
         } else {
-            if (aper_read_len(bs, info->min, info->max, l) < 0) {
-                e_info("cannot read constrained length");
-                return -1;
-            }
-
-            if (*l < info->min || *l > info->max) {
-                e_info("root length constraint not respected");
-                return -1;
-            }
+            ctx->min_len = info->min;
+            ctx->max_len = info->max;
         }
     } else {
-        if (aper_read_len(bs, 0, SIZE_MAX, l) < 0) {
-            e_info("cannot read unconstrained length");
+        ctx->max_len = SIZE_MAX;
+    }
+
+    return 0;
+}
+
+static int
+aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
+{
+    aper_len_decoding_ctx_t ctx;
+
+    if (aper_decode_len_extension_bit(bs, info, &ctx) < 0) {
+        e_info("cannot read extension bit");
+        return -1;
+    }
+
+    if (ctx.extension_present) {
+        if (aper_read_ulen(bs, l) < 0) {
+            e_info("cannot read extended length");
+            return -1;
+        }
+    } else {
+        if (aper_read_len(bs, ctx.min_len, ctx.max_len, l) < 0) {
+            e_info("cannot read constrained length");
             return -1;
         }
     }
+    RETHROW(aper_len_decoding_ctx_check_constraints(&ctx, *l));
 
     return 0;
 }
