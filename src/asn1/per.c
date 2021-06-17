@@ -2021,6 +2021,24 @@ static int z_test_aper_len(size_t l, size_t l_min, size_t l_max, int skip,
     Z_HELPER_END;
 }
 
+static int z_test_aper_nsnnwn(size_t n, const char *exp_encoding)
+{
+    t_scope;
+    BB_1k(bb);
+    bit_stream_t bs;
+    size_t nsnnwn;
+
+    bb_reset(&bb);
+    aper_write_nsnnwn(&bb, n);
+    bs = bs_init_bb(&bb);
+    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bs(bs, NULL));
+    Z_ASSERT_N(aper_read_nsnnwn(&bs, &nsnnwn));
+    Z_ASSERT_EQ(nsnnwn, n);
+    bb_wipe(&bb);
+
+    Z_HELPER_END;
+}
+
 static void z_asn1_int_info_set_opt_min(asn1_int_info_t *info, opt_i64_t i)
 {
     if (OPT_ISSET(i)) {
@@ -2149,32 +2167,10 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
     } Z_TEST_END;
 
     Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
-        t_scope;
-        BB_1k(bb);
-
-        struct {
-            size_t n;
-            const char *s;
-        } t[] = {
-            {   0,  ".0000000" },
-            { 0xe,  ".0001110" },
-            { 96,   ".10000000.00000001.01100000" },
-            { 128,  ".10000000.00000001.10000000" },
-        };
-
-        for (int i = 0; i < countof(t); i++) {
-            bit_stream_t bs;
-            size_t len;
-
-            bb_reset(&bb);
-            aper_write_nsnnwn(&bb, t[i].n);
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(aper_read_nsnnwn(&bs, &len), "[i:%d]", i);
-            Z_ASSERT_EQ(len, t[i].n, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
-        }
-
-        bb_wipe(&bb);
+        Z_HELPER_RUN(z_test_aper_nsnnwn(0, ".0000000"));
+        Z_HELPER_RUN(z_test_aper_nsnnwn(0xe, ".0001110"));
+        Z_HELPER_RUN(z_test_aper_nsnnwn(96, ".10000000.00000001.01100000"));
+        Z_HELPER_RUN(z_test_aper_nsnnwn(128, ".10000000.00000001.10000000"));
     } Z_TEST_END;
 
     Z_TEST(number, "aligned per: aper_{encode,decode}_number") {
