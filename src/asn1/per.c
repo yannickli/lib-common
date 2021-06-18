@@ -95,6 +95,31 @@ static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
     return 0;
 }
 
+static int t_aper_get_unaligned_bytes(bit_stream_t *bs, size_t olen,
+                                      bool copy, lstr_t *res)
+{
+    THROW_ERR_IF(!bs_has_bytes(bs, olen));
+    if (bs_is_aligned(bs)) {
+        pstream_t ps;
+
+        ps = __bs_get_bytes(bs, olen);
+        *res = LSTR_PS_V(&ps);
+        if (copy) {
+            t_lstr_persists(res);
+        }
+    } else {
+        uint8_t *buf;
+
+        buf = t_new_raw(uint8_t, olen);
+        for (size_t i = 0; i < olen; i++) {
+            buf[i] = __bs_be_get_bits(bs, 8);
+        }
+
+        *res = mp_lstr_init(t_pool(), buf, olen);
+    }
+
+    return 0;
+}
 
 /* }}} */
 /* PER generic helpers {{{ */
@@ -1394,8 +1419,7 @@ static int
 t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                       bool copy, lstr_t *os)
 {
-    size_t    len;
-    pstream_t ps;
+    size_t len;
 
     if (aper_decode_len(bs, info, &len) < 0) {
         e_info("cannot decode octet string length");
@@ -1407,35 +1431,14 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
     if (info && info->max <= 2 && info->min == info->max
     &&  len == info->max)
     {
-        uint8_t *buf;
-
-        if (!bs_has(bs, os->len * 2)) {
-            e_info("cannot read octet string: not enough bits");
-            return -1;
-        }
-
-        buf = t_new(uint8_t, os->len + 1);
-
-        for (int i = 0; i < os->len; i++) {
-            buf[i] = __bs_be_get_bits(bs, 8);
-        }
-
-        os->data = buf;
-        os->mem_pool = MEM_STACK;
-
-        return 0;
+        /* Special case: unaligned fixed-size octet string (size 1 or 2). */
+    } else {
+        bs_align(bs);
     }
 
-    if (bs_align(bs) < 0 || bs_get_bytes(bs, os->len, &ps) < 0) {
-        e_info("cannot read octet string: not enough octets "
-               "(want %d, got %zd)", os->len, bs_len(bs) / 8);
+    if (t_aper_get_unaligned_bytes(bs, len, copy, os) < 0) {
+        e_info("cannot read octet string: not enough bits");
         return -1;
-    }
-
-    os->s = ps.s;
-    if (copy) {
-        mp_lstr_persists(t_pool(), os);
-        os->mem_pool = MEM_STACK;
     }
 
     e_trace_hex(6, "Decoded OCTET STRING", os->data, (int)os->len);
