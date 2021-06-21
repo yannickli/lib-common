@@ -1554,11 +1554,17 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 /* }}} */
 /* String types {{{ */
 
+static void aper_buf_wipe(qv_t(u8) *buf)
+{
+    qv_wipe(buf);
+}
+
 static int
 t_aper_decode_fragmented_ostring(bit_stream_t *bs,
-                                 aper_len_decoding_ctx_t *ctx, lstr_t *os)
+                                 aper_len_decoding_ctx_t *ctx, bool copy,
+                                 lstr_t *os)
 {
-    SB(buf, PER_FRAG_64K);
+    qv_t(u8) buf __attribute__((cleanup(aper_buf_wipe))) = QV_INIT();
 
     /* Supposed to be aligned by aper_decode_len(). */
     assert(bs_is_aligned(bs));
@@ -1576,12 +1582,23 @@ t_aper_decode_fragmented_ostring(bit_stream_t *bs,
             return -1;
         }
 
-        sb_add_ps(&buf, fragment);
+        if (buf.len) {
+            memcpy(qv_growlen(&buf, ctx->len), fragment.b, ctx->len);
+        } else {
+            qv_init_static(&buf, fragment.b, ctx->len);
+        }
     }
 
-    /* TODO We could rework the decoding process to avoid having to copy even
-     * single-fragment octet strings. */
-    *os = t_lstr_dup(LSTR_SB_V(&buf));
+    if (likely(buf.mp == &mem_pool_libc)) {
+        /* XXX There were more than one fragment so the buffer was reallocated
+         * on LIBC. The content has to be transferred on the t_stack or it
+         * will be lost. */
+        copy = true;
+    }
+    *os = LSTR_DATA_V(buf.tab, buf.len);
+    if (copy) {
+        *os = t_lstr_dup(*os);
+    }
 
     return 0;
 }
@@ -1597,7 +1614,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         return -1;
     }
     if (len_ctx.more_fragments_to_read) {
-        if (t_aper_decode_fragmented_ostring(bs, &len_ctx, os) < 0) {
+        if (t_aper_decode_fragmented_ostring(bs, &len_ctx, copy, os) < 0) {
             e_info("cannot read fragmented octet string");
             return -1;
         }
