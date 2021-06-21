@@ -843,56 +843,51 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
 }
 
 static int
+aper_encode_seq_of_field(bb_t *bb, const asn1_field_t *field,
+                         const uint8_t *tab, int start, int end)
+{
+    size_t field_sz = field->pointed ? sizeof(const void *) : field->size;
+
+    for (int i = start; i < end; i++) {
+        if (aper_encode_field(bb, tab + i * field_sz, field) < 0) {
+            e_error("failed to encode array value [%d] %s:%s",
+                    i, field->oc_t_name, field->name);
+
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int
 aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
 {
-    const uint8_t *tab;
-    size_t elem_cnt;
     const asn1_field_t *repeated_field;
     const asn1_desc_t *desc = field->u.comp;
+    const asn1_void_vector_t *tab;
 
     assert (desc->vec.len == 1);
     repeated_field = &desc->vec.tab[0];
 
     assert (repeated_field->mode == ASN1_OBJ_MODE(SEQ_OF));
 
-    tab     = (const uint8_t *)GET_VECTOR_DATA(st, repeated_field);
-    elem_cnt = GET_VECTOR_LEN(st, repeated_field);
+    tab = GET_CONST_PTR(st, asn1_void_vector_t, repeated_field->offset);
 
     bb_push_mark(bb);
 
-    if (aper_encode_len(bb, elem_cnt, &field->seq_of_info, NULL) < 0) {
+    if (aper_encode_len(bb, tab->len, &field->seq_of_info, NULL) < 0) {
         bb_pop_mark(bb);
 
-        return e_error("failed to encode SEQUENCE OF length (n = %zd)",
-                       elem_cnt);
+        return e_error("failed to encode SEQUENCE OF length (n = %d)",
+                       tab->len);
     }
 
     e_trace_be_bb_tail(5, bb, "SEQUENCE OF length");
     bb_pop_mark(bb);
 
-    if (repeated_field->pointed) {
-        for (size_t j = 0; j < elem_cnt; j++) {
-            if (aper_encode_field(bb, ((const void **)tab)[j],
-                                  repeated_field) < 0)
-            {
-                e_error("failed to encode array value [%zd] %s:%s",
-                        j, repeated_field->oc_t_name, repeated_field->name);
-
-                return -1;
-            }
-        }
-    } else {
-        for (size_t j = 0; j < elem_cnt; j++) {
-            if (aper_encode_field(bb, tab + j * repeated_field->size,
-                                  repeated_field) < 0)
-            {
-                e_error("failed to encode vector value [%zd] %s:%s",
-                        j, repeated_field->oc_t_name, repeated_field->name);
-
-                return -1;
-            }
-        }
-    }
+    RETHROW(aper_encode_seq_of_field(bb, repeated_field, tab->data,
+                                     0, tab->len));
 
     return 0;
 }
