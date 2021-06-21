@@ -229,6 +229,18 @@ static inline void
 #define asn1_seq_of_set_extended(st_pfx) \
     (asn1_seq_of_set_extended)(ASN1_ST_DESC_VAR(st_pfx))
 
+static inline void
+(asn1_set_seq_of_extended_min_max)(asn1_desc_t *desc, size_t min, size_t max)
+{
+    asn1_field_t *field = asn1_desc_get_seq_of_field(desc);
+
+    field->seq_of_info.extended = true;
+    field->seq_of_info.ext_min = min;
+    field->seq_of_info.ext_max = max;
+}
+#define asn1_set_seq_of_extended_min_max(st_pfx, min, max) \
+    (asn1_set_seq_of_extended_min_max)(ASN1_ST_DESC_VAR(st_pfx), (min), (max))
+
 #define ASN1_ENUM(pfx)  asn1_##pfx##_enum
 #define ASN1_GET_ENUM(pfx)  ASN1_ENUM(pfx)()
 

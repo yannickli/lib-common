@@ -290,6 +290,34 @@ static ASN1_SEQUENCE_DESC_BEGIN(z_open_type);
 ASN1_SEQUENCE_DESC_END(z_open_type);
 
 /* }}} */
+/* {{{ Sequence of. */
+
+typedef struct {
+    ASN1_VECTOR_TYPE(int8) seqof;
+} z_seqof_i8_t;
+
+static ASN1_SEQ_OF_DESC_BEGIN(z_seqof_i8);
+    asn1_reg_scalar(z_seqof_i8, seqof, 0);
+    asn1_set_int_min_max(z_seqof_i8, -3, 3);
+ASN1_SEQ_OF_DESC_END(z_seqof_i8);
+
+typedef struct {
+    uint8_t a;
+    z_seqof_i8_t s;
+} z_seqof_t;
+
+GENERIC_INIT(z_seqof_t, z_seqof);
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_seqof);
+    asn1_reg_scalar(z_seqof, a, 0);
+    asn1_set_int_min_max(z_seqof, 0, 2);
+
+    asn1_reg_seq_of(z_seqof, z_seqof_i8, s, ASN1_TAG_SEQUENCE_C);
+    asn1_set_seq_of_min_max(z_seqof, 0, 1024);
+    asn1_set_seq_of_extended_min_max(z_seqof, 0, (256 << 10));
+ASN1_SEQUENCE_DESC_END(z_seqof);
+
+/* }}} */
 /* {{{ Helpers. */
 
 /* Skip N characters on two pstreams and check that they are the same. */
@@ -588,6 +616,30 @@ Z_GROUP_EXPORT(asn1_aper) {
         sb_wipe(&str);
         sb_wipe(&buf);
         sb_wipe(&os_buf);
+    } Z_TEST_END;
+
+    /* }}} */
+    /* {{{ Fragmented sequence of. */
+
+    Z_TEST(fragmented_seq_of, "") {
+        t_scope;
+        z_seqof_t seq_of_before;
+        qv_t(i8) vec;
+        int seqof_len = 100000;
+        int min = -3;
+        int max = 3;
+        SB_1k(buf);
+
+        t_qv_init(&vec, seqof_len);
+        for (int i = 0; i < seqof_len; i++) {
+            qv_append(&vec, min + (i % (max - min + 1)));
+        }
+
+        z_seqof_init(&seq_of_before);
+        seq_of_before.a = 1;
+        seq_of_before.s.seqof = ASN1_VECTOR(ASN1_VECTOR_TYPE(int8),
+                                            vec.tab, vec.len);
+        Z_ASSERT_NEG(aper_encode(&buf, z_seqof, &seq_of_before));
     } Z_TEST_END;
 
     /* }}} */
