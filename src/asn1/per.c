@@ -37,26 +37,26 @@ static struct {
 /* Big Endian generic helpers {{{ */
 
 static ALWAYS_INLINE void
-write_i64_o_aligned(bb_t *bb, int64_t i64, uint8_t olen)
+aper_write_aligned_int(bb_t *bb, int64_t i64, uint8_t olen)
 {
     bb_align(bb);
     assert (olen <= 8);
     bb_be_add_bits(bb, i64, olen * 8);
 }
 
-static ALWAYS_INLINE void write_u8_aligned(bb_t *bb, uint8_t u8)
+static ALWAYS_INLINE void aper_write_aligned_u8(bb_t *bb, uint8_t u8)
 {
     bb_align(bb);
     bb_be_add_bits(bb, u8, 8);
 }
 
-static ALWAYS_INLINE void write_u16_aligned(bb_t *bb, uint16_t u16)
+static ALWAYS_INLINE void aper_write_aligned_u16(bb_t *bb, uint16_t u16)
 {
     bb_align(bb);
     bb_be_add_bits(bb, u16, 16);
 }
 
-static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
+static ALWAYS_INLINE int aper_read_aligned_u8(bit_stream_t *bs, uint8_t *res)
 {
     uint64_t r64 = 0;
 
@@ -66,7 +66,8 @@ static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
     return 0;
 }
 
-static ALWAYS_INLINE int __read_u16_aligned(bit_stream_t *bs, uint16_t *res)
+static ALWAYS_INLINE int aper_read_aligned_u16(bit_stream_t *bs,
+                                               uint16_t *res)
 {
     uint64_t r64 = 0;
 
@@ -76,8 +77,8 @@ static ALWAYS_INLINE int __read_u16_aligned(bit_stream_t *bs, uint16_t *res)
     return 0;
 }
 
-static ALWAYS_INLINE int __read_u64_o_aligned(bit_stream_t *bs, size_t olen,
-                                              uint64_t *res)
+static ALWAYS_INLINE int aper_read_aligned_uint(bit_stream_t *bs, size_t olen,
+                                                uint64_t *res)
 {
     *res = 0;
     RETHROW(bs_align(bs));
@@ -85,12 +86,12 @@ static ALWAYS_INLINE int __read_u64_o_aligned(bit_stream_t *bs, size_t olen,
     return 0;
 }
 
-static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
-                                              int64_t *res)
+static ALWAYS_INLINE int aper_read_aligned_int(bit_stream_t *bs, size_t olen,
+                                               int64_t *res)
 {
     uint64_t u = 0;
 
-    RETHROW(__read_u64_o_aligned(bs, olen, &u));
+    RETHROW(aper_read_aligned_uint(bs, olen, &u));
     *res = sign_extend(u, olen * 8);
     return 0;
 }
@@ -161,7 +162,7 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
 
     if (blen == 8 && d_max == 255) {
         /* "The one-octet case". */
-        write_u8_aligned(bb, u16);
+        aper_write_aligned_u8(bb, u16);
         goto end;
     }
 
@@ -174,7 +175,7 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
     assert (blen <= 16);
 
     /* "The two-octet case". */
-    write_u16_aligned(bb, u16);
+    aper_write_aligned_u16(bb, u16);
     /* FALLTHROUGH */
 
   end:
@@ -200,7 +201,7 @@ aper_write_ulen(bb_t *bb, size_t l, bool *nullable need_fragmentation)
     bb_reset_mark(bb);
 
     if (l <= 127) {
-        write_u8_aligned(bb, l);
+        aper_write_aligned_u8(bb, l);
 
         e_trace_be_bb_tail(5, bb, "unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
@@ -211,7 +212,7 @@ aper_write_ulen(bb_t *bb, size_t l, bool *nullable need_fragmentation)
     if (l < PER_FRAG_16K) {
         uint16_t u16  = l | (1 << 15);
 
-        write_u16_aligned(bb, u16);
+        aper_write_aligned_u16(bb, u16);
 
         e_trace_be_bb_tail(5, bb, "unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
@@ -245,7 +246,7 @@ static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v,
         olen = i64_olen(v);
         aper_write_ulen(bb, olen, NULL);
     }
-    write_i64_o_aligned(bb, v, olen);
+    aper_write_aligned_int(bb, v, olen);
 }
 
 /* XXX semi-constrained or constrained numbers */
@@ -267,7 +268,7 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
         aper_write_ulen(bb, olen, NULL);
     }
 
-    write_i64_o_aligned(bb, v, olen);
+    aper_write_aligned_int(bb, v, olen);
 }
 
 /* Normally small non-negative whole number (SIC) */
@@ -975,7 +976,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
     if (blen == 8 && d_max == 255) {
         /* "The one-octet case". */
         *u16 = 0;
-        if (__read_u8_aligned(bs, (uint8_t *)u16) < 0) {
+        if (aper_read_aligned_u8(bs, (uint8_t *)u16) < 0) {
             e_info("cannot read contrained integer: end of input "
                    "(expected at least one aligned octet)");
             return -1;
@@ -997,7 +998,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
     }
 
     /* "The two-octet case". */
-    if (__read_u16_aligned(bs, u16) < 0) {
+    if (aper_read_aligned_u16(bs, u16) < 0) {
         e_info("cannot read constrained integer: end of input "
                "(expected at least two aligned octet left)");
         return -1;
@@ -1062,7 +1063,7 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
         uint8_t o = 0;
         uint64_t u;
 
-        if (__read_u8_aligned(bs, &o) < 0) {
+        if (aper_read_aligned_u8(bs, &o) < 0) {
             goto not_enough_bytes;
         }
 
@@ -1070,7 +1071,7 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
             goto overflow;
         }
 
-        if (__read_u64_o_aligned(bs, 8, &u) < 0) {
+        if (aper_read_aligned_uint(bs, 8, &u) < 0) {
             goto not_enough_bytes;
         }
 
@@ -1082,7 +1083,7 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
         goto overflow;
     }
 
-    if (__read_i64_o_aligned(bs, olen, v) < 0) {
+    if (aper_read_aligned_int(bs, olen, v) < 0) {
         goto not_enough_bytes;
     }
 
@@ -1153,7 +1154,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         return -1;
     }
 
-    if (__read_u64_o_aligned(bs, olen, v) < 0) {
+    if (aper_read_aligned_uint(bs, olen, v) < 0) {
         e_info("not enough bytes to read number (got %zd, need %zd)",
                bs_len(bs) / 8, olen);
         return -1;
