@@ -514,9 +514,8 @@ Z_GROUP_EXPORT(asn1_aper) {
         __ps_skip(&ps, 2);
         Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &str_ps, ps_len(&str_ps)));
         ps = ps_initsb(&buf);
-        /* Unpacking of fragmented octet strings is not supported yet. */
-        Z_ASSERT_NEG(t_aper_decode(&ps, z_octet_string, false, &os_after),
-                     "unexpected success");
+        Z_ASSERT_N(t_aper_decode(&ps, z_octet_string, false, &os_after));
+        Z_ASSERT_LSTREQUAL(os_before.str, os_after.str);
 
         /* Special case: all the data is in the fragments
          * (a single 16k fragment in this case). */
@@ -583,10 +582,9 @@ Z_GROUP_EXPORT(asn1_aper) {
         Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &exp_ps, ps_len(&exp_ps)));
         Z_ASSERT(ps_done(&ps));
 
-        /* Unpacking of fragmented open types is not supported yet. */
         ps = ps_initsb(&buf);
-        Z_ASSERT_NEG(t_aper_decode(&ps, z_open_type, false, &ot_after),
-                     "unexpected success");
+        Z_ASSERT_N(t_aper_decode(&ps, z_open_type, false, &ot_after));
+        Z_ASSERT_LSTREQUAL(ot_before.os.str, ot_after.os.str);
         sb_wipe(&str);
         sb_wipe(&buf);
         sb_wipe(&os_buf);

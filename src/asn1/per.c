@@ -1006,9 +1006,12 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
 }
 
 static ALWAYS_INLINE int
-aper_read_ulen(bit_stream_t *bs, size_t *l)
+aper_read_ulen(bit_stream_t *bs, size_t *l, bool *nullable is_fragmented)
 {
     uint64_t len = 0;
+
+    /* XXX Same remark as for "need_fragmentation" in aper_encode_len(). */
+    assert (!is_fragmented || !*is_fragmented);
 
     if (bs_align(bs) < 0 || !bs_has(bs, 8)) {
         e_info("cannot read unconstrained length: end of input "
@@ -1024,6 +1027,10 @@ aper_read_ulen(bit_stream_t *bs, size_t *l)
     }
 
     if (len & (1 << 6)) {
+        if (is_fragmented) {
+            *is_fragmented = true;
+            return 0;
+        }
         e_info("cannot read unconstrained length: "
                "fragmented values are not supported");
         return -1;
@@ -1044,7 +1051,7 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v, bool is_signed)
 {
     size_t olen;
 
-    if (aper_read_ulen(bs, &olen) < 0) {
+    if (aper_read_ulen(bs, &olen, NULL) < 0) {
         e_info("cannot read unconstrained whole number length");
         return -1;
     }
@@ -1131,7 +1138,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
             olen = u16 + 1;
         }
     } else {
-        if (aper_read_ulen(bs, &olen) < 0) {
+        if (aper_read_ulen(bs, &olen, NULL) < 0) {
             e_info("cannot read semi-constrained whole number length");
             return -1;
         }
@@ -1189,7 +1196,8 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
 }
 
 static int
-aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
+aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l,
+              bool *nullable is_fragmented)
 {
     size_t d_max = l_max - l_min;
 
@@ -1209,7 +1217,7 @@ aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
 
         *l = l_min + d;
     } else {
-        if (aper_read_ulen(bs, l) < 0) {
+        if (aper_read_ulen(bs, l, is_fragmented) < 0) {
             e_info("cannot read unconstrained length");
             return -1;
         }
@@ -1234,20 +1242,108 @@ typedef struct aper_len_decoding_ctx_t {
     size_t min_len;
     size_t max_len;
 
+    /* Cumulated length of all fragments read.
+     * Used only for fragmented data. */
+    uint64_t cumulated_len;
+
+    /* Last length read. Can be the full length or a fragment length. */
+    uint32_t len;
+
     bool extension_present;
+
+    /* If set, then the decoding of the fragments is up to the caller, only
+     * the extension bit is expected to be consumed at this point. */
+    bool more_fragments_to_read;
 } aper_len_decoding_ctx_t;
 
 GENERIC_INIT(aper_len_decoding_ctx_t, aper_len_decoding_ctx);
 
 static int
-aper_len_decoding_ctx_check_constraints(const aper_len_decoding_ctx_t *ctx,
-                                        size_t len)
+aper_len_check_max(const aper_len_decoding_ctx_t *ctx, uint64_t len)
 {
-    if (len < ctx->min_len || len > ctx->max_len) {
-        e_info("%s length constraint not respected",
+    if (len > ctx->max_len) {
+        e_info("%s maximum length constraint exceeded",
                ctx->extension_present ? "extended" : "root");
         return -1;
     }
+    return 0;
+}
+
+static int
+aper_len_check_min(const aper_len_decoding_ctx_t *ctx, uint64_t len)
+{
+    if (len < ctx->min_len) {
+        e_info("%s minimum length constraint unmet",
+               ctx->extension_present ? "extended" : "root");
+        return -1;
+    }
+    return 0;
+}
+
+static int
+aper_len_check_constraints(const aper_len_decoding_ctx_t *ctx, size_t len)
+{
+    RETHROW(aper_len_check_min(ctx, len));
+    RETHROW(aper_len_check_max(ctx, len));
+
+    return 0;
+}
+
+static int
+aper_decode_fragment_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
+{
+    uint64_t len;
+
+    assert(ctx->more_fragments_to_read);
+
+    if (bs_align(bs) < 0 || !bs_has(bs, 8)) {
+        e_info("cannot read fragment len: unexpected end of input");
+        return -1;
+    }
+
+    len = __bs_peek_bits(bs, 8);
+    if ((len & 0xc0) == 0xc0) {
+        /* Got a 16k, 32k, 48k or 64k block fragment. */
+        if (ctx->len != 0 && ctx->len != PER_FRAG_64K) {
+            /* Each block fragment except the last one should be a 64k block.
+             * This fragment isn't the first (ctx->len != 0) and the previous
+             * fragment wasn't a 64k block fragment, so the rule is broken. */
+            e_info("unexpected >16k fragment block");
+            return -1;
+        }
+
+        len &= ~0xc0;
+        if (!len) {
+            e_info("unexpected empty fragment block");
+            return -1;
+        }
+        if (len > 4) {
+            e_info("unexpected >64k fragment block length");
+            return -1;
+        }
+
+        len *= PER_FRAG_16K;
+        __bs_skip(bs, 8);
+    } else {
+        /* Remainder. */
+        if (aper_read_ulen(bs, &len, NULL) < 0) {
+            e_info("cannot read remainder length");
+            return -1;
+        }
+
+        ctx->more_fragments_to_read = false;
+    }
+
+    ctx->cumulated_len += len;
+
+    /* Check the max length isn't exceeded before any further research. */
+    RETHROW(aper_len_check_max(ctx, ctx->cumulated_len));
+
+    if (ctx->len < PER_FRAG_16K) {
+        /* Reached last fragment. The minimum length can be checked now. */
+        RETHROW(aper_len_check_min(ctx, ctx->cumulated_len));
+    }
+    ctx->len = len;
 
     return 0;
 }
@@ -1258,6 +1354,7 @@ aper_decode_len_extension_bit(bit_stream_t *bs, const asn1_cnt_info_t *info,
                               aper_len_decoding_ctx_t *ctx)
 {
     aper_len_decoding_ctx_init(ctx);
+
     if (info) {
         if (info->extended) {
             if (bs_done(bs)) {
@@ -1283,27 +1380,36 @@ aper_decode_len_extension_bit(bit_stream_t *bs, const asn1_cnt_info_t *info,
 }
 
 static int
-aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
+aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                aper_len_decoding_ctx_t *ctx)
 {
-    aper_len_decoding_ctx_t ctx;
+    bool is_fragmented = false;
+    size_t l = 0;
 
-    if (aper_decode_len_extension_bit(bs, info, &ctx) < 0) {
+    if (aper_decode_len_extension_bit(bs, info, ctx) < 0) {
         e_info("cannot read extension bit");
         return -1;
     }
 
-    if (ctx.extension_present) {
-        if (aper_read_ulen(bs, l) < 0) {
+    if (ctx->extension_present) {
+        if (aper_read_ulen(bs, &l, &is_fragmented) < 0) {
             e_info("cannot read extended length");
             return -1;
         }
     } else {
-        if (aper_read_len(bs, ctx.min_len, ctx.max_len, l) < 0) {
+        if (aper_read_len(bs, ctx->min_len, ctx->max_len, &l,
+                          &is_fragmented) < 0)
+        {
             e_info("cannot read constrained length");
             return -1;
         }
     }
-    RETHROW(aper_len_decoding_ctx_check_constraints(&ctx, *l));
+    if (is_fragmented) {
+        ctx->more_fragments_to_read = true;
+    } else {
+        ctx->len = l;
+        RETHROW(aper_len_check_constraints(ctx, ctx->len));
+    }
 
     return 0;
 }
@@ -1448,27 +1554,65 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 /* String types {{{ */
 
 static int
+t_aper_decode_fragmented_ostring(bit_stream_t *bs,
+                                 aper_len_decoding_ctx_t *ctx, lstr_t *os)
+{
+    SB(buf, PER_FRAG_64K);
+
+    /* Supposed to be aligned by aper_decode_len(). */
+    assert(bs_is_aligned(bs));
+
+    while (ctx->more_fragments_to_read) {
+        pstream_t fragment;
+
+        if (aper_decode_fragment_len(bs, ctx) < 0) {
+            e_info("cannot read fragment len");
+            return -1;
+        }
+
+        if (bs_get_bytes(bs, ctx->len, &fragment) < 0) {
+            e_info("cannot read fragment: unexpected end of input");
+            return -1;
+        }
+
+        sb_add_ps(&buf, fragment);
+    }
+
+    /* TODO We could rework the decoding process to avoid having to copy even
+     * single-fragment octet strings. */
+    *os = t_lstr_dup(LSTR_SB_V(&buf));
+
+    return 0;
+}
+
+static int
 t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                       bool copy, lstr_t *os)
 {
-    size_t len;
+    aper_len_decoding_ctx_t len_ctx;
 
-    if (aper_decode_len(bs, info, &len) < 0) {
+    if (aper_decode_len(bs, info, &len_ctx) < 0) {
         e_info("cannot decode octet string length");
         return -1;
     }
+    if (len_ctx.more_fragments_to_read) {
+        if (t_aper_decode_fragmented_ostring(bs, &len_ctx, os) < 0) {
+            e_info("cannot read fragmented octet string");
+            return -1;
+        }
 
-    *os = LSTR_INIT_V(NULL, len);
+        return 0;
+    }
 
     if (info && info->max <= 2 && info->min == info->max
-    &&  len == info->max)
+    &&  len_ctx.len == info->max)
     {
         /* Special case: unaligned fixed-size octet string (size 1 or 2). */
     } else {
         bs_align(bs);
     }
 
-    if (t_aper_get_unaligned_bytes(bs, len, copy, os) < 0) {
+    if (t_aper_get_unaligned_bytes(bs, len_ctx.len, copy, os) < 0) {
         e_info("cannot read octet string: not enough bits");
         return -1;
     }
@@ -1495,18 +1639,22 @@ static int
 t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                       bool copy, bit_stream_t *str)
 {
-    size_t len;
+    aper_len_decoding_ctx_t len_ctx;
 
-    if (aper_decode_len(bs, info, &len) < 0) {
+    if (aper_decode_len(bs, info, &len_ctx) < 0) {
         e_info("cannot decode bit string length");
         return -1;
     }
+    if (len_ctx.more_fragments_to_read) {
+        e_info("fragmentation is not supported for bit strings");
+        return -1;
+    }
 
-    if (is_bstring_aligned(info, len) && bs_align(bs) < 0) {
+    if (is_bstring_aligned(info, len_ctx.len) && bs_align(bs) < 0) {
         e_info("cannot read bit string: not enough bits for padding");
         return -1;
     }
-    if (bs_get_bs(bs, len, str) < 0) {
+    if (bs_get_bs(bs, len_ctx.len, str) < 0) {
         e_info("cannot read bit string: not enough bits");
         return -1;
     }
@@ -1899,31 +2047,35 @@ static int
 t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
                      bool copy, void *st)
 {
-    size_t elem_cnt;
     const asn1_field_t *repeated_field;
     const asn1_desc_t *desc = field->u.comp;
+    aper_len_decoding_ctx_t len_ctx;
 
     assert (desc->vec.len == 1);
     repeated_field = &desc->vec.tab[0];
 
-    if (aper_decode_len(bs, &field->seq_of_info, &elem_cnt) < 0) {
+    if (aper_decode_len(bs, &field->seq_of_info, &len_ctx) < 0) {
         e_info("failed to decode SEQUENCE OF length");
         return -1;
     }
+    if (len_ctx.more_fragments_to_read) {
+        e_info("fragmentation is not supported for SEQUENCE OF");
+        return -1;
+    }
 
-    e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %zd)",
-            repeated_field->oc_t_name, repeated_field->name, elem_cnt);
+    e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %u)",
+            repeated_field->oc_t_name, repeated_field->name, len_ctx.len);
 
-    if (unlikely(!elem_cnt)) {
+    if (unlikely(!len_ctx.len)) {
         *GET_PTR(st, repeated_field, lstr_t) = LSTR_NULL_V;
         return 0;
     }
 
-    asn1_alloc_seq_of(st, elem_cnt, repeated_field, t_pool());
+    asn1_alloc_seq_of(st, len_ctx.len, repeated_field, t_pool());
 
-    GET_PTR(st, repeated_field, asn1_void_vector_t)->len = elem_cnt;
+    GET_PTR(st, repeated_field, asn1_void_vector_t)->len = len_ctx.len;
 
-    for (size_t j = 0; j < elem_cnt; j++) {
+    for (size_t j = 0; j < len_ctx.len; j++) {
         void *v;
 
         if (repeated_field->pointed) {
@@ -1933,8 +2085,9 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
               + j * repeated_field->size;
         }
 
-        e_trace(5, "decoding SEQUENCE OF %s:%s value [%zu/%zu]",
-                repeated_field->oc_t_name, repeated_field->name, j, elem_cnt);
+        e_trace(5, "decoding SEQUENCE OF %s:%s value [%zu/%u]",
+                repeated_field->oc_t_name, repeated_field->name, j,
+                len_ctx.len);
 
         if (t_aper_decode_field(bs, repeated_field, copy, v) < 0) {
             e_info("failed to decode SEQUENCE OF element");
@@ -2047,7 +2200,7 @@ static int z_test_aper_len(size_t l, size_t l_min, size_t l_max, int skip,
     bs = bs_init_bb(&bb);
     Z_ASSERT_N(bs_skip(&bs, skip));
     Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bs(bs, NULL));
-    Z_ASSERT_N(aper_read_len(&bs, l_min, l_max, &len));
+    Z_ASSERT_N(aper_read_len(&bs, l_min, l_max, &len, NULL));
     Z_ASSERT_EQ(len, l);
     bb_wipe(&bb);
 
