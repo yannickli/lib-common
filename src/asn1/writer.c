@@ -1194,17 +1194,20 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
     return len;
 }
 
-void asn1_alloc_seq_of(void *st, int count, const asn1_field_t *field,
-                       mem_pool_t *mp)
+static void asn1_alloc_seq_of(void *st, int count, const asn1_field_t *field,
+                              mem_pool_t *mp)
 {
     if (field->pointed) {
         asn1_void_array_t *array = GET_PTR(st, field, asn1_void_array_t);
+        char *mem;
 
         array->data = mp_new_raw(mp, void *, count);
         array->len  = count;
 
-        for (int i = 0; i < count; i++) {
-            array->data[i] = mp_new_raw(mp, char, field->size);
+        mem = mp_new_raw(mp, char, field->size * array->len);
+        for (int i = 0; i < array->len; i++) {
+            array->data[i] = mem;
+            mem += field->size;
         }
     } else {
         asn1_void_vector_t *vector = GET_PTR(st, field, asn1_void_vector_t);

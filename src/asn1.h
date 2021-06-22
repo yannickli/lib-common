@@ -91,11 +91,4 @@ int ber_decode_oid(const byte *p, int size, int *oid, int size_oid);
 
 int ber_decode_bit_string_len(pstream_t *ps);
 
-/* {{{ Private functions */
-
-void asn1_alloc_seq_of(void *st, int count, const asn1_field_t *field,
-                       mem_pool_t *mp);
-
-/* }}} */
-
 #endif
