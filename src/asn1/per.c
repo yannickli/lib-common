@@ -1032,7 +1032,7 @@ void aper_set_decode_log_level(int level)
 /* Helpers {{{ */
 
 static ALWAYS_INLINE int
-aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16, uint16_t d_max)
+aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t d_max, uint16_t *u16)
 {
     uint64_t res;
     assert (blen); /* u16 is given by constraints */
@@ -1182,7 +1182,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
                 return 0;
             }
 
-            if (aper_read_u16_m(bs, info->max_blen, &u16, info->d_max) < 0) {
+            if (aper_read_u16_m(bs, info->max_blen, info->d_max, &u16) < 0) {
                 e_info("cannot read constrained whole number");
                 return -1;
             }
@@ -1193,8 +1193,8 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         } else {
             uint16_t u16 = 0;
 
-            if (aper_read_u16_m(bs, info->max_olen_blen, &u16,
-                                info->d_max) < 0)
+            if (aper_read_u16_m(bs, info->max_olen_blen, info->d_max,
+                                &u16) < 0)
             {
                 e_info("cannot read constrained whole number length");
                 return -1;
@@ -1275,7 +1275,7 @@ aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l,
             return 0;
         }
 
-        if (aper_read_u16_m(bs, u16_blen(d_max), &d, d_max) < 0) {
+        if (aper_read_u16_m(bs, u16_blen(d_max), d_max, &d) < 0) {
             e_info("cannot read constrained length");
             return -1;
         }
@@ -2415,7 +2415,7 @@ Z_GROUP_EXPORT(asn1_aper_low_level) {
                 uint16_t u16 = t[i].d - 1;
 
                 Z_ASSERT_N(bs_skip(&bs, t[i].skip));
-                Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16, t[i].d_max),
+                Z_ASSERT_N(aper_read_u16_m(&bs, len, t[i].d_max, &u16),
                            "[i:%d]", i);
                 Z_ASSERT_EQ(u16, t[i].d, "[i:%d] len=%zu", i, len);
             }
