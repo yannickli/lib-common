@@ -1403,6 +1403,23 @@ aper_decode_fragment_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
     return 0;
 }
 
+static void aper_buf_wipe(qv_t(u8) *buf)
+{
+    qv_wipe(buf);
+}
+
+static uint8_t *aper_buf_growlen(qv_t(u8) *buf, int extra)
+{
+    if (buf->mp == t_pool() && expect(!buf->size)) {
+        /* XXX qv_growlen() allocates more than needed and we want to allocate
+         * exactly what we need when using the t_pool. We only accept
+         * allocation more than needed when using a temporary buffer. */
+        t_qv_init(buf, extra);
+    }
+
+    return qv_growlen(buf, extra);
+}
+
 /* Read extension bit (if any) and resolve min/max length. */
 static int
 aper_decode_len_extension_bit(bit_stream_t *bs, const asn1_cnt_info_t *info,
@@ -1606,11 +1623,6 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 
 /* }}} */
 /* String types {{{ */
-
-static void aper_buf_wipe(qv_t(u8) *buf)
-{
-    qv_wipe(buf);
-}
 
 static int
 t_aper_decode_fragmented_ostring(bit_stream_t *bs,
@@ -2113,12 +2125,51 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, bool copy,
 }
 
 static int
+t_aper_decode_seq_of_fragment(bit_stream_t *bs, const asn1_field_t *field,
+                              int len, bool copy, qv_t(u8) *data_vec)
+{
+    uint8_t *field_data;
+
+    if (field->pointed) {
+        field_data = t_new_raw(uint8_t, len * field->size);
+    } else {
+        field_data = aper_buf_growlen(data_vec, len * field->size);
+    }
+
+    for (int i = 0; i < len; i++) {
+        void *v = &field_data[field->size * i];
+
+        e_trace(5, "decoding SEQUENCE OF %s:%s value [%d/%d]",
+                field->oc_t_name, field->name, i, len);
+
+        if (t_aper_decode_field(bs, field, copy, v) < 0) {
+            e_info("failed to decode SEQUENCE OF element");
+            return -1;
+        }
+    }
+
+    if (field->pointed) {
+        /* Now that the fields are decoded, fill the pointers values. */
+        void **pointers;
+
+        pointers = (void **)aper_buf_growlen(data_vec, len * sizeof(void *));
+        for (int i = 0; i < len; i++) {
+            pointers[i] = &field_data[field->size * i];
+        }
+    }
+
+    return 0;
+}
+
+static int
 t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
                      bool copy, void *st)
 {
     const asn1_field_t *repeated_field;
     const asn1_desc_t *desc = field->u.comp;
     aper_len_decoding_ctx_t len_ctx;
+    qv_t(u8) buf __attribute__((cleanup(aper_buf_wipe))) = QV_INIT();
+    asn1_void_vector_t *array;
 
     assert (desc->vec.len == 1);
     repeated_field = &desc->vec.tab[0];
@@ -2127,41 +2178,36 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
         e_info("failed to decode SEQUENCE OF length");
         return -1;
     }
-    if (len_ctx.more_fragments_to_read) {
-        e_info("fragmentation is not supported for SEQUENCE OF");
-        return -1;
-    }
 
     e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %u)",
             repeated_field->oc_t_name, repeated_field->name, len_ctx.len);
 
-    if (unlikely(!len_ctx.len)) {
-        *GET_PTR(st, repeated_field, lstr_t) = LSTR_NULL_V;
-        return 0;
+    if (!len_ctx.more_fragments_to_read) {
+        /* The SEQUENCE OF is not fragmented so we know how much memory we're
+         * going to need. Otherwise, using the t_pool() would be inefficient
+         * because of the very limited realloc mechanism of the mem stack
+         * pool. */
+        t_qv_init(&buf, 0);
     }
 
-    asn1_alloc_seq_of(st, len_ctx.len, repeated_field, t_pool());
-
-    GET_PTR(st, repeated_field, asn1_void_vector_t)->len = len_ctx.len;
-
-    for (size_t j = 0; j < len_ctx.len; j++) {
-        void *v;
-
-        if (repeated_field->pointed) {
-            v = GET_PTR(st, repeated_field, asn1_void_array_t)->data[j];
-        } else {
-            v = (char *)(GET_PTR(st, repeated_field, asn1_void_vector_t)->data)
-              + j * repeated_field->size;
+    do {
+        if (len_ctx.more_fragments_to_read) {
+            RETHROW(aper_decode_fragment_len(bs, &len_ctx));
         }
+        RETHROW(t_aper_decode_seq_of_fragment(bs, repeated_field, len_ctx.len,
+                                              copy, &buf));
+    } while (len_ctx.more_fragments_to_read);
 
-        e_trace(5, "decoding SEQUENCE OF %s:%s value [%zu/%u]",
-                repeated_field->oc_t_name, repeated_field->name, j,
-                len_ctx.len);
+    array = GET_PTR(st, repeated_field, asn1_void_vector_t);
+    array->len = len_ctx.cumulated_len ?: len_ctx.len;
+    if (buf.mp == t_pool()) {
+        array->data = buf.tab;
+        /* XXX qv_wipe() won't destroy anything. */
+    } else {
+        array->data = t_dup(buf.tab, buf.len);
 
-        if (t_aper_decode_field(bs, repeated_field, copy, v) < 0) {
-            e_info("failed to decode SEQUENCE OF element");
-            return -1;
-        }
+        /* Supposedly only for fragmented SEQUENCE OF. */
+        assert(len_ctx.cumulated_len);
     }
 
     return 0;

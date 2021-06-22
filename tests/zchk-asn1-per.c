@@ -1356,9 +1356,15 @@ Z_GROUP_EXPORT(asn1_aper) {
                                              100000, &vec));
         Z_ASSERT(bs_done(&bs));
 
-        /* Fragmented SEQUENCE OF decoding is not supported yet. */
-        Z_ASSERT_NEG(t_aper_decode(&ps, z_seqof, false, &seq_of_after),
-                     "unexpected success");
+        /* Test decoding. */
+        Z_ASSERT_N(t_aper_decode(&ps, z_seqof, false, &seq_of_after));
+
+        Z_ASSERT_EQ(seq_of_before.a, seq_of_after.a);
+        Z_ASSERT_EQ(seq_of_before.s.seqof.len, seq_of_after.s.seqof.len);
+        for (int i = 0; i < seq_of_before.s.seqof.len; i++) {
+            Z_ASSERT_EQ(seq_of_before.s.seqof.data[i],
+                        seq_of_after.s.seqof.data[i], "[%d]", i);
+        }
     } Z_TEST_END;
     /* }}} */
 } Z_GROUP_END
