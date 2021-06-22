@@ -921,6 +921,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
     const asn1_desc_t *desc = field->u.comp;
     const asn1_void_vector_t *tab;
     aper_len_encoding_ctx_t ctx;
+    int offset;
 
     assert (desc->vec.len == 1);
     repeated_field = &desc->vec.tab[0];
@@ -929,27 +930,24 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
 
     tab = GET_CONST_PTR(st, asn1_void_vector_t, repeated_field->offset);
 
-    bb_push_mark(bb);
-
     if (aper_encode_len_extension_bit(bb, tab->len, &field->seq_of_info,
                                       &ctx) < 0)
     {
-        bb_pop_mark(bb);
-
-        return e_error("failed to encode SEQUENCE OF length (n = %d)",
+        return e_error("failed to encode SEQUENCE OF extension bit (n = %d)",
                        tab->len);
     }
-    aper_encode_len(bb, &ctx);
-    if (ctx.use_fragmentation) {
-        bb_pop_mark(bb);
 
-        return e_error("SEQUENCE OF: fragmentation isn't supported");
-    }
-    e_trace_be_bb_tail(5, bb, "SEQUENCE OF length");
-    bb_pop_mark(bb);
+    offset = 0;
+    do {
+        aper_encode_len(bb, &ctx);
 
-    RETHROW(aper_encode_seq_of_field(bb, repeated_field, tab->data,
-                                     0, tab->len));
+        /* Check for overflow. */
+        assert(offset + ctx.to_encode <= tab->len);
+
+        RETHROW(aper_encode_seq_of_field(bb, repeated_field, tab->data,
+                                         offset, offset + ctx.to_encode));
+        offset += ctx.to_encode;
+    } while (!ctx.done);
 
     return 0;
 }

@@ -492,6 +492,37 @@ static int z_test_aper_bstring(const asn1_cnt_info_t *info,
                                           exp_encoding), "copy=false");
     Z_HELPER_END;
 }
+
+static int
+z_check_seq_of_number(bit_stream_t *bs, const asn1_int_info_t *info,
+                      int64_t exp)
+{
+    int64_t v;
+
+    Z_ASSERT_N(aper_decode_number(bs, info, true, &v));
+    Z_ASSERT_EQ(v, exp);
+    Z_HELPER_END;
+}
+
+static int z_check_seq_of_fragment(bit_stream_t *bs, int min, int max,
+                                   int start, int end, qv_t(i8) *values)
+{
+    asn1_int_info_t info;
+
+    asn1_int_info_init(&info);
+    asn1_int_info_set_min(&info, min);
+    asn1_int_info_set_max(&info, max);
+    asn1_int_info_update(&info, true);
+
+    for (int i = start; i < end; i++) {
+        Z_ASSERT_LT(i, values->len);
+        Z_HELPER_RUN(z_check_seq_of_number(bs, &info, values->tab[i]),
+                     "value [%d(%x)]", i, i);
+    }
+
+    Z_HELPER_END;
+}
+
 /* }}} */
 
 Z_GROUP_EXPORT(asn1_aper) {
@@ -1277,11 +1308,15 @@ Z_GROUP_EXPORT(asn1_aper) {
     Z_TEST(fragmented_seq_of, "") {
         t_scope;
         z_seqof_t seq_of_before;
+        z_seqof_t seq_of_after;
         qv_t(i8) vec;
         int seqof_len = 100000;
         int min = -3;
         int max = 3;
         SB_1k(buf);
+        pstream_t ps;
+        bit_stream_t bs;
+        uint64_t uv;
 
         t_qv_init(&vec, seqof_len);
         for (int i = 0; i < seqof_len; i++) {
@@ -1292,7 +1327,38 @@ Z_GROUP_EXPORT(asn1_aper) {
         seq_of_before.a = 1;
         seq_of_before.s.seqof = ASN1_VECTOR(ASN1_VECTOR_TYPE(int8),
                                             vec.tab, vec.len);
-        Z_ASSERT_NEG(aper_encode(&buf, z_seqof, &seq_of_before));
+        Z_ASSERT_N(aper_encode(&buf, z_seqof, &seq_of_before));
+
+        /* Check the fragmented encoding. */
+        ps = ps_initsb(&buf);
+        bs = bs_init_ps(&ps, 0);
+        Z_ASSERT_N(bs_be_get_bits(&bs, 2, &uv));
+        Z_ASSERT_EQ(uv, seq_of_before.a);
+
+        /* First fragment: 4 x 16k. */
+        Z_ASSERT_N(bs_align(&bs));
+        Z_ASSERT_N(bs_be_get_bits(&bs, 8, &uv));
+        Z_ASSERT_EQ(uv, (uint64_t)0xc4);
+        Z_HELPER_RUN(z_check_seq_of_fragment(&bs, min, max, 0, (64 << 10),
+                                             &vec));
+        /* Second fragment: 2 * 16k. */
+        Z_ASSERT_N(bs_align(&bs));
+        Z_ASSERT_N(bs_be_get_bits(&bs, 8, &uv));
+        Z_ASSERT_EQ(uv, (uint64_t)0xc2);
+        Z_HELPER_RUN(z_check_seq_of_fragment(&bs, min, max, (64 << 10),
+                                             (96 << 10), &vec));
+
+        /* Last fragment: 100000 - 96k = 1696. */
+        Z_ASSERT_N(bs_align(&bs));
+        Z_ASSERT_N(bs_be_get_bits(&bs, 16, &uv));
+        Z_ASSERT_EQ(uv, (uint64_t)(1696 | 0x8000));
+        Z_HELPER_RUN(z_check_seq_of_fragment(&bs, min, max, (96 << 10),
+                                             100000, &vec));
+        Z_ASSERT(bs_done(&bs));
+
+        /* Fragmented SEQUENCE OF decoding is not supported yet. */
+        Z_ASSERT_NEG(t_aper_decode(&ps, z_seqof, false, &seq_of_after),
+                     "unexpected success");
     } Z_TEST_END;
     /* }}} */
 } Z_GROUP_END
