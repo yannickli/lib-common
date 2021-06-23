@@ -1458,18 +1458,16 @@ aper_decode_len_extension_bit(bit_stream_t *bs, const asn1_cnt_info_t *info,
     return 0;
 }
 
-static int
-aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                aper_len_decoding_ctx_t *ctx)
+/* Decode a length. The 'ctx' parameter should be initialized by
+ * 'aper_decode_len_extension_bit()' first. */
+static int aper_decode_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
 {
     bool is_fragmented = false;
     size_t l = 0;
 
-    if (aper_decode_len_extension_bit(bs, info, ctx) < 0) {
-        e_info("cannot read extension bit");
-        return -1;
+    if (ctx->more_fragments_to_read) {
+        return aper_decode_fragment_len(bs, ctx);
     }
-
     if (ctx->extension_present) {
         if (aper_read_ulen(bs, &l, &is_fragmented) < 0) {
             e_info("cannot read extended length");
@@ -1485,6 +1483,7 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info,
     }
     if (is_fragmented) {
         ctx->more_fragments_to_read = true;
+        RETHROW(aper_decode_fragment_len(bs, ctx));
     } else {
         ctx->len = l;
         RETHROW(aper_len_check_constraints(ctx, ctx->len));
@@ -1631,35 +1630,43 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 /* }}} */
 /* String types {{{ */
 
-static int
-t_aper_decode_fragmented_ostring(bit_stream_t *bs,
-                                 aper_len_decoding_ctx_t *ctx, bool copy,
-                                 lstr_t *os)
+int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                          bool copy, lstr_t *os)
 {
+    aper_len_decoding_ctx_t len_ctx;
     qv_t(u8) buf __attribute__((cleanup(aper_buf_wipe))) = QV_INIT();
 
-    /* Supposed to be aligned by aper_decode_len(). */
-    assert(bs_is_aligned(bs));
-
-    while (ctx->more_fragments_to_read) {
-        pstream_t fragment;
-
-        if (aper_decode_fragment_len(bs, ctx) < 0) {
-            e_info("cannot read fragment len");
-            return -1;
-        }
-
-        if (bs_get_bytes(bs, ctx->len, &fragment) < 0) {
-            e_info("cannot read fragment: unexpected end of input");
-            return -1;
-        }
-
-        if (buf.len) {
-            memcpy(qv_growlen(&buf, ctx->len), fragment.b, ctx->len);
-        } else {
-            qv_init_static(&buf, fragment.b, ctx->len);
-        }
+    if (aper_decode_len_extension_bit(bs, info, &len_ctx) < 0) {
+        e_info("cannot read extension bit");
+        return -1;
     }
+
+    do {
+        lstr_t data;
+
+        if (aper_decode_len(bs, &len_ctx) < 0) {
+            e_info("cannot decode octet string length");
+            return -1;
+        }
+        if (!buf.len && info && info->max <= 2 &&
+            info->min == info->max &&  len_ctx.len == info->max)
+        {
+            /* Special case: unaligned fixed-size octet string
+             * (size 1 or 2). */
+        } else {
+            bs_align(bs);
+        }
+
+        if (t_aper_get_unaligned_bytes(bs, len_ctx.len, copy, &data) < 0) {
+            e_info("cannot read octet string: not enough bits");
+            return -1;
+        }
+        if (buf.len) {
+            memcpy(qv_growlen(&buf, len_ctx.len), data.data, len_ctx.len);
+        } else {
+            qv_init_static(&buf, data.data, data.len);
+        }
+    } while (len_ctx.more_fragments_to_read);
 
     if (likely(buf.mp == &mem_pool_libc)) {
         /* XXX There were more than one fragment so the buffer was reallocated
@@ -1670,40 +1677,6 @@ t_aper_decode_fragmented_ostring(bit_stream_t *bs,
     *os = LSTR_DATA_V(buf.tab, buf.len);
     if (copy) {
         *os = t_lstr_dup(*os);
-    }
-
-    return 0;
-}
-
-int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                          bool copy, lstr_t *os)
-{
-    aper_len_decoding_ctx_t len_ctx;
-
-    if (aper_decode_len(bs, info, &len_ctx) < 0) {
-        e_info("cannot decode octet string length");
-        return -1;
-    }
-    if (len_ctx.more_fragments_to_read) {
-        if (t_aper_decode_fragmented_ostring(bs, &len_ctx, copy, os) < 0) {
-            e_info("cannot read fragmented octet string");
-            return -1;
-        }
-
-        return 0;
-    }
-
-    if (info && info->max <= 2 && info->min == info->max
-    &&  len_ctx.len == info->max)
-    {
-        /* Special case: unaligned fixed-size octet string (size 1 or 2). */
-    } else {
-        bs_align(bs);
-    }
-
-    if (t_aper_get_unaligned_bytes(bs, len_ctx.len, copy, os) < 0) {
-        e_info("cannot read octet string: not enough bits");
-        return -1;
     }
 
     e_trace_hex(6, "Decoded OCTET STRING", os->data, (int)os->len);
@@ -1729,7 +1702,11 @@ int t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
 {
     aper_len_decoding_ctx_t len_ctx;
 
-    if (aper_decode_len(bs, info, &len_ctx) < 0) {
+    if (aper_decode_len_extension_bit(bs, info, &len_ctx) < 0) {
+        e_info("cannot read extension bit");
+        return -1;
+    }
+    if (aper_decode_len(bs, &len_ctx) < 0) {
         e_info("cannot decode bit string length");
         return -1;
     }
@@ -2132,8 +2109,8 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, bool copy,
 }
 
 static int
-t_aper_decode_seq_of_fragment(bit_stream_t *bs, const asn1_field_t *field,
-                              int len, bool copy, qv_t(u8) *data_vec)
+t_aper_decode_seq_of_fields(bit_stream_t *bs, const asn1_field_t *field,
+                            int len, bool copy, qv_t(u8) *data_vec)
 {
     uint8_t *field_data;
 
@@ -2181,29 +2158,28 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
     assert (desc->vec.len == 1);
     repeated_field = &desc->vec.tab[0];
 
-    if (aper_decode_len(bs, &field->seq_of_info, &len_ctx) < 0) {
-        e_info("failed to decode SEQUENCE OF length");
+    if (aper_decode_len_extension_bit(bs, &field->seq_of_info, &len_ctx) < 0)
+    {
+        e_info("cannot read extension bit");
         return -1;
     }
 
+    do {
+        RETHROW(aper_decode_len(bs, &len_ctx));
+        if (!buf.len && !len_ctx.more_fragments_to_read) {
+            /* The SEQUENCE OF is not fragmented so we know how much memory
+             * we're going to need. Otherwise, using the t_pool() would be
+             * inefficient because of the very limited realloc mechanism of
+             * the mem stack pool. */
+            t_qv_init(&buf, 0);
+        }
+        RETHROW(t_aper_decode_seq_of_fields(bs, repeated_field, len_ctx.len,
+                                            copy, &buf));
+    } while (len_ctx.more_fragments_to_read);
+
+
     e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %u)",
             repeated_field->oc_t_name, repeated_field->name, len_ctx.len);
-
-    if (!len_ctx.more_fragments_to_read) {
-        /* The SEQUENCE OF is not fragmented so we know how much memory we're
-         * going to need. Otherwise, using the t_pool() would be inefficient
-         * because of the very limited realloc mechanism of the mem stack
-         * pool. */
-        t_qv_init(&buf, 0);
-    }
-
-    do {
-        if (len_ctx.more_fragments_to_read) {
-            RETHROW(aper_decode_fragment_len(bs, &len_ctx));
-        }
-        RETHROW(t_aper_decode_seq_of_fragment(bs, repeated_field, len_ctx.len,
-                                              copy, &buf));
-    } while (len_ctx.more_fragments_to_read);
 
     array = GET_PTR(st, repeated_field, asn1_void_vector_t);
     array->len = len_ctx.cumulated_len ?: len_ctx.len;
