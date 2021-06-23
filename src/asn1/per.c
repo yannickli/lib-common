@@ -302,6 +302,13 @@ void aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max,
             aper_write_u16_m(bb, d, u16_blen(d_max), d_max);
             return;
         }
+
+        /* FIXME It doesn't look like this case is properly encoded
+         * ("indefinite length case" cf. [1] ITU-T X.691 - §11.5.7)
+         * It looks like we should encode it as a non-negative-binary-integer
+         * in a bit-field (cf. [1] §11.5.7.4), for which the encoding is
+         * described in [1] §11.3.
+         */
     }
 
     aper_write_ulen(bb, l, need_fragmentation);
