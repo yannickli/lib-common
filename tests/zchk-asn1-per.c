@@ -279,6 +279,17 @@ static ASN1_SEQUENCE_DESC_BEGIN(z_octet_string);
 ASN1_SEQUENCE_DESC_END(z_octet_string);
 
 /* }}} */
+/* {{{ Bit string. */
+
+typedef struct {
+    asn1_bit_string_t bs;
+} z_bit_string_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_bit_string);
+    asn1_reg_string(z_bit_string, bs, 0);
+ASN1_SEQUENCE_DESC_END(z_bit_string);
+
+/* }}} */
 /* {{{ Open type. */
 
 typedef struct {
@@ -915,6 +926,10 @@ Z_GROUP_EXPORT(asn1_aper) {
 
         Z_HELPER_RUN(z_test_aper_bstring(&extended2, "00", 0,
                                          ".00000000.10000000.00"));
+        Z_HELPER_RUN(z_test_aper_bstring(&extended2,
+                                         "010101010101010101", 0,
+                                         ".00001000.10000000"
+                                         ".01010101.01010101.01"));
 
         /* }}} */
         /* {{{ BIT STRING (SIZE(2, ...)) */
@@ -1249,6 +1264,23 @@ Z_GROUP_EXPORT(asn1_aper) {
 
         sb_wipe(&str);
         sb_wipe(&buf);
+    } Z_TEST_END;
+    /* }}} */
+    /* {{{ fragmented_bit_string */
+    Z_TEST(fragmented_bit_string, "") {
+        t_scope;
+        z_bit_string_t bs_before;
+        bb_t bb __attribute__((cleanup(bb_wipe))) = *bb_init(&bb);
+        SB_8k(buf);
+
+        for (int i = 0; i < 20000; i++) {
+            bb_be_add_bit(&bb, i & 1);
+        }
+        p_clear(&bs_before, 1);
+        bs_before.bs.data = bb.bytes;
+        bs_before.bs.bit_len = bb.len;
+        Z_ASSERT_NEG(aper_encode(&buf, z_bit_string, &bs_before),
+                     "unexpected success");
     } Z_TEST_END;
     /* }}} */
     /* {{{ fragmented_open_type */
