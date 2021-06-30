@@ -16,11 +16,10 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include <lib-common/asn1-per.h>
+#include <lib-common/asn1/per-priv.h>
 
 #include <lib-common/bit-buf.h>
 #include <lib-common/bit-stream.h>
-#include <lib-common/z.h>
 
 /* XXX Tracing policy:
  *     5: Low level writer/reader
@@ -151,8 +150,7 @@ static bool is_bstring_aligned(const asn1_cnt_info_t *constraints,
 /* Helpers {{{ */
 
 /* Fully constrained integer - d_max < 65536 */
-static ALWAYS_INLINE void
-aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
+void aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max)
 {
     bb_push_mark(bb);
 
@@ -274,7 +272,7 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
  *         - Enumeration extensions
  *         - ???
  */
-static void aper_write_nsnnwn(bb_t *bb, size_t n)
+void aper_write_nsnnwn(bb_t *bb, size_t n)
 {
     if (n <= 63) {
         bb_be_add_bits(bb, n, 1 + 6);
@@ -285,9 +283,8 @@ static void aper_write_nsnnwn(bb_t *bb, size_t n)
     aper_write_number(bb, n, NULL);
 }
 
-static void
-aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max,
-               bool *nullable need_fragmentation)
+void aper_write_len(bb_t *bb, size_t l, size_t l_min, size_t l_max,
+                    bool *nullable need_fragmentation)
 {
     /* If set, it is caller's responsibility to pass a boolean initialized
      * with the value 'false'.
@@ -478,9 +475,8 @@ aper_check_int_ext_constraints(int64_t n, const asn1_int_info_t *info,
                              info->has_ext_max, info->ext_max, is_signed);
 }
 
-static int
-aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
-                   bool is_signed)
+int aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
+                       bool is_signed)
 {
     if (aper_check_int_root_constraints(n, info, is_signed) < 0) {
         if (info->extended) {
@@ -515,8 +511,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info,
     return 0;
 }
 
-static int
-aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
+int aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 {
     bool extended_val = false;
     int pos = asn1_enum_find_val(e, val, &extended_val);
@@ -550,8 +545,7 @@ aper_encode_enum(bb_t *bb, int32_t val, const asn1_enum_info_t *e)
 /* }}} */
 /* String types {{{ */
 
-static int
-aper_encode_octet_string(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
+int aper_encode_octet_string(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
 {
     aper_len_encoding_ctx_t ctx;
     pstream_t ps;
@@ -582,9 +576,8 @@ aper_encode_octet_string(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
     return 0;
 }
 
-static int
-aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
-                    const asn1_cnt_info_t *info)
+int aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
+                        const asn1_cnt_info_t *info)
 {
     size_t len = bs_len(bs);
     aper_len_encoding_ctx_t ctx;
@@ -1031,8 +1024,8 @@ void aper_set_decode_log_level(int level)
 
 /* Helpers {{{ */
 
-static ALWAYS_INLINE int
-aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t d_max, uint16_t *u16)
+int aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t d_max,
+                    uint16_t *u16)
 {
     uint64_t res;
     assert (blen); /* u16 is given by constraints */
@@ -1227,7 +1220,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
     return 0;
 }
 
-static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
+int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
 {
     bool is_short;
     uint64_t u64;
@@ -1260,9 +1253,8 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
     return 0;
 }
 
-static int
-aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l,
-              bool *nullable is_fragmented)
+int aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l,
+                  bool *nullable is_fragmented)
 {
     size_t d_max = l_max - l_min;
 
@@ -1479,10 +1471,9 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info,
     return 0;
 }
 
-static int
-aper_decode_number(bit_stream_t *nonnull bs,
-                   const asn1_int_info_t *nonnull info, bool is_signed,
-                   int64_t *nonnull n)
+int aper_decode_number(bit_stream_t *nonnull bs,
+                       const asn1_int_info_t *nonnull info, bool is_signed,
+                       int64_t *nonnull n)
 {
     int64_t res = 0;
 
@@ -1551,8 +1542,8 @@ aper_decode_number(bit_stream_t *nonnull bs,
     return 0;
 }
 
-static int
-aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, int32_t *val)
+int aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e,
+                     int32_t *val)
 {
     int64_t pos;
 
@@ -1667,9 +1658,8 @@ t_aper_decode_fragmented_ostring(bit_stream_t *bs,
     return 0;
 }
 
-static int
-t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                      bool copy, lstr_t *os)
+int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                          bool copy, lstr_t *os)
 {
     aper_len_decoding_ctx_t len_ctx;
 
@@ -1717,9 +1707,8 @@ t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
     return 0;
 }
 
-static int
-t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                      bool copy, bit_stream_t *str)
+int t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                          bool copy, bit_stream_t *str)
 {
     aper_len_decoding_ctx_t len_ctx;
 
@@ -2225,668 +2214,5 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 /* }}} */
 
 #undef e_info
-
-/* }}} */
-/* Check {{{ */
-
-static int z_test_aper_enum(const asn1_enum_info_t *e, int32_t val,
-                            const char *exp_encoding)
-{
-    BB_1k(bb);
-    bit_stream_t bs;
-    int32_t res;
-
-    Z_ASSERT_N(aper_encode_enum(&bb, val, e), "cannot encode");
-    bs = bs_init_bb(&bb);
-    Z_ASSERT_N(aper_decode_enum(&bs, e, &res), "cannot decode");
-    Z_ASSERT_EQ(res, val, "decoded value differs");
-    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bb(&bb, NULL),
-                      "unexpected encoding");
-
-    bb_wipe(&bb);
-    Z_HELPER_END;
-}
-
-static int z_test_aper_number(const asn1_int_info_t *nonnull info,
-                              int64_t val, bool is_signed,
-                              const char *nonnull exp_encoding)
-{
-    t_scope;
-    BB_1k(bb);
-    bit_stream_t bs;
-    int64_t i64;
-
-    aper_encode_number(&bb, val, info, is_signed);
-    bs = bs_init_bb(&bb);
-    Z_ASSERT_STREQUAL(t_print_be_bb(&bb, NULL), exp_encoding,
-                      "unexpected encoding");
-    Z_ASSERT_N(aper_decode_number(&bs, info, is_signed, &i64),
-               "cannot decode `%s`", exp_encoding);
-    Z_ASSERT_EQ(i64, val, "decoded value differs");
-
-    bb_wipe(&bb);
-    Z_HELPER_END;
-}
-
-static int z_test_aper_len(size_t l, size_t l_min, size_t l_max, int skip,
-                           const char *exp_encoding)
-{
-    t_scope;
-    BB_1k(bb);
-    bit_stream_t bs;
-    size_t len;
-
-    bb_add0s(&bb, skip);
-
-    aper_write_len(&bb, l, l_min, l_max, NULL);
-    bs = bs_init_bb(&bb);
-    Z_ASSERT_N(bs_skip(&bs, skip));
-    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bs(bs, NULL));
-    Z_ASSERT_N(aper_read_len(&bs, l_min, l_max, &len, NULL));
-    Z_ASSERT_EQ(len, l);
-    bb_wipe(&bb);
-
-    Z_HELPER_END;
-}
-
-static int z_test_aper_nsnnwn(size_t n, const char *exp_encoding)
-{
-    t_scope;
-    BB_1k(bb);
-    bit_stream_t bs;
-    size_t nsnnwn;
-
-    bb_reset(&bb);
-    aper_write_nsnnwn(&bb, n);
-    bs = bs_init_bb(&bb);
-    Z_ASSERT_STREQUAL(exp_encoding, t_print_be_bs(bs, NULL));
-    Z_ASSERT_N(aper_read_nsnnwn(&bs, &nsnnwn));
-    Z_ASSERT_EQ(nsnnwn, n);
-    bb_wipe(&bb);
-
-    Z_HELPER_END;
-}
-
-static void z_asn1_int_info_set_opt_min(asn1_int_info_t *info, opt_i64_t i)
-{
-    if (OPT_ISSET(i)) {
-        asn1_int_info_set_min(info, OPT_VAL(i));
-    }
-}
-static void z_asn1_int_info_set_opt_max(asn1_int_info_t *info, opt_i64_t i)
-{
-    if (OPT_ISSET(i)) {
-        asn1_int_info_set_max(info, OPT_VAL(i));
-    }
-}
-
-static int z_assert_bs_be_equal(bit_stream_t bs1, bit_stream_t bs2)
-{
-    int bit = 0;
-
-    Z_ASSERT_EQ(bs_len(&bs1), bs_len(&bs2));
-    while (!bs_done(&bs1)) {
-        Z_ASSERT_EQ(__bs_be_get_bit(&bs1), __bs_be_get_bit(&bs2),
-                    "bit strings differ at bit [%d]", bit);
-        bit++;
-    }
-
-    Z_HELPER_END;
-}
-
-static int
-z_test_aper_bstring_copy(const asn1_cnt_info_t *info, const char *bit_string,
-                         int skip, bool copy, const char *exp_bits)
-{
-    t_scope;
-    BB_1k(bb);
-    BB_1k(src_bb);
-    bit_stream_t src;
-    bit_stream_t dst;
-    bit_stream_t bs;
-
-    bb_reset(&src_bb);
-    for (const char *s = bit_string; *s; s++) {
-        if (*s == '1' || *s == '0') {
-            bb_be_add_bit(&src_bb, *s == '1');
-        } else {
-            Z_ASSERT_EQ(*s, '.', "unauthorized character");
-        }
-    }
-    src = bs_init_bb(&src_bb);
-    bb_add0s(&bb, skip);
-    Z_ASSERT_N(aper_encode_bstring(&bb, &src, info));
-    bs = bs_init_bb(&bb);
-    Z_ASSERT_N(bs_skip(&bs, skip));
-    Z_ASSERT_STREQUAL(exp_bits, t_print_be_bs(bs, NULL),
-                      "unexpected encoding");
-    Z_ASSERT_N(t_aper_decode_bstring(&bs, info, copy, &dst),
-               "decoding error");
-    Z_ASSERT_EQ(bs_len(&dst), bs_len(&src),
-                "encoding length differs from expectations");
-    Z_HELPER_RUN(z_assert_bs_be_equal(dst, src),
-                 "bit string changed after encoding+decoding ('%s' -> '%s')",
-                 t_print_be_bs(dst, NULL), t_print_be_bs(src, NULL));
-
-    bb_wipe(&bb);
-    bb_wipe(&src_bb);
-    Z_HELPER_END;
-}
-
-static int z_test_aper_bstring(const asn1_cnt_info_t *info,
-                               const char *bit_string, int skip,
-                               const char *exp_encoding)
-{
-    Z_HELPER_RUN(z_test_aper_bstring_copy(info, bit_string, skip, true,
-                                          exp_encoding), "copy=true");
-    Z_HELPER_RUN(z_test_aper_bstring_copy(info, bit_string, skip, false,
-                                          exp_encoding), "copy=false");
-    Z_HELPER_END;
-}
-
-Z_GROUP_EXPORT(asn1_aper_low_level) {
-    Z_TEST(u16, "aligned per: aper_write_u16_m/aper_read_u16_m") {
-        t_scope;
-        BB_1k(bb);
-
-        struct {
-            size_t d, d_max, skip;
-            const char *s;
-        } t[] = {
-            {     0,     0,  0, "" },
-            {   0xe,    57,  0, ".001110" },
-            {  0x8d,   255,  0, ".10001101" },
-            {  0x8d,   254,  1, ".01000110.1" },
-            {  0x8d,   255,  1, ".00000000.10001101" },
-            { 0xabd, 33000,  0, ".00001010.10111101" },
-        };
-
-        for (int i = 0; i < countof(t); i++) {
-            bit_stream_t bs;
-            size_t len;
-
-            bb_reset(&bb);
-            bb_add0s(&bb, t[i].skip);
-
-            len = u64_blen(t[i].d_max);
-            aper_write_u16_m(&bb, t[i].d, u64_blen(t[i].d_max), t[i].d_max);
-            bs = bs_init_bb(&bb);
-            if (len) {
-                uint16_t u16 = t[i].d - 1;
-
-                Z_ASSERT_N(bs_skip(&bs, t[i].skip));
-                Z_ASSERT_N(aper_read_u16_m(&bs, len, t[i].d_max, &u16),
-                           "[i:%d]", i);
-                Z_ASSERT_EQ(u16, t[i].d, "[i:%d] len=%zu", i, len);
-            }
-            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
-        }
-
-        bb_wipe(&bb);
-    } Z_TEST_END;
-
-    Z_TEST(len, "aligned per: aper_write_len/aper_read_len") {
-        Z_HELPER_RUN(z_test_aper_len(15, 15, 15, 0, ""));
-        Z_HELPER_RUN(z_test_aper_len(7, 3, 18, 0, ".0100"));
-        Z_HELPER_RUN(z_test_aper_len(15, 0, ASN1_MAX_LEN, 0, ".00001111"));
-        Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 0,
-                                     ".10011011.00110100"));
-        Z_HELPER_RUN(z_test_aper_len(32, 1, 160, 1, "0001111.1"));
-        Z_HELPER_RUN(z_test_aper_len(15, 0, ASN1_MAX_LEN, 3,
-                                     "00000.00001111"));
-        Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 5,
-                                     "000.10011011.00110100"));
-    } Z_TEST_END;
-
-    Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
-        Z_HELPER_RUN(z_test_aper_nsnnwn(0, ".0000000"));
-        Z_HELPER_RUN(z_test_aper_nsnnwn(0xe, ".0001110"));
-        Z_HELPER_RUN(z_test_aper_nsnnwn(96, ".10000000.00000001.01100000"));
-        Z_HELPER_RUN(z_test_aper_nsnnwn(128, ".10000000.00000001.10000000"));
-    } Z_TEST_END;
-
-    Z_TEST(number, "aligned per: aper_{encode,decode}_number") {
-        struct {
-            int64_t i;
-            opt_i64_t min;
-            opt_i64_t max;
-            bool is_signed;
-            bool extended;
-            const char *s;
-        } tests[] = {
-            { 1234,  OPT_NONE, OPT_NONE, true, false,
-              ".00000010.00000100.11010010" },
-            { -1234, OPT_NONE, OPT_NONE, true, false,
-              ".00000010.11111011.00101110" },
-            { 0,     OPT_NONE, OPT_NONE, true, false, ".00000001.00000000" },
-            { 0,     OPT(-5), OPT_NONE, true, false, ".00000001.00000101" },
-            { -3,    OPT(-5), OPT(-1), true, false, ".010" },
-            { -1,    OPT(-5), OPT(-1), true, false, ".100" },
-            { -1,    OPT_NONE, OPT_NONE, true, false, ".00000001.11111111" },
-            { 45,    OPT(0), OPT(100000), true, false, ".00000000.00101101" },
-            { 128,   OPT(0), OPT(100000), true, false, ".00000000.10000000" },
-            { 256,   OPT(0), OPT(100000), true, false,
-                ".01000000.00000001.00000000" },
-            { 666,   OPT(666), OPT(666), true, false, "" },
-            { 1ULL + INT64_MAX, OPT(INT64_MAX), OPT(UINT64_MAX), false, false,
-              ".00000000.00000001" },
-            { UINT64_MAX, OPT(0), OPT_NONE, false, false,
-              ".00001000.11111111.11111111.11111111.11111111.11111111"
-              ".11111111.11111111.11111111" },
-            { UINT64_MAX, OPT(INT64_MAX), OPT(UINT64_MAX), false, false,
-              ".11100000.10000000.00000000.00000000.00000000.00000000"
-              ".00000000.00000000.00000000" },
-            { INT64_MAX, OPT(INT64_MIN), OPT(INT64_MAX), true, false,
-              ".11100000.11111111.11111111.11111111.11111111.11111111"
-              ".11111111.11111111.11111111" },
-            { 5, OPT(0), OPT(7), true, true, ".0101" },
-            { 8, OPT(0), OPT(7), true, true, ".10000000.00000001.00001000" },
-            { UINT64_MAX, OPT_NONE, OPT_NONE, false, false,
-              ".00001001.00000000.11111111.11111111.11111111.11111111"
-              ".11111111.11111111.11111111.11111111" },
-        };
-
-        carray_for_each_ptr(t, tests) {
-            asn1_int_info_t info;
-
-            asn1_int_info_init(&info);
-            z_asn1_int_info_set_opt_min(&info, t->min);
-            z_asn1_int_info_set_opt_max(&info, t->max);
-            if (t->extended) {
-                info.extended = true;
-            }
-            asn1_int_info_update(&info, t->is_signed);
-
-            Z_HELPER_RUN(z_test_aper_number(&info, t->i, t->is_signed, t->s),
-                         "test (%ld/%zd) failed", t - tests + 1,
-                         countof(tests));
-        }
-    } Z_TEST_END;
-
-    Z_TEST(64bits_number_overflows, "aper: 64bits overflows on numbers") {
-        BB_1k(bb);
-        SB_1k(err);
-        struct {
-            const char *title;
-            bool is_signed;
-            opt_i64_t min;
-            opt_i64_t max;
-            const char *input;
-        } tests[] = {
-            { "unsigned: -1", false, OPT_NONE, OPT_NONE,
-              ".00000001.11111111" },
-
-            { "unsigned: UINT64_MAX + 1", false, OPT_NONE, OPT_NONE,
-              ".00001001.00000001.00000000.00000000.00000000.00000000"
-              ".00000000.00000000.00000000.00000000" },
-
-            { "signed: INT64_MIN - 1", true, OPT_NONE, OPT_NONE,
-              ".00001001.10000000.00000000.00000000.00000000.00000000"
-              ".00000000.00000000.00000000.00000000" },
-
-            { "signed: INT64_MAX + 1", true, OPT_NONE, OPT_NONE,
-              ".00001001.00000000.10000000.00000000.00000000.00000000"
-              ".00000000.00000000.00000000.00000000" },
-
-            { "signed semi-constrained: INT64_MAX + 1", true,
-              OPT(INT64_MAX), OPT_NONE,
-              ".00000001.00000001" },
-
-            { "signed semi-constrained: INT64_MAX + 1 (delta overflow)", true,
-              OPT(INT64_MIN), OPT_NONE,
-              ".00001001.00000001.00000000.00000000.00000000.00000000"
-              ".00000000.00000000.00000000.00000000" },
-
-            { "unsigned semi-constrained: UINT64_MAX + 1 (delta overflow)",
-              false, OPT(UINT64_MAX), OPT_NONE,
-              ".00000001.00000001" },
-
-            { "unsigned constrained: UINT64_MAX + 1", false,
-              OPT(1), OPT(UINT64_MAX),
-              ".11100000.11111111.11111111.11111111.11111111"
-              ".11111111.11111111.11111111.11111111" },
-        };
-
-        carray_for_each_ptr(t, tests) {
-            bit_stream_t bs;
-            int64_t v;
-            asn1_int_info_t info;
-
-            asn1_int_info_init(&info);
-            z_asn1_int_info_set_opt_min(&info, t->min);
-            z_asn1_int_info_set_opt_max(&info, t->max);
-            asn1_int_info_update(&info, t->is_signed);
-
-            Z_ASSERT_N(z_set_be_bb(&bb, t->input, &err),
-                       "invalid input `%s`: %*pM", t->input,
-                       SB_FMT_ARG(&err));
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_NEG(aper_decode_number(&bs, &info, t->is_signed, &v),
-                         "test `%s`: decoding was supposed to fail "
-                         "(v=%juULL/%jdLL)", t->title, v, v);
-        }
-
-        bb_wipe(&bb);
-    } Z_TEST_END;
-
-    Z_TEST(ostring, "aligned per: aper_{encode,decode}_ostring") {
-        t_scope;
-        BB_1k(bb);
-
-        asn1_cnt_info_t uc = { /* Unconstrained */
-            .max     = SIZE_MAX,
-        };
-
-        asn1_cnt_info_t fc1 = { /* Fully constrained */
-            .min     = 3,
-            .max     = 3,
-        };
-
-        asn1_cnt_info_t fc2 = { /* Fully constrained */
-            .max     = 23,
-        };
-
-        asn1_cnt_info_t ext1 = { /* Extended */
-            .min      = 1,
-            .max      = 2,
-            .extended = true,
-            .ext_min  = 3,
-            .ext_max  = 3,
-        };
-
-        asn1_cnt_info_t ext2 = { /* Extended */
-            .min      = 2,
-            .max      = 2,
-            .extended = true,
-            .ext_max  = SIZE_MAX,
-        };
-
-        struct {
-            const char      *os;
-            asn1_cnt_info_t *info;
-            bool             copy;
-            const char      *s;
-        } t[] = {
-            { "aaa", &uc,   true,  ".00000011.01100001.01100001.01100001" },
-            { "aaa", NULL,  true,  ".00000011.01100001.01100001.01100001" },
-            { "aaa", NULL,  false, ".00000011.01100001.01100001.01100001" },
-            { "aaa", &fc1,  false, ".01100001.01100001.01100001" },
-            { "aaa", &fc2,  false, ".00011000.01100001.01100001.01100001" },
-            { "aa",  &ext1, true,  ".01000000.01100001.01100001" },
-            { "aaa", &ext1, true,  ".10000000.00000011.01100001.01100001.01100001" },
-            { "aa",  &ext2, true,  ".00110000.10110000.1" },
-            { "a",   &ext2, true,  ".10000000.00000001.01100001" },
-        };
-
-        for (int i = 0; i < countof(t); i++) {
-            lstr_t src = LSTR(t[i].os);
-            lstr_t dst;
-            bit_stream_t bs;
-
-            bb_reset(&bb);
-            aper_encode_octet_string(&bb, src, t[i].info);
-            if (src.len < 4) {
-                Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL),"[i:%d]", i);
-            }
-            bs = bs_init_bb(&bb);
-            Z_ASSERT_N(t_aper_decode_ostring(&bs, t[i].info, t[i].copy, &dst),
-                       "[i:%d]", i);
-            Z_ASSERT_LSTREQUAL(LSTR_INIT_V((void *)dst.data, dst.len),
-                               LSTR_INIT_V((void *)src.data, src.len),
-                               "[i:%d]", i);
-        }
-
-        bb_wipe(&bb);
-    } Z_TEST_END;
-
-    Z_TEST(bstring, "aligned per: aper_{encode,decode}_bstring") {
-        asn1_cnt_info_t unconstrained;
-        asn1_cnt_info_t fully_constrained3;
-        asn1_cnt_info_t fully_constrained15;
-        asn1_cnt_info_t fully_constrained16;
-        asn1_cnt_info_t fully_constrained17;
-        asn1_cnt_info_t partially_constrained1;
-        asn1_cnt_info_t partially_constrained2;
-        asn1_cnt_info_t extended1;
-        asn1_cnt_info_t extended2;
-        asn1_cnt_info_t fully_constrained_extended;
-
-        /* {{{ BIT STRING */
-
-        asn1_cnt_info_init(&unconstrained);
-
-        Z_HELPER_RUN(z_test_aper_bstring(&unconstrained, "01010101",
-                                         0, ".00001000.01010101"));
-
-        asn1_cnt_info_init(&fully_constrained3);
-        fully_constrained3.min = 3;
-        fully_constrained3.max = 3;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained3, "101", 0,
-                                         ".101"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(15)) */
-
-        asn1_cnt_info_init(&fully_constrained15);
-        fully_constrained15.min = 15;
-        fully_constrained15.max = 15;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained15,
-                                         ".10110011.1000111", 0,
-                                         ".10110011.1000111"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained15,
-                                         ".10110011.1000111", 1,
-                                         "1011001.11000111"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained15,
-                                         ".10110011.1000111", 2,
-                                         "101100.11100011.1"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(16)) */
-
-        asn1_cnt_info_init(&fully_constrained16);
-        fully_constrained16.min = 16;
-        fully_constrained16.max = 16;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained16,
-                                         ".10110011.10001110", 0,
-                                         ".10110011.10001110"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained16,
-                                         ".10110011.10001110", 1,
-                                         "1011001.11000111.0"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained16,
-                                         ".10110011.10001110", 2,
-                                         "101100.11100011.10"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(17)) */
-
-        asn1_cnt_info_init(&fully_constrained17);
-        fully_constrained17.min = 17;
-        fully_constrained17.max = 17;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
-                                         ".10110011.10001110.0", 0,
-                                         ".10110011.10001110.0"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
-                                         ".10110011.10001110.0", 1,
-                                         "0000000.10110011.10001110.0"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained17,
-                                         ".10110011.10001110.0", 2,
-                                         "000000.10110011.10001110.0"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(0..23)) */
-
-        asn1_cnt_info_init(&partially_constrained1);
-        partially_constrained1.max = 23;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained1, "101",
-                                         0, ".00011000.101"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(0..1)) */
-
-        asn1_cnt_info_init(&partially_constrained2);
-        partially_constrained2.max = 1;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "1",
-                                         0, ".10000000.1"));
-        Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "1",
-                                         1, "1000000.1"));
-        Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "",
-                                         0, ".0"));
-        Z_HELPER_RUN(z_test_aper_bstring(&partially_constrained2, "",
-                                         1, "0"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(1..2, ..., 3)) */
-
-        asn1_cnt_info_init(&extended1);
-        extended1.min = 1;
-        extended1.max = 2;
-        extended1.extended = true;
-        extended1.ext_min = 3;
-        extended1.ext_max = 3;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&extended1, "10", 0,
-                                         ".01000000.10"));
-        Z_HELPER_RUN(z_test_aper_bstring(&extended1, "011", 0,
-                                         ".10000000.00000011.011"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(1..160, ..., 1..65536)) */
-
-        asn1_cnt_info_init(&extended2);
-        extended2.min = 1;
-        extended2.max = 160;
-        extended2.extended = true;
-        extended2.ext_min = 1;
-        extended2.ext_max = 65536;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&extended2, "00", 0,
-                                         ".00000000.10000000.00"));
-
-        /* }}} */
-        /* {{{ BIT STRING (SIZE(2, ...)) */
-
-        asn1_cnt_info_init(&fully_constrained_extended);
-        fully_constrained_extended.min = 2;
-        fully_constrained_extended.max = 2;
-        fully_constrained_extended.extended = true;
-
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "11", 0, ".011"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "011", 0, ".10000000.00000011.011"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "", 0, ".10000000.00000000"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "", 5, "100.00000000"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "1", 0, ".10000000.00000001.1"));
-        Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
-                                         "1", 5, "100.00000001.1"));
-
-        /* }}} */
-    } Z_TEST_END;
-
-    Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
-        t_scope;
-
-        asn1_enum_info_t *e;
-        asn1_enum_info_t e1;
-        asn1_enum_info_t e2;
-        asn1_enum_info_t e3;
-        asn1_enum_info_t e4;
-        asn1_enum_info_t e5;
-
-        struct {
-            int32_t          val;
-            const asn1_enum_info_t *e;
-            const char       *s;
-        } tests[] = {
-            { 5,   &e1, ".0" },
-            { 18,  &e1, ".1" },
-            { 48,  &e2, ".00110000" },
-            { 104, &e2, ".10000000" },
-            { 192, &e2, ".10000001" },
-            { 20,  &e3, ".010100" },
-            { -42, &e4, ".0" },
-            { 42,  &e4, ".1" },
-            { 1024, &e5, ".00000011.11100010" },
-        };
-
-        e = asn1_enum_info_init(&e1);
-        asn1_enum_append(e, 5);
-        asn1_enum_append(e, 18);
-        asn1_enum_info_done(e);
-
-        e = asn1_enum_info_init(&e2);
-        for (int32_t i = 0; i < 100; i++) {
-            asn1_enum_append(e, i);
-        }
-        e->extended = true;
-        asn1_enum_append(e, 104);
-        asn1_enum_append(e, 192);
-        asn1_enum_info_done(e);
-
-        e = asn1_enum_info_init(&e3);
-        for (int32_t i = 0; i < 21; i++) {
-            asn1_enum_append(e, i);
-        }
-        e->extended = true;
-        asn1_enum_info_done(e);
-
-        e = asn1_enum_info_init(&e4);
-        asn1_enum_append(e, -42);
-        asn1_enum_append(e, 42);
-        asn1_enum_info_done(e);
-
-        e = asn1_enum_info_init(&e5);
-        for (int32_t i = 0; i < 1000; i++) {
-            asn1_enum_append(e, i + 30);
-        }
-        asn1_enum_info_done(e);
-
-        carray_for_each_ptr(t, tests) {
-            Z_HELPER_RUN(z_test_aper_enum(t->e, t->val, t->s),
-                         "(test %ld/%ld) check fail for value `%d` "
-                         "(expected encoding `%s`)", t - tests + 1,
-                         countof(tests), t->val, t->s);
-        }
-
-        asn1_enum_info_wipe(&e1);
-        asn1_enum_info_wipe(&e2);
-        asn1_enum_info_wipe(&e3);
-        asn1_enum_info_wipe(&e4);
-        asn1_enum_info_wipe(&e5);
-    } Z_TEST_END;
-
-    Z_TEST(enum_ext_defval, "aligned per: extended enum default value") {
-        asn1_enum_info_t e;
-        BB_1k(bb);
-        bit_stream_t bs;
-        int32_t res;
-
-        asn1_enum_info_init(&e);
-        e.extended = true;
-        asn1_enum_append(&e, 666);
-        Z_ASSERT_N(aper_encode_enum(&bb, 666, &e));
-
-        asn1_enum_info_wipe(&e);
-        asn1_enum_info_init(&e);
-        e.extended = true;
-        asn1_enum_info_reg_ext_defval(&e, 42);
-
-        bs = bs_init_bb(&bb);
-        Z_ASSERT_N(aper_decode_enum(&bs, &e, &res));
-        Z_ASSERT_EQ(res, 42);
-
-        asn1_enum_info_wipe(&e);
-        bb_wipe(&bb);
-    } Z_TEST_END;
-} Z_GROUP_END
 
 /* }}} */
