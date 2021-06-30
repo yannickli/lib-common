@@ -1270,8 +1270,12 @@ Z_GROUP_EXPORT(asn1_aper) {
     Z_TEST(fragmented_bit_string, "") {
         t_scope;
         z_bit_string_t bs_before;
+        z_bit_string_t bs_after;
         bb_t bb __attribute__((cleanup(bb_wipe))) = *bb_init(&bb);
         SB_8k(buf);
+        pstream_t ps;
+        bit_stream_t bs;
+        uint64_t uv;
 
         for (int i = 0; i < 20000; i++) {
             bb_be_add_bit(&bb, i & 1);
@@ -1279,7 +1283,32 @@ Z_GROUP_EXPORT(asn1_aper) {
         p_clear(&bs_before, 1);
         bs_before.bs.data = bb.bytes;
         bs_before.bs.bit_len = bb.len;
-        Z_ASSERT_NEG(aper_encode(&buf, z_bit_string, &bs_before),
+        Z_ASSERT_N(aper_encode(&buf, z_bit_string, &bs_before),
+                   "unexpected error");
+
+        /* Check the fragmented encoding. */
+        ps = ps_initsb(&buf);
+        bs = bs_init_ps(&ps, 0);
+
+        /* First fragment: 16k. */
+        Z_ASSERT_N(bs_align(&bs));
+        Z_ASSERT_N(bs_be_get_bits(&bs, 8, &uv));
+        Z_ASSERT_EQ(uv, (uint64_t)0xc1);
+        for (int i = 0; i < (16 << 10); i++) {
+            Z_ASSERT_EQ(bs_be_get_bit(&bs), i & 1);
+        }
+
+        /* Last fragment: 20000 - 16k = 3616. */
+        Z_ASSERT(bs_is_aligned(&bs));
+        Z_ASSERT_N(bs_be_get_bits(&bs, 16, &uv));
+        Z_ASSERT_EQ(uv, (uint64_t)(3616 | 0x8000));
+        for (int i = 0; i < 3616; i++) {
+            Z_ASSERT_EQ(bs_be_get_bit(&bs), i & 1);
+        }
+        Z_ASSERT(bs_done(&bs));
+
+        /* Fragmented BIT STRING decoding is not supported yet. */
+        Z_ASSERT_NEG(t_aper_decode(&ps, z_bit_string, false, &bs_after),
                      "unexpected success");
     } Z_TEST_END;
     /* }}} */

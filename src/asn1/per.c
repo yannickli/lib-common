@@ -583,23 +583,28 @@ int aper_encode_octet_string(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
     return 0;
 }
 
-int aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
+int aper_encode_bstring(bb_t *bb, const bit_stream_t *bits,
                         const asn1_cnt_info_t *info)
 {
-    size_t len = bs_len(bs);
+    bit_stream_t bs = *bits;
+    size_t len = bs_len(&bs);
     aper_len_encoding_ctx_t ctx;
 
     if (aper_encode_len_extension_bit(bb, len, info, &ctx) < 0) {
         return e_error("bit string: length error");
     }
-    aper_encode_len(bb, &ctx);
-    if (ctx.use_fragmentation) {
-        return e_error("fragmentation isn't supported for bit strings");
-    }
-    if (is_bstring_aligned(info, len)) {
-        bb_align(bb);
-    }
-    bb_be_add_bs(bb, bs);
+    do {
+        bit_stream_t to_write;
+
+        aper_encode_len(bb, &ctx);
+        if (is_bstring_aligned(info, len)) {
+            bb_align(bb);
+        }
+        if (!expect(bs_get_bs(&bs, ctx.to_encode, &to_write) >= 0)) {
+            return e_error("bit string: unexpected length error");
+        }
+        bb_be_add_bs(bb, &to_write);
+    } while (!ctx.done);
 
     return 0;
 }
