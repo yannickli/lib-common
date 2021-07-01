@@ -1313,8 +1313,9 @@ typedef struct aper_len_decoding_ctx_t {
      * Used only for fragmented data. */
     uint64_t cumulated_len;
 
-    /* Last length read. Can be the full length or a fragment length. */
-    uint32_t len;
+    /* Number of items to read next.
+     * Can be the full length or a fragment length. */
+    uint32_t to_decode;
 
     bool extension_present;
 
@@ -1371,7 +1372,7 @@ aper_decode_fragment_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
     len = __bs_peek_bits(bs, 8);
     if ((len & 0xc0) == 0xc0) {
         /* Got a 16k, 32k, 48k or 64k block fragment. */
-        if (ctx->len != 0 && ctx->len != PER_FRAG_64K) {
+        if (ctx->to_decode != 0 && ctx->to_decode != PER_FRAG_64K) {
             /* Each block fragment except the last one should be a 64k block.
              * This fragment isn't the first (ctx->len != 0) and the previous
              * fragment wasn't a 64k block fragment, so the rule is broken. */
@@ -1406,11 +1407,11 @@ aper_decode_fragment_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
     /* Check the max length isn't exceeded before any further research. */
     RETHROW(aper_len_check_max(ctx, ctx->cumulated_len));
 
-    if (ctx->len < PER_FRAG_16K) {
+    if (ctx->to_decode < PER_FRAG_16K) {
         /* Reached last fragment. The minimum length can be checked now. */
         RETHROW(aper_len_check_min(ctx, ctx->cumulated_len));
     }
-    ctx->len = len;
+    ctx->to_decode = len;
 
     return 0;
 }
@@ -1490,8 +1491,8 @@ static int aper_decode_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
         ctx->more_fragments_to_read = true;
         RETHROW(aper_decode_fragment_len(bs, ctx));
     } else {
-        ctx->len = l;
-        RETHROW(aper_len_check_constraints(ctx, ctx->len));
+        ctx->to_decode = l;
+        RETHROW(aper_len_check_constraints(ctx, ctx->to_decode));
     }
 
     return 0;
@@ -1654,7 +1655,7 @@ int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
             return -1;
         }
         if (!buf.len && info && info->max <= 2 &&
-            info->min == info->max &&  len_ctx.len == info->max)
+            info->min == info->max &&  len_ctx.to_decode == info->max)
         {
             /* Special case: unaligned fixed-size octet string
              * (size 1 or 2). */
@@ -1662,12 +1663,15 @@ int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
             bs_align(bs);
         }
 
-        if (t_aper_get_unaligned_bytes(bs, len_ctx.len, copy, &data) < 0) {
+        if (t_aper_get_unaligned_bytes(bs, len_ctx.to_decode, copy,
+                                       &data) < 0)
+        {
             e_info("cannot read octet string: not enough bits");
             return -1;
         }
         if (buf.len) {
-            memcpy(qv_growlen(&buf, len_ctx.len), data.data, len_ctx.len);
+            memcpy(qv_growlen(&buf, len_ctx.to_decode),
+                   data.data, len_ctx.to_decode);
         } else {
             qv_init_static(&buf, data.data, data.len);
         }
@@ -1718,11 +1722,11 @@ int aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
             e_info("cannot decode bit string length");
             return -1;
         }
-        if (is_bstring_aligned(info, len_ctx.len) && bs_align(bs) < 0) {
+        if (is_bstring_aligned(info, len_ctx.to_decode) && bs_align(bs) < 0) {
             e_info("cannot read bit string: not enough bits for padding");
             return -1;
         }
-        if (bs_get_bs(bs, len_ctx.len, &bit_string_bs) < 0) {
+        if (bs_get_bs(bs, len_ctx.to_decode, &bit_string_bs) < 0) {
             e_info("cannot read bit string: not enough bits");
             return -1;
         }
@@ -2161,16 +2165,17 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
              * the mem stack pool. */
             t_qv_init(&buf, 0);
         }
-        RETHROW(t_aper_decode_seq_of_fields(bs, repeated_field, len_ctx.len,
-                                            copy, &buf));
+        RETHROW(t_aper_decode_seq_of_fields(bs, repeated_field,
+                                            len_ctx.to_decode, copy, &buf));
     } while (len_ctx.more_fragments_to_read);
 
 
     e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %u)",
-            repeated_field->oc_t_name, repeated_field->name, len_ctx.len);
+            repeated_field->oc_t_name, repeated_field->name,
+            len_ctx.to_decode);
 
     array = GET_PTR(st, repeated_field, asn1_void_vector_t);
-    array->len = len_ctx.cumulated_len ?: len_ctx.len;
+    array->len = len_ctx.cumulated_len ?: len_ctx.to_decode;
     if (buf.mp == t_pool()) {
         array->data = buf.tab;
         /* XXX qv_wipe() won't destroy anything. */
