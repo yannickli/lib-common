@@ -1706,31 +1706,29 @@ int aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                         bb_t *bit_string)
 {
     aper_len_decoding_ctx_t len_ctx;
-    bit_stream_t bit_string_bs;
 
     if (aper_decode_len_extension_bit(bs, info, &len_ctx) < 0) {
         e_info("cannot read extension bit");
         return -1;
     }
-    if (aper_decode_len(bs, &len_ctx) < 0) {
-        e_info("cannot decode bit string length");
-        return -1;
-    }
-    if (len_ctx.more_fragments_to_read) {
-        e_info("fragmentation is not supported for bit strings");
-        return -1;
-    }
+    do {
+        bit_stream_t bit_string_bs;
 
-    if (is_bstring_aligned(info, len_ctx.len) && bs_align(bs) < 0) {
-        e_info("cannot read bit string: not enough bits for padding");
-        return -1;
-    }
-    if (bs_get_bs(bs, len_ctx.len, &bit_string_bs) < 0) {
-        e_info("cannot read bit string: not enough bits");
-        return -1;
-    }
-    e_trace_be_bs(6, &bit_string_bs, "Decoded bit string");
-    bb_be_add_bs(bit_string, &bit_string_bs);
+        if (aper_decode_len(bs, &len_ctx) < 0) {
+            e_info("cannot decode bit string length");
+            return -1;
+        }
+        if (is_bstring_aligned(info, len_ctx.len) && bs_align(bs) < 0) {
+            e_info("cannot read bit string: not enough bits for padding");
+            return -1;
+        }
+        if (bs_get_bs(bs, len_ctx.len, &bit_string_bs) < 0) {
+            e_info("cannot read bit string: not enough bits");
+            return -1;
+        }
+        e_trace_be_bs(6, &bit_string_bs, "Decoded bit string");
+        bb_be_add_bs(bit_string, &bit_string_bs);
+    } while (len_ctx.more_fragments_to_read);
 
     return 0;
 }

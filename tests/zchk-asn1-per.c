@@ -1295,9 +1295,16 @@ Z_GROUP_EXPORT(asn1_aper) {
         }
         Z_ASSERT(bs_done(&bs));
 
-        /* Fragmented BIT STRING decoding is not supported yet. */
-        Z_ASSERT_NEG(t_aper_decode(&ps, z_bit_string, false, &bs_after),
-                     "unexpected success");
+        /* Decode the resulting BIT STRING. */
+        Z_ASSERT_N(t_aper_decode(&ps, z_bit_string, false, &bs_after),
+                   "unexpected failure");
+
+        Z_ASSERT_EQ(bs_after.bs.bit_len, bs_before.bs.bit_len);
+        for (int i = 0; i < bs_before.bs.bit_len; i++) {
+            Z_ASSERT_EQ(TST_BIT(bs_after.bs.data, i),
+                        TST_BIT(bs_before.bs.data, i),
+                        "bit [%d] differs", i);
+        }
     } Z_TEST_END;
     /* }}} */
     /* {{{ fragmented_open_type */
