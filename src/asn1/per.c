@@ -1310,7 +1310,7 @@ typedef struct aper_len_decoding_ctx_t {
     size_t max_len;
 
     /* Cumulated length of all fragments read.
-     * Used only for fragmented data. */
+     * Same as 'to_decode' when there is no fragmentation. */
     uint64_t cumulated_len;
 
     /* Number of items to read next.
@@ -1404,7 +1404,7 @@ aper_decode_fragment_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
 
     ctx->cumulated_len += len;
 
-    /* Check the max length isn't exceeded before any further research. */
+    /* Check the max length isn't exceeded before any further decoding. */
     RETHROW(aper_len_check_max(ctx, ctx->cumulated_len));
 
     if (ctx->to_decode < PER_FRAG_16K) {
@@ -1492,7 +1492,8 @@ static int aper_decode_len(bit_stream_t *bs, aper_len_decoding_ctx_t *ctx)
         RETHROW(aper_decode_fragment_len(bs, ctx));
     } else {
         ctx->to_decode = l;
-        RETHROW(aper_len_check_constraints(ctx, ctx->to_decode));
+        ctx->cumulated_len = ctx->to_decode;
+        RETHROW(aper_len_check_constraints(ctx, ctx->cumulated_len));
     }
 
     return 0;
@@ -1655,7 +1656,7 @@ int t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
             return -1;
         }
         if (!buf.len && info && info->max <= 2 &&
-            info->min == info->max &&  len_ctx.to_decode == info->max)
+            info->min == info->max && len_ctx.to_decode == info->max)
         {
             /* Special case: unaligned fixed-size octet string
              * (size 1 or 2). */
@@ -2158,6 +2159,11 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
 
     do {
         RETHROW(aper_decode_len(bs, &len_ctx));
+        e_trace(5, "decoded element count of SEQUENCE OF %s:%s "
+                "(n=%u,total=%ju)",
+                repeated_field->oc_t_name, repeated_field->name,
+                len_ctx.to_decode, len_ctx.cumulated_len);
+
         if (!buf.len && !len_ctx.more_fragments_to_read) {
             /* The SEQUENCE OF is not fragmented so we know how much memory
              * we're going to need. Otherwise, using the t_pool() would be
@@ -2170,12 +2176,9 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
     } while (len_ctx.more_fragments_to_read);
 
 
-    e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %u)",
-            repeated_field->oc_t_name, repeated_field->name,
-            len_ctx.to_decode);
 
     array = GET_PTR(st, repeated_field, asn1_void_vector_t);
-    array->len = len_ctx.cumulated_len ?: len_ctx.to_decode;
+    array->len = len_ctx.cumulated_len;
     if (buf.mp == t_pool()) {
         array->data = buf.tab;
         /* XXX qv_wipe() won't destroy anything. */
@@ -2183,7 +2186,7 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
         array->data = t_dup(buf.tab, buf.len);
 
         /* Supposedly only for fragmented SEQUENCE OF. */
-        assert(len_ctx.cumulated_len);
+        assert(len_ctx.cumulated_len != len_ctx.to_decode);
     }
 
     return 0;
