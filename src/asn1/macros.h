@@ -89,8 +89,8 @@
 
 #define _ASN1_DESC_END(desc) \
             if (desc->is_seq_of) {                                           \
-                assert (desc->vec.len == 1);                                 \
-                assert (desc->vec.tab[0].mode == ASN1_OBJ_MODE(SEQ_OF));     \
+                assert (desc->fields.len == 1);                              \
+                assert (desc->fields.tab[0].mode == ASN1_OBJ_MODE(SEQ_OF));  \
             }                                                                \
                                                                              \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
@@ -143,11 +143,11 @@
             assert (_desc->type == ASN1_CSTD_TYPE_CHOICE);                   \
             asn1_int_info_set_min(&_desc->choice_info, 0);                   \
             /* - 2 -> index + first choice */                                \
-            assert (_desc->vec.len >= 2);                                    \
+            assert (_desc->fields.len >= 2);                                 \
             asn1_int_info_set_max(&_desc->choice_info,                       \
                                   (_desc->is_extended ?                      \
                                    _desc->ext_pos :                          \
-                                   _desc->vec.len) - 2);                     \
+                                   _desc->fields.len) - 2);                  \
             asn1_int_info_update(&_desc->choice_info, false);                \
             asn1_build_choice_table((asn1_choice_desc_t *)_desc);            \
             qv_append(&asn1_descs_g.choice_descs, __choice_desc);            \
@@ -639,7 +639,7 @@
             .u = { .comp = ASN1_GET_DESC(pfx), },                            \
         };                                                                   \
         if (tmp.u.comp->type != ASN1_CSTD_TYPE_SEQUENCE) {                   \
-            e_panic("incorrect sub-type for "#st_pfx"_t:"#pfx":"#field      \
+            e_panic("incorrect sub-type for "#st_pfx"_t:"#pfx":"#field       \
                     ", expected SEQUENCE");                                  \
         }                                                                    \
         asn1_reg_field(ASN1_ST_DESC_VAR(st_pfx), &tmp);                      \

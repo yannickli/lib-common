@@ -740,8 +740,8 @@ fill_ext_bitmap(const void *st, const asn1_desc_t *desc, bb_t *bb)
 {
     uint16_t fields_cnt = 0;
 
-    for (int i = desc->ext_pos; i < desc->vec.len; i++) {
-        const asn1_field_t *field = &desc->vec.tab[i];
+    for (int i = desc->ext_pos; i < desc->fields.len; i++) {
+        const asn1_field_t *field = &desc->fields.tab[i];
         bool field_present;
 
         field_bitmap_add_bit(bb, st, field, &field_present);
@@ -757,7 +757,7 @@ fill_opt_bitmap(const void *st, const asn1_desc_t *desc, bb_t *bb)
     uint16_t fields_cnt = 0;
 
     tab_for_each_entry(field_pos, &desc->opt_fields) {
-        const asn1_field_t *field = &desc->vec.tab[field_pos];
+        const asn1_field_t *field = &desc->fields.tab[field_pos];
         bool field_present;
 
         field_bitmap_add_bit(bb, st, field, &field_present);
@@ -770,7 +770,7 @@ fill_opt_bitmap(const void *st, const asn1_desc_t *desc, bb_t *bb)
 static int
 aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
 {
-    BB(ext_bb, desc->vec.len - desc->ext_pos);
+    BB(ext_bb, desc->fields.len - desc->ext_pos);
     const void *v;
     bool extended_fields_reached = false;
 
@@ -802,8 +802,8 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
     e_trace_be_bb_tail(5, bb, "SEQUENCE OPTIONAL fields bit-map");
     bb_pop_mark(bb);
 
-    for (int i = 0; i < desc->vec.len; i++) {
-        const asn1_field_t *field = &desc->vec.tab[i];
+    for (int i = 0; i < desc->fields.len; i++) {
+        const asn1_field_t *field = &desc->fields.tab[i];
 
         assert (field->mode != ASN1_OBJ_MODE(SEQ_OF));
 
@@ -860,16 +860,16 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     const void *v;
     bool extension_present = false;
 
-    assert (desc->vec.len > 1);
+    assert (desc->fields.len > 1);
 
-    enum_field = &desc->vec.tab[0];
+    enum_field = &desc->fields.tab[0];
 
     index = __asn1_get_int(st, enum_field);
     if (index < 1) {
         return e_error("wrong choice initialization");
     }
     e_trace(5, "index = %d", index);
-    choice_field = &desc->vec.tab[index];
+    choice_field = &desc->fields.tab[index];
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
     /* Put extension bit */
@@ -935,8 +935,8 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
     aper_len_encoding_ctx_t ctx;
     int offset;
 
-    assert (desc->vec.len == 1);
-    repeated_field = &desc->vec.tab[0];
+    assert (desc->fields.len == 1);
+    repeated_field = &desc->fields.tab[0];
 
     assert (repeated_field->mode == ASN1_OBJ_MODE(SEQ_OF));
 
@@ -1923,8 +1923,8 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
 
     opt_bitmap = __bs_get_bs(bs, desc->opt_fields.len);
 
-    for (int i = 0; i < desc->vec.len; i++) {
-        const asn1_field_t *field = &desc->vec.tab[i];
+    for (int i = 0; i < desc->fields.len; i++) {
+        const asn1_field_t *field = &desc->fields.tab[i];
         void *v;
 
         if (!extended_fields_reached && field->is_extension) {
@@ -2058,7 +2058,7 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, bool copy,
             return -1;
         }
 
-        if (index + desc->ext_pos >= (size_t)desc->vec.len) {
+        if (index + desc->ext_pos >= (size_t)desc->fields.len) {
             e_info("unknown choice extension (index = %zd)", index);
             return -1;
         }
@@ -2075,15 +2075,15 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, bool copy,
 
     e_trace(5, "decoded choice index (index = %zd)", index);
 
-    if ((int)index >= desc->vec.len) {
+    if ((int)index >= desc->fields.len) {
         e_info("the choice index read is not compatible with the "
                "description: either the data is invalid or the description "
                "incomplete");
         return -1;
     }
 
-    enum_field = &desc->vec.tab[0];
-    choice_field = &desc->vec.tab[index];   /* XXX Indexes start from 0 */
+    enum_field = &desc->fields.tab[0];
+    choice_field = &desc->fields.tab[index];   /* XXX Indexes start from 0 */
     __asn1_set_int(st, enum_field, index);  /* Write enum value         */
     v = t_alloc_if_pointed(choice_field, st);
 
@@ -2148,8 +2148,8 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
     qv_t(u8) buf __attribute__((cleanup(aper_buf_wipe))) = QV_INIT();
     asn1_void_vector_t *array;
 
-    assert (desc->vec.len == 1);
-    repeated_field = &desc->vec.tab[0];
+    assert (desc->fields.len == 1);
+    repeated_field = &desc->fields.tab[0];
 
     if (aper_decode_len_extension_bit(bs, &field->seq_of_info, &len_ctx) < 0)
     {

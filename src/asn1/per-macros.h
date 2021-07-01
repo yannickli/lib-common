@@ -24,13 +24,13 @@
 static inline asn1_field_t
 *asn1_desc_get_last_field(asn1_desc_t *desc)
 {
-    int pos = desc->vec.len - 1;
+    int pos = desc->fields.len - 1;
 
     if (pos < 0) {
         return NULL;
     }
 
-    return &desc->vec.tab[pos];
+    return &desc->fields.tab[pos];
 }
 
 static inline asn1_field_t
@@ -279,7 +279,7 @@ static inline void
 #define ASN1_REG_EXTENSION(desc) \
             assert (!desc->is_extended);                                     \
             desc->is_extended = true;                                        \
-            desc->ext_pos = desc->vec.len;
+            desc->ext_pos = desc->fields.len;
 
 /* XXX This macro must be called at the same place the "..." extension marker
  * is set in the abstract syntax of the choice. The fields before the
@@ -330,8 +330,8 @@ static inline void asn1_enum_info_done(asn1_enum_info_t *info)
 
 #define ASN1_SEQ_OF_DESC_END(st_pfx) \
     assert (ASN1_ST_DESC_VAR(st_pfx)->is_seq_of);                            \
-    assert (ASN1_ST_DESC_VAR(st_pfx)->vec.len == 1);                         \
-    assert (ASN1_ST_DESC_VAR(st_pfx)->vec.tab[0].mode ==                     \
+    assert (ASN1_ST_DESC_VAR(st_pfx)->fields.len == 1);                      \
+    assert (ASN1_ST_DESC_VAR(st_pfx)->fields.tab[0].mode ==                  \
             ASN1_OBJ_MODE(SEQ_OF));                                          \
     ASN1_DESC_END(st_pfx)
 
