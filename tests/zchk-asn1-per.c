@@ -330,6 +330,35 @@ static ASN1_SEQUENCE_DESC_BEGIN(z_seqof);
     asn1_set_seq_of_extended_min_max(z_seqof, 0, (256 << 10));
 ASN1_SEQUENCE_DESC_END(z_seqof);
 
+typedef struct {
+    int a;
+} z_basic_struct_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_basic_struct);
+    asn1_reg_scalar(z_basic_struct, a, 0);
+    asn1_set_int_min_max(z_basic_struct, INT32_MIN, INT32_MAX);
+ASN1_SEQUENCE_DESC_END(z_basic_struct);
+
+ASN1_DEF_VECTOR(z_basic_struct, z_basic_struct_t);
+ASN1_DEF_ARRAY(z_basic_struct, z_basic_struct_t);
+
+typedef struct {
+    ASN1_ARRAY_TYPE(z_basic_struct) seqof;
+} z_seqof_ptr_t;
+
+static ASN1_SEQ_OF_DESC_BEGIN(z_seqof_ptr);
+    asn1_reg_seq_of_sequence(z_seqof_ptr, z_basic_struct, seqof,
+                             ASN1_TAG_SEQUENCE_C);
+ASN1_SEQ_OF_DESC_END(z_seqof_ptr);
+
+typedef struct {
+    z_seqof_ptr_t s;
+} z_seqof_wrapper_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_seqof_wrapper);
+    asn1_reg_seq_of(z_seqof_wrapper, z_seqof_ptr, s, ASN1_TAG_SEQUENCE_C);
+ASN1_SEQUENCE_DESC_END(z_seqof_wrapper);
+
 /* }}} */
 /* {{{ Helpers. */
 
@@ -1420,6 +1449,42 @@ Z_GROUP_EXPORT(asn1_aper) {
         for (int i = 0; i < seq_of_before.s.seqof.len; i++) {
             Z_ASSERT_EQ(seq_of_before.s.seqof.data[i],
                         seq_of_after.s.seqof.data[i], "[%d]", i);
+        }
+    } Z_TEST_END;
+    /* }}} */
+    /* {{{ seq_of_ptr */
+    Z_TEST(seq_of_ptr, "check arrays of pointers encoding/decoding") {
+        t_scope;
+        z_seqof_wrapper_t seqof_ptr_before;
+        z_seqof_wrapper_t seqof_ptr_after;
+        int len = 86;
+        SB_1k(buf);
+        pstream_t ps;
+
+        p_clear(&seqof_ptr_before, 1);
+        seqof_ptr_before.s.seqof.data = t_new_raw(z_basic_struct_t *, len);
+        for (int i = 0; i < len; i++) {
+            z_basic_struct_t *item;
+
+            item = t_new(z_basic_struct_t, 1);
+            item->a = i;
+            seqof_ptr_before.s.seqof.data[i] = item;
+        }
+
+        Z_ASSERT_N(aper_encode(&buf, z_seqof_wrapper, &seqof_ptr_before),
+                   "encoding failure");
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_aper_decode(&ps, z_seqof_wrapper, false,
+                                 &seqof_ptr_after), "decoding failure");
+        Z_ASSERT_EQ(seqof_ptr_after.s.seqof.len,
+                    seqof_ptr_before.s.seqof.len);
+        for (int i = 0; i < seqof_ptr_after.s.seqof.len; i++) {
+            const z_basic_struct_t *s_before;
+            const z_basic_struct_t *s_after;
+
+            s_before = seqof_ptr_before.s.seqof.data[i];
+            s_after = seqof_ptr_after.s.seqof.data[i];
+            Z_ASSERT_EQ(s_after->a, s_before->a, "item [%d] differs", i);
         }
     } Z_TEST_END;
     /* }}} */
