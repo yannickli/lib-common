@@ -45,8 +45,8 @@ int aper_read_nsnnwn(bit_stream_t *bs, size_t *n);
 
 int aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
                         const asn1_cnt_info_t *info);
-int t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                          bool copy, bit_stream_t *str);
+int aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                        bb_t *bit_string);
 
 void aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen, uint16_t d_max);
 int aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t d_max,

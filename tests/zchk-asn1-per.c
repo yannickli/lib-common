@@ -455,12 +455,13 @@ static int z_assert_bs_be_equal(bit_stream_t bs1, bit_stream_t bs2)
 }
 
 static int
-z_test_aper_bstring_copy(const asn1_cnt_info_t *info, const char *bit_string,
-                         int skip, bool copy, const char *exp_bits)
+z_test_aper_bstring(const asn1_cnt_info_t *info, const char *bit_string,
+                    int skip, const char *exp_bits)
 {
     t_scope;
-    BB_1k(bb);
-    BB_1k(src_bb);
+    BB_1k(bb __attribute__((cleanup(bb_wipe))));
+    BB_1k(src_bb __attribute__((cleanup(bb_wipe))));
+    BB_1k(dst_bb __attribute__((cleanup(bb_wipe))));
     bit_stream_t src;
     bit_stream_t dst;
     bit_stream_t bs;
@@ -480,27 +481,14 @@ z_test_aper_bstring_copy(const asn1_cnt_info_t *info, const char *bit_string,
     Z_ASSERT_N(bs_skip(&bs, skip));
     Z_ASSERT_STREQUAL(exp_bits, t_print_be_bs(bs, NULL),
                       "unexpected encoding");
-    Z_ASSERT_N(t_aper_decode_bstring(&bs, info, copy, &dst),
-               "decoding error");
+    Z_ASSERT_N(aper_decode_bstring(&bs, info, &dst_bb), "decoding error");
+    dst = bs_init_bb(&dst_bb);
     Z_ASSERT_EQ(bs_len(&dst), bs_len(&src),
                 "encoding length differs from expectations");
     Z_HELPER_RUN(z_assert_bs_be_equal(dst, src),
                  "bit string changed after encoding+decoding ('%s' -> '%s')",
-                 t_print_be_bs(dst, NULL), t_print_be_bs(src, NULL));
+                 t_print_be_bs(src, NULL), t_print_be_bs(dst, NULL));
 
-    bb_wipe(&bb);
-    bb_wipe(&src_bb);
-    Z_HELPER_END;
-}
-
-static int z_test_aper_bstring(const asn1_cnt_info_t *info,
-                               const char *bit_string, int skip,
-                               const char *exp_encoding)
-{
-    Z_HELPER_RUN(z_test_aper_bstring_copy(info, bit_string, skip, true,
-                                          exp_encoding), "copy=true");
-    Z_HELPER_RUN(z_test_aper_bstring_copy(info, bit_string, skip, false,
-                                          exp_encoding), "copy=false");
     Z_HELPER_END;
 }
 

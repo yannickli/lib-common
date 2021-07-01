@@ -1702,10 +1702,11 @@ t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
     return 0;
 }
 
-int t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                          bool copy, bit_stream_t *str)
+int aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
+                        bb_t *bit_string)
 {
     aper_len_decoding_ctx_t len_ctx;
+    bit_stream_t bit_string_bs;
 
     if (aper_decode_len_extension_bit(bs, info, &len_ctx) < 0) {
         e_info("cannot read extension bit");
@@ -1724,23 +1725,12 @@ int t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         e_info("cannot read bit string: not enough bits for padding");
         return -1;
     }
-    if (bs_get_bs(bs, len_ctx.len, str) < 0) {
+    if (bs_get_bs(bs, len_ctx.len, &bit_string_bs) < 0) {
         e_info("cannot read bit string: not enough bits");
         return -1;
     }
-
-    e_trace_be_bs(6, str, "Decoded bit string");
-
-    if (copy) {
-        size_t olen = str->e.p - str->s.p;
-
-        if (str->e.offset) {
-            str->s.p = t_dup(str->e.p, olen + 1);
-        } else {
-            str->s.p = t_dup(str->e.p, olen);
-        }
-        str->e.p = str->s.p + olen;
-    }
+    e_trace_be_bs(6, &bit_string_bs, "Decoded bit string");
+    bb_be_add_bs(bit_string, &bit_string_bs);
 
     return 0;
 }
@@ -1749,19 +1739,14 @@ static int
 t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
                          asn1_bit_string_t *bit_string)
 {
-    bit_stream_t bstring;
-    bb_t bb;
+    BB_1k(bb __attribute__((cleanup(bb_wipe))));
     uint8_t *data;
     size_t size;
 
-    RETHROW(t_aper_decode_bstring(bs, info, false, &bstring));
-
-    size = DIV_ROUND_UP(bs_len(&bstring), 8);
-    bb_inita(&bb, size);
-    bb_be_add_bs(&bb, &bstring);
+    RETHROW(aper_decode_bstring(bs, info, &bb));
+    size = DIV_ROUND_UP(bb.len, 8);
     data = t_dup(bb.bytes, size);
-    *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
-    bb_wipe(&bb);
+    *bit_string = ASN1_BIT_STRING(data, bb.len);
 
     return 0;
 }
