@@ -360,11 +360,29 @@ static ASN1_SEQUENCE_DESC_BEGIN(z_seqof_wrapper);
 ASN1_SEQUENCE_DESC_END(z_seqof_wrapper);
 
 /* }}} */
+/* {{{ Indefinite length case. */
+
+typedef struct {
+    /* OCTET STRING (SIZE(2..70000, ...)) */
+    lstr_t os;
+} z_indef_len_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(z_indef_len);
+    asn1_reg_string(z_indef_len, os, 0);
+    asn1_set_str_min_max(z_indef_len, 2, 70000);
+    asn1_str_set_extended(z_indef_len);
+    asn1_reg_extension(z_indef_len);
+ASN1_SEQUENCE_DESC_END(z_indef_len);
+
+/* }}} */
 /* {{{ Helpers. */
 
 /* Skip N characters on two pstreams and check that they are the same. */
 static int z_ps_skip_and_check_eq(pstream_t *ps1, pstream_t *ps2, int len)
 {
+    if (len < 0) {
+        len = ps_len(ps2);
+    }
     Z_ASSERT(ps_has(ps1, len));
     Z_ASSERT(ps_has(ps2, len));
 
@@ -632,6 +650,12 @@ Z_GROUP_EXPORT(asn1_aper) {
                                      "00000.00001111"));
         Z_HELPER_RUN(z_test_aper_len(0x1b34, 0, ASN1_MAX_LEN, 5,
                                      "000.10011011.00110100"));
+
+        /* ITU-T X.691 - §11.5.7 - The indefinite length case. */
+        /* FIXME We should probably apply the encoding specified in clause
+         * 13.2.6 a) as suggested by clause 11.5.7.4. */
+        Z_HELPER_RUN(z_test_aper_len(10, 5, 100000, 3,
+                                     "00000.00001010"));
     } Z_TEST_END;
     /* }}} */
     /* {{{ nsnnwn */
@@ -682,6 +706,10 @@ Z_GROUP_EXPORT(asn1_aper) {
             { UINT64_MAX, OPT_NONE, OPT_NONE, false, false,
               ".00001001.00000000.11111111.11111111.11111111.11111111"
               ".11111111.11111111.11111111.11111111" },
+
+            /* Example from clause 13.2.6 a). */
+            { 256, OPT(256), OPT(1234567), false, false,
+              ".00000000.00000000" },
         };
 
         carray_for_each_ptr(t, tests) {
@@ -837,6 +865,22 @@ Z_GROUP_EXPORT(asn1_aper) {
         Z_HELPER_RUN(z_test_aper_octet_string(
                 &cnt_info, "a", true,
                 ".10000000.00000001.01100001"));
+
+        /* }}} */
+        /* {{{ ITU-T X.691 - §11.5.7 - The indefinite length case. */
+
+        cnt_info = (asn1_cnt_info_t){
+            .min = 4,
+            .max = 70000,
+            .extended = true,
+            .ext_max = SIZE_MAX,
+        };
+
+        /* FIXME We should probably apply the encoding specified in clause
+         * 13.2.6 a) as suggested by clause 11.5.7.4. */
+        Z_HELPER_RUN(z_test_aper_octet_string(
+                &cnt_info, "abcd", true,
+                ".00000000.00000100.01100001.01100010.01100011.01100100"));
 
         /* }}} */
     } Z_TEST_END;
@@ -995,6 +1039,39 @@ Z_GROUP_EXPORT(asn1_aper) {
                                          "1", 0, ".10000000.00000001.1"));
         Z_HELPER_RUN(z_test_aper_bstring(&fully_constrained_extended,
                                          "1", 5, "100.00000001.1"));
+
+        /* }}} */
+        /* {{{ BIT STRING (SIZE(4..70000, ...)) */
+
+        /* ITU-T X.691 - §11.5.7 - The indefinite length case. */
+        /* XXX This encoding is similar to the one we get with an obvious
+         * online ASN.1 playground we often compare our implementations to.
+         *
+         * Schema DEFINITIONS AUTOMATIC TAGS ::=
+         * BEGIN
+         *   Bs ::= BIT STRING (SIZE(4..70000, ...))
+         * END
+         *
+         * value Bs ::= '010011000111'B
+         *
+         * But there is no certainty that the BIT STRING length is correctly
+         * encoded there, as the specification mentions:
+         *
+         * > ... the value ("n" – "lb") shall be encoded ...
+         *
+         * So we should probably encode 12 - 4 == 8, but we simply encode the
+         * BIT STRING length directly (12).
+         */
+        /* FIXME We should probably apply the encoding specified in clause
+         * 13.2.6 a) as suggested by clause 11.5.7.4. */
+        Z_HELPER_RUN(z_test_aper_bstring(
+                &(asn1_cnt_info_t){
+                    .min = 4,
+                    .max = 70000,
+                    .extended = true,
+                    .ext_max = ASN1_MAX_LEN,
+                }, "010011000111", 0,
+                ".00000000.00001100.01001100.0111"));
 
         /* }}} */
     } Z_TEST_END;
@@ -1514,5 +1591,57 @@ Z_GROUP_EXPORT(asn1_aper) {
             Z_ASSERT_EQ(s_after->a, s_before->a, "item [%d] differs", i);
         }
     } Z_TEST_END;
+    /* }}} */
+    /* {{{ indefinite_length_case_octet_string_over_64k */
+
+    Z_TEST(indefinite_length_case_octet_string_over_64k, "") {
+        t_scope;
+        /* XXX Not to be confused with BER indefinite length, that allows to
+         * encode SEQUENCE OF or SET OF with an end marker (00 00). */
+        z_indef_len_t before;
+        z_indef_len_t after;
+#define OCTET_STRING_LEN  68000
+        SB(os, OCTET_STRING_LEN + 1);
+        SB(buf, OCTET_STRING_LEN + 1);
+        pstream_t ps;
+        pstream_t os_ps;
+        lstr_t pattern = LSTR("9UFH8904YUhjdlqeijf");
+
+        for (int i = 0; i < OCTET_STRING_LEN; i++) {
+            sb_addc(&os, pattern.s[i % pattern.len]);
+        }
+
+        p_clear(&before, 1);
+        before.os = LSTR_SB_V(&os);
+
+        Z_ASSERT_N(aper_encode(&buf, z_indef_len, &before),
+                   "encoding failure");
+
+        /* FIXME We use fragmented encoding here but the specification makes
+         * think that we should encode the whole length in a single bitfield
+         * instead (ITU-T X.691 - §11.5.7 - The indefinite length case).
+         * We should probably apply the encoding specified in clause 13.2.6 a)
+         * as suggested by clause 11.5.7.4. */
+        /* Check encoding. */
+        ps = ps_initsb(&buf);
+        Z_ASSERT_EQ(ps_getc(&ps), 0x00);
+        Z_ASSERT_EQ(ps_getc(&ps), 0xc4);
+        os_ps = ps_initlstr(&before.os);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &os_ps, (64 << 10)));
+        Z_ASSERT(ps_has(&ps, 2));
+        Z_ASSERT_EQ(get_unaligned_be16(ps.b), (0x8000 | ps_len(&os_ps)));
+        __ps_skip(&ps, 2);
+        Z_HELPER_RUN(z_ps_skip_and_check_eq(&ps, &os_ps, -1));
+        Z_ASSERT(ps_done(&ps));
+
+        /* Check decoding. */
+        ps = ps_initsb(&buf);
+        Z_ASSERT_N(t_aper_decode(&ps, z_indef_len, false, &after),
+                   "decoding failure");
+        Z_ASSERT(lstr_equal(after.os, before.os), "unexpected failure");
+
+#undef OCTET_STRING_LEN
+    } Z_TEST_END;
+
     /* }}} */
 } Z_GROUP_END
