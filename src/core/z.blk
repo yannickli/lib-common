@@ -412,6 +412,30 @@ bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
     return !res;
 }
 
+/** Skip at least n bytes but avoid stopping in the middle of an UTF-8
+ * character.
+ *
+ * \return The number of skipped bytes.
+ */
+static size_t ps_skip_utf8_aligned(pstream_t *ps, size_t n,
+                                   pstream_t *nullable skipped)
+{
+    const byte *start = ps->b;
+
+    while (!ps_done(ps) && (size_t)(ps->b - start) < n) {
+        if (ps_getuc(ps) < 0) {
+            ps_skip(ps, 1);
+        }
+    }
+    n = ps->b - start;
+
+    if (skipped) {
+        *skipped = ps_init(start, n);
+    }
+
+    return n;
+}
+
 static void sb_adduc_escaped(sb_t *sb, int c)
 {
     int replacement = -1;
@@ -475,8 +499,40 @@ static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s)
     }
 }
 
-static void z_sb_put_string(sb_t *sb, lstr_t s, bool use_hex)
+static void z_sb_put_string(sb_t *sb, lstr_t s, int first_diff_pos,
+                            bool use_hex, bool can_clip)
 {
+    const int skip_threshold = 60;
+    const int skip_context = 20;
+
+    /* Maximum number of bytes written after the first non-skippable one. */
+    const int clip_threshold = 60;
+
+    size_t clipped = 0;
+
+    /* Skip the beginning of the string if the first diff is too far away from
+     * the start. */
+    if (first_diff_pos > skip_threshold) {
+        pstream_t ps = ps_initlstr(&s);
+        size_t skipped;
+
+        skipped = first_diff_pos - skip_context;
+        skipped = ps_skip_utf8_aligned(&ps, skipped, NULL);
+        first_diff_pos -= skipped;
+        sb_addf(sb, "-(%zd skipped bytes)- … ", skipped);
+        s = LSTR_PS_V(&ps);
+    }
+
+    /* Clip the string if it's too long. */
+    if (s.len > first_diff_pos + clip_threshold) {
+        pstream_t ps = ps_initlstr(&s);
+        pstream_t kept;
+
+        ps_skip_utf8_aligned(&ps, first_diff_pos + clip_threshold, &kept);
+        s = LSTR_PS_V(&kept);
+        clipped = ps_len(&ps);
+    }
+
     if (use_hex) {
         sb_adds(sb, "X'");
         sb_add_hex(sb, s.s, s.len);
@@ -484,6 +540,23 @@ static void z_sb_put_string(sb_t *sb, lstr_t s, bool use_hex)
     } else {
         z_sb_add_lstr_escaped(sb, s);
     }
+
+    if (clipped) {
+        sb_addf(sb, "… -(%zd skipped bytes)-", clipped);
+    }
+}
+
+static int lstr_first_diff_pos(lstr_t s1, lstr_t s2)
+{
+    int len = MIN(s1.len, s2.len);
+
+    for (int i = 0; i < len; i++) {
+        if (s1.s[i] != s2.s[i]) {
+            return i;
+        }
+    }
+
+    return len;
 }
 
 bool _z_assert_lstrequal(const char *file, int lno, bool use_hex,
@@ -496,13 +569,15 @@ bool _z_assert_lstrequal(const char *file, int lno, bool use_hex,
 
     if (!lstr_equal(lh, rh)) {
         SB_1k(sb);
+        int first_diff_pos;
 
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
                 file, lno, lhs, rhs);
+        first_diff_pos = lstr_first_diff_pos(lh, rh);
         sb_addf(&sb, " %s (len:%d):\n  ", lhs, lh.len);
-        z_sb_put_string(&sb, lh, use_hex);
+        z_sb_put_string(&sb, lh, first_diff_pos, use_hex, true);
         sb_addf(&sb, "\n %s (len:%d):\n  ", rhs, rh.len);
-        z_sb_put_string(&sb, rh, use_hex);
+        z_sb_put_string(&sb, rh, first_diff_pos, use_hex, true);
         sb_adds(&sb, "\n");
         _z_add_extra(sb, fmt);
         lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
