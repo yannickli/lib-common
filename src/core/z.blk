@@ -412,29 +412,81 @@ bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
     return !res;
 }
 
-static void sb_put_string(sb_t *sb, lstr_t s)
+static void sb_adduc_escaped(sb_t *sb, int c)
 {
-    SB_1k(escaped);
+    int replacement = -1;
 
-    sb_add_slashes(&escaped, s.s, s.len, "\a\b\t\n\v\f\r\\",  "abtnvfr\\");
+    switch (c) {
+#define CASE(_to_escape, _replacement)                                       \
+    case _to_escape:                                                         \
+        replacement = _replacement;                                          \
+        break;
 
-    for (int i = 0; i < escaped.len; i++) {
-        int c = escaped.data[i];
-
-        if (!isprint((unsigned char)c)) {
-            /* Got an non-printable character that cannot be escaped
-             * print the whole string in hexadecimal. */
-            sb_adds(sb, "X'");
-            sb_add_hex(sb, s.s, s.len);
-            sb_adds(sb, "'");
-            return;
-        }
+        CASE('\a', 'a');
+        CASE('\b', 'b');
+        CASE('\t', 't');
+        CASE('\n', 'n');
+        CASE('\v', 'v');
+        CASE('\f', 'f');
+        CASE('\r', 'r');
+        CASE('\\', '\\');
+#undef CASE
     }
 
-    sb_addsb(sb, &escaped);
+    if (replacement >= 0) {
+        sb_addc(sb, '\\');
+        sb_addc(sb, replacement);
+    } else {
+        sb_adduc(sb, c);
+    }
 }
 
-bool _z_assert_lstrequal(const char *file, int lno,
+static void z_sb_add_char_escaped(sb_t *sb, int c, bool printable)
+{
+    if (printable) {
+        sb_adduc_escaped(sb, c);
+    } else {
+        sb_addf(sb, "\\x%02X", c);
+    }
+}
+
+static int z_ps_get_char(pstream_t *ps, bool *printable)
+{
+    int c = ps_getuc(ps);
+
+    *printable = c >= 0;
+    if (!*printable) {
+        c = ps_getc(ps);
+    }
+
+    return c;
+}
+
+static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s)
+{
+    pstream_t ps = ps_initlstr(&s);
+
+    while (!ps_done(&ps)) {
+        bool printable;
+        int c;
+
+        c = z_ps_get_char(&ps, &printable);
+        z_sb_add_char_escaped(sb, c, printable);
+    }
+}
+
+static void z_sb_put_string(sb_t *sb, lstr_t s, bool use_hex)
+{
+    if (use_hex) {
+        sb_adds(sb, "X'");
+        sb_add_hex(sb, s.s, s.len);
+        sb_adds(sb, "'");
+    } else {
+        z_sb_add_lstr_escaped(sb, s);
+    }
+}
+
+bool _z_assert_lstrequal(const char *file, int lno, bool use_hex,
                          const char *lhs, lstr_t lh,
                          const char *rhs, lstr_t rh,
                          const char *fmt, ...)
@@ -448,9 +500,9 @@ bool _z_assert_lstrequal(const char *file, int lno,
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
                 file, lno, lhs, rhs);
         sb_addf(&sb, " %s (len:%d):\n  ", lhs, lh.len);
-        sb_put_string(&sb, lh);
+        z_sb_put_string(&sb, lh, use_hex);
         sb_addf(&sb, "\n %s (len:%d):\n  ", rhs, rh.len);
-        sb_put_string(&sb, rh);
+        z_sb_put_string(&sb, rh, use_hex);
         sb_adds(&sb, "\n");
         _z_add_extra(sb, fmt);
         lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
@@ -512,7 +564,7 @@ bool _z_assert_iopjsonequal(const char *file, int lno,
         _G.grp.t_asserts++;
         sb_addf(&sb, "%s:%d: invalid json provided: %s\n", file, lno, rhs);
         sb_addf(&sb, " %s (len: %d):\n  ", rhs, json.len);
-        sb_put_string(&sb, json);
+        sb_add_lstr(&sb, json);
         sb_addf(&sb, "\n error:\n  %*pM\n", SB_FMT_ARG(&err));
         _z_add_extra(sb, fmt);
         lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
