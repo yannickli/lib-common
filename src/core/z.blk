@@ -484,12 +484,15 @@ static void z_sb_reset_color(sb_t *sb)
     z_sb_set_color(sb, "");
 }
 
-static void z_sb_add_char(sb_t *sb, int c, bool printable,
+static void z_sb_add_char(sb_t *sb, int c, bool full_hex, bool printable,
                           const char *nullable color)
 {
     if (color) {
         z_sb_set_color(sb, color);
     }
+    if (full_hex) {
+        sb_addf(sb, "%02X", c);
+    } else
     if (printable) {
         sb_adduc_escaped(sb, c);
     } else {
@@ -498,13 +501,22 @@ static void z_sb_add_char(sb_t *sb, int c, bool printable,
     if (color) {
         z_sb_reset_color(sb);
     }
+    if (full_hex) {
+        sb_addc(sb, ' ');
+    }
 }
 
-static int z_ps_get_char(pstream_t *ps, bool *printable)
+static int z_ps_get_char(pstream_t *ps, bool full_hex, bool *printable)
 {
-    int c = ps_getuc(ps);
+    int c;
 
-    *printable = c >= 0;
+    if (full_hex) {
+        /* The character *might* be printable but we won't try. */
+        *printable = false;
+    } else {
+        c = ps_getuc(ps);
+        *printable = c >= 0;
+    }
     if (!*printable) {
         c = ps_getc(ps);
     }
@@ -512,7 +524,8 @@ static int z_ps_get_char(pstream_t *ps, bool *printable)
     return c;
 }
 
-static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s, int first_diff_pos)
+static void z_sb_add_lstr(sb_t *sb, lstr_t s, int first_diff_pos,
+                          bool full_hex)
 {
     pstream_t ps = ps_initlstr(&s);
     bool highlighting_done = false;
@@ -522,7 +535,7 @@ static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s, int first_diff_pos)
         bool printable;
         const char *color = NULL;
 
-        c = z_ps_get_char(&ps, &printable);
+        c = z_ps_get_char(&ps, full_hex, &printable);
 
         if (!highlighting_done && ps.s - s.s > first_diff_pos) {
             /* Use a bold character with a red background. */
@@ -533,18 +546,18 @@ static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s, int first_diff_pos)
             highlighting_done = true;
         }
 
-        z_sb_add_char(sb, c, printable, color);
+        z_sb_add_char(sb, c, full_hex, printable, color);
     }
 }
 
 static void z_sb_put_string(sb_t *sb, lstr_t s, int first_diff_pos,
                             bool use_hex, bool can_clip)
 {
-    const int skip_threshold = 60;
-    const int skip_context = 20;
+    const int skip_threshold = use_hex ? 20 : 60;
+    const int skip_context = use_hex ? 10 : 20;
 
     /* Maximum number of bytes displayed. */
-    const int clip_threshold = 80;
+    const int clip_threshold = use_hex ? 30 : 80;
 
     size_t clipped = 0;
 
@@ -571,13 +584,7 @@ static void z_sb_put_string(sb_t *sb, lstr_t s, int first_diff_pos,
         clipped = ps_len(&ps);
     }
 
-    if (use_hex) {
-        sb_adds(sb, "X'");
-        sb_add_hex(sb, s.s, s.len);
-        sb_adds(sb, "'");
-    } else {
-        z_sb_add_lstr_escaped(sb, s, first_diff_pos);
-    }
+    z_sb_add_lstr(sb, s, first_diff_pos, use_hex);
 
     if (clipped) {
         sb_addf(sb, "… -(%zd skipped bytes)-", clipped);
