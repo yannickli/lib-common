@@ -204,7 +204,7 @@ static void logger_wipe_child(logger_t *logger)
             } else {
 #ifndef NDEBUG
                 logger_panic(&_G.root_logger,
-                             "leaked logger %*pM, cannot wipe %*pM",
+                             "leaked logger `%*pM`, cannot wipe `%*pM`",
                              LSTR_FMT_ARG(child->full_name),
                              LSTR_FMT_ARG(logger->full_name));
 #endif
