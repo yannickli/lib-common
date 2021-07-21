@@ -465,12 +465,38 @@ static void sb_adduc_escaped(sb_t *sb, int c)
     }
 }
 
-static void z_sb_add_char_escaped(sb_t *sb, int c, bool printable)
+/** Set a color for the next characters to write in the buffer.
+ *
+ * The color will apply until the color is reset.
+ *
+ * \param[in] color_fmt  Color codes separated by ';'.
+ */
+static void z_sb_set_color(sb_t *sb, const char *color_fmt)
 {
+    if (is_fancy_fd(STDERR_FILENO)) {
+        sb_addf(sb, "\e[%sm", color_fmt);
+    }
+}
+
+/** Reset the current color (back to terminal default). */
+static void z_sb_reset_color(sb_t *sb)
+{
+    z_sb_set_color(sb, "");
+}
+
+static void z_sb_add_char(sb_t *sb, int c, bool printable,
+                          const char *nullable color)
+{
+    if (color) {
+        z_sb_set_color(sb, color);
+    }
     if (printable) {
         sb_adduc_escaped(sb, c);
     } else {
         sb_addf(sb, "\\x%02X", c);
+    }
+    if (color) {
+        z_sb_reset_color(sb);
     }
 }
 
@@ -486,16 +512,28 @@ static int z_ps_get_char(pstream_t *ps, bool *printable)
     return c;
 }
 
-static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s)
+static void z_sb_add_lstr_escaped(sb_t *sb, lstr_t s, int first_diff_pos)
 {
     pstream_t ps = ps_initlstr(&s);
+    bool highlighting_done = false;
 
     while (!ps_done(&ps)) {
-        bool printable;
         int c;
+        bool printable;
+        const char *color = NULL;
 
         c = z_ps_get_char(&ps, &printable);
-        z_sb_add_char_escaped(sb, c, printable);
+
+        if (!highlighting_done && ps.s - s.s > first_diff_pos) {
+            /* Use a bold character with a red background. */
+            /* TODO Implement Myers diff algorithm and print a colored diff
+             * instead of highlighting only the first different
+             * character/byte. */
+            color = "1;41";
+            highlighting_done = true;
+        }
+
+        z_sb_add_char(sb, c, printable, color);
     }
 }
 
@@ -505,8 +543,8 @@ static void z_sb_put_string(sb_t *sb, lstr_t s, int first_diff_pos,
     const int skip_threshold = 60;
     const int skip_context = 20;
 
-    /* Maximum number of bytes written after the first non-skippable one. */
-    const int clip_threshold = 60;
+    /* Maximum number of bytes displayed. */
+    const int clip_threshold = 80;
 
     size_t clipped = 0;
 
@@ -538,7 +576,7 @@ static void z_sb_put_string(sb_t *sb, lstr_t s, int first_diff_pos,
         sb_add_hex(sb, s.s, s.len);
         sb_adds(sb, "'");
     } else {
-        z_sb_add_lstr_escaped(sb, s);
+        z_sb_add_lstr_escaped(sb, s, first_diff_pos);
     }
 
     if (clipped) {
