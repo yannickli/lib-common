@@ -20,13 +20,6 @@
 #define IS_LIB_COMMON_CORE_H
 
 #define LIB_COMMON_VERSION  "master"
-#define LIB_COMMON_MAJOR    9999
-#define LIB_COMMON_MINOR    1
-#define __LIB_COMMON_VER(Maj, Min)  (((Maj) << 16) | Min)
-
-#define LIB_COMMON_PREREQ(Maj, Min)                                          \
-    (__LIB_COMMON_VER(Maj, Min) <= __LIB_COMMON_VER(LIB_COMMON_MAJOR,        \
-                                                    LIB_COMMON_MINOR))
 
 #if HAS_LIBCOMMON_REPOSITORY
 # define LIBCOMMON_PATH "lib-common/"
