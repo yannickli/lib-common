@@ -21,6 +21,8 @@
 #include <lib-common/log.h>
 #include <lib-common/parseopt.h>
 #include <lib-common/datetime.h>
+#include <lib-common/sort.h>
+#include <lib-common/thr.h>
 
 /** Small utility to check the behavior of containers.
  */
@@ -31,6 +33,7 @@ static struct {
     /* Command-line options. */
     bool opt_help;
     bool opt_ascii_iqhash;
+    bool opt_qv_sort;
 } ztst_container_g = {
 #define _G  ztst_container_g
     .logger = LOGGER_INIT_INHERITS(NULL, "ztst-container"),
@@ -118,11 +121,98 @@ static void ztst_run_ascii_iqhash(void)
 }
 
 /* }}} */
+/* {{{ qv_sort / qv_qsort */
+
+static int i32_cmp(int32_t const *a, int32_t const *b)
+{
+    return CMP(*a, *b);
+}
+
+static int i64_cmp(int64_t const *a, int64_t const *b)
+{
+    return CMP(*a, *b);
+}
+
+static void ztst_run_qv_sort(void)
+{
+#define NB_TESTS 100
+#define NB_ELEMS 100000
+    proctimerstat_t st;
+
+    /* Bench qv_sort with 4 and 8 bytes values. */
+#define BENCH_QV_SORT(_type, _comment)  \
+    do {                                                                     \
+        p_clear(&st, 1);                                                     \
+        for (int i = 0; i < NB_TESTS; i++) {                                 \
+            t_scope;                                                         \
+            qv_t(_type) qv;                                                  \
+            proctimer_t pt;                                                  \
+                                                                             \
+            t_qv_init(&qv, NB_ELEMS);                                        \
+            for (int j = 0; j < NB_ELEMS; j++) {                             \
+                qv_append(&qv, rand());                                      \
+            }                                                                \
+                                                                             \
+            proctimer_start(&pt);                                            \
+            qv_sort(_type)(&qv, qv_##_type##_cmp);                           \
+            proctimer_stop(&pt);                                             \
+            proctimerstat_addsample(&st, &pt);                               \
+        }                                                                    \
+        logger_notice(&_G.logger, "qv_sort %s on " TOSTR(_type) " vectors "  \
+                      "of %d elements: %s\n",                                \
+                      _comment, NB_ELEMS, proctimerstat_report(&st, NULL));  \
+    } while (0)
+
+    /* Mono-threaded */
+    BENCH_QV_SORT(i32, "mono-threaded");
+    BENCH_QV_SORT(i64, "mono-threaded");
+
+    /* Multi-threaded */
+    MODULE_REQUIRE(thr);
+    BENCH_QV_SORT(i32, "multi-threaded");
+    BENCH_QV_SORT(i64, "multi-threaded");
+    MODULE_RELEASE(thr);
+#undef BENCH_QV_SORT
+
+    /* Bench qv_qsort with 4 and 8 bytes values. */
+#define BENCH_QV_QSORT(_type)  \
+    do {                                                                     \
+        p_clear(&st, 1);                                                     \
+        for (int i = 0; i < NB_TESTS; i++) {                                 \
+            t_scope;                                                         \
+            qv_t(_type) qv;                                                  \
+            proctimer_t pt;                                                  \
+                                                                             \
+            t_qv_init(&qv, NB_ELEMS);                                        \
+            for (int j = 0; j < NB_ELEMS; j++) {                             \
+                qv_append(&qv, rand());                                      \
+            }                                                                \
+                                                                             \
+            proctimer_start(&pt);                                            \
+            qv_qsort(&qv, _type##_cmp);                                      \
+            proctimer_stop(&pt);                                             \
+            proctimerstat_addsample(&st, &pt);                               \
+        }                                                                    \
+        logger_notice(&_G.logger, "qv_qsort on " TOSTR(_type) " vectors of " \
+                      "%d elements: %s\n",                                   \
+                      NB_ELEMS, proctimerstat_report(&st, NULL));            \
+    } while (0)
+
+    BENCH_QV_QSORT(i32);
+    BENCH_QV_QSORT(i64);
+#undef BENCH_QV_QSORT
+
+#undef NB_TESTS
+#undef NB_ELEMS
+}
+
+/* }}} */
 
 static popt_t popts_g[] = {
     OPT_FLAG('h', "help", &_G.opt_help, "show this help"),
     OPT_FLAG('a', "ascii-iqhash", &_G.opt_ascii_iqhash,
              "run ASCII insensitive qhash tests"),
+    OPT_FLAG('s', "qv-sort", &_G.opt_qv_sort, "run qv_sort/qv_qsort benches"),
     OPT_END(),
 };
 
@@ -137,6 +227,10 @@ int main(int argc, char **argv)
 
     if (_G.opt_ascii_iqhash) {
         ztst_run_ascii_iqhash();
+    }
+
+    if (_G.opt_qv_sort) {
+        ztst_run_qv_sort();
     }
 
     return 0;
