@@ -1066,6 +1066,16 @@ cdef class EnumBase(Basic):
         """
         return self.val
 
+    def __index__(EnumBase self):
+        """Cast from enum to int.
+
+        Returns
+        -------
+        int
+            The integer value of the enum.
+        """
+        return self.val
+
     def get_as_str(EnumBase self):
         """Return the stored value as a string.
 
