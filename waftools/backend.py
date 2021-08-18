@@ -102,7 +102,7 @@ to tests (and only them).
 
 def filter_out_zchk(ctx):
     for g in ctx.groups:
-        for i in xrange(len(g) - 1, -1, -1):
+        for i in range(len(g) - 1, -1, -1):
             tgen = g[i]
             features = tgen.to_list(getattr(tgen, 'features', []))
             if  tgen.name.startswith('zchk') and 'c' in features:
@@ -532,7 +532,7 @@ def get_old_gen_files(ctx):
                     gen_files.append(parent_node.make_node(name))
         # Do not recurse in hidden directories (in particular the .build one),
         # this is useless
-        for i in xrange(len(dirnames) - 1, -1, -1):
+        for i in range(len(dirnames) - 1, -1, -1):
             if dirnames[i].startswith('.'):
                 del dirnames[i]
 
