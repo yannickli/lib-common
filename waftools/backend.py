@@ -97,7 +97,7 @@ to tests (and only them).
 
 def filter_out_zchk(ctx):
     for g in ctx.groups:
-        for i in xrange(len(g) - 1, -1, -1):
+        for i in range(len(g) - 1, -1, -1):
             tgen = g[i]
             features = tgen.to_list(getattr(tgen, 'features', []))
             if  tgen.name.startswith('zchk') and 'c' in features:
@@ -170,7 +170,7 @@ def compile_fpic(ctx):
         def process_use_pic(tgen, use_attr):
             # for all the libraries used by tgen...
             use = tgen.to_list(getattr(tgen, use_attr, []))
-            for i in xrange(len(use)):
+            for i in range(len(use)):
                 use_name = use[i]
 
                 if use_name.endswith('.pic'):
@@ -510,7 +510,7 @@ def get_old_gen_files(ctx):
                     gen_files.append(parent_node.make_node(name))
         # Do not recurse in hidden directories (in particular the .build one),
         # this is useless
-        for i in xrange(len(dirnames) - 1, -1, -1):
+        for i in range(len(dirnames) - 1, -1, -1):
             if dirnames[i].startswith('.'):
                 del dirnames[i]
 
