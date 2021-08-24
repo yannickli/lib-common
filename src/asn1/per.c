@@ -335,7 +335,51 @@ typedef struct {
 
 GENERIC_INIT(aper_len_encoding_ctx_t, aper_len_encoding_ctx);
 
-/* Write extension bit (if needed) and prepare encoding context. */
+static void sb_add_asn1_size(sb_t *sb, size_t size)
+{
+    if (size == SIZE_MAX) {
+        sb_adds(sb, "MAX");
+    } else {
+        sb_addf(sb, "%zu", size);
+    }
+}
+
+static void sb_add_asn1_len_min_max(sb_t *sb, size_t min, size_t max)
+{
+    if (min == max) {
+        sb_addf(sb, "%zu", min);
+    } else {
+        sb_addf(sb, "%zu..", min);
+        sb_add_asn1_size(sb, max);
+    }
+}
+
+void sb_add_asn1_len_constraints(sb_t *sb, const asn1_cnt_info_t *info)
+{
+    sb_adds(sb, "SIZE(");
+    sb_add_asn1_len_min_max(sb, info->min, info->max);
+    if (info->extended) {
+        sb_adds(sb, ", ...");
+        if (info->ext_min != 0 || info->ext_max != SIZE_MAX) {
+            sb_adds(sb, ", ");
+            sb_add_asn1_len_min_max(sb, info->ext_min, info->ext_max);
+        }
+    }
+    sb_adds(sb, ")");
+}
+
+static void aper_trace_constraint_violation(const asn1_cnt_info_t *info,
+                                            size_t len)
+{
+    SB_1k(constraints);
+
+    sb_add_asn1_len_constraints(&constraints, info);
+    e_error("length = %zu, constraints = %*pM", len,
+            SB_FMT_ARG(&constraints));
+}
+
+/* Check constraints, write extension bit (if needed) and prepare encoding
+ * context. */
 static int
 aper_encode_len_extension_bit(bb_t *bb, size_t l, const asn1_cnt_info_t *info,
                               aper_len_encoding_ctx_t *ctx)
@@ -351,13 +395,15 @@ aper_encode_len_extension_bit(bb_t *bb, size_t l, const asn1_cnt_info_t *info,
                 ctx->extension_present = true;
 
                 if (l < info->ext_min || l > info->ext_max) {
+                    aper_trace_constraint_violation(info, l);
                     return e_error("extended constraint not respected");
                 }
 
                 /* Extension present */
                 bb_be_add_bit(bb, true);
             } else {
-                return e_error("constraint not respected");
+                aper_trace_constraint_violation(info, l);
+                return e_error("root constraint not respected");
             }
         } else {
             if (info->extended) {
@@ -559,7 +605,7 @@ int aper_encode_octet_string(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
     bool align_before_data = true;
 
     if (aper_encode_len_extension_bit(bb, os.len, info, &ctx) < 0) {
-        return e_error("octet string: length error");
+        return -1;
     }
 
     if (info && info->max <= 2 && info->min == info->max
@@ -591,7 +637,7 @@ int aper_encode_bstring(bb_t *bb, const bit_stream_t *bits,
     aper_len_encoding_ctx_t ctx;
 
     if (aper_encode_len_extension_bit(bb, len, info, &ctx) < 0) {
-        return e_error("bit string: length error");
+        return -1;
     }
     do {
         bit_stream_t to_write;
@@ -945,8 +991,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
     if (aper_encode_len_extension_bit(bb, tab->len, &field->seq_of_info,
                                       &ctx) < 0)
     {
-        return e_error("failed to encode SEQUENCE OF extension bit (n = %d)",
-                       tab->len);
+        return -1;
     }
 
     offset = 0;
