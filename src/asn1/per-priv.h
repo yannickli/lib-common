@@ -57,4 +57,6 @@ int aper_encode_octet_string(bb_t *bb, lstr_t os,
 int t_aper_decode_octet_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
                                bool copy, lstr_t *os);
 
+void sb_add_asn1_len_constraints(sb_t *sb, const asn1_cnt_info_t *info);
+
 #endif /* IS_LIB_INET_ASN1_PER_PRIV_H */

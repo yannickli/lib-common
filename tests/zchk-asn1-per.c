@@ -1076,6 +1076,43 @@ Z_GROUP_EXPORT(asn1_aper) {
         /* }}} */
     } Z_TEST_END;
     /* }}} */
+    /* {{{ length constraints printing */
+    Z_TEST(sb_add_asn1_len_constraints, "") {
+        SB_1k(buf);
+        asn1_cnt_info_t constraints;
+
+        asn1_cnt_info_init(&constraints);
+        constraints.min = constraints.max = 42;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42)");
+
+        sb_reset(&buf);
+        constraints.max = 100;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42..100)");
+
+        sb_reset(&buf);
+        constraints.extended = true;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42..100, ...)");
+
+        sb_reset(&buf);
+        constraints.ext_min = constraints.ext_max = 200;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42..100, ..., 200)");
+
+        sb_reset(&buf);
+        constraints.ext_min = 10;
+        constraints.ext_max = 400;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42..100, ..., 10..400)");
+
+        sb_reset(&buf);
+        constraints.ext_max = SIZE_MAX;
+        sb_add_asn1_len_constraints(&buf, &constraints);
+        Z_ASSERT_STREQUAL(buf.data, "SIZE(42..100, ..., 10..MAX)");
+    } Z_TEST_END;
+    /* }}} */
     /* {{{ enum */
     Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
         t_scope;
