@@ -451,6 +451,15 @@ void makeversion(int ret, const char *name, const char *(*get_version)(void))
                        version->git_revision);
             }
         }
+
+        if (core_deps_revision_nb_g) {
+            printf("\nDependencies:\n");
+            for (int i = 0; i < core_deps_revision_nb_g; i++) {
+                dep_revision_t *dep = &core_deps_revision_g[i];
+
+                printf("  %s: %s\n", dep->dep_name, dep->dep_revision);
+            }
+        }
     }
 
     printf("\n"
