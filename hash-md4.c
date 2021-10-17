@@ -363,8 +363,10 @@ static const char md4_test_str[7][81] =
     { "message digest" },
     { "abcdefghijklmnopqrstuvwxyz" },
     { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" },
-    { "12345678901234567890123456789012345678901234567890123456789012" \
-      "345678901234567890" }
+    {(
+      "12345678901234567890123456789012345678901234567890123456789012"
+      "345678901234567890"
+    )}
 };
 
 static const byte md4_test_sum[7][16] =

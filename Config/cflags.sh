@@ -5,7 +5,7 @@ version=$("$cc" -dumpfullversion -dumpversion)
 if [ "$OS" = "darwin" ]; then
     clang_version="3.7.0"
 else
-    clang_version="$("$cc" --version | grep 'clang version' | cut -d ' ' -f 3)"
+    clang_version="$("$cc" --version | grep -o 'clang version [0-9.]\+' | cut -d ' ' -f 3)"
 fi
 
 prereq() {
