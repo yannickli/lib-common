@@ -226,7 +226,6 @@ static void copyinits(popt_t *opts)
 {
     for (;;) {
         switch (opts->kind) {
-          case OPTION_FLAG:
           case OPTION_INT:
           case OPTION_UINT:
             opts->init = get_int_init(opts);
@@ -237,6 +236,7 @@ static void copyinits(popt_t *opts)
           case OPTION_CHAR:
             opts->init = *(char *)opts->value;
             break;
+          case OPTION_FLAG:
           case OPTION_GROUP:
           case OPTION_VERSION:
             break;
