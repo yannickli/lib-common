@@ -215,6 +215,7 @@ zchk_SOURCES = zchk.c \
 	zchk-module.c \
 	zchk-mem.c \
 	zchk-iop-ressources.c \
+	zchk-parseopt.c \
 	$liop/tstiop.a \
 	$llibcommon.wa
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS) -lm
