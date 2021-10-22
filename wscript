@@ -362,6 +362,7 @@ def build(ctx):
             'zchk-iop-rpc.c',
             'zchk-iop-core-obj.c',
             'zchk-licence.c',
+            'zchk-parseopt.c',
             'zchk-str.c',
             'zchk-snmp.c',
             'zchk-time.c',

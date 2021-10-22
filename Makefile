@@ -227,6 +227,7 @@ zchk_SOURCES = zchk.c \
 	zchk-xmlpp.c \
 	zchk-farch.fc \
 	zchk-farch.c \
+	zchk-parseopt.c \
 	\
 	$ltest-data/snmp/snmp_test.iop \
 	$ltest-data/snmp/snmp_test_doc.iop \
