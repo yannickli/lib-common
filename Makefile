@@ -222,6 +222,7 @@ zchk_SOURCES = zchk.c \
 	zchk-module.c \
 	zchk-mem.c \
 	zchk-iop-ressources.c \
+	zchk-parseopt.c \
 	\
 	$ltest-data/snmp/snmp_test.iop \
 	$ltest-data/snmp/snmp_test_doc.iop \
