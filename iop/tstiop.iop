@@ -791,6 +791,13 @@ class ChildClassB : 3 : RootClass {
 };
 
 /* }}} */
+/* {{{ zchk iop.iop_env */
+
+struct VoidPkgRef {
+    tstiop_void_type.VoidRequired voidRequired;
+};
+
+/* }}} */
 /* {{{ iopc zchk */
 /* {{{ zchk iopsq.sub_struct */
 
