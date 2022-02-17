@@ -496,15 +496,15 @@ Z_GROUP_EXPORT(qps_bitmap) {
         }
         Z_ASSERT_EQ(count, 0x8000U);
 
-        en = qps_bitmap_start_enumeration(&bitmap);
+        en = qps_bitmap_get_enumerator(&bitmap);
         for (uint32_t i = 0; i < 0x8000; i++) {
             qps_bitmap_key_t key = { .key = 0 };
 
-            qps_bitmap_enumeration_find_word(&en, key);
+            qps_bitmap_enumerator_find_word(&en, key);
             Z_ASSERT_EQ(en.key.key, 0U);
 
             key.key = i;
-            qps_bitmap_enumeration_find_word(&en, key);
+            qps_bitmap_enumerator_find_word(&en, key);
             Z_ASSERT_EQ(en.key.key, i);
         }
 
@@ -524,14 +524,14 @@ Z_GROUP_EXPORT(qps_bitmap) {
         Z_ASSERT_EQ(qps_bitmap_set(&bitmap, 270101),
                     (uint32_t)QPS_BITMAP_NULL);
 
-        en = qps_bitmap_start_enumeration(&bitmap);
+        en = qps_bitmap_get_enumerator(&bitmap);
         Z_ASSERT_EQ(en.key.key, 270100u);
 
         for (uint32_t i = 0; i < 270100; i++) {
             Z_ASSERT_EQ(qps_bitmap_set(&bitmap, i), (uint32_t)QPS_BITMAP_NULL);
         }
 
-        qps_bitmap_enumeration_next(&en);
+        qps_bitmap_enumerator_next(&en);
         Z_ASSERT_EQ(en.key.key, 270101u);
 
         qps_bitmap_destroy(&bitmap);

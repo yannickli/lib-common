@@ -1169,11 +1169,11 @@ void qhat_fix_stored0(qhat_t *hat)
 {
     uint32_t c = 0;
 
-    for (qhat_tree_enumerator_t en = qhat_tree_start_enumeration(hat);
-         !en.end; qhat_tree_enumeration_next(&en, true, true))
+    for (qhat_tree_enumerator_t en = qhat_get_tree_enumerator(hat);
+         !en.end; qhat_tree_enumerator_next(&en, true, true))
     {
         if (en.compact) {
-            const void *v = qhat_tree_enumeration_get_value_safe(&en);
+            const void *v = qhat_tree_enumerator_get_value_safe(&en);
 #define CASE(Size, Compact, Flat)                                            \
             if (IS_ZERO(Size, *(const qhat_##Size##_t *)v)) {                \
                 qhat_path_t path = en.path;                                  \
@@ -1194,8 +1194,8 @@ void qhat_fix_stored0(qhat_t *hat)
 /* }}} */
 /* Enumerator {{{ */
 
-static void qhat_tree_enumeration_enter_leaf(qhat_tree_enumerator_t *en,
-                                             uint32_t key)
+static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
+                                            uint32_t key)
 {
     en->memory = qhat_node_deref(&en->path);
 
@@ -1214,10 +1214,10 @@ static void qhat_tree_enumeration_enter_leaf(qhat_tree_enumerator_t *en,
     }
 
     en->pos = 0;
-    qhat_tree_enumeration_find_entry_from(en, key);
+    qhat_tree_enumerator_find_entry_from(en, key);
 }
 
-void qhat_tree_enumeration_find_root(qhat_tree_enumerator_t *en, uint32_t key)
+void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t *hat = en->path.hat;
     uint32_t root = qhat_get_key_bits(hat, key, 0);
@@ -1236,9 +1236,9 @@ void qhat_tree_enumeration_find_root(qhat_tree_enumerator_t *en, uint32_t key)
         }
 
         if (PATH_NODE(&en->path).leaf) {
-            qhat_tree_enumeration_enter_leaf(en, key);
+            qhat_tree_enumerator_enter_leaf(en, key);
         } else {
-            qhat_tree_enumeration_find_node(en, key);
+            qhat_tree_enumerator_find_node(en, key);
         }
     } else {
         en->end   = true;
@@ -1246,8 +1246,8 @@ void qhat_tree_enumeration_find_root(qhat_tree_enumerator_t *en, uint32_t key)
     }
 }
 
-void qhat_tree_enumeration_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
-                                       uint32_t new_key)
+void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
+                                      uint32_t new_key)
 {
     qhat_t  *hat = en->path.hat;
     uint32_t key_0 = qhat_get_key_bits(hat, key, 0);
@@ -1261,18 +1261,18 @@ void qhat_tree_enumeration_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
         en->value = NULL;
     } else
     if (key_0 != new_key_0) {
-        qhat_tree_enumeration_find_root(en, new_key);
+        qhat_tree_enumerator_find_root(en, new_key);
     } else {
         if (key_1 != new_key_1) {
             en->path.depth = 0;
         } else {
             en->path.depth = 1;
         }
-        qhat_tree_enumeration_find_node(en, new_key);
+        qhat_tree_enumerator_find_node(en, new_key);
     }
 }
 
-void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
+void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t   *hat = en->path.hat;
     uint32_t  pos = qhat_get_key_bits(hat, key, en->path.depth + 1);
@@ -1292,9 +1292,9 @@ void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
         }
 
         if (PATH_NODE(&en->path).leaf) {
-            qhat_tree_enumeration_enter_leaf(en, key);
+            qhat_tree_enumerator_enter_leaf(en, key);
         } else {
-            qhat_tree_enumeration_find_node(en, key);
+            qhat_tree_enumerator_find_node(en, key);
         }
         return;
     }
@@ -1306,12 +1306,13 @@ void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
         en->end   = true;
         en->value = NULL;
     } else {
-        qhat_tree_enumeration_dispatch_up(en, key, new_key);
+        qhat_tree_enumerator_dispatch_up(en, key, new_key);
     }
 }
 
 __flatten
-qhat_tree_enumerator_t qhat_tree_start_enumeration_at(qhat_t *trie, uint32_t key)
+qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
+                                                   uint32_t key)
 {
     qhat_tree_enumerator_t en;
     qps_hptr_deref(trie->qps, &trie->root_cache);
@@ -1321,16 +1322,16 @@ qhat_tree_enumerator_t qhat_tree_start_enumeration_at(qhat_t *trie, uint32_t key
     en.value_len   = en.path.hat->desc->value_len;
     en.is_nullable = en.path.hat->root->is_nullable;
 
-    qhat_tree_enumeration_find_up_down(&en, key);
+    qhat_tree_enumerator_find_up_down(&en, key);
     if (!en.end) {
-        en.value = qhat_tree_get_enumeration_value(&en);
+        en.value = qhat_tree_enumerator_get_value(&en);
     }
     return en;
 }
 
-void qhat_tree_enumeration_refresh_path(qhat_tree_enumerator_t *en)
+void qhat_tree_enumerator_refresh_path(qhat_tree_enumerator_t *en)
 {
-    qhat_tree_enumeration_find_up_down(en, en->key);
+    qhat_tree_enumerator_find_up_down(en, en->key);
 }
 
 
