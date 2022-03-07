@@ -553,6 +553,47 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(enumeration, "") { /* {{{ */
+        t_scope;
+        qps_handle_t htrie;
+        qhat_t trie;
+        qv_t(u32) keys;
+        const int nb_keys = 5000;
+        qhat_enumerator_t en;
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        t_qv_init(&keys, nb_keys);
+        htrie = qhat_create(qps, 4, false);
+        qhat_init(&trie, qps, htrie);
+        for (int i = 0; i < nb_keys; i++) {
+            uint32_t key;
+            uint32_t *v;
+
+            key = mem_hash32(&i, sizeof(i));
+            v = qhat_set(&trie, key);
+            *v = key;
+            qv_append(&keys, key);
+        }
+        dsort32(keys.tab, keys.len);
+        qv_clip(&keys, uniq32(keys.tab, keys.len));
+
+        /* Check that we can iterate on all the entries using 'next'. */
+        en = qhat_get_enumerator(&trie);
+        tab_for_each_entry(key, &keys) {
+            Z_ASSERT(!en.end);
+            Z_ASSERT_EQ(en.key, key);
+            Z_ASSERT_EQ(*(uint32_t *)en.value, key);
+            Z_ASSERT(qhat_enumerator_get_value(&en) == en.value);
+            qhat_enumerator_next(&en, true, true);
+        }
+        Z_ASSERT(en.end);
+
+        qhat_clear(&trie);
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
