@@ -523,6 +523,36 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(compute_memory, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        htrie = qhat_create(qps, 4, true);
+        qhat_init(&trie, qps, htrie);
+        for (int i = 0; i < 10000; i++) {
+            uint64_t *v;
+
+            v = qhat_set(&trie, i * 10000);
+            *v = i + 1;
+        }
+        for (int i = 1000000; i < 1100000; i++) {
+            uint32_t *v;
+
+            v = qhat_set(&trie, i);
+            *v = i * 100;
+        }
+
+        /* XXX The values below doesn't mean so much but the tests ensure we
+         * don't change the QPS hat memory footprint or the behavior of the
+         * functions that compute it without knowing. */
+        Z_ASSERT_EQ(qhat_compute_memory(&trie), 622592ul);
+        Z_ASSERT_EQ(qhat_compute_memory_overhead(&trie), 170136ul);
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
