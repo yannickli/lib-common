@@ -15,6 +15,10 @@
 #include <lib-common/container.h>
 #include "qps-hat.h"
 
+/* LCOV_EXCL_START */
+
+/* {{{ Z-Helpers */
+
 #define _CHECK_TRIE      do { \
         Z_ASSERT(qhat_check_consistency(&trie));                             \
         Z_HELPER_RUN(check_leak(&trie));                                     \
@@ -383,6 +387,8 @@ static int test_8(qps_t *qps, bool null)
     Z_HELPER_END;
 }
 
+/* }}} */
+
 Z_GROUP_EXPORT(qps_hat) {
     qps_t *qps;
 
@@ -395,66 +401,131 @@ Z_GROUP_EXPORT(qps_hat) {
     }
     assert (qps);
 
-    Z_TEST(128, "128bits no null") {
+    Z_TEST(128, "128bits no null") { /* {{{ */
         Z_HELPER_RUN(test_128(qps, false));
     } Z_TEST_END;
 
-    Z_TEST(128_null, "128bits null") {
+    /* }}} */
+    Z_TEST(128_null, "128bits null") { /* {{{ */
         Z_HELPER_RUN(test_128(qps, true));
     } Z_TEST_END;
 
-    Z_TEST(128_null_zero, "128bits null zeros") {
+    /* }}} */
+    Z_TEST(128_null_zero, "128bits null zeros") { /* {{{ */
         Z_HELPER_RUN(test_zeros(qps, 16));
     } Z_TEST_END;
 
-    Z_TEST(64, "64bits no null") {
+    /* }}} */
+    Z_TEST(64, "64bits no null") { /* {{{ */
         Z_HELPER_RUN(test_64(qps, false));
     } Z_TEST_END;
 
-    Z_TEST(64_null, "64bits null") {
+    /* }}} */
+    Z_TEST(64_null, "64bits null") { /* {{{ */
         Z_HELPER_RUN(test_64(qps, true));
     } Z_TEST_END;
 
-    Z_TEST(64_null_zero, "64bits null zeros") {
+    /* }}} */
+    Z_TEST(64_null_zero, "64bits null zeros") { /* {{{ */
         Z_HELPER_RUN(test_zeros(qps, 8));
     } Z_TEST_END;
 
-    Z_TEST(32, "32bits no null") {
+    /* }}} */
+    Z_TEST(32, "32bits no null") { /* {{{ */
         Z_HELPER_RUN(test_32(qps, false));
     } Z_TEST_END;
 
-    Z_TEST(32_null, "32bits null") {
+    /* }}} */
+    Z_TEST(32_null, "32bits null") { /* {{{ */
         Z_HELPER_RUN(test_32(qps, true));
     } Z_TEST_END;
 
-    Z_TEST(32_null_zero, "32bits null zeros") {
+    /* }}} */
+    Z_TEST(32_null_zero, "32bits null zeros") { /* {{{ */
         Z_HELPER_RUN(test_zeros(qps, 4));
     } Z_TEST_END;
 
-    Z_TEST(16, "16bits no null") {
+    /* }}} */
+    Z_TEST(16, "16bits no null") { /* {{{ */
         Z_HELPER_RUN(test_16(qps, false));
     } Z_TEST_END;
 
-    Z_TEST(16_null, "16bits null") {
+    /* }}} */
+    Z_TEST(16_null, "16bits null") { /* {{{ */
         Z_HELPER_RUN(test_16(qps, true));
     } Z_TEST_END;
 
-    Z_TEST(16_null_zero, "16bits null zeros") {
+    /* }}} */
+    Z_TEST(16_null_zero, "16bits null zeros") { /* {{{ */
         Z_HELPER_RUN(test_zeros(qps, 2));
     } Z_TEST_END;
 
-    Z_TEST(8, "8bits no null") {
+    /* }}} */
+    Z_TEST(8, "8bits no null") { /* {{{ */
         Z_HELPER_RUN(test_8(qps, false));
     } Z_TEST_END;
 
-    Z_TEST(8_null, "8bits null") {
+    /* }}} */
+    Z_TEST(8_null, "8bits null") { /* {{{ */
         Z_HELPER_RUN(test_8(qps, true));
     } Z_TEST_END;
 
-    Z_TEST(8_null_zero, "8bits null zeros") {
+    /* }}} */
+    Z_TEST(8_null_zero, "8bits null zeros") { /* {{{ */
         Z_HELPER_RUN(test_zeros(qps, 1));
     } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(debug_print, "") { /* {{{ */
+        t_scope;
+        qps_handle_t htrie;
+        qhat_t trie;
+        const char *output_path;
+        FILE *file;
+        SB_1k(output);
+        const char *exp_output_path;
+        SB_1k(exp_output);
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        htrie = qhat_create(qps, 4, false);
+        qhat_init(&trie, qps, htrie);
+        for (int i = 1; i < 43; i++) {
+            uint32_t *v;
+
+            v = qhat_set(&trie, i * 10);
+            *v = i * 100;
+        }
+        for (int i = 1000000; i < 1010000; i++) {
+            uint32_t *v;
+
+            v = qhat_set(&trie, i);
+            *v = i * 100;
+        }
+
+        output_path = t_fmt("%*pMqhat-debug-print.txt",
+                            LSTR_FMT_ARG(z_tmpdir_g));
+        file = fopen(output_path, "w");
+        Z_ASSERT_P(file);
+        qhat_debug_print_stream(&trie, QHAT_PRINT_KEYS, file);
+        p_fclose(&file);
+
+        Z_ASSERT_N(sb_read_file(&output, output_path));
+
+        exp_output_path = t_fmt("%*pMtest-data/qhat/qhat-debug-print.txt",
+                                LSTR_FMT_ARG(z_cmddir_g));
+        Z_ASSERT_N(sb_read_file(&exp_output, exp_output_path),
+                   "cannot read path `%s`", exp_output_path);
+
+        Z_ASSERT_STREQUAL(output.data, exp_output.data);
+
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
 } Z_GROUP_END
+
+/* LCOV_EXCL_STOP */

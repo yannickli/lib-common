@@ -1147,6 +1147,8 @@ qhat_t *qhat_enumerator_get_hat(qhat_enumerator_t *en)
 #define QHAT_PRINT_KEYS    2U
 __cold
 void qhat_debug_print(qhat_t *hat, uint32_t flags);
+__cold
+void qhat_debug_print_stream(qhat_t *hat, uint32_t flags, FILE *stream);
 
 void qhat_get_qps_roots(qhat_t *hat, qps_roots_t *roots) __leaf;
 
