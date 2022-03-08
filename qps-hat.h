@@ -701,11 +701,19 @@ const void *qhat_tree_enumerator_get_value(qhat_tree_enumerator_t *en)
     }
 }
 
-#define QHAT_UPDATE_VALUE                                                    \
-    if (en->pos != old_pos) {                                                \
-        uint32_t count = en->pos - old_pos;                                  \
-        en->value = ((const uint8_t *)en->value) + count * en->value_len;    \
+
+static inline
+void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en,
+                                          uint32_t old_pos)
+{
+    if (en->pos != old_pos) {
+        uint32_t offset;
+
+        assert(en->pos > old_pos);
+        offset = en->pos - old_pos;
+        en->value = ((const uint8_t *)en->value) + offset * en->value_len;
     }
+}
 
 static ALWAYS_INLINE
 const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
@@ -728,7 +736,7 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
                 en->pos++;
             }
             en->count += en->pos - old_pos;
-            QHAT_UPDATE_VALUE;
+            qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
         }
     }
     return en->value;
@@ -868,7 +876,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
             }
             assert (en->count == en->memory.compact->count);
             if (en->pos < en->count) {
-                QHAT_UPDATE_VALUE;
+                qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
                 return en->key = en->memory.compact->keys[en->pos];
             }
         } else
@@ -885,7 +893,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
         if (old_node.value != QHAT_PATH_NODE(&en->path).value) {
             old_pos = 0;
         }
-        QHAT_UPDATE_VALUE;
+        qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
     }
     return en->key;
 }
@@ -932,12 +940,10 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
             if (old_node.value != QHAT_PATH_NODE(&en->path).value) {
                 old_pos = 0;
             }
-            QHAT_UPDATE_VALUE;
+            qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
         }
     }
 }
-
-#undef QHAT_UPDATE_VALUE
 
 static ALWAYS_INLINE
 qhat_tree_enumerator_t qhat_get_tree_enumerator(qhat_t *hat)
