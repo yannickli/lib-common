@@ -589,6 +589,15 @@ Z_GROUP_EXPORT(qps_hat) {
         }
         Z_ASSERT(en.end);
 
+        /* Check that we can iterate on all the entries using 'go_to'. */
+        en = qhat_get_enumerator(&trie);
+        tab_for_each_entry(key, &keys) {
+            qhat_enumerator_go_to(&en, key, true, true);
+            Z_ASSERT(!en.end);
+            Z_ASSERT_EQ(en.key, key);
+            Z_ASSERT_EQ(*(uint32_t *)en.value, key);
+        }
+
         qhat_clear(&trie);
         qhat_destroy(&trie);
     } Z_TEST_END;

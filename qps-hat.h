@@ -846,7 +846,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
                                    bool value, bool safe)
 {
     uint32_t    old_pos = en->pos;
-    qhat_node_t old_node;
+    const void *old_value = en->value;
 
     if (safe && en->pos < en->count) {
         uint32_t gen = en->path.generation;
@@ -885,12 +885,17 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
         }
     }
 
-    old_node = QHAT_PATH_NODE(&en->path);
+    old_value = en->value;
     old_pos = en->pos;
     en->pos++;
     qhat_tree_enumerator_find_entry(en);
     if (value) {
-        if (old_node.value != QHAT_PATH_NODE(&en->path).value) {
+        if (en->value != old_value) {
+            /* XXX The value pointer has been modified, probably by
+             * 'qhat_tree_enumerator_enter_leaf()', as a consequence, the
+             * 'value' attribute was reset to the first element of the value
+             * array, so the value pointer should be fixed up starting from
+             * the index zero. */
             old_pos = 0;
         }
         qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
@@ -900,7 +905,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
 
 static ALWAYS_INLINE
 void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
-                                 bool value, bool safe)
+                                bool value, bool safe)
 {
     if (en->end || en->key >= key) {
         return;
@@ -915,7 +920,7 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
         }
     } else {
         uint32_t    old_pos  = en->pos;
-        qhat_node_t old_node = QHAT_PATH_NODE(&en->path);
+        const void *old_value = en->value;
 
         if (unlikely(safe && en->compact)) {
             en->count = en->memory.compact->count;
@@ -937,7 +942,12 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
             qhat_tree_enumerator_find_down_up(en, key);
         }
         if (value) {
-            if (old_node.value != QHAT_PATH_NODE(&en->path).value) {
+            if (en->value != old_value) {
+                /* XXX The value pointer has been modified, probably by
+                 * 'qhat_tree_enumerator_enter_leaf()', as a consequence, the
+                 * 'value' attribute was reset to the first element of the
+                 * value array, so the value pointer should be fixed up
+                 * starting from the index zero. */
                 old_pos = 0;
             }
             qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
