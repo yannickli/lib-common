@@ -658,6 +658,11 @@ typedef struct qhat_tree_enumerator_t {
      * This pointer can be used directly when doing a read-only enumeration,
      * else use #qhat_enumerator_get_value_safe.
      */
+    /* XXX Implementation remark.
+     *
+     * This pointer contains the value associated to the current key only when
+     * en.pos == en.value_pos otherwise it has to be fixed up.
+     */
     const void *value;
 
     /* }}} */
@@ -666,6 +671,12 @@ typedef struct qhat_tree_enumerator_t {
 
     /* Position of the element in the local array in "memory". */
     uint32_t pos;
+
+    /* Position of the value (attribute 'value') in "memory".
+     * May differ from the value in attribute 'pos', which means that the
+     * value in the attribute 'value' isn't the one associated to the current
+     * key. */
+    uint32_t value_pos;
 
     /* Only when the local array in memory is a "compact".
      * Number of elements in the compact.
@@ -701,18 +712,35 @@ const void *qhat_tree_enumerator_get_value(qhat_tree_enumerator_t *en)
     }
 }
 
-
+/** Update the 'value' attribute.
+ *
+ * Unsafe: it supposes that the attribute 'memory' is properly set.
+ */
 static inline
-void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en,
-                                          uint32_t old_pos)
+void qhat_tree_enumerator_update_value_ptr(qhat_tree_enumerator_t *en)
 {
-    if (en->pos != old_pos) {
+    en->value = qhat_tree_enumerator_get_value(en);
+    en->value_pos = en->pos;
+}
+
+/** Update the 'value' attribute.
+ *
+ * Unsafe++: it works only when the existing 'value' attribute is already set
+ * in the right memory block (QPS hat tree enumerator internal API is supposed
+ * to guarantee that).
+ */
+static inline
+void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en)
+{
+    if (en->pos != en->value_pos) {
         uint32_t offset;
 
-        assert(en->pos > old_pos);
-        offset = en->pos - old_pos;
+        assert(en->pos > en->value_pos);
+        offset = en->pos - en->value_pos;
         en->value = ((const uint8_t *)en->value) + offset * en->value_len;
+        en->value_pos = en->pos;
     }
+    assert(en->end || en->value == qhat_tree_enumerator_get_value(en));
 }
 
 static ALWAYS_INLINE
@@ -723,7 +751,7 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
         return qhat_tree_enumerator_get_value(en);
     }
     if (unlikely(en->value == NULL)) {
-        en->value = qhat_tree_enumerator_get_value(en);
+        qhat_tree_enumerator_update_value_ptr(en);
     }
     if (en->compact) {
         if (unlikely(en->key > en->memory.compact->keys[en->pos])) {
@@ -736,7 +764,7 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
                 en->pos++;
             }
             en->count += en->pos - old_pos;
-            qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
+            qhat_tree_enumerator_fixup_value_ptr(en);
         }
     }
     return en->value;
@@ -845,9 +873,6 @@ static ALWAYS_INLINE
 uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
                                    bool value, bool safe)
 {
-    uint32_t    old_pos = en->pos;
-    const void *old_value = en->value;
-
     if (safe && en->pos < en->count) {
         uint32_t gen = en->path.generation;
         uint32_t key = en->key;
@@ -876,7 +901,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
             }
             assert (en->count == en->memory.compact->count);
             if (en->pos < en->count) {
-                qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
+                qhat_tree_enumerator_fixup_value_ptr(en);
                 return en->key = en->memory.compact->keys[en->pos];
             }
         } else
@@ -885,20 +910,10 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
         }
     }
 
-    old_value = en->value;
-    old_pos = en->pos;
     en->pos++;
     qhat_tree_enumerator_find_entry(en);
     if (value) {
-        if (en->value != old_value) {
-            /* XXX The value pointer has been modified, probably by
-             * 'qhat_tree_enumerator_enter_leaf()', as a consequence, the
-             * 'value' attribute was reset to the first element of the value
-             * array, so the value pointer should be fixed up starting from
-             * the index zero. */
-            old_pos = 0;
-        }
-        qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
+        qhat_tree_enumerator_fixup_value_ptr(en);
     }
     return en->key;
 }
@@ -913,15 +928,10 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
     if (unlikely(safe && en->path.generation != en->path.hat->struct_gen)) {
         qhat_tree_enumerator_find_up_down(en, key);
 
-        if (value) {
-            if (!en->end) {
-                en->value = qhat_tree_enumerator_get_value(en);
-            }
+        if (value && !en->end) {
+            qhat_tree_enumerator_update_value_ptr(en);
         }
     } else {
-        uint32_t    old_pos  = en->pos;
-        const void *old_value = en->value;
-
         if (unlikely(safe && en->compact)) {
             en->count = en->memory.compact->count;
             if (en->pos >= en->count) {
@@ -942,15 +952,7 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
             qhat_tree_enumerator_find_down_up(en, key);
         }
         if (value) {
-            if (en->value != old_value) {
-                /* XXX The value pointer has been modified, probably by
-                 * 'qhat_tree_enumerator_enter_leaf()', as a consequence, the
-                 * 'value' attribute was reset to the first element of the
-                 * value array, so the value pointer should be fixed up
-                 * starting from the index zero. */
-                old_pos = 0;
-            }
-            qhat_tree_enumerator_fixup_value_ptr(en, old_pos);
+            qhat_tree_enumerator_fixup_value_ptr(en);
         }
     }
 }
@@ -1073,7 +1075,9 @@ const void *qhat_enumerator_get_value(qhat_enumerator_t *en)
         if (!en->end && en->trie.key != en->key) {
             qhat_enumerator_catchup(en, true, false);
         } else {
-            en->value = qhat_tree_enumerator_get_value(&en->trie);
+            qhat_tree_enumerator_update_value_ptr(&en->trie);
+            en->value = en->trie.value;
+
             if (en->is_nullable && en->value == NULL) {
                 en->value = &qhat_default_zero_g;
             }

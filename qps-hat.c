@@ -1214,6 +1214,7 @@ static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
     }
 
     en->pos = 0;
+    en->value_pos = 0;
     qhat_tree_enumerator_find_entry_from(en, key);
 }
 
@@ -1324,7 +1325,7 @@ qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
 
     qhat_tree_enumerator_find_up_down(&en, key);
     if (!en.end) {
-        en.value = qhat_tree_enumerator_get_value(&en);
+        qhat_tree_enumerator_update_value_ptr(&en);
     }
     return en;
 }
