@@ -714,7 +714,9 @@ const void *qhat_tree_enumerator_get_value(qhat_tree_enumerator_t *en)
 
 /** Update the 'value' attribute.
  *
- * Unsafe: it supposes that the attribute 'memory' is properly set.
+ * Unsafe: it supposes that the attribute 'memory' is still up-to-date, and
+ * that no entry have been inserted/removed since the last use of the
+ * enumerator.
  */
 static inline
 void qhat_tree_enumerator_update_value_ptr(qhat_tree_enumerator_t *en)
@@ -770,6 +772,8 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
     return en->value;
 }
 
+/* Find the key associated to the current position of the enumerator.
+ * Update the attribute 'key' or end the enumerator. */
 static inline
 void qhat_tree_enumerator_find_entry(qhat_tree_enumerator_t *en)
 {
@@ -780,6 +784,7 @@ void qhat_tree_enumerator_find_entry(qhat_tree_enumerator_t *en)
 
     if (en->compact) {
         if (en->pos < en->count) {
+            /* We're still in the current compact. We're done. */
             en->key = en->memory.compact->keys[en->pos];
             return;
         }
@@ -787,12 +792,17 @@ void qhat_tree_enumerator_find_entry(qhat_tree_enumerator_t *en)
         next -= qhat_get_key_bits(hat, new_key, en->path.depth);
     } else
     if (en->pos < en->count) {
+        /* We're still in the current flat. We're done. */
         en->key = en->path.key | en->pos;
         return;
     }
 
+    /* We're after the current compact/flat.
+     * We've got to go to the next leaf. */
+
     shift = qhat_depth_shift(hat, en->path.depth);
     if (shift == 32) {
+        /* There is no next leaf. The enumerator is done. */
         en->end = true;
         return;
     }
@@ -813,6 +823,7 @@ void qhat_tree_enumerator_find_entry_from(qhat_tree_enumerator_t *en,
     qhat_tree_enumerator_find_entry(en);
 }
 
+/* Guaranteed to either enter a leaf or end the enumerator. */
 static ALWAYS_INLINE
 void qhat_tree_enumerator_find_up_down(qhat_tree_enumerator_t *en,
                                        uint32_t key)
@@ -869,6 +880,7 @@ void qhat_tree_enumerator_find_down_up(qhat_tree_enumerator_t *en,
     }
 }
 
+/* Similar to 'qhat_enumerator_next()' but only apply to the trie. */
 static ALWAYS_INLINE
 uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
                                    bool value, bool safe)
@@ -918,6 +930,7 @@ uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
     return en->key;
 }
 
+/* Similar to 'qhat_enumerator_go_to()' but only apply to the trie. */
 static ALWAYS_INLINE
 void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
                                 bool value, bool safe)
@@ -964,8 +977,33 @@ qhat_tree_enumerator_t qhat_get_tree_enumerator(qhat_t *hat)
 }
 
 /* }}} */
-/* Hat enumertion (tree + bitmap) {{{ */
+/* {{{ Hat enumeration (tree + bitmap) */
 
+/** Qhat enumerator.
+ *
+ * Allows to scan keys and values of a QPS hat (either nullable or not).
+ * The qhat can only be scanned forward: in increasing key order.
+ *
+ * The enumerator is meant to be created with one of the following functions:
+ * - #qhat_get_enumerator
+ * - #qhat_get_enumerator_at
+ *
+ * Public functions:
+ * - #qhat_enumerator_next
+ * - #qhat_enumerator_go_to
+ * - #qhat_enumerator_get_path
+ * - #qhat_enumerator_get_value_safe
+ * - #qhat_get_enumeration_value
+ *
+ * Its public attributes are the following:
+ * - #end true when the enumerator is done.
+ * - #key current key for the enumerator (if not done).
+ * - #value pointer to the value associated to the current key (if the value
+ *   update was asked while using #qhat_enumerator_go_to or
+ *   #qhat_enumerator_next).
+ *
+ * The other attributes are private and should not be used.
+ */
 typedef union qhat_enumerator_t {
     struct {
         uint32_t    key;
@@ -989,10 +1027,21 @@ void qhat_enumerator_catchup(qhat_enumerator_t *en, bool value, bool safe)
     }
     en->key = en->bitmap.key.key;
     if (value) {
+        /* We can have 'en->trie.key != en->key' because the tree enumerator
+         * is kept untouched as long as we don't need the associated value:
+         * the bitmap is sufficient if we only want to iterate on the keys. */
+
         if (!en->trie.end && en->trie.key < en->key) {
+            /* Make the tree enumerator catchup with the bitmap enumerator so
+             * that we can get or update the associated value. */
             qhat_tree_enumerator_go_to(&en->trie, en->key, true, safe);
         }
         if (en->trie.end || en->trie.key != en->key) {
+            /* The key exists in the bitmap but not in the trie, it means that
+             * the associated value is the default one: zero, which is
+             * forbidden in non-nullable qhats. */
+            /* FIXME Isn't it going to crash if we fixup the value starting
+             * from this one ? */
             en->value = &qhat_default_zero_g;
         } else {
             en->value = en->trie.value;
@@ -1000,6 +1049,15 @@ void qhat_enumerator_catchup(qhat_enumerator_t *en, bool value, bool safe)
     }
 }
 
+/** Move the enumerator to the next key of the qhat.
+ *
+ * \param[in] value If set, the pointer 'value' of the enumerator will be
+ *                  updated.
+ *
+ * \param[in] safe If set, the enumerator will support when the QHAT is
+ *                 modified (removal, insertions(?)) between uses
+ *                 (next, go_to).
+ */
 static ALWAYS_INLINE
 void qhat_enumerator_next(qhat_enumerator_t *en, bool value, bool safe)
 {
@@ -1037,9 +1095,28 @@ qhat_enumerator_t qhat_get_enumerator(qhat_t *trie)
     return qhat_get_enumerator_at(trie, 0);
 }
 
+/** Move the enumerator to a given key if it is present in the qhat or to the
+ * first following one otherwise.
+ *
+ * \warning The enumerator can only go forward. IOW the caller can only go to
+ * a key greater than (or equal) to the last key he went to.
+ *
+ * \param[in] key Target key. If the key doesn't exist in the qhat, then the
+ *                enumerator will be set to the first key of the enumerator
+ *                that immediately follows the target key. If there is no
+ *                greater key, then the enumerator will be ended (end ==
+ *                true).
+ *
+ * \param[in] value If set, the pointer 'value' of the enumerator will be
+ *                  updated.
+ *
+ * \param[in] safe If set, the enumerator will support when the QHAT is
+ *                 modified (removal, insertions(?)) between uses
+ *                 (next, go_to).
+ */
 static ALWAYS_INLINE
 void qhat_enumerator_go_to(qhat_enumerator_t *en, uint32_t key, bool value,
-                            bool safe)
+                           bool safe)
 {
     if (en->is_nullable) {
         assert (!en->bitmap.map->root->is_nullable);
@@ -1050,6 +1127,11 @@ void qhat_enumerator_go_to(qhat_enumerator_t *en, uint32_t key, bool value,
     }
 }
 
+/** Get the value associated to the current key (safe).
+ *
+ * Same as #qhat_get_enumeration_value but it also supports when the QPS hat
+ * was modifed during the lifetime of the enumerator.
+ */
 static ALWAYS_INLINE
 const void *qhat_enumerator_get_value_safe(qhat_enumerator_t *en)
 {
@@ -1068,6 +1150,7 @@ const void *qhat_enumerator_get_value_safe(qhat_enumerator_t *en)
     }
 }
 
+/** Get the value associated to the current key. */
 static ALWAYS_INLINE
 const void *qhat_enumerator_get_value(qhat_enumerator_t *en)
 {
@@ -1088,6 +1171,7 @@ const void *qhat_enumerator_get_value(qhat_enumerator_t *en)
     }
 }
 
+/** Get the 'qhat_path_t' associated to the current key. */
 static ALWAYS_INLINE
 qhat_path_t qhat_enumerator_get_path(const qhat_enumerator_t *en)
 {

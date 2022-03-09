@@ -1194,6 +1194,13 @@ void qhat_fix_stored0(qhat_t *hat)
 /* }}} */
 /* Enumerator {{{ */
 
+/* After call:
+ * - memory set to the current leaf
+ * - compact updated
+ * - pos set to the position of the key
+ * - key updated
+ * - value_pos updated
+ */
 static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
                                             uint32_t key)
 {
@@ -1218,6 +1225,7 @@ static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
     qhat_tree_enumerator_find_entry_from(en, key);
 }
 
+/* Guaranteed to either enter a leaf or end the enumerator. */
 void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t *hat = en->path.hat;
@@ -1247,6 +1255,7 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
     }
 }
 
+/* Guaranteed to either enter a leaf or end the enumerator. */
 void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
                                       uint32_t new_key)
 {
@@ -1273,6 +1282,7 @@ void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
     }
 }
 
+/* Guaranteed to either enter a leaf or end the enumerator. */
 void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t   *hat = en->path.hat;
@@ -1330,6 +1340,7 @@ qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
     return en;
 }
 
+/* Guaranteed to either enter a leaf or end the enumerator. */
 void qhat_tree_enumerator_refresh_path(qhat_tree_enumerator_t *en)
 {
     qhat_tree_enumerator_find_up_down(en, en->key);
